@@ -22,7 +22,7 @@ export function ApprovalRow({ item: it, primary, cls, onDone }: { item: QueueIte
   const L = approvalLabels(it.kind);
   const stepUp = auth.enabled && needsStepUp(it.risk_class);
   const cons = consequence(it.risk_class);
-  const { lead, rest } = leadAndRest(it.summary);
+  const { lead, rest } = leadAndRest(it.summary, 16);
   const title = plainWords(it.title);
 
   const decide = async (a: "approve" | "reject") => {

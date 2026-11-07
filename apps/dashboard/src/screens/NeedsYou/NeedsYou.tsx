@@ -15,7 +15,7 @@ import { useAppState, setState } from "../../store";
 import "../../components/kc.css";
 import "../../components/needsyou/needsyou.css";
 import { DEMO_PERSON } from "./count";
-import { awayLine, buildItems, madeLine, needsCount, visible, type NeedsItem } from "./model";
+import { awayLine, buildItems, madeLine, needsCount, visibleItems, type NeedsItem } from "./model";
 
 /**
  * Needs you: ONE list for everything that waits on the worker (approvals, practice runs that differed, routine proposals, prepared actions, paused runs).
@@ -57,7 +57,7 @@ export default function NeedsYou() {
 
   // The one primary button goes to the first real approval. A pause for safety and a practice run that differed are choices of equal weight.
   const primaryKey = items.find((i) => i.kind === "approval" && i.queue.kind !== "injection_pause" && i.queue.kind !== "shadow_mismatch")?.key;
-  const shown = visible(items, showAll);
+  const shown = visibleItems(items, showAll);
   const node = (it: NeedsItem) => {
     switch (it.kind) {
       case "approval": return <ApprovalRow item={it.queue} cls={it.cls} primary={it.key === primaryKey} onDone={reload} />;

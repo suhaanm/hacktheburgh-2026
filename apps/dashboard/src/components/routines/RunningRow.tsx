@@ -52,14 +52,16 @@ export function RunningRow({ routine: r, open, onToggle, onDecide, onRun, canRun
 
   return (
     <article className="rt-row" data-status={r.status} data-open={open}>
-      <button type="button" className="rt-row__open" aria-expanded={open} aria-controls={`rt-${r.id}`} onClick={onToggle}>
+      <div className="rt-row__line">
         <span className="rt-row__text">
           <span className="rt-row__title">{plainWords(r.title)}</span>
           <span className="rt-row__state">{stateLine(r)}</span>
         </span>
         <span className="rt-row__trust">{trustWord(r)}</span>
         <Glyph name="chevron" className="kc-glyph rt-row__chev" />
-      </button>
+        {/* The whole line opens the row. The control has no words of its own: its name is the routine's. */}
+        <button type="button" className="rt-row__open" aria-expanded={open} aria-controls={`rt-${r.id}`} aria-label={`${plainWords(r.title)}: ${open ? "close" : "open"}`} onClick={onToggle} />
+      </div>
       {open && (
         <div className="kc-panel rt-panel" id={`rt-${r.id}`}>
           <p>{plainWords(touchesSentence(r))} {never}</p>

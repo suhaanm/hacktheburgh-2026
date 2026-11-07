@@ -11,8 +11,13 @@ export type NeedsItem =
   | { key: string; kind: "prepared"; cls: NeedsClass; when: string | null; card: BriefingCard }
   | { key: string; kind: "paused"; cls: NeedsClass; when: string | null; run: AgentRun };
 
-/** At most this many rows show by default, then "Show all N" (design README rule 4). */
+/** At most this many rows show by default, then "Show all N" (design README rule 4: at most 7). Routines lists show seven. */
 export const DEFAULT_ROWS = 7;
+/**
+ * Needs you shows three rows by default: three decisions, with their buttons, fit a 735 px window (docs/knack-ux/02-needs-you.md). Safety and
+ * blocking items are never folded: every row of class 0 or 1 shows, however many there are. The sidebar badge counts the same list.
+ */
+export const NEEDS_ROWS = 3;
 
 /** An approval's class: a pause for safety and an irreversible step are safety; an outward step is a decision a job waits on; the rest can wait. */
 export function approvalClass(q: Pick<QueueItem, "kind" | "risk_class">): NeedsClass {
@@ -144,6 +149,12 @@ export function awayLine(rep: { ran: unknown[]; failed: unknown[]; queued?: unkn
   const n = rep.ran.length, f = rep.failed.length;
   if (n === 0 && f === 0) return null;
   return `Since you were away: ${n} ${n === 1 ? "run" : "runs"} finished, ${f} failed.`;
+}
+
+/** The rows Needs you shows: at least three, and every safety or blocking row; all of them once the worker asks. */
+export function visibleItems(items: NeedsItem[], showAll: boolean): NeedsItem[] {
+  const urgent = items.filter((i) => i.cls < 2).length;
+  return showAll ? items : items.slice(0, Math.max(NEEDS_ROWS, urgent));
 }
 
 /** Counts of a list: how many show, how many are folded. */

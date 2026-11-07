@@ -4,7 +4,7 @@ import routinesFx from "../../fixtures/routines.json";
 import briefingFx from "../../fixtures/briefing.json";
 import agentsFx from "../../fixtures/agents-runs.json";
 import type { AgentRun, BriefingCard, QueueItem, Routine } from "../../types";
-import { approvalClass, approvalLabels, awayLine, buildItems, consequence, isPausedRun, leadAndRest, neverLine, plainWords, saveHint, saveLine, seenLine, touchesLead, visible } from "./model";
+import { approvalClass, approvalLabels, awayLine, buildItems, consequence, isPausedRun, leadAndRest, neverLine, plainWords, saveHint, saveLine, seenLine, touchesLead, visible, visibleItems } from "./model";
 
 const queue = (queueFx as unknown as { data: QueueItem[] }).data;
 const routines = (routinesFx as unknown as { data: Routine[] }).data;
@@ -131,6 +131,16 @@ describe("words", () => {
     expect(awayLine({ ran: [1, 2], failed: [1] })).toBe("Since you were away: 2 runs finished, 1 failed.");
     expect(awayLine({ ran: [], failed: [] })).toBeNull();
     expect(awayLine(null)).toBeNull();
+  });
+  it("Needs you shows three rows by default and every safety or blocking row besides", () => {
+    const mk = (id: string, kind: QueueItem["kind"], risk: QueueItem["risk_class"], at: string) => q({ id, kind, risk_class: risk, created_at: at });
+    const calm = buildItems({ queue: ["1", "2", "3", "4", "5"].map((n) => mk(n, "batch_result", "normal", `2026-11-07T1${n}:00:00Z`)) });
+    expect(visibleItems(calm, false)).toHaveLength(3);
+    expect(visibleItems(calm, true)).toHaveLength(5);
+    const urgent = buildItems({ queue: ["a", "b", "c", "d", "e"].map((n, i) => mk(n, "irreversible_step", "irreversible", `2026-11-07T0${i}:00:00Z`)).concat([mk("z", "batch_result", "normal", "2026-11-07T09:00:00Z")]) });
+    expect(visibleItems(urgent, false)).toHaveLength(5);                 // five safety rows: none is folded
+    expect(visibleItems(urgent, false).every((i) => i.cls === 0)).toBe(true);
+    expect(visibleItems([], false)).toEqual([]);
   });
   it("shows seven rows then all", () => {
     const rows = Array.from({ length: 10 }, (_, i) => i);

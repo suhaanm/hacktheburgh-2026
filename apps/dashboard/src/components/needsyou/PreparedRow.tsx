@@ -15,10 +15,10 @@ const rowsFor = (t: string, min: number) => Math.min(10, Math.max(min, Math.ceil
 /** What pressing "Approve and run" does, in one printed line, by the card's fire type. Stated before the press, so there is no surprise. */
 export function fireLine(fireType: string | undefined): string {
   switch (fireType) {
-    case "queue": return "Creates an item here for your approval. Nothing runs until you approve it.";
-    case "draft": return "Saves a local draft and creates an item here for your approval.";
+    case "queue": return "Creates an item for your approval. Nothing runs until then.";
+    case "draft": return "Saves a local draft and asks for your approval.";
     case "agent": return "Starts a background run that only reads.";
-    default: return "Creates an item for your approval, or starts a read-only run.";
+    default: return "Asks for your approval, or starts a read-only run.";
   }
 }
 
@@ -39,7 +39,7 @@ export function PreparedRow({ card: c, onFired, onDismissed, onChanged }: { card
   const checked = checkedNote(c);
   const parts = rankingParts(c.ranking);
   const cons = consequence(c.risk_class);
-  const { lead } = leadAndRest(c.why);
+  const { lead } = leadAndRest(c.why, 16);
 
   const save = async () => { await api.briefingEdit(c.id, cleanPrepared(draft)); };
   const run = async (what: string, fn: () => Promise<void>) => {
@@ -53,14 +53,12 @@ export function PreparedRow({ card: c, onFired, onDismissed, onChanged }: { card
   };
 
   return (
-    <article className="kc-row" data-kind="prepared" data-cls="2" data-risk={c.risk_class} aria-labelledby={`ny-${c.id}`}>
+    <article className="kc-row" data-kind="prepared" data-cls="2" data-risk={c.risk_class} aria-labelledby={`ny-${c.id}`} aria-describedby={`fd-${c.id}`}>
       <h3 className="kc-row__title" id={`ny-${c.id}`}>
         <Glyph name="decision" />
         <span>{plainWords(c.title)}</span>
-        <span className="kc-row__when">{expiresIn(c.expires_at) === "expired" ? "expired" : `expires ${expiresIn(c.expires_at)}`}</span>
       </h3>
-      <p className="kc-row__body">{lead}</p>
-      <p className="kc-row__meta">{fireLine(c.fire_type)}</p>
+      <p className="kc-row__body" id={`fd-${c.id}`}>{lead}</p>
       {cons && <p className="kc-row__cons" data-testid="consequence">{cons} It stops here for your own click first.</p>}
       {err && <p className="kc-error" role="alert">{err}</p>}
       <div className="kc-row__actions" role="group" aria-label="Your choice">
@@ -76,6 +74,7 @@ export function PreparedRow({ card: c, onFired, onDismissed, onChanged }: { card
       </div>
       {open && (
         <div className="kc-panel" id={`pv-${c.id}`}>
+          <p data-testid="fire-line"><b>Pressing Approve and run:</b> {fireLine(c.fire_type)}</p>
           {checked && <p data-testid="checked">{checked}</p>}
           <div className="row row--between">
             <p className="kc-label">{editing ? "Prepared for you. Edit it if you like." : "Prepared for you"}</p>
@@ -112,7 +111,7 @@ export function PreparedRow({ card: c, onFired, onDismissed, onChanged }: { card
               {!dirty && <button type="button" className="btn btn--quiet btn--sm" onClick={() => setEditing(false)}>Done editing</button>}
             </div>
           )}
-          <p className="kc-sub" data-testid="card-from">From {c.sources.join(", ")}.{c.wording === "model" ? " Reworded by a model from safe numbers." : ""}{c.edited ? " Edited by you." : ""}</p>
+          <p className="kc-sub" data-testid="card-from">From {c.sources.join(", ")}, {expiresIn(c.expires_at) === "expired" ? "expired" : `expires ${expiresIn(c.expires_at)}`}.{c.wording === "model" ? " Reworded by a model from safe numbers." : ""}{c.edited ? " Edited by you." : ""}</p>
           {parts.length > 0 && (
             <Details summary={`How this was chosen${typeof c.ranking?.score === "number" ? `: score ${c.ranking.score.toFixed(2)}` : ""}${c.ranking?.rank ? `, rank ${c.ranking.rank}` : ""}`} wide>
               <div className="table-wrap"><table className="table">
