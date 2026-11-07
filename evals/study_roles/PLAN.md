@@ -295,3 +295,13 @@ model gpt-5.4-mini, effort none; 159 calls (74 cached), US$0.320 (US$0.472 of pi
 covered `fast` only so `fast-low` was not piloted, there is no larger tier, and neither the programmer study nor the analyst pilot was started. Mean cost of a completed 4-case pilot participant US$0.16. Files: `results/programmer/PILOT_fast.json`,
 `results/programmer/pilot_fast/`, `results/programmer/pilot_aborted_1/`.
 
+**Amendment 3 (2026-11-07 21:07 UTC): programmer pilot on `fast-low` is USABLE; the programmer study is NOT started (it cannot finish by the owner's 22:00 UTC MVP time). Nothing in the plan was changed.**
+The pilot (the plan's next option after `fast` failed on cap-binding; started 20:57 UTC with the lead's go; model gpt-5.4-mini with `OPENAI_EFFORT_FAST=low`; 3 A/A participants, 12 unassisted cases, no harness exclusion; frozen snapshot) gives, by code and with the thresholds
+of section 8 unchanged: floor 8.3% of cases scored 0 (limit 50%), ceiling 50% fully correct (limit 80%), cap-binding 8.3% (1 of 12 cases at its cap; limit 25%). **Verdict: usable.** Outcomes: correct 6, partial 5, wrong 1; actions per case 8 to 48 against caps of 45 to 60.
+Cost: US$0.271 (111 calls), US$0.090 per completed 4-case pilot participant; pilots in total US$0.743 of the US$2 cap (aborted run 0.152, `fast` 0.320, `fast-low` 0.271). Run `fast-low` for the programmer role; the analyst role was not piloted (its pilot and study are not run: time and budget).
+**Go-ahead command** (needs `evals/study_roles/GO` and the lead's go; nothing is running now):
+`STUDY_SIM_PRICE_IN=0.75 STUDY_SIM_PRICE_OUT=4.5 scripts/heavy.sh uv run --package understudy-agent --env-file .env python -m evals.study_roles run --role programmer --tier fast-low --roles-left 1 --workers 2`
+(`--roles-left 1`: the programmer takes all that is left, `plan_units` gives 3 units = 24 participants, 12 coached + 12 A/A, estimated US$4.23; with `--units 2` or `--roles-left 2`: 2 units = 16 participants, 8 coached + 8 A/A, estimated US$2.82.)
+The estimate is the pilot cost times 1.5 (6 cases and two notes against 4 cases) times 1.3 (safety): US$1.41 per unit of 8; the hard stop in code is US$8 in total including the pilots (US$7.26 left). Expected wall time at 2 workers: about 7 to 8 minutes per participant,
+so about 1 hour for 16 participants and about 1.5 hours for 24 (plus waiting for a heavy.sh slot). Power at 8 to 12 coached participants is low (section 7). The pilot participants are discarded and are not part of any result.
+

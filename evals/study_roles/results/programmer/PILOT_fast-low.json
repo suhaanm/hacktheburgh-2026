@@ -1,0 +1,49 @@
+{
+ "usable": true,
+ "reasons": [],
+ "n_unassisted_cases": 12,
+ "share_zero": 0.083,
+ "share_full": 0.5,
+ "share_cap_bound": 0.083,
+ "mean_cost_per_participant_usd": 0.0904,
+ "points": [
+  2.0,
+  2.0,
+  1.0,
+  1.0,
+  2.0,
+  1.0,
+  2.0,
+  0.0,
+  1.0,
+  1.0,
+  2.0,
+  2.0
+ ],
+ "criteria": {
+  "max_share_zero": 0.5,
+  "max_share_full": 0.8,
+  "max_share_cap_bound": 0.25,
+  "cap_used_share": 0.95
+ },
+ "role": "programmer",
+ "tier": "fast-low",
+ "model": "gpt-5.4-mini",
+ "prices_usd_per_mtok": [
+  0.75,
+  4.5,
+  "env"
+ ],
+ "participants_run": 3,
+ "plan": {
+  "units": 2,
+  "participants": 16,
+  "coached": 8,
+  "aa": 8,
+  "estimated_cost_usd": 2.82,
+  "unit_cost_usd": 1.41,
+  "budget_share_usd": 3.63,
+  "run": true,
+  "why": ""
+ }
+}
