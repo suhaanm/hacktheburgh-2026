@@ -40,9 +40,8 @@ def extension_flags(env_on_fn=env_on) -> dict[str, bool]:
 # "0" (or any other value) is respected, so a flag can still be turned OFF per run. Tests never call this, so the layers stay
 # off in the test environment unless a test turns them on.
 #
-# Deliberately NOT in this list, and why (docs/FLAGS.md): the real-desktop arm switches (UNDERSTUDY_REAL_ACTUATOR,
-# ALONGSIDE_AGENCY_LOOP, UNDERSTUDY_JXA_CLICK: rung-by-rung owner approval, reviewer verdict, and the loop and the JXA click
-# duplicate the Python actuator), UNDERSTUDY_LEGACY_REMOTE (duplicates the ledgered Gemini and model paths; sends frames outside
+# Deliberately NOT in this list, and why (docs/FLAGS.md): ALONGSIDE_AGENCY_LOOP and UNDERSTUDY_JXA_CLICK (the loop and the JXA click
+# duplicate the Python actuator; the arm switch UNDERSTUDY_REAL_ACTUATOR is on by default in the agent service only, see D50 below), UNDERSTUDY_LEGACY_REMOTE (duplicates the ledgered Gemini and model paths; sends frames outside
 # the ledger), the old wake word, scam and file-search flags, UNDERSTUDY_VOICE_DEBUG_TEXT (bypasses the fixed-lines rule),
 # UNDERSTUDY_CU_FRAME_HINT (evidence against it), UNDERSTUDY_INSIGHTS_HELDOUT (a run-once guard), and the awareness glance
 # settings (they need the worker's recorded consent and macOS Screen Recording).
@@ -56,11 +55,21 @@ DEFAULT_ON = (
 )
 
 
-def apply_default_flags(environ: "dict[str, str] | None" = None) -> list[str]:
-    """Set every DEFAULT_ON flag that is unset or empty to "1". Returns the names it set. An explicit value, including "0", wins."""
+# D50 (owner, 7 Nov 2026, in chat, after the lead had left it off and explained why): the arm switch for real desktop clicks is ON by
+# default in the AGENT service only (the engine never builds an actuator, so it never gets it). It is the arm switch, not the permission:
+# every real action still needs a RunPermit made from the owner's one-time token (or, unattended, a routine's consent record), the pinned
+# window, the countdown with the target app in front, the kill file and the supervisor stop; and the real backend needs pyobjc, which the
+# agent environment does not install, so the actuator stays inert until the owner runs the documented R1 command. An explicit
+# UNDERSTUDY_REAL_ACTUATOR=0 still turns it off.
+AGENT_DEFAULT_ON = ("UNDERSTUDY_REAL_ACTUATOR",)
+
+
+def apply_default_flags(environ: "dict[str, str] | None" = None, *, agent: bool = False) -> list[str]:
+    """Set every DEFAULT_ON flag (and, with ``agent=True``, every AGENT_DEFAULT_ON flag) that is unset or empty to "1". Returns the names it
+    set. An explicit value, including "0", wins."""
     env = os.environ if environ is None else environ
     changed: list[str] = []
-    for name in DEFAULT_ON:
+    for name in DEFAULT_ON + (AGENT_DEFAULT_ON if agent else ()):
         if env.get(name, "").strip() == "":
             env[name] = "1"
             changed.append(name)

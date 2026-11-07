@@ -532,7 +532,7 @@ def main() -> None:  # pragma: no cover - manual use
     try:
         from understudy_engine.api.flags import apply_default_flags
 
-        apply_default_flags()   # D48: the layers are on by default; an explicit UNDERSTUDY_X=0 turns them off
+        apply_default_flags(agent=True)   # D48: the layers are on by default; D50: so is the real-actuator ARM switch here (a permit is still needed per run); an explicit 0 turns either off
     except Exception:  # noqa: BLE001 - the engine package is optional here; flags then stay as the environment says
         pass
 

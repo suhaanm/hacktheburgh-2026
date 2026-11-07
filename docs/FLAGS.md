@@ -15,13 +15,13 @@ A running service applies `DEFAULT_ON` once at startup (`understudy_engine/api/f
 | `UNDERSTUDY_X_LIVE`, `UNDERSTUDY_FLAG_VOICE` | Live voice in the desktop build | Hold to talk only; no always-listening microphone. The agent service's `live` router does not exist (agent health shows `live: false`): Live voice is a desktop feature |
 | `UNDERSTUDY_VOICE` | ElevenLabs spoken lines | Fixed vocabulary. Cue still speaks only on request (D36) |
 | `UNDERSTUDY_EVIDENCE_CLOUD` | A cloud wording attempt for "explain this" | Always behind the number check, template fallback. Now routes to Gemini |
+| `UNDERSTUDY_REAL_ACTUATOR` (agent service only, D50) | The ARM switch for real desktop clicks | The owner approved this in chat after the lead had left it off. It is the arm switch, not the permission: every real action still needs a RunPermit made from the owner's one-time token (or, unattended, a routine's consent record), the pinned window, the countdown with the target in front, the kill file and the supervisor stop. The real backend also needs pyobjc, which the agent environment does not install, so it stays inert until the owner runs the documented R1 command. The reviewer's NO-GO for model-driven (R2) and unattended (R3, R4) real clicks still stands as advice; nothing runs a real click until the owner is present. `UNDERSTUDY_REAL_ACTUATOR=0` turns it off |
 | Desktop: voice feature and the Cue, awareness, Gemini and Live experiments | Same, in the Electron main process | `UNDERSTUDY_X_<NAME>=0` turns one off |
 
 ## Off on purpose, and why
 
 | Flag | Why it stays off |
 |---|---|
-| `UNDERSTUDY_REAL_ACTUATOR` | The arm switch for real desktop clicks. The owner's own rule is rung-by-rung approval in chat; only the read-only rung R0 has run; the independent reviewer's verdict is NO-GO for model-driven (R2) and unattended (R3, R4) real clicks; and with the switch on by default the unattended off-hours path could construct a real actuator. A real click already needs a one-time owner token, a countdown and the owner present, per run: the documented R1 command arms it for that run only. Say "run R1" and we do it together |
 | `ALONGSIDE_AGENCY_LOOP` | The old Alongside multi-step loop. It duplicates our own agent loop (the Python tier-3 actuator behind the eight layers), without those layers |
 | `UNDERSTUDY_JXA_CLICK` | An alternative implementation of the same legacy click. It has only been run against fakes. Off while the legacy actuator is off |
 | `UNDERSTUDY_LEGACY_REMOTE` | Lets the old Alongside paths send screenshots and file text to remote models outside the ledger. It duplicates the ledgered Gemini paths and breaks the rule that frames leave only through the egress guard (D30) |

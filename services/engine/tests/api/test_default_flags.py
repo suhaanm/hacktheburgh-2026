@@ -4,7 +4,7 @@ from __future__ import annotations
 from understudy_engine.api.flags import DEFAULT_ON, apply_default_flags, extension_flags
 
 NEVER_DEFAULTED = (
-    "UNDERSTUDY_REAL_ACTUATOR", "ALONGSIDE_AGENCY_LOOP", "UNDERSTUDY_JXA_CLICK", "UNDERSTUDY_LEGACY_REMOTE",
+    "ALONGSIDE_AGENCY_LOOP", "UNDERSTUDY_JXA_CLICK", "UNDERSTUDY_LEGACY_REMOTE",
     "UNDERSTUDY_FLAG_WAKE", "UNDERSTUDY_FLAG_SCAM", "UNDERSTUDY_FLAG_FILES", "UNDERSTUDY_VOICE_DEBUG_TEXT",
     "UNDERSTUDY_CU_FRAME_HINT", "UNDERSTUDY_INSIGHTS_HELDOUT",
 )
@@ -26,7 +26,7 @@ def test_an_explicit_value_wins_including_zero_and_empty_is_filled():
     assert env["UNDERSTUDY_X_LIVE"] == "1" and env["UNDERSTUDY_X_GEMINI"] == "1"
 
 
-def test_safety_arm_switches_legacy_remote_and_guards_are_never_defaulted():
+def test_legacy_loop_legacy_remote_and_guards_are_never_defaulted():
     env: dict[str, str] = {}
     apply_default_flags(env)
     for name in NEVER_DEFAULTED:
@@ -38,3 +38,15 @@ def test_applying_defaults_twice_changes_nothing_the_second_time():
     env: dict[str, str] = {}
     apply_default_flags(env)
     assert apply_default_flags(env) == []
+
+
+def test_the_real_actuator_arm_switch_is_on_in_the_agent_service_only_and_an_explicit_zero_wins():
+    engine_env: dict[str, str] = {}
+    apply_default_flags(engine_env)                                  # the engine: never gets the arm switch
+    assert "UNDERSTUDY_REAL_ACTUATOR" not in engine_env
+    agent_env: dict[str, str] = {}
+    changed = apply_default_flags(agent_env, agent=True)             # D50: the agent service
+    assert agent_env["UNDERSTUDY_REAL_ACTUATOR"] == "1" and "UNDERSTUDY_REAL_ACTUATOR" in changed
+    off = {"UNDERSTUDY_REAL_ACTUATOR": "0"}
+    apply_default_flags(off, agent=True)
+    assert off["UNDERSTUDY_REAL_ACTUATOR"] == "0"

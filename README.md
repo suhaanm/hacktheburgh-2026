@@ -55,7 +55,8 @@ In Chrome open `chrome://extensions`, switch on Developer mode, choose Load unpa
 | `UNDERSTUDY_X_CUE`, `_GEMINI`, `_LIVE` | In the **desktop app** these three are read by name only; `UNDERSTUDY_X=1` alone does not turn them on there. (`_AWARENESS` and `_ATTENTION` do honour the master.) Read from `apps/desktop/src/main/feature-flags.ts`. |
 | `UNDERSTUDY_FLAG_VOICE`, `_WAKE`, `_SCAM`, `_FILES` | Old Alongside features, off. |
 | `UNDERSTUDY_LEGACY_REMOTE=1` | Re-enables old Alongside paths that send screenshots or file text to remote models. Off. |
-| `UNDERSTUDY_REAL_ACTUATOR=1`, `ALONGSIDE_AGENCY_LOOP=1` | Real clicks and the multi-step loop. Off. Do not set them without the owner present. |
+| `UNDERSTUDY_REAL_ACTUATOR` | The arm switch for real desktop clicks. **On by default in the agent service** (D50); a real action still needs the owner's one-time token, the countdown and the owner present, and the real backend needs pyobjc, so it stays inert until the owner runs the R1 command. `=0` turns it off. |
+| `ALONGSIDE_AGENCY_LOOP=1` | The old multi-step loop. Off: it duplicates our actuator. |
 
 ## What it does
 
