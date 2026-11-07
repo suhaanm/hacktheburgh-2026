@@ -91,3 +91,15 @@ The three calculators and the case note, tier 3 with fact handles, on the real s
 ## Records
 
 After each rung: one JSON from the script, copied into `evals/agentic/results/real_clicks/<rung>-<date>.json` with counts and enums only. The report to the lead lists: rung, pass or stop, guards that fired (codes), `kill_latency_ms` if measured, and what the owner saw.
+
+## R0 run 1 (Sat 7 Nov 2026, 19:26 GMT): the capture works; the test point was covered by another app (stop and report)
+
+Owner approved R0 in chat; reviewer verdict R0 GO. Command: `real_rungs --target TextEdit --point-px 1056 1020` over the real `QuartzBackend` (pyobjc from the uv cache, no download). The full preflight was not run for R0: R0 sends no events, so the hotkey, Do Not Disturb and clipboard-manager items do not apply; items 3 to 5 are what R0 itself measures. The preflight is required before R1.
+
+Counts and enums only (no titles, no text, no pixels kept):
+- In-memory capture (`CGDisplayCreateImage`, no file, no encode) returned an image: 3456 by 2234 pixels. So the call is still available on this macOS (Darwin 25.2); the reviewer's concern about the deprecation did not materialise on this machine. Whether other apps' pixels were in it was not inspected.
+- Backing scale 2.0, measured scale 2.0: `scale_agrees` true. `target_windows` 1 (TextEdit has exactly one window on screen, layer 0).
+- `events` 0 (no mouse, key, type or scroll was attempted; the actuator's write methods were never called).
+- The one marker at (1056, 1020) px = (528, 510) pt, the centre of the TextEdit window, landed in the **Claude** window (frontmost app, window number 205), not in TextEdit: `lands_in_target` false, `all_in_target` false, exit code 2.
+
+Reading: by this rung's own rule ("a point lands in another app") this is a stop-and-report, and it is the check doing its job: the Claude window overlaps the TextEdit region, which R1 preflight item 5 (clear target region) would also refuse. Nothing was clicked. Next: the owner moves the Claude window (or TextEdit) so the TextEdit document area is fully uncovered and TextEdit is in front, then one more read-only R0 run (a second capture) needs the owner's go; R1 needs the preflight first.
