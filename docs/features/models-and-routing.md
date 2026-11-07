@@ -90,7 +90,7 @@ Short spoken prompts come from a fixed set of lines, not from a model. A voice r
 
 ### How it works
 
-Knack sends a line id, never free text, and the call is listed in the ledger. Cached audio supports the offline demo. Cue speaks only when asked (decision D36). A developer escape hatch that lifts the fixed-lines rule exists and is off.
+Knack sends a line id, never free text, and the call is listed in the ledger. The draft submission text says cached audio supports the offline demo (the author did not confirm this in code). Cue speaks only when asked (decision D36). A developer escape hatch that lifts the fixed-lines rule exists and is off.
 
 ### Where to see it
 

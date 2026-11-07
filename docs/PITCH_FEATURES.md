@@ -1,6 +1,6 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sat 07 Nov 2026, 23:47 UTC. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sat 07 Nov 2026, 23:49 UTC. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
 This is the master document. It lists 61 entries (57 features and 4 write-ups of results that did not hold up) on 33 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
@@ -42,6 +42,19 @@ Watch how people work, show where a novice loses time against an expert, coach o
 | Wordsmith | Most complicated end-to-end browser-use workflow | [benefits-agent](features/benefits-agent.md), [security-layers](features/security-layers.md), [computer-use](features/computer-use.md), [background-agents](features/background-agents.md), [routines](features/routines.md), [stop-everything](features/stop-everything.md) | [capture](features/capture.md), [needs-you](features/needs-you.md), [proactive-briefing](features/proactive-briefing.md), [connections](features/connections.md), [hey-knack](features/hey-knack.md), [models-and-routing](features/models-and-routing.md), [context-engineering](features/context-engineering.md), [knack-shell](features/knack-shell.md), [privacy-ledger](features/privacy-ledger.md), [role-packs](features/role-packs.md) |
 
 Each page's 'Hackathon target' section says why.
+
+## A suggested order for a five-minute pitch
+
+One idea per step; every step links to the page that holds its script, evidence and limit.
+
+1. The problem and the loop (this page). Say the product paragraph and that the data are synthetic.
+2. See the gap: [work-genome](features/work-genome.md), with its two controls.
+3. Help that fades: [live-coach](features/live-coach.md), [screen-annotations](features/screen-annotations.md), then [cue](features/cue.md) and [growth-independence](features/growth-independence.md).
+4. An agent that does the work safely: [benefits-agent](features/benefits-agent.md), [security-layers](features/security-layers.md), [stop-everything](features/stop-everything.md).
+5. Work you choose to hand over: [routines](features/routines.md) and [needs-you](features/needs-you.md); then [background-agents](features/background-agents.md).
+6. Decisions with numbers (HRT): [stuck-model](features/stuck-model.md), [hrt-decisions](features/hrt-decisions.md).
+7. What stays yours: [privacy-ledger](features/privacy-ledger.md), [your-data](features/your-data.md).
+8. What did not hold up: [what-did-not-hold-up](features/what-did-not-hold-up.md) and [evidence-and-explain](features/evidence-and-explain.md). End here.
 
 ## 1. See the work
 
@@ -1370,7 +1383,7 @@ Short spoken prompts come from a fixed set of lines, not from a model. A voice r
 
 #### How it works
 
-Knack sends a line id, never free text, and the call is listed in the ledger. Cached audio supports the offline demo. Cue speaks only when asked (decision D36). A developer escape hatch that lifts the fixed-lines rule exists and is off.
+Knack sends a line id, never free text, and the call is listed in the ledger. The draft submission text says cached audio supports the offline demo (the author did not confirm this in code). Cue speaks only when asked (decision D36). A developer escape hatch that lifts the fixed-lines rule exists and is off.
 
 #### Where to see it
 
@@ -2296,34 +2309,28 @@ Not verified: any comparison with commercial products. The sources here do not c
 
 ## Numbers you may quote
 
-Only with the n, the split, the interval and the origin printed beside them. Where two numbers are marked 'quote both', quoting one without the other would mislead. All are from the report generated on 7 Nov 2026 at 21:40 UTC unless the source says otherwise; if the report is regenerated, re-check each line against its source file before the freeze.
+Only with the n, the split, the interval and the origin printed beside them. Numbers that have no interval in their source (the dignity gate table, the 14 of 14 replay, the pooled start-or-wait figures, the calendar table, the section and limitation counts) are left out of this box on purpose; they stay on their pages with their label. Where two numbers are marked 'quote both', quoting one without the other would mislead. All are from the report generated on 7 Nov 2026 at 21:40 UTC unless the source says otherwise; if the report is regenerated, re-check each line against its source file before the freeze.
 
 | Number | n and split | Origin | Source |
 |---|---|---|---|
 | Real novice-to-expert gap 229.6 s per case [192.7, 272.6]; expert against expert 7.1 s [-2.8, 18.4]; shuffled-label null 46.2 s [-36.4, 116.9] | 24 people; 1,000 permutations; 95% | synthetic | `evals/report.md (Controls)` |
-| Planted-deficit recovery: precision 92% [84.5, 98.6], recall 95% [88.6, 100.0] on our first generator; 48 to 71% and 49 to 68% on three harder ones. Quote both | 16 people (87 to 92 per harder family); cluster bootstrap | synthetic | `evals/report.md (Deficit recovery, Findings)` |
+| Planted-deficit recovery: precision 92% [84.5, 98.6], recall 95% [88.6, 100.0] on our first generator; 48 to 71% and 49 to 68% on three harder ones (per-family intervals in evals/realism/REPORT.md). Quote both | 16 people (87 to 92 per harder family); cluster bootstrap | synthetic | `evals/report.md (Deficit recovery, Findings)` |
 | Skipping the cliff check leaves a nearby edge unwarned on 107 of 200 households (53.5% [46.6, 60.3]); more than 50 pounds a month on 42 of them | 200 households; Wilson 95% | synthetic | `evals/cases/skip_consequences.json` |
-| Stuck model: log loss 0.436 [0.422, 0.451] against 0.509; its edge over time-since-progress falls to 0.008 to 0.015 nats on harder generators. Quote both | 4 people, leave one out; 120 people per harder cell | synthetic | `evals/report.md (Stuck hazard, Findings)` |
-| Dignity gate: false nudges 1.83 to 0.05 an hour; stuck events reached 21% to 5% | 4 people, leave one out; no interval in the table | synthetic | `evals/report.md (Coaching dignity gate)` |
-| The coach rang 14 of 14 planted skips and prompted no expert | 48 apprentice cases; a test assertion | synthetic | `services/engine/tests/coach/test_replay.py` |
-| Start-or-wait for background runs interrupted 2.1% of runs against 24.8% for 'whenever idle' | 4 personas x 21 days; forward held-out days | synthetic | `evals/report.md (Presence and window forecast)` |
+| Stuck model: log loss 0.436 [0.422, 0.451] against 0.509; its edge over time-since-progress falls to 0.008 to 0.015 nats on harder generators (one of nine diagonals not clearly above zero; per-cell intervals in evals/realism/REPORT.md). Quote both | 4 people, leave one out; 120 people per harder cell | synthetic | `evals/report.md (Stuck hazard, Findings)` |
 | Ski rental with predictions: regret 1.332 [1.322, 1.342] against 1.776 [1.765, 1.786] at break-even; building at once 1.273 [1.257, 1.290]. Quote all three | 4,000 simulated routines | synthetic | `evals/report.md (Ski-rental build timing)` |
 | Routine proposals after the value gate: 6 of 6 planted [61.0, 100.0]; the raw finder is 22% [12.9, 34.4] (12 of 55 clusters). Quote both | 4 personas | synthetic | `evals/report.md (Routine finder)` |
 | Real model on the sandbox: clean 18 of 20 [0.70, 0.97]; layout change 20 of 20 [0.84, 1.00]; one-off error page 0 of 20 [0.00, 0.16] with 20 false claims, all caught by the code check. Quote all three | 20 households per condition | real model (OpenAI), our sandbox, small n | `evals/report.md (Agent runs on the sandbox)` |
 | Scripted red team: attack success 0.0% [0.0, 8.4] with every layer on, 100.0% [91.6, 100.0] with all off. Real model: 0 of 126 against 5 of 126 with the intervals overlapping | 42 attacks, 31 clean pages; real model 42 cases x 3 repeats | synthetic; real model | `evals/report.md (Red team)` |
-| Computer use held-out: clean 1 of 4 completed (Wilson about [0.05, 0.70]); injected 20 of 20 paused at step 0 (text-only pages) | 4 and 20 households, seeds used up | real model (OpenAI), our sandbox | `evals/report.md (Agentic evaluation)` |
+| Computer use held-out: clean 1 of 4 completed (Wilson [0.05, 0.70]); injected 20 of 20 paused at step 0 (Wilson [0.84, 1.00]; text-only pages) | 4 and 20 households, seeds used up | real model (OpenAI), our sandbox | `evals/report.md (Agentic evaluation)` |
 | 0 of 11,456 planted canary tokens reached the model port; 0 of 88 runs; one-sided 95% upper bound 3.35% per run | 88 runs of 11 flows, 8 seeds each | synthetic, offline | `evals/report.md (Privacy layer)` |
-| Calendar layer: planted problems precision 93.9%, recall 98.2%; 0 of 24 expert weeks given a suggestion | 28 people | synthetic | `evals/report.md (Calendar layer)` |
-| Git habits: 116 of 116 flagged habits were planted; 116 of 120 planted habits found; placebo false flags 1% | 120 scripted developers | synthetic | `evals/report.md (Git habits)` |
+| Git habits: 116 of 116 flagged habits were planted (100% [96.8, 100.0]); 116 of 120 planted habits found (97% [91.7, 98.7]); placebo false flags 1% [0.4, 2.4] | 120 scripted developers, fresh seeds | synthetic | `evals/report.md (Git habits)` |
 | Local model: commit category 91.8% [84.7, 95.8] against 77.5% [68.3, 84.7] for rules | 98 held-out items | synthetic | `evals/report.md (Local model digests)` |
 | Pointing by description: Gemini flash-lite 95% [90, 98] (140 of 147), median 0.93 s | 147 positives, 43 negatives | synthetic sandbox screenshots | `evals/modelbench/REPORT.md` |
 | Cue (simulated): false nudges 0.73 an hour [0.64, 0.83], target met; faster-to-resume median 0.0 s [-9.5, 0.0], target not met. Quote both | 40 simulated personas, 481.5 hours | synthetic | `evals/cue/held_out.json` |
 | Attention router: 0.150 [0.141, 0.159] against 1.512 [1.447, 1.582] non-safety interruptions per flow hour; 11 of 12 criteria met | 200 simulated workers, 2,000 worker-days | synthetic | `evals/attention/report_held_out.json` |
 | Insights on null data: 0.0037 false pointers per worker-week [0.0027, 0.0047]; admin 0 of 160 admin-weeks | 2,400 synthetic people; 40 synthetic firms | synthetic | `evals/insights/results/heldout.json` |
-| Stop reaches a running helper in a median 33 ms; 8 of 8 within 1 s | 8 trials on a busy laptop | synthetic | `evals/report.json (runtime, stop)` |
+| Stop reaches a running helper in a median 33 ms; 8 of 8 within 1 s (Wilson [0.68, 1.00]) | 8 trials on a busy laptop | synthetic | `evals/report.json (runtime, stop)` |
 | Simulated study at the floor: 30 of 32 post-tests scored 0; difference +0.094 [-0.051, 0.239], exact p = 0.5 | 16 coached and 8 sham participants | simulated participants (language model), not people | `evals/study_sim/REPORT.md` |
-| The report: 35 sections (33 with numbers, 2 not run), 206 limitations (67 high) | generated 7 Nov 21:40 UTC | synthetic origin; live study not run | `evals/report.md; evals/report.facts.json` |
-| With four people the smallest possible exact p is 0.125 | Monte Carlo of the design | design property | `evals/report.md (Study power)` |
 
 ## Things we do not claim
 
