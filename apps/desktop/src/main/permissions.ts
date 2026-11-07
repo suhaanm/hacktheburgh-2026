@@ -6,6 +6,7 @@ import { app, desktopCapturer, shell, systemPreferences } from 'electron'
 import type { WebContents } from 'electron'
 import { IPC } from '../shared/ipc'
 import type { PermissionPane, PermissionStatus, PermState, ScreenProbe } from '../shared/permissions'
+import { APP_NAME } from '../shared/brand'
 
 const SETTINGS_URLS: Record<PermissionPane, string> = {
   screen: 'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture',
@@ -68,7 +69,7 @@ export function findLaunchingApp(psOutput: string, pid: number): string | null {
 }
 
 export function buildPermissionHint(opts: { packaged: boolean; launcher: string | null }): string {
-  if (opts.packaged && !opts.launcher) return 'Switch on "Alongside" in the list, then reopen it.'
+  if (opts.packaged && !opts.launcher) return `Switch on "${APP_NAME}" in the list, then reopen it.`
   if (opts.launcher) return `You started this from "${opts.launcher}", so macOS lists "${opts.launcher}" (and sometimes "Electron"). Switch on whichever you see, then reopen the app.`
   return 'Switch on "Electron" in the list (or the Terminal app you started this from), then reopen the app.'
 }

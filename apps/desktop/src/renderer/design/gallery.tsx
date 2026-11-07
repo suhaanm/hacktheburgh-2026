@@ -16,6 +16,7 @@ import {
   Segmented, SettingsPanel, SkillStepper, StopButton, Switch, applyDesignSettings, followSystemTheme, listeningLightState,
 } from './index'
 import './styles'
+import { APP_NAME } from '../../shared/brand'
 
 const now = Date.now()
 const day = 86_400_000
@@ -35,9 +36,9 @@ const snapshot: LearnerSnapshot = {
 const emptySnapshot: LearnerSnapshot = { ...snapshot, skills: { video_call: { level: 1, streakClean: 0, lastSeen: null, nextReview: null }, spot_scam: { level: 1, streakClean: 0, lastSeen: null, nextReview: null }, bigger_text: { level: 1, streakClean: 0, lastSeen: null, nextReview: null } }, confidenceLog: [], attempts: [], doneForMe: {} }
 
 // Panel's progress and profile tabs talk to main through the preload API; the gallery stands in for it.
-const profileSeed = `# My Alongside profile
+const profileSeed = `# My ${APP_NAME} profile
 
-> This file is yours. Read it, change it, or delete any line and Alongside will follow what it says here.
+> This file is yours. Read it, change it, or delete any line and ${APP_NAME} will follow what it says here.
 
 ## About me & accessibility
 
@@ -155,7 +156,7 @@ function Gallery(): ReactElement {
   return (
     <div className="al-app gl">
       <header className="gl-bar">
-        <strong>Alongside design gallery</strong>
+        <strong>{APP_NAME} design gallery</strong>
         <div className="gl-bar__row">
           <Segmented label="Theme" value={dark ? 'dark' : 'light'} onChange={(v) => setDark(v === 'dark')} options={[{ value: 'light', label: 'Light' }, { value: 'dark', label: 'Dark' }]} />
           <Segmented label="Companion" value={persona} onChange={(p) => patch({ persona: p })} options={PERSONA_LIST.map((p) => ({ value: p.id, label: p.displayName }))} />

@@ -1,0 +1,11 @@
+{
+  "$comment": "The one source of truth for the product name and the brand files. apps/desktop/src/shared/brand.ts and apps/dashboard/src/brand.ts read it; so do the icon script (apps/desktop/scripts/make-icons.mjs) and the packaging config (apps/desktop/electron-builder.config.cjs). Change the name here and every window, menu, tooltip, installer and tab title follows; replace a file named under `files` and every icon follows.",
+  "name": "Knack",
+  "bundleId": "app.knack.desktop",
+  "protocol": { "scheme": "app", "host": "knack" },
+  "files": {
+    "mark": "knack-mark.svg",
+    "glyph": "knack-glyph.svg",
+    "trayTemplate": "knack-tray-template.svg"
+  }
+}

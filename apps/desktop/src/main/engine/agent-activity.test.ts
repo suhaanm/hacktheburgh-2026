@@ -80,3 +80,18 @@ describe('the agent activity poller', () => {
     expect(fetchImpl).not.toHaveBeenCalled()
   })
 })
+
+describe('the raw samples (the Knack pill reads them)', () => {
+  it('hands every poll to onSample with the parsed answers, and null for a call that failed', async () => {
+    const samples: { health: unknown; runs: unknown }[] = []
+    const fetchImpl = vi.fn(async (url: string | URL | Request) => (new URL(String(url)).pathname === '/health' ? json({ supervisor: { state: 'running' } }) : json({}, false))) as unknown as typeof fetch
+    const a = createAgentActivity({ agentUrl: 'http://127.0.0.1:7710', fetchImpl, onChange: () => undefined, onSample: (s) => samples.push(s), setTimer: () => 0, clearTimer: () => undefined })
+    await a.poll()
+    await a.poll()
+    expect(samples.slice(-2)).toEqual([
+      { health: { supervisor: { state: 'running' } }, runs: null },
+      { health: { supervisor: { state: 'running' } }, runs: null },
+    ])
+    a.dispose()
+  })
+})

@@ -1,5 +1,6 @@
 import { useState, type ReactElement, type ReactNode } from 'react'
 import { Icon } from './icons'
+import { APP_NAME } from '../../shared/brand'
 
 export interface OnboardingProps {
   personaName: string
@@ -66,7 +67,7 @@ export function Onboarding({ personaName, onRequestMicrophone, onDone }: Onboard
               Allow the microphone
             </button>
           )}
-          {mic === 'denied' ? <p className="al-note">It was not allowed. In System Settings, open Privacy and Security, then Microphone, and turn Understudy on. Or carry on and type instead.</p> : null}
+          {mic === 'denied' ? <p className="al-note">It was not allowed. In System Settings, open Privacy and Security, then Microphone, and turn {APP_NAME} on. Or carry on and type instead.</p> : null}
         </>
       )
       break
@@ -74,8 +75,8 @@ export function Onboarding({ personaName, onRequestMicrophone, onDone }: Onboard
       body = (
         <>
           <h2 className="al-h1">Let me see your screen</h2>
-          <p>Open System Settings, then Privacy and Security, then Screen Recording. Turn Alongside on.</p>
-          <p className="al-note">Your computer will say Alongside needs to restart. Choose Quit and Reopen, then come back here.</p>
+          <p>Open System Settings, then Privacy and Security, then Screen Recording. Turn {APP_NAME} on.</p>
+          <p className="al-note">Your computer will say {APP_NAME} needs to restart. Choose Quit and Reopen, then come back here.</p>
         </>
       )
       break

@@ -8,19 +8,20 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { z } from 'zod'
+import { APP_NAME } from '../../shared/brand'
 
 export const LIVE_CONSENT_VERSION = 1
 
 // Plain, short, in this order: what is sent, what is skipped, what is kept, where to look, how to stop.
 export const LIVE_CONSENT_TEXT =
-  'When you hold the talk key, Understudy can listen and answer out loud. Your voice, and only while you hold the key, is sent to a cloud voice model for that conversation. ' +
+  `When you hold the talk key, ${APP_NAME} can listen and answer out loud. Your voice, and only while you hold the key, is sent to a cloud voice model for that conversation. ` +
   'If you also turn on screen looking, a small reduced picture of your screen is sent about every 5 seconds while the conversation is open. ' +
-  'Pictures are held in memory only and never saved; sound and words are never saved by Understudy. ' +
+  `Pictures are held in memory only and never saved; sound and words are never saved by ${APP_NAME}. ` +
   'Nothing is sent while a password manager or banking app is in front, while a password field has focus, while your screen is locked or shared, or while an agent is working for you. ' +
   'Each conversation stops when you stop talking, after a minute of silence, or after five minutes, and it has a spending limit. ' +
   'Pictures are listed in Privacy with their time, size, model and cost, but never the picture. You can turn this off, or pause it for an hour, at any time.'
 
-export const LIVE_CONSENT_SHORT = 'Hold the talk key to speak with Understudy. Voice is sent only while you hold it. Nothing is saved.'
+export const LIVE_CONSENT_SHORT = `Hold the talk key to speak with ${APP_NAME}. Voice is sent only while you hold it. Nothing is saved.`
 
 const VOICE_RE = /^[A-Za-z][A-Za-z0-9_-]{1,30}$/
 

@@ -8,13 +8,14 @@ import type { CompanionState, ConfirmRequest } from '../shared/protocol'
 import { acquireWithin, type VoiceLock } from './attention/lock'
 import { CONFIRM_TIMEOUT_MS } from './confirm'
 import type { ServiceContext } from './context'
+import { APP_NAME } from '../shared/brand'
 
 export const TOAST_WIDTH = 400
 export const TOAST_MARGIN = 12
 const MIN_HEIGHT = 140
 const MAX_HEIGHT = 560
 const LOAD_TIMEOUT_MS = 4000
-export const NOTIFICATION_TITLE = 'Understudy needs your OK'
+export const NOTIFICATION_TITLE = `${APP_NAME} needs your OK`
 
 // REQ-8: a permission prompt is the ConfirmBroker's own surface and is never gated or delayed by the attention router. It only takes the
 // LOCAL one-voice lock (owner 'decision') so a cue or a notice cannot appear over it: it waits a moment for one that is up, then draws anyway.
