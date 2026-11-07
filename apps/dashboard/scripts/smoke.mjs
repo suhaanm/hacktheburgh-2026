@@ -276,7 +276,7 @@ check("needs you: editing is one click away, not in the way", (await first.locat
 await first.getByRole("button", { name: "Details" }).click();
 await first.getByRole("button", { name: "Edit what will happen" }).click();
 await first.locator("textarea").first().fill("Hold Wednesday 10:00 to 12:00 for focus. Edited by me.");
-await first.getByRole("button", { name: "Save my edit" }).click();
+await first.getByRole("button", { name: /^Save/ }).click();
 await page.waitForTimeout(500);
 await go("/needs-you", 700);
 await showAll();

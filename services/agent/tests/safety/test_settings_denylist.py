@@ -67,6 +67,7 @@ def test_protected_paths():
     assert not G.check_path(data_dir() / "queue" / "q_1.json").allowed
     assert not G.check_path(pathlib.Path(os.environ["UNDERSTUDY_HOME"]) / "memory.md").allowed
     assert not G.check_path(pathlib.Path.home() / ".understudy" / "memory.md").allowed  # the default home is protected too
+    assert not G.check_path(data_dir() / "rung_cleared.json").allowed  # the R1 record unlocks voice "do it for me": a model-driven run must not write it
     assert G.check_path(data_dir() / "runs" / "r1" / "s1.png").allowed
     assert G.check_path("/tmp/some-note.txt").allowed
 

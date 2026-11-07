@@ -28,6 +28,7 @@ import type { PillSignals } from './pill-state'
 import { createQuitGuard, type QuitGuard } from './quit-guard'
 import { INITIAL_SHELL, TIMING, reduce, type Effect, type ShellEvent, type ShellState } from './shell-machine'
 import { shellPages, uiStateOf } from './shell-pages'
+import { dashboardSettingsPatch, dashboardSettingsView } from './settings-bridge'
 import type { Stack, StackConfig, StackState } from './stack'
 import { createRealStack } from './stack-real'
 import { createWindowStateStore } from './window-state'
@@ -192,6 +193,16 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
     if (!can.ok) return can
     deps.settings.patch({ useLiveModels: on as boolean }, { trusted: true }) // main restarts the app when it changes (below)
     return { ok: true }
+  })
+  // The other switches the dashboard's Settings shows: a small view to read, an allow-list to write. An ordinary (untrusted) patch, so the store still validates every value.
+  ipcMain.handle(KNACK_IPC.settingsGet, (event) => {
+    if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
+    return dashboardSettingsView(deps.settings.get())
+  })
+  ipcMain.handle(KNACK_IPC.settingsPatch, (event, patch: unknown) => {
+    if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
+    deps.settings.patch(dashboardSettingsPatch(patch) as Partial<Settings>) // the store validates each value
+    return dashboardSettingsView(deps.settings.get())
   })
 
   const dashboardBase = (s: StackState): string => (s.phase === 'ready' && s.dashboard === 'dev-server' && config.devUrl ? config.devUrl : APP_ORIGIN)
@@ -557,6 +568,8 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
       ipcMain.removeHandler(KNACK_IPC.get)
       ipcMain.removeHandler(KNACK_IPC.modelsGet)
       ipcMain.removeHandler(KNACK_IPC.modelsSet)
+      ipcMain.removeHandler(KNACK_IPC.settingsGet)
+      ipcMain.removeHandler(KNACK_IPC.settingsPatch)
       ipcMain.removeAllListeners(KNACK_IPC.retry)
       await stack.stop()
       main.dispose()

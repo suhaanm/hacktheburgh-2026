@@ -12,7 +12,7 @@ import { createFakeAudio, fakeCue, manualClock, startFakeLiveServer, waitFor, ty
 // A longer wait than the other Live tests: the whole desktop suite runs these in parallel with a few hundred files.
 // These tests open a real local websocket; give them room when the whole suite is running.
 vi.setConfig({ testTimeout: 60_000 })
-const wf = (cond: () => boolean): Promise<void> => waitFor(cond, 15_000)
+const wf = (cond: () => boolean): Promise<void> => waitFor(cond, 45_000)
 const ENV_ON = { UNDERSTUDY_X_LIVE: '1', UNDERSTUDY_FLAG_VOICE: '1', GEMINI_MODEL_LIVE: 'test-live-model', GEMINI_API_KEY: 'k-test' }
 const BUS = { on: () => () => undefined }
 

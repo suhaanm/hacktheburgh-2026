@@ -702,3 +702,10 @@ button.status-line:hover { color: var(--fg); }
 
 /* -- Key figure: one per chart, display face, tabular. ---- */
 .keyfigure { font: 600 var(--text-3xl)/1 var(--font-display); letter-spacing: -0.025em; font-variant-numeric: tabular-nums lining-nums; }
+
+/* -- Explain answer: a sentence of the answer takes two lines in the wide column, not three (KNACK_UX: no paragraph over two lines). -- */
+.explain .explain__text { max-width: 84ch; }
+
+/* Tags that were set in capitals (Evidence severity, in-sample, suggestion figures) are sentence case: mono capitals stay on chart axes and the work ribbon. */
+.page .sev, .page .pill--insample { text-transform: none; letter-spacing: 0; font-family: var(--font-body); font-size: var(--text-xs); }
+.page .sug__nums dt { text-transform: none; letter-spacing: 0; font-family: var(--font-body); font-weight: 600; }

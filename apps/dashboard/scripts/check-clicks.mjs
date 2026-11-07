@@ -12,6 +12,7 @@ import { chromium } from "playwright";
 import fs from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { openAs } from "./lib/knack-page.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const jobsFile = join(here, "..", "..", "..", "docs", "knack-ux", "jobs.json");
@@ -39,16 +40,8 @@ export const DEPTH = spec.budget;
 export const nav = (page, label) =>
   page.locator(".side nav a, .side nav button, nav a, nav button, .nav a").filter({ hasText: new RegExp(`^\\s*${label}\\b`) }).first();
 
-/** The view-as switch: the account menu in the new shell, the sidebar segmented control in the old one. Not a counted click (see budgetOf). */
-export async function becomeAdmin(page) {
-  const old = page.locator(".viewas .segmented button", { hasText: "Admin" });
-  if (await old.count()) { await old.first().click(); await page.waitForTimeout(300); return; }
-  const acct = page.locator("[data-account], .acct, button[aria-label*='ccount' i], .side button[aria-haspopup='menu']").first();
-  await acct.click();
-  await page.getByRole("menuitemradio", { name: /admin/i }).or(page.getByRole("menuitem", { name: /admin/i })).or(page.getByRole("radio", { name: /admin/i })).or(page.getByRole("button", { name: /view as admin|^admin$/i })).first().click();
-  await page.waitForTimeout(300);
-  await page.keyboard.press("Escape").catch(() => undefined);
-}
+/** Setup for an Admin job: first run marked done and the Admin view remembered, as the app does it. Not a counted click (see budgetOf). */
+export const becomeAdmin = (page) => openAs(page, base, "admin");
 
 // ---- the paths -------------------------------------------------------------------------------------------------------------------
 // `setup` runs before counting starts. `steps: []` means the screen the app opens on is the answer (0 clicks).
