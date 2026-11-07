@@ -1,11 +1,11 @@
 {
  "data": {
   "because": [
-   "It compares your last three weeks on this skill with the three weeks ending a month ago.",
-   "Errors and unfinished cases did not get worse."
+   "It compares your time on this skill with the expert's median for the same step.",
+   "It uses your own work from the last three weeks."
   ],
-  "headline": "On the cliff check, you now take about 15 seconds less than you did a month ago.",
-  "id": "i_68e904f27097",
+  "headline": "On the cliff check, you usually take about 35 seconds longer than the expert's median.",
+  "id": "i_c05775153981",
   "limits": [
    "A pointer is a prompt to look, not a verdict.",
    "It is a pattern in your own recent work and says nothing about your ability.",

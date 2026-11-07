@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useLoad } from "../../hooks";
 import { Loading } from "../common";
 import { Details } from "../ui";
@@ -110,6 +110,8 @@ function InsightRow({ i, open, onToggle }: { i: AdminInsight; open: boolean; onT
 /** The top insights as compact rows (at most seven). `openId` opens one on arrival, as the command palette asks. */
 export function InsightRows({ items, openId }: { items: AdminInsight[]; openId?: string | null }) {
   const [open, setOpen] = useState<string | null>(openId && items.some((i) => i.id === openId) ? openId : null);
+  // The command palette can ask for a different insight while this view is already showing.
+  useEffect(() => { if (openId && items.some((i) => i.id === openId)) setOpen(openId); }, [openId, items]);
   return (
     <ol className="firm-insights" aria-label="The seven things to know, in the order they were chosen">
       {items.slice(0, 7).map((i) => <InsightRow key={i.id} i={i} open={open === i.id} onToggle={() => setOpen(open === i.id ? null : i.id)} />)}

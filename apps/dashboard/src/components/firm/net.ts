@@ -26,6 +26,7 @@ export function refusalText(status: number, code: string | undefined, tokenMissi
   if (code === "admin_token_required" || tokenMissing || (code && /token/i.test(code))) {
     return "The engine did not receive this page's start-up token, so it will not show the firm. Restart everything with `make dev`, wait for it to say it is running, then try again. Nothing was changed.";
   }
+  if (code === "admin_actor_refused" || code === "worker_actor_required") return "The engine only answers this for the person at the keyboard, not for a script or an agent. Nothing was shown and nothing was changed.";
   if (code === "admin_only") return "The engine shows this only to the Admin role. Switch to the Admin view (demo role) in the menu, then try again.";
   return null;
 }
@@ -66,8 +67,13 @@ const metaOf = (body: unknown): AnalyticMeta | null => {
  * A read. `fixture` returns the example body (`{meta, data}` or bare) for when the engine cannot answer; `normalise` turns either
  * kind of body into the screen's shape. A 403 and other refusals are errors to read, never quietly swapped for example data.
  */
-export async function insightRead<T>(path: string, audience: Audience, fixture: () => unknown, normalise: (body: unknown) => T): Promise<Loaded<T>> {
+export async function insightRead<T>(path: string, audience: Audience, fixture: () => unknown, normalise: (body: unknown) => T, opts: { unknownPerson?: () => unknown } = {}): Promise<Loaded<T>> {
   const r = await call(path, "GET", audience);
+  // The engine is there and the layer is on, but nobody is set up yet: that is a real, empty answer, not a missing feature or example data.
+  if (opts.unknownPerson && r.reached && r.status === 404 && (r.body as { error?: { code?: string } } | null)?.error?.code === "unknown_person") {
+    noteSource("live");
+    return { data: normalise(opts.unknownPerson()), meta: null, source: "live", why: null };
+  }
   if (isMissing(r)) {
     const why: Fallback = classify(failure(r), INSIGHTS_WHO);
     const fx = clone(fixture());

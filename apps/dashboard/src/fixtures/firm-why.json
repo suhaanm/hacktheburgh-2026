@@ -7,7 +7,7 @@
   "family": {
    "m": 22,
    "method": "benjamini_hochberg",
-   "n_pass": 14,
+   "n_pass": 17,
    "q": 0.1
   },
   "headline": "An approval has waited 72 hours.",

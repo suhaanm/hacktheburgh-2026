@@ -17,8 +17,8 @@
     "unit": "share"
    }
   ],
-  "headline": "Programmer: juniors need less help than six weeks ago.",
-  "id": "i_817adda45c27",
+  "headline": "Benefits processor: juniors need less help than six weeks ago.",
+  "id": "i_5c0e723ef8f7",
   "kind": "cohort_trend",
   "method": "300 person-level bootstrap draws where an interval is a bootstrap; 3-week windows; seeds come from ids.",
   "notes": [
@@ -31,20 +31,20 @@
   "rows": [
    {
     "label": "Standardised, within each person",
-    "n": 8,
+    "n": 21,
     "values": {
-     "change": 0.1587,
-     "early": 0.6745,
-     "late": 0.8332
+     "change": 0.1376,
+     "early": 0.5709,
+     "late": 0.7085
     }
    },
    {
     "label": "Raw pooled, for comparison only",
-    "n": 8,
+    "n": 21,
     "values": {
-     "change": 0.1476,
-     "early": 0.6897,
-     "late": 0.8373
+     "change": 0.119,
+     "early": 0.6003,
+     "late": 0.7193
     }
    }
   ],
@@ -53,92 +53,100 @@
     "label": "Juniors, standardised independence by week",
     "points": [
      {
-      "hi": 0.6922,
-      "lo": 0.4562,
-      "n": 65,
-      "people": 6,
-      "x": -10,
-      "y": 0.5742
-     },
-     {
-      "hi": 0.6025,
-      "lo": 0.3819,
-      "n": 86,
-      "people": 8,
-      "x": -9,
-      "y": 0.4922
-     },
-     {
-      "hi": 0.7663,
-      "lo": 0.5561,
-      "n": 75,
-      "people": 7,
-      "x": -8,
-      "y": 0.6612
-     },
-     {
-      "hi": 0.7905,
-      "lo": 0.6126,
-      "n": 103,
-      "people": 8,
-      "x": -7,
-      "y": 0.7016
-     },
-     {
-      "hi": 0.7824,
-      "lo": 0.6135,
-      "n": 110,
-      "people": 8,
-      "x": -6,
-      "y": 0.698
-     },
-     {
-      "hi": 0.9189,
-      "lo": 0.7623,
-      "n": 93,
-      "people": 8,
-      "x": -5,
-      "y": 0.8406
-     },
-     {
-      "hi": 0.8846,
-      "lo": 0.7259,
-      "n": 99,
-      "people": 8,
-      "x": -4,
-      "y": 0.8053
-     },
-     {
-      "hi": 0.916,
-      "lo": 0.7709,
-      "n": 102,
-      "people": 8,
-      "x": -3,
-      "y": 0.8434
-     },
-     {
-      "hi": 0.8934,
-      "lo": 0.7415,
+      "hi": 0.5454,
+      "lo": 0.3498,
       "n": 87,
-      "people": 9,
+      "people": 6,
+      "x": -11,
+      "y": 0.4476
+     },
+     {
+      "hi": 0.6486,
+      "lo": 0.4545,
+      "n": 108,
+      "people": 11,
+      "x": -10,
+      "y": 0.5515
+     },
+     {
+      "hi": 0.578,
+      "lo": 0.4281,
+      "n": 161,
+      "people": 15,
+      "x": -9,
+      "y": 0.5031
+     },
+     {
+      "hi": 0.6671,
+      "lo": 0.5428,
+      "n": 192,
+      "people": 19,
+      "x": -8,
+      "y": 0.605
+     },
+     {
+      "hi": 0.639,
+      "lo": 0.5189,
+      "n": 240,
+      "people": 19,
+      "x": -7,
+      "y": 0.5789
+     },
+     {
+      "hi": 0.6812,
+      "lo": 0.5602,
+      "n": 231,
+      "people": 21,
+      "x": -6,
+      "y": 0.6207
+     },
+     {
+      "hi": 0.7172,
+      "lo": 0.6058,
+      "n": 264,
+      "people": 21,
+      "x": -5,
+      "y": 0.6615
+     },
+     {
+      "hi": 0.7639,
+      "lo": 0.6522,
+      "n": 249,
+      "people": 21,
+      "x": -4,
+      "y": 0.7081
+     },
+     {
+      "hi": 0.7311,
+      "lo": 0.6153,
+      "n": 246,
+      "people": 21,
+      "x": -3,
+      "y": 0.6732
+     },
+     {
+      "hi": 0.7848,
+      "lo": 0.6628,
+      "n": 207,
+      "people": 21,
       "x": -2,
-      "y": 0.8174
+      "y": 0.7238
      },
      {
-      "hi": 0.8897,
-      "lo": 0.7488,
-      "n": 117,
-      "people": 9,
+      "hi": 0.7633,
+      "lo": 0.6559,
+      "n": 265,
+      "people": 22,
       "x": -1,
-      "y": 0.8193
+      "y": 0.7096
      },
      {
-      "hi": 0.8813,
-      "lo": 0.7411,
-      "n": 114,
-      "people": 9,
+      "hi": 0.7639,
+      "lo": 0.6564,
+      "n": 273,
+      "people": 22,
       "x": 0,
-      "y": 0.8112
+      "y": 0.7101
      }
     ]
    }

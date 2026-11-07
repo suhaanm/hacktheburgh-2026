@@ -15,29 +15,29 @@
       },
       "explains_s": {
        "ci": [
-        6.97,
-        9.48
+        10.05,
+        12.1
        ],
-       "value": 8.23
+       "value": 11.08
       },
       "gap_s": {
        "ci": [
-        28.9407,
-        39.3295
+        41.6993,
+        50.2163
        ],
-       "value": 34.1351
+       "value": 45.9578
       },
       "id": "check-the-cliff",
       "junior_rate": {
        "ci": [
-        0.2773,
-        0.4215
+        0.3785,
+        0.4931
        ],
-       "value": 0.3494
+       "value": 0.4358
       },
       "label": "Probe the cliff edge on every calculator",
       "n": 22,
-      "share_of_gap": 0.5388,
+      "share_of_gap": 0.602,
       "verdict": "gap"
      },
      {
@@ -50,29 +50,29 @@
       },
       "explains_s": {
        "ci": [
-        5.12,
-        6.93
+        5.55,
+        7.12
        ],
-       "value": 6.02
+       "value": 6.34
       },
       "gap_s": {
        "ci": [
-        18.5186,
-        25.0951
+        20.0887,
+        25.7886
        ],
-       "value": 21.8068
+       "value": 22.9386
       },
       "id": "reconcile-before-noting",
       "junior_rate": {
        "ci": [
-        0.2331,
-        0.3128
+        0.2656,
+        0.3466
        ],
-       "value": 0.2729
+       "value": 0.3061
       },
       "label": "Reconcile the results before writing the note",
       "n": 22,
-      "share_of_gap": 0.3946,
+      "share_of_gap": 0.3444,
       "verdict": "gap"
      },
      {
@@ -85,29 +85,29 @@
       },
       "explains_s": {
        "ci": [
-        0.21,
-        1.07
+        0.1,
+        0.94
        ],
-       "value": 0.64
+       "value": 0.52
       },
       "gap_s": {
        "ci": [
-        0.813,
-        4.2227
+        0.3888,
+        3.7242
        ],
-       "value": 2.5179
+       "value": 2.0565
       },
       "id": "enter-household-once",
       "junior_rate": {
        "ci": [
-        0.1766,
-        0.28
+        0.1781,
+        0.3074
        ],
-       "value": 0.2283
+       "value": 0.2427
       },
       "label": "Enter the household once, accurately, then reuse it",
       "n": 22,
-      "share_of_gap": 0.0416,
+      "share_of_gap": 0.0282,
       "verdict": "gap"
      },
      {
@@ -120,29 +120,29 @@
       },
       "explains_s": {
        "ci": [
-        0.08,
-        0.68
+        0.18,
+        0.76
        ],
-       "value": 0.38
+       "value": 0.47
       },
       "gap_s": {
        "ci": [
-        0.3632,
-        2.9439
+        0.7707,
+        3.2819
        ],
-       "value": 1.6536
+       "value": 2.0263
       },
       "id": "reads-error-first",
       "junior_rate": {
        "ci": [
-        0.1647,
-        0.2424
+        0.1658,
+        0.2539
        ],
-       "value": 0.2036
+       "value": 0.2098
       },
       "label": "Read the error message before retrying",
       "n": 22,
-      "share_of_gap": 0.0249,
+      "share_of_gap": 0.0254,
       "verdict": "gap"
      }
     ],
@@ -157,17 +157,17 @@
       },
       "gap": {
        "ci": [
-        -0.3305,
-        -0.2366
+        -0.3621,
+        -0.2742
        ],
-       "value": -0.2835
+       "value": -0.3181
       },
       "junior": {
        "ci": [
-        0.6174,
-        0.7044
+        0.5862,
+        0.6664
        ],
-       "value": 0.6609
+       "value": 0.6263
       },
       "key": "independence",
       "label": "Finished without help",
@@ -184,17 +184,17 @@
       },
       "gap": {
        "ci": [
-        0.1715,
-        0.2478
+        0.2069,
+        0.2803
        ],
-       "value": 0.2097
+       "value": 0.2436
       },
       "junior": {
        "ci": [
-        0.2235,
-        0.2947
+        0.259,
+        0.3271
        ],
-       "value": 0.2591
+       "value": 0.293
       },
       "key": "assisted_share",
       "label": "Needed help",
@@ -211,17 +211,17 @@
       },
       "gap": {
        "ci": [
-        13.2,
-        17.52
+        16.8,
+        20.17
        ],
-       "value": 15.27
+       "value": 18.4
       },
       "junior": {
        "ci": [
-        13.8331,
-        18.1487
+        17.5843,
+        20.6598
        ],
-       "value": 15.9909
+       "value": 19.122
       },
       "key": "time_vs_expert",
       "label": "Seconds per case beyond the expert median",
@@ -235,10 +235,10 @@
     "overall": {
      "gap_s": {
       "ci": [
-       13.2,
-       17.52
+       16.8,
+       20.17
       ],
-      "value": 15.27
+      "value": 18.4
      },
      "standardised_to": "expert skill mix"
     },
@@ -250,10 +250,10 @@
       "band": "1_3m",
       "gap_s": {
        "ci": [
-        13.1084,
-        17.424
+        16.8596,
+        19.935
        ],
-       "value": 15.2662
+       "value": 18.3973
       },
       "n": 22
      }
@@ -272,29 +272,29 @@
       },
       "explains_s": {
        "ci": [
-        8.34,
-        9.65
+        9.89,
+        11.0
        ],
-       "value": 8.99
+       "value": 10.45
       },
       "gap_s": {
        "ci": [
-        35.5321,
-        41.0897
+        42.1416,
+        46.853
        ],
-       "value": 38.3109
+       "value": 44.4973
       },
       "id": "reconcile-to-control",
       "junior_rate": {
        "ci": [
-        0.3916,
-        0.4882
+        0.4609,
+        0.5512
        ],
-       "value": 0.4399
+       "value": 0.5061
       },
       "label": "Reconcile with the control figure before reporting",
       "n": 11,
-      "share_of_gap": 0.4668,
+      "share_of_gap": 0.4978,
       "verdict": "gap"
      },
      {
@@ -307,29 +307,29 @@
       },
       "explains_s": {
        "ci": [
-        4.15,
-        5.77
+        4.43,
+        6.01
        ],
-       "value": 4.96
+       "value": 5.22
       },
       "gap_s": {
        "ci": [
-        13.9883,
-        19.439
+        14.9278,
+        20.2358
        ],
-       "value": 16.7136
+       "value": 17.5818
       },
       "id": "compare-to-last-period",
       "junior_rate": {
        "ci": [
-        0.3626,
-        0.4564
+        0.3701,
+        0.4618
        ],
-       "value": 0.4095
+       "value": 0.416
       },
       "label": "Compare to last period before sharing",
       "n": 11,
-      "share_of_gap": 0.2576,
+      "share_of_gap": 0.2488,
       "verdict": "gap"
      },
      {
@@ -342,29 +342,29 @@
       },
       "explains_s": {
        "ci": [
-        2.74,
+        2.71,
         4.21
        ],
-       "value": 3.48
+       "value": 3.46
       },
       "gap_s": {
        "ci": [
-        14.5671,
-        22.4384
+        14.4144,
+        22.4093
        ],
-       "value": 18.5027
+       "value": 18.4118
       },
       "id": "inspect-before-trusting",
       "junior_rate": {
        "ci": [
-        0.1208,
-        0.212
+        0.1373,
+        0.2505
        ],
-       "value": 0.1664
+       "value": 0.1939
       },
       "label": "Inspect the rows, not just the total",
       "n": 11,
-      "share_of_gap": 0.1804,
+      "share_of_gap": 0.1648,
       "verdict": "gap"
      },
      {
@@ -377,29 +377,29 @@
       },
       "explains_s": {
        "ci": [
-        1.29,
-        2.38
+        1.32,
+        2.41
        ],
-       "value": 1.84
+       "value": 1.86
       },
       "gap_s": {
        "ci": [
-        4.6109,
-        8.48
+        4.6955,
+        8.5772
        ],
-       "value": 6.5455
+       "value": 6.6364
       },
       "id": "profile-before-querying",
       "junior_rate": {
        "ci": [
-        0.1078,
-        0.2138
+        0.1151,
+        0.2024
        ],
-       "value": 0.1608
+       "value": 0.1587
       },
       "label": "Profile the inputs before querying",
       "n": 11,
-      "share_of_gap": 0.0953,
+      "share_of_gap": 0.0887,
       "verdict": "gap"
      }
     ],
@@ -414,17 +414,17 @@
       },
       "gap": {
        "ci": [
-        -0.3901,
-        -0.3134
+        -0.4029,
+        -0.347
        ],
-       "value": -0.3518
+       "value": -0.3749
       },
       "junior": {
        "ci": [
-        0.5766,
-        0.6518
+        0.5642,
+        0.6179
        ],
-       "value": 0.6142
+       "value": 0.5911
       },
       "key": "independence",
       "label": "Finished without help",
@@ -441,17 +441,17 @@
       },
       "gap": {
        "ci": [
-        0.2437,
-        0.2819
+        0.2669,
+        0.3009
        ],
-       "value": 0.2628
+       "value": 0.2839
       },
       "junior": {
        "ci": [
-        0.2731,
-        0.3076
+        0.2967,
+        0.3261
        ],
-       "value": 0.2903
+       "value": 0.3114
       },
       "key": "assisted_share",
       "label": "Needed help",
@@ -468,17 +468,17 @@
       },
       "gap": {
        "ci": [
-        18.27,
-        20.18
+        19.96,
+        21.86
        ],
-       "value": 19.27
+       "value": 20.99
       },
       "junior": {
        "ci": [
-        18.4556,
-        20.2051
+        20.0572,
+        22.0407
        ],
-       "value": 19.3304
+       "value": 21.049
       },
       "key": "time_vs_expert",
       "label": "Seconds per case beyond the expert median",
@@ -492,10 +492,10 @@
     "overall": {
      "gap_s": {
       "ci": [
-       18.27,
-       20.18
+       19.96,
+       21.86
       ],
-      "value": 19.27
+      "value": 20.99
      },
      "standardised_to": "expert skill mix"
     },
@@ -507,10 +507,10 @@
       "band": "1_3m",
       "gap_s": {
        "ci": [
-        18.3936,
-        20.1431
+        19.9952,
+        21.9787
        ],
-       "value": 19.2683
+       "value": 20.987
       },
       "n": 11
      }

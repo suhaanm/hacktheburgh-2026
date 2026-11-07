@@ -3,84 +3,58 @@
   "badge": "synthetic firm",
   "cap": 3,
   "message": null,
-  "monday_note": "Understudy has 3 pointers for your week. On the cliff check, you now take about 15 seconds less than you did a month ago. On reconciling before the note, you finished 17 of your last 20 cases without help. On entering the household once, you finished 18 of your last 20 cases without help.",
+  "monday_note": "Understudy has 2 pointers for your week. On the cliff check, you usually take about 35 seconds longer than the expert's median. On reconciling before the note, you usually take about 15 seconds longer than the expert's median.",
   "nothing_stands_out": false,
   "origin": "synthetic",
-  "person": "p_f_bp05",
+  "person": "p_f_bp06",
   "pointers": [
    {
-    "a11y_label": "Going well: On the cliff check, you now take about 15 seconds less than you did a month ago.",
-    "action": {
-     "id": "open_growth",
-     "label": "See how it changed",
-     "to": "growth"
-    },
-    "badge": "synthetic firm",
-    "detail": "",
-    "details_available": true,
-    "glyph": "trend_up",
-    "headline": "On the cliff check, you now take about 15 seconds less than you did a month ago.",
-    "id": "i_68e904f27097",
-    "kind": "habit_improved",
-    "numbers": {
-     "seconds": 15
-    },
-    "origin": "synthetic",
-    "polarity": "positive",
-    "polarity_label": "Going well",
-    "source": "Your assist ledger",
-    "text": "On the cliff check, you now take about 15 seconds less than you did a month ago. Source: Your assist ledger, synthetic firm data.",
-    "title": "A habit that got faster"
-   },
-   {
-    "a11y_label": "Going well: On reconciling before the note, you finished 17 of your last 20 cases without help.",
+    "a11y_label": "Worth a look: On the cliff check, you usually take about 35 seconds longer than the expert's median.",
     "action": {
      "id": "open_growth",
      "label": "Open Growth",
      "to": "growth"
     },
     "badge": "synthetic firm",
-    "detail": "",
+    "detail": "Open Growth to see where the time goes.",
     "details_available": true,
-    "glyph": "check",
-    "headline": "On reconciling before the note, you finished 17 of your last 20 cases without help.",
-    "id": "i_730ac9f6e786",
-    "kind": "independence_milestone",
+    "glyph": "clock",
+    "headline": "On the cliff check, you usually take about 35 seconds longer than the expert's median.",
+    "id": "i_c05775153981",
+    "kind": "time_loss_habit",
     "numbers": {
-     "k": 17,
-     "n": 20
+     "seconds": 35
     },
     "origin": "synthetic",
-    "polarity": "positive",
-    "polarity_label": "Going well",
+    "polarity": "attention",
+    "polarity_label": "Worth a look",
     "source": "Your assist ledger",
-    "text": "On reconciling before the note, you finished 17 of your last 20 cases without help. Source: Your assist ledger, synthetic firm data.",
-    "title": "Needing less help"
+    "text": "On the cliff check, you usually take about 35 seconds longer than the expert's median. Open Growth to see where the time goes. Source: Your assist ledger, synthetic firm data.",
+    "title": "A habit that costs time"
    },
    {
-    "a11y_label": "Going well: On entering the household once, you finished 18 of your last 20 cases without help.",
+    "a11y_label": "Worth a look: On reconciling before the note, you usually take about 15 seconds longer than the expert's median.",
     "action": {
-     "id": "open_repeats",
-     "label": "Open Repeats",
-     "to": "repeats"
+     "id": "open_growth",
+     "label": "Open Growth",
+     "to": "growth"
     },
     "badge": "synthetic firm",
-    "detail": "",
+    "detail": "Open Growth to see where the time goes.",
     "details_available": true,
-    "glyph": "check",
-    "headline": "On entering the household once, you finished 18 of your last 20 cases without help.",
-    "id": "i_7ae9c5cfefab",
-    "kind": "independence_milestone",
+    "glyph": "clock",
+    "headline": "On reconciling before the note, you usually take about 15 seconds longer than the expert's median.",
+    "id": "i_6dd1d0999b09",
+    "kind": "time_loss_habit",
     "numbers": {
-     "k": 18,
-     "n": 20
+     "seconds": 15
     },
     "origin": "synthetic",
-    "polarity": "positive",
-    "polarity_label": "Going well",
+    "polarity": "attention",
+    "polarity_label": "Worth a look",
     "source": "Your assist ledger",
-    "text": "On entering the household once, you finished 18 of your last 20 cases without help. Source: Your assist ledger, synthetic firm data.",
-    "title": "Needing less help"
+    "text": "On reconciling before the note, you usually take about 15 seconds longer than the expert's median. Open Growth to see where the time goes. Source: Your assist ledger, synthetic firm data.",
+    "title": "A habit that costs time"
    }
   ],
   "role": "benefits-processor",
@@ -99,7 +73,7 @@
   "badge": "synthetic firm",
   "generated_at": "2026-11-09T09:00:00Z",
   "interval_level": null,
-  "n": 3,
+  "n": 2,
   "n_unit": "pointers",
   "note": "A few pointers, chosen by fixed rules and worded from fixed sentences. No statistics are shown here.",
   "origin": "synthetic",

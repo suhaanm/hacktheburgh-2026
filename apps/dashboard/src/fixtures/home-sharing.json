@@ -45,87 +45,87 @@
    "Names of sites, files or people"
   ],
   "notice": "Your admin sees a summary of numbers about your work, shown below exactly as they see it. It is for coaching and onboarding, not for evaluating individuals. You can delete your assist ledger at any time; the summary then shows no data.",
-  "person": "p_f_bp05",
+  "person": "p_f_bp06",
   "preview": {
    "assisted_share": {
     "ci": [
-     0.0089,
-     0.2361
+     0.1119,
+     0.4687
     ],
-    "value": 0.05
+    "value": 0.25
    },
    "automation": {
-    "minutes": 94,
-    "routines_approved": 1,
-    "runs_done": 9
+    "minutes": 0,
+    "routines_approved": 0,
+    "runs_done": 0
    },
-   "automations_running": 1,
-   "id": "p_f_bp05",
+   "automations_running": 0,
+   "id": "p_f_bp06",
    "independence": {
     "ci": [
-     0.7639,
-     0.9911
+     0.481,
+     0.8545
     ],
-    "value": 0.95
+    "value": 0.7
    },
-   "label": "BP-05",
+   "label": "BP-06",
    "last_seen_days": 2,
    "level": "junior",
-   "n": 136,
-   "n_recent": 39,
+   "n": 176,
+   "n_recent": 54,
    "origin": "synthetic",
    "role": "benefits-processor",
    "skills": [
     {
-     "independence_share": 0.5517,
+     "independence_share": 0.5333,
      "label": "Probe the cliff edge on every calculator",
      "lost_s": {
       "ci": [
-       17.4,
-       40.5
+       39.7,
+       48.2
       ],
-      "value": 24.7
+      "value": 44.6
      },
-     "n": 29,
+     "n": 45,
      "skill": "check-the-cliff"
     },
     {
-     "independence_share": 0.75,
+     "independence_share": 0.8571,
      "label": "Enter the household once, accurately, then reuse it",
      "lost_s": {
       "ci": [
-       -2.3,
-       4.6
+       0.2,
+       6.1
       ],
-      "value": 0.3
+      "value": 1.6
      },
-     "n": 28,
+     "n": 42,
      "skill": "enter-household-once"
     },
     {
-     "independence_share": 0.8372,
+     "independence_share": 0.7451,
      "label": "Read the error message before retrying",
      "lost_s": {
       "ci": [
-       -1.3,
-       3.0
+       -0.8,
+       4.0
       ],
-      "value": 1.1
+      "value": 2.1
      },
-     "n": 43,
+     "n": 51,
      "skill": "reads-error-first"
     },
     {
-     "independence_share": 0.7222,
+     "independence_share": 0.5526,
      "label": "Reconcile the results before writing the note",
      "lost_s": {
       "ci": [
-       9.1,
-       22.2
+       17.6,
+       29.7
       ],
-      "value": 13.7
+      "value": 21.8
      },
-     "n": 36,
+     "n": 38,
      "skill": "reconcile-before-noting"
     }
    ],
@@ -135,10 +135,10 @@
    "time_to_independence": {
     "reached": true,
     "unit": "occurrences",
-    "value": 47
+    "value": 48
    },
-   "trend": "improving",
-   "trend_label": "Improving",
+   "trend": "cannot_tell_yet",
+   "trend_label": "Cannot tell yet",
    "unit": "unit_a"
   },
   "statement": "For coaching and onboarding, not for evaluating individuals.",

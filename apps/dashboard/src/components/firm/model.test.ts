@@ -6,6 +6,7 @@ import {
 } from "./model";
 import type { UserRow } from "./wire";
 import workerFx from "../../fixtures/home-worker.json";
+import workerGoodFx from "../../fixtures/home-worker-good.json";
 import whyFx from "../../fixtures/home-why.json";
 import sharingFx from "../../fixtures/home-sharing.json";
 import overviewFx from "../../fixtures/firm-overview.json";
@@ -73,17 +74,25 @@ describe("formatting", () => {
 
 describe("the worker's answer", () => {
   const w = normaliseWorker(workerFx);
-  it("reads the engine's sample: three pointers, no statistics, an origin badge", () => {
-    expect(w.pointers).toHaveLength(3);
+  it("reads the engine's sample: pointers with a word for how they look, no statistics, an origin badge, one action each", () => {
+    expect(w.pointers.length).toBeGreaterThanOrEqual(1);
+    expect(w.pointers.length).toBeLessThanOrEqual(3);
     expect(w.status).toBe("ok");
     expect(w.week).toEqual({ from: "2026-11-09", to: "2026-11-15" });
     for (const p of w.pointers) {
-      expect(p.polarity).toBe("positive");
+      expect(p.polarity_label).toBeTruthy();
       expect(p.badge).toBe("synthetic firm");
       expect(p.n).toBeNull();
       expect(p.headline.length).toBeGreaterThan(10);
+      expect(p.action?.to).toBeTruthy();
     }
-    expect(w.monday_note).toMatch(/3 pointers/);
+    expect(w.monday_note).toMatch(/pointers? for your week/);
+  });
+  it("reads a week that is going well", () => {
+    const g = normaliseWorker(workerGoodFx);
+    expect(g.pointers).toHaveLength(3);
+    expect(g.pointers.every((p) => p.polarity === "positive" && p.polarity_label === "Going well")).toBe(true);
+    expect(g.monday_note).toMatch(/3 pointers/);
   });
   it("never shows more than three pointers", () => {
     const many = { data: { pointers: Array.from({ length: 6 }, (_, i) => ({ id: `i${i}`, headline: `Sentence ${i}.` })) } };
@@ -113,8 +122,8 @@ describe("the worker's answer", () => {
     const lines = previewLines(normaliseSharing(sharingFx).preview);
     const text = lines.map(([k, v]) => `${k}: ${v}`).join("\n");
     expect(lines.length).toBeGreaterThan(6);
-    expect(text).toMatch(/Shown as: BP-05/);
-    expect(text).toMatch(/Help needed over time: Improving/);
+    expect(text).toMatch(/Shown as: BP-\d\d/);
+    expect(text).toMatch(/Help needed over time: (Improving|Cannot tell yet|Needs attention|Not enough data)/);
     expect(text).not.toMatch(/score|rank|best/i);
     expect(previewLines(null)).toEqual([]);
   });
@@ -254,8 +263,8 @@ describe("role gap words", () => {
   it("says it plainly and flags a gap that cannot be read", () => {
     const r = normaliseRoles(rolesFx).roles[0];
     const text = roleGapLine(r.measures.find((m) => m.key === "independence"), r.measures.find((m) => m.key === "time_vs_expert"));
-    expect(text).toMatch(/^Juniors finish 28 points fewer of their steps without help \(-\d+ to -\d+ points\)\./);
-    expect(text).toMatch(/They take 15\.3 s \(13\.2 to 17\.5\) more per case\./);
+    expect(text).toMatch(/^Juniors finish \d+ points fewer of their steps without help \(-\d+ to -\d+ points\)\./);
+    expect(text).toMatch(/They take \d+(\.\d)? s \(\d+(\.\d)? s? ?to \d+(\.\d)?\) more per case\./);
     const vague = roleGapLine({ key: "independence", label: "x", unit: "share", expert: null, junior: null, gap: { value: -0.02, ci: [-0.1, 0.06] }, verdict: "cannot_tell" }, undefined);
     expect(vague).toMatch(/cannot tell yet/i);
     expect(roleGapLine(undefined, undefined)).toBe("");

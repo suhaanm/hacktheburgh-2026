@@ -42,31 +42,31 @@
     "aggregate": {
      "assisted_share": {
       "ci": [
-       0.1013,
-       0.2022
+       0.1332,
+       0.2461
       ],
-      "value": 0.1517
+      "value": 0.1897
      },
      "independence": {
       "ci": [
-       0.747,
-       0.8668
+       0.7003,
+       0.8238
       ],
-      "value": 0.8069
+      "value": 0.7621
      },
      "n_users": 29,
      "time_to_independence": {
       "ci": [
-       48.0,
-       61.0
+       56.0,
+       109.0
       ],
-      "median": 58.0,
+      "median": 82.0,
       "reached_share": {
        "ci": [
-        0.4152,
-        0.8121
+        0.1739,
+        0.5729
        ],
-       "value": 0.6121
+       "value": 0.3318
       },
       "unit": "occurrences"
      }
@@ -80,20 +80,20 @@
      "n_people": 21,
      "slope_per_4w": {
       "ci": [
-       0.0457,
-       0.141
+       0.0451,
+       0.1383
       ],
-      "value": 0.0934
+      "value": 0.0917
      }
     },
     "units": [
      {
       "independence": {
        "ci": [
-        0.8092,
-        0.9408
+        0.7448,
+        0.8909
        ],
-       "value": 0.875
+       "value": 0.8179
       },
       "n": 14,
       "unit": "unit a"
@@ -101,10 +101,10 @@
      {
       "independence": {
        "ci": [
-        0.5849,
-        0.7969
+        0.5468,
+        0.7895
        ],
-       "value": 0.6909
+       "value": 0.6682
       },
       "n": 11,
       "unit": "unit b"
@@ -112,10 +112,10 @@
      {
       "independence": {
        "ci": [
-        0.7111,
-        1.0639
+        0.6248,
+        1.0252
        ],
-       "value": 0.8875
+       "value": 0.825
       },
       "n": 5,
       "unit": "unit c"
@@ -505,568 +505,93 @@
      {
       "assisted_share": {
        "ci": [
-        0.0089,
-        0.2361
+        0.0524,
+        0.3604
        ],
-       "value": 0.05
+       "value": 0.15
       },
       "automation": {
-       "minutes": 94,
+       "minutes": 112,
        "routines_approved": 1,
-       "runs_done": 9
+       "runs_done": 11
       },
       "automations_running": 1,
       "id": "p_f_bp05",
       "independence": {
        "ci": [
-        0.7639,
-        0.9911
-       ],
-       "value": 0.95
-      },
-      "label": "BP-05",
-      "last_seen_days": 2,
-      "level": "junior",
-      "n": 136,
-      "n_recent": 39,
-      "origin": "synthetic",
-      "role": "benefits-processor",
-      "skills": [
-       {
-        "independence_share": 0.5517,
-        "label": "Probe the cliff edge on every calculator",
-        "lost_s": {
-         "ci": [
-          17.4,
-          40.5
-         ],
-         "value": 24.7
-        },
-        "n": 29,
-        "skill": "check-the-cliff"
-       },
-       {
-        "independence_share": 0.75,
-        "label": "Enter the household once, accurately, then reuse it",
-        "lost_s": {
-         "ci": [
-          -2.3,
-          4.6
-         ],
-         "value": 0.3
-        },
-        "n": 28,
-        "skill": "enter-household-once"
-       },
-       {
-        "independence_share": 0.8372,
-        "label": "Read the error message before retrying",
-        "lost_s": {
-         "ci": [
-          -1.3,
-          3.0
-         ],
-         "value": 1.1
-        },
-        "n": 43,
-        "skill": "reads-error-first"
-       },
-       {
-        "independence_share": 0.7222,
-        "label": "Reconcile the results before writing the note",
-        "lost_s": {
-         "ci": [
-          9.1,
-          22.2
-         ],
-         "value": 13.7
-        },
-        "n": 36,
-        "skill": "reconcile-before-noting"
-       }
-      ],
-      "status": "ok",
-      "tenure_band": "1_3m",
-      "tenure_weeks": 12,
-      "time_to_independence": {
-       "reached": true,
-       "unit": "occurrences",
-       "value": 47
-      },
-      "trend": "improving",
-      "trend_label": "Improving",
-      "unit": "unit_a"
-     },
-     {
-      "assisted_share": {
-       "ci": [
-        0.0524,
-        0.3604
-       ],
-       "value": 0.15
-      },
-      "automation": {
-       "minutes": 0,
-       "routines_approved": 0,
-       "runs_done": 0
-      },
-      "automations_running": 0,
-      "id": "p_f_bp06",
-      "independence": {
-       "ci": [
-        0.6396,
-        0.9476
-       ],
-       "value": 0.85
-      },
-      "label": "BP-06",
-      "last_seen_days": 3,
-      "level": "junior",
-      "n": 172,
-      "n_recent": 43,
-      "origin": "synthetic",
-      "role": "benefits-processor",
-      "skills": [
-       {
-        "independence_share": 0.6889,
-        "label": "Probe the cliff edge on every calculator",
-        "lost_s": {
-         "ci": [
-          19.7,
-          31.7
-         ],
-         "value": 27.6
-        },
-        "n": 45,
-        "skill": "check-the-cliff"
-       },
-       {
-        "independence_share": 0.8421,
-        "label": "Enter the household once, accurately, then reuse it",
-        "lost_s": {
-         "ci": [
-          -3.6,
-          3.4
-         ],
-         "value": 0.6
-        },
-        "n": 38,
-        "skill": "enter-household-once"
-       },
-       {
-        "independence_share": 0.7727,
-        "label": "Read the error message before retrying",
-        "lost_s": {
-         "ci": [
-          1.6,
-          5.3
-         ],
-         "value": 4.0
-        },
-        "n": 44,
-        "skill": "reads-error-first"
-       },
-       {
-        "independence_share": 0.7333,
-        "label": "Reconcile the results before writing the note",
-        "lost_s": {
-         "ci": [
-          14.3,
-          25.1
-         ],
-         "value": 20.5
-        },
-        "n": 45,
-        "skill": "reconcile-before-noting"
-       }
-      ],
-      "status": "ok",
-      "tenure_band": "1_3m",
-      "tenure_weeks": 12,
-      "time_to_independence": {
-       "reached": true,
-       "unit": "occurrences",
-       "value": 50
-      },
-      "trend": "cannot_tell_yet",
-      "trend_label": "Cannot tell yet",
-      "unit": "unit_a"
-     },
-     {
-      "assisted_share": {
-       "ci": [
-        0.0524,
-        0.3604
-       ],
-       "value": 0.15
-      },
-      "automation": {
-       "minutes": 0,
-       "routines_approved": 0,
-       "runs_done": 0
-      },
-      "automations_running": 0,
-      "id": "p_f_bp07",
-      "independence": {
-       "ci": [
         0.584,
         0.9193
        ],
        "value": 0.8
       },
-      "label": "BP-07",
-      "last_seen_days": 3,
-      "level": "junior",
-      "n": 104,
-      "n_recent": 35,
-      "origin": "synthetic",
-      "role": "benefits-processor",
-      "skills": [
-       {
-        "independence_share": 0.6897,
-        "label": "Probe the cliff edge on every calculator",
-        "lost_s": {
-         "ci": [
-          23.8,
-          45.5
-         ],
-         "value": 33.8
-        },
-        "n": 29,
-        "skill": "check-the-cliff"
-       },
-       {
-        "independence_share": 0.6897,
-        "label": "Enter the household once, accurately, then reuse it",
-        "lost_s": {
-         "ci": [
-          -2.0,
-          10.7
-         ],
-         "value": 4.0
-        },
-        "n": 29,
-        "skill": "enter-household-once"
-       },
-       {
-        "independence_share": 0.7692,
-        "label": "Read the error message before retrying",
-        "lost_s": {
-         "ci": [
-          -1.1,
-          4.9
-         ],
-         "value": 1.6
-        },
-        "n": 26,
-        "skill": "reads-error-first"
-       },
-       {
-        "independence_share": 0.6,
-        "label": "Reconcile the results before writing the note",
-        "lost_s": {
-         "ci": [
-          23.5,
-          39.0
-         ],
-         "value": 30.9
-        },
-        "n": 20,
-        "skill": "reconcile-before-noting"
-       }
-      ],
-      "status": "ok",
-      "tenure_band": "1_3m",
-      "tenure_weeks": 11,
-      "time_to_independence": {
-       "reached": true,
-       "unit": "occurrences",
-       "value": 48
-      },
-      "trend": "cannot_tell_yet",
-      "trend_label": "Cannot tell yet",
-      "unit": "unit_a"
-     },
-     {
-      "assisted_share": {
-       "ci": [
-        0.0,
-        0.1611
-       ],
-       "value": 0.0
-      },
-      "automation": {
-       "minutes": 0,
-       "routines_approved": 0,
-       "runs_done": 0
-      },
-      "automations_running": 0,
-      "id": "p_f_bp08",
-      "independence": {
-       "ci": [
-        0.699,
-        0.9721
-       ],
-       "value": 0.9
-      },
-      "label": "BP-08",
+      "label": "BP-05",
       "last_seen_days": 2,
       "level": "junior",
-      "n": 119,
+      "n": 139,
       "n_recent": 41,
       "origin": "synthetic",
       "role": "benefits-processor",
       "skills": [
        {
-        "independence_share": 0.8125,
+        "independence_share": 0.4595,
         "label": "Probe the cliff edge on every calculator",
         "lost_s": {
          "ci": [
-          20.1,
-          36.9
+          32.4,
+          44.4
          ],
-         "value": 27.6
+         "value": 35.2
         },
-        "n": 32,
+        "n": 37,
         "skill": "check-the-cliff"
+       },
+       {
+        "independence_share": 0.8205,
+        "label": "Enter the household once, accurately, then reuse it",
+        "lost_s": {
+         "ci": [
+          -2.6,
+          5.4
+         ],
+         "value": 0.1
+        },
+        "n": 39,
+        "skill": "enter-household-once"
+       },
+       {
+        "independence_share": 0.7568,
+        "label": "Read the error message before retrying",
+        "lost_s": {
+         "ci": [
+          -2.7,
+          2.0
+         ],
+         "value": 0.5
+        },
+        "n": 37,
+        "skill": "reads-error-first"
        },
        {
         "independence_share": 0.7308,
-        "label": "Enter the household once, accurately, then reuse it",
+        "label": "Reconcile the results before writing the note",
         "lost_s": {
          "ci": [
-          -3.4,
-          2.9
+          13.7,
+          28.1
          ],
-         "value": -1.0
+         "value": 19.4
         },
         "n": 26,
-        "skill": "enter-household-once"
-       },
-       {
-        "independence_share": 0.8182,
-        "label": "Read the error message before retrying",
-        "lost_s": {
-         "ci": [
-          -1.6,
-          9.1
-         ],
-         "value": 0.4
-        },
-        "n": 22,
-        "skill": "reads-error-first"
-       },
-       {
-        "independence_share": 0.7436,
-        "label": "Reconcile the results before writing the note",
-        "lost_s": {
-         "ci": [
-          9.5,
-          21.2
-         ],
-         "value": 14.6
-        },
-        "n": 39,
         "skill": "reconcile-before-noting"
        }
       ],
       "status": "ok",
       "tenure_band": "1_3m",
-      "tenure_weeks": 11,
+      "tenure_weeks": 12,
       "time_to_independence": {
        "reached": true,
        "unit": "occurrences",
-       "value": 61
-      },
-      "trend": "improving",
-      "trend_label": "Improving",
-      "unit": "unit_a"
-     },
-     {
-      "assisted_share": {
-       "ci": [
-        0.0807,
-        0.416
-       ],
-       "value": 0.2
-      },
-      "automation": {
-       "minutes": 120,
-       "routines_approved": 1,
-       "runs_done": 10
-      },
-      "automations_running": 1,
-      "id": "p_f_bp09",
-      "independence": {
-       "ci": [
-        0.584,
-        0.9193
-       ],
-       "value": 0.8
-      },
-      "label": "BP-09",
-      "last_seen_days": 2,
-      "level": "junior",
-      "n": 137,
-      "n_recent": 50,
-      "origin": "synthetic",
-      "role": "benefits-processor",
-      "skills": [
-       {
-        "independence_share": 0.7692,
-        "label": "Probe the cliff edge on every calculator",
-        "lost_s": {
-         "ci": [
-          14.4,
-          31.7
-         ],
-         "value": 20.0
-        },
-        "n": 39,
-        "skill": "check-the-cliff"
-       },
-       {
-        "independence_share": 0.8378,
-        "label": "Enter the household once, accurately, then reuse it",
-        "lost_s": {
-         "ci": [
-          -0.1,
-          4.5
-         ],
-         "value": 1.7
-        },
-        "n": 37,
-        "skill": "enter-household-once"
-       },
-       {
-        "independence_share": 0.8485,
-        "label": "Read the error message before retrying",
-        "lost_s": {
-         "ci": [
-          0.5,
-          7.1
-         ],
-         "value": 3.3
-        },
-        "n": 33,
-        "skill": "reads-error-first"
-       },
-       {
-        "independence_share": 0.6786,
-        "label": "Reconcile the results before writing the note",
-        "lost_s": {
-         "ci": [
-          9.7,
-          28.3
-         ],
-         "value": 13.7
-        },
-        "n": 28,
-        "skill": "reconcile-before-noting"
-       }
-      ],
-      "status": "ok",
-      "tenure_band": "1_3m",
-      "tenure_weeks": 10,
-      "time_to_independence": {
-       "reached": true,
-       "unit": "occurrences",
-       "value": 44
-      },
-      "trend": "cannot_tell_yet",
-      "trend_label": "Cannot tell yet",
-      "unit": "unit_a"
-     },
-     {
-      "assisted_share": {
-       "ci": [
-        0.0089,
-        0.2361
-       ],
-       "value": 0.05
-      },
-      "automation": {
-       "minutes": 0,
-       "routines_approved": 0,
-       "runs_done": 0
-      },
-      "automations_running": 0,
-      "id": "p_f_bp10",
-      "independence": {
-       "ci": [
-        0.7639,
-        0.9911
-       ],
-       "value": 0.95
-      },
-      "label": "BP-10",
-      "last_seen_days": 2,
-      "level": "junior",
-      "n": 136,
-      "n_recent": 45,
-      "origin": "synthetic",
-      "role": "benefits-processor",
-      "skills": [
-       {
-        "independence_share": 0.7059,
-        "label": "Probe the cliff edge on every calculator",
-        "lost_s": {
-         "ci": [
-          10.2,
-          26.5
-         ],
-         "value": 18.1
-        },
-        "n": 34,
-        "skill": "check-the-cliff"
-       },
-       {
-        "independence_share": 0.8333,
-        "label": "Enter the household once, accurately, then reuse it",
-        "lost_s": {
-         "ci": [
-          -1.8,
-          3.9
-         ],
-         "value": -0.2
-        },
-        "n": 36,
-        "skill": "enter-household-once"
-       },
-       {
-        "independence_share": 0.7895,
-        "label": "Read the error message before retrying",
-        "lost_s": {
-         "ci": [
-          -2.0,
-          3.3
-         ],
-         "value": -0.2
-        },
-        "n": 38,
-        "skill": "reads-error-first"
-       },
-       {
-        "independence_share": 0.8214,
-        "label": "Reconcile the results before writing the note",
-        "lost_s": {
-         "ci": [
-          10.7,
-          21.2
-         ],
-         "value": 15.9
-        },
-        "n": 28,
-        "skill": "reconcile-before-noting"
-       }
-      ],
-      "status": "ok",
-      "tenure_band": "1_3m",
-      "tenure_weeks": 10,
-      "time_to_independence": {
-       "reached": true,
-       "unit": "occurrences",
-       "value": 52
+       "value": 51
       },
       "trend": "cannot_tell_yet",
       "trend_label": "Cannot tell yet",
@@ -1081,87 +606,182 @@
        "value": 0.25
       },
       "automation": {
-       "minutes": 145,
-       "routines_approved": 1,
-       "runs_done": 13
+       "minutes": 0,
+       "routines_approved": 0,
+       "runs_done": 0
       },
-      "automations_running": 1,
-      "id": "p_f_bp11",
+      "automations_running": 0,
+      "id": "p_f_bp06",
       "independence": {
        "ci": [
-        0.4329,
-        0.8188
+        0.481,
+        0.8545
        ],
-       "value": 0.65
+       "value": 0.7
       },
-      "label": "BP-11",
+      "label": "BP-06",
       "last_seen_days": 2,
       "level": "junior",
-      "n": 96,
-      "n_recent": 32,
+      "n": 176,
+      "n_recent": 54,
       "origin": "synthetic",
       "role": "benefits-processor",
       "skills": [
        {
-        "independence_share": 0.3846,
+        "independence_share": 0.5333,
         "label": "Probe the cliff edge on every calculator",
         "lost_s": {
          "ci": [
-          38.0,
-          52.7
+          39.7,
+          48.2
          ],
-         "value": 45.9
+         "value": 44.6
         },
-        "n": 26,
+        "n": 45,
         "skill": "check-the-cliff"
        },
        {
-        "independence_share": 0.84,
+        "independence_share": 0.8571,
         "label": "Enter the household once, accurately, then reuse it",
         "lost_s": {
          "ci": [
-          -0.5,
-          6.9
+          0.2,
+          6.1
          ],
-         "value": 4.5
+         "value": 1.6
         },
-        "n": 25,
+        "n": 42,
         "skill": "enter-household-once"
        },
        {
-        "independence_share": 0.6538,
+        "independence_share": 0.7451,
         "label": "Read the error message before retrying",
         "lost_s": {
          "ci": [
-          2.7,
-          10.5
+          -0.8,
+          4.0
          ],
-         "value": 4.8
+         "value": 2.1
         },
-        "n": 26,
+        "n": 51,
         "skill": "reads-error-first"
        },
        {
-        "independence_share": 0.5789,
+        "independence_share": 0.5526,
         "label": "Reconcile the results before writing the note",
         "lost_s": {
          "ci": [
-          23.9,
-          34.3
+          17.6,
+          29.7
          ],
-         "value": 28.5
+         "value": 21.8
         },
-        "n": 19,
+        "n": 38,
         "skill": "reconcile-before-noting"
        }
       ],
       "status": "ok",
       "tenure_band": "1_3m",
-      "tenure_weeks": 9,
+      "tenure_weeks": 12,
       "time_to_independence": {
        "reached": true,
        "unit": "occurrences",
-       "value": 61
+       "value": 48
+      },
+      "trend": "cannot_tell_yet",
+      "trend_label": "Cannot tell yet",
+      "unit": "unit_a"
+     },
+     {
+      "assisted_share": {
+       "ci": [
+        0.1119,
+        0.4687
+       ],
+       "value": 0.25
+      },
+      "automation": {
+       "minutes": 0,
+       "routines_approved": 0,
+       "runs_done": 0
+      },
+      "automations_running": 0,
+      "id": "p_f_bp07",
+      "independence": {
+       "ci": [
+        0.481,
+        0.8545
+       ],
+       "value": 0.7
+      },
+      "label": "BP-07",
+      "last_seen_days": 2,
+      "level": "junior",
+      "n": 122,
+      "n_recent": 33,
+      "origin": "synthetic",
+      "role": "benefits-processor",
+      "skills": [
+       {
+        "independence_share": 0.4516,
+        "label": "Probe the cliff edge on every calculator",
+        "lost_s": {
+         "ci": [
+          40.2,
+          52.1
+         ],
+         "value": 48.4
+        },
+        "n": 31,
+        "skill": "check-the-cliff"
+       },
+       {
+        "independence_share": 0.7429,
+        "label": "Enter the household once, accurately, then reuse it",
+        "lost_s": {
+         "ci": [
+          -2.5,
+          10.7
+         ],
+         "value": 3.7
+        },
+        "n": 35,
+        "skill": "enter-household-once"
+       },
+       {
+        "independence_share": 0.8235,
+        "label": "Read the error message before retrying",
+        "lost_s": {
+         "ci": [
+          -1.1,
+          5.6
+         ],
+         "value": 1.8
+        },
+        "n": 34,
+        "skill": "reads-error-first"
+       },
+       {
+        "independence_share": 0.4545,
+        "label": "Reconcile the results before writing the note",
+        "lost_s": {
+         "ci": [
+          18.0,
+          36.7
+         ],
+         "value": 26.3
+        },
+        "n": 22,
+        "skill": "reconcile-before-noting"
+       }
+      ],
+      "status": "ok",
+      "tenure_band": "1_3m",
+      "tenure_weeks": 11,
+      "time_to_independence": {
+       "reached": true,
+       "unit": "occurrences",
+       "value": 103
       },
       "trend": "cannot_tell_yet",
       "trend_label": "Cannot tell yet",
@@ -1181,85 +801,180 @@
        "runs_done": 0
       },
       "automations_running": 0,
-      "id": "p_f_bp12",
+      "id": "p_f_bp08",
       "independence": {
        "ci": [
-        0.7639,
-        0.9911
+        0.6396,
+        0.9476
        ],
-       "value": 0.95
+       "value": 0.85
       },
-      "label": "BP-12",
+      "label": "BP-08",
       "last_seen_days": 2,
       "level": "junior",
-      "n": 150,
-      "n_recent": 45,
+      "n": 125,
+      "n_recent": 38,
       "origin": "synthetic",
       "role": "benefits-processor",
       "skills": [
        {
-        "independence_share": 0.7895,
+        "independence_share": 0.5217,
         "label": "Probe the cliff edge on every calculator",
         "lost_s": {
          "ci": [
-          15.3,
-          25.0
+          41.8,
+          61.2
          ],
-         "value": 17.6
+         "value": 53.0
         },
-        "n": 38,
+        "n": 23,
         "skill": "check-the-cliff"
        },
        {
-        "independence_share": 0.8,
+        "independence_share": 0.7931,
         "label": "Enter the household once, accurately, then reuse it",
         "lost_s": {
          "ci": [
-          -4.7,
-          2.3
+          -2.7,
+          5.2
          ],
-         "value": -1.7
+         "value": 0.6
         },
-        "n": 35,
+        "n": 29,
         "skill": "enter-household-once"
        },
        {
-        "independence_share": 0.7353,
+        "independence_share": 0.8214,
         "label": "Read the error message before retrying",
         "lost_s": {
          "ci": [
-          0.7,
-          6.0
+          -1.8,
+          4.0
          ],
-         "value": 3.7
+         "value": 0.8
         },
-        "n": 34,
+        "n": 28,
         "skill": "reads-error-first"
        },
        {
-        "independence_share": 0.7907,
+        "independence_share": 0.7778,
         "label": "Reconcile the results before writing the note",
         "lost_s": {
          "ci": [
-          9.8,
-          22.0
+          11.8,
+          22.9
          ],
-         "value": 13.9
+         "value": 14.8
         },
-        "n": 43,
+        "n": 45,
         "skill": "reconcile-before-noting"
        }
       ],
       "status": "ok",
       "tenure_band": "1_3m",
-      "tenure_weeks": 9,
+      "tenure_weeks": 11,
       "time_to_independence": {
        "reached": true,
        "unit": "occurrences",
-       "value": 72
+       "value": 49
       },
-      "trend": "improving",
-      "trend_label": "Improving",
+      "trend": "cannot_tell_yet",
+      "trend_label": "Cannot tell yet",
+      "unit": "unit_a"
+     },
+     {
+      "assisted_share": {
+       "ci": [
+        0.0524,
+        0.3604
+       ],
+       "value": 0.15
+      },
+      "automation": {
+       "minutes": 97,
+       "routines_approved": 1,
+       "runs_done": 10
+      },
+      "automations_running": 1,
+      "id": "p_f_bp09",
+      "independence": {
+       "ci": [
+        0.6396,
+        0.9476
+       ],
+       "value": 0.85
+      },
+      "label": "BP-09",
+      "last_seen_days": 3,
+      "level": "junior",
+      "n": 128,
+      "n_recent": 40,
+      "origin": "synthetic",
+      "role": "benefits-processor",
+      "skills": [
+       {
+        "independence_share": 0.4737,
+        "label": "Probe the cliff edge on every calculator",
+        "lost_s": {
+         "ci": [
+          25.3,
+          34.9
+         ],
+         "value": 28.1
+        },
+        "n": 38,
+        "skill": "check-the-cliff"
+       },
+       {
+        "independence_share": 0.8649,
+        "label": "Enter the household once, accurately, then reuse it",
+        "lost_s": {
+         "ci": [
+          -0.8,
+          5.2
+         ],
+         "value": 1.4
+        },
+        "n": 37,
+        "skill": "enter-household-once"
+       },
+       {
+        "independence_share": 0.931,
+        "label": "Read the error message before retrying",
+        "lost_s": {
+         "ci": [
+          -0.8,
+          8.8
+         ],
+         "value": 3.7
+        },
+        "n": 29,
+        "skill": "reads-error-first"
+       },
+       {
+        "independence_share": 0.6667,
+        "label": "Reconcile the results before writing the note",
+        "lost_s": {
+         "ci": [
+          19.9,
+          30.1
+         ],
+         "value": 25.8
+        },
+        "n": 24,
+        "skill": "reconcile-before-noting"
+       }
+      ],
+      "status": "ok",
+      "tenure_band": "1_3m",
+      "tenure_weeks": 10,
+      "time_to_independence": {
+       "reached": true,
+       "unit": "occurrences",
+       "value": 49
+      },
+      "trend": "cannot_tell_yet",
+      "trend_label": "Cannot tell yet",
       "unit": "unit_a"
      },
      {
@@ -1271,12 +986,12 @@
        "value": 0.1
       },
       "automation": {
-       "minutes": 85,
-       "routines_approved": 1,
-       "runs_done": 9
+       "minutes": 0,
+       "routines_approved": 0,
+       "runs_done": 0
       },
-      "automations_running": 1,
-      "id": "p_f_bp13",
+      "automations_running": 0,
+      "id": "p_f_bp10",
       "independence": {
        "ci": [
         0.699,
@@ -1284,62 +999,347 @@
        ],
        "value": 0.9
       },
+      "label": "BP-10",
+      "last_seen_days": 3,
+      "level": "junior",
+      "n": 135,
+      "n_recent": 44,
+      "origin": "synthetic",
+      "role": "benefits-processor",
+      "skills": [
+       {
+        "independence_share": 0.6786,
+        "label": "Probe the cliff edge on every calculator",
+        "lost_s": {
+         "ci": [
+          30.0,
+          50.9
+         ],
+         "value": 42.8
+        },
+        "n": 28,
+        "skill": "check-the-cliff"
+       },
+       {
+        "independence_share": 0.8571,
+        "label": "Enter the household once, accurately, then reuse it",
+        "lost_s": {
+         "ci": [
+          0.4,
+          4.7
+         ],
+         "value": 1.6
+        },
+        "n": 35,
+        "skill": "enter-household-once"
+       },
+       {
+        "independence_share": 0.8611,
+        "label": "Read the error message before retrying",
+        "lost_s": {
+         "ci": [
+          -1.8,
+          4.5
+         ],
+         "value": 1.4
+        },
+        "n": 36,
+        "skill": "reads-error-first"
+       },
+       {
+        "independence_share": 0.75,
+        "label": "Reconcile the results before writing the note",
+        "lost_s": {
+         "ci": [
+          10.1,
+          20.5
+         ],
+         "value": 13.3
+        },
+        "n": 36,
+        "skill": "reconcile-before-noting"
+       }
+      ],
+      "status": "ok",
+      "tenure_band": "1_3m",
+      "tenure_weeks": 10,
+      "time_to_independence": {
+       "reached": true,
+       "unit": "occurrences",
+       "value": 64
+      },
+      "trend": "cannot_tell_yet",
+      "trend_label": "Cannot tell yet",
+      "unit": "unit_a"
+     },
+     {
+      "assisted_share": {
+       "ci": [
+        0.1812,
+        0.5671
+       ],
+       "value": 0.35
+      },
+      "automation": {
+       "minutes": 131,
+       "routines_approved": 1,
+       "runs_done": 13
+      },
+      "automations_running": 1,
+      "id": "p_f_bp11",
+      "independence": {
+       "ci": [
+        0.3866,
+        0.7812
+       ],
+       "value": 0.6
+      },
+      "label": "BP-11",
+      "last_seen_days": 2,
+      "level": "junior",
+      "n": 93,
+      "n_recent": 29,
+      "origin": "synthetic",
+      "role": "benefits-processor",
+      "skills": [
+       {
+        "independence_share": 0.2917,
+        "label": "Probe the cliff edge on every calculator",
+        "lost_s": {
+         "ci": [
+          52.3,
+          62.1
+         ],
+         "value": 58.6
+        },
+        "n": 24,
+        "skill": "check-the-cliff"
+       },
+       {
+        "independence_share": 0.7812,
+        "label": "Enter the household once, accurately, then reuse it",
+        "lost_s": {
+         "ci": [
+          -0.8,
+          6.5
+         ],
+         "value": 4.6
+        },
+        "n": 32,
+        "skill": "enter-household-once"
+       },
+       {
+        "independence_share": 0.75,
+        "label": "Read the error message before retrying",
+        "lost_s": {
+         "ci": [
+          3.2,
+          8.6
+         ],
+         "value": 4.5
+        },
+        "n": 20,
+        "skill": "reads-error-first"
+       },
+       {
+        "independence_share": 0.5294,
+        "label": "Reconcile the results before writing the note",
+        "lost_s": {
+         "ci": [
+          29.9,
+          35.0
+         ],
+         "value": 32.7
+        },
+        "n": 17,
+        "skill": "reconcile-before-noting"
+       }
+      ],
+      "status": "ok",
+      "tenure_band": "1_3m",
+      "tenure_weeks": 9,
+      "time_to_independence": {
+       "reached": true,
+       "unit": "occurrences",
+       "value": 82
+      },
+      "trend": "cannot_tell_yet",
+      "trend_label": "Cannot tell yet",
+      "unit": "unit_a"
+     },
+     {
+      "assisted_share": {
+       "ci": [
+        0.0807,
+        0.416
+       ],
+       "value": 0.2
+      },
+      "automation": {
+       "minutes": 0,
+       "routines_approved": 0,
+       "runs_done": 0
+      },
+      "automations_running": 0,
+      "id": "p_f_bp12",
+      "independence": {
+       "ci": [
+        0.584,
+        0.9193
+       ],
+       "value": 0.8
+      },
+      "label": "BP-12",
+      "last_seen_days": 2,
+      "level": "junior",
+      "n": 160,
+      "n_recent": 49,
+      "origin": "synthetic",
+      "role": "benefits-processor",
+      "skills": [
+       {
+        "independence_share": 0.5581,
+        "label": "Probe the cliff edge on every calculator",
+        "lost_s": {
+         "ci": [
+          30.5,
+          40.9
+         ],
+         "value": 34.7
+        },
+        "n": 43,
+        "skill": "check-the-cliff"
+       },
+       {
+        "independence_share": 0.7568,
+        "label": "Enter the household once, accurately, then reuse it",
+        "lost_s": {
+         "ci": [
+          -2.7,
+          2.3
+         ],
+         "value": -1.3
+        },
+        "n": 37,
+        "skill": "enter-household-once"
+       },
+       {
+        "independence_share": 0.7857,
+        "label": "Read the error message before retrying",
+        "lost_s": {
+         "ci": [
+          0.9,
+          5.9
+         ],
+         "value": 3.4
+        },
+        "n": 42,
+        "skill": "reads-error-first"
+       },
+       {
+        "independence_share": 0.7632,
+        "label": "Reconcile the results before writing the note",
+        "lost_s": {
+         "ci": [
+          10.1,
+          26.2
+         ],
+         "value": 19.1
+        },
+        "n": 38,
+        "skill": "reconcile-before-noting"
+       }
+      ],
+      "status": "ok",
+      "tenure_band": "1_3m",
+      "tenure_weeks": 9,
+      "time_to_independence": {
+       "reached": true,
+       "unit": "occurrences",
+       "value": 109
+      },
+      "trend": "cannot_tell_yet",
+      "trend_label": "Cannot tell yet",
+      "unit": "unit_a"
+     },
+     {
+      "assisted_share": {
+       "ci": [
+        0.0807,
+        0.416
+       ],
+       "value": 0.2
+      },
+      "automation": {
+       "minutes": 110,
+       "routines_approved": 1,
+       "runs_done": 11
+      },
+      "automations_running": 1,
+      "id": "p_f_bp13",
+      "independence": {
+       "ci": [
+        0.5313,
+        0.8881
+       ],
+       "value": 0.75
+      },
       "label": "BP-13",
       "last_seen_days": 2,
       "level": "junior",
-      "n": 70,
+      "n": 59,
       "n_recent": 26,
       "origin": "synthetic",
       "role": "benefits-processor",
       "skills": [
        {
-        "independence_share": 0.55,
+        "independence_share": 0.3571,
         "label": "Probe the cliff edge on every calculator",
         "lost_s": {
          "ci": [
-          23.5,
-          39.5
+          41.8,
+          70.6
          ],
-         "value": 29.8
+         "value": 45.2
         },
-        "n": 20,
+        "n": 14,
         "skill": "check-the-cliff"
        },
        {
-        "independence_share": 0.8125,
+        "independence_share": 0.6923,
         "label": "Enter the household once, accurately, then reuse it",
         "lost_s": {
          "ci": [
-          -0.2,
-          12.2
+          -8.0,
+          6.8
          ],
-         "value": 6.2
+         "value": -0.5
         },
-        "n": 16,
+        "n": 13,
         "skill": "enter-household-once"
        },
        {
-        "independence_share": 0.6111,
+        "independence_share": 0.6875,
         "label": "Read the error message before retrying",
         "lost_s": {
          "ci": [
-          -2.7,
-          4.4
+          -0.9,
+          8.2
          ],
-         "value": 1.6
+         "value": 2.0
         },
-        "n": 18,
+        "n": 16,
         "skill": "reads-error-first"
        },
        {
-        "independence_share": 0.625,
+        "independence_share": 0.5625,
         "label": "Reconcile the results before writing the note",
         "lost_s": {
          "ci": [
-          19.5,
-          44.7
+          24.9,
+          37.9
          ],
-         "value": 33.8
+         "value": 30.1
         },
         "n": 16,
         "skill": "reconcile-before-noting"
@@ -1349,12 +1349,12 @@
       "tenure_band": "1_3m",
       "tenure_weeks": 7,
       "time_to_independence": {
-       "reached": true,
+       "reached": false,
        "unit": "occurrences",
-       "value": 50
+       "value": null
       },
-      "trend": "improving",
-      "trend_label": "Improving",
+      "trend": "cannot_tell_yet",
+      "trend_label": "Cannot tell yet",
       "unit": "unit_a"
      },
      {
@@ -1392,10 +1392,10 @@
         "label": "Probe the cliff edge on every calculator",
         "lost_s": {
          "ci": [
-          33.5,
-          70.9
+          54.8,
+          75.8
          ],
-         "value": 50.4
+         "value": 61.1
         },
         "n": 9,
         "skill": "check-the-cliff"
@@ -1431,10 +1431,10 @@
         "label": "Reconcile the results before writing the note",
         "lost_s": {
          "ci": [
-          20.7,
-          29.3
+          23.6,
+          33.2
          ],
-         "value": 27.4
+         "value": 30.9
         },
         "n": 20,
         "skill": "reconcile-before-noting"
@@ -1645,10 +1645,10 @@
      {
       "assisted_share": {
        "ci": [
-        0.1812,
-        0.5671
+        0.2188,
+        0.6134
        ],
-       "value": 0.35
+       "value": 0.4
       },
       "automation": {
        "minutes": 0,
@@ -1667,61 +1667,61 @@
       "label": "BP-17",
       "last_seen_days": 2,
       "level": "junior",
-      "n": 118,
-      "n_recent": 35,
+      "n": 103,
+      "n_recent": 19,
       "origin": "synthetic",
       "role": "benefits-processor",
       "skills": [
        {
-        "independence_share": 0.5625,
+        "independence_share": 0.5385,
         "label": "Probe the cliff edge on every calculator",
         "lost_s": {
          "ci": [
-          32.5,
-          47.2
+          37.7,
+          58.9
          ],
-         "value": 39.1
+         "value": 41.6
         },
-        "n": 32,
+        "n": 26,
         "skill": "check-the-cliff"
        },
        {
-        "independence_share": 0.625,
+        "independence_share": 0.5926,
         "label": "Enter the household once, accurately, then reuse it",
         "lost_s": {
          "ci": [
-          -2.0,
-          9.5
+          1.5,
+          11.3
          ],
-         "value": 3.5
+         "value": 4.3
         },
-        "n": 24,
+        "n": 27,
         "skill": "enter-household-once"
        },
        {
-        "independence_share": 0.7241,
+        "independence_share": 0.5833,
         "label": "Read the error message before retrying",
         "lost_s": {
          "ci": [
-          -2.6,
-          5.4
+          -0.7,
+          9.6
          ],
-         "value": 1.8
+         "value": 5.3
         },
-        "n": 29,
+        "n": 24,
         "skill": "reads-error-first"
        },
        {
-        "independence_share": 0.6061,
+        "independence_share": 0.5385,
         "label": "Reconcile the results before writing the note",
         "lost_s": {
          "ci": [
-          24.4,
-          29.6
+          20.7,
+          35.5
          ],
-         "value": 27.5
+         "value": 26.3
         },
-        "n": 33,
+        "n": 26,
         "skill": "reconcile-before-noting"
        }
       ],
@@ -1729,9 +1729,9 @@
       "tenure_band": "1_3m",
       "tenure_weeks": 12,
       "time_to_independence": {
-       "reached": true,
+       "reached": false,
        "unit": "occurrences",
-       "value": 58
+       "value": null
       },
       "trend": "cannot_tell_yet",
       "trend_label": "Cannot tell yet",
@@ -1768,12 +1768,12 @@
       "role": "benefits-processor",
       "skills": [
        {
-        "independence_share": 0.4359,
+        "independence_share": 0.4103,
         "label": "Probe the cliff edge on every calculator",
         "lost_s": {
          "ci": [
           32.5,
-          40.4
+          45.9
          ],
          "value": 36.4
         },
@@ -1794,29 +1794,29 @@
         "skill": "enter-household-once"
        },
        {
-        "independence_share": 0.5745,
+        "independence_share": 0.587,
         "label": "Read the error message before retrying",
         "lost_s": {
          "ci": [
-          0.8,
+          0.7,
           3.8
          ],
          "value": 2.3
         },
-        "n": 47,
+        "n": 46,
         "skill": "reads-error-first"
        },
        {
-        "independence_share": 0.5581,
+        "independence_share": 0.5682,
         "label": "Reconcile the results before writing the note",
         "lost_s": {
          "ci": [
-          19.3,
+          19.6,
           28.7
          ],
-         "value": 24.3
+         "value": 24.5
         },
-        "n": 43,
+        "n": 44,
         "skill": "reconcile-before-noting"
        }
       ],
@@ -1867,10 +1867,10 @@
         "label": "Probe the cliff edge on every calculator",
         "lost_s": {
          "ci": [
-          38.2,
-          51.5
+          44.4,
+          61.0
          ],
-         "value": 44.4
+         "value": 51.7
         },
         "n": 21,
         "skill": "check-the-cliff"
@@ -1907,7 +1907,7 @@
         "lost_s": {
          "ci": [
           21.2,
-          34.9
+          35.7
          ],
          "value": 28.7
         },
@@ -1930,10 +1930,10 @@
      {
       "assisted_share": {
        "ci": [
-        0.1455,
-        0.519
+        0.1119,
+        0.4687
        ],
-       "value": 0.3
+       "value": 0.25
       },
       "automation": {
        "minutes": 0,
@@ -1944,69 +1944,69 @@
       "id": "p_f_bp20",
       "independence": {
        "ci": [
-        0.4329,
-        0.8188
+        0.3421,
+        0.7418
        ],
-       "value": 0.65
+       "value": 0.55
       },
       "label": "BP-20",
-      "last_seen_days": 3,
+      "last_seen_days": 2,
       "level": "junior",
-      "n": 114,
-      "n_recent": 28,
+      "n": 91,
+      "n_recent": 17,
       "origin": "synthetic",
       "role": "benefits-processor",
       "skills": [
        {
-        "independence_share": 0.3077,
+        "independence_share": 0.25,
         "label": "Probe the cliff edge on every calculator",
         "lost_s": {
          "ci": [
-          35.7,
-          50.5
+          57.6,
+          67.5
          ],
-         "value": 40.9
+         "value": 62.9
         },
-        "n": 26,
+        "n": 16,
         "skill": "check-the-cliff"
        },
        {
-        "independence_share": 0.5161,
+        "independence_share": 0.3478,
         "label": "Enter the household once, accurately, then reuse it",
         "lost_s": {
          "ci": [
-          1.3,
-          7.7
+          0.1,
+          8.5
          ],
-         "value": 3.0
+         "value": 3.3
         },
-        "n": 31,
+        "n": 23,
         "skill": "enter-household-once"
        },
        {
-        "independence_share": 0.6875,
+        "independence_share": 0.56,
         "label": "Read the error message before retrying",
         "lost_s": {
          "ci": [
-          -1.1,
-          5.7
+          -2.2,
+          4.2
          ],
-         "value": 3.5
+         "value": 2.6
         },
-        "n": 32,
+        "n": 25,
         "skill": "reads-error-first"
        },
        {
-        "independence_share": 0.56,
+        "independence_share": 0.5185,
         "label": "Reconcile the results before writing the note",
         "lost_s": {
          "ci": [
-          25.1,
-          35.7
+          23.0,
+          38.4
          ],
-         "value": 30.4
+         "value": 32.8
         },
-        "n": 25,
+        "n": 27,
         "skill": "reconcile-before-noting"
        }
       ],
@@ -2014,9 +2014,9 @@
       "tenure_band": "1_3m",
       "tenure_weeks": 11,
       "time_to_independence": {
-       "reached": true,
+       "reached": false,
        "unit": "occurrences",
-       "value": 104
+       "value": null
       },
       "trend": "cannot_tell_yet",
       "trend_label": "Cannot tell yet",
@@ -2047,61 +2047,61 @@
       "label": "BP-21",
       "last_seen_days": 2,
       "level": "junior",
-      "n": 126,
+      "n": 123,
       "n_recent": 34,
       "origin": "synthetic",
       "role": "benefits-processor",
       "skills": [
        {
-        "independence_share": 0.6129,
+        "independence_share": 0.6176,
         "label": "Probe the cliff edge on every calculator",
         "lost_s": {
          "ci": [
-          34.8,
-          44.7
+          35.1,
+          45.8
          ],
-         "value": 38.6
+         "value": 39.3
         },
-        "n": 31,
+        "n": 34,
         "skill": "check-the-cliff"
        },
        {
-        "independence_share": 0.7407,
+        "independence_share": 0.6667,
         "label": "Enter the household once, accurately, then reuse it",
         "lost_s": {
          "ci": [
-          -2.3,
-          7.7
+          -2.9,
+          5.1
          ],
-         "value": 2.6
+         "value": 2.1
         },
         "n": 27,
         "skill": "enter-household-once"
        },
        {
-        "independence_share": 0.8065,
+        "independence_share": 0.6897,
         "label": "Read the error message before retrying",
         "lost_s": {
          "ci": [
-          0.4,
-          8.6
+          1.5,
+          8.8
          ],
-         "value": 4.4
+         "value": 4.8
         },
-        "n": 31,
+        "n": 29,
         "skill": "reads-error-first"
        },
        {
-        "independence_share": 0.5135,
+        "independence_share": 0.5758,
         "label": "Reconcile the results before writing the note",
         "lost_s": {
          "ci": [
-          25.8,
-          30.5
+          24.3,
+          32.9
          ],
-         "value": 27.6
+         "value": 28.8
         },
-        "n": 37,
+        "n": 33,
         "skill": "reconcile-before-noting"
        }
       ],
@@ -2111,7 +2111,7 @@
       "time_to_independence": {
        "reached": true,
        "unit": "occurrences",
-       "value": 33
+       "value": 109
       },
       "trend": "cannot_tell_yet",
       "trend_label": "Cannot tell yet",
@@ -2148,42 +2148,42 @@
       "role": "benefits-processor",
       "skills": [
        {
-        "independence_share": 0.7436,
+        "independence_share": 0.7179,
         "label": "Probe the cliff edge on every calculator",
         "lost_s": {
          "ci": [
-          35.9,
-          42.7
+          36.3,
+          45.4
          ],
-         "value": 38.1
+         "value": 42.2
         },
         "n": 39,
         "skill": "check-the-cliff"
        },
        {
-        "independence_share": 0.4375,
+        "independence_share": 0.4516,
         "label": "Enter the household once, accurately, then reuse it",
         "lost_s": {
          "ci": [
           0.1,
           8.4
          ],
-         "value": 3.7
+         "value": 3.9
         },
-        "n": 32,
+        "n": 31,
         "skill": "enter-household-once"
        },
        {
-        "independence_share": 0.5789,
+        "independence_share": 0.6,
         "label": "Read the error message before retrying",
         "lost_s": {
          "ci": [
           -1.7,
-          9.4
+          9.0
          ],
-         "value": 0.7
+         "value": 2.0
         },
-        "n": 19,
+        "n": 20,
         "skill": "reads-error-first"
        },
        {
@@ -2191,8 +2191,8 @@
         "label": "Reconcile the results before writing the note",
         "lost_s": {
          "ci": [
-          24.2,
-          34.2
+          24.8,
+          34.4
          ],
          "value": 28.3
         },
@@ -2206,7 +2206,7 @@
       "time_to_independence": {
        "reached": true,
        "unit": "occurrences",
-       "value": 59
+       "value": 56
       },
       "trend": "cannot_tell_yet",
       "trend_label": "Cannot tell yet",
@@ -2243,55 +2243,55 @@
       "role": "benefits-processor",
       "skills": [
        {
-        "independence_share": 0.3077,
+        "independence_share": 0.3333,
         "label": "Probe the cliff edge on every calculator",
         "lost_s": {
          "ci": [
-          28.0,
-          52.5
+          43.0,
+          63.4
          ],
-         "value": 40.5
+         "value": 48.7
         },
-        "n": 13,
+        "n": 12,
         "skill": "check-the-cliff"
        },
        {
-        "independence_share": 0.6471,
+        "independence_share": 0.5625,
         "label": "Enter the household once, accurately, then reuse it",
         "lost_s": {
          "ci": [
-          0.7,
+          -0.7,
           11.6
          ],
-         "value": 6.5
+         "value": 5.7
         },
-        "n": 17,
+        "n": 16,
         "skill": "enter-household-once"
        },
        {
-        "independence_share": 0.5625,
+        "independence_share": 0.6316,
         "label": "Read the error message before retrying",
         "lost_s": {
          "ci": [
           1.9,
           9.9
          ],
-         "value": 6.6
+         "value": 5.7
         },
-        "n": 16,
+        "n": 19,
         "skill": "reads-error-first"
        },
        {
-        "independence_share": 0.3846,
+        "independence_share": 0.36,
         "label": "Reconcile the results before writing the note",
         "lost_s": {
          "ci": [
-          19.0,
-          29.7
+          20.0,
+          26.8
          ],
          "value": 23.2
         },
-        "n": 26,
+        "n": 25,
         "skill": "reconcile-before-noting"
        }
       ],
@@ -2310,10 +2310,10 @@
      {
       "assisted_share": {
        "ci": [
-        0.0807,
-        0.416
+        0.3421,
+        0.7418
        ],
-       "value": 0.2
+       "value": 0.55
       },
       "automation": {
        "minutes": 0,
@@ -2324,69 +2324,69 @@
       "id": "p_f_bp24",
       "independence": {
        "ci": [
-        0.5313,
-        0.8881
+        0.2582,
+        0.6579
        ],
-       "value": 0.75
+       "value": 0.45
       },
       "label": "BP-24",
       "last_seen_days": 2,
       "level": "junior",
-      "n": 109,
-      "n_recent": 39,
+      "n": 124,
+      "n_recent": 52,
       "origin": "synthetic",
       "role": "benefits-processor",
       "skills": [
        {
-        "independence_share": 0.5,
+        "independence_share": 0.4444,
         "label": "Probe the cliff edge on every calculator",
         "lost_s": {
          "ci": [
-          32.9,
-          44.4
+          35.6,
+          48.0
          ],
-         "value": 37.0
+         "value": 41.0
         },
-        "n": 34,
+        "n": 36,
         "skill": "check-the-cliff"
        },
        {
-        "independence_share": 0.6522,
+        "independence_share": 0.5769,
         "label": "Enter the household once, accurately, then reuse it",
         "lost_s": {
          "ci": [
-          -0.3,
-          6.4
+          1.6,
+          7.7
          ],
-         "value": 3.9
+         "value": 4.0
         },
-        "n": 23,
+        "n": 26,
         "skill": "enter-household-once"
        },
        {
-        "independence_share": 0.6667,
+        "independence_share": 0.5385,
         "label": "Read the error message before retrying",
         "lost_s": {
          "ci": [
-          -2.0,
-          8.1
+          -3.2,
+          8.4
          ],
-         "value": 2.1
+         "value": 1.6
         },
-        "n": 24,
+        "n": 26,
         "skill": "reads-error-first"
        },
        {
-        "independence_share": 0.6071,
+        "independence_share": 0.5833,
         "label": "Reconcile the results before writing the note",
         "lost_s": {
          "ci": [
-          23.2,
-          33.5
+          22.5,
+          31.0
          ],
-         "value": 27.9
+         "value": 25.9
         },
-        "n": 28,
+        "n": 36,
         "skill": "reconcile-before-noting"
        }
       ],
@@ -2396,7 +2396,7 @@
       "time_to_independence": {
        "reached": true,
        "unit": "occurrences",
-       "value": 97
+       "value": 82
       },
       "trend": "cannot_tell_yet",
       "trend_label": "Cannot tell yet",
@@ -2405,10 +2405,10 @@
      {
       "assisted_share": {
        "ci": [
-        0.0807,
-        0.416
+        0.0524,
+        0.3604
        ],
-       "value": 0.2
+       "value": 0.15
       },
       "automation": {
        "minutes": 0,
@@ -2419,69 +2419,69 @@
       "id": "p_f_bp25",
       "independence": {
        "ci": [
-        0.4329,
-        0.8188
+        0.584,
+        0.9193
        ],
-       "value": 0.65
+       "value": 0.8
       },
       "label": "BP-25",
-      "last_seen_days": 2,
+      "last_seen_days": 3,
       "level": "junior",
       "n": 66,
-      "n_recent": 33,
+      "n_recent": 27,
       "origin": "synthetic",
       "role": "benefits-processor",
       "skills": [
        {
-        "independence_share": 0.4,
+        "independence_share": 0.375,
         "label": "Probe the cliff edge on every calculator",
         "lost_s": {
          "ci": [
-          32.0,
-          52.7
+          49.7,
+          65.5
          ],
-         "value": 38.7
+         "value": 55.3
         },
-        "n": 15,
+        "n": 16,
         "skill": "check-the-cliff"
        },
        {
-        "independence_share": 0.7059,
+        "independence_share": 0.7143,
         "label": "Enter the household once, accurately, then reuse it",
         "lost_s": {
          "ci": [
-          1.7,
-          6.7
+          -1.7,
+          5.9
          ],
-         "value": 4.5
+         "value": 1.1
         },
-        "n": 17,
+        "n": 14,
         "skill": "enter-household-once"
        },
        {
-        "independence_share": 0.7,
+        "independence_share": 0.6471,
         "label": "Read the error message before retrying",
         "lost_s": {
          "ci": [
-          -1.0,
-          7.3
+          -0.6,
+          9.9
          ],
-         "value": -0.1
+         "value": 5.2
         },
-        "n": 20,
+        "n": 17,
         "skill": "reads-error-first"
        },
        {
-        "independence_share": 0.5714,
+        "independence_share": 0.6316,
         "label": "Reconcile the results before writing the note",
         "lost_s": {
          "ci": [
-          16.7,
-          36.5
+          21.7,
+          33.4
          ],
-         "value": 28.2
+         "value": 24.0
         },
-        "n": 14,
+        "n": 19,
         "skill": "reconcile-before-noting"
        }
       ],
@@ -2491,7 +2491,7 @@
       "time_to_independence": {
        "reached": true,
        "unit": "occurrences",
-       "value": 37
+       "value": 62
       },
       "trend": "cannot_tell_yet",
       "trend_label": "Cannot tell yet",
@@ -2595,83 +2595,83 @@
      {
       "assisted_share": {
        "ci": [
-        0.0089,
-        0.2361
+        0.0279,
+        0.301
        ],
-       "value": 0.05
+       "value": 0.1
       },
       "automation": {
-       "minutes": 113,
+       "minutes": 82,
        "routines_approved": 1,
-       "runs_done": 12
+       "runs_done": 8
       },
       "automations_running": 1,
       "id": "p_f_bp27",
       "independence": {
        "ci": [
-        0.7639,
-        0.9911
+        0.584,
+        0.9193
        ],
-       "value": 0.95
+       "value": 0.8
       },
       "label": "BP-27",
       "last_seen_days": 2,
       "level": "junior",
-      "n": 192,
-      "n_recent": 52,
+      "n": 166,
+      "n_recent": 45,
       "origin": "synthetic",
       "role": "benefits-processor",
       "skills": [
        {
-        "independence_share": 0.7317,
+        "independence_share": 0.4242,
         "label": "Probe the cliff edge on every calculator",
         "lost_s": {
          "ci": [
-          8.9,
-          28.8
+          41.2,
+          55.8
          ],
-         "value": 20.6
+         "value": 44.1
         },
-        "n": 41,
+        "n": 33,
         "skill": "check-the-cliff"
        },
        {
-        "independence_share": 0.86,
+        "independence_share": 0.8478,
         "label": "Enter the household once, accurately, then reuse it",
         "lost_s": {
          "ci": [
-          -1.1,
-          3.5
+          -1.4,
+          2.8
          ],
-         "value": 1.4
+         "value": 1.1
         },
-        "n": 50,
+        "n": 46,
         "skill": "enter-household-once"
        },
        {
-        "independence_share": 0.8235,
+        "independence_share": 0.7073,
         "label": "Read the error message before retrying",
         "lost_s": {
          "ci": [
-          -1.2,
-          3.4
+          -0.6,
+          7.7
          ],
-         "value": 0.7
+         "value": 3.1
         },
-        "n": 51,
+        "n": 41,
         "skill": "reads-error-first"
        },
        {
-        "independence_share": 0.82,
+        "independence_share": 0.7826,
         "label": "Reconcile the results before writing the note",
         "lost_s": {
          "ci": [
-          9.3,
-          16.3
+          11.8,
+          19.2
          ],
-         "value": 13.2
+         "value": 13.9
         },
-        "n": 50,
+        "n": 46,
         "skill": "reconcile-before-noting"
        }
       ],
@@ -2681,7 +2681,7 @@
       "time_to_independence": {
        "reached": true,
        "unit": "occurrences",
-       "value": 46
+       "value": 66
       },
       "trend": "cannot_tell_yet",
       "trend_label": "Cannot tell yet",
@@ -2704,69 +2704,69 @@
       "id": "p_f_bp28",
       "independence": {
        "ci": [
-        0.5313,
-        0.8881
+        0.481,
+        0.8545
        ],
-       "value": 0.75
+       "value": 0.7
       },
       "label": "BP-28",
-      "last_seen_days": 2,
+      "last_seen_days": 4,
       "level": "junior",
-      "n": 105,
-      "n_recent": 27,
+      "n": 132,
+      "n_recent": 24,
       "origin": "synthetic",
       "role": "benefits-processor",
       "skills": [
        {
-        "independence_share": 0.3529,
+        "independence_share": 0.3939,
         "label": "Probe the cliff edge on every calculator",
         "lost_s": {
          "ci": [
-          52.3,
-          72.1
+          49.2,
+          61.1
          ],
-         "value": 61.9
+         "value": 55.1
         },
-        "n": 17,
+        "n": 33,
         "skill": "check-the-cliff"
        },
        {
-        "independence_share": 0.6471,
+        "independence_share": 0.7838,
         "label": "Enter the household once, accurately, then reuse it",
         "lost_s": {
          "ci": [
-          -2.0,
-          6.0
+          -2.9,
+          2.9
          ],
-         "value": 2.1
+         "value": -0.2
         },
-        "n": 34,
+        "n": 37,
         "skill": "enter-household-once"
        },
        {
-        "independence_share": 0.84,
+        "independence_share": 0.8667,
         "label": "Read the error message before retrying",
         "lost_s": {
          "ci": [
-          1.0,
-          7.0
+          -2.5,
+          3.1
          ],
-         "value": 3.0
+         "value": 0.2
         },
-        "n": 25,
+        "n": 30,
         "skill": "reads-error-first"
        },
        {
-        "independence_share": 0.5862,
+        "independence_share": 0.6875,
         "label": "Reconcile the results before writing the note",
         "lost_s": {
          "ci": [
-          21.3,
-          34.8
+          22.8,
+          32.7
          ],
-         "value": 27.0
+         "value": 28.9
         },
-        "n": 29,
+        "n": 32,
         "skill": "reconcile-before-noting"
        }
       ],
@@ -2776,7 +2776,7 @@
       "time_to_independence": {
        "reached": true,
        "unit": "occurrences",
-       "value": 59
+       "value": 42
       },
       "trend": "cannot_tell_yet",
       "trend_label": "Cannot tell yet",
@@ -2785,13 +2785,13 @@
      {
       "assisted_share": {
        "ci": [
-        0.0524,
-        0.3604
+        0.0807,
+        0.416
        ],
-       "value": 0.15
+       "value": 0.2
       },
       "automation": {
-       "minutes": 71,
+       "minutes": 78,
        "routines_approved": 1,
        "runs_done": 8
       },
@@ -2799,69 +2799,69 @@
       "id": "p_f_bp29",
       "independence": {
        "ci": [
-        0.6396,
-        0.9476
+        0.584,
+        0.9193
        ],
-       "value": 0.85
+       "value": 0.8
       },
       "label": "BP-29",
       "last_seen_days": 2,
       "level": "junior",
-      "n": 123,
-      "n_recent": 25,
+      "n": 101,
+      "n_recent": 27,
       "origin": "synthetic",
       "role": "benefits-processor",
       "skills": [
        {
-        "independence_share": 0.6774,
+        "independence_share": 0.5,
         "label": "Probe the cliff edge on every calculator",
         "lost_s": {
          "ci": [
-          10.9,
-          43.2
+          38.3,
+          59.1
          ],
-         "value": 24.4
+         "value": 46.0
         },
-        "n": 31,
+        "n": 22,
         "skill": "check-the-cliff"
        },
        {
-        "independence_share": 0.8235,
+        "independence_share": 0.875,
         "label": "Enter the household once, accurately, then reuse it",
         "lost_s": {
          "ci": [
-          -4.7,
-          5.3
+          -3.2,
+          6.8
          ],
-         "value": 1.8
+         "value": 0.1
         },
-        "n": 34,
+        "n": 24,
         "skill": "enter-household-once"
        },
        {
-        "independence_share": 0.8077,
+        "independence_share": 0.8621,
         "label": "Read the error message before retrying",
         "lost_s": {
          "ci": [
-          -3.4,
-          5.5
+          -3.3,
+          6.4
          ],
-         "value": 0.9
+         "value": 1.4
         },
-        "n": 26,
+        "n": 29,
         "skill": "reads-error-first"
        },
        {
-        "independence_share": 0.7188,
+        "independence_share": 0.5769,
         "label": "Reconcile the results before writing the note",
         "lost_s": {
          "ci": [
-          6.7,
-          19.3
+          12.3,
+          26.4
          ],
-         "value": 14.6
+         "value": 19.5
         },
-        "n": 32,
+        "n": 26,
         "skill": "reconcile-before-noting"
        }
       ],
@@ -2871,7 +2871,7 @@
       "time_to_independence": {
        "reached": true,
        "unit": "occurrences",
-       "value": 32
+       "value": 53
       },
       "trend": "cannot_tell_yet",
       "trend_label": "Cannot tell yet",
@@ -2921,28 +2921,28 @@
     "aggregate": {
      "assisted_share": {
       "ci": [
-       0.1194,
-       0.3056
+       0.1296,
+       0.3142
       ],
-      "value": 0.2125
+      "value": 0.2219
      },
      "independence": {
       "ci": [
-       0.6151,
-       0.8411
+       0.5882,
+       0.8118
       ],
-      "value": 0.7281
+      "value": 0.7
      },
      "n_users": 16,
      "time_to_independence": {
       "ci": null,
-      "median": 31.0,
+      "median": 27.0,
       "reached_share": {
        "ci": [
-        0.3347,
-        0.8475
+        0.4116,
+        0.8973
        ],
-       "value": 0.5833
+       "value": 0.6667
       },
       "unit": "occurrences"
      }
@@ -2956,20 +2956,20 @@
      "n_people": 11,
      "slope_per_4w": {
       "ci": [
-       0.0157,
-       0.1337
+       0.0442,
+       0.1542
       ],
-      "value": 0.0747
+      "value": 0.0992
      }
     },
     "units": [
      {
       "independence": {
        "ci": [
-        0.6006,
-        0.8229
+        0.5809,
+        0.7956
        ],
-       "value": 0.7118
+       "value": 0.6882
       },
       "n": 17,
       "unit": "unit d"
@@ -3482,16 +3482,16 @@
       "role": "data-analyst",
       "skills": [
        {
-        "independence_share": 0.5,
+        "independence_share": 0.5385,
         "label": "Compare to last period before sharing",
         "lost_s": {
          "ci": [
           14.5,
-          20.6
+          21.0
          ],
-         "value": 17.2
+         "value": 17.5
         },
-        "n": 40,
+        "n": 39,
         "skill": "compare-to-last-period"
        },
        {
@@ -3521,16 +3521,16 @@
         "skill": "profile-before-querying"
        },
        {
-        "independence_share": 0.2812,
+        "independence_share": 0.2424,
         "label": "Reconcile with the control figure before reporting",
         "lost_s": {
          "ci": [
-          36.4,
-          43.3
+          43.1,
+          49.1
          ],
-         "value": 39.5
+         "value": 44.5
         },
-        "n": 32,
+        "n": 33,
         "skill": "reconcile-to-control"
        }
       ],
@@ -3541,291 +3541,6 @@
        "reached": true,
        "unit": "occurrences",
        "value": 20
-      },
-      "trend": "cannot_tell_yet",
-      "trend_label": "Cannot tell yet",
-      "unit": "unit_d"
-     },
-     {
-      "assisted_share": {
-       "ci": [
-        0.2188,
-        0.6134
-       ],
-       "value": 0.4
-      },
-      "automation": {
-       "minutes": 0,
-       "routines_approved": 0,
-       "runs_done": 0
-      },
-      "automations_running": 0,
-      "id": "p_f_da07",
-      "independence": {
-       "ci": [
-        0.3421,
-        0.7418
-       ],
-       "value": 0.55
-      },
-      "label": "DA-07",
-      "last_seen_days": 2,
-      "level": "junior",
-      "n": 110,
-      "n_recent": 26,
-      "origin": "synthetic",
-      "role": "data-analyst",
-      "skills": [
-       {
-        "independence_share": 0.5385,
-        "label": "Compare to last period before sharing",
-        "lost_s": {
-         "ci": [
-          11.6,
-          23.7
-         ],
-         "value": 16.2
-        },
-        "n": 26,
-        "skill": "compare-to-last-period"
-       },
-       {
-        "independence_share": 0.7407,
-        "label": "Inspect the rows, not just the total",
-        "lost_s": {
-         "ci": [
-          16.9,
-          25.5
-         ],
-         "value": 22.6
-        },
-        "n": 27,
-        "skill": "inspect-before-trusting"
-       },
-       {
-        "independence_share": 0.7647,
-        "label": "Profile the inputs before querying",
-        "lost_s": {
-         "ci": [
-          5.0,
-          10.0
-         ],
-         "value": 6.8
-        },
-        "n": 34,
-        "skill": "profile-before-querying"
-       },
-       {
-        "independence_share": 0.4348,
-        "label": "Reconcile with the control figure before reporting",
-        "lost_s": {
-         "ci": [
-          30.3,
-          42.6
-         ],
-         "value": 38.6
-        },
-        "n": 23,
-        "skill": "reconcile-to-control"
-       }
-      ],
-      "status": "ok",
-      "tenure_band": "1_3m",
-      "tenure_weeks": 12,
-      "time_to_independence": {
-       "reached": true,
-       "unit": "occurrences",
-       "value": 20
-      },
-      "trend": "cannot_tell_yet",
-      "trend_label": "Cannot tell yet",
-      "unit": "unit_d"
-     },
-     {
-      "assisted_share": {
-       "ci": [
-        0.0279,
-        0.301
-       ],
-       "value": 0.1
-      },
-      "automation": {
-       "minutes": 0,
-       "routines_approved": 0,
-       "runs_done": 0
-      },
-      "automations_running": 0,
-      "id": "p_f_da08",
-      "independence": {
-       "ci": [
-        0.6396,
-        0.9476
-       ],
-       "value": 0.85
-      },
-      "label": "DA-08",
-      "last_seen_days": 2,
-      "level": "junior",
-      "n": 140,
-      "n_recent": 37,
-      "origin": "synthetic",
-      "role": "data-analyst",
-      "skills": [
-       {
-        "independence_share": 0.5588,
-        "label": "Compare to last period before sharing",
-        "lost_s": {
-         "ci": [
-          16.6,
-          23.4
-         ],
-         "value": 21.3
-        },
-        "n": 34,
-        "skill": "compare-to-last-period"
-       },
-       {
-        "independence_share": 0.8621,
-        "label": "Inspect the rows, not just the total",
-        "lost_s": {
-         "ci": [
-          8.6,
-          19.8
-         ],
-         "value": 14.9
-        },
-        "n": 29,
-        "skill": "inspect-before-trusting"
-       },
-       {
-        "independence_share": 0.8444,
-        "label": "Profile the inputs before querying",
-        "lost_s": {
-         "ci": [
-          1.0,
-          6.5
-         ],
-         "value": 3.5
-        },
-        "n": 45,
-        "skill": "profile-before-querying"
-       },
-       {
-        "independence_share": 0.4062,
-        "label": "Reconcile with the control figure before reporting",
-        "lost_s": {
-         "ci": [
-          24.1,
-          40.0
-         ],
-         "value": 30.8
-        },
-        "n": 32,
-        "skill": "reconcile-to-control"
-       }
-      ],
-      "status": "ok",
-      "tenure_band": "1_3m",
-      "tenure_weeks": 12,
-      "time_to_independence": {
-       "reached": true,
-       "unit": "occurrences",
-       "value": 66
-      },
-      "trend": "cannot_tell_yet",
-      "trend_label": "Cannot tell yet",
-      "unit": "unit_d"
-     },
-     {
-      "assisted_share": {
-       "ci": [
-        0.2188,
-        0.6134
-       ],
-       "value": 0.4
-      },
-      "automation": {
-       "minutes": 0,
-       "routines_approved": 0,
-       "runs_done": 0
-      },
-      "automations_running": 0,
-      "id": "p_f_da09",
-      "independence": {
-       "ci": [
-        0.2993,
-        0.7007
-       ],
-       "value": 0.5
-      },
-      "label": "DA-09",
-      "last_seen_days": 3,
-      "level": "junior",
-      "n": 107,
-      "n_recent": 25,
-      "origin": "synthetic",
-      "role": "data-analyst",
-      "skills": [
-       {
-        "independence_share": 0.5135,
-        "label": "Compare to last period before sharing",
-        "lost_s": {
-         "ci": [
-          18.7,
-          24.7
-         ],
-         "value": 21.8
-        },
-        "n": 37,
-        "skill": "compare-to-last-period"
-       },
-       {
-        "independence_share": 0.6364,
-        "label": "Inspect the rows, not just the total",
-        "lost_s": {
-         "ci": [
-          12.5,
-          20.5
-         ],
-         "value": 16.1
-        },
-        "n": 22,
-        "skill": "inspect-before-trusting"
-       },
-       {
-        "independence_share": 0.7308,
-        "label": "Profile the inputs before querying",
-        "lost_s": {
-         "ci": [
-          2.0,
-          9.2
-         ],
-         "value": 5.8
-        },
-        "n": 26,
-        "skill": "profile-before-querying"
-       },
-       {
-        "independence_share": 0.2727,
-        "label": "Reconcile with the control figure before reporting",
-        "lost_s": {
-         "ci": [
-          38.1,
-          51.7
-         ],
-         "value": 43.6
-        },
-        "n": 22,
-        "skill": "reconcile-to-control"
-       }
-      ],
-      "status": "ok",
-      "tenure_band": "1_3m",
-      "tenure_weeks": 12,
-      "time_to_independence": {
-       "reached": false,
-       "unit": "occurrences",
-       "value": null
       },
       "trend": "cannot_tell_yet",
       "trend_label": "Cannot tell yet",
@@ -3845,72 +3560,357 @@
        "runs_done": 0
       },
       "automations_running": 0,
-      "id": "p_f_da10",
+      "id": "p_f_da07",
       "independence": {
        "ci": [
-        0.6396,
-        0.9476
+        0.481,
+        0.8545
        ],
-       "value": 0.85
+       "value": 0.7
       },
-      "label": "DA-10",
+      "label": "DA-07",
       "last_seen_days": 2,
       "level": "junior",
-      "n": 193,
-      "n_recent": 51,
+      "n": 112,
+      "n_recent": 20,
       "origin": "synthetic",
       "role": "data-analyst",
       "skills": [
        {
-        "independence_share": 0.6032,
+        "independence_share": 0.4783,
         "label": "Compare to last period before sharing",
         "lost_s": {
          "ci": [
-          9.0,
-          17.9
+          13.6,
+          27.6
          ],
-         "value": 12.8
+         "value": 19.2
         },
-        "n": 63,
+        "n": 23,
         "skill": "compare-to-last-period"
        },
        {
-        "independence_share": 0.5714,
+        "independence_share": 0.7407,
+        "label": "Inspect the rows, not just the total",
+        "lost_s": {
+         "ci": [
+          16.7,
+          25.2
+         ],
+         "value": 22.0
+        },
+        "n": 27,
+        "skill": "inspect-before-trusting"
+       },
+       {
+        "independence_share": 0.7667,
+        "label": "Profile the inputs before querying",
+        "lost_s": {
+         "ci": [
+          3.3,
+          7.2
+         ],
+         "value": 5.3
+        },
+        "n": 30,
+        "skill": "profile-before-querying"
+       },
+       {
+        "independence_share": 0.375,
+        "label": "Reconcile with the control figure before reporting",
+        "lost_s": {
+         "ci": [
+          35.8,
+          47.0
+         ],
+         "value": 41.9
+        },
+        "n": 32,
+        "skill": "reconcile-to-control"
+       }
+      ],
+      "status": "ok",
+      "tenure_band": "1_3m",
+      "tenure_weeks": 12,
+      "time_to_independence": {
+       "reached": true,
+       "unit": "occurrences",
+       "value": 20
+      },
+      "trend": "cannot_tell_yet",
+      "trend_label": "Cannot tell yet",
+      "unit": "unit_d"
+     },
+     {
+      "assisted_share": {
+       "ci": [
+        0.1119,
+        0.4687
+       ],
+       "value": 0.25
+      },
+      "automation": {
+       "minutes": 0,
+       "routines_approved": 0,
+       "runs_done": 0
+      },
+      "automations_running": 0,
+      "id": "p_f_da08",
+      "independence": {
+       "ci": [
+        0.4329,
+        0.8188
+       ],
+       "value": 0.65
+      },
+      "label": "DA-08",
+      "last_seen_days": 2,
+      "level": "junior",
+      "n": 159,
+      "n_recent": 56,
+      "origin": "synthetic",
+      "role": "data-analyst",
+      "skills": [
+       {
+        "independence_share": 0.5641,
+        "label": "Compare to last period before sharing",
+        "lost_s": {
+         "ci": [
+          13.6,
+          21.3
+         ],
+         "value": 16.8
+        },
+        "n": 39,
+        "skill": "compare-to-last-period"
+       },
+       {
+        "independence_share": 0.871,
+        "label": "Inspect the rows, not just the total",
+        "lost_s": {
+         "ci": [
+          8.6,
+          17.2
+         ],
+         "value": 14.9
+        },
+        "n": 31,
+        "skill": "inspect-before-trusting"
+       },
+       {
+        "independence_share": 0.8478,
+        "label": "Profile the inputs before querying",
+        "lost_s": {
+         "ci": [
+          1.0,
+          7.6
+         ],
+         "value": 4.8
+        },
+        "n": 46,
+        "skill": "profile-before-querying"
+       },
+       {
+        "independence_share": 0.2326,
+        "label": "Reconcile with the control figure before reporting",
+        "lost_s": {
+         "ci": [
+          32.9,
+          44.6
+         ],
+         "value": 38.3
+        },
+        "n": 43,
+        "skill": "reconcile-to-control"
+       }
+      ],
+      "status": "ok",
+      "tenure_band": "1_3m",
+      "tenure_weeks": 12,
+      "time_to_independence": {
+       "reached": true,
+       "unit": "occurrences",
+       "value": 27
+      },
+      "trend": "cannot_tell_yet",
+      "trend_label": "Cannot tell yet",
+      "unit": "unit_d"
+     },
+     {
+      "assisted_share": {
+       "ci": [
+        0.1812,
+        0.5671
+       ],
+       "value": 0.35
+      },
+      "automation": {
+       "minutes": 0,
+       "routines_approved": 0,
+       "runs_done": 0
+      },
+      "automations_running": 0,
+      "id": "p_f_da09",
+      "independence": {
+       "ci": [
+        0.3421,
+        0.7418
+       ],
+       "value": 0.55
+      },
+      "label": "DA-09",
+      "last_seen_days": 3,
+      "level": "junior",
+      "n": 107,
+      "n_recent": 25,
+      "origin": "synthetic",
+      "role": "data-analyst",
+      "skills": [
+       {
+        "independence_share": 0.5263,
+        "label": "Compare to last period before sharing",
+        "lost_s": {
+         "ci": [
+          17.7,
+          24.7
+         ],
+         "value": 21.6
+        },
+        "n": 38,
+        "skill": "compare-to-last-period"
+       },
+       {
+        "independence_share": 0.6364,
+        "label": "Inspect the rows, not just the total",
+        "lost_s": {
+         "ci": [
+          12.5,
+          20.5
+         ],
+         "value": 16.1
+        },
+        "n": 22,
+        "skill": "inspect-before-trusting"
+       },
+       {
+        "independence_share": 0.7407,
+        "label": "Profile the inputs before querying",
+        "lost_s": {
+         "ci": [
+          1.6,
+          9.2
+         ],
+         "value": 5.5
+        },
+        "n": 27,
+        "skill": "profile-before-querying"
+       },
+       {
+        "independence_share": 0.2,
+        "label": "Reconcile with the control figure before reporting",
+        "lost_s": {
+         "ci": [
+          45.8,
+          56.6
+         ],
+         "value": 48.6
+        },
+        "n": 20,
+        "skill": "reconcile-to-control"
+       }
+      ],
+      "status": "ok",
+      "tenure_band": "1_3m",
+      "tenure_weeks": 12,
+      "time_to_independence": {
+       "reached": false,
+       "unit": "occurrences",
+       "value": null
+      },
+      "trend": "cannot_tell_yet",
+      "trend_label": "Cannot tell yet",
+      "unit": "unit_d"
+     },
+     {
+      "assisted_share": {
+       "ci": [
+        0.1455,
+        0.519
+       ],
+       "value": 0.3
+      },
+      "automation": {
+       "minutes": 0,
+       "routines_approved": 0,
+       "runs_done": 0
+      },
+      "automations_running": 0,
+      "id": "p_f_da10",
+      "independence": {
+       "ci": [
+        0.3421,
+        0.7418
+       ],
+       "value": 0.55
+      },
+      "label": "DA-10",
+      "last_seen_days": 2,
+      "level": "junior",
+      "n": 183,
+      "n_recent": 45,
+      "origin": "synthetic",
+      "role": "data-analyst",
+      "skills": [
+       {
+        "independence_share": 0.4902,
+        "label": "Compare to last period before sharing",
+        "lost_s": {
+         "ci": [
+          11.6,
+          19.5
+         ],
+         "value": 16.7
+        },
+        "n": 51,
+        "skill": "compare-to-last-period"
+       },
+       {
+        "independence_share": 0.5294,
         "label": "Inspect the rows, not just the total",
         "lost_s": {
          "ci": [
           21.5,
-          31.5
+          31.7
          ],
-         "value": 24.8
+         "value": 25.8
         },
-        "n": 35,
+        "n": 34,
         "skill": "inspect-before-trusting"
        },
        {
-        "independence_share": 0.7895,
+        "independence_share": 0.7581,
         "label": "Profile the inputs before querying",
         "lost_s": {
          "ci": [
           2.4,
-          6.7
+          6.6
          ],
-         "value": 4.4
+         "value": 4.3
         },
-        "n": 57,
+        "n": 62,
         "skill": "profile-before-querying"
        },
        {
-        "independence_share": 0.5,
+        "independence_share": 0.4167,
         "label": "Reconcile with the control figure before reporting",
         "lost_s": {
          "ci": [
-          29.1,
-          40.8
+          37.0,
+          47.3
          ],
-         "value": 35.6
+         "value": 41.7
         },
-        "n": 38,
+        "n": 36,
         "skill": "reconcile-to-control"
        }
       ],
@@ -4000,10 +4000,10 @@
         "label": "Reconcile with the control figure before reporting",
         "lost_s": {
          "ci": [
-          30.2,
-          48.9
+          36.4,
+          52.6
          ],
-         "value": 37.8
+         "value": 43.2
         },
         "n": 16,
         "skill": "reconcile-to-control"
@@ -4024,10 +4024,10 @@
      {
       "assisted_share": {
        "ci": [
-        0.2993,
-        0.7007
+        0.2188,
+        0.6134
        ],
-       "value": 0.5
+       "value": 0.4
       },
       "automation": {
        "minutes": 0,
@@ -4038,30 +4038,30 @@
       "id": "p_f_da12",
       "independence": {
        "ci": [
-        0.1455,
-        0.519
+        0.1812,
+        0.5671
        ],
-       "value": 0.3
+       "value": 0.35
       },
       "label": "DA-12",
       "last_seen_days": 2,
       "level": "junior",
-      "n": 132,
-      "n_recent": 35,
+      "n": 117,
+      "n_recent": 22,
       "origin": "synthetic",
       "role": "data-analyst",
       "skills": [
        {
-        "independence_share": 0.2973,
+        "independence_share": 0.3214,
         "label": "Compare to last period before sharing",
         "lost_s": {
          "ci": [
-          15.0,
-          21.7
+          15.2,
+          25.9
          ],
-         "value": 17.3
+         "value": 21.1
         },
-        "n": 37,
+        "n": 28,
         "skill": "compare-to-last-period"
        },
        {
@@ -4070,37 +4070,37 @@
         "lost_s": {
          "ci": [
           7.2,
-          24.6
+          23.2
          ],
-         "value": 15.4
+         "value": 14.7
         },
         "n": 16,
         "skill": "inspect-before-trusting"
        },
        {
-        "independence_share": 0.6047,
+        "independence_share": 0.6667,
         "label": "Profile the inputs before querying",
         "lost_s": {
          "ci": [
-          4.1,
-          13.8
+          7.4,
+          14.4
          ],
-         "value": 9.6
+         "value": 10.4
         },
-        "n": 43,
+        "n": 45,
         "skill": "profile-before-querying"
        },
        {
-        "independence_share": 0.3889,
+        "independence_share": 0.2857,
         "label": "Reconcile with the control figure before reporting",
         "lost_s": {
          "ci": [
-          36.7,
-          44.3
+          45.6,
+          51.3
          ],
-         "value": 41.5
+         "value": 47.8
         },
-        "n": 36,
+        "n": 28,
         "skill": "reconcile-to-control"
        }
       ],
@@ -4119,10 +4119,10 @@
      {
       "assisted_share": {
        "ci": [
-        0.1455,
-        0.519
+        0.3421,
+        0.7418
        ],
-       "value": 0.3
+       "value": 0.55
       },
       "automation": {
        "minutes": 0,
@@ -4133,69 +4133,69 @@
       "id": "p_f_da13",
       "independence": {
        "ci": [
-        0.4329,
-        0.8188
+        0.2188,
+        0.6134
        ],
-       "value": 0.65
+       "value": 0.4
       },
       "label": "DA-13",
       "last_seen_days": 2,
       "level": "junior",
-      "n": 153,
-      "n_recent": 35,
+      "n": 162,
+      "n_recent": 43,
       "origin": "synthetic",
       "role": "data-analyst",
       "skills": [
        {
-        "independence_share": 0.3448,
+        "independence_share": 0.4571,
         "label": "Compare to last period before sharing",
         "lost_s": {
          "ci": [
-          14.0,
-          22.1
+          13.2,
+          19.3
          ],
-         "value": 18.2
+         "value": 16.2
         },
-        "n": 29,
+        "n": 35,
         "skill": "compare-to-last-period"
        },
        {
-        "independence_share": 0.7838,
+        "independence_share": 0.6316,
         "label": "Inspect the rows, not just the total",
         "lost_s": {
          "ci": [
-          22.7,
-          28.1
+          22.1,
+          28.9
          ],
-         "value": 23.7
+         "value": 23.6
         },
-        "n": 37,
+        "n": 38,
         "skill": "inspect-before-trusting"
        },
        {
-        "independence_share": 0.9111,
+        "independence_share": 0.8958,
         "label": "Profile the inputs before querying",
         "lost_s": {
          "ci": [
-          1.7,
-          6.6
+          2.7,
+          6.9
          ],
          "value": 4.8
         },
-        "n": 45,
+        "n": 48,
         "skill": "profile-before-querying"
        },
        {
-        "independence_share": 0.5714,
+        "independence_share": 0.3659,
         "label": "Reconcile with the control figure before reporting",
         "lost_s": {
          "ci": [
-          29.6,
-          39.2
+          37.6,
+          44.1
          ],
-         "value": 33.2
+         "value": 40.6
         },
-        "n": 42,
+        "n": 41,
         "skill": "reconcile-to-control"
        }
       ],
@@ -4207,8 +4207,8 @@
        "unit": "occurrences",
        "value": 20
       },
-      "trend": "cannot_tell_yet",
-      "trend_label": "Cannot tell yet",
+      "trend": "needs_attention",
+      "trend_label": "Needs attention",
       "unit": "unit_d"
      },
      {
@@ -4285,10 +4285,10 @@
         "label": "Reconcile with the control figure before reporting",
         "lost_s": {
          "ci": [
-          33.2,
-          46.6
+          40.5,
+          49.7
          ],
-         "value": 39.0
+         "value": 42.0
         },
         "n": 19,
         "skill": "reconcile-to-control"
@@ -4309,10 +4309,10 @@
      {
       "assisted_share": {
        "ci": [
-        0.2188,
-        0.6134
+        0.1812,
+        0.5671
        ],
-       "value": 0.4
+       "value": 0.35
       },
       "automation": {
        "minutes": 0,
@@ -4323,69 +4323,69 @@
       "id": "p_f_da15",
       "independence": {
        "ci": [
-        0.2993,
-        0.7007
+        0.3421,
+        0.7418
        ],
-       "value": 0.5
+       "value": 0.55
       },
       "label": "DA-15",
       "last_seen_days": 2,
       "level": "junior",
-      "n": 129,
-      "n_recent": 37,
+      "n": 127,
+      "n_recent": 36,
       "origin": "synthetic",
       "role": "data-analyst",
       "skills": [
        {
-        "independence_share": 0.4324,
+        "independence_share": 0.303,
         "label": "Compare to last period before sharing",
         "lost_s": {
          "ci": [
-          15.0,
-          22.6
+          16.8,
+          28.0
          ],
-         "value": 18.3
+         "value": 22.0
         },
-        "n": 37,
+        "n": 33,
         "skill": "compare-to-last-period"
        },
        {
-        "independence_share": 0.7727,
+        "independence_share": 0.75,
         "label": "Inspect the rows, not just the total",
         "lost_s": {
          "ci": [
           11.4,
-          21.2
+          21.6
          ],
-         "value": 17.6
+         "value": 17.3
         },
-        "n": 22,
+        "n": 24,
         "skill": "inspect-before-trusting"
        },
        {
-        "independence_share": 0.8611,
+        "independence_share": 0.8462,
         "label": "Profile the inputs before querying",
         "lost_s": {
          "ci": [
-          0.6,
-          9.3
+          3.4,
+          8.8
          ],
-         "value": 6.0
+         "value": 5.9
         },
-        "n": 36,
+        "n": 39,
         "skill": "profile-before-querying"
        },
        {
-        "independence_share": 0.3235,
+        "independence_share": 0.2903,
         "label": "Reconcile with the control figure before reporting",
         "lost_s": {
          "ci": [
-          35.6,
-          41.8
+          41.0,
+          48.1
          ],
-         "value": 38.8
+         "value": 46.1
         },
-        "n": 34,
+        "n": 31,
         "skill": "reconcile-to-control"
        }
       ],
@@ -4395,7 +4395,7 @@
       "time_to_independence": {
        "reached": true,
        "unit": "occurrences",
-       "value": 31
+       "value": 30
       },
       "trend": "cannot_tell_yet",
       "trend_label": "Cannot tell yet",
@@ -4404,10 +4404,10 @@
      {
       "assisted_share": {
        "ci": [
-        0.1119,
-        0.4687
+        0.1455,
+        0.519
        ],
-       "value": 0.25
+       "value": 0.3
       },
       "automation": {
        "minutes": 0,
@@ -4426,61 +4426,61 @@
       "label": "DA-16",
       "last_seen_days": 2,
       "level": "junior",
-      "n": 166,
-      "n_recent": 41,
+      "n": 171,
+      "n_recent": 46,
       "origin": "synthetic",
       "role": "data-analyst",
       "skills": [
        {
-        "independence_share": 0.4186,
+        "independence_share": 0.5116,
         "label": "Compare to last period before sharing",
         "lost_s": {
          "ci": [
-          14.0,
-          20.3
+          14.6,
+          21.3
          ],
-         "value": 17.0
+         "value": 18.5
         },
         "n": 43,
         "skill": "compare-to-last-period"
        },
        {
-        "independence_share": 0.7949,
+        "independence_share": 0.75,
         "label": "Inspect the rows, not just the total",
         "lost_s": {
          "ci": [
           18.0,
-          23.7
+          23.1
          ],
-         "value": 20.9
+         "value": 20.6
         },
-        "n": 39,
+        "n": 44,
         "skill": "inspect-before-trusting"
        },
        {
-        "independence_share": 0.7083,
+        "independence_share": 0.7143,
         "label": "Profile the inputs before querying",
         "lost_s": {
          "ci": [
-          3.9,
+          4.3,
           8.0
          ],
-         "value": 5.8
+         "value": 6.6
         },
-        "n": 48,
+        "n": 49,
         "skill": "profile-before-querying"
        },
        {
-        "independence_share": 0.4706,
+        "independence_share": 0.303,
         "label": "Reconcile with the control figure before reporting",
         "lost_s": {
          "ci": [
-          28.4,
-          42.5
+          41.8,
+          49.3
          ],
-         "value": 33.1
+         "value": 45.1
         },
-        "n": 34,
+        "n": 33,
         "skill": "reconcile-to-control"
        }
       ],
@@ -4499,10 +4499,10 @@
      {
       "assisted_share": {
        "ci": [
-        0.2993,
-        0.7007
+        0.2582,
+        0.6579
        ],
-       "value": 0.5
+       "value": 0.45
       },
       "automation": {
        "minutes": 0,
@@ -4513,10 +4513,10 @@
       "id": "p_f_da17",
       "independence": {
        "ci": [
-        0.2582,
-        0.6579
+        0.2993,
+        0.7007
        ],
-       "value": 0.45
+       "value": 0.5
       },
       "label": "DA-17",
       "last_seen_days": 37,
@@ -4540,7 +4540,7 @@
         "skill": "compare-to-last-period"
        },
        {
-        "independence_share": 0.8696,
+        "independence_share": 0.875,
         "label": "Inspect the rows, not just the total",
         "lost_s": {
          "ci": [
@@ -4549,7 +4549,7 @@
          ],
          "value": 11.5
         },
-        "n": 23,
+        "n": 24,
         "skill": "inspect-before-trusting"
        },
        {
@@ -4566,16 +4566,16 @@
         "skill": "profile-before-querying"
        },
        {
-        "independence_share": 0.2308,
+        "independence_share": 0.1667,
         "label": "Reconcile with the control figure before reporting",
         "lost_s": {
          "ci": [
-          38.2,
-          51.9
+          45.7,
+          54.4
          ],
-         "value": 45.2
+         "value": 50.7
         },
-        "n": 13,
+        "n": 12,
         "skill": "reconcile-to-control"
        }
       ],
@@ -4627,23 +4627,23 @@
     "aggregate": {
      "assisted_share": {
       "ci": [
-       0.0612,
-       0.2054
+       0.0319,
+       0.1848
       ],
-      "value": 0.1333
+      "value": 0.1083
      },
      "independence": {
       "ci": [
-       0.7525,
-       0.9392
+       0.7505,
+       0.9495
       ],
-      "value": 0.8458
+      "value": 0.85
      },
      "n_users": 12,
      "time_to_independence": {
       "ci": [
        39.0,
-       71.0
+       62.0
       ],
       "median": 54.0,
       "reached_share": {
@@ -4665,20 +4665,20 @@
      "n_people": 8,
      "slope_per_4w": {
       "ci": [
-       0.0419,
-       0.1697
+       0.0359,
+       0.1604
       ],
-      "value": 0.1058
+      "value": 0.0981
      }
     },
     "units": [
      {
       "independence": {
        "ci": [
-        0.7525,
-        0.9392
+        0.7505,
+        0.9495
        ],
-       "value": 0.8458
+       "value": 0.85
       },
       "n": 12,
       "unit": "prog web"
@@ -4878,10 +4878,10 @@
      {
       "assisted_share": {
        "ci": [
-        0.0279,
-        0.301
+        0.0089,
+        0.2361
        ],
-       "value": 0.1
+       "value": 0.05
       },
       "automation": {
        "minutes": 0,
@@ -4900,61 +4900,61 @@
       "label": "PG-03",
       "last_seen_days": 2,
       "level": "junior",
-      "n": 155,
-      "n_recent": 51,
+      "n": 124,
+      "n_recent": 29,
       "origin": "synthetic",
       "role": "programmer",
       "skills": [
        {
-        "independence_share": 0.8372,
+        "independence_share": 0.6,
         "label": "Confirm the fix before moving on",
         "lost_s": {
          "ci": [
-          2.3,
-          10.9
+          8.4,
+          21.1
          ],
-         "value": 5.4
+         "value": 12.1
         },
-        "n": 43,
+        "n": 35,
         "skill": "confirm-the-fix"
        },
        {
-        "independence_share": 0.7576,
+        "independence_share": 0.75,
         "label": "Look at the real inputs before changing code",
         "lost_s": {
          "ci": [
-          2.7,
-          12.9
+          3.5,
+          15.0
          ],
-         "value": 7.4
+         "value": 10.6
         },
-        "n": 33,
+        "n": 28,
         "skill": "inspect-the-inputs"
        },
        {
-        "independence_share": 0.8108,
+        "independence_share": 0.7941,
         "label": "Read the failing trace before changing code",
         "lost_s": {
          "ci": [
-          6.0,
-          12.5
+          1.0,
+          11.5
          ],
-         "value": 9.2
+         "value": 6.5
         },
-        "n": 37,
+        "n": 34,
         "skill": "read-the-trace-first"
        },
        {
-        "independence_share": 0.8095,
+        "independence_share": 0.7407,
         "label": "Make the smallest change that could work",
         "lost_s": {
          "ci": [
           0.6,
-          4.8
+          8.9
          ],
-         "value": 2.2
+         "value": 5.9
         },
-        "n": 42,
+        "n": 27,
         "skill": "smallest-change"
        }
       ],
@@ -4964,7 +4964,7 @@
       "time_to_independence": {
        "reached": true,
        "unit": "occurrences",
-       "value": 65
+       "value": 83
       },
       "trend": "cannot_tell_yet",
       "trend_label": "Cannot tell yet",
@@ -4973,10 +4973,10 @@
      {
       "assisted_share": {
        "ci": [
-        0.0524,
-        0.3604
+        0.0279,
+        0.301
        ],
-       "value": 0.15
+       "value": 0.1
       },
       "automation": {
        "minutes": 0,
@@ -4987,69 +4987,69 @@
       "id": "p_f_pg04",
       "independence": {
        "ci": [
-        0.584,
-        0.9193
+        0.6396,
+        0.9476
        ],
-       "value": 0.8
+       "value": 0.85
       },
       "label": "PG-04",
       "last_seen_days": 2,
       "level": "junior",
-      "n": 149,
-      "n_recent": 36,
+      "n": 147,
+      "n_recent": 34,
       "origin": "synthetic",
       "role": "programmer",
       "skills": [
        {
-        "independence_share": 0.5429,
+        "independence_share": 0.5143,
         "label": "Confirm the fix before moving on",
         "lost_s": {
          "ci": [
-          5.6,
-          12.9
+          10.1,
+          17.6
          ],
-         "value": 8.9
+         "value": 14.3
         },
         "n": 35,
         "skill": "confirm-the-fix"
        },
        {
-        "independence_share": 0.7429,
+        "independence_share": 0.7179,
         "label": "Look at the real inputs before changing code",
         "lost_s": {
          "ci": [
-          -0.2,
-          6.5
+          -2.3,
+          6.3
          ],
-         "value": 4.8
+         "value": 2.8
         },
-        "n": 35,
+        "n": 39,
         "skill": "inspect-the-inputs"
        },
        {
-        "independence_share": 0.878,
+        "independence_share": 0.9474,
         "label": "Read the failing trace before changing code",
         "lost_s": {
          "ci": [
           7.5,
-          13.0
+          11.6
          ],
-         "value": 9.5
+         "value": 9.3
         },
-        "n": 41,
+        "n": 38,
         "skill": "read-the-trace-first"
        },
        {
-        "independence_share": 0.6579,
+        "independence_share": 0.6857,
         "label": "Make the smallest change that could work",
         "lost_s": {
          "ci": [
-          1.8,
-          10.2
+          2.2,
+          9.6
          ],
-         "value": 3.3
+         "value": 3.4
         },
-        "n": 38,
+        "n": 35,
         "skill": "smallest-change"
        }
       ],
@@ -5163,10 +5163,10 @@
      {
       "assisted_share": {
        "ci": [
-        0.1119,
-        0.4687
+        0.0807,
+        0.416
        ],
-       "value": 0.25
+       "value": 0.2
       },
       "automation": {
        "minutes": 0,
@@ -5177,30 +5177,30 @@
       "id": "p_f_pg06",
       "independence": {
        "ci": [
-        0.5313,
-        0.8881
+        0.584,
+        0.9193
        ],
-       "value": 0.75
+       "value": 0.8
       },
       "label": "PG-06",
       "last_seen_days": 2,
       "level": "junior",
-      "n": 136,
-      "n_recent": 32,
+      "n": 133,
+      "n_recent": 33,
       "origin": "synthetic",
       "role": "programmer",
       "skills": [
        {
-        "independence_share": 0.6857,
+        "independence_share": 0.625,
         "label": "Confirm the fix before moving on",
         "lost_s": {
          "ci": [
-          9.0,
-          20.5
+          12.7,
+          26.0
          ],
-         "value": 13.0
+         "value": 16.4
         },
-        "n": 35,
+        "n": 32,
         "skill": "confirm-the-fix"
        },
        {
@@ -5208,38 +5208,38 @@
         "label": "Look at the real inputs before changing code",
         "lost_s": {
          "ci": [
-          1.4,
-          8.5
+          -0.2,
+          6.8
          ],
-         "value": 5.6
+         "value": 1.4
         },
         "n": 39,
         "skill": "inspect-the-inputs"
        },
        {
-        "independence_share": 0.6957,
+        "independence_share": 0.7308,
         "label": "Read the failing trace before changing code",
         "lost_s": {
          "ci": [
-          6.8,
-          18.0
+          8.2,
+          15.7
          ],
-         "value": 10.8
+         "value": 11.4
         },
-        "n": 23,
+        "n": 26,
         "skill": "read-the-trace-first"
        },
        {
-        "independence_share": 0.6667,
+        "independence_share": 0.6389,
         "label": "Make the smallest change that could work",
         "lost_s": {
          "ci": [
-          1.8,
-          11.6
+          2.1,
+          11.5
          ],
-         "value": 5.1
+         "value": 5.0
         },
-        "n": 39,
+        "n": 36,
         "skill": "smallest-change"
        }
       ],
@@ -5249,19 +5249,19 @@
       "time_to_independence": {
        "reached": true,
        "unit": "occurrences",
-       "value": 72
+       "value": 61
       },
-      "trend": "improving",
-      "trend_label": "Improving",
+      "trend": "cannot_tell_yet",
+      "trend_label": "Cannot tell yet",
       "unit": "prog_web"
      },
      {
       "assisted_share": {
        "ci": [
-        0.0089,
-        0.2361
+        0.0,
+        0.1611
        ],
-       "value": 0.05
+       "value": 0.0
       },
       "automation": {
        "minutes": 0,
@@ -5272,10 +5272,10 @@
       "id": "p_f_pg07",
       "independence": {
        "ci": [
-        0.7639,
-        0.9911
+        0.8389,
+        1.0
        ],
-       "value": 0.95
+       "value": 1.0
       },
       "label": "PG-07",
       "last_seen_days": 2,
@@ -5286,55 +5286,55 @@
       "role": "programmer",
       "skills": [
        {
-        "independence_share": 0.8286,
+        "independence_share": 0.7742,
         "label": "Confirm the fix before moving on",
         "lost_s": {
          "ci": [
-          5.6,
-          12.2
+          13.2,
+          21.1
          ],
-         "value": 9.6
+         "value": 16.3
         },
-        "n": 35,
+        "n": 31,
         "skill": "confirm-the-fix"
        },
        {
-        "independence_share": 0.8684,
+        "independence_share": 0.875,
         "label": "Look at the real inputs before changing code",
         "lost_s": {
          "ci": [
-          2.4,
-          7.2
+          0.9,
+          6.6
          ],
-         "value": 5.2
+         "value": 4.1
         },
-        "n": 38,
+        "n": 40,
         "skill": "inspect-the-inputs"
        },
        {
-        "independence_share": 0.85,
+        "independence_share": 0.814,
         "label": "Read the failing trace before changing code",
         "lost_s": {
          "ci": [
-          -0.6,
-          8.4
+          0.7,
+          7.0
          ],
          "value": 3.1
         },
-        "n": 40,
+        "n": 43,
         "skill": "read-the-trace-first"
        },
        {
-        "independence_share": 0.7576,
+        "independence_share": 0.7812,
         "label": "Make the smallest change that could work",
         "lost_s": {
          "ci": [
-          1.4,
-          6.5
+          0.5,
+          6.0
          ],
-         "value": 3.7
+         "value": 3.2
         },
-        "n": 33,
+        "n": 32,
         "skill": "smallest-change"
        }
       ],
@@ -5353,10 +5353,10 @@
      {
       "assisted_share": {
        "ci": [
-        0.0524,
-        0.3604
+        0.0089,
+        0.2361
        ],
-       "value": 0.15
+       "value": 0.05
       },
       "automation": {
        "minutes": 0,
@@ -5375,8 +5375,8 @@
       "label": "PG-08",
       "last_seen_days": 2,
       "level": "junior",
-      "n": 133,
-      "n_recent": 32,
+      "n": 127,
+      "n_recent": 26,
       "origin": "synthetic",
       "role": "programmer",
       "skills": [
@@ -5385,51 +5385,51 @@
         "label": "Confirm the fix before moving on",
         "lost_s": {
          "ci": [
-          5.7,
-          9.9
+          10.2,
+          15.3
          ],
-         "value": 8.1
+         "value": 12.6
         },
         "n": 37,
         "skill": "confirm-the-fix"
        },
        {
-        "independence_share": 0.7931,
+        "independence_share": 0.8148,
         "label": "Look at the real inputs before changing code",
         "lost_s": {
          "ci": [
-          0.2,
+          3.5,
           14.0
          ],
-         "value": 6.3
+         "value": 11.4
         },
-        "n": 29,
+        "n": 27,
         "skill": "inspect-the-inputs"
        },
        {
-        "independence_share": 0.7027,
+        "independence_share": 0.6129,
         "label": "Read the failing trace before changing code",
         "lost_s": {
          "ci": [
-          2.6,
-          10.6
+          1.9,
+          11.7
          ],
-         "value": 5.2
+         "value": 4.9
         },
-        "n": 37,
+        "n": 31,
         "skill": "read-the-trace-first"
        },
        {
-        "independence_share": 0.8333,
+        "independence_share": 0.8438,
         "label": "Make the smallest change that could work",
         "lost_s": {
          "ci": [
-          5.2,
-          12.2
+          3.5,
+          11.8
          ],
-         "value": 9.8
+         "value": 8.6
         },
-        "n": 30,
+        "n": 32,
         "skill": "smallest-change"
        }
       ],
@@ -5448,10 +5448,10 @@
      {
       "assisted_share": {
        "ci": [
-        0.0279,
-        0.301
+        0.0089,
+        0.2361
        ],
-       "value": 0.1
+       "value": 0.05
       },
       "automation": {
        "minutes": 0,
@@ -5462,69 +5462,69 @@
       "id": "p_f_pg09",
       "independence": {
        "ci": [
-        0.699,
-        0.9721
+        0.7639,
+        0.9911
        ],
-       "value": 0.9
+       "value": 0.95
       },
       "label": "PG-09",
       "last_seen_days": 2,
       "level": "junior",
-      "n": 133,
-      "n_recent": 40,
+      "n": 135,
+      "n_recent": 38,
       "origin": "synthetic",
       "role": "programmer",
       "skills": [
        {
-        "independence_share": 0.8438,
+        "independence_share": 0.6875,
         "label": "Confirm the fix before moving on",
         "lost_s": {
          "ci": [
-          8.4,
-          17.8
+          12.6,
+          27.5
          ],
-         "value": 13.6
+         "value": 18.5
         },
         "n": 32,
         "skill": "confirm-the-fix"
        },
        {
-        "independence_share": 0.6667,
+        "independence_share": 0.6757,
         "label": "Look at the real inputs before changing code",
         "lost_s": {
          "ci": [
-          -2.1,
-          8.8
+          -0.8,
+          10.0
          ],
-         "value": 3.1
+         "value": 5.0
         },
-        "n": 36,
+        "n": 37,
         "skill": "inspect-the-inputs"
        },
        {
-        "independence_share": 0.7143,
+        "independence_share": 0.7647,
         "label": "Read the failing trace before changing code",
         "lost_s": {
          "ci": [
-          1.2,
+          0.4,
           7.3
          ],
-         "value": 3.6
+         "value": 4.9
         },
-        "n": 35,
+        "n": 34,
         "skill": "read-the-trace-first"
        },
        {
-        "independence_share": 0.7,
+        "independence_share": 0.7812,
         "label": "Make the smallest change that could work",
         "lost_s": {
          "ci": [
-          2.7,
-          13.3
+          5.2,
+          12.3
          ],
-         "value": 7.6
+         "value": 6.8
         },
-        "n": 30,
+        "n": 32,
         "skill": "smallest-change"
        }
       ],
@@ -5536,17 +5536,17 @@
        "unit": "occurrences",
        "value": 62
       },
-      "trend": "cannot_tell_yet",
-      "trend_label": "Cannot tell yet",
+      "trend": "improving",
+      "trend_label": "Improving",
       "unit": "prog_web"
      },
      {
       "assisted_share": {
        "ci": [
-        0.0524,
-        0.3604
+        0.0807,
+        0.416
        ],
-       "value": 0.15
+       "value": 0.2
       },
       "automation": {
        "minutes": 0,
@@ -5557,69 +5557,69 @@
       "id": "p_f_pg10",
       "independence": {
        "ci": [
-        0.6396,
-        0.9476
+        0.481,
+        0.8545
        ],
-       "value": 0.85
+       "value": 0.7
       },
       "label": "PG-10",
       "last_seen_days": 2,
       "level": "junior",
-      "n": 123,
-      "n_recent": 44,
+      "n": 121,
+      "n_recent": 40,
       "origin": "synthetic",
       "role": "programmer",
       "skills": [
        {
-        "independence_share": 0.7188,
+        "independence_share": 0.5312,
         "label": "Confirm the fix before moving on",
         "lost_s": {
          "ci": [
-          10.9,
-          20.4
+          13.3,
+          23.1
          ],
-         "value": 15.4
+         "value": 18.8
         },
         "n": 32,
         "skill": "confirm-the-fix"
        },
        {
-        "independence_share": 0.6875,
+        "independence_share": 0.6897,
         "label": "Look at the real inputs before changing code",
         "lost_s": {
          "ci": [
-          2.8,
-          10.3
+          7.5,
+          10.6
          ],
-         "value": 7.8
+         "value": 9.2
         },
-        "n": 32,
+        "n": 29,
         "skill": "inspect-the-inputs"
        },
        {
-        "independence_share": 0.7586,
+        "independence_share": 0.7037,
         "label": "Read the failing trace before changing code",
         "lost_s": {
          "ci": [
           6.3,
-          15.3
+          17.3
          ],
-         "value": 9.4
+         "value": 9.6
         },
-        "n": 29,
+        "n": 27,
         "skill": "read-the-trace-first"
        },
        {
-        "independence_share": 0.5667,
+        "independence_share": 0.5152,
         "label": "Make the smallest change that could work",
         "lost_s": {
          "ci": [
-          2.8,
+          3.5,
           12.3
          ],
-         "value": 8.6
+         "value": 7.2
         },
-        "n": 30,
+        "n": 33,
         "skill": "smallest-change"
        }
       ],
@@ -5627,12 +5627,12 @@
       "tenure_band": "1_3m",
       "tenure_weeks": 10,
       "time_to_independence": {
-       "reached": true,
+       "reached": false,
        "unit": "occurrences",
-       "value": 71
+       "value": null
       },
-      "trend": "improving",
-      "trend_label": "Improving",
+      "trend": "cannot_tell_yet",
+      "trend_label": "Cannot tell yet",
       "unit": "prog_web"
      },
      {
@@ -5670,10 +5670,10 @@
         "label": "Confirm the fix before moving on",
         "lost_s": {
          "ci": [
-          8.6,
-          20.9
+          14.2,
+          24.3
          ],
-         "value": 15.4
+         "value": 20.7
         },
         "n": 18,
         "skill": "confirm-the-fix"

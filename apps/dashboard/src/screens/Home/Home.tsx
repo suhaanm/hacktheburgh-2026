@@ -80,11 +80,12 @@ export default function Home() {
           {badge && <span className="pill pill--origin" data-origin={w.meta?.origin ?? "synthetic"}>{badge}</span>}
           <ExampleBadge why={w.why} />
           {example && (
-            <span className="home__story" role="group" aria-label="Which example week to show">
-              <span className="segmented">
-                {WORKER_STORIES.map((s) => <button key={s} type="button" aria-pressed={story === s} onClick={() => setStory(s)}>{STORY_LABEL[s]}</button>)}
-              </span>
-            </span>
+            <label className="home__story">
+              <span className="home__story-label">Example week</span>
+              <select className="select" value={story} onChange={(e) => setStory(e.target.value as WorkerStory)}>
+                {WORKER_STORIES.map((k) => <option key={k} value={k}>{STORY_LABEL[k]}</option>)}
+              </select>
+            </label>
           )}
         </>}
       />
@@ -100,6 +101,7 @@ export default function Home() {
             <span className="state__mark" aria-hidden="true" />
             <h2 className="state__title">{homeTitle(status, 0)}</h2>
             <p className="state__body">{status === "ok" || status === "nothing_stands_out" ? (data.message ?? quietBody("nothing_stands_out")) : (data.message ?? quietBody(status))}</p>
+            {status === "onboarding" && <a className="btn btn--secondary btn--sm state__action" href="#/onboarding">Choose a role</a>}
           </div>
         )}
         <SourceNote why={w.why} />

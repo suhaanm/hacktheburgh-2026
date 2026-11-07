@@ -2,7 +2,7 @@ import { navigate, screenOf, useRoute } from "../../router";
 import { canView } from "./navModel";
 import { startTour, openPalette } from "./overlayStore";
 import { shortcutLabel } from "./Overlays";
-import { ADMIN_MARKER, VIEW_LABEL, setViewRole, useViewRole, type ViewRole } from "./viewAs";
+import { VIEW_LABEL, setViewRole, useViewRole, type ViewRole } from "./viewAs";
 
 /**
  * The demo "view as" control: Worker or Admin. It is labelled a demo view and kept in memory only, so it is never mistaken for a real
@@ -26,7 +26,6 @@ export function ViewAsSwitch() {
           ))}
         </div>
       </div>
-      {view === "admin" && <p className="viewas__marker" role="status">{ADMIN_MARKER}</p>}
       <p className="viewas__help">
         <button type="button" className="linkish" onClick={openPalette} aria-keyshortcuts="Control+K Meta+K">Search <kbd>{shortcutLabel()}</kbd></button>
         <button type="button" className="linkish" onClick={() => startTour()}>Take the tour</button>
