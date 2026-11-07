@@ -112,3 +112,11 @@ Each criterion is reported as met, not met or inconclusive. Failing criteria are
 ## 8. Outputs
 
 `evaluate_attention(fast=False, held_out=False)` in `understudy_engine/attention/evaluate.py` returns a JSON-able dict with `meta` (n, split, seeds, schedule source, origin `synthetic`, code hash, the cost model), `conditions` (the metrics above with intervals), `paired` (differences), `scenarios` (S1 to S5 with their assertions and numbers), `tuning` (the dev grid and the selection), `sensitivity`, `acceptance` (criteria with met, not met or inconclusive), `limitations`. Fast mode (a handful of workers, two days, dev seeds only, 200 bootstrap draws) finishes in under 60 seconds. The full dev and held-out runs go through `scripts/heavy.sh`.
+
+## Amendments
+
+### A1, 2026-11-07T18:57:57Z (before any dev tuning, dev evaluation or held-out run)
+
+Section 5 says "16 configurations". The grid that section lists is the default plus two non-default values for each of six factors (`min_gap_s`, `budget_per_day`, `break_idle_quiet_s`, `max_hold_soft_s`, `quiet_thr1`, `n_min`), changed one at a time: 1 + 2 x 6 = **13** configurations. The count of 16 in the text was an arithmetic error; the listed grid is what was meant and is what runs. **I run the 13.** The grid, the selection rule and the seeds are unchanged. At the time of this amendment no dev tuning, no dev evaluation and no held-out run had been executed on any seed: the only things run so far are unit tests, one fast-mode smoke run (2 days, 8 workers, seed 0, no tuning) and short sanity runs on dev seeds 0 and 1 used to debug the simulator. Nothing in those runs was used to choose anything in this plan.
+
+Two simulator details fixed during that debugging, before any tuning or held-out run, are recorded here so nobody has to find them in the code: (a) B1 shows a display that arrives while the worker is away as waiting in the notification stack, seen the moment they return and at no attention cost (the more favourable reading for B1; the alternative made B1 miss urgent items for the wrong reason); (b) a needs-you item that the worker followed is handled within a couple of minutes, while one they dismissed or ignored is put off for 20 to 30 minutes (this is what gives the single reminder something to do and what a naive notifier keeps nagging about).
