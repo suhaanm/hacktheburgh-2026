@@ -4,7 +4,7 @@ import { ErrorState, Loading } from "../../components/common";
 import { useToast } from "../../components/Toasts";
 import { ApprovalRow } from "../../components/needsyou/ApprovalRow";
 import { AwayDetails } from "../../components/needsyou/AwayDetails";
-import { OriginBadge, OriginError } from "../../components/needsyou/Origin";
+import { OriginBadge, OriginDetails, OriginError } from "../../components/needsyou/Origin";
 import { PausedRow } from "../../components/needsyou/PausedRow";
 import { PreparedRow } from "../../components/needsyou/PreparedRow";
 import { ProposalRow } from "../../components/needsyou/ProposalRow";
@@ -80,6 +80,7 @@ export default function NeedsYou() {
         <OriginBadge sources={sources} />
       </div>
       <OriginError sources={sources} />
+      <OriginDetails sources={sources} />
       {made && <p className="note" role="status" data-testid="fired">{made.title}: {made.text}</p>}
 
       {items.length === 0 ? (
