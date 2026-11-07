@@ -37,6 +37,7 @@ export function MoreSheet({ current, placement = "side" }: { current: string; pl
         className="more__btn nav__link"
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label="More"
         aria-current={here ? "page" : undefined}
         onClick={() => toggle(false)}
         onKeyDown={(e) => { if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); toggle(true); } }}

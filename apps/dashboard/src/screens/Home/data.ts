@@ -14,7 +14,7 @@ export const STORY_LABEL: Record<WorkerStory, string> = { pointers: "Worth a loo
 export const WORKER_STORIES: WorkerStory[] = ["pointers", "good", "quiet", "onboarding"];
 
 const NOTHING = "Nothing stands out this week.";
-const STARTING = "Understudy is still learning how you work.";
+const STARTING = "Knack is still learning how you work.";
 
 /** The example week for a story: the engine's sample, changed only in ways the engine itself can answer (no pointers, with a fixed message). */
 export function exampleWorker(story: WorkerStory): unknown {
@@ -32,7 +32,7 @@ export function exampleWorker(story: WorkerStory): unknown {
 export const parseStory = (q: string | null): WorkerStory => (q === "good" || q === "quiet" || q === "onboarding" ? q : "pointers");
 
 /** What the page shows when the engine knows nobody yet: no pointers, and a fixed line pointing at set-up. */
-const NOT_SET_UP = { data: { pointers: [], status: "onboarding", nothing_stands_out: true, message: "Choose your role first. Understudy then starts learning how you work, and says nothing until it has something worth your time." } };
+const NOT_SET_UP = { data: { pointers: [], status: "onboarding", nothing_stands_out: true, message: "Choose your role first. Knack then starts learning how you work, and says nothing until it has something worth your time." } };
 
 export function loadWorker(person: string | null, story: WorkerStory = "pointers"): Promise<Loaded<WireWorker>> {
   return insightRead(`/insights/worker${qs({ person })}`, "worker", () => exampleWorker(story), normaliseWorker, { unknownPerson: () => NOT_SET_UP });
