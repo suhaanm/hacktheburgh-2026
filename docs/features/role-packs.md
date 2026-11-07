@@ -45,15 +45,15 @@ The thin packs are starting points and have not been validated on real work. Gen
 
 ## Deeper programmer and data-analyst roles
 
-**Status:** landing (ROLE-DEPTH (Track F), additive only; docs/roles/*.md have not landed) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
+**Status:** landing (ROLE-DEPTH (Track F), additive only; built overnight, not on main yet; docs/roles/*.md have not landed) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
 
 ### What it does
 
-The two thin roles are being given more depth: more steps, habits and sandbox tasks, without changing any existing id, expert path or generator parameter.
+The two thin roles are being given more depth: more steps and habits, without changing any existing id, expert path or generator parameter. They get a new depth value, 'standard' (full content, not validated with people), and the dashboard keeps the label 'Starter pack' for packs that are not deep.
 
 ### How it works
 
-Per owner decision D55 the work is additive only. The role studies already use private sandbox worlds for the programmer (editor, tests, console) and the analyst (table, filter, pivot, chart with planted data issues).
+Per owner decision D55 the work is additive only, and per the lead's decision D56 every new step is optional and uses new step types, so the frozen sandbox tasks and the role studies are untouched. No synthetic traces exist for the new step types, so screens that depend on them say 'not enough data'. The role studies use private sandbox worlds for the programmer (editor, tests, console) and the analyst (table, filter, pivot, chart with planted data issues).
 
 ### Where to see it
 
@@ -96,9 +96,9 @@ Not verified. Update this entry from docs/roles/*.md after it lands.
 - `packages/packs/benefits-processor/pack.yaml`
 - `packages/packs/programmer/pack.yaml`
 - `docs/SPEC_LIST.md (D4)`
-- `docs/DECISIONS.md (D55)`
+- `docs/DECISIONS.md (D55, D56 item 6)`
 - `evals/report.md`
-- `docs/roles/ (landing, branch)`
+- `docs/roles/ (landing)`
 
 ## Related pages
 

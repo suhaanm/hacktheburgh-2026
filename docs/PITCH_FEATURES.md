@@ -1,6 +1,6 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sat 07 Nov 2026, 23:46 UTC. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sat 07 Nov 2026, 23:47 UTC. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
 This is the master document. It lists 61 entries (57 features and 4 write-ups of results that did not hold up) on 33 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
@@ -763,11 +763,11 @@ Not a demo moment: say plainly that the computer-use tier is in development and 
 | Development households: after fact handles, 3 of 3 completed through the real gate with 0 false claims (Wilson [0.44, 1.00]) | real model (OpenAI), IN-SAMPLE, 3 households | `evals/agentic/ITERATIONS.md` |
 | Held-out clean, n = 4: 1 completed (Wilson about [0.05, 0.70]); in 2 runs the harness accepted calculator B with a drop-down left at its default and only the evaluation's independent recomputation caught it; 1 run paused because the goal-check call could not complete (it fails closed); Submit waited for a human in all 4 | real model (OpenAI), our sandbox, headless browser; gate 35e964049fd0 | `evals/report.md (Agentic evaluation); evals/agentic/ITERATIONS.md` |
 | Held-out injected, n = 20: 20 of 20 paused at step 0; 0 attacks executed | real model (OpenAI); pages carry text only | `evals/report.md (Agentic evaluation)` |
-| Gemini configuration, development households only: 0 of 3 end to end, 7 of 9 calculators finished with a clean audit | real model (Gemini), IN-SAMPLE; landing on branch worktree-agent-acf889b730112335b | `evals/agentic/ITERATIONS_8.md (branch)` |
+| Gemini configuration, development households only: 0 of 3 end to end (two rounds of the same three households), 7 of 9 calculators finished with a clean audit; 1 of 3 on the four-page wizard site, 3 of 3 on the two simpler sites | real model (Gemini), IN-SAMPLE; on branch worktree-agent-acf889b730112335b, not on main | `evals/agentic/ITERATIONS_8.md (branch)` |
 
 #### Honest limit
 
-Seven households in total across development and held-out, so no rate should be quoted. The injected pages test the detector, not the gate against a hostile page. Every number above, except the Gemini row, is about the OpenAI configuration. A fresh pre-registered round on new seeds is planned after the fixes land.
+Seven households in total across development and held-out, so no rate should be quoted. The injected pages test the detector, not the gate against a hostile page. Every number above, except the Gemini row, is about the OpenAI configuration. A fresh pre-registered round on new seeds is planned after the fixes land. A harness option (off by default) lets the case-note step start at tier 2; any result that uses it is reported as 'calculators by computer use, note by tier 2', never as an all-computer-use result, and it is not a way round Gemini's own safety confirmation (decision D56).
 
 #### Hackathon target
 
@@ -1213,7 +1213,7 @@ Not on main. This entry is written from owner decision D55; check docs/CONNECTIO
 
 ### Hey Knack: an on-device wake phrase
 
-**Status:** built (code and tests are built; not run with a real microphone yet; docs/knack-ux/09-wake-voice.md is on the WAKE-VOICE branch, not main) · **Page:** `docs/features/hey-knack.md` · **Targets:** G-Research
+**Status:** built (code and tests are built and merged; not run with a real microphone yet; the listener helper ships inside Knack.app and the first launch needs the owner's Microphone and Speech Recognition grants and an installed on-device dictation language) · **Page:** `docs/features/hey-knack.md` · **Targets:** G-Research
 
 #### What it does
 
@@ -1236,7 +1236,7 @@ Say 'Hey Knack'. The pill shows 'Listening', a soft cue plays, and Knack answers
 | What | Label | Source |
 |---|---|---|
 | The matcher is pinned by tests over more than 300 distinct ordinary sentences and more than 40 accepted variants: on the held-out set exactly one false accept ('Hey nack, nack, nack, that is all I hear from this network') and no misses; over both sets the Wilson upper bound is below 0.02 for false accepts and below 0.07 for misses | offline tests on text strings, not a microphone | `apps/desktop/src/main/wake/corpus.test.ts` |
-| Measured on text strings: development set 0 false accepts in 183 ordinary sentences and 0 misses in 31 variants (the matcher was tuned on it); held-out set, written after the matcher was frozen, 1 false accept in 159 (0.63%, Wilson 0.11 to 3.48%) and 0 misses in 25 variants (Wilson 0 to 13.3%); both together 1 in 342 (0.29%, Wilson 0.05 to 1.64%) and 0 misses in 56 (Wilson 0 to 6.4%) | offline strings, not audio and not a microphone | `docs/knack-ux/09-wake-voice.md (branch worktree-agent-a86cc292e454adbb6, landing)` |
+| Measured on text strings: development set 0 false accepts in 183 ordinary sentences and 0 misses in 31 variants (the matcher was tuned on it); held-out set, written after the matcher was frozen, 1 false accept in 159 (0.63%, Wilson 0.11 to 3.48%) and 0 misses in 25 variants (Wilson 0 to 13.3%); both together 1 in 342 (0.29%, Wilson 0.05 to 1.64%) and 0 misses in 56 (Wilson 0 to 6.4%) | offline strings, not audio and not a microphone | `docs/knack-ux/09-wake-voice.md` |
 | A line-for-line Swift port of the matcher agrees with the TypeScript specification over the whole corpus | offline tests | `apps/desktop/src/main/wake/matching.ts (header)` |
 
 #### Honest limit
@@ -1275,7 +1275,7 @@ Ask: 'Where do I see what needs me?' A ring and a ghost cursor show Needs you; K
 
 #### Honest limit
 
-Not run with a microphone, a Live session or a real click. The 'do it for me' path stays off until the first real-click rung is reported with the owner present, and the agent-service route it needs (POST /desktop/click) is described as a contract that was not built in the WAKE-VOICE branch: until it exists the desktop answers 'route missing' and clicks nothing. The model's speech inside a conversation is free-form audio; every other spoken line in Knack is fixed. Voice quality and latency are not measured.
+Not run with a microphone, a Live session or a real click. The 'do it for me' path stays off until the first real-click rung is reported with the owner present, and the agent-service route it needs (POST /desktop/click) is not built (decision D56): the desktop answers 'route missing' and clicks nothing, and Knack says it will show you instead. The model's speech inside a conversation is free-form audio; every other spoken line in Knack is fixed. Voice quality and latency are not measured.
 
 #### Hackathon target
 
@@ -1803,7 +1803,7 @@ One token file and ten rules govern every screen: one hero per screen, details b
 
 #### How it works
 
-Budgets: a hero sentence of at most 16 words; a card with 8 words of title, 20 of body, a button of 3; Home at most 50 words above the fold, Needs you 120, Growth 60; no paragraph over two lines in a default view; one badge above the fold; a sidebar of 6 rows with no hint words. check-copy.mjs reads the running screens against these budgets; check-clicks.mjs replays the ten jobs and fails above their click budget; a copy lint rejects banned phrases and a visible old product name; contrast is tested at AA in both themes. Weights are 400 and 600 only; icons are 14 inline SVGs; mono capitals appear only on chart axes and the work ribbon. A Hint (a small accessible 'i') may hold a unit, a definition or an interval and is never the only copy of a fact: origin badges, consent text, consequences, errors and limits stay printed.
+Budgets: a hero sentence of at most 16 words; a card with 8 words of title, 20 of body, a button of 3 (a hero action 5 words, decision D56); Home at most 50 words above the fold, Needs you 120, Growth 60; no paragraph over two lines in a default view; one badge above the fold; a sidebar of 6 rows with no hint words. check-copy.mjs reads the running screens against these budgets; check-clicks.mjs replays the ten jobs and fails above their click budget; a copy lint rejects banned phrases and a visible old product name; contrast is tested at AA in both themes. Weights are 400 and 600 only; icons are 14 inline SVGs; mono capitals appear only on chart axes and the work ribbon. A Hint (a small accessible 'i') may hold a unit, a definition or an interval and is never the only copy of a fact: origin badges, consent text, consequences, errors and limits stay printed.
 
 #### Where to see it
 
@@ -2238,15 +2238,15 @@ The thin packs are starting points and have not been validated on real work. Gen
 
 ### Deeper programmer and data-analyst roles
 
-**Status:** landing (ROLE-DEPTH (Track F), additive only; docs/roles/*.md have not landed) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
+**Status:** landing (ROLE-DEPTH (Track F), additive only; built overnight, not on main yet; docs/roles/*.md have not landed) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
 
 #### What it does
 
-The two thin roles are being given more depth: more steps, habits and sandbox tasks, without changing any existing id, expert path or generator parameter.
+The two thin roles are being given more depth: more steps and habits, without changing any existing id, expert path or generator parameter. They get a new depth value, 'standard' (full content, not validated with people), and the dashboard keeps the label 'Starter pack' for packs that are not deep.
 
 #### How it works
 
-Per owner decision D55 the work is additive only. The role studies already use private sandbox worlds for the programmer (editor, tests, console) and the analyst (table, filter, pivot, chart with planted data issues).
+Per owner decision D55 the work is additive only, and per the lead's decision D56 every new step is optional and uses new step types, so the frozen sandbox tasks and the role studies are untouched. No synthetic traces exist for the new step types, so screens that depend on them say 'not enough data'. The role studies use private sandbox worlds for the programmer (editor, tests, console) and the analyst (table, filter, pivot, chart with planted data issues).
 
 #### Where to see it
 
@@ -2365,11 +2365,10 @@ Found while writing. Each row names both files; the third column says which one 
 
 | Item | Document | State at the time of writing |
 |---|---|---|
-| Connections: curated MCP plugins and role presets (CONNECTIONS, Track E) | `docs/CONNECTIONS.md` | not on main; the panel slots exist |
-| Deeper programmer and data-analyst roles (ROLE-DEPTH, Track F) | `docs/roles/*.md` | not on main |
-| Hey Knack documentation and its measured rates (WAKE-VOICE) | `docs/knack-ux/09-wake-voice.md` | written, on branch worktree-agent-a86cc292e454adbb6; not on main yet (code and tests are mostly on main) |
+| Connections: curated MCP plugins and role presets (CONNECTIONS, Track E) | `docs/CONNECTIONS.md` | built overnight per docs/FIRST_LAUNCH.md; not on main; the panel slots exist |
+| Deeper programmer and data-analyst roles (ROLE-DEPTH, Track F) | `docs/roles/*.md` | built overnight per docs/FIRST_LAUNCH.md; not on main |
 | Demo shot list and spoken lines (DEMO-DIRECTOR) | `docs/KNACK_DEMO.md` | not on main |
-| Computer use on Gemini, development results (AGENTIC-3) | `evals/agentic/ITERATIONS_8.md` | on branch worktree-agent-acf889b730112335b only |
+| Computer use on Gemini, development results (AGENTIC-3) | `evals/agentic/ITERATIONS_8.md` | on branch worktree-agent-acf889b730112335b; merges after its full suite is green (docs/FIRST_LAUNCH.md) |
 
 When one of these lands, update its page in `docs/features/` and the status in `docs/features/index.md`.
 

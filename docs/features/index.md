@@ -72,7 +72,7 @@
 
 | Feature | Page | Status | Targets |
 |---|---|---|---|
-| Hey Knack: an on-device wake phrase | [hey-knack](hey-knack.md) | **built** (code and tests are built; not run with a real microphone yet; docs/knack-ux/09-wake-voice.md is on the WAKE-VOICE branch, not main) | G-Research |
+| Hey Knack: an on-device wake phrase | [hey-knack](hey-knack.md) | **built** (code and tests are built and merged; not run with a real microphone yet; the listener helper ships inside Knack.app and the first launch needs the owner's Microphone and Speech Recognition grants and an installed on-device dictation language) | G-Research |
 | Voice guidance and 'do it for me' behind a click | [hey-knack](hey-knack.md) | **built** (the click path fails closed until the first supervised real-click test has passed) | Wordsmith, G-Research |
 
 ## Models and modes
@@ -135,7 +135,7 @@
 | Feature | Page | Status | Targets |
 |---|---|---|---|
 | Role packs: benefits processor deep, analyst and programmer thin | [role-packs](role-packs.md) | **built** | G-Research, Wordsmith |
-| Deeper programmer and data-analyst roles | [role-packs](role-packs.md) | **landing** (ROLE-DEPTH (Track F), additive only; docs/roles/*.md have not landed) | G-Research, Wordsmith |
+| Deeper programmer and data-analyst roles | [role-packs](role-packs.md) | **landing** (ROLE-DEPTH (Track F), additive only; built overnight, not on main yet; docs/roles/*.md have not landed) | G-Research, Wordsmith |
 
 ## Also in this folder
 

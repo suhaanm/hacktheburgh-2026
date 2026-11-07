@@ -8,7 +8,7 @@ This page covers Hey Knack: an on-device wake phrase, Voice guidance and 'do it 
 
 ## Hey Knack: an on-device wake phrase
 
-**Status:** built (code and tests are built; not run with a real microphone yet; docs/knack-ux/09-wake-voice.md is on the WAKE-VOICE branch, not main) · **Page:** `docs/features/hey-knack.md` · **Targets:** G-Research
+**Status:** built (code and tests are built and merged; not run with a real microphone yet; the listener helper ships inside Knack.app and the first launch needs the owner's Microphone and Speech Recognition grants and an installed on-device dictation language) · **Page:** `docs/features/hey-knack.md` · **Targets:** G-Research
 
 ### What it does
 
@@ -31,7 +31,7 @@ Say 'Hey Knack'. The pill shows 'Listening', a soft cue plays, and Knack answers
 | What | Label | Source |
 |---|---|---|
 | The matcher is pinned by tests over more than 300 distinct ordinary sentences and more than 40 accepted variants: on the held-out set exactly one false accept ('Hey nack, nack, nack, that is all I hear from this network') and no misses; over both sets the Wilson upper bound is below 0.02 for false accepts and below 0.07 for misses | offline tests on text strings, not a microphone | `apps/desktop/src/main/wake/corpus.test.ts` |
-| Measured on text strings: development set 0 false accepts in 183 ordinary sentences and 0 misses in 31 variants (the matcher was tuned on it); held-out set, written after the matcher was frozen, 1 false accept in 159 (0.63%, Wilson 0.11 to 3.48%) and 0 misses in 25 variants (Wilson 0 to 13.3%); both together 1 in 342 (0.29%, Wilson 0.05 to 1.64%) and 0 misses in 56 (Wilson 0 to 6.4%) | offline strings, not audio and not a microphone | `docs/knack-ux/09-wake-voice.md (branch worktree-agent-a86cc292e454adbb6, landing)` |
+| Measured on text strings: development set 0 false accepts in 183 ordinary sentences and 0 misses in 31 variants (the matcher was tuned on it); held-out set, written after the matcher was frozen, 1 false accept in 159 (0.63%, Wilson 0.11 to 3.48%) and 0 misses in 25 variants (Wilson 0 to 13.3%); both together 1 in 342 (0.29%, Wilson 0.05 to 1.64%) and 0 misses in 56 (Wilson 0 to 6.4%) | offline strings, not audio and not a microphone | `docs/knack-ux/09-wake-voice.md` |
 | A line-for-line Swift port of the matcher agrees with the TypeScript specification over the whole corpus | offline tests | `apps/desktop/src/main/wake/matching.ts (header)` |
 
 ### Honest limit
@@ -70,7 +70,7 @@ Ask: 'Where do I see what needs me?' A ring and a ghost cursor show Needs you; K
 
 ### Honest limit
 
-Not run with a microphone, a Live session or a real click. The 'do it for me' path stays off until the first real-click rung is reported with the owner present, and the agent-service route it needs (POST /desktop/click) is described as a contract that was not built in the WAKE-VOICE branch: until it exists the desktop answers 'route missing' and clicks nothing. The model's speech inside a conversation is free-form audio; every other spoken line in Knack is fixed. Voice quality and latency are not measured.
+Not run with a microphone, a Live session or a real click. The 'do it for me' path stays off until the first real-click rung is reported with the owner present, and the agent-service route it needs (POST /desktop/click) is not built (decision D56): the desktop answers 'route missing' and clicks nothing, and Knack says it will show you instead. The model's speech inside a conversation is free-form audio; every other spoken line in Knack is fixed. Voice quality and latency are not measured.
 
 ### Hackathon target
 
@@ -97,7 +97,8 @@ Not run with a microphone, a Live session or a real click. The 'do it for me' pa
 - `apps/desktop/src/main/wake/guards.ts`
 - `apps/desktop/src/main/wake/click-machine.ts`
 - `apps/desktop/src/main/wake/corpus.test.ts`
-- `docs/knack-ux/09-wake-voice.md (on branch worktree-agent-a86cc292e454adbb6, not yet on main)`
+- `docs/knack-ux/09-wake-voice.md`
+- `docs/DECISIONS.md (D56, item 4 and 5)`
 
 ## Related pages
 
