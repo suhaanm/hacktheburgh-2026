@@ -46,5 +46,5 @@ Builds the app and the dashboard into `out/knack-check`, then runs `src/main/kna
 ## Known limits
 
 - In development (`npm run dev`) the Dock label and the macOS permission lists show Electron: only a packaged build carries the Knack name there.
-- `build/knack-config.json` records the repository path at build time; a build made inside a git worktree points at that worktree.
+- `build/knack-config.json` records the repository path at build time; a build made inside a git worktree points at that worktree unless `KNACK_BAKE_REPO=/path/to/the/main/checkout` is set when packaging.
 - Quitting with a force-kill (not Command-Q) can leave the services it started running; start Knack again (it reuses them) or stop them with `scripts/stop.sh`.

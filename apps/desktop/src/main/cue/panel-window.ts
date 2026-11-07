@@ -20,6 +20,8 @@ export interface PanelWindowDeps {
   content?: () => Rect[] | null
   // Where the worker's pointer is, in screen DIPs (the card goes near it when there is no target).
   cursor?: () => Pt | null
+  // Other windows of ours the card keeps clear of, in screen DIPs (the Knack corner column while it shows), or empty.
+  avoid?: () => Rect[]
   log?: (scope: string, ...args: unknown[]) => void
   // ALONGSIDE_HEADLESS / ALONGSIDE_NO_OVERLAY: no window at all.
   disabled?: boolean
@@ -84,6 +86,7 @@ export function createPanelWindow(deps: PanelWindowDeps): PanelWindow {
         gap: card ? CUE_TOKENS.card.gap : CUE_TOKENS.chip.gap,
         anchorPoint: deps.cursor?.() ?? null,
         content: deps.content?.() ?? null,
+        avoid: deps.avoid?.() ?? [],
       }).rect
     }
     if (card) lastCard = rect

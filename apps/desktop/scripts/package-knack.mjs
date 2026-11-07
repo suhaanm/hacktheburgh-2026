@@ -30,9 +30,16 @@ if (!fs.existsSync(path.join(dashboard, 'node_modules'))) {
 run('dashboard build (apps/dashboard/dist)', 'npm', ['run', 'build'], dashboard)
 run('desktop build (out/)', bin(desktop, 'electron-vite'), ['build'], desktop)
 
-// Where the repository is. A copy of Knack.app moved to another Mac needs KNACK_REPO instead.
+// Where the repository is: this one, or the one named by KNACK_BAKE_REPO (a build made in a worktree for an app that should find the services of the main checkout).
+// A copy of Knack.app moved to another Mac needs KNACK_REPO at run time instead.
+const baked = process.env.KNACK_BAKE_REPO ? path.resolve(process.env.KNACK_BAKE_REPO) : repo
+if (!fs.existsSync(path.join(baked, 'pyproject.toml'))) {
+  console.error(`KNACK_BAKE_REPO is not a repository (no pyproject.toml in ${baked}).`)
+  process.exit(1)
+}
+console.log(`the app will look for the engine and the agent in ${baked}`)
 fs.mkdirSync(path.join(desktop, 'build'), { recursive: true })
-fs.writeFileSync(path.join(desktop, 'build/knack-config.json'), JSON.stringify({ repo }, null, 2) + '\n')
+fs.writeFileSync(path.join(desktop, 'build/knack-config.json'), JSON.stringify({ repo: baked }, null, 2) + '\n')
 
 // The "Hey Knack" listener: compiled here, never run by this script (resources/knack-wake is not committed).
 run('Hey Knack helper (compile only)', 'bash', ['scripts/build-wake-helper.sh'], desktop)

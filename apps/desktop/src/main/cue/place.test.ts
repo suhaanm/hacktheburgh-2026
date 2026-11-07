@@ -112,3 +112,23 @@ describe('a chip with no free spot touching its ring', () => {
     expect(overlapArea(chip.rect, target)).toBe(0)
   })
 })
+
+describe('keeping clear of another window of ours (the Knack corner column)', () => {
+  const column: Rect = { x: 1100, y: 770, w: 324, h: 38 } // bottom-right of the work area
+  const size = { w: 280, h: 190 }
+  it('with no target and no pointer, the card takes the bottom-right corner when nothing is there', () => {
+    const p = placePanel(size, null, work, { kind: 'card' })
+    expect(p.rect).toEqual({ x: 1440 - CUE_TOKENS.placement.margin - size.w, y: work.y + work.h - CUE_TOKENS.placement.margin - size.h, w: size.w, h: size.h })
+  })
+  it('and stacks above the column when the column is there, never over it', () => {
+    const p = placePanel(size, null, work, { kind: 'card', avoid: [column] })
+    expect(overlapArea(p.rect, column)).toBe(0)
+    expect(p.rect.x + p.rect.w).toBe(1440 - CUE_TOKENS.placement.margin) // the same corner
+    expect(p.rect.y + p.rect.h).toBeLessThanOrEqual(column.y)
+  })
+  it('takes another corner when there is no room above the column', () => {
+    const tall: Rect = { x: 1000, y: 40, w: 424, h: 760 }
+    const p = placePanel(size, null, work, { kind: 'card', avoid: [tall] })
+    expect(overlapArea(p.rect, tall)).toBe(0)
+  })
+})
