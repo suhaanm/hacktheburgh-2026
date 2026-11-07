@@ -1,6 +1,6 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sat 07 Nov 2026, 23:55 UTC. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sat 07 Nov 2026, 23:56 UTC. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
 This is the master document. It lists 61 entries (57 features and 4 write-ups of results that did not hold up) on 33 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
@@ -32,6 +32,16 @@ Knack watches how people do the same work and shows where a novice loses time an
 ## The loop in one line
 
 Watch how people work, show where a novice loses time against an expert, coach on the real screen with help that fades, step in when someone is stuck, let an agent take repetitive work only with opt-in, and prove how much less help the worker needs over time.
+
+## Three spoken versions
+
+Plain sentences a narrator can read as written. Each says the data are synthetic.
+
+**15 seconds.** Two people do the same job. One is slower and gets a different answer, and nobody can see where. Knack shows the gap in seconds, helps less as you improve, and takes work over only when you say so. The numbers are synthetic, and the screens say so.
+
+**30 seconds.** Two people do the same job. One is slower and gets a different answer, and nobody can see where. Knack aligns a novice's steps with the nearest expert's and prices every gap in seconds and in wrong answers. It coaches on the real screen, rarely, and gives less help as you master a step. When you are stuck it asks one question. An agent can take repetitive work, but only one routine at a time, only with your yes, and the irreversible step waits for your click. One key stops everything. The numbers are synthetic, and the screens say so.
+
+**60 seconds.** Add to the thirty seconds: the work is checked by code, not by the model, so when a real model said it had finished on an error page in twenty of twenty runs, the code check caught every one. Everything that leaves your Mac is listed, without the picture. Every number carries its n, its interval and its origin. And we published what did not hold up: on harder synthetic data the stuck model's edge shrinks to a few thousandths, the simulated study sat at the floor, and computer use finished one of four held-out households. The live study with four teammates has not been run.
 
 ## The three hackathon targets, and what to show for each
 
