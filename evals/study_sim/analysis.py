@@ -45,8 +45,8 @@ def interval(d: list[float]) -> dict:
     n = len(d)
     mean, lo, hi = A.t_interval(d) if n >= 2 else ((sum(d) / n if n else math.nan), math.nan, math.nan)
     degenerate = bool(n >= 2 and not math.isnan(lo) and abs(hi - lo) < 1e-12)
-    return {"n": n, "mean_difference": None if math.isnan(mean) else round(mean, 4),
-            "ci95": [None if math.isnan(lo) else round(lo, 4), None if math.isnan(hi) else round(hi, 4)],
+    return {"n": n, "mean_difference": None if math.isnan(mean) else float(round(mean, 4)),
+            "ci95": [None if math.isnan(lo) else float(round(lo, 4)), None if math.isnan(hi) else float(round(hi, 4))],
             "ci_method": f"t interval, df = {max(n - 1, 0)}, on the per-participant differences",
             "ci_degenerate": degenerate,
             "sign_flip_p_two_sided": (round(A.sign_flip_p(d), 6) if 0 < n <= 20 else None),

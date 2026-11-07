@@ -42,6 +42,8 @@ class Budget:
     per_participant: dict = field(default_factory=dict)
     token_source: str = "provider_usage"
     finished: set = field(default_factory=set)
+    _seen_in: int = 0
+    _seen_out: int = 0
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     @property
@@ -52,6 +54,14 @@ class Budget:
     def charge(self, participant: str, role: str, tin: int, tout: int, estimated: bool = False) -> None:
         with self._lock:
             self._charge(participant, role, tin, tout, estimated)
+
+    def charge_from_stats(self, participant: str, role: str, stats: dict) -> None:
+        """Workers run in parallel and share one model port, so a per-call delta of the port's cumulative usage could include another worker's call.
+        The TOTAL is exact (every delta is charged once, to whoever finishes next); the split by participant is approximate."""
+        with self._lock:
+            tin, tout = int(stats["input_tokens"]) - self._seen_in, int(stats["output_tokens"]) - self._seen_out
+            self._seen_in, self._seen_out = int(stats["input_tokens"]), int(stats["output_tokens"])
+            self._charge(participant, role, max(tin, 0), max(tout, 0), False)
 
     def _charge(self, participant: str, role: str, tin: int, tout: int, estimated: bool) -> None:
         self.calls += 1

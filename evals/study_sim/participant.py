@@ -163,23 +163,39 @@ class ModelParticipant:
         self.calls = 0
         self.errors = 0
 
+    retry_sleeps = (3.0, 10.0, 30.0)
+
+    def _check_with_retries(self, prompt: str, schema: dict) -> dict:
+        """A transient provider error (rate limit, timeout, an output that fails the schema) is retried with the same prompt; a refusal is not
+        retried and counts as the participant doing nothing. Anything else after the last retry is a harness error."""
+        for i in range(len(self.retry_sleeps) + 1):
+            try:
+                return self.port.check(prompt, schema)
+            except Exception as exc:  # noqa: BLE001
+                name = type(exc).__name__
+                if name == "ModelRefusal":
+                    return {"thought": "", "actions": [], "note": ""}
+                if name == "BudgetExhausted" or i == len(self.retry_sleeps):
+                    raise
+                self.errors += 1
+                time.sleep(self.retry_sleeps[i])
+        raise RuntimeError("unreachable")
+
     def _call_sync(self, prompt: str, schema: dict, role: str) -> dict:
         key = cache_key(self.model_id, prompt, schema)
         f = self.cache_dir / f"{key}.json"
         if f.exists():
             self.budget.hit(self.spec.pid)
             return json.loads(f.read_text())
-        stats0 = dict(getattr(self.port, "stats", {}) or {})
-        out = self.port.check(prompt, schema)
-        stats1 = dict(getattr(self.port, "stats", {}) or {})
-        if "input_tokens" in stats1:
-            tin, tout, est = stats1["input_tokens"] - stats0.get("input_tokens", 0), stats1["output_tokens"] - stats0.get("output_tokens", 0), False
-        else:
-            tin, tout, est = len(prompt) // 4, len(json.dumps(out)) // 4, True
+        out = self._check_with_retries(prompt, schema)
         self.calls += 1
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         f.write_text(json.dumps(out))
-        self.budget.charge(self.spec.pid, role, tin, tout, estimated=est)
+        stats = getattr(self.port, "stats", None)
+        if isinstance(stats, dict) and "input_tokens" in stats:
+            self.budget.charge_from_stats(self.spec.pid, role, dict(stats))
+        else:
+            self.budget.charge(self.spec.pid, role, len(prompt) // 4, len(json.dumps(out)) // 4, estimated=True)
         return out
 
     async def decide(self, ctx: StepContext) -> list[Action]:

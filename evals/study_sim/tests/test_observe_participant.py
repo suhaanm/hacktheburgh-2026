@@ -145,3 +145,58 @@ def test_fake_participant_programs_differ_and_never_submit_by_default(specs):
     sub = FakeParticipant(specs[0], c["site_inputs"], "CASE-1", urls=URLS, style="skipper", submits=True)
     sub._start()
     assert "Submit to claimant" in flat(sub.program)
+
+
+def test_schemas_survive_the_ports_strict_conversion():
+    """The OpenAI strict mode needs every property required and nullable-if-optional; the port converts and then validates against OUR schema."""
+    from understudy_agent.models.strict import to_strict_schema, validate_output
+
+    from evals.study_sim.participant import NOTE_SCHEMA
+    strict = to_strict_schema(DECIDE_SCHEMA)
+    item = strict["properties"]["actions"]["items"]
+    assert item["additionalProperties"] is False and set(item["required"]) == {"kind", "ref", "text", "url", "seconds"}
+    assert "null" in item["properties"]["ref"]["type"] and item["properties"]["kind"]["type"] == "string"
+    out = validate_output({"thought": "t", "actions": [{"kind": "click", "ref": 3, "text": None, "url": None, "seconds": None}]}, DECIDE_SCHEMA)
+    assert out["actions"][0] == {"kind": "click", "ref": 3}                       # optional nulls are dropped
+    assert validate_output({"note": "x"}, NOTE_SCHEMA) == {"note": "x"}
+    with pytest.raises(Exception):
+        validate_output({"thought": "t", "actions": [{"kind": "click", "ref": "three"}]}, DECIDE_SCHEMA)
+
+
+@pytest.mark.asyncio
+async def test_transient_errors_are_retried_and_refusals_are_not(specs, tmp_path):
+    class Flaky(StubPort):
+        def check(self, prompt, schema):
+            if not self.replies:
+                raise RuntimeError("never reached")
+            r = self.replies.pop(0)
+            if isinstance(r, Exception):
+                raise r
+            return super().check(prompt, schema) if False else self._ok(prompt, r)
+
+        def _ok(self, prompt, r):
+            self.prompts.append(prompt)
+            self.stats["input_tokens"] += 10
+            self.stats["output_tokens"] += 1
+            return r
+
+    class ProviderError(RuntimeError):
+        pass
+
+    class ModelRefusal(RuntimeError):
+        pass
+
+    port = Flaky([ProviderError("429"), ProviderError("timeout"), {"thought": "t", "actions": [{"kind": "finish"}]}])
+    mp = ModelParticipant(port, specs[0], Budget(), "m", cache_dir=tmp_path / "c1")
+    mp.retry_sleeps = (0, 0, 0)
+    assert [a.kind for a in await mp.decide(_ctx(specs[0]))] == ["finish"] and mp.errors == 2
+    refusing = Flaky([ModelRefusal("no")])
+    mp2 = ModelParticipant(refusing, specs[1], Budget(), "m", cache_dir=tmp_path / "c2")
+    mp2.retry_sleeps = (0, 0, 0)
+    assert await mp2.decide(_ctx(specs[1])) == []
+    always = Flaky([ProviderError("x")] * 4)
+    mp3 = ModelParticipant(always, specs[2], Budget(), "m", cache_dir=tmp_path / "c3")
+    mp3.retry_sleeps = (0, 0, 0)
+    from evals.study_sim.participant import HarnessModelError
+    with pytest.raises(HarnessModelError):
+        await mp3.decide(_ctx(specs[2]))

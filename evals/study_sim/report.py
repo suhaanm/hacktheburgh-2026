@@ -201,6 +201,9 @@ def render_md(s: dict) -> str:
     if s["meta"]["excluded_participants"]:
         w(f"Excluded (harness errors, decided before looking at scores): {', '.join(s['meta']['excluded_participants'])}.")
     w("")
+    if s["status"] != "complete":
+        w(f"> **Status {s['status']}: fewer participants than planned ({N_COACHED} coached, {N_AA} sham). Read the numbers below as a harness or partial-run report; no headline claim is made.**")
+        w("")
     w("## 1. Headline: unassisted skill score, coached skill minus uncoached skill")
     w("")
     w(f"Mean difference **{_fmt(h['mean_difference'])}** (95% t interval {h['ci95']}, n = {s['n']}); exact two-sided sign-flip p = {_fmt(h['sign_flip_p_two_sided'], 6)} "
