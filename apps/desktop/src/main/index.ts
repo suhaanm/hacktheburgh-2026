@@ -107,6 +107,7 @@ void app.whenReady().then(async () => {
       userDataDir,
       config: knackConfig,
       hidden: knackHidden(process.env),
+      openedAtLogin: process.platform === 'darwin' && app.getLoginItemSettings().wasOpenedAtLogin === true,
       env: process.env,
       glyphSvg,
       // The key is only checked for being there; the boot check lists the models it can use. A port built for live (never the mock) answers it.
@@ -253,7 +254,7 @@ void app.whenReady().then(async () => {
   const cueOn = experimentOn('cue')
   if (cueOn) cueSignals.start()
 
-  const unregisterHotkeys = hiddenRun ? () => undefined : registerHotkeys(bus, settings, { look: awareness ? () => void awareness.hotkey() : undefined, state, stop: (r) => session.stop(r), togglePanel: () => shellTray?.togglePanel(), kill: () => void understudy.kill.trigger('hotkey'), raisePanel: () => windows.showDock() })
+  const unregisterHotkeys = hiddenRun ? () => undefined : registerHotkeys(bus, settings, { look: awareness ? () => void awareness.hotkey() : undefined, state, stop: (r) => session.stop(r), togglePanel: () => shellTray?.togglePanel(), kill: () => void understudy.kill.trigger('hotkey'), raisePanel: () => windows.showDock(), askTap: knack ? () => { windows.showDock(); windows.sendDock(IPC.shellCommand, { type: 'view', view: 'chat' }) } : undefined })
   // NOTIFY: permission prompts also appear as a toast at the top of the screen (settings.confirmStyle; no window when headless / no overlay).
   const toast = registerToast({ ctx, adoptOwner, disabled: headless || flag('ALONGSIDE_NO_OVERLAY') })
   const unregisterLoginItem = registerLoginItem(settings, { log: (...args) => ctx.log('login-item', ...args) })
@@ -265,7 +266,7 @@ void app.whenReady().then(async () => {
   let shareAt = 0
   let sharing = false
   knack?.attach({
-    kill: { trigger: (source) => understudy.kill.trigger(source), isKilled: () => understudy.kill.isKilled(), subscribe: (cb) => understudy.kill.subscribe(() => cb()) },
+    kill: { trigger: (source) => understudy.kill.trigger(source), clear: () => understudy.kill.clear(), isKilled: () => understudy.kill.isKilled(), subscribe: (cb) => understudy.kill.subscribe(() => cb()) },
     // Cue's own signal reader polls every 2 s when it runs; otherwise one look is taken here. The screen-share look (a process list) is taken every 10 s.
     probe: async () => {
       if (hiddenRun) return { suppressed: null, presenting: false } // the hidden run reads nothing from the desk

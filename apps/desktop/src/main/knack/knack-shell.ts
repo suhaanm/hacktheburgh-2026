@@ -40,6 +40,8 @@ export interface KnackEarlyDeps {
   config: StackConfig
   /** Windows exist and work but are never shown (the hidden check). */
   hidden: boolean
+  /** The login item opened the app: no window is shown (the menu bar item and the Dock icon are enough). */
+  openedAtLogin?: boolean
   env: Record<string, string | undefined>
   /** Lists the models the key can use (the desktop model port's boot check); true when it passed. Called once, only when live is wanted and a key exists. */
   bootCheck: () => Promise<boolean>
@@ -65,7 +67,7 @@ export interface KnackEarlyDeps {
 }
 
 export interface KnackLateDeps {
-  kill: { trigger(source: 'hud'): Promise<unknown>; isKilled(): boolean; subscribe(cb: () => void): () => void }
+  kill: { trigger(source: 'hud'): Promise<unknown>; clear(): Promise<unknown>; isKilled(): boolean; subscribe(cb: () => void): () => void }
   /** The corner column (the HUD model, in corner mode). */
   hud: Pick<HudModel, 'setActivity' | 'setApproval' | 'setHold' | 'setCorner' | 'state'>
   /** One look at the desk: a reason to stay away (a denylisted app, a password field, an unreadable state) and whether a screen is shared. Fails closed. */
@@ -135,13 +137,13 @@ export const APPROVAL_CARD = { title: 'A run is waiting for you', body: 'It need
 export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
   const { config, env, log } = deps
   const store = createWindowStateStore({ file: path.join(deps.userDataDir, 'knack-window.json') })
-  const main = createMainWindow({ store, hidden: deps.hidden, devOrigin: config.devUrl ? new URL(config.devUrl).origin : null })
+  const main = createMainWindow({ store, hidden: deps.hidden, openedAtLogin: deps.openedAtLogin, devOrigin: config.devUrl ? new URL(config.devUrl).origin : null })
   const stack = deps.stack ?? createRealStack(config, (...a) => log('stack', ...a))
   let decision: ModelDecision | null = null
   let mockNow: boolean | null = null
   let stackStopped = false
   let stopping = false
-  let machine: ShellState = { ...INITIAL_SHELL, moveAside: deps.settings.get().moveAsideWhileWorking }
+  let machine: ShellState = { ...INITIAL_SHELL, moveAside: deps.settings.get().moveAsideWhileWorking, ...(deps.openedAtLogin ? { window: 'absent' as const, focused: false } : {}) }
   let late: KnackLateDeps | null = null
   let tracker: ActivityTracker | null = null
   let minimiseTimer: ReturnType<typeof setTimeout> | null = null
@@ -321,6 +323,7 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
     machine = r.state
     for (const e of r.effects) perform(e, ev)
     deps.onChange?.()
+    refreshDockMenu()
     return machine
   }
 
@@ -334,7 +337,28 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
   Menu.setApplicationMenu(Menu.buildFromTemplate(buildAppMenuTemplate({ appName: APP_NAME, platform: process.platform, isPackaged: app.isPackaged, killAccelerator: deps.killAccelerator(), handlers })))
   app.setAboutPanelOptions({ applicationName: APP_NAME, applicationVersion: app.getVersion(), copyright: 'Built for Hack the Burgh XIII' })
   const offDock = registerDock(deps.settings, { dock: app.dock ?? undefined, hidden: deps.hidden, log: (...a) => log(...a) })
-  app.dock?.setMenu(Menu.buildFromTemplate(buildDockMenuTemplate({ appName: APP_NAME, handlers })))
+  // The Dock menu follows the machine: Needs you (n) when n is above 0, Pause for 1 hour (Resume now), Stop everything (Resume after stopping).
+  const isPaused = (): boolean => {
+    const until = deps.settings.get().pausedUntil
+    return until !== null && until > Date.now()
+  }
+  const dockHandlers = {
+    ...handlers,
+    openNeedsYou: () => void dispatch({ type: 'review_clicked' }),
+    pause: () => void deps.settings.patch({ pausedUntil: Date.now() + 60 * 60_000 }),
+    resume: () => {
+      if (isPaused()) deps.settings.patch({ pausedUntil: null })
+      else if (machine.activity === 'stopped') void late?.kill.clear() // "Resume after stopping": the kill switch's own clear
+    },
+  }
+  let dockMenuKey = ''
+  const refreshDockMenu = (): void => {
+    const key = `${machine.needsYou}|${isPaused()}|${machine.activity === 'stopped'}`
+    if (key === dockMenuKey) return
+    dockMenuKey = key
+    app.dock?.setMenu(Menu.buildFromTemplate(buildDockMenuTemplate({ handlers: dockHandlers, needsYou: machine.needsYou, paused: isPaused(), stopped: machine.activity === 'stopped' })))
+  }
+  refreshDockMenu()
 
   // The Dock icon (or the app switcher) with no window up, and a second launch, bring the window forward; they never open a second one.
   const onActivate = (): void => void dispatch({ type: 'dock_click_or_activate' })
@@ -353,6 +377,7 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
 
   // The worker's setting for moving aside.
   const offSettings = deps.settings.onChange((_s, patch) => {
+    if ('pausedUntil' in patch) refreshDockMenu()
     if ('moveAsideWhileWorking' in patch) dispatch({ type: 'settings', moveAside: deps.settings.get().moveAsideWhileWorking })
     // The models switch: a change restarts the whole app (the model port is built once, at start).
     if ('useLiveModels' in patch) {

@@ -203,7 +203,7 @@ async function run(): Promise<void> {
   const model = createHudModel({ kill: killSwitch, endpoints: { dashboard: `http://127.0.0.1:${config.ports.dashboard}` }, openExternal: () => undefined, onProposalChoice: () => undefined, push: () => hud.push(), corner: true })
   const hud = registerHud({ model, log: () => undefined, corner: true, hidden: true })
   shell.attach({
-    kill: { trigger: () => killSwitch.trigger(), isKilled: () => killed, subscribe: (cb) => killSwitch.subscribe(() => cb()) },
+    kill: { trigger: () => killSwitch.trigger(), clear: () => killSwitch.clear(), isKilled: () => killed, subscribe: (cb) => killSwitch.subscribe(() => cb()) },
     hud: model,
     probe: async () => ({ suppressed, presenting: false }),
     pendingQueue: async () => pending,
