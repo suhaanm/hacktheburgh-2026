@@ -118,7 +118,7 @@ export function Reliability({ bins, levelPct, selected, onSelect }: { bins: Bin[
               </g>
             );
           })}
-          <text className="svg-text" x={left + side} y={stripBase + 16} textAnchor="end">cases in each band (bar height is the square root of n)</text>
+          <text className="svg-text" x={left + side} y={stripBase + 16} textAnchor="end">cases per band</text>
         </svg>
       )}
       <p className="u-sr-only" aria-live="polite">{sel ? binReadout(sel, levelPct) : ""}</p>

@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { api } from "../../api";
 import { useLoad, type LoadState } from "../../hooks";
 import type { AnalyticMeta, EvalReport } from "../../types";
-import { ChartFoot, EmptyState, ErrorState, ExampleBadge, Loading, Note, OriginBadge, SourceNote } from "../common";
+import { ChartFoot, EmptyState, ErrorState, ExampleBadge, Loading, Note, OriginBadge, SourceNote, workerOriginLabel } from "../common";
 import { Hint } from "../Hint";
 import exampleV2 from "../../fixtures/predictions-mlv2.json";
 import { Reliability } from "./Reliability";
@@ -25,7 +25,7 @@ export function useScorecard(): { load: LoadState<EvalReport>; read: ScorecardRe
 /** The scorecard with no page header, for the Firm screen's Forecasts tab. It loads itself. */
 export function ScorecardPanel() {
   const { load, read } = useScorecard();
-  return <ScorecardView load={load} read={read} />;
+  return <ScorecardView load={load} read={read} audience="admin" />;
 }
 
 const cardMeta = (m: CardMeta): AnalyticMeta | null =>
@@ -33,7 +33,7 @@ const cardMeta = (m: CardMeta): AnalyticMeta | null =>
 
 const rowsOf = (p: MetricPanel): ScoreRowSpec[] => p.rows.map((r) => ({ id: r.id, label: r.label, est: r.est, kind: r.ours ? "ours" : "other" }));
 
-export function ScorecardView({ load, read }: { load: LoadState<EvalReport>; read: ScorecardRead | null }) {
+export function ScorecardView({ load, read, audience = "admin" }: { load: LoadState<EvalReport>; read: ScorecardRead | null; audience?: "worker" | "admin" }) {
   if (load.status === "error" && !load.data) return <ErrorState error={load.error} retry={load.reload} what="the forecast scorecard" />;
   if (!read) return <Loading label="Loading the forecast scorecard" />;
   if (read.kind === "unavailable") {
@@ -45,10 +45,10 @@ export function ScorecardView({ load, read }: { load: LoadState<EvalReport>; rea
       </div>
     );
   }
-  return <Ready card={read.card} load={load} />;
+  return <Ready card={read.card} load={load} audience={audience} />;
 }
 
-function Ready({ card, load }: { card: Scorecard; load: LoadState<EvalReport> }) {
+function Ready({ card, load, audience }: { card: Scorecard; load: LoadState<EvalReport>; audience: "worker" | "admin" }) {
   const [sel, setSel] = useState<number | null>(null);
   const level = Math.round(card.meta.level * 100);
   const summary = useMemo(() => summariseBins(card.bins), [card.bins]);
@@ -61,16 +61,13 @@ function Ready({ card, load }: { card: Scorecard; load: LoadState<EvalReport> })
       <section className="hero sc-hero" aria-labelledby="sc-hero-h">
         <div className="sc-head">
           <div className="sc-head__text">
-            <p className="t-label">Reliability</p>
             <h2 id="sc-hero-h" className="section__title">Does the forecast mean what it says?</h2>
-            <p className="chart__sub">Each dot is a band of forecasts. On the dashed line, the forecast is exactly right.</p>
           </div>
           <div className="sc-head__badges">
-            <OriginBadge meta={meta ?? { origin: card.meta.origin, n: 0, n_unit: card.meta.nUnit, split: null, interval_level: card.meta.level, note: null, generated_at: "" }} always />
-            <ExampleBadge why={load.why} />
-            <span className="pill">{card.version} forecast</span>
+            {load.why ? <ExampleBadge why={load.why} /> : <OriginBadge meta={meta ?? { origin: card.meta.origin, n: 0, n_unit: card.meta.nUnit, split: null, interval_level: card.meta.level, note: null, generated_at: "" }} always label={workerOriginLabel(card.meta.origin)} />}
+            <span className="u-muted">Forecast {card.version}</span>
             <Hint label="About the forecast version">{card.version === "v1" ? "This is the forecast the coach uses today." : "This is the accepted v2 forecast."}</Hint>
-            {card.defaultNote && <><span className="pill pill--origin" data-origin="example">v2 candidate: {verdictWord(card.verdict)}</span><Hint label="About the v2 candidate">{card.defaultNote}</Hint></>}
+            {card.defaultNote && <><span className="u-muted">v2 candidate: {verdictWord(card.verdict)}</span><Hint label="About the v2 candidate">{card.defaultNote}</Hint></>}
           </div>
         </div>
 
@@ -81,10 +78,10 @@ function Ready({ card, load }: { card: Scorecard; load: LoadState<EvalReport> })
             <figure className="chart sc-fig">
               <Reliability bins={card.bins} levelPct={level} selected={sel} onSelect={setSel} />
               <ChartFoot
-                meta={meta} brief
+                meta={meta} brief badge={false} variant={audience === "worker" ? "about" : "full"}
                 extra={<>
                   {card.ece && <span>mean gap (ECE): <b>{fmtEst(card.ece)}</b></span>}
-                  <span>not validated on real people</span>
+                  {audience === "admin" && <span>not validated on real people</span>}
                 </>}
               />
             </figure>
@@ -95,6 +92,7 @@ function Ready({ card, load }: { card: Scorecard; load: LoadState<EvalReport> })
               </p>
               <details className="details-lite">
                 <summary>Key to the diagram</summary>
+                <p className="note">Each dot is a band of forecasts. On the dashed line, the forecast is exactly right.</p>
                 <ul className="legend sc-key" aria-label="How to read the reliability diagram">
                   <li className="legend__item"><svg width="22" height="14" aria-hidden="true"><circle className="sc-dot" cx="11" cy="7" r="4.5" /></svg>A band with {THIN_N} or more cases</li>
                   <li className="legend__item"><svg width="22" height="14" aria-hidden="true"><circle className="sc-dot sc-dot--thin" cx="11" cy="7" r="4.5" /></svg>Hollow: a thin band, fewer than {THIN_N} cases</li>
@@ -133,7 +131,7 @@ function Ready({ card, load }: { card: Scorecard; load: LoadState<EvalReport> })
               </figure>
             ))}
           </div>
-          <ChartFoot meta={meta} brief extra={<span>axes do not start at zero</span>} />
+          <ChartFoot meta={meta} brief badge={false} extra={<span>axes do not start at zero</span>} />
           <ul className="legend" aria-label="How to read the rows">
             <li className="legend__item"><svg width="14" height="14" aria-hidden="true"><circle className="sc-dot" cx="7" cy="7" r="5" /></svg>Filled dot: our forecast</li>
             <li className="legend__item"><svg width="14" height="14" aria-hidden="true"><path className="sc-diamond" d="M 7 1 l 6 6 l -6 6 l -6 -6 z" /></svg>Hollow diamond: a baseline</li>
@@ -201,7 +199,7 @@ function Alarms({ card, meta, level }: { card: Scorecard; meta: AnalyticMeta | n
       {a.rate ? (
         <figure className="chart">
           <ScoreChart title="False alarms per hour against the budget" rows={rows} digits={2} zero reference={a.budget !== null ? { value: a.budget, label: `budget ${a.budget.toFixed(1)} an hour` } : undefined} />
-          <ChartFoot meta={meta} brief extra={<span>axis starts at zero</span>} />
+          <ChartFoot meta={meta} brief badge={false} extra={<span>axis starts at zero</span>} />
         </figure>
       ) : <Note>The report gives no false-alarm rate.</Note>}
       {a.detection && (
@@ -245,8 +243,8 @@ function CandidateBlock({ card }: { card: Scorecard }) {
       <div className="stack">
         <p className="note">{c.label}, scored on {c.meta.pool ?? "its own pool"}{c.meta.n !== null ? ` (${c.meta.n} ${c.meta.nUnit})` : ""}. v1 is scored on the same pool, so these two can share an axis. Do not compare them with the rows above.</p>
         <div className="cols-2">
-          <figure className="chart"><h3 className="chart__title">Log loss</h3><ScoreChart title="Log loss, candidate against v1" rows={pair("ll", c.logLoss)} /><ChartFoot meta={meta} brief /></figure>
-          <figure className="chart"><h3 className="chart__title">Brier score</h3><ScoreChart title="Brier score, candidate against v1" rows={pair("br", c.brier)} /><ChartFoot meta={meta} brief /></figure>
+          <figure className="chart"><h3 className="chart__title">Log loss</h3><ScoreChart title="Log loss, candidate against v1" rows={pair("ll", c.logLoss)} /><ChartFoot meta={meta} brief badge={false} /></figure>
+          <figure className="chart"><h3 className="chart__title">Brier score</h3><ScoreChart title="Brier score, candidate against v1" rows={pair("br", c.brier)} /><ChartFoot meta={meta} brief badge={false} /></figure>
         </div>
         <ul className="plain-list sc-list">
           {(c.falseAlarms.candidate || c.falseAlarms.v1) && <li>False alarms an hour: candidate {fmtEst(c.falseAlarms.candidate, 2)}, v1 {fmtEst(c.falseAlarms.v1, 2)}.</li>}
@@ -297,7 +295,7 @@ function TteSection({ card }: { card: Scorecard }) {
           </figure>
         )}
       </div>
-      <ChartFoot meta={meta} brief extra={<>{poolMeta.pool && <span>pool: <b>{poolMeta.pool}</b></span>}{t.cIndex && <span>ranking axis does not start at zero</span>}{t.meanExpected !== null && t.kmMean !== null && <span>mean predicted <b>{t.meanExpected.toFixed(2)}</b> min, observed <b>{t.kmMean.toFixed(2)}</b> min</span>}</>} />
+      <ChartFoot meta={meta} brief badge={false} extra={<>{poolMeta.pool && <span>pool: <b>{poolMeta.pool}</b></span>}{t.cIndex && <span>ranking axis does not start at zero</span>}{t.meanExpected !== null && t.kmMean !== null && <span>mean predicted <b>{t.meanExpected.toFixed(2)}</b> min, observed <b>{t.kmMean.toFixed(2)}</b> min</span>}</>} />
     </section>
   );
 }

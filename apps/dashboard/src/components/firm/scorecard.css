@@ -74,3 +74,8 @@
   .sc { gap: var(--space-7); }
   .sc-claim { font-size: var(--text-md); }
 }
+
+/* The claim is one sentence: two lines in the wide column, not three. */
+.sc-claim { max-width: 90ch; }
+@media (max-width: 1500px) { .sc-hero__grid { grid-template-columns: minmax(0, 1fr); } .sc-readout { min-height: 0; } }
+.sc-claim { font-size: var(--text-md); }

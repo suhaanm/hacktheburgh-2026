@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { ApiError, api } from "../api";
 import { useLoad } from "../hooks";
-import { CheckChip, EmptyState, ErrorState, ExampleBadge, Loading, OriginBadge, PageHead, SourceNote, StatePill } from "../components/common";
+import { CheckChip, EmptyState, ErrorState, ExampleBadge, Loading, OriginBadge, PageHead, SourceNote, StateText, workerOriginLabel } from "../components/common";
 import { Details } from "../components/ui";
 import { Facts } from "../components/Facts";
 import { useToast } from "../components/Toasts";
@@ -37,10 +37,9 @@ export default function Agents() {
   return (
     <div className="page">
       <PageHead
-        eyebrow="Agents"
         title={n.active > 0 ? `${n.active} background ${n.active === 1 ? "run is" : "runs are"} working` : "No background run is working"}
-        lede="A planner splits a job into small helpers. Stop any run, or one helper, at once."
-        aside={<><OriginBadge meta={runs.meta} /><ExampleBadge why={runs.why} /></>}
+        lede="Stop any run, or one helper, at once."
+        aside={runs.why ? <ExampleBadge why={runs.why} /> : <OriginBadge meta={runs.meta} label={runs.meta ? workerOriginLabel(runs.meta.origin) : undefined} />}
       />
       <SourceNote why={runs.why} also={runs.why ? "These are example runs. Stop, Revoke and Run in background here only change this screen: nothing is started or stopped for real." : undefined} />
 
@@ -115,8 +114,8 @@ function Run({ run: r, elapsed, onChanged }: { run: AgentRun; elapsed: number; o
           <span className="t-data u-muted">{r.run_id} · started {fmtDateTime(r.started)}</span>
         </div>
         <div className="row">
-          <span className="pill">{r.mode === "nightly" ? "Nightly" : "Foreground"}</span>
-          <StatePill state={r.state} tone={stateTone(r.state)} />
+          <span className="u-muted">{r.mode === "nightly" ? "Nightly" : "Foreground"}</span>
+          <StateText state={r.state} tone={stateTone(r.state)} />
           {active && <button type="button" className="btn btn--danger btn--sm" disabled={!!busy} onClick={() => act("stop", () => api.agentsStop(r.run_id), "Stop sent.")}>{busy === "stop" ? "Stopping" : "Stop"}</button>}
         </div>
       </div>
@@ -125,13 +124,17 @@ function Run({ run: r, elapsed, onChanged }: { run: AgentRun; elapsed: number; o
         <li className="tree__node tree__node--parent">
           <div className="tree__row">
             <span className="tree__role">{r.parent.role}</span>
-            <StatePill state={r.parent.state} tone={stateTone(r.parent.state)} />
+            <StateText state={r.parent.state} tone={stateTone(r.parent.state)} />
           </div>
           <Budgets b={r.parent.budget} s={r.parent.spent} state={r.parent.state} summary="Budget" />
-          <ul className="tree__children">
-            {(allKids ? r.children : r.children.slice(0, 5)).map((c) => <Child key={c.id} runId={r.run_id} c={c} elapsed={elapsed} onChanged={onChanged} />)}
-          </ul>
-          {r.children.length > 5 && !allKids && <div><button type="button" className="btn btn--quiet btn--sm" onClick={() => setAllKids(true)}>Show all {r.children.length} helpers</button></div>}
+          {r.children.length > 0 && (
+            <Details summary={`${r.children.length} ${r.children.length === 1 ? "helper" : "helpers"}`} wide>
+              <ul className="tree__children">
+                {(allKids ? r.children : r.children.slice(0, 5)).map((c) => <Child key={c.id} runId={r.run_id} c={c} elapsed={elapsed} onChanged={onChanged} />)}
+              </ul>
+              {r.children.length > 5 && !allKids && <div><button type="button" className="btn btn--quiet btn--sm" onClick={() => setAllKids(true)}>Show all {r.children.length} helpers</button></div>}
+            </Details>
+          )}
         </li>
       </ul>
 
@@ -155,7 +158,7 @@ function Child({ runId, c, elapsed, onChanged }: { runId: string; c: AgentNode; 
     <li className="tree__node">
       <div className="tree__row">
         <span className="tree__role">{c.role}</span>
-        <StatePill state={revoked ? "revoked" : c.state} tone={revoked ? "bad" : stateTone(c.state)} />
+        <StateText state={revoked ? "revoked" : c.state} tone={revoked ? "bad" : stateTone(c.state)} />
         {live && l && (
           <button type="button" className="btn btn--quiet btn--sm" disabled={busy} aria-label={`Revoke the lease of ${c.role}`}
             onClick={async () => { setBusy(true); setErr(null); try { await api.agentsRevoke(runId, c.id); toast({ tone: "success", text: `Revoked: ${c.role}.`, detail: "That helper ended at once." }); onChanged(); } catch (e) { setErr(e instanceof ApiError ? e.message : "Could not revoke. Try again."); } finally { setBusy(false); } }}>
@@ -198,7 +201,7 @@ function Detail({ id }: { id: string }) {
         <div key={k.id} className="stack child-result" data-claim={falseClaim(k) ? "false" : "ok"}>
           <div className="row">
             <b>{k.role.replace(/_/g, " ")}</b>
-            <StatePill state={k.status} tone={stateTone(k.status)} />
+            <StateText state={k.status} tone={stateTone(k.status)} />
             {k.verified === true && <span className="pill"><span className="pill__glyph-char" aria-hidden="true">✓</span>checked by code</span>}
             {k.verified === false && <span className="pill pill--blocked"><span className="pill__glyph-char" aria-hidden="true">✕</span>did not check out</span>}
           </div>

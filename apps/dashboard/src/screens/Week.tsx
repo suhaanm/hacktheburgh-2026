@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import { idle, useLoad } from "../hooks";
 import { useAppState } from "../store";
-import { ChartFoot, EmptyState, ErrorState, ExampleBadge, Loading, OriginBadge, PageHead, SourceNote } from "../components/common";
+import { ChartFoot, EmptyState, ErrorState, ExampleBadge, Loading, OriginBadge, PageHead, SourceNote, workerOriginLabel } from "../components/common";
 import { WeekLegend, WeekRibbon } from "../components/WeekRibbon";
 import { AlignLegend, CalAlignment } from "../components/CalAlignment";
 import { Hint } from "../components/Hint";
@@ -45,12 +45,11 @@ export default function Week() {
   return (
     <div className="page page--wide">
       <PageHead
-        eyebrow="Week"
+        hero
         title={weekHeadline(d.features, d.expert, me && d.person === me ? null : personName(entry) || "This person")}
-        lede="Your calendar blocks next to the expert's. No titles or names exist in this data."
-        aside={<><OriginBadge meta={w.meta} /><ExampleBadge why={w.why} /></>}
+        lede="No titles or names exist in this data."
+        aside={w.why ? <ExampleBadge why={w.why} /> : <OriginBadge meta={w.meta} label={w.meta ? workerOriginLabel(w.meta.origin) : undefined} />}
       />
-      <SourceNote why={w.why} />
 
       <Pickers people={people.data} person={person} entry={entry} week={week ?? d.week} locked={example}
         onPerson={(p) => { setPerson(p); setWeek(undefined); }} onWeek={setWeek} />
@@ -66,11 +65,13 @@ export default function Week() {
               {d.expert.days && d.expert.days.length > 0 && <WeekRibbon title={`The expert's week${typeof d.expert.person === "string" ? ` (${d.expert.person})` : ""}`} days={d.expert.days} window={win} />}
             </div>
             <WeekLegend />
-            <ChartFoot variant="about" meta={w.meta} extra={<span>Only the kind of block, its time and how many people were in it are used.{d.timezone ? <> Times are in <b>{d.timezone}</b>.</> : null}</span>} />
+            <ChartFoot variant="about" meta={w.meta} badge={false} extra={<span>Only the kind of block, its time and how many people were in it are used.{d.timezone ? <> Times are in <b>{d.timezone}</b>.</> : null}</span>} />
             <WeekTable days={d.days} />
           </div>
         )}
       </section>
+
+      {w.why && <SourceNote why={w.why} />}
 
       {d.gap.ribbon?.alignment && d.gap.ribbon.alignment.length > 0 && <><hr className="rule" /><Distance d={d} meta={w.meta} /></>}
 
@@ -120,7 +121,6 @@ function Distance({ d, meta }: { d: CalendarWeek; meta: ReturnType<typeof useLoa
     <section className="section" aria-labelledby="dist-h">
       <div className="section__head">
         <h2 className="section__title" id="dist-h">How far this week is from the nearest expert's</h2>
-        <p className="section__sub">The two weeks lined up block by block.</p>
       </div>
       <div className="stats">
         <div className="stat"><span className="stat__label">Distance<Hint label="About the distance">0 is identical, 1 is entirely different.</Hint></span><span className="stat__value tabular">{r.distance.toFixed(2)}</span></div>
@@ -130,7 +130,7 @@ function Distance({ d, meta }: { d: CalendarWeek; meta: ReturnType<typeof useLoa
       <div className="chart chart--wide stack">
         <CalAlignment alignment={r.alignment ?? []} />
         <AlignLegend />
-        <ChartFoot variant="about" meta={meta} brief extra={r.nearest_expert ? <span>Nearest expert: <b>{r.nearest_expert}</b>.</span> : undefined} />
+        <ChartFoot variant="about" meta={meta} brief badge={false} extra={r.nearest_expert ? <span>Nearest expert: <b>{r.nearest_expert}</b>.</span> : undefined} />
       </div>
     </section>
   );
@@ -175,7 +175,6 @@ function GapTable({ rows, meta, note }: { rows: GapRow[]; meta: ReturnType<typeo
     <section className="section" aria-labelledby="gap-h">
       <div className="section__head">
         <h2 className="section__title" id="gap-h">Where your week differs</h2>
-        <p className="section__sub">Your number, the expert's, and the gap.</p>
       </div>
       <div className="table-wrap"><table className="table">
         <thead><tr><th>What</th><th className="num">You</th><th className="num">Expert</th><th className="num">Difference</th><th>95% interval</th><th className="hide-narrow" aria-hidden="true" /><th className="hide-narrow">Experts range from</th><th className="hide-narrow">Read</th></tr></thead>
@@ -188,11 +187,11 @@ function GapTable({ rows, meta, note }: { rows: GapRow[]; meta: ReturnType<typeo
             <td className="num interval">{fmtInterval(r.ci, featureUnit(r.feature) === "share" ? 2 : Math.abs(r.delta) < 10 ? 1 : 0)}</td>
             <td className="hide-narrow"><DeltaBar delta={r.delta} ci={r.ci} /></td>
             <td className="hide-narrow num interval">{r.expert_range ? `${fmtFeature(r.feature, r.expert_range[0])} to ${fmtFeature(r.feature, r.expert_range[1])}` : ""}</td>
-            <td className="hide-narrow">{gapClear(r) ? <span className="pill"><b>clear</b></span> : <span className="pill">within noise</span>}</td>
+            <td className="hide-narrow">{gapClear(r) ? <b>clear</b> : <span className="u-muted">within noise</span>}</td>
           </tr>))}</tbody>
       </table></div>
       {rows.length > SHOWN && <div><button type="button" className="btn btn--quiet btn--sm" aria-expanded={all} onClick={() => setAll((v) => !v)}>{all ? "Show fewer" : `Show all ${rows.length}`}</button></div>}
-      <ChartFoot variant="about" brief meta={meta} extra={<span>{clear} of {rows.length} differences are clear: their 95% interval stays on one side of zero. The interval covers the spread among the expert references only{note ? ` (${note})` : ""}.</span>} />
+      <ChartFoot variant="about" brief badge={false} meta={meta} extra={<span>{clear} of {rows.length} differences are clear: their 95% interval stays on one side of zero. The interval covers the spread among the expert references only{note ? ` (${note})` : ""}.</span>} />
     </section>
   );
 }
@@ -205,7 +204,6 @@ function Suggestions({ state }: { state: ReturnType<typeof useLoad<CalSuggestion
     <section className="section" aria-labelledby="sug-h">
       <div className="section__head">
         <h2 className="section__title" id="sug-h">Ideas for a calmer week</h2>
-        <p className="section__sub">Chosen by code from a fixed list and worded from your numbers. None is acted on.</p>
       </div>
       {list.length === 0 ? <EmptyState title="Nothing to suggest" body="Your week is close to the expert's, so there is nothing worth changing right now." /> : (
         <div className="sug-grid">
@@ -226,14 +224,14 @@ function Suggestions({ state }: { state: ReturnType<typeof useLoad<CalSuggestion
                     <p className="note">{s.can_draft ? "A draft can be prepared." : "No draft is available for this one."}{s.evidence_weeks ? ` Seen over ${s.evidence_weeks} weeks.` : ""}</p>
                   </div>
                 </Details>
-                {s.risk !== "low" && <div className="row"><span className="pill">{s.risk}</span></div>}
+                {s.risk !== "low" && <p className="note">Risk: {s.risk}.</p>}
                 <p className="note">Nothing is sent, booked or changed.</p>
               </article>
             );
           })}
         </div>
       )}
-      <ChartFoot variant="about" brief meta={state.meta} />
+      <ChartFoot variant="about" brief badge={false} meta={state.meta} />
     </section>
   );
 }
