@@ -1,0 +1,185 @@
+{
+  "sentence": "Hello, I'm your helper. I'll sit alongside you while you learn.",
+  "voices": [
+    {
+      "name": "Zephyr",
+      "descriptor": "Bright",
+      "seconds": 4.4,
+      "transcript": "Hello, I'm your helper. I'll sit alongside you while you learn."
+    },
+    {
+      "name": "Puck",
+      "descriptor": "Upbeat",
+      "seconds": 5.3,
+      "transcript": "Hello, I'm your helper. I'll sit alongside you while you learn."
+    },
+    {
+      "name": "Charon",
+      "descriptor": "Informative",
+      "seconds": 4.8,
+      "transcript": "Hello, I'm your helper. I'll sit alongside you while you learn."
+    },
+    {
+      "name": "Kore",
+      "descriptor": "Firm",
+      "seconds": 4.5,
+      "transcript": "Hello, I'm your helper. I'll sit alongside you"
+    },
+    {
+      "name": "Fenrir",
+      "descriptor": "Excitable",
+      "seconds": 5.8,
+      "transcript": "Hello, I'm your helper. I'll sit alongside you while you learn."
+    },
+    {
+      "name": "Leda",
+      "descriptor": "Youthful",
+      "seconds": 4.5,
+      "transcript": "Hello,I'm your helper.I'll sitalongside you while"
+    },
+    {
+      "name": "Orus",
+      "descriptor": "Firm",
+      "seconds": 5.5,
+      "transcript": "Hello, I'myour helper. I'llsit alongsideyou while you learn."
+    },
+    {
+      "name": "Aoede",
+      "descriptor": "Breezy",
+      "seconds": 4.6,
+      "transcript": "Hello, I'm your helper. I'll sit alongside you while you learn."
+    },
+    {
+      "name": "Callirrhoe",
+      "descriptor": "Easy-going",
+      "seconds": 4.7,
+      "transcript": "Hello, I'm your helper. I'll sit alongside you while you learn."
+    },
+    {
+      "name": "Autonoe",
+      "descriptor": "Bright",
+      "seconds": 4.6,
+      "transcript": "Hello, I'm your helper. I'll sit alongside you while you learn."
+    },
+    {
+      "name": "Enceladus",
+      "descriptor": "Breathy",
+      "seconds": 5.2,
+      "transcript": "Hello, I'm your helper. I'll sit alongside you while you learn."
+    },
+    {
+      "name": "Iapetus",
+      "descriptor": "Clear",
+      "seconds": 6.1,
+      "transcript": "Hello, I'm your helper. I'll sit alongside you while you learn."
+    },
+    {
+      "name": "Umbriel",
+      "descriptor": "Easy-going",
+      "seconds": 4.7,
+      "transcript": "Hello, I'm your helper. I'll sit alongside you while you learn."
+    },
+    {
+      "name": "Algieba",
+      "descriptor": "Smooth",
+      "seconds": 5.4,
+      "transcript": "Hello, I'm your helper. I'll sit alongside you while you learn."
+    },
+    {
+      "name": "Despina",
+      "descriptor": "Smooth",
+      "seconds": 5.9,
+      "transcript": "Hello, I'm your helper. I'll sit alongside you while you learn."
+    },
+    {
+      "name": "Erinome",
+      "descriptor": "Clear",
+      "seconds": 5.9,
+      "transcript": "Hello, I'm your helper. I'll sit alongside you while you learn."
+    },
+    {
+      "name": "Algenib",
+      "descriptor": "Gravelly",
+      "seconds": 4.1,
+      "transcript": "Hello, I'm your helper. I'll sit alongside you while you learn."
+    },
+    {
+      "name": "Rasalgethi",
+      "descriptor": "Informative",
+      "seconds": 4.6,
+      "transcript": "Hello, I'm your helper. I'll sit alongside you while you learn."
+    },
+    {
+      "name": "Laomedeia",
+      "descriptor": "Upbeat",
+      "seconds": 5.3,
+      "transcript": ""
+    },
+    {
+      "name": "Achernar",
+      "descriptor": "Soft",
+      "seconds": 5.3,
+      "transcript": ""
+    },
+    {
+      "name": "Alnilam",
+      "descriptor": "Firm",
+      "seconds": 5.4,
+      "transcript": ""
+    },
+    {
+      "name": "Schedar",
+      "descriptor": "Even",
+      "seconds": 4.5,
+      "transcript": ""
+    },
+    {
+      "name": "Gacrux",
+      "descriptor": "Mature",
+      "seconds": 5.8,
+      "transcript": "Hello, I'm your helper. I'll sit alongside you while you learn."
+    },
+    {
+      "name": "Pulcherrima",
+      "descriptor": "Forward",
+      "seconds": 4.6,
+      "transcript": ""
+    },
+    {
+      "name": "Achird",
+      "descriptor": "Friendly",
+      "seconds": 5.7,
+      "transcript": "Hello, I'm your helper. I'll sit alongside you while"
+    },
+    {
+      "name": "Zubenelgenubi",
+      "descriptor": "Casual",
+      "seconds": 5.8,
+      "transcript": "Hello,I'm your helper.I'll sitalongside youwhile you learn."
+    },
+    {
+      "name": "Vindemiatrix",
+      "descriptor": "Gentle",
+      "seconds": 5,
+      "transcript": ""
+    },
+    {
+      "name": "Sadachbia",
+      "descriptor": "Lively",
+      "seconds": 5,
+      "transcript": "Hello, I'm your helper. I'll sit alongside"
+    },
+    {
+      "name": "Sadaltager",
+      "descriptor": "Knowledgeable",
+      "seconds": 5.7,
+      "transcript": "Hello, I'm your helper. I'll sit alongside you while you learn."
+    },
+    {
+      "name": "Sulafat",
+      "descriptor": "Warm",
+      "seconds": 5.6,
+      "transcript": ""
+    }
+  ]
+}

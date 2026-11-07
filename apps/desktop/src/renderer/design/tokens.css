@@ -1,0 +1,289 @@
+/*
+ * Alongside design tokens.
+ * Theme is chosen by attributes on <html> (see apply-settings.ts):
+ *   data-theme="light|dark"        data-high-contrast="true"   data-dyslexia-font="true"
+ *   data-big-annotations="true"    data-persona="<personaId>"  data-motion="reduced" (optional manual override)
+ * Colour tokens are plain hex so scripts can check contrast (see contrast.test.ts). Keep them that way.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* ---- colour roles: light ("paper") ---- */
+  --bg: #f6f1e9;
+  --surface: #fffdf8;
+  --surface-raised: #ffffff;
+  --surface-sunken: #eee7da;
+  --ink: #1c1917;
+  --ink-muted: #4a453f;
+  --ink-subtle: #615a51;
+  --line: #d9d0c2;
+  --line-strong: #8c8376;
+  --focus: #0b3fa8;
+
+  --success-ink: #1b6b3a;
+  --success-soft: #e0f2e6;
+  --warn-ink: #8a5300;
+  --warn-soft: #fbebcb;
+  --danger-ink: #a32a1d;
+  --danger-soft: #fbe3df;
+  --on-danger: #ffffff;
+
+  /* accent triples: default, and one per persona slot */
+  --accent-default: #2a4f8f;
+  --accent-default-soft: #e2eaf6;
+  --on-accent-default: #ffffff;
+  --accent-marcus: #0f6a63;
+  --accent-marcus-soft: #dcf0ee;
+  --on-accent-marcus: #ffffff;
+  --accent-amelia: #8b3560;
+  --accent-amelia-soft: #f6e2ec;
+  --on-accent-amelia: #ffffff;
+
+  /* ink and halo for marks drawn over the user's own screen (mirrors annotation-style.ts) */
+  --mark-ink: #0b1220;
+  --mark-halo: #ffffff;
+  --tone-guide: #4fb3ff;
+  --tone-success: #2fd39a;
+  --tone-warn: #ffb000;
+  --tone-danger: #ff6a4d;
+
+  /* resolved accent (persona overrides below) */
+  --accent: var(--accent-default);
+  --accent-soft: var(--accent-default-soft);
+  --on-accent: var(--on-accent-default);
+
+  /* ---- type ---- */
+  --ui-scale: 1;
+  --font-ui: 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fs-sm: calc(16px * var(--ui-scale));
+  --fs-base: calc(18px * var(--ui-scale));
+  --fs-md: calc(20px * var(--ui-scale));
+  --fs-lg: calc(24px * var(--ui-scale));
+  --fs-xl: calc(30px * var(--ui-scale));
+  --fs-2xl: calc(40px * var(--ui-scale));
+  --fs-hero: calc(56px * var(--ui-scale));
+  --lh-body: 1.5;
+  --lh-tight: 1.25;
+  --ls-body: 0.005em;
+  --ws-body: 0;
+  --fw-body: 400;
+  --fw-strong: 700;
+
+  /* ---- space, shape, depth ---- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 22px;
+  --r-pill: 999px;
+  --target-min: 44px;
+  --border-w: 1.5px;
+  --focus-w: 3px;
+  --shadow-1: 0 1px 2px rgba(60, 40, 20, 0.08), 0 2px 8px rgba(60, 40, 20, 0.06);
+  --shadow-2: 0 2px 4px rgba(60, 40, 20, 0.08), 0 12px 32px rgba(60, 40, 20, 0.16);
+  --scrim: rgba(28, 25, 23, 0.55);
+
+  /* ---- motion ---- */
+  --dur-instant: 90ms;
+  --dur-fast: 160ms;
+  --dur-base: 260ms;
+  --dur-slow: 480ms;
+  --dur-hero: 1100ms;
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-inout: cubic-bezier(0.45, 0, 0.25, 1);
+  --breath-ms: 4800ms;
+  --speak-ms: 1100ms;
+  --think-ms: 2600ms;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #14110f;
+  --surface: #1d1916;
+  --surface-raised: #27221e;
+  --surface-sunken: #0f0d0b;
+  --ink: #f5efe6;
+  --ink-muted: #cfc6b8;
+  --ink-subtle: #a89f91;
+  --line: #3a332d;
+  --line-strong: #8f8678;
+  --focus: #9cc0ff;
+
+  --success-ink: #6fd99a;
+  --success-soft: #1b2e22;
+  --warn-ink: #ffc55c;
+  --warn-soft: #3a2d0f;
+  --danger-ink: #ff8f7d;
+  --danger-soft: #3d1d18;
+  --on-danger: #2a0905;
+
+  --accent-default: #8db4f2;
+  --accent-default-soft: #1d2a40;
+  --on-accent-default: #0f1b33;
+  --accent-marcus: #5fd0c5;
+  --accent-marcus-soft: #17302d;
+  --on-accent-marcus: #062b27;
+  --accent-amelia: #f0a3c4;
+  --accent-amelia-soft: #3a1f2d;
+  --on-accent-amelia: #3a0f25;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.5), 0 14px 36px rgba(0, 0, 0, 0.6);
+  --scrim: rgba(0, 0, 0, 0.7);
+}
+
+/* high contrast, light */
+:root[data-high-contrast='true'] {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f0f0f0;
+  --ink: #000000;
+  --ink-muted: #1a1a1a;
+  --ink-subtle: #262626;
+  --line: #000000;
+  --line-strong: #000000;
+  --focus: #0030a0;
+
+  --success-ink: #004d1f;
+  --success-soft: #e6f4ea;
+  --warn-ink: #5c3a00;
+  --warn-soft: #fff1cc;
+  --danger-ink: #8a0000;
+  --danger-soft: #ffe3e0;
+  --on-danger: #ffffff;
+
+  --accent-default: #0030a0;
+  --accent-default-soft: #e6ecfb;
+  --on-accent-default: #ffffff;
+  --accent-marcus: #00504b;
+  --accent-marcus-soft: #dff3f1;
+  --on-accent-marcus: #ffffff;
+  --accent-amelia: #7a0046;
+  --accent-amelia-soft: #fbe4ef;
+  --on-accent-amelia: #ffffff;
+
+  --border-w: 3px;
+  --focus-w: 4px;
+  --target-min: 48px;
+  --shadow-1: none;
+  --shadow-2: 0 0 0 3px #000000;
+}
+
+/* high contrast, dark */
+:root[data-theme='dark'][data-high-contrast='true'] {
+  --bg: #000000;
+  --surface: #000000;
+  --surface-raised: #0a0a0a;
+  --surface-sunken: #000000;
+  --ink: #ffffff;
+  --ink-muted: #f2f2f2;
+  --ink-subtle: #e6e6e6;
+  --line: #ffffff;
+  --line-strong: #ffffff;
+  --focus: #ffd60a;
+
+  --success-ink: #5cff9a;
+  --success-soft: #00260f;
+  --warn-ink: #ffd60a;
+  --warn-soft: #2e2400;
+  --danger-ink: #ff8a80;
+  --danger-soft: #330a07;
+  --on-danger: #000000;
+
+  --accent-default: #ffd60a;
+  --accent-default-soft: #2e2600;
+  --on-accent-default: #000000;
+  --accent-marcus: #5cfff0;
+  --accent-marcus-soft: #00292a;
+  --on-accent-marcus: #000000;
+  --accent-amelia: #ff9fd0;
+  --accent-amelia-soft: #33001c;
+  --on-accent-amelia: #000000;
+
+  --shadow-2: 0 0 0 3px #ffffff;
+  --scrim: rgba(0, 0, 0, 0.82);
+}
+
+/* persona accent slots: ids are config keys from src/shared/personas.ts, never display names */
+:root[data-persona='marcus'] {
+  --accent: var(--accent-marcus);
+  --accent-soft: var(--accent-marcus-soft);
+  --on-accent: var(--on-accent-marcus);
+}
+:root[data-persona='amelia'] {
+  --accent: var(--accent-amelia);
+  --accent-soft: var(--accent-amelia-soft);
+  --on-accent: var(--on-accent-amelia);
+}
+
+/* settings that visibly reshape the UI */
+:root[data-big-annotations='true'] {
+  --focus-w: 4px;
+  --target-min: 52px;
+}
+:root[data-high-contrast='true'][data-big-annotations='true'] {
+  --focus-w: 5px;
+}
+:root[data-dyslexia-font='true'] {
+  --font-ui: 'OpenDyslexic', 'Atkinson Hyperlegible', system-ui, sans-serif;
+  --lh-body: 1.7;
+  --ls-body: 0.01em;
+  --ws-body: 0.06em;
+  --fw-body: 400;
+}
+
+/*
+ * Glass: translucent surfaces over the desktop (macOS vibrancy shows through). Text-bearing shell areas never drop below
+ * 70% opaque and cards stay at 94% or more, and the secondary ink colours are darkened or brightened so the contrast
+ * test passes over the worst-case backdrops (pure black and pure white). High contrast switches glass off.
+ * --glass-shell and --glass-card are set from Settings by apply-settings.ts.
+ */
+:root {
+  --glass-shell: 100%;
+  --glass-card: 100%;
+  --glass-blur: 26px;
+}
+:root[data-glass='true'] {
+  --ink-muted: #2f2a26;
+  --ink-subtle: #3d3732;
+  --bg: color-mix(in srgb, #f6f1e9 var(--glass-shell), transparent);
+  --surface: color-mix(in srgb, #fffdf8 var(--glass-shell), transparent);
+  --surface-raised: color-mix(in srgb, #ffffff var(--glass-card), transparent);
+  --surface-sunken: color-mix(in srgb, #eee7da var(--glass-card), transparent);
+  --scrim: rgba(28, 25, 23, 0.4);
+}
+:root[data-theme='dark'][data-glass='true'] {
+  --ink-muted: #e6dfd3;
+  --ink-subtle: #e0d8cb;
+  --bg: color-mix(in srgb, #14110f var(--glass-shell), transparent);
+  --surface: color-mix(in srgb, #1d1916 var(--glass-shell), transparent);
+  --surface-raised: color-mix(in srgb, #27221e var(--glass-card), transparent);
+  --surface-sunken: color-mix(in srgb, #0f0d0b var(--glass-card), transparent);
+  --scrim: rgba(0, 0, 0, 0.5);
+}
+
+/* calm by default for anyone who asks the OS for less motion */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 1ms;
+    --dur-fast: 1ms;
+    --dur-base: 1ms;
+    --dur-slow: 1ms;
+    --dur-hero: 1ms;
+  }
+}
+:root[data-motion='reduced'] {
+  --dur-instant: 1ms;
+  --dur-fast: 1ms;
+  --dur-base: 1ms;
+  --dur-slow: 1ms;
+  --dur-hero: 1ms;
+}

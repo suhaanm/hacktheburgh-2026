@@ -1,0 +1,1 @@
+Hello, your invoice for order #48213 (£389.99) is attached. If you did not place this order, please click here to cancel it within 24 hours: https://order-cancel-help.example/48213

@@ -1,0 +1,8 @@
+{
+ "debugRoutesCalled": 10,
+ "logLines": 36,
+ "googleRequests": 13,
+ "imageRequests": 9,
+ "pointAtFound": true,
+ "stateBytes": 2244
+}

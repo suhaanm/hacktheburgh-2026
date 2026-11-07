@@ -1,0 +1,290 @@
+{
+ "baseline": [
+  {
+   "id": "amelia.daniel",
+   "expect": "amelia",
+   "text": "Hey Amelia."
+  },
+  {
+   "id": "amelia.eddyuk",
+   "expect": "amelia",
+   "text": ""
+  },
+  {
+   "id": "amelia.flous",
+   "expect": "amelia",
+   "text": "miúdo"
+  },
+  {
+   "id": "amelia.grandmaus",
+   "expect": "amelia",
+   "text": ""
+  },
+  {
+   "id": "amelia.karen",
+   "expect": "amelia",
+   "text": "Hey Amelia."
+  },
+  {
+   "id": "amelia.reedus",
+   "expect": "amelia",
+   "text": ""
+  },
+  {
+   "id": "amelia.samantha",
+   "expect": "amelia",
+   "text": "Hey Amelia."
+  },
+  {
+   "id": "amelia.sandyuk",
+   "expect": "amelia",
+   "text": ""
+  },
+  {
+   "id": "marcus.daniel",
+   "expect": "marcus",
+   "text": "Hey Marcus."
+  },
+  {
+   "id": "marcus.eddyuk",
+   "expect": "marcus",
+   "text": "Hey Marcus."
+  },
+  {
+   "id": "marcus.fred",
+   "expect": "marcus",
+   "text": "Hey Maracas."
+  },
+  {
+   "id": "marcus.karen",
+   "expect": "marcus",
+   "text": "Hey Marcus."
+  },
+  {
+   "id": "marcus.samantha",
+   "expect": "marcus",
+   "text": "Hey Marcus."
+  },
+  {
+   "id": "marcus.sandyuk",
+   "expect": "marcus",
+   "text": ""
+  }
+ ],
+ "lang": [
+  {
+   "id": "amelia.daniel",
+   "expect": "amelia",
+   "text": "Hey Amelia."
+  },
+  {
+   "id": "amelia.eddyuk",
+   "expect": "amelia",
+   "text": ""
+  },
+  {
+   "id": "amelia.flous",
+   "expect": "amelia",
+   "text": "Amelia"
+  },
+  {
+   "id": "amelia.grandmaus",
+   "expect": "amelia",
+   "text": ""
+  },
+  {
+   "id": "amelia.karen",
+   "expect": "amelia",
+   "text": "Hey Amelia."
+  },
+  {
+   "id": "amelia.reedus",
+   "expect": "amelia",
+   "text": ""
+  },
+  {
+   "id": "amelia.samantha",
+   "expect": "amelia",
+   "text": "Hey Amelia."
+  },
+  {
+   "id": "amelia.sandyuk",
+   "expect": "amelia",
+   "text": ""
+  },
+  {
+   "id": "marcus.daniel",
+   "expect": "marcus",
+   "text": "Hey Marcus."
+  },
+  {
+   "id": "marcus.eddyuk",
+   "expect": "marcus",
+   "text": "Hey Marcus."
+  },
+  {
+   "id": "marcus.fred",
+   "expect": "marcus",
+   "text": "Hey Maracas."
+  },
+  {
+   "id": "marcus.karen",
+   "expect": "marcus",
+   "text": "Hey Marcus."
+  },
+  {
+   "id": "marcus.samantha",
+   "expect": "marcus",
+   "text": "Hey Marcus."
+  },
+  {
+   "id": "marcus.sandyuk",
+   "expect": "marcus",
+   "text": ""
+  }
+ ],
+ "vocab": [
+  {
+   "id": "amelia.daniel",
+   "expect": "amelia",
+   "text": "Hey Amelia."
+  },
+  {
+   "id": "amelia.eddyuk",
+   "expect": "amelia",
+   "text": ""
+  },
+  {
+   "id": "amelia.flous",
+   "expect": "amelia",
+   "text": "Amelia"
+  },
+  {
+   "id": "amelia.grandmaus",
+   "expect": "amelia",
+   "text": ""
+  },
+  {
+   "id": "amelia.karen",
+   "expect": "amelia",
+   "text": "Hey Amelia."
+  },
+  {
+   "id": "amelia.reedus",
+   "expect": "amelia",
+   "text": ""
+  },
+  {
+   "id": "amelia.samantha",
+   "expect": "amelia",
+   "text": "Hey Amelia."
+  },
+  {
+   "id": "amelia.sandyuk",
+   "expect": "amelia",
+   "text": ""
+  },
+  {
+   "id": "marcus.daniel",
+   "expect": "marcus",
+   "text": "Hey Marcus."
+  },
+  {
+   "id": "marcus.eddyuk",
+   "expect": "marcus",
+   "text": "Hey Marcus."
+  },
+  {
+   "id": "marcus.fred",
+   "expect": "marcus",
+   "text": "Hey Marcus."
+  },
+  {
+   "id": "marcus.karen",
+   "expect": "marcus",
+   "text": "Hey Marcus."
+  },
+  {
+   "id": "marcus.samantha",
+   "expect": "marcus",
+   "text": "Hey Marcus."
+  },
+  {
+   "id": "marcus.sandyuk",
+   "expect": "marcus",
+   "text": ""
+  }
+ ],
+ "both": [
+  {
+   "id": "amelia.daniel",
+   "expect": "amelia",
+   "text": "Hey Amelia."
+  },
+  {
+   "id": "amelia.eddyuk",
+   "expect": "amelia",
+   "text": ""
+  },
+  {
+   "id": "amelia.flous",
+   "expect": "amelia",
+   "text": "Hey Amelia."
+  },
+  {
+   "id": "amelia.grandmaus",
+   "expect": "amelia",
+   "text": ""
+  },
+  {
+   "id": "amelia.karen",
+   "expect": "amelia",
+   "text": "Hey Amelia."
+  },
+  {
+   "id": "amelia.reedus",
+   "expect": "amelia",
+   "text": ""
+  },
+  {
+   "id": "amelia.samantha",
+   "expect": "amelia",
+   "text": "Hey Amelia."
+  },
+  {
+   "id": "amelia.sandyuk",
+   "expect": "amelia",
+   "text": ""
+  },
+  {
+   "id": "marcus.daniel",
+   "expect": "marcus",
+   "text": "Hey Marcus."
+  },
+  {
+   "id": "marcus.eddyuk",
+   "expect": "marcus",
+   "text": "Hey Marcus."
+  },
+  {
+   "id": "marcus.fred",
+   "expect": "marcus",
+   "text": "Hey Marcus."
+  },
+  {
+   "id": "marcus.karen",
+   "expect": "marcus",
+   "text": "Hey Marcus."
+  },
+  {
+   "id": "marcus.samantha",
+   "expect": "marcus",
+   "text": "Hey Marcus."
+  },
+  {
+   "id": "marcus.sandyuk",
+   "expect": "marcus",
+   "text": ""
+  }
+ ]
+}

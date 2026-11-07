@@ -1,0 +1,235 @@
+/* ==========================================================================
+   Understudy design tokens
+   --------------------------------------------------------------------------
+   Authoritative direction: docs/UI_DIRECTION.md.
+   Meaning of colour (one job each, never decoration):
+     --accent  focus, links, primary action        (the only brand colour)
+     --expert  expert trace, memory nodes          (amber)
+     --novice  novice trace, skill nodes           (indigo)
+     --good    automation, success                 (green)
+     --warn    caution; always paired with a label (gold)
+     --bad     time lost, cost, error              (red)
+   Light is the :root default. Dark is applied by prefers-color-scheme (unless
+   the user chose light) and by [data-theme="dark"]. Every pair that carries
+   text is checked at WCAG AA (4.5:1) in both themes; graphic-only pairs at 3:1.
+
+   Fonts (see README): load Bricolage Grotesque, Source Sans 3, JetBrains Mono.
+   The stacks below fall back to system faces, so the app still works offline.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* -- Surfaces and ink (names fixed by UI_DIRECTION) ---------------------- */
+  --bg: #f4f6f9;            /* canvas */
+  --panel: #ffffff;         /* raised surface, used sparingly */
+  --sunk: #ebeef3;          /* inset wells, code, skeletons */
+  --fg: #141922;            /* text */
+  --muted: #566074;         /* secondary text */
+  --line: #d8dee8;          /* hairlines */
+  --line-strong: #b8c1cf;   /* axes, hover borders, decorative edges */
+  --control-line: #7d889b;  /* edges of inputs and buttons (3:1 UI contrast) */
+
+  /* -- Semantic colour ----------------------------------------------------- */
+  --accent: #0a7c78;
+  --accent-strong: #075e5a;  /* primary hover */
+  --on-accent: #ffffff;
+  --expert: #a55b07;
+  --on-expert: #ffffff;
+  --novice: #4150c9;
+  --on-novice: #ffffff;
+  --good: #177540;
+  --on-good: #ffffff;
+  --warn: #8a6100;
+  --bad: #b3261e;
+  --on-bad: #ffffff;
+
+  /* Solid tints for backgrounds behind --fg text. */
+  --accent-soft: #dff1ef;
+  --expert-soft: #fbeedd;
+  --novice-soft: #e8ebfa;
+  --good-soft: #def2e5;
+  --warn-soft: #f7efd0;
+  --bad-soft: #fbe5e3;
+
+  /* Sequential ramp for magnitude (presence heatmap): one hue, light to deep. */
+  --seq-0: #e7edf1;
+  --seq-1: #c2e2df;
+  --seq-2: #82c6c1;
+  --seq-3: #3fa49e;
+  --seq-4: #0a7c78;
+
+  /* -- Type ---------------------------------------------------------------- */
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Source Sans 3", "Source Sans Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --text-xs: 0.75rem;       /* 12  labels, axis text, footnotes */
+  --text-sm: 0.875rem;      /* 14  controls, secondary copy */
+  --text-md: 1rem;          /* 16  body */
+  --text-lg: 1.125rem;      /* 18  lede */
+  --text-xl: 1.375rem;      /* 22  card titles */
+  --text-2xl: 1.75rem;      /* 28  section titles */
+  --text-3xl: clamp(1.75rem, 1.35rem + 1.4vw, 2.5rem);   /* key numbers */
+  --text-4xl: clamp(2.25rem, 1.3rem + 3.6vw, 4rem);      /* page and onboarding questions */
+
+  --lh-tight: 1.08;
+  --lh-snug: 1.3;
+  --lh-body: 1.55;
+  --tracking-display: -0.02em;
+  --tracking-label: 0.08em;  /* uppercase mono labels */
+  --measure: 65ch;
+
+  /* -- Space: 4px base unit ------------------------------------------------ */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+  --space-11: 80px;
+  --space-12: 96px;
+  --gutter: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-wide: clamp(16px, 4vw, 48px);
+
+  /* -- Shape and hairlines ------------------------------------------------- */
+  --radius-1: 2px;          /* ticks, swatches */
+  --radius-2: 4px;          /* controls */
+  --radius-3: 6px;          /* objects: proposal, queue item, panel */
+  --radius-pill: 999px;
+  --hair: 1px;              /* default structure */
+  --hair-strong: 1.5px;     /* chart traces */
+  --ring-w: 2px;            /* focus and overlay ring */
+  --ring-offset: 2px;
+  --focus: var(--accent);
+
+  /* -- Elevation: restrained. Most things have a hairline and no shadow. ---- */
+  --shadow-ink: 20 25 34;
+  --elev-0: none;
+  --elev-1: 0 0 0 1px var(--line);
+  --elev-2: 0 1px 2px rgb(var(--shadow-ink) / 0.06), 0 14px 30px -16px rgb(var(--shadow-ink) / 0.3);   /* toast, overlay panel */
+
+  /* -- Motion: calm, only to show a state change --------------------------- */
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);        /* things arriving */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);     /* things changing place */
+  --ease-land: cubic-bezier(0.16, 1, 0.3, 1);        /* the ring easing onto its target */
+  --ease-fade: cubic-bezier(0.4, 0, 0.2, 1);         /* help fading */
+  --dur-instant: 80ms;
+  --dur-fast: 140ms;        /* hover, press */
+  --dur-base: 240ms;        /* toggles, tabs, expansion */
+  --dur-arrive: 360ms;      /* a card arriving or leaving */
+  --dur-land: 560ms;        /* ring landing */
+  --dur-fade: 900ms;        /* coach chip receding, node fading */
+
+  /* -- Layers -------------------------------------------------------------- */
+  --z-panel: 20;
+  --z-toast: 30;
+  --z-kill: 40;
+  --z-overlay: 50;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0e1319;
+    --panel: #161d26;
+    --sunk: #0a0e13;
+    --fg: #e7ebf1;
+    --muted: #9aa6b8;
+    --line: #283341;
+    --line-strong: #3a4859;
+    --control-line: #6c7a90;
+    --accent: #4fd1c5;
+    --accent-strong: #86e6dc;
+    --on-accent: #04211f;
+    --expert: #f0a04b;
+    --on-expert: #1e1100;
+    --novice: #8b98ff;
+    --on-novice: #0b1030;
+    --good: #5ad08a;
+    --on-good: #04210f;
+    --warn: #e7c24c;
+    --bad: #ff8a80;
+    --on-bad: #2b0a07;
+    --accent-soft: #123331;
+    --expert-soft: #35260f;
+    --novice-soft: #1d2250;
+    --good-soft: #123221;
+    --warn-soft: #342b0d;
+    --bad-soft: #3c1b19;
+    --seq-0: #1a232e;
+    --seq-1: #1c4948;
+    --seq-2: #25777a;
+    --seq-3: #38a9a2;
+    --seq-4: #78e3d7;
+    --shadow-ink: 0 0 0;
+    --elev-2: 0 1px 2px rgb(var(--shadow-ink) / 0.4), 0 16px 34px -16px rgb(var(--shadow-ink) / 0.8);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e1319;
+  --panel: #161d26;
+  --sunk: #0a0e13;
+  --fg: #e7ebf1;
+  --muted: #9aa6b8;
+  --line: #283341;
+  --line-strong: #3a4859;
+  --control-line: #6c7a90;
+  --accent: #4fd1c5;
+  --accent-strong: #86e6dc;
+  --on-accent: #04211f;
+  --expert: #f0a04b;
+  --on-expert: #1e1100;
+  --novice: #8b98ff;
+  --on-novice: #0b1030;
+  --good: #5ad08a;
+  --on-good: #04210f;
+  --warn: #e7c24c;
+  --bad: #ff8a80;
+  --on-bad: #2b0a07;
+  --accent-soft: #123331;
+  --expert-soft: #35260f;
+  --novice-soft: #1d2250;
+  --good-soft: #123221;
+  --warn-soft: #342b0d;
+  --bad-soft: #3c1b19;
+  --seq-0: #1a232e;
+  --seq-1: #1c4948;
+  --seq-2: #25777a;
+  --seq-3: #38a9a2;
+  --seq-4: #78e3d7;
+  --shadow-ink: 0 0 0;
+  --elev-2: 0 1px 2px rgb(var(--shadow-ink) / 0.4), 0 16px 34px -16px rgb(var(--shadow-ink) / 0.8);
+}
+
+/* Reduced motion: state changes still happen, they just do not travel. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 0.01ms;
+    --dur-fast: 0.01ms;
+    --dur-base: 0.01ms;
+    --dur-arrive: 0.01ms;
+    --dur-land: 0.01ms;
+    --dur-fade: 0.01ms;
+  }
+}
+
+/* Base: explicit background, ink and type. */
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  line-height: var(--lh-body);
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}

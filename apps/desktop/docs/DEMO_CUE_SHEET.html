@@ -1,0 +1,201 @@
+<title>Demo Cue Sheet</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one calm column for a phone held in one hand: the chain of hints first, then one card per beat, then fallbacks.
+   Palette: cool slate-teal neutrals; teal for the product, pale blue for sticky notes (as on the practice desktop), red only for the scam beat.
+   Type: Atkinson Hyperlegible (made for legibility, fits a product for people who struggle with screens) with a mono face for keys. */
+:root {
+  --bg: #eef3f4; --surface: #ffffff; --ink: #0e1c23; --muted: #4d6069; --line: #d3dee2;
+  --accent: #0b6e66; --accent-ink: #ffffff; --note: #cfe1fb; --note-ink: #0f2a52;
+  --warn: #a8271d; --warn-bg: #fbe4e1; --ok-bg: #dff3ef;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1317; --surface: #131f25; --ink: #e6f0f3; --muted: #9db2bb; --line: #25363e;
+    --accent: #5fd7c9; --accent-ink: #06201d; --note: #1d3a63; --note-ink: #dbe8fb;
+    --warn: #ff9a90; --warn-bg: #3a1a18; --ok-bg: #12332f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b1317; --surface: #131f25; --ink: #e6f0f3; --muted: #9db2bb; --line: #25363e;
+  --accent: #5fd7c9; --accent-ink: #06201d; --note: #1d3a63; --note-ink: #dbe8fb;
+  --warn: #ff9a90; --warn-bg: #3a1a18; --ok-bg: #12332f; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.5; margin: 0;
+  padding-block: 20px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+main { max-width: 40rem; margin-inline: auto; display: flex; flex-direction: column; gap: 28px; }
+h1 { font-size: 2rem; line-height: 1.1; margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 0 0 10px; }
+p { margin: 0; }
+.sub { color: var(--muted); margin-top: 6px; }
+kbd { font-family: var(--font-mono); font-size: .85em; font-weight: 700; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
+
+.start { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.start ol { margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 6px; }
+.start li::marker { font-weight: 700; color: var(--accent); }
+
+.chain { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 6px; }
+.chain .chip { background: var(--note); color: var(--note-ink); font-weight: 700; font-size: 1.15rem; padding: 10px 14px; border-radius: 6px; min-width: 0; }
+.chain .arrow { color: var(--muted); font-weight: 700; }
+.chain .chip.scam { background: var(--warn-bg); color: var(--warn); }
+
+.beat { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.beat > summary { list-style: none; cursor: pointer; padding: 14px 16px; display: flex; align-items: baseline; gap: 12px; }
+.beat > summary::-webkit-details-marker { display: none; }
+.beat > summary:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+.beat .time { font-family: var(--font-mono); font-size: .85rem; font-weight: 700; color: var(--accent); flex: none; min-width: 3.2rem; }
+.beat .name { font-size: 1.2rem; font-weight: 700; min-width: 0; }
+.beat .body { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+.say { background: var(--note); color: var(--note-ink); border-radius: 8px; padding: 12px 14px; font-size: 1.3rem; line-height: 1.35; font-weight: 700; overflow-wrap: anywhere; }
+.say small { display: block; margin-top: 6px; font-size: .85rem; font-weight: 400; }
+.beat.scam .say { background: var(--warn-bg); color: var(--warn); }
+.row { display: grid; grid-template-columns: 5.2rem minmax(0, 1fr); gap: 10px; }
+.row dt { font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); padding-top: 4px; }
+.row dd { margin: 0; overflow-wrap: anywhere; }
+.teach { background: var(--ok-bg); border-radius: 8px; padding: 10px 12px; }
+.teach b { display: block; font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; color: var(--accent); margin-bottom: 2px; }
+
+.note { border-radius: 10px; padding: 12px 14px; background: var(--surface); border: 1px dashed var(--line); color: var(--muted); font-size: .95rem; }
+ul.plain { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 8px; }
+.qa { display: flex; flex-direction: column; gap: 10px; }
+.qa details { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.qa summary { cursor: pointer; font-weight: 700; }
+.qa details p { margin-top: 8px; color: var(--muted); }
+footer { color: var(--muted); font-size: .85rem; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<main>
+  <header>
+    <h1>Demo Cue Sheet</h1>
+    <p class="sub">90 seconds. Live voice. Practice desktop. Keep this open on your phone.</p>
+  </header>
+
+  <section class="start" aria-labelledby="h-start">
+    <h2 id="h-start">Before you start</h2>
+    <ol>
+      <li>Tell Claude: <b>"start the interactive demo"</b>. To end it: <b>"stop the demo"</b>, or use the <b>Exit demo</b> button at the bottom of the screen (click twice).</li>
+      <li>Click once on the practice desktop, so your key presses go to it.</li>
+      <li>Say <b>"Hey Marcus"</b>, or press <kbd>⌘⌥Space</kbd>. <kbd>⌘⌥M</kbd> stops a session.</li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="h-chain">
+    <h2 id="h-chain">The chain to remember</h2>
+    <div class="chain" role="list">
+      <span class="chip" role="listitem">Hey Marcus</span><span class="arrow" aria-hidden="true">→</span>
+      <span class="chip" role="listitem">Granddaughter</span><span class="arrow" aria-hidden="true">→</span>
+      <span class="chip scam" role="listitem">Bank message</span><span class="arrow" aria-hidden="true">→</span>
+      <span class="chip" role="listitem">Settings</span><span class="arrow" aria-hidden="true">→</span>
+      <span class="chip" role="listitem">How am I doing?</span><span class="arrow" aria-hidden="true">→</span>
+      <span class="chip" role="listitem">Amelia</span>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-beats">
+    <h2 id="h-beats">What to say, beat by beat</h2>
+    <div style="display:flex;flex-direction:column;gap:12px">
+
+      <details class="beat" open>
+        <summary><span class="time">0:00</span><span class="name">Hey Marcus</span></summary>
+        <div class="body">
+          <div class="say">"Hey Marcus."<small>To the room first: "Millions of people get left behind by technology. Alongside is a helper that teaches, so one day they stop needing it."</small></div>
+          <dl class="row"><dt>You'll see</dt><dd>The listening light, then a one-sentence greeting asking what you'd like to do.</dd></dl>
+          <div class="teach"><b>Teaching point</b>It only listens when it's called, and it behaves like a patient person, not a search box.</div>
+        </div>
+      </details>
+
+      <details class="beat" open>
+        <summary><span class="time">0:10</span><span class="name">Granddaughter</span></summary>
+        <div class="body">
+          <div class="say">"I want to video call my granddaughter Lily."</div>
+          <dl class="row">
+            <dt>Do</dt><dd>Click what it points at: VideoChat icon, then Lily, then Start call, then Join.</dd>
+            <dt>You'll see</dt><dd>A numbered ring on each target and a tick after each correct click. After two clean steps the chip drops from <b>Walk with me</b> to <b>Nudge me</b> and the rings stop.</dd>
+          </dl>
+          <div class="teach"><b>Say this</b>"Watch the chip: it just took a step back because I did two steps without help." Help fades as you get it right.</div>
+        </div>
+      </details>
+
+      <details class="beat scam" open>
+        <summary><span class="time">0:40</span><span class="name">Bank message</span></summary>
+        <div class="body">
+          <div class="say">"Marcus, can you check the message from my bank?"<small>The bank message is already waiting in the Messages app. The helper opens it for you, or open Messages yourself.</small></div>
+          <dl class="row"><dt>You'll see</dt><dd>A "checking" chip, then about 10 seconds later two short spoken sentences, with the worrying phrases marked in red: the urgent wording, the two-hour threat, the lookalike link. It never says "safe" and points you to the number on the back of your bank card.</dd></dl>
+          <div class="teach"><b>Say this</b>"The marks are the lesson. It's teaching me to spot this myself, not just blocking it."</div>
+        </div>
+      </details>
+
+      <details class="beat" open>
+        <summary><span class="time">1:05</span><span class="name">Settings</span></summary>
+        <div class="body">
+          <div class="say">"Marcus, where is the Settings app?"</div>
+          <dl class="row"><dt>You'll see</dt><dd>A ring and an arrow land on the Settings icon within a couple of seconds.</dd></dl>
+          <div class="teach"><b>Say this</b>"It shows me instead of reading out a list of steps."</div>
+        </div>
+      </details>
+
+      <details class="beat" open>
+        <summary><span class="time">1:15</span><span class="name">How am I doing?</span></summary>
+        <div class="body">
+          <div class="say">"Marcus, how am I doing?"<small>Or open the Progress tab in the panel to show the chart.</small></div>
+          <dl class="row"><dt>You'll see</dt><dd>It tells you what you can do now and recalls last time. The Progress tab shows hints per task going down.</dd></dl>
+          <div class="teach"><b>Say this</b>"Success means it makes itself unnecessary."</div>
+        </div>
+      </details>
+
+      <details class="beat" open>
+        <summary><span class="time">1:25</span><span class="name">Amelia</span></summary>
+        <div class="body">
+          <div class="say">"Hey Amelia, goodbye."</div>
+          <dl class="row"><dt>You'll see</dt><dd>The voice and accent colour change to the second helper, she says goodbye, and the session ends.</dd></dl>
+          <div class="teach"><b>Say this</b>"Two helpers, your choice, and you are always in control. Stop works at any time."</div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-keys">
+    <h2 id="h-keys">Keys on the practice desktop</h2>
+    <ul class="plain">
+      <li><kbd>S</kbd> shows a new scam text. <kbd>G</kbd> shows a genuine one.</li>
+      <li><kbd>Shift</kbd>+<kbd>R</kbd> resets the desktop. <kbd>F</kbd> toggles fullscreen.</li>
+    </ul>
+    <p class="note" style="margin-top:12px">Backup shortcuts <kbd>⌥⌘1</kbd> to <kbd>⌥⌘6</kbd>, one per beat, are being added so each beat works even if the voice misses. Not confirmed yet: ask Claude before relying on them.</p>
+  </section>
+
+  <section aria-labelledby="h-wrong">
+    <h2 id="h-wrong">If something goes wrong</h2>
+    <ul class="plain">
+      <li><b>Wake word not heard.</b> Say "Let me use the shortcut" and press <kbd>⌘⌥Space</kbd>.</li>
+      <li><b>It talks over you.</b> Say "stop" or press <kbd>⌘⌥M</kbd>, then start again with the shortcut.</li>
+      <li><b>Scam text missing.</b> Press <kbd>S</kbd> again, or <kbd>Shift</kbd>+<kbd>R</kbd> and then <kbd>S</kbd>.</li>
+      <li><b>A step isn't recognised.</b> Click anyway and say "done". It looks at the screen again.</li>
+      <li><b>Misheard words.</b> Menu bar item, "Type instead", and type the same line.</li>
+      <li><b>Start over.</b> Tell Claude "restart the demo". It resets the desktop and re-seeds the profile.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="h-extra">
+    <h2 id="h-extra">30 seconds spare</h2>
+    <ul class="plain">
+      <li>"Marcus, can you open the Age UK website for me?" It asks once on the toast at the top right. Click it. Say: "It offers to do it or show me, and it counts how often it did it for me."</li>
+      <li>Menu bar item, "Type instead", then type "make the text bigger" to show the dyslexia-friendly option.</li>
+    </ul>
+  </section>
+
+  <section class="qa" aria-labelledby="h-qa">
+    <h2 id="h-qa">If someone asks</h2>
+    <details><summary>Why not just use a chatbot?</summary><p>It sees your screen and draws the next step, checks you did it, and fades its help as you learn. The measure of success is fewer hints, not more answers.</p></details>
+    <details><summary>Can it do things for me?</summary><p>Only if you ask, and it asks first. It refuses payments, passwords, sending messages and deleting things. It counts how often it did something for you, so dependence stays visible. One multi-step task is verified on a real Mac (Calculator), plus searching the DeepMind careers site in Safari.</p></details>
+    <details><summary>What does it use Argon for?</summary><p>The checking that has to be right: a second opinion on scam messages and hard-to-verify steps, and planning new lessons. Gemini Live does the talking. The built-in lessons use hand-written plans.</p></details>
+    <details><summary>Is it recording my screen?</summary><p>It looks only while a session is active. Screenshots are sent without being stored, and the profile stays on your device where you can edit or delete it.</p></details>
+    <details><summary>How accurate is the pointing?</summary><p>Measured today: 10 of 11 real controls on a Mac, and 97% on the test pages. When it is not sure, it says it cannot see the thing.</p></details>
+  </section>
+
+  <footer>The practice desktop is a stand-in for a real computer. Numbers are from today's tests. Full script: docs/DEMO_SCRIPT_INTERACTIVE.md.</footer>
+</main>

@@ -1,0 +1,1 @@
+Brightway Bank: Your account has been LOCKED after suspicious activity. Verify your identity within 2 hours or your money will be frozen. Verify now: https://brightway-bank.secure-verify.example/login

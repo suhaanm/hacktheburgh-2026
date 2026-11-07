@@ -1,0 +1,308 @@
+{
+  "version": 1,
+  "note": "Narration for the Showtime walkthrough. `durationMs` is the slot reserved for the clip: scripts/showtime-render.mjs fails if a rendered clip is longer. `full: true` lines are only used by `--full`. Persona voices come from src/shared/personas.ts (voiceName); edit text here and run `npm run showtime:render`. `{name}` is replaced with the speaking persona's displayName from src/shared/personas.ts.",
+  "lines": [
+    {
+      "id": "c1-hello",
+      "chapter": "say-its-name",
+      "persona": "marcus",
+      "text": "Hello, I'm {name}, an AI helper. Technology leaves many people behind, so I teach instead of doing it for you. Shall we call Lily?",
+      "durationMs": 10000
+    },
+    {
+      "id": "c1-more",
+      "chapter": "say-its-name",
+      "persona": "marcus",
+      "text": "You can say my name, press a shortcut, or press a button. I only listen when you ask me to.",
+      "durationMs": 6700,
+      "full": true
+    },
+    {
+      "id": "c2-1",
+      "chapter": "it-shows-you-do",
+      "persona": "marcus",
+      "text": "I'll show you each step, and you do it. First, the camera icon.",
+      "durationMs": 4600
+    },
+    {
+      "id": "c2-2",
+      "chapter": "it-shows-you-do",
+      "persona": "marcus",
+      "text": "After every step I look again, and a tick means it worked.",
+      "durationMs": 4300,
+      "full": true
+    },
+    {
+      "id": "c2-3",
+      "chapter": "it-shows-you-do",
+      "persona": "marcus",
+      "text": "Press the green Start call button.",
+      "durationMs": 2800
+    },
+    {
+      "id": "c2-4",
+      "chapter": "it-shows-you-do",
+      "persona": "marcus",
+      "text": "Then the blue Join, not the small one at the top.",
+      "durationMs": 4300
+    },
+    {
+      "id": "c2-wrong",
+      "chapter": "it-shows-you-do",
+      "persona": "marcus",
+      "text": "That small Join up here is a different button. Ignore it; the ring shows the right one.",
+      "durationMs": 5700,
+      "full": true
+    },
+    {
+      "id": "c2-tb",
+      "chapter": "it-shows-you-do",
+      "persona": "marcus",
+      "text": "Tell me in your own words: what does the green button do?",
+      "durationMs": 4100
+    },
+    {
+      "id": "c2-tb2",
+      "chapter": "it-shows-you-do",
+      "persona": "marcus",
+      "text": "Yes. Saying it yourself helps it stick.",
+      "durationMs": 3300
+    },
+    {
+      "id": "c2-5",
+      "chapter": "it-shows-you-do",
+      "persona": "marcus",
+      "text": "You did it. I drew the way, and you clicked.",
+      "durationMs": 3500
+    },
+    {
+      "id": "c3-1",
+      "chapter": "less-help",
+      "persona": "marcus",
+      "text": "Two clean steps, so I step back: watch me, walk with me, nudge me, on my own.",
+      "durationMs": 7800
+    },
+    {
+      "id": "c3-2",
+      "chapter": "less-help",
+      "persona": "marcus",
+      "text": "Now you start the call. I'll stay quiet.",
+      "durationMs": 3400
+    },
+    {
+      "id": "c3-3",
+      "chapter": "less-help",
+      "persona": "marcus",
+      "text": "Look for the big green button under Lily's name.",
+      "durationMs": 3800
+    },
+    {
+      "id": "c3-4",
+      "chapter": "less-help",
+      "persona": "marcus",
+      "text": "Last time, one hint. Now fewer. That's you becoming independent.",
+      "durationMs": 4900
+    },
+    {
+      "id": "c3-5",
+      "chapter": "less-help",
+      "persona": "marcus",
+      "text": "If you get stuck, I help a little more, then fade again. A person decides that, not a guess.",
+      "durationMs": 7200,
+      "full": true
+    },
+    {
+      "id": "c4-1",
+      "chapter": "scam-shield",
+      "persona": "marcus",
+      "text": "A text has just arrived. Let me check it for you.",
+      "durationMs": 3700
+    },
+    {
+      "id": "c4-2",
+      "chapter": "scam-shield",
+      "persona": "marcus",
+      "text": "Here's how to spot it yourself: it rushes you, it threatens you, and the link looks odd.",
+      "durationMs": 6800
+    },
+    {
+      "id": "c4-3",
+      "chapter": "scam-shield",
+      "persona": "marcus",
+      "text": "I can't be sure, so please ring the number on your bank card.",
+      "durationMs": 4600
+    },
+    {
+      "id": "c4-4",
+      "chapter": "scam-shield",
+      "persona": "marcus",
+      "text": "Three quick specialists read the link, the wording and the sender. A stronger model weighs them and writes the answer.",
+      "durationMs": 7600,
+      "full": true
+    },
+    {
+      "id": "c4-5",
+      "chapter": "scam-shield",
+      "persona": "marcus",
+      "text": "I never call a message safe. I tell you what looks wrong, and who to ask.",
+      "durationMs": 5400,
+      "full": true
+    },
+    {
+      "id": "c5-1",
+      "chapter": "second-helper",
+      "persona": "amelia",
+      "text": "Hello, I'm {name}. Different voice, same rules: I teach, and you stay in control.",
+      "durationMs": 6400
+    },
+    {
+      "id": "c5-2",
+      "chapter": "second-helper",
+      "persona": "amelia",
+      "text": "Pick whichever of us you find easier to listen to. Your profile follows you.",
+      "durationMs": 5400,
+      "full": true
+    },
+    {
+      "id": "c6-1",
+      "chapter": "teach-anything",
+      "persona": "amelia",
+      "text": "That's not a lesson I had saved, so I work it out from your screen.",
+      "durationMs": 5000
+    },
+    {
+      "id": "c6-2",
+      "chapter": "teach-anything",
+      "persona": "amelia",
+      "text": "Click the microphone button here.",
+      "durationMs": 2500
+    },
+    {
+      "id": "c6-3",
+      "chapter": "teach-anything",
+      "persona": "amelia",
+      "text": "Muted. Ask me about anything on your screen.",
+      "durationMs": 4400
+    },
+    {
+      "id": "c7-1",
+      "chapter": "do-it-for-you",
+      "persona": "marcus",
+      "text": "I can open it for you, or show you how. It's your choice.",
+      "durationMs": 4800
+    },
+    {
+      "id": "c7-2",
+      "chapter": "do-it-for-you",
+      "persona": "marcus",
+      "text": "Done, and it's logged. I count each time I do it for you, so we can both see if you lean on me.",
+      "durationMs": 7700
+    },
+    {
+      "id": "c7-3",
+      "chapter": "do-it-for-you",
+      "persona": "marcus",
+      "text": "I never pay, send, delete or sign in for you. Those stay yours.",
+      "durationMs": 6100,
+      "full": true
+    },
+    {
+      "id": "c8-1",
+      "chapter": "your-files",
+      "persona": "marcus",
+      "text": "It's in Documents: your GP letter from Riverside Surgery.",
+      "durationMs": 4600
+    },
+    {
+      "id": "c8-2",
+      "chapter": "your-files",
+      "persona": "marcus",
+      "text": "I only look in folders you chose, and I only read. Nothing leaves your computer for that.",
+      "durationMs": 6000,
+      "full": true
+    },
+    {
+      "id": "c10-1",
+      "chapter": "in-control",
+      "persona": "marcus",
+      "text": "You choose how I look: glass, font, and size.",
+      "durationMs": 4400
+    },
+    {
+      "id": "c10-2",
+      "chapter": "in-control",
+      "persona": "marcus",
+      "text": "The profile is yours: read it, change it, or delete it. Watch, I'll forget this line.",
+      "durationMs": 6000
+    },
+    {
+      "id": "c10-3",
+      "chapter": "in-control",
+      "persona": "marcus",
+      "text": "Stop is always on screen. One press ends everything.",
+      "durationMs": 3700
+    },
+    {
+      "id": "c10-4",
+      "chapter": "in-control",
+      "persona": "marcus",
+      "text": "The screen is read only while we are talking, and nothing is stored except this file.",
+      "durationMs": 5800,
+      "full": true
+    },
+    {
+      "id": "c11-1",
+      "chapter": "progress",
+      "persona": "marcus",
+      "text": "Your hints per task: five, then three, then one. You need me less.",
+      "durationMs": 6000
+    },
+    {
+      "id": "c11-2",
+      "chapter": "progress",
+      "persona": "marcus",
+      "text": "My goal is to be unnecessary. Each step alone builds digital confidence. Now, ask me anything.",
+      "durationMs": 6500
+    },
+    {
+      "id": "c2-tech",
+      "chapter": "it-shows-you-do",
+      "persona": "marcus",
+      "text": "Behind the ring, a Gemini model finds the button on your real screen, and checks the result with a fresh look.",
+      "durationMs": 7200,
+      "full": true
+    },
+    {
+      "id": "c3-tech",
+      "chapter": "less-help",
+      "persona": "marcus",
+      "text": "The level is decided by plain code, not by the model. Clean tries move it up, stalls move it down.",
+      "durationMs": 7700,
+      "full": true
+    },
+    {
+      "id": "c6-tech",
+      "chapter": "teach-anything",
+      "persona": "amelia",
+      "text": "For anything unplanned, Gemini Argon plans the steps from your screen, and the first step is checked before I point.",
+      "durationMs": 7800,
+      "full": true
+    },
+    {
+      "id": "c9-tech",
+      "chapter": "type-instead",
+      "persona": "marcus",
+      "text": "Typing works the same way. The voice goes quiet, and my answers appear as chat.",
+      "durationMs": 5400,
+      "full": true
+    },
+    {
+      "id": "c11-tech",
+      "chapter": "progress",
+      "persona": "marcus",
+      "text": "Every attempt is saved in a plain file you own. You can read it, edit it, or delete it.",
+      "durationMs": 6400,
+      "full": true
+    }
+  ]
+}

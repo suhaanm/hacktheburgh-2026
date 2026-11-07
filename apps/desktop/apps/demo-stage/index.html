@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-contrast="normal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Practice Desktop</title>
+<link rel="stylesheet" href="stage.css">
+</head>
+<body>
+
+<!-- Icon sprite: hand-drawn 24x24 strokes, no third-party artwork. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+<defs>
+  <symbol id="i-camera" viewBox="0 0 24 24"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10.5l6-3.5v10l-6-3.5z"/></symbol>
+  <symbol id="i-camera-off" viewBox="0 0 24 24"><path d="M2 8v8a2 2 0 0 0 2 2h10M16 14v-4l6-3v10M7 6h7a2 2 0 0 1 2 2v1"/><path d="M3 3l18 18"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></symbol>
+  <symbol id="i-mic-off" viewBox="0 0 24 24"><path d="M9 9v2a3 3 0 0 0 5 2.2M15 9.3V5a3 3 0 0 0-5.7-1.3M5 11a7 7 0 0 0 11 5.7M19 11a7 7 0 0 1-.6 2.8M12 18v4M8 22h8"/><path d="M3 3l18 18"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 3h4l2 5-2.5 1.5a11 11 0 0 0 6 6L16 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2z"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path d="M10.3 2h3.4l.5 2.6c.7.2 1.3.6 1.9 1.1l2.5-.9 1.7 3-2 1.7c.1.7.1 1.3 0 2l2 1.7-1.7 3-2.5-.9c-.6.5-1.2.9-1.9 1.1l-.5 2.6h-3.4l-.5-2.6c-.7-.2-1.3-.6-1.9-1.1l-2.5.9-1.7-3 2-1.7c-.1-.7-.1-1.3 0-2l-2-1.7 1.7-3 2.5.9c.6-.5 1.2-.9 1.9-1.1z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor"/></symbol>
+  <symbol id="i-volume" viewBox="0 0 24 24"><path d="M3 9v6h4l5 4V5L7 9z"/><path d="M16 8.5a5 5 0 0 1 0 7M19 5.5a9 9 0 0 1 0 13"/></symbol>
+  <symbol id="i-battery" viewBox="0 0 24 24"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 11v2"/><rect x="4.5" y="9.5" width="10" height="5" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H9l-5 4V5a1 1 0 0 1 1-1z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2 21a7 7 0 0 1 14 0"/><circle cx="17.5" cy="9" r="2.5"/><path d="M18 14a4.5 4.5 0 0 1 4 4.5"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
+  <symbol id="i-square" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 17V11a6 6 0 0 1 12 0v6l2 2H4z"/><path d="M10 21a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M4 18l5-5 4 4 3-3 4 4"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M5 3h14v12l-5 6H5z"/><path d="M14 21v-6h5M8 8h8M8 12h5"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6M14 11v6"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></symbol>
+  <symbol id="i-warning" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-block" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></symbol>
+  <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3v9M6.5 6.5a8 8 0 1 0 11 0"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+
+  <!-- Illustrations for the fake video tiles -->
+  <symbol id="art-lily" viewBox="0 0 400 300">
+    <rect width="400" height="300" fill="#e8d9c4"/>
+    <rect x="0" y="210" width="400" height="90" fill="#cdb594"/>
+    <rect x="22" y="30" width="70" height="120" fill="#a9825a"/><rect x="28" y="38" width="58" height="26" fill="#d9c3a3"/><rect x="28" y="72" width="58" height="26" fill="#c46b4a"/><rect x="28" y="106" width="58" height="34" fill="#d9c3a3"/>
+    <rect x="300" y="50" width="76" height="60" fill="#9bc4d8"/><path d="M338 50v60M300 80h76" stroke="#f5efe4" stroke-width="5"/>
+    <path d="M336 210c-10-30 4-60 20-70 8 24 4 50-8 70z" fill="#4f8a5b"/>
+    <path d="M82 300c8-62 62-84 118-84s110 22 118 84z" fill="#2f6fc2"/>
+    <rect x="178" y="186" width="44" height="34" rx="14" fill="#e9b894"/>
+    <path d="M148 156c-6 40-2 62 14 74l12-44z M252 156c6 40 2 62-14 74l-12-44z" fill="#5a3320"/>
+    <circle cx="200" cy="148" r="50" fill="#f0c4a0"/>
+    <path d="M148 152c-8-62 24-76 52-76s60 14 52 76c-6-30-24-44-52-44s-46 14-52 44z" fill="#5a3320"/>
+    <circle cx="182" cy="152" r="4" fill="#3b2a20"/><circle cx="218" cy="152" r="4" fill="#3b2a20"/>
+    <path d="M184 172q16 14 32 0" stroke="#a24b3b" stroke-width="4" fill="none" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="art-self" viewBox="0 0 400 300">
+    <rect width="400" height="300" fill="#cfd8e3"/>
+    <rect x="0" y="220" width="400" height="80" fill="#b6c2d1"/>
+    <path d="M86 300c8-58 60-80 114-80s106 22 114 80z" fill="#6b4f8f"/>
+    <rect x="180" y="190" width="40" height="32" rx="12" fill="#d9a98a"/>
+    <circle cx="200" cy="152" r="46" fill="#e5b999"/>
+    <path d="M152 150c-2-46 28-60 48-60s52 12 48 60c-6-22-22-30-48-30s-42 8-48 30z" fill="#cfcfcf"/>
+    <circle cx="184" cy="156" r="4" fill="#3b2a20"/><circle cx="216" cy="156" r="4" fill="#3b2a20"/>
+    <path d="M186 174q14 10 28 0" stroke="#a24b3b" stroke-width="4" fill="none" stroke-linecap="round"/>
+  </symbol>
+</defs>
+</svg>
+
+<div class="desk" id="desk">
+
+  <header class="topbar" data-ground-id="desk.topbar" data-kind="container">
+    <button class="tb-btn" type="button" data-act="desk.menu" data-ground-id="desk.menu" aria-haspopup="menu" aria-expanded="false" data-desc="Small button with a four-squares icon and the word Menu, far top-left of the screen">
+      <svg class="ic"><use href="#i-grid"/></svg><span>Menu</span>
+    </button>
+    <span class="tb-title" id="tb-title" data-ground-id="desk.title">Desktop</span>
+    <nav class="tb-tasks" id="tb-tasks" aria-label="Open apps"></nav>
+    <button class="callpill" id="callpill" type="button" hidden data-act="video.restore" data-ground-id="desk.callpill">
+      <svg class="ic"><use href="#i-phone"/></svg><span id="callpill-text">In call</span>
+    </button>
+    <span class="tb-spacer"></span>
+    <div class="tray" aria-label="Status">
+      <span class="tray-item" title="Wi-Fi connected"><svg class="ic"><use href="#i-wifi"/></svg></span>
+      <span class="tray-item" title="Volume"><svg class="ic"><use href="#i-volume"/></svg></span>
+      <span class="tray-item" title="Battery 86%"><svg class="ic"><use href="#i-battery"/></svg><span>86%</span></span>
+      <time class="clock" id="clock" data-ground-id="desk.clock">10:42</time>
+    </div>
+  </header>
+
+  <main class="desktop" id="desktop">
+    <nav class="icons" aria-label="Desktop icons" id="desk-icons">
+      <button type="button" class="dicon" data-act="desk.open" data-app="video" data-ground-id="desk.icon.video" data-desc="Teal rounded square with a white video-camera symbol, labelled VideoChat, first icon in the left column of the desktop">
+        <span class="dicon-img" style="--c:#0f766e"><svg class="ic"><use href="#i-camera"/></svg><b class="badge" id="badge-video" hidden></b></span><span class="dicon-label">VideoChat</span>
+      </button>
+      <button type="button" class="dicon" data-act="desk.open" data-app="messages" data-ground-id="desk.icon.messages" data-desc="Blue rounded square with a white speech-bubble symbol, labelled Messages, second icon in the left column of the desktop">
+        <span class="dicon-img" style="--c:#1d4ed8"><svg class="ic"><use href="#i-chat"/></svg><b class="badge" id="badge-messages" hidden>1</b></span><span class="dicon-label">Messages</span>
+      </button>
+      <button type="button" class="dicon" data-act="desk.open" data-app="settings" data-ground-id="desk.icon.settings" data-desc="Grey rounded square with a white gear symbol, labelled Settings, third icon in the left column of the desktop">
+        <span class="dicon-img" style="--c:#475569"><svg class="ic"><use href="#i-gear"/></svg></span><span class="dicon-label">Settings</span>
+      </button>
+      <button type="button" class="dicon" data-act="desk.decoy" data-label="Web" data-ground-id="desk.icon.web">
+        <span class="dicon-img" style="--c:#6d28d9"><svg class="ic"><use href="#i-globe"/></svg></span><span class="dicon-label">Web</span>
+      </button>
+      <button type="button" class="dicon" data-act="desk.decoy" data-label="Files" data-ground-id="desk.icon.files">
+        <span class="dicon-img" style="--c:#b45309"><svg class="ic"><use href="#i-folder"/></svg></span><span class="dicon-label">Files</span>
+      </button>
+      <button type="button" class="dicon" data-act="desk.decoy" data-label="Photos" data-ground-id="desk.icon.photos">
+        <span class="dicon-img" style="--c:#be185d"><svg class="ic"><use href="#i-image"/></svg></span><span class="dicon-label">Photos</span>
+      </button>
+      <button type="button" class="dicon" data-act="desk.decoy" data-label="Notes" data-ground-id="desk.icon.notes">
+        <span class="dicon-img" style="--c:#a16207"><svg class="ic"><use href="#i-note"/></svg></span><span class="dicon-label">Notes</span>
+      </button>
+      <button type="button" class="dicon" data-act="desk.decoy" data-label="Calendar" data-ground-id="desk.icon.calendar">
+        <span class="dicon-img" style="--c:#b91c1c"><svg class="ic"><use href="#i-calendar"/></svg></span><span class="dicon-label">Calendar</span>
+      </button>
+      <button type="button" class="dicon" data-act="desk.decoy" data-label="Bin" data-ground-id="desk.icon.bin">
+        <span class="dicon-img" style="--c:#334155"><svg class="ic"><use href="#i-trash"/></svg></span><span class="dicon-label">Bin</span>
+      </button>
+    </nav>
+
+    <aside class="widgets" aria-label="Desktop widgets">
+      <div class="widget" data-ground-id="desk.widget.weather" data-kind="block">
+        <div class="w-title">Today</div>
+        <div class="w-big">12&deg;C</div>
+        <div class="w-sub">Cloudy, light wind</div>
+      </div>
+      <div class="widget note" data-ground-id="desk.widget.note" data-kind="block">
+        <div class="w-title">Sticky note</div>
+        <p>Lily's birthday on Sunday. Ring Dave about Saturday lunch.</p>
+      </div>
+    </aside>
+
+    <!-- ===================== VideoChat ===================== -->
+    <section class="window" id="win-video" data-app="video" hidden aria-label="VideoChat window" data-ground-id="video.window" data-kind="container">
+      <div class="win-title">
+        <span class="win-appicon" style="--c:#0f766e"><svg class="ic"><use href="#i-camera"/></svg></span>
+        <span class="win-name" data-ground-id="video.win.title">VideoChat</span>
+        <span class="win-ctl">
+          <button type="button" class="win-btn" data-act="win.min" data-app="video" data-ground-id="video.win.minimise" aria-label="Minimise window"><svg class="ic"><use href="#i-minus"/></svg></button>
+          <button type="button" class="win-btn" data-act="win.max" data-app="video" data-ground-id="video.win.maximise" aria-label="Maximise window"><svg class="ic"><use href="#i-square"/></svg></button>
+          <button type="button" class="win-btn close" data-act="win.close" data-app="video" data-ground-id="video.win.close" aria-label="Close window"><svg class="ic"><use href="#i-x"/></svg></button>
+        </span>
+      </div>
+      <div class="win-body vc">
+        <nav class="vc-rail" aria-label="VideoChat sections">
+          <button type="button" class="rail-btn" data-act="video.practice" data-label="Chats" data-ground-id="video.rail.chats" aria-label="Chats" title="Chats"><svg class="ic"><use href="#i-chat"/></svg></button>
+          <button type="button" class="rail-btn" data-act="video.practice" data-label="Calls" data-ground-id="video.rail.calls" aria-label="Calls" title="Calls"><svg class="ic"><use href="#i-phone"/></svg></button>
+          <button type="button" class="rail-btn active" data-act="video.contacts" data-ground-id="video.rail.contacts" aria-label="Contacts" title="Contacts"><svg class="ic"><use href="#i-users"/></svg></button>
+          <span class="spacer"></span>
+          <button type="button" class="rail-btn" data-act="video.settings" data-ground-id="video.settings" aria-label="VideoChat settings" title="Settings" data-desc="Small gear icon at the bottom of the narrow dark-teal icon strip on the left edge of the VideoChat window">
+            <svg class="ic"><use href="#i-gear"/></svg>
+          </button>
+        </nav>
+
+        <div class="vc-main">
+          <section class="vc-view" data-view="contacts">
+            <div class="vc-toolbar">
+              <div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="vc-search" type="search" placeholder="Search contacts" aria-label="Search contacts" data-ground-id="video.search" autocomplete="off"></div>
+              <button type="button" class="btn primary" data-act="video.practice" data-label="New meeting" data-ground-id="video.toolbar.new_meeting"><svg class="ic"><use href="#i-plus"/></svg>New meeting</button>
+              <button type="button" class="btn" data-act="video.practice" data-label="Join a meeting" data-ground-id="video.toolbar.join" data-desc="White outlined button reading Join in the toolbar along the top of the VideoChat contacts screen, to the right of New meeting">Join</button>
+              <button type="button" class="btn" data-act="video.practice" data-label="Schedule" data-ground-id="video.toolbar.schedule">Schedule</button>
+            </div>
+            <div class="vc-body">
+              <div class="vc-list" id="vc-list" role="listbox" aria-label="Contacts" data-ground-id="video.contacts" data-kind="container"></div>
+              <div class="vc-detail" id="vc-detail" data-ground-id="video.detail" data-kind="container"></div>
+            </div>
+          </section>
+
+          <section class="vc-view center" data-view="precall" hidden>
+            <div class="precall">
+              <h2 id="pre-heading" data-ground-id="video.precall.heading">Ready to join?</h2>
+              <p class="muted" id="pre-sub" data-ground-id="video.precall.subtitle">Call with Lily</p>
+              <div class="preview-tile" data-ground-id="video.precall.preview" data-kind="media">
+                <svg class="art" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice"><use href="#art-self"/></svg>
+                <span class="tile-label" id="pre-cam-label">Camera is on</span>
+              </div>
+              <div class="pre-toggles">
+                <div class="sw-row"><span>Camera</span><button type="button" role="switch" class="switch" aria-checked="true" aria-label="Camera" data-act="video.preCam" data-ground-id="video.precall.camera"><span class="knob"></span></button></div>
+                <div class="sw-row"><span>Microphone</span><button type="button" role="switch" class="switch" aria-checked="true" aria-label="Microphone" data-act="video.preMic" data-ground-id="video.precall.mic"><span class="knob"></span></button></div>
+                <div class="sw-row"><span>Speaker</span><select aria-label="Speaker" data-ground-id="video.precall.speaker"><option>Default speaker</option><option>Headphones</option><option>Monitor speakers</option></select></div>
+              </div>
+              <div class="pre-actions">
+                <button type="button" class="btn primary big" data-act="video.join" data-ground-id="video.precall.join" data-desc="Large blue button reading Join, centred below the camera preview and the Camera/Microphone switches on the Ready to join screen">Join</button>
+                <button type="button" class="btn ghost big" data-act="video.cancel" data-ground-id="video.precall.cancel">Cancel</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="vc-view center" data-view="ended" hidden>
+            <div class="precall ended-card">
+              <div class="end-ic"><svg class="ic"><use href="#i-phone"/></svg></div>
+              <h2 data-ground-id="video.ended.heading">Call ended</h2>
+              <p class="muted" id="ended-sub" data-ground-id="video.ended.summary">You were on a call with Lily for 00:00.</p>
+              <div class="pre-actions">
+                <button type="button" class="btn primary big" data-act="video.again" data-ground-id="video.ended.again" id="ended-again">Call Lily again</button>
+                <button type="button" class="btn big" data-act="video.contacts" data-ground-id="video.ended.back">Back to contacts</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="vc-view" data-view="settings" hidden>
+            <div class="vc-toolbar">
+              <button type="button" class="btn" data-act="video.contacts" data-ground-id="video.settings.back"><svg class="ic"><use href="#i-back"/></svg>Back</button>
+              <h2 class="toolbar-title" data-ground-id="video.settings.heading">VideoChat settings</h2>
+            </div>
+            <div class="rows-scroll" id="vc-settings-rows" data-kind="container"></div>
+          </section>
+        </div>
+
+        <section class="vc-call" data-view="call" hidden aria-label="Call screen" data-ground-id="video.call" data-kind="container">
+          <div class="call-top">
+            <div class="call-who">
+              <span class="call-name" id="call-name" data-ground-id="video.call.name">Lily</span>
+              <span class="call-status" id="call-status" aria-live="polite" data-ground-id="video.call.status">Calling&hellip;</span>
+            </div>
+            <span class="call-enc"><svg class="ic"><use href="#i-lock"/></svg>Encrypted</span>
+            <span class="call-timer" id="call-timer" data-ground-id="video.call.timer" data-desc="Call timer in white digits in the top-right corner of the call screen, counting up from 00:00">00:00</span>
+          </div>
+          <div class="call-stage">
+            <div class="tile-main" data-ground-id="video.call.main_video" data-kind="media">
+              <svg class="art" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice"><use href="#art-lily"/></svg>
+              <div class="ringing" id="ringing"><svg class="ic"><use href="#i-phone"/></svg><span id="ringing-text">Calling Lily&hellip;</span></div>
+              <span class="tile-label" id="main-label"><svg class="ic"><use href="#i-mic"/></svg>Lily</span>
+            </div>
+            <div class="tile-self" data-ground-id="video.call.self_video" data-kind="media">
+              <svg class="art" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice"><use href="#art-self"/></svg>
+              <span class="off" id="self-off" hidden>Camera off</span>
+              <span class="tile-label">You</span>
+            </div>
+          </div>
+          <div class="call-bar" role="toolbar" aria-label="Call controls">
+            <button type="button" class="cbtn" id="cb-mic" data-act="video.mic" data-ground-id="video.call.mic" aria-pressed="false" data-desc="Dark rounded button with a microphone icon and the word Mute, first button in the bottom control bar of the call screen"><svg class="ic"><use href="#i-mic"/></svg><span id="cb-mic-label">Mute</span></button>
+            <button type="button" class="cbtn" id="cb-cam" data-act="video.cam" data-ground-id="video.call.camera" aria-pressed="false"><svg class="ic"><use href="#i-camera"/></svg><span id="cb-cam-label">Stop video</span></button>
+            <button type="button" class="cbtn" data-act="video.practice" data-label="Share your screen" data-ground-id="video.call.share"><svg class="ic"><use href="#i-share"/></svg><span>Share</span></button>
+            <button type="button" class="cbtn" data-act="video.practice" data-label="Chat" data-ground-id="video.call.chat"><svg class="ic"><use href="#i-chat"/></svg><span>Chat</span></button>
+            <button type="button" class="cbtn" data-act="video.practice" data-label="People" data-ground-id="video.call.people"><svg class="ic"><use href="#i-users"/></svg><span>People</span></button>
+            <button type="button" class="cbtn" data-act="video.practice" data-label="More options" data-ground-id="video.call.more"><svg class="ic"><use href="#i-dots"/></svg><span>More</span></button>
+            <button type="button" class="cbtn hangup" data-act="video.hangup" data-ground-id="video.call.hangup" data-desc="Red button with a white phone-handset icon and the word Leave, the right-most button in the bottom control bar of the call screen"><svg class="ic hang"><use href="#i-phone"/></svg><span>Leave</span></button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ===================== Messages ===================== -->
+    <section class="window" id="win-messages" data-app="messages" hidden aria-label="Messages window" data-ground-id="messages.window" data-kind="container">
+      <div class="win-title">
+        <span class="win-appicon" style="--c:#1d4ed8"><svg class="ic"><use href="#i-chat"/></svg></span>
+        <span class="win-name" data-ground-id="messages.win.title">Messages</span>
+        <span class="win-ctl">
+          <button type="button" class="win-btn" data-act="win.min" data-app="messages" data-ground-id="messages.win.minimise" aria-label="Minimise window"><svg class="ic"><use href="#i-minus"/></svg></button>
+          <button type="button" class="win-btn" data-act="win.max" data-app="messages" data-ground-id="messages.win.maximise" aria-label="Maximise window"><svg class="ic"><use href="#i-square"/></svg></button>
+          <button type="button" class="win-btn close" data-act="win.close" data-app="messages" data-ground-id="messages.win.close" aria-label="Close window"><svg class="ic"><use href="#i-x"/></svg></button>
+        </span>
+      </div>
+      <div class="win-body msg">
+        <aside class="msg-list-pane">
+          <div class="pane-head">
+            <h2 data-ground-id="messages.title">Conversations</h2>
+            <button type="button" class="icon-btn" data-act="msg.new" data-ground-id="messages.new" aria-label="New message" title="New message"><svg class="ic"><use href="#i-plus"/></svg></button>
+          </div>
+          <div class="search pane-search"><svg class="ic"><use href="#i-search"/></svg><input id="msg-search" type="search" placeholder="Search messages" aria-label="Search messages" data-ground-id="messages.search" autocomplete="off"></div>
+          <div class="conv-list" id="conv-list" data-ground-id="messages.list" data-kind="container"></div>
+        </aside>
+        <section class="thread-pane" id="thread-pane">
+          <div class="empty" id="thread-empty" data-ground-id="messages.thread.empty" data-kind="container"><svg class="ic big"><use href="#i-chat"/></svg><p>Select a conversation to read it.</p></div>
+          <div class="thread" id="thread" hidden data-ground-id="messages.thread" data-kind="container">
+            <header class="th-head">
+              <span class="avatar" id="th-avatar" aria-hidden="true">AB</span>
+              <div class="th-who">
+                <div class="th-name" id="th-name" data-ground-id="messages.thread.sender">Name</div>
+                <div class="th-sub muted" id="th-sub" data-ground-id="messages.thread.number">number</div>
+              </div>
+              <button type="button" class="icon-btn" id="th-menu-btn" data-act="msg.menu" data-ground-id="messages.thread.menu" aria-label="More options" aria-haspopup="menu" aria-expanded="false" title="More options" data-desc="Small round button with three dots in the top-right corner of the open conversation, next to the sender name"><svg class="ic"><use href="#i-dots"/></svg></button>
+              <div class="popmenu" id="th-menu" role="menu" hidden>
+                <button type="button" role="menuitem" data-act="msg.report" data-ground-id="messages.thread.report" data-desc="First item in the small dropdown under the three-dots button, reading Report junk"><svg class="ic"><use href="#i-warning"/></svg>Report junk</button>
+                <button type="button" role="menuitem" data-act="msg.block" data-ground-id="messages.thread.block"><svg class="ic"><use href="#i-block"/></svg>Block this number</button>
+                <button type="button" role="menuitem" data-act="msg.delete" data-ground-id="messages.thread.delete"><svg class="ic"><use href="#i-trash"/></svg>Delete conversation</button>
+              </div>
+            </header>
+            <div class="th-banner" id="th-banner" role="status" hidden data-ground-id="messages.banner" data-kind="block"></div>
+            <div class="th-scroll" id="th-scroll" data-kind="container"></div>
+            <form class="compose" id="compose" autocomplete="off">
+              <input id="compose-input" type="text" placeholder="Type a message" aria-label="Type a message" data-ground-id="messages.compose.input">
+              <button type="submit" class="btn primary" data-ground-id="messages.compose.send"><svg class="ic"><use href="#i-send"/></svg>Send</button>
+            </form>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ===================== Settings ===================== -->
+    <section class="window" id="win-settings" data-app="settings" hidden aria-label="Settings window" data-ground-id="settings.window" data-kind="container">
+      <div class="win-title">
+        <span class="win-appicon" style="--c:#475569"><svg class="ic"><use href="#i-gear"/></svg></span>
+        <span class="win-name" data-ground-id="settings.win.title">Settings</span>
+        <span class="win-ctl">
+          <button type="button" class="win-btn" data-act="win.min" data-app="settings" data-ground-id="settings.win.minimise" aria-label="Minimise window"><svg class="ic"><use href="#i-minus"/></svg></button>
+          <button type="button" class="win-btn" data-act="win.max" data-app="settings" data-ground-id="settings.win.maximise" aria-label="Maximise window"><svg class="ic"><use href="#i-square"/></svg></button>
+          <button type="button" class="win-btn close" data-act="win.close" data-app="settings" data-ground-id="settings.win.close" aria-label="Close window"><svg class="ic"><use href="#i-x"/></svg></button>
+        </span>
+      </div>
+      <div class="win-body set">
+        <aside class="set-nav">
+          <div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="set-search" type="search" placeholder="Search settings" aria-label="Search settings" data-ground-id="settings.search" autocomplete="off"></div>
+          <nav id="set-nav-list" aria-label="Settings sections"></nav>
+          <p class="muted nores" id="set-nores" hidden>No matching settings.</p>
+        </aside>
+        <section class="set-panels" id="set-panels"></section>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  <div class="popover-root" id="menu-root"></div>
+  <div class="modal-root" id="modal-root"></div>
+</div>
+
+<button type="button" id="exit-demo" class="exit-demo" hidden>Exit demo</button>
+
+<div id="debug-layer" aria-hidden="true"></div>
+
+<script src="flows.js"></script>
+<script src="stage.js"></script>
+</body>
+</html>

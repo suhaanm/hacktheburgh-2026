@@ -1,0 +1,12 @@
+{
+  "name": "alongside-wake-spike",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "WAKE spike: Web Speech in Electron, gemini-3.5-transcribe-live keyword spotter, alias harvest. Not shipped.",
+  "dependencies": {
+    "@google/genai": "latest",
+    "dotenv": "latest",
+    "electron": "latest"
+  }
+}

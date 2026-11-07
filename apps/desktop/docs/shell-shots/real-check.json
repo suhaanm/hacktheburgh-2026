@@ -1,0 +1,127 @@
+{
+  "at": "2026-10-31T14:33:22.466Z",
+  "results": [
+    {
+      "name": "tray exists",
+      "ok": true
+    },
+    {
+      "name": "tray bounds non-empty",
+      "ok": true,
+      "detail": {
+        "x": 1051,
+        "y": 0,
+        "width": 38,
+        "height": 33
+      }
+    },
+    {
+      "name": "tooltip names the state",
+      "ok": true,
+      "detail": "Alongside: Asleep"
+    },
+    {
+      "name": "permissions.status over IPC returns the full shape",
+      "ok": true,
+      "detail": {
+        "microphone": "granted",
+        "screen": "granted",
+        "accessibility": true,
+        "probe": "ok",
+        "needsRestart": false,
+        "hint": "Switch on \"Electron\" in the list (or the Terminal app you started this from), then reopen the app."
+      }
+    },
+    {
+      "name": "permissions values are sane",
+      "ok": true
+    },
+    {
+      "name": "Stop disabled while asleep",
+      "ok": true
+    },
+    {
+      "name": "Talk to Amelia -> session:request (persona + connecting/live)",
+      "ok": true,
+      "detail": {
+        "persona": "amelia",
+        "phase": "live"
+      }
+    },
+    {
+      "name": "icon follows the session",
+      "ok": true,
+      "detail": {
+        "icon": "live",
+        "phase": "live"
+      }
+    },
+    {
+      "name": "Mute microphone -> micMuted, muted icon, Unmute label",
+      "ok": true,
+      "detail": {
+        "micMuted": true,
+        "icon": "muted"
+      }
+    },
+    {
+      "name": "Unmute restores",
+      "ok": true
+    },
+    {
+      "name": "Stop ends the session",
+      "ok": true,
+      "detail": {
+        "phase": "asleep"
+      }
+    },
+    {
+      "name": "Hide panel hides the dock window",
+      "ok": true
+    },
+    {
+      "name": "Show panel brings it back",
+      "ok": true
+    },
+    {
+      "name": "type item runs",
+      "ok": true
+    },
+    {
+      "name": "permissions item runs",
+      "ok": true
+    },
+    {
+      "name": "setup item runs",
+      "ok": true
+    },
+    {
+      "name": "Set up again resets onboardingDone",
+      "ok": true
+    },
+    {
+      "name": "icon click toggles the dock",
+      "ok": true
+    },
+    {
+      "name": "Run the demo walkthrough emits showtime:request (200)",
+      "ok": true
+    },
+    {
+      "name": "showMenuBarIcon=false removes the item",
+      "ok": true
+    },
+    {
+      "name": "showMenuBarIcon=true restores it",
+      "ok": true
+    },
+    {
+      "name": "menu bar icon crop saved",
+      "ok": true,
+      "detail": {
+        "region": "1043,0,54,33",
+        "out": "/Users/suhaan/Desktop/hackathon/deepmind-hackathon/docs/shell-shots/tray-icon.png"
+      }
+    }
+  ]
+}

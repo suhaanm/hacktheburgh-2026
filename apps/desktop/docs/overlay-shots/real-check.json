@@ -1,0 +1,111 @@
+{
+  "startedAt": "2026-10-31T14:06:43.421Z",
+  "checks": {
+    "ringLandsOnElement": {
+      "id": "video.call.mic",
+      "ring": {
+        "xmin": 346.3541666666667,
+        "ymin": 896.598030438675,
+        "xmax": 412.3263888888889,
+        "ymax": 993.2855863921217
+      },
+      "element": {
+        "xmin": 357.26363570601853,
+        "ymin": 917.5456020590868,
+        "xmax": 401.7062717013889,
+        "ymax": 972.61078782453
+      },
+      "ringContainsElement": true,
+      "centreOffsetNorm": {
+        "dx": -0.14467592592586698,
+        "dy": -0.1363865264100923
+      },
+      "ringPixels": 9182
+    },
+    "contentProtection": {
+      "overlayPngRingPixels": 9194,
+      "groundShotRingPixels": 22,
+      "excluded": true
+    },
+    "clickThrough": {
+      "clickPoint": {
+        "x": 550,
+        "y": 480
+      },
+      "ringDrawnAbove": true,
+      "reachedWindowBelow": true,
+      "error": null
+    },
+    "pointAt": {
+      "result": {
+        "found": true,
+        "confidence": 1,
+        "note": "Settings"
+      },
+      "ms": 1480,
+      "composite": {
+        "error": "[window-tool] wrote /Users/suhaan/Desktop/hackathon/deepmind-hackathon/docs/overlay-shots/real-point-at.png\n"
+      },
+      "ring": {
+        "id": "desk.icon.settings",
+        "ring": {
+          "xmin": 3.472222222222222,
+          "ymin": 234.55684870188003,
+          "xmax": 66.84027777777777,
+          "ymax": 343.3303491495076
+        },
+        "element": {
+          "xmin": 6.944444444444444,
+          "ymin": 247.09042076991943,
+          "xmax": 64.81481481481481,
+          "ymax": 340.1969561324978
+        },
+        "ringContainsElement": true,
+        "centreOffsetNorm": {
+          "dx": -0.7233796296296262,
+          "dy": -4.700089525514841
+        },
+        "ringPixels": 782
+      }
+    },
+    "capturableMode": {
+      "liveShot": "real-capturable-live-shot.jpg",
+      "groundShot": "real-capturable-ground-shot.jpg",
+      "note": "inspect: overlay visible in live, hidden in ground"
+    },
+    "aboveFullScreenApp": {
+      "fullScreenWindowReported": "[window-tool] {\"ready\":\"fullscreen\",\"isFullScreen\":true}",
+      "shot": "real-fullscreen-live-shot.jpg",
+      "note": "inspect: ring drawn over the cyan full-screen app"
+    }
+  },
+  "stage": {
+    "url": "http://127.0.0.1:5195/index.html?still=1#video/call-screen",
+    "viewport": {
+      "w": 1728,
+      "h": 1117
+    },
+    "origin": {
+      "x": 0,
+      "y": 0
+    },
+    "display": {
+      "w": 1728,
+      "h": 1117
+    },
+    "target": "video.call.mic",
+    "element": {
+      "x": 617.3515625,
+      "y": 1024.8984375,
+      "w": 76.796875,
+      "h": 61.5078125
+    },
+    "groundIds": 152
+  },
+  "app": {
+    "ok": true,
+    "pid": 3659,
+    "mock": false,
+    "phase": "asleep"
+  }
+}

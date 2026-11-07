@@ -1,0 +1,695 @@
+{
+ "tag": "before",
+ "tp": 10,
+ "fn": 0,
+ "scAbstain": 0,
+ "fp": 0,
+ "tn": 10,
+ "geAbstain": 0,
+ "p50": 14208,
+ "p95": 21149,
+ "results": [
+  {
+   "id": "genuine/01-gp-reminder",
+   "truth": "genuine",
+   "report": {
+    "verdict": "likely_genuine",
+    "confidence": 0.85,
+    "redFlags": [],
+    "advice": [
+     "This message looks genuine because it does not include any links or ask for money or personal details.",
+     "Even so, I cannot be completely certain it is real.",
+     "If you are unsure about this appointment, call your surgery using the phone number you usually use to check."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 20181
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": []
+  },
+  {
+   "id": "genuine/02-pharmacy",
+   "truth": "genuine",
+   "report": {
+    "verdict": "likely_genuine",
+    "confidence": 0.85,
+    "redFlags": [],
+    "advice": [
+     "This looks like a normal reminder from a pharmacy, as it does not include links or ask for money.",
+     "However, I cannot be completely certain it is genuine.",
+     "If you were not expecting a prescription, phone the pharmacy using a number you already know and trust."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 14208
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": []
+  },
+  {
+   "id": "genuine/03-family-lunch",
+   "truth": "genuine",
+   "report": {
+    "verdict": "likely_genuine",
+    "confidence": 0.875,
+    "redFlags": [],
+    "advice": [
+     "This looks like a normal family message with no warning signs.",
+     "Even so, I cannot be completely certain who sent it.",
+     "If the message came from a new or unknown number, call Dave or Jo on the number you already have saved for them to check."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 12803
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": []
+  },
+  {
+   "id": "genuine/04-bank-statement",
+   "truth": "genuine",
+   "report": {
+    "verdict": "likely_genuine",
+    "confidence": 0.85,
+    "redFlags": [],
+    "advice": [
+     "This message looks genuine because it has no web links and does not rush you, though I cannot be completely certain.",
+     "If you bank with Brightway, open your usual app or call the number on the back of your card to check your statement.",
+     "If you do not have an account with them, delete the message."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 11471
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": []
+  },
+  {
+   "id": "genuine/05-courier-no-action",
+   "truth": "genuine",
+   "report": {
+    "verdict": "likely_genuine",
+    "confidence": 0.85,
+    "redFlags": [],
+    "advice": [
+     "This message looks genuine because it does not ask for money, personal details, or for you to click a link.",
+     "However, I cannot be completely certain it is real.",
+     "If you remember ordering from Hartley's Garden Supplies, look for their original confirmation email in your inbox to check the delivery details."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 11230
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": []
+  },
+  {
+   "id": "genuine/06-meter-reading",
+   "truth": "genuine",
+   "report": {
+    "verdict": "likely_genuine",
+    "confidence": 0.85,
+    "redFlags": [],
+    "advice": [
+     "This message looks like a genuine reminder because it does not include links or ask for money, though I cannot be completely certain.",
+     "Check that Northfield Energy is the company that supplies your home.",
+     "If they are your supplier, open their official app or call the phone number printed on your paper bill."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 10667
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": []
+  },
+  {
+   "id": "genuine/07-library",
+   "truth": "genuine",
+   "report": {
+    "verdict": "likely_genuine",
+    "confidence": 0.85,
+    "redFlags": [],
+    "advice": [
+     "This message looks genuine because it does not ask for money, personal details, or for you to click a link.",
+     "However, I cannot be completely certain who sent it.",
+     "If you want to check, call the library using the phone number printed on your own library card."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 9260
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": []
+  },
+  {
+   "id": "genuine/08-dentist",
+   "truth": "genuine",
+   "report": {
+    "verdict": "likely_genuine",
+    "confidence": 0.85,
+    "redFlags": [],
+    "advice": [
+     "This looks like a normal appointment reminder, though I cannot be certain.",
+     "It does not include web links or ask for money or personal details.",
+     "If you are unsure about the appointment, call your dental practice using a phone number you already know and trust."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 13465
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": []
+  },
+  {
+   "id": "genuine/09-granddaughter",
+   "truth": "genuine",
+   "report": {
+    "verdict": "likely_genuine",
+    "confidence": 0.85,
+    "redFlags": [],
+    "advice": [
+     "This message looks genuine because scammers avoid video calls, though I cannot be certain.",
+     "Check that the message came from your grandchild's saved phone number.",
+     "If the number is unfamiliar, ring them on the number you already know to check."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 21149
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": []
+  },
+  {
+   "id": "genuine/10-bank-card-alert",
+   "truth": "genuine",
+   "report": {
+    "verdict": "likely_genuine",
+    "confidence": 0.825,
+    "redFlags": [],
+    "advice": [
+     "This looks like a real bank check, but I cannot be certain.",
+     "Instead of replying by text, check your recent spending in your banking app or on a statement.",
+     "If you do not recognise the payment, call your bank using the number printed on the back of your card."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 20247
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": []
+  },
+  {
+   "id": "scam/01-bank-lockout",
+   "truth": "scam",
+   "report": {
+    "verdict": "likely_scam",
+    "confidence": 0.9,
+    "redFlags": [
+     {
+      "phrase": "Your account has been LOCKED",
+      "why": "Scammers use alarming news to make you panic and act quickly."
+     },
+     {
+      "phrase": "within 2 hours or your money will be frozen",
+      "why": "Real banks do not rush you with tight deadlines or threats."
+     },
+     {
+      "phrase": "https://brightway-bank.secure-verify.example/login",
+      "why": "This web address is a look-alike link made to steal your details."
+     },
+     {
+      "phrase": "within 2 hours",
+      "why": "Scammers create artificial deadlines to make you panic and act without thinking."
+     },
+     {
+      "phrase": "your money will be frozen",
+      "why": "Threatening language is used to scare you into reacting quickly."
+     },
+     {
+      "phrase": "Verify now:",
+      "why": "Banks rarely demand instant action through a web link sent by text."
+     }
+    ],
+    "advice": [
+     "Do not tap the link or enter any of your personal details.",
+     "If you want to check your account, call your bank using the number on the back of your card.",
+     "You can forward this text to 7726 for free to report it, then delete it."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 20124
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": []
+  },
+  {
+   "id": "scam/02-parcel-fee",
+   "truth": "scam",
+   "report": {
+    "verdict": "likely_scam",
+    "confidence": 0.9,
+    "redFlags": [
+     {
+      "phrase": "Pay a £1.45 re-delivery fee",
+      "why": "Real delivery firms do not charge a fee to redeliver a missed parcel."
+     },
+     {
+      "phrase": "within 24 hours or it will be returned",
+      "why": "Scammers rush you with tight deadlines so you have less time to think."
+     },
+     {
+      "phrase": "https://parcel-redelivery-uk.example/pay",
+      "why": "This web address does not belong to any genuine UK delivery company."
+     }
+    ],
+    "advice": [
+     "Do not tap the link or enter any payment details.",
+     "If you are expecting a parcel, check on the official website or app where you ordered it.",
+     "Delete this message from your phone."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 12854
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": []
+  },
+  {
+   "id": "scam/03-hi-mum",
+   "truth": "scam",
+   "report": {
+    "verdict": "likely_scam",
+    "confidence": 0.9,
+    "redFlags": [
+     {
+      "phrase": "Hi Mum, I dropped my phone in water.",
+      "why": "Scammers often pretend to be a family member with a broken phone."
+     },
+     {
+      "phrase": "please delete the old one",
+      "why": "They do not want you to call your child's real number to check."
+     },
+     {
+      "phrase": "send £480 to this account right now",
+      "why": "Asking for a large amount of money straight away is a warning sign."
+     },
+     {
+      "phrase": "It is urgent, I will explain later",
+      "why": "Scammers rush you into paying before you have time to think."
+     },
+     {
+      "phrase": "This is my new number, please delete the old one.",
+      "why": "Scammers claim to have a new number so you stop using the real one."
+     },
+     {
+      "phrase": "Can you send £480 to this account right now?",
+      "why": "Asking for money immediately is a classic tactic used by criminals."
+     }
+    ],
+    "advice": [
+     "Do not send any money or reply to this message.",
+     "Call your child on their old number that you already trust to check if they are alright.",
+     "If they do not answer, try contacting another family member to check the story."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 18242
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": []
+  },
+  {
+   "id": "scam/04-tax-refund",
+   "truth": "scam",
+   "report": {
+    "verdict": "likely_scam",
+    "confidence": 0.9,
+    "redFlags": [
+     {
+      "phrase": "Revenue Office",
+      "why": "The UK tax office is called HMRC, not the Revenue Office."
+     },
+     {
+      "phrase": "owed a tax refund of £382.40",
+      "why": "HMRC never sends text links to tell you about a tax refund."
+     },
+     {
+      "phrase": "confirm your bank details",
+      "why": "Real tax officials will not ask for your bank details through a link."
+     },
+     {
+      "phrase": "within 48 hours",
+      "why": "Scammers rush you with tight deadlines so you do not stop to check."
+     },
+     {
+      "phrase": "https://revenue-refund-claim.example/uk",
+      "why": "This web address is fake and is not the official gov.uk website."
+     },
+     {
+      "phrase": "Revenue Office:",
+      "why": "The UK tax authority is HMRC, not 'Revenue Office'."
+     }
+    ],
+    "advice": [
+     "Do not tap the link or enter your bank details.",
+     "If you want to check for a refund, contact HMRC using a phone number from the official gov.uk website.",
+     "You can report this text for free by forwarding it to 7726, and then delete it."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 21121
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": []
+  },
+  {
+   "id": "scam/05-tv-licence",
+   "truth": "scam",
+   "report": {
+    "verdict": "likely_scam",
+    "confidence": 0.9,
+    "redFlags": [
+     {
+      "phrase": "cancelled today",
+      "why": "Scammers create panic by claiming something bad will happen right away."
+     },
+     {
+      "phrase": "fine of up to £1,000",
+      "why": "Threats of big fines are used to scare you into acting without checking."
+     },
+     {
+      "phrase": "Update your direct debit now",
+      "why": "Rushing you into entering your bank details is a common scam tactic."
+     },
+     {
+      "phrase": "https://tv-licence-renewal.example/pay",
+      "why": "This web link is fake and does not use the official tvlicensing.co.uk address."
+     }
+    ],
+    "advice": [
+     "Do not click the link or give out any bank or card details.",
+     "If you want to check your licence, call the number on an official letter you already trust or type tvlicensing.co.uk into your browser yourself.",
+     "Delete the message once you are done."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 13046
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": []
+  },
+  {
+   "id": "scam/06-energy-disconnect",
+   "truth": "scam",
+   "report": {
+    "verdict": "likely_scam",
+    "confidence": 0.9,
+    "redFlags": [
+     {
+      "phrase": "FINAL NOTICE",
+      "why": "Scammers use frightening capital letters to make you panic."
+     },
+     {
+      "phrase": "disconnected tomorrow at 9am unless you pay immediately",
+      "why": "Real UK energy companies cannot cut off your supply with a text threat."
+     },
+     {
+      "phrase": "Call 07700 900345",
+      "why": "Big energy firms use official customer service lines, not personal mobile numbers starting 07."
+     },
+     {
+      "phrase": "https://northfield-energy-bill.example/now",
+      "why": "This web address looks fake and tries to rush you into paying."
+     },
+     {
+      "phrase": "supply will be disconnected tomorrow at 9am",
+      "why": "UK energy rules forbid sudden next-day cut-offs without strict legal procedures."
+     },
+     {
+      "phrase": "unless you pay immediately",
+      "why": "Scammers use panic and severe threats to rush people into paying without checking."
+     }
+    ],
+    "advice": [
+     "Do not click the link or call the mobile number in the message.",
+     "Look at a recent paper bill to find your real energy supplier's phone number.",
+     "You can forward suspicious text messages to 7726 for free to report them."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 15276
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": []
+  },
+  {
+   "id": "scam/07-code-request",
+   "truth": "scam",
+   "report": {
+    "verdict": "likely_scam",
+    "confidence": 0.9,
+    "redFlags": [
+     {
+      "phrase": "stop a payment of £950",
+      "why": "Tries to scare you into acting fast about losing money."
+     },
+     {
+      "phrase": "Please reply with the code now",
+      "why": "Real banks never ask for security codes, and scammers try to rush you."
+     },
+     {
+      "phrase": "reply with the code now",
+      "why": "Banks never ask you to share security codes with them to cancel payments."
+     },
+     {
+      "phrase": "now so our agent can cancel it",
+      "why": "Creates false urgency to trick you before you can check."
+     }
+    ],
+    "advice": [
+     "Do not reply to this message or share any codes sent to your phone.",
+     "A real bank will never ask you to give them a security code.",
+     "If you are worried, call your bank using the number on the back of your card."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 16426
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": []
+  },
+  {
+   "id": "scam/08-investment",
+   "truth": "scam",
+   "report": {
+    "verdict": "likely_scam",
+    "confidence": 0.9,
+    "redFlags": [
+     {
+      "phrase": "9% GUARANTEED, no risk",
+      "why": "Real savings accounts do not offer such high rates with zero risk."
+     },
+     {
+      "phrase": "Only 12 places left and the offer ends tonight",
+      "why": "Scammers rush you into deciding before you have time to check."
+     },
+     {
+      "phrase": "Transfer a minimum of £1,000 today",
+      "why": "Genuine banks do not rush you into sending large sums of money."
+     },
+     {
+      "phrase": "Reply YES and our adviser will call you",
+      "why": "Replying lets scammers know your number works so they can pressure you."
+     }
+    ],
+    "advice": [
+     "Do not reply to this message or transfer any money.",
+     "Delete the message so you are not tempted to reply later.",
+     "You can report scam texts for free by forwarding them to 7726."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 11885
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": []
+  },
+  {
+   "id": "scam/09-tech-support",
+   "truth": "scam",
+   "report": {
+    "verdict": "likely_scam",
+    "confidence": 0.9,
+    "redFlags": [
+     {
+      "phrase": "your bank details are at risk",
+      "why": "Scammers try to scare you into acting quickly without thinking."
+     },
+     {
+      "phrase": "Do NOT switch off your computer",
+      "why": "Real companies will not forbid you from turning off your own machine."
+     },
+     {
+      "phrase": "Call Windows Support on 07700 900611 immediately",
+      "why": "Microsoft does not send warnings asking you to call a mobile phone number."
+     },
+     {
+      "phrase": "infected with 3 viruses and your bank details are at risk",
+      "why": "Scammers use frightening claims about bank details to create panic."
+     }
+    ],
+    "advice": [
+     "Do not call the phone number shown in the message.",
+     "Close the warning window, or turn your computer off and back on again.",
+     "If you are worried about your money, call your bank using the number on the back of your card."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 13504
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": []
+  },
+  {
+   "id": "scam/10-fake-invoice",
+   "truth": "scam",
+   "report": {
+    "verdict": "likely_scam",
+    "confidence": 0.89,
+    "redFlags": [
+     {
+      "phrase": "Hello, your invoice",
+      "why": "The message does not use your name or say which shop sent it."
+     },
+     {
+      "phrase": "order #48213 (£389.99)",
+      "why": "A large unexpected bill is used to panic you into acting quickly."
+     },
+     {
+      "phrase": "within 24 hours",
+      "why": "Scammers rush you with tight deadlines so you have less time to check."
+     },
+     {
+      "phrase": "https://order-cancel-help.example/48213",
+      "why": "This strange web link does not belong to a known or trusted shop."
+     },
+     {
+      "phrase": "click here to cancel it",
+      "why": "Directing you to an external cancellation link is a common phishing trick."
+     }
+    ],
+    "advice": [
+     "Do not click the link or open any attachments.",
+     "Check your bank account using your usual app or the phone number on the back of your card.",
+     "Delete the message once you have checked your account."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 14250
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": []
+  }
+ ]
+}

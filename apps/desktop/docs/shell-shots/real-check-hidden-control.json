@@ -1,0 +1,96 @@
+{
+  "at": "2026-10-31T16:02:30.531Z",
+  "titles": [
+    "Listening",
+    "Live",
+    "Speaking"
+  ],
+  "results": [
+    {
+      "name": "app up",
+      "ok": true
+    },
+    {
+      "name": "tray exists",
+      "ok": true
+    },
+    {
+      "name": "panel visible at startup (showDock true)",
+      "ok": true,
+      "detail": {
+        "panelVisible": true
+      }
+    },
+    {
+      "name": "Show panel checkbox is checked",
+      "ok": true
+    },
+    {
+      "name": "panel shortcut shown on the checkbox when registered",
+      "ok": true,
+      "detail": "CommandOrControl+Alt+P"
+    },
+    {
+      "name": "settings.showDock matches in state",
+      "ok": true
+    },
+    {
+      "name": "dock renderer still renders while hidden (GET /dock.png)",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "bytes": 21581
+      }
+    },
+    {
+      "name": "log: wake spotter did not report a failure while hidden",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "POST /wake accepted",
+      "ok": true
+    },
+    {
+      "name": "Live session reaches live while the panel is hidden",
+      "ok": true,
+      "detail": {
+        "phases": [
+          "connecting",
+          "listening_for_name",
+          "live"
+        ]
+      }
+    },
+    {
+      "name": "tray title changed away from the resting word",
+      "ok": true,
+      "detail": {
+        "titles": [
+          "Listening",
+          "Live",
+          "Speaking"
+        ]
+      }
+    },
+    {
+      "name": "panel visibility unchanged by the session",
+      "ok": true
+    },
+    {
+      "name": "captions arrive (panel visible)",
+      "ok": true,
+      "detail": {
+        "count": 1,
+        "phase": "speaking"
+      }
+    },
+    {
+      "name": "overlay window renders (captions band lives there)",
+      "ok": true,
+      "detail": {
+        "status": 200
+      }
+    }
+  ]
+}

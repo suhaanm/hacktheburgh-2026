@@ -1,0 +1,14 @@
+{
+  "note": "Recorded ScamReport for the staged Aldermoor Bank text (scripted tour only). Same shape as ScamReportSchema; never says the message is safe.",
+  "verdict": "likely_scam",
+  "confidence": 0.93,
+  "redFlags": [
+    { "phrase": "URGENT", "why": "It rushes you." },
+    { "phrase": "your money will be frozen", "why": "It threatens you." },
+    { "phrase": "https://aldermoor-bank.secure-verify.co/login", "why": "The web address is not your bank's." }
+  ],
+  "advice": ["Do not tap the link.", "Ring the number on the back of your bank card.", "I can't be sure, so please ask someone you trust."],
+  "humanHelp": "Ring the number on the back of your bank card, or ask someone you trust.",
+  "models": ["recorded"],
+  "latencyMs": 0
+}

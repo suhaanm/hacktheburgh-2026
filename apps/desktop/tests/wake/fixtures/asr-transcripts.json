@@ -1,0 +1,3309 @@
+{
+ "note": "Real gemini-3.5-transcribe-live interim+final transcripts, in arrival order, of macOS say voices (spikes/wake harvest, 2026-10-31). kind pos = clip said Hey <expect>; neg = unrelated speech. Clips that returned no transcript at all are omitted.",
+ "clips": [
+  {
+   "clip": "marcus.samantha",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "samantha",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia.daniel",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "daniel",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus.daniel",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "daniel",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia.samantha",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "samantha",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey, Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus-q.daniel",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "daniel",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia-q.daniel",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "daniel",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hi Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia.karen",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "karen",
+   "transcripts": [
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus.karen",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "karen",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hi Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hi Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hi Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus-q.samantha",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "samantha",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia-q.samantha",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "samantha",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus-q.karen",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "karen",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus.moira",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "moira",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia-q.karen",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "karen",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey, Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus-q.moira",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "moira",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus,",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia-q.moira",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "moira",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus-q.rishi",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "rishi",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus.tara",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "tara",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia-q.rishi",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "rishi",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia.tara",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "tara",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus-q.tara",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "tara",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus.tessa",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "tessa",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia-q.tara",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "tara",
+   "transcripts": [
+    {
+     "text": "Hear me",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia,",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia.tessa",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "tessa",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey, Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus-q.tessa",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "tessa",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus,",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia-q.tessa",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "tessa",
+   "transcripts": [
+    {
+     "text": "Hey, Emilia",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia,",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus-q.aman",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "aman",
+   "transcripts": [
+    {
+     "text": "Hema",
+     "final": false
+    },
+    {
+     "text": "Hema kas",
+     "final": false
+    },
+    {
+     "text": "Hema, can't make the text",
+     "final": false
+    },
+    {
+     "text": "Hema, please make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia.moira",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "moira",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey, Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey, Amelia.",
+     "final": false
+    }
+   ]
+  },
+  {
+   "clip": "marcus.rishi",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "rishi",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    }
+   ]
+  },
+  {
+   "clip": "marcus.fred",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "fred",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey,",
+     "final": false
+    },
+    {
+     "text": "Hey, Maritas.",
+     "final": false
+    },
+    {
+     "text": "Hey Maracas.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia.rishi",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "rishi",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    }
+   ]
+  },
+  {
+   "clip": "amelia-q.aman",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "aman",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia,",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia.fred",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "fred",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey, Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey, Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus-q.fred",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "fred",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey,",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus,",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Maracas, make the text bigger.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus.kathy",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "kathy",
+   "transcripts": [
+    {
+     "text": "去 Marcos。",
+     "final": false
+    },
+    {
+     "text": "Chay Marcus",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia-q.fred",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "fred",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia,",
+     "final": false
+    },
+    {
+     "text": "Hey, Amelia, how do I",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia.kathy",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "kathy",
+   "transcripts": [
+    {
+     "text": "Hey, Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey, Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus.ralph",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "ralph",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia.ralph",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "ralph",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey, Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey, Amelia.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus-q.kathy",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "kathy",
+   "transcripts": [
+    {
+     "text": "Hey, Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia.aman",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "aman",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    }
+   ]
+  },
+  {
+   "clip": "marcus.aman",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "aman",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    }
+   ]
+  },
+  {
+   "clip": "marcus-q.eddyuk",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "eddyuk",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus,",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia-q.kathy",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "kathy",
+   "transcripts": [
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": false
+    }
+   ]
+  },
+  {
+   "clip": "amelia-q.ralph",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "ralph",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey",
+     "final": false
+    }
+   ]
+  },
+  {
+   "clip": "marcus-q.ralph",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "ralph",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey,",
+     "final": false
+    }
+   ]
+  },
+  {
+   "clip": "marcus.flous",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "flous",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia.flous",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "flous",
+   "transcripts": [
+    {
+     "text": "1000",
+     "final": false
+    },
+    {
+     "text": "1000",
+     "final": false
+    },
+    {
+     "text": "miúdo",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus-q.flous",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "flous",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia-q.flous",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "flous",
+   "transcripts": [
+    {
+     "text": "Emilia",
+     "final": false
+    },
+    {
+     "text": "Emilia, how do I",
+     "final": false
+    },
+    {
+     "text": "Amelia, how do I join the",
+     "final": false
+    },
+    {
+     "text": "Amelia, how do I join the",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus.reedus",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "reedus",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus-q.reedus",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "reedus",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus.shelleyus",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "shelleyus",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia.shelleyus",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "shelleyus",
+   "transcripts": [
+    {
+     "text": "Amelia",
+     "final": false
+    },
+    {
+     "text": "Amelia",
+     "final": false
+    },
+    {
+     "text": "Amelia",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus-q.shelleyus",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "shelleyus",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus,",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus.grandmaus",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "grandmaus",
+   "transcripts": [
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia-q.shelleyus",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "shelleyus",
+   "transcripts": [
+    {
+     "text": "Amelia",
+     "final": false
+    },
+    {
+     "text": "Amelia, how do I",
+     "final": false
+    },
+    {
+     "text": "Amelia, how do I join the",
+     "final": false
+    },
+    {
+     "text": "Amelia, how do I join a video",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus-q.grandmaus",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "grandmaus",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, may",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus.grandpauk",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "grandpauk",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia.grandpauk",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "grandpauk",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey, Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "marcus-q.grandpauk",
+   "kind": "pos",
+   "expect": "marcus",
+   "voice": "grandpauk",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcus, make the text bigger.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "amelia-q.grandpauk",
+   "kind": "pos",
+   "expect": "amelia",
+   "voice": "grandpauk",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia.",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video",
+     "final": false
+    },
+    {
+     "text": "Hey Amelia, how do I join the video call?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-google.daniel",
+   "kind": "neg",
+   "expect": null,
+   "voice": "daniel",
+   "transcripts": [
+    {
+     "text": "Hey,",
+     "final": false
+    },
+    {
+     "text": "Hey Google,",
+     "final": false
+    },
+    {
+     "text": "Hey Google, what is the",
+     "final": false
+    },
+    {
+     "text": "Hey Google, what is the weather",
+     "final": false
+    },
+    {
+     "text": "Hey Google, what is the weather today?",
+     "final": false
+    },
+    {
+     "text": "Hey Google, what is the weather today?",
+     "final": false
+    },
+    {
+     "text": "Hey Google, what is the weather today?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-alexa.daniel",
+   "kind": "neg",
+   "expect": null,
+   "voice": "daniel",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa.",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa, set a",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa, set a timer",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa, set a timer for 10",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa, set a timer for 10 minutes.",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa, set a timer for 10 minutes.",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa, set a timer for 10 minutes.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-aurelius.daniel",
+   "kind": "neg",
+   "expect": null,
+   "voice": "daniel",
+   "transcripts": [
+    {
+     "text": "Marcus",
+     "final": false
+    },
+    {
+     "text": "Marcus",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was a",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was a Roman",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was a Roman emperor and",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was a Roman emperor and",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was a Roman emperor and philosopher.",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was a Roman emperor and philosopher.",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was a Roman emperor and philosopher.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-mark.daniel",
+   "kind": "neg",
+   "expect": null,
+   "voice": "daniel",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Mark.",
+     "final": false
+    },
+    {
+     "text": "Hey Mark, are you",
+     "final": false
+    },
+    {
+     "text": "Hey Mark, are you coming to",
+     "final": false
+    },
+    {
+     "text": "Hey Mark, are you coming to dinner tonight?",
+     "final": false
+    },
+    {
+     "text": "Hey Mark, are you coming to dinner tonight?",
+     "final": false
+    },
+    {
+     "text": "Hey Mark, are you coming to dinner tonight?",
+     "final": false
+    },
+    {
+     "text": "Hey Mark, are you coming to dinner tonight?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-amelia-past.daniel",
+   "kind": "neg",
+   "expect": null,
+   "voice": "daniel",
+   "transcripts": [
+    {
+     "text": "I",
+     "final": false
+    },
+    {
+     "text": "I spoke to my",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend Amelia",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend Amelia",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend Amelia yesterday about the",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend Amelia yesterday about the garden.",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend Amelia yesterday about the garden.",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend Amelia yesterday about the garden.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-america.daniel",
+   "kind": "neg",
+   "expect": null,
+   "voice": "daniel",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey America.",
+     "final": false
+    },
+    {
+     "text": "Hey America, welcome",
+     "final": false
+    },
+    {
+     "text": "Hey America, welcome to the",
+     "final": false
+    },
+    {
+     "text": "Hey America, welcome to the show.",
+     "final": false
+    },
+    {
+     "text": "Hey America, welcome to the show.",
+     "final": false
+    },
+    {
+     "text": "Hey America, welcome to the show.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-emily.daniel",
+   "kind": "neg",
+   "expect": null,
+   "voice": "daniel",
+   "transcripts": [
+    {
+     "text": "Hi, I'm",
+     "final": false
+    },
+    {
+     "text": "Hey Emily.",
+     "final": false
+    },
+    {
+     "text": "Hey Emily, did you",
+     "final": false
+    },
+    {
+     "text": "Hey Emily, did you see the",
+     "final": false
+    },
+    {
+     "text": "Hey Emily, did you see the news?",
+     "final": false
+    },
+    {
+     "text": "Hey Emily, did you see the news?",
+     "final": false
+    },
+    {
+     "text": "Hey Emily, did you see the news?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-market.daniel",
+   "kind": "neg",
+   "expect": null,
+   "voice": "daniel",
+   "transcripts": [
+    {
+     "text": "I",
+     "final": false
+    },
+    {
+     "text": "I went to the",
+     "final": false
+    },
+    {
+     "text": "I went to the market to",
+     "final": false
+    },
+    {
+     "text": "I went to the market to buy some",
+     "final": false
+    },
+    {
+     "text": "I went to the market to buy some apples.",
+     "final": false
+    },
+    {
+     "text": "I went to the market to buy some apples.",
+     "final": false
+    },
+    {
+     "text": "I went to the market to buy some apples.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-help.daniel",
+   "kind": "neg",
+   "expect": null,
+   "voice": "daniel",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey there,",
+     "final": false
+    },
+    {
+     "text": "Hey there, I need",
+     "final": false
+    },
+    {
+     "text": "Hey there, I need some help with",
+     "final": false
+    },
+    {
+     "text": "Hey there, I need some help with my",
+     "final": false
+    },
+    {
+     "text": "Hey there, I need some help with my computer.",
+     "final": false
+    },
+    {
+     "text": "Hey there, I need some help with my computer.",
+     "final": false
+    },
+    {
+     "text": "Hey there, I need some help with my computer.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-chat.daniel",
+   "kind": "neg",
+   "expect": null,
+   "voice": "daniel",
+   "transcripts": [
+    {
+     "text": "We should",
+     "final": false
+    },
+    {
+     "text": "We should",
+     "final": false
+    },
+    {
+     "text": "We should video call",
+     "final": false
+    },
+    {
+     "text": "We should video call grandma on",
+     "final": false
+    },
+    {
+     "text": "We should video call Grandma on Sunday",
+     "final": false
+    },
+    {
+     "text": "We should video call Grandma on Sunday and make the",
+     "final": false
+    },
+    {
+     "text": "We should video call grandma on Sunday and make the text",
+     "final": false
+    },
+    {
+     "text": "We should video call grandma on Sunday and make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "We should video call Grandma on Sunday and make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "We should video call grandma on Sunday and make the text bigger.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-musicus.daniel",
+   "kind": "neg",
+   "expect": null,
+   "voice": "daniel",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey, Marsha.",
+     "final": false
+    },
+    {
+     "text": "Hey Marsha, can you",
+     "final": false
+    },
+    {
+     "text": "Hey Marsha, can you pass the",
+     "final": false
+    },
+    {
+     "text": "Hey Marsha, can you pass the salt?",
+     "final": false
+    },
+    {
+     "text": "Hey Marsha, can you pass the salt?",
+     "final": false
+    },
+    {
+     "text": "Hey Marsha, can you pass the salt?",
+     "final": false
+    },
+    {
+     "text": "Hey Marsha, can you pass the salt?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-google.samantha",
+   "kind": "neg",
+   "expect": null,
+   "voice": "samantha",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Google,",
+     "final": false
+    },
+    {
+     "text": "Hey Google, what is the",
+     "final": false
+    },
+    {
+     "text": "Hey Google, what is the weather today?",
+     "final": false
+    },
+    {
+     "text": "Hey Google, what is the weather today?",
+     "final": false
+    },
+    {
+     "text": "Hey Google, what is the weather today?",
+     "final": false
+    },
+    {
+     "text": "Hey Google, what is the weather today?",
+     "final": false
+    },
+    {
+     "text": "Hey Google, what is the weather today?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-camelia.daniel",
+   "kind": "neg",
+   "expect": null,
+   "voice": "daniel",
+   "transcripts": [
+    {
+     "text": "The",
+     "final": false
+    },
+    {
+     "text": "The Camellia",
+     "final": false
+    },
+    {
+     "text": "The chameleon bush in the",
+     "final": false
+    },
+    {
+     "text": "The camellia bush in the garden is",
+     "final": false
+    },
+    {
+     "text": "The camellia bush in the garden is beautiful this",
+     "final": false
+    },
+    {
+     "text": "The camellia bush in the garden is beautiful this",
+     "final": false
+    },
+    {
+     "text": "The camellia bush in the garden is beautiful this year.",
+     "final": false
+    },
+    {
+     "text": "The camellia bush in the garden is beautiful this year.",
+     "final": false
+    },
+    {
+     "text": "The camellia bush in the garden is beautiful this year.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-alexa.samantha",
+   "kind": "neg",
+   "expect": null,
+   "voice": "samantha",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa.",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa, set a",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa, set a timer for",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa, set a timer for 10 minutes.",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa, set a timer for 10 minutes.",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa, set a timer for 10 minutes.",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa, set a timer for 10 minutes.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-aurelius.samantha",
+   "kind": "neg",
+   "expect": null,
+   "voice": "samantha",
+   "transcripts": [
+    {
+     "text": "Marcus",
+     "final": false
+    },
+    {
+     "text": "Marcus",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was a",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was a Roman",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was a Roman emperor and",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was a Roman emperor and",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was a Roman emperor and philosopher.",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was a Roman emperor and philosopher.",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was a Roman emperor and philosopher.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-mark.samantha",
+   "kind": "neg",
+   "expect": null,
+   "voice": "samantha",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Mark,",
+     "final": false
+    },
+    {
+     "text": "Hey Mark, are you",
+     "final": false
+    },
+    {
+     "text": "Hey Mark, are you coming to dinner",
+     "final": false
+    },
+    {
+     "text": "Hey Mark, are you coming to dinner tonight?",
+     "final": false
+    },
+    {
+     "text": "Hey Mark, are you coming to dinner tonight?",
+     "final": false
+    },
+    {
+     "text": "Hey Mark, are you coming to dinner tonight?",
+     "final": false
+    },
+    {
+     "text": "Hey Mark, are you coming to dinner tonight?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-amelia-past.samantha",
+   "kind": "neg",
+   "expect": null,
+   "voice": "samantha",
+   "transcripts": [
+    {
+     "text": "I",
+     "final": false
+    },
+    {
+     "text": "I spoke to my",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend Amelia",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend Amelia yesterday",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend Amelia yesterday about the",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend Amelia yesterday about the garden.",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend Amelia yesterday about the garden.",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend Amelia yesterday about the garden.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-america.samantha",
+   "kind": "neg",
+   "expect": null,
+   "voice": "samantha",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey America.",
+     "final": false
+    },
+    {
+     "text": "Hey America, welcome",
+     "final": false
+    },
+    {
+     "text": "Hey America, welcome to the",
+     "final": false
+    },
+    {
+     "text": "Hey America, welcome to the show.",
+     "final": false
+    },
+    {
+     "text": "Hey America, welcome to the show.",
+     "final": false
+    },
+    {
+     "text": "Hey America, welcome to the show.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-emily.samantha",
+   "kind": "neg",
+   "expect": null,
+   "voice": "samantha",
+   "transcripts": [
+    {
+     "text": "Hey, I'm",
+     "final": false
+    },
+    {
+     "text": "Hey Emily,",
+     "final": false
+    },
+    {
+     "text": "Hey Emily, did you",
+     "final": false
+    },
+    {
+     "text": "Hey Emily, did you see the",
+     "final": false
+    },
+    {
+     "text": "Hey Emily, did you see the news?",
+     "final": false
+    },
+    {
+     "text": "Hey Emily, did you see the news?",
+     "final": false
+    },
+    {
+     "text": "Hey Emily, did you see the news?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-market.samantha",
+   "kind": "neg",
+   "expect": null,
+   "voice": "samantha",
+   "transcripts": [
+    {
+     "text": "I went",
+     "final": false
+    },
+    {
+     "text": "I went to the",
+     "final": false
+    },
+    {
+     "text": "I went to the market to buy",
+     "final": false
+    },
+    {
+     "text": "I went to the market to buy some",
+     "final": false
+    },
+    {
+     "text": "I went to the market to buy some apples.",
+     "final": false
+    },
+    {
+     "text": "I went to the market to buy some apples.",
+     "final": false
+    },
+    {
+     "text": "I went to the market to buy some apples.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-help.samantha",
+   "kind": "neg",
+   "expect": null,
+   "voice": "samantha",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey there, I",
+     "final": false
+    },
+    {
+     "text": "Hey there, I need some",
+     "final": false
+    },
+    {
+     "text": "Hey there, I need some help with",
+     "final": false
+    },
+    {
+     "text": "Hey there, I need some help with my",
+     "final": false
+    },
+    {
+     "text": "Hey there, I need some help with my",
+     "final": false
+    },
+    {
+     "text": "Hey there, I need some help with my computer.",
+     "final": false
+    },
+    {
+     "text": "Hey there, I need some help with my computer.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-musicus.samantha",
+   "kind": "neg",
+   "expect": null,
+   "voice": "samantha",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Marsha.",
+     "final": false
+    },
+    {
+     "text": "Hey Marsha, can you",
+     "final": false
+    },
+    {
+     "text": "Hey Marsha, can you pass the",
+     "final": false
+    },
+    {
+     "text": "Hey Marsha, can you pass the salt?",
+     "final": false
+    },
+    {
+     "text": "Hey Marsha, can you pass the salt?",
+     "final": false
+    },
+    {
+     "text": "Hey Marsha, can you pass the salt?",
+     "final": false
+    },
+    {
+     "text": "Hey Marsha, can you pass the salt?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-google.rishi",
+   "kind": "neg",
+   "expect": null,
+   "voice": "rishi",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Google.",
+     "final": false
+    },
+    {
+     "text": "Hey Google, what is",
+     "final": false
+    },
+    {
+     "text": "Hey Google, what is the weather",
+     "final": false
+    },
+    {
+     "text": "Hey Google, what is the weather today?",
+     "final": false
+    },
+    {
+     "text": "Hey Google, what is the weather today?",
+     "final": false
+    },
+    {
+     "text": "Hey Google, what is the weather today?",
+     "final": false
+    },
+    {
+     "text": "Hey Google, what is the weather today?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-chat.samantha",
+   "kind": "neg",
+   "expect": null,
+   "voice": "samantha",
+   "transcripts": [
+    {
+     "text": "We should",
+     "final": false
+    },
+    {
+     "text": "We should",
+     "final": false
+    },
+    {
+     "text": "We should video call",
+     "final": false
+    },
+    {
+     "text": "We should video call grandma on",
+     "final": false
+    },
+    {
+     "text": "We should video call grandma on Sunday and",
+     "final": false
+    },
+    {
+     "text": "We should video call Grandma on Sunday and make the",
+     "final": false
+    },
+    {
+     "text": "We should video call grandma on Sunday and make the text",
+     "final": false
+    },
+    {
+     "text": "We should video call grandma on Sunday and make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "We should video call Grandma on Sunday and make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "We should video call grandma on Sunday and make the text bigger.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-camelia.samantha",
+   "kind": "neg",
+   "expect": null,
+   "voice": "samantha",
+   "transcripts": [
+    {
+     "text": "The",
+     "final": false
+    },
+    {
+     "text": "The Camellia",
+     "final": false
+    },
+    {
+     "text": "the camellia bush in the",
+     "final": false
+    },
+    {
+     "text": "The camellia bush in the garden was",
+     "final": false
+    },
+    {
+     "text": "The camellia bush in the garden was beautiful this",
+     "final": false
+    },
+    {
+     "text": "The camellia bush in the garden was beautiful this year.",
+     "final": false
+    },
+    {
+     "text": "The camellia bush in the garden was beautiful this year.",
+     "final": false
+    },
+    {
+     "text": "The camellia bush in the garden was beautiful this year.",
+     "final": false
+    },
+    {
+     "text": "The camellia bush in the garden was beautiful this year.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-alexa.rishi",
+   "kind": "neg",
+   "expect": null,
+   "voice": "rishi",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa,",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa, set",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa, set a",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa, set a timer for",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa, set a timer for 10",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa, set a timer for 10 minutes.",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa, set a timer for 10 minutes.",
+     "final": false
+    },
+    {
+     "text": "Hey Alexa, set a timer for 10 minutes.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-aurelius.rishi",
+   "kind": "neg",
+   "expect": null,
+   "voice": "rishi",
+   "transcripts": [
+    {
+     "text": "Marcus",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was a Roman",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was a Roman",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was a Roman emperor and",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was aRoman emperor and philosopher.",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was a Roman emperor and philosopher.",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was a Roman emperor and philosopher.",
+     "final": false
+    },
+    {
+     "text": "Marcus Aurelius was a Roman emperor and philosopher.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-america.rishi",
+   "kind": "neg",
+   "expect": null,
+   "voice": "rishi",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey America.",
+     "final": false
+    },
+    {
+     "text": "Hey America,",
+     "final": false
+    },
+    {
+     "text": "Hey America, welcome to the",
+     "final": false
+    },
+    {
+     "text": "Hey America, welcome to the show.",
+     "final": false
+    },
+    {
+     "text": "Hey America, welcome to the show.",
+     "final": false
+    },
+    {
+     "text": "Hey America, welcome to the show.",
+     "final": false
+    },
+    {
+     "text": "Hey America, welcome to the show.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-emily.rishi",
+   "kind": "neg",
+   "expect": null,
+   "voice": "rishi",
+   "transcripts": [
+    {
+     "text": "Hey Emily.",
+     "final": false
+    },
+    {
+     "text": "Hey Emily, did you",
+     "final": false
+    },
+    {
+     "text": "Hey Emily, did you see the",
+     "final": false
+    },
+    {
+     "text": "Hey Emily, did you see the news?",
+     "final": false
+    },
+    {
+     "text": "Hey Emily, did you see the news?",
+     "final": false
+    },
+    {
+     "text": "Hey Emily, did you see the news?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-amelia-past.rishi",
+   "kind": "neg",
+   "expect": null,
+   "voice": "rishi",
+   "transcripts": [
+    {
+     "text": "I",
+     "final": false
+    },
+    {
+     "text": "I spoke to",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend Amelia",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend Amelia yesterday.",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend Amelia yesterday. about the",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend Amelia yesterday. about the garden.",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend Amelia yesterday.",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend Amelia yesterday.",
+     "final": false
+    },
+    {
+     "text": "I spoke to my friend Amelia yesterday about the garden.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-mark.rishi",
+   "kind": "neg",
+   "expect": null,
+   "voice": "rishi",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey Mark,",
+     "final": false
+    },
+    {
+     "text": "Hey Mark, are you",
+     "final": false
+    },
+    {
+     "text": "Hey Mark, are you coming to",
+     "final": false
+    },
+    {
+     "text": "Hey Mark, are you coming to dinner",
+     "final": false
+    },
+    {
+     "text": "Hey Mark, are you coming to dinner tonight?",
+     "final": false
+    },
+    {
+     "text": "Hey Mark, are you coming to dinner tonight?",
+     "final": false
+    },
+    {
+     "text": "Hey Mark, are you coming to dinner tonight?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-market.rishi",
+   "kind": "neg",
+   "expect": null,
+   "voice": "rishi",
+   "transcripts": [
+    {
+     "text": "I",
+     "final": false
+    },
+    {
+     "text": "I went to the",
+     "final": false
+    },
+    {
+     "text": "I went to the market",
+     "final": false
+    },
+    {
+     "text": "I went to the market to buy",
+     "final": false
+    },
+    {
+     "text": "I went to the market to buy some",
+     "final": false
+    },
+    {
+     "text": "I went to the market to buy some apples.",
+     "final": false
+    },
+    {
+     "text": "I went to the market to buy some apples.",
+     "final": false
+    },
+    {
+     "text": "I went to the market to buy some apples.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-musicus.rishi",
+   "kind": "neg",
+   "expect": null,
+   "voice": "rishi",
+   "transcripts": [
+    {
+     "text": "Hey, Marcia.",
+     "final": false
+    },
+    {
+     "text": "Hey Marcia, can",
+     "final": false
+    },
+    {
+     "text": "Hey Marcia, can you pass",
+     "final": false
+    },
+    {
+     "text": "Hey Marcia, can you pass the salt?",
+     "final": false
+    },
+    {
+     "text": "Hey Marcia, can you pass the salt?",
+     "final": false
+    },
+    {
+     "text": "Hey Marcia, can you pass the salt?",
+     "final": false
+    },
+    {
+     "text": "Hey Marcia, can you pass the salt?",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-help.rishi",
+   "kind": "neg",
+   "expect": null,
+   "voice": "rishi",
+   "transcripts": [
+    {
+     "text": "Hey",
+     "final": false
+    },
+    {
+     "text": "Hey there.",
+     "final": false
+    },
+    {
+     "text": "Hey there, I",
+     "final": false
+    },
+    {
+     "text": "Hey there, I need some",
+     "final": false
+    },
+    {
+     "text": "Hey there, I need some help with",
+     "final": false
+    },
+    {
+     "text": "Hey there, I need some help with my",
+     "final": false
+    },
+    {
+     "text": "Hey there, I need some help with my computer.",
+     "final": false
+    },
+    {
+     "text": "Hey there, I need some help with my computer.",
+     "final": false
+    },
+    {
+     "text": "Hey there, I need some help with my computer.",
+     "final": false
+    },
+    {
+     "text": "Hey there, I need some help with my computer.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-camelia.rishi",
+   "kind": "neg",
+   "expect": null,
+   "voice": "rishi",
+   "transcripts": [
+    {
+     "text": "The",
+     "final": false
+    },
+    {
+     "text": "The Camellia",
+     "final": false
+    },
+    {
+     "text": "The camellia bush in the",
+     "final": false
+    },
+    {
+     "text": "The camellia bush in the garden is",
+     "final": false
+    },
+    {
+     "text": "The camellia bush in the garden is beautiful.",
+     "final": false
+    },
+    {
+     "text": "The camellia bush in the garden is beautiful. this",
+     "final": false
+    },
+    {
+     "text": "The camellia bush in the garden is beautiful.",
+     "final": false
+    },
+    {
+     "text": "The camellia bush in the garden is beautiful.",
+     "final": false
+    },
+    {
+     "text": "The camellia bush in the garden is beautiful this year.",
+     "final": true
+    }
+   ]
+  },
+  {
+   "clip": "neg-chat.rishi",
+   "kind": "neg",
+   "expect": null,
+   "voice": "rishi",
+   "transcripts": [
+    {
+     "text": "We should",
+     "final": false
+    },
+    {
+     "text": "We should video",
+     "final": false
+    },
+    {
+     "text": "We should video call",
+     "final": false
+    },
+    {
+     "text": "We should video call Grand Aman",
+     "final": false
+    },
+    {
+     "text": "We should video call Grand Aman on",
+     "final": false
+    },
+    {
+     "text": "We should video call Grand Aman on Sunday and",
+     "final": false
+    },
+    {
+     "text": "We should video call Grand Aman on Sunday and make the",
+     "final": false
+    },
+    {
+     "text": "We should video call Grand Aman on Sunday and make the text",
+     "final": false
+    },
+    {
+     "text": "We should video call Grand Aman on Sunday and make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "We should video call Grand Aman on Sunday and make the text bigger.",
+     "final": false
+    },
+    {
+     "text": "We should video call grandaunt on Sunday and make the text bigger.",
+     "final": true
+    }
+   ]
+  }
+ ]
+}

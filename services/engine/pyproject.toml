@@ -1,0 +1,31 @@
+[project]
+name = "understudy-engine"
+version = "0.1.0"
+description = "Understudy engine: event store, analytics, memory, packs, API."
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "pydantic>=2.7",
+  "numpy>=1.26",
+  "pandas>=2.2",
+  "scipy>=1.13",
+  "scikit-learn>=1.5",
+  "statsmodels>=0.14",
+  "lifelines>=0.29",
+  "pyyaml>=6",
+  "jsonschema>=4.22",
+  "httpx>=0.27",
+  "python-dotenv>=1.0",
+  "orjson>=3.10",
+]
+
+[project.scripts]
+understudy = "understudy_engine.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["understudy_engine"]

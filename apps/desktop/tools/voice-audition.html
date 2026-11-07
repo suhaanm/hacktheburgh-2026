@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice audition</title>
+<style>
+  :root { --bg:#f6f4ef; --card:#ffffff; --ink:#1b1b1f; --muted:#55555d; --line:#cfcbc2; --accent:#1f4fd8; --male:#0d6b5f; --female:#8a2f7a; --focus:#ff9f1c; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:18px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  header, main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  h1 { margin: 8px 0 4px; font-size: 28px; }
+  p { margin: 6px 0; }
+  .muted { color: var(--muted); }
+  .sentence { background:#fff; border:2px solid var(--line); border-radius:12px; padding:12px 16px; font-size:22px; margin:12px 0; }
+  .bar { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 2px solid var(--line); padding: 10px 16px; }
+  .bar-inner { max-width: 1100px; margin: 0 auto; display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+  .pick { padding:8px 14px; border-radius:10px; border:2px solid var(--line); background:#fff; min-width: 230px; }
+  .pick b { font-size: 20px; }
+  .pick.male b { color: var(--male); } .pick.female b { color: var(--female); }
+  .filters { display:flex; gap:8px; margin:12px 0; flex-wrap:wrap; }
+  button { font: inherit; cursor: pointer; border-radius: 10px; border: 2px solid var(--ink); background:#fff; color:var(--ink); padding: 8px 14px; min-height: 44px; }
+  button:hover { background:#efefe9; }
+  button:focus-visible, a:focus-visible { outline: 4px solid var(--focus); outline-offset: 2px; }
+  button.primary { background: var(--accent); border-color: var(--accent); color:#fff; }
+  button.primary:hover { background:#1a43b8; }
+  button[aria-pressed="true"] { background: var(--ink); color:#fff; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+  .card { background: var(--card); border:2px solid var(--line); border-radius: 14px; padding: 12px 14px; display:flex; flex-direction:column; gap:8px; }
+  .card.playing { border-color: var(--accent); box-shadow: 0 0 0 3px #1f4fd833; }
+  .card.m-sel { border-color: var(--male); } .card.f-sel { border-color: var(--female); }
+  .name { font-size: 22px; font-weight: 700; display:flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .tag { font-size: 14px; padding: 2px 8px; border-radius: 999px; border:1px solid var(--line); color: var(--muted); white-space: nowrap; }
+  .tag.sug { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; }
+  .row button { flex: 1 1 auto; }
+  .missing { color:#a11; font-size: 16px; }
+  #toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--ink); color:#fff; padding: 10px 18px; border-radius: 10px; opacity: 0; transition: opacity .2s; pointer-events:none; }
+  #toast.on { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
+</style>
+</head>
+<body>
+<div class="bar"><div class="bar-inner">
+  <div class="pick male"><span class="muted">Marcus (male) uses</span><br><b id="pickM">not chosen</b></div>
+  <div class="pick female"><span class="muted">Amelia (female) uses</span><br><b id="pickF">not chosen</b></div>
+  <button class="primary" id="copyAll">Copy my choice</button>
+  <button id="clear">Clear</button>
+</div></div>
+<header>
+  <h1>Pick two voices</h1>
+  <p>Press <b>Play</b> to hear each voice say the line below, rendered by the same Live model the app uses. Choose one voice for Marcus (male) and one for Amelia (female), then press <b>Copy my choice</b> and paste it to the team.</p>
+  <div class="sentence" id="sentence"></div>
+  <p class="muted">Google's docs do not say which voices are male or female. The labels here are unverified guesses, so trust your ears. For learners who are older or hard of hearing, calm, clear, slower voices work better than upbeat or excitable ones. The ones marked <b>try first</b> are my suggestions.</p>
+  <div class="filters" role="group" aria-label="Filter voices">
+    <button data-f="all" aria-pressed="true">All 30</button>
+    <button data-f="male" aria-pressed="false">Sounds male (guess)</button>
+    <button data-f="female" aria-pressed="false">Sounds female (guess)</button>
+    <button data-f="sug" aria-pressed="false">Try first</button>
+  </div>
+</header>
+<main><div class="grid" id="grid"></div></main>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+const SENTENCE = "Hello, I'm your helper. I'll sit alongside you while you learn.";
+// name, docs descriptor, my unverified guess of gender (m/f), suggested for older learners
+const VOICES = [
+  ['Zephyr','Bright','f',0],['Puck','Upbeat','m',0],['Charon','Informative','m',1],['Kore','Firm','f',1],['Fenrir','Excitable','m',0],
+  ['Leda','Youthful','f',0],['Orus','Firm','m',0],['Aoede','Breezy','f',0],['Callirrhoe','Easy-going','f',0],['Autonoe','Bright','f',0],
+  ['Enceladus','Breathy','m',0],['Iapetus','Clear','m',0],['Umbriel','Easy-going','m',0],['Algieba','Smooth','m',0],['Despina','Smooth','f',0],
+  ['Erinome','Clear','f',0],['Algenib','Gravelly','m',0],['Rasalgethi','Informative','m',0],['Laomedeia','Upbeat','f',0],['Achernar','Soft','f',0],
+  ['Alnilam','Firm','m',0],['Schedar','Even','m',0],['Gacrux','Mature','f',0],['Pulcherrima','Forward','f',0],['Achird','Friendly','m',0],
+  ['Zubenelgenubi','Casual','m',0],['Vindemiatrix','Gentle','f',1],['Sadachbia','Lively','m',0],['Sadaltager','Knowledgeable','m',1],['Sulafat','Warm','f',1],
+];
+const $ = (id) => document.getElementById(id);
+const store = { get(k){ try { return localStorage.getItem(k); } catch { return null; } }, set(k,v){ try { v==null?localStorage.removeItem(k):localStorage.setItem(k,v); } catch {} } };
+let pick = { male: store.get('va.male'), female: store.get('va.female') };
+let filter = 'all', current = null;
+$('sentence').textContent = '"' + SENTENCE + '"';
+
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2200); }
+async function copy(text, what) {
+  try { await navigator.clipboard.writeText(text); toast('Copied ' + what); }
+  catch { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast('Copied ' + what); } catch { toast('Copy failed: select and copy manually'); } ta.remove(); }
+}
+function play(name, card, btn) {
+  if (current) { current.audio.pause(); current.card.classList.remove('playing'); current.btn.textContent = 'Play'; }
+  if (current && current.name === name) { current = null; return; }
+  const audio = new Audio('voice-audition/' + name + '.wav');
+  current = { name, audio, card, btn };
+  card.classList.add('playing'); btn.textContent = 'Stop';
+  audio.onended = () => { card.classList.remove('playing'); btn.textContent = 'Play'; if (current && current.name === name) current = null; };
+  audio.onerror = () => { card.classList.remove('playing'); btn.textContent = 'Play'; card.querySelector('.missing').textContent = 'Audio file missing: run spikes/live/voices.mjs'; current = null; };
+  audio.play().catch(() => audio.onerror());
+}
+function render() {
+  $('pickM').textContent = pick.male || 'not chosen';
+  $('pickF').textContent = pick.female || 'not chosen';
+  const grid = $('grid'); grid.innerHTML = '';
+  for (const [name, desc, g, sug] of VOICES) {
+    if (filter === 'male' && g !== 'm') continue;
+    if (filter === 'female' && g !== 'f') continue;
+    if (filter === 'sug' && !sug) continue;
+    const card = document.createElement('div');
+    card.className = 'card' + (pick.male === name ? ' m-sel' : '') + (pick.female === name ? ' f-sel' : '');
+    card.innerHTML = '<div class="name"><span></span><span class="tag"></span></div><div class="muted"></div><div class="row"></div><div class="missing" role="alert"></div>';
+    card.querySelector('.name span').textContent = name;
+    const tag = card.querySelector('.tag'); tag.textContent = (g === 'm' ? 'guess: male' : 'guess: female');
+    card.querySelector('.muted').textContent = desc + (sug ? '  ' : '');
+    if (sug) { const s = document.createElement('span'); s.className = 'tag sug'; s.textContent = 'try first'; card.querySelector('.muted').appendChild(s); }
+    const row = card.querySelector('.row');
+    const mk = (label, cls, fn) => { const b = document.createElement('button'); b.textContent = label; if (cls) b.className = cls; b.addEventListener('click', () => fn(b)); row.appendChild(b); return b; };
+    const playBtn = mk('Play', 'primary', (b) => play(name, card, b));
+    mk(pick.male === name ? 'Marcus: chosen' : 'Use for Marcus', '', () => { pick.male = pick.male === name ? null : name; store.set('va.male', pick.male); render(); });
+    mk(pick.female === name ? 'Amelia: chosen' : 'Use for Amelia', '', () => { pick.female = pick.female === name ? null : name; store.set('va.female', pick.female); render(); });
+    mk('Copy name', '', () => copy(name, name));
+    if (current && current.name === name) { current.card = card; current.btn = playBtn; card.classList.add('playing'); playBtn.textContent = 'Stop'; }
+    grid.appendChild(card);
+  }
+}
+document.querySelectorAll('.filters button').forEach((b) => b.addEventListener('click', () => {
+  filter = b.dataset.f; document.querySelectorAll('.filters button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); render();
+}));
+$('copyAll').addEventListener('click', () => {
+  if (!pick.male && !pick.female) return toast('Choose a voice first');
+  copy('Voice choice (src/shared/personas.ts voiceName):\nmarcus (male): ' + (pick.male || 'undecided') + '\namelia (female): ' + (pick.female || 'undecided'), 'your choice');
+});
+$('clear').addEventListener('click', () => { pick = { male: null, female: null }; store.set('va.male', null); store.set('va.female', null); render(); });
+render();
+</script>
+</body>
+</html>

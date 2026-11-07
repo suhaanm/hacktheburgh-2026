@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>webspeech spike</title>
+<script>
+  const out = (...a) => console.log(a.join(' '));
+  out('has webkitSpeechRecognition:', 'webkitSpeechRecognition' in window, '| has SpeechRecognition:', 'SpeechRecognition' in window);
+  out('UA:', navigator.userAgent);
+  try {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = 'en-GB';
+    for (const ev of ['start', 'audiostart', 'soundstart', 'speechstart', 'speechend', 'soundend', 'audioend', 'end', 'nomatch'])
+      rec.addEventListener(ev, () => out('event:', ev, '@', Math.round(performance.now())));
+    rec.onerror = (e) => out('ERROR:', e.error, e.message || '');
+    rec.onresult = (e) => {
+      for (let i = e.resultIndex; i < e.results.length; i++)
+        out('RESULT', e.results[i].isFinal ? 'final' : 'interim', JSON.stringify(e.results[i][0].transcript), e.results[i][0].confidence);
+    };
+    rec.start();
+    out('start() called');
+  } catch (e) {
+    out('EXCEPTION:', e && e.message);
+  }
+</script>

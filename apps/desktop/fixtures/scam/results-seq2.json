@@ -1,0 +1,253 @@
+{
+ "tag": "seq2",
+ "tp": 4,
+ "fn": 0,
+ "scAbstain": 0,
+ "fp": 0,
+ "tn": 2,
+ "geAbstain": 0,
+ "p50": 10000,
+ "p95": 13003,
+ "results": [
+  {
+   "id": "genuine/09-granddaughter",
+   "truth": "genuine",
+   "report": {
+    "verdict": "likely_genuine",
+    "confidence": 0.85,
+    "redFlags": [],
+    "advice": [
+     "This looks like a normal message from a grandchild, though I cannot be completely certain.",
+     "Check that the message came from the usual phone number you have saved for them.",
+     "If it is from a new number, call their old number first to make sure it is really them."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 6027
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": [
+    "Checking the wording…",
+    "Checking who it says it is…",
+    "Putting it together…"
+   ]
+  },
+  {
+   "id": "genuine/10-bank-card-alert",
+   "truth": "genuine",
+   "report": {
+    "verdict": "likely_genuine",
+    "confidence": 0.85,
+    "redFlags": [],
+    "advice": [
+     "This looks like a standard bank check, though I cannot be completely certain.",
+     "Check your official banking app to see if this payment is listed.",
+     "If you do not recognise the payment, call the number on the back of your bank card."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 7689
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": [
+    "Checking the wording…",
+    "Checking who it says it is…",
+    "Putting it together…"
+   ]
+  },
+  {
+   "id": "scam/01-bank-lockout",
+   "truth": "scam",
+   "report": {
+    "verdict": "likely_scam",
+    "confidence": 0.9,
+    "redFlags": [
+     {
+      "phrase": "https://brightway-bank.secure-verify.example/login",
+      "why": "Uses a fake look-alike web address instead of a real bank website."
+     },
+     {
+      "phrase": "within 2 hours or your money will be frozen",
+      "why": "Rushes and threatens you into acting before you have time to think."
+     },
+     {
+      "phrase": "Your account has been LOCKED",
+      "why": "Uses alarming capital letters to make you panic."
+     },
+     {
+      "phrase": "Verify your identity",
+      "why": "Asks for personal details through a text link, which real banks avoid."
+     }
+    ],
+    "advice": [
+     "Do not tap the link or enter any personal details.",
+     "If you bank with Brightway, call the number on the back of your bank card to check your account.",
+     "Delete this text message."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-4-argon"
+    ],
+    "latencyMs": 10000
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": [
+    "Checking the link…",
+    "Checking the wording…",
+    "Checking who it says it is…",
+    "Putting it together…"
+   ]
+  },
+  {
+   "id": "scam/02-parcel-fee",
+   "truth": "scam",
+   "report": {
+    "verdict": "likely_scam",
+    "confidence": 0.9,
+    "redFlags": [
+     {
+      "phrase": "Pay a £1.45 re-delivery fee",
+      "why": "Scammers ask for small fees to steal your bank card details."
+     },
+     {
+      "phrase": "https://parcel-redelivery-uk.example/pay",
+      "why": "This is a fake web link and does not name a real delivery company."
+     },
+     {
+      "phrase": "within 24 hours or it will be returned",
+      "why": "Rushes you into paying before you have time to check if it is real."
+     },
+     {
+      "phrase": "tried to deliver your parcel",
+      "why": "Does not say which delivery company is contacting you."
+     }
+    ],
+    "advice": [
+     "Do not click the link or enter your bank card details.",
+     "If you are expecting a parcel, check its status on the retailer's official website or app.",
+     "You can forward this scam text to 7726 (free of charge) and then delete it."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 10494
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": [
+    "Checking the link…",
+    "Checking the wording…",
+    "Checking who it says it is…",
+    "Putting it together…"
+   ]
+  },
+  {
+   "id": "scam/03-hi-mum",
+   "truth": "scam",
+   "report": {
+    "verdict": "likely_scam",
+    "confidence": 0.9,
+    "redFlags": [
+     {
+      "phrase": "Hi Mum, I dropped my phone in water.",
+      "why": "Scammers often pretend to be a family member with a broken phone."
+     },
+     {
+      "phrase": "please delete the old one.",
+      "why": "They want to stop you from calling your child's real number to check."
+     },
+     {
+      "phrase": "Can you send £480 to this account right now?",
+      "why": "A sudden request to send money to a strange account is a major warning sign."
+     },
+     {
+      "phrase": "It is urgent, I will explain later",
+      "why": "Rushing you to pay without explaining why is a classic scammer trick."
+     }
+    ],
+    "advice": [
+     "Do not send any money or reply to this message.",
+     "Call your child on their usual number to check if they are alright.",
+     "If you cannot reach them, speak to another family member before doing anything."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash",
+     "gemini-4-argon"
+    ],
+    "latencyMs": 9757
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": [
+    "Checking the wording…",
+    "Checking who it says it is…",
+    "Putting it together…"
+   ]
+  },
+  {
+   "id": "scam/04-tax-refund",
+   "truth": "scam",
+   "report": {
+    "verdict": "likely_scam",
+    "confidence": 0.69,
+    "redFlags": [
+     {
+      "phrase": "You are owed a tax refund of £382.40.",
+      "why": "Offers of unexpected free money or tax refunds are classic scam bait."
+     },
+     {
+      "phrase": "you must confirm your bank details",
+      "why": "Demands direct entry of sensitive banking information via an unverified link."
+     },
+     {
+      "phrase": "within 48 hours",
+      "why": "Imposes artificial urgency and a strict deadline to rush victims into acting recklessly."
+     },
+     {
+      "phrase": "Revenue Office:",
+      "why": "HMRC never uses generic names like 'Revenue Office' to text about refunds."
+     },
+     {
+      "phrase": "confirm your bank details",
+      "why": "Legitimate tax authorities never ask you to submit bank details via text links."
+     }
+    ],
+    "advice": [
+     "Please don't reply, click any links, or share any codes.",
+     "Contact the organisation using a number you already trust."
+    ],
+    "humanHelp": "If you are unsure, hang up or stop replying, then call the number printed on the back of your bank card, or ask someone you trust, or call Age UK. You can forward scam texts to 7726 for free.",
+    "models": [
+     "gemini-3.8-flash"
+    ],
+    "latencyMs": 13003
+   },
+   "verbatimOk": true,
+   "saidSafe": false,
+   "humanOk": true,
+   "progress": [
+    "Checking the link…",
+    "Checking the wording…",
+    "Checking who it says it is…",
+    "Putting it together…"
+   ]
+  }
+ ]
+}

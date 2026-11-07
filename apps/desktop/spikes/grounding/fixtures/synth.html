@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>synthetic grounding fixtures</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: #1c1f24; background: #e9edf2; }
+  .screen { display: none; width: 100vw; height: 100vh; position: relative; overflow: hidden; }
+  .screen.on { display: block; }
+  .menubar { height: 28px; background: #f6f7f9; border-bottom: 1px solid #cdd3da; display: flex; align-items: center; gap: 18px; padding: 0 14px; font-size: 13px; }
+  .win { position: absolute; background: #fff; border: 1px solid #b9c0c9; border-radius: 10px; box-shadow: 0 12px 40px rgba(20,30,50,.25); overflow: hidden; }
+  .titlebar { height: 38px; background: #eef1f5; border-bottom: 1px solid #d3d9e0; display: flex; align-items: center; padding: 0 12px; gap: 8px; font-size: 14px; font-weight: 600; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid #aeb6c0; background: #f4f6f8; padding: 10px 18px; font-size: 16px; }
+  .primary { background: #1e9e55; color: #fff; border-color: #167a41; }
+  .danger { background: #d23b3b; color: #fff; border-color: #a82a2a; }
+  .blue { background: #2563eb; color: #fff; border-color: #1c4bb8; }
+  .icon { width: 44px; height: 44px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid #aeb6c0; background: #f4f6f8; }
+  input[type=text], input[type=password], input[type=email] { font: inherit; font-size: 16px; padding: 10px 12px; border: 1px solid #aeb6c0; border-radius: 8px; width: 100%; }
+  .row { display: flex; align-items: center; gap: 12px; }
+  .abs { position: absolute; }
+  .dock { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; background: rgba(255,255,255,.7); border: 1px solid #c4cbd3; border-radius: 16px; padding: 8px 12px; }
+  .dock span { width: 48px; height: 48px; border-radius: 12px; display: inline-block; }
+  .toggle { width: 52px; height: 30px; border-radius: 15px; background: #c7ced6; position: relative; display: inline-block; }
+  .toggle.on { background: #1e9e55; }
+  .toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; }
+  .toggle.on::after { left: 25px; }
+  .slider { width: 320px; height: 8px; background: #c7ced6; border-radius: 4px; position: relative; display: inline-block; }
+  .slider i { position: absolute; top: -9px; width: 26px; height: 26px; border-radius: 50%; background: #2563eb; border: 3px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+  .side { background: #f0f2f5; border-right: 1px solid #d3d9e0; }
+  .side div { padding: 10px 14px; font-size: 15px; }
+  .side div.sel { background: #dbe7ff; font-weight: 600; }
+  .msg { padding: 10px 14px; border-radius: 14px; max-width: 360px; font-size: 16px; line-height: 1.35; margin: 6px 0; }
+  .in { background: #e8ebef; }
+  .out { background: #2563eb; color: #fff; margin-left: auto; }
+  .tile { background: #2a2f38; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #cbd2dc; font-size: 15px; }
+  a { color: #1a56db; }
+  .tag { display: inline-block; border-radius: 10px; padding: 2px 8px; font-size: 12px; background: #e5e9ef; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; } td, th { border-bottom: 1px solid #e3e7ec; padding: 8px 10px; text-align: left; }
+</style>
+</head>
+<body>
+
+<!-- 1. VIDEO CALL APP -->
+<div class="screen" id="video-call">
+  <div class="menubar"><b>Meetly</b><span>File</span><span>View</span><span>Window</span><span>Help</span><span style="margin-left:auto">Sat 12:31</span></div>
+  <div class="win" style="left:140px;top:70px;width:1120px;height:700px;">
+    <div class="titlebar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span>&nbsp;Meetly &mdash; Family chat</div>
+    <div style="display:grid;grid-template-columns:260px 1fr;height:calc(100% - 38px);">
+      <div class="side">
+        <div style="font-weight:700;padding:14px">Contacts</div>
+        <div class="sel">Emma (granddaughter)</div><div>Dr. Patel's surgery</div><div>Tom</div><div>Book club</div>
+        <div style="margin-top:20px;padding:0 14px"><button class="primary" style="width:100%" data-ground-id="start-call">Start call</button></div>
+        <div style="margin-top:10px;padding:0 14px"><button style="width:100%" data-ground-id="schedule-call">Schedule a call</button></div>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:14px;">
+        <div class="row"><b style="font-size:20px">Emma</b><span class="tag">Online</span><span style="margin-left:auto"><button data-ground-id="settings-gear">Settings</button></span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;height:360px;"><div class="tile">Emma</div><div class="tile" style="background:#3a4150">You (camera off)</div></div>
+        <div class="row" style="justify-content:center;gap:18px;">
+          <span class="icon" data-ground-id="mute-mic" title="Mute">&#127908;</span>
+          <span class="icon" data-ground-id="camera-toggle" title="Camera">&#127909;</span>
+          <span class="icon" data-ground-id="share-screen" title="Share">&#128421;</span>
+          <button class="danger" data-ground-id="leave-call" style="border-radius:24px;padding:12px 26px">Leave</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="dock"><span style="background:#4f8cff"></span><span style="background:#f5a623"></span><span style="background:#3ecf8e"></span><span style="background:#e0527a"></span><span style="background:#8e6bff"></span></div>
+</div>
+
+<!-- 2. MESSAGES WITH A SCAM TEXT -->
+<div class="screen" id="messages">
+  <div class="menubar"><b>Messages</b><span>File</span><span>Edit</span><span>View</span><span style="margin-left:auto">Sat 12:31</span></div>
+  <div class="win" style="left:180px;top:60px;width:1000px;height:720px;">
+    <div class="titlebar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span>&nbsp;Messages</div>
+    <div style="display:grid;grid-template-columns:300px 1fr;height:calc(100% - 38px)">
+      <div class="side">
+        <div style="padding:12px"><input type="text" placeholder="Search" data-ground-id="search-field"></div>
+        <div>Mum</div><div class="sel" data-ground-id="thread-unknown">+44 7700 900123 &middot; unknown number</div><div>Boots Pharmacy</div><div>Sam</div>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;">
+        <div class="msg in">Hi, it's Mum &mdash; call me when you're free x</div>
+        <div class="msg in" style="background:#fff3cd;border:1px solid #ecd48a" data-ground-id="scam-bubble">URGENT: Your parcel is held. Pay &pound;1.99 redelivery fee within 12 hours at <a href="#" data-ground-id="scam-link">royalparcel-redeliver.example/pay</a> or it will be returned.</div>
+        <div class="msg out">Who is this?</div>
+        <div style="margin-top:auto;display:flex;gap:10px;"><input type="text" placeholder="Type a message" data-ground-id="message-box"><button class="blue" data-ground-id="send-button">Send</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3. SETTINGS / DISPLAY -->
+<div class="screen" id="settings">
+  <div class="menubar"><b>Settings</b><span>Edit</span><span>View</span><span style="margin-left:auto">Sat 12:31</span></div>
+  <div class="win" style="left:200px;top:60px;width:1040px;height:740px;">
+    <div class="titlebar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span>&nbsp;Settings</div>
+    <div style="display:grid;grid-template-columns:260px 1fr;height:calc(100% - 38px)">
+      <div class="side"><div>Wi-Fi</div><div>Bluetooth</div><div>Sound</div><div class="sel" data-ground-id="nav-display">Display</div><div data-ground-id="nav-accessibility">Accessibility</div><div>Battery</div><div>Privacy</div></div>
+      <div style="padding:26px 34px;display:flex;flex-direction:column;gap:30px;">
+        <h2 style="margin:0">Display</h2>
+        <div><div style="font-size:17px;margin-bottom:12px">Text size</div><div class="row"><span style="font-size:13px">A</span><span class="slider" data-ground-id="text-size-slider"><i style="left:90px"></i></span><span style="font-size:26px">A</span></div></div>
+        <div class="row" style="justify-content:space-between"><span style="font-size:17px">Dark mode</span><span class="toggle" data-ground-id="dark-mode-toggle"></span></div>
+        <div class="row" style="justify-content:space-between"><span style="font-size:17px">Increase contrast</span><span class="toggle on" data-ground-id="contrast-toggle"></span></div>
+        <div class="row" style="justify-content:space-between"><span style="font-size:17px">Brightness</span><span class="slider" data-ground-id="brightness-slider"><i style="left:210px"></i></span></div>
+        <div class="row" style="gap:14px"><button data-ground-id="apply-button" class="blue">Apply</button><button data-ground-id="revert-button">Revert to default</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 4. WEBMAIL INBOX -->
+<div class="screen" id="webmail">
+  <div style="height:42px;background:#dfe3e8;display:flex;align-items:center;gap:10px;padding:0 14px;">
+    <span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span>
+    <div style="margin-left:20px;flex:1;max-width:760px;background:#fff;border-radius:18px;padding:7px 16px;font-size:14px;color:#444" data-ground-id="address-bar">https://mail.example.com/inbox</div>
+  </div>
+  <div style="display:grid;grid-template-columns:230px 1fr;height:calc(100% - 42px);background:#fff;">
+    <div class="side" style="padding:14px">
+      <button class="blue" style="width:100%;margin-bottom:16px" data-ground-id="compose-button">Compose</button>
+      <div class="sel" data-ground-id="folder-inbox">Inbox (3)</div><div>Starred</div><div>Sent</div><div data-ground-id="folder-spam">Spam</div><div>Bin</div>
+    </div>
+    <div>
+      <div class="row" style="padding:12px 18px;border-bottom:1px solid #e3e7ec"><input type="text" placeholder="Search mail" style="max-width:520px" data-ground-id="mail-search"><span style="margin-left:auto" class="icon" data-ground-id="profile-avatar">S</span></div>
+      <table>
+        <tr><td style="width:40px"><input type="checkbox" data-ground-id="row1-checkbox"></td><td style="width:220px"><b>HMRC Refunds</b></td><td data-ground-id="row1-subject"><b>You are owed a tax refund - claim now</b></td><td>11:02</td></tr>
+        <tr><td><input type="checkbox"></td><td>Emma</td><td>Photos from the weekend</td><td>09:41</td></tr>
+        <tr><td><input type="checkbox"></td><td>Allotment Society</td><td>Meeting moved to Thursday</td><td>Yesterday</td></tr>
+        <tr><td><input type="checkbox"></td><td>Your Bank</td><td data-ground-id="row4-subject">Your statement is ready</td><td>Yesterday</td></tr>
+        <tr><td><input type="checkbox"></td><td>Tom</td><td>Re: Sunday lunch</td><td>Mon</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 5. LOGIN FORM -->
+<div class="screen" id="login">
+  <div style="height:42px;background:#dfe3e8;display:flex;align-items:center;gap:10px;padding:0 14px;">
+    <span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span>
+    <div style="margin-left:20px;flex:1;max-width:760px;background:#fff;border-radius:18px;padding:7px 16px;font-size:14px;color:#444">https://online.example-bank.test/login</div>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:center;height:calc(100% - 42px);background:#eef3fb">
+    <div style="width:460px;background:#fff;border-radius:14px;padding:36px;box-shadow:0 8px 30px rgba(0,0,0,.12);display:flex;flex-direction:column;gap:16px;">
+      <h2 style="margin:0">Sign in to online banking</h2>
+      <label>Customer ID<input type="text" data-ground-id="customer-id"></label>
+      <label>Password<input type="password" data-ground-id="password-field"></label>
+      <label class="row"><input type="checkbox" data-ground-id="remember-me"> Remember me on this device</label>
+      <button class="blue" data-ground-id="signin-button" style="padding:13px">Sign in</button>
+      <a href="#" data-ground-id="forgot-link">Forgotten your password?</a>
+    </div>
+  </div>
+</div>
+
+<!-- 6. DESKTOP WITH FILE MANAGER -->
+<div class="screen" id="files">
+  <div class="menubar"><b>Files</b><span>File</span><span>Edit</span><span>View</span><span style="margin-left:auto">Sat 12:31</span></div>
+  <div class="win" style="left:160px;top:80px;width:980px;height:640px;">
+    <div class="titlebar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span>&nbsp;Documents</div>
+    <div style="display:grid;grid-template-columns:200px 1fr;height:calc(100% - 38px)">
+      <div class="side"><div>Desktop</div><div class="sel">Documents</div><div>Downloads</div><div data-ground-id="nav-photos">Photos</div><div>Bin</div></div>
+      <div style="padding:20px;display:grid;grid-template-columns:repeat(4,150px);grid-auto-rows:130px;gap:16px;align-content:start;">
+        <div class="tile" style="background:#f6d56a;color:#4a3b00" data-ground-id="folder-taxes">Taxes 2025</div>
+        <div class="tile" style="background:#f6d56a;color:#4a3b00" data-ground-id="folder-recipes">Recipes</div>
+        <div class="tile" style="background:#c7d2e2;color:#2a3a52" data-ground-id="file-letter">letter-to-council.doc</div>
+        <div class="tile" style="background:#c7d2e2;color:#2a3a52">holiday-plan.pdf</div>
+        <div class="tile" style="background:#c7d2e2;color:#2a3a52">passwords.txt</div>
+        <div class="tile" style="background:#f6d56a;color:#4a3b00">Family</div>
+      </div>
+    </div>
+  </div>
+  <div class="abs" style="right:30px;top:60px;width:200px;display:flex;flex-direction:column;gap:20px;">
+    <div class="tile" style="height:90px;background:#d9dee6;color:#333" data-ground-id="desktop-bin">Recycle Bin</div>
+  </div>
+</div>
+
+
+<!-- 7. EDITOR WITH SMALL ICON TOOLBAR (hard: unlabeled small icons) -->
+<div class="screen" id="editor">
+  <div class="menubar"><b>Writer</b><span>File</span><span>Edit</span><span>Insert</span><span>Format</span><span style="margin-left:auto">Sat 12:31</span></div>
+  <div class="win" style="left:120px;top:50px;width:1180px;height:780px;">
+    <div class="titlebar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span>&nbsp;Letter to the council.doc</div>
+    <div class="row" style="padding:8px 14px;border-bottom:1px solid #d3d9e0;background:#f6f7f9;gap:6px;flex-wrap:wrap">
+      <span class="tag" style="font-size:14px;padding:6px 10px" data-ground-id="font-dropdown">Arial &#9662;</span>
+      <span class="tag" style="font-size:14px;padding:6px 10px">12 &#9662;</span>
+      <b style="width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #c4cbd3;border-radius:5px" data-ground-id="bold-btn">B</b>
+      <i style="width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #c4cbd3;border-radius:5px" data-ground-id="italic-btn">I</i>
+      <u style="width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #c4cbd3;border-radius:5px" data-ground-id="underline-btn">U</u>
+      <span style="width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #c4cbd3;border-radius:5px" data-ground-id="align-left">&#8801;</span>
+      <span style="width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #c4cbd3;border-radius:5px" data-ground-id="paperclip-btn">&#128206;</span>
+      <span style="width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #c4cbd3;border-radius:5px" data-ground-id="image-btn">&#128444;</span>
+      <span style="width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #c4cbd3;border-radius:5px" data-ground-id="print-btn">&#128424;</span>
+      <span style="width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #c4cbd3;border-radius:5px" data-ground-id="undo-btn">&#8630;</span>
+      <span style="width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #c4cbd3;border-radius:5px" data-ground-id="redo-btn">&#8631;</span>
+      <span style="margin-left:auto"><button style="padding:6px 14px;font-size:14px" data-ground-id="save-button">Save</button> <button class="blue" style="padding:6px 14px;font-size:14px" data-ground-id="share-button">Share</button></span>
+    </div>
+    <div style="padding:40px 120px;font-size:17px;line-height:1.6;color:#333">
+      <p>Dear Sir or Madam,</p><p>I am writing to report that the street light outside number 14 has been broken for three weeks. Could you please arrange for it to be repaired as soon as possible?</p><p>Yours faithfully,<br>S. Mehta</p>
+    </div>
+  </div>
+</div>
+
+<!-- 8. COOKIE BANNER + NOTIFICATIONS (hard: decoys, tiny close) -->
+<div class="screen" id="popup">
+  <div style="height:42px;background:#dfe3e8;display:flex;align-items:center;gap:10px;padding:0 14px;">
+    <span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span>
+    <div style="margin-left:20px;flex:1;max-width:760px;background:#fff;border-radius:18px;padding:7px 16px;font-size:14px;color:#444">https://www.garden-shop.example/offers</div>
+  </div>
+  <div style="padding:30px 80px;background:#fff;height:calc(100% - 42px)">
+    <h1 style="margin:0 0 6px">Spring garden offers</h1><p style="color:#555">Seeds, bulbs and tools for every gardener.</p>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:20px">
+      <div class="tile" style="height:180px;background:#cfe8cf;color:#244">Sweet peas</div><div class="tile" style="height:180px;background:#cfe8cf;color:#244">Runner beans</div>
+      <div class="tile" style="height:180px;background:#cfe8cf;color:#244">Tulip bulbs</div><div class="tile" style="height:180px;background:#cfe8cf;color:#244">Compost</div>
+    </div>
+    <div class="row" style="margin-top:20px;gap:14px"><button class="blue" data-ground-id="add-basket-1">Add to basket</button><button data-ground-id="add-wishlist">Add to wishlist</button><a href="#" data-ground-id="delivery-link" style="font-size:14px">Delivery information</a></div>
+  </div>
+  <div class="abs" style="left:0;right:0;bottom:0;background:#1f2933;color:#fff;padding:22px 80px;display:flex;align-items:center;gap:24px;font-size:16px">
+    <span>We use cookies to improve your experience. You can accept all, or choose which ones to allow.</span>
+    <button style="margin-left:auto;background:transparent;color:#fff;border-color:#8793a1" data-ground-id="cookie-manage">Manage choices</button>
+    <button style="background:#f5a623;border-color:#f5a623;color:#111" data-ground-id="cookie-accept">Accept all</button>
+  </div>
+  <div class="abs" style="right:24px;top:70px;width:300px;background:#fff;border:1px solid #c4cbd3;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.2);padding:14px 16px;font-size:14px">
+    <div class="row" style="justify-content:space-between"><b>Win a free hamper!</b><span style="width:18px;height:18px;line-height:16px;text-align:center;border-radius:50%;background:#e5e9ef;font-size:12px;cursor:pointer" data-ground-id="popup-close">&#10005;</span></div>
+    <p style="margin:8px 0">Join our newsletter for a chance to win.</p><button class="primary" style="padding:6px 12px;font-size:14px" data-ground-id="popup-join">Join now</button>
+  </div>
+</div>
+
+<script>
+  const id = (location.hash || '#video-call').slice(1);
+  (document.getElementById(id) || document.getElementById('video-call')).classList.add('on');
+  // ground truth: normalised 0-1000 boxes for every data-ground-id element on the visible screen
+  window.__rects = () => {
+    const out = {};
+    const W = innerWidth, H = innerHeight;
+    document.querySelectorAll('.screen.on [data-ground-id]').forEach((el) => {
+      const r = el.getBoundingClientRect();
+      out[el.dataset.groundId] = {
+        xmin: Math.round(r.left / W * 1000), ymin: Math.round(r.top / H * 1000),
+        xmax: Math.round(r.right / W * 1000), ymax: Math.round(r.bottom / H * 1000),
+      };
+    });
+    return out;
+  };
+</script>
+</body>
+</html>

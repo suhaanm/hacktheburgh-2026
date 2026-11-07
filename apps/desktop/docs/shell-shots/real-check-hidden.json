@@ -1,0 +1,135 @@
+{
+  "at": "2026-10-31T16:04:36.992Z",
+  "titles": [
+    "Listening",
+    "Live",
+    "Speaking",
+    "Listening"
+  ],
+  "results": [
+    {
+      "name": "app up",
+      "ok": true
+    },
+    {
+      "name": "tray exists",
+      "ok": true
+    },
+    {
+      "name": "panel hidden at startup (showDock false, setup done)",
+      "ok": true,
+      "detail": {
+        "panelVisible": false
+      }
+    },
+    {
+      "name": "Show panel checkbox is unchecked",
+      "ok": true
+    },
+    {
+      "name": "panel shortcut shown on the checkbox when registered",
+      "ok": true,
+      "detail": "CommandOrControl+Alt+P"
+    },
+    {
+      "name": "settings.showDock matches in state",
+      "ok": true
+    },
+    {
+      "name": "dock renderer still renders while hidden (GET /dock.png)",
+      "ok": true,
+      "detail": {
+        "status": 200,
+        "bytes": 21712
+      }
+    },
+    {
+      "name": "log: wake spotter did not report a failure while hidden",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "POST /wake accepted",
+      "ok": true
+    },
+    {
+      "name": "Live session reaches live while the panel is hidden",
+      "ok": true,
+      "detail": {
+        "phases": [
+          "listening_for_name",
+          "live"
+        ]
+      }
+    },
+    {
+      "name": "tray title changed away from the resting word",
+      "ok": true,
+      "detail": {
+        "titles": [
+          "Listening",
+          "Live",
+          "Speaking",
+          "Listening"
+        ]
+      }
+    },
+    {
+      "name": "panel visibility unchanged by the session",
+      "ok": true
+    },
+    {
+      "name": "captions arrive (panel hidden)",
+      "ok": true,
+      "detail": {
+        "count": 1,
+        "phase": "speaking"
+      }
+    },
+    {
+      "name": "overlay window renders (captions band lives there)",
+      "ok": true,
+      "detail": {
+        "status": 200
+      }
+    },
+    {
+      "name": "Show panel (tray click) shows the panel and persists showDock",
+      "ok": true,
+      "detail": {
+        "panelVisible": true,
+        "showDock": true
+      }
+    },
+    {
+      "name": "dock renders when shown",
+      "ok": true
+    },
+    {
+      "name": "clicking the icon hides it again and persists",
+      "ok": true,
+      "detail": {
+        "panelVisible": false,
+        "showDock": false
+      }
+    },
+    {
+      "name": "session still live after toggling the panel",
+      "ok": true,
+      "detail": "speaking"
+    },
+    {
+      "name": "Stop returns to the resting phase",
+      "ok": true,
+      "detail": "listening_for_name"
+    },
+    {
+      "name": "Type instead shows the hidden panel",
+      "ok": true
+    },
+    {
+      "name": "panel returns to hidden when that session ends",
+      "ok": true
+    }
+  ]
+}

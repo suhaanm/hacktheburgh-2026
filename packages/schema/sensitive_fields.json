@@ -1,0 +1,18 @@
+{
+  "description": "Fields that are NEVER recorded or read (CAP-4, SEC). Data, not code: extend freely. Matched case-insensitively as regex against field name, id, label, placeholder, autocomplete and aria-label.",
+  "patterns": [
+    "pass(word|wd|code|phrase)?",
+    "\\bpin\\b",
+    "\\botp\\b",
+    "one[- ]?time",
+    "2fa|mfa|verification[- ]code|security[- ]code",
+    "\\bcvv\\b|\\bcvc\\b|card[- ]?(number|no)|credit|debit",
+    "\\biban\\b|sort[- ]?code|account[- ]?(number|no)|routing",
+    "national[- ]?insurance|\\bni[- ]?(number|no)\\b|\\bnino\\b|\\bssn\\b|social[- ]security",
+    "passport|driving[- ]?licen[cs]e|date[- ]of[- ]birth|\\bdob\\b",
+    "secret|token|api[- ]?key|private[- ]key|seed[- ]phrase",
+    "cc-number|cc-csc|cc-exp|current-password|new-password|one-time-code"
+  ],
+  "autocomplete_tokens": ["cc-number", "cc-csc", "cc-exp", "current-password", "new-password", "one-time-code"],
+  "input_types": ["password"]
+}

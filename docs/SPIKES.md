@@ -4,12 +4,12 @@ Fill in each result with a date, a one-line outcome, and what it decides. Do not
 
 ## S1: OpenAI access
 
-- [ ] List the models the key can use (do not print the key).
-- [ ] One chat call with a structured output.
-- [ ] One vision call on a screenshot.
-- [ ] One computer-tool probe in the Responses API: request and response shape, how pending safety checks appear.
+- [x] List the models the key can use (do not print the key). 7 Nov 14:30 GMT: HTTP 200, 107 models incl. gpt-5.5, gpt-5.4, gpt-5.4-mini, gpt-5.4-nano, gpt-6-sol, gpt-realtime-*, gpt-4o-transcribe, tts. No `computer-use-*` ID is listed or needed.
+- [x] One chat call with a structured output. Responses API, `text.format` json_schema strict: works on gpt-5.5, gpt-5.4-mini, gpt-5.4-nano.
+- [ ] One vision call on a screenshot. (agent-safety track will run this as a `live` test.)
+- [x] One computer-tool probe in the Responses API: `tools=[{"type":"computer"}]` is accepted by gpt-5.5, gpt-5.4, gpt-5.4-mini and gpt-6-sol. The response contains a `computer_call` item whose `actions` is a list (first action on "take a screenshot" was `[{"type":"screenshot"}]`). No `pending_safety_checks` appeared on this trivial call (field absent); the provider must still treat any that appear as a stop.
 - **Decides:** the values of `OPENAI_MODEL_PLANNER`, `OPENAI_MODEL_FAST`, `OPENAI_MODEL_COMPUTER_USE`; whether tier 3 is real.
-- **Result:**
+- **Result (7 Nov 2026, lead):** `OPENAI_MODEL_PLANNER=gpt-5.5`, `OPENAI_MODEL_FAST=gpt-5.4-mini`, `OPENAI_MODEL_COMPUTER_USE=gpt-5.5` (set in the local `.env`, never committed). Tier 3 is real at the API level. Whether it is real on the desktop depends on S2. Vision call still to confirm.
 
 ## S2: real click on a harmless app (owner present)
 

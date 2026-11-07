@@ -1,0 +1,20 @@
+[project]
+name = "understudy"
+version = "0.1.0"
+description = "Understudy workspace root (uv workspace)."
+requires-python = ">=3.12,<3.14"
+dependencies = []
+
+[tool.uv.workspace]
+members = ["services/engine", "services/agent"]
+
+[tool.uv.sources]
+understudy-engine = { workspace = true }
+understudy-agent = { workspace = true }
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["services/engine/tests", "services/agent/tests"]

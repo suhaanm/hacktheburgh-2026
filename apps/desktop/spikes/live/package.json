@@ -1,0 +1,13 @@
+{
+  "name": "alongside-live-spike",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "description": "Live API smoke tests for the renderer LiveSession (isolated from the root app package)",
+  "dependencies": {
+    "@google/genai": "^2.32.0",
+    "dotenv": "^18.0.9",
+    "esbuild": "^0.25.0",
+    "playwright-core": "^1.64.1"
+  }
+}

@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; worker-src 'self' blob:; connect-src 'self' wss://generativelanguage.googleapis.com https://generativelanguage.googleapis.com">
+<script src="wake.bundle.js"></script>
+<script>
+  const personas = [
+    { id: 'marcus', wakePhrases: ['hey marcus', 'hi marcus', 'ok marcus', 'okay marcus'], wakeAliases: ['hey marcos', 'hey markus'] },
+    { id: 'amelia', wakePhrases: ['hey amelia', 'hi amelia', 'ok amelia', 'okay amelia'], wakeAliases: ['hey emilia', 'hey amelie'] },
+  ]
+  // The "microphone": the WAV decoded and played into a MediaStreamDestination. It is consumed through the real
+  // createMicAudioSource path (AudioContext at 16 kHz, blob AudioWorklet, 100 ms Int16 frames, ring buffer, engine).
+  let wavCtx
+  let startPlayback
+  async function syntheticStream() {
+    const bytes = await window.harness.readWav()
+    wavCtx = new AudioContext()
+    const buf = await wavCtx.decodeAudioData(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength))
+    const dest = wavCtx.createMediaStreamDestination()
+    startPlayback = () => {
+      const src = wavCtx.createBufferSource()
+      src.buffer = buf
+      src.connect(dest)
+      src.start()
+      console.log('DEBUG playback started')
+    }
+    return dest.stream
+  }
+  const spotter = WakeLib.createWakeSpotter({
+    personas,
+    getToken: () => window.harness.getToken(),
+    getStream: syntheticStream,
+    onWake: (e) => {
+      console.log('WAKE ' + JSON.stringify(e))
+      const pre = spotter.takePreroll()
+      console.log('DEBUG takePreroll samples=' + (pre ? pre.length : 0) + ' ms=' + (pre ? Math.round(pre.length / 16) : 0))
+    },
+    onStatus: (s) => console.log('STATUS ' + JSON.stringify(s)),
+    onDebug: (t, f) => console.log('DEBUG ' + (f ? 'F' : 'i') + ':' + t),
+  })
+  spotter
+    .start()
+    .then(() => {
+      console.log('STATUS start() resolved')
+      if (startPlayback) startPlayback()
+    })
+    .catch((e) => console.log('ERROR ' + e))
+</script>

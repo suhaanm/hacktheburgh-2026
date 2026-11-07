@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://understudy.local/schema/event.schema.json",
+  "title": "Understudy event v1",
+  "description": "No free text, no URLs, no field values. Identifiers are hashed with a per-install salt. meta holds numbers, booleans and short enum tokens only.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "id", "t", "origin", "actor", "person", "role", "source", "type"],
+  "properties": {
+    "schema": { "const": 1 },
+    "id": { "type": "string", "minLength": 8, "maxLength": 64 },
+    "t": { "type": "string", "format": "date-time" },
+    "origin": { "enum": ["real", "synthetic"] },
+    "actor": { "enum": ["human", "agent"] },
+    "person": { "type": "string", "pattern": "^p_[a-z0-9]{2,16}$" },
+    "role": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,40}$" },
+    "source": { "enum": ["browser", "screen", "os", "desk", "agent", "coach"] },
+    "type": {
+      "enum": [
+        "nav", "click", "scroll", "focus", "tab", "copy", "paste", "search",
+        "idle", "lock", "unlock", "sleep", "resume", "stuck",
+        "coach_shown", "coach_followed", "coach_dismissed",
+        "agent_step", "approval", "undo", "task_start", "task_end", "progress"
+      ]
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "role": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{0,31}$" },
+        "label_hash": { "type": "string", "pattern": "^h:[0-9a-f]{4,16}$" },
+        "domain_hash": { "type": "string", "pattern": "^d:[0-9a-f]{4,16}$" }
+      }
+    },
+    "task_id": { "type": "string", "pattern": "^t_[A-Za-z0-9_-]{1,32}$" },
+    "meta": {
+      "type": "object",
+      "maxProperties": 16,
+      "propertyNames": { "pattern": "^[a-z][a-z0-9_]{0,31}$" },
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "number" },
+          { "type": "boolean" },
+          { "type": "string", "pattern": "^[a-z0-9_:\\-.]{0,32}$" }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,69 @@
+/* NOTIFY: the top-right confirmation toast. Colours, type scale, dyslexia font, high contrast and glass all come from the design tokens. */
+html,
+body {
+  background: transparent;
+}
+body {
+  padding: 12px;
+  box-sizing: border-box;
+}
+.al-toast {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-4) var(--sp-3);
+  border: var(--border-w) solid var(--line-strong);
+  border-radius: var(--r-lg);
+  background: var(--surface-raised);
+  color: var(--ink);
+  /* Tight so it fits inside the window's 12px padding: a wide shadow would show as a pale rectangle with hard edges. */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  overflow: hidden;
+}
+.al-toast__title {
+  margin: 0;
+  font-size: var(--fs-base);
+  font-weight: var(--fw-strong);
+  color: var(--ink-muted);
+  letter-spacing: var(--ls-body);
+}
+.al-toast__q {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-strong);
+  line-height: var(--lh-tight);
+  overflow-wrap: anywhere;
+}
+.al-toast__choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.al-toast__choices .al-btn {
+  width: 100%;
+}
+/* "Not now": plainly the other choice, never styled like the primary action. */
+.al-toast__no {
+  background: transparent;
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+.al-toast__no:hover {
+  background: var(--surface-sunken);
+}
+.al-toast .al-btn:focus-visible {
+  outline: var(--focus-w) solid var(--focus);
+  outline-offset: 2px;
+}
+.al-toast__time {
+  height: 4px;
+  margin: var(--sp-1) calc(var(--sp-4) * -1) calc(var(--sp-3) * -1);
+  background: var(--surface-sunken);
+}
+.al-toast__timefill {
+  height: 100%;
+  background: var(--accent, var(--ink-muted));
+  transition: width 250ms linear;
+}

@@ -1,0 +1,177 @@
+{
+ "thinking": "low",
+ "n": 10,
+ "p50": 8941,
+ "p95": 12480,
+ "max": 12480,
+ "ok": 10,
+ "step1Found": 10,
+ "replanned": 0,
+ "perCall": {
+  "architect.plan": {
+   "n": 14,
+   "p50": 6903,
+   "p95": 10051
+  },
+  "grounder.box.gemini-3.5-flash-lite": {
+   "n": 8,
+   "p50": 1025,
+   "p95": 1101
+  },
+  "grounder.box.gemini-3.8-flash": {
+   "n": 2,
+   "p50": 2370,
+   "p95": 2370
+  }
+ },
+ "rows": [
+  {
+   "round": 0,
+   "goal": "mute my microphone",
+   "ok": true,
+   "ms": 5359,
+   "replanned": false,
+   "skillId": "video_call",
+   "steps": 1,
+   "step1": "A dark grey square button with a white microphone picture and the word Mute, on the far left of the bottom row of buttons.",
+   "step1Found": true,
+   "instr": [
+    "Click the dark button that says Mute at the bottom of the VideoChat window."
+   ]
+  },
+  {
+   "round": 0,
+   "goal": "turn my camera off",
+   "ok": true,
+   "ms": 6289,
+   "replanned": false,
+   "skillId": "video_call",
+   "steps": 1,
+   "step1": "Dark grey rectangular button with a white camera picture and the words Stop video, second from the left in the bottom row.",
+   "step1Found": true,
+   "instr": [
+    "Click the dark button that says Stop video at the bottom of the call window."
+   ]
+  },
+  {
+   "round": 0,
+   "goal": "make the text bigger in settings",
+   "ok": true,
+   "ms": 8941,
+   "replanned": false,
+   "skillId": "bigger_text",
+   "steps": 3,
+   "step1": "A grey square icon with a white gear wheel, labelled Settings, third from the top on the left side.",
+   "step1Found": true,
+   "instr": [
+    "Click the Settings icon on the far left of your screen.",
+    "Click Display or Appearance in the Settings menu.",
+    "Choose a larger text size option or move the Text Size slider to the right."
+   ]
+  },
+  {
+   "round": 0,
+   "goal": "open the privacy settings",
+   "ok": true,
+   "ms": 7607,
+   "replanned": false,
+   "skillId": "custom",
+   "steps": 2,
+   "step1": "A grey square with a white gear picture, labelled Settings, third down on the far left.",
+   "step1Found": true,
+   "instr": [
+    "Click the grey Settings picture on the left side of the screen.",
+    "Click the word Privacy inside the new Settings window."
+   ]
+  },
+  {
+   "round": 0,
+   "goal": "share my screen",
+   "ok": true,
+   "ms": 10986,
+   "replanned": false,
+   "skillId": "video_call",
+   "steps": 2,
+   "step1": "Dark grey rectangular button labeled 'Share' with an upward arrow icon, in the bottom center row of buttons.",
+   "step1Found": true,
+   "instr": [
+    "Click the Share button at the bottom of the VideoChat window.",
+    "Click the option for your whole screen or the window you want to show, then confirm."
+   ]
+  },
+  {
+   "round": 1,
+   "goal": "mute my microphone",
+   "ok": true,
+   "ms": 12480,
+   "replanned": false,
+   "skillId": "video_call",
+   "steps": 1,
+   "step1": "A dark grey square button with a white microphone picture and the word Mute, on the far left of the bottom row of buttons inside the VideoChat window.",
+   "step1Found": true,
+   "instr": [
+    "Click the dark button labeled Mute at the bottom of the VideoChat window."
+   ]
+  },
+  {
+   "round": 1,
+   "goal": "turn my camera off",
+   "ok": true,
+   "ms": 10314,
+   "replanned": false,
+   "skillId": "video_call",
+   "steps": 1,
+   "step1": "Dark grey rectangular button with a white camera picture and the words Stop video, second from the left in the bottom row of buttons.",
+   "step1Found": true,
+   "instr": [
+    "Click the dark button that says Stop video at the bottom of the call window."
+   ]
+  },
+  {
+   "round": 1,
+   "goal": "make the text bigger in settings",
+   "ok": true,
+   "ms": 11077,
+   "replanned": false,
+   "skillId": "bigger_text",
+   "steps": 3,
+   "step1": "A grey square icon with a gear picture and the word Settings underneath, third down on the far left.",
+   "step1Found": true,
+   "instr": [
+    "Click the Settings icon on the left side of the screen.",
+    "Click on Display or Accessibility in the Settings menu.",
+    "Choose a larger text size option or move the text size slider to the right."
+   ]
+  },
+  {
+   "round": 1,
+   "goal": "open the privacy settings",
+   "ok": true,
+   "ms": 7410,
+   "replanned": false,
+   "skillId": "custom",
+   "steps": 2,
+   "step1": "A grey square with a white gear picture and the word Settings underneath, third from the top on the left.",
+   "step1Found": true,
+   "instr": [
+    "Click the grey Settings picture on the left side of the screen.",
+    "Click the word Privacy inside the new Settings window."
+   ]
+  },
+  {
+   "round": 1,
+   "goal": "share my screen",
+   "ok": true,
+   "ms": 8798,
+   "replanned": false,
+   "skillId": "video_call",
+   "steps": 2,
+   "step1": "Dark grey rectangular button labeled 'Share' with an upward arrow icon, in the bottom center row of buttons.",
+   "step1Found": true,
+   "instr": [
+    "Click the Share button at the bottom of the VideoChat window.",
+    "Choose the screen or window you want Lily to see, then click the confirm button."
+   ]
+  }
+ ]
+}

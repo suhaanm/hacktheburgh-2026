@@ -1,0 +1,12 @@
+{
+  "name": "alongside-grounding-spike",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "description": "Grounding A/B benchmark (isolated from the root app package)",
+  "dependencies": {
+    "@google/genai": "^2.32.0",
+    "dotenv": "^18.0.9",
+    "playwright-core": "^1.64.1"
+  }
+}

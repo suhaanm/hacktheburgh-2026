@@ -1,0 +1,14 @@
+{
+  "note": "Recorded search_files result for the scripted tour. Mirrors fixtures/files-demo (FILES lane). Used only in scripted mode; live mode calls the real tool.",
+  "query": "where did I save my GP letter",
+  "results": [
+    {
+      "name": "GP letter - Riverside Surgery.pdf",
+      "folder": "Health",
+      "relPath": "Health/GP letter - Riverside Surgery.pdf",
+      "path": "~/Documents/Health/GP letter - Riverside Surgery.pdf",
+      "snippet": "Riverside Surgery. Your appointment with Dr Okafor is on Wednesday 4 November at 10:30. Please bring your appointment card.",
+      "score": 0.91
+    }
+  ]
+}
