@@ -1,5 +1,6 @@
 import type { OnboardingAnswers, OnboardingQuestions } from "../types";
 
+const PACE: Record<string, string> = { slow: "slowly", gradual: "gradually", fast: "quickly" };
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export function daysText(days: number[]): string {
@@ -36,7 +37,7 @@ export function buildPreview(role: string, q: OnboardingQuestions | undefined, a
   add("---");
   add("## Preferences");
   add(`- Summaries: ${tone}. Tone: ${voice}.`, !!a.tone);
-  add(`- Help fades: ${a.pace ?? "gradually"}.`, !!a.pace);
+  add(`- Help fades: ${PACE[a.pace ?? "gradual"] ?? a.pace}.`, !!a.pace);
   if (a.hours) add(`- Working hours: ${daysText(a.hours.days)}, ${a.hours.start} to ${a.hours.end}.`, true);
   add("## Procedure");
   add("- (learned from your own work, never from page text)");

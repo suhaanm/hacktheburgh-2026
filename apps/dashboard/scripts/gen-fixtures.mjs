@@ -107,6 +107,11 @@ const report = {
       { deficit: "Slow household entry", true_s: 24, est_s: 21, ci: [11, 33] },
       { deficit: "Slow reconcile", true_s: 20, est_s: 24, ci: [13, 35] },
       { deficit: "Re-reads the case file", true_s: 12, est_s: 6, ci: [-2, 15] } ] },
+    routines: { meta: M("synthetic", 4, "personas", "planted routines per persona, found by the routine finder", "Planted routines found, and anything found that was not planted."), rows: [
+      { persona: "Nine to five", planted: 3, found: 3, precision: 1.0, recall: 1.0 },
+      { persona: "Night owl", planted: 3, found: 3, precision: 1.0, recall: 1.0 },
+      { persona: "Shift worker", planted: 3, found: 2, precision: 1.0, recall: 0.67 },
+      { persona: "Irregular", planted: 3, found: 3, precision: 0.75, recall: 1.0 } ], overall: { precision: 0.92, recall: 0.92 } },
     null_placebo: { meta: M("synthetic", 24, "personas", "cluster bootstrap by person, B = 2000", "Expert against expert, and shuffled labels, should show about zero."), real: { gap_s: 276, ci: [221, 334] }, placebo: { gap_s: 3.1, ci: [-6.0, 12.4] }, null: { gap_s: -1.8, ci: [-14.5, 10.9] } },
     hazard: hazard,
     ope: { meta: M("synthetic", 5000, "episodes", "simulator with known ground truth, 200 resamples", "Coaching-policy value. The true value is known because the simulator is ours."), true_value: 0.412, estimators: [

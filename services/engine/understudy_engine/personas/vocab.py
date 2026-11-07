@@ -139,7 +139,7 @@ class Emitter:
         if cog == "IDLE":
             if dur >= 25:
                 a = float(min(15.0, dur * 0.5))
-                self.add("idle", t0 + a, source="os", meta={"idle_s": int(round(a))}, task=False)
+                self.add("idle", t0 + a, source="os", meta={"idle_s": int(round(a))})
             return
         if cog == "OPEN_CALCULATOR":
             self.add("nav", t0, zone="calc_site", role="link", label_idx=0, site=site or "calc1", meta={"site": site or "calc1"})

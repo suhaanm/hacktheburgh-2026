@@ -32,6 +32,7 @@ rules:
   - { match: { type: [click, focus, scroll], zone: household_form }, cog: ENTER_HOUSEHOLD }
   - { match: { type: focus, zone: calc_result }, cog: READ_RESULT, starts: true }
   - { match: { type: scroll, zone: calc_result }, cog: READ_RESULT }
+  - { match: { type: click, zone: cliff_button }, cog: CHECK_CLIFF, starts: true }   # the "check cliff edges" button
   - { match: { type: focus, zone: cliff_panel }, cog: CHECK_CLIFF, starts: true }
   - { match: { type: [click, scroll], zone: cliff_panel }, cog: CHECK_CLIFF }
   - { match: { type: copy, zone: calc_result }, cog: COPY_TO_NOTE }
@@ -53,5 +54,6 @@ rules:
   - { match: { type: copy }, cog: COPY }
   - { match: { type: paste }, cog: PASTE }
   - { match: { type: [nav, tab] }, cog: NAVIGATE }
+  - { match: { type: click, role: [link, tab, menuitem] }, cog: NAVIGATE }   # zoneless link clicks navigate
   - { match: { type: click }, cog: ENTER }
   - { match: { type: [scroll, focus] }, cog: READ }

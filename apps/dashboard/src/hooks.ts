@@ -27,19 +27,18 @@ export function useLoad<T>(loader: () => Promise<Loaded<T>>, deps: unknown[]): L
   return { ...s, reload } as LoadState<T>;
 }
 
-/** Track an element's width so SVG charts can choose a layout. */
-export function useWidth<T extends HTMLElement>(): [React.RefObject<T>, number] {
-  const ref = useRef<T>(null);
+/** Track an element's width so SVG charts can choose a layout. Uses a callback ref, so it also works for elements that mount late. */
+export function useWidth<T extends HTMLElement>(): [(el: T | null) => void, number] {
+  const [el, setEl] = useState<T | null>(null);
   const [w, setW] = useState(0);
   useEffect(() => {
-    const el = ref.current;
     if (!el) return;
     const ro = new ResizeObserver((entries) => setW(Math.round(entries[0].contentRect.width)));
     ro.observe(el);
     setW(Math.round(el.getBoundingClientRect().width));
     return () => ro.disconnect();
-  }, []);
-  return [ref, w];
+  }, [el]);
+  return [setEl, w];
 }
 
 export function useTimeout(): (fn: () => void, ms: number) => void {

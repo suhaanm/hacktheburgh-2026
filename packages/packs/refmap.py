@@ -1,8 +1,9 @@
-"""Reference cog mapper for pack mapping.yaml files.
+"""Reference cog mapper for pack mapping.yaml files (engine default_mapping.yaml format).
 
-Not the engine's mapper. It exists so the pack's test vectors (mapping.yaml `examples`) are checked
-for self-consistency, and so the engine's `cogs/` module has a small executable statement of the rule
-semantics documented in packages/schema/pack.schema.json#/$defs/mapping.
+Not the engine's mapper (that is services/engine/understudy_engine/cogs). It exists so a pack's test
+vectors (mapping.yaml `examples`) are checked for self-consistency by the standalone validator.
+Per event it answers: which cog (or None when the event carries no cog). Timing (follow_s, idle gaps,
+backdate_meta) is the engine's business; here only rule matching, reformulate_as and skip are executed.
 """
 from __future__ import annotations
 
@@ -13,76 +14,51 @@ def _as_list(v: Any) -> list:
     return v if isinstance(v, list) else [v]
 
 
-def _meta_ok(test: Any, value: Any) -> bool:
-    if not isinstance(test, dict):
-        return value == test
-    if not isinstance(value, (int, float)) or isinstance(value, bool):
-        return False
-    return (
-        ("gte" not in test or value >= test["gte"])
-        and ("lte" not in test or value <= test["lte"])
-        and ("gt" not in test or value > test["gt"])
-        and ("lt" not in test or value < test["lt"])
-    )
-
-
-def rule_matches(when: dict, ev: dict, prev_type: str | None, prev_cog: str | None,
-                 has_prev: bool, tables: dict) -> bool:
-    target = ev.get("target") or {}
+def rule_matches(match: dict, ev: dict) -> bool:
     meta = ev.get("meta") or {}
-    for key, want in when.items():
+    for key, want in match.items():
         if key == "type":
-            if ev["type"] not in _as_list(want):
-                return False
-        elif key == "actor":
-            if ev.get("actor", "human") != want:
-                return False
-        elif key == "target_role":
-            if target.get("role") not in _as_list(want):
-                return False
-        elif key == "domain_role":
-            hashes = {h for r in _as_list(want) for h in tables["domain"].get(r, [])}
-            if target.get("domain_hash") not in hashes:
-                return False
-        elif key == "label_role":
-            hashes = {h for r in _as_list(want) for h in tables["label"].get(r, [])}
-            if target.get("label_hash") not in hashes:
-                return False
-        elif key == "meta":
-            if not all(k in meta and _meta_ok(t, meta[k]) for k, t in want.items()):
-                return False
-        elif key == "prev_cog":
-            if prev_cog not in _as_list(want):
-                return False
-        elif key == "not_prev_cog":
-            if prev_cog in _as_list(want):
-                return False
-        elif key == "prev_type":
-            if prev_type not in _as_list(want):
-                return False
-        elif key == "within_s":
-            if not has_prev or ev["dt"] > want:
-                return False
+            got = ev["type"]
+        elif key == "zone":
+            got = meta.get("zone")
+        elif key == "role":
+            got = ev.get("role")
+        elif key == "source":
+            got = ev.get("source", "browser")
         else:
-            raise ValueError(f"unknown predicate {key!r}")
+            raise ValueError(f"unknown match key {key!r}")
+        if got not in _as_list(want):
+            return False
     return True
 
 
-def map_events(mapping: dict, events: list[dict], hash_roles: dict) -> list[str | None]:
-    """Return one cog id (or None when ignored) per event. `dt` is seconds since the previous event."""
-    tables = {"domain": hash_roles.get("domain", {}), "label": hash_roles.get("label", {})}
-    rules = list(mapping.get("role_rules", [])) + list(mapping["base_rules"])
+def map_events(mapping: dict, events: list[dict]) -> list[str | None]:
+    """One cog id (or None) per event. `dt` is seconds since the previous event."""
+    reform_within = mapping["params"]["reformulate_within_s"]
     out: list[str | None] = []
-    prev_type: str | None = None
+    clock = 0.0
     prev_cog: str | None = None
-    for i, ev in enumerate(events):
+    prev_t = 0.0
+    for ev in events:
+        clock += ev["dt"]
         cog: str | None = None
-        for rule in rules:
-            if rule_matches(rule["when"], ev, prev_type, prev_cog, i > 0, tables):
-                cog = None if rule.get("ignore") else rule["cog"]
+        for rule in mapping["rules"]:
+            if rule_matches(rule["match"], ev):
+                cog = rule["cog"]
+                if cog and "reformulate_as" in rule:
+                    if prev_cog in ("SEARCH", "REFORMULATE") and clock - prev_t <= reform_within:
+                        cog = rule["reformulate_as"]
                 break
         out.append(cog)
         if cog is not None:
-            prev_cog = cog
-        prev_type = ev["type"]
+            prev_cog, prev_t = cog, clock
     return out
+
+
+def merge(cogs: list[str | None]) -> list[str]:
+    """Collapse skipped events and consecutive repeats into the segment sequence."""
+    seq: list[str] = []
+    for c in cogs:
+        if c is not None and (not seq or seq[-1] != c):
+            seq.append(c)
+    return seq

@@ -14,10 +14,10 @@ onboarding:
       why: Tells Understudy which sites are your working surfaces, so it can read your rhythm.
       kind: multi
       options:
-        - { value: sql_console, label: "SQL console on the warehouse", default: true, domain_role: warehouse }
-        - { value: notebook, label: "Notebook (Python or R)", default: true, domain_role: notebook }
-        - { value: spreadsheet, label: "Spreadsheet", domain_role: sheet }
-        - { value: bi_tool, label: "Dashboard or BI tool", domain_role: bi }
+        - { value: sql_console, label: "SQL console on the warehouse", default: true, site: warehouse }
+        - { value: notebook, label: "Notebook (Python or R)", default: true, site: notebook }
+        - { value: spreadsheet, label: "Spreadsheet", site: sheet }
+        - { value: bi_tool, label: "Dashboard or BI tool", site: bi }
         - { value: ticket_queue, label: "Request queue" }
     - id: risky
       prompt: Which actions must never run without you?

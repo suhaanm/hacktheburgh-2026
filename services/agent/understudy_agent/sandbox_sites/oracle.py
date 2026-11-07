@@ -194,3 +194,59 @@ def disagreements(household: Household | Mapping[str, Any]) -> dict[str, Any]:
         if abs(got - ref) > TOLERANCE_GBP:
             out[s] = round(got - ref, 2)
     return {"household_id": h.id, "oracle": ref, "off_by": out, "sites_agree": not out}
+
+
+def cliff_report(household: Household | Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Plain-text 'check cliff edges' items for one household, from the same rules as `score`.
+
+    Each item: {id, text, near}. `near` is True exactly when `score(...)['cliff_flags']` has the matching flag,
+    so the sites' cliff panel and the oracle cannot disagree about what counts as close to an edge.
+    """
+    h = as_household(household)
+    flags = set(cliff_flags(h))
+    items: list[dict[str, Any]] = []
+    s = h.savings
+    gap = CAPITAL_UPPER - s
+    if gap > 0:
+        txt = f"Savings are {gap:,.0f} below the 16,000 limit. " + (
+            "Close: a small rise would stop the award." if "capital_limit_16000" in flags else "No change at this level.")
+    elif gap == 0:
+        txt = "Savings are exactly at the 16,000 limit. Under these rules the award continues; one pound more would end it."
+    else:
+        txt = f"Savings are {-gap:,.0f} above the 16,000 limit. No award at this level."
+    items.append({"id": "capital_limit", "text": txt, "near": "capital_limit_16000" in flags})
+    if s > CAPITAL_LOWER and s <= CAPITAL_UPPER:
+        txt = (f"Savings above 6,000 reduce the award by {tariff_income(s):.2f} a month "
+               f"({TARIFF_PER_BAND:.2f} for each {TARIFF_BAND:.0f}).")
+    else:
+        txt = f"Savings are {max(CAPITAL_LOWER - s, 0):,.0f} below the 6,000 tariff band. No change at this level."
+    items.append({"id": "capital_tariff", "text": txt, "near": "capital_tariff_band" in flags})
+    n = len(h.children_ages)
+    txt = (f"This household has {n} children. The child element is paid for every child under these rules; "
+           "a calculator that still applies a two-child limit will show less." if n >= 3 else
+           f"This household has {n} children. The two-child limit does not matter at this size.")
+    items.append({"id": "children", "text": txt, "near": "third_child" in flags})
+    if h.childcare_monthly > 0:
+        young = sum(1 for a in h.children_ages if a <= CHILD_MAX_AGE_CHILDCARE)
+        cap = CHILDCARE_CAP_ONE if young <= 1 else CHILDCARE_CAP_TWO_PLUS
+        want = h.childcare_monthly * CHILDCARE_RATE
+        txt = (f"Childcare: 85% of costs is {want:,.2f} a month and the cap is {cap:,.2f}. " +
+               ("The cap applies." if want > cap else "Under the cap."))
+    else:
+        txt = "No childcare costs entered. The childcare cap does not matter."
+    items.append({"id": "childcare", "text": txt, "near": "childcare_cap_binding" in flags})
+    earnings = sum(a.earnings_monthly for a in h.adults)
+    wa = work_allowance(h)
+    if wa > 0:
+        side = "above" if earnings >= wa else "below"
+        txt = (f"Earnings are {abs(earnings - wa):,.0f} {side} the work allowance of {wa:,.0f}. "
+               "Each extra pound above it reduces the award by 55 pence.")
+    else:
+        txt = "This household has no work allowance. Each extra pound earned reduces the award by 55 pence."
+    items.append({"id": "earnings", "text": txt, "near": "work_allowance_edge" in flags})
+    if h.tenure == "rent":
+        cap = housing_cap(h)
+        txt = (f"Rent is {h.rent_monthly - cap:,.0f} above the local cap of {cap:,.0f}; only the cap counts."
+               if h.rent_monthly > cap else f"Rent is under the local cap of {cap:,.0f}.")
+        items.append({"id": "housing", "text": txt, "near": "housing_cap_binding" in flags})
+    return items

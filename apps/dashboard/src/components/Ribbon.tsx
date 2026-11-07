@@ -39,8 +39,8 @@ export function Ribbon({ genome, active, onActive }: Props) {
 
   const yE = labelH;
   const yConn = yE + laneH;
-  const yN = yConn + connH + labelH;
-  const yLostTop = yN + laneH + 18;
+  const yN = yConn + connH;
+  const yLostTop = yN + laneH + 18 + (narrow ? 18 : 0);
   const yBase = yLostTop + lostH;
   const H = yBase + 22;
 
@@ -60,7 +60,7 @@ export function Ribbon({ genome, active, onActive }: Props) {
           {narrow ? (
             <>
               <text className="svg-text svg-text--strong" x={0} y={12}>Expert <tspan className="svg-text">{genome.expert_person} · {fmtDuration(layout.expertTotal)}</tspan></text>
-              <text className="svg-text svg-text--strong" x={0} y={yN - 6}>Novice <tspan className="svg-text">{genome.person} · {fmtDuration(layout.noviceTotal)}</tspan></text>
+              <text className="svg-text svg-text--strong" x={0} y={yN + laneH + 14}>Novice <tspan className="svg-text">{genome.person} · {fmtDuration(layout.noviceTotal)}</tspan></text>
             </>
           ) : (
             <>

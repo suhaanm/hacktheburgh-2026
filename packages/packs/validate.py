@@ -5,10 +5,11 @@
     uv run python packages/packs/validate.py PACK_DIR ... # specific pack directories
     uv run python packages/packs/validate.py --quiet
 
-Checks, per pack: pack.yaml against packages/schema/pack.schema.json; every file it points at against
-the matching sub-schema; cross-file references (cogs, skills, templates, roles); the mapping's test
-vectors through the reference mapper (refmap.py); and that no label vocabulary matches the sensitive
-fields list. Across packs: the three packs differ visibly. Exit code 1 on any error.
+Checks, per pack: every YAML and JSON file under the pack parses (a silent parse failure would degrade
+loaders to "no checklist"); pack.yaml against packages/schema/pack.schema.json; every file it points at
+against the matching sub-schema; cross-file references (cogs, zones, skills, templates, sites); the
+mapping's test vectors through the reference mapper (refmap.py). Across packs: the three packs differ
+visibly. Exit code 1 on any error.
 """
 from __future__ import annotations
 
@@ -29,6 +30,8 @@ SCHEMA_DIR = ROOT / "packages" / "schema"
 sys.path.insert(0, str(HERE))
 from refmap import map_events  # noqa: E402
 
+BASE_ZONES = ("doc", "form_field", "search_box", "query_edit", "compare_view", "check_box", "decision_btn", "help")
+MATCH_KEYS = ("type", "zone", "role", "source")
 BASE_COGS = ("READ", "SEARCH", "REFORMULATE", "NAVIGATE", "ENTER", "COPY", "PASTE",
              "COMPARE", "CHECK", "DECIDE", "IDLE", "REVERT", "ASK")
 QUESTION_IDS = ["tools", "risky", "tone", "pace", "hours"]
@@ -70,6 +73,59 @@ def schema_errors(validator: Draft202012Validator, data: Any, where: str) -> lis
     return out
 
 
+# ---------------------------------------------------------------- helpers for the zone config
+
+def _as_list(v: Any) -> list:
+    return v if isinstance(v, list) else [v]
+
+
+def _check_capture(pack: str, site: str, cap: dict, zones: set[str]) -> list[str]:
+    """Zones named in a capture config must be in the vocabulary and every selector must look like CSS."""
+    errs: list[str] = []
+    named: list[str] = [cap["nav_default"], cap["tab_default"]]
+    named += [r["zone"] for key in ("nav", "tab", "page") for r in cap.get(key, [])]
+    named += [r["zone"] for r in cap["elements"]]
+    for z in named:
+        if z not in zones:
+            errs.append(f"{pack}: capture config for site {site}: zone {z!r} is not in the pack's zone vocabulary")
+    selectors = [r["when"] for key in ("nav", "tab", "page") for r in cap.get(key, [])] + [r["selector"] for r in cap["elements"]]
+    for sel in selectors:
+        if sel.count("[") != sel.count("]") or sel.count("(") != sel.count(")") or sel.count('"') % 2:
+            errs.append(f"{pack}: capture config for site {site}: selector {sel!r} has unbalanced brackets or quotes")
+    return errs
+
+
+def _zone_used_by_capture(pack_dir: Path, pack: dict, mapping: dict, zone: str) -> bool:
+    """A zone is live if some capture config can emit it (mapping capture_sites or tasks/sites.yaml)."""
+    caps = list(mapping.get("capture_sites", []))
+    if "tasks" in pack:
+        sites_file = pack_dir / pack["tasks"] / "sites.yaml"
+        if sites_file.is_file():
+            try:
+                caps += [s["capture"] for s in load_yaml(sites_file)["sites"] if "capture" in s]
+            except Exception:  # noqa: BLE001
+                pass
+    for cap in caps:
+        if zone in (cap["nav_default"], cap["tab_default"]):
+            return True
+        if any(r["zone"] == zone for key in ("nav", "tab", "page", "elements") for r in cap.get(key, [])):
+            return True
+    return zone in BASE_ZONES  # base zones are also derived from ARIA roles by the extension itself
+
+
+def parse_all_files(pack_dir: Path) -> list[str]:
+    """Every .yaml, .yml and .json file under the pack must parse."""
+    errs: list[str] = []
+    for path in sorted(pack_dir.rglob("*")):
+        if path.is_file() and path.suffix in (".yaml", ".yml", ".json"):
+            try:
+                load_json(path) if path.suffix == ".json" else load_yaml(path)
+            except (yaml.YAMLError, json.JSONDecodeError, UnicodeDecodeError) as e:
+                first = str(e).strip().splitlines()[0] if str(e).strip() else type(e).__name__
+                errs.append(f"{pack_dir.name}/{path.relative_to(pack_dir)}: does not parse: {first}")
+    return errs
+
+
 # ---------------------------------------------------------------- one pack
 
 def validate_pack(pack_dir: Path) -> list[str]:
@@ -80,10 +136,10 @@ def validate_pack(pack_dir: Path) -> list[str]:
     pack_yaml = pack_dir / "pack.yaml"
     if not pack_yaml.is_file():
         return [f"{name}: pack.yaml missing"]
-    try:
-        pack = load_yaml(pack_yaml)
-    except yaml.YAMLError as e:
-        return [f"{name}/pack.yaml: invalid YAML: {e}"]
+    parse_errs = parse_all_files(pack_dir)
+    if parse_errs:
+        return parse_errs
+    pack = load_yaml(pack_yaml)
 
     errs += schema_errors(Draft202012Validator(pack_schema()), pack, f"{name}/pack.yaml")
     if errs:
@@ -171,57 +227,66 @@ def validate_pack(pack_dir: Path) -> list[str]:
             except re.error as e:
                 errs.append(f"{name}: sensitive pattern {pat!r} is not a regex: {e}")
 
-    # --- mapping
-    domain_roles: set[str] = set()
+    # --- mapping (engine default_mapping.yaml format; zones are enums, no page text)
+    zones: set[str] = set()
+    site_ids: set[str] = set()
     if mapping and not errs:
-        domain_roles = set(mapping["domain_roles"])
-        label_roles = set(mapping["label_roles"])
+        zones = set(mapping["zones"])
+        if list(mapping["extra_cogs"]) != extra:
+            errs.append(f"{name}: mapping extra_cogs {mapping['extra_cogs']} must equal pack.yaml cogs.extra {extra}")
+        for z in BASE_ZONES:
+            if z not in zones:
+                errs.append(f"{name}: mapping zones must include the base zone {z}")
         produced: set[str] = set()
-        seen_rule_ids: set[str] = set()
-        for section in ("role_rules", "base_rules"):
-            for rule in mapping[section]:
-                rid = rule["id"]
-                if rid in seen_rule_ids:
-                    errs.append(f"{name}: mapping rule id {rid} is used twice")
-                seen_rule_ids.add(rid)
-                if "cog" in rule:
-                    check_cogs([rule["cog"]], f"mapping rule {rid}")
-                    produced.add(rule["cog"])
-                when = rule["when"]
-                for key, roles in (("domain_role", domain_roles), ("label_role", label_roles)):
-                    if key in when:
-                        for r in ([when[key]] if isinstance(when[key], str) else when[key]):
-                            if r not in roles:
-                                errs.append(f"{name}: mapping rule {rid}: {key} {r!r} is not declared")
-                for key in ("prev_cog", "not_prev_cog"):
-                    if key in when:
-                        check_cogs([when[key]] if isinstance(when[key], str) else when[key], f"mapping rule {rid}.{key}")
+        used_zones: set[str] = set()
+        for i, rule in enumerate(mapping["rules"]):
+            where = f"mapping rule #{i + 1}"
+            cog = rule["cog"]
+            if cog is not None:
+                check_cogs([cog], where)
+                produced.add(cog)
+            if "reformulate_as" in rule:
+                check_cogs([rule["reformulate_as"]], f"{where}.reformulate_as")
+            for z in _as_list(rule["match"].get("zone", [])):
+                used_zones.add(z)
+                if z not in zones:
+                    errs.append(f"{name}: {where}: zone {z!r} is not in the pack's zone vocabulary")
         for c in extra:
             if c not in produced:
                 errs.append(f"{name}: extra cog {c} is never produced by a mapping rule")
-        for vocab_role, spec in mapping["label_roles"].items():
-            for word in spec["vocab"]:
-                if word != word.strip().lower():
-                    errs.append(f"{name}: label vocab {word!r} in {vocab_role} must be trimmed lower case")
-                for pat in sens_patterns:
-                    if pat.search(word):
-                        errs.append(f"{name}: label vocab {word!r} in {vocab_role} matches sensitive pattern {pat.pattern!r}")
+        for z in sorted(zones - used_zones):
+            if not _zone_used_by_capture(pack_dir, pack, mapping, z):
+                errs.append(f"{name}: zone {z!r} is listed but no rule or capture config uses it")
+        # capture config (thin packs here, deep packs in tasks/sites.yaml)
+        for cs in mapping.get("capture_sites", []):
+            site_ids.add(cs["id"])
+            errs += _check_capture(name, cs["id"], cs, zones)
         for ex in mapping.get("examples", []):
             if len(ex["events"]) != len(ex["expect"]):
                 errs.append(f"{name}: mapping example {ex['name']!r}: events and expect differ in length")
                 continue
-            got = map_events(mapping, ex["events"], ex["hash_roles"])
+            for ev in ex["events"]:
+                z = (ev.get("meta") or {}).get("zone")
+                if z is not None and z not in zones:
+                    errs.append(f"{name}: mapping example {ex['name']!r}: zone {z!r} is not in the vocabulary")
+            got = map_events(mapping, ex["events"])
             if got != ex["expect"]:
                 errs.append(f"{name}: mapping example {ex['name']!r}: expected {ex['expect']} but reference mapper gave {got}")
         if not mapping.get("examples"):
             errs.append(f"{name}: mapping.yaml has no test vectors (examples)")
 
-    # --- onboarding options against the mapping and the risk classes
-    if mapping and domain_roles:
+    # --- onboarding tools options name capture sites; those must exist
+    if "tasks" in pack and (pack_dir / pack["tasks"] / "sites.yaml").is_file():
+        try:
+            for st in load_yaml(pack_dir / pack["tasks"] / "sites.yaml")["sites"]:
+                site_ids.add(st["id"])
+        except Exception:  # noqa: BLE001  (already reported by schema validation)
+            pass
+    if mapping and site_ids:
         for q in qs:
             for o in q.get("options", []):
-                if "domain_role" in o and o["domain_role"] not in domain_roles:
-                    errs.append(f"{name}: onboarding option {o['value']}: domain_role {o['domain_role']!r} is not in mapping.yaml")
+                if "site" in o and o["site"] not in site_ids:
+                    errs.append(f"{name}: onboarding option {o['value']}: site {o['site']!r} is not a capture site")
 
     # --- curriculum
     skill_ids: set[str] = set()
@@ -307,14 +372,32 @@ def validate_pack(pack_dir: Path) -> list[str]:
     # --- tasks (deep packs)
     if pack["depth"] == "deep" and "tasks" in pack and not errs:
         sites = load_yaml(pack_dir / pack["tasks"] / "sites.yaml")
+        ports = [s["port"] for s in sites["sites"]]
+        if not set(ports) <= {7801, 7802, 7803}:
+            errs.append(f"{name}: sites.yaml ports must be within 7801 to 7803")
         for s in sites["sites"]:
-            if s["domain_role"] not in domain_roles:
-                errs.append(f"{name}: sites.yaml: site {s['id']} domain_role {s['domain_role']!r} is not in mapping.yaml")
+            if "capture" in s:
+                errs += _check_capture(name, s["id"], s["capture"], zones)
+            if s["kind"] == "case_note" and s.get("served_by") not in {x["id"] for x in sites["sites"] if x["kind"] == "calculator"}:
+                errs.append(f"{name}: sites.yaml: case_note must name the calculator that serves it (served_by)")
         task = load_yaml(pack_dir / pack["tasks"] / "task.yaml")
         if persona and task["id"] != persona.get("task"):
             errs.append(f"{name}: persona.task {persona.get('task')!r} must equal tasks/task.yaml id {task['id']!r}")
         if steps and task["id"] != steps["task"]:
             errs.append(f"{name}: expert_steps.task {steps['task']!r} must equal tasks/task.yaml id {task['id']!r}")
+        calc_ids = {s["id"] for s in sites["sites"] if s["kind"] == "calculator"}
+        for tok in task["goal_tokens"]:
+            m = re.fullmatch(r"\{result:(\w+)@(\w+)\}", tok)
+            if m and (m.group(1) not in task["result_fields"] or m.group(2) not in calc_ids):
+                errs.append(f"{name}: task goal token {tok} names an unknown result field or site")
+        gen = load_yaml(pack_dir / pack["tasks"] / "household_generator.yaml")
+        cliff_ids = {c["id"] for c in gen["cliffs"]}
+        for a in gen["archetypes"]:
+            if "plants" in a and a["plants"] not in cliff_ids:
+                errs.append(f"{name}: household_generator archetype {a['id']} plants unknown cliff {a['plants']}")
+    # --- the oracle label must say what it is
+    if "oracle" in pack and "not law" not in pack.get("oracle_note", "").lower():
+        errs.append(f"{name}: pack.yaml has an oracle but oracle_note does not say it is simplified and not law")
     return errs
 
 
@@ -383,6 +466,7 @@ EXAMPLE_SCHEMAS = {
     "queue_item.": "queue_item.schema.json",
     "memory.frontmatter.": "memory.frontmatter.schema.json",
     "ext_rect.": "ext_rect.schema.json",
+    "recording.": "recording.schema.json",
     "event.": "event.schema.json",
 }
 

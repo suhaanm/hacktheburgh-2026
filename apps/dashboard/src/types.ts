@@ -307,6 +307,7 @@ export interface EvalReport {
   mock: boolean;
   sections: {
     deficit_recovery?: EvalSection<Record<string, unknown>>;
+    routines?: EvalSection<Record<string, unknown>>;
     null_placebo?: EvalSection<Record<string, unknown>>;
     hazard?: EvalSection<Record<string, unknown>>;
     ope?: EvalSection<Record<string, unknown>>;

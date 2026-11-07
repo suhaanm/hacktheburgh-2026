@@ -12,11 +12,12 @@ import numpy as np
 from understudy_engine.core import Episode
 from understudy_engine.hazard.evaluate import oof_predictions
 from understudy_engine.hazard.events import (
-    EpisodeEvents, alarms_for, pool, score_alarms, stuck_events,
+    EpisodeEvents, pool, score_alarms,
 )
 from understudy_engine.policy import ope, rules, sim
 from understudy_engine.policy.context import K, NUDGE
 from understudy_engine.policy.gate import GateParams, gate_alarms
+from understudy_engine.trust.meta import analytic_meta
 
 ESTIMATORS = ("ips", "snips", "dm", "dr", "naive_on_policy", "naive_matched")
 
@@ -89,6 +90,16 @@ def evaluate_ope(n: int = 6000, seed: int = 0, n_boot: int = 500, replications: 
                            "ci_coverage": float(np.mean(cover[name][k]))} for k in ESTIMATORS}
                 for name in errs},
         }
+    head = "rule_baseline"
+    names = {"naive_on_policy": "naive", "ips": "ips", "snips": "snips", "dr": "dr"}
+    out["headline_target"] = head
+    out["true_value"] = targets[head]["true_value"]
+    out["estimators"] = [{"name": nm, "value": targets[head]["estimators"][k]["estimate"],
+                          "ci": targets[head]["estimators"][k]["ci"]} for k, nm in names.items()]
+    out["meta"] = analytic_meta(
+        "synthetic", n, "decisions", "simulator with known ground truth; logs from an epsilon-greedy bandit (eps 0.2)",
+        note="Value of the rule-baseline policy estimated from logs of a different policy. The true value is known because "
+             "the simulator is ours.")
     out["caveats"] = [
         "Synthetic simulator: the reward structure is invented by us. It shows the estimators recover a known truth, "
         "not that the real reward looks like this.",
@@ -109,15 +120,26 @@ def evaluate_gate(episodes: list[Episode], *, params: GateParams = GateParams(),
     gate (2 consecutive signals, cooldown, silent when below threshold)."""
     tab, p = oof_predictions(episodes)
     thr = params.p_signal if raw_threshold is None else raw_threshold
-    raw: dict[int, EpisodeEvents] = {}
-    gated: dict[int, EpisodeEvents] = {}
-    for e in range(len(tab.ep_person)):
-        a0, a1 = int(tab.ep_offsets[e]), int(tab.ep_offsets[e + 1])
-        t, y, pe = tab.t[a0:a1], tab.y[a0:a1], p[a0:a1]
-        raw_alarms = t[pe >= thr]  # a nudge on every bin above threshold: no confirmation, no cooldown
-        raw[e] = score_alarms(t, y, raw_alarms, bin_s=tab.bin_s)
-        gated[e] = score_alarms(t, y, gate_alarms(t, pe, params), bin_s=tab.bin_s)
-    r, g = pool(raw.values()), pool(gated.values())
+
+    def run(gp: GateParams, raw_thr: float):
+        raw: dict[int, EpisodeEvents] = {}
+        gated: dict[int, EpisodeEvents] = {}
+        for e in range(len(tab.ep_person)):
+            a0, a1 = int(tab.ep_offsets[e]), int(tab.ep_offsets[e + 1])
+            t, y, pe = tab.t[a0:a1], tab.y[a0:a1], p[a0:a1]
+            raw[e] = score_alarms(t, y, t[pe >= raw_thr], bin_s=tab.bin_s)   # a nudge on every bin above threshold
+            gated[e] = score_alarms(t, y, gate_alarms(t, pe, gp), bin_s=tab.bin_s)
+        return pool(raw.values()), pool(gated.values())
+
+    r, g = run(params, thr)
+    sweep = []
+    for ps in (0.30, 0.35, 0.40, 0.50, 0.60):
+        rr, gg = run(GateParams(params.need, params.cooldown_s, ps), ps)
+        sweep.append({"p_signal": ps,
+                      "bare": {"detection_rate": rr.detection_rate, "false_alarms_per_hour": rr.fa_per_hour,
+                               "nudges": rr.false_alarms + rr.true_alarms},
+                      "gate": {"detection_rate": gg.detection_rate, "false_alarms_per_hour": gg.fa_per_hour,
+                               "nudges": gg.false_alarms + gg.true_alarms}})
 
     def pack(res) -> dict:
         d = res.as_dict()
@@ -125,13 +147,15 @@ def evaluate_gate(episodes: list[Episode], *, params: GateParams = GateParams(),
         d["nudges_per_stuck_event"] = None if not res.n_events else d["nudges_total"] / res.n_events
         return d
 
+    origin = episodes[0].origin if len({e.origin for e in episodes}) == 1 else "mixed"
     return {
-        "origin": episodes[0].origin if len({e.origin for e in episodes}) == 1 else "mixed",
+        "origin": origin, "meta": analytic_meta(origin, len(tab.people), "people", "leave-one-person-out",
+                                                note="False nudges per hour, with and without the dignity gate."),
         "n": len(tab.people), "n_unit": "people", "split": "leave-one-person-out",
         "interval_level": 0.95,
         "gate_params": {"need": params.need, "cooldown_s": params.cooldown_s, "p_signal": params.p_signal},
         "raw_threshold": thr,
-        "bare_threshold": pack(r), "dignity_gate": pack(g),
+        "bare_threshold": pack(r), "dignity_gate": pack(g), "sweep_over_p_signal": sweep,
         "false_nudges_per_hour_reduction": (None if not r.fa_per_hour or not np.isfinite(r.fa_per_hour)
                                             else 1.0 - g.fa_per_hour / r.fa_per_hour),
         "caveats": [
@@ -139,5 +163,6 @@ def evaluate_gate(episodes: list[Episode], *, params: GateParams = GateParams(),
             "it measures annoyance, not harm. Nudges per stuck event shows the repeated-nudge burden the gate removes.",
             "The gate trades latency for fewer interruptions; the detection and latency numbers show that trade.",
             "Held-out hazard predictions come from synthetic personas unless the data origin says otherwise.",
+            "The sweep over p_signal is read off the same held-out predictions, so it is descriptive of the trade-off, not a tuned operating point.",
         ],
     }

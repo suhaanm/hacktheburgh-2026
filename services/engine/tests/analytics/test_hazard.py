@@ -60,7 +60,6 @@ def test_labels_and_features_on_a_handmade_trace():
 
 
 def test_features_never_use_the_future():
-    rng = np.random.default_rng(0)
     eps, _ = simulate_people(1, 3, seed=11)
     ep = eps[0]
     T = ep.t0 + 300.0
@@ -174,6 +173,7 @@ def test_evaluate_output_shape_json_and_determinism():
     eps, _ = simulate_people(3, 10, seed=4)
     a = evaluate_hazard(eps, n_boot=30)
     b = evaluate_hazard(eps, n_boot=30)
+    a["meta"].pop("generated_at"); b["meta"].pop("generated_at")   # wall-clock stamp is the only non-deterministic field
     assert json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)
     assert a["split"] == "leave-one-person-out" and a["n"] == 3 and a["n_unit"] == "people"
     assert a["origin"] == "synthetic" and a["interval_level"] == 0.95
@@ -181,8 +181,9 @@ def test_evaluate_output_shape_json_and_determinism():
         assert k in a["model"]
     assert set(a["baselines"]) == {"base_rate", "time_since_progress"}
     assert a["calibration"] and set(a["calibration"][0]) >= {"p_mean", "freq", "n"}
-    assert set(a["series"]) == {"p_sim0", "p_sim1", "p_sim2"}
-    assert {"t", "p"} <= set(a["series"]["p_sim0"][0]) and a["series"]["p_sim0"][0]["t"].endswith("Z")
+    assert set(a["series_by_person"]) == {"p_sim0", "p_sim1", "p_sim2"}
+    assert a["series_person"] == "p_sim0" and {"t", "p"} <= set(a["series"][0]) and a["series"][0]["t"].endswith("Z")
+    assert a["meta"]["n"] == 3 and a["meta"]["n_unit"] == "people" and a["meta"]["split"] == "leave-one-person-out"
     assert a["caveats"] and a["false_alarms_per_hour"] is not None
 
 

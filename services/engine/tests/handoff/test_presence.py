@@ -99,13 +99,17 @@ def test_smoothing_helps_on_held_out_days_and_borrowed_counts_are_fractional():
     assert np.all((0 < lo) & (hi < 1))
 
 
-def test_idle_capacity_has_an_interval_and_respects_sleep():
-    with_sleep, _, _ = _fit("nine_to_five", with_sleep=True)
-    no_sleep, _, _ = _fit("nine_to_five", with_sleep=False)
-    a, b = with_sleep.idle_capacity_interval(), no_sleep.idle_capacity_interval()
-    assert a["lo"] <= a["mean"] <= a["hi"] and a["hi"] - a["lo"] > 0
-    assert 0 < a["mean"] < 168 - with_sleep.active_hours_per_week()
-    assert a["mean"] < b["mean"]          # a machine seen going to sleep is not idle capacity all night
+def test_idle_capacity_has_an_interval_and_quiet_days_are_off_not_idle():
+    with_sleep, obs, _ = _fit("nine_to_five", with_sleep=True)
+    no_sleep, obs2, _ = _fit("nine_to_five", with_sleep=False)
+    for m in (with_sleep, no_sleep):
+        a = m.idle_capacity_interval()
+        assert a["lo"] <= a["mean"] <= a["hi"] and a["hi"] - a["lo"] > 0
+        assert 0 < a["mean"] < 168 - m.active_hours_per_week()
+    # no sleep events at all: a day with no events is still off (auto-sleep after the grace period), never 24 h idle
+    weekend = [d for d in obs2 if d.day.weekday() == 5][0]
+    assert (weekend.states == OFF).mean() > 0.95
+    assert no_sleep.idle_capacity_interval()["mean"] < 40
 
 
 def test_quiet_window_mask_wraps_midnight():

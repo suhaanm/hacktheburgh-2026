@@ -16,7 +16,7 @@ The gate blocks by default: it returns `allow` only when it has positively class
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Literal
 
 from .killflag import is_killed

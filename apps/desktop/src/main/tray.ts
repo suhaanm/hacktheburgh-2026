@@ -10,12 +10,12 @@ import type { CompanionState, PersonaId, SessionEndReason } from '../shared/prot
 import type { ShellCommand } from '../shared/shell'
 import type { Settings } from '../shared/settings'
 import type { Bus } from './bus'
-import { START_ACCELERATORS, STOP_ACCELERATORS, PANEL_ACCELERATORS } from './hotkey'
+import { START_ACCELERATORS, STOP_ACCELERATORS, PANEL_ACCELERATORS, KILL_ACCELERATORS } from './hotkey'
 import { trayStateKind, trayTitle } from './panel-rules'
 import type { Windows } from './windows'
 
 export type TrayIconKind = 'idle' | 'live' | 'muted'
-export type TrayAction = 'talk' | 'type' | 'mute' | 'stop' | 'panel' | 'demo' | 'setup' | 'permissions' | 'quit'
+export type TrayAction = 'talk' | 'type' | 'mute' | 'stop' | 'kill' | 'resume' | 'queue' | 'panel' | 'demo' | 'setup' | 'permissions' | 'quit'
 
 export interface MenuEntry {
   id: string // 'status', 'talk:<personaId>', or a TrayAction
@@ -32,6 +32,9 @@ export interface TrayModel {
   persona: PersonaId | null
   dockVisible: boolean
   showtimeRunning: boolean
+  // Understudy: the global kill switch is on (the menu offers Resume instead of Stop everything).
+  killed?: boolean
+  killAccelerator?: string
   agents?: readonly { status: string }[]
   startAccelerator?: string
   stopAccelerator?: string
@@ -84,6 +87,11 @@ export function buildMenuEntries(model: TrayModel): MenuEntry[] {
     { id: 'mute', label: model.micMuted ? 'Unmute microphone' : 'Mute microphone', enabled: true },
     { id: 'stop', label: 'Stop', enabled: active, ...(model.stopAccelerator ? { accelerator: model.stopAccelerator } : {}) },
     sep('sep2'),
+    model.killed
+      ? { id: 'resume', label: 'Resume after stopping everything', enabled: true }
+      : { id: 'kill', label: 'Stop everything', enabled: true, ...(model.killAccelerator ? { accelerator: model.killAccelerator } : {}) },
+    { id: 'queue', label: 'Open morning queue', enabled: true },
+    sep('sep2b'),
     { id: 'demo', label: model.showtimeRunning ? 'Stop the demo walkthrough' : 'Run the demo walkthrough', enabled: true },
     sep('sep3'),
     { id: 'setup', label: 'Set up again…', enabled: true },
@@ -102,6 +110,10 @@ export interface TrayDeps {
   log?: (...args: unknown[]) => void
   // Whether the demo walkthrough is running (DEMO). Absent means "never".
   showtimeRunning?: () => boolean
+  // Understudy: the global kill switch. `trigger` stops everything local and tells the engine and the agent; `clear` is Resume.
+  kill?: { trigger(): void; clear(): void; isKilled(): boolean }
+  // Understudy: opens the dashboard's morning queue in the browser.
+  openQueue?: () => void
   // Test seams.
   isRegistered?: (accelerator: string) => boolean
   iconDir?: string
@@ -165,6 +177,8 @@ export function registerTray(deps: TrayDeps): ShellTray {
       persona: st.persona,
       dockVisible: deps.windows.isDockVisible(),
       showtimeRunning: deps.showtimeRunning?.() ?? false,
+      killed: deps.kill?.isKilled() ?? false,
+      killAccelerator: firstRegistered(KILL_ACCELERATORS),
       agents: st.agents,
       startAccelerator: firstRegistered(START_ACCELERATORS),
       stopAccelerator: firstRegistered(STOP_ACCELERATORS),
@@ -213,6 +227,20 @@ export function registerTray(deps: TrayDeps): ShellTray {
         return true
       case 'stop':
         deps.stop('stop')
+        return true
+      case 'kill':
+        if (!deps.kill) return false
+        deps.kill.trigger()
+        refresh()
+        return true
+      case 'resume':
+        if (!deps.kill) return false
+        deps.kill.clear()
+        refresh()
+        return true
+      case 'queue':
+        if (!deps.openQueue) return false
+        deps.openQueue()
         return true
       case 'panel':
         togglePanel()

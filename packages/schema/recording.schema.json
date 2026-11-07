@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://understudy.local/schema/recording.schema.json",
+  "title": "Understudy L1 recording batch v1 (POST /routines/{id}/recording)",
+  "description": "What the extension sends for a routine the worker opted in (consent mode shadow, approval or unattended). Step drafts of the step DSL (steps.schema.json) without conditions: the compile step adds preconditions and postconditions and dry-runs the bundle. Values are replaced by parameter slots and never present. Fields on the sensitive list are skipped and only counted. goto URLs carry origin and path only: id-like path segments become _id_, no query, no hash.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "routine_id", "recording_id", "role", "person", "steps"],
+  "properties": {
+    "schema": { "const": 1 },
+    "routine_id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{2,40}$" },
+    "recording_id": { "type": "string", "pattern": "^rec_[a-z0-9]{6,32}$" },
+    "role": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,40}$" },
+    "person": { "type": "string", "pattern": "^p_[a-z0-9]{2,16}$" },
+    "skipped_sensitive": { "type": "integer", "minimum": 0 },
+    "steps": {
+      "type": "array",
+      "maxItems": 300,
+      "items": { "$ref": "#/$defs/recorded_step" }
+    }
+  },
+  "$defs": {
+    "ident": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,31}$" },
+    "selector": { "type": "string", "minLength": 1, "maxLength": 300, "not": { "pattern": "(?i)^\\s*(javascript|data):" } },
+    "recorded_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "t_ms"],
+      "properties": {
+        "op": { "enum": ["goto", "click", "fill", "select"] },
+        "t_ms": { "type": "integer", "minimum": 0 },
+        "selector": { "$ref": "#/$defs/selector" },
+        "role": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{0,31}$" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "param": { "$ref": "#/$defs/ident" },
+        "input_type": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,20}$" },
+        "url": { "type": "string", "maxLength": 300, "pattern": "^https?://[A-Za-z0-9._:/?=&%#-]+$" }
+      },
+      "allOf": [
+        { "if": { "properties": { "op": { "const": "goto" } }, "required": ["op"] }, "then": { "required": ["url"], "not": { "anyOf": [{ "required": ["selector"] }, { "required": ["param"] }] } } },
+        {
+          "if": { "properties": { "op": { "enum": ["click", "fill", "select"] } }, "required": ["op"] },
+          "then": {
+            "oneOf": [
+              { "required": ["selector"], "not": { "anyOf": [{ "required": ["role"] }, { "required": ["name"] }] } },
+              { "required": ["role", "name"], "not": { "required": ["selector"] } }
+            ]
+          }
+        },
+        { "if": { "properties": { "op": { "enum": ["fill", "select"] } }, "required": ["op"] }, "then": { "required": ["param"] } },
+        { "if": { "properties": { "op": { "const": "click" } }, "required": ["op"] }, "then": { "not": { "required": ["param"] } } }
+      ]
+    }
+  }
+}

@@ -1,0 +1,100 @@
+import { isValidElement, type ReactElement, type ReactNode } from 'react'
+import { describe, expect, it, vi } from 'vitest'
+import { EMPTY_HUD_STATE, type HudState } from '../../shared/hud'
+import { HudView, hoursText, killDetail } from './HudView'
+
+type Props = Record<string, unknown> & { children?: ReactNode }
+function walk(node: ReactNode, visit: (el: ReactElement<Props>) => void): void {
+  if (Array.isArray(node)) return node.forEach((n) => walk(n, visit))
+  if (!isValidElement(node)) return
+  const el = node as ReactElement<Props>
+  visit(el)
+  walk(el.props.children, visit)
+}
+// Function components are called to see what they render.
+function expand(node: ReactNode): ReactNode {
+  if (Array.isArray(node)) return node.map(expand)
+  if (!isValidElement(node)) return node
+  const el = node as ReactElement<Props>
+  if (typeof el.type === 'function') return expand((el.type as (p: Props) => ReactNode)(el.props))
+  return { ...el, props: { ...el.props, children: expand(el.props.children) } } as ReactElement
+}
+function buttons(el: ReactNode): { label: string; onClick: () => void }[] {
+  const out: { label: string; onClick: () => void }[] = []
+  walk(expand(el), (b) => {
+    if (b.type === 'button') out.push({ label: flat(b.props.children), onClick: b.props.onClick as () => void })
+  })
+  return out
+}
+function flat(n: ReactNode): string {
+  if (Array.isArray(n)) return n.map(flat).join('').replace(/\s+/g, ' ').trim()
+  if (typeof n === 'string' || typeof n === 'number') return String(n)
+  if (isValidElement(n)) return flat((n as ReactElement<Props>).props.children)
+  return ''
+}
+function texts(el: ReactNode): string {
+  const out: string[] = []
+  walk(expand(el), (n) => typeof n.props.children === 'string' && out.push(n.props.children))
+  return out.join(' | ')
+}
+
+const proposal = { id: 'r1', title: 'Enter the household into three calculators', what: 'You enter the same household three times.', howOften: 'about 14 times in 3 weeks', hoursSaved: [3.1, 5.2] as [number, number], touches: ['gov.uk check', 'turn2us'], never: ['submit'] }
+const base = (over: Partial<HudState> = {}): HudState => ({ ...EMPTY_HUD_STATE, ...over })
+
+describe('HudView', () => {
+  it('quiet state: just the Stop all pill, which sends kill', () => {
+    const onAction = vi.fn()
+    const el = HudView({ state: base(), onAction })
+    expect(buttons(el).map((b) => b.label)).toEqual(['Stop all'])
+    buttons(el)[0].onClick()
+    expect(onAction).toHaveBeenCalledWith({ type: 'kill' })
+  })
+
+  it('shows a Morning queue link with the count only when something is waiting', () => {
+    expect(buttons(HudView({ state: base({ queuePending: 0 }), onAction: vi.fn() })).map((b) => b.label)).toEqual(['Stop all'])
+    expect(buttons(HudView({ state: base({ queuePending: null }), onAction: vi.fn() })).map((b) => b.label)).toEqual(['Stop all'])
+    const withQueue = buttons(HudView({ state: base({ queuePending: 3 }), onAction: vi.fn() }))
+    expect(withQueue.map((b) => b.label)).toEqual(['Stop all', 'Morning queue 3'])
+  })
+
+  it('proposal toast: plain facts and three equal choices, each sending its own action', () => {
+    const onAction = vi.fn()
+    const el = HudView({ state: base({ proposal }), onAction })
+    const t = texts(el)
+    for (const piece of ['I noticed something', proposal.title, proposal.what, 'about 14 times in 3 weeks', 'about 3.1 to 5.2 hours a week', 'gov.uk check, turn2us', 'submit', 'Nothing runs unless you say so.']) expect(t).toContain(piece)
+    const bs = buttons(el)
+    expect(bs.map((b) => b.label)).toEqual(['Look at it', 'Not now', 'Never for this', 'Stop all'])
+    bs[0].onClick()
+    bs[1].onClick()
+    bs[2].onClick()
+    expect(onAction.mock.calls.map((c) => c[0])).toEqual([
+      { type: 'proposal', id: 'r1', choice: 'look' },
+      { type: 'proposal', id: 'r1', choice: 'not_now' },
+      { type: 'proposal', id: 'r1', choice: 'never' },
+    ])
+  })
+
+  it('stopped state: says so plainly, offers Resume and the queue, and hides the pill', () => {
+    const onAction = vi.fn()
+    const el = HudView({ state: base({ kill: { killed: true, engine: true, agent: false } }), onAction })
+    expect(texts(el)).toContain('Everything is paused. Nothing will run until you resume.')
+    expect(texts(el)).toContain('The engine was told to stop. The agent could not be reached.')
+    expect(buttons(el).map((b) => b.label)).toEqual(['Resume', 'Open morning queue'])
+    buttons(el)[0].onClick()
+    buttons(el)[1].onClick()
+    expect(onAction.mock.calls.map((c) => c[0])).toEqual([{ type: 'resume' }, { type: 'open_queue' }])
+  })
+
+  it('a stopped HUD never shows a proposal', () => {
+    const el = HudView({ state: base({ proposal, kill: { killed: true, engine: null, agent: null } }), onAction: vi.fn() })
+    expect(texts(el)).not.toContain(proposal.title)
+  })
+
+  it('copy helpers', () => {
+    expect(hoursText([3, 5])).toBe('about 3 to 5 hours a week')
+    expect(hoursText(null)).toBeNull()
+    expect(killDetail({ killed: true, engine: null, agent: null })).toMatch(/Telling/)
+    expect(killDetail({ killed: true, engine: true, agent: true })).toBe('The engine and the agent were told to stop.')
+    expect(killDetail({ killed: true, engine: false, agent: false })).toMatch(/could not reach the engine or the agent/)
+  })
+})

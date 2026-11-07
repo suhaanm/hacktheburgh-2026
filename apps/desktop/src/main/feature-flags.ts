@@ -25,3 +25,8 @@ export function offMessage(f: Feature): string {
   }
   return what[f]
 }
+
+/** Settings pinned by the flags: a switched-off feature cannot be enabled from the settings UI or by a patch. */
+export function forcedSettings(env: Record<string, string | undefined> = process.env): { wakeEnabled?: false; filesEnabled?: false } {
+  return { ...(featureOn('wake', env) ? {} : { wakeEnabled: false as const }), ...(featureOn('files', env) ? {} : { filesEnabled: false as const }) }
+}

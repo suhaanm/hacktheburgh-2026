@@ -76,7 +76,9 @@ def risk_coverage_curve(risk: np.ndarray, y: np.ndarray, n_points: int = 40, del
     for j in range(1, n_points + 1):
         k = max(1, int(np.ceil(j / n_points * n)))
         e = int(cum[k - 1])
-        out.append({"coverage": k / n, "n": k, "error_rate": e / k, "upper_bound": clopper_pearson_upper(e, k, delta)})
+        lo, hi = clopper_pearson(e, k, delta)
+        out.append({"coverage": k / n, "n": k, "errors": e, "error_rate": e / k,
+                    "upper_bound": clopper_pearson_upper(e, k, delta), "ci": [lo, hi]})
     return out
 
 

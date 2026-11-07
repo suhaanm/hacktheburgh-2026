@@ -12,6 +12,7 @@ import { existsSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import type { NormPoint } from '../../shared/protocol'
+import { isKilled } from '../kill-flag'
 import { isValidNormPoint, normToPoints, type DisplayBounds } from './mapping'
 import { checkAppName, checkKeyCombo, checkScrollDelta, checkSettingsPane, checkTypedText, checkUrl, type SettingsPane } from './validate'
 
@@ -162,6 +163,8 @@ export function createActuator(deps: ActuatorDeps = {}): Actuator {
     return trusted?.() ? null : { ok: false, reason: 'accessibility' }
   }
   const act = async (what: string, run: () => Promise<void> | void, needsAccessibility: boolean): Promise<ActResult> => {
+    // Understudy: while the global kill switch is on, nothing runs, not even a dry run.
+    if (isKilled()) return blocked('the kill switch is on')
     if (dryRun) return dry(what)
     if (needsAccessibility) {
       const gate = tier2()

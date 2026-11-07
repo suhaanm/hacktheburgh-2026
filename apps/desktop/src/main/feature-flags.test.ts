@@ -16,3 +16,19 @@ describe('feature flags', () => {
     for (const f of FEATURES) expect(offMessage(f)).toMatch(/switched off/)
   })
 })
+
+describe('forced settings', () => {
+  it('pin wake and files off until their flags are set', async () => {
+    const { forcedSettings } = await import('./feature-flags')
+    expect(forcedSettings({})).toEqual({ wakeEnabled: false, filesEnabled: false })
+    expect(forcedSettings({ UNDERSTUDY_FLAG_WAKE: '1' })).toEqual({ filesEnabled: false })
+    expect(forcedSettings({ UNDERSTUDY_FLAG_WAKE: '1', UNDERSTUDY_FLAG_FILES: '1' })).toEqual({})
+  })
+  it('SettingsStore keeps forced values over saved values and patches', async () => {
+    const { SettingsStore } = await import('./settings')
+    const store = new SettingsStore(null, { forced: { wakeEnabled: false, filesEnabled: false } })
+    expect(store.get().wakeEnabled).toBe(false)
+    store.patch({ wakeEnabled: true, filesEnabled: true, captions: false }, { trusted: true })
+    expect(store.get()).toMatchObject({ wakeEnabled: false, filesEnabled: false, captions: false })
+  })
+})

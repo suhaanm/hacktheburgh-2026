@@ -1,0 +1,464 @@
+{
+  "sensitive": [
+    {
+      "description": "Fields that are NEVER recorded or read (CAP-4, SEC). Data, not code: extend freely. Matched case-insensitively as regex against field name, id, label, placeholder, autocomplete and aria-label.",
+      "patterns": [
+        "pass(word|wd|code|phrase)?",
+        "\\bpin\\b",
+        "\\botp\\b",
+        "one[- ]?time",
+        "2fa|mfa|verification[- ]code|security[- ]code",
+        "\\bcvv\\b|\\bcvc\\b|card[- ]?(number|no)|credit|debit",
+        "\\biban\\b|sort[- ]?code|account[- ]?(number|no)|routing",
+        "national[- ]?insurance|\\bni[- ]?(number|no)\\b|\\bnino\\b|\\bssn\\b|social[- ]security",
+        "passport|driving[- ]?licen[cs]e|date[- ]of[- ]birth|\\bdob\\b",
+        "secret|token|api[- ]?key|private[- ]key|seed[- ]phrase",
+        "cc-number|cc-csc|cc-exp|current-password|new-password|one-time-code"
+      ],
+      "autocomplete_tokens": [
+        "cc-number",
+        "cc-csc",
+        "cc-exp",
+        "current-password",
+        "new-password",
+        "one-time-code"
+      ],
+      "input_types": [
+        "password"
+      ]
+    },
+    {
+      "description": "Benefits-processor additions to the global sensitive-fields list. The effective list is the union of this file and packages/schema/sensitive_fields.json. Data, not code: extend freely. Patterns are case-insensitive regexes over field name, id, label, placeholder, autocomplete and aria-label.",
+      "extends": "../../schema/sensitive_fields.json",
+      "patterns": [
+        "\\bnino\\b|national[- ]?insurance|\\bni[- ]?(no|number)\\b",
+        "claimant[- ]?(name|surname|forename|address|phone|email)",
+        "(partner|spouse|child|children|dependant)[- ]?(name|dob|date[- ]of[- ]birth)",
+        "(home|postal|street)[- ]?address|\\bpostcode\\b|\\bpost[- ]?code\\b|\\bzip\\b",
+        "\\bphone\\b|\\bmobile\\b|\\bemail\\b",
+        "\\butr\\b|unique[- ]?taxpayer|tax[- ]?(code|reference)",
+        "bank[- ]?(name|details)|payee|direct[- ]?debit",
+        "medical|diagnos|health[- ]?condition|disability[- ]?(type|detail)|\\bpip\\b[- ]?(ref|reference)",
+        "immigration|visa|biometric|right[- ]to[- ]rent|residence[- ]permit",
+        "benefit[- ]?claim[- ]?(ref|reference|number)|universal[- ]?credit[- ]?(ref|id)"
+      ],
+      "autocomplete_tokens": [
+        "street-address",
+        "address-line1",
+        "address-line2",
+        "postal-code",
+        "tel",
+        "email",
+        "bday"
+      ],
+      "input_types": [
+        "password",
+        "tel",
+        "email"
+      ]
+    },
+    {
+      "description": "Data-analyst additions to the global sensitive-fields list. The effective list is the union of this file and packages/schema/sensitive_fields.json. Patterns are case-insensitive regexes over field name, id, label, placeholder, autocomplete and aria-label.",
+      "extends": "../../schema/sensitive_fields.json",
+      "patterns": [
+        "connection[- ]?string|dsn|jdbc",
+        "warehouse[- ]?(user|password|key)|service[- ]?account|credentials?",
+        "access[- ]?key|secret[- ]?key|bearer",
+        "(customer|user|patient|employee)[- ]?(name|email|phone|address|id)",
+        "\\bemail\\b|\\bphone\\b|\\bmobile\\b|\\bpostcode\\b|\\bpost[- ]?code\\b"
+      ],
+      "autocomplete_tokens": [
+        "email",
+        "tel",
+        "street-address",
+        "postal-code"
+      ],
+      "input_types": [
+        "password",
+        "email",
+        "tel"
+      ]
+    },
+    {
+      "description": "Programmer additions to the global sensitive-fields list. The effective list is the union of this file and packages/schema/sensitive_fields.json. Patterns are case-insensitive regexes over field name, id, label, placeholder, autocomplete and aria-label.",
+      "extends": "../../schema/sensitive_fields.json",
+      "patterns": [
+        "personal[- ]?access[- ]?token|\\bpat\\b|deploy[- ]?key|ssh[- ]?key|gpg|signing[- ]?key",
+        "env(ironment)?[- ]?(var|variable)s?[- ]?(value|secret)|\\.env",
+        "client[- ]?secret|webhook[- ]?secret|bearer|authorization",
+        "recovery[- ]?code|backup[- ]?code",
+        "\\bemail\\b"
+      ],
+      "autocomplete_tokens": [
+        "email"
+      ],
+      "input_types": [
+        "password",
+        "email"
+      ]
+    }
+  ],
+  "zones": {
+    "vocabulary": [
+      "calc_result",
+      "calc_site",
+      "case_note",
+      "chart_panel",
+      "check_box",
+      "ci_log",
+      "cliff_button",
+      "cliff_panel",
+      "code_editor",
+      "code_view",
+      "commit_box",
+      "compare_view",
+      "data_browser",
+      "decision_btn",
+      "diff_view",
+      "doc",
+      "docs_page",
+      "export_panel",
+      "form_field",
+      "help",
+      "household_form",
+      "profile_panel",
+      "query_edit",
+      "query_result",
+      "results_tabs",
+      "run_control",
+      "search_box",
+      "sql_editor",
+      "test_runner"
+    ],
+    "sites": [
+      {
+        "pack": "benefits-processor",
+        "id": "a",
+        "hosts": [
+          "127.0.0.1:7801",
+          "localhost:7801"
+        ],
+        "nav_default": "calc_site",
+        "tab_default": "results_tabs",
+        "nav": [
+          {
+            "zone": "case_note",
+            "when": "form[action^=\"/casenote\"], #note-id, #cn-id"
+          },
+          {
+            "zone": "calc_result",
+            "when": "#result-amount, #calc-total"
+          },
+          {
+            "zone": "household_form",
+            "when": "form input[type=\"hidden\"]"
+          }
+        ],
+        "tab": [
+          {
+            "zone": "case_note",
+            "when": "form[action^=\"/casenote\"], #note-id, #cn-id"
+          }
+        ],
+        "page": [
+          {
+            "zone": "case_note",
+            "when": "form[action^=\"/casenote\"], #note-id, #cn-id"
+          },
+          {
+            "zone": "calc_result",
+            "when": "#result-amount, #calc-total"
+          },
+          {
+            "zone": "household_form",
+            "when": "form[action^=\"/step\"], form[action^=\"/result\"]"
+          }
+        ],
+        "elements": [
+          {
+            "zone": "cliff_button",
+            "selector": "#cliff-btn"
+          },
+          {
+            "zone": "cliff_panel",
+            "selector": "#cliff-panel"
+          },
+          {
+            "zone": "case_note",
+            "selector": "form[action^=\"/casenote\"], #note-id, #note-status, #note-body, #cn-id, #cn-state, #cn-text"
+          },
+          {
+            "zone": "calc_result",
+            "selector": "#result-amount, #result-status, #result-ref, #calc-total, #calc-outcome, #calc-reference"
+          },
+          {
+            "zone": "household_form",
+            "selector": "form[action^=\"/step\"], form[action^=\"/result\"]"
+          }
+        ]
+      },
+      {
+        "pack": "benefits-processor",
+        "id": "b",
+        "hosts": [
+          "127.0.0.1:7802",
+          "localhost:7802"
+        ],
+        "nav_default": "calc_site",
+        "tab_default": "results_tabs",
+        "nav": [
+          {
+            "zone": "calc_result",
+            "when": "table"
+          }
+        ],
+        "page": [
+          {
+            "zone": "calc_result",
+            "when": "table"
+          },
+          {
+            "zone": "household_form",
+            "when": "form[action^=\"/calculate\"]"
+          }
+        ],
+        "elements": [
+          {
+            "zone": "cliff_button",
+            "selector": "#cliff-btn"
+          },
+          {
+            "zone": "cliff_panel",
+            "selector": "#cliff-panel"
+          },
+          {
+            "zone": "calc_result",
+            "selector": "table"
+          },
+          {
+            "zone": "household_form",
+            "selector": "form[action^=\"/calculate\"]"
+          }
+        ]
+      },
+      {
+        "pack": "benefits-processor",
+        "id": "c",
+        "hosts": [
+          "127.0.0.1:7803",
+          "localhost:7803"
+        ],
+        "nav_default": "calc_site",
+        "tab_default": "results_tabs",
+        "nav": [
+          {
+            "zone": "calc_result",
+            "when": "table"
+          }
+        ],
+        "page": [
+          {
+            "zone": "calc_result",
+            "when": "table"
+          },
+          {
+            "zone": "household_form",
+            "when": "form[action^=\"/results\"]"
+          }
+        ],
+        "elements": [
+          {
+            "zone": "cliff_button",
+            "selector": "#cliff-btn"
+          },
+          {
+            "zone": "cliff_panel",
+            "selector": "#cliff-panel"
+          },
+          {
+            "zone": "calc_result",
+            "selector": "table"
+          },
+          {
+            "zone": "household_form",
+            "selector": "form[action^=\"/results\"]"
+          }
+        ]
+      },
+      {
+        "pack": "data-analyst",
+        "id": "warehouse",
+        "hosts": [
+          "*.snowflakecomputing.com",
+          "console.cloud.google.com",
+          "*.databricks.com"
+        ],
+        "nav_default": "data_browser",
+        "tab_default": "compare_view",
+        "elements": [
+          {
+            "zone": "sql_editor",
+            "selector": ".monaco-editor, [role=\"textbox\"][aria-label], .cm-editor"
+          },
+          {
+            "zone": "run_control",
+            "selector": "button[data-testid*=\"run\"], button[aria-label*=\"Run\"]"
+          },
+          {
+            "zone": "query_result",
+            "selector": "[role=\"grid\"], [role=\"table\"], .results"
+          }
+        ]
+      },
+      {
+        "pack": "data-analyst",
+        "id": "notebook",
+        "hosts": [
+          "colab.research.google.com",
+          "app.hex.tech",
+          "localhost:8888"
+        ],
+        "nav_default": "data_browser",
+        "tab_default": "compare_view",
+        "elements": [
+          {
+            "zone": "sql_editor",
+            "selector": ".cm-editor, .monaco-editor, .CodeMirror"
+          },
+          {
+            "zone": "run_control",
+            "selector": "button[aria-label*=\"Run\"], .run-button"
+          },
+          {
+            "zone": "query_result",
+            "selector": ".output_area, .jp-OutputArea, [role=\"table\"]"
+          },
+          {
+            "zone": "chart_panel",
+            "selector": "canvas, svg.plot, .output_png"
+          }
+        ]
+      },
+      {
+        "pack": "data-analyst",
+        "id": "sheet",
+        "hosts": [
+          "docs.google.com"
+        ],
+        "nav_default": "doc",
+        "tab_default": "compare_view",
+        "elements": [
+          {
+            "zone": "chart_panel",
+            "selector": "[aria-label*=\"Chart\"], .chart-container"
+          }
+        ]
+      },
+      {
+        "pack": "data-analyst",
+        "id": "bi",
+        "hosts": [
+          "*.looker.com",
+          "app.powerbi.com",
+          "*.tableau.com"
+        ],
+        "nav_default": "doc",
+        "tab_default": "compare_view",
+        "elements": [
+          {
+            "zone": "chart_panel",
+            "selector": "svg, canvas, [data-testid*=\"chart\"]"
+          },
+          {
+            "zone": "export_panel",
+            "selector": "button[aria-label*=\"Export\"], button[aria-label*=\"Download\"]"
+          }
+        ]
+      },
+      {
+        "pack": "programmer",
+        "id": "git_host",
+        "hosts": [
+          "github.com",
+          "gitlab.com",
+          "bitbucket.org"
+        ],
+        "nav_default": "code_view",
+        "tab_default": "compare_view",
+        "elements": [
+          {
+            "zone": "commit_box",
+            "selector": "#commit-changes-modal, form[action*=\"commit\"], [data-testid=\"commit-button\"]"
+          },
+          {
+            "zone": "code_editor",
+            "selector": ".cm-editor, .monaco-editor, textarea[name=\"value\"]"
+          },
+          {
+            "zone": "diff_view",
+            "selector": "#files, .diff-view, [data-testid=\"diff\"]"
+          },
+          {
+            "zone": "code_view",
+            "selector": "#read-only-cursor-text-area, .blob-wrapper, [data-testid=\"code-view\"], table.highlight"
+          }
+        ]
+      },
+      {
+        "pack": "programmer",
+        "id": "ci",
+        "hosts": [
+          "*.circleci.com",
+          "buildkite.com",
+          "localhost:8080"
+        ],
+        "nav_default": "ci_log",
+        "tab_default": "compare_view",
+        "elements": [
+          {
+            "zone": "test_runner",
+            "selector": "button[aria-label*=\"Re-run\"], button[aria-label*=\"Rerun\"], [data-testid*=\"rerun\"]"
+          },
+          {
+            "zone": "ci_log",
+            "selector": "pre, .log, [data-testid*=\"log\"]"
+          }
+        ]
+      },
+      {
+        "pack": "programmer",
+        "id": "tracker",
+        "hosts": [
+          "*.atlassian.net",
+          "linear.app"
+        ],
+        "nav_default": "doc",
+        "tab_default": "compare_view",
+        "elements": [
+          {
+            "zone": "form_field",
+            "selector": "textarea, input[type=\"text\"]"
+          }
+        ]
+      },
+      {
+        "pack": "programmer",
+        "id": "docs",
+        "hosts": [
+          "docs.python.org",
+          "developer.mozilla.org",
+          "stackoverflow.com",
+          "*.readthedocs.io"
+        ],
+        "nav_default": "docs_page",
+        "tab_default": "docs_page",
+        "elements": [
+          {
+            "zone": "docs_page",
+            "selector": "main, article, #content, .answercell"
+          }
+        ]
+      }
+    ]
+  }
+}

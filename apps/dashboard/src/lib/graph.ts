@@ -53,46 +53,51 @@ interface SimNode extends Placed {
  */
 export function layoutGraph(graph: WorkGraph, width: number, height: number, combine: boolean): Placed[] {
   const r = radiusFn(graph.nodes);
-  const ring = (i: number, n: number) => ({ x: width / 2 + Math.cos((i / n) * 6.2832) * width * 0.3, y: height / 2 + Math.sin((i / n) * 6.2832) * height * 0.3 });
+  const tall = height > width * 1.2;
+  const ring = (i: number, n: number) => ({ x: width / 2 + Math.cos((i / n) * 6.2832) * width * 0.34, y: height / 2 + Math.sin((i / n) * 6.2832) * height * 0.34 });
   const nodes: SimNode[] = graph.nodes.map((n, i) => ({ id: n.id, r: r(n), ...ring(i, graph.nodes.length) }));
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const links = graph.links
     .filter((l) => byId.has(l.a) && byId.has(l.b))
     .map((l) => ({ source: l.a, target: l.b, kind: l.kind, weight: l.weight }));
+  type L = { kind: string; weight: number; source: SimNode; target: SimNode };
   const sim = forceSimulation(nodes as never)
     .randomSource(lcg(7))
-    .force("charge", forceManyBody().strength(-170))
+    .force("charge", forceManyBody().strength(-520).distanceMax(520))
     .force("center", forceCenter(width / 2, height / 2))
-    .force("x", forceX(width / 2).strength(0.04))
-    .force("y", forceY(height / 2).strength(0.06))
-    .force("collide", forceCollide<SimNode>().radius((d) => d.r + 14))
+    // A tall, narrow canvas (a phone) gets its spread along the long side.
+    .force("x", forceX(width / 2).strength(tall ? 0.09 : 0.025))
+    .force("y", forceY(height / 2).strength(tall ? 0.008 : 0.04))
+    .force("collide", forceCollide<SimNode>().radius((d) => d.r + (tall ? 30 : 24)).strength(1).iterations(3))
     .force(
       "link",
       forceLink(links as never)
         .id((d) => (d as SimNode).id)
         .distance((l) => {
-          const k = (l as unknown as { kind: string; weight: number }).kind;
-          const w = (l as unknown as { weight: number }).weight;
-          return combine && k === "combined" ? 6 : 150 - 70 * w;
+          const k = l as unknown as L;
+          if (combine && k.kind === "combined") return k.source.r + k.target.r + 30;
+          return 150 - 60 * k.weight + k.source.r + k.target.r;
         })
         .strength((l) => {
-          const k = (l as unknown as { kind: string; weight: number }).kind;
-          const w = (l as unknown as { weight: number }).weight;
-          return combine && k === "combined" ? 1 : 0.15 + 0.35 * w;
+          const k = l as unknown as L;
+          return combine && k.kind === "combined" ? 1 : 0.1 + 0.3 * k.weight;
         }),
     )
     .stop();
-  if (combine) {
-    // A combined pair is one object: let the two members overlap.
-    sim.force("collide", forceCollide<SimNode>().radius((d) => d.r + 14).strength(0.9));
-  }
-  for (let i = 0; i < 320; i++) sim.tick();
-  const pad = 40;
+  for (let i = 0; i < 420; i++) sim.tick();
+  // Fit the settled layout into the canvas with a margin for labels.
+  const mx = 70, my = 44;
+  const xs = nodes.map((n) => n.x), ys = nodes.map((n) => n.y);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const sx = x1 > x0 ? (width - 2 * mx) / (x1 - x0) : 1;
+  const sy = y1 > y0 ? (height - 2 * my) / (y1 - y0) : 1;
+  const k = Math.min(1.35, sx, sy > 1.35 ? 1.35 : sy);
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
   return nodes.map((n) => ({
     id: n.id,
     r: n.r,
-    x: Math.min(width - pad, Math.max(pad, n.x)),
-    y: Math.min(height - pad, Math.max(pad, n.y)),
+    x: width / 2 + (n.x - cx) * Math.min(sx, 1.5),
+    y: height / 2 + (n.y - cy) * Math.min(sy, 1.5) * (k > 0 ? 1 : 1),
   }));
 }
 

@@ -254,5 +254,76 @@ def test_site_a_wizard_in_a_browser(cluster, pw_browser):
     ctx.close()
 
 
+# ------------------------------------------------------------------ cliff check
+@pytest.mark.parametrize("site,layout", [("a", "v1"), ("a", "v2"), ("b", "v1"), ("b", "v2"), ("c", "v1"), ("c", "v2")])
+def test_every_result_page_has_the_cliff_button_and_panel_with_stable_ids(cluster, site, layout):
+    h = generate_households(20)[3]
+    form = _fill(site, h, layout)
+    if site == "a":
+        r = httpx.post(cluster.urls["a"] + f"/result?layout={layout}", data=form)
+    elif site == "b":
+        r = httpx.post(cluster.urls["b"] + f"/calculate?layout={layout}", data=form)
+    else:
+        r = httpx.post(cluster.urls["c"] + f"/results?layout={layout}", data=form)
+    assert r.status_code == 200
+    assert 'id="cliff-btn"' in r.text and "Check cliff edges" in r.text
+    assert 'id="cliff-panel"' in r.text and 'data-understudy-zone="cliff_panel"' in r.text
+    assert 'data-understudy-zone="cliff_button"' in r.text
+
+
+def test_cliff_panel_agrees_with_the_oracle_and_is_recorded(cluster):
+    import re
+
+    from understudy_agent.sandbox_sites.oracle import cliff_report
+
+    hs = generate_households(20)
+    for hid in (3, 4, 5, 14):
+        h = hs[hid]
+        r = httpx.post(cluster.urls["b"] + "/calculate", data=_fill("b", h))
+        ref = re.search(r"T2U-[A-Z0-9]{6}", r.text).group(0)
+        panel = httpx.get(cluster.urls["b"] + f"/cliff?site=b&ref={ref}")
+        assert panel.status_code == 200
+        near_site = set(re.findall(r'data-cliff="(\w+)" data-near="yes"', panel.text))
+        flags = score(h)["cliff_flags"]
+        want = {i["id"] for i in cliff_report(h) if i["near"]}
+        assert near_site == want
+        assert len(want) == len({f for f in flags})  # one panel item per oracle flag
+    assert len(cluster.state.cliff_opens) == 4
+    assert httpx.get(cluster.urls["b"] + "/cliff?site=b&ref=T2U-NOPE00").status_code == 404
+
+
+def test_cliff_text_names_the_distance_and_says_no_change_when_far(cluster):
+    from understudy_agent.sandbox_sites.oracle import cliff_report
+
+    far = hh(savings=14800.0, adults=(Adult(40, 100.0),))
+    txt = {i["id"]: i for i in cliff_report(far)}["capital_limit"]
+    assert "1,200 below the 16,000 limit" in txt["text"] and "No change at this level" in txt["text"] and not txt["near"]
+    near = {i["id"]: i for i in cliff_report(hh(savings=15900.0))}["capital_limit"]
+    assert near["near"] and "Close" in near["text"]
+
+
+def test_cliff_button_expands_the_panel_in_a_browser(cluster, pw_browser):
+    h = generate_households(20)[3]
+    page = pw_browser.new_context().new_page()
+    spec = SITES["c"]
+    page.goto(cluster.urls["c"] + "/")
+    p = h.params()
+    for param in spec.steps[0] + spec.steps[1]:
+        loc = page.locator(spec.selector(param))
+        if param in ("adults", "limited_capability", "tenure", "bedrooms"):
+            loc.select_option(p[param])
+        else:
+            loc.fill(bound_value(spec, param, p))
+        if param == spec.steps[0][-1]:
+            page.locator(spec.buttons()[0]).click()
+    page.locator(spec.buttons()[1]).click()
+    assert not page.locator("#cliff-panel").is_visible()
+    page.locator("#cliff-btn").click()
+    page.locator("#cliff-panel").wait_for(state="visible")
+    assert "16,000 limit" in page.locator("#cliff-panel").inner_text()
+    assert page.locator("#cliff-btn").get_attribute("aria-expanded") == "true"
+    assert cluster.state.cliff_opens and cluster.state.cliff_opens[-1]["site"] == "c"
+
+
 def test_tolerance_constant_is_one_pound():
     assert TOLERANCE_GBP == 1.0

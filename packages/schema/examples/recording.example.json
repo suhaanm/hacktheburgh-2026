@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "routine_id": "calc-entry-3x",
+  "recording_id": "rec_0a1b2c3d4e5f",
+  "role": "benefits-processor",
+  "person": "p_9f3a",
+  "skipped_sensitive": 0,
+  "steps": [
+    { "op": "goto", "t_ms": 0, "url": "http://127.0.0.1:7801/step/1" },
+    { "op": "select", "t_ms": 3100, "selector": "[name=\"adults\"]", "param": "adults" },
+    { "op": "fill", "t_ms": 5200, "selector": "[name=\"your_age\"]", "param": "your_age", "input_type": "number" },
+    { "op": "fill", "t_ms": 9800, "role": "textbox", "name": "Ages of any children, separated by commas", "param": "children_ages", "input_type": "text" },
+    { "op": "click", "t_ms": 12000, "selector": "#continue" }
+  ]
+}

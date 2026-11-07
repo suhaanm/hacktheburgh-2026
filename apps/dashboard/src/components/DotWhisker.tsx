@@ -52,7 +52,7 @@ export function DotWhisker({ rows, unit, reference, refLabel, domain, digits = 0
                   <line className={`dw-line${r.emphasis === "real" ? " dw-line--real" : ""}`} x1={x(r.ci[0])} x2={x(r.ci[0])} y1={cy - 4} y2={cy + 4} />
                   <line className={`dw-line${r.emphasis === "real" ? " dw-line--real" : ""}`} x1={x(r.ci[1])} x2={x(r.ci[1])} y1={cy - 4} y2={cy + 4} />
                   <circle className={`dw-dot${r.emphasis === "real" ? " dw-dot--real" : ""}`} cx={x(r.value)} cy={cy} r={4.5} />
-                  <text className="wf-val" x={x(r.ci[1]) + 10} y={cy + 4}>{signed(r.value, digits)} <tspan className="svg-text">{fmtInterval(r.ci, digits)}</tspan></text>
+                  <text className="wf-val" x={compact ? x.range()[1] : x(r.ci[1]) + 10} y={compact ? i * rowH + 12 : cy + 4} textAnchor={compact ? "end" : "start"}>{signed(r.value, digits)} <tspan className="svg-text">{fmtInterval(r.ci, digits)}</tspan></text>
                 </g>
               );
             })}

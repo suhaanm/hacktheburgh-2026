@@ -73,6 +73,8 @@ describe('menu content', () => {
       'Type instead',
       'Mute microphone',
       'Stop',
+      'Stop everything',
+      'Open morning queue',
       'Run the demo walkthrough',
       'Set up again…',
       'Permissions…',
@@ -235,7 +237,7 @@ describe('click handlers', () => {
     const items = tray().popped[0].items as { label?: string; enabled?: boolean; type?: string }[]
     expect(items.find((i) => i.label === 'Unmute microphone')).toBeTruthy()
     expect(items.find((i) => i.label === 'Stop')?.enabled).toBe(true)
-    expect(items.filter((i) => i.type === 'separator')).toHaveLength(4)
+    expect(items.filter((i) => i.type === 'separator')).toHaveLength(5)
   })
 
   it('menu clicks run the entry', () => {
@@ -420,5 +422,42 @@ describe('menu bar state', () => {
     const { shell } = setup({ dockVisible: false })
     expect(shell.info().menu.find((e) => e.id === 'panel')).toMatchObject({ label: 'Show panel', checked: false })
     expect(shell.info().panelVisible).toBe(false)
+  })
+})
+
+describe('Understudy menu items', () => {
+  it('Stop everything triggers the kill switch, then offers Resume; Open morning queue opens the queue', () => {
+    const calls: string[] = []
+    let killed = false
+    mocks.FakeTray.instances.length = 0
+    const settings = new SettingsStore(null)
+    settings.patch({ onboardingDone: true })
+    const state = new StateStore(settings.get())
+    const windows = { showDock: vi.fn(), hideDock: vi.fn(), isDockVisible: () => true, sendDock: vi.fn() }
+    const shell = registerTray({
+      bus: new Bus(),
+      state,
+      settings,
+      windows,
+      stop: vi.fn(),
+      quit: vi.fn(),
+      log: () => undefined,
+      iconDir: path.join(process.cwd(), 'resources', 'tray'),
+      kill: { trigger: () => void (calls.push('kill'), (killed = true)), clear: () => void (calls.push('resume'), (killed = false)), isKilled: () => killed },
+      openQueue: () => void calls.push('queue'),
+    })
+    expect(shell.activate('kill')).toBe(true)
+    expect(shell.info().menu.find((e) => e.id === 'resume')?.label).toBe('Resume after stopping everything')
+    expect(shell.info().menu.some((e) => e.id === 'kill')).toBe(false)
+    expect(shell.activate('queue')).toBe(true)
+    expect(shell.activate('resume')).toBe(true)
+    expect(shell.info().menu.some((e) => e.id === 'kill')).toBe(true)
+    expect(calls).toEqual(['kill', 'queue', 'resume'])
+  })
+
+  it('both entries do nothing (and report false) when no kill switch or queue is wired', () => {
+    const { shell } = setup()
+    expect(shell.activate('kill')).toBe(false)
+    expect(shell.activate('queue')).toBe(false)
   })
 })

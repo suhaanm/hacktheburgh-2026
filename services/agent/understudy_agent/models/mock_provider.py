@@ -224,12 +224,15 @@ def follow_visible_instructions(text: str) -> dict[str, Any] | None:
 
 # --------------------------------------------------------------------------- the provider
 
-_STOP = {"the", "a", "an", "and", "or", "to", "of", "in", "on", "for", "with", "is", "are", "it", "then", "that", "this"}
-_BENIGN_KINDS = {"screenshot", "wait", "scroll", "move"}
+_STOP = {"the", "a", "an", "and", "or", "to", "of", "in", "on", "for", "with", "is", "are", "it", "then", "that", "this", "at"}
+_BENIGN_KINDS = {"screenshot", "wait", "scroll", "move", "scroll_page", "wait_for", "back"}
+_RISKY_WORDS = {"delet", "remov", "pay", "buy", "send", "email", "post", "uploa", "submi", "insta", "trans", "login", "passw",
+                "purch", "publi", "forwa", "share"}
 
 
 def _tokens(s: str) -> set[str]:
-    return {t for t in re.findall(r"[a-z0-9]+", s.lower()) if t not in _STOP and len(t) > 2}
+    """Lower-case word stems (first five letters) without stop words, for the mock drift heuristic."""
+    return {t[:5] for t in re.findall(r"[a-z0-9]+", s.lower()) if t not in _STOP and len(t) > 2}
 
 
 class MockProvider:
@@ -283,7 +286,7 @@ class MockProvider:
         return blank_for(schema)
 
     def read(self, untrusted: str, schema: dict[str, Any]) -> dict[str, Any]:
-        self._record("read", chars=len(untrusted), schema=schema)
+        self._record("read", chars=len(untrusted), untrusted=untrusted, schema=schema)
         scripted = self._scripted_for(schema)
         if scripted is not None:
             return scripted
@@ -300,8 +303,14 @@ class MockProvider:
             g = _tokens(goal.group(1)) if goal else set()
             s_text = step.group(1) if step else ""
             kind = s_text.split()[0].lower() if s_text else ""
-            ok = kind in _BENIGN_KINDS or bool(g & _tokens(s_text)) or not g
-            return {"serves_goal": ok, "reason": "mock keyword overlap with the goal" if ok else "mock: no overlap with the goal"}
+            st = _tokens(s_text)
+            if kind in _BENIGN_KINDS or not g or (g & st):
+                ok = True
+            elif (st & _RISKY_WORDS) and not (g & _RISKY_WORDS):
+                ok = False
+            else:
+                ok = kind != "goto"  # a step to an address the goal does not mention is off-goal
+            return {"serves_goal": ok, "reason": "mock: overlaps the goal" if ok else "mock: nothing in the goal explains this step"}
         return blank_for(schema)
 
     def vision(self, image: bytes, prompt: str, schema: dict[str, Any] | None = None) -> dict[str, Any]:

@@ -1,66 +1,50 @@
-# Synthetic households only (no real people, no real identifiers). Config for the generator in the agent
-# service. Cliff edges are planted on purpose so calculators can disagree; the oracle owns the numbers,
-# so the thresholds below are sandbox parameters, not statements of law.
+# Describes the generator the agent-core track built (understudy_agent.sandbox_sites.households).
+# Synthetic households only, named "Household NNNN", no real people. `fields` mirrors Household.to_dict().
+# The oracle is a simplified internal rule set, illustrative, not law; cliff names are its cliff_flags.
 version: 1
-seed: 20261107
+generator: understudy_agent.sandbox_sites.households:generate_households
+seed: 2026
 default_count: 20
-case_ref_format: "CN-{4d}"
+case_ref_format: "CASE-{1000+index}"
 
 fields:
-  region:
-    dist: choice
-    values: [england, scotland, wales]
-    weights: [0.70, 0.18, 0.12]
-  adults:
-    dist: choice
-    values: [1, 2]
-    weights: [0.55, 0.45]
-  children_ages:
-    dist: list
-    min: 0
-    max: 4
-    weights: [0.25, 0.30, 0.25, 0.15, 0.05]     # number of children 0 to 4
-    note: each child age is an integer 0 to 17
-  tenure:
-    dist: choice
-    values: [rent_private, rent_social, own_mortgage, own_outright]
-    weights: [0.40, 0.30, 0.22, 0.08]
-  rent_monthly_gbp:
-    dist: lognormal
-    median: 700
-    sigma: 0.35
-    round_to: 5
-    depends_on: { tenure: [rent_private, rent_social] }
-    note: zero when the household owns
-  earnings_annual_gbp:
-    dist: lognormal
-    median: 19000
-    sigma: 0.55
-    round_to: 100
-  partner_earnings_annual_gbp:
-    dist: lognormal
-    median: 11000
-    sigma: 0.7
-    round_to: 100
-    depends_on: { adults: [2] }
-  savings_gbp:
-    dist: lognormal
-    median: 1800
-    sigma: 1.1
-    round_to: 50
-  disability:
-    dist: bernoulli
-    p: 0.14
-  carer:
-    dist: bernoulli
-    p: 0.06
+  id: { type: string, note: "hh_NNNN" }
+  case_ref: { type: string, note: "CASE-1001 and up" }
+  region: { type: enum, values: [england, scotland, wales] }
+  adults: { type: list, note: "1 or 2 objects {age, earnings_monthly}; net monthly earnings in pounds" }
+  children_ages: { type: list, note: "integer ages, may be empty" }
+  tenure: { type: enum, values: [rent, own] }
+  rent_monthly: { type: number, note: "0 when tenure is own" }
+  bedrooms: { type: integer, note: "1 to 4" }
+  savings: { type: number, note: "pounds" }
+  childcare_monthly: { type: number }
+  limited_capability: { type: boolean }
+  archetype: { type: string }
+  synthetic: { type: boolean, note: "always true" }
+
+archetypes:
+  - { id: single_worker, note: "Plain single earner." }
+  - { id: couple_two_kids, note: "Couple with two children." }
+  - { id: lone_parent_childcare, note: "Childcare element; the cap matters with two or more children.", plants: childcare_cap_binding }
+  - { id: savings_cliff_16k, note: "Savings at 15,900 to 16,001, around the capital limit.", plants: capital_limit_16000 }
+  - { id: savings_tariff_band, note: "Savings between 6,000 and 16,000: tariff income applies.", plants: capital_tariff_band }
+  - { id: third_child, note: "Three or more children.", plants: third_child }
+  - { id: childless_earner, note: "No work allowance." }
+  - { id: owner_no_housing, note: "Owner occupier, no housing element." }
+  - { id: high_rent_cap, note: "Rent above the bedroom-based housing cap.", plants: housing_cap_binding }
+  - { id: high_income, note: "Higher earnings, taper removes the award." }
+  - { id: carer_limited_capability, note: "Limited capability for work." }
+  - { id: young_couple, note: "Both adults under 25." }
 
 cliffs:
-  - { id: capital_limit, field: savings_gbp, threshold: 16000, band: 400, plant_rate: 0.12, note: Illustrative capital limit; calculators may treat the boundary differently. }
-  - { id: child_benefit_charge_start, field: earnings_annual_gbp, threshold: 60000, band: 1500, plant_rate: 0.08, note: Illustrative high-income charge start. }
-  - { id: earnings_taper_edge, field: earnings_annual_gbp, threshold: 15000, band: 800, plant_rate: 0.10, note: Illustrative earnings point where entitlement changes quickly. }
+  - { id: capital_limit_16000, field: savings, threshold: 16000, sites_that_differ: [c], note: "Site c treats savings of exactly 16,000 as over the limit." }
+  - { id: capital_tariff_band, field: savings, threshold: 6000, sites_that_differ: [b], note: "Savings from 6,000 to 16,000 add tariff income; site b ignores it." }
+  - { id: third_child, field: children_ages, sites_that_differ: [c], note: "Site c still applies a legacy two-child limit." }
+  - { id: childcare_cap_binding, field: childcare_monthly, sites_that_differ: [b], note: "With two or more young children site b applies the one-child childcare cap." }
+  - { id: housing_cap_binding, field: rent_monthly, note: "Rent above the cap: the housing element is capped (all sites)." }
+  - { id: work_allowance_edge, field: adults, note: "Earnings within 150 pounds of the work allowance." }
 
-constraints:
-  - Total planted cliff households should be about 30 percent of a batch of 20.
-  - Households with children_ages empty must report no child benefit.
-  - rent_monthly_gbp is 0 when tenure is own_mortgage or own_outright.
+site_quirks:
+  - { site: a, quirk: "Faithful to the oracle but displays whole pounds." }
+  - { site: b, quirk: "Ignores capital tariff income and applies the one-child childcare cap to everyone." }
+  - { site: c, quirk: "Applies a legacy two-child limit, treats savings of exactly 16000 as over the limit, asks annual earnings and weekly rent and childcare." }

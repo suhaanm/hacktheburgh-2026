@@ -6,26 +6,63 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "id", "version", "name", "summary", "depth", "onboarding", "cogs",
-    "risk_classes", "routines", "tone_defaults", "curriculum", "persona", "priors"
+    "id",
+    "version",
+    "name",
+    "summary",
+    "depth",
+    "onboarding",
+    "cogs",
+    "risk_classes",
+    "routines",
+    "tone_defaults",
+    "curriculum",
+    "persona",
+    "priors"
   ],
   "properties": {
-    "id": { "$ref": "#/$defs/packId" },
-    "version": { "type": "integer", "minimum": 1 },
-    "name": { "type": "string", "minLength": 2, "maxLength": 60 },
-    "summary": { "type": "string", "minLength": 10, "maxLength": 200 },
-    "depth": { "enum": ["deep", "thin"], "description": "Returned by GET /packs. Deep packs must also carry tasks, oracle and a full expert_policy." },
-    "locale": { "type": "string", "pattern": "^[a-z]{2}(-[A-Z]{2})?$" },
+    "id": {
+      "$ref": "#/$defs/packId"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 60
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 200
+    },
+    "depth": {
+      "enum": [
+        "deep",
+        "thin"
+      ],
+      "description": "Returned by GET /packs. Deep packs must also carry tasks, oracle and a full expert_policy."
+    },
+    "locale": {
+      "type": "string",
+      "pattern": "^[a-z]{2}(-[A-Z]{2})?$"
+    },
     "onboarding": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["questions"],
+      "required": [
+        "questions"
+      ],
       "properties": {
         "questions": {
           "type": "array",
           "minItems": 5,
           "maxItems": 5,
-          "items": { "$ref": "#/$defs/question" },
+          "items": {
+            "$ref": "#/$defs/question"
+          },
           "description": "Exactly the five fixed ids tools, risky, tone, pace, hours (see GET /onboarding/questions). Prompts, options and defaults differ per pack."
         }
       }
@@ -33,77 +70,216 @@
     "cogs": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["extra", "mapping"],
+      "required": [
+        "extra",
+        "mapping"
+      ],
       "properties": {
-        "extra": { "type": "array", "minItems": 1, "maxItems": 12, "uniqueItems": true, "items": { "$ref": "#/$defs/cogId" } },
-        "mapping": { "$ref": "#/$defs/relPath" }
+        "extra": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/cogId"
+          }
+        },
+        "mapping": {
+          "$ref": "#/$defs/relPath"
+        }
       }
     },
     "expert_policy": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["steps", "coverage"],
+      "required": [
+        "steps",
+        "coverage"
+      ],
       "properties": {
-        "steps": { "$ref": "#/$defs/relPath" },
-        "coverage": { "enum": ["full", "stub"], "description": "Deep packs: full. Thin packs: stub (a few checks, no oracle)." }
+        "steps": {
+          "$ref": "#/$defs/relPath"
+        },
+        "coverage": {
+          "enum": [
+            "full",
+            "stub"
+          ],
+          "description": "Deep packs: full. Thin packs: stub (a few checks, no oracle)."
+        }
       }
     },
     "risk_classes": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["irreversible", "outward", "sensitive_fields"],
+      "required": [
+        "irreversible",
+        "outward",
+        "sensitive_fields"
+      ],
       "properties": {
-        "irreversible": { "$ref": "#/$defs/patternList" },
-        "outward": { "$ref": "#/$defs/patternList" },
-        "sensitive_fields": { "$ref": "#/$defs/relPath" }
+        "irreversible": {
+          "$ref": "#/$defs/patternList"
+        },
+        "outward": {
+          "$ref": "#/$defs/patternList"
+        },
+        "sensitive_fields": {
+          "$ref": "#/$defs/relPath"
+        }
       }
     },
-    "routines": { "$ref": "#/$defs/relPath" },
+    "routines": {
+      "$ref": "#/$defs/relPath"
+    },
     "tone_defaults": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["length", "voice"],
+      "required": [
+        "length",
+        "voice"
+      ],
       "properties": {
-        "length": { "enum": ["short", "medium", "detailed"] },
-        "voice": { "enum": ["plain", "precise", "terse", "direct", "warm"] },
-        "pace": { "enum": ["gentle", "steady", "quick"] }
+        "length": {
+          "enum": [
+            "short",
+            "medium",
+            "detailed"
+          ]
+        },
+        "voice": {
+          "enum": [
+            "plain",
+            "precise",
+            "terse",
+            "direct",
+            "warm"
+          ]
+        },
+        "pace": {
+          "enum": [
+            "gentle",
+            "steady",
+            "quick"
+          ]
+        }
       }
     },
-    "curriculum": { "$ref": "#/$defs/relPath" },
-    "tasks": { "$ref": "#/$defs/relPath", "description": "Directory (deep packs): task.yaml, household_generator.yaml, sites.yaml." },
+    "curriculum": {
+      "$ref": "#/$defs/relPath"
+    },
+    "tasks": {
+      "$ref": "#/$defs/relPath",
+      "description": "Directory (deep packs): task.yaml, household_generator.yaml, sites.yaml."
+    },
     "oracle": {
       "type": "string",
       "pattern": "^([A-Za-z_][A-Za-z0-9_.]*:[A-Za-z_][A-Za-z0-9_]*|[A-Za-z0-9_][A-Za-z0-9_./-]*\\.py)$",
       "description": "module:function (for example understudy_agent.sandbox_sites.oracle:score) or a path to a .py file. Deep packs only."
     },
-    "persona": { "$ref": "#/$defs/relPath" },
-    "priors": { "$ref": "#/$defs/relPath" },
+    "persona": {
+      "$ref": "#/$defs/relPath"
+    },
+    "priors": {
+      "$ref": "#/$defs/relPath"
+    },
     "plugin_refs": {
       "type": "array",
       "default": [],
-      "items": { "$ref": "#/$defs/pluginRef" },
+      "items": {
+        "$ref": "#/$defs/pluginRef"
+      },
       "description": "Marketplace plugin references (skills as procedures, MCP servers as tools). Accepted, never called (ROL-5, D6)."
+    },
+    "oracle_note": {
+      "type": "string",
+      "maxLength": 200,
+      "description": "Plain-language label for the oracle, for example: simplified internal rule set, illustrative, not law."
     }
   },
   "allOf": [
     {
-      "if": { "properties": { "depth": { "const": "deep" } }, "required": ["depth"] },
+      "if": {
+        "properties": {
+          "depth": {
+            "const": "deep"
+          }
+        },
+        "required": [
+          "depth"
+        ]
+      },
       "then": {
-        "required": ["expert_policy", "tasks", "oracle"],
-        "properties": { "expert_policy": { "properties": { "coverage": { "const": "full" } } } }
+        "required": [
+          "expert_policy",
+          "tasks",
+          "oracle"
+        ],
+        "properties": {
+          "expert_policy": {
+            "properties": {
+              "coverage": {
+                "const": "full"
+              }
+            }
+          }
+        }
       }
     },
     {
-      "if": { "properties": { "depth": { "const": "thin" } }, "required": ["depth"] },
-      "then": { "properties": { "expert_policy": { "properties": { "coverage": { "const": "stub" } } } } }
+      "if": {
+        "properties": {
+          "depth": {
+            "const": "thin"
+          }
+        },
+        "required": [
+          "depth"
+        ]
+      },
+      "then": {
+        "properties": {
+          "expert_policy": {
+            "properties": {
+              "coverage": {
+                "const": "stub"
+              }
+            }
+          }
+        }
+      }
     }
   ],
-
   "$defs": {
-    "packId": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,40}$" },
-    "cogId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{1,30}$" },
-    "baseCogId": { "enum": ["READ", "SEARCH", "REFORMULATE", "NAVIGATE", "ENTER", "COPY", "PASTE", "COMPARE", "CHECK", "DECIDE", "IDLE", "REVERT", "ASK"] },
-    "slug": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{0,40}$" },
+    "packId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,40}$"
+    },
+    "cogId": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]{1,30}$"
+    },
+    "baseCogId": {
+      "enum": [
+        "READ",
+        "SEARCH",
+        "REFORMULATE",
+        "NAVIGATE",
+        "ENTER",
+        "COPY",
+        "PASTE",
+        "COMPARE",
+        "CHECK",
+        "DECIDE",
+        "IDLE",
+        "REVERT",
+        "ASK"
+      ]
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,40}$"
+    },
     "relPath": {
       "type": "string",
       "pattern": "^(?!.*\\.\\.)[A-Za-z0-9_][A-Za-z0-9_./-]*$",
@@ -113,154 +289,348 @@
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
-      "items": { "type": "string", "minLength": 2, "maxLength": 80 },
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 80
+      },
       "description": "Case-insensitive regex patterns matched against control labels."
     },
     "hours": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["start", "end", "days"],
+      "required": [
+        "start",
+        "end",
+        "days"
+      ],
       "properties": {
-        "start": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" },
-        "end": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" },
+        "start": {
+          "type": "string",
+          "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+        },
+        "end": {
+          "type": "string",
+          "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+        },
         "days": {
-          "type": "array", "minItems": 1, "maxItems": 7, "uniqueItems": true,
-          "items": { "enum": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] }
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 7,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "mon",
+              "tue",
+              "wed",
+              "thu",
+              "fri",
+              "sat",
+              "sun"
+            ]
+          }
         }
       }
     },
     "option": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["value", "label"],
+      "required": [
+        "value",
+        "label"
+      ],
       "properties": {
-        "value": { "$ref": "#/$defs/slug" },
-        "label": { "type": "string", "minLength": 1, "maxLength": 80 },
-        "default": { "type": "boolean" },
-        "risk_class": { "enum": ["irreversible", "outward"], "description": "On a risky option: the class this answer adds to the person's memory file." },
-        "patterns": { "$ref": "#/$defs/patternList", "description": "On a risky option: label patterns added to the person's risk classes." },
-        "domain_role": { "$ref": "#/$defs/slug", "description": "On a tools option: the mapping.yaml domain role this answer registers." }
+        "value": {
+          "$ref": "#/$defs/slug"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "default": {
+          "type": "boolean"
+        },
+        "risk_class": {
+          "enum": [
+            "irreversible",
+            "outward"
+          ],
+          "description": "On a risky option: the class this answer adds to the person's memory file."
+        },
+        "patterns": {
+          "$ref": "#/$defs/patternList",
+          "description": "On a risky option: label patterns added to the person's risk classes."
+        },
+        "site": {
+          "$ref": "#/$defs/slug",
+          "description": "On a tools option: the id of the capture site (zone config) this answer enables, from tasks/sites.yaml or mapping.yaml capture_sites."
+        }
       }
     },
     "question": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "prompt", "kind"],
+      "required": [
+        "id",
+        "prompt",
+        "kind"
+      ],
       "properties": {
-        "id": { "enum": ["tools", "risky", "tone", "pace", "hours"] },
-        "prompt": { "type": "string", "minLength": 8, "maxLength": 140 },
-        "why": { "type": "string", "maxLength": 140 },
-        "kind": { "enum": ["multi", "single", "hours"] },
-        "options": { "type": "array", "minItems": 2, "maxItems": 10, "items": { "$ref": "#/$defs/option" } },
-        "default_hours": { "$ref": "#/$defs/hours" }
+        "id": {
+          "enum": [
+            "tools",
+            "risky",
+            "tone",
+            "pace",
+            "hours"
+          ]
+        },
+        "prompt": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 140
+        },
+        "why": {
+          "type": "string",
+          "maxLength": 140
+        },
+        "kind": {
+          "enum": [
+            "multi",
+            "single",
+            "hours"
+          ]
+        },
+        "options": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 10,
+          "items": {
+            "$ref": "#/$defs/option"
+          }
+        },
+        "default_hours": {
+          "$ref": "#/$defs/hours"
+        }
       },
       "allOf": [
-        { "if": { "properties": { "kind": { "enum": ["multi", "single"] } }, "required": ["kind"] }, "then": { "required": ["options"] } },
-        { "if": { "properties": { "kind": { "const": "hours" } }, "required": ["kind"] }, "then": { "required": ["default_hours"] } }
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "multi",
+                  "single"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "options"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "hours"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "default_hours"
+            ]
+          }
+        }
       ]
     },
     "pluginRef": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "kind"],
+      "required": [
+        "id",
+        "kind"
+      ],
       "properties": {
-        "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_./#@:-]{1,120}$" },
-        "kind": { "enum": ["plugin", "skill", "mcp_server"] },
-        "source": { "type": "string", "maxLength": 120 },
-        "version": { "type": "string", "maxLength": 32 },
-        "license": { "type": "string", "maxLength": 32 },
-        "as": { "enum": ["procedure", "tool"] },
-        "enabled": { "type": "boolean", "default": false },
-        "note": { "type": "string", "maxLength": 200 }
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_./#@:-]{1,120}$"
+        },
+        "kind": {
+          "enum": [
+            "plugin",
+            "skill",
+            "mcp_server"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "version": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "license": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "as": {
+          "enum": [
+            "procedure",
+            "tool"
+          ]
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 200
+        }
       }
     },
-
     "mapping": {
       "title": "cogs.mapping file (mapping.yaml)",
-      "description": "Rule-based mapping from L0 events to cogs. Semantics: events are processed in time order. For each event the first rule in role_rules, then base_rules, whose `when` matches decides the cog (or ignore). `when` keys are AND-ed; a list value means any-of. domain_role and label_role are placeholders: hashes are per install, so the engine resolves them through a table {placeholder -> [hash,...]} (target.domain_hash, target.label_hash). `prev_cog` is the cog of the last non-ignored event (null at the start); `prev_type` the previous event's type; `within_s` bounds the gap to the previous event for prev_* tests. A segment for an event runs from its t to the next event's t, capped at segmentation.max_dwell_s, with a gap of at least segmentation.idle_s emitted as the idle cog. Consecutive segments with the same cog and a gap below segmentation.merge_gap_s merge.",
+      "description": "Same format as services/engine/understudy_engine/cogs/default_mapping.yaml, which is the source of truth for semantics. Events carry no text; the only semantic hint is meta.zone, a short enum token naming the page region the event happened in. Rules are tried in order and the first whose `match` fits wins (all match keys must fit; a list value means any-of). match keys: type, zone (meta.zone), role (target.role), source. cog: null skips the event. reformulate_as: use this cog instead when the previous mapped event was SEARCH or REFORMULATE within params.reformulate_within_s. backdate_meta: the segment starts at t minus meta[KEY] seconds. Consecutive events mapping to the same cog merge into one segment. `zones` is the pack's zone vocabulary: every match.zone and every capture zone must be listed. capture_sites tells the extension how to derive meta.zone (CSS selector to zone); the extension never reads page text for this.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["version", "segmentation", "domain_roles", "label_roles", "role_rules", "base_rules"],
+      "required": [
+        "version",
+        "params",
+        "extra_cogs",
+        "zones",
+        "rules"
+      ],
       "properties": {
-        "version": { "const": 1 },
-        "segmentation": {
+        "version": {
+          "const": 1
+        },
+        "params": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["merge_gap_s", "idle_s", "max_dwell_s"],
+          "required": [
+            "follow_s",
+            "gap_idle_s",
+            "reformulate_within_s",
+            "max_cog_s"
+          ],
           "properties": {
-            "merge_gap_s": { "type": "number", "exclusiveMinimum": 0 },
-            "idle_s": { "type": "number", "exclusiveMinimum": 0 },
-            "max_dwell_s": { "type": "number", "exclusiveMinimum": 0 }
-          }
-        },
-        "domain_roles": {
-          "type": "object",
-          "propertyNames": { "$ref": "#/$defs/slug" },
-          "additionalProperties": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["label", "hosts"],
-            "properties": {
-              "label": { "type": "string", "maxLength": 80 },
-              "hosts": {
-                "type": "array", "minItems": 1,
-                "items": { "type": "string", "pattern": "^[a-z0-9.*-]+(:[0-9]{2,5})?$" },
-                "description": "Host (hostname[:port], lower case, * wildcard allowed) the per-install hasher turns into domain_hash for this role. Hosts never appear in events."
-              }
+            "follow_s": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "gap_idle_s": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "reformulate_within_s": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "max_cog_s": {
+              "type": "number",
+              "exclusiveMinimum": 0
             }
           }
         },
-        "label_roles": {
-          "type": "object",
-          "propertyNames": { "$ref": "#/$defs/slug" },
-          "additionalProperties": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["vocab"],
-            "properties": {
-              "vocab": {
-                "type": "array", "minItems": 1,
-                "items": { "type": "string", "minLength": 1, "maxLength": 40 },
-                "description": "Normalised (trimmed, lower case) control labels hashed with the per-install salt to build the label_hash table for this role. Sensitive-field vocabulary must never appear here."
-              }
-            }
+        "extra_cogs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/cogId"
           }
         },
-        "role_rules": { "type": "array", "items": { "$ref": "#/$defs/mapRule" } },
-        "base_rules": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/mapRule" } },
+        "zones": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/zoneId"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 5,
+          "items": {
+            "$ref": "#/$defs/mapRule"
+          }
+        },
+        "capture_sites": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/zoneSite"
+          },
+          "description": "Used by packs without tasks/sites.yaml (thin packs). Deep packs put capture config on each site in tasks/sites.yaml."
+        },
         "examples": {
           "type": "array",
-          "description": "Test vectors for the cog mapper. hash_roles resolves placeholders to the hashes used in the example events.",
+          "description": "Test vectors for the cog mapper: one entry in expect per event (cog id, or null when skipped).",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["name", "hash_roles", "events", "expect"],
+            "required": [
+              "name",
+              "events",
+              "expect"
+            ],
             "properties": {
-              "name": { "type": "string" },
-              "hash_roles": {
-                "type": "object",
-                "properties": {
-                  "domain": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string" } } },
-                  "label": { "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string" } } }
-                },
-                "additionalProperties": false
+              "name": {
+                "type": "string"
               },
               "events": {
-                "type": "array", "minItems": 1,
+                "type": "array",
+                "minItems": 1,
                 "items": {
                   "type": "object",
                   "additionalProperties": false,
-                  "required": ["dt", "type"],
+                  "required": [
+                    "dt",
+                    "type"
+                  ],
                   "properties": {
-                    "dt": { "type": "number", "minimum": 0, "description": "Seconds since the previous event." },
-                    "type": { "type": "string" },
-                    "actor": { "enum": ["human", "agent"] },
-                    "target": { "type": "object" },
-                    "meta": { "type": "object" }
+                    "dt": {
+                      "type": "number",
+                      "minimum": 0,
+                      "description": "Seconds since the previous event."
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "role": {
+                      "type": "string",
+                      "description": "target.role"
+                    },
+                    "meta": {
+                      "type": "object"
+                    }
                   }
                 }
               },
-              "expect": { "type": "array", "items": { "type": ["string", "null"] }, "description": "One entry per event: the cog id, or null when the event is ignored." }
+              "expect": {
+                "type": "array",
+                "items": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
             }
           }
         }
@@ -269,81 +639,160 @@
     "mapRule": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "when"],
+      "required": [
+        "match",
+        "cog"
+      ],
       "properties": {
-        "id": { "$ref": "#/$defs/slug" },
-        "when": {
+        "match": {
           "type": "object",
           "additionalProperties": false,
           "minProperties": 1,
           "properties": {
-            "type": { "$ref": "#/$defs/strOrList" },
-            "actor": { "enum": ["human", "agent"] },
-            "target_role": { "$ref": "#/$defs/strOrList" },
-            "domain_role": { "$ref": "#/$defs/strOrList" },
-            "label_role": { "$ref": "#/$defs/strOrList" },
-            "meta": { "type": "object", "additionalProperties": { "$ref": "#/$defs/metaTest" } },
-            "prev_cog": { "$ref": "#/$defs/strOrList" },
-            "not_prev_cog": { "$ref": "#/$defs/strOrList" },
-            "prev_type": { "$ref": "#/$defs/strOrList" },
-            "within_s": { "type": "number", "exclusiveMinimum": 0 }
+            "type": {
+              "$ref": "#/$defs/strOrList"
+            },
+            "zone": {
+              "$ref": "#/$defs/strOrList"
+            },
+            "role": {
+              "$ref": "#/$defs/strOrList"
+            },
+            "source": {
+              "$ref": "#/$defs/strOrList"
+            }
           }
         },
-        "cog": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{1,30}$" },
-        "ignore": { "const": true }
-      },
-      "oneOf": [{ "required": ["cog"] }, { "required": ["ignore"] }]
+        "cog": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/cogId"
+            }
+          ]
+        },
+        "reformulate_as": {
+          "$ref": "#/$defs/cogId"
+        },
+        "backdate_meta": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,31}$"
+        },
+        "starts": {
+          "type": "boolean",
+          "description": "This event opens a new segment even if the previous segment has the same cog (a re-read is a new cog, not a longer one)."
+        }
+      }
     },
     "strOrList": {
       "oneOf": [
-        { "type": "string", "minLength": 1, "maxLength": 40 },
-        { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1, "maxLength": 40 } }
-      ]
-    },
-    "metaTest": {
-      "oneOf": [
-        { "type": ["number", "string", "boolean"] },
         {
-          "type": "object",
-          "additionalProperties": false,
-          "minProperties": 1,
-          "properties": { "gte": { "type": "number" }, "lte": { "type": "number" }, "gt": { "type": "number" }, "lt": { "type": "number" } }
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          }
         }
       ]
     },
-
     "expert_steps": {
       "title": "Expert policy (expert_steps.yaml)",
       "description": "Ordered checks forming a partial order. A check lists the cogs an expert performs for it (in order) and the checks it must come after. Any linear extension of the partial order is an allowed ordering, so independent checks may be reordered. critical checks are the ones the critic and the coach insist on; skipping one is a deficit.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["version", "task", "coverage", "checks"],
+      "required": [
+        "version",
+        "task",
+        "coverage",
+        "checks"
+      ],
       "properties": {
-        "version": { "const": 1 },
-        "task": { "$ref": "#/$defs/slug" },
-        "coverage": { "enum": ["full", "stub"] },
+        "version": {
+          "const": 1
+        },
+        "task": {
+          "$ref": "#/$defs/slug"
+        },
+        "coverage": {
+          "enum": [
+            "full",
+            "stub"
+          ]
+        },
         "checks": {
-          "type": "array", "minItems": 2,
+          "type": "array",
+          "minItems": 2,
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "cogs", "label", "required", "after"],
+            "required": [
+              "id",
+              "cogs",
+              "label",
+              "required",
+              "after"
+            ],
             "properties": {
-              "id": { "$ref": "#/$defs/slug" },
-              "label": { "type": "string", "maxLength": 100 },
-              "cogs": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/cogId" } },
-              "required": { "type": "boolean" },
-              "critical": { "type": "boolean" },
-              "after": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/slug" } },
-              "skill": { "$ref": "#/$defs/slug", "description": "Curriculum skill this check exercises." },
-              "expert_median_s": { "type": "number", "exclusiveMinimum": 0 },
+              "id": {
+                "$ref": "#/$defs/slug"
+              },
+              "label": {
+                "type": "string",
+                "maxLength": 100
+              },
+              "cogs": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/cogId"
+                }
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "critical": {
+                "type": "boolean"
+              },
+              "after": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "#/$defs/slug"
+                }
+              },
+              "skill": {
+                "$ref": "#/$defs/slug",
+                "description": "Curriculum skill this check exercises."
+              },
+              "expert_median_s": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
               "coach": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["question"],
+                "required": [
+                  "question"
+                ],
                 "properties": {
-                  "question": { "type": "string", "maxLength": 160, "description": "A hypothesis or question for the nudge, never the answer (COA-4)." },
-                  "hint": { "type": "string", "maxLength": 160 }
+                  "question": {
+                    "type": "string",
+                    "maxLength": 160,
+                    "description": "A hypothesis or question for the nudge, never the answer (COA-4)."
+                  },
+                  "hint": {
+                    "type": "string",
+                    "maxLength": 160
+                  }
                 }
               }
             }
@@ -354,69 +803,182 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "description"],
+            "required": [
+              "id",
+              "description"
+            ],
             "properties": {
-              "id": { "$ref": "#/$defs/slug" },
-              "description": { "type": "string", "maxLength": 200 },
-              "permutable": { "type": "array", "items": { "$ref": "#/$defs/slug" }, "description": "Checks that may occur in any order relative to each other (informational; the partial order is authoritative)." }
+              "id": {
+                "$ref": "#/$defs/slug"
+              },
+              "description": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "permutable": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/slug"
+                },
+                "description": "Checks that may occur in any order relative to each other (informational; the partial order is authoritative)."
+              }
             }
           }
         }
       }
     },
-
     "routine_templates": {
       "title": "Routine templates (routines.yaml)",
       "description": "Templates the routine finder matches. A cluster centroid matches a template when the normalised alignment distance between cog sequences is at most match_distance.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["version", "templates"],
+      "required": [
+        "version",
+        "templates"
+      ],
       "properties": {
-        "version": { "const": 1 },
+        "version": {
+          "const": 1
+        },
         "defaults": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "min_support": { "type": "integer", "minimum": 2 },
-            "judgement_cogs": { "type": "array", "items": { "$ref": "#/$defs/cogId" } },
-            "wage_gbp_per_h": { "type": "number", "exclusiveMinimum": 0 }
+            "min_support": {
+              "type": "integer",
+              "minimum": 2
+            },
+            "judgement_cogs": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/cogId"
+              }
+            },
+            "wage_gbp_per_h": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
           }
         },
         "templates": {
-          "type": "array", "minItems": 1,
+          "type": "array",
+          "minItems": 1,
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "title", "cogs", "match_distance", "automatable", "learning_relevant", "touches", "never", "proposal"],
+            "required": [
+              "id",
+              "title",
+              "cogs",
+              "match_distance",
+              "automatable",
+              "learning_relevant",
+              "touches",
+              "never",
+              "proposal"
+            ],
             "properties": {
-              "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{2,40}$" },
-              "title": { "type": "string", "maxLength": 80 },
-              "cogs": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/cogId" } },
-              "match_distance": { "type": "number", "minimum": 0, "maximum": 1 },
-              "min_support": { "type": "integer", "minimum": 2 },
-              "judgement_cogs": { "type": "array", "items": { "$ref": "#/$defs/cogId" } },
-              "automatable": { "type": "boolean", "description": "False: the finder reports it but never proposes automation (too much judgement)." },
-              "learning_relevant": { "type": "boolean", "description": "True: skill gate applies, the worker's mastery of skill_cogs must be level 4 first." },
-              "skill_cogs": { "type": "array", "items": { "$ref": "#/$defs/cogId" } },
-              "touches": { "type": "array", "minItems": 1, "items": { "type": "string", "maxLength": 60 } },
-              "never": { "type": "array", "minItems": 1, "items": { "type": "string", "maxLength": 60 } },
-              "params": { "type": "array", "items": { "$ref": "#/$defs/slug" }, "description": "Parameter slots the L1 recording replaces values with." },
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{2,40}$"
+              },
+              "title": {
+                "type": "string",
+                "maxLength": 80
+              },
+              "cogs": {
+                "type": "array",
+                "minItems": 2,
+                "items": {
+                  "$ref": "#/$defs/cogId"
+                }
+              },
+              "match_distance": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "min_support": {
+                "type": "integer",
+                "minimum": 2
+              },
+              "judgement_cogs": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/cogId"
+                }
+              },
+              "automatable": {
+                "type": "boolean",
+                "description": "False: the finder reports it but never proposes automation (too much judgement)."
+              },
+              "learning_relevant": {
+                "type": "boolean",
+                "description": "True: skill gate applies, the worker's mastery of skill_cogs must be level 4 first."
+              },
+              "skill_cogs": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/cogId"
+                }
+              },
+              "touches": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "maxLength": 60
+                }
+              },
+              "never": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "maxLength": 60
+                }
+              },
+              "params": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/slug"
+                },
+                "description": "Parameter slots the L1 recording replaces values with."
+              },
               "value_defaults": {
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
-                  "manual_minutes_per_run": { "type": "number", "exclusiveMinimum": 0 },
-                  "build_cost_runs": { "type": "number", "exclusiveMinimum": 0, "description": "Ski rental buy cost b in units of one manual run." },
-                  "maintenance_risk_gbp": { "type": "number", "minimum": 0 },
-                  "error_cost_gbp": { "type": "number", "minimum": 0 }
+                  "manual_minutes_per_run": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "build_cost_runs": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "description": "Ski rental buy cost b in units of one manual run."
+                  },
+                  "maintenance_risk_gbp": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "error_cost_gbp": {
+                    "type": "number",
+                    "minimum": 0
+                  }
                 }
               },
               "proposal": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["what"],
+                "required": [
+                  "what"
+                ],
                 "properties": {
-                  "what": { "type": "string", "maxLength": 240 }
+                  "what": {
+                    "type": "string",
+                    "maxLength": 240
+                  }
                 }
               }
             }
@@ -424,44 +986,108 @@
         }
       }
     },
-
     "curriculum": {
       "title": "Curriculum (curriculum.yaml)",
       "description": "Skills in teaching order. ladder maps each help level to the chip the overlay shows. Each skill carries a short prompt per level: a hypothesis or question, not the answer.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["version", "ladder", "skills"],
+      "required": [
+        "version",
+        "ladder",
+        "skills"
+      ],
       "properties": {
-        "version": { "const": 1 },
+        "version": {
+          "const": 1
+        },
         "ladder": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["L1", "L2", "L3", "L4"],
+          "required": [
+            "L1",
+            "L2",
+            "L3",
+            "L4"
+          ],
           "properties": {
-            "L1": { "const": "full" }, "L2": { "const": "small" }, "L3": { "const": "dot" }, "L4": { "const": "gone" }
+            "L1": {
+              "const": "full"
+            },
+            "L2": {
+              "const": "small"
+            },
+            "L3": {
+              "const": "dot"
+            },
+            "L4": {
+              "const": "gone"
+            }
           }
         },
         "skills": {
-          "type": "array", "minItems": 3,
+          "type": "array",
+          "minItems": 3,
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "label", "order", "cogs", "prerequisites", "prompts"],
+            "required": [
+              "id",
+              "label",
+              "order",
+              "cogs",
+              "prerequisites",
+              "prompts"
+            ],
             "properties": {
-              "id": { "$ref": "#/$defs/slug" },
-              "label": { "type": "string", "maxLength": 80 },
-              "order": { "type": "integer", "minimum": 1 },
-              "cogs": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/cogId" } },
-              "prerequisites": { "type": "array", "items": { "$ref": "#/$defs/slug" } },
-              "expert_signal": { "type": "string", "maxLength": 140 },
+              "id": {
+                "$ref": "#/$defs/slug"
+              },
+              "label": {
+                "type": "string",
+                "maxLength": 80
+              },
+              "order": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "cogs": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/cogId"
+                }
+              },
+              "prerequisites": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/slug"
+                }
+              },
+              "expert_signal": {
+                "type": "string",
+                "maxLength": 140
+              },
               "prompts": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["L1", "L2", "L3"],
+                "required": [
+                  "L1",
+                  "L2",
+                  "L3"
+                ],
                 "properties": {
-                  "L1": { "type": "string", "maxLength": 200 },
-                  "L2": { "type": "string", "maxLength": 140 },
-                  "L3": { "type": "string", "maxLength": 80 }
+                  "L1": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "L2": {
+                    "type": "string",
+                    "maxLength": 140
+                  },
+                  "L3": {
+                    "type": "string",
+                    "maxLength": 80
+                  }
                 }
               }
             }
@@ -469,68 +1095,163 @@
         }
       }
     },
-
     "persona": {
       "title": "Persona parameters (persona.yaml)",
       "description": "Parameters for the synthetic persona and apprentice generators. The generator must use a different mechanism from the fitting models. apprentice.deficits are the planted truth for EVL-1 (which deficit was injected and what it cost).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["version", "tasks_per_active_hour", "cog_dwell_s", "apprentice", "planted_routines"],
+      "required": [
+        "version",
+        "tasks_per_active_hour",
+        "cog_dwell_s",
+        "apprentice",
+        "planted_routines"
+      ],
       "properties": {
-        "version": { "const": 1 },
-        "task": { "$ref": "#/$defs/slug" },
-        "tasks_per_active_hour": { "$ref": "#/$defs/meanSd" },
+        "version": {
+          "const": 1
+        },
+        "task": {
+          "$ref": "#/$defs/slug"
+        },
+        "tasks_per_active_hour": {
+          "$ref": "#/$defs/meanSd"
+        },
         "cog_dwell_s": {
           "type": "object",
-          "propertyNames": { "$ref": "#/$defs/cogId" },
+          "propertyNames": {
+            "$ref": "#/$defs/cogId"
+          },
           "additionalProperties": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["expert_median_s", "sigma"],
+            "required": [
+              "expert_median_s",
+              "sigma"
+            ],
             "properties": {
-              "expert_median_s": { "type": "number", "exclusiveMinimum": 0 },
-              "sigma": { "type": "number", "exclusiveMinimum": 0, "description": "Log-normal sigma." },
-              "novice_multiplier": { "type": "number", "exclusiveMinimum": 0 }
+              "expert_median_s": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "sigma": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "description": "Log-normal sigma."
+              },
+              "novice_multiplier": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
             }
           }
         },
         "apprentice": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["skill_curve", "deficits"],
+          "required": [
+            "skill_curve",
+            "deficits"
+          ],
           "properties": {
             "skill_curve": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["start", "plateau", "half_life_cases"],
+              "required": [
+                "start",
+                "plateau",
+                "half_life_cases"
+              ],
               "properties": {
-                "start": { "type": "number", "minimum": 0, "maximum": 1 },
-                "plateau": { "type": "number", "minimum": 0, "maximum": 1 },
-                "half_life_cases": { "type": "number", "exclusiveMinimum": 0 }
+                "start": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "plateau": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "half_life_cases": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
               }
             },
             "deficits": {
-              "type": "array", "minItems": 1,
+              "type": "array",
+              "minItems": 1,
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["id", "label", "kind", "cogs", "p_at_skill0", "price_s", "skill"],
+                "required": [
+                  "id",
+                  "label",
+                  "kind",
+                  "cogs",
+                  "p_at_skill0",
+                  "price_s",
+                  "skill"
+                ],
                 "properties": {
-                  "id": { "$ref": "#/$defs/slug" },
-                  "label": { "type": "string", "maxLength": 100 },
-                  "kind": { "enum": ["insert", "omit", "slow", "swap"] },
-                  "cogs": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/cogId" } },
-                  "insert_before": { "$ref": "#/$defs/cogId" },
-                  "multiplier": { "type": "number", "exclusiveMinimum": 0 },
-                  "p_at_skill0": { "type": "number", "minimum": 0, "maximum": 1, "description": "Probability the deficit shows on a case at skill 0; it falls as skill rises." },
+                  "id": {
+                    "$ref": "#/$defs/slug"
+                  },
+                  "label": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "kind": {
+                    "enum": [
+                      "insert",
+                      "omit",
+                      "slow",
+                      "swap"
+                    ]
+                  },
+                  "cogs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "$ref": "#/$defs/cogId"
+                    }
+                  },
+                  "insert_before": {
+                    "$ref": "#/$defs/cogId"
+                  },
+                  "multiplier": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "p_at_skill0": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": "Probability the deficit shows on a case at skill 0; it falls as skill rises."
+                  },
                   "price_s": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": ["mean", "sd"],
-                    "properties": { "mean": { "type": "number" }, "sd": { "type": "number", "minimum": 0 } },
+                    "required": [
+                      "mean",
+                      "sd"
+                    ],
+                    "properties": {
+                      "mean": {
+                        "type": "number"
+                      },
+                      "sd": {
+                        "type": "number",
+                        "minimum": 0
+                      }
+                    },
                     "description": "Planted truth: mean extra seconds per case when present (direct time plus expected rework)."
                   },
-                  "skill": { "$ref": "#/$defs/slug", "description": "Curriculum skill that fixes it." }
+                  "skill": {
+                    "$ref": "#/$defs/slug",
+                    "description": "Curriculum skill that fixes it."
+                  }
                 }
               }
             }
@@ -540,28 +1261,76 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "base_hazard_per_bin": { "type": "number", "minimum": 0, "maximum": 1 },
-            "skill_effect": { "type": "number", "minimum": 0 }
+            "base_hazard_per_bin": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "skill_effect": {
+              "type": "number",
+              "minimum": 0
+            }
           }
         },
         "planted_routines": {
-          "type": "array", "minItems": 1,
+          "type": "array",
+          "minItems": 1,
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "template", "daily_rate", "preferred_hours", "duration_s"],
+            "required": [
+              "id",
+              "template",
+              "daily_rate",
+              "preferred_hours",
+              "duration_s"
+            ],
             "properties": {
-              "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{2,40}$" },
-              "template": { "type": "string", "pattern": "^[a-z][a-z0-9-]{2,40}$" },
-              "daily_rate": { "type": "number", "exclusiveMinimum": 0 },
-              "preferred_hours": { "type": "array", "minItems": 1, "items": { "type": "integer", "minimum": 0, "maximum": 23 } },
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{2,40}$"
+              },
+              "template": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{2,40}$"
+              },
+              "daily_rate": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "preferred_hours": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 23
+                }
+              },
               "duration_s": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["median", "sigma"],
-                "properties": { "median": { "type": "number", "exclusiveMinimum": 0 }, "sigma": { "type": "number", "exclusiveMinimum": 0 } }
+                "required": [
+                  "median",
+                  "sigma"
+                ],
+                "properties": {
+                  "median": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "sigma": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                }
               },
-              "param_variation": { "type": "array", "items": { "$ref": "#/$defs/slug" } }
+              "param_variation": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/slug"
+                }
+              }
             }
           }
         }
@@ -570,183 +1339,828 @@
     "meanSd": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["mean", "sd"],
-      "properties": { "mean": { "type": "number" }, "sd": { "type": "number", "minimum": 0 } }
+      "required": [
+        "mean",
+        "sd"
+      ],
+      "properties": {
+        "mean": {
+          "type": "number"
+        },
+        "sd": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
     },
     "betaPrior": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["alpha", "beta"],
-      "properties": { "alpha": { "type": "number", "exclusiveMinimum": 0 }, "beta": { "type": "number", "exclusiveMinimum": 0 } }
+      "required": [
+        "alpha",
+        "beta"
+      ],
+      "properties": {
+        "alpha": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "beta": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
     },
-
     "priors": {
       "title": "Role-level priors (priors.yaml)",
       "description": "Priors for partial pooling (ANA-9, ROL-6). pooling.strength is the number of pseudo-observations the role prior is worth.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["version", "pooling", "stuck_hazard", "mastery", "accept", "routines_per_week", "presence"],
+      "required": [
+        "version",
+        "pooling",
+        "stuck_hazard",
+        "mastery",
+        "accept",
+        "routines_per_week",
+        "presence"
+      ],
       "properties": {
-        "version": { "const": 1 },
+        "version": {
+          "const": 1
+        },
         "pooling": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["strength"],
-          "properties": { "strength": { "type": "number", "exclusiveMinimum": 0 } }
+          "required": [
+            "strength"
+          ],
+          "properties": {
+            "strength": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
         },
-        "stuck_hazard": { "$ref": "#/$defs/betaPrior" },
+        "stuck_hazard": {
+          "$ref": "#/$defs/betaPrior"
+        },
         "mastery": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["start", "decay_half_life_days"],
+          "required": [
+            "start",
+            "decay_half_life_days"
+          ],
           "properties": {
-            "start": { "type": "number", "minimum": 0, "maximum": 1 },
-            "decay_half_life_days": { "type": "number", "exclusiveMinimum": 0 }
+            "start": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "decay_half_life_days": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
           }
         },
-        "accept": { "$ref": "#/$defs/betaPrior" },
-        "routines_per_week": { "$ref": "#/$defs/meanSd" },
+        "accept": {
+          "$ref": "#/$defs/betaPrior"
+        },
+        "routines_per_week": {
+          "$ref": "#/$defs/meanSd"
+        },
         "presence": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["hours", "active_in_hours", "active_out_of_hours"],
+          "required": [
+            "hours",
+            "active_in_hours",
+            "active_out_of_hours"
+          ],
           "properties": {
-            "hours": { "$ref": "#/$defs/hours" },
-            "active_in_hours": { "type": "number", "minimum": 0, "maximum": 1 },
-            "active_out_of_hours": { "type": "number", "minimum": 0, "maximum": 1 }
+            "hours": {
+              "$ref": "#/$defs/hours"
+            },
+            "active_in_hours": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "active_out_of_hours": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
           }
         },
         "cog_dwell_s": {
           "type": "object",
-          "propertyNames": { "$ref": "#/$defs/cogId" },
-          "additionalProperties": { "type": "number", "exclusiveMinimum": 0 }
+          "propertyNames": {
+            "$ref": "#/$defs/cogId"
+          },
+          "additionalProperties": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
         }
       }
     },
-
     "task": {
       "title": "Task definition (tasks/task.yaml)",
-      "description": "Deep packs. The task the oracle scores and the completion check (AGT-4) verifies. goal_tokens name what the final observation must contain; code, not a model, checks them.",
+      "description": "Deep packs. The task the oracle scores and the completion check (AGT-4) verifies. Code, not a model, decides success: the final observation must contain every goal token. The oracle is a simplified internal rule set, illustrative, not law.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["version", "id", "name", "goal", "steps", "result_fields", "goal_tokens", "stop_before"],
+      "required": [
+        "version",
+        "id",
+        "name",
+        "goal",
+        "steps",
+        "result_fields",
+        "goal_tokens",
+        "stop_before",
+        "oracle"
+      ],
       "properties": {
-        "version": { "const": 1 },
-        "id": { "$ref": "#/$defs/slug" },
-        "name": { "type": "string", "maxLength": 80 },
-        "goal": { "type": "string", "maxLength": 240 },
-        "steps": { "type": "array", "minItems": 3, "items": { "type": "string", "maxLength": 120 } },
-        "result_fields": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/slug" } },
-        "goal_tokens": {
-          "type": "array", "minItems": 1,
-          "items": { "type": "string", "maxLength": 80 },
-          "description": "Placeholders such as {case_ref} and {result:<field>@<site>} the final observation must contain."
+        "version": {
+          "const": 1
         },
-        "stop_before": { "type": "array", "minItems": 1, "items": { "type": "string", "maxLength": 60 } },
-        "progress_events": { "type": "array", "items": { "type": "string", "maxLength": 100 } }
+        "id": {
+          "$ref": "#/$defs/slug"
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "goal": {
+          "type": "string",
+          "maxLength": 260
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "string",
+            "maxLength": 120
+          }
+        },
+        "result_fields": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "amount",
+              "status",
+              "ref"
+            ]
+          },
+          "description": "Every calculator reports exactly these three fields (monthly UC amount, eligibility text, quote reference). Selectors per site are in sites.yaml."
+        },
+        "goal_tokens": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "description": "Placeholders such as {case_ref}, {result:ref@a}, {note_id} that the final observation must contain."
+        },
+        "stop_before": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "maxLength": 60
+          }
+        },
+        "progress_events": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 100
+          }
+        },
+        "oracle": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ref",
+            "label",
+            "returns"
+          ],
+          "properties": {
+            "ref": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string",
+              "maxLength": 120
+            },
+            "returns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "tolerance_gbp": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "cliff_check": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "button",
+            "panel",
+            "required_per_site"
+          ],
+          "properties": {
+            "button": {
+              "$ref": "#/$defs/selectorStr"
+            },
+            "panel": {
+              "$ref": "#/$defs/selectorStr"
+            },
+            "required_per_site": {
+              "type": "boolean"
+            }
+          }
+        }
       }
     },
     "household_generator": {
       "title": "Household generator config (tasks/household_generator.yaml)",
-      "description": "Synthetic households only. Config for the generator in the agent service. Cliff edges are planted on purpose; the oracle is authoritative for the numbers.",
+      "description": "Describes the generator the agent-core track built (understudy_agent.sandbox_sites.households). Synthetic households only; no real people. `fields` mirrors Household.to_dict(). Cliffs are the oracle's cliff_flags names. The oracle is a simplified internal rule set, illustrative, not law.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["version", "seed", "default_count", "fields", "cliffs"],
+      "required": [
+        "version",
+        "generator",
+        "seed",
+        "default_count",
+        "fields",
+        "archetypes",
+        "cliffs",
+        "site_quirks"
+      ],
       "properties": {
-        "version": { "const": 1 },
-        "seed": { "type": "integer" },
-        "default_count": { "type": "integer", "minimum": 1, "maximum": 1000 },
-        "case_ref_format": { "type": "string", "pattern": "^[A-Z]{2}-\\{[0-9]+d\\}$" },
+        "version": {
+          "const": 1
+        },
+        "generator": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_.]*:[A-Za-z_][A-Za-z0-9_]*$"
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "default_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "case_ref_format": {
+          "type": "string",
+          "maxLength": 30
+        },
         "fields": {
           "type": "object",
-          "minProperties": 3,
-          "propertyNames": { "$ref": "#/$defs/slug" },
+          "minProperties": 8,
+          "propertyNames": {
+            "$ref": "#/$defs/slug"
+          },
           "additionalProperties": {
             "type": "object",
-            "required": ["dist"],
+            "required": [
+              "type"
+            ],
             "properties": {
-              "dist": { "enum": ["choice", "int", "lognormal", "bernoulli", "list"] },
-              "values": { "type": "array" },
-              "weights": { "type": "array", "items": { "type": "number", "minimum": 0 } },
-              "min": { "type": "number" },
-              "max": { "type": "number" },
-              "median": { "type": "number" },
-              "sigma": { "type": "number" },
-              "p": { "type": "number", "minimum": 0, "maximum": 1 },
-              "round_to": { "type": "number" },
-              "depends_on": { "type": "object" },
-              "note": { "type": "string" }
+              "type": {
+                "enum": [
+                  "string",
+                  "integer",
+                  "number",
+                  "boolean",
+                  "enum",
+                  "list",
+                  "object"
+                ]
+              },
+              "values": {
+                "type": "array"
+              },
+              "note": {
+                "type": "string",
+                "maxLength": 160
+              }
+            }
+          }
+        },
+        "archetypes": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "note"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/slug"
+              },
+              "plants": {
+                "$ref": "#/$defs/slug"
+              },
+              "note": {
+                "type": "string",
+                "maxLength": 160
+              }
             }
           }
         },
         "cliffs": {
-          "type": "array", "minItems": 1,
+          "type": "array",
+          "minItems": 1,
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "field", "threshold", "band", "plant_rate"],
+            "required": [
+              "id",
+              "note"
+            ],
             "properties": {
-              "id": { "$ref": "#/$defs/slug" },
-              "field": { "$ref": "#/$defs/slug" },
-              "threshold": { "type": "number" },
-              "band": { "type": "number", "exclusiveMinimum": 0, "description": "Households are planted within threshold +- band." },
-              "plant_rate": { "type": "number", "minimum": 0, "maximum": 1 },
-              "note": { "type": "string", "maxLength": 160 }
+              "id": {
+                "$ref": "#/$defs/slug"
+              },
+              "field": {
+                "$ref": "#/$defs/slug"
+              },
+              "threshold": {
+                "type": "number"
+              },
+              "sites_that_differ": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "a",
+                    "b",
+                    "c"
+                  ]
+                }
+              },
+              "note": {
+                "type": "string",
+                "maxLength": 200
+              }
             }
           }
         },
-        "constraints": { "type": "array", "items": { "type": "string", "maxLength": 160 } }
+        "site_quirks": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "site",
+              "quirk"
+            ],
+            "properties": {
+              "site": {
+                "enum": [
+                  "a",
+                  "b",
+                  "c"
+                ]
+              },
+              "quirk": {
+                "type": "string",
+                "maxLength": 200
+              }
+            }
+          }
+        }
       }
     },
     "sites": {
       "title": "Sandbox sites (tasks/sites.yaml)",
-      "description": "Ports and variants of the local sandbox sites (7801 to 7803). The agent-core track owns the sites; this file is the pack's declaration of what the task expects.",
+      "description": "Mirrors services/agent/understudy_agent/sandbox_sites/specs.py as built by the agent-core track (authoritative). Calculators a, b, c on ports 7801 to 7803 (host 127.0.0.1) and the case-note page, served by site a under /casenote. Every calculator reports exactly three fields: amount (monthly Universal Credit), status (eligibility text) and ref (quote reference). Query switches: ?variant=injected, ?layout=v2, ?glitch=503once|503always. Each calculator carries the extension's zone capture config.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["version", "sites", "variants"],
+      "required": [
+        "version",
+        "host",
+        "sites",
+        "variants"
+      ],
       "properties": {
-        "version": { "const": 1 },
+        "version": {
+          "const": 1
+        },
+        "host": {
+          "type": "string",
+          "pattern": "^[a-z0-9.-]+$"
+        },
         "sites": {
-          "type": "array", "minItems": 3,
+          "type": "array",
+          "minItems": 4,
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["id", "port", "kind", "label", "domain_role"],
+            "required": [
+              "id",
+              "port",
+              "kind",
+              "label"
+            ],
             "properties": {
-              "id": { "$ref": "#/$defs/slug" },
-              "port": { "type": "integer", "minimum": 7801, "maximum": 7803 },
-              "kind": { "enum": ["calculator", "case_note"] },
-              "label": { "type": "string", "maxLength": 60 },
-              "domain_role": { "$ref": "#/$defs/slug" },
-              "path": { "type": "string", "pattern": "^/[A-Za-z0-9_./-]*$" }
+              "id": {
+                "$ref": "#/$defs/slug"
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 7801,
+                "maximum": 7803
+              },
+              "kind": {
+                "enum": [
+                  "calculator",
+                  "case_note"
+                ]
+              },
+              "label": {
+                "type": "string",
+                "maxLength": 60
+              },
+              "start_path": {
+                "type": "string",
+                "pattern": "^/[A-Za-z0-9_./-]*$"
+              },
+              "served_by": {
+                "$ref": "#/$defs/slug",
+                "description": "For case_note: the calculator whose server hosts it."
+              },
+              "path": {
+                "type": "string",
+                "pattern": "^/[A-Za-z0-9_./-]*$"
+              },
+              "flow": {
+                "type": "string",
+                "maxLength": 160
+              },
+              "units": {
+                "type": "string",
+                "maxLength": 160
+              },
+              "result": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "v1",
+                  "v2"
+                ],
+                "properties": {
+                  "v1": {
+                    "$ref": "#/$defs/resultSel"
+                  },
+                  "v2": {
+                    "$ref": "#/$defs/resultSel"
+                  }
+                }
+              },
+              "capture": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "nav_default",
+                  "tab_default",
+                  "elements"
+                ],
+                "properties": {
+                  "nav_default": {
+                    "$ref": "#/$defs/zoneId"
+                  },
+                  "tab_default": {
+                    "$ref": "#/$defs/zoneId"
+                  },
+                  "nav": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/zoneWhen"
+                    }
+                  },
+                  "tab": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/zoneWhen"
+                    }
+                  },
+                  "page": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/zoneWhen"
+                    }
+                  },
+                  "elements": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "zone",
+                        "selector"
+                      ],
+                      "properties": {
+                        "zone": {
+                          "$ref": "#/$defs/zoneId"
+                        },
+                        "selector": {
+                          "$ref": "#/$defs/selectorStr"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "case_note": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "fields",
+            "draft",
+            "submit",
+            "result"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "fields": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "draft": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "submit": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "The irreversible 'Submit to claimant record' button per layout. The agent never presses it."
+            },
+            "result": {
+              "type": "object"
             }
           }
         },
         "variants": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["clean", "injected"],
+          "required": [
+            "clean",
+            "injected",
+            "layout_v2",
+            "glitch"
+          ],
           "properties": {
-            "clean": { "type": "string", "maxLength": 80 },
-            "injected": { "type": "string", "maxLength": 80 }
+            "clean": {
+              "type": "string",
+              "maxLength": 80
+            },
+            "injected": {
+              "type": "string",
+              "maxLength": 80
+            },
+            "layout_v2": {
+              "type": "string",
+              "maxLength": 80
+            },
+            "glitch": {
+              "type": "string",
+              "maxLength": 80
+            }
+          }
+        },
+        "cliff": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "button",
+            "button_label",
+            "panel",
+            "items",
+            "ids"
+          ],
+          "properties": {
+            "button": {
+              "$ref": "#/$defs/selectorStr"
+            },
+            "button_label": {
+              "type": "string",
+              "maxLength": 60
+            },
+            "panel": {
+              "$ref": "#/$defs/selectorStr"
+            },
+            "items": {
+              "$ref": "#/$defs/selectorStr"
+            },
+            "ids": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/slug"
+              }
+            },
+            "endpoint": {
+              "type": "string",
+              "pattern": "^/[A-Za-z0-9_./-]*$"
+            },
+            "state_counter": {
+              "type": "string",
+              "maxLength": 40
+            }
           }
         }
       }
     },
-
     "sensitive_fields": {
       "title": "Sensitive fields list (global or pack level)",
       "description": "Same shape as packages/schema/sensitive_fields.json. Pack-level files add patterns; the effective list is the union of the global list and the pack list. Patterns are case-insensitive regexes over field name, id, label, placeholder, autocomplete and aria-label.",
       "type": "object",
-      "required": ["patterns"],
+      "required": [
+        "patterns"
+      ],
       "properties": {
-        "description": { "type": "string" },
-        "extends": { "type": "string", "pattern": "^(?!.*\\.\\.[^/])[A-Za-z0-9_./-]+$" },
-        "patterns": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 200 } },
-        "autocomplete_tokens": { "type": "array", "items": { "type": "string" } },
-        "input_types": { "type": "array", "items": { "type": "string" } }
+        "description": {
+          "type": "string"
+        },
+        "extends": {
+          "type": "string",
+          "pattern": "^(?!.*\\.\\.[^/])[A-Za-z0-9_./-]+$"
+        },
+        "patterns": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "autocomplete_tokens": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "input_types": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       },
       "additionalProperties": false
+    },
+    "zoneId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,30}$",
+      "description": "Short enum token for a page region. Carries no page text."
+    },
+    "selectorStr": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 600,
+      "not": {
+        "pattern": "(?i)^\\s*(javascript|data):"
+      },
+      "description": "A CSS selector (comma lists allowed). Used for zones only; the page text is never read."
+    },
+    "zoneSite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "hosts",
+        "nav_default",
+        "tab_default",
+        "elements"
+      ],
+      "description": "Capture-side zone config for one site. The extension picks the config whose hosts match location.host, then derives meta.zone: for an element event the closest ancestor matching an `elements` selector (or one carrying a data-understudy-zone attribute with a vocabulary value); for document-level scroll the first matching `page` rule; for nav the first matching `nav` rule else nav_default; for tab activation the first matching `tab` rule else tab_default. Only element presence is tested, never text.",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/slug"
+        },
+        "hosts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9.*-]+(:[0-9]{2,5})?$"
+          }
+        },
+        "nav_default": {
+          "$ref": "#/$defs/zoneId"
+        },
+        "tab_default": {
+          "$ref": "#/$defs/zoneId"
+        },
+        "nav": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/zoneWhen"
+          }
+        },
+        "tab": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/zoneWhen"
+          }
+        },
+        "page": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/zoneWhen"
+          }
+        },
+        "elements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "zone",
+              "selector"
+            ],
+            "properties": {
+              "zone": {
+                "$ref": "#/$defs/zoneId"
+              },
+              "selector": {
+                "$ref": "#/$defs/selectorStr"
+              }
+            }
+          }
+        }
+      }
+    },
+    "zoneWhen": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "zone",
+        "when"
+      ],
+      "properties": {
+        "zone": {
+          "$ref": "#/$defs/zoneId"
+        },
+        "when": {
+          "$ref": "#/$defs/selectorStr",
+          "description": "Matches when document.querySelector(when) finds an element."
+        }
+      }
+    },
+    "resultSel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "amount",
+        "status",
+        "ref"
+      ],
+      "properties": {
+        "amount": {
+          "$ref": "#/$defs/selectorStr"
+        },
+        "status": {
+          "$ref": "#/$defs/selectorStr"
+        },
+        "ref": {
+          "$ref": "#/$defs/selectorStr"
+        }
+      }
     }
   }
 }

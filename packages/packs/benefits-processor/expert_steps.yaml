@@ -43,7 +43,7 @@ checks:
     expert_median_s: 105
 
   - id: cliff_a
-    label: Probe the cliff edge on calculator A
+    label: Open Check cliff edges on calculator A
     cogs: [CHECK_CLIFF]
     required: true
     critical: true
@@ -52,10 +52,10 @@ checks:
     expert_median_s: 45
     coach:
       question: Is any figure close to a limit? What changes if it moves a little?
-      hint: Nudge income or savings up a little and read the result again.
+      hint: Press Check cliff edges under the result and read which items say near.
 
   - id: cliff_b
-    label: Probe the cliff edge on calculator B
+    label: Open Check cliff edges on calculator B
     cogs: [CHECK_CLIFF]
     required: true
     critical: true
@@ -64,7 +64,7 @@ checks:
     expert_median_s: 45
 
   - id: cliff_c
-    label: Probe the cliff edge on calculator C
+    label: Open Check cliff edges on calculator C
     cogs: [CHECK_CLIFF]
     required: true
     critical: true

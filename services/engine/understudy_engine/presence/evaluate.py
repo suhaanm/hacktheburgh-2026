@@ -135,7 +135,8 @@ def evaluate_map(train: Sequence[DayObs], test: Sequence[DayObs], prior: PriorHo
     y_all = np.concatenate(ys) if ys else np.array([])
     sm = model.smoothing
     out: dict[str, Any] = {"n_test_days": len(test), "n_bins": int(len(y_all)),
-                           "smoothing": {"adjacent1": sm.adjacent1, "adjacent2": sm.adjacent2, "same_class": sm.same_class, "other_class": sm.other_class}}
+                           "smoothing": {"adjacent1": sm.adjacent1, "adjacent2": sm.adjacent2, "same_class": sm.same_class, "other_class": sm.other_class,
+                                         "half_life_days": sm.half_life_days}}
     for k in preds:
         p_all = np.concatenate(ps[k]) if ps[k] else np.array([])
         out[k] = {"brier": round(brier(p_all, y_all), 5), "log_loss": round(log_loss(p_all, y_all), 5),

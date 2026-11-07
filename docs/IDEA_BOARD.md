@@ -52,7 +52,7 @@ A living board of every idea so far, by status. The build agent may add ideas at
 | Calibrated replay-or-model router | Okidoki | Choose tier by expected cost |
 | Narrated coach nudges and a spoken morning briefing | ElevenLabs (MLH category) | Owner-approved 7 Nov (D19). Flag off by default; cached audio for the offline demo |
 | DEV Writing Challenge post | MLH category | Owner-approved 7 Nov (D20). Lead drafts after the freeze |
-| Auth0 sign-in (Google) plus step-up approval for irreversible actions | Auth0 (MLH category) | Undecided. Optional adapter with a local fallback only; never on the demo's critical path |
+| Auth0 sign-in (Google) plus step-up approval for irreversible actions | Auth0 (MLH category) | Approved thin version 7 Nov (D22). Optional adapter with a local fallback only; never on the demo's critical path; dashboard builds it after the core screens |
 
 ## Later: the marketplace addition (D6)
 

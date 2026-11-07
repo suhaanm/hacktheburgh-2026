@@ -71,6 +71,51 @@
     }
    ]
   },
+  "routines": {
+   "meta": {
+    "origin": "synthetic",
+    "n": 4,
+    "n_unit": "personas",
+    "split": "planted routines per persona, found by the routine finder",
+    "interval_level": 0.95,
+    "note": "Planted routines found, and anything found that was not planted.",
+    "generated_at": "2026-11-07T14:40:00Z"
+   },
+   "rows": [
+    {
+     "persona": "Nine to five",
+     "planted": 3,
+     "found": 3,
+     "precision": 1,
+     "recall": 1
+    },
+    {
+     "persona": "Night owl",
+     "planted": 3,
+     "found": 3,
+     "precision": 1,
+     "recall": 1
+    },
+    {
+     "persona": "Shift worker",
+     "planted": 3,
+     "found": 2,
+     "precision": 1,
+     "recall": 0.67
+    },
+    {
+     "persona": "Irregular",
+     "planted": 3,
+     "found": 3,
+     "precision": 0.75,
+     "recall": 1
+    }
+   ],
+   "overall": {
+    "precision": 0.92,
+    "recall": 0.92
+   }
+  },
   "null_placebo": {
    "meta": {
     "origin": "synthetic",

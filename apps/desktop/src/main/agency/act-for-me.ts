@@ -14,6 +14,7 @@
 // Without macOS Accessibility the loop never acts: it rings the target and tells the learner what to click.
 import { createHash } from 'node:crypto'
 import type { AgentChip, AgencyCode, AgencyResult, Annotation, NormPoint, Shot } from '../../shared/protocol'
+import { isKilled } from '../kill-flag'
 import { plainFailure, type ModelPort } from '../model-port'
 import { boxAroundPoint } from '../model-services/grounding-utils'
 import type { ActResult } from '../actuator'
@@ -166,6 +167,10 @@ export function createActForMe(deps: AgencyDeps, sit: Situation, doneForMe: Done
     if (!goalDecision.allowed) {
       await audit({ decision: goalDecision.code === 'agency_off' ? 'refused' : 'blocked', ok: false, code: goalDecision.code, label: 'task' })
       return result(goalDecision.code, false, false, goalDecision.reason)
+    }
+    if (isKilled()) {
+      await audit({ decision: 'refused', ok: false, code: 'unavailable', label: 'task' })
+      return result('unavailable', false, false, 'The kill switch is on. Nothing will be done until the learner presses Resume.')
     }
     if (!opts.loopEnabled()) {
       await audit({ decision: 'unavailable', ok: false, code: 'unavailable', label: 'task' })

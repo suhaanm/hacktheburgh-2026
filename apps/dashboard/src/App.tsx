@@ -157,7 +157,7 @@ function KillSwitch() {
       )}
       <button type="button" className="kill kill--fixed" aria-pressed={s.killed} onClick={s.killed ? resume : stop} disabled={busy} aria-label={s.killed ? "Resume after stop" : "Stop everything now"}>
         <span className="kill__icon" aria-hidden="true" />
-        {s.killed ? "Stopped. Resume" : "Stop everything"}
+        {s.killed ? <><span className="kill__long">Stopped. Click to resume</span><span className="kill__short">Resume</span></> : <><span className="kill__long">Stop everything</span><span className="kill__short">Stop all</span></>}
         {!s.killed && <kbd aria-hidden="true">Shift Esc</kbd>}
       </button>
     </>
@@ -193,6 +193,7 @@ function Shell() {
   return (
     <div className="app">
       <a className="skip" href="#main">Skip to the screen</a>
+      <KillSwitch />
       <header className="topbar">
         <Wordmark />
         <button type="button" className="btn btn--secondary btn--sm" aria-expanded={menu} aria-controls="nav" onClick={() => setMenu((m) => !m)}>
@@ -222,7 +223,6 @@ function Shell() {
           </Suspense>
         </Boundary>
       </main>
-      <KillSwitch />
     </div>
   );
 }

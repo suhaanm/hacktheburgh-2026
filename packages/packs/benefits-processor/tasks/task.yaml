@@ -1,36 +1,45 @@
 # The task the oracle scores and the completion check (AGT-4) verifies. Code, not a model, decides success.
+# The oracle is a simplified internal rule set, illustrative, not law.
 version: 1
 id: entitlement-check
 name: Entitlement check for one household
-goal: Run the household through three calculators, reconcile the results, write the case note, and stop before submitting.
+goal: Run the household through the three sandbox calculators, reconcile the results, save the case note as a draft, and stop before "Submit to claimant record".
 
 steps:
   - Read the household record
-  - Enter the household into calculator A and read the result
-  - Enter the household into calculator B and read the result
-  - Enter the household into calculator C and read the result
-  - Probe the cliff edge where a figure is near a limit
+  - Enter the household into GovCalc (site a), read the result, open Check cliff edges
+  - Enter the household into Quick Estimator (site b), read the result, open Check cliff edges
+  - Enter the household into EntitledTo (site c), read the result, open Check cliff edges
+  - Note which cliff items say near (data-near=yes) and what that means for the three results
   - Reconcile the three results
-  - Write the case note
+  - Save the case note as a draft
   - Stop before submit
 
-# Result fields each calculator reports. Names are the pack's assumption; the sandbox sites and the
-# oracle (agent-core track) are the source of truth and may rename them.
-result_fields:
-  - universal_credit_monthly_gbp
-  - child_benefit_weekly_gbp
-  - housing_support_monthly_gbp
-  - council_tax_reduction_monthly_gbp
+# Every calculator reports exactly these three fields (selectors per site and layout: sites.yaml).
+result_fields: [amount, status, ref]
 
 goal_tokens:
   - "{case_ref}"
-  - "{result:universal_credit_monthly_gbp@calc_a}"
-  - "{result:universal_credit_monthly_gbp@calc_b}"
-  - "{result:universal_credit_monthly_gbp@calc_c}"
+  - "{result:ref@a}"
+  - "{result:ref@b}"
+  - "{result:ref@c}"
   - "{note_id}"
 
-stop_before: [submit, close case, send letter]
+stop_before: [submit, submit to claimant record, close case, send letter]
+
+# Evidence the critic checks: every site's cliff panel was opened (SandboxState.cliff_opens on 7801 to 7803).
+cliff_check:
+  button: "#cliff-btn"
+  panel: "#cliff-panel"
+  required_per_site: true
 
 progress_events:
   - A calculator result was read
-  - The case note was completed
+  - A cliff panel was opened
+  - The case note was saved as a draft
+
+oracle:
+  ref: understudy_agent.sandbox_sites.oracle:score
+  label: Simplified internal rule set, illustrative, not law
+  returns: [uc_monthly, eligible, components, cliff_flags, rules]
+  tolerance_gbp: 1.0

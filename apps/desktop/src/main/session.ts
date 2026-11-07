@@ -5,6 +5,8 @@ import { HELP_LEVEL_LABELS } from '../shared/protocol'
 import type { SessionEndReason } from '../shared/protocol'
 import type { ConfirmBroker } from './confirm'
 import type { ServiceContext } from './context'
+import { featureOn, offMessage } from './feature-flags'
+import { isKilled } from './kill-flag'
 
 const ACTIVE = new Set(['connecting', 'live', 'thinking', 'speaking'])
 
@@ -18,6 +20,16 @@ export function registerSession(ctx: ServiceContext, s: Services, confirm: Confi
   const restingPhase = () => (settings.get().wakeEnabled ? 'listening_for_name' : 'asleep')
 
   bus.on('session:request', (req) => {
+    if (isKilled()) {
+      state.patch({ lastError: 'Stopped by the kill switch. Press Resume to continue.' })
+      return
+    }
+    // Understudy: voice (the Live session) is behind UNDERSTUDY_FLAG_VOICE and off by default. Say so; start nothing.
+    if (!featureOn('voice')) {
+      ctx.log('session', 'refused: voice is switched off (set UNDERSTUDY_FLAG_VOICE=1 to enable)')
+      state.patch({ lastError: offMessage('voice') })
+      return
+    }
     if (ACTIVE.has(state.get().phase)) ctx.sendDock(IPC.sessionStop, 'replaced')
     settings.patch({ persona: req.personaId })
     state.patch({ persona: req.personaId, phase: 'connecting', captions: [], lastError: undefined })

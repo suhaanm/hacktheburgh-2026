@@ -1,0 +1,26 @@
+{
+  "name": "understudy-extension",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Understudy Chrome MV3 capture extension: L0 events (hashed, no text, no URLs, no field values), element rects for the overlay, L1 recording for opted-in routines.",
+  "scripts": {
+    "gen": "node scripts/gen.mjs",
+    "typecheck": "tsc --noEmit",
+    "build": "node scripts/gen.mjs && tsc --noEmit && node scripts/build.mjs",
+    "test": "node scripts/gen.mjs && vitest run",
+    "spike:s3": "node spikes/s3.mjs"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.3.7",
+    "@types/node": "^26.6.6",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "esbuild": "^0.28.2",
+    "jsdom": "^31.0.0",
+    "playwright": "^1.65.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0",
+    "yaml": "^2.9.1"
+  }
+}

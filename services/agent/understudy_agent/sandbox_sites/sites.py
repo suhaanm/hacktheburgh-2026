@@ -19,6 +19,7 @@ import hashlib
 import html
 import re
 import threading
+import time
 from typing import Any
 from urllib.parse import parse_qs, urlencode
 
@@ -28,7 +29,7 @@ from starlette.responses import HTMLResponse, JSONResponse, PlainTextResponse, R
 from starlette.routing import Route
 
 from .households import Adult, Household
-from .oracle import site_expected
+from .oracle import cliff_report, site_expected
 from .specs import (
     CANARY, CASENOTE_FIELDS_V1, CASENOTE_FIELDS_V2, CASENOTE_PATH, CASENOTE_RESULT, CASENOTE_SAVE,
     CASENOTE_SUBMIT, SITES, SiteSpec, default_ports,
@@ -49,6 +50,8 @@ class SandboxState:
         self.glitch_counts: dict[str, int] = {}
         self.page_log: list[dict[str, str]] = []
         self.calculations: list[dict[str, Any]] = []
+        self.calc_households: dict[str, dict[str, Any]] = {}
+        self.cliff_opens: list[dict[str, Any]] = []
 
     def reset(self) -> None:
         with self.lock:
@@ -59,6 +62,7 @@ class SandboxState:
             return {
                 "notes": dict(self.notes), "submissions": list(self.submissions),
                 "exfil_hits": list(self.exfil_hits), "calculations": list(self.calculations),
+                "cliff_opens": list(self.cliff_opens),
                 "pages_served": len(self.page_log),
             }
 
@@ -256,6 +260,20 @@ def _verdict(site: str, eligible: bool) -> str:
     return "ELIGIBLE" if eligible else "NOT ELIGIBLE"
 
 
+def _cliff_block(site: str, ref: str, ctx: dict[str, str]) -> str:
+    """The same control and panel ids in both layouts, so capture and grounding can rely on them."""
+    q = urlencode({"site": site, "ref": ref, **({"variant": ctx["variant"]} if ctx["variant"] != "clean" else {})})
+    return (
+        f'<p><button type="button" id="cliff-btn" data-understudy-zone="cliff_button" aria-expanded="false" '
+        f'aria-controls="cliff-panel" data-url="/cliff?{_e(q)}">Check cliff edges</button></p>'
+        f'<div id="cliff-panel" data-understudy-zone="cliff_panel" role="region" aria-label="Cliff edges" hidden></div>'
+        "<script>document.getElementById('cliff-btn').addEventListener('click',function(){var b=this;"
+        "fetch(b.dataset.url).then(function(r){return r.text();}).then(function(t){"
+        "var p=document.getElementById('cliff-panel');p.innerHTML=t;p.hidden=false;"
+        "b.setAttribute('aria-expanded','true');});});</script>"
+    )
+
+
 def _result_page(state: SandboxState, site: str, spec: SiteSpec, ctx: dict[str, str], base: str,
                  h: Household) -> HTMLResponse:
     layout = ctx["layout"]
@@ -266,6 +284,7 @@ def _result_page(state: SandboxState, site: str, spec: SiteSpec, ctx: dict[str, 
     with state.lock:
         state.calculations.append({"site": site, "amount": amount, "ref": ref, "layout": layout,
                                    "variant": ctx["variant"]})
+        state.calc_households[ref] = h.to_dict()
     sel = spec.result(layout)
     ids = {k: re.sub(r"^#|\[data-testid=\"|\"\]$", "", v) for k, v in sel.items()}
     verdict = _verdict(site, r["eligible"])
@@ -276,6 +295,7 @@ def _result_page(state: SandboxState, site: str, spec: SiteSpec, ctx: dict[str, 
             f'<strong id="{ids["amount"]}">{amt_txt}</strong> a month</p>'
             f'<p id="{ids["status"]}">{verdict}</p>'
             f'<p>Reference: <span id="{ids["ref"]}">{ref}</span></p>'
+            + _cliff_block(site, ref, ctx) +
             f'<p><a href="{spec.start_path}{_qs(ctx)}">Start again</a></p>'
         )
     elif site == "b":
@@ -284,6 +304,7 @@ def _result_page(state: SandboxState, site: str, spec: SiteSpec, ctx: dict[str, 
             f"<h2>Estimate</h2><table><tr><th>Monthly entitlement</th><td id=\"{ids['amount']}\">{amt_txt}</td></tr>"
             f"<tr><th>Outcome</th><td id=\"{ids['status']}\">{verdict}</td></tr>"
             f"<tr><th>Quote reference</th><td id=\"{ids['ref']}\">{ref}</td></tr></table>"
+            + _cliff_block(site, ref, ctx) +
             f'<p><a href="/{_qs(ctx)}">New calculation</a></p>'
         )
     else:
@@ -293,6 +314,7 @@ def _result_page(state: SandboxState, site: str, spec: SiteSpec, ctx: dict[str, 
             f'<tr><th>Universal Credit</th><td data-testid="{ids["amount"]}">{amt_txt}</td></tr>'
             f'<tr><th>Status</th><td data-testid="{ids["status"]}">{verdict}</td></tr>'
             f'<tr><th>Calculation ID</th><td data-testid="{ids["ref"]}">{ref}</td></tr></table>'
+            + _cliff_block(site, ref, ctx) +
             f'<p><a href="/{_qs(ctx)}">Start over</a></p>'
         )
     return _page(site, "Results" if site != "a" else "Your estimate", body, ctx, base)
@@ -480,6 +502,18 @@ def _common_routes(state: SandboxState, site: str, base: str) -> list[Route]:
             state.exfil_hits.append({"site": site, "query": dict(request.query_params)})
         return PlainTextResponse("received")
 
+    async def cliff(request: Request) -> HTMLResponse:
+        ref = request.query_params.get("ref", "")
+        h = state.calc_households.get(ref)
+        if h is None:
+            return HTMLResponse('<p role="alert">No calculation found for that reference.</p>', status_code=404)
+        with state.lock:
+            state.cliff_opens.append({"site": site, "ref": ref, "t": time.time()})
+        rows = "".join(
+            f'<li data-cliff="{_e(i["id"])}" data-near="{"yes" if i["near"] else "no"}">{_e(i["text"])}</li>'
+            for i in cliff_report(h))
+        return HTMLResponse(f"<h2>Cliff edges for this household</h2><ul>{rows}</ul>")
+
     async def health(request: Request) -> JSONResponse:
         return JSONResponse({"ok": True, "site": site})
 
@@ -490,7 +524,7 @@ def _common_routes(state: SandboxState, site: str, base: str) -> list[Route]:
         state.reset()
         return JSONResponse({"ok": True})
 
-    return [Route("/exfil", exfil), Route("/healthz", health), Route("/__state", dump),
+    return [Route("/exfil", exfil), Route("/cliff", cliff), Route("/healthz", health), Route("/__state", dump),
             Route("/__reset", reset, methods=["POST"])]
 
 

@@ -1,0 +1,216 @@
+"""Glue between the store and the genome maths: roster, cohort cache, the shapes the API returns."""
+from __future__ import annotations
+
+import json
+import statistics
+import threading
+from dataclasses import dataclass
+from pathlib import Path
+
+from ..cogs import segment_episodes
+from ..core import AnalyticMeta, Episode
+from ..store import EventStore
+from .align import align
+from .cohort import Cohort
+from .decompose import decompose
+from .graph import transition_graph
+from .labels import DEFICIT_OF_LABEL, components, deficit_prices, label_columns
+
+TASK = "benefits-household-entry"
+TASK_ALIASES = {TASK, "benefits", "benefits-processor", "benefits-household", "t_entitlement_check", "entitlement-check"}
+APPRENTICE_TRUTH = ("synthetic", "apprentices", "truth.json")
+
+
+class GenomeError(Exception):
+    def __init__(self, code: str, message: str, status: int = 404):
+        super().__init__(message)
+        self.code, self.message, self.status = code, message, status
+
+
+@dataclass
+class Bundle:
+    cohort: Cohort
+    origin: str
+    truth: dict | None
+    key: tuple
+    results: dict
+
+
+def _truth_levels(truth: dict) -> dict[str, str]:
+    return {p["person"]: p["level"] for p in truth["people"]}
+
+
+class GenomeService:
+    def __init__(self, store: EventStore | None = None):
+        self.store = store or EventStore()
+        self._bundles: dict[str, Bundle] = {}
+        self._lock = threading.RLock()
+
+    # ---------------------------------------------------------------- cohort
+    def _stamp(self, partition: str) -> tuple:
+        files = self.store.files(partition)
+        extra = [self.store.root / "real" / "roster.json", self.store.root.joinpath(*APPRENTICE_TRUTH)]
+        return tuple((str(p), p.stat().st_mtime_ns, p.stat().st_size) for p in files + [x for x in extra if x.exists()])
+
+    def _load(self, partition: str) -> Bundle | None:
+        truth = None
+        if partition == "synthetic":
+            tp = self.store.root.joinpath(*APPRENTICE_TRUTH)
+            if not tp.exists():
+                return None
+            truth = json.loads(tp.read_text())
+            levels = _truth_levels(truth)
+        else:
+            rp = self.store.root / "real" / "roster.json"
+            if not rp.exists():
+                return None
+            levels = json.loads(rp.read_text())
+        persons = set(levels)
+        events = [e for e in self.store.read(partition) if e.person in persons]
+        if not events:
+            return None
+        eps = segment_episodes(events)
+        co = Cohort(eps, levels)
+        if len({e.person for e in co.experts}) < 2 or len({e.person for e in co.novices}) < 2:
+            return None
+        return Bundle(co, partition, truth, self._stamp(partition), {})
+
+    def bundle(self, task: str, partition: str | None = None) -> Bundle:
+        # one task exists (the benefits household entry); an episode id such as t_nov03a also resolves to its cohort
+        if task not in TASK_ALIASES and not task.startswith("t_"):
+            raise GenomeError("unknown_task", f"Unknown task {task!r}. Known: {TASK}.")
+        order = [partition] if partition else ["real", "synthetic"]
+        for part in order:
+            with self._lock:
+                stamp = self._stamp(part)
+                b = self._bundles.get(part)
+                if b is None or b.key != stamp:
+                    b = self._load(part)
+                    if b is not None:
+                        self._bundles[part] = b
+                if b is not None:
+                    return b
+        raise GenomeError(
+            "no_cohort",
+            "No expert/novice cohort found. Real data needs data/real/roster.json ({person: expert|novice}) with at least 2 of each; "
+            "synthetic data needs `understudy synth --all`.",
+        )
+
+    # --------------------------------------------------------------- results
+    def _cached(self, b: Bundle, key: str, fn):
+        with self._lock:
+            if key not in b.results:
+                b.results[key] = fn()
+            return b.results[key]
+
+    def meta(self, b: Bundle, note: str) -> AnalyticMeta:
+        co = b.cohort
+        n = len({e.person for e in co.episodes})
+        return AnalyticMeta(
+            origin=b.origin, n=n, n_unit="people",
+            split="descriptive; each case is compared with its nearest expert, never with itself; intervals are a cluster bootstrap by person (1000 draws)",
+            note=note,
+        )
+
+    def default_person_episode(self, task: str = TASK, partition: str | None = None) -> tuple[str, str]:
+        """The median-gap novice and their first case: what the ribbon and the replay show when nobody is named."""
+        b = self.bundle(task, partition)
+        real = self._cached(b, "real:nearest_expert", lambda: b.cohort.real_gap("nearest_expert"))
+        pp = real["per_person"]
+        person = sorted(pp, key=lambda p: pp[p])[len(pp) // 2]
+        ep = sorted((e for e in b.cohort.episodes if e.person == person), key=lambda e: e.t0)[0]
+        return person, ep.task_id
+
+    def genome(self, task: str, person: str | None = None, reference: str = "nearest_expert", partition: str | None = None, episode: str | None = None) -> tuple[dict, AnalyticMeta]:
+        if reference not in ("nearest_expert", "consensus"):
+            raise GenomeError("bad_reference", "reference must be nearest_expert or consensus", 422)
+        b = self.bundle(task, partition)
+        co = b.cohort
+        real = self._cached(b, f"real:{reference}", lambda: co.real_gap(reference))
+        wf = self._cached(b, f"wf:{reference}", lambda: co.waterfall(reference))
+        placebo = self._cached(b, "placebo", co.placebo)
+        null = self._cached(b, "null", lambda: co.null(observed=co.real_gap("nearest_expert")["gap_s"]))
+        # which novice to show: asked for, else the median-gap novice (not cherry-picked)
+        pp = real["per_person"]
+        if person is None:
+            ordered = sorted(pp, key=lambda p: pp[p])
+            person = ordered[len(ordered) // 2]
+        eps = sorted([e for e in co.episodes if e.person == person], key=lambda e: e.t0)
+        if task.startswith("t_") and task not in TASK_ALIASES and task in co.by_task and not episode:
+            episode = task                      # the caller named one case
+        if episode:
+            eps = [e for e in eps if e.task_id == episode]
+        if not eps:
+            raise GenomeError("unknown_person", f"No episodes for {person!r} in this cohort.")
+        if co.levels.get(person) != "novice":
+            raise GenomeError("not_a_novice", f"{person} is not a novice in this cohort; pick one of: {', '.join(sorted(pp))}.", 422)
+        ep = eps[0]
+        if reference == "consensus":
+            ref_cogs, ref_person, ref_t0 = co.consensus(), None, 0.0
+        else:
+            ref_ep, _ = co.nearest(ep)
+            ref_cogs, ref_person, ref_t0 = ref_ep.cogs, ref_ep.person, ref_ep.t0
+        al = align(ref_cogs, ep.cogs, co.cost)
+        labels = label_columns(al)
+        rows = al.as_rows()
+        for r, lab in zip(rows, labels):
+            r["label"] = lab
+        comp = components(al)
+        dec = self._cached(b, "decomp", lambda: decompose(co.episodes, co.levels, B=300))
+        data = {
+            "task": TASK, "person": person, "episode": ep.task_id, "expert_person": ref_person, "reference": reference,
+            "expert": {"segments": [{"cog": c.id, "t0": round(c.t0 - ref_t0, 3), "t1": round(c.t1 - ref_t0, 3)} for c in ref_cogs]},
+            "novice": {"segments": [{"cog": c.id, "t0": round(c.t0 - ep.t0, 3), "t1": round(c.t1 - ep.t0, 3)} for c in ep.cogs]},
+            "alignment": rows,
+            "waterfall": wf["rows"],
+            "total_gap_s": wf["total_gap_s"], "total_gap_ci": wf["total_gap_ci"],
+            "controls": {
+                "placebo": {"gap_s": placebo["gap_s"], "ci": placebo["ci"]},
+                "null": {"gap_s": null["gap_s"], "ci": null["ci"], "p_value": null.get("p_value")},
+            },
+            # additive: this person's own case
+            "person_gap_s": round(al.gap_s, 3),
+            "person_waterfall": [{"label": k, "seconds": round(v, 3)} for k, v in sorted(comp.items(), key=lambda kv: -abs(kv[1]))],
+            "people": {"novices": sorted(pp), "experts": sorted({e.person for e in co.experts})},
+            "decomposition": {k: v for k, v in dec.items() if k != "statsmodels"},
+        }
+        if b.truth is not None:
+            tr = next(t for t in b.truth["traces"] if t["task_id"] == ep.task_id)
+            rec = deficit_prices(comp)
+            data["planted"] = [
+                {"deficit": d["type"], "price_s": d["price_s"], "recovered_s": round(rec.get(d["type"], 0.0), 3)} for d in tr["deficits"]
+            ]
+        note = (
+            "Synthetic apprentices with planted deficits; the ribbon is one novice case against its nearest expert. "
+            f"Waterfall = mean seconds lost per case over {len(pp)} novices vs {len({e.person for e in co.experts})} experts."
+            if b.origin == "synthetic" else
+            f"Real traces. n = {len(pp)} novices vs {len({e.person for e in co.experts})} experts; the interval is wide because n is small."
+        )
+        return data, self.meta(b, note)
+
+    def transitions(self, task: str, person: str | None = None, partition: str | None = None) -> tuple[dict, AnalyticMeta]:
+        b = self.bundle(task, partition)
+        co = b.cohort
+        novices = co.novices if person is None else [e for e in co.novices if e.person == person]
+        if not novices:
+            raise GenomeError("unknown_person", f"No novice episodes for {person!r}.")
+        g = transition_graph(co.experts, novices)
+        if b.truth is not None:
+            planted = planted_missing_edges(b.truth)
+            for e in g["edges"]:
+                e["planted"] = (e["from"], e["to"]) in planted if e["missing_for_novice"] else None
+        note = "Edges are mean transitions per case. missing_for_novice: experts take the edge, novices take it less than 85% as often."
+        return g, self.meta(b, note + (" Synthetic apprentices; `planted` marks edges broken by a planted deficit." if b.truth else ""))
+
+
+def planted_missing_edges(truth: dict) -> set[tuple[str, str]]:
+    """Expert-reference edges that some planted-deficit trace does not take (the ground truth for highlighting)."""
+    ref = truth["expert_reference"]["sequence_A"]
+    ref_edges = set(zip(ref, ref[1:]))
+    out: set[tuple[str, str]] = set()
+    for t in truth["traces"]:
+        if t["level"] != "novice" or not any(d["instances"] for d in t["deficits"]):
+            continue
+        seq = [c for c, _, _ in t["cogs"]]
+        out |= ref_edges - set(zip(seq, seq[1:]))
+    return out

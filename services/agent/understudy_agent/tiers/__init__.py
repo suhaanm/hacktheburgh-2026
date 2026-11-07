@@ -4,10 +4,10 @@ Cheapest first; escalate only when a precondition fails; every step logs its tie
 """
 from .base import (
     ActionRejected, Element, GateStop, InjectionStop, Observation, PostconditionFailed,
-    PreconditionFailed, StepBudgetExceeded, StepEvent, TierError,
+    PreconditionFailed, StepBudgetExceeded, StepEvent, StuckDetector, StuckLoop, TierError,
 )
 
 __all__ = [
     "ActionRejected", "Element", "GateStop", "InjectionStop", "Observation", "PostconditionFailed",
-    "PreconditionFailed", "StepBudgetExceeded", "StepEvent", "TierError",
+    "PreconditionFailed", "StepBudgetExceeded", "StepEvent", "StuckDetector", "StuckLoop", "TierError",
 ]

@@ -129,7 +129,8 @@ def test_claim_classifier_is_calibrated_and_beats_baselines_grouped_cv():
     assert m["log_loss"] < b["stated_confidence_platt"]["log_loss"]
     assert m["ece"] < 0.08
     assert m["ci_log_loss"][0] <= m["log_loss"] <= m["ci_log_loss"][1]
-    assert r["n_unit"] == "households" and r["origin"] == "synthetic"
+    assert r["n_unit"] == "runs" and r["origin"] == "synthetic" and r["meta"]["n_unit"] == "runs"
+    assert r["reliability"] == r["calibration"] and r["brier"] == m["brier"] and r["base_rate"] == r["base_failure_rate"]
     assert r["calibration"] and r["caveats"]
     op = r["operating_point"]
     assert op["recall"] > 2 * op["review_share"]  # flagging 20% of claims catches well over 20% of the false ones

@@ -14,10 +14,10 @@ onboarding:
       why: Tells Understudy which sites are your working surfaces, so it can read your rhythm.
       kind: multi
       options:
-        - { value: git_host, label: "Git host (repos, pull requests)", default: true, domain_role: git_host }
-        - { value: ci_dashboard, label: "CI dashboard and build logs", default: true, domain_role: ci }
-        - { value: issue_tracker, label: "Issue tracker", domain_role: tracker }
-        - { value: docs_site, label: "Library docs and search", domain_role: docs }
+        - { value: git_host, label: "Git host (repos, pull requests)", default: true, site: git_host }
+        - { value: ci_dashboard, label: "CI dashboard and build logs", default: true, site: ci }
+        - { value: issue_tracker, label: "Issue tracker", site: tracker }
+        - { value: docs_site, label: "Library docs and search", site: docs }
         - { value: chat, label: "Team chat" }
     - id: risky
       prompt: Which actions need your click, always?

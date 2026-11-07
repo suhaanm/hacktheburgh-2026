@@ -1,133 +1,101 @@
-# Rule-based mapping from L0 events to cogs (ANA-1). Semantics are documented in
-# packages/schema/pack.schema.json#/$defs/mapping. First matching rule wins: role_rules, then base_rules.
+# Event -> cog mapping for the benefits pack. Same format as
+# services/engine/understudy_engine/cogs/default_mapping.yaml (the source of truth for semantics).
+# Events carry no text; the only semantic hint is meta.zone, an enum naming the page region.
+# The extension derives zones from the capture config on each site in tasks/sites.yaml.
+# params and rules are a verbatim copy of the engine default; `uv run python packages/packs/sync_mapping.py`
+# re-syncs them and a test fails when they drift. `starts: true` opens a new segment even when the previous
+# one has the same cog.
 version: 1
+params:
+  follow_s: 6                  # a cog keeps going this long after its last event
+  gap_idle_s: 20               # a longer silence between two cogs becomes an IDLE cog
+  reformulate_within_s: 90
+  max_cog_s: 300               # cap on one segment's dwell
+extra_cogs: [ENTER_HOUSEHOLD, OPEN_CALCULATOR, READ_RESULT, CHECK_CLIFF, COPY_TO_NOTE, RECONCILE]
 
-segmentation:
-  merge_gap_s: 8      # same cog within 8 s merges into one segment
-  idle_s: 60          # a gap of 60 s or more is emitted as IDLE
-  max_dwell_s: 120    # one event never owns more than 120 s
+# Zone vocabulary of this pack: benefits role zones first, then the base zones.
+zones:
+  - calc_site
+  - household_form
+  - calc_result
+  - cliff_button
+  - cliff_panel
+  - case_note
+  - results_tabs
+  - doc
+  - form_field
+  - search_box
+  - query_edit
+  - compare_view
+  - check_box
+  - decision_btn
+  - help
 
-# Placeholders. Hashes are per install (salted), so rules name a role and the engine resolves it
-# through a table {placeholder -> [hash]}. Hosts and label vocabulary here never appear in events.
-domain_roles:
-  calc_a:      { label: "Government benefits check (sandbox)",        hosts: ["localhost:7801"] }
-  calc_b:      { label: "Charity benefits calculator (sandbox)",      hosts: ["localhost:7802"] }
-  calc_c:      { label: "Commercial entitlement calculator (sandbox)", hosts: ["localhost:7803"] }
-  case_system: { label: "Case system and note page (sandbox)",         hosts: ["localhost:7801"] }
-
-label_roles:
-  household_field:
-    vocab: ["adults", "number of adults", "children", "number of children", "children's ages", "partner", "tenure", "monthly rent", "rent", "region", "disability", "carer", "employment status"]
-  threshold_field:
-    vocab: ["earnings", "annual earnings", "income", "partner earnings", "savings", "capital"]
-  calculate:
-    vocab: ["calculate", "check entitlement", "get result", "see result", "continue"]
-  result_panel:
-    vocab: ["result", "your result", "estimated entitlement", "entitlement summary", "child benefit"]
-  note_field:
-    vocab: ["case note", "note", "notes", "add note"]
-  reconcile_tool:
-    vocab: ["compare results", "reconcile", "differences"]
-  ask_help:
-    vocab: ["ask supervisor", "ask for help", "message supervisor"]
-  verify:
-    vocab: ["verify", "review", "summary", "preview"]
-
-role_rules:
-  # A threshold field edited again after a result was read: the expert's cliff-edge probe.
-  - id: cliff_edit
-    when: { type: [focus, click], domain_role: [calc_a, calc_b, calc_c], label_role: threshold_field, prev_cog: [READ_RESULT, CHECK_CLIFF] }
-    cog: CHECK_CLIFF
-  - id: cliff_recalculate
-    when: { type: click, domain_role: [calc_a, calc_b, calc_c], label_role: calculate, prev_cog: CHECK_CLIFF }
-    cog: CHECK_CLIFF
-  - id: enter_household_field
-    when: { type: [focus, click], target_role: [textbox, spinbutton, combobox, radio, checkbox, slider], domain_role: [calc_a, calc_b, calc_c], label_role: [household_field, threshold_field] }
-    cog: ENTER_HOUSEHOLD
-  - id: enter_household_submit
-    when: { type: click, domain_role: [calc_a, calc_b, calc_c], label_role: calculate, prev_cog: ENTER_HOUSEHOLD }
-    cog: ENTER_HOUSEHOLD
-  - id: read_result_panel
-    when: { type: [scroll, focus, click], domain_role: [calc_a, calc_b, calc_c], label_role: result_panel }
-    cog: READ_RESULT
-  - id: read_result_scroll
-    when: { type: scroll, domain_role: [calc_a, calc_b, calc_c], prev_cog: [ENTER_HOUSEHOLD, READ_RESULT, CHECK_CLIFF] }
-    cog: READ_RESULT
-  # Two quick tab switches in a row between calculators: comparing results.
-  - id: reconcile_tab_flip
-    when: { type: tab, domain_role: [calc_a, calc_b, calc_c], prev_type: tab, within_s: 12 }
-    cog: RECONCILE
-  - id: reconcile_tool
-    when: { type: [click, focus], label_role: reconcile_tool }
-    cog: RECONCILE
-  - id: open_calculator
-    when: { type: [nav, tab], domain_role: [calc_a, calc_b, calc_c] }
-    cog: OPEN_CALCULATOR
-  - id: copy_result_for_note
-    when: { type: copy, domain_role: [calc_a, calc_b, calc_c], label_role: result_panel }
-    cog: COPY_TO_NOTE
-  - id: paste_into_note
-    when: { type: paste, label_role: note_field }
-    cog: COPY_TO_NOTE
-  - id: write_note
-    when: { type: [focus, click], label_role: note_field }
-    cog: COPY_TO_NOTE
-
-base_rules:
-  - { id: ignore_markers, when: { type: [stuck, coach_shown, coach_followed, coach_dismissed, agent_step, progress, task_start, task_end, unlock, resume] }, ignore: true }
-  - { id: idle_signals, when: { type: [idle, lock, sleep] }, cog: IDLE }
-  - { id: ask_for_help, when: { type: [click, focus], label_role: ask_help }, cog: ASK }
-  - { id: verify_summary, when: { type: [click, focus, scroll], label_role: verify }, cog: CHECK }
-  - { id: search_follow_up, when: { type: search, prev_cog: [SEARCH, REFORMULATE], within_s: 90 }, cog: REFORMULATE }
-  - { id: search_first, when: { type: search }, cog: SEARCH }
-  - { id: undo, when: { type: undo }, cog: REVERT }
-  - { id: human_decision, when: { type: approval, actor: human }, cog: DECIDE }
-  - { id: ignore_agent_approval, when: { type: approval }, ignore: true }
-  - { id: copy, when: { type: copy }, cog: COPY }
-  - { id: paste, when: { type: paste }, cog: PASTE }
-  - { id: compare_tab_flip, when: { type: tab, prev_type: tab, within_s: 12 }, cog: COMPARE }
-  - { id: navigate_nav, when: { type: [nav, tab] }, cog: NAVIGATE }
-  - { id: read_scroll, when: { type: scroll }, cog: READ }
-  - { id: read_text_click, when: { type: click, target_role: [heading, text, paragraph, cell, row, img, article] }, cog: READ }
-  - { id: enter_field, when: { type: [click, focus], target_role: [textbox, spinbutton, combobox, searchbox, radio, checkbox, slider, textarea] }, cog: ENTER }
-  - { id: navigate_click, when: { type: [click, focus] }, cog: NAVIGATE }
+rules:
+  # ---- not cogs
+  - { match: { type: [task_start, task_end, progress, stuck, lock, unlock, sleep, resume] }, cog: null }
+  - { match: { type: [coach_shown, coach_followed, coach_dismissed, agent_step, approval] }, cog: null }
+  # ---- benefits-processor role cogs
+  - { match: { type: nav, zone: calc_site }, cog: OPEN_CALCULATOR }
+  - { match: { type: [click, focus, scroll], zone: household_form }, cog: ENTER_HOUSEHOLD }
+  - { match: { type: focus, zone: calc_result }, cog: READ_RESULT, starts: true }
+  - { match: { type: scroll, zone: calc_result }, cog: READ_RESULT }
+  - { match: { type: click, zone: cliff_button }, cog: CHECK_CLIFF, starts: true }   # the "check cliff edges" button
+  - { match: { type: focus, zone: cliff_panel }, cog: CHECK_CLIFF, starts: true }
+  - { match: { type: [click, scroll], zone: cliff_panel }, cog: CHECK_CLIFF }
+  - { match: { type: copy, zone: calc_result }, cog: COPY_TO_NOTE }
+  - { match: { type: [tab, paste, click, focus], zone: case_note }, cog: COPY_TO_NOTE }
+  - { match: { type: [tab, click], zone: results_tabs }, cog: RECONCILE }
+  # ---- base cogs
+  - { match: { type: idle }, cog: IDLE, backdate_meta: idle_s }
+  - { match: { type: undo }, cog: REVERT }
+  - { match: { type: [focus, click], zone: query_edit }, cog: REFORMULATE }
+  - { match: { type: [scroll, focus, click], zone: search_box }, cog: SEARCH }
+  - { match: { type: search }, cog: SEARCH, reformulate_as: REFORMULATE }
+  - { match: { type: [tab, click], zone: compare_view }, cog: COMPARE }
+  - { match: { type: click, zone: check_box }, cog: CHECK }
+  - { match: { type: click, zone: decision_btn }, cog: DECIDE }
+  - { match: { type: click, zone: help }, cog: ASK }
+  - { match: { type: [click, focus], zone: form_field }, cog: ENTER }
+  - { match: { type: focus, zone: doc }, cog: READ, starts: true }
+  - { match: { type: scroll, zone: doc }, cog: READ }
+  - { match: { type: copy }, cog: COPY }
+  - { match: { type: paste }, cog: PASTE }
+  - { match: { type: [nav, tab] }, cog: NAVIGATE }
+  - { match: { type: click, role: [link, tab, menuitem] }, cog: NAVIGATE }   # zoneless link clicks navigate
+  - { match: { type: click }, cog: ENTER }
+  - { match: { type: [scroll, focus] }, cog: READ }
 
 examples:
-  - name: one calculator pass with a cliff probe
-    hash_roles:
-      domain: { calc_a: ["d:a001"] }
-      label:  { household_field: ["h:0101", "h:0102"], threshold_field: ["h:0201"], calculate: ["h:0301"] }
+  - name: one calculator pass (open, enter, read)
     events:
-      - { dt: 0,  type: nav,    target: { domain_hash: "d:a001" } }
-      - { dt: 4,  type: focus,  target: { role: spinbutton, label_hash: "h:0101", domain_hash: "d:a001" } }
-      - { dt: 6,  type: click,  target: { role: spinbutton, label_hash: "h:0102", domain_hash: "d:a001" } }
-      - { dt: 9,  type: click,  target: { role: button, label_hash: "h:0301", domain_hash: "d:a001" } }
-      - { dt: 3,  type: scroll, target: { domain_hash: "d:a001" }, meta: { depth_bin: 2 } }
-      - { dt: 10, type: focus,  target: { role: spinbutton, label_hash: "h:0201", domain_hash: "d:a001" } }
-      - { dt: 5,  type: click,  target: { role: button, label_hash: "h:0301", domain_hash: "d:a001" } }
-      - { dt: 3,  type: scroll, target: { domain_hash: "d:a001" }, meta: { depth_bin: 2 } }
-    expect: [OPEN_CALCULATOR, ENTER_HOUSEHOLD, ENTER_HOUSEHOLD, ENTER_HOUSEHOLD, READ_RESULT, CHECK_CLIFF, CHECK_CLIFF, READ_RESULT]
-  - name: compare calculators then paste into the note
-    hash_roles:
-      domain: { calc_a: ["d:a001"], calc_b: ["d:b002"], case_system: ["d:a001"] }
-      label:  { result_panel: ["h:0401"], note_field: ["h:0501"] }
+      - { dt: 0,  type: nav,    meta: { zone: calc_site } }
+      - { dt: 4,  type: focus,  role: textbox, meta: { zone: household_form } }
+      - { dt: 6,  type: click,  role: button,  meta: { zone: household_form } }
+      - { dt: 3,  type: nav,    meta: { zone: calc_result } }
+      - { dt: 3,  type: scroll, meta: { zone: calc_result, depth_bin: 2 } }
+    expect: [OPEN_CALCULATOR, ENTER_HOUSEHOLD, ENTER_HOUSEHOLD, NAVIGATE, READ_RESULT]
+  - name: compare results across tabs, copy a result into the case note
     events:
-      - { dt: 0,  type: scroll, target: { domain_hash: "d:a001" } }
-      - { dt: 6,  type: tab,    target: { domain_hash: "d:b002" } }
-      - { dt: 4,  type: tab,    target: { domain_hash: "d:a001" } }
-      - { dt: 3,  type: tab,    target: { domain_hash: "d:b002" } }
-      - { dt: 20, type: copy,   target: { role: text, label_hash: "h:0401", domain_hash: "d:a001" } }
-      - { dt: 5,  type: paste,  target: { role: textbox, label_hash: "h:0501", domain_hash: "d:a001" } }
-    expect: [READ, OPEN_CALCULATOR, RECONCILE, RECONCILE, COPY_TO_NOTE, COPY_TO_NOTE]
+      - { dt: 0,  type: tab,    role: tab, meta: { zone: results_tabs } }
+      - { dt: 4,  type: tab,    role: tab, meta: { zone: results_tabs } }
+      - { dt: 15, type: copy,   role: region, meta: { zone: calc_result } }
+      - { dt: 5,  type: tab,    role: tab, meta: { zone: case_note } }
+      - { dt: 3,  type: paste,  role: textbox, meta: { zone: case_note } }
+      - { dt: 2,  type: progress, meta: { kind: note_field } }
+    expect: [RECONCILE, RECONCILE, COPY_TO_NOTE, COPY_TO_NOTE, COPY_TO_NOTE, null]
+  - name: open the cliff panel and read it
+    events:
+      - { dt: 0,  type: click,  role: button, meta: { zone: cliff_button } }
+      - { dt: 4,  type: scroll, role: region, meta: { zone: cliff_panel, depth_bin: 1 } }
+      - { dt: 3,  type: focus,  role: region, meta: { zone: cliff_panel } }
+    expect: [CHECK_CLIFF, CHECK_CLIFF, CHECK_CLIFF]
   - name: base cogs outside any calculator
-    hash_roles:
-      domain: {}
-      label: {}
     events:
-      - { dt: 0,  type: search }
-      - { dt: 12, type: search }
-      - { dt: 40, type: click,  target: { role: link } }
+      - { dt: 0,  type: search, role: searchbox, meta: { zone: search_box, len: 14 } }
+      - { dt: 12, type: search, role: searchbox, meta: { zone: search_box, len: 18 } }
+      - { dt: 40, type: click,  role: link }
       - { dt: 7,  type: undo }
-      - { dt: 90, type: idle }
-      - { dt: 2,  type: progress }
-    expect: [SEARCH, REFORMULATE, NAVIGATE, REVERT, IDLE, null]
+      - { dt: 90, type: idle, source: os, meta: { idle_s: 90 } }
+      - { dt: 2,  type: click,  role: button }
+    expect: [SEARCH, REFORMULATE, NAVIGATE, REVERT, IDLE, ENTER]

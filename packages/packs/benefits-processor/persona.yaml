@@ -83,7 +83,7 @@ planted_routines:
     daily_rate: 3.0
     preferred_hours: [9, 10, 11, 14, 15]
     duration_s: { median: 330, sigma: 0.20 }
-    param_variation: [adults, children, earnings, partner_earnings, savings, tenure, rent, region]
+    param_variation: [adults, adult1_age, children_ages, adult1_earnings_monthly, adult2_earnings_monthly, tenure, rent_monthly, savings, childcare_monthly]
   - id: result-to-note
     template: result-to-note
     daily_rate: 2.0

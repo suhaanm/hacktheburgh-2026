@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ApiError, api, refreshQueueBadge } from "../api";
+import { ApiError, ENGINE_URL, api, refreshQueueBadge } from "../api";
+import { useAppState } from "../store";
 import { useLoad } from "../hooks";
 import { EmptyState, ErrorState, Loading, OriginBadge, PageHead, TierPill } from "../components/common";
 import { useToast } from "../components/Toasts";
@@ -101,7 +102,7 @@ function Card({ item: it, onDone }: { item: QueueItem; onDone: () => void }) {
         <div className="evidence__body qi-evidence">
           {it.evidence.screenshots.length > 0 && (
             <div className="shots" aria-label="Screenshots">
-              {it.evidence.screenshots.map((s) => <span key={s} className="shot">{s.split("/").pop()}<br />screenshot kept on this device</span>)}
+              {it.evidence.screenshots.map((s) => <Shot key={s} runId={it.run_id} path={s} />)}
             </div>
           )}
           {keys.length > 0 && (
@@ -132,6 +133,15 @@ function Card({ item: it, onDone }: { item: QueueItem; onDone: () => void }) {
       )}
     </article>
   );
+}
+
+/** Screenshots come from the engine (GET /runs/{run_id}/{file}). When it is not serving them, a labelled placeholder stays. */
+function Shot({ runId, path }: { runId: string; path: string }) {
+  const live = useAppState().live > 0;
+  const [failed, setFailed] = useState(false);
+  const file = path.split("/").pop() ?? path;
+  if (!live || failed) return <span className="shot">{file}<br />{live ? "could not load" : "not available in demo data"}</span>;
+  return <img className="shot shot--img" src={`${ENGINE_URL}/runs/${encodeURIComponent(runId)}/${encodeURIComponent(file)}`} alt={`Screenshot ${file} from run ${runId}`} loading="lazy" onError={() => setFailed(true)} />;
 }
 
 function Report({ rep, audit, loading }: { rep: OffhoursReport | null; audit: AuditLine[] | null; loading: boolean }) {

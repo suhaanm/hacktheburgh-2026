@@ -7,7 +7,10 @@ import { Bus } from './bus'
 import { ConfirmBroker, dismissConfirmOnStepVerified } from './confirm'
 import type { ServiceContext } from './context'
 import { startDebugServer } from './debug-server'
-import { redactingLog } from './gemini/redact'
+import { redactingLog } from './model-port/redact'
+import { createModelPortFromEnv, runBootCheck } from './model-port'
+import { featureOn, forcedSettings } from './feature-flags'
+import { createUnderstudyCore, registerUnderstudy } from './understudy'
 import { registerHotkeys } from './hotkey'
 import { shouldShowDockAtStart } from './panel-rules'
 import { registerIpc } from './ipc'
@@ -27,7 +30,10 @@ import { adoptOwner, createWindows } from './windows'
 
 // The key lives only in REPO/.env; it is never logged or sent to a renderer.
 if (process.env.ALONGSIDE_USERDATA) app.setPath('userData', path.resolve(process.env.ALONGSIDE_USERDATA))
+// Understudy: the repo-level .env holds OPENAI_API_KEY and OPENAI_MODEL_*; the app-level one (Gemini voice key) is still honoured.
+// dotenv never overrides a variable that is already set, and nothing is printed (quiet).
 dotenv.config({ path: path.join(app.getAppPath(), '.env'), quiet: true })
+dotenv.config({ path: path.join(app.getAppPath(), '../../.env'), quiet: true })
 
 const flag = (name: string) => process.env[name] === '1'
 let shellTray: ShellTray | null = null // SHELL: the menu-bar item keeps the app alive when the dock window is hidden
@@ -37,7 +43,7 @@ void app.whenReady().then(async () => {
   const userDataDir = app.getPath('userData')
 
   const bus = new Bus()
-  const settings = new SettingsStore(userDataDir)
+  const settings = new SettingsStore(userDataDir, { forced: forcedSettings() }) // voice-adjacent settings pinned off by feature flags
   const state = new StateStore(settings.get())
   // SHELL2: the panel stays hidden unless showDock is on, setup is unfinished, or there is no menu bar item to reopen it. The window still exists and runs (mic, wake spotter, Live session).
   const windows = createWindows({ noOverlay: flag('ALONGSIDE_NO_OVERLAY'), headless, showDockAtStart: shouldShowDockAtStart(settings.get(), headless) })
@@ -51,6 +57,12 @@ void app.whenReady().then(async () => {
     sendDock: <C extends EventChannel>(channel: C, ...args: EventArgs<C>) => windows.sendDock(channel, ...args),
     log: redactingLog((scope, ...args) => console.log(`[${scope}]`, ...args)), // LIVE: no key/blob/long text in any lane's logs
   }
+  // Understudy: every model call goes through this one port (OpenAI, or the mock under UNDERSTUDY_MOCK=1 / ALONGSIDE_MOCK=1).
+  ctx.modelPort = createModelPortFromEnv({ log: ctx.log })
+  void runBootCheck(ctx.modelPort, ctx.log) // lists the models this key can use; a problem is logged in plain English, never fatal
+
+  // Understudy: engine client, coach telemetry, identity. Must exist before createServices (the overlay is wrapped with it).
+  const core = createUnderstudyCore(ctx)
 
   // Coalesce bursts of patches into one broadcast per tick.
   let flushQueued = false
@@ -75,11 +87,13 @@ void app.whenReady().then(async () => {
   registerIpc({ ctx, services, windows, dispatch, confirm, session, permissions })
   const showtime = registerShowtime({ ctx, services, windows, dispatch, confirm, session }) // DEMO: IPC showtime:* + bus showtime:request
 
-  const unregisterHotkeys = registerHotkeys(bus, settings, { state, stop: (r) => session.stop(r), togglePanel: () => shellTray?.togglePanel() })
+  // Understudy: kill switch, HUD (kill pill, proposal toast), desk signals. The shortcut, the tray item and the pill all reach the same switch.
+  const understudy = registerUnderstudy({ ctx, core, services, confirm, bus, stopSession: (r) => session.stop(r), headless, noOverlay: flag('ALONGSIDE_NO_OVERLAY') })
+  const unregisterHotkeys = registerHotkeys(bus, settings, { state, stop: (r) => session.stop(r), togglePanel: () => shellTray?.togglePanel(), kill: () => void understudy.kill.trigger('hotkey') })
   // NOTIFY: permission prompts also appear as a toast at the top of the screen (settings.confirmStyle; no window when headless / no overlay).
   const toast = registerToast({ ctx, adoptOwner, disabled: headless || flag('ALONGSIDE_NO_OVERLAY') })
   const unregisterLoginItem = registerLoginItem(settings, { log: (...args) => ctx.log('login-item', ...args) })
-  if (!headless) shellTray = registerTray({ bus, state, settings, windows, stop: (r) => session.stop(r), showtimeRunning: () => showtime.active(), log: (...args) => ctx.log('tray', ...args) })
+  if (!headless) shellTray = registerTray({ bus, state, settings, windows, stop: (r) => session.stop(r), showtimeRunning: () => showtime.active(), kill: { trigger: () => void understudy.kill.trigger('tray'), clear: () => void understudy.kill.clear(), isKilled: () => understudy.kill.isKilled() }, openQueue: understudy.openQueue, log: (...args) => ctx.log('tray', ...args) })
   app.on('will-quit', () => {
     void showtime.dispose()
     shellTray?.dispose()
@@ -87,16 +101,19 @@ void app.whenReady().then(async () => {
     unregisterLoginItem()
     permissions.dispose()
     unregisterHotkeys()
+    understudy.dispose()
+    core.dispose()
     services.agents.dispose?.() // AGENTS hook: dispose on quit
     settings.flush()
   })
 
   // The debug server has no auth (it serves /shot, /state, /tool, /settings): opt-in only, never by default.
   if (flag('ALONGSIDE_DEBUG')) {
-    startDebugServer({ ctx, services, dispatch, session, capture: { overlayPng: windows.overlayPng, dockPng: windows.dockPng }, tray: shellTray ?? undefined })
+    startDebugServer({ ctx, services, dispatch, session, capture: { overlayPng: windows.overlayPng, dockPng: windows.dockPng, hudPng: understudy.hud.png }, understudy: { kill: understudy.kill, hud: understudy.hudModel }, tray: shellTray ?? undefined })
   }
 
-  if (!headless && !flag('ALONGSIDE_MOCK') && process.platform === 'darwin' && systemPreferences.getMediaAccessStatus('microphone') === 'not-determined') {
+  // Understudy: the microphone is only needed for voice or the wake word, both off unless their flags are set.
+  if (!headless && !flag('ALONGSIDE_MOCK') && !flag('UNDERSTUDY_MOCK') && (featureOn('voice') || featureOn('wake')) && process.platform === 'darwin' && systemPreferences.getMediaAccessStatus('microphone') === 'not-determined') {
     void systemPreferences.askForMediaAccess('microphone')
   }
 })

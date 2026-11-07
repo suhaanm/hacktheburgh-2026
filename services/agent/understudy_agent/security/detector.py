@@ -101,7 +101,7 @@ RULES: tuple[Rule, ...] = (
          _c(rf"\b(?:you (?:must|should|need to|have to|are required to|will)|please|make sure (?:to|you)|be sure to|instead,?|do not|don't|now)\b[^.\n]{{0,60}}\b{_RISKY_VERB}\b"),
          frozenset(_SUSPECT_WHERE)),
     Rule("visible_imperative_risky", "instruction", LOW,
-         _c(rf"\b(?:you (?:must|should|need to|have to)|please)\b[^.\n]{{0,40}}\b(?:send|e-?mail|forward|upload|delete|pay|transfer|install|execute|disable|grant)\b")),
+         _c(r"\b(?:you (?:must|should|need to|have to)|please)\b[^.\n]{0,40}\b(?:send|e-?mail|forward|upload|delete|pay|transfer|install|execute|disable|grant)\b")),
 )
 
 # ASCII-art / long base64 / reversed / rot13 payloads that decode to something above
@@ -158,8 +158,13 @@ class PageObservation:
     title: str = ""
     url: str = ""
 
-    def all_visible(self) -> str:
-        return "\n".join(x for x in [self.title, self.text, *self.alt_texts, self.ocr_text] if x)
+    def visible_text(self) -> str:
+        """What a person looking at the screen can read: title, page text and OCR of the screenshot."""
+        return "\n".join(x for x in [self.title, self.text, self.ocr_text] if x)
+
+    def full_dump(self) -> str:
+        """What a naive text dump of the DOM returns: visible text plus hidden elements and alt text."""
+        return "\n".join(x for x in [self.title, self.text, *self.hidden_texts, *self.alt_texts, self.ocr_text] if x)
 
 
 def _excerpt(text: str, m: re.Match[str]) -> str:

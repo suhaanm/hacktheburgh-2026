@@ -15,12 +15,12 @@ templates:
     automatable: true
     learning_relevant: true        # skill gate: mastery of ENTER_HOUSEHOLD must reach L4 first
     skill_cogs: [ENTER_HOUSEHOLD]
-    touches: ["gov.uk check", "turn2us", "case note"]
-    never: ["submit"]
-    params: [adults, children, earnings, partner_earnings, savings, tenure, rent, region]
+    touches: ["GovCalc", "Quick Estimator", "EntitledTo", "case note"]
+    never: ["submit", "submit to claimant record"]
+    params: [adults, adult1_age, adult2_age, children_ages, adult1_earnings_monthly, adult2_earnings_monthly, limited_capability, tenure, rent_monthly, bedrooms, savings, childcare_monthly]
     value_defaults: { manual_minutes_per_run: 5.5, build_cost_runs: 6, maintenance_risk_gbp: 8, error_cost_gbp: 3 }
     proposal:
-      what: Enter the household into all three calculators and read back the results, then stop.
+      what: Enter the household into all three calculators and read back each result, then stop.
 
   - id: result-to-note
     title: Copy the agreed results into the case note
@@ -29,11 +29,11 @@ templates:
     automatable: true
     learning_relevant: false       # copying figures teaches nothing the worker still needs
     touches: ["case note"]
-    never: ["submit", "send letter"]
+    never: ["submit", "submit to claimant record", "send letter"]
     params: [case_ref]
     value_defaults: { manual_minutes_per_run: 2.5, build_cost_runs: 4, maintenance_risk_gbp: 4, error_cost_gbp: 6 }
     proposal:
-      what: Copy each calculator's result into the case note and leave the note open for you to review.
+      what: Copy each calculator's result into the case note and save it as a draft. It never presses Submit to claimant record.
 
   - id: cliff-check-sweep
     title: Probe each calculator near a threshold
@@ -42,7 +42,7 @@ templates:
     automatable: false             # judgement-heavy: reported, never proposed
     learning_relevant: true
     skill_cogs: [CHECK_CLIFF]
-    touches: ["gov.uk check", "turn2us"]
+    touches: ["GovCalc", "Quick Estimator", "EntitledTo"]
     never: ["submit"]
     value_defaults: { manual_minutes_per_run: 4.0, build_cost_runs: 9, maintenance_risk_gbp: 12, error_cost_gbp: 25 }
     proposal:

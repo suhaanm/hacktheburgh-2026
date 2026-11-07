@@ -19,9 +19,10 @@ import datetime as _dt
 import numpy as np
 
 from understudy_engine.core import Episode
-from understudy_engine.hazard.events import EventResult, choose_config, pool, score_rows
+from understudy_engine.hazard.events import choose_config, pool, score_rows
 from understudy_engine.hazard.features import BinTable, build_bins
 from understudy_engine.hazard.model import HazardModel
+from understudy_engine.trust.meta import analytic_meta
 from understudy_engine.trust.calibration import (
     cluster_bootstrap_scores, ece, log_loss, brier, reliability_bins,
 )
@@ -130,9 +131,72 @@ def _summ(tab: BinTable, res: dict, n_boot: int, seed: int) -> dict:
     }
 
 
+def _auc(score: np.ndarray, label: np.ndarray) -> float | None:
+    """Mann-Whitney AUC of `score` for `label` (ties get average rank)."""
+    from scipy.stats import rankdata
+    pos = label == 1
+    n1, n0 = int(pos.sum()), int((~pos).sum())
+    if n1 == 0 or n0 == 0:
+        return None
+    ranks = rankdata(score)
+    return float((ranks[pos].sum() - n1 * (n1 + 1) / 2) / (n1 * n0))
+
+
+def _vs_planted(tab: BinTable, res: dict, planted: dict[str, list[tuple[float, float]]], tol_s: float = 30.0) -> dict:
+    """Check held-out predictions against planted stuck spells the model never saw (truth.json).
+
+    bin-level  AUC of p for 'a planted spell overlaps [b, b + 60]'
+    spell-level  with each held-out person's chosen alarm rule: share of planted spells with an alarm inside
+                 [t0 - tol, t1 + tol], and alarms outside every planted spell per hour
+    """
+    from understudy_engine.hazard.events import alarms_for
+    p = res["p"]
+    lab = np.zeros(tab.n, dtype=int)
+    for q, spells in planted.items():
+        rows = tab.rows_of([q])
+        if not rows.size or not spells:
+            continue
+        t = tab.t[rows]
+        for t0, t1 in spells:
+            lab[rows[(t + tab.horizon_s > t0) & (t < t1)]] = 1
+    n_spells = det = fa = 0
+    hours = 0.0
+    lat: list[float] = []
+    for q in tab.people:
+        cfg = res["cfg"][q]
+        spells = planted.get(q, [])
+        for e in res["ep_of_person"][q]:
+            a, b = int(tab.ep_offsets[e]), int(tab.ep_offsets[e + 1])
+            t_e, ps = tab.t[a:b], p[a:b]
+            lo, hi = t_e[0], t_e[-1] + tab.bin_s
+            alarms = alarms_for(t_e, ps, cfg["threshold"], cfg["confirm_bins"])
+            hours += (hi - lo) / 3600.0
+            mine = [(t0, t1) for t0, t1 in spells if t1 > lo and t0 < hi]
+            n_spells += len(mine)
+            for t0, t1 in mine:
+                inside = alarms[(alarms >= t0 - tol_s) & (alarms <= t1 + tol_s)]
+                if inside.size:
+                    det += 1
+                    lat.append(max(0.0, float(inside.min() - t0)))
+            fa += sum(1 for al in alarms if not any(t0 - tol_s <= al <= t1 + tol_s for t0, t1 in mine))
+    return {
+        "bin_label": "a planted stuck spell overlaps the 60 s after the bin",
+        "n_positive_bins": int(lab.sum()), "n_bins": int(tab.n),
+        "auc": _auc(p, lab),
+        "auc_time_since_progress_proxy": _auc(tab.tsp_s.astype(float), lab),
+        "planted_spells": int(n_spells), "detected": int(det),
+        "detection_rate": det / n_spells if n_spells else None,
+        "alarms_outside_planted_per_hour": float(fa / hours) if hours > 0 else None,
+        "median_latency_s": float(np.median(lat)) if lat else None,
+        "note": "Planted spells are short (often under 90 s) and independent of the 'no progress in 60 s' label.",
+    }
+
+
 def evaluate_hazard(
     episodes: list[Episode], *, budget_per_h: float = DEFAULT_BUDGET_PER_H, l2: float = 3.0,
     n_boot: int = 300, seed: int = 0, include_series: bool = True,
+    planted: dict[str, list[tuple[float, float]]] | None = None, series_person: str | None = None,
+    series_max: int | None = 480, note: str | None = None,
 ) -> dict:
     """Run the full protocol. Needs episodes from at least two people."""
     tab = build_bins(episodes)
@@ -181,23 +245,82 @@ def evaluate_hazard(
         "model_minus_base_log_loss_ci": _paired_delta_ci(lf, lb, tab.episode, n_boot, seed),
         "calibration": reliability_bins(y, full["p"]),
         "false_alarms_per_hour": s_full["events"].get("false_alarms_per_hour"),
+        "false_alarms_within_budget": (s_full["events"].get("false_alarms_per_hour") is not None
+                                       and s_full["events"]["false_alarms_per_hour"] <= budget_per_h),
         "per_person": per_person,
         "params": {"bin_s": tab.bin_s, "horizon_s": tab.horizon_s, "l2": l2, "n_boot": n_boot, "seed": seed},
         "caveats": [
             "Labels and events are defined from `progress` events in the data; the model predicts 'no progress in the next 60 s', not 'the person is confused'.",
             "Intervals resample episodes, not people; with few people the person-level spread (per_person) is the honest uncertainty.",
-            "Alarm threshold is chosen on training people only; the false-alarm budget is a design choice, not a measured tolerance of real workers.",
+            "Alarm threshold is chosen on training people only under the false-alarm budget; it can overshoot on the held-out person "
+            "(see false_alarms_within_budget). The budget is a design choice, not a measured tolerance of real workers.",
             "Synthetic origin: results show the pipeline recovers planted structure, not that real people behave this way."
             if origin != "real" else "Real data: person count is small; treat as indicative.",
         ],
     }
+    if planted:
+        out["vs_planted"] = _vs_planted(tab, full, planted)
+    sp = series_person if series_person in people else people[0]
+
+    def _series(q: str) -> list[dict]:
+        return [
+            {"t": _dt.datetime.fromtimestamp(float(tab.t[r]), tz=_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+             "p": round(float(full["p"][r]), 5)} for r in tab.rows_of([q])
+        ]
+
     if include_series:
-        series = {}
-        for q in people:
-            rows = tab.rows_of([q])
-            series[q] = [
-                {"t": _dt.datetime.fromtimestamp(float(tab.t[r]), tz=_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                 "p": round(float(full["p"][r]), 5)} for r in rows
-            ]
-        out["series"] = series
+        rep = _series(sp)
+        out["series"] = rep[:series_max] if series_max else rep   # contract: [{t, p}] for one person
+        out["series_person"] = sp
+        out["series_by_person"] = {q: _series(q) for q in people}
+    out["meta"] = analytic_meta(origin, len(people), "people", "leave-one-person-out", note or (
+        f"{tab.n} scored 30-second bins from {len(tab.ep_person)} episodes; label = no progress in the next 60 s."))
     return out
+
+
+def evaluate_hazard_data(root=None, *, n_boot: int = 300, seed: int = 0, budget_per_h: float = DEFAULT_BUDGET_PER_H,
+                         include_series: bool = True, include_secondary: bool = True) -> dict:
+    """Hazard evaluation on engine-data's synthetic data. Falls back to this module's own simulator when the
+    data directory is absent (then `origin` still says synthetic and `data_source` says which).
+
+    Primary: the four personas (21 days each, 3.6k episodes, 4 people). Secondary: the 24 scripted apprentices.
+    The primary result is what the Evidence page shows; the secondary is under `secondary` with its own caveat.
+    """
+    from understudy_engine.hazard.data import load_persona_episodes
+    from understudy_engine.hazard.sim import simulate_people
+
+    try:
+        eps, planted, info = load_persona_episodes(root)
+        source = "engine-data synthetic personas (4 people, 21 days)"
+    except FileNotFoundError:
+        eps, _ = simulate_people(4, 60, seed=seed)
+        planted, info, source = None, {}, "fallback: hazard.sim (engine-data files not found)"
+    out = evaluate_hazard(eps, budget_per_h=budget_per_h, n_boot=n_boot, seed=seed, include_series=include_series,
+                          planted=planted, series_person="p_ninetofive")
+    out["data_source"] = source
+    out["data_info"] = info
+    if include_secondary:
+        sec = evaluate_apprentice_hazard(root, n_boot=n_boot, seed=seed, budget_per_h=budget_per_h,
+                                         include_series=include_series)
+        if sec is not None:
+            out["secondary"] = sec
+    return out
+
+
+def evaluate_apprentice_hazard(root=None, *, n_boot: int = 300, seed: int = 0,
+                               budget_per_h: float = DEFAULT_BUDGET_PER_H, include_series: bool = True) -> dict | None:
+    """The 24 scripted apprentices as a second dataset (None if the files are absent)."""
+    from understudy_engine.hazard.data import load_apprentice_episodes
+    try:
+        a_eps, a_planted, a_info = load_apprentice_episodes(root)
+    except FileNotFoundError:
+        return None
+    sec = evaluate_hazard(a_eps, budget_per_h=budget_per_h, n_boot=n_boot, seed=seed, include_series=include_series,
+                          planted=a_planted, series_person="p_nov01")
+    sec["data_source"] = "engine-data synthetic apprentices (24 people, 2 scripted cases each)"
+    sec["data_info"] = a_info
+    sec["caveats"] = sec["caveats"] + [
+        "Apprentice traces follow a fixed task script, so when progress happens is partly predictable from the cog "
+        "grammar itself; the large gain over the baselines here mostly reflects that, not stuck prediction. "
+        "Treat the four-persona result as the headline."]
+    return sec

@@ -1,13 +1,123 @@
-# Sandbox sites the task expects (ports 7801 to 7803, agent-core track owns the sites).
-# The case note page is assumed to be served by the first site at /note: confirm with agent-core.
+# Sandbox sites as BUILT by the agent-core track: services/agent/understudy_agent/sandbox_sites/specs.py
+# is the source of truth (a test compares the selectors below with it). Local only, synthetic data only.
+# Every calculator reports exactly three fields: amount (monthly Universal Credit), status (eligibility
+# text) and ref (quote reference). The capture config tells the extension how to derive meta.zone.
 version: 1
+host: 127.0.0.1
 
 sites:
-  - { id: calc_a, port: 7801, kind: calculator, label: "Government benefits check (sandbox)",        domain_role: calc_a }
-  - { id: calc_b, port: 7802, kind: calculator, label: "Charity benefits calculator (sandbox)",      domain_role: calc_b }
-  - { id: calc_c, port: 7803, kind: calculator, label: "Commercial entitlement calculator (sandbox)", domain_role: calc_c }
-  - { id: case_note, port: 7801, kind: case_note, label: "Case note page (sandbox)", domain_role: case_system, path: /note }
+  - id: a
+    port: 7801
+    kind: calculator
+    label: GovCalc Benefits Checker
+    start_path: /step/1
+    flow: Four-page wizard (4 steps, then the result page).
+    units: Monthly figures, whole-pound display.
+    result:
+      v1: { amount: "#result-amount", status: "#result-status", ref: "#result-ref" }
+      v2: { amount: "#calc-total", status: "#calc-outcome", ref: "#calc-reference" }
+    capture:
+      nav_default: calc_site
+      tab_default: results_tabs
+      nav:
+        - { zone: case_note, when: 'form[action^="/casenote"], #note-id, #cn-id' }
+        - { zone: calc_result, when: "#result-amount, #calc-total" }
+        - { zone: household_form, when: 'form input[type="hidden"]' }   # wizard steps 2 to 4 carry earlier answers
+      tab:
+        - { zone: case_note, when: 'form[action^="/casenote"], #note-id, #cn-id' }
+      page:
+        - { zone: case_note, when: 'form[action^="/casenote"], #note-id, #cn-id' }
+        - { zone: calc_result, when: "#result-amount, #calc-total" }
+        - { zone: household_form, when: 'form[action^="/step"], form[action^="/result"]' }
+      elements:
+        - { zone: cliff_button, selector: "#cliff-btn" }
+        - { zone: cliff_panel, selector: "#cliff-panel" }
+        - { zone: case_note, selector: 'form[action^="/casenote"], #note-id, #note-status, #note-body, #cn-id, #cn-state, #cn-text' }
+        - { zone: calc_result, selector: "#result-amount, #result-status, #result-ref, #calc-total, #calc-outcome, #calc-reference" }
+        - { zone: household_form, selector: 'form[action^="/step"], form[action^="/result"]' }
+  - id: b
+    port: 7802
+    kind: calculator
+    label: Turn2Us-style Quick Estimator
+    start_path: /
+    flow: One long page.
+    units: Monthly figures; ignores capital tariff income.
+    result:
+      v1: { amount: "#estimate-monthly", status: "#estimate-verdict", ref: "#estimate-ref" }
+      v2: { amount: "#est-amount", status: "#est-verdict", ref: "#est-ref" }
+    capture:
+      nav_default: calc_site
+      tab_default: results_tabs
+      nav:
+        - { zone: calc_result, when: "table" }
+      page:
+        - { zone: calc_result, when: "table" }
+        - { zone: household_form, when: 'form[action^="/calculate"]' }
+      elements:
+        - { zone: cliff_button, selector: "#cliff-btn" }
+        - { zone: cliff_panel, selector: "#cliff-panel" }
+        - { zone: calc_result, selector: "table" }
+        - { zone: household_form, selector: 'form[action^="/calculate"]' }
+  - id: c
+    port: 7803
+    kind: calculator
+    label: EntitledTo-style Calculator
+    start_path: /
+    flow: Two tabs behind client-side JavaScript.
+    units: Annual earnings, weekly rent and childcare.
+    result:
+      v1: { amount: '[data-testid="out-amount"]', status: '[data-testid="out-flag"]', ref: '[data-testid="out-id"]' }
+      v2: { amount: '[data-testid="x-out-amount"]', status: '[data-testid="x-out-flag"]', ref: '[data-testid="x-out-id"]' }
+    capture:
+      nav_default: calc_site
+      tab_default: results_tabs
+      nav:
+        - { zone: calc_result, when: "table" }
+      page:
+        - { zone: calc_result, when: "table" }
+        - { zone: household_form, when: 'form[action^="/results"]' }
+      elements:
+        - { zone: cliff_button, selector: "#cliff-btn" }
+        - { zone: cliff_panel, selector: "#cliff-panel" }
+        - { zone: calc_result, selector: "table" }
+        - { zone: household_form, selector: 'form[action^="/results"]' }
+  - id: case_note
+    port: 7801
+    kind: case_note
+    label: Case note page
+    served_by: a
+    path: /casenote
+
+# Case note page (as built). GET /casenote?case=<CASE-REF> shows the form; POST /casenote/draft answers
+# 303 to /casenote/<CN-nnnn> (note id, status Draft). POST /casenote/<id>/submit is the irreversible
+# "Submit to claimant record" button: the agent never presses it.
+case_note:
+  path: /casenote
+  fields:
+    v1: "#case-ref, #result-a, #result-b, #result-c, #reconciliation, #note-text"
+    v2: "#cn-case, #cn-a, #cn-b, #cn-c, #cn-recon, #cn-body"
+  draft: { v1: "#save-draft", v2: "#cn-save" }
+  submit: { v1: "#submit-note", v2: "#cn-submit" }
+  result:
+    v1: { note_id: "#note-id", status: "#note-status", body: "#note-body" }
+    v2: { note_id: "#cn-id", status: "#cn-state", body: "#cn-text" }
+
+# "Check cliff edges" (added by agent-core on every result page, layouts v1 and v2, same ids). A click on
+# the button starts CHECK_CLIFF. The elements carry data-understudy-zone="cliff_button" and "cliff_panel",
+# both in the engine's zone vocabulary; the capture config above says the same without relying on the attribute.
+# The panel is hidden until clicked and filled from GET /cliff?site=&ref=. Each item is
+# <li data-cliff="<id>" data-near="yes|no">; data-near is yes exactly when the oracle's cliff_flags has the flag.
+cliff:
+  button: "#cliff-btn"
+  button_label: Check cliff edges
+  panel: "#cliff-panel"
+  items: "#cliff-panel li[data-cliff]"
+  ids: [capital_limit, capital_tariff, children, childcare, earnings, housing]
+  endpoint: "/cliff"
+  state_counter: cliff_opens      # GET /__state on each site records every opening
 
 variants:
-  clean: "default"
+  clean: default
   injected: "?variant=injected"
+  layout_v2: "?layout=v2"
+  glitch: "?glitch=503once or ?glitch=503always"

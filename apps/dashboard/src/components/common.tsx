@@ -51,6 +51,7 @@ export function ChartFoot({ meta, extra }: { meta: AnalyticMeta | null; extra?: 
       </span>
       <OriginBadge meta={meta} always />
       {extra}
+      {meta.note && <span className="chart__note">{meta.note}</span>}
     </div>
   );
 }

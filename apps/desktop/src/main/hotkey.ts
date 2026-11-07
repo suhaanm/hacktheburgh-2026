@@ -13,6 +13,9 @@ export const START_ACCELERATORS = ['CommandOrControl+Alt+Space', 'CommandOrContr
 export const STOP_ACCELERATORS = ['CommandOrControl+Alt+M', 'CommandOrControl+Alt+Shift+X'] as const
 // SHELL2: show or hide the side panel (the menu bar item does the same). Losing every combo is tolerated: the menu bar still works.
 export const PANEL_ACCELERATORS = ['CommandOrControl+Alt+P', 'CommandOrControl+Alt+Shift+P'] as const
+// Understudy: the global kill switch. Stops everything local at once and tells the engine and the agent. Three combos, because
+// this one must never fail to register; if every one is taken the menu-bar item and the HUD pill still work.
+export const KILL_ACCELERATORS = ['CommandOrControl+Alt+Shift+K', 'CommandOrControl+Alt+Shift+Backspace', 'CommandOrControl+Alt+Shift+.'] as const
 
 const ACTIVE = new Set(['connecting', 'live', 'thinking', 'speaking'])
 
@@ -23,18 +26,21 @@ export interface HotkeyDeps {
   state?: StateStore
   // SHELL2: toggles the side panel. When omitted the panel shortcut is not registered.
   togglePanel?: () => void
+  // Understudy: the kill switch. When omitted the kill shortcuts are not registered.
+  kill?: () => void
 }
 
 export interface HotkeyReport {
   start: string[]
   stop: string[]
   panel: string[]
+  kill: string[]
   failed: string[]
 }
 
 export function registerHotkeys(bus: Bus, settings: SettingsStore, deps: HotkeyDeps = {}): () => void {
   const registered: string[] = []
-  const report: HotkeyReport = { start: [], stop: [], panel: [], failed: [] }
+  const report: HotkeyReport = { start: [], stop: [], panel: [], kill: [], failed: [] }
 
   const onStart = (): void => {
     if (deps.state && ACTIVE.has(deps.state.get().phase)) return
@@ -68,11 +74,16 @@ export function registerHotkeys(bus: Bus, settings: SettingsStore, deps: HotkeyD
     const toggle = deps.togglePanel
     bind(PANEL_ACCELERATORS, () => toggle(), report.panel)
   }
+  if (deps.kill) {
+    const kill = deps.kill
+    bind(KILL_ACCELERATORS, () => kill(), report.kill)
+  }
 
-  console.log(`[hotkey] start: ${report.start.join(', ') || 'NONE'} | stop: ${report.stop.join(', ') || 'NONE'}${deps.togglePanel ? ` | panel: ${report.panel.join(', ') || 'NONE'}` : ''}${report.failed.length ? ` | unavailable: ${report.failed.join(', ')}` : ''}`)
+  console.log(`[hotkey] start: ${report.start.join(', ') || 'NONE'} | stop: ${report.stop.join(', ') || 'NONE'}${deps.togglePanel ? ` | panel: ${report.panel.join(', ') || 'NONE'}` : ''}${deps.kill ? ` | kill: ${report.kill.join(', ') || 'NONE'}` : ''}${report.failed.length ? ` | unavailable: ${report.failed.join(', ')}` : ''}`)
   if (deps.state) {
     if (!report.start.length) deps.state.patch({ lastError: 'The keyboard shortcut for starting is taken by another app. Use the on-screen button to start.' })
     else if (!report.stop.length) deps.state.patch({ lastError: 'The keyboard shortcut for stopping is taken by another app. Use the on-screen Stop button.' })
+    else if (deps.kill && !report.kill.length) deps.state.patch({ lastError: 'The keyboard shortcut for Stop everything is taken by another app. Use the Stop all pill or the menu bar item.' })
   }
 
   return () => {

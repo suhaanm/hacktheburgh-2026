@@ -5,7 +5,7 @@ Written by the lead on Sat 7 Nov 2026. **This is the sync point between the dash
 ## Conventions
 
 - JSON over HTTP on localhost. CORS: allow `http://localhost:5173` and `http://127.0.0.1:5173`.
-- **Every analytic GET returns `{ "meta": AnalyticMeta, "data": ... }`.** `AnalyticMeta` = `{ origin: "real"|"synthetic"|"mixed", n: int, n_unit: "people"|"personas"|"households"|"episodes"|"days", split: string|null, interval_level: 0.95, note: string|null, generated_at: ISO }`. The dashboard shows a `synthetic` badge when `origin != "real"`, and prints `n` and `split` on every chart. Intervals are `[lo, hi]`.
+- **Every analytic GET returns `{ "meta": AnalyticMeta, "data": ... }`.** `AnalyticMeta` = `{ origin: "real"|"synthetic"|"mixed", n: int, n_unit: "people"|"personas"|"households"|"episodes"|"days"|"decisions"|"runs", split: string|null, interval_level: 0.95, note: string|null, generated_at: ISO }`. The dashboard shows a `synthetic` badge when `origin != "real"`, and prints `n` and `split` on every chart. Intervals are `[lo, hi]`.
 - Errors: HTTP 4xx/5xx with `{ "error": { "code": string, "message": string } }`. Plain, specific messages.
 - IDs: person `p_<slug>`, task `t_<slug>`, routine `calc-entry-3x` style slugs, queue item `q_<ulid-ish>`.
 - Time: ISO-8601 UTC strings; durations in seconds unless the key ends `_min` / `_h`.
@@ -71,6 +71,29 @@ Written by the lead on Sat 7 Nov 2026. **This is the sync point between the dash
   "evidence": { "screenshots": ["data/runs/r_01/s3.png"], "extracted": {}, "expected": {}, "diff": [], "tier_log": [{ "step": 3, "tier": 1 }] },
   "status": "pending|approved|rejected|expired", "decided_at": null, "decided_by": null }
 ```
+
+## Additions agreed on 7 Nov (dashboard needs; all additive, the dashboard tolerates absence)
+
+- `GET /kill` -> `{ killed: bool, at: ISO|null }` (engine-data; reads `data/KILL`).
+- `GET /runs/{run_id}/{file}` serves evidence files from `data/runs/<run_id>/` (png, json only; path traversal refused) so queue screenshots render (engine-data).
+- Genome gaps: the dashboard reads a gap from `alignment[].i` or `.j` being `null`; `seconds` = seconds lost for that column. Op names stay as documented.
+- `presence.forecast[]` may carry `lo` and `hi` (interval). `dow` 0 = Monday.
+- `Routine.value.horizon_weeks` (int, default 4), `Routine.driver` (`"compiled"` | `"model"`), `Routine.irreversible_classes` (string[]); a model-driven routine with irreversible classes needs the typed confirmation, a compiled one needs one tap (engine-handoff).
+- **`GET /eval/report` section shapes** (the eval harness writes these into `evals/report.json`; every section also has `meta: AnalyticMeta`):
+  - `deficit_recovery`: `{ rows: [{ deficit, injected_price_s, recovered_price_s, ci: [lo,hi], precision, recall }], overall: { precision, recall } }`
+  - `null_placebo`: `{ real: {gap_s, ci}, placebo: {gap_s, ci}, null: {gap_s, ci} }`
+  - `hazard`: `{ model: {log_loss, brier, ece, ci_log_loss}, baselines: { base_rate: {...}, time_since_progress: {...} }, calibration: [{p_mean, freq, n}], false_alarms_per_hour, split }`
+  - `ope`: `{ true_value, estimators: [{ name: "naive"|"ips"|"snips"|"dr", value, ci: [lo,hi] }] }`
+  - `routing`: `{ alpha, curve: [{ coverage, risk, ci }], held_out_error, held_out_ci, bound_held: bool, expert_minutes_per_case }`
+  - `ski_rental`: `{ rows: [{ rule: "break-even"|"predictions", lambda?, regret, ci: [lo,hi] }], hindsight_regret: 1.0 }`
+  - `presence`: `{ reliability: [{ p_mean, freq, n }], brier, baselines: { fixed_overnight: {...}, idle_5min: {...} }, interruption_rate, cap, idle_time_used }`
+  - `agent_claims`: `{ reliability: [{ p_mean, freq, n }], brier, base_rate }`
+  - `redteam`: `{ rows: [{ ablation: "all_on"|"no_<layer>"|"all_off", attack_success, attack_ci: [lo,hi], task_success, task_ci: [lo,hi] }], false_pause_rate, false_pause_ci }`
+  - `study`: `{ rows: [{ participant, unassisted_before_s, unassisted_after_s }], mean_change_s, mean_change_ci, n: 4 }` (empty until the live study has run; the page says so)
+  - `routines`: `{ rows: [{ persona, planted, found, precision, recall }], overall: { precision, recall } }` (meta: origin synthetic, n_unit "personas")
+  - `limitations`: `[{ id, text, severity: "low"|"medium"|"high" }]`
+- **Envelope policy (decided 7 Nov):** the `{ meta, data }` envelope applies to the analytic GETs: `/genome/{task}`, `/graph/transitions`, `/graph/work`, `/hazard/{person}`, `/presence`, `/routines`, `/eval/report` sections. Control-plane endpoints return plain JSON: `/health`, `/events`, `/replay`, `/packs`, `/onboarding*`, `/memory*`, `/coach/state`, `/offhours/*`, `/queue*`, `/audit`, `/kill*`, and the agent API.
+  The dashboard's fixture `apps/dashboard/src/fixtures/eval-report.json` is the reference; the eval harness and the dashboard must stay in step.
 
 ## Agent API (port 7710; the dashboard calls it directly for runs)
 

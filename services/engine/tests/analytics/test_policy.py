@@ -282,8 +282,12 @@ def test_dr_recovers_the_true_value_and_naive_on_policy_is_biased():
 def test_evaluate_ope_dict_is_json_complete_and_deterministic():
     a = evaluate_ope(n=2000, seed=1, n_boot=100, replications=4, rep_n=1200, rep_boot=60)
     b = evaluate_ope(n=2000, seed=1, n_boot=100, replications=4, rep_n=1200, rep_boot=60)
+    a["meta"].pop("generated_at"); b["meta"].pop("generated_at")   # wall-clock stamp is the only non-deterministic field
     assert json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)
-    assert a["origin"] == "synthetic" and a["n_unit"] == "decisions" and a["interval_level"] == 0.95
+    assert a["origin"] == "synthetic" and a["n_unit"] == "decisions" and a["meta"]["n_unit"] == "decisions"
+    assert a["true_value"] == a["targets"]["rule_baseline"]["true_value"]
+    assert [e["name"] for e in a["estimators"]] == ["naive", "ips", "snips", "dr"]
+    assert all(len(e["ci"]) == 2 for e in a["estimators"]) and a["interval_level"] == 0.95
     assert set(a["targets"]) == {"rule_baseline", "bandit_greedy_snapshot", "always_nudge"}
     t = a["targets"]["rule_baseline"]
     assert set(t["estimators"]) >= {"ips", "snips", "dm", "dr", "naive_on_policy"}
@@ -301,4 +305,9 @@ def test_gate_cuts_repeated_nudges_and_reports_the_cost_in_detection():
     assert gated["false_alarms_per_hour"] <= bare["false_alarms_per_hour"] + 1e-9
     assert gated["detection_rate"] <= bare["detection_rate"] + 1e-9   # the price of dignity is said, not hidden
     assert r["split"] == "leave-one-person-out" and r["caveats"]
+    sw = r["sweep_over_p_signal"]
+    assert [x["p_signal"] for x in sw] == sorted(x["p_signal"] for x in sw) and len(sw) == 5
+    assert all(x["gate"]["nudges"] <= x["bare"]["nudges"] for x in sw)
+    assert all(x["gate"]["false_alarms_per_hour"] <= x["bare"]["false_alarms_per_hour"] + 1e-9 for x in sw)
+    assert r["meta"]["n_unit"] == "people"
     json.dumps(r)

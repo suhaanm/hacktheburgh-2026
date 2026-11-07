@@ -32,6 +32,7 @@ class Smoothing:
     same_class: float = 0.30   # same slot on another day of the same kind (weekday / weekend)
     other_class: float = 0.05  # same slot on the other kind of day
     prior_strength: float = 2.0
+    half_life_days: float | None = None  # recency: a day this many days older than the newest counts half as much
 
 
 @dataclass
@@ -44,7 +45,7 @@ class PriorHours:
     p_in: float = 0.7
     p_out: float = 0.03
     awake_share_in: float = 0.95   # of the non-active mass inside hours, share where the machine is on
-    awake_share_out: float = 0.25
+    awake_share_out: float = 0.10
 
     @classmethod
     def from_pack_prior(cls, prior: dict[str, Any]) -> PriorHours:
@@ -106,11 +107,14 @@ class PresenceModel:
     def fit(self, days: Sequence[DayObs]) -> PresenceModel:
         self.counts[:] = 0
         self.n_days[:] = 0
+        newest = max((d.day for d in days), default=None)
+        hl = self.smoothing.half_life_days
         for d in days:
             dow = d.day.weekday()
             self.n_days[dow] += 1
+            w = 1.0 if not hl or newest is None else 0.5 ** ((newest - d.day).days / hl)
             for st in (OFF, IDLE, ACTIVE):
-                self.counts[dow, :, st] += (d.states == st)
+                self.counts[dow, :, st] += w * (d.states == st)
         self.total_days = int(self.n_days.sum())
         self._days = list(days)
         self._smooth()
@@ -229,9 +233,10 @@ class PresenceModel:
 
 def default_grid() -> list[Smoothing]:
     out = []
-    for a1, a2 in ((0.0, 0.0), (0.4, 0.2), (0.6, 0.3), (0.8, 0.5)):
-        for sc in (0.0, 0.2, 0.4, 0.7):
-            out.append(Smoothing(adjacent1=a1, adjacent2=a2, same_class=sc, other_class=0.05 if sc else 0.0))
+    for hl in (None, 14.0, 7.0):
+        for a1, a2 in ((0.0, 0.0), (0.4, 0.2), (0.6, 0.3), (0.8, 0.5)):
+            for sc in (0.0, 0.2, 0.4, 0.7):
+                out.append(Smoothing(adjacent1=a1, adjacent2=a2, same_class=sc, other_class=0.05 if sc else 0.0, half_life_days=hl))
     return out
 
 

@@ -100,35 +100,50 @@ def spells_from_events(events: Iterable[Any], *, tz: str | None = "UTC", min_gap
 
 
 def day_states_from_events(events: Iterable[Any], *, tz: str | None = "UTC", min_events: int = 1,
-                           first_day: date | None = None, last_day: date | None = None) -> list[DayObs]:
-    """One 96-bin state vector per local calendar day between the first and last event (inclusive)."""
+                           first_day: date | None = None, last_day: date | None = None,
+                           awake_grace_min: float = 60.0) -> list[DayObs]:
+    """One 96-bin state vector per local calendar day (``first_day`` to ``last_day``, default first to last event).
+
+    Machine state: a ``sleep`` event switches the machine off until the next event of any kind. With no ``sleep``
+    event the machine is assumed to go to sleep ``awake_grace_min`` minutes after the last event of any kind (a
+    screen lock, an idle report, an input): a real auto-sleep timer, and the reason a Friday evening that ends with a
+    lock still shows an off weekend. Days with no events at all are therefore off, not idle. Pass ``first_day`` and
+    ``last_day`` when the observation window is known (install date to today) so trailing quiet days are not dropped.
+    """
     zone = get_tz(tz)
     ev = normalise_events(events)
     if not ev:
         return []
-    locs = [_local(t, zone) for t, _ in ev]
-    d0 = first_day or locs[0].date()
-    d1 = last_day or locs[-1].date()
+    d0 = first_day or _local(ev[0][0], zone).date()
+    d1 = last_day or _local(ev[-1][0], zone).date()
     ndays = (d1 - d0).days + 1
+    origin = datetime.combine(d0, datetime.min.time(), tzinfo=zone).timestamp()
     counts = np.zeros((ndays, SLOTS), dtype=np.int32)
-    asleep = np.zeros((ndays, SLOTS), dtype=bool)
-    # input events fall in bins; a sleep event switches the machine off until the next event of any kind
-    for i, ((t, kind), loc) in enumerate(zip(ev, locs)):
-        di = (loc.date() - d0).days
-        if not (0 <= di < ndays):
-            continue
-        s = (loc.hour * 60 + loc.minute) // 15
+    grace = awake_grace_min * 60.0
+    asleep_iv: list[tuple[float, float]] = []
+    if ev[0][0] > origin:
+        asleep_iv.append((origin, ev[0][0]))  # nothing observed yet: the machine state is unknown, treat as off
+    for i, (t, kind) in enumerate(ev):
+        nxt = ev[i + 1][0] if i + 1 < len(ev) else None
+        awake_end = t if kind == "sleep" else t + grace
+        if nxt is not None and awake_end < nxt:
+            asleep_iv.append((awake_end, nxt))
+        elif nxt is None:
+            asleep_iv.append((awake_end, origin + ndays * 86400.0))
         if kind in INPUT_TYPES:
-            counts[di, s] += 1
-        if kind == "sleep":
-            end_t = ev[i + 1][0] if i + 1 < len(ev) else t
-            cur = t
-            while cur < end_t:
-                lc = _local(cur, zone)
-                dj = (lc.date() - d0).days
-                if 0 <= dj < ndays:
-                    asleep[dj, (lc.hour * 60 + lc.minute) // 15] = True
-                cur += 900
+            loc = _local(t, zone)
+            di = (loc.date() - d0).days
+            if 0 <= di < ndays:
+                counts[di, (loc.hour * 60 + loc.minute) // 15] += 1
+    asleep = np.zeros(ndays * SLOTS, dtype=bool)
+    for a, b in asleep_iv:
+        # bins are 15 local minutes; test the bin centre. (Local days of 23 or 25 hours across a DST change are
+        # approximated by 24 hours; the synthetic data is UTC and a real install can pass its own window.)
+        i0 = max(0, int(np.ceil((a - origin - 450.0) / 900.0)))
+        i1 = min(ndays * SLOTS, int(np.floor((b - origin - 450.0) / 900.0)) + 1)
+        if i1 > i0:
+            asleep[i0:i1] = True
+    asleep = asleep.reshape(ndays, SLOTS)
     states = np.where(counts >= min_events, ACTIVE, np.where(asleep, OFF, IDLE)).astype(np.int8)
     return [DayObs(d0 + timedelta(days=i), states[i]) for i in range(ndays)]
 

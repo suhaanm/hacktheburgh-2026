@@ -1,63 +1,93 @@
-# Thin-pack mapping for the programmer. Semantics: packages/schema/pack.schema.json#/$defs/mapping.
+# Event -> cog mapping for the programmer pack. Format and semantics: the engine's
+# cogs/default_mapping.yaml. Zones are enums derived by the extension from capture_sites (best-effort
+# samples for a thin pack: selectors for real tools are starting points, not guarantees).
 version: 1
+params: { follow_s: 5, gap_idle_s: 15, reformulate_within_s: 90, max_cog_s: 240 }
+extra_cogs: [READ_CODE, EDIT_CODE, RUN_TESTS, READ_TRACE, REVIEW_DIFF, COMMIT, SEARCH_DOCS]
 
-segmentation: { merge_gap_s: 6, idle_s: 45, max_dwell_s: 90 }
+zones:
+  - code_view
+  - code_editor
+  - test_runner
+  - ci_log
+  - diff_view
+  - commit_box
+  - docs_page
+  - doc
+  - form_field
+  - search_box
+  - query_edit
+  - compare_view
+  - check_box
+  - decision_btn
+  - help
 
-domain_roles:
-  git_host: { label: "Git host", hosts: ["github.com", "gitlab.com", "bitbucket.org"] }
-  ci:       { label: "CI dashboard", hosts: ["*.circleci.com", "buildkite.com", "localhost:8080"] }
-  tracker:  { label: "Issue tracker", hosts: ["*.atlassian.net", "linear.app"] }
-  docs:     { label: "Library docs", hosts: ["docs.python.org", "developer.mozilla.org", "stackoverflow.com", "*.readthedocs.io"] }
+rules:
+  - { match: { type: [task_start, task_end, progress, stuck, lock, unlock, sleep, resume] }, cog: null }
+  - { match: { type: [coach_shown, coach_followed, coach_dismissed, agent_step, approval] }, cog: null }
+  # ---- programmer role cogs
+  - { match: { type: click, zone: test_runner }, cog: RUN_TESTS }
+  - { match: { type: [click, focus], zone: commit_box }, cog: COMMIT }
+  - { match: { type: [click, focus], zone: code_editor }, cog: EDIT_CODE }
+  - { match: { type: [scroll, click, focus], zone: diff_view }, cog: REVIEW_DIFF }
+  - { match: { type: [scroll, click, focus], zone: ci_log }, cog: READ_TRACE }
+  - { match: { type: [scroll, click, focus], zone: code_view }, cog: READ_CODE }
+  - { match: { type: [nav, tab, search, scroll, click], zone: docs_page }, cog: SEARCH_DOCS }
+  # ---- base cogs
+  - { match: { type: idle }, cog: IDLE, backdate_meta: idle_s }
+  - { match: { type: undo }, cog: REVERT }
+  - { match: { type: [focus, click], zone: query_edit }, cog: REFORMULATE }
+  - { match: { type: [scroll, focus, click], zone: search_box }, cog: SEARCH }
+  - { match: { type: search }, cog: SEARCH, reformulate_as: REFORMULATE }
+  - { match: { type: [tab, click], zone: compare_view }, cog: COMPARE }
+  - { match: { type: click, zone: check_box }, cog: CHECK }
+  - { match: { type: click, zone: decision_btn }, cog: DECIDE }
+  - { match: { type: click, zone: help }, cog: ASK }
+  - { match: { type: [click, focus], zone: form_field }, cog: ENTER }
+  - { match: { type: focus, zone: doc }, cog: READ, starts: true }
+  - { match: { type: scroll, zone: doc }, cog: READ }
+  - { match: { type: copy }, cog: COPY }
+  - { match: { type: paste }, cog: PASTE }
+  - { match: { type: [nav, tab] }, cog: NAVIGATE }
+  - { match: { type: click, role: [link, tab, menuitem] }, cog: NAVIGATE }   # zoneless link clicks navigate
+  - { match: { type: click }, cog: ENTER }
+  - { match: { type: [scroll, focus] }, cog: READ }
 
-label_roles:
-  code_view:  { vocab: ["code", "blob", "source", "view file", "raw"] }
-  editor:     { vocab: ["edit file", "edit this file", "code editor", "editor"] }
-  diff:       { vocab: ["files changed", "diff", "review changes", "changes"] }
-  trace:      { vocab: ["logs", "build log", "stack trace", "failed", "details", "view raw logs"] }
-  run_tests:  { vocab: ["re-run", "rerun", "re-run failed jobs", "run workflow", "run tests"] }
-  commit:     { vocab: ["commit changes", "commit"] }
-  ask_help:   { vocab: ["ask for help", "message team"] }
-  verify:     { vocab: ["checks", "summary", "status"] }
-
-role_rules:
-  - { id: run_tests, when: { type: click, domain_role: [ci, git_host], label_role: run_tests }, cog: RUN_TESTS }
-  - { id: commit, when: { type: click, domain_role: git_host, label_role: commit }, cog: COMMIT }
-  - { id: edit_code, when: { type: [focus, click], domain_role: git_host, label_role: editor }, cog: EDIT_CODE }
-  - { id: review_diff, when: { type: [scroll, click, focus], domain_role: git_host, label_role: diff }, cog: REVIEW_DIFF }
-  - { id: read_trace_label, when: { type: [scroll, click, focus], domain_role: ci, label_role: trace }, cog: READ_TRACE }
-  - { id: read_trace_scroll, when: { type: scroll, domain_role: ci }, cog: READ_TRACE }
-  - { id: read_code_label, when: { type: [scroll, click, focus], domain_role: git_host, label_role: code_view }, cog: READ_CODE }
-  - { id: read_code_scroll, when: { type: scroll, domain_role: git_host }, cog: READ_CODE }
-  - { id: search_docs_nav, when: { type: [nav, tab, search], domain_role: docs }, cog: SEARCH_DOCS }
-  - { id: search_docs_scroll, when: { type: scroll, domain_role: docs }, cog: SEARCH_DOCS }
-
-base_rules:
-  - { id: ignore_markers, when: { type: [stuck, coach_shown, coach_followed, coach_dismissed, agent_step, progress, task_start, task_end, unlock, resume] }, ignore: true }
-  - { id: idle_signals, when: { type: [idle, lock, sleep] }, cog: IDLE }
-  - { id: ask_for_help, when: { type: [click, focus], label_role: ask_help }, cog: ASK }
-  - { id: verify, when: { type: [click, focus, scroll], label_role: verify }, cog: CHECK }
-  - { id: search_follow_up, when: { type: search, prev_cog: [SEARCH, REFORMULATE], within_s: 90 }, cog: REFORMULATE }
-  - { id: search_first, when: { type: search }, cog: SEARCH }
-  - { id: undo, when: { type: undo }, cog: REVERT }
-  - { id: human_decision, when: { type: approval, actor: human }, cog: DECIDE }
-  - { id: ignore_agent_approval, when: { type: approval }, ignore: true }
-  - { id: copy, when: { type: copy }, cog: COPY }
-  - { id: paste, when: { type: paste }, cog: PASTE }
-  - { id: compare_tab_flip, when: { type: tab, prev_type: tab, within_s: 12 }, cog: COMPARE }
-  - { id: navigate_nav, when: { type: [nav, tab] }, cog: NAVIGATE }
-  - { id: read_scroll, when: { type: scroll }, cog: READ }
-  - { id: read_text_click, when: { type: click, target_role: [heading, text, paragraph, cell, row, img, article] }, cog: READ }
-  - { id: enter_field, when: { type: [click, focus], target_role: [textbox, spinbutton, combobox, searchbox, radio, checkbox, slider, textarea] }, cog: ENTER }
-  - { id: navigate_click, when: { type: [click, focus] }, cog: NAVIGATE }
+capture_sites:
+  - id: git_host
+    hosts: ["github.com", "gitlab.com", "bitbucket.org"]
+    nav_default: code_view
+    tab_default: compare_view
+    elements:
+      - { zone: commit_box, selector: '#commit-changes-modal, form[action*="commit"], [data-testid="commit-button"]' }
+      - { zone: code_editor, selector: '.cm-editor, .monaco-editor, textarea[name="value"]' }
+      - { zone: diff_view, selector: '#files, .diff-view, [data-testid="diff"]' }
+      - { zone: code_view, selector: '#read-only-cursor-text-area, .blob-wrapper, [data-testid="code-view"], table.highlight' }
+  - id: ci
+    hosts: ["*.circleci.com", "buildkite.com", "localhost:8080"]
+    nav_default: ci_log
+    tab_default: compare_view
+    elements:
+      - { zone: test_runner, selector: 'button[aria-label*="Re-run"], button[aria-label*="Rerun"], [data-testid*="rerun"]' }
+      - { zone: ci_log, selector: "pre, .log, [data-testid*=\"log\"]" }
+  - id: tracker
+    hosts: ["*.atlassian.net", "linear.app"]
+    nav_default: doc
+    tab_default: compare_view
+    elements:
+      - { zone: form_field, selector: 'textarea, input[type="text"]' }
+  - id: docs
+    hosts: ["docs.python.org", "developer.mozilla.org", "stackoverflow.com", "*.readthedocs.io"]
+    nav_default: docs_page
+    tab_default: docs_page
+    elements:
+      - { zone: docs_page, selector: "main, article, #content, .answercell" }
 
 examples:
-  - name: failing build, read the trace, re-run
-    hash_roles:
-      domain: { ci: ["d:e001"], git_host: ["d:e002"] }
-      label:  { trace: ["h:2001"], run_tests: ["h:2002"] }
+  - name: failing build, read the log, re-run
     events:
-      - { dt: 0,  type: nav,    target: { domain_hash: "d:e001" } }
-      - { dt: 5,  type: click,  target: { role: link, label_hash: "h:2001", domain_hash: "d:e001" } }
-      - { dt: 20, type: scroll, target: { domain_hash: "d:e001" } }
-      - { dt: 30, type: click,  target: { role: button, label_hash: "h:2002", domain_hash: "d:e001" } }
+      - { dt: 0,  type: nav,    meta: { zone: ci_log } }
+      - { dt: 5,  type: click,  role: link, meta: { zone: ci_log } }
+      - { dt: 20, type: scroll, meta: { zone: ci_log, depth_bin: 3 } }
+      - { dt: 30, type: click,  role: button, meta: { zone: test_runner } }
     expect: [NAVIGATE, READ_TRACE, READ_TRACE, RUN_TESTS]

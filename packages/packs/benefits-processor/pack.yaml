@@ -13,10 +13,10 @@ onboarding:
       why: Sets which sites count as work tools, so your own traces line up with the expert's.
       kind: multi
       options:
-        - { value: calc_a, label: "Government benefits check", default: true, domain_role: calc_a }
-        - { value: calc_b, label: "Charity benefits calculator", default: true, domain_role: calc_b }
-        - { value: calc_c, label: "Commercial entitlement calculator", default: true, domain_role: calc_c }
-        - { value: case_system, label: "Case system and note page", default: true, domain_role: case_system }
+        - { value: govcalc, label: "GovCalc benefits checker", default: true, site: a }
+        - { value: quick_estimator, label: "Quick Estimator", default: true, site: b }
+        - { value: entitledto, label: "EntitledTo calculator", default: true, site: c }
+        - { value: case_note, label: "Case note page", default: true, site: a }
         - { value: spreadsheet, label: "Spreadsheet for notes" }
     - id: risky
       prompt: Which actions must never run without you clicking?
@@ -58,7 +58,7 @@ expert_policy:
   coverage: full
 
 risk_classes:
-  irreversible: ["submit", "close case", "approve payment", "issue payment", "pay", "send decision", "delete", "overwrite", "post"]
+  irreversible: ["submit", "submit to claimant record", "close case", "approve payment", "issue payment", "pay", "send decision", "delete", "overwrite", "post"]
   outward: ["send letter", "send email", "notify claimant", "export", "share", "upload", "print letter"]
   sensitive_fields: sensitive_fields.json
 
@@ -67,6 +67,7 @@ tone_defaults: { length: short, voice: plain, pace: steady }
 curriculum: curriculum.yaml
 tasks: tasks/
 oracle: understudy_agent.sandbox_sites.oracle:score
+oracle_note: Simplified internal rule set, illustrative, not law.
 persona: persona.yaml
 priors: priors.yaml
 plugin_refs: []

@@ -16,7 +16,12 @@ export interface DebugDeps {
   dispatch: Dispatch
   session: SessionController
   // Optional window capture helpers (Electron only); absent in unit tests.
-  capture?: { overlayPng(): Promise<Buffer | null>; dockPng(): Promise<Buffer | null> }
+  capture?: { overlayPng(): Promise<Buffer | null>; dockPng(): Promise<Buffer | null>; hudPng?(): Promise<Buffer | null> }
+  // Understudy: kill switch, HUD and model port inspection (dev only, like the rest of this surface).
+  understudy?: {
+    kill: Pick<import('./kill-switch').KillSwitch, 'trigger' | 'clear' | 'state'>
+    hud?: Pick<import('./hud-model').HudModel, 'state' | 'setProposal' | 'setQueuePending'>
+  }
   // SHELL: the menu-bar item (absent when headless).
   tray?: Pick<ShellTray, 'info' | 'activate' | 'primaryClick'>
 }
@@ -134,9 +139,39 @@ export function startDebugServer(deps: DebugDeps): http.Server {
           if (!stage) return send(404, { error: 'no practice desktop' })
           return send(200, await stage.snapshot())
         }
+        case 'POST /kill': {
+          if (!deps.understudy) return send(404, { error: 'no kill switch' })
+          return send(200, await deps.understudy.kill.trigger('cli'))
+        }
+        case 'POST /kill/clear': {
+          if (!deps.understudy) return send(404, { error: 'no kill switch' })
+          await deps.understudy.kill.clear()
+          return send(200, deps.understudy.kill.state())
+        }
+        case 'GET /hud': {
+          if (!deps.understudy?.hud) return send(404, { error: 'no HUD' })
+          return send(200, deps.understudy.hud.state())
+        }
+        case 'POST /hud/proposal': {
+          if (!deps.understudy?.hud) return send(404, { error: 'no HUD' })
+          const body = z
+            .object({
+              proposal: z
+                .object({ id: z.string(), title: z.string(), what: z.string(), howOften: z.string(), hoursSaved: z.tuple([z.number(), z.number()]).nullable(), touches: z.array(z.string()), never: z.array(z.string()) })
+                .nullable(),
+            })
+            .parse(await readJson(req))
+          deps.understudy.hud.setProposal(body.proposal)
+          return send(200, deps.understudy.hud.state())
+        }
+        case 'GET /model': {
+          const { lastBootReport } = await import('./model-port')
+          return send(200, { provider: ctx.modelPort?.provider ?? null, models: ctx.modelPort?.models() ?? null, boot: lastBootReport() })
+        }
         case 'GET /overlay.png':
+        case 'GET /hud.png':
         case 'GET /dock.png': {
-          const png = await (route === 'GET /overlay.png' ? deps.capture?.overlayPng() : deps.capture?.dockPng())
+          const png = await (route === 'GET /overlay.png' ? deps.capture?.overlayPng() : route === 'GET /hud.png' ? deps.capture?.hudPng?.() : deps.capture?.dockPng())
           if (!png) return send(404, { error: 'window not available' })
           res.writeHead(200, { 'content-type': 'image/png' })
           return res.end(png)

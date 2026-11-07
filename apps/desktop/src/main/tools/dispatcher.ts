@@ -10,6 +10,7 @@ import { createAgency, setAgency } from '../agency'
 import { setAssist } from '../agency/assist'
 import { createAxResolver } from '../agency/ax-resolver'
 import { FILE_DATA_NOTICE, wrapSnippet } from '../../shared/files'
+import { featureOn, offMessage } from '../feature-flags'
 
 export type ToolSource = 'live' | 'debug'
 export type Dispatch = (name: string, args: unknown, source?: ToolSource) => Promise<ToolResult>
@@ -64,7 +65,10 @@ export function createDispatcher(ctx: ServiceContext, s: Services, confirm: Conf
       return s.runner.requestLevel(level, reason)
     },
     // AGENTS hook: spawn_agent
-    spawn_agent: ({ kind, task, payload }) => s.agents.spawn(kind, task, payload),
+    spawn_agent: ({ kind, task, payload }) => {
+      if (kind === 'scam_check' && !featureOn('scam')) throw new Error(offMessage('scam')) // Understudy: scam analysis is flagged off
+      return s.agents.spawn(kind, task, payload)
+    },
     async ask_user_confirm({ question, options }) {
       return { choice: await confirm.ask(question, options) }
     },
@@ -88,7 +92,7 @@ export function createDispatcher(ctx: ServiceContext, s: Services, confirm: Conf
     act_for_me: ({ goal }) => agency.runActForMe(goal),
     // FILES: query the local index only (never a path to read). Snippets are the person's own file text, wrapped as untrusted data.
     async search_files({ query, k }) {
-      if (!s.files) return { ok: false, mode: 'none', unverified: true, reason: 'files_off', note: 'File search is not available.', results: [], data_notice: FILE_DATA_NOTICE }
+      if (!s.files || !featureOn('files')) return { ok: false, mode: 'none', unverified: true, reason: 'files_off', note: 'File search is not available.', results: [], data_notice: FILE_DATA_NOTICE }
       const res = await s.files.search(query, k)
       return { ...res, results: res.results.slice(0, 3).map((hit) => ({ ...hit, snippet: wrapSnippet(hit.snippet) })) }
     },

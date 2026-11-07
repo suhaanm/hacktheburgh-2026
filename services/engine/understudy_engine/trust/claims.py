@@ -18,6 +18,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from understudy_engine.hazard.logreg import LogisticModel
+from understudy_engine.trust.meta import analytic_meta
 from understudy_engine.trust.calibration import (
     PlattScaler, cluster_bootstrap_scores, ece, log_loss, brier, reliability_bins, sigmoid,
 )
@@ -106,9 +107,13 @@ def evaluate_claims(runs: ClaimRuns | None = None, *, k_folds: int = 5, l2: floa
     caught = int((y[flagged] == 1).sum())
     total_bad = int(y.sum())
     return {
-        "origin": runs.origin, "n": int(len(np.unique(g))), "n_unit": "households", "n_runs": int(n),
+        "origin": runs.origin, "n": int(n), "n_unit": "runs", "n_groups": int(len(np.unique(g))),
         "split": f"grouped {k_folds}-fold (by household)", "interval_level": 0.95,
         "base_failure_rate": float(y.mean()),
+        # --- keys the Evidence page reads
+        "reliability": reliability_bins(y, p_model), "brier": brier(y, p_model), "base_rate": float(y.mean()),
+        "meta": analytic_meta(runs.origin, int(n), "runs", f"grouped {k_folds}-fold (by household)",
+                              note="How well a claimed success that code has not yet checked can be trusted. Synthetic runs."),
         "model": pack(p_model, True),
         "baselines": {"base_rate": pack(p_base), "stated_confidence_platt": pack(p_conf)},
         "calibration": reliability_bins(y, p_model),

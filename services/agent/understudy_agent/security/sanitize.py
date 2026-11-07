@@ -37,7 +37,7 @@ _BRACKET_MAP = str.maketrans({
     "|": "∣",                  # divides (no <|im_start|> style tokens)
 })
 
-_ROLE_LABEL = re.compile(r"(?im)^([ \t>*#\-]*)(system|assistant|developer|tool|function|user|human|ai)(\s*[:：])")
+_ROLE_LABEL = re.compile(r"(?im)^([ \t>*#\-›]*)(system|assistant|developer|tool|function|user|human|ai)(\s*[:：])")
 
 MAX_DEFAULT_CHARS = 20_000
 

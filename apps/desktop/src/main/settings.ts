@@ -11,10 +11,15 @@ export class SettingsStore {
   private readonly listeners = new Set<Listener>()
   private saveTimer: NodeJS.Timeout | null = null
 
+  // Understudy: settings pinned by feature flags (see feature-flags.ts), e.g. { wakeEnabled: false } while the wake word is off.
+  // They win over the saved file and over every patch, so a switched-off feature cannot be switched on from the settings UI.
+  private readonly forced: SettingsPatch
+
   // dir === null keeps everything in memory (tests).
-  constructor(dir: string | null) {
+  constructor(dir: string | null, opts: { forced?: SettingsPatch } = {}) {
     this.file = dir ? path.join(dir, 'settings.json') : null
-    this.current = this.load()
+    this.forced = opts.forced ?? {}
+    this.current = { ...this.load(), ...this.forced }
   }
 
   private load(): Settings {
@@ -51,7 +56,7 @@ export class SettingsStore {
     }
     if (Object.keys(accepted).length === 0) return this.current
     if (opts.trusted && 'agency' in accepted) accepted.agencyChosen = true
-    const patch = reconcileAgency(this.current, accepted as SettingsPatch)
+    const patch = { ...reconcileAgency(this.current, accepted as SettingsPatch), ...this.forced }
     this.current = { ...this.current, ...patch }
     this.scheduleSave()
     for (const listener of this.listeners) listener(this.current, patch)

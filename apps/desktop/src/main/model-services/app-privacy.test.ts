@@ -1,5 +1,6 @@
 // In-process end-to-end privacy probe: the REAL dispatcher, agents, teaching bundle, state store and debug server
-// wired to the REAL Gemini services (fake capture + overlay + live bridge, since those need Electron). Drives the app
+// wired to the REAL model services over the REAL OpenAI provider (fake capture + overlay + live bridge, since those need
+// Electron). The network is stubbed: fetch answers api.openai.com. Drives the app
 // through the debug HTTP like QA does, then checks that nothing sensitive reached logs or debug responses.
 // Two modes: always-on STUBBED network (no API calls, canned model replies) and RUN_LIVE=1 PRIVACY_E2E=1 (real API; expensive:
 // the agents ground every red-flag phrase, so one run makes dozens of requests).
@@ -21,17 +22,18 @@ import { StateStore } from '../state'
 import { teachingBundle } from '../teaching'
 import { createDispatcher } from '../tools/dispatcher'
 import { mockLiveBridge, mockOverlay } from '../mocks'
-import { createAi } from './client'
+import { createModelPort } from '../model-port'
+import { createOpenAiProvider } from '../model-port/openai'
 import { createGrounder, groundingPresetFromEnv } from './grounder'
 import { createLessonArchitect } from './lesson-architect'
 import { createRouter } from './router'
 import { createScamAnalyst } from './scam-analyst'
 import { createVerifier } from './verifier'
-import { geminiDeps } from './index'
+import { modelDeps } from './index'
 
 const RUN = process.env.RUN_LIVE === '1' && process.env.PRIVACY_E2E === '1'
-const aiza = (rest: string) => ['AI', 'za', rest].join('') // built at runtime: no key-shaped literal in the repo
-const STUB_KEY = aiza('STUB'.repeat(8) + 'x1')
+const STUB_KEY = ['sk', '-proj-', 'STUB'.repeat(8) + 'x1'].join('') // built at runtime: no key-shaped literal in the repo
+const STUB_ENV = { OPENAI_API_KEY: STUB_KEY, OPENAI_MODEL_PLANNER: 'plan-x', OPENAI_MODEL_FAST: 'fast-x', OPENAI_MODEL_COMPUTER_USE: 'cu-x' }
 const root = path.resolve(__dirname, '../../..')
 const SECRET_MESSAGE =
   'Brightway Bank: your account has been LOCKED after suspicious activity. To keep your money you must verify within 2 hours. MESSAGE-SECRET-TEXT Visit https://brightway-verify.example/login and enter your customer number, then read us the six digit code we text you.'
@@ -49,8 +51,8 @@ const freePort = () =>
 
 /** Minimal valid model reply for whichever service asked (stub mode). */
 function canned(prompt: string): unknown {
-  const out = (body: unknown) => [{ type: 'model_output', content: [{ type: 'text', text: JSON.stringify(body) }] }]
-  if (prompt.includes('Find this one element')) return out({ found: true, box_2d: [900, 900, 960, 980], label: 'Send', reason: '', confidence: 0.9 })
+  const out = (body: unknown) => ({ id: 'stub', status: 'completed', output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify(body) }] }] })
+  if (prompt.includes('Find this one element')) return out({ found: true, box: [900, 900, 980, 960], label: 'Send', reason: '', confidence: 0.9 })
   if (prompt.includes('checking whether a learner')) return out({ completed: true, confidence: 0.95, uncertain: false, evidence: 'ok', learner_misstep: '', next_hint: '' })
   if (prompt.includes('plan a short, gentle computer lesson'))
     return out({ skillId: 'custom', steps: [{ instruction: 'Press Send.', targetDescription: 'blue Send button', expectedOutcome: 'sent', hints: { l1: 'a', l2: 'b', l3: 'c' }, safetyCritical: false }] })
@@ -69,9 +71,8 @@ function windows(text: string, size = 80, step = 20): string[] {
 async function probe(stub: boolean) {
   {
     {
-      if (stub) vi.stubEnv('GEMINI_API_KEY', STUB_KEY)
-      createAi() // live: loads REPO/.env into process.env
-      const key = process.env.GEMINI_API_KEY ?? ''
+      if (stub) for (const [k, v] of Object.entries(STUB_ENV)) vi.stubEnv(k, v)
+      const key = process.env.OPENAI_API_KEY ?? '' // live: export it (and OPENAI_MODEL_*) in the shell; this test never reads .env
       expect(key.length).toBeGreaterThan(10)
 
       // Record (never print) every outbound request while passing it through.
@@ -81,9 +82,9 @@ async function probe(stub: boolean) {
         ? (async (input: unknown, init?: { body?: unknown }) => {
             const req = input instanceof Request ? input : null
             const body = typeof init?.body === 'string' ? init.body : req ? await req.clone().text() : ''
-            const parsed = JSON.parse(body || '{}') as { input?: unknown }
-            const promptText = JSON.stringify(parsed.input ?? '').replace(/\\n/g, '\n').replace(/\\"/g, '"')
-            return new Response(JSON.stringify({ id: 'stub', status: 'completed', steps: canned(promptText) }), { status: 200, headers: { 'content-type': 'application/json' } })
+            const parsed = JSON.parse(body || '{}') as { input?: unknown; instructions?: string }
+            const promptText = `${parsed.instructions ?? ''}\n${JSON.stringify(parsed.input ?? '').replace(/\\n/g, '\n').replace(/\\"/g, '"')}`
+            return new Response(JSON.stringify(canned(promptText)), { status: 200, headers: { 'content-type': 'application/json' } })
           }) as typeof fetch
         : realFetch
       globalThis.fetch = (async (input: unknown, init?: { headers?: HeadersInit; body?: unknown }) => {
@@ -91,7 +92,7 @@ async function probe(stub: boolean) {
         const body = typeof init?.body === 'string' ? init.body : req ? await req.clone().text() : ''
         const headers = new Headers(init?.headers ?? req?.headers)
         const url = req ? req.url : String(input)
-        if (/generativelanguage\.googleapis\.com/.test(url)) requests.push({ url, body, hasKeyHeader: headers.has('x-goog-api-key') }) // loopback debug calls are not Google traffic
+        if (/api\.openai\.com/.test(url)) requests.push({ url, body, hasKeyHeader: /^Bearer /.test(headers.get('authorization') ?? '') }) // loopback debug calls are not provider traffic
         return innerFetch(input as RequestInfo, init as RequestInit)
       }) as typeof fetch
 
@@ -106,6 +107,7 @@ async function probe(stub: boolean) {
         sendOverlay: () => undefined,
         sendDock: () => undefined,
         log: (scope, ...args) => logs.push(util.format(`[${scope}]`, ...args)),
+        modelPort: createModelPort(createOpenAiProvider({ env: process.env, log: (scope, ...args) => logs.push(util.format(`[${scope}]`, ...args)) })),
       }
 
       const jpegBase64 = fs.readFileSync(path.join(root, 'spikes/grounding/shots/safety/scam-inject.jpg')).toString('base64')
@@ -116,11 +118,11 @@ async function probe(stub: boolean) {
       s.capture = capture
       s.overlay = mockOverlay(ctx)
       s.live = mockLiveBridge(ctx)
-      s.grounder = createGrounder(geminiDeps(ctx, s), { preset: groundingPresetFromEnv() })
-      s.verifier = createVerifier(geminiDeps(ctx, s))
-      s.architect = createLessonArchitect(geminiDeps(ctx, s), { grounder: { ground: (r) => s.grounder.ground(r), prefetch: (r) => s.grounder.prefetch?.(r) } })
-      s.scam = createScamAnalyst(geminiDeps(ctx, s))
-      s.router = createRouter(geminiDeps(ctx, s))
+      s.grounder = createGrounder(modelDeps(ctx, s), { preset: groundingPresetFromEnv() })
+      s.verifier = createVerifier(modelDeps(ctx, s))
+      s.architect = createLessonArchitect(modelDeps(ctx, s), { grounder: { ground: (r) => s.grounder.ground(r), prefetch: (r) => s.grounder.prefetch?.(r) } })
+      s.scam = createScamAnalyst(modelDeps(ctx, s))
+      s.router = createRouter(modelDeps(ctx, s))
       const bundle = teachingBundle(ctx, s)
       s.learner = bundle.learner
       s.levels = bundle.levels
@@ -167,12 +169,12 @@ async function probe(stub: boolean) {
         const logBlob = logs.join('\n')
         const respBlob = responses.join('\n')
         const both = `${logBlob}\n${respBlob}`
-        const imageRequests = requests.filter((r) => r.body.includes('"type":"image"'))
+        const imageRequests = requests.filter((r) => r.body.includes('"type":"input_image"'))
 
         const report = {
           debugRoutesCalled: responses.length,
           logLines: logs.length,
-          googleRequests: requests.length,
+          providerRequests: requests.length,
           imageRequests: imageRequests.length,
           pointAtFound: found.found,
           stateBytes: finalState.length,
@@ -191,7 +193,7 @@ async function probe(stub: boolean) {
           expect(r.hasKeyHeader).toBe(true)
         }
         expect(both).not.toContain(key)
-        expect(both).not.toMatch(/AIza[0-9A-Za-z_-]{16,}/)
+        expect(both).not.toMatch(/AIza[0-9A-Za-z_-]{16,}|sk-[0-9A-Za-z_-]{16,}/)
         expect(both).not.toContain(jpegBase64.slice(0, 200))
         expect(both).not.toMatch(/[A-Za-z0-9+/]{120,}/)
         expect(both).not.toContain('PROFILE-SECRET')

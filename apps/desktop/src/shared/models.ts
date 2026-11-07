@@ -1,3 +1,7 @@
+// GEMINI MODEL IDs FOR THE FLAGGED-OFF PARTS ONLY: the Live voice session, the wake-word spotter and files embeddings
+// (UNDERSTUDY_FLAG_VOICE / _WAKE / _FILES, all off by default). Nothing else uses this file: every other model call goes
+// through the model port (src/main/model-port), whose IDs come only from OPENAI_MODEL_PLANNER / _FAST / _COMPUTER_USE.
+// These defaults are the owner's old Alongside values, kept so the voice code still runs if someone switches it on with a Gemini key.
 // Model IDs. The ONLY place that reads MODEL_* env overrides (main process; renderers get the defaults).
 const env: Record<string, string | undefined> = typeof process !== 'undefined' && process.env ? process.env : {}
 

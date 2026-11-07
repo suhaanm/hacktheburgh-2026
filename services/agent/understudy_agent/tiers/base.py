@@ -46,6 +46,28 @@ class InjectionStop(TierError):
         self.codes, self.where = codes, where
 
 
+class StuckLoop(TierError):
+    pass
+
+
+class StuckDetector:
+    """Same action four times in a row, or a 2 to 4 step cycle three times (SEC-7). Local backstop for model
+    loops that the pipeline never sees (wait and finish)."""
+
+    def __init__(self) -> None:
+        self.seen: list[tuple[Any, ...]] = []
+
+    def push(self, sig: tuple[Any, ...]) -> bool:
+        self.seen.append(sig)
+        s = self.seen
+        if len(s) >= 4 and len(set(s[-4:])) == 1:
+            return True
+        for n in (2, 3, 4):
+            if len(s) >= 3 * n and s[-n:] == s[-2 * n:-n] == s[-3 * n:-2 * n] and len(set(s[-n:])) > 1:
+                return True
+        return False
+
+
 @dataclass(frozen=True)
 class Element:
     ref: str                 # "e3": stable inside one observation
