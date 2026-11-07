@@ -21,7 +21,7 @@ One app, `Knack.app`. It has a Dock icon always, a menu-bar item always, one mai
              ──launch at login──▶ IDLE, no window (menu bar and Dock icon only)
 ```
 
-On every launch Knack starts its engine (7700) and agent (7710) as child processes, polls health, shows nothing until three seconds have passed, then a quiet "Starting Knack, about 20 seconds" in the content area. On quit it ends both. If a service is already listening on its port (a developer started it), Knack uses it and does not stop it on quit.
+On every launch Knack starts its engine (7700) and agent (7710) as child processes (in live mode when a Gemini key is present, in mock mode otherwise; the sidebar's status line says which), polls health, shows nothing until three seconds have passed, then a quiet "Starting Knack, about 20 seconds" in the content area. On quit it ends both. If a service is already listening on its port (a developer started it), Knack uses it and does not stop it on quit.
 
 ## Transitions (the table the implementer builds the state reducer from)
 

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Knack: after-state prototype</title>
 <!-- Static prototype of the after state in docs/KNACK_UX.md. Uses the real tokens and components.
-     Open as knack.html#home | #needs | #routines | #growth | #firm | #roles | #first   and add ?theme=dark.
+     Open as knack.html#home | #needs | #routines | #growth | #firm | #roles | #first   and add ?theme=dark and ?live=1 (live models status line; the default shows example data).
      Not production code: the implementers build from the spec, this shows the density and the look.
      Fonts: the dashboard bundles Bricolage Grotesque, Source Sans 3 and JetBrains Mono; here the system stacks stand in unless the page is rendered with them. -->
 <link rel="stylesheet" href="../../../packages/design/tokens.css">
@@ -30,12 +30,15 @@
   .nav svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
   .count { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center; font: 600 var(--text-xs)/1 var(--font-mono); color: var(--on-accent); background: var(--accent); border-radius: 999px; }
   .group { margin: 16px 10px 4px; font: 600 var(--text-xs)/1 var(--font-body); color: var(--muted); }
-  .foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .foot { display: flex; align-items: center; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
   .acct { flex: 1; display: flex; align-items: center; gap: 8px; height: var(--control-h); padding: 0 8px; border: 0; border-radius: 4px; background: none; color: var(--fg); font: 600 var(--text-sm)/1 var(--font-body); cursor: pointer; text-align: left; }
   .acct:hover { background: var(--sunk); }
   .avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--sunk); border: 1px solid var(--line-strong); display: grid; place-items: center; font: 600 11px/1 var(--font-body); }
-  .stop { width: var(--control-h); height: var(--control-h); display: grid; place-items: center; border: 1px solid var(--control-line); border-radius: 4px; background: none; cursor: pointer; }
-  .stop i { width: 9px; height: 9px; background: var(--bad); display: block; }
+  .stopbtn { display: inline-flex; align-items: center; gap: 8px; height: var(--control-h); padding: 0 10px; border: 1px solid var(--control-line); border-radius: 4px; background: none; color: var(--fg); font: 600 var(--text-sm)/1 var(--font-body); cursor: pointer; }
+  .stopbtn i { width: 9px; height: 9px; background: var(--bad); display: block; }
+  .status { display: flex; align-items: center; gap: 8px; margin-top: auto; padding: 0 10px 10px; color: var(--muted); font: 400 var(--text-xs)/1.3 var(--font-body); }
+  .status .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; box-sizing: border-box; border: 1.5px dashed var(--muted); background: transparent; }
+  body[data-live] .status .dot { border: 0; background: var(--good); }
 
   /* content */
   .main { overflow: auto; min-width: 0; }
@@ -136,9 +139,10 @@
       <a class="admin" href="#roles" data-s="onb"><svg><use href="#i-onb"/></svg>Onboarding</a>
       <button class="more" type="button"><svg><use href="#i-more"/></svg>More</button>
     </nav>
+    <div class="status" id="status"><i class="dot"></i><span id="status-text">Running with example data</span></div>
     <div class="foot">
       <button class="acct" type="button"><span class="avatar">A</span>Ana</button>
-      <button class="stop" type="button" aria-label="Stop everything"><i></i></button>
+      <button class="stopbtn" type="button" aria-label="Stop everything"><i></i>Stop</button>
     </div>
   </aside>
 
@@ -271,6 +275,7 @@
   (function () {
     var q = new URLSearchParams(location.search);
     if (q.get("theme") === "dark") document.documentElement.setAttribute("data-theme", "dark");
+    if (q.get("live") === "1") { document.body.setAttribute("data-live", ""); document.getElementById("status-text").textContent = "Live models"; }
     function sync() {
       var s = (location.hash || "#home").slice(1);
       document.body.dataset.screen = s;

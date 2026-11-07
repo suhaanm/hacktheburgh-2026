@@ -7,7 +7,7 @@
       "current_clicks": 0, "current_path": ["(Home is the landing screen)"],
       "from_menu_bar": 3, "from_menu_bar_path": ["right-click menu-bar icon", "Open dashboard (browser opens at Today, not Home)", "sidebar: Your week"],
       "current_load": "173 words and 10 controls above the fold, plus 51 words and 18 controls in the sidebar",
-      "target_clicks": 0, "target_path": ["open Knack: Home"], "target_load": "at most 50 words of content above the fold (about 60 with the sidebar)"
+      "target_clicks": 0, "target_path": ["open Knack: Home"], "target_load": "at most 50 words of content above the fold (about 65 with the sidebar)"
     },
     {
       "id": "J2", "who": "worker", "name": "Approve or reject a queued item",
@@ -58,18 +58,18 @@
       "current_clicks": 2, "current_path": ["View as: Admin", "sidebar: Firm"],
       "current_load": "206 words above the fold; seven cards, each with 'Worth a look' or 'Going well' and an 'Open the numbers' button",
       "target_clicks": 0, "target_path": ["Admin's landing is Firm (identity-provided role)"],
-      "target_clicks_demo": 1, "target_path_demo": ["account menu: View as Admin (remembered)"],
+      "target_clicks_role_switch": 1, "target_path_role_switch": ["account menu: View as Admin (remembered)"],
       "target_load": "three rows above the fold; 'Show all 7'"
     },
     {
       "id": "A2", "who": "admin", "name": "Compare a role (expert and junior)",
       "current_clicks": 3, "current_path": ["View as: Admin", "sidebar: Firm", "tab: Roles"],
-      "target_clicks": 1, "target_path": ["sidebar: Roles"], "target_clicks_demo": 2
+      "target_clicks": 1, "target_path": ["sidebar: Roles"], "target_clicks_role_switch": 2
     },
     {
       "id": "A3", "who": "admin", "name": "See onboarding speed",
       "current_clicks": 3, "current_path": ["View as: Admin", "sidebar: Firm", "tab: Onboarding"],
-      "target_clicks": 1, "target_path": ["sidebar: Onboarding"], "target_clicks_demo": 2
+      "target_clicks": 1, "target_path": ["sidebar: Onboarding"], "target_clicks_role_switch": 2
     }
   ],
   "first_run": {

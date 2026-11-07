@@ -80,7 +80,7 @@ After: one window, three screens, three clicks. Everything else takes the role p
 │   This is an example. Knack starts counting now.
 ```
 
-The example comes from the synthetic firm and carries the "Example data" badge. It is the only place where an example stands in for the worker's own insight, and it is replaced by the first real pointer as soon as the engine has one (after the first week of the worker's real steps; "Knack is learning your work" is the honest state until then and is shown instead when the worker chose Not now or Never on capture).
+The example comes from the synthetic firm and carries the "Example data" badge. With no Gemini key the app runs in mock mode and the sidebar's status line says "Running with example data"; with a key it says "Live models"; the example insight and its badge are the same either way. It is the only place where an example stands in for the worker's own insight, and it is replaced by the first real pointer as soon as the engine has one (after the first week of the worker's real steps; "Knack is learning your work" is the honest state until then and is shown instead when the worker chose Not now or Never on capture).
 
 ## Budget
 

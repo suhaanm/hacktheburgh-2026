@@ -1,0 +1,42 @@
+{
+  "_about": "The 18 transitions of docs/knack-ux/08-window-states.md as data, for apps/desktop/src/main/shell-machine.ts and its table-driven test. State is { window: absent|open|minimised, focused: bool, activity: idle|working|voice|error|stopped, corner: { pill: none|working|done|error|voice, card: none|stopped|safety|approval|time|digest|cue } }. Effects are what the reducer emits; the shell performs them. 'real_screen' means the run clicks or types on the worker's own screen or browser.",
+  "invariants": [
+    "at most one pill and at most one card exist at any time",
+    "a card is replaced only by a higher-priority card (stopped > safety > approval > time > digest > cue)",
+    "the main window is restored or opened only by: a Dock click or Activate, the menu bar's Open Knack, a click on Review, or a deep link the worker clicked. Never by a run finishing, failing or needing a decision",
+    "close never quits, never hides the Dock icon, never stops a run",
+    "kill always wins: any state goes to stopped, and only Resume leaves it",
+    "a card never takes focus and ignores clicks for its first 600 ms",
+    "no card is shown while macOS secure input is on, except stopped and safety (content-free wording)",
+    "the ask bar holds every card except stopped and safety while it is open"
+  ],
+  "transitions": [
+    { "id": 1, "event": "run_started", "when": { "real_screen": true, "window": "open", "focused": true, "moveAside": true }, "effects": ["minimizeMainAfter400ms", "showPill(Starting)", "menubar(working)"] },
+    { "id": 2, "event": "run_started", "when": { "real_screen": true, "windowNot": "open+focused" }, "effects": ["showPill(Starting)", "menubar(working)"] },
+    { "id": 3, "event": "run_started", "when": { "real_screen": false }, "effects": ["showPill(Starting)", "menubar(working)"] },
+    { "id": 4, "event": "run_progress", "effects": ["pillLabel(<=5 words)", "pillCount(n of m when known)"] },
+    { "id": 5, "event": "decision_needed", "when": { "class": "approval|safety|time" }, "effects": ["cardAbovePill(by priority)", "menubar(count)", "dockBadge(count)", "noWindowRestore"] },
+    { "id": 6, "event": "review_clicked", "effects": ["openOrRestoreMain(NeedsYou, item)", "closeCard"] },
+    { "id": 7, "event": "run_done", "when": { "needs_nothing": true }, "effects": ["pillCheck(2500ms)", "fade(240ms)", "hideCornerWindow", "noWindowRestore", "menubar(workingOff)"] },
+    { "id": 8, "event": "run_failed", "effects": ["pillError(holdUntilAcknowledged)", "menubarMarker", "dockBadgeIfDecision", "noWindowRestore"] },
+    { "id": 9, "event": "kill", "effects": ["stopAll", "stoppedCardReplacesPill", "inWindowBannerIfOpen", "menubar(stopped)", "noWindowRestore"] },
+    { "id": 10, "event": "resume", "effects": ["closeStoppedCard", "bannerOff", "menubar(idle)"] },
+    { "id": 11, "event": "voice_hold", "effects": ["pill(Listening|Thinking|Speaking, End)"] },
+    { "id": 12, "event": "ask_tap", "effects": ["openAskBar", "holdCards(except stopped, safety)"] },
+    { "id": 13, "event": "returned_after_30min", "effects": ["digestCardOnce", "menubar(count)", "dockBadge(count)"] },
+    { "id": 14, "event": "window_close", "effects": ["hideMain(keepRendererAlive)"], "never": ["quit", "stopRun", "hideDockIcon"] },
+    { "id": 15, "event": "window_minimise", "effects": ["minimizeMain"], "never": ["stopRun"] },
+    { "id": 16, "event": "dock_click_or_activate", "effects": ["fromClosed: openMain(Home, lastBounds)", "fromMinimised: restoreMain", "behind: focusMain"] },
+    { "id": 17, "event": "quit", "when": { "running": true }, "effects": ["quitSheet(Stop and quit | Keep working)"], "else": ["quit"] },
+    { "id": 18, "event": "quit", "when": { "awayRoutineDueWithin24h": true }, "effects": ["quitSheetAddsLine(routines will not run while Knack is closed)"] }
+  ],
+  "priority": ["stopped", "safety", "approval_blocking", "time_sensitive", "digest", "cue_no_target"],
+  "corner": { "insetPx": 16, "cardGapPx": 8, "pillHeightPx": 32, "pillWidthPx": [176, 320], "cardWidthPx": [300, 340, 360], "default": "bottom-right", "mistapGuardMs": 600, "pointerAvoidPx": 160, "doneMs": 2500, "fadeMs": 240, "expirySeconds": { "safety": 30, "approval": 20, "time": 20, "digest": 15 } },
+  "window": { "widthFraction": 0.8, "heightFraction": 0.84, "widthClamp": [960, 1440], "heightClamp": [600, 1000], "min": [800, 560], "verticalCentreFraction": 0.4, "restoreMinVisibleFraction": 0.6, "saveDebounceMs": 400 },
+  "examples": [
+    { "workArea": [1440, 875], "window": [1152, 735] },
+    { "workArea": [1920, 1055], "window": [1440, 886] },
+    { "workArea": [1280, 775], "window": [1024, 651] },
+    { "workArea": [2560, 1415], "window": [1440, 1000] }
+  ]
+}

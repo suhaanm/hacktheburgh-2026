@@ -8,11 +8,11 @@ What was measured and how. The running dashboard (127.0.0.1:5173, live mock engi
 
 1. **One app, one calm window, one pill.** `Knack.app` is the dashboard as its main window (80% by 84% of the work area, centred, remembered), with the Dock icon and the menu-bar item always present. When a run that uses the worker's real screen starts from the window, the window minimises itself and a 32 px pill in the bottom-right corner says what is happening in five words and offers Stop. It never pops back on its own; only an approval that needs the worker raises a card, and only a click on that card brings the window forward.
 2. **Five destinations, not twenty-one screens.** Worker: Home, Needs you, Routines, Growth, Your data. Admin adds Firm, Roles, Onboarding. Everything else is under More and the command palette. Queue, Briefing and routine proposals become one list ("Needs you"); Repeats joins Routines; Memory, Privacy and the ledgers become "Your data".
-3. **Home is one sentence.** One hero insight (at most 16 words, one quantity), one action, at most two quiet rows. No chart, no statistic, no paragraph. The evidence is behind "Why this?". The home screen goes from 224 words above the fold (content 173, sidebar 51) to about 57 (content 47, sidebar 10).
+3. **Home is one sentence.** One hero insight (at most 16 words, one quantity), one action, at most two quiet rows. No chart, no statistic, no paragraph. The evidence is behind "Why this?". The home screen goes from 224 words above the fold (content 173, sidebar 51) to about 64 (content 47, sidebar 17, which now includes a status line and a labelled Stop button).
 4. **Words are budgeted and measured.** Every element has a word budget (section 5) and a script fails the build above it. Explanation moves to Hint, Details and ⌘/ ("About this screen"). Honesty items (origin badge, consent text, "it will never", consequences, errors, limits) stay printed.
 5. **First run is three clicks.** Role card, one capture consent (Yes, Not now, Never), "Show my week". Everything else takes the role pack's safe defaults and is editable in Your data; permissions are asked in context, once.
 
-Also decided: the corner is the **bottom-right**; there is **one interrupting surface at a time**; **no keyboard shortcut ever approves**; the retired dock panel stays only as a hidden audio host until the Live voice code moves.
+Also decided: the sidebar footer is a status line ("Live models" or "Running with example data"), the account button and a labelled Stop button; the corner is the **bottom-right**; there is **one interrupting surface at a time**; **no keyboard shortcut ever approves**; the retired dock panel stays only as a hidden audio host until the Live voice code moves.
 
 ---
 
@@ -22,16 +22,16 @@ Ten jobs, ranked by how often I expect them (an expectation, not data). "Today" 
 
 | # | Job | Who | Today: clicks and exact path | Target budget and path |
 |---|---|---|---|---|
-| J1 | See what matters this week | worker | 0 on the dashboard (it lands on Your week: 173 words and 10 controls above the fold). From the menu bar 3: right-click the icon, Open dashboard (opens at Today), sidebar "Your week" | **0.** Open Knack: Home. At most 50 words of content above the fold (about 60 with the sidebar) |
+| J1 | See what matters this week | worker | 0 on the dashboard (it lands on Your week: 173 words and 10 controls above the fold). From the menu bar 3: right-click the icon, Open dashboard (opens at Today), sidebar "Your week" | **0.** Open Knack: Home. At most 50 words of content above the fold (about 65 with the sidebar) |
 | J2 | Approve or reject a queued item | worker | 2: sidebar Queue, "Approve and submit" (plus a sign-in step-up for an irreversible item when Auth0 is on). From the menu bar 3 | **1** when the item is Home's hero; **2** otherwise: Needs you, then the button |
 | J3 | Opt into an automation, or decline it | worker | 2: sidebar Routines, one of four buttons. "Run while I'm away" is 4: Routines, open the box, switch on, "Allow while I'm away" | **2:** Needs you, then Watch first, Not now or Never. "Run while I'm away" 3: Needs you, More ways to say yes, its switch and confirm |
 | J4 | See whether I need less help over time | worker | 1: sidebar Growth (152 words and 7 long paragraphs above the fold when empty; 811 on the whole screen with data) | **1:** Growth. One sentence and one chart above the fold, at most 60 words |
 | J5 | See what Knack has of me, and delete it | worker | 4 to delete a memory line: More fold, Memory, Forget, "Forget it". 3 to clear the model ledger: Privacy, Clear the ledger, "Yes, clear the list". Five places hold "my data" (Memory, Privacy ledger, Presence, Growth ledger, Graph nodes), each with its own delete wording | **3** to delete anything: Your data, Forget, Forget it (inline confirm). **1** to see. "Delete everything Knack holds about me" is 3 as well |
 | J6 | Stop everything, or pause | worker | 1: the fixed "Stop everything" pill (Shift-Esc is 0). From the menu bar 2: right-click, Stop everything or "Pause for 1 hour" | **0:** Option-Shift-Command-K anywhere. **1:** the corner pill's Stop while working. **2:** menu bar when idle |
 | J7 | Start work and get the overlay out of my way | worker | 4 for a sandbox job (More fold, Agents, choose a job, "Run in background"; it runs on sample data). From the menu bar 2: "Talk to Understudy". The window never moves aside | **0:** Option-Space (tap to type, hold to talk), Enter. **2:** Routines, Run now: the window minimises and the pill shows |
-| J8 | Admin: find where the firm loses time | admin | 2: View as Admin, sidebar Firm (seven cards, 206 words above the fold) | **0** with a real role (Admin lands on Firm); **1** in the demo (account menu, View as Admin, remembered). Three rows above the fold |
-| J9 | Admin: compare a role | admin | 3: View as Admin, Firm, tab Roles (313 words above the fold) | **1:** sidebar Roles (**2** in the demo) |
-| J10 | Admin: see onboarding speed | admin | 3: View as Admin, Firm, tab Onboarding (284 words above the fold) | **1:** sidebar Onboarding (**2** in the demo) |
+| J8 | Admin: find where the firm loses time | admin | 2: View as Admin, sidebar Firm (seven cards, 206 words above the fold) | **0** with a real role (Admin lands on Firm); **1** with the role switch (account menu, View as Admin, remembered). Three rows above the fold |
+| J9 | Admin: compare a role | admin | 3: View as Admin, Firm, tab Roles (313 words above the fold) | **1:** sidebar Roles (**2** with the role switch) |
+| J10 | Admin: see onboarding speed | admin | 3: View as Admin, Firm, tab Onboarding (284 words above the fold) | **1:** sidebar Onboarding (**2** with the role switch) |
 
 First run, for comparison: about 20 clicks over 15 screens today (8 steps in the desktop panel, then 7 questions in the dashboard); **3 clicks** after (section 8).
 
@@ -108,7 +108,7 @@ Graph (22 controls above the fold), Notices (23 controls: 18 kinds each with a f
 
 | Screen | Words above the fold, before and after | Controls | Pills | Paragraphs over two lines | Sidebar |
 |---|---|---|---|---|---|
-| Home | 173 to 47 (plus 51 and 12 sidebar words) | 10 to 4 | 1 to 1 | 2 to 0 | 9 rows to 6 |
+| Home | 173 to 47 (plus 51 and 17 sidebar words) | 10 to 4 | 1 to 1 | 2 to 0 | 9 rows to 6 |
 | Needs you (Queue before) | 157 to 103 (three decisions, one more than Queue had) | 6 to 12 | 6 to 0 | 0 to 0 | |
 | Routines | 183 to 45 | 9 to 5 | 1 to 0 | 2 to 0 | |
 | Growth (before: empty state) | 152 to 53 (with data) | 0 to 4 | 1 to 1 | 7 to 0 | |
@@ -120,11 +120,11 @@ Controls on Roles and on the first-run role screen are counted as they will be b
 
 ### Cross-cutting offenders (fix once, every screen improves)
 
-1. **The sidebar**: 51 words of hints, two fold buttons with their own hints, six footer controls (profile, engine mode, View as with a Hint, Search, tour, theme). Replace with five items and an account button.
+1. **The sidebar**: 51 words of hints, two fold buttons with their own hints, six footer controls (profile, engine mode, View as with a Hint, Search, tour, theme). Replace with five items, a status line, an account button and a Stop button.
 2. **The four-element header**: eyebrow, title, lede and a badge on every screen. Replace with a title (or the hero sentence) and, only where it is a real limit, one printed line.
 3. **The `framenote` bar** ("These are the detailed numbers. Your week shows the few that matter.") on six Details screens and its twin on Evidence: 16 words that apologise for the screen. Replace with a breadcrumb.
 4. **Mono-capital badges** ("SYNTHETIC FIRM", "NAMES ARE MADE UP. THIS FIRM IS SYNTHETIC.", "EXAMPLE DATA") repeated per chart and per card. Replace with one sentence-case "Example data" or "Synthetic firm" per screen; the sentence goes in its Hint.
-5. **The permanent Stop button**, drawn on every screen while nothing runs. Replace with the corner pill while working, a 32 px icon in the sidebar footer otherwise, and the keyboard and menu-bar paths.
+5. **The permanent Stop button**, drawn on every screen while nothing runs. Replace with the corner pill while working, a small Stop button (a red square and the word) in the sidebar footer otherwise, and the keyboard and menu-bar paths.
 6. **The moving content column** (left edge at 280, 294 or 474). Replace with one left-aligned column (section 6).
 
 ---
@@ -146,15 +146,31 @@ Sidebar width 208 px. Each item has a 16 px icon and a label; no second line. Ro
 | Admin: **Roles** | Experts and juniors side by side, one row per role. | Firm: Roles, People (as a drill-down) |
 | Admin: **Onboarding** | How fast people reach independence. | Firm: Onboarding |
 
-Below the items: **More** (opens a sheet of at most ten one-line rows), then the footer: an account button (name, role label; opens View as, Appearance, Settings, Take the tour) and a 32 px Stop icon. Search is Command-K and the first row of the sheet on narrow windows.
+Below the items: **More** (opens a sheet of at most ten one-line rows), then the footer, three things: a **status line** (a dot and at most four words: "Live models", "Running with example data", "Some example data" or "Cannot reach the engine"; it opens Settings at "Use live models"), an **account button** (avatar and name; opens View as, Appearance, Settings, Take the tour) and a **Stop button** (a red square and the word "Stop", 32 px high, always visible). Search is Command-K and the first row of the sheet on narrow windows.
 
-The sidebar has 6 rows for a worker (5 plus More) and 9 for an admin (5 worker, then an "Admin" group of 3, then More), against 9 and 10 by default today (22 with folds open). On a 390 px screen the sidebar becomes a bottom bar of the same five items (56 px high); More and the account sit in the first.
+The sidebar has 6 rows for a worker (5 plus More) and 9 for an admin (5 worker, then an "Admin" group of 3, then More), against 9 and 10 by default today (22 with folds open). The sidebar carries about 17 words in all (labels, brand, name, Stop and the status line), against 51 words of hints alone today. On a 390 px screen the sidebar becomes a bottom bar of the same five items (56 px high); More and the account sit in the first.
 
 **More sheet** (rows, no hints; hints live in the palette): Understand your work: Where time goes (Genome), Your hours (Presence), How work connects (Graph), Calendar (Week), Git habits, Forecasts (Predictions). Behind the scenes: Background runs (Agents), Models and cost, Live coach (Today). For reviewers: Evidence. Admin adds: Firm: People, Automation, Risk and coverage, Forecasts, Firm brief.
 
-**The signature screens and the demo.** The work ribbon (Genome), the work graph and the presence heatmap are the product's three memorable visuals (`docs/UI_DIRECTION.md`), and this IA moves them out of the sidebar. They stay one click from Home: the hero's action ("See where the time goes") opens Genome focused on that step; Growth and the palette reach the others. For the demo and the video, `navModel.ts` carries `DEMO_PINS = [genome, graph, presence]`, off by default and switched on by Settings, Demo ("Show the signature screens in the sidebar"); the sidebar then shows them as a "Look closer" group of three (9 rows). The same setting writes the word "Stop everything" beside the sidebar's Stop icon, because the demo checklist wants the kill switch visibly labelled. Old routes keep working through the redirects (`#/genome`, `#/today`, `#/queue`, `#/privacy`, `#/evidence` in `docs/drafts/DEMO_SCRIPT.md`), and `DEFAULT_SCREEN` can still be flipped to Genome. The script still needs one pass to match the new labels.
+**The signature screens and Pinned views.** The work ribbon (Genome), the work graph and the presence heatmap are the product's three memorable visuals (`docs/UI_DIRECTION.md`), and this IA moves them out of the sidebar (lead decision). They stay one click from Home: the hero's action ("See where the time goes") opens Genome focused on that step; Growth and the command palette reach the others. The owner's own walk-through opens on Genome by deep link (`#/genome`), and `DEFAULT_SCREEN` can still be flipped to it. `navModel.ts` carries `PINNED_VIEWS = [genome, graph, presence]`, off by default and switched on in Settings, Views, "Pinned views" ("Show Genome, Graph and Presence in the sidebar"); the sidebar then shows them as a "Look closer" group of three (9 rows). No visible string anywhere uses the word "demo". Old routes keep working through the redirects (`#/genome`, `#/today`, `#/queue`, `#/privacy` and `#/evidence` all appear in `docs/drafts/DEMO_SCRIPT.md`), and that script needs one pass to match the new labels.
 
-**Settings** (Command-comma, a sheet; one line per setting): Interruptions (Rarely, Balanced, Often; "Per kind" disclosure holds today's 18 rows; "Stops and blocking approvals always show." printed), Coaching (on or off; help level lock), Move aside while Knack works (on), Open at login (off), Appearance (Auto, Light, Dark), Models and cost (link), Demo (View as, example week), About (version; "Live engine, mock mode" lives here, and on the screen only when something is wrong). The rule that sorts a setting: **anything that lets Knack see or send something lives in Your data; anything about how Knack behaves lives in Settings.**
+**Settings** (Command-comma, a sheet; one line per setting, in this order): **Use live models** (the master switch, below), Interruptions (Rarely, Balanced, Often; a "Per kind" disclosure holds today's 18 rows; "Stops and blocking approvals always show." printed), Coaching (on or off; help level lock), Move aside while Knack works (on), Open at login (off), Appearance (Auto, Light, Dark), Models and cost (link), Views (View as Worker or Admin; Example week, shown only with example data; Pinned views), About (version, the engine and agent addresses). The rule that sorts a setting: **anything that lets Knack see or send a specific thing (capture, screen glances, the microphone, folders) lives in Your data; the one master switch for live models and everything about how Knack behaves live in Settings.**
+
+### Live models and example data
+
+The app starts its stack in **live** mode when a Gemini key is present and in **mock** mode when it is not (provider Gemini, D49), so the first thing the worker needs is an honest, quiet answer to "is this real?".
+
+| State (from `/health` and the screens' own sources) | Status line (sidebar footer, 12 px) | Dot | Also |
+|---|---|---|---|
+| Reachable, `mock` false | Live models | solid `--good` | nothing else |
+| Reachable, `mock` true (by design, or no key) | Running with example data | dashed hollow ring, `--muted` | a screen that shows example rows keeps its own "Example data" badge |
+| Reachable, some sources answering with example rows | Some example data | dashed hollow ring | the badge on those screens |
+| Not reachable | Cannot reach the engine | solid `--bad` | one line at the top of the content: "Knack cannot reach its engine." with a Try again button; nothing is changed |
+| Starting | Starting | dashed hollow ring | "Starting Knack, about 20 seconds." on Home only |
+
+The dot and the words always travel together (colour never alone); the line is one line at 208 px ("Running with example data" is 25 characters). It is not repeated as a banner on every screen: the origin badge already marks the data on a screen, and one printed line per screen is the budget. The two are different facts and both stay: the status line says which models Knack is using; the badge says where the numbers on this screen came from (a live model can still be reading the synthetic firm).
+
+**Use live models** (Settings, first row): a switch. On: "Knack can call Gemini for steps you allow. Each call is listed in Your data." (15 words). Off: "Everything runs on example data." (5). No key found: the switch is disabled and one line is printed, "No Gemini key found. Add it to .env and reopen Knack." (10). Changing it restarts the engine, so the line "Switching restarts the engine. About 20 seconds." appears under the switch while it is changing, and the switch is disabled while anything is running ("A job is running. Stop it first."). Frames from the screen still need their own consent in Your data; this switch is the master gate above it and does not replace it.
 
 ### Where each current screen goes
 
@@ -204,7 +220,7 @@ Rejected: a top tab bar (eight tabs do not fit with a window at 960 px); keeping
 
 ### What it never shows
 
-A chart, a table, an interval or an n (they are behind "Why this?"), a lede about method, the Monday note (palette: "Copy my Monday note"), "What your admin can see" (Your data), the example-week selector (Settings, Demo), the data-mode line, a card per pointer, a second primary action, an eyebrow, a large Stop button when nothing runs (the sidebar's 32 px Stop icon is the only one while idle).
+A chart, a table, an interval or an n (they are behind "Why this?"), a lede about method, the Monday note (palette: "Copy my Monday note"), "What your admin can see" (Your data), the example-week selector (Settings, Views), the data-mode line (it lives in the sidebar's status line), a card per pointer, a second primary action, an eyebrow, a large Stop button when nothing runs (the sidebar's small Stop button is the only one while idle).
 
 ### The one-quantity rule
 
@@ -365,7 +381,7 @@ The mark already in `packages/design/brand/` is kept: a solid disc with a ring o
 
 Tokens (add, never rename): `--sidebar-w: 208px`, `--content-read: 720px`, `--content-wide: 1080px`, `--row-h: 44px`, `--control-h: 32px`, `--pill-h: 32px`, `--corner-w: 340px`, `--corner-inset: 16px`, `--text-corner: 0.8125rem` (the corner column only: it sits beside other apps' interfaces and 13 px keeps the pill at 32 px; everything else uses the scale).
 
-Components to add: `navitem` (icon, label, count; restyle of `nav__link`), `row` (44 px, hairline, trailing chevron or action on hover and focus, always visible on touch), `hero-insight`, `inline-banner` (the needs-you or stopped line inside the window), `account-menu`, `more-sheet`, `settings-sheet`, `confirm-row` (the inline "Forget it / Keep" row), `corner-pill`, `corner-card`, `lockup`, `kbd`. Restyle `pill--origin` (today uppercase, tracked, 11 px): sentence case in the body face at 12 px and 600, dashed border kept (dashed means synthetic). Drop the 500 and 700 font imports in `apps/dashboard/src/main.tsx` (weights are 400 and 600 only). Components to retire: `framenote`, `datanote`, the eyebrow slot of `PageHead`, `state__mark`, `killbar` as a permanent bar (it remains as the in-window stopped banner), the fixed `kill--fixed` button (it becomes the sidebar icon).
+Components to add: `navitem` (icon, label, count; restyle of `nav__link`), `row` (44 px, hairline, trailing chevron or action on hover and focus, always visible on touch), `hero-insight`, `inline-banner` (the needs-you or stopped line inside the window), `account-menu`, `more-sheet`, `settings-sheet`, `confirm-row` (the inline "Forget it / Keep" row), `corner-pill`, `corner-card`, `lockup`, `kbd`. Restyle `pill--origin` (today uppercase, tracked, 11 px): sentence case in the body face at 12 px and 600, dashed border kept (dashed means synthetic). Drop the 500 and 700 font imports in `apps/dashboard/src/main.tsx` (weights are 400 and 600 only). Components to retire: `framenote`, `datanote` (replaced by `status-line`), the eyebrow slot of `PageHead`, `state__mark`, `killbar` as a permanent bar (it remains as the in-window stopped banner), the fixed `kill--fixed` button (it becomes the sidebar Stop button). New: `status-line` (replaces `datanote`) and `stop-button`.
 
 ---
 
@@ -440,20 +456,20 @@ At any instant: at most one corner pill (a status), at most one interrupting sur
 - **An always-on-top main window.** It would sit over the very app the agent is working in.
 - **A full-screen translucent status layer.** The ring overlay already owns the screen and is passive; a second one would block clicks.
 - **A macOS Notification Center banner for every card.** It cannot be non-focusable, cannot carry Stop, and cannot be silenced from Knack. The existing native notification for a permission prompt stays; nothing else uses one.
-- **A permanent in-window Stop bar.** The sidebar icon, the keyboard and the menu bar already reach it, and the pill carries it while something runs.
+- **A permanent in-window Stop bar.** The sidebar Stop button, the keyboard and the menu bar already reach it, and the pill carries it while something runs.
 
 ### What in the code changes
 
 | File or area (`apps/desktop/src/main`) | Change |
 |---|---|
 | `windows.ts` | add the main window (new `mainwindow.ts`, `window-state.ts`); the old dock window stays hidden as the audio host; `close` hides; no always-on-top on the main window |
-| `index.ts` | `app.setName('Knack')` (in a packaged build `productName` does the Dock label; in dev the Dock label stays Electron's); `app.on('activate')` shows the window; `window-all-closed` never quits on macOS; `before-quit` runs the quit sheet; start and stop the engine, agent and (in demo) sandbox sites as child processes, reuse a service already listening; open the dashboard bundle in the main window instead of the browser |
+| `index.ts` | `app.setName('Knack')` (in an electron-builder build `productName` does the Dock label; in dev the Dock label stays Electron's); `app.on('activate')` shows the window; `window-all-closed` never quits on macOS; `before-quit` runs the quit sheet; start and stop the engine, agent and (for the sandbox sites) the sandbox as child processes in live mode when a Gemini key is present and in mock mode otherwise, reusing a service already listening; open the dashboard bundle in the main window instead of the browser |
 | `hud.ts`, `hud-model.ts`, `renderer/hud/*` | extend into the corner column: bottom-right (`hudBounds` becomes `cornerBounds`), new state `activity {label, step, of, phase: working, done, error, voice}`, the done timer, the error hold, the card slot; the existing Stopped card, proposal card and notice card keep their actions |
 | new `shell-machine.ts` | pure reducer for the 18 transitions; effects: minimise the main window, show or hide the pill, route a card |
 | `toast.ts` | permission prompts render as a corner card (priority 3); the answer is still a real click validated by the confirm broker (`adoptOwner` for the corner window). If that slips, the toast stays top-right in phase 1 and is the only documented exception |
 | `tray.ts`, `resources/tray` | 8-row menu; a click opens the menu; icon states (idle, working dot, needs-you count, glance ring, stopped, paused) |
 | `hotkey.ts` | Option-Space: tap opens the Ask bar, hold talks (today it is hold only); Option-Command-P becomes pause or resume (the panel toggle is retired); Command-Shift-K in the app menu |
-| `attention/signals.ts`, `attention-wiring.ts` | `agent_acting` is a hard-quiet state for "now" items (new reason code); the digest and notices render in the corner column; the Dock badge and Dock menu read the needs-you count |
+| `attention/adapter.ts`, `attention-wiring.ts` | `cuePort().admit` refuses unasked "now" items while an agent acts (reason `agent_acting`, a local check, no engine change; a cue the worker asked for still shows); the digest and notices render in the corner column; the Dock badge and Dock menu read the needs-you count |
 | `login-item.ts` | handle `wasOpenedAtLogin` (no window); the one-time contextual prompt |
 | `settings.ts` | retire `showDock` (ignored on load); add `moveAsideWhileWorking` (true), `cornerPosition` |
 | `cue/place.ts`, `cue/panel-window.ts` | the no-target fallback docks into the corner column and yields to any card |
@@ -501,7 +517,7 @@ Rejected: a tour as part of first run (the "Take the tour" row stays in the acco
 
 Standard macOS keys do what macOS does: ⌘W hides the window, ⌘M minimises, ⌘H hides the app, ⌘Q quits (with the sheet when something runs), ⌘[ goes back. In a list, the arrow keys move focus and Space opens the evidence. **No keystroke approves anything**; approval is a click, as it is today.
 
-Palette: seven rows by default then "Show all N" (exists); groups Go to, Do, Ask. New rows: Pause for 1 hour, Stop everything, Ask Knack…, Copy my Monday note, Delete my data, Switch to Admin view (demo), Explain this screen, Take the tour, Open System Settings for Accessibility. Typing a phrase that matches nothing adds a last row "Ask Knack: <phrase>" which opens the Ask bar with the phrase filled in. The "This week" and "Firm insights" groups stay. Hints stay in the palette (not in the sidebar).
+Palette: seven rows by default then "Show all N" (exists); groups Go to, Do, Ask. New rows: Pause for 1 hour, Stop everything, Ask Knack…, Copy my Monday note, Delete my data, Switch to Admin view, Explain this screen, Take the tour, Open System Settings for Accessibility. Typing a phrase that matches nothing adds a last row "Ask Knack: <phrase>" which opens the Ask bar with the phrase filled in. The "This week" and "Firm insights" groups stay. Hints stay in the palette (not in the sidebar).
 
 ---
 
@@ -527,11 +543,11 @@ Cut lines if late: P2 items (Ask bar window, per-display pill, mobile bottom bar
 
 | Step | Priority | Work | Proof |
 |---|---|---|---|
-| A1 | P0, 90 min | `window-state.ts` (default 80 by 84, clamps, restore rules), `mainwindow.ts`, activate, close hides, quit sheet, `app.setName('Knack')`, Dock menu and badge, services started and stopped by the app. Packaging (`productName` Knack, so the Dock label reads Knack outside dev) needs a tool decision from the lead (question 5) | `window-state.test.ts`: table cases for 1280 by 800, 1440 by 900, 1920 by 1080, 2560 by 1440, a removed display, a half-offscreen save; `mainwindow.test.ts` with a fake window: close hides, activate shows, quit with a running job asks |
+| A1 | P0, 90 min | `window-state.ts` (default 80 by 84, clamps, restore rules), `mainwindow.ts`, activate, close hides, quit sheet, `app.setName('Knack')`, Dock menu and badge, services started and stopped by the app. Packaging with electron-builder (lead decision): `productName` Knack, so the Dock label reads Knack outside dev; unsigned local app and dmg | `window-state.test.ts`: table cases for 1280 by 800, 1440 by 900, 1920 by 1080, 2560 by 1440, a removed display, a half-offscreen save; `mainwindow.test.ts` with a fake window: close hides, activate shows, quit with a running job asks |
 | A2 | P0, 90 min | `shell-machine.ts`: the 18 transitions as a pure reducer with effects | `shell-machine.test.ts`: one test per row of `08-window-states.md`; invariants: never two cards, the window never restores except after a Review click, kill always wins |
 | A3 | P0, 60 min | the corner column: `hud-model.ts` activity, `cornerBounds` (bottom-right, per display), pill, done, error, card renderer in the new look | extend `hud-model.test.ts`, `HudView.test.ts`; `corner-place.test.ts` (inset 16, card above pill, drag snap, display change); a light and dark screenshot through the existing `hudPng` debug route compared by eye to `06-corner-states.svg` |
 | A4 | P1, 60 min | 8-row tray menu and icon states, Option-Space tap and hold, ⌥⌘P, ⇧⌘K, login prompt, the rename pass over desktop strings (tray, toast and notification titles, window titles, `Quit Knack`, `Talk to` becomes `Ask Knack`) | `tray.test.ts`: at most 8 rows, the states and their priority; `login-item.test.ts`: a login launch shows no window |
-| A5 | P1 | permission prompt as a corner card; `agent_acting` hard quiet; digest and notices in the corner | `attention/signals.test.ts`, `attention/adapter.test.ts`: now-items dropped while acting; `confirm.test.ts`: an approval still needs a real click |
+| A5 | P1 | permission prompt as a corner card; `agent_acting` refusal in the cue port; digest and notices in the corner | `attention/adapter.test.ts`: unasked now-items refused while acting, asked ones still shown; `confirm.test.ts`: an approval still needs a real click |
 | A6 | P2 | Ask bar window; retire the dock panel UI; per-display pill | manual with the owner |
 
 Dev hook for proof without real input: the existing debug server (`ALONGSIDE_DEBUG=1`) gains `POST /hud/activity` to drive working, done and error, and `GET /state` reports the main window's visibility and bounds. `scripts/shell-smoke.mjs` uses it. No real click, keystroke or capture is needed (the minimise happens to Knack's own window).
@@ -540,7 +556,7 @@ Dev hook for proof without real input: the existing debug server (`ALONGSIDE_DEB
 
 | Step | Priority | Work | Proof |
 |---|---|---|---|
-| B0 | P0, 30 min | new `router.ts` screens and `navModel.ts` (five worker, three admin, More at most ten, and `DEMO_PINS`, below), `routeRedirects.ts` for every old route | `navModel.test.ts`: exactly 5 worker and 3 admin primary entries, More at most 10, every old route redirects; `jobs.test.ts`: every job in `docs/knack-ux/jobs.json` has a path within budget over the nav graph |
+| B0 | P0, 30 min | new `router.ts` screens and `navModel.ts` (five worker, three admin, More at most ten, and `PINNED_VIEWS`, above), `routeRedirects.ts` for every old route | `navModel.test.ts`: exactly 5 worker and 3 admin primary entries, More at most 10, every old route redirects; `jobs.test.ts`: every job in `docs/knack-ux/jobs.json` has a path within budget over the nav graph |
 | B1 | P0, 90 min | `Sidebar.tsx`, `AccountMenu.tsx`, `MoreSheet.tsx`, `SettingsSheet.tsx` shell, retire `framenote` and `datanote`, ⌘1 to ⌘5, ⌘, and ⌘/, one left-aligned column, bottom bar at 390 px | `scripts/check-clicks.mjs` (replays the ten paths; fails above budget); `scripts/check-copy.mjs` sidebar rule: at most 6 rows, 0 hint words |
 | B2 | P0, 90 min | Home hero and states per `01-home.md`; `FirstRun` (three screens) replaces Onboarding as the entry; the rename pass in shell strings | `screens/Home/model.test.ts` (title template, at most 16 words, one quantity); `oneQuantity.test.ts`; `firstRun.model.test.ts` (three states, one click each); `check-clicks.mjs` "launch to Home" at most 3 |
 | B3 | P1 | palette verbs and "Ask Knack" row; "About this screen" panel | `palette.test.ts` extended |
@@ -552,7 +568,7 @@ Dev hook for proof without real input: the existing debug server (`ALONGSIDE_DEB
 | C1 | P0 | Needs you from Queue, Briefing and the proposal card (`02-needs-you.md`) | `check-copy.mjs`: Needs you at most 120 words above the fold, 0 long paragraphs; J2 at most 2 clicks, J3 at most 2 |
 | C2 | P0 | Routines (Running, Could automate) per `03-routines.md` | same budgets: 100 words; "Run now" only if the endpoint exists |
 | C3 | P1 | Your data: remembers, measures, looked at or sent, what your admin can see, glance and capture switches, "Delete everything" | J5: see in 1, delete in 3; delete wording identical in every section; honesty lines kept (text assertions in the existing smoke test) |
-| C4 | P1 | Settings contents (Interruptions three-way plus per-kind disclosure, Coaching, Move aside, Open at login, Appearance, Demo, About) | `Settings.test.tsx`: "Stops and blocking approvals always show." is rendered |
+| C4 | P1 | Settings contents (Interruptions three-way plus per-kind disclosure, Coaching, Move aside, Open at login, Appearance, Views, About; "Use live models" first) | `Settings.test.tsx`: "Stops and blocking approvals always show." is rendered; "Use live models" is disabled with its printed line when no key is found, and while a job runs |
 
 ### Track D: SYSTEM AND INSIGHT SCREENS (`packages/design/**`, `apps/dashboard/src/screens/{Growth,Firm,Genome,Presence,Graph,Week,Git,Predictions}/**`, `apps/dashboard/scripts/**`)
 
@@ -583,6 +599,7 @@ Dev hook for proof without real input: the existing debug server (`ALONGSIDE_DEB
 
 1. Bottom-right for the pill (chosen); say if you prefer the HUD's current bottom-left. (Default: bottom-right.)
 2. Kill key: the global shortcut stays Option-Shift-Command-K; Command-Shift-K is added only while Knack is frontmost, because a global Command-Shift-K would take a common shortcut from other apps. (Default: as written.)
-3. Does the demo need the Admin switch on screen? (Default: account menu, remembered.)
+3. Does the owner's walk-through need the Admin switch on screen? (Default: account menu, remembered.)
 4. "Run now" and "Pause" on a routine need engine support; confirm they exist or accept their absence. (Default: omitted if absent.)
-5. Packaging: `Knack.app` as a real bundle (Dock label, `productName`) needs a packaging tool, which is a dependency decision for the lead (electron-builder or `@electron/packager`). Until then `npm run dev` shows Electron's name under Knack's icon (`app.dock.setIcon` already sets the icon). (Default: ask the lead before A1 ends.)
+
+Decided by the lead since the first draft: Genome, Graph and Presence leave the sidebar (Pinned views brings them back); packaging is **electron-builder** (KNACK-SHELL builds the unsigned local Knack.app and a dmg; a signed release needs the owner's Apple Developer ID and notarisation later, a human-only step); provider is Gemini (D49); the live-models status line and the "Use live models" switch (above); no visible string uses the word "demo".

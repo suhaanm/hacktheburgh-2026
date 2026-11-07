@@ -55,7 +55,8 @@ What is wrong, in the order a person meets it: (1) an eyebrow that repeats the n
 │ │            │       ──────────────────────────────────────────────────────          │
 │ │            │   ↻   About 1 hour a week could run for you.                ›   (j)     │
 │ │            │                                                                       │
-│ │ (Ana) [■]  │ (c)                                                                   │
+│ │ ◌ Example data│ (c)                                                                │
+│ │ (Ana) [■ Stop]│                                                                    │
 │ └────────────┘                                                                       │
 └──────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -64,7 +65,7 @@ Annotations:
 
 - (a) One quiet date line replaces the eyebrow, the title and the lede. Mono capitals are gone.
 - (b) The hero is the insight, written as the title (28 px display, two lines). There is no title above it. The word "hero" is the only heading on the page; the sidebar item "Home" is current.
-- (c) The sidebar footer is one account button (name, opens the menu: View as, Appearance, Settings, Take the tour) and one square Stop icon, always reachable. Search is the sidebar's first row on narrow windows and ⌘K everywhere; it is not drawn as a control.
+- (c) The sidebar footer is three things: a status line (a dot and "Running with example data", or "Live models"; it opens Settings at "Use live models"), the account button (name; opens View as, Appearance, Settings, Take the tour) and a Stop button (a red square and the word, always reachable). Search is the sidebar's first row on narrow windows and ⌘K everywhere; it is not drawn as a control.
 - (e) "Example data" is the origin badge and stays visible. Its Hint holds "An example week from the synthetic firm stands in for this profile." (honesty: D45, the sentence is one tap away, the badge is not).
 - (f) Template: `On {step} you usually take about {n} {unit} {longer|less} than {the expert|your peers}.` At most 16 words, one number, one unit.
 - (g) One sentence of what to try, at most 12 words, imperative. Absent when the engine has none (never filled with a generic tip).
@@ -73,7 +74,7 @@ Annotations:
 - (j) At most two secondary rows, in this order of claim: the needs-you count (when any), the second pointer (when any), then the best of Repeats and Growth. A hairline, an icon, one sentence of at most 12 words, a chevron. No cards, no hints. The third pointer is not drawn on Home; it is in the palette under "This week".
 - Never on Home: a chart, a table, an interval, an n, the Monday note, "What your admin can see", the example-week selector, the data-mode line, the quote of the method. They move: Monday note to the palette ("Copy my Monday note"); admin visibility to Your data; the example-week selector to Settings under Demo; method to "Why this?".
 
-Words above the fold: content 47 plus sidebar 10 = about 57 (before: 173 plus 51 = 224). Controls: 1 primary, 2 rows, 1 disclosure, 5 nav, 1 More, 2 footer = 12 (before: 10 plus 18 = 28).
+Words above the fold: content 47 plus sidebar 17 = 64 (before: 173 plus 51 = 224). Controls: 1 primary, 2 rows, 1 disclosure, 5 nav, 1 More, 2 footer = 12 (before: 10 plus 18 = 28).
 
 ## States (shortest wording)
 

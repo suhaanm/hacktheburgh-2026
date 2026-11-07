@@ -48,7 +48,7 @@ Annotations:
 - n and the interval stay printed on admin screens (D45); they are the muted second line of the row, not a separate facts strip.
 - One origin badge, "Synthetic firm", in the header. "Names are made up" is its Hint; it is not repeated on each card or chart. On Evidence and reviewer screens the full sentence stays printed.
 - The tab strip is retired. The admin's three destinations are sidebar items; the rest are palette commands and rows in More: Firm: People, Automation, Risk and coverage, Forecasts, Firm brief.
-- "Admin view" is a small text label, not a pill, and exists only while the demo role switch is on. In a real deployment the role comes from identity and the label is not shown.
+- "Admin view" is a small text label, not a pill, and exists only while the View as switch is on. In a real deployment the role comes from identity and the label is not shown.
 
 Roles, after:
 
@@ -65,4 +65,4 @@ One row per role, a shared scale drawn as a thin dot-and-whisker strip. Opening 
 
 Onboarding, after: one chart per role stacked as rows (a small multiple 120 px high), the median step to the target as the row's sentence ("Half reach the target by step 82"), n in the muted line. The legend is one line.
 
-Measured target: Admin Firm 0 clicks (real role) or 1 (demo switch), Roles 1, Onboarding 1. At most 150 words above the fold on each.
+Measured target: Admin Firm 0 clicks (real role) or 1 (View as switch), Roles 1, Onboarding 1. At most 150 words above the fold on each.
