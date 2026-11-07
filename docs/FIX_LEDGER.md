@@ -44,5 +44,10 @@ DESKTOP-2: finish screens and the rehearsal re-run; `tsc --noEmit` and the full 
 ## F. Integration (lead)
 Restart the dev stack on current code (needs the owner's go: the dev agent shows "killed" from the earlier stray kill file and I will not clear it by a back door); set UNDERSTUDY_EXTENSION_ID; flip flags on only after the lead's own end-to-end check; checkpoint commits; README rewrite (it still says the Alongside module list will come later; definition of done needs it, plus how to run and what is new; NARRATIVE agent near the freeze); THIRD_PARTY_NOTICES; CLAIMS.md; README disclosure; `make demo` with wifi off.
 
+## G. Claims that must be corrected before the freeze (lead; NARRATIVE agent near the freeze)
+- docs/drafts/{DEVPOST,DEV_POST,README.draft,CLAIMS}.md quote the stuck model's v1 headline (0.436 vs 0.509). Add, next to every quote: the edge over time-since-progress falls from 0.071 to 0.008 to 0.015 nats per bin on three harder synthetic generator families, a v1-trained model is worse than that baseline there, and v1 and v2 both fail on the simulated-participant traces (M5). C04 and C05 get the same sentence.
+- The simulated study is a null at the floor (run 4; run 5 pilot stopped): the drafts must say it validated the pipeline and enforcement (zero nudges in post-tests), not that it measured the coach.
+- No claim that the gate resists hostile pages from the text-only injected condition (S-19, S-26, S-28 are offline tests).
+
 ## Owner-only
 Screen Recording and Microphone permissions (R0 needed neither for the display size; later rungs will), moving the Claude window for the second R0, the R1 preflight in the owner's terminal (it needs a real YES and a physical hotkey press), Auth0 domain and client ID, chrome://extensions id, Devpost facts, the sentences for CLAUDE.md about frames (D37) and admin visibility (D41), real Outlook aggregate check approval at run time, the demo rehearsal and the submission.
