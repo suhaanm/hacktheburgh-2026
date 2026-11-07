@@ -200,8 +200,8 @@ def test_the_fit_paragraph_and_the_clear_before_typing_system_text_reach_the_req
     p.computer_step("GOAL-TEXT", PNG, [])
     user, system = c.calls[0]["parts"][0].value, c.calls[0]["system"]
     assert user.startswith("Goal: GOAL-TEXT\n" + GEMINI_FORM_FIT) and system == _CU_SYSTEM_FIT != _CU_SYSTEM
-    assert "clear_before_typing to true" in system and "{household.savings}" in GEMINI_FORM_FIT
-    assert "type_text_at on the drop-down itself" in GEMINI_FORM_FIT and "never drawn in the screenshot" in GEMINI_FORM_FIT
+    assert "set clear_before_typing to true only when the field already holds" in system and "{household.savings}" in GEMINI_FORM_FIT
+    assert "click it ONCE, then type its handle" in GEMINI_FORM_FIT and "never drawn in the screenshot" in GEMINI_FORM_FIT
     monkeypatch.setenv("UNDERSTUDY_GEMINI_FIT", "0")                       # the wording of the first smokes, byte for byte
     p, c = prov(call("click", x=1, y=1))
     p.computer_step("GOAL-TEXT", PNG, [])
@@ -209,20 +209,23 @@ def test_the_fit_paragraph_and_the_clear_before_typing_system_text_reach_the_req
     assert "clear_before_typing to false" in _CU_SYSTEM and not fit_enabled()
 
 
-def test_with_the_fit_on_no_enter_follows_the_typing_whatever_the_flag_says(monkeypatch):
-    """The API's default adds an Enter after typing, and an Enter in a text field submits the form with whatever it holds. The benefits
-    forms are moved on by clicking their buttons, so the fit configuration never queues one (the model can still ask: it is ignored)."""
+def test_with_the_fit_on_no_enter_follows_the_typing_and_an_absent_clear_flag_means_no_clearing(monkeypatch):
+    """The API's default adds an Enter after typing (an Enter in a text field submits the form with whatever it holds) and clears the field
+    first (two more gated steps and two more goal checks per field). The benefits forms are moved on by clicking their buttons and their
+    fields start empty, so the fit configuration never queues an Enter and reads an absent clear flag as false. A model that WANTS a field
+    replaced says clear_before_typing true and gets the select-all and the delete."""
     import sys
 
     sel = ["cmd", "a"] if sys.platform == "darwin" else ["ctrl", "a"]
+    click = ("click", {"x": 640, "y": 400, "button": "left"})
     monkeypatch.setenv("UNDERSTUDY_GEMINI_FIT", "1")
-    for args in ({}, {"press_enter": True}, {"press_enter": True, "clear_before_typing": True}):
+    for args in ({}, {"press_enter": True}, {"press_enter": False, "clear_before_typing": False}):
+        p, c = prov(call("type_text_at", x=500, y=500, text="{a.b}", **args))
+        out = [p.computer_step("g", PNG, [], session="n1") for _ in range(2)]
+        assert kinds(out) == [click, ("type", {"text": "{a.b}"})] and len(c.calls) == 1
+        assert p._pending.get("n1") in (None, [])                              # nothing else is queued: no Enter, no clearing
+    for args in ({"clear_before_typing": True}, {"press_enter": True, "clear_before_typing": True}):
         p, c = prov(call("type_text_at", x=500, y=500, text="{a.b}", **args))
         out = [p.computer_step("g", PNG, [], session="n1") for _ in range(4)]
-        assert kinds(out) == [("click", {"x": 640, "y": 400, "button": "left"}), ("key", {"keys": sel}), ("key", {"keys": ["backspace"]}),
-                              ("type", {"text": "{a.b}"})]
-        assert len(c.calls) == 1
-        assert p._pending.get("n1") in (None, [])                              # nothing else is queued: no Enter
-    p, c = prov(call("type_text_at", x=500, y=500, text="{a.b}", press_enter=False, clear_before_typing=False))
-    assert kinds([p.computer_step("g", PNG, [], session="n1") for _ in range(2)]) == [
-        ("click", {"x": 640, "y": 400, "button": "left"}), ("type", {"text": "{a.b}"})]       # the model's own false flags are honoured as before
+        assert kinds(out) == [click, ("key", {"keys": sel}), ("key", {"keys": ["backspace"]}), ("type", {"text": "{a.b}"})]
+        assert p._pending.get("n1") in (None, [])                              # an explicit request to clear is honoured, an Enter is still not queued

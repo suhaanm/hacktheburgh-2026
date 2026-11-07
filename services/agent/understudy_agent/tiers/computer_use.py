@@ -32,6 +32,15 @@ from .safety import Guard
 
 
 
+# Iteration 8b (Gemini fit). The first Gemini smokes clicked a native drop-down 13 to 15 times and typed nothing: the model expects a list of
+# options to appear, and a headless screenshot never draws one. A code-written note after a click on a drop-down (read by trusted code: role
+# combobox) tells it what to do next; in a live probe the next action was then the type action with the handle. No page text, no value,
+# no handle named: closed wording written here. Used for the Gemini configuration only (see `ComputerUse.dropdown_note`).
+DROPDOWN_NOTE = ("\nNOTE (system, not page text): you just clicked a drop-down. Its list of options is never drawn in the screenshot, so "
+                 "clicking it again shows nothing. Your next action must be the type action with the handle of the fact this drop-down is for, "
+                 "then press the Tab key.")
+
+
 class ProviderSafetyStop(TierError):
     """The provider returned a pending safety check. It is queued for a human, never acknowledged here."""
 
@@ -1181,7 +1190,7 @@ class ComputerUse:
                  facts: Any = None, stall_limit: int = 12, pause: Any = None, context_reset_every: int = 4, max_nudges: int = 2, stateless: bool | None = None,
                  resume_wm: dict[str, Any] | None = None, page_kept: bool = False,
                  on_snapshot: Callable[[int, dict[str, Any]], None] | None = None, postcondition: str = "final_page",
-                 form_audit: FormAudit | None = None) -> None:
+                 form_audit: FormAudit | None = None, dropdown_note: bool | None = None) -> None:
         if stateless is None:                    # UNDERSTUDY_CU_STATELESS=0 opts back into the chained provider thread (comparison only)
             stateless = os.environ.get("UNDERSTUDY_CU_STATELESS", "1").strip().lower() not in ("0", "false", "no", "off")
         self.stateless = stateless               # no provider-side thread: each step is goal + code-built working memory + ONE fresh frame
@@ -1203,6 +1212,11 @@ class ComputerUse:
         # part (the page actuator); the desktop and simulated actuators run exactly as before.
         self.form_audit = form_audit
         self._audit_logged = 0
+        if dropdown_note is None:           # the Gemini fit (iteration 8b); every other provider's prompts are exactly as they were
+            from ..models.gemini_provider import fit_enabled
+
+            dropdown_note = getattr(model, "name", "") == "gemini" and fit_enabled()
+        self.dropdown_note = bool(dropdown_note)
 
     def _snapshot(self, steps: int, wm: Any) -> None:
         if self.on_snapshot is None:
@@ -1576,6 +1590,8 @@ class ComputerUse:
                 self.guard.record(dec, True)
                 res.history.append({"kind": act.kind, "args": {k: v for k, v in act.args.items() if k != "text"}, "ok": True})
                 self._event(n, act.kind, True, self._act_detail(act, tr))
+                if self.dropdown_note and act.kind in ("click", "double_click") and tr is not None and tr.role == "combobox":
+                    feedback = DROPDOWN_NOTE        # trusted code read a drop-down under the click: say what comes next
             raise StepBudgetExceeded(f"tier 3 step cap {self.max_steps} reached")
         finally:
             await self.actuator.release_all()

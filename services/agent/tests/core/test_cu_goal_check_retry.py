@@ -110,3 +110,69 @@ async def test_a_verdict_of_off_goal_is_one_call_and_still_stops_the_click(tmp_p
         await ComputerUse(OneClickThenDone(), act, guard, navigator="nav-x", stall_limit=5).run("press calculate", verify)
     assert act.actions == [] and port.tally == ["check"] and slept == []
     assert rows[0]["codes"] == ["drift:off_goal_model"] and rows[0]["check_error"] is None
+
+
+# ----------------------------------------------------------------------------- iteration 8b: the note after a click on a drop-down (Gemini only)
+async def _run_clicks(model, html, clicks, dropdown_note=None):
+    """Drive the real loop on a tiny page with scripted clicks; returns the prompts the model was given (one per step)."""
+    from playwright.async_api import async_playwright
+
+    from understudy_agent.tiers.computer_use import BrowserPageActuator
+    from understudy_agent.tiers.facts import FactStore
+
+    prompts: list[str] = []
+
+    class Named:
+        def __init__(self) -> None:
+            self.name, self.n = model, 0
+
+        def computer_step(self, goal, shot, history, **kw):
+            prompts.append(goal)
+            self.n += 1
+            return Action("click", clicks[self.n - 1]) if self.n <= len(clicks) else Done("done", True)
+
+    audit = AuditLog()
+    guard = Guard(MockProvider("benefits_clean"), run_id="r_dd", mode="model_driven", audit=audit, queue=ApprovalQueue(), recorded_hosts=frozenset())
+    async with async_playwright() as pw:
+        browser = await pw.chromium.launch(headless=True)
+        try:
+            page = await browser.new_page()
+            await page.route("http://form.test/**", lambda route: route.fulfill(status=200, content_type="text/html", body=html))
+            await page.goto("http://form.test/")
+
+            async def verify():
+                return True
+
+            await ComputerUse(Named(), BrowserPageActuator(page), guard, navigator="n", facts=FactStore({"a.b": "x"}, {"a.b": lambda: "1"}),
+                              stall_limit=9, dropdown_note=dropdown_note).run("g", verify)
+        finally:
+            await browser.close()
+    return prompts
+
+
+PAGE = ('<body style="margin:0"><select id=s style="position:absolute;left:100px;top:100px;width:200px;height:30px"><option>One</option>'
+        '<option>Two</option></select><input id=t type=text style="position:absolute;left:100px;top:200px;width:200px;height:30px"></body>')
+ON_SELECT, ON_TEXT = {"x": 150, "y": 115}, {"x": 150, "y": 215}
+
+
+async def test_a_gemini_click_on_a_drop_down_is_followed_by_the_note_and_a_click_on_a_text_box_is_not():
+    from understudy_agent.tiers.computer_use import DROPDOWN_NOTE
+
+    prompts = await _run_clicks("gemini", PAGE, [ON_SELECT, ON_TEXT])
+    assert DROPDOWN_NOTE.strip() in prompts[1] and DROPDOWN_NOTE.strip() not in prompts[0] and DROPDOWN_NOTE.strip() not in prompts[2]
+    assert "{" not in DROPDOWN_NOTE and "handle of the fact" in DROPDOWN_NOTE        # closed wording: no handle, no value, no page text
+
+
+async def test_another_provider_is_never_given_the_note_unless_it_is_switched_on():
+    from understudy_agent.tiers.computer_use import DROPDOWN_NOTE
+
+    assert all(DROPDOWN_NOTE.strip() not in p for p in await _run_clicks("openai", PAGE, [ON_SELECT, ON_TEXT]))
+    assert any(DROPDOWN_NOTE.strip() in p for p in await _run_clicks("openai", PAGE, [ON_SELECT], dropdown_note=True))
+    assert all(DROPDOWN_NOTE.strip() not in p for p in await _run_clicks("gemini", PAGE, [ON_SELECT], dropdown_note=False))
+
+
+async def test_the_note_follows_the_fit_switch(monkeypatch):
+    from understudy_agent.tiers.computer_use import DROPDOWN_NOTE
+
+    monkeypatch.setenv("UNDERSTUDY_GEMINI_FIT", "0")                                   # the wording of the first Gemini smokes: no note
+    assert all(DROPDOWN_NOTE.strip() not in p for p in await _run_clicks("gemini", PAGE, [ON_SELECT]))

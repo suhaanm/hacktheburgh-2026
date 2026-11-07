@@ -58,22 +58,23 @@ _CU_SYSTEM = _CU_SYSTEM_BASE + (       # the wording of the first Gemini smokes 
     "When you type into a form field, set press_enter to false and clear_before_typing to false unless the goal needs them, and move on "
     "with the Tab key or by clicking the next field."
 )
-_CU_SYSTEM_FIT = _CU_SYSTEM_BASE + (   # iteration 8b: clear the field before typing (a retyped handle then replaces, it does not append)
-    "When you type into a form field, set press_enter to false and clear_before_typing to true, and move on by clicking the next field or "
-    "pressing the Tab key."
+_CU_SYSTEM_FIT = _CU_SYSTEM_BASE + (   # iteration 8b: no Enter after typing; clear a field first only to replace text already in it
+    "When you type into a form field, set press_enter to false, and set clear_before_typing to true only when the field already holds "
+    "text you want to replace; then move on by clicking the next field or pressing the Tab key."
 )
 # Iteration 8b (Gemini fit, AGENTIC-3): appended to the goal for Gemini only. The first Gemini smoke clicked a native drop-down 13 times and
 # typed nothing: the shared goal says "press the Tab key after a drop-down choice" but not HOW to choose, and a drop-down's list is not drawn
 # in a headless screenshot. The fact-handle design is unchanged (the model still types a handle, code resolves the value); the gate is
 # unchanged. The shared goal text and the OpenAI path are byte-identical to before (pinned by a test on the goal hash).
 GEMINI_FORM_FIT = (
-    "HOW TO ENTER A FACT WITH YOUR TOOLS: call type_text_at on the field with the handle as the text (braces included, for example "
-    "{household.savings}), press_enter false and clear_before_typing true. Do the same for a drop-down (a box with a small arrow): call "
-    "type_text_at on the drop-down itself with its handle, and the system picks the matching option. The list of options of a drop-down is "
-    "never drawn in the screenshot, so do not click where its options would be and do not press arrow keys, Enter or letters on it: "
-    "nothing would show. Every drop-down starts on a first option that is often wrong, so set each one you have a handle for. Never press "
-    "Enter to move on: click the next field instead. When every field has a value, click the button that gives the estimate, once. If a "
-    "NOTE from the system says a handle was not entered, enter that handle again."
+    "HOW TO ENTER A FACT: click the field once, then use the type action with the handle as the text (braces included, for example "
+    "{household.savings}); type_text_at on the field does the same in one call, with press_enter false and clear_before_typing false (true "
+    "only to replace text already in the field). A drop-down (a box with a small arrow) works the same way: click it ONCE, then type its "
+    "handle, and the system picks the matching option. The list of options of a drop-down is never drawn in the screenshot, so clicking it "
+    "again, clicking where an option would be, or pressing arrow keys, Enter or letters on it shows nothing. Every drop-down starts on an "
+    "option that is often wrong, so set each one you have a handle for. Never press Enter to move on: click the next field instead. When "
+    "every field has a value, click the button that gives the estimate, once. If a NOTE from the system says a handle was not entered, "
+    "enter that handle again."
 )
 
 
@@ -123,13 +124,15 @@ def _flag(args: dict[str, Any], key: str, default: bool) -> bool:
 
 
 def _parse_computer_reply(reply: GeminiReply, w: int, h: int, pending: list[Action] | None = None, *,
-                          enter: bool = True) -> Action | Done | SafetyStop:
+                          enter: bool = True, clear_default: bool = True) -> Action | Done | SafetyStop:
     """`pending` receives the actions that FOLLOW the one returned: `type_text_at(x, y, text)` is a click and then typing, but the port
     returns one action per step, so the click is returned and the rest queued (the caller hands them out on the next steps, each through
     the gate on its own: the click gets the trusted target read, and the typing then has a resolved focus).
 
     `enter=False` (the iteration 8b Gemini configuration) drops the Enter that the API's default `press_enter` would add after the typing:
-    the benefits forms are moved on by clicking their buttons, and an Enter in a text field submits the form with whatever it holds."""
+    the benefits forms are moved on by clicking their buttons, and an Enter in a text field submits the form with whatever it holds.
+    `clear_default=False` makes an ABSENT `clear_before_typing` mean false (the API's default is true): the fields start empty, and every
+    queued select-all and delete is two more gated steps and two more goal checks; a model that wants a field replaced says so."""
     from .sanitize_text import short_text
 
     if not reply.calls:
@@ -154,7 +157,7 @@ def _parse_computer_reply(reply: GeminiReply, w: int, h: int, pending: list[Acti
     if name == "type_text_at" and "x" in args and "y" in args:
         click = Action("click", {"x": _px(args.get("x"), w), "y": _px(args.get("y"), h), "button": "left"})
         follow: list[Action] = []
-        if _flag(args, "clear_before_typing", True):          # the API default: clear the field first (select all, then delete)
+        if _flag(args, "clear_before_typing", clear_default):  # the API default: clear the field first (select all, then delete)
             follow += [Action("key", {"keys": _select_all_keys()}), Action("key", {"keys": ["backspace"]})]
         follow.append(Action("type", {"text": str(args.get("text", ""))[:2000]}))
         if enter and _flag(args, "press_enter", True):        # the API default: press Enter after typing
@@ -374,7 +377,7 @@ class GeminiProvider:
                                      tools=[{"type": "computer_use", "environment": "browser"}])
         self._note("computer", "accurate", reply)
         follow: list[Action] = []
-        out = _parse_computer_reply(reply, orig_w, orig_h, follow, enter=not fit)
+        out = _parse_computer_reply(reply, orig_w, orig_h, follow, enter=not fit, clear_default=not fit)
         if follow:
             with self._lock:
                 self._pending[key] = follow

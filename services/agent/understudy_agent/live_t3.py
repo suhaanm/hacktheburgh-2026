@@ -43,7 +43,7 @@ from .tiers.safety import Guard
 CAP_USD = float(os.environ.get("AGENT_LIVE_CAP_USD", "20"))          # NEW live spend, placeholder rates (5 and 30 USD per M tokens)
 LOWER = (0.75, 4.50)                                                  # the lower, mini-class rates, reported next to it
 RESULTS = Path(__file__).resolve().parents[3] / "evals" / "agentic" / "results"
-LEDGER = RESULTS / "spend_ledger.json"
+LEDGER = Path(os.environ.get("AGENT_LIVE_LEDGER") or (RESULTS / "spend_ledger.json"))   # a branch can keep its own file (and so merge cleanly)
 
 
 def ledger() -> dict[str, Any]:
@@ -88,9 +88,10 @@ def goal_text_hash(provider: str | None = None) -> str:
                                                                            FactStore(CALC_VOCAB, {h: (lambda: "") for h in CALC_VOCAB}).goal_block(),
                                                                            FactStore(NOTE_VOCAB, {h: (lambda: "") for h in NOTE_VOCAB}).goal_block()]
     if (provider or provider_name()) == "gemini":
-        from .models.gemini_provider import cu_prompt_text
+        from .models.gemini_provider import cu_prompt_text, fit_enabled
+        from .tiers.computer_use import DROPDOWN_NOTE
 
-        parts.append(cu_prompt_text())
+        parts.append(cu_prompt_text() + (DROPDOWN_NOTE if fit_enabled() else ""))
     return hashlib.sha256("\n\u241f\n".join(parts).encode()).hexdigest()[:12]
 
 
