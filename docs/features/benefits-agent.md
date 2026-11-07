@@ -28,7 +28,7 @@ Routines, then Run now (the window minimises and the corner pill shows what is h
 
 ### Demo moment
 
-Start the benefits routine from Routines. The window minimises, the pill says what it is doing in about five words, and the finished case note arrives in Needs you with its evidence and one irreversible step waiting for a click. Do not press Approve in front of an audience; it saves a sandbox note and nothing real.
+Start the benefits routine from Routines. The pill says what it is doing in about five words (the window minimises if the run counts as using the real screen; rehearse, because a pure sandbox job leaves the window where it is), and the finished case note arrives in Needs you with its evidence and one irreversible step waiting for a click. Do not press Approve in front of an audience; it saves a sandbox note and nothing real.
 
 ### Evidence and its label
 
