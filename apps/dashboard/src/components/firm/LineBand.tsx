@@ -48,7 +48,7 @@ export function LineBand({ title, points, xDomain, yDomain, xTicks, yTicks, form
     <div ref={box} className="lb">
       {width > 0 && (
         <svg width={W} height={height} viewBox={`0 0 ${W} ${height}`} role="img" aria-labelledby={`lb-${uid}`}>
-          <title id={`lb-${uid}`}>{`${title}.${first && last ? ` From ${formatY(first.y)} at ${formatX(first.x)} to ${formatY(last.y)} at ${formatX(last.x)}.` : " No points to draw."}${target ? ` ${target.label}: ${formatY(target.value)}.` : ""}${mark ? ` ${mark.label}.` : ""}`}</title>
+          <title id={`lb-${uid}`}>{`${title}.${first && last ? ` From ${formatY(first.y)} at ${formatX(first.x)} to ${formatY(last.y)} at ${formatX(last.x)}.` : " No points to draw."}${target ? ` ${target.label || "Design target"}: ${formatY(target.value)}.` : ""}${mark ? ` ${mark.label}.` : ""}`}</title>
           {yTicks.map((t) => (
             <g key={`y${t}`}>
               <line className="svg-grid" x1={left} x2={left + plotW} y1={y(t)} y2={y(t)} />
@@ -64,7 +64,7 @@ export function LineBand({ title, points, xDomain, yDomain, xTicks, yTicks, form
           {target && (
             <g className="lb-target">
               <line x1={left} x2={left + plotW} y1={y(target.value)} y2={y(target.value)} />
-              <text className="svg-text svg-text--strong" x={left + 6} y={y(target.value) - 5} textAnchor="start">{target.label}</text>
+              {target.label && <text className="svg-text svg-text--strong" x={left + 6} y={y(target.value) - 5} textAnchor="start">{target.label}</text>}
             </g>
           )}
           {mark && (

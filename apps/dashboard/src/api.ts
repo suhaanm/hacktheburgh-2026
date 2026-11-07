@@ -210,7 +210,7 @@ function knownOff(layer: ExtensionName | undefined, who: { service: string }): F
   if (!s.extReady || s.ext[layer] !== false) return null;
   // The agents flag comes from the agent service: believe it only when that service answered. (When the engine is unreachable every flag reads true.)
   if (layer === "agents" && s.agentUp !== true) return null;
-  return { kind: "extension_off", status: 404, code: "extension_off", message: `This feature is switched off in ${who.service}. Start it with ${FLAG_FOR[layer]}=1 (or UNDERSTUDY_X=1 for every extension) to see your own data. Until then this screen shows example data.` };
+  return { kind: "extension_off", status: 404, code: "extension_off", message: `This feature is switched off in ${who.service}. Start it with ${FLAG_FOR[layer]}=1 (or UNDERSTUDY_X=1 for every extension) to see your own data. Until then Knack shows example data.` };
 }
 
 async function read<T>(path: string, fallback: () => { data: T; meta?: AnalyticMeta | null }, base = ENGINE_URL, opts: ReadOpts = {}): Promise<Loaded<T>> {

@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { Details } from "../ui";
+import { Details, Row, Rows } from "../ui";
 import { Range } from "../common";
 import { Hint } from "../Hint";
-import { FirmBadge } from "./Badges";
 import { IntervalPlot, SHARE_AXIS, type PlotRow } from "./IntervalPlot";
-import { compareShown, fmtNum, pct, roleGapLine, verdictText } from "./model";
+import { compareShown, fmtNum, fmtShare, pct, roleGapLine, verdictText } from "./model";
 import type { RoleCompare, RoleHabit, RoleMeasure } from "./wire";
 import type { AnalyticMeta } from "../../types";
 
@@ -41,7 +40,7 @@ function Habits({ role, min }: { role: RoleCompare; min: number }) {
           return (
             <li key={h.id}>
               <span className="rolecard__habit">{h.label}</span>
-              <span className="rolecard__verdict" data-verdict={h.verdict}>{verdictText(h.verdict)}</span>
+              {h.verdict !== "gap" ? <span className="rolecard__verdict" data-verdict={h.verdict}>{verdictText(h.verdict)}</span> : <span />}
               {e && e.ci ? <Range lo={e.ci[0]} hi={e.ci[1]} pt={e.value} min={domain[0]} max={domain[1]} /> : <span className="rolecard__noint">no interval yet</span>}
               <span className="rolecard__rates">
                 {e ? `Adds ${fmtNum(e, "s")} per case.` : "No figure yet."} Experts needed help {h.expert_rate ? pct(h.expert_rate.value) : "n/a"} of the time, juniors {h.junior_rate ? pct(h.junior_rate.value) : "n/a"}.
@@ -56,59 +55,60 @@ function Habits({ role, min }: { role: RoleCompare; min: number }) {
   );
 }
 
-/** One role as a small multiple: experts and juniors on a share axis that is 0 to 100% in every role, then the gap in plain words, then the habits. */
-function RoleCard({ r, min, meta }: { r: RoleCompare; min: number; meta: AnalyticMeta | null }) {
+/** The row's muted line, printed (D45: n and the interval stay on Admin screens): both estimates with their intervals and each group's n. */
+function roleLine(r: RoleCompare, ind: RoleMeasure): string {
+  return `Experts ${fmtShare(ind.expert)}, n = ${r.n_expert}. Juniors ${fmtShare(ind.junior)}, n = ${r.n_junior}.`;
+}
+
+/** The gap in points, as the row's end: a number with its word, never a bare colour. "not clear" when the interval does not say. */
+function gapEnd(ind: RoleMeasure): string {
+  const g = ind.gap;
+  if (!g) return "no gap figure";
+  const pts = Math.abs(Math.round(g.value * 100));
+  return ind.verdict === "gap" ? `gap ${pts} points` : `gap not clear`;
+}
+
+/** What a role opens to, in place: the comparison on one 0 to 100% scale, the gap in words with its verdict, the habits behind it, and the way to the people. */
+function RoleOpen({ r, min }: { r: RoleCompare; min: number }) {
   const ind = measureOf(r, "independence");
   const time = measureOf(r, "time_vs_expert");
-  const shown = compareShown(r, min);
-  const rows: PlotRow[] = shown && ind ? [
+  if (!ind) return null;
+  const rows: PlotRow[] = [
     { id: "expert", label: `Experts (${r.n_expert})`, est: ind.expert, tone: "expert" },
     { id: "junior", label: `Juniors (${r.n_junior})`, est: ind.junior, tone: "novice" },
-  ] : [];
+  ];
   return (
-    <article className="rolecard" aria-labelledby={`role-${r.role}`}>
-      <header className="rolecard__head">
-        <h3 id={`role-${r.role}`} className="rolecard__name">{r.name}</h3>
-        <FirmBadge meta={meta} />
-      </header>
-      {shown && ind ? (
-        <>
-          <p className="rolecard__lede">{ind.label}: experts and juniors on one scale.</p>
-          <IntervalPlot title={`${ind.label}, ${r.name}`} rows={rows} domain={SHARE_AXIS.domain} ticks={SHARE_AXIS.ticks} format={pct} />
-          <p className="rolecard__gap">
-            {roleGapLine(ind, time)} <span className="rolecard__verdict" data-verdict={ind.verdict}>{verdictText(ind.verdict)}</span>
-          </p>
-          <Habits role={r} min={min} />
-        </>
-      ) : (
-        <div className="state state--inline" role="status">
-          <span className="state__mark" aria-hidden="true" />
-          <p className="state__title">Not compared yet</p>
-          <p className="state__body">{(r.reason && REASON[r.reason]) || `Needs at least ${min} experts and ${min} juniors with enough data. This role has ${r.n_expert} and ${r.n_junior}.`}</p>
-        </div>
-      )}
-      {shown && r.n_expert + r.n_junior > 0 && (
-        <Details summary="About this comparison">
-          <p>{r.n_expert} experts and {r.n_junior} juniors, each person counted once. Intervals are 95% intervals from resampling people. {r.standard ?? ""}</p>
-        </Details>
-      )}
-    </article>
+    <li className="role-open">
+      <IntervalPlot title={`${ind.label}, ${r.name}`} rows={rows} domain={SHARE_AXIS.domain} ticks={SHARE_AXIS.ticks} format={pct} />
+      <p className="rolecard__gap">
+        {roleGapLine(ind, time)} {ind.verdict !== "gap" && <span className="rolecard__verdict" data-verdict={ind.verdict}>{verdictText(ind.verdict)}</span>}
+      </p>
+      <Habits role={r} min={min} />
+      <Details summary="About this comparison">
+        <p>{r.n_expert} experts and {r.n_junior} juniors, each person counted once. Every role uses the same 0 to 100% scale. Intervals are 95% intervals from resampling people. {r.standard ?? ""}</p>
+      </Details>
+      <a className="btn btn--quiet btn--sm" href="#/firm/people">People in {r.name}</a>
+    </li>
   );
 }
 
-/** Experts against juniors for every role, as small multiples that share one scale. Groups under the minimum are not drawn. */
-export function RoleMultiples({ roles, min, meta }: { roles: RoleCompare[]; min: number; meta: AnalyticMeta | null }) {
+/**
+ * Experts against juniors, one row per role on one shared 0 to 100% scale (KNACK_UX, 05-admin-firm.md). A row is the whole target: it opens the comparison,
+ * the habits that explain the gap and the people in place. A role under the minimum is a plain row that says why it is not compared. No pill per row.
+ */
+export function RoleMultiples({ roles, min }: { roles: RoleCompare[]; min: number; meta?: AnalyticMeta | null }) {
+  const [open, setOpen] = useState<string | null>(null);
   return (
-    <div className="rolewrap">
-      <ul className="legend" aria-label="How to read the charts">
-        <li className="legend__item"><i className="sw sw--dot sw--expert" />Experts</li>
-        <li className="legend__item"><i className="sw sw--novice" style={{ width: 9, height: 9 }} />Juniors</li>
-        <li className="legend__item"><i className="sw sw--line sw--muted" />95% interval</li>
-        <li className="legend__item">Every role uses the same 0 to 100% scale</li>
-      </ul>
-      <div className="rolegrid">
-        {roles.map((r) => <RoleCard key={r.role} r={r} min={min} meta={meta} />)}
-      </div>
-    </div>
+    <Rows label="Roles">
+      {roles.flatMap((r) => {
+        const ind = measureOf(r, "independence");
+        if (!compareShown(r, min) || !ind) {
+          return [<Row key={r.role} title={r.name} meta={`Not compared yet. ${(r.reason && REASON[r.reason]) || `Needs at least ${min} experts and ${min} juniors with enough data. This role has ${r.n_expert} and ${r.n_junior}.`}`} />];
+        }
+        const on = open === r.role;
+        const row = <Row key={r.role} title={r.name} meta={roleLine(r, ind)} end={gapEnd(ind)} onClick={() => setOpen(on ? null : r.role)} pressed={on} chevron={!on} />;
+        return on ? [row, <RoleOpen key={`${r.role}-open`} r={r} min={min} />] : [row];
+      })}
+    </Rows>
   );
 }

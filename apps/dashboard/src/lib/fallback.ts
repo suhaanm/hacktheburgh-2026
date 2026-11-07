@@ -36,7 +36,7 @@ function errorOf(body: unknown): { code: string | null; message: string | null }
 /** The environment variable that turns a layer on, to name in the message. */
 export function classify(f: Failure, who: { service: string; flag?: string }): Fallback {
   if (!f.reached) {
-    return { kind: "offline", status: 0, code: null, message: `${who.service} is not running, so this screen shows example data.` };
+    return { kind: "offline", status: 0, code: null, message: `${who.service} is not running, so Knack shows example data.` };
   }
   const status = f.status ?? 0;
   const { code, message } = errorOf(f.body);
@@ -44,18 +44,18 @@ export function classify(f: Failure, who: { service: string; flag?: string }): F
   if (off) {
     return {
       kind: "extension_off", status, code,
-      message: `This feature is switched off in ${who.service}${who.flag ? `. Start it with ${who.flag}=1 (or UNDERSTUDY_X=1 for every extension) to see your own data` : ""}. Until then this screen shows example data.`,
+      message: `This feature is switched off in ${who.service}${who.flag ? `. Start it with ${who.flag}=1 (or UNDERSTUDY_X=1 for every extension) to see your own data` : ""}. Until then Knack shows example data.`,
     };
   }
   if (status === 404 && (!message || message === "Not Found")) {
-    return { kind: "missing", status, code, message: `${who.service} does not have this route yet, so this screen shows example data.` };
+    return { kind: "missing", status, code, message: `${who.service} does not have this route yet, so Knack shows example data.` };
   }
   if (status === 405 || status === 501) {
-    return { kind: "missing", status, code, message: `${who.service} does not support this yet, so this screen shows example data.` };
+    return { kind: "missing", status, code, message: `${who.service} does not support this yet, so Knack shows example data.` };
   }
   return {
     kind: "error", status, code,
-    message: message ? `${who.service} said: ${message} This screen shows example data instead.` : `${who.service} answered with status ${status}, so this screen shows example data instead.`,
+    message: message ? `${who.service} said: ${message} Knack shows example data instead.` : `${who.service} answered with status ${status}, so Knack shows example data instead.`,
   };
 }
 
