@@ -1,0 +1,62 @@
+{
+  "_about": "Copy and density budgets of docs/KNACK_UX.md section 5, as data for apps/dashboard/scripts/check-copy.mjs. docs/knack-ux/budgets.json is the spec's copy; this file is the one the script reads and adds the address of each screen. Measured the way docs/knack-ux/scripts/measure-clutter.mjs measures: words in visible text nodes of #main (SVG text included) inside the first viewport height; the sidebar is counted apart. Two windows apply (1440 by 900 on the web, 1152 by 735 in the desktop app); at 390 by 844 only words and paragraphs apply. A change that raises a number is a decision: send it to the lead, who records it in docs/DECISIONS.md.",
+  "viewports": [[1440, 900], [1152, 735]],
+  "narrow": [390, 844],
+  "defaults": {
+    "worker": { "wordsAbove": 120, "wordsTotal": 250, "longParas": 0, "pills": 1, "controls": 8 },
+    "admin": { "wordsAbove": 150, "wordsTotal": 400, "longParas": 0, "pills": 1, "controls": 10 },
+    "details": { "wordsAbove": 120, "wordsTotal": 250, "longParas": 0, "pills": 1, "controls": 8 }
+  },
+  "routes": {
+    "home": { "path": "/home", "audience": "worker", "wordsAbove": 50, "controls": 5 },
+    "needs-you": { "path": "/needs-you", "audience": "worker", "wordsAbove": 120, "controls": 12 },
+    "routines": { "path": "/routines", "audience": "worker", "wordsAbove": 100 },
+    "growth": { "path": "/growth", "audience": "worker", "wordsAbove": 60, "wordsAboveEmpty": 25 },
+    "your-data": { "path": "/your-data", "audience": "worker", "wordsAbove": 90 },
+    "firm": { "path": "/firm", "audience": "admin" },
+    "roles": { "path": "/roles", "audience": "admin" },
+    "onboarding": { "path": "/onboarding", "audience": "admin" },
+    "genome": { "path": "/genome", "audience": "details" },
+    "presence": { "path": "/presence", "audience": "details" },
+    "graph": { "path": "/graph", "audience": "details", "controls": 8 },
+    "week": { "path": "/week", "audience": "details" },
+    "git": { "path": "/git", "audience": "details" },
+    "forecasts": { "path": "/forecasts", "audience": "details" },
+    "agents": { "path": "/agents", "audience": "details" },
+    "models": { "path": "/models", "audience": "details" },
+    "today": { "path": "/today", "audience": "details" },
+    "firm-people": { "path": "/firm/people", "audience": "admin", "controls": 10 },
+    "firm-automation": { "path": "/firm/automation", "audience": "admin" },
+    "firm-risk": { "path": "/firm/risk", "audience": "admin" },
+    "firm-forecasts": { "path": "/firm/forecasts", "audience": "admin" },
+    "firm-brief": { "path": "/firm/brief", "audience": "admin" },
+    "first-run": { "path": "/first-run", "audience": "worker", "wordsAbove": 50, "controls": 4, "sidebar": false }
+  },
+  "exempt": {
+    "evidence": { "path": "/evidence", "audience": "worker", "why": "D45: Evidence prints everything a reviewer needs. Only the sidebar rule, the header rule (no mono capitals outside axes) and the banned-word scan apply to it." }
+  },
+  "sidebar": { "workerRows": 6, "adminRows": 9, "hintWords": 0, "words": { "worker": 20, "admin": 24 }, "note": "labels, brand, name, Stop and one status line; the rows are the five (or eight) destinations plus More" },
+  "elements": {
+    "screenTitleWords": 6,
+    "heroWords": 16,
+    "ledeWords": 10,
+    "rowTitleWords": 12,
+    "buttonWords": 3,
+    "heroActionWords": 4
+  },
+  "rules": {
+    "noEyebrow": "an element with class t-label directly above the h1, repeating the sidebar label, is banned (the header is a title, one printed limit and the badge)",
+    "noMonoCapitals": "computed text-transform: uppercase on visible text in #main outside SVG (chart axes and the work ribbon draw their own text in SVG)",
+    "allowLongParagraphAt390": [".hero-insight"]
+  },
+  "never_hidden": [
+    "origin badge (Example data, Synthetic firm)",
+    "consent text and the equal weight of Not now and Never",
+    "It will never ... line on a routine",
+    "the consequence of an irreversible or outward step",
+    "errors, and what was not touched",
+    "limits (Measures help needed, not expertise; For coaching and onboarding, not for evaluating individuals)",
+    "the kill state and the glance-in-flight marker",
+    "n and the interval on Admin and Evidence screens"
+  ]
+}
