@@ -54,7 +54,13 @@ Watch how people work, show where a novice loses time against an expert, coach o
 | Calendar routine layer | Meeting load, focus blocks, expert comparison, generic suggestions; Outlook and Teams adapters | building | synthetic; real read-only aggregate check needs the owner's go at run time |
 | Git analysis (programmer) | Commit habits vs experts; five generic suggestions | built | synthetic: precision 116 of 116, recall 0.967 |
 | Local model | Qwen2.5-7B digests on this Mac, rules fallback | built | n/a |
-| Privacy spine | One choke point out; ledger of every call; canary tests; image path in progress | built | 0 of 4,040 planted tokens leaked |
+| Privacy spine | One logged choke point for the new layers (text and images) and a metadata-only ledger row for every Python provider call; canary tests. NOT yet true for the old Alongside desktop code, which still sends some screenshots and file text straight to OpenAI and Gemini behind flags (being gated or disabled; reviewer finding H6) | built, with a known gap | 0 of 11,336 planted tokens leaked in the layers that registered a flow |
+
+## 5b. How it all fits together (REQ-8)
+| Feature | What it does | Status |
+|---|---|---|
+| Context engineering | Every model call gets minimal, typed, fresh context; long runs keep a bounded working memory; trusted and untrusted text never mix | building (audit and shared library in progress) |
+| One attention layer | One router decides whether, where and when the worker is told anything; one voice at a time; digests instead of pings; safety items never hidden | building |
 
 ## 6. Evidence and honesty
 | Feature | What it does | Status |
@@ -72,4 +78,4 @@ Watch how people work, show where a novice loses time against an expert, coach o
 3. Stuck: Cue asks one question, the worker answers by voice, the next step is shown, a one-line reason, then silence.
 4. The Growth screen: help fades, the independence curve rises.
 5. Overnight: the morning queue; one tap approves; nothing ran unapproved.
-6. The Privacy screen: every call that left, no pictures, no text.
+6. The Privacy screen: every logged call that left the Python services and the new layers, no pictures, no text (the legacy desktop vision paths are being brought under the same ledger).

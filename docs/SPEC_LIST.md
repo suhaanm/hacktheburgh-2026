@@ -311,6 +311,21 @@ Plans: `docs/REQ5_PLAN.md`, `docs/REQ7_PLAN.md`; ML v2 and the evidence layer ar
 | CUE-9 | P1 | Tier policy as a bandit with logged propensities; change only after off-policy evaluation. | Evaluation report. |
 | GRO-1 | P1 | Growth screen (Curtain): independence curves with intervals, help level over time, offloaded work, export and delete. | Rendered at both sizes, light and dark. |
 
+### 14c. REQ-8 additions (7 Nov 2026; BUILDING)
+
+| ID | Prio | Statement | Acceptance |
+|---|---|---|---|
+| CTX-1 | P1 | Audit of every model call site: sections, tokens, trust level, history growth, caching, freshness, failure modes; ranked gaps. | `docs/CONTEXT_ENGINEERING.md` section 1 with measured numbers. |
+| CTX-2 | P1 | Shared context-assembly library: typed sections with trust level, source, age, priority and token budget; cache-stable order; truncation order that never drops the task spec, safety rules, current step or a number; metadata-only manifest. | Budget and trust-boundary tests; manifest holds no content. |
+| CTX-3 | P1 | Working memory for long runs: code-maintained task state, last K steps verbatim, code-template rolling summary, screenshot retention policy, keyed memory retrieval, freshness table. | Token curve over a 150-step run is bounded; compared with and without. |
+| CTX-4 | P2 | Owners adopt the rules and report CTX-AUDIT. | Gaps closed or listed. |
+| ATT-1 | P1 | One attention router decides whether, where, when and how loudly any notification is shown, in deterministic code. | Closed schemas; metadata only. |
+| ATT-2 | P1 | Safety-critical items are never suppressed or batched but shown calmly once with a passive marker; time-sensitive items get one toast, a badge, and at most one reminder. | Missed-urgent count 0 in simulation. |
+| ATT-3 | P1 | Can-wait items are held for a natural break or folded into one digest (morning, welcome back); coalescing, superseding, expiry, quiet states, one voice at a time. | Interruptions per hour in flow below the baselines. |
+| ATT-4 | P2 | Learning from reactions can only make low-value types quieter; hard floor for safety-critical and approvals. | Tested. |
+| ATT-5 | P1 | Transparency and control: why an item was held or shown; per-type loud, normal, quiet, digest only; daily budget. | Seen rendered. |
+| ATT-6 | P1 | Simulated-workday evaluation against show-everything and daily-digest baselines. | Pre-registered; synthetic badge. |
+
 ## 15. How owner requests are handled
 
 Every new owner request or tweak gets a row in the **requests log** in `IDEA_BOARD.md` (`REQ-n`, date, request, analysis, status), new IDs in this file with a status (`PROPOSED`, `ACCEPTED`, `BUILDING`, `BUILT`, `CUT`), a decision number in `DECISIONS.md` where the owner chose something, and, if it changes ownership, an update to the roster in `AGENTS.md`. The lead does this before starting the work; locked decisions (section 0) are never reopened without an explicit owner instruction, and a conflict is recorded as a concern.
