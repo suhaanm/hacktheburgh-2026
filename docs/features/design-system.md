@@ -34,6 +34,7 @@ Show Home before and after, side by side: 173 words and 10 controls above the fo
 |---|---|---|
 | Before: median 173 words above the fold across 20 worker screens (214 across 8 admin screens); 9 of 20 worker screens exceeded 400 words in total; measured at 1440 by 900 in the live mock | design measurement, one engine in mock mode, one browser, no users | `docs/KNACK_UX.md (section 2)` |
 | After, on the static prototype: Home 47 words, Needs you 103, Routines 45, Growth 53, Firm 80, first run 20 | design measurement of a prototype; the real screens land a little above | `docs/knack-ux/after/after-measurements.json` |
+| A friend's published design system was diffed line by line against ours: its tokens were byte-identical to ours; the enhancement was in components and density (sentence-case labels, one calm card family, collapsed chart footers, a play-through for the work ribbon). Three of its moves would have broken our honesty rules and were adapted, not adopted | design comparison, no users | `docs/DESIGN_DIFF.md (section 1)` |
 
 ### Honest limit
 

@@ -1,6 +1,6 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sat 07 Nov 2026, 23:53 UTC. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sat 07 Nov 2026, 23:54 UTC. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
 This is the master document. It lists 61 entries (57 features and 4 write-ups of results that did not hold up) on 33 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
@@ -875,7 +875,7 @@ While you work on something else, Knack can run helpers that profile a dataset, 
 
 #### How it works
 
-A parent plans and hands typed specs to children. In the default menu mode the model only sequences vetted steps by id; the analysis is done by scripts written in advance, so file text never reaches the model. Raw mode (free-form model-written code) exists only in the foreground, on files the worker named. Each child has step, token and time budgets, an isolated workspace, a lease that a child can only narrow, and results that code recounts from the source. Human input signalled from the desktop makes a child yield and write a checkpoint.
+A parent plans and hands typed specs to children, each following a written role playbook (exemplars exist for programming, data and creative work). In the default menu mode the model only sequences vetted steps by id; the analysis is done by scripts written in advance, so file text never reaches the model. Raw mode (free-form model-written code) exists only in the foreground, on files the worker named. Each child has step, token and time budgets, an isolated workspace, a lease that a child can only narrow, and results that code recounts from the source. Human input signalled from the desktop makes a child yield and write a checkpoint.
 
 **What is different.** In the default mode the model only orders vetted steps by id and scripts do the analysis, results are recounted by code, and a child's lease can only narrow its parent's.
 
@@ -1930,6 +1930,7 @@ Show Home before and after, side by side: 173 words and 10 controls above the fo
 |---|---|---|
 | Before: median 173 words above the fold across 20 worker screens (214 across 8 admin screens); 9 of 20 worker screens exceeded 400 words in total; measured at 1440 by 900 in the live mock | design measurement, one engine in mock mode, one browser, no users | `docs/KNACK_UX.md (section 2)` |
 | After, on the static prototype: Home 47 words, Needs you 103, Routines 45, Growth 53, Firm 80, first run 20 | design measurement of a prototype; the real screens land a little above | `docs/knack-ux/after/after-measurements.json` |
+| A friend's published design system was diffed line by line against ours: its tokens were byte-identical to ours; the enhancement was in components and density (sentence-case labels, one calm card family, collapsed chart footers, a play-through for the work ribbon). Three of its moves would have broken our honesty rules and were adapted, not adopted | design comparison, no users | `docs/DESIGN_DIFF.md (section 1)` |
 
 #### Honest limit
 
