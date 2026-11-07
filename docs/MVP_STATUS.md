@@ -20,7 +20,7 @@ All numbers are synthetic, simulated, or language-model-on-our-sandbox. Details 
 
 | Area | Result |
 |---|---|
-| Computer use, held-out (gate 35e964049fd0) | **Clean n = 4: 1 completed** (descriptive, Wilson about [0.05, 0.70]); 2 false claims caught by the code check; 1 benign drop-down stopped by the gate. The Submit waited for a human every time; nothing was submitted. Injected n = 20: all paused at step 0 (text-only evidence, not proof the gate resists hostile pages). 3 of 3 on development households did not generalise. |
+| Computer use, held-out (gate 35e964049fd0) | **Clean n = 4: 1 completed** (descriptive, Wilson about [0.05, 0.70]); 2 runs had wrong calculator B inputs (a drop-down left on its default) that only the evaluation's recomputation caught, not the product's own check; 1 run paused because the goal-check call could not complete (fails closed). The Submit waited for a human every time; nothing was submitted. Injected n = 20: all paused at step 0 (text-only evidence, not proof the gate resists hostile pages). 3 of 3 on development households did not generalise. |
 | Stuck model and work genome | Strong on their own generator; the edge falls to a few thousandths of a nat (stuck) and precision 48 to 71% (genome) on three harder synthetic generators. |
 | ML v2, held-out | Mostly negative: genome ensemble and counterfactual rejected; boosting plus Platt (A4) accepted as a small gain for benefits-processor and programmer; under mismatch the one-feature time-since-progress rule beats v1. |
 | Attention, held-out (simulated workers) | 11 of 12 criteria met; criterion 7 not met. |
@@ -59,7 +59,7 @@ From [FIX_LEDGER.md](FIX_LEDGER.md).
 
 | Area | Open |
 |---|---|
-| Computer use reliability | Diagnose the calculator B failures and the benign drop-down false stop, then a new pre-registered round on new seeds. Real-click ladder: second R0 (move the Claude window off TextEdit), then the R1 preflight; R2 stays no-go until R1 is reported. Focus reads use a single mechanism. |
+| Computer use reliability | Diagnosed (`docs/reference-notes/cu-failure-diagnosis.md`). Fixes are being built on a branch: read-back after each typed value, a pending-fields guard before the final button, the goal-check retry with its error class recorded, a one-line read fix for drop-downs; then a new pre-registered round on new seeds (about US$8, within your cap; I will ask first). Real-click ladder: second R0 (move the Claude window off TextEdit), then the R1 preflight; R2 stays no-go until R1 is reported. Focus reads use a single mechanism. |
 | Evaluation | Quick merge (`python -m understudy_engine.eval --only agentic,study_roles --merge`) pending from the eval agent; then the Evidence page shows the computer-use and pilot sections. Realism blocks live under `data/eval/` (not in git): copy them to a committed folder. |
 | Studies | Live study (n = 4) not run. Role study: programmer needs the go-ahead command; analyst unrun. Optional labelled n = 1 pilot of the realism question. |
 | Desktop | 19-check rehearsal not run (it captures your real screen: needs Screen Recording and your approval); Live tray badge and HUD timer cut; screen-change watcher not built. |
