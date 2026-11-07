@@ -59,7 +59,7 @@ export const PATHS = {
   J2: { steps: [{ d: 'the Home hero\'s own button: "Approve and submit" (counted, not executed)', loc: (p) => p.getByTestId("home-approval").getByRole("button", { name: /^(Approve|Resume)/ }), skip: true }] },
   J3: { steps: [{ d: 'sidebar "Needs you"', loc: (p) => nav(p, "Needs you") }, { d: '"Watch first" on a routine proposal (counted, not executed)', loc: (p) => p.locator("article.kc-row[data-kind='proposal']").getByRole("button", { name: "Watch first" }).first(), skip: true }] }, // sidebar "Needs you", then Watch first | Not now | Never (2). Away variant: "More ways to say yes", switch, confirm (3).
   J4: { steps: [{ d: 'sidebar "Growth"', loc: (p) => nav(p, "Growth") }] },
-  J5: { steps: [{ d: 'sidebar "Your data"', loc: (p) => nav(p, "Your data") }, { d: '"Forget" beside a line (counted, not executed)', loc: (p) => p.locator("#main").getByRole("button", { name: /^Forget/ }).first(), skip: true }, { d: '"Forget it" (counted, not executed, not located)', blind: true, skip: true }] },
+  J5: { steps: [{ d: 'sidebar "Your data"', loc: (p) => nav(p, "Your data") }, { d: '"Forget" beside a line (counted, not executed)', hover: (p) => p.locator("#main .yd-line").first(), loc: (p) => p.locator("#main").getByRole("button", { name: /^Forget/ }).first(), skip: true }, { d: '"Forget it" (counted, not executed, not located)', blind: true, skip: true }] },
   J6: { steps: [{ d: "the sidebar Stop button (counted, not executed)", loc: (p) => p.getByRole("button", { name: "Stop everything now" }), skip: true }] },
   J7: { steps: [{ d: 'sidebar "Routines"', loc: (p) => nav(p, "Routines") }, { d: "open a routine row", loc: (p) => p.locator("article.rt-row button.rt-row__open").first() }, { d: '"Run now" (counted, not executed)', loc: (p) => p.locator("article.rt-row").getByRole("button", { name: /^Run now/ }).first(), skip: true }] },
   A1: { setup: becomeAdmin, steps: [{ d: 'sidebar "Firm"', loc: (p) => nav(p, "Firm") }] },
@@ -102,6 +102,7 @@ try {
       for (const s of path.steps) {
         if (s.blind) { clicks++; log.push(`${clicks}. ${s.d}`); continue; }
         const loc = s.loc(page);
+        if (s.hover) await s.hover(page).hover().catch(() => undefined); // a row's actions show on hover or focus; a hover is not a click
         try { await loc.waitFor({ state: "visible", timeout: 4000 }); } catch { broke = `not found: ${s.d}`; break; }
         clicks++;
         if (s.skip) { log.push(`${clicks}. ${s.d}  [counted, NOT executed]`); continue; }
