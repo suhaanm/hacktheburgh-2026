@@ -8,8 +8,8 @@ import { Offloaded } from "../../components/growth/Offloaded";
 import { LedgerControls } from "../../components/growth/LedgerControls";
 import { AboutGrowth } from "../../components/growth/About";
 import { Details } from "../../components/ui";
-import { EarlyHero, EmptyHero } from "../../components/growth/States";
-import { buildView, countsOf, ledgerFields, marksOf, normalizeGrowth, offloadItems, type LedgerCounts } from "../../components/growth/model";
+import { EarlyHero, EmptyHero, HowStepsAreCounted } from "../../components/growth/States";
+import { buildView, countsOf, ledgerFields, marksOf, normalizeGrowth, offloadItems, totalRows, type LedgerCounts } from "../../components/growth/model";
 import "../../components/growth/growth.css";
 import { STORIES, deleteLedger, downloadText, exportLedger, loadGrowth, loadLedger, type Story } from "./data";
 
@@ -56,6 +56,9 @@ export default function Growth() {
   const focusLabel = view.skills.find((s) => s.id === view.focusId)?.name ?? null;
   const n = g.meta?.n ?? view.total;
   const busy = g.status === "loading";
+  // Nothing to export or forget, and nothing run for the worker: the two disclosures would only say so, so they wait until there is something in them.
+  const hasLedger = totalRows(counts) > 0;
+  const hasOffloaded = counts.delegated + counts.automation > 0;
 
   const onExport = async () => {
     const f = await exportLedger(story, example);
@@ -69,14 +72,16 @@ export default function Growth() {
   };
 
   // One origin badge per screen: the sample badge when the screen shows built-in example data, else the engine's origin in a worker's words.
-  const badge = g.why ? <ExampleBadge why={g.why} /> : <OriginBadge meta={g.meta} always label={g.meta ? workerOriginLabel(g.meta.origin) : undefined} />;
+  // A live answer with nothing counted shows no numbers, so there is nothing to qualify: no badge. The origin is still printed in "About this data".
+  const liveAndEmpty = !g.why && g.source === "live" && view.status === "empty";
+  const badge = g.why ? <ExampleBadge why={g.why} /> : liveAndEmpty ? null : <OriginBadge meta={g.meta} always label={g.meta ? workerOriginLabel(g.meta.origin) : undefined} />;
 
   return (
     <div className="page page--wide gr-page" aria-busy={busy}>
       <PageHead hero title={view.title} lede={GROWTH_LIMIT} aside={badge} />
 
       <section ref={heroRef} className={`gr-hero${busy ? " gr-busy" : ""}`} aria-label="Independence curve" style={{ scrollMarginTop: "var(--space-5)" }}>
-        {view.status === "empty" && <EmptyHero needed={view.needed} window={view.window} />}
+        {view.status === "empty" && <EmptyHero needed={view.needed} />}
         {view.status === "early" && (
           <EarlyHero total={view.total} needed={view.needed} marks={marksOf(rows, wire.skill)} unaided={wire.occurrences.unaided} baseline={wire.baseline} />
         )}
@@ -96,6 +101,7 @@ export default function Growth() {
         {g.why?.kind === "error" && <SourceNote why={g.why} />}
         <AboutGrowth view={view} meta={g.meta} n={n}>
           {g.why && g.why.kind !== "error" && <SourceNote why={g.why} />}
+          {view.status !== "ready" && <HowStepsAreCounted needed={view.needed} window={view.window} />}
           {example && (
             <div className="gr-story" role="group" aria-label="Which example learner to show">
               <span>Example learner</span>
@@ -123,12 +129,16 @@ export default function Growth() {
             <GrowthKey view={view} part="fade" />
           </Details>
         )}
-        <Details summary="Your ledger" wide>
-          <LedgerControls counts={counts} fields={ledgerFields(rows)} example={example} onExport={onExport} onDelete={onDelete} />
-        </Details>
-        <Details summary="What Knack did for you" wide>
-          <Offloaded delegated={counts.delegated} automation={counts.automation} minutes={view.offloadedMinutes} items={offloadItems(rows, labelOf)} />
-        </Details>
+        {hasLedger && (
+          <Details summary="Your ledger" wide>
+            <LedgerControls counts={counts} fields={ledgerFields(rows)} example={example} onExport={onExport} onDelete={onDelete} />
+          </Details>
+        )}
+        {hasOffloaded && (
+          <Details summary="What Knack did for you" wide>
+            <Offloaded delegated={counts.delegated} automation={counts.automation} minutes={view.offloadedMinutes} items={offloadItems(rows, labelOf)} />
+          </Details>
+        )}
       </div>
     </div>
   );

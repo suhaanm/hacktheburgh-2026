@@ -185,7 +185,7 @@ function Ask({ question, onChange, onSubmit, busy }: { question: string; onChang
         <span className="field__hint">Your words are turned into one of a few fixed questions by code. A model never sees them.</span>
       </div>
       <div className="row" style={{ gap: "var(--space-2)" }} role="group" aria-label="Example questions">
-        {CHIPS.map((c) => <button key={c.id} type="button" className="chip" disabled={busy} onClick={() => onSubmit(c.text, c.id)}>{c.text}</button>)}
+        {CHIPS.map((c) => <button key={c.id} type="button" className="chip" aria-label={c.text} disabled={busy} onClick={() => onSubmit(c.text, c.id)}>{c.label}</button>)}
       </div>
     </form>
   );

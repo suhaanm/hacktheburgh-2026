@@ -1,6 +1,6 @@
 import { api } from "../api";
 import { useLoad } from "../hooks";
-import { EmptyState, ErrorState, ExampleBadge, Loading, Note, OriginBadge, PageHead, SourceNote } from "../components/common";
+import { EmptyState, ErrorState, ExampleBadge, Loading, Note, OriginBadge, PageHead, SourceNote, workerOriginLabel } from "../components/common";
 import { Hint } from "../components/Hint";
 import { Details } from "../components/ui";
 import { directRoles, fmtMs, fmtUsd, healthReading, latencyText, providerName, roleLabel, scalarRows, totalCalls, totalCost, WHEN_LABEL } from "../lib/models";
@@ -20,27 +20,19 @@ export default function Models() {
   return (
     <div className="page page--wide">
       <PageHead
-        eyebrow="Models"
-        title={s.roles.length === 0 && s.providers.length === 0 ? "No model layer to show yet" : "Which model does each job, and what it costs"}
-        lede="Code picks the model for every job. A model never picks itself."
-        aside={<><OriginBadge meta={m.meta} /><ExampleBadge why={m.why} /></>}
+        title={s.roles.length === 0 && s.providers.length === 0 ? "No model layer yet" : "Which model does each job"}
+        lede="Code picks the model. A model never picks itself."
+        aside={m.why ? <ExampleBadge why={m.why} /> : <OriginBadge meta={m.meta} label={m.meta ? workerOriginLabel(m.meta.origin) : undefined} />}
       />
-      <SourceNote why={m.why} />
-      <Details summary="How fallback works">
-        <p className="note">Each job has a first choice, a stronger one for when the first cannot tell, and a different provider for when the first fails. Code decides when to try the next one.</p>
-      </Details>
       {s.config_error && <Note tone="warn">The model settings could not be read: {s.config_error}</Note>}
-      {s.mock && !m.why && <Note>Mock mode is on, so no real model is called.</Note>}
+      {m.why?.kind === "error" && <SourceNote why={m.why} />}
 
       <section className="hero" aria-labelledby="route-h">
-        <div className="section__head">
-          <h2 className="section__title" id="route-h">Who does what</h2>
-          <p className="section__sub">Read each row left to right: first choice, then the fallbacks.</p>
-        </div>
+        <h2 className="u-sr-only" id="route-h">Who does what</h2>
         {s.roles.length === 0 && direct.length === 0 ? (
-          <EmptyState title="No jobs are routed yet" body="The agent service has not reported any model roles. Once it does, each job and the models behind it appear here." />
+          <EmptyState title="No jobs routed yet" body="Each job and its models appear here once the agent service reports them." />
         ) : (
-          <div className="chains" role="list" aria-label="Model routing by job">
+          <div className="chains" role="list" aria-label="Model routing by job, first choice first">
             {s.roles.map((r) => <Chain key={r.role} r={r} />)}
             {direct.map((d) => (
               <div key={d.role} className="chain" role="listitem">
@@ -50,24 +42,29 @@ export default function Models() {
             ))}
           </div>
         )}
-        <p className="legend-inline"><span className="chain__sw" data-when="primary" />first choice <span className="chain__sw" data-when="escalate" />stronger, when unsure <span className="chain__sw" data-when="fallback" />other provider, on failure</p>
       </section>
 
-      <hr className="rule" />
-      <div className="cols-2">
-        <Providers providers={s.providers} boot={s.boot} />
-        <Spend s={s} cost={cost} calls={calls} />
+      <div className="stack">
+        <Details summary="Providers and spend" wide>
+          <div className="cols-2">
+            <Providers providers={s.providers} boot={s.boot} />
+            <Spend s={s} cost={cost} calls={calls} />
+          </div>
+        </Details>
+        <Details summary="Every job" wide><Meter s={s} /></Details>
+        <Details summary="Assumed prices" wide><Prices s={s} /></Details>
+        <Details summary="Model bake-off" wide><Bakeoff status={s.bakeoff} report={rep.data} /></Details>
+        <Details summary="How this page works" wide>
+          <div className="stack">
+            <p className="legend-inline"><span className="chain__sw" data-when="primary" />first choice <span className="chain__sw" data-when="escalate" />stronger, when unsure <span className="chain__sw" data-when="fallback" />other provider, on failure</p>
+            <p className="note">Each job has a first choice, a stronger one for when the first cannot tell, and a different provider for when the first fails. Code decides when to try the next one.</p>
+            {s.mock && !m.why && <p className="note">Mock mode is on, so no real model is called.</p>}
+            {m.why && m.why.kind !== "error" && <SourceNote why={m.why} />}
+            <p className="note">Generated {s.generated_at ? fmtDateTime(s.generated_at) : "just now"}.</p>
+          </div>
+        </Details>
       </div>
-
-      <hr className="rule" />
-      <Meter s={s} />
-
-      <hr className="rule" />
-      <Prices s={s} />
-
-      <hr className="rule" />
-      <Bakeoff status={s.bakeoff} report={rep.data} />
-      <p className="note">Generated {s.generated_at ? fmtDateTime(s.generated_at) : "just now"}. No key, token or password is ever shown on this page: anything that looks like one is removed before it is drawn.</p>
+      <p className="note">No key, token or password is shown here. Costs are estimates from assumed prices, not a bill.</p>
     </div>
   );
 }

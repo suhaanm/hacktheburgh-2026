@@ -4,21 +4,27 @@ import { Details } from "../ui";
 
 /**
  * Nothing counted yet. The page title already says "Not enough to show yet"; this is the one line that follows: when the curve starts.
- * No ghost chart, no numbered list (KNACK_UX, Growth: empty state). How steps are counted is one closed disclosure.
+ * No ghost chart, no numbered list (KNACK_UX, Growth: empty state): at most 25 words above the fold. How steps are counted sits in "About this data".
  */
-export function EmptyHero({ needed, window }: { needed: number; window: number }) {
+export function EmptyHero({ needed }: { needed: number; window?: number }) {
   return (
     <section className="gr-empty" data-empty="true" aria-label="Nothing counted yet">
       <p className="gr-empty__line">{`Your curve starts after ${needed} steps.`}</p>
-      <Details summary="How steps are counted">
-        <p>Knack counts a step each time one from your role&apos;s pack comes up in your work. You do nothing extra.</p>
-        <ul className="plain-list">
-          <li>After {plural(BASELINE_N, "step")}, your starting point is marked on the chart, with its interval.</li>
-          <li>After {needed}, the curve appears, over a {window}-step window with its interval. Fewer would be a guess, so nothing is drawn.</li>
-          <li>When a step comes back {RETENTION_DAYS} or more days after you were taught it, &quot;Kept after days&quot; fills in.</li>
-        </ul>
-      </Details>
     </section>
+  );
+}
+
+/** How steps are counted: the three moments at which something appears. Inside "About this data" when nothing, or too little, is counted. */
+export function HowStepsAreCounted({ needed, window }: { needed: number; window: number }) {
+  return (
+    <Details summary="How steps are counted" wide>
+      <p>Knack counts a step each time one from your role&apos;s pack comes up in your work. You do nothing extra.</p>
+      <ul className="plain-list">
+        <li>After {plural(BASELINE_N, "step")}, your starting point is marked on the chart, with its interval.</li>
+        <li>After {needed}, the curve appears, over a {window}-step window with its interval. Fewer would be a guess, so nothing is drawn.</li>
+        <li>When a step comes back {RETENTION_DAYS} or more days after you were taught it, &quot;Kept after days&quot; fills in.</li>
+      </ul>
+    </Details>
   );
 }
 

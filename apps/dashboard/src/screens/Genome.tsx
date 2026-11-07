@@ -34,7 +34,7 @@ export default function Genome() {
       <PageHead
         hero
         title={`Novices lose about ${fmtDuration(total)} per case`}
-        lede={<>Average over all novices<Hint label="About this average">95% interval {fmtDuration(data.total_gap_ci[0])} to {fmtDuration(data.total_gap_ci[1])}.</Hint>.{data.person_gap_s != null ? <> One case: {data.person}, {fmtDuration(data.person_gap_s)} lost.</> : null}</>}
+        lede={<>{"Average over all novices."}<Hint label="About this average">{`95% interval ${fmtDuration(data.total_gap_ci[0])} to ${fmtDuration(data.total_gap_ci[1])}.${data.person_gap_s != null ? ` The case below: ${data.person}, ${fmtDuration(data.person_gap_s)} lost.` : ""}`}</Hint></>}
         aside={<OriginBadge meta={g.meta} label={g.meta ? workerOriginLabel(g.meta.origin) : undefined} />}
       />
 
@@ -47,24 +47,23 @@ export default function Genome() {
           </div>
         </div>
 
-        {view === "ribbon" ? <RibbonView data={data} reference={reference} setReference={setReference} /> : (
+        {view === "ribbon" ? <RibbonView data={data} meta={g.meta} reference={reference} setReference={setReference} /> : (
           <div className="stack">
             {t.data ? <TransitionGraph data={t.data} /> : t.status === "error" ? <ErrorState error={t.error} retry={t.reload} what="the transition graph" /> : <Loading label="Loading the transition graph" />}
-            <ChartFoot variant="about" meta={t.meta} />
+            <ChartFoot variant="about" meta={t.meta} badge={false} />
           </div>
         )}
-        {view === "ribbon" && <ChartFoot variant="about" meta={g.meta} />}
       </section>
 
       <hr className="rule" />
 
       <section className="section" aria-labelledby="wf-h">
         <div className="section__head">
-          <h2 id="wf-h" className="section__title">What the time was spent on</h2>
+          <h2 id="wf-h" className="section__title">Where the time went</h2>
         </div>
         <div className="chart chart--wide">
           <Waterfall steps={data.waterfall} totalCi={data.total_gap_ci} />
-          <ChartFoot variant="about" meta={g.meta} extra={<>each bar starts where the one above ended; whiskers are a bootstrap over people</>} />
+          <ChartFoot variant="about" meta={g.meta} badge={false} extra={<>each bar starts where the one above ended; whiskers are a bootstrap over people</>} />
         </div>
       </section>
 
@@ -79,7 +78,7 @@ export default function Genome() {
   );
 }
 
-function RibbonView({ data, reference, setReference }: { data: GenomeData; reference: "nearest_expert" | "consensus"; setReference: (r: "nearest_expert" | "consensus") => void }) {
+function RibbonView({ data, meta, reference, setReference }: { data: GenomeData; meta: ReturnType<typeof useLoad<GenomeData>>["meta"]; reference: "nearest_expert" | "consensus"; setReference: (r: "nearest_expert" | "consensus") => void }) {
   const cols = useMemo(() => layoutRibbon(data, 1000).columns, [data]);
   const [hover, setHover] = useState<number | null>(null);
   const [scrub, setScrub] = useState<number | null>(null);
@@ -126,7 +125,7 @@ function RibbonView({ data, reference, setReference }: { data: GenomeData; refer
         </div>
         <p className="scrub__caption" aria-live="polite">{caption}</p>
       </div>
-      <Details summary="Key and comparison" wide>
+      <Details summary="Details" wide>
         <div className="stack">
           <ul className="legend" aria-label="How to read the ribbon">
             <LegendItem swatch={<span className="sw sw--expert" />}>Expert step</LegendItem>
@@ -144,9 +143,7 @@ function RibbonView({ data, reference, setReference }: { data: GenomeData; refer
           </div>
           <p className="note">Skipping a step shows as time saved here. It often costs more later, and the waterfall counts that rework separately when it happened.</p>
           {consequences.length > 0 && <ul className="plain-list">{consequences.map((c) => <li key={c.step} className="note"><b>{cogLabel(c.step)}:</b> {sentence(c)}</li>)}</ul>}
-        </div>
-      </Details>
-      <Details summary="See the same ribbon as a table" wide>
+      <Details summary="As a table" wide>
         <div className="table-wrap">
           <table className="table">
             <thead><tr><th>Step</th><th>Expert</th><th>Novice</th><th className="num">Lost</th></tr></thead>
@@ -161,6 +158,9 @@ function RibbonView({ data, reference, setReference }: { data: GenomeData; refer
               ))}
             </tbody>
           </table>
+        </div>
+      </Details>
+          <ChartFoot variant="about" meta={meta} badge={false} />
         </div>
       </Details>
     </div>
@@ -196,7 +196,7 @@ function Controls({ data, meta }: { data: GenomeData; meta: ReturnType<typeof us
             { label: "Shuffled labels (null)", value: nul.gap_s, ci: nul.ci },
           ]}
         />
-        <ChartFoot variant="about" meta={meta} />
+        <ChartFoot variant="about" meta={meta} badge={false} />
       </div>
     </section>
   );

@@ -67,7 +67,11 @@ export async function loadGrowth(skill: string | null, story: Story): Promise<Lo
   if (r.reached && r.status === 404 && (r.body as { error?: { code?: string } } | null)?.error?.code === "unknown_person") {
     noteSource("live");
     const b = await bundleOf(story);
-    return asLoaded(emptyGrowth("", skill, b.overall.meta), "live", null);
+    // The engine answered, so this is not example data: nothing is set up, nothing is counted. The meta is plain, never the sample's (which carries
+    // the sample's origin, its n and its note).
+    const meta = { origin: "real", n: 0, n_unit: "occurrences", split: null, interval_level: 0.95, note: "Nobody is set up yet, so nothing is counted.", generated_at: new Date().toISOString() } as unknown as Envelope<WireGrowth>["meta"];
+    void b;
+    return asLoaded(emptyGrowth("", skill, meta), "live", null);
   }
   if (isMissing(r)) {
     const why = classify(failure(r), WHO);
