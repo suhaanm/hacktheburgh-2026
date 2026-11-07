@@ -31,6 +31,8 @@ LIMITATIONS = [
      "text": "The coach is real but the overlay renderer is simulated: a ring is drawn only when an element carrying the target zone exists on the page the participant is on. The cliff button exists only on a calculator result tab, not on the case note page where the prompt usually arrives. The reconcile target was `results_tabs` (no page element) when the plan was written; the pipeline snapshot used targets `reconcile_control` (the case note's dropdown), which exists. The by-zone table shows which was served."},
     {"id": "sim-model-frame", "severity": "medium",
      "text": "Participants are reached through the shared model port's fast-tier check call, whose fixed instructions tell the model to treat quoted material as data. That may make it less responsive to on-page text in both arms."},
+    {"id": "sim-machine-load", "severity": "medium",
+     "text": "The build machine was heavily loaded by other agents' tests while the participants ran (1-minute load average above 100 on 12 CPUs, sampled and reported), so wall-clock times, the coach's 3 s polls, the extension's event flush and the prompt delays are slower and noisier than on an idle machine. Action counts are not affected; timings are."},
     {"id": "sim-one-model", "severity": "medium",
      "text": "One model (id read from the environment and recorded in the CSV) and one family of personas written by us. Results say nothing about other models."},
     {"id": "sim-scoring", "severity": "medium",
@@ -44,6 +46,32 @@ def _stats(vals: list[float]) -> dict:
         return {"n": 0}
     q = lambda p: v[min(len(v) - 1, int(round(p * (len(v) - 1))))]  # noqa: E731
     return {"n": len(v), "median": round(statistics.median(v), 2), "min": round(v[0], 2), "max": round(v[-1], 2), "q25": round(q(0.25), 2), "q75": round(q(0.75), 2)}
+
+
+def load_table(results_dir: Path) -> dict:
+    """Machine load while the participants ran. Run 4 recorded it with a separate sampler (results/load_samples.jsonl, every 15 s): a participant's start is its
+    checks file's modification time minus its wall time, its end the modification time; the load is the nearest sample. Later runs also carry load1_start and
+    load1_end columns in participants.csv. Load is the 1-minute load average; the machine has the stated number of CPUs."""
+    results_dir = Path(results_dir)
+    samples = []
+    sf = results_dir / "load_samples.jsonl"
+    if sf.exists():
+        samples = [json.loads(x) for x in sf.read_text().splitlines() if x.strip()]
+    if not samples:
+        return {"available": False}
+    nearest = lambda t: min(samples, key=lambda x: abs(x["t"] - t))["load1"]  # noqa: E731
+    rows = []
+    for f in sorted((results_dir / "checks").glob("p_sim*.json")) if (results_dir / "checks").is_dir() else []:
+        d = json.loads(f.read_text())
+        end = f.stat().st_mtime
+        start = end - float(d.get("wall_s", 0))
+        rows.append({"participant": d["participant"], "load1_start": nearest(start), "load1_end": nearest(end), "wall_s": d.get("wall_s")})
+    vals = [r["load1_start"] for r in rows] + [r["load1_end"] for r in rows]
+    if rows:
+        (results_dir / "load_by_participant.csv").write_text("participant,load1_start,load1_end,wall_s\n" + "".join(f"{r['participant']},{r['load1_start']},{r['load1_end']},{r['wall_s']}\n" for r in rows))
+    cpus = samples[0].get("cpus")
+    return {"available": True, "cpus": cpus, "samples": len(samples), "load1_min": min(x["load1"] for x in samples), "load1_max": max(x["load1"] for x in samples),
+            "load1_median_at_participant_start_or_end": round(statistics.median(vals), 1) if vals else None, "participants": len(rows)}
 
 
 def aggregate_checks(checks_dir: Path) -> dict:
@@ -208,7 +236,7 @@ def build_section(results_dir: Path = RESULTS, expected: tuple[int, int] = (N_CO
         "effort": {"unit": eff["unit"], "actions_coached": eff["actions_coached"]["mean"], "actions_uncoached": eff["actions_uncoached"]["mean"], "detail": eff,
                    "detail_aa": a["effort_aa"]},
         "nudges": {"shown": a["nudges"]["shown"], "followed": a["nudges"]["followed"], "dismissed": a["nudges"]["dismissed"], "detail": a["nudges"]},
-        "pipeline_checks": aggregate_checks(results_dir / "checks"),
+        "pipeline_checks": {**aggregate_checks(results_dir / "checks"), "machine_load": load_table(results_dir)},
         "cost": cost,
         "limitations": limitations,
         "meta": {**meta, "expected_n": {"coached": expected[0], "aa": expected[1]}, "n": n, "models": models, "excluded_participants": a["excluded_participants"], "design_problems": a["design_problems"], "aborted_runs": aborted,
@@ -317,6 +345,9 @@ def render_md(s: dict) -> str:
     w(f"- Typed values cleaned of structured-reply artifacts (PLAN amendment 1, same for every arm): {tv['cleaned']} of {tv['fills_and_selects']} fills and selects ({tv['share']}).")
     ex = pc["engine_events_export"]
     w(f"- **Transcript-free statement:** the engine event files kept for each participant (`results/raw/<participant>/engine_events.jsonl`, {ex['events']} events from {ex['participants_exported']} participants) contain no participant text: they are schema-valid L0 events (timestamps, types, zones, hashed ids, coach step and outcome ids). Strings that were not enum-like and had to be removed: {ex['stripped_values']} (expected 0); export errors: {ex['errors']}. The only model text kept anywhere is each participant's own 280-character note in `actions.jsonl`.")
+    ml = pc.get("machine_load") or {}
+    if ml.get("available"):
+        w(f"- Machine load while the participants ran (1-minute load average on {ml['cpus']} CPUs): min {ml['load1_min']}, max {ml['load1_max']} over {ml['samples']} samples; median at participant start or end {ml['load1_median_at_participant_start_or_end']}. Per participant in `load_by_participant.csv`. Timings and the coach's prompt delays are affected (see limitations).")
     sn = s["meta"].get("pipeline_snapshot")
     if sn:
         w(f"- Code under test: a frozen snapshot of git {str(sn.get('git_head', ''))[:8]} plus {sn.get('uncommitted_files_in_snapshot_dirs')} uncommitted files in services/ and packages/ (fingerprint {sn.get('fingerprint')}, taken {sn.get('taken_at')}); engines and sandbox sites ran from that copy for the whole run, the extension from one build per worker.")

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import sys
 import time
 import traceback
@@ -406,6 +407,7 @@ async def run_participant(spec: ParticipantSpec, *, world: World, pw, make_polic
     """``make_policy(spec, case_dict, phase, world)`` returns an object with ``decide(ctx)`` and ``write_note(digest)``.
     ``lock`` = (acquire(owner, timeout), release(owner)) for the shared sandbox sites; None means the caller holds nothing (tests)."""
     t_all = time.monotonic()
+    spec.load1_start = f"{os.getloadavg()[0]:.1f}"
     cases = load_cases()
     out = ParticipantResult(spec=spec)
     acquire, release = lock
@@ -527,6 +529,7 @@ async def run_participant(spec: ParticipantSpec, *, world: World, pw, make_polic
         if not keep_engine:
             await asyncio.to_thread(engine.cleanup)
         out.exclusion = exclusion
+        spec.load1_end = f"{os.getloadavg()[0]:.1f}"
         out.wall_s = round(time.monotonic() - t_all, 1)
     counts_by_block = _counts(out.cases, spec)
     checks["coach"] = {"shown": [analysis_io.shown_row(s) for s in all_shown], "polls": len(all_polls),

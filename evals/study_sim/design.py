@@ -59,6 +59,8 @@ class ParticipantSpec:
     persona: Persona
     blocks: list[BlockPlan] = field(default_factory=list)
     worker: str = ""            # which private world ran this participant (set at run time; not a design factor)
+    load1_start: str = ""       # machine 1-minute load average when the participant started and ended (set at run time; a limitation, not a factor)
+    load1_end: str = ""
 
     @property
     def person(self) -> str:

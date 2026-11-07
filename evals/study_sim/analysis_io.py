@@ -16,7 +16,7 @@ HUMAN_COLUMNS = ["participant", "sequence", "block", "skill", "condition", "prac
                  "post_seconds", "post_capped", "post_checks_done", "post_checks_possible", "nudges_shown", "nudges_followed", "nudges_dismissed",
                  "exclusion", "notes"]
 EXTRA_COLUMNS = ["arm", "persona", "model", "effort_unit", "actual_condition", "case_variant", "practice_actions", "post_actions", "practice_wall_s",
-                 "post_wall_s", "practice_end", "post_end", "protocol_violation", "nudges_ignored", "false_nudges", "lag_prompts", "rings_drawn", "worker"]
+                 "post_wall_s", "practice_end", "post_end", "protocol_violation", "nudges_ignored", "false_nudges", "lag_prompts", "rings_drawn", "worker", "load1_start", "load1_end"]
 COLUMNS = HUMAN_COLUMNS + EXTRA_COLUMNS
 
 
@@ -52,7 +52,8 @@ def block_rows(spec: ParticipantSpec, cases: list, counts_by_block: dict, model_
             "practice_wall_s": pr.wall_s if pr else 0, "post_wall_s": po.wall_s if po else 0,
             "practice_end": pr.reason if pr else "", "post_end": po.reason if po else "", "protocol_violation": viol,
             "nudges_ignored": n.ignored if n else 0, "false_nudges": n.false_nudges if n else 0, "lag_prompts": n.lag_prompts if n else 0,
-            "rings_drawn": n.rings_drawn if n else 0, "worker": spec.worker})
+            "rings_drawn": n.rings_drawn if n else 0, "worker": spec.worker,
+            "load1_start": getattr(spec, "load1_start", ""), "load1_end": getattr(spec, "load1_end", "")})
     return rows
 
 
