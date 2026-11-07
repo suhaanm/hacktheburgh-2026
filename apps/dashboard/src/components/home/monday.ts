@@ -3,7 +3,7 @@
 // here carries a number: every figure arrives inside a pointer sentence or the `try` item.
 import type { WireWorker } from "../firm/wire";
 
-export const MONDAY_INTRO = (n: number): string => `Understudy has ${n} ${n === 1 ? "pointer" : "pointers"} for your week.`;
+export const MONDAY_INTRO = (n: number): string => `Knack has ${n} ${n === 1 ? "pointer" : "pointers"} for your week.`;
 const END = (s: string): string => (/[.!?]$/.test(s.trim()) ? s.trim() : `${s.trim()}.`);
 
 /** Null when there is nothing to say: a week with no pointers has no note. */

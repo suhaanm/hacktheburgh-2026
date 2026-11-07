@@ -24,7 +24,7 @@ export function AccountMenu({ placement = "up" }: { placement?: "up" | "down" })
   const user = auth.user();
   const [imgFailed, setImgFailed] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const name = user?.name ?? "Local profile";
+  const name = user?.name ?? "Account";
 
   const pickView = (next: ViewRole) => {
     if (next !== view) {
@@ -46,7 +46,7 @@ export function AccountMenu({ placement = "up" }: { placement?: "up" | "down" })
         className="account__btn"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`Account: ${name}`}
+        aria-label={`Account: ${user?.name ?? "Local profile"}`}
         onClick={() => toggle(false)}
         onKeyDown={(e) => { if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); toggle(true); } }}
       >
@@ -57,7 +57,7 @@ export function AccountMenu({ placement = "up" }: { placement?: "up" | "down" })
       </button>
       {open && (
         <div ref={pop} className="popover account__menu" role="menu" aria-label="Account">
-          {role && <p className="popover__meta">{role}</p>}
+          <p className="popover__meta">{user ? user.name : "Local profile"}{role ? ` · ${role}` : ""}</p>
           <p className="popover__group" id="acct-view">View as</p>
           <div role="group" aria-labelledby="acct-view" className="popover__radios">
             {(["worker", "admin"] as ViewRole[]).map((r) => (
