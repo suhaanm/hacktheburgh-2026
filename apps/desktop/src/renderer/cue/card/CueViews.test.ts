@@ -76,7 +76,7 @@ describe('the chip', () => {
   it('is one button for "Why this?" and one to dismiss; the popover holds Show me and I know this', () => {
     const act = vi.fn<(a: CueCardAction) => void>()
     const b = buttons(ChipView({ view: chip, onAction: act }))
-    expect(b.map((x) => x.label)).toEqual(['Next: Run calculator A', '', 'Show me', 'I know this'])
+    expect(b.map((x) => x.label)).toEqual(['Next: Run calculator A', 'esc', 'Show me', 'I know this'])
     b[0].onClick()
     b[2].onClick()
     b[3].onClick()
@@ -96,13 +96,13 @@ describe('the chip', () => {
     const text = flat(expand(ChipView({ view: chip, onAction: () => undefined })))
     expect(text).toContain('Copy the household from the record; retyping invites mistakes.')
     expect(text).toContain('Most experts do this next.')
-    expect(text).toContain('simulated')
+    expect(text).toContain('Simulated')
   })
   it('with no reason and no phrase the popover shows nothing but the actions, and recorded experts carry no tag', () => {
     const bare = flat(expand(ChipView({ view: { ...chip, why: null }, onAction: () => undefined })))
     expect(bare).not.toContain('Most experts')
     const recorded = flat(expand(ChipView({ view: { ...chip, why: { reason: null, phrase: 'most experts do this next', simulated: false } }, onAction: () => undefined })))
-    expect(recorded).not.toContain('simulated')
+    expect(recorded).not.toContain('Simulated')
   })
   it('the collapsed answer of a question is plain: no buttons to press yet', () => {
     expect(buttons(ChipView({ view: { ...chip, pending: true, why: null }, onAction: () => undefined }))).toEqual([])

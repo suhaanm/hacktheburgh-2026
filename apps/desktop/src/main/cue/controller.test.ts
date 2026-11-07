@@ -71,6 +71,18 @@ describe('polling', () => {
     r.c.dispose()
   })
 
+  it('sends the seconds since the last input as quiet_s when awareness has it, and nothing when it does not', async () => {
+    const r = rig({ signals: { quietS: () => 4.3 } })
+    await r.c.poll()
+    expect(r.engine.polls[0]).toMatchObject({ quietS: 4.3 })
+    const unread = rig({ signals: { quietS: () => null } })
+    await unread.c.poll()
+    expect(unread.engine.polls[0].quietS).toBeUndefined()
+    const none = rig()
+    await none.c.poll()
+    expect(none.engine.polls[0].quietS).toBeUndefined()
+  })
+
   it('says away when awareness says the worker is not at the screen', async () => {
     const r = rig({ signals: { away: () => true } })
     await r.c.poll()
@@ -361,6 +373,15 @@ describe('the one-voice rule (attention)', () => {
     expect(p.log).toEqual(['admit', 'fb:shown:0', 'fb:dismissed:0', 'release'])
   })
 
+  it('"Show me" is not reported to the router as the cue being followed (it still goes to the engine)', async () => {
+    const p = port()
+    const r = rig({ engine: createFakeEngine([FIXTURES['cue-t2-l2']]), attention: p.attention })
+    await r.c.poll()
+    r.c.action({ type: 'show_me' })
+    expect(r.engine.sent.map((e) => `${e.event}:${e.how}`)).toEqual(['shown:null', 'accepted:show_me'])
+    expect(p.log).toEqual(['admit', 'fb:shown:0'])
+  })
+
   it('a veto draws nothing, reports nothing to the engine, and does not count as shown', async () => {
     const p = port(false)
     const r = rig({ engine: createFakeEngine([FIXTURES['cue-t2-l2']]), attention: p.attention })
@@ -416,5 +437,116 @@ describe('the one-voice rule (attention)', () => {
     await r.c.poll()
     expect(p.attention.admit).not.toHaveBeenCalled()
     expect(r.c.visible()?.kind).toBe('confirm')
+  })
+})
+
+describe('following the ring (step.target)', () => {
+  function followRig(opts: { engine?: unknown[] } = {}) {
+    const cbs: Array<{ onBox(b: [number, number, number, number]): void; onGone(): void }> = []
+    const started: Array<{ key: string; target: unknown; box: unknown }> = []
+    const stops: number[] = []
+    const rechecks: unknown[] = []
+    const grounder = {
+      recheck: vi.fn(async (t: unknown) => (rechecks.push(t), 'same' as const)),
+      follow: vi.fn((t: { key: string; target: unknown; box: unknown }, cb: (typeof cbs)[number]) => {
+        started.push(t)
+        cbs.push(cb)
+        return () => void stops.push(1)
+      }),
+    }
+    const r = rig({ engine: createFakeEngine(opts.engine ?? [FIXTURES['cue-t2-l2']]), grounder })
+    return { ...r, cbs, started, stops, rechecks, grounder }
+  }
+
+  it('a cue with a ring and a zone starts one follower with the episode+step key, the zone, and the ring\'s first box', async () => {
+    const f = followRig()
+    await f.c.poll()
+    expect(f.started).toHaveLength(1)
+    expect(f.started[0].key).toBe('ep-0042/calc_a')
+    expect(f.started[0].target).toEqual({ zone: 'calc_a_run', label_hint: 'Calculate', role_hint: 'button' })
+    expect(f.started[0].box).toEqual({ xmin: 347, ymin: 622, xmax: 444, ymax: 673 })
+  })
+
+  it('the same cue growing a tier, or the engine repeating it, does not start a second follower', async () => {
+    const f = followRig({ engine: [FIXTURES['cue-t2-l2'], { ...(FIXTURES['cue-t2-l2'] as object), new: false }] })
+    await f.c.poll()
+    await f.c.poll()
+    expect(f.started).toHaveLength(1)
+  })
+
+  it('the element moves: the ring and the chip follow it; it is lost: both go at once; found again: both come back', async () => {
+    const f = followRig()
+    await f.c.poll()
+    f.calls.length = 0
+    f.cbs[0].onBox([300, 300, 360, 420])
+    expect(f.calls).toEqual(['overlay.show', 'panel.chip'])
+    expect(f.shown.at(-1)?.[0]).toMatchObject({ kind: 'ring', id: 'cue-ring-1', box: { ymin: 300, xmin: 300 } })
+    f.calls.length = 0
+    f.cbs[0].onGone()
+    expect(f.calls).toEqual(['overlay.clear:cue-ring-1,cue-tick-1,cue-ghost-1', 'panel.hide'])
+    f.calls.length = 0
+    f.cbs[0].onBox([300, 300, 360, 420])
+    expect(f.calls).toEqual(['overlay.show', 'panel.chip'])
+    expect(f.c.visible()?.kind).toBe('cue')
+  })
+
+  it('lost for good: dropped after 1.2 s as stale, and the follower is stopped', async () => {
+    const f = followRig()
+    await f.c.poll()
+    f.cbs[0].onGone()
+    await vi.advanceTimersByTimeAsync(T.regroundMs + 50)
+    expect(f.c.visible()).toBeNull()
+    expect(f.engine.sent.at(-1)).toMatchObject({ event: 'abandoned', how: 'stale' })
+    expect(f.stops).toHaveLength(1)
+  })
+
+  it('the follower is stopped when the cue goes (dismissed) and when it is replaced; a late callback does nothing', async () => {
+    const f = followRig({ engine: [FIXTURES['cue-t2-l2'], { ...(FIXTURES['cue-t2-l1'] as object), episode_id: 'ep-9' }] })
+    await f.c.poll()
+    await f.c.poll() // a new cue replaces it
+    expect(f.stops).toHaveLength(1)
+    expect(f.started).toHaveLength(2)
+    f.cbs[0].onBox([1, 2, 3, 4]) // the first follower, late
+    expect(f.shown.at(-1)?.[0]).not.toMatchObject({ box: { ymin: 1 } })
+    f.c.action({ type: 'dismiss' })
+    expect(f.stops).toHaveLength(2)
+  })
+
+  it('no zone (an older engine), no ring, or no follow() on the grounder: nothing is followed', async () => {
+    const noZone = followRig({ engine: [{ ...(FIXTURES['cue-t2-l2'] as { step: object }), step: { id: 'calc_a', label: 'Run calculator A', reason_id: 'why.enter_once' } }] })
+    await noZone.c.poll()
+    expect(noZone.started).toHaveLength(0)
+    const chipOnly = followRig({ engine: [FIXTURES['cue-no-target']] })
+    await chipOnly.c.poll()
+    expect(chipOnly.started).toHaveLength(0)
+    const recheckOnly = rig({ engine: createFakeEngine([FIXTURES['cue-t2-l2']]), grounder: { recheck: async () => 'same' as const } })
+    await recheckOnly.c.poll()
+    expect(recheckOnly.c.visible()?.kind).toBe('cue')
+  })
+
+  it('a question has no ring, so it is not followed; the cue for the picked step is, once the engine sends it', async () => {
+    const f = followRig({ engine: [FIXTURES['ask-3'], FIXTURES['cue-t2-l1']] })
+    await f.c.poll()
+    expect(f.started).toHaveLength(0)
+    f.c.action({ type: 'answer', id: 'cliff_a' })
+    expect(f.started).toHaveLength(0) // the collapsed chip is not a ring
+    await f.c.poll()
+    expect(f.started).toHaveLength(1)
+    expect(f.started[0].key).toBe('ep-0042/cliff_a')
+  })
+
+  it('a screen change asks recheck with the step\'s zone and key', async () => {
+    const f = followRig()
+    await f.c.poll()
+    f.c.screenChanged(0.2)
+    await vi.advanceTimersByTimeAsync(5)
+    expect(f.rechecks).toEqual([expect.objectContaining({ key: 'ep-0042/calc_a', stepId: 'calc_a', source: 'dom', target: { zone: 'calc_a_run', label_hint: 'Calculate', role_hint: 'button' } })])
+  })
+
+  it('dispose stops a running follower', async () => {
+    const f = followRig()
+    await f.c.poll()
+    f.c.dispose()
+    expect(f.stops).toHaveLength(1)
   })
 })

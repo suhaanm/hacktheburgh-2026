@@ -6,6 +6,8 @@
 // No free text from a model is ever shown from here: chips, options and reasons are pack labels the engine chose by id.
 // Coordinates: `box_2d` is [y0, x0, y1, x1] on a 0..1000 grid from the top-left of the display (the Gemini box order the engine uses).
 
+import { toTarget, type DomTarget } from '../dom-ground/protocol'
+
 export const CUE_KINDS = ['none', 'confirm', 'cue', 'ask', 'offer'] as const
 export type CueKind = (typeof CUE_KINDS)[number]
 
@@ -35,6 +37,10 @@ export interface CueStep {
   n: number | null
   // The one-line "why" for this step when the engine sends it inline (else it comes from `texts[reason_id]`).
   reason_text: string | null
+  // WHERE the step's element is, by capture zone ({zone, label_hint, role_hint}): only for FOLLOWING a ring that moved (scrolling, a re-layout)
+  // through the browser extension. The first placement always uses the decision's own `target.box_2d`; the two are never mixed. Null: an older
+  // engine, no zone, or an invalid value (then nothing can follow the ring and it drops after 1.2 s when its screen changes).
+  target: DomTarget | null
 }
 
 export interface CueOption {
@@ -178,6 +184,19 @@ function parseTarget(v: unknown): CueTarget | null {
   return { box_2d: box, source: box ? src : 'none', confidence }
 }
 
+// The same rules as every other zone in the app (dom-ground/protocol.ts: the zone pattern, an 80-character label hint, a role pattern);
+// only {zone, label_hint, role_hint} are read, whatever else the engine sends, and a missing key or an invalid value is null.
+function parseStepTarget(v: unknown): DomTarget | null {
+  if (!isObj(v)) return null
+  const zone = own(v, 'zone')
+  if (typeof zone !== 'string') return null
+  const hint = (k: string): string | undefined => {
+    const x = own(v, k)
+    return typeof x === 'string' ? cleanText(x) || undefined : undefined
+  }
+  return toTarget({ zone, label_hint: hint('label_hint'), role_hint: hint('role_hint') })
+}
+
 function parseStep(v: unknown): CueStep | null {
   if (!isObj(v)) return null
   const id = idOf(own(v, 'id'))
@@ -186,7 +205,7 @@ function parseStep(v: unknown): CueStep | null {
   const nRaw = own(v, 'n')
   const n = typeof nRaw === 'number' && Number.isInteger(nRaw) && nRaw >= 1 && nRaw <= 99 ? nRaw : null
   const reasonText = capChars(cleanText(own(v, 'reason_text')), REASON_MAX_CHARS)
-  return { id, label, reason_id: slugOf(own(v, 'reason_id')), n, reason_text: reasonText || null }
+  return { id, label, reason_id: slugOf(own(v, 'reason_id')), n, reason_text: reasonText || null, target: parseStepTarget(own(v, 'target')) }
 }
 
 function parseOptions(v: unknown): CueOption[] | null {

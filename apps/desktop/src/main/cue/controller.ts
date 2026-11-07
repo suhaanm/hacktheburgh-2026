@@ -3,6 +3,7 @@
 // of Cue runs under a fake clock in a test and under fixtures in the storyboard. It never opens the microphone, never speaks unless the guards
 // say so, never captures the screen and never logs a frame, a box or any text.
 import type { NormBox } from '../../shared/protocol'
+import type { DomTarget } from '../dom-ground/protocol'
 import { mayWhisper, type CueProactivity, type Policy } from './guards'
 import type { CueCardAction, CueView } from './ipc'
 import { INITIAL_MACHINE, nextDeadline, reduce, type Effect, type MachineEvent, type MachineState } from './machine'
@@ -27,7 +28,16 @@ export interface PanelPort {
 
 /** Asked about a ring whose screen changed: still there, gone, or found somewhere else (a box on the 0..1000 grid, [y0, x0, y1, x1]). */
 export interface CueGrounder {
-  recheck(t: { stepId: string | null; box: NormBox; source: CueTargetSource }): Promise<'same' | 'gone' | { box: [number, number, number, number] }>
+  /**
+   * One question: is the ring's element where the ring is? `target` is the step's zone (null: nothing to look for, answer 'gone'); `key` is
+   * episode plus step (the same on every poll that keeps the cue up). 'same': leave it; 'gone': hide it; { box }: it moved, draw it there.
+   */
+  recheck(t: { key: string; stepId: string | null; box: NormBox; source: CueTargetSource; target: DomTarget | null }): Promise<'same' | 'gone' | { box: [number, number, number, number] }>
+  /**
+   * Keep following the ring's element for as long as the cue is up (scrolling, a re-layout): `onBox` when it moved or came back, `onGone` when
+   * it cannot be found or was scrolled away. Returns the stop. Optional: without it only `recheck` runs, after a screen change.
+   */
+  follow?(t: { key: string; target: DomTarget; box: NormBox }, cb: { onBox(box: [number, number, number, number]): void; onGone(): void }): () => void
 }
 
 export interface CueSignals {
@@ -35,6 +45,9 @@ export interface CueSignals {
   workerUsedVoice(): boolean
   // The worker is not at the screen (locked, idle, on a call, sharing the screen): sent to the engine as away=1. Optional.
   away?(): boolean
+  // Seconds since the last keyboard or pointer input (to a tenth), or null when unreadable: sent as quiet_s. The engine holds with reason
+  // `flow` when typing is on or quiet_s is under 2 s; it is not a hold time. Optional (the engine then derives it from its own events).
+  quietS?(): number | null
 }
 
 /**
@@ -104,7 +117,7 @@ export function createCueController(deps: CueControllerDeps): CueController {
   const clearT = deps.clearTimer ?? ((h) => clearTimeout(h as ReturnType<typeof setTimeout>))
   const log = deps.log ?? (() => undefined)
   // (spread would let an explicit `undefined` from the caller replace a default)
-  const sig: CueSignals = { typingNow: deps.signals?.typingNow ?? (() => false), workerUsedVoice: deps.signals?.workerUsedVoice ?? (() => false), away: deps.signals?.away }
+  const sig: CueSignals = { typingNow: deps.signals?.typingNow ?? (() => false), workerUsedVoice: deps.signals?.workerUsedVoice ?? (() => false), away: deps.signals?.away, quietS: deps.signals?.quietS }
   let state: MachineState = INITIAL_MACHINE
   let deadline: unknown = null
   let pollTimer: unknown = null
@@ -119,6 +132,36 @@ export function createCueController(deps: CueControllerDeps): CueController {
   // The one-voice lock is held for the cue on screen (and the router's id for it).
   let held: { itemId: string | null } | null = null
   const ATTENTION_EVENT: Record<string, 'shown' | 'followed' | 'dismissed' | 'ignored'> = { shown: 'shown', accepted: 'followed', answered: 'followed', dismissed: 'dismissed', know_this: 'dismissed', abandoned: 'ignored' }
+
+  // A step is the same step on every poll that keeps its cue up: episode plus step id.
+  const stepKey = (d: CueDecision): string => `${d.episode_id}/${d.step?.id ?? ''}`
+
+  // Following the ring on the page: one follower per cue that has a ring and a zone, stopped when the cue goes or is replaced.
+  let following: { seq: number; stop: () => void } | null = null
+  const syncFollower = (): void => {
+    const v = state.visible
+    const grounder = deps.grounder
+    const target = v?.decision.step?.target ?? null
+    const want = v && !v.pending && v.plan.ring && target && grounder?.follow ? v : null
+    if (following && (!want || following.seq !== want.seq)) {
+      following.stop()
+      following = null
+    }
+    if (!want || !target || !grounder?.follow || following) return
+    const seq = want.seq
+    const stop = grounder.follow(
+      { key: stepKey(want.decision), target, box: want.plan.ring?.box as NormBox },
+      {
+        onBox: (box) => {
+          if (state.visible?.seq === seq) dispatch({ type: 'retarget', box })
+        },
+        onGone: () => {
+          if (state.visible?.seq === seq) dispatch({ type: 'stale' })
+        },
+      },
+    )
+    following = { seq, stop }
+  }
 
   const wantsVoice = (asked: boolean): boolean => deps.settings().voice && (deps.buildVoiceOn ?? false) && (sig.workerUsedVoice() || asked)
 
@@ -153,7 +196,8 @@ export function createCueController(deps: CueControllerDeps): CueController {
           break // derived from the state after the whole batch (syncKeys)
         case 'feedback':
           void deps.engine.feedback(e.event).catch(() => undefined)
-          if (held?.itemId && e.event.scope === 'cue' && ATTENTION_EVENT[e.event.event]) deps.attention?.feedback?.(held.itemId, ATTENTION_EVENT[e.event.event], e.event.seconds)
+          // (a "Show me" is a request for more help, not the cue being followed: the router is not told it was)
+          if (held?.itemId && e.event.scope === 'cue' && e.event.how !== 'show_me' && ATTENTION_EVENT[e.event.event]) deps.attention?.feedback?.(held.itemId, ATTENTION_EVENT[e.event.event], e.event.seconds)
           if (e.event.event === 'answered' && e.event.option_id) for (const cb of answerListeners) cb(e.event.option_id)
           break
         case 'speak': {
@@ -186,7 +230,7 @@ export function createCueController(deps: CueControllerDeps): CueController {
           if (!deps.grounder || !v) break
           const seq = v.seq
           void deps.grounder
-            .recheck({ stepId: v.decision.step?.id ?? null, box: e.box, source: v.decision.target?.source ?? 'none' })
+            .recheck({ key: stepKey(v.decision), stepId: v.decision.step?.id ?? null, box: e.box, source: v.decision.target?.source ?? 'none', target: v.decision.step?.target ?? null })
             .then((r) => {
               if (typeof r === 'object' && state.visible?.seq === seq) dispatch({ type: 'retarget', box: r.box })
             })
@@ -211,6 +255,7 @@ export function createCueController(deps: CueControllerDeps): CueController {
       held = null
       deps.attention?.release()
     }
+    syncFollower()
   }
 
   function remember(d: CueDecision): void {
@@ -233,7 +278,7 @@ export function createCueController(deps: CueControllerDeps): CueController {
     try {
       const asked = o.asked === true || askedWhilePolling
       askedWhilePolling = false
-      const raw = await deps.engine.next({ asked: asked || undefined, voiceOk: wantsVoice(asked), proactivity: deps.settings().proactivity, denied: p.suppressed !== null, away: sig.away?.() || undefined, typing: sig.typingNow() || undefined })
+      const raw = await deps.engine.next({ asked: asked || undefined, voiceOk: wantsVoice(asked), proactivity: deps.settings().proactivity, denied: p.suppressed !== null, away: sig.away?.() || undefined, quietS: sig.quietS?.() ?? undefined, typing: sig.typingNow() || undefined })
       if (raw === null) return // the engine did not answer: what is up stays until its own limits
       const d = parseCueDecision(raw)
       remember(d)
@@ -333,7 +378,7 @@ export function createCueController(deps: CueControllerDeps): CueController {
       }
       const seq = v.seq
       void deps.grounder
-        .recheck({ stepId: v.decision.step?.id ?? null, box: ring.box, source: v.decision.target?.source ?? 'none' })
+        .recheck({ key: stepKey(v.decision), stepId: v.decision.step?.id ?? null, box: ring.box, source: v.decision.target?.source ?? 'none', target: v.decision.step?.target ?? null })
         .then((r) => {
           if (state.visible?.seq !== seq || r === 'same') return
           dispatch({ type: 'stale' })
@@ -354,6 +399,8 @@ export function createCueController(deps: CueControllerDeps): CueController {
       if (deadline !== null) clearT(deadline)
       deadline = null
       answerListeners.clear()
+      following?.stop()
+      following = null
       deps.panel.dispose()
     },
   }

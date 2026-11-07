@@ -4,7 +4,6 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { LiveSession as LegacyLiveSession } from '../../renderer/live/legacy'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const src = path.resolve(here, '../..')
@@ -27,7 +26,7 @@ const rel = (f: string): string => path.relative(src, f)
 const liveMain = walk(path.join(src, 'main/live')).filter((f) => !isTest(f))
 const liveLegacyMain = fs.readdirSync(path.join(src, 'main')).filter((f) => /^live-.*\.ts$/.test(f) && !isTest(f)).map((f) => path.join(src, 'main', f))
 const rendererAll = walk(path.join(src, 'renderer')).filter((f) => !isTest(f))
-const voiceFiles = [...liveMain, ...liveLegacyMain, ...walk(path.join(src, 'renderer/live')), ...walk(path.join(src, 'renderer/wake'))].filter((f) => !isTest(f))
+const voiceFiles = [...liveMain, ...liveLegacyMain, ...walk(path.join(src, 'renderer/live'))].filter((f) => !isTest(f))
 
 describe('there is one place that sends', () => {
   it('only egress.ts writes to the Live connection', () => {
@@ -73,9 +72,8 @@ describe('the key', () => {
 })
 
 describe('the old renderer-side Live session is gone', () => {
-  it('cannot be constructed, and its files and token path are removed', async () => {
-    expect(() => new LegacyLiveSession({ host: { getAuth: async () => ({ kind: 'token', value: 'x' }), systemInstruction: async () => '' }, audioIn: {}, audioOut: {}, model: 'm' })).toThrow(/removed/i)
-    for (const gone of ['LiveSession.ts', 'connection.ts', 'frames.ts', 'tools.ts', 'wire.ts']) expect(fs.existsSync(path.join(src, 'renderer/live', gone)), gone).toBe(false)
+  it('its files, the stub that stood in for it and its token path are removed (the dock controller no longer imports it)', async () => {
+    for (const gone of ['LiveSession.ts', 'connection.ts', 'frames.ts', 'tools.ts', 'wire.ts', 'legacy.ts']) expect(fs.existsSync(path.join(src, 'renderer/live', gone)), gone).toBe(false)
     const { mintLiveToken } = await import('../live-auth')
     await expect(mintLiveToken()).rejects.toThrow(/talk key/)
   })
@@ -114,8 +112,10 @@ describe('no content in a log line', () => {
       }
     }
   })
-  it('the old wake code and the dock bridge log nothing from the microphone', () => {
-    for (const f of walk(path.join(src, 'renderer/wake')).filter((x) => !isTest(x))) expect(read(f), rel(f)).not.toMatch(/localStorage|writeFile|appendFile/)
+  it('the wake-word spotter and the old renderer Live session are gone, and the dock bridge logs nothing from the microphone', () => {
+    expect(fs.existsSync(path.join(src, 'renderer/wake'))).toBe(false)
+    expect(fs.existsSync(path.join(src, 'renderer/live/legacy.ts'))).toBe(false)
+    for (const f of walk(path.join(src, 'renderer/live')).filter((x) => !isTest(x))) expect(read(f), rel(f)).not.toMatch(/localStorage|writeFile|appendFile/)
   })
 })
 

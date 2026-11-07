@@ -43,7 +43,6 @@ export const IPC = {
   stopPressed: 'stop:pressed', // dock Stop button -> main
   // live
   liveToken: 'live:token', // invoke
-  wakeToken: 'wake:token', // invoke (ephemeral token constrained to the transcribe model, for the wake spotter)
   liveToolCall: 'live:toolCall', // invoke (dispatcher)
   liveInject: 'live:inject', // main -> dock
   liveTranscript: 'live:transcript', // dock -> main
@@ -99,7 +98,6 @@ export interface IpcInvokeMap {
   [IPC.settingsGet]: { args: []; result: Settings }
   [IPC.settingsPatch]: { args: [patch: SettingsPatch]; result: Settings }
   [IPC.liveToken]: { args: [personaId: PersonaId]; result: LiveToken }
-  [IPC.wakeToken]: { args: []; result: LiveToken }
   [IPC.liveToolCall]: { args: [call: LiveToolCall]; result: unknown }
   [IPC.teachingSystemInstruction]: { args: [personaId: PersonaId]; result: string }
   [IPC.captureLiveFrame]: { args: []; result: LiveFrame }
@@ -194,11 +192,6 @@ export interface AlongsideApi {
     transcript(t: LiveTranscript): void
     status(s: LiveStatus): void
     liveFrame(): Promise<LiveFrame>
-  }
-
-  // wake spotter (dock window)
-  wake: {
-    getToken(): Promise<LiveToken>
   }
 
   // user decisions and data

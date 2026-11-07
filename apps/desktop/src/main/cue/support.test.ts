@@ -90,6 +90,7 @@ describe('feedback carries ids and numbers only', () => {
     expect(sanitizeFeedback({ ...e, seconds: Number.NaN })).toBeNull()
     expect(sanitizeFeedback({ ...e, seconds: 1e9 })!.seconds).toBe(86_400)
     expect(sanitizeFeedback({ ...e, how: 'because' })!.how).toBeNull()
+    expect(sanitizeFeedback({ ...e, event: 'accepted', how: 'show_me' })!.how).toBe('show_me')
     expect(sanitizeFeedback('x')).toBeNull()
   })
   it('the engine accepts exactly these event names', () => {

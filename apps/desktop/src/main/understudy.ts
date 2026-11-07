@@ -14,6 +14,8 @@ import { createDomCoach, type DomCoach } from './dom-ground/dom-coach'
 import { createDomGrounder, type DomGrounder } from './dom-ground/dom-grounder'
 import { startExtServer, type ExtServer } from './dom-ground/ext-server'
 import { parseCalibration } from './dom-ground/rect-map'
+import type { Rect } from './dom-ground/protocol'
+import type { CoachDecision } from './engine/coach-next'
 import { createProposalScheduler, fileProposalStore, type ProposalScheduler } from './proposals'
 import { isKilled } from './kill-flag'
 import { createCaptureConsent, type CaptureConsent } from './engine/capture-consent'
@@ -97,6 +99,10 @@ export interface UnderstudyDeps {
   stopSession(reason: SessionEndReason): void
   headless: boolean
   noOverlay: boolean
+  // Each answered GET /coach/next, before the brain acts on it (the awareness layer reads p_stuck here: one poll, two readers).
+  onCoachDecision?: (d: CoachDecision) => void
+  // The page's visible text lines and controls (screen points, boxes only) from the DOM tracker's answers; Cue docks its card away from them.
+  onPageContent?: (rects: Rect[]) => void
 }
 
 /** After the services, the session and the confirm broker exist: the kill switch, the HUD and the desk signals. */
@@ -125,6 +131,7 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
     tracker: ctx.coach,
     calibration: parseCalibration(process.env.UNDERSTUDY_RING_OFFSET),
     onEnd: (e) => brain?.onPromptEnd(e), // the worker's response to a brain decision goes to POST /coach/feedback
+    onContent: (rects) => deps.onPageContent?.(rects),
     log: ctx.log,
   })
   let extServer: ExtServer | null = null
@@ -239,7 +246,7 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
   const say = (text: string): void => {
     if (!isKilled()) services.overlay.caption('system', text, true)
   }
-  brain = createCoachBrain({ engine: core.engine, state: () => coachPoller.lastState(), ring, chip, say, killed: () => isKilled() || isPaused(), log: ctx.log })
+  brain = createCoachBrain({ onDecision: (d) => deps.onCoachDecision?.(d), engine: core.engine, state: () => coachPoller.lastState(), ring, chip, say, killed: () => isKilled() || isPaused(), log: ctx.log })
   const coachBrain = brain
   const chipTimer = setInterval(() => chip.refresh(), 15_000)
   chipTimer.unref?.()

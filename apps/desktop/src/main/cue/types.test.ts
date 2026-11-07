@@ -162,3 +162,33 @@ describe('quiet decisions', () => {
     expect(isProgress(parseCueDecision({ kind: 'none', episode_id: 'ep-1', why: { reasons: ['gate_cooldown'] } }))).toBe(false)
   })
 })
+
+describe('step.target: the zone that follows a ring', () => {
+  const withTarget = (target: unknown) => parseCueDecision({ ...(FIXTURES['cue-t2-l2'] as { step: object }), step: { ...(FIXTURES['cue-t2-l2'] as { step: object }).step, target } , kind: 'cue', episode_id: 'ep-1', tier: 2, say: { chip: 'Next: x' }, target: { box_2d: [100, 100, 200, 300], source: 'dom', confidence: 0.9 } })
+
+  it('a valid {zone, label_hint, role_hint} is kept, whatever else the engine sends', () => {
+    const d = withTarget({ zone: 'calc_a_run', label_hint: 'Calculate', role_hint: 'button', evil: 'x', box_2d: [1, 2, 3, 4] })
+    expect(d.step?.target).toEqual({ zone: 'calc_a_run', label_hint: 'Calculate', role_hint: 'button' })
+  })
+
+  it('the zone alone is enough; the hints are optional', () => {
+    expect(withTarget({ zone: 'case_note' }).step?.target).toEqual({ zone: 'case_note' })
+  })
+
+  it('missing, null, malformed or rule-breaking values are null: nothing follows the ring', () => {
+    for (const bad of [undefined, null, 'calc', 5, [], {}, { zone: 7 }, { zone: 'Not A Zone' }, { zone: 'x' }, { zone: 'calc_a_run', label_hint: 'a'.repeat(81) }, { zone: 'calc_a_run', role_hint: 'Not A Role' }, { label_hash: 'h:abcd' }, { role: 'button', name: 'Calculate' }]) {
+      expect(withTarget(bad).step?.target ?? null, JSON.stringify(bad)).toBeNull()
+    }
+    expect(withTarget(undefined).kind).toBe('cue')
+  })
+
+  it('the decision\'s own box is untouched by it: the two fields are never mixed', () => {
+    const d = withTarget({ zone: 'calc_a_run' })
+    expect(d.target?.box_2d).toEqual([100, 100, 200, 300])
+  })
+
+  it('every fixture step now carries a zone, and a decision with no step has no target', () => {
+    for (const name of ['cue-t2-l2', 'cue-t2-l1', 'cue-t3', 'offer']) expect(parseCueDecision(FIXTURES[name]).step?.target, name).not.toBeNull()
+    expect(parseCueDecision(FIXTURES['ask-3']).step).toBeNull()
+  })
+})

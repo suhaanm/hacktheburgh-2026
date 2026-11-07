@@ -1,7 +1,8 @@
 // The HUD without Electron: state, action validation and what each action does. hud.ts puts it in a window.
 import { z } from 'zod'
-import type { HudAction, HudProposal, HudState } from '../shared/hud'
+import type { HudAction, HudNotice, HudProposal, HudState } from '../shared/hud'
 import { EMPTY_HUD_STATE } from '../shared/hud'
+import { ACTION_IDS, type ActionId } from './attention/types'
 import { dashboardUrl, type Endpoints } from './engine/endpoints'
 import type { KillSwitch } from './kill-switch'
 
@@ -10,7 +11,16 @@ export const HudActionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('resume') }),
   z.object({ type: z.literal('open_queue') }),
   z.object({ type: z.literal('proposal'), id: z.string().min(1).max(80), choice: z.enum(['not_now', 'never', 'look']) }),
+  // The attention layer's notice: one of its own action ids, or the notice closing without a button.
+  z.object({ type: z.literal('notice'), id: z.string().min(1).max(80), action: z.enum(ACTION_IDS) }),
+  z.object({ type: z.literal('notice_closed'), id: z.string().min(1).max(80), how: z.enum(['dismissed', 'timeout']) }),
 ])
+
+/** Where a click on the notice goes (attention/adapter.ts: `action` and `closed`). The shell binds it; absent, a notice click does nothing. */
+export interface HudNoticeSink {
+  action(id: string, action: ActionId): void
+  closed(id: string, how: 'dismissed' | 'timeout'): void
+}
 
 export interface HudModelDeps {
   kill: Pick<KillSwitch, 'trigger' | 'clear' | 'state' | 'subscribe'>
@@ -21,11 +31,17 @@ export interface HudModelDeps {
   onProposalChoice(id: string, choice: 'not_now' | 'never' | 'look'): void
   push(state: HudState): void
   log?: (scope: string, ...args: unknown[]) => void
+  // REQ-8: where the notice's buttons go. Optional: absent, the model is exactly what it was; `setAttention` binds it later.
+  attention?: HudNoticeSink | null
 }
 
 export interface HudModel {
   state(): HudState
   setProposal(p: HudProposal | null): void
+  // The attention layer's notice (null removes it). A notice with the id already showing is not pushed again.
+  setNotice(n: HudNotice | null): void
+  // Late binding for the notice's buttons (the attention layer starts after the HUD exists). null unbinds.
+  setAttention(sink: HudNoticeSink | null): void
   setQueuePending(n: number | null): void
   // An agent or a session is acting for the person (shows the Stop all pill while true).
   setAgentActing(acting: boolean): void
@@ -40,6 +56,7 @@ export function createHudModel(deps: HudModelDeps): HudModel {
     deps.push(state)
   }
   const off = deps.kill.subscribe((k) => set({ kill: killOf(k) }))
+  let sink: HudNoticeSink | null = deps.attention ?? null
 
   return {
     state: () => state,
@@ -48,6 +65,17 @@ export function createHudModel(deps: HudModelDeps): HudModel {
       if (p && state.kill.killed) return
       if (state.proposal?.id === p?.id && p !== null) return
       set({ proposal: p })
+    },
+    setNotice(n) {
+      if (n === null) {
+        if (state.notice !== null) set({ notice: null })
+        return
+      }
+      if (state.notice?.id === n.id) return
+      set({ notice: n })
+    },
+    setAttention(next) {
+      sink = next
     },
     setQueuePending(n) {
       if (state.queuePending !== n) set({ queuePending: n })
@@ -78,6 +106,18 @@ export function createHudModel(deps: HudModelDeps): HudModel {
           if (a.choice === 'look') deps.openExternal(dashboardUrl(deps.endpoints, 'routines'))
           set({ proposal: null })
           deps.onProposalChoice(a.id, a.choice)
+          return true
+        }
+        case 'notice': {
+          if (!sink || state.notice?.id !== a.id) return false // no layer to tell, or a stale click on a notice that already left
+          set({ notice: null })
+          sink.action(a.id, a.action as ActionId)
+          return true
+        }
+        case 'notice_closed': {
+          if (!sink || state.notice?.id !== a.id) return false
+          set({ notice: null })
+          sink.closed(a.id, a.how)
           return true
         }
       }

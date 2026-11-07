@@ -90,13 +90,13 @@ async function probe(stub: boolean) {
             return new Response(JSON.stringify(canned(promptText)), { status: 200, headers: { 'content-type': 'application/json' } })
           }) as typeof fetch
         : realFetch
-      globalThis.fetch = (async (input: unknown, init?: { headers?: HeadersInit; body?: unknown }) => {
+      globalThis.fetch = (async (input: unknown, init?: { headers?: ConstructorParameters<typeof Headers>[0]; body?: unknown }) => {
         const req = input instanceof Request ? input : null
         const body = typeof init?.body === 'string' ? init.body : req ? await req.clone().text() : ''
         const headers = new Headers(init?.headers ?? req?.headers)
         const url = req ? req.url : String(input)
         if (/api\.openai\.com/.test(url)) requests.push({ url, body, hasKeyHeader: /^Bearer /.test(headers.get('authorization') ?? '') }) // loopback debug calls are not provider traffic
-        return innerFetch(input as RequestInfo, init as RequestInit)
+        return innerFetch(input as Parameters<typeof fetch>[0], init as RequestInit)
       }) as typeof fetch
 
       const logs: string[] = []

@@ -247,6 +247,50 @@ describe('a stale target', () => {
   })
 })
 
+describe('a ring that moves with its element', () => {
+  const moved: [number, number, number, number] = [300, 300, 360, 420]
+
+  it('a move while the ring is up updates it in place: the same ring id, nothing cleared, the panel follows', () => {
+    const r = rig()
+    r.send({ type: 'decision', decision: dec('cue-t2-l2') })
+    const fx = r.send({ type: 'retarget', box: moved }, r.now + 1000)
+    const ov = overlay(fx)
+    expect(ov).toHaveLength(1)
+    expect(ov[0].clear).toEqual([])
+    expect(ov[0].show.map((m) => m.id)).toEqual(['cue-ring-1'])
+    expect(ov[0].show[0]).toMatchObject({ kind: 'ring', box: { ymin: 300, xmin: 300, ymax: 360, xmax: 420 } })
+    expect(panel(fx)[0].anchor).toEqual({ xmin: 300, ymin: 300, xmax: 420, ymax: 360 })
+    expect(panel(fx)[0].view).toMatchObject({ mode: 'chip' })
+  })
+
+  it('a move is not a touch: the 20 seconds keep running; coming back from lost counts as one', () => {
+    const r = rig()
+    r.send({ type: 'decision', decision: dec('cue-t2-l2') })
+    const due = r.now + T.untouchedMs
+    r.send({ type: 'retarget', box: moved }, r.now + 5000)
+    expect(nextDeadline(r.state)).toBe(due)
+    r.send({ type: 'stale' }, r.now + 1000)
+    r.send({ type: 'retarget', box: moved }, r.now + 500)
+    expect(nextDeadline(r.state)).toBe(r.now + T.untouchedMs)
+  })
+
+  it('the ghost is not replayed by a move, but is drawn again when the ring comes back after being cleared', () => {
+    const r = rig()
+    r.send({ type: 'decision', decision: dec('cue-t3') })
+    expect(overlay(r.send({ type: 'retarget', box: moved }))[0].show.map((m) => m.kind)).toEqual(['ring'])
+    r.send({ type: 'stale' })
+    expect(overlay(r.send({ type: 'retarget', box: moved }))[0].show.map((m) => m.kind)).toEqual(['ring', 'ghostCursor'])
+  })
+
+  it('a cue with no ring has nothing to move', () => {
+    const r = rig()
+    r.send({ type: 'decision', decision: dec('cue-no-target') })
+    expect(r.send({ type: 'retarget', box: moved })).toEqual([])
+    const none = rig()
+    expect(none.send({ type: 'retarget', box: moved })).toEqual([])
+  })
+})
+
 describe('the popover and the worker actions', () => {
   it('"Why this?" opens the popover in the chip view and counts as a touch', () => {
     const r = rig()
@@ -269,8 +313,10 @@ describe('the popover and the worker actions', () => {
   it('"Show me" plays the ghost once, at any tier, and is not offered again', () => {
     const r = rig()
     r.send({ type: 'decision', decision: dec('cue-t2-l2') })
-    const fx = r.send({ type: 'show_me' })
+    const fx = r.send({ type: 'show_me' }, r.now + 3000)
     expect(overlay(fx)[0].show.map((m) => m.kind)).toContain('ghostCursor')
+    // The engine is told: accepted with how=show_me, seconds since the cue was shown.
+    expect(r.fb(fx)).toEqual([expect.objectContaining({ event: 'accepted', how: 'show_me', seconds: 3, step_id: 'calc_a' })])
     expect(panel(fx)[0].view).toMatchObject({ canShowMe: false })
     expect(r.send({ type: 'show_me' })).toEqual([])
   })

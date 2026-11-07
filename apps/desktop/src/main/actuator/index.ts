@@ -120,6 +120,10 @@ export interface ActuatorDeps {
   sleep?: (ms: number) => Promise<void>
   // Runs /usr/bin/osascript with exactly these arguments; rejects on failure.
   osascript?: (args: string[]) => Promise<void>
+  // S-18: hit test and click in one process (see GUARDED_CLICK_JXA). Giving one turns the path on; without it the path is on only with
+  // UNDERSTUDY_JXA_CLICK=1 (and then runs the real script). Default: off, the two-script click.
+  guardedClick?: (req: GuardedClickRequest) => Promise<GuardedClickOutcome>
+  jxaClick?: boolean
   // Runs `open -a <name>`; rejects on failure.
   openAppProcess?: (name: string) => Promise<void>
   // Clipboard text access for pasteText (pbpaste / pbcopy); tests inject fakes.
@@ -141,6 +145,85 @@ export interface ActuatorDeps {
 // Understudy: SIMULATED BY DEFAULT. Real clicks, keystrokes, scrolls (and app/URL opens through the actuator) run only when
 // UNDERSTUDY_REAL_ACTUATOR=1 is set AND ALONGSIDE_ACTUATOR_DRYRUN is not '1'. Spike S2 (owner present) has not passed; do not set it.
 export const dryRunFromEnv = (): boolean => process.env.ALONGSIDE_ACTUATOR_DRYRUN === '1' || process.env.UNDERSTUDY_REAL_ACTUATOR !== '1'
+
+// S-18 (in-process hit test and click). The default click is two scripts (the guard's hit test, then System Events `click at`), with a second
+// hit test just before the click: the gap left is the launch of one osascript. This single JXA closes it: in ONE process it re-reads the
+// window server's list, finds the topmost window at the point (same skip rules as WINDOW_AT_JXA), compares its window number and pid with the
+// PINNED window passed as argv, and posts the mouse events (CoreGraphics, the same HID tap as SCROLL_JXA) only when they match. Nothing is
+// posted otherwise. It prints one JSON line: {clicked:true} or {clicked:false, why}. Every value arrives as argv (numbers); no text, no title.
+// OFF BY DEFAULT: it runs only with UNDERSTUDY_JXA_CLICK=1 (or an injected guardedClick). It has been unit-tested against fakes ONLY; the
+// real script has never been executed, because no real click is allowed before the owner approves the supervised ladder (rung R2).
+export const GUARDED_CLICK_JXA = `ObjC.import('CoreGraphics');
+function run(argv) {
+  var x = Number(argv[0]), y = Number(argv[1]), dbl = Number(argv[2]) === 1, pinId = Number(argv[3]), pinPid = Number(argv[4]), ownPid = Number(argv[5]), dw = Number(argv[6]), dh = Number(argv[7]);
+  var list = ObjC.deepUnwrap(ObjC.castRefToObject($.CGWindowListCopyWindowInfo($.kCGWindowListOptionOnScreenOnly | $.kCGWindowListExcludeDesktopElements, $.kCGNullWindowID)));
+  var hit = null;
+  for (var i = 0; i < list.length && hit === null; i++) {
+    var w = list[i], b = w.kCGWindowBounds;
+    if (!b || w.kCGWindowAlpha === 0) continue;
+    if (x < b.X || x >= b.X + b.Width || y < b.Y || y >= b.Y + b.Height) continue;
+    var name = String(w.kCGWindowOwnerName);
+    if ((w.kCGWindowOwnerPID === ownPid || name === 'Dock' || name === 'Window Server') && b.Width >= dw - 2 && b.Height >= dh - 2) continue;
+    hit = w;
+  }
+  if (hit === null) return JSON.stringify({ clicked: false, why: 'no_window' });
+  if (Number(hit.kCGWindowNumber) !== pinId || Number(hit.kCGWindowOwnerPID) !== pinPid) return JSON.stringify({ clicked: false, why: 'window_changed' });
+  var pt = { x: x, y: y };
+  for (var n = 1; n <= (dbl ? 2 : 1); n++) {
+    var down = $.CGEventCreateMouseEvent(null, $.kCGEventLeftMouseDown, pt, $.kCGMouseButtonLeft);
+    var up = $.CGEventCreateMouseEvent(null, $.kCGEventLeftMouseUp, pt, $.kCGMouseButtonLeft);
+    if (!down || !up) return JSON.stringify({ clicked: false, why: 'event_failed' });
+    $.CGEventSetIntegerValueField(down, $.kCGMouseEventClickState, n);
+    $.CGEventSetIntegerValueField(up, $.kCGMouseEventClickState, n);
+    $.CGEventPost($.kCGHIDEventTap, down);
+    $.CGEventPost($.kCGHIDEventTap, up);
+  }
+  return JSON.stringify({ clicked: true });
+}`
+
+export interface GuardedClickRequest {
+  x: number
+  y: number
+  double: boolean
+  // The window the task started in: the click goes out only if THIS window is the topmost one at the point, checked in the same process.
+  pin: { id: number; pid: number }
+  ownPid: number
+  display: { width: number; height: number }
+}
+export type GuardedClickWhy = 'no_window' | 'window_changed' | 'event_failed' | 'unreadable'
+export type GuardedClickOutcome = { clicked: true } | { clicked: false; why: GuardedClickWhy }
+
+export function guardedClickArgs(r: GuardedClickRequest): string[] {
+  const n = (v: number): string => String(Math.round(v))
+  return ['-l', 'JavaScript', '-e', GUARDED_CLICK_JXA, '--', n(r.x), n(r.y), r.double ? '1' : '0', n(r.pin.id), n(r.pin.pid), n(r.ownPid), n(r.display.width), n(r.display.height)]
+}
+
+export function parseGuardedClick(out: string): GuardedClickOutcome {
+  try {
+    const j = JSON.parse(out.trim()) as { clicked?: unknown; why?: unknown } | null
+    if (j && j.clicked === true) return { clicked: true }
+    const why = j && typeof j.why === 'string' && ['no_window', 'window_changed', 'event_failed'].includes(j.why) ? (j.why as GuardedClickWhy) : 'unreadable'
+    return { clicked: false, why }
+  } catch {
+    return { clicked: false, why: 'unreadable' }
+  }
+}
+
+const GUARDED_WHY: Record<GuardedClickWhy, string> = {
+  no_window: 'I could not tell which window is under that point',
+  window_changed: 'the window under that point is not the one this task started in (it changed just before the click)',
+  event_failed: 'the click event could not be created',
+  unreadable: 'I could not read the answer of the click check, so nothing was clicked',
+}
+export const guardedClickReason = (why: GuardedClickWhy): string => GUARDED_WHY[why]
+
+class ClickRefused extends Error {
+  constructor(public readonly why: GuardedClickWhy) {
+    super(GUARDED_WHY[why])
+  }
+}
+
+export const jxaClickFromEnv = (): boolean => process.env.UNDERSTUDY_JXA_CLICK === '1'
 
 export function clickScript(x: number, y: number, double = false): string[] {
   const line = `click at {${Math.round(x)}, ${Math.round(y)}}`
@@ -165,6 +248,15 @@ export function scrollScript(x: number, y: number, lines: number): string[] {
   // CGEvent: positive = wheel up. Our dy > 0 means "read further down", so the sign is flipped.
   return ['-l', 'JavaScript', '-e', SCROLL_JXA, '--', String(Math.round(x)), String(Math.round(y)), String(-lines)]
 }
+
+const runGuardedClickOsascript = (req: GuardedClickRequest): Promise<GuardedClickOutcome> =>
+  new Promise((resolve) => {
+    const child = execFile('/usr/bin/osascript', guardedClickArgs(req), { timeout: 3000, killSignal: 'SIGKILL' }, (err, stdout) => {
+      inFlight.delete(child)
+      resolve(err ? { clicked: false, why: 'unreadable' } : parseGuardedClick(String(stdout)))
+    })
+    inFlight.add(child)
+  })
 
 const runOsascript = (args: string[]): Promise<void> =>
   new Promise((resolve, reject) => {
@@ -321,6 +413,7 @@ export function createActuator(deps: ActuatorDeps = {}): Actuator {
   const dryRun = deps.dryRun ?? dryRunFromEnv()
   const platform = deps.platform ?? process.platform
   const osascript = deps.osascript ?? runOsascript
+  const guardedClick = deps.guardedClick ?? (deps.jxaClick ?? jxaClickFromEnv() ? runGuardedClickOsascript : null)
   const openAppProcess = deps.openAppProcess ?? runOpenApp
   const readClipboard = deps.readClipboard ?? runClipboardRead
   const writeClipboard = deps.writeClipboard ?? runClipboardWrite
@@ -429,7 +522,7 @@ export function createActuator(deps: ActuatorDeps = {}): Actuator {
     if (cancelled?.()) return 'the run was stopped'
     return null
   }
-  const act = async (what: string, run: () => Promise<void> | void, needsAccessibility: boolean, guard?: { target: ActTarget | undefined; at?: { x: number; y: number }; cancelled?: () => boolean }): Promise<ActResult> => {
+  const act = async (what: string, run: () => Promise<void> | void, needsAccessibility: boolean, guard?: { target: ActTarget | undefined; at?: { x: number; y: number }; cancelled?: () => boolean; inProcess?: boolean }): Promise<ActResult> => {
     // Understudy: while the global kill switch is on, nothing runs, not even a dry run.
     const stopFirst = stopReason(guard?.cancelled)
     if (stopFirst) return blocked(stopFirst)
@@ -446,9 +539,10 @@ export function createActuator(deps: ActuatorDeps = {}): Actuator {
       const stopNow = stopReason(guard?.cancelled) // the switch may have been pressed while the desktop was being read
       if (stopNow) return blocked(stopNow)
       // S-18: the hit test and the click are two scripts. Read the window under the point AGAIN right before the click goes out: a window
-      // that moved, a banner or a Space switch in between refuses the click. (The gap left is the launch of one osascript; an in-process
-      // JXA click that tests and posts in one go would close it, and is the next step.)
-      if (guard?.at) {
+      // that moved, a banner or a Space switch in between refuses the click. (The gap left is the launch of one osascript. The in-process
+      // click, GUARDED_CLICK_JXA, closes it: it tests the pinned window and posts in one script. It is off by default, behind
+      // UNDERSTUDY_JXA_CLICK=1, and has only been tested against fakes; it skips this second look because it IS the second look.)
+      if (guard?.at && !guard.inProcess) {
         const again = await guardPoint(guard.target, guard.at)
         if (again) {
           log('actuator', `REFUSED ${what}: ${again} (second look, right before sending)`)
@@ -463,6 +557,10 @@ export function createActuator(deps: ActuatorDeps = {}): Actuator {
       log('actuator', what)
       return { ok: true }
     } catch (err) {
+      if (err instanceof ClickRefused) {
+        log('actuator', `REFUSED ${what}: ${err.message} (checked in the click's own process)`)
+        return blocked(err.message)
+      }
       return { ok: false, reason: 'failed', detail: message(err) }
     }
   }
@@ -518,7 +616,19 @@ export function createActuator(deps: ActuatorDeps = {}): Actuator {
       const at = point(p)
       if (isResult(at)) return at
       const double = opts.double === true
-      return act(`${double ? 'double ' : ''}click at ${at.x},${at.y}`, () => osascript(clickScript(at.x, at.y, double)), true, { target: opts.target, at, cancelled: opts.cancelled })
+      const what = `${double ? 'double ' : ''}click at ${at.x},${at.y}`
+      // S-18: with the in-process path on and a pinned window, the last look at the window and the click are ONE script. The earlier guard
+      // (app, never-act list, the pin itself) still runs first; only the second hit test is folded into the click.
+      const pin = opts.target?.window
+      if (guardedClick && pin && !dryRun) {
+        const display = { width: bounds?.().width ?? 0, height: bounds?.().height ?? 0 }
+        const run = async (): Promise<void> => {
+          const r = await guardedClick({ x: at.x, y: at.y, double, pin: { id: pin.id, pid: pin.pid }, ownPid: deps.ownPid ?? process.pid, display })
+          if (!r.clicked) throw new ClickRefused(r.why)
+        }
+        return act(what, run, true, { target: opts.target, at, cancelled: opts.cancelled, inProcess: true })
+      }
+      return act(what, () => osascript(clickScript(at.x, at.y, double)), true, { target: opts.target, at, cancelled: opts.cancelled })
     },
 
     async typeText(text, opts = {}) {

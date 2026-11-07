@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import { IPC } from '../shared/ipc'
+import { createLivePreloadApi } from '../main/live/preload-api'
 import type { AlongsideApi, EventArgs, EventChannel, InvokeArgs, InvokeChannel, InvokeResult, SendArgs, SendChannel, Unsubscribe } from '../shared/ipc'
 
 const invoke = <C extends InvokeChannel>(channel: C, ...args: InvokeArgs<C>): Promise<InvokeResult<C>> => ipcRenderer.invoke(channel, ...args)
@@ -37,9 +38,6 @@ const api: AlongsideApi = {
     transcript: (t) => send(IPC.liveTranscript, t),
     status: (s) => send(IPC.liveStatus, s),
     liveFrame: () => invoke(IPC.captureLiveFrame),
-  },
-  wake: {
-    getToken: () => invoke(IPC.wakeToken),
   },
 
   answerConfirm: (answer) => send(IPC.confirmAnswer, answer),
@@ -101,3 +99,5 @@ const api: AlongsideApi = {
 }
 
 contextBridge.exposeInMainWorld('alongside', api)
+// Voice: audio and control only, ten channels (src/main/live/ipc-channels.ts). No key, no token, no socket in a renderer.
+contextBridge.exposeInMainWorld('understudyLive', createLivePreloadApi(ipcRenderer))

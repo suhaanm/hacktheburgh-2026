@@ -151,7 +151,7 @@ export function HandsStep({ answers, set }: StepProps): ReactElement {
       <p className="ob-hint">Money, passwords and sending messages always stay with you.</p>
       <div className="ob-files">
         <Switch label="Let me look at files I choose" hint="Off unless you turn it on." checked={answers.filesEnabled} onChange={(on) => void toggleFiles(on)} />
-        <p className="ob-hint">To find things, short pieces of the files in folders you choose are sent to Google&rsquo;s Gemini to be indexed. Nothing else is read, and you can delete it all any time.</p>
+        <p className="ob-hint">Only short pieces of files in folders you choose are sent to Google&rsquo;s Gemini to be indexed. You can delete it all any time.</p>
         {note ? (
           <p className="ob-hint" role="status">
             {note}

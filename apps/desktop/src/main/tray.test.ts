@@ -53,7 +53,7 @@ vi.mock('electron', () => ({
 import { Bus } from './bus'
 import { SettingsStore } from './settings'
 import { StateStore } from './state'
-import { buildMenuEntries, describeStatus, iconKind, registerTray } from './tray'
+import { ATTENTION_DOT, attentionLine, buildMenuEntries, describeStatus, iconKind, registerTray } from './tray'
 import type { TrayModel } from './tray'
 import { trayTitle } from './panel-rules'
 import type { TrayStateInput } from './panel-rules'
@@ -663,3 +663,68 @@ describe('settings keys for the new tracks', () => {
     expect(AnnotationSchema.safeParse({ ...ring, weight: 'heavy' }).success).toBe(false)
   })
 })
+
+describe('the attention line and dot (REQ-8)', () => {
+  it('says how many things need the worker, in plain words, and nothing at all when none do', () => {
+    expect(attentionLine(undefined)).toBeUndefined()
+    expect(attentionLine({ needsYou: 0, waiting: 3, marker: 'none' })).toBeUndefined()
+    expect(attentionLine({ needsYou: 1, waiting: 0, marker: 'needs_you' })).toBe('1 thing needs you')
+    expect(attentionLine({ needsYou: 2, waiting: 0, marker: 'needs_you' })).toBe('2 things need you')
+    expect(labels({ attention: { needsYou: 2, waiting: 0, marker: 'needs_you' } })).toContain('2 things need you')
+    expect(labels({ attention: { needsYou: 1, waiting: 0, marker: 'needs_you' } })).toContain('1 thing needs you')
+    expect(byId({ attention: { needsYou: 2, waiting: 0, marker: 'needs_you' } }, 'attention')).toMatchObject({ enabled: false })
+  })
+
+  it('leaves the menu exactly as it was with nothing to say', () => {
+    const plain = buildMenuEntries(base)
+    expect(buildMenuEntries({ ...base, attention: { needsYou: 0, waiting: 0, marker: 'none' } })).toEqual(plain)
+    expect(buildMenuEntries({ ...base, attention: undefined })).toEqual(plain)
+    expect(plain.some((e) => e.id === 'attention')).toBe(false)
+  })
+
+  it('puts the line under the status lines, before the first separator, and keeps the kill entry as it is', () => {
+    const ids = buildMenuEntries({ ...base, coach: 'Help level 2: Walk with me', attention: { needsYou: 2, waiting: 0, marker: 'needs_you' } }).map((e) => e.id)
+    expect(ids.slice(0, 4)).toEqual(['status', 'coach', 'attention', 'sep1'])
+    const stopped = byId({ killed: true, attention: { needsYou: 1, waiting: 0, marker: 'stopped' } }, 'resume')
+    expect(stopped).toMatchObject({ label: 'Resume after stopping everything', enabled: true }) // the stop state is the kill switch's, never this layer's
+  })
+
+  it('a dot follows the title only while the marker says something needs the worker; the counts bind late and unbind cleanly', () => {
+    const { shell, tray } = setup()
+    expect(tray().title).toBe('')
+    let a: { needsYou: number; waiting: number; marker: 'none' | 'needs_you' | 'stopped' } | null = { needsYou: 2, waiting: 1, marker: 'needs_you' }
+    shell.setAttention(() => a)
+    expect(tray().title).toBe(ATTENTION_DOT)
+    expect(tray().tooltip).toBe('Understudy: Asleep. 2 things need you')
+    expect(shell.info().tooltip).toBe('Understudy: Asleep. 2 things need you')
+    expect(shell.info().menu.find((e) => e.id === 'attention')?.label).toBe('2 things need you')
+    a = { needsYou: 0, waiting: 1, marker: 'none' }
+    shell.refresh()
+    expect(tray().title).toBe('')
+    expect(tray().tooltip).toBe('Understudy: Asleep')
+    a = { needsYou: 1, waiting: 0, marker: 'stopped' }
+    shell.refresh()
+    expect(tray().title).toBe('') // stopped is the kill state: no extra mark from this layer
+    a = { needsYou: 1, waiting: 0, marker: 'needs_you' }
+    shell.refresh()
+    expect(tray().title).toBe(ATTENTION_DOT)
+    shell.setAttention(null)
+    expect(tray().title).toBe('')
+    expect(shell.info().menu.some((e) => e.id === 'attention')).toBe(false)
+  })
+
+  it('the dot goes after the state word, and after the fallback word when the icon files are missing', () => {
+    const { shell, tray, state } = setup({ iconDir: path.join(process.cwd(), 'no-such-dir') })
+    shell.setAttention(() => ({ needsYou: 1, waiting: 0, marker: 'needs_you' }))
+    expect(tray().title).toBe(`Understudy ${ATTENTION_DOT}`)
+    state.patch({ phase: 'live', persona: 'understudy' })
+    expect(tray().title).toMatch(new RegExp(`${ATTENTION_DOT}$`))
+  })
+
+  it('refresh is only a re-read: without a menu bar item it does nothing', () => {
+    const { shell } = setup({ showMenuBarIcon: false })
+    expect(() => shell.refresh()).not.toThrow()
+    expect(() => shell.setAttention(() => null)).not.toThrow()
+  })
+})
+

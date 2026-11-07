@@ -41,7 +41,7 @@ export function FilesSection({ enabled, onEnabled }: FilesSectionProps): ReactEl
   const folders = status?.folders ?? []
   return (
     <div className="al-setrow al-files" aria-label="Files I can look at">
-      <Switch label="Let me look at some of your files" hint="Off until you turn it on. I only read the folders you choose, I never change anything, and my notes stay on this computer." checked={enabled} onChange={onEnabled} />
+      <Switch label="Let me look at some of your files" hint="Off until you turn it on. Read-only, and only the folders you choose." checked={enabled} onChange={onEnabled} />
       {enabled ? (
         <>
           {folders.length > 0 ? (

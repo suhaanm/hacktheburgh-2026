@@ -11,7 +11,7 @@ import type { CoachDismissHow, CoachTracker } from '../engine/coach-events'
 import { trackTarget, type DomGrounder, type HideReason, type Tracker } from './dom-grounder'
 import type { DomTarget } from './protocol'
 import type { DisplayInfo } from './rect-map'
-import type { XY } from './protocol'
+import type { Rect, XY } from './protocol'
 
 export const DOM_RING_ID = 'dom-ring'
 const MESSAGE_MAX = 200
@@ -35,6 +35,9 @@ export interface DomCoachDeps {
   refreshMs?: number
   staleMs?: number
   onEnd?: (e: DomPromptEnd) => void
+  // The page's visible text lines and controls in screen points, from the same answer that placed the ring (RectAnswer.content). Cue docks
+  // its card away from them. Boxes only: no text. Called on every answer while a ring is tracked.
+  onContent?: (rects: Rect[]) => void
   now?: () => number
   setTimer?: (fn: () => void, ms: number) => unknown
   clearTimer?: (h: unknown) => void
@@ -120,8 +123,9 @@ export function createDomCoach(deps: DomCoachDeps): DomCoach {
         deps.grounder,
         target,
         {
-          onVisible: (box) => {
+          onVisible: (box, info) => {
             if (active !== state) return
+            deps.onContent?.(info.content)
             state.visible = true
             state.hiddenFor = undefined
             const marks: Annotation[] = [{ id: DOM_RING_ID, kind: 'ring', tone: 'guide', box, exact: true, ...(state.label ? { label: state.label } : {}), ...(state.message ? { note: state.message } : {}), ...(state.step ? { step: state.step } : {}) }]

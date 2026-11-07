@@ -9,6 +9,11 @@
   --accent: #0a7c78;
   --bad: #b3261e;
   --shadow: 0 1px 2px rgba(20, 25, 34, 0.16);
+  /* Motion: the same durations as packages/design/tokens.css (fast = hover and press, base = a toggle, arrive = a card arriving). */
+  --dur-fast: 140ms;
+  --dur-base: 240ms;
+  --dur-arrive: 360ms;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -143,8 +148,6 @@ body {
   margin: 0 0 4px;
   color: var(--muted);
   font-size: 11px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 .what {
   margin: 0 0 8px;
@@ -196,6 +199,26 @@ body {
 .btn.look {
   border-color: var(--accent);
 }
+/* The attention notice: the engine's words, one source line, its buttons. A plain card (no bar, no glow); it sits above the Stop all pill. */
+.card.notice {
+  animation: notice-arrive var(--dur-arrive) var(--ease-out) both;
+}
+.notice .what {
+  margin-bottom: 4px;
+}
+.notice .source {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.notice .row {
+  flex-wrap: wrap;
+}
+.notice .btn {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  transition: background-color var(--dur-fast);
+}
 .stopped h2 {
   display: flex;
   align-items: center;
@@ -212,9 +235,28 @@ body {
     transform: none;
   }
 }
+@keyframes notice-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
-  .card {
+  :root {
+    --dur-fast: 0.01ms;
+    --dur-base: 0.01ms;
+    --dur-arrive: 0.01ms;
+  }
+  .card,
+  .card.notice {
     animation: none;
+  }
+  .notice .btn {
+    transition: none;
   }
   .pill,
   .pill.stop::after {

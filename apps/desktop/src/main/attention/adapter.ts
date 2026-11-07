@@ -94,6 +94,7 @@ export function createAttentionAdapter(deps: AttentionAdapterDeps): AttentionAda
   let running = false
   let pollTimer: unknown = null
   let polling = false
+  let nextInMs = 2_000 // the engine's own hint for when to ask again (clamped), 2 s until it has said
   let cur: { item: AttentionItem; owner: LockOwner; shownAt: number; timer: unknown } | null = null
 
   const clearCur = (): void => {
@@ -144,6 +145,7 @@ export function createAttentionAdapter(deps: AttentionAdapterDeps): AttentionAda
       const out = await deps.client.next(deps.signals(), now())
       if (!out) return
       badges = out.badges
+      nextInMs = Math.min(30_000, Math.max(1_000, Math.round(out.pollAfterS * 1000)))
       deps.ports.setBadges(out.badges, out.digestReady)
       if (out.item) render(out.item)
     } catch (err) {
@@ -157,7 +159,7 @@ export function createAttentionAdapter(deps: AttentionAdapterDeps): AttentionAda
     if (!running) return
     pollTimer = setTimer(() => {
       void pollOnce().finally(() => schedule())
-    }, 2_000)
+    }, nextInMs)
   }
 
   const feedbackFor = (action: ActionId): FeedbackEvent | null => (FOLLOW_ACTIONS.has(action) ? 'followed' : action === 'never' ? 'never' : action === 'dismiss' || action === 'not_now' ? 'dismissed' : null)

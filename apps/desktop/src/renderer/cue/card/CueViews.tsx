@@ -30,8 +30,8 @@ export function WhyPopover({ why, canShowMe, onAction }: { why: CueWhyView | nul
         <p className="phrase">
           <span>{sentence(why.phrase)}</span>
           {why.simulated ? (
-            <span className="tag" title="The experts behind this number are simulated, not recorded people.">
-              simulated
+            <span className="tag" role="note" aria-label="Simulated experts, not recorded people">
+              Simulated
             </span>
           ) : null}
         </p>
@@ -72,8 +72,9 @@ export function ChipView({ view, onAction }: ViewProps<CueChipView>): ReactEleme
           </button>
         )}
         {plain ? null : (
-          <button type="button" className="chip-x" aria-label="Dismiss" title="Dismiss (Esc)" onClick={() => onAction({ type: 'dismiss' })}>
+          <button type="button" className="chip-x" aria-label="Dismiss, Escape" onClick={() => onAction({ type: 'dismiss' })}>
             <Cross />
+            <span className="chip-esc">esc</span>
           </button>
         )}
       </div>
@@ -95,7 +96,7 @@ export function QuestionView({ view, onAction }: ViewProps<CueQuestionView>): Re
     <div className="card" role="dialog" aria-label={view.question}>
       <div className="card-head">
         <p className="question">{view.question}</p>
-        <button type="button" className="esc" aria-label="Dismiss" title="Dismiss (Esc)" onClick={() => onAction({ type: 'dismiss' })}>
+        <button type="button" className="esc" aria-label="Dismiss, Escape" onClick={() => onAction({ type: 'dismiss' })}>
           esc
         </button>
       </div>

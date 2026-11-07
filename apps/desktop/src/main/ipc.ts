@@ -8,7 +8,7 @@ import { HELP_LEVEL_LABELS, PersonaIdSchema } from '../shared/protocol'
 import type { LiveToolCall, RendererStatePatch } from '../shared/protocol'
 import type { ConfirmBroker } from './confirm'
 import type { ServiceContext } from './context'
-import { mintLiveToken, mintWakeToken } from './live-auth'
+import { mintLiveToken } from './live-auth'
 import { registerFilesIpc } from './files'
 import type { AwarenessCardState } from '../shared/awareness'
 import type { Permissions } from './permissions'
@@ -79,7 +79,6 @@ export function registerIpc(deps: IpcDeps): void {
     PersonaIdSchema.parse(personaId)
     return mintLiveToken()
   })
-  handle(IPC.wakeToken, () => mintWakeToken())
   handle(IPC.liveToolCall, (call: LiveToolCall) => dispatch(call.name, call.args, 'live'))
   handle(IPC.teachingSystemInstruction, (personaId) => services.teaching.systemInstruction(PersonaIdSchema.parse(personaId)))
   handle(IPC.captureLiveFrame, () => services.capture.liveFrame())

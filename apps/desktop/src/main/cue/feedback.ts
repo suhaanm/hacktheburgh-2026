@@ -6,7 +6,7 @@ export const FEEDBACK_EVENTS = ['shown', 'accepted', 'dismissed', 'answered', 'r
 export type FeedbackKind = (typeof FEEDBACK_EVENTS)[number]
 
 // Why the cue ended, as a short enum. The engine reads `how` to weigh a label: a timeout is weaker than a press of Escape.
-export const FEEDBACK_HOW = ['esc', 'click', 'timeout', 'stale', 'progress', 'late', 'superseded', 'episode_end', 'off', 'quiet', 'declined', 'accepted_offer'] as const
+export const FEEDBACK_HOW = ['esc', 'click', 'timeout', 'stale', 'progress', 'late', 'superseded', 'episode_end', 'off', 'quiet', 'declined', 'accepted_offer', 'show_me'] as const
 export type FeedbackHow = (typeof FEEDBACK_HOW)[number]
 
 export interface CueFeedbackEvent {

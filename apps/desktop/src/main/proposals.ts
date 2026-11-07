@@ -10,6 +10,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import type { HudProposal } from '../shared/hud'
+import type { AttentionEvent } from './attention/types'
 import type { RoutineProposal } from './engine/client'
 
 export interface BreakSignals {
@@ -100,6 +101,12 @@ export function fileProposalStore(userDataDir: string | null): ProposalStore {
   }
 }
 
+// REQ-8: with the attention layer on, a proposal is an event the layer decides about (whether, where, when, how loudly), not a toast this
+// scheduler draws. It reports `routine_proposal` for each routine the engine says is proposed and `resolve` when it no longer is.
+export interface ProposalAttention {
+  report(ev: AttentionEvent): Promise<void> | void
+}
+
 export interface SchedulerDeps {
   engine: { routines(): Promise<RoutineProposal[] | null>; decline(id: string, mode: 'not_now' | 'never'): Promise<boolean> }
   hud: { setProposal(p: HudProposal | null): void; state(): { proposal: HudProposal | null } }
@@ -115,6 +122,8 @@ export interface SchedulerDeps {
   visibleMs?: number
   pollMs?: number // how often GET /routines is asked
   checkMs?: number // how often the break rules are checked while a candidate waits
+  // The attention layer. Absent: the HUD toast, exactly as before. `setAttention` binds it later (it starts after the scheduler exists).
+  attention?: ProposalAttention | null
   setTimer?: (fn: () => void, ms: number) => unknown
   clearTimer?: (h: unknown) => void
   log?: (scope: string, ...args: unknown[]) => void
@@ -122,9 +131,15 @@ export interface SchedulerDeps {
 
 export interface ProposalScheduler {
   // One round: refresh the list if due, show a toast if a candidate is waiting and it is a natural break. Resolves with what it did.
-  tick(): Promise<'shown' | 'waiting' | 'none' | 'budget' | 'not_a_break' | 'showing'>
+  tick(): Promise<'shown' | 'waiting' | 'none' | 'budget' | 'not_a_break' | 'showing' | 'reported'>
   // The worker's choice on the toast (the HUD calls this).
   choice(id: string, choice: 'not_now' | 'never' | 'look'): void
+  // Late binding for the attention layer. null goes back to the HUD toast (what was reported is left for the layer to expire).
+  setAttention(a: ProposalAttention | null): void
+  // "Not now" or "Never for this" pressed on the attention notice (which does not say which routine it was for). Applied only when exactly one
+  // routine is outstanding with the layer; with several it is ambiguous, so nothing is declined here (the layer's own feedback still lands)
+  // and false is returned.
+  noticeChoice(choice: 'not_now' | 'never'): boolean
   memory(): ProposalMemory
   dispose(): void
 }
@@ -153,6 +168,9 @@ export function createProposalScheduler(deps: SchedulerDeps): ProposalScheduler 
   let listAt = -Infinity
   let showing: { id: string; hideTimer: unknown } | null = null
   let busy = false
+  let attention: ProposalAttention | null = deps.attention ?? null
+  // The routines reported to the attention layer and not yet resolved.
+  const raised = new Set<string>()
 
   const save = (): void => deps.store?.save(mem)
   const rollDay = (): void => {
@@ -196,6 +214,29 @@ export function createProposalScheduler(deps: SchedulerDeps): ProposalScheduler 
     save()
   }
 
+  const declinedHere = (id: string): boolean => {
+    const r = mem.routines[id]
+    return !!r && (r.state === 'never' || (r.state === 'snoozed' && (r.until ?? 0) > now()))
+  }
+
+  // Attention mode: no budget, break rules or toast here (the layer decides all of that); just say what is proposed and what no longer is.
+  const reportToLayer = (layer: ProposalAttention): 'reported' | 'none' => {
+    const wanted = new Set(list.filter((p) => p.status === 'proposed' && !declinedHere(p.id)).map((p) => p.id))
+    let n = 0
+    for (const id of wanted) {
+      if (raised.has(id)) continue
+      raised.add(id)
+      n += 1
+      void Promise.resolve(layer.report({ type: 'routine_proposal', subject: id })).catch(() => undefined)
+    }
+    for (const id of [...raised]) {
+      if (wanted.has(id)) continue
+      raised.delete(id)
+      void Promise.resolve(layer.report({ type: 'routine_proposal', subject: id, op: 'resolve' })).catch(() => undefined)
+    }
+    return n > 0 ? 'reported' : 'none'
+  }
+
   const tick: ProposalScheduler['tick'] = async () => {
     if (busy) return 'waiting'
     busy = true
@@ -205,8 +246,9 @@ export function createProposalScheduler(deps: SchedulerDeps): ProposalScheduler 
       if (now() - listAt >= pollMs) {
         const fresh = await deps.engine.routines()
         listAt = now()
-        if (fresh) list = fresh
+        if (fresh) list = fresh // a failed read keeps the last list, so nothing is resolved on it
       }
+      if (attention) return reportToLayer(attention)
       const candidates = list.filter(eligible).sort((a, b) => (b.hoursSaved?.[0] ?? 0) - (a.hoursSaved?.[0] ?? 0))
       if (candidates.length === 0) return 'none'
       if (mem.shownToday >= maxPerDay || (mem.lastShownAt !== null && now() - mem.lastShownAt < minGapMs)) return 'budget'
@@ -227,23 +269,33 @@ export function createProposalScheduler(deps: SchedulerDeps): ProposalScheduler 
 
   const handle = setT(() => void tick(), checkMs)
 
+  const choose = (id: string, choice: 'not_now' | 'never' | 'look'): void => {
+    if (showing?.id === id) {
+      clearT(showing.hideTimer)
+      showing = null
+    }
+    const r = rm(id)
+    if (choice === 'not_now') {
+      r.state = 'snoozed'
+      r.until = now() + snoozeMs
+      void deps.engine.decline(id, 'not_now')
+    } else if (choice === 'never') {
+      r.state = 'never'
+      void deps.engine.decline(id, 'never')
+    } else r.state = 'looked'
+    save()
+  }
+
   return {
     tick,
-    choice(id, choice) {
-      if (showing?.id === id) {
-        clearT(showing.hideTimer)
-        showing = null
-      }
-      const r = rm(id)
-      if (choice === 'not_now') {
-        r.state = 'snoozed'
-        r.until = now() + snoozeMs
-        void deps.engine.decline(id, 'not_now')
-      } else if (choice === 'never') {
-        r.state = 'never'
-        void deps.engine.decline(id, 'never')
-      } else r.state = 'looked'
-      save()
+    choice: choose,
+    setAttention(a) {
+      attention = a
+    },
+    noticeChoice(choice) {
+      if (raised.size !== 1) return false
+      choose([...raised][0] as string, choice)
+      return true
     },
     memory: () => mem,
     dispose() {

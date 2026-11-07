@@ -9,7 +9,8 @@ import { Panel } from '../dock/Panel'
 import { Pill } from '../dock/Pill'
 import { ToastCard } from '../toast/ToastCard'
 import '../toast/toast.css'
-import { applyDesignSettings } from './index'
+import { applyDesignSettings, AwarenessCard, Onboarding } from './index'
+import type { AwarenessCardState } from '../../shared/awareness'
 import './gallery'
 import './styles'
 
@@ -29,6 +30,10 @@ const apply = (): void => applyDesignSettings(settings, 'understudy', document.d
 apply()
 for (const ms of [30, 150, 400, 900, 1600]) setTimeout(apply, ms)
 const now = Date.now()
+const cardOff: AwarenessCardState = { available: true, consentText: 'Understudy can take a quick look at your screen when you seem stuck, when you press its shortcut and, only if you turn it on, about every 30 seconds. Each look sends one small, reduced picture of your screen to a cloud vision model, which tells it what kind of app you are in and what seems to be in the way. The picture leaves this Mac for that one call, is held in memory only, and is never saved by Understudy; what comes back is a few fixed labels, not text. Nothing is sent while a password manager or banking app is in front, while a password field has focus, while your screen is locked or shared, or while you are away.', consentShort: 'Look at my screen when I seem stuck. Nothing is saved. See every call in Privacy.', agreed: false, enabled: false, trigger: false, periodic: false, strict: true, intervalSec: 30, dailyUsd: 0.5, callsToday: 0, lastSkip: null }
+const cardOn: AwarenessCardState = { ...cardOff, agreed: true, enabled: true, trigger: true, periodic: false, callsToday: 3, lastSkip: 'secure_input' }
+// The panel's Settings tab hosts the card through window.alongside.awareness; the harness answers with the canned (off) state.
+;(window as unknown as { alongside?: Record<string, unknown> }).alongside = { ...((window as unknown as { alongside?: Record<string, unknown> }).alongside ?? {}), awareness: { state: async () => cardOff, setConsent: async () => cardOn } }
 const name = PERSONAS.understudy.displayName
 const st = (over: Partial<CompanionState>): CompanionState => ({
   persona: 'understudy', phase: 'live', micMuted: false, level: 2, levelLocked: false, captions: [], agents: [], settings, ...over,
@@ -73,5 +78,8 @@ createRoot(document.getElementById('shots') as HTMLElement).render(
     {panel('progress')}
     {panel('settings')}
     {panel('profile')}
+    <div className="al-app al-dock shot-win" style={{ padding: 16 }}><AwarenessCard state={cardOff} onChoose={noop} /></div>
+    <div className="al-app al-dock shot-win" style={{ padding: 16 }}><AwarenessCard state={cardOn} onChoose={noop} /></div>
+    <div className="al-app al-dock shot-win" style={{ padding: 16 }}><Onboarding personaName={name} onRequestMicrophone={() => Promise.resolve(true)} onDone={noop} /></div>
   </>,
 )

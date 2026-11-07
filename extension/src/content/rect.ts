@@ -202,7 +202,9 @@ function collect(win: Window, matcher: SensitiveMatcher, geo: { ox: number; oy: 
     if (r.width > 0 && r.height > 0 && !inView(r.left, r.top, r.width, r.height) && el !== root) continue;
 
     const control = LEAF_CONTROLS.has(tag) || (tag === "a" && el.hasAttribute("href"));
-    if (control && !hiddenSelf && inView(r.left, r.top, r.width, r.height) && !(tag === "input" && ((el as HTMLInputElement).type || el.getAttribute("type") || "").toLowerCase() === "hidden")) {
+    // A sensitive control (a password or one-time-code field, anything on sensitive_fields.json, anything in a form that holds one) is NEVER
+    // measured: no box, no size, no position (the same rule as the rect lookup above).
+    if (control && !hiddenSelf && inView(r.left, r.top, r.width, r.height) && !isSensitive(el) && !(tag === "input" && ((el as HTMLInputElement).type || el.getAttribute("type") || "").toLowerCase() === "hidden")) {
       controls.push({ x0: r.left, y0: r.top, x1: r.left + r.width, y1: r.top + r.height });
     }
     if (LEAF_CONTROLS.has(tag)) continue;

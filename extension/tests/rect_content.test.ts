@@ -334,7 +334,7 @@ describe("content: what is not visible is not there", () => {
 });
 
 describe("content: sensitive fields", () => {
-  it("never includes the text lines of a form with a password field, a sensitive label, or a one-time-code container; a plain text line stays", () => {
+  it("never measures a password field, anything on sensitive_fields.json, or anything in a form that holds one: no box, no size, no position; plain lines and plain controls stay", () => {
     page(
       `<form id="f"><label id="lb" for="pw">Password</label><input id="pw" type="password" value="zqxValue"><p id="note">Enter zqxText here</p><button id="sub" type="submit">Sign in</button></form>` +
       `<label id="ni" for="nino">National Insurance number</label><input id="nino" name="ni_number">` +
@@ -351,15 +351,23 @@ describe("content: sensitive fields", () => {
     lines(q("#ni"), [{ x: 20, y: 280, w: 200, h: 18 }]);
     lines(q("#hint"), [{ x: 230, y: 345, w: 100, h: 18 }]);
     lines(q("#plain"), [{ x: 20, y: 400, w: 180, h: 18 }]);
-    // every control is there as a plain box, and so is the plain line; no line of the form, the label or the container is
+    // The password field, the submit button of its form, the NI number field and the one-time-code field are not there at all (not even as
+    // a plain box), and neither is any line of the form, the label or the container. The target button and the plain paragraph stay.
     expect(content()).toEqual([
       GO_BOX,
-      [400, 20, 448, 220],   // the password field: a box, nothing else
-      [480, 20, 528, 100],   // the submit button
-      [600, 20, 648, 220],   // the NI number field
-      [680, 20, 728, 220],   // the one-time-code field
       [800, 20, 836, 200],   // "An ordinary paragraph"
     ]);
+    // ...and nothing sits at the position or size of any sensitive control, in any serialisation of the answer.
+    const wire = JSON.stringify(resolveRect(window, GO, deps));
+    for (const gone of ["[400,20,448,220]", "[480,20,528,100]", "[600,20,648,220]", "[680,20,728,220]"]) expect(wire).not.toContain(gone);
+  });
+
+  it("a plain control outside any sensitive form is still measured, and a type=password input on its own is not", () => {
+    page(`<input id="plain" name="search"><input id="solo" type="password"><input id="ccn" autocomplete="cc-number">`);
+    layout(q("#plain"), { x: 20, y: 200, w: 200, h: 24 });
+    layout(q("#solo"), { x: 20, y: 240, w: 200, h: 24 });
+    layout(q("#ccn"), { x: 20, y: 280, w: 200, h: 24 });
+    expect(content()).toEqual([GO_BOX, [400, 20, 448, 220]]);
   });
 });
 

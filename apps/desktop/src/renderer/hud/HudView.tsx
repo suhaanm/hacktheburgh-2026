@@ -1,7 +1,7 @@
 // The HUD, presentational: one kill switch pill that is always there, a card that replaces it while stopped, and a calm
 // proposal toast above it at natural breaks. All copy is plain; "Not now" and "Never for this" weigh the same as "Look at it".
 import type { ReactElement } from 'react'
-import type { HudAction, HudProposal, HudState } from '../../shared/hud'
+import type { HudAction, HudNotice, HudProposal, HudState } from '../../shared/hud'
 
 export interface HudViewProps {
   state: HudState
@@ -99,18 +99,50 @@ export function StoppedCard({ kill, onAction }: { kill: HudState['kill']; onActi
   )
 }
 
-/** Whether the HUD has anything to draw: the Stopped card, a proposal, or the Stop all pill (only while an agent acts). */
+// A notice from the attention layer: the engine's own words, one source line, and the buttons it offers, labelled as given. Nothing else.
+// A notice with no way to say "not now" or "close" gets a plain Close, so no surface is ever stuck on the screen. Escape also closes it.
+const CLOSING_ACTIONS = new Set(['dismiss', 'not_now', 'never'])
+
+export function noticeButtons(notice: HudNotice): { key: string; label: string; send: HudAction; lead: boolean }[] {
+  const buttons = notice.actions.map((a) => ({ key: a.id, label: a.label, send: { type: 'notice', id: notice.id, action: a.id } as HudAction, lead: a.id.startsWith('open_') }))
+  if (!notice.actions.some((a) => CLOSING_ACTIONS.has(a.id))) buttons.push({ key: 'close', label: 'Close', send: { type: 'notice_closed', id: notice.id, how: 'dismissed' }, lead: false })
+  return buttons
+}
+
+/** What Escape does: close the notice (how: dismissed). Null when there is no notice or another key was pressed. */
+export function noticeEscape(state: HudState, key: string): HudAction | null {
+  return key === 'Escape' && state.notice && !state.kill.killed ? { type: 'notice_closed', id: state.notice.id, how: 'dismissed' } : null
+}
+
+export function NoticeCard({ notice, onAction }: { notice: HudNotice; onAction(a: HudAction): void }): ReactElement {
+  return (
+    <section className="card notice" role={notice.urgent ? 'alert' : 'status'} aria-labelledby="notice-title" data-notice-id={notice.id}>
+      <h2 id="notice-title">{notice.title}</h2>
+      <p className="what">{notice.body}</p>
+      <p className="source">{notice.source}</p>
+      <div className="row">
+        {noticeButtons(notice).map((b) => (
+          <button key={b.key} type="button" className={b.lead ? 'btn look' : 'btn'} onClick={() => onAction(b.send)}>
+            {b.label}
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/** Whether the HUD has anything to draw: the Stopped card, a notice, a proposal, or the Stop all pill (only while an agent acts). */
 export function hudHasContent(state: HudState): boolean {
-  return state.kill.killed || state.proposal !== null || state.agentActing
+  return state.kill.killed || state.notice !== null || state.proposal !== null || state.agentActing
 }
 
 export function HudView({ state, onAction }: HudViewProps): ReactElement | null {
-  const { kill, proposal, agentActing } = state
+  const { kill, proposal, notice, agentActing } = state
   // Idle: nothing at all. The window hides itself; the kill hotkey and the menu-bar item are always there.
   if (!hudHasContent(state)) return null
   return (
     <div className="stack" data-hud-card>
-      {kill.killed ? <StoppedCard kill={kill} onAction={onAction} /> : proposal ? <ProposalCard proposal={proposal} onAction={onAction} /> : null}
+      {kill.killed ? <StoppedCard kill={kill} onAction={onAction} /> : notice ? <NoticeCard notice={notice} onAction={onAction} /> : proposal ? <ProposalCard proposal={proposal} onAction={onAction} /> : null}
       {kill.killed || !agentActing ? null : (
         <div className="pill-row">
           <button type="button" className="pill stop" data-hint={KILL_HINT} onClick={() => onAction({ type: 'kill' })} aria-label="Stop everything. This is the kill switch.">

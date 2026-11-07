@@ -10,8 +10,9 @@ import type { ServiceContext } from '../context'
 import { endpointsFromEnv } from '../engine/endpoints'
 import { isKilled } from '../kill-flag'
 import { createOverlayController } from '../overlay-controller'
-import { createCueController, type CueController, type CueGrounder, type CueSignals, type OverlayPort } from './controller'
+import { createCueController, type AttentionPort, type CueController, type CueGrounder, type CueSignals, type OverlayPort } from './controller'
 import { readCueSettings, type Policy } from './guards'
+import { createDomRecheck, type DomRecheckDeps } from './dom-recheck'
 import { createPanelWindow, type PanelWindow } from './panel-window'
 import type { Pt, Rect } from './place'
 import { createHttpEngine, type CueEnginePort } from './source'
@@ -26,8 +27,13 @@ export interface CueStartContext extends ServiceContext {
   workerUsedVoice?: () => boolean
   // From AWARENESS: typing, and a reason to stay away (a denylisted frontmost app, secure input).
   signals?: Partial<CueSignals> & { suppressed?: () => string | null }
-  // Finds a ring again after the screen changed (the DOM tracker, or a glance). Without it a stale ring is dropped.
+  // The one-voice rule (ATTENTION): admit before a new cue is drawn, release when it is gone. Optional; without it Cue behaves as before.
+  attention?: AttentionPort
+  // Finds a ring again after the screen changed, and follows it as the page moves (the DOM tracker, or a glance). Without it a stale ring is dropped.
   grounder?: CueGrounder
+  // The shell's DOM grounder, to build that grounder from the decision's `step.target` (a zone): `{ grounder: domGrounder, display, calibration, onContent }`.
+  // Ignored when `grounder` is given. Without a zone on the decision (an older engine) nothing can follow the ring, and it drops after 1.2 s as before.
+  dom?: DomRecheckDeps
   // The page's visible text and controls in screen DIPs (from the browser extension's `content` field). Without it the card docks at a corner.
   content?: () => Rect[] | null
   // "Something else" on a question: open the conversation (LIVE). Not called unless the worker picks it.
@@ -98,10 +104,12 @@ export function startCue(ctx: CueStartContext): CueHandle | null {
     panel,
     policy,
     settings: () => ({ proactivity: settings().cueProactivity, voice: settings().cueVoice }),
-    signals: { typingNow: ctx.signals?.typingNow, workerUsedVoice: ctx.workerUsedVoice ?? ctx.signals?.workerUsedVoice, away: ctx.signals?.away },
+    // Every optional signal the shell passes reaches the controller (typingNow, away, and quietS once CueSignals has it); `suppressed` lives in the policy.
+    signals: { ...ctx.signals, workerUsedVoice: ctx.workerUsedVoice ?? ctx.signals?.workerUsedVoice },
+    attention: ctx.attention,
     voice: ctx.voice,
     speaker: ctx.speaker,
-    grounder: ctx.grounder,
+    grounder: ctx.grounder ?? (ctx.dom ? createDomRecheck({ log: ctx.log, ...ctx.dom }) : undefined),
     onConverse: ctx.onConverse,
     buildVoiceOn: process.env.UNDERSTUDY_VOICE === '1',
     chord: process.platform === 'darwin' ? '⌥' : 'Alt+',

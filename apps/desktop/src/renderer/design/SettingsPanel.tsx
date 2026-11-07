@@ -173,7 +173,7 @@ export function SettingsPanel({ settings, onChange, personas, privacy, more }: S
           </Group>
 
           <Group title="Listening">
-            <Field label="Talk key" hint="Hold it to talk to Understudy. For now it brings the panel up; voice comes later. It never uses the microphone by itself.">
+            <Field label="Talk key" hint="Hold to talk. For now it opens the panel. It never uses the microphone by itself.">
               <Segmented
                 label="Talk key"
                 value={TALK_KEYS.some((k) => k.value === settings.talkHotkey) ? settings.talkHotkey : TALK_KEYS[0]!.value}
@@ -183,7 +183,7 @@ export function SettingsPanel({ settings, onChange, personas, privacy, more }: S
             </Field>
             <Switch
               label="Listen for my name"
-              hint="Off by default. Turning it on streams your microphone to a cloud model so it can hear the name. The talk key and the menu bar need no microphone."
+              hint="Off by default. Streams your microphone to a cloud model to hear the name."
               checked={settings.wakeEnabled}
               onChange={toggle('wakeEnabled')}
             />
@@ -207,7 +207,7 @@ export function SettingsPanel({ settings, onChange, personas, privacy, more }: S
             </Field>
             <Switch
               label="Let it act on its own when I am away"
-              hint="Off by default. Only if you step away mid-lesson and a step is stuck, I may do that one step myself. I never pay, send, delete or log in, and Stop ends it."
+              hint="Off by default. If you step away mid-lesson I may finish one stuck step. I never pay, send, delete or log in. Stop ends it."
               checked={settings.agency === 'autonomous'}
               onChange={(on) => onChange({ agency: on ? 'autonomous' : 'ask_each' })}
             />

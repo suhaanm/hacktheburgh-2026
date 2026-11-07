@@ -237,6 +237,26 @@ describe('the level glance and the permission prompt', () => {
   })
 })
 
+describe('the poll loop', () => {
+  it('asks again when the engine says to, within 1 and 30 seconds', async () => {
+    const delays: number[] = []
+    const fake = createFakeClient({ next: [parseNext({ data: { item: null, badges: {}, poll_after_s: 7 } }), parseNext({ data: { item: null, badges: {}, poll_after_s: 120 } }), parseNext({ data: { item: null, badges: {}, poll_after_s: 0.5 } })] })
+    const adapter = createAttentionAdapter({
+      client: fake.client, signals: () => CALM_SIGNALS, ports: { showNotice: () => undefined, hideNotice: () => undefined, setBadges: () => undefined, open: () => undefined },
+      setTimer: (fn, ms) => {
+        delays.push(ms)
+        if (delays.length < 4) queueMicrotask(fn) // three answers, then the loop is left waiting
+        return delays.length
+      },
+      clearTimer: () => undefined,
+    })
+    adapter.start()
+    await new Promise((r) => setTimeout(r, 20))
+    adapter.stop()
+    expect(delays.slice(0, 3)).toEqual([7000, 30000, 1000])
+  })
+})
+
 describe('defaults', () => {
   it('empty badges are quiet', () => {
     expect(EMPTY_BADGES).toEqual({ needs_you: 0, waiting: 0, marker: 'none', stopped: false })

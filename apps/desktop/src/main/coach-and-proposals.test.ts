@@ -523,3 +523,188 @@ describe('chip driver after the overlay page reloads', () => {
     expect(sent.slice(2)).toEqual(['gone', 'gone'])
   })
 })
+
+// ---------- REQ-8: the attention layer is asked before a glance is drawn, and a proposal is reported to it ----------
+describe('chip driver with the attention layer', () => {
+  const lv = (level: HelpLevel) => ({ level, streakClean: 0 })
+  function rig(layer: { admitGlance(s: string): Promise<boolean>; releaseGlance(): void } | null, killed = () => false) {
+    const local = { level: 3 as HelpLevel, streakClean: 0 }
+    const chips: Array<[HelpLevel, string]> = []
+    const timers: Array<{ fn: () => void; ms: number }> = []
+    const driver = createChipDriver({
+      overlay: { coach: () => undefined, chip: (l, label) => void chips.push([l, label]) },
+      local: () => local,
+      killed,
+      attention: layer,
+      setTimer: (fn, ms) => void timers.push({ fn, ms }),
+    })
+    driver.refresh() // the first reading is not a change
+    return { driver, chips, timers, local }
+  }
+  const settle = () => new Promise<void>((r) => setTimeout(r, 0))
+
+  it('asks first, draws only on a yes, and gives the voice back after the two seconds it is shown', async () => {
+    const layer = { admitGlance: vi.fn(async () => true), releaseGlance: vi.fn() }
+    const { driver, chips, timers, local } = rig(layer)
+    local.level = 2
+    driver.refresh()
+    expect(layer.admitGlance).toHaveBeenCalledWith('lv_2')
+    expect(chips).toEqual([]) // not before the answer
+    await settle()
+    expect(chips).toEqual([[2, 'Walk with me']])
+    expect(layer.releaseGlance).not.toHaveBeenCalled()
+    expect(timers.map((t) => t.ms)).toEqual([2_000])
+    timers[0].fn()
+    expect(layer.releaseGlance).toHaveBeenCalledTimes(1)
+  })
+
+  it('a no, a failed answer, or a stop in the meantime draws nothing (and gives the voice back when it was granted)', async () => {
+    const no = { admitGlance: vi.fn(async () => false), releaseGlance: vi.fn() }
+    const a = rig(no)
+    a.local.level = 2
+    a.driver.refresh()
+    await settle()
+    expect(a.chips).toEqual([])
+    expect(no.releaseGlance).not.toHaveBeenCalled() // the adapter already let go of what it never got
+
+    const broken = { admitGlance: vi.fn(async () => { throw new Error('layer down') }), releaseGlance: vi.fn() }
+    const b = rig(broken)
+    b.local.level = 2
+    b.driver.refresh()
+    await settle()
+    expect(b.chips).toEqual([])
+    expect(broken.releaseGlance).toHaveBeenCalledTimes(1)
+
+    let stopped = false
+    const yes = { admitGlance: vi.fn(async () => true), releaseGlance: vi.fn() }
+    const c = rig(yes, () => stopped)
+    c.local.level = 2
+    c.driver.refresh()
+    stopped = true // the kill switch was pressed while the question was out
+    await settle()
+    expect(c.chips).toEqual([])
+    expect(yes.releaseGlance).toHaveBeenCalledTimes(1)
+  })
+
+  it('only a level change asks: a repeat, a forced re-send or the first reading do not', async () => {
+    const layer = { admitGlance: vi.fn(async () => true), releaseGlance: vi.fn() }
+    const { driver, local } = rig(layer)
+    driver.refresh()
+    driver.refresh(true)
+    expect(layer.admitGlance).not.toHaveBeenCalled()
+    local.level = 4
+    driver.refresh()
+    driver.refresh()
+    expect(layer.admitGlance).toHaveBeenCalledTimes(1)
+    expect(layer.admitGlance).toHaveBeenCalledWith('lv_4')
+    await settle()
+  })
+
+  it('without the layer the glance is drawn at once, exactly as before; the layer can be bound later and unbound again', async () => {
+    const { driver, chips, local } = rig(null)
+    local.level = 2
+    driver.refresh()
+    expect(chips).toEqual([[2, 'Walk with me']]) // synchronous
+    const layer = { admitGlance: vi.fn(async () => true), releaseGlance: vi.fn() }
+    driver.setAttention(layer)
+    local.level = 1
+    driver.refresh()
+    expect(chips).toHaveLength(1) // asking now
+    await settle()
+    expect(chips).toHaveLength(2)
+    driver.setAttention(null)
+    local.level = 2
+    driver.refresh()
+    expect(chips).toHaveLength(3)
+    expect(lv(2).level).toBe(2)
+  })
+})
+
+describe('proposal scheduler with the attention layer', () => {
+  const rp = (id: string, status = 'proposed', hours = 2) => ({ id, title: `Routine ${id}`, status, minutesPerWeek: 60, hoursSaved: [hours, hours + 1] as [number, number], horizonWeeks: 4, episodes: 14, touches: [], never: [], what: `What ${id}`, howOften: 'often' })
+  function rig(initial: Array<ReturnType<typeof rp>> | null, withLayer = true) {
+    let list = initial
+    const t = new Date('2026-11-07T10:00:00').getTime()
+    const decisions: string[] = []
+    const reports: Array<{ type: string; subject: string; op?: string }> = []
+    const proposals: Array<unknown> = []
+    const hud = { setProposal: (p: HudProposal | null) => void proposals.push(p), state: () => ({ proposal: null as HudProposal | null }) }
+    const engine = { routines: async () => list, decline: async (id: string, mode: 'not_now' | 'never') => (decisions.push(`${id}:${mode}`), true) }
+    const sched = createProposalScheduler({
+      engine,
+      hud,
+      signals: { idleSeconds: () => 60, lessonActive: () => false, confirmPending: () => false, killed: () => false, locked: () => false, task: () => null, lastEpisodeEndAt: () => null },
+      now: () => t,
+      pollMs: 0,
+      ...noTimers,
+      attention: withLayer ? { report: (ev) => void reports.push({ type: ev.type, subject: ev.subject, op: ev.op }) } : null,
+    })
+    return { sched, reports, decisions, proposals, set: (l: typeof list) => void (list = l) }
+  }
+
+  it('reports each proposed routine once and resolves it when it is no longer proposed; the HUD toast is not used', async () => {
+    const r = rig([rp('a'), rp('b'), rp('c', 'declined')])
+    expect(await r.sched.tick()).toBe('reported')
+    expect(r.reports).toEqual([{ type: 'routine_proposal', subject: 'a', op: undefined }, { type: 'routine_proposal', subject: 'b', op: undefined }])
+    expect(await r.sched.tick()).toBe('none')
+    expect(r.reports).toHaveLength(2)
+    r.set([rp('a'), rp('b', 'accepted')])
+    expect(await r.sched.tick()).toBe('none')
+    expect(r.reports.at(-1)).toEqual({ type: 'routine_proposal', subject: 'b', op: 'resolve' })
+    r.set([])
+    await r.sched.tick()
+    expect(r.reports.at(-1)).toEqual({ type: 'routine_proposal', subject: 'a', op: 'resolve' })
+    expect(r.proposals).toEqual([]) // hud.setProposal never called
+  })
+
+  it('an engine that does not answer resolves nothing and raises nothing', async () => {
+    const r = rig([rp('a')])
+    await r.sched.tick()
+    r.set(null)
+    await r.sched.tick()
+    expect(r.reports).toHaveLength(1)
+  })
+
+  it('Not now and Never for this on the notice decline the routine at the engine when it is the only one outstanding, and stop it being reported', async () => {
+    const a = rig([rp('only')])
+    await a.sched.tick()
+    expect(a.sched.noticeChoice('not_now')).toBe(true)
+    expect(a.decisions).toEqual(['only:not_now'])
+    await a.sched.tick() // snoozed locally: resolved with the layer even before the engine's own status changes
+    expect(a.reports.at(-1)).toEqual({ type: 'routine_proposal', subject: 'only', op: 'resolve' })
+
+    const b = rig([rp('only')])
+    await b.sched.tick()
+    expect(b.sched.noticeChoice('never')).toBe(true)
+    expect(b.decisions).toEqual(['only:never'])
+    await b.sched.tick()
+    await b.sched.tick()
+    expect(b.reports.filter((x) => x.op !== 'resolve')).toHaveLength(1) // never raised again
+  })
+
+  it('with several outstanding it is ambiguous which one the notice was for: nothing is declined, and false says so', async () => {
+    const r = rig([rp('a'), rp('b')])
+    await r.sched.tick()
+    expect(r.sched.noticeChoice('never')).toBe(false)
+    expect(r.decisions).toEqual([])
+    const none = rig([])
+    await none.sched.tick()
+    expect(none.sched.noticeChoice('not_now')).toBe(false)
+  })
+
+  it('without the layer the HUD toast works as it always did, and binding later switches over (and unbinding back)', async () => {
+    const r = rig([rp('a')], false)
+    expect(await r.sched.tick()).toBe('waiting') // the HUD fake does not show it; what matters is that it was offered there
+    expect(r.proposals).toHaveLength(1)
+    expect(r.reports).toEqual([])
+    const sent: string[] = []
+    r.sched.setAttention({ report: (ev) => void sent.push(`${ev.type}:${ev.subject}`) })
+    expect(await r.sched.tick()).toBe('reported')
+    expect(sent).toEqual(['routine_proposal:a'])
+    expect(r.proposals).toHaveLength(1) // no second toast
+    r.sched.setAttention(null)
+    expect(await r.sched.tick()).toBe('budget') // the HUD toast's own rules are back (one toast, then a gap)
+    expect(r.reports).toEqual([])
+  })
+})
+

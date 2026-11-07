@@ -18,6 +18,10 @@ export const PANEL_ACCELERATORS = ['CommandOrControl+Alt+P', 'CommandOrControl+A
 // this one must never fail to register; if every one is taken the menu-bar item and the HUD pill still work.
 export const KILL_ACCELERATORS = ['CommandOrControl+Alt+Shift+K', 'CommandOrControl+Alt+Shift+Backspace', 'CommandOrControl+Alt+Shift+.'] as const
 
+// Understudy: "look now" (the awareness module's hotkey glance: one look at the screen, only if the worker agreed on the consent card).
+// Option+Shift+Space first, then two fallbacks when another app owns it. Registered only when the awareness layer exists (deps.look).
+export const LOOK_ACCELERATORS = ['Alt+Shift+Space', 'CommandOrControl+Alt+Shift+L', 'CommandOrControl+Alt+L'] as const
+
 // The hold-to-talk key: the setting `talkHotkey` (default Option+Space), with these as fallbacks when another app owns it.
 export const TALK_FALLBACKS = ['Alt+Space', 'Alt+Shift+Space'] as const
 // Electron has no key-up for a global shortcut. While the keys are held, the keyboard auto-repeat keeps calling the handler, so the
@@ -35,6 +39,8 @@ export interface HotkeyDeps {
   togglePanel?: () => void
   // Understudy: the kill switch. When omitted the kill shortcuts are not registered.
   kill?: () => void
+  // Understudy: the look-now key. When omitted it is not registered. The caller (awareness.hotkey) decides whether a look may happen.
+  look?: () => void
   // Understudy: bring the side panel up (the talk key does this on press). When omitted the talk key only emits its event.
   raisePanel?: () => void
   // Test seams.
@@ -48,6 +54,7 @@ export interface HotkeyReport {
   panel: string[]
   kill: string[]
   talk: string[]
+  look: string[]
   failed: string[]
 }
 
@@ -59,7 +66,7 @@ export function lastHotkeyReport(): (HotkeyReport & { killRegistered: boolean; t
 
 export function registerHotkeys(bus: Bus, settings: SettingsStore, deps: HotkeyDeps = {}): () => void {
   const registered: string[] = []
-  const report: HotkeyReport = { start: [], stop: [], panel: [], kill: [], talk: [], failed: [] }
+  const report: HotkeyReport = { start: [], stop: [], panel: [], kill: [], talk: [], look: [], failed: [] }
   latest = report
 
   const onStart = (): void => {
@@ -146,8 +153,18 @@ export function registerHotkeys(bus: Bus, settings: SettingsStore, deps: HotkeyD
     const kill = deps.kill
     bind(KILL_ACCELERATORS, () => kill(), report.kill)
   }
+  if (deps.look) {
+    const look = deps.look
+    const taken = new Set([...talkBound, ...registered])
+    // One is enough: the first free accelerator (never one the talk key or another action of ours already holds).
+    for (const a of LOOK_ACCELERATORS.filter((x) => !taken.has(x))) {
+      const before = report.look.length
+      bind([a], () => look(), report.look)
+      if (report.look.length > before) break
+    }
+  }
 
-  console.log(`[hotkey] talk: ${report.talk.join(', ') || 'NONE'} | start: ${report.start.join(', ') || 'NONE'} | stop: ${report.stop.join(', ') || 'NONE'}${deps.togglePanel ? ` | panel: ${report.panel.join(', ') || 'NONE'}` : ''}${deps.kill ? ` | kill: ${report.kill.join(', ') || 'NONE'}` : ''}${report.failed.length ? ` | unavailable: ${report.failed.join(', ')}` : ''}`)
+  console.log(`[hotkey] talk: ${report.talk.join(', ') || 'NONE'} | start: ${report.start.join(', ') || 'NONE'} | stop: ${report.stop.join(', ') || 'NONE'}${deps.togglePanel ? ` | panel: ${report.panel.join(', ') || 'NONE'}` : ''}${deps.kill ? ` | kill: ${report.kill.join(', ') || 'NONE'}` : ''}${deps.look ? ` | look: ${report.look.join(', ') || 'NONE'}` : ''}${report.failed.length ? ` | unavailable: ${report.failed.join(', ')}` : ''}`)
   if (deps.state) {
     if (!report.start.length) deps.state.patch({ lastError: 'The keyboard shortcut for starting is taken by another app. Use the on-screen button to start.' })
     else if (!report.stop.length) deps.state.patch({ lastError: 'The keyboard shortcut for stopping is taken by another app. Use the on-screen Stop button.' })

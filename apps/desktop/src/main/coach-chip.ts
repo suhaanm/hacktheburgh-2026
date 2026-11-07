@@ -29,6 +29,15 @@ export function levelFromEngine(v: unknown): HelpLevel | null {
   return n === 1 || n === 2 || n === 3 || n === 4 ? n : null
 }
 
+/** The attention layer's answer to "may this two-second glance be drawn?" (attention/adapter.ts admitGlance and releaseGlance). */
+export interface ChipAttention {
+  admitGlance(subject: string): Promise<boolean>
+  releaseGlance(): void
+}
+
+/** How long the help-level glance stays up; the voice is given back after this. */
+export const CHIP_GLANCE_MS = 2_000
+
 export interface ChipDriverDeps {
   // `coach` keeps the optional dot's fade state current; `chip` is the two-second toast when the level changes.
   overlay: Pick<OverlayController, 'coach'> & Partial<Pick<OverlayController, 'chip'>>
@@ -41,9 +50,14 @@ export interface ChipDriverDeps {
   // Re-send an unchanged chip this often so the overlay's guard never removes it.
   keepAliveMs?: number
   log?: (scope: string, ...args: unknown[]) => void
+  // REQ-8: when set, the two-second glance asks first and is drawn only on a yes. Absent: drawn as before. `setAttention` binds it later.
+  attention?: ChipAttention | null
+  setTimer?: (fn: () => void, ms: number) => unknown
 }
 
 export interface ChipDriver {
+  // Late binding for the attention layer (it starts after the driver exists). null unbinds.
+  setAttention(a: ChipAttention | null): void
   // The engine answered GET /coach/state (null: it did not).
   setEngineHint(hint: { fade: ChipFade | null; level: HelpLevel | null } | null): void
   // The engine answered GET /coach/next with the level and chip it is acting at (null: it did not). Wins over the state hint while fresh.
@@ -61,8 +75,30 @@ export function createChipDriver(deps: ChipDriverDeps): ChipDriver {
   let hint: { fade: ChipFade | null; level: HelpLevel | null; at: number } | null = null
   let decisionHint: { fade: ChipFade | null; level: HelpLevel | null; at: number } | null = null
   let sent: { fade: ChipFade; level: HelpLevel; at: number } | null = null
+  let attention: ChipAttention | null = deps.attention ?? null
+  const setT = deps.setTimer ?? ((fn: () => void, ms: number) => setTimeout(fn, ms))
+
+  // The level-change glance. With the attention layer on it must be admitted (one voice at a time), and the voice is given back after the
+  // two seconds it is shown; a refusal, a failed answer or a stop in the meantime draws nothing.
+  const glance = (level: HelpLevel): void => {
+    const draw = (): void => deps.overlay.chip?.(level, HELP_LEVEL_LABELS[level])
+    const layer = attention
+    if (!layer) return draw()
+    void layer
+      .admitGlance(`lv_${level}`)
+      .then((ok) => {
+        if (!ok) return
+        if (deps.killed?.()) return layer.releaseGlance()
+        draw()
+        setT(() => layer.releaseGlance(), CHIP_GLANCE_MS)
+      })
+      .catch(() => layer.releaseGlance())
+  }
 
   return {
+    setAttention(a) {
+      attention = a
+    },
     setEngineHint(h) {
       hint = h ? { ...h, at: now() } : null
     },
@@ -78,7 +114,7 @@ export function createChipDriver(deps: ChipDriverDeps): ChipDriver {
       if (deps.killed?.()) fade = 'gone' // everything is stopped: the help indicator goes too
       const t = now()
       // A level change (not the first reading, not a repeat) is announced once, for two seconds.
-      if (!force && sent && sent.level !== level && !deps.killed?.()) deps.overlay.chip?.(level, HELP_LEVEL_LABELS[level])
+      if (!force && sent && sent.level !== level && !deps.killed?.()) glance(level)
       if (force || !sent || sent.fade !== fade || sent.level !== level || t - sent.at >= keepMs) {
         // `gone` is sent once (to fade it out) and then left alone, unless the overlay page was just reloaded.
         if (force || !(fade === 'gone' && sent?.fade === 'gone')) deps.overlay.coach?.(fade, level, HELP_LEVEL_LABELS[level])

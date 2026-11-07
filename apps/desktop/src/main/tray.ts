@@ -30,6 +30,14 @@ export interface MenuEntry {
   checked?: boolean // present on checkbox entries ("Show panel")
 }
 
+// The attention layer's passive counts (REQ-8, attention/types.ts AttentionBadges): what needs the worker, what can wait, and the one marker.
+// `stopped` is the kill state the menu already shows ("Resume after stopping everything"); this layer never delays or replaces that.
+export interface TrayAttention {
+  needsYou: number
+  waiting: number
+  marker: 'none' | 'needs_you' | 'stopped'
+}
+
 export interface TrayModel {
   phase: CompanionState['phase']
   micMuted: boolean
@@ -50,6 +58,8 @@ export interface TrayModel {
   awareness?: { enabled: boolean; onTrigger: boolean; periodic: boolean; calls?: number; lastSkip?: string | null }
   // Cue (the proactive cards; only offered when the cue experiment is on): quiet until this time, else null.
   cue?: { quietUntil: number | null }
+  // The attention layer's counts: one menu line when something needs the worker ("2 things need you"), and a small dot beside the icon.
+  attention?: TrayAttention
   // Approvals waiting in the morning queue (null when unknown): the menu says how many, since the screen does not.
   queuePending?: number | null
   // A glance is being taken or sent right now (the icon shows a ring).
@@ -132,6 +142,15 @@ const SKIP_WORDS: Record<string, string> = {
 const skipLabel = (reason: string): string => SKIP_WORDS[reason] ?? reason.replace(/_/g, ' ')
 const cueQuiet = (until: number | null | undefined, now: number): boolean => until !== null && until !== undefined && until > now
 
+/** "1 thing needs you" / "2 things need you", or undefined when nothing does (the line is then left out of the menu). */
+export function attentionLine(a: TrayAttention | undefined): string | undefined {
+  if (!a || a.needsYou <= 0) return undefined
+  return a.needsYou === 1 ? '1 thing needs you' : `${a.needsYou} things need you`
+}
+
+/** The small dot beside the menu bar icon while something needs the worker (no new icon asset: it is part of the title text). */
+export const ATTENTION_DOT = '\u2022'
+
 /** "Paused until 18:40" for the status line, or undefined when not paused. */
 export function pausedLabel(until: number | null | undefined, now: number): string | undefined {
   if (!until || until <= now) return undefined
@@ -146,10 +165,12 @@ export function buildMenuEntries(model: TrayModel, now: number = Date.now()): Me
   const paused = pausedLabel(model.pausedUntil, now)
   const aw = model.awareness
   const voice = model.voiceMenu === true
+  const attention = attentionLine(model.attention)
   const entries: (MenuEntry | null)[] = [
     { id: 'status', label: describeStatus({ ...model, pausedLabel: paused }), enabled: false },
     ...(model.capture ? [{ id: 'capture', label: captureLabel(model.capture), enabled: false } as MenuEntry] : []),
     ...(model.coach ? [{ id: 'coach', label: model.coach, enabled: false } as MenuEntry] : []),
+    ...(attention ? [{ id: 'attention', label: attention, enabled: false } as MenuEntry] : []),
     sep('sep1'),
     { id: 'panel', label: 'Show panel', enabled: true, checked: model.dockVisible, ...(model.panelAccelerator ? { accelerator: model.panelAccelerator } : {}) },
     ...PERSONA_LIST.map((p): MenuEntry => ({
@@ -238,6 +259,8 @@ export interface TrayDeps {
   queueCount?: () => number | null
   // Any agent is acting right now (the HUD's own answer, which includes the agent service).
   agentActing?: () => boolean
+  // The attention layer's counts (null: none yet). Absent: no attention line and no dot. `setAttention` binds it later.
+  attention?: (() => TrayAttention | null) | null
   // Cue's menu entries are offered only when this says so (the UNDERSTUDY_X_CUE experiment; default: hidden).
   cueMenu?: () => boolean
   now?: () => number
@@ -265,6 +288,10 @@ export interface ShellTray {
   /** The primary click and Cmd/Ctrl+Alt+P: show the panel if hidden, hide it if shown (persisted as `showDock`). */
   primaryClick(): void
   togglePanel(): void
+  // Re-reads everything the icon and title show (the attention layer calls this when its counts change).
+  refresh(): void
+  // Late binding for the attention layer's counts (it starts after the menu bar item exists). null unbinds.
+  setAttention(source: (() => TrayAttention | null) | null): void
   dispose(): void
 }
 
@@ -290,6 +317,7 @@ export function registerTray(deps: TrayDeps): ShellTray {
   const nowMs = deps.now ?? Date.now
 
   let tray: Tray | null = null
+  let attentionSource: (() => TrayAttention | null) | null = deps.attention ?? null
   let shownKey = ''
   let shownTitle = ''
   // The panel was brought up by "Type instead" while hidden: it goes away again when that session ends.
@@ -316,6 +344,7 @@ export function registerTray(deps: TrayDeps): ShellTray {
       voiceMenu: deps.voiceMenu?.() ?? false,
       queuePending: deps.queueCount?.() ?? null,
       agentActing: deps.agentActing?.() ?? false,
+      attention: attentionSource?.() ?? undefined,
       cue: deps.cueMenu?.() ? { quietUntil: st0.cueQuietUntil } : undefined,
       killAccelerator: firstRegistered(KILL_ACCELERATORS),
       agents: st.agents,
@@ -462,10 +491,12 @@ export function registerTray(deps: TrayDeps): ShellTray {
     const m = model()
     const pausedText = pausedLabel(m.pausedUntil, nowMs())
     const kind = iconKind({ ...m, paused: pausedText !== undefined })
-    const tooltip = `Understudy: ${describeStatus({ ...m, pausedLabel: pausedText })}`
+    const needs = attentionLine(m.attention)
+    const tooltip = `Understudy: ${describeStatus({ ...m, pausedLabel: pausedText })}${needs ? `. ${needs}` : ''}`
     const image = iconFor(kind)
-    // macOS shows this word next to the icon. Icon file missing: still show something.
-    const title = trayTitle(m) || (image.isEmpty() ? 'Understudy' : '')
+    // macOS shows this word next to the icon. Icon file missing: still show something. A dot follows it while something needs the worker.
+    const word = trayTitle(m) || (image.isEmpty() ? 'Understudy' : '')
+    const title = m.attention?.marker === 'needs_you' ? [word, ATTENTION_DOT].filter(Boolean).join(' ') : word
     const key = `${kind}|${tooltip}|${title}`
     if (key === shownKey) return
     shownKey = key
@@ -531,7 +562,7 @@ export function registerTray(deps: TrayDeps): ShellTray {
       return {
         exists: tray !== null,
         bounds: tray ? tray.getBounds() : null,
-        tooltip: `Understudy: ${describeStatus({ ...m, pausedLabel: pausedText })}`,
+        tooltip: `Understudy: ${describeStatus({ ...m, pausedLabel: pausedText })}${attentionLine(m.attention) ? `. ${attentionLine(m.attention)}` : ''}`,
         title: shownTitle,
         icon: iconKind({ ...m, paused: pausedText !== undefined }),
         panelVisible: m.dockVisible,
@@ -543,6 +574,11 @@ export function registerTray(deps: TrayDeps): ShellTray {
     activate: run,
     primaryClick,
     togglePanel,
+    refresh,
+    setAttention(source) {
+      attentionSource = source
+      refresh()
+    },
     dispose() {
       offState()
       offSettings()

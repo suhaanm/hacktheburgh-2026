@@ -66,7 +66,7 @@ export function Onboarding({ personaName, onRequestMicrophone, onDone }: Onboard
               Allow the microphone
             </button>
           )}
-          {mic === 'denied' ? <p className="al-note">It was not allowed. Open System Settings, then Privacy and Security, then Microphone, and turn Alongside on. You can carry on without it and type instead.</p> : null}
+          {mic === 'denied' ? <p className="al-note">It was not allowed. In System Settings, open Privacy and Security, then Microphone, and turn Understudy on. Or carry on and type instead.</p> : null}
         </>
       )
       break

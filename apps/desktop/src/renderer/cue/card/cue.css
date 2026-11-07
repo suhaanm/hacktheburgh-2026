@@ -227,8 +227,10 @@ button {
 }
 /* The dismiss mark appears with the pointer (or the keyboard), not before: a chip at rest is one line of words. */
 .chip-x {
-  display: inline-grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   width: 0;
   height: 24px;
   margin-right: 0;
@@ -245,8 +247,13 @@ button {
 .chip:hover .chip-x,
 .chip:focus-within .chip-x,
 .chip[data-open='true'] .chip-x {
-  width: 22px;
+  width: 44px;
   opacity: 1;
+}
+/* The key that does the same thing, in plain sight next to the mark (no tooltip). */
+.chip-esc {
+  font: 500 9.5px/14px var(--font-mono);
+  letter-spacing: 0.02em;
 }
 .chip-x:hover {
   color: var(--fg);
@@ -309,12 +316,10 @@ button {
   margin-top: 4px;
 }
 .tag {
-  padding: 0 4px;
+  padding: 0 5px;
   border: 1px solid var(--line-strong);
   border-radius: 3px;
-  font: 500 9.5px/14px var(--font-mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font: 500 10px/14px var(--font-mono);
 }
 .actions {
   display: flex;

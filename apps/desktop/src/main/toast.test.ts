@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { IPC } from '../shared/ipc'
 import { DEFAULT_SETTINGS } from '../shared/settings'
+import { createVoiceLock, type VoiceLock } from './attention/lock'
 import { CONFIRM_TIMEOUT_MS, ConfirmBroker } from './confirm'
 import { SettingsStore } from './settings'
 import { StateStore } from './state'
@@ -99,7 +100,7 @@ interface FakeNotification {
 const electron = (await import('electron')) as unknown as { __fake: { windows: FakeWindow[]; notifications: FakeNotification[]; throwOnCreate: boolean; notificationsSupported: boolean } }
 const fake = electron.__fake
 
-function setup(opts: { confirmStyle?: 'toast' | 'dock'; capturable?: boolean; disabled?: boolean; loadTimeoutMs?: number } = {}) {
+function setup(opts: { confirmStyle?: 'toast' | 'dock'; capturable?: boolean; disabled?: boolean; loadTimeoutMs?: number; attention?: { lock: VoiceLock }; lockWaitMs?: number } = {}) {
   const settings = new SettingsStore(null)
   settings.patch({ confirmStyle: opts.confirmStyle ?? 'toast' }, { trusted: true })
   const state = new StateStore(settings.get())
@@ -115,6 +116,8 @@ function setup(opts: { confirmStyle?: 'toast' | 'dock'; capturable?: boolean; di
     disabled: opts.disabled ?? false,
     capturable: opts.capturable ?? false,
     loadTimeoutMs: opts.loadTimeoutMs,
+    attention: opts.attention,
+    lockWaitMs: opts.lockWaitMs,
   })
   const confirm = new ConfirmBroker(state)
   const loaded = (i = 0) => fake.windows[i]!.webContents.emit('did-finish-load')
@@ -391,3 +394,113 @@ describe('settings', () => {
     expect(DEFAULT_SETTINGS.confirmStyle).toBe('toast')
   })
 })
+
+describe('registerToast: the one-voice lock (REQ-8)', () => {
+  const lockRig = (opts: { lockWaitMs?: number } = {}) => {
+    const lock = createVoiceLock()
+    return { lock, ...setup({ attention: { lock }, ...opts }) }
+  }
+
+  it('takes the local lock for the request when it is free, with no delay, and gives it back when the prompt goes', async () => {
+    const { lock, confirm, state } = lockRig()
+    const answer = confirm.ask('Open example.com for you?', OPTIONS)
+    expect(fake.windows).toHaveLength(1) // drawn at once: the lock was free
+    const id = state.get().pendingConfirm!.id
+    expect(lock.holder()).toMatchObject({ owner: 'decision', key: id })
+    expect(lock.acquire('cue', 12_000)).toBe(false) // a cue cannot appear over a permission prompt
+    expect(lock.acquire('notice', 12_000)).toBe(false)
+    confirm.answer(id, OPTIONS[0])
+    await answer
+    expect(lock.holder()).toBeNull()
+    expect(lock.acquire('cue', 12_000)).toBe(true)
+  })
+
+  it('waits a moment for a cue that is up, then draws; the cue is not disturbed', async () => {
+    const { lock, confirm, state } = lockRig()
+    expect(lock.acquire('cue', 12_000, undefined, 'episode_1')).toBe(true)
+    void confirm.ask('Q?', OPTIONS)
+    expect(fake.windows).toHaveLength(0)
+    await vi.advanceTimersByTimeAsync(1_000)
+    expect(fake.windows).toHaveLength(0)
+    lock.release('cue')
+    await vi.advanceTimersByTimeAsync(150)
+    expect(fake.windows).toHaveLength(1)
+    expect(lock.holder()).toMatchObject({ owner: 'decision', key: state.get().pendingConfirm!.id })
+  })
+
+  it('draws anyway when the voice does not come free, and never takes the lock from the holder', async () => {
+    const { lock, confirm, loaded } = lockRig({ lockWaitMs: 3_000 })
+    expect(lock.acquire('cue', 60_000, undefined, 'episode_1')).toBe(true)
+    const answer = confirm.ask('Q?', OPTIONS)
+    await vi.advanceTimersByTimeAsync(2_900)
+    expect(fake.windows).toHaveLength(0)
+    await vi.advanceTimersByTimeAsync(300)
+    expect(fake.windows).toHaveLength(1) // the prompt is never lost
+    loaded()
+    expect(lock.holder()).toMatchObject({ owner: 'cue', key: 'episode_1' })
+    confirm.cancel()
+    await answer
+    expect(lock.holder()).toMatchObject({ owner: 'cue', key: 'episode_1' }) // not ours to release
+  })
+
+  it('a prompt answered or cancelled while it waited is never drawn, and a lock taken late is given straight back', async () => {
+    const { lock, confirm } = lockRig()
+    lock.acquire('cue', 60_000, undefined, 'episode_1')
+    const answer = confirm.ask('Q?', OPTIONS)
+    confirm.cancel()
+    expect(await answer).toBeNull()
+    lock.release('cue')
+    await vi.advanceTimersByTimeAsync(500)
+    expect(fake.windows).toHaveLength(0)
+    expect(lock.holder()).toBeNull()
+  })
+
+  it('gives the lock back when the window cannot be made or the page falls back to the dock', () => {
+    fake.throwOnCreate = true
+    const a = lockRig()
+    void a.confirm.ask('A?', OPTIONS)
+    expect(fake.windows).toHaveLength(0)
+    expect(a.lock.holder()).toBeNull()
+    a.toast.dispose()
+
+    fake.throwOnCreate = false
+    const b = lockRig()
+    void b.confirm.ask('B?', OPTIONS)
+    expect(b.lock.holder()?.owner).toBe('decision')
+    fake.windows[0]!.webContents.emit('did-fail-load', {}, -6, 'FILE_NOT_FOUND')
+    expect(b.lock.holder()).toBeNull()
+  })
+
+  it('a newer request replaces the old one and the lock follows it; dispose gives it back', () => {
+    const { lock, confirm, state, toast } = lockRig()
+    void confirm.ask('First?', OPTIONS)
+    const first = state.get().pendingConfirm!.id
+    void confirm.ask('Second?', OPTIONS)
+    const second = state.get().pendingConfirm!.id
+    expect(second).not.toBe(first)
+    expect(lock.holder()).toMatchObject({ owner: 'decision', key: second })
+    toast.dispose()
+    expect(lock.holder()).toBeNull()
+  })
+
+  it('binds late: before the layer starts there is no lock, after it there is, and after it stops there is none again', () => {
+    const lock = createVoiceLock()
+    const { confirm, toast, state } = setup()
+    void confirm.ask('Before?', OPTIONS)
+    expect(lock.holder()).toBeNull()
+    toast.setAttention({ lock })
+    void confirm.ask('After?', OPTIONS)
+    expect(lock.holder()).toMatchObject({ owner: 'decision', key: state.get().pendingConfirm!.id })
+    toast.setAttention(null)
+    confirm.cancel()
+    void confirm.ask('Later?', OPTIONS)
+    expect(fake.windows.length).toBeGreaterThan(1)
+  })
+
+  it('without the layer a prompt is drawn at once and no lock is involved (the old behaviour)', () => {
+    const { confirm } = setup()
+    void confirm.ask('Q?', OPTIONS)
+    expect(fake.windows).toHaveLength(1)
+  })
+})
+

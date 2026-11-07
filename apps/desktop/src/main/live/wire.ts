@@ -241,7 +241,7 @@ export function decodeFrame(data: unknown): unknown {
   let text: string | undefined
   if (typeof data === 'string') text = data
   else if (data instanceof ArrayBuffer) text = new TextDecoder().decode(data)
-  else if (ArrayBuffer.isView(data)) text = new TextDecoder().decode(data as ArrayBufferView)
+  else if (ArrayBuffer.isView(data)) text = new TextDecoder().decode(new Uint8Array(data.buffer as ArrayBuffer, data.byteOffset, data.byteLength)) // a view over the same bytes, typed for TextDecoder
   else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(data)) text = data.toString('utf8')
   if (text === undefined) return undefined
   try {

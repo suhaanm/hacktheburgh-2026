@@ -5,6 +5,7 @@ import path from 'node:path'
 import { BrowserWindow, Notification, screen } from 'electron'
 import { IPC } from '../shared/ipc'
 import type { CompanionState, ConfirmRequest } from '../shared/protocol'
+import { acquireWithin, type VoiceLock } from './attention/lock'
 import { CONFIRM_TIMEOUT_MS } from './confirm'
 import type { ServiceContext } from './context'
 
@@ -14,6 +15,13 @@ const MIN_HEIGHT = 140
 const MAX_HEIGHT = 560
 const LOAD_TIMEOUT_MS = 4000
 export const NOTIFICATION_TITLE = 'Understudy needs your OK'
+
+// REQ-8: a permission prompt is the ConfirmBroker's own surface and is never gated or delayed by the attention router. It only takes the
+// LOCAL one-voice lock (owner 'decision') so a cue or a notice cannot appear over it: it waits a moment for one that is up, then draws anyway.
+export interface ToastAttention {
+  lock: VoiceLock
+}
+export const LOCK_WAIT_MS = 3_000
 
 export interface ToastDeps {
   ctx: Pick<ServiceContext, 'state' | 'settings' | 'log'>
@@ -25,14 +33,18 @@ export interface ToastDeps {
   capturable?: boolean
   confirmTimeoutMs?: number
   loadTimeoutMs?: number
+  // The attention layer's lock. Absent: nothing changes. `setAttention` binds it later (the layer starts after the toast exists).
+  attention?: ToastAttention | null
+  lockWaitMs?: number
 }
 
 export interface ToastHandle {
   visible(): boolean
+  setAttention(a: ToastAttention | null): void
   dispose(): void
 }
 
-const NOOP: ToastHandle = { visible: () => false, dispose: () => undefined }
+const NOOP: ToastHandle = { visible: () => false, setAttention: () => undefined, dispose: () => undefined }
 
 function loadToast(win: BrowserWindow): void {
   const devUrl = process.env.ELECTRON_RENDERER_URL
@@ -59,6 +71,13 @@ export function registerToast(deps: ToastDeps): ToastHandle {
     measureTimers: NodeJS.Timeout[]
   }
   let live: Live | null = null
+  let attention: ToastAttention | null = deps.attention ?? null
+  const lockWaitMs = deps.lockWaitMs ?? LOCK_WAIT_MS
+  // The request ids this toast holds the voice lock for (released when the toast goes).
+  const held = new Set<string>()
+  const releaseVoice = (id: string): void => {
+    if (held.delete(id)) attention?.lock.release('decision', id)
+  }
   // A request is shown at most once: after it was shown, failed or dismissed here, it is never recreated.
   const handled = new Set<string>()
   let disposed = false
@@ -103,6 +122,7 @@ export function registerToast(deps: ToastDeps): ToastHandle {
       // the notification may already be gone
     }
     l.release()
+    releaseVoice(l.id)
     if (!l.win.isDestroyed()) l.win.destroy()
     if (ctx.state.get().toastConfirm) ctx.state.patch({ toastConfirm: undefined })
     ctx.log('toast', `hidden (${reason})`)
@@ -144,8 +164,7 @@ export function registerToast(deps: ToastDeps): ToastHandle {
     notify(l, request)
   }
 
-  const start = (request: ConfirmRequest): void => {
-    handled.add(request.id)
+  const open = (request: ConfirmRequest): void => {
     let l: Live | null = null
     try {
       const wa = screen.getPrimaryDisplay().workArea
@@ -200,8 +219,28 @@ export function registerToast(deps: ToastDeps): ToastHandle {
       ctx.state.patch({ toastConfirm: { id: request.id, expiresAt: Date.now() + timeoutMs } })
     } catch (err) {
       if (l) fallBack(l, err)
-      else ctx.log('toast', 'toast window could not be created; the dock shows the prompt:', err instanceof Error ? err.message : String(err))
+      else {
+        releaseVoice(request.id)
+        ctx.log('toast', 'toast window could not be created; the dock shows the prompt:', err instanceof Error ? err.message : String(err))
+      }
     }
+  }
+
+  const start = (request: ConfirmRequest): void => {
+    handled.add(request.id)
+    const layer = attention
+    if (!layer) return open(request)
+    // The voice is free: draw now, with no delay at all. Otherwise wait a moment for the cue or notice that is up, then draw anyway.
+    if (layer.lock.acquire('decision', timeoutMs, undefined, request.id)) {
+      held.add(request.id)
+      return open(request)
+    }
+    void acquireWithin(layer.lock, 'decision', timeoutMs, lockWaitMs, request.id).then((got) => {
+      if (got) held.add(request.id)
+      // Cleared, answered or replaced while it waited: nothing to draw (and the voice, if it was taken, goes back).
+      if (disposed || live || ctx.state.get().pendingConfirm?.id !== request.id) return releaseVoice(request.id)
+      open(request)
+    })
   }
 
   const onState = (s: CompanionState): void => {
@@ -228,6 +267,9 @@ export function registerToast(deps: ToastDeps): ToastHandle {
 
   return {
     visible: () => live !== null && live.shown && alive(live) && live.win.isVisible(),
+    setAttention(a) {
+      attention = a
+    },
     dispose: () => {
       disposed = true
       off()

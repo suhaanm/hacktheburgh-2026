@@ -6,10 +6,10 @@
 
 export type Box = [number, number, number, number]
 
-export const STEP_READ_CASE = { id: 'read_case', label: 'Read the household record', reason_id: 'why.read_case', reason_text: 'The record holds the facts every calculator needs.', n: 1 } as const
-export const STEP_CALC_A = { id: 'calc_a', label: 'Run calculator A', reason_id: 'why.enter_once', reason_text: 'Copy the household from the record; retyping invites mistakes.', n: 2 } as const
-export const STEP_CLIFF_A = { id: 'cliff_a', label: 'Check cliff edges (A)', reason_id: 'why.cliff', reason_text: 'A figure near a limit can flip the answer.', n: 3 } as const
-export const STEP_WRITE_NOTE = { id: 'write_note', label: 'Copy figures to the note', reason_id: 'why.note', reason_text: 'A note that names its evidence can be checked later.', n: 6 } as const
+export const STEP_READ_CASE = { id: 'read_case', label: 'Read the household record', reason_id: 'why.read_case', reason_text: 'The record holds the facts every calculator needs.', n: 1, target: { zone: 'case_record', label_hint: 'Household record', role_hint: 'region' } } as const
+export const STEP_CALC_A = { id: 'calc_a', label: 'Run calculator A', reason_id: 'why.enter_once', reason_text: 'Copy the household from the record; retyping invites mistakes.', n: 2, target: { zone: 'calc_a_run', label_hint: 'Calculate', role_hint: 'button' } } as const
+export const STEP_CLIFF_A = { id: 'cliff_a', label: 'Check cliff edges (A)', reason_id: 'why.cliff', reason_text: 'A figure near a limit can flip the answer.', n: 3, target: { zone: 'cliff_a_link', label_hint: 'Check cliff edges', role_hint: 'link' } } as const
+export const STEP_WRITE_NOTE = { id: 'write_note', label: 'Copy figures to the note', reason_id: 'why.note', reason_text: 'A note that names its evidence can be checked later.', n: 6, target: { zone: 'case_note', label_hint: 'Case note', role_hint: 'textbox' } } as const
 
 // Nominal boxes on the 0..1000 grid, matching the stand-in page's layout at 1440 by 900.
 export const BOX: Record<string, Box> = {

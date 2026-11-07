@@ -42,5 +42,6 @@ export function endpointsFromEnv(env: Record<string, string | undefined> = proce
   }
 }
 
-/** Dashboard pages the desktop app links to (hash routes of apps/dashboard). */
-export const dashboardUrl = (e: Pick<Endpoints, 'dashboard'>, route: 'queue' | 'routines' | 'today'): string => `${e.dashboard}/#/${route}`
+/** Dashboard pages the desktop app links to (hash routes of apps/dashboard; an unknown route falls back to its home screen). */
+export type DashboardRoute = 'queue' | 'routines' | 'today' | 'agents' | 'notices'
+export const dashboardUrl = (e: Pick<Endpoints, 'dashboard'>, route: DashboardRoute): string => `${e.dashboard}/#/${route}`

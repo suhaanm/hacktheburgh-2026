@@ -276,7 +276,8 @@ export function reduce(s: MachineState, ev: MachineEvent, env: Env): Result {
       const plan = planCue(v.decision, { stepN: v.stepN, ghostRequested: true })
       if (!plan) return { state: s, effects: [] }
       const next: Visible = { ...v, plan, ghostRequested: true, popover: false, touchedAt: env.now }
-      const effects: Effect[] = [{ type: 'overlay', clear: [], show: buildMarks(plan, v.seq) }, panelEffect(next, env)]
+      // Asking to be shown is the worker asking for more help: reported as accepted with how=show_me (the cue is still up, so this is not its last event).
+      const effects: Effect[] = [{ type: 'overlay', clear: [], show: buildMarks(plan, v.seq) }, panelEffect(next, env), feedback({ event: 'accepted', decision: v.decision, how: 'show_me', elapsedMs: env.now - v.shownAt })]
       return { state: { ...s, visible: next }, effects }
     }
 
@@ -340,11 +341,14 @@ export function reduce(s: MachineState, ev: MachineEvent, env: Env): Result {
     }
 
     case 'retarget': {
-      if (!v || v.hiddenAt === null) return { state: s, effects: [] }
+      // The ring's element moved (the page scrolled) or came back after being lost: the ring and the panel go with it. A cue with no ring has nothing to move.
+      if (!v || !v.plan.ring) return { state: s, effects: [] }
       const box = toNormBox(ev.box)
-      const plan: CuePlan = { ...v.plan, ring: v.plan.ring ? { ...v.plan.ring, box } : null, anchor: box, ghost: v.plan.ghost ? { to: { x: (box.xmin + box.xmax) / 2, y: (box.ymin + box.ymax) / 2 } } : null }
-      const next: Visible = { ...v, plan, hiddenAt: null, touchedAt: env.now }
-      return { state: { ...s, visible: next }, effects: [{ type: 'overlay', clear: [], show: buildMarks(plan, v.seq, { ghost: v.ghostRequested || plan.ghost !== null }) }, panelEffect(next, env)] }
+      const wasHidden = v.hiddenAt !== null
+      const plan: CuePlan = { ...v.plan, ring: { ...v.plan.ring, box }, anchor: box, ghost: v.plan.ghost ? { to: { x: (box.xmin + box.xmax) / 2, y: (box.ymin + box.ymax) / 2 } } : null }
+      const next: Visible = { ...v, plan, hiddenAt: null, touchedAt: wasHidden ? env.now : v.touchedAt }
+      // Moving a ring that is on screen updates it in place (same id: no new entrance); the ghost is only drawn again when everything was cleared.
+      return { state: { ...s, visible: next }, effects: [{ type: 'overlay', clear: [], show: buildMarks(plan, v.seq, { ghost: wasHidden && (v.ghostRequested || plan.ghost !== null) }) }, panelEffect(next, env)] }
     }
 
     case 'tick': {

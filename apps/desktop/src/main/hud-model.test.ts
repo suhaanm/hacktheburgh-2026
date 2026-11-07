@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { HudState } from '../shared/hud'
+import type { HudNotice, HudState } from '../shared/hud'
 import { createHudModel, hudBounds, HudActionSchema } from './hud-model'
 import type { KillState } from './kill-switch'
 
@@ -99,3 +99,87 @@ describe('HUD model', () => {
     expect(hudBounds({ x: 0, y: 25, width: 1728, height: 1050 }, { width: 200, height: 40 })).toEqual({ x: 14, y: 25 + 1050 - 40 - 14, width: 200, height: 40 })
   })
 })
+
+const notice: HudNotice = { id: 'i_one', title: 'An approval is waiting', body: 'Approval queue: 1 approval waiting.', source: 'Approval queue', actions: [{ id: 'open_queue', label: 'Open the queue' }, { id: 'dismiss', label: 'Close' }], urgent: false }
+
+describe('HUD model: the attention notice', () => {
+  const sinkRig = () => {
+    const r = setup()
+    const sink = { action: vi.fn(), closed: vi.fn() }
+    r.model.setAttention(sink)
+    return { ...r, sink }
+  }
+
+  it('starts without a notice, pushes when one is set or removed, and not again for the same notice', () => {
+    const { model, pushed } = setup()
+    expect(model.state().notice).toBeNull()
+    model.setNotice(notice)
+    model.setNotice(notice)
+    expect(model.state().notice?.id).toBe('i_one')
+    expect(pushed).toHaveLength(1)
+    model.setNotice({ ...notice, id: 'i_two' })
+    expect(model.state().notice?.id).toBe('i_two')
+    model.setNotice(null)
+    model.setNotice(null)
+    expect(model.state().notice).toBeNull()
+    expect(pushed).toHaveLength(3)
+  })
+
+  it('a button goes to the layer with the id and the action, and the card is removed', () => {
+    const { model, sink } = sinkRig()
+    model.setNotice(notice)
+    expect(model.handle({ type: 'notice', id: 'i_one', action: 'open_queue' })).toBe(true)
+    expect(sink.action).toHaveBeenCalledWith('i_one', 'open_queue')
+    expect(model.state().notice).toBeNull()
+  })
+
+  it('closing without a button goes to the layer as dismissed or timeout', () => {
+    const { model, sink } = sinkRig()
+    model.setNotice(notice)
+    expect(model.handle({ type: 'notice_closed', id: 'i_one', how: 'dismissed' })).toBe(true)
+    expect(sink.closed).toHaveBeenCalledWith('i_one', 'dismissed')
+    model.setNotice(notice)
+    expect(model.handle({ type: 'notice_closed', id: 'i_one', how: 'timeout' })).toBe(true)
+    expect(sink.closed).toHaveBeenLastCalledWith('i_one', 'timeout')
+  })
+
+  it('a stale click, an unknown action id, a bad way of closing, or no layer bound does nothing', () => {
+    const { model, sink } = sinkRig()
+    model.setNotice(notice)
+    expect(model.handle({ type: 'notice', id: 'i_gone', action: 'open_queue' })).toBe(false)
+    expect(model.handle({ type: 'notice', id: 'i_one', action: 'delete_everything' })).toBe(false)
+    expect(model.handle({ type: 'notice', id: '', action: 'open_queue' })).toBe(false)
+    expect(model.handle({ type: 'notice_closed', id: 'i_one', how: 'maybe' })).toBe(false)
+    expect(sink.action).not.toHaveBeenCalled()
+    expect(sink.closed).not.toHaveBeenCalled()
+    expect(model.state().notice?.id).toBe('i_one')
+    model.setAttention(null)
+    expect(model.handle({ type: 'notice', id: 'i_one', action: 'open_queue' })).toBe(false)
+    expect(model.state().notice?.id).toBe('i_one')
+  })
+
+  it('every action id the layer can send is accepted, nothing else', () => {
+    for (const action of ['open_menu', 'open_run', 'open_queue', 'open_calendar', 'open_routines', 'open_briefing', 'open_report', 'open_settings', 'open_summary', 'dismiss', 'not_now', 'never'])
+      expect(HudActionSchema.safeParse({ type: 'notice', id: 'i', action }).success, action).toBe(true)
+    expect(HudActionSchema.safeParse({ type: 'notice', id: 'i', action: 'approve' }).success).toBe(false)
+  })
+
+  it('the old actions are unchanged: kill and the proposal still work with a layer bound', () => {
+    const { model, kill, choices } = sinkRig()
+    model.setProposal(proposal)
+    expect(model.handle({ type: 'proposal', id: 'calc-entry-3x', choice: 'never' })).toBe(true)
+    expect(choices).toEqual(['calc-entry-3x:never'])
+    model.handle({ type: 'kill' })
+    expect(kill.trigger).toHaveBeenCalledWith('hud')
+  })
+
+  it('a layer given at construction works without setAttention', () => {
+    const sink = { action: vi.fn(), closed: vi.fn() }
+    const kstate: KillState = { killed: false, at: null, source: null, engine: null, agent: null }
+    const model = createHudModel({ kill: { trigger: vi.fn(), clear: vi.fn(), state: () => kstate, subscribe: () => () => undefined } as never, endpoints: { dashboard: 'http://127.0.0.1:18173' }, openExternal: vi.fn(), onProposalChoice: vi.fn(), push: vi.fn(), attention: sink })
+    model.setNotice(notice)
+    model.handle({ type: 'notice', id: 'i_one', action: 'dismiss' })
+    expect(sink.action).toHaveBeenCalledWith('i_one', 'dismiss')
+  })
+})
+
