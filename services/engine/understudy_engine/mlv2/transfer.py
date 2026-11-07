@@ -74,6 +74,8 @@ def finished_participants(results_dir: Path | str) -> tuple[list[str], dict[str,
         except (OSError, json.JSONDecodeError):
             skipped[pid] = "unreadable checks file"
             continue
+        if not isinstance(doc, dict) or "participant" not in doc:        # not a participant's checks file (for example a provenance note)
+            continue
         if doc.get("exclusion"):
             skipped[pid] = "excluded: harness error"
             continue
@@ -152,6 +154,8 @@ def evaluate_transfer(train_tab: BinTable, sim: SimData, *, primary_spec_id: str
     dr = {k: metric_draws(p, M) for k, p in parts.items()}
     pt = {k: metric_points(p) for k, p in parts.items()}
     out["models"] = {k: {m: {"value": pt[k][m], "interval": list(interval(dr[k][m], 0.95))} for m in pt[k]} for k in preds}
+    out["mean_prediction"] = {k: float(np.mean(p)) for k, p in preds.items()}
+    out["train_label_rate"] = float(train_tab.y.mean())
     out["paired_log_loss"] = {}
     for a, b in (("v1", "base_rate"), ("v1", "time_since_progress"), ("v2", "v1"), ("v2", "base_rate")):
         if a in preds and b in preds:

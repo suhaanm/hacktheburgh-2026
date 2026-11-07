@@ -1,0 +1,423 @@
+{
+ "badge": "simulated participants (language model), not people",
+ "origin": "simulated_participants",
+ "test_only": true,
+ "n_participants_finished": 24,
+ "participants_skipped": {},
+ "n_events": 7334,
+ "n_progress_events": 152,
+ "n_coach_events": 24,
+ "timing": "measured (engine event timestamps)",
+ "arms": {
+  "aa": [
+   "p_sim05",
+   "p_sim06",
+   "p_sim07",
+   "p_sim08",
+   "p_sim13",
+   "p_sim14",
+   "p_sim15",
+   "p_sim16"
+  ],
+  "coached": [
+   "p_sim01",
+   "p_sim02",
+   "p_sim03",
+   "p_sim04",
+   "p_sim09",
+   "p_sim10",
+   "p_sim11",
+   "p_sim12",
+   "p_sim17",
+   "p_sim18",
+   "p_sim19",
+   "p_sim20",
+   "p_sim21",
+   "p_sim22",
+   "p_sim23",
+   "p_sim24"
+  ]
+ },
+ "genome_comparison": "not applicable: the simulated participants are all novices; there is no expert reference in these data",
+ "train": {
+  "pool": "synthetic personas only",
+  "n_people": 16,
+  "n_bins": 31791
+ },
+ "n_unit": "participants",
+ "n": 24,
+ "n_cases": 89,
+ "n_bins": 419,
+ "label_rate": 0.6467780429594272,
+ "bins_per_participant": {
+  "min": 7,
+  "median": 17.0,
+  "max": 32
+ },
+ "interval_level": 0.95,
+ "split": "train on synthetic personas, test on simulated participants (no tuning)",
+ "models": {
+  "v1": {
+   "log_loss": {
+    "value": 1.4276053675937235,
+    "interval": [
+     1.2510465474427312,
+     1.5965987750145
+    ]
+   },
+   "brier": {
+    "value": 0.48375973012990914,
+    "interval": [
+     0.43235209232753646,
+     0.531579247842759
+    ]
+   },
+   "ece": {
+    "value": 0.5095891256992567,
+    "interval": [
+     0.45194368166106735,
+     0.5720097071822094
+    ]
+   },
+   "auc": {
+    "value": 0.6239403610252319,
+    "interval": [
+     0.5330972724367036,
+     0.7210126545165045
+    ]
+   }
+  },
+  "time_since_progress": {
+   "log_loss": {
+    "value": 1.069004850931559,
+    "interval": [
+     0.9994278357180706,
+     1.135134845436454
+    ]
+   },
+   "brier": {
+    "value": 0.4099151186661789,
+    "interval": [
+     0.37873004314910724,
+     0.4391948574439027
+    ]
+   },
+   "ece": {
+    "value": 0.4262616043152223,
+    "interval": [
+     0.3671692487079357,
+     0.4802184470770166
+    ]
+   },
+   "auc": {
+    "value": 0.5032038496060637,
+    "interval": [
+     0.437676714133589,
+     0.5651077157514973
+    ]
+   }
+  },
+  "base_rate": {
+   "log_loss": {
+    "value": 1.0781575074347418,
+    "interval": [
+     0.9987430127174275,
+     1.1502088844450387
+    ]
+   },
+   "brier": {
+    "value": 0.4143744976153103,
+    "interval": [
+     0.37939892285319204,
+     0.44610722263367875
+    ]
+   },
+   "ece": {
+    "value": 0.431182434139321,
+    "interval": [
+     0.36969327320017903,
+     0.4869704704750479
+    ]
+   },
+   "auc": {
+    "value": 0.5,
+    "interval": [
+     0.5,
+     0.5
+    ]
+   }
+  },
+  "v2": {
+   "log_loss": {
+    "value": 1.4580065040596069,
+    "interval": [
+     1.3059490043112374,
+     1.6106973365308108
+    ]
+   },
+   "brier": {
+    "value": 0.492388787037029,
+    "interval": [
+     0.44380264511736406,
+     0.5384591213978119
+    ]
+   },
+   "ece": {
+    "value": 0.5290763260106589,
+    "interval": [
+     0.46944320346375473,
+     0.5848010927337293
+    ]
+   },
+   "auc": {
+    "value": 0.6945123167447891,
+    "interval": [
+     0.6185130147875018,
+     0.7717054605933283
+    ]
+   }
+  }
+ },
+ "mean_prediction": {
+  "v1": 0.14011334781498933,
+  "time_since_progress": 0.22051643864420484,
+  "base_rate": 0.2155956088201063,
+  "v2": 0.1220446615116794
+ },
+ "train_label_rate": 0.2155956088201063,
+ "paired_log_loss": {
+  "v1_minus_base_rate": {
+   "delta": 0.34944786015898166,
+   "interval": [
+    0.2355217134004381,
+    0.4693354368790811
+   ]
+  },
+  "v1_minus_time_since_progress": {
+   "delta": 0.3586005166621644,
+   "interval": [
+    0.23004634926055323,
+    0.5001483926867489
+   ]
+  },
+  "v2_minus_v1": {
+   "delta": 0.030401136465883383,
+   "interval": [
+    -0.030159824332283428,
+    0.08523357248322569
+   ]
+  },
+  "v2_minus_base_rate": {
+   "delta": 0.37984899662486504,
+   "interval": [
+    0.28818816782706147,
+    0.47220108854293086
+   ]
+  }
+ },
+ "calibration": {
+  "v1": [
+   {
+    "p_mean": 0.05932374968843309,
+    "freq": 0.6448598130841121,
+    "n": 107,
+    "lo": 0.0,
+    "hi": 0.1
+   },
+   {
+    "p_mean": 0.12502611937516053,
+    "freq": 0.5900900900900901,
+    "n": 222,
+    "lo": 0.1,
+    "hi": 0.2
+   },
+   {
+    "p_mean": 0.23408481877921683,
+    "freq": 0.8857142857142857,
+    "n": 70,
+    "lo": 0.2,
+    "hi": 0.3
+   },
+   {
+    "p_mean": 0.3460359615173449,
+    "freq": 0.4166666666666667,
+    "n": 12,
+    "lo": 0.3,
+    "hi": 0.4
+   },
+   {
+    "p_mean": 0.42988760645925017,
+    "freq": 0.5,
+    "n": 4,
+    "lo": 0.4,
+    "hi": 0.5
+   },
+   {
+    "p_mean": 0.5778218455692284,
+    "freq": 0.6666666666666666,
+    "n": 3,
+    "lo": 0.5,
+    "hi": 0.6
+   },
+   {
+    "p_mean": 0.6126682012345458,
+    "freq": 0.0,
+    "n": 1,
+    "lo": 0.6,
+    "hi": 0.7
+   }
+  ],
+  "v2": [
+   {
+    "p_mean": 0.05593097613323947,
+    "freq": 0.4392523364485981,
+    "n": 214,
+    "lo": 0.0,
+    "hi": 0.1
+   },
+   {
+    "p_mean": 0.13587471815202762,
+    "freq": 0.9402985074626866,
+    "n": 134,
+    "lo": 0.1,
+    "hi": 0.2
+   },
+   {
+    "p_mean": 0.23771309131135931,
+    "freq": 0.7441860465116279,
+    "n": 43,
+    "lo": 0.2,
+    "hi": 0.3
+   },
+   {
+    "p_mean": 0.3512305207620218,
+    "freq": 0.6956521739130435,
+    "n": 23,
+    "lo": 0.3,
+    "hi": 0.4
+   },
+   {
+    "p_mean": 0.45492344296493203,
+    "freq": 0.0,
+    "n": 2,
+    "lo": 0.4,
+    "hi": 0.5
+   },
+   {
+    "p_mean": 0.5372339873625736,
+    "freq": 1.0,
+    "n": 1,
+    "lo": 0.5,
+    "hi": 0.6
+   },
+   {
+    "p_mean": 0.6066131356506643,
+    "freq": 1.0,
+    "n": 2,
+    "lo": 0.6,
+    "hi": 0.7
+   }
+  ]
+ },
+ "alarm_rules": {
+  "v1_probabilities_v1_rule_C0": {
+   "threshold": 0.4232680921719685,
+   "confirm_bins": 2,
+   "n_stuck_events": 66.0,
+   "false_alarms_per_hour": {
+    "value": 0.0,
+    "interval": [
+     0.0,
+     0.0
+    ]
+   },
+   "detection": {
+    "value": 0.015151515151515152,
+    "interval": [
+     0.0,
+     0.04918032786885246
+    ]
+   },
+   "non_event_hours": 1.3416666666666666
+  },
+  "v1_probabilities_risk_controlled_C1": {
+   "threshold": 0.4350489688551407,
+   "confirm_bins": 2,
+   "n_stuck_events": 66.0,
+   "false_alarms_per_hour": {
+    "value": 0.0,
+    "interval": [
+     0.0,
+     0.0
+    ]
+   },
+   "detection": {
+    "value": 0.015151515151515152,
+    "interval": [
+     0.0,
+     0.04918032786885246
+    ]
+   },
+   "non_event_hours": 1.3416666666666666
+  },
+  "v2_probabilities_v1_rule_C0": {
+   "threshold": 0.4866650903715253,
+   "confirm_bins": 2,
+   "n_stuck_events": 66.0,
+   "false_alarms_per_hour": {
+    "value": 0.0,
+    "interval": [
+     0.0,
+     0.0
+    ]
+   },
+   "detection": {
+    "value": 0.015151515151515152,
+    "interval": [
+     0.0,
+     0.04918032786885246
+    ]
+   },
+   "non_event_hours": 1.3416666666666666
+  }
+ },
+ "caveats": [
+  "simulated participants (language model), not people. Not people, not the live study.",
+  "Progress events are sparse in these traces, so the label ('no progress in the next 60 s') is almost always 1: log loss against the base rate says little, and a model can look good or bad for that reason alone.",
+  "Cases are short (about a minute or two), so each participant contributes a handful of 30 s bins.",
+  "Nothing was tuned on these traces; the models and alarm rules were fitted on synthetic personas before any of these numbers existed.",
+  "Participants are language models acting in a sandbox we built, under a coach we built; this tests transfer to a different behaviour generator, not to real work."
+ ],
+ "status": "ok",
+ "frozen": {
+  "a7_base": "A7_A4",
+  "primary_a": "A7",
+  "frozen_at": "2026-11-07T18:40:44Z"
+ },
+ "finished_participants": [
+  "p_sim01",
+  "p_sim02",
+  "p_sim03",
+  "p_sim04",
+  "p_sim05",
+  "p_sim06",
+  "p_sim07",
+  "p_sim08",
+  "p_sim09",
+  "p_sim10",
+  "p_sim11",
+  "p_sim12",
+  "p_sim13",
+  "p_sim14",
+  "p_sim15",
+  "p_sim16",
+  "p_sim17",
+  "p_sim18",
+  "p_sim19",
+  "p_sim20",
+  "p_sim21",
+  "p_sim22",
+  "p_sim23",
+  "p_sim24"
+ ]
+}

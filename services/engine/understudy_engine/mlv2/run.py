@@ -14,6 +14,9 @@ import sys
 from understudy_engine.mlv2 import freeze
 
 
+PART_POOL = {"hazard": "HELD", "genome": "APP-HELD", "mismatch": "MIS-HELD"}      # the held-out pool each part reads (one name per generator family)
+
+
 def _log(msg: str) -> None:
     print(msg, file=sys.stderr, flush=True)
 
@@ -122,15 +125,15 @@ def cmd_heldout(args) -> int:
     if part == "hazard":
         from understudy_engine.mlv2.hazard_part import run_hazard_part
 
-        res = run_hazard_part("HELD", frozen=frozen, fast=False, n_boot=args.n_boot, log=_log)
+        res = run_hazard_part(PART_POOL["hazard"], frozen=frozen, fast=False, n_boot=args.n_boot, log=_log)
     elif part == "genome":
         from understudy_engine.mlv2.genome_part import run_genome_part
 
-        res = run_genome_part("HELD", frozen=frozen, n_boot=args.n_boot, log=_log)
+        res = run_genome_part(PART_POOL["genome"], frozen=frozen, n_boot=args.n_boot, log=_log)
     else:
         from understudy_engine.mlv2.mismatch import run_mismatch_part
 
-        res = run_mismatch_part("HELD", frozen=frozen, n_boot=args.n_boot, log=_log)
+        res = run_mismatch_part(PART_POOL["mismatch"], frozen=frozen, n_boot=args.n_boot, log=_log)
     res["split_label"] = "held-out (single frozen run)"
     res["code_fingerprint"] = freeze.code_fingerprint(hashes)
     res["frozen"] = {k: frozen.get(k) for k in ("a7_base", "primary_a", "primary_c", "primary_e", "primary_q", "frozen_at")}

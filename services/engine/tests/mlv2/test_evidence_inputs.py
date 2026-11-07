@@ -80,3 +80,20 @@ def test_builder_fills_validated_inputs_for_v1_and_v2_without_any_free_text(appr
     c = v1.cases[0]
     assert abs(c.gap_s - sum(h.seconds for h in c.habits)) < 5.0 or c.habits      # the habits (bars above half a second) account for the gap
     assert all(e.expert_lo_s <= e.expert_hi_s for e in c.envelope)
+
+
+def test_build_for_person_and_case_from_a_store(tmp_path, monkeypatch):
+    from understudy_engine.mlv2 import evidence_builder as EB
+    from understudy_engine.personas import apprentices
+
+    apprentices.generate(tmp_path)
+    x = EI.build("p_nov01", root=tmp_path, n_boot=20)
+    assert x.model_version == "v1" and x.accepted is None and len(x.cases) == 2
+    one = EB.build_for("p_nov01", x.cases[0].task_id, root=tmp_path, n_boot=20)
+    assert len(one.cases) == 1 and one.cases[0].task_id == x.cases[0].task_id
+    v2 = EB.build_for("p_nov01", root=tmp_path, model_version="v2", n_boot=20)
+    assert v2.model_version == "v2" and v2.accepted is False and not v2.usable()        # no held-out acceptance: never reaches the explainer
+    with pytest.raises(ValueError):
+        EB.build_for("p_nobody", root=tmp_path)
+    with pytest.raises(ValueError):
+        EB.build_for("p_nov01", "t_other", root=tmp_path, n_boot=20)

@@ -319,3 +319,10 @@ def _to_dict(o: Any) -> Any:
 def sorted_habits(habits: list[HabitInput]) -> tuple[HabitInput, ...]:
     """Largest counterfactual (else attributed) seconds first."""
     return tuple(sorted(habits, key=lambda h: -(h.counterfactual_s if h.counterfactual_s is not None else h.seconds)))
+
+
+def build(person: str, case: str | None = None, **kw) -> EvidenceInputs:
+    """Alias of ``understudy_engine.mlv2.evidence_builder.build_for(person, case, ...)`` (imported lazily so this module stays dependency-free)."""
+    from understudy_engine.mlv2.evidence_builder import build_for
+
+    return build_for(person, case, **kw)

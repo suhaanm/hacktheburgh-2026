@@ -86,3 +86,45 @@ def build_evidence_inputs(cohort: Cohort, person: str, *, model_version: str = "
     pv = EI.Provenance(origin=origin, n=len({e.person for e in cohort.novices}), n_unit="people", split=split, model_version=model_version,
                        accepted=accepted, pool=pool)
     return EI.EvidenceInputs(provenance=pv, cases=tuple(cases), cohort=None, hazard=hazard, baselines={}, limitations=tuple(limitations)).validate()
+
+
+# ------------------------------------------------------------------------------------------------ the app-facing entry point
+def _heldout_accepted() -> bool:
+    """True only when the single held-out genome run accepted BOTH the v2 seconds (E4) and the v2 counterfactual (Q1) against v1. No held-out
+    file, or any other verdict, is False: unaccepted v2 numbers must never reach the explainer by omission."""
+    from understudy_engine.mlv2 import freeze
+
+    p = freeze.out_dir() / "results" / "heldout_genome.json"
+    if not p.exists():
+        return False
+    try:
+        g = freeze.read_json(p)
+        return bool(g["family_e"]["rows"]["E4"]["verdict"] == "accepted" and g["family_q"]["rows"]["Q1"]["verdict"] == "accepted")
+    except (KeyError, ValueError):
+        return False
+
+
+def build_for(person: str, case: str | None = None, *, root=None, model_version: str = "v1", hazard: EI.HazardInput | None = None,
+              seed: int = 0, n_boot: int = 120) -> EI.EvidenceInputs:
+    """EvidenceInputs for one person (and optionally one case, by task id), from the engine's own synthetic apprentice cohort in the store.
+
+    ``model_version`` is "v1" (the default; ``accepted`` is None) or "v2" (``accepted`` is read from the held-out verdicts and is False unless both
+    primary candidates were accepted). Raises ValueError when the person is not in the cohort or the case is not theirs."""
+    from understudy_engine.genome.service import TASK, GenomeService
+    from understudy_engine.store import EventStore
+
+    bundle = GenomeService(EventStore(root)).bundle(TASK, "synthetic")
+    cohort = bundle.cohort
+    if person not in {e.person for e in cohort.episodes}:
+        raise ValueError(f"person {person!r} is not in the synthetic cohort")
+    accepted = None if model_version == "v1" else _heldout_accepted()
+    x = build_evidence_inputs(cohort, person, model_version=model_version, accepted=accepted, hazard=hazard, seed=seed, n_boot=n_boot,
+                              pool="none")
+    if case is not None:
+        keep = tuple(c for c in x.cases if c.task_id == case)
+        if not keep:
+            raise ValueError(f"case {case!r} is not one of {person!r}'s cases")
+        import dataclasses
+
+        x = dataclasses.replace(x, cases=keep)
+    return x.validate()

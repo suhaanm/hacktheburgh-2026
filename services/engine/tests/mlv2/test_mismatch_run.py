@@ -76,3 +76,21 @@ def test_code_hashes_are_per_part_and_stable(monkeypatch):
     assert h1 == h2 and "hazard_part.py" in h1 and "mismatch.py" not in h1
     assert "mismatch.py" in freeze.code_hashes("mismatch")
     assert freeze.code_fingerprint(h1) == freeze.code_fingerprint(h2)
+
+
+def test_each_heldout_part_asks_its_own_registered_pool(tmp_path, monkeypatch):
+    """Regression for a bug found on the first genome invocation: the CLI passed the hazard pool name ('HELD') to every part."""
+    import understudy_engine.mlv2.genome_part as GP
+    import understudy_engine.mlv2.hazard_part as HP
+    import understudy_engine.mlv2.mismatch as MMOD
+    from understudy_engine.mlv2 import apprentice_pool as AP
+
+    monkeypatch.setenv("UNDERSTUDY_EVALS_DIR", str(tmp_path))
+    monkeypatch.setenv("UNDERSTUDY_MLV2_HELDOUT", "1")
+    freeze.write_json(freeze.frozen_path(), {"a7_base": "A7_A4", "primary_a": "A7", "hazard_frozen": True, "primary_e": "E4", "primary_q": "Q1"})
+    seen = {}
+    for part, mod, fn in (("hazard", HP, "run_hazard_part"), ("genome", GP, "run_genome_part"), ("mismatch", MMOD, "run_mismatch_part")):
+        monkeypatch.setattr(mod, fn, lambda pool, _p=part, **kw: (seen.__setitem__(_p, pool), {"seconds": 0})[1])
+        assert RUN.main(["heldout", "--part", part]) == 0
+    assert seen == {"hazard": "HELD", "genome": "APP-HELD", "mismatch": "MIS-HELD"}
+    assert seen["genome"] in AP.POOLS and seen["mismatch"] in MM.POOLS and seen["hazard"] in splits.POOL_NAMES
