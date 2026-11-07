@@ -1,0 +1,48 @@
+# Fix ledger (lead, from Sat 7 Nov 2026, about 19:40 GMT)
+
+One list of everything known to be broken, unverified or unfinished, with an owner and a way to know it is closed. The lead updates it at every checkpoint. **Closed** means the lead saw the check pass, not that an agent said so. Owner-only items are at the bottom.
+
+## A. Safety of real-desktop actions (reviewer: evals/review/safety_actuator.md; reproducers in evals/review/safety/)
+| id | what | owner | closed when |
+|---|---|---|---|
+| S-25, S-26 | chord sets canonicalised; DOM read in an isolated world | agent-core (done) | reviewer re-verified 19:27 |
+| S-30 | frame captured and encoded in memory only (D30) | agent-core (done) | 48 tests pass, R0 ran with it |
+| S-28 | type or fill with an unreadable focus is needs_human; walk same-origin frames | AGENTIC-2 | test_s28 passes |
+| S-27 | check_path also resolves the full path (realpath, stat identity) | AGENTIC-2 | test_s27 passes |
+| S-29 | unnamed AX roles (outside a small allow-list) are needs_human; AXPress counts as a button | AGENTIC-2 | test_s29 passes (10) |
+| queue title | approver title from class and host, never the page label | AGENTIC-2 | test added |
+| second read | CDP DOM hit test compared with the isolated-world read; disagreement is unreadable | AGENTIC-2 | test added |
+| small items | zero-width and look-alike letters (strip_invisible, mixed script); tighten the BENIGN_SUBMIT prefix list; lock the owner-token consume; RunPermit single use | AGENTIC-2 after the above | tests added |
+| gate hash | sha256 over security/*.py, tiers/computer_use.py, safety.py, facts.py recorded in ITERATIONS.md | AGENTIC-2 (last step) | hash in the confirmation run |
+
+Real-click ladder (evals/agentic/REAL_CLICKS.md): R0 ran once on 7 Nov (zero events, capture works, scale agrees, point covered by the Claude window: stop and report). Next: owner moves the window, second R0 (owner go), then the R1 preflight in the owner's terminal. R2 stays NO-GO until R1 is reported and S-28 and S-29 are closed.
+
+## B. Agentic long-horizon (evals/agentic/)
+Owner: AGENTIC-2. LH-2 checkpoint and WorkingMemory.snapshot, carry-over across escalation, reader digest memo, StepRecord.verified, FrameRetention and call_context meter wiring, LH-4, LH-5, Gemini comparison, old-goal comparison. Then the lead runs the held-out confirmation (clean n = 4 on seed 9137, injected n = 20 on seed 9138) after the reviewer re-test. Spend so far US$8.54 of the US$20 track (total cap US$60).
+
+## C. Dashboard
+| item | owner | closed when |
+|---|---|---|
+| tsc clean, vitest 465 pass | lead saw 19:3x | done |
+| smoke: 4 FAIL (Evidence map, Privacy canary wording, two Explain checks) | DSN | smoke all PASS, honesty wording intact |
+| Repeats: delete preview.html and preview.tsx; plain "example data" line instead of a raw engine sentence; richer demo seed | HIT (resumed) | seen in the real shell |
+| Home, Firm, Predictions, palette, tour: crash "Element type is invalid" | ADMIN-UI | each renders in the shell, light and dark, 1440 and 390 |
+| design sync: remaining screens, Notices | DSN | docs/DESIGN_AUDIT.md complete |
+
+## D. Desktop app
+DESKTOP-2: finish screens and the rehearsal re-run; `tsc --noEmit` and the full vitest once through scripts/heavy.sh; S-18 JXA click against fakes only; legacy-remote gating done; drop sensitive controls from the rect content (decided). Not built (owner-blocked): the screen-change watcher (Screen Recording).
+
+## E. Engine, evaluation and honesty
+- INSIGHTS: dev evaluation, freeze, then the single held-out run by the lead. Plan committed 7 Nov.
+- ATTENTION: frozen config committed (d884d5d); held-out run once; report the cost of the quieter budget.
+- ML v2: held-out hazard, controls, ablation, genome; force-add heldout outputs; M5 transfer result stays as reported (failed, simulated participants).
+- STUDY-SIM run 5, ROLES (programmer, analyst) pilot, REALISM matrix: agents running; plans are committed; results labelled simulated, never in the live study section.
+- ENGINE-EVAL: wire evidence, insights, mlv2, cue, attention, hitlist, realism and roles sections; then `make eval` once, regenerate report and the dashboard fixture.
+- Full suites: engine and agent run 19:40 (logs in the session scratchpad); every failure triaged to an owner here.
+- Cue: `target.zone` on GET /cue/next is a deferred contract change (D-note by DESKTOP-2).
+
+## F. Integration (lead)
+Restart the dev stack on current code (needs the owner's go: the dev agent shows "killed" from the earlier stray kill file and I will not clear it by a back door); set UNDERSTUDY_EXTENSION_ID; flip flags on only after the lead's own end-to-end check; checkpoint commits; README rewrite (it still says the Alongside module list will come later; definition of done needs it, plus how to run and what is new; NARRATIVE agent near the freeze); THIRD_PARTY_NOTICES; CLAIMS.md; README disclosure; `make demo` with wifi off.
+
+## Owner-only
+Screen Recording and Microphone permissions (R0 needed neither for the display size; later rungs will), moving the Claude window for the second R0, the R1 preflight in the owner's terminal (it needs a real YES and a physical hotkey press), Auth0 domain and client ID, chrome://extensions id, Devpost facts, the sentences for CLAUDE.md about frames (D37) and admin visibility (D41), real Outlook aggregate check approval at run time, the demo rehearsal and the submission.
