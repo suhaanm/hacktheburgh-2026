@@ -23,7 +23,6 @@ that every number traces to the packet, not that the packet is true.
 """
 from __future__ import annotations
 
-import json
 import os
 import threading
 from dataclasses import dataclass, field

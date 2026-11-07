@@ -30,7 +30,7 @@ def test_fast_evaluation_shape_and_headline_numbers():
     assert fb["faithful_fake"]["by_source"] == {"local": 8} and fb["no_model_mock"]["by_source"] == {"template": 8}
     assert fb["adversarial_fake"]["template_rate"]["rate"] == 1.0
     assert r["live"]["status"] == "not_run"
-    assert {x["id"] for x in r["limitations"]} >= {"explainer_readability_not_accuracy", "faithful_fake_is_ours", "adversarial_set_is_ours"}
+    assert {x["id"] for x in r["limitations"]} >= {"explainer_readability_not_accuracy", "faithful_fake_is_ours", "adversarial_set_is_ours", "model_layer_is_optional_polish"}
     json.dumps(r)                                                                  # JSON-ready
 
 

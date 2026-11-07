@@ -282,7 +282,6 @@ def test_what_an_intent_needs_is_not_dropped_for_it(pk0):
     assert "gap.null_lo,gap.null_hi" not in how["context"]["dropped"] and "consequences" not in how["context"]["dropped"]
     assert "gap.null_lo,gap.null_hi" in other["context"]["dropped"]
     for out in (how, other):
-        wire = E.build_request(pk0, None).packet.to_wire()
         assert out["context"]["over_budget"] in (True, False)
         assert out["badge"]["n"] == 24                                          # meta is never dropped
 

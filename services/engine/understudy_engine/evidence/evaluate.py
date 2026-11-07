@@ -383,6 +383,12 @@ def limitations(result: dict[str, Any]) -> list[dict[str, str]]:
         {"id": "packet_from_synthetic_and_fixtures", "severity": "medium",
          "text": "Packets come from synthetic apprentices (and the real stuck-hazard evaluation in the full run); the coach, routine, counterfactual and "
                  "time-to-progress blocks are scripted fixtures that exercise wording and the check, not measurements."},
+        {"id": "model_layer_is_optional_polish", "severity": "high",
+         "text": "The deterministic template is the shipped wording: it passes its own check on every packet and every intent, with no model. A model's words are "
+                 "used only when they pass the same check, and how often they do depends on the model and the mode (live, small n, real models, 7 Nov 2026): "
+                 "local Qwen2.5-7B composing freely 1 of 30; rewording a code-written draft 12 of 30 [24.6%, 57.7%] then, after the hedge and wording fixes, 24 of 30 "
+                 "[62.7%, 90.5%]; cloud gpt-5.4-mini composing from the packet 0 of 13 [0%, 22.8%]; cloud gemini-3.5-flash-lite 7 of 9 [45.3%, 93.7%] (see live.recorded). "
+                 "The model layer improves readability only when it passes the check, so the default text says 'words from the template'."},
         {"id": "live_small_n", "severity": "low",
          "text": "The live block, when it is run, is a small-n pass rate for one local model on synthetic packets; it says nothing about other models."},
     ]

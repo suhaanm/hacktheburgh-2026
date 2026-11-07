@@ -336,3 +336,16 @@ def test_an_honest_hedge_that_names_the_denied_cause_is_not_a_causal_claim(pk, t
 ])
 def test_a_hedge_does_not_hide_a_real_causal_claim(pk, text):
     assert "causal_claim" in verdict(pk, text, []).codes
+
+
+@pytest.mark.parametrize("text,uses", [
+    ("The analysis suggests that a slower pace on shared steps is linked to {habit.pace.seconds} and a missed check to {habit.pace.seconds}.", []),
+    ("The alignment suggests that long pauses are associated with {habit.pauses.seconds} and search loops with {habit.search_loops.seconds}.", []),
+    ("The data show that a slower pace on shared steps is associated with {habit.pace.seconds}.", []),
+])
+def test_a_clause_such_as_the_analysis_suggests_does_not_make_a_known_habit_unknown(pk, text, uses):
+    assert "unknown_habit" not in verdict(pk, text, uses).codes
+
+
+def test_an_unknown_habit_after_such_a_clause_is_still_caught(pk):
+    assert "unknown_habit" in verdict(pk, "The analysis suggests that tab switching is linked to {habit.pauses.seconds}.", []).codes

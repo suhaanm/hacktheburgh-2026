@@ -485,7 +485,7 @@ _ATTR_FRAMES = [
                r"shows? up (?:in|as)|sits? in|lies? in|lost (?:time )?(?:to|in|on|through)|spent (?:\S+ )*?(?:on|in)|"
                r"attributed to|assigned to|(?:mostly|mainly|largely|partly|especially|particularly) (?:in|from|on|with|through))\s+"
                r"(?P<np>[^.;:!?]+)", re.I),
-    re.compile(r"(?P<np>[A-Za-z][A-Za-z \-']{2,48}?)\s+(?:is|are|was|were)\s+(?:associated with|linked to|tied to|connected to)\b", re.I),
+    re.compile(r"\b(?P<np>[A-Za-z][A-Za-z \-']{2,48}?)\s+(?:is|are|was|were)\s+(?:associated with|linked to|tied to|connected to)\b", re.I),
     # possessive quantifiers (Python 3.11+): the repeated number-and-unit group cannot backtrack, so a long run of digits is linear
     re.compile(r"\bspent\s++(?:(?:about|around|roughly|just over|over|nearly)\s++)?(?:(?:\d[\d.,:]*+|an? (?=minute|hour|second)|half an? (?=minute|hour))\s*+"
                r"(?:seconds?+|minutes?+|hours?+|secs?+|mins?+|s|m|h)?+\s*+(?:and\s++)?+)++(?P<np>[a-z][^.;:!?]+)", re.I),
@@ -830,6 +830,7 @@ def _unknown_habit_cue(t: str, add: Any) -> None:
         for m in rx.finditer(t):
             np_text = m.group("np")
             # the phrase ends at a clause break; drop numbers and bracketed asides, then split on "and" and commas
+            np_text = re.split(r"\b(?:suggests?|shows?|indicates?|says?|means?|found|finds?)\b(?:\s+that\b)?", np_text)[-1]    # "the analysis suggests that X is linked to"
             np_text = re.sub(r"\([^)]*\)", " ", np_text)
             np_text = re.sub(r"[-\d][\d.,:]*%?", " ", np_text)
             np_text = re.split(r"\b(?:which|that|while|but|so|where|when|compared|against|than|for the|on this|in this|over)\b", np_text, maxsplit=1)[0]
