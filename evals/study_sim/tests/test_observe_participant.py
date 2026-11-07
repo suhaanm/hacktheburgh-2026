@@ -200,3 +200,14 @@ async def test_transient_errors_are_retried_and_refusals_are_not(specs, tmp_path
     from evals.study_sim.participant import HarnessModelError
     with pytest.raises(HarnessModelError):
         await mp3.decide(_ctx(specs[2]))
+
+
+def test_clean_typed_removes_only_structured_reply_artifacts():
+    from evals.study_sim.observe import clean_typed
+    seen = {"36},{": "36", "190.00},{": "190.00", "12000},{": "12000", "56},{": "56", "16000/": "16000", "12000.00?": "12000.00", "18000?": "18000",
+            "45, 45?": "45, 45", "455.00?": "455.00", "12000.00/": "12000.00", "42 42 42 42 42 42": "42", "56 ": "56", "CASE-1004": "CASE-1004",
+            "£801.14": "£801.14", "12000.00 GBP?": "12000.00 GBP?", "£0": "£0", "Match": "Match", "cliff edge?": "cliff edge?", "": "", "n/a": "n/a",
+            'He said "no"': "He said"}
+    for raw, want in seen.items():
+        assert clean_typed(raw) == want, (raw, clean_typed(raw), want)
+    assert clean_typed("12,000") == "12,000" and clean_typed("1 2 3") == "1 2 3" and clean_typed("a a a") == "a a a"      # human-like input is left alone

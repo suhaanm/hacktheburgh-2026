@@ -65,6 +65,7 @@ def aggregate_checks(checks_dir: Path) -> dict:
     kill = {"engine_reports_killed": 0, "coach_silent_after_kill": 0, "n": 0}
     excl: list[str] = []
     capped = {"practice": 0, "post": 0}
+    typed = {"fills_and_selects": 0, "cleaned": 0}
     shown_by_block: dict[str, int] = {}
     workers: dict[str, list[float]] = {}
     for d in docs:
@@ -103,6 +104,8 @@ def aggregate_checks(checks_dir: Path) -> dict:
             kill["coach_silent_after_kill"] += k.get("coach_action_after_kill") == "silent"
         for kk, v in ((c.get("coach_events") or {}).get("by_block_skill") or {}).items():
             shown_by_block[kk] = shown_by_block.get(kk, 0) + v
+        for k in typed:
+            typed[k] += (c.get("typed_values_cleaned") or {}).get(k, 0)
         if d.get("exclusion"):
             excl.append(f"{d['participant']}: {d['exclusion']}")
         for case in d.get("cases", []):
@@ -133,6 +136,8 @@ def aggregate_checks(checks_dir: Path) -> dict:
                     "respected": all(x == 0 for x in consent_start + consent_end) if (consent_start or consent_end) else None},
         "kill_flag": {**kill, "note": "the KILL file was written in each participant's isolated data dir (never POST /kill, which would call the agent service); the engine reports it and the coach stays silent. The extension's capture is governed by its own consent toggle, not by this flag."},
         "capped_cases": capped,
+        "typed_values_cleaned": {**typed, "share": round(typed["cleaned"] / typed["fills_and_selects"], 4) if typed["fills_and_selects"] else None,
+                                 "note": "values the participant typed with JSON artifacts from its structured reply removed before typing (PLAN amendment 1); identical for every arm"},
     }
 
 
@@ -158,6 +163,12 @@ def build_section(results_dir: Path = RESULTS) -> dict:
         cost = {"usd_est": c.get("usd_est"), "cap_usd": c.get("cap_usd"), "calls": c.get("calls"), "cache_hits": c.get("cache_hits"), "tokens": c.get("tokens"),
                 "prices_from_env": c.get("prices_from_env"), "price_in_per_mtok": c.get("price_in_per_mtok"), "price_out_per_mtok": c.get("price_out_per_mtok")}
     models = sorted({r.get("model", "") for r in rows})
+    aborted = []
+    for nf in sorted(results_dir.parent.glob("aborted_run*/NOTE.json")):
+        try:
+            aborted.append(json.loads(nf.read_text()))
+        except (OSError, ValueError):
+            pass
     h = a["headline"]
     eff = a["effort"]
     section = {
@@ -173,7 +184,7 @@ def build_section(results_dir: Path = RESULTS) -> dict:
         "pipeline_checks": aggregate_checks(results_dir / "checks"),
         "cost": cost,
         "limitations": LIMITATIONS,
-        "meta": {**meta, "n": n, "models": models, "excluded_participants": a["excluded_participants"], "design_problems": a["design_problems"],
+        "meta": {**meta, "n": n, "models": models, "excluded_participants": a["excluded_participants"], "design_problems": a["design_problems"], "aborted_runs": aborted,
                  "note": "Simulated participants (language model), not people. Never the live study. n counts silicon participants."},
     }
     section["analyze_py"] = a["analyze_py"]
@@ -203,6 +214,9 @@ def render_md(s: dict) -> str:
     w("")
     if s["status"] != "complete":
         w(f"> **Status {s['status']}: fewer participants than planned ({N_COACHED} coached, {N_AA} sham). Read the numbers below as a harness or partial-run report; no headline claim is made.**")
+        w("")
+    for ab in s["meta"].get("aborted_runs", []):
+        w(f"> **An earlier run ({ab['id']}) was aborted after GO and is not analysed:** {ab['reason']}. Its spend (US${ab.get('usd_est')}, {ab.get('calls')} calls) counts against the cap. See the amendment log in PLAN.md.")
         w("")
     w("## 1. Headline: unassisted skill score, coached skill minus uncoached skill")
     w("")
@@ -268,6 +282,8 @@ def render_md(s: dict) -> str:
     w(f"- **Study mode enforcement: {sm['verdict']}.** Polls by mode {sm['polls_by_mode']}; non-silent polls by mode {sm['non_silent_polls_by_mode']}; coach_shown events by block and skill {sm['coach_shown_events_by_block_and_skill']}; violations seen {sm['violations_seen_by_poller'] + sm['violations_in_event_store'] or 'none'}.")
     er = pc["errors"]
     w(f"- Errors: engine {er['engine']}, extension web errors {er['extension_weberrors']}, coach poll errors {er['coach_poll_errors']}, harness tracebacks {er['harness_tracebacks']}, contaminated attempts retried {er['contaminated_attempts_retried']}; exclusions {er['exclusions'] or 'none'}.")
+    tv = pc["typed_values_cleaned"]
+    w(f"- Typed values cleaned of structured-reply artifacts (PLAN amendment 1, same for every arm): {tv['cleaned']} of {tv['fills_and_selects']} fills and selects ({tv['share']}).")
     co = pc["consent"]
     w(f"- Consent toggle respected: {co['respected']} (events while off at start {co['events_while_capture_off_at_start']}, after switching off {co['events_after_capture_switched_off']}).")
     k = pc["kill_flag"]

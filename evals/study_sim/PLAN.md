@@ -256,4 +256,23 @@ via `analyze.py` plus the A/A analysis; `study_sim_section()` in `section.py` re
 
 ## Amendment log
 
-_None. Entries below are dated and never edit the sections above._
+_Entries are dated and never edit the sections above._
+
+**Amendment 1 (2026-11-07, about 16:55 GMT, after GO at 16:33, before any arm-level result was examined or analysed): run 1 aborted, harness repair, restart.**
+What happened. Run 1 started at 16:33 with 3 workers. After its first participants (p_sim01 and p_sim03 complete; p_sim02, p_sim04 and p_sim05 in flight) I saw,
+in the progress lines, the post-test scores of p_sim01 and p_sim03, and that 2 of the first 4 cases had hit the 60-action cap. I then read p_sim01's action log
+and the cached model replies and found that about 11% of the values the model "typed" (34 of 298 fills) carried JSON structure characters or stray punctuation
+from its structured reply ('36},{', '12000/', '12000.00?', '42 42 42 42 ...'). Those values break the calculators' numeric fields and send the participant into
+re-entry loops, which is noise unrelated to arm, skill, persona or the coach, and which would push most reconcile post-tests to the floor (no saved draft).
+I judged it a defect of the reply interface, not participant behaviour, and stopped the run (SIGINT, which also produced two spurious `ConnectError` exclusions
+in run 1's CSV for the interrupted participants).
+The repair (the only change). Before a participant types a value or chooses a dropdown option, `observe.clean_typed` removes (1) everything from the first JSON
+structure character (`} { [ ] " \`) on, (2) a trailing `,` or `;`, (3) a trailing run of `?` or `/` after a digit, (4) a single token repeated four or more times.
+Currency symbols and words, wrong numbers and every other human-like mistake are left alone. It is applied to every participant in every arm and block; the number
+of cleaned values is counted and reported (`typed_values_cleaned`). It is unit-tested on the observed examples and was checked on a FAKE participant before the restart.
+Not changed: prompts, persona texts and assignment, the task script, caps (60 actions, 2 s pace, 4 actions per reply), cases, scoring, analysis, budget cap.
+What happens to run 1. Its outputs (336 model calls, about US$0.39 at the stated prices) are kept in `evals/study_sim/aborted_run1/`, **not analysed** and not used
+for any decision; its spend counts against the US$8 cap (the new run's budget guard starts from it). Run 2 starts with an empty cache, a new ledger and the same
+fixed run order, ids and personas, so p_sim01 to p_sim24 are run again from scratch.
+Pricing note (not a method change): the token prices in the report (US$0.75 in and 4.50 out per million tokens for the fast model) were supplied by the lead from a
+web search of OpenAI's model page and are an assumption that may have changed.

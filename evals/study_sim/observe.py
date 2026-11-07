@@ -145,6 +145,26 @@ def parse_actions(obj: dict, max_actions: int = 4) -> list[Action]:
     return out
 
 
+_JSON_CUT = re.compile(r'[}{\[\]"\\]')
+
+
+def clean_typed(text: str) -> str:
+    """Remove artifacts of the structured reply from a value the participant 'types', the same for every participant in every arm.
+    (1) Everything from the first JSON structure character on ('36},{' -> '36'). (2) Trailing ',' or ';'. (3) A trailing run of '?' or '/' after a digit
+    ('12000/' -> '12000'). (4) A single token repeated four or more times ('42 42 42 42' -> '42'). Currency symbols, words, wrong numbers and every
+    other human-like mistake are left alone."""
+    t = text or ""
+    m = _JSON_CUT.search(t)
+    if m:
+        t = t[:m.start()]
+    t = t.strip().rstrip(",;").rstrip()
+    t = re.sub(r"(?<=\d)[?/]+$", "", t).rstrip()
+    toks = t.split()
+    if len(toks) >= 4 and len(set(toks)) == 1:
+        t = toks[0]
+    return t
+
+
 def url_allowed(url: str, ports: set[int]) -> bool:
     m = re.match(r"^http://127\.0\.0\.1:(\d+)(/.*)?$", url or "")
     return bool(m and int(m.group(1)) in ports)

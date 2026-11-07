@@ -168,6 +168,8 @@ def cmd_run(a) -> int:
     port = get_model_port()
     model_id = getattr(getattr(port, "models", None), "fast", "unknown")
     budget = Budget(ledger_path=RESULTS / "cost_ledger.jsonl")
+    for ab in sorted(HERE.glob("aborted_run*/cost.json")):
+        budget.carry(ab)
     specs = build_participants()
     if a.only:
         keep = {int(x) for x in a.only.split(",")}

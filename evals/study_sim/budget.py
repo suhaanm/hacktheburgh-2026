@@ -42,6 +42,7 @@ class Budget:
     per_participant: dict = field(default_factory=dict)
     token_source: str = "provider_usage"
     finished: set = field(default_factory=set)
+    carried: dict = field(default_factory=dict)
     _seen_in: int = 0
     _seen_out: int = 0
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
@@ -84,6 +85,14 @@ class Budget:
     def hit(self, participant: str) -> None:
         self.cache_hits += 1
 
+    def carry(self, cost_json: Path) -> None:
+        """Add the spend of an aborted run to the totals so the cap covers the whole study."""
+        if cost_json.exists():
+            c = json.loads(cost_json.read_text())
+            self.tokens_in += int(c["tokens"]["in"])
+            self.tokens_out += int(c["tokens"]["out"])
+            self.carried = {"usd_est": c.get("usd_est"), "calls": c.get("calls")}
+
     def can_start_participant(self, in_flight: int = 0) -> bool:
         """Start a new participant only if the estimate leaves room for it and every participant already running, at 1.5 x the average cost
         of the participants finished so far (workers run in parallel, so the spend of those in flight is not in the ledger yet)."""
@@ -101,4 +110,4 @@ class Budget:
         pin, pout, from_env = prices()
         return {"usd_est": round(self.usd, 3), "cap_usd": self.cap_usd, "calls": self.calls, "cache_hits": self.cache_hits,
                 "tokens": {"in": self.tokens_in, "out": self.tokens_out}, "price_in_per_mtok": pin, "price_out_per_mtok": pout,
-                "prices_from_env": from_env, "token_source": self.token_source, "by_role": self.by_role}
+                "prices_from_env": from_env, "token_source": self.token_source, "by_role": self.by_role, "carried_from_aborted_run": self.carried}

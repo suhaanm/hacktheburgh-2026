@@ -36,3 +36,4 @@ evals/study_sim/cache/
 evals/study_sim/fake_runs/
 evals/study_sim/GO
 extension/dist-*/
+evals/study_sim/aborted_run1/

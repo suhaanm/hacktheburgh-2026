@@ -23,7 +23,7 @@ from .checks import contamination
 from .coach import CoachPoller, Mode, NudgeCounts, Shown, followed_by
 from .design import BlockPlan, ParticipantSpec, household_card, load_cases
 from .infra import BATCH_FLUSH_S, EngineProc, ExtBrowser, World, onboard, read_events, set_study_mode
-from .observe import (HIDE_OVERLAY_JS, OVERLAY_JS, SNAPSHOT_JS, Action, Executed, is_submit_control, url_allowed, url_parts)
+from .observe import (HIDE_OVERLAY_JS, OVERLAY_JS, SNAPSHOT_JS, Action, Executed, clean_typed, is_submit_control, url_allowed, url_parts)
 from .participant import HarnessModelError, StepContext, sleep_s
 
 OWNER = "study-sim"
@@ -187,16 +187,20 @@ class CaseRunner:
                 el = await self._element(a.ref)
                 if el is None:
                     raise RuntimeError("no such control (the page changed)")
-                await el.fill(a.text or "", timeout=6000)
+                typed = clean_typed(a.text or "")
+                rec.extra["cleaned"] = typed != (a.text or "")
+                await el.fill(typed, timeout=6000)
                 rec.ok = True
             elif a.kind == "select":
                 el = await self._element(a.ref)
                 if el is None:
                     raise RuntimeError("no such control (the page changed)")
+                chosen = clean_typed(a.text or "")
+                rec.extra["cleaned"] = chosen != (a.text or "")
                 try:
-                    await el.select_option(label=a.text or "", timeout=4000)
+                    await el.select_option(label=chosen, timeout=4000)
                 except Exception:  # noqa: BLE001
-                    await el.select_option(value=a.text or "", timeout=4000)
+                    await el.select_option(value=chosen, timeout=4000)
                 rec.ok = True
             elif a.kind == "goto":
                 if not url_allowed(a.url or "", self.world.allowed_ports()):
@@ -521,6 +525,8 @@ async def run_participant(spec: ParticipantSpec, *, world: World, pw, make_polic
                        "polls_by_mode": {m: sum(1 for p in all_polls if p.mode == m) for m in ("train", "post_test", "off")},
                        "non_silent_by_mode": {m: sum(1 for p in all_polls if p.mode == m and p.action != "silent") for m in ("train", "post_test", "off")}}
     checks["study_mode_violations"] = violations
+    fills = [e for c in out.cases for e in c.executed if e.kind in ("fill", "select")]
+    checks["typed_values_cleaned"] = {"fills_and_selects": len(fills), "cleaned": sum(1 for e in fills if e.extra.get("cleaned"))}
     checks["errors"] = errors
     out.checks = checks
     out.rows = analysis_io.block_rows(spec, out.cases, counts_by_block, model_id, exclusion, wall_by_case=None)
@@ -539,7 +545,8 @@ def _action_rows(spec: ParticipantSpec, blk: BlockPlan, phase: str, res: CaseRes
     rows = []
     for i, e in enumerate(res.executed, start=1):
         rows.append({"participant": spec.pid, "block": blk.block, "phase": phase, "i": i, "kind": e.kind, "ok": e.ok, "dom_id": e.dom_id,
-                     "zone": e.extra.get("zone", ""), "port": e.port, "path": e.path, "violation": e.violation, "error": e.error[:40]})
+                     "zone": e.extra.get("zone", ""), "port": e.port, "path": e.path, "violation": e.violation, "error": e.error[:40],
+                     "cleaned": bool(e.extra.get("cleaned"))})
     for s in res.shown:
         rows.append({"participant": spec.pid, "block": blk.block, "phase": phase, "kind": "coach_shown", **analysis_io.shown_row(s)})
     return rows
