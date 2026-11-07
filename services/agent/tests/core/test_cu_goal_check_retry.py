@@ -113,7 +113,7 @@ async def test_a_verdict_of_off_goal_is_one_call_and_still_stops_the_click(tmp_p
 
 
 # ----------------------------------------------------------------------------- iteration 8b: the note after a click on a drop-down (Gemini only)
-async def _run_clicks(model, html, clicks, dropdown_note=None):
+async def _run_clicks(model, html, clicks, dropdown_note=None, final_hint=None, final_note=None):
     """Drive the real loop on a tiny page with scripted clicks; returns the prompts the model was given (one per step)."""
     from playwright.async_api import async_playwright
 
@@ -144,7 +144,7 @@ async def _run_clicks(model, html, clicks, dropdown_note=None):
                 return True
 
             await ComputerUse(Named(), BrowserPageActuator(page), guard, navigator="n", facts=FactStore({"a.b": "x"}, {"a.b": lambda: "1"}),
-                              stall_limit=9, dropdown_note=dropdown_note).run("g", verify)
+                              stall_limit=9, dropdown_note=dropdown_note, final_hint=final_hint, final_note=final_note).run("g", verify)
         finally:
             await browser.close()
     return prompts
@@ -238,3 +238,29 @@ async def test_the_note_follows_the_fit_switch(monkeypatch):
 
     monkeypatch.setenv("UNDERSTUDY_GEMINI_FIT", "0")                                   # the wording of the first Gemini smokes: no note
     assert all(DROPDOWN_NOTE.strip() not in p for p in await _run_clicks("gemini", PAGE, [ON_SELECT]))
+
+
+async def test_the_final_screen_is_announced_to_the_gemini_model_only_when_trusted_code_says_it_is_showing():
+    from understudy_agent.tiers.computer_use import FINAL_NOTE
+
+    async def showing():
+        return True
+
+    async def not_yet():
+        return False
+
+    note = FINAL_NOTE.strip()
+    prompts = await _run_clicks("gemini", PAGE, [ON_TEXT, ON_TEXT], final_hint=showing)
+    assert note not in prompts[0] and note in prompts[1] and "Reply DONE now" in note               # said after the click, in the next prompt
+    assert all(note not in p for p in await _run_clicks("gemini", PAGE, [ON_TEXT, ON_TEXT], final_hint=not_yet))
+    assert all(note not in p for p in await _run_clicks("openai", PAGE, [ON_TEXT, ON_TEXT], final_hint=showing))    # other providers: prompts as before
+    assert any(note in p for p in await _run_clicks("openai", PAGE, [ON_TEXT], final_hint=showing, final_note=True))
+    assert all(note not in p for p in await _run_clicks("gemini", PAGE, [ON_TEXT], final_hint=showing, final_note=False))
+
+
+async def test_a_page_that_cannot_be_read_gives_no_final_note_and_does_not_stop_the_run():
+    async def broken():
+        raise RuntimeError("the page was mid-navigation")
+
+    prompts = await _run_clicks("gemini", PAGE, [ON_TEXT, ON_TEXT], final_hint=broken)
+    assert len(prompts) == 3

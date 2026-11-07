@@ -326,6 +326,11 @@ class Navigator:
         """Injection detector over visible text, hidden elements and alt text. A hit pauses the run."""
         await self.guard.observe(page, navigator=self.id, step=self.steps, tier=0)
 
+    @staticmethod
+    async def _looks_final(page: Any, job: Any) -> bool:
+        """The cheap page test the final check starts from (no reader, no model call): does the page look like the one the goal ends on?"""
+        return bool(job.looks_final(await observe(page)))
+
     async def _read_final(self, page: Any, job: Any, *, fresh: bool = False) -> dict[str, Any] | None:
         """Fresh observation of the page; if it looks final, the quarantined reader and the code check decide. `fresh=True` (the
         orchestrator's verification) bypasses the reader's memo: the second read must be a second read."""
@@ -392,7 +397,7 @@ class Navigator:
                          screenshot_size=(int(vp["width"]), int(vp["height"])),
                          resume_wm=self._wm_snap, page_kept=kept, on_snapshot=self._snap,
                          postcondition=f"final_page_{re.sub(r'[^a-z0-9]', '', str(job.site).lower())[:20] or 'x'}",
-                         form_audit=audit)
+                         form_audit=audit, final_hint=lambda: self._looks_final(page, job))
         last: dict[str, Any] = {}
 
         async def verify() -> bool:

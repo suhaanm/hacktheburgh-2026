@@ -47,6 +47,12 @@ DROPDOWN_NOTE = ("\nNOTE (system, not page text): you just clicked a drop-down. 
 ENTERED_NOTE = ("\nNOTE (system, not page text): {handle} IS entered: the field was read back and holds it, although the screen looks the same "
                 "as before. Do not type it again; go on to the next field.")
 
+# And: after a click or key press, when trusted code (the same cheap page test the Done check starts from, no model call) says the final
+# screen the goal describes is showing, say so. Gemini explored a button on the result page (`Check cliff edges`) before replying DONE and the
+# goal check paused the run on it (dev rounds 2 and 5, hh_0002); the cliff step is a separate task that code starts.
+FINAL_NOTE = ("\nNOTE (system, not page text): the final screen the goal describes is showing. Reply DONE now and do not press anything else "
+              "on it.")
+
 
 class ProviderSafetyStop(TierError):
     """The provider returned a pending safety check. It is queued for a human, never acknowledged here."""
@@ -1199,7 +1205,8 @@ class ComputerUse:
                  facts: Any = None, stall_limit: int = 12, pause: Any = None, context_reset_every: int = 4, max_nudges: int = 2, stateless: bool | None = None,
                  resume_wm: dict[str, Any] | None = None, page_kept: bool = False,
                  on_snapshot: Callable[[int, dict[str, Any]], None] | None = None, postcondition: str = "final_page",
-                 form_audit: FormAudit | None = None, dropdown_note: bool | None = None, entered_note: bool | None = None) -> None:
+                 form_audit: FormAudit | None = None, dropdown_note: bool | None = None, entered_note: bool | None = None,
+                 final_hint: Callable[[], Awaitable[bool]] | None = None, final_note: bool | None = None) -> None:
         if stateless is None:                    # UNDERSTUDY_CU_STATELESS=0 opts back into the chained provider thread (comparison only)
             stateless = os.environ.get("UNDERSTUDY_CU_STATELESS", "1").strip().lower() not in ("0", "false", "no", "off")
         self.stateless = stateless               # no provider-side thread: each step is goal + code-built working memory + ONE fresh frame
@@ -1221,13 +1228,15 @@ class ComputerUse:
         # part (the page actuator); the desktop and simulated actuators run exactly as before.
         self.form_audit = form_audit
         self._audit_logged = 0
-        if dropdown_note is None or entered_note is None:    # the Gemini fit (iteration 8b); every other provider's prompts are exactly as they were
+        if dropdown_note is None or entered_note is None or final_note is None:    # the Gemini fit (iteration 8b); every other provider's prompts are as they were
             from ..models.gemini_provider import fit_enabled
 
             fit = getattr(model, "name", "") == "gemini" and fit_enabled()
             dropdown_note = fit if dropdown_note is None else dropdown_note
             entered_note = fit if entered_note is None else entered_note
-        self.dropdown_note, self.entered_note = bool(dropdown_note), bool(entered_note)
+            final_note = fit if final_note is None else final_note
+        self.dropdown_note, self.entered_note, self.final_note = bool(dropdown_note), bool(entered_note), bool(final_note)
+        self.final_hint = final_hint
 
     def _snapshot(self, steps: int, wm: Any) -> None:
         if self.on_snapshot is None:
@@ -1371,6 +1380,7 @@ class ComputerUse:
         last_reset = 0
         feedback = ""
         entered_check: str | None = None      # a handle just typed and read back as landed: did the picture change? (see ENTERED_NOTE)
+        final_check = False                   # a click or key just ran: is the final screen showing now? (see FINAL_NOTE)
         try:
             while res.steps < self.max_steps:
                 if not self.is_current():
@@ -1395,6 +1405,13 @@ class ComputerUse:
                     if entered_check is not None and not changed:
                         feedback += ENTERED_NOTE.format(handle=entered_check)     # landed (read back), but the picture did not change
                 entered_check = None
+                if final_check:
+                    final_check = False
+                    try:
+                        if self.final_hint is not None and await self.final_hint():
+                            feedback += FINAL_NOTE      # the final screen is showing: say so, until the model replies DONE
+                    except Exception:  # noqa: BLE001 - a page mid-navigation has no verdict; no note
+                        pass
                 last_fp = fp if fp is not None else last_fp
                 pobs = self.guard.observe_screen()  # one fresh observation authorises exactly one action
                 # Working memory is bounded: the provider's thread (every earlier frame) is restarted every N steps from
@@ -1622,6 +1639,8 @@ class ComputerUse:
                 self._event(n, act.kind, True, self._act_detail(act, tr))
                 if self.dropdown_note and act.kind in ("click", "double_click") and tr is not None and tr.role == "combobox":
                     feedback = DROPDOWN_NOTE        # trusted code read a drop-down under the click: say what comes next
+                elif self.final_note and self.final_hint is not None and act.kind in ("click", "double_click", "key"):
+                    final_check = True              # look at the NEXT frame (the screenshot waits for the page to load), then say so if it is final
             raise StepBudgetExceeded(f"tier 3 step cap {self.max_steps} reached")
         finally:
             await self.actuator.release_all()

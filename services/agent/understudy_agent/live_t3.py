@@ -89,9 +89,9 @@ def goal_text_hash(provider: str | None = None) -> str:
                                                                            FactStore(NOTE_VOCAB, {h: (lambda: "") for h in NOTE_VOCAB}).goal_block()]
     if (provider or provider_name()) == "gemini":
         from .models.gemini_provider import cu_prompt_text, fit_enabled
-        from .tiers.computer_use import DROPDOWN_NOTE, ENTERED_NOTE
+        from .tiers.computer_use import DROPDOWN_NOTE, ENTERED_NOTE, FINAL_NOTE
 
-        parts.append(cu_prompt_text() + (DROPDOWN_NOTE + ENTERED_NOTE if fit_enabled() else ""))
+        parts.append(cu_prompt_text() + (DROPDOWN_NOTE + ENTERED_NOTE + FINAL_NOTE if fit_enabled() else ""))
     return hashlib.sha256("\n\u241f\n".join(parts).encode()).hexdigest()[:12]
 
 
