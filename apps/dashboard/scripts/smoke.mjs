@@ -292,6 +292,7 @@ await page.waitForTimeout(500);
 check("needs you: with nothing prepared left, none is shown", (await page.locator("article[data-kind=prepared]").count()) === 0);
 
 await go("/agents", 900);
+await showAll();        // three runs show by default
 const runsBefore = await page.locator("article.run").count();
 await page.locator("summary", { hasText: "Start a background run" }).click();
 await page.locator("#spawn-kind").selectOption("data.chart");

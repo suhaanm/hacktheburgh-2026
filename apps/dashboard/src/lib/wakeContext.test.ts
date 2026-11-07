@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { WakeBridge, WakeContext } from "../Settings/bridge";
+import type { WakeBridge, WakeContext } from "../screens/Settings/bridge";
 import { ID_RE, lastReported, reportInsight, reportWake, resetWakeContext, routineContext, trackRoutineRun } from "./wakeContext";
 
 const fake = () => { const sent: WakeContext[] = []; const b: WakeBridge = { state: async () => ({ switchOn: true, listening: true, line: "" }), set: async () => ({ switchOn: true, listening: true, line: "" }), context: async (c) => { sent.push(JSON.parse(JSON.stringify(c))); return true; } }; return { b, sent }; };
