@@ -41,6 +41,8 @@ DESKTOP-2 done and committed (7 Nov ~20:00): legacy-remote gating, awareness, Cu
 - Full suites: engine and agent run 19:40 (logs in the session scratchpad); every failure triaged to an owner here.
 - Cue: `target.zone` on GET /cue/next is a deferred contract change (D-note by DESKTOP-2).
 
+- ADMIN-UI done and committed. Owner decisions recorded: (1) the demo shows pseudonyms (BP-07), never names; real names are a D41 consent question for a real deployment; (2) default landing stays `home`, the demo script opens `#/genome` by deep link; (3) the cohort sentence "new juniors are behind the onboarding target" is to be reworded to a process sentence ("onboarding is slower than the design target") AFTER the held-out Insights run has finished (no edit to the insights code while it is queued or running), regenerate samples and the dashboard fixture, rerun insights tests; (4) the "Admin view (demo role)" marker stays on Firm only.
+
 ## F. Integration (lead)
 Restart the dev stack on current code (needs the owner's go: the dev agent shows "killed" from the earlier stray kill file and I will not clear it by a back door); set UNDERSTUDY_EXTENSION_ID; flip flags on only after the lead's own end-to-end check; checkpoint commits; README rewrite (it still says the Alongside module list will come later; definition of done needs it, plus how to run and what is new; NARRATIVE agent near the freeze); THIRD_PARTY_NOTICES; CLAIMS.md; README disclosure; `make demo` with wifi off.
 
