@@ -22,3 +22,6 @@ docs/overlay-shots/real-*.png
 # real-desktop test captures (private screen content); keep the written reports only
 docs/reports/mac-*/
 docs/design-shots/*real-mac*
+
+# the built Hey Knack listener (scripts/build-wake-helper.sh); never committed
+resources/knack-wake
