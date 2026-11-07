@@ -124,15 +124,27 @@ def build_report(*, fast: bool = False, sections: list[str] | None = None, root:
         out[spec.name] = clean(sec)
         secs[spec.name] = round(dt, 2)
         log(f"eval: {spec.name} {sec.get('status', 'ok')} in {dt:.1f}s")
-    out["limitations"] = clean(assemble_limitations(out))
     generated_at = now or _now()
+    found = _finish_sections(out, generated_at)
     report: dict[str, Any] = {"generated_at": generated_at, "mock": is_mock()}
     rev = git_rev()
     if rev:
         report["git_rev"] = rev
     report["run"] = {"fast": fast, "seed": seed, "seconds_total": round(time.perf_counter() - t_start, 1), "seconds_by_section": secs,
                      "note": "timing only; excluded from the determinism check"}
-    _stamp_meta(out, generated_at)
+    report["findings"] = clean(found)
+    report["evidence_map"] = evidence_map(out)
+    report["sections"] = out
+    return report
+
+
+def _finish_sections(out: dict[str, Any], generated_at: str, stamp: list[str] | None = None) -> list[dict[str, Any]]:
+    """The assembly that depends on all the sections: the limitations register, the timestamp in each meta (of the named sections only, else all), and the
+    findings (also written onto the sections they come from). Used by a full run and by a merge, so both give the same report from the same sections."""
+    out["limitations"] = clean(assemble_limitations(out))
+    for name in (stamp if stamp is not None else list(out)):
+        if name in out:
+            _stamp_meta(out[name], generated_at)
     from .findings import build_findings
 
     found = build_findings(out)
@@ -144,6 +156,44 @@ def build_report(*, fast: bool = False, sections: list[str] | None = None, root:
                     out[name]["finding"] = brief
                 else:                                                  # a section can carry several findings (realism: hazard, genome, routines)
                     out[name].setdefault("more_findings", []).append(brief)
+    return found
+
+
+# Sections whose limitation sentences come from another track's module (trust/limitations.py), which that track edits after a full run: a merge re-imports them
+# so the register carries their current wording.
+ALSO_ON_MERGE = ("agent_claims",)
+
+
+def merge_report(base: dict[str, Any], *, only: list[str], root: Path | str | None = None, now: str | None = None, also: tuple[str, ...] = ALSO_ON_MERGE,
+                 log: Callable[[str], None] | None = None) -> dict[str, Any]:
+    """Re-run just the named sections (plus ``also``) with the current owner code and recorded files, and merge them into ``base`` (an existing report).
+    Everything that depends on all the sections is then re-assembled from the merged set: the limitations register, the findings, the evidence map. The other
+    sections, their timestamps and their timing are kept exactly as they were. The refreshed sections are computed with the base run's own fast flag and seed."""
+    t0 = time.perf_counter()
+    log = log or (lambda m: print(m, file=sys.stderr))
+    only = [s for s in only if s != "limitations"]
+    names = list(dict.fromkeys([*only, *[a for a in also if a not in only]]))
+    run0 = base.get("run") or {}
+    fresh = build_report(fast=bool(run0.get("fast", False)), sections=names, root=root, seed=int(run0.get("seed", 0)), regenerate=False, now=now, log=log)
+    generated_at = fresh["generated_at"]
+    out = {k: v for k, v in (base.get("sections") or {}).items() if k != "limitations"}
+    for v in out.values():                                           # the findings are re-derived; the old annotations would be duplicated
+        if isinstance(v, dict):
+            v.pop("finding", None)
+            v.pop("more_findings", None)
+    for k, v in fresh["sections"].items():
+        if k != "limitations":
+            out[k] = {kk: vv for kk, vv in v.items() if kk not in ("finding", "more_findings")} if isinstance(v, dict) else v
+    found = _finish_sections(out, generated_at, stamp=names)
+    report: dict[str, Any] = {"generated_at": generated_at, "mock": base.get("mock", is_mock())}
+    rev = git_rev()
+    if rev:
+        report["git_rev"] = rev
+    report.update({k: v for k, v in base.items() if k not in ("sections", "findings", "evidence_map", "run", "generated_at", "mock", "git_rev")})
+    secs = {**(run0.get("seconds_by_section") or {}), **((fresh.get("run") or {}).get("seconds_by_section") or {})}
+    merges = [*(run0.get("merged") or []), {"at": generated_at, "base_generated_at": base.get("generated_at"), "sections": names,
+                                             "seconds": round(time.perf_counter() - t0, 1)}]
+    report["run"] = {**run0, "seconds_by_section": secs, "merged": merges}
     report["findings"] = clean(found)
     report["evidence_map"] = evidence_map(out)
     report["sections"] = out

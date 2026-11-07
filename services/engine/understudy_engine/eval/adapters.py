@@ -1461,16 +1461,42 @@ def _real_claim_needs_manifest(name: str, d: Path, r: dict[str, Any]) -> dict[st
 
 def study_roles(ctx: Ctx) -> dict[str, Any]:
     """Role-pack study results (study-roles track). Never the live `study`: that section is people only and does not read this. An origin of real or
-    mixed is accepted only with a hand-written manifest (see ``_real_claim_needs_manifest``)."""
+    mixed is accepted only with a hand-written manifest (see ``_real_claim_needs_manifest``). With no study results the section is not_run and shows the
+    feasibility pilots the owner recorded (``results/<role>/PILOT_*.json``), saying plainly that the study itself has not been run."""
+    from . import agentic as ag
+
     d = evals_out_dir() / "study_roles"
     r = _dir_section("study-roles", d, ("study_roles_section", "section"), ("section.json", "summary.json", "results/summary.json"))
-    return _real_claim_needs_manifest("study_roles", d, r) or _shape_generic("study_roles", r)
+    guard = _real_claim_needs_manifest("study_roles", d, r)
+    if guard:
+        return guard
+    pilots = r.get("pilots") if isinstance(r.get("pilots"), dict) else {}
+    s = _shape_generic("study_roles", r)
+    if not pilots:
+        return s
+    extras = ag.study_roles_extras(pilots, (d / "PLAN.md").read_text(encoding="utf-8") if (d / "PLAN.md").is_file() else "")
+    s.update(pilots=extras["pilots"], study_run=extras["study_run"] if s.get("status") == "not_run" else s.get("study_run", True), go_ahead=extras["go_ahead"])
+    if s.get("status") == "not_run":
+        s["reason"] = f"{extras['pilot_text']} Go-ahead: {extras['go_ahead']['where']}; needs {extras['go_ahead']['needs']}."
+    s["limitations"] = [*(s.get("limitations") or []), {"id": "study-roles-pilots-only", "severity": "high", "source": "study_roles",
+                                                        "text": f"{extras['pilot_text']} The go-ahead is described in {extras['go_ahead']['where']}."}]
+    return s
 
 
 def agentic(ctx: Ctx) -> dict[str, Any]:
-    d = evals_out_dir() / "agentic"
-    r = _dir_section("agentic", d, ("agentic_section", "section"), ("section.json", "summary.json", "results/summary.json", "report.json"))
-    return _real_claim_needs_manifest("agentic", d, r) or _shape_generic("agentic", r)
+    """The agent evaluation, read from the recorded files under evals/agentic/results only (offline long-horizon suites, the held-out confirmation, the spend
+    ledger); a held-out part with no file yet says 'not run yet'. See ``agentic.py`` for the claim wording."""
+    from . import agentic as ag
+
+    root = evals_out_dir() / "agentic"
+    if not root.is_dir():
+        raise NotLanded("agentic", "evals/agentic does not exist yet")
+    r = ag.build(root)
+    if r is None:
+        raise NotLanded("agentic", "evals/agentic/results has none of lh_offline.json, heldout_*.json, spend_ledger.json yet")
+    s = _shape_generic("agentic", r)
+    s["meta"]["origin_detail"] = ag.ORIGIN_TEXT
+    return s
 
 
 # ---------------------------------------------------------------------------------------------------------------- table

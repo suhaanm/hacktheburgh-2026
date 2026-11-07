@@ -504,8 +504,46 @@ def _redteam_live(s: dict[str, Any]) -> str:
     return txt + f"\n\nSource: {s.get('source')}. Intervals treat the repeats of one case as a single observation; they overlap, so read this as cost and a null, not a guarantee."
 
 
+def _agentic(s: dict[str, Any]) -> str:
+    ho = s.get("heldout") or {}
+    out = [f"Origin: {s.get('origin_text')}. Gate stops are shown apart from model failures; the gate version of each result file is checked against the frozen hash ({s.get('heldout_expected_gate_version') or 'not recorded'})."]
+    rows = []
+    for cond in ("injected", "clean"):
+        h = ho.get(cond) or {}
+        if h.get("status") != "recorded":
+            out.append(f"**{cond.capitalize()} (held-out): NOT RUN YET.** {h.get('reason')}")
+            continue
+        out.append(f"**{cond.capitalize()} (held-out).** {h.get('reading')}")
+        gs, mf = h.get("gate_stops") or {}, h.get("model_failures") or {}
+        rows.append([cond, str(h.get("seed")), str(h.get("n")), f"{(h.get('passed_code_check') or {}).get('k')} of {h.get('n')}", f"{(h.get('paused_by_detector') or {}).get('k')} of {h.get('n')}",
+                     str(h.get("false_claims")), str(h.get("submissions")), f"{gs.get('total')} ({gs.get('unexpected')} unexpected)", str(mf.get("total")), str((mf.get("navigators_cancelled_by_a_pause_or_stop") or {}).get("total")), str(h.get("gate_version"))])
+    if rows:
+        out.append(table(["Condition", "Seed", "n", "Passed code check", "Paused by detector", "False claims", "Submissions", "Gate stops", "Model failures", "Navigators cancelled by a pause or stop", "Gate version"], rows))
+    lh = s.get("lh_offline") or {}
+    if lh.get("suites"):
+        out.append(f"Long-horizon suites LH-1 to LH-5 (offline; {lh.get('note')}; {lh.get('model_tokens')} model tokens):")
+        out.append(table(["Suite", "OK", "False claims", "Ungated submissions"], [[k, str(v.get("ok")), str(v.get("false_claims")), str(v.get("ungated_submissions"))] for k, v in lh["suites"].items()]))
+    sp = s.get("spend") or {}
+    if sp.get("cap_usd") is not None:
+        out.append(f"Spend: {usd(sp.get('spent_placeholder_usd'))} at list price ({usd(sp.get('spent_lower_usd'))} at the lower bound) of a {float(sp.get('cap_usd')):.2f} US dollar cap, {sp.get('pct_of_cap')}%, {sp.get('entries')} ledger entries.")
+    out.append((s.get("real_desktop") or {}).get("text") or "")
+    return "\n\n".join(x for x in out if x)
+
+
+def _pilots(s: dict[str, Any]) -> str:
+    pl = s.get("pilots") or {}
+    if not pl:
+        return ""
+    rows = [[k.split("/")[-1].removeprefix("PILOT_"), str(p.get("tier")), "yes" if p.get("usable") else "no", pc(p.get("share_zero"), 1), pc(p.get("share_full"), 1), pc(p.get("share_cap_bound"), 1),
+             usd(p.get("mean_cost_per_participant_usd")), "; ".join(p.get("reasons") or []) or "none"] for k, p in pl.items()]
+    lim = next(iter(pl.values())).get("limits") or {}
+    return (f"Feasibility pilots, {SIM} (limits by code: floor at most {pc(lim.get('max_share_zero'))}, ceiling at most {pc(lim.get('max_share_full'))}, cap-binding at most {pc(lim.get('max_share_cap_bound'))}); "
+            "participants are discarded and are not results:\n\n" + table(["Pilot", "Tier", "Usable", "Floor", "Ceiling", "Cap-binding", "Cost per participant", "Reasons"], rows)
+            + f"\n\nGo-ahead: {(s.get('go_ahead') or {}).get('where')}; needs {(s.get('go_ahead') or {}).get('needs')}.")
+
+
 RENDER = {"deficit_recovery": _deficit, "null_placebo": _null, "hazard": _hazard, "ope": _ope, "routing": _routing, "ski_rental": _ski,
-          "presence": _presence, "routines": _routines, "policy_gate": _gate, "skills": _skills, "forecast": _forecast, "pooling": _pooling, "agent_claims": _claims, "agent_runs": _agent_runs, "study_sim": _study_sim, "study_power": _study_power, "redteam_live": _redteam_live, "privacy": _privacy, "git": _git, "calendar": _calendar, "proactive": _proactive, "localmodel": _localmodel, "redteam": _redteam, "study": _study}
+          "presence": _presence, "routines": _routines, "policy_gate": _gate, "skills": _skills, "forecast": _forecast, "pooling": _pooling, "agent_claims": _claims, "agent_runs": _agent_runs, "study_sim": _study_sim, "agentic": _agentic, "study_power": _study_power, "redteam_live": _redteam_live, "privacy": _privacy, "git": _git, "calendar": _calendar, "proactive": _proactive, "localmodel": _localmodel, "redteam": _redteam, "study": _study}
 
 
 def _generic(s: dict[str, Any]) -> str:
@@ -559,6 +597,8 @@ def render(report: dict[str, Any]) -> str:
         if "status" in s and name != "study":
             tail = f" ({SIM}; not the live study)" if sim else ""
             out += [f"**{s['status'].upper().replace('_', ' ')}**: {s['reason']}{tail}", ""]
+            if name == "study_roles" and s.get("pilots"):
+                out += [_pilots(s), ""]
             continue
         if name == "study" and "status" in s:
             label = "NOT RUN" if s["status"] == "not_run" else s["status"].upper().replace("_", " ")

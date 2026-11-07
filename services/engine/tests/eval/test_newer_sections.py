@@ -193,7 +193,7 @@ def test_a_result_file_that_is_not_an_object_is_failed(tmp_path):
     assert build(["modelbench"], root=tmp_path)["sections"]["modelbench"]["status"] == "failed"
 
 
-@pytest.mark.parametrize("section,dirname,fn_name", [("study_roles", "study_roles", "study_roles_section"), ("agentic", "agentic", "agentic_section")])
+@pytest.mark.parametrize("section,dirname,fn_name", [("study_roles", "study_roles", "study_roles_section")])       # agentic reads recorded files (test_merge.py)
 def test_directory_sections_pending_then_from_a_function_then_from_a_file(evals, section, dirname, fn_name):
     s = build([section])["sections"][section]
     assert s["status"] == "pending" and "does not exist yet" in s["reason"]
@@ -210,10 +210,10 @@ def test_directory_sections_pending_then_from_a_function_then_from_a_file(evals,
 
 
 def test_a_directory_package_whose_lazy_module_is_missing_is_pending(evals):
-    d = evals / "agentic"
+    d = evals / "study_roles"
     d.mkdir()
-    (d / "__init__.py").write_text("def agentic_section():\n    from .section import agentic_section as f\n    return f()\n")
-    s = build(["agentic"])["sections"]["agentic"]
+    (d / "__init__.py").write_text("def study_roles_section():\n    from .section import study_roles_section as f\n    return f()\n")
+    s = build(["study_roles"])["sections"]["study_roles"]
     assert s["status"] == "pending" and "section.py does not exist yet" in s["reason"]
 
 
