@@ -1,0 +1,361 @@
+{
+ "note": "offline, grounded test double: tests the code, not any model",
+ "suites": {
+  "LH-1": {
+   "suite": "LH-1",
+   "offline_double": true,
+   "units": 10,
+   "units_at_gate": 10,
+   "false_claims": 0,
+   "submissions_without_approval": 0,
+   "steps_total": 1150,
+   "steps_per_household": 115.0,
+   "wall_s": 120.1,
+   "ok": true,
+   "rows": [
+    {
+     "run_id": "r_lh1_0",
+     "household": "hh_0001",
+     "state": "done",
+     "reason": "stopped before submit; awaiting approval",
+     "steps": 115,
+     "wall_s": 4.8,
+     "false_claims": 0,
+     "completion_ok": true,
+     "wrong_amounts": [],
+     "awaiting_approval": true,
+     "pending_kinds": [
+      "irreversible_step"
+     ],
+     "submissions": 0,
+     "refusals": 0,
+     "amounts": {
+      "a": 158.0,
+      "b": 158.14,
+      "c": 158.14
+     }
+    },
+    {
+     "run_id": "r_lh1_1",
+     "household": "hh_0002",
+     "state": "done",
+     "reason": "stopped before submit; awaiting approval",
+     "steps": 115,
+     "wall_s": 19.9,
+     "false_claims": 0,
+     "completion_ok": true,
+     "wrong_amounts": [],
+     "awaiting_approval": true,
+     "pending_kinds": [
+      "irreversible_step"
+     ],
+     "submissions": 0,
+     "refusals": 0,
+     "amounts": {
+      "a": 1262.0,
+      "b": 1261.96,
+      "c": 1261.98
+     }
+    },
+    {
+     "run_id": "r_lh1_2",
+     "household": "hh_0003",
+     "state": "done",
+     "reason": "stopped before submit; awaiting approval",
+     "steps": 115,
+     "wall_s": 4.7,
+     "false_claims": 0,
+     "completion_ok": true,
+     "wrong_amounts": [],
+     "awaiting_approval": true,
+     "pending_kinds": [
+      "irreversible_step"
+     ],
+     "submissions": 0,
+     "refusals": 0,
+     "amounts": {
+      "a": 1293.0,
+      "b": 1292.69,
+      "c": 1292.68
+     }
+    },
+    {
+     "run_id": "r_lh1_3",
+     "household": "hh_0004",
+     "state": "done",
+     "reason": "stopped before submit; awaiting approval",
+     "steps": 115,
+     "wall_s": 4.6,
+     "false_claims": 0,
+     "completion_ok": true,
+     "wrong_amounts": [],
+     "awaiting_approval": true,
+     "pending_kinds": [
+      "irreversible_step"
+     ],
+     "submissions": 0,
+     "refusals": 0,
+     "amounts": {
+      "a": 631.0,
+      "b": 805.14,
+      "c": 0.0
+     }
+    },
+    {
+     "run_id": "r_lh1_4",
+     "household": "hh_0005",
+     "state": "done",
+     "reason": "stopped before submit; awaiting approval",
+     "steps": 115,
+     "wall_s": 19.6,
+     "false_claims": 0,
+     "completion_ok": true,
+     "wrong_amounts": [],
+     "awaiting_approval": true,
+     "pending_kinds": [
+      "irreversible_step"
+     ],
+     "submissions": 0,
+     "refusals": 0,
+     "amounts": {
+      "a": 605.0,
+      "b": 765.64,
+      "c": 604.67
+     }
+    },
+    {
+     "run_id": "r_lh1_5",
+     "household": "hh_0006",
+     "state": "done",
+     "reason": "stopped before submit; awaiting approval",
+     "steps": 115,
+     "wall_s": 4.4,
+     "false_claims": 0,
+     "completion_ok": true,
+     "wrong_amounts": [],
+     "awaiting_approval": true,
+     "pending_kinds": [
+      "irreversible_step"
+     ],
+     "submissions": 0,
+     "refusals": 0,
+     "amounts": {
+      "a": 2461.0,
+      "b": 2460.58,
+      "c": 1874.96
+     }
+    },
+    {
+     "run_id": "r_lh1_6",
+     "household": "hh_0007",
+     "state": "done",
+     "reason": "stopped before submit; awaiting approval",
+     "steps": 115,
+     "wall_s": 19.1,
+     "false_claims": 0,
+     "completion_ok": true,
+     "wrong_amounts": [],
+     "awaiting_approval": true,
+     "pending_kinds": [
+      "irreversible_step"
+     ],
+     "submissions": 0,
+     "refusals": 0,
+     "amounts": {
+      "a": 304.0,
+      "b": 303.64,
+      "c": 303.63
+     }
+    },
+    {
+     "run_id": "r_lh1_7",
+     "household": "hh_0008",
+     "state": "done",
+     "reason": "stopped before submit; awaiting approval",
+     "steps": 115,
+     "wall_s": 19.6,
+     "false_claims": 0,
+     "completion_ok": true,
+     "wrong_amounts": [],
+     "awaiting_approval": true,
+     "pending_kinds": [
+      "irreversible_step"
+     ],
+     "submissions": 0,
+     "refusals": 0,
+     "amounts": {
+      "a": 0.0,
+      "b": 0.0,
+      "c": 0.0
+     }
+    },
+    {
+     "run_id": "r_lh1_8",
+     "household": "hh_0009",
+     "state": "done",
+     "reason": "stopped before submit; awaiting approval",
+     "steps": 115,
+     "wall_s": 19.1,
+     "false_claims": 0,
+     "completion_ok": true,
+     "wrong_amounts": [],
+     "awaiting_approval": true,
+     "pending_kinds": [
+      "irreversible_step"
+     ],
+     "submissions": 0,
+     "refusals": 0,
+     "amounts": {
+      "a": 557.0,
+      "b": 557.14,
+      "c": 557.14
+     }
+    },
+    {
+     "run_id": "r_lh1_9",
+     "household": "hh_0010",
+     "state": "done",
+     "reason": "stopped before submit; awaiting approval",
+     "steps": 115,
+     "wall_s": 4.3,
+     "false_claims": 0,
+     "completion_ok": true,
+     "wrong_amounts": [],
+     "awaiting_approval": true,
+     "pending_kinds": [
+      "irreversible_step"
+     ],
+     "submissions": 0,
+     "refusals": 0,
+     "amounts": {
+      "a": 0.0,
+      "b": 0.0,
+      "c": 0.0
+     }
+    }
+   ]
+  },
+  "LH-2": {
+   "suite": "LH-2",
+   "offline_double": true,
+   "pause_latency_s": 0.067,
+   "pauses": 3,
+   "steps_run_while_paused": 0,
+   "steps_after_resume": 70,
+   "steps_remaining_in_baseline": 73,
+   "result_equals_uninterrupted": true,
+   "ok": true,
+   "baseline": {
+    "run_id": "r_lh2_base",
+    "household": "hh_0004",
+    "state": "done",
+    "reason": "stopped before submit; awaiting approval",
+    "steps": 115,
+    "wall_s": 4.4,
+    "false_claims": 0,
+    "completion_ok": true,
+    "wrong_amounts": [],
+    "awaiting_approval": true,
+    "pending_kinds": [
+     "irreversible_step"
+    ],
+    "submissions": 0,
+    "refusals": 0,
+    "amounts": {
+     "a": 631.0,
+     "b": 805.14,
+     "c": 0.0
+    }
+   },
+   "interrupted": {
+    "run_id": "r_lh2_cut",
+    "household": "hh_0004",
+    "state": "done",
+    "reason": "stopped before submit; awaiting approval",
+    "steps": 112,
+    "wall_s": 5.1,
+    "false_claims": 0,
+    "completion_ok": true,
+    "wrong_amounts": [],
+    "awaiting_approval": true,
+    "pending_kinds": [
+     "irreversible_step"
+    ],
+    "submissions": 0,
+    "refusals": 0,
+    "amounts": {
+     "a": 631.0,
+     "b": 805.14,
+     "c": 0.0
+    }
+   }
+  },
+  "LH-3": {
+   "suite": "LH-3",
+   "offline_double": true,
+   "faults": 5,
+   "recovered": 4,
+   "escalated": 1,
+   "crashes": 0,
+   "false_claims": 0,
+   "ok": true,
+   "rows": [
+    {
+     "fault": "503_once",
+     "must_recover": true,
+     "recovered": true,
+     "escalated": false,
+     "crashed": false,
+     "state": "done",
+     "steps": 145,
+     "false_claims": 0,
+     "ok": true
+    },
+    {
+     "fault": "layout_v2",
+     "must_recover": true,
+     "recovered": true,
+     "escalated": false,
+     "crashed": false,
+     "state": "done",
+     "steps": 115,
+     "false_claims": 0,
+     "ok": true
+    },
+    {
+     "fault": "popup",
+     "must_recover": true,
+     "recovered": true,
+     "escalated": false,
+     "crashed": false,
+     "state": "done",
+     "steps": 116,
+     "false_claims": 0,
+     "ok": true
+    },
+    {
+     "fault": "expired_session",
+     "must_recover": true,
+     "recovered": true,
+     "escalated": false,
+     "crashed": false,
+     "state": "done",
+     "steps": 148,
+     "false_claims": 0,
+     "ok": true
+    },
+    {
+     "fault": "503_always",
+     "must_recover": false,
+     "recovered": false,
+     "escalated": true,
+     "crashed": false,
+     "state": "failed",
+     "steps": 213,
+     "false_claims": 0,
+     "ok": true
+    }
+   ]
+  }
+ }
+}

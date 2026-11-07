@@ -113,9 +113,25 @@
    ],
    "computer_use_model": "gpt-5.4-mini",
    "household": "hh_0003"
+  },
+  {
+   "at": "2026-11-07T18:48:47Z",
+   "label": "diag_smoke_800x500",
+   "kind": "smoke",
+   "tokens_in": 71533,
+   "tokens_out": 3041,
+   "cost_placeholder_usd": 0.4489,
+   "cost_lower_usd": 0.0673,
+   "rates_in_out_per_m": [
+    5.0,
+    30.0
+   ],
+   "computer_use_model": "gpt-5.5",
+   "site": "b",
+   "household": "hh_0002"
   }
  ],
- "spent_placeholder_usd": 8.0934,
- "spent_lower_usd": 1.9964,
- "pct_of_cap": 40.5
+ "spent_placeholder_usd": 8.5423,
+ "spent_lower_usd": 2.0637,
+ "pct_of_cap": 42.7
 }
