@@ -2,7 +2,7 @@
 
 > Gemini for every model role by default, a local model for private digests, ElevenLabs for fixed spoken lines. Model ids come from the environment and are checked at boot.
 
-**Capability:** Voice and Hey Knack · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
+**Capability:** Models and modes · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
 This page covers Model routing: Gemini by default, checked at boot, Local model digests (a 7B model on this Mac), Spoken lines (ElevenLabs, fixed vocabulary), Mock mode: the whole product offline.
 

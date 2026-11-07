@@ -20,7 +20,7 @@ The extension's popup holds the capture switch. In the app, Your data has a sect
 
 ## Demo moment
 
-Open the sandbox calculator in Chrome with capture on, work one household, then open Where time goes: the events behind the ribbon are the ones captured, and none of them holds text. Say the sentence from first run: it records when you are active, never what you read.
+Open the sandbox calculator in Chrome with capture on, work one household, and show the capture switch in the popup and in Your data. Say the sentence from first run: it records when you are active, never what you read. Say too that the ribbon in the demo is drawn from synthetic traces; capture is what would feed it for a real worker.
 
 ## Evidence and its label
 

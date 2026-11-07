@@ -8,101 +8,134 @@
 
 ## See the work
 
-| Page | Features on it | Status | Targets |
+| Feature | Page | Status | Targets |
 |---|---|---|---|
-| [Text-free capture](capture.md) | Text-free capture (Chrome extension and event store) | built | G-Research, Wordsmith |
-| [Work genome: where time goes](work-genome.md) | Work genome: aligned traces priced in seconds; Controls: placebo and shuffled-label null; What skipping costs in answers | Work genome: aligned traces priced in seconds: verified; Controls: placebo and shuffled-label null: verified; What skipping costs in answers: built | G-Research, HRT |
-| [Stuck prediction and the Forecasts scorecard](stuck-model.md) | Stuck prediction and the Forecasts scorecard | verified | HRT |
-| [Your hours and how work connects](work-graph-and-hours.md) | Your hours: presence map and away forecast; How work connects: the work graph | built | G-Research, HRT |
-| [Calendar layer and git habits](calendar-and-git.md) | Calendar layer (week ribbon, Outlook and Teams adapters); Git habits for programmers | built | G-Research, HRT |
+| Text-free capture (Chrome extension and event store) | [capture](capture.md) | **built** | G-Research, Wordsmith |
+| Work genome: aligned traces priced in seconds | [work-genome](work-genome.md) | **verified** (verified on its own generator; degrades on harder synthetic data) | G-Research |
+| Controls: placebo and shuffled-label null | [work-genome](work-genome.md) | **verified** | G-Research |
+| What skipping costs in answers | [work-genome](work-genome.md) | **built** | G-Research, HRT |
+| Stuck prediction and the Forecasts scorecard | [stuck-model](stuck-model.md) | **verified** (verified on its own generator; does not transfer to harder synthetic data) | HRT |
+| Your hours: presence map and away forecast | [work-graph-and-hours](work-graph-and-hours.md) | **built** | HRT, G-Research |
+| How work connects: the work graph | [work-graph-and-hours](work-graph-and-hours.md) | **built** | G-Research |
+| Calendar layer (week ribbon, Outlook and Teams adapters) | [calendar-and-git](calendar-and-git.md) | **built** | G-Research |
+| Git habits for programmers | [calendar-and-git](calendar-and-git.md) | **built** | G-Research, HRT |
 
 ## Coach on the screen
 
-| Page | Features on it | Status | Targets |
+| Feature | Page | Status | Targets |
 |---|---|---|---|
-| [Live coach and fading help](live-coach.md) | Live coach: one decision at a time, with a dignity gate; Fading help: levels L1 to L4 decided by code | verified | HRT |
-| [On-screen annotations](screen-annotations.md) | On-screen annotations: ring, one label, ghost cursor | built | G-Research |
-| [Awareness and glances](awareness-glances.md) | On-device awareness and triggered glances | built | G-Research |
+| Live coach: one decision at a time, with a dignity gate | [live-coach](live-coach.md) | **verified** | HRT |
+| Fading help: levels L1 to L4 decided by code | [live-coach](live-coach.md) | **verified** | HRT |
+| On-screen annotations: ring, one label, ghost cursor | [screen-annotations](screen-annotations.md) | **built** (the lead viewed screenshots; not yet confirmed end to end on a real Chrome tab) | G-Research |
+| On-device awareness and triggered glances | [awareness-glances](awareness-glances.md) | **built** (layer is on by default; no frame is sent until the worker records consent; macOS Screen Recording is the owner's to grant) | G-Research |
 
 ## Step in when stuck
 
-| Page | Features on it | Status | Targets |
+| Feature | Page | Status | Targets |
 |---|---|---|---|
-| [Cue: stuck rescue](cue.md) | Cue: stuck rescue | built | G-Research, HRT |
+| Cue: stuck rescue | [cue](cue.md) | **built** (engine and desktop code built and tested; evaluated on simulated workers only; not run on a real desktop) | HRT, G-Research |
 
 ## Agents that do the work safely
 
-| Page | Features on it | Status | Targets |
+| Feature | Page | Status | Targets |
 |---|---|---|---|
-| [Benefits agent and 'code decides done'](benefits-agent.md) | Benefits agent on three sandbox calculators; Code decides 'done'; Independent verifier (a second model family) | Benefits agent on three sandbox calculators: verified; Code decides 'done': verified; Independent verifier (a second model family): built | Wordsmith |
-| [Eight security layers](security-layers.md) | Eight security layers, approval queue and audit log; Optional sign-in step-up for irreversible approvals (Auth0) | Eight security layers, approval queue and audit log: verified; Optional sign-in step-up for irreversible approvals (Auth0): built | Wordsmith |
-| [Computer use and the real-click ladder](computer-use.md) | Computer use on the sandbox calculators; Real-click ladder (R0 to R4) and the arm switch | built | Wordsmith |
-| [Background agents and overnight runs](background-agents.md) | Background agents: parent and child; Overnight runs and the morning report | built | HRT, Wordsmith |
-| [Stop everything](stop-everything.md) | Stop everything: the kill switch | built | Wordsmith |
+| Benefits agent on three sandbox calculators | [benefits-agent](benefits-agent.md) | **verified** (verified in mock mode: ends with an item in the approval queue and 0 false claims) | Wordsmith |
+| Code decides 'done' | [benefits-agent](benefits-agent.md) | **verified** | Wordsmith |
+| Independent verifier (a second model family) | [benefits-agent](benefits-agent.md) | **built** (routed by default to Gemini flash-lite; its evaluation set is small and easy) | Wordsmith |
+| Eight security layers, approval queue and audit log | [security-layers](security-layers.md) | **verified** | Wordsmith |
+| Optional sign-in step-up for irreversible approvals (Auth0) | [security-layers](security-layers.md) | **built** (built; not configured: it needs the owner's Auth0 domain and client ID, and is never on the demo's critical path) | Wordsmith |
+| Computer use on the sandbox calculators | [computer-use](computer-use.md) | **built** (works in-sample, not held-out; the Gemini configuration is still in development) | Wordsmith |
+| Real-click ladder (R0 to R4) and the arm switch | [computer-use](computer-use.md) | **built** (read-only rung R0 ran once; nothing else has run) | Wordsmith |
+| Background agents: parent and child | [background-agents](background-agents.md) | **built** | Wordsmith |
+| Overnight runs and the morning report | [background-agents](background-agents.md) | **built** | Wordsmith, HRT |
+| Stop everything: the kill switch | [stop-everything](stop-everything.md) | **built** | Wordsmith |
 
 ## Routines and automations
 
-| Page | Features on it | Status | Targets |
+| Feature | Page | Status | Targets |
 |---|---|---|---|
-| [Routines: found, proposed, trusted one at a time](routines.md) | Routine finder and proposals; Watch first and the trust ladder; Could automate: the repeat list | Routine finder and proposals: built; Watch first and the trust ladder: verified; Could automate: the repeat list: built | G-Research, HRT, Wordsmith |
-| [Needs you](needs-you.md) | Needs you: one list for decisions | built | Wordsmith |
-| [Decisions under uncertainty](hrt-decisions.md) | When to build an automation: ski rental with predictions; Review routing under a risk bound | built | HRT |
-| [Proactive briefing: three cards at most, press to fire](proactive-briefing.md) | Proactive briefing: judge, verify, prepare, press to fire | built | HRT, Wordsmith |
+| Routine finder and proposals | [routines](routines.md) | **built** (the routine card and queue were seen working in the dashboard; the finder is mixed on harder synthetic data) | Wordsmith, HRT |
+| Watch first and the trust ladder | [routines](routines.md) | **verified** | Wordsmith, HRT |
+| Could automate: the repeat list | [routines](routines.md) | **built** | Wordsmith, G-Research |
+| Needs you: one list for decisions | [needs-you](needs-you.md) | **built** (merged to main; seen in a harness and in hidden end-to-end runs; owner has not used it) | Wordsmith |
+| When to build an automation: ski rental with predictions | [hrt-decisions](hrt-decisions.md) | **built** | HRT |
+| Review routing under a risk bound | [hrt-decisions](hrt-decisions.md) | **built** | HRT |
+| Proactive briefing: judge, verify, prepare, press to fire | [proactive-briefing](proactive-briefing.md) | **built** (engine built and tested; development-set evaluation only; cards now arrive as rows in Needs you) | HRT, Wordsmith |
 
 ## Connections and MCP plugins
 
-| Page | Features on it | Status | Targets |
+| Feature | Page | Status | Targets |
 |---|---|---|---|
-| [Connections: curated plugins](connections.md) | Connections: curated MCP plugins with role presets | landing | Wordsmith |
+| Connections: curated MCP plugins with role presets | [connections](connections.md) | **landing** (owner decision D55; CONNECTIONS (Track E) is building it on its own branch; docs/CONNECTIONS.md has not landed) | Wordsmith |
 
 ## Voice and Hey Knack
 
-| Page | Features on it | Status | Targets |
+| Feature | Page | Status | Targets |
 |---|---|---|---|
-| [Hey Knack: voice that points](hey-knack.md) | Hey Knack: an on-device wake phrase; Voice guidance and 'do it for me' behind a click | built | G-Research, Wordsmith |
-| [Models, routing and the local model](models-and-routing.md) | Model routing: Gemini by default, checked at boot; Local model digests (a 7B model on this Mac); Spoken lines (ElevenLabs, fixed vocabulary); Mock mode: the whole product offline | Model routing: Gemini by default, checked at boot: built; Local model digests (a 7B model on this Mac): built; Spoken lines (ElevenLabs, fixed vocabulary): built; Mock mode: the whole product offline: verified | G-Research, HRT, Wordsmith |
+| Hey Knack: an on-device wake phrase | [hey-knack](hey-knack.md) | **built** (code and tests are built; not run with a real microphone yet; docs/knack-ux/09-wake-voice.md is on the WAKE-VOICE branch, not main) | G-Research |
+| Voice guidance and 'do it for me' behind a click | [hey-knack](hey-knack.md) | **built** (the click path fails closed until the first supervised real-click test has passed) | Wordsmith, G-Research |
+
+## Models and modes
+
+| Feature | Page | Status | Targets |
+|---|---|---|---|
+| Model routing: Gemini by default, checked at boot | [models-and-routing](models-and-routing.md) | **built** (live boot check and small planner and fast calls pass; computer use on Gemini needs its own iterations) | Wordsmith, HRT |
+| Local model digests (a 7B model on this Mac) | [models-and-routing](models-and-routing.md) | **built** | HRT, G-Research |
+| Spoken lines (ElevenLabs, fixed vocabulary) | [models-and-routing](models-and-routing.md) | **built** | Wordsmith |
+| Mock mode: the whole product offline | [models-and-routing](models-and-routing.md) | **verified** | Wordsmith |
 
 ## Insights and admin
 
-| Page | Features on it | Status | Targets |
+| Feature | Page | Status | Targets |
 |---|---|---|---|
-| [Home and the top insights](home-insights.md) | Home: one sentence, one action; Top insights engine: a few pointers, chosen by code | built | G-Research, HRT |
-| [Firm, Roles and Onboarding for admins](firm-admin.md) | Admin views: Firm, Roles, Onboarding; Monday note, firm brief and prediction scorecard | built | G-Research, HRT |
+| Home: one sentence, one action | [home-insights](home-insights.md) | **built** (merged to main; measured on a prototype; owner has not used it) | G-Research |
+| Top insights engine: a few pointers, chosen by code | [home-insights](home-insights.md) | **built** | G-Research, HRT |
+| Admin views: Firm, Roles, Onboarding | [firm-admin](firm-admin.md) | **built** (UI merged to main; the firm is synthetic) | G-Research, HRT |
+| Monday note, firm brief and prediction scorecard | [firm-admin](firm-admin.md) | **built** | HRT |
 
 ## Growth and independence
 
-| Page | Features on it | Status | Targets |
+| Feature | Page | Status | Targets |
 |---|---|---|---|
-| [Growth and the independence score](growth-independence.md) | Growth and the independence score | built | G-Research, HRT |
+| Growth and the independence score | [growth-independence](growth-independence.md) | **built** (built; evaluated on simulated learners; no person has used it) | HRT, G-Research |
 
 ## A calm product: window, attention, context
 
-| Page | Features on it | Status | Targets |
+| Feature | Page | Status | Targets |
 |---|---|---|---|
-| [One attention layer](attention-router.md) | One attention layer: a router, a digest, quiet states | built | HRT |
-| [Context engineering for long runs](context-engineering.md) | Context engineering: typed, bounded, fresh | built | Wordsmith |
-| [One app, one window, one pill, three clicks](knack-shell.md) | One app, one window, one corner pill; First run in three clicks; Command palette and keyboard | built | G-Research, Wordsmith |
-| [Design system, word budgets and the Knack mark](design-system.md) | Design system with budgets as tests; The Knack mark and brand | built | G-Research |
+| One attention layer: a router, a digest, quiet states | [attention-router](attention-router.md) | **built** (engine built; desktop wiring built; held-out simulated evaluation met 11 of 12 criteria) | HRT |
+| Context engineering: typed, bounded, fresh | [context-engineering](context-engineering.md) | **built** | Wordsmith |
+| One app, one window, one corner pill | [knack-shell](knack-shell.md) | **built** (merged to main; hidden end-to-end run passes; first visible launch with the owner pending) | Wordsmith |
+| First run in three clicks | [knack-shell](knack-shell.md) | **built** | G-Research |
+| Command palette and keyboard | [knack-shell](knack-shell.md) | **built** | Wordsmith |
+| Design system with budgets as tests | [design-system](design-system.md) | **built** (tokens, components and check scripts merged to main; screens still being brought to budget by their tracks) | G-Research |
+| The Knack mark and brand | [design-system](design-system.md) | **built** | G-Research |
 
 ## Privacy and safety
 
-| Page | Features on it | Status | Targets |
+| Feature | Page | Status | Targets |
 |---|---|---|---|
-| [Privacy spine: egress guard and ledger](privacy-ledger.md) | Egress guard, ledger and canary tests | built | G-Research, Wordsmith |
-| [Your data and the memory file you own](your-data.md) | Your data: see and delete; Memory file the worker owns | built | G-Research |
+| Egress guard, ledger and canary tests | [privacy-ledger](privacy-ledger.md) | **built** (built, with a known gap: older desktop paths are gated off by default but not re-reviewed independently) | G-Research, Wordsmith |
+| Your data: see and delete | [your-data](your-data.md) | **built** (merged to main; owner has not used it) | G-Research |
+| Memory file the worker owns | [your-data](your-data.md) | **built** | G-Research |
 
 ## Evidence and honesty
 
-| Page | Features on it | Status | Targets |
+| Feature | Page | Status | Targets |
 |---|---|---|---|
-| [Evidence page, make eval and the explainer](evidence-and-explain.md) | Evidence page, make eval and the limitations register; Plain-English explainer with a number check | Evidence page, make eval and the limitations register: verified; Plain-English explainer with a number check: built | G-Research, HRT |
-| [What did not hold up](what-did-not-hold-up.md) | Generator-mismatch test (the realism matrix); ML v2, held-out: mostly negative; The simulated study sat at the floor; Other results that went the wrong way | verified | G-Research, HRT |
+| Evidence page, make eval and the limitations register | [evidence-and-explain](evidence-and-explain.md) | **verified** | G-Research, HRT |
+| Plain-English explainer with a number check | [evidence-and-explain](evidence-and-explain.md) | **built** | G-Research |
+| Generator-mismatch test (the realism matrix) | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | G-Research, HRT |
+| ML v2, held-out: mostly negative | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | HRT |
+| The simulated study sat at the floor | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | HRT, G-Research |
+| Other results that went the wrong way | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | G-Research |
 
 ## Roles
 
-| Page | Features on it | Status | Targets |
+| Feature | Page | Status | Targets |
 |---|---|---|---|
-| [Role packs](role-packs.md) | Role packs: benefits processor deep, analyst and programmer thin; Deeper programmer and data-analyst roles | Role packs: benefits processor deep, analyst and programmer thin: built; Deeper programmer and data-analyst roles: landing | G-Research, Wordsmith |
+| Role packs: benefits processor deep, analyst and programmer thin | [role-packs](role-packs.md) | **built** | G-Research, Wordsmith |
+| Deeper programmer and data-analyst roles | [role-packs](role-packs.md) | **landing** (ROLE-DEPTH (Track F), additive only; docs/roles/*.md have not landed) | G-Research, Wordsmith |
 
 ## Also in this folder
 

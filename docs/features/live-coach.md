@@ -52,7 +52,7 @@ Help gets lighter as a skill is mastered, from L1 'watch me' to L4 'on my own'. 
 
 ### How it works
 
-A level engine (kept from the owner's earlier library) promotes one rung after three clean runs in a row and demotes after two or more errors in the last five; assisted runs change nothing; a level change resets the streak so the new rung gets a fair trial. Per-skill mastery with forgetting feeds the engine and decays with absence, so a skill not seen for weeks is not treated as mastered. The worker's pace setting (gentle, steady, quick) changes how many clean cases come before a prompt gets lighter. The level shows for two seconds when it changes, then lives in the menu bar and Settings.
+The engine's level module is the authority (L1 full help, L2 small help, L3 a dot, L4 gone). It promotes one level after three clean runs in a row and demotes after two or more errors among the last five counted outcomes; an assisted run is neutral; a level change resets the streak and the window so the new level gets a fair trial. The desktop's own learner store, kept from the owner's earlier library, has its own step-up settings. Per-skill mastery with forgetting feeds the engine and decays with absence, so a skill not seen for weeks is not treated as mastered. The worker's pace setting (gentle, steady, quick) changes how many clean cases come before a prompt gets lighter. The level shows for two seconds when it changes, then lives in the menu bar and Settings.
 
 ### Where to see it
 
@@ -67,7 +67,7 @@ Open Live coach and point at the level; open Growth, then The fade, and show pro
 | What | Label | Source |
 |---|---|---|
 | Skill tracing follows the planted curve only weakly: mean Spearman 0.18 across four personas (0.17, 0.18, 0.25, 0.12); mastery saturates on high-volume personas | synthetic, 4 personas, 21 days | `evals/report.md (Skill tracing)` |
-| The level engine agrees with a separate small reference implementation on shared cases | offline tests | `docs/reference-notes/drigil.md` |
+| The level rules are code with no model, no randomness and no clock: three clean runs up, two errors in five down, absence can only lower a level | offline tests; a separate small reference implementation agrees on shared cases | `services/engine/understudy_engine/skills/levels.py; docs/reference-notes/drigil.md` |
 
 ### Honest limit
 

@@ -1,10 +1,29 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sat 07 Nov 2026, 23:44 UTC. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sat 07 Nov 2026, 23:46 UTC. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
 This is the master document. It lists 61 entries (57 features and 4 write-ups of results that did not hold up) on 33 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
 **How to read an entry.** Name and status; what it does; how it works; where to see it; the demo moment; the evidence with its label; the honest limit; the hackathon target. **Status words:** `verified` (the lead saw it work end to end), `built` (built and tested by its track, on main, not yet seen end to end by the lead), `landing` (not on main yet), `not run`. **Evidence labels:** `synthetic` (data we generated), `simulated` (language-model participants, not people), `real model, small n` (a language model on our sandbox sites), `offline tests`, `owner-present`, `not run`. Nothing in this document is evidence about real workers.
+
+## Contents
+
+1. **See the work**: Text-free capture (Chrome extension and event store); Work genome: aligned traces priced in seconds; Controls: placebo and shuffled-label null; What skipping costs in answers; Stuck prediction and the Forecasts scorecard; Your hours: presence map and away forecast; How work connects: the work graph; Calendar layer (week ribbon, Outlook and Teams adapters); Git habits for programmers.
+2. **Coach on the screen**: Live coach: one decision at a time, with a dignity gate; Fading help: levels L1 to L4 decided by code; On-screen annotations: ring, one label, ghost cursor; On-device awareness and triggered glances.
+3. **Step in when stuck**: Cue: stuck rescue.
+4. **Agents that do the work safely**: Benefits agent on three sandbox calculators; Code decides 'done'; Independent verifier (a second model family); Eight security layers, approval queue and audit log; Optional sign-in step-up for irreversible approvals (Auth0); Computer use on the sandbox calculators; Real-click ladder (R0 to R4) and the arm switch; Background agents: parent and child; Overnight runs and the morning report; Stop everything: the kill switch.
+5. **Routines and automations**: Routine finder and proposals; Watch first and the trust ladder; Could automate: the repeat list; Needs you: one list for decisions; When to build an automation: ski rental with predictions; Review routing under a risk bound; Proactive briefing: judge, verify, prepare, press to fire.
+6. **Connections and MCP plugins**: Connections: curated MCP plugins with role presets.
+7. **Voice and Hey Knack**: Hey Knack: an on-device wake phrase; Voice guidance and 'do it for me' behind a click.
+8. **Models and modes**: Model routing: Gemini by default, checked at boot; Local model digests (a 7B model on this Mac); Spoken lines (ElevenLabs, fixed vocabulary); Mock mode: the whole product offline.
+9. **Insights and admin**: Home: one sentence, one action; Top insights engine: a few pointers, chosen by code; Admin views: Firm, Roles, Onboarding; Monday note, firm brief and prediction scorecard.
+10. **Growth and independence**: Growth and the independence score.
+11. **A calm product: window, attention, context**: One attention layer: a router, a digest, quiet states; Context engineering: typed, bounded, fresh; One app, one window, one corner pill; First run in three clicks; Command palette and keyboard; Design system with budgets as tests; The Knack mark and brand.
+12. **Privacy and safety**: Egress guard, ledger and canary tests; Your data: see and delete; Memory file the worker owns.
+13. **Evidence and honesty**: Evidence page, make eval and the limitations register; Plain-English explainer with a number check; Generator-mismatch test (the realism matrix); ML v2, held-out: mostly negative; The simulated study sat at the floor; Other results that went the wrong way.
+14. **Roles**: Role packs: benefits processor deep, analyst and programmer thin; Deeper programmer and data-analyst roles.
+
+Then: what exists elsewhere, numbers you may quote, things we do not claim, what is landing, sources read.
 
 ## The product in one paragraph
 
@@ -16,11 +35,11 @@ Watch how people work, show where a novice loses time against an expert, coach o
 
 ## The three hackathon targets, and what to show for each
 
-| Target | What it asks | Pages to show |
-|---|---|---|
-| HRT | Best use of data for predictions and decisions | [work-genome](features/work-genome.md), [stuck-model](features/stuck-model.md), [work-graph-and-hours](features/work-graph-and-hours.md), [calendar-and-git](features/calendar-and-git.md), [live-coach](features/live-coach.md), [cue](features/cue.md), [growth-independence](features/growth-independence.md), [background-agents](features/background-agents.md), [routines](features/routines.md), [hrt-decisions](features/hrt-decisions.md), [proactive-briefing](features/proactive-briefing.md), [models-and-routing](features/models-and-routing.md), [home-insights](features/home-insights.md), [firm-admin](features/firm-admin.md), [attention-router](features/attention-router.md), [evidence-and-explain](features/evidence-and-explain.md), [what-did-not-hold-up](features/what-did-not-hold-up.md) |
-| G-Research | Make the invisible visible | [capture](features/capture.md), [work-genome](features/work-genome.md), [work-graph-and-hours](features/work-graph-and-hours.md), [calendar-and-git](features/calendar-and-git.md), [screen-annotations](features/screen-annotations.md), [awareness-glances](features/awareness-glances.md), [cue](features/cue.md), [growth-independence](features/growth-independence.md), [routines](features/routines.md), [hey-knack](features/hey-knack.md), [models-and-routing](features/models-and-routing.md), [home-insights](features/home-insights.md), [firm-admin](features/firm-admin.md), [knack-shell](features/knack-shell.md), [design-system](features/design-system.md), [privacy-ledger](features/privacy-ledger.md), [your-data](features/your-data.md), [evidence-and-explain](features/evidence-and-explain.md), [what-did-not-hold-up](features/what-did-not-hold-up.md), [role-packs](features/role-packs.md) |
-| Wordsmith | Most complicated end-to-end browser-use workflow | [capture](features/capture.md), [benefits-agent](features/benefits-agent.md), [security-layers](features/security-layers.md), [computer-use](features/computer-use.md), [background-agents](features/background-agents.md), [stop-everything](features/stop-everything.md), [routines](features/routines.md), [needs-you](features/needs-you.md), [proactive-briefing](features/proactive-briefing.md), [connections](features/connections.md), [hey-knack](features/hey-knack.md), [models-and-routing](features/models-and-routing.md), [context-engineering](features/context-engineering.md), [knack-shell](features/knack-shell.md), [privacy-ledger](features/privacy-ledger.md), [role-packs](features/role-packs.md) |
+| Target | What it asks | Lead with | Every page that serves it |
+|---|---|---|---|
+| HRT | Best use of data for predictions and decisions | [stuck-model](features/stuck-model.md), [hrt-decisions](features/hrt-decisions.md), [live-coach](features/live-coach.md), [cue](features/cue.md), [work-graph-and-hours](features/work-graph-and-hours.md), [what-did-not-hold-up](features/what-did-not-hold-up.md) | [work-genome](features/work-genome.md), [calendar-and-git](features/calendar-and-git.md), [growth-independence](features/growth-independence.md), [background-agents](features/background-agents.md), [routines](features/routines.md), [proactive-briefing](features/proactive-briefing.md), [models-and-routing](features/models-and-routing.md), [home-insights](features/home-insights.md), [firm-admin](features/firm-admin.md), [attention-router](features/attention-router.md), [evidence-and-explain](features/evidence-and-explain.md) |
+| G-Research | Make the invisible visible | [work-genome](features/work-genome.md), [screen-annotations](features/screen-annotations.md), [growth-independence](features/growth-independence.md), [work-graph-and-hours](features/work-graph-and-hours.md), [evidence-and-explain](features/evidence-and-explain.md), [what-did-not-hold-up](features/what-did-not-hold-up.md) | [capture](features/capture.md), [calendar-and-git](features/calendar-and-git.md), [awareness-glances](features/awareness-glances.md), [cue](features/cue.md), [routines](features/routines.md), [hey-knack](features/hey-knack.md), [models-and-routing](features/models-and-routing.md), [home-insights](features/home-insights.md), [firm-admin](features/firm-admin.md), [knack-shell](features/knack-shell.md), [design-system](features/design-system.md), [privacy-ledger](features/privacy-ledger.md), [your-data](features/your-data.md), [role-packs](features/role-packs.md) |
+| Wordsmith | Most complicated end-to-end browser-use workflow | [benefits-agent](features/benefits-agent.md), [security-layers](features/security-layers.md), [computer-use](features/computer-use.md), [background-agents](features/background-agents.md), [routines](features/routines.md), [stop-everything](features/stop-everything.md) | [capture](features/capture.md), [needs-you](features/needs-you.md), [proactive-briefing](features/proactive-briefing.md), [connections](features/connections.md), [hey-knack](features/hey-knack.md), [models-and-routing](features/models-and-routing.md), [context-engineering](features/context-engineering.md), [knack-shell](features/knack-shell.md), [privacy-ledger](features/privacy-ledger.md), [role-packs](features/role-packs.md) |
 
 Each page's 'Hackathon target' section says why.
 
@@ -46,7 +65,7 @@ The extension's popup holds the capture switch. In the app, Your data has a sect
 
 #### Demo moment
 
-Open the sandbox calculator in Chrome with capture on, work one household, then open Where time goes: the events behind the ribbon are the ones captured, and none of them holds text. Say the sentence from first run: it records when you are active, never what you read.
+Open the sandbox calculator in Chrome with capture on, work one household, and show the capture switch in the popup and in Your data. Say the sentence from first run: it records when you are active, never what you read. Say too that the ribbon in the demo is drawn from synthetic traces; capture is what would feed it for a real worker.
 
 #### Evidence and its label
 
@@ -399,7 +418,7 @@ Help gets lighter as a skill is mastered, from L1 'watch me' to L4 'on my own'. 
 
 #### How it works
 
-A level engine (kept from the owner's earlier library) promotes one rung after three clean runs in a row and demotes after two or more errors in the last five; assisted runs change nothing; a level change resets the streak so the new rung gets a fair trial. Per-skill mastery with forgetting feeds the engine and decays with absence, so a skill not seen for weeks is not treated as mastered. The worker's pace setting (gentle, steady, quick) changes how many clean cases come before a prompt gets lighter. The level shows for two seconds when it changes, then lives in the menu bar and Settings.
+The engine's level module is the authority (L1 full help, L2 small help, L3 a dot, L4 gone). It promotes one level after three clean runs in a row and demotes after two or more errors among the last five counted outcomes; an assisted run is neutral; a level change resets the streak and the window so the new level gets a fair trial. The desktop's own learner store, kept from the owner's earlier library, has its own step-up settings. Per-skill mastery with forgetting feeds the engine and decays with absence, so a skill not seen for weeks is not treated as mastered. The worker's pace setting (gentle, steady, quick) changes how many clean cases come before a prompt gets lighter. The level shows for two seconds when it changes, then lives in the menu bar and Settings.
 
 #### Where to see it
 
@@ -414,7 +433,7 @@ Open Live coach and point at the level; open Growth, then The fade, and show pro
 | What | Label | Source |
 |---|---|---|
 | Skill tracing follows the planted curve only weakly: mean Spearman 0.18 across four personas (0.17, 0.18, 0.25, 0.12); mastery saturates on high-volume personas | synthetic, 4 personas, 21 days | `evals/report.md (Skill tracing)` |
-| The level engine agrees with a separate small reference implementation on shared cases | offline tests | `docs/reference-notes/drigil.md` |
+| The level rules are code with no model, no randomness and no clock: three clean runs up, two errors in five down, absence can only lower a level | offline tests; a separate small reference implementation agrees on shared cases | `services/engine/understudy_engine/skills/levels.py; docs/reference-notes/drigil.md` |
 
 #### Honest limit
 
@@ -1263,6 +1282,10 @@ Not run with a microphone, a Live session or a real click. The 'do it for me' pa
 - **Wordsmith (most complicated end-to-end browser-use workflow)**: a voice-guided browser workflow with the click gated by consent
 - **G-Research (make the invisible visible)**: the next step made visible and spoken
 
+## 8. Models and modes
+
+*Gemini by default, a local model for private digests, fixed spoken lines, and a mock mode that runs offline.*
+
 ### Model routing: Gemini by default, checked at boot
 
 **Status:** built (live boot check and small planner and fast calls pass; computer use on Gemini needs its own iterations) · **Page:** `docs/features/models-and-routing.md` · **Targets:** Wordsmith, HRT
@@ -1405,7 +1428,7 @@ Mock results are scripted: they show the product runs end to end, not that a mod
 
 - **Wordsmith (most complicated end-to-end browser-use workflow)**: a reproducible, offline walk-through of a complicated workflow
 
-## 8. Insights and admin
+## 9. Insights and admin
 
 *A few pointers for the worker; a firm view for the admin.*
 
@@ -1551,7 +1574,7 @@ Same synthetic firm and the same caveats as the insights engine.
 
 - **HRT (best use of data for predictions and decisions)**: a prediction scorecard beside every forecast
 
-## 9. Growth and independence
+## 10. Growth and independence
 
 *Whether the worker needs less help over time.*
 
@@ -1591,7 +1614,7 @@ No person has used it. The claim is 'needs less help', never 'became an expert'.
 - **HRT (best use of data for predictions and decisions)**: a measured trend with an interval, not a single score
 - **G-Research (make the invisible visible)**: learning made visible
 
-## 10. A calm product: window, attention, context
+## 11. A calm product: window, attention, context
 
 *One window, one pill, one attention layer.*
 
@@ -1839,7 +1862,7 @@ A visual decision, judged by eye. Menu-bar states depend on desktop wiring that 
 
 - **G-Research (make the invisible visible)**: a calm identity for a product that watches work
 
-## 11. Privacy and safety
+## 12. Privacy and safety
 
 *What stays on the device, what leaves, and how to stop it.*
 
@@ -1948,7 +1971,7 @@ Mechanism tested offline; no worker has built a memory file by use. The preceden
 
 - **G-Research (make the invisible visible)**: the adaptation is a file the worker can read
 
-## 12. Evidence and honesty
+## 13. Evidence and honesty
 
 *Every number with n, split, interval and origin; failures published.*
 
@@ -2172,7 +2195,7 @@ These are all simulated or sandbox results; none is about real workers.
 
 - **G-Research (make the invisible visible)**: our own failures made visible
 
-## 13. Roles
+## 14. Roles
 
 *One deep role pack and two thin ones.*
 
@@ -2318,6 +2341,25 @@ Only with the n, the split, the interval and the origin printed beside them. Whe
 - That Connections or the deeper roles work; they are landing and not verified.
 - That Cue makes people resume faster at the median; the simulated target was not met.
 - That the oracle is the law. It agrees with PolicyEngine UK within 1 pound on only 8 of 20 households.
+
+## Where the source documents disagree
+
+Found while writing. Each row names both files; the third column says which one this document follows. Fix the stale one before the freeze, or quote only the followed number.
+
+| Topic | Followed | Disagrees | Used |
+|---|---|---|---|
+| Privacy canary count | evals/report.md and evals/report.facts.json (generated 7 Nov 21:40 UTC): 0 of 11,456 planted tokens, 88 runs of 11 flows, one-sided bound 3.35% per run | README.md and docs/drafts/CLAIMS.md (C40): 0 of 11,336, 80 runs of 10 flows, 3.7% | the generated report |
+| Size of the report and register | evals/report.md: 35 sections (33 with numbers, 2 not run), 206 limitations (67 high, 111 medium, 28 low) | docs/FEATURE_CATALOGUE.md and docs/drafts/DEVPOST.md: 32 sections, a register of 124 (34 high, 69 medium, 21 low); docs/MVP_STATUS.md: 32 sections ok, 1 pending, 2 not run | the generated report |
+| Test counts | docs/MVP_STATUS.md (run at the final code, about 21:20): 3,889 + 1,726 + 541 + 2,684 passed across engine and packs, agent, dashboard and desktop | evals/report.facts.json: 6,156 test functions, a static count with parametrised cases not expanded | quote neither as a pass count without saying how it was counted; re-run `make test` at the freeze |
+| Reviewer reproducers | docs/MVP_STATUS.md and evals/agentic/ITERATIONS_8.md (branch): 183 of 183 | README.md and docs/FIX_LEDGER.md: 172 of 172 | 183 of 183 (later) |
+| Simulated-study power at n = 16 | evals/report.md (Study power): false positives 4.9%; power 10.2%, 27.3%, 74.8% for small, medium, large | evals/study_sim/REPORT.md and the register entry sim-power: about 6% false positives and 12%, 29%, 76% | the Study power table |
+| Always-listening microphone | docs/DECISIONS.md D52 and docs/knack-ux/09-wake-voice.md (branch): 'hey knack' listening is on by default, on-device | docs/FLAGS.md and docs/FEATURE_CATALOGUE.md: hold to talk only, no always-listening microphone | D52 (later); the other two are stale |
+| Cloud wording for 'explain this' | docs/FLAGS.md: the cloud attempt is on by default (D48), routed to Gemini, always behind the number check with a template fallback | README.md and docs/FEATURE_CATALOGUE.md: cloud wording off by default | docs/FLAGS.md (later) |
+| Computer-use 'false claims' | docs/reference-notes/cu-failure-diagnosis.md and evals/agentic/ITERATIONS.md (correction): the harness accepted wrong calculator inputs; independent recomputation caught them | evals/report.md (Agentic evaluation): '2 false claim(s)' | the corrected wording; the generated report has not been re-worded |
+| Alongside reuse counts | README.md: 182 unchanged, 86 modified, 35 removed of 303; 345 new (about 20:53 UTC) | docs/drafts/CLAIMS.md (C65) and docs/drafts/DEVPOST.md: 205 identical, 70 modified, 28 not carried over; 313 new (about 18:15 UTC) | README.md; the counts move and are recomputed at the freeze |
+| Which model provider | docs/FLAGS.md and docs/DECISIONS.md D49: Gemini is the default, the OpenAI key was revoked | docs/drafts/DEVPOST.md and docs/drafts/DEMO_SCRIPT.md: OpenAI primary, Gemini in progress; README.md table: voice 'flagged off' | docs/FLAGS.md; the drafts are stale |
+| Cue and Insights status | evals/report.md and evals/cue/held_out.json, evals/insights/results/heldout.json: held-out runs done | docs/FEATURE_CATALOGUE.md and docs/drafts/DEMO_SCRIPT.md: 'building' or 'pending' | the generated results |
+| Words after the Knack redesign, Roles | docs/knack-ux/after/after-measurements.json: 35 words | docs/KNACK_UX.md (section 2 table): 36 | the JSON |
 
 ## What is landing, and where to look
 
