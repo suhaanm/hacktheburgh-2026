@@ -37,7 +37,7 @@ const failure = (r: Reached) => ({ reached: r.reached, status: r.reached ? r.sta
 /** Why the page shows example data. The engine's own wording for a missing route varies, so a missing route is always "switched off", in our words. */
 function whyFor(r: Reached): Fallback {
   if (r.reached && r.status === 404) {
-    return { kind: "extension_off", status: 404, code: codeOf(r), message: `This feature is switched off in ${WHO.service}. Start it with ${WHO.flag}=1 (or UNDERSTUDY_X=1 for every extension) to see your own data. Until then this screen shows example data.` };
+    return { kind: "extension_off", status: 404, code: codeOf(r), message: `This feature is switched off in ${WHO.service}. Start it with ${WHO.flag}=1 (or UNDERSTUDY_X=1 for every extension) to see your own data. Until then Knack shows example data.` };
   }
   return classify(failure(r), WHO);
 }

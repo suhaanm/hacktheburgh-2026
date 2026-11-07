@@ -43,6 +43,8 @@ export interface HotkeyDeps {
   look?: () => void
   // Understudy: bring the side panel up (the talk key does this on press). When omitted the talk key only emits its event.
   raisePanel?: () => void
+  // KNACK: a TAP on the talk key (one press, no key repeat) opens the Ask surface (until the Ask bar exists: the panel's typed chat); a HOLD (the key repeats) talks, as before.
+  askTap?: () => void
   // Test seams.
   setTimer?: (fn: () => void, ms: number) => unknown
   clearTimer?: (h: unknown) => void
@@ -99,18 +101,23 @@ export function registerHotkeys(bus: Bus, settings: SettingsStore, deps: HotkeyD
   const setT = deps.setTimer ?? ((fn, ms) => setTimeout(fn, ms))
   const clearT = deps.clearTimer ?? ((h) => clearTimeout(h as ReturnType<typeof setTimeout>))
   let held = false
+  let fires = 0
   let releaseTimer: unknown = null
   const onTalk = (): void => {
     if (!held) {
       held = true
+      fires = 0
       deps.raisePanel?.()
       bus.emit('talk', { source: 'hotkey', phase: 'press' })
     }
+    fires += 1
     if (releaseTimer !== null) clearT(releaseTimer)
     releaseTimer = setT(() => {
       releaseTimer = null
       held = false
+      const tap = fires <= 1 // the handler ran once and the keyboard never repeated it: a tap
       bus.emit('talk', { source: 'hotkey', phase: 'release' })
+      if (tap) deps.askTap?.()
     }, TALK_RELEASE_MS)
   }
   let talkBound: string[] = []

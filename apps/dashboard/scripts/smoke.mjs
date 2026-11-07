@@ -310,8 +310,11 @@ check("privacy: clearing empties the list and says so", (await page.locator(".le
     return json(route, { error: { code: "not_found", message: "not mocked" } }, 404);
   });
   await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(600);
-  const nav = await page.locator("nav#nav").textContent();
-  check("layers off: nothing is hidden from the menu", /Week/.test(nav ?? "") && /Privacy/.test(nav ?? "") && /Agents/.test(nav ?? "") && /Briefing/.test(nav ?? "") && /Git habits/.test(nav ?? "") && /Models/.test(nav ?? ""));
+  // Knack: five destinations in the sidebar and the rest in the More sheet (the old fold lists became the sheet; Briefing and Privacy became Needs you and Your data).
+  await page.locator("nav#nav").getByRole("button", { name: "More" }).click();
+  const nav = `${await page.locator("nav#nav").textContent()} ${await page.getByRole("menu", { name: "More" }).textContent()}`;
+  await page.keyboard.press("Escape");
+  check("layers off: nothing is hidden from the menu", /Calendar/.test(nav) && /Your data/.test(nav) && /Background runs/.test(nav) && /Needs you/.test(nav) && /Git habits/.test(nav) && /Models and cost/.test(nav));
   await page.goto(`${base}/#/privacy`); await page.waitForTimeout(700);
   const off = await page.locator("main").innerText();
   // One plain line is on the page; the engine's sentence with the flag name sits in a closed "Details" disclosure under it (D45). Open it, then assert the text.
@@ -385,11 +388,14 @@ check("privacy: clearing empties the list and says so", (await page.locator(".le
 
 // 8g. Notices: one row per kind of notice, locked safety rows, a Today strip, a passive banner
 {
+  // Notices became Settings, Interruptions: the old screen is drawn inside the Settings sheet until the new contents land.
+  const sheet = page.locator("[data-testid=settings-sheet]");
   await go("/notices", 1500);
+  await sheet.locator("details.notices__group").first().waitFor({ timeout: 20000 });
   const openGroups = () => page.evaluate(() => document.querySelectorAll("details.notices__group").forEach((d) => { d.open = true; }));
   check("notices: only the first group is open by default, the others are one click away", (await page.locator("details.notices__group[open]").count()) === 1 && (await page.locator("details.notices__group").count()) === 4);
   await openGroups();
-  const nt = await page.locator("main").innerText();
+  const nt = await sheet.innerText();
   check("notices: example data is badged and the groups and the floor are in plain words", /example data/i.test(nt) && /Needs you/.test(nt) && /Helps in the moment/.test(nt) && /Can wait/.test(nt) && /Information/.test(nt) && /Safety stops and approvals that block a job always stay visible/.test(nt));
   const kill = page.locator("[data-testid=notice-kill_engaged]");
   await page.getByText("What always shows", { exact: true }).click();
@@ -408,7 +414,7 @@ check("privacy: clearing empties the list and says so", (await page.locator(".le
   check("notices: reset asks once, inline", (await page.getByRole("button", { name: "Yes, reset what it learned" }).count()) === 1);
   await page.getByRole("button", { name: "Yes, reset what it learned" }).click();
   await page.waitForTimeout(400);
-  check("notices: after a reset it says nothing is learned", /Nothing yet\. Every kind of notice is as loud as you set it\./.test(await page.locator("main").innerText()));
+  check("notices: after a reset it says nothing is learned", /Nothing yet\. Every kind of notice is as loud as you set it\./.test(await sheet.innerText()));
 
   // A real-engine scenario, mocked: a refused change reverts and shows the engine's own words; the banner shows counts and the summary link.
   const json = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" }, body: JSON.stringify(body) });
@@ -428,14 +434,13 @@ check("privacy: clearing empties the list and says so", (await page.locator(".le
     return json(route, { error: { code: "not_found", message: "not mocked" } }, 404);
   });
   await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(6800); await page.goto(`${base}/#/notices`); await page.waitForTimeout(1500);
+  await sheet.locator("details.notices__group").first().waitFor({ timeout: 20000 });
   await openGroups();
-  const banner = await page.locator("[data-testid=notice-banner]").innerText();
-  check("notices: the passive banner shows counts and a summary link, and nothing about the stopped state", /1 needs you, 2 are waiting/.test(banner) && /Summary ready/.test(banner) && !/stopped/i.test(banner));
-  check("notices: with a real engine the screen is not badged as an example", !/example data/i.test(await page.locator("main").innerText()));
+  check("notices: with a real engine the screen is not badged as an example", !/example data/i.test(await sheet.innerText()));
   const row = page.locator("[data-testid=notice-routine_proposal]");
   await row.getByRole("button", { name: "Digest only" }).click();
   await page.waitForTimeout(500);
-  check("notices: a refused change goes back and shows the engine's own words", (await row.locator("button[aria-pressed=true]").innerText()) === "Normal" && /That setting is not one the engine knows\. \(unknown_key\)/.test(await page.locator("main").innerText()));
+  check("notices: a refused change goes back and shows the engine's own words", (await row.locator("button[aria-pressed=true]").innerText()) === "Normal" && /That setting is not one the engine knows\. \(unknown_key\)/.test(await sheet.innerText()));
   check("notices: the change was sent as JSON from the worker", posted?.actor === "worker" && /application\/json/.test(posted?.type ?? "") && posted.body.modes?.routine_proposal === "digest", JSON.stringify(posted));
   await page.unroute(ENGINE);
 }

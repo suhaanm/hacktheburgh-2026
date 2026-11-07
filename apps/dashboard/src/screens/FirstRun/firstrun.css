@@ -14,7 +14,10 @@
   display: grid; gap: 4px; padding: 20px 16px; text-align: left; background: var(--panel); border: var(--hair) solid var(--line); border-radius: var(--radius-3);
   color: var(--fg); cursor: pointer; transition: border-color var(--dur-fast) var(--ease-out);
 }
-.rolecard:hover { border-color: var(--accent); }
+.rolecard:hover, .rolecard[aria-pressed="true"] { border-color: var(--accent); }
+.rolecard__wrap { display: grid; gap: var(--space-3); align-content: start; }
+.rolecard__wrap[data-picked] { grid-column: 1 / -1; }
+.rolecard__chips { display: grid; gap: var(--space-3); justify-items: start; }
 .rolecard__name { font: 600 var(--text-md)/1.25 var(--font-display); }
 .rolecard__line { font-size: var(--text-sm); color: var(--muted); }
 .firstrun__choices { display: flex; flex-wrap: wrap; gap: var(--space-3); }
@@ -27,3 +30,7 @@
   .firstrun__q { font-size: var(--text-2xl); }
 }
 @media (prefers-reduced-motion: reduce) { .firstrun__progress i, .rolecard { transition-duration: 0.01ms; } }
+
+/* In the Mac desktop window the traffic lights sit at the top left: the first-run column starts below them, and the strip above it drags the window. */
+:root[data-knack-shell="mac-inset"] .firstrun { padding-top: calc(var(--space-10) + 24px); }
+:root[data-knack-shell="mac-inset"] .firstrun::before { content: ""; position: fixed; inset: 0 0 auto 0; height: 40px; -webkit-app-region: drag; }

@@ -107,6 +107,8 @@ export interface UnderstudyDeps {
   onAgentSample?: (sample: { health: unknown; runs: unknown }) => void
   // KNACK: the corner column is in charge of the HUD (bottom-right pill and card), and the shell hears when an agent of this app is acting on the worker's own screen.
   corner?: boolean
+  // The hidden run: the HUD window is built and sized but never shown.
+  hudHidden?: boolean
   onLocalActing?: (acting: boolean) => void
 }
 
@@ -182,7 +184,7 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
     corner: deps.corner,
     log: ctx.log,
   })
-  const hud = registerHud({ model: hudModel, log: ctx.log, disabled: deps.headless || deps.noOverlay, corner: deps.corner })
+  const hud = registerHud({ model: hudModel, log: ctx.log, disabled: deps.headless || deps.noOverlay, corner: deps.corner, hidden: deps.hudHidden })
   hudPush = hud.push
   // The Stop all pill is on screen only while something acts for the person: a running agent, or a Live session (voice, flagged off).
   const ACTIVE_PHASES = new Set(['connecting', 'live', 'thinking', 'speaking'])

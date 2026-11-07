@@ -44,6 +44,11 @@ export interface AttentionAdapterDeps {
   setTimer?: (fn: () => void, ms: number) => unknown
   clearTimer?: (h: unknown) => void
   killed?: () => boolean
+  // KNACK: an agent is acting for the worker right now. An unasked "now" item (a cue, an offer) is refused with reason agent_acting while it is true: a local check, no
+  // engine change. A cue the worker asked for (trigger "asked") still shows.
+  agentActing?: () => boolean
+  // KNACK: a card is up in the corner column (Stopped, an approval, a notice). A cue with no target would dock into that corner, so an unasked one yields to it.
+  cornerCardUp?: () => boolean
   log?: (scope: string, ...args: unknown[]) => void
 }
 
@@ -207,6 +212,10 @@ export function createAttentionAdapter(deps: AttentionAdapterDeps): AttentionAda
           const type = CUE_TYPE[d.kind]
           if (!type) return { show: false, itemId: null }
           const asked = d.trigger === 'asked'
+          if (!asked && (deps.agentActing?.() === true || deps.cornerCardUp?.() === true)) {
+            log('attention', `cue refused: ${deps.agentActing?.() === true ? 'agent_acting' : 'corner_card'}`)
+            return { show: false, itemId: null } // Cue is a "now" item: it is dropped, not held
+          }
           const owner: LockOwner = asked ? 'asked' : 'cue'
           const ttl = Math.max(1, d.expires_in_s ?? 20) * 1000
           if (!lock.acquire(owner, ttl, onPreempt, toSubject(d.episode_id))) return { show: false, itemId: null } // something is on screen: the cue's moment passes
