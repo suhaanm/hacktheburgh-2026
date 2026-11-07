@@ -28,6 +28,7 @@ import type { PillSignals } from './pill-state'
 import { createQuitGuard, type QuitGuard } from './quit-guard'
 import { INITIAL_SHELL, TIMING, reduce, type Effect, type ShellEvent, type ShellState } from './shell-machine'
 import { shellPages, uiStateOf } from './shell-pages'
+import { dashboardSettingsPatch, dashboardSettingsView } from './settings-bridge'
 import type { Stack, StackConfig, StackState } from './stack'
 import { createRealStack } from './stack-real'
 import { createWindowStateStore } from './window-state'
@@ -40,13 +41,13 @@ export interface KnackEarlyDeps {
   config: StackConfig
   /** Windows exist and work but are never shown (the hidden check). */
   hidden: boolean
+  /** The login item opened the app: no window is shown (the menu bar item and the Dock icon are enough). */
+  openedAtLogin?: boolean
   env: Record<string, string | undefined>
   /** Lists the models the key can use (the desktop model port's boot check); true when it passed. Called once, only when live is wanted and a key exists. */
   bootCheck: () => Promise<boolean>
   /** The kill switch's registered global accelerator, to show on the menu item. */
   killAccelerator: () => string | null
-  /** Settings… opens the settings view. */
-  openSettings: () => void
   /** Stop Everything from the menus (the kill switch). */
   stopEverything: () => void
   /** The brand glyph file's text, for the starting page. */
@@ -60,18 +61,22 @@ export interface KnackEarlyDeps {
   onEffect?: (e: Effect, event: ShellEvent) => void
   /** The menu bar's state (the tray shows it): working dot, count, stopped square, marker. */
   onMenubar?: (state: MenubarState, count?: number) => void
+  /** Called after every event the machine heard, so the tray (and anything else that shows the machine) can look again. */
+  onChange?: () => void
   /** Shows a native sheet; default is dialog.showMessageBox. Injectable for the check. */
   showSheet?: (o: { message: string; detail?: string; buttons: readonly [string, string] }) => Promise<'stop_and_quit' | 'keep_working'>
 }
 
 export interface KnackLateDeps {
-  kill: { trigger(source: 'hud'): Promise<unknown>; isKilled(): boolean; subscribe(cb: () => void): () => void }
+  kill: { trigger(source: 'hud'): Promise<unknown>; clear(): Promise<unknown>; isKilled(): boolean; subscribe(cb: () => void): () => void }
   /** The corner column (the HUD model, in corner mode). */
   hud: Pick<HudModel, 'setActivity' | 'setApproval' | 'setHold' | 'setCorner' | 'state'>
   /** One look at the desk: a reason to stay away (a denylisted app, a password field, an unreadable state) and whether a screen is shared. Fails closed. */
   probe: () => Promise<{ suppressed: string | null; presenting: boolean }>
   /** Approvals waiting in the queue (null when the engine cannot be asked). */
   pendingQueue: () => Promise<number | null>
+  /** The pill's End button on a voice conversation: end the conversation itself (the pill alone is only the status). */
+  onVoiceEnd?: () => void
 }
 
 export interface AgentSample {
@@ -93,9 +98,13 @@ export interface KnackShell {
   feedLocalActing(acting: boolean): void
   /** The Dock icon, Activate, Open Knack. */
   openMain(): void
+  /** Settings… (the app menu, the menu bar item): open Knack on its Settings (#/settings; the dashboard's own Command-comma opens the same). */
+  openSettings(): void
   /** Feeds the machine directly (the dev hook, the hidden check). Returns the machine's state after the event. */
   dispatch(event: ShellEvent): ShellState
   quitGuard(): QuitGuard
+  /** What the menu bar item shows: the label of what is running, how many things need the worker, and whether everything is stopped. */
+  trayStatus(): { working: string | null; needsYou: number; stopped: boolean }
   info(): KnackInfo
   dispose(): Promise<void>
 }
@@ -131,13 +140,13 @@ export const APPROVAL_CARD = { title: 'A run is waiting for you', body: 'It need
 export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
   const { config, env, log } = deps
   const store = createWindowStateStore({ file: path.join(deps.userDataDir, 'knack-window.json') })
-  const main = createMainWindow({ store, hidden: deps.hidden, devOrigin: config.devUrl ? new URL(config.devUrl).origin : null })
+  const main = createMainWindow({ store, hidden: deps.hidden, openedAtLogin: deps.openedAtLogin, devOrigin: config.devUrl ? new URL(config.devUrl).origin : null })
   const stack = deps.stack ?? createRealStack(config, (...a) => log('stack', ...a))
   let decision: ModelDecision | null = null
   let mockNow: boolean | null = null
   let stackStopped = false
   let stopping = false
-  let machine: ShellState = { ...INITIAL_SHELL, moveAside: deps.settings.get().moveAsideWhileWorking }
+  let machine: ShellState = { ...INITIAL_SHELL, moveAside: deps.settings.get().moveAsideWhileWorking, ...(deps.openedAtLogin ? { window: 'absent' as const, focused: false } : {}) }
   let late: KnackLateDeps | null = null
   let tracker: ActivityTracker | null = null
   let minimiseTimer: ReturnType<typeof setTimeout> | null = null
@@ -184,6 +193,16 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
     if (!can.ok) return can
     deps.settings.patch({ useLiveModels: on as boolean }, { trusted: true }) // main restarts the app when it changes (below)
     return { ok: true }
+  })
+  // The other switches the dashboard's Settings shows: a small view to read, an allow-list to write. An ordinary (untrusted) patch, so the store still validates every value.
+  ipcMain.handle(KNACK_IPC.settingsGet, (event) => {
+    if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
+    return dashboardSettingsView(deps.settings.get())
+  })
+  ipcMain.handle(KNACK_IPC.settingsPatch, (event, patch: unknown) => {
+    if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
+    deps.settings.patch(dashboardSettingsPatch(patch) as Partial<Settings>) // the store validates each value
+    return dashboardSettingsView(deps.settings.get())
   })
 
   const dashboardBase = (s: StackState): string => (s.phase === 'ready' && s.dashboard === 'dev-server' && config.devUrl ? config.devUrl : APP_ORIGIN)
@@ -316,16 +335,43 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
     const r = reduce(machine, ev)
     machine = r.state
     for (const e of r.effects) perform(e, ev)
+    deps.onChange?.()
+    refreshDockMenu()
     return machine
   }
 
   // The app menu, the Dock icon and its menu
   const showMain = (): void => void dispatch({ type: 'menu_open_knack' })
-  const handlers = { openSettings: deps.openSettings, showWindow: showMain, stopEverything: deps.stopEverything }
+  const openSettings = (): void => {
+    dispatch({ type: 'menu_open_knack' })
+    if (dashboardLoaded) main.loadDashboard(`${dashboardBase(stack.state())}/#/settings`)
+  }
+  const handlers = { openSettings, showWindow: showMain, stopEverything: deps.stopEverything }
   Menu.setApplicationMenu(Menu.buildFromTemplate(buildAppMenuTemplate({ appName: APP_NAME, platform: process.platform, isPackaged: app.isPackaged, killAccelerator: deps.killAccelerator(), handlers })))
   app.setAboutPanelOptions({ applicationName: APP_NAME, applicationVersion: app.getVersion(), copyright: 'Built for Hack the Burgh XIII' })
   const offDock = registerDock(deps.settings, { dock: app.dock ?? undefined, hidden: deps.hidden, log: (...a) => log(...a) })
-  app.dock?.setMenu(Menu.buildFromTemplate(buildDockMenuTemplate({ appName: APP_NAME, handlers })))
+  // The Dock menu follows the machine: Needs you (n) when n is above 0, Pause for 1 hour (Resume now), Stop everything (Resume after stopping).
+  const isPaused = (): boolean => {
+    const until = deps.settings.get().pausedUntil
+    return until !== null && until > Date.now()
+  }
+  const dockHandlers = {
+    ...handlers,
+    openNeedsYou: () => void dispatch({ type: 'review_clicked' }),
+    pause: () => void deps.settings.patch({ pausedUntil: Date.now() + 60 * 60_000 }),
+    resume: () => {
+      if (isPaused()) deps.settings.patch({ pausedUntil: null })
+      else if (machine.activity === 'stopped') void late?.kill.clear() // "Resume after stopping": the kill switch's own clear
+    },
+  }
+  let dockMenuKey = ''
+  const refreshDockMenu = (): void => {
+    const key = `${machine.needsYou}|${isPaused()}|${machine.activity === 'stopped'}`
+    if (key === dockMenuKey) return
+    dockMenuKey = key
+    app.dock?.setMenu(Menu.buildFromTemplate(buildDockMenuTemplate({ handlers: dockHandlers, needsYou: machine.needsYou, paused: isPaused(), stopped: machine.activity === 'stopped' })))
+  }
+  refreshDockMenu()
 
   // The Dock icon (or the app switcher) with no window up, and a second launch, bring the window forward; they never open a second one.
   const onActivate = (): void => void dispatch({ type: 'dock_click_or_activate' })
@@ -344,6 +390,7 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
 
   // The worker's setting for moving aside.
   const offSettings = deps.settings.onChange((_s, patch) => {
+    if ('pausedUntil' in patch) refreshDockMenu()
     if ('moveAsideWhileWorking' in patch) dispatch({ type: 'settings', moveAside: deps.settings.get().moveAsideWhileWorking })
     // The models switch: a change restarts the whole app (the model port is built once, at start).
     if ('useLiveModels' in patch) {
@@ -409,7 +456,10 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
         dispatch({ type: 'error_acknowledged' })
         tracker?.acknowledge()
       },
-      voiceEnd: () => void dispatch({ type: 'voice_end' }),
+      voiceEnd: () => {
+        void dispatch({ type: 'voice_end' })
+        l.onVoiceEnd?.()
+      },
     })
     // The kill switch (the pill's Stop, the menus, the keys) is one event for the machine.
     let wasKilled = l.kill.isKilled()
@@ -485,8 +535,14 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
       ingest()
     },
     openMain: () => void dispatch({ type: 'menu_open_knack' }),
+    openSettings,
     dispatch,
     quitGuard: () => guard,
+    trayStatus: () => ({
+      working: machine.activity === 'working' ? (late?.hud.state().activity?.label ?? 'Starting').toLowerCase() : machine.activity === 'voice' ? 'listening' : null,
+      needsYou: machine.needsYou,
+      stopped: machine.activity === 'stopped',
+    }),
     info: () => ({
       stack: stack.state(),
       model: status(),
@@ -512,6 +568,8 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
       ipcMain.removeHandler(KNACK_IPC.get)
       ipcMain.removeHandler(KNACK_IPC.modelsGet)
       ipcMain.removeHandler(KNACK_IPC.modelsSet)
+      ipcMain.removeHandler(KNACK_IPC.settingsGet)
+      ipcMain.removeHandler(KNACK_IPC.settingsPatch)
       ipcMain.removeAllListeners(KNACK_IPC.retry)
       await stack.stop()
       main.dispose()

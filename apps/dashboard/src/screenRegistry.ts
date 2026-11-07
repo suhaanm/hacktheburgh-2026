@@ -1,7 +1,8 @@
 // Which file draws which route. Screens that other tracks are rebuilding (Needs you, Routines, Your data, the Settings contents, the set-up flow)
-// are found with import.meta.glob, in order of preference, so this file builds before and after their folders land: until then
-// the old screen stands in, and nothing here has to change when the new one arrives. A glob that finds nothing gives a calm fallback.
+// are found with import.meta.glob, so this file builds before and after their folders land: until then the old screens stand in
+// (legacyScreens.tsx), and nothing here has to change when the new one arrives. A glob that finds nothing gives a calm fallback.
 import { lazy, type ComponentType } from "react";
+import { NeedsYouLegacy, RoutinesLegacy, YourDataLegacy } from "./legacyScreens";
 import type { Screen } from "./router";
 
 type Loader = () => Promise<{ default: ComponentType }>;
@@ -17,19 +18,20 @@ export function pick(files: Glob, order: string[]): Loader | null {
 }
 
 const Missing: ComponentType = () => null;
-const lazyOf = (load: Loader | null): ReturnType<typeof lazy> => lazy(load ?? (async () => ({ default: Missing })));
+/** The new screen when its folder exists, else the stand-in. */
+const prefer = (load: Loader | null, standIn: ComponentType): ReturnType<typeof lazy> => lazy(load ?? (async () => ({ default: standIn })));
 
-const NEEDS_YOU = import.meta.glob("./screens/{NeedsYou/index.tsx,Queue.tsx}");
-const ROUTINES = import.meta.glob("./screens/{Routines/index.tsx,Routines.tsx}");
-const YOUR_DATA = import.meta.glob("./screens/{YourData/index.tsx,Memory.tsx}");
+const NEEDS_YOU = import.meta.glob("./screens/NeedsYou/index.tsx");
+const ROUTINES = import.meta.glob("./screens/Routines/index.tsx");
+const YOUR_DATA = import.meta.glob("./screens/YourData/index.tsx");
 const SETUP = import.meta.glob("./screens/{Settings/SetUp.tsx,Onboarding.tsx}");
 
 export const screens: Record<Screen, ReturnType<typeof lazy>> = {
   home: lazy(() => import("./screens/Home")),
-  "needs-you": lazyOf(pick(NEEDS_YOU, ["./screens/NeedsYou/index.tsx", "./screens/Queue.tsx"])),
-  routines: lazyOf(pick(ROUTINES, ["./screens/Routines/index.tsx", "./screens/Routines.tsx"])),
+  "needs-you": prefer(pick(NEEDS_YOU, ["./screens/NeedsYou/index.tsx"]), NeedsYouLegacy),
+  routines: prefer(pick(ROUTINES, ["./screens/Routines/index.tsx"]), RoutinesLegacy),
   growth: lazy(() => import("./screens/Growth")),
-  "your-data": lazyOf(pick(YOUR_DATA, ["./screens/YourData/index.tsx", "./screens/Memory.tsx"])),
+  "your-data": prefer(pick(YOUR_DATA, ["./screens/YourData/index.tsx"]), YourDataLegacy),
   firm: lazy(() => import("./screens/Firm")),
   roles: lazy(() => import("./screens/Firm")),
   onboarding: lazy(() => import("./screens/Firm")),
@@ -44,5 +46,5 @@ export const screens: Record<Screen, ReturnType<typeof lazy>> = {
   today: lazy(() => import("./screens/Today")),
   evidence: lazy(() => import("./screens/Evidence")),
   "first-run": lazy(() => import("./screens/FirstRun")),
-  setup: lazyOf(pick(SETUP, ["./screens/Settings/SetUp.tsx", "./screens/Onboarding.tsx"])),
+  setup: prefer(pick(SETUP, ["./screens/Settings/SetUp.tsx", "./screens/Onboarding.tsx"]), Missing),
 };

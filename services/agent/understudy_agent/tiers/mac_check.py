@@ -29,6 +29,7 @@ import json
 import signal
 import sys
 import threading
+from pathlib import Path
 from typing import Any
 
 from ..audit import AuditLog
@@ -37,6 +38,7 @@ from ..models.port import Action
 from ..queue import ApprovalQueue
 from ..security.denylist import Denylist
 from ..security.killflag import is_killed, kill_path, set_kill
+from ..security.paths import data_dir
 from .computer_use import ActuatorRefused, MacActuator, TargetRead, blank_png, merge_reads
 from .owner_present import RunPermit, grant_run_permit, issue_owner_token
 from .safety import Guard
@@ -218,6 +220,33 @@ async def run_check(target: str, click_px: tuple[int, int], text: str, *, real: 
     return out
 
 
+def write_rung_cleared(out: dict[str, Any], target: str, *, root: Path | None = None, now: float | None = None) -> Path | None:
+    """The persisted rung record (data/rung_cleared.json) that Knack's `do_it_for_me` reads before it ever offers a click. Written ONLY here,
+    ONLY for a REAL run that passed its read-back (`ok`, `real` and `postcondition == "passed"`, which needs the owner's one-time token), and never
+    by a dry run. It lists the target the supervised check cleared (R1: TextEdit). Counts and enums only. The digest matches
+    apps/desktop/src/main/wake/rung.ts (`rungDigest`): it catches an edit by mistake, not by someone who can run code as the owner."""
+    import hashlib
+    import os
+    import time as _time
+    from datetime import datetime, timezone
+
+    if not (out.get("ok") is True and out.get("real") is True and out.get("postcondition") == "passed"):
+        return None
+    t = _time.time() if now is None else now
+    at = datetime.fromtimestamp(t, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    rec = {"schema": 1, "rung": "R1", "at": at, "targets": [target], "postcondition": "passed", "real": True}
+    material = f"1|R1|{at}|{','.join(sorted(rec['targets']))}|passed|true"  # type: ignore[arg-type]
+    rec["digest"] = hashlib.sha256(material.encode()).hexdigest()
+    path = (root or data_dir()) / "rung_cleared.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        json.dump(rec, f)
+    os.replace(tmp, path)
+    return path
+
+
 def _install_kill_paths() -> None:
     """Ctrl-C and `k` + Enter set the same kill file the actuator polls between characters."""
     def stop(*_: Any) -> None:
@@ -249,6 +278,8 @@ def main(argv: list[str] | None = None) -> int:
         _install_kill_paths()
     out = asyncio.run(run_check(a.target, (a.click_px[0], a.click_px[1]), a.text, real=a.real, owner_token=a.owner_present,
                                 latency_test=a.latency_test, countdown_s=a.countdown))
+    if a.real and (written := write_rung_cleared(out, a.target)) is not None:
+        out["rung_cleared"] = str(written)
     print(json.dumps(out, indent=2))
     return 0 if out["ok"] else 2
 

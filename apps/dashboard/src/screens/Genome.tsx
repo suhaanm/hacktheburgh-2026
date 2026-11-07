@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { useLoad } from "../hooks";
 import { useRoute } from "../router";
-import { ChartFoot, ErrorState, LegendItem, Loading, OriginBadge, PageHead } from "../components/common";
+import { ChartFoot, ErrorState, LegendItem, Loading, OriginBadge, PageHead, workerOriginLabel } from "../components/common";
 import { Ribbon } from "../components/Ribbon";
 import { Waterfall } from "../components/Waterfall";
 import { Explain } from "../components/Explain";
@@ -32,10 +32,10 @@ export default function Genome() {
   return (
     <div className="page page--wide">
       <PageHead
-        eyebrow="Genome · benefits entitlement check"
+        hero
         title={`Novices lose about ${fmtDuration(total)} per case`}
-        lede={<>Average over all novices<Hint label="About this average">95% interval {fmtDuration(data.total_gap_ci[0])} to {fmtDuration(data.total_gap_ci[1])}.</Hint>. One case below{data.person_gap_s != null ? <>: {data.person}, {fmtDuration(data.person_gap_s)} lost</> : null}.</>}
-        aside={<OriginBadge meta={g.meta} />}
+        lede={<>{"Average over all novices."}<Hint label="About this average">{`95% interval ${fmtDuration(data.total_gap_ci[0])} to ${fmtDuration(data.total_gap_ci[1])}.${data.person_gap_s != null ? ` The case below: ${data.person}, ${fmtDuration(data.person_gap_s)} lost.` : ""}`}</Hint></>}
+        aside={<OriginBadge meta={g.meta} label={g.meta ? workerOriginLabel(g.meta.origin) : undefined} />}
       />
 
       <section className="hero" aria-labelledby="hero-h">
@@ -45,51 +45,40 @@ export default function Genome() {
             <button type="button" aria-pressed={view === "ribbon"} onClick={() => setView("ribbon")}>Work ribbon</button>
             <button type="button" aria-pressed={view === "graph"} onClick={() => setView("graph")}>Transition graph</button>
           </div>
-          <Details summary="Change the comparison">
-            <div className="stack">
-              <p className="note">Nearest expert is the closest single trace; consensus blends all experts.</p>
-              <div className="segmented" role="group" aria-label="Reference">
-                <button type="button" aria-pressed={reference === "nearest_expert"} onClick={() => setReference("nearest_expert")}>Nearest expert</button>
-                <button type="button" aria-pressed={reference === "consensus"} onClick={() => setReference("consensus")}>Consensus</button>
-              </div>
-            </div>
-          </Details>
         </div>
 
-        {view === "ribbon" ? <RibbonView data={data} /> : (
+        {view === "ribbon" ? <RibbonView data={data} meta={g.meta} reference={reference} setReference={setReference} /> : (
           <div className="stack">
             {t.data ? <TransitionGraph data={t.data} /> : t.status === "error" ? <ErrorState error={t.error} retry={t.reload} what="the transition graph" /> : <Loading label="Loading the transition graph" />}
-            <ChartFoot variant="about" meta={t.meta} />
+            <ChartFoot variant="about" meta={t.meta} badge={false} />
           </div>
         )}
-        {view === "ribbon" && <ChartFoot variant="about" meta={g.meta} />}
       </section>
-
-      <hr className="rule" />
-
-      <Explain person={person} />
 
       <hr className="rule" />
 
       <section className="section" aria-labelledby="wf-h">
         <div className="section__head">
-          <h2 id="wf-h" className="section__title">What the time was spent on</h2>
-          <p className="section__sub">Average per case, biggest first. Whiskers are 95% intervals.</p>
+          <h2 id="wf-h" className="section__title">Where the time went</h2>
         </div>
         <div className="chart chart--wide">
           <Waterfall steps={data.waterfall} totalCi={data.total_gap_ci} />
-          <ChartFoot variant="about" meta={g.meta} extra={<>each bar starts where the one above ended; whiskers are a bootstrap over people</>} />
+          <ChartFoot variant="about" meta={g.meta} badge={false} extra={<>each bar starts where the one above ended; whiskers are a bootstrap over people</>} />
         </div>
       </section>
 
       <hr className="rule" />
 
       <Controls data={data} meta={g.meta} />
+
+      <hr className="rule" />
+
+      <Explain person={person} />
     </div>
   );
 }
 
-function RibbonView({ data }: { data: GenomeData }) {
+function RibbonView({ data, meta, reference, setReference }: { data: GenomeData; meta: ReturnType<typeof useLoad<GenomeData>>["meta"]; reference: "nearest_expert" | "consensus"; setReference: (r: "nearest_expert" | "consensus") => void }) {
   const cols = useMemo(() => layoutRibbon(data, 1000).columns, [data]);
   const [hover, setHover] = useState<number | null>(null);
   const [scrub, setScrub] = useState<number | null>(null);
@@ -117,7 +106,7 @@ function RibbonView({ data }: { data: GenomeData }) {
   const activeCol = active != null ? cols[active] : null;
   const caption = activeCol
     ? `${describeColumn(activeCol, active as number, cols.length)}${activeCol.missing === "novice" && consequenceFor(activeCol.expert?.cog) ? ` ${sentence(consequenceFor(activeCol.expert?.cog)!)}` : ""}`
-    : "Drag the slider or press Play.";
+    : "";
 
   return (
     <div className="stack">
@@ -136,18 +125,25 @@ function RibbonView({ data }: { data: GenomeData }) {
         </div>
         <p className="scrub__caption" aria-live="polite">{caption}</p>
       </div>
-      <Details summary="What skipping a step costs">
-        <p className="note">Skipping a step shows as time saved here. It often costs more later, and the waterfall counts that rework separately when it happened.</p>
-        {consequences.length > 0 && <ul className="plain-list">{consequences.map((c) => <li key={c.step} className="note"><b>{cogLabel(c.step)}:</b> {sentence(c)}</li>)}</ul>}
-      </Details>
-      <ul className="legend" aria-label="How to read the ribbon">
-        <LegendItem swatch={<span className="sw sw--expert" />}>Expert step</LegendItem>
-        <LegendItem swatch={<span className="sw sw--novice" />}>Novice step</LegendItem>
-        <LegendItem swatch={<span className="sw sw--hatch sw--muted" />}>Hatched: a step only one of them did (a skipped step counts as time saved)</LegendItem>
-        <LegendItem swatch={<span className="sw sw--bad" />}>Red: seconds lost in that column</LegendItem>
-        <LegendItem swatch={<span className="sw sw--muted" />}>Column width: the longer of the two durations</LegendItem>
-      </ul>
-      <Details summary="See the same ribbon as a table" wide>
+      <Details summary="Details" wide>
+        <div className="stack">
+          <ul className="legend" aria-label="How to read the ribbon">
+            <LegendItem swatch={<span className="sw sw--expert" />}>Expert step</LegendItem>
+            <LegendItem swatch={<span className="sw sw--novice" />}>Novice step</LegendItem>
+            <LegendItem swatch={<span className="sw sw--hatch sw--muted" />}>Hatched: a step only one of them did (a skipped step counts as time saved)</LegendItem>
+            <LegendItem swatch={<span className="sw sw--bad" />}>Red: seconds lost in that column</LegendItem>
+            <LegendItem swatch={<span className="sw sw--muted" />}>Column width: the longer of the two durations</LegendItem>
+          </ul>
+          <div className="stack">
+            <p className="note">Nearest expert is the closest single trace; consensus blends all experts.</p>
+            <div className="segmented" role="group" aria-label="Reference">
+              <button type="button" aria-pressed={reference === "nearest_expert"} onClick={() => setReference("nearest_expert")}>Nearest expert</button>
+              <button type="button" aria-pressed={reference === "consensus"} onClick={() => setReference("consensus")}>Consensus</button>
+            </div>
+          </div>
+          <p className="note">Skipping a step shows as time saved here. It often costs more later, and the waterfall counts that rework separately when it happened.</p>
+          {consequences.length > 0 && <ul className="plain-list">{consequences.map((c) => <li key={c.step} className="note"><b>{cogLabel(c.step)}:</b> {sentence(c)}</li>)}</ul>}
+      <Details summary="As a table" wide>
         <div className="table-wrap">
           <table className="table">
             <thead><tr><th>Step</th><th>Expert</th><th>Novice</th><th className="num">Lost</th></tr></thead>
@@ -162,6 +158,9 @@ function RibbonView({ data }: { data: GenomeData }) {
               ))}
             </tbody>
           </table>
+        </div>
+      </Details>
+          <ChartFoot variant="about" meta={meta} badge={false} />
         </div>
       </Details>
     </div>
@@ -197,7 +196,7 @@ function Controls({ data, meta }: { data: GenomeData; meta: ReturnType<typeof us
             { label: "Shuffled labels (null)", value: nul.gap_s, ci: nul.ci },
           ]}
         />
-        <ChartFoot variant="about" meta={meta} />
+        <ChartFoot variant="about" meta={meta} badge={false} />
       </div>
     </section>
   );
