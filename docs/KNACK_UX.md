@@ -580,6 +580,26 @@ Dev hook for proof without real input: the existing debug server (`ALONGSIDE_DEB
 | D3 | P1 | the copy lint: banned phrases and a user-visible "Understudy" scan | `copy-lint.test.ts` scans source strings and rendered text; the allow-list is internal identifiers only |
 | D4 | P2 | Evidence stays whole; only its entry point and header chrome change | existing Evidence smoke stays green |
 
+### Dashboard code map (what each existing file becomes)
+
+| Existing file (`apps/dashboard/src`) | Action | Track |
+|---|---|---|
+| `App.tsx` | split the shell into `Sidebar`, `AccountMenu`, `StatusLine`, `StopButton`, `Lockup`; remove `DataNote` (becomes the status line), `ThemeSwitch` (to Settings, Appearance), `AuthControl` (into the account menu), `Wordmark`; `KillSwitch` keeps its logic, its button becomes `StopButton`, its bar stays as the in-window stopped banner | B |
+| `router.ts`, `components/home/navModel.ts` | new screen ids, five worker and three admin entries, More, `PINNED_VIEWS`, redirects for every old route | B |
+| `components/home/RoleNav.tsx` | replaced by `Sidebar` (no folds) | B |
+| `components/home/ScreenFrame.tsx` | keep the admin gate, remove `framenote`, add the breadcrumb | B |
+| `components/home/ViewAsSwitch.tsx` | moves into the account menu | B |
+| `components/home/PointerCard.tsx` | becomes the hero and the quiet row | B |
+| `components/home/CommandPalette.tsx`, `palette.ts`, `GuidedTour.tsx`, `tour.ts` | new rows and verbs; tour steps follow the five destinations | B |
+| `components/AttentionBanner.tsx` | retire: the sidebar count and the Home row say the same thing | B |
+| `components/common.tsx` | `PageHead` loses `eyebrow` and the default lede; `SourceNote` shrinks to the badge and its Hint; the slow-loading sentence ("The first request after the engine starts can take several seconds while it works the numbers out. Nothing is wrong.", 24 words) becomes "Starting Knack, about 20 seconds." | D |
+| `components/ui.tsx`, `components/Hint.tsx` | add `Row` and `ConfirmRow`; `Details` and `Hint` stay | D |
+| `styles/app.css`, `components/home/home.css` | one left-aligned column, sidebar, status line; delete `.datanote`, `.framenote`, `.kill--fixed` | B (shell), D (tokens) |
+| `screens/Queue.tsx`, `Briefing.tsx`, `Routines.tsx`, `Repeats/` | become `NeedsYou/` and `Routines/` | C |
+| `screens/Memory.tsx`, `Privacy.tsx`, `Presence.tsx` (hours), the Growth ledger | become `YourData/` | C |
+| `screens/Notices.tsx`, `Models.tsx`, `Agents.tsx`, `Today.tsx`, `Onboarding.tsx` | Settings sections, More rows, a live strip on Home, `FirstRun` | C and B |
+| `screens/Growth/`, `Firm/`, `Genome.tsx`, `Presence.tsx`, `Graph.tsx`, `Week.tsx`, `Git.tsx`, `Predictions/` | copy cuts to the budgets; Firm loses its tab strip | D |
+
 ### Rules for every implementer
 
 > 1. **Read first:** this file, `docs/knack-ux/*`, `docs/ATTENTION_DESIGN.md`, `packages/design/README.md`, `docs/DECISIONS.md` D45. Do not reopen section 3's list of five.
