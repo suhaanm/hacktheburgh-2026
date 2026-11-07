@@ -81,8 +81,10 @@ def test_seed_builds_the_whole_demo_state_and_prints_what_it_did(env):
     assert len(props) == 1 and props[0]["status"] == "proposed" and props[0]["evidence_count"] == 3 and props[0]["rule"] == "Summary length: detailed."
     # the routine: proposed, rung A0, nothing consented, eligible without an override
     r = env.get("/routines").json()["data"]
-    assert [x["id"] for x in r] == ["calc-entry-3x"]
+    assert [x["id"] for x in r] == ["calc-entry-3x", "case-note-copy"]                      # two rows, the bigger one first
     calc = r[0]
+    note = r[1]
+    assert note["status"] == "proposed" and note["rung"] == "A0" and note["consent"]["mode"] == "none" and note["skill_gate"]["eligible"] is True
     assert calc["status"] == "proposed" and calc["rung"] == "A0" and calc["consent"]["mode"] == "none"
     assert calc["skill_gate"]["eligible"] is True and calc["skill_gate"]["reason"].startswith("mastery L4") and calc["proposable"] is True
     assert calc["value"]["horizon_weeks"] == 4 and calc["proposal"]["what"]
@@ -91,7 +93,7 @@ def test_seed_builds_the_whole_demo_state_and_prints_what_it_did(env):
     assert c["case"] == 24 and c["cases_total"] == 30 and c["level"] == "L3" and c["chip"] == "dot" and c["person"] == "p_learn01"
     # the graph agrees: this person's routine, skills from the tracker at the same case
     g = env.get("/graph/work").json()["data"]
-    assert [n["id"] for n in g["nodes"] if n["type"] == "routine"] == ["routine:calc-entry-3x"]
+    assert sorted(n["id"] for n in g["nodes"] if n["type"] == "routine") == ["routine:calc-entry-3x", "routine:case-note-copy"]
     assert any(n["type"] == "skill" for n in g["nodes"])
 
 
@@ -219,7 +221,7 @@ def test_nothing_is_written_outside_the_two_demo_dirs(env):
     assert _tree(env.tmp, skip=("demo-home", "data", "userhome")) == before_tmp
     assert list(env.fake_home.iterdir()) == []                                     # nothing under HOME, so no ~/.understudy
     assert sorted(p.name for p in env.home.iterdir()) <= sorted([".memory.lock", ".understudy-demo-home", "memory.md", "memory_state.json", "routines_state.json"])
-    assert sorted(p.name for p in env.data.iterdir()) == sorted([".demo-story", ".understudy-demo-data", "audit.jsonl", "eval", "golden", "queue", "routines", "runs", "synthetic", "voice_cache"])
+    assert sorted(p.name for p in env.data.iterdir()) == sorted([".demo-story", ".understudy-demo-data", ".queue_key", "audit.jsonl", "eval", "golden", "queue", "routines", "runs", "synthetic", "voice_cache"])
     assert list(env.tmp.glob("*")) and not (env.tmp / "queue").exists() and not (env.tmp / "audit.jsonl").exists()   # nothing leaked into the working directory
 
 

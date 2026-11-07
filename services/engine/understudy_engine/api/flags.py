@@ -18,6 +18,8 @@ EXTENSIONS = {
     "awareness": "awareness.routes",
     "evidence": "evidence.routes",
     "attention": "attention.routes",
+    "hitlist": "hitlist.routes",
+    "insights": "insights.routes",
 }
 _TRUE = ("1", "true", "yes", "on")
 

@@ -7,8 +7,9 @@ write the owner's real ``~/.understudy``. Everything goes through the same code 
 * onboarding for the benefits-processor role with desk capture on (the ``Capture: times only`` line), person ``p_learn01``;
 * the Skill state line for ``enter-household-once`` at L4 (the routine's cogs), so the calculator-entry routine is eligible
   for consent without an override;
-* the ``calc-entry-3x`` routine detected by the real finder and listed as proposed: rung A0, nothing consented. The finder reads
-  the nine-to-five persona's traces for it (the learner trajectories are one task type and hold no calculator-entry routine);
+* the ``calc-entry-3x`` routine detected by the real finder and listed as proposed: rung A0, nothing consented, plus a second,
+  smaller one (``case-note-copy``) so the Routines list and the Repeats list each show two rows. The finder reads the nine-to-five
+  persona's traces for them (the learner trajectories are one task type and hold no calculator-entry routine);
 * ``p_learn01`` at learner case 24 (coach level and chip from the analytics track's SkillTracker). Case 24, not 20: that is
   the first case range where the learner's own ENTER_HOUSEHOLD level is L4, so the skill gate agrees with the memory file;
 * three consistent corrections already recorded, so one rule proposal is waiting for the worker's approval.
@@ -52,6 +53,8 @@ DEMO_PERSON = "p_learn01"
 DEMO_CASE = 24
 DEMO_ROLE = "benefits-processor"
 DEMO_ROUTINE = "calc-entry-3x"
+#: the routines the demo person owns: the story's routine first, then a smaller one that needs no skill gate (both borrow the nine-to-five traces)
+DEMO_ROUTINES = (DEMO_ROUTINE, "case-note-copy")
 ROUTINE_SOURCE = "p_ninetofive"
 MARKER = ".understudy-demo-home"
 DATA_MARKER = ".understudy-demo-data"
@@ -341,7 +344,7 @@ def _seed_home(store: MemoryStore, home: Path, reset: bool, now: datetime | None
     # 4. demo configuration (read by coach/state, routines and graph/work) and the routine through the real finder
     s2 = store.load_state()
     s2["demo"] = {"seeded": True, "person": DEMO_PERSON, "case": DEMO_CASE, "routine_source": ROUTINE_SOURCE,
-                  "routine_ids": [DEMO_ROUTINE], "seeded_at": t.replace(microsecond=0).isoformat()}
+                  "routine_ids": list(DEMO_ROUTINES), "seeded_at": t.replace(microsecond=0).isoformat()}
     store.save_state(s2, actor="worker")
     from . import routes_handoff as rh
 
@@ -358,6 +361,9 @@ def _seed_home(store: MemoryStore, home: Path, reset: bool, now: datetime | None
         f"{routine['value']['hours_saved'][1]} hours over {routine['value']['horizon_weeks']} weeks")
     out(f"coach: {DEMO_PERSON} at case {coach.get('case')} of {coach.get('cases_total')}: level {coach['level']}, chip {coach['chip']}")
     problems = []
+    listed = {r["id"] for r in rstore.list() if r["id"] in DEMO_ROUTINES}
+    if listed != set(DEMO_ROUTINES):
+        problems.append(f"the finder did not produce {', '.join(sorted(set(DEMO_ROUTINES) - listed))}")
     if routine["status"] != "proposed" or routine["rung"] != "A0" or routine["consent"]["mode"] != "none":
         problems.append("the routine is not in its proposed, unconsented state")
     if not routine["skill_gate"]["eligible"]:

@@ -32,11 +32,11 @@ from .netscan import (
 )
 
 ENGINE_PKG = Path(__file__).resolve().parents[1]
-GUARDED_DIRS = ("calendar", "gitanalysis", "proactive", "localmodel", "plugins", "awareness", "cue", "evidence", "mlv2", "personas_v2", "attention")
+GUARDED_DIRS = ("calendar", "gitanalysis", "proactive", "localmodel", "plugins", "awareness", "cue", "evidence", "mlv2", "personas_v2", "attention", "hitlist", "insights")
 GUARDED_FILES = ("routes_calendar.py", "routes_git.py", "routes_localmodel.py", "routes_proactive.py", "routes_plugins.py",
                  "routes_awareness.py", "routes_cue.py", "routes_evidence.py", "routes_mlv2.py", "routes_personas_v2.py")
 #: layers that are pure computation: no model, no network, no process, no URL, and no reviewed exception (``ALLOW`` does not apply)
-PURE_COMPUTE_DIRS = ("mlv2", "personas_v2", "attention")
+PURE_COMPUTE_DIRS = ("mlv2", "personas_v2", "attention", "hitlist", "insights")
 #: pure-compute packages inside the agent service (no model client, no network, no process, no URL, no reviewed exception)
 AGENT_PURE_PREFIXES = ("understudy_agent/context/",)
 

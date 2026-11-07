@@ -103,5 +103,9 @@ def test_switching_the_routine_on_elsewhere_makes_its_card_stale(demo_env):
     ok = c.post("/routines/calc-entry-3x/consent", json={"mode": "shadow"}, headers={"X-Understudy-Actor": "worker"})
     assert ok.status_code == 200, ok.text
     body = c.get("/briefing", params={"person": "p_learn01"}).json()
-    assert "automate" not in [x["kind"] for x in body["data"]["cards"]]
+    # the demo now owns a second routine (case-note-copy), so the briefing may offer a fresh automate card for that one; the card for the
+    # routine that was switched on must be gone
+    from understudy_engine.proactive.candidates import card_id
+
+    assert card_id("p_learn01", "automate", "routine:calc-entry-3x") not in [x["id"] for x in body["data"]["cards"]]
     assert any("switched this routine on" in d["reason"] for d in body["data"]["dropped"])
