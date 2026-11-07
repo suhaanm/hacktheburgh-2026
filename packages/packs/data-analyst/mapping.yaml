@@ -123,7 +123,7 @@ capture_sites:
         - { kind: profiled, when: 'body[data-nav="profile"]' }
         - { kind: aggregated, when: 'body[data-nav="pivot"]' }
         - { kind: reconciled, when: 'body[data-nav="control"]' }
-      task_end: { when: '#case-done', reason: answered }
+      task_end: { when: '#case-done:not([hidden])', reason: answered }
 
 examples:
   - name: write, run and inspect a query

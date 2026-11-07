@@ -1,0 +1,79 @@
+{"block": 1, "dom_id": "apply-btn", "error": "", "i": 1, "kind": "click", "ok": true, "participant": "p_anal02", "phase": "pre", "task": "d-reconcile-2", "variant": 1, "violation": "", "zone": "run_control"}
+{"block": 1, "dom_id": "answer", "error": "", "i": 2, "kind": "fill", "ok": true, "participant": "p_anal02", "phase": "pre", "task": "d-reconcile-2", "variant": 1, "violation": "", "zone": ""}
+{"block": 1, "dom_id": "status", "error": "", "i": 3, "kind": "select", "ok": true, "participant": "p_anal02", "phase": "pre", "task": "d-reconcile-2", "variant": 1, "violation": "", "zone": ""}
+{"block": 1, "dom_id": "answer-submit", "error": "", "i": 4, "kind": "click", "ok": true, "participant": "p_anal02", "phase": "pre", "task": "d-reconcile-2", "variant": 1, "violation": "", "zone": "decision_btn"}
+{"block": 1, "claimed_done": true, "kind": "verdict", "outcome": "claimed_done_wrong", "participant": "p_anal02", "phase": "pre", "points": 0, "skill_check_done": false, "task": "d-reconcile-2", "variant": 1}
+{"block": 1, "kind": "note", "participant": "p_anal02", "phase": "practice", "text": "fake participant: no model was used"}
+{"block": 1, "dom_id": "cl-join", "error": "", "i": 1, "kind": "click", "ok": true, "participant": "p_anal02", "phase": "practice", "task": "d-reconcile-1", "variant": 2, "violation": "", "zone": "clean_panel"}
+{"block": 1, "dom_id": "pv-by", "error": "", "i": 2, "kind": "select", "ok": true, "participant": "p_anal02", "phase": "practice", "task": "d-reconcile-1", "variant": 2, "violation": "", "zone": "pivot_panel"}
+{"block": 1, "dom_id": "pv-then", "error": "", "i": 3, "kind": "select", "ok": true, "participant": "p_anal02", "phase": "practice", "task": "d-reconcile-1", "variant": 2, "violation": "", "zone": "pivot_panel"}
+{"block": 1, "dom_id": "pv-measure", "error": "", "i": 4, "kind": "select", "ok": true, "participant": "p_anal02", "phase": "practice", "task": "d-reconcile-1", "variant": 2, "violation": "", "zone": "pivot_panel"}
+{"block": 1, "dom_id": "pv-agg", "error": "", "i": 5, "kind": "select", "ok": true, "participant": "p_anal02", "phase": "practice", "task": "d-reconcile-1", "variant": 2, "violation": "", "zone": "pivot_panel"}
+{"block": 1, "dom_id": "pivot-btn", "error": "", "i": 6, "kind": "click", "ok": true, "participant": "p_anal02", "phase": "practice", "task": "d-reconcile-1", "variant": 2, "violation": "", "zone": "pivot_panel"}
+{"block": 1, "dom_id": "answer", "error": "", "i": 7, "kind": "fill", "ok": true, "participant": "p_anal02", "phase": "practice", "task": "d-reconcile-1", "variant": 2, "violation": "", "zone": ""}
+{"block": 1, "dom_id": "status", "error": "", "i": 8, "kind": "select", "ok": true, "participant": "p_anal02", "phase": "practice", "task": "d-reconcile-1", "variant": 2, "violation": "", "zone": ""}
+{"block": 1, "dom_id": "answer-submit", "error": "", "i": 9, "kind": "click", "ok": true, "participant": "p_anal02", "phase": "practice", "task": "d-reconcile-1", "variant": 2, "violation": "", "zone": "decision_btn"}
+{"block": 1, "claimed_done": true, "kind": "verdict", "outcome": "claimed_done_wrong", "participant": "p_anal02", "phase": "practice", "points": 0, "skill_check_done": false, "task": "d-reconcile-1", "variant": 2}
+{"block": 1, "dom_id": "apply-btn", "error": "", "i": 1, "kind": "click", "ok": true, "participant": "p_anal02", "phase": "post", "task": "d-reconcile-2", "variant": 2, "violation": "", "zone": "run_control"}
+{"block": 1, "dom_id": "answer", "error": "", "i": 2, "kind": "fill", "ok": true, "participant": "p_anal02", "phase": "post", "task": "d-reconcile-2", "variant": 2, "violation": "", "zone": ""}
+{"block": 1, "dom_id": "status", "error": "", "i": 3, "kind": "select", "ok": true, "participant": "p_anal02", "phase": "post", "task": "d-reconcile-2", "variant": 2, "violation": "", "zone": ""}
+{"block": 1, "dom_id": "answer-submit", "error": "", "i": 4, "kind": "click", "ok": true, "participant": "p_anal02", "phase": "post", "task": "d-reconcile-2", "variant": 2, "violation": "", "zone": "decision_btn"}
+{"block": 1, "claimed_done": true, "kind": "verdict", "outcome": "claimed_done_wrong", "participant": "p_anal02", "phase": "post", "points": 0, "skill_check_done": false, "task": "d-reconcile-2", "variant": 2}
+{"block": 2, "dom_id": "apply-btn", "error": "", "i": 1, "kind": "click", "ok": true, "participant": "p_anal02", "phase": "pre", "task": "d-sanity-2", "variant": 1, "violation": "", "zone": "run_control"}
+{"block": 2, "dom_id": "answer", "error": "", "i": 2, "kind": "fill", "ok": true, "participant": "p_anal02", "phase": "pre", "task": "d-sanity-2", "variant": 1, "violation": "", "zone": ""}
+{"block": 2, "dom_id": "status", "error": "", "i": 3, "kind": "select", "ok": true, "participant": "p_anal02", "phase": "pre", "task": "d-sanity-2", "variant": 1, "violation": "", "zone": ""}
+{"block": 2, "dom_id": "answer-submit", "error": "", "i": 4, "kind": "click", "ok": true, "participant": "p_anal02", "phase": "pre", "task": "d-sanity-2", "variant": 1, "violation": "", "zone": "decision_btn"}
+{"block": 2, "claimed_done": true, "kind": "verdict", "outcome": "claimed_done_wrong", "participant": "p_anal02", "phase": "pre", "points": 0, "skill_check_done": false, "task": "d-sanity-2", "variant": 1}
+{"block": 2, "kind": "note", "participant": "p_anal02", "phase": "practice", "text": "fake participant: no model was used"}
+{"block": 2, "dom_id": "apply-btn", "error": "", "i": 1, "kind": "click", "ok": true, "participant": "p_anal02", "phase": "practice", "task": "d-sanity-1", "variant": 2, "violation": "", "zone": "run_control"}
+{"block": 2, "dom_id": "answer", "error": "", "i": 2, "kind": "fill", "ok": true, "participant": "p_anal02", "phase": "practice", "task": "d-sanity-1", "variant": 2, "violation": "", "zone": ""}
+{"block": 2, "dom_id": "status", "error": "", "i": 3, "kind": "select", "ok": true, "participant": "p_anal02", "phase": "practice", "task": "d-sanity-1", "variant": 2, "violation": "", "zone": ""}
+{"block": 2, "dom_id": "answer-submit", "error": "", "i": 4, "kind": "click", "ok": true, "participant": "p_anal02", "phase": "practice", "task": "d-sanity-1", "variant": 2, "violation": "", "zone": "decision_btn"}
+{"block": 2, "claimed_done": true, "kind": "verdict", "outcome": "claimed_done_wrong", "participant": "p_anal02", "phase": "practice", "points": 0, "skill_check_done": false, "task": "d-sanity-1", "variant": 2}
+{"block": 2, "dom_id": "apply-btn", "error": "", "i": 1, "kind": "click", "ok": true, "participant": "p_anal02", "phase": "post", "task": "d-sanity-2", "variant": 2, "violation": "", "zone": "run_control"}
+{"block": 2, "dom_id": "answer", "error": "", "i": 2, "kind": "fill", "ok": true, "participant": "p_anal02", "phase": "post", "task": "d-sanity-2", "variant": 2, "violation": "", "zone": ""}
+{"block": 2, "dom_id": "status", "error": "", "i": 3, "kind": "select", "ok": true, "participant": "p_anal02", "phase": "post", "task": "d-sanity-2", "variant": 2, "violation": "", "zone": ""}
+{"block": 2, "dom_id": "answer-submit", "error": "", "i": 4, "kind": "click", "ok": true, "participant": "p_anal02", "phase": "post", "task": "d-sanity-2", "variant": 2, "violation": "", "zone": "decision_btn"}
+{"block": 2, "claimed_done": true, "kind": "verdict", "outcome": "claimed_done_wrong", "participant": "p_anal02", "phase": "post", "points": 0, "skill_check_done": false, "task": "d-sanity-2", "variant": 2}
+{"block": 1, "dom_id": "apply-btn", "error": "", "i": 1, "kind": "click", "ok": true, "participant": "p_anal01", "phase": "pre", "task": "d-sanity-1", "variant": 1, "violation": "", "zone": "run_control"}
+{"block": 1, "dom_id": "answer", "error": "", "i": 2, "kind": "fill", "ok": true, "participant": "p_anal01", "phase": "pre", "task": "d-sanity-1", "variant": 1, "violation": "", "zone": ""}
+{"block": 1, "dom_id": "status", "error": "", "i": 3, "kind": "select", "ok": true, "participant": "p_anal01", "phase": "pre", "task": "d-sanity-1", "variant": 1, "violation": "", "zone": ""}
+{"block": 1, "dom_id": "answer-submit", "error": "", "i": 4, "kind": "click", "ok": true, "participant": "p_anal01", "phase": "pre", "task": "d-sanity-1", "variant": 1, "violation": "", "zone": "decision_btn"}
+{"block": 1, "claimed_done": true, "kind": "verdict", "outcome": "claimed_done_wrong", "participant": "p_anal01", "phase": "pre", "points": 0, "skill_check_done": false, "task": "d-sanity-1", "variant": 1}
+{"block": 1, "kind": "note", "participant": "p_anal01", "phase": "practice", "text": "fake participant: no model was used"}
+{"block": 1, "dom_id": "apply-btn", "error": "", "i": 1, "kind": "click", "ok": true, "participant": "p_anal01", "phase": "practice", "task": "d-sanity-2", "variant": 1, "violation": "", "zone": "run_control"}
+{"block": 1, "dom_id": "answer", "error": "", "i": 2, "kind": "fill", "ok": true, "participant": "p_anal01", "phase": "practice", "task": "d-sanity-2", "variant": 1, "violation": "", "zone": ""}
+{"block": 1, "dom_id": "status", "error": "", "i": 3, "kind": "select", "ok": true, "participant": "p_anal01", "phase": "practice", "task": "d-sanity-2", "variant": 1, "violation": "", "zone": ""}
+{"block": 1, "dom_id": "answer-submit", "error": "", "i": 4, "kind": "click", "ok": true, "participant": "p_anal01", "phase": "practice", "task": "d-sanity-2", "variant": 1, "violation": "", "zone": "decision_btn"}
+{"block": 1, "claimed_done": true, "kind": "verdict", "outcome": "claimed_done_wrong", "participant": "p_anal01", "phase": "practice", "points": 0, "skill_check_done": false, "task": "d-sanity-2", "variant": 1}
+{"block": 1, "dom_id": "apply-btn", "error": "", "i": 1, "kind": "click", "ok": true, "participant": "p_anal01", "phase": "post", "task": "d-sanity-1", "variant": 2, "violation": "", "zone": "run_control"}
+{"block": 1, "dom_id": "answer", "error": "", "i": 2, "kind": "fill", "ok": true, "participant": "p_anal01", "phase": "post", "task": "d-sanity-1", "variant": 2, "violation": "", "zone": ""}
+{"block": 1, "dom_id": "status", "error": "", "i": 3, "kind": "select", "ok": true, "participant": "p_anal01", "phase": "post", "task": "d-sanity-1", "variant": 2, "violation": "", "zone": ""}
+{"block": 1, "dom_id": "answer-submit", "error": "", "i": 4, "kind": "click", "ok": true, "participant": "p_anal01", "phase": "post", "task": "d-sanity-1", "variant": 2, "violation": "", "zone": "decision_btn"}
+{"block": 1, "claimed_done": true, "kind": "verdict", "outcome": "claimed_done_wrong", "participant": "p_anal01", "phase": "post", "points": 0, "skill_check_done": false, "task": "d-sanity-1", "variant": 2}
+{"block": 2, "dom_id": "cl-join", "error": "", "i": 1, "kind": "click", "ok": true, "participant": "p_anal01", "phase": "pre", "task": "d-reconcile-1", "variant": 1, "violation": "", "zone": "clean_panel"}
+{"block": 2, "dom_id": "pv-by", "error": "", "i": 2, "kind": "select", "ok": true, "participant": "p_anal01", "phase": "pre", "task": "d-reconcile-1", "variant": 1, "violation": "", "zone": "pivot_panel"}
+{"block": 2, "dom_id": "pv-then", "error": "", "i": 3, "kind": "select", "ok": true, "participant": "p_anal01", "phase": "pre", "task": "d-reconcile-1", "variant": 1, "violation": "", "zone": "pivot_panel"}
+{"block": 2, "dom_id": "pv-measure", "error": "", "i": 4, "kind": "select", "ok": true, "participant": "p_anal01", "phase": "pre", "task": "d-reconcile-1", "variant": 1, "violation": "", "zone": "pivot_panel"}
+{"block": 2, "dom_id": "pv-agg", "error": "", "i": 5, "kind": "select", "ok": true, "participant": "p_anal01", "phase": "pre", "task": "d-reconcile-1", "variant": 1, "violation": "", "zone": "pivot_panel"}
+{"block": 2, "dom_id": "pivot-btn", "error": "", "i": 6, "kind": "click", "ok": true, "participant": "p_anal01", "phase": "pre", "task": "d-reconcile-1", "variant": 1, "violation": "", "zone": "pivot_panel"}
+{"block": 2, "dom_id": "answer", "error": "", "i": 7, "kind": "fill", "ok": true, "participant": "p_anal01", "phase": "pre", "task": "d-reconcile-1", "variant": 1, "violation": "", "zone": ""}
+{"block": 2, "dom_id": "status", "error": "", "i": 8, "kind": "select", "ok": true, "participant": "p_anal01", "phase": "pre", "task": "d-reconcile-1", "variant": 1, "violation": "", "zone": ""}
+{"block": 2, "dom_id": "answer-submit", "error": "", "i": 9, "kind": "click", "ok": true, "participant": "p_anal01", "phase": "pre", "task": "d-reconcile-1", "variant": 1, "violation": "", "zone": "decision_btn"}
+{"block": 2, "claimed_done": true, "kind": "verdict", "outcome": "claimed_done_wrong", "participant": "p_anal01", "phase": "pre", "points": 0, "skill_check_done": false, "task": "d-reconcile-1", "variant": 1}
+{"block": 2, "kind": "note", "participant": "p_anal01", "phase": "practice", "text": "fake participant: no model was used"}
+{"block": 2, "dom_id": "apply-btn", "error": "", "i": 1, "kind": "click", "ok": true, "participant": "p_anal01", "phase": "practice", "task": "d-reconcile-2", "variant": 1, "violation": "", "zone": "run_control"}
+{"block": 2, "dom_id": "answer", "error": "", "i": 2, "kind": "fill", "ok": true, "participant": "p_anal01", "phase": "practice", "task": "d-reconcile-2", "variant": 1, "violation": "", "zone": ""}
+{"block": 2, "dom_id": "status", "error": "", "i": 3, "kind": "select", "ok": true, "participant": "p_anal01", "phase": "practice", "task": "d-reconcile-2", "variant": 1, "violation": "", "zone": ""}
+{"block": 2, "dom_id": "answer-submit", "error": "", "i": 4, "kind": "click", "ok": true, "participant": "p_anal01", "phase": "practice", "task": "d-reconcile-2", "variant": 1, "violation": "", "zone": "decision_btn"}
+{"block": 2, "claimed_done": true, "kind": "verdict", "outcome": "claimed_done_wrong", "participant": "p_anal01", "phase": "practice", "points": 0, "skill_check_done": false, "task": "d-reconcile-2", "variant": 1}
+{"block": 2, "dom_id": "cl-join", "error": "", "i": 1, "kind": "click", "ok": true, "participant": "p_anal01", "phase": "post", "task": "d-reconcile-1", "variant": 2, "violation": "", "zone": "clean_panel"}
+{"block": 2, "dom_id": "pv-by", "error": "", "i": 2, "kind": "select", "ok": true, "participant": "p_anal01", "phase": "post", "task": "d-reconcile-1", "variant": 2, "violation": "", "zone": "pivot_panel"}
+{"block": 2, "dom_id": "pv-then", "error": "", "i": 3, "kind": "select", "ok": true, "participant": "p_anal01", "phase": "post", "task": "d-reconcile-1", "variant": 2, "violation": "", "zone": "pivot_panel"}
+{"block": 2, "dom_id": "pv-measure", "error": "", "i": 4, "kind": "select", "ok": true, "participant": "p_anal01", "phase": "post", "task": "d-reconcile-1", "variant": 2, "violation": "", "zone": "pivot_panel"}
+{"block": 2, "dom_id": "pv-agg", "error": "", "i": 5, "kind": "select", "ok": true, "participant": "p_anal01", "phase": "post", "task": "d-reconcile-1", "variant": 2, "violation": "", "zone": "pivot_panel"}
+{"block": 2, "dom_id": "pivot-btn", "error": "", "i": 6, "kind": "click", "ok": true, "participant": "p_anal01", "phase": "post", "task": "d-reconcile-1", "variant": 2, "violation": "", "zone": "pivot_panel"}
+{"block": 2, "dom_id": "answer", "error": "", "i": 7, "kind": "fill", "ok": true, "participant": "p_anal01", "phase": "post", "task": "d-reconcile-1", "variant": 2, "violation": "", "zone": ""}
+{"block": 2, "dom_id": "status", "error": "", "i": 8, "kind": "select", "ok": true, "participant": "p_anal01", "phase": "post", "task": "d-reconcile-1", "variant": 2, "violation": "", "zone": ""}
+{"block": 2, "dom_id": "answer-submit", "error": "", "i": 9, "kind": "click", "ok": true, "participant": "p_anal01", "phase": "post", "task": "d-reconcile-1", "variant": 2, "violation": "", "zone": "decision_btn"}
+{"block": 2, "claimed_done": true, "kind": "verdict", "outcome": "claimed_done_wrong", "participant": "p_anal01", "phase": "post", "points": 0, "skill_check_done": false, "task": "d-reconcile-1", "variant": 2}

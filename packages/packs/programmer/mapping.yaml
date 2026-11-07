@@ -118,7 +118,7 @@ capture_sites:
       progress:
         - { kind: tests_run, when: 'body[data-nav="run"]' }
         - { kind: committed, when: 'body[data-nav="commit"]' }
-      task_end: { when: '#case-done', reason: done }
+      task_end: { when: '#case-done:not([hidden])', reason: done }
 
 examples:
   - name: failing build, read the log, re-run

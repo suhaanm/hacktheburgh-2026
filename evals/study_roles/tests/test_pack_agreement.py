@@ -37,7 +37,7 @@ def test_the_bundle_has_the_role_capture_sites_on_the_private_ports_with_markers
     site = next(s for s in bundle["zones"]["sites"] if s["pack"] == role and s["id"] == "roles_sandbox")
     ports = range(7941, 7949) if role == "programmer" else range(7951, 7959)
     assert {f"127.0.0.1:{p}" for p in ports} <= set(site["hosts"])
-    assert site["markers"]["task_start"] and site["markers"]["task_end"]["when"] == "#case-done" and site["markers"]["progress"]
+    assert site["markers"]["task_start"] and site["markers"]["task_end"]["when"] == "#case-done:not([hidden])" and site["markers"]["progress"]
 
 
 def test_the_engine_mapping_turns_each_new_zone_into_its_cog(role):

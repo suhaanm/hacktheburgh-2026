@@ -538,7 +538,7 @@
             }
           ],
           "task_end": {
-            "when": "#case-done",
+            "when": "#case-done:not([hidden])",
             "reason": "answered"
           }
         }
@@ -726,7 +726,7 @@
             }
           ],
           "task_end": {
-            "when": "#case-done",
+            "when": "#case-done:not([hidden])",
             "reason": "done"
           }
         }
