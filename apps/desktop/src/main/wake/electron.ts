@@ -22,6 +22,7 @@ import type { LiveRegistration } from '../live'
 import { createCardWindow } from './card-window'
 import { makeChimeWav } from './chime'
 import { createWakeController, type WakeController } from './controller'
+import type { ContextHub } from './context-source'
 import { createDesktopRunPort } from './desktop-run'
 import { experimentOn } from '../feature-flags'
 import { createHelperSupervisor, type ChildLike } from './helper'
@@ -31,6 +32,7 @@ import { WakeSettingsStore } from './settings'
 export const WAKE_IPC = {
   state: 'wake:state', // invoke -> WakeStatus
   set: 'wake:set', // invoke { listen: boolean } -> WakeStatus
+  context: 'wake:context', // invoke { insight?, routine? } -> boolean (accepted)
   status: 'wake:status', // event (main -> windows that listen)
 } as const
 
@@ -48,6 +50,8 @@ export interface RegisterWakeOptions {
   killed: () => boolean
   /** Windows that may call the IPC (our own). */
   owns: (webContentsId: number) => boolean
+  /** The context hub: the shell may report the top Home insight and the running routine (ids and counts) through `wake:context`. */
+  context?: ContextHub | null
   env?: Record<string, string | undefined>
   log?: (scope: string, ...args: unknown[]) => void
 }
@@ -158,6 +162,27 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
     return controller.status()
   })
 
+  // The shell reports ids and counts for the packet. Only our own windows may call; the packet's closed grammar validates again when it is built.
+  const isId = (v: unknown): v is string => typeof v === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/.test(v)
+  const isCount = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 9999
+  ipcMain.handle(WAKE_IPC.context, (e, raw: unknown) => {
+    if (!o.owns(e.sender.id)) throw new Error('wake IPC from an unknown sender')
+    if (!o.context || typeof raw !== 'object' || raw === null) return false
+    const c = raw as { insight?: unknown; routine?: unknown }
+    let took = false
+    if ('insight' in c) {
+      const v = c.insight as { id?: unknown; template?: unknown } | null
+      if (v === null) (o.context.setInsight(null), (took = true))
+      else if (v && isId(v.id) && isId(v.template)) (o.context.setInsight({ id: v.id, template: v.template }), (took = true))
+    }
+    if ('routine' in c) {
+      const v = c.routine as { id?: unknown; step?: unknown; of?: unknown } | null
+      if (v === null) (o.context.setRoutine(null), (took = true))
+      else if (v && isId(v.id) && isCount(v.step) && isCount(v.of)) (o.context.setRoutine({ id: v.id, step: v.step, of: v.of }), (took = true))
+    }
+    return took
+  })
+
   controller.start()
   return {
     controller,
@@ -171,6 +196,7 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
       powerMonitor.off('resume', onResume)
       ipcMain.removeHandler(WAKE_IPC.state)
       ipcMain.removeHandler(WAKE_IPC.set)
+      ipcMain.removeHandler(WAKE_IPC.context)
       controller.dispose()
       supervisor.stop()
       cards.dispose()

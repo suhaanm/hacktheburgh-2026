@@ -32,6 +32,9 @@ describe('the rung record', () => {
     tampered.targets = ['TextEdit', 'Safari']
     expect(read(JSON.stringify(tampered))).toEqual({ cleared: false, why: 'digest' })
   })
+  it('agrees with the Python writer (services/agent mac_check.write_rung_cleared) on a fixed vector', () => {
+    expect(rungDigest({ ...base, at: '2026-11-08T09:00:00Z', targets: ['TextEdit'] })).toBe('f187022018575d6ed61f6b2939192a888f2635c8098aa8c1621f50b9760cad46')
+  })
   it('the digest does not depend on the order of the targets', () => {
     expect(rungDigest({ ...base, targets: ['b', 'a'] })).toBe(rungDigest({ ...base, targets: ['a', 'b'] }))
   })

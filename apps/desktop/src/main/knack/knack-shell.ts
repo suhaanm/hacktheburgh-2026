@@ -74,6 +74,8 @@ export interface KnackLateDeps {
   probe: () => Promise<{ suppressed: string | null; presenting: boolean }>
   /** Approvals waiting in the queue (null when the engine cannot be asked). */
   pendingQueue: () => Promise<number | null>
+  /** The pill's End button on a voice conversation: end the conversation itself (the pill alone is only the status). */
+  onVoiceEnd?: () => void
 }
 
 export interface AgentSample {
@@ -443,7 +445,10 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
         dispatch({ type: 'error_acknowledged' })
         tracker?.acknowledge()
       },
-      voiceEnd: () => void dispatch({ type: 'voice_end' }),
+      voiceEnd: () => {
+        void dispatch({ type: 'voice_end' })
+        l.onVoiceEnd?.()
+      },
     })
     // The kill switch (the pill's Stop, the menus, the keys) is one event for the machine.
     let wasKilled = l.kill.isKilled()

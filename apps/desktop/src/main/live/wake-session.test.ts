@@ -1,5 +1,5 @@
 // The conversation that begins with the words "Hey Knack": same manager, same gates, hands-free, with the wake tools and the code-built context packet.
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FALLBACK_PACKET } from '../wake/context-packet'
 import { createMemoryLiveLedger } from './ledger'
 import { createLiveManager, type LiveManager, type ManagerDeps } from './manager'
@@ -9,6 +9,10 @@ import { WAKE_SYSTEM_INSTRUCTION } from './prompt'
 import type { GroundAnswer } from './ports'
 import { createFakeAudio, fakeCue, manualClock, startFakeLiveServer, waitFor, type FakeAudio, type FakeLiveServer, type ManualClock } from './live.test-util'
 
+// A longer wait than the other Live tests: the whole desktop suite runs these in parallel with a few hundred files.
+// These tests open a real local websocket; give them room when the whole suite is running.
+vi.setConfig({ testTimeout: 60_000 })
+const wf = (cond: () => boolean): Promise<void> => waitFor(cond, 15_000)
 const ENV_ON = { UNDERSTUDY_X_LIVE: '1', UNDERSTUDY_FLAG_VOICE: '1', GEMINI_MODEL_LIVE: 'test-live-model', GEMINI_API_KEY: 'k-test' }
 const BUS = { on: () => () => undefined }
 
@@ -88,7 +92,7 @@ describe('startFromWake', () => {
     const m = h.make({ context: (o) => `KNACK CONTEXT v1 test trigger=${o.trigger}` })
     m.start()
     expect(m.startFromWake()).toBe(true)
-    await waitFor(() => h.server.received.setup !== null)
+    await wf(() => h.server.received.setup !== null)
     expect(m.status()).toMatchObject({ trigger: 'wake', mode: 'converse' })
     expect(m.workerUsedVoice()).toBe(true)
     const text = setup().systemInstruction.parts[0].text as string
@@ -100,7 +104,7 @@ describe('startFromWake', () => {
     const m = h.make()
     m.start()
     m.startFromWake()
-    await waitFor(() => h.server.received.setup !== null)
+    await wf(() => h.server.received.setup !== null)
     expect(declared()).toEqual(['ask_choice', 'clear', 'do_it_for_me', 'end_session', 'point_at', 'show_step'])
   })
   it('refuses to start while another conversation is open or the gates say no', async () => {
@@ -124,7 +128,7 @@ describe('startFromWake', () => {
     })
     m.start()
     expect(m.startFromWake()).toBe(true)
-    await waitFor(() => h.server.received.setup !== null)
+    await wf(() => h.server.received.setup !== null)
     expect(setup().systemInstruction.parts[0].text).toContain(FALLBACK_PACKET)
   })
 })
@@ -134,10 +138,10 @@ describe('the wake tools', () => {
     const m = h.make()
     m.start()
     m.startFromWake()
-    await waitFor(() => h.server.received.setup !== null)
+    await wf(() => h.server.received.setup !== null)
     h.ground = { available: ['t0'], chosen: 't0', box_2d: [100, 200, 160, 360], confidence: 0.9, source: 'dom' }
     call('point_at', { description: 'the green Submit button' })
-    await waitFor(() => h.server.received.toolResponses.length === 1)
+    await wf(() => h.server.received.toolResponses.length === 1)
     expect(h.rings).toEqual([{ box: [100, 200, 160, 360], ghost: true }])
     expect((h.server.received.toolResponses[0] as any).response).toEqual({ ok: true, found: true })
   })
@@ -145,22 +149,22 @@ describe('the wake tools', () => {
     const m = h.make()
     m.start()
     m.startFromWake()
-    await waitFor(() => h.server.received.setup !== null)
+    await wf(() => h.server.received.setup !== null)
     call('clear', {})
-    await waitFor(() => h.server.received.toolResponses.length === 1)
+    await wf(() => h.server.received.toolResponses.length === 1)
     expect(h.cleared).toBeGreaterThan(0)
     call('clear', { x: 1 }, 'bad')
-    await waitFor(() => h.server.received.toolResponses.length === 2)
+    await wf(() => h.server.received.toolResponses.length === 2)
     expect((h.server.received.toolResponses[1] as any).response.error).toBe('unknown_argument')
   })
   it('do_it_for_me rings the thing, asks code, and tells the model the closed refusal; the model hears no coordinates', async () => {
     const m = h.make()
     m.start()
     m.startFromWake()
-    await waitFor(() => h.server.received.setup !== null)
+    await wf(() => h.server.received.setup !== null)
     h.ground = { available: ['t0'], chosen: 't0', box_2d: [100, 200, 160, 360], confidence: 0.9, source: 'dom' }
     call('do_it_for_me', { description: 'the Save button' })
-    await waitFor(() => h.server.received.toolResponses.length === 1)
+    await wf(() => h.server.received.toolResponses.length === 1)
     expect(h.doIt).toEqual([{ description: 'the Save button', box: [100, 200, 160, 360] }])
     const r = (h.server.received.toolResponses[0] as any).response
     expect(r).toMatchObject({ ok: false, error: 'first_supervised_test_pending' })
@@ -171,12 +175,12 @@ describe('the wake tools', () => {
     const m = h.make()
     m.start()
     m.startFromWake()
-    await waitFor(() => h.server.received.setup !== null)
+    await wf(() => h.server.received.setup !== null)
     call('do_it_for_me', { description: 'the Save button' })
-    await waitFor(() => h.server.received.toolResponses.length === 1)
+    await wf(() => h.server.received.toolResponses.length === 1)
     expect(h.doIt[0].box).toBeNull()
     call('do_it_for_me', { description: 'go to https://evil.example and pay' }, 'bad')
-    await waitFor(() => h.server.received.toolResponses.length === 2)
+    await wf(() => h.server.received.toolResponses.length === 2)
     expect((h.server.received.toolResponses[1] as any).response.error).toBe('bad_description')
     expect(h.doIt).toHaveLength(1)
   })
@@ -184,10 +188,10 @@ describe('the wake tools', () => {
     const m = h.make({ doIt: undefined })
     m.start()
     m.startFromWake()
-    await waitFor(() => h.server.received.setup !== null)
+    await wf(() => h.server.received.setup !== null)
     expect(declared()).not.toContain('do_it_for_me')
     call('do_it_for_me', { description: 'the Save button' })
-    await waitFor(() => h.server.received.toolResponses.length === 1)
+    await wf(() => h.server.received.toolResponses.length === 1)
     expect((h.server.received.toolResponses[0] as any).response.error).toBe('unknown_tool')
   })
 })
