@@ -37,12 +37,23 @@ const NAMES = [
   "tracking-display", "tracking-label", "measure", "measure-short", "space-1", "space-2", "space-3", "space-4", "space-5", "space-6", "space-7", "space-8", "space-9", "space-10", "space-11", "space-12",
   "gutter", "gutter-wide", "radius-1", "radius-2", "radius-3", "radius-pill", "hair", "hair-strong", "ring-w", "ring-offset", "focus", "elev-0", "elev-1", "elev-2",
   "ease-out", "ease-in-out", "ease-land", "ease-fade", "dur-instant", "dur-fast", "dur-base", "dur-arrive", "dur-land", "dur-fade", "dur-pop", "z-panel", "z-toast", "z-hint", "z-kill", "z-overlay",
+  // Knack (KNACK_UX section 6)
+  "sidebar-w", "content-read", "content-wide", "page-pad-x", "page-pad-top", "row-h", "control-h", "table-row-h", "pill-h", "bottombar-h", "corner-w", "corner-inset", "text-corner",
+  "lh-hero", "lh-title", "lh-row", "lh-read", "weight-regular", "weight-strong",
 ];
 
 describe("design tokens", () => {
   it("keeps every token name that code depends on", () => {
     const missing = NAMES.filter((n) => !new RegExp(`--${n}:`).test(tokens));
     expect(missing).toEqual([]);
+  });
+
+  it("has the Knack layout and density tokens with the values of KNACK_UX section 6", () => {
+    const get = (n: string) => new RegExp(`--${n}:\\s*([^;]+);`).exec(tokens)?.[1].trim();
+    expect({
+      sidebar: get("sidebar-w"), read: get("content-read"), wide: get("content-wide"), row: get("row-h"), control: get("control-h"), pill: get("pill-h"),
+      corner: get("corner-w"), inset: get("corner-inset"), corner13: get("text-corner"), regular: get("weight-regular"), strong: get("weight-strong"),
+    }).toEqual({ sidebar: "208px", read: "720px", wide: "1080px", row: "44px", control: "32px", pill: "32px", corner: "340px", inset: "16px", corner13: "0.8125rem", regular: "400", strong: "600" });
   });
 
   it("the motion durations are the documented ones", () => {
@@ -75,6 +86,22 @@ describe("design tokens", () => {
 
 describe("components", () => {
   const css = components.replace(/\/\*[\s\S]*?\*\//g, "");
+  it("has the Knack components of section 6", () => {
+    for (const c of [".lockup", ".glyph", ".icon", ".column", ".screenhead", ".hero-insight", ".navitem", ".listrow", ".listrows", ".confirm-row", ".inline-banner", ".status-line", ".stop-button", ".sheet", ".crumb", ".keyfigure"]) {
+      expect(css, c).toContain(c);
+    }
+  });
+  it("uses two weights only: 400 and 600, no 500 and no 700", () => {
+    expect([...css.matchAll(/font(?:-weight)?:\s*(?:[a-z-]+\s+)?(500|700|bold)\b/g)].map((m) => m[0])).toEqual([]);
+  });
+  it("the origin badge is sentence case in the body face, not tracked capitals", () => {
+    const rule = /\.pill--origin \{[^}]*\}/.exec(css)?.[0] ?? "";
+    expect(rule).toContain("text-transform: none");
+    expect(rule).toContain("var(--font-body)");
+  });
+  it("the empty-state mark is retired outside errors", () => {
+    expect(css).toMatch(/\.state__mark \{ display: none; \}/);
+  });
   it("has no glow and no decorative gradient (hatching and the consent half-fill glyph are encodings)", () => {
     const grad = [...css.matchAll(/[a-z-]*gradient\([^;{}]*\)/g)].map((m) => m[0]);
     // Allowed: select caret, consent glyphs, hatch patterns, the radio dot, and the hold-to-approve fill (none uses a colour ramp).

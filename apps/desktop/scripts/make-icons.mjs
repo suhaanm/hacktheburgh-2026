@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-// Exports the app icon and the menu-bar icons from the brand SVGs in packages/design/brand/ (no install needed: Playwright's Chromium
+// Exports the app icon and the menu-bar icons from the brand SVGs in packages/design/brand/, named by brand.json (the one source of truth: replace
+// a file, or change its name there, and run this again). (No install needed: Playwright's Chromium
 // renders the SVGs, macOS iconutil packs the .icns).
-//   build/icon.icns, build/icon.png (1024)          from understudy-mark.svg, on the standard 824-in-1024 macOS tile with its margin
-//   resources/tray/trayTemplate.png (+@2x)          from understudy-tray-template.svg: pure black on transparent (a macOS template image)
+//   build/icon.icns, build/icon.png (1024)          from the brand mark (packages/design/brand/knack-mark.svg), on the standard 824-in-1024 macOS tile with its margin
+//   resources/tray/trayTemplate.png (+@2x)          from the brand tray template (knack-tray-template.svg): pure black on transparent (a macOS template image)
 //   resources/tray/trayActingTemplate.png (+@2x)    the same with a 3 px filled dot: an agent is acting
 //   resources/tray/trayGlanceTemplate.png (+@2x)    the same with a 3 px ring: a glance is in flight
 //   resources/tray/trayPausedTemplate.png (+@2x)    the same with the shadow ring left out and a small bar: paused
@@ -21,9 +22,10 @@ const previewDir = process.argv.includes('--preview') ? process.argv[process.arg
 mkdirSync(join(app, 'build'), { recursive: true })
 mkdirSync(join(app, 'resources/tray'), { recursive: true })
 
-const mark = readFileSync(join(brand, 'understudy-mark.svg'), 'utf8')
+const names = JSON.parse(readFileSync(join(brand, 'brand.json'), 'utf8')).files
+const mark = readFileSync(join(brand, names.mark), 'utf8')
 const trayInner = (() => {
-  const svg = readFileSync(join(brand, 'understudy-tray-template.svg'), 'utf8')
+  const svg = readFileSync(join(brand, names.trayTemplate), 'utf8')
   return svg.slice(svg.indexOf('>') + 1, svg.lastIndexOf('</svg>'))
 })()
 
@@ -47,7 +49,7 @@ async function render(svg, size) {
   return page.screenshot({ type: 'png', omitBackground: true, clip: { x: 0, y: 0, width: size, height: size } })
 }
 
-const work = mkdtempSync(join(tmpdir(), 'understudy-icons-'))
+const work = mkdtempSync(join(tmpdir(), 'knack-icons-'))
 try {
   // ---- app icon
   const iconset = join(work, 'icon.iconset')

@@ -1,3 +1,4 @@
+import { APP_NAME } from '../../shared/brand'
 // Pure text helpers for the learner profile (profile.md). Every edit is a minimal change to the file text, so
 // anything we do not understand (unknown sections, tables, the learner's own words) is carried over untouched.
 
@@ -95,9 +96,9 @@ export function addLine(markdown: string, key: ListKey, text: string): string {
 
 export function blankProfile(): string {
   return [
-    '# My Alongside profile',
+    `# My ${APP_NAME} profile`,
     '',
-    '> This file is yours. Read it, change it, or delete any line and Alongside will follow what it says here.',
+    `> This file is yours. Read it, change it, or delete any line and ${APP_NAME} will follow what it says here.`,
     '> Times are UTC. Say "forget that" and the last thing written down is removed.',
     '',
   ].join('\n')

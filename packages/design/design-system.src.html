@@ -1,6 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Understudy Design System</title>
+<title>Knack Design System</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -192,9 +192,8 @@ footer.foot { padding-top: var(--space-8); border-top: var(--hair) solid var(--l
 
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="#top" aria-label="Understudy design system, top of page">
-      <svg width="26" height="18" viewBox="0 0 26 18" aria-hidden="true"><circle cx="9" cy="9" r="7" fill="var(--accent)"/><circle cx="17" cy="9" r="7" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="2.4 2.4" opacity="0.7"/></svg>
-      Understudy <small>Design system</small>
+    <a class="brand" href="#top" aria-label="Knack design system, top of page">
+      <span class="lockup" style="--lockup-glyph:20px;--lockup-word:17.5px"><svg class="glyph glyph--ui" width="20" height="18.5" viewBox="28 30 78 72" aria-hidden="true" focusable="false"><circle class="glyph__ring" cx="76" cy="72" r="22" fill="none" stroke-width="7"/><circle class="glyph__disc" cx="54" cy="56" r="22"/></svg><span class="lockup__word">Knack</span></span> <small>Design system</small>
     </a>
     <div class="segmented" role="group" aria-label="Theme" id="theme">
       <button type="button" data-t="system" aria-pressed="true">System</button>
@@ -208,6 +207,8 @@ footer.foot { padding-top: var(--space-8); border-top: var(--hair) solid var(--l
 <div class="shell">
 
 <nav class="rail" aria-label="Sections">
+  <span class="rail__group">Knack shell</span>
+  <a href="#knack">Lockup, rows, status</a>
   <span class="rail__group">Signature visuals</span>
   <a href="#ribbon">Work ribbon</a>
   <a href="#graph">Work graph</a>
@@ -238,15 +239,65 @@ footer.foot { padding-top: var(--space-8); border-top: var(--hair) solid var(--l
 <main>
 
 <header class="page-head">
-  <span class="t-label">Design system, version 0.1, 7 Nov 2026</span>
+  <span class="t-label">Design system, version 0.2, 8 Nov 2026</span>
   <h1>Quiet by default. Specific when it speaks.</h1>
-  <p class="t-lede">Understudy is a calm instrument for people doing real work. It shows where time is lost, helps on the real screen, then steps back as the person improves. This page documents how it looks, how it moves, and what every mark means.</p>
+  <p class="t-lede">Knack is a calm instrument for people doing real work. It shows where time is lost, helps on the real screen, then steps back as the person improves. This page documents how it looks, how it moves, and what every mark means.</p>
   <ul class="principles">
     <li><b>One idea per screen</b><span>One hero visual or one task. Everything else waits behind a click.</span></li>
     <li><b>Every mark means something</b><span>Size, colour, opacity and motion each encode one thing, and a legend says which.</span></li>
     <li><b>Help fades, so the interface fades</b><span>The coach shrinks, becomes a dot, then leaves. A returning worker sees it come back.</span></li>
   </ul>
 </header>
+
+<!-- ============================ KNACK SHELL ============================ -->
+<section class="sec" id="knack" aria-labelledby="h-knack">
+  <div class="sec__head">
+    <span class="t-label">Knack, version 0.2</span>
+    <h2 id="h-knack">Lockup, rows and the shell parts</h2>
+    <p class="t-lede">One left-aligned column, 44 px rows, hairlines for structure, a sentence-case origin badge. The pieces below are the whole shell.</p>
+  </div>
+  <div class="cols" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))">
+    <div style="display:grid;gap:var(--space-5);align-content:start">
+      <span class="t-label">Lockup, sidebar size</span>
+      <span class="lockup" style="--lockup-glyph:20px;--lockup-word:17.5px"><svg class="glyph glyph--ui" width="20" height="18.5" viewBox="28 30 78 72" aria-hidden="true" focusable="false"><circle class="glyph__ring" cx="76" cy="72" r="22" fill="none" stroke-width="7"/><circle class="glyph__disc" cx="54" cy="56" r="22"/></svg><span class="lockup__word">Knack</span></span>
+      <span class="t-label">Large lockup, first-run glyph and the single-colour glyph</span>
+      <div style="display:flex;align-items:center;gap:var(--space-6)">
+        <span class="lockup" style="--lockup-glyph:44px;--lockup-word:38.5px"><svg class="glyph glyph--ui" width="44" height="40.6" viewBox="28 30 78 72" aria-hidden="true" focusable="false"><circle class="glyph__ring" cx="76" cy="72" r="22" fill="none" stroke-width="7"/><circle class="glyph__disc" cx="54" cy="56" r="22"/></svg><span class="lockup__word">Knack</span></span>
+        <svg class="glyph glyph--ui" width="56" height="51.7" viewBox="28 30 78 72" role="img" aria-label="Knack" focusable="false"><circle class="glyph__ring" cx="76" cy="72" r="22" fill="none" stroke-width="7"/><circle class="glyph__disc" cx="54" cy="56" r="22"/></svg>
+        <svg class="glyph glyph--mono" width="16" height="14.8" viewBox="28 30 78 72" role="img" aria-label="Knack, single colour" focusable="false"><circle class="glyph__ring" cx="76" cy="72" r="22" fill="none" stroke-width="7"/><circle class="glyph__disc" cx="54" cy="56" r="22"/></svg>
+      </div>
+      <p class="note">The disc is as tall as the capital K. Clear space is one K. Minimums: glyph 12 px, word 14 px. Never recolour the ring for status.</p>
+      <span class="t-label">Origin badge, status line and Stop</span>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-4)">
+        <span class="pill pill--origin" data-origin="example">Example data</span>
+        <span class="pill pill--origin" data-origin="synthetic">Synthetic firm</span>
+        <p class="status-line" data-mode="example"><span class="status-line__dot" aria-hidden="true"></span>Running with example data</p>
+        <p class="status-line" data-mode="live"><span class="status-line__dot" aria-hidden="true"></span>Live models</p>
+        <button class="stop-button" type="button">Stop</button>
+      </div>
+    </div>
+    <div style="display:grid;gap:var(--space-5);align-content:start">
+      <span class="t-label">Nav items</span>
+      <nav style="display:grid;gap:2px;width:208px" aria-label="Example navigation">
+        <a class="navitem" href="#knack" aria-current="page"><svg class="icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 7.5 8 3l5.5 4.5M4 6.5V13h8V6.5"/></svg>Home</a>
+        <a class="navitem" href="#knack"><svg class="icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><circle cx="8" cy="8" r="1.4" fill="currentColor"/></svg>Needs you<span class="navitem__count">1</span></a>
+        <a class="navitem" href="#knack"><svg class="icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6h9l-2.5-2.5M13 10H4l2.5 2.5"/></svg>Routines</a>
+      </nav>
+      <span class="t-label">Rows: a link row, a plain row with actions on hover, and the inline confirm</span>
+      <ul class="listrows">
+        <li><a class="listrow" href="#knack"><span class="listrow__icon listrow__icon--warn"><svg class="icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5 14 13H2L8 2.5ZM8 6.5v3M8 11.2v.1"/></svg></span><span class="listrow__text"><span class="listrow__title">An approval has waited 72 hours.</span><span class="listrow__meta">n = 3 approvals</span></span><span class="listrow__chev"><svg class="icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></span></a></li>
+        <li><div class="listrow"><span class="listrow__text"><span class="listrow__title">Prefers short answers</span></span><span class="listrow__actions"><button class="btn btn--secondary btn--sm" type="button">Forget</button></span></div></li>
+        <li><div class="confirm-row" role="group" aria-label="Forget this line?"><span class="confirm-row__q">Forget this line?</span><span class="confirm-row__why">It cannot be undone.</span><span class="confirm-row__actions"><button class="btn btn--secondary btn--sm" type="button">Keep</button><button class="btn btn--danger btn--sm" type="button">Forget it</button></span></div></li>
+      </ul>
+      <span class="t-label">Inline banner</span>
+      <div class="inline-banner" data-tone="warn"><svg class="icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5 14 13H2L8 2.5ZM8 6.5v3M8 11.2v.1"/></svg><span class="inline-banner__text">Knack cannot reach its engine.</span><button class="btn btn--secondary btn--sm" type="button">Try again</button></div>
+      <span class="t-label">Breadcrumb</span>
+      <p class="crumb"><a href="#knack">Home</a><span class="crumb__sep" aria-hidden="true">/</span><span aria-current="page">Where time goes</span></p>
+    </div>
+  </div>
+  <h3 class="t-label" style="margin-top:var(--space-6)">Hero insight</h3>
+  <p class="hero-insight">On the cliff check you usually take about 35 seconds longer than the expert.</p>
+</section>
 
 <!-- ============================ WORK RIBBON ============================ -->
 <section class="sec" id="ribbon" aria-labelledby="h-ribbon">
@@ -1071,7 +1122,7 @@ footer.foot { padding-top: var(--space-8); border-top: var(--hair) solid var(--l
   </div>
 </section>
 
-<footer class="foot"><span>Understudy design system 0.1</span><span>tokens.css, components.css, design-system.html</span><span>Hack the Burgh XIII, 8 Nov 2026</span></footer>
+<footer class="foot"><span>Knack design system 0.2</span><span>tokens.css, components.css, design-system.html</span><span>Hack the Burgh XIII, 8 Nov 2026</span></footer>
 </main>
 </div>
 </div>

@@ -9,6 +9,8 @@ export interface AgentActivityDeps {
   agentUrl: string
   fetchImpl?: typeof fetch
   onChange(acting: boolean): void
+  // Every poll's raw answers (parsed GET /health and GET /agents/runs, null when a call failed), for readers that need more than acting or not (the Knack pill).
+  onSample?(sample: { health: unknown; runs: unknown }): void
   // Seconds since the person last touched the keyboard or mouse (powerMonitor.getSystemIdleTime); absent means "unknown: stay quick".
   idleSeconds?: () => number
   now?: () => number
@@ -73,6 +75,7 @@ export function createAgentActivity(deps: AgentActivityDeps): AgentActivity {
 
   const poll = async (): Promise<void> => {
     const [health, runs] = await Promise.all([get('/health'), get('/agents/runs')])
+    deps.onSample?.({ health, runs })
     const answer = actingFrom(health, runs)
     if (answer !== null && answer !== last) {
       last = answer

@@ -11,14 +11,15 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { z } from 'zod'
+import { APP_NAME } from '../../shared/brand'
 
 export const CONSENT_VERSION = 1
 
 // Plain, short, in this order: what is sent, what is skipped, what is kept, where to look, how to stop.
 export const CONSENT_TEXT =
-  'Understudy can take a quick look at your screen when you seem stuck, when you press its shortcut and, only if you turn it on, about every 30 seconds. ' +
+  `${APP_NAME} can take a quick look at your screen when you seem stuck, when you press its shortcut and, only if you turn it on, about every 30 seconds. ` +
   'Each look sends one small, reduced picture of your screen to a cloud vision model, which tells it what kind of app you are in and what seems to be in the way. ' +
-  'The picture leaves this Mac for that one call, is held in memory only, and is never saved by Understudy; what comes back is a few fixed labels, not text. ' +
+  `The picture leaves this Mac for that one call, is held in memory only, and is never saved by ${APP_NAME}; what comes back is a few fixed labels, not text. ` +
   'Nothing is sent while a password manager or banking app is in front, while a password field has focus, while your screen is locked or shared, or while you are away. ' +
   'Messaging and mail apps are skipped too unless you switch strict mode off. ' +
   'Every call is listed in Privacy with its time, size, model and cost, but never the picture. ' +

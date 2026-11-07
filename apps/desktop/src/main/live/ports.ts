@@ -69,14 +69,25 @@ export interface LiveCuePort {
 }
 
 export interface RingPort {
-  /** Draw (or move) the one voice ring at this box. */
-  show(box: [number, number, number, number]): void
+  /** Draw (or move) the one voice ring at this box. With `ghost`, the ghost cursor also glides to its centre (a pointer, never a click). */
+  show(box: [number, number, number, number], opts?: { ghost?: boolean }): void
   clear(): void
 }
+
+/** What `do_it_for_me` hands to code: the thing the model named, and where the grounder found it (null: not found). */
+export interface DoItRequest {
+  description: string
+  box: [number, number, number, number] | null
+}
+export type DoItAnswer = { ok: true; started: true } | { ok: false; reason: string }
 
 export interface ToolHost {
   candidates(): CandidateList
   point(description: string): Promise<{ found: boolean }>
   showStep(stepId: string): { ok: boolean; chip: string | null }
   askChoice(optionIds: string[]): boolean
+  /** Wake sessions only: take the ring and the ghost cursor away. */
+  clear?(): void
+  /** Wake sessions only: ring the named thing, then ask code whether it may be clicked. Resolves with the closed answer; never clicks itself. */
+  doItForMe?(description: string): Promise<DoItAnswer>
 }

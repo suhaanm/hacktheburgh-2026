@@ -1,0 +1,5 @@
+/* Needs you: what is specific to the list. The rest is kc.css. */
+.ny-more { margin-top: var(--space-4); }
+.ny-notes { display: grid; gap: var(--space-1); }
+.ny-notes p { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+.ny-inline { display: inline; min-height: 0; padding: 0; text-decoration: underline; }

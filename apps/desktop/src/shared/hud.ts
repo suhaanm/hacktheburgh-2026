@@ -32,6 +32,38 @@ export interface HudNotice {
   urgent: boolean
 }
 
+// KNACK: the corner column. One pill (a status: what is happening, n of m when known, Stop) and at most one card above it. The pill's words are fixed templates
+// of at most five words; no model text ever reaches it. (docs/KNACK_UX.md section 7, docs/knack-ux/06-corner-states.svg)
+export type HudPhase = 'working' | 'done' | 'error' | 'voice'
+
+export interface HudActivity {
+  phase: HudPhase
+  // At most five words, from a fixed list (main/knack/activity.ts).
+  label: string
+  // "n of m", only when both are known.
+  step: number | null
+  of: number | null
+  // The check is fading out (240 ms) before the window goes.
+  leaving: boolean
+}
+
+// The card for a decision that blocks a run, or a permission prompt: fixed words, a source line, and two buttons ("Review" and "Later").
+export interface HudApproval {
+  id: string
+  title: string
+  body: string
+  source: string
+}
+
+// Why non-safety cards wait: a password field or a denylisted app (secure), a screen share or a call (share), or the Ask bar being open (ask).
+export interface HudHold {
+  secure: boolean
+  share: boolean
+  ask: boolean
+}
+
+export type HudCardKind = 'stopped' | 'safety' | 'approval' | 'time' | 'digest'
+
 export interface HudState {
   kill: { killed: boolean; engine: boolean | null; agent: boolean | null }
   // Pending approvals waiting in the morning queue (null: the engine is not reachable, so unknown).
@@ -42,6 +74,36 @@ export interface HudState {
   // An agent (or a session) is acting for the person right now. The Stop all pill is on screen only while this is true (or the
   // Stopped card is up); the kill hotkey and the menu-bar item work all the time.
   agentActing: boolean
+  // KNACK: the corner column is in charge: the pill is drawn from `activity` (not from `agentActing`), the window sits bottom-right, and cards wait while `hold` says so.
+  corner: boolean
+  activity: HudActivity | null
+  approval: HudApproval | null
+  hold: HudHold
+}
+
+/** Priority of the cards, highest first: stopped, safety, approval blocking a run, time-sensitive, digest (docs/knack-ux/08-window-states.md). */
+export const HUD_CARD_PRIORITY: readonly HudCardKind[] = ['stopped', 'safety', 'approval', 'time', 'digest']
+
+export type HudCard =
+  | { kind: 'stopped' }
+  | { kind: 'safety'; notice: HudNotice }
+  | { kind: 'approval'; approval: HudApproval }
+  | { kind: 'time'; notice: HudNotice }
+  | { kind: 'digest'; proposal: HudProposal }
+
+/**
+ * The one card the corner draws (or null): the highest-priority one present. A card that is not Stopped or safety waits while a password field or a denylisted app
+ * is in front, a screen is shared, or the Ask bar is open. An urgent notice is a safety card; any other notice is time-sensitive; a routine proposal is a digest card.
+ */
+export function pickCard(state: HudState): HudCard | null {
+  if (state.kill.killed) return { kind: 'stopped' }
+  if (state.notice?.urgent) return { kind: 'safety', notice: state.notice }
+  const held = state.hold.secure || state.hold.share || state.hold.ask
+  if (held) return null
+  if (state.approval) return { kind: 'approval', approval: state.approval }
+  if (state.notice) return { kind: 'time', notice: state.notice }
+  if (state.proposal) return { kind: 'digest', proposal: state.proposal }
+  return null
 }
 
 export type HudAction =
@@ -52,6 +114,11 @@ export type HudAction =
   // A button on the notice (the id is the attention layer's action id) and the notice closing without one (Escape, or its time ran out).
   | { type: 'notice'; id: string; action: string }
   | { type: 'notice_closed'; id: string; how: 'dismissed' | 'timeout' }
+  // KNACK corner column: Review and Later on an approval card, Open on the error pill, End on the voice pill.
+  | { type: 'review'; id: string }
+  | { type: 'later'; id: string }
+  | { type: 'pill_open' }
+  | { type: 'voice_end' }
 
 export interface HudApi {
   get(): Promise<HudState>
@@ -59,4 +126,14 @@ export interface HudApi {
   action(a: HudAction): void
 }
 
-export const EMPTY_HUD_STATE: HudState = { kill: { killed: false, engine: null, agent: null }, queuePending: null, proposal: null, notice: null, agentActing: false }
+export const EMPTY_HUD_STATE: HudState = {
+  kill: { killed: false, engine: null, agent: null },
+  queuePending: null,
+  proposal: null,
+  notice: null,
+  agentActing: false,
+  corner: false,
+  activity: null,
+  approval: null,
+  hold: { secure: false, share: false, ask: false },
+}

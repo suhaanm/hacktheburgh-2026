@@ -1,10 +1,10 @@
-# Understudy
+# Knack
 
 *Hack the Burgh XIII, Edinburgh, 7 to 8 Nov 2026. Targets: HRT, G-Research, Wordsmith.*
 
 Two people do the same task. One is slower and reaches a different answer, and nobody can say where the difference comes from.
 
-Understudy watches how people do the same task and prices each gap between a novice and an expert, in seconds and in wrong answers. It coaches on the real screen with help that fades. It lets an agent take repetitive work only when the worker agrees, one routine at a time. A memory file the worker owns, readable and editable, tunes it to them. It covers several jobs through role packs: one deep (a UK benefits processor), two thin (data analyst, programmer).
+Knack (built under the working name Understudy) watches how people do the same task and prices each gap between a novice and an expert, in seconds and in wrong answers. It coaches on the real screen with help that fades. It lets an agent take repetitive work only when the worker agrees, one routine at a time. A memory file the worker owns, readable and editable, tunes it to them. It covers several jobs through role packs: one deep (a UK benefits processor), two thin (data analyst, programmer).
 
 **State on 7 Nov 2026, about 21:00 GMT.** It runs end to end on example data and on three sandbox calculator sites that we wrote. Every number below comes from synthetic or simulated data unless a row says otherwise. Nobody has used it in a study. A one-page owner checklist is in [docs/MVP_STATUS.md](docs/MVP_STATUS.md).
 
