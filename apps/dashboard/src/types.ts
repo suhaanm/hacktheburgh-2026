@@ -52,7 +52,11 @@ export interface Genome {
   novice: { segments: CogSegment[] };
   alignment: AlignCol[];
   waterfall: WaterfallStep[];
+  /** Group figure: mean seconds lost per case across all novices. The ribbon shows one case. */
   total_gap_s: number;
+  /** additive, optional: seconds lost in the single case shown in the ribbon, and its episode id */
+  person_gap_s?: number;
+  episode?: string;
   total_gap_ci: Interval;
   controls: {
     placebo: { gap_s: number; ci: Interval };
@@ -72,6 +76,8 @@ export interface TransitionEdge {
   expert_freq: number;
   novice_freq: number;
   missing_for_novice: boolean;
+  /** additive, optional: only the novice takes this move */
+  extra_for_novice?: boolean;
   planted: boolean | null;
 }
 export interface Transitions {
@@ -82,7 +88,8 @@ export interface Transitions {
 export interface ReplayFrame {
   t_replay: number;
   event: { type: string; t: string; target?: { role?: string } };
-  state: { task: string; last_cog: string; counts: Record<string, number> };
+  /** `task` and `last_cog` may be null; show a dash. */
+  state: { task: string | null; last_cog: string | null; counts: Record<string, number> };
 }
 export interface Replay {
   duration_s: number;
@@ -242,7 +249,11 @@ export interface OnboardingQuestion {
   id: "tools" | "risky" | "tone" | "pace" | "hours";
   prompt: string;
   kind: "multi" | "single" | "hours";
-  options: { value: string; label: string }[];
+  /** additive, optional: one plain sentence on why this is asked */
+  why?: string;
+  /** additive, optional: only for the hours question */
+  default_hours?: { start: string; end: string; days: (string | number)[] };
+  options: { value: string; label: string; /** additive: pre-selected */ default?: boolean }[];
 }
 export interface OnboardingQuestions {
   role: string;
@@ -250,7 +261,7 @@ export interface OnboardingQuestions {
     name: string;
     summary: string;
     extra_cogs: string[];
-    risk_classes: { irreversible: string[] };
+    risk_classes: { irreversible: string[]; outward?: string[] };
     tone_defaults: { length: string; voice: string };
   };
   questions: OnboardingQuestion[];
@@ -261,6 +272,8 @@ export interface OnboardingAnswers {
   tone: string;
   pace: string;
   hours: { start: string; end: string; days: number[] };
+  /** Optional consent to record when the worker is active (times only). Never pre-selected. */
+  capture?: boolean;
 }
 export interface OnboardingResult {
   person: string;
@@ -283,7 +296,7 @@ export interface CoachState {
 
 /* -- Evidence --------------------------------------------------------------- */
 export interface Hazard {
-  series: { t: number; p: number }[];
+  series: { t: number | string; p: number }[];
   model: { log_loss: number; brier: number; ece: number; ci_log_loss: Interval };
   baselines: {
     base_rate: { log_loss: number; brier: number; ece: number };
@@ -292,12 +305,16 @@ export interface Hazard {
   calibration: { p_mean: number; freq: number; n: number }[];
   false_alarms_per_hour: number;
   split: string;
+  /** additive, optional: plain-language caveats the engine attaches to this result */
+  caveats?: string[];
 }
 
 export interface Limitation {
   id: string;
   text: string;
   severity: "high" | "medium" | "low" | string;
+  /** additive, optional: which section of the report the limit belongs to */
+  source?: string;
 }
 
 /** Evidence report sections. The contract fixes the section names; their inner shapes are

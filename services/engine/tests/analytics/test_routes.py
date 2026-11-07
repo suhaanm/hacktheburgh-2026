@@ -36,3 +36,25 @@ def test_hazard_route_apprentice_and_unknown_person():
     bad = client.get("/hazard/p_nobody")
     assert bad.status_code == 404 and bad.json()["error"]["code"] == "unknown_person"
     assert "p_ninetofive" in bad.json()["error"]["message"]
+
+
+def test_analytics_sections_fast_is_quick_complete_and_contract_shaped():
+    import json
+    import time
+    from understudy_engine.routes_analytics import analytics_sections
+    t = time.time()
+    s = analytics_sections(fast=True)
+    assert time.time() - t < 60
+    assert {"hazard", "ope", "routing", "agent_claims", "policy_gate", "skills", "limitations"} <= set(s)
+    h = s["hazard"]
+    assert set(h["model"]) >= {"log_loss", "brier", "ece", "ci_log_loss"} and set(h["baselines"]) == {"base_rate", "time_since_progress"}
+    assert h["calibration"] and "false_alarms_per_hour" in h and h["split"] == "leave-one-person-out"
+    assert [e["name"] for e in s["ope"]["estimators"]] == ["naive", "ips", "snips", "dr"] and "true_value" in s["ope"]
+    r = s["routing"]
+    assert all(k in r for k in ("alpha", "curve", "held_out_error", "held_out_ci", "bound_held", "expert_minutes_per_case"))
+    c = s["agent_claims"]
+    assert c["reliability"] and "brier" in c and "base_rate" in c
+    for k in ("hazard", "ope", "routing", "agent_claims", "policy_gate", "skills"):
+        assert s[k]["meta"]["origin"] == "synthetic" and s[k]["limitations"], k
+        assert all(set(x) == {"id", "text", "severity"} for x in s[k]["limitations"])
+    json.dumps(s, default=str)

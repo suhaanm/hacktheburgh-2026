@@ -149,6 +149,8 @@ class SafetyPipeline:
                       hits=len(report.hits))
 
         visible = page.visible_text()
+        if report.paused:
+            return obs  # the run is paused: nothing downstream will read this page, so no reader call is spent on it
         if self.config.reader:
             if schema is not None:
                 rr = self.reader.read(visible, schema, source=source)
@@ -163,8 +165,10 @@ class SafetyPipeline:
             obs.raw_text = page.full_dump()  # the ablation: a naive text dump goes straight toward the planner
         return obs
 
-    def planner_messages(self, goal: str, observations: list[Observation], history_summary: str = "") -> list[dict[str, str]]:
-        msgs = build_planner_messages(goal, [o.view for o in observations], self.config, history_summary=history_summary)
+    def planner_messages(self, goal: str, observations: list[Observation], history_summary: str = "",
+                         system: str | None = None) -> list[dict[str, str]]:
+        msgs = build_planner_messages(goal, [o.view for o in observations], self.config, history_summary=history_summary,
+                                      system=system)
         if self.config.reader:
             assert_planner_prompt_clean(msgs, self._raw_seen)
         return msgs

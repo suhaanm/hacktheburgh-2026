@@ -22,7 +22,6 @@ from .gen import routine_episodes
 
 def _precision_recall(clusters, labels, eps, min_support=3):
     idx = {id(e): i for i, e in enumerate(eps)}
-    planted = {l for l in labels if l}
     truth_counts = collections.Counter(l for l in labels if l)
     tp = 0
     found = set()

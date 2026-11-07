@@ -166,7 +166,7 @@ def _key_variants(name: str) -> list[str]:
     return [re.escape(name), re.escape(spaced), re.escape(name.replace("_", "-"))]
 
 
-def faithful_extract(text: str, schema: dict[str, Any], *, leak_instructions: bool = False) -> dict[str, Any]:
+def faithful_extract(text: str, schema: dict[str, Any], *, leak_instructions: bool | str = False) -> dict[str, Any]:
     """Rule-based stand-in for the quarantined reader: only schema fields, only from `name: value` lines."""
     props = schema.get("properties", {})
     required = set(schema.get("required", []))
@@ -189,7 +189,10 @@ def faithful_extract(text: str, schema: dict[str, Any], *, leak_instructions: bo
                     t = sub.get("type")
                     if t == "string" and "enum" not in sub:
                         ml = sub.get("maxLength", 500)
-                        out[name] = line.strip()[:ml]
+                        # True: the whole line. "condensed": a summariser that squeezes the instruction into its last
+                        # 48 characters (short enough to slip under a verbatim-copy check, long enough to carry the ask).
+                        leaked = line.strip()[-48:] if leak_instructions == "condensed" else line.strip()
+                        out[name] = leaked[:ml]
                         break
                 break
     return out

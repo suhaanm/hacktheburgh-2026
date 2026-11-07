@@ -10,7 +10,7 @@ Lead = the main session. It owns `docs/**`, `Makefile`, `scripts/**`, root confi
 | engine-data | `services/engine/understudy_engine/{store,personas,cogs,genome,packs,api}/**`, `routes_data.py` (health, events, replay, packs, genome, graph/transitions, queue, audit, kill, eval/report), `cli.py`, tests in `services/engine/tests/{store,personas,cogs,genome,packs,api}/`. `api/app.py` includes the other tracks' routers if importable. |
 | engine-analytics | `services/engine/understudy_engine/{hazard,policy,routing,trust,skills}/**`, `routes_analytics.py` (hazard), tests in `services/engine/tests/analytics/` |
 | engine-handoff | `services/engine/understudy_engine/{routines,presence,memory}/**`, `routes_handoff.py` (onboarding, memory, coach/state, graph/work, routines, presence, offhours), tests in `services/engine/tests/handoff/` |
-| engine-eval (later) | `services/engine/understudy_engine/eval/**`, `services/engine/tests/eval/` |
+| engine-eval | `services/engine/understudy_engine/eval/**`, `services/engine/tests/eval/`, generated `evals/report.json` and `evals/report.md` |
 | agent-core | `services/agent/understudy_agent/{supervisor.py,orchestrator.py,navigator.py,tiers/,completion.py,compile.py,shadow.py,offhours.py,server.py,sandbox_sites/}`, tests in `services/agent/tests/core/` |
 | agent-safety | `services/agent/understudy_agent/{models/,security/,queue.py,audit.py}`, tests in `services/agent/tests/safety/` |
 | desktop | `apps/desktop/**` |

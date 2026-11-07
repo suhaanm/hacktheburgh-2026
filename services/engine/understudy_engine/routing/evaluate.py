@@ -20,6 +20,7 @@ from understudy_engine.routing.cases import (
 from understudy_engine.routing.control import aurc, check_heldout, risk_control, risk_coverage_curve
 from understudy_engine.routing.model import RoutingModel
 from understudy_engine.trust.calibration import brier, ece, log_loss
+from understudy_engine.trust.limitations import limitations_for
 from understudy_engine.trust.meta import analytic_meta
 from understudy_engine.trust.stats import clopper_pearson, clopper_pearson_upper
 
@@ -70,8 +71,8 @@ def _budget(risk_cal, y_cal, risk_te, y_te, budget: float, review_min: float, de
     }
 
 
-def _one_resplit(seed: int, n: int, alpha: float, delta: float, correction: str) -> dict:
-    c = simulate_cases(n, seed)
+def _one_resplit(seed: int, n: int, alpha: float, delta: float, correction: str, make=None) -> dict:
+    c = (make or simulate_cases)(n, seed)
     tr, ca, te = split_indices(c.n, seed)
     _, rc, rt = _fit_scores(c, tr, ca, te)
     ctl = risk_control(rc, c.y[ca], alpha, delta, correction=correction)
@@ -80,10 +81,8 @@ def _one_resplit(seed: int, n: int, alpha: float, delta: float, correction: str)
             "within_alpha": chk["observed_within_alpha"], "feasible": ctl["feasible"]}
 
 
-def evaluate_routing(cases: Cases | None = None, *, alpha: float = 0.05, delta: float = 0.05, budget: float = 0.30,
-                     seed: int = 0, n_cases: int = 4000, n_resplits: int = 40, resplit_n: int = 3000,
-                     review_min: float = REVIEW_MIN_PER_CASE, n_grid: int = 40) -> dict:
-    cases = cases or simulate_cases(n_cases, seed)
+def _evaluate_cases(cases: Cases, make, *, alpha: float, delta: float, budget: float, seed: int, n_resplits: int,
+                    resplit_n: int, review_min: float, n_grid: int, note: str, caveats: list[str]) -> dict:
     tr, ca, te = split_indices(cases.n, seed)
     y_cal, y_te = cases.y[ca], cases.y[te]
     model, rc, rt = _fit_scores(cases, tr, ca, te)
@@ -99,7 +98,7 @@ def evaluate_routing(cases: Cases | None = None, *, alpha: float = 0.05, delta: 
               "upper_bound": p["upper_bound"]} for p in curve_pts]
 
     # baselines and ablations: same risk control, same splits
-    sigs = _signal_scores(cases)
+    sigs = cases.signals if cases.signals is not None else _signal_scores(cases)
     baselines = {}
     for name, sc in sigs.items():
         c_ = risk_control(sc[ca], y_cal, alpha, delta, n_grid=n_grid)
@@ -108,27 +107,29 @@ def evaluate_routing(cases: Cases | None = None, *, alpha: float = 0.05, delta: 
                            "held_out_error": k_["error_rate"], "violated": k_["violated"],
                            "aurc": aurc(risk_coverage_curve(sc[te], y_te))}
     ablation = {}
-    groups = {"complexity_only": COMPLEXITY_FEATURES, "worker_trace_only": TRACE_FEATURES,
-              "agent_signals_only": AGENT_FEATURES, "all_features": FEATURES}
+    groups = cases.groups or {"complexity_only": COMPLEXITY_FEATURES, "worker_trace_only": TRACE_FEATURES,
+                              "agent_signals_only": AGENT_FEATURES, "all_features": FEATURES}
     for name, feats in groups.items():
-        cols = [FEATURES.index(f) for f in feats]
+        cols = [cases.features.index(f) for f in feats]
         _, rc_g, rt_g = _fit_scores(cases, tr, ca, te, columns=cols)
         c_ = risk_control(rc_g, y_cal, alpha, delta, n_grid=n_grid)
         k_ = check_heldout(c_["threshold"], rt_g, y_te, alpha)
         ablation[name] = {"held_out_coverage": k_["coverage"], "held_out_error": k_["error_rate"],
                           "violated": k_["violated"], "aurc": aurc(risk_coverage_curve(rt_g, y_te)),
                           "log_loss": log_loss(y_te, rt_g)}
-    prior_curve = risk_coverage_curve(cases.p_true[te], y_te)   # ranking by the case's TRUE prior error probability
+    prior_curve = (risk_coverage_curve(cases.p_true[te], y_te)   # ranking by the case's TRUE prior error probability
+                   if cases.p_true is not None else None)
 
     # repeated fresh draws: how often does the held-out check fail?
     reps = {}
-    for corr in ("bonferroni", "none"):
-        rows = [_one_resplit(seed + 1000 + i, resplit_n, alpha, delta, corr) for i in range(n_resplits)]
+    for corr in (("bonferroni", "none") if n_resplits > 0 else ()):
+        rows = [_one_resplit(seed + 1000 + i, resplit_n, alpha, delta, corr, make) for i in range(n_resplits)]
         reps[corr] = {
             "n_resplits": n_resplits,
             "violation_rate": float(np.mean([r["violated"] for r in rows])),
             "observed_over_alpha_rate": float(np.mean([not r["within_alpha"] for r in rows])),
-            "mean_held_out_error": float(np.mean([r["error"] for r in rows if r["error"] is not None])),
+            "mean_held_out_error": (float(np.mean([r["error"] for r in rows if r["error"] is not None]))
+                                    if any(r["error"] is not None for r in rows) else None),
             "mean_coverage": float(np.mean([r["coverage"] for r in rows])),
             "share_with_certified_set": float(np.mean([r["feasible"] for r in rows])),
         }
@@ -159,22 +160,122 @@ def evaluate_routing(cases: Cases | None = None, *, alpha: float = 0.05, delta: 
         "calibration": {"ece_raw": ece(y_te, raw_te), "ece_calibrated": ece(y_te, rt), "brier": brier(y_te, rt),
                         "log_loss": log_loss(y_te, rt), "log_loss_base_rate": log_loss(y_te, np.full(te.size, cases.y[tr].mean())),
                         "calibrator": "platt"},
-        "aurc_model": aurc(curve_pts), "aurc_true_prior_probability": aurc(prior_curve),
+        "aurc_model": aurc(curve_pts), "aurc_true_prior_probability": None if prior_curve is None else aurc(prior_curve),
         "baselines": baselines, "feature_ablation": ablation,
         "fixed_review_budget": _budget(rc, y_cal, rt, y_te, budget, review_min, delta),
         "random_review_at_budget": {"budget_share": budget, "expected_held_out_error": float(cases.y[te].mean())},
         "resplits": reps,
+        "limitations": limitations_for("routing"),
         "meta": analytic_meta(cases.origin, cases.n, "households",
                               f"train {tr.size} / calibration {ca.size} / held-out {te.size}",
-                              note="Auto-approve the safest cases, send the rest to an expert. Synthetic cases with a known error mechanism."),
-        "caveats": [
-            "Synthetic cases drawn from a mechanism we wrote; no real agent errors were used. The bound is a statement about this generator.",
-            "The guarantee covers the error rate of the auto-approved set under exchangeable cases; distribution shift (a new benefit rule, "
-            "a new calculator site) breaks it silently.",
-            f"Expert review time ({review_min:g} min per case) is an assumption, not a measurement.",
-            "The held-out interval is exact for the approved cases but wide when few are approved; a point estimate under alpha is not the same as a proof.",
-            "The true-prior ranking (generator's error probability before the outcome) is shown for reference. The model can beat it "
-            "because worker-versus-agent disagreement and agent confidence are generated from the realised error, as they would be in practice.",
-        ],
+                              note=note),
+        "caveats": caveats,
     }
+    if cases.extra:
+        out["case_set"] = cases.extra
+    return out
+
+
+_SYNTH_CAVEATS = [
+    "Synthetic cases drawn from a mechanism we wrote; no real agent errors were used. The bound is a statement about this generator.",
+    "The guarantee covers the error rate of the auto-approved set under exchangeable cases; distribution shift (a new benefit rule, "
+    "a new calculator site) breaks it silently.",
+    "Expert review time per case is an assumption, not a measurement.",
+    "The held-out interval is exact for the approved cases but wide when few are approved; a point estimate under alpha is not the same as a proof.",
+    "The true-prior ranking (generator's error probability before the outcome) is shown for reference. The model can beat it "
+    "because worker-versus-agent disagreement and agent confidence are generated from the realised error, as they would be in practice.",
+]
+
+
+def evaluate_routing_synthetic(cases: Cases | None = None, *, alpha: float = 0.05, delta: float = 0.05, budget: float = 0.30,
+                               seed: int = 0, n_cases: int = 4000, n_resplits: int = 40, resplit_n: int = 3000,
+                               review_min: float = REVIEW_MIN_PER_CASE, n_grid: int = 40, fast: bool = False) -> dict:
+    """The pure-generator evaluation (cases.py). `fast=True`: 10 fresh re-draws instead of 40."""
+    if fast:
+        n_resplits = min(n_resplits, 10)
+    cases = cases or simulate_cases(n_cases, seed)
+    return _evaluate_cases(
+        cases, simulate_cases, alpha=alpha, delta=delta, budget=budget, seed=seed, n_resplits=n_resplits,
+        resplit_n=resplit_n, review_min=review_min, n_grid=n_grid,
+        note="Auto-approve the safest cases, send the rest to an expert. Synthetic cases with a known error mechanism.",
+        caveats=_SYNTH_CAVEATS)
+
+
+_SANDBOX_NOTE = (
+    "Auto-approve the safest households, send the rest to an expert. Cases are synthetic sandbox households scored by the "
+    "three sandbox calculators' own rules; the reference is a simplified internal rule set, not law.")
+_SANDBOX_CAVEATS = [
+    "CIRCULARITY: the calculators' quirks (site b ignores capital tariff income; site c applies a two-child limit and treats exactly "
+    "16,000 as over the limit) and the household archetypes that trigger them were planted by us. The router can only show it found "
+    "our planted structure; it does not show that real calculators or real agents fail this way.",
+    "The reference answer is the sandbox oracle, a simplified internal rule set loosely shaped like a Universal Credit award. It is not "
+    "law and not PolicyEngine; 'error' means 'differs from that oracle by more than one pound'.",
+    "The stand-in agent is a rule over the three calculator answers (the one at least two agree on, else the mean); no model was run. "
+    "With the median of three the agent is never wrong on these households (nothing to route), and with the plain mean the label is "
+    "'any calculator disagrees', which the spread feature predicts directly (see stand_ins).",
+    "Stated confidence is a function of calculator disagreement only, so it carries no information the spread does not.",
+    "The label is almost a deterministic function of the features (a three-way calculator disagreement), so a log loss and ECE near zero "
+    "reflect separability, not skilful calibration. Compare coverage with the spread-only baseline: the router adds little over it here.",
+    "Errors are concentrated in one archetype (see case_set.errors_by_archetype), so the effective number of independent error patterns is small.",
+    "Expert review time per case is an assumption, not a measurement.",
+    "The guarantee covers exchangeable households like these; a new rule or calculator breaks it silently.",
+]
+
+
+def _stand_in_summary(n: int, seed: int, stand_in: str, alpha: float, delta: float) -> dict:
+    from understudy_engine.routing.sandbox import sandbox_cases
+    c = sandbox_cases(n, seed, stand_in)
+    out = {"stand_in": stand_in, "base_error_rate": float(c.y.mean()), "errors": int(c.y.sum()), "households": int(c.n)}
+    if c.y.sum() == 0:
+        out["note"] = "the agent is never wrong on these households: nothing to route"
+        return out
+    tr, ca, te = split_indices(c.n, seed)
+    _, rc, rt = _fit_scores(c, tr, ca, te)
+    ctl = risk_control(rc, c.y[ca], alpha, delta)
+    chk = check_heldout(ctl["threshold"], rt, c.y[te], alpha)
+    spread = c.signals["calculator_spread_only"]
+    b = risk_control(spread[ca], c.y[ca], alpha, delta)
+    bk = check_heldout(b["threshold"], spread[te], c.y[te], alpha)
+    out.update({"held_out_coverage": chk["coverage"], "held_out_error": chk["error_rate"], "held_out_ci": chk["ci"],
+                "bound_held": not chk["violated"],
+                "spread_only_baseline": {"held_out_coverage": bk["coverage"], "held_out_error": bk["error_rate"]}})
+    return out
+
+
+def evaluate_routing(cases: Cases | None = None, *, alpha: float = 0.05, delta: float = 0.05, budget: float = 0.30,
+                     seed: int = 0, n_cases: int = 900, n_resplits: int = 40, resplit_n: int = 600,
+                     review_min: float = REVIEW_MIN_PER_CASE, n_grid: int = 40, fast: bool = False,
+                     stand_in: str = "majority_else_mean", sandbox_seed: int = 2026) -> dict:
+    """HEADLINE: review routing on households from agent-core's sandbox (routing/sandbox.py), with the pure synthetic
+    generator's evaluation under `secondary`. If the agent package cannot be imported, falls back to the synthetic
+    generator as the headline and says so in `meta.note`. `cases` overrides the headline case set.
+
+    `fast=True`: 10 fresh re-draws instead of 40. Shapes and key names are those of the /eval/report `routing` section.
+    """
+    from understudy_engine.routing.sandbox import sandbox_cases
+    if fast:
+        n_resplits = min(n_resplits, 10)
+    secondary = evaluate_routing_synthetic(alpha=alpha, delta=delta, budget=budget, seed=seed, n_resplits=n_resplits,
+                                           review_min=review_min, n_grid=n_grid)
+    if cases is None:
+        try:
+            cases = sandbox_cases(n_cases, sandbox_seed, stand_in)
+        except ImportError:
+            out = dict(secondary)
+            out["meta"] = dict(out["meta"], note="Fallback: the sandbox package was not importable, so this is the pure "
+                                                 "synthetic generator. " + (out["meta"].get("note") or ""))
+            out["headline_source"] = "synthetic generator (sandbox unavailable)"
+            return out
+    out = _evaluate_cases(
+        cases, lambda n, sd: sandbox_cases(n, sandbox_seed + 1 + sd, stand_in), alpha=alpha, delta=delta, budget=budget,
+        seed=seed, n_resplits=n_resplits, resplit_n=resplit_n, review_min=review_min, n_grid=n_grid,
+        note=_SANDBOX_NOTE, caveats=_SANDBOX_CAVEATS)
+    out["headline_source"] = f"sandbox households (stand-in agent: {stand_in})"
+    if not fast:
+        try:
+            out["stand_ins"] = [_stand_in_summary(n_cases, sandbox_seed, si, alpha, delta)
+                                for si in ("majority_else_mean", "mean_of_three", "median_of_three")]
+        except ImportError:
+            pass
+    out["secondary"] = {"source": "pure synthetic generator (routing/cases.py), 4,000 cases", **secondary}
     return out

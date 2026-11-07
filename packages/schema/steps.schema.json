@@ -72,7 +72,7 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 300,
-      "not": { "pattern": "(?i)^\\s*(javascript|data):" },
+      "not": { "pattern": "^\\s*([jJ][aA][vV][aA][sS][cC][rR][iI][pP][tT]|[dD][aA][tT][aA]):" },
       "description": "A CSS selector. The compile validator checks each one against the live page."
     },
     "textMatch": {

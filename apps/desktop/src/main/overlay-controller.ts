@@ -117,5 +117,6 @@ export function createOverlayController(ctx: ServiceContext, deps: OverlayContro
     },
     caption: (speaker, text, final) => ctx.sendOverlay({ type: 'caption', speaker, text, final }),
     chip: (level, label) => ctx.sendOverlay({ type: 'chip', level, label }),
+    coach: (fade, level, label) => ctx.sendOverlay({ type: 'coach', fade, level, label }),
   }
 }

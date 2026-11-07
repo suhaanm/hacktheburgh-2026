@@ -347,8 +347,29 @@ button { cursor: pointer; }
 .chart__note { flex-basis: 100%; color: var(--muted); }
 .shot--img { width: 220px; height: auto; display: block; padding: 0; object-fit: cover; border-style: solid; }
 .kill__short { display: none; }
-@media (max-width: 480px) { .kill__long { display: none; } .kill__short { display: inline; } .kill:not([aria-pressed="true"]) { min-height: 36px; } }
 @media (max-width: 600px) {
   .memfile__line { grid-template-columns: 2.4em minmax(0, 1fr); }
   .memfile__actions { grid-column: 2; padding-bottom: var(--space-2); }
 }
+
+/* -- Sign-in (optional) ------------------------------------------------------ */
+.authctl { display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--space-2); font: var(--text-xs)/1.4 var(--font-mono); color: var(--muted); }
+.authctl__name { color: var(--fg); min-width: 0; overflow-wrap: anywhere; }
+.authctl__avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex: none; }
+.authctl__avatar--letter { display: inline-grid; place-items: center; background: var(--sunk); border: var(--hair) solid var(--line-strong); color: var(--fg); font: 600 var(--text-xs)/1 var(--font-mono); }
+.authctl .datanote__why { flex-basis: 100%; }
+.authctl .linkish:disabled { opacity: 0.6; cursor: wait; }
+
+/* -- Phones: the stop control moves into the sticky top bar, so it never covers content ------ */
+@media (max-width: 880px) {
+  .kill--fixed:not([aria-pressed="true"]) { top: 8px; bottom: auto; right: calc(var(--gutter-wide) + 76px); min-height: 38px; padding: 0 var(--space-3) 0 var(--space-2); box-shadow: none; gap: var(--space-2); }
+  .kill--fixed:not([aria-pressed="true"]) kbd { display: none; }
+  .kill__long { display: none; }
+  .kill__short { display: inline; }
+  .kill--fixed[aria-pressed="true"] { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); right: 12px; }
+}
+.capture { padding: var(--space-3) 0; border-top: var(--hair) solid var(--line); border-bottom: var(--hair) solid var(--line); }
+.pill--path { max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.memfile__bar > span { min-width: 0; overflow-wrap: anywhere; }
+.page__aside { min-width: 0; max-width: 100%; }
+.limit__src { display: block; margin-top: 2px; font: var(--text-xs)/1.4 var(--font-mono); color: var(--muted); }

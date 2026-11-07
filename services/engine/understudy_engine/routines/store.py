@@ -97,11 +97,14 @@ class RoutineStore:
     def merge(self, detected: Iterable[dict[str, Any]]) -> list[str]:
         st = self._load()
         known = st["routines"]
+        earlier = set(known)          # only routines from before this run can be the same routine seen again
         ids: list[str] = []
         for d in detected:
             rid = d["id"]
             if rid not in known and d.get("template_id") is None:
                 for oid, o in known.items():  # a recurrence of an earlier unnamed routine keeps its id (and its consent)
+                    if oid not in earlier:
+                        continue
                     if o.get("template_id") is None and o.get("signature") and edit_distance(tuple(o["signature"]), tuple(d["signature"])) <= 0.3:
                         rid = oid
                         break
@@ -187,6 +190,26 @@ class RoutineStore:
 
     def labels(self, person: str) -> list[tuple[float, bool]]:
         return [(x["t"], x["accepted"]) for x in self._load().get("labels", []) if x["person"] == person]
+
+    def refresh_gate(self, source, t: float, person: str | None = None) -> None:
+        """Re-evaluate every routine's skill gate against the worker's current skill levels (cheap; no re-detection)."""
+        from .gate import routine_skill_gate
+
+        st = self._load()
+        changed = False
+        for r in st["routines"].values():
+            if person is not None and r.get("person") != person:
+                continue
+            gate = routine_skill_gate(source, r.get("skill_cogs", []), t, learning_relevant=r.get("learning_relevant", True))
+            reasons = list(r.get("other_reasons", []))
+            if not gate["eligible"]:
+                reasons.append(gate["reason"])
+            proposable = not reasons
+            if gate != r.get("skill_gate") or proposable != r.get("proposable") or reasons != r.get("not_proposable_because"):
+                r["skill_gate"], r["proposable"], r["not_proposable_because"] = gate, proposable, reasons
+                changed = True
+        if changed:
+            self._save(st)
 
     # ----- consent -----
     def consent(self, rid: str, mode: str, *, irreversible_unattended: list[str] | None = None, typed_confirm: str | None = None,

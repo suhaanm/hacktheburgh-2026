@@ -41,6 +41,15 @@ describe("transition graph", () => {
     expect(L.get("copy_to_note")!).toBeGreaterThan(L.get("reconcile")!);
     expect(L.get("check_cliff")!).toBeLessThan(L.get("compare")!);
   });
+  it("survives cycles and self loops: layers stay within the node count and the main route still reads downward", () => {
+    const nodes = ["READ", "ENTER", "CHECK", "RECONCILE"].map((c) => ({ id: c, cog: c, expert_dwell_s: 10, novice_dwell_s: 10 }));
+    const e = (from: string, to: string, f = 1) => ({ from, to, expert_freq: f, novice_freq: f, missing_for_novice: false, planted: null });
+    const L = layers(nodes, [e("READ", "ENTER"), e("ENTER", "CHECK"), e("CHECK", "ENTER", 0.4), e("CHECK", "CHECK", 0.3), e("CHECK", "RECONCILE"), e("RECONCILE", "READ", 0.2)]);
+    expect(Math.max(...L.values())).toBeLessThanOrEqual(3);
+    expect(L.get("READ")).toBe(0);
+    expect(L.get("ENTER")!).toBeLessThan(L.get("CHECK")!);
+    expect(L.get("CHECK")!).toBeLessThan(L.get("RECONCILE")!);
+  });
   it("lays out every node once", () => {
     expect(layoutTransitions(tr.nodes, tr.edges, 400).pos.size).toBe(tr.nodes.length);
   });

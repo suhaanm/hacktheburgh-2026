@@ -19,6 +19,7 @@ let zoner: Zoner | null = null;
 let stopCapture: (() => void) | null = null;
 let stopL1: (() => void) | null = null;
 let l1Active = false;
+let appliedRole = "";
 
 const isTop = (() => { try { return window.top === window; } catch { return false; } })();
 const send = (msg: unknown) => void chrome.runtime.sendMessage(msg).catch(() => undefined);
@@ -44,6 +45,8 @@ async function sync(): Promise<void> {
   if (!cfg.capturing) return stop();
   if (!salt) salt = await getSalt();
   if (!salt) return stop();
+  if (appliedRole && appliedRole !== cfg.role) stop(); // the role (and so the zone config) changed: start over
+  appliedRole = cfg.role;
   zoner = new Zoner(zoneConfig, pickSite(zoneConfig, location.host, [cfg.role]));
   if (!stopCapture) {
     stopCapture = installCapture({ win: window, salt, matcher, zoner, emit: (record: CaptureRecord) => send({ kind: "record", record }) });
@@ -75,7 +78,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && (changes[STORAGE_KEYS.config] || changes[STORAGE_KEYS.l1Targets] || changes[STORAGE_KEYS.salt])) void sync();
+  if (area !== "local") return;
+  if (changes[STORAGE_KEYS.salt]) {
+    salt = "";
+    stop();
+  }
+  if (changes[STORAGE_KEYS.config] || changes[STORAGE_KEYS.l1Targets] || changes[STORAGE_KEYS.salt]) void sync();
 });
 
 void sync();

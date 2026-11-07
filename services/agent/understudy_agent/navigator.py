@@ -193,6 +193,7 @@ class Navigator:
 
     # ------------------------------------------------------------------ tiers
     async def _tier1(self, page: Any, job: Any) -> dict[str, Any]:
+        self.guard.set_mode("compiled")
         bundle = self.bundle_override or job.bundle(self.bundle_layout)
         rt = DslRuntime(page=page, params=job.params, base_url=self.base_url, query=self.query,
                         navigator=self.id, emit=self._emit, guard=self.guard, is_current=self.is_current,
@@ -299,6 +300,7 @@ class Navigator:
     async def _cliff_check(self, page: Any, job: Any, outputs: dict[str, Any], res: NavResult) -> None:
         """CHECK_CLIFF, the expert's signature step. Already done by a tier-1 bundle, otherwise do it now."""
         if not outputs.get("cliff"):
+            self.guard.set_mode("compiled")
             rt = DslRuntime(page=page, params={}, base_url=self.base_url, navigator=self.id, emit=self._emit,
                             guard=self.guard, is_current=self.is_current, step_start=self.steps,
                             pre_timeout_ms=1500, post_timeout_ms=3000)

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import re
 import time
 from datetime import datetime, timedelta, timezone
@@ -205,3 +204,42 @@ def test_append_is_append_only_on_disk(store):
     store.append(mk(2))
     after = path.read_bytes()
     assert after.startswith(before) and len(after) > len(before)
+
+
+def test_replay_of_21_days_is_under_two_seconds(tmp_path):
+    """Performance sanity (E3): the biggest persona, 21 days, full file replay."""
+    from understudy_engine.personas import PERSONA_BY_SLUG, write_persona
+    from understudy_engine.cogs import cog_labeler
+
+    write_persona(PERSONA_BY_SLUG["night-owl"], tmp_path, with_mc=False)
+    st = EventStore(tmp_path)
+    path = tmp_path / "synthetic" / "night-owl" / "events.jsonl"
+    t = time.time()
+    r = replay(path, speed=100, squeeze_idle_s=30, store=st, label_fn=cog_labeler())
+    elapsed = time.time() - t
+    assert len(r.frames) > 20000 and elapsed < 2.0, (len(r.frames), elapsed)
+    t = time.time()
+    st2 = EventStore(tmp_path)
+    assert len(st2.read("synthetic", person="p_nightowl")) == len(r.frames)
+    assert time.time() - t < 2.0
+
+
+def test_concurrent_appends_lose_nothing_and_never_duplicate(tmp_path):
+    import threading
+
+    st = EventStore(tmp_path / "data")
+    errors = []
+
+    def writer(k):
+        try:
+            for j in range(40):
+                st.append_many([mk(k * 100 + j), mk(k * 100 + j)])      # the second is a duplicate, always refused
+        except Exception as exc:  # pragma: no cover
+            errors.append(exc)
+
+    threads = [threading.Thread(target=writer, args=(k,)) for k in range(6)]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+    assert not errors
+    evs = EventStore(tmp_path / "data").read("real")
+    assert len(evs) == 240 and len({e.id for e in evs}) == 240

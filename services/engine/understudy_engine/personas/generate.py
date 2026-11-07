@@ -6,7 +6,7 @@ import math
 import random
 import statistics
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -232,10 +232,8 @@ def _run_task(em: Emitter, plan: TaskPlan, t0: float, tid: str, rnd: random.Rand
     t = t0
     eps: list[dict] = []
     blocks = {b["start_item"]: b for b in plan.stuck_blocks}
-    block_end_item: dict[int, dict] = {}
     cur_block = None
     block_t0 = 0.0
-    prev_len = None
     for i, it in enumerate(plan.items):
         if i in blocks:
             cur_block = blocks[i]

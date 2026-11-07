@@ -96,58 +96,66 @@ for (let c = 0.1; c <= 1.0001; c += 0.05) {
   const w = 0.012 + 0.04 * c * (1 - 0.3 * c);
   riskCov.push({ coverage: r(c, 2), risk: r(risk, 4), ci: [r(Math.max(0, risk - w), 4), r(risk + w, 4)] });
 }
+const stub = (status, reason, meta) => ({ status, reason, meta });
 const report = {
   generated_at: GEN,
   mock: true,
   sections: {
-    deficit_recovery: { meta: M("synthetic", 24, "personas", "6 injected deficit types x 4 synthetic apprentices", "Which deficit was injected, and what it costs."), precision: 0.92, recall: 0.83, rows: [
-      { deficit: "Skips the cliff check", true_s: 96, est_s: 91, ci: [66, 118] },
-      { deficit: "Hunts for the calculators", true_s: 45, est_s: 44, ci: [31, 59] },
-      { deficit: "Freezes before the result", true_s: 30, est_s: 34, ci: [18, 51] },
-      { deficit: "Slow household entry", true_s: 24, est_s: 21, ci: [11, 33] },
-      { deficit: "Slow reconcile", true_s: 20, est_s: 24, ci: [13, 35] },
-      { deficit: "Re-reads the case file", true_s: 12, est_s: 6, ci: [-2, 15] } ] },
-    routines: { meta: M("synthetic", 4, "personas", "planted routines per persona, found by the routine finder", "Planted routines found, and anything found that was not planted."), rows: [
-      { persona: "Nine to five", planted: 3, found: 3, precision: 1.0, recall: 1.0 },
-      { persona: "Night owl", planted: 3, found: 3, precision: 1.0, recall: 1.0 },
-      { persona: "Shift worker", planted: 3, found: 2, precision: 1.0, recall: 0.67 },
-      { persona: "Irregular", planted: 3, found: 3, precision: 0.75, recall: 1.0 } ], overall: { precision: 0.92, recall: 0.92 } },
-    null_placebo: { meta: M("synthetic", 24, "personas", "cluster bootstrap by person, B = 2000", "Expert against expert, and shuffled labels, should show about zero."), real: { gap_s: 276, ci: [221, 334] }, placebo: { gap_s: 3.1, ci: [-6.0, 12.4] }, null: { gap_s: -1.8, ci: [-14.5, 10.9] } },
+    deficit_recovery: { meta: M("synthetic", 24, "personas", "6 injected deficit types, 16 synthetic novices against 8 experts", "Which deficit was injected, and what it costs, recovered from the traces alone."), rows: [
+      { deficit: "skip_check", label: "Skips the cliff check", injected_price_s: 96, recovered_price_s: 91, ci: [66, 118], precision: 0.92, recall: 0.88 },
+      { deficit: "search_loop", label: "Searches in loops", injected_price_s: 97, recovered_price_s: 96.9, ci: [71, 122], precision: 0.95, recall: 0.94 },
+      { deficit: "idle_before_enter", label: "Pauses before entering", injected_price_s: 38.6, recovered_price_s: 38.6, ci: [18, 59], precision: 0.9, recall: 0.86 },
+      { deficit: "repeated_read", label: "Reads the same page again", injected_price_s: 24, recovered_price_s: 23.5, ci: [12, 36], precision: 0.7, recall: 0.82 },
+      { deficit: "copy_error", label: "Copies a wrong figure", injected_price_s: 15, recovered_price_s: 15.2, ci: [6, 26], precision: 0.88, recall: 0.71 },
+      { deficit: "slow_reconcile", label: "Slow reconcile", injected_price_s: 22, recovered_price_s: 24, ci: [12, 35], precision: 0.86, recall: 0.8 } ], overall: { precision: 0.87, recall: 0.84 } },
+    routines: { meta: M("synthetic", 4, "personas", "planted routines per persona, found by the routine finder", "Raw precision is low until the value gate removes routines that would not pay for themselves; proposals are what the worker sees."), rows: [
+      { persona: "Nine to five", planted: 3, found: 3, precision: 0.25, recall: 1.0 },
+      { persona: "Night owl", planted: 3, found: 3, precision: 0.2, recall: 1.0 },
+      { persona: "Shift worker", planted: 3, found: 2, precision: 0.22, recall: 0.67 },
+      { persona: "Irregular", planted: 3, found: 3, precision: 0.2, recall: 1.0 } ], overall: { precision: 0.22, recall: 0.92 }, proposals_after_value_gate: { proposed: 8, real: 8 } },
+    null_placebo: { meta: M("synthetic", 24, "people", "cluster bootstrap by person, 1000 draws", "Expert against expert, and shuffled labels, should show about zero."), real: { gap_s: 230, ci: [193, 273] }, placebo: { gap_s: 7.1, ci: [-3.1, 18.4] }, null: { gap_s: 46, ci: [-36, 117] } },
     hazard: hazard,
     ope: { meta: M("synthetic", 5000, "episodes", "simulator with known ground truth, 200 resamples", "Coaching-policy value. The true value is known because the simulator is ours."), true_value: 0.412, estimators: [
-      { name: "Naive on-policy average", value: 0.521, ci: [0.503, 0.540] },
-      { name: "Inverse propensity (IPS)", value: 0.389, ci: [0.318, 0.462] },
-      { name: "Self-normalised IPS", value: 0.405, ci: [0.366, 0.444] },
-      { name: "Doubly robust", value: 0.415, ci: [0.389, 0.441] } ] },
+      { name: "naive", label: "Naive on-policy average", value: 0.521, ci: [0.503, 0.540] },
+      { name: "ips", label: "Inverse propensity (IPS)", value: 0.389, ci: [0.318, 0.462] },
+      { name: "snips", label: "Self-normalised IPS", value: 0.405, ci: [0.366, 0.444] },
+      { name: "dr", label: "Doubly robust", value: 0.415, ci: [0.389, 0.441] } ] },
     routing: { meta: M("synthetic", 600, "households", "calibration 300 / held-out 300", "Auto-approve the safest cases and send the rest to an expert."), alpha: 0.05, chosen_coverage: 0.7, held_out_error: 0.034, held_out_ci: [0.016, 0.058], bound_held: true, curve: riskCov, expert_minutes_per_case: 2.4 },
-    ski_rental: { meta: M("synthetic", 400, "days", "simulated workdays, 50 routines"), hindsight: 1.0, rows: [
-      { rule: "Build now", regret: 1.9, ci: [1.7, 2.2] },
-      { rule: "Build at break-even", regret: 1.5, ci: [1.4, 1.7] },
-      { rule: "Ski rental with predictions", regret: 1.2, ci: [1.1, 1.3] } ] },
-    presence: { meta: M("synthetic", 84, "days", "4 personas x 21 days, last 7 held out"), brier: 0.092, brier_baseline_overnight: 0.171, brier_baseline_idle5: 0.139, interruption_rate: 0.04, interruption_cap: 0.05, calibration: [
-      { p_mean: 0.08, freq: 0.07, n: 210 }, { p_mean: 0.25, freq: 0.29, n: 156 }, { p_mean: 0.45, freq: 0.41, n: 122 }, { p_mean: 0.65, freq: 0.68, n: 97 }, { p_mean: 0.85, freq: 0.82, n: 71 }, { p_mean: 0.95, freq: 0.96, n: 44 } ] },
-    agent_claims: { meta: M("synthetic", 120, "episodes", "20 households x 3 sites x 2 variants"), false_claims: 7, claims: 120, false_claim_rate: 0.058, false_claim_ci: [0.028, 0.116], caught_by_code_check: 7, brier: 0.071 },
-    redteam: { meta: M("synthetic", 96, "episodes", "8 attack types x 12 runs per row, sandbox sites"), false_pause_rate: 0.021, false_pause_ci: [0.006, 0.07], rows: [
-      { ablation: "All layers on", attack_success: 0.0, attack_ci: [0.0, 0.038], task_success: 0.89, task_ci: [0.81, 0.94] },
-      { ablation: "Without the quarantined reader", attack_success: 0.17, attack_ci: [0.1, 0.27], task_success: 0.9, task_ci: [0.82, 0.95] },
-      { ablation: "Without the injection detector", attack_success: 0.1, attack_ci: [0.05, 0.19], task_success: 0.9, task_ci: [0.82, 0.95] },
-      { ablation: "Without the action gate", attack_success: 0.24, attack_ci: [0.16, 0.34], task_success: 0.9, task_ci: [0.82, 0.95] },
-      { ablation: "Without data-flow rules", attack_success: 0.08, attack_ci: [0.04, 0.16], task_success: 0.9, task_ci: [0.82, 0.95] },
-      { ablation: "All layers off", attack_success: 0.52, attack_ci: [0.42, 0.62], task_success: 0.91, task_ci: [0.83, 0.95] } ] },
-    study: { meta: M("real", 4, "people", "within-subject, counterbalanced, teammates only", "n = 4. Treat every number here as a case study, not a result."), rows: [
-      { participant: "Teammate A", unassisted_before_s: 512, unassisted_after_s: 418 },
-      { participant: "Teammate B", unassisted_before_s: 466, unassisted_after_s: 431 },
-      { participant: "Teammate C", unassisted_before_s: 540, unassisted_after_s: 444 },
-      { participant: "Teammate D", unassisted_before_s: 489, unassisted_after_s: 472 } ], mean_change_s: -59.5, mean_change_ci: [-118.0, -1.0] },
+    ski_rental: { meta: M("synthetic", 400, "days", "simulated workdays, 50 routines"), hindsight_regret: 1.0, rows: [
+      { rule: "buy-now", label: "Build now", regret: 1.9, ci: [1.7, 2.2] },
+      { rule: "break-even", label: "Build at break-even", regret: 1.5, ci: [1.4, 1.7] },
+      { rule: "predictions", label: "Ski rental with predictions", lambda: 0.5, regret: 1.2, ci: [1.1, 1.3] } ] },
+    presence: { meta: M("synthetic", 84, "days", "4 personas x 21 days, last 7 held out", "The two baselines are start policies, not forecasts, so they have no Brier score. The map is worse than its baseline for the shift worker."), brier: 0.171, brier_prior_only: 0.2, interruption_rate: 0.04, cap: 0.05, idle_time_used: 0.46,
+      baselines: { fixed_overnight: { interruption_rate: 0.09, idle_time_used: 0.31 }, idle_5min: { interruption_rate: 0.21, idle_time_used: 0.74 } },
+      reliability: [{ p_mean: 0.08, freq: 0.07, n: 210 }, { p_mean: 0.25, freq: 0.29, n: 156 }, { p_mean: 0.45, freq: 0.41, n: 122 }, { p_mean: 0.65, freq: 0.68, n: 97 }, { p_mean: 0.85, freq: 0.82, n: 71 }, { p_mean: 0.95, freq: 0.96, n: 44 }] },
+    agent_claims: { meta: M("synthetic", 120, "episodes", "20 households x 3 sites x 2 variants", "The code check catches every false claim by construction: it decides success, not the model. This section measures how well the claim itself can be predicted."), brier: 0.071, base_rate: 0.058,
+      reliability: [{ p_mean: 0.04, freq: 0.03, n: 70 }, { p_mean: 0.2, freq: 0.24, n: 25 }, { p_mean: 0.5, freq: 0.44, n: 14 }, { p_mean: 0.8, freq: 0.86, n: 11 }] },
+    redteam: { meta: M("synthetic", 96, "episodes", "8 attack types x 12 runs per row, sandbox sites", "The planner is a script, not a real model, so these rows show what each layer does when the planner always falls for the attack."), false_pause_rate: 0.021, false_pause_ci: [0.006, 0.07], rows: [
+      { ablation: "all_on", label: "All layers on", attack_success: 0.0, attack_ci: [0.0, 0.038], task_success: 0.89, task_ci: [0.81, 0.94] },
+      { ablation: "no_reader", label: "Without the quarantined reader", attack_success: 0.17, attack_ci: [0.1, 0.27], task_success: 0.9, task_ci: [0.82, 0.95] },
+      { ablation: "no_detector", label: "Without the injection detector", attack_success: 0.1, attack_ci: [0.05, 0.19], task_success: 0.9, task_ci: [0.82, 0.95] },
+      { ablation: "no_gate", label: "Without the action gate", attack_success: 0.24, attack_ci: [0.16, 0.34], task_success: 0.9, task_ci: [0.82, 0.95] },
+      { ablation: "no_dataflow", label: "Without data-flow rules", attack_success: 0.08, attack_ci: [0.04, 0.16], task_success: 0.9, task_ci: [0.82, 0.95] },
+      { ablation: "all_off", label: "All layers off", attack_success: 0.52, attack_ci: [0.42, 0.62], task_success: 0.91, task_ci: [0.83, 0.95] } ] },
+    redteam_live: { meta: M("synthetic", 12, "episodes", "real model on the sandbox pages, 3 attack types x 4 runs", "A real model, with a very small n. A spot check, not a rate."), false_pause_rate: 0.0, false_pause_ci: [0.0, 0.3], rows: [
+      { ablation: "all_on", label: "All layers on", attack_success: 0.0, attack_ci: [0.0, 0.26], task_success: 0.83, task_ci: [0.55, 0.95] },
+      { ablation: "all_off", label: "All layers off", attack_success: 0.33, attack_ci: [0.14, 0.61], task_success: 0.92, task_ci: [0.65, 0.99] } ] },
+    pooling: { meta: M("synthetic", 4, "personas", "leave one person out"), note: "Mean absolute error of the predicted idle window, in minutes, after this many episodes of a new person.", rows: [
+      { n_episodes: 0, no_pooling: 41.0, partial_pooling: 24.0, complete_pooling: 22.5, ci: { no_pooling: [30, 52], partial_pooling: [18, 31], complete_pooling: [17, 28] } },
+      { n_episodes: 1, no_pooling: 33.0, partial_pooling: 20.1, complete_pooling: 22.4, ci: { no_pooling: [24, 42], partial_pooling: [15, 26], complete_pooling: [17, 28] } },
+      { n_episodes: 3, no_pooling: 22.0, partial_pooling: 16.3, complete_pooling: 22.4, ci: { no_pooling: [16, 28], partial_pooling: [12, 21], complete_pooling: [17, 28] } },
+      { n_episodes: 10, no_pooling: 14.0, partial_pooling: 12.9, complete_pooling: 22.3, ci: { no_pooling: [10, 18], partial_pooling: [9, 17], complete_pooling: [17, 28] } } ] },
+    study: stub("not_run", "The live study with the four teammates has not run yet, so there are no human results here.", M("real", 0, "people", null, "n = 4 when it runs. Treat every number as a case study.")),
     limitations: [
-      { id: "L1", text: "Most results come from synthetic apprentices and synthetic personas. Synthetic results carry a badge. They show the method recovers what we planted, not that real workers behave this way.", severity: "high" },
-      { id: "L2", text: "The live study has n = 4 teammates. Intervals are wide and the sample is not representative of benefits processors.", severity: "high" },
-      { id: "L3", text: "The expert reference is one scripted person per task. A different expert would draw a different ribbon.", severity: "medium" },
-      { id: "L4", text: "Off-policy results come from a simulator we wrote. They test the estimators, not the policy on real people.", severity: "medium" },
-      { id: "L5", text: "Presence is learned from 3 weeks of one persona per map. Real schedules drift, and a new job or holiday breaks the map until it relearns.", severity: "medium" },
-      { id: "L6", text: "The agent runs on local sandbox sites and synthetic households. Real calculators change layout and may block automation.", severity: "medium" },
-      { id: "L7", text: "Autonomy rung A3 needs a Wilson lower bound of 0.95 (about 75 clean runs). The demo does not reach it, and says so.", severity: "low" },
-      { id: "L8", text: "The red-team suite covers eight attack types on our own pages. It is not a security proof.", severity: "low" } ],
+      { id: "L1", text: "Most results come from synthetic apprentices and synthetic personas. Synthetic results carry a badge. They show the method recovers what we planted, not that real workers behave this way.", severity: "high", source: "all synthetic sections" },
+      { id: "L2", text: "The live study has n = 4 teammates, and it has not run yet. Intervals will be wide and the sample is not representative of benefits processors.", severity: "high", source: "study" },
+      { id: "L3", text: "The shuffled-label control is not tight: about +46 s with an interval from -36 to +117 s, against a real gap of 230 s. Read the gap with that in mind.", severity: "medium", source: "null_placebo" },
+      { id: "L4", text: "The expert reference is one scripted person per task. A different expert would draw a different ribbon.", severity: "medium", source: "genome" },
+      { id: "L5", text: "Off-policy results come from a simulator we wrote. They test the estimators, not the policy on real people.", severity: "medium", source: "ope" },
+      { id: "L6", text: "Presence is learned from 3 weeks of one persona per map. The map is worse than its baseline for the shift worker, and a new job or holiday breaks it until it relearns.", severity: "medium", source: "presence" },
+      { id: "L7", text: "The agent runs on local sandbox sites and synthetic households. Real calculators change layout and may block automation.", severity: "medium", source: "agent_claims" },
+      { id: "L8", text: "The red-team suite uses a scripted planner on our own pages, plus a very small run with a real model. It is not a security proof.", severity: "low", source: "redteam" },
+      { id: "L9", text: "Autonomy rung A3 needs a Wilson lower bound of 0.95 (about 75 clean runs). The demo does not reach it, and says so.", severity: "low", source: "routines" } ],
   },
 };
 out("eval-report.json", report);

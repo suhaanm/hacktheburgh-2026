@@ -61,12 +61,54 @@ def _to_seconds(t: Any) -> float:
 
 def normalise_events(events: Iterable[Any]) -> list[tuple[float, str]]:
     """Accept core.Event objects or dicts; keep human events as (unix seconds, type), sorted."""
-    out: list[tuple[float, str]] = []
+    return [(t, k) for t, k, _, _ in _rows(events)]
+
+
+def _rows(events: Iterable[Any]) -> list[tuple[float, str, str | None, float | None]]:
+    """(unix seconds, type, meta.state, meta.idle_s) of the human events, sorted."""
+    out: list[tuple[float, str, str | None, float | None]] = []
     for e in events:
         get = (lambda k, d=None: e.get(k, d)) if isinstance(e, dict) else (lambda k, d=None: getattr(e, k, d))
         if str(get("actor", "human")) != "human":
             continue
-        out.append((_to_seconds(get("t")), str(get("type", "click"))))
+        meta = get("meta") or {}
+        idle_s = meta.get("idle_s")
+        state = meta.get("state")
+        out.append((_to_seconds(get("t")), str(get("type", "click")), str(state) if state is not None else None,
+                    float(idle_s) if isinstance(idle_s, (int, float)) and not isinstance(idle_s, bool) else None))
+    out.sort(key=lambda r: r[0])
+    return out
+
+
+def input_times(events: Iterable[Any]) -> list[float]:
+    """When the worker was at the machine: input events, plus what the desktop app's idle reports imply.
+
+    Desk ``idle`` rows come in two shapes. The persona data has ``meta.idle_s`` only: no new information, ignored here.
+    The desktop app sends ``meta.state``: ``"start"`` at t means the last input was ``idle_s`` seconds before t; ``"end"`` at t
+    means the worker is back (an input at t) and the idle spell lasted ``idle_s`` (the last input was at t - idle_s). Both
+    become input times. Between a return (unlock, resume, an idle end) and the next idle report the OS saw input all the
+    way, so those minutes are filled with one input a minute: a machine with only desk events (no browser extension) then
+    yields spells that start where the OS said the worker went idle, not at the previous unlock.
+    """
+    out: list[float] = []
+    active_since: float | None = None
+    for t, kind, state, idle_s in _rows(events):
+        if kind in INPUT_TYPES:
+            out.append(t)
+            if kind in ("unlock", "resume") and active_since is None:
+                active_since = t
+        elif kind == "idle" and state in ("start", "end") and idle_s is not None:
+            last = t - idle_s
+            if active_since is not None and last > active_since:
+                n = int((last - active_since) // 60)
+                out.extend(active_since + 60.0 * i for i in range(1, min(n, 24 * 60)))
+            out.append(last)
+            active_since = None
+            if state == "end":
+                out.append(t)
+                active_since = t
+        elif kind in ("lock", "sleep"):
+            active_since = None if kind == "sleep" else active_since
     out.sort()
     return out
 
@@ -83,8 +125,7 @@ def spells_from_events(events: Iterable[Any], *, tz: str | None = "UTC", min_gap
                        censor_at: float | None = None) -> list[Spell]:
     """Idle spells of at least ``min_gap_min`` between consecutive human inputs."""
     zone = get_tz(tz)
-    ev = [(t, k) for t, k in normalise_events(events)]
-    inputs = [t for t, k in ev if k in INPUT_TYPES]
+    inputs = input_times(events)
     out: list[Spell] = []
     for a, b in zip(inputs, inputs[1:]):
         gap = (b - a) / 60.0
@@ -114,6 +155,7 @@ def day_states_from_events(events: Iterable[Any], *, tz: str | None = "UTC", min
     ev = normalise_events(events)
     if not ev:
         return []
+    ins = input_times(events)
     d0 = first_day or _local(ev[0][0], zone).date()
     d1 = last_day or _local(ev[-1][0], zone).date()
     ndays = (d1 - d0).days + 1
@@ -130,11 +172,11 @@ def day_states_from_events(events: Iterable[Any], *, tz: str | None = "UTC", min
             asleep_iv.append((awake_end, nxt))
         elif nxt is None:
             asleep_iv.append((awake_end, origin + ndays * 86400.0))
-        if kind in INPUT_TYPES:
-            loc = _local(t, zone)
-            di = (loc.date() - d0).days
-            if 0 <= di < ndays:
-                counts[di, (loc.hour * 60 + loc.minute) // 15] += 1
+    for t in ins:
+        loc = _local(t, zone)
+        di = (loc.date() - d0).days
+        if 0 <= di < ndays:
+            counts[di, (loc.hour * 60 + loc.minute) // 15] += 1
     asleep = np.zeros(ndays * SLOTS, dtype=bool)
     for a, b in asleep_iv:
         # bins are 15 local minutes; test the bin centre. (Local days of 23 or 25 hours across a DST change are

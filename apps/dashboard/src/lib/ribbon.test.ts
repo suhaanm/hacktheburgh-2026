@@ -25,7 +25,7 @@ describe("layoutRibbon", () => {
     expect(extras).toEqual(["SEARCH", "IDLE", "REVERT"]);
   });
   it("sums seconds lost to the total in the genome", () => {
-    expect(layout.totalLost).toBeCloseTo(genome.total_gap_s, 5);
+    expect(layout.totalLost).toBeCloseTo(genome.person_gap_s ?? genome.total_gap_s, 5);
     expect(layout.maxLost).toBe(58);
   });
   it("sizes the longer block to the whole column and the other in proportion", () => {

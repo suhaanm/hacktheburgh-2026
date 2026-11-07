@@ -76,6 +76,8 @@ Written by the lead on Sat 7 Nov 2026. **This is the sync point between the dash
 
 - `GET /kill` -> `{ killed: bool, at: ISO|null }` (engine-data; reads `data/KILL`).
 - `GET /runs/{run_id}/{file}` serves evidence files from `data/runs/<run_id>/` (png, json only; path traversal refused) so queue screenshots render (engine-data).
+- `GET /identity` -> `{ person, role }` (plain JSON; engine-handoff; the engine owns the id, created by onboarding). The desktop app and the browser extension adopt it when it exists (falling back to their own generated id only before onboarding). `GET /memory` also carries `person` and `role`.
+- `POST /routines/{id}/recording` accepts a draft step bundle matching `packages/schema/recording.schema.json` (example `packages/schema/examples/recording.example.json`), stores it under `data/routines/<id>/recording.json`, returns `{ steps, accepted }` (engine-handoff). The extension tolerates 404/405 until it exists.
 - Genome gaps: the dashboard reads a gap from `alignment[].i` or `.j` being `null`; `seconds` = seconds lost for that column. Op names stay as documented.
 - `presence.forecast[]` may carry `lo` and `hi` (interval). `dow` 0 = Monday.
 - `Routine.value.horizon_weeks` (int, default 4), `Routine.driver` (`"compiled"` | `"model"`), `Routine.irreversible_classes` (string[]); a model-driven routine with irreversible classes needs the typed confirmation, a compiled one needs one tap (engine-handoff).
@@ -91,6 +93,8 @@ Written by the lead on Sat 7 Nov 2026. **This is the sync point between the dash
   - `redteam`: `{ rows: [{ ablation: "all_on"|"no_<layer>"|"all_off", attack_success, attack_ci: [lo,hi], task_success, task_ci: [lo,hi] }], false_pause_rate, false_pause_ci }`
   - `study`: `{ rows: [{ participant, unassisted_before_s, unassisted_after_s }], mean_change_s, mean_change_ci, n: 4 }` (empty until the live study has run; the page says so)
   - `routines`: `{ rows: [{ persona, planted, found, precision, recall }], overall: { precision, recall } }` (meta: origin synthetic, n_unit "personas")
+  - `pooling` (ANA-9): `{ rows: [{ n_episodes, no_pooling, partial_pooling, complete_pooling, ci }], note }` (error after 0, 1, 3, 10 episodes, leave-one-person-out)
+  - `policy_gate` and `skills` sections (extras from engine-analytics): free-form with `meta`; the dashboard shows them only if present.
   - `limitations`: `[{ id, text, severity: "low"|"medium"|"high" }]`
 - **Envelope policy (decided 7 Nov):** the `{ meta, data }` envelope applies to the analytic GETs: `/genome/{task}`, `/graph/transitions`, `/graph/work`, `/hazard/{person}`, `/presence`, `/routines`, `/eval/report` sections. Control-plane endpoints return plain JSON: `/health`, `/events`, `/replay`, `/packs`, `/onboarding*`, `/memory*`, `/coach/state`, `/offhours/*`, `/queue*`, `/audit`, `/kill*`, and the agent API.
   The dashboard's fixture `apps/dashboard/src/fixtures/eval-report.json` is the reference; the eval harness and the dashboard must stay in step.

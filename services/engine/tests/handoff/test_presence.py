@@ -1,7 +1,7 @@
 """ANA-12, OFF-1, OFF-3: presence map, intervals, idle capacity, return-time survival, decision rule, evaluation."""
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 
 import numpy as np
 import pytest

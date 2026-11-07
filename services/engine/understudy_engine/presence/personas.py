@@ -15,7 +15,7 @@ import numpy as np
 from ..memory.paths import data_dir
 from .evaluate import evaluate_presence
 from .model import PresenceModel, PriorHours, Smoothing
-from .timeline import ACTIVE, SLOTS, DayObs, day_states_from_events, spells_from_events
+from .timeline import ACTIVE, DayObs, day_states_from_events, spells_from_events
 
 PERSONAS = ("nine-to-five", "night-owl", "shift-worker", "irregular")
 
@@ -75,7 +75,7 @@ def _truth_idle_h(truth: dict[str, Any], phase: str) -> float | None:
     return round(float(sh["IDLE"] + sh["AWAY"]), 2) if sh else None
 
 
-def evaluate_persona(name: str, root: Path | None = None, *, d_min: float = 30.0, cap: float = 0.10) -> dict[str, Any]:
+def evaluate_persona(name: str, root: Path | None = None, *, d_min: float = 30.0, cap: float = 0.10, fast: bool = False) -> dict[str, Any]:
     events, truth = load_persona(name, root)
     tz = truth.get("tz", "UTC")
     from datetime import date, timedelta
@@ -85,7 +85,7 @@ def evaluate_persona(name: str, root: Path | None = None, *, d_min: float = 30.0
     spells = spells_from_events(events, tz=tz)
     prior = PriorHours()  # the role-pack hours; the personas deliberately differ from it
     rep = evaluate_presence(days, spells, prior, origin="synthetic", d_min=d_min, cap=cap, person=truth.get("person"),
-                            note="synthetic persona; schedule changes on day 15")
+                            note="synthetic persona; schedule changes on day 15", fast=fast)
     change = int(truth.get("change_day", 15))
     pre_days = [d for i, d in enumerate(days) if i + 1 < change]
     post_days = [d for i, d in enumerate(days) if i + 1 >= change]
@@ -99,14 +99,17 @@ def evaluate_persona(name: str, root: Path | None = None, *, d_min: float = 30.0
     return rep
 
 
-def evaluate_presence_all(root: Path | None = None, *, d_min: float = 30.0, cap: float = 0.10) -> dict[str, Any]:
+def evaluate_presence_all(root: Path | None = None, *, d_min: float = 30.0, cap: float = 0.10, fast: bool = False) -> dict[str, Any]:
     """Plain dict for the eval harness: one entry per persona that exists on disk, and a pooled summary."""
-    per = {n: evaluate_persona(n, root, d_min=d_min, cap=cap) for n in PERSONAS if have_persona(n, root)}
+    per = {n: evaluate_persona(n, root, d_min=d_min, cap=cap, fast=fast) for n in PERSONAS if have_persona(n, root)}
     out: dict[str, Any] = {
         "name": "presence", "origin": "synthetic", "n": len(per), "n_unit": "personas", "interval_level": 0.95,
         "split": "forward and interleaved held-out days within each persona; truth only used to score recovery",
         "note": "Four synthetic personas, 21 days each, one schedule change on day 15. Not real people.",
         "personas": per,
+        "meta": {"origin": "synthetic", "n": len(per), "n_unit": "personas", "interval_level": 0.95,
+                 "split": "forward and interleaved held-out days within each persona; truth only used to score recovery",
+                 "note": "Four synthetic personas, 21 days each, one schedule change on day 15. Not real people."},
     }
     if per:
         rows = list(per.values())

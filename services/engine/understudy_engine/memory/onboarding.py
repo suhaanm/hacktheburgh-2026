@@ -15,6 +15,14 @@ from .store import MemoryStore, today_iso
 DAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 _PACE_WORDS = {"gentle": "slowly", "steady": "steadily", "quick": "quickly", "slow": "slowly", "medium": "steadily", "fast": "quickly"}
 _DEFAULT_PERSON = "p_me"
+PERSON_RE = __import__("re").compile(r"^p_[a-z0-9]{2,16}$")
+
+
+def new_person_id(store: MemoryStore) -> str:
+    """The engine owns the person id: stable for this install (hash of its home directory), created at first onboarding."""
+    import hashlib
+
+    return "p_" + hashlib.sha1(str(store.home.resolve()).encode()).hexdigest()[:8]
 
 
 class OnboardingError(ValueError):
@@ -127,6 +135,9 @@ def _checklist_text(pack: PackView) -> str | None:
 def build_profile(pack: PackView, answers: dict[str, Any]) -> dict[str, Any]:
     """Validate and normalise the answers against the pack. Raises OnboardingError on a bad value."""
     answers = answers or {}
+    capture = answers.get("capture", False)
+    if not isinstance(capture, bool):
+        raise OnboardingError("capture must be true or false")
     tools_opts, risky_opts = _option_values(pack, "tools"), _option_values(pack, "risky")
     tone_opts, pace_opts = _option_values(pack, "tone"), _option_values(pack, "pace")
 
@@ -155,7 +166,8 @@ def build_profile(pack: PackView, answers: dict[str, Any]) -> dict[str, Any]:
     ]))
     return {
         "role": pack.id,
-        "answers": {"tools": tools, "risky": risky, "tone": tone, "pace": pace, "hours": hours},
+        "answers": {"tools": tools, "risky": risky, "tone": tone, "pace": pace, "hours": hours, "capture": capture},
+        "capture": capture,
         "tone": {"length": tone, "voice": pack.tone_defaults.get("voice", "plain")},
         "pace": pace,
         "hours": hours,
@@ -165,11 +177,24 @@ def build_profile(pack: PackView, answers: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _seed(doc: D.MemoryDoc, pack: PackView, profile: dict[str, Any], today: str, keep_skills: bool) -> None:
-    """Replace the seeded sections. The worker's own Routines, Corrections and extra sections are left alone."""
+CAPTURE_LINE = "Capture: times only"
+CAPTURE_ID = "l_capture"
+KEEP_IDS = ("l_quiet_hours",)
+
+
+def capture_enabled(doc: D.MemoryDoc) -> bool:
+    """PR3: desk capture is on only while this line is in the Preferences section. Deleting the line turns it off."""
+    sec = doc.section("Preferences", create=False)
+    return any(ln.text.strip().lower().startswith("capture: times only") for ln in (sec.lines() if sec else []))
+
+
+def _seed(doc: D.MemoryDoc, pack: PackView, profile: dict[str, Any], today: str, keep_skills: bool, same_role: bool = False) -> None:
+    """Replace the seeded sections. The worker's own Routines, Corrections and extra sections are left alone, and on
+    a same-role re-run so are approved rules and the quiet-hours line."""
     for name in ("Preferences", "Procedure", "Never"):
         sec = doc.section(name)
-        sec.items = [i for i in sec.items if not isinstance(i, D.Line)]
+        sec.items = [i for i in sec.items if not isinstance(i, D.Line)
+                     or (same_role and (i.note.startswith("rule:") or i.id in KEEP_IDS))]
     skills = doc.section("Skill state")
     old_skill = {ln.text.split(":", 1)[0]: ln for ln in skills.lines()} if keep_skills else {}
     skills.items = [ln for ln in skills.lines() if ln.text.split(":", 1)[0] in old_skill]
@@ -181,6 +206,8 @@ def _seed(doc: D.MemoryDoc, pack: PackView, profile: dict[str, Any], today: str,
     doc.add("Preferences", f"Usual hours: {h['start']} to {h['end']}, {_fmt_days(h['days'])}.", note=f"onboarding {today}")
     if profile["tool_labels"]:
         doc.add("Preferences", "Tools: " + ", ".join(profile["tool_labels"]) + ".", note=f"onboarding {today}")
+    if profile.get("capture"):
+        doc.add("Preferences", CAPTURE_LINE, note=f"you agreed {today}", line_id=CAPTURE_ID)
 
     checklist = _checklist_text(pack)
     if checklist:
@@ -214,7 +241,9 @@ def onboard(store: MemoryStore, role: str, answers: dict[str, Any] | None, perso
         raise OnboardingError(f"unknown role {role!r}") from e
     profile = build_profile(pack, answers or {})
     today = today_iso(now)
-    person = person or (store.load_state().get("profile") or {}).get("person") or _DEFAULT_PERSON
+    if person is not None and not PERSON_RE.match(str(person)):
+        raise OnboardingError("person must look like p_ followed by 2 to 16 lower-case letters or digits")
+    person = person or (store.load_state().get("profile") or {}).get("person") or new_person_id(store)
 
     def mutate(doc: D.MemoryDoc) -> None:
         same_role = doc.front.get("role") == pack.id
@@ -223,11 +252,11 @@ def onboard(store: MemoryStore, role: str, answers: dict[str, Any] | None, perso
                 if sec.known:
                     sec.items = []
         doc.role = pack.id
-        _seed(doc, pack, profile, today, keep_skills=same_role)
+        _seed(doc, pack, profile, today, keep_skills=same_role, same_role=same_role)
 
     doc, _ = store.mutate("worker", mutate)
     state = store.load_state()
-    state["profile"] = {"person": person, **{k: profile[k] for k in ("role", "answers", "tone", "pace", "hours", "risk_classes")}}
+    state["profile"] = {"person": person, **{k: profile[k] for k in ("role", "answers", "tone", "pace", "hours", "risk_classes", "capture")}}
     store.save_state(state, actor="worker")
     return {
         "person": person,
@@ -237,6 +266,7 @@ def onboard(store: MemoryStore, role: str, answers: dict[str, Any] | None, perso
         "risk_classes": profile["risk_classes"],
         "tone": profile["tone"],
         "pace": profile["pace"],
+        "capture": capture_enabled(doc),
     }
 
 

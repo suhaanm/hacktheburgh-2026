@@ -79,6 +79,73 @@
    ]
   },
   {
+   "id": "reconcile-totals",
+   "role": "benefits-processor",
+   "title": "Reconcile the three results and flag differences",
+   "status": "proposed",
+   "episodes": 9,
+   "minutes_per_week": 41,
+   "cv": 0.27,
+   "judgement_share": 0.31,
+   "value": {
+    "hours_saved": [
+     0.9,
+     1.8
+    ],
+    "net_gbp": [
+     3,
+     26
+    ],
+    "confidence": 0.66,
+    "horizon_weeks": 4
+   },
+   "touches": [
+    "calculator results",
+    "case note (draft only)"
+   ],
+   "never": [
+    "submit",
+    "send"
+   ],
+   "consent": {
+    "mode": "none",
+    "irreversible_unattended": [],
+    "typed_confirm": false
+   },
+   "rung": "A0",
+   "shadow": {
+    "runs": 0,
+    "matches": 0,
+    "wilson_lower": 0.0
+   },
+   "build_timing": {
+    "rule": "ski-rental",
+    "buy_after_runs": 4,
+    "regret_vs_hindsight": 1.3
+   },
+   "skill_gate": {
+    "eligible": false,
+    "reason": "Your skill on RECONCILE is below level 4 (you are at level 3), so this one is better coached than automated for now."
+   },
+   "proposal": {
+    "what": "After the three calculators you compare the results and note any difference. The comparison follows the same pattern each time, but you still make a judgement call on the differences.",
+    "how_often": "about 9 times in 3 weeks",
+    "touches": [
+     "calculator results",
+     "case note (draft only)"
+    ],
+    "never": [
+     "Submit the case note",
+     "Send anything to a claimant"
+    ]
+   },
+   "bundle": "data/routines/reconcile-totals/steps.json",
+   "driver": "model",
+   "irreversible_classes": [
+    "submit"
+   ]
+  },
+  {
    "id": "case-note-copy",
    "role": "benefits-processor",
    "title": "Copy the three results into the case note",

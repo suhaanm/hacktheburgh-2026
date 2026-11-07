@@ -6,12 +6,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { LearnerSnapshot } from '../../shared/protocol'
 import { createModelPort, createOpenAiProvider, ModelPortError, plainFailure, redactArg, redactText, type ModelPort } from '../model-port'
 import { apiError, fakePort, hasImage, modelOutput, sleep, testDeps, testShot, textInput } from '../model-port/fake-port.test-util'
-import { withSafeLog } from './deps'
-import { createGrounder } from './grounder'
+import { withSafeLog, type ModelDeps } from './deps'
+import { createGrounder as realCreateGrounder, type GroundConfig } from './grounder'
 import { createLessonArchitect } from './lesson-architect'
 import { createRouter } from './router'
 import { createScamAnalyst } from './scam-analyst'
 import { createVerifier } from './verifier'
+
+// These scripts return boxes normalised to 0-1000 (the grounder's default is pixels; its own tests cover that).
+const createGrounder = (deps: ModelDeps, cfg: GroundConfig = {}) => realCreateGrounder(deps, { coords: 'norm1000', ...cfg })
 
 // Built at runtime so no key-shaped literal sits in the repo (secret scanners match the sk- and AIza shapes).
 const aiza = (rest: string) => ['AI', 'za', rest].join('')

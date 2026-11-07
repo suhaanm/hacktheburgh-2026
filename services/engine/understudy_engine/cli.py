@@ -1,7 +1,7 @@
 """``understudy`` command line.
 
     understudy synth --all                 regenerate every synthetic dataset (deterministic)
-    understudy synth --persona night-owl   one persona; --apprentices for the benefits-task traces
+    understudy synth --persona night-owl   one persona; --apprentices, --learners for the benefits-task datasets
     understudy pack validate [PATH ...]    validate role packs (ROL-1)
     understudy serve                       run the engine API on ENGINE_PORT (default 7700)
 """
@@ -16,13 +16,15 @@ from pathlib import Path
 
 def _synth(args: argparse.Namespace) -> int:
     from .personas import PERSONA_BY_SLUG, write_persona
-    from .personas import apprentices
+    from .personas import apprentices, learners
     from .store.paths import data_dir
 
     root = Path(args.out) if args.out else data_dir()
     t0 = time.time()
-    slugs = list(PERSONA_BY_SLUG) if args.all or not (args.persona or args.apprentices) else args.persona
-    want_apprentices = args.all or args.apprentices or not args.persona
+    explicit = bool(args.persona or args.apprentices or args.learners)
+    slugs = list(PERSONA_BY_SLUG) if args.all or not explicit else (args.persona or [])
+    want_apprentices = args.all or args.apprentices or not explicit
+    want_learners = args.all or args.learners or not explicit
     for slug in slugs or []:
         if slug not in PERSONA_BY_SLUG:
             print(f"unknown persona {slug!r}; choose from {', '.join(PERSONA_BY_SLUG)}", file=sys.stderr)
@@ -32,6 +34,9 @@ def _synth(args: argparse.Namespace) -> int:
     if want_apprentices:
         r = apprentices.generate(root)
         print(f"apprentices: {r['events']} events, {r['traces']} traces -> {r['dir']}")
+    if want_learners:
+        r = learners.generate(root)
+        print(f"learners: {r['events']} events, {r['traces']} cases -> {r['dir']}")
     print(f"done in {time.time() - t0:.1f}s (synthetic, seeded, deterministic)")
     return 0
 
@@ -61,6 +66,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--all", action="store_true", help="all four personas plus the apprentices")
     p.add_argument("--persona", action="append", help="persona slug (repeatable)")
     p.add_argument("--apprentices", action="store_true", help="benefits-task apprentice traces")
+    p.add_argument("--learners", action="store_true", help="three novices over ten days with decaying deficits and coach prompts")
     p.add_argument("--out", help="data root (default: UNDERSTUDY_DATA_DIR or <repo>/data)")
     p.add_argument("--fast", action="store_true", help="skip the Monte Carlo expectation in truth.json")
     p.set_defaults(fn=_synth)

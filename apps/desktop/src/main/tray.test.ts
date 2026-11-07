@@ -461,3 +461,12 @@ describe('Understudy menu items', () => {
     expect(shell.activate('queue')).toBe(false)
   })
 })
+
+describe('desk capture line in the menu', () => {
+  it('says plainly when capture is off or on, and is omitted when unknown', () => {
+    expect(labels({})).not.toContain('Desk capture is off. Turn it on in setup to share when you are active.')
+    expect(labels({ capture: 'off' })[1]).toBe('Desk capture is off. Turn it on in setup to share when you are active.')
+    expect(labels({ capture: 'times_only' })[1]).toMatch(/times only/)
+    expect(byId({ capture: 'off' }, 'capture')?.enabled).toBe(false)
+  })
+})

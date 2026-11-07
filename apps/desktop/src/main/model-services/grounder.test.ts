@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { createGrounder, groundingPresetFromEnv, normaliseTarget, shortLabel } from './grounder'
+import type { ModelDeps } from './deps'
+import { createGrounder as realCreateGrounder, groundingPresetFromEnv, normaliseTarget, shortLabel, type GroundConfig } from './grounder'
+
+// Most tests script boxes normalised to 0-1000; the default (pixels) has its own tests at the end.
+const createGrounder = (deps: ModelDeps, cfg: GroundConfig = {}) => realCreateGrounder(deps, { coords: 'norm1000', ...cfg })
 import { apiError, fakePort, hasImage, modelOutput, sleep, TEST_IDS, testDeps, testShot, textInput } from '../model-port/fake-port.test-util'
 
 const found = (box: number[], confidence = 0.9) => modelOutput({ found: true, box: box, label: 'Start call', reason: '', confidence })
@@ -232,5 +236,27 @@ describe('grounder guardrails', () => {
     expect(groundingPresetFromEnv({})).toBe('accurate')
     const { port } = fakePort(() => found([100, 100, 300, 150]))
     expect(createGrounder(testDeps(port), { preset: 'accurate' }).preset).toBe('accurate')
+  })
+})
+
+describe('grounder in pixel mode (the default)', () => {
+  const pixelFound = (box: number[], confidence = 0.9) => modelOutput({ found: true, box, label: 'Start call', reason: '', confidence })
+
+  it('asks for pixels of the actual screenshot size and converts the answer to a 0-1000 box', async () => {
+    const { port, calls } = fakePort(() => pixelFound([192, 108, 384, 216])) // 1920x1080 shot: 10%..20% across, 10%..20% down
+    const r = await realCreateGrounder(testDeps(port)).ground({ target: 'the Start call button', shot: testShot() })
+    expect(r.found).toBe(true)
+    expect(r.box).toEqual({ xmin: 100, ymin: 100, xmax: 200, ymax: 200 })
+    expect(r.point).toEqual({ x: 150, y: 150 })
+    expect(textInput(calls[0])).toMatch(/1920 pixels wide and 1080 pixels high/)
+    expect(textInput(calls[0])).toMatch(/PIXELS/)
+  })
+
+  it('rejects a pixel box that is really most of the screen, and a malformed one', async () => {
+    const { port } = fakePort(() => pixelFound([0, 0, 1900, 1000]))
+    const r = await realCreateGrounder(testDeps(port), { preset: 'accurate' }).ground({ target: 'x', shot: testShot('big') })
+    expect(r.found).toBe(false)
+    const bad = fakePort(() => pixelFound([1, 2, 3]))
+    expect((await realCreateGrounder(testDeps(bad.port), { preset: 'accurate' }).ground({ target: 'y', shot: testShot('bad') })).found).toBe(false)
   })
 })

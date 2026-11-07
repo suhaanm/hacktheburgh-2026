@@ -75,12 +75,40 @@ export default function Routines() {
 
 type Decide = (routine: Routine, body: Parameters<typeof api.setConsent>[1], done: string) => Promise<void>;
 
+interface Gate { mode: string; done: string; message: string }
+
+/** The skill gate says the worker's own skill on this routine's steps is below level 4: coach it first, unless they say they know it. */
+/** "coach first: ENTER_HOUSEHOLD at L1. Coach it first, ..." becomes a sentence; anything else is shown as the engine wrote it. */
+function plainGate(message: string): string {
+  const m = /coach first:\s*([A-Z_]+)\s+at\s+L(\d)/i.exec(message);
+  if (!m) return message;
+  return `Your skill at ${m[1].toLowerCase().replace(/_/g, " ")} is at level ${m[2]}. Automating starts at level 4.`;
+}
+
+function SkillGate({ gate, busy, onOverride, onDismiss }: { gate: Gate; busy: boolean; onOverride: () => void; onDismiss: () => void }) {
+  return (
+    <div className="note note--warn stack" role="alert" style={{ gap: "var(--space-3)" }}>
+      <p><b>Understudy would rather coach you on this one first.</b> {plainGate(gate.message)}</p>
+      <p>If you already know it well, say so. That is written into your memory file, and the routine still starts at the lowest rung.</p>
+      <div className="row">
+        <button type="button" className="btn btn--secondary btn--sm" disabled={busy} onClick={onOverride}>I already know this one</button>
+        <button type="button" className="btn btn--quiet btn--sm" onClick={onDismiss}>Keep coaching me</button>
+      </div>
+    </div>
+  );
+}
+
 function Proposal({ routine: p, leaving, onDecide }: { routine: Routine; leaving: boolean; onDecide: Decide }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const go = async (mode: string, done: string) => {
-    setBusy(mode); setErr(null);
-    try { await onDecide(p, { mode }, done); } catch (e) { setErr(e instanceof ApiError ? e.message : "That did not save. Try again."); } finally { setBusy(null); }
+  const [gate, setGate] = useState<Gate | null>(null);
+  const go = async (mode: string, done: string, override = false) => {
+    setBusy(mode); setErr(null); setGate(null);
+    try { await onDecide(p, { mode, ...(override ? { skill_override: true } : {}) }, done); }
+    catch (e) {
+      if (e instanceof ApiError && e.code === "skill_gate") setGate({ mode, done, message: e.message });
+      else setErr(e instanceof ApiError ? e.message : "That did not save. Try again.");
+    } finally { setBusy(null); }
   };
   const [lo, hi] = p.value.hours_saved;
   const horizon = p.value.horizon_weeks ? ` over ${p.value.horizon_weeks} weeks` : "";
@@ -113,6 +141,7 @@ function Proposal({ routine: p, leaving, onDecide }: { routine: Routine; leaving
         <div className="choice"><button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => go("approval", "Set to run with your approval.")}>Run with my approval</button><p>It does the work in the background and asks before anything outward.</p></div>
       </div>
       <p className="note">Whatever you choose, it starts at {p.rung} and moves up only as its record earns it. Rung A2 needs 20 shadow runs and a lower bound of 0.80.</p>
+      {gate && <SkillGate gate={gate} busy={!!busy} onOverride={() => go(gate.mode, gate.done, true)} onDismiss={() => setGate(null)} />}
       {err && <p className="field__error" role="alert">{err}</p>}
       <Away routine={p} onDecide={onDecide} />
     </article>
@@ -127,15 +156,20 @@ function Away({ routine: p, onDecide }: { routine: Routine; onDecide: Decide }) 
   const [typed, setTyped] = useState("");
   const [ack, setAck] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [gate, setGate] = useState<Gate | null>(null);
   const [busy, setBusy] = useState(false);
   const model = p.driver === "model";
   const irreversible = allowed.length > 0;
   const ready = on && (!irreversible || (model ? typed === p.id : ack));
 
-  const save = async () => {
-    setBusy(true); setErr(null);
-    try { await onDecide(p, { mode: "unattended", irreversible_unattended: allowed, typed_confirm: typed }, "Set to run while you are away."); }
-    catch (e) { setErr(e instanceof ApiError ? e.message : "That did not save. Try again."); }
+  const save = async (override = false) => {
+    setBusy(true); setErr(null); setGate(null);
+    const done = "Set to run while you are away.";
+    try { await onDecide(p, { mode: "unattended", irreversible_unattended: allowed, typed_confirm: typed, ...(override ? { skill_override: true } : {}) }, done); }
+    catch (e) {
+      if (e instanceof ApiError && e.code === "skill_gate") setGate({ mode: "unattended", done, message: e.message });
+      else setErr(e instanceof ApiError ? e.message : "That did not save. Try again.");
+    }
     finally { setBusy(false); }
   };
 
@@ -177,8 +211,9 @@ function Away({ routine: p, onDecide }: { routine: Routine; onDecide: Decide }) 
             )}
           </div>
         )}
+        {gate && <SkillGate gate={gate} busy={busy} onOverride={() => save(true)} onDismiss={() => setGate(null)} />}
         {err && <p className="field__error" role="alert">{err}</p>}
-        <div className="row"><button type="button" className="btn btn--secondary" disabled={!ready || busy} onClick={save}>Allow while I'm away</button></div>
+        <div className="row"><button type="button" className="btn btn--secondary" disabled={!ready || busy} onClick={() => save()}>Allow while I'm away</button></div>
       </div>
     </details>
   );

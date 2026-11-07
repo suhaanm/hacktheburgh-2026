@@ -214,10 +214,10 @@ class Supervisor:
     def kill_flag(self) -> Path:
         return self._kill_flag or kill_flag_path()
 
-    def kill_flag_set(self) -> bool:
+    def kill_flag_set(self, *, fresh: bool = False) -> bool:
         now = time.monotonic()
         last_t, last_v = self._kill_cache
-        if now - last_t < self._kill_poll:
+        if not fresh and now - last_t < self._kill_poll:
             return last_v
         try:
             v = self.kill_flag.exists()
@@ -292,7 +292,9 @@ class Supervisor:
                 task.handle.stale_results_dropped += 1
                 self.stale_results_dropped += 1
                 self._event("stale_result_dropped", run_id=task.ctx.run_id, task_generation=task.ctx.generation)
-                task.handle._resolve("stopped", reason=task.ctx.cancel_reason or "stale")
+                killed = self.kill_flag_set(fresh=True)
+                task.handle._resolve("killed" if killed else "stopped",
+                                     reason=task.ctx.cancel_reason or ("kill flag present" if killed else "stale"))
             if self._current is task and epoch == self._epoch:
                 self._current = None
             self._cond.notify_all()
@@ -300,7 +302,7 @@ class Supervisor:
     # ----- public API
     def submit(self, fn: Callable[[TaskContext], Any], *, name: str = "task", run_id: str | None = None,
                deadline_s: float | None = None, yield_on_human: bool = False) -> TaskHandle:
-        if self.kill_flag_set():
+        if self.kill_flag_set(fresh=True):
             raise KillSwitchActive(f"kill flag present at {self.kill_flag}")
         with self._cond:
             if self._closed:

@@ -4,6 +4,7 @@ import { navigate, screenOf, useRoute, type Screen } from "./router";
 import { dataMode, getState, resetSources, setState, useAppState } from "./store";
 import { Loading } from "./components/common";
 import { ToastHost, useToast } from "./components/Toasts";
+import { AuthContextProvider, createAuth, useAuth } from "./auth";
 
 const screens: Record<Screen, ReturnType<typeof lazy>> = {
   genome: lazy(() => import("./screens/Genome")),
@@ -157,18 +158,52 @@ function KillSwitch() {
       )}
       <button type="button" className="kill kill--fixed" aria-pressed={s.killed} onClick={s.killed ? resume : stop} disabled={busy} aria-label={s.killed ? "Resume after stop" : "Stop everything now"}>
         <span className="kill__icon" aria-hidden="true" />
-        {s.killed ? <><span className="kill__long">Stopped. Click to resume</span><span className="kill__short">Resume</span></> : <><span className="kill__long">Stop everything</span><span className="kill__short">Stop all</span></>}
+        {s.killed ? <><span className="kill__long">Stopped. Click to resume</span><span className="kill__short">Resume</span></> : <><span className="kill__long">Stop everything</span><span className="kill__short">Stop</span></>}
         {!s.killed && <kbd aria-hidden="true">Shift Esc</kbd>}
       </button>
     </>
   );
 }
 
+const auth = createAuth();
+
 export function App() {
   return (
-    <ToastHost>
-      <Shell />
-    </ToastHost>
+    <AuthContextProvider provider={auth}>
+      <ToastHost>
+        <Shell />
+      </ToastHost>
+    </AuthContextProvider>
+  );
+}
+
+/** Quiet sign-in. Optional: nothing waits on it, and without Auth0 it only says "Local profile". */
+function AuthControl() {
+  const auth = useAuth();
+  const role = useAppState().role;
+  const user = auth.user();
+  const [err, setErr] = useState<string | null>(null);
+  const [imgFailed, setImgFailed] = useState(false);
+  const go = async (fn: () => Promise<void>, msg: string) => { setErr(null); try { await fn(); } catch { setErr(msg); } };
+  if (user) {
+    return (
+      <div className="authctl">
+        {user.picture && !imgFailed
+          ? <img className="authctl__avatar" src={user.picture} alt="" width={22} height={22} referrerPolicy="no-referrer" onError={() => setImgFailed(true)} />
+          : <span className="authctl__avatar authctl__avatar--letter" aria-hidden="true">{user.name.slice(0, 1).toUpperCase()}</span>}
+        <span className="authctl__name">{user.name}</span>
+        <button type="button" className="linkish" onClick={() => go(() => auth.signOut(), "Could not sign out. Close this tab to end the session.")}>Sign out</button>
+        {err && <span className="field__error" role="alert">{err}</span>}
+      </div>
+    );
+  }
+  return (
+    <div className="authctl">
+      <span className="authctl__name">Local profile{role ? ` · ${role}` : ""}</span>
+      {auth.enabled && <button type="button" className="linkish" disabled={auth.status() === "loading"} onClick={() => go(() => auth.signIn(), "Sign-in did not finish. Nothing changed.")}>{auth.status() === "loading" ? "Signing in" : "Sign in"}</button>}
+      {auth.enabled && <span className="datanote__why">Optional. Used to confirm approvals that cannot be undone.</span>}
+      {err && <span className="field__error" role="alert">{err}</span>}
+    </div>
   );
 }
 
@@ -182,10 +217,13 @@ function Shell() {
   useEffect(() => {
     api.health().then((r) => setState({ mock: r.data?.mock ?? null })).catch(() => undefined);
     void refreshQueueBadge();
+    void api.identity().then((i) => setState({ role: i?.role ?? null }));
     const on = () => { setNonce((n) => n + 1); void refreshQueueBadge(); };
     window.addEventListener("understudy:retry", on);
     return () => window.removeEventListener("understudy:retry", on);
   }, []);
+  // The data note describes the screen you are on, so count sources afresh for each screen.
+  useEffect(() => { resetSources(); }, [current]);
   useEffect(() => { setMenu(false); window.scrollTo(0, 0); document.title = `${NAV.find((n) => n.id === current)?.label ?? "Understudy"} · Understudy`; }, [current]);
   useEffect(() => { if (current === "unknown") navigate("/genome"); }, [current]);
 
@@ -212,6 +250,7 @@ function Shell() {
           ))}
         </nav>
         <div className="side__foot">
+          <AuthControl />
           <DataNote />
           <ThemeSwitch />
         </div>

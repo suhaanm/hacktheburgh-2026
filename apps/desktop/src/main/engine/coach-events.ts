@@ -89,7 +89,7 @@ export function createCoachTracker(opts: CoachTrackerOptions): CoachTracker {
       for (const id of ids) dismiss(id, how)
     },
     cleared(ids) {
-      const targets = (ids ?? [...openPrompts.keys()]).filter((id) => openPrompts.has(id))
+      const targets = (ids ?? [...openPrompts.keys()]).filter((id) => openPrompts.has(id) && !id.startsWith(MANAGED_PREFIX))
       if (targets.length === 0) return
       cancelPending()
       pendingIds = targets
@@ -105,7 +105,10 @@ export function createCoachTracker(opts: CoachTrackerOptions): CoachTracker {
   }
 }
 
-const RING_PREFIXES = ['point-', 'runner-', 'dom-']
+// 'dom-' rings (browser elements, src/main/dom-ground/dom-coach.ts) report for themselves: a ring that is hidden because it went
+// stale or scrolled away is not a dismissal, so clears of those ids are never counted here.
+const RING_PREFIXES = ['point-', 'runner-']
+const MANAGED_PREFIX = 'dom-'
 const isRing = (a: Annotation): boolean => a.kind === 'ring' && RING_PREFIXES.some((p) => a.id.startsWith(p))
 
 /** Wraps an OverlayController so what it draws and clears is reported as coach events. The wrapped controller is untouched. */
@@ -124,6 +127,7 @@ export function withCoachTelemetry(overlay: OverlayController, tracker: CoachTra
     },
     caption: (speaker, text, final) => overlay.caption(speaker, text, final),
     chip: (level, label) => overlay.chip(level, label),
+    coach: (fade, level, label) => overlay.coach?.(fade, level, label),
   }
 }
 

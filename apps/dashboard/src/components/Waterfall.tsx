@@ -7,7 +7,7 @@ import { scaleLinear } from "d3-scale";
 /** Gap waterfall: each step floats from where the last one ended; whiskers are 95% intervals. */
 export function Waterfall({ steps, totalCi }: { steps: WaterfallStep[]; totalCi: Interval }) {
   const [ref, width] = useWidth<HTMLDivElement>();
-  const { rows, total, max } = layoutWaterfall(steps, totalCi);
+  const { rows, total, max, min } = layoutWaterfall(steps, totalCi);
   const compact = width > 0 && width < 640;
   const labelW = compact ? 0 : 252;
   const valW = compact ? 0 : 150;
@@ -15,7 +15,7 @@ export function Waterfall({ steps, totalCi }: { steps: WaterfallStep[]; totalCi:
   const top = 6;
   const axisH = 26;
   const H = top + rows.length * rowH + axisH;
-  const x = scaleLinear().domain([0, Math.ceil(max / 50) * 50]).range([0, Math.max(120, width - labelW - valW - 8)]).nice();
+  const x = scaleLinear().domain([Math.floor(min / 50) * 50, Math.ceil(max / 50) * 50]).range([0, Math.max(120, width - labelW - valW - 8)]).nice();
   const ticks = x.ticks(compact ? 4 : 7);
 
   return (
@@ -40,14 +40,14 @@ export function Waterfall({ steps, totalCi }: { steps: WaterfallStep[]; totalCi:
               return (
                 <g key={r.label}>
                   {r.total && <line className="svg-axis" x1={-labelW} x2={x.range()[1] + valW} y1={y} y2={y} />}
-                  <rect className={`wf-bar${r.total ? " wf-bar--total" : ""}`} x={x(r.start)} y={by} width={Math.max(1.5, x(r.end) - x(r.start))} height={bh} rx={1.5}
+                  <rect className={`wf-bar${r.total ? " wf-bar--total" : ""}`} x={x(Math.min(r.start, r.end))} y={by} width={Math.max(1.5, Math.abs(x(r.end) - x(r.start)))} height={bh} rx={1.5}
                     style={{ opacity: r.total ? 1 : 0.88 }} />
                   <line className="wf-whisker" x1={x(wl)} x2={x(wh)} y1={cy} y2={cy} />
                   <line className="wf-whisker" x1={x(wl)} x2={x(wl)} y1={cy - 4} y2={cy + 4} />
                   <line className="wf-whisker" x1={x(wh)} x2={x(wh)} y1={cy - 4} y2={cy + 4} />
                   {!compact && <text className={`wf-label${r.total ? " wf-label--total" : ""}`} x={-12} y={cy + 4} textAnchor="end">{r.label}</text>}
                   {compact && <text className={`wf-label${r.total ? " wf-label--total" : ""}`} x={0} y={y + 14}>{r.label}</text>}
-                  <text className="wf-val" x={compact ? x.range()[1] : x(wh) + 8} y={compact ? y + 14 : cy + 4} textAnchor={compact ? "end" : "start"}>{r.total ? "" : "+"}{signed(r.seconds)} s <tspan className="svg-text">{fmtInterval(r.ci)}</tspan></text>
+                  <text className="wf-val" x={compact ? x.range()[1] : x(wh) + 8} y={compact ? y + 14 : cy + 4} textAnchor={compact ? "end" : "start"}>{r.total || r.seconds < 0 ? "" : "+"}{signed(r.seconds, Math.abs(r.seconds) < 10 && !r.total ? 1 : 0)} s <tspan className="svg-text">{fmtInterval(r.ci)}</tspan></text>
                 </g>
               );
             })}

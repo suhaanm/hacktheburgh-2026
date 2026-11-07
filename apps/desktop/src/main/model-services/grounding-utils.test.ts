@@ -80,3 +80,13 @@ describe('model port coordinate helpers', () => {
     expect(fromPixelPoint(1, 1, 0, 720)).toBeNull()
   })
 })
+
+describe('pixelsToNorm', () => {
+  it('scales a pixel box to 0-1000 per axis and rejects malformed input', async () => {
+    const { pixelsToNorm } = await import('./grounding-utils')
+    expect(pixelsToNorm([144, 90, 288, 180], 1440, 900)).toEqual([100, 100, 200, 200])
+    expect(pixelsToNorm([1, 2, 3], 1440, 900)).toBeNull()
+    expect(pixelsToNorm([1, 2, 3, 4], 0, 900)).toBeNull()
+    expect(pixelsToNorm(null, 10, 10)).toBeNull()
+  })
+})

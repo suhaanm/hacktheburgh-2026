@@ -95,8 +95,9 @@ def get_hazard(person: str, limit: int | None = Query(None, ge=1, le=100000, des
     return {"meta": meta, "data": data}
 
 
-def analytics_sections(*, seed: int = 0, n_boot: int = 300) -> dict:
-    """Section dicts for evals/report.json. Heavy (tens of seconds); the eval harness calls it, the API does not."""
+def analytics_sections(*, seed: int = 0, n_boot: int = 300, fast: bool = False) -> dict:
+    """Section dicts for evals/report.json. Heavy (tens of seconds; `fast=True` cuts resamples); the eval harness
+    calls it, the API does not."""
     from understudy_engine.hazard import evaluate_hazard_data
     from understudy_engine.policy.evaluate import evaluate_gate, evaluate_ope
     from understudy_engine.routing.evaluate import evaluate_routing
@@ -105,16 +106,17 @@ def analytics_sections(*, seed: int = 0, n_boot: int = 300) -> dict:
     from understudy_engine.trust.limitations import analytics_limitations
 
     out: dict = {}
-    haz = evaluate_hazard_data(n_boot=n_boot, seed=seed, include_series=True)
-    out["hazard"] = haz
-    out["ope"] = evaluate_ope(seed=seed)
-    out["routing"] = evaluate_routing(seed=seed)
-    out["agent_claims"] = evaluate_claims(seed=seed, n_boot=n_boot)
+    out["hazard"] = evaluate_hazard_data(n_boot=n_boot, seed=seed, include_series=True, fast=fast)
+    out["ope"] = evaluate_ope(seed=seed, fast=fast)
+    out["routing"] = evaluate_routing(seed=seed, fast=fast)
+    out["agent_claims"] = evaluate_claims(seed=seed, n_boot=n_boot, fast=fast)
     try:
         from understudy_engine.hazard.data import load_persona_episodes
         eps, _, _ = load_persona_episodes()
-        out["policy_gate"] = evaluate_gate(eps)
-        out["skills"] = evaluate_skills()
+        out["policy_gate"] = evaluate_gate(eps, fast=fast)
+        out["skills"] = evaluate_skills(fast=fast)          # personas (saturated) with the learner trajectories under `learners`
+        from understudy_engine.hazard.pooling import evaluate_pooling
+        out["pooling"] = evaluate_pooling(n_boot=n_boot, seed=seed, fast=fast)
     except FileNotFoundError:
         pass
     out["limitations"] = analytics_limitations()

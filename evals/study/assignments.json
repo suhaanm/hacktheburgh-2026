@@ -1,0 +1,214 @@
+{
+  "schema": 1,
+  "note": "Fixed before data. n = 4 teammates, one per sequence. Households are synthetic; the oracle is a simplified internal rule set, illustrative, not law.",
+  "pairs": {
+    "cliff": [
+      {
+        "id": "hh_0005",
+        "archetype": "savings_tariff_band",
+        "savings": 12000.0,
+        "cliff_flags": [
+          "capital_tariff_band"
+        ],
+        "a": 638.0,
+        "b": 742.64,
+        "case_ref": "CASE-1005"
+      },
+      {
+        "id": "hh_0041",
+        "archetype": "savings_tariff_band",
+        "savings": 12000.0,
+        "cliff_flags": [
+          "capital_tariff_band"
+        ],
+        "a": 646.0,
+        "b": 750.64,
+        "case_ref": "CASE-1041"
+      }
+    ],
+    "reconcile": [
+      {
+        "id": "hh_0004",
+        "archetype": "savings_cliff_16k",
+        "savings": 16000.0,
+        "cliff_flags": [
+          "capital_limit_16000"
+        ],
+        "a": 627.0,
+        "b": 801.14,
+        "case_ref": "CASE-1004"
+      },
+      {
+        "id": "hh_0028",
+        "archetype": "savings_cliff_16k",
+        "savings": 16000.0,
+        "cliff_flags": [
+          "capital_limit_16000"
+        ],
+        "a": 567.0,
+        "b": 741.14,
+        "case_ref": "CASE-1028"
+      }
+    ]
+  },
+  "sequences": {
+    "S1": [
+      {
+        "skill": "cliff",
+        "condition": "coached"
+      },
+      {
+        "skill": "reconcile",
+        "condition": "uncoached"
+      }
+    ],
+    "S2": [
+      {
+        "skill": "reconcile",
+        "condition": "coached"
+      },
+      {
+        "skill": "cliff",
+        "condition": "uncoached"
+      }
+    ],
+    "S3": [
+      {
+        "skill": "cliff",
+        "condition": "uncoached"
+      },
+      {
+        "skill": "reconcile",
+        "condition": "coached"
+      }
+    ],
+    "S4": [
+      {
+        "skill": "reconcile",
+        "condition": "uncoached"
+      },
+      {
+        "skill": "cliff",
+        "condition": "coached"
+      }
+    ]
+  },
+  "participants": {
+    "P1": {
+      "sequence": "S1",
+      "blocks": [
+        {
+          "block": 1,
+          "skill": "cliff",
+          "skill_id": "check-the-cliff",
+          "condition": "coached",
+          "practice_case": "hh_0005",
+          "post_case": "hh_0041",
+          "calculators": [
+            "a",
+            "b"
+          ]
+        },
+        {
+          "block": 2,
+          "skill": "reconcile",
+          "skill_id": "reconcile-before-noting",
+          "condition": "uncoached",
+          "practice_case": "hh_0004",
+          "post_case": "hh_0028",
+          "calculators": [
+            "a",
+            "b"
+          ]
+        }
+      ]
+    },
+    "P2": {
+      "sequence": "S2",
+      "blocks": [
+        {
+          "block": 1,
+          "skill": "reconcile",
+          "skill_id": "reconcile-before-noting",
+          "condition": "coached",
+          "practice_case": "hh_0028",
+          "post_case": "hh_0004",
+          "calculators": [
+            "a",
+            "b"
+          ]
+        },
+        {
+          "block": 2,
+          "skill": "cliff",
+          "skill_id": "check-the-cliff",
+          "condition": "uncoached",
+          "practice_case": "hh_0041",
+          "post_case": "hh_0005",
+          "calculators": [
+            "a",
+            "b"
+          ]
+        }
+      ]
+    },
+    "P3": {
+      "sequence": "S3",
+      "blocks": [
+        {
+          "block": 1,
+          "skill": "cliff",
+          "skill_id": "check-the-cliff",
+          "condition": "uncoached",
+          "practice_case": "hh_0005",
+          "post_case": "hh_0041",
+          "calculators": [
+            "a",
+            "b"
+          ]
+        },
+        {
+          "block": 2,
+          "skill": "reconcile",
+          "skill_id": "reconcile-before-noting",
+          "condition": "coached",
+          "practice_case": "hh_0004",
+          "post_case": "hh_0028",
+          "calculators": [
+            "a",
+            "b"
+          ]
+        }
+      ]
+    },
+    "P4": {
+      "sequence": "S4",
+      "blocks": [
+        {
+          "block": 1,
+          "skill": "reconcile",
+          "skill_id": "reconcile-before-noting",
+          "condition": "uncoached",
+          "practice_case": "hh_0028",
+          "post_case": "hh_0004",
+          "calculators": [
+            "a",
+            "b"
+          ]
+        },
+        {
+          "block": 2,
+          "skill": "cliff",
+          "skill_id": "check-the-cliff",
+          "condition": "coached",
+          "practice_case": "hh_0041",
+          "post_case": "hh_0005",
+          "calculators": [
+            "a",
+            "b"
+          ]
+        }
+      ]
+    }
+  }
+}

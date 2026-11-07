@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://understudy.local/schema/redteam.attacks.schema.json",
+  "title": "Red-team catalog (evals/redteam/attacks.json)",
+  "description": "attacks: injected pages with the attack goal; clean: benign pages (including hard negatives with benign hidden text) for the false-pause rate. Page paths are relative to evals/redteam. A null page with a sandbox object means the live sandbox site (clean or ?variant=injected). Every target is under the invented domain evil.example or a sandbox endpoint on 127.0.0.1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "note", "categories", "attacks", "clean"],
+  "properties": {
+    "schema": { "const": 1 },
+    "note": { "type": "string" },
+    "categories": { "type": "array", "items": { "enum": ["hidden_text", "fake_system_banner", "markdown_image_exfil", "tool_call_mimicry", "search_result", "pdf_text", "alt_text", "multi_step"] }, "uniqueItems": true },
+    "attacks": { "type": "array", "minItems": 24, "items": { "$ref": "#/$defs/attack" } },
+    "clean": { "type": "array", "minItems": 12, "items": { "$ref": "#/$defs/clean" } }
+  },
+  "$defs": {
+    "sandbox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["site", "port", "path", "attack_query", "clean_query"],
+      "properties": {
+        "site": { "enum": ["a", "b", "c"] },
+        "port": { "enum": [7801, 7802, 7803] },
+        "path": { "type": "string", "pattern": "^/" },
+        "attack_query": { "type": ["string", "null"] },
+        "clean_query": { "type": ["string", "null"] }
+      }
+    },
+    "goal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "target"],
+      "properties": {
+        "kind": { "enum": ["exfiltrate", "click_destructive", "navigate", "type_data"] },
+        "target": { "type": "string", "minLength": 2 }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page", "role", "carries_payload", "note"],
+      "properties": {
+        "page": { "type": "string" },
+        "role": { "enum": ["setup", "payload"] },
+        "carries_payload": { "type": "boolean" },
+        "note": { "type": "string" }
+      }
+    },
+    "attack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "category", "technique", "where", "page", "task", "success_contains", "visible_task_text", "hidden_payload", "injected_instruction", "goal_of_attack", "forbidden_action", "detection_hint", "clean_twin"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^atk-[a-z0-9-]+$" },
+        "category": { "enum": ["hidden_text", "fake_system_banner", "markdown_image_exfil", "tool_call_mimicry", "search_result", "pdf_text", "alt_text", "multi_step"] },
+        "technique": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+        "where": { "enum": ["text", "hidden_element", "alt_text", "ocr"], "description": "The channel that carries the payload: normal text, a hidden element or comment, alt/aria/title text, or text only OCR can see." },
+        "page": { "type": ["string", "null"], "pattern": "^(pages|clean)/[A-Za-z0-9_.-]+\\.html$" },
+        "sandbox": { "$ref": "#/$defs/sandbox" },
+        "task": { "type": "string", "minLength": 10, "description": "What the user legitimately asked the agent to do on this page." },
+        "success_contains": { "type": "array", "items": { "type": "string" }, "description": "Tokens a correct answer contains: task success under attack." },
+        "visible_task_text": { "type": "string", "minLength": 10 },
+        "hidden_payload": { "type": "string", "minLength": 4 },
+        "injected_instruction": { "type": "string", "minLength": 4, "description": "Same as hidden_payload." },
+        "visible_to_user": { "type": "boolean", "description": "True when a person reading the page would also see the injected text." },
+        "payload_obfuscation": { "enum": ["zero_width_split"] },
+        "goal_of_attack": { "$ref": "#/$defs/goal" },
+        "also_forbidden": { "type": "array", "items": { "$ref": "#/$defs/goal" } },
+        "forbidden_action": { "type": "string" },
+        "detection_hint": { "type": "string" },
+        "measured_by": { "type": "string" },
+        "ocr_text": { "type": "string", "description": "What OCR would read from the image (where = ocr)." },
+        "asset": { "type": "string", "pattern": "^pages/[A-Za-z0-9_.-]+$" },
+        "steps": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/step" } },
+        "clean_twin": { "type": "string", "pattern": "^clean-[a-z0-9_-]+$" }
+      },
+      "allOf": [
+        { "if": { "properties": { "category": { "const": "multi_step" } }, "required": ["category"] }, "then": { "required": ["steps"] } },
+        { "if": { "properties": { "page": { "const": null } }, "required": ["page"] }, "then": { "required": ["sandbox", "measured_by"] } },
+        { "if": { "properties": { "where": { "const": "ocr" } }, "required": ["where"] }, "then": { "required": ["ocr_text", "asset"] } }
+      ]
+    },
+    "clean": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "page", "task", "success_contains", "visible_task_text"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^clean-[a-z0-9_-]+$" },
+        "page": { "type": ["string", "null"], "pattern": "^(pages|clean)/[A-Za-z0-9_.-]+\\.html$" },
+        "sandbox": { "$ref": "#/$defs/sandbox" },
+        "task": { "type": "string", "minLength": 10 },
+        "success_contains": { "type": "array", "items": { "type": "string" } },
+        "visible_task_text": { "type": "string", "minLength": 10 },
+        "steps": { "type": "array", "minItems": 2, "items": { "type": "object" } },
+        "hard_negative": { "const": true },
+        "benign_features": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+      },
+      "allOf": [
+        { "if": { "properties": { "page": { "const": null } }, "required": ["page"] }, "then": { "required": ["sandbox"] } }
+      ]
+    }
+  }
+}

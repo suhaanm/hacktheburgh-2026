@@ -24,6 +24,12 @@ describe("onboarding preview", () => {
     const some = buildPreview("programmer", roles.programmer, { tone: "detailed" });
     expect(some.fresh.size).toBe(1);
   });
+  it("shows the capture line only when the worker said yes", () => {
+    const q = roles.programmer;
+    expect(buildPreview("programmer", q, { capture: true }).text).toContain("- Capture: times only");
+    expect(buildPreview("programmer", q, { capture: false }).text).not.toMatch(/Capture/);
+    expect(buildPreview("programmer", q, {}).text).not.toMatch(/Capture/);
+  });
   it("describes days in plain words", () => {
     expect(daysText([0, 1, 2, 3, 4])).toBe("Mon to Fri");
     expect(daysText([0, 2, 3, 6])).toBe("Mon, Wed to Thu, Sun");

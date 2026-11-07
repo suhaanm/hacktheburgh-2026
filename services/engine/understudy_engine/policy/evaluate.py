@@ -17,6 +17,7 @@ from understudy_engine.hazard.events import (
 from understudy_engine.policy import ope, rules, sim
 from understudy_engine.policy.context import K, NUDGE
 from understudy_engine.policy.gate import GateParams, gate_alarms
+from understudy_engine.trust.limitations import limitations_for
 from understudy_engine.trust.meta import analytic_meta
 
 ESTIMATORS = ("ips", "snips", "dm", "dr", "naive_on_policy", "naive_matched")
@@ -51,8 +52,11 @@ def _one_run(n: int, seed: int, n_boot: int, truth_cache: dict | None = None) ->
 
 
 def evaluate_ope(n: int = 6000, seed: int = 0, n_boot: int = 500, replications: int = 24,
-                 rep_n: int = 2400, rep_boot: int = 150) -> dict:
-    """One detailed run (seed) and `replications` independent small runs (seeds seed+1000...)."""
+                 rep_n: int = 2400, rep_boot: int = 150, fast: bool = False) -> dict:
+    """One detailed run (seed) and `replications` independent small runs (seeds seed+1000...).
+    `fast=True`: 150 resamples, 6 replications of 1500 decisions with 60 resamples (a few seconds)."""
+    if fast:
+        n_boot, replications, rep_n, rep_boot = min(n_boot, 150), min(replications, 6), min(rep_n, 1500), min(rep_boot, 60)
     detail, meta = _one_run(n, seed, n_boot)
     targets = {}
     for name, d in detail.items():
@@ -96,6 +100,7 @@ def evaluate_ope(n: int = 6000, seed: int = 0, n_boot: int = 500, replications: 
     out["true_value"] = targets[head]["true_value"]
     out["estimators"] = [{"name": nm, "value": targets[head]["estimators"][k]["estimate"],
                           "ci": targets[head]["estimators"][k]["ci"]} for k, nm in names.items()]
+    out["limitations"] = limitations_for("ope")
     out["meta"] = analytic_meta(
         "synthetic", n, "decisions", "simulator with known ground truth; logs from an epsilon-greedy bandit (eps 0.2)",
         note="Value of the rule-baseline policy estimated from logs of a different policy. The true value is known because "
@@ -115,7 +120,7 @@ def evaluate_ope(n: int = 6000, seed: int = 0, n_boot: int = 500, replications: 
 
 
 def evaluate_gate(episodes: list[Episode], *, params: GateParams = GateParams(), raw_threshold: float | None = None,
-                  seed: int = 0) -> dict:
+                  seed: int = 0, fast: bool = False) -> dict:
     """False nudges per hour of held-out hazard predictions: a bare threshold on every 30 s bin versus the dignity
     gate (2 consecutive signals, cooldown, silent when below threshold)."""
     tab, p = oof_predictions(episodes)
@@ -156,6 +161,7 @@ def evaluate_gate(episodes: list[Episode], *, params: GateParams = GateParams(),
         "gate_params": {"need": params.need, "cooldown_s": params.cooldown_s, "p_signal": params.p_signal},
         "raw_threshold": thr,
         "bare_threshold": pack(r), "dignity_gate": pack(g), "sweep_over_p_signal": sweep,
+        "limitations": limitations_for("policy_gate"),
         "false_nudges_per_hour_reduction": (None if not r.fa_per_hour or not np.isfinite(r.fa_per_hour)
                                             else 1.0 - g.fa_per_hour / r.fa_per_hour),
         "caveats": [

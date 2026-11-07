@@ -22,6 +22,7 @@ from understudy_engine.core import Episode
 from understudy_engine.hazard.events import choose_config, pool, score_rows
 from understudy_engine.hazard.features import BinTable, build_bins
 from understudy_engine.hazard.model import HazardModel
+from understudy_engine.trust.limitations import limitations_for
 from understudy_engine.trust.meta import analytic_meta
 from understudy_engine.trust.calibration import (
     cluster_bootstrap_scores, ece, log_loss, brier, reliability_bins,
@@ -196,9 +197,11 @@ def evaluate_hazard(
     episodes: list[Episode], *, budget_per_h: float = DEFAULT_BUDGET_PER_H, l2: float = 3.0,
     n_boot: int = 300, seed: int = 0, include_series: bool = True,
     planted: dict[str, list[tuple[float, float]]] | None = None, series_person: str | None = None,
-    series_max: int | None = 480, note: str | None = None,
+    series_max: int | None = 480, note: str | None = None, fast: bool = False,
 ) -> dict:
-    """Run the full protocol. Needs episodes from at least two people."""
+    """Run the full protocol. Needs episodes from at least two people. `fast=True` caps bootstrap resamples at 40."""
+    if fast:
+        n_boot = min(n_boot, 40)
     tab = build_bins(episodes)
     people = tab.people
     if len(people) < 2:
@@ -273,13 +276,14 @@ def evaluate_hazard(
         out["series"] = rep[:series_max] if series_max else rep   # contract: [{t, p}] for one person
         out["series_person"] = sp
         out["series_by_person"] = {q: _series(q) for q in people}
+    out["limitations"] = limitations_for("hazard")
     out["meta"] = analytic_meta(origin, len(people), "people", "leave-one-person-out", note or (
         f"{tab.n} scored 30-second bins from {len(tab.ep_person)} episodes; label = no progress in the next 60 s."))
     return out
 
 
 def evaluate_hazard_data(root=None, *, n_boot: int = 300, seed: int = 0, budget_per_h: float = DEFAULT_BUDGET_PER_H,
-                         include_series: bool = True, include_secondary: bool = True) -> dict:
+                         include_series: bool = True, include_secondary: bool = True, fast: bool = False) -> dict:
     """Hazard evaluation on engine-data's synthetic data. Falls back to this module's own simulator when the
     data directory is absent (then `origin` still says synthetic and `data_source` says which).
 
@@ -296,19 +300,20 @@ def evaluate_hazard_data(root=None, *, n_boot: int = 300, seed: int = 0, budget_
         eps, _ = simulate_people(4, 60, seed=seed)
         planted, info, source = None, {}, "fallback: hazard.sim (engine-data files not found)"
     out = evaluate_hazard(eps, budget_per_h=budget_per_h, n_boot=n_boot, seed=seed, include_series=include_series,
-                          planted=planted, series_person="p_ninetofive")
+                          planted=planted, series_person="p_ninetofive", fast=fast)
     out["data_source"] = source
     out["data_info"] = info
     if include_secondary:
         sec = evaluate_apprentice_hazard(root, n_boot=n_boot, seed=seed, budget_per_h=budget_per_h,
-                                         include_series=include_series)
+                                         include_series=include_series, fast=fast)
         if sec is not None:
             out["secondary"] = sec
     return out
 
 
 def evaluate_apprentice_hazard(root=None, *, n_boot: int = 300, seed: int = 0,
-                               budget_per_h: float = DEFAULT_BUDGET_PER_H, include_series: bool = True) -> dict | None:
+                               budget_per_h: float = DEFAULT_BUDGET_PER_H, include_series: bool = True,
+                               fast: bool = False) -> dict | None:
     """The 24 scripted apprentices as a second dataset (None if the files are absent)."""
     from understudy_engine.hazard.data import load_apprentice_episodes
     try:
@@ -316,7 +321,7 @@ def evaluate_apprentice_hazard(root=None, *, n_boot: int = 300, seed: int = 0,
     except FileNotFoundError:
         return None
     sec = evaluate_hazard(a_eps, budget_per_h=budget_per_h, n_boot=n_boot, seed=seed, include_series=include_series,
-                          planted=a_planted, series_person="p_nov01")
+                          planted=a_planted, series_person="p_nov01", fast=fast)
     sec["data_source"] = "engine-data synthetic apprentices (24 people, 2 scripted cases each)"
     sec["data_info"] = a_info
     sec["caveats"] = sec["caveats"] + [

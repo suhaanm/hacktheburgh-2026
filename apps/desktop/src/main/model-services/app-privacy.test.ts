@@ -118,7 +118,7 @@ async function probe(stub: boolean) {
       s.capture = capture
       s.overlay = mockOverlay(ctx)
       s.live = mockLiveBridge(ctx)
-      s.grounder = createGrounder(modelDeps(ctx, s), { preset: groundingPresetFromEnv() })
+      s.grounder = createGrounder(modelDeps(ctx, s), { preset: groundingPresetFromEnv(), coords: 'norm1000' })
       s.verifier = createVerifier(modelDeps(ctx, s))
       s.architect = createLessonArchitect(modelDeps(ctx, s), { grounder: { ground: (r) => s.grounder.ground(r), prefetch: (r) => s.grounder.prefetch?.(r) } })
       s.scam = createScamAnalyst(modelDeps(ctx, s))

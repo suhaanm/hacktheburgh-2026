@@ -8,6 +8,7 @@ import type {
   Annotation,
   AttemptRecord,
   CaptionSpeaker,
+  ChipFade,
   GroundResult,
   HelpLevel,
   LearnerSnapshot,
@@ -69,6 +70,8 @@ export interface OverlayController {
   clear(ids?: string[]): void
   caption(speaker: CaptionSpeaker, text: string, final: boolean): void
   chip(level: HelpLevel, label: string): void
+  // Understudy: the persistent coach chip at a fade state. Optional so older test doubles type-check.
+  coach?(fade: ChipFade, level: HelpLevel, label: string): void
 }
 
 export interface LiveBridge {

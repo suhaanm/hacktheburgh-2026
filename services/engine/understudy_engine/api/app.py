@@ -9,6 +9,8 @@ from __future__ import annotations
 import importlib
 import logging
 import os
+import threading
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -24,8 +26,52 @@ DASHBOARD_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 OPTIONAL_ROUTERS = ("routes_analytics", "routes_handoff")
 
 
-def create_app(root: Path | str | None = None) -> FastAPI:
-    app = FastAPI(title="Understudy engine", version=__version__, description="Event store, analytics, packs, queue, audit and kill switch. See docs/API_CONTRACT.md.")
+def warm_up(app: FastAPI) -> threading.Thread:
+    """Fill the expensive caches in the background so the first dashboard request is fast: the genome (null, placebo,
+    decomposition) and, if the analytics router has one, its own warm-up. Never raises, never blocks startup."""
+
+    def run() -> None:
+        from ..genome import TASK, GenomeError
+
+        t0 = __import__("time").time()
+        try:
+            app.state.genome.genome(TASK)
+            app.state.genome.transitions(TASK)
+            app.state.warm["genome"] = True
+        except GenomeError:
+            app.state.warm["genome"] = False          # no cohort yet (run `understudy synth --all`)
+        except Exception as exc:  # pragma: no cover
+            log.warning("genome warm-up failed: %s", exc)
+            app.state.warm["genome"] = False
+        try:
+            mod = importlib.import_module("understudy_engine.routes_analytics")
+            if hasattr(mod, "warm"):
+                mod.warm(background=False)
+                app.state.warm["analytics"] = True
+        except Exception as exc:
+            log.warning("analytics warm-up failed: %s", exc)
+            app.state.warm["analytics"] = False
+        app.state.warm["seconds"] = round(__import__("time").time() - t0, 2)
+
+    th = threading.Thread(target=run, name="engine-warm-up", daemon=True)
+    th.start()
+    return th
+
+
+def create_app(root: Path | str | None = None, warm: bool | None = None) -> FastAPI:
+    """``warm``: start the cache warm-up when the app starts serving (default: yes, unless UNDERSTUDY_NO_WARM is set)."""
+    if warm is None:
+        warm = not os.environ.get("UNDERSTUDY_NO_WARM")
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        if warm:
+            warm_up(app)
+        yield
+
+    app = FastAPI(title="Understudy engine", version=__version__, lifespan=lifespan,
+                  description="Event store, analytics, packs, queue, audit and kill switch. See docs/API_CONTRACT.md.")
+    app.state.warm = {}
     extra = [o.strip() for o in os.environ.get("UNDERSTUDY_CORS_ORIGINS", "").split(",") if o.strip()]
     app.add_middleware(
         CORSMiddleware, allow_origins=DASHBOARD_ORIGINS + extra, allow_methods=["*"], allow_headers=["*"], max_age=600,

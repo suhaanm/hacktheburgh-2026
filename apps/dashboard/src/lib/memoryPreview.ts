@@ -39,6 +39,7 @@ export function buildPreview(role: string, q: OnboardingQuestions | undefined, a
   add(`- Summaries: ${tone}. Tone: ${voice}.`, !!a.tone);
   add(`- Help fades: ${PACE[a.pace ?? "gradual"] ?? a.pace}.`, !!a.pace);
   if (a.hours) add(`- Working hours: ${daysText(a.hours.days)}, ${a.hours.start} to ${a.hours.end}.`, true);
+  if (a.capture === true) add("- Capture: times only", true);
   add("## Procedure");
   add("- (learned from your own work, never from page text)");
   add("## Routines");

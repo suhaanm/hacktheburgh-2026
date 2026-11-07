@@ -8,6 +8,8 @@ const base = process.argv[2] ?? "http://127.0.0.1:5173";
 const qa = join(dirname(fileURLToPath(import.meta.url)), "..", "qa");
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+// Demo-data mode on purpose: block the engine and agent so the checks are deterministic and never write to a live memory file.
+await ctx.route(/127\.0\.0\.1:77\d\d/, (route) => route.abort());
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
@@ -26,13 +28,17 @@ for (const [role, pack] of [["UK benefits processor", "benefits-processor"], ["D
   const t0 = Date.now();
   await page.locator(".role-card", { hasText: role }).click();
   await page.getByRole("button", { name: "Next" }).click();
-  for (let i = 0; i < 4; i++) await page.getByRole("button", { name: "Next" }).click();
-  await page.getByRole("button", { name: "Write my memory file" }).click();
+  for (let i = 0; i < 5; i++) await page.getByRole("button", { name: "Next" }).click();
+  const write = page.getByRole("button", { name: "Write my memory file" });
+  check(`onboarding ${pack}: capture is never pre-selected (cannot write before choosing)`, await write.isDisabled());
+  await page.locator(".role-card", { hasText: pack === "benefits-processor" ? "Yes, record times" : "Not now" }).click();
+  await write.click();
   await page.getByText("Your memory file is written").waitFor();
   const secs = (Date.now() - t0) / 1000;
   const text = await page.locator(".pv").innerText();
   check(`onboarding ${pack}: file written in under 60 s`, secs < 60, `${secs.toFixed(1)} s`);
   check(`onboarding ${pack}: file names the role`, text.includes(`role: ${pack}`));
+  check(`onboarding ${pack}: capture line only when the worker said yes`, text.includes("Capture: times only") === (pack === "benefits-processor"));
   if (pack === "benefits-processor") await page.screenshot({ path: join(qa, "onboarding-done-1440.png") });
   globalThis[pack] = text;
 }
@@ -62,6 +68,14 @@ check("graph: forgetting a memory node removes it", (await page.locator(".gnode[
 await go("/memory");
 check("memory: the forgotten line is gone from the file", !(await page.locator(".memfile").innerText()).includes("Summaries: short"));
 
+// 3b. Memory: capture toggle is just a line in the file
+await go("/memory");
+const wasOn = (await page.locator(".capture").innerText()).includes("Capture is on");
+await page.getByRole("button", { name: wasOn ? "Turn off" : "Turn on" }).click();
+await page.waitForTimeout(600);
+const nowState = await page.locator(".capture").innerText();
+check("memory: capture toggle flips and edits the file", wasOn ? nowState.includes("Capture is off") : nowState.includes("Capture is on") && (await page.locator(".memfile").innerText()).includes("Capture: times only"));
+
 // 4. Memory: edit a line, then edit as text
 await page.locator(".memfile__line", { hasText: "Working hours" }).hover();
 await page.getByRole("button", { name: /Edit line/ }).first().click({ force: true });
@@ -80,10 +94,19 @@ await page.screenshot({ path: join(qa, "memory-edit-1440.png") });
 
 // 5. Routines: Watch first moves the card into the list
 await go("/routines");
-await page.getByRole("button", { name: "Watch first" }).click();
+await page.locator(".proposal", { hasText: "Enter the household into three calculators" }).getByRole("button", { name: "Watch first" }).click();
 await page.waitForTimeout(900);
-check("routines: proposal leaves after a choice", (await page.locator(".proposal").count()) === 0);
+check("routines: proposal leaves after a choice", (await page.locator(".proposal", { hasText: "Enter the household into three calculators" }).count()) === 0);
 check("routines: it now lists as watching first", await page.getByText("Enter the household into three calculators").first().isVisible());
+
+// 5b. Routines: the skill gate refuses, and "I already know this one" re-sends with the override
+await go("/routines");
+await page.locator(".proposal", { hasText: "Reconcile the three results" }).getByRole("button", { name: "Watch first" }).click();
+await page.waitForTimeout(400);
+check("routines: skill gate explains itself in plain words", await page.getByText("would rather coach you on this one first").isVisible());
+await page.getByRole("button", { name: "I already know this one" }).click();
+await page.waitForTimeout(900);
+check("routines: the override goes through and the card leaves", (await page.locator(".proposal", { hasText: "Reconcile the three results" }).count()) === 0);
 
 // 6. Routines: typed confirmation required for model-driven irreversible opt-in
 await page.locator(".routine-row", { hasText: "Re-check benefit cliffs" }).locator("summary", { hasText: "Autonomy and record" }).click();
@@ -94,7 +117,7 @@ const away = page.locator(".routine-row", { hasText: "Re-check benefit cliffs" }
 check("routines: irreversible away opt-in blocked without typed confirmation", await away.isDisabled());
 await page.locator(".routine-row", { hasText: "Re-check benefit cliffs" }).locator("input.input").fill("monday-cliff-check");
 check("routines: allowed once the id is typed", await away.isEnabled());
-await page.screenshot({ path: join(qa, "routines-away-1440.png"), fullPage: true });
+await page.locator(".routine-row", { hasText: "Re-check benefit cliffs" }).scrollIntoViewIfNeeded(); await page.screenshot({ path: join(qa, "routines-away-1440.png") });
 
 // 7. Queue: approve one item
 await go("/queue");

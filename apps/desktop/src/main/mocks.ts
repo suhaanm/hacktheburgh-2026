@@ -221,6 +221,7 @@ export function mockOverlay(ctx: ServiceContext): OverlayController {
     clear: (ids) => ctx.log('mock-overlay', 'clear', ids?.join(',') ?? 'all'),
     caption: (speaker, text) => ctx.log('mock-overlay', 'caption', speaker, text),
     chip: (level, label) => ctx.log('mock-overlay', 'chip', level, label),
+    coach: (fade, level, label) => ctx.log('mock-overlay', 'coach', fade, level, label),
   }
 }
 

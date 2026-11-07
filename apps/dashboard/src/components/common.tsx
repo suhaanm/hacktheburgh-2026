@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { AnalyticMeta, Rung } from "../types";
 import { ApiError } from "../api";
 
@@ -70,12 +70,15 @@ export function PageHead({ eyebrow, title, lede, aside }: { eyebrow: string; tit
 }
 
 export function Loading({ label = "Loading" }: { label?: string }) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => { const t = window.setTimeout(() => setSlow(true), 2000); return () => window.clearTimeout(t); }, []);
   return (
     <div className="state state--loading" role="status" aria-live="polite">
       <span className="u-sr-only">{label}</span>
       <span className="skeleton skeleton--short" />
       <span className="skeleton" />
       <span className="skeleton skeleton--mid" />
+      {slow && <p className="state__body">{label}. The first request after the engine starts can take several seconds while it works the numbers out. Nothing is wrong.</p>}
     </div>
   );
 }

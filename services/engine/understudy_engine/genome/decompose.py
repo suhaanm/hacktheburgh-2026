@@ -13,7 +13,6 @@ split with the same coefficients and check that the aggregates agree.
 from __future__ import annotations
 
 import random
-import statistics
 from collections import defaultdict
 from typing import Sequence
 

@@ -12,7 +12,7 @@ export interface WaterfallRow {
 }
 
 /** Largest steps first, "small differences" style catch-alls last; cumulative bars with interval whiskers. */
-export function layoutWaterfall(steps: WaterfallStep[], totalCi?: Interval): { rows: WaterfallRow[]; total: number; max: number } {
+export function layoutWaterfall(steps: WaterfallStep[], totalCi?: Interval): { rows: WaterfallRow[]; total: number; max: number; min: number } {
   const isOther = (l: string) => /small|other|elsewhere/i.test(l);
   const ordered = [...steps].sort((a, b) => {
     if (isOther(a.label) !== isOther(b.label)) return isOther(a.label) ? 1 : -1;
@@ -27,6 +27,7 @@ export function layoutWaterfall(steps: WaterfallStep[], totalCi?: Interval): { r
   const total = cum;
   const tci: Interval = totalCi ?? [total, total];
   rows.push({ label: "Time lost in total", seconds: total, ci: tci, start: 0, end: total, whisker: tci, total: true });
-  const max = Math.max(...rows.map((r) => r.whisker[1]), total);
-  return { rows, total, max };
+  const max = Math.max(...rows.map((r) => Math.max(r.whisker[1], r.start, r.end)), total);
+  const min = Math.min(0, ...rows.map((r) => Math.min(r.whisker[0], r.start, r.end)));
+  return { rows, total, max, min };
 }

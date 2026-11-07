@@ -18,14 +18,16 @@ export interface L1Deps {
 }
 
 export function cssEscape(s: string): string {
-  return s.replace(/^[0-9]/, (d) => `\\3${d} `).replace(/[^a-zA-Z0-9_-]/g, (c) => `\\${c}`);
+  return Array.from(s)
+    .map((c, i) => (/[a-zA-Z0-9_-]/.test(c) ? (i === 0 && /[0-9]/.test(c) ? `\\3${c} ` : c) : `\\${c}`))
+    .join("");
 }
 
 function attrEscape(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-const ID_SEGMENT = /^(\d+|[0-9a-f]{8,}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
+const ID_SEGMENT = /^(\d{3,}|[0-9a-f]{8,}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
 
 /** Path with id-like segments replaced by `_id_`, no query, no hash, only DSL-safe characters. */
 export function templatePath(pathname: string): string {

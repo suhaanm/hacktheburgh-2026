@@ -10,15 +10,38 @@ export interface TNodePos {
   novice: number;
 }
 
-/** Longest-path layers from the sources; cycles are tolerated by capping the passes. */
+/**
+ * Layers for a flow that may contain cycles (re-checks, self loops). A depth-first walk from the first step,
+ * following the busiest moves first, marks the moves that point back up the flow; those are left out when
+ * layering, so the main route reads top to bottom. Then longest-path layers on what remains.
+ */
 export function layers(nodes: TransitionNode[], edges: TransitionEdge[]): Map<string, number> {
+  const adj = new Map<string, { to: string; w: number }[]>();
+  for (const n of nodes) adj.set(n.id, []);
+  for (const e of edges) {
+    if (e.from === e.to || !adj.has(e.from) || !adj.has(e.to)) continue;
+    adj.get(e.from)!.push({ to: e.to, w: Math.max(e.expert_freq, e.novice_freq) });
+  }
+  for (const list of adj.values()) list.sort((a, b) => b.w - a.w);
+  const state = new Map<string, 0 | 1 | 2>(nodes.map((n) => [n.id, 0]));
+  const dag: [string, string][] = [];
+  const visit = (u: string) => {
+    state.set(u, 1);
+    for (const { to } of adj.get(u) ?? []) {
+      if (state.get(to) === 1) continue; // a move back up the flow
+      dag.push([u, to]);
+      if (state.get(to) === 0) visit(to);
+    }
+    state.set(u, 2);
+  };
+  const first = nodes.find((n) => n.cog === "READ") ?? nodes[0];
+  const roots = [first, ...nodes.filter((n) => n !== first)];
+  for (const r of roots) if (r && state.get(r.id) === 0) visit(r.id);
   const layer = new Map(nodes.map((n) => [n.id, 0]));
   for (let pass = 0; pass < nodes.length; pass++) {
     let moved = false;
-    for (const e of edges) {
-      const a = layer.get(e.from), b = layer.get(e.to);
-      if (a == null || b == null) continue;
-      if (b < a + 1 && a + 1 <= nodes.length) { layer.set(e.to, a + 1); moved = true; }
+    for (const [u, v] of dag) {
+      if ((layer.get(v) ?? 0) < (layer.get(u) ?? 0) + 1) { layer.set(v, (layer.get(u) ?? 0) + 1); moved = true; }
     }
     if (!moved) break;
   }
@@ -53,6 +76,6 @@ export function edgeKind(e: TransitionEdge, who: "expert" | "novice", floor = 0.
   const ex = e.expert_freq >= floor, nv = e.novice_freq >= floor;
   if (who === "expert") return ex ? "shared" : "none";
   if (e.missing_for_novice || (ex && !nv)) return "missing";
-  if (nv && !ex) return "extra";
+  if (e.extra_for_novice || (nv && !ex)) return "extra";
   return nv ? "shared" : "none";
 }

@@ -124,3 +124,27 @@ def test_cli_pack_validate_exit_codes(copy_pack, capsys):
     out = capsys.readouterr().out
     assert "FAIL  pack data-analyst" in out and "persona.yaml" in out
     assert main(["pack", "validate"]) == 0          # every real pack
+
+
+def test_real_pack_mappings_are_in_engine_format_with_no_fallback_warnings():
+    for p in load_all():
+        m = p.cog_mapping()
+        assert not p.warnings, p.warnings
+        assert set(p.extra_cogs) == set(m.extra_cogs) and set(p.extra_cogs) <= set(m.cogs)
+        assert len(m.rules) >= 25
+
+
+def test_benefits_pack_mapping_recovers_the_planted_apprentice_cogs(tmp_path):
+    """The platform's mapping.yaml and the engine's synthetic data agree (same rule format, same zones)."""
+    import json
+
+    from understudy_engine.cogs import segment_episodes
+    from understudy_engine.personas import apprentices
+    from understudy_engine.store import EventStore
+
+    apprentices.generate(tmp_path)
+    truth = json.loads((tmp_path / "synthetic" / "apprentices" / "truth.json").read_text())
+    planted = {t["task_id"]: [c for c, _, _ in t["cogs"]] for t in truth["traces"]}
+    eps = segment_episodes(EventStore(tmp_path).read("synthetic"), load_pack("benefits-processor").cog_mapping())
+    assert len(eps) == len(planted)
+    assert all([c.id for c in e.cogs] == planted[e.task_id] for e in eps)

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ApiError, ENGINE_URL, api, refreshQueueBadge } from "../api";
 import { useAppState } from "../store";
+import { authForApproval, needsStepUp, stepUpNotice, useAuth } from "../auth";
 import { useLoad } from "../hooks";
 import { EmptyState, ErrorState, Loading, OriginBadge, PageHead, TierPill } from "../components/common";
 import { useToast } from "../components/Toasts";
@@ -70,17 +71,29 @@ export default function Queue() {
 
 function Card({ item: it, onDone }: { item: QueueItem; onDone: () => void }) {
   const toast = useToast();
+  const auth = useAuth();
   const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
+  const [signing, setSigning] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const L = labels(it.kind);
+  const stepUp = auth.enabled && needsStepUp(it.risk_class);
   const decide = async (a: "approve" | "reject") => {
     setBusy(a); setErr(null);
     try {
-      await api.setQueue(it.id, a);
+      let proof;
+      if (a === "approve") {
+        // Irreversible and outward items need a fresh sign-in when Auth0 is on. Without it, nothing is approved.
+        if (stepUp) setSigning(true);
+        const gate = await authForApproval(auth, it.risk_class);
+        setSigning(false);
+        if (!gate.allowed) { setErr(gate.message); return; }
+        proof = gate.auth;
+      }
+      await api.setQueue(it.id, a, proof);
       toast({ tone: "success", text: a === "approve" ? `${L.yes}: done.` : `${L.no}: done.`, detail: it.title });
       onDone();
     } catch (e) { setErr(e instanceof ApiError ? e.message : "That did not go through. Try again."); }
-    finally { setBusy(null); }
+    finally { setBusy(null); setSigning(false); }
   };
   const decided = it.status !== "pending";
   const diff = (it.evidence.diff ?? []) as { field: string; expected: string; got: string }[];
@@ -123,11 +136,12 @@ function Card({ item: it, onDone }: { item: QueueItem; onDone: () => void }) {
         </div>
       </details>
       {err && <p className="field__error" role="alert">{err}</p>}
+      {!decided && stepUp && <p className="note">{stepUpNotice(it.risk_class)}</p>}
       {decided ? (
         <p className="note">{it.status === "approved" ? "Approved" : it.status === "rejected" ? "Rejected" : "Expired"} {it.decided_at ? `at ${fmtTime(it.decided_at)}` : ""}{it.decided_by ? ` by ${it.decided_by}` : ""}.</p>
       ) : (
         <div className="queue-item__foot">
-          <button type="button" className="btn btn--primary" disabled={!!busy} onClick={() => decide("approve")}>{busy === "approve" ? "Working" : L.yes}</button>
+          <button type="button" className="btn btn--primary" disabled={!!busy} onClick={() => decide("approve")}>{busy === "approve" ? (signing ? "Waiting for sign-in" : "Working") : L.yes}</button>
           <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => decide("reject")}>{busy === "reject" ? "Working" : L.no}</button>
         </div>
       )}

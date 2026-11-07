@@ -21,3 +21,11 @@ __all__ = [
     "ExpertPolicy", "ShadowResult",
     "WORKER_ACTORS", "MemoryStore", "StaleRevision", "WriteRefused",
 ]
+
+from .onboarding import capture_enabled  # noqa: E402
+
+__all__ += ["capture_enabled"]
+
+from .onboarding import new_person_id  # noqa: E402
+
+__all__ += ["new_person_id"]

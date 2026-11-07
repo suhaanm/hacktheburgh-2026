@@ -6,7 +6,10 @@ import copy
 
 import pytest
 
-from understudy_agent.core_sinks import FileAudit, FileQueue
+from understudy_agent.audit import AuditLog
+from understudy_agent.models.mock_provider import MockProvider
+from understudy_agent.queue import ApprovalQueue
+from understudy_agent.security.denylist import Denylist
 from understudy_agent.sandbox_sites.bundles import calculator_bundle, casenote_bundle
 from understudy_agent.sandbox_sites.households import generate_households
 from understudy_agent.sandbox_sites.oracle import site_expected
@@ -15,7 +18,7 @@ from understudy_agent.security.config import SecurityConfig
 from understudy_agent.tiers.base import GateStop, PostconditionFailed, PreconditionFailed
 from understudy_agent.tiers.browser import BrowserHost
 from understudy_agent.tiers.dsl import DslRuntime, resolve_value, run_bundle, validate_bundle
-from understudy_agent.tiers.safety import Safety
+from understudy_agent.tiers.safety import Guard
 
 
 def _money(txt: str) -> float:
@@ -26,7 +29,14 @@ def _money(txt: str) -> float:
 
 @pytest.fixture
 def sinks(tmp_path):
-    return FileQueue(tmp_path / "queue"), FileAudit(tmp_path / "audit.jsonl")
+    audit = AuditLog(tmp_path / "audit.jsonl")
+    return ApprovalQueue(tmp_path / "queue", audit=audit), audit
+
+
+def make_guard(sinks, **kw):
+    q, a = sinks
+    kw.setdefault("run_id", "r_test")
+    return Guard(MockProvider("benefits_clean"), audit=a, queue=q, denylist=Denylist(), **kw)
 
 
 @pytest.fixture
@@ -37,19 +47,25 @@ async def host():
 
 @pytest.mark.parametrize("site", ["a", "b", "c"])
 @pytest.mark.parametrize("hid", [0, 1, 3, 5])
-async def test_bundle_replays_on_each_site(cluster, host, site, hid):
+async def test_bundle_replays_on_each_site(cluster, host, sinks, site, hid):
     h = generate_households(20)[hid]
     ctx = await host.new_context()
     page = await ctx.new_page()
     events = []
+    guard = make_guard(sinks)
     rt = DslRuntime(page=page, params=h.params(), base_url=cluster.urls[site], navigator=f"nav-{site}",
-                    emit=events.append)
+                    emit=events.append, guard=guard)
     res = await run_bundle(calculator_bundle(site), rt)
-    assert set(res.outputs) == {"amount", "status", "ref"}
+    assert set(res.outputs) == {"amount", "status", "ref", "cliff"}
     want = site_expected(site, h)["uc_monthly"]
     assert _money(res.outputs["amount"]) == pytest.approx(want, abs=0.06)
     assert events and all(e.tier == 1 for e in events)  # tier logged on every step
     assert res.checkpoints == [f"calculator_{site}_result_read"]
+    assert res.outputs["cliff"] and "16,000 limit" in res.outputs["cliff"]  # CHECK_CLIFF is part of the bundle
+    assert cluster.state.cliff_opens and cluster.state.cliff_opens[-1]["site"] == site
+    audit = [x for x in guard.audit.read(500) if x["kind"] == "agent_step"]
+    assert audit and all(x["tier"] == 1 for x in audit)
+    assert "16,000" not in str(audit) and "GOV-" not in str(audit)  # no page text in the audit log
 
 
 async def test_layout_v2_fails_the_first_precondition(cluster, host):
@@ -98,16 +114,16 @@ async def test_click_on_a_submit_button_is_stopped_by_the_gate(cluster, host, si
     await run_bundle(casenote_bundle(), DslRuntime(page=page, params=params, base_url=cluster.urls["a"]))
     submit = {"id": "evil", "version": 1, "params": [], "steps": [
         {"id": "submit", "op": "click", "selector": "#submit-note", "pre": [{"visible": "#submit-note"}]}]}
-    safety = Safety(queue=q, audit=a, run_id="r_test")
+    safety = make_guard(sinks)
     with pytest.raises(GateStop) as exc:
-        await run_bundle(submit, DslRuntime(page=page, params={}, base_url="", safety=safety))
+        await run_bundle(submit, DslRuntime(page=page, params={}, base_url="", guard=safety))
     assert exc.value.decision.verdict == "needs_human" and exc.value.decision.queue_id
     assert cluster.state.submissions == []
     item = q.list()[0]
     assert item["kind"] == "irreversible_step" and item["status"] == "pending" and item["run_id"] == "r_test"
     # with the gates layer ablated, the same click goes through (this is what the red-team ablation measures)
-    safety_off = Safety(config=SecurityConfig.all_on().without("gates"), queue=q, audit=a, run_id="r_test")
-    await run_bundle(submit, DslRuntime(page=page, params={}, base_url="", safety=safety_off))
+    safety_off = make_guard(sinks, config=SecurityConfig.all_on().without("gates"))
+    await run_bundle(submit, DslRuntime(page=page, params={}, base_url="", guard=safety_off))
     assert len(cluster.state.submissions) == 1
 
 

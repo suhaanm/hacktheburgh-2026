@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import memoryFx from "../fixtures/memory.json";
 import type { Memory } from "../types";
-import { findLine, parseMemory, removeLineText, replaceLineText, serializeMemory } from "./memory";
+import { captureOn, findLine, parseMemory, removeLineText, replaceLineText, serializeMemory, setCapture } from "./memory";
 
 const m = (memoryFx as unknown as { data: Memory }).data;
 
@@ -37,5 +37,30 @@ describe("memory file", () => {
   it("finds a line by id", () => {
     expect(findLine(m.sections, "mem_never_1")?.section).toBe("Never");
     expect(findLine(m.sections, "nope")).toBeNull();
+  });
+});
+
+describe("capture line", () => {
+  it("is off until a Preferences line says times only, and the toggle is just that line", () => {
+    expect(captureOn(m.sections)).toBe(false);
+    const on = setCapture(m.markdown, true);
+    expect(on).toContain("- Capture: times only");
+    const p = parseMemory(on);
+    expect(captureOn(p.sections)).toBe(true);
+    expect(p.sections.Preferences.map((l) => l.text)).toContain("Capture: times only");
+    // It lands inside Preferences, not in the next section.
+    expect(on.indexOf("- Capture: times only")).toBeLessThan(on.indexOf("## Procedure"));
+    expect(on.indexOf("- Capture: times only")).toBeGreaterThan(on.indexOf("## Preferences"));
+  });
+  it("turning it on twice adds one line, and turning it off removes it and nothing else", () => {
+    const once = setCapture(setCapture(m.markdown, true), true);
+    expect(once.match(/Capture:/g)).toHaveLength(1);
+    const off = setCapture(once, false);
+    expect(off).not.toContain("Capture:");
+    expect(parseMemory(off).sections.Preferences.length).toBe(m.sections.Preferences.length);
+  });
+  it("works on an empty file with no Preferences section", () => {
+    const on = setCapture("---\nrole: x\nrevision: 0\n---\n", true);
+    expect(captureOn(parseMemory(on).sections)).toBe(true);
   });
 });

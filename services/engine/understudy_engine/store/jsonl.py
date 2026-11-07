@@ -122,6 +122,10 @@ class EventStore:
 
     def append_many(self, events: Iterable[Event | dict]) -> AppendResult:
         """Append what is valid, report the rest as ``{index, reason}``. Never raises per row."""
+        with _lock:                       # one writer at a time: the duplicate check and the write are one step
+            return self._append_many(events)
+
+    def _append_many(self, events: Iterable[Event | dict]) -> AppendResult:
         res = AppendResult()
         by_path: dict[Path, list[Event]] = {}
         seen: dict[Path, set[str]] = {}
@@ -146,6 +150,10 @@ class EventStore:
         return res
 
     def _append_validated(self, evs: list[Event], path: Path | None) -> None:
+        with _lock:
+            self._append_validated_locked(evs, path)
+
+    def _append_validated_locked(self, evs: list[Event], path: Path | None) -> None:
         by_path: dict[Path, list[Event]] = {}
         for ev in evs:
             p = path or self.path_for(ev)
@@ -216,18 +224,20 @@ class EventStore:
         path = Path(path)
         st = path.stat()
         key = (str(path), st.st_mtime_ns, st.st_size)
-        hit = self._cache.get(key)
-        if hit is not None:
-            self._cache.move_to_end(key)
-            return hit
+        with _lock:
+            hit = self._cache.get(key)
+            if hit is not None:
+                self._cache.move_to_end(key)
+                return hit
         out = [
             Event.model_validate(orjson.loads(line))
             for line in path.read_bytes().splitlines()
             if line.strip()
         ]
-        self._cache[key] = out
-        while len(self._cache) > 24:
-            self._cache.popitem(last=False)
+        with _lock:
+            self._cache[key] = out
+            while len(self._cache) > 24:
+                self._cache.popitem(last=False)
         return out
 
     def read(
@@ -244,6 +254,8 @@ class EventStore:
         until_dt = _as_dt(until)
         out: list[Event] = []
         for path in self.files(partition, person):
+            if person and person not in self._persons_of(path):
+                continue
             for ev in self.read_file(path):
                 if person and ev.person != person:
                     continue
@@ -256,6 +268,21 @@ class EventStore:
                 out.append(ev)
         out.sort(key=lambda e: (e.t, e.id))
         return out[:limit] if limit else out
+
+    def _persons_of(self, path: Path) -> frozenset[str]:
+        """Who is in a file (cached per path, mtime and size), so a person's read skips the other files."""
+        st = path.stat()
+        key = ("persons", str(path), st.st_mtime_ns, st.st_size)
+        with _lock:
+            hit = self._cache.get(key)
+        if hit is not None:
+            return hit  # type: ignore[return-value]
+        found = frozenset(e.person for e in self.read_file(path))
+        with _lock:
+            self._cache[key] = found  # type: ignore[assignment]
+            while len(self._cache) > 48:
+                self._cache.popitem(last=False)
+        return found
 
     def persons(self, partition: str) -> list[str]:
         seen: dict[str, None] = {}

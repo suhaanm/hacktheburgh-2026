@@ -11,7 +11,6 @@ import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 from ..store.paths import data_dir
 from .errors import ApiError
@@ -55,45 +54,24 @@ def queue_list(status: str) -> list[dict]:
 
 
 def queue_decide(item_id: str, action: str, auth: dict | None) -> dict:
+    """Approve or reject as the worker. ``auth`` is {method, sub_hash?} (absent means a local click); the queue validates
+    it before any state change and records auth_method / sub_hash on the item and in its audit line."""
     mods = agent_modules()
     if not mods:
         raise _no_agent()
     queue_mod, audit_mod, _, Origin = mods
-    q = queue_mod.ApprovalQueue()           # audit=None: the one audit line below carries the auth method
+    q = queue_mod.ApprovalQueue(audit=audit_mod.AuditLog())
     try:
         fn = q.approve if action == "approve" else q.reject
-        item = fn(item_id, origin=Origin.HUMAN_UI, decided_by="worker")
+        return fn(item_id, origin=Origin.HUMAN_UI, decided_by="worker", auth=auth or {"method": "local"})
+    except queue_mod.InvalidAuth as exc:
+        raise ApiError(422, "invalid_auth", f"{exc}.")
     except queue_mod.NotFound:
         raise ApiError(404, "no_such_item", f"There is no queue item {item_id}.")
     except queue_mod.AlreadyDecided as exc:
         raise ApiError(409, "already_decided", f"Nothing changed: {exc}.")
     except queue_mod.NotPermitted as exc:
         raise ApiError(403, "not_permitted", str(exc))
-    method = (auth or {}).get("method", "local")
-    sub_hash = (auth or {}).get("sub_hash")
-    item = _annotate(q, item["id"], method, sub_hash) or item
-    meta: dict[str, Any] = {"queue_id": item["id"], "auth_method": method}
-    if sub_hash:
-        meta["sub_hash"] = sub_hash
-    audit_mod.AuditLog().append(
-        "human", "queue_decided", routine=item.get("routine_id"), run_id=item.get("run_id"), outcome=item["status"],
-        note_code=f"queue:{item['kind']}:{item['risk_class']}", meta=meta,
-    )
-    return item
-
-
-def _annotate(q, item_id: str, method: str, sub_hash: str | None) -> dict | None:
-    """Add auth_method (and sub_hash) to the decided item file, under the queue's own lock, atomically."""
-    try:
-        with q._locked():  # noqa: SLF001 - same lock the queue uses; no new file format
-            item = q._read(item_id)  # noqa: SLF001
-            item["auth_method"] = method
-            if sub_hash:
-                item["sub_hash"] = sub_hash
-            q._write(item)  # noqa: SLF001
-            return item
-    except Exception:  # pragma: no cover - the decision itself already stands
-        return None
 
 
 # --------------------------------------------------------------------------- audit

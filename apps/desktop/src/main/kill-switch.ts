@@ -31,6 +31,8 @@ export interface KillDeps {
   stopSession(reason: SessionEndReason): void
   stopAgency(): void
   stopShowtime(): void
+  // The ring on a browser element and any wait for the extension (optional so older callers type-check).
+  stopCoach?(): void
   cancelConfirm(): void
   agents(): readonly Pick<AgentChip, 'id' | 'status'>[]
   cancelAgent(id: string): void
@@ -84,6 +86,7 @@ export function createKillSwitch(deps: KillDeps): KillSwitch {
       safely('agents', () => {
         for (const chip of deps.agents()) if (chip.status === 'running') deps.cancelAgent(chip.id)
       })
+      safely('ring', () => deps.stopCoach?.())
       safely('walkthrough', () => deps.stopShowtime())
       safely('session', () => deps.stopSession('stop'))
       safely('overlay', () => {

@@ -21,7 +21,7 @@
   },
   "$defs": {
     "ident": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,31}$" },
-    "selector": { "type": "string", "minLength": 1, "maxLength": 300, "not": { "pattern": "(?i)^\\s*(javascript|data):" } },
+    "selector": { "type": "string", "minLength": 1, "maxLength": 300, "not": { "pattern": "^\\s*([jJ][aA][vV][aA][sS][cC][rR][iI][pP][tT]|[dD][aA][tT][aA]):" } },
     "recorded_step": {
       "type": "object",
       "additionalProperties": false,

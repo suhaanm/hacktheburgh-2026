@@ -47,6 +47,32 @@ class NotPermitted(QueueError):
     pass
 
 
+class InvalidAuth(QueueError, ValueError):
+    """The `auth` record on an approval is not one of the accepted shapes."""
+
+
+AUTH_METHODS = ("local", "auth0_stepup")
+_SUB_HASH = re.compile(r"^[0-9a-f]{12}$")
+
+
+def validate_auth(auth: dict[str, Any] | None) -> dict[str, str] | None:
+    """`{method: "local" | "auth0_stepup", sub_hash?: 12 lowercase hex}` and nothing else (never names, emails or tokens)."""
+    if auth is None:
+        return None
+    if not isinstance(auth, dict) or set(auth) - {"method", "sub_hash"}:
+        raise InvalidAuth("auth may only contain method and sub_hash")
+    method = auth.get("method")
+    if method not in AUTH_METHODS:
+        raise InvalidAuth(f"auth.method must be one of {AUTH_METHODS}")
+    out = {"method": method}
+    if "sub_hash" in auth:
+        sh = auth["sub_hash"]
+        if not isinstance(sh, str) or not _SUB_HASH.match(sh):
+            raise InvalidAuth("auth.sub_hash must be 12 lowercase hex characters")
+        out["sub_hash"] = sh
+    return out
+
+
 def _iso(ts: float) -> str:
     return datetime.fromtimestamp(ts, timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
@@ -124,11 +150,12 @@ class ApprovalQueue:
             raise NotFound("no such queue item")
         return json.loads(p.read_text(encoding="utf-8"))
 
-    def _log(self, kind: str, item: dict[str, Any], outcome: str, actor: str = "system") -> None:
+    def _log(self, kind: str, item: dict[str, Any], outcome: str, actor: str = "system",
+             extra: dict[str, str] | None = None) -> None:
         if self.audit is not None:
             self.audit.append(actor, kind, routine=item.get("routine_id"), run_id=item.get("run_id"),
                               outcome=outcome, note_code=f"queue:{item['kind']}:{item['risk_class']}",
-                              meta={"queue_id": item["id"]})
+                              meta={"queue_id": item["id"], **(extra or {})})
 
     # ---- API
     def enqueue(self, *, kind: str, title: str, summary: str, risk_class: str = "normal", routine_id: str | None = None,
@@ -187,10 +214,12 @@ class ApprovalQueue:
         items = self._all()
         return items if status == "all" else [i for i in items if i["status"] == status]
 
-    def _decide(self, item_id: str, status: str, decided_by: str, origin: Origin | None) -> dict[str, Any]:
+    def _decide(self, item_id: str, status: str, decided_by: str, origin: Origin | None,
+                auth: dict[str, Any] | None = None) -> dict[str, Any]:
         d = SettingsGuard().authorise_write(Setting.CONSENT, origin) if origin is not None else None
         if d is None or not d.allowed:
             raise NotPermitted("only the worker's own action can approve or reject a queue item")
+        clean_auth = validate_auth(auth)  # validated before anything changes
         with self._locked():
             item = self._read(item_id)
             if item["status"] != "pending":
@@ -198,15 +227,23 @@ class ApprovalQueue:
             item["status"] = status
             item["decided_at"] = _iso(self._clock())
             item["decided_by"] = decided_by
+            if clean_auth:
+                item["auth_method"] = clean_auth["method"]
+                if "sub_hash" in clean_auth:
+                    item["sub_hash"] = clean_auth["sub_hash"]
             self._write(item)
-        self._log("queue_decided", item, status, actor="human")
+        extra = {"auth_method": clean_auth["method"], **({"sub_hash": clean_auth["sub_hash"]} if "sub_hash" in clean_auth else {})} if clean_auth else None
+        self._log("queue_decided", item, status, actor="human", extra=extra)
         return item
 
-    def approve(self, item_id: str, *, origin: Origin | None = None, decided_by: str = "human") -> dict[str, Any]:
-        return self._decide(item_id, "approved", decided_by, origin)
+    def approve(self, item_id: str, *, origin: Origin | None = None, decided_by: str = "human",
+                auth: dict[str, Any] | None = None) -> dict[str, Any]:
+        """`auth` (optional): {method: "local" | "auth0_stepup", sub_hash?: 12 hex}. Stored as auth_method and sub_hash."""
+        return self._decide(item_id, "approved", decided_by, origin, auth)
 
-    def reject(self, item_id: str, *, origin: Origin | None = None, decided_by: str = "human") -> dict[str, Any]:
-        return self._decide(item_id, "rejected", decided_by, origin)
+    def reject(self, item_id: str, *, origin: Origin | None = None, decided_by: str = "human",
+               auth: dict[str, Any] | None = None) -> dict[str, Any]:
+        return self._decide(item_id, "rejected", decided_by, origin, auth)
 
     def expire_older_than(self, seconds: float) -> int:
         """Mark pending items older than `seconds` as expired (an expired approval never runs)."""

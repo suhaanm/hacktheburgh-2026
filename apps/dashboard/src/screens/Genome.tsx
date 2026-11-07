@@ -30,8 +30,8 @@ export default function Genome() {
     <div className="page page--wide">
       <PageHead
         eyebrow="Genome · benefits entitlement check"
-        title={`The novice loses about ${fmtDuration(total)} on this case`}
-        lede={<>Expert on top, novice below. The 95% interval is {fmtDuration(data.total_gap_ci[0])} to {fmtDuration(data.total_gap_ci[1])}. Hatched means a step one person did and the other did not. Red is seconds lost.</>}
+        title={`Novices lose about ${fmtDuration(total)} per case`}
+        lede={<>That is the average over all novices, with a 95% interval of {fmtDuration(data.total_gap_ci[0])} to {fmtDuration(data.total_gap_ci[1])}. The ribbon shows one case{data.person_gap_s != null ? <> ({data.person}, {fmtDuration(data.person_gap_s)} lost)</> : null} against the nearest expert: hatched is a step only one of them did, red is seconds lost.</>}
         aside={<OriginBadge meta={g.meta} />}
       />
 
@@ -68,7 +68,7 @@ export default function Genome() {
       <section className="section" aria-labelledby="wf-h">
         <div className="section__head">
           <h2 id="wf-h" className="section__title">What the time was spent on</h2>
-          <p className="section__sub">Biggest first. Each bar starts where the one above ended. Whiskers are 95% intervals from a bootstrap over people.</p>
+          <p className="section__sub">Average per case, biggest first. Each bar starts where the one above ended. Whiskers are 95% intervals from a bootstrap over people.</p>
         </div>
         <div className="chart chart--wide">
           <Waterfall steps={data.waterfall} totalCi={data.total_gap_ci} />
@@ -156,6 +156,7 @@ function Controls({ data, meta }: { data: GenomeData; meta: ReturnType<typeof us
   const { placebo, null: nul } = data.controls;
   const zero = (ci: [number, number]) => ci[0] <= 0 && ci[1] >= 0;
   const ok = zero(placebo.ci) && zero(nul.ci);
+  const wide = Math.abs(nul.gap_s) > 0.1 * data.total_gap_s || Math.abs(placebo.gap_s) > 0.1 * data.total_gap_s;
   const lo = Math.min(-40, placebo.ci[0], nul.ci[0]);
   return (
     <section className="section" aria-labelledby="ctl-h">
@@ -163,8 +164,8 @@ function Controls({ data, meta }: { data: GenomeData; meta: ReturnType<typeof us
         <h2 id="ctl-h" className="section__title">Does the method invent gaps?</h2>
         <p className="section__sub controls__lede">
           {ok
-            ? <>Expert against expert, and shuffled labels, both show about zero. Their intervals include 0, so the ribbon is not inventing the gap.</>
-            : <>A control is off zero. Do not trust the ribbon until this is explained.</>}
+            ? <>Expert against expert shows {signed(placebo.gap_s)} s and shuffled labels show {signed(nul.gap_s)} s. Both intervals include 0.{wide ? " The shuffled-label interval is wide, so read the real gap with that in mind." : " The ribbon is not inventing the gap."}</>
+            : <>A control is off zero: expert against expert {signed(placebo.gap_s)} s, shuffled labels {signed(nul.gap_s)} s. Do not trust the ribbon until this is explained.</>}
         </p>
       </div>
       <div className="chart chart--wide">
@@ -172,7 +173,7 @@ function Controls({ data, meta }: { data: GenomeData; meta: ReturnType<typeof us
           unit="seconds of gap"
           reference={0}
           refLabel="0"
-          domain={[lo, data.total_gap_ci[1] + 20]}
+          domain={[lo, Math.max(data.total_gap_ci[1], nul.ci[1], placebo.ci[1]) + 20]}
           aria={`Controls. Real gap ${signed(data.total_gap_s)} seconds, interval ${fmtInterval(data.total_gap_ci)}. Placebo ${signed(placebo.gap_s, 1)}, interval ${fmtInterval(placebo.ci, 1)}. Null ${signed(nul.gap_s, 1)}, interval ${fmtInterval(nul.ci, 1)}.`}
           rows={[
             { label: "Novice against expert", value: data.total_gap_s, ci: data.total_gap_ci, emphasis: "real" },

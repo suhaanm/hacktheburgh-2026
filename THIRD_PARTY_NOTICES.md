@@ -11,6 +11,16 @@ The desktop app starts as a copy of the owner's Alongside project. Alongside's o
 
 **When copying Alongside into `apps/desktop`, merge Alongside's `THIRD_PARTY_NOTICES.md` into this file and keep every `Adapted from` header.** The owner's own Alongside code needs no notice.
 
+**Merged on 7 Nov 2026** (the authoritative copy, with the full MIT licence text, is `apps/desktop/THIRD_PARTY_NOTICES.md`; it travels with the app). Files in `apps/desktop` that carry an `Adapted from` header:
+
+| Files | Source | Licence | Notes |
+|---|---|---|---|
+| `src/main/capture/{index,sizing,overlay-window}.ts`, `src/main/agency/{policy,audit}.ts`, `src/renderer/overlay/{flight,arrow,geometry}.ts`, `src/renderer/overlay/annotations/{GhostCursor,labels,shapes}.tsx` | farzaa/clicky | MIT | overlay window recipe, bezier pointer flight, arrow and circle drawing, screenshot sizing, agency policy and audit rules |
+| `src/renderer/live/{wire,connection,LiveSession,audio,frames}.ts` | google-gemini/gemini-live-api-examples | no licence file upstream | Live session wiring; voice stays flagged off in this build and these files are not used by the demo |
+| (idea only, no code) | Sentient OS | AGPL | credited in Alongside's notices; nothing copied |
+
+Alongside's npm dependencies keep their own licences (see `apps/desktop/package.json`). `apps/desktop/.userdata*/` holds the owner's local replay data and is ignored by git.
+
 ## Copied from MIT sources (add a row for each file)
 
 | File here | Source | Path upstream | Licence | Notice |

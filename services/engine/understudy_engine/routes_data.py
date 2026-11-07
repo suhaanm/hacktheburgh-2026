@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,7 +27,6 @@ from .genome import GenomeError, GenomeService
 from .packs import list_packs
 from .store import EventStore, fmt_t, is_mock, replay, to_row
 from .store.paths import evals_dir
-from .store.validate import InvalidEvent
 
 router = APIRouter()
 START = time.time()
@@ -69,17 +67,21 @@ def _agent_up() -> bool:
 
 # ------------------------------------------------------------------------------------------ health
 @router.get("/health")
-def health():
+def health(request: Request):
     mock = is_mock()
+    status = getattr(request.app.state, "router_status", {})
 
-    def model(name: str) -> str | None:
+    def model(name: str) -> str:
         v = os.environ.get(name, "").strip()
-        return v or ("mock" if mock else None)
+        return v or ("mock" if mock else "(not set)")
 
     return {
         "ok": True, "version": __version__, "mock": mock,
         "models": {"planner": model("OPENAI_MODEL_PLANNER"), "fast": model("OPENAI_MODEL_FAST"), "computer_use": model("OPENAI_MODEL_COMPUTER_USE")},
         "services": {"engine": True, "agent": _agent_up()},
+        # additive: which optional routers this engine loaded, and whether the caches are warm
+        "routers": {"data": True, "analytics": status.get("routes_analytics") == "included", "handoff": status.get("routes_handoff") == "included"},
+        "warm": dict(getattr(request.app.state, "warm", {})),
     }
 
 
@@ -189,13 +191,10 @@ def get_transitions(request: Request, task: str = "benefits-household-entry", pe
 
 
 # ------------------------------------------------------------------------------------------ queue
-_SUB_HASH = re.compile(r"^(h:)?[0-9a-f]{8,64}$")
-
-
 class Auth(BaseModel):
     model_config = ConfigDict(extra="forbid")
     method: Literal["local", "auth0_stepup"] = "local"
-    sub_hash: str | None = Field(None, description="hash of the identity subject; never a name, email or token")
+    sub_hash: str | None = Field(None, description="12 lowercase hex characters, a hash of the identity subject; never a name, email or token")
 
 
 class Decision(BaseModel):
@@ -214,11 +213,7 @@ def get_queue(status: Literal["pending", "approved", "rejected", "expired", "all
 
 
 def _decide(item_id: str, action: str, body: Decision | None):
-    auth = None
-    if body and body.auth:
-        if body.auth.sub_hash is not None and not _SUB_HASH.match(body.auth.sub_hash):
-            raise ApiError(422, "bad_sub_hash", "sub_hash must be a hex hash (optionally prefixed h:), never a name, email or token.")
-        auth = body.auth.model_dump(exclude_none=True)
+    auth = body.auth.model_dump(exclude_none=True) if body and body.auth else None
     return files.queue_decide(item_id, action, auth)
 
 

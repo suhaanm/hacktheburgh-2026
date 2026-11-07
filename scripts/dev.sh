@@ -8,7 +8,9 @@ cd "$ROOT"
 mkdir -p data/logs data/pids
 
 ENGINE_PORT="${ENGINE_PORT:-7700}"; AGENT_PORT="${AGENT_PORT:-7710}"; DASHBOARD_PORT="${DASHBOARD_PORT:-5173}"
+PRE_MOCK="${UNDERSTUDY_MOCK-}"   # a value given on the command line wins over .env
 if [[ -f .env ]]; then set -a; source .env; set +a; fi
+[[ -n "$PRE_MOCK" ]] && export UNDERSTUDY_MOCK="$PRE_MOCK"
 ENGINE_PORT="${ENGINE_PORT:-7700}"; AGENT_PORT="${AGENT_PORT:-7710}"; DASHBOARD_PORT="${DASHBOARD_PORT:-5173}"
 
 busy() { lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1; }

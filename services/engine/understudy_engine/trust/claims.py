@@ -18,6 +18,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from understudy_engine.hazard.logreg import LogisticModel
+from understudy_engine.trust.limitations import limitations_for
 from understudy_engine.trust.meta import analytic_meta
 from understudy_engine.trust.calibration import (
     PlattScaler, cluster_bootstrap_scores, ece, log_loss, brier, reliability_bins, sigmoid,
@@ -73,8 +74,10 @@ def _fit_predict(Xtr, ytr, Xte, l2: float) -> np.ndarray:
 
 
 def evaluate_claims(runs: ClaimRuns | None = None, *, k_folds: int = 5, l2: float = 3.0,
-                    n_boot: int = 300, seed: int = 0, review_budget: float = 0.2) -> dict:
-    """Grouped K-fold evaluation. Returns a plain dict for the Evidence page."""
+                    n_boot: int = 300, seed: int = 0, review_budget: float = 0.2, fast: bool = False) -> dict:
+    """Grouped K-fold evaluation. Returns a plain dict for the Evidence page. `fast=True` caps resamples at 60."""
+    if fast:
+        n_boot = min(n_boot, 60)
     runs = runs or simulate_claim_runs(seed=seed)
     X, y, g = runs.X, runs.y.astype(int), runs.group
     n = y.size
@@ -123,6 +126,7 @@ def evaluate_claims(runs: ClaimRuns | None = None, *, k_folds: int = 5, l2: floa
             "recall": caught / total_bad if total_bad else None,
             "precision": caught / kk,
         },
+        "limitations": limitations_for("agent_claims"),
         "caveats": [
             "Synthetic runs generated from a known mechanism; real agent traces will differ and this has not been validated on them.",
             "Features are trace summaries, not content; claims about page text cannot be assessed here.",

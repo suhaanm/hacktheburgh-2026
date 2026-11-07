@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://understudy.local/schema/evals.cases.schema.json",
+  "title": "Benefits household answer-key cases (evals/cases/households_*.json)",
+  "description": "Synthetic households with expected outcomes. Field names follow Household.to_dict() and oracle.score() of the agent-core sandbox. The oracle is a simplified internal rule set, illustrative, not law.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "meta", "cases"],
+  "properties": {
+    "schema": { "const": 1 },
+    "meta": {
+      "type": "object",
+      "required": ["generator", "seed", "count", "oracle", "oracle_label", "origin", "note", "oracle_independent_disagreements"],
+      "properties": {
+        "origin": { "const": "synthetic" },
+        "oracle_label": { "type": "string", "pattern": "not law" },
+        "oracle_independent_disagreements": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "cases": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/case" } }
+  },
+  "$defs": {
+    "site": { "enum": ["a", "b", "c"] },
+    "money": { "type": "number", "minimum": 0 },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["household", "oracle", "sites_expected", "site_inputs", "off_by", "sites_agree", "reconciliation_expected", "cliff_panel_expected", "independent_check", "routing", "case_note_expected"],
+      "properties": {
+        "household": {
+          "type": "object",
+          "required": ["id", "case_ref", "region", "adults", "children_ages", "tenure", "rent_monthly", "bedrooms", "savings", "childcare_monthly", "limited_capability", "archetype", "synthetic"],
+          "properties": {
+            "id": { "type": "string", "pattern": "^hh_[0-9]{4}$" },
+            "case_ref": { "type": "string", "pattern": "^CASE-[0-9]{4}$" },
+            "region": { "enum": ["england", "scotland", "wales"] },
+            "adults": { "type": "array", "minItems": 1, "maxItems": 2, "items": { "type": "object", "required": ["age", "earnings_monthly"], "properties": { "age": { "type": "integer", "minimum": 16 }, "earnings_monthly": { "$ref": "#/$defs/money" } } } },
+            "children_ages": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 19 } },
+            "tenure": { "enum": ["rent", "own"] },
+            "synthetic": { "const": true }
+          }
+        },
+        "oracle": {
+          "type": "object",
+          "required": ["uc_monthly", "eligible", "cliff_flags", "components", "rules"],
+          "properties": { "uc_monthly": { "$ref": "#/$defs/money" }, "eligible": { "type": "boolean" }, "cliff_flags": { "type": "array", "items": { "type": "string" } } }
+        },
+        "sites_expected": {
+          "type": "object", "additionalProperties": false, "required": ["a", "b", "c"],
+          "patternProperties": { "^[abc]$": { "type": "object", "required": ["uc_monthly", "eligible"], "properties": { "uc_monthly": { "$ref": "#/$defs/money" }, "eligible": { "type": "boolean" } } } }
+        },
+        "site_inputs": {
+          "type": "object", "additionalProperties": false, "required": ["a", "b", "c"],
+          "patternProperties": { "^[abc]$": { "type": "object", "minProperties": 12, "additionalProperties": { "type": "string" } } }
+        },
+        "off_by": { "type": "object", "propertyNames": { "$ref": "#/$defs/site" }, "additionalProperties": { "type": "number" } },
+        "sites_agree": { "type": "boolean" },
+        "reconciliation_expected": { "enum": ["agree", "discrepancy"] },
+        "cliff_panel_expected": { "type": "object", "minProperties": 5, "maxProperties": 6, "description": "One entry per cliff item the panel shows; the housing item is absent for owner occupiers.", "additionalProperties": { "enum": ["yes", "no"] } },
+        "independent_check": { "type": "object", "required": ["uc_monthly", "eligible", "agrees_with_oracle"] },
+        "routing": {
+          "type": "object",
+          "required": ["sites_off", "error_if_trust_first_site", "error_if_trust_any_single_site", "error_if_trust_median", "review_needed", "complexity"],
+          "properties": { "sites_off": { "type": "array", "items": { "$ref": "#/$defs/site" } }, "review_needed": { "type": "boolean" } }
+        },
+        "case_note_expected": { "type": "object", "required": ["case_ref", "status_after_draft", "must_not_submit"], "properties": { "must_not_submit": { "const": true } } }
+      }
+    }
+  }
+}

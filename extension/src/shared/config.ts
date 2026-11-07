@@ -11,6 +11,14 @@ export interface StorageArea {
 const PERSON_RE = /^p_[a-z0-9]{2,16}$/;
 const ROLE_RE = /^[a-z][a-z0-9-]{1,40}$/;
 
+export function parseIdentity(raw: unknown): { person: string; role: string } | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.person !== "string" || !PERSON_RE.test(r.person)) return null;
+  if (typeof r.role !== "string" || !ROLE_RE.test(r.role)) return null;
+  return { person: r.person, role: r.role };
+}
+
 export function newPersonId(): string {
   return `p_${randomHex(4)}`;
 }
@@ -35,6 +43,7 @@ export function normaliseConfig(raw: unknown): InstallConfig {
     role: typeof r.role === "string" && ROLE_RE.test(r.role) ? r.role : DEFAULT_CONFIG.role,
     engine_url: cleanUrl(r.engine_url, DEFAULT_CONFIG.engine_url),
     desktop_url: cleanUrl(r.desktop_url, DEFAULT_CONFIG.desktop_url),
+    identity_adopted: r.identity_adopted === true,
   };
 }
 
@@ -47,8 +56,11 @@ export async function loadConfig(area: StorageArea): Promise<InstallConfig> {
 export async function ensureConfig(area: StorageArea): Promise<InstallConfig> {
   const cfg = await loadConfig(area);
   if (!cfg.person) {
-    cfg.person = newPersonId();
-    await area.set({ [STORAGE_KEYS.config]: cfg });
+    // Re-read right before writing so a config saved by the popup in the meantime is merged, not overwritten.
+    const latest = await loadConfig(area);
+    latest.person = latest.person || newPersonId();
+    await area.set({ [STORAGE_KEYS.config]: latest });
+    return latest;
   }
   return cfg;
 }

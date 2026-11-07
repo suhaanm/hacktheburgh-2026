@@ -10,6 +10,7 @@ function setup(over: Partial<KillDeps> = {}) {
   const deps: KillDeps = {
     stopSession: (r) => void calls.push(`session:${r}`),
     stopAgency: () => void calls.push('agency'),
+    stopCoach: () => void calls.push('ring'),
     stopShowtime: () => void calls.push('showtime'),
     cancelConfirm: () => void calls.push('confirm'),
     agents: () => [
@@ -31,7 +32,7 @@ describe('kill switch', () => {
     const seen: boolean[] = []
     ks.subscribe((s) => seen.push(s.killed))
     const report = await ks.trigger('hotkey')
-    expect(calls).toEqual(['agency', 'confirm', 'agent:a1', 'showtime', 'session:stop', 'overlay.clear', `caption:${STOPPED_LINE}`, 'engine.kill'])
+    expect(calls).toEqual(['agency', 'confirm', 'agent:a1', 'ring', 'showtime', 'session:stop', 'overlay.clear', `caption:${STOPPED_LINE}`, 'engine.kill'])
     expect(isKilled()).toBe(true)
     expect(ks.isKilled()).toBe(true)
     expect(report).toMatchObject({ source: 'hotkey', engine: true, agent: true })

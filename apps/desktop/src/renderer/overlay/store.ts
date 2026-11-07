@@ -1,6 +1,6 @@
 // Pure reducer for OverlayCommand -> what is currently on screen. Time is passed in (no clocks here), so the
 // lifecycle (enter, ttl, exit, caption linger, stale guards) is unit-testable and identical in the harness.
-import type { Annotation, CaptionSpeaker, HelpLevel, OverlayCommand } from '../../shared/protocol'
+import type { Annotation, CaptionSpeaker, ChipFade, HelpLevel, OverlayCommand } from '../../shared/protocol'
 import type { AnnotationStyle } from '../design/annotation-style'
 import { planFlight } from './flight'
 import { normToPx, type Size } from './geometry'
@@ -31,15 +31,27 @@ export interface ChipState {
   exitingAt: number | null
 }
 
+// The persistent coach chip (Understudy). It stays until main says `gone`, or until main stops refreshing it (a long guard).
+export interface CoachChipState {
+  fade: ChipFade
+  level: HelpLevel
+  label: string
+  // When the fade state last changed (drives nothing visual by itself; the view animates between states with CSS).
+  fadeChangedAt: number
+  expiresAt: number
+  exitingAt: number | null
+}
+
 export interface OverlayState {
   annotations: ActiveAnnotation[]
   caption: CaptionState | null
   chip: ChipState | null
+  coach: CoachChipState | null
   // Survives the chip fading out, so a later level change still animates from the previous level.
   lastChip: { level: HelpLevel; label: string } | null
 }
 
-export const EMPTY_OVERLAY_STATE: OverlayState = { annotations: [], caption: null, chip: null, lastChip: null }
+export const EMPTY_OVERLAY_STATE: OverlayState = { annotations: [], caption: null, chip: null, coach: null, lastChip: null }
 
 export interface ReduceContext {
   now: number
@@ -53,6 +65,8 @@ const TICK_TTL_MS = 3_500
 const BUBBLE_TTL_MS = 12_000
 const GHOST_AFTERGLOW_MS = 2_200
 const CHIP_VISIBLE_MS = 6_000
+// Main re-sends the coach chip every few seconds; if it stops (a crash), the chip is not left on the screen for ever.
+export const COACH_CHIP_GUARD_MS = 5 * 60_000
 const CAPTION_STREAMING_GUARD_MS = 20_000
 
 export function captionLingerMs(text: string): number {
@@ -114,6 +128,14 @@ export function reduceOverlay(state: OverlayState, cmd: OverlayCommand, ctx: Red
         },
       }
     }
+    case 'coach': {
+      if (cmd.fade === 'gone') return state.coach ? { ...state, coach: { ...state.coach, exitingAt: state.coach.exitingAt ?? ctx.now } } : state
+      const prev = state.coach && state.coach.exitingAt === null ? state.coach : null
+      return {
+        ...state,
+        coach: { fade: cmd.fade, level: cmd.level, label: cmd.label, fadeChangedAt: prev && prev.fade === cmd.fade ? prev.fadeChangedAt : ctx.now, expiresAt: ctx.now + COACH_CHIP_GUARD_MS, exitingAt: null },
+      }
+    }
     case 'chip': {
       const from = state.lastChip && state.lastChip.level !== cmd.level ? state.lastChip : null
       return {
@@ -159,14 +181,15 @@ export function advance(state: OverlayState, ctx: ReduceContext): OverlayState {
   }
   const caption = step(state.caption)
   const chip = step(state.chip)
-  return changed ? { ...state, annotations, caption, chip } : state
+  const coach = step(state.coach)
+  return changed ? { ...state, annotations, caption, chip, coach } : state
 }
 
 // Earliest time `advance` has something to do; null when the scene is idle.
 export function nextDeadline(state: OverlayState, exitMs: number): number | null {
   const times: number[] = []
   for (const a of state.annotations) times.push(a.exitingAt !== null ? a.exitingAt + exitMs : a.expiresAt ?? Infinity)
-  for (const v of [state.caption, state.chip]) if (v) times.push(v.exitingAt !== null ? v.exitingAt + exitMs : v.expiresAt)
+  for (const v of [state.caption, state.chip, state.coach]) if (v) times.push(v.exitingAt !== null ? v.exitingAt + exitMs : v.expiresAt)
   const min = Math.min(...times)
   return Number.isFinite(min) ? min : null
 }

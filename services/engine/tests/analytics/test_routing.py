@@ -5,7 +5,7 @@ import pytest
 
 from understudy_engine.routing import control as C
 from understudy_engine.routing.cases import FEATURES, simulate_cases, split_indices
-from understudy_engine.routing.evaluate import evaluate_routing, _one_resplit
+from understudy_engine.routing.evaluate import _one_resplit, evaluate_routing, evaluate_routing_synthetic
 from understudy_engine.routing.model import RoutingModel
 from understudy_engine.trust.stats import clopper_pearson_upper
 
@@ -104,8 +104,8 @@ def test_the_bound_holds_on_held_out_cases_across_fresh_draws():
 
 
 def test_evaluate_routing_output_contract_and_determinism():
-    a = evaluate_routing(n_cases=3000, seed=5, n_resplits=6, resplit_n=2000)
-    b = evaluate_routing(n_cases=3000, seed=5, n_resplits=6, resplit_n=2000)
+    a = evaluate_routing_synthetic(n_cases=3000, seed=5, n_resplits=6, resplit_n=2000)
+    b = evaluate_routing_synthetic(n_cases=3000, seed=5, n_resplits=6, resplit_n=2000)
     a["meta"].pop("generated_at"); b["meta"].pop("generated_at")
     assert json.dumps(a, sort_keys=True, default=str) == json.dumps(b, sort_keys=True, default=str)
     for k in ("alpha", "curve", "held_out_error", "held_out_ci", "bound_held", "expert_minutes_per_case"):
@@ -126,7 +126,77 @@ def test_evaluate_routing_output_contract_and_determinism():
 
 
 def test_review_budget_beats_random_review_at_the_same_budget():
-    a = evaluate_routing(n_cases=4000, seed=1, n_resplits=0)
+    a = evaluate_routing_synthetic(n_cases=4000, seed=1, n_resplits=0)
     fb = a["fixed_review_budget"]
     random_caught = 0.30     # random review catches 30% of errors in expectation
     assert fb["share_of_errors_caught"] > random_caught + 0.25
+
+
+# ---------------- A4: cases from the sandbox households ----------------
+sandbox = pytest.importorskip("understudy_agent.sandbox_sites.oracle", reason="agent package not importable")
+
+
+def test_sandbox_cases_label_and_features_follow_the_definition():
+    from understudy_agent.sandbox_sites import oracle
+    from understudy_agent.sandbox_sites.households import generate_households
+    from understudy_engine.routing.sandbox import agent_answer, sandbox_cases
+    c = sandbox_cases(240, seed=7)
+    hs = generate_households(240, 7)
+    assert c.n == 240 and c.X.shape == (240, len(c.features)) and c.origin == "synthetic"
+    for i in (0, 15, 100, 239):
+        answers = [oracle.site_expected(s, hs[i])["uc_monthly"] for s in "abc"]
+        ref = oracle.score(hs[i])["uc_monthly"]
+        assert c.y[i] == int(abs(agent_answer(answers) - ref) > 1.0)
+    # no oracle value or label hides in the features
+    assert "oracle" not in " ".join(c.features) and "label" not in " ".join(c.features)
+    for j in range(c.X.shape[1]):
+        assert not (c.X[:, j].std() > 0 and np.array_equal(c.X[:, j], c.y.astype(float)) and c.y.any())
+
+
+def test_stated_confidence_depends_only_on_disagreement():
+    from understudy_engine.routing.sandbox import stated_confidence
+    assert stated_confidence([100.0, 100.4, 99.8], [True] * 3)[0] == pytest.approx(0.98, abs=0.01)      # all within a pound
+    conf, pairs, distinct = stated_confidence([0.0, 174.0, 348.0], [False, True, True])
+    assert pairs == 3 and distinct == 2 and conf < 0.6
+    # identical disagreement pattern, different absolute level -> same confidence
+    assert stated_confidence([10.0, 10.0, 60.0], [True] * 3)[0] == stated_confidence([500.0, 500.0, 550.0], [True] * 3)[0]
+
+
+def test_stand_in_agents_behave_as_described():
+    from understudy_engine.routing.sandbox import sandbox_cases
+    med = sandbox_cases(300, 7, "median_of_three")
+    assert med.y.sum() == 0                                  # the median of three always recovers the oracle here
+    maj = sandbox_cases(600, 7, "majority_else_mean")
+    errs = maj.extra["errors_by_archetype"]
+    assert {a for a, v in errs.items() if v["errors"]} == {"savings_cliff_16k"}
+    assert 0.02 < maj.y.mean() < 0.08
+    assert sandbox_cases(300, 7, "mean_of_three").y.mean() > 0.15
+    with pytest.raises(ValueError):
+        sandbox_cases(30, 1, "vibes")
+
+
+def test_sandbox_routing_headline_contract_bound_and_honest_notes():
+    a = evaluate_routing(n_cases=600, seed=3, n_resplits=5, resplit_n=400)
+    b = evaluate_routing(n_cases=600, seed=3, n_resplits=5, resplit_n=400)
+    for r in (a, b):
+        r["meta"].pop("generated_at"); r["secondary"]["meta"].pop("generated_at")
+    assert json.dumps(a, sort_keys=True, default=str) == json.dumps(b, sort_keys=True, default=str)
+    for k in ("alpha", "curve", "held_out_error", "held_out_ci", "bound_held", "expert_minutes_per_case"):
+        assert k in a
+    assert a["meta"]["n_unit"] == "households" and a["meta"]["origin"] == "synthetic"
+    assert "sandbox" in a["headline_source"] and "simplified" in a["meta"]["note"]
+    assert any("CIRCULARITY" in c for c in a["caveats"]) and any("simplified internal rule set" in c for c in a["caveats"])
+    assert a["bound_held"] and a["held_out"]["coverage"] > 0.8
+    assert a["expert_minutes_per_case"] < a["expert_minutes_review_all"] / 2
+    assert a["resplits"]["bonferroni"]["violation_rate"] == 0.0
+    assert a["secondary"]["meta"]["n_unit"] == "households" and "pure synthetic generator" in a["secondary"]["source"]
+    assert {x["stand_in"] for x in a["stand_ins"]} == {"majority_else_mean", "mean_of_three", "median_of_three"}
+    assert a["case_set"]["errors_by_archetype"]["savings_cliff_16k"]["errors"] > 0
+    json.dumps(a, default=str)
+
+
+def test_sandbox_routing_fast_is_quick():
+    import time
+    t = time.time()
+    r = evaluate_routing(fast=True)
+    assert time.time() - t < 30 and r["resplits"]["bonferroni"]["n_resplits"] == 10 and "stand_ins" not in r

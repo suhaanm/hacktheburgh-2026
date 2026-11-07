@@ -27,6 +27,17 @@ def analytics_limitations() -> list[dict]:
         {"id": "ana-skills-saturate", "severity": "medium",
          "text": "Skill tracing saturates on synthetic personas (about 35 tasks a day): mastery reaches its ceiling on day one and cannot "
                  "follow the planted learning curve. Decay with absence is shown in unit tests only."},
+        {"id": "ana-skills-learners-n", "severity": "medium",
+         "text": "On the learner trajectories (three learners, thirty cases each, one with a three-day absence) the help level does lighten as "
+                 "deficits fade, but a clock alone ranks the true curve as well as mastery does, the ranking of which deficits fade fastest "
+                 "is near chance, and the short absence did not move the level. Three learners make every interval wide."},
+        {"id": "ana-routing-circular", "severity": "high",
+         "text": "Review routing is grounded in sandbox households scored by calculators whose quirks we planted, against a simplified internal "
+                 "reference rather than law. The router finding those quirks shows it recovers our planted structure, not that real calculators "
+                 "or real agents fail this way; the task is nearly deterministic, and the plain spread of calculator answers does almost as well."},
+        {"id": "ana-pooling-people", "severity": "medium",
+         "text": "Cold-start priors are built from four synthetic personas (or 24 scripted apprentices with two cases each); with so few and such "
+                 "alike people, partial pooling is hard to tell from complete pooling, and learning-curve drift is not modelled."},
         {"id": "ana-policy-sim", "severity": "medium",
          "text": "Off-policy evaluation is validated in a simulator whose reward structure we invented, with exactly known propensities. "
                  "Real implicit labels (followed, dismissed, repeated, undone) are noisy proxies for 'it helped'."},
@@ -39,3 +50,21 @@ def analytics_limitations() -> list[dict]:
          "text": "The autonomy ladder needs 20 clean shadow runs to reach A2 and about 73 clean runs to reach A3; the demo reaches A1 or A2 at most. "
                  "A3 is a target, not a result."},
     ]
+
+
+# which register entries apply to which evaluate_* section
+SECTION_LIMITATIONS = {
+    "hazard": ("ana-synthetic-origin", "ana-hazard-people", "ana-hazard-alerts", "ana-hazard-label", "ana-apprentice-script"),
+    "skills": ("ana-synthetic-origin", "ana-skills-saturate", "ana-skills-learners-n"),
+    "pooling": ("ana-synthetic-origin", "ana-pooling-people"),
+    "ope": ("ana-synthetic-origin", "ana-policy-sim"),
+    "policy_gate": ("ana-synthetic-origin", "ana-hazard-people", "ana-hazard-label"),
+    "routing": ("ana-synthetic-origin", "ana-routing-shift", "ana-routing-circular"),
+    "agent_claims": ("ana-synthetic-origin", "ana-claims-synthetic", "ana-trust-ladder"),
+}
+
+
+def limitations_for(section: str) -> list[dict]:
+    """The register entries that apply to one evaluate_* section (same {id, text, severity} shape)."""
+    ids = set(SECTION_LIMITATIONS[section])
+    return [x for x in analytics_limitations() if x["id"] in ids]

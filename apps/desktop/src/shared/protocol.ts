@@ -244,11 +244,18 @@ export type AnnotationKind = Annotation['kind']
 
 export type CaptionSpeaker = 'user' | 'assistant' | 'system'
 
+// How much of the persistent coach chip is shown: full (bars and name), small (bars), dot, gone. Help fades as the worker improves.
+export const CHIP_FADES = ['full', 'small', 'dot', 'gone'] as const
+export type ChipFade = (typeof CHIP_FADES)[number]
+
 export type OverlayCommand =
   | { type: 'show'; annotations: Annotation[] }
   | { type: 'clear'; ids?: string[] }
   | { type: 'caption'; speaker: CaptionSpeaker; text: string; final: boolean }
   | { type: 'chip'; level: HelpLevel; label: string }
+  // Understudy: the persistent coach chip in a corner of the screen, at one of its fade states. Re-sent to keep it alive;
+  // `gone` fades it out. (The `chip` command above is the short-lived echo of a level change.)
+  | { type: 'coach'; fade: ChipFade; level: HelpLevel; label: string }
 
 // ---------- companion state (main StateStore, broadcast to dock + overlay) ----------
 export type Phase = 'asleep' | 'listening_for_name' | 'connecting' | 'live' | 'thinking' | 'speaking' | 'error'

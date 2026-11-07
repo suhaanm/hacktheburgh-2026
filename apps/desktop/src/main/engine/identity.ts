@@ -51,10 +51,21 @@ export function loadIdentity(deps: IdentityDeps): Identity {
   return { person, role }
 }
 
-/** Reads `role:` from the memory file's front matter (the engine's GET /memory markdown). */
-export function roleFromMemory(markdown: string): string | null {
-  const m = /^---\s*\n([\s\S]*?)\n---/m.exec(markdown)
-  if (!m) return null
-  const line = /^role:\s*([a-z][a-z0-9-]{1,40})\s*$/m.exec(m[1])
-  return line ? line[1] : null
+export { roleFromMemory } from './capture-consent'
+
+/** Keeps the person and role the memory file named, so the next start has them before the engine is up. */
+export function saveIdentity(userDataDir: string | null, identity: Identity, write?: (file: string, data: string) => void): void {
+  if (!userDataDir || !isPerson(identity.person) || !isRole(identity.role)) return
+  const file = path.join(userDataDir, 'understudy-identity.json')
+  const put =
+    write ??
+    ((f: string, data: string) => {
+      fs.mkdirSync(path.dirname(f), { recursive: true })
+      fs.writeFileSync(f, data, { mode: 0o600 })
+    })
+  try {
+    put(file, JSON.stringify({ person: identity.person, role: identity.role }))
+  } catch {
+    /* an unwritable folder only means the engine is asked again next start */
+  }
 }

@@ -35,11 +35,15 @@ AGENT_FEATURES = FEATURES[12:]
 
 @dataclass
 class Cases:
-    X: np.ndarray            # (n, len(FEATURES))
+    X: np.ndarray            # (n, len(features))
     y: np.ndarray            # 1 = the agent's answer is wrong
-    p_true: np.ndarray       # the true error probability (known only in simulation)
+    p_true: np.ndarray | None = None   # the true error probability (known only for the pure generator)
     features: tuple[str, ...] = FEATURES
     origin: str = "synthetic"
+    # optional, for case sets with a different feature layout (the sandbox households):
+    groups: dict[str, tuple[str, ...]] | None = None        # feature groups for the ablation
+    signals: dict[str, np.ndarray] | None = None            # single-signal rankings (higher = riskier) for baselines
+    extra: dict | None = None                                # free-form diagnostics carried into the report
 
     @property
     def n(self) -> int:
@@ -80,7 +84,8 @@ def simulate_cases(n: int = 4000, seed: int = 0) -> Cases:
         n_adults, n_children, income_sources, self_emp, housing, disability, scotland, benefits, near_cliff,
         np.log(time_s), retries, backtracks, disagree, conf,
     ])
-    return Cases(X, y, p_true)
+    return Cases(X, y, p_true, groups={"complexity_only": COMPLEXITY_FEATURES, "worker_trace_only": TRACE_FEATURES,
+                                       "agent_signals_only": AGENT_FEATURES, "all_features": FEATURES})
 
 
 def split_indices(n: int, seed: int, fractions: tuple[float, float, float] = (0.5, 0.25, 0.25)):

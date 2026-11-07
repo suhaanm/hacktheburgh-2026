@@ -242,7 +242,7 @@ describe('engine client against a fake engine over HTTP', () => {
     const list = await client.routines()
     expect(list).toHaveLength(1)
     expect(list![0]).toEqual({ id: 'calc-entry-3x', title: 'Enter the household into three calculators', status: 'proposed', minutesPerWeek: 96, hoursSaved: [3.1, 5.2], episodes: 14, touches: ['gov.uk check', 'turn2us'], never: ['submit'], what: 'You enter the same household three times.', howOften: 'about 14 times in 3 weeks' })
-    expect(await client.syncRole()).toBe('data-analyst')
+    expect(await client.syncIdentity()).toEqual({ person: null, role: 'data-analyst', captureTimesOnly: false })
     expect(client.identity.role).toBe('data-analyst')
     expect(toProposal({ id: 'x', status: 'declined' })).toMatchObject({ id: 'x', title: 'x', hoursSaved: null })
     expect(toProposal(null)).toBeNull()
@@ -410,5 +410,108 @@ describe('queue count', () => {
     await engine.close()
     servers.pop()
     expect(await client.pendingQueue()).toBeNull()
+  })
+})
+
+describe('capture consent (PR3: desk events are opt-in)', () => {
+  const MEM = (prefs: string, extra = '') => `---\nrole: benefits-processor\nrevision: 4\n---\n## Preferences\n${prefs}\n## Procedure\n- Usually checks child-related benefits first.\n${extra}`
+
+  it('reads the Capture line only from the Preferences section, tolerant of case, spacing and a trailing comment', async () => {
+    const { captureFromMemory } = await import('./capture-consent')
+    expect(captureFromMemory(MEM('- Summaries: short.\n- Capture: times only'))).toBe(true)
+    expect(captureFromMemory(MEM('-   capture:   TIMES ONLY  <!-- accepted 2026-11-07 -->'))).toBe(true)
+    expect(captureFromMemory(MEM('- Summaries: short.'))).toBe(false)
+    expect(captureFromMemory(MEM('- Capture: off'))).toBe(false)
+    expect(captureFromMemory(MEM('- Capture: times only and window titles'))).toBe(false)
+    expect(captureFromMemory(MEM('- Summaries: short.', '## Never\n- Capture: times only'))).toBe(false) // another section does not count
+    expect(captureFromMemory('')).toBe(false)
+  })
+
+  const fakeEngine = (answers: Array<{ captureTimesOnly: boolean } | null>) => {
+    let i = 0
+    const purged: string[] = []
+    return {
+      purged,
+      engine: {
+        memory: async () => {
+          const a = answers[Math.min(i++, answers.length - 1)]
+          return a ? { person: null, role: null, captureTimesOnly: a.captureTimesOnly } : null
+        },
+        purge: (source: string) => (purged.push(source), 2),
+      },
+    }
+  }
+  const manual = () => {
+    const fns: Array<() => void> = []
+    return { setTimer: (fn: () => void) => (fns.push(fn), 1), clearTimer: () => undefined, tick: () => fns.forEach((f) => f()) }
+  }
+
+  it('is off by default and when the engine cannot say; turns on only with the line; off again the moment it disappears, discarding unsent events', async () => {
+    const { createCaptureConsent } = await import('./capture-consent')
+    const t = manual()
+    const fe = fakeEngine([null, { captureTimesOnly: true }, { captureTimesOnly: true }, { captureTimesOnly: false }, null])
+    const modes: string[] = []
+    const c = createCaptureConsent({ engine: fe.engine, env: {}, ...t })
+    c.subscribe((m) => modes.push(m))
+    expect(c.mode()).toBe('off')
+    expect(c.allowed()).toBe(false)
+    expect(await c.check()).toBe('times_only') // 2nd read of memory: the line is there
+    expect(c.allowed()).toBe(true)
+    expect(await c.check()).toBe('times_only')
+    expect(await c.check()).toBe('off') // the line is gone
+    expect(fe.purged.length).toBeGreaterThan(0)
+    expect(await c.check()).toBe('off') // engine unreachable: fail closed
+    expect(modes).toEqual(['off', 'times_only', 'off']) // the first check announces the starting mode
+    c.dispose()
+  })
+
+  it('UNDERSTUDY_DESK_EVENTS=1 forces it on for development without reading the memory file', async () => {
+    const { createCaptureConsent, captureLabel } = await import('./capture-consent')
+    const fe = fakeEngine([{ captureTimesOnly: false }])
+    const c = createCaptureConsent({ engine: fe.engine, env: { UNDERSTUDY_DESK_EVENTS: '1' }, ...manual() })
+    expect(c.mode()).toBe('forced')
+    expect(await c.check()).toBe('forced')
+    expect(c.allowed()).toBe(true)
+    expect(captureLabel('off')).toMatch(/off/i)
+    expect(captureLabel('times_only')).toMatch(/times only/)
+  })
+
+  it('rechecks on its timer and applies the person and role it reads', async () => {
+    const { createCaptureConsent } = await import('./capture-consent')
+    const t = manual()
+    const seen: unknown[] = []
+    const engine = { memory: async () => ({ person: 'p_abc123', role: 'data-analyst', captureTimesOnly: true }), purge: () => 0 }
+    const c = createCaptureConsent({ engine, env: {}, onMemory: (i) => void seen.push(i), ...t })
+    await c.check()
+    t.tick()
+    await new Promise((r) => setTimeout(r, 5))
+    expect(seen.length).toBeGreaterThanOrEqual(3) // startup, explicit check, timer
+    expect(seen[0]).toEqual({ person: 'p_abc123', role: 'data-analyst', captureTimesOnly: true })
+  })
+
+  it('client.purge drops only the queued events of that source', () => {
+    const client = createEngineClient({ endpoints: { engine: 'http://127.0.0.1:1', agent: 'http://127.0.0.1:1' }, identity: ID, batchSize: 100, ...manualTimers() })
+    client.emit({ source: 'desk', type: 'lock' })
+    client.emit({ source: 'coach', type: 'coach_shown' })
+    client.emit({ source: 'desk', type: 'unlock' })
+    expect(client.purge('desk')).toBe(2)
+    expect(client.pending()).toBe(1)
+  })
+
+  it('client.memory reads GET /identity first (200 wins), falls back to GET /memory, and applies person and role', async () => {
+    const md = '---\nrole: data-analyst\nrevision: 2\n---\n## Preferences\n- Capture: times only\n'
+    const withIdentity = await fakeServer((p) => (p === '/identity' ? { status: 200, body: { person: 'p_9f3a1c20', role: 'benefits-processor' } } : p === '/memory' ? { status: 200, body: { markdown: md, person: 'p_other01' } } : { status: 404, body: {} }))
+    const a = createEngineClient({ endpoints: { engine: withIdentity.url, agent: withIdentity.url }, identity: { person: 'p_local001', role: 'data-analyst' }, ...manualTimers() })
+    expect(await a.syncIdentity()).toEqual({ person: 'p_9f3a1c20', role: 'benefits-processor', captureTimesOnly: true })
+    expect(a.identity).toEqual({ person: 'p_9f3a1c20', role: 'benefits-processor' })
+
+    const memoryOnly = await fakeServer((p) => (p === '/memory' ? { status: 200, body: { data: { markdown: md, person: 'p_other01' } } } : { status: 404, body: {} }))
+    const b = createEngineClient({ endpoints: { engine: memoryOnly.url, agent: memoryOnly.url }, identity: { person: 'p_local001', role: 'benefits-processor' }, ...manualTimers() })
+    expect(await b.memory()).toEqual({ person: 'p_other01', role: 'data-analyst', captureTimesOnly: true })
+
+    const neither = await fakeServer((p) => (p === '/memory' ? { status: 200, body: { markdown: '## Preferences\n- Summaries: short.' } } : { status: 404, body: {} }))
+    const c = createEngineClient({ endpoints: { engine: neither.url, agent: neither.url }, identity: ID, ...manualTimers() })
+    expect(await c.syncIdentity()).toEqual({ person: null, role: null, captureTimesOnly: false })
+    expect(c.identity).toEqual(ID) // nothing usable: the local identity stays
   })
 })

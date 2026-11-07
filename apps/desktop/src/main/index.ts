@@ -93,7 +93,7 @@ void app.whenReady().then(async () => {
   // NOTIFY: permission prompts also appear as a toast at the top of the screen (settings.confirmStyle; no window when headless / no overlay).
   const toast = registerToast({ ctx, adoptOwner, disabled: headless || flag('ALONGSIDE_NO_OVERLAY') })
   const unregisterLoginItem = registerLoginItem(settings, { log: (...args) => ctx.log('login-item', ...args) })
-  if (!headless) shellTray = registerTray({ bus, state, settings, windows, stop: (r) => session.stop(r), showtimeRunning: () => showtime.active(), kill: { trigger: () => void understudy.kill.trigger('tray'), clear: () => void understudy.kill.clear(), isKilled: () => understudy.kill.isKilled() }, openQueue: understudy.openQueue, log: (...args) => ctx.log('tray', ...args) })
+  if (!headless) shellTray = registerTray({ bus, state, settings, windows, stop: (r) => session.stop(r), showtimeRunning: () => showtime.active(), kill: { trigger: () => void understudy.kill.trigger('tray'), clear: () => void understudy.kill.clear(), isKilled: () => understudy.kill.isKilled() }, openQueue: understudy.openQueue, captureMode: () => core.capture.mode(), log: (...args) => ctx.log('tray', ...args) })
   app.on('will-quit', () => {
     void showtime.dispose()
     shellTray?.dispose()
@@ -109,7 +109,7 @@ void app.whenReady().then(async () => {
 
   // The debug server has no auth (it serves /shot, /state, /tool, /settings): opt-in only, never by default.
   if (flag('ALONGSIDE_DEBUG')) {
-    startDebugServer({ ctx, services, dispatch, session, capture: { overlayPng: windows.overlayPng, dockPng: windows.dockPng, hudPng: understudy.hud.png }, understudy: { kill: understudy.kill, hud: understudy.hudModel }, tray: shellTray ?? undefined })
+    startDebugServer({ ctx, services, dispatch, session, capture: { overlayPng: windows.overlayPng, dockPng: windows.dockPng, hudPng: understudy.hud.png }, understudy: { kill: understudy.kill, hud: understudy.hudModel, dom: { status: () => ({ port: understudy.extServer()?.port() ?? null, pending: understudy.domGrounder.pending(), extensionSeenMs: understudy.extServer()?.lastSeenAt() ? Date.now() - (understudy.extServer()?.lastSeenAt() ?? 0) : null, ring: understudy.ring.current(), chip: understudy.chip.current(), capture: core.capture.mode() }) } }, tray: shellTray ?? undefined })
   }
 
   // Understudy: the microphone is only needed for voice or the wake word, both off unless their flags are set.

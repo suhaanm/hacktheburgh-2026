@@ -1,0 +1,2869 @@
+{
+ "schema": 1,
+ "meta": {
+  "generator": "understudy_agent.sandbox_sites.households:generate_households",
+  "seed": 2026,
+  "count": 20,
+  "oracle": "understudy_agent.sandbox_sites.oracle:score",
+  "oracle_label": "simplified internal rule set, illustrative, not law",
+  "origin": "synthetic",
+  "note": "Synthetic households only. Expected values come from the oracle and the sites' documented quirks; independent_check is a separate recomputation (the AGT-6 hand check).",
+  "oracle_independent_disagreements": []
+ },
+ "cases": [
+  {
+   "household": {
+    "id": "hh_0001",
+    "case_ref": "CASE-1001",
+    "region": "england",
+    "adults": [
+     {
+      "age": 45,
+      "earnings_monthly": 1140.0
+     }
+    ],
+    "children_ages": [],
+    "tenure": "rent",
+    "rent_monthly": 540.0,
+    "bedrooms": 1,
+    "savings": 650.0,
+    "childcare_monthly": 0.0,
+    "limited_capability": false,
+    "archetype": "single_worker",
+    "synthetic": true,
+    "notes": []
+   },
+   "oracle": {
+    "uc_monthly": 313.14,
+    "eligible": true,
+    "cliff_flags": [],
+    "components": {
+     "standard": 400.14,
+     "children": 0.0,
+     "housing": 540.0,
+     "childcare": 0.0
+    },
+    "taper": 627.0,
+    "tariff_income": 0.0,
+    "work_allowance": 0.0,
+    "over_capital_limit": false,
+    "rules": "internal-simplified-v1"
+   },
+   "sites_expected": {
+    "a": {
+     "uc_monthly": 313.0,
+     "eligible": true
+    },
+    "b": {
+     "uc_monthly": 313.14,
+     "eligible": true
+    },
+    "c": {
+     "uc_monthly": 313.14,
+     "eligible": true
+    }
+   },
+   "site_inputs": {
+    "a": {
+     "adults": "1",
+     "adult1_age": "45",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "1140",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "540",
+     "bedrooms": "1",
+     "savings": "650",
+     "childcare_monthly": "0"
+    },
+    "b": {
+     "adults": "1",
+     "adult1_age": "45",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "1140",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "540",
+     "bedrooms": "1",
+     "savings": "650",
+     "childcare_monthly": "0"
+    },
+    "c": {
+     "adults": "1",
+     "adult1_age": "45",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "13680.00",
+     "adult2_earnings_monthly": "0.00",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "124.62",
+     "bedrooms": "1",
+     "savings": "650",
+     "childcare_monthly": "0.00"
+    }
+   },
+   "off_by": {},
+   "sites_agree": true,
+   "reconciliation_expected": "agree",
+   "cliff_panel_expected": {
+    "capital_limit": "no",
+    "capital_tariff": "no",
+    "children": "no",
+    "childcare": "no",
+    "earnings": "no",
+    "housing": "no"
+   },
+   "independent_check": {
+    "uc_monthly": 313.14,
+    "eligible": true,
+    "max_award": 940.14,
+    "taper": 627.0,
+    "tariff_income": 0.0,
+    "agrees_with_oracle": true
+   },
+   "routing": {
+    "sites_off": [],
+    "error_if_trust_first_site": false,
+    "error_if_trust_any_single_site": false,
+    "error_if_trust_median": false,
+    "review_needed": false,
+    "complexity": {
+     "n_cliff_flags": 0,
+     "children": 0,
+     "adults": 1,
+     "has_childcare": false,
+     "owner_occupier": false,
+     "limited_capability": false,
+     "savings_band": "below_tariff"
+    }
+   },
+   "case_note_expected": {
+    "case_ref": "CASE-1001",
+    "status_after_draft": "Draft",
+    "must_not_submit": true
+   }
+  },
+  {
+   "household": {
+    "id": "hh_0002",
+    "case_ref": "CASE-1002",
+    "region": "england",
+    "adults": [
+     {
+      "age": 44,
+      "earnings_monthly": 830.0
+     },
+     {
+      "age": 45,
+      "earnings_monthly": 700.0
+     }
+    ],
+    "children_ages": [
+     8,
+     12
+    ],
+    "tenure": "rent",
+    "rent_monthly": 785.0,
+    "bedrooms": 3,
+    "savings": 2800.0,
+    "childcare_monthly": 0.0,
+    "limited_capability": false,
+    "archetype": "couple_two_kids",
+    "synthetic": true,
+    "notes": []
+   },
+   "oracle": {
+    "uc_monthly": 1429.46,
+    "eligible": true,
+    "cliff_flags": [],
+    "components": {
+     "standard": 628.1,
+     "children": 631.81,
+     "housing": 785.0,
+     "childcare": 0.0
+    },
+    "taper": 615.45,
+    "tariff_income": 0.0,
+    "work_allowance": 411.0,
+    "over_capital_limit": false,
+    "rules": "internal-simplified-v1"
+   },
+   "sites_expected": {
+    "a": {
+     "uc_monthly": 1429.0,
+     "eligible": true
+    },
+    "b": {
+     "uc_monthly": 1429.46,
+     "eligible": true
+    },
+    "c": {
+     "uc_monthly": 1429.46,
+     "eligible": true
+    }
+   },
+   "site_inputs": {
+    "a": {
+     "adults": "2",
+     "adult1_age": "44",
+     "adult2_age": "45",
+     "children_ages": "8, 12",
+     "adult1_earnings_monthly": "830",
+     "adult2_earnings_monthly": "700",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "785",
+     "bedrooms": "3",
+     "savings": "2800",
+     "childcare_monthly": "0"
+    },
+    "b": {
+     "adults": "2",
+     "adult1_age": "44",
+     "adult2_age": "45",
+     "children_ages": "8, 12",
+     "adult1_earnings_monthly": "830",
+     "adult2_earnings_monthly": "700",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "785",
+     "bedrooms": "3",
+     "savings": "2800",
+     "childcare_monthly": "0"
+    },
+    "c": {
+     "adults": "2",
+     "adult1_age": "44",
+     "adult2_age": "45",
+     "children_ages": "8, 12",
+     "adult1_earnings_monthly": "9960.00",
+     "adult2_earnings_monthly": "8400.00",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "181.15",
+     "bedrooms": "3",
+     "savings": "2800",
+     "childcare_monthly": "0.00"
+    }
+   },
+   "off_by": {},
+   "sites_agree": true,
+   "reconciliation_expected": "agree",
+   "cliff_panel_expected": {
+    "capital_limit": "no",
+    "capital_tariff": "no",
+    "children": "no",
+    "childcare": "no",
+    "earnings": "no",
+    "housing": "no"
+   },
+   "independent_check": {
+    "uc_monthly": 1429.46,
+    "eligible": true,
+    "max_award": 2044.91,
+    "taper": 615.45,
+    "tariff_income": 0.0,
+    "agrees_with_oracle": true
+   },
+   "routing": {
+    "sites_off": [],
+    "error_if_trust_first_site": false,
+    "error_if_trust_any_single_site": false,
+    "error_if_trust_median": false,
+    "review_needed": false,
+    "complexity": {
+     "n_cliff_flags": 0,
+     "children": 2,
+     "adults": 2,
+     "has_childcare": false,
+     "owner_occupier": false,
+     "limited_capability": false,
+     "savings_band": "below_tariff"
+    }
+   },
+   "case_note_expected": {
+    "case_ref": "CASE-1002",
+    "status_after_draft": "Draft",
+    "must_not_submit": true
+   }
+  },
+  {
+   "household": {
+    "id": "hh_0003",
+    "case_ref": "CASE-1003",
+    "region": "england",
+    "adults": [
+     {
+      "age": 24,
+      "earnings_monthly": 1680.0
+     }
+    ],
+    "children_ages": [
+     1
+    ],
+    "tenure": "rent",
+    "rent_monthly": 595.0,
+    "bedrooms": 2,
+    "savings": 1400.0,
+    "childcare_monthly": 550.0,
+    "limited_capability": false,
+    "archetype": "lone_parent_childcare",
+    "synthetic": true,
+    "notes": []
+   },
+   "oracle": {
+    "uc_monthly": 1020.53,
+    "eligible": true,
+    "cliff_flags": [],
+    "components": {
+     "standard": 316.98,
+     "children": 339.0,
+     "housing": 595.0,
+     "childcare": 467.5
+    },
+    "taper": 697.95,
+    "tariff_income": 0.0,
+    "work_allowance": 411.0,
+    "over_capital_limit": false,
+    "rules": "internal-simplified-v1"
+   },
+   "sites_expected": {
+    "a": {
+     "uc_monthly": 1021.0,
+     "eligible": true
+    },
+    "b": {
+     "uc_monthly": 1020.53,
+     "eligible": true
+    },
+    "c": {
+     "uc_monthly": 1020.53,
+     "eligible": true
+    }
+   },
+   "site_inputs": {
+    "a": {
+     "adults": "1",
+     "adult1_age": "24",
+     "adult2_age": "",
+     "children_ages": "1",
+     "adult1_earnings_monthly": "1680",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "595",
+     "bedrooms": "2",
+     "savings": "1400",
+     "childcare_monthly": "550"
+    },
+    "b": {
+     "adults": "1",
+     "adult1_age": "24",
+     "adult2_age": "",
+     "children_ages": "1",
+     "adult1_earnings_monthly": "1680",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "595",
+     "bedrooms": "2",
+     "savings": "1400",
+     "childcare_monthly": "550"
+    },
+    "c": {
+     "adults": "1",
+     "adult1_age": "24",
+     "adult2_age": "",
+     "children_ages": "1",
+     "adult1_earnings_monthly": "20160.00",
+     "adult2_earnings_monthly": "0.00",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "137.31",
+     "bedrooms": "2",
+     "savings": "1400",
+     "childcare_monthly": "126.92"
+    }
+   },
+   "off_by": {},
+   "sites_agree": true,
+   "reconciliation_expected": "agree",
+   "cliff_panel_expected": {
+    "capital_limit": "no",
+    "capital_tariff": "no",
+    "children": "no",
+    "childcare": "no",
+    "earnings": "no",
+    "housing": "no"
+   },
+   "independent_check": {
+    "uc_monthly": 1020.53,
+    "eligible": true,
+    "max_award": 1718.48,
+    "taper": 697.95,
+    "tariff_income": 0.0,
+    "agrees_with_oracle": true
+   },
+   "routing": {
+    "sites_off": [],
+    "error_if_trust_first_site": false,
+    "error_if_trust_any_single_site": false,
+    "error_if_trust_median": false,
+    "review_needed": false,
+    "complexity": {
+     "n_cliff_flags": 0,
+     "children": 1,
+     "adults": 1,
+     "has_childcare": true,
+     "owner_occupier": false,
+     "limited_capability": false,
+     "savings_band": "below_tariff"
+    }
+   },
+   "case_note_expected": {
+    "case_ref": "CASE-1003",
+    "status_after_draft": "Draft",
+    "must_not_submit": true
+   }
+  },
+  {
+   "household": {
+    "id": "hh_0004",
+    "case_ref": "CASE-1004",
+    "region": "england",
+    "adults": [
+     {
+      "age": 56,
+      "earnings_monthly": 280.0
+     }
+    ],
+    "children_ages": [],
+    "tenure": "rent",
+    "rent_monthly": 555.0,
+    "bedrooms": 1,
+    "savings": 16000.0,
+    "childcare_monthly": 0.0,
+    "limited_capability": false,
+    "archetype": "savings_cliff_16k",
+    "synthetic": true,
+    "notes": [
+     "savings at the 16,000 capital limit"
+    ]
+   },
+   "oracle": {
+    "uc_monthly": 627.14,
+    "eligible": true,
+    "cliff_flags": [
+     "capital_limit_16000"
+    ],
+    "components": {
+     "standard": 400.14,
+     "children": 0.0,
+     "housing": 555.0,
+     "childcare": 0.0
+    },
+    "taper": 154.0,
+    "tariff_income": 174.0,
+    "work_allowance": 0.0,
+    "over_capital_limit": false,
+    "rules": "internal-simplified-v1"
+   },
+   "sites_expected": {
+    "a": {
+     "uc_monthly": 627.0,
+     "eligible": true
+    },
+    "b": {
+     "uc_monthly": 801.14,
+     "eligible": true
+    },
+    "c": {
+     "uc_monthly": 0.0,
+     "eligible": false
+    }
+   },
+   "site_inputs": {
+    "a": {
+     "adults": "1",
+     "adult1_age": "56",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "280",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "555",
+     "bedrooms": "1",
+     "savings": "16000",
+     "childcare_monthly": "0"
+    },
+    "b": {
+     "adults": "1",
+     "adult1_age": "56",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "280",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "555",
+     "bedrooms": "1",
+     "savings": "16000",
+     "childcare_monthly": "0"
+    },
+    "c": {
+     "adults": "1",
+     "adult1_age": "56",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "3360.00",
+     "adult2_earnings_monthly": "0.00",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "128.08",
+     "bedrooms": "1",
+     "savings": "16000",
+     "childcare_monthly": "0.00"
+    }
+   },
+   "off_by": {
+    "b": 174.0,
+    "c": -627.14
+   },
+   "sites_agree": false,
+   "reconciliation_expected": "discrepancy",
+   "cliff_panel_expected": {
+    "capital_limit": "yes",
+    "capital_tariff": "no",
+    "children": "no",
+    "childcare": "no",
+    "earnings": "no",
+    "housing": "no"
+   },
+   "independent_check": {
+    "uc_monthly": 627.14,
+    "eligible": true,
+    "max_award": 955.14,
+    "taper": 154.0,
+    "tariff_income": 174.0,
+    "agrees_with_oracle": true
+   },
+   "routing": {
+    "sites_off": [
+     "b",
+     "c"
+    ],
+    "error_if_trust_first_site": false,
+    "error_if_trust_any_single_site": true,
+    "error_if_trust_median": false,
+    "review_needed": true,
+    "complexity": {
+     "n_cliff_flags": 1,
+     "children": 0,
+     "adults": 1,
+     "has_childcare": false,
+     "owner_occupier": false,
+     "limited_capability": false,
+     "savings_band": "tariff_band"
+    }
+   },
+   "case_note_expected": {
+    "case_ref": "CASE-1004",
+    "status_after_draft": "Draft",
+    "must_not_submit": true
+   }
+  },
+  {
+   "household": {
+    "id": "hh_0005",
+    "case_ref": "CASE-1005",
+    "region": "england",
+    "adults": [
+     {
+      "age": 36,
+      "earnings_monthly": 250.0
+     }
+    ],
+    "children_ages": [],
+    "tenure": "rent",
+    "rent_monthly": 480.0,
+    "bedrooms": 1,
+    "savings": 12000.0,
+    "childcare_monthly": 0.0,
+    "limited_capability": false,
+    "archetype": "savings_tariff_band",
+    "synthetic": true,
+    "notes": [
+     "savings in the tariff band"
+    ]
+   },
+   "oracle": {
+    "uc_monthly": 638.24,
+    "eligible": true,
+    "cliff_flags": [
+     "capital_tariff_band"
+    ],
+    "components": {
+     "standard": 400.14,
+     "children": 0.0,
+     "housing": 480.0,
+     "childcare": 0.0
+    },
+    "taper": 137.5,
+    "tariff_income": 104.4,
+    "work_allowance": 0.0,
+    "over_capital_limit": false,
+    "rules": "internal-simplified-v1"
+   },
+   "sites_expected": {
+    "a": {
+     "uc_monthly": 638.0,
+     "eligible": true
+    },
+    "b": {
+     "uc_monthly": 742.64,
+     "eligible": true
+    },
+    "c": {
+     "uc_monthly": 638.24,
+     "eligible": true
+    }
+   },
+   "site_inputs": {
+    "a": {
+     "adults": "1",
+     "adult1_age": "36",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "250",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "480",
+     "bedrooms": "1",
+     "savings": "12000",
+     "childcare_monthly": "0"
+    },
+    "b": {
+     "adults": "1",
+     "adult1_age": "36",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "250",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "480",
+     "bedrooms": "1",
+     "savings": "12000",
+     "childcare_monthly": "0"
+    },
+    "c": {
+     "adults": "1",
+     "adult1_age": "36",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "3000.00",
+     "adult2_earnings_monthly": "0.00",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "110.77",
+     "bedrooms": "1",
+     "savings": "12000",
+     "childcare_monthly": "0.00"
+    }
+   },
+   "off_by": {
+    "b": 104.4
+   },
+   "sites_agree": false,
+   "reconciliation_expected": "discrepancy",
+   "cliff_panel_expected": {
+    "capital_limit": "no",
+    "capital_tariff": "yes",
+    "children": "no",
+    "childcare": "no",
+    "earnings": "no",
+    "housing": "no"
+   },
+   "independent_check": {
+    "uc_monthly": 638.24,
+    "eligible": true,
+    "max_award": 880.14,
+    "taper": 137.5,
+    "tariff_income": 104.4,
+    "agrees_with_oracle": true
+   },
+   "routing": {
+    "sites_off": [
+     "b"
+    ],
+    "error_if_trust_first_site": false,
+    "error_if_trust_any_single_site": true,
+    "error_if_trust_median": false,
+    "review_needed": true,
+    "complexity": {
+     "n_cliff_flags": 1,
+     "children": 0,
+     "adults": 1,
+     "has_childcare": false,
+     "owner_occupier": false,
+     "limited_capability": false,
+     "savings_band": "tariff_band"
+    }
+   },
+   "case_note_expected": {
+    "case_ref": "CASE-1005",
+    "status_after_draft": "Draft",
+    "must_not_submit": true
+   }
+  },
+  {
+   "household": {
+    "id": "hh_0006",
+    "case_ref": "CASE-1006",
+    "region": "england",
+    "adults": [
+     {
+      "age": 40,
+      "earnings_monthly": 950.0
+     },
+     {
+      "age": 30,
+      "earnings_monthly": 430.0
+     }
+    ],
+    "children_ages": [
+     4,
+     8,
+     13
+    ],
+    "tenure": "rent",
+    "rent_monthly": 790.0,
+    "bedrooms": 4,
+    "savings": 1450.0,
+    "childcare_monthly": 0.0,
+    "limited_capability": false,
+    "archetype": "third_child",
+    "synthetic": true,
+    "notes": [
+     "three or more children"
+    ]
+   },
+   "oracle": {
+    "uc_monthly": 1809.77,
+    "eligible": true,
+    "cliff_flags": [
+     "third_child"
+    ],
+    "components": {
+     "standard": 628.1,
+     "children": 924.62,
+     "housing": 790.0,
+     "childcare": 0.0
+    },
+    "taper": 532.95,
+    "tariff_income": 0.0,
+    "work_allowance": 411.0,
+    "over_capital_limit": false,
+    "rules": "internal-simplified-v1"
+   },
+   "sites_expected": {
+    "a": {
+     "uc_monthly": 1810.0,
+     "eligible": true
+    },
+    "b": {
+     "uc_monthly": 1809.77,
+     "eligible": true
+    },
+    "c": {
+     "uc_monthly": 1516.96,
+     "eligible": true
+    }
+   },
+   "site_inputs": {
+    "a": {
+     "adults": "2",
+     "adult1_age": "40",
+     "adult2_age": "30",
+     "children_ages": "4, 8, 13",
+     "adult1_earnings_monthly": "950",
+     "adult2_earnings_monthly": "430",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "790",
+     "bedrooms": "4",
+     "savings": "1450",
+     "childcare_monthly": "0"
+    },
+    "b": {
+     "adults": "2",
+     "adult1_age": "40",
+     "adult2_age": "30",
+     "children_ages": "4, 8, 13",
+     "adult1_earnings_monthly": "950",
+     "adult2_earnings_monthly": "430",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "790",
+     "bedrooms": "4",
+     "savings": "1450",
+     "childcare_monthly": "0"
+    },
+    "c": {
+     "adults": "2",
+     "adult1_age": "40",
+     "adult2_age": "30",
+     "children_ages": "4, 8, 13",
+     "adult1_earnings_monthly": "11400.00",
+     "adult2_earnings_monthly": "5160.00",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "182.31",
+     "bedrooms": "4",
+     "savings": "1450",
+     "childcare_monthly": "0.00"
+    }
+   },
+   "off_by": {
+    "c": -292.81
+   },
+   "sites_agree": false,
+   "reconciliation_expected": "discrepancy",
+   "cliff_panel_expected": {
+    "capital_limit": "no",
+    "capital_tariff": "no",
+    "children": "yes",
+    "childcare": "no",
+    "earnings": "no",
+    "housing": "no"
+   },
+   "independent_check": {
+    "uc_monthly": 1809.77,
+    "eligible": true,
+    "max_award": 2342.72,
+    "taper": 532.95,
+    "tariff_income": 0.0,
+    "agrees_with_oracle": true
+   },
+   "routing": {
+    "sites_off": [
+     "c"
+    ],
+    "error_if_trust_first_site": false,
+    "error_if_trust_any_single_site": true,
+    "error_if_trust_median": false,
+    "review_needed": true,
+    "complexity": {
+     "n_cliff_flags": 1,
+     "children": 3,
+     "adults": 2,
+     "has_childcare": false,
+     "owner_occupier": false,
+     "limited_capability": false,
+     "savings_band": "below_tariff"
+    }
+   },
+   "case_note_expected": {
+    "case_ref": "CASE-1006",
+    "status_after_draft": "Draft",
+    "must_not_submit": true
+   }
+  },
+  {
+   "household": {
+    "id": "hh_0007",
+    "case_ref": "CASE-1007",
+    "region": "england",
+    "adults": [
+     {
+      "age": 46,
+      "earnings_monthly": 1150.0
+     }
+    ],
+    "children_ages": [],
+    "tenure": "rent",
+    "rent_monthly": 495.0,
+    "bedrooms": 1,
+    "savings": 50.0,
+    "childcare_monthly": 0.0,
+    "limited_capability": false,
+    "archetype": "childless_earner",
+    "synthetic": true,
+    "notes": [
+     "no children, no limited capability: no work allowance"
+    ]
+   },
+   "oracle": {
+    "uc_monthly": 262.64,
+    "eligible": true,
+    "cliff_flags": [],
+    "components": {
+     "standard": 400.14,
+     "children": 0.0,
+     "housing": 495.0,
+     "childcare": 0.0
+    },
+    "taper": 632.5,
+    "tariff_income": 0.0,
+    "work_allowance": 0.0,
+    "over_capital_limit": false,
+    "rules": "internal-simplified-v1"
+   },
+   "sites_expected": {
+    "a": {
+     "uc_monthly": 263.0,
+     "eligible": true
+    },
+    "b": {
+     "uc_monthly": 262.64,
+     "eligible": true
+    },
+    "c": {
+     "uc_monthly": 262.64,
+     "eligible": true
+    }
+   },
+   "site_inputs": {
+    "a": {
+     "adults": "1",
+     "adult1_age": "46",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "1150",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "495",
+     "bedrooms": "1",
+     "savings": "50",
+     "childcare_monthly": "0"
+    },
+    "b": {
+     "adults": "1",
+     "adult1_age": "46",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "1150",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "495",
+     "bedrooms": "1",
+     "savings": "50",
+     "childcare_monthly": "0"
+    },
+    "c": {
+     "adults": "1",
+     "adult1_age": "46",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "13800.00",
+     "adult2_earnings_monthly": "0.00",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "114.23",
+     "bedrooms": "1",
+     "savings": "50",
+     "childcare_monthly": "0.00"
+    }
+   },
+   "off_by": {},
+   "sites_agree": true,
+   "reconciliation_expected": "agree",
+   "cliff_panel_expected": {
+    "capital_limit": "no",
+    "capital_tariff": "no",
+    "children": "no",
+    "childcare": "no",
+    "earnings": "no",
+    "housing": "no"
+   },
+   "independent_check": {
+    "uc_monthly": 262.64,
+    "eligible": true,
+    "max_award": 895.14,
+    "taper": 632.5,
+    "tariff_income": 0.0,
+    "agrees_with_oracle": true
+   },
+   "routing": {
+    "sites_off": [],
+    "error_if_trust_first_site": false,
+    "error_if_trust_any_single_site": false,
+    "error_if_trust_median": false,
+    "review_needed": false,
+    "complexity": {
+     "n_cliff_flags": 0,
+     "children": 0,
+     "adults": 1,
+     "has_childcare": false,
+     "owner_occupier": false,
+     "limited_capability": false,
+     "savings_band": "below_tariff"
+    }
+   },
+   "case_note_expected": {
+    "case_ref": "CASE-1007",
+    "status_after_draft": "Draft",
+    "must_not_submit": true
+   }
+  },
+  {
+   "household": {
+    "id": "hh_0008",
+    "case_ref": "CASE-1008",
+    "region": "england",
+    "adults": [
+     {
+      "age": 46,
+      "earnings_monthly": 790.0
+     }
+    ],
+    "children_ages": [],
+    "tenure": "own",
+    "rent_monthly": 0.0,
+    "bedrooms": 2,
+    "savings": 2700.0,
+    "childcare_monthly": 0.0,
+    "limited_capability": false,
+    "archetype": "owner_no_housing",
+    "synthetic": true,
+    "notes": []
+   },
+   "oracle": {
+    "uc_monthly": 0.0,
+    "eligible": false,
+    "cliff_flags": [],
+    "components": {
+     "standard": 400.14,
+     "children": 0.0,
+     "housing": 0.0,
+     "childcare": 0.0
+    },
+    "taper": 434.5,
+    "tariff_income": 0.0,
+    "work_allowance": 0.0,
+    "over_capital_limit": false,
+    "rules": "internal-simplified-v1"
+   },
+   "sites_expected": {
+    "a": {
+     "uc_monthly": 0.0,
+     "eligible": false
+    },
+    "b": {
+     "uc_monthly": 0.0,
+     "eligible": false
+    },
+    "c": {
+     "uc_monthly": 0.0,
+     "eligible": false
+    }
+   },
+   "site_inputs": {
+    "a": {
+     "adults": "1",
+     "adult1_age": "46",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "790",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "own",
+     "rent_monthly": "0",
+     "bedrooms": "2",
+     "savings": "2700",
+     "childcare_monthly": "0"
+    },
+    "b": {
+     "adults": "1",
+     "adult1_age": "46",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "790",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "own",
+     "rent_monthly": "0",
+     "bedrooms": "2",
+     "savings": "2700",
+     "childcare_monthly": "0"
+    },
+    "c": {
+     "adults": "1",
+     "adult1_age": "46",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "9480.00",
+     "adult2_earnings_monthly": "0.00",
+     "limited_capability": "no",
+     "tenure": "own",
+     "rent_monthly": "0.00",
+     "bedrooms": "2",
+     "savings": "2700",
+     "childcare_monthly": "0.00"
+    }
+   },
+   "off_by": {},
+   "sites_agree": true,
+   "reconciliation_expected": "agree",
+   "cliff_panel_expected": {
+    "capital_limit": "no",
+    "capital_tariff": "no",
+    "children": "no",
+    "childcare": "no",
+    "earnings": "no"
+   },
+   "independent_check": {
+    "uc_monthly": 0.0,
+    "eligible": false,
+    "max_award": 400.14,
+    "taper": 434.5,
+    "tariff_income": 0.0,
+    "agrees_with_oracle": true
+   },
+   "routing": {
+    "sites_off": [],
+    "error_if_trust_first_site": false,
+    "error_if_trust_any_single_site": false,
+    "error_if_trust_median": false,
+    "review_needed": false,
+    "complexity": {
+     "n_cliff_flags": 0,
+     "children": 0,
+     "adults": 1,
+     "has_childcare": false,
+     "owner_occupier": true,
+     "limited_capability": false,
+     "savings_band": "below_tariff"
+    }
+   },
+   "case_note_expected": {
+    "case_ref": "CASE-1008",
+    "status_after_draft": "Draft",
+    "must_not_submit": true
+   }
+  },
+  {
+   "household": {
+    "id": "hh_0009",
+    "case_ref": "CASE-1009",
+    "region": "scotland",
+    "adults": [
+     {
+      "age": 54,
+      "earnings_monthly": 570.0
+     }
+    ],
+    "children_ages": [],
+    "tenure": "rent",
+    "rent_monthly": 815.0,
+    "bedrooms": 1,
+    "savings": 1550.0,
+    "childcare_monthly": 0.0,
+    "limited_capability": false,
+    "archetype": "high_rent_cap",
+    "synthetic": true,
+    "notes": [
+     "rent above the local housing cap"
+    ]
+   },
+   "oracle": {
+    "uc_monthly": 661.64,
+    "eligible": true,
+    "cliff_flags": [
+     "housing_cap_binding"
+    ],
+    "components": {
+     "standard": 400.14,
+     "children": 0.0,
+     "housing": 575.0,
+     "childcare": 0.0
+    },
+    "taper": 313.5,
+    "tariff_income": 0.0,
+    "work_allowance": 0.0,
+    "over_capital_limit": false,
+    "rules": "internal-simplified-v1"
+   },
+   "sites_expected": {
+    "a": {
+     "uc_monthly": 662.0,
+     "eligible": true
+    },
+    "b": {
+     "uc_monthly": 661.64,
+     "eligible": true
+    },
+    "c": {
+     "uc_monthly": 661.64,
+     "eligible": true
+    }
+   },
+   "site_inputs": {
+    "a": {
+     "adults": "1",
+     "adult1_age": "54",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "570",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "815",
+     "bedrooms": "1",
+     "savings": "1550",
+     "childcare_monthly": "0"
+    },
+    "b": {
+     "adults": "1",
+     "adult1_age": "54",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "570",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "815",
+     "bedrooms": "1",
+     "savings": "1550",
+     "childcare_monthly": "0"
+    },
+    "c": {
+     "adults": "1",
+     "adult1_age": "54",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "6840.00",
+     "adult2_earnings_monthly": "0.00",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "188.08",
+     "bedrooms": "1",
+     "savings": "1550",
+     "childcare_monthly": "0.00"
+    }
+   },
+   "off_by": {},
+   "sites_agree": true,
+   "reconciliation_expected": "agree",
+   "cliff_panel_expected": {
+    "capital_limit": "no",
+    "capital_tariff": "no",
+    "children": "no",
+    "childcare": "no",
+    "earnings": "no",
+    "housing": "yes"
+   },
+   "independent_check": {
+    "uc_monthly": 661.64,
+    "eligible": true,
+    "max_award": 975.14,
+    "taper": 313.5,
+    "tariff_income": 0.0,
+    "agrees_with_oracle": true
+   },
+   "routing": {
+    "sites_off": [],
+    "error_if_trust_first_site": false,
+    "error_if_trust_any_single_site": false,
+    "error_if_trust_median": false,
+    "review_needed": false,
+    "complexity": {
+     "n_cliff_flags": 1,
+     "children": 0,
+     "adults": 1,
+     "has_childcare": false,
+     "owner_occupier": false,
+     "limited_capability": false,
+     "savings_band": "below_tariff"
+    }
+   },
+   "case_note_expected": {
+    "case_ref": "CASE-1009",
+    "status_after_draft": "Draft",
+    "must_not_submit": true
+   }
+  },
+  {
+   "household": {
+    "id": "hh_0010",
+    "case_ref": "CASE-1010",
+    "region": "england",
+    "adults": [
+     {
+      "age": 43,
+      "earnings_monthly": 3890.0
+     },
+     {
+      "age": 55,
+      "earnings_monthly": 2750.0
+     }
+    ],
+    "children_ages": [
+     6
+    ],
+    "tenure": "rent",
+    "rent_monthly": 795.0,
+    "bedrooms": 3,
+    "savings": 8700.0,
+    "childcare_monthly": 0.0,
+    "limited_capability": false,
+    "archetype": "high_income",
+    "synthetic": true,
+    "notes": []
+   },
+   "oracle": {
+    "uc_monthly": 0.0,
+    "eligible": false,
+    "cliff_flags": [
+     "capital_tariff_band"
+    ],
+    "components": {
+     "standard": 628.1,
+     "children": 339.0,
+     "housing": 795.0,
+     "childcare": 0.0
+    },
+    "taper": 3425.95,
+    "tariff_income": 47.85,
+    "work_allowance": 411.0,
+    "over_capital_limit": false,
+    "rules": "internal-simplified-v1"
+   },
+   "sites_expected": {
+    "a": {
+     "uc_monthly": 0.0,
+     "eligible": false
+    },
+    "b": {
+     "uc_monthly": 0.0,
+     "eligible": false
+    },
+    "c": {
+     "uc_monthly": 0.0,
+     "eligible": false
+    }
+   },
+   "site_inputs": {
+    "a": {
+     "adults": "2",
+     "adult1_age": "43",
+     "adult2_age": "55",
+     "children_ages": "6",
+     "adult1_earnings_monthly": "3890",
+     "adult2_earnings_monthly": "2750",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "795",
+     "bedrooms": "3",
+     "savings": "8700",
+     "childcare_monthly": "0"
+    },
+    "b": {
+     "adults": "2",
+     "adult1_age": "43",
+     "adult2_age": "55",
+     "children_ages": "6",
+     "adult1_earnings_monthly": "3890",
+     "adult2_earnings_monthly": "2750",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "795",
+     "bedrooms": "3",
+     "savings": "8700",
+     "childcare_monthly": "0"
+    },
+    "c": {
+     "adults": "2",
+     "adult1_age": "43",
+     "adult2_age": "55",
+     "children_ages": "6",
+     "adult1_earnings_monthly": "46680.00",
+     "adult2_earnings_monthly": "33000.00",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "183.46",
+     "bedrooms": "3",
+     "savings": "8700",
+     "childcare_monthly": "0.00"
+    }
+   },
+   "off_by": {},
+   "sites_agree": true,
+   "reconciliation_expected": "agree",
+   "cliff_panel_expected": {
+    "capital_limit": "no",
+    "capital_tariff": "yes",
+    "children": "no",
+    "childcare": "no",
+    "earnings": "no",
+    "housing": "no"
+   },
+   "independent_check": {
+    "uc_monthly": 0.0,
+    "eligible": false,
+    "max_award": 1762.1,
+    "taper": 3425.95,
+    "tariff_income": 47.85,
+    "agrees_with_oracle": true
+   },
+   "routing": {
+    "sites_off": [],
+    "error_if_trust_first_site": false,
+    "error_if_trust_any_single_site": false,
+    "error_if_trust_median": false,
+    "review_needed": false,
+    "complexity": {
+     "n_cliff_flags": 1,
+     "children": 1,
+     "adults": 2,
+     "has_childcare": false,
+     "owner_occupier": false,
+     "limited_capability": false,
+     "savings_band": "tariff_band"
+    }
+   },
+   "case_note_expected": {
+    "case_ref": "CASE-1010",
+    "status_after_draft": "Draft",
+    "must_not_submit": true
+   }
+  },
+  {
+   "household": {
+    "id": "hh_0011",
+    "case_ref": "CASE-1011",
+    "region": "england",
+    "adults": [
+     {
+      "age": 56,
+      "earnings_monthly": 360.0
+     }
+    ],
+    "children_ages": [],
+    "tenure": "rent",
+    "rent_monthly": 550.0,
+    "bedrooms": 1,
+    "savings": 1600.0,
+    "childcare_monthly": 0.0,
+    "limited_capability": true,
+    "archetype": "carer_limited_capability",
+    "synthetic": true,
+    "notes": []
+   },
+   "oracle": {
+    "uc_monthly": 950.14,
+    "eligible": true,
+    "cliff_flags": [
+     "work_allowance_edge"
+    ],
+    "components": {
+     "standard": 400.14,
+     "children": 0.0,
+     "housing": 550.0,
+     "childcare": 0.0
+    },
+    "taper": 0.0,
+    "tariff_income": 0.0,
+    "work_allowance": 411.0,
+    "over_capital_limit": false,
+    "rules": "internal-simplified-v1"
+   },
+   "sites_expected": {
+    "a": {
+     "uc_monthly": 950.0,
+     "eligible": true
+    },
+    "b": {
+     "uc_monthly": 950.14,
+     "eligible": true
+    },
+    "c": {
+     "uc_monthly": 950.14,
+     "eligible": true
+    }
+   },
+   "site_inputs": {
+    "a": {
+     "adults": "1",
+     "adult1_age": "56",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "360",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "yes",
+     "tenure": "rent",
+     "rent_monthly": "550",
+     "bedrooms": "1",
+     "savings": "1600",
+     "childcare_monthly": "0"
+    },
+    "b": {
+     "adults": "1",
+     "adult1_age": "56",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "360",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "yes",
+     "tenure": "rent",
+     "rent_monthly": "550",
+     "bedrooms": "1",
+     "savings": "1600",
+     "childcare_monthly": "0"
+    },
+    "c": {
+     "adults": "1",
+     "adult1_age": "56",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "4320.00",
+     "adult2_earnings_monthly": "0.00",
+     "limited_capability": "yes",
+     "tenure": "rent",
+     "rent_monthly": "126.92",
+     "bedrooms": "1",
+     "savings": "1600",
+     "childcare_monthly": "0.00"
+    }
+   },
+   "off_by": {},
+   "sites_agree": true,
+   "reconciliation_expected": "agree",
+   "cliff_panel_expected": {
+    "capital_limit": "no",
+    "capital_tariff": "no",
+    "children": "no",
+    "childcare": "no",
+    "earnings": "yes",
+    "housing": "no"
+   },
+   "independent_check": {
+    "uc_monthly": 950.14,
+    "eligible": true,
+    "max_award": 950.14,
+    "taper": 0.0,
+    "tariff_income": 0.0,
+    "agrees_with_oracle": true
+   },
+   "routing": {
+    "sites_off": [],
+    "error_if_trust_first_site": false,
+    "error_if_trust_any_single_site": false,
+    "error_if_trust_median": false,
+    "review_needed": false,
+    "complexity": {
+     "n_cliff_flags": 1,
+     "children": 0,
+     "adults": 1,
+     "has_childcare": false,
+     "owner_occupier": false,
+     "limited_capability": true,
+     "savings_band": "below_tariff"
+    }
+   },
+   "case_note_expected": {
+    "case_ref": "CASE-1011",
+    "status_after_draft": "Draft",
+    "must_not_submit": true
+   }
+  },
+  {
+   "household": {
+    "id": "hh_0012",
+    "case_ref": "CASE-1012",
+    "region": "wales",
+    "adults": [
+     {
+      "age": 19,
+      "earnings_monthly": 1030.0
+     },
+     {
+      "age": 20,
+      "earnings_monthly": 690.0
+     }
+    ],
+    "children_ages": [],
+    "tenure": "rent",
+    "rent_monthly": 440.0,
+    "bedrooms": 1,
+    "savings": 1300.0,
+    "childcare_monthly": 0.0,
+    "limited_capability": false,
+    "archetype": "young_couple",
+    "synthetic": true,
+    "notes": []
+   },
+   "oracle": {
+    "uc_monthly": 0.0,
+    "eligible": false,
+    "cliff_flags": [],
+    "components": {
+     "standard": 497.55,
+     "children": 0.0,
+     "housing": 440.0,
+     "childcare": 0.0
+    },
+    "taper": 946.0,
+    "tariff_income": 0.0,
+    "work_allowance": 0.0,
+    "over_capital_limit": false,
+    "rules": "internal-simplified-v1"
+   },
+   "sites_expected": {
+    "a": {
+     "uc_monthly": 0.0,
+     "eligible": false
+    },
+    "b": {
+     "uc_monthly": 0.0,
+     "eligible": false
+    },
+    "c": {
+     "uc_monthly": 0.0,
+     "eligible": false
+    }
+   },
+   "site_inputs": {
+    "a": {
+     "adults": "2",
+     "adult1_age": "19",
+     "adult2_age": "20",
+     "children_ages": "",
+     "adult1_earnings_monthly": "1030",
+     "adult2_earnings_monthly": "690",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "440",
+     "bedrooms": "1",
+     "savings": "1300",
+     "childcare_monthly": "0"
+    },
+    "b": {
+     "adults": "2",
+     "adult1_age": "19",
+     "adult2_age": "20",
+     "children_ages": "",
+     "adult1_earnings_monthly": "1030",
+     "adult2_earnings_monthly": "690",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "440",
+     "bedrooms": "1",
+     "savings": "1300",
+     "childcare_monthly": "0"
+    },
+    "c": {
+     "adults": "2",
+     "adult1_age": "19",
+     "adult2_age": "20",
+     "children_ages": "",
+     "adult1_earnings_monthly": "12360.00",
+     "adult2_earnings_monthly": "8280.00",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "101.54",
+     "bedrooms": "1",
+     "savings": "1300",
+     "childcare_monthly": "0.00"
+    }
+   },
+   "off_by": {},
+   "sites_agree": true,
+   "reconciliation_expected": "agree",
+   "cliff_panel_expected": {
+    "capital_limit": "no",
+    "capital_tariff": "no",
+    "children": "no",
+    "childcare": "no",
+    "earnings": "no",
+    "housing": "no"
+   },
+   "independent_check": {
+    "uc_monthly": 0.0,
+    "eligible": false,
+    "max_award": 937.55,
+    "taper": 946.0,
+    "tariff_income": 0.0,
+    "agrees_with_oracle": true
+   },
+   "routing": {
+    "sites_off": [],
+    "error_if_trust_first_site": false,
+    "error_if_trust_any_single_site": false,
+    "error_if_trust_median": false,
+    "review_needed": false,
+    "complexity": {
+     "n_cliff_flags": 0,
+     "children": 0,
+     "adults": 2,
+     "has_childcare": false,
+     "owner_occupier": false,
+     "limited_capability": false,
+     "savings_band": "below_tariff"
+    }
+   },
+   "case_note_expected": {
+    "case_ref": "CASE-1012",
+    "status_after_draft": "Draft",
+    "must_not_submit": true
+   }
+  },
+  {
+   "household": {
+    "id": "hh_0013",
+    "case_ref": "CASE-1013",
+    "region": "england",
+    "adults": [
+     {
+      "age": 58,
+      "earnings_monthly": 1350.0
+     }
+    ],
+    "children_ages": [],
+    "tenure": "rent",
+    "rent_monthly": 410.0,
+    "bedrooms": 1,
+    "savings": 3950.0,
+    "childcare_monthly": 0.0,
+    "limited_capability": false,
+    "archetype": "single_worker",
+    "synthetic": true,
+    "notes": []
+   },
+   "oracle": {
+    "uc_monthly": 67.64,
+    "eligible": true,
+    "cliff_flags": [],
+    "components": {
+     "standard": 400.14,
+     "children": 0.0,
+     "housing": 410.0,
+     "childcare": 0.0
+    },
+    "taper": 742.5,
+    "tariff_income": 0.0,
+    "work_allowance": 0.0,
+    "over_capital_limit": false,
+    "rules": "internal-simplified-v1"
+   },
+   "sites_expected": {
+    "a": {
+     "uc_monthly": 68.0,
+     "eligible": true
+    },
+    "b": {
+     "uc_monthly": 67.64,
+     "eligible": true
+    },
+    "c": {
+     "uc_monthly": 67.64,
+     "eligible": true
+    }
+   },
+   "site_inputs": {
+    "a": {
+     "adults": "1",
+     "adult1_age": "58",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "1350",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "410",
+     "bedrooms": "1",
+     "savings": "3950",
+     "childcare_monthly": "0"
+    },
+    "b": {
+     "adults": "1",
+     "adult1_age": "58",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "1350",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "410",
+     "bedrooms": "1",
+     "savings": "3950",
+     "childcare_monthly": "0"
+    },
+    "c": {
+     "adults": "1",
+     "adult1_age": "58",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "16200.00",
+     "adult2_earnings_monthly": "0.00",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "94.62",
+     "bedrooms": "1",
+     "savings": "3950",
+     "childcare_monthly": "0.00"
+    }
+   },
+   "off_by": {},
+   "sites_agree": true,
+   "reconciliation_expected": "agree",
+   "cliff_panel_expected": {
+    "capital_limit": "no",
+    "capital_tariff": "no",
+    "children": "no",
+    "childcare": "no",
+    "earnings": "no",
+    "housing": "no"
+   },
+   "independent_check": {
+    "uc_monthly": 67.64,
+    "eligible": true,
+    "max_award": 810.14,
+    "taper": 742.5,
+    "tariff_income": 0.0,
+    "agrees_with_oracle": true
+   },
+   "routing": {
+    "sites_off": [],
+    "error_if_trust_first_site": false,
+    "error_if_trust_any_single_site": false,
+    "error_if_trust_median": false,
+    "review_needed": false,
+    "complexity": {
+     "n_cliff_flags": 0,
+     "children": 0,
+     "adults": 1,
+     "has_childcare": false,
+     "owner_occupier": false,
+     "limited_capability": false,
+     "savings_band": "below_tariff"
+    }
+   },
+   "case_note_expected": {
+    "case_ref": "CASE-1013",
+    "status_after_draft": "Draft",
+    "must_not_submit": true
+   }
+  },
+  {
+   "household": {
+    "id": "hh_0014",
+    "case_ref": "CASE-1014",
+    "region": "scotland",
+    "adults": [
+     {
+      "age": 42,
+      "earnings_monthly": 480.0
+     },
+     {
+      "age": 42,
+      "earnings_monthly": 290.0
+     }
+    ],
+    "children_ages": [
+     2,
+     11
+    ],
+    "tenure": "rent",
+    "rent_monthly": 745.0,
+    "bedrooms": 3,
+    "savings": 4300.0,
+    "childcare_monthly": 0.0,
+    "limited_capability": false,
+    "archetype": "couple_two_kids",
+    "synthetic": true,
+    "notes": []
+   },
+   "oracle": {
+    "uc_monthly": 1807.46,
+    "eligible": true,
+    "cliff_flags": [],
+    "components": {
+     "standard": 628.1,
+     "children": 631.81,
+     "housing": 745.0,
+     "childcare": 0.0
+    },
+    "taper": 197.45,
+    "tariff_income": 0.0,
+    "work_allowance": 411.0,
+    "over_capital_limit": false,
+    "rules": "internal-simplified-v1"
+   },
+   "sites_expected": {
+    "a": {
+     "uc_monthly": 1807.0,
+     "eligible": true
+    },
+    "b": {
+     "uc_monthly": 1807.46,
+     "eligible": true
+    },
+    "c": {
+     "uc_monthly": 1807.46,
+     "eligible": true
+    }
+   },
+   "site_inputs": {
+    "a": {
+     "adults": "2",
+     "adult1_age": "42",
+     "adult2_age": "42",
+     "children_ages": "2, 11",
+     "adult1_earnings_monthly": "480",
+     "adult2_earnings_monthly": "290",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "745",
+     "bedrooms": "3",
+     "savings": "4300",
+     "childcare_monthly": "0"
+    },
+    "b": {
+     "adults": "2",
+     "adult1_age": "42",
+     "adult2_age": "42",
+     "children_ages": "2, 11",
+     "adult1_earnings_monthly": "480",
+     "adult2_earnings_monthly": "290",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "745",
+     "bedrooms": "3",
+     "savings": "4300",
+     "childcare_monthly": "0"
+    },
+    "c": {
+     "adults": "2",
+     "adult1_age": "42",
+     "adult2_age": "42",
+     "children_ages": "2, 11",
+     "adult1_earnings_monthly": "5760.00",
+     "adult2_earnings_monthly": "3480.00",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "171.92",
+     "bedrooms": "3",
+     "savings": "4300",
+     "childcare_monthly": "0.00"
+    }
+   },
+   "off_by": {},
+   "sites_agree": true,
+   "reconciliation_expected": "agree",
+   "cliff_panel_expected": {
+    "capital_limit": "no",
+    "capital_tariff": "no",
+    "children": "no",
+    "childcare": "no",
+    "earnings": "no",
+    "housing": "no"
+   },
+   "independent_check": {
+    "uc_monthly": 1807.46,
+    "eligible": true,
+    "max_award": 2004.91,
+    "taper": 197.45,
+    "tariff_income": 0.0,
+    "agrees_with_oracle": true
+   },
+   "routing": {
+    "sites_off": [],
+    "error_if_trust_first_site": false,
+    "error_if_trust_any_single_site": false,
+    "error_if_trust_median": false,
+    "review_needed": false,
+    "complexity": {
+     "n_cliff_flags": 0,
+     "children": 2,
+     "adults": 2,
+     "has_childcare": false,
+     "owner_occupier": false,
+     "limited_capability": false,
+     "savings_band": "below_tariff"
+    }
+   },
+   "case_note_expected": {
+    "case_ref": "CASE-1014",
+    "status_after_draft": "Draft",
+    "must_not_submit": true
+   }
+  },
+  {
+   "household": {
+    "id": "hh_0015",
+    "case_ref": "CASE-1015",
+    "region": "scotland",
+    "adults": [
+     {
+      "age": 32,
+      "earnings_monthly": 1610.0
+     }
+    ],
+    "children_ages": [
+     4,
+     7
+    ],
+    "tenure": "rent",
+    "rent_monthly": 675.0,
+    "bedrooms": 2,
+    "savings": 2200.0,
+    "childcare_monthly": 1580.0,
+    "limited_capability": false,
+    "archetype": "lone_parent_childcare",
+    "synthetic": true,
+    "notes": []
+   },
+   "oracle": {
+    "uc_monthly": 2390.5,
+    "eligible": true,
+    "cliff_flags": [
+     "childcare_cap_binding"
+    ],
+    "components": {
+     "standard": 400.14,
+     "children": 631.81,
+     "housing": 675.0,
+     "childcare": 1343.0
+    },
+    "taper": 659.45,
+    "tariff_income": 0.0,
+    "work_allowance": 411.0,
+    "over_capital_limit": false,
+    "rules": "internal-simplified-v1"
+   },
+   "sites_expected": {
+    "a": {
+     "uc_monthly": 2390.0,
+     "eligible": true
+    },
+    "b": {
+     "uc_monthly": 2079.38,
+     "eligible": true
+    },
+    "c": {
+     "uc_monthly": 2390.5,
+     "eligible": true
+    }
+   },
+   "site_inputs": {
+    "a": {
+     "adults": "1",
+     "adult1_age": "32",
+     "adult2_age": "",
+     "children_ages": "4, 7",
+     "adult1_earnings_monthly": "1610",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "675",
+     "bedrooms": "2",
+     "savings": "2200",
+     "childcare_monthly": "1580"
+    },
+    "b": {
+     "adults": "1",
+     "adult1_age": "32",
+     "adult2_age": "",
+     "children_ages": "4, 7",
+     "adult1_earnings_monthly": "1610",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "675",
+     "bedrooms": "2",
+     "savings": "2200",
+     "childcare_monthly": "1580"
+    },
+    "c": {
+     "adults": "1",
+     "adult1_age": "32",
+     "adult2_age": "",
+     "children_ages": "4, 7",
+     "adult1_earnings_monthly": "19320.00",
+     "adult2_earnings_monthly": "0.00",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "155.77",
+     "bedrooms": "2",
+     "savings": "2200",
+     "childcare_monthly": "364.62"
+    }
+   },
+   "off_by": {
+    "b": -311.12
+   },
+   "sites_agree": false,
+   "reconciliation_expected": "discrepancy",
+   "cliff_panel_expected": {
+    "capital_limit": "no",
+    "capital_tariff": "no",
+    "children": "no",
+    "childcare": "yes",
+    "earnings": "no",
+    "housing": "no"
+   },
+   "independent_check": {
+    "uc_monthly": 2390.5,
+    "eligible": true,
+    "max_award": 3049.95,
+    "taper": 659.45,
+    "tariff_income": 0.0,
+    "agrees_with_oracle": true
+   },
+   "routing": {
+    "sites_off": [
+     "b"
+    ],
+    "error_if_trust_first_site": false,
+    "error_if_trust_any_single_site": true,
+    "error_if_trust_median": false,
+    "review_needed": true,
+    "complexity": {
+     "n_cliff_flags": 1,
+     "children": 2,
+     "adults": 1,
+     "has_childcare": true,
+     "owner_occupier": false,
+     "limited_capability": false,
+     "savings_band": "below_tariff"
+    }
+   },
+   "case_note_expected": {
+    "case_ref": "CASE-1015",
+    "status_after_draft": "Draft",
+    "must_not_submit": true
+   }
+  },
+  {
+   "household": {
+    "id": "hh_0016",
+    "case_ref": "CASE-1016",
+    "region": "scotland",
+    "adults": [
+     {
+      "age": 55,
+      "earnings_monthly": 280.0
+     }
+    ],
+    "children_ages": [],
+    "tenure": "rent",
+    "rent_monthly": 525.0,
+    "bedrooms": 1,
+    "savings": 15900.0,
+    "childcare_monthly": 0.0,
+    "limited_capability": false,
+    "archetype": "savings_cliff_16k",
+    "synthetic": true,
+    "notes": [
+     "savings at the 16,000 capital limit"
+    ]
+   },
+   "oracle": {
+    "uc_monthly": 597.14,
+    "eligible": true,
+    "cliff_flags": [
+     "capital_limit_16000",
+     "capital_tariff_band"
+    ],
+    "components": {
+     "standard": 400.14,
+     "children": 0.0,
+     "housing": 525.0,
+     "childcare": 0.0
+    },
+    "taper": 154.0,
+    "tariff_income": 174.0,
+    "work_allowance": 0.0,
+    "over_capital_limit": false,
+    "rules": "internal-simplified-v1"
+   },
+   "sites_expected": {
+    "a": {
+     "uc_monthly": 597.0,
+     "eligible": true
+    },
+    "b": {
+     "uc_monthly": 771.14,
+     "eligible": true
+    },
+    "c": {
+     "uc_monthly": 597.14,
+     "eligible": true
+    }
+   },
+   "site_inputs": {
+    "a": {
+     "adults": "1",
+     "adult1_age": "55",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "280",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "525",
+     "bedrooms": "1",
+     "savings": "15900",
+     "childcare_monthly": "0"
+    },
+    "b": {
+     "adults": "1",
+     "adult1_age": "55",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "280",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "525",
+     "bedrooms": "1",
+     "savings": "15900",
+     "childcare_monthly": "0"
+    },
+    "c": {
+     "adults": "1",
+     "adult1_age": "55",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "3360.00",
+     "adult2_earnings_monthly": "0.00",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "121.15",
+     "bedrooms": "1",
+     "savings": "15900",
+     "childcare_monthly": "0.00"
+    }
+   },
+   "off_by": {
+    "b": 174.0
+   },
+   "sites_agree": false,
+   "reconciliation_expected": "discrepancy",
+   "cliff_panel_expected": {
+    "capital_limit": "yes",
+    "capital_tariff": "yes",
+    "children": "no",
+    "childcare": "no",
+    "earnings": "no",
+    "housing": "no"
+   },
+   "independent_check": {
+    "uc_monthly": 597.14,
+    "eligible": true,
+    "max_award": 925.14,
+    "taper": 154.0,
+    "tariff_income": 174.0,
+    "agrees_with_oracle": true
+   },
+   "routing": {
+    "sites_off": [
+     "b"
+    ],
+    "error_if_trust_first_site": false,
+    "error_if_trust_any_single_site": true,
+    "error_if_trust_median": false,
+    "review_needed": true,
+    "complexity": {
+     "n_cliff_flags": 2,
+     "children": 0,
+     "adults": 1,
+     "has_childcare": false,
+     "owner_occupier": false,
+     "limited_capability": false,
+     "savings_band": "tariff_band"
+    }
+   },
+   "case_note_expected": {
+    "case_ref": "CASE-1016",
+    "status_after_draft": "Draft",
+    "must_not_submit": true
+   }
+  },
+  {
+   "household": {
+    "id": "hh_0017",
+    "case_ref": "CASE-1017",
+    "region": "scotland",
+    "adults": [
+     {
+      "age": 36,
+      "earnings_monthly": 180.0
+     }
+    ],
+    "children_ages": [],
+    "tenure": "rent",
+    "rent_monthly": 485.0,
+    "bedrooms": 1,
+    "savings": 6500.0,
+    "childcare_monthly": 0.0,
+    "limited_capability": false,
+    "archetype": "savings_tariff_band",
+    "synthetic": true,
+    "notes": [
+     "savings in the tariff band"
+    ]
+   },
+   "oracle": {
+    "uc_monthly": 777.44,
+    "eligible": true,
+    "cliff_flags": [
+     "capital_tariff_band"
+    ],
+    "components": {
+     "standard": 400.14,
+     "children": 0.0,
+     "housing": 485.0,
+     "childcare": 0.0
+    },
+    "taper": 99.0,
+    "tariff_income": 8.7,
+    "work_allowance": 0.0,
+    "over_capital_limit": false,
+    "rules": "internal-simplified-v1"
+   },
+   "sites_expected": {
+    "a": {
+     "uc_monthly": 777.0,
+     "eligible": true
+    },
+    "b": {
+     "uc_monthly": 786.14,
+     "eligible": true
+    },
+    "c": {
+     "uc_monthly": 777.44,
+     "eligible": true
+    }
+   },
+   "site_inputs": {
+    "a": {
+     "adults": "1",
+     "adult1_age": "36",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "180",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "485",
+     "bedrooms": "1",
+     "savings": "6500",
+     "childcare_monthly": "0"
+    },
+    "b": {
+     "adults": "1",
+     "adult1_age": "36",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "180",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "485",
+     "bedrooms": "1",
+     "savings": "6500",
+     "childcare_monthly": "0"
+    },
+    "c": {
+     "adults": "1",
+     "adult1_age": "36",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "2160.00",
+     "adult2_earnings_monthly": "0.00",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "111.92",
+     "bedrooms": "1",
+     "savings": "6500",
+     "childcare_monthly": "0.00"
+    }
+   },
+   "off_by": {
+    "b": 8.7
+   },
+   "sites_agree": false,
+   "reconciliation_expected": "discrepancy",
+   "cliff_panel_expected": {
+    "capital_limit": "no",
+    "capital_tariff": "yes",
+    "children": "no",
+    "childcare": "no",
+    "earnings": "no",
+    "housing": "no"
+   },
+   "independent_check": {
+    "uc_monthly": 777.44,
+    "eligible": true,
+    "max_award": 885.14,
+    "taper": 99.0,
+    "tariff_income": 8.7,
+    "agrees_with_oracle": true
+   },
+   "routing": {
+    "sites_off": [
+     "b"
+    ],
+    "error_if_trust_first_site": false,
+    "error_if_trust_any_single_site": true,
+    "error_if_trust_median": false,
+    "review_needed": true,
+    "complexity": {
+     "n_cliff_flags": 1,
+     "children": 0,
+     "adults": 1,
+     "has_childcare": false,
+     "owner_occupier": false,
+     "limited_capability": false,
+     "savings_band": "tariff_band"
+    }
+   },
+   "case_note_expected": {
+    "case_ref": "CASE-1017",
+    "status_after_draft": "Draft",
+    "must_not_submit": true
+   }
+  },
+  {
+   "household": {
+    "id": "hh_0018",
+    "case_ref": "CASE-1018",
+    "region": "england",
+    "adults": [
+     {
+      "age": 32,
+      "earnings_monthly": 1060.0
+     },
+     {
+      "age": 42,
+      "earnings_monthly": 660.0
+     }
+    ],
+    "children_ages": [
+     3,
+     4,
+     5
+    ],
+    "tenure": "rent",
+    "rent_monthly": 920.0,
+    "bedrooms": 4,
+    "savings": 1550.0,
+    "childcare_monthly": 0.0,
+    "limited_capability": false,
+    "archetype": "third_child",
+    "synthetic": true,
+    "notes": [
+     "three or more children"
+    ]
+   },
+   "oracle": {
+    "uc_monthly": 1752.77,
+    "eligible": true,
+    "cliff_flags": [
+     "third_child"
+    ],
+    "components": {
+     "standard": 628.1,
+     "children": 924.62,
+     "housing": 920.0,
+     "childcare": 0.0
+    },
+    "taper": 719.95,
+    "tariff_income": 0.0,
+    "work_allowance": 411.0,
+    "over_capital_limit": false,
+    "rules": "internal-simplified-v1"
+   },
+   "sites_expected": {
+    "a": {
+     "uc_monthly": 1753.0,
+     "eligible": true
+    },
+    "b": {
+     "uc_monthly": 1752.77,
+     "eligible": true
+    },
+    "c": {
+     "uc_monthly": 1459.96,
+     "eligible": true
+    }
+   },
+   "site_inputs": {
+    "a": {
+     "adults": "2",
+     "adult1_age": "32",
+     "adult2_age": "42",
+     "children_ages": "3, 4, 5",
+     "adult1_earnings_monthly": "1060",
+     "adult2_earnings_monthly": "660",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "920",
+     "bedrooms": "4",
+     "savings": "1550",
+     "childcare_monthly": "0"
+    },
+    "b": {
+     "adults": "2",
+     "adult1_age": "32",
+     "adult2_age": "42",
+     "children_ages": "3, 4, 5",
+     "adult1_earnings_monthly": "1060",
+     "adult2_earnings_monthly": "660",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "920",
+     "bedrooms": "4",
+     "savings": "1550",
+     "childcare_monthly": "0"
+    },
+    "c": {
+     "adults": "2",
+     "adult1_age": "32",
+     "adult2_age": "42",
+     "children_ages": "3, 4, 5",
+     "adult1_earnings_monthly": "12720.00",
+     "adult2_earnings_monthly": "7920.00",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "212.31",
+     "bedrooms": "4",
+     "savings": "1550",
+     "childcare_monthly": "0.00"
+    }
+   },
+   "off_by": {
+    "c": -292.81
+   },
+   "sites_agree": false,
+   "reconciliation_expected": "discrepancy",
+   "cliff_panel_expected": {
+    "capital_limit": "no",
+    "capital_tariff": "no",
+    "children": "yes",
+    "childcare": "no",
+    "earnings": "no",
+    "housing": "no"
+   },
+   "independent_check": {
+    "uc_monthly": 1752.77,
+    "eligible": true,
+    "max_award": 2472.72,
+    "taper": 719.95,
+    "tariff_income": 0.0,
+    "agrees_with_oracle": true
+   },
+   "routing": {
+    "sites_off": [
+     "c"
+    ],
+    "error_if_trust_first_site": false,
+    "error_if_trust_any_single_site": true,
+    "error_if_trust_median": false,
+    "review_needed": true,
+    "complexity": {
+     "n_cliff_flags": 1,
+     "children": 3,
+     "adults": 2,
+     "has_childcare": false,
+     "owner_occupier": false,
+     "limited_capability": false,
+     "savings_band": "below_tariff"
+    }
+   },
+   "case_note_expected": {
+    "case_ref": "CASE-1018",
+    "status_after_draft": "Draft",
+    "must_not_submit": true
+   }
+  },
+  {
+   "household": {
+    "id": "hh_0019",
+    "case_ref": "CASE-1019",
+    "region": "scotland",
+    "adults": [
+     {
+      "age": 42,
+      "earnings_monthly": 1190.0
+     }
+    ],
+    "children_ages": [],
+    "tenure": "rent",
+    "rent_monthly": 555.0,
+    "bedrooms": 1,
+    "savings": 1350.0,
+    "childcare_monthly": 0.0,
+    "limited_capability": false,
+    "archetype": "childless_earner",
+    "synthetic": true,
+    "notes": [
+     "no children, no limited capability: no work allowance"
+    ]
+   },
+   "oracle": {
+    "uc_monthly": 300.64,
+    "eligible": true,
+    "cliff_flags": [],
+    "components": {
+     "standard": 400.14,
+     "children": 0.0,
+     "housing": 555.0,
+     "childcare": 0.0
+    },
+    "taper": 654.5,
+    "tariff_income": 0.0,
+    "work_allowance": 0.0,
+    "over_capital_limit": false,
+    "rules": "internal-simplified-v1"
+   },
+   "sites_expected": {
+    "a": {
+     "uc_monthly": 301.0,
+     "eligible": true
+    },
+    "b": {
+     "uc_monthly": 300.64,
+     "eligible": true
+    },
+    "c": {
+     "uc_monthly": 300.64,
+     "eligible": true
+    }
+   },
+   "site_inputs": {
+    "a": {
+     "adults": "1",
+     "adult1_age": "42",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "1190",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "555",
+     "bedrooms": "1",
+     "savings": "1350",
+     "childcare_monthly": "0"
+    },
+    "b": {
+     "adults": "1",
+     "adult1_age": "42",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "1190",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "555",
+     "bedrooms": "1",
+     "savings": "1350",
+     "childcare_monthly": "0"
+    },
+    "c": {
+     "adults": "1",
+     "adult1_age": "42",
+     "adult2_age": "",
+     "children_ages": "",
+     "adult1_earnings_monthly": "14280.00",
+     "adult2_earnings_monthly": "0.00",
+     "limited_capability": "no",
+     "tenure": "rent",
+     "rent_monthly": "128.08",
+     "bedrooms": "1",
+     "savings": "1350",
+     "childcare_monthly": "0.00"
+    }
+   },
+   "off_by": {},
+   "sites_agree": true,
+   "reconciliation_expected": "agree",
+   "cliff_panel_expected": {
+    "capital_limit": "no",
+    "capital_tariff": "no",
+    "children": "no",
+    "childcare": "no",
+    "earnings": "no",
+    "housing": "no"
+   },
+   "independent_check": {
+    "uc_monthly": 300.64,
+    "eligible": true,
+    "max_award": 955.14,
+    "taper": 654.5,
+    "tariff_income": 0.0,
+    "agrees_with_oracle": true
+   },
+   "routing": {
+    "sites_off": [],
+    "error_if_trust_first_site": false,
+    "error_if_trust_any_single_site": false,
+    "error_if_trust_median": false,
+    "review_needed": false,
+    "complexity": {
+     "n_cliff_flags": 0,
+     "children": 0,
+     "adults": 1,
+     "has_childcare": false,
+     "owner_occupier": false,
+     "limited_capability": false,
+     "savings_band": "below_tariff"
+    }
+   },
+   "case_note_expected": {
+    "case_ref": "CASE-1019",
+    "status_after_draft": "Draft",
+    "must_not_submit": true
+   }
+  },
+  {
+   "household": {
+    "id": "hh_0020",
+    "case_ref": "CASE-1020",
+    "region": "wales",
+    "adults": [
+     {
+      "age": 56,
+      "earnings_monthly": 240.0
+     }
+    ],
+    "children_ages": [
+     7
+    ],
+    "tenure": "own",
+    "rent_monthly": 0.0,
+    "bedrooms": 2,
+    "savings": 1850.0,
+    "childcare_monthly": 0.0,
+    "limited_capability": false,
+    "archetype": "owner_no_housing",
+    "synthetic": true,
+    "notes": []
+   },
+   "oracle": {
+    "uc_monthly": 739.14,
+    "eligible": true,
+    "cliff_flags": [],
+    "components": {
+     "standard": 400.14,
+     "children": 339.0,
+     "housing": 0.0,
+     "childcare": 0.0
+    },
+    "taper": 0.0,
+    "tariff_income": 0.0,
+    "work_allowance": 684.0,
+    "over_capital_limit": false,
+    "rules": "internal-simplified-v1"
+   },
+   "sites_expected": {
+    "a": {
+     "uc_monthly": 739.0,
+     "eligible": true
+    },
+    "b": {
+     "uc_monthly": 739.14,
+     "eligible": true
+    },
+    "c": {
+     "uc_monthly": 739.14,
+     "eligible": true
+    }
+   },
+   "site_inputs": {
+    "a": {
+     "adults": "1",
+     "adult1_age": "56",
+     "adult2_age": "",
+     "children_ages": "7",
+     "adult1_earnings_monthly": "240",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "own",
+     "rent_monthly": "0",
+     "bedrooms": "2",
+     "savings": "1850",
+     "childcare_monthly": "0"
+    },
+    "b": {
+     "adults": "1",
+     "adult1_age": "56",
+     "adult2_age": "",
+     "children_ages": "7",
+     "adult1_earnings_monthly": "240",
+     "adult2_earnings_monthly": "0",
+     "limited_capability": "no",
+     "tenure": "own",
+     "rent_monthly": "0",
+     "bedrooms": "2",
+     "savings": "1850",
+     "childcare_monthly": "0"
+    },
+    "c": {
+     "adults": "1",
+     "adult1_age": "56",
+     "adult2_age": "",
+     "children_ages": "7",
+     "adult1_earnings_monthly": "2880.00",
+     "adult2_earnings_monthly": "0.00",
+     "limited_capability": "no",
+     "tenure": "own",
+     "rent_monthly": "0.00",
+     "bedrooms": "2",
+     "savings": "1850",
+     "childcare_monthly": "0.00"
+    }
+   },
+   "off_by": {},
+   "sites_agree": true,
+   "reconciliation_expected": "agree",
+   "cliff_panel_expected": {
+    "capital_limit": "no",
+    "capital_tariff": "no",
+    "children": "no",
+    "childcare": "no",
+    "earnings": "no"
+   },
+   "independent_check": {
+    "uc_monthly": 739.14,
+    "eligible": true,
+    "max_award": 739.14,
+    "taper": 0.0,
+    "tariff_income": 0.0,
+    "agrees_with_oracle": true
+   },
+   "routing": {
+    "sites_off": [],
+    "error_if_trust_first_site": false,
+    "error_if_trust_any_single_site": false,
+    "error_if_trust_median": false,
+    "review_needed": false,
+    "complexity": {
+     "n_cliff_flags": 0,
+     "children": 1,
+     "adults": 1,
+     "has_childcare": false,
+     "owner_occupier": true,
+     "limited_capability": false,
+     "savings_band": "below_tariff"
+    }
+   },
+   "case_note_expected": {
+    "case_ref": "CASE-1020",
+    "status_after_draft": "Draft",
+    "must_not_submit": true
+   }
+  }
+ ]
+}

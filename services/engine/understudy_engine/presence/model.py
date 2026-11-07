@@ -14,7 +14,7 @@ black box.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
@@ -192,11 +192,11 @@ class PresenceModel:
         tail = (1 - level) / 2
         return {"lo": round(float(np.quantile(vals, tail)), 2), "hi": round(float(np.quantile(vals, 1 - tail)), 2)}
 
-    def idle_capacity_interval(self, *, level: float = 0.95, mask: np.ndarray | None = None) -> dict[str, float]:
+    def idle_capacity_interval(self, *, level: float = 0.95, mask: np.ndarray | None = None, n_boot: int = 200) -> dict[str, float]:
         """Mean from the posterior; interval = the wider of the posterior and the day bootstrap (conservative)."""
         post = self.idle_capacity_h(level=level, mask=mask)
         if mask is None:
-            boot = self.idle_capacity_bootstrap(level=level)
+            boot = self.idle_capacity_bootstrap(level=level, n_boot=n_boot)
             if boot:
                 post = {"mean": post["mean"], "lo": min(post["lo"], boot["lo"], post["mean"]), "hi": max(post["hi"], boot["hi"], post["mean"])}
         return post
@@ -214,9 +214,9 @@ class PresenceModel:
             n += SLOTS
         return tot / max(n, 1)
 
-    def tune(self, days: Sequence[DayObs], grid: Sequence[Smoothing] | None = None, val_frac: float = 0.3) -> Smoothing:
+    def tune(self, days: Sequence[DayObs], grid: Sequence[Smoothing] | None = None, val_frac: float = 0.3, fast: bool = False) -> Smoothing:
         """Pick smoothing weights by log loss on the last ``val_frac`` of ``days``; refit on all days."""
-        grid = grid or default_grid()
+        grid = grid or (default_grid()[::3] if fast else default_grid())
         cut = max(1, int(len(days) * (1 - val_frac)))
         train, val = list(days[:cut]), list(days[cut:])
         best, best_ll = self.smoothing, float("inf")

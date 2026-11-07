@@ -19,6 +19,13 @@ export function fromXyxyBox(box: readonly number[] | null | undefined): NormBox 
   return fromGeminiBox([ymin, xmin, ymax, xmax])
 }
 
+/** A [x_min, y_min, x_max, y_max] box in pixels of a screenshot of the given size -> the same order normalised to 0-1000 (null passes through). */
+export function pixelsToNorm(box: readonly number[] | null | undefined, widthPx: number, heightPx: number): number[] | null {
+  if (!box || box.length !== 4 || widthPx <= 0 || heightPx <= 0 || box.some((n) => typeof n !== 'number' || !Number.isFinite(n))) return null
+  const [x0, y0, x1, y1] = box
+  return [(x0 / widthPx) * 1000, (y0 / heightPx) * 1000, (x1 / widthPx) * 1000, (y1 / heightPx) * 1000]
+}
+
 /** A pixel point in a screenshot of the given size (what the computer tool returns) -> normalised 0-1000. */
 export function fromPixelPoint(x: number, y: number, widthPx: number, heightPx: number): NormPoint | null {
   if (![x, y, widthPx, heightPx].every(Number.isFinite) || widthPx <= 0 || heightPx <= 0) return null

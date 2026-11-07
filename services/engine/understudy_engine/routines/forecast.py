@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import numpy as np
 
@@ -82,7 +82,6 @@ def fit_forecast(times: Sequence[float], window: tuple[float, float], horizon_da
 
     rng = np.random.default_rng(seed)
     lam = rng.gamma(a[None, :], 1.0 / b[None, :], size=(draws, 7))           # per-weekday rates, one draw each
-    first = (int(end // DAY)) * DAY if end % DAY else end
     # horizon days: starting at the next full day after the window
     h0 = int(np.ceil(end / DAY)) * DAY
     dows = np.array([_dow(h0 + i * DAY + 1) for i in range(horizon_days)])
@@ -94,7 +93,6 @@ def fit_forecast(times: Sequence[float], window: tuple[float, float], horizon_da
         frail = np.ones((draws, n_wk))
     mu = lam[:, dows] * frail[:, week_idx]
     total = rng.poisson(mu).sum(axis=1).astype(float)
-    del first
     lo, hi = np.quantile(total, [0.025, 0.975])
     return Forecast(float(total.mean()), float(lo), float(hi), float(total.mean() / (horizon_days / 7.0)), alpha, total, horizon_days)
 

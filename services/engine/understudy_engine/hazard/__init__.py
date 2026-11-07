@@ -4,5 +4,6 @@ from understudy_engine.hazard.evaluate import (
 )
 from understudy_engine.hazard.features import BinTable, build_bins
 from understudy_engine.hazard.model import HazardModel
+from understudy_engine.hazard.pooling import evaluate_pooling, fit_beta_prior
 
-__all__ = ["evaluate_hazard", "evaluate_hazard_data", "evaluate_apprentice_hazard", "oof_predictions", "build_bins", "BinTable", "HazardModel"]
+__all__ = ["evaluate_pooling", "fit_beta_prior", "evaluate_hazard", "evaluate_hazard_data", "evaluate_apprentice_hazard", "oof_predictions", "build_bins", "BinTable", "HazardModel"]

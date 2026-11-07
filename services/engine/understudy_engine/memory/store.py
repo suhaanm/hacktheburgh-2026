@@ -149,11 +149,14 @@ class MemoryStore:
 
     def view(self) -> dict[str, Any]:
         doc = self.read()
+        prof = self.load_state().get("profile") or {}
         return {
             "path": str(self.path),
             "revision": doc.revision,
             "markdown": D.render(doc),
             "sections": doc.by_section(),
+            "role": doc.role,
+            "person": prof.get("person"),
         }
 
     # ----- writes -----

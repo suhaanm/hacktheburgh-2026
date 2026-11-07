@@ -570,3 +570,37 @@ def test_built_sites_serve_the_cliff_button_and_panel():
         assert [i for i, _ in ids] == cliff["ids"]
         # savings 15900 is near the capital limit and must be flagged
         assert dict(ids)["capital_limit"] == "yes"
+
+
+# ---------------------------------------------------------------- templates match what the engine plants
+
+def _lev(a: list[str], b: list[str]) -> int:
+    prev = list(range(len(b) + 1))
+    for i, x in enumerate(a, 1):
+        cur = [i]
+        for j, y in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (x != y)))
+        prev = cur
+    return prev[-1]
+
+
+def test_every_routine_the_engine_plants_has_a_template_that_matches_its_nominal_sequence():
+    """The finder names a routine after the template it matches; a mismatch gives auto-xxxx ids."""
+    profiles = pytest.importorskip("understudy_engine.personas.profiles")
+    tasks = pytest.importorskip("understudy_engine.personas.tasks")
+    templates = {t["id"]: t for t in yaml.safe_load((BEN / "routines.yaml").read_text())["templates"]}
+    specs = {r.name: r for persona in profiles.PERSONAS for r in persona.routines}
+    assert specs, "the engine plants no routines?"
+    for name, spec in specs.items():
+        assert name in templates, f"pack has no template for planted routine {name}"
+        nominal = tasks.nominal_template(spec)
+        t = templates[name]
+        dist = _lev(nominal, t["cogs"]) / max(len(nominal), len(t["cogs"]))
+        assert dist <= t["match_distance"], (name, dist, nominal, t["cogs"])
+
+
+def test_persona_planted_routines_name_pack_templates():
+    persona = yaml.safe_load((BEN / "persona.yaml").read_text())
+    templates = {t["id"] for t in yaml.safe_load((BEN / "routines.yaml").read_text())["templates"]}
+    assert {r["id"] for r in persona["planted_routines"]} <= templates
+    assert {"calc-entry-3x", "case-note-copy", "cliff-recheck", "queue-sweep", "weekly-report"} <= templates

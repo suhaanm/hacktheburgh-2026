@@ -2052,7 +2052,7 @@
       "minLength": 1,
       "maxLength": 600,
       "not": {
-        "pattern": "(?i)^\\s*(javascript|data):"
+        "pattern": "^\\s*([jJ][aA][vV][aA][sS][cC][rR][iI][pP][tT]|[dD][aA][tT][aA]):"
       },
       "description": "A CSS selector (comma lists allowed). Used for zones only; the page text is never read."
     },

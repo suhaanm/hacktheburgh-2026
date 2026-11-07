@@ -1,7 +1,7 @@
 // The service worker's logic, separated from chrome.* so it can be tested with a fake API.
 import type { RectResult, RectWant } from "../content/rect";
 import { defaultUuid, makeEvent } from "../shared/events";
-import { ensureConfig, ensureSalt, normaliseConfig, type StorageArea } from "../shared/config";
+import { ensureConfig, ensureSalt, normaliseConfig, parseIdentity, type StorageArea } from "../shared/config";
 import { DEFAULT_CONFIG, STORAGE_KEYS, type CaptureRecord, type InstallConfig, type RecordedStep } from "../shared/types";
 import { Batcher, type Stats } from "./engine_client";
 import { pollConsent } from "./consent";
@@ -40,7 +40,7 @@ export function createWorker(api: WorkerApi, deps: WorkerDeps) {
   let salt = "";
   let l1TargetIds: string[] = [];
   let l1Timer: unknown = null;
-  let rectRunning = false;
+  let rectPromise: Promise<void> | null = null;
   let rectReachable = false;
 
   const batcher = new Batcher({
@@ -142,6 +142,24 @@ export function createWorker(api: WorkerApi, deps: WorkerDeps) {
     }
   }
 
+  /** GET /identity: once onboarding has created the person, adopt it (and its role) and stop using our own. */
+  async function refreshIdentity(): Promise<void> {
+    let body: unknown = null;
+    try {
+      const res = await deps.fetch(`${cfg.engine_url}/identity`, { method: "GET", headers: { accept: "application/json" } });
+      if (!res.ok) return; // 404 before onboarding, or the engine is down: keep what we have
+      body = await res.json().catch(() => null);
+    } catch {
+      return;
+    }
+    const id = parseIdentity(body);
+    if (!id) return;
+    if (cfg.identity_adopted && cfg.person === id.person && cfg.role === id.role) return;
+    cfg = { ...cfg, person: id.person, role: id.role, identity_adopted: true };
+    await api.storage.set({ [STORAGE_KEYS.config]: cfg });
+    await batcher.retag(id.person, id.role);
+  }
+
   async function onTabActivated(tabId: number): Promise<void> {
     if (!cfg.capturing) return;
     const info = (await api.sendToTab(tabId, { kind: "page_info" }, 0).catch(() => null)) as { domain_hash?: string; zone?: string } | null;
@@ -153,6 +171,7 @@ export function createWorker(api: WorkerApi, deps: WorkerDeps) {
 
   async function refreshConsent(): Promise<void> {
     if (!cfg.capturing) return;
+    await refreshIdentity();
     const ids = await pollConsent(deps.fetch, cfg.engine_url);
     if (ids === null) return; // engine unreachable: keep the previous answer
     if (JSON.stringify(ids) !== JSON.stringify(l1TargetIds)) {
@@ -171,10 +190,9 @@ export function createWorker(api: WorkerApi, deps: WorkerDeps) {
     }
   }
 
-  async function startRect(): Promise<void> {
-    if (rectRunning) return;
-    rectRunning = true;
-    try {
+  function startRect(): Promise<void> {
+    if (rectPromise) return rectPromise;
+    rectPromise = (async () => {
       while (cfg.capturing) {
         const out = await poller.tick();
         rectReachable = out.reachable;
@@ -182,13 +200,14 @@ export function createWorker(api: WorkerApi, deps: WorkerDeps) {
         else if (out.delay >= 8000) break; // desktop app not running: the next alarm tries again
         if (out.delay > 0) await deps.sleep(out.delay);
       }
-    } finally {
-      rectRunning = false;
-    }
+    })().finally(() => {
+      rectPromise = null;
+    });
+    return rectPromise;
   }
 
   return {
-    init, handleMessage, onTabActivated, onConfigChanged, onAlarm, refreshConsent, startRect,
+    init, handleMessage, onTabActivated, onConfigChanged, onAlarm, refreshConsent, refreshIdentity, startRect,
     batcher, uploader, poller,
     get config() { return cfg; },
     get l1Targets() { return l1TargetIds; },

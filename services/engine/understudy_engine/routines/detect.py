@@ -11,11 +11,11 @@ import numpy as np
 from ..core import Episode
 from ..memory.packinfo import PackView
 from . import skirental as sk
-from .finder import Cluster, FinderConfig, find_routines
+from .finder import FinderConfig, find_routines
 from .forecast import DAY, backtest_coverage, fit_forecast
 from .gate import SkillSource, routine_skill_gate
 from .proposal import build_proposal
-from .scoring import auto_id, auto_title, match_template, observation_span_days, score_cluster
+from .scoring import auto_id, auto_title, match_template, score_cluster
 from .value import ValueParams, value_model
 
 
@@ -28,6 +28,7 @@ class DetectConfig:
     max_judgement_share: float = 0.5      # more judgement than this: reported, never proposed
     default_build_cost_runs: float = 6.0
     wage_gbp_h: float | None = None       # None: the pack's own illustration (15)
+    forecast_draws: int = 4000            # Monte Carlo draws per routine (fewer for a fast evaluation)
 
 
 def _irreversible_classes(never: Sequence[str], patterns: Sequence[str]) -> list[str]:
@@ -80,7 +81,7 @@ def detect_routines(episodes: Sequence[Episode], pack: PackView, *, person: str,
         tmpl, tmpl_d = match_template(cl.medoid, pack.templates)
         sc = score_cluster(cl, span_days, judgement)
         times = [e.t0 for e in cl.episodes]
-        fc = fit_forecast(times, (start, end), cfg.horizon_weeks * 7, seed=17)
+        fc = fit_forecast(times, (start, end), cfg.horizon_weeks * 7, seed=17, draws=cfg.forecast_draws)
         vd = (tmpl or {}).get("value_defaults", {}) or {}
         vp = ValueParams(wage_gbp_h=wage, build_cost_runs=float(vd.get("build_cost_runs", cfg.default_build_cost_runs)),
                          maintenance_risk_gbp=float(vd.get("maintenance_risk_gbp", 5.0)),
@@ -119,11 +120,12 @@ def detect_routines(episodes: Sequence[Episode], pack: PackView, *, person: str,
             "touches": proposal["touches"], "never": never,
             "irreversible_classes": _irreversible_classes(never, pack.risk_irreversible),
             "build_timing": timing.contract(),
-            "skill_gate": gate, "automatable": automatable,
+            "skill_gate": gate, "automatable": automatable, "learning_relevant": learning, "skill_cogs": skill_cogs,
+            "other_reasons": [r for r in reasons if r != gate["reason"]],
             "proposable": not reasons, "not_proposable_because": reasons,
             "proposal": {k: proposal[k] for k in ("what", "how_often", "touches", "never")} | {"hours_saved_text": proposal["hours_saved_text"]},
             "signature": list(cl.medoid), "last_seen": max(e.t1 for e in cl.episodes), "first_seen": min(e.t0 for e in cl.episodes),
-            "member_task_ids": [e.task_id for e in cl.episodes],
+            "member_task_ids": [e.task_id for e in cl.episodes], "member_t0": [round(e.t0, 1) for e in cl.episodes],
         })
     out.sort(key=lambda r: (-r["value"]["hours_saved"][1], r["id"]))
     # one pack template may match several clusters (a variant split off); keep the larger, rename the others

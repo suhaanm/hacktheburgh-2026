@@ -3,14 +3,17 @@ import { ApiError, api } from "../api";
 import { useLoad } from "../hooks";
 import { EmptyState, ErrorState, Loading, PageHead } from "../components/common";
 import { useToast } from "../components/Toasts";
-import { removeLineText, replaceLineText } from "../lib/memory";
+import { captureOn, removeLineText, replaceLineText, setCapture } from "../lib/memory";
 import type { Memory as MemoryT, RuleProposal } from "../types";
 
 interface Row { no: number; raw: string; kind: "front" | "h" | "item" | "blank" | "text"; id: string | null; text: string; note: string | null }
 
+/** Notes in the engine's file look like "id:l_ab12 | why". The id is plumbing; show only the why. */
+const cleanNote = (n: string | null) => { const c = (n ?? "").replace(/^id:\S+\s*\|?\s*/, "").trim(); return c || null; };
+
 function rowsOf(m: MemoryT): Row[] {
-  const byText = new Map<string, string>();
-  for (const lines of Object.values(m.sections)) for (const l of lines) byText.set(l.text.trimEnd(), l.id);
+  const byText = new Map<string, { id: string; note: string | null }>();
+  for (const lines of Object.values(m.sections)) for (const l of lines) byText.set(l.text.trimEnd(), { id: l.id, note: cleanNote(l.note) });
   const out: Row[] = [];
   let front = 0;
   m.markdown.replace(/\n$/, "").split("\n").forEach((raw, i) => {
@@ -18,10 +21,18 @@ function rowsOf(m: MemoryT): Row[] {
     if (front === 1) { out.push({ no: i + 1, raw, kind: "front", id: null, text: raw, note: null }); return; }
     if (/^##\s/.test(raw)) { out.push({ no: i + 1, raw, kind: "h", id: null, text: raw.replace(/^##\s+/, ""), note: null }); return; }
     const b = /^\s*[-*]\s+(.*?)(?:\s*<!--\s*(.*?)\s*-->)?\s*$/.exec(raw);
-    if (b) { out.push({ no: i + 1, raw, kind: "item", id: byText.get(b[1].trimEnd()) ?? null, text: b[1], note: b[2] ?? null }); return; }
+    if (b) { const hit = byText.get(b[1].trimEnd()); out.push({ no: i + 1, raw, kind: "item", id: hit?.id ?? null, text: b[1], note: hit ? hit.note : cleanNote(b[2] ?? null) }); return; }
     out.push({ no: i + 1, raw, kind: raw.trim() ? "text" : "blank", id: null, text: raw, note: null });
   });
   return out;
+}
+
+/** A long absolute path would push the page sideways; keep the tail and put the whole thing in the tooltip. */
+function shortPath(p: string): string {
+  const i = p.indexOf(".understudy");
+  if (i >= 0) return `~/${p.slice(i)}`;
+  const parts = p.split("/").filter(Boolean);
+  return parts.length > 2 ? `…/${parts.slice(-2).join("/")}` : p;
 }
 
 export default function Memory() {
@@ -79,6 +90,19 @@ export default function Memory() {
     finally { setBusy(false); }
   };
 
+  const capture = captureOn(m.sections);
+  const toggleCapture = async () => {
+    setBusy(true); setErr(null);
+    try {
+      await api.putMemory(setCapture(m.markdown, !capture), m.revision);
+      toast({ tone: "success", text: capture ? "Capture is off." : "Capture is on.", detail: capture ? "Nothing more is recorded about when you are active." : "Times only. No page text, no URLs." });
+      mem.reload();
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) { toast({ tone: "error", text: "The file changed while you were deciding.", detail: "It is reloaded. Check the line and try again." }); mem.reload(); }
+      else setErr(e instanceof ApiError ? e.message : "Could not change capture. Try again.");
+    } finally { setBusy(false); }
+  };
+  const itemCount = rows.filter((r) => r.kind === "item").length;
   const pending = (props.data ?? []).filter((p) => p.status === "proposed");
   const past = (props.data ?? []).filter((p) => p.status !== "proposed");
 
@@ -88,8 +112,14 @@ export default function Memory() {
         eyebrow="Memory"
         title="What Understudy knows about you"
         lede="One Markdown file on this device, owned by you. Only your own actions and approvals can change it. Text from a web page or a tool never can."
-        aside={<span className="pill" title={m.path}><b>rev {m.revision}</b>{m.path}</span>}
+        aside={<span className="pill pill--path" title={m.path}><b>rev {m.revision}</b>{shortPath(m.path)}</span>}
       />
+
+      <div className="row capture" role="group" aria-label="Capture">
+        <span className="pill" data-capture={capture}><span className="pill__dot" style={{ ["--_c" as string]: capture ? "var(--good)" : "var(--muted)" }} aria-hidden="true" />{capture ? "Capture is on" : "Capture is off"}</span>
+        <span className="note">{capture ? "Only the times you are active are recorded. No page text, no URLs." : "Nothing about when you are active is recorded."}</span>
+        <button type="button" className="btn btn--secondary btn--sm" disabled={busy} onClick={toggleCapture}>{capture ? "Turn off" : "Turn on"}</button>
+      </div>
 
       <section className="hero" aria-labelledby="file-h">
         <div className="hero__bar">
@@ -112,7 +142,7 @@ export default function Memory() {
 
         {mode === "read" ? (
           <div className="memfile">
-            <div className="memfile__bar"><span>{m.path}</span><span>revision {m.revision} · {rows.filter((r) => r.kind === "item").length} lines</span></div>
+            <div className="memfile__bar"><span title={m.path}>{shortPath(m.path)}</span><span>revision {m.revision} · {rows.filter((r) => r.kind === "item").length} lines</span></div>
             <div className="memfile__body">
               {rows.map((r) => {
                 if (edit && edit.no === r.no) {
@@ -162,6 +192,7 @@ export default function Memory() {
           </div>
         )}
         {err && <p className="field__error" role="alert">{err}</p>}
+        {itemCount === 0 && mode === "read" && <EmptyState title="Your memory file is empty" body="Choose a role in set-up and Understudy writes the first lines here. Everything in it stays on this device." action={<a className="btn btn--secondary" href="#/onboarding">Go to set-up</a>} />}
       </section>
 
       <hr className="rule" />

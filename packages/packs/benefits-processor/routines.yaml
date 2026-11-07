@@ -22,9 +22,9 @@ templates:
     proposal:
       what: Enter the household into all three calculators and read back each result, then stop.
 
-  - id: result-to-note
+  - id: case-note-copy
     title: Copy the agreed results into the case note
-    cogs: [READ_RESULT, COPY_TO_NOTE, READ_RESULT, COPY_TO_NOTE, READ_RESULT, COPY_TO_NOTE]
+    cogs: [READ_RESULT, COPY_TO_NOTE, READ_RESULT, COPY_TO_NOTE]
     match_distance: 0.30
     automatable: true
     learning_relevant: false       # copying figures teaches nothing the worker still needs
@@ -35,15 +35,40 @@ templates:
     proposal:
       what: Copy each calculator's result into the case note and save it as a draft. It never presses Submit to claimant record.
 
-  - id: cliff-check-sweep
-    title: Probe each calculator near a threshold
-    cogs: [CHECK_CLIFF, READ_RESULT, CHECK_CLIFF, READ_RESULT, DECIDE]
+  - id: cliff-recheck
+    title: Re-check the cliff edges after changing a figure
+    cogs: [ENTER_HOUSEHOLD, CHECK_CLIFF, READ_RESULT, CHECK_CLIFF, COPY_TO_NOTE]
     match_distance: 0.35
     automatable: false             # judgement-heavy: reported, never proposed
     learning_relevant: true
     skill_cogs: [CHECK_CLIFF]
     touches: ["GovCalc", "Quick Estimator", "EntitledTo"]
-    never: ["submit"]
+    never: ["submit", "submit to claimant record"]
     value_defaults: { manual_minutes_per_run: 4.0, build_cost_runs: 9, maintenance_risk_gbp: 12, error_cost_gbp: 25 }
     proposal:
-      what: Re-run a calculator with a figure nudged near a threshold. Needs your judgement, so it stays manual.
+      what: Re-run a calculator with a figure nudged near a threshold and read the cliff panel. Needs your judgement, so it stays manual.
+
+  - id: queue-sweep
+    title: Sweep the case queue
+    cogs: [NAVIGATE, READ, CHECK, DECIDE, NAVIGATE, READ, CHECK, DECIDE, NAVIGATE, READ, CHECK, DECIDE, NAVIGATE, READ, CHECK, DECIDE]
+    match_distance: 0.35
+    automatable: false             # a decision on every pass: a decoy the finder should find and not propose
+    learning_relevant: false
+    touches: ["case queue"]
+    never: ["submit", "close case"]
+    value_defaults: { manual_minutes_per_run: 6.0, build_cost_runs: 10, maintenance_risk_gbp: 15, error_cost_gbp: 30 }
+    proposal:
+      what: Work through the queue, reading and deciding on each case. Every pass needs your decision, so it stays manual.
+
+  - id: weekly-report
+    title: Build the weekly caseload report
+    cogs: [NAVIGATE, READ, COPY, NAVIGATE, PASTE, ENTER, ENTER, DECIDE]
+    match_distance: 0.35
+    automatable: true              # rare (once a week): a test for ski-rental build timing
+    learning_relevant: false
+    touches: ["case system", "report sheet"]
+    never: ["submit", "send letter", "export"]
+    params: [week_start]
+    value_defaults: { manual_minutes_per_run: 14, build_cost_runs: 5, maintenance_risk_gbp: 6, error_cost_gbp: 8 }
+    proposal:
+      what: Collect the week's figures from the case system and paste them into the report sheet. It never sends the report.

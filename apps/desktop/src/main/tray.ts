@@ -10,6 +10,7 @@ import type { CompanionState, PersonaId, SessionEndReason } from '../shared/prot
 import type { ShellCommand } from '../shared/shell'
 import type { Settings } from '../shared/settings'
 import type { Bus } from './bus'
+import { captureLabel, type CaptureMode } from './engine/capture-consent'
 import { START_ACCELERATORS, STOP_ACCELERATORS, PANEL_ACCELERATORS, KILL_ACCELERATORS } from './hotkey'
 import { trayStateKind, trayTitle } from './panel-rules'
 import type { Windows } from './windows'
@@ -35,6 +36,8 @@ export interface TrayModel {
   // Understudy: the global kill switch is on (the menu offers Resume instead of Stop everything).
   killed?: boolean
   killAccelerator?: string
+  // Understudy: whether desk capture (times only) is on. Shown as a plain line under the status; omitted when unknown.
+  capture?: CaptureMode
   agents?: readonly { status: string }[]
   startAccelerator?: string
   stopAccelerator?: string
@@ -80,6 +83,7 @@ export function buildMenuEntries(model: TrayModel): MenuEntry[] {
   const sep = (id: string): MenuEntry => ({ id, label: '', enabled: false, separator: true })
   return [
     { id: 'status', label: describeStatus(model), enabled: false },
+    ...(model.capture ? [{ id: 'capture', label: captureLabel(model.capture), enabled: false } as MenuEntry] : []),
     sep('sep1'),
     { id: 'panel', label: 'Show panel', enabled: true, checked: model.dockVisible, ...(model.panelAccelerator ? { accelerator: model.panelAccelerator } : {}) },
     ...PERSONA_LIST.map((p): MenuEntry => ({ id: `talk:${p.id}`, label: `Talk to ${p.displayName}`, enabled: true, ...(p.id === hotkeyPersona && model.startAccelerator ? { accelerator: model.startAccelerator } : {}) })),
@@ -114,6 +118,8 @@ export interface TrayDeps {
   kill?: { trigger(): void; clear(): void; isKilled(): boolean }
   // Understudy: opens the dashboard's morning queue in the browser.
   openQueue?: () => void
+  // Understudy: the current desk capture mode (the menu says plainly when it is off).
+  captureMode?: () => CaptureMode
   // Test seams.
   isRegistered?: (accelerator: string) => boolean
   iconDir?: string
@@ -178,6 +184,7 @@ export function registerTray(deps: TrayDeps): ShellTray {
       dockVisible: deps.windows.isDockVisible(),
       showtimeRunning: deps.showtimeRunning?.() ?? false,
       killed: deps.kill?.isKilled() ?? false,
+      capture: deps.captureMode?.(),
       killAccelerator: firstRegistered(KILL_ACCELERATORS),
       agents: st.agents,
       startAccelerator: firstRegistered(START_ACCELERATORS),

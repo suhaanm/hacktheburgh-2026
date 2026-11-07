@@ -77,4 +77,16 @@ describe('model port live probe', () => {
       say('computer step FAILED:', why(e))
     }
   }, 70_000)
+
+  it('5 computer tool on a saved practice-desktop screenshot (a real proposal; nothing is executed)', async () => {
+    const dir = path.resolve(process.cwd(), 'spikes/grounding/shots/stage')
+    const file = fs.existsSync(dir) ? fs.readdirSync(dir).find((f) => /settings_display.*\.jpg$/.test(f)) : undefined
+    if (!file) return say('no saved practice-desktop screenshot here; skipped')
+    try {
+      const r = await port.computerStep({ goal: 'Open the text size options', history: [], screenshot: { jpegBase64: fs.readFileSync(path.join(dir, file)).toString('base64'), widthPx: 1440, heightPx: 900 }, timeoutMs: 60_000 })
+      say(`computer proposal kind=${r.kind} model=${r.model} ${r.ms}ms ${r.kind === 'actions' ? `actions=${JSON.stringify(r.actions)} callId=${r.callId ? 'present' : 'missing'}` : r.kind === 'done' ? `text=${r.text.slice(0, 100)}` : `reason=${r.reason}`}`)
+    } catch (e) {
+      say('computer proposal FAILED:', why(e))
+    }
+  }, 90_000)
 })

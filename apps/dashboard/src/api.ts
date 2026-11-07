@@ -1,4 +1,5 @@
 import { noteSource, setState } from "./store";
+import type { ApprovalAuth } from "./auth/types";
 import type {
   Analytic, AnalyticMeta, AuditLine, CoachState, EvalReport, Genome, Hazard, Health, KillState, Memory,
   OffhoursReport, OnboardingAnswers, OnboardingQuestions, OnboardingResult, Pack, Presence, QueueItem, QuietHours,
@@ -23,10 +24,15 @@ import healthFx from "./fixtures/health.json";
 import { parseMemory, removeLineText, serializeMemory, toMemory } from "./lib/memory";
 import { buildPreview } from "./lib/memoryPreview";
 import { idleCapacity } from "./lib/heatmap";
+import { dayKeys, normDays } from "./lib/days";
 
 export const ENGINE_URL: string = (import.meta.env.VITE_ENGINE_URL as string | undefined) ?? "http://127.0.0.1:7700";
 export const AGENT_URL: string = (import.meta.env.VITE_AGENT_URL as string | undefined) ?? "http://127.0.0.1:7710";
-const TIMEOUT_MS = 2500;
+/** The first calls to a cold engine are slow (a genome about 3 s, routines about 7 s, a hazard 6 to 12 s). Only a hung connection hits this. */
+const TIMEOUT_MS = 40_000;
+
+/** Writes carry who is acting. The engine refuses anything but the worker's own UI (403 write_refused). */
+export type Actor = "worker" | "worker_approval";
 
 export class ApiError extends Error {
   status: number;
@@ -56,30 +62,35 @@ function unwrap<T>(body: unknown): { data: T; meta: AnalyticMeta | null } {
   return { data: body as T, meta: null };
 }
 
-type Reached = { reached: true; status: number; body: unknown } | { reached: false };
+type Reached = { reached: true; status: number; body: unknown } | { reached: false; timedOut?: boolean };
 
 /** After a network failure, skip that service for a few seconds: faster screens, no console spam. */
 const downUntil = new Map<string, number>();
 const BACKOFF_MS = 6000;
 export function forgetBackoff(): void { downUntil.clear(); }
 
-async function send(base: string, path: string, method: string, payload?: unknown, force = false): Promise<Reached> {
+async function send(base: string, path: string, method: string, payload?: unknown, force = false, actor?: Actor): Promise<Reached> {
   if (!force && (downUntil.get(base) ?? 0) > Date.now()) return { reached: false };
   const ctl = new AbortController();
-  const timer = window.setTimeout(() => ctl.abort(), TIMEOUT_MS);
+  let timedOut = false;
+  const timer = window.setTimeout(() => { timedOut = true; ctl.abort(); }, TIMEOUT_MS);
   try {
+    const headers: Record<string, string> = {};
+    if (payload !== undefined) headers["Content-Type"] = "application/json";
+    if (actor) headers["X-Understudy-Actor"] = actor;
     const res = await fetch(`${base}${path}`, {
       method,
       signal: ctl.signal,
-      headers: payload !== undefined ? { "Content-Type": "application/json" } : undefined,
+      headers: Object.keys(headers).length ? headers : undefined,
       body: payload !== undefined ? JSON.stringify(payload) : undefined,
     });
     let body: unknown = null;
     try { body = await res.json(); } catch { body = null; }
     return { reached: true, status: res.status, body };
   } catch {
-    downUntil.set(base, Date.now() + BACKOFF_MS);
-    return { reached: false };
+    // A refused connection means the service is down: skip it for a few seconds. A timeout means it is slow, not gone.
+    if (!timedOut) downUntil.set(base, Date.now() + BACKOFF_MS);
+    return { reached: false, timedOut };
   } finally {
     window.clearTimeout(timer);
   }
@@ -87,7 +98,13 @@ async function send(base: string, path: string, method: string, payload?: unknow
 
 function toApiError(status: number, body: unknown): ApiError {
   const e = (body as { error?: { code?: string; message?: string } } | null)?.error;
-  return new ApiError(status, e?.code ?? `http_${status}`, e?.message ?? `The service answered with status ${status}.`);
+  const plain: Record<number, string> = {
+    403: "The engine refused this change because it did not come from your own app.",
+    404: "The engine does not have that.",
+    409: "That changed while you were looking. Reload and try again.",
+    422: "The engine could not accept that. Check what you entered and try again.",
+  };
+  return new ApiError(status, e?.code ?? `http_${status}`, e?.message ?? plain[status] ?? `The service answered with status ${status}.`);
 }
 
 /** The service is down, or does not have this route yet: use demo data. */
@@ -107,8 +124,8 @@ async function read<T>(path: string, fallback: () => { data: T; meta?: AnalyticM
 }
 
 /** A write. When the service is down the demo state takes it, so the screen still works. */
-async function write<T>(path: string, method: "POST" | "PUT", payload: unknown, fallback: () => T, base = ENGINE_URL): Promise<{ data: T; source: "live" | "demo" }> {
-  const r = await send(base, path, method, payload);
+async function write<T>(path: string, method: "POST" | "PUT", payload: unknown, fallback: () => T, actor: Actor = "worker", base = ENGINE_URL): Promise<{ data: T; source: "live" | "demo" }> {
+  const r = await send(base, path, method, payload, false, actor);
   if (isMissing(r)) {
     noteSource("demo");
     return { data: fallback(), source: "demo" };
@@ -161,7 +178,14 @@ export const api = {
       return { data: { nodes, links: d.links.filter((l) => ids.has(l.a) && ids.has(l.b)) }, meta: metaOf(workgraphFx) };
     }),
 
-  presence: (person?: string) =>
+  presence: async (person?: string): Promise<Loaded<Presence>> => {
+    const r = await api.presenceRaw(person);
+    // The engine sends day keys ("mon"); the screens use indexes. Accept both.
+    r.data.quiet_hours = { ...r.data.quiet_hours, days: normDays(r.data.quiet_hours.days as unknown as (string | number)[]) };
+    return r;
+  },
+
+  presenceRaw: (person?: string) =>
     read<Presence>(`/presence${person ? `?person=${encodeURIComponent(person)}` : ""}`, () => {
       const d = clone(dataOf<Presence>(presenceFx));
       d.quiet_hours = clone(demo.quiet);
@@ -234,11 +258,15 @@ export const api = {
     return { killed: r.data?.killed ?? false, at: r.data?.at ?? null };
   },
 
-  setConsent: (id: string, body: { mode: string; irreversible_unattended?: string[]; typed_confirm?: string }) =>
+  /** `skill_override` re-sends a consent the skill gate refused (422 skill_gate); the engine records it in the memory file. */
+  setConsent: (id: string, body: { mode: string; irreversible_unattended?: string[]; typed_confirm?: string; skill_override?: boolean }) =>
     write<Routine>(`/routines/${encodeURIComponent(id)}/consent`, "POST", { irreversible_unattended: [], typed_confirm: "", ...body }, () => {
       const r = demo.routines.find((x) => x.id === id);
       if (!r) throw new ApiError(404, "no_such_routine", `There is no routine called ${id}.`);
       const irreversible = body.irreversible_unattended ?? [];
+      if (["shadow", "approval", "unattended"].includes(body.mode) && !r.skill_gate.eligible && !body.skill_override) {
+        throw new ApiError(422, "skill_gate", r.skill_gate.reason);
+      }
       if (body.mode === "unattended" && irreversible.length && r.driver === "model" && body.typed_confirm !== r.id) {
         throw new ApiError(422, "typed_confirmation_required", `Type ${r.id} exactly to allow irreversible steps while you are away.`);
       }
@@ -250,21 +278,33 @@ export const api = {
       return clone(r);
     }),
 
-  setQueue: (id: string, action: "approve" | "reject") =>
-    write<QueueItem>(`/queue/${encodeURIComponent(id)}/${action}`, "POST", undefined, () => {
+  /** Who the engine says the worker is, once onboarding has run. 404 before that. */
+  identity: async (): Promise<{ person: string; role: string } | null> => {
+    const r = await send(ENGINE_URL, "/identity", "GET");
+    if (!r.reached || r.status >= 400) return null;
+    noteSource("live");
+    const b = unwrap<{ person: string; role: string }>(r.body).data;
+    return b?.person ? b : null;
+  },
+
+  /** `auth` is additive and only sent with an approval: { method, sub_hash? }. Never an email, a name or a token. */
+  setQueue: (id: string, action: "approve" | "reject", auth?: ApprovalAuth) =>
+    write<QueueItem>(`/queue/${encodeURIComponent(id)}/${action}`, "POST", action === "approve" && auth ? { auth } : undefined, () => {
       const q = demo.queue.find((x) => x.id === id);
       if (!q) throw new ApiError(404, "no_such_item", `There is no queue item ${id}.`);
       q.status = action === "approve" ? "approved" : "rejected";
       q.decided_at = new Date().toISOString();
       q.decided_by = "human";
       return clone(q);
-    }),
+    }, action === "approve" ? "worker_approval" : "worker"),
 
-  putQuietHours: (q: QuietHours) =>
-    write<QuietHours>("/presence/quiet_hours", "PUT", q, () => {
+  putQuietHours: async (q: QuietHours): Promise<QuietHours> => {
+    const r = await write<QuietHours>("/presence/quiet_hours", "PUT", { ...q, days: dayKeys(q.days) }, () => {
       demo.quiet = clone(q);
       return clone(q);
-    }),
+    });
+    return { ...r.data, days: normDays(r.data.days as unknown as (string | number)[]) };
+  },
 
   decide: (d_min: number, gain: number, loss: number) =>
     write<{ go: boolean; survival: number; threshold: number; reason: string; locked: boolean }>("/offhours/decide", "POST", { d_min, gain, loss }, () => {
@@ -315,7 +355,7 @@ export const api = {
         demo.memory = toMemory(demo.memory.path, serializeMemory("benefits-processor", rev, next), next);
       }
       return clone(p);
-    }),
+    }, action === "approve" ? "worker_approval" : "worker"),
 
   deleteWorkNode: async (node: { id: string; type: string; memory_line_id: string | null }): Promise<void> => {
     if (node.type === "memory" || (node.type === "skill" && node.memory_line_id)) {
@@ -326,13 +366,14 @@ export const api = {
       }
     }
     if (node.type === "routine" || node.type === "automation") {
-      await api.setConsent(node.id.replace(/^auto-/, ""), { mode: "never" }).catch(() => undefined);
+      await api.setConsent(node.id.replace(/^(routine|automation):/, "").replace(/^auto-/, ""), { mode: "never" }).catch(() => undefined);
     }
     demo.workDeleted.add(node.id);
   },
 
   async onboard(role: string, answers: OnboardingAnswers, questions: OnboardingQuestions | undefined): Promise<{ result: OnboardingResult; source: "live" | "demo" }> {
-    const r = await write<OnboardingResult>("/onboarding", "POST", { role, answers }, () => {
+    const wire = { ...answers, hours: { ...answers.hours, days: dayKeys(answers.hours.days as unknown as number[]) } };
+    const r = await write<OnboardingResult>("/onboarding", "POST", { role, answers: wire }, () => {
       const md = buildPreview(role, questions, answers).text;
       return {
         person: "p_you",

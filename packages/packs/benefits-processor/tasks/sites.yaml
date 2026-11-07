@@ -107,6 +107,7 @@ case_note:
 # both in the engine's zone vocabulary; the capture config above says the same without relying on the attribute.
 # The panel is hidden until clicked and filled from GET /cliff?site=&ref=. Each item is
 # <li data-cliff="<id>" data-near="yes|no">; data-near is yes exactly when the oracle's cliff_flags has the flag.
+# The housing item is shown to renters only (owner occupiers get five items).
 cliff:
   button: "#cliff-btn"
   button_label: Check cliff edges

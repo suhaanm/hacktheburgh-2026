@@ -11,7 +11,6 @@ would reach the worker as a card).
 from __future__ import annotations
 
 import collections
-import json
 from pathlib import Path
 from typing import Any
 
@@ -19,13 +18,11 @@ import numpy as np
 
 from ..core import Event
 from ..memory.packinfo import load_pack
-from ..memory.paths import data_dir
 from ..presence.personas import PERSONAS, have_persona, load_persona
 from .detect import DetectConfig, detect_routines
 from .finder import FinderConfig, find_routines
 from .forecast import DAY, backtest_coverage
-from .simulate import SimConfig, regret_table
-from .skirental import robustness
+from .simulate import SimConfig
 
 
 def persona_episodes(name: str, root: Path | None = None):
@@ -74,7 +71,7 @@ def _score_clusters(member_task_ids: list[list[str]], labels: dict[str, str], tr
             "episode_precision": round(ep_ok / n_ep, 3) if n_ep else None, "mean_purity_of_true_clusters": round(float(np.mean([p for p in purity if p > 0])), 3) if any(p > 0 for p in purity) else None}
 
 
-def evaluate_finder(root: Path | None = None, *, min_support: int = 3, wage_gbp_h: float = 15.0) -> dict[str, Any]:
+def evaluate_finder(root: Path | None = None, *, min_support: int = 3, wage_gbp_h: float = 15.0, fast: bool = False) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     for name in PERSONAS:
         if not have_persona(name, root):
@@ -85,7 +82,7 @@ def evaluate_finder(root: Path | None = None, *, min_support: int = 3, wage_gbp_
         fcfg = FinderConfig(min_support=min_support)
         clusters = find_routines(eps, fcfg)
         raw = _score_clusters([[e.task_id for e in c.episodes] for c in clusters], labels, truth_counts, min_support)
-        detected = detect_routines(eps, pack, person=truth.get("person", "p"), cfg=DetectConfig(finder=fcfg, wage_gbp_h=wage_gbp_h))
+        detected = detect_routines(eps, pack, person=truth.get("person", "p"), cfg=DetectConfig(finder=fcfg, wage_gbp_h=wage_gbp_h, forecast_draws=1000 if fast else 4000))
         shown = [d for d in detected if d["proposable"] or d["value"]["confidence"] >= 0.5]
         # skill gate is not what is measured here: count value-worthy routines whether or not the worker has mastered them
         prop = _score_clusters([d["member_task_ids"] for d in shown], labels, truth_counts, min_support)
@@ -130,7 +127,7 @@ def evaluate_finder(root: Path | None = None, *, min_support: int = 3, wage_gbp_
             "note": "Precision counts proposals (after the value gate); recall counts planted routines with at least the minimum support."}
 
 
-def evaluate_forecast(root: Path | None = None) -> dict[str, Any]:
+def evaluate_forecast(root: Path | None = None, *, fast: bool = False) -> dict[str, Any]:
     """Backtest the recurrence forecast on planted routines: fit on the first two weeks, compare with the third."""
     rows = []
     for name in PERSONAS:
@@ -144,11 +141,12 @@ def evaluate_forecast(root: Path | None = None) -> dict[str, Any]:
             times = [datetime.fromisoformat(i["t0"].replace("Z", "+00:00")).timestamp() for i in r["instances"]]
             if len(times) < 8:
                 continue
-            bt = backtest_coverage(times, start, start + 14 * DAY, start + 21 * DAY)
+            bt = backtest_coverage(times, start, start + 14 * DAY, start + 21 * DAY, draws=1000 if fast else 4000)
             rows.append({"persona": name, "routine": r["name"], **{k: round(v, 2) for k, v in bt.items()}})
     n = len(rows)
     cov = sum(r["inside"] for r in rows)
-    return {"name": "forecast", "origin": "synthetic", "n": n, "n_unit": "routines", "interval_level": 0.95,
+    return {"name": "forecast", "meta": {"origin": "synthetic", "n": n, "n_unit": "routines", "interval_level": 0.95, "split": "fit on days 1-14, scored on days 15-21", "note": None},
+            "origin": "synthetic", "n": n, "n_unit": "routines", "interval_level": 0.95,
             "split": "fit on days 1-14, scored on days 15-21", "rows": rows,
             "metrics": {"interval_coverage": round(cov / n, 3) if n else None, "interval_coverage_ci": _wilson(int(cov), n)},
             "limitations": [{"id": "forecast-small-n", "severity": "medium",
@@ -165,12 +163,12 @@ def routines_report(finder: dict[str, Any]) -> dict[str, Any]:
                      "note": "Precision is over proposals (after the value gate); recall over planted routines with at least 3 runs."}}
 
 
-def _ratio_rows(x: np.ndarray, y: np.ndarray, b: float, lambdas: tuple[float, ...], seed: int = 9) -> list[dict[str, Any]]:
+def _ratio_rows(x: np.ndarray, y: np.ndarray, b: float, lambdas: tuple[float, ...], seed: int = 9, n_boot: int = 300) -> list[dict[str, Any]]:
     from . import skirental as sk
 
     opt = np.minimum(x, b)
     rng = np.random.default_rng(seed)
-    idx = [rng.integers(0, len(x), len(x)) for _ in range(300)]
+    idx = [rng.integers(0, len(x), len(x)) for _ in range(n_boot)]
 
     def ratio(cost: np.ndarray) -> tuple[float, list[float]]:
         boots = [cost[i].sum() / max(opt[i].sum(), 1e-9) for i in idx]
@@ -192,17 +190,18 @@ def _ratio_rows(x: np.ndarray, y: np.ndarray, b: float, lambdas: tuple[float, ..
 
 
 def evaluate_ski_rental(cfg: SimConfig | None = None, *, b: float = 16.0, sweep: tuple[float, ...] = (4.0, 8.0, 16.0, 32.0),
-                        lambdas: tuple[float, ...] = (0.2, 0.5)) -> dict[str, Any]:
+                        lambdas: tuple[float, ...] = (0.2, 0.5), fast: bool = False) -> dict[str, Any]:
     """Regret as a competitive ratio (mean cost / mean hindsight cost; hindsight = 1.0), on simulated workdays.
 
     ``rows`` are at buy cost ``b`` (in manual runs); ``sweep`` shows every buy cost, because the winner changes with it.
     """
     from .simulate import simulate_routines
 
-    cfg = cfg or SimConfig()
+    cfg = cfg or (SimConfig(n_routines=1500) if fast else SimConfig())
     x, y = simulate_routines(cfg)
-    sweep_rows = {f"{bb:g}": _ratio_rows(x, y, bb, lambdas) for bb in sweep}
-    rows = sweep_rows.get(f"{b:g}") or _ratio_rows(x, y, b, lambdas)
+    nb = 80 if fast else 300
+    sweep_rows = {f"{bb:g}": _ratio_rows(x, y, bb, lambdas, n_boot=nb) for bb in sweep}
+    rows = sweep_rows.get(f"{b:g}") or _ratio_rows(x, y, b, lambdas, n_boot=nb)
     wins = []
     for bb, rr in sweep_rows.items():
         best = min(rr, key=lambda r: r["regret"])

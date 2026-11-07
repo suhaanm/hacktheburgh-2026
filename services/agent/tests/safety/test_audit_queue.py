@@ -241,3 +241,59 @@ def test_save_screenshot_returns_contract_path(tmp_path):
     assert rel == "data/runs/r_01/s3.png"
     with pytest.raises(ValueError):
         save_screenshot("../evil", 1, b"x")
+
+
+# ------------------------------------------------------------------ optional approval method (auth)
+from understudy_agent.queue import InvalidAuth, validate_auth  # noqa: E402
+
+
+def test_approve_records_the_auth_method_and_sub_hash_on_the_item_and_in_the_audit_line(tmp_path):
+    queue = q(tmp_path)
+    a, b = mk(queue), mk(queue, title="second")
+    done = queue.approve(a["id"], origin=Origin.HUMAN_UI, auth={"method": "auth0_stepup", "sub_hash": "0123456789ab"})
+    assert done["auth_method"] == "auth0_stepup" and done["sub_hash"] == "0123456789ab"
+    assert queue.get(a["id"])["auth_method"] == "auth0_stepup"
+    rej = queue.reject(b["id"], origin=Origin.HUMAN_UI, auth={"method": "local"})
+    assert rej["auth_method"] == "local" and "sub_hash" not in rej
+    rows = [r for r in AuditLog(tmp_path / "audit.jsonl").read(limit=0) if r["kind"] == "queue_decided"]
+    assert rows[0]["meta"]["auth_method"] == "auth0_stepup" and rows[0]["meta"]["sub_hash"] == "0123456789ab"
+    assert rows[1]["meta"]["auth_method"] == "local" and "sub_hash" not in rows[1]["meta"]
+
+
+def test_approve_without_auth_stores_no_auth_keys(tmp_path):
+    queue = q(tmp_path)
+    done = queue.approve(mk(queue)["id"], origin=Origin.HUMAN_UI)
+    assert "auth_method" not in done and "sub_hash" not in done
+
+
+@pytest.mark.parametrize("bad", [
+    {"method": "sms"}, {"method": "password"}, {}, {"sub_hash": "0123456789ab"},
+    {"method": "local", "email": "jo@example.com"}, {"method": "local", "name": "Jo"}, {"method": "auth0_stepup", "token": "eyJ..."},
+    {"method": "local", "sub_hash": "0123456789AB"}, {"method": "local", "sub_hash": "short"}, {"method": "local", "sub_hash": 123},
+    {"method": "local", "sub_hash": "auth0|abc123def4"}, "local", ["local"],
+])
+def test_invalid_auth_is_rejected_and_the_item_stays_pending(tmp_path, bad):
+    queue = q(tmp_path)
+    item = mk(queue)
+    with pytest.raises(InvalidAuth):
+        queue.approve(item["id"], origin=Origin.HUMAN_UI, auth=bad)
+    with pytest.raises(ValueError):
+        queue.reject(item["id"], origin=Origin.HUMAN_UI, auth=bad)
+    assert queue.get(item["id"])["status"] == "pending"
+    assert "queue_decided" not in (tmp_path / "audit.jsonl").read_text()  # nothing was decided, so nothing was logged as decided
+
+
+def test_auth_cannot_substitute_for_origin(tmp_path):
+    queue = q(tmp_path)
+    item = mk(queue)
+    with pytest.raises(NotPermitted):
+        queue.approve(item["id"], origin=Origin.AGENT, auth={"method": "auth0_stepup", "sub_hash": "0123456789ab"})
+    with pytest.raises(NotPermitted):
+        queue.approve(item["id"], auth={"method": "local"})
+    assert queue.get(item["id"])["status"] == "pending"
+
+
+def test_validate_auth_returns_a_clean_copy():
+    src = {"method": "local", "sub_hash": "0123456789ab"}
+    out = validate_auth(src)
+    assert out == src and out is not src and validate_auth(None) is None

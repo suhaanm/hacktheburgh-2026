@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Annotation } from '../../shared/protocol'
 import { DEFAULT_ANNOTATION_STYLE } from '../design/annotation-style'
-import { advance, captionLingerMs, EMPTY_OVERLAY_STATE, nextDeadline, reduceOverlay, STALE_GUARD_MS, type ReduceContext } from './store'
+import { advance, captionLingerMs, COACH_CHIP_GUARD_MS, EMPTY_OVERLAY_STATE, nextDeadline, reduceOverlay, STALE_GUARD_MS, type ReduceContext } from './store'
 
 const style = DEFAULT_ANNOTATION_STYLE
 const ctx = (now: number): ReduceContext => ({ now, viewport: { width: 1728, height: 1117 }, style })
@@ -89,5 +89,53 @@ describe('overlay store', () => {
     expect(advance(s, ctx(10))).toBe(s)
     expect(nextDeadline(s, style.transition.exitMs)).toBe(1000)
     expect(nextDeadline(EMPTY_OVERLAY_STATE, 200)).toBeNull()
+  })
+})
+
+describe('persistent coach chip (Understudy)', () => {
+  it('stays through every fade state without remounting, and re-sending only refreshes it', () => {
+    let s = reduceOverlay(EMPTY_OVERLAY_STATE, { type: 'coach', fade: 'full', level: 2, label: 'Walk with me' }, ctx(1000))
+    expect(s.coach).toMatchObject({ fade: 'full', level: 2, label: 'Walk with me', fadeChangedAt: 1000, exitingAt: null })
+    s = reduceOverlay(s, { type: 'coach', fade: 'full', level: 2, label: 'Walk with me' }, ctx(5000))
+    expect(s.coach?.fadeChangedAt).toBe(1000) // same state: nothing restarts
+    s = reduceOverlay(s, { type: 'coach', fade: 'small', level: 3, label: 'Nudge me' }, ctx(6000))
+    expect(s.coach).toMatchObject({ fade: 'small', level: 3, fadeChangedAt: 6000 })
+    s = reduceOverlay(s, { type: 'coach', fade: 'dot', level: 4, label: 'On my own' }, ctx(7000))
+    expect(s.coach?.fade).toBe('dot')
+    // it does not expire on its own for minutes: it is not the 6 second echo
+    expect(advance(s, ctx(7000 + 60_000)).coach).not.toBeNull()
+  })
+
+  it('gone fades it out and then removes it; it comes back when the help comes back', () => {
+    let s = reduceOverlay(EMPTY_OVERLAY_STATE, { type: 'coach', fade: 'dot', level: 4, label: 'On my own' }, ctx(0))
+    s = reduceOverlay(s, { type: 'coach', fade: 'gone', level: 4, label: 'On my own' }, ctx(100))
+    expect(s.coach?.exitingAt).toBe(100)
+    expect(advance(s, ctx(100 + style.transition.exitMs - 1)).coach).not.toBeNull()
+    expect(advance(s, ctx(100 + style.transition.exitMs)).coach).toBeNull()
+    const back = reduceOverlay(advance(s, ctx(5000)), { type: 'coach', fade: 'small', level: 3, label: 'Nudge me' }, ctx(9000))
+    expect(back.coach).toMatchObject({ fade: 'small', exitingAt: null })
+    // gone with nothing showing is a no-op
+    expect(reduceOverlay(EMPTY_OVERLAY_STATE, { type: 'coach', fade: 'gone', level: 4, label: '' }, ctx(0)).coach).toBeNull()
+  })
+
+  it('a chip main forgot about leaves after the guard time', () => {
+    const s = reduceOverlay(EMPTY_OVERLAY_STATE, { type: 'coach', fade: 'full', level: 1, label: 'Watch me' }, ctx(0))
+    expect(nextDeadline(s, style.transition.exitMs)).toBe(COACH_CHIP_GUARD_MS)
+    expect(advance(s, ctx(COACH_CHIP_GUARD_MS)).coach?.exitingAt).toBe(COACH_CHIP_GUARD_MS)
+  })
+
+  it('the view shrinks step by step: label, then bars, then a dot, then nothing', async () => {
+    const { coachChipLook } = await import('./annotations/chrome')
+    const f = 16
+    const full = coachChipLook('full', f)
+    const small = coachChipLook('small', f)
+    const dot = coachChipLook('dot', f)
+    const gone = coachChipLook('gone', f)
+    expect([full.labelMax > 0, small.labelMax > 0, dot.labelMax > 0]).toEqual([true, false, false])
+    expect([full.barsMax > 0, small.barsMax > 0, dot.barsMax > 0]).toEqual([true, true, false])
+    expect([full.dotOpacity, small.dotOpacity, dot.dotOpacity]).toEqual([0, 0, 1])
+    expect(full.opacity).toBeGreaterThan(small.opacity)
+    expect(small.opacity).toBeGreaterThan(dot.opacity)
+    expect(gone.opacity).toBe(0)
   })
 })

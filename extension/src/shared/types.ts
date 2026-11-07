@@ -57,6 +57,8 @@ export interface InstallConfig {
   role: string;
   engine_url: string;
   desktop_url: string;
+  /** True once the engine's GET /identity answered: person and role then come from onboarding, not from us. */
+  identity_adopted: boolean;
 }
 
 export const DEFAULT_CONFIG: InstallConfig = {
@@ -65,6 +67,7 @@ export const DEFAULT_CONFIG: InstallConfig = {
   role: "benefits-processor",
   engine_url: "http://127.0.0.1:7700",
   desktop_url: "http://127.0.0.1:7720",
+  identity_adopted: false,
 };
 
 export const STORAGE_KEYS = {

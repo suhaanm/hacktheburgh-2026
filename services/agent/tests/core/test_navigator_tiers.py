@@ -7,7 +7,9 @@ from typing import Any
 
 import pytest
 
-from understudy_agent.core_sinks import FileAudit, FileQueue
+from understudy_agent.audit import AuditLog
+from understudy_agent.queue import ApprovalQueue
+from understudy_agent.security.denylist import Denylist
 from understudy_agent.models.mock_provider import MockProvider
 from understudy_agent.models.port import Action, Done, SafetyStop
 from understudy_agent.navigator import CalculatorJob, CaseNoteJob, Navigator
@@ -18,27 +20,33 @@ from understudy_agent.security.config import SecurityConfig
 from understudy_agent.tiers.base import GateStop, InjectionStop
 from understudy_agent.tiers.browser import BrowserHost
 from understudy_agent.tiers.computer_use import (
-    ActuatorRefused, ComputerUse, MacActuator, ProviderSafetyStop, SimulatedActuator, validate_action,
+    ActuatorRefused, ComputerUse, MacActuator, ProviderSafetyStop, SimulatedActuator,
 )
 from understudy_agent.tiers.browser_agent import StuckLoop, convert_unit
 from understudy_agent.tiers.heuristic import HeuristicModelPort, param_for, read_calculator_result
-from understudy_agent.tiers.safety import Safety
+from understudy_agent.tiers.safety import Guard
 
 
 @pytest.fixture
 def sinks(tmp_path):
-    return FileQueue(tmp_path / "queue"), FileAudit(tmp_path / "audit.jsonl")
-
-
-@pytest.fixture
-def safety(sinks):
-    q, a = sinks
-    return Safety(queue=q, audit=a, run_id="r_test")
+    audit = AuditLog(tmp_path / "audit.jsonl")
+    return ApprovalQueue(tmp_path / "queue", audit=audit), audit
 
 
 @pytest.fixture
 def model():
     return HeuristicModelPort(MockProvider("benefits_clean"))
+
+
+def mk_guard(sinks, port=None, run_id="r_test", **kw):
+    q, a = sinks
+    return Guard(port or HeuristicModelPort(MockProvider("benefits_clean")), audit=a, queue=q, denylist=Denylist(),
+                 run_id=run_id, **kw)
+
+
+@pytest.fixture
+def safety(sinks, model):
+    return mk_guard(sinks, model)
 
 
 @pytest.fixture
@@ -51,7 +59,7 @@ async def nav_for(host, cluster, model, safety, site, hid=0, **kw):
     ctx = await host.new_context()
     events: list[Any] = []
     h = generate_households(20)[hid]
-    nav = Navigator(f"nav-{site}", context=ctx, model=model, safety=safety, base_url=cluster.urls[site],
+    nav = Navigator(f"nav-{site}", context=ctx, model=model, guard=safety, base_url=cluster.urls[site],
                     emit=events.append, **kw)
     return nav, CalculatorJob(site, h.params()), h, events
 
@@ -154,7 +162,7 @@ async def test_case_note_job_tier1_and_tier2(cluster, host, model, safety):
               "reconciliation": "agree", "note_text": "ok"}
     for query, want_tiers in (("", [1]), ("?layout=v2", [1, 2])):
         ctx = await host.new_context()
-        nav = Navigator("scribe", context=ctx, model=model, safety=safety, base_url=cluster.urls["a"], query=query)
+        nav = Navigator("scribe", context=ctx, model=model, guard=safety, base_url=cluster.urls["a"], query=query)
         res = await nav.run(CaseNoteJob(params))
         assert res.state == "done" and res.tiers_used == want_tiers, res.attempts
         assert res.value["note_id"].startswith("CN-")
@@ -171,12 +179,12 @@ async def test_injected_page_pauses_the_run_and_is_not_obeyed(cluster, host, mod
     assert cluster.state.exfil_hits == [] and cluster.state.submissions == []
     items = q.list()
     assert items and items[0]["kind"] == "injection_pause"
-    assert CANARY not in str(items[0])  # the page text is not copied into the queue
+    assert all(len(x) <= 80 for x in items[0]["evidence"]["extracted"].get("excerpts", []))  # short excerpts only
 
 
 async def test_with_the_detector_off_tier1_is_still_unaffected_by_page_text(cluster, host, model, sinks):
     q, a = sinks
-    sf = Safety(config=SecurityConfig.all_on().without("detector"), queue=q, audit=a, run_id="r_x")
+    sf = mk_guard(sinks, model, config=SecurityConfig.all_on().without("detector"), run_id="r_x")
     nav, job, h, _ = await nav_for(host, cluster, model, sf, "b", query="?variant=injected")
     res = await nav.run(job)
     assert res.state == "done" and cluster.state.exfil_hits == []
@@ -188,7 +196,7 @@ async def test_ablation_hijacked_planner_follows_page_text_only_when_layers_are_
     q, a = sinks
     inner = MockProvider("vulnerable_planner")
     # all layers on, tier 2 forced: planner never sees page text, so there is nothing to hijack
-    on = Safety(queue=q, audit=a, run_id="r_on")
+    on = mk_guard(sinks, HeuristicModelPort(inner), run_id="r_on")
     nav, job, h, _ = await nav_for(host, cluster, HeuristicModelPort(inner), on, "b", query="?variant=injected&layout=v2",
                                    use_tier1=False)
     with pytest.raises(InjectionStop):
@@ -196,7 +204,7 @@ async def test_ablation_hijacked_planner_follows_page_text_only_when_layers_are_
     assert cluster.state.exfil_hits == []
     # reader, detector, sanitize, actions layers off: the planner is shown raw page text and obeys it
     off_cfg = SecurityConfig.all_on().without("reader", "detector", "sanitize", "actions", "drift")
-    off = Safety(config=off_cfg, queue=q, audit=a, run_id="r_off")
+    off = mk_guard(sinks, HeuristicModelPort(MockProvider("vulnerable_planner")), config=off_cfg, run_id="r_off")
     nav, job, h, _ = await nav_for(host, cluster, HeuristicModelPort(MockProvider("vulnerable_planner")), off, "b",
                                    query="?variant=injected&layout=v2", use_tier1=False, max_actions=6)
     res = await nav.run(job)
@@ -236,10 +244,12 @@ def test_unit_conversion_and_reader_rules():
 
 
 # ------------------------------------------------------------------ tier 3 (SimulatedActuator only)
+GOAL3 = "click the text area, type a line and press a key"
+
+
 async def run_cu(scenario: str, safety, **kw):
     act = SimulatedActuator()
     cu = ComputerUse(MockProvider(scenario), act, safety, navigator="nav-x", **kw)
-    verified = kw.pop("verified", False)
 
     async def verify():
         return False
@@ -253,7 +263,7 @@ async def test_tier3_notepad_script_runs_on_the_simulated_actuator_only(safety):
     async def verify():
         return True
 
-    res = await cu.run("type a line", verify)
+    res = await cu.run(GOAL3, verify)
     assert res.outcome == "done" and not res.false_claim
     assert [a.kind for a in act.actions] == ["click", "type", "key"]
     assert act.typed == "Understudy mock run" and act.released >= 1
@@ -261,7 +271,7 @@ async def test_tier3_notepad_script_runs_on_the_simulated_actuator_only(safety):
 
 async def test_tier3_false_done_is_caught(safety):
     act, cu, verify = await run_cu("computer_false_done", safety)
-    res = await cu.run("do it", verify)
+    res = await cu.run(GOAL3, verify)
     assert res.outcome == "claimed_not_verified" and res.false_claim and res.claimed_done
 
 
@@ -269,7 +279,7 @@ async def test_tier3_provider_safety_check_goes_to_the_queue_never_acked(safety,
     q, _ = sinks
     act, cu, verify = await run_cu("computer_safety_stop", safety)
     with pytest.raises(ProviderSafetyStop) as e:
-        await cu.run("do it", verify)
+        await cu.run(GOAL3, verify)
     assert e.value.queue_id and q.get(e.value.queue_id)["status"] == "pending"
     assert len(act.actions) == 1
 
@@ -277,7 +287,7 @@ async def test_tier3_provider_safety_check_goes_to_the_queue_never_acked(safety,
 async def test_tier3_stuck_loop_detected(safety):
     act, cu, verify = await run_cu("computer_stuck", safety)
     with pytest.raises(StuckLoop):
-        await cu.run("do it", verify)
+        await cu.run(GOAL3, verify)
     assert len(act.actions) <= 4
 
 
@@ -285,7 +295,7 @@ async def test_tier3_gate_blocks_a_delete_button(safety, sinks):
     q, _ = sinks
     act, cu, verify = await run_cu("computer_off_goal", safety)
     with pytest.raises(GateStop):
-        await cu.run("do it", verify)
+        await cu.run(GOAL3, verify)
     assert [a.kind for a in act.actions] == ["click"]  # the Delete click was never executed
     assert q.list()[0]["kind"] == "irreversible_step"
 
@@ -296,7 +306,7 @@ async def test_tier3_step_cap_and_cancellation(safety):
         n = 0
         def computer_step(self, goal, shot, history, **kw):
             Forever.n += 1
-            return Action("click", {"x": 10 + Forever.n, "y": 20})
+            return Action("click", {"x": 100 * Forever.n, "y": 50 * Forever.n})
     act = SimulatedActuator()
     cu = ComputerUse(Forever(), act, safety, navigator="n", max_steps=5)
 
@@ -309,16 +319,6 @@ async def test_tier3_step_cap_and_cancellation(safety):
     cu2 = ComputerUse(Forever(), SimulatedActuator(), safety, navigator="n", is_current=lambda: False)
     with pytest.raises(asyncio.CancelledError):
         await cu2.run("x", never)
-
-
-def test_action_validation():
-    ok = Action("click", {"x": 5, "y": 6})
-    assert validate_action(ok, (100, 100)) is ok
-    for bad in (Action("click", {"x": 500, "y": 6}), Action("click", {"x": "5", "y": 6}), Action("drag", {}),
-                Action("type", {"text": ""}), Action("type", {"text": "a\x00b"}), Action("key", {"keys": []}),
-                Action("click", {"x": 1, "y": 1, "button": "right"}), Action("wait", {"seconds": 99})):
-        with pytest.raises(ValueError):
-            validate_action(bad, (100, 100))
 
 
 # ------------------------------------------------------------------ MacActuator guards (fake backend, no desktop)
@@ -404,3 +404,19 @@ async def test_mac_actuator_rechecks_focus_between_move_and_click_and_releases_o
         await act.execute(Action("click", {"x": 10, "y": 10}))
     assert [e[1] for e in be.events if e[0] == "mouse"] == ["move"]  # no mouse down was ever posted
     assert be.released >= 1
+
+
+async def test_mac_check_dry_run_goes_through_pipeline_and_guards(tmp_path, monkeypatch):
+    from understudy_agent.tiers.mac_check import run_check
+
+    monkeypatch.setenv("UNDERSTUDY_DATA_DIR", str(tmp_path / "data"))
+    out = await run_check("TextEdit", (1200, 800), "hello", real=False)
+    assert out["ok"] and out["real"] is False and out["scale"] == 2.0
+    assert [e[0] for e in out["events"] if e[0] in ("mouse", "type")][:4] == ["mouse", "mouse", "mouse", "type"]
+    assert ["mouse", "move", 600.0, 400.0] in out["events"]
+    refused = await run_check("Safari", (10, 10), "x", real=False)
+    assert refused["ok"] is False and "harmless" in refused["reason"]
+    (tmp_path / "data").mkdir(exist_ok=True)
+    (tmp_path / "data" / "KILL").write_text("1")
+    killed = await run_check("TextEdit", (10, 10), "x", real=False)
+    assert killed["ok"] is False

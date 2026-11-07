@@ -11,7 +11,7 @@ import type { Grounder } from '../../shared/contracts'
 import type { GroundResult, Shot } from '../../shared/protocol'
 import { clamp01, isEnvironmental, ModelPortError, parseModelJson, plainFailure, type ModelTier } from '../model-port'
 import { imageOf, withSafeLog, type ModelDeps } from './deps'
-import { boxAroundPoint, boxCenter, boxProblem, fromPixelPoint, fromXyxyBox } from './grounding-utils'
+import { boxAroundPoint, boxCenter, boxProblem, fromPixelPoint, fromXyxyBox, pixelsToNorm } from './grounding-utils'
 import { INJECTION_GUARD } from './prompts'
 
 export type GroundPreset = 'fast' | 'accurate'
@@ -19,6 +19,8 @@ export type GroundPreset = 'fast' | 'accurate'
 export interface GroundConfig {
   preset?: GroundPreset
   detail?: 'low' | 'high' | 'auto' // image detail sent to the model
+  // How the model is asked to answer: a box normalised to 0-1000, or in pixels of the screenshot (converted here).
+  coords?: 'norm1000' | 'pixels'
   timeoutMs?: number // hard budget for one ground() call as seen by the caller
   cacheTtlMs?: number
   lingerMs?: number // a call that outlives timeoutMs keeps running this long, to warm the cache
@@ -41,7 +43,7 @@ const BOX_SCHEMA = {
     box: {
       type: 'array',
       items: { type: 'integer' },
-      description: 'Tight bounding box [x_min, y_min, x_max, y_max], integers normalised 0-1000 over the whole screenshot (0,0 is the top-left corner). [0,0,0,0] when found is false.',
+      description: 'Tight bounding box [x_min, y_min, x_max, y_max] as integers (normalised 0-1000 over the whole screenshot, or pixels when the prompt says so; 0,0 is the top-left corner). [0,0,0,0] when found is false.',
     },
     reason: { type: 'string', description: 'Short reason, especially when found is false' },
     confidence: { type: 'number', description: '0 to 1: how sure you are this is exactly the described element' },
@@ -52,13 +54,15 @@ const BOX_SCHEMA = {
 export const normaliseTarget = (t: string): string => t.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
 const hashShot = (s: Shot): string => createHash('sha1').update(s.jpegBase64).digest('hex')
 
-function groundPrompt(target: string, hint?: string): string {
+function groundPrompt(target: string, hint?: string, px?: { w: number; h: number }): string {
   return [
     "You are the eyes of an accessibility assistant for people with low digital confidence. The image is a full screenshot of the user's screen.",
     `Find this one element: "${target}".`,
     hint ? `Extra context from the lesson (trusted): ${hint}` : '',
     'Rules: return found=true ONLY if you can see that exact element. A similar element with a different label is NOT a match. If it is not on this screen, return found=false and box [0,0,0,0]. Never guess.',
-    'First say in "label" what you actually see there, then give the tight bounding box [x_min, y_min, x_max, y_max], integers normalised to 0-1000 over the whole screenshot.',
+    px
+      ? `The screenshot is ${px.w} pixels wide and ${px.h} pixels high. First say in "label" what you actually see there, then give the tight bounding box [x_min, y_min, x_max, y_max] as integer PIXELS of this image (0,0 is the top-left corner).`
+      : 'First say in "label" what you actually see there, then give the tight bounding box [x_min, y_min, x_max, y_max], integers normalised to 0-1000 over the whole screenshot.',
     INJECTION_GUARD,
   ]
     .filter(Boolean)
@@ -94,6 +98,7 @@ export function createGrounder(rawDeps: ModelDeps, config: GroundConfig = {}): G
   const deps = withSafeLog(rawDeps)
   const preset: GroundPreset = config.preset ?? 'fast'
   const detail = config.detail ?? 'high'
+  const coords = config.coords ?? 'pixels' // measured: pixels beat 0-1000 boxes on the practice-desktop set (see tests/model-port/ground-bench.live.ts)
   const timeoutMs = config.timeoutMs ?? 6000
   const ttl = config.cacheTtlMs ?? 30_000
   const linger = config.lingerMs ?? 25_000
@@ -124,7 +129,7 @@ export function createGrounder(rawDeps: ModelDeps, config: GroundConfig = {}): G
       tier,
       timeoutMs: linger,
       retries: 0,
-      text: groundPrompt(target, hint),
+      text: groundPrompt(target, hint, coords === 'pixels' ? { w: shot.widthPx, h: shot.heightPx } : undefined),
       images: [imageOf(shot, detail)],
       effort: 'low',
       schema: { name: 'ground_box', schema: BOX_SCHEMA },
@@ -135,7 +140,7 @@ export function createGrounder(rawDeps: ModelDeps, config: GroundConfig = {}): G
     if (!parsed.found) {
       return { found: false, confidence, reason: parsed.reason || "I can't see that on the screen.", label: parsed.label || undefined, latencyMs: Date.now() - started, model }
     }
-    const box = fromXyxyBox(parsed.box)
+    const box = fromXyxyBox(coords === 'pixels' ? pixelsToNorm(parsed.box, shot.widthPx, shot.heightPx) : parsed.box)
     if (!box) throw new ModelPortError('parse', 'found=true but box is missing or malformed')
     const problem = boxProblem(box)
     if (problem) throw new ModelPortError('parse', problem === 'oversize' ? 'box covers more than half the screen' : 'box is degenerate')

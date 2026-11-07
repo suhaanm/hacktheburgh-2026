@@ -6,7 +6,7 @@ hours from local midnight; a window end above 24 spills into the next calendar d
 from __future__ import annotations
 
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 START_DATE = datetime(2026, 10, 12, tzinfo=timezone.utc)   # Monday, day 1

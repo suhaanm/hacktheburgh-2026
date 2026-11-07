@@ -25,7 +25,6 @@ from datetime import date
 from typing import Any
 
 import numpy as np
-from scipy import stats
 
 from .model import PresenceModel, PriorHours, Smoothing
 from .survival import ReturnTimeModel, SurvivalConfig, loss_for_cap, threshold
@@ -112,10 +111,10 @@ def split_days(days: Sequence[DayObs], mode: str, test_frac: float = 0.3, every:
 
 # ------------------------------------------------------------------------------ 1. map
 def evaluate_map(train: Sequence[DayObs], test: Sequence[DayObs], prior: PriorHours, smoothing: Smoothing | None = None,
-                 tune: bool = True) -> dict[str, Any]:
+                 tune: bool = True, n_boot: int = 400) -> dict[str, Any]:
     model = PresenceModel(prior, smoothing).fit(train)
     if tune and smoothing is None and len(train) >= 7:
-        model.tune(train)  # smoothing weights picked on the last 30% of the training days only
+        model.tune(train, fast=n_boot < 400)  # smoothing weights picked on the last 30% of the training days only
     unsmoothed = PresenceModel(prior, Smoothing(0, 0, 0, 0, prior_strength=0.5)).fit(train)
     prior_only = prior.prior_probs()[..., ACTIVE]
     global_rate = float(np.mean([(d.states == ACTIVE).mean() for d in train])) if train else 0.1
@@ -140,7 +139,7 @@ def evaluate_map(train: Sequence[DayObs], test: Sequence[DayObs], prior: PriorHo
     for k in preds:
         p_all = np.concatenate(ps[k]) if ps[k] else np.array([])
         out[k] = {"brier": round(brier(p_all, y_all), 5), "log_loss": round(log_loss(p_all, y_all), 5),
-                  "brier_ci": boot_ci(per_day[k])}
+                  "brier_ci": boot_ci(per_day[k], n_boot=n_boot)}
     rel, ece = reliability(np.concatenate(ps["model"]) if ps["model"] else np.array([]), y_all)
     out["reliability"], out["ece"] = rel, round(ece, 5)
     lo, hi = model.active_interval()
@@ -152,7 +151,7 @@ def evaluate_map(train: Sequence[DayObs], test: Sequence[DayObs], prior: PriorHo
         sd = np.sqrt(np.maximum(p * (1 - p), 1e-9))
         inside.append(np.abs(y - p) <= 1.96 * sd)
     out["outcome_within_1.96_sd"] = round(float(np.mean(np.concatenate(inside))), 4) if inside else None
-    out["idle_capacity_h"] = model.idle_capacity_interval()
+    out["idle_capacity_h"] = model.idle_capacity_interval(n_boot=max(40, n_boot // 2))
     out["mean_interval_width"] = round(float((hi - lo).mean()), 4)
     return out
 
@@ -163,7 +162,7 @@ def _tow(s: Spell, u: float) -> float:
 
 
 def evaluate_windows(train_spells: Sequence[Spell], test_spells: Sequence[Spell], *, cfg: SurvivalConfig | None = None,
-                     u0: float = 5.0, grid: Sequence[int] = WINDOW_GRID, day_of: Any = None) -> dict[str, Any]:
+                     u0: float = 5.0, grid: Sequence[int] = WINDOW_GRID, day_of: Any = None, n_boot: int = 400) -> dict[str, Any]:
     rt = ReturnTimeModel(train_spells, cfg)
     ps, pp, pe, ys, cluster = [], [], [], [], []
     for s in test_spells:
@@ -182,7 +181,7 @@ def evaluate_windows(train_spells: Sequence[Spell], test_spells: Sequence[Spell]
     cl = np.array([hash(c) for c in cluster])
     for name, arr in (("model", p), ("pooled", q), ("exponential", e)):
         by = [((arr - y) ** 2)[cl == c] for c in np.unique(cl)]
-        out[name] = {"brier": round(brier(arr, y), 5), "log_loss": round(log_loss(arr, y), 5), "brier_ci": boot_ci(by)}
+        out[name] = {"brier": round(brier(arr, y), 5), "log_loss": round(log_loss(arr, y), 5), "brier_ci": boot_ci(by, n_boot=n_boot)}
     rel, ece = reliability(p, y)
     out["reliability"], out["ece"] = rel, round(ece, 5)
     out["by_d_min"] = {}
@@ -231,7 +230,7 @@ def replay_policy(spells: Sequence[Spell], policy, *, d_min: float, u0: float = 
 
 def evaluate_decisions(train_spells: Sequence[Spell], test_spells: Sequence[Spell], *, d_min: float = 30.0, cap: float = 0.10,
                        gain: float = 1.0, cfg: SurvivalConfig | None = None, u0: float = 5.0, day_of: Any = None,
-                       window: tuple[float, float] = (22 * 60, 6 * 60)) -> dict[str, Any]:
+                       window: tuple[float, float] = (22 * 60, 6 * 60), n_boot: int = 400) -> dict[str, Any]:
     rt = ReturnTimeModel(train_spells, cfg)
     loss = loss_for_cap(gain, cap)
     thr = threshold(gain, loss)
@@ -266,7 +265,7 @@ def evaluate_decisions(train_spells: Sequence[Spell], test_spells: Sequence[Spel
             "runs_started": res.started, "collisions": res.collisions, "completed_runs": res.completed_runs,
             "interruption_rate": round(rate, 4), "interruption_ci": wilson(res.collisions, res.started),
             "share_idle_used": round(res.completed_min / total_idle, 4) if total_idle else 0.0,
-            "share_idle_used_ci": _ratio_ci([used_by_day[k] for k in keys], [by_day[k][1] for k in keys]),
+            "share_idle_used_ci": _ratio_ci([used_by_day[k] for k in keys], [by_day[k][1] for k in keys], n_boot=n_boot),
             "value": round(gain * res.completed_runs - loss * res.collisions, 2),
             "within_cap": bool(rate <= cap),
         }
@@ -276,10 +275,11 @@ def evaluate_decisions(train_spells: Sequence[Spell], test_spells: Sequence[Spel
 # ------------------------------------------------------------------------------ top level
 def evaluate_presence(days: Sequence[DayObs], spells: Sequence[Spell], prior: PriorHours | None = None, *,
                       origin: str = "synthetic", d_min: float = 30.0, cap: float = 0.10, tz_offset_s: float = 0.0,
-                      note: str | None = None, person: str | None = None) -> dict[str, Any]:
+                      note: str | None = None, person: str | None = None, fast: bool = False) -> dict[str, Any]:
     """The plain-dict report for the eval harness. ``days``/``spells`` come from ``timeline`` (times only)."""
     prior = prior or PriorHours()
     days = list(days)
+    n_boot = 100 if fast else 400
 
     def day_of(s: Spell) -> date:
         return date.fromordinal(date(1970, 1, 1).toordinal() + int((s.start + tz_offset_s) // 86400))
@@ -297,9 +297,9 @@ def evaluate_presence(days: Sequence[DayObs], spells: Sequence[Spell], prior: Pr
         te_sp = [s for s in spells if day_of(s) in te_days]
         result["by_split"][mode] = {
             "split": f"{mode}: {len(train)} train days, {len(test)} held-out days",
-            "map": evaluate_map(train, test, prior),
-            "window": evaluate_windows(tr_sp, te_sp, day_of=day_of),
-            "decision": evaluate_decisions(tr_sp, te_sp, d_min=d_min, cap=cap, day_of=day_of),
+            "map": evaluate_map(train, test, prior, n_boot=n_boot),
+            "window": evaluate_windows(tr_sp, te_sp, day_of=day_of, n_boot=n_boot),
+            "decision": evaluate_decisions(tr_sp, te_sp, d_min=d_min, cap=cap, day_of=day_of, n_boot=n_boot),
         }
     primary = result["by_split"].get("forward") or result["by_split"].get("interleaved")
     if primary:

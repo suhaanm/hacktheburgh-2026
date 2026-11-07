@@ -21,6 +21,8 @@ export interface DebugDeps {
   understudy?: {
     kill: Pick<import('./kill-switch').KillSwitch, 'trigger' | 'clear' | 'state'>
     hud?: Pick<import('./hud-model').HudModel, 'state' | 'setProposal' | 'setQueuePending'>
+    // DOM-first grounding and the coach chip, for looking at them while the app runs.
+    dom?: { status(): { port: number | null; pending: number; extensionSeenMs: number | null; ring: unknown; chip: unknown; capture: string } }
   }
   // SHELL: the menu-bar item (absent when headless).
   tray?: Pick<ShellTray, 'info' | 'activate' | 'primaryClick'>
@@ -33,6 +35,7 @@ const OverlayCmdSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('clear'), ids: z.array(z.string()).optional() }),
   z.object({ type: z.literal('caption'), speaker: z.enum(['user', 'assistant', 'system']), text: z.string(), final: z.boolean() }),
   z.object({ type: z.literal('chip'), level: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]), label: z.string() }),
+  z.object({ type: z.literal('coach'), fade: z.enum(['full', 'small', 'dot', 'gone']), level: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]), label: z.string() }),
 ])
 
 function readJson(req: http.IncomingMessage): Promise<unknown> {
@@ -151,6 +154,10 @@ export function startDebugServer(deps: DebugDeps): http.Server {
         case 'GET /hud': {
           if (!deps.understudy?.hud) return send(404, { error: 'no HUD' })
           return send(200, deps.understudy.hud.state())
+        }
+        case 'GET /dom': {
+          if (!deps.understudy?.dom) return send(404, { error: 'no DOM grounding' })
+          return send(200, deps.understudy.dom.status())
         }
         case 'POST /hud/proposal': {
           if (!deps.understudy?.hud) return send(404, { error: 'no HUD' })

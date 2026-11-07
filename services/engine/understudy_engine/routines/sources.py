@@ -59,6 +59,13 @@ class PersonSource:
                         person = None
                     if person:
                         idx[person] = {"origin": "synthetic", "slug": d.name, "files": [ev], "truth": t}
+                    else:  # a group (learners, apprentices): one truth file naming several people
+                        try:
+                            people = [p["person"] for p in json.loads(t.read_text()).get("people", []) if isinstance(p, dict) and p.get("person")]
+                        except (json.JSONDecodeError, OSError):
+                            people = []
+                        for pp in people:
+                            idx[pp] = {"origin": "synthetic", "slug": d.name, "files": [ev], "truth": t}
         real = self.root / "real"
         if real.exists():
             for d in sorted(p for p in real.iterdir() if p.is_dir()):

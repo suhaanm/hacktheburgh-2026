@@ -170,8 +170,9 @@ def decide(est: SurvivalEstimate, d_min: float, gain: float, loss: float, *, loc
     if est.n_eff <= 0 and est.survival == 0.0:
         return Decision(False, 0.0, thr, "There is no history to judge how long you will be away, so I will wait.", est.lo, est.hi, 0.0, locked)
     go = est.survival > thr
-    pct = f"{est.survival:.0%}"
-    need = f"{thr:.0%}"
+    close = abs(est.survival - thr) < 0.01   # show a decimal when the two are within a point, so "80% above 80%" cannot happen
+    pct = f"{est.survival:.1%}" if close else f"{est.survival:.0%}"
+    need = f"{thr:.1%}" if close else f"{thr:.0%}"
     if go:
         reason = f"A {int(d_min)} minute run finishes in about {pct} of similar gaps, above the {need} needed."
     else:

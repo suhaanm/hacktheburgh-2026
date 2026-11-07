@@ -6,7 +6,7 @@ import type { AnnotationStyle } from '../../design/annotation-style'
 import { LEVEL_SUPPORT } from '../../design/levels'
 import type { Size } from '../geometry'
 import { Measured } from './common'
-import type { CaptionState, ChipState } from '../store'
+import type { CaptionState, ChipState, CoachChipState } from '../store'
 
 // Long streaming lines keep the most recent words visible.
 export function tailText(text: string, max = 110): string {
@@ -176,6 +176,65 @@ export function LevelChipEcho({
           <span style={{ gridArea: '1 / 1', opacity: crossfade ? newOpacity : 1, transition: frozen !== null ? 'none' : `opacity ${l.changeMs * 0.4}ms ease ${l.changeMs * 0.45}ms` }}>{chip.label}</span>
         </span>
       </Measured>
+    </div>
+  )
+}
+
+// The persistent coach chip, top-right under the menu bar. One element that changes shape with the fade state instead of
+// swapping elements, so "full -> small -> dot -> gone" reads as the help receding:
+//   full  four bars and the level name        small  the bars only        dot  one small dot        gone  faded out
+// It is a picture; the real controls are in the dock and the HUD. Reduced motion: the states switch without animation.
+export const COACH_CHIP_TOP = 44
+export const COACH_CHIP_RIGHT = 20
+
+export function coachChipLook(fade: CoachChipState['fade'], fontSize: number): { labelMax: number; barsMax: number; padX: number; padY: number; opacity: number; dotOpacity: number } {
+  switch (fade) {
+    case 'full':
+      return { labelMax: fontSize * 14, barsMax: fontSize * 2, padX: fontSize * 0.9, padY: fontSize * 0.45, opacity: 1, dotOpacity: 0 }
+    case 'small':
+      return { labelMax: 0, barsMax: fontSize * 2, padX: fontSize * 0.6, padY: fontSize * 0.35, opacity: 0.9, dotOpacity: 0 }
+    case 'dot':
+      return { labelMax: 0, barsMax: 0, padX: fontSize * 0.4, padY: fontSize * 0.4, opacity: 0.75, dotOpacity: 1 }
+    case 'gone':
+      return { labelMax: 0, barsMax: 0, padX: 0, padY: 0, opacity: 0, dotOpacity: 0 }
+  }
+}
+
+export function CoachChipView({ chip, style }: { chip: CoachChipState; style: AnnotationStyle }): ReactElement {
+  const l = style.levelChip
+  const look = coachChipLook(chip.exitingAt !== null ? 'gone' : chip.fade, l.fontSize)
+  const ms = style.reducedMotion ? 0 : 520
+  const t = (props: string): string => (ms === 0 ? 'none' : props.split(',').map((p) => `${p.trim()} ${ms}ms ease`).join(', '))
+  const on = LEVEL_SUPPORT[chip.level]
+  return (
+    <div className="ov-html" style={{ right: COACH_CHIP_RIGHT, top: COACH_CHIP_TOP, display: 'flex', justifyContent: 'flex-end' }} data-coach-fade={chip.fade} data-testid="coach-chip">
+      <div
+        aria-hidden
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          background: l.background,
+          color: l.color,
+          border: l.border,
+          borderRadius: 999,
+          padding: `${look.padY}px ${look.padX}px`,
+          opacity: look.opacity,
+          fontFamily: style.bubble.fontFamily,
+          fontSize: l.fontSize,
+          fontWeight: 700,
+          boxShadow: look.opacity > 0 ? '0 3px 10px rgba(5, 7, 13, 0.28)' : 'none',
+          overflow: 'hidden',
+          transition: t('padding, opacity'),
+        }}
+      >
+        <span style={{ display: 'inline-flex', alignItems: 'flex-end', gap: l.fontSize * 0.15, height: l.fontSize, maxWidth: look.barsMax, opacity: look.barsMax > 0 ? 1 : 0, overflow: 'hidden', transition: t('max-width, opacity') }}>
+          {[1, 2, 3, 4].map((i) => (
+            <span key={i} style={{ width: l.fontSize * 0.2, height: l.fontSize * (0.35 + i * 0.16), borderRadius: 2, background: i <= on ? '#fff' : 'rgba(255,255,255,0.28)', flex: 'none' }} />
+          ))}
+        </span>
+        <span style={{ display: 'inline-block', whiteSpace: 'nowrap', maxWidth: look.labelMax, opacity: look.labelMax > 0 ? 1 : 0, marginLeft: look.labelMax > 0 ? l.fontSize * 0.5 : 0, overflow: 'hidden', transition: t('max-width, opacity, margin-left') }}>{chip.label}</span>
+        <span style={{ display: 'inline-block', width: look.dotOpacity > 0 ? l.fontSize * 0.45 : 0, height: l.fontSize * 0.45, borderRadius: '50%', background: '#fff', opacity: look.dotOpacity, flex: 'none', transition: t('width, opacity') }} />
+      </div>
     </div>
   )
 }

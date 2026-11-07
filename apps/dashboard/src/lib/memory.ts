@@ -111,3 +111,27 @@ export function findLine(sections: Record<string, MemoryLine[]>, id: string): { 
   }
   return null;
 }
+
+const CAPTURE_RE = /^Capture:/i;
+
+/** Capture is on when a Preferences line says "Capture: times only". It is only that line. */
+export function captureOn(sections: Record<string, MemoryLine[]>): boolean {
+  return (sections.Preferences ?? []).some((l) => CAPTURE_RE.test(l.text.trim()) && /times only/i.test(l.text));
+}
+
+/** Turn capture on or off by editing the one line in the Markdown. Returns the new Markdown. */
+export function setCapture(markdown: string, on: boolean): string {
+  const lines = markdown.replace(/\n$/, "").split("\n");
+  const isCap = (l: string) => /^\s*[-*]\s+Capture:/i.test(l);
+  const kept = lines.filter((l) => !isCap(l));
+  if (!on) return kept.join("\n") + "\n";
+  const h = kept.findIndex((l) => /^##\s+Preferences\s*$/.test(l));
+  if (h < 0) return [...kept, "## Preferences", "- Capture: times only"].join("\n") + "\n";
+  let end = h + 1;
+  while (end < kept.length && !/^##\s/.test(kept[end])) end++;
+  // Insert after the last non-blank line of the Preferences section.
+  let at = end;
+  while (at > h + 1 && kept[at - 1].trim() === "") at--;
+  kept.splice(at, 0, "- Capture: times only");
+  return kept.join("\n") + "\n";
+}

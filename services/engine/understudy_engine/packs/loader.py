@@ -8,13 +8,12 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass, field
-from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-from ..cogs.mapper import DEFAULT_MAPPING_PATH, Mapping, compile_mapping, load_mapping
+from ..cogs.mapper import Mapping, compile_mapping, load_mapping
 from ..store.paths import repo_root
 
 

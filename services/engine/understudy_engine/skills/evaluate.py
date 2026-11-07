@@ -17,6 +17,7 @@ from scipy.stats import spearmanr
 from understudy_engine.hazard.data import PERSONA_DIRS, _ts
 from understudy_engine.skills import SkillTracker
 from understudy_engine.skills import tracing as T
+from understudy_engine.trust.limitations import limitations_for
 from understudy_engine.trust.meta import analytic_meta
 
 DAY_S = 86400.0
@@ -32,7 +33,9 @@ def _tasks(events_path: Path) -> dict[str, tuple[float, float]]:
     return {k: (min(v), max(v)) for k, v in spans.items() if len(v) >= 1}
 
 
-def evaluate_skills(root: Path | str | None = None, dirs: tuple[str, ...] = PERSONA_DIRS) -> dict:
+def evaluate_skills(root: Path | str | None = None, dirs: tuple[str, ...] = PERSONA_DIRS, *, fast: bool = False,
+                    include_learners: bool = True) -> dict:
+    """`fast` is accepted for a uniform interface; this evaluation has no resampling and already runs in a second or two."""
     from understudy_engine.store import data_dir
 
     base = Path(root) if root else data_dir()
@@ -84,9 +87,9 @@ def evaluate_skills(root: Path | str | None = None, dirs: tuple[str, ...] = PERS
             "level_by_day": [None if np.isnan(x) else int(x) for x in lv],
         }
     rm = [v["spearman_mastery_vs_planted_skill"] for v in per.values() if v["spearman_mastery_vs_planted_skill"] is not None]
-    return {
+    out = {
         "origin": "synthetic", "n": len(per), "n_unit": "personas", "split": "none (no fitting; tracker parameters are fixed)",
-        "interval_level": 0.95, "per_persona": per,
+        "interval_level": 0.95, "per_persona": per, "limitations": limitations_for("skills"),
         "meta": analytic_meta("synthetic", len(per), "personas", "none (fixed parameters)",
                               note="Skill tracing saturates on these high-volume personas; see caveats."),
         "mean_spearman_mastery_vs_planted_skill": float(np.mean(rm)) if rm else None,
@@ -99,3 +102,10 @@ def evaluate_skills(root: Path | str | None = None, dirs: tuple[str, ...] = PERS
             "2 to 3 days barely decay a heavily practised skill. Decay with absence is demonstrated in unit tests, not by this data.",
         ],
     }
+    if include_learners:
+        from understudy_engine.skills.learners import evaluate_learner_skills
+        try:
+            out["learners"] = evaluate_learner_skills(root, fast=fast)
+        except FileNotFoundError:
+            pass
+    return out

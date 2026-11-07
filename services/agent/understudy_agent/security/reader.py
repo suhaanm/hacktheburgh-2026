@@ -13,6 +13,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import re
 import secrets
 import unicodedata
 from dataclasses import dataclass
@@ -28,6 +29,9 @@ from .sanitize import sanitize_untrusted, strip_invisible, wrap_untrusted
 MAX_FIELD_CHARS = 300
 MAX_ARRAY_ITEMS = 50
 COPY_WINDOW = 50  # a verbatim run this long from the page inside a free-text field is treated as a copy, not a summary
+# Fields meant to quote the page (short facts). A verbatim copy is normal there, so only the sanitiser, the length caps and
+# the injection detector apply. Every other free-text field must be a paraphrase: a long verbatim copy is blanked.
+VERBATIM_OK_FIELDS = frozenset({"facts", "quotes", "excerpts"})
 
 
 class PromptLeak(RuntimeError):
@@ -87,7 +91,9 @@ class ReaderResult:
 
 class QuarantinedReader:
     def __init__(self, port: ModelPort, *, config: SecurityConfig | None = None,
-                 detector: InjectionDetector | None = None, max_field_chars: int = MAX_FIELD_CHARS) -> None:
+                 detector: InjectionDetector | None = None, max_field_chars: int = MAX_FIELD_CHARS,
+                 verbatim_ok: frozenset[str] = VERBATIM_OK_FIELDS) -> None:
+        self.verbatim_ok = verbatim_ok
         self.port = port
         self.config = config or SecurityConfig()
         self.detector = detector or InjectionDetector(enabled=self.config.detector)
@@ -137,7 +143,7 @@ class QuarantinedReader:
             if self.config.detector and not self.detector.report(self.detector.scan(obj, "field")).clean:
                 if self.detector.report(self.detector.scan(obj, "field")).paused:
                     return "", [name], ["instruction_like"]
-            if self.config.reader and has_verbatim_run(obj, raw_folded):
+            if self.config.reader and path.split(".")[0] not in self.verbatim_ok and has_verbatim_run(obj, raw_folded):
                 return "", [name], ["verbatim_copy"]
             return s, [], []
         return obj, [], []
@@ -194,9 +200,14 @@ def build_planner_messages(goal: str, observations: list[ObservationView], confi
     return [{"role": "system", "content": system or PLANNER_SYSTEM}, {"role": "user", "content": "\n\n".join(parts)}]
 
 
+_FIELD_BLOCK = re.compile(r"<<EXTRACTED_FIELDS .*?<<END_EXTRACTED_FIELDS[^>]*>>", re.S)
+
+
 def assert_planner_prompt_clean(messages: list[dict[str, Any]], raw_texts: list[str], *, window: int = COPY_WINDOW) -> None:
-    """Raise PromptLeak if any `window`-char run of raw untrusted text appears in the planner prompt."""
-    prompt = _fold("\n".join(str(m.get("content", "")) for m in messages))
+    """Raise PromptLeak if any `window`-char run of raw untrusted text appears in the planner prompt OUTSIDE the
+    EXTRACTED_FIELDS blocks. Text inside those blocks is reader output, which the reader's own checks govern (schema, caps,
+    sanitising, the detector, and no verbatim copying outside the quoting fields)."""
+    prompt = _fold(_FIELD_BLOCK.sub(" ", "\n".join(str(m.get("content", "")) for m in messages)))
     for raw in raw_texts:
         r = _fold(raw)
         if not r:

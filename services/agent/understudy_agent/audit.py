@@ -65,8 +65,9 @@ def _canon(d: dict[str, Any]) -> str:
 
 
 class AuditLog:
-    def __init__(self, path: Path | None = None, clock: Callable[[], datetime] | None = None) -> None:
+    def __init__(self, path: Path | None = None, clock: Callable[[], datetime] | None = None, *, fsync: bool = True) -> None:
         self._path = path
+        self._fsync = fsync
         self._clock = clock or (lambda: datetime.now(timezone.utc))
         self._lock = threading.Lock()
 
@@ -110,7 +111,8 @@ class AuditLog:
                 f.seek(0, os.SEEK_END)
                 f.write((_canon(line) + "\n").encode("utf-8"))
                 f.flush()
-                os.fsync(f.fileno())
+                if self._fsync:
+                    os.fsync(f.fileno())
             finally:
                 fcntl.flock(f, fcntl.LOCK_UN)
         return line

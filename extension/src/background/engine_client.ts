@@ -68,6 +68,16 @@ export class Batcher {
     else this.schedule(this.opts.flushMs);
   }
 
+  /** The engine's identity replaced ours: unsent events join the engine's person instead of staying orphaned. */
+  async retag(person: string, role: string): Promise<void> {
+    await this.ensureLoaded();
+    for (const ev of this.queue) {
+      ev.person = person;
+      ev.role = role;
+    }
+    await this.deps.save(this.queue);
+  }
+
   /** Consent revoked: forget everything not yet sent. */
   async clear(): Promise<void> {
     await this.ensureLoaded();

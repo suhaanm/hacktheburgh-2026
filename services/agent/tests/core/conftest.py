@@ -18,8 +18,10 @@ def _reset_sandbox_state(request):
     yield
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def pw_browser():
+    # function scope on purpose: the sync API keeps an event loop running in this thread while it is open,
+    # which would break every async test that runs after it
     from playwright.sync_api import sync_playwright
 
     with sync_playwright() as p:

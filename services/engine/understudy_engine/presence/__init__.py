@@ -12,3 +12,7 @@ __all__ = [
     "ACTIVE", "BINS", "IDLE", "OFF", "SLOTS", "DayObs", "Spell", "day_states_from_events", "days_from_matrix",
     "spells_from_events",
 ]
+
+from .personas import evaluate_persona, evaluate_presence_all, limitations as presence_limitations, report_section  # noqa: E402
+
+__all__ += ["evaluate_persona", "evaluate_presence_all", "presence_limitations", "report_section"]

@@ -1,0 +1,1365 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://understudy.local/schemas/eval-report.schema.json",
+ "title": "Understudy evaluation report (evals/report.json)",
+ "description": "Written by `python -m understudy_engine.eval`. Section names and key shapes follow docs/API_CONTRACT.md (additions agreed 7 Nov). Every section is optional but typed; extra keys are allowed (additive). A section without numbers is a stub {status: pending|not_run|failed, reason, meta}. `limitations` is an array, not a section.",
+ "type": "object",
+ "required": [
+  "generated_at",
+  "mock",
+  "sections"
+ ],
+ "properties": {
+  "generated_at": {
+   "type": "string",
+   "minLength": 10
+  },
+  "mock": {
+   "type": "boolean"
+  },
+  "git_rev": {
+   "type": "string"
+  },
+  "run": {
+   "type": "object"
+  },
+  "sections": {
+   "type": "object",
+   "properties": {
+    "deficit_recovery": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/deficit_recovery"
+     }
+    },
+    "null_placebo": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/null_placebo"
+     }
+    },
+    "hazard": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/hazard"
+     }
+    },
+    "ope": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/ope"
+     }
+    },
+    "routing": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/routing"
+     }
+    },
+    "ski_rental": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/ski_rental"
+     }
+    },
+    "presence": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/presence"
+     }
+    },
+    "routines": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/routines"
+     }
+    },
+    "agent_claims": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/agent_claims"
+     }
+    },
+    "redteam": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/redteam"
+     }
+    },
+    "redteam_live": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/redteam_live"
+     }
+    },
+    "study": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/study"
+     }
+    },
+    "policy_gate": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/policy_gate"
+     }
+    },
+    "skills": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/skills"
+     }
+    },
+    "forecast": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/forecast"
+     }
+    },
+    "pooling": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/pooling"
+     }
+    },
+    "limitations": {
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/limitation"
+     }
+    }
+   },
+   "additionalProperties": false
+  }
+ },
+ "additionalProperties": false,
+ "$defs": {
+  "interval": {
+   "type": "array",
+   "prefixItems": [
+    {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    {
+     "type": [
+      "number",
+      "null"
+     ]
+    }
+   ],
+   "minItems": 2,
+   "maxItems": 2
+  },
+  "numnull": {
+   "type": [
+    "number",
+    "null"
+   ]
+  },
+  "meta": {
+   "type": "object",
+   "properties": {
+    "origin": {
+     "enum": [
+      "real",
+      "synthetic",
+      "mixed"
+     ]
+    },
+    "n": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "n_unit": {
+     "type": "string",
+     "minLength": 1
+    },
+    "split": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "interval_level": {
+     "type": "number",
+     "exclusiveMinimum": 0,
+     "exclusiveMaximum": 1
+    },
+    "note": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "generated_at": {
+     "type": "string",
+     "minLength": 10
+    }
+   },
+   "required": [
+    "origin",
+    "n",
+    "n_unit",
+    "split",
+    "interval_level",
+    "note",
+    "generated_at"
+   ],
+   "additionalProperties": true
+  },
+  "stub": {
+   "type": "object",
+   "properties": {
+    "status": {
+     "enum": [
+      "pending",
+      "not_run",
+      "failed"
+     ]
+    },
+    "reason": {
+     "type": "string",
+     "minLength": 1
+    },
+    "meta": {
+     "$ref": "#/$defs/meta"
+    }
+   },
+   "required": [
+    "status",
+    "reason",
+    "meta"
+   ],
+   "additionalProperties": true
+  },
+  "gap_ci": {
+   "type": "object",
+   "properties": {
+    "gap_s": {
+     "type": "number"
+    },
+    "ci": {
+     "type": "array",
+     "prefixItems": [
+      {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      {
+       "type": [
+        "number",
+        "null"
+       ]
+      }
+     ],
+     "minItems": 2,
+     "maxItems": 2
+    }
+   },
+   "required": [
+    "gap_s",
+    "ci"
+   ],
+   "additionalProperties": true
+  },
+  "scores": {
+   "type": "object",
+   "properties": {
+    "log_loss": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "brier": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "ece": {
+     "type": [
+      "number",
+      "null"
+     ]
+    }
+   },
+   "required": [
+    "log_loss",
+    "brier",
+    "ece"
+   ],
+   "additionalProperties": true
+  },
+  "reliability": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "properties": {
+     "p_mean": {
+      "type": "number"
+     },
+     "freq": {
+      "type": "number"
+     },
+     "n": {
+      "type": "integer",
+      "minimum": 0
+     }
+    },
+    "required": [
+     "p_mean",
+     "freq",
+     "n"
+    ],
+    "additionalProperties": true
+   }
+  },
+  "limitation": {
+   "type": "object",
+   "properties": {
+    "id": {
+     "type": "string",
+     "minLength": 1
+    },
+    "text": {
+     "type": "string",
+     "minLength": 1
+    },
+    "severity": {
+     "enum": [
+      "low",
+      "medium",
+      "high"
+     ]
+    },
+    "source": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "id",
+    "text",
+    "severity"
+   ],
+   "additionalProperties": true
+  },
+  "idle_use": {
+   "type": "object",
+   "properties": {
+    "interruption_rate": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "idle_time_used": {
+     "type": [
+      "number",
+      "null"
+     ]
+    }
+   },
+   "required": [
+    "interruption_rate",
+    "idle_time_used"
+   ],
+   "additionalProperties": true
+  },
+  "meta_only": {
+   "type": "object",
+   "properties": {
+    "meta": {
+     "$ref": "#/$defs/meta"
+    }
+   },
+   "required": [
+    "meta"
+   ],
+   "additionalProperties": true
+  },
+  "deficit_recovery": {
+   "type": "object",
+   "properties": {
+    "meta": {
+     "$ref": "#/$defs/meta"
+    },
+    "rows": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "deficit": {
+        "type": "string"
+       },
+       "injected_price_s": {
+        "type": [
+         "number",
+         "null"
+        ]
+       },
+       "recovered_price_s": {
+        "type": [
+         "number",
+         "null"
+        ]
+       },
+       "ci": {
+        "type": "array",
+        "prefixItems": [
+         {
+          "type": [
+           "number",
+           "null"
+          ]
+         },
+         {
+          "type": [
+           "number",
+           "null"
+          ]
+         }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+       },
+       "precision": {
+        "type": [
+         "number",
+         "null"
+        ]
+       },
+       "recall": {
+        "type": [
+         "number",
+         "null"
+        ]
+       }
+      },
+      "required": [
+       "deficit",
+       "injected_price_s",
+       "recovered_price_s",
+       "ci",
+       "precision",
+       "recall"
+      ],
+      "additionalProperties": true
+     }
+    },
+    "overall": {
+     "type": "object",
+     "properties": {
+      "precision": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "recall": {
+       "type": [
+        "number",
+        "null"
+       ]
+      }
+     },
+     "required": [
+      "precision",
+      "recall"
+     ],
+     "additionalProperties": true
+    }
+   },
+   "required": [
+    "meta",
+    "rows",
+    "overall"
+   ],
+   "additionalProperties": true
+  },
+  "null_placebo": {
+   "type": "object",
+   "properties": {
+    "meta": {
+     "$ref": "#/$defs/meta"
+    },
+    "real": {
+     "$ref": "#/$defs/gap_ci"
+    },
+    "placebo": {
+     "$ref": "#/$defs/gap_ci"
+    },
+    "null": {
+     "$ref": "#/$defs/gap_ci"
+    }
+   },
+   "required": [
+    "meta",
+    "real",
+    "placebo",
+    "null"
+   ],
+   "additionalProperties": true
+  },
+  "hazard": {
+   "type": "object",
+   "properties": {
+    "meta": {
+     "$ref": "#/$defs/meta"
+    },
+    "model": {
+     "type": "object",
+     "properties": {
+      "log_loss": {
+       "type": "number"
+      },
+      "brier": {
+       "type": "number"
+      },
+      "ece": {
+       "type": "number"
+      },
+      "ci_log_loss": {
+       "type": "array",
+       "prefixItems": [
+        {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       ],
+       "minItems": 2,
+       "maxItems": 2
+      }
+     },
+     "required": [
+      "log_loss",
+      "brier",
+      "ece",
+      "ci_log_loss"
+     ],
+     "additionalProperties": true
+    },
+    "baselines": {
+     "type": "object",
+     "properties": {
+      "base_rate": {
+       "$ref": "#/$defs/scores"
+      },
+      "time_since_progress": {
+       "$ref": "#/$defs/scores"
+      }
+     },
+     "required": [
+      "base_rate",
+      "time_since_progress"
+     ],
+     "additionalProperties": true
+    },
+    "calibration": {
+     "$ref": "#/$defs/reliability"
+    },
+    "false_alarms_per_hour": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "split": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "meta",
+    "model",
+    "baselines",
+    "calibration",
+    "false_alarms_per_hour",
+    "split"
+   ],
+   "additionalProperties": true
+  },
+  "ope": {
+   "type": "object",
+   "properties": {
+    "meta": {
+     "$ref": "#/$defs/meta"
+    },
+    "true_value": {
+     "type": "number"
+    },
+    "estimators": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "object",
+      "properties": {
+       "name": {
+        "enum": [
+         "naive",
+         "ips",
+         "snips",
+         "dr"
+        ]
+       },
+       "value": {
+        "type": "number"
+       },
+       "ci": {
+        "type": "array",
+        "prefixItems": [
+         {
+          "type": [
+           "number",
+           "null"
+          ]
+         },
+         {
+          "type": [
+           "number",
+           "null"
+          ]
+         }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+       }
+      },
+      "required": [
+       "name",
+       "value",
+       "ci"
+      ],
+      "additionalProperties": true
+     }
+    }
+   },
+   "required": [
+    "meta",
+    "true_value",
+    "estimators"
+   ],
+   "additionalProperties": true
+  },
+  "routing": {
+   "type": "object",
+   "properties": {
+    "meta": {
+     "$ref": "#/$defs/meta"
+    },
+    "alpha": {
+     "type": "number"
+    },
+    "curve": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "coverage": {
+        "type": "number"
+       },
+       "risk": {
+        "type": "number"
+       },
+       "ci": {
+        "type": "array",
+        "prefixItems": [
+         {
+          "type": [
+           "number",
+           "null"
+          ]
+         },
+         {
+          "type": [
+           "number",
+           "null"
+          ]
+         }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+       }
+      },
+      "required": [
+       "coverage",
+       "risk",
+       "ci"
+      ],
+      "additionalProperties": true
+     }
+    },
+    "held_out_error": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "held_out_ci": {
+     "type": "array",
+     "prefixItems": [
+      {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      {
+       "type": [
+        "number",
+        "null"
+       ]
+      }
+     ],
+     "minItems": 2,
+     "maxItems": 2
+    },
+    "bound_held": {
+     "type": "boolean"
+    },
+    "expert_minutes_per_case": {
+     "type": [
+      "number",
+      "null"
+     ]
+    }
+   },
+   "required": [
+    "meta",
+    "alpha",
+    "curve",
+    "held_out_error",
+    "held_out_ci",
+    "bound_held",
+    "expert_minutes_per_case"
+   ],
+   "additionalProperties": true
+  },
+  "ski_rental": {
+   "type": "object",
+   "properties": {
+    "meta": {
+     "$ref": "#/$defs/meta"
+    },
+    "rows": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "rule": {
+        "enum": [
+         "buy-now",
+         "break-even",
+         "predictions"
+        ]
+       },
+       "regret": {
+        "type": "number"
+       },
+       "ci": {
+        "type": "array",
+        "prefixItems": [
+         {
+          "type": [
+           "number",
+           "null"
+          ]
+         },
+         {
+          "type": [
+           "number",
+           "null"
+          ]
+         }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+       },
+       "lambda": {
+        "type": "number"
+       }
+      },
+      "required": [
+       "rule",
+       "regret",
+       "ci"
+      ],
+      "additionalProperties": true
+     }
+    },
+    "hindsight_regret": {
+     "type": "number"
+    }
+   },
+   "required": [
+    "meta",
+    "rows",
+    "hindsight_regret"
+   ],
+   "additionalProperties": true
+  },
+  "presence": {
+   "type": "object",
+   "properties": {
+    "meta": {
+     "$ref": "#/$defs/meta"
+    },
+    "reliability": {
+     "$ref": "#/$defs/reliability"
+    },
+    "brier": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "baselines": {
+     "type": "object",
+     "properties": {
+      "fixed_overnight": {
+       "$ref": "#/$defs/idle_use"
+      },
+      "idle_5min": {
+       "$ref": "#/$defs/idle_use"
+      }
+     },
+     "required": [
+      "fixed_overnight",
+      "idle_5min"
+     ],
+     "additionalProperties": true
+    },
+    "interruption_rate": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "cap": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "idle_time_used": {
+     "type": [
+      "number",
+      "null"
+     ]
+    }
+   },
+   "required": [
+    "meta",
+    "reliability",
+    "brier",
+    "baselines",
+    "interruption_rate",
+    "cap",
+    "idle_time_used"
+   ],
+   "additionalProperties": true
+  },
+  "routines": {
+   "type": "object",
+   "properties": {
+    "meta": {
+     "$ref": "#/$defs/meta"
+    },
+    "rows": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "persona": {
+        "type": "string"
+       },
+       "planted": {
+        "type": "integer"
+       },
+       "found": {
+        "type": "integer"
+       },
+       "precision": {
+        "type": [
+         "number",
+         "null"
+        ]
+       },
+       "recall": {
+        "type": [
+         "number",
+         "null"
+        ]
+       }
+      },
+      "required": [
+       "persona",
+       "planted",
+       "found",
+       "precision",
+       "recall"
+      ],
+      "additionalProperties": true
+     }
+    },
+    "overall": {
+     "type": "object",
+     "properties": {
+      "precision": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "recall": {
+       "type": [
+        "number",
+        "null"
+       ]
+      }
+     },
+     "required": [
+      "precision",
+      "recall"
+     ],
+     "additionalProperties": true
+    }
+   },
+   "required": [
+    "meta",
+    "rows",
+    "overall"
+   ],
+   "additionalProperties": true
+  },
+  "agent_claims": {
+   "type": "object",
+   "properties": {
+    "meta": {
+     "$ref": "#/$defs/meta"
+    },
+    "reliability": {
+     "$ref": "#/$defs/reliability"
+    },
+    "brier": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "base_rate": {
+     "type": [
+      "number",
+      "null"
+     ]
+    }
+   },
+   "required": [
+    "meta",
+    "reliability",
+    "brier",
+    "base_rate"
+   ],
+   "additionalProperties": true
+  },
+  "redteam": {
+   "type": "object",
+   "properties": {
+    "meta": {
+     "$ref": "#/$defs/meta"
+    },
+    "rows": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "ablation": {
+        "type": "string"
+       },
+       "attack_success": {
+        "type": "number"
+       },
+       "attack_ci": {
+        "type": "array",
+        "prefixItems": [
+         {
+          "type": [
+           "number",
+           "null"
+          ]
+         },
+         {
+          "type": [
+           "number",
+           "null"
+          ]
+         }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+       },
+       "task_success": {
+        "type": "number"
+       },
+       "task_ci": {
+        "type": "array",
+        "prefixItems": [
+         {
+          "type": [
+           "number",
+           "null"
+          ]
+         },
+         {
+          "type": [
+           "number",
+           "null"
+          ]
+         }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+       }
+      },
+      "required": [
+       "ablation",
+       "attack_success",
+       "attack_ci",
+       "task_success",
+       "task_ci"
+      ],
+      "additionalProperties": true
+     }
+    },
+    "false_pause_rate": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "false_pause_ci": {
+     "type": "array",
+     "prefixItems": [
+      {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      {
+       "type": [
+        "number",
+        "null"
+       ]
+      }
+     ],
+     "minItems": 2,
+     "maxItems": 2
+    }
+   },
+   "required": [
+    "meta",
+    "rows",
+    "false_pause_rate",
+    "false_pause_ci"
+   ],
+   "additionalProperties": true
+  },
+  "redteam_live": {
+   "type": "object",
+   "properties": {
+    "meta": {
+     "$ref": "#/$defs/meta"
+    },
+    "rows": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "ablation": {
+        "type": "string"
+       },
+       "attack_success": {
+        "type": "number"
+       },
+       "attack_ci": {
+        "type": "array",
+        "prefixItems": [
+         {
+          "type": [
+           "number",
+           "null"
+          ]
+         },
+         {
+          "type": [
+           "number",
+           "null"
+          ]
+         }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+       },
+       "task_success": {
+        "type": "number"
+       },
+       "task_ci": {
+        "type": "array",
+        "prefixItems": [
+         {
+          "type": [
+           "number",
+           "null"
+          ]
+         },
+         {
+          "type": [
+           "number",
+           "null"
+          ]
+         }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+       }
+      },
+      "required": [
+       "ablation",
+       "attack_success",
+       "attack_ci",
+       "task_success",
+       "task_ci"
+      ],
+      "additionalProperties": true
+     }
+    }
+   },
+   "required": [
+    "meta",
+    "rows"
+   ],
+   "additionalProperties": true
+  },
+  "study": {
+   "type": "object",
+   "properties": {
+    "meta": {
+     "$ref": "#/$defs/meta"
+    },
+    "rows": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "participant": {
+        "type": "string"
+       },
+       "unassisted_before_s": {
+        "type": "number"
+       },
+       "unassisted_after_s": {
+        "type": "number"
+       }
+      },
+      "required": [
+       "participant",
+       "unassisted_before_s",
+       "unassisted_after_s"
+      ],
+      "additionalProperties": true
+     }
+    },
+    "mean_change_s": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "mean_change_ci": {
+     "type": "array",
+     "prefixItems": [
+      {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      {
+       "type": [
+        "number",
+        "null"
+       ]
+      }
+     ],
+     "minItems": 2,
+     "maxItems": 2
+    },
+    "n": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   "required": [
+    "meta",
+    "rows",
+    "mean_change_s",
+    "mean_change_ci",
+    "n"
+   ],
+   "additionalProperties": true
+  },
+  "policy_gate": {
+   "$ref": "#/$defs/meta_only"
+  },
+  "skills": {
+   "$ref": "#/$defs/meta_only"
+  },
+  "forecast": {
+   "$ref": "#/$defs/meta_only"
+  },
+  "pooling": {
+   "$ref": "#/$defs/meta_only"
+  }
+ }
+}

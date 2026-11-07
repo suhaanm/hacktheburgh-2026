@@ -1,9 +1,10 @@
 // Engine client: POST /events (batched, schema-valid, loopback only), kill calls, routine proposals. Best effort everywhere:
 // the engine being down must never slow or break the desktop app, so events queue in memory (bounded) and retry quietly.
 // Nothing sensitive is sent: events carry no free text, no URLs and no field values (see event.ts).
-import { buildEvent, eventProblem, type EventInput, type Identity, type UnderstudyEvent } from './event'
+import { buildEvent, eventProblem, isPerson, isRole, type EventInput, type Identity, type UnderstudyEvent } from './event'
 import { DEFAULT_ENDPOINTS, isLoopbackUrl, type Endpoints } from './endpoints'
-import { roleFromMemory } from './identity'
+import { captureFromMemory, roleFromMemory } from './capture-consent'
+import { parseCoachState, type CoachStateInfo } from './coach-state'
 
 export type Log = (scope: string, ...args: unknown[]) => void
 
@@ -47,9 +48,20 @@ export interface RoutineProposal {
   howOften: string
 }
 
+// What GET /memory tells the desktop app: who the events belong to, and whether the worker turned desk capture on.
+export interface MemoryInfo {
+  person: string | null
+  role: string | null
+  // True only when the Preferences section holds the line "Capture: times only" (see capture-consent.ts).
+  captureTimesOnly: boolean
+}
+
 export interface EngineClient {
   readonly identity: Identity
   setRole(role: string): void
+  setPerson(person: string): void
+  // Drops events that were queued but not sent yet, for the given sources (used when capture consent is withdrawn).
+  purge(source: UnderstudyEvent['source']): number
   // Queue one event. Invalid events are dropped (and logged by reason, never content). Returns whether it was queued.
   emit(input: EventInput): boolean
   flush(): Promise<IngestResult | null>
@@ -59,10 +71,14 @@ export interface EngineClient {
   clearKill(): Promise<KillResult>
   // GET /routines, trimmed to what a toast needs. Null when the engine is unreachable.
   routines(): Promise<RoutineProposal[] | null>
+  // GET /coach/state?person=: the chip fade and, when the engine says so, the element to ring. Null when unreachable.
+  coachState(): Promise<CoachStateInfo | null>
   // GET /queue?status=pending -> how many approvals wait in the morning queue. Null when the engine is unreachable.
   pendingQueue(): Promise<number | null>
-  // GET /memory front matter -> role (best effort).
-  syncRole(): Promise<string | null>
+  // GET /identity (when the engine answers 200) and GET /memory: person, role and the capture preference. Null when the engine is unreachable or GET /memory is not usable.
+  memory(): Promise<MemoryInfo | null>
+  // memory() applied to the identity: person and role from the memory file when present. Returns what it read.
+  syncIdentity(): Promise<MemoryInfo | null>
   // POST /routines/{id}/consent with a declining mode. The only consents the desktop ever sends are not_now and never.
   decline(id: string, mode: 'not_now' | 'never'): Promise<boolean>
   health(): Promise<boolean>
@@ -181,6 +197,14 @@ export function createEngineClient(opts: EngineClientOptions): EngineClient {
     setRole(role) {
       identity.role = role
     },
+    setPerson(person) {
+      if (isPerson(person)) identity.person = person
+    },
+    purge(source) {
+      const before = queue.length
+      queue = queue.filter((e) => e.source !== source)
+      return before - queue.length
+    },
     emit(input) {
       if (disposed) return false
       const ev = buildEvent(identity, input, now())
@@ -217,19 +241,37 @@ export function createEngineClient(opts: EngineClientOptions): EngineClient {
       const list = Array.isArray(res.json) ? res.json : isObj(res.json) && Array.isArray(res.json.data) ? res.json.data : []
       return list.map(toProposal).filter((p): p is RoutineProposal => p !== null)
     },
+    async coachState() {
+      const res = await http('GET', `${endpoints.engine}/coach/state?person=${encodeURIComponent(identity.person)}`)
+      if (!res || res.status >= 300) return null
+      return parseCoachState(res.json)
+    },
     async pendingQueue() {
       const res = await http('GET', `${endpoints.engine}/queue?status=pending`)
       if (!res || res.status >= 300) return null
       const list = Array.isArray(res.json) ? res.json : isObj(res.json) && Array.isArray(res.json.data) ? res.json.data : null
       return list ? list.length : null
     },
-    async syncRole() {
+    async memory() {
+      // GET /identity -> {person, role} wins when the engine answers 200 (also tolerated: wrapped in {data}).
+      const idRes = await http('GET', `${endpoints.engine}/identity`)
+      const idBody = idRes && idRes.status < 300 && isObj(idRes.json) ? (isObj(idRes.json.data) ? idRes.json.data : idRes.json) : null
+      const idPerson = idBody && typeof idBody.person === 'string' && isPerson(idBody.person) ? idBody.person : null
+      const idRole = idBody && typeof idBody.role === 'string' && isRole(idBody.role) ? idBody.role : null
+      // GET /memory: the capture preference, and a fallback for the person (when the engine adds it) and the role (front matter).
       const res = await http('GET', `${endpoints.engine}/memory`)
       if (!res || res.status >= 300 || !isObj(res.json)) return null
-      const md = typeof res.json.markdown === 'string' ? res.json.markdown : isObj(res.json.data) && typeof res.json.data.markdown === 'string' ? res.json.data.markdown : ''
-      const role = roleFromMemory(md)
-      if (role) identity.role = role
-      return role
+      const body = isObj(res.json.data) ? res.json.data : res.json
+      const markdown = typeof body.markdown === 'string' ? body.markdown : ''
+      const memPerson = typeof body.person === 'string' && isPerson(body.person) ? body.person : null
+      return { person: idPerson ?? memPerson, role: idRole ?? roleFromMemory(markdown), captureTimesOnly: captureFromMemory(markdown) }
+    },
+    async syncIdentity() {
+      const info = await this.memory()
+      if (!info) return null
+      if (info.person) identity.person = info.person
+      if (info.role) identity.role = info.role
+      return info
     },
     async decline(id, mode) {
       const res = await http('POST', `${endpoints.engine}/routines/${encodeURIComponent(id)}/consent`, { mode, irreversible_unattended: [], typed_confirm: '' })

@@ -5,7 +5,7 @@ import type { CaptionSpeaker } from '../../shared/protocol'
 import type { AnnotationStyle } from '../design/annotation-style'
 import { ArrowMark, BadgeMark, HighlightMarks, RingMark, SpotlightMark, TickMark } from './annotations/shapes'
 import { BubbleView, LabelPill } from './annotations/labels'
-import { CaptionBand, LevelChipEcho, speakerLabel } from './annotations/chrome'
+import { CaptionBand, CoachChipView, LevelChipEcho, speakerLabel } from './annotations/chrome'
 import { Defs, overlayCss } from './annotations/common'
 import { GhostCursor } from './annotations/GhostCursor'
 import { normToPx, type Size } from './geometry'
@@ -119,6 +119,7 @@ export function OverlayScene({ state, viewport, style, captionsEnabled, speakerN
       })}
       {showCaption && state.caption ? <CaptionBand caption={state.caption} topY={captionPlace?.atTop ? captionPlace.rect.y : null} speakerName={speakerLabel(state.caption.speaker, speakerNames)} style={style} viewport={viewport} onSize={onSize} /> : null}
       {state.chip ? <LevelChipEcho chip={state.chip} style={style} top={CHIP_TOP} onSize={onSize} progress={chipProgress} /> : null}
+      {state.coach ? <CoachChipView chip={state.coach} style={style} /> : null}
     </div>
   )
 }
