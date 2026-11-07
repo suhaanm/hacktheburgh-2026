@@ -1,42 +1,20 @@
-import { Component, Suspense, lazy, useCallback, useEffect, useState, type ReactNode } from "react";
+import { Component, Suspense, useCallback, useEffect, useState, type ReactNode } from "react";
 import { api, ENGINE_LABEL, forgetBackoff, refreshQueueBadge } from "./api";
-import { DEFAULT_SCREEN, navigate, screenOf, useRoute, type Screen } from "./router";
+import { DEFAULT_SCREEN, navigate, screenOf, useRoute } from "./router";
 import { dataMode, getState, resetSources, setState, useAppState } from "./store";
 import { Loading } from "./components/common";
 import { ToastHost, useToast } from "./components/Toasts";
 import { AttentionBanner } from "./components/AttentionBanner";
 import { AuthContextProvider, createAuth, useAuth } from "./auth";
 import { extensionsFrom } from "./lib/ext";
-import { RoleNav } from "./components/home/RoleNav";
+import { screens } from "./screenRegistry";
+import { sidebarFor } from "./components/home/navModel";
+import { useViewRole } from "./components/home/viewAs";
 import { ViewAsSwitch } from "./components/home/ViewAsSwitch";
 import { ScreenFrame } from "./components/home/ScreenFrame";
 import { Overlays } from "./components/home/Overlays";
 import { labelOf } from "./components/home/navModel";
 import "./components/home/home.css";
-
-const screens: Record<Screen, ReturnType<typeof lazy>> = {
-  genome: lazy(() => import("./screens/Genome")),
-  presence: lazy(() => import("./screens/Presence")),
-  routines: lazy(() => import("./screens/Routines")),
-  queue: lazy(() => import("./screens/Queue")),
-  graph: lazy(() => import("./screens/Graph")),
-  today: lazy(() => import("./screens/Today")),
-  memory: lazy(() => import("./screens/Memory")),
-  evidence: lazy(() => import("./screens/Evidence")),
-  onboarding: lazy(() => import("./screens/Onboarding")),
-  week: lazy(() => import("./screens/Week")),
-  briefing: lazy(() => import("./screens/Briefing")),
-  agents: lazy(() => import("./screens/Agents")),
-  privacy: lazy(() => import("./screens/Privacy")),
-  growth: lazy(() => import("./screens/Growth")),
-  models: lazy(() => import("./screens/Models")),
-  git: lazy(() => import("./screens/Git")),
-  notices: lazy(() => import("./screens/Notices")),
-  home: lazy(() => import("./screens/Home")),
-  firm: lazy(() => import("./screens/Firm")),
-  predictions: lazy(() => import("./screens/Predictions")),
-  repeats: lazy(() => import("./screens/Repeats")),
-};
 
 /** The menu lives in components/home/navModel.ts (one data file for the menu, palette, tour and the Admin route gate). */
 
@@ -71,6 +49,15 @@ class Boundary extends Component<{ children: ReactNode; screen: string }, { erro
       </div>
     );
   }
+}
+
+/** Stand-in until Sidebar.tsx (B1): the five destinations as plain links. */
+function TempNav({ current, pending }: { current: string; pending: number }) {
+  const m = sidebarFor(useViewRole());
+  return <>{[...m.primary, ...m.admin].map((n) => (
+    <a key={n.id} href={`#/${n.id}`} className="nav__link" aria-current={current === n.id ? "page" : undefined}>
+      <span className="nav__label">{n.label}</span>{n.id === "needs-you" && pending > 0 && <span className="nav__count">{pending}</span>}
+    </a>))}</>;
 }
 
 function Wordmark() {
@@ -254,7 +241,7 @@ function Shell() {
       <aside className="side" data-open={menu}>
         <div className="side__brand"><Wordmark /></div>
         <nav id="nav" aria-label="Screens" className="nav">
-          <RoleNav current={current} pending={s.pendingQueue} />
+          <TempNav current={current} pending={s.pendingQueue} />
         </nav>
         <div className="side__foot">
           <AuthControl />
