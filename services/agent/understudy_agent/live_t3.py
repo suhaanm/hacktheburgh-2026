@@ -76,6 +76,24 @@ def gate_version() -> str:
     return h.hexdigest()[:12]
 
 
+def goal_text_hash(provider: str | None = None) -> str:
+    """12 hex of a hash over EVERY piece of task wording a computer-use model is given apart from the screen and the code-written task state:
+    the three calculator goals, the case-note goal, the cliff-step goal, the fact-handle blocks, and, for Gemini, the provider's own
+    computer-use prompt (its system text and the iteration 8b fit paragraph). A round records it, so 'the goal text did not change' is a
+    checkable statement; `tests/core/test_live_t3_report.py` pins the value for the OpenAI wording that the first held-out round ran."""
+    from .navigator import CLIFF_GOAL, CaseNoteJob
+    from .tiers.facts import CALC_VOCAB, NOTE_VOCAB, FactStore
+
+    parts = [CalculatorJob(site, {}).goal for site in ("a", "b", "c")] + [CaseNoteJob({}).goal, CLIFF_GOAL,
+                                                                           FactStore(CALC_VOCAB, {h: (lambda: "") for h in CALC_VOCAB}).goal_block(),
+                                                                           FactStore(NOTE_VOCAB, {h: (lambda: "") for h in NOTE_VOCAB}).goal_block()]
+    if (provider or provider_name()) == "gemini":
+        from .models.gemini_provider import cu_prompt_text
+
+        parts.append(cu_prompt_text())
+    return hashlib.sha256("\n\u241f\n".join(parts).encode()).hexdigest()[:12]
+
+
 def model_failure_rows(t3: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Tier-3 attempts that ended other than `done`, EXCLUDING two kinds that are not the model failing: a gate stop (read one by one as
     `gate_stops`) and a navigator cancelled because ANOTHER navigator's stop paused the whole run (`stopped:CancelledError`; in the first
@@ -119,8 +137,10 @@ def audit_summary(t3: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def provider_name() -> str:
-    """The provider the round runs on (UNDERSTUDY_PROVIDER; `openai` when unset, as the factory does)."""
-    return (os.environ.get("UNDERSTUDY_PROVIDER", "").strip() or "openai").lower()
+    """The provider the round runs on: UNDERSTUDY_PROVIDER, else the factory's default (Gemini since D49)."""
+    from .models.factory import DEFAULT_PROVIDER
+
+    return (os.environ.get("UNDERSTUDY_PROVIDER", "").strip() or DEFAULT_PROVIDER).lower()
 
 
 def model_ids() -> dict[str, str]:

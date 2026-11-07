@@ -122,10 +122,14 @@ def _flag(args: dict[str, Any], key: str, default: bool) -> bool:
     return v if isinstance(v, bool) else default
 
 
-def _parse_computer_reply(reply: GeminiReply, w: int, h: int, pending: list[Action] | None = None) -> Action | Done | SafetyStop:
+def _parse_computer_reply(reply: GeminiReply, w: int, h: int, pending: list[Action] | None = None, *,
+                          enter: bool = True) -> Action | Done | SafetyStop:
     """`pending` receives the actions that FOLLOW the one returned: `type_text_at(x, y, text)` is a click and then typing, but the port
     returns one action per step, so the click is returned and the rest queued (the caller hands them out on the next steps, each through
-    the gate on its own: the click gets the trusted target read, and the typing then has a resolved focus)."""
+    the gate on its own: the click gets the trusted target read, and the typing then has a resolved focus).
+
+    `enter=False` (the iteration 8b Gemini configuration) drops the Enter that the API's default `press_enter` would add after the typing:
+    the benefits forms are moved on by clicking their buttons, and an Enter in a text field submits the form with whatever it holds."""
     from .sanitize_text import short_text
 
     if not reply.calls:
@@ -153,7 +157,7 @@ def _parse_computer_reply(reply: GeminiReply, w: int, h: int, pending: list[Acti
         if _flag(args, "clear_before_typing", True):          # the API default: clear the field first (select all, then delete)
             follow += [Action("key", {"keys": _select_all_keys()}), Action("key", {"keys": ["backspace"]})]
         follow.append(Action("type", {"text": str(args.get("text", ""))[:2000]}))
-        if _flag(args, "press_enter", True):                  # the API default: press Enter after typing
+        if enter and _flag(args, "press_enter", True):        # the API default: press Enter after typing
             follow.append(Action("key", {"keys": ["enter"]}))
         if pending is not None:
             pending.extend(follow)
@@ -361,14 +365,16 @@ class GeminiProvider:
         frame = prepare_frame(screenshot)
         model = self.models.computer_use or self.models.accurate
         note_text = short_text(note, 300) if note else ""
-        text = (f"Goal: {goal}\n{_history_text(history, orig_w, orig_h)}" + (f"Note: {note_text}\n" if note_text else "")
-                + "Take exactly one action toward the goal.")
+        fit = fit_enabled()
+        text = (f"Goal: {goal}\n" + (GEMINI_FORM_FIT + "\n" if fit else "") + f"{_history_text(history, orig_w, orig_h)}"
+                + (f"Note: {note_text}\n" if note_text else "") + "Take exactly one action toward the goal.")
         self._tls.last = None
-        reply = self.client.generate(model, [Part.text(text), Part.image(frame)], system=_CU_SYSTEM, thinking=_thinking_for("accurate"),
-                                     max_output_tokens=1024, tools=[{"type": "computer_use", "environment": "browser"}])
+        reply = self.client.generate(model, [Part.text(text), Part.image(frame)], system=_CU_SYSTEM_FIT if fit else _CU_SYSTEM,
+                                     thinking=_thinking_for("accurate"), max_output_tokens=1024,
+                                     tools=[{"type": "computer_use", "environment": "browser"}])
         self._note("computer", "accurate", reply)
         follow: list[Action] = []
-        out = _parse_computer_reply(reply, orig_w, orig_h, follow)
+        out = _parse_computer_reply(reply, orig_w, orig_h, follow, enter=not fit)
         if follow:
             with self._lock:
                 self._pending[key] = follow

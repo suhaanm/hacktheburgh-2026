@@ -65,6 +65,11 @@ RESULT_SCHEMA: dict[str, Any] = {
 }
 
 
+# The goal of the cliff-panel step of a tier-3 calculator run (module level so that the goal-text hash of a round covers it).
+CLIFF_GOAL = ("Press the button labelled Check cliff edges to open the cliff panel for this result. "
+              "Say you are done once the panel with the heading Cliff edges for this household is showing.")
+
+
 def form_audit_mode() -> str:
     """`full` | `readback` | `off` from UNDERSTUDY_FORM_AUDIT (anything else is `full`). See Navigator._tier3."""
     m = os.environ.get("UNDERSTUDY_FORM_AUDIT", "full").strip().lower()
@@ -530,9 +535,7 @@ class Navigator:
             return marker in (await observe(page)).text
 
         try:
-            out = await cu.run("Press the button labelled Check cliff edges to open the cliff panel for this result. "
-                               "Say you are done once the panel with the heading Cliff edges for this household is showing.",
-                               verify)
+            out = await cu.run(CLIFF_GOAL, verify)
         except (GateStop, InjectionStop, asyncio.CancelledError):
             raise
         except Exception as exc:  # noqa: BLE001 - a missing panel is reported, not fatal

@@ -238,3 +238,34 @@ def test_workers_can_append_to_the_spend_ledger_at_the_same_time(tmp_path, monke
     doc = json.loads((tmp_path / "spend_ledger.json").read_text())
     assert len(doc["entries"]) == 36 and doc["spent_placeholder_usd"] == pytest.approx(0.36)         # no entry lost to a race
     assert not list(tmp_path.glob("*.tmp"))
+
+
+# ----------------------------------------------------------------------------- the goal-text hash and the provider
+def test_the_goal_text_hash_pins_the_wording_the_first_held_out_round_ran_and_the_gemini_addition(monkeypatch):
+    """The shared goal wording (three calculators, the case note, the cliff step, the fact-handle blocks) is frozen: any edit flips this
+    value. Gemini's own computer-use wording (iteration 8b) is added on top for Gemini only and is hashed in; the first-smoke wording is
+    one environment switch away."""
+    assert live_t3.goal_text_hash("openai") == "77eb4ff79471"
+    monkeypatch.setenv("UNDERSTUDY_GEMINI_FIT", "1")
+    fit = live_t3.goal_text_hash("gemini")
+    monkeypatch.setenv("UNDERSTUDY_GEMINI_FIT", "0")
+    first = live_t3.goal_text_hash("gemini")
+    assert len({"77eb4ff79471", fit, first}) == 3
+    monkeypatch.delenv("UNDERSTUDY_GEMINI_FIT")
+    assert live_t3.goal_text_hash("gemini") == fit                          # the fit is the default
+
+
+def test_the_model_ids_and_the_provider_follow_the_environment_not_the_code(monkeypatch):
+    monkeypatch.delenv("UNDERSTUDY_PROVIDER", raising=False)
+    assert live_t3.provider_name() == "gemini"                              # D49: the factory's default
+    monkeypatch.setenv("GEMINI_MODEL_ACCURATE", "acc-x")
+    monkeypatch.setenv("GEMINI_MODEL_FAST", "fast-x")
+    monkeypatch.delenv("GEMINI_MODEL_COMPUTER_USE", raising=False)
+    assert live_t3.model_ids() == {"planner": "acc-x", "fast": "fast-x", "computer_use": "acc-x", "provider": "gemini"}   # as the provider resolves them
+    monkeypatch.setenv("GEMINI_MODEL_COMPUTER_USE", "cu-x")
+    assert live_t3.model_ids()["computer_use"] == "cu-x"
+    monkeypatch.setenv("UNDERSTUDY_PROVIDER", "openai")
+    monkeypatch.setenv("OPENAI_MODEL_PLANNER", "p")
+    monkeypatch.setenv("OPENAI_MODEL_FAST", "f")
+    monkeypatch.setenv("OPENAI_MODEL_COMPUTER_USE", "c")
+    assert live_t3.model_ids() == {"planner": "p", "fast": "f", "computer_use": "c", "provider": "openai"}
