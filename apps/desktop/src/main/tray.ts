@@ -19,8 +19,8 @@ import { APP_NAME } from '../shared/brand'
 // The menu-bar icon is the brand mark; its state is a tiny badge, no colour (template images are black and alpha):
 //   idle    the mark alone        acting  a 3 px dot: an agent is acting for the person     glance  a 3 px ring: a glance is in flight
 //   paused  the disc and two bars: the person paused Understudy from this menu
-export type TrayIconKind = 'idle' | 'acting' | 'glance' | 'paused'
-export type TrayAction = 'cue_quiet' | 'cue_resume' | 'talk' | 'type' | 'mute' | 'stop' | 'kill' | 'resume' | 'queue' | 'panel' | 'demo' | 'setup' | 'permissions' | 'quit' | 'pause' | 'unpause' | 'awareness' | 'glance_trigger' | 'glance_periodic' | 'dashboard' | 'knack'
+export type TrayIconKind = 'idle' | 'acting' | 'glance' | 'paused' | 'stopped'
+export type TrayAction = 'cue_quiet' | 'cue_resume' | 'talk' | 'type' | 'mute' | 'stop' | 'kill' | 'resume' | 'queue' | 'panel' | 'demo' | 'setup' | 'permissions' | 'quit' | 'pause' | 'unpause' | 'awareness' | 'glance_trigger' | 'glance_periodic' | 'dashboard' | 'knack' | 'ask' | 'settings' | 'needs_you'
 
 export interface MenuEntry {
   id: string // 'status', 'talk:<personaId>', or a TrayAction
@@ -79,6 +79,8 @@ export interface TrayModel {
   // "Running with example data", with a small dot). Absent: the menu is exactly what it was.
   openApp?: boolean
   models?: { live: boolean | null; text: string }
+  // KNACK: the 8-row menu (docs/knack-ux/08-window-states.md). What the shell machine says: working with its label, how many things need the worker, stopped (the kill state).
+  knack?: { working: string | null; needsYou: number; stopped: boolean }
 }
 
 const ACTIVE: ReadonlySet<CompanionState['phase']> = new Set(['connecting', 'live', 'thinking', 'speaking'])
@@ -234,6 +236,46 @@ export function buildMenuEntries(model: TrayModel, now: number = Date.now()): Me
   return entries.filter((e): e is MenuEntry => e !== null)
 }
 
+/**
+ * KNACK: the menu bar menu is eight rows (a ninth, the glance state, only while a glance mode is on):
+ *   the status line (Idle, Knack is working: <what>, Paused until, Stopped), "1 thing needs you" only when true, Open Knack, Ask Knack…, Pause for 1 hour (Resume now),
+ *   Stop everything (Resume after stopping), Settings…, Quit Knack.
+ */
+export function buildKnackMenuEntries(model: TrayModel, now: number = Date.now()): MenuEntry[] {
+  const sep = (id: string): MenuEntry => ({ id, label: '', enabled: false, separator: true })
+  const k = model.knack ?? { working: null, needsYou: 0, stopped: false }
+  const paused = pausedLabel(model.pausedUntil, now)
+  const status = k.stopped ? 'Stopped. Nothing will run.' : paused ? paused : k.working !== null ? `${APP_NAME} is working: ${k.working}` : 'Idle'
+  const needs = attentionLine({ needsYou: k.needsYou, waiting: 0, marker: 'none' })
+  const aw = model.awareness
+  const glanceMode = aw && aw.enabled ? (aw.onTrigger && aw.periodic ? 'when stuck and now and then' : aw.onTrigger ? 'when stuck' : aw.periodic ? 'now and then' : null) : null
+  const entries: (MenuEntry | null)[] = [
+    { id: 'status', label: status, enabled: false },
+    glanceMode ? { id: 'glances', label: `Screen glances: ${glanceMode}`, enabled: false } : null,
+    needs ? { id: 'needs_you', label: needs, enabled: true } : null,
+    sep('sep1'),
+    { id: 'knack', label: `Open ${APP_NAME}`, enabled: true },
+    { id: 'ask', label: `Ask ${APP_NAME}…`, enabled: true, ...(model.talkAccelerator ? { accelerator: model.talkAccelerator } : {}) },
+    paused ? { id: 'unpause', label: 'Resume now', enabled: true, ...(model.panelAccelerator ? { accelerator: model.panelAccelerator } : {}) } : { id: 'pause', label: 'Pause for 1 hour', enabled: true, ...(model.panelAccelerator ? { accelerator: model.panelAccelerator } : {}) },
+    k.stopped || model.killed
+      ? { id: 'resume', label: 'Resume after stopping', enabled: true }
+      : { id: 'kill', label: 'Stop everything', enabled: true, ...(model.killAccelerator ? { accelerator: model.killAccelerator } : {}) },
+    sep('sep2'),
+    { id: 'settings', label: 'Settings…', enabled: true, accelerator: 'CommandOrControl+,' },
+    { id: 'quit', label: `Quit ${APP_NAME}`, enabled: true, accelerator: 'CommandOrControl+Q' },
+  ]
+  return entries.filter((e): e is MenuEntry => e !== null)
+}
+
+/** The icon of the Knack menu bar item: stopped (a square), working (a dot), a glance in flight (a ring), paused, else the mark alone. A count goes beside it as the title. */
+export function knackIconKind(m: { stopped: boolean; working: boolean; paused: boolean; glanceInFlight: boolean }): TrayIconKind {
+  if (m.stopped) return 'stopped'
+  if (m.paused) return 'paused'
+  if (m.working) return 'acting'
+  if (m.glanceInFlight) return 'glance'
+  return 'idle'
+}
+
 /** What the tray needs from the awareness module (src/main/awareness): its own state, and its switches (which enforce the consent rule). */
 export interface TrayAwareness {
   view(): { enabled: boolean; onTrigger: boolean; periodic: boolean; calls: number; lastSkip: string | null }
@@ -262,8 +304,14 @@ export interface TrayDeps {
   openDashboard?: () => void
   // KNACK: opens the main window. When given, a click on the menu bar item opens Knack (instead of toggling the side panel) and the menu has "Open Knack".
   openApp?: () => void
-  // KNACK: which models are running, for the status line and its dot.
+  // KNACK: which models are running (the older menu's status line and dot).
   models?: () => { live: boolean | null; text: string }
+  // KNACK: the 8-row menu reads this: what the shell machine says (working label, how many things need the worker, stopped). Present with openApp.
+  knack?: () => { working: string | null; needsYou: number; stopped: boolean }
+  // KNACK: Settings… opens the settings; "1 thing needs you" opens Needs you; Ask Knack… raises the Ask surface (until the Ask bar exists: the panel's chat).
+  openSettings?: () => void
+  openNeedsYou?: () => void
+  ask?: () => void
   // Understudy: a glance (a screen look) is in flight right now. The AWARENESS track wires this; absent means never.
   glanceInFlight?: () => boolean
   // The awareness module's view and switches (its own awareness.json store). Absent: no awareness items in the menu.
@@ -311,7 +359,7 @@ export interface ShellTray {
 }
 
 function loadIcon(kind: TrayIconKind, dirs: string[]): NativeImage {
-  const base = { idle: 'trayTemplate', acting: 'trayActingTemplate', glance: 'trayGlanceTemplate', paused: 'trayPausedTemplate' }[kind]
+  const base = { idle: 'trayTemplate', acting: 'trayActingTemplate', glance: 'trayGlanceTemplate', paused: 'trayPausedTemplate', stopped: 'trayStoppedTemplate' }[kind]
   for (const dir of dirs) {
     const file = path.join(dir, `${base}.png`)
     if (!fs.existsSync(file)) continue
@@ -360,6 +408,7 @@ export function registerTray(deps: TrayDeps): ShellTray {
       queuePending: deps.queueCount?.() ?? null,
       openApp: deps.openApp !== undefined,
       models: deps.models?.(),
+      knack: deps.knack ? deps.knack() : undefined,
       agentActing: deps.agentActing?.() ?? false,
       attention: attentionSource?.() ?? undefined,
       cue: deps.cueMenu?.() ? { quietUntil: st0.cueQuietUntil } : undefined,
@@ -393,8 +442,12 @@ export function registerTray(deps: TrayDeps): ShellTray {
   }
   const togglePanel = (): void => setPanel(!deps.windows.isDockVisible())
 
+  const entriesNow = (): MenuEntry[] => {
+    const m = model()
+    return m.knack ? buildKnackMenuEntries(m, nowMs()) : buildMenuEntries(m, nowMs())
+  }
   const run = (id: string): boolean => {
-    const entry = buildMenuEntries(model(), nowMs()).find((e) => e.id === id)
+    const entry = entriesNow().find((e) => e.id === id)
     if (!entry || entry.separator || !entry.enabled) return false
     if (id.startsWith('talk:')) {
       const personaId = id.slice('talk:'.length) as PersonaId
@@ -477,6 +530,18 @@ export function registerTray(deps: TrayDeps): ShellTray {
         if (!deps.openApp) return false
         deps.openApp()
         return true
+      case 'ask':
+        if (deps.ask) deps.ask()
+        else showDockWith({ type: 'view', view: 'chat' }) // until the Ask bar exists: the panel's typed chat
+        return true
+      case 'settings':
+        if (!deps.openSettings) return false
+        deps.openSettings()
+        return true
+      case 'needs_you':
+        if (!deps.openNeedsYou) return false
+        deps.openNeedsYou()
+        return true
       case 'dashboard':
         if (!deps.openDashboard) return false
         deps.openDashboard()
@@ -490,7 +555,7 @@ export function registerTray(deps: TrayDeps): ShellTray {
   }
 
   const toElectronMenu = (): Menu => {
-    const template: MenuItemConstructorOptions[] = buildMenuEntries(model(), nowMs()).map((e) =>
+    const template: MenuItemConstructorOptions[] = entriesNow().map((e) =>
       e.separator ? { type: 'separator' } : { label: e.label, enabled: e.enabled, ...(e.checked !== undefined ? { type: 'checkbox' as const, checked: e.checked } : {}), ...(e.accelerator ? { accelerator: e.accelerator } : {}), click: () => void run(e.id) },
     )
     return Menu.buildFromTemplate(template)
@@ -511,13 +576,14 @@ export function registerTray(deps: TrayDeps): ShellTray {
     if (!tray) return
     const m = model()
     const pausedText = pausedLabel(m.pausedUntil, nowMs())
-    const kind = iconKind({ ...m, paused: pausedText !== undefined })
-    const needs = attentionLine(m.attention)
-    const tooltip = `${APP_NAME}: ${describeStatus({ ...m, pausedLabel: pausedText })}${needs ? `. ${needs}` : ''}`
+    const kind = m.knack ? knackIconKind({ stopped: m.knack.stopped || m.killed === true, working: m.knack.working !== null, paused: pausedText !== undefined, glanceInFlight: m.glanceInFlight === true }) : iconKind({ ...m, paused: pausedText !== undefined })
+    const needs = m.knack ? attentionLine({ needsYou: m.knack.needsYou, waiting: 0, marker: 'none' }) : attentionLine(m.attention)
+    const tooltip = m.knack ? `${APP_NAME}: ${buildKnackMenuEntries(m, nowMs())[0]!.label}${needs ? `. ${needs}` : ''}` : `${APP_NAME}: ${describeStatus({ ...m, pausedLabel: pausedText })}${needs ? `. ${needs}` : ''}`
     const image = iconFor(kind)
     // macOS shows this word next to the icon. Icon file missing: still show something. A dot follows it while something needs the worker.
-    const word = trayTitle(m) || (image.isEmpty() ? APP_NAME : '')
-    const title = m.attention?.marker === 'needs_you' ? [word, ATTENTION_DOT].filter(Boolean).join(' ') : word
+    // The Knack menu bar item shows only the icon, and the number of things that need the worker beside it.
+    const word = m.knack ? (m.knack.needsYou > 0 ? String(m.knack.needsYou) : image.isEmpty() ? APP_NAME : '') : trayTitle(m) || (image.isEmpty() ? APP_NAME : '')
+    const title = !m.knack && m.attention?.marker === 'needs_you' ? [word, ATTENTION_DOT].filter(Boolean).join(' ') : word
     const key = `${kind}|${tooltip}|${title}`
     if (key === shownKey) return
     shownKey = key
@@ -536,7 +602,8 @@ export function registerTray(deps: TrayDeps): ShellTray {
     const image = iconFor('idle')
     tray = new Tray(image)
     tray.setIgnoreDoubleClickEvents(true)
-    tray.on('click', () => primaryClick())
+    // In the Knack app a click opens the menu (the window has the Dock icon and "Open Knack"); in the older shell a click toggled the side panel.
+    tray.on('click', () => (deps.openApp ? tray?.popUpContextMenu(toElectronMenu()) : primaryClick()))
     tray.on('right-click', () => tray?.popUpContextMenu(toElectronMenu()))
     shownKey = ''
     shownTitle = ''
@@ -583,11 +650,11 @@ export function registerTray(deps: TrayDeps): ShellTray {
       return {
         exists: tray !== null,
         bounds: tray ? tray.getBounds() : null,
-        tooltip: `${APP_NAME}: ${describeStatus({ ...m, pausedLabel: pausedText })}${attentionLine(m.attention) ? `. ${attentionLine(m.attention)}` : ''}`,
+        tooltip: m.knack ? `${APP_NAME}: ${buildKnackMenuEntries(m, nowMs())[0]!.label}` : `${APP_NAME}: ${describeStatus({ ...m, pausedLabel: pausedText })}${attentionLine(m.attention) ? `. ${attentionLine(m.attention)}` : ''}`,
         title: shownTitle,
-        icon: iconKind({ ...m, paused: pausedText !== undefined }),
+        icon: m.knack ? knackIconKind({ stopped: m.knack.stopped || m.killed === true, working: m.knack.working !== null, paused: pausedText !== undefined, glanceInFlight: m.glanceInFlight === true }) : iconKind({ ...m, paused: pausedText !== undefined }),
         panelVisible: m.dockVisible,
-        menu: buildMenuEntries(m, nowMs())
+        menu: (m.knack ? buildKnackMenuEntries(m, nowMs()) : buildMenuEntries(m, nowMs()))
           .filter((e) => !e.separator)
           .map(({ id, label, enabled, accelerator, checked }) => ({ id, label, enabled, ...(accelerator ? { accelerator } : {}), ...(checked !== undefined ? { checked } : {}) })),
       }

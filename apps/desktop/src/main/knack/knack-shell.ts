@@ -45,8 +45,6 @@ export interface KnackEarlyDeps {
   bootCheck: () => Promise<boolean>
   /** The kill switch's registered global accelerator, to show on the menu item. */
   killAccelerator: () => string | null
-  /** Settings… opens the settings view. */
-  openSettings: () => void
   /** Stop Everything from the menus (the kill switch). */
   stopEverything: () => void
   /** The brand glyph file's text, for the starting page. */
@@ -60,6 +58,8 @@ export interface KnackEarlyDeps {
   onEffect?: (e: Effect, event: ShellEvent) => void
   /** The menu bar's state (the tray shows it): working dot, count, stopped square, marker. */
   onMenubar?: (state: MenubarState, count?: number) => void
+  /** Called after every event the machine heard, so the tray (and anything else that shows the machine) can look again. */
+  onChange?: () => void
   /** Shows a native sheet; default is dialog.showMessageBox. Injectable for the check. */
   showSheet?: (o: { message: string; detail?: string; buttons: readonly [string, string] }) => Promise<'stop_and_quit' | 'keep_working'>
 }
@@ -93,9 +93,13 @@ export interface KnackShell {
   feedLocalActing(acting: boolean): void
   /** The Dock icon, Activate, Open Knack. */
   openMain(): void
+  /** Settings… (the app menu, the menu bar item): open Knack on its Settings (#/settings; the dashboard's own Command-comma opens the same). */
+  openSettings(): void
   /** Feeds the machine directly (the dev hook, the hidden check). Returns the machine's state after the event. */
   dispatch(event: ShellEvent): ShellState
   quitGuard(): QuitGuard
+  /** What the menu bar item shows: the label of what is running, how many things need the worker, and whether everything is stopped. */
+  trayStatus(): { working: string | null; needsYou: number; stopped: boolean }
   info(): KnackInfo
   dispose(): Promise<void>
 }
@@ -316,12 +320,17 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
     const r = reduce(machine, ev)
     machine = r.state
     for (const e of r.effects) perform(e, ev)
+    deps.onChange?.()
     return machine
   }
 
   // The app menu, the Dock icon and its menu
   const showMain = (): void => void dispatch({ type: 'menu_open_knack' })
-  const handlers = { openSettings: deps.openSettings, showWindow: showMain, stopEverything: deps.stopEverything }
+  const openSettings = (): void => {
+    dispatch({ type: 'menu_open_knack' })
+    if (dashboardLoaded) main.loadDashboard(`${dashboardBase(stack.state())}/#/settings`)
+  }
+  const handlers = { openSettings, showWindow: showMain, stopEverything: deps.stopEverything }
   Menu.setApplicationMenu(Menu.buildFromTemplate(buildAppMenuTemplate({ appName: APP_NAME, platform: process.platform, isPackaged: app.isPackaged, killAccelerator: deps.killAccelerator(), handlers })))
   app.setAboutPanelOptions({ applicationName: APP_NAME, applicationVersion: app.getVersion(), copyright: 'Built for Hack the Burgh XIII' })
   const offDock = registerDock(deps.settings, { dock: app.dock ?? undefined, hidden: deps.hidden, log: (...a) => log(...a) })
@@ -485,8 +494,14 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
       ingest()
     },
     openMain: () => void dispatch({ type: 'menu_open_knack' }),
+    openSettings,
     dispatch,
     quitGuard: () => guard,
+    trayStatus: () => ({
+      working: machine.activity === 'working' ? (late?.hud.state().activity?.label ?? 'Starting').toLowerCase() : machine.activity === 'voice' ? 'listening' : null,
+      needsYou: machine.needsYou,
+      stopped: machine.activity === 'stopped',
+    }),
     info: () => ({
       stack: stack.state(),
       model: status(),

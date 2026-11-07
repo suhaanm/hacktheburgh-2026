@@ -102,7 +102,6 @@ async function run(): Promise<void> {
     glyphSvg: glyphFile ? fs.readFileSync(glyphFile, 'utf8') : '',
     bootCheck: async () => true,
     killAccelerator: () => 'CommandOrControl+Alt+Shift+K',
-    openSettings: () => void (calls.settings += 1),
     stopEverything: () => void (calls.stop += 1),
     relaunch: () => void (calls.relaunch += 1),
     showSheet: async () => 'keep_working',

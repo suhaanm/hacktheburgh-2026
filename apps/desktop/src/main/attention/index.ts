@@ -23,6 +23,8 @@ export interface StartAttentionContext {
   signals: () => AttentionSignals
   ports: AttentionPorts
   killed?: () => boolean
+  agentActing?: () => boolean
+  cornerCardUp?: () => boolean
   sources?: ProducerSources
   log?: (scope: string, ...args: unknown[]) => void
   env?: Record<string, string | undefined>
@@ -47,7 +49,7 @@ export function startAttention(ctx: StartAttentionContext): AttentionHandle | nu
   if (running) return running
   const lock = ctx.lock ?? createVoiceLock()
   const client = ctx.client ?? createHttpClient({ baseUrl: ctx.engineUrl, person: ctx.person, log: ctx.log })
-  const adapter = createAttentionAdapter({ client, signals: ctx.signals, ports: ctx.ports, lock, killed: ctx.killed, log: ctx.log })
+  const adapter = createAttentionAdapter({ client, signals: ctx.signals, ports: ctx.ports, lock, killed: ctx.killed, agentActing: ctx.agentActing, cornerCardUp: ctx.cornerCardUp, log: ctx.log })
   const bridge = ctx.sources ? createProducerBridge(ctx.sources, (ev) => adapter.report(ev)) : null
   adapter.start()
   let timer: ReturnType<typeof setInterval> | null = null

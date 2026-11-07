@@ -106,12 +106,9 @@ void app.whenReady().then(async () => {
       // The key is only checked for being there; the boot check lists the models it can use. A port built for live (never the mock) answers it.
       bootCheck: async () => (await createModelPortFromEnv({ env: { ...process.env, UNDERSTUDY_MOCK: '0', ALONGSIDE_MOCK: '0' } }).bootCheck()).ok,
       killAccelerator: () => lastHotkeyReport()?.kill[0] ?? null,
-      openSettings: () => {
-        lateBox.windows?.showDock()
-        lateBox.windows?.sendDock(IPC.shellCommand, { type: 'view', view: 'settings' })
-      },
       stopEverything: () => lateBox.kill?.(),
       log: (...args) => console.log('[knack]', ...args),
+      onChange: () => shellTray?.refresh(),
     })
     await knack.planned
   }
@@ -251,7 +248,7 @@ void app.whenReady().then(async () => {
   // NOTIFY: permission prompts also appear as a toast at the top of the screen (settings.confirmStyle; no window when headless / no overlay).
   const toast = registerToast({ ctx, adoptOwner, disabled: headless || flag('ALONGSIDE_NO_OVERLAY') })
   const unregisterLoginItem = registerLoginItem(settings, { log: (...args) => ctx.log('login-item', ...args) })
-  if (!headless) shellTray = registerTray({ bus, state, settings, windows, stop: (r) => session.stop(r), showtimeRunning: () => showtime.active(), kill: { trigger: () => void understudy.kill.trigger('tray'), clear: () => void understudy.kill.clear(), isKilled: () => understudy.kill.isKilled() }, awareness: awareness ? trayAwareness(awareness) : undefined, openQueue: understudy.openQueue, captureMode: () => core.capture.mode(), openApp: knack ? () => knack?.openMain() : undefined, models: knack ? () => knack?.modelStatus() ?? { live: null, text: '' } : undefined, coachLine: () => { const c = understudy.chip.current(); return c ? `Help level ${c.level}: ${HELP_LEVEL_LABELS[c.level]}` : null }, openDashboard: understudy.openDashboard, voiceMenu: () => featureOn('voice'), cueMenu: () => experimentOn('cue'), queueCount: () => understudy.hudModel.state().queuePending, agentActing: () => understudy.hudModel.state().agentActing, log: (...args) => ctx.log('tray', ...args) })
+  if (!headless) shellTray = registerTray({ bus, state, settings, windows, stop: (r) => session.stop(r), showtimeRunning: () => showtime.active(), kill: { trigger: () => void understudy.kill.trigger('tray'), clear: () => void understudy.kill.clear(), isKilled: () => understudy.kill.isKilled() }, awareness: awareness ? trayAwareness(awareness) : undefined, openQueue: understudy.openQueue, captureMode: () => core.capture.mode(), openApp: knack ? () => knack?.openMain() : undefined, models: knack ? () => knack?.modelStatus() ?? { live: null, text: '' } : undefined, knack: knack ? () => knack?.trayStatus() ?? { working: null, needsYou: 0, stopped: false } : undefined, openSettings: knack ? () => knack?.openSettings() : undefined, openNeedsYou: knack ? () => void knack?.dispatch({ type: 'review_clicked' }) : undefined, coachLine: () => { const c = understudy.chip.current(); return c ? `Help level ${c.level}: ${HELP_LEVEL_LABELS[c.level]}` : null }, openDashboard: understudy.openDashboard, voiceMenu: () => featureOn('voice'), cueMenu: () => experimentOn('cue'), queueCount: () => understudy.hudModel.state().queuePending, agentActing: () => understudy.hudModel.state().agentActing, log: (...args) => ctx.log('tray', ...args) })
   // The attention layer (the one-voice router). One call; null with its flag off.
   const screenShare = createScreenShareProbe()
   // KNACK: the corner pill and the minimise and restore rules. The pill is never over a secure input or a denylisted app (the same probes Cue reads) and not
