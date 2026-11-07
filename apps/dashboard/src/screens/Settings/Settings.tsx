@@ -11,8 +11,8 @@ import { useTheme } from "../../components/shell/theme";
 import { usePinnedViews } from "../../components/shell/pinned";
 import { STORY_LABEL, WORKER_STORIES, parseStory } from "../Home/data";
 import { setExampleWeek, useExampleWeek } from "../Home/story";
-import { desktopBridge, liveModelsBridge, type DesktopSettings } from "./bridge";
-import { liveModels, presetPatch, type Preset } from "./model";
+import { desktopBridge, liveModelsBridge, wakeBridge, type DesktopSettings, type LiveModelsState, type WakeStatus } from "./bridge";
+import { LIVE_LINES, liveModels, presetPatch, type Preset } from "./model";
 
 type HealthExt = Health & { key_present?: boolean };
 
@@ -44,7 +44,9 @@ export default function Settings({ section }: { section?: string }) {
   const attn = useLoad(() => api.attentionSettings(me), [me]);
   const bridge = useMemo(() => desktopBridge(), []);
   const liveBridge = useMemo(() => liveModelsBridge(), []);
-  const [keyPresent, setKeyPresent] = useState<boolean | undefined>(undefined);
+  const [liveState, setLiveState] = useState<LiveModelsState | null>(null);
+  const wakeApi = useMemo(() => wakeBridge(), []);
+  const [wake, setWake] = useState<WakeStatus | null>(null);
   const [desktop, setDesktop] = useState<DesktopSettings | null>(null);
   const [changing, setChanging] = useState(false);
   const [liveError, setLiveError] = useState<string | null>(null);
@@ -58,19 +60,23 @@ export default function Settings({ section }: { section?: string }) {
 
   useEffect(() => { if (attn.data) setAttention(attn.data); }, [attn.data]);
   useEffect(() => { bridge?.getSettings().then(setDesktop, () => setDesktop(null)); }, [bridge]);
-  useEffect(() => { liveBridge?.get().then((m) => setKeyPresent(typeof m.keyPresent === "boolean" ? m.keyPresent : undefined), () => undefined); }, [liveBridge]);
+  useEffect(() => { liveBridge?.get().then(setLiveState, () => undefined); }, [liveBridge]);
+  useEffect(() => { wakeApi?.state().then(setWake, () => setWake(null)); }, [wakeApi]);
 
   const h = health.data as HealthExt | null;
   // Only an answer from the engine itself counts: the built-in sample says nothing about the real engine, so then it is "cannot reach".
-  const answered = health.status !== "loading" && health.source === "live" ? { ...h, key_present: h?.key_present ?? keyPresent } : null;
-  const live = liveModels({ health: answered, canSwitch: !!(liveBridge ?? bridge), running: !!runs.data?.some(runActive), changing });
+  const answered = health.status !== "loading" && health.source === "live" ? { ...h, key_present: h?.key_present ?? liveState?.keyPresent } : null;
+  const live = liveModels({ health: answered, canSwitch: !!(liveBridge ?? bridge), running: !!runs.data?.some(runActive) || !!liveState?.running, changing });
   const liveView = liveError ? { ...live, line: `${live.line} ${liveError}` } : live;
 
   const onLive = async (on: boolean) => {
     if (!liveBridge && !bridge) return;
     setLiveError(null); setChanging(true);
     try {
-      if (liveBridge) await liveBridge.setUseLiveModels(on); else await bridge!.patchSettings({ useLiveModels: on });
+      if (liveBridge) {
+        const r = await liveBridge.setUseLiveModels(on);
+        if (!r.ok) { setLiveError(r.reason === "no_key" ? LIVE_LINES.noKey : r.reason === "running" ? LIVE_LINES.running : "That did not go through. Nothing was changed."); return; }
+      } else await bridge!.patchSettings({ useLiveModels: on });
       const ok = await waitForMode(on);
       if (!ok) setLiveError("The engine did not come back in the other mode yet. Nothing else was changed.");
       health.reload();
@@ -99,6 +105,14 @@ export default function Settings({ section }: { section?: string }) {
     void apply(patch, (x) => ({ ...x, budget_per_day: patch.budget_per_day, modes: p === "balanced" ? {} : { ...x.modes, ...patch.modes }, types: x.types.map((t) => (t.fixed ? t : { ...t, mode: patch.modes[t.type] ?? t.mode })) }));
   };
   const onMode = (type: string, mode: Mode) => void apply({ modes: { [type]: mode } }, (x) => withMode(x, type, mode));
+  const onWake = (on: boolean) => {
+    if (!wakeApi) return;
+    const before = wake;
+    setWake((w) => (w ? { ...w, switchOn: on } : w));
+    wakeApi.set(on).then(setWake, () => setWake(before));
+  };
+  const onResetLearned = () => void apply({ reset_learned: true }, (x) => ({ ...x, learned: {} }));
+  const onLevelGlance = (on: boolean) => void apply({ level_glance: on }, (x) => ({ ...x, level_glance: on }));
   const onDesktop = (patch: Partial<DesktopSettings>) => {
     if (!bridge) return;
     const before = desktop;
@@ -112,7 +126,7 @@ export default function Settings({ section }: { section?: string }) {
 
   return (
     <SettingsView section={section} live={liveView} onLive={(on) => void onLive(on)}
-      attention={attention} attentionExample={!!attn.why} attentionError={attentionError} onPreset={onPreset} onMode={onMode}
+      attention={attention} attentionExample={!!attn.why} attentionError={attentionError} onPreset={onPreset} onMode={onMode} onResetLearned={onResetLearned} onLevelGlance={onLevelGlance} wake={wakeApi ? wake : null} onWake={onWake}
       desktop={bridge ? desktop : null} onDesktop={onDesktop}
       theme={theme} onTheme={setTheme}
       view={view} onView={setViewRole}

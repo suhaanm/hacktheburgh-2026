@@ -21,12 +21,40 @@ export interface DesktopBridge {
  * The shell's own live-models calls (Track A): `models.get()` says whether live models are on and whether a key was found, `models.setUseLiveModels(on)`
  * restarts the services the app started. Absent in a browser tab and in an older shell: the switch is then disabled and says so.
  */
+export interface LiveModelsState {
+  /** The worker's switch. */
+  useLiveModels: boolean;
+  /** A Gemini key is in the environment (the value is never sent). */
+  keyPresent: boolean;
+  /** What is running: true live, false example data, null not known yet. */
+  live: boolean | null;
+  /** A run or a voice session is going: the switch is disabled. */
+  running: boolean;
+}
+export type LiveModelsResult = { ok: true } | { ok: false; reason: "no_key" | "running" | "bad_request" };
 export interface LiveModelsBridge {
-  get(): Promise<{ useLiveModels?: boolean; keyPresent?: boolean; live?: boolean }>;
-  setUseLiveModels(on: boolean): Promise<unknown>;
+  get(): Promise<LiveModelsState>;
+  /** Changing it restarts the app (about 20 seconds). */
+  setUseLiveModels(on: boolean): Promise<LiveModelsResult>;
 }
 
-type Win = { alongside?: Partial<DesktopBridge>; knackSettings?: Partial<DesktopBridge>; knackShell?: { models?: Partial<LiveModelsBridge> } };
+/** Hey Knack's status for its Settings row: the worker's switch, whether it is listening, and one plain line. */
+export interface WakeStatus { switchOn: boolean; listening: boolean; line: string }
+/** What the dashboard may tell the voice conversation: ids and counts only (the shell checks them again). */
+export interface WakeContext { insight?: { id: string; template: string } | null; routine?: { id: string; step: number; of: number } | null }
+export interface WakeBridge {
+  state(): Promise<WakeStatus>;
+  set(listen: boolean): Promise<WakeStatus>;
+  context(c: WakeContext): Promise<boolean>;
+}
+
+type Win = { alongside?: Partial<DesktopBridge>; knackSettings?: Partial<DesktopBridge>; knackShell?: { models?: Partial<LiveModelsBridge>; wake?: Partial<WakeBridge> } };
+
+/** Hey Knack's calls, or null (a browser tab, or a build without the listener). */
+export function wakeBridge(w: Win | undefined = typeof window === "undefined" ? undefined : (window as unknown as Win)): WakeBridge | null {
+  const k = w?.knackShell?.wake;
+  return k && typeof k.state === "function" && typeof k.set === "function" ? (k as WakeBridge) : null;
+}
 
 /** The live-models bridge, or null. */
 export function liveModelsBridge(w: Win | undefined = typeof window === "undefined" ? undefined : (window as unknown as Win)): LiveModelsBridge | null {
