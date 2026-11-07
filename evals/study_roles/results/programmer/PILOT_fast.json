@@ -1,0 +1,51 @@
+{
+ "usable": false,
+ "reasons": [
+  "cap: 58% of the unassisted pilot cases ended by the cap or used at least 95% of it (at most 25%): the cap binds before the skills are reached"
+ ],
+ "n_unassisted_cases": 12,
+ "share_zero": 0.5,
+ "share_full": 0.25,
+ "share_cap_bound": 0.583,
+ "mean_cost_per_participant_usd": 0.1601,
+ "points": [
+  2.0,
+  2.0,
+  0.0,
+  1.0,
+  1.0,
+  1.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  2.0,
+  0.0
+ ],
+ "criteria": {
+  "max_share_zero": 0.5,
+  "max_share_full": 0.8,
+  "max_share_cap_bound": 0.25,
+  "cap_used_share": 0.95
+ },
+ "role": "programmer",
+ "tier": "fast",
+ "model": "gpt-5.4-mini",
+ "prices_usd_per_mtok": [
+  0.75,
+  4.5,
+  "env"
+ ],
+ "participants_run": 3,
+ "plan": {
+  "units": 1,
+  "participants": 8,
+  "coached": 4,
+  "aa": 4,
+  "estimated_cost_usd": 2.5,
+  "unit_cost_usd": 2.5,
+  "budget_share_usd": 3.76,
+  "run": false,
+  "why": "fewer than 2 units affordable: the study would be too small to say anything"
+ }
+}

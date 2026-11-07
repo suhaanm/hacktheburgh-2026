@@ -288,3 +288,10 @@ Repairs (harness only, each with a test): worlds take the first FREE ports of th
 share a world; the pilot criteria are computed over non-excluded participants only (an excluded participant's empty cases were counted as zeros: they are not data) while any exclusion still makes the pilot
 incomplete and unusable; the mean pilot cost is taken over participants that completed all their cases (it had averaged in the two excluded ones). The pilot is repeated from scratch on the same option, with the same thresholds.
 
+**Amendment 2 (2026-11-07 20:56 UTC): result of the repeated programmer pilot on `fast`: NOT USABLE (cap-binding), the study is not run. Nothing in the plan was changed.**
+The repeat (started 20:39 UTC after the repairs of Amendment 1, with the lead's go, on a frozen snapshot with 0 uncommitted files) ran all three pilot participants with no harness exclusion; 12 unassisted cases;
+model gpt-5.4-mini, effort none; 159 calls (74 cached), US$0.320 (US$0.472 of pilots in total with the aborted run, of the US$2 cap). By code (`analysis.pilot_verdict`, thresholds unchanged): floor 50% of cases scored 0 (limit 50%, passes), ceiling
+25% fully correct (limit 80%, passes), **cap-binding 58%: 7 of 12 unassisted cases ended by the cap or used at least 95% of it (limit 25%): the cap binds before the skills are reached. Verdict: not usable.** Outcomes: correct 3, partial 3, wrong 6. The 7 cap-bound cases were p-discipline-1 (3 times), p-missing-1 (twice) and p-boundary-1 (twice). Per the stop rule of section 8 no threshold, cap or prompt was changed, the lead's go
+covered `fast` only so `fast-low` was not piloted, there is no larger tier, and neither the programmer study nor the analyst pilot was started. Mean cost of a completed 4-case pilot participant US$0.16. Files: `results/programmer/PILOT_fast.json`,
+`results/programmer/pilot_fast/`, `results/programmer/pilot_aborted_1/`.
+
