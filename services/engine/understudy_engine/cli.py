@@ -61,6 +61,9 @@ def _plugin(args: argparse.Namespace) -> int:
 
 
 def _serve(args: argparse.Namespace) -> int:
+    from .api.flags import apply_default_flags
+
+    apply_default_flags()   # D48: the layers are on by default; an explicit UNDERSTUDY_X=0 turns them off
     import uvicorn
 
     port = int(args.port or os.environ.get("ENGINE_PORT", "7700"))

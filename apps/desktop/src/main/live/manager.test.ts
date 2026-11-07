@@ -90,7 +90,7 @@ const release = (): void => h.bus.emit('talk', { source: 'hotkey', phase: 'relea
 
 describe('nothing starts by itself', () => {
   it('with the flags off: no timer, no token, no microphone, no socket, even when the key is pressed', async () => {
-    const m = h.make({ env: {} })
+    const m = h.make({ env: { UNDERSTUDY_X_LIVE: '0' } })
     m.start()
     expect(h.clock.active()).toBe(0)
     expect(h.bus.count('talk')).toBe(0)

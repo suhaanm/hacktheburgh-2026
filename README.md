@@ -43,19 +43,20 @@ In Chrome open `chrome://extensions`, switch on Developer mode, choose Load unpa
 
 **Desktop coach (Electron, from Alongside).** `make demo` does not start it. From `apps/desktop`: `ALONGSIDE_MOCK=1 UNDERSTUDY_MOCK=1 npm run dev` (electron-vite). macOS Screen Recording and Accessibility are granted by a person, not by us. Real clicks stay off (see Privacy and safety). Other scripts in `apps/desktop/package.json` (`preflight`, `e2e`, `showtime`) were kept from Alongside and are not part of this path.
 
-**Live models.** Only outside mock mode: copy `.env.example` to `.env`, set the provider key and model ids, and start without `UNDERSTUDY_MOCK=1`. Model ids come from the environment and are checked at boot; none is hard-coded. Never commit `.env`.
+**Live models.** `make live` runs the real models and voice with an isolated home (keys from `.env`; costs real money per agent run). The provider is Gemini by default (OpenAI was revoked; see `docs/FLAGS.md`). Otherwise outside mock mode: copy `.env.example` to `.env`, set the Gemini key and model ids, and start without `UNDERSTUDY_MOCK=1`. Model ids come from the environment and are checked at boot; none is hard-coded. Never commit `.env`.
 
 ### Flags
 
 | Flag | Effect |
 |---|---|
 | `UNDERSTUDY_MOCK=1` | Scripted, deterministic, no model calls, no network. Set by `make demo`. |
-| `UNDERSTUDY_X=1` | Master switch for the extension layers. Set by `make demo`. Off by default everywhere else. |
+| `UNDERSTUDY_X` | Master switch for the extension layers. **On by default in a running service** (D48); `UNDERSTUDY_X=0` turns it off. The full list of defaults and of what stays off, with reasons, is in `docs/FLAGS.md`. |
 | `UNDERSTUDY_X_<LAYER>=1` | One layer. Engine: `PRIVACY`, `LOCALMODEL`, `CALENDAR`, `GIT`, `PROACTIVE`, `CUE`, `AWARENESS`, `EVIDENCE`, `ATTENTION`, `HITLIST`, `INSIGHTS`. Agent service: `AGENTS`. Models: `GEMINI`. A layer that is off answers 404 `extension_off`. |
 | `UNDERSTUDY_X_CUE`, `_GEMINI`, `_LIVE` | In the **desktop app** these three are read by name only; `UNDERSTUDY_X=1` alone does not turn them on there. (`_AWARENESS` and `_ATTENTION` do honour the master.) Read from `apps/desktop/src/main/feature-flags.ts`. |
 | `UNDERSTUDY_FLAG_VOICE`, `_WAKE`, `_SCAM`, `_FILES` | Old Alongside features, off. |
 | `UNDERSTUDY_LEGACY_REMOTE=1` | Re-enables old Alongside paths that send screenshots or file text to remote models. Off. |
-| `UNDERSTUDY_REAL_ACTUATOR=1`, `ALONGSIDE_AGENCY_LOOP=1` | Real clicks and the multi-step loop. Off. Do not set them without the owner present. |
+| `UNDERSTUDY_REAL_ACTUATOR` | The arm switch for real desktop clicks. **On by default in the agent service** (D50); a real action still needs the owner's one-time token, the countdown and the owner present, and the real backend needs pyobjc, so it stays inert until the owner runs the R1 command. `=0` turns it off. |
+| `ALONGSIDE_AGENCY_LOOP=1` | The old multi-step loop. Off: it duplicates our actuator. |
 
 ## What it does
 
@@ -123,7 +124,7 @@ The first table and the agent table come from `evals/report.md` (the two compute
 | Real-model red team | 42 cases, 3 repeats | 0 of 126 runs with every layer on [0.0, 8.4]; 5 of 126 (4.0% [1.0, 14.7]) with all off | **Intervals overlap**: it measures what the layers cost, not that they prevent attacks. We wrote both attacks and defences |
 | Privacy canaries | 80 runs of 10 flows | 0 of 11,336 planted tokens reached the model port; 0 leaks in 80 log, audit and queue files. Per run, the one-sided 95% upper bound is 3.7% | Exact strings only; flows that registered no code are not counted as passed |
 | Computer use on the sandbox calculators (`evals/agentic/ITERATIONS.md`) | 3 development households, in-sample | After giving the model fact handles instead of values, 3 of 3 completed through the real gate, 0 false claims (Wilson [0.44, 1.00]) | A development result, not a rate. The held-out confirmation has not been run |
-| Computer use, held-out confirmation (`evals/agentic/results/heldout_*.json`, gate 35e964049fd0) | Clean n = 4 on new seeds; injected n = 20 | **Clean: 1 of 4 completed** (Wilson about [0.05, 0.70]); 2 of 4 ended with a false claim that the code check caught (calculator B figure wrong); 1 of 4 was stopped by the gate on a benign drop-down. The designed Submit waited for a human in all 4; nothing was submitted. **Injected: 20 of 20 paused at step 0**, 0 attacks executed | Our own sandbox, language model, headless browser. The injected pages carry text only: this shows the detector pauses, not that the gate resists hostile pages. The completion rate did not hold up on new households |
+| Computer use, held-out confirmation (`evals/agentic/results/heldout_*.json`, gate 35e964049fd0; diagnosis in `docs/reference-notes/cu-failure-diagnosis.md`) | Clean n = 4 on new seeds; injected n = 20 | **Clean: 1 of 4 completed** (descriptive; Wilson about [0.05, 0.70]). In 2 runs the harness accepted calculator B with wrong inputs (bedrooms left on the default; the figure was off by exactly that) and an independent recomputation caught it; the product's own completion check would not have. 1 run paused because the goal-check layer's call could not complete (it fails closed; the gate itself had allowed the action). The designed Submit waited for a human in all 4; nothing was submitted. **Injected: 20 of 20 paused at step 0**, 0 attacks executed | Our own sandbox, language model, headless browser, 7 households in total (so no rate should be quoted). The injected pages carry text only: this shows the detector pauses, not that the gate resists hostile pages. Fixes are on a branch, not merged |
 | Computer use on a real desktop (`evals/agentic/REAL_CLICKS.md`) | 1 read-only run | Rung R0 ran once: zero events; capture works; the test point was covered by another window, so it stopped. **Nothing else has run.** | No model has driven a real desktop |
 
 Layers added after kickoff (git habits, calendar, proactive briefing, local-model digests) have development-set results only; see `evals/report.md` and the catalogue.

@@ -173,7 +173,7 @@ def test_routines_finding_without_thin_roles_says_nothing_about_them(tmp_path):
 def test_findings_are_pending_with_a_reason_not_absent_when_their_source_has_no_numbers():
     fs = build_findings({"realism": {"status": "pending", "reason": "x", "meta": META}, "study_sim": {"status": "not_run", "reason": "no run", "meta": META}})
     assert [f["id"] for f in fs] == ["realism-generator-dependence", "study-sim-floor-null", "mlv2-m5-transfer-failure", "realism-genome-generator-dependence",
-                                     "realism-routines-generator-dependence"]
+                                     "realism-routines-generator-dependence", "mlv2-e4-q1-rejected", "mlv2-tsp-beats-v1-under-mismatch"]
     assert all(f["status"] == "pending" and f["text"] and f["reason"] for f in fs)
     assert SIM in fs[1]["text"].lower() and SIM in fs[2]["text"].lower()
     assert "genome block" in fs[3]["text"] and "routines block" in fs[4]["text"]
@@ -237,6 +237,50 @@ def test_m5_text_and_finding_come_from_the_recorded_transfer_result():
     assert f["status"] == "ok" and f["numbers"]["label_rate"] == 0.647 and f["numbers"]["log_loss"]["v1"]["value"] == 1.43
 
 
+def mlv2_full_section():
+    def vr(fam, id_, verdict, delta, lo, hi, level=0.95, primary=False):
+        return {"family": fam, "id": id_, "verdict": verdict, "delta": delta, "interval": [lo, hi], "level": level, "primary": primary}
+
+    def role(tsp, a4):
+        return {"pooled_off_diagonal": {"TSP": {"delta_log_loss": tsp[0], "interval": [tsp[1], tsp[2]]}, "A4": {"delta_log_loss": a4[0], "interval": [a4[1], a4[2]], "mismatch_pass": True}}}
+
+    return {"meta": META, "mode": "full",
+            "verdicts": [vr("E", "E1", "accepted", -0.92, -1.85, -0.21, 0.9875), vr("E", "E2", "null", 0.0, 0.0, 0.0, 0.9875), vr("E", "E3", "harmful", 4.57, 3.14, 6.01, 0.9875),
+                         vr("E", "E4", "harmful", 3.81, 2.30, 5.19, primary=True), vr("Q", "Q1", "harmful", 1.17, 0.44, 1.87, primary=True)],
+            "heldout": {"genome": {"result": {"n_cohorts": 4, "n_novices": 100}},
+                        "mismatch": {"result": {"roles": {"benefits-processor": role((-0.0213, -0.0340, -0.0096), (-0.0138, -0.01852, -0.0094)),
+                                                          "data-analyst": role((-0.0237, -0.0338, -0.0142), (0.0010, -0.0044, 0.0073)),
+                                                          "programmer": role((-0.0299, -0.0413, -0.0186), (-0.0191, -0.0263, -0.0132))}}}},
+            "final_decisions": {"status": "complete", "default_v2": {"benefits-processor": "A4", "data-analyst": None, "programmer": "A4"}}}
+
+
+def test_mlv2_e4_q1_finding_reads_the_verdict_rows_and_says_rejected():
+    f = {x["id"]: x for x in build_findings({"mlv2": mlv2_full_section()})}["mlv2-e4-q1-rejected"]
+    t = f["text"]
+    assert f["status"] == "ok" and f["severity"] == "high" and f["origin"] == "synthetic"
+    assert "E4 (expert envelope) and Q1 (counterfactual price) are both harmful and so rejected" in t and "positive difference is worse" in t
+    assert "E4 +3.81 [+2.30, +5.19] s, Q1 +1.17 [+0.44, +1.87] s" in t and "E1 accepted (-0.92 [-1.85, -0.21] s)" in t and "E3 harmful (+4.57" in t
+    assert "4 cohorts, 100 novices" in t and f["numbers"]["E4"]["verdict"] == "harmful" and f["numbers"]["Q1"]["interval"] == [0.44, 1.87]
+
+
+def test_mlv2_mismatch_finding_compares_time_since_progress_with_v1_and_with_the_accepted_v2():
+    f = {x["id"]: x for x in build_findings({"mlv2": mlv2_full_section()})}["mlv2-tsp-beats-v1-under-mismatch"]
+    t = f["text"]
+    assert f["status"] == "ok"
+    assert "benefits-processor -0.021 [-0.034, -0.010]; data-analyst -0.024 [-0.034, -0.014]; programmer -0.030 [-0.041, -0.019]" in t
+    assert "The accepted v2 (A4) improves on v1 by -0.014 [-0.019, -0.009] for benefits-processor" in t and "a smaller improvement than the baseline's" in t
+    assert f["numbers"]["accepted_v2"] == "A4" and set(f["numbers"]["time_since_progress_vs_v1_by_role"]) == {"benefits-processor", "data-analyst", "programmer"}
+
+
+def test_the_two_new_mlv2_findings_are_pending_without_the_held_out_files_and_are_register_entries_when_ok():
+    fs = {x["id"]: x for x in build_findings({"mlv2": {"meta": META}})}
+    assert fs["mlv2-e4-q1-rejected"]["status"] == "pending" and "heldout_genome.json" in fs["mlv2-e4-q1-rejected"]["reason"]
+    assert fs["mlv2-tsp-beats-v1-under-mismatch"]["status"] == "pending" and "heldout_mismatch.json" in fs["mlv2-tsp-beats-v1-under-mismatch"]["reason"]
+    reg = {e["id"]: e for e in lim.assemble({"mlv2": mlv2_full_section()})}
+    for i in ("eval-mlv2-e4-q1-rejected", "eval-mlv2-tsp-beats-v1-under-mismatch"):
+        assert reg[i]["severity"] == "high" and reg[i]["source"] == "engine-eval:mlv2"
+
+
 def test_the_register_carries_all_five_findings_as_high_entries_with_their_origin_wording(tmp_path):
     realism = realism_section(tmp_path)["realism"]
     secs = {**sections_with({"v1_own": {"h1": {"est": 0.071}}, "v2_diagonals": {"a": {"est": 0.01}}, "v1_trained_on_v2": {"a": {"est": -0.4}}, "no_skill_cells": [],
@@ -269,7 +313,7 @@ def test_findings_are_in_the_report_the_markdown_the_facts_and_on_their_sections
     from understudy_engine.eval.facts import build_facts
 
     facts = build_facts(rep, tests=False)
-    assert facts["findings"]["total"] == 5 and facts["findings"]["ok"] == ["mlv2-m5-transfer-failure"] and facts["flat"]["findings.total"] == 5
+    assert facts["findings"]["total"] == 7 and facts["findings"]["ok"] == ["mlv2-m5-transfer-failure"] and facts["flat"]["findings.total"] == 7
 
 
 def test_the_schema_requires_text_and_a_badge_on_every_finding():
@@ -367,14 +411,14 @@ def test_mlv2_attaches_the_recorded_held_out_and_transfer_files_and_never_asks_f
     import understudy_engine.mlv2.evaluate as mev
 
     seen = {}
-    monkeypatch.setattr(mev, "evaluate_mlv2", lambda **kw: (seen.update(kw), {"meta": dict(META)})[1])
+    monkeypatch.setattr(mev, "evaluate_mlv2", lambda fast=True, **kw: (seen.update(fast=fast), {"meta": dict(META)})[1])
     heldout = {"hazard": {"x": 1}}
     monkeypatch.setattr(mev, "_load", lambda name: {"heldout_hazard.json": heldout, "transfer_sim.json": transfer()}.get(name))
     monkeypatch.setattr(mev, "slim_hazard", lambda r: {"slim": r})
     monkeypatch.setattr(mev, "_fingerprint_note", lambda res, part: {"part": part})
     monkeypatch.setattr(mev, "verdict_table", lambda *a: {"rows": len([x for x in a if x])})
     s = build_report(sections=["mlv2"], fast=False, now=NOW, regenerate=False, log=lambda m: None)["sections"]["mlv2"]
-    assert seen.get("fast") is True                                              # even in a full eval run: the full dev run is the track's own command
+    assert seen.get("fast") is False                                             # a normal (non-fast) harness run asks for the owner's full mode: the recorded held-out files
     assert s["recorded"]["files"] == {"heldout_hazard.json": True, "heldout_genome.json": False, "heldout_mismatch.json": False, "transfer_sim.json": True}
     assert s["heldout"]["hazard"]["result"] == {"slim": heldout} and s["verdicts"] == {"rows": 1} and s["transfer_simulated_participants"]["n"] == 24
 
@@ -420,8 +464,34 @@ def test_a_section_with_three_findings_carries_the_first_and_lists_the_rest_and_
     assert s["finding"]["id"] == "realism-generator-dependence" and [x["id"] for x in s["more_findings"]] == ["realism-genome-generator-dependence", "realism-routines-generator-dependence"]
     assert s["report_file"]["path"] == "evals/realism/REPORT.md" and len(s["report_file"]["sha256"]) == 64 and s["report_file"]["bytes"] == 17
     assert set(s["blocks"]) == {"hazard", "genome", "routines"} and set(s["blocks"]["routines"]) == {"benefits-processor", "data-analyst", "programmer"}
-    assert [f["status"] for f in rep["findings"]] == ["ok", "pending", "pending", "ok", "ok"] and schema_errors(rep) == []
+    assert [f["status"] for f in rep["findings"]] == ["ok", "pending", "pending", "ok", "ok", "pending", "pending"] and schema_errors(rep) == []
     md = render(rep)
     for title in ("The stuck model's advantage depends on the generator", "Deficit detection does not hold up on harder generators",
                   "The repeat finder's precision depends on the generator; the gate carries the proposals"):
         assert f"### {title}" in md
+
+
+class _Poisoned(types.ModuleType):
+    def __getattr__(self, name):
+        raise AssertionError(f"the harness must never touch the held-out runner (understudy_engine.mlv2.run.{name})")
+
+
+@pytest.mark.parametrize("harness_fast", [False, True])
+def test_mlv2_uses_the_harness_fast_flag_and_never_touches_the_held_out_runner(evals, monkeypatch, harness_fast):
+    import understudy_engine.mlv2.evaluate as mev
+
+    seen = []
+    monkeypatch.setattr(mev, "evaluate_mlv2", lambda *, fast=True, seed=0, root=None: (seen.append(fast), {"meta": dict(META), "mode": "fast" if fast else "full"})[1])
+    monkeypatch.setattr(mev, "_load", lambda name: None)                                  # no recorded file: nothing to attach, nothing to run
+    monkeypatch.setitem(sys.modules, "understudy_engine.mlv2.run", _Poisoned("understudy_engine.mlv2.run"))
+    s = build_report(sections=["mlv2"], fast=harness_fast, now=NOW, regenerate=False, log=lambda m: None)["sections"]["mlv2"]
+    assert seen == [harness_fast] and s["mode"] == ("fast" if harness_fast else "full") and "status" not in s
+
+
+def test_the_mlv2_adapter_source_has_no_path_to_a_held_out_run():
+    import ast
+    import inspect
+
+    src = "".join(inspect.getsource(f) for f in (adapters.mlv2, adapters._mlv2_recorded))
+    names = {n.id for n in ast.walk(ast.parse(src)) if isinstance(n, ast.Name)} | {n.attr for n in ast.walk(ast.parse(src)) if isinstance(n, ast.Attribute)}
+    assert not names & {"run_hazard_part", "run_genome_part", "run_mismatch_part", "run_heldout", "heldout_main"} and "mlv2.run" not in src.replace("understudy_engine.mlv2.run`", "")

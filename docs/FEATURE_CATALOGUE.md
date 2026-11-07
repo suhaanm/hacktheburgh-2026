@@ -33,7 +33,7 @@ Watch how people work, show where a novice loses time against an expert, coach o
 |---|---|---|
 | On-device awareness | Cursor dwell, rhythm, app kind: nothing leaves the Mac | building |
 | Triggered and periodic glances | One downscaled frame to Gemini on a trigger, or every ~30 s if opted in; never stored; denylist; ledger | building |
-| Gemini + OpenAI + local + ElevenLabs routing | Each role gets the measured best model; code decides; fallbacks | building (bake-off pending) |
+| Gemini + local + ElevenLabs routing (OpenAI revoked, D49) | Every model role runs on Gemini by default (planner accurate, fast roles flash-lite, computer use accurate or its own model); local Qwen for private digests; ElevenLabs for fixed spoken lines; OpenAI is an explicit opt-in only | built; live boot check and tiny planner and fast calls pass; computer use on Gemini needs its own dev iterations |
 | Independent verifier | A second model family checks agent runs | building |
 | Live voice | Hold to talk, sees the screen, points | proposed (phase D) |
 
@@ -43,7 +43,7 @@ Watch how people work, show where a novice loses time against an expert, coach o
 | Benefits-processing agent | Three calculators, cliff check, reconcile, case note, real gate on the real submit button | verified | sandbox; 20 of 20 (mock), live clean 18 of 20, 0 false claims |
 | Eight security layers | Injection pause, action classes, approval queue, hash-chained audit, kill flag, no allowlists | verified | red team: 42 attacks plus clean cases (source: evals/report.md, red-team section) |
 | Shadow mode to approval | A routine earns autonomy by matching what the worker does | verified | synthetic |
-| Computer use on the sandbox calculators | A model clicks and types through the same safety layers, with fact handles instead of values | **works in-sample, not held-out**: 3 of 3 development households; held-out clean n = 4: 1 completed, 2 false claims caught by the code check, 1 false gate stop; injected n = 20: 20 of 20 paused at step 0 (text-only evidence). Designed Submit waited for a human in every run | sandbox we wrote, language model, headless browser; gate 35e964049fd0 |
+| Computer use on the sandbox calculators | A model clicks and types through the same safety layers, with fact handles instead of values | **works in-sample, not held-out**: 3 of 3 development households; held-out clean n = 4: 1 completed; in 2 runs the harness accepted wrong calculator B inputs (a drop-down left on its default) and only the evaluation's independent recomputation caught it (the product's completion check would not have); 1 run paused when the goal-check call failed to complete (fails closed); injected n = 20: 20 of 20 paused at step 0 (text-only evidence). Designed Submit waited for a human in every run | sandbox we wrote, language model, headless browser; gate 35e964049fd0 |
 | Computer use on a real desktop | Same, through real clicks | not run; read-only rung R0 ran once (zero events) | owner present for every rung (`evals/agentic/REAL_CLICKS.md`) |
 | Background agents (programming, data, creative) | Parent spawns children in a sandbox, code-verified results | built | synthetic |
 | Overnight automations | Run for experts and novices alike; never change the independence score | built | synthetic |

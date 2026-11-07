@@ -1166,10 +1166,11 @@ def _mlv2_recorded() -> dict[str, Any]:
 
 
 def mlv2(ctx: Ctx) -> dict[str, Any]:
-    """ML v2 (REQ-6). The owner's fast path (dev numbers; never reads held-out or simulated-participant traces) plus the recorded held-out and
-    transfer results from evals/mlv2/results, which the harness reads and never produces. ``fast=True`` always: the full dev run is minutes and is the
-    track's own command."""
-    s = _call_owner(ctx, "mlv2", "mlv2", "understudy_engine.mlv2.evaluate", "evaluate_mlv2", fast=True)
+    """ML v2 (REQ-6). The owner's evaluator in the harness's own mode: ``fast`` only when the caller asked for ``--fast`` (the owner's fast mode is the dev
+    numbers with a not_run scorecard); a normal run uses the full mode, which loads the frozen result files the track recorded under evals/mlv2/results
+    (held-out hazard, genome and mismatch, the transfer result, and the pre-registered decision) and recomputes only the dev numbers. This adapter is
+    read-only on those files: it never calls the held-out runner (``understudy_engine.mlv2.run``), which the track runs once, itself."""
+    s = _call_owner(ctx, "mlv2", "mlv2", "understudy_engine.mlv2.evaluate", "evaluate_mlv2")
     if "status" in s:
         return s
     try:
@@ -1179,8 +1180,8 @@ def mlv2(ctx: Ctx) -> dict[str, Any]:
         return s
     s["recorded"] = {k: v for k, v in rec.items() if k not in ("heldout", "verdicts", "transfer_simulated_participants", "frozen")}
     for k in ("heldout", "verdicts", "transfer_simulated_participants", "frozen"):
-        if k in rec:
-            s[k + "_recorded" if k in s else k] = rec[k]
+        if k in rec and k not in s:                  # the owner's full mode already carries these; fast mode does not
+            s[k] = rec[k]
     return s
 
 

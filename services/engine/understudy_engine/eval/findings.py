@@ -5,6 +5,8 @@
 3. ML v2 transfer (M5): neither v1 nor v2 transfers to the simulated participants' floor-bound behaviour.
 4. REALISM genome (benefits-processor): deficit detection precision and recall fall on the harder generator families, and false attribution rises.
 5. REALISM routines (benefits-processor, with the two thin roles): the repeat finder's raw precision and recall depend on the generator; the gate is what keeps proposals precise.
+6. ML v2 genome families: E4 and Q1, the pre-registered primary candidates, are rejected on the held-out cohort (harmful: more error than v1's attribution).
+7. ML v2 under generator mismatch: the plain time-since-progress baseline beats v1, and by more than the accepted v2 (A4) does.
 
 Each finding has an origin badge, the sections it comes from, a plain sentence block, and its numbers. A finding whose source has no numbers yet is
 returned with ``status: "pending"`` and says why, so it is never silently absent.
@@ -223,5 +225,62 @@ def m5_finding(sections: dict[str, Any]) -> dict[str, Any]:
                         "source": "evals/mlv2/results/transfer_sim.json"}}
 
 
+def _sg(x: Any, nd: int = 2) -> str:
+    return "n/a" if x is None else f"{x:+.{nd}f}"
+
+
+def _iv(c: Any, nd: int = 2) -> str:
+    return "n/a" if not c or c[0] is None else f"{c[0]:+.{nd}f}, {c[1]:+.{nd}f}"
+
+
+def mlv2_e4_q1_finding(sections: dict[str, Any]) -> dict[str, Any]:
+    base = {"id": "mlv2-e4-q1-rejected", "title": "ML v2 expert-envelope and counterfactual candidates (E4, Q1) are rejected", "origin": "synthetic",
+            "badge": "synthetic (generators we wrote)", "sections": ["mlv2"], "severity": "high"}
+    ml = _ok(sections, "mlv2")
+    rows = {r.get("id"): r for r in (ml or {}).get("verdicts") or [] if isinstance(r, dict) and r.get("family") in ("E", "Q")}
+    if not (rows.get("E4") and rows.get("Q1")):
+        return {**base, "status": "pending", "text": "The held-out genome result for the E and Q families is not recorded yet, so this finding has no numbers.",
+                "reason": "no evals/mlv2/results/heldout_genome.json" if ml is not None else "mlv2 section has no numbers"}
+    gen = (((ml.get("heldout") or {}).get("genome") or {}).get("result") or {})
+    e4, q1, e1 = rows["E4"], rows["Q1"], rows.get("E1")
+    others = ", ".join(f"{k} {r['verdict']} ({_sg(r.get('delta'))} [{_iv(r.get('interval'))}] s)" for k, r in sorted(rows.items()) if k in ("E1", "E2", "E3") and r.get("delta") is not None)
+    text = (f"ML v2 genome families on the held-out apprentice cohort ({gen.get('n_cohorts')} cohorts, {gen.get('n_novices')} novices; synthetic): the pre-registered primary candidates E4 "
+            f"(expert envelope) and Q1 (counterfactual price) are both {e4['verdict']} and so rejected. The primary metric is the mean absolute error, in seconds, of the recovered price of a "
+            f"deficit, paired against v1's attribution, so a positive difference is worse: E4 {_sg(e4['delta'])} [{_iv(e4['interval'])}] s, Q1 {_sg(q1['delta'])} [{_iv(q1['interval'])}] s. "
+            f"Other E variants: {others}. v1's attribution stays the default for these families. Reported as is: the candidates were frozen before the held-out run.")
+    return {**base, "status": "ok", "text": text,
+            "numbers": {"E4": {k: e4.get(k) for k in ("verdict", "delta", "interval", "level")}, "Q1": {k: q1.get(k) for k in ("verdict", "delta", "interval", "level")},
+                        "E1": {k: e1.get(k) for k in ("verdict", "delta", "interval", "level")} if e1 else None, "n_cohorts": gen.get("n_cohorts"), "n_novices": gen.get("n_novices"),
+                        "source": "evals/mlv2/results/heldout_genome.json"}}
+
+
+def mlv2_mismatch_finding(sections: dict[str, Any]) -> dict[str, Any]:
+    base = {"id": "mlv2-tsp-beats-v1-under-mismatch", "title": "Under generator mismatch the time-since-progress baseline beats v1", "origin": "synthetic",
+            "badge": "synthetic (generators we wrote)", "sections": ["mlv2"], "severity": "high"}
+    ml = _ok(sections, "mlv2")
+    roles = ((((ml or {}).get("heldout") or {}).get("mismatch") or {}).get("result") or {}).get("roles") or {}
+    got = {r: (v.get("pooled_off_diagonal") or {}) for r, v in roles.items()}
+    got = {r: p for r, p in got.items() if isinstance(p.get("TSP"), dict) and p["TSP"].get("delta_log_loss") is not None}
+    if not got:
+        return {**base, "status": "pending", "text": "The held-out generator-mismatch result is not recorded yet, so this finding has no numbers.",
+                "reason": "no evals/mlv2/results/heldout_mismatch.json" if ml is not None else "mlv2 section has no numbers"}
+    chosen = ((ml.get("final_decisions") or {}).get("default_v2") or {})
+    per = "; ".join(f"{r} {_sg(p['TSP']['delta_log_loss'], 3)} [{_iv(p['TSP'].get('interval'), 3)}]" for r, p in got.items())
+    deep = got.get("benefits-processor") or {}
+    v2 = chosen.get("benefits-processor")
+    vs = ""
+    if v2 and isinstance(deep.get(v2), dict):
+        vs = (f" The accepted v2 ({v2}) improves on v1 by {_sg(deep[v2]['delta_log_loss'], 3)} [{_iv(deep[v2].get('interval'), 3)}] for benefits-processor under the same test, "
+              "a smaller improvement than the baseline's, so on this test a rule that only counts time since progress does better than the accepted v2 when the generator changes.")
+    text = (f"ML v2 under generator mismatch (fit on one synthetic generator family, test on another; pooled off-diagonal cells; synthetic): the plain time-since-progress baseline beats v1 on log "
+            f"loss, paired against v1 (negative is better; adjusted intervals as recorded): {per}.{vs} The held-out result is reported as is; it is about our generators, not about workers.")
+    return {**base, "status": "ok", "text": text,
+            "numbers": {"time_since_progress_vs_v1_by_role": {r: {"delta_log_loss": p["TSP"]["delta_log_loss"], "interval": p["TSP"].get("interval")} for r, p in got.items()},
+                        "accepted_v2": v2, "accepted_v2_vs_v1_benefits_processor": ({"delta_log_loss": deep[v2]["delta_log_loss"], "interval": deep[v2].get("interval")}
+                                                                                      if v2 and isinstance(deep.get(v2), dict) else None),
+                        "source": "evals/mlv2/results/heldout_mismatch.json"}}
+
+
 def build_findings(sections: dict[str, Any]) -> list[dict[str, Any]]:
-    return [realism_finding(sections), study_sim_finding(sections), m5_finding(sections), genome_finding(sections), routines_finding(sections)]
+    return [realism_finding(sections), study_sim_finding(sections), m5_finding(sections), genome_finding(sections), routines_finding(sections),
+            mlv2_e4_q1_finding(sections), mlv2_mismatch_finding(sections)]

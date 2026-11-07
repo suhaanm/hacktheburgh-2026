@@ -1,8 +1,9 @@
 """get_model_port(): choose the provider from the environment.
 
 UNDERSTUDY_MOCK=1            -> MockProvider (scenario from UNDERSTUDY_MOCK_SCENARIO, default benefits_clean)
-UNDERSTUDY_PROVIDER=gemini   -> GeminiProvider (needs GEMINI_API_KEY and GEMINI_MODEL_FAST / _ACCURATE; flag-gated by the caller)
-otherwise                    -> OpenAIProvider (model ids from OPENAI_MODEL_* env)
+UNDERSTUDY_PROVIDER=gemini   -> GeminiProvider (needs GEMINI_API_KEY and GEMINI_MODEL_FAST / _ACCURATE; the default, D49)
+UNDERSTUDY_PROVIDER=openai   -> OpenAIProvider (explicit opt-in only; model ids from OPENAI_MODEL_* env)
+otherwise                    -> GeminiProvider (D49: the default)
 
 Every remote call that bypasses the runtime still leaves a metadata-only ledger line: the port is ALWAYS returned inside
 `understudy_engine.privacy.direct.LedgeredPort` (one line per call: purpose, model, byte count, never prompt text, page text, images or
@@ -25,6 +26,9 @@ from . import coverage
 from .config import mock_enabled
 from .port import ModelPort
 
+# D49 (owner, 7 Nov 2026): the OpenAI key was revoked and every role moved to Gemini. OpenAI stays in the code as an explicit opt-in
+# (UNDERSTUDY_PROVIDER=openai) and is never the default. Argon (gemini-4-argon) is never configured for any role (see models/config.py).
+DEFAULT_PROVIDER = "gemini"
 _lock = threading.Lock()
 _cache: dict[tuple[str, str], ModelPort] = {}
 
@@ -68,7 +72,7 @@ def _get_raw_port(*, mock: bool | None, scenario: str | None, provider: str | No
         key = ("mock", sc)
         build = lambda: MockProvider(sc)  # noqa: E731
     else:
-        prov = (provider or os.environ.get("UNDERSTUDY_PROVIDER", "").strip() or "openai").lower()
+        prov = (provider or os.environ.get("UNDERSTUDY_PROVIDER", "").strip() or DEFAULT_PROVIDER).lower()
         key = (prov, "")
         if prov == "openai":
             from .openai_provider import OpenAIProvider

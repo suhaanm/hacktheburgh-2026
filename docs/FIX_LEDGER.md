@@ -46,6 +46,9 @@ DESKTOP-2 done and committed (7 Nov ~20:00): legacy-remote gating, awareness, Cu
 ## F. Integration (lead)
 Restart the dev stack on current code (needs the owner's go: the dev agent shows "killed" from the earlier stray kill file and I will not clear it by a back door); set UNDERSTUDY_EXTENSION_ID; flip flags on only after the lead's own end-to-end check; checkpoint commits; README rewrite (it still says the Alongside module list will come later; definition of done needs it, plus how to run and what is new; NARRATIVE agent near the freeze); THIRD_PARTY_NOTICES; CLAIMS.md; README disclosure; `make demo` with wifi off.
 
+## H. Knack (REQ-11, 7 Nov 22:05)
+UX-STRATEGY writes docs/KNACK_UX.md (by 00:15 UTC); KNACK-SHELL builds the brand seam, main window, dock, services lifecycle, corner pill and the unsigned Knack.app on a branch (by 02:00 UTC); implementers per screen group follow from the spec; the lead merges after tests and a look at every screen in light and dark at 1440 by 900 and 390 by 844. Owner answers: logo = packages/design/brand (wire it in), rename every visible string, one app. Owner-only: Apple developer id and notarisation for a signed release; first visible launch together.
+
 ## G. Claims that must be corrected before the freeze (lead; NARRATIVE agent near the freeze)
 - docs/drafts/{DEVPOST,DEV_POST,README.draft,CLAIMS}.md quote the stuck model's v1 headline (0.436 vs 0.509). Add, next to every quote: the edge over time-since-progress falls from 0.071 to 0.008 to 0.015 nats per bin on three harder synthetic generator families, a v1-trained model is worse than that baseline there, and v1 and v2 both fail on the simulated-participant traces (M5). C04 and C05 get the same sentence.
 - The simulated study is a null at the floor (run 4; run 5 pilot stopped): the drafts must say it validated the pipeline and enforcement (zero nudges in post-tests), not that it measured the coach.

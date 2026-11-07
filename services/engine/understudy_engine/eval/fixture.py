@@ -18,8 +18,10 @@ DROP_KEYS = {
     "ski_rental": ("sweep",), "presence": ("summary", "per_persona"), "agent_claims": ("model", "baselines", "operating_point"), "pooling": ("datasets",),
     "redteam": ("layer_contribution", "by_category", "defended_by"),
     "study_power": ("rows", "effects", "grid", "design", "population", "sensitivity", "analysis_fidelity"),
-    "privacy": ("flows", "bucketing", "backstop", "static_guard", "ledger", "negative_controls", "coverage", "image", "layers", "scan_sensitivity", "scan_specificity", "vocabulary_problems"),
+    # the Evidence page's per-layer table reads layers, and the privacy block reads coverage, image, scan_sensitivity, scan_specificity and vocabulary_problems: kept
+    "privacy": ("flows", "bucketing", "backstop", "static_guard", "ledger", "negative_controls"),
 }
+PRIVACY_FIXTURE_KEYS = ("meta", "headline", "by_kind", "layers", "coverage", "image", "scan_sensitivity", "scan_specificity", "vocabulary_problems", "limitations")
 KEEP_KEYS = {  # newer owner sections: only what the page can show
     "git": ("meta", "owner_status", "statement", "habit_recovery", "placebo", "digest_agreement", "limitations"),
     "proactive": ("meta", "worth", "structure", "limitations"),

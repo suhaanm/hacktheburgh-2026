@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-11-07T21:21:04Z",
+  "generated_at": "2026-11-07T21:40:27Z",
   "mock": true,
-  "git_rev": "909788b",
+  "git_rev": "1ce70be",
   "run": {
     "fast": false,
     "seed": 0,
@@ -18,18 +18,18 @@
       "presence": 4.42,
       "routines": 3.9,
       "forecast": 0.43,
-      "agent_claims": 0.59,
+      "agent_claims": 0.6,
       "agent_runs": 0.2,
       "pooling": 2.22,
       "redteam": 7.38,
       "redteam_live": 0.0,
-      "privacy": 19.53,
+      "privacy": 17.79,
       "git": 57.51,
       "proactive": 21.6,
       "calendar": 16.01,
       "localmodel": 1.11,
       "runtime": 0.0,
-      "mlv2": 43.09,
+      "mlv2": 64.56,
       "evidence": 15.56,
       "cue": 33.52,
       "realism": 26.43,
@@ -74,6 +74,34 @@
           "agent_claims"
         ],
         "seconds": 0.6
+      },
+      {
+        "at": "2026-11-07T21:32:13Z",
+        "base_generated_at": "2026-11-07T21:21:04Z",
+        "sections": [
+          "mlv2",
+          "agent_claims"
+        ],
+        "seconds": 63.9
+      },
+      {
+        "at": "2026-11-07T21:34:34Z",
+        "base_generated_at": "2026-11-07T21:32:13Z",
+        "sections": [
+          "mlv2",
+          "agent_claims"
+        ],
+        "seconds": 65.9
+      },
+      {
+        "at": "2026-11-07T21:40:27Z",
+        "base_generated_at": "2026-11-07T21:34:34Z",
+        "sections": [
+          "privacy",
+          "mlv2",
+          "agent_claims"
+        ],
+        "seconds": 83.0
       }
     ]
   },
@@ -776,6 +804,96 @@
         },
         "partial": false,
         "source": "data/eval/realism_blocks/routines_<role>.json"
+      }
+    },
+    {
+      "id": "mlv2-e4-q1-rejected",
+      "title": "ML v2 expert-envelope and counterfactual candidates (E4, Q1) are rejected",
+      "origin": "synthetic",
+      "badge": "synthetic (generators we wrote)",
+      "sections": [
+        "mlv2"
+      ],
+      "severity": "high",
+      "status": "ok",
+      "text": "ML v2 genome families on the held-out apprentice cohort (6 cohorts, 96 novices; synthetic): the pre-registered primary candidates E4 (expert envelope) and Q1 (counterfactual price) are both harmful and so rejected. The primary metric is the mean absolute error, in seconds, of the recovered price of a deficit, paired against v1's attribution, so a positive difference is worse: E4 +3.81 [+2.30, +5.19] s, Q1 +1.17 [+0.44, +1.87] s. Other E variants: E1 accepted (-0.92 [-1.85, -0.21] s), E2 null (+0.00 [+0.00, +0.00] s), E3 harmful (+4.57 [+3.14, +6.01] s). v1's attribution stays the default for these families. Reported as is: the candidates were frozen before the held-out run.",
+      "numbers": {
+        "E4": {
+          "verdict": "harmful",
+          "delta": 3.814656001501011,
+          "interval": [
+            2.3019131793500045,
+            5.19355911831835
+          ],
+          "level": 0.95
+        },
+        "Q1": {
+          "verdict": "harmful",
+          "delta": 1.165727097055679,
+          "interval": [
+            0.44325924081778,
+            1.872545220315501
+          ],
+          "level": 0.95
+        },
+        "E1": {
+          "verdict": "accepted",
+          "delta": -0.9193131363030637,
+          "interval": [
+            -1.8509525055731222,
+            -0.20606487900888057
+          ],
+          "level": 0.9875
+        },
+        "n_cohorts": 6,
+        "n_novices": 96,
+        "source": "evals/mlv2/results/heldout_genome.json"
+      }
+    },
+    {
+      "id": "mlv2-tsp-beats-v1-under-mismatch",
+      "title": "Under generator mismatch the time-since-progress baseline beats v1",
+      "origin": "synthetic",
+      "badge": "synthetic (generators we wrote)",
+      "sections": [
+        "mlv2"
+      ],
+      "severity": "high",
+      "status": "ok",
+      "text": "ML v2 under generator mismatch (fit on one synthetic generator family, test on another; pooled off-diagonal cells; synthetic): the plain time-since-progress baseline beats v1 on log loss, paired against v1 (negative is better; adjusted intervals as recorded): benefits-processor -0.021 [-0.034, -0.010]; data-analyst -0.024 [-0.034, -0.014]; programmer -0.030 [-0.041, -0.019]. The accepted v2 (A4) improves on v1 by -0.014 [-0.019, -0.009] for benefits-processor under the same test, a smaller improvement than the baseline's, so on this test a rule that only counts time since progress does better than the accepted v2 when the generator changes. The held-out result is reported as is; it is about our generators, not about workers.",
+      "numbers": {
+        "time_since_progress_vs_v1_by_role": {
+          "benefits-processor": {
+            "delta_log_loss": -0.021312326494018447,
+            "interval": [
+              -0.03396501526003025,
+              -0.009639762583575231
+            ]
+          },
+          "data-analyst": {
+            "delta_log_loss": -0.02370164166616438,
+            "interval": [
+              -0.03383745581285265,
+              -0.014167347699864365
+            ]
+          },
+          "programmer": {
+            "delta_log_loss": -0.029883598665520966,
+            "interval": [
+              -0.041329579421052524,
+              -0.018579266455660673
+            ]
+          }
+        },
+        "accepted_v2": "A4",
+        "accepted_v2_vs_v1_benefits_processor": {
+          "delta_log_loss": -0.013828145407754974,
+          "interval": [
+            -0.018519112977232865,
+            -0.009413225572730445
+          ]
+        },
+        "source": "evals/mlv2/results/heldout_mismatch.json"
       }
     }
   ],
@@ -8008,7 +8126,7 @@
         "split": "grouped 5-fold (by household)",
         "interval_level": 0.95,
         "note": "How well a claimed success that code has not yet checked can be trusted. Synthetic runs.",
-        "generated_at": "2026-11-07T21:21:04Z"
+        "generated_at": "2026-11-07T21:40:27Z"
       },
       "reliability": [
         {
@@ -8137,7 +8255,7 @@
           "split": "leave-one-household-out; real model on sandbox sites",
           "interval_level": 0.95,
           "note": "real model, tiny n, one family of failures. Sandbox households, real planner; false claims are one family (error pages).",
-          "generated_at": "2026-11-07T21:21:04Z"
+          "generated_at": "2026-11-07T21:40:27Z"
         },
         "source": {
           "file": "data/eval/agent_live_runs.json",
@@ -15739,7 +15857,7 @@
         "split": null,
         "interval_level": 0.95,
         "note": "Synthetic fixtures with planted canaries, a capturing fake model port, an isolated data directory. 8 seeds per flow. Reference flows test the guard; integration flows test a layer's real code. The static-guard file counts and lists follow the code tree at run time, so they change when files are added.",
-        "generated_at": "2026-11-07T20:59:37Z"
+        "generated_at": "2026-11-07T21:40:27Z"
       },
       "headline": {
         "flows": 11,
@@ -17096,7 +17214,7 @@
           }
         ],
         "static_guard": {
-          "provider_endpoint_files": 503,
+          "provider_endpoint_files": 504,
           "provider_endpoint_violations": [],
           "sandbox_claim_files": 59,
           "sandbox_claim_violations": [],
@@ -26733,7 +26851,7 @@
     "mlv2": {
       "label": "Models v2 (REQ-6): pre-registered improvements to detection, comparison and analysis, with honest nulls",
       "plan": "evals/mlv2/PLAN.md",
-      "mode": "fast",
+      "mode": "full",
       "meta": {
         "origin": "synthetic",
         "n": 4,
@@ -26741,7 +26859,7 @@
         "split": "leave-one-person-out on the four v1 personas (dev) and one apprentice cohort (dev); held-out and cross-generator results are listed under heldout",
         "interval_level": 0.95,
         "note": "Dev-labelled numbers are never acceptance evidence. Held-out replicates share our generator. Pre-registered in evals/mlv2/PLAN.md. The live study stays not_run.",
-        "generated_at": "2026-11-07T20:59:37Z"
+        "generated_at": "2026-11-07T21:40:27Z"
       },
       "variants_tried": {
         "A": 7,
@@ -26798,7 +26916,7 @@
               "ece": 0.013741104169023882,
               "delta_log_loss": 5.21299359552696e-05,
               "interval": [
-                -0.0017197994859655674,
+                -0.0023880001250963234,
                 0.002294804619504931
               ],
               "level": 0.99375,
@@ -26830,7 +26948,7 @@
               "ece": 0.011853247175274813,
               "delta_log_loss": -0.0013761597408210036,
               "interval": [
-                -0.005260492834788466,
+                -0.005636979890045968,
                 0.006147742504535592
               ],
               "level": 0.99375,
@@ -26846,7 +26964,7 @@
               "ece": 0.02011061939875615,
               "delta_log_loss": -0.0009335440379948934,
               "interval": [
-                -0.005576138800117425,
+                -0.007184154892331318,
                 0.00615308399833997
               ],
               "level": 0.99375,
@@ -26878,7 +26996,7 @@
               "ece": 0.016515150741156163,
               "delta_log_loss": -0.0017667298028317124,
               "interval": [
-                -0.004893683245527414,
+                -0.005493506117346114,
                 0.0007177595722192565
               ],
               "level": 0.99375,
@@ -26894,7 +27012,7 @@
               "ece": 0.021694100868812818,
               "delta_log_loss": -0.0011876842377746555,
               "interval": [
-                -0.005071216885535967,
+                -0.005832238075545337,
                 0.003189331802617268
               ],
               "level": 0.99375,
@@ -26910,7 +27028,7 @@
               "ece": 0.020960020167921055,
               "delta_log_loss": -0.002131012115260067,
               "interval": [
-                -0.008916847433881603,
+                -0.011326254787143497,
                 0.007060238886717085
               ],
               "level": 0.99375,
@@ -26958,15 +27076,15 @@
               "false_alarms_per_hour": {
                 "value": 1.2115732368896925,
                 "interval": [
-                  0.8584847142049367,
-                  1.4910191433440052
+                  0.8300815892160341,
+                  1.4835164835164836
                 ]
               },
               "detection": {
                 "value": 0.3288590604026846,
                 "interval": [
                   0.2545454545454545,
-                  0.4253393665158371
+                  0.4025974025974026
                 ]
               },
               "budget_met": false,
@@ -26993,8 +27111,8 @@
               "detection": {
                 "value": 0.2751677852348993,
                 "interval": [
-                  0.236078697421981,
-                  0.34841628959276016
+                  0.23582089552238805,
+                  0.32673267326732675
                 ]
               },
               "budget_met": true,
@@ -27002,7 +27120,7 @@
               "overshoot_delta": {
                 "delta": -0.21157323688969254,
                 "interval": [
-                  -0.4910191433440055,
+                  -0.4835164835164836,
                   0.0
                 ],
                 "level": 0.95
@@ -27021,8 +27139,8 @@
               "detection": {
                 "value": 0.24161073825503357,
                 "interval": [
-                  0.19205298013245034,
-                  0.34841628959276016
+                  0.1952941176470588,
+                  0.32673267326732675
                 ]
               },
               "budget_met": true,
@@ -27038,13 +27156,99 @@
               "verdict": "null"
             }
           ],
+          "family_c_on_primary_a": [
+            {
+              "id": "C0",
+              "false_alarms_per_hour": {
+                "value": 1.35623869801085,
+                "interval": [
+                  0.2530311017395888,
+                  2.244134648078885
+                ]
+              },
+              "detection": {
+                "value": 0.37919463087248323,
+                "interval": [
+                  0.23255813953488372,
+                  0.4911242603550296
+                ]
+              },
+              "budget_met": false,
+              "budget_demonstrated": false,
+              "overshoot_delta": {
+                "delta": 0.0,
+                "interval": [
+                  0.0,
+                  0.0
+                ],
+                "level": 0.95
+              },
+              "verdict": "reference"
+            },
+            {
+              "id": "C1",
+              "false_alarms_per_hour": {
+                "value": 1.193490054249548,
+                "interval": [
+                  0.24922118380062305,
+                  1.978021978021978
+                ]
+              },
+              "detection": {
+                "value": 0.37919463087248323,
+                "interval": [
+                  0.25339366515837103,
+                  0.47337278106508873
+                ]
+              },
+              "budget_met": false,
+              "budget_demonstrated": false,
+              "overshoot_delta": {
+                "delta": -0.16274864376130216,
+                "interval": [
+                  -0.28556319407720787,
+                  0.0
+                ],
+                "level": 0.95
+              },
+              "verdict": "null"
+            },
+            {
+              "id": "C2",
+              "false_alarms_per_hour": {
+                "value": 1.2839059674502713,
+                "interval": [
+                  0.2699896157840083,
+                  2.1153846153846154
+                ]
+              },
+              "detection": {
+                "value": 0.3926174496644295,
+                "interval": [
+                  0.25339366515837103,
+                  0.48520710059171596
+                ]
+              },
+              "budget_met": false,
+              "budget_demonstrated": false,
+              "overshoot_delta": {
+                "delta": -0.07233273056057876,
+                "interval": [
+                  -0.16896120150187732,
+                  0.021893814997263394
+                ],
+                "level": 0.975
+              },
+              "verdict": "null"
+            }
+          ],
           "tte": {
             "paired_s60_log_loss": {
               "head_minus_A0_log_loss": {
                 "delta": 0.008392939485007356,
                 "interval": [
-                  -4.0839955067706324e-05,
-                  0.01706699415631452
+                  0.00041546082749688296,
+                  0.017050062451383685
                 ]
               },
               "head_minus_tsp_discrete_log_loss": {
@@ -27055,7 +27259,24 @@
                 ]
               }
             },
-            "c_index": null,
+            "c_index": {
+              "head": {
+                "value": 0.6926514054556465,
+                "interval": [
+                  0.6702716379140462,
+                  0.7150311729972468
+                ],
+                "method": "delete-one-person jackknife, t with 3 df"
+              },
+              "tsp_discrete": {
+                "value": 0.5315043357229142,
+                "interval": [
+                  0.5156779971622648,
+                  0.5473306742835636
+                ],
+                "method": "delete-one-person jackknife, t with 3 df"
+              }
+            },
             "mean_expected_min": 0.9102492706015178
           },
           "controls": {
@@ -27092,7 +27313,7 @@
               "id": "E1",
               "target_abs_error_delta": -2.7505714416503904,
               "interval": [
-                -6.307542865942974,
+                -6.766985184722223,
                 0.0
               ],
               "level": 0.9875,
@@ -27118,10 +27339,10 @@
             },
             {
               "id": "E3",
-              "target_abs_error_delta": 6.371347066121443,
+              "target_abs_error_delta": 6.489132224422481,
               "interval": [
-                1.8487266270428295,
-                11.561992505870293
+                1.1937961318892663,
+                11.134523781415874
               ],
               "level": 0.9875,
               "recall": 0.9459459459459459,
@@ -27132,15 +27353,15 @@
             },
             {
               "id": "E4",
-              "target_abs_error_delta": 3.8131640291107556,
+              "target_abs_error_delta": 4.061905661039055,
               "interval": [
-                -1.0302730066137682,
-                8.537388960014145
+                -1.972496922314167,
+                9.208146417138336
               ],
               "level": 0.95,
               "recall": 0.9594594594594594,
               "precision": 0.922077922077922,
-              "placebo_gap_s": 3.0392988519743085,
+              "placebo_gap_s": 2.956683615921065,
               "guards_ok": false,
               "verdict": "null"
             }
@@ -27162,29 +27383,29 @@
             },
             {
               "id": "Q1",
-              "target_abs_error_delta": 1.4109052865992557,
+              "target_abs_error_delta": 1.4515773868113828,
               "interval": [
-                -0.6300738595269787,
-                3.527238125949973
+                -0.700395935822097,
+                3.653772930321863
               ],
               "level": 0.95,
               "recall": 0.9594594594594594,
               "precision": 0.922077922077922,
-              "placebo_gap_s": 3.036287054259209,
+              "placebo_gap_s": 2.951232628008527,
               "guards_ok": false,
               "verdict": "null"
             },
             {
               "id": "Q1b",
-              "target_abs_error_delta": 1.3017778468897216,
+              "target_abs_error_delta": 1.333030585858065,
               "interval": [
-                -1.198945496352224,
-                3.996485499081951
+                -1.1722485278252635,
+                4.00882707673822
               ],
               "level": 0.975,
               "recall": 0.9594594594594594,
               "precision": 0.922077922077922,
-              "placebo_gap_s": 3.0392988519743085,
+              "placebo_gap_s": 2.956683615921065,
               "guards_ok": false,
               "verdict": "null"
             }
@@ -27194,321 +27415,1021 @@
           "shapley_max_interaction_on_replay": 7.105427357601002e-15,
           "nulls": {
             "E0": {
-              "gap_s": 24.80714848265052,
+              "gap_s": 43.173960940539835,
               "interval": [
-                -23.968457810766996,
-                61.676818031631406
+                -17.482496125623584,
+                107.49549999535083
               ]
             },
             "E1": {
-              "gap_s": 41.84921097755432,
+              "gap_s": 57.59343436956406,
               "interval": [
-                9.184860144369305,
-                62.54345006290823
+                11.524972601979972,
+                107.19572499804197
               ]
             },
             "E2": {
-              "gap_s": 75.41011728160083,
+              "gap_s": 75.25599221624434,
               "interval": [
-                60.29976254124195,
-                103.70998837351799
+                24.943857770599426,
+                147.50536798257374
               ]
             },
             "E3": {
-              "gap_s": 24.80714848265052,
+              "gap_s": 43.173960940539835,
               "interval": [
-                -23.968457810766996,
-                61.676818031631406
+                -17.482496125623584,
+                107.49549999535083
               ]
             },
             "E4": {
-              "gap_s": 76.33208063594066,
+              "gap_s": 76.00884933820926,
               "interval": [
-                59.00082298913039,
-                107.27916700788774
+                24.03961349360179,
+                144.72744506614976
               ]
+            }
+          }
+        },
+        "hazard_dev16": {
+          "pool": "DEV",
+          "n_people": 16,
+          "n_bins": 31791,
+          "inner": "grouped 5-fold within training people",
+          "primary_a": null,
+          "family_a": [
+            {
+              "id": "A0",
+              "label": "v1 logistic (reference)",
+              "log_loss": 0.43860372734708625,
+              "ece": 0.01560221517957539,
+              "delta_log_loss": 0.0,
+              "interval": [
+                0.0,
+                0.0
+              ],
+              "level": 0.95,
+              "false_alarms_per_hour": 0.9502166039343797,
+              "detection": 0.32115249472944485,
+              "guards_ok": true,
+              "verdict": "reference"
+            },
+            {
+              "id": "A1",
+              "label": "logistic + Platt",
+              "log_loss": 0.43859889043341516,
+              "ece": 0.01651843732692588,
+              "delta_log_loss": -4.836913671091292e-06,
+              "interval": [
+                -6.61966229254022e-05,
+                5.581524791556259e-05
+              ],
+              "level": 0.99375,
+              "false_alarms_per_hour": 0.9502166039343797,
+              "detection": 0.32115249472944485,
+              "guards_ok": true,
+              "verdict": "null"
+            },
+            {
+              "id": "A2",
+              "label": "logistic + isotonic",
+              "log_loss": 0.43673843602006784,
+              "ece": 0.003473905712939407,
+              "delta_log_loss": -0.0018652913270184035,
+              "interval": [
+                -0.0033511372483887372,
+                8.441073437951527e-05
+              ],
+              "level": 0.99375,
+              "false_alarms_per_hour": 0.9587387259427598,
+              "detection": 0.3141250878425861,
+              "guards_ok": true,
+              "verdict": "null"
+            },
+            {
+              "id": "A3",
+              "label": "gradient boosting (monotone)",
+              "log_loss": 0.43725896805822395,
+              "ece": 0.019756224219525272,
+              "delta_log_loss": -0.0013447592888622961,
+              "interval": [
+                -0.0036837223408197894,
+                0.001067733725976139
+              ],
+              "level": 0.99375,
+              "false_alarms_per_hour": 0.9502166039343797,
+              "detection": 0.3394237526352776,
+              "guards_ok": false,
+              "verdict": "null"
+            },
+            {
+              "id": "A4",
+              "label": "gradient boosting + Platt",
+              "log_loss": 0.43560050760564245,
+              "ece": 0.0167521349266406,
+              "delta_log_loss": -0.0030032197414437967,
+              "interval": [
+                -0.005914202739016452,
+                -0.00032240995212421927
+              ],
+              "level": 0.99375,
+              "false_alarms_per_hour": 0.9502166039343797,
+              "detection": 0.3394237526352776,
+              "guards_ok": false,
+              "verdict": "null"
+            },
+            {
+              "id": "A5",
+              "label": "gradient boosting + isotonic",
+              "log_loss": 0.435157651233513,
+              "ece": 0.005028864257669234,
+              "delta_log_loss": -0.0034460761135732265,
+              "interval": [
+                -0.006201878315702759,
+                -0.0007116873897776566
+              ],
+              "level": 0.99375,
+              "false_alarms_per_hour": 0.42184503941481427,
+              "detection": 0.2733661278988053,
+              "guards_ok": false,
+              "verdict": "null"
+            },
+            {
+              "id": "A6",
+              "label": "logistic + personal prior shift (partial pooling)",
+              "log_loss": 0.4377422602524346,
+              "ece": 0.01488736067593507,
+              "delta_log_loss": -0.0008614670946516245,
+              "interval": [
+                -0.002551371270040403,
+                0.0004948257989543861
+              ],
+              "level": 0.99375,
+              "false_alarms_per_hour": 0.9757829699595199,
+              "detection": 0.32677442023893183,
+              "guards_ok": true,
+              "verdict": "null"
+            },
+            {
+              "id": "A7_A1",
+              "label": "A1 + personal prior shift",
+              "log_loss": 0.43776297659471763,
+              "ece": 0.0154362198814695,
+              "delta_log_loss": -0.0008407507523686131,
+              "interval": [
+                -0.0025533842709590414,
+                0.0005485140919792813
+              ],
+              "level": 0.99375,
+              "false_alarms_per_hour": 0.9757829699595199,
+              "detection": 0.3274771609276177,
+              "guards_ok": true,
+              "verdict": "null"
+            },
+            {
+              "id": "A7_A4",
+              "label": "A4 + personal prior shift",
+              "log_loss": 0.43489784841172285,
+              "ece": 0.015340452046282316,
+              "delta_log_loss": -0.0037058789353633936,
+              "interval": [
+                -0.007415262755035878,
+                -0.0005984665264895348
+              ],
+              "level": 0.99375,
+              "false_alarms_per_hour": 0.9715219089553299,
+              "detection": 0.33801827125790584,
+              "guards_ok": false,
+              "verdict": "null"
+            },
+            {
+              "id": "TSP",
+              "label": "time since progress only",
+              "log_loss": 0.5203589086104828,
+              "ece": 0.00331216001311065,
+              "delta_log_loss": 0.08175518126339659,
+              "interval": [
+                0.07618155472619226,
+                0.0873250124878566
+              ],
+              "level": 0.95,
+              "false_alarms_per_hour": 0.8649953838505787,
+              "detection": 0.20238931834153198,
+              "guards_ok": false,
+              "verdict": "harmful"
+            },
+            {
+              "id": "BASE",
+              "label": "training base rate",
+              "log_loss": 0.5214565102148943,
+              "ece": 6.132526077623401e-07,
+              "delta_log_loss": 0.082852782867808,
+              "interval": [
+                0.077178582609046,
+                0.08863316870523218
+              ],
+              "level": 0.95,
+              "false_alarms_per_hour": 0.0,
+              "detection": 0.0,
+              "guards_ok": false,
+              "verdict": "harmful"
+            }
+          ],
+          "family_c_on_A0": [
+            {
+              "id": "C0",
+              "false_alarms_per_hour": {
+                "value": 0.9502166039343797,
+                "interval": [
+                  0.8034892649869213,
+                  1.12313578964867
+                ]
+              },
+              "detection": {
+                "value": 0.32115249472944485,
+                "interval": [
+                  0.2897752803640449,
+                  0.3641414929057776
+                ]
+              },
+              "budget_met": true,
+              "budget_demonstrated": false,
+              "overshoot_delta": {
+                "delta": 0.0,
+                "interval": [
+                  0.0,
+                  0.0
+                ],
+                "level": 0.95
+              },
+              "verdict": "reference"
+            },
+            {
+              "id": "C1",
+              "false_alarms_per_hour": {
+                "value": 0.8607343228463887,
+                "interval": [
+                  0.7145362467764039,
+                  1.02372590880035
+                ]
+              },
+              "detection": {
+                "value": 0.3049894588896697,
+                "interval": [
+                  0.270458908463599,
+                  0.35126592783303057
+                ]
+              },
+              "budget_met": true,
+              "budget_demonstrated": false,
+              "overshoot_delta": {
+                "delta": 0.0,
+                "interval": [
+                  -0.10055438393188004,
+                  0.0
+                ],
+                "level": 0.95
+              },
+              "verdict": "null"
+            },
+            {
+              "id": "C2",
+              "false_alarms_per_hour": {
+                "value": 0.8607343228463887,
+                "interval": [
+                  0.7145362467764039,
+                  1.02372590880035
+                ]
+              },
+              "detection": {
+                "value": 0.3049894588896697,
+                "interval": [
+                  0.270458908463599,
+                  0.35126592783303057
+                ]
+              },
+              "budget_met": true,
+              "budget_demonstrated": false,
+              "overshoot_delta": {
+                "delta": 0.0,
+                "interval": [
+                  -0.11752235832001028,
+                  0.0
+                ],
+                "level": 0.975
+              },
+              "verdict": "null"
+            }
+          ],
+          "family_c_on_primary_a": [
+            {
+              "id": "C0",
+              "false_alarms_per_hour": {
+                "value": 0.9715219089553299,
+                "interval": [
+                  0.7557115926581806,
+                  1.1905968846024169
+                ]
+              },
+              "detection": {
+                "value": 0.33801827125790584,
+                "interval": [
+                  0.30368019793112716,
+                  0.37630978016100886
+                ]
+              },
+              "budget_met": true,
+              "budget_demonstrated": false,
+              "overshoot_delta": {
+                "delta": 0.0,
+                "interval": [
+                  0.0,
+                  0.0
+                ],
+                "level": 0.95
+              },
+              "verdict": "reference"
+            },
+            {
+              "id": "C1",
+              "false_alarms_per_hour": {
+                "value": 0.7456856757332576,
+                "interval": [
+                  0.5932620420468447,
+                  0.8905378652759208
+                ]
+              },
+              "detection": {
+                "value": 0.3106113843991567,
+                "interval": [
+                  0.2772539091137883,
+                  0.3514812507836071
+                ]
+              },
+              "budget_met": true,
+              "budget_demonstrated": true,
+              "overshoot_delta": {
+                "delta": 0.0,
+                "interval": [
+                  -0.19059688460241675,
+                  0.0
+                ],
+                "level": 0.95
+              },
+              "verdict": "null"
+            },
+            {
+              "id": "C2",
+              "false_alarms_per_hour": {
+                "value": 0.7456856757332576,
+                "interval": [
+                  0.5932620420468447,
+                  0.8905378652759208
+                ]
+              },
+              "detection": {
+                "value": 0.3106113843991567,
+                "interval": [
+                  0.2772539091137883,
+                  0.3514812507836071
+                ]
+              },
+              "budget_met": true,
+              "budget_demonstrated": true,
+              "overshoot_delta": {
+                "delta": 0.0,
+                "interval": [
+                  -0.22134819020806476,
+                  0.0
+                ],
+                "level": 0.975
+              },
+              "verdict": "null"
+            }
+          ],
+          "tte": {
+            "paired_s60_log_loss": {
+              "head_minus_A0_log_loss": {
+                "delta": 0.005720785806787143,
+                "interval": [
+                  0.004092389271225349,
+                  0.007380840748535138
+                ]
+              },
+              "head_minus_tsp_discrete_log_loss": {
+                "delta": -0.07618954512871728,
+                "interval": [
+                  -0.0810954127662386,
+                  -0.07150856629125468
+                ]
+              }
+            },
+            "c_index": {
+              "head": {
+                "value": 0.6965873375837036,
+                "interval": [
+                  0.6904410337861927,
+                  0.7027336413812145
+                ],
+                "method": "delete-one-person jackknife, t with 15 df"
+              },
+              "tsp_discrete": {
+                "value": 0.5292667356127432,
+                "interval": [
+                  0.5248135377370126,
+                  0.5337199334884738
+                ],
+                "method": "delete-one-person jackknife, t with 15 df"
+              }
+            },
+            "mean_expected_min": 0.9327154027418767
+          },
+          "controls": {
+            "shuffle_global": {
+              "all_pass": true,
+              "role": "control"
+            },
+            "shuffle_person": {
+              "all_pass": true,
+              "role": "diagnostic (keeps each person's own stuck rate)"
+            }
+          },
+          "ablation": {
+            "primary_label": {
+              "with:cursor": {
+                "delta_log_loss": -0.001425631903754776,
+                "interval": [
+                  -0.0019626193937427663,
+                  -0.0008245202668876128
+                ],
+                "improves": true
+              },
+              "placebo:cursor": {
+                "delta_log_loss": 0.0001215919928744813,
+                "interval": [
+                  -0.00013480909645027092,
+                  0.0003749798882225304
+                ],
+                "improves": false
+              },
+              "with:app_kind": {
+                "delta_log_loss": 8.510331045874509e-06,
+                "interval": [
+                  -0.00019814648074269184,
+                  0.0002103850081815765
+                ],
+                "improves": false
+              },
+              "placebo:app_kind": {
+                "delta_log_loss": 6.800988786043183e-05,
+                "interval": [
+                  -7.139483140767564e-05,
+                  0.00024493845715789356
+                ],
+                "improves": false
+              },
+              "with:glance": {
+                "delta_log_loss": 3.0110959837459372e-05,
+                "interval": [
+                  -0.0002173770812028991,
+                  0.00032337455933101014
+                ],
+                "improves": false
+              },
+              "placebo:glance": {
+                "delta_log_loss": 0.0001432160272005767,
+                "interval": [
+                  -7.569546756233667e-05,
+                  0.0003741313346377963
+                ],
+                "improves": false
+              },
+              "with:all": {
+                "delta_log_loss": -0.0014543960474805995,
+                "interval": [
+                  -0.001972123845512759,
+                  -0.000918118619296503
+                ],
+                "improves": true
+              },
+              "placebo:all": {
+                "delta_log_loss": 0.00031428705171798743,
+                "interval": [
+                  -6.782545763024654e-06,
+                  0.000647475986757513
+                ],
+                "improves": false
+              },
+              "control:noise": {
+                "delta_log_loss": 0.00044424796642861253,
+                "interval": [
+                  0.0001086023595484377,
+                  0.0007546202478826062
+                ],
+                "improves": false
+              },
+              "controls_ok": true
+            },
+            "planted_label_supplementary": {
+              "with:cursor": {
+                "delta_log_loss": -0.019465841608928752,
+                "interval": [
+                  -0.02219629437187579,
+                  -0.01702708399977119
+                ],
+                "improves": true
+              },
+              "placebo:cursor": {
+                "delta_log_loss": 0.00011270567250981633,
+                "interval": [
+                  -9.330579013811786e-05,
+                  0.00033995884571586665
+                ],
+                "improves": false
+              },
+              "with:app_kind": {
+                "delta_log_loss": 0.0001186568304782365,
+                "interval": [
+                  -3.871151858861748e-05,
+                  0.0002942416252527959
+                ],
+                "improves": false
+              },
+              "placebo:app_kind": {
+                "delta_log_loss": 0.00010647453766354786,
+                "interval": [
+                  1.5087246559372663e-05,
+                  0.000187267466652391
+                ],
+                "improves": false
+              },
+              "with:glance": {
+                "delta_log_loss": -0.0056339967665194335,
+                "interval": [
+                  -0.006195369472357601,
+                  -0.005104471797836118
+                ],
+                "improves": true
+              },
+              "placebo:glance": {
+                "delta_log_loss": -1.5993300125416443e-05,
+                "interval": [
+                  -0.00021915894033105313,
+                  0.0001850707565562798
+                ],
+                "improves": false
+              },
+              "with:all": {
+                "delta_log_loss": -0.020472928165175402,
+                "interval": [
+                  -0.023414176678512793,
+                  -0.01784013952228365
+                ],
+                "improves": true
+              },
+              "placebo:all": {
+                "delta_log_loss": 0.0002813393338393366,
+                "interval": [
+                  1.470440029626853e-05,
+                  0.0005214344730159449
+                ],
+                "improves": false
+              },
+              "control:noise": {
+                "delta_log_loss": 0.0005631714333268478,
+                "interval": [
+                  0.00023350995212240296,
+                  0.0009230817624762244
+                ],
+                "improves": false
+              },
+              "controls_ok": true
             }
           }
         }
       },
-      "stated_gaps": [
-        "Not run, for time and compute: the time-to-event head under generator mismatch, and the expert-envelope and counterfactual families (E, Q) under generator mismatch. These are gaps, not negative results."
-      ],
-      "scorecard": {
-        "meta": {
-          "origin": "synthetic",
-          "n": 4,
-          "n_unit": "people",
-          "split": "leave-one-person-out within the pool",
-          "pool": "D0 (dev), not held-out",
-          "interval_level": 0.95,
-          "generated_at": "2026-11-07T20:59:37Z"
+      "transfer_simulated_participants": {
+        "badge": "simulated participants (language model), not people",
+        "origin": "simulated_participants",
+        "test_only": true,
+        "n_participants_finished": 24,
+        "participants_skipped": {},
+        "n_events": 7334,
+        "n_progress_events": 152,
+        "n_coach_events": 24,
+        "timing": "measured (engine event timestamps)",
+        "arms": {
+          "aa": [
+            "p_sim05",
+            "p_sim06",
+            "p_sim07",
+            "p_sim08",
+            "p_sim13",
+            "p_sim14",
+            "p_sim15",
+            "p_sim16"
+          ],
+          "coached": [
+            "p_sim01",
+            "p_sim02",
+            "p_sim03",
+            "p_sim04",
+            "p_sim09",
+            "p_sim10",
+            "p_sim11",
+            "p_sim12",
+            "p_sim17",
+            "p_sim18",
+            "p_sim19",
+            "p_sim20",
+            "p_sim21",
+            "p_sim22",
+            "p_sim23",
+            "p_sim24"
+          ]
         },
-        "accepted": false,
-        "verdict": "not_run",
-        "model_version_shown_as_default": "v1",
-        "primary_id": "A7_A4",
-        "primary_label": "A4 + personal prior shift",
-        "model": {
-          "log_loss": {
-            "value": 0.4342761305091866,
-            "ci": [
-              0.41143747184693796,
-              0.4559547706922125
-            ]
-          },
-          "brier": {
-            "value": 0.13908982802389283,
-            "ci": [
-              0.13074097246254934,
-              0.14685348153178307
-            ]
-          },
-          "ece": {
-            "value": 0.020960020167921055,
-            "ci": [
-              0.018361418351762648,
-              0.04011587826222219
-            ]
-          },
-          "false_alarms_per_hour": {
-            "value": 1.35623869801085,
-            "ci": [
-              0.2530311017395888,
-              2.244134648078885
-            ]
-          },
-          "detection_rate": {
-            "value": 0.37919463087248323,
-            "ci": [
-              0.23255813953488372,
-              0.4911242603550296
-            ]
-          }
+        "genome_comparison": "not applicable: the simulated participants are all novices; there is no expert reference in these data",
+        "train": {
+          "pool": "synthetic personas only",
+          "n_people": 16,
+          "n_bins": 31791
         },
-        "baselines": {
-          "base_rate": {
+        "n_unit": "participants",
+        "n": 24,
+        "n_cases": 89,
+        "n_bins": 419,
+        "label_rate": 0.6467780429594272,
+        "bins_per_participant": {
+          "min": 7,
+          "median": 17.0,
+          "max": 32
+        },
+        "interval_level": 0.95,
+        "split": "train on synthetic personas, test on simulated participants (no tuning)",
+        "models": {
+          "v1": {
             "log_loss": {
-              "value": 0.5094758468534154,
-              "ci": [
-                0.476066859706185,
-                0.5344293031360542
+              "value": 1.4276053675937235,
+              "interval": [
+                1.2510465474427312,
+                1.5965987750145
               ]
             },
             "brier": {
-              "value": 0.1637960444386187,
-              "ci": [
-                0.14924711148685255,
-                0.1746280506183814
+              "value": 0.48375973012990914,
+              "interval": [
+                0.43235209232753646,
+                0.531579247842759
               ]
             },
             "ece": {
-              "value": 0.020588785846492468,
-              "ci": [
-                0.0016408518649651913,
-                0.03741323805287593
+              "value": 0.5095891256992567,
+              "interval": [
+                0.45194368166106735,
+                0.5720097071822094
               ]
             },
-            "false_alarms_per_hour": {
-              "value": 0.0,
-              "ci": [
-                0.0,
-                0.0
-              ]
-            },
-            "detection_rate": {
-              "value": 0.0,
-              "ci": [
-                0.0,
-                0.0
+            "auc": {
+              "value": 0.6239403610252319,
+              "interval": [
+                0.5330972724367036,
+                0.7210126545165045
               ]
             }
           },
           "time_since_progress": {
             "log_loss": {
-              "value": 0.5085573340214242,
-              "ci": [
-                0.47518286606106536,
-                0.5340488879736881
+              "value": 1.069004850931559,
+              "interval": [
+                0.9994278357180706,
+                1.135134845436454
               ]
             },
             "brier": {
-              "value": 0.16350324296694635,
-              "ci": [
-                0.14901977738671335,
-                0.17446440819812012
+              "value": 0.4099151186661789,
+              "interval": [
+                0.37873004314910724,
+                0.4391948574439027
               ]
             },
             "ece": {
-              "value": 0.0026879357169158494,
-              "ci": [
-                0.0026879357169158494,
-                0.032050891150710054
+              "value": 0.4262616043152223,
+              "interval": [
+                0.3671692487079357,
+                0.4802184470770166
               ]
             },
-            "false_alarms_per_hour": {
-              "value": 0.488245931283906,
-              "ci": [
-                0.20106586596798312,
-                0.9107336465486088
-              ]
-            },
-            "detection_rate": {
-              "value": 0.0738255033557047,
-              "ci": [
-                0.04641363114655071,
-                0.1188118811881188
+            "auc": {
+              "value": 0.5032038496060637,
+              "interval": [
+                0.437676714133589,
+                0.5651077157514973
               ]
             }
           },
-          "v1": {
+          "base_rate": {
             "log_loss": {
-              "value": 0.4364071426244467,
-              "ci": [
-                0.4073958678237838,
-                0.4601891386533594
+              "value": 1.0781575074347418,
+              "interval": [
+                0.9987430127174275,
+                1.1502088844450387
               ]
             },
             "brier": {
-              "value": 0.14000056334727543,
-              "ci": [
-                0.12924481828509354,
-                0.1488895966450199
+              "value": 0.4143744976153103,
+              "interval": [
+                0.37939892285319204,
+                0.44610722263367875
               ]
             },
             "ece": {
-              "value": 0.015170681571797011,
-              "ci": [
-                0.01257486350969431,
-                0.034997064388824405
+              "value": 0.431182434139321,
+              "interval": [
+                0.36969327320017903,
+                0.4869704704750479
               ]
             },
-            "false_alarms_per_hour": {
-              "value": 1.2115732368896925,
-              "ci": [
-                0.8584847142049367,
-                1.4910191433440052
+            "auc": {
+              "value": 0.5,
+              "interval": [
+                0.5,
+                0.5
+              ]
+            }
+          },
+          "v2": {
+            "log_loss": {
+              "value": 1.4580065040596069,
+              "interval": [
+                1.3059490043112374,
+                1.6106973365308108
               ]
             },
-            "detection_rate": {
-              "value": 0.3288590604026846,
-              "ci": [
-                0.2545454545454545,
-                0.4253393665158371
+            "brier": {
+              "value": 0.492388787037029,
+              "interval": [
+                0.44380264511736406,
+                0.5384591213978119
+              ]
+            },
+            "ece": {
+              "value": 0.5290763260106589,
+              "interval": [
+                0.46944320346375473,
+                0.5848010927337293
+              ]
+            },
+            "auc": {
+              "value": 0.6945123167447891,
+              "interval": [
+                0.6185130147875018,
+                0.7717054605933283
               ]
             }
           }
         },
-        "calibration": [],
-        "calibration_source": "not computed in fast mode",
-        "false_alarms_per_hour": {
-          "value": 1.35623869801085,
-          "ci": [
-            0.2530311017395888,
-            2.244134648078885
-          ]
+        "mean_prediction": {
+          "v1": 0.14011334781498933,
+          "time_since_progress": 0.22051643864420484,
+          "base_rate": 0.2155956088201063,
+          "v2": 0.1220446615116794
         },
-        "budget_per_hour": 1.0,
-        "within_budget": false,
-        "detection_rate": {
-          "value": 0.37919463087248323,
-          "ci": [
-            0.23255813953488372,
-            0.4911242603550296
-          ]
-        },
-        "tte": {
-          "c_index": {
-            "value": null,
-            "ci": null
+        "train_label_rate": 0.2155956088201063,
+        "paired_log_loss": {
+          "v1_minus_base_rate": {
+            "delta": 0.34944786015898166,
+            "interval": [
+              0.2355217134004381,
+              0.4693354368790811
+            ]
           },
-          "calibration": [
+          "v1_minus_time_since_progress": {
+            "delta": 0.3586005166621644,
+            "interval": [
+              0.23004634926055323,
+              0.5001483926867489
+            ]
+          },
+          "v2_minus_v1": {
+            "delta": 0.030401136465883383,
+            "interval": [
+              -0.030159824332283428,
+              0.08523357248322569
+            ]
+          },
+          "v2_minus_base_rate": {
+            "delta": 0.37984899662486504,
+            "interval": [
+              0.28818816782706147,
+              0.47220108854293086
+            ]
+          }
+        },
+        "calibration": {
+          "v1": [
             {
-              "n": 1476,
-              "predicted_min": 0.611190967113369,
-              "observed_km_min": 0.307368689753621
+              "p_mean": 0.05932374968843309,
+              "freq": 0.6448598130841121,
+              "n": 107,
+              "lo": 0.0,
+              "hi": 0.1
             },
             {
-              "n": 1475,
-              "predicted_min": 0.7251763450109934,
-              "observed_km_min": 0.4251899510864812
+              "p_mean": 0.12502611937516053,
+              "freq": 0.5900900900900901,
+              "n": 222,
+              "lo": 0.1,
+              "hi": 0.2
             },
             {
-              "n": 1475,
-              "predicted_min": 0.8582573450771748,
-              "observed_km_min": 0.6248644485410659
+              "p_mean": 0.23408481877921683,
+              "freq": 0.8857142857142857,
+              "n": 70,
+              "lo": 0.2,
+              "hi": 0.3
             },
             {
-              "n": 1475,
-              "predicted_min": 1.015979162441461,
-              "observed_km_min": 0.8259402982011822
+              "p_mean": 0.3460359615173449,
+              "freq": 0.4166666666666667,
+              "n": 12,
+              "lo": 0.3,
+              "hi": 0.4
             },
             {
-              "n": 1475,
-              "predicted_min": 1.3408452847567867,
-              "observed_km_min": 1.018006275052077
+              "p_mean": 0.42988760645925017,
+              "freq": 0.5,
+              "n": 4,
+              "lo": 0.4,
+              "hi": 0.5
+            },
+            {
+              "p_mean": 0.5778218455692284,
+              "freq": 0.6666666666666666,
+              "n": 3,
+              "lo": 0.5,
+              "hi": 0.6
+            },
+            {
+              "p_mean": 0.6126682012345458,
+              "freq": 0.0,
+              "n": 1,
+              "lo": 0.6,
+              "hi": 0.7
             }
           ],
-          "mean_expected_min": 0.9102492706015178,
-          "km_restricted_mean_min": 0.6399127125959626
+          "v2": [
+            {
+              "p_mean": 0.05593097613323947,
+              "freq": 0.4392523364485981,
+              "n": 214,
+              "lo": 0.0,
+              "hi": 0.1
+            },
+            {
+              "p_mean": 0.13587471815202762,
+              "freq": 0.9402985074626866,
+              "n": 134,
+              "lo": 0.1,
+              "hi": 0.2
+            },
+            {
+              "p_mean": 0.23771309131135931,
+              "freq": 0.7441860465116279,
+              "n": 43,
+              "lo": 0.2,
+              "hi": 0.3
+            },
+            {
+              "p_mean": 0.3512305207620218,
+              "freq": 0.6956521739130435,
+              "n": 23,
+              "lo": 0.3,
+              "hi": 0.4
+            },
+            {
+              "p_mean": 0.45492344296493203,
+              "freq": 0.0,
+              "n": 2,
+              "lo": 0.4,
+              "hi": 0.5
+            },
+            {
+              "p_mean": 0.5372339873625736,
+              "freq": 1.0,
+              "n": 1,
+              "lo": 0.5,
+              "hi": 0.6
+            },
+            {
+              "p_mean": 0.6066131356506643,
+              "freq": 1.0,
+              "n": 2,
+              "lo": 0.6,
+              "hi": 0.7
+            }
+          ]
+        },
+        "alarm_rules": {
+          "v1_probabilities_v1_rule_C0": {
+            "threshold": 0.4232680921719685,
+            "confirm_bins": 2,
+            "n_stuck_events": 66.0,
+            "false_alarms_per_hour": {
+              "value": 0.0,
+              "interval": [
+                0.0,
+                0.0
+              ]
+            },
+            "detection": {
+              "value": 0.015151515151515152,
+              "interval": [
+                0.0,
+                0.04918032786885246
+              ]
+            },
+            "non_event_hours": 1.3416666666666666
+          },
+          "v1_probabilities_risk_controlled_C1": {
+            "threshold": 0.4350489688551407,
+            "confirm_bins": 2,
+            "n_stuck_events": 66.0,
+            "false_alarms_per_hour": {
+              "value": 0.0,
+              "interval": [
+                0.0,
+                0.0
+              ]
+            },
+            "detection": {
+              "value": 0.015151515151515152,
+              "interval": [
+                0.0,
+                0.04918032786885246
+              ]
+            },
+            "non_event_hours": 1.3416666666666666
+          },
+          "v2_probabilities_v1_rule_C0": {
+            "threshold": 0.4866650903715253,
+            "confirm_bins": 2,
+            "n_stuck_events": 66.0,
+            "false_alarms_per_hour": {
+              "value": 0.0,
+              "interval": [
+                0.0,
+                0.0
+              ]
+            },
+            "detection": {
+              "value": 0.015151515151515152,
+              "interval": [
+                0.0,
+                0.04918032786885246
+              ]
+            },
+            "non_event_hours": 1.3416666666666666
+          }
         },
         "caveats": [
-          "Synthetic people from our own generator; held-out replicates share the generator, so this cannot show the model avoided learning it.",
-          "If accepted is false, v1 stays the default and the v2 numbers are those of a candidate that did not pass its pre-registered test.",
-          "The calibration bins carry Wilson intervals that treat bins as independent; the person-level uncertainty is wider.",
-          "False alarms an hour are measured against a budget of 1.0 chosen by us, not a measured tolerance of real workers."
+          "simulated participants (language model), not people. Not people, not the live study.",
+          "Progress events are sparse in these traces, so the label ('no progress in the next 60 s') is almost always 1: log loss against the base rate says little, and a model can look good or bad for that reason alone.",
+          "Cases are short (about a minute or two), so each participant contributes a handful of 30 s bins.",
+          "Nothing was tuned on these traces; the models and alarm rules were fitted on synthetic personas before any of these numbers existed.",
+          "Participants are language models acting in a sandbox we built, under a coach we built; this tests transfer to a different behaviour generator, not to real work."
+        ],
+        "status": "ok",
+        "frozen": {
+          "a7_base": "A7_A4",
+          "primary_a": "A7",
+          "frozen_at": "2026-11-07T18:40:44Z"
+        },
+        "finished_participants": [
+          "p_sim01",
+          "p_sim02",
+          "p_sim03",
+          "p_sim04",
+          "p_sim05",
+          "p_sim06",
+          "p_sim07",
+          "p_sim08",
+          "p_sim09",
+          "p_sim10",
+          "p_sim11",
+          "p_sim12",
+          "p_sim13",
+          "p_sim14",
+          "p_sim15",
+          "p_sim16",
+          "p_sim17",
+          "p_sim18",
+          "p_sim19",
+          "p_sim20",
+          "p_sim21",
+          "p_sim22",
+          "p_sim23",
+          "p_sim24"
         ]
-      },
-      "caveats": [
-        "Stated gaps: the time-to-event head and families E and Q were not run under generator mismatch (compute and time); a gap is not a negative result.",
-        "Dev numbers are for debugging and for choosing each family's primary candidate; the pre-registered decision uses the held-out run only.",
-        "A variant that fails its acceptance rule is a null result and v1 stays the default.",
-        "Synthetic origin: results show the pipeline recovers planted structure, not that real people behave this way."
-      ],
-      "limitations": [
-        {
-          "id": "mlv2-synthetic",
-          "severity": "high",
-          "text": "Every number in this section comes from synthetic people or simulated participants (language model), not people. A gain on synthetic data can be the model learning the generator; held-out replicates share the generator and cannot rule that out."
-        },
-        {
-          "id": "mlv2-heldout-same-generator",
-          "severity": "high",
-          "text": "The held-out persona and apprentice replicates are fresh seeds of the same generators: they catch overfitting to one noise draw, not learning the generator. Only the cross-family matrix (three differently built generators, still written by us) and the simulated-participant traces go beyond it."
-        },
-        {
-          "id": "mlv2-awareness-planted",
-          "severity": "medium",
-          "text": "The awareness features come from a generator that plants a cursor-to-stuck link by assumption; an ablation lift shows the pipeline can use a planted signal, not that real cursors predict being stuck."
-        },
-        {
-          "id": "mlv2-alarm-guarantee",
-          "severity": "medium",
-          "text": "The risk-controlled alarm threshold is guaranteed only for exchangeable episodes and independent false alarms; it fails for a new person who differs from the training people, for drift and for clustered alarms."
-        },
-        {
-          "id": "mlv2-counterfactual-additive",
-          "severity": "medium",
-          "text": "The seconds-if-fixed estimate assumes the rest of the path would be unchanged. It fails when habits interact; the generator's prices are additive by construction, so the stress test with a planted interaction is invented by us."
-        },
-        {
-          "id": "mlv2-labelling",
-          "severity": "medium",
-          "text": "The deficit rows that stay mis-priced (copy error, repeated reads) are mis-priced by the rule that names alignment columns after the alignment, not by the substitution costs; a better labelling rule written from our own planted structure would be fitting the generator, so none was added."
-        },
-        {
-          "id": "mlv2-sim-sparse",
-          "severity": "medium",
-          "text": "The simulated-participant traces have few progress events and short cases, so the transfer numbers rest on little and the label is nearly constant; the test is reported whatever it shows."
-        }
-      ],
-      "recorded": {
-        "files": {
-          "heldout_hazard.json": true,
-          "heldout_genome.json": true,
-          "heldout_mismatch.json": true,
-          "transfer_sim.json": true
-        }
       },
       "heldout": {
         "hazard": {
@@ -28655,6 +29576,461 @@
           }
         }
       },
+      "final_decisions": {
+        "deep_role": "benefits-processor",
+        "family_a": {
+          "A1": {
+            "held_out_persona_verdict": "null",
+            "held_out_delta_log_loss": 1.0983392613905796e-05,
+            "held_out_interval": [
+              -3.381621460696951e-05,
+              6.52426297883198e-05
+            ],
+            "level": 0.9928571428571429,
+            "survives_mismatch_by_role": {
+              "benefits-processor": true,
+              "data-analyst": true,
+              "programmer": true
+            },
+            "replaces_v1_by_role": {
+              "benefits-processor": false,
+              "data-analyst": false,
+              "programmer": false
+            }
+          },
+          "A2": {
+            "held_out_persona_verdict": "accepted",
+            "held_out_delta_log_loss": -0.003314448370409784,
+            "held_out_interval": [
+              -0.004668279121334757,
+              -0.002085239341697131
+            ],
+            "level": 0.9928571428571429,
+            "survives_mismatch_by_role": {
+              "benefits-processor": false,
+              "data-analyst": false,
+              "programmer": false
+            },
+            "replaces_v1_by_role": {
+              "benefits-processor": false,
+              "data-analyst": false,
+              "programmer": false
+            }
+          },
+          "A3": {
+            "held_out_persona_verdict": "accepted",
+            "held_out_delta_log_loss": -0.0021081932203459997,
+            "held_out_interval": [
+              -0.003711115169800132,
+              -0.0004067763030036419
+            ],
+            "level": 0.9928571428571429,
+            "survives_mismatch_by_role": {
+              "benefits-processor": true,
+              "data-analyst": false,
+              "programmer": true
+            },
+            "replaces_v1_by_role": {
+              "benefits-processor": true,
+              "data-analyst": false,
+              "programmer": true
+            }
+          },
+          "A4": {
+            "held_out_persona_verdict": "accepted",
+            "held_out_delta_log_loss": -0.003864818291077099,
+            "held_out_interval": [
+              -0.0062461456347125315,
+              -0.0017044189475974593
+            ],
+            "level": 0.9928571428571429,
+            "survives_mismatch_by_role": {
+              "benefits-processor": true,
+              "data-analyst": false,
+              "programmer": true
+            },
+            "replaces_v1_by_role": {
+              "benefits-processor": true,
+              "data-analyst": false,
+              "programmer": true
+            }
+          },
+          "A5": {
+            "held_out_persona_verdict": "null",
+            "held_out_delta_log_loss": -0.004746650735883318,
+            "held_out_interval": [
+              -0.007230643704982349,
+              -0.0024211362144785386
+            ],
+            "level": 0.9928571428571429,
+            "survives_mismatch_by_role": {
+              "benefits-processor": false,
+              "data-analyst": false,
+              "programmer": false
+            },
+            "replaces_v1_by_role": {
+              "benefits-processor": false,
+              "data-analyst": false,
+              "programmer": false
+            }
+          },
+          "A6": {
+            "held_out_persona_verdict": "accepted",
+            "held_out_delta_log_loss": -0.0014205397339242531,
+            "held_out_interval": [
+              -0.0031944241917272556,
+              -6.331774299853598e-05
+            ],
+            "level": 0.9928571428571429,
+            "survives_mismatch_by_role": {
+              "benefits-processor": false,
+              "data-analyst": false,
+              "programmer": false
+            },
+            "replaces_v1_by_role": {
+              "benefits-processor": false,
+              "data-analyst": false,
+              "programmer": false
+            }
+          },
+          "A7": {
+            "held_out_persona_verdict": "accepted",
+            "held_out_delta_log_loss": -0.005108867144420104,
+            "held_out_interval": [
+              -0.00717163227700086,
+              -0.003105040583667315
+            ],
+            "level": 0.95,
+            "survives_mismatch_by_role": {
+              "benefits-processor": false,
+              "data-analyst": false,
+              "programmer": true
+            },
+            "replaces_v1_by_role": {
+              "benefits-processor": false,
+              "data-analyst": false,
+              "programmer": false
+            }
+          }
+        },
+        "family_c": {
+          "C1": {
+            "held_out_persona_verdict": "null",
+            "survives_mismatch_by_role": {
+              "benefits-processor": true,
+              "data-analyst": true,
+              "programmer": false
+            },
+            "replaces_v1_rule_by_role": {
+              "benefits-processor": false,
+              "data-analyst": false,
+              "programmer": false
+            },
+            "note": "v1 already met the budget on the persona replicates, so the registered overshoot metric cannot improve (null by construction); under generator mismatch v1 overshoots and the risk-controlled rule reduces it"
+          },
+          "C2": {
+            "held_out_persona_verdict": "null",
+            "survives_mismatch_by_role": {
+              "benefits-processor": true,
+              "data-analyst": true,
+              "programmer": true
+            },
+            "replaces_v1_rule_by_role": {
+              "benefits-processor": false,
+              "data-analyst": false,
+              "programmer": false
+            },
+            "note": "v1 already met the budget on the persona replicates, so the registered overshoot metric cannot improve (null by construction); under generator mismatch v1 overshoots and the risk-controlled rule reduces it"
+          }
+        },
+        "default_v2": {
+          "benefits-processor": "A4",
+          "data-analyst": null,
+          "programmer": "A4"
+        },
+        "v1_stays_for": [
+          "data-analyst"
+        ],
+        "status": "complete"
+      },
+      "scorecard": {
+        "meta": {
+          "origin": "synthetic",
+          "n": 32,
+          "n_unit": "people",
+          "split": "held-out (single frozen run)",
+          "pool": "held-out replicates (single frozen run)",
+          "interval_level": 0.95,
+          "generated_at": "2026-11-07T21:40:27Z"
+        },
+        "accepted": true,
+        "verdict": "accepted_by_both_tests",
+        "model_version_shown_as_default": "v2",
+        "primary_id": "A4",
+        "primary_label": "gradient boosting + Platt",
+        "model": {
+          "log_loss": {
+            "value": 0.43163639300257767,
+            "ci": [
+              0.42277443749954174,
+              0.4402319625371126
+            ]
+          },
+          "brier": {
+            "value": 0.1398947250849812,
+            "ci": [
+              0.13659111840849586,
+              0.14309207644578645
+            ]
+          },
+          "ece": {
+            "value": 0.013209831057807653,
+            "ci": [
+              0.010851915600825051,
+              0.01957706004321421
+            ]
+          },
+          "false_alarms_per_hour": {
+            "value": 0.7055258981387967,
+            "ci": [
+              0.5492793583333575,
+              0.8754179334259435
+            ]
+          },
+          "detection_rate": {
+            "value": 0.31413427561837454,
+            "ci": [
+              0.2896141456582633,
+              0.34040219701932023
+            ]
+          }
+        },
+        "baselines": {
+          "base_rate": {
+            "log_loss": {
+              "value": 0.5203648881605356,
+              "ci": [
+                0.5080664878733018,
+                0.5333456386011076
+              ]
+            },
+            "brier": {
+              "value": 0.16869788591724785,
+              "ci": [
+                0.1632838762741069,
+                0.1744104093348972
+              ]
+            },
+            "ece": {
+              "value": 6.392608234184295e-05,
+              "ci": [
+                0.0001677102429848238,
+                0.011433789438356885
+              ]
+            },
+            "false_alarms_per_hour": {
+              "value": 0.0,
+              "ci": [
+                0.0,
+                0.0
+              ]
+            },
+            "detection_rate": {
+              "value": 0.0,
+              "ci": [
+                0.0,
+                0.0
+              ]
+            }
+          },
+          "time_since_progress": {
+            "log_loss": {
+              "value": 0.5188316041198905,
+              "ci": [
+                0.5066452080604452,
+                0.5317443182513722
+              ]
+            },
+            "brier": {
+              "value": 0.16818906280407875,
+              "ci": [
+                0.16283120903410794,
+                0.17385859107840182
+              ]
+            },
+            "ece": {
+              "value": 0.0034986596940583575,
+              "ci": [
+                0.0016152748557768464,
+                0.011980120069490018
+              ]
+            },
+            "false_alarms_per_hour": {
+              "value": 0.7899293031308614,
+              "ci": [
+                0.6832201208318417,
+                0.8968150724897724
+              ]
+            },
+            "detection_rate": {
+              "value": 0.24911660777385158,
+              "ci": [
+                0.23021652522221958,
+                0.2692039005871952
+              ]
+            }
+          },
+          "v1": {
+            "log_loss": {
+              "value": 0.43550121129365477,
+              "ci": [
+                0.4270203018342637,
+                0.44373728880613134
+              ]
+            },
+            "brier": {
+              "value": 0.1412400363168013,
+              "ci": [
+                0.1379014731515151,
+                0.14458717888334371
+              ]
+            },
+            "ece": {
+              "value": 0.017512599910997916,
+              "ci": [
+                0.013604438936577493,
+                0.024217013247526033
+              ]
+            },
+            "false_alarms_per_hour": {
+              "value": 0.9262732650411196,
+              "ci": [
+                0.8398576827967591,
+                1.0087141676038964
+              ]
+            },
+            "detection_rate": {
+              "value": 0.3003533568904594,
+              "ci": [
+                0.27893796316972075,
+                0.322086764013847
+              ]
+            }
+          }
+        },
+        "calibration": [
+          {
+            "p_mean": 0.06433927237443306,
+            "freq": 0.05126014523707817,
+            "n": 2341,
+            "lo": 0.043038978326936664,
+            "hi": 0.06095167076424288
+          },
+          {
+            "p_mean": 0.1401770271521656,
+            "freq": 0.1397095643465198,
+            "n": 1997,
+            "lo": 0.12519461300440246,
+            "hi": 0.15560802524542203
+          },
+          {
+            "p_mean": 0.24477804700844152,
+            "freq": 0.2727272727272727,
+            "n": 1122,
+            "lo": 0.24747582617679076,
+            "hi": 0.2995297206070552
+          },
+          {
+            "p_mean": 0.35788091774874053,
+            "freq": 0.3997965412004069,
+            "n": 983,
+            "lo": 0.36962076551055717,
+            "hi": 0.43075246561387054
+          },
+          {
+            "p_mean": 0.43692897465467756,
+            "freq": 0.39203675344563554,
+            "n": 653,
+            "lo": 0.35532684646839796,
+            "hi": 0.4300095268672739
+          },
+          {
+            "p_mean": 0.552806484131132,
+            "freq": 0.5970873786407767,
+            "n": 206,
+            "lo": 0.5289218676220961,
+            "hi": 0.6616981047761317
+          },
+          {
+            "p_mean": 0.6187242568350613,
+            "freq": 0.5405405405405406,
+            "n": 74,
+            "lo": 0.42781145210146765,
+            "hi": 0.6492681557174879
+          }
+        ],
+        "calibration_source": "D0: the four v1 personas, leave one person out (dev)",
+        "false_alarms_per_hour": {
+          "value": 0.7055258981387967,
+          "ci": [
+            0.5492793583333575,
+            0.8754179334259435
+          ]
+        },
+        "budget_per_hour": 1.0,
+        "within_budget": true,
+        "detection_rate": {
+          "value": 0.31413427561837454,
+          "ci": [
+            0.2896141456582633,
+            0.34040219701932023
+          ]
+        },
+        "tte": {
+          "c_index": {
+            "value": 0.6988952519939075,
+            "ci": [
+              0.6931965883399636,
+              0.7045939156478513
+            ]
+          },
+          "calibration": [
+            {
+              "n": 12537,
+              "predicted_min": 0.6184055501390818,
+              "observed_km_min": 0.29470067940189043
+            },
+            {
+              "n": 12537,
+              "predicted_min": 0.7335716893503939,
+              "observed_km_min": 0.4269324415446858
+            },
+            {
+              "n": 12537,
+              "predicted_min": 0.8749072166269846,
+              "observed_km_min": 0.641990548954292
+            },
+            {
+              "n": 12536,
+              "predicted_min": 1.0548383476681291,
+              "observed_km_min": 0.8618712342577447
+            },
+            {
+              "n": 12536,
+              "predicted_min": 1.3861697750205033,
+              "observed_km_min": 1.060631528120747
+            }
+          ],
+          "mean_expected_min": 0.9335693609488498,
+          "km_restricted_mean_min": 0.6570320998782663
+        },
+        "caveats": [
+          "Synthetic people from our own generator; held-out replicates share the generator, so this cannot show the model avoided learning it.",
+          "If accepted is false, v1 stays the default and the v2 numbers are those of a candidate that did not pass its pre-registered test.",
+          "The calibration bins carry Wilson intervals that treat bins as independent; the person-level uncertainty is wider.",
+          "False alarms an hour are measured against a budget of 1.0 chosen by us, not a measured tolerance of real workers."
+        ]
+      },
       "verdicts": [
         {
           "family": "A",
@@ -29068,428 +30444,59 @@
           ]
         }
       ],
-      "transfer_simulated_participants": {
-        "badge": "simulated participants (language model), not people",
-        "origin": "simulated_participants",
-        "test_only": true,
-        "n_participants_finished": 24,
-        "participants_skipped": {},
-        "n_events": 7334,
-        "n_progress_events": 152,
-        "n_coach_events": 24,
-        "timing": "measured (engine event timestamps)",
-        "arms": {
-          "aa": [
-            "p_sim05",
-            "p_sim06",
-            "p_sim07",
-            "p_sim08",
-            "p_sim13",
-            "p_sim14",
-            "p_sim15",
-            "p_sim16"
-          ],
-          "coached": [
-            "p_sim01",
-            "p_sim02",
-            "p_sim03",
-            "p_sim04",
-            "p_sim09",
-            "p_sim10",
-            "p_sim11",
-            "p_sim12",
-            "p_sim17",
-            "p_sim18",
-            "p_sim19",
-            "p_sim20",
-            "p_sim21",
-            "p_sim22",
-            "p_sim23",
-            "p_sim24"
-          ]
+      "stated_gaps": [
+        "Not run, for time and compute: the time-to-event head under generator mismatch, and the expert-envelope and counterfactual families (E, Q) under generator mismatch. These are gaps, not negative results."
+      ],
+      "caveats": [
+        "Stated gaps: the time-to-event head and families E and Q were not run under generator mismatch (compute and time); a gap is not a negative result.",
+        "Dev numbers are for debugging and for choosing each family's primary candidate; the pre-registered decision uses the held-out run only.",
+        "A variant that fails its acceptance rule is a null result and v1 stays the default.",
+        "Synthetic origin: results show the pipeline recovers planted structure, not that real people behave this way."
+      ],
+      "limitations": [
+        {
+          "id": "mlv2-synthetic",
+          "severity": "high",
+          "text": "Every number in this section comes from synthetic people or simulated participants (language model), not people. A gain on synthetic data can be the model learning the generator; held-out replicates share the generator and cannot rule that out."
         },
-        "genome_comparison": "not applicable: the simulated participants are all novices; there is no expert reference in these data",
-        "train": {
-          "pool": "synthetic personas only",
-          "n_people": 16,
-          "n_bins": 31791
+        {
+          "id": "mlv2-heldout-same-generator",
+          "severity": "high",
+          "text": "The held-out persona and apprentice replicates are fresh seeds of the same generators: they catch overfitting to one noise draw, not learning the generator. Only the cross-family matrix (three differently built generators, still written by us) and the simulated-participant traces go beyond it."
         },
-        "n_unit": "participants",
-        "n": 24,
-        "n_cases": 89,
-        "n_bins": 419,
-        "label_rate": 0.6467780429594272,
-        "bins_per_participant": {
-          "min": 7,
-          "median": 17.0,
-          "max": 32
+        {
+          "id": "mlv2-awareness-planted",
+          "severity": "medium",
+          "text": "The awareness features come from a generator that plants a cursor-to-stuck link by assumption; an ablation lift shows the pipeline can use a planted signal, not that real cursors predict being stuck."
         },
-        "interval_level": 0.95,
-        "split": "train on synthetic personas, test on simulated participants (no tuning)",
-        "models": {
-          "v1": {
-            "log_loss": {
-              "value": 1.4276053675937235,
-              "interval": [
-                1.2510465474427312,
-                1.5965987750145
-              ]
-            },
-            "brier": {
-              "value": 0.48375973012990914,
-              "interval": [
-                0.43235209232753646,
-                0.531579247842759
-              ]
-            },
-            "ece": {
-              "value": 0.5095891256992567,
-              "interval": [
-                0.45194368166106735,
-                0.5720097071822094
-              ]
-            },
-            "auc": {
-              "value": 0.6239403610252319,
-              "interval": [
-                0.5330972724367036,
-                0.7210126545165045
-              ]
-            }
-          },
-          "time_since_progress": {
-            "log_loss": {
-              "value": 1.069004850931559,
-              "interval": [
-                0.9994278357180706,
-                1.135134845436454
-              ]
-            },
-            "brier": {
-              "value": 0.4099151186661789,
-              "interval": [
-                0.37873004314910724,
-                0.4391948574439027
-              ]
-            },
-            "ece": {
-              "value": 0.4262616043152223,
-              "interval": [
-                0.3671692487079357,
-                0.4802184470770166
-              ]
-            },
-            "auc": {
-              "value": 0.5032038496060637,
-              "interval": [
-                0.437676714133589,
-                0.5651077157514973
-              ]
-            }
-          },
-          "base_rate": {
-            "log_loss": {
-              "value": 1.0781575074347418,
-              "interval": [
-                0.9987430127174275,
-                1.1502088844450387
-              ]
-            },
-            "brier": {
-              "value": 0.4143744976153103,
-              "interval": [
-                0.37939892285319204,
-                0.44610722263367875
-              ]
-            },
-            "ece": {
-              "value": 0.431182434139321,
-              "interval": [
-                0.36969327320017903,
-                0.4869704704750479
-              ]
-            },
-            "auc": {
-              "value": 0.5,
-              "interval": [
-                0.5,
-                0.5
-              ]
-            }
-          },
-          "v2": {
-            "log_loss": {
-              "value": 1.4580065040596069,
-              "interval": [
-                1.3059490043112374,
-                1.6106973365308108
-              ]
-            },
-            "brier": {
-              "value": 0.492388787037029,
-              "interval": [
-                0.44380264511736406,
-                0.5384591213978119
-              ]
-            },
-            "ece": {
-              "value": 0.5290763260106589,
-              "interval": [
-                0.46944320346375473,
-                0.5848010927337293
-              ]
-            },
-            "auc": {
-              "value": 0.6945123167447891,
-              "interval": [
-                0.6185130147875018,
-                0.7717054605933283
-              ]
-            }
-          }
+        {
+          "id": "mlv2-alarm-guarantee",
+          "severity": "medium",
+          "text": "The risk-controlled alarm threshold is guaranteed only for exchangeable episodes and independent false alarms; it fails for a new person who differs from the training people, for drift and for clustered alarms."
         },
-        "mean_prediction": {
-          "v1": 0.14011334781498933,
-          "time_since_progress": 0.22051643864420484,
-          "base_rate": 0.2155956088201063,
-          "v2": 0.1220446615116794
+        {
+          "id": "mlv2-counterfactual-additive",
+          "severity": "medium",
+          "text": "The seconds-if-fixed estimate assumes the rest of the path would be unchanged. It fails when habits interact; the generator's prices are additive by construction, so the stress test with a planted interaction is invented by us."
         },
-        "train_label_rate": 0.2155956088201063,
-        "paired_log_loss": {
-          "v1_minus_base_rate": {
-            "delta": 0.34944786015898166,
-            "interval": [
-              0.2355217134004381,
-              0.4693354368790811
-            ]
-          },
-          "v1_minus_time_since_progress": {
-            "delta": 0.3586005166621644,
-            "interval": [
-              0.23004634926055323,
-              0.5001483926867489
-            ]
-          },
-          "v2_minus_v1": {
-            "delta": 0.030401136465883383,
-            "interval": [
-              -0.030159824332283428,
-              0.08523357248322569
-            ]
-          },
-          "v2_minus_base_rate": {
-            "delta": 0.37984899662486504,
-            "interval": [
-              0.28818816782706147,
-              0.47220108854293086
-            ]
-          }
+        {
+          "id": "mlv2-labelling",
+          "severity": "medium",
+          "text": "The deficit rows that stay mis-priced (copy error, repeated reads) are mis-priced by the rule that names alignment columns after the alignment, not by the substitution costs; a better labelling rule written from our own planted structure would be fitting the generator, so none was added."
         },
-        "calibration": {
-          "v1": [
-            {
-              "p_mean": 0.05932374968843309,
-              "freq": 0.6448598130841121,
-              "n": 107,
-              "lo": 0.0,
-              "hi": 0.1
-            },
-            {
-              "p_mean": 0.12502611937516053,
-              "freq": 0.5900900900900901,
-              "n": 222,
-              "lo": 0.1,
-              "hi": 0.2
-            },
-            {
-              "p_mean": 0.23408481877921683,
-              "freq": 0.8857142857142857,
-              "n": 70,
-              "lo": 0.2,
-              "hi": 0.3
-            },
-            {
-              "p_mean": 0.3460359615173449,
-              "freq": 0.4166666666666667,
-              "n": 12,
-              "lo": 0.3,
-              "hi": 0.4
-            },
-            {
-              "p_mean": 0.42988760645925017,
-              "freq": 0.5,
-              "n": 4,
-              "lo": 0.4,
-              "hi": 0.5
-            },
-            {
-              "p_mean": 0.5778218455692284,
-              "freq": 0.6666666666666666,
-              "n": 3,
-              "lo": 0.5,
-              "hi": 0.6
-            },
-            {
-              "p_mean": 0.6126682012345458,
-              "freq": 0.0,
-              "n": 1,
-              "lo": 0.6,
-              "hi": 0.7
-            }
-          ],
-          "v2": [
-            {
-              "p_mean": 0.05593097613323947,
-              "freq": 0.4392523364485981,
-              "n": 214,
-              "lo": 0.0,
-              "hi": 0.1
-            },
-            {
-              "p_mean": 0.13587471815202762,
-              "freq": 0.9402985074626866,
-              "n": 134,
-              "lo": 0.1,
-              "hi": 0.2
-            },
-            {
-              "p_mean": 0.23771309131135931,
-              "freq": 0.7441860465116279,
-              "n": 43,
-              "lo": 0.2,
-              "hi": 0.3
-            },
-            {
-              "p_mean": 0.3512305207620218,
-              "freq": 0.6956521739130435,
-              "n": 23,
-              "lo": 0.3,
-              "hi": 0.4
-            },
-            {
-              "p_mean": 0.45492344296493203,
-              "freq": 0.0,
-              "n": 2,
-              "lo": 0.4,
-              "hi": 0.5
-            },
-            {
-              "p_mean": 0.5372339873625736,
-              "freq": 1.0,
-              "n": 1,
-              "lo": 0.5,
-              "hi": 0.6
-            },
-            {
-              "p_mean": 0.6066131356506643,
-              "freq": 1.0,
-              "n": 2,
-              "lo": 0.6,
-              "hi": 0.7
-            }
-          ]
-        },
-        "alarm_rules": {
-          "v1_probabilities_v1_rule_C0": {
-            "threshold": 0.4232680921719685,
-            "confirm_bins": 2,
-            "n_stuck_events": 66.0,
-            "false_alarms_per_hour": {
-              "value": 0.0,
-              "interval": [
-                0.0,
-                0.0
-              ]
-            },
-            "detection": {
-              "value": 0.015151515151515152,
-              "interval": [
-                0.0,
-                0.04918032786885246
-              ]
-            },
-            "non_event_hours": 1.3416666666666666
-          },
-          "v1_probabilities_risk_controlled_C1": {
-            "threshold": 0.4350489688551407,
-            "confirm_bins": 2,
-            "n_stuck_events": 66.0,
-            "false_alarms_per_hour": {
-              "value": 0.0,
-              "interval": [
-                0.0,
-                0.0
-              ]
-            },
-            "detection": {
-              "value": 0.015151515151515152,
-              "interval": [
-                0.0,
-                0.04918032786885246
-              ]
-            },
-            "non_event_hours": 1.3416666666666666
-          },
-          "v2_probabilities_v1_rule_C0": {
-            "threshold": 0.4866650903715253,
-            "confirm_bins": 2,
-            "n_stuck_events": 66.0,
-            "false_alarms_per_hour": {
-              "value": 0.0,
-              "interval": [
-                0.0,
-                0.0
-              ]
-            },
-            "detection": {
-              "value": 0.015151515151515152,
-              "interval": [
-                0.0,
-                0.04918032786885246
-              ]
-            },
-            "non_event_hours": 1.3416666666666666
-          }
-        },
-        "caveats": [
-          "simulated participants (language model), not people. Not people, not the live study.",
-          "Progress events are sparse in these traces, so the label ('no progress in the next 60 s') is almost always 1: log loss against the base rate says little, and a model can look good or bad for that reason alone.",
-          "Cases are short (about a minute or two), so each participant contributes a handful of 30 s bins.",
-          "Nothing was tuned on these traces; the models and alarm rules were fitted on synthetic personas before any of these numbers existed.",
-          "Participants are language models acting in a sandbox we built, under a coach we built; this tests transfer to a different behaviour generator, not to real work."
-        ],
-        "status": "ok",
-        "frozen": {
-          "a7_base": "A7_A4",
-          "primary_a": "A7",
-          "frozen_at": "2026-11-07T18:40:44Z"
-        },
-        "finished_participants": [
-          "p_sim01",
-          "p_sim02",
-          "p_sim03",
-          "p_sim04",
-          "p_sim05",
-          "p_sim06",
-          "p_sim07",
-          "p_sim08",
-          "p_sim09",
-          "p_sim10",
-          "p_sim11",
-          "p_sim12",
-          "p_sim13",
-          "p_sim14",
-          "p_sim15",
-          "p_sim16",
-          "p_sim17",
-          "p_sim18",
-          "p_sim19",
-          "p_sim20",
-          "p_sim21",
-          "p_sim22",
-          "p_sim23",
-          "p_sim24"
-        ]
+        {
+          "id": "mlv2-sim-sparse",
+          "severity": "medium",
+          "text": "The simulated-participant traces have few progress events and short cases, so the transfer numbers rest on little and the label is nearly constant; the test is reported whatever it shows."
+        }
+      ],
+      "recorded": {
+        "files": {
+          "heldout_hazard.json": true,
+          "heldout_genome.json": true,
+          "heldout_mismatch.json": true,
+          "transfer_sim.json": true
+        }
       },
       "frozen": {
         "primary_c": "C1",
@@ -29508,7 +30515,21 @@
         "title": "ML v2 does not transfer to the simulated participants",
         "text": "M5, out-of-generator transfer (simulated participants (language model), not people; test only, no decision rule; n = 24 participants, 419 scored 30 s bins): neither v1 nor v2 transfers to the floor-bound behaviour of those traces. Log loss is 1.43 [1.25 to 1.60] for v1 and 1.46 [1.31 to 1.61] for v2 against 1.08 [1.00 to 1.15] for the base rate, and calibration is destroyed (expected calibration error 0.51 [0.45 to 0.57] and 0.53 [0.47 to 0.58]). The label shifts: 65% of the test bins are 'stuck' against 22% in training, because progress is sparse in these traces. v2 minus v1 log loss is +0.030 with an interval of -0.030 to 0.085: no improvement. Reported as is; the models and alarm rules were fixed before these traces existed.",
         "status": "ok"
-      }
+      },
+      "more_findings": [
+        {
+          "id": "mlv2-e4-q1-rejected",
+          "title": "ML v2 expert-envelope and counterfactual candidates (E4, Q1) are rejected",
+          "text": "ML v2 genome families on the held-out apprentice cohort (6 cohorts, 96 novices; synthetic): the pre-registered primary candidates E4 (expert envelope) and Q1 (counterfactual price) are both harmful and so rejected. The primary metric is the mean absolute error, in seconds, of the recovered price of a deficit, paired against v1's attribution, so a positive difference is worse: E4 +3.81 [+2.30, +5.19] s, Q1 +1.17 [+0.44, +1.87] s. Other E variants: E1 accepted (-0.92 [-1.85, -0.21] s), E2 null (+0.00 [+0.00, +0.00] s), E3 harmful (+4.57 [+3.14, +6.01] s). v1's attribution stays the default for these families. Reported as is: the candidates were frozen before the held-out run.",
+          "status": "ok"
+        },
+        {
+          "id": "mlv2-tsp-beats-v1-under-mismatch",
+          "title": "Under generator mismatch the time-since-progress baseline beats v1",
+          "text": "ML v2 under generator mismatch (fit on one synthetic generator family, test on another; pooled off-diagonal cells; synthetic): the plain time-since-progress baseline beats v1 on log loss, paired against v1 (negative is better; adjusted intervals as recorded): benefits-processor -0.021 [-0.034, -0.010]; data-analyst -0.024 [-0.034, -0.014]; programmer -0.030 [-0.041, -0.019]. The accepted v2 (A4) improves on v1 by -0.014 [-0.019, -0.009] for benefits-processor under the same test, a smaller improvement than the baseline's, so on this test a rule that only counts time since progress does better than the accepted v2 when the generator changes. The held-out result is reported as is; it is about our generators, not about workers.",
+          "status": "ok"
+        }
+      ]
     },
     "evidence": {
       "packets": {
@@ -66633,6 +67654,18 @@
         "text": "Routines (repeat finder, then the proposal gate), benefits-processor, synthetic generators we wrote (4 personas on the v1 generator, 120 synthetic people per v2 cell; shipped thresholds, which do not depend on the fit family): raw cluster precision is 22% on the v1 generator (the published figure) and 44 to 97% on the three v2 families, with recall 45 to 92% (100% on v1). Proposal precision after the gate is 74 to 100% (100% on v1). Thresholds fitted per family transfer unevenly: across the fitted off-diagonal cells raw precision ranges from 4 to 100% and recall from 16 to 100%. The two thin roles (data-analyst, programmer; v2 families only, shipped thresholds) give raw precision 88 to 98%, recall 60 to 92% and proposal precision 100%, so the figures differ by role as well as by family. These numbers say how many of the clusters found are real routines in a generator we wrote, not in real workers.",
         "severity": "high",
         "source": "engine-eval:realism"
+      },
+      {
+        "id": "eval-mlv2-e4-q1-rejected",
+        "text": "ML v2 genome families on the held-out apprentice cohort (6 cohorts, 96 novices; synthetic): the pre-registered primary candidates E4 (expert envelope) and Q1 (counterfactual price) are both harmful and so rejected. The primary metric is the mean absolute error, in seconds, of the recovered price of a deficit, paired against v1's attribution, so a positive difference is worse: E4 +3.81 [+2.30, +5.19] s, Q1 +1.17 [+0.44, +1.87] s. Other E variants: E1 accepted (-0.92 [-1.85, -0.21] s), E2 null (+0.00 [+0.00, +0.00] s), E3 harmful (+4.57 [+3.14, +6.01] s). v1's attribution stays the default for these families. Reported as is: the candidates were frozen before the held-out run.",
+        "severity": "high",
+        "source": "engine-eval:mlv2"
+      },
+      {
+        "id": "eval-mlv2-tsp-beats-v1-under-mismatch",
+        "text": "ML v2 under generator mismatch (fit on one synthetic generator family, test on another; pooled off-diagonal cells; synthetic): the plain time-since-progress baseline beats v1 on log loss, paired against v1 (negative is better; adjusted intervals as recorded): benefits-processor -0.021 [-0.034, -0.010]; data-analyst -0.024 [-0.034, -0.014]; programmer -0.030 [-0.041, -0.019]. The accepted v2 (A4) improves on v1 by -0.014 [-0.019, -0.009] for benefits-processor under the same test, a smaller improvement than the baseline's, so on this test a rule that only counts time since progress does better than the accepted v2 when the generator changes. The held-out result is reported as is; it is about our generators, not about workers.",
+        "severity": "high",
+        "source": "engine-eval:mlv2"
       },
       {
         "id": "eval-evidence-traceability-not-truth",
