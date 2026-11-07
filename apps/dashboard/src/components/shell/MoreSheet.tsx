@@ -34,7 +34,7 @@ export function MoreSheet({ current, placement = "side" }: { current: string; pl
       <button
         ref={btn}
         type="button"
-        className="more__btn nav__link"
+        className="more__btn navitem"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="More"

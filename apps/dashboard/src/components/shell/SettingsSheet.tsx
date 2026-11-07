@@ -65,14 +65,14 @@ function Sheet({ section }: { section: string | null }) {
     return () => { document.removeEventListener("keydown", key); if (back && document.contains(back)) back.focus(); };
   }, []);
   return (
-    <div className="sheet" data-testid="settings-sheet">
-      <div className="sheet__scrim" onClick={closeSettings} aria-hidden="true" />
-      <div ref={box} className="sheet__panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-        <header className="sheet__head">
-          <h2 id="settings-title" className="sheet__title">Settings</h2>
-          <button type="button" className="sheet__close" aria-label="Close settings" onClick={closeSettings}><Icon name="close" /></button>
+    <div className="drawer" data-testid="settings-sheet">
+      <div className="drawer__scrim" onClick={closeSettings} aria-hidden="true" />
+      <div ref={box} className="drawer__panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <header className="drawer__head">
+          <h2 id="settings-title" className="drawer__title">Settings</h2>
+          <button type="button" className="drawer__close" aria-label="Close settings" onClick={closeSettings}><Icon name="close" /></button>
         </header>
-        <div className="sheet__body">
+        <div className="drawer__body">
           <Suspense fallback={<p className="note" role="status">Opening settings</p>}>
             <Contents section={section} onClose={closeSettings} />
           </Suspense>

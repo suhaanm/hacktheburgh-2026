@@ -31,14 +31,14 @@ function Panel() {
   const a = current === "unknown" ? null : ABOUT[current];
   const title = labelOf(current);
   return (
-    <div className="sheet sheet--about" data-testid="about-panel">
-      <div className="sheet__scrim sheet__scrim--clear" onClick={closeAbout} aria-hidden="true" />
-      <div ref={box} className="sheet__panel" role="dialog" aria-modal="true" aria-labelledby="about-title">
-        <header className="sheet__head">
-          <h2 id="about-title" className="sheet__title">About {title}</h2>
-          <button type="button" className="sheet__close" aria-label="Close" onClick={closeAbout}><Icon name="close" /></button>
+    <div className="drawer drawer--about" data-testid="about-panel">
+      <div className="drawer__scrim drawer__scrim--clear" onClick={closeAbout} aria-hidden="true" />
+      <div ref={box} className="drawer__panel" role="dialog" aria-modal="true" aria-labelledby="about-title">
+        <header className="drawer__head">
+          <h2 id="about-title" className="drawer__title">About {title}</h2>
+          <button type="button" className="drawer__close" aria-label="Close" onClick={closeAbout}><Icon name="close" /></button>
         </header>
-        <div className="sheet__body about">
+        <div className="drawer__body about">
           {a ? (
             <>
               <section><h3 className="about__h">What it is</h3><p>{a.what}</p></section>

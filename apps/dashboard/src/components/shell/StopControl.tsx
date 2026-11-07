@@ -6,6 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { api } from "../../api";
 import { dataMode, getState, setState, useAppState } from "../../store";
 import { useToast } from "../Toasts";
+import { Icon } from "./icons";
 import { shellKeyAction } from "./keys";
 import { getViewRole } from "../home/viewAs";
 
@@ -73,7 +74,6 @@ export function StopButton({ compact = false }: { compact?: boolean }) {
       disabled={busy}
       aria-label={killed ? "Resume after stop" : "Stop everything now"}
     >
-      <span className="stop-button__icon" aria-hidden="true" />
       <span>{killed ? "Resume" : "Stop"}</span>
     </button>
   );
@@ -85,11 +85,14 @@ export function StoppedBanner() {
   const { resume, busy } = useStop();
   if (!s.killed) return null;
   return (
-    <div className="stopped-banner" role="alert">
-      <p>
-        <b>Everything is stopped.</b> No agent will run and no routine will start{s.killedAt ? ` (since ${new Date(s.killedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })})` : ""}.
-      </p>
-      <button type="button" className="btn btn--secondary btn--sm" onClick={resume} disabled={busy}>Resume</button>
+    <div className="banner-wrap stopped-banner">
+      <div className="inline-banner" role="alert" data-tone="bad">
+        <Icon name="alert" />
+        <span className="inline-banner__text">
+          <b>Everything is stopped.</b> No agent will run and no routine will start{s.killedAt ? ` (since ${new Date(s.killedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })})` : ""}.
+        </span>
+        <button type="button" className="btn btn--secondary btn--sm" onClick={resume} disabled={busy}>Resume</button>
+      </div>
     </div>
   );
 }

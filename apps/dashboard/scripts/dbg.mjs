@@ -1,0 +1,11 @@
+import { chromium } from "playwright";
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ viewport: { width: 1152, height: 735 } });
+await ctx.route(/^https?:\/\/[^/]+\/(engine|agent)(\/|$)/, (r) => r.abort());
+const page = await ctx.newPage();
+await page.goto("http://127.0.0.1:5191/#/home"); await page.waitForTimeout(1200);
+console.log("icons before", await page.locator(".stop-button__icon").count());
+await page.keyboard.press("Meta+k"); await page.waitForTimeout(500);
+console.log("icons palette", await page.locator(".stop-button__icon").count(), await page.locator(".stop-button").first().evaluate((e) => e.outerHTML));
+await page.locator(".stop-button").first().screenshot({ path: "/private/tmp/claude-502/-Users-suhaan--claude-spares-spare-B2TxaI/c7635e1b-5f98-444e-a760-7a1ed2a492c6/scratchpad/shell-web/stop.png" });
+await browser.close();

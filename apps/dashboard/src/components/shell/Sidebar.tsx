@@ -16,10 +16,10 @@ import { StopButton } from "./StopControl";
 function Item({ n, current, pending }: { n: NavEntry; current: string; pending: number }) {
   const count = n.id === "needs-you" && pending > 0 ? pending : 0;
   return (
-    <a href={`#/${n.id}`} className="nav__link" aria-current={current === n.id ? "page" : undefined}>
+    <a href={`#/${n.id}`} className="navitem" aria-current={current === n.id ? "page" : undefined}>
       {n.icon && <Icon name={n.icon} />}
-      <span className="nav__label">{n.label}</span>
-      {count > 0 && <span className="nav__count" aria-label={`${count} waiting`}>{count}</span>}
+      <span className="navitem__label">{n.label}</span>
+      {count > 0 && <span className="navitem__count" aria-label={`${count} waiting`}>{count}</span>}
     </a>
   );
 }
@@ -36,9 +36,9 @@ export function Sidebar({ current }: { current: Screen | "unknown" }) {
       <Lockup size="sidebar" href={`#/${DEFAULT_SCREEN}`} label="Knack home" className="side__lockup" />
       <nav id="nav" aria-label="Screens" className="nav">
         {m.primary.map((n) => <Item key={n.id} n={n} current={current} pending={pending} />)}
-        {m.admin.length > 0 && <p className="nav__group">Admin</p>}
+        {m.admin.length > 0 && <p className="navgroup">Admin</p>}
         {m.admin.map((n) => <Item key={n.id} n={n} current={current} pending={pending} />)}
-        {m.pinned.length > 0 && <p className="nav__group">Look closer</p>}
+        {m.pinned.length > 0 && <p className="navgroup">Look closer</p>}
         {m.pinned.map((n) => <Item key={n.id} n={n} current={current} pending={pending} />)}
         <MoreSheet current={current} />
       </nav>
