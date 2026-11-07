@@ -1,5 +1,6 @@
 {
   "name": "alongside",
+  "productName": "Knack",
   "version": "0.1.0",
   "private": true,
   "description": "A voice-activated on-screen companion that teaches people to use computers, instead of doing it for them.",
@@ -18,7 +19,9 @@
     "demo:interactive": "bash scripts/start-demo.sh --interactive",
     "submit-check": "node scripts/submit-check.mjs",
     "showtime:render": "node scripts/showtime-render.mjs",
-    "probe:models": "vitest run --config tests/model-port/vitest.probe.config.ts"
+    "probe:models": "vitest run --config tests/model-port/vitest.probe.config.ts",
+    "package": "node scripts/package-knack.mjs",
+    "check:knack": "scripts/electron-lock.sh KNACK node scripts/knack-check.mjs"
   },
   "dependencies": {
     "@fontsource/atkinson-hyperlegible": "5.3.0",
@@ -37,6 +40,7 @@
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
     "electron": "45.2.1",
+    "electron-builder": "26.18.0",
     "electron-vite": "6.0.0",
     "typescript": "6.0.3",
     "vite": "8.3.5",
