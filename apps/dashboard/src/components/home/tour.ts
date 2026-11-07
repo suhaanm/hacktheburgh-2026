@@ -20,14 +20,14 @@ export interface TourStep {
 }
 
 const STEPS: TourStep[] = [
-  { id: "home", title: "Your week", text: "Start here: a few pointers for your week, and nothing at all when nothing stands out.", route: "/home", nav: "home", selector: null, admin: false },
-  { id: "repeats", title: "Repeats", text: "Repeats lists what you do again and again, so you can choose what to hand over.", route: "/repeats", nav: "repeats", selector: null, admin: false },
+  { id: "home", title: "Home", text: "Start here: one sentence about your week and one thing you can do about it.", route: "/home", nav: "home", selector: null, admin: false },
+  { id: "needs-you", title: "Needs you", text: "Approvals, paused runs and routine suggestions wait here for one decision from you.", route: "/needs-you", nav: "needs-you", selector: null, admin: false },
+  { id: "routines", title: "Routines", text: "Routines shows what runs for you, and what could run next if you say yes.", route: "/routines", nav: "routines", selector: null, admin: false },
   { id: "growth", title: "Growth", text: "Growth shows how much less help you need over time, not how expert you are.", route: "/growth", nav: "growth", selector: null, admin: false },
-  { id: "genome", title: "Details: Genome", text: "Under Details, Genome shows where your time goes compared with an expert's.", route: "/genome", nav: "genome", selector: null, admin: false },
-  { id: "privacy", title: "Privacy", text: "Privacy lists what was sent to a model and what was blocked.", route: "/privacy", nav: "privacy", selector: null, admin: false },
-  { id: "firm", title: "Firm overview", text: "The Firm screen gives the few things worth knowing across the firm, with the numbers behind each.", route: "/firm", nav: "firm", selector: null, admin: true },
-  { id: "roles", title: "Firm roles", text: "Roles puts experts and juniors side by side, and says so plainly when it cannot tell yet.", route: "/firm/roles", nav: "firm", selector: null, admin: true },
-  { id: "stop", title: "Stop everything", text: "This button is on every screen, and one press stops every agent and routine.", route: null, nav: null, selector: ".kill", admin: false },
+  { id: "your-data", title: "Your data", text: "Your data lists what Knack remembers and has sent, with a way to delete each part.", route: "/your-data", nav: "your-data", selector: null, admin: false },
+  { id: "firm", title: "Firm", text: "The Firm screen gives the few things worth knowing across the firm, with the numbers behind each.", route: "/firm", nav: "firm", selector: null, admin: true },
+  { id: "roles", title: "Roles", text: "Roles puts experts and juniors side by side, and says so plainly when it cannot tell yet.", route: "/roles", nav: "roles", selector: null, admin: true },
+  { id: "stop", title: "Stop", text: "Stop is always at the bottom of the menu: one press stops every agent and routine.", route: null, nav: null, selector: ".stop-button", admin: false },
 ];
 
 /** The steps for a view, in order. The stop step comes last in both. */

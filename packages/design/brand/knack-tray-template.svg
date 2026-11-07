@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" width="18" height="18" role="img" aria-label="Knack">
+  <!-- macOS menu-bar template image: pure black on transparent; macOS recolours it for light, dark and highlighted bars.
+       The ring is knocked out around the disc (a 1.3 px transparent gap) so the ring reads as sitting BEHIND the disc at 18 and 36 px;
+       without the gap the two merge into one blob. -->
+  <defs>
+    <mask id="behind" maskUnits="userSpaceOnUse" x="0" y="0" width="18" height="18">
+      <rect width="18" height="18" fill="#fff"/>
+      <circle cx="7.4" cy="7.6" r="5.7" fill="#000"/>
+    </mask>
+  </defs>
+  <circle cx="10.6" cy="10.4" r="4.4" fill="none" stroke="#000" stroke-width="1.5" mask="url(#behind)"/>
+  <circle cx="7.4" cy="7.6" r="4.4" fill="#000"/>
+</svg>

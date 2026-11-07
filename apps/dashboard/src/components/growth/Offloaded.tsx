@@ -1,17 +1,17 @@
 import { useState } from "react";
 import { plural, type OffloadItem } from "./model";
 
-/** Work done for the person. Counted and listed apart from the score, and said to be outside it. */
+/**
+ * Work done for the person, inside the closed disclosure "What Knack did for you". Counted and listed apart from the score, and said to be outside it:
+ * overnight work never moves the curve (a printed rule, never only in a Hint).
+ */
 export function Offloaded({ delegated, automation, minutes, items }: { delegated: number; automation: number; minutes: { delegated: number; automation: number }; items: OffloadItem[] }) {
   const none = delegated + automation === 0;
   const [all, setAll] = useState(false);
   const shown = all ? items : items.slice(0, 5);
   return (
-    <section className="section gr-off" aria-labelledby="off-h">
-      <div className="section__head">
-        <h2 id="off-h" className="section__title">Work done for you</h2>
-      </div>
-      <p className="section__sub">Runs you asked for and overnight automations. They never change your independence score.</p>
+    <div className="gr-off">
+      <p className="note">Runs you asked for and overnight automations. They never change your independence score.</p>
       {none ? (
         <p className="note">Nothing has run for you yet.</p>
       ) : (
@@ -35,6 +35,6 @@ export function Offloaded({ delegated, automation, minutes, items }: { delegated
           {items.length > 0 && items.length < delegated + automation && <p className="note">Showing the latest {plural(items.length, "run")}.</p>}
         </>
       )}
-    </section>
+    </div>
   );
 }
