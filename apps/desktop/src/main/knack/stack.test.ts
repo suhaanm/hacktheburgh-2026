@@ -143,6 +143,13 @@ describe('starting the stack the way `make demo` does', () => {
     expect(r.spawned.map((x) => x.spec.name)).toEqual(['engine', 'agent'])
   })
 
+  it('does not start the sandbox sites when the configuration says so (they bind fixed ports a check or a second checkout may not take)', async () => {
+    const r = rig({}, { startSites: false })
+    const s = await r.stack.start()
+    expect(r.spawned.map((x) => x.spec.name)).toEqual(['engine', 'agent'])
+    expect(s).toMatchObject({ phase: 'ready', started: ['engine', 'agent'] })
+  })
+
   it('starts only the service that is missing, never a second copy of one that answers', async () => {
     const r = rig({ up: new Set([PORTS.engine]) })
     await r.stack.start()

@@ -97,6 +97,7 @@ export function resolveStackConfig(i: ConfigInput): StackConfig {
     preferDevServer: !i.isPackaged && (i.env.KNACK_DASHBOARD ?? '') !== 'dist',
     dirs: { demo: { home: 'data/demo-home', data: 'data/demo-data' }, live: { home: 'data/live-home', data: 'data/live-data' } },
     mode: 'demo',
+    startSites: (i.env.KNACK_SITES ?? '') !== '0',
     timeouts: { engineMs: 90_000, agentMs: 90_000, dashboardMs: 45_000, seedMs: 120_000, pollMs: 400, stopMs: 4000 },
   }
 }
