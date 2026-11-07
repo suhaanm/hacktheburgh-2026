@@ -108,7 +108,7 @@ export default function FirstRun() {
 
         {s.step === "ready" && written && (
           <section className="firstrun__step" aria-labelledby="fr-h">
-            <h1 id="fr-h" className="firstrun__q" ref={heading} tabIndex={-1}>Here is what Knack will remember.</h1>
+            <h1 id="fr-h" className="firstrun__q" ref={heading} tabIndex={-1}>What Knack will remember</h1>
             <ul className="firstrun__lines">{readyLines(written.q, written.a).map((l) => <li key={l}>{l}</li>)}</ul>
             <p className="firstrun__note">Edit any line later in Your data.</p>
             <div><button type="button" className="btn btn--primary" onClick={finish}>Show my week</button></div>

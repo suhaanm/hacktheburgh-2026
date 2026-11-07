@@ -391,6 +391,7 @@ check("privacy: clearing empties the list and says so", (await page.locator(".le
   // Notices became Settings, Interruptions: the old screen is drawn inside the Settings sheet until the new contents land.
   const sheet = page.locator("[data-testid=settings-sheet]");
   await go("/notices", 1500);
+  await sheet.locator("details.notices__group").first().waitFor({ timeout: 20000 });
   const openGroups = () => page.evaluate(() => document.querySelectorAll("details.notices__group").forEach((d) => { d.open = true; }));
   check("notices: only the first group is open by default, the others are one click away", (await page.locator("details.notices__group[open]").count()) === 1 && (await page.locator("details.notices__group").count()) === 4);
   await openGroups();
@@ -433,6 +434,7 @@ check("privacy: clearing empties the list and says so", (await page.locator(".le
     return json(route, { error: { code: "not_found", message: "not mocked" } }, 404);
   });
   await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(6800); await page.goto(`${base}/#/notices`); await page.waitForTimeout(1500);
+  await sheet.locator("details.notices__group").first().waitFor({ timeout: 20000 });
   await openGroups();
   check("notices: with a real engine the screen is not badged as an example", !/example data/i.test(await sheet.innerText()));
   const row = page.locator("[data-testid=notice-routine_proposal]");
