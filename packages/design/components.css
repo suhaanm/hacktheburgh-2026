@@ -39,10 +39,9 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
 .t-title { font-family: var(--font-display); font-size: var(--text-2xl); line-height: var(--lh-tight); letter-spacing: var(--tracking-display); font-weight: 600; text-wrap: balance; }
 .t-lede { font-size: var(--text-lg); line-height: var(--lh-snug); color: var(--muted); max-width: var(--measure); }
 .t-prose { max-width: var(--measure); }
-.t-label {
-  font: 500 var(--text-xs)/1.2 var(--font-mono);
-  letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--muted);
-}
+/* Labels: sentence case in the display face (calmer than tracked capitals). The mono capitals stay for chart axes and the ribbon. */
+.t-label { font: 600 var(--text-sm)/1.3 var(--font-display); letter-spacing: 0; text-transform: none; color: var(--muted); }
+.t-label--mono { font: 500 var(--text-xs)/1.2 var(--font-mono); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--muted); }
 .t-data { font-family: var(--font-mono); font-size: var(--text-sm); }
 .num { font-variant-numeric: tabular-nums lining-nums; font-feature-settings: "tnum", "lnum"; }
 .u-muted { color: var(--muted); }
@@ -131,7 +130,7 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
 
 /* -- Stat figure: confident numerals, always with an interval ------------- */
 .stat { display: grid; gap: var(--space-1); }
-.stat__label { font: 500 var(--text-xs)/1.2 var(--font-mono); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--muted); }
+.stat__label { font: 600 var(--text-sm)/1.3 var(--font-display); letter-spacing: 0; text-transform: none; color: var(--muted); }
 .stat__value {
   font: 600 var(--text-3xl)/1 var(--font-display); letter-spacing: -0.025em;
   font-variant-numeric: tabular-nums lining-nums;
@@ -188,7 +187,7 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
 .proposal__what { color: var(--fg); max-width: var(--measure); }
 .proposal__facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-4) var(--space-6); margin: 0; padding-top: var(--space-5); border-top: var(--hair) solid var(--line); }
 .proposal__facts > div { display: grid; gap: var(--space-1); min-width: 0; align-content: start; }
-.proposal__facts dt { font: 500 var(--text-xs)/1.2 var(--font-mono); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--muted); }
+.proposal__facts dt { font: 600 var(--text-sm)/1.3 var(--font-display); letter-spacing: 0; text-transform: none; color: var(--muted); }
 .proposal__facts dd { margin: 0; font-size: var(--text-sm); overflow-wrap: anywhere; }
 .proposal__foot { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; padding-top: var(--space-5); border-top: var(--hair) solid var(--line); }
 .proposal__foot .push { margin-left: auto; }
@@ -202,16 +201,16 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
 .queue-item__when { font: var(--text-xs)/1.3 var(--font-mono); color: var(--muted); }
 .queue-item__ask { display: grid; gap: var(--space-1); padding: var(--space-3) var(--space-4); background: var(--sunk); border-radius: var(--radius-2); font-size: var(--text-sm); }
 .queue-item__foot { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
-.evidence summary { cursor: pointer; font-size: var(--text-sm); color: var(--muted); list-style: none; display: inline-flex; gap: var(--space-2); align-items: center; }
-.evidence summary::-webkit-details-marker { display: none; }
-.evidence summary::before { content: ""; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform var(--dur-base) var(--ease-out); }
-.evidence[open] summary::before { transform: rotate(45deg); }
-.evidence summary:hover { color: var(--fg); }
-.evidence__body { margin-top: var(--space-3); }
+.evidence summary, .details > summary { cursor: pointer; font-size: var(--text-sm); color: var(--muted); list-style: none; display: inline-flex; gap: var(--space-2); align-items: center; }
+.evidence summary::-webkit-details-marker, .details > summary::-webkit-details-marker { display: none; }
+.evidence summary::before, .details > summary::before { content: ""; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform var(--dur-base) var(--ease-out); }
+.evidence[open] summary::before, .details[open] > summary::before { transform: rotate(45deg); }
+.evidence summary:hover, .details > summary:hover { color: var(--fg); }
+.evidence__body, .details__body { margin-top: var(--space-3); }
 
 /* Minimal table: hairlines, mono figures. */
 .table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
-.table th { text-align: left; font: 500 var(--text-xs)/1.2 var(--font-mono); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--muted); padding: var(--space-2) var(--space-3) var(--space-2) 0; border-bottom: var(--hair) solid var(--line-strong); }
+.table th { text-align: left; font: 600 var(--text-sm)/1.3 var(--font-display); letter-spacing: 0; text-transform: none; color: var(--muted); padding: var(--space-2) var(--space-3) var(--space-2) 0; border-bottom: var(--hair) solid var(--line-strong); }
 .table td { padding: var(--space-2) var(--space-3) var(--space-2) 0; border-bottom: var(--hair) solid var(--line); vertical-align: top; }
 .table .num, .table td.num { text-align: right; font-family: var(--font-mono); }
 
@@ -385,6 +384,194 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
 .memfile__line:hover .memfile__actions, .memfile__line:focus-within .memfile__actions { opacity: 1; }
 @media (hover: none) { .memfile__actions { opacity: 1; } }
 
+/* ==========================================================================
+   Added 7 Nov 2026 (DESIGN-SYNC, see docs/DESIGN_DIFF.md). Quiet by default:
+   detail sits behind a Details disclosure or a Hint, never printed by default.
+   ========================================================================== */
+
+/* -- Hint: a small info button that opens a short note (D45). ---------------
+   One or two plain sentences, never the only copy of a fact. Opens on hover, focus
+   or tap; Escape closes it and focus stays on the button. The popover is placed by
+   script (position: fixed, so no scroll container clips it); see Hint.tsx. */
+.hint { position: relative; display: inline-flex; align-items: center; vertical-align: middle; margin-inline-start: var(--space-1); font: 400 var(--text-sm)/1.45 var(--font-body); letter-spacing: 0; text-transform: none; }
+.hint__btn { appearance: none; display: inline-grid; place-items: center; flex: none; width: 24px; height: 24px; margin: -4px; padding: 0; background: none; border: 0; border-radius: 50%; color: var(--muted); cursor: help; transition: color var(--dur-fast) var(--ease-out); }
+.hint__btn::before { content: "i"; display: grid; place-items: center; width: 16px; height: 16px; border: 1.5px solid currentColor; border-radius: 50%; font: 700 10px/1 var(--font-mono); font-variant-ligatures: none; }
+.hint__btn:hover, .hint__btn[aria-expanded="true"] { color: var(--fg); }
+.hint__btn:focus-visible { outline-offset: 0; border-radius: 50%; }
+.hint__btn[aria-expanded="true"]::before { color: var(--accent); border-color: var(--accent); }
+@media (pointer: coarse) { .hint__btn { width: 44px; height: 44px; margin: -14px; } }
+.hint__pop { position: fixed; z-index: var(--z-hint); left: var(--x, 0px); top: var(--y, 0px); width: max-content; max-width: min(var(--measure-short), calc(100vw - 24px)); padding: var(--space-2) var(--space-3); color: var(--fg); background: var(--panel); border: var(--hair) solid var(--line-strong); border-radius: var(--radius-2); box-shadow: var(--elev-2); text-align: left; white-space: normal; font-weight: 400; animation: u-fade-in var(--dur-pop) var(--ease-out) both; }
+.hint__pop[hidden] { display: none; }
+.hint__pop b { font-weight: 600; }
+
+/* -- Details: the one disclosure. "Why this?", "Details", "About this data". -- */
+.details { font-size: var(--text-sm); }
+.details__body { max-width: var(--measure-short); color: var(--muted); animation: u-fade-in var(--dur-base) var(--ease-out) both; }
+.details__body > * + * { margin-top: var(--space-2); }
+/* About this data: the single footnote under a worker chart. n, split, interval and method in a short key list. */
+.about__list { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-4); margin: 0; font: var(--text-xs)/1.5 var(--font-mono); }
+.about__list dt { color: var(--muted); }
+.about__list dd { margin: 0; color: var(--fg); overflow-wrap: anywhere; }
+.about .details__body { max-width: 62ch; }
+
+/* -- Section header: a label over a clear title, one short helper line. ------ */
+.part { display: grid; gap: 2px; margin: 0; min-width: 0; }
+.part h3, .part h2 { font: 600 var(--text-xl)/1.2 var(--font-display); letter-spacing: var(--tracking-display); }
+.part__helper { font-size: var(--text-sm); color: var(--muted); max-width: var(--measure); }
+.part--row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-2) var(--space-5); }
+.part--row > div { display: grid; gap: 2px; min-width: 0; }
+.sub { font: 600 var(--text-md)/1.3 var(--font-display); margin: var(--space-7) 0 var(--space-3); }
+
+/* -- Metric row: label, one figure with its unit, one badge. Interval and n sit
+      behind a Hint on worker screens (data-detail="hint") and print on admin and
+      Evidence screens (data-detail="shown"). ------------------------------------ */
+.metrics { margin: 0; padding: 0; list-style: none; border-top: var(--hair) solid var(--line); }
+.metric { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: baseline; gap: var(--space-1) var(--space-3); padding: var(--space-3) 0; border-bottom: var(--hair) solid var(--line); }
+.metric__label { font: 600 var(--text-sm)/1.3 var(--font-display); color: var(--muted); }
+.metric__value { font: 600 var(--text-xl)/1.1 var(--font-display); letter-spacing: -0.02em; font-variant-numeric: tabular-nums lining-nums; text-align: right; }
+.metric__unit { margin-left: 0.25em; font-size: 0.62em; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.metric__badge { justify-self: end; }
+.metric__interval { grid-column: 1 / -1; font: var(--text-xs)/1.4 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.metric--bad .metric__value { color: var(--bad); }
+
+/* -- Empty state: an action slot and a quiet inline form. -------------------- */
+.state__action { margin-top: var(--space-1); }
+.state--inline { padding: var(--space-4) 0; border: 0; border-top: var(--hair) solid var(--line); border-radius: 0; background: none; }
+
+/* -- Brief: one sentence, "+N more" opens the rest in place. ----------------- */
+.brief { margin: 0; font-size: var(--text-sm); line-height: 1.5; }
+.brief__lead { color: var(--muted); }
+.brief__more { appearance: none; padding: 0; background: none; border: 0; border-bottom: var(--hair) dashed var(--muted); border-radius: 0; font: inherit; color: var(--muted); cursor: pointer; }
+.brief__more:hover, .brief__more[aria-expanded="true"] { color: var(--fg); border-bottom-color: var(--fg); }
+.brief__list { margin: var(--space-1) 0 0; padding: 0; list-style: none; display: grid; gap: 2px; font-size: var(--text-sm); }
+.brief__list li::before { content: "\00b7"; margin-right: 0.5em; color: var(--muted); }
+.brief__list[hidden] { display: none; }
+
+/* -- Insight card: one pointer. Glyph and a word carry the polarity, never colour alone.
+      Worker: a sentence and one action, no statistics. Admin: the figure line prints. -- */
+.insight { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: var(--space-1) var(--space-3); align-items: start; padding: var(--space-4); background: var(--panel); border: var(--hair) solid var(--line); border-radius: var(--radius-3); }
+.insight__glyph { grid-row: 1 / span 2; display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--radius-2); background: var(--sunk); color: var(--fg); }
+.insight[data-polarity="positive"] .insight__glyph { background: var(--good-soft); color: var(--good); }
+.insight[data-polarity="negative"] .insight__glyph { background: var(--warn-soft); color: var(--warn); }
+.insight__head { display: grid; gap: 2px; min-width: 0; }
+.insight__label { font: 500 var(--text-xs)/1.2 var(--font-mono); color: var(--muted); }
+.insight__title { font: 600 var(--text-md)/1.3 var(--font-display); letter-spacing: -0.01em; }
+.insight__text { grid-column: 2; max-width: var(--measure-short); font-size: var(--text-sm); color: var(--muted); }
+.insight__action { grid-column: 3; grid-row: 1 / span 2; align-self: center; }
+.insight__stats { grid-column: 2 / -1; font: var(--text-xs)/1.45 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.insight__stats b { color: var(--fg); font-weight: 500; }
+@media (max-width: 560px) { .insight { grid-template-columns: 32px minmax(0, 1fr); } .insight__action { grid-column: 2; grid-row: auto; justify-self: start; margin-top: var(--space-2); } }
+
+/* -- Notice card: the one place the interface asks for attention. A small card,
+      an icon tile whose shape and tone say what is being asked, two equal choices.
+      Corner placement (.alert--fixed) sits above the Stop button. In a list use
+      .alert--inline. Safety and approvals are never hidden by the attention layer. -- */
+.alert { --_tone: var(--accent); --_tint: var(--accent-soft); display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-2) var(--space-3); align-items: start; width: min(360px, 100%); padding: var(--space-4); background: var(--panel); border: var(--hair) solid var(--line-strong); border-radius: var(--radius-3); box-shadow: var(--elev-2); }
+.alert--inline { width: 100%; box-shadow: none; }
+.alert__icon { position: relative; display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--radius-2); background: var(--_tint); color: var(--_tone); }
+.alert__icon::after { content: ""; position: absolute; inset: 0; border-radius: var(--radius-2); border: 2px solid var(--_tone); opacity: 0; }
+.alert__icon svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.alert__text { display: grid; gap: 2px; min-width: 0; }
+.alert__title { font: 600 var(--text-md)/1.3 var(--font-display); color: var(--fg); margin: 0; }
+.alert__body { margin: 0; font-size: var(--text-sm); line-height: 1.45; color: var(--muted); }
+.alert__body b { color: var(--fg); font-weight: 600; }
+.alert__actions { grid-column: 2; display: flex; flex-wrap: wrap; gap: var(--space-2); padding-top: var(--space-1); }
+.alert__note { grid-column: 1 / -1; margin: 0; padding: var(--space-2) var(--space-3); background: var(--sunk); border-radius: var(--radius-2); font: var(--text-xs)/1.5 var(--font-mono); color: var(--fg); overflow-wrap: anywhere; }
+.alert__note span { color: var(--muted); }
+.alert__drop { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: var(--text-sm); color: var(--muted); }
+.alert--fixed { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + 40px + 12px + env(safe-area-inset-bottom, 0px)); z-index: var(--z-toast); width: min(360px, calc(100vw - 32px)); }
+@media (max-width: 600px) { .alert--fixed { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); } }
+.alert--live { animation: alert-in var(--dur-arrive) var(--ease-out) both; }
+.alert--live .alert__icon::after { animation: alert-ping 1.4s var(--ease-out) 2 both; }
+/* Tones: what is being asked, told by the icon shape and these tints. */
+.alert--ask, .alert--gate { border-color: var(--accent); }
+.alert--stop { --_tone: var(--bad); --_tint: var(--bad-soft); border-color: var(--bad); }
+.alert--stop .alert__icon { animation: alert-settle var(--dur-arrive) var(--ease-out) both; }
+.alert--pause { --_tone: var(--fg); --_tint: var(--sunk); }
+.alert--report { --_tint: var(--accent-soft); border-color: var(--accent); }
+.alert--rule { border: 1.5px dashed var(--accent); }
+.alert--warn { --_tone: var(--warn); --_tint: var(--warn-soft); }
+/* Hold to approve: only on an irreversible step in a pop-up, and never the only path. */
+.hold { position: relative; overflow: hidden; isolation: isolate; }
+.hold::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 0; background: var(--accent-strong); z-index: -1; }
+.hold[data-holding="true"]::before { width: 100%; transition: width 1.2s linear; }
+.hold[data-done="true"]::before { width: 100%; }
+/* Parts used inside notices. */
+.ckpt { grid-column: 1 / -1; display: grid; gap: var(--space-1); }
+.ckpt__bar { display: grid; grid-template-columns: repeat(var(--steps, 7), 1fr); gap: 3px; }
+.ckpt__bar i { height: 8px; background: var(--line); }
+.ckpt__bar i[data-on] { background: var(--fg); }
+.ckpt__text { font: var(--text-xs)/1.4 var(--font-mono); color: var(--muted); }
+.night { grid-column: 1 / -1; width: 100%; height: auto; display: block; }
+.night__axis { stroke: var(--line-strong); stroke-width: 1.25; }
+.night__ran { fill: var(--accent); }
+.night__stop { fill: var(--bad); }
+.night__wait { fill: none; stroke: var(--warn); stroke-width: 2; }
+.night__t { font: 10px var(--font-mono); fill: var(--muted); }
+.meter { grid-column: 1 / -1; display: grid; gap: var(--space-2); }
+.meter__track { position: relative; height: 8px; background: var(--line); }
+.meter__fill { position: absolute; inset: 0 auto 0 0; width: calc(var(--v, 0) * 1%); background: var(--accent); }
+.meter__mark { position: absolute; top: -3px; bottom: -3px; left: calc(var(--mark, 0) * 1%); width: 2px; background: var(--fg); }
+.meter__text { font-size: var(--text-sm); color: var(--fg); }
+.btn--alert { --_bg: var(--bad); --_fg: var(--on-bad); --_bd: var(--bad); }
+.btn--alert:hover { --_bg: color-mix(in srgb, var(--bad) 86%, var(--fg)); --_bd: color-mix(in srgb, var(--bad) 86%, var(--fg)); }
+
+/* -- Hit list: repeated, automatable actions. One thin frame, hairline rows, 40px
+      at wide widths. Actions show on hover or focus-within, always on touch. ------ */
+.hitlist { container-type: inline-size; margin: 0; padding: 0; list-style: none; background: var(--panel); border: var(--hair) solid var(--line); border-radius: var(--radius-3); overflow: hidden; }
+.hitrow { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto auto auto; align-items: center; column-gap: var(--space-3); min-height: 40px; padding: var(--space-2) var(--space-4); border-top: var(--hair) solid var(--line); transition: background-color var(--dur-fast) var(--ease-out); }
+.hitrow:first-child { border-top: 0; }
+.hitrow:hover, .hitrow[aria-selected="true"], .hitrow[data-open="true"] { background: var(--sunk); }
+.hitrow:focus-visible { outline-offset: -2px; border-radius: 0; }
+.hitrow__glyph { display: grid; place-items: center; width: 20px; height: 20px; color: var(--muted); }
+.hitrow__glyph svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.hitrow__main { display: grid; gap: 1px; min-width: 0; }
+.hitrow__line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); }
+.hitrow__label { font-size: var(--text-sm); line-height: 1.35; }
+.hitrow__label b { font-weight: 600; }
+.hitrow__sub { font-size: var(--text-xs); color: var(--muted); }
+.hitrow__count { font: var(--text-xs)/1 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hitrow__value { font: 500 var(--text-sm)/1 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; min-width: 6ch; }
+.hitrow__actions { display: inline-flex; gap: var(--space-1); opacity: 0; transition: opacity var(--dur-fast) var(--ease-out); }
+.hitrow:hover .hitrow__actions, .hitrow:focus-within .hitrow__actions, .hitrow[data-open="true"] .hitrow__actions { opacity: 1; }
+@media (hover: none) { .hitrow__actions { opacity: 1; } }
+@container (max-width: 640px) {
+  .hitrow { grid-template-columns: 20px minmax(0, 1fr) auto; grid-template-areas: "glyph main value" ". count actions"; row-gap: var(--space-1); min-height: 56px; }
+  .hitrow__glyph { grid-area: glyph; align-self: start; margin-top: 2px; }
+  .hitrow__main { grid-area: main; }
+  .hitrow__value { grid-area: value; }
+  .hitrow__count { grid-area: count; }
+  .hitrow__actions { grid-area: actions; justify-self: end; opacity: 1; }
+}
+
+/* -- Question card: Cue's one multiple-choice question. Keys are shown as caps,
+      "Not sure" is always the last row, and Esc dismisses. ---------------------- */
+.qcard { display: grid; gap: var(--space-3); width: min(360px, 100%); padding: var(--space-4); background: var(--panel); border: var(--hair) solid var(--line-strong); border-radius: var(--radius-3); box-shadow: var(--elev-2); }
+.qcard__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
+.qcard__q { margin: 0; font: 600 var(--text-md)/1.3 var(--font-display); letter-spacing: -0.01em; }
+.qcard__esc { flex: none; padding: 2px 6px; font: 500 var(--text-xs)/1.2 var(--font-mono); color: var(--muted); background: none; border: var(--hair) solid var(--line-strong); border-radius: var(--radius-2); cursor: pointer; }
+.qcard__esc:hover { color: var(--fg); border-color: var(--fg); }
+.qcard__rows { display: grid; gap: var(--space-1); }
+.qcard__row { display: flex; align-items: center; gap: var(--space-3); min-height: 36px; padding: 0 var(--space-3); text-align: left; font: 500 var(--text-sm)/1.3 var(--font-body); color: var(--fg); background: var(--panel); border: var(--hair) solid var(--control-line); border-radius: var(--radius-2); cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out); }
+.qcard__row:hover { background: var(--sunk); border-color: var(--fg); }
+.qcard__row--else { color: var(--muted); border-style: dashed; }
+.qcard__cap { flex: none; min-width: 2.2em; padding: 1px 5px; text-align: center; font: 600 var(--text-xs)/1.3 var(--font-mono); color: var(--muted); border: var(--hair) solid var(--line-strong); border-radius: var(--radius-1); }
+@media (pointer: coarse) { .qcard__row { min-height: 44px; } }
+
+/* -- Graph nodes: three colours plus ink; a glyph in the circle says the type, so
+      colour never works alone. A name shows on hover, focus, tap or when selected. -- */
+.node-fill-r { fill: var(--node-routine); } .node-fill-s { fill: var(--node-skill); } .node-fill-m { fill: var(--node-memory); } .node-fill-a { fill: var(--fg); }
+.node-line-r { stroke: var(--node-routine); } .node-line-s { stroke: var(--node-skill); } .node-line-m { stroke: var(--node-memory); } .node-line-a { stroke: var(--fg); }
+.node-glyph { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.node-glyph-r { color: var(--on-accent); } .node-glyph-s { color: var(--on-novice); } .node-glyph-m { color: var(--on-expert); } .node-glyph-a { color: var(--bg); }
+.gnode { cursor: pointer; outline: none; }
+.gnode .node-reveal { opacity: 0; pointer-events: none; transition: opacity var(--dur-fast) var(--ease-out); }
+.gnode:hover .node-reveal, .gnode:focus-visible .node-reveal, .gnode[data-pin] .node-reveal { opacity: 1; }
+.gnode .node-ring { fill: none; stroke: transparent; stroke-width: 2; }
+.gnode:hover .node-ring { stroke: var(--muted); }
+.gnode:focus-visible .node-ring { stroke: var(--focus); stroke-width: 3; }
+.gnode[data-pin] .node-ring { stroke: var(--fg); }
+
 /* -- Keyframes: motion shows a state change, nothing loops for decoration -- */
 @keyframes u-arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 @keyframes u-leave { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(8px); } }
@@ -393,9 +580,14 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
 @keyframes u-ring-land { from { transform: scale(1.18); opacity: 0; } 60% { opacity: 1; } to { transform: none; opacity: 1; } }
 @keyframes u-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 @keyframes u-slide { from { transform: translateX(-100%); } to { transform: translateX(290%); } }
+@keyframes alert-in { from { opacity: 0; transform: translate(8px, 12px); } to { opacity: 1; transform: none; } }
+@keyframes alert-ping { from { opacity: 0.8; transform: scale(1); } to { opacity: 0; transform: scale(1.9); } }
+@keyframes alert-settle { from { transform: scale(1.18); } to { transform: none; } }
 
 @media (prefers-reduced-motion: reduce) {
   .skeleton { animation: none; opacity: 0.7; }
   .progress-line--indeterminate > i { animation: none; width: 40%; }
-  .proposal--arriving, .proposal--leaving, .toast, .why__body, .sidepanel--overlay, .ring--landing { animation-duration: 0.01ms; }
+  .proposal--arriving, .proposal--leaving, .toast, .why__body, .sidepanel--overlay, .ring--landing, .details__body, .hint__pop { animation-duration: 0.01ms; }
+  .alert--live, .alert--live .alert__icon::after, .alert--stop .alert__icon { animation: none; }
+  .hold[data-holding="true"]::before { transition: none; }
 }

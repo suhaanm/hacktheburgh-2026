@@ -40,6 +40,10 @@
   --on-novice: #ffffff;
   --good: #177540;
   --on-good: #ffffff;
+  /* Graph node fills: a touch brighter than the semantic colours, graph only. Automation nodes use --fg with a glyph. */
+  --node-routine: #0f9d96;
+  --node-skill: #5566e6;
+  --node-memory: #cf7208;
   --warn: #8a6100;
   --bad: #b3261e;
   --on-bad: #ffffff;
@@ -79,6 +83,7 @@
   --tracking-display: -0.02em;
   --tracking-label: 0.08em;  /* uppercase mono labels */
   --measure: 65ch;
+  --measure-short: 46ch;      /* disclosure bodies, notices, hint popovers */
 
   /* -- Space: 4px base unit ------------------------------------------------ */
   --space-1: 4px;
@@ -124,10 +129,12 @@
   --dur-arrive: 360ms;      /* a card arriving or leaving */
   --dur-land: 560ms;        /* ring landing */
   --dur-fade: 900ms;        /* coach chip receding, node fading */
+  --dur-pop: var(--dur-fast); /* hint popover appearing */
 
   /* -- Layers -------------------------------------------------------------- */
   --z-panel: 20;
   --z-toast: 30;
+  --z-hint: 35;
   --z-kill: 40;
   --z-overlay: 50;
 }
@@ -152,6 +159,9 @@
     --on-novice: #0b1030;
     --good: #5ad08a;
     --on-good: #04210f;
+    --node-routine: #5eead4;
+    --node-skill: #9ba8ff;
+    --node-memory: #ffb35c;
     --warn: #e7c24c;
     --bad: #ff8a80;
     --on-bad: #2b0a07;
@@ -190,6 +200,9 @@
   --on-novice: #0b1030;
   --good: #5ad08a;
   --on-good: #04210f;
+  --node-routine: #5eead4;
+  --node-skill: #9ba8ff;
+  --node-memory: #ffb35c;
   --warn: #e7c24c;
   --bad: #ff8a80;
   --on-bad: #2b0a07;
