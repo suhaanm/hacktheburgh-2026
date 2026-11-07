@@ -188,7 +188,7 @@ def build_section(results_dir: Path = RESULTS, expected: tuple[int, int] = (N_CO
     if (results_dir / "cost.json").exists():
         c = json.loads((results_dir / "cost.json").read_text())
         cost = {"usd_est": c.get("usd_est"), "cap_usd": c.get("cap_usd"), "calls": c.get("calls"), "cache_hits": c.get("cache_hits"), "tokens": c.get("tokens"),
-                "prices_from_env": c.get("prices_from_env"), "price_in_per_mtok": c.get("price_in_per_mtok"), "price_out_per_mtok": c.get("price_out_per_mtok")}
+                "prices_from_env": c.get("prices_from_env"), "usd_at_fast_tier_reference_rates": c.get("usd_at_fast_tier_reference_rates"), "price_in_per_mtok": c.get("price_in_per_mtok"), "price_out_per_mtok": c.get("price_out_per_mtok")}
     models = sorted({r.get("model", "") for r in rows})
     aborted = []
     for nf in sorted(results_dir.parent.glob("aborted_run*/NOTE.json")):
@@ -334,8 +334,8 @@ def render_md(s: dict) -> str:
     w("")
     cs = s.get("cost") or {}
     w(f"Estimated spend US${_fmt(cs.get('usd_est'), 2)} of the US$8 cap; {cs.get('calls')} model calls ({cs.get('cache_hits')} cache hits); tokens {cs.get('tokens')}. "
-      f"Prices {'from the environment' if cs.get('prices_from_env') else 'were conservative defaults (the estimate is an upper bound if the model is cheaper)'}: "
-      f"in {cs.get('price_in_per_mtok')}, out {cs.get('price_out_per_mtok')} per million tokens.")
+      f"Prices {'were set from the environment and are an ASSUMPTION (supplied by the lead, not verified against a bill)' if cs.get('prices_from_env') else 'were conservative defaults (the estimate is an upper bound if the model is cheaper)'}: "
+      f"in {cs.get('price_in_per_mtok')}, out {cs.get('price_out_per_mtok')} per million tokens. For reference, the same tokens at the fast-tier rates of 0.75 and 4.50 would cost US${_fmt(cs.get('usd_at_fast_tier_reference_rates'), 2)}.")
     w("")
     w("## 7. What this does not show")
     w("")

@@ -223,12 +223,12 @@ FROZEN4 = HERE / "frozen_run4"
 # declared in PLAN_RUN5.md: the frozen pipeline of run 4 that run 5 must meet, unchanged
 RUN5_PIPELINE_FINGERPRINT = "5630b3c99e9f734a"
 RUN5_EXT_FINGERPRINTS = {"ext-ssim0": "456cdba315422688", "ext-ssim1": "8aca835fb01cd573", "ext-ssim2": "c32fc1e85d21f4df"}
-RUN5_LABEL = "run 5, EXPLORATORY: planner-tier participant, same sites and coach as run 4"
+RUN5_LABEL = "run 5, EXPLORATORY: the same fast-tier model with reasoning effort raised to low (option P2), same sites and coach as run 4"
 
 
 def _run5_limitations() -> list:
     return [{"id": "run5-exploratory", "severity": "high",
-             "text": "Run 5 is exploratory. It was designed after run 4 hit the floor, uses a stronger model tier chosen from options declared in PLAN_RUN5.md before any call, and has far fewer participants than run 4. Its pilot of three participants was only used to decide whether to proceed and is in no analysis."},
+             "text": "Run 5 is exploratory. It was designed after run 4 hit the floor, uses the same model with its reasoning effort raised to low (option P2, chosen from the options declared in PLAN_RUN5.md before any call; the planner option was withdrawn as unaffordable), and has far fewer participants than run 4. Its pilot of three participants was only used to decide whether to proceed and is in no analysis."},
             {"id": "run5-power", "severity": "high",
              "text": "With 8 coached participants the interval excludes zero with probability about 6% under no effect, 10%, 16% and 49% for a small, medium and large true effect (engine-analytics Monte Carlo); sign-flip p below 0.05 is 1%, 2%, 6% and 22%. A null says almost nothing."}]
 
@@ -246,7 +246,7 @@ def cmd_run5(a) -> int:
         print("REFUSED: UNDERSTUDY_MOCK is set.")
         return 2
     if not (os.environ.get("STUDY_SIM_PRICE_IN") and os.environ.get("STUDY_SIM_PRICE_OUT")):
-        print("REFUSED: run 5 needs STUDY_SIM_PRICE_IN and STUDY_SIM_PRICE_OUT (US$ per million tokens of the planner model) so the US$7 guard is real.")
+        print("REFUSED: run 5 needs STUDY_SIM_PRICE_IN and STUDY_SIM_PRICE_OUT (US$ per million tokens, the assumed 0.75 and 4.50 of the fast tier) so the US$6 guard is real.")
         return 2
     from evals.study_sim.infra import fingerprint_dir
 
@@ -265,8 +265,9 @@ def cmd_run5(a) -> int:
             print("REFUSED: the pilot has not passed its declared criterion (run `pilot-decide` first); run 5 proper does not start.")
             return 2
         specs = specs[:int(json.loads(dec_file.read_text())["n_planned"])]
+    os.environ["OPENAI_EFFORT_FAST"] = "low"                      # option P2 of PLAN_RUN5.md (amendment 1): the fast tier at reasoning effort low
     port = get_model_port()
-    model_id = getattr(getattr(port, "models", None), "planner", "unknown")
+    model_id = f"{getattr(getattr(port, 'models', None), 'fast', 'unknown')}@effort-low"
     budget = pilot_mod_budget(RESULTS5 / "cost_ledger.jsonl")
     if stage == "main":
         budget.carry(RESULTS5 / "pilot" / "cost.json")
@@ -278,7 +279,7 @@ def cmd_run5(a) -> int:
             done_ids = {r["participant"] for r in csv.DictReader(fh)}
 
     def factory(spec):
-        return lambda spec_, case, phase, world: ModelParticipant(port, spec_, budget, model_id, tier="planner")
+        return lambda spec_, case, phase, world: ModelParticipant(port, spec_, budget, model_id, tier="fast")
 
     worlds, built = make_worlds(a.workers, False, out, freeze_from=FROZEN4)
     try:
@@ -286,7 +287,7 @@ def cmd_run5(a) -> int:
     finally:
         close_worlds(worlds, built)
         (out / "cost.json").write_text(json.dumps(budget.summary(), indent=1))
-    print(f"run5 {stage}: {n} participant(s); spend estimate ${budget.usd:.3f} of the US${budget.cap_usd:.0f} cap (pilot included)")
+    print(f"run5 {stage}: {n} participant(s); spend estimate ${budget.usd:.3f} of the US${budget.cap_usd:.0f} cap (pilot included; run 4 and the aborted runs are not part of it)")
     return 0
 
 

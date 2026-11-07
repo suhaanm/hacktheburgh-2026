@@ -41,7 +41,7 @@ def test_pilot_passes_when_half_the_post_tests_are_off_the_floor():
     rows = _pilot_rows(pil, [1, 1, 0, 0, 2, 0])                                     # 3 of 6 above zero
     d = pilot.decide(rows, pilot_spend_usd=0.6)
     assert d["pass"] and d["post_tests_above_zero"] == 3 and d["needed_above_zero"] == 3 and d["n_planned"] == 12
-    assert d["mean_cost_per_participant_usd"] == 0.2 and d["projected_cost_per_participant_usd"] == 0.25 and d["affordable_participants"] == 25
+    assert d["mean_cost_per_participant_usd"] == 0.2 and d["projected_cost_per_participant_usd"] == 0.25 and d["affordable_participants"] == 21
 
 
 def test_pilot_fails_on_the_floor_and_on_exclusions_and_when_unaffordable():
@@ -53,13 +53,13 @@ def test_pilot_fails_on_the_floor_and_on_exclusions_and_when_unaffordable():
     ex = pilot.decide(rows, 0.5)
     assert not ex["pass"] and "incomplete" in ex["reasons_for_stopping"][0]
     ok_rows = _pilot_rows(pil, [1, 1, 1, 1, 1, 1])
-    cheap = pilot.decide(ok_rows, 0.6)                                              # US$0.20 each: projected 0.25, 6.4 left -> 25 affordable
+    cheap = pilot.decide(ok_rows, 0.6)                                              # US$0.20 each: projected 0.25, 5.4 left -> 21 affordable
     assert cheap["pass"] and cheap["n_planned"] == 12
-    mid = pilot.decide(ok_rows, 3.0)                                                # US$1 each: projected 1.25, 4.0 left -> 3 affordable: stop
+    mid = pilot.decide(ok_rows, 3.0)                                                # US$1 each: projected 1.25, 3.0 left -> 2 affordable: stop
     assert not mid["pass"] and mid["n_planned"] == 0 and "not affordable" in mid["reasons_for_stopping"][0]
-    eight = pilot.decide(ok_rows, 1.5)                                              # US$0.5 each: projected 0.625, 5.5 left -> 8 affordable
-    assert eight["pass"] and eight["n_planned"] == 8
-    twelve_no = pilot.decide(ok_rows, 1.8)                                          # 0.75 projected, 5.2 left -> 6 affordable: stop
+    eight = pilot.decide(ok_rows, 1.2)                                              # US$0.4 each: projected 0.5, 4.8 left -> 9 affordable
+    assert eight["pass"] and eight["n_planned"] == 8 and pilot.BUDGET_USD == 6.0
+    twelve_no = pilot.decide(ok_rows, 1.8)                                          # 0.75 projected, 4.2 left -> 5 affordable: stop
     assert not twelve_no["pass"]
 
 

@@ -7,7 +7,7 @@ from pathlib import Path
 
 from . import analysis
 
-BUDGET_USD = 7.0               # pilot + run 5 together, a hard cap
+BUDGET_USD = 6.0               # pilot + run 5 together, a hard cap (PLAN_RUN5.md amendment 1: US$6, US$1 kept in reserve)
 SAFETY_FACTOR = 1.25           # projected cost per participant = pilot mean x 1.25
 MIN_SHARE_ABOVE_ZERO = 0.5     # at least half of the pilot post-tests must score above zero
 FULL_N = 12

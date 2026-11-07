@@ -110,4 +110,5 @@ class Budget:
         pin, pout, from_env = prices()
         return {"usd_est": round(self.usd, 3), "cap_usd": self.cap_usd, "calls": self.calls, "cache_hits": self.cache_hits,
                 "tokens": {"in": self.tokens_in, "out": self.tokens_out}, "price_in_per_mtok": pin, "price_out_per_mtok": pout,
-                "prices_from_env": from_env, "token_source": self.token_source, "by_role": self.by_role, "carried_from_aborted_run": self.carried}
+                "prices_from_env": from_env, "usd_at_fast_tier_reference_rates": round((self.tokens_in * 0.75 + self.tokens_out * 4.50) / 1e6, 3),
+                "token_source": self.token_source, "by_role": self.by_role, "carried_from_aborted_run": self.carried}

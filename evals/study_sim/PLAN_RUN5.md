@@ -91,4 +91,22 @@ uv run --package understudy-agent python -m evals.study_sim analyze5            
 
 ## Amendment log
 
-_None. Entries below are dated and never edit the sections above._
+_Entries below are dated and never edit the sections above; where an entry contradicts a section above, the entry governs._
+
+**Amendment 1 (2026-11-07, about 18:15 GMT, before any run-5 model call; at the lead's decision "C with P2").**
+Costing before spending, from run 4's measured use: about **116 model calls, 119k input tokens and 12k output tokens per participant**. At the placeholder planner rates (US$5 in, US$30 out per million tokens) that is
+US$0.96 per participant if the planner's reasoning added nothing, US$1.33 if it doubled the output and US$2.06 if it quadrupled it, so the 3-participant pilot would cost US$2.9 to 6.2 and leave room for 0 to 3 participants,
+below the declared minimum of 8: the plan as written could only end in "stop: not affordable" after spending most of the cap. Therefore:
+1. **P1 (planner tier, `plan` call) is withdrawn as unaffordable.** Sections 2 and 6 and the table in section 2 are superseded wherever they say P1, planner tier or `plan`.
+2. **P2 is authorised, and only P2:** the same fast-tier `check` call as run 4, with the port's reasoning effort for the fast tier raised from its default ("none") to **"low"** (`OPENAI_EFFORT_FAST=low`, set by the harness itself before it
+   creates the model port; the model id is read from the environment as always and recorded in the `model` column with the suffix `@effort-low`). **P3 stays unrun** and is not covered by this plan.
+3. **Hard cap US$6 for the pilot and run 5 together** (US$1 stays in reserve), enforced in code (`pilot.BUDGET_USD`, `budget.py`): no new participant starts above 95% of the cap counting 1.5 times the mean cost of finished
+   participants for each participant in flight, and a call that would pass 100% raises. **Prices are the fast-tier rates, US$0.75 in and US$4.50 out per million tokens, an assumption** supplied by the lead and not checked against a bill;
+   the harness refuses to start without `STUDY_SIM_PRICE_IN` and `STUDY_SIM_PRICE_OUT`, and every report labels them as an assumption.
+4. **Expected cost, stated before any call.** Run 4 cost about US$0.10 to 0.21 per participant at these rates (US$0.14 from the token means above). Raising the effort adds reasoning output tokens; if that multiplies the output tokens by 2 to 4 the cost per participant is about
+   US$0.25 to 0.40, the pilot about US$0.75 to 1.2 and 12 participants about US$3 to 4.8, inside the cap; if it multiplies them by more than about 6 the pilot will say so and the declared affordability rule decides.
+5. **Affordable n is recomputed from the pilot's measured cost** exactly as in section 4 criterion 3 with the new cap: projected cost per participant = pilot mean x 1.25; `n_planned` = 12 if the remaining US$6 minus the pilot's spend pays for 12, else 8, **else stop**.
+   The minimum for the main stage is **8 coached participants** (the first 8 of the fixed order, so then no A/A arm and the report says so). **If fewer than 8 are affordable the run stops and says so; there is no silent shrinking.**
+6. **Unchanged:** the pilot (3 A/A participants, discarded from every analysis), its criterion (all 3 complete without harness exclusion, and at least 3 of the 6 pilot post-tests above zero, and affordability), the stop if it fails, the frozen run-4 pipeline and its fingerprint gate,
+   the design, order, ids, measures, analysis, power statement (n = 8: interval excludes zero 5.6% / 9.8% / 15.6% / 48.6% for none / small / medium / large; sign-flip p < 0.05: 0.6 / 2.0 / 5.8 / 22.0%), exclusions, claims and gates (`GO5` is created only after run 4 has finished and its analysis is written).
+7. The run-5 report will say that the participant is the same model as run 4 with its reasoning effort raised to low, that this option was chosen after run 4 hit the floor and after the planner option was found unaffordable, and that the pilot was used only to decide whether to proceed.
