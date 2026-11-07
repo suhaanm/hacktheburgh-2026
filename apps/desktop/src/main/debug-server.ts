@@ -25,6 +25,8 @@ export interface DebugDeps {
     // DOM-first grounding and the coach chip, for looking at them while the app runs.
     dom?: { status(): { port: number | null; pending: number; extensionSeenMs: number | null; ring: unknown; chip: unknown; capture: string; coach?: unknown } }
   }
+  // KNACK: the shell machine. `GET /state` reports the main window's visibility and bounds with it; `POST /hud/activity` and `POST /shell/event` drive it without any real run.
+  knack?: { dispatch(event: unknown): unknown; info(): unknown }
   // SHELL: the menu-bar item (absent when headless).
   tray?: Pick<ShellTray, 'info' | 'activate' | 'primaryClick'>
 }
@@ -88,7 +90,34 @@ export function startDebugServer(deps: DebugDeps): http.Server {
         case 'GET /hotkeys':
           return send(200, lastHotkeyReport() ?? { error: 'hotkeys not registered yet' })
         case 'GET /state':
-          return send(200, ctx.state.get())
+          return send(200, deps.knack ? { ...ctx.state.get(), knack: deps.knack.info() } : ctx.state.get())
+        case 'POST /hud/activity': {
+          // Dev hook (no real run): drives the corner pill through the shell machine. phase: working | done | error | voice | idle | stopped.
+          if (!deps.knack) return send(404, { error: 'no Knack shell' })
+          const body = z
+            .object({ phase: z.enum(['working', 'done', 'error', 'voice', 'idle', 'stopped']), label: z.string().max(80).optional(), step: z.number().int().min(0).optional(), of: z.number().int().min(1).optional(), realScreen: z.boolean().default(false) })
+            .parse(await readJson(req))
+          const k = deps.knack
+          if (body.phase === 'working') {
+            k.dispatch({ type: 'run_started', realScreen: body.realScreen })
+            if (body.label) k.dispatch({ type: 'run_progress', label: body.label, ...(body.step !== undefined && body.of !== undefined ? { n: body.step, m: body.of } : {}) })
+          } else if (body.phase === 'done') k.dispatch({ type: 'run_done', needsNothing: true })
+          else if (body.phase === 'error') k.dispatch({ type: 'run_failed' })
+          else if (body.phase === 'voice') k.dispatch({ type: 'voice_hold', phase: body.label === 'Thinking' || body.label === 'Speaking' ? body.label : 'Listening' })
+          else if (body.phase === 'stopped') k.dispatch({ type: 'kill' })
+          else {
+            k.dispatch({ type: 'error_acknowledged' })
+            k.dispatch({ type: 'voice_end' })
+            k.dispatch({ type: 'resume' })
+          }
+          return send(200, { knack: k.info(), hud: deps.understudy?.hud?.state() ?? null })
+        }
+        case 'POST /shell/event': {
+          if (!deps.knack) return send(404, { error: 'no Knack shell' })
+          const body = z.object({ event: z.object({ type: z.string() }).passthrough() }).parse(await readJson(req))
+          deps.knack.dispatch(body.event)
+          return send(200, { knack: deps.knack.info() })
+        }
         case 'POST /tool': {
           const body = z.object({ name: z.string(), args: z.unknown().optional() }).parse(await readJson(req))
           return send(200, await dispatch(body.name, body.args ?? {}, 'debug'))

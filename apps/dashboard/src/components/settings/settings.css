@@ -1,0 +1,22 @@
+/* Settings: one line per setting, in the spec's order. Own classes (st-), tokens only. The frame (the sheet) belongs to the shell. */
+.st { display: grid; gap: 0; min-width: 0; }
+.st-row { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); min-height: var(--row-h, 44px); padding: var(--space-4) 0; border-bottom: var(--hair) solid var(--line); }
+.st-row:first-child { border-top: var(--hair) solid var(--line); }
+.st-row--block { display: block; }
+.st-text { display: grid; gap: 2px; min-width: 0; flex: 1 1 auto; }
+.st-name { margin: 0; font: 600 var(--text-sm)/1.3 var(--font-body); }
+.st-line { margin: 0; color: var(--muted); font-size: var(--text-sm); line-height: 1.4; max-width: 56ch; }
+.st-control { flex: none; display: flex; align-items: center; min-height: var(--control-h, 32px); }
+.st-sub { display: grid; gap: var(--space-2); padding: var(--space-3) 0 var(--space-4) var(--space-4); border-bottom: var(--hair) solid var(--line); }
+.st-kinds { display: grid; gap: var(--space-5); }
+.st-group { display: grid; gap: var(--space-2); }
+.st-kind { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4); min-height: var(--control-h, 32px); }
+.st-kind__name { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: var(--text-sm); }
+.st-kind__line { display: block; width: 100%; color: var(--muted); font-size: var(--text-xs); font-weight: 400; }
+.st-kind-note { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+.st-switch { margin: 0; }
+.st-switch input:disabled + .toggle__track { opacity: 0.5; cursor: not-allowed; }
+@media (max-width: 560px) {
+  .st-row { flex-wrap: wrap; }
+  .st-control { width: 100%; }
+}

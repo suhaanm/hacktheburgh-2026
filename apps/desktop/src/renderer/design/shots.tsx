@@ -13,6 +13,7 @@ import { applyDesignSettings, AwarenessCard, Onboarding } from './index'
 import type { AwarenessCardState } from '../../shared/awareness'
 import './gallery'
 import './styles'
+import { APP_NAME } from '../../shared/brand'
 
 const q = new URLSearchParams(location.search)
 const settings: Settings = {
@@ -30,7 +31,7 @@ const apply = (): void => applyDesignSettings(settings, 'understudy', document.d
 apply()
 for (const ms of [30, 150, 400, 900, 1600]) setTimeout(apply, ms)
 const now = Date.now()
-const cardOff: AwarenessCardState = { available: true, consentText: 'Understudy can take a quick look at your screen when you seem stuck, when you press its shortcut and, only if you turn it on, about every 30 seconds. Each look sends one small, reduced picture of your screen to a cloud vision model, which tells it what kind of app you are in and what seems to be in the way. The picture leaves this Mac for that one call, is held in memory only, and is never saved by Understudy; what comes back is a few fixed labels, not text. Nothing is sent while a password manager or banking app is in front, while a password field has focus, while your screen is locked or shared, or while you are away.', consentShort: 'Look at my screen when I seem stuck. Nothing is saved. See every call in Privacy.', agreed: false, enabled: false, trigger: false, periodic: false, strict: true, intervalSec: 30, dailyUsd: 0.5, callsToday: 0, lastSkip: null }
+const cardOff: AwarenessCardState = { available: true, consentText: `${APP_NAME} can take a quick look at your screen when you seem stuck, when you press its shortcut and, only if you turn it on, about every 30 seconds. Each look sends one small, reduced picture of your screen to a cloud vision model, which tells it what kind of app you are in and what seems to be in the way. The picture leaves this Mac for that one call, is held in memory only, and is never saved by ${APP_NAME}; what comes back is a few fixed labels, not text. Nothing is sent while a password manager or banking app is in front, while a password field has focus, while your screen is locked or shared, or while you are away.`, consentShort: 'Look at my screen when I seem stuck. Nothing is saved. See every call in Privacy.', agreed: false, enabled: false, trigger: false, periodic: false, strict: true, intervalSec: 30, dailyUsd: 0.5, callsToday: 0, lastSkip: null }
 const cardOn: AwarenessCardState = { ...cardOff, agreed: true, enabled: true, trigger: true, periodic: false, callsToday: 3, lastSkip: 'secure_input' }
 // The panel's Settings tab hosts the card through window.alongside.awareness; the harness answers with the canned (off) state.
 ;(window as unknown as { alongside?: Record<string, unknown> }).alongside = { ...((window as unknown as { alongside?: Record<string, unknown> }).alongside ?? {}), awareness: { state: async () => cardOff, setConsent: async () => cardOn } }
@@ -72,7 +73,7 @@ createRoot(document.getElementById('shots') as HTMLElement).render(
       </div>
     </div>
     <div className="shot-toast">
-      <ToastCard request={{ id: 't1', question: 'Understudy wants to open the case note in your browser. Is that all right?', options: ['Yes, open it', 'Not now'] }} remaining={0.6} armed onAnswer={noop} />
+      <ToastCard request={{ id: 't1', question: `${APP_NAME} wants to open the case note in your browser. Is that all right?`, options: ['Yes, open it', 'Not now'] }} remaining={0.6} armed onAnswer={noop} />
     </div>
     {panel('chat')}
     {panel('progress')}

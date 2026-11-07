@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { ApiError } from "../../api";
 import { useToast } from "../Toasts";
-import { Details } from "../ui";
+import { ConfirmRow, Details } from "../ui";
 import { deleteCopy, plural, totalRows, type LedgerCounts } from "./model";
 
-/** Export and delete the ledger. Delete asks once, says what goes and what stays, then works. */
+/** Export and delete the ledger. Delete asks once in an inline row ("Forget it" or "Keep"), says what goes and what stays, then works. */
 export function LedgerControls({ counts, fields, example, onExport, onDelete }: {
   counts: LedgerCounts;
   fields: string[];
@@ -16,11 +16,8 @@ export function LedgerControls({ counts, fields, example, onExport, onDelete }: 
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState<"export" | "delete" | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const keep = useRef<HTMLButtonElement>(null);
   const total = totalRows(counts);
   const copy = deleteCopy(counts, example);
-
-  useEffect(() => { if (confirm) keep.current?.focus(); }, [confirm]);
 
   const doExport = async () => {
     setErr(null); setBusy("export");
@@ -39,9 +36,8 @@ export function LedgerControls({ counts, fields, example, onExport, onDelete }: 
   };
 
   return (
-    <section className="section gr-ledger" aria-labelledby="led-h">
-      <h2 id="led-h" className="section__title">Your ledger</h2>
-      <p className="section__sub">One row per step, as codes and numbers only. It stays on this computer and you own it.</p>
+    <div className="gr-ledger">
+      <p className="note">One row per step, as codes and numbers only. It stays on this computer and you own it.</p>
       {fields.length > 0 && (
         <Details summary="What is stored in a row">
           <p className="gr-fields num">{fields.map((f) => <code key={f}>{f}</code>)}</p>
@@ -49,23 +45,24 @@ export function LedgerControls({ counts, fields, example, onExport, onDelete }: 
         </Details>
       )}
       <div className="row">
-        <button type="button" className="btn btn--secondary" onClick={doExport} disabled={busy != null || total === 0}>{busy === "export" ? "Exporting" : "Export the ledger as JSON"}</button>
-        {!confirm && <button type="button" className="btn btn--danger" onClick={() => setConfirm(true)} disabled={busy != null || total === 0}>Delete the ledger</button>}
-        <a className="btn btn--quiet" href="#/privacy">See what has left this computer</a>
+        <button type="button" className="btn btn--secondary" onClick={doExport} disabled={busy != null || total === 0}>{busy === "export" ? "Exporting" : "Export as JSON"}</button>
+        {!confirm && <button type="button" className="btn btn--danger" onClick={() => setConfirm(true)} disabled={busy != null || total === 0}>Forget</button>}
+        <a className="btn btn--quiet" href="#/your-data?section=sent">See what has left this computer</a>
       </div>
       {total === 0 && <p className="note">The ledger is empty.</p>}
       {confirm && (
-        <div className="gr-confirm" role="group" aria-labelledby="gr-confirm-h">
-          <h3 id="gr-confirm-h" className="gr-confirm__title">Delete {plural(total, "row")}?</h3>
-          <p>{copy.what}</p>
-          <p className="gr-confirm__kept">{copy.kept}</p>
-          <div className="row">
-            <button type="button" className="btn btn--danger" onClick={doDelete} disabled={busy != null}>{busy === "delete" ? "Deleting" : copy.button}</button>
-            <button type="button" className="btn btn--secondary" ref={keep} onClick={() => setConfirm(false)} disabled={busy != null}>Keep them</button>
-          </div>
-        </div>
+        <ul className="listrows">
+          <ConfirmRow
+            question={`Forget ${plural(total, "row")}?`}
+            consequence={`${copy.what} ${copy.kept}`}
+            confirmLabel={busy === "delete" ? "Forgetting" : "Forget it"}
+            onConfirm={doDelete}
+            onCancel={() => setConfirm(false)}
+            busy={busy != null}
+          />
+        </ul>
       )}
       {err && <p className="field__error" role="alert">{err}</p>}
-    </section>
+    </div>
   );
 }

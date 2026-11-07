@@ -21,6 +21,7 @@ import type { Settings } from '../../shared/settings'
 import { DAY_MS, LEVEL_LABEL, clampLevel, createLevelEngine, evaluateAttempt as evaluate } from './levels'
 import type { OverrideKind, TeachingLevelEngine } from './levels'
 import { SKILLS, matchSkillName } from './skills/definitions'
+import { APP_NAME } from '../../shared/brand'
 
 export const PROFILE_FILE = 'profile.md'
 const MAX_FILE_BYTES = 200_000
@@ -53,9 +54,9 @@ const DEFAULT_SHARING = [
 ]
 
 const PREAMBLE_DEFAULT = [
-  '# My Alongside profile',
+  `# My ${APP_NAME} profile`,
   '',
-  '> This file is yours. Read it, change it, or delete any line and Alongside will follow what it says here.',
+  `> This file is yours. Read it, change it, or delete any line and ${APP_NAME} will follow what it says here.`,
   '> Times are UTC. Say "forget that" and the last thing written down is removed.',
 ]
 

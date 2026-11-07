@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Understudy design tokens
+   Knack design tokens (the product was called Understudy; file names and token names keep their history)
    --------------------------------------------------------------------------
    Authoritative direction: docs/UI_DIRECTION.md.
    Meaning of colour (one job each, never decoration):
@@ -137,6 +137,27 @@
   --z-hint: 35;
   --z-kill: 40;
   --z-overlay: 50;
+
+  /* -- Knack layout and density (KNACK_UX section 6; add, never rename) ------ */
+  --sidebar-w: 208px;       /* sidebar; an icon rail under 880 px */
+  --content-read: 720px;    /* one left-aligned column: Home, Needs you, Routines, Your data, Settings */
+  --content-wide: 1080px;   /* Growth, Genome, Firm views */
+  --page-pad-x: 40px;       /* the column starts 40 px from the sidebar on every screen */
+  --page-pad-top: 32px;
+  --row-h: 44px;            /* list row */
+  --control-h: 32px;        /* button, input, sidebar item */
+  --table-row-h: 36px;
+  --pill-h: 32px;           /* corner pill */
+  --bottombar-h: 56px;      /* the web build's bottom bar at 390 px */
+  --corner-w: 340px;        /* corner card */
+  --corner-inset: 16px;
+  --text-corner: 0.8125rem; /* 13: the corner column only, it sits beside other apps' interfaces */
+  --lh-hero: 1.2;           /* hero insight, screen title: 1.2 and 1.25 */
+  --lh-title: 1.25;
+  --lh-row: 1.4;            /* rows, controls, labels */
+  --lh-read: 1.5;           /* reading text */
+  --weight-regular: 400;    /* two weights only: no 500, no 700 */
+  --weight-strong: 600;
 }
 
 @media (prefers-color-scheme: dark) {

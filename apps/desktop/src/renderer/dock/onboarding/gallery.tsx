@@ -7,6 +7,7 @@ import '../../design/styles'
 import { OnboardingFlow } from './OnboardingFlow'
 import { STEP_IDS } from './flow'
 import type { PermissionStatus, PermissionsApi } from './permissions'
+import { APP_NAME } from '../../../shared/brand'
 
 const params = new URLSearchParams(location.search)
 const variant = params.get('variant') ?? 'light'
@@ -29,7 +30,7 @@ document.body.style.background = dark ? '#000' : '#cfc8bb'
 const statuses: Record<string, PermissionStatus> = {
   mixed: { microphone: 'granted', screen: 'not-determined', accessibility: false, probe: 'skipped', needsRestart: false, hint: 'In System Settings, switch on Electron (the app you are running me from).' },
   none: { microphone: 'denied', screen: 'denied', accessibility: false, probe: 'skipped', needsRestart: false, hint: 'In System Settings, switch on Electron (the app you are running me from).' },
-  restart: { microphone: 'granted', screen: 'granted', accessibility: true, probe: 'empty', needsRestart: true, hint: 'Quit and reopen Alongside once Screen Recording is on.' },
+  restart: { microphone: 'granted', screen: 'granted', accessibility: true, probe: 'empty', needsRestart: true, hint: `Quit and reopen ${APP_NAME} once Screen Recording is on.` },
 }
 const permissionsApi: PermissionsApi = {
   status: async () => statuses[perm] ?? statuses.mixed!,
@@ -41,7 +42,7 @@ const permissionsApi: PermissionsApi = {
   onChange: () => () => undefined,
 }
 // The page records every call so an interactive run can be inspected: window.__log.
-const log: { patches: unknown[]; profile: string; done: string | null } = { patches: [], profile: '# My Alongside profile\n', done: null }
+const log: { patches: unknown[]; profile: string; done: string | null } = { patches: [], profile: `# My ${APP_NAME} profile\n`, done: null }
 ;(window as unknown as { __log: typeof log }).__log = log
 const api = {
   patchSettings: async (patch: unknown) => void log.patches.push(patch),

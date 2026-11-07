@@ -1,132 +1,131 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+// Home: one sentence about the week, one action, at most two quiet rows (docs/knack-ux/01-home.md). No chart, no statistic, no paragraph.
+// A blocking approval or a safety pause takes the hero slot. Everything the old Your week showed beyond this moved: the Monday note to the
+// palette, "What your admin can see" to Your data, the example-week selector to Settings, the data mode to the sidebar's status line.
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { api, forgetBackoff, refreshQueueBadge } from "../../api";
 import { useRoute } from "../../router";
 import { useAppState } from "../../store";
-import { idle, useLoad } from "../../hooks";
-import { ErrorState, ExampleBadge, Loading, PageHead, SourceNote } from "../../components/common";
-import { Details } from "../../components/ui";
+import { useLoad } from "../../hooks";
+import { ApprovalHero } from "../../components/home/ApprovalHero";
+import { WhyThis } from "../../components/home/PointerCard";
 import { Hint } from "../../components/Hint";
-import { PointerCard } from "../../components/home/PointerCard";
-import { SharingPanel } from "../../components/home/SharingPanel";
-import { copyText, mondayNote, noteLines } from "../../components/home/monday";
-import type { WireSharing, WireWorker } from "../../components/firm/wire";
+import { Icon } from "../../components/shell/icons";
+import { FIRST_RUN_KEY } from "../FirstRun/model";
 import { loadRepeats } from "../Repeats/data";
-import { WORKER_STORIES, STORY_LABEL, loadSharing, loadWorker, parseStory, type WorkerStory } from "./data";
-import { homeTitle, quietBody, repeatsLine, weekLabel } from "./model";
+import { loadWorker, parseStory } from "./data";
+import { blockingItem, remainingAfter } from "./approval";
+import { COULD_NOT_LOAD, GROWTH_ROW, exampleLine, heroAction, heroSentence, needsLine, originBadge, quietFor, repeatsHint, repeatsRow, rowSentence, tryLine, weekOf, type Quiet } from "./model";
+import { useExampleWeek } from "./story";
 import "../../components/home/home.css";
 
-/** The Monday note: three pointers and one number to try, in plain text the worker can copy. A disclosure, so the page keeps one hero. */
-function MondayNote({ w }: { w: WireWorker }) {
-  const note = mondayNote(w);
-  const [copied, setCopied] = useState<"idle" | "yes" | "no">("idle");
-  if (!note) return null;
-  const copy = async () => { setCopied((await copyText(note)) ? "yes" : "no"); window.setTimeout(() => setCopied("idle"), 3000); };
+function Row({ href, icon, children, hint }: { href: string; icon: "needs-you" | "routines" | "growth"; children: string; hint?: { label: string; text: string } | null }) {
   return (
-    <div className="home__monday">
-      <Details summary="Your Monday note">
-        <ul className="home__note">{noteLines(note).map((l) => <li key={l}>{l}</li>)}</ul>
-      </Details>
-      <button type="button" className="btn btn--quiet btn--sm" onClick={copy}>Copy the note</button>
-      <span className="u-sr-only" role="status">{copied === "yes" ? "Copied." : copied === "no" ? "Could not copy." : ""}</span>
-      {copied === "yes" && <span className="home__said" aria-hidden="true">Copied</span>}
-      {copied === "no" && <span className="home__said" aria-hidden="true">Your browser blocked copying. Select the text instead.</span>}
+    <li className="home__row">
+      <a className="home__row-link" href={href}>
+        <Icon name={icon} />
+        <span className="home__row-text">{children}</span>
+        <Icon name="chevron" className="home__row-chev" />
+      </a>
+      {hint && <Hint label={hint.label}>{hint.text}</Hint>}
+    </li>
+  );
+}
+
+/** Holds the hero's height while the week loads. After 600 ms it says what it is doing; with the engine still starting it says that instead. */
+function Reading() {
+  const engineUp = useAppState().engineUp;
+  const [late, setLate] = useState(false);
+  useEffect(() => { const t = window.setTimeout(() => setLate(true), 600); return () => window.clearTimeout(t); }, []);
+  return (
+    <div className="page page--read home" aria-busy="true">
+      <div className="home__loading" role="status">
+        <span className="u-sr-only">Loading your week</span>
+        {late && <p className="home__reading">{engineUp === null ? "Starting Knack, about 20 seconds." : "Reading your week"}</p>}
+      </div>
     </div>
   );
 }
 
-/** What an admin can see about this worker. Read when opened. A read-only list, never a toggle. */
-function AdminCanSee({ person }: { person: string | null }) {
-  const [open, setOpen] = useState(false);
-  const s = useLoad(() => (open ? loadSharing(person) : idle<WireSharing>()), [open, person]);
+function QuietState({ q, onRetry }: { q: Quiet; onRetry: () => void }) {
   return (
-    <Details summary="What your admin can see" onToggle={setOpen} wide>
-      {open && s.status === "loading" && !s.data && <p>Reading what is shared.</p>}
-      {s.status === "error" && !s.data && <p>That could not be loaded. Nothing is shared that is not listed here.</p>}
-      {s.data && <SharingPanel sharing={s.data} />}
-    </Details>
+    <section className="home__hero home__quiet" aria-labelledby="home-hero">
+      <h1 id="home-hero" className="home__hero-text">{q.title}</h1>
+      <p className="home__why">{q.body}</p>
+      {q.action === "try-again" && <div className="home__actions"><button type="button" className="btn btn--secondary" onClick={onRetry}>Try again</button></div>}
+      {q.action === "choose-role" && <div className="home__actions"><a className="btn btn--primary" href="#/first-run">Choose a role</a></div>}
+    </section>
   );
 }
 
-/** Your week: the first screen for a worker. A few pointers, chosen by fixed rules, each with one action and the reason behind it. */
+const firstRunAt = (): string | null => { try { return window.localStorage.getItem(FIRST_RUN_KEY); } catch { return null; } };
+
 export default function Home() {
   const route = useRoute();
-  const person = useAppState().person;
-  const [story, setStory] = useState<WorkerStory>(() => parseStory(route.query.get("story")));
+  const app = useAppState();
+  const person = app.person;
+  const stored = useExampleWeek();
+  const story = route.query.get("story") ? parseStory(route.query.get("story")) : stored;
   const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
   const w = useLoad(() => loadWorker(person, story), [person, story]);
   const rep = useLoad(() => loadRepeats(7), []);
-  useEffect(() => { document.title = "Your week · Understudy"; }, []);
+  const queue = useLoad(() => api.queue("pending"), []);
+  useEffect(() => { document.title = "Home · Knack"; }, []);
   useEffect(() => setGone(new Set()), [story, person]);
 
   const onGone = useCallback((id: string) => setGone((g) => new Set([...g, id])), []);
+  const retry = useCallback(() => { forgetBackoff(); window.dispatchEvent(new Event("understudy:retry")); w.reload(); }, [w]);
+  const decided = useCallback(() => { queue.reload(); void refreshQueueBadge(); }, [queue]);
+
   const data = w.data;
   const pointers = useMemo(() => (data ? data.pointers.filter((p) => !gone.has(p.id)) : []), [data, gone]);
+  const pending = (queue.data ?? []).filter((x) => x.status === "pending");
+  const blocking = blockingItem(pending);
 
-  if (w.status === "error" && !data) return <div className="page page--read"><ErrorState error={w.error} retry={w.reload} what="your week" /></div>;
-  if (!data) return <div className="page page--read"><Loading label="Loading your week" /></div>;
+  if (w.status === "error" && !data) return <div className="page page--read home"><QuietState q={COULD_NOT_LOAD} onRetry={w.reload} /></div>;
+  if (!data) return <Reading />;
 
   const example = w.source === "demo";
   const status = pointers.length === 0 && data.status === "ok" ? "nothing_stands_out" : data.status;
-  const label = weekLabel(data.week);
-  const repeats = rep.data && rep.data.state === "ok" ? repeatsLine(rep.data.total) : null;
-  const badge = (w.meta as { badge?: string } | null)?.badge ?? (w.meta?.origin ? (w.meta.origin === "real" ? null : `${w.meta.origin}`) : null);
+  const quiet = pointers.length === 0 ? quietFor(status, { setUp: !!app.role || !!person }) : null;
+  const badge = originBadge({ example, origin: w.meta?.origin, badge: (w.meta as { badge?: string } | null)?.badge });
+  const date = weekOf(data.week);
+  const standInNote = data.stand_in ? ((w.meta as { note?: string } | null)?.note ?? "An example week from the synthetic firm stands in for this profile.") : null;
+
+  const [first, second] = pointers;
+  const action = first ? heroAction(first) : null;
+  const toTry = tryLine(data.try) ?? exampleLine(data.stand_in, firstRunAt());
+  const needs = needsLine(remainingAfter(pending.length || app.pendingQueue, !!blocking));
+  const repeats = rep.data && rep.data.state === "ok" ? rep.data.total : null;
+  const rLine = repeatsRow(repeats);
+
+  // At most two quiet rows, in order of claim: the pointer an approval displaced, what needs you, the next pointer, then the best of Repeats and Growth.
+  const candidates: ReactNode[] = [];
+  if (blocking && first) candidates.push(<Row key="first" href={action?.href ?? "#/growth"} icon="growth">{rowSentence(first.headline)}</Row>);
+  if (needs) candidates.push(<Row key="needs" href="#/needs-you" icon="needs-you">{needs}</Row>);
+  if (second) candidates.push(<Row key="second" href={heroAction(second)?.href ?? "#/growth"} icon="growth">{rowSentence(second.headline)}</Row>);
+  if (rLine) candidates.push(<Row key="repeats" href="#/routines?tab=could-automate" icon="routines" hint={{ label: "About the repeated time", text: repeatsHint(repeats) ?? "" }}>{rLine}</Row>);
+  if (pointers.length > 0) candidates.push(<Row key="growth" href="#/growth" icon="growth">{GROWTH_ROW}</Row>);
+  const rows = candidates.slice(0, 2);
 
   return (
     <div className="page page--read home" aria-busy={w.status === "loading"}>
-      <PageHead
-        eyebrow="Your week"
-        title={homeTitle(status, pointers.length)}
-        lede={label ? `${label}. Chosen by fixed rules, not by a model.` : "Chosen by fixed rules, not by a model."}
-        aside={<>
-          {badge && <span className="pill pill--origin" data-origin={w.meta?.origin ?? "synthetic"}>{badge}</span>}
-          <ExampleBadge why={w.why} />
-          {example && (
-            <label className="home__story">
-              <span className="home__story-label">Example week</span>
-              <select className="select" value={story} onChange={(e) => setStory(e.target.value as WorkerStory)}>
-                {WORKER_STORIES.map((k) => <option key={k} value={k}>{STORY_LABEL[k]}</option>)}
-              </select>
-            </label>
-          )}
-        </>}
-      />
+      <div className="home__meta">
+        <span>{date ?? "This week"}</span>
+        {badge && <span className="pill pill--origin" data-origin={example ? "example" : w.meta?.origin ?? "synthetic"}>{badge}</span>}
+      </div>
 
-      <section className="hero" aria-labelledby="pointers-h">
-        <h2 id="pointers-h" className="u-sr-only">Pointers for this week</h2>
-        {pointers.length > 0 ? (
-          <div className="home__cards">
-            {pointers.map((p) => <PointerCard key={p.id} p={p} person={person} onGone={onGone} />)}
+      {blocking ? <ApprovalHero item={blocking} onDone={decided} /> : quiet ? <QuietState q={quiet} onRetry={retry} /> : first && (
+        <section className="home__hero" aria-labelledby="home-hero">
+          <h1 id="home-hero" className="home__hero-text">{heroSentence(first.headline)}</h1>
+          {toTry && <p className="home__why">{toTry}</p>}
+          <div className="home__actions">
+            {action && <a className="btn btn--primary" href={action.href}>{action.label}</a>}
+            {first.details_available && <WhyThis p={first} person={person} note={standInNote} onGone={onGone} />}
           </div>
-        ) : (
-          <div className="state home__quiet">
-            <span className="state__mark" aria-hidden="true" />
-            <h2 className="state__title">{homeTitle(status, 0)}</h2>
-            <p className="state__body">{status === "ok" || status === "nothing_stands_out" ? (data.message ?? quietBody("nothing_stands_out")) : (data.message ?? quietBody(status))}</p>
-            {status === "onboarding" && <a className="btn btn--secondary btn--sm state__action" href="#/onboarding">Choose a role</a>}
-          </div>
-        )}
-        {data.stand_in && <p className="note">{(w.meta as { note?: string } | null)?.note ?? "An example week from the synthetic firm stands in for this profile."}</p>}
-        <SourceNote why={w.why} />
-      </section>
+        </section>
+      )}
 
-      <MondayNote w={{ ...data, pointers }} />
-
-      <section aria-labelledby="go-h" className="home__go">
-        <h2 id="go-h" className="u-sr-only">Where to next</h2>
-        <ul className="home__links">
-          <li>
-            <a className="home__link" href="#/growth"><span className="home__link-title">Growth</span><span className="home__link-hint">How much less help you need over time</span></a>
-          </li>
-          <li>
-            <a className="home__link" href="#/repeats">
-              <span className="home__link-title">Repeats</span>
-              <span className="home__link-hint">{repeats ? repeats.line : "What you do again and again"}</span>
-            </a>
-            {repeats && <Hint label="About the repeated time">{repeats.hint}</Hint>}
-          </li>
-        </ul>
-      </section>
-
-      <AdminCanSee person={person} />
+      {rows.length > 0 && <ul className="home__rows">{rows}</ul>}
     </div>
   );
 }

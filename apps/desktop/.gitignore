@@ -25,3 +25,7 @@ docs/design-shots/*real-mac*
 
 # the built Hey Knack listener (scripts/build-wake-helper.sh); never committed
 resources/knack-wake
+# Knack packaging (apps/desktop/KNACK_BUILD.md): the local build output and the file that remembers where this repository is
+dist-app/
+build/knack-config.json
+node_modules

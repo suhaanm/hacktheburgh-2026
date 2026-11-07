@@ -68,7 +68,7 @@ describe('menu content', () => {
     expect(all).toEqual([
       'Asleep',
       'Show panel',
-      'Talk to Understudy',
+      'Talk to Knack',
       'Pause for 1 hour',
       'Type instead',
       'Mute microphone',
@@ -79,7 +79,7 @@ describe('menu content', () => {
       'Run the walkthrough',
       'Set up again…',
       'Permissions…',
-      'Quit Understudy',
+      'Quit Knack',
     ])
     for (const label of all) expect(label).not.toMatch(/\p{Extended_Pictographic}/u)
   })
@@ -90,7 +90,7 @@ describe('menu content', () => {
       'Asleep',
       'Help level 1: Watch me',
       'Show panel',
-      'Talk to Understudy',
+      'Talk to Knack',
       'Pause for 1 hour',
       'Awareness',
       'Glance when I seem stuck',
@@ -99,7 +99,7 @@ describe('menu content', () => {
       'Open dashboard',
       'Open morning queue',
       'Permissions…',
-      'Quit Understudy',
+      'Quit Knack',
     ])
     // the glance switches are the AWARENESS settings, unavailable until awareness itself is on
     expect(byId(calm, 'awareness')).toMatchObject({ checked: false, enabled: true })
@@ -111,7 +111,7 @@ describe('menu content', () => {
     expect(byId({ voiceMenu: false }, 'mute')).toBeUndefined()
   })
 
-  it('shows the talk key next to Talk to Understudy, and offers Resume now while paused (with the time in the status line)', () => {
+  it('shows the talk key next to Talk to Knack, and offers Resume now while paused (with the time in the status line)', () => {
     expect(byId({ talkAccelerator: 'Alt+Space' }, 'talk:understudy')?.accelerator).toBe('Alt+Space')
     const now = new Date(2026, 10, 7, 17, 30).getTime()
     const until = now + 60 * 60_000
@@ -127,8 +127,8 @@ describe('menu content', () => {
     expect(describeStatus({ phase: 'listening_for_name', micMuted: false, persona: null })).toBe('Waiting to hear its name')
     expect(describeStatus({ phase: 'connecting', micMuted: false, persona: 'amelia' })).toBe('Connecting to Amelia…')
     expect(describeStatus({ phase: 'live', micMuted: false, persona: 'amelia' })).toBe('Live with Amelia')
-    expect(describeStatus({ phase: 'thinking', micMuted: false, persona: null })).toBe('Understudy is thinking')
-    expect(describeStatus({ phase: 'speaking', micMuted: false, persona: 'understudy' })).toBe('Understudy is speaking')
+    expect(describeStatus({ phase: 'thinking', micMuted: false, persona: null })).toBe('Knack is thinking')
+    expect(describeStatus({ phase: 'speaking', micMuted: false, persona: 'understudy' })).toBe('Knack is speaking')
     expect(describeStatus({ phase: 'error', micMuted: false, persona: null })).toBe('Something went wrong')
     expect(describeStatus({ phase: 'live', micMuted: true, persona: 'understudy' })).toBe('Microphone muted')
   })
@@ -215,7 +215,7 @@ describe('tray lifecycle', () => {
     const { shell, tray } = setup()
     expect(shell.hasTray()).toBe(true)
     expect(tray().image).toMatchObject({ file: expect.stringContaining('trayTemplate.png') })
-    expect(tray().tooltip).toBe('Understudy: Asleep')
+    expect(tray().tooltip).toBe('Knack: Asleep')
     expect(shell.info().bounds).toEqual({ x: 900, y: 0, width: 24, height: 24 })
   })
 
@@ -243,22 +243,22 @@ describe('tray lifecycle', () => {
     const { state, tray } = setup()
     const spy = vi.spyOn(tray(), 'setImage')
     state.patch({ phase: 'listening_for_name' })
-    expect(tray().tooltip).toBe('Understudy: Waiting to hear its name')
+    expect(tray().tooltip).toBe('Knack: Waiting to hear its name')
     expect(spy).toHaveBeenCalledTimes(1) // tooltip changed, same idle icon key set
     state.patch({ phase: 'live', persona: 'understudy' })
-    expect(tray().tooltip).toBe('Understudy: Live with Understudy')
+    expect(tray().tooltip).toBe('Knack: Live with Knack')
     expect(tray().image).toMatchObject({ file: expect.stringContaining('trayActingTemplate.png') })
     const calls = spy.mock.calls.length
     state.patch({ captions: [] }) // unrelated
     expect(spy.mock.calls.length).toBe(calls)
     state.patch({ micMuted: true })
     expect(tray().image).toMatchObject({ file: expect.stringContaining('trayActingTemplate.png') }) // the badge says an agent or session is on, mute or not
-    expect(tray().tooltip).toBe('Understudy: Microphone muted')
+    expect(tray().tooltip).toBe('Knack: Microphone muted')
   })
 
   it('falls back to a text title if the icon files are missing', () => {
     const { tray, shell } = setup({ iconDir: path.join(process.cwd(), 'no-such-dir') })
-    expect(tray().title).toBe('Understudy')
+    expect(tray().title).toBe('Knack')
     expect(shell.hasTray()).toBe(true)
   })
 
@@ -299,20 +299,20 @@ describe('click handlers', () => {
     const { tray, events } = setup()
     tray().handlers['right-click']()
     const items = tray().popped[0].items as { label?: string; click?: () => void }[]
-    items.find((i) => i.label === 'Talk to Understudy')?.click?.()
+    items.find((i) => i.label === 'Talk to Knack')?.click?.()
     expect(events).toEqual([{ name: 'session:request', personaId: 'understudy', source: 'button' }])
   })
 })
 
 describe('menu actions', () => {
-  it('Talk to Understudy emits session:request from the button while the old voice menu is on', () => {
+  it('Talk to Knack emits session:request from the button while the old voice menu is on', () => {
     const { shell, events } = setup()
     expect(shell.activate('talk:understudy')).toBe(true)
     expect(shell.activate('talk:amelia')).toBe(false) // the legacy personas are not offered
     expect(events).toEqual([{ name: 'session:request', personaId: 'understudy', source: 'button' }])
   })
 
-  it('with voice off (the default) Talk to Understudy raises the panel and emits talk from the tray, and starts no session', () => {
+  it('with voice off (the default) Talk to Knack raises the panel and emits talk from the tray, and starts no session', () => {
     const { shell, events, windows } = setup({ voice: false })
     expect(shell.activate('talk:understudy')).toBe(true)
     expect(windows.showDock).toHaveBeenCalled()
@@ -539,7 +539,7 @@ describe('menu bar state', () => {
     expect(tray().title).toBe('Live')
     state.patch({ agents: [{ id: 'a1', kind: 'act_for_me', title: 't', status: 'running', startedAt: 1 }] as never })
     expect(tray().title).toBe('Working…')
-    expect(tray().tooltip).toBe('Understudy: Understudy is working for you')
+    expect(tray().tooltip).toBe('Knack: Knack is working for you')
     state.patch({ agents: [] })
     state.patch({ micMuted: true })
     expect(tray().title).toBe('Muted')
@@ -695,13 +695,13 @@ describe('the attention line and dot (REQ-8)', () => {
     let a: { needsYou: number; waiting: number; marker: 'none' | 'needs_you' | 'stopped' } | null = { needsYou: 2, waiting: 1, marker: 'needs_you' }
     shell.setAttention(() => a)
     expect(tray().title).toBe(ATTENTION_DOT)
-    expect(tray().tooltip).toBe('Understudy: Asleep. 2 things need you')
-    expect(shell.info().tooltip).toBe('Understudy: Asleep. 2 things need you')
+    expect(tray().tooltip).toBe('Knack: Asleep. 2 things need you')
+    expect(shell.info().tooltip).toBe('Knack: Asleep. 2 things need you')
     expect(shell.info().menu.find((e) => e.id === 'attention')?.label).toBe('2 things need you')
     a = { needsYou: 0, waiting: 1, marker: 'none' }
     shell.refresh()
     expect(tray().title).toBe('')
-    expect(tray().tooltip).toBe('Understudy: Asleep')
+    expect(tray().tooltip).toBe('Knack: Asleep')
     a = { needsYou: 1, waiting: 0, marker: 'stopped' }
     shell.refresh()
     expect(tray().title).toBe('') // stopped is the kill state: no extra mark from this layer
@@ -716,7 +716,7 @@ describe('the attention line and dot (REQ-8)', () => {
   it('the dot goes after the state word, and after the fallback word when the icon files are missing', () => {
     const { shell, tray, state } = setup({ iconDir: path.join(process.cwd(), 'no-such-dir') })
     shell.setAttention(() => ({ needsYou: 1, waiting: 0, marker: 'needs_you' }))
-    expect(tray().title).toBe(`Understudy ${ATTENTION_DOT}`)
+    expect(tray().title).toBe(`Knack ${ATTENTION_DOT}`)
     state.patch({ phase: 'live', persona: 'understudy' })
     expect(tray().title).toMatch(new RegExp(`${ATTENTION_DOT}$`))
   })

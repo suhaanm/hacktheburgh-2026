@@ -459,3 +459,11 @@ def test_genome_response_carries_the_skip_consequences_when_the_platform_file_ex
         assert {"step", "p_error", "mean_error_gbp", "n", "source"} <= set(c)
     assert steps["RECONCILE"]["p_error"] is not None and steps["CHECK_CLIFF"]["p_error"] is None
     assert "consequences_meta" in data
+
+
+def test_health_reports_whether_a_gemini_key_is_present_as_a_boolean_only(client, monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "not-a-real-key-for-this-test")
+    h = client.get("/health").json()
+    assert h["key_present"] is True and "not-a-real-key-for-this-test" not in str(h)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    assert client.get("/health").json()["key_present"] is False

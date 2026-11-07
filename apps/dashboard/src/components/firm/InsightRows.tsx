@@ -1,8 +1,8 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import { useLoad } from "../../hooks";
 import { Loading } from "../common";
-import { Details } from "../ui";
-import { PolarityGlyph, lookOfPolarity } from "../home/PolarityGlyph";
+import { Details, Row, Rows } from "../ui";
+import { lookOfPolarity } from "../home/PolarityGlyph";
 import { loadDrill } from "../../screens/Firm/data";
 import { nWord } from "./Badges";
 import { LineBand, ticksFor } from "./LineBand";
@@ -77,44 +77,59 @@ function Drill({ insight }: { insight: AdminInsight }) {
   return <DrillBody d={q.data} />;
 }
 
-/** One insight, printed for an admin: the headline, its effect with the interval, n and origin, and the numbers behind it one click away. */
-function InsightRow({ i, open, onToggle }: { i: AdminInsight; open: boolean; onToggle: () => void }) {
-  const id = useId();
+const GLYPH: Record<string, "alert" | "up" | "flat"> = { negative: "alert", positive: "up" };
+
+/** The default list shows the three the engine ranked first (KNACK_UX, 05-admin-firm.md); "Show all N" opens the rest. */
+export const ROWS_SHOWN = 3;
+
+/**
+ * One insight as a row: a glyph, the headline, and the muted line an admin needs printed (D45): the effect with its interval, n, and the origin. The whole
+ * row is the target (it opens the numbers behind it in place). The polarity words ("Worth a look", "Going well") are not drawn; the glyph carries them and a
+ * screen reader still hears them.
+ */
+function InsightRow({ i, open, onToggle, id }: { i: AdminInsight; open: boolean; onToggle: () => void; id: string }) {
   const effect = effectText(i.effect);
+  const look = lookOfPolarity(i.polarity);
+  const glyph = GLYPH[i.polarity] ?? "flat";
   return (
-    <li>
-      <article className="insight firm-insight" data-polarity={lookOfPolarity(i.polarity)} aria-label={i.a11y_label ?? i.headline}>
-        <PolarityGlyph look={lookOfPolarity(i.polarity)} />
-        <div className="insight__head">
-          <span className="insight__label">{i.polarity_label ?? "Note"}</span>
-          <h3 className="insight__title">{i.headline}</h3>
-        </div>
-        <div className="insight__action">
-          <button type="button" className="btn btn--secondary btn--sm" aria-expanded={open} aria-controls={id} onClick={onToggle}>{open ? "Hide the numbers" : "Open the numbers"}</button>
-        </div>
-        <p className="insight__stats">
-          {effect && <><b>{effect}</b> · </>}
-          n = <b>{nWord(i.n, i.n_unit)}</b> · {i.badge ?? "synthetic firm"}
-        </p>
-        {open && (
-          <div id={id} className="firm-insight__drill">
-            <Drill insight={i} />
-            {i.action && <a className="btn btn--quiet btn--sm" href={actionHref(i.action)}>{i.action.label}</a>}
-          </div>
-        )}
-      </article>
-    </li>
+    <>
+      <Row
+        icon={glyph}
+        tone={glyph === "alert" ? "warn" : glyph === "up" ? "good" : undefined}
+        title={i.headline}
+        meta={<><span className="u-sr-only">{i.polarity_label ?? "Note"}. </span>{effect ? `${effect}, ` : ""}n = {nWord(i.n, i.n_unit)}</>}
+        onClick={onToggle}
+        chevron={!open}
+        pressed={open}
+        label={i.a11y_label ?? undefined}
+        end={open ? <span aria-hidden="true">Hide</span> : undefined}
+      />
+      {open && (
+        <li id={id} className="firm-insight__drill" data-polarity={look}>
+          <Drill insight={i} />
+          {i.action && <a className="btn btn--quiet btn--sm" href={actionHref(i.action)}>{i.action.label}</a>}
+        </li>
+      )}
+    </>
   );
 }
 
-/** The top insights as compact rows (at most seven). `openId` opens one on arrival, as the command palette asks. */
-export function InsightRows({ items, openId }: { items: AdminInsight[]; openId?: string | null }) {
+/** The top insights as rows. `openId` opens one on arrival, as the command palette asks. */
+export function InsightRows({ items, openId, limit = ROWS_SHOWN }: { items: AdminInsight[]; openId?: string | null; limit?: number }) {
+  const base = useId();
   const [open, setOpen] = useState<string | null>(openId && items.some((i) => i.id === openId) ? openId : null);
+  const [all, setAll] = useState(false);
   // The command palette can ask for a different insight while this view is already showing.
   useEffect(() => { if (openId && items.some((i) => i.id === openId)) setOpen(openId); }, [openId, items]);
+  const list = items.slice(0, 7);
+  // An insight opened by the palette is shown even when it is beyond the first three.
+  const shown = all ? list : list.filter((i, k) => k < limit || i.id === open);
   return (
-    <ol className="firm-insights" aria-label="The seven things to know, in the order they were chosen">
-      {items.slice(0, 7).map((i) => <InsightRow key={i.id} i={i} open={open === i.id} onToggle={() => setOpen(open === i.id ? null : i.id)} />)}
-    </ol>
+    <>
+      <Rows label="Things to know, in the order they were chosen">
+        {shown.map((i) => <InsightRow key={i.id} i={i} id={`${base}-${i.id}`} open={open === i.id} onToggle={() => setOpen(open === i.id ? null : i.id)} />)}
+      </Rows>
+      {list.length > shown.length && <button type="button" className="btn btn--quiet btn--sm firm-more" onClick={() => setAll(true)}>{`Show all ${list.length}`}</button>}
+    </>
   );
 }

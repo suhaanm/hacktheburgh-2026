@@ -329,7 +329,7 @@ describe('hint', () => {
   })
 
   it('words the hint for packaged, terminal and plain dev launches', () => {
-    expect(buildPermissionHint({ packaged: true, launcher: null })).toContain('"Alongside"')
+    expect(buildPermissionHint({ packaged: true, launcher: null })).toContain('"Knack"')
     expect(buildPermissionHint({ packaged: false, launcher: 'Terminal' })).toContain('"Terminal"')
     expect(buildPermissionHint({ packaged: false, launcher: null })).toContain('"Electron"')
   })

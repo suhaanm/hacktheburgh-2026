@@ -3,10 +3,11 @@
 // application is read again, and the task stops with a plain message when another app has come to the front.
 // Reads the frontmost app with `lsappinfo` (no Accessibility or Automation prompt). Names only, never window contents.
 import { execFile } from 'node:child_process'
+import { APP_NAME } from '../../shared/brand'
 
 export const BROWSERS = ['safari', 'google chrome', 'chrome', 'firefox', 'arc', 'microsoft edge', 'brave browser', 'opera', 'vivaldi', 'chromium']
-// Alongside's own windows (dev builds run as "Electron"): allowed, they hold the confirmation prompt.
-const OWN_APPS = ['alongside', 'electron']
+// Our own windows (the packaged app runs as its product name; dev builds run as "Electron"; 'alongside' is the old build name): allowed, they hold the confirmation prompt.
+const OWN_APPS = [APP_NAME.toLowerCase(), 'alongside', 'electron']
 // Never acted on, whatever the goal says: the assistant's own desktop app and terminals / shells.
 const NEVER_ACT = ['claude', 'terminal', 'iterm', 'iterm2', 'ghostty', 'warp', 'wezterm', 'kitty', 'alacritty', 'hyper', 'tabby']
 

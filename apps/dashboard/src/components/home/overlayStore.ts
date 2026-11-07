@@ -1,13 +1,19 @@
-// Which overlay is open: the command palette, or the guided tour (and its step). In memory only, like viewAs.ts: a reload closes both.
-// The tour never starts by itself. It starts from the palette entry "Take the tour" or from the help button, both through startTour().
+// Which overlay is open: the command palette, the guided tour (and its step), the Settings sheet, or the "About this screen" panel.
+// In memory only, like viewAs.ts: a reload closes them all. At most one is open at a time (one interrupting surface, docs/KNACK_UX.md).
+// The tour never starts by itself. It starts from the palette entry "Take the tour" or from the account menu, both through startTour().
 import { useSyncExternalStore } from "react";
 
 export interface OverlayState {
   palette: boolean;
   tour: { step: number } | null;
+  /** The Settings sheet; `section` is the row to scroll to (live-models, interruptions, coaching, ...), or null for the top. */
+  settings: { section: string | null } | null;
+  /** The "About this screen" side panel. */
+  about: boolean;
 }
 
-let state: OverlayState = { palette: false, tour: null };
+const CLOSED: OverlayState = { palette: false, tour: null, settings: null, about: false };
+let state: OverlayState = CLOSED;
 const listeners = new Set<() => void>();
 
 /** Where focus returns when the tour ends: the element that had it when the tour started. */
@@ -20,14 +26,22 @@ function set(next: OverlayState): void {
 
 export const getOverlay = (): OverlayState => state;
 
-export function openPalette(): void { if (!state.palette) set({ ...state, palette: true }); }
+export function openPalette(): void { if (!state.palette) set({ ...CLOSED, palette: true }); }
 export function closePalette(): void { if (state.palette) set({ ...state, palette: false }); }
-export function togglePalette(): void { set({ ...state, palette: !state.palette }); }
+export function togglePalette(): void { set(state.palette ? { ...state, palette: false } : { ...CLOSED, palette: true }); }
 
-/** Start the tour at a step (0 by default). Closes the palette: only one thing speaks at a time. */
+/** Open the Settings sheet at a section. Closes the palette, the tour and the About panel: only one thing speaks at a time. */
+export function openSettings(section: string | null = null): void { set({ ...CLOSED, settings: { section } }); }
+export function closeSettings(): void { if (state.settings) set({ ...state, settings: null }); }
+
+export function openAbout(): void { if (!state.about) set({ ...CLOSED, about: true }); }
+export function closeAbout(): void { if (state.about) set({ ...state, about: false }); }
+export function toggleAbout(): void { if (state.about) closeAbout(); else openAbout(); }
+
+/** Start the tour at a step (0 by default). Closes everything else. */
 export function startTour(step = 0): void {
   tourReturn = typeof document !== "undefined" && document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  set({ palette: false, tour: { step: Math.max(0, Math.floor(step)) } });
+  set({ ...CLOSED, tour: { step: Math.max(0, Math.floor(step)) } });
 }
 
 export function setTourStep(step: number): void {
@@ -50,4 +64,4 @@ export function useOverlay(): OverlayState {
 }
 
 /** For tests: close everything. */
-export function resetOverlay(): void { tourReturn = null; set({ palette: false, tour: null }); }
+export function resetOverlay(): void { tourReturn = null; set(CLOSED); }

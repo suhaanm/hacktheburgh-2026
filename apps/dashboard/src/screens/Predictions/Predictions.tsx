@@ -9,7 +9,7 @@ import { ScorecardView, useScorecard } from "../../components/firm/ScorecardPane
  */
 export default function Predictions() {
   const { load, read } = useScorecard();
-  useEffect(() => { document.title = "Predictions · Understudy"; }, []);
+  useEffect(() => { document.title = "Forecasts · Knack"; }, []);
   return (
     <div className="page page--wide">
       <PageHead eyebrow="Details" title="Predictions" lede="How well we forecast the moments when someone gets stuck." />

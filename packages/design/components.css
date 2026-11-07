@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Understudy components. Plain CSS, no framework. Requires tokens.css.
+   Knack components. Plain CSS, no framework. Requires tokens.css.
    Naming: block, block__element, block--modifier. State lives in aria-* or
    data-* attributes so markup and styling cannot disagree.
    ========================================================================== */
@@ -41,7 +41,7 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
 .t-prose { max-width: var(--measure); }
 /* Labels: sentence case in the display face (calmer than tracked capitals). The mono capitals stay for chart axes and the ribbon. */
 .t-label { font: 600 var(--text-sm)/1.3 var(--font-display); letter-spacing: 0; text-transform: none; color: var(--muted); }
-.t-label--mono { font: 500 var(--text-xs)/1.2 var(--font-mono); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--muted); }
+.t-label--mono { font: 400 var(--text-xs)/1.2 var(--font-mono); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--muted); }
 .t-data { font-family: var(--font-mono); font-size: var(--text-sm); }
 .num { font-variant-numeric: tabular-nums lining-nums; font-feature-settings: "tnum", "lnum"; }
 .u-muted { color: var(--muted); }
@@ -80,7 +80,7 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
 .pill {
   --_c: var(--muted);
   display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 var(--space-2);
-  font: 500 var(--text-xs)/1 var(--font-mono); letter-spacing: 0.02em; white-space: nowrap;
+  font: 400 var(--text-xs)/1 var(--font-mono); letter-spacing: 0.02em; white-space: nowrap;
   color: var(--fg); background: transparent;
   border: var(--hair) solid var(--line-strong); border-radius: var(--radius-pill);
 }
@@ -106,13 +106,11 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
 /* Tier: how the step is run, cheapest first. */
 .pill--tier b { padding-right: 6px; border-right: var(--hair) solid var(--line-strong); }
 
-/* Origin badge: dashed and hatched means "not real". */
-.pill--origin { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.6875rem; }
-.pill--origin[data-origin="synthetic"] {
-  border-style: dashed; border-color: var(--muted);
-  background: repeating-linear-gradient(135deg, transparent 0 4px, var(--line) 4px 5px);
-}
-.pill--origin[data-origin="real"] { --_c: var(--good); }
+/* Origin badge: sentence case in the body face at 12 px and 600 ("Example data", "Synthetic firm"); dashed means not real.
+   One per screen; its explanation is its Hint. */
+.pill--origin { height: 24px; padding: 0 10px; text-transform: none; letter-spacing: 0; font: 600 var(--text-xs)/1 var(--font-body); color: var(--muted); }
+.pill--origin[data-origin="synthetic"], .pill--origin[data-origin="example"], .pill--origin[data-origin="mixed"], .pill--origin[data-origin="not_run"] { border-style: dashed; border-color: var(--control-line); }
+.pill--origin[data-origin="real"] { --_c: var(--good); color: var(--fg); }
 
 /* Level chip L1..L4: four ticks show how much help is switched on. */
 .level {
@@ -126,7 +124,7 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
 .level__ticks i:nth-child(3) { height: 11px; } .level__ticks i:nth-child(4) { height: 14px; }
 .level[data-help="4"] i:nth-child(-n+4), .level[data-help="3"] i:nth-child(-n+3),
 .level[data-help="2"] i:nth-child(-n+2), .level[data-help="1"] i:nth-child(-n+1) { background: var(--accent); }
-.level__name { font-weight: 500; color: var(--muted); }
+.level__name { font-weight: 400; color: var(--muted); }
 
 /* -- Stat figure: confident numerals, always with an interval ------------- */
 .stat { display: grid; gap: var(--space-1); }
@@ -135,8 +133,8 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
   font: 600 var(--text-3xl)/1 var(--font-display); letter-spacing: -0.025em;
   font-variant-numeric: tabular-nums lining-nums;
 }
-.stat__unit { font-size: 0.42em; font-weight: 500; color: var(--muted); margin-left: 0.3em; letter-spacing: 0; }
-.stat__interval { font: 500 var(--text-sm)/1.2 var(--font-mono); color: var(--fg); font-variant-numeric: tabular-nums; }
+.stat__unit { font-size: 0.42em; font-weight: 400; color: var(--muted); margin-left: 0.3em; letter-spacing: 0; }
+.stat__interval { font: 400 var(--text-sm)/1.2 var(--font-mono); color: var(--fg); font-variant-numeric: tabular-nums; }
 .stat__meta { font: var(--text-xs)/1.3 var(--font-mono); color: var(--muted); }
 .stat--bad .stat__value { color: var(--bad); }
 /* Interval bar: band is the interval, tick is the estimate, positions are percentages of a stated scale. */
@@ -166,7 +164,7 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
 .chart__scroll { overflow-x: auto; max-width: 100%; padding-bottom: var(--space-1); scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
 .chart__scroll > svg { display: block; width: 100%; height: auto; min-width: var(--chart-min, 720px); }
 .chart__foot { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-5); font: var(--text-xs)/1.5 var(--font-mono); color: var(--muted); }
-.chart__foot b { color: var(--fg); font-weight: 500; }
+.chart__foot b { color: var(--fg); font-weight: 600; }
 /* SVG text and strokes that follow the theme. */
 .svg-text { font-variant-ligatures: none; font-family: var(--font-mono); font-size: 10.5px; fill: var(--muted); }
 .svg-text--fg { fill: var(--fg); }
@@ -313,15 +311,16 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
 /* -- Banner (warning before an irreversible opt-in) ------------------------ */
 .banner { display: flex; gap: var(--space-3); padding: var(--space-3) var(--space-4); font-size: var(--text-sm); background: var(--warn-soft); border: var(--hair) solid var(--warn); border-radius: var(--radius-2); }
 .banner__mark { flex: none; width: 16px; height: 16px; margin-top: 2px; border-radius: 50%; border: 1.5px solid var(--warn); position: relative; }
-.banner__mark::after { content: "!"; position: absolute; inset: 0; display: grid; place-items: center; font: 700 10px/1 var(--font-mono); color: var(--warn); }
+.banner__mark::after { content: "!"; position: absolute; inset: 0; display: grid; place-items: center; font: 600 10px/1 var(--font-mono); color: var(--warn); }
 
 /* -- Empty, loading and error: designed, not blank ------------------------- */
 .state { display: grid; gap: var(--space-3); justify-items: start; align-content: start; padding: var(--space-7) var(--space-6); border: var(--hair) dashed var(--line-strong); border-radius: var(--radius-3); }
-.state__mark { width: 22px; height: 22px; border-radius: 50%; border: 1.5px dashed var(--muted); }
+/* The empty-state mark is retired (KNACK_UX section 6: a title, one line, at most one action). Errors keep their cross, shape and word together. */
+.state__mark { display: none; }
 .state__title { font: 600 var(--text-lg)/1.25 var(--font-display); letter-spacing: -0.01em; }
 .state__body { color: var(--muted); font-size: var(--text-sm); max-width: 46ch; }
 .state--error { border-style: solid; border-color: var(--bad); background: var(--panel); }
-.state--error .state__mark { border: 1.5px solid var(--bad); position: relative; }
+.state--error .state__mark { display: block; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--bad); position: relative; }
 .state--error .state__mark::before, .state--error .state__mark::after { content: ""; position: absolute; left: 50%; top: 50%; width: 10px; height: 1.5px; background: var(--bad); }
 .state--error .state__mark::before { transform: translate(-50%, -50%) rotate(45deg); }
 .state--error .state__mark::after { transform: translate(-50%, -50%) rotate(-45deg); }
@@ -395,7 +394,7 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
    script (position: fixed, so no scroll container clips it); see Hint.tsx. */
 .hint { position: relative; display: inline-flex; align-items: center; vertical-align: middle; margin-inline-start: var(--space-1); font: 400 var(--text-sm)/1.45 var(--font-body); letter-spacing: 0; text-transform: none; }
 .hint__btn { appearance: none; display: inline-grid; place-items: center; flex: none; width: 24px; height: 24px; margin: -4px; padding: 0; background: none; border: 0; border-radius: 50%; color: var(--muted); cursor: help; transition: color var(--dur-fast) var(--ease-out); }
-.hint__btn::before { content: "i"; display: grid; place-items: center; width: 16px; height: 16px; border: 1.5px solid currentColor; border-radius: 50%; font: 700 10px/1 var(--font-mono); font-variant-ligatures: none; }
+.hint__btn::before { content: "i"; display: grid; place-items: center; width: 16px; height: 16px; border: 1.5px solid currentColor; border-radius: 50%; font: 600 10px/1 var(--font-mono); font-variant-ligatures: none; }
 .hint__btn:hover, .hint__btn[aria-expanded="true"] { color: var(--fg); }
 .hint__btn:focus-visible { outline-offset: 0; border-radius: 50%; }
 .hint__btn[aria-expanded="true"]::before { color: var(--accent); border-color: var(--accent); }
@@ -431,7 +430,7 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
 .metric { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: baseline; gap: var(--space-1) var(--space-3); padding: var(--space-3) 0; border-bottom: var(--hair) solid var(--line); }
 .metric__label { font: 600 var(--text-sm)/1.3 var(--font-display); color: var(--muted); }
 .metric__value { font: 600 var(--text-xl)/1.1 var(--font-display); letter-spacing: -0.02em; font-variant-numeric: tabular-nums lining-nums; text-align: right; }
-.metric__unit { margin-left: 0.25em; font-size: 0.62em; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.metric__unit { margin-left: 0.25em; font-size: 0.62em; font-weight: 400; color: var(--muted); letter-spacing: 0; }
 .metric__badge { justify-self: end; }
 .metric__interval { grid-column: 1 / -1; font: var(--text-xs)/1.4 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
 .metric--bad .metric__value { color: var(--bad); }
@@ -461,7 +460,7 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
 .insight__text { grid-column: 2; max-width: var(--measure-short); font-size: var(--text-sm); color: var(--muted); }
 .insight__action { grid-column: 3; grid-row: 1 / span 2; align-self: center; }
 .insight__stats { grid-column: 2 / -1; font: var(--text-xs)/1.45 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
-.insight__stats b { color: var(--fg); font-weight: 500; }
+.insight__stats b { color: var(--fg); font-weight: 600; }
 @media (max-width: 560px) { .insight { grid-template-columns: 32px minmax(0, 1fr); } .insight__action { grid-column: 2; grid-row: auto; justify-self: start; margin-top: var(--space-2); } }
 
 /* -- Notice card: the one place the interface asks for attention. A small card,
@@ -534,7 +533,7 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
 .hitrow__label b { font-weight: 600; }
 .hitrow__sub { font-size: var(--text-xs); color: var(--muted); }
 .hitrow__count { grid-area: count; min-width: 12ch; text-align: right; font: var(--text-xs)/1 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.hitrow__value { grid-area: value; min-width: 7ch; text-align: right; font: 500 var(--text-sm)/1 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hitrow__value { grid-area: value; min-width: 7ch; text-align: right; font: 400 var(--text-sm)/1 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .hitrow__actions { grid-area: actions; display: inline-flex; gap: var(--space-1); opacity: 0; transition: opacity var(--dur-fast) var(--ease-out); }
 .hitrow:hover .hitrow__actions, .hitrow:focus-within .hitrow__actions, .hitrow[data-open="true"] .hitrow__actions, .hitrow[data-picked="true"] .hitrow__actions { opacity: 1; }
 /* The "i" is quiet until the row is hovered, focused or picked (a column of ten icons was the noisiest thing on the page). It stays focusable. */
@@ -555,10 +554,10 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
 .qcard { display: grid; gap: var(--space-3); width: min(360px, 100%); padding: var(--space-4); background: var(--panel); border: var(--hair) solid var(--line-strong); border-radius: var(--radius-3); box-shadow: var(--elev-2); }
 .qcard__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
 .qcard__q { margin: 0; font: 600 var(--text-md)/1.3 var(--font-display); letter-spacing: -0.01em; }
-.qcard__esc { flex: none; padding: 2px 6px; font: 500 var(--text-xs)/1.2 var(--font-mono); color: var(--muted); background: none; border: var(--hair) solid var(--line-strong); border-radius: var(--radius-2); cursor: pointer; }
+.qcard__esc { flex: none; padding: 2px 6px; font: 400 var(--text-xs)/1.2 var(--font-mono); color: var(--muted); background: none; border: var(--hair) solid var(--line-strong); border-radius: var(--radius-2); cursor: pointer; }
 .qcard__esc:hover { color: var(--fg); border-color: var(--fg); }
 .qcard__rows { display: grid; gap: var(--space-1); }
-.qcard__row { display: flex; align-items: center; gap: var(--space-3); min-height: 36px; padding: 0 var(--space-3); text-align: left; font: 500 var(--text-sm)/1.3 var(--font-body); color: var(--fg); background: var(--panel); border: var(--hair) solid var(--control-line); border-radius: var(--radius-2); cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out); }
+.qcard__row { display: flex; align-items: center; gap: var(--space-3); min-height: 36px; padding: 0 var(--space-3); text-align: left; font: 600 var(--text-sm)/1.3 var(--font-body); color: var(--fg); background: var(--panel); border: var(--hair) solid var(--control-line); border-radius: var(--radius-2); cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out); }
 .qcard__row:hover { background: var(--sunk); border-color: var(--fg); }
 .qcard__row--else { color: var(--muted); border-style: dashed; }
 .qcard__cap { flex: none; min-width: 2.2em; padding: 1px 5px; text-align: center; font: 600 var(--text-xs)/1.3 var(--font-mono); color: var(--muted); border: var(--hair) solid var(--line-strong); border-radius: var(--radius-1); }
@@ -597,3 +596,109 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
   .alert--live, .alert--live .alert__icon::after, .alert--stop .alert__icon { animation: none; }
   .hold[data-holding="true"]::before { transition: none; }
 }
+
+/* ==========================================================================
+   Knack (8 Nov 2026, KNACK_UX section 6). Restraint and consistency: one
+   left-aligned column, 44 px rows, sentence-case origin badge, the lockup.
+   ========================================================================== */
+
+/* -- Lockup: glyph plus the word. Disc is --fg, ring is --accent, both full strength.
+      The word is set in the display face at 600, never in capitals. Clear space is one K. ---- */
+.lockup { display: inline-flex; align-items: center; gap: calc(var(--lockup-glyph, 20px) * 0.3); color: var(--fg); text-decoration: none; line-height: 1; }
+.lockup:hover { text-decoration: none; }
+.lockup__word { font: 600 var(--lockup-word, 17.5px)/1 var(--font-display); letter-spacing: var(--tracking-display); text-transform: none; }
+.lockup--glyph { gap: 0; }
+.glyph { flex: none; display: block; }
+.glyph__disc { fill: var(--fg); }
+.glyph__ring { stroke: var(--accent); }
+.glyph--mono .glyph__disc { fill: currentColor; }
+.glyph--mono .glyph__ring { stroke: currentColor; opacity: 0.62; }
+
+/* -- Icons: one inline SVG set, 16 px grid, 1.5 px stroke, currentColor. Beside nav items, rows and the pill; never in a primary button. ---- */
+.icon { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.icon--fill { fill: currentColor; stroke: none; }
+
+/* -- One left-aligned column, two widths. The left edge never moves between screens. ---- */
+.column { display: grid; gap: var(--space-6); width: 100%; max-width: var(--content-read); margin: 0; align-content: start; }
+.column--wide { max-width: var(--content-wide); }
+
+/* -- Screen head: a title (or the hero sentence), at most one printed line and the origin badge. No eyebrow, no lede unless it is a real limit. ---- */
+.screenhead { display: grid; gap: var(--space-2); }
+.screenhead__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4); }
+.screenhead__title { font: 600 var(--text-xl)/var(--lh-title) var(--font-display); letter-spacing: var(--tracking-display); text-wrap: balance; }
+.screenhead__limit { color: var(--muted); font-size: var(--text-sm); line-height: var(--lh-row); }
+.screenhead__marker { color: var(--muted); font-size: var(--text-sm); }
+
+/* -- Hero insight: one sentence in the display face at 28 px, at most two lines. At 390 px it is 24 px and may take three. ---- */
+.hero-insight { font: 600 var(--text-2xl)/var(--lh-hero) var(--font-display); letter-spacing: var(--tracking-display); text-wrap: balance; max-width: 24em; }
+@media (max-width: 760px) { .hero-insight { font-size: 1.5rem; } }
+
+/* -- Nav item: icon, label, count. A restyle of nav__link with no second line. 2 px accent edge on the current one. ---- */
+.navitem { display: flex; align-items: center; gap: 10px; height: var(--control-h); padding: 0 10px; border: 0; border-left: 2px solid transparent; border-radius: var(--radius-2); background: none; color: var(--muted); font: 600 var(--text-sm)/1 var(--font-body); text-align: left; text-decoration: none; cursor: pointer; transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out); }
+.navitem:hover { color: var(--fg); background: var(--sunk); text-decoration: none; }
+.navitem[aria-current="page"] { color: var(--fg); background: var(--panel); box-shadow: inset 0 0 0 1px var(--line); border-left-color: var(--accent); border-radius: 0 var(--radius-2) var(--radius-2) 0; }
+.navitem__count { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center; font: 600 var(--text-xs)/1 var(--font-mono); color: var(--on-accent); background: var(--accent); border-radius: var(--radius-pill); }
+.navgroup { margin: var(--space-4) 10px var(--space-1); font: 600 var(--text-xs)/1 var(--font-body); color: var(--muted); }
+
+/* -- Row: 44 px, hairline, the whole row is the click target when it goes somewhere (chevron). Actions on a plain row show on hover and
+      focus, and are always visible on touch. Lists are hairlines, not stacks of cards. ---- */
+.listrows { list-style: none; margin: 0; padding: 0; border-top: var(--hair) solid var(--line); }
+.listrows > li { margin: 0; }
+.listrow { position: relative; display: flex; align-items: center; gap: var(--space-3); width: 100%; min-height: var(--row-h); padding: var(--space-2) var(--space-1); border: 0; border-bottom: var(--hair) solid var(--line); background: none; color: var(--fg); font: 400 var(--text-sm)/var(--lh-row) var(--font-body); text-align: left; text-decoration: none; }
+a.listrow, button.listrow { cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out); }
+a.listrow:hover, button.listrow:hover { background: var(--sunk); text-decoration: none; }
+button.listrow[aria-pressed="true"] { background: var(--panel); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.listrow__icon { color: var(--muted); display: inline-flex; flex: none; }
+.listrow__icon--bad { color: var(--bad); } .listrow__icon--good { color: var(--good); } .listrow__icon--warn { color: var(--warn); }
+.listrow__text { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.listrow__title { font-weight: var(--weight-strong); overflow-wrap: anywhere; }
+.listrow__meta { color: var(--muted); font-size: var(--text-xs); line-height: var(--lh-row); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.listrow__end { margin-left: auto; display: inline-flex; align-items: center; gap: var(--space-2); color: var(--muted); flex: none; }
+.listrow__actions { margin-left: auto; display: inline-flex; align-items: center; gap: var(--space-2); flex: none; opacity: 0; transition: opacity var(--dur-fast) var(--ease-out); }
+.listrow:hover .listrow__actions, .listrow:focus-within .listrow__actions { opacity: 1; }
+@media (hover: none) { .listrow__actions { opacity: 1; } }
+.listrow__chev { color: var(--muted); flex: none; }
+
+/* -- Confirm row: the inline "Forget it / Keep" row that replaces a modal. The consequence is printed. ---- */
+.confirm-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); padding: var(--space-3) var(--space-1); border-bottom: var(--hair) solid var(--line); background: var(--sunk); font-size: var(--text-sm); }
+.confirm-row__q { font-weight: var(--weight-strong); }
+.confirm-row__why { color: var(--muted); }
+.confirm-row__actions { margin-left: auto; display: inline-flex; gap: var(--space-2); }
+
+/* -- Inline banner: the needs-you or stopped line inside the window. Words and a glyph, never colour alone. ---- */
+.inline-banner { display: flex; align-items: center; gap: var(--space-3); min-height: var(--row-h); padding: var(--space-2) var(--space-4); border: var(--hair) solid var(--line-strong); border-radius: var(--radius-3); background: var(--panel); font-size: var(--text-sm); }
+.inline-banner__text { flex: 1; min-width: 0; }
+.inline-banner[data-tone="bad"] { border-color: var(--bad); background: var(--bad-soft); }
+.inline-banner[data-tone="warn"] { border-color: var(--warn); background: var(--warn-soft); }
+.inline-banner[data-tone="bad"] .icon { color: var(--bad); } .inline-banner[data-tone="warn"] .icon { color: var(--warn); }
+
+/* -- Status line (sidebar footer, 12 px): a dot and at most four words. A dashed hollow ring means example data. ---- */
+.status-line { display: flex; align-items: center; gap: var(--space-2); margin: 0; color: var(--muted); font: 400 var(--text-xs)/1.3 var(--font-body); }
+.status-line__dot { width: 8px; height: 8px; border-radius: 50%; flex: none; box-sizing: border-box; border: 1.5px dashed var(--muted); background: transparent; }
+.status-line[data-mode="live"] .status-line__dot { border: 0; background: var(--good); }
+.status-line[data-mode="down"] .status-line__dot { border: 0; background: var(--bad); }
+button.status-line { padding: 0; border: 0; background: none; cursor: pointer; text-align: left; }
+button.status-line:hover { color: var(--fg); }
+
+/* -- Stop button: a red square and the word, 32 px high, always visible in the sidebar footer. ---- */
+.stop-button { display: inline-flex; align-items: center; gap: var(--space-2); height: var(--control-h); padding: 0 10px; border: var(--hair) solid var(--control-line); border-radius: var(--radius-2); background: none; color: var(--fg); font: 600 var(--text-sm)/1 var(--font-body); cursor: pointer; }
+.stop-button::before { content: ""; width: 9px; height: 9px; background: var(--bad); flex: none; }
+.stop-button:hover { background: var(--sunk); }
+.stop-button:disabled { opacity: 0.6; cursor: wait; }
+
+/* -- Sheets and menus (account menu, More, Settings): a floating layer, the only place besides the palette that carries a shadow. ---- */
+.sheet { background: var(--panel); border: var(--hair) solid var(--line-strong); border-radius: var(--radius-3); box-shadow: var(--elev-2); padding: var(--space-2); display: grid; gap: 2px; }
+.sheet__item { display: flex; align-items: center; gap: var(--space-3); min-height: var(--control-h); padding: 0 var(--space-3); border: 0; border-radius: var(--radius-2); background: none; color: var(--fg); font: 400 var(--text-sm)/1 var(--font-body); text-align: left; text-decoration: none; cursor: pointer; }
+.sheet__item:hover { background: var(--sunk); text-decoration: none; }
+.sheet__item[aria-current="true"], .sheet__item[aria-checked="true"] { font-weight: var(--weight-strong); }
+.sheet__group { margin: var(--space-2) var(--space-3) 0; font: 600 var(--text-xs)/1.4 var(--font-body); color: var(--muted); }
+
+/* -- Breadcrumb: Details screens say where they sit instead of apologising (replaces the frame note). ---- */
+.crumb { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0; color: var(--muted); font-size: var(--text-sm); }
+.crumb a { color: var(--muted); text-decoration: none; }
+.crumb a:hover { color: var(--fg); text-decoration: underline; }
+.crumb [aria-current="page"] { color: var(--fg); font-weight: var(--weight-strong); }
+.crumb__sep { color: var(--line-strong); }
+
+/* -- Key figure: one per chart, display face, tabular. ---- */
+.keyfigure { font: 600 var(--text-3xl)/1 var(--font-display); letter-spacing: -0.025em; font-variant-numeric: tabular-nums lining-nums; }

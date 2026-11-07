@@ -43,7 +43,7 @@ export class SettingsStore {
   // threshold are dropped from every other source (model tools, /inject, lesson prompts, the debug server, the demo driver).
   patch(raw: unknown, opts: { trusted?: boolean } = {}): Settings {
     if (!opts.trusted && typeof raw === 'object' && raw !== null) {
-      const { awaySeconds: _a, ...rest } = raw as Record<string, unknown>
+      const { awaySeconds: _a, useLiveModels: _m, ...rest } = raw as Record<string, unknown>
       raw = rest.agency === 'autonomous' ? (({ agency: _g, ...r }) => r)(rest) : rest
     }
     const accepted: Record<string, unknown> = {}
