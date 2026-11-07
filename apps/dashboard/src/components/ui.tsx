@@ -187,7 +187,7 @@ export function Rows({ children, label }: { children: ReactNode; label?: string 
  * `actions`, which appear on hover and focus and are always visible on touch. A link or button row cannot hold other buttons, so `actions`
  * only render on a plain row. Title is one line (12 words), the muted `meta` line at most 6.
  */
-export function Row({ title, meta, icon, tone, href, onClick, chevron, end, actions, current, label }: {
+export function Row({ title, meta, icon, tone, href, onClick, chevron, end, actions, current, pressed, label }: {
   title: ReactNode;
   meta?: ReactNode;
   icon?: IconName;
@@ -200,6 +200,8 @@ export function Row({ title, meta, icon, tone, href, onClick, chevron, end, acti
   end?: ReactNode;
   actions?: ReactNode;
   current?: boolean;
+  /** A button row that switches something on or off (a skill filtering a chart): drawn as a toggle button. */
+  pressed?: boolean;
   label?: string;
 }) {
   const inner = (
@@ -216,7 +218,7 @@ export function Row({ title, meta, icon, tone, href, onClick, chevron, end, acti
   const chev = chevron ?? goes;
   const chevNode = chev ? <span className="listrow__chev"><Icon name="chevron" /></span> : null;
   if (href) return <li><a className="listrow" href={href} aria-current={current ? "page" : undefined} aria-label={label}>{inner}{chevNode}</a></li>;
-  if (onClick) return <li><button type="button" className="listrow" onClick={onClick} aria-current={current ? "true" : undefined} aria-label={label}>{inner}{chevNode}</button></li>;
+  if (onClick) return <li><button type="button" className="listrow" onClick={onClick} aria-current={current ? "true" : undefined} aria-pressed={pressed} aria-label={label}>{inner}{chevNode}</button></li>;
   return <li><div className="listrow" aria-label={label}>{inner}{actions && <span className="listrow__actions">{actions}</span>}{chevNode}</div></li>;
 }
 

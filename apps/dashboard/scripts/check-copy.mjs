@@ -58,6 +58,8 @@ const measureInPage = () => {
       const cs = getComputedStyle(e);
       if (cs.display === "none" || cs.visibility === "hidden") return true;
       if (e.classList.contains("u-sr-only")) return true;
+      // The body of a closed disclosure is not on the screen, whatever geometry the browser still reports for it. Its summary is.
+      if (e.tagName === "DETAILS" && !e.open) { const sm = el.closest("summary"); if (!(sm && sm.parentElement === e)) return true; }
     }
     return false;
   };
@@ -126,7 +128,7 @@ const measureInPage = () => {
   }
   const rows = side ? [...side.querySelectorAll("nav a, nav button, .nav a, .nav button")].filter((e) => vis(e) && !hiddenAncestor(e)) : [];
   const hintWords = side ? [...side.querySelectorAll("[class*='hint']")].filter((e) => vis(e)).reduce((n, e) => n + wc(e.textContent), 0) : 0;
-  const empty = Boolean(main.querySelector(".state:not(.state--loading)")) && !main.querySelector("svg[role='img'], figure svg");
+  const empty = Boolean(main.querySelector(".state:not(.state--loading), [data-empty]")) && !main.querySelector("svg[role='img'], figure svg");
   const busy = /Loading|Reading|Starting Knack/i.test(main.innerText);
   return {
     title: h1 ? h1.textContent.trim().slice(0, 80) : null,

@@ -83,21 +83,21 @@ describe("direction and trend", () => {
     expect(heroTitle("ready", "steady", "the cliff check")).toBe("Cannot tell yet whether you need less help with the cliff check");
     expect(heroTitle("ready", "more_help", null)).toContain("more help");
     expect(heroTitle("early", "less_help", null)).toContain("Too early");
-    expect(heroTitle("empty", "too_early", null)).toBe("Nothing to show yet");
+    expect(heroTitle("empty", "too_early", null)).toBe("Not enough to show yet");
     for (const d of ["less_help", "steady", "more_help", "too_early"] as const) expect(heroTitle("ready", d, null).toLowerCase()).not.toMatch(/expert|master|proficient/);
   });
 });
 
 describe("copy from counts", () => {
   it("writes the first-10 versus last-10 sentence from the data", () => {
-    expect(recentSentence("the cliff check", { n: 10, assisted: 7 }, { n: 10, assisted: 2 })).toBe("You needed help with the cliff check 7 times in your first 10 occurrences; in your last 10, 2.");
-    expect(recentSentence(null, { n: 10, assisted: 1 }, { n: 10, assisted: 0 })).toBe("You needed help 1 time in your first 10 occurrences; in your last 10, 0.");
+    expect(recentSentence("the cliff check", { n: 10, assisted: 7 }, { n: 10, assisted: 2 })).toBe("You needed help with the cliff check 7 times in your first 10 steps; in your last 10, 2.");
+    expect(recentSentence(null, { n: 10, assisted: 1 }, { n: 10, assisted: 0 })).toBe("You needed help 1 time in your first 10 steps; in your last 10, 0.");
     expect(recentSentence("x", null, { n: 10, assisted: 0 })).toBeNull();
     expect(recentSentence("x", { n: 0, assisted: 0 }, { n: 10, assisted: 0 })).toBeNull();
   });
   it("builds every number in the lede from the response", () => {
     const v = buildView(IMP);
-    expect(v.lede).toBe(`In your first ${IMP.baseline!.n} occurrences you finished ${IMP.baseline!.k} without a cue. In the latest ${IMP.components.independence!.n}, ${IMP.components.independence!.k}.`);
+    expect(v.lede).toBe(`In your first ${IMP.baseline!.n} steps you finished ${IMP.baseline!.k} without a cue. In the latest ${IMP.components.independence!.n}, ${IMP.components.independence!.k}.`);
   });
 });
 
@@ -180,7 +180,7 @@ describe("how many more occurrences", () => {
   });
   it("tells a worker with 10 to 29 occurrences what the trend needs", () => {
     const s = trendSentence({ slope_per_10: null, ci: null, direction: "too_early" }, 95, 16, 30, 14);
-    expect(s).toBe("Too early for a trend. A trend needs 30 occurrences and you have 14.");
+    expect(s).toBe("Too early for a trend. A trend needs 30 steps and you have 14.");
   });
   it("prints the engine's own sentence for a trend that cannot be computed yet, once", () => {
     const note = "A trend needs 30 occurrences (three blocks of 10); there are 14 so far.";
@@ -189,12 +189,12 @@ describe("how many more occurrences", () => {
   });
   it("puts the number, or the engine's own sentence, in the cannot-tell wording", () => {
     const steady = { slope_per_10: -0.017, ci: [-0.05, 0.011] as [number, number], direction: "steady" as const };
-    expect(trendSentence(steady, 95, 30)).toContain("About 30 more occurrences would help.");
+    expect(trendSentence(steady, 95, 30)).toContain("About 30 more steps would help.");
     expect(trendSentence(steady, 95, 0)).not.toContain("would help");
     const noted = trendSentence({ ...steady, power_note: "Plain engine note." }, 95, 30);
     expect(noted).toContain("Plain engine note.");
     expect(noted.startsWith("Cannot tell yet. ")).toBe(true);
-    expect(noted).toContain("About 30 more occurrences would help.");
+    expect(noted).toContain("About 30 more steps would help.");
     // the engine's own sentence already says it, and already names the number: nothing is repeated
     const own = trendSentence({ ...steady, power_note: "Cannot tell yet: about 60 more occurrences would help." }, 95, 60);
     expect(own.match(/Cannot tell yet/g)).toHaveLength(1);
@@ -352,7 +352,7 @@ describe("the three stories", () => {
   it("empty: nothing to show", () => {
     const v = buildView(emptyGrowth("p", null, null).data);
     expect(v.status).toBe("empty");
-    expect(v.title).toBe("Nothing to show yet");
+    expect(v.title).toBe("Not enough to show yet");
     expect(v.skills).toEqual([]);
   });
 });

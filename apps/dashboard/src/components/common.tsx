@@ -19,25 +19,38 @@ export function nUnit(meta: AnalyticMeta): string {
   return `${meta.n.toLocaleString("en-GB")} ${meta.n === 1 ? one : many}`;
 }
 
-/** Origin badge: dashed and hatched means "not real". Shown whenever origin is not "real". */
-export function OriginBadge({ meta, always = false }: { meta: AnalyticMeta | null; always?: boolean }) {
+const sentenceCase = (t: string): string => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
+
+/** What a worker's screen calls an origin: "Example data" for numbers that were not measured from real people (the explanation is in "About this data"). */
+export function workerOriginLabel(origin: string): string {
+  if (origin === "real") return "Real data";
+  if (origin === "mixed") return "Some example data";
+  if (origin === "synthetic") return "Example data";
+  return "Not run";
+}
+
+/**
+ * Origin badge: sentence case, dashed means "not real". Shown whenever origin is not "real". One per screen: a screen that also has an
+ * ExampleBadge shows only one of them. `label` replaces the default wording ("Synthetic firm" on Admin screens, "Example data" for a worker).
+ */
+export function OriginBadge({ meta, always = false, label }: { meta: AnalyticMeta | null; always?: boolean; label?: string }) {
   if (!meta) return null;
   if (meta.origin === "real" && !always) return null;
   const words = originWords(meta.origin);
   return (
     <span className="pill pill--origin" data-origin={words.data}>
-      {words.text}
+      {label ?? sentenceCase(words.text)}
       <span className="u-sr-only">{words.sr}</span>
     </span>
   );
 }
 
-/** "Example data": this screen is showing a built-in sample, not what the engine holds. Dashed like the synthetic badge; the reason is in the tooltip and printed by <SourceNote>. */
+/** "Example data": this screen is showing a built-in sample, not what the engine holds. Dashed like the synthetic badge; the reason is printed by <SourceNote>. */
 export function ExampleBadge({ why }: { why: Fallback | null | undefined }) {
   if (!why) return null;
   return (
     <span className="pill pill--origin" data-origin="example">
-      example data
+      Example data
       <span className="u-sr-only">{`. ${FALLBACK_LABEL[why.kind]}`}</span>
     </span>
   );
@@ -109,15 +122,18 @@ export function ChartFoot({ meta, extra, brief = false, variant = "full" }: { me
   );
 }
 
-export function PageHead({ eyebrow, title, lede, aside }: { eyebrow: string; title: string; lede?: ReactNode; aside?: ReactNode }) {
+/**
+ * The head of a screen (KNACK_UX section 6): a title, at most one printed line (a real limit or a use rule, never a lede), and the badge.
+ * No eyebrow: it repeated the sidebar label. `eyebrow` is still accepted so older call sites compile, and is not drawn.
+ */
+export function PageHead({ title, lede, aside, hero = false }: { eyebrow?: string; title: string; lede?: ReactNode; aside?: ReactNode; hero?: boolean }) {
   return (
-    <header className="page__head">
-      <div className="page__head-text">
-        <p className="t-label">{eyebrow}</p>
-        <h1 className="page__title">{title}</h1>
-        {lede && <p className="t-lede">{lede}</p>}
+    <header className="screenhead">
+      <div className="screenhead__row">
+        {hero ? <h1 className="hero-insight">{title}</h1> : <h1 className="screenhead__title">{title}</h1>}
+        {aside && <div className="page__aside">{aside}</div>}
       </div>
-      {aside && <div className="page__aside">{aside}</div>}
+      {lede && <p className="screenhead__limit">{lede}</p>}
     </header>
   );
 }
@@ -131,7 +147,7 @@ export function Loading({ label = "Loading" }: { label?: string }) {
       <span className="skeleton skeleton--short" />
       <span className="skeleton" />
       <span className="skeleton skeleton--mid" />
-      {slow && <p className="state__body">{label}. The first request after the engine starts can take several seconds while it works the numbers out. Nothing is wrong.</p>}
+      {slow && <p className="state__body">Starting Knack, about 20 seconds.</p>}
     </div>
   );
 }
