@@ -19,6 +19,8 @@ module.exports = {
     { from: 'build/icon.png', to: 'icon.png' },
     // Written by scripts/package-knack.mjs: where the repository is, so this local build can start the engine and the agent (KNACK_REPO overrides it).
     { from: 'build/knack-config.json', to: 'knack-config.json' },
+    // The on-device "Hey Knack" listener (native/knack-wake, built by scripts/build-wake-helper.sh): wake/helper.ts looks in resources/knack-wake. Compile only; it fails closed.
+    { from: 'resources/knack-wake', to: 'knack-wake' },
   ],
   electronDist: path.join(__dirname, 'node_modules/electron/dist'),
   electronVersion: require('./node_modules/electron/package.json').version,

@@ -34,6 +34,8 @@ run('desktop build (out/)', bin(desktop, 'electron-vite'), ['build'], desktop)
 fs.mkdirSync(path.join(desktop, 'build'), { recursive: true })
 fs.writeFileSync(path.join(desktop, 'build/knack-config.json'), JSON.stringify({ repo }, null, 2) + '\n')
 
+// The "Hey Knack" listener: compiled here, never run by this script (resources/knack-wake is not committed).
+run('Hey Knack helper (compile only)', 'bash', ['scripts/build-wake-helper.sh'], desktop)
 run('icons are current', 'node', ['scripts/make-icons.mjs'], desktop)
 // CSC_IDENTITY_AUTO_DISCOVERY=false: never look for a signing identity in the keychain; the build is unsigned.
 run('package (electron-builder, unsigned)', bin(desktop, 'electron-builder'), ['--mac', '--config', 'electron-builder.config.cjs', '--publish', 'never'], desktop, { CSC_IDENTITY_AUTO_DISCOVERY: 'false' })
