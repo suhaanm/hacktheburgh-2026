@@ -15,7 +15,7 @@ import { refreshNeedsBadge } from "../NeedsYou/count";
 import { exampleKind, hideRow, loadRepeats, resetCounts, runNow, unhideRow } from "./data";
 import { TABS, runningRoutines, tabOf, turnedDown, type Tab } from "./model";
 import { Peek } from "./Peek";
-import { trackRoutineRun } from "./wakeContext";
+import { trackRoutineRun } from "../../lib/wakeContext";
 import "../../components/kc.css";
 import "../../components/routines/routines.css";
 

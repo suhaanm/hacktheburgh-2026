@@ -17,6 +17,9 @@ const SHOTS = [
   ["your-data", "/your-data"],
   ["your-data-sent", "/your-data?section=sent"],
   ["your-data-delete", "/your-data?section=switches", async (p) => { await p.getByRole("button", { name: "Delete everything" }).click(); }],
+  ["agents", "/agents"],
+  ["agents-open", "/agents", async (p) => { await p.locator("summary", { hasText: "Helpers and result" }).first().click(); }],
+  ["models", "/models"],
   ["settings", "/home?settings=live-models"],
   ["settings-interruptions", "/home?settings=interruptions"],
 ];

@@ -36,7 +36,20 @@ export function OriginBadge({ sources }: { sources: Source[] }) {
  * warning look so it is read. Nothing when the data is the engine's own.
  */
 export function OriginDetails({ sources }: { sources: Source[] }) {
-  const why = sources.find((s) => s.why)?.why;
-  return why ? <SourceNote why={why} /> : null;
+  const whys = distinctWhys(sources);
+  return <>{whys.map((w) => <SourceNote key={w.message} why={w} />)}</>;
+}
+
+/** Each different reason once (at most three), in the order the sources are given: two sources that fell back for the same reason say it once. */
+export function distinctWhys(sources: Source[]): Fallback[] {
+  const seen = new Set<string>();
+  const out: Fallback[] = [];
+  for (const s of sources) if (s.why && !seen.has(s.why.message)) { seen.add(s.why.message); out.push(s.why); }
+  return out.slice(0, 3);
+}
+
+/** One section's own reason, printed inside that section: a screen made of several sources must not blame them all on the first one that failed. */
+export function SectionSource({ why }: { why: Fallback | null | undefined }) {
+  return why ? <div className="yd-body" style={{ paddingBottom: 0 }}><SourceNote why={why} /></div> : null;
 }
 

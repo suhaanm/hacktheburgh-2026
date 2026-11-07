@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { ApiError, api, forgetBackoff } from "../../api";
 import { SettingsView } from "../../components/settings/SettingsView";
+import { TodayStrip } from "../../components/settings/TodayStrip";
 import { setViewRole, useViewRole } from "../../components/home/viewAs";
 import { runActive } from "../../lib/agents";
 import { withMode, type Mode } from "../../lib/attention";
@@ -42,6 +43,7 @@ export default function Settings({ section }: { section?: string }) {
   const health = useLoad(() => api.health(), []);
   const runs = useLoad(() => api.agentsRuns(me), [me]);
   const attn = useLoad(() => api.attentionSettings(me), [me]);
+  const today = useLoad(() => api.attentionDigest(me, "now"), [me]);
   const bridge = useMemo(() => desktopBridge(), []);
   const liveBridge = useMemo(() => liveModelsBridge(), []);
   const [liveState, setLiveState] = useState<LiveModelsState | null>(null);
@@ -127,6 +129,7 @@ export default function Settings({ section }: { section?: string }) {
   return (
     <SettingsView section={section} live={liveView} onLive={(on) => void onLive(on)}
       attention={attention} attentionExample={!!attn.why} attentionError={attentionError} onPreset={onPreset} onMode={onMode} onResetLearned={onResetLearned} onLevelGlance={onLevelGlance} wake={wakeApi ? wake : null} onWake={onWake}
+      today={today.data && attention ? <TodayStrip digest={today.data} budgetPerDay={attention.budget_per_day} /> : null}
       desktop={bridge ? desktop : null} onDesktop={onDesktop}
       theme={theme} onTheme={setTheme}
       view={view} onView={setViewRole}

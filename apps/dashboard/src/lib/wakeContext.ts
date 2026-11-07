@@ -1,8 +1,8 @@
 // What the dashboard tells the voice conversation about itself: the top Home insight and the running routine (docs/knack-ux/09-wake-voice.md, "The context
 // packet"). Ids and counts only: the shell checks them against a strict grammar again, and a value that does not fit is dropped, not repaired. Nothing
 // from a screen, a page, a file or a name ever goes through here. In a browser tab (no `window.knackShell.wake`) every call does nothing.
-import { AGENT_URL } from "../../api";
-import { wakeBridge, type WakeBridge, type WakeContext } from "../Settings/bridge";
+import { AGENT_URL } from "../api";
+import { wakeBridge, type WakeBridge, type WakeContext } from "../screens/Settings/bridge";
 
 /** The shape of an id the shell accepts: lower-case words, digits, dot, dash and underscore. */
 export const ID_RE = /^[a-z0-9][a-z0-9_.-]{0,63}$/;

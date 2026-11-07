@@ -117,7 +117,7 @@ await page.screenshot({ path: join(qa, "memory-edit-1440.png") });
 // 5. Needs you: Watch first moves a proposal into Routines, Running
 await go("/needs-you");
 const proposalRow = (title) => page.locator("article[data-kind=proposal]", { hasText: title });
-await showAll();
+check("needs you: a routine proposal is on screen without opening the rest, so Watch first is two clicks from Home", (await proposalRow("Enter the household into three calculators").count()) === 1);
 await proposalRow("Enter the household into three calculators").getByRole("button", { name: "Watch first" }).click();
 await page.waitForTimeout(900);
 check("needs you: a proposal leaves the list after a choice", (await proposalRow("Enter the household into three calculators").count()) === 0);
@@ -133,6 +133,14 @@ check("needs you: skill gate explains itself in plain words", await page.getByTe
 await page.getByRole("button", { name: "I already know this one" }).click();
 await page.waitForTimeout(900);
 check("needs you: the override goes through and the proposal leaves", (await proposalRow("Reconcile the three results").count()) === 0);
+
+// 5c. Routines: Run now is on the closed row (two clicks from Home); with no agent service it says so and starts nothing
+await go("/routines");
+const copyRow = page.locator("article.rt-row", { hasText: "Copy the three results" });
+check("routines: Run now is on the closed row", await copyRow.getByRole("button", { name: "Run now" }).isVisible());
+await copyRow.getByRole("button", { name: "Run now" }).click();
+await page.waitForTimeout(500);
+check("routines: with no agent service Run now says nothing started", /nothing started/.test(await copyRow.locator("[data-testid=ran]").innerText()));
 
 // 6. Routines: typed confirmation required for model-driven irreversible opt-in
 await go("/routines");
@@ -292,7 +300,9 @@ await page.waitForTimeout(500);
 check("needs you: with nothing prepared left, none is shown", (await page.locator("article[data-kind=prepared]").count()) === 0);
 
 await go("/agents", 900);
+await showAll();        // three runs show by default
 const runsBefore = await page.locator("article.run").count();
+await page.locator("summary", { hasText: "Start a background run" }).click();
 await page.locator("#spawn-kind").selectOption("data.chart");
 await page.getByRole("button", { name: "Nightly" }).click();
 await page.getByRole("button", { name: "Run in background" }).click();
@@ -308,7 +318,7 @@ await live.getByRole("button", { name: "Revoke the lease of habit counter" }).cl
 await page.waitForTimeout(700);
 await openAll(live);
 check("agents: revoking a lease ends that helper and says so", /revoked, no tools in scope/.test(await live.innerText()));
-await page.locator("article.run", { hasText: "Data profile" }).locator("summary", { hasText: "Artifacts and result" }).click();
+await page.locator("article.run", { hasText: "Data profile" }).locator("summary", { hasText: "Helpers and result" }).click();
 await page.waitForTimeout(500);
 const detail = await page.locator("article.run", { hasText: "Data profile" }).innerText();
 check("agents: result steps carry a check with a glyph and a word", /verified/.test(detail) && /uncertain/.test(detail) && (await page.locator(".pill--check .pill__glyph-char").count()) >= 3);
@@ -357,6 +367,7 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   await page.locator("main .sourcenote summary", { hasText: "Details" }).first().click();
   const offDetail = await page.locator("main [data-testid=source-detail]").first().innerText();
   check("layers off: its Details says how to switch the layer on, and the engine is asked for nothing", /switched off/.test(offDetail) && /UNDERSTUDY_X_PRIVACY=1/.test(offDetail) && privacyAsked === 0, `asked ${privacyAsked} times`);
+  check("layers off: the Sent section prints its own reason, not another source's", /UNDERSTUDY_X_PRIVACY=1/.test(await page.locator("[data-testid=sent] [data-testid=source-detail]").first().innerText()) && !/could not answer yet/.test(await page.locator("[data-testid=sent]").innerText()));
   await page.unroute(ENGINE);
 }
 
@@ -438,6 +449,12 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   await rp.getByRole("button", { name: "Quiet" }).click();
   await page.waitForTimeout(400);
   check("settings: choosing a mode takes effect and the row says what it does", (await rp.locator("button[aria-pressed=true]").innerText()) === "Quiet" && /A summary and a note on the dashboard only/.test(await hintText(rp, /does at this setting/)));
+  await st.locator("[data-testid=today-strip] summary", { hasText: "Why each count" }).click();
+  const strip = await st.locator("[data-testid=today-strip]").innerText();
+  check("settings: the Today strip counts shown, held and dropped, and says why in the engine's words", /Today: 2 shown, 2 held, 4 dropped, 2 left as quiet notes/.test(strip) && /Held because you were typing\. Shown at your next pause\./.test(strip));
+  await st.locator("[data-testid=needs-you] summary", { hasText: "Why?" }).first().click();
+  await page.waitForTimeout(500);
+  check("settings: a Why? on an item that needs you gives the engine's fixed reason, in Knack's name", /Held because Knack could not tell whether you were busy\./.test(await st.locator("[data-testid=needs-you]").innerText()));
   await page.getByRole("button", { name: "Reset what Knack learned" }).click();
   check("settings: reset asks once, inline", (await page.getByRole("button", { name: "Reset it", exact: true }).count()) === 1);
   await page.getByRole("button", { name: "Reset it", exact: true }).click();

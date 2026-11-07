@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Fallback } from "../../lib/fallback";
 import type { AnalyticMeta } from "../../types";
-import { originOf } from "./Origin";
+import { distinctWhys, originOf } from "./Origin";
 
 const meta = (origin: string): AnalyticMeta => ({ origin, n: 1, n_unit: "people", split: null, interval_level: 0.95, note: null, generated_at: "" } as unknown as AnalyticMeta);
 const why: Fallback = { kind: "offline", status: 0, code: null, message: "The engine is not running, so this screen shows example data." };
@@ -26,6 +26,12 @@ describe("the one origin badge keeps two facts apart", () => {
   it("a mix says so: some example data when one source fell back, some synthetic data when live sources differ", () => {
     expect(originOf([{ meta: meta("real") }, { meta: meta("synthetic"), why }])).toMatchObject({ text: "Some example data", data: "mixed", why });
     expect(originOf([{ meta: meta("real") }, { meta: meta("synthetic") }])).toEqual({ text: "Some synthetic data", data: "mixed", why: null });
+  });
+  it("each different reason is kept once, in order, so one failing source is not blamed for another's reason", () => {
+    const off: Fallback = { kind: "extension_off", status: 404, code: "extension_off", message: "This feature is switched off in The engine. Start it with UNDERSTUDY_X_PRIVACY=1 (or UNDERSTUDY_X=1 for every extension) to see your own data." };
+    expect(distinctWhys([{ why }, { why }, { why: off }, { meta: meta("real") }]).map((w) => w.kind)).toEqual(["offline", "extension_off"]);
+    expect(distinctWhys([{ meta: meta("real") }])).toEqual([]);
+    expect(distinctWhys(Array.from({ length: 6 }, (_, i) => ({ why: { ...why, message: `m${i}` } }))).length).toBe(3);
   });
   it("a source with no meta of its own (the memory file) does not turn real data into a mix", () => {
     expect(originOf([{ meta: null }, { meta: meta("synthetic") }])?.text).toBe("Synthetic firm");
