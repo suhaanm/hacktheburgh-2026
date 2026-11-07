@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { ApiError, api, forgetBackoff } from "../../api";
 import { SettingsView } from "../../components/settings/SettingsView";
 import { setViewRole, useViewRole } from "../../components/home/viewAs";
@@ -11,10 +11,14 @@ import { useTheme } from "../../components/shell/theme";
 import { usePinnedViews } from "../../components/shell/pinned";
 import { STORY_LABEL, WORKER_STORIES, parseStory } from "../Home/data";
 import { setExampleWeek, useExampleWeek } from "../Home/story";
-import { desktopBridge, type DesktopSettings } from "./bridge";
+import { desktopBridge, liveModelsBridge, type DesktopSettings } from "./bridge";
 import { liveModels, presetPatch, type Preset } from "./model";
 
 type HealthExt = Health & { key_present?: boolean };
+
+/** The Connections panel is another track's: it is shown only when its file exists, and never blocks Settings. */
+const CONNECTIONS = import.meta.glob("../../components/connections/ConnectionsPanel.tsx");
+const ConnectionsPanel = Object.values(CONNECTIONS)[0] ? lazy(Object.values(CONNECTIONS)[0] as () => Promise<{ default: ComponentType }>) : null;
 
 /** Ask the engine again, every 2 s, until it says it is live (or mock) as asked, or 60 s pass. The restart takes about 20 s. */
 async function waitForMode(wantLive: boolean): Promise<boolean> {
@@ -39,6 +43,8 @@ export default function Settings({ section }: { section?: string }) {
   const runs = useLoad(() => api.agentsRuns(me), [me]);
   const attn = useLoad(() => api.attentionSettings(me), [me]);
   const bridge = useMemo(() => desktopBridge(), []);
+  const liveBridge = useMemo(() => liveModelsBridge(), []);
+  const [keyPresent, setKeyPresent] = useState<boolean | undefined>(undefined);
   const [desktop, setDesktop] = useState<DesktopSettings | null>(null);
   const [changing, setChanging] = useState(false);
   const [liveError, setLiveError] = useState<string | null>(null);
@@ -52,18 +58,19 @@ export default function Settings({ section }: { section?: string }) {
 
   useEffect(() => { if (attn.data) setAttention(attn.data); }, [attn.data]);
   useEffect(() => { bridge?.getSettings().then(setDesktop, () => setDesktop(null)); }, [bridge]);
+  useEffect(() => { liveBridge?.get().then((m) => setKeyPresent(typeof m.keyPresent === "boolean" ? m.keyPresent : undefined), () => undefined); }, [liveBridge]);
 
   const h = health.data as HealthExt | null;
   // Only an answer from the engine itself counts: the built-in sample says nothing about the real engine, so then it is "cannot reach".
-  const answered = health.status !== "loading" && health.source === "live" ? h : null;
-  const live = liveModels({ health: answered, canSwitch: !!bridge, running: !!runs.data?.some(runActive), changing });
+  const answered = health.status !== "loading" && health.source === "live" ? { ...h, key_present: h?.key_present ?? keyPresent } : null;
+  const live = liveModels({ health: answered, canSwitch: !!(liveBridge ?? bridge), running: !!runs.data?.some(runActive), changing });
   const liveView = liveError ? { ...live, line: `${live.line} ${liveError}` } : live;
 
   const onLive = async (on: boolean) => {
-    if (!bridge) return;
+    if (!liveBridge && !bridge) return;
     setLiveError(null); setChanging(true);
     try {
-      await bridge.patchSettings({ useLiveModels: on });
+      if (liveBridge) await liveBridge.setUseLiveModels(on); else await bridge!.patchSettings({ useLiveModels: on });
       const ok = await waitForMode(on);
       if (!ok) setLiveError("The engine did not come back in the other mode yet. Nothing else was changed.");
       health.reload();
@@ -111,6 +118,7 @@ export default function Settings({ section }: { section?: string }) {
       view={view} onView={setViewRole}
       stories={stories} onStory={onStory}
       pinned={pinned} onPinned={setPinned}
-      version={h?.version ?? null} />
+      version={h?.version ?? null}
+      connections={ConnectionsPanel ? <Suspense fallback={null}><ConnectionsPanel /></Suspense> : null} />
   );
 }

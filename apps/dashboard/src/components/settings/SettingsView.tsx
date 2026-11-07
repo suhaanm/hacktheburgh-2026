@@ -31,6 +31,8 @@ export interface SettingsViewProps {
   pinned: boolean;
   onPinned: (on: boolean) => void;
   version?: string | null;
+  /** The Connections panel (plugins and MCP apps), when that track has built it. Null or absent: no row. */
+  connections?: ReactNode;
 }
 
 function Row({ id, title, line, control, error }: { id: string; title: string; line?: ReactNode; control: ReactNode; error?: string | null }) {
@@ -156,6 +158,8 @@ export function SettingsView(p: SettingsViewProps) {
           <Switch label="Pinned views" checked={p.pinned} onChange={p.onPinned} />
         </label>
       </div>
+
+      {p.connections && <section className="st-row st-row--block" id="set-connections" aria-labelledby="set-connections-h"><div className="st-text"><h3 className="st-name" id="set-connections-h">Connections</h3>{p.connections}</div></section>}
 
       <Row id="about" title="About"
         line={<>Knack{p.version ? ` ${p.version}` : ""}. Engine 127.0.0.1:7700, agent 127.0.0.1:7710: this Mac only.</>}

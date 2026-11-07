@@ -17,7 +17,22 @@ export interface DesktopBridge {
   patchSettings(patch: Partial<DesktopSettings>): Promise<DesktopSettings | void>;
 }
 
-type Win = { alongside?: Partial<DesktopBridge>; knackSettings?: Partial<DesktopBridge> };
+/**
+ * The shell's own live-models calls (Track A): `models.get()` says whether live models are on and whether a key was found, `models.setUseLiveModels(on)`
+ * restarts the services the app started. Absent in a browser tab and in an older shell: the switch is then disabled and says so.
+ */
+export interface LiveModelsBridge {
+  get(): Promise<{ useLiveModels?: boolean; keyPresent?: boolean; live?: boolean }>;
+  setUseLiveModels(on: boolean): Promise<unknown>;
+}
+
+type Win = { alongside?: Partial<DesktopBridge>; knackSettings?: Partial<DesktopBridge>; knackShell?: { models?: Partial<LiveModelsBridge> } };
+
+/** The live-models bridge, or null. */
+export function liveModelsBridge(w: Win | undefined = typeof window === "undefined" ? undefined : (window as unknown as Win)): LiveModelsBridge | null {
+  const m = w?.knackShell?.models;
+  return m && typeof m.get === "function" && typeof m.setUseLiveModels === "function" ? (m as LiveModelsBridge) : null;
+}
 
 /** The bridge, or null in a browser tab. Both names are accepted so the shell can pick either. */
 export function desktopBridge(w: Win | undefined = typeof window === "undefined" ? undefined : (window as unknown as Win)): DesktopBridge | null {

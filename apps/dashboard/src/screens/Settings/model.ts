@@ -4,8 +4,10 @@ import { clampBudget } from "../../lib/attention";
 
 /** The section ids: the contract with the shell (docs/KNACK_UX.md section 3, in this order). */
 export const SECTIONS = ["live-models", "interruptions", "coaching", "move-aside", "open-at-login", "appearance", "models", "views", "about"] as const;
-export type SectionId = (typeof SECTIONS)[number];
-export const sectionOf = (s: string | null | undefined): SectionId | null => ((SECTIONS as readonly string[]).includes(s ?? "") ? (s as SectionId) : null);
+export type SectionId = (typeof SECTIONS)[number] | "connections";
+/** Sections another track adds behind a lazy slot (Connections: plugins and MCP apps). Accepted as an address even when the slot is empty. */
+export const SLOT_SECTIONS = ["connections"] as const;
+export const sectionOf = (s: string | null | undefined): SectionId | null => ((SECTIONS as readonly string[]).includes(s ?? "") || (SLOT_SECTIONS as readonly string[]).includes(s ?? "") ? (s as SectionId) : null);
 
 /* -- Use live models ------------------------------------------------------------------------------------------------------------------- */
 export interface LiveInput {

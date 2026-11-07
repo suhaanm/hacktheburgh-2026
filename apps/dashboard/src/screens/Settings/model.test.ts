@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import attentionFx from "../../fixtures/attention-settings.json";
 import type { AttentionSettings } from "../../types";
-import { desktopBridge } from "./bridge";
+import { desktopBridge, liveModelsBridge } from "./bridge";
 import { HELP_LOCKS, LIVE_LINES, PRESETS, SECTIONS, STOPS_LINE, liveModels, lockOf, lockPatch, presetOf, presetPatch, sectionOf, themeOf } from "./model";
 
 const attn = (attentionFx as unknown as { data: AttentionSettings }).data;
@@ -12,6 +12,7 @@ describe("the sections", () => {
   it("are the nine of the spec, in order, and an unknown one is ignored", () => {
     expect([...SECTIONS]).toEqual(["live-models", "interruptions", "coaching", "move-aside", "open-at-login", "appearance", "models", "views", "about"]);
     expect(sectionOf("views")).toBe("views");
+    expect(sectionOf("connections")).toBe("connections");   // a slot another track fills
     expect(sectionOf("nonsense")).toBeNull();
     expect(sectionOf(null)).toBeNull();
   });
@@ -101,6 +102,12 @@ describe("Coaching and the desktop bridge", () => {
     expect(desktopBridge({ alongside: ok })).toBe(ok);
     expect(desktopBridge({ knackSettings: ok })).toBe(ok);
     expect(desktopBridge({ alongside: { getSettings: async () => ({}) } })).toBeNull();
+  });
+  it("the live-models bridge is the shell's models.get and models.setUseLiveModels, and nothing else", () => {
+    const m = { get: async () => ({}), setUseLiveModels: async () => undefined };
+    expect(liveModelsBridge({})).toBeNull();
+    expect(liveModelsBridge({ knackShell: { models: m } })).toBe(m);
+    expect(liveModelsBridge({ knackShell: { models: { get: m.get } } })).toBeNull();
   });
   it("the theme falls back to auto", () => {
     expect(themeOf("dark")).toBe("dark");
