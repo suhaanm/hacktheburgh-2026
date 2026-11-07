@@ -85,7 +85,7 @@ Command-K goes anywhere or runs a command, Option-Space asks Knack (tap to type,
 
 ### How it works
 
-Shortcuts: Command-1 to Command-5 for the five destinations, Command-slash for About this screen, Command-comma for Settings, Option-Command-P to pause or resume for an hour. The palette lists seven rows by default, then Show all; typing a phrase that matches nothing adds 'Ask Knack: <phrase>'. 'Delete my data' is palette-only with no shortcut by design.
+Shortcuts: Command-1 to Command-5 for the five destinations, Command-slash for About this screen, Command-comma for Settings, Option-Command-P to pause or resume for an hour. The palette lists seven rows by default, then Show all; typing a phrase that matches nothing adds 'Ask Knack: <phrase>'. 'Delete my data' is palette-only with no shortcut by design. A guided tour of the five destinations is one row in the account menu (Take the tour).
 
 ### Where to see it
 

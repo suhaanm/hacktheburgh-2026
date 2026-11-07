@@ -16,7 +16,7 @@ Aligns a novice's steps with the nearest expert's and puts a price in seconds on
 
 ### How it works
 
-Events become steps through the role pack's mapping. A sequence alignment (Needleman-Wunsch, with a cost for each pair of step types) pairs each novice trace with the nearest expert trace. A step with no partner costs the time it took; a mismatched pair costs the difference in dwell. The gap is split by habit with a regression on behaviour counts, and intervals come from a bootstrap by person. Everything here is plain code: no language model.
+Events become steps through the role pack's mapping. A sequence alignment (Needleman-Wunsch, with a cost for each pair of step types) pairs each novice trace with the nearest expert trace. A step with no partner costs the time it took; a mismatched pair costs the difference in dwell. The gap is split by habit with a regression on behaviour counts, and intervals come from a bootstrap by person. A transition graph lists the step-to-step moves a novice never makes, and a replay slider plays a recorded trace on a virtual clock with idle gaps squeezed (the same events always give the same state). Everything here is plain code: no language model.
 
 ### Where to see it
 

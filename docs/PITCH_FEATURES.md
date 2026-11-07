@@ -1,8 +1,8 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sat 07 Nov 2026, 23:41 UTC. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sat 07 Nov 2026, 23:44 UTC. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
-This is the master document. It lists 56 entries (52 features and 4 write-ups of results that did not hold up) on 31 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
+This is the master document. It lists 61 entries (57 features and 4 write-ups of results that did not hold up) on 33 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
 **How to read an entry.** Name and status; what it does; how it works; where to see it; the demo moment; the evidence with its label; the honest limit; the hackathon target. **Status words:** `verified` (the lead saw it work end to end), `built` (built and tested by its track, on main, not yet seen end to end by the lead), `landing` (not on main yet), `not run`. **Evidence labels:** `synthetic` (data we generated), `simulated` (language-model participants, not people), `real model, small n` (a language model on our sandbox sites), `offline tests`, `owner-present`, `not run`. Nothing in this document is evidence about real workers.
 
@@ -18,9 +18,9 @@ Watch how people work, show where a novice loses time against an expert, coach o
 
 | Target | What it asks | Pages to show |
 |---|---|---|
-| HRT | Best use of data for predictions and decisions | [work-genome](features/work-genome.md), [stuck-model](features/stuck-model.md), [work-graph-and-hours](features/work-graph-and-hours.md), [calendar-and-git](features/calendar-and-git.md), [live-coach](features/live-coach.md), [cue](features/cue.md), [growth-independence](features/growth-independence.md), [background-agents](features/background-agents.md), [routines](features/routines.md), [hrt-decisions](features/hrt-decisions.md), [models-and-routing](features/models-and-routing.md), [home-insights](features/home-insights.md), [firm-admin](features/firm-admin.md), [attention-router](features/attention-router.md), [evidence-and-explain](features/evidence-and-explain.md), [what-did-not-hold-up](features/what-did-not-hold-up.md) |
-| G-Research | Make the invisible visible | [capture](features/capture.md), [work-genome](features/work-genome.md), [work-graph-and-hours](features/work-graph-and-hours.md), [calendar-and-git](features/calendar-and-git.md), [screen-annotations](features/screen-annotations.md), [awareness-glances](features/awareness-glances.md), [cue](features/cue.md), [growth-independence](features/growth-independence.md), [routines](features/routines.md), [hey-knack](features/hey-knack.md), [models-and-routing](features/models-and-routing.md), [home-insights](features/home-insights.md), [firm-admin](features/firm-admin.md), [knack-shell](features/knack-shell.md), [privacy-ledger](features/privacy-ledger.md), [your-data](features/your-data.md), [evidence-and-explain](features/evidence-and-explain.md), [what-did-not-hold-up](features/what-did-not-hold-up.md), [role-packs](features/role-packs.md) |
-| Wordsmith | Most complicated end-to-end browser-use workflow | [capture](features/capture.md), [benefits-agent](features/benefits-agent.md), [security-layers](features/security-layers.md), [computer-use](features/computer-use.md), [background-agents](features/background-agents.md), [stop-everything](features/stop-everything.md), [routines](features/routines.md), [needs-you](features/needs-you.md), [connections](features/connections.md), [hey-knack](features/hey-knack.md), [models-and-routing](features/models-and-routing.md), [context-engineering](features/context-engineering.md), [knack-shell](features/knack-shell.md), [privacy-ledger](features/privacy-ledger.md), [role-packs](features/role-packs.md) |
+| HRT | Best use of data for predictions and decisions | [work-genome](features/work-genome.md), [stuck-model](features/stuck-model.md), [work-graph-and-hours](features/work-graph-and-hours.md), [calendar-and-git](features/calendar-and-git.md), [live-coach](features/live-coach.md), [cue](features/cue.md), [growth-independence](features/growth-independence.md), [background-agents](features/background-agents.md), [routines](features/routines.md), [hrt-decisions](features/hrt-decisions.md), [proactive-briefing](features/proactive-briefing.md), [models-and-routing](features/models-and-routing.md), [home-insights](features/home-insights.md), [firm-admin](features/firm-admin.md), [attention-router](features/attention-router.md), [evidence-and-explain](features/evidence-and-explain.md), [what-did-not-hold-up](features/what-did-not-hold-up.md) |
+| G-Research | Make the invisible visible | [capture](features/capture.md), [work-genome](features/work-genome.md), [work-graph-and-hours](features/work-graph-and-hours.md), [calendar-and-git](features/calendar-and-git.md), [screen-annotations](features/screen-annotations.md), [awareness-glances](features/awareness-glances.md), [cue](features/cue.md), [growth-independence](features/growth-independence.md), [routines](features/routines.md), [hey-knack](features/hey-knack.md), [models-and-routing](features/models-and-routing.md), [home-insights](features/home-insights.md), [firm-admin](features/firm-admin.md), [knack-shell](features/knack-shell.md), [design-system](features/design-system.md), [privacy-ledger](features/privacy-ledger.md), [your-data](features/your-data.md), [evidence-and-explain](features/evidence-and-explain.md), [what-did-not-hold-up](features/what-did-not-hold-up.md), [role-packs](features/role-packs.md) |
+| Wordsmith | Most complicated end-to-end browser-use workflow | [capture](features/capture.md), [benefits-agent](features/benefits-agent.md), [security-layers](features/security-layers.md), [computer-use](features/computer-use.md), [background-agents](features/background-agents.md), [stop-everything](features/stop-everything.md), [routines](features/routines.md), [needs-you](features/needs-you.md), [proactive-briefing](features/proactive-briefing.md), [connections](features/connections.md), [hey-knack](features/hey-knack.md), [models-and-routing](features/models-and-routing.md), [context-engineering](features/context-engineering.md), [knack-shell](features/knack-shell.md), [privacy-ledger](features/privacy-ledger.md), [role-packs](features/role-packs.md) |
 
 Each page's 'Hackathon target' section says why.
 
@@ -75,7 +75,7 @@ Aligns a novice's steps with the nearest expert's and puts a price in seconds on
 
 #### How it works
 
-Events become steps through the role pack's mapping. A sequence alignment (Needleman-Wunsch, with a cost for each pair of step types) pairs each novice trace with the nearest expert trace. A step with no partner costs the time it took; a mismatched pair costs the difference in dwell. The gap is split by habit with a regression on behaviour counts, and intervals come from a bootstrap by person. Everything here is plain code: no language model.
+Events become steps through the role pack's mapping. A sequence alignment (Needleman-Wunsch, with a cost for each pair of step types) pairs each novice trace with the nearest expert trace. A step with no partner costs the time it took; a mismatched pair costs the difference in dwell. The gap is split by habit with a regression on behaviour counts, and intervals come from a bootstrap by person. A transition graph lists the step-to-step moves a novice never makes, and a replay slider plays a recorded trace on a virtual clock with idle gaps squeezed (the same events always give the same state). Everything here is plain code: no language model.
 
 #### Where to see it
 
@@ -683,6 +683,40 @@ The scripted planner follows any instruction, so the scripted table measures the
 
 - **Wordsmith (most complicated end-to-end browser-use workflow)**: a browser agent that can be pointed anywhere and still cannot be steered by the page
 
+### Optional sign-in step-up for irreversible approvals (Auth0)
+
+**Status:** built (built; not configured: it needs the owner's Auth0 domain and client ID, and is never on the demo's critical path) · **Page:** `docs/features/security-layers.md` · **Targets:** Wordsmith
+
+#### What it does
+
+When Auth0 is configured, approving something that cannot be undone, or that sends something outside this machine, needs a fresh sign-in, with the reason printed above the button. With no Auth0 values the app uses a local fallback and approves as before.
+
+#### How it works
+
+A thin sign-in sits behind an interface with a local fallback. Items of risk class irreversible or outward need a step-up. A sign-in that was closed, is not recent enough, or is from a different account approves nothing and the item keeps waiting. Only a hash of the signed-in subject is returned to the engine. A real click is still required: signing in does not approve anything by itself.
+
+#### Where to see it
+
+Needs you, on an irreversible or outward approval row: 'Approving this cannot be undone, so we ask you to sign in again.'
+
+#### Demo moment
+
+Not on the demo path. If configured, press Approve on an irreversible row: a sign-in opens first; close it and the row says nothing was approved.
+
+#### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| The step-up gate (when it applies, what each failure says, what is returned) is covered by unit tests | offline tests | `apps/dashboard/src/auth/gate.ts` |
+
+#### Honest limit
+
+No tenant is configured, so the fallback approves as before. Never part of the P0 demo path. Not verified against a real Auth0 tenant.
+
+#### Hackathon target
+
+- **Wordsmith (most complicated end-to-end browser-use workflow)**: a stronger gate on the irreversible step of an approval-gated agent
+
 ### Computer use on the sandbox calculators
 
 **Status:** built (works in-sample, not held-out; the Gemini configuration is still in development) · **Page:** `docs/features/computer-use.md` · **Targets:** Wordsmith
@@ -1080,6 +1114,42 @@ Circular: the calculators' quirks and the households that trigger them were plan
 
 - **HRT (best use of data for predictions and decisions)**: risk control with a held-out check, stated as circular
 
+### Proactive briefing: judge, verify, prepare, press to fire
+
+**Status:** built (engine built and tested; development-set evaluation only; cards now arrive as rows in Needs you) · **Page:** `docs/features/proactive-briefing.md` · **Targets:** HRT, Wordsmith
+
+#### What it does
+
+From routines, skill gaps, calendar and commit suggestions and agent results, Knack ranks what could be worth a card, shows at most three, and prepares the action behind each. Nothing fires unprompted: pressing a card is what starts anything.
+
+#### How it works
+
+Four steps in code. Judge ranks candidates and prefers fewer, even zero. Verify re-checks each candidate against the current state and drops stale ones. Prepare builds the editable content from templates (a model may reword through the egress guard). Fire acts only on the worker's press: it either puts an approval item in the queue or starts a background run that only reads, never both unprompted. Each card carries a risk class and source tags. Acceptance is learned from the worker's reactions, starting from a prior of 0.4 for the role. The design idea (judge, prepare, execute on press, drop stale items) comes from the owner's notes on Sentient OS and was re-implemented in our own code and words.
+
+#### Where to see it
+
+Needs you: a prepared action is a row. After a press the screen says what was made, for example 'Created an item here for your approval. Nothing runs until you approve it.'
+
+#### Demo moment
+
+Press a prepared card in Needs you; the line says what it made and that nothing runs until you approve. Then open Background runs to show a read-only run that was started.
+
+#### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| The shipped judge: 101 of 124 cards were worth surfacing (precision 82% [70.4, 89.9]), recall 86% [75.5, 93.2]; against 55% [49.8, 60.5] for raw top three with no checks, 51% for random three and 46% [41.2, 49.9] for everything with no cap | synthetic, 145 replayed decisions over 35 people; bootstrap over people | `evals/report.md (Proactive cards)` |
+| 145 briefings: cap of 3 cards, 0 cap violations, mean 0.86 cards; unprompted fires 0; unprompted agent spawns 0 | synthetic | `evals/report.md (Proactive cards)` |
+
+#### Honest limit
+
+'Worth surfacing' is our definition, fixed before the runs, then revised after the first replays; there is no held-out data, so these are development-set figures. Acceptance learning is shown only on a simulated worker with fixed rates. All personas are synthetic. Whether real workers find the cards useful is unmeasured.
+
+#### Hackathon target
+
+- **HRT (best use of data for predictions and decisions)**: a ranking decision with a hard cap, judged against three baselines
+- **Wordsmith (most complicated end-to-end browser-use workflow)**: prepared actions that wait for a press
+
 ## 6. Connections and MCP plugins
 
 *Curated plugins, off and read-only by default.*
@@ -1124,7 +1194,7 @@ Not on main. This entry is written from owner decision D55; check docs/CONNECTIO
 
 ### Hey Knack: an on-device wake phrase
 
-**Status:** built (code and tests on main; not run with a real microphone yet; docs/knack-ux/09-wake-voice.md has not landed) · **Page:** `docs/features/hey-knack.md` · **Targets:** G-Research
+**Status:** built (code and tests are built; not run with a real microphone yet; docs/knack-ux/09-wake-voice.md is on the WAKE-VOICE branch, not main) · **Page:** `docs/features/hey-knack.md` · **Targets:** G-Research
 
 #### What it does
 
@@ -1136,7 +1206,7 @@ A native helper uses macOS on-device speech recognition. If on-device recognitio
 
 #### Where to see it
 
-Menu bar (listening indicator and the Listen for Hey Knack switch); first launch asks for the two macOS permissions. The corner pill shows 'Listening' after the wake.
+Menu bar: a status row ('Listening for Hey Knack. Stays on this Mac, nothing stored.') and a 'Listen for Hey Knack' switch; macOS itself draws its orange microphone indicator whenever any process uses the microphone, which Knack cannot hide. First launch asks for the two macOS permissions. The corner pill shows 'Listening' after the wake.
 
 #### Demo moment
 
@@ -1147,11 +1217,12 @@ Say 'Hey Knack'. The pill shows 'Listening', a soft cue plays, and Knack answers
 | What | Label | Source |
 |---|---|---|
 | The matcher is pinned by tests over more than 300 distinct ordinary sentences and more than 40 accepted variants: on the held-out set exactly one false accept ('Hey nack, nack, nack, that is all I hear from this network') and no misses; over both sets the Wilson upper bound is below 0.02 for false accepts and below 0.07 for misses | offline tests on text strings, not a microphone | `apps/desktop/src/main/wake/corpus.test.ts` |
-| A line-for-line Swift port of the matcher is checked against the TypeScript specification over the whole corpus | offline tests | `apps/desktop/src/main/wake/matching.ts (header)` |
+| Measured on text strings: development set 0 false accepts in 183 ordinary sentences and 0 misses in 31 variants (the matcher was tuned on it); held-out set, written after the matcher was frozen, 1 false accept in 159 (0.63%, Wilson 0.11 to 3.48%) and 0 misses in 25 variants (Wilson 0 to 13.3%); both together 1 in 342 (0.29%, Wilson 0.05 to 1.64%) and 0 misses in 56 (Wilson 0 to 6.4%) | offline strings, not audio and not a microphone | `docs/knack-ux/09-wake-voice.md (branch worktree-agent-a86cc292e454adbb6, landing)` |
+| A line-for-line Swift port of the matcher agrees with the TypeScript specification over the whole corpus | offline tests | `apps/desktop/src/main/wake/matching.ts (header)` |
 
 #### Honest limit
 
-No real microphone has been used yet; the rates above describe the matching logic on strings, not how often a real recogniser and microphone trigger it. The phrase is an on-device detector's, so an unusual accent or a noisy room is untested. Earlier documents (docs/FLAGS.md, docs/FEATURE_CATALOGUE.md) still say there is no always-listening microphone; D52 supersedes that for Hey Knack.
+No real microphone has been used yet; the rates above describe the matching logic on strings, not how often a real recogniser and microphone trigger it (that needs the owner's first launch and a day of use). The one held-out false accept is 'Hey nack, nack, nack, that is all I hear from this network'; it was left and pinned in a test rather than tuned away. The phrase is an on-device detector's, so an unusual accent or a noisy room is untested. Earlier documents (docs/FLAGS.md, docs/FEATURE_CATALOGUE.md) still say there is no always-listening microphone; D52 supersedes that for Hey Knack.
 
 #### Hackathon target
 
@@ -1167,7 +1238,7 @@ After the wake, a live voice conversation starts. Knack speaks while it guides, 
 
 #### How it works
 
-The wake starts the Live voice session (Gemini). Screen frames go only through the consent card (Yes, Not now, Never) and the image gate. Its tools are a closed set: point_at (ring and ghost cursor) and do_it_for_me. The second fails closed until the owner has completed the first supervised real-click test; a persisted record written only by that test turns it on. Even then, voice alone is never consent: a real mouse click on an Allow card issues the one-time token and the per-run permit. It is never unattended, never a purchase, never a real account. A typed context packet (closed grammar, freshness limits) tells the session what is on the screen, what waits for approval and what the coach is doing. Holding Option-Space talks.
+The wake stops the listener (releasing the microphone) and starts the Live voice conversation (Gemini), hands-free, with a soft chime. Two first-wake cards ask once, each with Yes, Not now and Never of equal weight: whether your voice may go to a cloud voice model while you talk, and whether a small picture of the screen may go about every 5 seconds; only a real mouse click answers a card. Frames go through the image gate and the ledger: never from a denylisted app or over secure input, never unattended, never stored. The conversation is bounded: started by the worker, five minutes at most, a spending cap, and a quiet half minute ends it. The model's tools are a closed set: point_at (ring and ghost cursor), clear, show_step, ask_choice, end_session and do_it_for_me. The last fails closed until the owner has completed the first supervised real-click test; a record written only by that test turns it on. Even then, voice alone is never consent: a card 'Click for you?' with Allow once or Cancel needs a real mouse click, a 20-second timer means Cancel, and the click goes through the one-time token, the per-run permit, the countdown and every real-actuator guard. It is never unattended, never a purchase, never a real account. A typed context packet (closed grammar, freshness limits; a test feeds it hostile strings) tells the session what is on the screen, what waits for approval and what the coach is doing. Holding Option-Space talks.
 
 #### Where to see it
 
@@ -1185,7 +1256,7 @@ Ask: 'Where do I see what needs me?' A ring and a ghost cursor show Needs you; K
 
 #### Honest limit
 
-Not run with a microphone, a Live session or a real click. The 'do it for me' path stays off until the first real-click rung is reported with the owner present. Voice quality and latency are not measured.
+Not run with a microphone, a Live session or a real click. The 'do it for me' path stays off until the first real-click rung is reported with the owner present, and the agent-service route it needs (POST /desktop/click) is described as a contract that was not built in the WAKE-VOICE branch: until it exists the desktop answers 'route missing' and clicks nothing. The model's speech inside a conversation is free-form audio; every other spoken line in Knack is fixed. Voice quality and latency are not measured.
 
 #### Hackathon target
 
@@ -1299,6 +1370,40 @@ Not measured for quality or latency. Voice is on by default but depends on the E
 #### Hackathon target
 
 - **Wordsmith (most complicated end-to-end browser-use workflow)**: a calm voice that cannot say anything unplanned
+
+### Mock mode: the whole product offline
+
+**Status:** verified · **Page:** `docs/features/models-and-routing.md` · **Targets:** Wordsmith
+
+#### What it does
+
+The same product runs with no model calls and no network: scripted, deterministic answers on example data. The sidebar status line says 'Running with example data' and screens that show example rows keep their own Example data badge.
+
+#### How it works
+
+Mock mode is set by the demo command: it seeds an isolated home under data/ (never the worker's real folder), starts the engine, the agent service and the three sandbox sites, and opens the dashboard. Provider calls are replaced by scripted, deterministic ports. The app itself starts in live mode when a Gemini key is present and in mock mode when it is not.
+
+#### Where to see it
+
+Sidebar status line; Settings, Use live models.
+
+#### Demo moment
+
+Turn wifi off, run the demo command, and walk the dashboard: every screen loads on example data.
+
+#### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| In the lead's sweep all 28 screens and views loaded against the live stack with no page errors; a benefits-agent run in mock mode ended with an item in the approval queue and 0 false claims | mock mode, example data; seen by the lead on 7 Nov about 21:20 UTC | `docs/MVP_STATUS.md` |
+
+#### Honest limit
+
+Mock results are scripted: they show the product runs end to end, not that a model does the work. The sweep was before the Knack shell merged; re-run it at the freeze.
+
+#### Hackathon target
+
+- **Wordsmith (most complicated end-to-end browser-use workflow)**: a reproducible, offline walk-through of a complicated workflow
 
 ## 8. Insights and admin
 
@@ -1641,7 +1746,7 @@ Command-K goes anywhere or runs a command, Option-Space asks Knack (tap to type,
 
 #### How it works
 
-Shortcuts: Command-1 to Command-5 for the five destinations, Command-slash for About this screen, Command-comma for Settings, Option-Command-P to pause or resume for an hour. The palette lists seven rows by default, then Show all; typing a phrase that matches nothing adds 'Ask Knack: <phrase>'. 'Delete my data' is palette-only with no shortcut by design.
+Shortcuts: Command-1 to Command-5 for the five destinations, Command-slash for About this screen, Command-comma for Settings, Option-Command-P to pause or resume for an hour. The palette lists seven rows by default, then Show all; typing a phrase that matches nothing adds 'Ask Knack: <phrase>'. 'Delete my data' is palette-only with no shortcut by design. A guided tour of the five destinations is one row in the account menu (Take the tour).
 
 #### Where to see it
 
@@ -1664,6 +1769,75 @@ Option-Space's tap-to-type Ask bar window is a lower-priority item in the build 
 #### Hackathon target
 
 - **Wordsmith (most complicated end-to-end browser-use workflow)**: reaching any action without a menu hunt
+
+### Design system with budgets as tests
+
+**Status:** built (tokens, components and check scripts merged to main; screens still being brought to budget by their tracks) · **Page:** `docs/features/design-system.md` · **Targets:** G-Research
+
+#### What it does
+
+One token file and ten rules govern every screen: one hero per screen, details behind a disclosure or a short Hint, at most seven rows in a list, no gradients, glows or emoji. The limits are numbers a script checks, so a screen cannot grow back.
+
+#### How it works
+
+Budgets: a hero sentence of at most 16 words; a card with 8 words of title, 20 of body, a button of 3; Home at most 50 words above the fold, Needs you 120, Growth 60; no paragraph over two lines in a default view; one badge above the fold; a sidebar of 6 rows with no hint words. check-copy.mjs reads the running screens against these budgets; check-clicks.mjs replays the ten jobs and fails above their click budget; a copy lint rejects banned phrases and a visible old product name; contrast is tested at AA in both themes. Weights are 400 and 600 only; icons are 14 inline SVGs; mono capitals appear only on chart axes and the work ribbon. A Hint (a small accessible 'i') may hold a unit, a definition or an interval and is never the only copy of a fact: origin badges, consent text, consequences, errors and limits stay printed.
+
+#### Where to see it
+
+Every screen; docs/knack-ux/before and after hold the screenshots; packages/design/design-system.html is the preview.
+
+#### Demo moment
+
+Show Home before and after, side by side: 173 words and 10 controls above the fold became 47 words and 4 controls. Then press the Hint beside a number to show the interval one tap away.
+
+#### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| Before: median 173 words above the fold across 20 worker screens (214 across 8 admin screens); 9 of 20 worker screens exceeded 400 words in total; measured at 1440 by 900 in the live mock | design measurement, one engine in mock mode, one browser, no users | `docs/KNACK_UX.md (section 2)` |
+| After, on the static prototype: Home 47 words, Needs you 103, Routines 45, Growth 53, Firm 80, first run 20 | design measurement of a prototype; the real screens land a little above | `docs/knack-ux/after/after-measurements.json` |
+
+#### Honest limit
+
+These measure the interface, not people. The budgets are our choice. The after numbers are a prototype's headline content; the screens being built will land a little above them, and some screens were still over budget when this was written (a pending list in the copy lint shrinks as tracks land). The Evidence page is exempt from the word budget by decision D45.
+
+#### Hackathon target
+
+- **G-Research (make the invisible visible)**: the invisible made visible without clutter
+
+### The Knack mark and brand
+
+**Status:** built · **Page:** `docs/features/design-system.md` · **Targets:** G-Research
+
+#### What it does
+
+The mark is a solid disc with a ring offset behind it: the worker, and the understudy shadowing them. It appears in the sidebar, the Dock, the menu bar and the corner pill.
+
+#### How it works
+
+The lockup is the glyph then the word Knack in the display face at weight 600, with the disc as tall as the capital K and one disc radius between them. The ring is never recoloured for status; status is the pill's words and the menu-bar badge. The menu-bar template has six states in a fixed priority (stopped, needs you, glance, working, paused, idle). The Dock icon is an ink tile with a teal ring on the macOS canvas. There is no tagline in the app.
+
+#### Where to see it
+
+Sidebar top, first-run screen, Dock, menu bar, corner pill; docs/knack-ux/knack-brand-sheet.svg.
+
+#### Demo moment
+
+Show the brand sheet, then the menu bar changing from idle to a working dot when a routine starts.
+
+#### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| No measurement; the mark was already in packages/design/brand, and the dashboard had not used it before the Knack pass | no evidence yet (design) | `docs/KNACK_UX.md (section 6)` |
+
+#### Honest limit
+
+A visual decision, judged by eye. Menu-bar states depend on desktop wiring that the owner has not seen on a real menu bar.
+
+#### Hackathon target
+
+- **G-Research (make the invisible visible)**: a calm identity for a product that watches work
 
 ## 11. Privacy and safety
 
@@ -2151,7 +2325,7 @@ Only with the n, the split, the interval and the origin printed beside them. Whe
 |---|---|---|
 | Connections: curated MCP plugins and role presets (CONNECTIONS, Track E) | `docs/CONNECTIONS.md` | not on main; the panel slots exist |
 | Deeper programmer and data-analyst roles (ROLE-DEPTH, Track F) | `docs/roles/*.md` | not on main |
-| Hey Knack documentation and its measured rates (WAKE-VOICE) | `docs/knack-ux/09-wake-voice.md` | code and tests are on main; the document has not landed |
+| Hey Knack documentation and its measured rates (WAKE-VOICE) | `docs/knack-ux/09-wake-voice.md` | written, on branch worktree-agent-a86cc292e454adbb6; not on main yet (code and tests are mostly on main) |
 | Demo shot list and spoken lines (DEMO-DIRECTOR) | `docs/KNACK_DEMO.md` | not on main |
 | Computer use on Gemini, development results (AGENTIC-3) | `evals/agentic/ITERATIONS_8.md` | on branch worktree-agent-acf889b730112335b only |
 

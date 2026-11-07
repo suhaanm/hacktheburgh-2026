@@ -1,6 +1,6 @@
 # Knack feature index
 
-31 pages and 56 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
+33 pages and 61 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
 
 **Status words.** `verified`: the lead saw it work end to end (`docs/FEATURE_CATALOGUE.md`). `built`: built and tested by its track, on main, not yet seen end to end by the lead. `landing`: not on main yet (another agent's branch, or its document has not landed). `not run`: designed or built but never run. The status is taken from the sources at the time of writing (see the time stamp in `docs/PITCH_FEATURES.md`); nothing here was run by the author.
 
@@ -35,7 +35,7 @@
 | Page | Features on it | Status | Targets |
 |---|---|---|---|
 | [Benefits agent and 'code decides done'](benefits-agent.md) | Benefits agent on three sandbox calculators; Code decides 'done'; Independent verifier (a second model family) | Benefits agent on three sandbox calculators: verified; Code decides 'done': verified; Independent verifier (a second model family): built | Wordsmith |
-| [Eight security layers](security-layers.md) | Eight security layers, approval queue and audit log | verified | Wordsmith |
+| [Eight security layers](security-layers.md) | Eight security layers, approval queue and audit log; Optional sign-in step-up for irreversible approvals (Auth0) | Eight security layers, approval queue and audit log: verified; Optional sign-in step-up for irreversible approvals (Auth0): built | Wordsmith |
 | [Computer use and the real-click ladder](computer-use.md) | Computer use on the sandbox calculators; Real-click ladder (R0 to R4) and the arm switch | built | Wordsmith |
 | [Background agents and overnight runs](background-agents.md) | Background agents: parent and child; Overnight runs and the morning report | built | HRT, Wordsmith |
 | [Stop everything](stop-everything.md) | Stop everything: the kill switch | built | Wordsmith |
@@ -47,6 +47,7 @@
 | [Routines: found, proposed, trusted one at a time](routines.md) | Routine finder and proposals; Watch first and the trust ladder; Could automate: the repeat list | Routine finder and proposals: built; Watch first and the trust ladder: verified; Could automate: the repeat list: built | G-Research, HRT, Wordsmith |
 | [Needs you](needs-you.md) | Needs you: one list for decisions | built | Wordsmith |
 | [Decisions under uncertainty](hrt-decisions.md) | When to build an automation: ski rental with predictions; Review routing under a risk bound | built | HRT |
+| [Proactive briefing: three cards at most, press to fire](proactive-briefing.md) | Proactive briefing: judge, verify, prepare, press to fire | built | HRT, Wordsmith |
 
 ## Connections and MCP plugins
 
@@ -59,7 +60,7 @@
 | Page | Features on it | Status | Targets |
 |---|---|---|---|
 | [Hey Knack: voice that points](hey-knack.md) | Hey Knack: an on-device wake phrase; Voice guidance and 'do it for me' behind a click | built | G-Research, Wordsmith |
-| [Models, routing and the local model](models-and-routing.md) | Model routing: Gemini by default, checked at boot; Local model digests (a 7B model on this Mac); Spoken lines (ElevenLabs, fixed vocabulary) | built | G-Research, HRT, Wordsmith |
+| [Models, routing and the local model](models-and-routing.md) | Model routing: Gemini by default, checked at boot; Local model digests (a 7B model on this Mac); Spoken lines (ElevenLabs, fixed vocabulary); Mock mode: the whole product offline | Model routing: Gemini by default, checked at boot: built; Local model digests (a 7B model on this Mac): built; Spoken lines (ElevenLabs, fixed vocabulary): built; Mock mode: the whole product offline: verified | G-Research, HRT, Wordsmith |
 
 ## Insights and admin
 
@@ -81,6 +82,7 @@
 | [One attention layer](attention-router.md) | One attention layer: a router, a digest, quiet states | built | HRT |
 | [Context engineering for long runs](context-engineering.md) | Context engineering: typed, bounded, fresh | built | Wordsmith |
 | [One app, one window, one pill, three clicks](knack-shell.md) | One app, one window, one corner pill; First run in three clicks; Command palette and keyboard | built | G-Research, Wordsmith |
+| [Design system, word budgets and the Knack mark](design-system.md) | Design system with budgets as tests; The Knack mark and brand | built | G-Research |
 
 ## Privacy and safety
 

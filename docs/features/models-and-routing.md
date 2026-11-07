@@ -4,7 +4,7 @@
 
 **Capability:** Voice and Hey Knack · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-This page covers Model routing: Gemini by default, checked at boot, Local model digests (a 7B model on this Mac), Spoken lines (ElevenLabs, fixed vocabulary).
+This page covers Model routing: Gemini by default, checked at boot, Local model digests (a 7B model on this Mac), Spoken lines (ElevenLabs, fixed vocabulary), Mock mode: the whole product offline.
 
 ## Model routing: Gemini by default, checked at boot
 
@@ -113,6 +113,40 @@ Not measured for quality or latency. Voice is on by default but depends on the E
 ### Hackathon target
 
 - **Wordsmith (most complicated end-to-end browser-use workflow)**: a calm voice that cannot say anything unplanned
+
+## Mock mode: the whole product offline
+
+**Status:** verified · **Page:** `docs/features/models-and-routing.md` · **Targets:** Wordsmith
+
+### What it does
+
+The same product runs with no model calls and no network: scripted, deterministic answers on example data. The sidebar status line says 'Running with example data' and screens that show example rows keep their own Example data badge.
+
+### How it works
+
+Mock mode is set by the demo command: it seeds an isolated home under data/ (never the worker's real folder), starts the engine, the agent service and the three sandbox sites, and opens the dashboard. Provider calls are replaced by scripted, deterministic ports. The app itself starts in live mode when a Gemini key is present and in mock mode when it is not.
+
+### Where to see it
+
+Sidebar status line; Settings, Use live models.
+
+### Demo moment
+
+Turn wifi off, run the demo command, and walk the dashboard: every screen loads on example data.
+
+### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| In the lead's sweep all 28 screens and views loaded against the live stack with no page errors; a benefits-agent run in mock mode ended with an item in the approval queue and 0 false claims | mock mode, example data; seen by the lead on 7 Nov about 21:20 UTC | `docs/MVP_STATUS.md` |
+
+### Honest limit
+
+Mock results are scripted: they show the product runs end to end, not that a model does the work. The sweep was before the Knack shell merged; re-run it at the freeze.
+
+### Hackathon target
+
+- **Wordsmith (most complicated end-to-end browser-use workflow)**: a reproducible, offline walk-through of a complicated workflow
 
 ## 30-second spoken script
 
