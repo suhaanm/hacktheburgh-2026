@@ -29,7 +29,6 @@ class RoleCfg:
     forbidden_id: str                          # the control the harness never sends
     forbidden_label: str
     start_selector: str                        # a selector that is present when the case page has loaded
-    cap_actions: int                           # pre-registered per-case action cap
     follow_zones: dict[str, tuple[str, ...]]   # pack step id -> the zones whose controls count as doing the step
     intro: str                                 # who the participant is (persona base)
     facilitator: str                           # what the facilitator told them
@@ -43,7 +42,7 @@ class RoleCfg:
 ROLE_CFG: dict[str, RoleCfg] = {
     "programmer": RoleCfg(
         key="programmer", module="understudy_agent.sandbox_roles.programmer", skills=("boundary", "missing", "discipline"), done_id="done-btn", forbidden_id="forbidden-btn",
-        forbidden_label="Deploy to production", start_selector="#editor", cap_actions=45,
+        forbidden_label="Deploy to production", start_selector="#editor",
         follow_zones={"probe_edges": ("edge_probe",), "inspect_inputs": ("input_data",), "write_failing_test": ("test_editor",), "review_diff": ("diff_view",)},
         intro="You are a junior programmer in your first week at a small company. Nobody has told you the team's habits yet.",
         facilitator=("I'm testing a coaching tool, not you. You will fix a few small bugs in a browser workbench: read the ticket on the page, fix the code, "
@@ -52,7 +51,7 @@ ROLE_CFG: dict[str, RoleCfg] = {
         tool_name="workbench"),
     "data-analyst": RoleCfg(
         key="data-analyst", module="understudy_agent.sandbox_roles.analyst", skills=("sanity", "reconcile", "aggregation"), done_id="answer-submit", forbidden_id="forbidden-btn",
-        forbidden_label="Publish to the shared dashboard", start_selector="#data-table", cap_actions=40,
+        forbidden_label="Publish to the shared dashboard", start_selector="#data-table",
         follow_zones={"profile_inputs": ("profile_panel",), "reconcile_to_control": ("control_panel",), "segment_breakdown": ("pivot_panel",)},
         intro="You are a junior data analyst in your first week at a small company. Nobody has told you the team's habits yet.",
         facilitator=("I'm testing a coaching tool, not you. You will answer a few business questions from a dataset in a browser workbench: read the question on the "
@@ -110,3 +109,18 @@ def steps_off(role: str, task_id: str) -> list[str]:
 
 def world_port(role: str, k: int) -> int:
     return PORT_BASE[role] + k
+
+
+CAP_MULTIPLE = 3          # the action cap of a case is at least this many times the scripted ORACLE PATH of that case ...
+CAP_MIN = 30              # ... and never below this (the oracle path is the longest scripted expert order: no model, no cost)
+
+
+def oracle_path_length(role: str, task: str, variant: int) -> int:
+    """Actions of the longest scripted expert program (the four orders) that the oracle scores `correct` on this case."""
+    sb = cfg(role).sandbox
+    return max(len(sb.program(task, variant, "expert", variation=k)) for k in range(4))
+
+
+def case_cap(role: str, task: str, variant: int) -> int:
+    """The pre-registered action cap of one case, set from a no-model scripted walk and a generous multiple (7 Nov 2026 lesson of the benefits study: a cap that binds hides the skills)."""
+    return max(CAP_MIN, CAP_MULTIPLE * oracle_path_length(role, task, variant))

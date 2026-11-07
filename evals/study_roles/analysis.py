@@ -20,12 +20,14 @@ sys.path.insert(0, str(STUDY))
 import analyze as A  # noqa: E402
 
 OUTCOMES = ("correct", "partial", "wrong", "claimed_done_wrong")
-# the feasibility pilot (declared in advance): a participant option is USABLE when ...
-PILOT_MIN_SHARE_ABOVE_ZERO = 0.5      # ... at least half of the pilot pre-tests score at least 1 point (not at the floor)
-PILOT_MAX_SHARE_FULL = 0.8            # ... and at most 80% score the full 2 points (not at the ceiling: there must be room for a coach to help)
-PILOT_MAX_SHARE_CAPPED = 0.5          # ... and at most half of all pilot cases ran into the action cap
-MIN_UNITS = 2                         # fewer than 2 affordable units (8 participants each) and the study is not run
-COST_SAFETY = 1.3                     # the estimate of a participant's cost is the pilot mean times this
+# the feasibility pilot (declared in advance): a participant option is USABLE when all hold, over the UNASSISTED cases of the pilot (pre-test and post-test of each block of 3 A/A participants: 12 cases)
+PILOT_MAX_SHARE_ZERO = 0.5            # FLOOR: at most half of the unassisted cases score 0 points
+PILOT_MAX_SHARE_FULL = 0.8            # CEILING: at most 80% score the full 2 points (a coach needs room to help)
+PILOT_MAX_SHARE_CAP_BOUND = 0.25      # CAP: at most a quarter end by the action cap (or the wall cap) or use at least 95% of their cap
+CAP_USED_SHARE = 0.95
+MIN_UNITS = 2                         # fewer than 2 affordable units (8 participants each) and a role is not run
+COST_SAFETY = 1.3                     # the estimate of a participant's cost is the pilot mean times this ...
+STUDY_VS_PILOT = 1.5                  # ... times 1.5 (a pilot participant works 4 unassisted cases; a study participant 6 cases plus two notes)
 
 
 def split_arms(rows: list[dict]) -> tuple[list[dict], list[dict], list[dict]]:
@@ -184,38 +186,53 @@ def analyse_role(role: str, rows: list[dict]) -> dict:
 
 
 # ------------------------------------------------------------------------------------------------ the feasibility pilot (declared in advance)
+def _yes(v) -> bool:
+    return v is True or str(v).strip().lower() in ("yes", "true", "1", "1.0")
+
+
+def unassisted_cases(rows: list[dict]) -> list[dict]:
+    """The pre-test and the post-test of every block row, as {points, actions, cap, capped}."""
+    out = []
+    for r in rows:
+        out.append({"points": float(r["pre_points"]), "actions": float(r["pre_actions"]), "cap": float(r.get("pre_cap") or 0), "capped": _yes(r.get("pre_capped"))})
+        out.append({"points": float(r["post_checks_done"]), "actions": float(r["post_actions"]), "cap": float(r.get("post_cap") or 0), "capped": _yes(r.get("post_capped"))})
+    return out
+
+
 def pilot_verdict(rows: list[dict], costs_per_participant: list[float]) -> dict:
-    """Is this participant option usable? ``rows`` are the pilot CSV rows (A/A arm only, 3 participants, 2 blocks each). The criteria are PILOT_* above."""
-    pre = [r["pre_points"] for r in rows]
-    cases = [r[k] for r in rows for k in ("pre_capped", "practice_capped", "post_capped")]
-    n_pre = len(pre)
+    """Is this participant option usable? ``rows`` are the pilot CSV rows (A/A arm only, 3 participants x 2 blocks). Criteria, all decided here in code (the PILOT_* constants):
+    floor (share of unassisted cases scoring 0), ceiling (share fully correct), cap-binding (share that end by cap or use at least 95% of their cap), no harness exclusion."""
+    cases = unassisted_cases(rows)
+    n = len(cases)
     excluded = sorted({r["participant"] for r in rows if str(r.get("exclusion", "")).strip()})
-    share_pos = sum(1 for x in pre if x >= 1) / n_pre if n_pre else 0.0
-    share_full = sum(1 for x in pre if x >= 2) / n_pre if n_pre else 0.0
-    share_cap = sum(1 for c in cases if c is True or str(c).lower() in ("yes", "true")) / len(cases) if cases else 1.0
+    zero = sum(1 for c in cases if c["points"] <= 0) / n if n else 1.0
+    full = sum(1 for c in cases if c["points"] >= 2) / n if n else 0.0
+    bound = sum(1 for c in cases if c["capped"] or (c["cap"] and c["actions"] >= CAP_USED_SHARE * c["cap"])) / n if n else 1.0
     reasons = []
-    if not n_pre:
+    if not n:
         reasons.append("no pilot rows")
-    if share_pos < PILOT_MIN_SHARE_ABOVE_ZERO:
-        reasons.append(f"floor: only {share_pos:.0%} of pilot pre-tests scored above zero (need at least {PILOT_MIN_SHARE_ABOVE_ZERO:.0%})")
-    if share_full > PILOT_MAX_SHARE_FULL:
-        reasons.append(f"ceiling: {share_full:.0%} of pilot pre-tests were fully correct (at most {PILOT_MAX_SHARE_FULL:.0%}): no room for a coach to help")
-    if share_cap > PILOT_MAX_SHARE_CAPPED:
-        reasons.append(f"cap: {share_cap:.0%} of pilot cases ran into the action cap (at most {PILOT_MAX_SHARE_CAPPED:.0%})")
+    if zero > PILOT_MAX_SHARE_ZERO:
+        reasons.append(f"floor: {zero:.0%} of the unassisted pilot cases scored 0 (at most {PILOT_MAX_SHARE_ZERO:.0%})")
+    if full > PILOT_MAX_SHARE_FULL:
+        reasons.append(f"ceiling: {full:.0%} of the unassisted pilot cases were fully correct (at most {PILOT_MAX_SHARE_FULL:.0%}): no room for a coach to help")
+    if bound > PILOT_MAX_SHARE_CAP_BOUND:
+        reasons.append(f"cap: {bound:.0%} of the unassisted pilot cases ended by the cap or used at least {CAP_USED_SHARE:.0%} of it (at most {PILOT_MAX_SHARE_CAP_BOUND:.0%}): the cap binds before the skills are reached")
     if excluded:
         reasons.append(f"harness exclusions in the pilot: {excluded}")
     cost = statistics.fmean(costs_per_participant) if costs_per_participant else None
-    return {"usable": not reasons, "reasons": reasons, "n_pilot_pretests": n_pre, "share_pretests_above_zero": round(share_pos, 3), "share_pretests_full": round(share_full, 3),
-            "share_cases_capped": round(share_cap, 3), "mean_cost_per_participant_usd": None if cost is None else round(cost, 4),
-            "pre_points": pre, "criteria": {"min_share_above_zero": PILOT_MIN_SHARE_ABOVE_ZERO, "max_share_full": PILOT_MAX_SHARE_FULL, "max_share_capped": PILOT_MAX_SHARE_CAPPED}}
+    return {"usable": not reasons, "reasons": reasons, "n_unassisted_cases": n, "share_zero": round(zero, 3), "share_full": round(full, 3), "share_cap_bound": round(bound, 3),
+            "mean_cost_per_participant_usd": None if cost is None else round(cost, 4), "points": [c["points"] for c in cases],
+            "criteria": {"max_share_zero": PILOT_MAX_SHARE_ZERO, "max_share_full": PILOT_MAX_SHARE_FULL, "max_share_cap_bound": PILOT_MAX_SHARE_CAP_BOUND, "cap_used_share": CAP_USED_SHARE}}
 
 
 def plan_units(mean_cost: float | None, budget_left: float, roles_left: int, *, max_units: int = 3) -> dict:
     """How many whole UNITS (8 participants each: 4 coached + 4 A/A, balanced within a pair of skills) a role can afford: the largest u (at most 3) with
-    u * 8 * mean_cost * COST_SAFETY <= budget_left / roles_left. Fewer than MIN_UNITS: the study is not run (it could not say anything)."""
+    u * 8 * mean_cost * COST_SAFETY <= budget_left / roles_left. Fewer than MIN_UNITS: the role is not run (it could not say anything). The cost of a role participant is the
+    pilot's per-participant cost times STUDY_VS_PILOT and COST_SAFETY."""
     if not mean_cost or mean_cost <= 0:
         return {"units": 0, "run": False, "why": "no measured pilot cost"}
     share = budget_left / max(roles_left, 1)
-    u = min(max_units, int(share // (8 * mean_cost * COST_SAFETY)))
-    return {"units": u, "participants": 8 * u, "coached": 4 * u, "aa": 4 * u, "estimated_cost_usd": round(u * 8 * mean_cost * COST_SAFETY, 2), "budget_share_usd": round(share, 2),
+    unit_cost = 8 * mean_cost * STUDY_VS_PILOT * COST_SAFETY
+    u = min(max_units, int(share // unit_cost))
+    return {"units": u, "participants": 8 * u, "coached": 4 * u, "aa": 4 * u, "estimated_cost_usd": round(u * unit_cost, 2), "unit_cost_usd": round(unit_cost, 2), "budget_share_usd": round(share, 2),
             "run": u >= MIN_UNITS, "why": "" if u >= MIN_UNITS else f"fewer than {MIN_UNITS} units affordable: the study would be too small to say anything"}

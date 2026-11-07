@@ -35,7 +35,7 @@
     document.body.dataset.nav = kind;
     navN += 1;
     location.hash = '#' + kind + navN;
-    setTimeout(() => { if (document.body.dataset.nav === kind) delete document.body.dataset.nav; }, 2500);
+    setTimeout(() => { if (document.body.dataset.nav === kind) delete document.body.dataset.nav; }, 8000);
   };
 
   // ---- DOM

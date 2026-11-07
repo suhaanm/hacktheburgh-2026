@@ -80,17 +80,16 @@ In-page JavaScript, no CDN, no network (strict CSP; a sandbox page may only talk
 
 ## 4. The participant (a language model)
 
-* Reached through `understudy_agent.models.get_model_port()`. **Declared options, fixed now** (`participant.TIERS`):
-  1. **`fast`**: `port.check(prompt, schema)`, the fast model at reasoning effort none (the port's default for the fast role);
-  2. **`fast-low`**: the same call with `OPENAI_EFFORT_FAST=low` set by the harness before the port is built;
-  3. **`planner`**: `port.plan([...], schema)`, the planner model at the port's default effort (low). Declared but **not run** unless section 8 allows it.
-  Model ids come from the environment through the port and are recorded in the CSV (`model`, `tier`); nothing is hard-coded.
+* Reached through `understudy_agent.models.get_model_port()` with `port.check(prompt, schema)`. **Declared options, fixed now** (`participant.TIERS`): (1) **`fast`**: the fast model at reasoning
+  effort none (the port's default for the fast role); (2) **`fast-low`**: the same call with `OPENAI_EFFORT_FAST=low` set by the harness before the port is built. **There is no larger tier:**
+  if both options fail the pilot, the study stops and says so (a bigger model needs a new plan). Model ids come from the environment through the port and are recorded in the CSV (`model`, `tier`).
 * It sees what a person would see: the page text, the full text of the text boxes (the code editor), a numbered list of the visible controls with labels and current values (no attributes,
   zones or ids), what it has done so far, how many actions are left, and the coach overlay when one is up (its text and a flag on the ringed control).
 * **Actions** are typed and run through Playwright (trusted events, so the real extension captures them): `click`, `fill` (replace everything), `replace` (replace the first occurrence of a
-  text in a box), `select`, `goto` (only the sandbox's own origin, to reload), `wait`, `dismiss_coach`, `finish`. At most 4 actions per reply; the rest are dropped if the page changes or a coach
-  note appears. **Cap: 45 actions per case for the programmer and 40 for the analyst** (about twice the length of a scripted expert path: the scripted expert programs are
-  14 to 20 actions for the programmer and 6 to 22 for the analyst), **a 2 s pause after every action**, a 900 s wall-clock hang guard (reported as capped).
+  text in a box), `select`, `goto` (reload the page; the participant is not shown the address, which would carry the task id), `wait`, `dismiss_coach`, `finish`. At most 4 actions per reply; the rest are dropped if the page changes or a coach
+  note appears. **The cap of a case is set from a no-model scripted walk of the oracle path, not from the benefits study:** `cap = max(30, 3 x L)` where `L` is the length in actions of the
+  longest scripted expert program (four allowed orders) that the oracle scores `correct` on that case (`roles.case_cap`, tested; the table is in section 14). A cap that binds hides the skills: the
+  benefits study (run 4) ended 18 of 32 post-tests at the cap and scored 30 of 32 at the floor. Also **a 2 s pause after every action** and a 900 s wall-clock hang guard (reported as capped).
 * **The forbidden control.** If a participant tries to press "Deploy to production" / "Publish to the shared dashboard", the click is **not sent**; a protocol violation is recorded and the
   case stops as it stands (scored as it stands).
 * **Personas** (as in the benefits study; neutral about the job's habits; every persona is a first-week junior): carefulness low/medium/high, reading of on-page prompts low/high, verbosity
@@ -155,41 +154,40 @@ Normal(effect, SD 0.5) rounded to half-points and clipped to [-1, 1]; effects ar
 **So a null or small result from 8 to 12 coached participants does NOT show that the coach has no effect.** The design cancels generic carry-over and block-order shifts; it does not cancel
 spill-over of a coached gain to the other skill of the pair.
 
-## 8. Feasibility pilot, participant tier, and how n is chosen (all declared now)
+## 8. Feasibility pilot, participant option, and how n is chosen (all declared now)
 
-The benefits study (run 4, 8 of 24 participants) found the fast model close to the floor (6 of 8 post-tests hit the action cap), which makes the coach comparison uninformative. So, before any
-main run:
+The benefits study found the fast model at the floor (run 4: 30 of 32 post-tests scored 0, 18 ended by the cap; the run 5 pilot at effort low also failed: 0 of 6 post-tests above zero, 57 to 60 of
+60 actions used, so the cap bound before any skill was reached). That makes a coach comparison uninformative. So, before any main run:
 
-1. **Pilot.** For each role, **3 participants, A/A arm only** (`design.build_pilot`: one per pair, sequences R01, R05, R09; the coach silent in every block), run on the declared option, are
-   **discarded from all analysis** and used only to decide whether the option is usable and what a participant costs. Options in order: `fast`, then `fast-low`.
-2. **Usable** (all must hold; `analysis.pilot_verdict`, tested): (a) **floor:** at least half of the 6 pilot pre-tests score at least 1 point; (b) **ceiling:** at most 80% of them score the full
-   2 points (a coach needs room to help); (c) at most half of all pilot cases (18) run into the action cap; (d) no harness exclusion among the 3 participants.
-3. **Choice.** The first option in the order that is usable is the participant for that role. If `fast` is not usable, pilot `fast-low`. **If neither fast option is usable, the planner tier is
-   piloted only if** both fast options failed the FLOOR criterion (not a harness error) **and** the planner's estimated cost (the fast cost times the planner/fast price ratio) affords at least 12
-   participants inside what is left of the budget (`__main__.planner_allowed`, code-enforced). If every option fails the pilot, the study is **not run** and that is the reported finding: the
-   participant model cannot do these tasks in these sandboxes (a floor finding), or has no room to improve (a ceiling finding).
-4. **How many units (n).** The measured mean cost per pilot participant `c` of the chosen option fixes the number of whole units `u` (8 participants each) a role may run: the largest
-   `u <= 3` with `u * 8 * c * 1.3 <= (budget left) / (roles still to run)` (`analysis.plan_units`). **If `u < 2` the role is not run** (8 or fewer participants could not say anything).
-   `run` refuses to start on an option without a usable pilot and refuses to run more units than `plan_units` allows.
-5. The programmer role goes first, then the analyst. The two roles are never pooled.
+1. **Pilot.** For each role, **3 participants, A/A arm only** (`design.build_pilot`: one per pair, sequences R01, R05, R09; the coach silent in every block), working **only their unassisted cases**
+   (the pre-test and the post-test of each of their two blocks: 4 cases each, **12 cases per role**; no practice case, no note, so a pilot participant costs about two thirds of a study participant).
+   They are **discarded from all analysis** and used only to decide whether an option is usable and what a participant costs. Options, in order: `fast`, then `fast-low` (only if `fast` is not usable).
+2. **Usable** (all must hold, decided by code, `analysis.pilot_verdict`, tested; thresholds fixed now): (a) **floor:** at most 50% of the 12 unassisted cases score 0 points; (b) **ceiling:** at most 80%
+   score the full 2 points (a coach needs room to help); (c) **cap-binding:** at most 25% of them end by the action cap or the wall cap or use at least 95% of their cap; (d) no harness exclusion and the pilot
+   is complete (all 3 participants ran).
+3. **Stop rule.** If an option is not usable on a role, try the next option for that role; **if every option fails, STOP and report that the participant model cannot do these tasks in these sandboxes (a
+   floor finding), or has no room to improve (a ceiling finding), or that the cap binds (a cap finding): that is itself the result. Do not escalate to a bigger model or change a threshold, a prompt or a
+   cap to rescue it; that needs a new plan.** `run` refuses to start on an option without a usable pilot.
+4. **How many units (n).** The measured mean cost per pilot participant `c` fixes the number of whole units `u` (8 participants each) a role may run: the largest `u <= 3` with
+   `u * 8 * c * 1.5 * 1.3 <= (budget left) / (roles still to run)` (1.5: a study participant works 6 cases plus two notes against the pilot's 4 cases; 1.3: a safety factor; `analysis.plan_units`).
+   **If `u < 2` the role is not run** (8 or fewer participants could not say anything). The programmer role goes first with half of what is left; the analyst role then gets what is really left.
+   The two roles are never pooled.
 
 ## 9. Budget and stop rules
 
-* **Cap: US$14 in total, for BOTH roles including every pilot** (the owner's US$60 cap is shared with other tracks). One ledger (`results/cost_ledger.jsonl`) for all runs; each run carries
-  the spend of every earlier run in the tree (`cost.json: usd_this_run`), so the cap holds across processes. **Hard stop in code:** no new participant starts when the estimate plus 1.5 times the
-  mean cost of finished participants for every participant in flight would pass 95% of the cap; a call that would pass 100% raises and ends the run (`budget_roles.RolesBudget`).
-  A participant cut off mid-way is excluded and listed (budget stop), never half-analysed. Runs are resumable (finished participants are in `participants.csv` and are skipped; model answers are
-  cached).
-* **Prices** come from `STUDY_SIM_PRICE_IN` / `STUDY_SIM_PRICE_OUT` (US$ per million tokens) if set, else the guard's conservative defaults (2.50 and 15.00); the planner tier uses
-  `STUDY_ROLES_PRICE_IN_PLANNER` / `_OUT_PLANNER` if set, else 5.00 and 30.00 (the lead's assumption). Token counts come from the model port's own usage statistics. The report says which
-  prices were used and that the cost is an estimate.
-* **Cost estimate, before any data.** The benefits study measured about 116 calls and 119k input plus 12k output tokens per participant (about US$0.10 to 0.15 at US$0.75 and 4.50 per million
-  tokens). A role participant makes about 55 to 70 calls (six cases of about 15 to 30 actions, 2 to 3 actions per reply, plus two notes); a prompt is longer (page text up to 6000 characters, the
-  editor or the table, 12 history lines): about 2.5 to 3.5k input tokens and 300 output tokens per call, so **about 150k to 220k input and 20k output tokens per participant: US$0.20 to 0.30 at
-  the fast tier with effort none**, and more with `fast-low` (reasoning tokens are billed as output: perhaps US$0.35 to 0.60). The planner tier would be several times that (not affordable
-  inside US$14 for both roles, which is why it is declared and conditioned, not planned). Pilots: 3 participants per role per option tried, about US$0.6 to 1 for `fast`. **Most likely outcome
-  with the fast option: 2 units per role (8 coached + 8 A/A), about US$5 to 6 per role including its pilot, US$10 to 12 for both**; 3 units per role (24 participants, about US$7 each) would
-  leave no room for a second pilot option. These figures are estimates; the rule in section 8 uses the measured cost.
+* **Cap: US$8 in total for BOTH roles including every pilot, and the pilots together at most US$2** (the owner's US$60 is shared with other tracks and about US$20 is already used; if more is needed I
+  report and the lead asks the owner). One ledger (`results/cost_ledger.jsonl`) for all runs; each run carries the spend of every earlier run in the tree (`cost.json: usd_this_run`), so the caps hold across
+  processes. **Hard stops in code** (`budget_roles.RolesBudget`): the pilots run under a budget capped at the carried spend plus what is left of their US$2; no new participant starts when the estimate plus
+  1.5 times the mean cost of finished participants for every participant in flight would pass 95% of the cap; a call that would pass 100% raises and ends the run. A participant cut off mid-way is excluded
+  and listed (budget stop), never half-analysed; a pilot cut off is "incomplete", hence not usable. Runs are resumable (finished participants are in `participants.csv` and are skipped; model answers are cached).
+* **Prices** come from `STUDY_SIM_PRICE_IN` / `STUDY_SIM_PRICE_OUT` (US$ per million tokens) if set, else the guard's conservative defaults (2.50 and 15.00). Token counts come from the model port's own usage
+  statistics. The report says which prices were used and that the cost is an estimate.
+* **Cost estimate, before any data.** The benefits study measured about 116 calls and 119k input plus 12k output tokens per participant, US$0.32 per participant at the fast tier with effort low (4 cases per
+  participant). A role participant has 6 cases plus two notes and longer prompts (page text up to 6000 characters, the editor or the table, 12 history lines): **about US$0.25 to 0.5**. A pilot participant (4
+  unassisted cases) about US$0.15 to 0.3, so one role's pilot of 3 about US$0.5 to 0.9 and both roles about US$1 to 1.8: inside the US$2 for one option, **not for two options on both roles**. With US$8 and
+  pilots of about US$1 to 1.8, **the most likely outcome is one role run with 2 units (8 coached + 8 A/A, US$3 to 6) and the other role not run**; both roles run only if the measured pilot cost is at most about
+  US$0.1 per pilot participant (2 units of one role cost `2 * 8 * c * 1.5 * 1.3`). The study may therefore end with one role, or with none (a floor, ceiling or cap finding). All of this is decided by the rule in
+  section 8 on the measured cost, not by this estimate.
 
 ## 10. Exclusions (harness error only, decided before looking at any score)
 
@@ -208,21 +206,59 @@ must send nothing, probed before capture is on and after it is off); the kill fl
 ## 12. What we will NOT claim
 
 That people learn from the coach, or would; that the coach works on real programming or analysis work; that novices become experts; that a model's note is memory or that instruction following
-is retention; anything about speed in seconds; anything about other models or tiers than the one piloted; statistical significance beyond what the exact sign-flip test gives (a result is
+is retention; anything about speed in seconds; anything about other models or options than the one piloted; statistical significance beyond what the exact sign-flip test gives (a result is
 clear only if the interval excludes zero); that the simulated study validates the product; that a null shows the coach has no effect; anything pooled across the two roles.
 
 ## 13. Limitations (also in `summary.json.limitations`)
 
 1. The participants are language models, not people. 2. Their only memory is a 280-character note they wrote themselves; each case starts from a fresh context. 3. A model told to "try the edges"
-can just do it: instruction following, not retention. 4. The prompts, sandboxes, tasks, oracles and personas were all written by us. 5. Power is low (section 7): 8 to 12 coached participants.
+can just do it: instruction following, not retention. 4. The prompts, sandboxes, tasks, oracles and personas were all written by us. 5. Power is low (section 7): 8 to 12 coached participants, possibly one role only (section 9).
 6. The counterbalanced design cancels carry-over and block order within a pair, not spill-over. 7. Timing is not human: effort is action counts. 8. The overlay renderer is ours (rings only where
-an element with the zone exists). 9. One model family and one tier, chosen by a pilot of 3 participants that is not part of the evidence. 10. Scores are discrete (0, 1, 2), so ties and ceilings
+an element with the zone exists). 9. One model family and one option (fast, effort none or low), chosen by a pilot of 3 participants per role that is not part of the evidence; the cap, the floor and the ceiling are judged on 12 cases. 10. Scores are discrete (0, 1, 2), so ties and ceilings
 are likely and the t interval is not exact. 11. The oracles encode our idea of a good fix and a good analysis (for example the commit-message rule); another reasonable rule would score some
 cases differently. 12. The sandbox tasks of one skill are matched by construction, not by measurement; the pre-test measures the real baseline per skill.
 
-## 14. Calibration on FAKE participants before this plan was committed (no model was used)
+## 14. Pre-GO addendum (2026-11-07 20:06 UTC): calibration on FAKE participants, the cap lesson, what was fixed
 
-See the end of this file (section 14 is filled in after the fake runs, before the plan is committed).
+Written before any model call (pilot included); nothing here is a study result. The fake participants are scripted (no model, no cost): `skipper` (the naive path), `expert` (the scripted oracle path),
+`claimer`, with `obeys` (do the step the coach note points at) or `dismisses` (close the note). They drove the REAL pipeline: the extension build (with the actor header), an isolated engine per participant
+with the role pack, the coach, a private sandbox world, the oracle and the CSV writer.
+
+**Facts established**
+
+* **Capture.** Per participant (6 cases) 144 to 217 events landed from the extension for the programmer (24 to 36 per case: skipper 24, expert 36) and 69 to 80 for the analyst (about 12 per case), 0 schema-invalid, one `task_start` and one
+  `task_end` per case, `progress` events from the hash navigations, 0 `POST /events` failures, consent probe 0 events with the toggle off and 0 after switching off, kill flag respected, no contaminated case,
+  no engine traceback. Zones that landed include `test_report`, `edge_probe`, `input_data`, `diff_view`, `commit_box`, `profile_panel`, `pivot_panel`, `clean_panel`, `run_control`, `decision_btn`.
+* **Oracle through the whole path.** Programmer: skipper = partial in all cases, expert = correct in all cases. Analyst: skipper = claimed_done_wrong in all cases.
+* **The coach fires in the real pipeline, per skill, and stays silent where the plan says.** Coached practice cases at a 4 s pace: programmer `boundary` (annotate on zone `edge_probe`, step
+  `probe_edges`, followed), `missing` (annotate on `input_data`, step `inspect_inputs`, followed once and dismissed once), analyst `sanity` (annotate on `profile_panel`, step `profile_inputs`, followed),
+  `reconcile` (annotate on `control_panel`, step `reconcile_to_control`, dismissed). For the two skills not reached through the browser (programmer `discipline`, analyst `aggregation`) the same event
+  sequences were replayed through the real `CoachBrain` with the role pack: `Write a failing test before you change the code.` (zone `test_editor`), `Cut the data by the right dimension before you compare or
+  average.` (zone `pivot_panel`), `Reconcile the total with the control figure before you report it.` (zone `control_panel`). Every prompt was one L1 annotate, once per task. **0 non-silent decisions in any
+  pre-test, post-test or uncoached practice block; 0 study-mode violations in the stored events.** Rings were found for every prompt (`rings_drawn` = shown), no false or lagging prompt.
+* **Timing fact.** The coach needs two signals after the violating step (a prompt arrived 3 to 30 s after the participant's first action, 6 s after the violating step in the in-process replay). A scripted
+  participant at a 2 s pace finishes the case first (8 actions in 16 s): that is why the fake coached runs used a 4 s pace; a model's own latency per step is of that order.
+
+**Bugs found by this calibration and fixed before the plan was committed** (each has a test): (1) the extension's `POST /events` was refused by the new engine guard (no actor header): fixed by the extension and
+engine owners; (2) the pack's `task_end` marker matched the HIDDEN done banner at page load, which closed every task at once and silenced the coach: the marker is now `#case-done:not([hidden])`, and
+`services/agent/tests/roles/test_capture_config.py` evaluates every marker and navigation selector of the pack against the real pages before and after the action it stands for; (3) the analyst coach
+could not fire for a naive participant (the only later step needed a cog the sandbox cannot produce): `run_and_inspect` is now the Apply button (the RUN_QUERY cog) and typing in the answer panel
+starts the report step; (4) the participant was shown the page address, which carried the task id (and so the skill name): the address is no longer shown; (5) the engine's temp folder prefix collided with
+study-sim's cleanup: the harness uses its own prefix.
+
+**The cap lesson (set before any model call).** The benefits study ended 18 of 32 post-tests at its 60-action cap and scored 30 of 32 at the floor; its run 5 pilot at effort low used 57 to 60 of 60 actions and
+reached no skill. So the caps here are not taken from that study: `cap = max(30, 3 x L)` with `L` the longest scripted expert path the oracle scores correct (`roles.case_cap`). Table (oracle path -> cap, in
+actions): programmer p-boundary-1/2 15 -> 45, p-missing-1/2 16 -> 48, p-discipline-1 20 -> 60, p-discipline-2 16 -> 48; analyst d-sanity-1 8 -> 30, d-sanity-2 9 -> 30, d-reconcile-1 18 -> 54, d-reconcile-2
+22 -> 66, d-aggregation-1 19 -> 57, d-aggregation-2 14 -> 42 (both variants of a task have the same cap). The pilot decides on the floor (share of unassisted cases scoring 0), the ceiling and the
+**cap-binding rate** (share ending by the cap or using at least 95% of it), by code, and the study stops if every option fails (section 8).
+
+**Reused from study-sim** (imported or copied by idea): the output-directory guard (`check_output_dir`, never under `evals/study/`, no symlinks), `PROVENANCE.json` in every folder of the results tree, the
+frozen pipeline snapshot, private temp copies of the extension build, the landing checks of the stored events, the budget guard (extended with a shared cap), the overlay renderer. **Not reused on purpose:**
+`clean_typed` (value cleaning): the role forms are forgiving and code, expressions and filters legitimately contain brackets and quotes; nothing is repaired for the participant.
+
+**Tests.** 178 tests: the two sandboxes (every case: expert correct, skipper partial or claimed_done_wrong, claimer, layouts, glitches, worker safety, markers), the packs and the extension bundle (zones,
+cog mapping, capture sites on the private ports), the design (balance, matched cases, personas, run order, pilot), the coach rules, the analysis on made-up numbers (headline, A/A relabelling, pilot criteria,
+unit planning), the report and the section (`not_run` until results), output safety, and the refusals of the model-driven commands (no GO, mock set, no usable pilot, pilot cap used).
 
 ## 15. How it is run
 

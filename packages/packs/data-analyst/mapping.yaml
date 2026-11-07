@@ -45,6 +45,7 @@ rules:
   - { match: { type: nav, zone: control_panel }, cog: RECONCILE_CONTROL }
   - { match: { type: nav, zone: clean_panel }, cog: CLEAN_DATA }
   - { match: { type: nav, zone: decision_btn }, cog: DECIDE }
+  - { match: { type: [click, focus], zone: decision_btn }, cog: DECIDE }   # typing the answer in the answer panel already starts the report
   # ---- base cogs
   - { match: { type: idle }, cog: IDLE, backdate_meta: idle_s }
   - { match: { type: undo }, cog: REVERT }

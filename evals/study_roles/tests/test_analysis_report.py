@@ -71,33 +71,43 @@ def test_per_skill_reports_baseline_floor_and_ceiling(specs, role):
     assert all(v["baseline_share_full"] == 1.0 and v["baseline_share_zero"] == 0.0 for v in ps.values())
 
 
-def _pilot_rows(pre, capped="no"):
-    return [{"participant": f"p{i}", "pre_points": float(x), "pre_capped": capped, "practice_capped": capped, "post_capped": capped, "exclusion": ""} for i, x in enumerate(pre)]
+def _pilot_rows(pre, post=None, capped="no", actions=10, cap=40):
+    post = post if post is not None else pre
+    return [{"participant": f"p{i}", "pre_points": float(x), "post_checks_done": float(post[i]), "pre_actions": float(actions), "post_actions": float(actions), "pre_cap": float(cap), "post_cap": float(cap),
+             "pre_capped": capped, "post_capped": capped, "exclusion": ""} for i, x in enumerate(pre)]
 
 
-def test_pilot_floor_ceiling_cap_and_exclusion_criteria():
-    ok = AN.pilot_verdict(_pilot_rows([0, 1, 1, 2, 0, 1]), [0.3, 0.35, 0.28])
-    assert ok["usable"] and ok["share_pretests_above_zero"] == round(4 / 6, 3) and ok["mean_cost_per_participant_usd"] == 0.3100
-    floor = AN.pilot_verdict(_pilot_rows([0, 0, 0, 1, 0, 0]), [0.3])
-    assert not floor["usable"] and "floor" in floor["reasons"][0]
-    ceil = AN.pilot_verdict(_pilot_rows([2, 2, 2, 2, 2, 1]), [0.3])
+def test_pilot_floor_ceiling_cap_binding_and_exclusion_criteria():
+    ok = AN.pilot_verdict(_pilot_rows([0, 1, 1, 2, 0, 1], [1, 1, 0, 1, 2, 1]), [0.1, 0.15, 0.12])
+    assert ok["usable"] and ok["n_unassisted_cases"] == 12 and ok["share_zero"] == round(3 / 12, 3) and ok["mean_cost_per_participant_usd"] == 0.1233
+    floor = AN.pilot_verdict(_pilot_rows([0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0]), [0.3])
+    assert not floor["usable"] and floor["reasons"][0].startswith("floor") and floor["share_zero"] == round(10 / 12, 3)
+    ceil = AN.pilot_verdict(_pilot_rows([2, 2, 2, 2, 2, 1], [2, 2, 2, 2, 2, 2]), [0.3])
     assert not ceil["usable"] and any("ceiling" in r for r in ceil["reasons"])
     capped = AN.pilot_verdict(_pilot_rows([1, 1, 1, 1, 1, 1], capped="yes"), [0.3])
-    assert not capped["usable"] and any("cap" in r for r in capped["reasons"])
+    assert not capped["usable"] and any(r.startswith("cap") for r in capped["reasons"]) and capped["share_cap_bound"] == 1.0
+    used95 = AN.pilot_verdict(_pilot_rows([1, 1, 1, 1, 1, 1], actions=38, cap=40), [0.3])                 # 38 of 40 = 95%: the cap binds even without a cap flag
+    assert not used95["usable"] and used95["share_cap_bound"] == 1.0
+    some = AN.pilot_verdict(_pilot_rows([1, 1, 1, 1, 1, 1], actions=37, cap=40), [0.3])                   # 92.5%: not bound
+    assert some["usable"] and some["share_cap_bound"] == 0.0
     rows = _pilot_rows([1, 1, 1, 1, 1, 1])
     rows[0]["exclusion"] = "harness error"
     assert not AN.pilot_verdict(rows, [0.3])["usable"]
     assert not AN.pilot_verdict([], [])["usable"]
+    # the cap binding and the floor are both judged on the same unassisted cases, and the thresholds are the ones declared in the plan
+    assert (AN.PILOT_MAX_SHARE_ZERO, AN.PILOT_MAX_SHARE_FULL, AN.PILOT_MAX_SHARE_CAP_BOUND, AN.CAP_USED_SHARE) == (0.5, 0.8, 0.25, 0.95)
 
 
 def test_unit_planning_from_the_measured_pilot_cost():
-    p = AN.plan_units(0.20, 14.0, 2)                     # 7 USD per role; one unit costs 8 * 0.2 * 1.3 = 2.08
-    assert p["units"] == 3 and p["run"] and p["participants"] == 24 and p["coached"] == p["aa"] == 12
-    p = AN.plan_units(0.40, 14.0, 2)                     # one unit 4.16 -> 1 unit: not run
+    p = AN.plan_units(0.05, 7.0, 2)                      # a role may spend 3.5; one unit costs 8 * 0.05 * 1.5 * 1.3 = 0.78
+    assert p["units"] == 3 and p["run"] and p["participants"] == 24 and p["coached"] == p["aa"] == 12 and p["unit_cost_usd"] == 0.78
+    p = AN.plan_units(0.15, 7.0, 2)                      # one unit 2.34 -> 1 unit: the role is not run
     assert p["units"] == 1 and not p["run"] and "fewer than 2" in p["why"]
-    p = AN.plan_units(0.30, 14.0, 2)                     # one unit 3.12 -> 2 units
-    assert p["units"] == 2 and p["run"] and p["estimated_cost_usd"] == 6.24
-    assert not AN.plan_units(None, 14.0, 2)["run"] and AN.plan_units(0.01, 100.0, 1)["units"] == 3
+    p = AN.plan_units(0.10, 7.0, 2)                      # one unit 1.56 -> 2 units
+    assert p["units"] == 2 and p["run"] and p["estimated_cost_usd"] == 3.12
+    p = AN.plan_units(0.10, 7.0, 1)                      # the second role gets all that is left
+    assert p["units"] == 3 and p["run"]
+    assert not AN.plan_units(None, 7.0, 2)["run"] and AN.plan_units(0.001, 100.0, 1)["units"] == 3
 
 
 def test_csv_round_trip_and_report(tmp_path, specs, role):

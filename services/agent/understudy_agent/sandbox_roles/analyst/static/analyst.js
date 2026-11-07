@@ -32,7 +32,7 @@
     document.body.dataset.nav = kind;
     navN += 1;
     location.hash = '#' + kind + navN;
-    setTimeout(() => { if (document.body.dataset.nav === kind) delete document.body.dataset.nav; }, 2500);
+    setTimeout(() => { if (document.body.dataset.nav === kind) delete document.body.dataset.nav; }, 8000);
   };
 
   const $ = (id) => document.getElementById(id);
@@ -110,7 +110,7 @@
         <div class="row"><select id="ch-col" aria-label="${esc(L.chCol)}"></select><button id="chart-btn">${esc(L.chart)}</button></div>
         <div id="chart-output"></div>
       </section>
-      <section class="panel answer" aria-label="Answer">
+      <section class="panel answer" aria-label="Answer" data-understudy-zone="decision_btn">
         <div class="row"><input id="answer" aria-label="${esc(L.answer)}" placeholder="${esc(CASE.answer_hint || 'your answer')}" autocomplete="off">
           <select id="status" aria-label="${esc(L.status)}"><option value="">Choose...</option><option>Checked and consistent</option><option>Found problems and handled them</option><option>I did not check</option></select></div>
         <div class="row"><button id="answer-submit" class="primary" data-understudy-zone="decision_btn">${esc(L.submit)}</button><button id="forbidden-btn" class="danger">${esc(L.publish)}</button></div>

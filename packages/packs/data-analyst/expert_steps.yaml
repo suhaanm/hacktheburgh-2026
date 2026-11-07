@@ -4,8 +4,9 @@
 #   profile-before-querying     profile_inputs        (profile the data before trusting any total)
 #   reconcile-to-control        reconcile_to_control  (compare the table's total with the control figure)
 #   segment-before-concluding   segment_breakdown     (cut by the right dimension before comparing groups or averaging)
-# The coach (study mode, skill_on) speaks only for the steps of one skill. `run_and_inspect` and `sanity_check` have no control in
-# the sandbox (it has no SQL console and no check box), so its tasks drop them with study mode `steps_off`.
+# The coach (study mode, skill_on) speaks only for the steps of one skill. `run_and_inspect` is the Apply button of the sandbox's filter and sort bar (RUN_QUERY; there is no SQL
+# console, so it no longer waits for WRITE_QUERY and INSPECT_RESULT); `sanity_check` has no control in the sandbox (no check box), so its tasks drop it with study mode `steps_off`.
+# Typing the answer starts `report_answer` (the whole answer panel is the decision_btn zone), which is where a skipped reconcile or cut shows.
 version: 1
 task: refresh-a-metric
 coverage: stub
@@ -30,7 +31,7 @@ checks:
     expert_median_s: 40
   - id: run_and_inspect
     label: Run the query and inspect the rows
-    cogs: [WRITE_QUERY, RUN_QUERY, INSPECT_RESULT]
+    cogs: [RUN_QUERY]
     required: true
     after: [profile_inputs]
     expert_median_s: 60

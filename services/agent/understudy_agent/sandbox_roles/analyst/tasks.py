@@ -47,7 +47,7 @@ class Task:
     skill: str
     title: str
     variants: dict[int, Variant]
-    steps_off: tuple[str, ...] = ("run_and_inspect", "sanity_check")
+    steps_off: tuple[str, ...] = ("sanity_check",)
 
     @property
     def variant_numbers(self) -> tuple[int, ...]:

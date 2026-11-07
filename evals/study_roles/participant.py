@@ -6,8 +6,7 @@ and verbosity, and is neutral about the job's habits. Reached through ``understu
 
     fast       port.check(prompt, schema)   the fast model at reasoning effort none (the port's default for the fast role)
     fast-low   port.check(prompt, schema)   the fast model with OPENAI_EFFORT_FAST=low set by the harness before the port is built
-    planner    port.plan([{"role": "user", "content": prompt}], schema)   the planner model at the port's default effort (low): declared, NOT run unless the pilot
-               shows both fast options at the floor and a measured cost that affords at least 12 participants (PLAN.md)
+    There is no larger tier: if both fast options fail the pilot the study STOPS and reports it (a bigger model needs a new plan).
 
 Model ids come from the environment through the port and are recorded; nothing is hard-coded here.
 """
@@ -30,7 +29,7 @@ HERE = Path(__file__).resolve().parent
 CACHE_DIR = HERE / "cache"
 MAX_NOTE = 280
 MAX_BATCH = 4
-TIERS = ("fast", "fast-low", "planner")
+TIERS = ("fast", "fast-low")
 
 CARE = {
     "low": "You work quickly. Once something looks done you move on, and you rarely re-read what you did or went past.",
@@ -143,9 +142,7 @@ class ModelParticipant:
         self.errors = 0
 
     def _ask(self, prompt: str, schema: dict) -> dict:
-        if self.tier in ("fast", "fast-low"):
-            return self.port.check(prompt, schema)
-        return self.port.plan([{"role": "user", "content": prompt}], schema)
+        return self.port.check(prompt, schema)
 
     def _check_with_retries(self, prompt: str, schema: dict) -> dict:
         for i in range(len(self.retry_sleeps) + 1):

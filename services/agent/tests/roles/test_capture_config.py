@@ -21,7 +21,16 @@ def site(role: str) -> dict:
 
 
 def matches(page, selector: str) -> bool:
-    return page.query_selector(selector) is not None
+    """True when the selector matches now, allowing the page its own short moment to set a marker after the visible result (the log is posted first)."""
+    try:
+        page.wait_for_selector(selector, state="attached", timeout=3000)
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def absent(page, selector: str) -> bool:
+    return page.query_selector(selector) is None
 
 
 def test_programmer_markers_false_at_load_true_after_the_action(new_page):
@@ -34,10 +43,10 @@ def test_programmer_markers_false_at_load_true_after_the_action(new_page):
         httpx.post(s.url + "/__reset")
         page.goto(s.case_url("p-boundary-1", 1))
         page.wait_for_selector("#editor")
-        assert not matches(page, end) and not any(matches(page, w) for w in nav.values()) and not any(matches(page, w) for w in prog.values())
+        assert absent(page, end) and all(absent(page, w) for w in nav.values()) and all(absent(page, w) for w in prog.values())
         page.locator("#run-tests").click()
         page.wait_for_selector("#tests-status:not([data-state=idle])")
-        assert matches(page, nav["test_report"]) and matches(page, prog["tests_run"]) and not matches(page, end)
+        assert matches(page, nav["test_report"]) and matches(page, prog["tests_run"]) and absent(page, end)
         run_program(page, [("fill", "editor", P.reference("p-boundary-1", 1)["src/pagination.js"]), ("click", "Stage src/pagination.js"), ("fill", "Message", "Fix pageCount: round up"), ("click", "Commit")])
         page.wait_for_selector("#git-log li[data-commit]")
         assert matches(page, nav["commit_box"]) and matches(page, prog["committed"])
@@ -56,7 +65,7 @@ def test_analyst_markers_false_at_load_true_after_the_action(new_page):
         httpx.post(s.url + "/__reset")
         page.goto(s.case_url("d-reconcile-1", 1))
         page.wait_for_selector("#data-table")
-        assert not matches(page, end) and not any(matches(page, w) for w in nav.values())
+        assert absent(page, end) and all(absent(page, w) for w in nav.values())
         page.locator("#profile-btn").click()
         page.wait_for_selector("#profile-output:has-text('Rows:')")
         assert matches(page, nav["profile_panel"]) and matches(page, prog["profiled"])

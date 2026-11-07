@@ -15,6 +15,7 @@ import os
 import signal
 import subprocess
 import sys
+import tempfile
 import time
 import traceback
 from dataclasses import dataclass, field
@@ -29,7 +30,7 @@ from .coach_roles import CoachPoller, Mode, NudgeCounts, Rules, Shown
 from .design import ParticipantSpec, Slot
 from .observe_roles import (HIDE_OVERLAY_JS, OVERLAY_JS, SNAPSHOT_JS, Executed, RAction, is_forbidden, match_option_js, url_allowed, url_parts)
 from .participant import HarnessModelError, StepContext
-from .roles import cfg, skill_pack_id
+from .roles import case_cap, cfg, skill_pack_id
 
 OWNER = "study-roles"
 PACE_S = 2.0
@@ -149,6 +150,7 @@ class CaseResult:
     harness_error: str = ""
     attempt: int = 1
     consent_probe_events: int | None = None
+    cap: int = 0
 
 
 class CaseRunner:
@@ -302,6 +304,17 @@ class CaseRunner:
         res = "" if rec.ok else (" -- not done: " + ("you were told never to press that" if rec.violation else rec.error or "failed"))
         return f"{len(self.executed)}. {what}{res}"
 
+    async def _wait_done_marker(self, seconds: float = 6.0) -> None:
+        """The page sets body[data-nav=done] after the done event is posted (the extension turns that hash navigation into task_end): wait for it so a slow machine cannot end the case first."""
+        t_end = time.monotonic() + seconds
+        while time.monotonic() < t_end:
+            try:
+                if await self.page.evaluate("() => document.body.dataset.nav === 'done'"):
+                    return
+            except Exception:  # noqa: BLE001
+                return
+            await asyncio.sleep(0.2)
+
     async def _case_done(self) -> bool:
         try:
             return bool(await self.page.evaluate("() => window.__caseDone === true"))
@@ -374,6 +387,7 @@ class CaseRunner:
                     elif self.overlay and not self.overlay.outcome and self.rules.followed_by(self.overlay.step, rec):
                         await self._resolve(self.overlay, "followed", "followed")
                     if rec.ok and a.kind == "click" and rec.dom_id == self.cfg.done_id and await self._case_done():
+                        await self._wait_done_marker()
                         self.res.reason = "done"
                         stop = True
                         break
@@ -400,6 +414,7 @@ class CaseRunner:
             await self.http.aclose()
             self.res.wall_s = round(time.monotonic() - t0, 1)
             self.res.used = self.used
+            self.res.cap = self.cap
             self.res.executed, self.res.shown, self.res.polls = self.executed, self.poller.shown, self.poller.polls
             self.res.violations = list(self.poller.violations)
             self.res.errors += self.poller.errors
@@ -449,10 +464,9 @@ async def run_participant(spec: ParticipantSpec, *, world: RoleWorld, pw, make_p
 
     t_all = time.monotonic()
     c = cfg(spec.role)
-    cap = cap or c.cap_actions
     rules = Rules(spec.role)
     out = ParticipantResult(spec=spec)
-    engine = EngineProc()
+    engine = EngineProc(Path(tempfile.mkdtemp(prefix="study-roles-engine-")))      # its own temp prefix: study-sim's cleanup of study-sim-engine-* must never touch it
     checks: dict = {"consent_probe_events": None, "consent_off_events_after": None}
     all_shown: list[Shown] = []
     all_polls: list = []
@@ -485,7 +499,7 @@ async def run_participant(spec: ParticipantSpec, *, world: RoleWorld, pw, make_p
                     await asyncio.to_thread(set_study_mode, engine.url, spec.person, slot, spec.pid)
                     await browser.capture(True)
                     runner = CaseRunner(spec=spec, slot=slot, world=world, engine=engine, browser=browser, policy=policy, rules=rules,
-                                        note_to_self=note_by_skill.get(slot.skill) if slot.phase == "post" else None, cap=cap, pace=pace, poll_s=poll_s, layout=layout, glitch=glitch)
+                                        note_to_self=note_by_skill.get(slot.skill) if slot.phase == "post" else None, cap=cap or case_cap(spec.role, slot.task, slot.variant), pace=pace, poll_s=poll_s, layout=layout, glitch=glitch)
                     runner.poller.mode = Mode(slot.mode, slot.skill if slot.mode == "train" else None, f"{spec.pid} block {slot.block} {slot.phase}")
                     res = await runner.run()
                     if not res.harness_error:
@@ -607,6 +621,7 @@ async def _consent_off_probe(world: RoleWorld, browser: ExtBrowser, engine: Engi
 
 def _kill_check(engine: EngineProc, person: str) -> dict:
     """Write the kill flag in the ISOLATED data dir (never POST /kill: that would call the agent service) and see what the engine says."""
+    engine.data.mkdir(parents=True, exist_ok=True)
     (engine.data / "KILL").write_text(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()) + "\nstudy-roles kill-flag check\n")
     try:
         k = httpx.get(f"{engine.url}/kill", timeout=5).json()

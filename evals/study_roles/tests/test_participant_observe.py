@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 import json
 from types import SimpleNamespace
 
@@ -17,6 +18,12 @@ from evals.study_roles.roles import cfg
 OBS = {"url": "http://127.0.0.1:7941/task/p-boundary-1/1", "text": "Wrong number of pages\nThe pager shows the wrong number.", "fields": [{"label": "Editor", "text": "function pageCount(t, s) {\n  return Math.floor(t / s);\n}"}],
        "elements": [{"ref": 0, "tag": "button", "label": "Run tests", "dom_id": "run-tests", "zone": "test_runner"}, {"ref": 1, "tag": "textarea", "label": "Editor", "type": "textarea", "value": "function", "zone": "code_editor"},
                     {"ref": 2, "tag": "select", "label": "Status", "options": [{"value": "a", "text": "A"}], "value": "a", "zone": ""}]}
+
+
+def run(coro):
+    """Run a coroutine in a fresh thread: safe next to the sync Playwright fixtures of the sandbox tests (they keep an event loop running in the main thread)."""
+    with concurrent.futures.ThreadPoolExecutor(1) as ex:
+        return ex.submit(asyncio.run, coro).result()
 
 
 def ctx(spec, slot, coach=None, note=None, phase_slot=None):
@@ -75,7 +82,7 @@ def test_scripted_participant_follows_a_program_and_obeys_the_coach(specs):
         a4 = await sp.decide(ctx(spec, slot))
         a5 = await sp.decide(ctx(spec, slot))
         return [a1, a2, a3, a4, a5]
-    outs = asyncio.run(go())
+    outs = run(go())
     assert [(o[0].kind, o[0].ref) for o in outs] == [("click", 0), ("click", 0), ("fill", 1), ("select", 2), ("finish", None)]       # the obeyed snippet came first; the missing control was skipped
 
 
@@ -83,7 +90,7 @@ def test_scripted_participant_dismisses_when_told_to(specs):
     spec = specs[0]
     slot = spec.slots()[1]
     sp = P.ScriptedParticipant(spec, slot, [("click", "run tests")], {}, dismisses=True)
-    assert asyncio.run(sp.decide(ctx(spec, slot, coach={"message": "m", "step": "probe_edges"})))[0].kind == "dismiss_coach"
+    assert run(sp.decide(ctx(spec, slot, coach={"message": "m", "step": "probe_edges"})))[0].kind == "dismiss_coach"
 
 
 def test_contamination_rule():
@@ -124,21 +131,26 @@ def test_run_refuses_without_a_usable_pilot_and_when_the_plan_cannot_afford_two_
     assert cli.cmd_run(a) == 2                                               # usable but only one unit affordable
 
 
-def test_planner_is_only_allowed_after_both_fast_options_fail_on_the_floor_and_when_affordable(tmp_path, monkeypatch):
-    monkeypatch.setattr(cli, "RESULTS", tmp_path)
-    d = tmp_path / "programmer"
-    d.mkdir()
-    assert cli.planner_allowed("programmer", 14.0)[0] is False                                   # nothing piloted
-    fl = {"usable": False, "reasons": ["floor: only 17%"], "mean_cost_per_participant_usd": 0.2}
-    (d / "PILOT_fast.json").write_text(json.dumps(fl))
-    assert cli.planner_allowed("programmer", 14.0)[0] is False                                   # only one fast option piloted
-    (d / "PILOT_fast-low.json").write_text(json.dumps({**fl, "reasons": ["cap: 70%"]}))
-    ok, why = cli.planner_allowed("programmer", 14.0)
-    assert ok is False and "floor criterion" in why                                              # the second failed on the cap, not the floor
-    (d / "PILOT_fast-low.json").write_text(json.dumps(fl))
-    monkeypatch.setenv("STUDY_SIM_PRICE_IN", "0.75")
-    ok, why = cli.planner_allowed("programmer", 14.0)
-    assert ok is False and "more than" in why                                                    # 0.2 x 6.7 x 12 x 1.3 = 20.8 > 14
-    (d / "PILOT_fast.json").write_text(json.dumps({**fl, "mean_cost_per_participant_usd": 0.05}))
-    (d / "PILOT_fast-low.json").write_text(json.dumps({**fl, "mean_cost_per_participant_usd": 0.05}))
-    assert cli.planner_allowed("programmer", 14.0)[0] is True
+def test_there_is_no_planner_tier_and_the_pilot_stops_at_the_pilot_cap(tmp_path, monkeypatch):
+    assert P.TIERS == ("fast", "fast-low") and not hasattr(cli, "planner_allowed")
+    from evals.study_roles import budget_roles as B
+    assert (B.CAP_USD, B.PILOT_CAP_USD) == (8.0, 2.0)
+    monkeypatch.setattr(cli, "GO_FILE", tmp_path / "GO")
+    monkeypatch.setattr(cli, "RESULTS", tmp_path / "results")
+    (tmp_path / "GO").write_text("ok")
+    monkeypatch.delenv("UNDERSTUDY_MOCK", raising=False)
+    d = tmp_path / "results" / "programmer" / "pilot_fast"
+    d.mkdir(parents=True)
+    (d / "cost.json").write_text(json.dumps({"usd_this_run": 1.99}))
+    assert B.pilot_spent_usd(tmp_path / "results") == 1.99
+    assert cli.cmd_pilot(SimpleNamespace(role="data-analyst", tier="fast-low", pace=2.0, cap=None, poll=3.0, workers=1)) == 2         # US$2 used: refused, stop and report
+
+
+def test_the_pilot_hard_stop_is_inside_the_total_cap():
+    from evals.study_roles.budget_roles import RolesBudget
+    b = RolesBudget(carried=3.0, cap_usd=min(8.0, 3.0 + 2.0))
+    assert b.can_start_participant(0)
+    b.charge("p", "decide", 0, 0)
+    with __import__("pytest").raises(Exception) as ei:
+        b.charge("p", "decide", 1_000_000, 1_000_000)          # at the conservative prices this passes US$5
+    assert type(ei.value).__name__ == "BudgetExhausted"

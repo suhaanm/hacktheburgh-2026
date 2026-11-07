@@ -56,3 +56,17 @@ def test_block_rows_carry_points_outcomes_and_never_seconds(specs):
     assert r["effort_unit"] == "actions" and r["practice_seconds"] == 10 and r["post_outcome"] == "correct" and r["post_skill_check"] == 1 and r["pre_skill_check"] == 0
     assert r["nudges_shown"] == 1 and r["nudges_followed"] == 1 and r["rings_drawn"] == 1 and r["condition"] == spec.blocks[0].nominal_condition
     assert rows[1]["post_checks_done"] == 1 and rows[1]["post_edge_missed"] == 1 and set(r) >= set(AR.COLUMNS)
+
+
+def test_the_cap_of_every_case_is_at_least_three_times_the_scripted_oracle_path(role):
+    from evals.study_roles.roles import CAP_MIN, CAP_MULTIPLE, case_cap, oracle_path_length
+    sb = cfg(role).sandbox
+    caps = []
+    for tid, t in sb.TASKS.items():
+        for v in t.variants:
+            path = oracle_path_length(role, tid, v)
+            cap = case_cap(role, tid, v)
+            assert path == max(len(sb.program(tid, v, "expert", variation=k)) for k in range(4))
+            assert cap >= CAP_MULTIPLE * path and cap >= CAP_MIN and cap == max(CAP_MIN, CAP_MULTIPLE * path)
+            caps.append((path, cap))
+    assert (CAP_MULTIPLE, CAP_MIN) == (3, 30) and len(caps) == 12 and max(c for _, c in caps) >= 60

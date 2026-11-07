@@ -15,11 +15,11 @@ HUMAN = ["participant", "sequence", "block", "skill", "condition", "practice_cas
 EXTRA = ["role", "arm", "unit", "persona", "model", "tier", "effort_unit", "actual_condition", "pre_case", "pre_points", "pre_outcome", "pre_skill_check", "pre_actions", "pre_capped",
          "practice_points", "practice_outcome", "practice_actions", "post_outcome", "post_skill_check", "post_actions", "post_claimed_done", "post_edge_missed", "pre_claimed_done_wrong",
          "post_claimed_done_wrong", "practice_end", "pre_end", "post_end", "protocol_violation", "nudges_ignored", "false_nudges", "lag_prompts", "rings_drawn", "banners_only", "zone_ok",
-         "pre_wall_s", "practice_wall_s", "post_wall_s", "worker"]
+         "pre_wall_s", "practice_wall_s", "post_wall_s", "pre_cap", "practice_cap", "post_cap", "worker"]
 COLUMNS = HUMAN + EXTRA
 NUMERIC_EXTRA = ["unit", "pre_points", "pre_skill_check", "pre_actions", "practice_points", "practice_actions", "post_skill_check", "post_actions", "post_claimed_done", "post_edge_missed",
                  "pre_claimed_done_wrong", "post_claimed_done_wrong", "nudges_ignored", "false_nudges", "lag_prompts", "rings_drawn", "banners_only", "zone_ok", "pre_wall_s",
-                 "practice_wall_s", "post_wall_s"]
+                 "practice_wall_s", "post_wall_s", "pre_cap", "practice_cap", "post_cap"]
 
 
 def _case_bits(c) -> dict:
@@ -49,7 +49,8 @@ def block_rows(spec: ParticipantSpec, cases: list, model_id: str, exclusion: str
             "post_outcome": q["outcome"], "post_skill_check": q["skill"], "post_actions": po.used if po else 0, "post_claimed_done": q["claimed"], "post_edge_missed": q["edge"],
             "pre_claimed_done_wrong": a["cdw"], "post_claimed_done_wrong": q["cdw"], "practice_end": pr.reason if pr else "", "pre_end": pre.reason if pre else "", "post_end": po.reason if po else "",
             "protocol_violation": viol, "nudges_ignored": n.ignored, "false_nudges": n.false_nudges, "lag_prompts": n.lag_prompts, "rings_drawn": n.rings_drawn, "banners_only": n.banners_only,
-            "zone_ok": n.zone_ok, "pre_wall_s": pre.wall_s if pre else 0, "practice_wall_s": pr.wall_s if pr else 0, "post_wall_s": po.wall_s if po else 0, "worker": spec.worker})
+            "zone_ok": n.zone_ok, "pre_wall_s": pre.wall_s if pre else 0, "practice_wall_s": pr.wall_s if pr else 0, "post_wall_s": po.wall_s if po else 0,
+            "pre_cap": pre.cap if pre else 0, "practice_cap": pr.cap if pr else 0, "post_cap": po.cap if po else 0, "worker": spec.worker})
     return rows
 
 

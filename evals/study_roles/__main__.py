@@ -68,7 +68,7 @@ def close_worlds(worlds, built) -> None:
 
 
 async def _run_many(role: str, specs: list[ParticipantSpec], make_policy_factory, outdir: Path, model_id: str, budget: Budget | None, *, worlds, pace: float, cap: int | None,
-                    poll_s: float, skip_done: set[str], tier: str = "", log=print) -> int:
+                    poll_s: float, skip_done: set[str], tier: str = "", unassisted_only: bool = False, log=print) -> int:
     """Participants are taken in the pre-registered order by whichever worker is free; the spec of each participant does not depend on the worker or on timing."""
     from playwright.async_api import async_playwright
 
@@ -104,7 +104,8 @@ async def _run_many(role: str, specs: list[ParticipantSpec], make_policy_factory
             log(f"{spec.pid} ({spec.arm} {spec.sequence} {spec.persona.code()}) on {world.name}: starting")
             before = budget.per_participant.get(spec.pid, {}).get("usd", 0.0) if budget else 0.0
             try:
-                res = await run_participant(spec, world=world, pw=pw, make_policy=make_policy_factory(spec), outdir=outdir, model_id=model_id, pace=pace, cap=cap, poll_s=poll_s, log=log)
+                res = await run_participant(spec, world=world, pw=pw, make_policy=make_policy_factory(spec), outdir=outdir, model_id=model_id, pace=pace, cap=cap, poll_s=poll_s,
+                                            slots=[x for x in spec.slots() if x.phase != "practice"] if unassisted_only else None, log=log)
             except Exception as exc:  # noqa: BLE001 - BudgetExhausted or a bug in the harness itself
                 log(f"{spec.pid}: STOPPED by {type(exc).__name__}: {str(exc)[:200]}")
                 stop.set()
@@ -196,7 +197,7 @@ def _port_for(tier: str):
 
     port = get_model_port()
     models = getattr(port, "models", None)
-    model_id = getattr(models, "planner" if tier == "planner" else "fast", "unknown")
+    model_id = getattr(models, "fast", "unknown")
     return port, model_id
 
 
@@ -207,26 +208,6 @@ def _read_json(p: Path) -> dict | None:
         return None
 
 
-def planner_allowed(role: str, budget_left: float) -> tuple[bool, str]:
-    """Declared in PLAN.md: the planner tier is piloted ONLY IF both fast options (effort none, effort low) were piloted and both failed on the FLOOR criterion (not on a harness
-    error), AND the planner's estimated cost per participant (the fast cost times the price ratio) affords at least 12 participants inside what is left of the budget."""
-    from evals.study_roles.analysis import COST_SAFETY
-    from evals.study_roles.budget_roles import PLANNER_DEFAULT_PRICES
-
-    fast = [_read_json(RESULTS / role / f"PILOT_{t}.json") for t in ("fast", "fast-low")]
-    if not all(fast):
-        return False, "both fast options must be piloted first"
-    if any(f["usable"] or not any(r.startswith("floor") for r in f["reasons"]) for f in fast):
-        return False, "the planner tier is only for the case that both fast options fail on the floor criterion"
-    c_fast = max(f["mean_cost_per_participant_usd"] or 0 for f in fast)
-    pin = float(os.environ.get("STUDY_SIM_PRICE_IN", "0.75"))
-    ratio = PLANNER_DEFAULT_PRICES[0] / pin
-    est = c_fast * ratio
-    if 12 * est * COST_SAFETY > budget_left:
-        return False, f"estimated planner cost US${est:.2f} per participant: 12 participants would cost US${12 * est * COST_SAFETY:.2f}, more than the US${budget_left:.2f} left"
-    return True, f"estimated planner cost US${est:.2f} per participant affords 12 participants"
-
-
 def _finish_cost(budget: RolesBudget, outdir: Path, role: str, tier: str, model_id: str) -> None:
     c = budget.summary()
     c.update({"role": role, "tier": tier, "model": model_id})
@@ -234,25 +215,23 @@ def _finish_cost(budget: RolesBudget, outdir: Path, role: str, tier: str, model_
 
 
 def cmd_pilot(a) -> int:
+    """Feasibility pilot: 3 A/A participants, only their UNASSISTED cases (the pre-test and post-test of each block), discarded from all analysis. Pilots together are capped at US$2."""
     refused = _refuse_without_go()
     if refused:
         return refused
     from evals.study_roles.analysis import pilot_verdict, plan_units
-    from evals.study_roles.budget_roles import RolesBudget, apply_tier_prices, carried_usd
+    from evals.study_roles.budget_roles import PILOT_CAP_USD, RolesBudget, apply_tier_prices, carried_usd, pilot_spent_usd
     from evals.study_roles.participant import ModelParticipant
-    from evals.study_roles.roles import cfg as role_cfg
 
-    budget_left = BUDGET_CAP_USD - carried_usd(RESULTS)
-    if a.tier == "planner":
-        ok, why = planner_allowed(a.role, budget_left)
-        if not ok:
-            print(f"REFUSED: planner tier not allowed: {why}")
-            return 2
-        print(why)
+    carried = carried_usd(RESULTS)
+    pilot_left = PILOT_CAP_USD - pilot_spent_usd(RESULTS)
+    if pilot_left <= 0.05:
+        print(f"REFUSED: the pilots have used their US${PILOT_CAP_USD:.2f}. STOP and report; do not escalate without a new plan.")
+        return 2
     pin, pout, src = apply_tier_prices(a.tier)
     port, model_id = _port_for(a.tier)
     outdir = RESULTS / a.role / f"pilot_{a.tier}"
-    budget = RolesBudget(ledger_path=RESULTS / "cost_ledger.jsonl", carried=carried_usd(RESULTS))
+    budget = RolesBudget(ledger_path=RESULTS / "cost_ledger.jsonl", carried=carried, cap_usd=min(BUDGET_CAP_USD, carried + pilot_left))      # the hard stop of the pilots
     specs = build_pilot(a.role)
 
     def factory(spec):
@@ -260,21 +239,26 @@ def cmd_pilot(a) -> int:
 
     worlds, built = make_worlds(a.role, a.workers, outdir)
     try:
-        n = asyncio.run(_run_many(a.role, specs, factory, outdir, model_id, budget, worlds=worlds, pace=a.pace, cap=a.cap, poll_s=a.poll, skip_done=set(), tier=a.tier))
+        n = asyncio.run(_run_many(a.role, specs, factory, outdir, model_id, budget, worlds=worlds, pace=a.pace, cap=a.cap, poll_s=a.poll, skip_done=set(), tier=a.tier, unassisted_only=True))
     finally:
         close_worlds(worlds, built)
         _finish_cost(budget, outdir, a.role, a.tier, model_id)
     rows = analysis_rows.load_rows(outdir / "participants.csv") if (outdir / "participants.csv").exists() else []
     costs = [v["usd"] for k, v in budget.per_participant.items() if k in budget.finished]
     verdict = pilot_verdict(rows, costs)
+    if n < len(specs):
+        verdict["usable"] = False
+        verdict["reasons"].append(f"the pilot is incomplete: {n} of {len(specs)} participants ran (the US$2 pilot cap or a stop)")
     roles_left = 2 if a.role == (list(ROLE_CFG)[0]) else 1
     verdict.update({"role": a.role, "tier": a.tier, "model": model_id, "prices_usd_per_mtok": [pin, pout, src], "participants_run": n,
                     "plan": plan_units(verdict["mean_cost_per_participant_usd"], BUDGET_CAP_USD - budget.usd, roles_left)})
     sim_io.write_provenance(RESULTS / a.role)
     (RESULTS / a.role / f"PILOT_{a.tier}.json").write_text(json.dumps(verdict, indent=1))
     sim_io.write_provenance_tree(RESULTS / a.role)
-    print(json.dumps({k: verdict[k] for k in ("usable", "reasons", "share_pretests_above_zero", "share_pretests_full", "share_cases_capped", "mean_cost_per_participant_usd", "plan")}, indent=1))
-    print(f"pilot {a.role}/{a.tier}: {n} participant(s); total spend estimate ${budget.usd:.3f} of ${budget.cap_usd:.2f}")
+    print(json.dumps({k: verdict[k] for k in ("usable", "reasons", "share_zero", "share_full", "share_cap_bound", "mean_cost_per_participant_usd", "plan")}, indent=1))
+    print(f"pilot {a.role}/{a.tier}: {n} participant(s); total spend estimate ${budget.usd:.3f} of ${BUDGET_CAP_USD:.2f}; pilots so far ${pilot_spent_usd(RESULTS) + budget.usd_this_run:.2f} of ${PILOT_CAP_USD:.2f}")
+    if not verdict["usable"]:
+        print("THIS OPTION IS NOT USABLE. If every fast option fails, STOP and report: the participant model cannot do these tasks in these sandboxes. Do not escalate to a bigger model without a new plan.")
     return 0
 
 
@@ -288,7 +272,7 @@ def cmd_run(a) -> int:
 
     pilot = _read_json(RESULTS / a.role / f"PILOT_{a.tier}.json")
     if not pilot or not pilot.get("usable"):
-        print(f"REFUSED: no usable pilot for {a.role} on tier {a.tier} (run `pilot` first; the study runs only on a participant option that passed the pre-registered floor criterion).")
+        print(f"REFUSED: no usable pilot for {a.role} on tier {a.tier} (run `pilot` first; the study runs only on a participant option that passed the pre-registered criteria).")
         return 2
     carried = carried_usd(RESULTS)
     plan = plan_units(pilot["mean_cost_per_participant_usd"], BUDGET_CAP_USD - carried, a.roles_left)
@@ -296,7 +280,7 @@ def cmd_run(a) -> int:
         print(f"REFUSED: {plan['why']} (measured pilot cost US${pilot['mean_cost_per_participant_usd']}, US${BUDGET_CAP_USD - carried:.2f} left, {a.roles_left} role(s) left).")
         return 2
     units = min(a.units, plan["units"])
-    print(f"plan: {units} unit(s) = {8 * units} participants ({4 * units} coached + {4 * units} A/A); estimated cost US${units * 8 * pilot['mean_cost_per_participant_usd'] * 1.3:.2f}")
+    print(f"plan: {units} unit(s) = {8 * units} participants ({4 * units} coached + {4 * units} A/A); estimated cost US${units * plan['unit_cost_usd']:.2f}")
     apply_tier_prices(a.tier)
     port, model_id = _port_for(a.tier)
     outdir = RESULTS / a.role
@@ -400,7 +384,7 @@ def main(argv=None) -> int:
     e.set_defaults(fn=cmd_experts)
     pl = sub.add_parser("pilot")
     pl.add_argument("--role", choices=list(ROLE_CFG), required=True)
-    pl.add_argument("--tier", choices=["fast", "fast-low", "planner"], required=True)
+    pl.add_argument("--tier", choices=["fast", "fast-low"], required=True)
     pl.add_argument("--pace", type=float, default=2.0)
     pl.add_argument("--cap", type=int, default=None)
     pl.add_argument("--poll", type=float, default=3.0)
@@ -408,7 +392,7 @@ def main(argv=None) -> int:
     pl.set_defaults(fn=cmd_pilot)
     r = sub.add_parser("run")
     r.add_argument("--role", choices=list(ROLE_CFG), required=True)
-    r.add_argument("--tier", choices=["fast", "fast-low", "planner"], required=True)
+    r.add_argument("--tier", choices=["fast", "fast-low"], required=True)
     r.add_argument("--units", type=int, default=3)
     r.add_argument("--roles-left", type=int, default=2, help="how many roles still to run, this one included (splits what is left of the budget)")
     r.add_argument("--pace", type=float, default=2.0)
