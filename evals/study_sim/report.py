@@ -66,6 +66,7 @@ def aggregate_checks(checks_dir: Path) -> dict:
     excl: list[str] = []
     capped = {"practice": 0, "post": 0}
     typed = {"fills_and_selects": 0, "cleaned": 0}
+    export = {"participants_exported": 0, "events": 0, "stripped_values": 0, "errors": 0}
     shown_by_block: dict[str, int] = {}
     workers: dict[str, list[float]] = {}
     for d in docs:
@@ -106,6 +107,13 @@ def aggregate_checks(checks_dir: Path) -> dict:
             shown_by_block[kk] = shown_by_block.get(kk, 0) + v
         for k in typed:
             typed[k] += (c.get("typed_values_cleaned") or {}).get(k, 0)
+        xe = c.get("engine_events_export") or {}
+        if "events" in xe:
+            export["participants_exported"] += 1
+            export["events"] += xe["events"]
+            export["stripped_values"] += xe.get("stripped_values", 0)
+        elif xe:
+            export["errors"] += 1
         if d.get("exclusion"):
             excl.append(f"{d['participant']}: {d['exclusion']}")
         for case in d.get("cases", []):
@@ -136,6 +144,7 @@ def aggregate_checks(checks_dir: Path) -> dict:
                     "respected": all(x == 0 for x in consent_start + consent_end) if (consent_start or consent_end) else None},
         "kill_flag": {**kill, "note": "the KILL file was written in each participant's isolated data dir (never POST /kill, which would call the agent service); the engine reports it and the coach stays silent. The extension's capture is governed by its own consent toggle, not by this flag."},
         "capped_cases": capped,
+        "engine_events_export": {**export, "statement": "Each participant's engine events (results/raw/<participant>/engine_events.jsonl) are schema-valid L0 events: timestamps, types, zones, hashed ids, coach step and outcome ids. They contain no participant text, no typed values and no page text; the schema forbids it, and any string that was not enum-like would have been replaced and counted in stripped_values."},
         "typed_values_cleaned": {**typed, "share": round(typed["cleaned"] / typed["fills_and_selects"], 4) if typed["fills_and_selects"] else None,
                                  "note": "values the participant typed with JSON artifacts from its structured reply removed before typing (PLAN amendment 1); identical for every arm"},
     }
@@ -304,6 +313,8 @@ def render_md(s: dict) -> str:
     w(f"- Errors: engine {er['engine']}, extension web errors {er['extension_weberrors']}, coach poll errors {er['coach_poll_errors']}, harness tracebacks {er['harness_tracebacks']}, contaminated attempts retried {er['contaminated_attempts_retried']}; exclusions {er['exclusions'] or 'none'}.")
     tv = pc["typed_values_cleaned"]
     w(f"- Typed values cleaned of structured-reply artifacts (PLAN amendment 1, same for every arm): {tv['cleaned']} of {tv['fills_and_selects']} fills and selects ({tv['share']}).")
+    ex = pc["engine_events_export"]
+    w(f"- **Transcript-free statement:** the engine event files kept for each participant (`results/raw/<participant>/engine_events.jsonl`, {ex['events']} events from {ex['participants_exported']} participants) contain no participant text: they are schema-valid L0 events (timestamps, types, zones, hashed ids, coach step and outcome ids). Strings that were not enum-like and had to be removed: {ex['stripped_values']} (expected 0); export errors: {ex['errors']}. The only model text kept anywhere is each participant's own 280-character note in `actions.jsonl`.")
     sn = s["meta"].get("pipeline_snapshot")
     if sn:
         w(f"- Code under test: a frozen snapshot of git {str(sn.get('git_head', ''))[:8]} plus {sn.get('uncommitted_files_in_snapshot_dirs')} uncommitted files in services/ and packages/ (fingerprint {sn.get('fingerprint')}, taken {sn.get('taken_at')}); engines and sandbox sites ran from that copy for the whole run, the extension from one build per worker.")

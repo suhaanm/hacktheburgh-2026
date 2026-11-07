@@ -520,6 +520,11 @@ async def run_participant(spec: ParticipantSpec, *, world: World, pw, make_polic
         errors.append(traceback.format_exc()[-500:])
     finally:
         checks["engine_log"] = engine.log_issues()
+        try:                                                     # Amendment 4: keep the timestamped L0 events before the engine's data dir is deleted
+            checks["engine_events_export"] = await asyncio.to_thread(analysis_io.export_engine_events, engine.data, spec.person,
+                                                                     outdir / "raw" / spec.pid / "engine_events.jsonl")
+        except Exception as exc:  # noqa: BLE001 - never fails the participant
+            checks["engine_events_export"] = {"error": type(exc).__name__}
         if not keep_engine:
             await asyncio.to_thread(engine.cleanup)
         out.exclusion = exclusion

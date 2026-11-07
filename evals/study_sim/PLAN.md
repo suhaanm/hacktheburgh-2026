@@ -297,3 +297,11 @@ printed in REPORT.md); the extension is frozen by its single build per world; (2
 `results_tabs` (the plan's original) or `reconcile_control` (the engine's current), and the report lists the zones actually served; (3) a dropdown choice is matched to an option
 the way a person would pick it (exact text or value, else a case-insensitive prefix or substring) instead of failing on an inexact string. No prompt, persona, cap, pace, case,
 scoring, analysis or budget changed. Run 2's six model calls (US$0.006) are in `evals/study_sim/aborted_run2/` and count against the cap; the study run proper is run 3.
+
+**Amendment 4 (2026-11-07, about 17:25 GMT; harness and reporting only, at the lead's request, no participant data existed).** The ML-V2 track needs the timestamped traces of the model participants,
+but each participant's engine data dir is deleted after it finishes and `actions.jsonl` carries no timestamps. Change: before cleanup, each participant's schema-valid L0 events
+(`data/real/<person>/*.jsonl`: timestamps, types, zones, hashed ids, and the coach's step and outcome ids) are copied, time-ordered, to `results/raw/<participant>/engine_events.jsonl`.
+The schema forbids free text; as a belt-and-braces check any string in `meta` or `target` that is not enum-like (letters, digits and `_:.-/+=@#`, at most 64 characters, no spaces)
+is replaced by `[removed]` and counted (`stripped_values`, expected 0); REPORT.md states that these files contain no participant text. Run 3 was stopped about 8 minutes in, before any
+participant finished (293 model calls, US$0.35, archived in `aborted_run3/`, gitignored, counted against the cap), and the study run proper is now **run 4**, from scratch (empty cache),
+with the frozen-snapshot rule unchanged. Spend carried so far: US$0.75 (runs 1 to 3). Nothing else changed.

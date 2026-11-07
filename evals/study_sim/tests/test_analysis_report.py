@@ -132,3 +132,19 @@ def test_run_refuses_without_go(monkeypatch, capsys):
         only = ""; pace = 0.1; cap = 1; poll = 1.0; workers = 1; shared = False
     assert m.cmd_run(A()) == 2
     assert "REFUSED" in capsys.readouterr().out
+
+
+def test_engine_event_export_is_time_ordered_and_scrubs_text(tmp_path):
+    from evals.study_sim import analysis_io
+    d = tmp_path / "real" / "p_sim01"
+    d.mkdir(parents=True)
+    rows = [{"id": "b", "t": "2026-11-07T10:00:02Z", "type": "click", "meta": {"zone": "cliff_button", "n": 3}, "target": {"role": "button", "label_hash": "h:abcdef012345"}},
+            {"id": "a", "t": "2026-11-07T10:00:01Z", "type": "nav", "meta": {"zone": "calc_site"}},
+            {"id": "c", "t": "2026-11-07T10:00:03Z", "type": "coach_shown", "meta": {"step": "cliff_a", "note": "Check cliff edges before you copy this result."}}]
+    (d / "2026-11-07.jsonl").write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+    out = tmp_path / "raw" / "p_sim01" / "engine_events.jsonl"
+    r = analysis_io.export_engine_events(tmp_path, "p_sim01", out)
+    got = [json.loads(x) for x in out.read_text().splitlines()]
+    assert [g["id"] for g in got] == ["a", "b", "c"] and r == {"events": 3, "stripped_values": 1}
+    assert got[2]["meta"]["note"] == "[removed]" and got[1]["target"]["label_hash"] == "h:abcdef012345" and got[1]["meta"]["n"] == 3
+    assert analysis_io.export_engine_events(tmp_path, "p_none", tmp_path / "x" / "e.jsonl") == {"events": 0, "stripped_values": 0}

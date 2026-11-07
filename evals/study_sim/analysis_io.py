@@ -119,3 +119,43 @@ def landing_checks(data_dir: Path, person: str, coached_skill_id: str | None = N
             "coach_events": {"shown": len(shown), "followed": types.get("coach_followed", 0), "dismissed": types.get("coach_dismissed", 0),
                              "by_block_skill": by_block_skill},
             "study_mode_enforcement_from_store": enforcement}
+
+
+_ENUMLIKE = __import__("re").compile(r"^[A-Za-z0-9_:.\-/+=@#]{1,64}$")
+
+
+def export_engine_events(data_dir: Path, person: str, dest: Path) -> dict:
+    """Copy this participant's schema-valid L0 events (timestamps, types, zones, hashed ids; no page text) out of the engine's data dir before it is
+    deleted, time-ordered, to ``dest`` (results/raw/<participant>/engine_events.jsonl). The schema forbids free text; as a belt-and-braces check any string
+    value in ``meta`` or ``target`` that is not enum-like (letters, digits and _:.-/+=@#, at most 64 characters, no spaces) is replaced by "[removed]" and
+    counted; the count is reported (it should be 0)."""
+    d = Path(data_dir) / "real" / person
+    rows: list[dict] = []
+    for f in sorted(d.glob("*.jsonl")) if d.is_dir() else []:
+        for line in f.read_text().splitlines():
+            if line.strip():
+                rows.append(json.loads(line))
+    rows.sort(key=lambda r: (r.get("t", ""), r.get("id", "")))
+    stripped = 0
+
+    def scrub(node):
+        nonlocal stripped
+        if isinstance(node, dict):
+            return {k: scrub(v) for k, v in node.items()}
+        if isinstance(node, list):
+            return [scrub(v) for v in node]
+        if isinstance(node, str) and not _ENUMLIKE.match(node):
+            stripped += 1
+            return "[removed]"
+        return node
+
+    out = []
+    for r in rows:
+        r = dict(r)
+        for k in ("meta", "target"):
+            if k in r:
+                r[k] = scrub(r[k])
+        out.append(r)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in out))
+    return {"events": len(out), "stripped_values": stripped}
