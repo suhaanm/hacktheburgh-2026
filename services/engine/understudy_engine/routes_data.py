@@ -89,6 +89,8 @@ def health(request: Request):
         "ok": True, "version": __version__, "mock": mock,
         "models": _health_models(model),
         "provider": (os.environ.get("UNDERSTUDY_PROVIDER", "").strip() or "gemini").lower() if not mock else "mock",
+        # additive (Track C): is a Gemini key present in this process? A boolean only, never the key; the Settings switch 'Use live models' reads it
+        "key_present": bool(os.environ.get("GEMINI_API_KEY", "").strip()),
         "services": {"engine": True, "agent": _agent_up()},
         # additive: which optional routers this engine loaded, and whether the caches are warm
         "routers": {"data": True, "analytics": status.get("routes_analytics") == "included", "handoff": status.get("routes_handoff") == "included",
