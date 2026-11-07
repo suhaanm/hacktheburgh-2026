@@ -6,11 +6,11 @@ import { DEFAULT_LIVE_SETTINGS, LIVE_CONSENT_VERSION, LiveSettingsStore, coerceL
 import { liveFlagOn, liveModelId, speakerFlagOn, transcribeModelId } from './flags'
 
 describe('flags', () => {
-  it('voice is off by default and needs both the experiment and the feature flag', () => {
-    expect(liveFlagOn({})).toBe(false)
-    expect(liveFlagOn({ UNDERSTUDY_X_LIVE: '1' })).toBe(false)
-    expect(liveFlagOn({ UNDERSTUDY_FLAG_VOICE: '1' })).toBe(false)
+  it('voice is on by default (D48) and either the experiment or the feature flag set to 0 turns it off', () => {
+    expect(liveFlagOn({})).toBe(true)
     expect(liveFlagOn({ UNDERSTUDY_X_LIVE: '1', UNDERSTUDY_FLAG_VOICE: '1' })).toBe(true)
+    expect(liveFlagOn({ UNDERSTUDY_X_LIVE: '0' })).toBe(false)
+    expect(liveFlagOn({ UNDERSTUDY_FLAG_VOICE: '0' })).toBe(false)
     expect(liveFlagOn({ UNDERSTUDY_X_LIVE: '0', UNDERSTUDY_FLAG_VOICE: '1' })).toBe(false)
   })
   it('spoken pack lines need UNDERSTUDY_VOICE=1 on top', () => {

@@ -1,0 +1,33 @@
+{
+  "_about": "Strings that must not appear in user-visible copy (source string literals and rendered text) of the Knack dashboard and desktop renderers. Matching is case-insensitive on whole words. The allow-list at the bottom is the only place the old name may remain: internal identifiers, env names, file names, storage keys. See docs/KNACK_UX.md section 5 and rule 6.",
+  "phrases": [
+    "this screen shows",
+    "this page shows",
+    "here is what",
+    "here's what",
+    "you do not have to",
+    "you don't have to",
+    "please",
+    "note:",
+    "remember to",
+    "simply",
+    "oops",
+    "whoops",
+    "invalid",
+    "you missed",
+    "you forgot",
+    "don't forget",
+    "heads up",
+    "great news",
+    "last chance",
+    "hurry",
+    "asap",
+    "urgent"
+  ],
+  "visible_words": ["demo"],
+  "visible_words_note": "Whole word, any case, in visible text and aria text. The owner removed the word demo from every visible string (docs/KNACK_UX.md); apps/dashboard/scripts/check-words.mjs already checks it and stays in the build.",
+  "visible_old_name": { "word": "Understudy", "scope": "text nodes, aria-label, alt, placeholder, document.title, window and notification titles, tray labels", "allow": ["understudy-theme", "understudy:retry", "UNDERSTUDY_", "understudy_engine", "understudy.json", "files and directories named understudy"] },
+  "jargon_in_default_view": ["rung", "A0", "A1", "A2", "A3", "ledger", "shadow run", "genome", "occurrence"],
+  "jargon_note": "Allowed inside Details, in Evidence and on Admin screens where the term is the established name; never in a worker's default view.",
+  "mono_capitals": "text-transform: uppercase is allowed only on chart axes and the work ribbon (.t-label--mono, .svg-text)"
+}

@@ -51,7 +51,7 @@ make stop                     # when done
 9. **Capture** (optional, needs Chrome). `cd extension && npm run build`, load `extension/dist` unpacked, switch capture on in the popup, open `http://127.0.0.1:7801/step/1`. After you have the extension id, restart with `UNDERSTUDY_EXTENSION_ID=<id> make demo` so the engine accepts it.
 10. **Stop everything.** Press the red button; it should say Stopped; press Resume. `ls data/demo-data/KILL` should report no such file.
 
-Do not set `UNDERSTUDY_REAL_ACTUATOR=1`, do not run the desktop app with real input, and do not point anything at a real account. Real-click rung R0 ran once (read-only); R1 needs you present and the preflight in your own terminal.
+The real-actuator arm switch is on by default (D50) but inert: a real click needs your one-time token, the countdown and you present. Do not run the desktop app with real input except in an R1 session with the lead, and do not point anything at a real account. Real-click rung R0 ran once (read-only); R1 needs you present and the preflight in your own terminal.
 
 ## What is remaining
 

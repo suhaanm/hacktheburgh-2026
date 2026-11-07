@@ -1,3 +1,4 @@
+import { applyDesktopDefaultFlags } from './default-flags'
 import path from 'node:path'
 import dotenv from 'dotenv'
 import { app, nativeImage, powerMonitor, shell, systemPreferences } from 'electron'
@@ -57,6 +58,7 @@ if (process.env.ALONGSIDE_USERDATA) app.setPath('userData', path.resolve(process
 // dotenv never overrides a variable that is already set, and nothing is printed (quiet).
 dotenv.config({ path: path.join(app.getAppPath(), '.env'), quiet: true })
 dotenv.config({ path: path.join(app.getAppPath(), '../../.env'), quiet: true })
+applyDesktopDefaultFlags() // D48: voice and the REQ-5 layers are on unless a variable says '0'
 
 const flag = (name: string) => process.env[name] === '1'
 

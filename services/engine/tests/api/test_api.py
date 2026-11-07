@@ -36,12 +36,21 @@ def test_health_shape_and_mock_flag(client):
 
 
 def test_models_come_from_environment_never_hard_coded(client, monkeypatch):
-    monkeypatch.setenv("OPENAI_MODEL_PLANNER", "planner-from-env")
+    # D49: Gemini is the default provider, so the roles come from the GEMINI_MODEL_* variables; OpenAI ids only on an explicit opt-in.
+    monkeypatch.delenv("UNDERSTUDY_PROVIDER", raising=False)
+    monkeypatch.setenv("GEMINI_MODEL_ACCURATE", "accurate-from-env")
+    monkeypatch.delenv("GEMINI_MODEL_FAST", raising=False)
+    monkeypatch.delenv("GEMINI_MODEL_COMPUTER_USE", raising=False)
     models = client.get("/health").json()["models"]
-    assert models["planner"] == "planner-from-env" and models["fast"] == "mock"      # unset in mock mode reads "mock"
+    assert models["planner"] == "accurate-from-env" and models["fast"] == "mock"      # unset in mock mode reads "mock"
+    assert models["computer_use"] == "accurate-from-env"                              # no dedicated id: the accurate model
     monkeypatch.setenv("UNDERSTUDY_MOCK", "0")
-    monkeypatch.delenv("OPENAI_MODEL_FAST", raising=False)
     assert client.get("/health").json()["models"]["fast"] == "(not set)"
+    monkeypatch.setenv("UNDERSTUDY_PROVIDER", "openai")                               # explicit opt-in keeps the old variables
+    monkeypatch.setenv("OPENAI_MODEL_PLANNER", "planner-from-env")
+    monkeypatch.delenv("OPENAI_MODEL_FAST", raising=False)
+    h = client.get("/health").json()
+    assert h["models"]["planner"] == "planner-from-env" and h["models"]["fast"] == "(not set)" and h["provider"] == "openai"
 
 
 def test_unknown_route_and_wrong_method_use_the_error_shape(client):

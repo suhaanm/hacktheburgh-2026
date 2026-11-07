@@ -599,6 +599,7 @@ def test_serve_exports_the_listen_port_the_guard_and_the_forwarder_read(monkeypa
     fake.run = lambda target, host, port, log_level: seen.update(target=target, host=host, port=port, env=os.environ.get("UNDERSTUDY_ENGINE_LISTEN_PORT"))
     monkeypatch.setitem(sys.modules, "uvicorn", fake)
     monkeypatch.delenv("UNDERSTUDY_ENGINE_LISTEN_PORT", raising=False)
+    monkeypatch.setattr(os, "environ", dict(os.environ))   # D48: serving applies the default-on flags; keep that out of the rest of the test session
     assert cli.main(["serve", "--port", "54098"]) == 0
     assert seen["port"] == 54098 and seen["env"] == "54098"
     monkeypatch.delenv("UNDERSTUDY_ENGINE_LISTEN_PORT", raising=False)

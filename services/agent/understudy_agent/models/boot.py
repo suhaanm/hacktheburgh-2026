@@ -56,6 +56,12 @@ def boot_check(*, client: Any | None = None, raise_on_fail: bool = True, out: Ca
     """In mock mode this is a no-op that makes no network call. Otherwise it lists the models the key can use
     and, if a configured id is missing, prints the usable ids and stops with instructions. When UNDERSTUDY_X_GEMINI is on the
     Gemini ids are checked too (same loud failure)."""
+    from .factory import DEFAULT_PROVIDER
+
+    active = (os.environ.get("UNDERSTUDY_PROVIDER", "").strip() or DEFAULT_PROVIDER).lower()
+    if active != "openai" and not mock_enabled():
+        # D49: the default provider is Gemini; the OpenAI key is not consulted at all (it may be revoked or absent).
+        return gemini_boot_check(client=gemini_client, raise_on_fail=raise_on_fail, out=out)
     rep = _remember(_openai_boot_check(client=client, raise_on_fail=raise_on_fail, out=out))
     if mock_enabled() or not gemini_flag_enabled():
         return rep

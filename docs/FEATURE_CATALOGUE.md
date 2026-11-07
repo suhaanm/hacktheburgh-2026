@@ -33,7 +33,7 @@ Watch how people work, show where a novice loses time against an expert, coach o
 |---|---|---|
 | On-device awareness | Cursor dwell, rhythm, app kind: nothing leaves the Mac | building |
 | Triggered and periodic glances | One downscaled frame to Gemini on a trigger, or every ~30 s if opted in; never stored; denylist; ledger | building |
-| Gemini + OpenAI + local + ElevenLabs routing | Each role gets the measured best model; code decides; fallbacks | building (bake-off pending) |
+| Gemini + local + ElevenLabs routing (OpenAI revoked, D49) | Every model role runs on Gemini by default (planner accurate, fast roles flash-lite, computer use accurate or its own model); local Qwen for private digests; ElevenLabs for fixed spoken lines; OpenAI is an explicit opt-in only | built; live boot check and tiny planner and fast calls pass; computer use on Gemini needs its own dev iterations |
 | Independent verifier | A second model family checks agent runs | building |
 | Live voice | Hold to talk, sees the screen, points | proposed (phase D) |
 

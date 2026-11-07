@@ -9,11 +9,16 @@ export const FEATURES: readonly Feature[] = ['voice', 'wake', 'scam', 'files']
 
 export const flagVar = (f: Feature): string => `UNDERSTUDY_FLAG_${f.toUpperCase()}`
 
+// D48 (owner, 7 Nov 2026): voice is ON by default; an explicit '0' still turns it off. The old wake word, scam analysis and files
+// search stay OFF (the wake word and cloud listener were removed, the other two send content to remote models outside the ledger).
+const FEATURES_ON_BY_DEFAULT: readonly Feature[] = ['voice']
+
 export function featureOn(f: Feature, env: Record<string, string | undefined> = process.env): boolean {
   const v = env[flagVar(f)]
   if (v === '1') return true
   if (v === '0') return false
-  return env.VITEST !== undefined && env.VITEST !== ''
+  if (env.VITEST !== undefined && env.VITEST !== '') return true
+  return FEATURES_ON_BY_DEFAULT.includes(f)
 }
 
 export function offMessage(f: Feature): string {
@@ -26,14 +31,16 @@ export function offMessage(f: Feature): string {
   return what[f]
 }
 
-// REQ-5 experiments (UNDERSTUDY_X_<NAME>=1): off unless '1'; under vitest on unless '0', like the flags above.
+// REQ-5 experiments (UNDERSTUDY_X_<NAME>): on unless '0' (D48).
 export type Experiment = 'cue' | 'awareness' | 'gemini' | 'live'
 export const experimentVar = (e: Experiment): string => `UNDERSTUDY_X_${e.toUpperCase()}`
+// D48: every REQ-5 experiment (Cue, awareness, Gemini, Live) is ON by default; an explicit '0' turns one off. Awareness still sends no
+// frame until the worker records consent, and Live is hold-to-talk only.
 export function experimentOn(e: Experiment, env: Record<string, string | undefined> = process.env): boolean {
   const v = env[experimentVar(e)]
   if (v === '1') return true
   if (v === '0') return false
-  return env.VITEST !== undefined && env.VITEST !== ''
+  return true
 }
 
 /** Settings pinned by the flags: a switched-off feature cannot be enabled from the settings UI or by a patch. */

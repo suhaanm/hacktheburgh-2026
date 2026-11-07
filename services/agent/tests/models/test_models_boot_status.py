@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import json
 
+import os
+
 import pytest
 
 from understudy_agent.models import boot_check, gemini_boot_check
@@ -96,7 +98,8 @@ class OpenAIList:
                                                                                ("test-planner", "test-openai-fast", "test-computer")]})()})()
 
 
-def test_boot_check_runs_gemini_only_when_the_flag_is_on(monkeypatch):
+def test_boot_check_with_openai_opted_in_runs_gemini_only_when_the_flag_is_on(monkeypatch):
+    monkeypatch.setenv("UNDERSTUDY_PROVIDER", "openai")            # D49: OpenAI is an explicit opt-in; Gemini is the default
     c = ListClient()
     boot_check(client=OpenAIList(), gemini_client=c, out=lambda s: None)
     assert c.calls == 0                                           # flag off: nothing about Gemini runs
@@ -107,6 +110,28 @@ def test_boot_check_runs_gemini_only_when_the_flag_is_on(monkeypatch):
     del bad["test-fast"]
     with pytest.raises(SystemExit):
         boot_check(client=OpenAIList(), gemini_client=ListClient(bad), out=lambda s: None)
+
+
+def test_boot_check_by_default_checks_gemini_only_and_never_consults_the_openai_client(monkeypatch):
+    monkeypatch.delenv("UNDERSTUDY_PROVIDER", raising=False)
+    monkeypatch.setenv("UNDERSTUDY_X_GEMINI", "1")
+    g = ListClient()
+
+    class Poison:
+        def __getattr__(self, name):                              # any use of the OpenAI client would raise
+            raise AssertionError("the OpenAI client must not be used when Gemini is the provider")
+
+    rep = boot_check(client=Poison(), gemini_client=g, out=lambda s: None)
+    assert g.calls == 1 and rep.provider == "gemini"
+
+
+def test_no_role_is_ever_configured_with_argon(monkeypatch):
+    import understudy_agent.models.config as cfg
+    import inspect
+
+    assert "argon" not in inspect.getsource(cfg).lower()
+    for var in ("GEMINI_MODEL_FAST", "GEMINI_MODEL_ACCURATE", "GEMINI_MODEL_COMPUTER_USE", "GEMINI_MODEL_LIVE"):
+        assert "argon" not in os.environ.get(var, "").lower()      # the owner excluded Argon (7 Nov 2026)
 
 
 def test_cli_main_reports_both_providers(monkeypatch, capsys):

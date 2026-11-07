@@ -1,0 +1,890 @@
+[
+ {
+  "view": "worker",
+  "route": "home",
+  "title": "Two things from your week",
+  "wordsAbove": 173,
+  "wordsTotal": 173,
+  "sideWords": 51,
+  "longP": 2,
+  "longPex": [
+   {
+    "lines": 7,
+    "words": 15,
+    "text": "On the cliff check, you usually take about 35 seconds longer than the "
+   },
+   {
+    "lines": 7,
+    "words": 16,
+    "text": "On reconciling before the note, you usually take about 15 seconds long"
+   }
+  ],
+  "pills": 1,
+  "pillTexts": [
+   "synthetic firm"
+  ],
+  "controls": 10,
+  "hints": 1,
+  "navVisible": 9,
+  "navAll": 9,
+  "sidebarControls": 18,
+  "height": 935,
+  "titleWords": 5
+ },
+ {
+  "view": "worker",
+  "route": "growth",
+  "title": "Nothing to show yet",
+  "wordsAbove": 152,
+  "wordsTotal": 579,
+  "sideWords": 52,
+  "longP": 7,
+  "longPex": [
+   {
+    "lines": 3,
+    "words": 33,
+    "text": "An occurrence is counted each time a step from your role's pack comes "
+   },
+   {
+    "lines": 4,
+    "words": 43,
+    "text": "The headline figures are the trend and independence now. The composite"
+   },
+   {
+    "lines": 3,
+    "words": 28,
+    "text": "A step is independent only if you finished it without accepting a cue."
+   }
+  ],
+  "pills": 1,
+  "pillTexts": [
+   "synthetic, not measured from"
+  ],
+  "controls": 0,
+  "hints": 0,
+  "navVisible": 9,
+  "navAll": 9,
+  "sidebarControls": 18,
+  "height": 1294,
+  "titleWords": 4
+ },
+ {
+  "view": "worker",
+  "route": "repeats",
+  "title": "What you do again and again",
+  "wordsAbove": 119,
+  "wordsTotal": 119,
+  "sideWords": 52,
+  "longP": 1,
+  "longPex": [
+   {
+    "lines": 4,
+    "words": 38,
+    "text": "Minutes are estimates of the time you could save each week, with a 95%"
+   }
+  ],
+  "pills": 3,
+  "pillTexts": [
+   "synthetic, not measured from",
+   "proposed",
+   "proposed"
+  ],
+  "controls": 9,
+  "hints": 1,
+  "navVisible": 9,
+  "navAll": 9,
+  "sidebarControls": 18,
+  "height": 900,
+  "titleWords": 6
+ },
+ {
+  "view": "worker",
+  "route": "routines",
+  "title": "2 routines are waiting for your decision",
+  "wordsAbove": 183,
+  "wordsTotal": 347,
+  "sideWords": 51,
+  "longP": 2,
+  "longPex": [
+   {
+    "lines": 3,
+    "words": 28,
+    "text": "Whatever you choose, it starts at  A0  and moves up only as its record"
+   },
+   {
+    "lines": 3,
+    "words": 28,
+    "text": "Whatever you choose, it starts at  A0  and moves up only as its record"
+   }
+  ],
+  "pills": 1,
+  "pillTexts": [
+   "synthetic, not measured from"
+  ],
+  "controls": 9,
+  "hints": 2,
+  "navVisible": 9,
+  "navAll": 9,
+  "sidebarControls": 18,
+  "height": 1596,
+  "titleWords": 7
+ },
+ {
+  "view": "worker",
+  "route": "queue",
+  "title": "2 things need your approval",
+  "wordsAbove": 157,
+  "wordsTotal": 259,
+  "sideWords": 49,
+  "longP": 0,
+  "longPex": [],
+  "pills": 6,
+  "pillTexts": [
+   "synthetic, not measured from",
+   "Cannot be undone",
+   "step 1tier 1, compiled scrip",
+   "step 3tier 2, browser agent",
+   "step 5tier 1, compiled scrip",
+   "tier 2, browser agent"
+  ],
+  "controls": 6,
+  "hints": 0,
+  "navVisible": 9,
+  "navAll": 9,
+  "sidebarControls": 18,
+  "height": 1169,
+  "titleWords": 5
+ },
+ {
+  "view": "worker",
+  "route": "privacy",
+  "title": "1 call to a model, listed exactly as sent",
+  "wordsAbove": 240,
+  "wordsTotal": 344,
+  "sideWords": 52,
+  "longP": 2,
+  "longPex": [
+   {
+    "lines": 5,
+    "words": 53,
+    "text": "Each line has the fields and the payload as they left. A screen frame "
+   },
+   {
+    "lines": 7,
+    "words": 90,
+    "text": "This list shows each call to a remote model made by an Understudy exte"
+   }
+  ],
+  "pills": 1,
+  "pillTexts": [
+   "synthetic, not measured from"
+  ],
+  "controls": 8,
+  "hints": 0,
+  "navVisible": 9,
+  "navAll": 9,
+  "sidebarControls": 18,
+  "height": 1588,
+  "titleWords": 9
+ },
+ {
+  "view": "worker",
+  "route": "genome",
+  "title": "Novices lose about 3 min 50 s per case",
+  "wordsAbove": 318,
+  "wordsTotal": 936,
+  "sideWords": 51,
+  "longP": 11,
+  "longPex": [
+   {
+    "lines": 4,
+    "words": 11,
+    "text": "Nearest expert is the closest single trace; consensus blends all exper"
+   },
+   {
+    "lines": 3,
+    "words": 23,
+    "text": "Skipping a step shows as time saved here. It often costs more later, a"
+   },
+   {
+    "lines": 3,
+    "words": 16,
+    "text": "Skipping this step gives a wrong answer on 21 of 200 households, by ab"
+   }
+  ],
+  "pills": 2,
+  "pillTexts": [
+   "synthetic, not measured from",
+   "synthetic, not measured from"
+  ],
+  "controls": 12,
+  "hints": 1,
+  "navVisible": 15,
+  "navAll": 15,
+  "sidebarControls": 24,
+  "height": 2203,
+  "titleWords": 9
+ },
+ {
+  "view": "worker",
+  "route": "presence",
+  "title": "You are usually at the machine from 09:30 to 09:45",
+  "wordsAbove": 142,
+  "wordsTotal": 363,
+  "sideWords": 50,
+  "longP": 4,
+  "longPex": [
+   {
+    "lines": 26,
+    "words": 11,
+    "text": "weekly map from all observed days; intervals from smoothed per-bin pos"
+   },
+   {
+    "lines": 75,
+    "words": 40,
+    "text": "Presence is an estimate from input times only. Idle capacity is an upp"
+   },
+   {
+    "lines": 26,
+    "words": 11,
+    "text": "weekly map from all observed days; intervals from smoothed per-bin pos"
+   }
+  ],
+  "pills": 2,
+  "pillTexts": [
+   "synthetic, not measured from",
+   "synthetic, not measured from"
+  ],
+  "controls": 2,
+  "hints": 0,
+  "navVisible": 15,
+  "navAll": 15,
+  "sidebarControls": 24,
+  "height": 1573,
+  "titleWords": 10
+ },
+ {
+  "view": "worker",
+  "route": "graph",
+  "title": "How your work connects",
+  "wordsAbove": 162,
+  "wordsTotal": 217,
+  "sideWords": 51,
+  "longP": 2,
+  "longPex": [
+   {
+    "lines": 21,
+    "words": 13,
+    "text": "click a node for why it exists; the layout is for reading only"
+   },
+   {
+    "lines": 56,
+    "words": 25,
+    "text": "Routines, skills, memory lines and automations. Strength fades with di"
+   }
+  ],
+  "pills": 1,
+  "pillTexts": [
+   "synthetic, not measured from"
+  ],
+  "controls": 22,
+  "hints": 0,
+  "navVisible": 15,
+  "navAll": 15,
+  "sidebarControls": 24,
+  "height": 1085,
+  "titleWords": 4
+ },
+ {
+  "view": "worker",
+  "route": "week",
+  "title": "Nine to five spends 12.5 hours a week in meetings, 7.5 more than the expert",
+  "wordsAbove": 118,
+  "wordsTotal": 1097,
+  "sideWords": 52,
+  "longP": 4,
+  "longPex": [
+   {
+    "lines": 30,
+    "words": 20,
+    "text": "Only the kind of block, its time and how many people were in it are us"
+   },
+   {
+    "lines": 74,
+    "words": 33,
+    "text": "Synthetic calendar with planted structure; the expert reference is 8 s"
+   },
+   {
+    "lines": 68,
+    "words": 35,
+    "text": "8  of  15  differences are clear: their 95% interval stays on one side"
+   }
+  ],
+  "pills": 1,
+  "pillTexts": [
+   "synthetic, not measured from"
+  ],
+  "controls": 3,
+  "hints": 0,
+  "navVisible": 15,
+  "navAll": 15,
+  "sidebarControls": 24,
+  "height": 2594,
+  "titleWords": 15
+ },
+ {
+  "view": "worker",
+  "route": "git",
+  "title": "2 commit habits differ clearly from the experts",
+  "wordsAbove": 176,
+  "wordsTotal": 477,
+  "sideWords": 52,
+  "longP": 3,
+  "longPex": [
+   {
+    "lines": 41,
+    "words": 18,
+    "text": "learner days resampled with replacement; reference experts resampled b"
+   },
+   {
+    "lines": 30,
+    "words": 11,
+    "text": "Reference:  .  scripted synthetic developers with baseline habits; nob"
+   },
+   {
+    "lines": 63,
+    "words": 29,
+    "text": "Planted-habit data: every learner here is scripted. Habits are commit-"
+   }
+  ],
+  "pills": 2,
+  "pillTexts": [
+   "synthetic, not measured from",
+   "synthetic, not measured from"
+  ],
+  "controls": 3,
+  "hints": 0,
+  "navVisible": 15,
+  "navAll": 15,
+  "sidebarControls": 24,
+  "height": 1439,
+  "titleWords": 8
+ },
+ {
+  "view": "worker",
+  "route": "predictions",
+  "title": "Predictions",
+  "wordsAbove": 205,
+  "wordsTotal": 1035,
+  "sideWords": 53,
+  "longP": 6,
+  "longPex": [
+   {
+    "lines": 3,
+    "words": 34,
+    "text": "In 6 of 7 bands with 30 or more cases, the forecast is within 5 points"
+   },
+   {
+    "lines": 3,
+    "words": 35,
+    "text": "The coach speaks only when the chance of being stuck is high enough, a"
+   },
+   {
+    "lines": 3,
+    "words": 28,
+    "text": "The stuck hazard is evaluated on four synthetic personas, so 'held-out"
+   }
+  ],
+  "pills": 2,
+  "pillTexts": [
+   "synthetic, not measured from",
+   "synthetic, not measured from"
+  ],
+  "controls": 3,
+  "hints": 1,
+  "navVisible": 15,
+  "navAll": 15,
+  "sidebarControls": 24,
+  "height": 2603,
+  "titleWords": 1
+ },
+ {
+  "view": "worker",
+  "route": "today",
+  "title": "Entitlement check for one household",
+  "wordsAbove": 80,
+  "wordsTotal": 80,
+  "sideWords": 52,
+  "longP": 0,
+  "longPex": [],
+  "pills": 1,
+  "pillTexts": [
+   "synthetic, not measured from"
+  ],
+  "controls": 8,
+  "hints": 1,
+  "navVisible": 22,
+  "navAll": 22,
+  "sidebarControls": 31,
+  "height": 900,
+  "titleWords": 5
+ },
+ {
+  "view": "worker",
+  "route": "memory",
+  "title": "What Understudy knows about you",
+  "wordsAbove": 179,
+  "wordsTotal": 447,
+  "sideWords": 54,
+  "longP": 2,
+  "longPex": [
+   {
+    "lines": 3,
+    "words": 20,
+    "text": "Checklist: read_case, then calc_a or calc_b or calc_c, then cliff_a or"
+   },
+   {
+    "lines": 3,
+    "words": 21,
+    "text": "Run without my click: submit, submit to claimant record, close case, a"
+   }
+  ],
+  "pills": 2,
+  "pillTexts": [
+   "rev 5…/demo-home/memory.md",
+   "Capture is on"
+  ],
+  "controls": 19,
+  "hints": 2,
+  "navVisible": 22,
+  "navAll": 22,
+  "sidebarControls": 31,
+  "height": 2161,
+  "titleWords": 5
+ },
+ {
+  "view": "worker",
+  "route": "notices",
+  "title": "How loudly each kind of notice speaks",
+  "wordsAbove": 172,
+  "wordsTotal": 439,
+  "sideWords": 53,
+  "longP": 0,
+  "longPex": [],
+  "pills": 1,
+  "pillTexts": [
+   "●Always shown"
+  ],
+  "controls": 23,
+  "hints": 4,
+  "navVisible": 22,
+  "navAll": 22,
+  "sidebarControls": 31,
+  "height": 1738,
+  "titleWords": 7
+ },
+ {
+  "view": "worker",
+  "route": "onboarding",
+  "title": "What kind of work do you do?",
+  "wordsAbove": 159,
+  "wordsTotal": 159,
+  "sideWords": 52,
+  "longP": 3,
+  "longPex": [
+   {
+    "lines": 3,
+    "words": 14,
+    "text": "Runs entitlement checks for a household across three calculators and w"
+   },
+   {
+    "lines": 3,
+    "words": 17,
+    "text": "Pulls numbers from a warehouse, checks them, and turns them into chart"
+   },
+   {
+    "lines": 3,
+    "words": 17,
+    "text": "Reads code and logs, makes small changes, and gets them reviewed and m"
+   }
+  ],
+  "pills": 0,
+  "pillTexts": [],
+  "controls": 1,
+  "hints": 0,
+  "navVisible": 22,
+  "navAll": 22,
+  "sidebarControls": 31,
+  "height": 900,
+  "titleWords": 7
+ },
+ {
+  "view": "worker",
+  "route": "briefing",
+  "title": "3 things worth your time today",
+  "wordsAbove": 256,
+  "wordsTotal": 858,
+  "sideWords": 55,
+  "longP": 4,
+  "longPex": [
+   {
+    "lines": 3,
+    "words": 37,
+    "text": "It came up 58 times, about 92 minutes a week. Doing it for you could s"
+   },
+   {
+    "lines": 8,
+    "words": 104,
+    "text": "What this does: Enter the household into three calculators. It came up"
+   },
+   {
+    "lines": 4,
+    "words": 44,
+    "text": "Booking time by hand is a recurring chore. An automatic hold can do it"
+   }
+  ],
+  "pills": 1,
+  "pillTexts": [
+   "synthetic, not measured from"
+  ],
+  "controls": 1,
+  "hints": 0,
+  "navVisible": 22,
+  "navAll": 22,
+  "sidebarControls": 31,
+  "height": 2853,
+  "titleWords": 6
+ },
+ {
+  "view": "worker",
+  "route": "agents",
+  "title": "No background run is working",
+  "wordsAbove": 95,
+  "wordsTotal": 95,
+  "sideWords": 51,
+  "longP": 0,
+  "longPex": [],
+  "pills": 0,
+  "pillTexts": [],
+  "controls": 4,
+  "hints": 0,
+  "navVisible": 22,
+  "navAll": 22,
+  "sidebarControls": 31,
+  "height": 900,
+  "titleWords": 5
+ },
+ {
+  "view": "worker",
+  "route": "models",
+  "title": "Which model does each job, and what it costs",
+  "wordsAbove": 184,
+  "wordsTotal": 467,
+  "sideWords": 56,
+  "longP": 1,
+  "longPex": [
+   {
+    "lines": 3,
+    "words": 32,
+    "text": "Each job has a first choice, a stronger one for when the first cannot "
+   }
+  ],
+  "pills": 0,
+  "pillTexts": [],
+  "controls": 4,
+  "hints": 3,
+  "navVisible": 22,
+  "navAll": 22,
+  "sidebarControls": 31,
+  "height": 2774,
+  "titleWords": 9
+ },
+ {
+  "view": "worker",
+  "route": "evidence",
+  "title": "What we can show, and what we cannot",
+  "wordsAbove": 236,
+  "wordsTotal": 25602,
+  "sideWords": 51,
+  "longP": 417,
+  "longPex": [
+   {
+    "lines": 5,
+    "words": 45,
+    "text": "Simulated participants (language model), not people. The role studies "
+   },
+   {
+    "lines": 3,
+    "words": 38,
+    "text": "Log loss 95% interval  [0.422, 0.451] . Lower is better in all three c"
+   },
+   {
+    "lines": 3,
+    "words": 26,
+    "text": "Labels and events are defined from `progress` events in the data; the "
+   }
+  ],
+  "pills": 26,
+  "pillTexts": [
+   "synthetic",
+   "✓Has results",
+   "synthetic",
+   "✓Has results",
+   "synthetic",
+   "✓Has results",
+   "synthetic",
+   "✓Has results"
+  ],
+  "controls": 16,
+  "hints": 0,
+  "navVisible": 22,
+  "navAll": 22,
+  "sidebarControls": 31,
+  "height": 26232,
+  "titleWords": 8
+ },
+ {
+  "view": "admin",
+  "route": "firm",
+  "title": "Seven things to know",
+  "wordsAbove": 206,
+  "wordsTotal": 299,
+  "sideWords": 51,
+  "longP": 0,
+  "longPex": [],
+  "pills": 2,
+  "pillTexts": [
+   "Admin view",
+   "Names are made up. This firm"
+  ],
+  "controls": 14,
+  "hints": 0,
+  "navVisible": 10,
+  "navAll": 10,
+  "sidebarControls": 19,
+  "height": 1203,
+  "titleWords": 4
+ },
+ {
+  "view": "admin",
+  "route": "firm/roles",
+  "title": "Experts and juniors, side by side",
+  "wordsAbove": 313,
+  "wordsTotal": 492,
+  "sideWords": 51,
+  "longP": 4,
+  "longPex": [
+   {
+    "lines": 3,
+    "words": 24,
+    "text": "Juniors finish 32 points fewer of their steps without help (-36 to -27"
+   },
+   {
+    "lines": 5,
+    "words": 42,
+    "text": "7  experts and  22  juniors, each person counted once. Intervals are 9"
+   },
+   {
+    "lines": 3,
+    "words": 24,
+    "text": "Juniors finish 37 points fewer of their steps without help (-40 to -35"
+   }
+  ],
+  "pills": 5,
+  "pillTexts": [
+   "Admin view",
+   "Names are made up. This firm",
+   "synthetic firm",
+   "synthetic firm",
+   "synthetic firm"
+  ],
+  "controls": 10,
+  "hints": 2,
+  "navVisible": 10,
+  "navAll": 10,
+  "sidebarControls": 19,
+  "height": 1299,
+  "titleWords": 6
+ },
+ {
+  "view": "admin",
+  "route": "firm/people",
+  "title": "Everyone, by role",
+  "wordsAbove": 222,
+  "wordsTotal": 614,
+  "sideWords": 51,
+  "longP": 0,
+  "longPex": [],
+  "pills": 3,
+  "pillTexts": [
+   "Admin view",
+   "Names are made up. This firm",
+   "synthetic firm"
+  ],
+  "controls": 20,
+  "hints": 2,
+  "navVisible": 10,
+  "navAll": 10,
+  "sidebarControls": 19,
+  "height": 2490,
+  "titleWords": 3
+ },
+ {
+  "view": "admin",
+  "route": "firm/onboarding",
+  "title": "How fast people reach independence",
+  "wordsAbove": 284,
+  "wordsTotal": 284,
+  "sideWords": 51,
+  "longP": 2,
+  "longPex": [
+   {
+    "lines": 6,
+    "words": 49,
+    "text": "Independence is the share of the last 20 occurrences finished without "
+   },
+   {
+    "lines": 3,
+    "words": 24,
+    "text": "The target is a design target the firm sets. It is a line to aim at, n"
+   }
+  ],
+  "pills": 5,
+  "pillTexts": [
+   "Admin view",
+   "Names are made up. This firm",
+   "synthetic firm",
+   "synthetic firm",
+   "synthetic firm"
+  ],
+  "controls": 10,
+  "hints": 1,
+  "navVisible": 10,
+  "navAll": 10,
+  "sidebarControls": 19,
+  "height": 900,
+  "titleWords": 5
+ },
+ {
+  "view": "admin",
+  "route": "firm/automation",
+  "title": "Repeated work across the firm",
+  "wordsAbove": 147,
+  "wordsTotal": 147,
+  "sideWords": 51,
+  "longP": 0,
+  "longPex": [],
+  "pills": 2,
+  "pillTexts": [
+   "Admin view",
+   "Names are made up. This firm"
+  ],
+  "controls": 10,
+  "hints": 0,
+  "navVisible": 10,
+  "navAll": 10,
+  "sidebarControls": 19,
+  "height": 900,
+  "titleWords": 5
+ },
+ {
+  "view": "admin",
+  "route": "firm/risk",
+  "title": "Approvals, pauses and coverage",
+  "wordsAbove": 178,
+  "wordsTotal": 193,
+  "sideWords": 51,
+  "longP": 0,
+  "longPex": [],
+  "pills": 8,
+  "pillTexts": [
+   "Admin view",
+   "Names are made up. This firm",
+   "synthetic firm",
+   "synthetic firm",
+   "synthetic firm",
+   "synthetic firm",
+   "synthetic firm",
+   "synthetic firm"
+  ],
+  "controls": 9,
+  "hints": 0,
+  "navVisible": 10,
+  "navAll": 10,
+  "sidebarControls": 19,
+  "height": 900,
+  "titleWords": 4
+ },
+ {
+  "view": "admin",
+  "route": "firm/forecasts",
+  "title": "How well the stuck forecasts hold up",
+  "wordsAbove": 201,
+  "wordsTotal": 1044,
+  "sideWords": 51,
+  "longP": 6,
+  "longPex": [
+   {
+    "lines": 3,
+    "words": 34,
+    "text": "In 6 of 7 bands with 30 or more cases, the forecast is within 5 points"
+   },
+   {
+    "lines": 3,
+    "words": 35,
+    "text": "The coach speaks only when the chance of being stuck is high enough, a"
+   },
+   {
+    "lines": 3,
+    "words": 28,
+    "text": "The stuck hazard is evaluated on four synthetic personas, so 'held-out"
+   }
+  ],
+  "pills": 3,
+  "pillTexts": [
+   "Admin view",
+   "Names are made up. This firm",
+   "synthetic, not measured from"
+  ],
+  "controls": 10,
+  "hints": 1,
+  "navVisible": 10,
+  "navAll": 10,
+  "sidebarControls": 19,
+  "height": 2642,
+  "titleWords": 7
+ },
+ {
+  "view": "admin",
+  "route": "firm/brief",
+  "title": "The firm brief",
+  "wordsAbove": 226,
+  "wordsTotal": 790,
+  "sideWords": 51,
+  "longP": 2,
+  "longPex": [
+   {
+    "lines": 6,
+    "words": 49,
+    "text": "Independence is the share of the last 20 occurrences finished without "
+   },
+   {
+    "lines": 3,
+    "words": 24,
+    "text": "The target is a design target the firm sets. It is a line to aim at, n"
+   }
+  ],
+  "pills": 2,
+  "pillTexts": [
+   "Admin view",
+   "Names are made up. This firm"
+  ],
+  "controls": 9,
+  "hints": 0,
+  "navVisible": 10,
+  "navAll": 10,
+  "sidebarControls": 19,
+  "height": 2728,
+  "titleWords": 3
+ }
+]

@@ -35,6 +35,13 @@ demo:
 	@UNDERSTUDY_HOME=$(CURDIR)/data/demo-home UNDERSTUDY_DATA_DIR=$(CURDIR)/data/demo-data UNDERSTUDY_MOCK=1 UNDERSTUDY_X=1 $(UV_A) python -m understudy_engine.demo seed --reset
 	@UNDERSTUDY_HOME=$(CURDIR)/data/demo-home UNDERSTUDY_DATA_DIR=$(CURDIR)/data/demo-data UNDERSTUDY_MOCK=1 UNDERSTUDY_X=1 bash scripts/dev.sh --open
 
+# Fully live: real models and voice from the keys in .env, every layer on by default (D48). Isolated home under data/live-home (never your real
+# ~/.understudy); the example content is seeded once. Costs real money per agent run. Run `make stop` first if a stack is already running.
+live:
+	@mkdir -p data/live-home data/live-data && touch data/live-data/.understudy-demo-data
+	@[ -f data/live-home/.seeded ] || (UNDERSTUDY_HOME=$(CURDIR)/data/live-home UNDERSTUDY_DATA_DIR=$(CURDIR)/data/live-data UNDERSTUDY_MOCK=0 $(UV_A) python -m understudy_engine.demo seed --reset && touch data/live-home/.seeded)
+	@UNDERSTUDY_HOME=$(CURDIR)/data/live-home UNDERSTUDY_DATA_DIR=$(CURDIR)/data/live-data UNDERSTUDY_MOCK=0 bash scripts/dev.sh --open
+
 # Plain green/amber/red readiness checklist (never prints secrets). `make preflight MODE=dev` relaxes the demo-only checks.
 preflight:
 	$(UV_A) python scripts/preflight.py --fix-hints --mode $(or $(MODE),demo)

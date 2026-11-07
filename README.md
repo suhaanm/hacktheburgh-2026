@@ -43,19 +43,20 @@ In Chrome open `chrome://extensions`, switch on Developer mode, choose Load unpa
 
 **Desktop coach (Electron, from Alongside).** `make demo` does not start it. From `apps/desktop`: `ALONGSIDE_MOCK=1 UNDERSTUDY_MOCK=1 npm run dev` (electron-vite). macOS Screen Recording and Accessibility are granted by a person, not by us. Real clicks stay off (see Privacy and safety). Other scripts in `apps/desktop/package.json` (`preflight`, `e2e`, `showtime`) were kept from Alongside and are not part of this path.
 
-**Live models.** Only outside mock mode: copy `.env.example` to `.env`, set the provider key and model ids, and start without `UNDERSTUDY_MOCK=1`. Model ids come from the environment and are checked at boot; none is hard-coded. Never commit `.env`.
+**Live models.** `make live` runs the real models and voice with an isolated home (keys from `.env`; costs real money per agent run). The provider is Gemini by default (OpenAI was revoked; see `docs/FLAGS.md`). Otherwise outside mock mode: copy `.env.example` to `.env`, set the Gemini key and model ids, and start without `UNDERSTUDY_MOCK=1`. Model ids come from the environment and are checked at boot; none is hard-coded. Never commit `.env`.
 
 ### Flags
 
 | Flag | Effect |
 |---|---|
 | `UNDERSTUDY_MOCK=1` | Scripted, deterministic, no model calls, no network. Set by `make demo`. |
-| `UNDERSTUDY_X=1` | Master switch for the extension layers. Set by `make demo`. Off by default everywhere else. |
+| `UNDERSTUDY_X` | Master switch for the extension layers. **On by default in a running service** (D48); `UNDERSTUDY_X=0` turns it off. The full list of defaults and of what stays off, with reasons, is in `docs/FLAGS.md`. |
 | `UNDERSTUDY_X_<LAYER>=1` | One layer. Engine: `PRIVACY`, `LOCALMODEL`, `CALENDAR`, `GIT`, `PROACTIVE`, `CUE`, `AWARENESS`, `EVIDENCE`, `ATTENTION`, `HITLIST`, `INSIGHTS`. Agent service: `AGENTS`. Models: `GEMINI`. A layer that is off answers 404 `extension_off`. |
 | `UNDERSTUDY_X_CUE`, `_GEMINI`, `_LIVE` | In the **desktop app** these three are read by name only; `UNDERSTUDY_X=1` alone does not turn them on there. (`_AWARENESS` and `_ATTENTION` do honour the master.) Read from `apps/desktop/src/main/feature-flags.ts`. |
 | `UNDERSTUDY_FLAG_VOICE`, `_WAKE`, `_SCAM`, `_FILES` | Old Alongside features, off. |
 | `UNDERSTUDY_LEGACY_REMOTE=1` | Re-enables old Alongside paths that send screenshots or file text to remote models. Off. |
-| `UNDERSTUDY_REAL_ACTUATOR=1`, `ALONGSIDE_AGENCY_LOOP=1` | Real clicks and the multi-step loop. Off. Do not set them without the owner present. |
+| `UNDERSTUDY_REAL_ACTUATOR` | The arm switch for real desktop clicks. **On by default in the agent service** (D50); a real action still needs the owner's one-time token, the countdown and the owner present, and the real backend needs pyobjc, so it stays inert until the owner runs the R1 command. `=0` turns it off. |
+| `ALONGSIDE_AGENCY_LOOP=1` | The old multi-step loop. Off: it duplicates our actuator. |
 
 ## What it does
 

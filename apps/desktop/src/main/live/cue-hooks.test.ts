@@ -93,9 +93,10 @@ describe('CueSpeaker.say', () => {
     expect(JSON.stringify(t.calls)).not.toContain('Zebulon')
   })
   it.each([
-    ['the Live flag off', { UNDERSTUDY_FLAG_VOICE: '1', UNDERSTUDY_VOICE: '1' }],
-    ['the voice flag off', { UNDERSTUDY_X_LIVE: '1', UNDERSTUDY_FLAG_VOICE: '1' }],
-    ['nothing on', {}],
+    // D48: the Live experiment and the feature flag are on unless set to 0; spoken lines also need UNDERSTUDY_VOICE=1 (an explicit build flag).
+    ['the Live flag off', { UNDERSTUDY_X_LIVE: '0', UNDERSTUDY_FLAG_VOICE: '1', UNDERSTUDY_VOICE: '1' }],
+    ['the voice flag off', { UNDERSTUDY_X_LIVE: '1', UNDERSTUDY_FLAG_VOICE: '0', UNDERSTUDY_VOICE: '1' }],
+    ['the build voice flag unset', { UNDERSTUDY_X_LIVE: '1', UNDERSTUDY_FLAG_VOICE: '1' }],
   ])('is silent with %s', async (_l, env) => {
     const t = speakerRig({ env })
     await t.sp.say('coach.almost')
