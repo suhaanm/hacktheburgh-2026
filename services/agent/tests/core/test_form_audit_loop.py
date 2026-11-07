@@ -72,7 +72,9 @@ async def test_a_clean_entry_is_audited_clean_and_the_figure_is_the_sites(cluste
     res, events, nav = await run_nav(host, cluster, sinks, site, h, DomOracleComputerModel())
     assert res.state == "done" and res.inputs_audit == "clean" and res.value.amount == pytest.approx(site_expected(site, h)["uc_monthly"], abs=0.06)
     rec = nav.t3_runs[-1]
-    assert rec["inputs"] == "clean" and rec["form_audit"]["blocks"] == 0 and rec["form_audit"]["audits"] == 1 and rec["readback_failures"] == 0
+    # one audit at the final button, plus one at each button that moves on (site A has three Continue pages, site C one Next, site B none)
+    assert rec["inputs"] == "clean" and rec["form_audit"]["blocks"] == 0 and rec["readback_failures"] == 0
+    assert rec["form_audit"]["audits"] == {"a": 4, "b": 1, "c": 2}[site]
     assert rec["form_audit"]["pending"] == []
     assert len(cluster.state.calculations) == 1 and last_received(cluster)["bedrooms"] == h.bedrooms
     typed = details(events, "type_fact")
