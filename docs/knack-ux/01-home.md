@@ -55,8 +55,8 @@ What is wrong, in the order a person meets it: (1) an eyebrow that repeats the n
 │ │            │       ──────────────────────────────────────────────────────          │
 │ │            │   ↻   About 1 hour a week could run for you.                ›   (j)     │
 │ │            │                                                                       │
-│ │ ◌ Example data│ (c)                                                                │
-│ │ (Ana) [■ Stop]│                                                                    │
+│ │ ◌ status   │ (c)                                                                   │
+│ │ Ana  ■ Stop│                                                                       │
 │ └────────────┘                                                                       │
 └──────────────────────────────────────────────────────────────────────────────────────┘
 ```

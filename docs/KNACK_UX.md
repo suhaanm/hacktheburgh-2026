@@ -170,7 +170,7 @@ The app starts its stack in **live** mode when a Gemini key is present and in **
 
 The dot and the words always travel together (colour never alone); the line is one line at 208 px ("Running with example data" is 25 characters). It is not repeated as a banner on every screen: the origin badge already marks the data on a screen, and one printed line per screen is the budget. The two are different facts and both stay: the status line says which models Knack is using; the badge says where the numbers on this screen came from (a live model can still be reading the synthetic firm).
 
-**Use live models** (Settings, first row): a switch. On: "Knack can call Gemini for steps you allow. Each call is listed in Your data." (15 words). Off: "Everything runs on example data." (5). No key found: the switch is disabled and one line is printed, "No Gemini key found. Add it to .env and reopen Knack." (10). Changing it restarts the engine, so the line "Switching restarts the engine. About 20 seconds." appears under the switch while it is changing, and the switch is disabled while anything is running ("A job is running. Stop it first."). Frames from the screen still need their own consent in Your data; this switch is the master gate above it and does not replace it.
+**Use live models** (Settings, first row): a switch. On: "Knack can call Gemini for steps you allow. Each call is listed in Your data." (15 words). Off: "Everything runs on example data." (5). No key found: the switch is disabled and one line is printed, "No Gemini key found. Add it to .env and reopen Knack." (11). Changing it restarts the engine, so the line "Switching restarts the engine. About 20 seconds." appears under the switch while it is changing, and the switch is disabled while anything is running ("A job is running. Stop it first."). Frames from the screen still need their own consent in Your data; this switch is the master gate above it and does not replace it.
 
 ### Where each current screen goes
 
@@ -224,7 +224,7 @@ A chart, a table, an interval or an n (they are behind "Why this?"), a lede abou
 
 ### The one-quantity rule
 
-A worker-facing sentence carries at most one quantity: one count ("1 thing needs you") or one measure ("about 35 seconds"), never both. A range with its interval counts as one quantity. "2 repeats could run for you, about 1 hour a week" breaks it; "About 1 hour a week could run for you." does not. Statistics (n, intervals, p-values, baselines) are not on the worker home at all; they live one tap away (a Hint or "Why this?"), as D45 already requires for worker screens. A lint (`oneQuantity.ts`) counts digit groups and number words outside dates and ids.
+A worker-facing sentence carries at most one quantity: one count ("1 thing needs you") or one measure ("about 35 seconds"), never both. A range with its interval counts as one quantity, and so does a rate ("58 times in 3 weeks", "about 1 hour a week") or a fraction ("3 of 8"). "2 repeats could run for you, about 1 hour a week" breaks it; "About 1 hour a week could run for you." does not. Statistics (n, intervals, p-values, baselines) are not on the worker home at all; they live one tap away (a Hint or "Why this?"), as D45 already requires for worker screens. A lint (`oneQuantity.ts`) counts digit groups and number words outside dates, times, ids, ranges, rates and fractions, and fails a sentence with two separate quantities ("2 repeats, about 1 hour a week").
 
 ### Empty and first-run states
 
@@ -539,7 +539,7 @@ Four implementer agents, four directories, no shared files. The lead owns `docs/
 
 Cut lines if late: P2 items (Ask bar window, per-display pill, mobile bottom bar, login prompt, Roles drill-down) go first; then the corner confirm card (the toast stays); P0 is never cut (window, Dock, minimise-on-work and the pill, five-item nav, Home hero, Needs you, three-click first run).
 
-### Track A: SHELL-DESK (`apps/desktop/**`)
+### Track A: SHELL-DESK, the lead's KNACK-SHELL (`apps/desktop/**`)
 
 | Step | Priority | Work | Proof |
 |---|---|---|---|
@@ -567,7 +567,7 @@ Dev hook for proof without real input: the existing debug server (`ALONGSIDE_DEB
 |---|---|---|---|
 | C1 | P0 | Needs you from Queue, Briefing and the proposal card (`02-needs-you.md`) | `check-copy.mjs`: Needs you at most 120 words above the fold, 0 long paragraphs; J2 at most 2 clicks, J3 at most 2 |
 | C2 | P0 | Routines (Running, Could automate) per `03-routines.md` | same budgets: 100 words; "Run now" only if the endpoint exists |
-| C3 | P1 | Your data: remembers, measures, looked at or sent, what your admin can see, glance and capture switches, "Delete everything" | J5: see in 1, delete in 3; delete wording identical in every section; honesty lines kept (text assertions in the existing smoke test) |
+| C3 | P1 | Your data: remembers, measures, looked at or sent, what your admin can see, glance and capture switches, "Delete everything". No file path in the default view (today's seeded home is named `demo-home`, which would put the banned word on screen; the path sits behind a Hint, and the lead may rename the seeded home) | J5: see in 1, delete in 3; delete wording identical in every section; honesty lines kept (text assertions in the existing smoke test) |
 | C4 | P1 | Settings contents (Interruptions three-way plus per-kind disclosure, Coaching, Move aside, Open at login, Appearance, Views, About; "Use live models" first) | `Settings.test.tsx`: "Stops and blocking approvals always show." is rendered; "Use live models" is disabled with its printed line when no key is found, and while a job runs |
 
 ### Track D: SYSTEM AND INSIGHT SCREENS (`packages/design/**`, `apps/dashboard/src/screens/{Growth,Firm,Genome,Presence,Graph,Week,Git,Predictions}/**`, `apps/dashboard/scripts/**`)
