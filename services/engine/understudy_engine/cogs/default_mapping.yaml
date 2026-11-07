@@ -1,0 +1,57 @@
+# Default event -> cog mapping (ANA-1). A role pack ships its own mapping.yaml in the same format;
+# this one is the built-in used until a pack mapping is present and is what the synthetic data targets.
+#
+# Events carry no text. The only semantic hint is `meta.zone`, a short enum token naming the part of the
+# page the event happened in ("household_form", "calc_result", ...). The capture side derives zones from
+# the pack's site config (selector -> zone); synthetic data sets them directly.
+#
+# Rules are tried in order; the first whose `match` fits wins. `match` keys (all optional, all must fit):
+#   type (string or list), zone (meta.zone, string or list), role (target.role), source.
+# Consecutive events that map to the same cog are merged into one segment.
+# Special keys on a rule:
+#   cog: null                skip the event (it carries no cog)
+#   reformulate_as: COG      if the previous mapped event was a SEARCH/REFORMULATE within
+#                            params.reformulate_within_s, use COG instead (a repeated query)
+#   backdate_meta: KEY       the segment starts at t - meta[KEY] seconds (OS idle events say how long
+#                            the machine was already idle)
+#   starts: true             this event opens a new segment even if the previous segment has the same cog
+#                            (a re-read or a second cliff check is a new cog, not a longer one)
+version: 1
+params:
+  follow_s: 6                  # a cog keeps going this long after its last event
+  gap_idle_s: 20               # a longer silence between two cogs becomes an IDLE cog
+  reformulate_within_s: 90
+  max_cog_s: 300               # cap on one segment's dwell
+extra_cogs: [ENTER_HOUSEHOLD, OPEN_CALCULATOR, READ_RESULT, CHECK_CLIFF, COPY_TO_NOTE, RECONCILE]
+rules:
+  # ---- not cogs
+  - { match: { type: [task_start, task_end, progress, stuck, lock, unlock, sleep, resume] }, cog: null }
+  - { match: { type: [coach_shown, coach_followed, coach_dismissed, agent_step, approval] }, cog: null }
+  # ---- benefits-processor role cogs
+  - { match: { type: nav, zone: calc_site }, cog: OPEN_CALCULATOR }
+  - { match: { type: [click, focus, scroll], zone: household_form }, cog: ENTER_HOUSEHOLD }
+  - { match: { type: focus, zone: calc_result }, cog: READ_RESULT, starts: true }
+  - { match: { type: scroll, zone: calc_result }, cog: READ_RESULT }
+  - { match: { type: focus, zone: cliff_panel }, cog: CHECK_CLIFF, starts: true }
+  - { match: { type: [click, scroll], zone: cliff_panel }, cog: CHECK_CLIFF }
+  - { match: { type: copy, zone: calc_result }, cog: COPY_TO_NOTE }
+  - { match: { type: [tab, paste, click, focus], zone: case_note }, cog: COPY_TO_NOTE }
+  - { match: { type: [tab, click], zone: results_tabs }, cog: RECONCILE }
+  # ---- base cogs
+  - { match: { type: idle }, cog: IDLE, backdate_meta: idle_s }
+  - { match: { type: undo }, cog: REVERT }
+  - { match: { type: [focus, click], zone: query_edit }, cog: REFORMULATE }
+  - { match: { type: [scroll, focus, click], zone: search_box }, cog: SEARCH }
+  - { match: { type: search }, cog: SEARCH, reformulate_as: REFORMULATE }
+  - { match: { type: [tab, click], zone: compare_view }, cog: COMPARE }
+  - { match: { type: click, zone: check_box }, cog: CHECK }
+  - { match: { type: click, zone: decision_btn }, cog: DECIDE }
+  - { match: { type: click, zone: help }, cog: ASK }
+  - { match: { type: [click, focus], zone: form_field }, cog: ENTER }
+  - { match: { type: focus, zone: doc }, cog: READ, starts: true }
+  - { match: { type: scroll, zone: doc }, cog: READ }
+  - { match: { type: copy }, cog: COPY }
+  - { match: { type: paste }, cog: PASTE }
+  - { match: { type: [nav, tab] }, cog: NAVIGATE }
+  - { match: { type: click }, cog: ENTER }
+  - { match: { type: [scroll, focus] }, cog: READ }

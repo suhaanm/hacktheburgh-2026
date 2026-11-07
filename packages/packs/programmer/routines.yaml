@@ -1,0 +1,16 @@
+# One sample routine (ROL-3). Semantics: pack.schema.json#/$defs/routine_templates.
+version: 1
+defaults: { min_support: 3, judgement_cogs: [SEARCH, REFORMULATE, COMPARE, DECIDE, REVIEW_DIFF], wage_gbp_per_h: 15 }
+templates:
+  - id: rerun-failed-ci
+    title: Re-run a failed CI job and read the result
+    cogs: [READ_TRACE, RUN_TESTS, NAVIGATE, READ_TRACE]
+    match_distance: 0.30
+    automatable: true
+    learning_relevant: false
+    touches: ["CI dashboard"]
+    never: ["merge pull request", "deploy"]
+    params: [job_name]
+    value_defaults: { manual_minutes_per_run: 3, build_cost_runs: 4, maintenance_risk_gbp: 3, error_cost_gbp: 4 }
+    proposal:
+      what: Re-run the failed CI job and bring back the last lines of the log. It never merges or deploys.

@@ -1,7 +1,7 @@
 // AGENCY: what the assistant may DO for a learner, always under their control. See docs/AGENCY.md.
 // createAgency() is built once by the dispatcher; DEMO and the debug server reach it through getAgency().
 import type { AgencyResult } from '../../shared/protocol'
-import { geminiDeps } from '../gemini'
+import { createModelPortFromEnv } from '../model-port'
 import { createActForMe, type ActOptions } from './act-for-me'
 import { createAxResolver } from './ax-resolver'
 import { Situation, type AgencyDeps } from './common'
@@ -22,9 +22,12 @@ export interface Agency {
   dispose(): void
 }
 
-// ON by default (user decision 15:46); ALONGSIDE_AGENCY_LOOP=0 switches the multi-step loop off. It still needs agency != 'off' and
-// every action passes the policy engine and the confirmation gate.
-export const agencyLoopFromEnv = (): boolean => process.env.ALONGSIDE_AGENCY_LOOP !== '0'
+// Understudy: OFF by default (Alongside shipped it ON). The multi-step loop runs only when ALONGSIDE_AGENCY_LOOP=1. It also needs
+// agency != 'off', every action passes the policy engine and the confirmation gate, and the actuator is simulated unless
+// UNDERSTUDY_REAL_ACTUATOR=1 (see src/main/actuator/index.ts).
+export const agencyLoopFromEnv = (): boolean => process.env.ALONGSIDE_AGENCY_LOOP === '1'
+
+let fallbackPort: ReturnType<typeof createModelPortFromEnv> | undefined
 
 export function createAgency(deps: AgencyDeps & { act?: Partial<ActOptions> }): Agency {
   const sit = new Situation(deps.ctx, deps.now)
@@ -33,7 +36,7 @@ export function createAgency(deps: AgencyDeps & { act?: Partial<ActOptions> }): 
   const openLimiter = new ActionLimiter(1_000_000, 1500, 12)
   const open = createOpenForMe(deps, sit, openLimiter, doneForMe)
   const act = createActForMe(deps, sit, doneForMe, {
-    gemini: () => geminiDeps(deps.ctx, { capture: deps.s.capture }),
+    port: () => deps.ctx.modelPort ?? (fallbackPort ??= createModelPortFromEnv({ log: deps.ctx.log })),
     loopEnabled: agencyLoopFromEnv,
     cursor: cursorFromElectron,
     // Accessibility-first targets for native apps (exact element frames); off under unit tests, ALONGSIDE_AX_RESOLVER=0 disables it.

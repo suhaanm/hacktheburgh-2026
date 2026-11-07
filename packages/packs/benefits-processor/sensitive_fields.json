@@ -1,0 +1,18 @@
+{
+  "description": "Benefits-processor additions to the global sensitive-fields list. The effective list is the union of this file and packages/schema/sensitive_fields.json. Data, not code: extend freely. Patterns are case-insensitive regexes over field name, id, label, placeholder, autocomplete and aria-label.",
+  "extends": "../../schema/sensitive_fields.json",
+  "patterns": [
+    "\\bnino\\b|national[- ]?insurance|\\bni[- ]?(no|number)\\b",
+    "claimant[- ]?(name|surname|forename|address|phone|email)",
+    "(partner|spouse|child|children|dependant)[- ]?(name|dob|date[- ]of[- ]birth)",
+    "(home|postal|street)[- ]?address|\\bpostcode\\b|\\bpost[- ]?code\\b|\\bzip\\b",
+    "\\bphone\\b|\\bmobile\\b|\\bemail\\b",
+    "\\butr\\b|unique[- ]?taxpayer|tax[- ]?(code|reference)",
+    "bank[- ]?(name|details)|payee|direct[- ]?debit",
+    "medical|diagnos|health[- ]?condition|disability[- ]?(type|detail)|\\bpip\\b[- ]?(ref|reference)",
+    "immigration|visa|biometric|right[- ]to[- ]rent|residence[- ]permit",
+    "benefit[- ]?claim[- ]?(ref|reference|number)|universal[- ]?credit[- ]?(ref|id)"
+  ],
+  "autocomplete_tokens": ["street-address", "address-line1", "address-line2", "postal-code", "tel", "email", "bday"],
+  "input_types": ["password", "tel", "email"]
+}

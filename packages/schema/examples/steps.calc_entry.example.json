@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "id": "calc-entry-3x",
+  "role": "benefits-processor",
+  "title": "Enter the household into three calculators",
+  "created_from": "template:calc-entry-3x",
+  "never": ["submit"],
+  "params": {
+    "adults": { "type": "integer", "source": "household.adults" },
+    "children": { "type": "integer", "source": "household.children" },
+    "earnings": { "type": "integer", "source": "household.earnings_annual_gbp" },
+    "savings": { "type": "integer", "source": "household.savings_gbp" },
+    "region": { "type": "enum", "source": "household.region", "values": ["england", "scotland", "wales"] },
+    "calc_a_url": { "type": "string", "default": "http://localhost:7801/" }
+  },
+  "steps": [
+    {
+      "id": "s1", "op": "goto", "url_param": "calc_a_url",
+      "precondition": { "always": true },
+      "postcondition": { "selector_visible": "form" }
+    },
+    {
+      "id": "s2", "op": "fill", "role": "spinbutton", "name": "Adults", "param": "adults",
+      "precondition": { "selector_visible": "form" },
+      "postcondition": { "field_equals": { "selector": "[name=adults]", "param": "adults" } }
+    },
+    {
+      "id": "s3", "op": "fill", "selector": "input[name=earnings]", "param": "earnings",
+      "precondition": { "selector_visible": "input[name=earnings]" },
+      "postcondition": { "field_equals": { "selector": "input[name=earnings]", "param": "earnings" } }
+    },
+    {
+      "id": "s4", "op": "select", "selector": "select[name=region]", "param": "region",
+      "precondition": { "selector_visible": "select[name=region]" },
+      "postcondition": { "selector_visible": "select[name=region]" }
+    },
+    {
+      "id": "s5", "op": "click", "role": "button", "name": "Calculate",
+      "precondition": { "selector_visible": "form" },
+      "postcondition": { "selector_visible": "[data-result]" },
+      "timeout_ms": 8000
+    },
+    {
+      "id": "s6", "op": "extract", "name": "uc_monthly_a", "selector": "[data-result=universal_credit_monthly_gbp]", "as": "number",
+      "precondition": { "selector_visible": "[data-result]" },
+      "postcondition": { "selector_visible": "[data-result]" }
+    },
+    {
+      "id": "s7", "op": "checkpoint", "name": "calc_a_done", "resumable": true,
+      "precondition": { "selector_visible": "[data-result]" },
+      "postcondition": { "selector_visible": "[data-result]" }
+    },
+    {
+      "id": "s8", "op": "assert_text", "selector": "[data-result]", "literal": "Estimated entitlement",
+      "precondition": { "selector_visible": "[data-result]" },
+      "postcondition": { "text_contains": { "literal": "Estimated entitlement" } }
+    }
+  ]
+}

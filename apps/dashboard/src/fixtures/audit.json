@@ -1,0 +1,63 @@
+{
+ "meta": {
+  "origin": "synthetic",
+  "n": 5,
+  "n_unit": "episodes",
+  "split": null,
+  "interval_level": 0.95,
+  "note": "Redacted: no page text.",
+  "generated_at": "2026-11-07T14:40:00Z"
+ },
+ "data": [
+  {
+   "t": "2026-11-07T03:00:04Z",
+   "actor": "system",
+   "kind": "window_open",
+   "routine": null,
+   "run_id": null,
+   "tier": null,
+   "outcome": "go",
+   "note": "Chance the window lasts 60 min: 0.52. Threshold 0.40."
+  },
+  {
+   "t": "2026-11-07T03:01:10Z",
+   "actor": "agent",
+   "kind": "run_start",
+   "routine": "calc-entry-3x",
+   "run_id": "r_01",
+   "tier": 1,
+   "outcome": "started",
+   "note": "Separate browser profile. Human trace untouched."
+  },
+  {
+   "t": "2026-11-07T03:12:00Z",
+   "actor": "agent",
+   "kind": "gate",
+   "routine": "calc-entry-3x",
+   "run_id": "r_01",
+   "tier": 2,
+   "outcome": "queued",
+   "note": "Submit is irreversible. Waiting for a human click."
+  },
+  {
+   "t": "2026-11-07T04:02:00Z",
+   "actor": "agent",
+   "kind": "injection_pause",
+   "routine": "monday-cliff-check",
+   "run_id": "r_03",
+   "tier": 2,
+   "outcome": "paused",
+   "note": "Detector hit on hidden text. Rung A2 to A1."
+  },
+  {
+   "t": "2026-11-07T06:48:00Z",
+   "actor": "system",
+   "kind": "yield",
+   "routine": "monday-cliff-check",
+   "run_id": "r_05",
+   "tier": 1,
+   "outcome": "yielded",
+   "note": "Keyboard input detected. Run paused within 1 s."
+  }
+ ]
+}

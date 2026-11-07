@@ -1,0 +1,13 @@
+{
+  "description": "Data-analyst additions to the global sensitive-fields list. The effective list is the union of this file and packages/schema/sensitive_fields.json. Patterns are case-insensitive regexes over field name, id, label, placeholder, autocomplete and aria-label.",
+  "extends": "../../schema/sensitive_fields.json",
+  "patterns": [
+    "connection[- ]?string|dsn|jdbc",
+    "warehouse[- ]?(user|password|key)|service[- ]?account|credentials?",
+    "access[- ]?key|secret[- ]?key|bearer",
+    "(customer|user|patient|employee)[- ]?(name|email|phone|address|id)",
+    "\\bemail\\b|\\bphone\\b|\\bmobile\\b|\\bpostcode\\b|\\bpost[- ]?code\\b"
+  ],
+  "autocomplete_tokens": ["email", "tel", "street-address", "postal-code"],
+  "input_types": ["password", "email", "tel"]
+}

@@ -1,0 +1,215 @@
+{
+ "meta": {
+  "origin": "synthetic",
+  "n": 34,
+  "n_unit": "episodes",
+  "split": "synthetic benefits-processor persona, 21 days",
+  "interval_level": 0.95,
+  "note": "Detected from synthetic traces with planted routines.",
+  "generated_at": "2026-11-07T14:40:00Z"
+ },
+ "data": [
+  {
+   "id": "calc-entry-3x",
+   "role": "benefits-processor",
+   "title": "Enter the household into three calculators",
+   "status": "proposed",
+   "episodes": 14,
+   "minutes_per_week": 96,
+   "cv": 0.18,
+   "judgement_share": 0.07,
+   "value": {
+    "hours_saved": [
+     3.1,
+     5.2
+    ],
+    "net_gbp": [
+     41,
+     90
+    ],
+    "confidence": 0.82,
+    "horizon_weeks": 4
+   },
+   "touches": [
+    "gov.uk check",
+    "turn2us",
+    "case note"
+   ],
+   "never": [
+    "submit"
+   ],
+   "consent": {
+    "mode": "none",
+    "irreversible_unattended": [],
+    "typed_confirm": false
+   },
+   "rung": "A0",
+   "shadow": {
+    "runs": 0,
+    "matches": 0,
+    "wilson_lower": 0.0
+   },
+   "build_timing": {
+    "rule": "ski-rental",
+    "buy_after_runs": 3,
+    "regret_vs_hindsight": 1.2
+   },
+   "skill_gate": {
+    "eligible": true,
+    "reason": "mastery L4 on ENTER_HOUSEHOLD"
+   },
+   "proposal": {
+    "what": "You typed the same household details into the gov.uk calculator, Turn2us and the case system, one after the other. The order and the fields were the same each time. The only thing that changed was the household.",
+    "how_often": "about 14 times in 3 weeks",
+    "touches": [
+     "gov.uk calculator",
+     "Turn2us calculator",
+     "case note (draft only)"
+    ],
+    "never": [
+     "Submit the case note",
+     "Send anything to a claimant",
+     "Open sites you have not used in this routine"
+    ]
+   },
+   "bundle": "data/routines/calc-entry-3x/steps.json",
+   "driver": "compiled",
+   "irreversible_classes": [
+    "submit"
+   ]
+  },
+  {
+   "id": "case-note-copy",
+   "role": "benefits-processor",
+   "title": "Copy the three results into the case note",
+   "status": "shadow",
+   "episodes": 11,
+   "minutes_per_week": 52,
+   "cv": 0.22,
+   "judgement_share": 0.12,
+   "value": {
+    "hours_saved": [
+     1.4,
+     2.6
+    ],
+    "net_gbp": [
+     12,
+     41
+    ],
+    "confidence": 0.71,
+    "horizon_weeks": 4
+   },
+   "touches": [
+    "calculator results",
+    "case note"
+   ],
+   "never": [
+    "submit"
+   ],
+   "consent": {
+    "mode": "shadow",
+    "irreversible_unattended": [],
+    "typed_confirm": false
+   },
+   "rung": "A1",
+   "shadow": {
+    "runs": 14,
+    "matches": 13,
+    "wilson_lower": 0.69
+   },
+   "build_timing": {
+    "rule": "ski-rental",
+    "buy_after_runs": 3,
+    "regret_vs_hindsight": 1.1
+   },
+   "skill_gate": {
+    "eligible": true,
+    "reason": "mastery L4 on COPY_TO_NOTE"
+   },
+   "proposal": {
+    "what": "After each check you copy the three results into the case note in the same layout.",
+    "how_often": "about 11 times in 3 weeks",
+    "touches": [
+     "calculator results",
+     "case note (draft only)"
+    ],
+    "never": [
+     "Submit the case note"
+    ]
+   },
+   "bundle": "data/routines/case-note-copy/steps.json",
+   "driver": "compiled",
+   "irreversible_classes": [
+    "submit"
+   ]
+  },
+  {
+   "id": "monday-cliff-check",
+   "role": "benefits-processor",
+   "title": "Re-check benefit cliffs for open cases every Monday",
+   "status": "approval",
+   "episodes": 9,
+   "minutes_per_week": 38,
+   "cv": 0.31,
+   "judgement_share": 0.24,
+   "value": {
+    "hours_saved": [
+     1.0,
+     1.9
+    ],
+    "net_gbp": [
+     6,
+     29
+    ],
+    "confidence": 0.64,
+    "horizon_weeks": 4
+   },
+   "touches": [
+    "case system (read only)",
+    "gov.uk calculator"
+   ],
+   "never": [
+    "submit",
+    "send"
+   ],
+   "consent": {
+    "mode": "approval",
+    "irreversible_unattended": [],
+    "typed_confirm": false
+   },
+   "rung": "A2",
+   "shadow": {
+    "runs": 22,
+    "matches": 22,
+    "wilson_lower": 0.85
+   },
+   "build_timing": {
+    "rule": "ski-rental",
+    "buy_after_runs": 4,
+    "regret_vs_hindsight": 1.3
+   },
+   "skill_gate": {
+    "eligible": true,
+    "reason": "mastery L4 on CHECK_CLIFF"
+   },
+   "proposal": {
+    "what": "Each Monday you open the same open cases and check whether a pay rise tips them over a cliff edge.",
+    "how_often": "about 9 times in 3 weeks",
+    "touches": [
+     "case system (read only)",
+     "gov.uk calculator"
+    ],
+    "never": [
+     "Submit",
+     "Send"
+    ]
+   },
+   "bundle": "data/routines/monday-cliff-check/steps.json",
+   "driver": "model",
+   "irreversible_classes": [
+    "submit",
+    "send"
+   ]
+  }
+ ]
+}

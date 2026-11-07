@@ -1,0 +1,35 @@
+version: 1
+task: refresh-a-metric
+tasks_per_active_hour: { mean: 0.8, sd: 0.3 }
+cog_dwell_s:
+  PROFILE_DATA:   { expert_median_s: 40, sigma: 0.35, novice_multiplier: 1.3 }
+  WRITE_QUERY:    { expert_median_s: 120, sigma: 0.45, novice_multiplier: 1.6 }
+  RUN_QUERY:      { expert_median_s: 15, sigma: 0.50, novice_multiplier: 1.2 }
+  INSPECT_RESULT: { expert_median_s: 45, sigma: 0.35, novice_multiplier: 1.3 }
+  PLOT:           { expert_median_s: 60, sigma: 0.40, novice_multiplier: 1.4 }
+  CHECK:          { expert_median_s: 30, sigma: 0.35, novice_multiplier: 1.3 }
+apprentice:
+  skill_curve: { start: 0.30, plateau: 0.85, half_life_cases: 8 }
+  deficits:
+    - id: skip_profile
+      label: Skips profiling the inputs
+      kind: omit
+      cogs: [PROFILE_DATA]
+      p_at_skill0: 0.75
+      price_s: { mean: 240, sd: 90 }
+      skill: profile-before-querying
+    - id: trust_the_total
+      label: Reads only the total, not sample rows
+      kind: omit
+      cogs: [INSPECT_RESULT]
+      p_at_skill0: 0.55
+      price_s: { mean: 150, sd: 50 }
+      skill: inspect-before-trusting
+stuck: { base_hazard_per_bin: 0.15, skill_effect: 2.0 }
+planted_routines:
+  - id: weekly-metric-refresh
+    template: weekly-metric-refresh
+    daily_rate: 0.6
+    preferred_hours: [9, 10, 15]
+    duration_s: { median: 720, sigma: 0.25 }
+    param_variation: [week_start, metric_name]

@@ -1,4 +1,4 @@
-// act_for_me{goal}: a short multi-step task on Gemini's computer_use tool, under the learner's control.
+// act_for_me{goal}: a short multi-step task on the model port's computer tool, under the learner's control.
 // Loop discipline (our own, written from the principles in research/02, not from any other codebase):
 //   - a mutation only ever follows a FRESH screen read; every step is one model call on one fresh screenshot
 //   - the model proposes ONE action; our policy decides, never the model's words; the action is shown on screen
@@ -14,8 +14,8 @@
 // Without macOS Accessibility the loop never acts: it rings the target and tells the learner what to click.
 import { createHash } from 'node:crypto'
 import type { AgentChip, AgencyCode, AgencyResult, Annotation, NormPoint, Shot } from '../../shared/protocol'
-import { plainFailure, type GeminiDeps } from '../gemini/client'
-import { boxAroundPoint } from '../gemini/grounding-utils'
+import { plainFailure, type ModelPort } from '../model-port'
+import { boxAroundPoint } from '../model-services/grounding-utils'
 import type { ActResult } from '../actuator'
 import { appendAgencyAudit, type AgencyAuditEntry } from './audit'
 import {
@@ -53,8 +53,8 @@ const GHOST_TTL_MS = 20_000
 const CHIP_TITLE = 'Doing this for you'
 
 export interface ActOptions {
-  gemini: () => GeminiDeps
-  // ALONGSIDE_AGENCY_LOOP=0 switches the loop off (it is on by default).
+  port: () => ModelPort
+  // Understudy: the loop is off unless ALONGSIDE_AGENCY_LOOP=1.
   loopEnabled: () => boolean
   maxSteps?: number
   totalMs?: number
@@ -128,7 +128,7 @@ export function createActForMe(deps: AgencyDeps, sit: Situation, doneForMe: Done
   const maxSteps = opts.maxSteps ?? MAX_ACTIONS_PER_TASK
   const totalMs = opts.totalMs ?? MAX_TASK_MS
   const settleMs = opts.settleMs ?? SETTLE_MS
-  const propose = opts.propose ?? ((req) => proposeNext(opts.gemini(), req))
+  const propose = opts.propose ?? ((req) => proposeNext({ port: opts.port() }, req))
   let active: { epoch: number; chipId: string } | null = null
   let chipSeq = 0
   // The frontmost app as last read (name only), written into every audit line of the task.

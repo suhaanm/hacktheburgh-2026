@@ -1,0 +1,36 @@
+version: 1
+task: fix-a-failing-build
+tasks_per_active_hour: { mean: 0.7, sd: 0.3 }
+cog_dwell_s:
+  READ_TRACE:  { expert_median_s: 40, sigma: 0.40, novice_multiplier: 1.4 }
+  READ_CODE:   { expert_median_s: 50, sigma: 0.45, novice_multiplier: 1.3 }
+  EDIT_CODE:   { expert_median_s: 90, sigma: 0.50, novice_multiplier: 1.5 }
+  RUN_TESTS:   { expert_median_s: 12, sigma: 0.40, novice_multiplier: 1.1 }
+  COMMIT:      { expert_median_s: 15, sigma: 0.35, novice_multiplier: 1.2 }
+  SEARCH_DOCS: { expert_median_s: 35, sigma: 0.50, novice_multiplier: 1.5 }
+apprentice:
+  skill_curve: { start: 0.30, plateau: 0.90, half_life_cases: 7 }
+  deficits:
+    - id: edit_before_reading_trace
+      label: Edits code before reading the failing trace
+      kind: omit
+      cogs: [READ_TRACE]
+      p_at_skill0: 0.65
+      price_s: { mean: 300, sd: 100 }
+      skill: read-the-trace-first
+    - id: rerun_without_reading
+      label: Re-runs the job repeatedly without reading the result
+      kind: insert
+      cogs: [RUN_TESTS]
+      insert_before: RUN_TESTS
+      p_at_skill0: 0.50
+      price_s: { mean: 120, sd: 40 }
+      skill: confirm-the-fix
+stuck: { base_hazard_per_bin: 0.20, skill_effect: 2.4 }
+planted_routines:
+  - id: rerun-failed-ci
+    template: rerun-failed-ci
+    daily_rate: 1.2
+    preferred_hours: [11, 14, 16, 20]
+    duration_s: { median: 180, sigma: 0.30 }
+    param_variation: [job_name]

@@ -130,7 +130,8 @@ export interface Presence {
   bins: PresenceBin[];
   idle_capacity_h: { mean: number; lo: number; hi: number };
   quiet_hours: QuietHours;
-  forecast: { d_min: number; survival: number }[];
+  /** `lo` and `hi` are additive and optional: a 95% band on the survival estimate. */
+  forecast: { d_min: number; survival: number; lo?: number; hi?: number }[];
   decision_threshold: number;
 }
 
@@ -147,7 +148,7 @@ export interface Routine {
   minutes_per_week: number;
   cv: number;
   judgement_share: number;
-  value: { hours_saved: Interval; net_gbp: Interval; confidence: number };
+  value: { hours_saved: Interval; net_gbp: Interval; confidence: number; /** additive, optional: the forecast period behind hours_saved */ horizon_weeks?: number };
   touches: string[];
   never: string[];
   consent: { mode: string; irreversible_unattended: string[]; typed_confirm: boolean | string };

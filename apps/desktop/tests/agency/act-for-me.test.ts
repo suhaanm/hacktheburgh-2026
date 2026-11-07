@@ -23,7 +23,7 @@ function setup(opts: Parameters<typeof makeEnv>[0] = {}, queue: Proposal[] = [],
   const requests: ProposeRequest[] = []
   const proposals = [...queue]
   const act = createActForMe(env.deps, sit, async (k) => void env.learned.push(k), {
-    gemini: () => {
+    port: () => {
       throw new Error('the model must not be reached in these tests')
     },
     loopEnabled: () => extra.loop ?? true,
@@ -355,7 +355,7 @@ describe('act_for_me', () => {
     const env = makeEnv()
     const sit = new Situation(env.ctx)
     const act = createActForMe(env.deps, sit, async () => undefined, {
-      gemini: () => {
+      port: () => {
         throw new Error('unused')
       },
       loopEnabled: () => true,

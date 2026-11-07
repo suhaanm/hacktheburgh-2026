@@ -1,0 +1,13 @@
+{
+  "description": "Programmer additions to the global sensitive-fields list. The effective list is the union of this file and packages/schema/sensitive_fields.json. Patterns are case-insensitive regexes over field name, id, label, placeholder, autocomplete and aria-label.",
+  "extends": "../../schema/sensitive_fields.json",
+  "patterns": [
+    "personal[- ]?access[- ]?token|\\bpat\\b|deploy[- ]?key|ssh[- ]?key|gpg|signing[- ]?key",
+    "env(ironment)?[- ]?(var|variable)s?[- ]?(value|secret)|\\.env",
+    "client[- ]?secret|webhook[- ]?secret|bearer|authorization",
+    "recovery[- ]?code|backup[- ]?code",
+    "\\bemail\\b"
+  ],
+  "autocomplete_tokens": ["email"],
+  "input_types": ["password", "email"]
+}

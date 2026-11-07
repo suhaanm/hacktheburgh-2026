@@ -1,0 +1,25 @@
+{
+  "id": "calc-entry-3x",
+  "role": "benefits-processor",
+  "title": "Enter the household into three calculators",
+  "status": "proposed",
+  "episodes": 14,
+  "minutes_per_week": 96,
+  "cv": 0.18,
+  "judgement_share": 0.07,
+  "value": { "hours_saved": [3.1, 5.2], "net_gbp": [41, 90], "confidence": 0.82 },
+  "touches": ["gov.uk check", "turn2us", "case note"],
+  "never": ["submit"],
+  "consent": { "mode": "shadow", "irreversible_unattended": [], "typed_confirm": false },
+  "rung": "A0",
+  "shadow": { "runs": 0, "matches": 0, "wilson_lower": 0.0 },
+  "build_timing": { "rule": "ski-rental", "buy_after_runs": 3, "regret_vs_hindsight": 1.2 },
+  "skill_gate": { "eligible": true, "reason": "mastery L4 on ENTER_HOUSEHOLD" },
+  "proposal": {
+    "what": "Enter the household into all three calculators and read back the results, then stop.",
+    "how_often": "about 14 times in 3 weeks",
+    "touches": ["gov.uk check", "turn2us", "case note"],
+    "never": ["submit"]
+  },
+  "bundle": "data/routines/calc-entry-3x/steps.json"
+}

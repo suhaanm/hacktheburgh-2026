@@ -1,0 +1,49 @@
+# Routine templates the finder matches (ANA-10, HND-1). A cluster centroid matches a template when the
+# normalised alignment distance between cog sequences is at most match_distance.
+version: 1
+
+defaults:
+  min_support: 3
+  judgement_cogs: [SEARCH, REFORMULATE, COMPARE, DECIDE, CHECK_CLIFF, RECONCILE]
+  wage_gbp_per_h: 15      # an illustration only (docs/DECISIONS.md, concern 8), not a claim about this role
+
+templates:
+  - id: calc-entry-3x
+    title: Enter the household into three calculators
+    cogs: [OPEN_CALCULATOR, ENTER_HOUSEHOLD, READ_RESULT, OPEN_CALCULATOR, ENTER_HOUSEHOLD, READ_RESULT, OPEN_CALCULATOR, ENTER_HOUSEHOLD, READ_RESULT]
+    match_distance: 0.30
+    automatable: true
+    learning_relevant: true        # skill gate: mastery of ENTER_HOUSEHOLD must reach L4 first
+    skill_cogs: [ENTER_HOUSEHOLD]
+    touches: ["gov.uk check", "turn2us", "case note"]
+    never: ["submit"]
+    params: [adults, children, earnings, partner_earnings, savings, tenure, rent, region]
+    value_defaults: { manual_minutes_per_run: 5.5, build_cost_runs: 6, maintenance_risk_gbp: 8, error_cost_gbp: 3 }
+    proposal:
+      what: Enter the household into all three calculators and read back the results, then stop.
+
+  - id: result-to-note
+    title: Copy the agreed results into the case note
+    cogs: [READ_RESULT, COPY_TO_NOTE, READ_RESULT, COPY_TO_NOTE, READ_RESULT, COPY_TO_NOTE]
+    match_distance: 0.30
+    automatable: true
+    learning_relevant: false       # copying figures teaches nothing the worker still needs
+    touches: ["case note"]
+    never: ["submit", "send letter"]
+    params: [case_ref]
+    value_defaults: { manual_minutes_per_run: 2.5, build_cost_runs: 4, maintenance_risk_gbp: 4, error_cost_gbp: 6 }
+    proposal:
+      what: Copy each calculator's result into the case note and leave the note open for you to review.
+
+  - id: cliff-check-sweep
+    title: Probe each calculator near a threshold
+    cogs: [CHECK_CLIFF, READ_RESULT, CHECK_CLIFF, READ_RESULT, DECIDE]
+    match_distance: 0.35
+    automatable: false             # judgement-heavy: reported, never proposed
+    learning_relevant: true
+    skill_cogs: [CHECK_CLIFF]
+    touches: ["gov.uk check", "turn2us"]
+    never: ["submit"]
+    value_defaults: { manual_minutes_per_run: 4.0, build_cost_runs: 9, maintenance_risk_gbp: 12, error_cost_gbp: 25 }
+    proposal:
+      what: Re-run a calculator with a figure nudged near a threshold. Needs your judgement, so it stays manual.

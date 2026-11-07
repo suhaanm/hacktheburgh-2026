@@ -1,0 +1,72 @@
+# Thin role pack: programmer (ROL-3). Onboarding, cogs, risk classes, tone, one sample routine,
+# persona parameters. No oracle, no tasks, stub expert policy.
+id: programmer
+version: 1
+name: Programmer
+summary: Reads code and logs, makes small changes, and gets them reviewed and merged without breaking the build.
+depth: thin
+locale: en-GB
+
+onboarding:
+  questions:
+    - id: tools
+      prompt: Which of these are open when you work?
+      why: Tells Understudy which sites are your working surfaces, so it can read your rhythm.
+      kind: multi
+      options:
+        - { value: git_host, label: "Git host (repos, pull requests)", default: true, domain_role: git_host }
+        - { value: ci_dashboard, label: "CI dashboard and build logs", default: true, domain_role: ci }
+        - { value: issue_tracker, label: "Issue tracker", domain_role: tracker }
+        - { value: docs_site, label: "Library docs and search", domain_role: docs }
+        - { value: chat, label: "Team chat" }
+    - id: risky
+      prompt: Which actions need your click, always?
+      why: These are hard to undo or visible to others. The agent stops and asks at each.
+      kind: multi
+      options:
+        - { value: force_push, label: "Force-push or rewrite history", default: true, risk_class: irreversible, patterns: ["force push", "force-push", "rewrite history"] }
+        - { value: delete_branch, label: "Delete a branch or tag", default: true, risk_class: irreversible, patterns: ["delete branch", "delete tag"] }
+        - { value: merge_main, label: "Merge to the main branch", default: true, risk_class: irreversible, patterns: ["merge pull request", "merge", "squash and merge"] }
+        - { value: deploy_publish, label: "Deploy or publish a package", default: true, risk_class: irreversible, patterns: ["deploy", "publish", "release"] }
+        - { value: post_comment, label: "Comment on or open a pull request", risk_class: outward, patterns: ["comment", "create pull request", "open pull request"] }
+    - id: tone
+      prompt: How should help read?
+      why: Programmers usually want the next command, not a paragraph.
+      kind: single
+      options:
+        - { value: short, label: "Terse: command first", default: true }
+        - { value: medium, label: "A sentence of reasoning" }
+        - { value: detailed, label: "Detailed" }
+    - id: pace
+      prompt: How fast should the prompts drop away once you have it?
+      why: Controls how many clean runs before a prompt gets lighter.
+      kind: single
+      options:
+        - { value: gentle, label: "Gentle" }
+        - { value: steady, label: "Steady" }
+        - { value: quick, label: "Quick: fade fast", default: true }
+    - id: hours
+      prompt: Which hours are you usually at the keyboard?
+      why: Starts the presence map. It learns from your own days, including late nights.
+      kind: hours
+      default_hours: { start: "10:00", end: "19:00", days: [mon, tue, wed, thu, fri] }
+
+cogs:
+  extra: [READ_CODE, EDIT_CODE, RUN_TESTS, READ_TRACE, REVIEW_DIFF, COMMIT, SEARCH_DOCS]
+  mapping: mapping.yaml
+
+expert_policy:
+  steps: expert_steps.yaml
+  coverage: stub
+
+risk_classes:
+  irreversible: ["force push", "force-push", "rewrite history", "delete branch", "delete tag", "merge pull request", "squash and merge", "deploy", "publish", "release", "drop"]
+  outward: ["comment", "create pull request", "open pull request", "post", "request review", "send"]
+  sensitive_fields: sensitive_fields.json
+
+routines: routines.yaml
+tone_defaults: { length: short, voice: terse, pace: quick }
+curriculum: curriculum.yaml
+persona: persona.yaml
+priors: priors.yaml
+plugin_refs: []

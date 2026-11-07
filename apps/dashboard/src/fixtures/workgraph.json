@@ -1,0 +1,255 @@
+{
+ "meta": {
+  "origin": "synthetic",
+  "n": 14,
+  "n_unit": "episodes",
+  "split": null,
+  "interval_level": 0.95,
+  "note": "Work graph of one synthetic benefits-processor persona. Opacity is strength and fades with disuse.",
+  "generated_at": "2026-11-07T14:40:00Z"
+ },
+ "data": {
+  "nodes": [
+   {
+    "id": "calc-entry-3x",
+    "type": "routine",
+    "label": "Enter household into three calculators",
+    "size": 96,
+    "strength": 0.94,
+    "last_seen": "2026-11-07",
+    "why": "Seen 14 times in 3 weeks with almost the same steps each time. Proposed as a routine; you have not turned it on yet.",
+    "editable": true,
+    "memory_line_id": null
+   },
+   {
+    "id": "case-note-copy",
+    "type": "routine",
+    "label": "Copy results into the case note",
+    "size": 52,
+    "strength": 0.86,
+    "last_seen": "2026-11-06",
+    "why": "Follows the three calculators on 11 of 14 cases. You are watching it practise in shadow mode.",
+    "editable": true,
+    "memory_line_id": null
+   },
+   {
+    "id": "monday-cliff-check",
+    "type": "routine",
+    "label": "Monday cliff check",
+    "size": 38,
+    "strength": 0.72,
+    "last_seen": "2026-11-03",
+    "why": "Every Monday you re-check open cases for cliff edges. It runs with your approval.",
+    "editable": true,
+    "memory_line_id": null
+   },
+   {
+    "id": "auto-calc-entry",
+    "type": "automation",
+    "label": "Calculator entry bot",
+    "size": 96,
+    "strength": 0.55,
+    "last_seen": "2026-11-07",
+    "why": "The compiled script for calc-entry-3x. It only practises until you choose otherwise.",
+    "editable": true,
+    "memory_line_id": null
+   },
+   {
+    "id": "auto-cliff",
+    "type": "automation",
+    "label": "Cliff check bot",
+    "size": 38,
+    "strength": 0.68,
+    "last_seen": "2026-11-03",
+    "why": "Compiled script for the Monday check. Runs in a separate browser profile.",
+    "editable": true,
+    "memory_line_id": null
+   },
+   {
+    "id": "skill-enter-household",
+    "type": "skill",
+    "label": "Enter household",
+    "size": 0.92,
+    "strength": 0.95,
+    "last_seen": "2026-11-07",
+    "why": "Level 4 after 9 clean runs. Help for this step has faded away.",
+    "editable": false,
+    "memory_line_id": "mem_skill_1"
+   },
+   {
+    "id": "skill-check-cliff",
+    "type": "skill",
+    "label": "Check the cliff",
+    "size": 0.58,
+    "strength": 0.78,
+    "last_seen": "2026-11-05",
+    "why": "Level 2. You skipped it twice in the last five cases, so help stays on.",
+    "editable": false,
+    "memory_line_id": "mem_skill_2"
+   },
+   {
+    "id": "skill-read-error",
+    "type": "skill",
+    "label": "Read the error first",
+    "size": 0.74,
+    "strength": 0.64,
+    "last_seen": "2026-11-02",
+    "why": "Level 3. Not used for 5 days, so it is starting to fade.",
+    "editable": false,
+    "memory_line_id": "mem_skill_3"
+   },
+   {
+    "id": "skill-reconcile",
+    "type": "skill",
+    "label": "Reconcile totals",
+    "size": 0.66,
+    "strength": 0.7,
+    "last_seen": "2026-11-06",
+    "why": "Level 3. Reconciling is slower than the expert reference by about 23 s.",
+    "editable": false,
+    "memory_line_id": "mem_skill_4"
+   },
+   {
+    "id": "skill-search-calc",
+    "type": "skill",
+    "label": "Find the right calculator",
+    "size": 0.3,
+    "strength": 0.22,
+    "last_seen": "2026-10-21",
+    "why": "Last practised 17 days ago. It has mostly faded. It comes back when you use it.",
+    "editable": false,
+    "memory_line_id": "mem_skill_5"
+   },
+   {
+    "id": "mem-short",
+    "type": "memory",
+    "label": "Short summaries, plain tone",
+    "size": 1,
+    "strength": 0.9,
+    "last_seen": "2026-11-07",
+    "why": "You chose short summaries during setup.",
+    "editable": true,
+    "memory_line_id": "mem_pref_1"
+   },
+   {
+    "id": "mem-child-first",
+    "type": "memory",
+    "label": "Check child benefits first",
+    "size": 1,
+    "strength": 0.82,
+    "last_seen": "2026-11-07",
+    "why": "Proposed after 3 matching corrections and approved by you. It matches expert outcomes in shadow runs.",
+    "editable": true,
+    "memory_line_id": "mem_proc_1"
+   },
+   {
+    "id": "mem-never-bank",
+    "type": "memory",
+    "label": "Never: banking, password managers",
+    "size": 1,
+    "strength": 1.0,
+    "last_seen": "2026-11-01",
+    "why": "You added these to your never list at setup. The agent cannot open them.",
+    "editable": true,
+    "memory_line_id": "mem_never_1"
+   },
+   {
+    "id": "mem-never-submit",
+    "type": "memory",
+    "label": "Never submit without me",
+    "size": 1,
+    "strength": 1.0,
+    "last_seen": "2026-11-01",
+    "why": "Submitting is irreversible. It always waits for your click unless you opt a routine in.",
+    "editable": true,
+    "memory_line_id": "mem_never_2"
+   }
+  ],
+  "links": [
+   {
+    "a": "calc-entry-3x",
+    "b": "case-note-copy",
+    "kind": "combined",
+    "weight": 0.9
+   },
+   {
+    "a": "calc-entry-3x",
+    "b": "auto-calc-entry",
+    "kind": "related",
+    "weight": 0.8
+   },
+   {
+    "a": "monday-cliff-check",
+    "b": "auto-cliff",
+    "kind": "related",
+    "weight": 0.8
+   },
+   {
+    "a": "calc-entry-3x",
+    "b": "skill-enter-household",
+    "kind": "related",
+    "weight": 0.7
+   },
+   {
+    "a": "calc-entry-3x",
+    "b": "skill-search-calc",
+    "kind": "related",
+    "weight": 0.3
+   },
+   {
+    "a": "case-note-copy",
+    "b": "skill-reconcile",
+    "kind": "related",
+    "weight": 0.5
+   },
+   {
+    "a": "monday-cliff-check",
+    "b": "skill-check-cliff",
+    "kind": "related",
+    "weight": 0.7
+   },
+   {
+    "a": "skill-check-cliff",
+    "b": "skill-read-error",
+    "kind": "related",
+    "weight": 0.3
+   },
+   {
+    "a": "mem-child-first",
+    "b": "skill-check-cliff",
+    "kind": "related",
+    "weight": 0.5
+   },
+   {
+    "a": "mem-child-first",
+    "b": "calc-entry-3x",
+    "kind": "related",
+    "weight": 0.4
+   },
+   {
+    "a": "mem-never-submit",
+    "b": "calc-entry-3x",
+    "kind": "related",
+    "weight": 0.6
+   },
+   {
+    "a": "mem-never-submit",
+    "b": "auto-cliff",
+    "kind": "related",
+    "weight": 0.5
+   },
+   {
+    "a": "mem-short",
+    "b": "case-note-copy",
+    "kind": "related",
+    "weight": 0.4
+   },
+   {
+    "a": "mem-never-bank",
+    "b": "auto-calc-entry",
+    "kind": "related",
+    "weight": 0.3
+   }
+  ]
+ }
+}

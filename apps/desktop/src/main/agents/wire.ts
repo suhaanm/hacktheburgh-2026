@@ -2,7 +2,7 @@ import os from 'node:os'
 import path from 'node:path'
 import type { Services } from '../../shared/contracts'
 import type { ServiceContext } from '../context'
-import { createAgentModelPort } from './gemini-port'
+import { createAgentModelPort } from './model-port-adapter'
 import { createAgents } from './index'
 import type { AgentRuntimeApi } from './runtime'
 
@@ -18,7 +18,7 @@ export function createAgentsFromServices(ctx: ServiceContext, s: Services): Agen
     live: { inject: (text, opts) => s.live.inject(text, opts) },
     learner: { snapshot: () => s.learner.snapshot() },
     settings: () => ctx.settings.get(),
-    model: createAgentModelPort(),
+    model: createAgentModelPort(ctx.modelPort),
     exportsDir: path.join(ctx.userDataDir ?? path.join(os.tmpdir(), 'alongside'), 'exports'),
   })
   // The dispatcher's clear_annotations also removes any scam highlights we are still tracking.

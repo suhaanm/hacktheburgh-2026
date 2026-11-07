@@ -1,0 +1,97 @@
+# Parameters for the synthetic persona and apprentice generators (CAP-9, EVL-1).
+# apprentice.deficits are the planted truth: which deficit was injected and what it costs in seconds
+# per case. The generator must use a different mechanism from the fitting models.
+version: 1
+task: entitlement-check
+
+tasks_per_active_hour: { mean: 1.6, sd: 0.4 }
+
+# Expert medians per cog (seconds). Dwell is log-normal. Novices are slower by novice_multiplier
+# (1.0 means no extra slowness beyond the injected deficits).
+cog_dwell_s:
+  READ:            { expert_median_s: 35, sigma: 0.30, novice_multiplier: 1.20 }
+  OPEN_CALCULATOR: { expert_median_s: 10, sigma: 0.35, novice_multiplier: 1.40 }
+  ENTER_HOUSEHOLD: { expert_median_s: 60, sigma: 0.25, novice_multiplier: 1.35 }
+  READ_RESULT:     { expert_median_s: 25, sigma: 0.30, novice_multiplier: 1.30 }
+  CHECK_CLIFF:     { expert_median_s: 45, sigma: 0.30, novice_multiplier: 1.30 }
+  RECONCILE:       { expert_median_s: 60, sigma: 0.30, novice_multiplier: 1.30 }
+  COPY_TO_NOTE:    { expert_median_s: 50, sigma: 0.25, novice_multiplier: 1.25 }
+  CHECK:           { expert_median_s: 20, sigma: 0.30, novice_multiplier: 1.20 }
+  SEARCH:          { expert_median_s: 14, sigma: 0.40, novice_multiplier: 1.20 }
+  REFORMULATE:     { expert_median_s: 10, sigma: 0.40, novice_multiplier: 1.20 }
+  NAVIGATE:        { expert_median_s: 4,  sigma: 0.40, novice_multiplier: 1.20 }
+  REVERT:          { expert_median_s: 6,  sigma: 0.40, novice_multiplier: 1.10 }
+  IDLE:            { expert_median_s: 12, sigma: 0.60, novice_multiplier: 1.50 }
+
+apprentice:
+  skill_curve: { start: 0.25, plateau: 0.85, half_life_cases: 6 }   # skill in [0, 1], improves with cases
+  deficits:
+    - id: reread_case_record
+      label: Goes back to the case record before each calculator instead of reusing the household
+      kind: insert
+      cogs: [READ]
+      insert_before: ENTER_HOUSEHOLD
+      p_at_skill0: 0.70
+      price_s: { mean: 60, sd: 12 }
+      skill: enter-household-once
+    - id: search_for_calculator
+      label: Searches for each calculator instead of opening it directly
+      kind: insert
+      cogs: [SEARCH, REFORMULATE]
+      insert_before: OPEN_CALCULATOR
+      p_at_skill0: 0.50
+      price_s: { mean: 75, sd: 20 }
+      skill: enter-household-once
+    - id: retry_without_reading_error
+      label: Retries after an error without reading the message
+      kind: insert
+      cogs: [REVERT, ENTER_HOUSEHOLD]
+      insert_before: READ_RESULT
+      p_at_skill0: 0.50
+      price_s: { mean: 70, sd: 18 }
+      skill: reads-error-first
+    - id: skip_cliff_check
+      label: Skips the cliff-edge probe on one or more calculators
+      kind: omit
+      cogs: [CHECK_CLIFF]
+      p_at_skill0: 0.80
+      price_s: { mean: 180, sd: 60 }        # rework when the household sits near a limit, weighted by how often it does
+      skill: check-the-cliff
+    - id: skip_reconcile
+      label: Writes the note without reconciling the three results
+      kind: omit
+      cogs: [RECONCILE]
+      p_at_skill0: 0.60
+      price_s: { mean: 110, sd: 35 }
+      skill: reconcile-before-noting
+    - id: retype_results_into_note
+      label: Retypes figures into the note instead of copying them
+      kind: slow
+      cogs: [COPY_TO_NOTE]
+      multiplier: 2.2
+      p_at_skill0: 0.65
+      price_s: { mean: 40, sd: 10 }
+      skill: note-with-evidence
+
+stuck:
+  base_hazard_per_bin: 0.18      # chance a 30 s bin starts a stuck spell at skill 0
+  skill_effect: 2.2              # hazard multiplier is exp(-skill_effect * skill)
+
+planted_routines:
+  - id: calc-entry-3x
+    template: calc-entry-3x
+    daily_rate: 3.0
+    preferred_hours: [9, 10, 11, 14, 15]
+    duration_s: { median: 330, sigma: 0.20 }
+    param_variation: [adults, children, earnings, partner_earnings, savings, tenure, rent, region]
+  - id: result-to-note
+    template: result-to-note
+    daily_rate: 2.0
+    preferred_hours: [11, 12, 16]
+    duration_s: { median: 150, sigma: 0.25 }
+    param_variation: [case_ref]
+  - id: cliff-check-sweep
+    template: cliff-check-sweep
+    daily_rate: 1.0
+    preferred_hours: [10, 14]
+    duration_s: { median: 240, sigma: 0.45 }     # high variability, high judgement: the finder should not propose it

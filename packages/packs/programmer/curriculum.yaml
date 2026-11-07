@@ -1,0 +1,33 @@
+version: 1
+ladder: { L1: full, L2: small, L3: dot, L4: gone }
+skills:
+  - id: read-the-trace-first
+    label: Read the failing trace before changing code
+    order: 1
+    cogs: [READ_TRACE]
+    prerequisites: []
+    expert_signal: Finds the first real error line before opening any file.
+    prompts:
+      L1: What is the first line in the log that is actually wrong?
+      L2: Where does the log first go wrong?
+      L3: Trace first.
+  - id: smallest-change
+    label: Make the smallest change that could work
+    order: 2
+    cogs: [READ_CODE, EDIT_CODE]
+    prerequisites: [read-the-trace-first]
+    expert_signal: One-file diffs, no drive-by edits.
+    prompts:
+      L1: What is the smallest change that would turn this test green?
+      L2: Smaller?
+      L3: Keep it small.
+  - id: confirm-the-fix
+    label: Confirm the fix before moving on
+    order: 3
+    cogs: [RUN_TESTS, REVIEW_DIFF]
+    prerequisites: [smallest-change]
+    expert_signal: Re-runs the failing job and reads its result.
+    prompts:
+      L1: How do you know this fixed it, rather than moved it?
+      L2: Did the failing job pass?
+      L3: Confirm.

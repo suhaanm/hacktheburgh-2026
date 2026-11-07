@@ -1,0 +1,62 @@
+# Thin-pack mapping for the data analyst. Semantics: packages/schema/pack.schema.json#/$defs/mapping.
+version: 1
+
+segmentation: { merge_gap_s: 10, idle_s: 90, max_dwell_s: 180 }
+
+domain_roles:
+  warehouse: { label: "SQL console or warehouse UI", hosts: ["*.snowflakecomputing.com", "console.cloud.google.com", "*.databricks.com"] }
+  notebook:  { label: "Notebook", hosts: ["colab.research.google.com", "app.hex.tech", "localhost:8888"] }
+  sheet:     { label: "Spreadsheet", hosts: ["docs.google.com"] }
+  bi:        { label: "Dashboard or BI tool", hosts: ["*.looker.com", "app.powerbi.com", "*.tableau.com"] }
+
+label_roles:
+  load_data:  { vocab: ["upload", "import", "load data", "connect", "open table", "browse tables"] }
+  profile:    { vocab: ["describe", "profile", "summary statistics", "row count", "distinct values"] }
+  editor:     { vocab: ["query", "sql", "editor", "cell", "code cell"] }
+  run:        { vocab: ["run", "execute", "run all", "run cell", "run query"] }
+  results:    { vocab: ["results", "output", "result preview", "rows"] }
+  chart:      { vocab: ["chart", "visualise", "visualize", "plot", "add chart"] }
+  export:     { vocab: ["export", "download csv", "download", "share", "publish"] }
+  ask_help:   { vocab: ["ask for help", "message team"] }
+  verify:     { vocab: ["validate", "check", "review"] }
+
+role_rules:
+  - { id: load_data, when: { type: [nav, click, focus], domain_role: [warehouse, notebook, sheet], label_role: load_data }, cog: LOAD_DATA }
+  - { id: profile_data, when: { type: [click, focus, scroll], label_role: profile }, cog: PROFILE_DATA }
+  - { id: run_query, when: { type: click, domain_role: [warehouse, notebook], label_role: run }, cog: RUN_QUERY }
+  - { id: write_query, when: { type: [focus, click], domain_role: [warehouse, notebook], label_role: editor }, cog: WRITE_QUERY }
+  - { id: inspect_results_label, when: { type: [scroll, focus, click], domain_role: [warehouse, notebook, bi], label_role: results }, cog: INSPECT_RESULT }
+  - { id: inspect_results_scroll, when: { type: scroll, domain_role: [warehouse, notebook], prev_cog: [RUN_QUERY, INSPECT_RESULT] }, cog: INSPECT_RESULT }
+  - { id: plot, when: { type: [click, focus], domain_role: [notebook, bi, sheet], label_role: chart }, cog: PLOT }
+  - { id: export_result, when: { type: click, label_role: export }, cog: EXPORT_RESULT }
+
+base_rules:
+  - { id: ignore_markers, when: { type: [stuck, coach_shown, coach_followed, coach_dismissed, agent_step, progress, task_start, task_end, unlock, resume] }, ignore: true }
+  - { id: idle_signals, when: { type: [idle, lock, sleep] }, cog: IDLE }
+  - { id: ask_for_help, when: { type: [click, focus], label_role: ask_help }, cog: ASK }
+  - { id: verify, when: { type: [click, focus, scroll], label_role: verify }, cog: CHECK }
+  - { id: search_follow_up, when: { type: search, prev_cog: [SEARCH, REFORMULATE], within_s: 90 }, cog: REFORMULATE }
+  - { id: search_first, when: { type: search }, cog: SEARCH }
+  - { id: undo, when: { type: undo }, cog: REVERT }
+  - { id: human_decision, when: { type: approval, actor: human }, cog: DECIDE }
+  - { id: ignore_agent_approval, when: { type: approval }, ignore: true }
+  - { id: copy, when: { type: copy }, cog: COPY }
+  - { id: paste, when: { type: paste }, cog: PASTE }
+  - { id: compare_tab_flip, when: { type: tab, prev_type: tab, within_s: 12 }, cog: COMPARE }
+  - { id: navigate_nav, when: { type: [nav, tab] }, cog: NAVIGATE }
+  - { id: read_scroll, when: { type: scroll }, cog: READ }
+  - { id: read_text_click, when: { type: click, target_role: [heading, text, paragraph, cell, row, img, article] }, cog: READ }
+  - { id: enter_field, when: { type: [click, focus], target_role: [textbox, spinbutton, combobox, searchbox, radio, checkbox, slider, textarea] }, cog: ENTER }
+  - { id: navigate_click, when: { type: [click, focus] }, cog: NAVIGATE }
+
+examples:
+  - name: write, run and inspect a query
+    hash_roles:
+      domain: { warehouse: ["d:c001"] }
+      label:  { editor: ["h:1001"], run: ["h:1002"] }
+    events:
+      - { dt: 0,  type: focus,  target: { role: textbox, label_hash: "h:1001", domain_hash: "d:c001" } }
+      - { dt: 40, type: click,  target: { role: button, label_hash: "h:1002", domain_hash: "d:c001" } }
+      - { dt: 5,  type: scroll, target: { domain_hash: "d:c001" } }
+      - { dt: 15, type: copy }
+    expect: [WRITE_QUERY, RUN_QUERY, INSPECT_RESULT, COPY]

@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "id": "6f1d2b9a-0c47-4a38-9a51-2d1b7e8f5c01",
+  "t": "2026-11-07T14:03:11.123Z",
+  "origin": "real",
+  "actor": "human",
+  "person": "p_9f3a",
+  "role": "benefits-processor",
+  "source": "browser",
+  "type": "click",
+  "target": { "role": "button", "label_hash": "h:9f2c", "domain_hash": "d:77aa" },
+  "task_id": "t_204",
+  "meta": { "depth_bin": 3, "len": 12 }
+}

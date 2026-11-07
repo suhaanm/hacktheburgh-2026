@@ -1,0 +1,61 @@
+# Skills in teaching order. Level L1 is full help, L4 is gone (deterministic ladder, COA-3).
+# Prompts are a hypothesis or a question, never the answer (COA-4).
+version: 1
+
+ladder: { L1: full, L2: small, L3: dot, L4: gone }
+
+skills:
+  - id: reads-error-first
+    label: Read the error message before retrying
+    order: 1
+    cogs: [READ]
+    prerequisites: []
+    expert_signal: Pauses on an error before editing any field.
+    prompts:
+      L1: A calculator showed an error. What does it say before you change anything?
+      L2: What did the error say?
+      L3: Read it first.
+
+  - id: enter-household-once
+    label: Enter the household once, accurately, then reuse it
+    order: 2
+    cogs: [ENTER_HOUSEHOLD, OPEN_CALCULATOR]
+    prerequisites: [reads-error-first]
+    expert_signal: No second look at the case record between calculators.
+    prompts:
+      L1: You looked at the record again. Is there a way to keep the household in front of you?
+      L2: Can you reuse what you already entered?
+      L3: Reuse the entry.
+
+  - id: check-the-cliff
+    label: Probe the cliff edge on every calculator
+    order: 3
+    cogs: [CHECK_CLIFF]
+    prerequisites: [enter-household-once]
+    expert_signal: Re-runs each calculator with a figure nudged near a limit.
+    prompts:
+      L1: Is any figure close to a limit? What changes if it moves a little?
+      L2: Close to a limit anywhere?
+      L3: Probe the edge.
+
+  - id: reconcile-before-noting
+    label: Reconcile the results before writing the note
+    order: 4
+    cogs: [RECONCILE]
+    prerequisites: [check-the-cliff]
+    expert_signal: Compares all three results side by side before touching the note.
+    prompts:
+      L1: Do the three results agree? If not, which one would you trust, and why?
+      L2: Do they agree?
+      L3: Compare first.
+
+  - id: note-with-evidence
+    label: Write the note with the figures and what was checked
+    order: 5
+    cogs: [COPY_TO_NOTE]
+    prerequisites: [reconcile-before-noting]
+    expert_signal: The note names the trusted figure and the checks done.
+    prompts:
+      L1: Would someone reading the note know which figure you trust, and what you checked?
+      L2: What would a reader need to see?
+      L3: Say what you checked.

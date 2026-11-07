@@ -168,7 +168,7 @@ describe('scope in the act_for_me loop (fake front-app provider)', () => {
     const reads: string[] = []
     let i = 0
     const act = createActForMe(env.deps, sit, async () => undefined, {
-      gemini: () => {
+      port: () => {
         throw new Error('no model')
       },
       loopEnabled: () => true,

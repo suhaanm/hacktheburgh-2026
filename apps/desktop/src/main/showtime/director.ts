@@ -6,7 +6,7 @@
 //     boxes of the red-flag phrases on the staged bank note (apps/demo-stage __stage.scamRects).
 // Absent in normal use, so real users are unaffected.
 import os from 'node:os'
-import { createAgentModelPort } from '../agents/gemini-port'
+import { createAgentModelPort } from '../agents/model-port-adapter'
 import { createAgents, type AgentRuntimeApi } from '../agents'
 import { SKILLS } from '../teaching/skills/definitions'
 import { LEVEL_LABEL } from '../teaching/levels'

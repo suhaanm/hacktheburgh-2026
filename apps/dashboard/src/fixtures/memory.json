@@ -1,0 +1,105 @@
+{
+ "meta": {
+  "origin": "synthetic",
+  "n": 1,
+  "n_unit": "people",
+  "split": null,
+  "interval_level": 0.95,
+  "note": null,
+  "generated_at": "2026-11-07T14:40:00Z"
+ },
+ "data": {
+  "path": "~/.understudy/memory.md",
+  "revision": 12,
+  "markdown": "---\nrole: benefits-processor\nrevision: 12\n---\n## Preferences\n- Summaries: short. Tone: plain.\n- Help fades: gradually.   <!-- chosen at setup -->\n- Working hours: Mon to Fri, 09:00 to 17:30.\n## Procedure\n- Usually checks child-related benefits first.   <!-- proposed 2026-11-07, accepted -->\n## Routines\n- calc-entry-3x  | rung A0 | consent: none | unattended: off\n- case-note-copy  | rung A1 | consent: shadow | unattended: off\n- monday-cliff-check  | rung A2 | consent: approval | unattended: off\n## Corrections\n- (3 consistent corrections become a proposed rule; each rule is versioned)\n## Skill state\n- enter-household: L4, streak 9, last seen 2026-11-07\n- check-cliff: L2, streak 0, last seen 2026-11-05\n- reads-error-first: L3, streak 2, last seen 2026-11-02\n- reconcile: L3, streak 4, last seen 2026-11-06\n- find-calculator: L1, streak 0, last seen 2026-10-21\n## Never\n- banking sites, password managers\n- submit, send, pay, delete or post without me\n",
+  "sections": {
+   "Preferences": [
+    {
+     "id": "mem_pref_1",
+     "text": "Summaries: short. Tone: plain.",
+     "note": null
+    },
+    {
+     "id": "mem_pref_2",
+     "text": "Help fades: gradually.",
+     "note": "chosen at setup"
+    },
+    {
+     "id": "mem_pref_3",
+     "text": "Working hours: Mon to Fri, 09:00 to 17:30.",
+     "note": null
+    }
+   ],
+   "Procedure": [
+    {
+     "id": "mem_proc_1",
+     "text": "Usually checks child-related benefits first.",
+     "note": "proposed 2026-11-07, accepted"
+    }
+   ],
+   "Routines": [
+    {
+     "id": "mem_rout_1",
+     "text": "calc-entry-3x  | rung A0 | consent: none | unattended: off",
+     "note": null
+    },
+    {
+     "id": "mem_rout_2",
+     "text": "case-note-copy  | rung A1 | consent: shadow | unattended: off",
+     "note": null
+    },
+    {
+     "id": "mem_rout_3",
+     "text": "monday-cliff-check  | rung A2 | consent: approval | unattended: off",
+     "note": null
+    }
+   ],
+   "Corrections": [
+    {
+     "id": "mem_corr_1",
+     "text": "(3 consistent corrections become a proposed rule; each rule is versioned)",
+     "note": null
+    }
+   ],
+   "Skill state": [
+    {
+     "id": "mem_skill_1",
+     "text": "enter-household: L4, streak 9, last seen 2026-11-07",
+     "note": null
+    },
+    {
+     "id": "mem_skill_2",
+     "text": "check-cliff: L2, streak 0, last seen 2026-11-05",
+     "note": null
+    },
+    {
+     "id": "mem_skill_3",
+     "text": "reads-error-first: L3, streak 2, last seen 2026-11-02",
+     "note": null
+    },
+    {
+     "id": "mem_skill_4",
+     "text": "reconcile: L3, streak 4, last seen 2026-11-06",
+     "note": null
+    },
+    {
+     "id": "mem_skill_5",
+     "text": "find-calculator: L1, streak 0, last seen 2026-10-21",
+     "note": null
+    }
+   ],
+   "Never": [
+    {
+     "id": "mem_never_1",
+     "text": "banking sites, password managers",
+     "note": null
+    },
+    {
+     "id": "mem_never_2",
+     "text": "submit, send, pay, delete or post without me",
+     "note": null
+    }
+   ]
+  }
+ }
+}

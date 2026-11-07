@@ -1,0 +1,217 @@
+{
+ "meta": {
+  "origin": "synthetic",
+  "n": 36,
+  "n_unit": "episodes",
+  "split": "all episodes of the task; expert reference vs 4 novices",
+  "interval_level": 0.95,
+  "note": "Edges marked missing are ones the expert takes and the novice never does. Planted edges match the deficits we injected.",
+  "generated_at": "2026-11-07T14:40:00Z"
+ },
+ "data": {
+  "nodes": [
+   {
+    "id": "read",
+    "cog": "READ",
+    "expert_dwell_s": 18,
+    "novice_dwell_s": 24
+   },
+   {
+    "id": "enter_household",
+    "cog": "ENTER_HOUSEHOLD",
+    "expert_dwell_s": 41,
+    "novice_dwell_s": 63
+   },
+   {
+    "id": "search",
+    "cog": "SEARCH",
+    "expert_dwell_s": 0,
+    "novice_dwell_s": 44
+   },
+   {
+    "id": "open_calculator",
+    "cog": "OPEN_CALCULATOR",
+    "expert_dwell_s": 22,
+    "novice_dwell_s": 31
+   },
+   {
+    "id": "enter",
+    "cog": "ENTER",
+    "expert_dwell_s": 54,
+    "novice_dwell_s": 71
+   },
+   {
+    "id": "read_result",
+    "cog": "READ_RESULT",
+    "expert_dwell_s": 26,
+    "novice_dwell_s": 39
+   },
+   {
+    "id": "check_cliff",
+    "cog": "CHECK_CLIFF",
+    "expert_dwell_s": 38,
+    "novice_dwell_s": 0
+   },
+   {
+    "id": "compare",
+    "cog": "COMPARE",
+    "expert_dwell_s": 31,
+    "novice_dwell_s": 36
+   },
+   {
+    "id": "idle",
+    "cog": "IDLE",
+    "expert_dwell_s": 0,
+    "novice_dwell_s": 33
+   },
+   {
+    "id": "revert",
+    "cog": "REVERT",
+    "expert_dwell_s": 0,
+    "novice_dwell_s": 58
+   },
+   {
+    "id": "reconcile",
+    "cog": "RECONCILE",
+    "expert_dwell_s": 29,
+    "novice_dwell_s": 52
+   },
+   {
+    "id": "copy_to_note",
+    "cog": "COPY_TO_NOTE",
+    "expert_dwell_s": 47,
+    "novice_dwell_s": 55
+   }
+  ],
+  "edges": [
+   {
+    "from": "read",
+    "to": "enter_household",
+    "expert_freq": 1.0,
+    "novice_freq": 0.62,
+    "missing_for_novice": false,
+    "planted": null
+   },
+   {
+    "from": "read",
+    "to": "search",
+    "expert_freq": 0.0,
+    "novice_freq": 0.38,
+    "missing_for_novice": false,
+    "planted": null
+   },
+   {
+    "from": "enter_household",
+    "to": "open_calculator",
+    "expert_freq": 1.0,
+    "novice_freq": 0.55,
+    "missing_for_novice": false,
+    "planted": null
+   },
+   {
+    "from": "enter_household",
+    "to": "search",
+    "expert_freq": 0.0,
+    "novice_freq": 0.45,
+    "missing_for_novice": false,
+    "planted": null
+   },
+   {
+    "from": "search",
+    "to": "open_calculator",
+    "expert_freq": 0.0,
+    "novice_freq": 1.0,
+    "missing_for_novice": false,
+    "planted": null
+   },
+   {
+    "from": "open_calculator",
+    "to": "enter",
+    "expert_freq": 1.0,
+    "novice_freq": 1.0,
+    "missing_for_novice": false,
+    "planted": null
+   },
+   {
+    "from": "enter",
+    "to": "read_result",
+    "expert_freq": 1.0,
+    "novice_freq": 1.0,
+    "missing_for_novice": false,
+    "planted": null
+   },
+   {
+    "from": "read_result",
+    "to": "check_cliff",
+    "expert_freq": 0.96,
+    "novice_freq": 0.0,
+    "missing_for_novice": true,
+    "planted": true
+   },
+   {
+    "from": "read_result",
+    "to": "compare",
+    "expert_freq": 0.04,
+    "novice_freq": 0.58,
+    "missing_for_novice": false,
+    "planted": null
+   },
+   {
+    "from": "read_result",
+    "to": "idle",
+    "expert_freq": 0.0,
+    "novice_freq": 0.42,
+    "missing_for_novice": false,
+    "planted": null
+   },
+   {
+    "from": "idle",
+    "to": "compare",
+    "expert_freq": 0.0,
+    "novice_freq": 1.0,
+    "missing_for_novice": false,
+    "planted": null
+   },
+   {
+    "from": "check_cliff",
+    "to": "compare",
+    "expert_freq": 1.0,
+    "novice_freq": 0.0,
+    "missing_for_novice": true,
+    "planted": true
+   },
+   {
+    "from": "compare",
+    "to": "reconcile",
+    "expert_freq": 1.0,
+    "novice_freq": 0.61,
+    "missing_for_novice": false,
+    "planted": null
+   },
+   {
+    "from": "compare",
+    "to": "revert",
+    "expert_freq": 0.0,
+    "novice_freq": 0.39,
+    "missing_for_novice": false,
+    "planted": null
+   },
+   {
+    "from": "revert",
+    "to": "reconcile",
+    "expert_freq": 0.0,
+    "novice_freq": 1.0,
+    "missing_for_novice": false,
+    "planted": null
+   },
+   {
+    "from": "reconcile",
+    "to": "copy_to_note",
+    "expert_freq": 1.0,
+    "novice_freq": 1.0,
+    "missing_for_novice": false,
+    "planted": null
+   }
+  ]
+ }
+}

@@ -9,3 +9,9 @@
 - A `CompletionResult(ok, missing, false_claim)` is returned; `false_claim` is true exactly when a model claimed success and `ok` is false. Counts surface in the Agent API.
 - We never relax the check for "navigation-style" goals. No heuristics based on goal wording.
 - Sensitive-field filtering is done by the security track; navigators only consult `sensitive_fields.json` when extracting.
+
+## Security track notes (agent-safety): `security/sensitive.py`, prompts, reader
+
+- **Sensitive fields as data, enforced in code.** Rouge keeps its never-read fields in a JSON file and decides in code, before any screenshot, whether the control under the pointer is a secret field. Only names and the control kind are read, never the typed value. We do the same with `packages/schema/sensitive_fields.json`: the matcher splits camelCase and punctuation, and a plain button called "Password" is not a password field (only text-entry kinds count).
+- **Prompts are not the boundary.** Its prompts say that window text, pages and results are untrusted data, and the code does the enforcing. Our version is the same split: the wording in a prompt is a courtesy; layers 1 to 8 are code.
+- **Different from us.** Rouge has no quarantined reader and no taint tracking. We add both (layers 2 and 5), and measure them in the red-team ablation.

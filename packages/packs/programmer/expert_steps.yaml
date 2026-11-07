@@ -1,0 +1,25 @@
+# Stub expert policy (thin pack). Semantics: pack.schema.json#/$defs/expert_steps.
+version: 1
+task: fix-a-failing-build
+coverage: stub
+
+checks:
+  - id: read_trace_first
+    label: Read the failing trace before changing code
+    cogs: [READ_TRACE]
+    required: true
+    critical: true
+    after: []
+    coach: { question: "What is the first line that is actually wrong in the log?" }
+  - id: edit_and_commit
+    label: Make the smallest change and commit it
+    cogs: [READ_CODE, EDIT_CODE, COMMIT]
+    required: true
+    after: [read_trace_first]
+  - id: rerun_and_confirm
+    label: Re-run the tests and confirm they pass
+    cogs: [RUN_TESTS, READ_TRACE]
+    required: true
+    critical: true
+    after: [edit_and_commit]
+    coach: { question: "How do you know the change fixed this, rather than just moving it?" }

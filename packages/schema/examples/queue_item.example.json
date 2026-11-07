@@ -1,0 +1,20 @@
+{
+  "id": "q_01",
+  "created_at": "2026-11-08T02:14:09.000Z",
+  "routine_id": "calc-entry-3x",
+  "run_id": "r_01",
+  "kind": "irreversible_step",
+  "title": "Submit case note CN-2041",
+  "summary": "The routine reached the submit step. It never submits without you.",
+  "risk_class": "irreversible",
+  "evidence": {
+    "screenshots": ["data/runs/r_01/s3.png"],
+    "extracted": { "uc_monthly_a": 412.5 },
+    "expected": { "uc_monthly_a": 412.5 },
+    "diff": [],
+    "tier_log": [{ "step": 1, "tier": 1 }, { "step": 3, "tier": 1 }]
+  },
+  "status": "pending",
+  "decided_at": null,
+  "decided_by": null
+}

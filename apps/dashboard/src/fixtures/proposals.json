@@ -1,0 +1,40 @@
+{
+ "meta": {
+  "origin": "synthetic",
+  "n": 3,
+  "n_unit": "episodes",
+  "split": null,
+  "interval_level": 0.95,
+  "note": null,
+  "generated_at": "2026-11-07T14:40:00Z"
+ },
+ "data": [
+  {
+   "id": "rp_01",
+   "rule": "Check child-related benefits before anything else on a new household.",
+   "kind": "procedure",
+   "evidence_count": 3,
+   "shadow_match": 0.93,
+   "status": "proposed",
+   "version": 1
+  },
+  {
+   "id": "rp_02",
+   "rule": "Keep case-note summaries to three lines.",
+   "kind": "preference",
+   "evidence_count": 4,
+   "shadow_match": null,
+   "status": "active",
+   "version": 2
+  },
+  {
+   "id": "rp_03",
+   "rule": "Skip the second calculator when the first shows zero entitlement.",
+   "kind": "procedure",
+   "evidence_count": 3,
+   "shadow_match": 0.61,
+   "status": "rejected",
+   "version": 1
+  }
+ ]
+}

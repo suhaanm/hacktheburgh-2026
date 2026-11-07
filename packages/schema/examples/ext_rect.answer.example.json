@@ -1,0 +1,9 @@
+{
+  "request_id": "rq_0001",
+  "rect": { "x": 412.5, "y": 318, "w": 96, "h": 36 },
+  "window_offset": { "x": 0, "y": 87 },
+  "scroll": { "x": 0, "y": 240 },
+  "dpr": 2,
+  "frame_id": "top",
+  "age_ms": 41
+}

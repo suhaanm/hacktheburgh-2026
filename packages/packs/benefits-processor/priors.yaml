@@ -1,0 +1,23 @@
+# Role-level priors for partial pooling (ANA-9, ROL-6). New people start here; their own traces take over.
+version: 1
+
+pooling: { strength: 8 }                        # worth about 8 pseudo-observations
+
+stuck_hazard: { alpha: 7, beta: 13 }            # P(no progress in the next 60 s) prior, mean 0.35
+mastery: { start: 0.2, decay_half_life_days: 21 }
+accept: { alpha: 2, beta: 3 }                   # P(accept a proposal): prior mean 0.4
+routines_per_week: { mean: 2.5, sd: 1.0 }       # detectable routines per person per week
+
+presence:
+  hours: { start: "09:00", end: "17:30", days: [mon, tue, wed, thu, fri] }
+  active_in_hours: 0.70
+  active_out_of_hours: 0.03
+
+cog_dwell_s:
+  READ: 35
+  OPEN_CALCULATOR: 10
+  ENTER_HOUSEHOLD: 60
+  READ_RESULT: 25
+  CHECK_CLIFF: 45
+  RECONCILE: 60
+  COPY_TO_NOTE: 50

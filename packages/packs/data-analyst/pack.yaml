@@ -1,0 +1,71 @@
+# Thin role pack: data analyst (ROL-3). Onboarding, cogs, risk classes, tone, one sample routine,
+# persona parameters. No oracle, no tasks, stub expert policy.
+id: data-analyst
+version: 1
+name: Data analyst
+summary: Pulls numbers from a warehouse, checks them, and turns them into charts and reports others rely on.
+depth: thin
+locale: en-GB
+
+onboarding:
+  questions:
+    - id: tools
+      prompt: Where does your analysis happen?
+      why: Tells Understudy which sites are your working surfaces, so it can read your rhythm.
+      kind: multi
+      options:
+        - { value: sql_console, label: "SQL console on the warehouse", default: true, domain_role: warehouse }
+        - { value: notebook, label: "Notebook (Python or R)", default: true, domain_role: notebook }
+        - { value: spreadsheet, label: "Spreadsheet", domain_role: sheet }
+        - { value: bi_tool, label: "Dashboard or BI tool", domain_role: bi }
+        - { value: ticket_queue, label: "Request queue" }
+    - id: risky
+      prompt: Which actions must never run without you?
+      why: Mistakes here reach other people's numbers. The agent stops and asks at each one.
+      kind: multi
+      options:
+        - { value: destructive_sql, label: "Drop, truncate or delete rows", default: true, risk_class: irreversible, patterns: ["drop", "truncate", "delete from"] }
+        - { value: overwrite_table, label: "Overwrite a table or shared dataset", default: true, risk_class: irreversible, patterns: ["overwrite", "create or replace", "replace table"] }
+        - { value: publish_dashboard, label: "Publish or share a dashboard", default: true, risk_class: outward, patterns: ["publish", "share dashboard", "make public"] }
+        - { value: send_extract, label: "Email or export an extract", risk_class: outward, patterns: ["send extract", "email", "export csv", "export"] }
+        - { value: schedule_job, label: "Schedule a recurring job", risk_class: outward, patterns: ["schedule", "run on production"] }
+    - id: tone
+      prompt: How much explanation do you want with help?
+      why: Analysts usually want the assumption stated, not just the next step.
+      kind: single
+      options:
+        - { value: detailed, label: "Detailed: state the assumption and the check", default: true }
+        - { value: short, label: "Short: one line" }
+    - id: pace
+      prompt: How long should help stay for a new dataset or tool?
+      why: Controls how many clean runs before a prompt gets lighter.
+      kind: single
+      options:
+        - { value: gentle, label: "Gentle: keep prompts for new datasets", default: true }
+        - { value: steady, label: "Steady" }
+        - { value: quick, label: "Quick" }
+    - id: hours
+      prompt: What are your core analysis hours?
+      why: Starts the presence map. It learns from your own days.
+      kind: hours
+      default_hours: { start: "08:30", end: "17:00", days: [mon, tue, wed, thu, fri] }
+
+cogs:
+  extra: [LOAD_DATA, PROFILE_DATA, WRITE_QUERY, RUN_QUERY, INSPECT_RESULT, PLOT, EXPORT_RESULT]
+  mapping: mapping.yaml
+
+expert_policy:
+  steps: expert_steps.yaml
+  coverage: stub
+
+risk_classes:
+  irreversible: ["drop", "truncate", "delete from", "overwrite", "create or replace", "replace table", "merge into"]
+  outward: ["publish", "share dashboard", "make public", "send extract", "email", "export", "schedule"]
+  sensitive_fields: sensitive_fields.json
+
+routines: routines.yaml
+tone_defaults: { length: detailed, voice: precise, pace: gentle }
+curriculum: curriculum.yaml
+persona: persona.yaml
+priors: priors.yaml
+plugin_refs: []

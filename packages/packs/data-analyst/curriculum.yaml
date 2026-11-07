@@ -1,0 +1,33 @@
+version: 1
+ladder: { L1: full, L2: small, L3: dot, L4: gone }
+skills:
+  - id: profile-before-querying
+    label: Profile the inputs before querying
+    order: 1
+    cogs: [PROFILE_DATA]
+    prerequisites: []
+    expert_signal: Checks row counts and nulls before the first join.
+    prompts:
+      L1: What would make these rows wrong, and have you looked for it?
+      L2: Row counts and nulls checked?
+      L3: Profile first.
+  - id: inspect-before-trusting
+    label: Inspect the rows, not just the total
+    order: 2
+    cogs: [INSPECT_RESULT]
+    prerequisites: [profile-before-querying]
+    expert_signal: Reads sample rows after each query.
+    prompts:
+      L1: The total looks plausible. What do three raw rows look like?
+      L2: Which rows did you look at?
+      L3: Read the rows.
+  - id: compare-to-last-period
+    label: Compare to last period before sharing
+    order: 3
+    cogs: [CHECK, PLOT]
+    prerequisites: [inspect-before-trusting]
+    expert_signal: Plots the series against the previous period.
+    prompts:
+      L1: Does the change since last period make sense? What would explain it?
+      L2: What changed since last period?
+      L3: Compare first.

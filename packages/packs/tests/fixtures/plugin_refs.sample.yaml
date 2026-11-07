@@ -1,0 +1,15 @@
+# Sample plugin_refs entries (ROL-5, D6). A pack accepts these; the loader never calls them.
+# Format: marketplace plugin ids (skills as procedures, MCP servers as tools).
+plugin_refs:
+  - id: "anthropics/knowledge-work-plugins#data"
+    kind: plugin
+    source: github.com/anthropics/knowledge-work-plugins
+    version: "0.1"
+    license: Apache-2.0
+    as: procedure
+    enabled: false
+    note: Sample only. Accepted by the loader, never called.
+  - id: warehouse-sql
+    kind: mcp_server
+    as: tool
+    enabled: false

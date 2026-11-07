@@ -64,7 +64,9 @@ export interface ActuatorDeps {
   homedir?: string
 }
 
-export const dryRunFromEnv = (): boolean => process.env.ALONGSIDE_ACTUATOR_DRYRUN === '1'
+// Understudy: SIMULATED BY DEFAULT. Real clicks, keystrokes, scrolls (and app/URL opens through the actuator) run only when
+// UNDERSTUDY_REAL_ACTUATOR=1 is set AND ALONGSIDE_ACTUATOR_DRYRUN is not '1'. Spike S2 (owner present) has not passed; do not set it.
+export const dryRunFromEnv = (): boolean => process.env.ALONGSIDE_ACTUATOR_DRYRUN === '1' || process.env.UNDERSTUDY_REAL_ACTUATOR !== '1'
 
 export function clickScript(x: number, y: number, double = false): string[] {
   const line = `click at {${Math.round(x)}, ${Math.round(y)}}`

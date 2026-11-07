@@ -1,0 +1,66 @@
+# Synthetic households only (no real people, no real identifiers). Config for the generator in the agent
+# service. Cliff edges are planted on purpose so calculators can disagree; the oracle owns the numbers,
+# so the thresholds below are sandbox parameters, not statements of law.
+version: 1
+seed: 20261107
+default_count: 20
+case_ref_format: "CN-{4d}"
+
+fields:
+  region:
+    dist: choice
+    values: [england, scotland, wales]
+    weights: [0.70, 0.18, 0.12]
+  adults:
+    dist: choice
+    values: [1, 2]
+    weights: [0.55, 0.45]
+  children_ages:
+    dist: list
+    min: 0
+    max: 4
+    weights: [0.25, 0.30, 0.25, 0.15, 0.05]     # number of children 0 to 4
+    note: each child age is an integer 0 to 17
+  tenure:
+    dist: choice
+    values: [rent_private, rent_social, own_mortgage, own_outright]
+    weights: [0.40, 0.30, 0.22, 0.08]
+  rent_monthly_gbp:
+    dist: lognormal
+    median: 700
+    sigma: 0.35
+    round_to: 5
+    depends_on: { tenure: [rent_private, rent_social] }
+    note: zero when the household owns
+  earnings_annual_gbp:
+    dist: lognormal
+    median: 19000
+    sigma: 0.55
+    round_to: 100
+  partner_earnings_annual_gbp:
+    dist: lognormal
+    median: 11000
+    sigma: 0.7
+    round_to: 100
+    depends_on: { adults: [2] }
+  savings_gbp:
+    dist: lognormal
+    median: 1800
+    sigma: 1.1
+    round_to: 50
+  disability:
+    dist: bernoulli
+    p: 0.14
+  carer:
+    dist: bernoulli
+    p: 0.06
+
+cliffs:
+  - { id: capital_limit, field: savings_gbp, threshold: 16000, band: 400, plant_rate: 0.12, note: Illustrative capital limit; calculators may treat the boundary differently. }
+  - { id: child_benefit_charge_start, field: earnings_annual_gbp, threshold: 60000, band: 1500, plant_rate: 0.08, note: Illustrative high-income charge start. }
+  - { id: earnings_taper_edge, field: earnings_annual_gbp, threshold: 15000, band: 800, plant_rate: 0.10, note: Illustrative earnings point where entitlement changes quickly. }
+
+constraints:
+  - Total planted cliff households should be about 30 percent of a batch of 20.
+  - Households with children_ages empty must report no child benefit.
+  - rent_monthly_gbp is 0 when tenure is own_mortgage or own_outright.

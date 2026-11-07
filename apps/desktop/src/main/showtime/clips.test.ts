@@ -1,5 +1,6 @@
 // Guards the rendered narration (scripts/showtime-render.mjs): every script line must resolve to a readable WAV through the real
 // loader. After editing assets/showtime/script.json or personas.ts, run `npm run showtime:render` (it only redoes changed lines).
+import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -8,7 +9,8 @@ import { SCRIPT_LINES, resolveText } from './script'
 
 const dir = path.join(process.cwd(), 'assets/showtime/clips')
 
-describe('rendered narration clips', () => {
+// Understudy: the rendered clips (voice narration, Gemini TTS) are not part of this repo; voice stays off, so skip when absent.
+describe.skipIf(!existsSync(path.join(dir, 'manifest.json')))('rendered narration clips', () => {
   it('resolves every script line to a clip with a matching hash', async () => {
     const narrator = createNarrator(dir)
     const missing: string[] = []

@@ -1,0 +1,16 @@
+# One sample routine (ROL-3). Semantics: pack.schema.json#/$defs/routine_templates.
+version: 1
+defaults: { min_support: 3, judgement_cogs: [SEARCH, REFORMULATE, COMPARE, DECIDE, CHECK], wage_gbp_per_h: 15 }
+templates:
+  - id: weekly-metric-refresh
+    title: Refresh the weekly metrics sheet
+    cogs: [RUN_QUERY, INSPECT_RESULT, COPY, PASTE, PLOT]
+    match_distance: 0.30
+    automatable: true
+    learning_relevant: false
+    touches: ["warehouse console", "metrics sheet"]
+    never: ["publish", "share dashboard"]
+    params: [week_start, metric_name]
+    value_defaults: { manual_minutes_per_run: 12, build_cost_runs: 5, maintenance_risk_gbp: 6, error_cost_gbp: 10 }
+    proposal:
+      what: Run the saved weekly query, paste the rows into the metrics sheet and refresh the chart. It never publishes.

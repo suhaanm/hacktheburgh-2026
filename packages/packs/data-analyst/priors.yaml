@@ -1,0 +1,11 @@
+version: 1
+pooling: { strength: 6 }
+stuck_hazard: { alpha: 6, beta: 14 }
+mastery: { start: 0.25, decay_half_life_days: 28 }
+accept: { alpha: 2, beta: 4 }
+routines_per_week: { mean: 1.5, sd: 0.8 }
+presence:
+  hours: { start: "08:30", end: "17:00", days: [mon, tue, wed, thu, fri] }
+  active_in_hours: 0.60
+  active_out_of_hours: 0.05
+cog_dwell_s: { PROFILE_DATA: 40, WRITE_QUERY: 120, RUN_QUERY: 15, INSPECT_RESULT: 45, PLOT: 60 }

@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://understudy.local/schema/routine.schema.json",
+  "title": "Understudy routine v1 (spec 6.5 plus the API proposal copy)",
+  "description": "The Routine object returned by GET /routines. Spec 6.5 fields plus the fields in docs/API_CONTRACT.md. Only id, role and status are required so the finder can emit a bare proposal and later stages fill in the rest. Additive fields are not allowed here: ask the lead for a CONTRACT-CHANGE.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "role", "status"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{2,40}$" },
+    "role": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,40}$" },
+    "title": { "type": "string", "maxLength": 100 },
+    "status": { "enum": ["proposed", "declined", "never", "shadow", "approval", "unattended"] },
+    "episodes": { "type": "integer", "minimum": 0 },
+    "minutes_per_week": { "type": "number", "minimum": 0 },
+    "cv": { "type": "number", "minimum": 0, "description": "Coefficient of variation of duration." },
+    "judgement_share": { "type": "number", "minimum": 0, "maximum": 1 },
+    "value": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hours_saved", "net_gbp", "confidence"],
+      "properties": {
+        "hours_saved": { "$ref": "#/$defs/interval" },
+        "net_gbp": { "$ref": "#/$defs/interval" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "touches": { "type": "array", "items": { "type": "string", "maxLength": 60 } },
+    "never": { "type": "array", "items": { "type": "string", "maxLength": 60 } },
+    "consent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": { "enum": ["none", "not_now", "never", "shadow", "approval", "unattended"] },
+        "irreversible_unattended": { "type": "array", "items": { "type": "string", "maxLength": 40 } },
+        "typed_confirm": { "type": "boolean" }
+      }
+    },
+    "rung": { "enum": ["A0", "A1", "A2", "A3"] },
+    "shadow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runs", "matches", "wilson_lower"],
+      "properties": {
+        "runs": { "type": "integer", "minimum": 0 },
+        "matches": { "type": "integer", "minimum": 0 },
+        "wilson_lower": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "build_timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rule": { "type": "string", "maxLength": 40 },
+        "buy_after_runs": { "type": "integer", "minimum": 0 },
+        "regret_vs_hindsight": { "type": "number", "minimum": 0 }
+      }
+    },
+    "skill_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eligible"],
+      "properties": {
+        "eligible": { "type": "boolean" },
+        "reason": { "type": "string", "maxLength": 160 }
+      }
+    },
+    "proposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "what": { "type": "string", "maxLength": 240 },
+        "how_often": { "type": "string", "maxLength": 120 },
+        "touches": { "type": "array", "items": { "type": "string", "maxLength": 60 } },
+        "never": { "type": "array", "items": { "type": "string", "maxLength": 60 } }
+      }
+    },
+    "bundle": { "type": ["string", "null"], "maxLength": 200, "description": "Path to the steps.json bundle (steps.schema.json), null until compiled." }
+  },
+  "$defs": {
+    "interval": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "type": "number" },
+      "description": "[lo, hi]"
+    }
+  }
+}

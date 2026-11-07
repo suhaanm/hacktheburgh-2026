@@ -1,0 +1,277 @@
+{
+ "meta": {
+  "origin": "synthetic",
+  "n": 36,
+  "n_unit": "episodes",
+  "split": "cluster bootstrap by person, B = 2000",
+  "interval_level": 0.95,
+  "note": "Synthetic apprentices with injected deficits: 1 expert reference, 4 novices, 9 episodes each. Ribbon shows one novice episode.",
+  "generated_at": "2026-11-07T14:40:00Z"
+ },
+ "data": {
+  "task": "t_entitlement_check",
+  "person": "p_novice_03",
+  "expert_person": "p_expert_01",
+  "expert": {
+   "segments": [
+    {
+     "cog": "READ",
+     "t0": 0,
+     "t1": 18
+    },
+    {
+     "cog": "ENTER_HOUSEHOLD",
+     "t0": 18,
+     "t1": 59
+    },
+    {
+     "cog": "OPEN_CALCULATOR",
+     "t0": 59,
+     "t1": 81
+    },
+    {
+     "cog": "ENTER",
+     "t0": 81,
+     "t1": 135
+    },
+    {
+     "cog": "READ_RESULT",
+     "t0": 135,
+     "t1": 161
+    },
+    {
+     "cog": "CHECK_CLIFF",
+     "t0": 161,
+     "t1": 199
+    },
+    {
+     "cog": "COMPARE",
+     "t0": 199,
+     "t1": 230
+    },
+    {
+     "cog": "RECONCILE",
+     "t0": 230,
+     "t1": 259
+    },
+    {
+     "cog": "COPY_TO_NOTE",
+     "t0": 259,
+     "t1": 306
+    }
+   ]
+  },
+  "novice": {
+   "segments": [
+    {
+     "cog": "READ",
+     "t0": 0,
+     "t1": 24
+    },
+    {
+     "cog": "ENTER_HOUSEHOLD",
+     "t0": 24,
+     "t1": 87
+    },
+    {
+     "cog": "SEARCH",
+     "t0": 87,
+     "t1": 131
+    },
+    {
+     "cog": "OPEN_CALCULATOR",
+     "t0": 131,
+     "t1": 162
+    },
+    {
+     "cog": "ENTER",
+     "t0": 162,
+     "t1": 233
+    },
+    {
+     "cog": "READ_RESULT",
+     "t0": 233,
+     "t1": 272
+    },
+    {
+     "cog": "IDLE",
+     "t0": 272,
+     "t1": 305
+    },
+    {
+     "cog": "COMPARE",
+     "t0": 305,
+     "t1": 341
+    },
+    {
+     "cog": "REVERT",
+     "t0": 341,
+     "t1": 399
+    },
+    {
+     "cog": "RECONCILE",
+     "t0": 399,
+     "t1": 451
+    },
+    {
+     "cog": "COPY_TO_NOTE",
+     "t0": 451,
+     "t1": 506
+    }
+   ]
+  },
+  "alignment": [
+   {
+    "i": 0,
+    "j": 0,
+    "op": "match",
+    "seconds": 6
+   },
+   {
+    "i": 1,
+    "j": 1,
+    "op": "match",
+    "seconds": 22
+   },
+   {
+    "i": null,
+    "j": 2,
+    "op": "gap_expert",
+    "seconds": 44
+   },
+   {
+    "i": 2,
+    "j": 3,
+    "op": "match",
+    "seconds": 9
+   },
+   {
+    "i": 3,
+    "j": 4,
+    "op": "match",
+    "seconds": 17
+   },
+   {
+    "i": 4,
+    "j": 5,
+    "op": "match",
+    "seconds": 13
+   },
+   {
+    "i": null,
+    "j": 6,
+    "op": "gap_expert",
+    "seconds": 33
+   },
+   {
+    "i": 5,
+    "j": null,
+    "op": "gap_novice",
+    "seconds": 38
+   },
+   {
+    "i": 6,
+    "j": 7,
+    "op": "match",
+    "seconds": 5
+   },
+   {
+    "i": null,
+    "j": 8,
+    "op": "gap_expert",
+    "seconds": 58
+   },
+   {
+    "i": 7,
+    "j": 9,
+    "op": "match",
+    "seconds": 23
+   },
+   {
+    "i": 8,
+    "j": 10,
+    "op": "match",
+    "seconds": 8
+   }
+  ],
+  "waterfall": [
+   {
+    "label": "Missed the cliff check, then reworked it",
+    "seconds": 96,
+    "ci": [
+     71,
+     122
+    ]
+   },
+   {
+    "label": "Hunted for the calculators",
+    "seconds": 44,
+    "ci": [
+     31,
+     58
+    ]
+   },
+   {
+    "label": "Froze before reading the result",
+    "seconds": 33,
+    "ci": [
+     18,
+     49
+    ]
+   },
+   {
+    "label": "Slower reconcile",
+    "seconds": 23,
+    "ci": [
+     14,
+     33
+    ]
+   },
+   {
+    "label": "Slower household entry",
+    "seconds": 22,
+    "ci": [
+     12,
+     33
+    ]
+   },
+   {
+    "label": "Slower data entry",
+    "seconds": 17,
+    "ci": [
+     8,
+     26
+    ]
+   },
+   {
+    "label": "Small differences elsewhere",
+    "seconds": 41,
+    "ci": [
+     28,
+     55
+    ]
+   }
+  ],
+  "total_gap_s": 276,
+  "total_gap_ci": [
+   221,
+   334
+  ],
+  "controls": {
+   "placebo": {
+    "gap_s": 3.1,
+    "ci": [
+     -6.0,
+     12.4
+    ]
+   },
+   "null": {
+    "gap_s": -1.8,
+    "ci": [
+     -14.5,
+     10.9
+    ]
+   }
+  }
+ }
+}

@@ -50,6 +50,9 @@ A living board of every idea so far, by status. The build agent may add ideas at
 | Leak-safe backtest harness (cutoff filter, anonymiser) | Mark8 | Only for a memorisation-test module |
 | Replay-divergence map | Okidoki | Where a replayed expert run breaks on a novice's screen |
 | Calibrated replay-or-model router | Okidoki | Choose tier by expected cost |
+| Narrated coach nudges and a spoken morning briefing | ElevenLabs (MLH category) | Owner-approved 7 Nov (D19). Flag off by default; cached audio for the offline demo |
+| DEV Writing Challenge post | MLH category | Owner-approved 7 Nov (D20). Lead drafts after the freeze |
+| Auth0 sign-in (Google) plus step-up approval for irreversible actions | Auth0 (MLH category) | Undecided. Optional adapter with a local fallback only; never on the demo's critical path |
 
 ## Later: the marketplace addition (D6)
 

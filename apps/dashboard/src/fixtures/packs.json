@@ -1,0 +1,20 @@
+[
+ {
+  "id": "benefits-processor",
+  "name": "UK benefits processor",
+  "summary": "Runs entitlement checks for households and writes the case note.",
+  "depth": "deep"
+ },
+ {
+  "id": "data-analyst",
+  "name": "Data analyst",
+  "summary": "Pulls data, cleans it, checks it and writes up the finding.",
+  "depth": "thin"
+ },
+ {
+  "id": "programmer",
+  "name": "Programmer",
+  "summary": "Reads code, changes it, runs tests and ships the change.",
+  "depth": "thin"
+ }
+]

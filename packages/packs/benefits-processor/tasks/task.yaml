@@ -1,0 +1,36 @@
+# The task the oracle scores and the completion check (AGT-4) verifies. Code, not a model, decides success.
+version: 1
+id: entitlement-check
+name: Entitlement check for one household
+goal: Run the household through three calculators, reconcile the results, write the case note, and stop before submitting.
+
+steps:
+  - Read the household record
+  - Enter the household into calculator A and read the result
+  - Enter the household into calculator B and read the result
+  - Enter the household into calculator C and read the result
+  - Probe the cliff edge where a figure is near a limit
+  - Reconcile the three results
+  - Write the case note
+  - Stop before submit
+
+# Result fields each calculator reports. Names are the pack's assumption; the sandbox sites and the
+# oracle (agent-core track) are the source of truth and may rename them.
+result_fields:
+  - universal_credit_monthly_gbp
+  - child_benefit_weekly_gbp
+  - housing_support_monthly_gbp
+  - council_tax_reduction_monthly_gbp
+
+goal_tokens:
+  - "{case_ref}"
+  - "{result:universal_credit_monthly_gbp@calc_a}"
+  - "{result:universal_credit_monthly_gbp@calc_b}"
+  - "{result:universal_credit_monthly_gbp@calc_c}"
+  - "{note_id}"
+
+stop_before: [submit, close case, send letter]
+
+progress_events:
+  - A calculator result was read
+  - The case note was completed

@@ -1,0 +1,228 @@
+import { Component, Suspense, lazy, useCallback, useEffect, useState, type ReactNode } from "react";
+import { api, ENGINE_URL, forgetBackoff, refreshQueueBadge } from "./api";
+import { navigate, screenOf, useRoute, type Screen } from "./router";
+import { dataMode, getState, resetSources, setState, useAppState } from "./store";
+import { Loading } from "./components/common";
+import { ToastHost, useToast } from "./components/Toasts";
+
+const screens: Record<Screen, ReturnType<typeof lazy>> = {
+  genome: lazy(() => import("./screens/Genome")),
+  presence: lazy(() => import("./screens/Presence")),
+  routines: lazy(() => import("./screens/Routines")),
+  queue: lazy(() => import("./screens/Queue")),
+  graph: lazy(() => import("./screens/Graph")),
+  today: lazy(() => import("./screens/Today")),
+  memory: lazy(() => import("./screens/Memory")),
+  evidence: lazy(() => import("./screens/Evidence")),
+  onboarding: lazy(() => import("./screens/Onboarding")),
+};
+
+const NAV: { id: Screen; label: string; hint: string }[] = [
+  { id: "genome", label: "Genome", hint: "Where time is lost" },
+  { id: "presence", label: "Presence", hint: "Your working week" },
+  { id: "routines", label: "Routines", hint: "What could run for you" },
+  { id: "queue", label: "Queue", hint: "Waiting for approval" },
+  { id: "graph", label: "Graph", hint: "How your work connects" },
+  { id: "today", label: "Today", hint: "The current task" },
+  { id: "memory", label: "Memory", hint: "What it knows about you" },
+  { id: "evidence", label: "Evidence", hint: "What we can prove" },
+  { id: "onboarding", label: "Set up", hint: "Choose a role" },
+];
+
+type Theme = "auto" | "light" | "dark";
+function loadTheme(): Theme {
+  try {
+    const t = window.localStorage.getItem("understudy-theme");
+    if (t === "light" || t === "dark") return t;
+  } catch { /* storage can be blocked */ }
+  return "auto";
+}
+function applyTheme(t: Theme) {
+  if (t === "auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", t);
+  try { window.localStorage.setItem("understudy-theme", t); } catch { /* ignore */ }
+}
+
+class Boundary extends Component<{ children: ReactNode; screen: string }, { error: Error | null }> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  componentDidUpdate(prev: { screen: string }) { if (prev.screen !== this.props.screen && this.state.error) this.setState({ error: null }); }
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <div className="page">
+        <div className="state state--error" role="alert">
+          <span className="state__mark" aria-hidden="true" />
+          <h1 className="state__title">This screen hit a problem</h1>
+          <p className="state__body">{this.state.error.message}. Your data is untouched. Reload the page, or open another screen from the menu.</p>
+          <button type="button" className="btn btn--secondary" onClick={() => this.setState({ error: null })}>Try again</button>
+        </div>
+      </div>
+    );
+  }
+}
+
+function Wordmark() {
+  return (
+    <a className="wordmark" href="#/genome" aria-label="Understudy home">
+      <svg width="22" height="16" viewBox="0 0 22 16" aria-hidden="true">
+        <rect x="0" y="2" width="14" height="4.5" rx="1" fill="var(--expert)" />
+        <rect x="4" y="9.5" width="18" height="4.5" rx="1" fill="var(--novice)" />
+      </svg>
+      <span>Understudy</span>
+    </a>
+  );
+}
+
+function ThemeSwitch() {
+  const [theme, setTheme] = useState<Theme>(loadTheme);
+  useEffect(() => applyTheme(theme), [theme]);
+  return (
+    <div className="segmented" role="group" aria-label="Colour theme">
+      {(["auto", "light", "dark"] as Theme[]).map((t) => (
+        <button key={t} type="button" aria-pressed={theme === t} onClick={() => setTheme(t)}>
+          {t === "auto" ? "Auto" : t === "light" ? "Light" : "Dark"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function DataNote() {
+  const s = useAppState();
+  const mode = dataMode(s);
+  const retry = () => { forgetBackoff(); resetSources(); window.dispatchEvent(new Event("understudy:retry")); void api.health(); };
+  if (mode === "unknown") return <p className="datanote">Connecting</p>;
+  if (mode === "live") {
+    return <p className="datanote" data-mode="live"><span className="datanote__dot" aria-hidden="true" />Live engine{s.mock ? ", mock mode" : ""}</p>;
+  }
+  return (
+    <p className="datanote" data-mode={mode}>
+      <span className="datanote__dot" aria-hidden="true" />
+      {mode === "demo" ? "Demo data" : "Some demo data"}
+      <span className="datanote__why">The engine at {ENGINE_URL.replace(/^https?:\/\//, "")} {mode === "demo" ? "is not running" : "does not answer every request"}.</span>
+      <button type="button" className="linkish" onClick={retry}>Try again</button>
+    </p>
+  );
+}
+
+function KillSwitch() {
+  const s = useAppState();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+
+  const stop = useCallback(async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const r = await api.kill();
+      setState({ killed: r.killed, killedAt: r.at, killError: null });
+      toast({ tone: "success", text: "Stopped.", detail: dataMode(getState()) === "demo" ? "No service was reachable, so nothing was running. In demo mode this only changes the screen." : "Agent runs, background routines and coaching are off until you resume." });
+    } catch (e) {
+      const m = e instanceof Error ? e.message : "The stop request failed.";
+      setState({ killError: m });
+      toast({ tone: "error", text: "Stop was not confirmed.", detail: m });
+    } finally { setBusy(false); }
+  }, [busy, toast]);
+
+  const resume = useCallback(async () => {
+    setBusy(true);
+    try {
+      const r = await api.clearKill();
+      setState({ killed: r.killed, killedAt: r.at, killError: null });
+      toast({ tone: "plain", text: "Resumed.", detail: "Nothing starts by itself. Routines still follow the consent you gave them." });
+    } catch (e) {
+      toast({ tone: "error", text: "Could not resume.", detail: e instanceof Error ? e.message : "" });
+    } finally { setBusy(false); }
+  }, [toast]);
+
+  useEffect(() => {
+    api.killState().then((r) => setState({ killed: !!r.data?.killed, killedAt: r.data?.at ?? null })).catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => { if (e.shiftKey && e.key === "Escape") { e.preventDefault(); void stop(); } };
+    window.addEventListener("keydown", on);
+    return () => window.removeEventListener("keydown", on);
+  }, [stop]);
+
+  return (
+    <>
+      {s.killed && (
+        <div className="killbar" role="alert">
+          <p>
+            <b>Everything is stopped.</b> No agent will run and no routine will start{s.killedAt ? ` (since ${new Date(s.killedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })})` : ""}.
+          </p>
+          <button type="button" className="btn btn--secondary" onClick={resume} disabled={busy}>Resume</button>
+        </div>
+      )}
+      <button type="button" className="kill kill--fixed" aria-pressed={s.killed} onClick={s.killed ? resume : stop} disabled={busy} aria-label={s.killed ? "Resume after stop" : "Stop everything now"}>
+        <span className="kill__icon" aria-hidden="true" />
+        {s.killed ? "Stopped. Resume" : "Stop everything"}
+        {!s.killed && <kbd aria-hidden="true">Shift Esc</kbd>}
+      </button>
+    </>
+  );
+}
+
+export function App() {
+  return (
+    <ToastHost>
+      <Shell />
+    </ToastHost>
+  );
+}
+
+function Shell() {
+  const route = useRoute();
+  const current = screenOf(route);
+  const s = useAppState();
+  const [menu, setMenu] = useState(false);
+  const [nonce, setNonce] = useState(0);
+
+  useEffect(() => {
+    api.health().then((r) => setState({ mock: r.data?.mock ?? null })).catch(() => undefined);
+    void refreshQueueBadge();
+    const on = () => { setNonce((n) => n + 1); void refreshQueueBadge(); };
+    window.addEventListener("understudy:retry", on);
+    return () => window.removeEventListener("understudy:retry", on);
+  }, []);
+  useEffect(() => { setMenu(false); window.scrollTo(0, 0); document.title = `${NAV.find((n) => n.id === current)?.label ?? "Understudy"} · Understudy`; }, [current]);
+  useEffect(() => { if (current === "unknown") navigate("/genome"); }, [current]);
+
+  const Screen = current === "unknown" ? screens.genome : screens[current];
+  return (
+    <div className="app">
+      <a className="skip" href="#main">Skip to the screen</a>
+      <header className="topbar">
+        <Wordmark />
+        <button type="button" className="btn btn--secondary btn--sm" aria-expanded={menu} aria-controls="nav" onClick={() => setMenu((m) => !m)}>
+          {menu ? "Close" : "Menu"}
+        </button>
+      </header>
+      <aside className="side" data-open={menu}>
+        <div className="side__brand"><Wordmark /></div>
+        <nav id="nav" aria-label="Screens" className="nav">
+          {NAV.map((n) => (
+            <a key={n.id} href={`#/${n.id}`} className="nav__link" aria-current={current === n.id ? "page" : undefined}>
+              <span className="nav__label">{n.label}</span>
+              {n.id === "queue" && s.pendingQueue > 0 && <span className="nav__count" aria-label={`${s.pendingQueue} waiting`}>{s.pendingQueue}</span>}
+              <span className="nav__hint">{n.hint}</span>
+            </a>
+          ))}
+        </nav>
+        <div className="side__foot">
+          <DataNote />
+          <ThemeSwitch />
+        </div>
+      </aside>
+      <main id="main" className="main" tabIndex={-1}>
+        <Boundary screen={current}>
+          <Suspense fallback={<div className="page"><Loading label="Loading screen" /></div>}>
+            <Screen key={`${current}-${nonce}`} />
+          </Suspense>
+        </Boundary>
+      </main>
+      <KillSwitch />
+    </div>
+  );
+}

@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "version": "0.1.0-demo",
+ "mock": true,
+ "models": {
+  "planner": "(set in environment)",
+  "fast": "(set in environment)",
+  "computer_use": "(set in environment)"
+ },
+ "services": {
+  "engine": true,
+  "agent": true
+ }
+}

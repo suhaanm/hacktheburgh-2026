@@ -1,0 +1,25 @@
+# Stub expert policy (thin pack): a few checks, no oracle. Semantics: pack.schema.json#/$defs/expert_steps.
+version: 1
+task: refresh-a-metric
+coverage: stub
+
+checks:
+  - id: profile_inputs
+    label: Profile the inputs before querying
+    cogs: [PROFILE_DATA]
+    required: true
+    critical: true
+    after: []
+    coach: { question: "What would make these rows wrong, and have you looked for it?" }
+  - id: run_and_inspect
+    label: Run the query and inspect the rows
+    cogs: [WRITE_QUERY, RUN_QUERY, INSPECT_RESULT]
+    required: true
+    after: [profile_inputs]
+  - id: sanity_check
+    label: Sanity-check the number against last period
+    cogs: [CHECK]
+    required: true
+    critical: true
+    after: [run_and_inspect]
+    coach: { question: "Does the change since last period make sense? What would explain it?" }

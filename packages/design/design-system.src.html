@@ -1,0 +1,1341 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Understudy Design System</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&family=JetBrains+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,300..700;1,400&display=swap">
+<style>
+/* Layout concept: a reading column of whole-width sections separated by hairlines, with a quiet index rail on wide screens.
+   The signature visuals come first because they are the product. Tokens and components below are inlined from
+   packages/design/tokens.css and components.css (see build.mjs). */
+/*@tokens*/
+/*@components*/
+
+/* ---- Page only ---------------------------------------------------------- */
+html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--bg); }
+.wrap { width: 100%; max-width: 1360px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: var(--bg); border-bottom: var(--hair) solid var(--line); }
+.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); min-height: 56px; }
+.brand { display: inline-flex; align-items: center; gap: var(--space-3); font: 600 var(--text-lg)/1 var(--font-display); letter-spacing: -0.02em; color: var(--fg); text-decoration: none; }
+.brand small { font: 500 var(--text-xs)/1 var(--font-mono); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--muted); padding-left: var(--space-3); border-left: var(--hair) solid var(--line-strong); }
+@media (max-width: 520px) { .brand small { display: none; } }
+.shell { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 var(--space-10); padding-block: var(--space-8) var(--space-12); }
+.rail { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; display: flex; gap: var(--space-4); overflow-x: auto; white-space: nowrap; padding-bottom: var(--space-3); margin-bottom: var(--space-6); border-bottom: var(--hair) solid var(--line); font: 500 var(--text-xs)/1 var(--font-mono); }
+.rail a { color: var(--muted); text-decoration: none; padding: var(--space-2) 0; }
+.rail a:hover { color: var(--fg); }
+.rail h2, .rail .rail__group { display: none; }
+@media (min-width: 1100px) {
+  .shell { grid-template-columns: 188px minmax(0, 1fr); }
+  .rail { position: sticky; top: 88px; align-self: start; flex-direction: column; gap: 0; overflow: visible; white-space: normal; border: 0; margin: 0; padding: 0; max-height: calc(100vh - 110px); overflow-y: auto; }
+  .rail a { padding: 5px 0; }
+  .rail .rail__group { display: block; margin-top: var(--space-5); font: 500 0.6875rem/1 var(--font-mono); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--muted); opacity: 0.85; }
+  .rail .rail__group:first-child { margin-top: 0; }
+}
+.page-head { display: grid; gap: var(--space-6); padding-bottom: var(--space-10); }
+.page-head h1 { font-size: var(--text-4xl); font-weight: 600; font-stretch: 92%; max-width: 15ch; }
+.principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: var(--space-6); margin: 0; padding: 0; list-style: none; }
+.principles li { padding-top: var(--space-3); border-top: var(--hair) solid var(--fg); display: grid; gap: var(--space-1); align-content: start; }
+.principles b { font: 600 var(--text-md)/1.3 var(--font-display); }
+.principles span { font-size: var(--text-sm); color: var(--muted); max-width: 40ch; }
+
+.sec { display: grid; gap: var(--space-8); padding-block: var(--space-10); border-top: var(--hair) solid var(--line); }
+.sec__head { display: grid; gap: var(--space-3); max-width: 72ch; }
+.sec__head h2 { font-size: var(--text-3xl); }
+.block { display: grid; gap: var(--space-5); min-width: 0; }
+.block + .block { margin-top: var(--space-4); }
+:where(.block) h3 { font: 600 var(--text-lg)/1.3 var(--font-display); letter-spacing: -0.01em; }
+.cols { display: grid; gap: var(--space-7) var(--space-8); grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); align-items: start; }
+.cols--wide { grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); }
+.cols > * { min-width: 0; }
+.figures { display: flex; flex-wrap: wrap; gap: var(--space-5) var(--space-9); }
+@media (max-width: 640px) { .figures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5) var(--space-4); } }
+.note { font-size: var(--text-sm); color: var(--muted); max-width: 62ch; }
+.rule-top { padding-top: var(--space-5); border-top: var(--hair) solid var(--line); }
+
+.chart__hint { display: none; font: var(--text-xs)/1.3 var(--font-mono); color: var(--muted); margin: 0; }
+@media (max-width: 800px) { .chart__hint { display: block; } }
+
+/* Spec rows: label left, specimen right */
+.spec { display: grid; margin: 0; }
+.spec > div { display: grid; grid-template-columns: minmax(0, 160px) minmax(0, 1fr); gap: var(--space-5); padding: var(--space-5) 0; border-top: var(--hair) solid var(--line); align-items: start; }
+.spec > div:last-child { border-bottom: var(--hair) solid var(--line); }
+.spec dt { font: 500 var(--text-xs)/1.4 var(--font-mono); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--muted); padding-top: 4px; }
+.spec dd { margin: 0; display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-4); align-items: center; min-width: 0; }
+.spec dd.stack { display: grid; gap: var(--space-4); align-items: start; justify-items: start; }
+@media (max-width: 640px) { .spec > div { grid-template-columns: 1fr; gap: var(--space-2); } }
+
+/* Screens */
+.screen { border: var(--hair) solid var(--line-strong); border-radius: var(--radius-3); background: var(--panel); overflow: hidden; min-width: 0; }
+.screen__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-5); border-bottom: var(--hair) solid var(--line); background: var(--bg); }
+.screen__bar b { font: 600 var(--text-sm)/1 var(--font-display); letter-spacing: -0.01em; }
+.screen__bar .group { display: inline-flex; gap: var(--space-3); align-items: center; }
+.today { display: grid; gap: var(--space-8) var(--space-10); padding: clamp(24px, 5vw, 56px) clamp(16px, 5vw, 56px); grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 900px) { .today { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); } .today__say { border-top: 0; padding-top: 0; padding-left: var(--space-8); border-left: var(--hair) solid var(--line); min-height: 160px; align-content: center; } .today__foot { grid-column: 1 / -1; } }
+.today__task { display: grid; gap: var(--space-3); }
+.today__task h3 { font: 600 clamp(1.75rem, 1rem + 2.6vw, 3rem)/1.05 var(--font-display); letter-spacing: var(--tracking-display); font-stretch: 94%; text-wrap: balance; max-width: 18ch; }
+.today__sub { color: var(--muted); }
+.steps { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; max-width: 420px; margin-top: var(--space-2); }
+.steps i { height: 3px; border-radius: 1px; background: var(--line-strong); }
+.steps i[data-done] { background: var(--fg); }
+.steps i[data-now] { background: var(--accent); }
+.today__say { display: grid; gap: var(--space-3); padding-top: var(--space-6); border-top: var(--hair) solid var(--line); max-width: 560px; }
+.today__say p { font: 500 var(--text-xl)/1.3 var(--font-body); }
+.today__say .row { display: flex; align-items: flex-start; gap: var(--space-3); }
+.today__say .coach__dot { margin-top: 0.5em; }
+.today__foot { font: var(--text-xs)/1.5 var(--font-mono); color: var(--muted); }
+
+.mock { position: relative; border: var(--hair) solid var(--line-strong); border-radius: var(--radius-3); background: var(--panel); overflow: hidden; min-height: 330px; }
+.mock__url { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-4); border-bottom: var(--hair) solid var(--line); background: var(--bg); font: var(--text-xs)/1 var(--font-mono); color: var(--muted); }
+.mock__url i { display: block; flex: 1; padding: 6px 10px; border-radius: var(--radius-pill); background: var(--sunk); font-style: normal; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mock__page { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--space-6); padding: var(--space-6); }
+.mock__result { display: grid; gap: var(--space-2); align-content: start; padding: var(--space-4); border: var(--hair) solid var(--line); border-radius: var(--radius-2); }
+.mock__result b { font: 600 var(--text-2xl)/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.mock__form { display: grid; gap: var(--space-3); align-content: start; }
+.mock__cta { display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: center; }
+.demo-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+
+/* Graph */
+.graph-grid { display: grid; gap: var(--space-6); grid-template-columns: minmax(0, 1fr); }
+.graph-under { display: grid; gap: var(--space-7); grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 960px) { .graph-under { grid-template-columns: minmax(0, 1fr) 340px; } }
+.graph-under .legend-groups { grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+.legend-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: var(--space-5) var(--space-7); }
+.legend-groups > div { display: grid; gap: var(--space-2); align-content: start; }
+.legend--col { flex-direction: column; flex-wrap: nowrap; gap: var(--space-2); }
+.minis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: var(--space-6); }
+.minis figure { margin: 0; display: grid; gap: var(--space-3); }
+.minis figcaption { font-size: var(--text-sm); color: var(--muted); max-width: 40ch; }
+.minis figcaption b { color: var(--fg); }
+.minis svg { display: block; width: 100%; height: auto; border-top: var(--hair) solid var(--line); padding-top: var(--space-3); }
+.node-fill-r { fill: var(--accent); } .node-fill-s { fill: var(--novice); } .node-fill-m { fill: var(--expert); } .node-fill-a { fill: var(--good); }
+.node-line-r { stroke: var(--accent); } .node-line-s { stroke: var(--novice); } .node-line-m { stroke: var(--expert); } .node-line-a { stroke: var(--good); }
+.link-line { stroke: var(--muted); stroke-width: 1; fill: none; }
+.node-label { font-family: var(--font-body); font-size: 12px; font-weight: 600; fill: var(--fg); }
+.node-sub { font-family: var(--font-mono); font-size: 10px; fill: var(--muted); }
+.node-faded .node-label { fill: var(--muted); font-weight: 500; }
+.detail dl { display: grid; gap: var(--space-3); margin: 0; }
+.detail dt { font: 500 var(--text-xs)/1.2 var(--font-mono); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--muted); }
+.detail dd { margin: 2px 0 0; font-size: var(--text-sm); }
+
+/* Presence */
+.day-pick { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+.heat-cell-unc { fill: url(#unc); }
+.heat-sel { fill: none; stroke: var(--fg); stroke-width: 1.5; }
+
+/* Foundations */
+.swatch { display: block; width: 36px; height: 36px; border-radius: var(--radius-2); border: var(--hair) solid var(--line-strong); background: var(--_c); }
+.tokens-table td, .tokens-table th { white-space: nowrap; }
+.tokens-table td:nth-child(3) { white-space: normal; min-width: 220px; }
+.hex { font: var(--text-xs)/1 var(--font-mono); color: var(--muted); }
+.pass { color: var(--good); font: 500 var(--text-xs)/1 var(--font-mono); }
+.type-specimen { display: grid; gap: var(--space-2); padding: var(--space-5) 0; border-top: var(--hair) solid var(--line); }
+.type-specimen .t-label { margin-bottom: var(--space-1); }
+.numgrid { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 2px var(--space-7); font: 500 var(--text-md)/1.6 var(--font-mono); }
+.numgrid span { text-align: right; }
+.scale-row { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: var(--space-4); align-items: baseline; padding: var(--space-2) 0; border-top: var(--hair) solid var(--line); }
+.scale-row code { background: none; padding: 0; color: var(--muted); font-size: var(--text-xs); }
+.space-row { display: grid; grid-template-columns: 90px 60px minmax(0, 1fr); gap: var(--space-3); align-items: center; padding: 3px 0; font: var(--text-xs)/1 var(--font-mono); color: var(--muted); }
+.space-row i { display: block; height: 10px; background: var(--fg); opacity: 0.85; border-radius: 1px; }
+.shapes { display: flex; flex-wrap: wrap; gap: var(--space-6); }
+.shapes figure { margin: 0; display: grid; gap: var(--space-2); font: var(--text-xs)/1.3 var(--font-mono); color: var(--muted); justify-items: start; }
+.shapes figure i { display: block; width: 72px; height: 48px; border: var(--hair) solid var(--control-line); background: var(--panel); }
+.easing { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: var(--space-5); }
+.easing figure { margin: 0; display: grid; gap: var(--space-2); font: var(--text-xs)/1.4 var(--font-mono); color: var(--muted); }
+.easing svg { width: 100%; max-width: 170px; height: auto; }
+.motion-stage { display: grid; gap: var(--space-4); align-content: start; }
+.stagebox { position: relative; height: 110px; border: var(--hair) dashed var(--line-strong); border-radius: var(--radius-3); background: var(--panel); }
+.stagebox--row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: 0 var(--space-5); height: 92px; }
+[hidden] { display: none !important; }
+
+/* Do and Don't */
+.dd { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: var(--space-8); }
+.dd h3 { display: flex; align-items: center; gap: var(--space-3); padding-bottom: var(--space-3); border-bottom: var(--hair) solid var(--fg); }
+.dd ul { list-style: none; margin: 0; padding: 0; display: grid; }
+.dd li { padding: var(--space-4) 0; border-bottom: var(--hair) solid var(--line); display: grid; gap: 4px; }
+.dd li b { font-weight: 600; }
+.dd li span { color: var(--muted); font-size: var(--text-sm); max-width: 52ch; }
+.mark-do, .mark-dont { width: 14px; height: 14px; border-radius: 50%; flex: none; position: relative; }
+.mark-do { background: var(--good); }
+.mark-dont { background: var(--bad); }
+.mark-do::after { content: ""; position: absolute; left: 4px; top: 2px; width: 4px; height: 7px; border: solid var(--on-good); border-width: 0 1.5px 1.5px 0; transform: rotate(40deg); }
+.mark-dont::before, .mark-dont::after { content: ""; position: absolute; left: 3px; top: 6.25px; width: 8px; height: 1.5px; background: var(--on-bad); transform: rotate(45deg); }
+.mark-dont::after { transform: rotate(-45deg); }
+footer.foot { padding-top: var(--space-8); border-top: var(--hair) solid var(--line); font: var(--text-xs)/1.6 var(--font-mono); color: var(--muted); display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); justify-content: space-between; }
+.seg-e { fill: var(--on-expert); font-family: var(--font-mono); font-size: 9.5px; font-weight: 600; letter-spacing: 0.02em; }
+.seg-n { fill: var(--on-novice); font-family: var(--font-mono); font-size: 9.5px; font-weight: 600; letter-spacing: 0.02em; }
+.hatch-e { stroke: var(--expert); stroke-width: 1.4; } .hatch-n { stroke: var(--novice); stroke-width: 1.4; } .hatch-m { stroke: var(--muted); stroke-width: 1.2; }
+.hatch-f { stroke: var(--fg); stroke-width: 1; opacity: 0.55; }
+.gap-e { stroke: var(--expert); stroke-width: 1; stroke-dasharray: 3 2; }
+.gap-n { stroke: var(--novice); stroke-width: 1; stroke-dasharray: 3 2; }
+.track { fill: var(--sunk); }
+.lost-fill { fill: var(--bad-soft); }
+.lost-cap { stroke: var(--bad); stroke-width: 2; }
+.lost-text { fill: var(--bad); font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+.whisk { stroke: var(--fg); stroke-width: 1.25; fill: none; }
+.wf-step { fill: var(--bad-soft); stroke: var(--bad); stroke-width: 1.25; }
+.wf-total { fill: var(--bad); }
+.wf-save { stroke: var(--muted); stroke-width: 1.25; stroke-dasharray: 3 2; }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Understudy design system, top of page">
+      <svg width="26" height="18" viewBox="0 0 26 18" aria-hidden="true"><circle cx="9" cy="9" r="7" fill="var(--accent)"/><circle cx="17" cy="9" r="7" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="2.4 2.4" opacity="0.7"/></svg>
+      Understudy <small>Design system</small>
+    </a>
+    <div class="segmented" role="group" aria-label="Theme" id="theme">
+      <button type="button" data-t="system" aria-pressed="true">System</button>
+      <button type="button" data-t="light" aria-pressed="false">Light</button>
+      <button type="button" data-t="dark" aria-pressed="false">Dark</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap" id="top">
+<div class="shell">
+
+<nav class="rail" aria-label="Sections">
+  <span class="rail__group">Signature visuals</span>
+  <a href="#ribbon">Work ribbon</a>
+  <a href="#graph">Work graph</a>
+  <a href="#presence">Presence heatmap</a>
+  <span class="rail__group">Screens</span>
+  <a href="#today">Today</a>
+  <a href="#ring">Overlay ring</a>
+  <a href="#onboarding">Onboarding</a>
+  <a href="#memory">Memory file</a>
+  <a href="#routines">Proposal and queue</a>
+  <span class="rail__group">Components</span>
+  <a href="#controls">Controls</a>
+  <a href="#coach">Coach and kill switch</a>
+  <a href="#states">Empty, loading, error</a>
+  <span class="rail__group">Foundations</span>
+  <a href="#colour">Colour</a>
+  <a href="#type">Type</a>
+  <a href="#space">Space and shape</a>
+  <a href="#motion">Motion</a>
+  <span class="rail__group">Practice</span>
+  <a href="#practice">Do and don't</a>
+</nav>
+
+<main>
+
+<header class="page-head">
+  <span class="t-label">Design system, version 0.1, 7 Nov 2026</span>
+  <h1>Quiet by default. Specific when it speaks.</h1>
+  <p class="t-lede">Understudy is a calm instrument for people doing real work. It shows where time is lost, helps on the real screen, then steps back as the person improves. This page documents how it looks, how it moves, and what every mark means.</p>
+  <ul class="principles">
+    <li><b>One idea per screen</b><span>One hero visual or one task. Everything else waits behind a click.</span></li>
+    <li><b>Every mark means something</b><span>Size, colour, opacity and motion each encode one thing, and a legend says which.</span></li>
+    <li><b>Help fades, so the interface fades</b><span>The coach shrinks, becomes a dot, then leaves. A returning worker sees it come back.</span></li>
+  </ul>
+</header>
+
+<!-- ============================ WORK RIBBON ============================ -->
+<section class="sec" id="ribbon" aria-labelledby="h-ribbon">
+  <div class="sec__head">
+    <span class="t-label">Signature visual 1 of 3</span>
+    <h2 id="h-ribbon">The work ribbon</h2>
+    <p class="t-lede">Two aligned traces of the same task. The expert is above, the novice below. Gaps are hatched. Seconds lost sit in red underneath, so the eye lands on where the time went.</p>
+  </div>
+
+  <figure class="chart">
+    <div class="chart__head">
+      <div>
+        <h3 class="chart__title">Household 204, entitlement check: session 3 of 4 against the nearest of 3 experts</h3>
+        <p class="chart__sub">Session closest to the mean gap. Pooled estimate is in the waterfall below.</p>
+      </div>
+      <span class="pill pill--origin" data-origin="synthetic">synthetic</span>
+    </div>
+    <div class="figures">
+      <div class="stat"><span class="stat__label">Expert</span><span class="stat__value num">139<span class="stat__unit">s</span></span><span class="stat__meta">8 steps, nearest of 3</span></div>
+      <div class="stat"><span class="stat__label">Novice</span><span class="stat__value num">229<span class="stat__unit">s</span></span><span class="stat__meta">9 steps, session 3</span></div>
+      <div class="stat stat--bad"><span class="stat__label">Lost</span><span class="stat__value num">+90<span class="stat__unit">s</span></span><span class="stat__interval">64 to 116 s</span><span class="stat__meta">95% interval, 3 references</span></div>
+    </div>
+    <div class="chart__scroll" style="--chart-min:760px"><svg id="ribbon-svg" viewBox="0 0 960 270" role="img" aria-labelledby="ribbon-t"><title id="ribbon-t">Work ribbon. Expert trace above novice trace, aligned by step. The novice skips the cliff check, then searches and reverts, and loses 90 seconds in total.</title></svg></div>
+    <ul class="legend" aria-label="Ribbon legend">
+      <li class="legend__item"><span class="sw sw--expert"></span>Expert step</li>
+      <li class="legend__item"><span class="sw sw--novice"></span>Novice step</li>
+      <li class="legend__item"><span class="sw sw--hatch sw--muted"></span>Gap: this trace did nothing here</li>
+      <li class="legend__item"><span class="sw sw--bad" style="height:10px;width:10px"></span>Seconds lost against the expert (bar height, 0 to 32 s)</li>
+      <li class="legend__item"><span class="sw sw--dashed sw--muted" style="width:14px"></span>Skipped step: time saved now, usually repaid later</li>
+    </ul>
+    <figcaption class="chart__foot">
+      <span><b>Axis</b> aligned seconds. Each column is as wide as the slower trace; each bar is drawn to its true dwell.</span>
+      <span><b>n</b> 1 novice session, 3 expert references</span>
+      <span><b>Whiskers</b> range across the 3 references</span>
+      <span><b>Alignment</b> Needleman-Wunsch on cogs</span>
+    </figcaption>
+  </figure>
+
+  <figure class="chart">
+    <div class="chart__head">
+      <div>
+        <h3 class="chart__title">Where the 90 seconds went</h3>
+        <p class="chart__sub">Mean over 4 novice sessions. Bars start where the last one ended; whiskers are the 95% interval.</p>
+      </div>
+      <span class="pill pill--origin" data-origin="synthetic">synthetic</span>
+    </div>
+    <div class="chart__scroll" style="--chart-min:760px"><svg id="waterfall-svg" viewBox="0 0 960 430" role="img" aria-labelledby="wf-t"><title id="wf-t">Gap waterfall with intervals and two controls. The real gap of 90 seconds is clearly above zero; the expert-versus-expert placebo and the shuffled-label null sit on zero.</title></svg></div>
+    <ul class="legend">
+      <li class="legend__item"><span class="sw sw--bad"></span>Seconds lost (outlined step, solid total)</li>
+      <li class="legend__item"><span class="sw sw--hatch sw--muted"></span>Seconds saved by skipping</li>
+      <li class="legend__item"><span class="sw sw--line sw--muted" style="border-color:var(--fg);width:14px"></span>95% interval</li>
+      <li class="legend__item"><span class="sw sw--ring sw--muted"></span>Control, should sit on zero</li>
+    </ul>
+    <figcaption class="chart__foot">
+      <span><b>n</b> 4 novices, 3 experts, 1 task type</span>
+      <span><b>Interval</b> 95%, 2,000 bootstrap resamples clustered by person</span>
+      <span><b>Method</b> Oaxaca-Blinder decomposition</span>
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ============================ WORK GRAPH ============================ -->
+<section class="sec" id="graph" aria-labelledby="h-graph">
+  <div class="sec__head">
+    <span class="t-label">Signature visual 2 of 3</span>
+    <h2 id="h-graph">The work graph</h2>
+    <p class="t-lede">Routines, skills, memory and automations as one living map. Related things draw a link. Routines that always run together become one node. Anything unused fades, literally, along the same decay curve the level engine uses.</p>
+  </div>
+
+  <div class="graph-grid">
+    <figure class="chart">
+      <div class="chart__head">
+        <h3 class="chart__title">Priya's work, week of 3 Nov</h3>
+        <span class="pill pill--origin" data-origin="synthetic">synthetic</span>
+      </div>
+      <div class="chart__scroll" style="--chart-min:760px"><svg id="graph-svg" viewBox="0 0 960 480" role="img" aria-labelledby="g-t"><title id="g-t">Work graph with 14 nodes: routines, skills, memory and automations. One composite routine, two faded nodes, and one selected skill, Check cliff edge.</title></svg></div>
+      <figcaption class="chart__foot">
+        <span><b>n</b> 21 days, 212 episodes</span>
+        <span><b>Link rule</b> seen together 3 or more times</span>
+        <span><b>Skill mastery</b> shown with its 90% interval in the panel</span>
+      </figcaption>
+    </figure>
+
+  </div>
+
+  <div class="graph-under">
+  <div class="legend-groups" aria-label="Graph legend">
+    <div><span class="t-label">Colour is node type</span>
+      <ul class="legend legend--col">
+        <li class="legend__item"><span class="sw sw--dot sw--accent"></span>Routine</li>
+        <li class="legend__item"><span class="sw sw--dot sw--novice"></span>Skill</li>
+        <li class="legend__item"><span class="sw sw--dot sw--expert"></span>Memory</li>
+        <li class="legend__item"><span class="sw sw--dot sw--good"></span>Automation</li>
+      </ul></div>
+    <div><span class="t-label">Size is weekly minutes or mastery</span>
+      <ul class="legend legend--col">
+        <li class="legend__item"><svg width="44" height="24" aria-hidden="true"><circle cx="10" cy="12" r="6" fill="var(--muted)"/><circle cx="32" cy="12" r="11" fill="var(--muted)"/></svg>Routine, memory, automation: 4 to 96 min/wk</li>
+        <li class="legend__item"><svg width="44" height="24" aria-hidden="true"><circle cx="10" cy="12" r="6" fill="var(--novice)"/><circle cx="32" cy="12" r="11" fill="var(--novice)"/></svg>Skill: mastery 0.1 to 1.0</li>
+      </ul></div>
+    <div><span class="t-label">Opacity is strength</span>
+      <ul class="legend legend--col">
+        <li class="legend__item"><svg width="44" height="14" aria-hidden="true"><circle cx="7" cy="7" r="6" fill="var(--accent)"/><circle cx="22" cy="7" r="6" fill="var(--accent)" opacity="0.6"/><circle cx="37" cy="7" r="6" fill="none" stroke="var(--accent)" stroke-dasharray="2 2" opacity="0.6"/></svg>1.0 used this week, 0.6 last used 4 days ago</li>
+        <li class="legend__item"><span class="sw sw--dashed sw--muted" style="width:14px"></span>Dashed ring: lapsed, 10 days unused</li>
+      </ul></div>
+    <div><span class="t-label">Lines and envelopes</span>
+      <ul class="legend legend--col">
+        <li class="legend__item"><span class="sw sw--line sw--muted" style="width:14px;border-width:1px"></span>Link: seen together 3 or more times</li>
+        <li class="legend__item"><span class="sw sw--dashed sw--accent" style="width:14px"></span>Combined: always run together</li>
+      </ul></div>
+  </div>
+    <aside class="sidepanel detail" aria-label="Node detail">
+      <div class="sidepanel__head">
+        <div style="display:grid;gap:6px">
+          <span class="pill" style="width:max-content"><span class="pill__dot" style="--_c:var(--novice)"></span>Skill</span>
+          <h3 class="sidepanel__title">Check cliff edge</h3>
+        </div>
+        <span class="level" data-help="3" title="Help level"><span class="level__ticks"><i></i><i></i><i></i><i></i></span>L2</span>
+      </div>
+      <div class="sidepanel__body">
+        <dl>
+          <div><dt>Mastery</dt><dd class="num">0.45, interval 0.31 to 0.58</dd></div>
+          <div><dt>Why it exists</dt><dd>You skipped this check in 3 of your last 5 cases. The expert does it every time and it takes 17 s.</dd></div>
+          <div><dt>Fades</dt><dd>Last used 2 days ago. Strength is 0.8 and halves every 7 days without use.</dd></div>
+        </dl>
+        <details class="why"><summary>Why this node, not another?</summary><div class="why__body">It links to Calculator entry because the check happens right after a result is read, 9 times in 11 cases.</div></details>
+      </div>
+      <div class="sidepanel__foot">
+        <button class="btn btn--secondary btn--sm" type="button">Edit note</button>
+        <button class="btn btn--quiet btn--sm" type="button">Forget this skill</button>
+      </div>
+    </aside>
+  </div>
+
+  <div class="block">
+    <h3>Three state changes</h3>
+    <div class="minis">
+      <figure>
+        <svg viewBox="0 0 260 90" aria-hidden="true"><line class="link-line" x1="70" y1="45" x2="190" y2="45"/><circle cx="62" cy="45" r="16" class="node-fill-s"/><circle cx="198" cy="45" r="11" class="node-fill-m"/></svg>
+        <figcaption><b>Link.</b> Two nodes that show up together at least 3 times get a hairline. Nothing else changes.</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 260 90" aria-hidden="true"><circle cx="50" cy="45" r="15" class="node-fill-r"/><circle cx="92" cy="45" r="12" class="node-fill-r"/><path d="M118 45h24" stroke="var(--muted)" fill="none" stroke-width="1" marker-end="url(#arr)"/><rect x="156" y="21" width="86" height="48" rx="24" fill="none" stroke="var(--accent)" stroke-width="1.25" stroke-dasharray="3 2"/><circle cx="182" cy="45" r="15" class="node-fill-r"/><circle cx="214" cy="45" r="12" class="node-fill-r"/><defs><marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 8 4 0 8z" fill="var(--muted)"/></marker></defs></svg>
+        <figcaption><b>Combine.</b> Two routines that always run together, with a small alignment distance, slide into one node.</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 260 90" aria-hidden="true"><circle cx="40" cy="45" r="16" class="node-fill-s"/><circle cx="104" cy="45" r="16" class="node-fill-s" opacity="0.6"/><circle cx="168" cy="45" r="16" class="node-fill-s" opacity="0.32"/><circle cx="168" cy="45" r="16" fill="none" stroke="var(--novice)" stroke-dasharray="3 2.5" opacity="0.8"/><text x="40" y="82" text-anchor="middle" class="node-sub">day 0</text><text x="104" y="82" text-anchor="middle" class="node-sub">day 4</text><text x="168" y="82" text-anchor="middle" class="node-sub">day 11</text></svg>
+        <figcaption><b>Fade.</b> Unused nodes lose opacity on the level engine's decay curve and go dashed once lapsed. Use brings them back.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ PRESENCE ============================ -->
+<section class="sec" id="presence" aria-labelledby="h-presence">
+  <div class="sec__head">
+    <span class="t-label">Signature visual 3 of 3</span>
+    <h2 id="h-presence">The presence heatmap</h2>
+    <p class="t-lede">A working week in quarter hours. Colour is the chance the person is at the keyboard. Hatching marks the cells the model is unsure about. The free hours it reveals are what an unattended run may use, only if the worker allows it.</p>
+  </div>
+
+  <figure class="chart">
+    <div class="chart__head">
+      <div>
+        <h3 class="chart__title">Nine-to-five persona, 21 days, 7 days by 96 quarter hours</h3>
+        <p class="chart__sub">Each cell is the posterior chance of being active, binned in five steps.</p>
+      </div>
+      <span class="pill pill--origin" data-origin="synthetic">synthetic</span>
+    </div>
+    <div class="figures">
+      <div class="stat"><span class="stat__label">Idle capacity</span><span class="stat__value num"><span id="idle-mean">--</span><span class="stat__unit">h / week</span></span><span class="stat__interval" id="idle-int">--</span><span class="stat__meta">inside your quiet hours</span></div>
+      <div class="stat"><span class="stat__label">Window forecast</span><span class="stat__value num"><span id="win-s">--</span></span><span class="stat__interval" id="win-int">--</span><span class="stat__meta" id="win-note">--</span></div>
+      <div class="stat"><span class="stat__label">Start rule</span><span class="stat__value num">0.35</span><span class="stat__interval">L / (G + L)</span><span class="stat__meta">run only if the forecast beats this</span></div>
+    </div>
+    <div class="chart__scroll" style="--chart-min:760px"><svg id="heat-svg" viewBox="0 0 940 262" role="img" aria-labelledby="heat-t"><title id="heat-t">Presence heatmap, seven days by ninety-six quarter hours. Weekdays are active from about half past eight to half past five with a lunch dip. Weekends are mostly idle. Hatched cells are uncertain.</title></svg></div>
+    <ul class="legend">
+      <li class="legend__item"><span class="sw" style="background:var(--seq-0)"></span>under 0.1</li>
+      <li class="legend__item"><span class="sw" style="background:var(--seq-1)"></span>0.1 to 0.3</li>
+      <li class="legend__item"><span class="sw" style="background:var(--seq-2)"></span>0.3 to 0.55</li>
+      <li class="legend__item"><span class="sw" style="background:var(--seq-3)"></span>0.55 to 0.8</li>
+      <li class="legend__item"><span class="sw" style="background:var(--seq-4)"></span>over 0.8, chance of being active</li>
+      <li class="legend__item"><span class="sw sw--hatch sw--muted" style="--_c:var(--fg)"></span>Unsure: 90% interval wider than 0.30</li>
+      <li class="legend__item"><span class="sw sw--accent" style="height:4px"></span>Your quiet hours</li>
+    </ul>
+    <figcaption class="chart__foot">
+      <span><b>n</b> 21 days per persona, 3 observations per weekday cell before pooling</span>
+      <span><b>Interval</b> 90%, Beta posterior with smoothing across neighbours; idle capacity sums the per-cell bounds, so it is wide on purpose</span>
+    </figcaption>
+  </figure>
+
+  <figure class="chart">
+    <div class="chart__head">
+      <h3 class="chart__title">One day, with its interval band</h3>
+      <div class="segmented day-segs" id="day-segs" role="group" aria-label="Day"></div>
+    </div>
+    <div class="chart__scroll" style="--chart-min:760px"><svg id="profile-svg" viewBox="0 0 940 190" role="img" aria-labelledby="prof-t"><title id="prof-t">Probability of being active across one day, with a 90 percent interval band.</title></svg></div>
+    <ul class="legend">
+      <li class="legend__item"><span class="sw sw--line sw--accent"></span>Chance of being active</li>
+      <li class="legend__item"><span class="sw sw--accent" style="opacity:.3;height:10px"></span>90% interval</li>
+      <li class="legend__item"><span class="sw sw--dashed sw--good"></span>Quiet hours, usable for an unattended run</li>
+    </ul>
+  </figure>
+</section>
+
+<!-- ============================ TODAY ============================ -->
+<section class="sec" id="today" aria-labelledby="h-today">
+  <div class="sec__head">
+    <span class="t-label">Screen</span>
+    <h2 id="h-today">Today</h2>
+    <p class="t-lede">The current task and the one thing the coach says. A level chip, a "Why this?" link and Stop. Nothing else is on the first view.</p>
+  </div>
+  <div class="screen">
+    <div class="screen__bar">
+      <b>Today</b>
+      <span class="group">
+        <span class="level" data-help="3"><span class="level__ticks"><i></i><i></i><i></i><i></i></span>L2<span class="level__name">Points</span></span>
+        <button class="kill" type="button" aria-pressed="false" data-kill><span class="kill__icon"></span>Stop</button>
+      </span>
+    </div>
+    <div class="today">
+      <div class="today__task">
+        <span class="t-label">Now</span>
+        <h3>Household 204, entitlement check</h3>
+        <p class="today__sub">Step 3 of 6. Read the second calculator's result.</p>
+        <div class="steps" aria-label="Step 3 of 6"><i data-done></i><i data-done></i><i data-now></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="today__say">
+        <div class="row"><span class="coach__dot" aria-hidden="true"></span><p>Check the cliff edge before you copy this result.</p></div>
+        <details class="why" style="margin-left:22px"><summary>Why this?</summary><div class="why__body">You skipped this check in 3 of your last 5 cases, and it is where this household's result usually changes.</div></details>
+      </div>
+      <p class="today__foot">Help is lighter than last week. 4 clean cases in a row on reading errors.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ RING ============================ -->
+<section class="sec" id="ring" aria-labelledby="h-ring">
+  <div class="sec__head">
+    <span class="t-label">Screen</span>
+    <h2 id="h-ring">The overlay ring</h2>
+    <p class="t-lede">On the real page, a ring eases onto the one element that matters, with a single short line. If the screen changes, the ring hides. There are no stale arrows.</p>
+  </div>
+  <div class="cols cols--wide">
+    <div class="mock" id="mock" aria-label="Example calculator page with the overlay ring">
+      <div class="mock__url"><span>calculator.local:7802</span><i>/household/204/result</i></div>
+      <div class="mock__page">
+        <div class="mock__form">
+          <span class="t-label">Household 204</span>
+          <div class="field"><label class="field__label" for="m-income">Monthly earnings</label><input class="input" id="m-income" value="1,240.00" readonly></div>
+          <div class="field"><label class="field__label" for="m-kids">Children</label><input class="input" id="m-kids" value="2" readonly></div>
+          <div class="mock__cta"><button class="btn btn--secondary" type="button" id="m-target">Check cliff edge</button><button class="btn btn--quiet" type="button">Copy result</button></div>
+        </div>
+        <div class="mock__result" id="m-result"><span class="t-label">Estimated entitlement</span><b class="num">&pound;412.60</b><span class="note">per month, from calculator 2 of 3</span></div>
+      </div>
+      <div class="ring" id="ring-el" data-state="hidden" style="--x:0px;--y:0px;--w:10px;--h:10px"><span class="ring__tag">Check this first</span></div>
+    </div>
+    <div class="block">
+      <h3>What the ring does</h3>
+      <ul class="note" style="padding-left:1.1em;display:grid;gap:var(--space-2);margin:0">
+        <li>Eases onto the target in 560 ms and overshoots nothing.</li>
+        <li>Carries one line of text, in the coach's voice, never a paragraph.</li>
+        <li>Hides within 240 ms when the page scrolls or the DOM changes, then lands again once the element is found.</li>
+        <li>Reduced motion: the ring appears in place.</li>
+      </ul>
+      <div class="demo-actions">
+        <button class="btn btn--secondary btn--sm" type="button" id="ring-replay">Replay landing</button>
+        <button class="btn btn--secondary btn--sm" type="button" id="ring-change">Change the screen</button>
+      </div>
+      <p class="note" id="ring-status" role="status">Ring is on "Check cliff edge".</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ ONBOARDING ============================ -->
+<section class="sec" id="onboarding" aria-labelledby="h-onboarding">
+  <div class="sec__head">
+    <span class="t-label">Screen</span>
+    <h2 id="h-onboarding">Onboarding</h2>
+    <p class="t-lede">One question at a time, in large type. Progress is a thin line. As you answer, the memory file you will own writes itself on the right.</p>
+  </div>
+  <div class="screen">
+    <div class="screen__bar"><b>Welcome</b><span class="t-label">Question 1 of 5</span></div>
+    <div class="cols" style="padding:clamp(20px,4vw,48px);gap:clamp(24px,5vw,64px);grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))">
+      <div class="block" style="gap:var(--space-6)">
+        <div class="progress-line" role="progressbar" aria-valuemin="0" aria-valuemax="5" aria-valuenow="1" aria-label="Question 1 of 5"><i style="--p:20%"></i></div>
+        <h3 class="question">What work do you do?</h3>
+        <p class="note">Pick the closest. It sets the starting steps, risky actions and tone. Your own work takes over after a few days.</p>
+        <fieldset style="border:0;padding:0;margin:0;min-width:0" id="roles">
+          <legend class="u-sr-only">Role</legend>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:var(--space-3)">
+            <label class="role-card"><input type="radio" name="role" value="benefits-processor" checked><span class="role-card__name">UK benefits processor</span><span class="role-card__desc">Entitlement checks, calculators, case notes.</span><span class="pill" style="width:max-content"><span class="pill__dot" style="--_c:var(--good)"></span>Deep pack, validated</span></label>
+            <label class="role-card"><input type="radio" name="role" value="data-analyst"><span class="role-card__name">Data analyst</span><span class="role-card__desc">Queries, notebooks, charts, write-ups.</span><span class="pill" style="width:max-content">Thin pack</span></label>
+            <label class="role-card"><input type="radio" name="role" value="programmer"><span class="role-card__name">Programmer</span><span class="role-card__desc">Editor, terminal, reviews, releases.</span><span class="pill" style="width:max-content">Thin pack</span></label>
+            <label class="role-card"><input type="radio" name="role" value="other"><span class="role-card__name">Something else</span><span class="role-card__desc">Start from the base steps and learn from your work.</span><span class="pill" style="width:max-content">No pack yet</span></label>
+          </div>
+        </fieldset>
+        <div class="demo-actions"><button class="btn btn--primary" type="button">Continue</button><button class="btn btn--quiet" type="button">Not now</button></div>
+      </div>
+      <div class="block">
+        <div class="memfile" aria-label="Preview of memory.md being written">
+          <div class="memfile__bar"><span>~/.understudy/memory.md</span><span>preview, not saved yet</span></div>
+          <div class="memfile__body" id="mem-preview"></div>
+        </div>
+        <p class="note">You can open, edit or delete this file at any time. Only your own actions and approvals write to it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ MEMORY ============================ -->
+<section class="sec" id="memory" aria-labelledby="h-memory">
+  <div class="sec__head">
+    <span class="t-label">Screen</span>
+    <h2 id="h-memory">The memory file</h2>
+    <p class="t-lede">A plain Markdown file the worker owns. Readable first, editable in place. Each line can be edited or forgotten. A proposed rule waits for a separate yes.</p>
+  </div>
+  <div class="cols cols--wide">
+    <div class="memfile" id="memfile" aria-label="memory.md">
+      <div class="memfile__bar"><span>~/.understudy/memory.md</span><span class="num">revision 12 &middot; saved 14:02</span></div>
+      <div class="memfile__body"></div>
+    </div>
+    <div class="block">
+      <h3>History of rule proposals</h3>
+      <div class="chart__scroll"><table class="table">
+        <thead><tr><th>Date</th><th>Proposed rule</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td class="num">7 Nov</td><td>Read calculator errors before retrying</td><td><span class="pill pill--consent" data-mode="approval"><span class="pill__glyph"></span>waiting</span></td></tr>
+          <tr><td class="num">5 Nov</td><td>Check child-related benefits first</td><td><span class="pill"><span class="pill__dot" style="--_c:var(--good)"></span>accepted v1</span></td></tr>
+          <tr><td class="num">3 Nov</td><td>Always copy the note id twice</td><td><span class="pill pill--consent" data-mode="never"><span class="pill__glyph"></span>declined</span></td></tr>
+        </tbody></table></div>
+      <p class="note">Three consistent corrections propose a rule. It never activates without your approval, and every version is kept.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ ROUTINES ============================ -->
+<section class="sec" id="routines" aria-labelledby="h-routines">
+  <div class="sec__head">
+    <span class="t-label">Screens</span>
+    <h2 id="h-routines">Proposal and morning queue</h2>
+    <p class="t-lede">A routine card arrives at a natural break, never mid-task, with the evidence and a plain choice. The morning queue shows what ran while you were away and asks only about what it could not decide.</p>
+  </div>
+  <div class="cols cols--wide">
+    <article class="proposal" aria-labelledby="p-title">
+      <div class="proposal__head">
+        <span class="t-label" style="width:100%">Routine found</span>
+        <h3 class="proposal__title" id="p-title">Enter a household into three calculators</h3>
+        <span class="pill pill--rung" data-rung="A1"><span class="pill__ticks"><i></i><i></i><i></i></span><b>A1</b> suggest</span>
+        <span class="pill pill--consent" data-mode="shadow"><span class="pill__glyph"></span>not enabled</span>
+      </div>
+      <p class="proposal__what">I saw you do this 14 times in 9 days. The steps are the same each time. Only the numbers change.</p>
+      <dl class="proposal__facts">
+        <div><dt>How often</dt><dd class="num">14 runs in 9 days, about 96 min a week</dd></div>
+        <div><dt>Hours saved, next 4 weeks</dt><dd><span class="stat__interval">3.1 to 5.2 h</span><span class="range" style="--lo:31%;--hi:52%;--pt:41%" aria-hidden="true"><i class="range__band"></i><i class="range__pt"></i></span><span class="stat__meta">95% interval, scale 0 to 10 h</span></dd></div>
+        <div><dt>It touches</dt><dd>gov.uk check, turn2us, case note</dd></div>
+        <div><dt>It will never</dt><dd>Submit, send or pay. Those stop for you.</dd></div>
+      </dl>
+      <div class="proposal__foot">
+        <button class="btn btn--primary" type="button">Try in shadow mode</button>
+        <button class="btn btn--secondary" type="button">Not now</button>
+        <button class="btn btn--quiet" type="button">Never for this</button>
+        <span class="push"><span class="pill pill--origin" data-origin="synthetic">synthetic</span></span>
+      </div>
+      <details class="why"><summary>Why this?</summary><div class="why__body">Shadow mode runs the routine beside you without saving or submitting anything, then compares its result with yours. It only moves up a rung after 20 matching runs.</div></details>
+    </article>
+
+    <div class="block">
+      <div class="queue-item">
+        <div class="queue-item__head"><h3 class="queue-item__title">Calculator entry, household 211</h3><span class="queue-item__when">ran 02:14, took 3 min 8 s</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:var(--space-2)">
+          <span class="pill pill--rung" data-rung="A2"><span class="pill__ticks"><i></i><i></i><i></i></span><b>A2</b> with approval</span>
+          <span class="pill pill--tier"><b>T1</b> compiled script</span>
+          <span class="pill pill--consent" data-mode="unattended"><span class="pill__glyph"></span>ran while away</span>
+        </div>
+        <p class="note" style="color:var(--fg)">All 3 calculators agree within &pound;2. The check passed: every result field is present and the note was saved as N-8841.</p>
+        <div class="queue-item__ask"><b>Waiting for you</b><span>Submit the case note. This cannot be undone.</span></div>
+        <div class="queue-item__foot"><button class="btn btn--primary" type="button">Approve and submit</button><button class="btn btn--secondary" type="button">Reject</button></div>
+        <details class="evidence"><summary>Evidence bundle, 7 steps</summary><div class="evidence__body chart__scroll"><table class="table"><thead><tr><th>Step</th><th>Tier</th><th>Check</th></tr></thead><tbody><tr><td>Enter household</td><td class="num">T1</td><td>fields match</td></tr><tr><td>Read 3 results</td><td class="num">T1</td><td>3 of 3 present</td></tr><tr><td>Reconcile</td><td class="num">T1</td><td>gap &pound;1.40</td></tr><tr><td>Save note</td><td class="num">T1</td><td>id N-8841</td></tr></tbody></table></div></details>
+      </div>
+      <div class="queue-item" style="border-color:var(--bad)">
+        <div class="queue-item__head"><h3 class="queue-item__title">Case-note draft, household 212</h3><span class="queue-item__when">stopped 02:41</span></div>
+        <p class="note" style="color:var(--fg)">The run stopped after step 2. The screen locked, and runs never start or continue on a locked screen. Nothing was changed.</p>
+        <div class="queue-item__foot"><button class="btn btn--secondary" type="button">Run it again now</button><button class="btn btn--quiet" type="button">Dismiss</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ CONTROLS ============================ -->
+<section class="sec" id="controls" aria-labelledby="h-controls">
+  <div class="sec__head">
+    <span class="t-label">Components</span>
+    <h2 id="h-controls">Controls</h2>
+    <p class="t-lede">Buttons say what they do. Pills show state, with shape or text as well as colour. Cards are only for things that are separate objects.</p>
+  </div>
+  <dl class="spec">
+    <div><dt>Buttons</dt><dd>
+      <button class="btn btn--primary" type="button">Approve and run</button>
+      <button class="btn btn--secondary" type="button">Not now</button>
+      <button class="btn btn--quiet" type="button">Never for this</button>
+      <button class="btn btn--danger" type="button">Delete this routine</button>
+      <button class="btn btn--secondary btn--sm" type="button">Small</button>
+      <button class="btn btn--primary" type="button" disabled>Disabled</button>
+    </dd></div>
+    <div><dt>Rung</dt><dd>
+      <span class="pill pill--rung" data-rung="A0"><span class="pill__ticks"><i></i><i></i><i></i></span><b>A0</b> observe</span>
+      <span class="pill pill--rung" data-rung="A1"><span class="pill__ticks"><i></i><i></i><i></i></span><b>A1</b> suggest</span>
+      <span class="pill pill--rung" data-rung="A2"><span class="pill__ticks"><i></i><i></i><i></i></span><b>A2</b> with approval</span>
+      <span class="pill pill--rung" data-rung="A3"><span class="pill__ticks"><i></i><i></i><i></i></span><b>A3</b> then report</span>
+      <span class="note" style="flex-basis:100%">Ticks show how far the agent may act alone. A3 needs about 75 clean runs and is a target, not a promise.</span>
+    </dd></div>
+    <div><dt>Consent</dt><dd>
+      <span class="pill pill--consent" data-mode="shadow"><span class="pill__glyph"></span>shadow</span>
+      <span class="pill pill--consent" data-mode="approval"><span class="pill__glyph"></span>with approval</span>
+      <span class="pill pill--consent" data-mode="unattended"><span class="pill__glyph"></span>while away</span>
+      <span class="pill pill--consent" data-mode="paused"><span class="pill__glyph"></span>paused</span>
+      <span class="pill pill--consent" data-mode="never"><span class="pill__glyph"></span>never</span>
+    </dd></div>
+    <div><dt>Tier and origin</dt><dd>
+      <span class="pill pill--tier"><b>T1</b> compiled script</span>
+      <span class="pill pill--tier"><b>T2</b> browser agent</span>
+      <span class="pill pill--tier"><b>T3</b> desktop</span>
+      <span class="pill pill--origin" data-origin="synthetic">synthetic</span>
+      <span class="pill pill--origin" data-origin="real"><span class="pill__dot"></span>real</span>
+    </dd></div>
+    <div><dt>Level</dt><dd>
+      <span class="level" data-help="4"><span class="level__ticks"><i></i><i></i><i></i><i></i></span>L1<span class="level__name">Walks with you</span></span>
+      <span class="level" data-help="3"><span class="level__ticks"><i></i><i></i><i></i><i></i></span>L2<span class="level__name">Points</span></span>
+      <span class="level" data-help="2"><span class="level__ticks"><i></i><i></i><i></i><i></i></span>L3<span class="level__name">Nudges</span></span>
+      <span class="level" data-help="1"><span class="level__ticks"><i></i><i></i><i></i><i></i></span>L4<span class="level__name">Standing by</span></span>
+    </dd></div>
+    <div><dt>Stat figure</dt><dd>
+      <div class="stat"><span class="stat__label">Hours saved</span><span class="stat__value num">4.1<span class="stat__unit">h</span></span><span class="stat__interval">3.1&ndash;5.2 h</span><span class="range" style="--lo:31%;--hi:52%;--pt:41%" aria-hidden="true"><i class="range__band"></i><i class="range__pt"></i></span><span class="stat__meta">next 4 weeks, n = 14 runs, synthetic</span></div>
+      <div class="stat stat--bad"><span class="stat__label">Time lost</span><span class="stat__value num">+90<span class="stat__unit">s</span></span><span class="stat__interval">64&ndash;116 s</span><span class="stat__meta">n = 4 sessions</span></div>
+    </dd></div>
+    <div><dt>Fields</dt><dd class="stack" style="width:100%;max-width:420px">
+      <div class="field" style="width:100%"><label class="field__label" for="f-name">Routine name</label><input class="input" id="f-name" value="Calculator entry"><span class="field__hint">Shown in your queue and the audit log.</span></div>
+      <div class="field" style="width:100%"><label class="field__label" for="f-hours">Quiet hours start</label><select class="select" id="f-hours"><option>18:30, weekdays</option><option>19:00, weekdays</option><option>All day, weekends</option></select></div>
+      <div class="field" style="width:100%"><label class="field__label" for="f-bad">Confirm by typing the routine name</label><input class="input" id="f-bad" aria-invalid="true" aria-describedby="f-err" value="Calculator entr"><span class="field__error" id="f-err">The name does not match. Type it exactly, or choose Not now.</span></div>
+    </dd></div>
+    <div><dt>Toggles</dt><dd class="stack">
+      <label class="toggle"><input type="checkbox" role="switch" checked><span class="toggle__track"></span><span class="toggle__text">Help me with this routine<span class="toggle__hint">Shadow mode only. Nothing is submitted.</span></span></label>
+      <label class="toggle"><input type="checkbox" role="switch"><span class="toggle__track"></span><span class="toggle__text">Run while I'm away<span class="toggle__hint">Off by default. Separate from the toggle above.</span></span></label>
+      <div class="banner" style="max-width:480px"><span class="banner__mark"></span><span><b>This routine can submit.</b> Because a model drives it, you must type its name to allow that. You can turn it off at any time.</span></div>
+    </dd></div>
+    <div><dt>Tabs</dt><dd class="stack" style="width:100%">
+      <div class="tabs" role="tablist" aria-label="Genome views" style="width:100%;max-width:520px">
+        <button class="tab" role="tab" aria-selected="true">Ribbon</button><button class="tab" role="tab" aria-selected="false">Waterfall</button><button class="tab" role="tab" aria-selected="false">Transitions</button><button class="tab" role="tab" aria-selected="false">Replay</button>
+      </div>
+      <div class="segmented" role="group" aria-label="Range"><button type="button" aria-pressed="true">7 days</button><button type="button" aria-pressed="false">21 days</button><button type="button" aria-pressed="false">All</button></div>
+    </dd></div>
+    <div><dt>Toast</dt><dd class="stack" style="width:100%">
+      <div class="toast"><span class="toast__dot"></span><span class="toast__text">Saved to memory.md<span>Revision 13</span></span><button class="toast__action" type="button">Undo</button></div>
+      <div class="toast toast--success"><span class="toast__dot"></span><span class="toast__text">Approved. Case note N-8841 submitted.</span></div>
+      <div class="toast toast--error"><span class="toast__dot"></span><span class="toast__text">The run did not start<span>The screen is locked.</span></span><button class="toast__action" type="button">See why</button></div>
+    </dd></div>
+    <div><dt>Why link</dt><dd class="stack">
+      <details class="why"><summary>Why this?</summary><div class="why__body">It opens in place. There are no tooltips, so it works the same with a keyboard, a finger or a screen reader.</div></details>
+    </dd></div>
+    <div><dt>Focus</dt><dd>
+      <button class="btn btn--secondary focus-ring" type="button">Focus ring, always visible</button>
+      <span class="note">2 px accent, 2 px offset, on every control.</span>
+    </dd></div>
+    <div><dt>Legend</dt><dd>
+      <ul class="legend"><li class="legend__item"><span class="sw sw--expert"></span>Expert</li><li class="legend__item"><span class="sw sw--novice"></span>Novice</li><li class="legend__item"><span class="sw sw--hatch sw--muted"></span>Gap</li><li class="legend__item"><span class="sw sw--bad"></span>Seconds lost</li></ul>
+    </dd></div>
+  </dl>
+</section>
+
+<!-- ============================ COACH AND KILL ============================ -->
+<section class="sec" id="coach" aria-labelledby="h-coach">
+  <div class="sec__head">
+    <span class="t-label">Components</span>
+    <h2 id="h-coach">The coach chip and the kill switch</h2>
+    <p class="t-lede">The coach recedes as the level rises: full, then small, then a dot, then gone. A returning worker sees it come back. The kill switch is always on screen and one press stops everything.</p>
+  </div>
+  <div class="cols cols--wide">
+    <div class="block">
+      <h3>Fade states</h3>
+      <dl class="spec">
+        <div><dt>L1 full</dt><dd><div class="coach" data-state="full"><span class="coach__dot"></span><span class="coach__body"><span class="coach__title">Check the cliff edge first</span><span class="coach__more"><div><p>You skipped this in 3 of the last 5 cases.</p></div></span></span></div></dd></div>
+        <div><dt>L2 small</dt><dd><div class="coach" data-state="small"><span class="coach__dot"></span><span class="coach__body"><span class="coach__title">Check the cliff edge</span></span></div></dd></div>
+        <div><dt>L3 dot</dt><dd><div class="coach" data-state="dot" role="button" tabindex="0" aria-label="Coach is standing by. Open."><span class="coach__dot"></span><span class="coach__body"><span class="coach__title">Check the cliff edge</span></span></div></dd></div>
+        <div><dt>L4 gone</dt><dd><span class="note">Nothing on screen. The coach answers only when asked.</span></dd></div>
+      </dl>
+    </div>
+    <div class="block">
+      <h3>Try the fade</h3>
+      <div class="screen" style="padding:var(--space-6);display:grid;gap:var(--space-5)">
+        <div style="min-height:72px;display:flex;align-items:center"><div class="coach" id="live-coach" data-state="full"><span class="coach__dot"></span><span class="coach__body"><span class="coach__title">Check the cliff edge first</span><span class="coach__more"><div><p>You skipped this in 3 of the last 5 cases.</p><details class="why"><summary>Why this?</summary></details></div></span></span></div></div>
+        <div class="field"><label class="field__label" for="lvl">Level <output id="lvl-out" class="num">L1</output></label><input id="lvl" type="range" min="1" max="4" value="1" step="1" style="accent-color:var(--accent);width:100%"><span class="field__hint" id="lvl-note">Walks with you: ring, step and reason.</span></div>
+        <div class="demo-actions"><button class="btn btn--secondary btn--sm" type="button" id="fade-play">Show a fade</button><button class="btn btn--secondary btn--sm" type="button" id="fade-back">Worker returns after 14 days</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="block">
+    <h3>Kill switch</h3>
+    <div class="cols">
+      <div class="block">
+        <div class="demo-actions"><button class="kill" type="button" aria-pressed="false" data-kill><span class="kill__icon"></span>Stop everything <kbd>&#8963;&#8997;&#8984;K</kbd></button><span class="kill-status" role="status" id="kill-status" data-stopped="false">Nothing is stopped. Agent runs: 1 active.</span></div>
+        <p class="note">Fixed at the bottom right of every screen. Red edge at rest, solid red once pressed. It stops every run within one second and says so in words. Resume is a separate, deliberate press.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ STATES ============================ -->
+<section class="sec" id="states" aria-labelledby="h-states">
+  <div class="sec__head">
+    <span class="t-label">Components</span>
+    <h2 id="h-states">Empty, loading and error</h2>
+    <p class="t-lede">No blank screens. Each state says what is happening, what the person can do, and what has not been touched.</p>
+  </div>
+  <div class="cols" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr))">
+    <div class="state">
+      <span class="state__mark" aria-hidden="true"></span>
+      <h3 class="state__title">Nothing waiting for you</h3>
+      <p class="state__body">The agent has not run anything while you were away. Routines you approve will report here each morning.</p>
+      <button class="btn btn--secondary btn--sm" type="button">See routines it could take on</button>
+    </div>
+    <div class="state state--loading" role="status" aria-live="polite">
+      <h3 class="state__title">Reading 21 days of events</h3>
+      <div class="progress-line progress-line--indeterminate" style="width:100%"><i></i></div>
+      <div style="display:grid;gap:10px;width:100%"><span class="skeleton"></span><span class="skeleton skeleton--mid"></span><span class="skeleton skeleton--short"></span></div>
+      <p class="state__body">This takes about 4 seconds. Nothing leaves this laptop.</p>
+    </div>
+    <div class="state state--error" role="alert">
+      <span class="state__mark" aria-hidden="true"></span>
+      <h3 class="state__title">The engine is not answering</h3>
+      <p class="state__body">Nothing is listening on port 7700, so charts cannot load. Start it with <code>make dev</code> and try again. Your memory file is untouched.</p>
+      <button class="btn btn--primary btn--sm" type="button">Try again</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ COLOUR ============================ -->
+<section class="sec" id="colour" aria-labelledby="h-colour">
+  <div class="sec__head">
+    <span class="t-label">Foundation</span>
+    <h2 id="h-colour">Colour</h2>
+    <p class="t-lede">One accent, five meanings, two themes of equal care. Colour never carries state alone: a label, shape or icon always goes with it.</p>
+  </div>
+  <div class="chart__scroll"><table class="table tokens-table">
+    <thead><tr><th>Swatch</th><th>Token</th><th>Means</th><th>Light</th><th>Dark</th><th>Contrast, light</th><th>Contrast, dark</th></tr></thead>
+    <tbody><!--@colour-rows--></tbody>
+  </table></div>
+  <p class="note">Text pairs meet WCAG AA at 4.5 to 1. Edges of inputs and buttons meet 3 to 1. The toggle at the top right switches themes; the system setting applies when nothing is chosen.</p>
+</section>
+
+<!-- ============================ TYPE ============================ -->
+<section class="sec" id="type" aria-labelledby="h-type">
+  <div class="sec__head">
+    <span class="t-label">Foundation</span>
+    <h2 id="h-type">Type</h2>
+    <p class="t-lede">Bricolage Grotesque for headings and key numbers, used with restraint. Source Sans 3 for reading. JetBrains Mono for data, labels and axes, with tabular figures wherever digits line up.</p>
+  </div>
+  <div class="cols cols--wide">
+    <div class="block">
+      <div class="type-specimen"><span class="t-label">Display, Bricolage Grotesque 600</span><div class="t-display" style="font-stretch:92%">Help that fades</div></div>
+      <div class="type-specimen"><span class="t-label">Body, Source Sans 3 400, about 65 characters wide</span><p class="t-prose">You skipped the cliff check in 3 of your last 5 cases. The expert does it every time and it takes 17 seconds. Today it is the one thing worth your attention.</p></div>
+      <div class="type-specimen"><span class="t-label">Data, JetBrains Mono 500, tabular</span>
+        <div class="numgrid" aria-label="Aligned figures"><span>3.1</span><span>5.2</span><span>+18 s</span><span>10</span><span>26</span><span>+13 s</span><span>0.45</span><span>0.31</span><span>&minus;17 s</span></div></div>
+    </div>
+    <div class="block">
+      <div class="scale-row"><code>text-4xl</code><span style="font:600 var(--text-4xl)/1 var(--font-display);letter-spacing:var(--tracking-display)">Page</span></div>
+      <div class="scale-row"><code>text-3xl</code><span style="font:600 var(--text-3xl)/1.1 var(--font-display);letter-spacing:var(--tracking-display)">Key number 4.1 h</span></div>
+      <div class="scale-row"><code>text-2xl 28</code><span style="font:600 var(--text-2xl)/1.1 var(--font-display);letter-spacing:var(--tracking-display)">Section title</span></div>
+      <div class="scale-row"><code>text-xl 22</code><span style="font:600 var(--text-xl)/1.2 var(--font-display)">Card title</span></div>
+      <div class="scale-row"><code>text-lg 18</code><span style="font-size:var(--text-lg)">Lede paragraph</span></div>
+      <div class="scale-row"><code>text-md 16</code><span>Body text</span></div>
+      <div class="scale-row"><code>text-sm 14</code><span style="font-size:var(--text-sm)">Controls and secondary copy</span></div>
+      <div class="scale-row"><code>text-xs 12</code><span class="t-label">Label, axis, footnote</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ SPACE ============================ -->
+<section class="sec" id="space" aria-labelledby="h-space">
+  <div class="sec__head">
+    <span class="t-label">Foundation</span>
+    <h2 id="h-space">Space and shape</h2>
+    <p class="t-lede">A 4 px unit, hairlines for structure and almost no shadow. Radius is small, and larger only for separate objects.</p>
+  </div>
+  <div class="cols cols--wide">
+    <div class="block"><h3>Space, 4 px base</h3>
+      <div id="space-scale"></div></div>
+    <div class="block">
+      <h3>Radius and hairlines</h3>
+      <div class="shapes">
+        <figure><i style="border-radius:var(--radius-1)"></i>radius-1, 2 px<br>ticks, swatches</figure>
+        <figure><i style="border-radius:var(--radius-2)"></i>radius-2, 4 px<br>controls</figure>
+        <figure><i style="border-radius:var(--radius-3)"></i>radius-3, 6 px<br>objects</figure>
+        <figure><i style="border-radius:var(--radius-pill)"></i>pill<br>state only</figure>
+      </div>
+      <h3 style="margin-top:var(--space-4)">Elevation</h3>
+      <div class="shapes">
+        <figure><i style="border-radius:var(--radius-3)"></i>flat, hairline<br>almost everything</figure>
+        <figure><i style="border-radius:var(--radius-3);box-shadow:var(--elev-2);border-color:transparent"></i>elev-2<br>toast, overlay panel</figure>
+      </div>
+      <p class="note">Hairline 1 px for structure. Chart traces 1.5 px. Focus and overlay ring 2 px.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ MOTION ============================ -->
+<section class="sec" id="motion" aria-labelledby="h-motion">
+  <div class="sec__head">
+    <span class="t-label">Foundation</span>
+    <h2 id="h-motion">Motion</h2>
+    <p class="t-lede">Motion shows a state change: a ring landing, help fading, a card arriving. Nothing loops for decoration. With reduced motion on, every change still happens, it just does not travel.</p>
+  </div>
+  <div class="cols cols--wide">
+    <div class="motion-stage">
+      <span class="t-label">Ring landing, 560 ms, ease-land</span>
+      <div class="stagebox" id="ms-ring" aria-label="Ring landing demo">
+        <button class="btn btn--secondary" id="ms-target" type="button" style="position:absolute;right:28px;top:34px">Check cliff edge</button>
+        <div class="ring" id="ms-ring-el" data-state="hidden" style="--x:0px;--y:0px;--w:10px;--h:10px"></div>
+      </div>
+      <div class="demo-actions"><button class="btn btn--secondary btn--sm" type="button" id="ms-ring-play">Replay landing</button></div>
+      <span class="t-label" style="margin-top:var(--space-4)">Fade, 900 ms, ease-fade</span>
+      <div class="stagebox stagebox--row" aria-label="Fade demo">
+        <div class="coach" id="ms-coach" data-state="full"><span class="coach__dot"></span><span class="coach__body"><span class="coach__title">Check the cliff edge first</span><span class="coach__more"><div><p>You skipped this in 3 of the last 5 cases.</p></div></span></span></div>
+        <span class="level" id="ms-level" data-help="4"><span class="level__ticks"><i></i><i></i><i></i><i></i></span><span id="ms-level-t">L1</span></span>
+      </div>
+      <div class="demo-actions"><button class="btn btn--secondary btn--sm" type="button" id="ms-fade-play">Replay fade</button></div>
+    </div>
+    <div class="motion-stage">
+      <span class="t-label">Proposal arrival, 360 ms, ease-out</span>
+      <div id="arrive-stage" style="min-height:150px;display:grid;align-content:start;gap:var(--space-3)">
+        <div class="note" id="arrive-state" role="status">Task running. No proposals while you work.</div>
+        <div id="arrive-card" hidden class="card card__pad" style="display:grid;gap:var(--space-3);max-width:420px">
+          <b>Enter a household into three calculators</b>
+          <span class="note">Saves about 3.1 to 5.2 h in 4 weeks.</span>
+          <div class="demo-actions"><button class="btn btn--primary btn--sm" type="button">Try in shadow mode</button><button class="btn btn--quiet btn--sm" type="button">Not now</button></div>
+        </div>
+      </div>
+      <div class="demo-actions"><button class="btn btn--secondary btn--sm" type="button" id="arrive-play">Replay arrival</button></div>
+    </div>
+  </div>
+  <div class="block">
+    <h3>Easing and duration</h3>
+    <div class="easing" id="easing"></div>
+    <div class="chart__scroll"><table class="table" style="min-width:520px">
+      <thead><tr><th>Token</th><th>Time</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td><code>--dur-fast</code></td><td class="num">140 ms</td><td>Hover, press</td></tr>
+        <tr><td><code>--dur-base</code></td><td class="num">240 ms</td><td>Toggles, tabs, inline expansion, ring hiding</td></tr>
+        <tr><td><code>--dur-arrive</code></td><td class="num">360 ms</td><td>A card arriving or leaving, a panel sliding in</td></tr>
+        <tr><td><code>--dur-land</code></td><td class="num">560 ms</td><td>Ring landing on its target</td></tr>
+        <tr><td><code>--dur-fade</code></td><td class="num">900 ms</td><td>Coach chip receding, graph node fading</td></tr>
+      </tbody></table></div>
+    <p class="note">Under <code>prefers-reduced-motion: reduce</code> every duration token drops to 0.01 ms and the one decorative-looking loader, the skeleton pulse, stops.</p>
+  </div>
+</section>
+
+<!-- ============================ PRACTICE ============================ -->
+<section class="sec" id="practice" aria-labelledby="h-practice">
+  <div class="sec__head">
+    <span class="t-label">Practice</span>
+    <h2 id="h-practice">Do and don't</h2>
+  </div>
+  <div class="dd">
+    <div>
+      <h3><span class="mark-do"></span>Do</h3>
+      <ul>
+        <li><b>Say what will happen.</b><span>"Try in shadow mode. Nothing is submitted." Then show the result in the same words.</span></li>
+        <li><b>Make "Not now" and "Never for this" as easy as "Yes".</b><span>Same size, same row, no guilt.</span></li>
+        <li><b>Show n and the interval on every chart.</b><span>Badge synthetic data every time it appears.</span></li>
+        <li><b>Let one thing be the hero.</b><span>One visual or one task. Count the controls on the first view and remove any that are not needed.</span></li>
+        <li><b>Use a side panel or inline expansion.</b><span>The worker keeps their place.</span></li>
+      </ul>
+    </div>
+    <div>
+      <h3><span class="mark-dont"></span>Don't</h3>
+      <ul>
+        <li><b>Use colour alone for state.</b><span>Pair it with text, shape or a tick pattern.</span></li>
+        <li><b>Decorate.</b><span>No gradients, glows, sparkles, emoji section markers or accent bars on cards.</span></li>
+        <li><b>Hide consent.</b><span>No pre-ticked boxes, no buried "never", no modal after modal.</span></li>
+        <li><b>Draw a chart without a scale.</b><span>No pies, no 3D, no unlabelled axes, no dual axes.</span></li>
+        <li><b>Loop an animation for atmosphere.</b><span>If it does not show a change, remove it.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer class="foot"><span>Understudy design system 0.1</span><span>tokens.css, components.css, design-system.html</span><span>Hack the Burgh XIII, 8 Nov 2026</span></footer>
+</main>
+</div>
+</div>
+
+<button class="kill kill--fixed" type="button" aria-pressed="false" data-kill><span class="kill__icon"></span>Stop everything</button>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var f1 = function (n) { return (Math.round(n * 10) / 10).toFixed(1); };
+  var sgn = function (n) { return (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n); };
+
+  /* ---- Scroll hints for wide charts on phones ---- */
+  Array.prototype.forEach.call(document.querySelectorAll("div.chart__scroll[style]"), function (sc) {
+    var h = document.createElement("p"); h.className = "chart__hint"; h.textContent = "Scroll sideways for the full chart."; sc.parentNode.insertBefore(h, sc);
+  });
+
+  /* ---- Theme toggle ---- */
+  (function () {
+    var root = document.documentElement, btns = $$("#theme button");
+    function set(t, save) {
+      if (t === "system") root.removeAttribute("data-theme"); else root.setAttribute("data-theme", t);
+      btns.forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.t === t)); });
+      if (save) { try { localStorage.setItem("us-theme", t); } catch (e) {} }
+    }
+    btns.forEach(function (b) { b.addEventListener("click", function () { set(b.dataset.t, true); }); });
+    var saved = null; try { saved = localStorage.getItem("us-theme"); } catch (e) {}
+    if (saved === "light" || saved === "dark") set(saved, false);
+  })();
+
+  /* ---- 1. Work ribbon ---- */
+  (function () {
+    var cols = [
+      { k: "ENTER", e: 22, n: 38, lo: 9, hi: 24, t: "Enter household" },
+      { k: "OPEN", e: 8, n: 10, lo: 0, hi: 5, t: "Open calculator 1" },
+      { k: "READ", e: 14, n: 21, lo: 3, hi: 12, t: "Read result 1" },
+      { k: "CHECK", e: 17, n: 0, skip: true, t: "Check cliff edge" },
+      { k: "OPEN", e: 8, n: 9, lo: 0, hi: 3, t: "Open calculator 2" },
+      { k: "READ", e: 13, n: 18, lo: 1, hi: 9, t: "Read result 2" },
+      { k: "SEARCH", e: 0, n: 32, lo: 24, hi: 41, t: "Search again" },
+      { k: "REVERT", e: 0, n: 12, lo: 8, hi: 17, t: "Revert an entry" },
+      { k: "COPY", e: 26, n: 31, lo: 1, hi: 9, t: "Copy to note" },
+      { k: "RECON", e: 31, n: 58, lo: 16, hi: 38, t: "Reconcile totals" }
+    ];
+    var X0 = 118, X1 = 932, G = 3, yE = 50, H = 38, yN = yE + H + 10, yB = 164, K = 1.9;
+    var T = cols.reduce(function (a, c) { return a + Math.max(c.e, c.n); }, 0);
+    var s = (X1 - X0 - G * (cols.length - 1)) / T;
+    var out = '<defs>' +
+      '<pattern id="h-e" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" class="hatch-e"/></pattern>' +
+      '<pattern id="h-n" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" class="hatch-n"/></pattern>' +
+      '<pattern id="h-m" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" class="hatch-m"/></pattern></defs>';
+    var x = X0, starts = [];
+    cols.forEach(function (c) { var w = Math.max(c.e, c.n) * s; starts.push({ x: x, w: w, cum: 0 }); x += w + G; });
+    var cum = 0; cols.forEach(function (c, i) { starts[i].cum = cum; cum += Math.max(c.e, c.n); });
+    function xAt(t) { for (var i = cols.length - 1; i >= 0; i--) if (t >= starts[i].cum) return starts[i].x + (t - starts[i].cum) * s; return X0; }
+    // axis
+    out += '<text class="svg-text" x="0" y="14">Aligned seconds</text>';
+    out += '<line class="svg-axis" x1="' + X0 + '" x2="' + X1 + '" y1="30" y2="30"/>';
+    [0, 60, 120, 180, 240].forEach(function (t) {
+      var xx = xAt(t);
+      out += '<line class="svg-axis" x1="' + xx + '" x2="' + xx + '" y1="26" y2="34"/><text class="svg-text" x="' + xx + '" y="22" text-anchor="' + (t === 0 ? "start" : "middle") + '">' + t + (t === 0 ? " s" : "") + '</text>';
+    });
+    // row labels
+    out += '<circle cx="6" cy="' + (yE + H / 2) + '" r="4" class="c-expert"/><text class="svg-text svg-text--strong" x="16" y="' + (yE + H / 2 + 4) + '">Expert</text>';
+    out += '<circle cx="6" cy="' + (yN + H / 2) + '" r="4" class="c-novice"/><text class="svg-text svg-text--strong" x="16" y="' + (yN + H / 2 + 4) + '">Novice</text>';
+    out += '<text class="lost-text" x="0" y="' + (yB + 20) + '">Lost</text><text class="svg-text" x="0" y="' + (yB + 33) + '">vs expert</text>';
+    out += '<line class="svg-axis" x1="' + X0 + '" x2="' + X1 + '" y1="' + yB + '" y2="' + yB + '"/>';
+    cols.forEach(function (c, i) {
+      var cx = starts[i].x, cw = starts[i].w, ce = c.e * s, cn = c.n * s;
+      out += '<rect class="track" x="' + cx + '" y="' + yE + '" width="' + cw + '" height="' + H + '" rx="2"/><rect class="track" x="' + cx + '" y="' + yN + '" width="' + cw + '" height="' + H + '" rx="2"/>';
+      // expert
+      if (c.e > 0) {
+        out += '<g><title>Expert: ' + c.t + ', ' + c.e + ' s</title><rect class="c-expert" x="' + cx + '" y="' + yE + '" width="' + ce + '" height="' + H + '" rx="2"/>';
+        if (ce > c.k.length * 5.9 + 8) out += '<text class="seg-e" x="' + (cx + 5) + '" y="' + (yE + H / 2 + 3.5) + '">' + c.k + '</text>';
+        out += '</g>';
+      } else {
+        out += '<g><title>Expert: nothing here. The novice spent ' + c.n + ' s on ' + c.t + '.</title><rect fill="url(#h-e)" class="gap-e" x="' + cx + '" y="' + yE + '" width="' + cw + '" height="' + H + '" rx="2"/></g>';
+      }
+      // novice
+      if (c.n > 0) {
+        out += '<g><title>Novice: ' + c.t + ', ' + c.n + ' s</title><rect class="c-novice" x="' + cx + '" y="' + yN + '" width="' + cn + '" height="' + H + '" rx="2"/>';
+        if (cn > c.k.length * 5.9 + 8) out += '<text class="seg-n" x="' + (cx + 5) + '" y="' + (yN + H / 2 + 3.5) + '">' + c.k + '</text>';
+        out += '</g>';
+      } else {
+        out += '<g><title>Novice skipped ' + c.t + ' (' + c.e + ' s for the expert).</title><rect fill="url(#h-n)" class="gap-n" x="' + cx + '" y="' + yN + '" width="' + (c.e * s) + '" height="' + H + '" rx="2"/>';
+        out += '<rect x="' + (cx + 5) + '" y="' + (yN + H / 2 - 8) + '" width="50" height="16" rx="2" class="c-panel"/><text class="svg-text svg-text--strong" x="' + (cx + 10) + '" y="' + (yN + H / 2 + 3.5) + '">skipped</text></g>';
+      }
+      // lost
+      if (c.skip) {
+        var h2 = c.e * K;
+        out += '<g><title>Skipped step: ' + c.e + ' s saved now. Often repaid later.</title><rect fill="url(#h-m)" x="' + cx + '" y="' + (yB + 1) + '" width="' + cw + '" height="' + h2 + '" class="gap-n" style="stroke:var(--muted)"/>';
+        out += '<text class="svg-text svg-text--strong" x="' + (cx + cw / 2) + '" y="' + (yB + h2 + 14) + '" text-anchor="middle">−' + c.e + '</text></g>';
+      } else {
+        var loss = c.n - c.e, hh = loss * K;
+        out += '<g><title>' + c.t + ': ' + loss + ' s lost (range ' + c.lo + ' to ' + c.hi + ' s across references)</title><rect class="lost-fill" x="' + cx + '" y="' + yB + '" width="' + cw + '" height="' + hh + '"/><line class="lost-cap" x1="' + cx + '" x2="' + (cx + cw) + '" y1="' + yB + '" y2="' + yB + '"/>';
+        var mx = cx + cw / 2;
+        out += '<line class="whisk" x1="' + mx + '" x2="' + mx + '" y1="' + (yB + c.lo * K) + '" y2="' + (yB + c.hi * K) + '"/><line class="whisk" x1="' + (mx - 4) + '" x2="' + (mx + 4) + '" y1="' + (yB + c.lo * K) + '" y2="' + (yB + c.lo * K) + '"/><line class="whisk" x1="' + (mx - 4) + '" x2="' + (mx + 4) + '" y1="' + (yB + c.hi * K) + '" y2="' + (yB + c.hi * K) + '"/>';
+        out += '<text class="lost-text" x="' + (cx + 4) + '" y="' + (yB + Math.max(hh, c.hi * K) + 14) + '">+' + loss + '</text></g>';
+      }
+    });
+    $("#ribbon-svg").insertAdjacentHTML("beforeend", out);
+  })();
+
+  /* ---- Waterfall ---- */
+  (function () {
+    var rows = [
+      { l: "Slower data entry", s: 0, d: 18, lo: 10, hi: 26 },
+      { l: "Re-reading results", s: 18, d: 13, lo: 5, hi: 21 },
+      { l: "Skipped cliff check", s: 31, d: -17, lo: -20, hi: -14, save: true },
+      { l: "Search and revert after the miss", s: 14, d: 44, lo: 31, hi: 57 },
+      { l: "Slower reconcile", s: 58, d: 27, lo: 15, hi: 39 },
+      { l: "Copy to note", s: 85, d: 5, lo: 1, hi: 9 },
+      { l: "Unexplained", s: 90, d: 0, lo: -5, hi: 5 },
+      { l: "Total gap", s: 0, d: 90, lo: 64, hi: 116, total: true }
+    ];
+    var PX0 = 250, PX1 = 700, V0 = -30, V1 = 120, y0 = 46, RH = 30, BH = 14;
+    var X = function (v) { return PX0 + (v - V0) / (V1 - V0) * (PX1 - PX0); };
+    var out = '<defs><pattern id="h-wm" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" class="hatch-m"/></pattern></defs>';
+    var ticks = [-20, 0, 20, 40, 60, 80, 100, 120], yEnd = y0 + rows.length * RH;
+    ticks.forEach(function (t) {
+      out += '<line class="svg-grid" x1="' + X(t) + '" x2="' + X(t) + '" y1="34" y2="' + yEnd + '"/><text class="svg-text" x="' + X(t) + '" y="24" text-anchor="middle">' + (t > 0 ? "+" : t < 0 ? "−" : "") + Math.abs(t) + '</text>';
+    });
+    out += '<text class="svg-text" x="0" y="24">Seconds against the expert</text><line class="svg-axis" x1="' + X(0) + '" x2="' + X(0) + '" y1="34" y2="' + yEnd + '" style="stroke:var(--fg)"/>';
+    out += '<text class="svg-text" x="730" y="24">Change</text><text class="svg-text" x="800" y="24">95% interval</text>';
+    rows.forEach(function (r, i) {
+      var y = y0 + i * RH + (RH - BH) / 2, cy = y + BH / 2, a = Math.min(r.s, r.s + r.d), b = Math.max(r.s, r.s + r.d), end = r.s + r.d;
+      if (r.total) out += '<line class="svg-axis" x1="0" x2="940" y1="' + (y0 + i * RH) + '" y2="' + (y0 + i * RH) + '"/>';
+      out += '<text class="svg-text ' + (r.total ? 'svg-text--strong' : 'svg-text--fg') + '" x="0" y="' + (cy + 4) + '" style="font-family:var(--font-body);font-size:12.5px">' + r.l + '</text>';
+      var w = Math.max(b - a, 0) / (V1 - V0) * (PX1 - PX0);
+      var cls = r.total ? 'wf-total' : r.save ? 'wf-save' : 'wf-step';
+      var fillAttr = r.save ? ' fill="url(#h-wm)"' : '';
+      out += '<g><title>' + r.l + ': ' + sgn(r.d) + ' s, interval ' + sgn(r.lo) + ' to ' + sgn(r.hi) + ' s</title>';
+      if (w < 1.5) out += '<line x1="' + X(a) + '" x2="' + X(a) + '" y1="' + (y - 2) + '" y2="' + (y + BH + 2) + '" style="stroke:var(--bad);stroke-width:2"/>';
+      else out += '<rect class="' + cls + '"' + fillAttr + ' x="' + X(a) + '" y="' + y + '" width="' + w + '" height="' + BH + '" rx="1.5"/>';
+      var wl = X(r.s + (r.total ? r.lo : r.lo)), wh = X(r.s + (r.total ? r.hi : r.hi));
+      if (!r.total) { wl = X(r.s + r.lo); wh = X(r.s + r.hi); }
+      out += '<line class="whisk" x1="' + wl + '" x2="' + wh + '" y1="' + cy + '" y2="' + cy + '" ' + (r.total ? 'style="stroke:var(--fg)"' : '') + '/><line class="whisk" x1="' + wl + '" x2="' + wl + '" y1="' + (cy - 4) + '" y2="' + (cy + 4) + '"/><line class="whisk" x1="' + wh + '" x2="' + wh + '" y1="' + (cy - 4) + '" y2="' + (cy + 4) + '"/></g>';
+      if (i < rows.length - 2) { var nx = rows[i + 1], ny = y + RH + BH / 2; out += '<line x1="' + X(end) + '" x2="' + X(nx.s) + '" y1="' + (y + BH) + '" y2="' + (y + RH) + '" class="svg-grid" style="stroke:var(--line-strong);stroke-dasharray:2 2"/>'; }
+      out += '<text class="svg-text svg-text--strong num" x="730" y="' + (cy + 4) + '" style="' + (r.d > 0 ? 'fill:var(--bad)' : '') + '">' + sgn(r.d) + ' s</text><text class="svg-text" x="800" y="' + (cy + 4) + '">' + sgn(r.lo) + ' to ' + sgn(r.hi) + '</text>';
+    });
+    // controls
+    var yc = yEnd + 24;
+    out += '<line class="svg-axis" x1="0" x2="940" y1="' + yc + '" y2="' + yc + '"/>';
+    out += '<text class="svg-text svg-text--strong" x="0" y="' + (yc + 20) + '">Controls: should sit on zero</text>';
+    var ctr = [
+      { l: "Real gap", v: 90, lo: 64, hi: 116, real: true },
+      { l: "Expert against expert (placebo)", v: 1, lo: -4, hi: 6 },
+      { l: "Shuffled labels (null)", v: 0, lo: -7, hi: 8 }
+    ];
+    ctr.forEach(function (c, i) {
+      var cy = yc + 46 + i * 26;
+      out += '<g><title>' + c.l + ': ' + sgn(c.v) + ' s, interval ' + sgn(c.lo) + ' to ' + sgn(c.hi) + '</title><text class="svg-text svg-text--fg" x="0" y="' + (cy + 4) + '" style="font-family:var(--font-body);font-size:12.5px">' + c.l + '</text>';
+      out += '<line class="whisk" x1="' + X(c.lo) + '" x2="' + X(c.hi) + '" y1="' + cy + '" y2="' + cy + '"/><line class="whisk" x1="' + X(c.lo) + '" x2="' + X(c.lo) + '" y1="' + (cy - 4) + '" y2="' + (cy + 4) + '"/><line class="whisk" x1="' + X(c.hi) + '" x2="' + X(c.hi) + '" y1="' + (cy - 4) + '" y2="' + (cy + 4) + '"/>';
+      out += '<circle cx="' + X(c.v) + '" cy="' + cy + '" r="5" ' + (c.real ? 'class="c-bad"' : 'fill="var(--panel)" stroke="var(--fg)" stroke-width="1.5"') + '/></g>';
+      out += '<text class="svg-text svg-text--strong num" x="730" y="' + (cy + 4) + '" ' + (c.real ? 'style="fill:var(--bad)"' : '') + '>' + sgn(c.v) + ' s</text><text class="svg-text" x="800" y="' + (cy + 4) + '">' + sgn(c.lo) + ' to ' + sgn(c.hi) + '</text>';
+    });
+    $("#waterfall-svg").insertAdjacentHTML("beforeend", out);
+  })();
+
+  /* ---- 2. Work graph ---- */
+  (function () {
+    var rad = function (n) { return n.type === "s" ? 8 + n.v * 18 : 8 + Math.sqrt(n.v) * 2.3; };
+    var N = [
+      { id: "r1a", type: "r", x: 330, y: 250, v: 62, st: 1, l: "Enter household", sub: "62 min/wk", comp: 1 },
+      { id: "r1b", type: "r", x: 376, y: 250, v: 34, st: 1, l: "Open 3 calculators", sub: "34 min/wk", comp: 1 },
+      { id: "r2", type: "r", x: 580, y: 165, v: 41, st: 0.95, l: "Case note copy", sub: "41 min/wk" },
+      { id: "r3", type: "r", x: 640, y: 335, v: 38, st: 0.9, l: "Reconcile totals", sub: "38 min/wk" },
+      { id: "r4", type: "r", x: 115, y: 425, v: 12, st: 0.3, l: "Weekly cliff review", sub: "12 min/wk, lapsed", faded: 1 },
+      { id: "s1", type: "s", x: 165, y: 160, v: 0.8, st: 1, l: "Read error first", sub: "mastery 0.80" },
+      { id: "s2", type: "s", x: 470, y: 395, v: 0.45, st: 0.8, l: "Check cliff edge", sub: "mastery 0.45", sel: 1 },
+      { id: "s3", type: "s", x: 800, y: 275, v: 0.6, st: 0.9, l: "Reconcile before note", sub: "mastery 0.60" },
+      { id: "s4", type: "s", x: 70, y: 275, v: 0.2, st: 0.3, l: "Search operators", sub: "mastery 0.20, lapsed", faded: 1 },
+      { id: "m1", type: "m", x: 580, y: 62, v: 24, st: 1, l: "Summaries: short", sub: "24 min/wk" },
+      { id: "m2", type: "m", x: 320, y: 78, v: 18, st: 0.85, l: "Child benefits first", sub: "18 min/wk" },
+      { id: "m3", type: "m", x: 875, y: 62, v: 4, st: 1, l: "Never: banking sites", sub: "4 min/wk" },
+      { id: "a1", type: "a", x: 215, y: 345, v: 30, st: 1, l: "Calculator entry", sub: "A2, 30 min/wk" },
+      { id: "a2", type: "a", x: 855, y: 160, v: 10, st: 0.6, l: "Case-note draft", sub: "A1, 10 min/wk" }
+    ];
+    var by = {}; N.forEach(function (n) { n.r = rad(n); by[n.id] = n; });
+    // links reference r1a as the composite's anchor
+    var L = [["r1a", "a1"], ["r1b", "s2"], ["r1a", "m2"], ["r1a", "s1"], ["r2", "m1"], ["r2", "r3"], ["r3", "s3"], ["a2", "m3"], ["a2", "r2"], ["s2", "r4"], ["s4", "s1"], ["r1b", "r3"]];
+    var out = '';
+    out += '<text class="svg-text" x="0" y="14">Position carries no meaning. Nodes are placed to avoid overlap.</text>';
+    L.forEach(function (p) {
+      var a = by[p[0]], b = by[p[1]], op = Math.min(a.st, b.st);
+      out += '<line class="link-line" x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '" opacity="' + (0.25 + 0.55 * op) + '"/>';
+    });
+    // composite envelope
+    var a = by.r1a, b = by.r1b;
+    out += '<g><title>Combined: Enter household and Open 3 calculators ran together in 14 of 14 episodes (alignment distance 0.04).</title><rect x="' + (a.x - a.r - 9) + '" y="' + (a.y - a.r - 9) + '" width="' + ((b.x + b.r) - (a.x - a.r) + 18) + '" height="' + ((a.r + 9) * 2) + '" rx="' + (a.r + 9) + '" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.25" stroke-dasharray="4 3"/></g>';
+    N.forEach(function (n) {
+      var cls = 'node-fill-' + n.type, ln = 'node-line-' + n.type;
+      out += '<g class="' + (n.faded ? 'node-faded' : '') + '"><title>' + n.l + ' (' + n.sub + ', strength ' + n.st + ')</title>';
+      if (n.sel) out += '<circle cx="' + n.x + '" cy="' + n.y + '" r="' + (n.r + 7) + '" fill="none" stroke="var(--accent)" stroke-width="2"/>';
+      out += '<circle cx="' + n.x + '" cy="' + n.y + '" r="' + n.r + '" class="' + cls + '" opacity="' + n.st + '"/>';
+      if (n.faded) out += '<circle cx="' + n.x + '" cy="' + n.y + '" r="' + n.r + '" class="' + ln + '" fill="none" stroke-width="1.25" stroke-dasharray="3 2.5" opacity="0.8"/>';
+      if (!n.comp) {
+        out += '<text class="node-label" x="' + n.x + '" y="' + (n.y + n.r + 16) + '" text-anchor="middle">' + n.l + '</text><text class="node-sub" x="' + n.x + '" y="' + (n.y + n.r + 29) + '" text-anchor="middle">' + n.sub + '</text>';
+      }
+      out += '</g>';
+    });
+    out += '<text class="node-label" x="' + ((a.x + b.x) / 2) + '" y="' + (a.y + a.r + 31) + '" text-anchor="middle">Calculator entry</text><text class="node-sub" x="' + ((a.x + b.x) / 2) + '" y="' + (a.y + a.r + 44) + '" text-anchor="middle">combined, 96 min/wk</text>';
+    $("#graph-svg").insertAdjacentHTML("beforeend", out);
+  })();
+
+  /* ---- 3. Presence ---- */
+  (function () {
+    var days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    var ss = function (a, b, x) { var t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+    function p(d, h) {
+      if (h < 0) { d = (d + 6) % 7; h += 24; } if (h >= 24) { d = (d + 1) % 7; h -= 24; }
+      if (d >= 5) return 0.03 + 0.10 * ss(9, 11, h) * (1 - ss(15, 17, h)) * (d === 5 ? 1 : 0.4);
+      var st = d === 2 ? 8.75 : 8.5, en = d === 4 ? 16.5 : 17.5;
+      var am = ss(st - 0.5, st + 0.5, h) * (1 - ss(12.25, 12.75, h));
+      var pm = ss(13.25, 13.75, h) * (1 - ss(en - 0.5, en + 0.5, h));
+      var lunch = 0.28 * ss(12.25, 12.75, h) * (1 - ss(13.25, 13.75, h));
+      var eve = 0.10 * ss(18, 19, h) * (1 - ss(22, 23, h)) + ((d === 1 || d === 3) ? 0.1 * ss(20, 21, h) * (1 - ss(22.5, 23.2, h)) : 0);
+      return Math.min(0.94, 0.9 * (am + pm) + lunch + eve + 0.02);
+    }
+    function w(d, h) {
+      var neff = d >= 5 ? 14 : d === 4 ? 14 : 34, q = p(d, h);
+      return Math.min(1, 2 * 1.645 * Math.sqrt(q * (1 - q) / (neff + 1)) + 0.9 * Math.abs(p(d, h + 0.5) - p(d, h - 0.5)));
+    }
+    var quiet = function (d, h) { return d >= 5 || h >= 18.5 || h < 7; };
+    var X0 = 56, CW = 9, CH = 26, GAP = 3, Y0 = 34;
+    var cls = function (v) { return v < 0.1 ? 0 : v < 0.3 ? 1 : v < 0.55 ? 2 : v < 0.8 ? 3 : 4; };
+    var out = '<defs><pattern id="unc" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" class="hatch-f"/></pattern></defs>';
+    for (var hh = 0; hh <= 24; hh += 3) {
+      var x = X0 + hh * 4 * CW;
+      out += '<line class="svg-axis" x1="' + x + '" x2="' + x + '" y1="26" y2="30"/><text class="svg-text" x="' + x + '" y="20" text-anchor="' + (hh === 0 ? "start" : hh === 24 ? "end" : "middle") + '">' + (hh < 10 ? "0" : "") + (hh === 24 ? "24" : hh) + ':00</text>';
+    }
+    var idle = 0, idLo = 0, idHi = 0;
+    for (var d = 0; d < 7; d++) {
+      var y = Y0 + d * (CH + GAP);
+      out += '<text class="svg-text svg-text--fg" x="0" y="' + (y + CH / 2 + 4) + '" style="font-size:11px">' + days[d] + '</text>';
+      for (var b = 0; b < 96; b++) {
+        var h = b / 4 + 0.125, pv = p(d, h), wv = w(d, h);
+        out += '<g><title>' + days[d] + ' ' + String(Math.floor(b / 4)).padStart(2, "0") + ':' + String((b % 4) * 15).padStart(2, "0") + ', chance active ' + pv.toFixed(2) + ', interval ' + Math.max(0, pv - wv / 2).toFixed(2) + ' to ' + Math.min(1, pv + wv / 2).toFixed(2) + (wv > 0.3 ? ', unsure' : '') + '</title>';
+        out += '<rect x="' + (X0 + b * CW) + '" y="' + y + '" width="' + CW + '" height="' + CH + '" style="fill:var(--seq-' + cls(pv) + ')"/>';
+        if (wv > 0.3) out += '<rect x="' + (X0 + b * CW) + '" y="' + y + '" width="' + CW + '" height="' + CH + '" fill="url(#unc)"/>';
+        out += '</g>';
+        if (quiet(d, h)) { var q = 1 - pv; idle += q * 0.25; idLo += Math.max(0, q - wv / 2) * 0.25; idHi += Math.min(1, q + wv / 2) * 0.25; }
+      }
+      out += '<rect class="heat-sel" data-day="' + d + '" x="' + (X0 - 1) + '" y="' + (y - 1) + '" width="' + (96 * CW + 2) + '" height="' + (CH + 2) + '" style="display:none"/>';
+    }
+    // quiet hours row
+    var yq = Y0 + 7 * (CH + GAP) + 6;
+    out += '<text class="svg-text" x="0" y="' + (yq + 4) + '" style="font-size:11px">Quiet</text>';
+    out += '<line x1="' + X0 + '" x2="' + (X0 + 7 * 4 * CW) + '" y1="' + yq + '" y2="' + yq + '" style="stroke:var(--accent);stroke-width:4;stroke-linecap:butt"/>';
+    out += '<line x1="' + (X0 + 18.5 * 4 * CW) + '" x2="' + (X0 + 96 * CW) + '" y1="' + yq + '" y2="' + yq + '" style="stroke:var(--accent);stroke-width:4"/>';
+    out += '<text class="svg-text" x="' + (X0 + 7 * 4 * CW + 8) + '" y="' + (yq + 4) + '">weekdays 18:30 to 07:00, all day Sat and Sun</text>';
+    $("#heat-svg").insertAdjacentHTML("beforeend", out);
+    $("#idle-mean").textContent = Math.round(idle);
+    $("#idle-int").textContent = Math.round(idLo) + " to " + Math.round(idHi) + " h";
+    // window forecast: Wed (d=2) 23:10, 90 minutes
+    var S = 1, SL = 1, SH = 1;
+    for (var k = 0; k < 6; k++) { var hq = 23.25 + k * 0.25; var pv2 = p(2, hq), w2 = w(2, hq); S *= (1 - pv2); SL *= Math.max(0, 1 - pv2 - w2 / 2); SH *= Math.min(1, 1 - pv2 + w2 / 2); }
+    $("#win-s").textContent = S.toFixed(2);
+    $("#win-int").textContent = SL.toFixed(2) + " to " + SH.toFixed(2);
+    $("#win-note").textContent = "stays quiet for 90 min from Wed 23:10";
+
+    // day profile
+    var seg = $("#day-segs"), cur = 2;
+    days.forEach(function (n, i) { var bt = document.createElement("button"); bt.type = "button"; bt.textContent = n; bt.setAttribute("aria-pressed", String(i === cur)); bt.addEventListener("click", function () { cur = i; draw(); }); seg.appendChild(bt); });
+    function draw() {
+      $$("button", seg).forEach(function (b, i) { b.setAttribute("aria-pressed", String(i === cur)); });
+      $$(".heat-sel").forEach(function (r) { r.style.display = (+r.dataset.day === cur) ? "" : "none"; });
+      var P = 56, PW = 864, PY0 = 24, PH = 120, xx = function (h) { return P + h / 24 * PW; }, yy = function (v) { return PY0 + (1 - v) * PH; };
+      var o = '';
+      [0, 0.5, 1].forEach(function (v) { o += '<line class="svg-grid" x1="' + P + '" x2="' + (P + PW) + '" y1="' + yy(v) + '" y2="' + yy(v) + '"/><text class="svg-text" x="' + (P - 8) + '" y="' + (yy(v) + 3.5) + '" text-anchor="end">' + v.toFixed(1) + '</text>'; });
+      for (var t = 0; t <= 24; t += 3) o += '<text class="svg-text" x="' + xx(t) + '" y="' + (PY0 + PH + 18) + '" text-anchor="' + (t === 0 ? "start" : t === 24 ? "end" : "middle") + '">' + String(t).padStart(2, "0") + ':00</text>';
+      var up = [], lo = [], mid = [];
+      for (var i = 0; i <= 96; i++) { var h = i / 4, pv = p(cur, Math.min(h, 23.99)), wv = w(cur, Math.min(h, 23.99)); up.push(xx(h) + ',' + yy(Math.min(1, pv + wv / 2))); lo.unshift(xx(h) + ',' + yy(Math.max(0, pv - wv / 2))); mid.push(xx(h) + ',' + yy(pv)); }
+      o += '<polygon points="' + up.concat(lo).join(" ") + '" style="fill:var(--accent);opacity:.28"/><polyline points="' + mid.join(" ") + '" style="fill:none;stroke:var(--accent);stroke-width:1.75;stroke-linejoin:round"/>';
+      var qy = PY0 + PH + 30;
+      if (cur >= 5) o += '<line x1="' + P + '" x2="' + (P + PW) + '" y1="' + qy + '" y2="' + qy + '" style="stroke:var(--good);stroke-width:2;stroke-dasharray:5 3"/>';
+      else o += '<line x1="' + P + '" x2="' + xx(7) + '" y1="' + qy + '" y2="' + qy + '" style="stroke:var(--good);stroke-width:2;stroke-dasharray:5 3"/><line x1="' + xx(18.5) + '" x2="' + (P + PW) + '" y1="' + qy + '" y2="' + qy + '" style="stroke:var(--good);stroke-width:2;stroke-dasharray:5 3"/>';
+      o += '<text class="svg-text" x="0" y="' + (PY0 - 8) + '">P(active)</text>';
+      var svg = $("#profile-svg"); $$(".dyn", svg).forEach(function (n) { n.remove(); });
+      var g = document.createElementNS("http://www.w3.org/2000/svg", "g"); g.setAttribute("class", "dyn"); g.innerHTML = o; svg.appendChild(g);
+    }
+    draw();
+  })();
+
+  /* ---- Kill switches ---- */
+  (function () {
+    var btns = $$("[data-kill]"), stat = $("#kill-status"), stopped = false;
+    function label(b) { return b.classList.contains("kill--fixed") ? "Stop everything" : (b.textContent.indexOf("Stop everything") > -1 ? "Stop everything" : "Stop"); }
+    btns.forEach(function (b) { b.dataset.l = label(b); b.addEventListener("click", function () {
+      stopped = !stopped;
+      btns.forEach(function (x) { x.setAttribute("aria-pressed", String(stopped)); var k = x.querySelector("kbd"); var kt = k ? " " + k.outerHTML : ""; x.innerHTML = '<span class="kill__icon"></span>' + (stopped ? "Stopped. Resume" : x.dataset.l) + kt; });
+      stat.dataset.stopped = String(stopped);
+      stat.textContent = stopped ? "Stopped. Nothing is running. Press again to resume." : "Nothing is stopped. Agent runs: 1 active.";
+    }); });
+  })();
+
+  /* ---- Ring ---- */
+  (function () {
+    var mock = $("#mock"), ring = $("#ring-el"), tgt = $("#m-target"), st = $("#ring-status"), res = $("#m-result"), changed = false;
+    function rectOf(el, pad) { var a = mock.getBoundingClientRect(), r = el.getBoundingClientRect(); return { x: r.left - a.left - pad, y: r.top - a.top - pad, w: r.width + pad * 2, h: r.height + pad * 2 }; }
+    function set(r) { ring.style.setProperty("--x", r.x + "px"); ring.style.setProperty("--y", r.y + "px"); ring.style.setProperty("--w", r.w + "px"); ring.style.setProperty("--h", r.h + "px"); }
+    function land() {
+      changed = false; ring.dataset.state = "hidden"; ring.classList.remove("ring--landing");
+      if (reduce) { set(rectOf(tgt, 5)); ring.dataset.state = "shown"; st.textContent = 'Ring is on "Check cliff edge".'; return; }
+      set(rectOf(res, 6)); void ring.offsetWidth;
+      setTimeout(function () { ring.dataset.state = "shown"; ring.classList.add("ring--landing"); set(rectOf(tgt, 5)); st.textContent = 'Ring is landing on "Check cliff edge".'; setTimeout(function () { st.textContent = 'Ring is on "Check cliff edge".'; }, 650); }, 60);
+    }
+    $("#ring-replay").addEventListener("click", land);
+    $("#ring-change").addEventListener("click", function () { if (changed) { land(); this.textContent = "Change the screen"; return; } changed = true; ring.dataset.state = "hidden"; st.textContent = "The screen changed. The ring is hidden until the element is found again."; this.textContent = "Find the element again"; });
+    window.addEventListener("resize", function () { if (!changed) { set(rectOf(tgt, 5)); } });
+    var done = false; function first() { if (done) return; done = true; ring.style.transition = "none"; set(rectOf(tgt, 5)); ring.dataset.state = "shown"; void ring.offsetWidth; ring.style.transition = ""; }
+    if ("IntersectionObserver" in window) { new IntersectionObserver(function (e, o) { if (e[0].isIntersecting) { first(); o.disconnect(); } }, { threshold: 0.5 }).observe(mock); } else first();
+    setTimeout(first, 600);
+  })();
+
+  /* ---- Onboarding preview ---- */
+  (function () {
+    var box = $("#mem-preview");
+    var packs = {
+      "benefits-processor": { name: "UK benefits processor", tone: "short, plain", risky: "submit, send, pay", pace: "steady", hours: "08:30 to 17:30", skill: "reads-error-first" },
+      "data-analyst": { name: "Data analyst", tone: "detailed, plain", risky: "overwrite, drop, publish", pace: "steady", hours: "09:00 to 18:00", skill: "check-row-counts" },
+      "programmer": { name: "Programmer", tone: "short, direct", risky: "push, deploy, delete", pace: "quick", hours: "10:00 to 19:00", skill: "read-the-diff" },
+      "other": { name: "Not set", tone: "short, plain", risky: "submit, send, pay, delete", pace: "steady", hours: "09:00 to 17:00", skill: "none yet" }
+    };
+    function render(id) {
+      var p = packs[id], n = 0;
+      var lines = [["---"], ["role: " + id], ["revision: 1"], ["---"], ["## Preferences", 1], ["- Summaries: " + p.tone + "."], ["## Never"], ["- Without me: " + p.risky + ", banking sites"], ["## Skill state"], ["- " + p.skill + ": L1, new"], ["## Hours"], ["- Usual: " + p.hours]];
+      box.innerHTML = lines.map(function (l, i) {
+        n++; var h = l[0].indexOf("## ") === 0, isNew = i === 1 || i === 5 || i === 7 || i === 9 || i === 11;
+        return '<div class="memfile__line' + (isNew ? ' memfile__line--new' : '') + '"><span class="memfile__no num">' + n + '</span><span class="memfile__text ' + (h ? 'memfile__h' : '') + '"></span><span></span></div>';
+      }).join("");
+      $$(".memfile__text", box).forEach(function (el, i) { el.textContent = lines[i][0]; });
+    }
+    $$("#roles input").forEach(function (i) { i.addEventListener("change", function () { render(i.value); }); });
+    render("benefits-processor");
+  })();
+
+  /* ---- Memory file ---- */
+  (function () {
+    var rows = [
+      ["---"], ["role: benefits-processor"], ["revision: 12"], ["---"],
+      ["## Preferences", "h"], ["- Summaries: short. Tone: plain."],
+      ["## Procedure", "h"], ["- Usually checks child-related benefits first.", "", "accepted 5 Nov"],
+      ["## Routines", "h"], ["- calc-entry-3x | rung A2 | consent: shadow+approval | unattended: allowed [none]"],
+      ["## Corrections", "h"], ["- Read calculator errors before retrying.", "new", "proposed rule, waiting for you"],
+      ["## Skill state", "h"], ["- reads-error-first: L3, streak 2, last seen 2026-11-07"],
+      ["## Never", "h"], ["- banking sites, password managers"]
+    ];
+    var body = $("#memfile .memfile__body");
+    body.innerHTML = rows.map(function (r, i) {
+      var act = r[1] === "new" ? '<button class="btn btn--primary btn--sm" type="button">Accept rule</button><button class="btn btn--quiet btn--sm" type="button">Decline</button>' : (r[0].charAt(0) === "-" && r[0].indexOf("- Usually") === 0 || r[0].indexOf("- Summaries") === 0 || r[0].indexOf("- banking") === 0 ? '<button class="btn btn--quiet btn--sm" type="button">Edit</button><button class="btn btn--quiet btn--sm" type="button">Forget</button>' : "");
+      return '<div class="memfile__line' + (r[1] === "new" ? ' memfile__line--new' : '') + '"><span class="memfile__no num">' + (i + 1) + '</span><span class="memfile__text' + (r[1] === "h" ? ' memfile__h' : '') + '"></span><span class="memfile__actions' + (r[1] === "new" ? '" style="opacity:1' : '') + '">' + act + '</span></div>';
+    }).join("");
+    $$(".memfile__text", body).forEach(function (el, i) { el.textContent = rows[i][0]; if (rows[i][2]) { var t = document.createElement("span"); t.className = "memfile__tag"; t.textContent = "  <!-- " + rows[i][2] + " -->"; el.appendChild(t); } });
+  })();
+
+  /* ---- Coach fade ---- */
+  (function () {
+    var c = $("#live-coach"), r = $("#lvl"), out = $("#lvl-out"), note = $("#lvl-note"), play = $("#fade-play"), back = $("#fade-back");
+    var map = ["full", "small", "dot", "gone"], txt = ["Walks with you: ring, step and reason.", "Points: ring and one line.", "Nudges: a dot, open it when you want help.", "Standing by: silent, answers when asked."];
+    function set(v) { v = +v; r.value = v; out.textContent = "L" + v; c.dataset.state = map[v - 1]; note.textContent = txt[v - 1]; }
+    r.addEventListener("input", function () { set(r.value); });
+    var timer;
+    play.addEventListener("click", function () { clearTimeout(timer); var v = 1; set(1); (function step() { timer = setTimeout(function () { if (v < 4) { v++; set(v); step(); } }, 1500); })(); });
+    back.addEventListener("click", function () { clearTimeout(timer); set(4); timer = setTimeout(function () { set(2); note.textContent = "Back at L2 after 14 days away: skills decay, so help returns one step at a time."; }, reduce ? 50 : 1200); });
+    $$('.coach[data-state="dot"][role="button"]').forEach(function (d) { d.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") e.preventDefault(); }); });
+  })();
+
+  /* ---- Proposal arrival ---- */
+  (function () {
+    var card = $("#arrive-card"), st = $("#arrive-state"), btn = $("#arrive-play"), t1, t2, t3;
+    function run() {
+      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+      card.hidden = true; card.className = "card card__pad"; st.textContent = "Task running. No proposals while you work.";
+      t1 = setTimeout(function () { st.textContent = "Task ended. A natural break."; card.hidden = false; void card.offsetWidth; card.classList.add("proposal--arriving"); }, 900);
+      t2 = setTimeout(function () { st.textContent = "Ignored for 6 seconds. The card leaves on its own."; card.classList.remove("proposal--arriving"); card.classList.add("proposal--leaving"); }, 900 + 4200);
+      t3 = setTimeout(function () { card.hidden = true; st.textContent = "It will not ask again for this routine today."; }, 900 + 4200 + (reduce ? 20 : 400));
+    }
+    btn.addEventListener("click", run);
+  })();
+
+  /* ---- Motion stages ---- */
+  (function () {
+    var box = $("#ms-ring"), ring = $("#ms-ring-el"), tgt = $("#ms-target");
+    function rectOf(el, pad) { var a = box.getBoundingClientRect(), r = el.getBoundingClientRect(); return { x: r.left - a.left - pad, y: r.top - a.top - pad, w: r.width + pad * 2, h: r.height + pad * 2 }; }
+    function set(r) { ring.style.setProperty("--x", r.x + "px"); ring.style.setProperty("--y", r.y + "px"); ring.style.setProperty("--w", r.w + "px"); ring.style.setProperty("--h", r.h + "px"); }
+    function land() {
+      ring.dataset.state = "hidden"; ring.classList.remove("ring--landing");
+      var t = rectOf(tgt, 5);
+      if (reduce) { set(t); ring.dataset.state = "shown"; return; }
+      set({ x: 24, y: 20, w: 30, h: 30 }); void ring.offsetWidth;
+      setTimeout(function () { ring.dataset.state = "shown"; ring.classList.add("ring--landing"); set(t); }, 60);
+    }
+    $("#ms-ring-play").addEventListener("click", land);
+    setTimeout(function () { ring.style.transition = "none"; set(rectOf(tgt, 5)); ring.dataset.state = "shown"; void ring.offsetWidth; ring.style.transition = ""; }, 300);
+    window.addEventListener("resize", function () { set(rectOf(tgt, 5)); });
+    var c = $("#ms-coach"), lv = $("#ms-level"), lt = $("#ms-level-t"), timers = [];
+    function lvl(n) { var m = ["full", "small", "dot", "gone"]; c.dataset.state = m[n - 1]; lv.dataset.help = String(5 - n); lt.textContent = "L" + n; }
+    $("#ms-fade-play").addEventListener("click", function () {
+      timers.forEach(clearTimeout); timers = []; lvl(1);
+      [2, 3, 4].forEach(function (n, i) { timers.push(setTimeout(function () { lvl(n); }, 1100 * (i + 1))); });
+      timers.push(setTimeout(function () { lvl(1); }, 1100 * 4 + 1200));
+    });
+  })();
+
+  /* ---- Space scale, easing curves ---- */
+  (function () {
+    var sp = [4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96];
+    $("#space-scale").innerHTML = sp.map(function (v, i) { return '<div class="space-row"><span>space-' + (i + 1) + '</span><span class="num">' + v + ' px</span><i style="width:' + v + 'px"></i></div>'; }).join("");
+    var curves = [["ease-out", "0.2 0.7 0.2 1", "arrivals"], ["ease-in-out", "0.65 0 0.35 1", "changing place"], ["ease-land", "0.16 1 0.3 1", "ring landing"], ["ease-fade", "0.4 0 0.2 1", "help fading"]];
+    $("#easing").innerHTML = curves.map(function (c) {
+      var q = c[1].split(" ").map(Number), W = 160, H = 100, p = 14;
+      var X = function (v) { return p + v * (W - 2 * p); }, Y = function (v) { return H - p - v * (H - 2 * p); };
+      return '<figure><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + c[0] + ' curve"><rect x="' + p + '" y="' + p + '" width="' + (W - 2 * p) + '" height="' + (H - 2 * p) + '" fill="none" class="svg-grid"/><line x1="' + X(0) + '" y1="' + Y(0) + '" x2="' + X(q[0]) + '" y2="' + Y(q[1]) + '" style="stroke:var(--line-strong)"/><line x1="' + X(1) + '" y1="' + Y(1) + '" x2="' + X(q[2]) + '" y2="' + Y(q[3]) + '" style="stroke:var(--line-strong)"/><path d="M' + X(0) + ' ' + Y(0) + ' C' + X(q[0]) + ' ' + Y(q[1]) + ' ' + X(q[2]) + ' ' + Y(q[3]) + ' ' + X(1) + ' ' + Y(1) + '" fill="none" style="stroke:var(--accent);stroke-width:2"/><circle cx="' + X(q[0]) + '" cy="' + Y(q[1]) + '" r="2.5" fill="var(--panel)" style="stroke:var(--muted)"/><circle cx="' + X(q[2]) + '" cy="' + Y(q[3]) + '" r="2.5" fill="var(--panel)" style="stroke:var(--muted)"/></svg><span><b style="color:var(--fg)">--' + c[0] + '</b><br>' + c[2] + '<br>cubic-bezier(' + q.join(", ") + ')</span></figure>';
+    }).join("");
+  })();
+})();
+</script>

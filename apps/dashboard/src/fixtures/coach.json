@@ -1,0 +1,31 @@
+{
+ "meta": {
+  "origin": "synthetic",
+  "n": 1,
+  "n_unit": "people",
+  "split": null,
+  "interval_level": 0.95,
+  "note": null,
+  "generated_at": "2026-11-07T14:40:00Z"
+ },
+ "data": {
+  "task": {
+   "id": "t_entitlement_check",
+   "name": "Entitlement check, household H-1047",
+   "step": 5,
+   "steps_total": 9
+  },
+  "level": "L2",
+  "chip": "small",
+  "message": "Check the benefit cliff before you copy the results across.",
+  "why": "In your last five cases you skipped this check twice. When it is skipped, the case comes back for about a minute of re-entry. This is your pattern, not a rule.",
+  "mastery": {
+   "ENTER_HOUSEHOLD": 0.92,
+   "OPEN_CALCULATOR": 0.88,
+   "READ_RESULT": 0.8,
+   "RECONCILE": 0.66,
+   "CHECK_CLIFF": 0.58,
+   "SEARCH": 0.3
+  }
+ }
+}

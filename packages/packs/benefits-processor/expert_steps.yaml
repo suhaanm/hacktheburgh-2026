@@ -1,0 +1,109 @@
+# Expert policy for the entitlement check (full coverage). Ordered checks form a partial order:
+# `after` lists hard prerequisites; any linear extension is an allowed ordering, so calculators
+# may be visited in any order and each cliff check may follow its own calculator or be batched
+# after all three. `critical` checks are the ones the coach insists on; skipping one is a deficit.
+version: 1
+task: entitlement-check
+coverage: full
+
+checks:
+  - id: read_case
+    label: Read the household record first
+    cogs: [READ]
+    required: true
+    after: []
+    expert_median_s: 35
+    coach:
+      question: What does the household record say that every calculator will need?
+
+  - id: calc_a
+    label: Run calculator A (government check)
+    cogs: [OPEN_CALCULATOR, ENTER_HOUSEHOLD, READ_RESULT]
+    required: true
+    after: [read_case]
+    skill: enter-household-once
+    expert_median_s: 95
+    coach:
+      question: Can you copy the household straight from the record instead of retyping it?
+
+  - id: calc_b
+    label: Run calculator B (charity calculator)
+    cogs: [OPEN_CALCULATOR, ENTER_HOUSEHOLD, READ_RESULT]
+    required: true
+    after: [read_case]
+    skill: enter-household-once
+    expert_median_s: 100
+
+  - id: calc_c
+    label: Run calculator C (commercial calculator)
+    cogs: [OPEN_CALCULATOR, ENTER_HOUSEHOLD, READ_RESULT]
+    required: true
+    after: [read_case]
+    skill: enter-household-once
+    expert_median_s: 105
+
+  - id: cliff_a
+    label: Probe the cliff edge on calculator A
+    cogs: [CHECK_CLIFF]
+    required: true
+    critical: true
+    after: [calc_a]
+    skill: check-the-cliff
+    expert_median_s: 45
+    coach:
+      question: Is any figure close to a limit? What changes if it moves a little?
+      hint: Nudge income or savings up a little and read the result again.
+
+  - id: cliff_b
+    label: Probe the cliff edge on calculator B
+    cogs: [CHECK_CLIFF]
+    required: true
+    critical: true
+    after: [calc_b]
+    skill: check-the-cliff
+    expert_median_s: 45
+
+  - id: cliff_c
+    label: Probe the cliff edge on calculator C
+    cogs: [CHECK_CLIFF]
+    required: true
+    critical: true
+    after: [calc_c]
+    skill: check-the-cliff
+    expert_median_s: 45
+
+  - id: reconcile
+    label: Reconcile the three results before writing anything
+    cogs: [RECONCILE]
+    required: true
+    critical: true
+    after: [calc_a, calc_b, calc_c, cliff_a, cliff_b, cliff_c]
+    skill: reconcile-before-noting
+    expert_median_s: 60
+    coach:
+      question: Do the three results agree? If not, which one would you trust, and why?
+
+  - id: write_note
+    label: Copy the agreed figures into the case note
+    cogs: [COPY_TO_NOTE]
+    required: true
+    after: [reconcile]
+    skill: note-with-evidence
+    expert_median_s: 50
+    coach:
+      question: Does the note say which figures you trust and what you checked?
+
+  - id: verify_note
+    label: Read the note back against the results
+    cogs: [CHECK]
+    required: false
+    after: [write_note]
+    expert_median_s: 20
+
+allowed_reorderings:
+  - id: calculator_order
+    description: The three calculators may be visited in any order.
+    permutable: [calc_a, calc_b, calc_c]
+  - id: cliff_timing
+    description: A cliff probe may follow its own calculator or be batched after all three, but must come before reconciling.
+    permutable: [cliff_a, cliff_b, cliff_c]

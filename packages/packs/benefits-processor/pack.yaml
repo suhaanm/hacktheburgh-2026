@@ -1,0 +1,72 @@
+# Deep role pack: UK benefits processor (ROL-2). Validated against packages/schema/pack.schema.json.
+id: benefits-processor
+version: 1
+name: UK benefits processor
+summary: Runs entitlement checks for a household across three calculators and writes the case note.
+depth: deep
+locale: en-GB
+
+onboarding:
+  questions:
+    - id: tools
+      prompt: Which of these do you use when you work a case?
+      why: Sets which sites count as work tools, so your own traces line up with the expert's.
+      kind: multi
+      options:
+        - { value: calc_a, label: "Government benefits check", default: true, domain_role: calc_a }
+        - { value: calc_b, label: "Charity benefits calculator", default: true, domain_role: calc_b }
+        - { value: calc_c, label: "Commercial entitlement calculator", default: true, domain_role: calc_c }
+        - { value: case_system, label: "Case system and note page", default: true, domain_role: case_system }
+        - { value: spreadsheet, label: "Spreadsheet for notes" }
+    - id: risky
+      prompt: Which actions must never run without you clicking?
+      why: These become your risk classes. The agent stops at each one and asks.
+      kind: multi
+      options:
+        - { value: submit_case, label: "Submit or close a case", default: true, risk_class: irreversible, patterns: ["submit", "close case"] }
+        - { value: issue_payment, label: "Issue or approve a payment", default: true, risk_class: irreversible, patterns: ["approve payment", "issue payment", "pay"] }
+        - { value: send_letter, label: "Send a letter or email to a claimant", default: true, risk_class: outward, patterns: ["send letter", "send email", "notify claimant"] }
+        - { value: delete_record, label: "Delete or overwrite a record", default: true, risk_class: irreversible, patterns: ["delete", "overwrite"] }
+        - { value: export_data, label: "Export claimant data", risk_class: outward, patterns: ["export", "download claimant"] }
+    - id: tone
+      prompt: Should help be short or detailed?
+      why: Case work is fast. Short is the default; detailed adds the reason for each prompt.
+      kind: single
+      options:
+        - { value: short, label: "Short: one line", default: true }
+        - { value: detailed, label: "Detailed: say why" }
+    - id: pace
+      prompt: How fast should help fade as you improve?
+      why: Controls how many clean cases before a prompt gets lighter.
+      kind: single
+      options:
+        - { value: gentle, label: "Gentle: keep prompts longer" }
+        - { value: steady, label: "Steady", default: true }
+        - { value: quick, label: "Quick: fade after a few clean cases" }
+    - id: hours
+      prompt: What are your usual working hours?
+      why: Starts the presence map. The map then learns from your own days.
+      kind: hours
+      default_hours: { start: "09:00", end: "17:30", days: [mon, tue, wed, thu, fri] }
+
+cogs:
+  extra: [ENTER_HOUSEHOLD, OPEN_CALCULATOR, READ_RESULT, CHECK_CLIFF, COPY_TO_NOTE, RECONCILE]
+  mapping: mapping.yaml
+
+expert_policy:
+  steps: expert_steps.yaml
+  coverage: full
+
+risk_classes:
+  irreversible: ["submit", "close case", "approve payment", "issue payment", "pay", "send decision", "delete", "overwrite", "post"]
+  outward: ["send letter", "send email", "notify claimant", "export", "share", "upload", "print letter"]
+  sensitive_fields: sensitive_fields.json
+
+routines: routines.yaml
+tone_defaults: { length: short, voice: plain, pace: steady }
+curriculum: curriculum.yaml
+tasks: tasks/
+oracle: understudy_agent.sandbox_sites.oracle:score
+persona: persona.yaml
+priors: priors.yaml
+plugin_refs: []

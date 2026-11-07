@@ -1,0 +1,9 @@
+{
+  "role": "benefits-processor",
+  "revision": 12,
+  "person": "p_9f3a",
+  "tone": { "length": "short", "voice": "plain" },
+  "pace": "steady",
+  "hours": { "start": "09:00", "end": "17:30", "days": ["mon", "tue", "wed", "thu", "fri"] },
+  "custom_key_the_worker_added": "kept"
+}

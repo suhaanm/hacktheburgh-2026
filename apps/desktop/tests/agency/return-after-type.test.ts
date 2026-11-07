@@ -141,7 +141,7 @@ describe('end to end: the routine flow stays allowed under ONE plan confirmation
     const sit = new Situation(env.ctx)
     const proposals = [...queue]
     const a = createActForMe(env.deps, sit, async () => undefined, {
-      gemini: () => {
+      port: () => {
         throw new Error('no model')
       },
       loopEnabled: () => true,

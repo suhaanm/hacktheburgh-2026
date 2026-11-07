@@ -1,0 +1,348 @@
+{
+ "benefits-processor": {
+  "role": "benefits-processor",
+  "pack": {
+   "name": "UK benefits processor",
+   "summary": "Runs entitlement checks for households and writes the case note.",
+   "extra_cogs": [
+    "ENTER_HOUSEHOLD",
+    "OPEN_CALCULATOR",
+    "READ_RESULT",
+    "CHECK_CLIFF",
+    "COPY_TO_NOTE",
+    "RECONCILE"
+   ],
+   "risk_classes": {
+    "irreversible": [
+     "submit",
+     "send",
+     "pay",
+     "delete",
+     "post"
+    ]
+   },
+   "tone_defaults": {
+    "length": "short",
+    "voice": "plain"
+   }
+  },
+  "questions": [
+   {
+    "id": "tools",
+    "prompt": "Which tools do you use for a check?",
+    "kind": "multi",
+    "options": [
+     {
+      "value": "govuk",
+      "label": "gov.uk benefits calculator"
+     },
+     {
+      "value": "turn2us",
+      "label": "Turn2us calculator"
+     },
+     {
+      "value": "case",
+      "label": "Case management system"
+     },
+     {
+      "value": "spreadsheet",
+      "label": "Spreadsheet"
+     }
+    ]
+   },
+   {
+    "id": "risky",
+    "prompt": "Which actions must never run without you?",
+    "kind": "multi",
+    "options": [
+     {
+      "value": "submit",
+      "label": "Submit a case note"
+     },
+     {
+      "value": "send",
+      "label": "Send a message to a claimant"
+     },
+     {
+      "value": "pay",
+      "label": "Make a payment"
+     },
+     {
+      "value": "delete",
+      "label": "Delete a record"
+     }
+    ]
+   },
+   {
+    "id": "tone",
+    "prompt": "How much detail do you want in summaries?",
+    "kind": "single",
+    "options": [
+     {
+      "value": "short",
+      "label": "Short"
+     },
+     {
+      "value": "detailed",
+      "label": "Detailed"
+     }
+    ]
+   },
+   {
+    "id": "pace",
+    "prompt": "How fast should help fade as you improve?",
+    "kind": "single",
+    "options": [
+     {
+      "value": "slow",
+      "label": "Slowly"
+     },
+     {
+      "value": "gradual",
+      "label": "Gradually"
+     },
+     {
+      "value": "fast",
+      "label": "Quickly"
+     }
+    ]
+   },
+   {
+    "id": "hours",
+    "prompt": "When do you usually work?",
+    "kind": "hours",
+    "options": []
+   }
+  ]
+ },
+ "data-analyst": {
+  "role": "data-analyst",
+  "pack": {
+   "name": "Data analyst",
+   "summary": "Pulls data, cleans it, checks it and writes up the finding.",
+   "extra_cogs": [
+    "QUERY",
+    "CLEAN",
+    "PLOT",
+    "VALIDATE",
+    "WRITE_UP"
+   ],
+   "risk_classes": {
+    "irreversible": [
+     "drop",
+     "overwrite",
+     "publish",
+     "email",
+     "share"
+    ]
+   },
+   "tone_defaults": {
+    "length": "detailed",
+    "voice": "precise"
+   }
+  },
+  "questions": [
+   {
+    "id": "tools",
+    "prompt": "Which tools do you work in?",
+    "kind": "multi",
+    "options": [
+     {
+      "value": "sql",
+      "label": "SQL console"
+     },
+     {
+      "value": "notebook",
+      "label": "Notebook"
+     },
+     {
+      "value": "sheet",
+      "label": "Spreadsheet"
+     },
+     {
+      "value": "bi",
+      "label": "Dashboard tool"
+     }
+    ]
+   },
+   {
+    "id": "risky",
+    "prompt": "Which actions must never run without you?",
+    "kind": "multi",
+    "options": [
+     {
+      "value": "drop",
+      "label": "Drop or truncate a table"
+     },
+     {
+      "value": "overwrite",
+      "label": "Overwrite a shared file"
+     },
+     {
+      "value": "publish",
+      "label": "Publish a dashboard"
+     },
+     {
+      "value": "email",
+      "label": "Email results to others"
+     }
+    ]
+   },
+   {
+    "id": "tone",
+    "prompt": "How much detail do you want in write-ups?",
+    "kind": "single",
+    "options": [
+     {
+      "value": "short",
+      "label": "Short"
+     },
+     {
+      "value": "detailed",
+      "label": "Detailed"
+     }
+    ]
+   },
+   {
+    "id": "pace",
+    "prompt": "How fast should help fade as you improve?",
+    "kind": "single",
+    "options": [
+     {
+      "value": "slow",
+      "label": "Slowly"
+     },
+     {
+      "value": "gradual",
+      "label": "Gradually"
+     },
+     {
+      "value": "fast",
+      "label": "Quickly"
+     }
+    ]
+   },
+   {
+    "id": "hours",
+    "prompt": "When do you usually work?",
+    "kind": "hours",
+    "options": []
+   }
+  ]
+ },
+ "programmer": {
+  "role": "programmer",
+  "pack": {
+   "name": "Programmer",
+   "summary": "Reads code, changes it, runs tests and ships the change.",
+   "extra_cogs": [
+    "READ_CODE",
+    "EDIT",
+    "RUN_TESTS",
+    "DEBUG",
+    "COMMIT"
+   ],
+   "risk_classes": {
+    "irreversible": [
+     "push",
+     "deploy",
+     "force",
+     "delete branch",
+     "publish"
+    ]
+   },
+   "tone_defaults": {
+    "length": "short",
+    "voice": "direct"
+   }
+  },
+  "questions": [
+   {
+    "id": "tools",
+    "prompt": "Which tools do you work in?",
+    "kind": "multi",
+    "options": [
+     {
+      "value": "editor",
+      "label": "Editor or IDE"
+     },
+     {
+      "value": "terminal",
+      "label": "Terminal"
+     },
+     {
+      "value": "repo",
+      "label": "Code hosting site"
+     },
+     {
+      "value": "docs",
+      "label": "Documentation sites"
+     }
+    ]
+   },
+   {
+    "id": "risky",
+    "prompt": "Which actions must never run without you?",
+    "kind": "multi",
+    "options": [
+     {
+      "value": "push",
+      "label": "Push to a shared branch"
+     },
+     {
+      "value": "deploy",
+      "label": "Deploy to production"
+     },
+     {
+      "value": "force",
+      "label": "Force-push or rewrite history"
+     },
+     {
+      "value": "delete",
+      "label": "Delete a branch or file"
+     }
+    ]
+   },
+   {
+    "id": "tone",
+    "prompt": "How much detail do you want in explanations?",
+    "kind": "single",
+    "options": [
+     {
+      "value": "short",
+      "label": "Short"
+     },
+     {
+      "value": "detailed",
+      "label": "Detailed"
+     }
+    ]
+   },
+   {
+    "id": "pace",
+    "prompt": "How fast should help fade as you improve?",
+    "kind": "single",
+    "options": [
+     {
+      "value": "slow",
+      "label": "Slowly"
+     },
+     {
+      "value": "gradual",
+      "label": "Gradually"
+     },
+     {
+      "value": "fast",
+      "label": "Quickly"
+     }
+    ]
+   },
+   {
+    "id": "hours",
+    "prompt": "When do you usually work?",
+    "kind": "hours",
+    "options": []
+   }
+  ]
+ }
+}

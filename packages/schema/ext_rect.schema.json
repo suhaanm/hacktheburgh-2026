@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://understudy.local/schema/ext_rect.schema.json",
+  "title": "Element-rect protocol between the desktop app (port 7720) and the extension",
+  "description": "The extension polls GET http://127.0.0.1:7720/ext/want. The response is a RectWant (200) or 204 for nothing wanted. The extension answers with POST /ext/rect carrying a RectAnswer. The ring is drawn by the desktop app from rect + window_offset + scroll + dpr; answers older than the app's staleness limit are hidden (COA-6). No page text, no URLs, no field values cross this channel. Target by label_hash (salted, same hash as L0) or by role+name for sandbox pages the desktop app knows.",
+  "$defs": {
+    "RectWant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "frame_id"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "frame_id": {
+          "type": "string",
+          "pattern": "^(top|f[0-9]{1,4})$",
+          "description": "top, or f<N> for a sub-frame."
+        },
+        "label_hash": {
+          "type": "string",
+          "pattern": "^h:[0-9a-f]{4,16}$"
+        },
+        "role": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "label_hash"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "role"
+                ]
+              },
+              {
+                "required": [
+                  "name"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "role",
+            "name"
+          ],
+          "not": {
+            "required": [
+              "label_hash"
+            ]
+          }
+        }
+      ]
+    },
+    "XY": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y"
+      ],
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        }
+      }
+    },
+    "RectAnswer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "frame_id",
+        "age_ms"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "frame_id": {
+          "type": "string",
+          "pattern": "^(top|f[0-9]{1,4})$"
+        },
+        "found": {
+          "type": "boolean",
+          "default": true,
+          "description": "Optional (default true). False when no element matched; rect and the offsets are then omitted."
+        },
+        "rect": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x",
+            "y",
+            "w",
+            "h"
+          ],
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "w": {
+              "type": "number",
+              "minimum": 0
+            },
+            "h": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "description": "Viewport CSS pixels from getBoundingClientRect."
+        },
+        "window_offset": {
+          "$ref": "#/$defs/XY",
+          "description": "Screen position (CSS pixels) of the viewport's top-left corner, window.screenX/Y plus the browser chrome height."
+        },
+        "scroll": {
+          "$ref": "#/$defs/XY",
+          "description": "scrollX/scrollY of the frame at measurement time."
+        },
+        "dpr": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "age_ms": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Milliseconds between the measurement and the POST."
+        }
+      },
+      "if": {
+        "properties": {
+          "found": {
+            "const": false
+          }
+        },
+        "required": [
+          "found"
+        ]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "rect"
+              ]
+            }
+          ]
+        }
+      },
+      "else": {
+        "required": [
+          "rect",
+          "window_offset",
+          "scroll",
+          "dpr"
+        ]
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/RectWant"
+    },
+    {
+      "$ref": "#/$defs/RectAnswer"
+    }
+  ]
+}

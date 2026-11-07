@@ -1,0 +1,48 @@
+{
+ "meta": {
+  "origin": "synthetic",
+  "n": 3,
+  "n_unit": "episodes",
+  "split": null,
+  "interval_level": 0.95,
+  "note": "Morning report built from the audit log.",
+  "generated_at": "2026-11-07T14:40:00Z"
+ },
+ "data": {
+  "since": "2026-11-06T22:00:00Z",
+  "ran": [
+   {
+    "routine": "calc-entry-3x",
+    "run_id": "r_01",
+    "outcome": "finished, waiting for submit approval",
+    "minutes": 11,
+    "tier": 1
+   },
+   {
+    "routine": "monday-cliff-check",
+    "run_id": "r_04",
+    "outcome": "finished, list drafted",
+    "minutes": 23,
+    "tier": 1
+   }
+  ],
+  "queued": [
+   "q_01",
+   "q_02",
+   "q_03",
+   "q_04"
+  ],
+  "failed": [
+   {
+    "routine": "case-note-copy",
+    "reason": "The case note page did not load after two tries."
+   }
+  ],
+  "yielded": [
+   {
+    "routine": "monday-cliff-check",
+    "at": "2026-11-07T06:48:00Z"
+   }
+  ]
+ }
+}
