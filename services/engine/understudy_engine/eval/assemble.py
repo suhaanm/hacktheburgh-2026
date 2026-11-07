@@ -133,6 +133,18 @@ def build_report(*, fast: bool = False, sections: list[str] | None = None, root:
     report["run"] = {"fast": fast, "seed": seed, "seconds_total": round(time.perf_counter() - t_start, 1), "seconds_by_section": secs,
                      "note": "timing only; excluded from the determinism check"}
     _stamp_meta(out, generated_at)
+    from .findings import build_findings
+
+    found = build_findings(out)
+    for f in found:                                                  # each finding also sits on the sections it comes from
+        for name in f["sections"][:1]:
+            if isinstance(out.get(name), dict) and "status" not in out[name]:
+                brief = {k: f[k] for k in ("id", "title", "text", "status")}
+                if "finding" not in out[name]:
+                    out[name]["finding"] = brief
+                else:                                                  # a section can carry several findings (realism: hazard, genome, routines)
+                    out[name].setdefault("more_findings", []).append(brief)
+    report["findings"] = clean(found)
     report["evidence_map"] = evidence_map(out)
     report["sections"] = out
     return report

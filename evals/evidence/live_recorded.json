@@ -1,0 +1,143 @@
+{
+  "origin": "live, small n, real models; packets are synthetic (apprentices) with scripted blocks; the check is the same in every arm",
+  "recorded_on": "2026-11-07",
+  "what_is_measured": "the share of model replies that pass the number-provenance check (schema, every number traces, names, no URL or instruction, no causal or expert claim); not the quality of the English",
+  "template": {
+    "note": "the deterministic template passes its own check on every packet and intent (see templates in the evaluation): it is the shipped wording"
+  },
+  "local_qwen25_7b": {
+    "reword_final": {
+      "pass": 24,
+      "n": 30,
+      "rate": 0.8,
+      "ci": [
+        0.627,
+        0.905
+      ],
+      "model": "local:Qwen2.5-7B-Instruct-Q4_K_M.gguf",
+      "mode": "reword: the model rewrites a code-written draft that carries {field.path} placeholders; code fills them in, then the same check runs",
+      "latency_s": {
+        "p50": 11.22,
+        "p95": 27.16
+      },
+      "codes_when_rejected": {
+        "wrong_rounding": 2,
+        "reword:dropped_fact": 1,
+        "unknown_habit": 3
+      },
+      "prompt_tokens": {
+        "min": 1807,
+        "max": 2401,
+        "mean": 2109
+      },
+      "largest_case": {
+        "intent": "routine_worth",
+        "tokens_est": 2439,
+        "tokens_measured": 2399,
+        "budget": 2500
+      },
+      "note": "re-run after the hedge handling and the consequence wording were fixed. Of the 6 rejections, 3 were unknown_habit false positives of a cue rule (a clause such as 'the analysis suggests that ... is linked to'); that rule was fixed afterwards and this run was not repeated. One was a changed noun ('houses' for 'households'), one a reword that dropped a fact, one a wrong rounding.",
+      "examples_rejected": [
+        {
+          "intent": "where_time_went",
+          "codes": [
+            "wrong_rounding"
+          ],
+          "sentence": "In the sandbox households, a wrong answer came out 10% of the time when the reconcile step was left out (between 8% and 13%); when it was wrong, the mean error was \u00a3292 a month (n = 200 houses)."
+        },
+        {
+          "intent": "why_slow",
+          "codes": [
+            "unknown_habit"
+          ],
+          "sentence": "The analysis suggests that a slower pace on shared steps is linked to 1 minute 44 seconds and a missed check to 46 seconds."
+        },
+        {
+          "intent": "why_slow",
+          "codes": [
+            "unknown_habit"
+          ],
+          "sentence": "The alignment suggests that a missed check is associated with 74 seconds and a slower pace on shared steps with 54 seconds."
+        },
+        {
+          "intent": "why_slow",
+          "codes": [
+            "unknown_habit"
+          ],
+          "sentence": "The alignment suggests that a slower pace on shared steps is linked to 2 minutes 7 seconds and copying a wrong figure is linked to 54 seconds."
+        }
+      ]
+    },
+    "reword_n30_before_fix": {
+      "pass": 12,
+      "n": 30,
+      "rate": 0.4,
+      "ci": [
+        0.246,
+        0.577
+      ],
+      "note": "the first n = 30 run, before the hedge handling and the consequence sentence were fixed: 16 of 18 rejected replies were one causal_claim sentence ('led to' written for 'ended in', and the honest hedge 'not proof that one thing caused the other' flagged by the check), 3 unknown_habit"
+    },
+    "reword_first_run": {
+      "pass": 6,
+      "n": 12,
+      "rate": 0.5,
+      "ci": [
+        0.254,
+        0.746
+      ],
+      "note": "before the prompt and the hedge handling were tightened; causal_claim and unknown_habit were the failures"
+    },
+    "free_composition_with_placeholders": {
+      "pass": 0,
+      "n": 12,
+      "rate": 0.0,
+      "ci": [
+        0.0,
+        0.243
+      ],
+      "note": "the model writes the whole reply from the packet; it misused placeholders and wrote causal and advice sentences"
+    },
+    "free_composition_first_prompt": {
+      "pass": 1,
+      "n": 30,
+      "rate": 0.033,
+      "ci": [
+        0.006,
+        0.167
+      ],
+      "note": "no placeholders: the model typed the numbers itself"
+    }
+  },
+  "cloud": {
+    "path": "egress.send, purpose evidence.explain, method check (the agent service's fast tier); privacy layer on; one ledger line per call",
+    "design": "the model composes from the packet with {field.path} placeholders; it cannot be shown the code-written draft because a draft is text and the privacy layer admits none",
+    "openai_fast": {
+      "pass": 0,
+      "n": 13,
+      "rate": 0.0,
+      "ci": [
+        0.0,
+        0.228
+      ],
+      "model": "gpt-5.4-mini (from OPENAI_MODEL_FAST)",
+      "note": "8 earlier calls on two older prompt versions (placeholders garbled by the port's sanitiser, plural paths) also failed and are not counted here; failures: swapped_attribution 11, unknown_habit, rank_claim_false, bad_placeholder"
+    },
+    "gemini_fast": {
+      "pass": 7,
+      "n": 9,
+      "rate": 0.778,
+      "ci": [
+        0.453,
+        0.937
+      ],
+      "model": "gemini-3.5-flash-lite (from GEMINI_MODEL_FAST)",
+      "note": "the two failures were unknown_habit on 'lost time' phrasing and one swapped_attribution",
+      "latency_s_p50": 1.83
+    },
+    "calls_total": 30,
+    "budget_usd": 0.5,
+    "cost_usd_est": 0.0615,
+    "cost_note": "estimate at assumed prices from the model meter, not an invoice"
+  }
+}

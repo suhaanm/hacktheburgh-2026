@@ -8,6 +8,7 @@ names the dashboard's fixture uses until it follows the contract.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import importlib
 import json
 import re
@@ -918,7 +919,8 @@ def _find_in_dir(owner: str, d: Path, attr: str) -> Callable[..., Any]:
 def study_sim(ctx: Ctx) -> dict[str, Any]:
     """Language-model simulated participants (study-simulation agent). NEVER the live study and never fed into it.
 
-    Forced to origin ``synthetic`` and labelled "simulated participants (language model), not people" wherever it appears."""
+    Forced to origin ``synthetic`` and labelled "simulated participants (language model), not people" wherever it appears. The owner's own ``status``
+    (for example "complete") is kept as ``owner_status``; only pending, not_run and failed make a stub. A recorded run 5 pilot decision is attached."""
     d = evals_out_dir() / "study_sim"
     fn = _find_in_dir("study-sim", d, "study_sim_section")
     try:
@@ -928,8 +930,18 @@ def study_sim(ctx: Ctx) -> dict[str, Any]:
         if (e.name or "").startswith("_understudy_study_sim_"):         # the package's own lazy import of a module that is not written yet
             raise NotLanded("study-sim", f"evals/study_sim/{(e.name or '').rsplit('.', 1)[-1]}.py does not exist yet") from e
         raise
+    status = r.pop("status", None)
+    if status is not None and status not in OWNER_STUB_STATUSES:
+        r["owner_status"] = status
+        status = None
     meta = normalise_meta(r.get("meta"), {"origin": "synthetic", "n": r.get("n"), "n_unit": "runs"})
+    owner_origin = (r.get("meta") or {}).get("origin")
+    if owner_origin not in (None, "synthetic"):
+        meta["origin_detail"] = owner_origin
     meta["origin"] = "synthetic"
+    if r.get("n_aa"):
+        meta["n"] = int(r.get("n") or 0) + int(r["n_aa"])                      # coached-arm plus A/A participants
+        meta["split"] = f"{meta.get('split') or 'within-participant, counterbalanced'}; n = {r.get('n')} coached-arm plus {r['n_aa']} A/A participants"
     note = (meta.get("note") or "").strip()
     if STUDY_SIM_LABEL not in note.lower():
         note = f"{STUDY_SIM_LABEL[0].upper() + STUDY_SIM_LABEL[1:]}. " + note
@@ -940,8 +952,15 @@ def study_sim(ctx: Ctx) -> dict[str, Any]:
     r["meta"] = meta
     cap = STUDY_SIM_LABEL[0].upper() + STUDY_SIM_LABEL[1:]
     r["limitations"] = [dict(x, text=x["text"] if STUDY_SIM_LABEL in x["text"].lower() else f"{cap}: {x['text']}") for x in _limits(r)]     # the phrase travels with every text
-    if r.get("status") in ("pending", "not_run", "failed") and not r.get("reason"):
+    pilot = _recorded(d / "results_run5" / "pilot" / "PILOT_DECISION.json")
+    if pilot is not None:
+        r["run5_pilot"] = {k: pilot.get(k) for k in ("pass", "post_tests", "post_tests_above_zero", "needed_above_zero", "pilot_scores", "reasons_for_stopping", "criterion",
+                                                     "pilot_spend_usd", "affordable_participants", "budget_usd")}
+        r["run5_pilot"]["source"] = "evals/study_sim/results_run5/pilot/PILOT_DECISION.json"
+    if status in OWNER_STUB_STATUSES and not r.get("reason"):
         r["reason"] = (meta.get("note") or "the simulated study has not been run").strip()      # a stub needs a reason; the owner's note says why
+    if status in OWNER_STUB_STATUSES:
+        r["status"] = status
     return r
 
 
@@ -991,21 +1010,28 @@ TIMING_KEYS = ("elapsed_s", "wall_s")          # how long the owner's own evalua
 COMPACT_BYTES = 60_000                         # a top-level key bigger than this is replaced and listed under `trimmed`
 
 
+OFFLINE_UNSET = ("UNDERSTUDY_EVIDENCE_LIVE", "UNDERSTUDY_X_LOCALMODEL", "UNDERSTUDY_X", "UNDERSTUDY_X_EVIDENCE", "OPENAI_API_KEY", "GEMINI_API_KEY", "ELEVENLABS_API_KEY")
+
+
 @contextlib.contextmanager
 def _offline():
-    """Owner code that can reach a model honours UNDERSTUDY_MOCK (the project-wide offline switch, NFR-2). The harness never calls a model, so every
-    newer owner section runs with it on, whatever the caller's environment says (the report's own ``mock`` flag is read before this)."""
+    """The harness never calls a model. Owner code that can reach one honours UNDERSTUDY_MOCK (the project-wide offline switch, NFR-2) and the feature
+    flags that turn a model on, so for every newer owner section MOCK is forced on and those flags and the provider keys are removed for the duration of
+    the call, whatever the caller's environment says (the report's own ``mock`` flag is read before this). Restored afterwards."""
     import os
 
-    old = os.environ.get("UNDERSTUDY_MOCK")
+    saved = {k: os.environ.get(k) for k in ("UNDERSTUDY_MOCK", *OFFLINE_UNSET)}
     os.environ["UNDERSTUDY_MOCK"] = "1"
+    for k in OFFLINE_UNSET:
+        os.environ.pop(k, None)
     try:
         yield
     finally:
-        if old is None:
-            os.environ.pop("UNDERSTUDY_MOCK", None)
-        else:
-            os.environ["UNDERSTUDY_MOCK"] = old
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
 
 
 def _text_limits(name: str, items: Any) -> list[dict[str, Any]]:
@@ -1028,6 +1054,11 @@ def _shape_generic(name: str, r: dict[str, Any], *, fallback_meta: dict[str, Any
     for k in TIMING_KEYS:
         r.pop(k, None)
     meta = normalise_meta(r.get("meta"), {"origin": r.get("origin"), "n": r.get("n"), "n_unit": r.get("n_unit"), "split": r.get("split"), **(fallback_meta or {})})
+    raw_origin = str(meta.get("origin") or "")
+    if raw_origin not in ("real", "synthetic", "mixed", "unknown"):
+        # an owner's own word for where its data comes from (simulated_llm, simulated_participants ...) is kept as origin_detail; the badge is synthetic
+        meta["origin_detail"] = raw_origin
+        meta["origin"] = "synthetic" if ("sim" in raw_origin.lower() or "synth" in raw_origin.lower()) else "unknown"
     r["meta"] = meta
     r["limitations"] = _text_limits(name, r.get("limitations"))
     if status in OWNER_STUB_STATUSES:
@@ -1045,15 +1076,36 @@ def _shape_generic(name: str, r: dict[str, Any], *, fallback_meta: dict[str, Any
     return r
 
 
-def _call_owner(ctx: Ctx, name: str, owner: str, module: str, attr: str, **extra: Any) -> dict[str, Any]:
+def _call_isolated(module: str, attr: str, kwargs: dict[str, Any], timeout_s: int = 1800) -> dict[str, Any]:
+    """Run ``module.attr(**kwargs)`` in a fresh Python process and return its JSON result. For an owner that forks a worker pool: forking after this process
+    has loaded numpy, scipy and the other tracks' code can kill the workers (BrokenProcessPool) on macOS, so such an evaluation gets a clean process."""
+    import os
+    import subprocess
+    import sys
+
+    from ..store.paths import repo_root
+
+    code = ("import json, sys\nfrom importlib import import_module\n"
+            f"r = getattr(import_module({module!r}), {attr!r})(**{kwargs!r})\n"
+            "sys.stdout.write('\\n@@JSON@@' + json.dumps(r, default=str))\n")
+    proc = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=dict(os.environ), cwd=str(repo_root()), timeout=timeout_s)
+    if proc.returncode != 0 or "@@JSON@@" not in proc.stdout:
+        raise RuntimeError(f"{module}.{attr} failed in its own process (exit {proc.returncode}): {(proc.stderr or proc.stdout)[-500:].strip()}")
+    return json.loads(proc.stdout.split("@@JSON@@", 1)[1])
+
+
+def _call_owner(ctx: Ctx, name: str, owner: str, module: str, attr: str, *, fallback_meta: Any = None, isolated: bool = False, **extra: Any) -> dict[str, Any]:
+    """Call an owner's evaluator offline. ``fast`` is passed when it takes it; ``extra`` are keyword arguments (which win over ``fast``). ``fallback_meta`` is a
+    dict, or a function of the owner's result, that fills any AnalyticMeta field the owner left out (never one it set). ``isolated`` runs it in a fresh process."""
     import inspect
 
     fn = owner_attr(owner, module, attr)
     params = inspect.signature(fn).parameters
     kw = ({"fast": ctx.fast} if "fast" in params else {}) | extra
     with _offline():
-        r = fn(**kw)
-    return _shape_generic(name, r)
+        r = _call_isolated(module, attr, kw) if isolated else fn(**kw)
+    fb = fallback_meta(r) if callable(fallback_meta) else fallback_meta
+    return _shape_generic(name, r, fallback_meta=fb)
 
 
 def git(ctx: Ctx) -> dict[str, Any]:
@@ -1073,20 +1125,262 @@ def localmodel(ctx: Ctx) -> dict[str, Any]:
     return _call_owner(ctx, "localmodel", "local-model", "understudy_engine.localmodel.evaluate", "evaluate_localmodel", force_live=False)
 
 
+def _recorded(path: Path) -> dict[str, Any] | None:
+    """A recorded result file (a frozen command's output, read here and never re-run). Symlinks and unreadable files are ignored."""
+    try:
+        if not path.is_file() or path.is_symlink():
+            return None
+        d = json.loads(path.read_text(encoding="utf-8"))
+        return d if isinstance(d, dict) else None
+    except (OSError, ValueError):
+        return None
+
+
+def _mlv2_recorded() -> dict[str, Any]:
+    """Held-out and transfer results the mlv2 track wrote under evals/mlv2/results, read through the track's own loaders and slimmers; whatever has not
+    been produced yet is simply absent (``heldout_log.jsonl`` says which frozen parts have run)."""
+    import importlib
+
+    mod = importlib.import_module("understudy_engine.mlv2.evaluate")
+    out: dict[str, Any] = {"files": {}}
+    held: dict[str, Any] = {}
+    for part, fname, slim in (("hazard", "heldout_hazard.json", "slim_hazard"), ("genome", "heldout_genome.json", "slim_genome"), ("mismatch", "heldout_mismatch.json", "slim_mismatch")):
+        res = mod._load(fname)
+        out["files"][fname] = res is not None
+        if res is not None:
+            held[part] = {"fingerprint": mod._fingerprint_note(res, part), "result": getattr(mod, slim)(res)}
+    if held:
+        out["heldout"] = held
+        out["verdicts"] = mod.verdict_table(*(mod._load(f) for f in ("heldout_hazard.json", "heldout_genome.json", "heldout_mismatch.json")))
+    tr = mod._load("transfer_sim.json")
+    out["files"]["transfer_sim.json"] = tr is not None
+    if tr is not None:
+        out["transfer_simulated_participants"] = tr
+    try:
+        from understudy_engine.mlv2 import freeze
+
+        out["frozen"] = {k: v for k, v in (freeze.read_frozen() or {}).items() if not k.startswith("hazard_code")}
+    except Exception:
+        pass
+    return out
+
+
 def mlv2(ctx: Ctx) -> dict[str, Any]:
-    return _call_owner(ctx, "mlv2", "mlv2", "understudy_engine.mlv2.evaluate", "evaluate_mlv2")
+    """ML v2 (REQ-6). The owner's fast path (dev numbers; never reads held-out or simulated-participant traces) plus the recorded held-out and
+    transfer results from evals/mlv2/results, which the harness reads and never produces. ``fast=True`` always: the full dev run is minutes and is the
+    track's own command."""
+    s = _call_owner(ctx, "mlv2", "mlv2", "understudy_engine.mlv2.evaluate", "evaluate_mlv2", fast=True)
+    if "status" in s:
+        return s
+    try:
+        rec = _mlv2_recorded()
+    except Exception as e:                          # the recorded results are an addition: their failure must not hide the dev numbers
+        s["recorded_error"] = f"{type(e).__name__}: {e}"
+        return s
+    s["recorded"] = {k: v for k, v in rec.items() if k not in ("heldout", "verdicts", "transfer_simulated_participants", "frozen")}
+    for k in ("heldout", "verdicts", "transfer_simulated_participants", "frozen"):
+        if k in rec:
+            s[k + "_recorded" if k in s else k] = rec[k]
+    return s
+
+
+EVIDENCE_LIVE_COPY = ("evidence", "live_recorded.json")
 
 
 def evidence(ctx: Ctx) -> dict[str, Any]:
-    return _call_owner(ctx, "evidence", "evidence", "understudy_engine.evidence.evaluate", "evaluate_evidence")
+    """Evidence quality (the explainer and its number-provenance check). ``with_live=False``: the harness never calls a model; the live results recorded
+    on 7 Nov (real models, small n, synthetic packets) are read from the committed copy evals/evidence/live_recorded.json (the original,
+    data/eval/evidence_live.json, is gitignored)."""
+    s = _call_owner(ctx, "evidence", "evidence", "understudy_engine.evidence.evaluate", "evaluate_evidence", with_live=False)
+    if "status" in s:
+        return s
+    rec = _recorded(evals_out_dir().joinpath(*EVIDENCE_LIVE_COPY))
+    live = dict(s.get("live") or {})
+    if rec is not None:
+        live["recorded"] = rec
+        live["recorded_source"] = "evals/evidence/live_recorded.json (copied from data/eval/evidence_live.json, which is gitignored)"
+        live["label"] = "live, real models, small n; packets are synthetic; recorded 7 Nov, not re-run by make eval"
+    else:
+        live.pop("recorded", None)
+        live["recorded_missing"] = "evals/evidence/live_recorded.json is absent, so no live result is shown"
+    s["live"] = live
+    return s
 
 
 def cue(ctx: Ctx) -> dict[str, Any]:
-    return _call_owner(ctx, "cue", "cue", "understudy_engine.cue.evaluate", "evaluate_cue")
+    """Cue (the worker-facing hint). The owner's fast or dev path (never its held-out run) plus the held-out result its frozen command recorded in
+    evals/cue/held_out.json, read here and never re-run."""
+    s = _call_owner(ctx, "cue", "cue", "understudy_engine.cue.evaluate", "evaluate_cue", held_out=False)
+    if "status" in s:
+        return s
+    rec = _recorded(evals_out_dir() / "cue" / "held_out.json")
+    if rec is not None:
+        s["held_out"] = {"source": "evals/cue/held_out.json (the frozen held-out command, run once; read here, never run by the harness)",
+                         **{k: rec[k] for k in ("cue", "score_validation", "params", "meta") if k in rec}}
+    return s
+
+
+def attention(ctx: Ctx) -> dict[str, Any]:
+    """Attention routing. The owner's dev or fast path (never ``held_out=True``) plus its recorded held-out report if the frozen command has produced one."""
+    def fb(r: dict[str, Any]) -> dict[str, Any]:
+        m = r.get("meta") or {}
+        return {"n": m.get("n_workers"), "n_unit": "simulated workers", "split": f"{m.get('split', 'dev')} seeds {m.get('seeds')}; held-out is the owner's separate frozen command",
+                "note": m.get("badge")}
+
+    s = _call_owner(ctx, "attention", "attention", "understudy_engine.attention.evaluate", "evaluate_attention", fallback_meta=fb, held_out=False)
+    if "status" in s:
+        return s
+    rec = _recorded(evals_out_dir() / "attention" / "report_held_out.json")
+    if rec is not None:
+        s["held_out"] = {"source": "evals/attention/report_held_out.json (the frozen held-out command; read here, never run by the harness)", **rec}
+    return s
+
+
+def insights(ctx: Ctx) -> dict[str, Any]:
+    """Insights (pointers for workers and admins). The owner's dev-seed path only (``heldout=False``, always); a recorded held-out result is attached
+    if one of the known files exists. The harness never runs the held-out seeds."""
+    def fb(r: dict[str, Any]) -> dict[str, Any]:
+        m = r.get("meta") or {}
+        seeds = m.get("seed_list") or []
+        return {"n": len(seeds) * int(m.get("people_per_firm") or 0), "n_unit": "synthetic people",
+                "split": f"{m.get('seeds', 'dev')} seeds {seeds} ({len(seeds)} synthetic firms of {m.get('people_per_firm')} people); held-out seeds are run once by the owner (evals/insights/PLAN.md)",
+                "note": m.get("badge")}
+
+    s = _call_owner(ctx, "insights", "insights", "understudy_engine.insights.evaluate", "evaluate_insights", fallback_meta=fb, heldout=False)
+    if "status" in s:
+        return s
+    for rel in ("heldout.json", "held_out.json", "results/heldout.json", "results/held_out.json"):
+        rec = _recorded(evals_out_dir() / "insights" / rel)
+        if rec is not None:
+            s["held_out"] = {"source": f"evals/insights/{rel} (the held-out seeds, run once; read here, never run by the harness)", **rec}
+            break
+    return s
+
+
+def hitlist(ctx: Ctx) -> dict[str, Any]:
+    return _call_owner(ctx, "hitlist", "hitlist", "understudy_engine.hitlist.evaluate", "evaluate_hitlist")
+
+
+REALISM_FAMILIES = ("v1", "markov", "latent_skill", "process_trace")
+REALISM_BLOCK_KINDS = ("hazard", "routines", "genome")
+
+
+def _est(e: Any) -> dict[str, Any]:
+    e = e or {}
+    return {"est": e.get("est"), "ci": e.get("ci") or [None, None]}
+
+
+def _hazard_block_summary(d: dict[str, Any]) -> dict[str, Any]:
+    """One recorded realism hazard block (fit family -> test family cells) as the numbers the findings and the page need, classified by the kind of cell."""
+    cells = (d.get("result") or {}).get("cells") or {}
+    v2 = [f for f in REALISM_FAMILIES if f != "v1"]
+    table = {k: {"h1": _est((c.get("metrics") or {}).get("h1")), "fa_per_h": _est((c.get("metrics") or {}).get("fa_per_h")), "detection": _est((c.get("metrics") or {}).get("detection")),
+                 "fa_over_budget": bool(c.get("fa_over_budget")), "no_skill": bool(c.get("no_skill")), "n_people": c.get("n_people"),
+                 "verdict_vs_diagonal": ((c.get("delta_vs_diagonal") or {}).get("h1") or {}).get("verdict")} for k, c in cells.items()}
+
+    def count(keys: list[str]) -> dict[str, int]:
+        keys = [k for k in keys if k in table]
+        return {"n": len(keys), "over": sum(1 for k in keys if table[k]["fa_over_budget"])}
+
+    off = [f"{x}->{y}" for x in v2 for y in v2 if x != y]
+    return {
+        "v1_own": table.get("v1->v1") or {"h1": {"est": None, "ci": [None, None]}},
+        "v2_diagonals": {f: table[f"{f}->{f}"]["h1"] for f in v2 if f"{f}->{f}" in table},
+        "v1_trained_on_v2": {f: table[f"v1->{f}"]["h1"] for f in v2 if f"v1->{f}" in table},
+        "false_alarm_over_budget": {"v2_off_diagonal": count(off), "v2_diagonal": count([f"{f}->{f}" for f in v2]), "v1_to_v2": count([f"v1->{f}" for f in v2]),
+                                    "v2_to_v1": count([f"{f}->v1" for f in v2]), "budget_per_hour": 1.0},
+        "no_skill_cells": sorted(k for k, c in table.items() if c["no_skill"]),
+        "n_people_v1_cell": (table.get("v1->v1") or {}).get("n_people"), "n_people_v2_cell": (table.get(f"{v2[0]}->{v2[0]}") or {}).get("n_people"),
+        "partial": d.get("partial"), "cells": table,
+    }
+
+
+def _generic_block_summary(d: dict[str, Any]) -> dict[str, Any]:
+    cells = (d.get("result") or {}).get("cells") or {}
+    return {"partial": d.get("partial"), "cells": {k: {m: _est(v) for m, v in ((c.get("metrics") or {}).items()) if isinstance(v, dict) and "est" in v} | {"verdicts": {m: (x or {}).get("verdict") for m, x in (c.get("delta_vs_diagonal") or {}).items()}}
+                                                    for k, c in cells.items()}}
+
+
+def _genome_block_summary(d: dict[str, Any]) -> dict[str, Any]:
+    """One recorded realism genome block (deficit detection; fit family -> test family): precision, recall, the gap estimate and the false attribution to deficits
+    that are absent, classified by the kind of cell. The per-deficit columns stay in the recorded file."""
+    cells = (d.get("result") or {}).get("cells") or {}
+    v2 = [f for f in REALISM_FAMILIES if f != "v1"]
+    keys = ("precision", "recall", "gap_s", "false_attr_s")
+    table = {k: {m: _est((c.get("metrics") or {}).get(m)) for m in keys} | {"n_people": c.get("n_people"), "verdicts": {m: ((c.get("delta_vs_diagonal") or {}).get(m) or {}).get("verdict") for m in ("precision", "recall")}}
+             for k, c in cells.items()}
+    pick = lambda fmt: {f: table[fmt(f)] for f in v2 if fmt(f) in table}  # noqa: E731
+    return {
+        "v1_own": table.get("v1->v1"), "v2_diagonals": pick(lambda f: f"{f}->{f}"), "v1_trained_on_v2": pick(lambda f: f"v1->{f}"), "v2_trained_on_v1": pick(lambda f: f"{f}->v1"),
+        "n_people_v1_cell": (table.get("v1->v1") or {}).get("n_people"), "n_people_v2_cell": (table.get(f"{v2[0]}->{v2[0]}") or {}).get("n_people"),
+        "partial": d.get("partial"), "cells": table,
+    }
+
+
+def _routines_block_summary(d: dict[str, Any]) -> dict[str, Any]:
+    """One recorded realism routines block: raw cluster precision (R1), recall (R2) and proposal precision after the gate (R3), for thresholds fitted per family
+    ('fitted') and for the thresholds the product ships ('shipped', which cannot depend on the fit family)."""
+    res = d.get("result") or {}
+    cells = res.get("cells") or {}
+    keys = ("r1_precision", "r2_recall", "r3_proposal_precision", "clusters_per_person", "proposals_per_person")
+    out: dict[str, Any] = {"fitted": {}, "shipped": {}}
+    for k, c in cells.items():
+        mode, _, pair = k.partition(":")
+        if mode not in out or "->" not in pair:
+            continue
+        out[mode][pair] = {m: _est((c.get("metrics") or {}).get(m)) for m in keys} | {"n_people": c.get("n_people")}
+    shipped = out["shipped"]
+    tests = sorted({p.split("->")[1] for p in shipped})
+    same = all(len({json.dumps({m: shipped[p][m] for m in keys[:3]}, sort_keys=True) for p in shipped if p.endswith(f"->{t}")}) == 1 for t in tests) if shipped else None
+    out["shipped_identical_across_fit_family"] = same
+    out["shipped_by_test_family"] = {t: shipped[next(p for p in sorted(shipped) if p.endswith(f"->{t}"))] for t in tests}
+    out["tuned_threshold"] = res.get("tuned_threshold")
+    out["partial"] = d.get("partial")
+    return out
+
+
+def _realism_blocks(root: Path) -> dict[str, Any]:
+    """The finished blocks the realism track recorded under data/eval/realism_blocks (``<kind>_<role>.json``; fast_* files are its own smoke runs and are skipped)."""
+    out: dict[str, dict[str, Any]] = {k: {} for k in REALISM_BLOCK_KINDS}
+    d = root / "eval" / "realism_blocks"
+    if not d.is_dir():
+        return {}
+    for f in sorted(d.glob("*.json")):
+        kind, _, role = f.stem.partition("_")
+        if kind not in REALISM_BLOCK_KINDS or not role:
+            continue
+        rec = _recorded(f)
+        if rec is None:
+            continue
+        summarise = {"hazard": _hazard_block_summary, "genome": _genome_block_summary, "routines": _routines_block_summary}.get(kind, _generic_block_summary)
+        out[kind][role] = summarise(rec)
+    return {k: v for k, v in out.items() if v}
 
 
 def realism(ctx: Ctx) -> dict[str, Any]:
-    return _call_owner(ctx, "realism", "personas-v2", "understudy_engine.personas_v2.evaluate", "evaluate_realism")
+    """Persona realism (personas v2). The owner's fast path always (the full evaluation is the track's own multi-minute command), plus the finished blocks and
+    the leave-one-person-out result it recorded under data/eval, read and never recomputed."""
+    try:     # its worker pool forks, so it runs in its own process; it also shares an on-disk cache with the track's long runs, so one transient failure is retried once
+        s = _call_owner(ctx, "realism", "personas-v2", "understudy_engine.personas_v2.evaluate", "evaluate_realism", isolated=True, fast=True)
+    except NotLanded:
+        raise
+    except Exception:
+        s = _call_owner(ctx, "realism", "personas-v2", "understudy_engine.personas_v2.evaluate", "evaluate_realism", isolated=True, fast=True)
+    if "status" in s:
+        return s
+    root = resolve_root(ctx.root)
+    blocks = _realism_blocks(root)
+    if blocks:
+        s["blocks"] = blocks
+        s["blocks_source"] = "data/eval/realism_blocks/<kind>_<role>.json (the track's own full-size blocks; read here, never run by the harness)"
+    rep = evals_out_dir() / "realism" / "REPORT.md"
+    if rep.is_file() and not rep.is_symlink():              # the track's assembled write-up: linked by path and hash, never copied into this report
+        s["report_file"] = {"path": "evals/realism/REPORT.md", "sha256": hashlib.sha256(rep.read_bytes()).hexdigest(), "bytes": rep.stat().st_size,
+                            "note": "assembled by the realism track from the same recorded blocks; this report reads the blocks directly"}
+    rec = _recorded(root / "eval" / "realism_lopo.json")
+    if rec is not None:
+        s["lopo_recorded"] = {"source": "data/eval/realism_lopo.json (the track's own leave-one-person-out run; read here, never run by the harness)", **rec}
+    return s
 
 
 def _read_json_file(owner: str, path: Path, how: str, shown: str) -> dict[str, Any]:
@@ -1215,6 +1509,9 @@ SECTIONS: tuple[SectionSpec, ...] = (
     SectionSpec("evidence", "evidence", evidence, needs_synthetic=False),
     SectionSpec("cue", "cue", cue, needs_synthetic=False),
     SectionSpec("realism", "personas-v2", realism, needs_synthetic=False),
+    SectionSpec("attention", "attention", attention, needs_synthetic=False),
+    SectionSpec("insights", "insights", insights, needs_synthetic=False),
+    SectionSpec("hitlist", "hitlist", hitlist, needs_synthetic=False),
     SectionSpec("modelbench", "modelbench", modelbench, needs_synthetic=False),
     SectionSpec("study_roles", "study-roles", study_roles, needs_synthetic=False),
     SectionSpec("agentic", "agentic", agentic, needs_synthetic=False),

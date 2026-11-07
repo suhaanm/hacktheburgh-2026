@@ -22,6 +22,9 @@ SEV_RANK = {"high": 0, "medium": 1, "low": 2}
 SIM_PHRASE = "simulated participants (language model), not people"
 UMBRELLA = "eval-synthetic"
 FOLD_INTO_UMBRELLA = {"ana-synthetic-origin", "presence-synthetic", "routines-synthetic"}
+# a statement the register must contain: ours is added only when no owner entry already says it (all keywords present in one entry's text)
+ONLY_IF_ABSENT = {"eval-evidence-readability-not-accuracy": ("readab", "accuracy"), "eval-evidence-traceability-not-truth": ("traceab", "truth"),
+                  "eval-cue-composite-experimental": ("composite", "experimental"), "eval-agent-live-injected-text-only": ("text-only", "hostile")}
 ABSORB = {"ana-claims-synthetic": "eval-claims-simulated", "ana-study-power": "eval-study-power-assumptions"}      # an owner entry that says the same thing as a static one
 CORE_SECTIONS = ("deficit_recovery", "null_placebo", "hazard", "ope", "routing", "ski_rental", "presence", "routines", "agent_claims", "agent_runs", "redteam", "study")
 
@@ -293,6 +296,7 @@ def computed_entries(sections: dict[str, Any]) -> list[dict[str, str]]:
                               f"The privacy result covers the guard through its own reference flows and {integ.get('flows', 0)} integration flow(s) from a layer's real code "
                               f"(upper bound on the leak rate {_pct(integ.get('leak_rate_upper_95'), 1)} over {integ.get('planted')} planted tokens). "
                               f"These layers supplied no real-code flows and are not counted as passed: {', '.join(missing)}.", "medium", "engine-eval:privacy"))
+    out += _recorded_result_entries(sections, ok)
     rd = ok("redteam")
     if rd:
         on = next((r for r in rd.get("rows", []) if r.get("ablation") == "all_on"), None)
@@ -311,6 +315,62 @@ def _sim_text(section: str, text: str) -> str:
     if section == "study_sim" and SIM_PHRASE not in text.lower():
         return f"{SIM_PHRASE[0].upper() + SIM_PHRASE[1:]}: {text}"
     return text
+
+
+def _ce(x: Any, nd: int = 2) -> str:
+    return "n/a" if not x or x[0] is None else f"{x[0]:.{nd}f} to {x[1]:.{nd}f}"
+
+
+def _v(est: Any, nd: int = 2) -> str:
+    """A value with its interval from an {value, interval} estimate."""
+    if not isinstance(est, dict) or est.get("value") is None:
+        return "n/a"
+    return f"{est['value']:.{nd}f} [{_ce(est.get('interval'), nd)}]"
+
+
+def _recorded_result_entries(sections: dict[str, Any], ok) -> list[dict[str, str]]:
+    """Register entries that state a result other tracks recorded, with the numbers read from the recorded files (never typed)."""
+    out: list[dict[str, str]] = []
+    # the findings the Evidence page leads with are also register entries (high), generated from the same numbers
+    from .findings import build_findings
+
+    srcs = {"study-sim-floor-null": "engine-eval:study_sim", "mlv2-m5-transfer-failure": "engine-eval:mlv2"}
+    for f in build_findings(sections):
+        if f["status"] == "ok":
+            out.append(_entry(f"eval-{f['id']}", f["text"], "high", srcs.get(f["id"], "engine-eval:realism")))
+    # evidence: what the check and the explainer do and do not show; the local model's rates from the recorded live block
+    ev = ok("evidence")
+    if ev:
+        out.append(_entry("eval-evidence-readability-not-accuracy",
+                          "The explainer improves readability, not accuracy: it rewrites a code-written, already-checked sentence into smoother English and the same number "
+                          "check runs afterwards. Nothing here shows that a worker understands the numbers better or decides better.", "high", "engine-eval:evidence"))
+        out.append(_entry("eval-evidence-traceability-not-truth",
+                          "The model check proves traceability, not truth: a sentence passes when every number in it traces to the evidence packet and it makes no causal or "
+                          "expert claim. A sentence can still mislead with numbers that all trace, and the packets are from synthetic apprentices.", "high", "engine-eval:evidence"))
+        rec = ((ev.get("live") or {}).get("recorded") or {}).get("local_qwen25_7b") or {}
+        first, final = rec.get("reword_n30_before_fix") or {}, rec.get("reword_final") or {}
+        if first.get("rate") is not None and final.get("rate") is not None:
+            out.append(_entry(
+                "eval-evidence-local-model-first-run",
+                f"The local model's reword pass rate on the number check was {_pct(first['rate'])} ({first.get('pass')} of {first.get('n')}) on its first n = {first.get('n')} run, "
+                f"and {_pct(final['rate'])} ({final.get('pass')} of {final.get('n')}, interval {_ce(final.get('ci'))}) after the hedge handling and the consequence wording were fixed. "
+                "The second figure is on the same kind of packets after fixing what the first run showed, so it is in-sample. Small n, one model, synthetic packets, "
+                "recorded 7 Nov and not re-run by make eval.", "high", "engine-eval:evidence"))
+    # cue: the composite score
+    cu = ok("cue")
+    if cu:
+        out.append(_entry("eval-cue-composite-experimental",
+                          "The composite independence score is experimental: on simulated learners it overstates mastery when nobody improves and can rise for flat learners. "
+                          "Read the trend with its interval and the four components; do not read the composite alone.", "high", "engine-eval:cue"))
+    # agent runs: the injected condition
+    ar = ok("agent_runs")
+    inj = (((ar or {}).get("live") or {}).get("conditions") or {}).get("injected")
+    if inj:
+        out.append(_entry("eval-agent-live-injected-text-only",
+                          f"The injected condition in the real-model runs is text-only (hidden and visible words aimed at an AI; the detector paused {inj.get('paused')} of {inj.get('n')} runs). "
+                          "It tests the detector and the pause, not the action gate against a hostile page, and does not show that the gate resists hostile pages.",
+                          "high", "engine-eval:agent_runs"))
+    return out
 
 
 def _norm(t: str) -> str:
@@ -352,6 +412,9 @@ def assemble(sections: dict[str, Any]) -> list[dict[str, str]]:
                 continue
             add(_entry(str(lim["id"]), text, sev, f"{owner}:{name}"))
     for e in computed_entries(sections):
+        kw = ONLY_IF_ABSENT.get(e["id"])
+        if kw and any(all(k in x["text"].lower() for k in kw) for x in entries):
+            continue
         add(e)
     for target, text, sev, source in deferred:
         add(_entry(target, text, sev, source))          # merges into the entry that says the same thing; kept only if there is none

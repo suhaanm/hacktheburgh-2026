@@ -34,6 +34,9 @@ TITLES = {
     "evidence": "Evidence quality",
     "cue": "Cue analysis",
     "realism": "Persona realism",
+    "attention": "Attention routing",
+    "insights": "Insights for workers and admins",
+    "hitlist": "Hit list",
     "modelbench": "Model benchmark",
     "study_roles": "Study across roles",
     "agentic": "Agentic evaluation",
@@ -304,6 +307,10 @@ def _cell(v: Any) -> str:
         return f"{v:.3f}"
     if isinstance(v, list) and len(v) == 2 and all(isinstance(x, (int, float)) or x is None for x in v):
         return ci(v, 3)
+    if isinstance(v, dict) and "est" in v and "ci" in v and not isinstance(v["est"], (dict, list)):
+        return f"{f(v['est'], 3)} {ci(v['ci'], 3)}"
+    if isinstance(v, dict) and "value" in v and "interval" in v and not isinstance(v["value"], (dict, list)):
+        return f"{f(v['value'], 3)} {ci(v['interval'], 3)}"
     if isinstance(v, (dict, list)):
         return "(see report.json)"
     return "n/a" if v is None else str(v).replace("|", "/")
@@ -532,6 +539,12 @@ def render(report: dict[str, Any]) -> str:
     emap = report.get("evidence_map") or []
     if emap:
         out += ["## Evidence map", "", evidence_map_text(emap), ""]
+    findings = report.get("findings") or []
+    if findings:
+        out += ["## Findings", "", "Results the numbers below support, stated as findings and not as footnotes. Each is generated from the sections it names.", ""]
+        for fnd in findings:
+            out += [f"### {fnd['title']}", "", f"*origin: **{fnd['origin']}** · {fnd['badge']} · from: {', '.join(fnd.get('sections') or [])} · severity: {fnd.get('severity', 'n/a')}*", ""]
+            out += [fnd["text"] if fnd["status"] == "ok" else f"**PENDING**: {fnd['text']} ({fnd.get('reason', '')})", ""]
     for name, title in TITLES.items():
         if name not in secs:
             continue

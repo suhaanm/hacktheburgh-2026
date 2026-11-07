@@ -23,6 +23,69 @@
   "run": {
    "type": "object"
   },
+  "findings": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "title": {
+      "type": "string"
+     },
+     "text": {
+      "type": "string",
+      "minLength": 1
+     },
+     "status": {
+      "enum": [
+       "ok",
+       "pending"
+      ]
+     },
+     "origin": {
+      "enum": [
+       "real",
+       "synthetic",
+       "mixed",
+       "unknown"
+      ]
+     },
+     "badge": {
+      "type": "string"
+     },
+     "sections": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "severity": {
+      "enum": [
+       "low",
+       "medium",
+       "high"
+      ]
+     },
+     "numbers": {
+      "type": "object"
+     },
+     "reason": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "id",
+     "title",
+     "text",
+     "status",
+     "origin",
+     "badge"
+    ],
+    "additionalProperties": true
+   }
+  },
   "evidence_map": {
    "type": "array",
    "items": {
@@ -536,6 +599,48 @@
      },
      "else": {
       "$ref": "#/$defs/agentic"
+     }
+    },
+    "attention": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/attention"
+     }
+    },
+    "insights": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/insights"
+     }
+    },
+    "hitlist": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/hitlist"
      }
     },
     "limitations": {
@@ -2385,6 +2490,15 @@
    "$ref": "#/$defs/meta_only"
   },
   "agentic": {
+   "$ref": "#/$defs/meta_only"
+  },
+  "attention": {
+   "$ref": "#/$defs/meta_only"
+  },
+  "insights": {
+   "$ref": "#/$defs/meta_only"
+  },
+  "hitlist": {
    "$ref": "#/$defs/meta_only"
   }
  }

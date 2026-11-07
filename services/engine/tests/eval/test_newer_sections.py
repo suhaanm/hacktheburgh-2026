@@ -101,14 +101,14 @@ def test_a_stub_status_from_an_owner_becomes_a_stub_with_its_reason(monkeypatch)
 
 
 def test_a_stub_status_without_a_reason_gets_one_from_the_meta_note(monkeypatch):
-    fake_module(monkeypatch, "understudy_engine.cue.evaluate", "evaluate_cue", lambda fast=False: {"status": "pending", "meta": dict(META, note="waiting for data")})
+    fake_module(monkeypatch, "understudy_engine.cue.evaluate", "evaluate_cue", lambda fast=False, **kw: {"status": "pending", "meta": dict(META, note="waiting for data")})
     s = build(["cue"])["sections"]["cue"]
     assert s["status"] == "pending" and s["reason"] == "waiting for data"
 
 
 def test_any_other_owner_status_is_kept_as_owner_status_on_a_section_with_numbers(monkeypatch):
     fake_module(monkeypatch, "understudy_engine.evidence.evaluate", "evaluate_evidence",
-                lambda fast=False: {"status": "model_not_run", "meta": META, "rows": [{"a": 1}], "limitations": [{"id": "ev-1", "text": "Small n.", "severity": "high"}, "A plain sentence limit."]})
+                lambda fast=False, **kw: {"status": "model_not_run", "meta": META, "rows": [{"a": 1}], "limitations": [{"id": "ev-1", "text": "Small n.", "severity": "high"}, "A plain sentence limit."]})
     rep = build(["evidence"])
     s = rep["sections"]["evidence"]
     assert "status" not in s and s["owner_status"] == "model_not_run" and s["rows"] == [{"a": 1}] and schema_errors(rep) == []
@@ -131,7 +131,7 @@ def test_oversized_keys_are_listed_not_copied(monkeypatch):
 
 def test_owner_calls_run_offline_whatever_the_callers_environment_says(monkeypatch):
     seen = []
-    fake_module(monkeypatch, "understudy_engine.cue.evaluate", "evaluate_cue", lambda fast=False: (seen.append(os.environ.get("UNDERSTUDY_MOCK")), {"meta": META})[1])
+    fake_module(monkeypatch, "understudy_engine.cue.evaluate", "evaluate_cue", lambda fast=False, **kw: (seen.append(os.environ.get("UNDERSTUDY_MOCK")), {"meta": META})[1])
     for before in (None, "0", "1"):
         if before is None:
             monkeypatch.delenv("UNDERSTUDY_MOCK", raising=False)
@@ -145,7 +145,7 @@ def test_owner_calls_run_offline_whatever_the_callers_environment_says(monkeypat
 def test_fast_is_passed_only_to_owners_that_take_it(monkeypatch):
     got = {}
     fake_module(monkeypatch, "understudy_engine.mlv2.evaluate", "evaluate_mlv2", lambda fast=False: (got.update(a=fast), {"meta": META})[1])
-    fake_module(monkeypatch, "understudy_engine.cue.evaluate", "evaluate_cue", lambda: {"meta": META})
+    fake_module(monkeypatch, "understudy_engine.cue.evaluate", "evaluate_cue", lambda **kw: {"meta": META})
     build(["mlv2", "cue"], fast=True)
     assert got["a"] is True
     assert "status" not in build(["cue"])["sections"]["cue"]
@@ -162,7 +162,7 @@ def test_missing_modules_are_pending_with_the_owner_named(monkeypatch):
 
 
 def test_an_owner_that_raises_is_failed_and_visible(monkeypatch):
-    def boom(fast=False):
+    def boom(fast=False, **kw):
         raise RuntimeError("model call failed")
 
     fake_module(monkeypatch, "understudy_engine.cue.evaluate", "evaluate_cue", boom)
@@ -250,7 +250,7 @@ def test_the_live_study_stays_not_run_even_if_every_other_study_section_has_numb
 # ------------------------------------------------------------------------------------------------------------ evidence map
 @pytest.fixture()
 def mapped(evals, monkeypatch):
-    fake_module(monkeypatch, "understudy_engine.cue.evaluate", "evaluate_cue", lambda fast=False: {"meta": dict(META, n=31, n_unit="people", origin="mixed")})
+    fake_module(monkeypatch, "understudy_engine.cue.evaluate", "evaluate_cue", lambda fast=False, **kw: {"meta": dict(META, n=31, n_unit="people", origin="mixed")})
     monkeypatch.setitem(sys.modules, "understudy_engine.mlv2.evaluate", None)
     d = evals / "study_sim"
     d.mkdir()

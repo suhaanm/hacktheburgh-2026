@@ -67,6 +67,8 @@ def build_facts(report: dict[str, Any], *, root: Path | None = None, tests: bool
                      **{f"{k}_names": by_status.get(k, []) for k in ("ok", "pending", "not_run", "failed", "invalid_provenance")}},
         "limitations": {"total": len(lim), **{sev: sum(1 for e in lim if e.get("severity") == sev) for sev in ("high", "medium", "low")}},
     }
+    facts["findings"] = {"total": len(report.get("findings") or []), "ids": [f.get("id") for f in report.get("findings") or []],
+                         "ok": [f.get("id") for f in report.get("findings") or [] if f.get("status") == "ok"]}
     rt = _sec(report, "redteam")
     if rt:
         rows = rt.get("rows") or []
