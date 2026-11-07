@@ -10,7 +10,7 @@
 //
 // Usage (from apps/dashboard):  node scripts/check-copy.mjs [base=http://127.0.0.1:5173] [options]
 //   --routes=growth,firm        only these route ids (default: every route in the budgets)
-//   --view=worker|admin|all     which view to measure (default all; admin needs the view-as switch, found in the account menu or the old sidebar)
+//   --view=worker|admin|all     which view to measure (default all; the Admin view is remembered the way the app does, see scripts/lib/knack-page.mjs)
 //   --viewports=1440x900,1152x735   default from the budgets
 //   --narrow                    also read 390x844 (words and paragraphs only)
 //   --theme=light|dark          default light
@@ -23,6 +23,7 @@ import { chromium } from "playwright";
 import fs from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { openAs } from "./lib/knack-page.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const budgets = JSON.parse(fs.readFileSync(join(here, "..", "qa", "knack", "budgets.json"), "utf8"));
@@ -164,22 +165,6 @@ async function settle(page) {
   return m;
 }
 
-/** The view-as switch moved from the sidebar into the account menu; try both. The role is held in memory only, so navigate by hash afterwards. */
-async function becomeAdmin(page) {
-  const old = page.locator(".viewas .segmented button", { hasText: "Admin" });
-  if (await old.count()) { await old.first().click(); await page.waitForTimeout(300); return true; }
-  const acct = page.locator("[data-account], .acct, button[aria-label*='ccount' i], .side button[aria-haspopup='menu']").first();
-  if (!(await acct.count())) return false;
-  await acct.click();
-  await page.waitForTimeout(250);
-  const item = page.getByRole("menuitemradio", { name: /admin/i }).or(page.getByRole("menuitem", { name: /admin/i })).or(page.getByRole("radio", { name: /admin/i })).or(page.getByRole("option", { name: /admin/i })).or(page.getByRole("button", { name: /view as admin|^admin$/i }));
-  if (!(await item.count())) return false;
-  await item.first().click();
-  await page.waitForTimeout(300);
-  await page.keyboard.press("Escape").catch(() => undefined);
-  return true;
-}
-
 const results = [];
 const fails = [];
 const notes = [];
@@ -229,13 +214,9 @@ try {
       const ids = Object.entries({ ...budgets.routes, ...Object.fromEntries(Object.entries(budgets.exempt).map(([k, v]) => [k, v])) })
         .filter(([id, r]) => (view === "admin" ? r.audience === "admin" : r.audience !== "admin") && (!only || only.has(id)));
       if (ids.length === 0) continue;
-      await page.goto("about:blank");
-      await page.goto(`${base}/#/home`, { waitUntil: "load" }).catch(() => undefined);
-      await page.waitForTimeout(900);
-      if (view === "admin") {
-        const ok = await becomeAdmin(page);
-        if (!ok) { notes.push(`admin view: could not find the view-as switch at ${vp.join("x")}, Admin routes skipped`); continue; }
-      }
+      // A fresh profile is sent to first run when the engine answers; openAs marks it done and remembers the view the way the app itself does.
+      const ok = await openAs(page, base, view);
+      if (!ok) { notes.push(`${view} view: could not reach it at ${vp.join("x")} (first run, or the account menu changed): its routes were skipped`); continue; }
       for (const [id, spec] of ids) {
         await page.evaluate((h) => { location.hash = h; }, `#${spec.path}`);
         await page.waitForTimeout(id === "graph" ? 2000 : 700);
