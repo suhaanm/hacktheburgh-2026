@@ -104,7 +104,7 @@ export default function YourData() {
     } finally { setBusy(false); }
   };
 
-  const f = { lines: items.length, capture, entries, steps: stepTotal, shared: sharing.data ? sharing.data.items.length : null };
+  const f = { lines: items.length, rules: (rules.data ?? []).filter((p) => p.status === "proposed").length, capture, entries, steps: stepTotal, shared: sharing.data ? sharing.data.items.length : null };
   const sources = [mem, ledger, steps];
   const body: Record<Id, ReactNode> = {
     remembers: <Remembers memory={m} proposals={rules.data ?? []} onChanged={() => { mem.reload(); rules.reload(); }} />,

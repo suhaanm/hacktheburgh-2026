@@ -39,9 +39,9 @@ export function sentLine(entries: Pick<LedgerEntry, "status">[]): string {
 }
 
 /** What each section says about itself while it is closed: a few words, never a sentence. */
-export function factLine(id: YdSection, f: { lines: number; capture: boolean | null; entries: Pick<LedgerEntry, "status">[]; steps: number | null; shared: number | null }): string {
+export function factLine(id: YdSection, f: { lines: number; capture: boolean | null; entries: Pick<LedgerEntry, "status">[]; steps: number | null; shared: number | null; rules?: number }): string {
   switch (id) {
-    case "remembers": return `${f.lines} ${f.lines === 1 ? "line" : "lines"}`;
+    case "remembers": return `${f.lines} ${f.lines === 1 ? "line" : "lines"}${f.rules ? `, ${f.rules} ${f.rules === 1 ? "rule" : "rules"} waiting` : ""}`;
     case "measured": return f.capture === null ? "" : f.capture ? "Times only" : "Capture off";
     case "sent": return sentLine(f.entries);
     case "admin-sees": return f.shared === null ? "" : `${f.shared} summaries`;

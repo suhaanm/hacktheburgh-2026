@@ -17,9 +17,12 @@
 .yd-line { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: var(--row-h, 44px); padding: var(--space-2) var(--space-1); }
 .yd-line__text { min-width: 0; overflow-wrap: anywhere; font-size: var(--text-md); line-height: 1.4; }
 .yd-line__note { color: var(--muted); font-size: var(--text-sm); }
-.yd-line__actions { display: inline-flex; gap: var(--space-1); flex: none; opacity: 0; }
-.yd-line:hover .yd-line__actions, .yd-line:focus-within .yd-line__actions { opacity: 1; }
-@media (hover: none) { .yd-line__actions { opacity: 1; } }
+.yd-line { border-radius: var(--radius-2); }
+.yd-line:focus-visible { outline: var(--ring-w) solid var(--focus); outline-offset: calc(var(--ring-offset) * -1); }
+/* Edit and Forget show when the line is hovered or focused (the line takes one tab stop, then Tab reaches them) and always on touch. */
+.yd-line__actions { display: inline-flex; gap: var(--space-1); flex: none; visibility: hidden; }
+.yd-line:hover .yd-line__actions, .yd-line:focus .yd-line__actions, .yd-line:focus-within .yd-line__actions { visibility: visible; }
+@media (hover: none) { .yd-line__actions { visibility: visible; } }
 .yd-line--edit { flex-wrap: wrap; align-items: stretch; }
 .yd-line--edit .input { flex: 1 1 260px; }
 .yd-rules { display: grid; gap: var(--space-3); }

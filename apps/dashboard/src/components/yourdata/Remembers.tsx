@@ -3,10 +3,10 @@ import { ApiError, api } from "../../api";
 import { replaceLineText } from "../../lib/memory";
 import { memoryItems, type MemItem } from "../../screens/YourData/model";
 import type { Memory, RuleProposal } from "../../types";
-import { ConfirmRow } from "../ui";
+import { ConfirmRow, Details } from "../ui";
 import { useToast } from "../Toasts";
 
-const SHOWN = 4;
+const SHOWN = 3;
 
 /**
  * What Knack remembers: the memory file as plain lines, a few at a time, each with Edit and Forget (Forget asks once, inline: "Forget it" or "Keep").
@@ -23,6 +23,7 @@ export function Remembers({ memory: m, proposals, onChanged }: { memory: Memory;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const shown = all ? items : items.slice(0, SHOWN);
+  const waiting = proposals.filter((p) => p.status === "proposed");
   const fail = (e: unknown, fallback: string) => setErr(e instanceof ApiError ? e.message : fallback);
 
   const saveLine = async () => {
@@ -50,7 +51,7 @@ export function Remembers({ memory: m, proposals, onChanged }: { memory: Memory;
     } finally { setBusy(false); }
   };
   const copyWhere = async () => {
-    try { await navigator.clipboard.writeText(m.path); toast({ tone: "success", text: "Copied where it is stored." }); }
+    try { await navigator.clipboard.writeText(m.path); toast({ tone: "success", text: "Copied the location." }); }
     catch { toast({ tone: "error", text: "Could not copy.", detail: "Nothing was changed." }); }
   };
 
@@ -70,7 +71,7 @@ export function Remembers({ memory: m, proposals, onChanged }: { memory: Memory;
               <span className="row"><button type="button" className="btn btn--primary btn--sm" disabled={busy || !edit.value.trim()} onClick={() => void saveLine()}>Save line</button><button type="button" className="btn btn--secondary btn--sm" onClick={() => setEdit(null)}>Cancel</button></span>
             </li>
           ) : (
-            <li key={it.id} className="yd-line" data-section={it.section}>
+            <li key={it.id} className="yd-line" data-section={it.section} tabIndex={0}>
               <span className="yd-line__text">{it.text}{it.note && <span className="yd-line__note"> {it.note}</span>}</span>
               <span className="yd-line__actions">
                 <button type="button" className="btn btn--quiet btn--sm" aria-label={`Edit: ${it.text}`} onClick={() => { setForget(null); setEdit({ id: it.id, old: it.text, value: it.text }); }}>Edit</button>
@@ -83,29 +84,32 @@ export function Remembers({ memory: m, proposals, onChanged }: { memory: Memory;
       {items.length > SHOWN && <div><button type="button" className="btn btn--secondary btn--sm" aria-expanded={all} onClick={() => setAll((v) => !v)}>{all ? "Show fewer" : `Show all ${items.length}`}</button></div>}
       {err && <p className="kc-error" role="alert">{err}</p>}
 
-      {proposals.filter((p) => p.status === "proposed").length > 0 && (
-        <div className="yd-rules" data-testid="rules">
-          <p className="kc-label">Rules Knack would like to add</p>
-          {proposals.filter((p) => p.status === "proposed").map((p) => <RuleRow key={p.id} p={p} onDone={onChanged} />)}
+      <Details summary={waiting.length > 0 ? `More (${waiting.length} ${waiting.length === 1 ? "rule" : "rules"} waiting)` : "More"} defaultOpen={whole !== null}>
+        <div style={{ display: "grid", gap: "var(--space-4)" }}>
+          {waiting.length > 0 && (
+            <div className="yd-rules" data-testid="rules">
+              <p className="kc-label">Rules Knack would like to add</p>
+              {waiting.map((p) => <RuleRow key={p.id} p={p} onDone={onChanged} />)}
+            </div>
+          )}
+          {whole === null ? (
+            <div className="row">
+              <button type="button" className="btn btn--secondary btn--sm" onClick={() => setWhole(m.markdown)}>Edit as text</button>
+              <button type="button" className="btn btn--secondary btn--sm" onClick={() => void copyWhere()}>Copy location</button>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: "var(--space-2)" }}>
+              <label className="u-sr-only" htmlFor="memtext">Memory file as text</label>
+              <textarea id="memtext" className="memtext" value={whole} spellCheck={false} onChange={(e) => setWhole(e.target.value)} />
+              <p className="kc-sub">Keep the headings. Lines starting with a dash are the items.</p>
+              <div className="row">
+                <button type="button" className="btn btn--primary btn--sm" disabled={busy || whole === m.markdown} onClick={() => void saveWhole()}>{busy ? "Saving" : "Save file"}</button>
+                <button type="button" className="btn btn--secondary btn--sm" onClick={() => { setWhole(null); setErr(null); }}>Discard changes</button>
+              </div>
+            </div>
+          )}
         </div>
-      )}
-
-      {whole === null ? (
-        <div className="row">
-          <button type="button" className="btn btn--secondary btn--sm" onClick={() => setWhole(m.markdown)}>Edit as text</button>
-          <button type="button" className="btn btn--secondary btn--sm" onClick={() => void copyWhere()}>Copy where it is stored</button>
-        </div>
-      ) : (
-        <div style={{ display: "grid", gap: "var(--space-2)" }}>
-          <label className="u-sr-only" htmlFor="memtext">Memory file as text</label>
-          <textarea id="memtext" className="memtext" value={whole} spellCheck={false} onChange={(e) => setWhole(e.target.value)} />
-          <p className="kc-sub">Keep the headings. Lines starting with a dash are the items.</p>
-          <div className="row">
-            <button type="button" className="btn btn--primary btn--sm" disabled={busy || whole === m.markdown} onClick={() => void saveWhole()}>{busy ? "Saving" : "Save file"}</button>
-            <button type="button" className="btn btn--secondary btn--sm" onClick={() => { setWhole(null); setErr(null); }}>Discard changes</button>
-          </div>
-        </div>
-      )}
+      </Details>
     </div>
   );
 }

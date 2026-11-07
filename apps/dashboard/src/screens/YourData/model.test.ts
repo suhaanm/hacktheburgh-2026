@@ -47,6 +47,7 @@ describe("the closed section line is a few words", () => {
   it("says counts and states, never a sentence", () => {
     expect(factLine("remembers", f)).toBe("9 lines");
     expect(factLine("remembers", { ...f, lines: 1 })).toBe("1 line");
+    expect(factLine("remembers", { ...f, rules: 1 })).toBe("9 lines, 1 rule waiting");
     expect(factLine("measured", f)).toBe("Times only");
     expect(factLine("measured", { ...f, capture: false })).toBe("Capture off");
     expect(factLine("admin-sees", f)).toBe("6 summaries");
