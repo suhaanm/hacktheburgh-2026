@@ -57,11 +57,19 @@ describe('other platforms and the Dock menu', () => {
     expect(labelled(sub(m[0]!))).toContain('Settings…')
     expect(labelled(sub(m[0]!))).toContain('Quit Knack')
   })
-  it('the Dock menu opens the app and offers the one safety control', () => {
-    const h = handlers()
-    const items = buildDockMenuTemplate({ appName: APP_NAME, handlers: h })
-    expect(labelled(items)).toEqual(['Open Knack', 'Stop Everything'])
-    items[0]!.click!({} as never, undefined, {} as never)
-    expect(h.showWindow).toHaveBeenCalled()
+  it('the Dock menu has three rows: Needs you (n) when n is above 0, Pause for 1 hour, Stop everything', () => {
+    const h = { ...handlers(), openNeedsYou: vi.fn(), pause: vi.fn(), resume: vi.fn() }
+    expect(labelled(buildDockMenuTemplate({ handlers: h, needsYou: 0, paused: false, stopped: false }))).toEqual(['Pause for 1 hour', 'Stop everything'])
+    const items = buildDockMenuTemplate({ handlers: h, needsYou: 2, paused: false, stopped: false })
+    expect(labelled(items)).toEqual(['Needs you (2)', 'Pause for 1 hour', 'Stop everything'])
+    for (const it of items) it.click!({} as never, undefined, {} as never)
+    expect([h.openNeedsYou.mock.calls.length, h.pause.mock.calls.length, h.stopEverything.mock.calls.length]).toEqual([1, 1, 1])
+  })
+  it('the Dock menu turns Pause into Resume now and Stop into Resume after stopping, and never offers Open (a click on the icon opens the window)', () => {
+    const h = { ...handlers(), openNeedsYou: vi.fn(), pause: vi.fn(), resume: vi.fn() }
+    const items = buildDockMenuTemplate({ handlers: h, needsYou: 0, paused: true, stopped: true })
+    expect(labelled(items)).toEqual(['Resume now', 'Resume after stopping'])
+    for (const it of items) it.click!({} as never, undefined, {} as never)
+    expect(h.resume).toHaveBeenCalledTimes(2)
   })
 })
