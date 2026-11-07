@@ -1,0 +1,32 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Reference copies (read only, never committed)
+references/
+
+# Local data
+data/
+*.jsonl
+!evals/**/*.jsonl
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+out/
+.vite/
+*.tsbuildinfo
+
+# OS and editors
+.DS_Store
+.idea/
+.vscode/
+*.log
