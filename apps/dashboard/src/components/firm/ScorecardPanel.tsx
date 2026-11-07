@@ -4,6 +4,7 @@ import { useLoad, type LoadState } from "../../hooks";
 import type { AnalyticMeta, EvalReport } from "../../types";
 import { ChartFoot, EmptyState, ErrorState, ExampleBadge, Loading, Note, OriginBadge, SourceNote, workerOriginLabel } from "../common";
 import { Hint } from "../Hint";
+import { Details } from "../ui";
 import exampleV2 from "../../fixtures/predictions-mlv2.json";
 import { Reliability } from "./Reliability";
 import { ScoreChart, TteChart, type ScoreRowSpec } from "./ScoreRows";
@@ -55,6 +56,8 @@ function Ready({ card, load, audience }: { card: Scorecard; load: LoadState<Eval
   const selBin = sel != null ? card.bins[sel] : null;
   const meta = cardMeta(card.meta);
   const busy = load.status === "loading";
+  // A worker's screen keeps the reliability diagram and the false alarms open (D45: detail behind a disclosure). An Admin tab prints the comparison; only time to progress folds.
+  const fold = (title: string, node: ReactNode, always = false) => (audience === "worker" || always ? <Details summary={title} wide>{node}</Details> : node);
 
   return (
     <div className="sc" aria-busy={busy}>
@@ -63,8 +66,11 @@ function Ready({ card, load, audience }: { card: Scorecard; load: LoadState<Eval
           <div className="sc-head__text">
             <h2 id="sc-hero-h" className="section__title">Does the forecast mean what it says?</h2>
           </div>
-          <div className="sc-head__badges">
-            {load.why ? <ExampleBadge why={load.why} /> : <OriginBadge meta={meta ?? { origin: card.meta.origin, n: 0, n_unit: card.meta.nUnit, split: null, interval_level: card.meta.level, note: null, generated_at: "" }} always label={workerOriginLabel(card.meta.origin)} />}
+          <div className="sc-head__meta">
+            {audience === "admin"
+              // On the Firm screen the one origin pill is in the screen head; the origin of these forecasts is printed as words beside the version.
+              ? <span className="u-muted">{workerOriginLabel(card.meta.origin)}{load.why ? ", example numbers" : ""}</span>
+              : load.why ? <ExampleBadge why={load.why} /> : <OriginBadge meta={meta ?? { origin: card.meta.origin, n: 0, n_unit: card.meta.nUnit, split: null, interval_level: card.meta.level, note: null, generated_at: "" }} always label={workerOriginLabel(card.meta.origin)} />}
             <span className="u-muted">Forecast {card.version}</span>
             <Hint label="About the forecast version">{card.version === "v1" ? "This is the forecast the coach uses today." : "This is the accepted v2 forecast."}</Hint>
             {card.defaultNote && <><span className="u-muted">v2 candidate: {verdictWord(card.verdict)}</span><Hint label="About the v2 candidate">{card.defaultNote}</Hint></>}
@@ -110,7 +116,7 @@ function Ready({ card, load, audience }: { card: Scorecard; load: LoadState<Eval
         <SourceNote why={load.why} />
       </section>
 
-      {card.panels.length > 0 && (
+      {card.panels.length > 0 && fold("Against two simple baselines",
         <section className="section" aria-labelledby="sc-base-h">
           <div className="sc-sechead">
             <h2 id="sc-base-h" className="section__title">Against two simple baselines</h2>
@@ -149,7 +155,7 @@ function Ready({ card, load, audience }: { card: Scorecard; load: LoadState<Eval
         <Alarms card={card} meta={meta} level={level} />
       </section>
 
-      {card.tte && <TteSection card={card} />}
+      {card.tte && fold("Time to progress", <TteSection card={card} />, true)}
 
       <section className="section sc-notes" aria-labelledby="sc-notes-h">
         <h2 id="sc-notes-h" className="u-sr-only">Notes on how to read this</h2>

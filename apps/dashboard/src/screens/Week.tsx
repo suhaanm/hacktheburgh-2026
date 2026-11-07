@@ -73,13 +73,13 @@ export default function Week() {
 
       {w.why && <SourceNote why={w.why} />}
 
-      {d.gap.ribbon?.alignment && d.gap.ribbon.alignment.length > 0 && <><hr className="rule" /><Distance d={d} meta={w.meta} /></>}
+      {d.gap.ribbon?.alignment && d.gap.ribbon.alignment.length > 0 && <><hr className="rule" /><Details summary="How far from the nearest expert" wide><Distance d={d} meta={w.meta} /></Details></>}
 
       <hr className="rule" />
       <GapTable rows={d.gap.rows} meta={w.meta} note={d.gap.interval} />
 
       <hr className="rule" />
-      <Suggestions state={sg} />
+      <Details summary="Ideas for a calmer week" wide><Suggestions state={sg} /></Details>
     </div>
   );
 }

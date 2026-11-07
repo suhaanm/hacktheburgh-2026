@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useLoad } from "../../hooks";
-import { ErrorState, ExampleBadge, Loading } from "../common";
+import { ErrorState, Loading } from "../common";
 import { loadOnboarding, loadOverview, loadRoles } from "../../screens/Firm/data";
 import { BRIEF_LIMITS, buildBrief, longDate } from "./brief";
 import { OnboardingCurves } from "./OnboardingCurves";
@@ -27,7 +27,7 @@ export function FirmBrief() {
       <div className="brief-bar" data-noprint="true">
         <p className="brief-bar__text">One page, A4. Print it or save it as a PDF from the print dialog.</p>
         <button type="button" className="btn btn--primary btn--sm" onClick={() => window.print()}>Print the brief</button>
-        <ExampleBadge why={example} />
+        {example && <span className="u-muted">Example numbers</span>}
       </div>
       <article className="brief-page" aria-labelledby="brief-title">
         <header className="brief-page__head">
