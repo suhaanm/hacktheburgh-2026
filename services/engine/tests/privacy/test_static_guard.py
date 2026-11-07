@@ -192,7 +192,7 @@ def test_the_real_runtime_has_no_unrecorded_direct_model_call_and_no_provider_im
 def test_cue_awareness_evidence_mlv2_and_personas_v2_are_guarded_and_two_are_pure_compute():
     for layer in ("cue", "awareness", "evidence", "mlv2", "personas_v2"):
         assert layer in guard.GUARDED_DIRS
-    assert {"mlv2", "personas_v2", "attention"} == set(guard.PURE_COMPUTE_DIRS)
+    assert {"mlv2", "personas_v2", "attention", "hitlist", "insights"} == set(guard.PURE_COMPUTE_DIRS)
     assert {"routes_cue.py", "routes_evidence.py", "routes_mlv2.py", "routes_personas_v2.py"} <= set(guard.GUARDED_FILES)
 
 

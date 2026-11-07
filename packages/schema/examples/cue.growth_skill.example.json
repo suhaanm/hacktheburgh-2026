@@ -550,23 +550,33 @@
    "ready": true,
    "trend_needed": 30
   },
+  "retrieval": {
+   "abandoned": 0,
+   "assisted": 0,
+   "clean": 0,
+   "error": 0,
+   "withheld": 0
+  },
   "role": "benefits-processor",
   "score": {
    "available_weight": 1.0,
-   "composite_caveat": "Experimental. On simulated learners it overstated by 6 to 10 points when nobody improved, and rose 10 points or more in 33% of learners whose skill never changed. Read the trend and the independence interval instead.",
+   "composite_caveat": "Experimental. On simulated learners it overstated by 5 to 10 points when nobody improved, and rose 10 points or more in 25 to 33% of learners whose skill never changed. Read the trend and the independence interval instead.",
    "composite_caveat_figures": {
     "bias_points": [
-     6.0,
+     5.0,
      9.9
     ],
-    "false_rise_rate": 0.33,
+    "false_rise_rate": [
+     0.25,
+     0.33
+    ],
     "mastery_overstated_by": [
-     0.29,
-     0.49
+     0.3,
+     0.5
     ],
     "n_learners": 60,
     "origin": "simulated",
-    "seeds": "dev 0 to 59"
+    "seeds": "dev 0 to 59, held-out 10000 to 10059"
    },
    "composite_experimental": 68.8,
    "composite_experimental_ci": [
@@ -634,7 +644,7 @@
   "window": 20
  },
  "meta": {
-  "generated_at": "2026-11-07T18:16:51Z",
+  "generated_at": "2026-11-07T19:09:31Z",
   "interval_level": 0.95,
   "n": 30,
   "n_unit": "occurrences",

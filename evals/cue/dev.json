@@ -1,6 +1,6 @@
 {
  "ambiguity_sweep": {
-  "note": "A prior fitted on experts who split evenly between batching the cliff checks and not (split_prior) makes close calls common, which exercises the one-question rule.",
+  "note": "A prior fitted on experts who split evenly between batching the cliff checks and not makes the top two candidates close; with the tuned margin of 0.10 that is still a clear call (0.63 against 0.37), with a margin of 0.30 it is a close call, which exercises the one-question rule.",
   "rows": {
    "confident_prior": {
     "asks_per_hour": {
@@ -16,6 +16,7 @@
      1.2,
      4.0
     ],
+    "margin_thr": 0.1,
     "net_seconds_saved_per_hour": {
      "baseline_no_cue": 0.0,
      "ci": [
@@ -73,7 +74,7 @@
      "kinds": []
     }
    },
-   "split_prior": {
+   "split_prior_tuned_margin": {
     "asks_per_hour": {
      "ci": [
       0.0531,
@@ -87,6 +88,7 @@
      30.0,
      30.0
     ],
+    "margin_thr": 0.1,
     "net_seconds_saved_per_hour": {
      "baseline_no_cue": 0.0,
      "ci": [
@@ -143,6 +145,78 @@
      "count": 0,
      "kinds": []
     }
+   },
+   "split_prior_wide_margin": {
+    "asks_per_hour": {
+     "ci": [
+      0.1672,
+      0.3096
+     ],
+     "n": 46,
+     "n_workers": 40,
+     "value": 0.2279
+    },
+    "expert_batch_beta": [
+     30.0,
+     30.0
+    ],
+    "margin_thr": 0.3,
+    "net_seconds_saved_per_hour": {
+     "baseline_no_cue": 0.0,
+     "ci": [
+      17.7444,
+      38.0022
+     ],
+     "n": 5552,
+     "n_workers": 40,
+     "note": "Stall seconds saved minus seconds lost to interruptions, per hour of work.",
+     "value": 27.5107
+    },
+    "p1_false_nudges_per_hour": {
+     "all": {
+      "ci": [
+       0.6529,
+       0.8785
+      ],
+      "n": 155,
+      "n_workers": 40,
+      "value": 0.7679
+     },
+     "baseline_no_cue": 0.0,
+     "design_target": 1.0,
+     "note": "A design target (at most 1.0 an hour), not a measured tolerance.",
+     "primary_975": {
+      "ci": [
+       0.6415,
+       0.8871
+      ],
+      "n": 155,
+      "n_workers": 40,
+      "value": 0.7679
+     }
+    },
+    "questions_per_episode": {
+     "ci": [
+      0.126,
+      0.2222
+     ],
+     "n": 46,
+     "n_workers": 40,
+     "value": 0.1691
+    },
+    "stuck_episodes_with_a_correct_cue_share": {
+     "ci": [
+      0.2547,
+      0.3322
+     ],
+     "n": 164,
+     "n_workers": 40,
+     "value": 0.2944
+    },
+    "violations": {
+     "count": 0,
+     "kinds": []
+    }
    }
   },
   "split": "dev"
@@ -163,7 +237,7 @@
   "logging_policy": "the rule's action with probability 1 - 0.2 + 0.2/|allowed|, others 0.2/|allowed|; no learning",
   "logging_policy_value": 0.0218,
   "meta": {
-   "generated_at": "2026-11-07T18:27:14Z",
+   "generated_at": "2026-11-07T19:10:39Z",
    "interval_level": 0.95,
    "n": 40,
    "n_unit": "personas",
@@ -1704,7 +1778,7 @@
    "These are expert paths from a generator; real experts will do things neither family contains."
   ],
   "meta": {
-   "generated_at": "2026-11-07T18:26:43Z",
+   "generated_at": "2026-11-07T19:10:08Z",
    "interval_level": 0.95,
    "n": 98,
    "n_unit": "personas",
@@ -2080,14 +2154,14 @@
  },
  "code_hashes": {
   "candidates.py": "46e2bf1f9b67",
-  "evals/cue/PLAN.md": "c519346fefa3",
-  "evaluate.py": "30c28ac6873c",
+  "evals/cue/PLAN.md": "8d3b2e9c5ada",
+  "evaluate.py": "59c271d6151b",
   "evaluate_candidates.py": "1b0c3d47a9df",
   "evaluate_score.py": "d0a84cb42b48",
   "gate.py": "2edbc0806abc",
   "params.py": "2b912880af7e",
   "question.py": "e6130ec2b4a3",
-  "score.py": "15260b54aa41",
+  "score.py": "9b1aee528ed0",
   "simlearn.py": "947d6d18e4c4",
   "simulate.py": "4a328240a2b8"
  },
@@ -2159,7 +2233,7 @@
   },
   "dt_s": 2.5,
   "fast": false,
-  "seconds": 32.8,
+  "seconds": 32.7,
   "voice_ok": false
  },
  "dev": {
@@ -2838,7 +2912,7 @@
   }
  ],
  "meta": {
-  "generated_at": "2026-11-07T18:27:14Z",
+  "generated_at": "2026-11-07T19:10:39Z",
   "interval_level": 0.95,
   "n": 40,
   "n_unit": "personas",
@@ -2862,7 +2936,7 @@
     "gamer"
    ],
    "occurrences_per_skill": 40,
-   "seconds": 18.4,
+   "seconds": 18.3,
    "skills": 3,
    "variants": [
     "engine_default",
@@ -3010,7 +3084,7 @@
    ]
   },
   "meta": {
-   "generated_at": "2026-11-07T18:27:02Z",
+   "generated_at": "2026-11-07T19:10:26Z",
    "interval_level": 0.95,
    "n": 240,
    "n_unit": "simulated learners",
