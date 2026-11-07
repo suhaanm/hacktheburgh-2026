@@ -37,13 +37,14 @@ export const DEPTH = spec.budget;
 // ---- helpers the paths use -------------------------------------------------------------------------------------------------------
 /** A sidebar destination by its label: the new sidebar (nav items) or, until it lands, the old nav links. */
 export const nav = (page, label) =>
-  page.locator(".side nav a, .side nav button, nav a, nav button, .nav a").filter({ hasText: new RegExp(`^\\s*${label}\\b`) }).first();
+  page.locator(".side nav a, .side nav button, nav a, nav button, .nav a").filter({ hasText: new RegExp(`^\\s*${label}(?![A-Za-z])`) }).first();
 
 /** The view-as switch: the account menu in the new shell, the sidebar segmented control in the old one. Not a counted click (see budgetOf). */
 export async function becomeAdmin(page) {
   const old = page.locator(".viewas .segmented button", { hasText: "Admin" });
   if (await old.count()) { await old.first().click(); await page.waitForTimeout(300); return; }
-  const acct = page.locator("[data-account], .acct, button[aria-label*='ccount' i], .side button[aria-haspopup='menu']").first();
+  // The account button by its name. (A selector that also matched `.side button[aria-haspopup="menu"]` found More first, because More is earlier in the page.)
+  const acct = page.getByRole("button", { name: /^Account/ }).first();
   await acct.click();
   await page.getByRole("menuitemradio", { name: /admin/i }).or(page.getByRole("menuitem", { name: /admin/i })).or(page.getByRole("radio", { name: /admin/i })).or(page.getByRole("button", { name: /view as admin|^admin$/i })).first().click();
   await page.waitForTimeout(300);
@@ -55,12 +56,12 @@ export async function becomeAdmin(page) {
 // Track B: replace each `null` with { steps: [...] } following jobs.json `target_path`.
 export const PATHS = {
   J1: { steps: [], then: (page) => page.locator("#main h1, #main .hero-insight").first() },
-  J2: null, // Home hero is the pending item: "Approve and submit" (1); with several, sidebar "Needs you" then the button (2). The click is counted, not executed.
-  J3: null, // sidebar "Needs you", then Watch first | Not now | Never (2). Away variant: "More ways to say yes", switch, confirm (3).
+  J2: { steps: [{ d: 'the Home hero\'s own button: "Approve and submit" (counted, not executed)', loc: (p) => p.getByTestId("home-approval").getByRole("button", { name: /^(Approve|Resume)/ }), skip: true }] },
+  J3: { steps: [{ d: 'sidebar "Needs you"', loc: (p) => nav(p, "Needs you") }, { d: '"Watch first" on a routine proposal (counted, not executed)', loc: (p) => p.locator("article.kc-row[data-kind='proposal']").getByRole("button", { name: "Watch first" }).first(), skip: true }] }, // sidebar "Needs you", then Watch first | Not now | Never (2). Away variant: "More ways to say yes", switch, confirm (3).
   J4: { steps: [{ d: 'sidebar "Growth"', loc: (p) => nav(p, "Growth") }] },
-  J5: null, // sidebar "Your data", Forget, "Forget it" (3). The last click is counted, not executed.
-  J6: null, // the sidebar Stop button (1). Option-Shift-Command-K is 0 and is a keyboard path the corner and menu bar prove.
-  J7: null, // Needs you or Routines, "Run now" (2). Option-Space is 0 and belongs to the desktop shell.
+  J5: { steps: [{ d: 'sidebar "Your data"', loc: (p) => nav(p, "Your data") }, { d: '"Forget" beside a line (counted, not executed)', loc: (p) => p.locator("#main").getByRole("button", { name: /^Forget/ }).first(), skip: true }, { d: '"Forget it" (counted, not executed, not located)', blind: true, skip: true }] },
+  J6: { steps: [{ d: "the sidebar Stop button (counted, not executed)", loc: (p) => p.getByRole("button", { name: "Stop everything now" }), skip: true }] },
+  J7: { steps: [{ d: 'sidebar "Routines"', loc: (p) => nav(p, "Routines") }, { d: "open a routine row", loc: (p) => p.locator("article.rt-row button.rt-row__open").first() }, { d: '"Run now" (counted, not executed)', loc: (p) => p.locator("article.rt-row").getByRole("button", { name: /^Run now/ }).first(), skip: true }] },
   A1: { setup: becomeAdmin, steps: [{ d: 'sidebar "Firm"', loc: (p) => nav(p, "Firm") }] },
   A2: { setup: becomeAdmin, steps: [{ d: 'sidebar "Roles"', loc: (p) => nav(p, "Roles") }] },
   A3: { setup: becomeAdmin, steps: [{ d: 'sidebar "Onboarding"', loc: (p) => nav(p, "Onboarding") }] },
@@ -99,6 +100,7 @@ try {
       const log = [`open the app -> ${await page.evaluate(() => location.hash)}`];
       let broke = null;
       for (const s of path.steps) {
+        if (s.blind) { clicks++; log.push(`${clicks}. ${s.d}`); continue; }
         const loc = s.loc(page);
         try { await loc.waitFor({ state: "visible", timeout: 4000 }); } catch { broke = `not found: ${s.d}`; break; }
         clicks++;
