@@ -44,6 +44,7 @@ export function AccountMenu({ placement = "up" }: { placement?: "up" | "down" })
         ref={btn}
         type="button"
         className="account__btn"
+        data-account
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={`Account: ${user?.name ?? "Local profile"}`}
