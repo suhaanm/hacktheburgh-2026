@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRoute } from "../../router";
 import { useLoad, type LoadState } from "../../hooks";
-import { ErrorState, ExampleBadge, Loading, PageHead, SourceNote } from "../../components/common";
+import { ErrorState, Loading, SourceNote } from "../../components/common";
+import { Breadcrumb } from "../../components/Breadcrumb";
 import { Details } from "../../components/ui";
 import { HitList } from "../../components/repeats/HitList";
-import { FirmBadge, SYNTHETIC_NOTE } from "../../components/firm/Badges";
+import { SYNTHETIC_NOTE } from "../../components/firm/Badges";
 import { FirmBrief } from "../../components/firm/FirmBrief";
 import { InsightRows } from "../../components/firm/InsightRows";
 import { OnboardingCurves } from "../../components/firm/OnboardingCurves";
@@ -13,42 +14,33 @@ import { RiskCoverage } from "../../components/firm/RiskCoverage";
 import { RoleMultiples } from "../../components/firm/RoleMultiples";
 import { ScorecardPanel } from "../../components/firm/ScorecardPanel";
 import { fmtNum } from "../../components/firm/model";
-import { FIRM_TABS, firmTabOf, type FirmTab } from "../../components/home/navModel";
+import { firmTabOf, type FirmTab } from "../../components/home/navModel";
 import { ADMIN_MARKER } from "../../components/home/viewAs";
 import { loadFirm as loadFirmHits } from "../Repeats/data";
 import { loadFirm, loadOnboarding, loadOverview, loadRoles } from "./data";
 import "../../components/firm/firm.css";
 
+/** A title is a name, six words at most. The other five views are rows in More and in the palette; the tab strip is retired. */
 const TITLE: Record<FirmTab, string> = {
-  overview: "Seven things to know",
-  roles: "Experts and juniors, side by side",
-  people: "Everyone, by role",
-  onboarding: "How fast people reach independence",
-  automation: "Repeated work across the firm",
-  risk: "Approvals, pauses and coverage",
-  forecasts: "How well the stuck forecasts hold up",
-  brief: "The firm brief",
+  overview: "Firm",
+  roles: "Roles",
+  people: "People",
+  onboarding: "Onboarding",
+  automation: "Automation",
+  risk: "Risk and coverage",
+  forecasts: "Forecasts",
+  brief: "Firm brief",
 };
+/** The one printed line under every Firm title: a use limit, so it is never behind a Hint. */
+export const FIRM_LIMIT = "For coaching and onboarding, not for evaluating individuals.";
 const MIN_GROUP = 5;
 
-/** The head of every panel: the synthetic-firm badge, the example-data badge when it applies, and the one line saying why. */
-function PanelHead({ q, badge }: { q: Pick<LoadState<unknown>, "meta" | "why">; badge: boolean }) {
-  return (
-    <div className="firm-panel__head">
-      {badge && <FirmBadge meta={q.meta} />}
-      <ExampleBadge why={q.why} />
-    </div>
-  );
-}
-
-/** Wraps a loaded panel: loading, error and the example note are designed, never blank. */
-/** The synthetic note is said once in the page head and each card carries its own short badge, so a panel adds a badge only when `badge` is set. */
-function Panel<T>({ q, what, badge = false, children }: { q: LoadState<T>; what: string; badge?: boolean; children: (d: T) => React.ReactNode }) {
+/** Wraps a loaded panel: loading, error and the example note are designed, never blank. The one origin pill is in the screen head, not on each panel. */
+function Panel<T>({ q, what, children }: { q: LoadState<T>; what: string; children: (d: T) => React.ReactNode }) {
   if (q.status === "error" && !q.data) return <ErrorState error={q.error} retry={q.reload} what={what} />;
   if (!q.data) return <Loading label={`Loading ${what}`} />;
   return (
     <section className="firm-panel" aria-busy={q.status === "loading"}>
-      <PanelHead q={q} badge={badge} />
       {children(q.data)}
       <SourceNote why={q.why} />
     </section>
@@ -61,10 +53,11 @@ function Overview({ openId }: { openId: string | null }) {
     <Panel q={q} what="the overview">
       {(o) => (
         <>
-          <p className="firm-summary">{o.firm.users} people in {o.firm.roles} roles. {o.coverage.enough_data} have enough data for a trend.</p>
+          <p className="firm-summary">{o.firm.users} people, {o.firm.roles} roles. {o.coverage.enough_data} have enough data for a trend.</p>
           {o.top.length > 0 ? <InsightRows items={o.top} openId={openId} /> : (
-            <div className="state"><span className="state__mark" aria-hidden="true" /><h2 className="state__title">Nothing stands out this week</h2><p className="state__body">No insight passed every check. That is a normal result.</p></div>
+            <div className="state"><h2 className="state__title">Nothing stands out this week</h2><p className="state__body">No insight passed every check. That is a normal result.</p></div>
           )}
+          <p className="firm-links"><a href="#/firm/brief">Print the firm brief</a></p>
           {o.suppressed && o.suppressed.count > 0 && (
             <Details summary={`${o.suppressed.count} other candidates were left out`}>
               <p>A short list is not a hidden one. They were left out because:</p>
@@ -134,7 +127,7 @@ export default function Firm() {
   const route = useRoute();
   const tab = firmTabOf(route.path);
   const openId = route.query.get("insight");
-  useEffect(() => { document.title = `${TITLE[tab]} · Firm · Understudy`; }, [tab]);
+  useEffect(() => { document.title = tab === "overview" ? "Firm · Knack" : `${TITLE[tab]} · Firm · Knack`; }, [tab]);
   const body = useMemo(() => {
     switch (tab) {
       case "roles": return <Roles />;
@@ -148,21 +141,21 @@ export default function Firm() {
     }
   }, [tab, openId]);
 
+  const sub = tab !== "overview" && tab !== "roles" && tab !== "onboarding";
   return (
     <div className="page page--wide firm" data-tab={tab}>
-      <PageHead
-        eyebrow="Firm"
-        title={TITLE[tab]}
-        lede="For coaching and onboarding, not for evaluating individuals."
-        aside={<><span className="pill firm-admin">{ADMIN_MARKER}</span><span className="pill pill--origin firm-synthetic" data-origin="synthetic">{SYNTHETIC_NOTE}</span></>}
-      />
-      <nav className="tabs firm-tabs" aria-label="Firm views">
-        {FIRM_TABS.map((t) => (
-          <a key={t.id} href={`#${t.path}`} className="tab" aria-current={tab === t.id ? "page" : undefined}>{t.label}</a>
-        ))}
-      </nav>
+      <header className="screenhead">
+        {sub && <Breadcrumb items={[{ label: "Firm", href: "#/firm" }, { label: TITLE[tab] }]} />}
+        <div className="screenhead__row">
+          <h1 className="screenhead__title">{TITLE[tab]}</h1>
+          <div className="page__aside">
+            <span className="screenhead__marker">{ADMIN_MARKER}</span>
+            <span className="pill pill--origin firm-synthetic" data-origin="synthetic">{SYNTHETIC_NOTE}</span>
+          </div>
+        </div>
+        <p className="screenhead__limit">{FIRM_LIMIT}</p>
+      </header>
       {body}
     </div>
   );
 }
-

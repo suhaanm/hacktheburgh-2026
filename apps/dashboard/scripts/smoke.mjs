@@ -37,7 +37,7 @@ const go = async (hash, wait = 700) => {
 
 // 1. Onboarding, two roles, timed
 for (const [role, pack] of [["UK benefits processor", "benefits-processor"], ["Data analyst", "data-analyst"]]) {
-  await go("/onboarding");
+  await go("/setup");
   const t0 = Date.now();
   await page.locator(".role-card", { hasText: role }).click();
   await page.getByRole("button", { name: "Next" }).click();
@@ -58,7 +58,7 @@ for (const [role, pack] of [["UK benefits processor", "benefits-processor"], ["D
 check("onboarding: two roles give different files", globalThis["benefits-processor"] !== globalThis["data-analyst"]);
 
 // 2. Onboarding mid-flow screenshot (risky question)
-await go("/onboarding");
+await go("/setup");
 await page.locator(".role-card", { hasText: "Data analyst" }).click();
 await page.getByRole("button", { name: "Next" }).click();
 await page.locator(".role-card", { hasText: "SQL console" }).click();
