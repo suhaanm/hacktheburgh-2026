@@ -1,0 +1,216 @@
+{
+ "_about": "A frozen copy of the v1 stuck-forecast section (and its limits) that pins scorecard.ts, so these tests do not move when the eval harness regenerates fixtures/eval-report.json. Not live data.",
+ "sections": {
+  "hazard": {
+   "baselines": {
+    "base_rate": {
+     "brier": 0.16379604443862028,
+     "ci_log_loss": [
+      0.4969490322512162,
+      0.5244772029314175
+     ],
+     "ece": 0.02058878584649411,
+     "log_loss": 0.5094758468534146
+    },
+    "time_since_progress": {
+     "brier": 0.16350324296694696,
+     "ci_log_loss": [
+      0.4958575078618694,
+      0.5239835696469827
+     ],
+     "ece": 0.002687935716916942,
+     "log_loss": 0.5085573340214258
+    }
+   },
+   "budget_false_alarms_per_hour": 1.0,
+   "calibration": [
+    {
+     "freq": 0.05507955936352509,
+     "hi": 0.1,
+     "lo": 0.0,
+     "n": 2451,
+     "p_mean": 0.060035444906976224
+    },
+    {
+     "freq": 0.1497584541062802,
+     "hi": 0.2,
+     "lo": 0.1,
+     "n": 2070,
+     "p_mean": 0.1438263306751917
+    },
+    {
+     "freq": 0.28558310376492196,
+     "hi": 0.3,
+     "lo": 0.2,
+     "n": 1089,
+     "p_mean": 0.24689624643431332
+    },
+    {
+     "freq": 0.3690337601862631,
+     "hi": 0.4,
+     "lo": 0.3,
+     "n": 859,
+     "p_mean": 0.353816180952476
+    },
+    {
+     "freq": 0.43162393162393164,
+     "hi": 0.5,
+     "lo": 0.4,
+     "n": 468,
+     "p_mean": 0.43649257411844133
+    },
+    {
+     "freq": 0.5573122529644269,
+     "hi": 0.6,
+     "lo": 0.5,
+     "n": 253,
+     "p_mean": 0.5437185621514965
+    },
+    {
+     "freq": 0.5454545454545454,
+     "hi": 0.7,
+     "lo": 0.6,
+     "n": 132,
+     "p_mean": 0.6510320219760185
+    },
+    {
+     "freq": 0.5526315789473685,
+     "hi": 0.8,
+     "lo": 0.7,
+     "n": 38,
+     "p_mean": 0.7272095262967383
+    },
+    {
+     "freq": 0.4166666666666667,
+     "hi": 0.9,
+     "lo": 0.8,
+     "n": 12,
+     "p_mean": 0.8442346115011271
+    },
+    {
+     "freq": 0.75,
+     "hi": 1.0,
+     "lo": 0.9,
+     "n": 4,
+     "p_mean": 0.9629888520351879
+    }
+   ],
+   "caveats": [
+    "Labels and events are defined from `progress` events in the data; the model predicts 'no progress in the next 60 s', not 'the person is confused'.",
+    "Intervals resample episodes, not people; with few people the person-level spread (per_person) is the honest uncertainty.",
+    "Alarm threshold is chosen on training people only under the false-alarm budget; it can overshoot on the held-out person (see false_alarms_within_budget). The budget is a design choice, not a measured tolerance of real workers.",
+    "Synthetic origin: results show the pipeline recovers planted structure, not that real people behave this way."
+   ],
+   "data_source": "engine-data synthetic personas (4 people, 21 days)",
+   "detection_rate": 0.3288590604026846,
+   "detection_rate_ci": [
+    0.2749961792895662,
+    0.3860696558753794
+   ],
+   "false_alarms_per_hour": 1.2115732368897245,
+   "false_alarms_per_hour_ci": [
+    0.9499720626370005,
+    1.4843569114030721
+   ],
+   "false_alarms_within_budget": false,
+   "interval_note": "Intervals resample episodes (clusters) within the pooled held-out predictions; they do not capture person-to-person variation (see per_person).",
+   "limitations": [
+    {
+     "id": "ana-synthetic-origin",
+     "severity": "high",
+     "text": "Hazard, skills, policy, routing and agent-claim results come from synthetic personas, scripted apprentices or simulators we wrote. They show that the methods recover structure we planted, not that real workers behave this way."
+    },
+    {
+     "id": "ana-hazard-people",
+     "severity": "high",
+     "text": "The stuck hazard is evaluated on four synthetic personas, so 'held-out person' means one of four. Intervals resample episodes, not people; the per-person spread is the honest uncertainty."
+    },
+    {
+     "id": "ana-hazard-alerts",
+     "severity": "medium",
+     "text": "Probabilities are better than the baselines and calibrated, but alert quality is modest: about a third of stuck events are flagged, and on held-out people the false-alarm rate (about 1.2 per hour) overshoots the 1 per hour budget chosen on training people."
+    },
+    {
+     "id": "ana-hazard-label",
+     "severity": "medium",
+     "text": "'Stuck' means no progress event in the next 60 seconds, which is not the same as confusion. Fast thinking and slow typing both look stuck to this label."
+    },
+    {
+     "id": "ana-apprentice-script",
+     "severity": "medium",
+     "text": "The apprentice traces follow a fixed task script, so part of the hazard model's large gain on them is learning the script, not predicting stuck. The four-persona result is the headline."
+    }
+   ],
+   "meta": {
+    "generated_at": "2026-11-07T20:59:37Z",
+    "interval_level": 0.95,
+    "n": 4,
+    "n_unit": "people",
+    "note": "7376 scored 30-second bins from 2676 episodes; label = no progress in the next 60 s.",
+    "origin": "synthetic",
+    "split": "leave-one-person-out"
+   },
+   "model": {
+    "brier": 0.14000056334727523,
+    "ci_brier": [
+     0.13470047974257193,
+     0.14556628079111403
+    ],
+    "ci_ece": [
+     0.012298417195282196,
+     0.024921891647196152
+    ],
+    "ci_log_loss": [
+     0.4223829666693475,
+     0.4508648755761769
+    ],
+    "ece": 0.015170681571796976,
+    "log_loss": 0.4364071426244465
+   },
+   "model_minus_base_log_loss": -0.0730687042289681,
+   "model_minus_base_log_loss_ci": [
+    -0.08132547890127788,
+    -0.06474013372634263
+   ],
+   "model_minus_tsp_log_loss": -0.07215019139697926,
+   "model_minus_tsp_log_loss_ci": [
+    -0.08040086092738474,
+    -0.06390292909975083
+   ],
+   "split": "leave-one-person-out"
+  },
+  "limitations": [
+   {
+    "id": "ana-hazard-people",
+    "severity": "high",
+    "source": "engine-analytics:hazard; engine-analytics:policy_gate",
+    "text": "The stuck hazard is evaluated on four synthetic personas, so 'held-out person' means one of four. Intervals resample episodes, not people; the per-person spread is the honest uncertainty."
+   },
+   {
+    "id": "ana-hazard-alerts",
+    "severity": "medium",
+    "source": "engine-analytics:hazard",
+    "text": "Probabilities are better than the baselines and calibrated, but alert quality is modest: about a third of stuck events are flagged, and on held-out people the false-alarm rate (about 1.2 per hour) overshoots the 1 per hour budget chosen on training people."
+   },
+   {
+    "id": "ana-hazard-label",
+    "severity": "medium",
+    "source": "engine-analytics:hazard; engine-analytics:policy_gate",
+    "text": "'Stuck' means no progress event in the next 60 seconds, which is not the same as confusion. Fast thinking and slow typing both look stuck to this label."
+   }
+  ],
+  "mlv2": {
+   "meta": {
+    "generated_at": "2026-11-07T17:38:00Z",
+    "interval_level": 0.95,
+    "n": 0,
+    "n_unit": "people",
+    "note": null,
+    "origin": "synthetic",
+    "split": null
+   },
+   "reason": "mlv2 not landed (module understudy_engine.mlv2.evaluate missing)",
+   "status": "pending"
+  }
+ }
+}

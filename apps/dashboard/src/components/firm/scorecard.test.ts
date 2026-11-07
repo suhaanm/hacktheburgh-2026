@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import report from "../../fixtures/eval-report.json";
+import liveReport from "../../fixtures/eval-report.json";
 import exampleV2 from "../../fixtures/predictions-mlv2.json";
+import frozenV1 from "./testdata/hazard-v1-report.json";
 import {
   CLOSE_POINTS, THIN_N, baselineLine, binReadout, budgetVerdict, budgetWords, estFrom, estOf, gapOf, pair, readBins, readScorecard, relate,
   reliabilityLine, summariseBins, verdictWord, wilson, type Bin, type Scorecard,
@@ -11,6 +12,28 @@ const ready = (r: ReturnType<typeof readScorecard>): Scorecard => {
   return r.card;
 };
 const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
+
+// The v1 stuck-forecast section, frozen in testdata/ so these tests pin the reader and not whatever the eval harness last wrote. The live,
+// generated report (fixtures/eval-report.json) is only used where a test says it is reading it.
+const report = frozenV1;
+
+/** ML2's final held-out scorecard, as it described it on 7 Nov: v2 = A4 accepted by both the held-out and the generator-mismatch tests. */
+const finalHeldOut = () => ({
+  meta: { origin: "synthetic", n: 32, n_unit: "people", split: "held-out replicates, person-cluster intervals", pool: "held-out replicates (single frozen run)", interval_level: 0.95, generated_at: "2026-11-07T21:00:00Z" },
+  accepted: true, verdict: "accepted_by_both_tests", model_version_shown_as_default: "v2", primary_id: "A4", primary_label: "gradient boosting + Platt",
+  model: { log_loss: { value: 0.4316, ci: [0.4228, 0.4402] }, brier: { value: 0.139, ci: [0.136, 0.142] }, ece: { value: 0.012, ci: [0.01, 0.02] }, false_alarms_per_hour: { value: 0.71, ci: [0.55, 0.88] }, detection_rate: { value: 0.314, ci: [0.28, 0.35] } },
+  baselines: {
+    base_rate: { log_loss: { value: 0.5204, ci: [0.512, 0.529] }, brier: { value: 0.162, ci: [0.158, 0.166] } },
+    time_since_progress: { log_loss: { value: 0.5188, ci: [0.51, 0.527] }, brier: { value: 0.161, ci: [0.157, 0.165] } },
+    v1: { log_loss: { value: 0.4355, ci: [0.427, 0.4437] }, brier: { value: 0.14, ci: [0.137, 0.143] }, false_alarms_per_hour: { value: 1.1, ci: [0.9, 1.3] }, detection_rate: { value: 0.33, ci: [0.29, 0.37] } },
+  },
+  calibration: [{ p_mean: 0.1, freq: 0.11, n: 31000, lo: 0.105, hi: 0.115 }, { p_mean: 0.7, freq: 0.62, n: 120, lo: 0.53, hi: 0.7 }],
+  calibration_source: "held-out replicates (single frozen run)",
+  false_alarms_per_hour: { value: 0.71, ci: [0.55, 0.88] }, budget_per_hour: 1.0, within_budget: true, detection_rate: { value: 0.314, ci: [0.28, 0.35] },
+  tte: { c_index: { value: 0.699, ci: [0.693, 0.705] }, calibration: [{ n: 9000, predicted_min: 0.9, observed_km_min: 0.6 }, { n: 9000, predicted_min: 1.2, observed_km_min: 0.9 }], mean_expected_min: 0.93, km_restricted_mean_min: 0.66 },
+  caveats: ["The gain is small and synthetic; the held-out replicates share our generator."],
+});
+const withMlv2 = (block: unknown) => ({ sections: { ...clone(frozenV1.sections), mlv2: { scorecard: block } } });
 
 describe("wilson", () => {
   it("matches known values", () => {
@@ -265,6 +288,97 @@ describe("reading an mlv2 scorecard that is accepted", () => {
     expect(c.version).toBe("v2");
     expect(c.accepted).toBe(true);
     expect(c.verdict).toBe("accepted");
+  });
+});
+
+describe("reading ML2's final held-out scorecard (accepted by both tests)", () => {
+  const c = ready(readScorecard(withMlv2(finalHeldOut())));
+  it("shows v2 as our forecast and says nothing about a candidate", () => {
+    expect(c.version).toBe("v2");
+    expect(c.accepted).toBe(true);
+    expect(c.verdict).toBe("accepted");
+    expect(c.defaultNote).toBeNull();
+    expect(c.candidate).toBeNull();
+    expect(c.label).toBe("gradient boosting + Platt");
+  });
+  it("draws v2's numbers against v1 and the two baselines, with their own intervals", () => {
+    const ll = c.panels.find((p) => p.key === "log_loss");
+    expect(ll?.rows.map((r) => r.id)).toEqual(["ours", "v1", "time_since_progress", "base_rate"]);
+    expect(ll?.rows[0].est?.value).toBeCloseTo(0.4316, 4);
+    expect(ll?.rows[0].est?.ci?.[0]).toBeCloseTo(0.4228, 4);
+    expect(ll?.rows[1].est?.value).toBeCloseTo(0.4355, 4);
+    expect(ll?.rows[3].est?.value).toBeCloseTo(0.5204, 4);
+    // the gain over v1 is small: the two intervals overlap, and the page must not call that a clear win
+    expect(relate(ll?.rows[0].est ?? null, ll?.rows[1].est ?? null)).toEqual({ lower: true, clear: false });
+  });
+  it("names the 32 held-out people and their pool, and uses the block's own bins", () => {
+    expect(c.meta.n).toBe(32);
+    expect(c.meta.pool).toBe("held-out replicates (single frozen run)");
+    expect(c.binsLabel).toBe("held-out replicates (single frozen run)");
+    expect(c.bins).toHaveLength(2);
+    expect(c.bins[1].thin).toBe(false);
+  });
+  it("is within the false-alarm budget, and the interval agrees", () => {
+    expect(c.alarms.budget).toBe(1);
+    expect(c.alarms.rate?.value).toBeCloseTo(0.71, 2);
+    expect(c.alarms.verdict).toBe("within");
+    expect(c.alarms.certain).toBe(true);
+    expect(c.alarms.detection?.value).toBeCloseTo(0.314, 3);
+  });
+  it("shows time to progress as a ranking that runs high, from the block's own concordance", () => {
+    expect(c.tte?.cIndex?.value).toBeCloseTo(0.699, 3);
+    expect(c.tte?.cIndex?.ci).toEqual([0.693, 0.705]);
+    expect(c.tte?.runsHigh).toBe(true);
+    expect(c.tte?.candidate).toBe(false);
+  });
+  it("carries the block's own caveats beside v1's", () => {
+    expect(c.caveats).toContain("The gain is small and synthetic; the held-out replicates share our generator.");
+    expect(c.caveats.length).toBeGreaterThan(1);
+  });
+});
+
+describe("reading a fast-mode scorecard (nothing held-out, no calibration bins, no concordance)", () => {
+  const fast = () => ({
+    meta: { origin: "synthetic", n: 4, n_unit: "people", split: "leave-one-person-out", pool: "D0 (dev), not held-out", interval_level: 0.95 },
+    accepted: false, verdict: "not_run", model_version_shown_as_default: "v1", primary_id: "A7_A4", primary_label: "A4 + personal prior shift",
+    model: { log_loss: { value: 0.4343, ci: [0.4114, 0.456] } }, baselines: { v1: { log_loss: { value: 0.4364, ci: [0.4224, 0.4509] } } },
+    calibration: [], calibration_source: "not computed in fast mode",
+    tte: { c_index: { value: null, ci: null }, calibration: [{ n: 1476, predicted_min: 0.61, observed_km_min: 0.31 }, { n: 1475, predicted_min: 0.73, observed_km_min: 0.43 }] },
+    caveats: [],
+  });
+  const c = ready(readScorecard(withMlv2(fast())));
+  it("keeps v1 as the default, falls back to v1's own bins, and says the candidate was not tested", () => {
+    expect(c.version).toBe("v1");
+    expect(c.accepted).toBe(false);
+    expect(c.bins).toHaveLength(10);
+    expect(c.defaultNote).toBe("The v1 forecast stays the default. The v2 candidate has not been tested on held-out data yet.");
+  });
+  it("still draws the time-to-progress pairs, with no concordance invented", () => {
+    expect(c.tte?.cIndex).toBeNull();
+    expect(c.tte?.pairs).toHaveLength(2);
+    expect(c.tte?.runsHigh).toBe(true);
+  });
+});
+
+describe("reading the live generated report, whichever mode it was written in", () => {
+  const live = readScorecard(liveReport);
+  const sc = (liveReport as unknown as { sections: { mlv2?: { scorecard?: { accepted?: boolean; primary_label?: string } } } }).sections.mlv2?.scorecard;
+  it("is ready and synthetic", () => {
+    const c = ready(live);
+    expect(c.meta.origin).toBe("synthetic");
+    expect(c.panels.length).toBeGreaterThan(0);
+    expect(c.alarms.budget).toBe(1);
+  });
+  it("agrees with the report's own verdict: v2 only when the report says accepted, otherwise v1 and a plain note", () => {
+    const c = ready(live);
+    if (sc?.accepted === true) {
+      expect(c.version).toBe("v2");
+      expect(c.defaultNote).toBeNull();
+      expect(c.label).toBe(sc.primary_label ?? "Our forecast (v2)");
+    } else {
+      expect(c.version).toBe("v1");
+      if (sc) expect(c.defaultNote).toMatch(/^The v1 forecast stays the default\./);
+    }
   });
 });
 

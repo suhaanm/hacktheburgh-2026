@@ -12,14 +12,39 @@ describe("evidence map", () => {
     expect(new Set(rows.map((r) => r.section)).size).toBe(rows.length);
     expect(rows.every((r) => r.title.length > 0)).toBe(true);
   });
+  // A small report of the tests' own, so the pending and no-results cases do not depend on which sections the eval harness has landed.
+  const m = (origin = "synthetic") => ({ origin, n: 4, n_unit: "people", split: null, interval_level: 0.95, note: null, generated_at: "" });
+  const small = {
+    sections: {
+      hazard: { meta: m(), model: { log_loss: 0.4 } },
+      runtime: { status: "pending", reason: "runtime not landed (module absent)", meta: m() },
+      study: { status: "not_run", reason: "the live study has not been run: no data", meta: m("real") },
+      deficit_recovery: { meta: m(), rows: [{ deficit: "a", ci: [0.2, 0.9] }] },
+      plain: { meta: m(), value: 3, rows: [{ name: "x", value: 1 }] },
+    },
+  } as unknown as EvalReport;
+  const smallRows = mapRows(small);
   it("carries status and a reason for what has not run", () => {
-    const runtime = rows.find((r) => r.section === "runtime");
+    const runtime = smallRows.find((r) => r.section === "runtime");
     expect(runtime?.status).toBe("pending");
     expect(runtime?.reason).toMatch(/not landed|absent/);
-    const study = rows.find((r) => r.section === "study")!;
+    const study = smallRows.find((r) => r.section === "study")!;
     expect(study.status).toBe("not_run");
     expect(study.kind).toBe("live");
     expect(study.n).toBe(4);
+    expect(smallRows.find((r) => r.section === "hazard")?.reason).toBeNull();
+  });
+  it("carries the same for what the real report has not run: the live study, and the role studies", () => {
+    const study = rows.find((r) => r.section === "study")!;
+    expect(study.status).toBe("not_run");
+    expect(study.n).toBe(4);
+    expect(study.reason).toMatch(/not been run|no data/);
+    // The harness now writes origin "unknown" for a study that has not run. Nothing real was measured, so the row must never be badged as live data.
+    expect(study.kind).not.toBe("live");
+    const roles = rows.find((r) => r.section === "study_roles")!;
+    expect(roles.status).toBe("not_run");
+    expect(roles.reason).toMatch(/not people/);
+    expect(rows.find((r) => r.section === "agentic")?.status).toBe("ok");
     expect(rows.find((r) => r.section === "hazard")?.reason).toBeNull();
   });
   it("counts statuses", () => {
@@ -39,9 +64,12 @@ describe("evidence map", () => {
     expect(originKind("synthetic", "silicon participants", null, "x")).toBe("simulated");
     expect(originKind("mixed", "runs", null, "x")).toBe("mixed");
   });
-  it("says whether a section reports intervals, and none for a section with no results", () => {
+  it("says whether a section reports intervals: yes, no, and none for a section with no results", () => {
+    expect(smallRows.find((r) => r.section === "deficit_recovery")?.intervals).toBe("yes");
+    expect(smallRows.find((r) => r.section === "plain")?.intervals).toBe("no");
+    expect(smallRows.find((r) => r.section === "runtime")?.intervals).toBe("none");
     expect(rows.find((r) => r.section === "deficit_recovery")?.intervals).toBe("yes");
-    expect(rows.find((r) => r.section === "runtime")?.intervals).toBe("none");
+    expect(rows.find((r) => r.section === "study")?.intervals).toBe("none");
     expect(hasInterval({ rows: [{ gap: 1, ci: [0.2, 0.9] }] })).toBe(true);
     expect(hasInterval({ meta: { interval_level: 0.95 }, value: 3 })).toBe(false);
     expect(hasInterval({ held_out_ci: [0.01, 0.04] })).toBe(true);
