@@ -1,6 +1,6 @@
 # Understudy feature catalogue (for the demo, the README and the Devpost)
 
-One place for everything the product does, how it ties together, and how sure we are. The lead updates it at every checkpoint. **Status words:** `verified` = the lead saw it work end to end; `built` = built and tested by its track, not yet seen end to end by the lead; `building`; `proposed`. **Evidence** is always labelled: synthetic, simulated participants (language model, not people), or live (n = 4 teammates, not run). Request log: `docs/IDEA_BOARD.md`. Specs: `docs/SPEC_LIST.md`.
+Numbers in this file are copied from evals/report.md at the time of writing and go stale; the drafts in docs/drafts/CLAIMS.md trace each one. One place for everything the product does, how it ties together, and how sure we are. The lead updates it at every checkpoint. **Status words:** `verified` = the lead saw it work end to end; `built` = built and tested by its track, not yet seen end to end by the lead; `building`; `proposed`. **Evidence** is always labelled: synthetic, simulated participants (language model, not people), or live (n = 4 teammates, not run). Request log: `docs/IDEA_BOARD.md`. Specs: `docs/SPEC_LIST.md`.
 
 ## The loop in one line
 Watch how people work, show where a novice loses time against an expert, coach on the real screen with help that fades, step in when someone is stuck, let an agent take repetitive work only with opt-in, and prove how much less help the worker needs over time.
@@ -41,7 +41,7 @@ Watch how people work, show where a novice loses time against an expert, coach o
 | Feature | What it does | Status | Evidence |
 |---|---|---|---|
 | Benefits-processing agent | Three calculators, cliff check, reconcile, case note, real gate on the real submit button | verified | sandbox; 20 of 20 (mock), live clean 18 of 20, 0 false claims |
-| Eight security layers | Injection pause, action classes, approval queue, hash-chained audit, kill flag, no allowlists | verified | red team: 37 attacks, 31 clean |
+| Eight security layers | Injection pause, action classes, approval queue, hash-chained audit, kill flag, no allowlists | verified | red team: 42 attacks plus clean cases (source: evals/report.md, red-team section) |
 | Shadow mode to approval | A routine earns autonomy by matching what the worker does | verified | synthetic |
 | Computer use on the real screen | Click and type through the same safety layers | **not yet working** (REQ-7 AGT) | tier 3 n = 3, gave up (no values by design) |
 | Background agents (programming, data, creative) | Parent spawns children in a sandbox, code-verified results | built | synthetic |
@@ -50,7 +50,7 @@ Watch how people work, show where a novice loses time against an expert, coach o
 ## 5. Proactive layer, routines, privacy
 | Feature | What it does | Status | Evidence |
 |---|---|---|---|
-| Proactive briefing | At most 3 cards; press to fire; learns acceptance | built | synthetic: precision 0.80, recall 0.84 (development set) |
+| Proactive briefing | At most 3 cards; press to fire; learns acceptance | built | synthetic, development set, no held-out data: precision and recall in evals/report.md, proactive section (not quoted here) |
 | Calendar routine layer | Meeting load, focus blocks, expert comparison, generic suggestions; Outlook and Teams adapters | building | synthetic; real read-only aggregate check needs the owner's go at run time |
 | Git analysis (programmer) | Commit habits vs experts; five generic suggestions | built | synthetic: precision 116 of 116, recall 0.967 |
 | Local model | Qwen2.5-7B digests on this Mac, rules fallback | built | n/a |
@@ -65,7 +65,7 @@ Watch how people work, show where a novice loses time against an expert, coach o
 ## 6. Evidence and honesty
 | Feature | What it does | Status |
 |---|---|---|
-| Evidence page and `make eval` | 18 sections, 72 limitations; every number has n, split, interval, origin | verified |
+| Evidence page and `make eval` | 32 sections and a 124-entry limitations register at the time of writing (source: evals/report.md; the Evidence map is generated from the report); every number has n, split, interval, origin | verified |
 | Simulated study | Language-model participants, pre-registered, labelled not people | running (benefits) |
 | Role studies (REQ-7) | Same for programmer and data analyst | building |
 | Realistic data and generator-mismatch test (REQ-7) | Harder, more human-like synthetic data; still badged synthetic | building |

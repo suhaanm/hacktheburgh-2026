@@ -1,32 +1,90 @@
-<!-- Under 400 words (counted without this comment). Claims only what evals/report.md and the smoke tests support. PENDING = needs the live study. TODO = re-pull before submitting. -->
+<!--
+DEVPOST draft, rewritten 7 Nov 2026, about 18:45 GMT, by the NARRATIVE track.
+- Strip every "(source: ...)" tag before pasting into Devpost. They are for the owner to check each number; C-numbers are rows in docs/drafts/CLAIMS.md.
+- Numbers: evals/report.json and report.md generated 2026-11-07T17:38:00Z, git 1bab986, mock mode. RE-PULL before submitting (`make eval`).
+- This replaces the earlier draft's "40 of 40 pass (mock)", which the privacy and honesty review (evals/review/privacy_honesty.md, M7) flagged: the report says the clean mock path "says little" and the real-model rows were left out.
+- Devpost has no word limit, but judges read fast: sections are short and ordered problem, demo, how, evidence, limits.
+- [LEAD: ...] you confirm or supply. [OWNER: ...] only the owner can supply.
+-->
 
 # Understudy
 
-**Shows where a novice loses time against an expert, coaches on the real screen with help that fades, and automates only what the worker chooses.**
+**Understudy shows where a novice loses time against an expert, coaches on the real screen with help that fades, and automates only what the worker chooses.**
 
-## Inspiration
-Tools usually do the task for you, or forget you. We wanted one that measures how much help you still need and automates only what you have mastered.
+*Short pitch for the summary field:* Understudy watches how people do the same task, prices each gap between a novice and an expert in seconds and in wrong answers, coaches with help that fades, and lets an agent take repetitive work only with the worker's yes. Most results are synthetic and badged as such; the live study has not been run.
 
-## What it does
-Understudy records how people do a task (no page text, URLs or field values), aligns a novice's trace with an expert's, and prices the gap in seconds with intervals and controls. A coach draws on the real screen, lightening as skills improve. A routine finder proposes automations one at a time; the worker opts in, shadows, then lets an agent run it; irreversible steps wait for a click. A presence model decides when a background run may start; a memory file the worker owns tunes it. One deep role pack (UK benefits processor), two thin.
+## The problem
 
-## How we built it
-Python engine and agent service, React dashboard, an Electron coach adapted from our own earlier library, a Chrome extension, sandbox calculators. The model proposes; code decides. Eight security layers guard the agent. Everything runs offline in mock mode.
+Two people do the same task. One takes longer and reaches a different answer, and nobody can say where the difference comes from: it is a check skipped, a figure copied from the wrong place, a result read three times. Tools either do the task for you or ignore you. We wanted one that shows the gap, helps less as you improve, and takes work over only when you say so.
 
-## Challenges
-Evidence is thin: histories are synthetic and the live study has four teammates, so every chart shows n, split and interval. A smoke test showed the coach was silent on real browsing because capture emitted no task markers; fixed.
+## What you will see in the three-minute demo
 
-## Accomplishments
-On synthetic apprentices the genome recovers planted deficits (precision 92%, recall 95%; gap 229.6 s against a 7.1 s placebo). Stuck-prediction log loss is 0.436 against 0.509 for baselines. A scripted red team succeeds on 0% of 42 attacks with every layer on (upper bound 8.4%) and 100% with all layers off. Agent runs on sandbox calculators: 40 of 40 pass, no false success claims (mock model).
+Mock mode, wifi off, on synthetic data.
+1. **The gap, made visible.** An expert's trace above a novice's, gaps hatched, seconds lost beneath, with two controls so it cannot be an artefact.
+2. **The coach, once.** A synthetic novice skips the cliff check; a ring lands on that button; nothing nags. [LEAD: add "Cue asks one multiple-choice question, shows the step, gives one reason, then goes quiet" only if you have confirmed Cue end to end.]
+3. **Growth.** How much less help a worker needs over time, with intervals. [LEAD: it shows labelled example data until the assist ledger is wired; say so here if that is still true.]
+4. **An automation the worker chose.** A routine card, "Watch first", a recorded mock-mode run, and the one irreversible step waiting in a queue for a click.
+5. **Privacy.** Every call from the new layers to a remote model, listed as sent. In mock mode none leave the laptop.
+6. **Evidence and its limits.** The Evidence page, ending on what it does not show.
+
+## How it works
+
+A Chrome extension records events as roles and salted hashes: no page text, no URLs, no field values, and fields on a sensitive list are never touched. A role pack turns events into steps. We align a novice's steps with the nearest expert's and price the gap in seconds, then price skipped steps in answers, because in seconds skipping looks free. Help levels (L1 to L4) are decided by plain code, not by a model, so a chatty model cannot talk the product out of fading. The model proposes and code decides. An agent works the sandbox calculators in parallel, and a code check, not the model, decides whether it finished. Eight security layers sit between page content and actions. Every automation is opt-in, one at a time, and the irreversible step waits for a click. A Python engine and agent service, a React dashboard, an Electron coach adapted from our own earlier library (disclosure below), and sandbox calculators we built.
+
+## What we measured
+
+Synthetic unless stated; every row has n and a 95% interval.
+- **The analysis finds planted gaps.** Precision 92% [84.5, 98.6], recall 95% [88.6, 100.0] (synthetic, 16 people; source: report.md "Deficit recovery"; C01). The real novice-to-expert gap is 229.6 s per case [192.7, 272.6]; expert against expert is 7.1 s [-2.8, 18.4]; a shuffled-label null is 46.2 s [-36.4, 116.9], permutation p = 0.001 (source: report.md "Controls"; C03). Weakest on "reads the result again and again" (precision 70%) and "copies the wrong figure" (recall 71%) (source: C02).
+- **A stuck model, held-out person.** Log loss 0.436 [0.422, 0.451] against 0.509 for both baselines (synthetic, n = 4 people; source: report.md "Stuck hazard"; C04). It flags about a third of stuck events, and its false alarms (1.21 an hour [0.95, 1.48]) are over the 1.0 budget (source: C05).
+- **A real model on our sandbox calculators, 20 households per condition (small n).** It passed the code check on 18 of 20 clean households [0.70, 0.97] and 20 of 20 after a layout change [0.84, 1.00], with no false claims. On a one-off error page it passed **0 of 20** and said it was finished in 20 of 20 runs; every claim was false and the code check caught all 20 (source: report.md "Agent runs on the sandbox"; C23, C24). We changed what the planner sees and re-ran only that condition: 10 of 10 [0.72, 1.00], **in-sample** (source: C25). With the mock model the clean path passes 20 of 20 and tells you little (source: C20).
+- **Defences.** A scripted red team: 0.0% attack success with every layer on [0.0, 8.4], 100% with all off, 42 attacks (source: report.md "Red team with ablations"; C30). With a real model, 0 of 126 runs let an attack through with every layer on and 5 of 126 with all layers off; the intervals overlap, so this shows what the layers cost, not that they prevent attacks (source: C31). On injected pages the detector paused 20 of 20 real-model runs (source: C26).
+- **Privacy canaries.** 0 of 11,336 planted tokens reached the model port across 80 runs of 10 flows; counted by run, the one-sided 95% upper bound is 3.7% (source: report.md "Privacy layer"; evals/review/privacy_honesty.md M5; C40).
+- **A simulation that failed, and says so.** In the simulated study the participants are language models, not people. The pre-registered run hit a floor: most post-tests ended at the action cap with no calculation done, so scores are near zero in both arms and say nothing about the coach (source: evals/study_sim/PLAN_RUN5.md section 1; C72). The live study with four teammates has not been run (source: report.md "Live study"; C70).
+
+## Limitations we state up front
+
+From the limitations register (124 entries at 17:38 GMT: 34 high, 69 medium, 21 low; source: C17). The high-severity ones that matter most:
+1. **Almost every number is from synthetic data we generated.** Each result carries a badge. They show our methods recover what we planted, not that real workers behave this way.
+2. **Nobody has used it in a study.** The live study (four teammates, none a benefits processor) has not been run; with n = 4 the smallest exact p is 0.125. The simulated study uses language-model participants, not people, and its pre-registered run hit a floor.
+3. **There is no real benefits-processor data.** The only real signal is our own machine timestamps.
+4. **The agent is scored against a simplified rule set, not the law.** It agrees with PolicyEngine UK within 1 pound on 8 of 20 households. The calculators are sandbox sites with quirks we planted.
+5. **A real model declared success on an error page in 20 of 20 runs and was wrong every time.** Code caught all 20. Our fix was tested only on the same condition (10 runs, in-sample).
+6. **Computer use does not yet work on the benefits task** (3 runs, 0 pointer actions). One supervised real click on TextEdit passed; the agent's own actuator then failed its first supervised check by clicking another app's window, and real clicks stay off until it is retested with the owner present.
+7. **The red-team attacks were written by the team that wrote the defences.** In the real-model run the intervals overlap.
+8. **Two results are weak or circular.** The stuck model flags about a third of stuck events on four synthetic personas, with false alarms over budget; review routing finds the quirks we planted.
+9. **The privacy ledger does not cover everything.** It lists calls from the Python services and the new layers. Model calls the worker asked for are recorded as metadata only, an allowed screen frame is raw, and an independent reviewer found older desktop code that could still send screenshots and file text to OpenAI and Gemini; decision D38 turns those off by default. [LEAD: confirm D38 has landed.]
+
+Two independent review passes by separate Claude agents found, as of 17:55 on 7 Nov, one critical and fourteen high findings between them; most are fixed, and three safety findings and some privacy findings were still open (source: evals/review/privacy_honesty.md, safety_actuator.md; C42, C43). [LEAD: update this line after the re-run.]
+
+## Why this fits the tracks
+
+- **HRT, best use of data for predictions and decisions.** A stuck prediction that beats two baselines on log loss with a stated false-alarm budget and its shortfall (C04, C05); review routing with a risk bound, stated as circular (C09); build timing by ski rental, including where building at once wins (C10); a start-or-wait rule for background runs (2.1% interruptions against 24.8% for running whenever idle, C11); off-policy evaluation checked against a simulator with known truth (C08). All synthetic and labelled.
+- **G-Research, make the invisible visible.** The expert's hidden policy shown as aligned traces priced in seconds, with a placebo and a null (C01, C03); the cost of skipping a step in answers: on 200 synthetic households, skipping the cliff check leaves a nearby edge unwarned on 107 and moves the award by more than 50 pounds a month on 42 (C61); routines and weekly rhythm with intervals (C11, C12); and our own failures as a published limitations register.
+- **Wordsmith, most complicated end-to-end browser-use workflow.** Three calculators worked in parallel, a verifier, critic and approval gate, recovery, shadow mode and background runs, completion checked by code, and an injection defence measured with ablations (C20 to C31). The real-model results are small and include a failure we publish. The computer-use tier is not yet working on this task.
+
+## MLH categories
+
+[OWNER: confirm which of these you are entering, and the text each category asks for.]
+- **OpenAI.** Planner, fast and computer-use calls sit behind one model port and produced the real-model rows above; model IDs are read from the environment. (C23 to C27, C31)
+- **Gemini API.** Screen-glance and pointing routes and a bake-off against OpenAI and a local model are in progress; we claim no Gemini speed or accuracy figure until the bake-off lands in the report. [LEAD: update when it does.]
+- **ElevenLabs.** Spoken coach lines and a morning briefing, by line id only (no free text leaves), ledgered, off by default, with cached audio for the offline demo. [LEAD: confirm built and whether it is in the demo.]
+- **Auth0.** A thin sign-in behind an interface with a local fallback, never on the demo's critical path. [OWNER: whether the tenant exists; LEAD: confirm built.]
+- **DEV Writing Challenge.** Our write-up of what failed and what we measured: [OWNER: link when published].
 
 ## What we learned
-Skipping a step looks free in seconds but costs answers, so we price both. We publish weak results: skill tracing saturates, routing is circular, hazard false alarms overshoot budget.
+
+Skipping a step looks free in seconds and is costly in answers, so we price both. Code, not the model, must decide "done": a real model was confidently wrong on an error page in 20 of 20 runs. Honest framing is a product feature: we publish the weak results (skill tracing saturates, mean Spearman 0.18; review routing is circular; hazard false alarms overshoot) and a simulation that hit a floor.
 
 ## What's next
-The live study (n = 4, plan committed before data): **PENDING**. A real-model red team; real traces.
 
-## Limits
-Synthetic data, a simplified oracle (not law), n = 4, scripted attackers. We do not claim novices become experts.
+Run the live study (n = 4, plan committed before data). Finish Cue (stuck rescue) and the independence score, and measure them on simulated learners, labelled as such. Get computer use working on the benefits task through fact handles (the model names a value handle; code types the value) and run the supervised real-click ladder with the owner present. Run the red team against more than one model. Get real traces from a pilot team.
 
-**Built with:** Python, FastAPI, React, TypeScript, Electron, Chrome MV3, Playwright, OpenAI.
+## Disclosure
+
+- **Alongside.** Understudy's coach is built on Alongside, the author's own earlier open-source library (github.com/suhaanm/deepmind-hackathon, first commit 31 Oct 2026, before this event, MIT). On 7 Nov, of Alongside's 303 source files 205 are byte-identical in our desktop app, 70 are modified, 28 are not carried over, and 313 are new (source: C65; recompute at the freeze). The full list and the safety finding about Alongside's real actuator being on by default are in the README. Third-party notices travel with the code.
+- **How it was built.** [OWNER: confirm this wording.] The code was written by Claude Sonnet 5.5 agents working under the owner's direction, one agent per area, with a lead agent merging and committing (source: docs/DECISIONS.md, 7 Nov 14:19 entry; docs/AGENTS.md). The owner chose the product, the targets and the limits, and made the decisions recorded in docs/DECISIONS.md. [OWNER: check the hackathon's rules on AI-written code and say what the team did by hand.]
+- **Team.** [OWNER: names and roles. Not known to this track.]
+
+**Built with:** Python, FastAPI, React, TypeScript, Electron, Chrome MV3, Playwright, a JSONL event store, llama.cpp with a local Qwen2.5-7B model for private digests, OpenAI (primary model provider), Gemini API and ElevenLabs (flagged, in progress). [LEAD: trim to what is actually used in the shipped build.]
 **Tracks:** HRT, G-Research, Wordsmith.
+**Try it:** `make demo` (macOS, mock mode, offline); README has the steps. [OWNER: repo URL and demo video URL.]
