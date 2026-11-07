@@ -10,7 +10,7 @@ Watch how people work, show where a novice loses time against an expert, coach o
 |---|---|---|---|
 | Work genome | Aligns your steps to the nearest expert's and prices every gap in seconds; shows where time went | verified | synthetic; precision 92%, recall 95% on planted deficits |
 | Controls | Placebo (expert vs expert) and shuffled-label null so a gap is not an artifact | verified | synthetic; real gap 229.6 s vs placebo 7.1 s |
-| Stuck model | Predicts "no progress in the next minute" from recent steps, dwell, repeats | verified | synthetic, n = 4; log loss 0.436 vs 0.509 baseline |
+| Stuck model | Predicts "no progress in the next minute" from recent steps, dwell, repeats | verified on its own generator; **does not transfer** | synthetic, n = 4; log loss 0.436 vs 0.509 baseline on the v1 generator. On three harder generator families its edge over time-since-progress falls from 0.071 to 0.008 to 0.015 nats per bin and a v1-trained model is worse than that baseline; on the simulated-participant traces both v1 and v2 fail (REALISM matrix and M5 transfer) |
 | Gap decomposition | Splits the novice-expert gap into explained and unexplained | built | synthetic |
 | Fading help levels | L1 watch me to L4 on my own, from code; mastery with forgetting | verified | synthetic |
 | Dignity gate and bandit | Decides when to speak; learns from dismissals; off-policy evaluation | built | synthetic |
