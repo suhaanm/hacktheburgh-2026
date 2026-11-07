@@ -113,7 +113,8 @@ def test_a_guard_remembers_per_navigator_clears_on_a_new_page_and_still_scans_ev
 
 
 # ---- item 5: the meter sees the context manifest of tier-3 and planner calls (fakes, no model)
-async def test_tier3_and_planner_calls_carry_a_manifest_and_the_frame_hint(tmp_path):
+async def test_tier3_and_planner_calls_carry_a_manifest_and_the_frame_hint(tmp_path, monkeypatch):
+    monkeypatch.setenv("UNDERSTUDY_CU_FRAME_HINT", "1")
     from understudy_agent.models.meter import current_manifest
     from understudy_agent.models.port import Done
     from understudy_agent.tiers.computer_use import ComputerUse, SimulatedActuator
@@ -143,3 +144,28 @@ async def test_tier3_and_planner_calls_carry_a_manifest_and_the_frame_hint(tmp_p
     assert m.get("total_tokens", 0) > 0 and "task_spec" in m.get("sections", {}) and m.get("image_frames") == 1
     assert "Image 1 is the current screen" in prompts[0]
     assert cu.last_manifest and cu.last_manifest["total_tokens"] == m["total_tokens"]
+
+
+async def test_the_frame_hint_is_off_by_default_so_the_prompt_is_the_validated_one(tmp_path, monkeypatch):
+    from understudy_agent.models.port import Done
+    from understudy_agent.tiers.computer_use import ComputerUse, SimulatedActuator
+    from understudy_agent.tiers.facts import FactStore
+
+    monkeypatch.delenv("UNDERSTUDY_CU_FRAME_HINT", raising=False)
+    prompts: list[str] = []
+
+    class Spy:
+        name = "spy"
+
+        def computer_step(self, goal, shot, history, **kw):
+            prompts.append(goal)
+            return Done("done", True)
+
+    audit = AuditLog(tmp_path / "a.jsonl")
+    g = Guard(Spy(), run_id="r_nohint", mode="model_driven", audit=audit, queue=ApprovalQueue(tmp_path / "q", audit=audit), denylist=Denylist())
+
+    async def yes():
+        return True
+
+    await ComputerUse(Spy(), SimulatedActuator(), g, navigator="nav-a", facts=FactStore({"x.y": "a value"}, {"x.y": lambda: "1"})).run("do it", yes)
+    assert "Image 1 is the current screen" not in prompts[0] and "did not change" not in prompts[0]

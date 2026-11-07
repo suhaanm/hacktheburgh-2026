@@ -167,9 +167,132 @@
    "household": "hh_0001",
    "cu_provider": "default",
    "old_goal": true
+  },
+  {
+   "at": "2026-11-07T20:46:09Z",
+   "label": "preflight_gpt55_hh0001_b",
+   "kind": "smoke",
+   "tokens_in": 15488,
+   "tokens_out": 572,
+   "cost_placeholder_usd": 0.0946,
+   "cost_lower_usd": 0.0142,
+   "rates_in_out_per_m": [
+    5.0,
+    30.0
+   ],
+   "computer_use_model": "gpt-5.5",
+   "gate_version": "c17d5600a03f",
+   "site": "b",
+   "household": "hh_0001",
+   "cu_provider": "default",
+   "old_goal": false
+  },
+  {
+   "at": "2026-11-07T20:48:14Z",
+   "label": "preflight2_gpt55_hh0001_b",
+   "kind": "smoke",
+   "tokens_in": 66465,
+   "tokens_out": 2278,
+   "cost_placeholder_usd": 0.4007,
+   "cost_lower_usd": 0.0601,
+   "rates_in_out_per_m": [
+    5.0,
+    30.0
+   ],
+   "computer_use_model": "gpt-5.5",
+   "gate_version": "35e964049fd0",
+   "site": "b",
+   "household": "hh_0001",
+   "cu_provider": "default",
+   "old_goal": false
+  },
+  {
+   "at": "2026-11-07T21:02:04Z",
+   "label": "heldout_injected_9138",
+   "kind": "dev_round",
+   "tokens_in": 142,
+   "tokens_out": 417,
+   "cost_placeholder_usd": 0.0132,
+   "cost_lower_usd": 0.002,
+   "rates_in_out_per_m": [
+    5.0,
+    30.0
+   ],
+   "computer_use_model": "gpt-5.5",
+   "gate_version": "35e964049fd0",
+   "household": "hh_0001",
+   "cu_provider": "default"
+  },
+  {
+   "at": "2026-11-07T21:02:13Z",
+   "label": "heldout_injected_9138",
+   "kind": "dev_round",
+   "tokens_in": 142,
+   "tokens_out": 529,
+   "cost_placeholder_usd": 0.0166,
+   "cost_lower_usd": 0.0025,
+   "rates_in_out_per_m": [
+    5.0,
+    30.0
+   ],
+   "computer_use_model": "gpt-5.5",
+   "gate_version": "35e964049fd0",
+   "household": "hh_0002",
+   "cu_provider": "default"
+  },
+  {
+   "at": "2026-11-07T21:02:18Z",
+   "label": "heldout_injected_9138",
+   "kind": "dev_round",
+   "tokens_in": 142,
+   "tokens_out": 347,
+   "cost_placeholder_usd": 0.0111,
+   "cost_lower_usd": 0.0017,
+   "rates_in_out_per_m": [
+    5.0,
+    30.0
+   ],
+   "computer_use_model": "gpt-5.5",
+   "gate_version": "35e964049fd0",
+   "household": "hh_0003",
+   "cu_provider": "default"
+  },
+  {
+   "at": "2026-11-07T21:02:22Z",
+   "label": "heldout_injected_9138",
+   "kind": "dev_round",
+   "tokens_in": 142,
+   "tokens_out": 307,
+   "cost_placeholder_usd": 0.0099,
+   "cost_lower_usd": 0.0015,
+   "rates_in_out_per_m": [
+    5.0,
+    30.0
+   ],
+   "computer_use_model": "gpt-5.5",
+   "gate_version": "35e964049fd0",
+   "household": "hh_0004",
+   "cu_provider": "default"
+  },
+  {
+   "at": "2026-11-07T21:02:27Z",
+   "label": "heldout_injected_9138",
+   "kind": "dev_round",
+   "tokens_in": 142,
+   "tokens_out": 350,
+   "cost_placeholder_usd": 0.0112,
+   "cost_lower_usd": 0.0017,
+   "rates_in_out_per_m": [
+    5.0,
+    30.0
+   ],
+   "computer_use_model": "gpt-5.5",
+   "gate_version": "35e964049fd0",
+   "household": "hh_0005",
+   "cu_provider": "default"
   }
  ],
- "spent_placeholder_usd": 8.9168,
- "spent_lower_usd": 2.1199,
- "pct_of_cap": 44.6
+ "spent_placeholder_usd": 9.4741,
+ "spent_lower_usd": 2.2036,
+ "pct_of_cap": 47.4
 }

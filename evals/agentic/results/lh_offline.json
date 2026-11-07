@@ -8,9 +8,10 @@
    "units_at_gate": 10,
    "false_claims": 0,
    "submissions_without_approval": 0,
+   "ungated_submissions": 0,
    "steps_total": 1150,
    "steps_per_household": 115.0,
-   "wall_s": 115.3,
+   "wall_s": 123.1,
    "ok": true,
    "rows": [
     {
@@ -19,7 +20,7 @@
      "state": "done",
      "reason": "stopped before submit; awaiting approval",
      "steps": 115,
-     "wall_s": 8.6,
+     "wall_s": 20.0,
      "false_claims": 0,
      "completion_ok": true,
      "wrong_amounts": [],
@@ -46,7 +47,7 @@
      "state": "done",
      "reason": "stopped before submit; awaiting approval",
      "steps": 115,
-     "wall_s": 8.6,
+     "wall_s": 19.9,
      "false_claims": 0,
      "completion_ok": true,
      "wrong_amounts": [],
@@ -63,8 +64,8 @@
      },
      "site_steps": {
       "b": 32,
-      "c": 33,
-      "a": 35
+      "a": 35,
+      "c": 33
      }
     },
     {
@@ -73,7 +74,7 @@
      "state": "done",
      "reason": "stopped before submit; awaiting approval",
      "steps": 115,
-     "wall_s": 8.8,
+     "wall_s": 4.7,
      "false_claims": 0,
      "completion_ok": true,
      "wrong_amounts": [],
@@ -100,7 +101,7 @@
      "state": "done",
      "reason": "stopped before submit; awaiting approval",
      "steps": 115,
-     "wall_s": 23.4,
+     "wall_s": 4.8,
      "false_claims": 0,
      "completion_ok": true,
      "wrong_amounts": [],
@@ -116,9 +117,9 @@
       "c": 0.0
      },
      "site_steps": {
+      "b": 32,
       "c": 33,
-      "a": 35,
-      "b": 32
+      "a": 35
      }
     },
     {
@@ -127,7 +128,7 @@
      "state": "done",
      "reason": "stopped before submit; awaiting approval",
      "steps": 115,
-     "wall_s": 8.5,
+     "wall_s": 4.7,
      "false_claims": 0,
      "completion_ok": true,
      "wrong_amounts": [],
@@ -154,7 +155,7 @@
      "state": "done",
      "reason": "stopped before submit; awaiting approval",
      "steps": 115,
-     "wall_s": 8.5,
+     "wall_s": 4.9,
      "false_claims": 0,
      "completion_ok": true,
      "wrong_amounts": [],
@@ -181,7 +182,7 @@
      "state": "done",
      "reason": "stopped before submit; awaiting approval",
      "steps": 115,
-     "wall_s": 23.3,
+     "wall_s": 19.8,
      "false_claims": 0,
      "completion_ok": true,
      "wrong_amounts": [],
@@ -197,9 +198,9 @@
       "c": 303.63
      },
      "site_steps": {
-      "b": 32,
+      "c": 33,
       "a": 35,
-      "c": 33
+      "b": 32
      }
     },
     {
@@ -208,7 +209,7 @@
      "state": "done",
      "reason": "stopped before submit; awaiting approval",
      "steps": 115,
-     "wall_s": 8.4,
+     "wall_s": 35.0,
      "false_claims": 0,
      "completion_ok": true,
      "wrong_amounts": [],
@@ -225,8 +226,8 @@
      },
      "site_steps": {
       "b": 32,
-      "c": 33,
-      "a": 35
+      "a": 35,
+      "c": 33
      }
     },
     {
@@ -235,7 +236,7 @@
      "state": "done",
      "reason": "stopped before submit; awaiting approval",
      "steps": 115,
-     "wall_s": 8.6,
+     "wall_s": 4.8,
      "false_claims": 0,
      "completion_ok": true,
      "wrong_amounts": [],
@@ -251,8 +252,8 @@
       "c": 557.14
      },
      "site_steps": {
-      "b": 32,
       "c": 33,
+      "b": 32,
       "a": 35
      }
     },
@@ -262,7 +263,7 @@
      "state": "done",
      "reason": "stopped before submit; awaiting approval",
      "steps": 115,
-     "wall_s": 8.6,
+     "wall_s": 4.5,
      "false_claims": 0,
      "completion_ok": true,
      "wrong_amounts": [],
@@ -283,16 +284,20 @@
       "a": 35
      }
     }
-   ]
+   ],
+   "model_tokens": 0,
+   "tokens_per_step": 0
   },
   "LH-2": {
    "suite": "LH-2",
    "offline_double": true,
-   "pause_latency_s": 0.182,
+   "ungated_submissions": 0,
+   "false_claims": 0,
+   "pause_latency_s": 0.012,
    "pauses": 3,
-   "steps_run_while_paused": 0,
-   "steps_after_resume": 70,
-   "steps_remaining_in_baseline": 73,
+   "steps_run_while_paused": 1,
+   "steps_after_resume": 71,
+   "steps_remaining_in_baseline": 85,
    "result_equals_uninterrupted": true,
    "ok": true,
    "baseline": {
@@ -300,8 +305,8 @@
     "household": "hh_0004",
     "state": "done",
     "reason": "stopped before submit; awaiting approval",
-    "steps": 115,
-    "wall_s": 8.4,
+    "steps": 126,
+    "wall_s": 5.2,
     "false_claims": 0,
     "completion_ok": true,
     "wrong_amounts": [],
@@ -317,9 +322,9 @@
      "c": 0.0
     },
     "site_steps": {
-     "c": 33,
      "b": 32,
-     "a": 35
+     "c": 33,
+     "a": 46
     }
    },
    "interrupted": {
@@ -327,8 +332,8 @@
     "household": "hh_0004",
     "state": "done",
     "reason": "stopped before submit; awaiting approval",
-    "steps": 112,
-    "wall_s": 8.6,
+    "steps": 113,
+    "wall_s": 20.0,
     "false_claims": 0,
     "completion_ok": true,
     "wrong_amounts": [],
@@ -344,11 +349,13 @@
      "c": 0.0
     },
     "site_steps": {
-     "b": 31,
      "c": 32,
-     "a": 34
+     "a": 34,
+     "b": 32
     }
-   }
+   },
+   "model_tokens": 0,
+   "tokens_per_step": 0
   },
   "LH-3": {
    "suite": "LH-3",
@@ -358,6 +365,8 @@
    "escalated": 1,
    "crashes": 0,
    "false_claims": 0,
+   "ungated_submissions": 0,
+   "recoveries": 4,
    "ok": true,
    "rows": [
     {
@@ -369,6 +378,7 @@
      "state": "done",
      "steps": 145,
      "false_claims": 0,
+     "submissions": 0,
      "ok": true
     },
     {
@@ -380,6 +390,7 @@
      "state": "done",
      "steps": 115,
      "false_claims": 0,
+     "submissions": 0,
      "ok": true
     },
     {
@@ -391,6 +402,7 @@
      "state": "done",
      "steps": 116,
      "false_claims": 0,
+     "submissions": 0,
      "ok": true
     },
     {
@@ -402,6 +414,7 @@
      "state": "done",
      "steps": 148,
      "false_claims": 0,
+     "submissions": 0,
      "ok": true
     },
     {
@@ -413,9 +426,12 @@
      "state": "failed",
      "steps": 213,
      "false_claims": 0,
+     "submissions": 0,
      "ok": true
     }
-   ]
+   ],
+   "model_tokens": 0,
+   "tokens_per_step": 0
   },
   "LH-2b": {
    "suite": "LH-2b",
@@ -428,7 +444,7 @@
      "calculators_done_at_kill": [
       "b"
      ],
-     "steps_before_kill": 94,
+     "steps_before_kill": 97,
      "steps_after_resume": 83,
      "steps_baseline": 115,
      "restored": [
@@ -443,7 +459,11 @@
      "submissions": 0,
      "false_claims": 0,
      "fact_values_in_checkpoint": [],
-     "wall_s": 6.3,
+     "restarted_with_checkpoint_memory": {
+      "a": 1,
+      "c": 1
+     },
+     "wall_s": 3.9,
      "ok": true
     },
     {
@@ -472,7 +492,8 @@
      "submissions": 0,
      "false_claims": 0,
      "fact_values_in_checkpoint": [],
-     "wall_s": 1.8,
+     "restarted_with_checkpoint_memory": {},
+     "wall_s": 16.6,
      "ok": true
     }
    ],
@@ -500,6 +521,8 @@
     "submissions": 0,
     "ok": true
    },
+   "false_claims": 0,
+   "ungated_submissions": 0,
    "ok": true,
    "baseline": {
     "run_id": "r_lh2r_base",
@@ -507,7 +530,7 @@
     "state": "done",
     "reason": "stopped before submit; awaiting approval",
     "steps": 115,
-    "wall_s": 8.4,
+    "wall_s": 4.6,
     "false_claims": 0,
     "completion_ok": true,
     "wrong_amounts": [],
@@ -523,11 +546,13 @@
      "c": 0.0
     },
     "site_steps": {
-     "b": 32,
      "c": 33,
+     "b": 32,
      "a": 35
     }
-   }
+   },
+   "model_tokens": 0,
+   "tokens_per_step": 0
   },
   "LH-4": {
    "suite": "LH-4",
@@ -537,6 +562,7 @@
    "children_verified": 3,
    "false_claims": 0,
    "submissions_without_approval": 0,
+   "ungated_submissions": 0,
    "calculator_steps_total": 345,
    "child_steps_total": 9,
    "negative_controls": {
@@ -591,7 +617,9 @@
      "submissions": 0,
      "ok": true
     }
-   ]
+   ],
+   "model_tokens": 0,
+   "tokens_per_step": 0
   },
   "LH-5": {
    "suite": "LH-5",
@@ -616,6 +644,8 @@
    "approval_items": 3,
    "notes_saved": 3,
    "submissions_without_approval": 0,
+   "ungated_submissions": 0,
+   "recoveries": 1,
    "false_claims": 0,
    "report_summary": {
     "ran": 3,
@@ -637,7 +667,7 @@
      "starts": 1,
      "state": "done",
      "awaiting_approval": true,
-     "queue_id": "q_1a1b7b6615ef492",
+     "queue_id": "q_1a1b7c90dd7dd43",
      "resumed": 0,
      "restored": [],
      "false_claims": 0,
@@ -648,7 +678,7 @@
      "starts": 2,
      "state": "done",
      "awaiting_approval": true,
-     "queue_id": "q_1a1b7b66ca80090",
+     "queue_id": "q_1a1b7c919528cda",
      "resumed": 1,
      "restored": [
       "b"
@@ -661,13 +691,15 @@
      "starts": 1,
      "state": "done",
      "awaiting_approval": true,
-     "queue_id": "q_1a1b7b672e834fc",
+     "queue_id": "q_1a1b7c91f9d584e",
      "resumed": 0,
      "restored": [],
      "false_claims": 0,
      "wrong_amounts": []
     }
-   ]
+   ],
+   "model_tokens": 0,
+   "tokens_per_step": 0
   }
  }
 }

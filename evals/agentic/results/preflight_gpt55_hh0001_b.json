@@ -1,0 +1,101 @@
+{
+ "label": "preflight_gpt55_hh0001_b",
+ "site": "b",
+ "household": "hh_0001",
+ "archetype": "single_worker",
+ "in_sample": true,
+ "computer_use_provider": "openai",
+ "old_goal": false,
+ "state": "escalated",
+ "amount_ok": false,
+ "error": "",
+ "tier3": [
+  {
+   "navigator": "nav-b",
+   "outcome": "stopped:StuckLoop",
+   "steps": 4
+  },
+  {
+   "navigator": "nav-b",
+   "outcome": "stopped:StuckLoop",
+   "steps": 2
+  }
+ ],
+ "refusals": 0,
+ "gate_stops": [
+  {
+   "nav": "nav-b",
+   "step": null,
+   "kind": "screenshot",
+   "verdict": "needs_human",
+   "layer": "drift",
+   "codes": [
+    "drift:stuck_repeat_p1"
+   ],
+   "role": "",
+   "structure": [],
+   "classes": [
+    "read"
+   ],
+   "label": "",
+   "designed": false
+  }
+ ],
+ "actions": [
+  [
+   1,
+   "screenshot",
+   true,
+   ""
+  ],
+  [
+   2,
+   "screenshot",
+   true,
+   ""
+  ],
+  [
+   3,
+   "screenshot",
+   true,
+   ""
+  ],
+  [
+   4,
+   "screenshot",
+   false,
+   "stuck loop"
+  ],
+  [
+   5,
+   "escalate",
+   false,
+   "tier 3 failed: StuckLoop"
+  ],
+  [
+   6,
+   "screenshot",
+   true,
+   ""
+  ],
+  [
+   7,
+   "screenshot",
+   false,
+   "needs_human drift"
+  ],
+  [
+   8,
+   "escalate",
+   false,
+   "tier 3 failed: StuckLoop"
+  ]
+ ],
+ "gate_version": "c17d5600a03f",
+ "wall_s": 15.8,
+ "tokens_in": 15488,
+ "tokens_out": 572,
+ "cost_placeholder_usd": 0.0946,
+ "live_calls": 6,
+ "budget_truncated": false
+}

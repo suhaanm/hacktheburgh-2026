@@ -1244,7 +1244,11 @@ class ComputerUse:
             self.wm = wm
             from ..context.frames import FrameRetention
 
-            frames: Any = FrameRetention()            # the latest frame in full and one small thumbnail's worth of fingerprint, in memory only
+            # The frame hint ("the screen did / did not change since the last step") is OFF unless UNDERSTUDY_CU_FRAME_HINT=1. The
+            # configuration that was validated live on the dev households had no such sentence, and the first live check with it on
+            # (7 Nov, gpt-5.5, one calculator) got a screenshot-repeat stuck loop twice; a prompt that changed after validation is not
+            # confirmed, so the default stays byte-identical to the validated one. The hint is tested offline and kept for an A/B.
+            frames: Any = FrameRetention() if os.environ.get("UNDERSTUDY_CU_FRAME_HINT", "0").strip() in ("1", "true", "yes", "on") else None
         t0 = time.monotonic()
         n = self.step_start
         last_fp: bytes | None = None
@@ -1295,7 +1299,7 @@ class ComputerUse:
 
                         wm.set_page(PageState.UNKNOWN, "p" + _h.sha1(urlsplit(url).path.encode()).hexdigest()[:8])
                     try:
-                        plan = frames.push(shot, passthrough=True)       # the code-written hint: did the screen change since the last step
+                        plan = frames.push(shot, passthrough=True) if frames is not None else None   # the code-written hint, when switched on
                     except Exception:  # noqa: BLE001 - an undecodable capture simply has no hint
                         plan = None
                     profile = "openai_cu" if getattr(self.model, "name", "") == "openai" else "default"

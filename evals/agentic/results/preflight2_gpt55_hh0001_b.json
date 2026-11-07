@@ -1,0 +1,215 @@
+{
+ "label": "preflight2_gpt55_hh0001_b",
+ "site": "b",
+ "household": "hh_0001",
+ "archetype": "single_worker",
+ "in_sample": true,
+ "computer_use_provider": "openai",
+ "old_goal": false,
+ "state": "done",
+ "amount_ok": true,
+ "error": "",
+ "tier3": [
+  {
+   "navigator": "nav-b",
+   "outcome": "done",
+   "steps": 25,
+   "progress_steps": 18,
+   "refusals": 0,
+   "claimed_done": true,
+   "false_claim": false,
+   "resets": 0,
+   "nudges": 0,
+   "premature_claims": 0,
+   "prompt_chars": [
+    2423,
+    2463,
+    2475,
+    2499,
+    2509,
+    2546,
+    2556,
+    2647,
+    2645,
+    2668,
+    2680,
+    2686,
+    2689,
+    2695,
+    2696,
+    2702,
+    2703,
+    2671,
+    2690,
+    2658,
+    2658,
+    2647,
+    2647,
+    2673,
+    2436
+   ],
+   "summary": "Estimate page shows \u00a3#.14 per month with reference T2U-FB65F1"
+  }
+ ],
+ "refusals": 0,
+ "gate_stops": [],
+ "actions": [
+  [
+   1,
+   "click",
+   true,
+   ""
+  ],
+  [
+   2,
+   "click",
+   true,
+   ""
+  ],
+  [
+   3,
+   "type_fact",
+   true,
+   "handle=household.adults"
+  ],
+  [
+   4,
+   "key",
+   true,
+   ""
+  ],
+  [
+   5,
+   "type_fact",
+   true,
+   "handle=household.adult1_age"
+  ],
+  [
+   6,
+   "key",
+   true,
+   ""
+  ],
+  [
+   7,
+   "type_fact",
+   true,
+   "handle=household.adult2_age (no value for this hou"
+  ],
+  [
+   8,
+   "key",
+   true,
+   ""
+  ],
+  [
+   9,
+   "type_fact",
+   true,
+   "handle=household.children_ages (no value for this "
+  ],
+  [
+   10,
+   "key",
+   true,
+   ""
+  ],
+  [
+   11,
+   "type_fact",
+   true,
+   "handle=household.adult1_earnings"
+  ],
+  [
+   12,
+   "click",
+   true,
+   ""
+  ],
+  [
+   13,
+   "type_fact",
+   true,
+   "handle=household.adult2_earnings (no value for thi"
+  ],
+  [
+   14,
+   "key",
+   true,
+   ""
+  ],
+  [
+   15,
+   "type_fact",
+   true,
+   "handle=household.limited_capability"
+  ],
+  [
+   16,
+   "key",
+   true,
+   ""
+  ],
+  [
+   17,
+   "key",
+   true,
+   ""
+  ],
+  [
+   18,
+   "type_fact",
+   true,
+   "handle=household.rent"
+  ],
+  [
+   19,
+   "key",
+   true,
+   ""
+  ],
+  [
+   20,
+   "key",
+   true,
+   ""
+  ],
+  [
+   21,
+   "type_fact",
+   true,
+   "handle=household.savings"
+  ],
+  [
+   22,
+   "key",
+   true,
+   ""
+  ],
+  [
+   23,
+   "type_fact",
+   true,
+   "handle=household.childcare"
+  ],
+  [
+   24,
+   "click",
+   true,
+   ""
+  ],
+  [
+   25,
+   "done",
+   true,
+   "claim verified"
+  ]
+ ],
+ "gate_version": "35e964049fd0",
+ "wall_s": 56.9,
+ "tokens_in": 66465,
+ "tokens_out": 2278,
+ "cost_placeholder_usd": 0.4007,
+ "live_calls": 29,
+ "budget_truncated": false
+}
