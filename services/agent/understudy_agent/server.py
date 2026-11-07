@@ -39,7 +39,7 @@ from .security.killflag import clear_kill, set_kill
 from .supervisor import HumanInputSignal, KillSwitchActive, Supervisor, TaskContext
 from .tiers.heuristic import HeuristicModelPort
 
-PORT = 7710
+PORT = int(os.environ.get("AGENT_PORT", "7710") or "7710")   # dev.sh and the engine already honour AGENT_PORT; the agent now does too
 LOCK_PREFIX = "agent-service:"
 TERMINAL_STATES = {"done", "failed", "stopped", "paused"}
 
@@ -528,6 +528,13 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
 
 def main() -> None:  # pragma: no cover - manual use
     import uvicorn
+
+    try:
+        from understudy_engine.api.flags import apply_default_flags
+
+        apply_default_flags()   # D48: the layers are on by default; an explicit UNDERSTUDY_X=0 turns them off
+    except Exception:  # noqa: BLE001 - the engine package is optional here; flags then stay as the environment says
+        pass
 
     uvicorn.run(create_app(), host="127.0.0.1", port=PORT, log_level="info")
 

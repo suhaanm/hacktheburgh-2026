@@ -405,4 +405,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    from .api.flags import apply_default_flags
+
+    apply_default_flags()   # D48: as a script the seed runs with the layers on (so it fills the briefing too); an explicit UNDERSTUDY_X=0 turns them off
     raise SystemExit(main())

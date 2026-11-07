@@ -67,6 +67,15 @@ def _agent_up() -> bool:
 
 
 # ------------------------------------------------------------------------------------------ health
+def _health_models(model):
+    """The model id of each role for the ACTIVE provider (D49: Gemini by default; OpenAI only on an explicit UNDERSTUDY_PROVIDER=openai)."""
+    if (os.environ.get("UNDERSTUDY_PROVIDER", "").strip() or "gemini").lower() == "openai":
+        return {"planner": model("OPENAI_MODEL_PLANNER"), "fast": model("OPENAI_MODEL_FAST"), "computer_use": model("OPENAI_MODEL_COMPUTER_USE")}
+    accurate, fast = model("GEMINI_MODEL_ACCURATE"), model("GEMINI_MODEL_FAST")
+    cu = os.environ.get("GEMINI_MODEL_COMPUTER_USE", "").strip() or accurate
+    return {"planner": accurate, "fast": fast, "computer_use": cu}
+
+
 @router.get("/health")
 def health(request: Request):
     mock = is_mock()
@@ -78,7 +87,8 @@ def health(request: Request):
 
     return {
         "ok": True, "version": __version__, "mock": mock,
-        "models": {"planner": model("OPENAI_MODEL_PLANNER"), "fast": model("OPENAI_MODEL_FAST"), "computer_use": model("OPENAI_MODEL_COMPUTER_USE")},
+        "models": _health_models(model),
+        "provider": (os.environ.get("UNDERSTUDY_PROVIDER", "").strip() or "gemini").lower() if not mock else "mock",
         "services": {"engine": True, "agent": _agent_up()},
         # additive: which optional routers this engine loaded, and whether the caches are warm
         "routers": {"data": True, "analytics": status.get("routes_analytics") == "included", "handoff": status.get("routes_handoff") == "included",
