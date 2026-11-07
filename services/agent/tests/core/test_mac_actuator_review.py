@@ -599,3 +599,63 @@ def test_the_owner_token_has_64_bits():
     from understudy_agent.tiers.owner_present import issue_owner_token
 
     assert len(issue_owner_token("x")) >= 16
+
+
+# ------------------------------------------------------------------ S-30 (D30): a frame is captured and encoded in memory, never written
+def test_the_real_capture_functions_never_touch_disk_or_a_helper_process():
+    """Source tripwire: the real capture path has no tempfile, no subprocess, no file write and no helper program."""
+    import inspect
+
+    for fn in (QuartzBackend.screenshot_png, QuartzBackend.window_png, QuartzBackend.display_pixel_size, QuartzBackend._png_of):
+        src = inspect.getsource(fn)
+        for banned in ("tempfile", "TemporaryDirectory", "subprocess", "write_bytes", "write_text", "screencapture", "open("):
+            assert banned not in src, f"{fn.__name__} contains {banned!r}"
+
+
+def test_the_capture_is_encoded_into_memory_by_imageio_and_the_display_size_needs_no_encode(monkeypatch):
+    import subprocess
+
+    class Img:
+        w, h = 3456, 2234
+
+    class Dest:
+        pass
+
+    calls = {"final": 0}
+    Q = types.ModuleType("Quartz")
+    Q.CGMainDisplayID = lambda: 1
+    Q.CGDisplayCreateImage = lambda d: Img()
+    Q.CGImageGetWidth = lambda i: i.w
+    Q.CGImageGetHeight = lambda i: i.h
+    Q.CGImageDestinationCreateWithData = lambda data, uti, n, opts: (data.extend(b"") or Dest()) if uti == "public.png" else None
+    Q.CGImageDestinationAddImage = lambda dest, img, opts: None
+    Q.CGImageDestinationFinalize = lambda dest: calls.__setitem__("final", calls["final"] + 1) or True
+    F = types.ModuleType("Foundation")
+
+    class NSMutableData(bytearray):
+        @staticmethod
+        def data():
+            return NSMutableData(b"\x89PNG\r\n\x1a\n")
+
+    F.NSMutableData = NSMutableData
+    monkeypatch.setitem(sys.modules, "Quartz", Q)
+    monkeypatch.setitem(sys.modules, "AppKit", types.ModuleType("AppKit"))
+    monkeypatch.setitem(sys.modules, "Foundation", F)
+
+    def boom(*a, **k):
+        raise AssertionError("a helper process was started")
+
+    monkeypatch.setattr(subprocess, "run", boom)
+    be = QuartzBackend()
+    assert be.display_pixel_size() == (3456, 2234) and calls["final"] == 0          # the size is read without any encode
+    assert be.screenshot_png().startswith(b"\x89PNG") and calls["final"] == 1       # one in-memory encode, no process, no file
+
+
+def test_r0_reads_the_display_size_without_encoding_a_frame():
+    from understudy_agent.tiers.real_rungs import ReadOnlyBackend, run_r0
+
+    be = Backend()
+    be.screenshot_png = lambda: (_ for _ in ()).throw(AssertionError("R0 must not encode a frame"))     # type: ignore[assignment]
+    be.display_pixel_size = lambda: (2000, 1400)                                                           # type: ignore[attr-defined]
+    out = run_r0("TextEdit", [(600, 500)], ReadOnlyBackend(be))
+    assert out["scale_agrees"] and out["screenshot_px"] == [2000, 1400] and out["events"] == 0

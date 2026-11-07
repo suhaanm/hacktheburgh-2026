@@ -9,7 +9,7 @@ from fakes import Scripted, always_true, make_guard
 from understudy_agent.models.port import Action, Done
 from understudy_agent.security.dataflow import Taint
 from understudy_agent.tiers.base import GateStop
-from understudy_agent.tiers.computer_use import ComputerUse, SimulatedActuator
+from understudy_agent.tiers.computer_use import ComputerUse, SimulatedActuator, TargetRead
 from understudy_agent.tiers.facts import FactStore
 
 TAINT = "WEB-SECRET-7731"
@@ -18,7 +18,7 @@ TAINT = "WEB-SECRET-7731"
 async def run(text, facts):
     guard = make_guard(recorded_hosts=("calc-a.example",))
     guard.pipe.dataflow.tag(TAINT, Taint.WEB, origin="evil.example")        # read from a web page by the reader
-    sim = SimulatedActuator()
+    sim = SimulatedActuator(targets=TargetRead("", "textbox", None, {"type": "text", "label": "Savings", "role": "textbox"}))   # a readable text field (S-28: an unreadable focus is a human's call)
     try:
         await ComputerUse(Scripted(Action("type", {"text": text}), Done("done", True)), sim, guard, navigator="n", facts=facts).run("g", always_true)
     except GateStop:

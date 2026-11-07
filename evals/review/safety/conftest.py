@@ -126,6 +126,12 @@ class FakeOS:
         monkeypatch.setitem(sys.modules, "AppKit", A)
         monkeypatch.setitem(sys.modules, "ApplicationServices", AS)
 
+        # the real backend now captures with CGDisplayCreateImage and encodes in memory (D30), no screencapture process: serve the same bytes
+        from understudy_agent.tiers.computer_use import QuartzBackend as _QB
+        shot = lambda self: png_of_width(int(me.width_pts * me.scale))
+        monkeypatch.setattr(_QB, "screenshot_png", shot)
+        monkeypatch.setattr(_QB, "display_pixel_size", lambda self: (int(me.width_pts * me.scale), round(int(me.width_pts * me.scale) * 0.65)))
+
         def fake_run(args, *a, **k):
             assert Path(str(args[0])).name == "screencapture", f"unexpected subprocess {args[0]!r}"
             Path(args[-1]).write_bytes(png_of_width(int(me.width_pts * me.scale)))

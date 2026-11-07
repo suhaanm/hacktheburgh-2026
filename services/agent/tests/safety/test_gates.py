@@ -139,7 +139,10 @@ def test_unresolved_pointer_click_or_enter_always_needs_a_human_in_every_mode():
     assert g("key", {"keys": ["Enter"]}, RoutineContext(mode="model_driven"), btn("Calculate")).verdict == "allow"
     assert g("key", {"keys": ["Enter"]}, RoutineContext(mode="model_driven"), btn("Submit application")).verdict == "needs_human"
     assert g("type", {"text": "a\n"}, RoutineContext(mode="model_driven"), btn("Submit application")).verdict == "needs_human"
-    assert g("type", {"text": "plain text"}, RoutineContext(mode="model_driven"), TargetInfo()).verdict == "allow"
+    # typing follows the same rule (S-28): a focus the read could not see might be a password box in a frame
+    assert g("type", {"text": "plain text"}, RoutineContext(mode="model_driven"), TargetInfo()).verdict == "needs_human"
+    assert g("fill", {"selector": "#a", "value": "x"}, RoutineContext(mode="compiled"), TargetInfo()).verdict == "needs_human"
+    assert g("type", {"text": "plain text"}, RoutineContext(mode="model_driven"), TargetInfo(label="", role="textbox")).verdict == "allow"
     assert g("key", {"keys": ["Tab"]}, RoutineContext(mode="model_driven"), TargetInfo()).verdict == "allow"
 
 

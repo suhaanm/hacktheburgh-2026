@@ -41,7 +41,7 @@ class ReadOnlyBackend:
 
     def __getattr__(self, name: str) -> Any:
         # optional reads only: windows_of, element_at, focused_element. Anything else is not forwarded.
-        if name in ("windows_of", "all_windows_of", "element_at", "focused_element", "read_document"):
+        if name in ("windows_of", "all_windows_of", "element_at", "focused_element", "read_document", "display_pixel_size"):
             return getattr(self._inner, name)
         raise AttributeError(name)
 
@@ -51,8 +51,9 @@ def run_r0(target_app: str, points_px: list[tuple[int, int]], backend: MacBacken
     can see a scale error before R1."""
     ro = backend if isinstance(backend, ReadOnlyBackend) else ReadOnlyBackend(backend)
     scale = float(ro.backing_scale())
-    shot = ro.screenshot_png()                      # the one capture; needs the Screen Recording permission
-    size = png_size(shot)
+    # the scale check needs the display's pixel size only: read it from the captured image, never encode or keep a frame
+    sizer = getattr(ro, "display_pixel_size", None)
+    size = tuple(sizer()) if callable(sizer) else png_size(ro.screenshot_png())   # the png path is for fakes and tests
     pts_w = float(ro.display_width_pts())
     measured = (size[0] / pts_w) if size and pts_w else 0.0
     out: dict[str, Any] = {"target_app": target_app, "backing_scale": scale, "screenshot_px": list(size) if size else None,

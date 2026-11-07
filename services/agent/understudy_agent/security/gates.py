@@ -12,7 +12,8 @@ need a human click UNLESS the worker opted that routine in for those named class
 * A pointer click or drag, an Enter key press, or typed text that contains a newline (an implicit Enter) is only
   classified from what TRUSTED code read at the target (the DOM or the accessibility tree, never the model's own label).
   When nothing could be read there, the step is `needs_human` in EVERY mode, attended or not (S-01). The old
-  `unresolved_clicks_ok` flag no longer changes this.
+  `unresolved_clicks_ok` flag no longer changes this. The same holds for typing and filling (S-28): text typed into a focus
+  the read could not see (an iframe, a closed shadow root) could be going into a password box.
 
 The gate blocks by default: it returns `allow` only when it has positively classified the step as normal or opted in.
 """
@@ -24,7 +25,7 @@ from typing import Any, Literal
 
 from .killflag import is_killed
 from .labels import (IRREVERSIBLE_CLASSES, NORMAL_CLASSES, OPT_IN_ELIGIBLE, OUTWARD_CLASSES, ActionClass, classify_keys,
-                     classify_label, highest, is_benign_submit_label, risk_class, sensitive_path)
+                     classify_label, highest, is_benign_submit_label, mixed_script, risk_class, sensitive_path)
 from .sensitive import is_sensitive_attrs
 
 Verdict = Literal["allow", "needs_human", "block"]
@@ -118,6 +119,9 @@ def structural_classes(target: TargetInfo, recorded_hosts: frozenset[str] = froz
             out |= classify_label(host) - NORMAL_CLASSES
             if _PATH_RISK.search(host):
                 out.add(ActionClass.SUBMIT)
+    # a name that mixes scripts inside one word ("Cаlculate" with a Cyrillic а) is a spelling chosen to pass a word list: a human's call
+    if mixed_script(target.label):
+        out.add(ActionClass.SUBMIT)
     # a submit control, or a script-driven clickable (a div with a listener), whose verb nobody recognised is a human's call
     if ("submit_control" in st or "script_clickable" in st) and not (classify_label(target.label) - NORMAL_CLASSES):
         if not is_benign_submit_label(target.label):
@@ -178,10 +182,10 @@ def gate(kind: str, args: dict[str, Any], ctx: RoutineContext, target: TargetInf
 
     # A pixel click, an Enter press or a newline does whatever the control under it does. If trusted code could not
     # read that control, nothing can classify the step: a human decides, in every mode (S-01).
-    if (kind in POINTER_KINDS or enter_like(kind, args)) and not target.resolved:
+    if (kind in POINTER_KINDS or enter_like(kind, args) or kind in ("type", "fill")) and not target.resolved:
         return GateDecision("needs_human", frozen, top, "normal" if top is None else risk,
-                            "the control under this click or Enter press could not be read by trusted code; "
-                            "it needs a human click")
+                            "the control under this click, Enter press or typed text could not be read by trusted code; "
+                            "it needs a human")
 
     if top in NORMAL_CLASSES or top is None:
         return GateDecision("allow", frozen, top, "normal", "normal step")

@@ -201,6 +201,14 @@ READ_TARGET_JS = r"""
   };
   const focus = (x === null || x === undefined);
   let el = focus ? document.activeElement : document.elementFromPoint(x, y);
+  // Typing goes to the focused element INSIDE a same-origin frame, not to the frame element itself (S-28). A cross-origin or
+  // sandboxed frame has no readable document: the frame stays the answer, and 'opaque content' below makes it unreadable.
+  for (let i = 0; focus && i < 5 && el && ['iframe', 'frame'].includes(el.tagName.toLowerCase()); i++) {
+    let inner = null;
+    try { inner = el.contentDocument && el.contentDocument.activeElement; } catch (e) { inner = null; }
+    if (!inner) break;
+    el = inner;
+  }
   for (let i = 0; !focus && i < 5 && el && el.shadowRoot && el.shadowRoot.elementFromPoint; i++) {
     const inner = el.shadowRoot.elementFromPoint(x, y); if (!inner || inner === el) break; el = inner;
   }
@@ -264,6 +272,59 @@ class BrowserPageActuator:
         except Exception:  # noqa: BLE001
             return None
 
+    async def _read_js(self, arg: list[Any]) -> Any:
+        """Run the target read in an ISOLATED world (CDP Page.createIsolatedWorld): the page's own scripts cannot replace
+        `document.elementFromPoint` or any other function the read uses (S-26). The DOM is shared, the JavaScript globals are
+        not. A page object without a browser context (a test double) falls back to a plain evaluate.
+
+        For a POINTER read there is a second mechanism: the browser's own hit test (`DOM.getNodeForLocation`, the same test a
+        real mouse event goes through) must name the element the isolated read found, or one inside or around it. Any
+        disagreement, or any failure of either read, makes the target unreadable, which the gate sends to a human."""
+        ctx = getattr(self.page, "context", None)
+        if ctx is None:
+            return await self.page.evaluate(READ_TARGET_JS, arg)
+        import json as _json
+
+        cdp = await ctx.new_cdp_session(self.page)
+        try:
+            fid = (await cdp.send("Page.getFrameTree"))["frameTree"]["frame"]["id"]
+            world = await cdp.send("Page.createIsolatedWorld", {"frameId": fid, "worldName": "understudy-read"})
+            cid = world["executionContextId"]
+            r = await cdp.send("Runtime.evaluate", {"expression": f"({READ_TARGET_JS})({_json.dumps(arg)})",
+                                                    "contextId": cid, "returnByValue": True})
+            if "exceptionDetails" in r:
+                raise RuntimeError("the isolated read failed")
+            value = r["result"].get("value")
+            if arg[0] is not None and isinstance(value, dict) and value.get("ok"):
+                if not await self._hit_agrees(cdp, cid, int(arg[0]), int(arg[1])):
+                    return {"ok": False, "why": "the two reads of the target disagree"}
+            return value
+        finally:
+            try:
+                await cdp.detach()
+            except Exception:  # noqa: BLE001
+                pass
+
+    @staticmethod
+    async def _hit_agrees(cdp: Any, context_id: int, x: int, y: int) -> bool:
+        """The browser's hit test at (x, y) against the isolated world's `elementFromPoint`: the same element, or one that contains
+        the other (a span inside a button), or a shadow host. Anything else is a disagreement."""
+        node = await cdp.send("DOM.getNodeForLocation", {"x": x, "y": y, "includeUserAgentShadowDOM": True})
+        bid = node.get("backendNodeId")
+        if bid is None:
+            return False
+        obj = (await cdp.send("DOM.resolveNode", {"backendNodeId": bid, "executionContextId": context_id})).get("object") or {}
+        if not obj.get("objectId"):
+            return False
+        out = await cdp.send("Runtime.callFunctionOn", {
+            "objectId": obj["objectId"], "returnByValue": True, "arguments": [{"value": x}, {"value": y}],
+            "functionDeclaration": "function (x, y) { const n = this.nodeType === 1 ? this : this.parentElement;"
+                                   " const e = document.elementFromPoint(x, y); if (!n || !e) return false;"
+                                   " if (e === n || e.contains(n) || n.contains(e)) return true;"
+                                   " const h = n.getRootNode && n.getRootNode().host;"
+                                   " return !!h && (h === e || e.contains(h)); }"})
+        return out.get("result", {}).get("value") is True
+
     async def read_target(self, action: Action) -> TargetRead | None:
         """The element under the pointer (or the focused control, for typing and Enter), read from the DOM by this
         code. None when it cannot be read (nothing there, an iframe or canvas, a button with no name)."""
@@ -278,7 +339,7 @@ class BrowserPageActuator:
         reads: list[TargetRead | None] = []
         for pt in points:
             try:
-                r = await self.page.evaluate(READ_TARGET_JS, pt)
+                r = await self._read_js(pt)
             except Exception:  # noqa: BLE001 - a page mid-navigation cannot be read: unreadable, never "fine"
                 return None
             reads.append(TargetRead(r["label"], r["role"], self.url, r.get("field"), tuple(r.get("structure") or ()))
@@ -328,6 +389,7 @@ TITLE_BAR_PT = 28.0       # a typing target must be below the window's title bar
 TYPE_CHUNK = 6            # at most this many characters are typed per verification
 FOCUS_POLL_S = 0.025
 FOCUS_WAIT_S = 0.5
+REAL_KEYS = frozenset({"enter", "return", "tab", "esc", "escape", "backspace", "left", "right", "up", "down", "home", "end"})
 MIN_SHOT_H = 16           # a capture shorter than this is not a screen; the vertical bound is only enforced above it
 OVERLAY_OWNERS = tuple(x.strip() for x in os.environ.get("UNDERSTUDY_OVERLAY_OWNERS", "Understudy,Electron").split(",") if x.strip())
 
@@ -385,11 +447,16 @@ _AX_ROLES = {"AXButton": "button", "AXLink": "link", "AXCheckBox": "checkbox", "
              "AXMenuItem": "menuitem", "AXMenuBarItem": "menuitem", "AXPopUpButton": "button", "AXTextField": "textbox",
              "AXTextArea": "textbox", "AXComboBox": "textbox", "AXSecureTextField": "textbox", "AXTab": "tab"}
 _AX_NAMED = {"button", "link", "checkbox", "radio", "menuitem", "tab"}
+# roles that carry no action of their own: a click on one changes nothing outward, so an unnamed one is fine (S-29). EVERY other role
+# that is not mapped above is an unknown actionable (a group, an image, a menu button, a disclosure triangle, a cell, a slider ...):
+# it needs a name like a button, and it is classed as a script-driven clickable, so an unrecognised verb is a human's call.
+_AX_HARMLESS = frozenset({"AXTextArea", "AXTextField", "AXStaticText", "AXScrollArea", "AXWindow", "AXSplitGroup"})
 
 
 def target_from_ax(el: dict[str, Any] | None, *, app: str | None = None) -> TargetRead | None:
-    """An accessibility element as the gate wants it. None (unreadable) for a missing element, an unknown role, or a
-    control that has no name. Text boxes keep their caption for the sensitive-field check only."""
+    """An accessibility element as the gate wants it. None (unreadable) for a missing element, a role with no name, or an unnamed
+    element that can be pressed (AXPress in its actions). Text boxes keep their caption for the sensitive-field check only. The
+    harmless unnamed roles are the allow-list `_AX_HARMLESS`; any other role is treated like a button that needs a name."""
     if not el:
         return None
     raw = str(el.get("role") or "")
@@ -397,14 +464,21 @@ def target_from_ax(el: dict[str, Any] | None, *, app: str | None = None) -> Targ
     if not role:
         return None
     names = [str(n).strip() for n in (el.get("title"), el.get("description"), el.get("help")) if n and str(n).strip()]
-    if role in _AX_NAMED and not names:
-        return None
-    structure = ("opens_dialog",) if el.get("in_dialog") else ()
+    structure: tuple[str, ...] = ("opens_dialog",) if el.get("in_dialog") else ()
     if role == "textbox":
         attrs = {"type": "password" if el.get("secure") or raw == "AXSecureTextField" else "text",
                  "label": names[0] if names else "", "role": role}
         return TargetRead("", role, None, attrs, structure)
-    return TargetRead(" / ".join(dict.fromkeys(names)), role, None, None, structure)
+    pressable = "AXPress" in (el.get("actions") or ())
+    if role in _AX_NAMED:
+        if not names:
+            return None
+        return TargetRead(" / ".join(dict.fromkeys(names)), role, None, None, structure)
+    if raw in _AX_HARMLESS and not pressable:
+        return TargetRead(" / ".join(dict.fromkeys(names)), role, None, None, structure)
+    if not names:                                   # an unknown or pressable element with no name: nothing can classify it
+        return None
+    return TargetRead(" / ".join(dict.fromkeys(names)), role, None, None, (*structure, "script_clickable"))
 
 
 class QuartzBackend:
@@ -545,14 +619,48 @@ class QuartzBackend:
 
         self._post(Q.CGEventCreateScrollWheelEvent(None, Q.kCGScrollEventUnitPixel, 2, dy, dx))
 
-    def screenshot_png(self) -> bytes:  # pragma: no cover - real desktop
-        import subprocess
-        import tempfile
+    def display_pixel_size(self) -> tuple[int, int]:  # pragma: no cover - real desktop
+        """Width and height in PIXELS of the main display, read from the captured image: nothing is encoded or kept."""
+        import Quartz as Q
 
-        with tempfile.TemporaryDirectory() as d:
-            p = Path(d) / "s.png"
-            subprocess.run(["screencapture", "-x", str(p)], check=True)
-            return p.read_bytes()
+        img = Q.CGDisplayCreateImage(Q.CGMainDisplayID())
+        if img is None:
+            raise ActuatorRefused("the display could not be read (is Screen Recording allowed?)")
+        return int(Q.CGImageGetWidth(img)), int(Q.CGImageGetHeight(img))
+
+    @staticmethod
+    def _png_of(img: Any) -> bytes:  # pragma: no cover - real desktop
+        """A CGImage to PNG bytes in memory (ImageIO into a mutable data object). No file, no path, no helper process."""
+        import Quartz as Q
+        from Foundation import NSMutableData
+
+        data = NSMutableData.data()
+        dest = Q.CGImageDestinationCreateWithData(data, "public.png", 1, None)
+        if dest is None:
+            raise ActuatorRefused("could not start an in-memory PNG encoder")
+        Q.CGImageDestinationAddImage(dest, img, None)
+        if not Q.CGImageDestinationFinalize(dest):
+            raise ActuatorRefused("could not encode the captured frame")
+        return bytes(data)
+
+    def screenshot_png(self) -> bytes:  # pragma: no cover - real desktop
+        """The main display as PNG bytes, captured and encoded in memory (D30: a frame is held for one call and never written)."""
+        import Quartz as Q
+
+        img = Q.CGDisplayCreateImage(Q.CGMainDisplayID())
+        if img is None:
+            raise ActuatorRefused("the display could not be captured (is Screen Recording allowed?)")
+        return self._png_of(img)
+
+    def window_png(self, window_number: int) -> bytes:  # pragma: no cover - real desktop
+        """ONE window (the pinned target) as PNG bytes, in memory: for R2 and later, so other apps never enter a frame."""
+        import Quartz as Q
+
+        img = Q.CGWindowListCreateImage(Q.CGRectNull, Q.kCGWindowListOptionIncludingWindow, int(window_number),
+                                        Q.kCGWindowImageBoundsIgnoreFraming)
+        if img is None:
+            raise ActuatorRefused("the window could not be captured")
+        return self._png_of(img)
 
     def release_all(self) -> None:
         if self._down:
@@ -576,8 +684,13 @@ class QuartzBackend:
         win = attr(el, "AXWindow")
         wrole, wsub = (attr(win, "AXRole"), attr(win, "AXSubrole")) if win is not None else (None, None)
         in_dialog = str(wrole) == "AXSheet" or str(wsub) in ("AXDialog", "AXSystemDialog", "AXFloatingWindow")
+        try:
+            aerr, acts = AS.AXUIElementCopyActionNames(el, None)
+            actions = [str(a) for a in acts] if aerr == 0 and acts else []
+        except Exception:  # noqa: BLE001 - no action list: only the role and the name can speak
+            actions = []
         return {"role": str(role), "subrole": str(attr(el, "AXSubrole") or ""), "title": attr(el, "AXTitle"),
-                "description": attr(el, "AXDescription"), "help": attr(el, "AXHelp"),
+                "description": attr(el, "AXDescription"), "help": attr(el, "AXHelp"), "actions": actions,
                 "secure": str(attr(el, "AXSubrole") or "") == "AXSecureTextField", "in_dialog": bool(in_dialog)}
 
     def element_at(self, x_pt: float, y_pt: float) -> dict[str, Any] | None:  # pragma: no cover - real desktop
@@ -885,6 +998,9 @@ class MacActuator:
             elif action.kind == "key":
                 if a.get("hold_keys"):
                     self._abort("held modifier keys are not supported by the real actuator")
+                if len(a["keys"]) != 1 or str(a["keys"][0]).lower() not in REAL_KEYS:
+                    # the real desktop takes single named keys only (S-25): no chord can leave the app, save, close or quit
+                    self._abort("the real actuator presses only enter, tab, escape, backspace, arrows, home and end")
                 await self._verify_typing_target()
                 self.backend.key(list(a["keys"]))
             elif action.kind == "wait":
@@ -993,7 +1109,9 @@ class ComputerUse:
     def __init__(self, model: ModelPort, actuator: Actuator, guard: Guard, *, navigator: str,
                  emit: Emit | None = None, is_current: Callable[[], bool] = lambda: True, step_start: int = 0,
                  max_steps: int = 120, deadline_s: float = 600.0, screenshot_size: tuple[int, int] = (1280, 720),
-                 facts: Any = None, stall_limit: int = 12, pause: Any = None, context_reset_every: int = 4, max_nudges: int = 2, stateless: bool = True) -> None:
+                 facts: Any = None, stall_limit: int = 12, pause: Any = None, context_reset_every: int = 4, max_nudges: int = 2, stateless: bool | None = None) -> None:
+        if stateless is None:                    # UNDERSTUDY_CU_STATELESS=0 opts back into the chained provider thread (comparison only)
+            stateless = os.environ.get("UNDERSTUDY_CU_STATELESS", "1").strip().lower() not in ("0", "false", "no", "off")
         self.stateless = stateless               # no provider-side thread: each step is goal + code-built working memory + ONE fresh frame
         self.max_nudges = max_nudges             # early endings the loop answers with a code-written 'not finished, continue'
         self.context_reset_every = context_reset_every   # bounded working memory: restart the provider's thread this often
@@ -1125,7 +1243,9 @@ class ComputerUse:
                         wm.set_page(PageState.UNKNOWN, "p" + _h.sha1(urlsplit(url).path.encode()).hexdigest()[:8])
                     prompt = computer_use_text(base_goal, wm, None, feedback=feedback).text()
                     res.prompt_chars.append(len(prompt))
-                    out = await asyncio.to_thread(self.model.computer_step, prompt, shot, [], session=self.navigator, store=False)
+                    # a scripted double (the mock provider) indexes its script by history length; a real provider gets none
+                    hist = list(res.history) if getattr(self.model, "name", "") == "mock" else []
+                    out = await asyncio.to_thread(self.model.computer_step, prompt, shot, hist, session=self.navigator, store=False)
                 else:
                     prompt = base_goal + self._task_state(res) + feedback
                     res.prompt_chars.append(len(prompt) + sum(len(str(h)) for h in res.history[-12:]))

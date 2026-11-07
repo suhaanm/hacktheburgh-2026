@@ -153,12 +153,17 @@ class SettingsGuard:
 
     def check_path(self, path: str | os.PathLike[str]) -> SettingsDecision:
         """Refuse agent access to the kill flag, memory file, denylist, consent store, the control-plane token, the owner
-        tokens, the queue and its key. Decided by file identity (S-20), so another spelling of the same file is the same."""
+        tokens, the queue and its key. Decided by file identity (S-20), so another spelling of the same file is the same.
+        The path is looked at twice: as spelled (every existing prefix, with `..` removed lexically) and as the KERNEL resolves
+        it (`realpath`: symlinks first, then `..`, so `<link to data/queue>/../.token` is `data/.token`, S-27)."""
         if not self.enabled:
             return _ALLOW
         try:
             p = Path(path).expanduser()
-            p_ids, p_deep, p_tail = self._frame(p)
+            frames = [self._frame(p)]
+            real = Path(os.path.realpath(p))
+            if real != Path(os.path.abspath(p)):
+                frames.append(self._frame(real))
         except (OSError, RuntimeError, ValueError):
             return SettingsDecision(False, None, "unreadable path")
         protected = [kill_path(), data_dir() / "denylist.json", data_dir() / "queue", data_dir() / "routines",
@@ -174,31 +179,12 @@ class SettingsGuard:
             except (OSError, RuntimeError, ValueError):
                 continue
             hit = False
-            if not q_tail:                       # q exists: p is q, or is inside q, when some ancestor-or-self of p IS q
-                hit = q_deep is not None and q_deep in p_ids
-            else:                                # q does not exist yet: same deepest existing folder and p's remainder starts with q's
-                hit = q_deep is not None and q_deep == p_deep and p_tail[:len(q_tail)] == q_tail
+            for p_ids, p_deep, p_tail in frames:
+                if not q_tail:                   # q exists: p is q, or is inside q, when some ancestor-or-self of p IS q
+                    hit = hit or (q_deep is not None and q_deep in p_ids)
+                else:                            # q does not exist yet: same deepest existing folder and p's remainder starts with q's
+                    hit = hit or (q_deep is not None and q_deep == p_deep and p_tail[:len(q_tail)] == q_tail)
             if hit:
-                kind = Setting.KILL_SWITCH if q.name == "KILL" else Setting.MEMORY if q.name == ".understudy" else None
-                return SettingsDecision(False, kind, "the agent cannot touch Understudy's own settings or logs")
-        return _ALLOW
-        try:
-            p = Path(path).expanduser().resolve()
-        except (OSError, RuntimeError):
-            return SettingsDecision(False, None, "unreadable path")
-        protected = [kill_path(), data_dir() / "denylist.json", data_dir() / "queue", data_dir() / "routines",
-                     data_dir() / "audit.jsonl", data_dir() / ".token", data_dir() / "owner_tokens.json",
-                     data_dir() / ".queue_key"]
-        home = os.environ.get("UNDERSTUDY_HOME", "").strip()
-        protected.append(Path.home() / ".understudy")  # the default location is protected even when another home is configured
-        if home:
-            protected.append(Path(home).expanduser())
-        for q in protected:
-            try:
-                q = q.resolve()
-            except OSError:
-                continue
-            if p == q or q in p.parents:
                 kind = Setting.KILL_SWITCH if q.name == "KILL" else Setting.MEMORY if q.name == ".understudy" else None
                 return SettingsDecision(False, kind, "the agent cannot touch Understudy's own settings or logs")
         return _ALLOW

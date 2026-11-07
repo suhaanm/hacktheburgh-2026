@@ -92,7 +92,7 @@ CACHE_MIN_TOKENS_DEFAULT = 1024   # ASSUMPTION: a prefix under this many tokens 
 
 
 def clean_manifest(m: Any) -> dict[str, Any]:
-    """Whitelist a caller's manifest down to metadata: section names (short ids) with integer token counts, a dropped-item count, a
+    """Reduce a caller's manifest to metadata only: section names (short ids) with integer token counts, a dropped-item count, a
     prefix hash, prefix and total token counts. Anything else (text, paths, nested objects) is dropped, never stored."""
     if not isinstance(m, dict):
         return {}

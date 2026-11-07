@@ -199,8 +199,13 @@ class SafetyPipeline:
 
     def _raise_for_human(self, layer: str, code: str, reason: str, action: ValidatedAction, target: TargetInfo,
                          risk: str, kind: str) -> StepDecision:
+        # The approver's title names the CLASSIFIED class and the host, never the page's own label: the page chooses its labels, so a
+        # label in the title would let a page word the question the worker is asked (review, queue title). The label stays out of
+        # the queue item altogether; the evidence carries the layer, the code, the action kind and the host.
+        cls = code[len("class_"):] if code.startswith("class_") else code
+        host = host_key(target.url) or "this screen"
         item = self.queue.enqueue(
-            kind=kind, title=f"{action.kind}: {safe_label(target.label or action.args.get('label') or '', 60)}".strip(": "),
+            kind=kind, title=f"{action.kind}: {safe_label(cls.replace('_', ' '), 30)} step on {safe_label(host, 40)}",
             summary=(f"{self._approval_note}; {reason}" if self._approval_note else reason), risk_class=risk, routine_id=self.routine.routine_id, run_id=self._run,
             evidence={"extracted": {"layer": layer, "code": code, "action": action.kind,
                                     "host": host_key(target.url)}, "tier_log": []},

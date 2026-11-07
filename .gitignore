@@ -42,3 +42,9 @@ data/.token
 apps/desktop/src/renderer/cue/harness/shots/
 evals/study_sim/frozen_run4/
 evals/study_sim/GO5
+
+# Design sync screenshots (DESIGN-SYNC track): the before set and the extra variants stay local; the repo keeps after/ at 1440 light and 390 dark
+apps/dashboard/qa/design-sync/before/
+apps/dashboard/qa/design-sync/*/*-dark-1440.png
+apps/dashboard/qa/design-sync/*/*-light-390.png
+evals/review/.vite-cache/
