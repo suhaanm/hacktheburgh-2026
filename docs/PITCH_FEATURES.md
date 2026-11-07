@@ -1067,7 +1067,7 @@ Routines: a row opens in place with a three-state control; a step up is enabled 
 
 #### Demo moment
 
-Open a routine row: 'Watching: 12 of 20 practice runs match.' Show that 'Asks first' is disabled with the printed need. Press Watch first on a proposal; show the queue stays empty.
+Open a routine row: its state in words (Watching, Asks first or Runs on its own) and, when a step up has not been earned, the printed need. Press Watch first on a proposal; show the queue stays empty.
 
 #### Evidence and its label
 
