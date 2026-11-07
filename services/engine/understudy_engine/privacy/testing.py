@@ -300,6 +300,17 @@ class CanaryFlow:
     mode: str = "replace"
 
 
+@dataclass(frozen=True)
+class ImageCanaryFlow:
+    """An image flow a layer supplies as ``IMAGE_FLOWS = [ImageCanaryFlow(...)]`` in ``<layer>/canary_flows.py``. ``run(planted, port)``
+    runs the layer's real code with ``planted.safe_image(kind, source)`` through ``egress.send_image(..., port=port)``; the evaluation runs it
+    over several seeds with ``image_canary_flow`` and reports any residue of the planted frame."""
+
+    name: str
+    run: Callable[[Any, CapturingPort], Any]
+    layer: str = ""
+
+
 @dataclass
 class FlowResult:
     name: str
@@ -391,3 +402,57 @@ def assert_vocabularies_clean() -> None:
     in production for a reason a unit test could have caught. A track calls this at the end of its own suite."""
     bad = vocabulary_problems()
     assert not bad, "the privacy backstop would refuse these at send time:\n" + "\n".join(bad)
+
+
+# --------------------------------------------------------------------------------------------------------- images (REQ-5)
+def image_canary_flow(name: str, run: Callable[[Any, CapturingPort], Any], *, seed: int = 0, strict: bool = True, kind: str = "customer_name") -> dict[str, Any]:
+    """One call for a track's image tests: plant a PNG (a planted token in its pixels and metadata), run ``run(planted, port)`` against
+    a ``CapturingPort`` and check that the frame left no residue anywhere:
+
+    * no file under the data dir (audit, queue, logs, ledger, anything), no temporary file, no log record, no exception text, no ledger
+      row and no captured request contains the frame's bytes, token, full hash, or a base64 or hex rendering;
+    * every ledger row holds only the allowed fields (sha8, size, dimensions, kind, source, provider, model, latency, tokens, cost, ok).
+
+    ``planted.safe_image(kind, source)`` builds the frame. ``run`` should send through ``egress.send_image``; refusals and failures it
+    lets propagate are recorded (their text is scanned), not raised. Returns ``{requests, ledger_rows, residue, ok}``; ``strict`` raises
+    AssertionError when ``residue`` is not empty or a row has a disallowed field."""
+    import tempfile as _tf
+
+    from ._paths import data_dir
+
+    pi = canary.plant_image(seed, kind=kind)
+    port = CapturingPort()
+    root = data_dir()
+    tmpmon = root / "_tmpmon_image_flow"
+    tmpmon.mkdir(parents=True, exist_ok=True)
+    old = _tf.tempdir
+    _tf.tempdir = str(tmpmon)
+    errors: list[str] = []
+    try:
+        with LogCapture() as logs:
+            try:
+                run(pi, port)
+            except Exception as exc:        # a refusal or failure is a normal outcome; keep its text for the scan
+                errors.append(f"{type(exc).__name__}: {exc}")
+    finally:
+        _tf.tempdir = old
+    rows = ledger.read_all()
+    residue = canary.scan_image_residue(pi, paths=[root], texts=logs.texts + errors + port.texts() + [json.dumps(rows)])
+    residue = [r for r in residue if "_tmpmon_image_flow" not in r]
+    left = [p.name for p in tmpmon.iterdir()]
+    if left:
+        residue.append(f"{len(left)} temporary file(s) left behind")
+    allowed_row = {"id", "t", "kind", "status", "purpose", "schema", "method", "fields", "payload", "image", "source", "provider", "model", "bytes",
+                   "mock", "ok", "latency_ms", "input_tokens", "output_tokens", "cost_estimate_usd", "error", "reason"}
+    allowed_img = {"sha8", "bytes", "width", "height", "kind", "mime", "source"}
+    for r in rows:
+        if r.get("kind") == "image" and (set(r) - allowed_row or (r.get("image") and set(r["image"]) - allowed_img)):
+            residue.append("a ledger row has a field outside the allowed set")
+    try:
+        tmpmon.rmdir()
+    except OSError:
+        pass
+    out = {"name": name, "requests": len(port), "ledger_rows": len(rows), "residue": residue, "ok": not residue}
+    if strict and residue:
+        raise AssertionError(f"{name}: the planted frame left residue: {residue[:5]}")
+    return out

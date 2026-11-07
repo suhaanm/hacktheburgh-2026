@@ -427,20 +427,26 @@ LIMITATIONS = [
     {"id": "loc_small_n", "severity": "high", "text": "About 100 items per task in the held-out test split (and 50 in the dev split the prompts were tuned on): the Wilson "
      "intervals are wide, and differences of a few points between the model and the rules are not distinguishable."},
     {"id": "loc_dev_tuned", "severity": "medium", "text": "The prompt wording, the worked examples and the per-field choice of model or rules were tuned on the dev split only; "
-     "the test split was run once with the frozen setup. Dev numbers are therefore optimistic and are shown only as such."},
+     "the held-out test split was run once with the frozen prompts (one later look at the shipped-policy arm followed the single policy revision, see loc_policy_revised). "
+     "Dev numbers are therefore optimistic and are shown only as such."},
     {"id": "loc_no_finetune", "severity": "medium", "text": "No fine-tuning (LOC-3 is cut): it could not be validated in the time available. The model is "
      "Qwen2.5-7B-Instruct at 4-bit quantisation (Q4_K_M) with a labelling guide, a few fixed worked examples and constrained decoding."},
     {"id": "loc_labels_are_policy", "severity": "medium", "text": "Labels such as risk and message quality are our written policy, not ground truth: a reviewer may reasonably "
      "disagree on a share of items, which caps the accuracy any method can show here."},
     {"id": "loc_code_fields", "severity": "low", "text": "Size, tests touched, duration, attendee count and recurrence are computed by code from the input in every path, so "
      "they are exact by construction and say nothing about the model; only category, risk, message quality and needs_prep are model-or-rules fields."},
-    {"id": "loc_injection", "severity": "medium", "text": "Constrained decoding means an injected instruction cannot make the model print text, and nothing leaves in a digest "
-     "except vocabulary values; it can still push a label to another allowed value. The measured flip rate on 20 items per task is reported; it is not zero."},
+    {"id": "loc_prompt_sensitivity", "severity": "medium", "text": "Small prompt changes move the numbers by more than the intervals suggest: replacing three worked examples (to keep "
+     "them disjoint from the fixtures) changed dev commit-category accuracy from 48 to 44 of 52. A difference of a few items between two prompts or "
+     "between the model and the rules is noise at this sample size."},
+    {"id": "loc_authorship", "severity": "medium", "text": "The rules, the labelling policy, the prompts' guide and the fixture generator share one author and one vocabulary (for example the "
+     "list of sensitive areas), so the rules are better matched to these fixtures than they would be to real history, and the model's labelling guide is "
+     "better matched than it would be to real history. Real data would test both."},
     {"id": "loc_leak_claim", "severity": "medium", "text": "'No leak' is claimed only as measured: zero planted strings in the outputs and in the server log of the evaluation run, and "
      "the guards reject a deliberately leaking stand-in model. The raw inputs do pass through the local model's memory and llama.cpp's in-process prompt cache "
      "(never written to disk by this module)."},
-    {"id": "loc_latency", "severity": "low", "text": "Latency and tokens per second are for one Apple M2 Max (32 GB) with all layers on the GPU; a 7B model at roughly 25 to 30 generated tokens "
-     "per second makes a digest take about a second, so large histories are slow to digest the first time."},
+    {"id": "loc_latency", "severity": "low", "text": "Latency and tokens per second are for one Apple M2 Max (32 GB) with all layers on the GPU: about 30 generated tokens per second, so a digest "
+     "takes roughly 0.5 s when only the category is asked for (the shipped policy) and about 0.7 to 1.1 s with every field. A history of a thousand commits "
+     "takes about nine minutes the first time; the rules path takes microseconds."},
 ]
 
 
@@ -514,8 +520,67 @@ def evaluate_localmodel(fast: bool = False, force_live: bool = False) -> dict[st
                    **({"shipped": {t: a for t, a in shipped_arm.items() if a is not None}} if shipped_arm else {})},
         (log_check_now(fixtures) or raw.get("log_check")) if raw else None)
     out["guard_stress"] = guard_stress(fixtures)
-    out["limitations"] = LIMITATIONS
+    out["findings"] = _findings(out) if raw else []
+    out["limitations"] = _limitations(out)
     return out
+
+
+def _pct(x: float | None) -> str:
+    return "n/a" if x is None else f"{100 * x:.1f}%"
+
+
+def _findings(out: dict[str, Any]) -> list[str]:
+    """Plain sentences built from the numbers above, so the text can never disagree with the table."""
+    f: list[str] = []
+    for task, rep in out["tasks"].items():
+        for field, e in rep["fields"].items():
+            if e["decided_by"] == "code" or not e.get("model"):
+                continue
+            r, m, p = e["rules"]["test"], e["model"]["test"], e["paired_model_vs_rules"]["test"]
+            verdict = {"model_better": "the model is better", "rules_better": "the rules are better",
+                       "no_clear_difference": "no clear difference"}[p["verdict"]]
+            ci = lambda c: f"[{100 * c[0]:.1f}, {100 * c[1]:.1f}]"  # noqa: E731
+            f.append(f"{task} {field}: model {_pct(m['acc'])} {ci(m['ci'])} versus rules {_pct(r['acc'])} {ci(r['ci'])} on {r['n']} held-out items "
+                     f"(paired gap {100 * p['acc_diff']:+.1f} points {[round(100 * x, 1) for x in p['diff_ci']]}, sign test p = {p['sign_test_p']}): {verdict}. "
+                     f"Shipped: {policy.FIELD_SOURCE[task][field]}.")
+    ev = out["tasks"]["event_digest"]["fields"].get("needs_prep")
+    if ev and ev.get("model"):
+        f.append("needs_prep: an early look at the first untuned prompt showed the model marking 'Customer workshop' and 'Design review' as not needing "
+                 "preparation; after tuning on the dev split the model was better there (45 vs 41 of 52) but on the held-out split it was nominally worse than the "
+                 f"rules ({ev['model']['test']['k']} vs {ev['rules']['test']['k']} of {ev['rules']['test']['n']}, no clear difference), so needs_prep went back to the rules.")
+    for task, rep in out["tasks"].items():
+        sh = rep["joint_model_fields"].get("paired_shipped_vs_rules", {}).get("test")
+        if sh:
+            f.append(f"{task}, shipped policy against rules on all model-or-rules fields together (held-out): gap {100 * sh['acc_diff']:+.1f} points "
+                     f"{[round(100 * x, 1) for x in sh['diff_ci']]}: {sh['verdict'].replace('_', ' ')}.")
+    return f
+
+
+def _limitations(out: dict[str, Any]) -> list[dict[str, Any]]:
+    lim = list(LIMITATIONS)
+    inj = out.get("injection")
+    if inj:
+        c, e = inj["commit_digest"]["by_field"], inj["event_digest"]["by_field"]
+        lim.append({"id": "loc_injection", "severity": "high", "text": (
+            "Constrained decoding means an instruction planted in the input cannot make the model print text: nothing leaves a digest except vocabulary values. "
+            "It can still steer labels. With one planted line on 20 items per task, the model-for-everything run moved to the value the line asked for in "
+            f"{c['category']['model_moved_to_asked_value']} of {c['category']['items_not_already_that_value']} (commit category revert), "
+            f"{c['risk']['model_moved_to_asked_value']} of {c['risk']['items_not_already_that_value']} (risk high), "
+            f"{e['category']['model_moved_to_asked_value']} of {e['category']['items_not_already_that_value']} (event category focus) and "
+            f"{e['needs_prep']['model_moved_to_asked_value']} of {e['needs_prep']['items_not_already_that_value']} (needs_prep true); the keyword rules moved in "
+            f"{c['category']['rules_moved_to_asked_value']}, {c['risk']['rules_moved_to_asked_value']}, {e['category']['rules_moved_to_asked_value']} and "
+            f"{e['needs_prep']['rules_moved_to_asked_value']}. In the shipped policy only category is model-decided, and code vetoes the two most "
+            f"consequential claims (a revert needs a revert-style message; focus time needs at most one attendee), which leaves "
+            f"{c['category']['model_moved_to_asked_value_after_code_checks']} of {c['category']['items_not_already_that_value']} and "
+            f"{e['category']['model_moved_to_asked_value_after_code_checks']} of {e['category']['items_not_already_that_value']} category steerings; other category values "
+            "can still be steered by whoever writes the commit message or the invite.")})
+    pol = out["policy"]["field_source"]
+    lim.append({"id": "loc_policy_revised", "severity": "low", "text": (
+        "Which fields the model decides was chosen on the dev split and revised once after the held-out run (events needs_prep moved from the model to the "
+        "rules). The held-out numbers of the model-for-everything run are the clean evidence; the numbers for the policy as shipped "
+        f"({', '.join(f'{t}: ' + ', '.join(k for k, v in d.items() if v == 'model') for t, d in pol.items())} by the model) include one held-out look "
+        "after that revision and are slightly optimistic.")})
+    return lim
 
 
 def _headline(tasks: dict[str, Any]) -> list[dict[str, Any]]:

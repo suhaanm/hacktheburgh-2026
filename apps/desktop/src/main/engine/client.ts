@@ -6,6 +6,7 @@ import { DEFAULT_ENDPOINTS, isLoopbackUrl, type Endpoints } from './endpoints'
 import { captureFromMemory, roleFromMemory } from './capture-consent'
 import { parseCoachNext, type CoachDecision, type FeedbackOutcome, type FeedbackResult } from './coach-next'
 import { parseCoachState, type CoachStateInfo } from './coach-state'
+import { readServiceToken } from '../kill-file'
 
 export type Log = (scope: string, ...args: unknown[]) => void
 
@@ -13,6 +14,8 @@ export interface EngineClientOptions {
   endpoints?: Pick<Endpoints, 'engine' | 'agent'>
   identity: Identity
   fetchImpl?: typeof fetch
+  // data/.token, read for every release request (it rotates every boot). Default: the file under the shared data directory.
+  readToken?: () => string | null
   log?: Log
   now?: () => Date
   // Flush when this many events are waiting, or after flushMs, whichever is first.
@@ -24,6 +27,19 @@ export interface EngineClientOptions {
   // Test seams for timers.
   setTimer?: (fn: () => void, ms: number) => unknown
   clearTimer?: (handle: unknown) => void
+}
+
+// Release routes: the ones that let something run again or approve it. They need X-Understudy-Token (data/.token). Stop-type routes
+// (POST /kill, /human-input, /run/{id}/stop) stay open on purpose: stopping must never need a secret.
+const RELEASE_ROUTES: RegExp[] = [/\/kill\/clear$/, /\/queue\/[^/]+\/(approve|reject)$/, /\/routines\/[^/]+\/(consent|grants?)$/, /\/offhours\/consent$/, /\/privacy\/ledger\/clear$/, /\/resume$/]
+export const isReleaseRoute = (method: string, url: string): boolean => {
+  if (method === 'GET') return false
+  try {
+    const p = new URL(url).pathname
+    return RELEASE_ROUTES.some((re) => re.test(p))
+  } catch {
+    return false
+  }
 }
 
 export interface IngestResult {
@@ -148,10 +164,25 @@ export function createEngineClient(opts: EngineClientOptions): EngineClient {
     const controller = new AbortController()
     const t = setTimeout(() => controller.abort(), ms)
     try {
+      // Every write says it is JSON and that the worker's own app sent it; release routes also carry the token. No token file for a
+      // release route: nothing is sent and the caller sees "not reachable" (the existing state), never a silent half-call.
+      const headers: Record<string, string> = {}
+      if (method !== 'GET') {
+        headers['content-type'] = 'application/json'
+        headers['x-understudy-actor'] = 'worker'
+        if (isReleaseRoute(method, url)) {
+          const token = (opts.readToken ?? (() => readServiceToken()))()
+          if (!token) {
+            log('engine', 'no data/.token: a release route was not sent')
+            return null
+          }
+          headers['x-understudy-token'] = token
+        }
+      }
       const res = await doFetch(url, {
         method,
-        headers: body === undefined ? undefined : { 'content-type': 'application/json' },
-        body: body === undefined ? undefined : JSON.stringify(body),
+        headers,
+        body: method === 'GET' ? undefined : JSON.stringify(body ?? {}),
         signal: controller.signal,
       })
       let json: unknown = null

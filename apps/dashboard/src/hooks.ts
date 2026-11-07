@@ -1,25 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Loaded } from "./api";
 import type { AnalyticMeta } from "./types";
+import type { Fallback } from "./lib/fallback";
 
 export type LoadState<T> =
-  | { status: "loading"; data: T | null; meta: AnalyticMeta | null; source: null; error: null; reload: () => void }
-  | { status: "ready"; data: T; meta: AnalyticMeta | null; source: "live" | "demo"; error: null; reload: () => void }
-  | { status: "error"; data: T | null; meta: AnalyticMeta | null; source: null; error: Error; reload: () => void };
+  | { status: "loading"; data: T | null; meta: AnalyticMeta | null; source: null; why: Fallback | null; error: null; reload: () => void }
+  | { status: "ready"; data: T; meta: AnalyticMeta | null; source: "live" | "demo"; why: Fallback | null; error: null; reload: () => void }
+  | { status: "error"; data: T | null; meta: AnalyticMeta | null; source: null; why: Fallback | null; error: Error; reload: () => void };
 
 /** Load a resource; keep the last good data while reloading so screens do not flash empty. */
 export function useLoad<T>(loader: () => Promise<Loaded<T>>, deps: unknown[]): LoadState<T> {
-  const [s, setS] = useState<{ status: "loading" | "ready" | "error"; data: T | null; meta: AnalyticMeta | null; source: "live" | "demo" | null; error: Error | null }>({
-    status: "loading", data: null, meta: null, source: null, error: null,
+  const [s, setS] = useState<{ status: "loading" | "ready" | "error"; data: T | null; meta: AnalyticMeta | null; source: "live" | "demo" | null; why: Fallback | null; error: Error | null }>({
+    status: "loading", data: null, meta: null, source: null, why: null, error: null,
   });
   const tick = useRef(0);
   const [n, setN] = useState(0);
   const reload = useCallback(() => setN((x) => x + 1), []);
   useEffect(() => {
     const mine = ++tick.current;
-    setS((p) => (p.data ? { ...p, status: "loading" } : { status: "loading", data: null, meta: null, source: null, error: null }));
+    setS((p) => (p.data ? { ...p, status: "loading" } : { status: "loading", data: null, meta: null, source: null, why: null, error: null }));
     loader().then(
-      (r) => { if (mine === tick.current) setS({ status: "ready", data: r.data, meta: r.meta, source: r.source, error: null }); },
+      (r) => { if (mine === tick.current) setS({ status: "ready", data: r.data, meta: r.meta, source: r.source, why: r.why ?? null, error: null }); },
       (e: unknown) => { if (mine === tick.current) setS((p) => ({ ...p, status: "error", error: e instanceof Error ? e : new Error(String(e)) })); },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps

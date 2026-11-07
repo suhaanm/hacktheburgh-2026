@@ -21,6 +21,7 @@ import { createCoachTracker, wireCoachBus, type CoachTracker } from './engine/co
 import { createEngineClient, type EngineClient } from './engine/client'
 import { installDeskSignals, type DeskSignals } from './engine/desk-signals'
 import { dashboardUrl, endpointsFromEnv, type Endpoints } from './engine/endpoints'
+import { createAgentActivity } from './engine/agent-activity'
 import { loadIdentity, saveIdentity } from './engine/identity'
 import { registerHud, type HudHandle } from './hud'
 import { createHudModel, type HudModel } from './hud-model'
@@ -82,6 +83,7 @@ export interface UnderstudyShell {
   hudModel: HudModel
   desk(): DeskSignals | null
   openQueue(): void
+  openDashboard(): void
   dispose(): void
 }
 
@@ -101,6 +103,12 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
   const { ctx, core, services } = deps
   const openUrl = (url: string): void => void shell.openExternal(url).catch(() => undefined)
   const openQueue = (): void => openUrl(dashboardUrl(core.endpoints, 'queue'))
+  const openDashboard = (): void => openUrl(dashboardUrl(core.endpoints, 'today'))
+  // "Pause for 1 hour" in the menu bar: no rings, no toasts, no coach until it ends. (Capture follows its own consent line.)
+  const isPaused = (): boolean => {
+    const until = ctx.settings.get().pausedUntil
+    return until !== null && until > Date.now()
+  }
 
   // ---- DOM-first grounding: the extension asks this server what to measure, the ring is drawn from what it measures ----
   const domGrounder = createDomGrounder({ log: ctx.log })
@@ -161,6 +169,31 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
   })
   const hud = registerHud({ model: hudModel, log: ctx.log, disabled: deps.headless || deps.noOverlay })
   hudPush = hud.push
+  // The Stop all pill is on screen only while something acts for the person: a running agent, or a Live session (voice, flagged off).
+  const ACTIVE_PHASES = new Set(['connecting', 'live', 'thinking', 'speaking'])
+  const actingNow = (): boolean => {
+    const st = ctx.state.get()
+    return ACTIVE_PHASES.has(st.phase) || (st.agents ?? []).some((a) => a.status === 'running')
+  }
+  // ...or a run of the agent service (background, shadow, benefits): read-only polling of its supervisor and run list.
+  let serviceActing = false
+  const refreshActing = (): void => hudModel.setAgentActing(actingNow() || serviceActing)
+  refreshActing()
+  const offActing = ctx.state.subscribe(refreshActing)
+  const agentActivity = createAgentActivity({
+    agentUrl: core.endpoints.agent,
+    onChange: (acting) => {
+      serviceActing = acting
+      refreshActing()
+    },
+    idleSeconds: () => {
+      try {
+        return powerMonitor.getSystemIdleTime()
+      } catch {
+        return 0
+      }
+    },
+  })
 
   // ---- the coach chip and the engine's coach state ----
   const localLevel = (): { level: 1 | 2 | 3 | 4; streakClean: number } => {
@@ -204,7 +237,7 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
   const say = (text: string): void => {
     if (!isKilled()) services.overlay.caption('system', text, true)
   }
-  brain = createCoachBrain({ engine: core.engine, state: () => coachPoller.lastState(), ring, chip, say, killed: isKilled, log: ctx.log })
+  brain = createCoachBrain({ engine: core.engine, state: () => coachPoller.lastState(), ring, chip, say, killed: () => isKilled() || isPaused(), log: ctx.log })
   const coachBrain = brain
   const chipTimer = setInterval(() => chip.refresh(), 15_000)
   chipTimer.unref?.()
@@ -224,7 +257,7 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
       },
       lessonActive: () => ctx.state.get().skill !== undefined,
       confirmPending: () => ctx.state.get().pendingConfirm !== undefined,
-      killed: isKilled,
+      killed: () => isKilled() || isPaused(),
       locked: () => desk?.state().locked === true || desk?.state().asleep === true,
       task: () => engineTask,
       lastEpisodeEndAt: () => lastEpisodeEnd,
@@ -266,9 +299,12 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
     hudModel,
     desk: () => desk,
     openQueue,
+    openDashboard,
     dispose() {
       clearInterval(queueTimer)
       clearInterval(chipTimer)
+      offActing()
+      agentActivity.dispose()
       offLevel()
       offOverlay()
       offStep()

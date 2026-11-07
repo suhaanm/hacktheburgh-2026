@@ -38,3 +38,29 @@ export function firedText(f: { queue_id?: string; run_id?: string } | undefined)
   if (f.run_id) return `Started background run ${f.run_id}. You can watch or stop it under Agents.`;
   return "Fired. The engine did not say what it created.";
 }
+
+/** What pressing "Approve and run" does, by the card's fire type. Stated before the press, so there is no surprise. */
+export function fireWhat(fireType: string | undefined, riskClass?: string): string {
+  const risk = riskClass && riskClass !== "normal" ? ` This one ${riskClass === "irreversible" ? "cannot be undone, so it always stops for your own click in the Queue" : "reaches outside this laptop, so it always stops for your own click in the Queue"}.` : "";
+  switch (fireType) {
+    case "queue": return `Creates an approval item in the Queue. Nothing runs until you approve it there.${risk}`;
+    case "draft": return `Saves a local draft and creates an approval item in the Queue. Nothing is written anywhere else.${risk}`;
+    case "agent": return `Starts a background run that only reads. You can watch it, or stop it, under Agents.${risk}`;
+    default: return `It either creates an approval item for you to confirm, or starts a background run, and this card will say which.${risk}`;
+  }
+}
+
+const PART_LABEL: Record<string, string> = { value: "Worth", urgency: "Urgency", freshness: "Freshness", acceptance: "Past acceptance", effort: "Effort" };
+export interface RankPart { key: string; label: string; weight: number; contribution: number }
+/** The parts of a card's score, largest contribution first. Effort carries a negative weight: it counts against the card. */
+export function rankingParts(r: { parts?: Record<string, { x: number; w: number; contribution: number }> } | undefined): RankPart[] {
+  return Object.entries(r?.parts ?? {})
+    .map(([key, p]) => ({ key, label: PART_LABEL[key] ?? key, weight: p.w, contribution: p.contribution }))
+    .sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution));
+}
+
+/** The card's own words for what happened when it was checked, or a plain default. */
+export function checkedNote(c: { verdict?: string; verify_note?: string }): string {
+  if (c.verify_note) return c.verify_note;
+  return c.verdict === "confirmed" ? "Checked just now: still true." : "";
+}

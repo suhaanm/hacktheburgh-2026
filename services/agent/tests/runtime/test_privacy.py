@@ -73,7 +73,7 @@ def test_canary_data_never_reaches_a_model_request(kind, mode, tmp_path):
     assert_clean(port, audit, q)
     # what actually left: only fixed ids, counts and booleans
     for row in rows:
-        assert set(row["payload"]) <= {"kind", "mode", "max_children", "role", "steps_left", "last", "history"}
+        assert set(row["payload"]) <= {"kind", "mode", "max_children", "role", "steps_left", "last", "history", "signals"}
 
 
 def test_the_git_analysis_tracks_canary_repo_leaks_nothing(tmp_path):

@@ -17,12 +17,24 @@ describe('feature flags', () => {
   })
 })
 
+describe('experiments (UNDERSTUDY_X_<NAME>)', () => {
+  it('are off unless set to 1, and on under vitest unless set to 0', async () => {
+    const { experimentOn, experimentVar } = await import('./feature-flags')
+    expect(experimentVar('cue')).toBe('UNDERSTUDY_X_CUE')
+    expect(experimentOn('cue', { UNDERSTUDY_X_CUE: '1' })).toBe(true)
+    expect(experimentOn('cue', {})).toBe(false)
+    expect(experimentOn('cue', { VITEST: 'true' })).toBe(true)
+    expect(experimentOn('cue', { VITEST: 'true', UNDERSTUDY_X_CUE: '0' })).toBe(false)
+  })
+})
+
 describe('forced settings', () => {
   it('pin wake and files off until their flags are set', async () => {
     const { forcedSettings } = await import('./feature-flags')
-    expect(forcedSettings({})).toEqual({ wakeEnabled: false, filesEnabled: false })
-    expect(forcedSettings({ UNDERSTUDY_FLAG_WAKE: '1' })).toEqual({ filesEnabled: false })
-    expect(forcedSettings({ UNDERSTUDY_FLAG_WAKE: '1', UNDERSTUDY_FLAG_FILES: '1' })).toEqual({})
+    expect(forcedSettings({})).toEqual({ wakeEnabled: false, filesEnabled: false, cueEnabled: false })
+    expect(forcedSettings({ UNDERSTUDY_FLAG_WAKE: '1' })).toEqual({ filesEnabled: false, cueEnabled: false })
+    expect(forcedSettings({ UNDERSTUDY_FLAG_WAKE: '1', UNDERSTUDY_FLAG_FILES: '1' })).toEqual({ cueEnabled: false })
+    expect(forcedSettings({ UNDERSTUDY_FLAG_WAKE: '1', UNDERSTUDY_FLAG_FILES: '1', UNDERSTUDY_X_CUE: '1' })).toEqual({})
   })
   it('SettingsStore keeps forced values over saved values and patches', async () => {
     const { SettingsStore } = await import('./settings')

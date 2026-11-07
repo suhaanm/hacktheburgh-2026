@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -64,6 +65,7 @@ class ToolOutcome:
     text: str | None = None                                    # untrusted text for the detector and the reader
     fields: dict[str, Any] = field(default_factory=dict)       # scalars READ BY CODE after the step, for the postcheck
     blockers: set[str] = field(default_factory=set)            # tokens such as timed_out; they beat any success
+    signals: dict[str, int | float] = field(default_factory=dict)   # typed numbers a vetted script reported (status file)
     terminal: bool = False
     py: PyResult | None = None
 
@@ -213,8 +215,29 @@ def _git_log(ctx: ToolCtx, a: dict[str, Any]) -> ToolOutcome:
                        fields={"commits_found": s["n_commits"] > 0, "saved_parses": parses})
 
 
+def read_signals(ws: Workspace) -> dict[str, int | float]:
+    """Typed signals from the status file a vetted script writes: only registered names, only finite numbers (booleans become
+    0 or 1). Anything else is dropped. The file is removed before each run, so a crashed script leaves no stale signals."""
+    try:
+        p = ws.resolve(policy.STATUS_FILE)
+        if not p.is_file() or p.stat().st_size > 4096:
+            return {}
+        raw = json.loads(p.read_text()).get("signals", {})
+    except (WorkspaceError, OSError, ValueError, AttributeError):
+        return {}
+    out: dict[str, int | float] = {}
+    for k, v in (raw.items() if isinstance(raw, dict) else []):
+        if k in policy.SIGNAL_NAMES and isinstance(v, (int, float)) and math.isfinite(v) and abs(v) < 1_000_000:
+            out[k] = int(v) if isinstance(v, (bool, int)) else round(float(v), 2)
+    return out
+
+
 def _run_python(ctx: ToolCtx, a: dict[str, Any]) -> ToolOutcome:
     try:
+        try:
+            ctx.ws.resolve(policy.STATUS_FILE).unlink(missing_ok=True)
+        except (WorkspaceError, OSError):
+            pass
         res = run_python(ctx.ws, a["path"], is_cancelled=ctx.is_cancelled,
                          timeout_s=max(1.0, min(policy.PY_TIMEOUT_S, ctx.remaining())))
     except WorkspaceError as e:
@@ -235,7 +258,7 @@ def _run_python(ctx: ToolCtx, a: dict[str, Any]) -> ToolOutcome:
     if integ.get("over_limit"):
         blockers.add("workspace_over_limit")
     return ToolOutcome(res.ok, ["ran" if res.ok else f"run_failed:{res.killed_reason or res.exit_code}"], trusted, py=res,
-                       fields={"exit_zero": res.exit_code == 0}, blockers=blockers)
+                       fields={"exit_zero": res.exit_code == 0}, blockers=blockers, signals=read_signals(ctx.ws))
 
 
 def _write_workspace(ctx: ToolCtx, a: dict[str, Any]) -> ToolOutcome:

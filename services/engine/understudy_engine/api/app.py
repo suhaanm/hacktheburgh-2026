@@ -25,37 +25,26 @@ from .errors import install_error_handlers
 log = logging.getLogger("understudy.engine")
 DASHBOARD_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 OPTIONAL_ROUTERS = ("routes_analytics", "routes_handoff", "routes_coach")
-# Extensions (REQ-2, D24 to D27): each router is included only when it imports AND its flag is on.
-# UNDERSTUDY_X=1 turns them all on; UNDERSTUDY_X_<LAYER>=1 turns one on. Flags are read once, when the app is created.
-EXTENSIONS = {
-    "privacy": "routes_privacy",
-    "localmodel": "routes_localmodel",
-    "calendar": "routes_calendar",
-    "git": "routes_git",
-    "proactive": "routes_proactive",
-}
-_TRUE = ("1", "true", "yes", "on")
+# Extensions (REQ-2, D24 to D27): each router is included only when it imports AND its flag is on (api/flags.py). A module that
+# also defines enabled() must agree. UNDERSTUDY_X=1 turns them all on; UNDERSTUDY_X_<LAYER>=1 turns one on. Flags are read once,
+# when the app is created.
+from .flags import EXTENSIONS, env_on as _env_on, extension_flags  # noqa: E402,F401  (re-exported: the tests and the demo seed use them)
 
 
-def _env_on(name: str) -> bool:
-    return os.environ.get(name, "").strip().lower() in _TRUE
+def _include(app: FastAPI, name: str, status: dict[str, str], *, extension: bool = False) -> bool:
+    """Import ``understudy_engine.<name>`` and include its ``router``. Never raises: the reason goes into ``status``.
 
-
-def extension_flags(env_on=_env_on) -> dict[str, bool]:
-    """``{layer: bool}`` from the environment: the master flag UNDERSTUDY_X, or the layer's own UNDERSTUDY_X_<LAYER>."""
-    master = env_on("UNDERSTUDY_X")
-    return {layer: master or env_on(f"UNDERSTUDY_X_{layer.upper()}") for layer in EXTENSIONS}
-
-
-def _include(app: FastAPI, name: str, status: dict[str, str]) -> bool:
-    """Import ``understudy_engine.<name>`` and include its ``router``. Never raises: the reason goes into ``status``."""
+    For an extension module that defines ``enabled()``, the module has the last word: if it says off, the router is left out."""
     try:
         mod = importlib.import_module(f"understudy_engine.{name}")
+        if extension and callable(getattr(mod, "enabled", None)) and not mod.enabled():
+            status[name] = "off (module reports disabled)"
+            return False
         app.include_router(mod.router)
         status[name] = "included"
         return True
     except ModuleNotFoundError as exc:
-        if exc.name == f"understudy_engine.{name}":
+        if f"understudy_engine.{name}".startswith(exc.name or "\0"):         # the module or one of its parent packages is not there
             status[name] = "absent"
         else:
             status[name] = f"import failed: {exc}"
@@ -90,6 +79,23 @@ def shutdown_localmodel(timeout: float | None = None) -> bool:
 
     threading.Thread(target=run, name="localmodel-shutdown", daemon=True).start()
     return done.wait(SHUTDOWN_TIMEOUT_S if timeout is None else timeout)
+
+
+def warm_extensions(app: FastAPI) -> list[str]:
+    """Start ``warm(background=True)`` for every extension router that is on and defines one (routes_git does). Never raises."""
+    started = []
+    for layer, on in getattr(app.state, "extensions", {}).items():
+        if not on:
+            continue
+        mod = sys.modules.get(f"understudy_engine.{EXTENSIONS[layer]}")
+        fn = getattr(mod, "warm", None)
+        if callable(fn):
+            try:
+                fn(background=True)
+                started.append(layer)
+            except Exception as exc:  # pragma: no cover
+                log.warning("%s warm-up failed: %s", layer, exc)
+    return started
 
 
 def warm_up(app: FastAPI) -> threading.Thread:
@@ -138,6 +144,7 @@ def create_app(root: Path | str | None = None, warm: bool | None = None) -> Fast
     async def lifespan(app: FastAPI):
         if warm:
             warm_up(app)
+            warm_extensions(app)
         try:
             yield
         finally:
@@ -167,7 +174,7 @@ def create_app(root: Path | str | None = None, warm: bool | None = None) -> Fast
     ext: dict[str, bool] = {}
     for layer, name in EXTENSIONS.items():
         if flags[layer]:
-            ext[layer] = _include(app, name, status)
+            ext[layer] = _include(app, name, status, extension=True)
         else:
             status[name] = "off (flag not set)"            # not even imported: a switched-off layer has no side effects
             ext[layer] = False

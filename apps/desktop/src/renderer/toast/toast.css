@@ -8,6 +8,8 @@ body {
   box-sizing: border-box;
 }
 .al-toast {
+  font-family: var(--font-ui);
+  font-size: var(--fs-base);
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
@@ -17,7 +19,7 @@ body {
   background: var(--surface-raised);
   color: var(--ink);
   /* Tight so it fits inside the window's 12px padding: a wide shadow would show as a pale rectangle with hard edges. */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
   -webkit-backdrop-filter: blur(var(--glass-blur));
   backdrop-filter: blur(var(--glass-blur));
   overflow: hidden;
@@ -31,7 +33,7 @@ body {
 }
 .al-toast__q {
   margin: 0;
-  font-size: var(--fs-lg);
+  font-size: var(--fs-md);
   font-weight: var(--fw-strong);
   line-height: var(--lh-tight);
   overflow-wrap: anywhere;

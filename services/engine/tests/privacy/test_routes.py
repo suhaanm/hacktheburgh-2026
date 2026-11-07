@@ -156,7 +156,38 @@ def test_purposes_lists_what_may_be_sent_and_how_it_is_generalised(client):
 
 
 def test_no_route_calls_a_model():
+    """The routes only read and write the ledger: no import of the egress module or a model port, and no call to send or send_image."""
+    import ast
     import inspect
 
-    src = inspect.getsource(routes_privacy)
-    assert "egress.send" not in src and "get_model_port" not in src and "understudy_agent" not in src
+    tree = ast.parse(inspect.getsource(routes_privacy))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            assert "egress" not in (node.module or "") and "understudy_agent" not in (node.module or "")
+            assert not any(a.name in ("egress", "send", "send_image") for a in node.names)
+        if isinstance(node, ast.Import):
+            assert not any("egress" in a.name or "understudy_agent" in a.name for a in node.names)
+        if isinstance(node, ast.Call):
+            name = getattr(node.func, "attr", getattr(node.func, "id", ""))
+            assert name not in ("send", "send_image", "get_model_port", "vision", "plan", "check"), name
+
+
+def test_all_extension_layers_have_flags_and_each_can_be_switched_on_alone(monkeypatch):
+    from understudy_engine.privacy import flags
+
+    assert {"awareness", "cue", "evidence", "mlv2", "personas_v2"} <= set(flags.LAYERS)
+    assert not any(flags.all_flags().values())
+    for layer in flags.LAYERS:
+        monkeypatch.setenv(f"UNDERSTUDY_X_{layer.upper()}", "1")
+        assert flags.enabled(layer) is True and [k for k, on in flags.all_flags().items() if on] == [layer]
+        monkeypatch.delenv(f"UNDERSTUDY_X_{layer.upper()}")
+    monkeypatch.setenv("UNDERSTUDY_X", "1")
+    assert all(flags.all_flags().values())
+    with pytest.raises(ValueError):
+        flags.enabled("nonsense")
+
+
+def test_the_module_reports_enabled_for_the_app(monkeypatch):
+    assert routes_privacy.enabled() is False
+    monkeypatch.setenv("UNDERSTUDY_X_PRIVACY", "1")
+    assert routes_privacy.enabled() is True

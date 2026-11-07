@@ -1,6 +1,15 @@
 // A fake engine (and agent) on an ephemeral loopback port for tests: records every request, answers from a function.
+import fs from 'node:fs'
 import http from 'node:http'
 import type { AddressInfo } from 'node:net'
+import os from 'node:os'
+import path from 'node:path'
+
+// A private data directory with a service token, so the client's release routes (resume, routine consent) find data/.token and the kill
+// switch's data/KILL goes somewhere private. Tests that want "no token" pass their own readToken.
+const testData = fs.mkdtempSync(path.join(os.tmpdir(), 'understudy-test-data-'))
+fs.writeFileSync(path.join(testData, '.token'), 'test-token', { mode: 0o600 })
+process.env.UNDERSTUDY_DATA_DIR = testData
 
 export interface FakeServer {
   url: string

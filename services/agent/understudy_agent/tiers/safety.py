@@ -59,7 +59,6 @@ class Guard:
         recorded_hosts: tuple[str, ...] | frozenset[str] = (),
         goal: str = "",
         denylist: Denylist | None = None,
-        unresolved_clicks_ok: bool = False,
     ) -> None:
         cfg = config or SecurityConfig()
         if cfg.max_steps < MIN_STEP_BUDGET:
@@ -68,8 +67,7 @@ class Guard:
         queue = queue or ApprovalQueue(audit=audit)
         ctx = RoutineContext(
             routine_id=routine_id, mode=mode, unattended=unattended, rung=rung, opted_in=frozenset(opted_in),  # type: ignore[arg-type]
-            typed_confirm=typed_confirm, recorded_hosts=frozenset(recorded_hosts),
-            unresolved_clicks_ok=unresolved_clicks_ok, run_id=run_id)
+            typed_confirm=typed_confirm, recorded_hosts=frozenset(recorded_hosts), run_id=run_id)
         self.port = port
         self.pipe = SafetyPipeline(port, cfg, audit=audit, queue=queue, routine=ctx,
                                    denylist=denylist if denylist is not None else Denylist.load(), goal=goal)

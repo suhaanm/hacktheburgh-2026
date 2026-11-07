@@ -13,16 +13,16 @@ import json
 import tempfile
 import threading
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from ..plugins.base import Source
 from ..plugins.ics import ICSSource
 from ..plugins.jsoncal import JSONCalendarSource
 from ..store.paths import data_dir
 from .features import WeekAnalysis, analyse_week
-from .model import Block, WorkConfig, monday_of, week_label
+from .model import Block, WorkConfig, monday_of
 from .normalize import NormStats, to_blocks
 
 UTC = timezone.utc

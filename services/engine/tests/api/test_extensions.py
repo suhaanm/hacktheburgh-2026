@@ -199,3 +199,104 @@ def test_no_localmodel_module_loaded_means_nothing_to_stop(fakes, tmp_path):
     app = create_app(tmp_path / "data", warm=False)
     with TestClient(app):
         pass
+
+
+# ---------------------------------------------------------------------------------------- enabled() and warm()
+def test_a_module_that_reports_disabled_is_left_out_even_when_the_flag_is_on(fakes, tmp_path):
+    fakes.setenv("UNDERSTUDY_X", "1")
+    git = fake_router_module("git")
+    git.enabled = lambda: False
+    fakes.setitem(sys.modules, "understudy_engine.routes_git", git)
+    cal = fake_router_module("calendar")
+    cal.enabled = lambda: True
+    fakes.setitem(sys.modules, "understudy_engine.routes_calendar", cal)
+    app, c = app_and_client(tmp_path)
+    assert app.state.router_status["routes_git"] == "off (module reports disabled)" and c.get("/git/ping").status_code == 404
+    assert app.state.router_status["routes_calendar"] == "included" and c.get("/calendar/ping").status_code == 200
+    ext = c.get("/health").json()["extensions"]
+    assert ext["git"] is False and ext["calendar"] is True
+
+
+def test_warm_runs_only_for_extensions_that_are_on_and_only_at_startup(fakes, tmp_path):
+    calls = []
+    for layer in ("git", "calendar"):
+        mod = fake_router_module(layer)
+        mod.warm = lambda background=True, _l=layer: calls.append((_l, background))
+        fakes.setitem(sys.modules, f"understudy_engine.{EXTENSIONS[layer]}", mod)
+    fakes.setenv("UNDERSTUDY_X_GIT", "1")                                   # git on, calendar off
+    app = create_app(tmp_path / "data", warm=True)
+    assert calls == []                                                      # nothing before the app starts serving
+    with TestClient(app):
+        pass
+    assert calls == [("git", True)]                                         # background=True, and only the layer that is on
+    calls.clear()
+    with TestClient(create_app(tmp_path / "d2", warm=False)):
+        pass
+    assert calls == []                                                      # warm=False: no warm-up at all
+
+
+def test_a_raising_warm_does_not_break_startup(fakes, tmp_path):
+    def boom(background=True):
+        raise RuntimeError("cannot warm")
+
+    mod = fake_router_module("git")
+    mod.warm = boom
+    fakes.setitem(sys.modules, "understudy_engine.routes_git", mod)
+    fakes.setenv("UNDERSTUDY_X_GIT", "1")
+    with TestClient(create_app(tmp_path / "data", warm=True)) as c:
+        assert c.get("/git/ping").status_code == 200
+
+
+# ---------------------------------------------------------------------------------------- the real routers
+REAL_ROUTES = {"privacy": "/privacy/ledger", "localmodel": "/localmodel/status", "calendar": "/calendar/week", "git": "/git/habits",
+               "proactive": "/briefing"}
+
+
+FIRST_FIVE = ["privacy", "localmodel", "calendar", "git", "proactive"]
+LATER = ["cue", "awareness", "evidence"]
+
+
+def test_every_real_extension_router_is_included_behind_its_flag_and_listed_in_health(tmp_path, monkeypatch):
+    for var in FLAG_VARS:
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("UNDERSTUDY_X", "1")
+    app, c = app_and_client(tmp_path)
+    st = app.state.router_status
+    assert {st[EXTENSIONS[layer]] for layer in FIRST_FIVE} == {"included"}, st      # the five routers have landed
+    # the later layers: included once their module exists, simply skipped before that; never a failed import
+    for layer in LATER:
+        assert st[EXTENSIONS[layer]] in ("included", "absent"), (layer, st[EXTENSIONS[layer]])
+    ext = c.get("/health").json()["extensions"]
+    assert set(ext) == set(LAYERS) and all(ext[layer] for layer in FIRST_FIVE)
+    assert all(ext[layer] == (st[EXTENSIONS[layer]] == "included") for layer in LATER)
+    paths = c.get("/openapi.json").json()["paths"]
+    for layer, path in REAL_ROUTES.items():
+        assert any(p == path or p.startswith(path) for p in paths), (layer, path)
+
+
+def test_with_no_flags_none_of_the_real_extension_routes_exist(tmp_path, monkeypatch):
+    for var in FLAG_VARS:
+        monkeypatch.delenv(var, raising=False)
+    app, c = app_and_client(tmp_path)
+    paths = c.get("/openapi.json").json()["paths"]
+    for layer, path in REAL_ROUTES.items():
+        assert not any(p == path or p.startswith(path) for p in paths), (layer, path)
+    assert c.get("/health").json()["extensions"] == {layer: False for layer in LAYERS}
+
+
+def test_the_later_layers_are_found_by_their_dotted_module_and_skipped_when_missing(tmp_path, monkeypatch):
+    """understudy_engine.cue.routes, awareness.routes, evidence.routes: try-import; a missing package or module is skipped, not an error."""
+    for var in FLAG_VARS:
+        monkeypatch.delenv(var, raising=False)
+    assert EXTENSIONS["cue"] == "cue.routes" and EXTENSIONS["awareness"] == "awareness.routes" and EXTENSIONS["evidence"] == "evidence.routes"
+    monkeypatch.setenv("UNDERSTUDY_X", "1")
+    for layer in LATER:
+        monkeypatch.delitem(sys.modules, f"understudy_engine.{EXTENSIONS[layer]}", raising=False)
+    # a package that does not exist at all (not even its parent) is "absent", and a fake that does is included
+    monkeypatch.setitem(sys.modules, "understudy_engine.evidence.routes", fake_router_module("evidence"))
+    app, c = app_and_client(tmp_path)
+    st = app.state.router_status
+    assert st["evidence.routes"] == "included" and c.get("/evidence/ping").status_code == 200
+    assert st["cue.routes"] in ("included", "absent") and st["awareness.routes"] in ("included", "absent")
+    ext = c.get("/health").json()["extensions"]
+    assert ext["evidence"] is True and set(ext) == set(LAYERS)

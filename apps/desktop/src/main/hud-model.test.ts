@@ -82,6 +82,19 @@ describe('HUD model', () => {
     expect(HudActionSchema.safeParse({ type: 'kill' }).success).toBe(true)
   })
 
+  it('knows whether an agent is acting (the Stop all pill shows only then) and pushes only on a change', () => {
+    const { model, pushed } = setup()
+    expect(model.state().agentActing).toBe(false)
+    model.setAgentActing(false)
+    expect(pushed).toHaveLength(0)
+    model.setAgentActing(true)
+    model.setAgentActing(true)
+    expect(model.state().agentActing).toBe(true)
+    expect(pushed).toHaveLength(1)
+    model.setAgentActing(false)
+    expect(model.state().agentActing).toBe(false)
+  })
+
   it('places the HUD bottom-left of the work area with a margin', () => {
     expect(hudBounds({ x: 0, y: 25, width: 1728, height: 1050 }, { width: 200, height: 40 })).toEqual({ x: 14, y: 25 + 1050 - 40 - 14, width: 200, height: 40 })
   })

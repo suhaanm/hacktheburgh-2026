@@ -13,11 +13,14 @@ interface Base {
   exiting: boolean
 }
 
-export function RingMark({ rect, tone, style, exiting }: Base & { rect: Rect; tone: AnnotationTone }): ReactElement {
+export function RingMark({ rect, tone, style, exiting, weight = 'regular' }: Base & { rect: Rect; tone: AnnotationTone; weight?: 'regular' | 'light' }): ReactElement {
   const t = style.tones[tone]
   const rx = Math.min(style.ring.radius, Math.min(rect.w, rect.h) / 2)
-  const core = style.stroke.core
-  const key = (style.stroke.casing - style.stroke.core) / 2 // each keyline's width
+  // `light` (help level L3): the same ring and corner ticks, thinner and quieter: a 1.25 px line (regular 2), thinner keylines, no
+  // offset halo outline, shorter ticks, the same motion.
+  const light = weight === 'light'
+  const core = light ? round2(style.stroke.core * 0.625) : style.stroke.core
+  const key = ((style.stroke.casing - style.stroke.core) / 2) * (light ? 0.75 : 1) // each keyline's width
   // A very subtle second outline a little outside the ring, with viewfinder corner ticks sitting on it.
   const o = style.ring.halo.offset
   const bracket = (grow: number): string => {
@@ -25,7 +28,7 @@ export function RingMark({ rect, tone, style, exiting }: Base & { rect: Rect; to
     const y0 = rect.y - o - grow
     const x1 = rect.x + rect.w + o + grow
     const y1 = rect.y + rect.h + o + grow
-    const arm = Math.min(style.ring.ticks.arm, (x1 - x0) / 3, (y1 - y0) / 3)
+    const arm = Math.min(style.ring.ticks.arm * (light ? 0.8 : 1), (x1 - x0) / 3, (y1 - y0) / 3)
     return [`M ${x0} ${y0 + arm} V ${y0} H ${x0 + arm}`, `M ${x1 - arm} ${y0} H ${x1} V ${y0 + arm}`, `M ${x1} ${y1 - arm} V ${y1} H ${x1 - arm}`, `M ${x0 + arm} ${y1} H ${x0} V ${y1 - arm}`].join(' ')
   }
   // The coloured 2 px line hugs the target; the white keyline and then the ink keyline sit outside it (1 px each), so the whole mark is a
@@ -37,8 +40,8 @@ export function RingMark({ rect, tone, style, exiting }: Base & { rect: Rect; to
   ]
   const lineProps = { fill: 'none', strokeLinejoin: 'miter' as const }
   return (
-    <g className={`ov-mark ${lifeClass(exiting)}`} data-mark="ring">
-      <rect x={rect.x - o} y={rect.y - o} width={rect.w + o * 2} height={rect.h + o * 2} rx={rx + o} fill="none" stroke={t.core} strokeWidth={style.ring.halo.width} strokeOpacity={style.ring.halo.opacity} />
+    <g className={`ov-mark ${lifeClass(exiting)}`} data-mark="ring" data-weight={weight}>
+      {light ? null : <rect x={rect.x - o} y={rect.y - o} width={rect.w + o * 2} height={rect.h + o * 2} rx={rx + o} fill="none" stroke={t.core} strokeWidth={style.ring.halo.width} strokeOpacity={style.ring.halo.opacity} />}
       {rings.map((r, i) => (
         <g key={i} stroke={r.color} strokeWidth={r.w} {...lineProps}>
           <path d={bracket(r.grow)} strokeLinecap="square" />
@@ -48,6 +51,8 @@ export function RingMark({ rect, tone, style, exiting }: Base & { rect: Rect; to
     </g>
   )
 }
+
+const round2 = (n: number): number => Math.round(n * 100) / 100
 
 export function ArrowMark({ plan, tone, style, exiting }: Base & { plan: ArrowPlan; tone: AnnotationTone }): ReactElement {
   const t = style.tones[tone]

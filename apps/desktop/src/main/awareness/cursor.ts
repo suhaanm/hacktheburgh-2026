@@ -213,6 +213,21 @@ export interface ClickSource {
 /** The default: clicks are unknown. Counting global clicks needs an event tap, which needs Accessibility; it is not requested. */
 export const unknownClicks: ClickSource = { drain: () => null }
 
+/** A scripted click source for tests and mock mode: call click(t) with a time in the sampler's clock. */
+export function createFakeClickSource(): ClickSource & { click(t: number): void } {
+  let pending: number[] = []
+  return {
+    click(t) {
+      pending.push(t)
+    },
+    drain() {
+      const out = pending
+      pending = []
+      return out
+    },
+  }
+}
+
 export interface CursorSamplerDeps {
   getPoint: () => { x: number; y: number }
   now?: Clock

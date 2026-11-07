@@ -6,10 +6,10 @@ export const APP_KINDS = ['browser', 'spreadsheet', 'email', 'code_editor', 'ter
 export type AppKind = (typeof APP_KINDS)[number]
 export type AppKindOrUnknown = AppKind | 'unknown'
 
-export const TASK_PHASES = ['idle', 'reading', 'searching', 'entering', 'comparing', 'reviewing', 'submitting', 'waiting'] as const
+export const TASK_PHASES = ['idle', 'reading', 'searching', 'entering', 'comparing', 'reviewing', 'submitting', 'waiting', 'unknown'] as const
 export type TaskPhase = (typeof TASK_PHASES)[number]
 
-export const BLOCKERS = ['none', 'unclear_next_step', 'cannot_find_control', 'error_message', 'unexpected_state', 'waiting_for_load', 'needs_information', 'permission_prompt'] as const
+export const BLOCKERS = ['none', 'unclear_next_step', 'cannot_find_control', 'error_message', 'unexpected_state', 'waiting_for_load', 'needs_information', 'permission_prompt', 'unknown'] as const
 export type Blocker = (typeof BLOCKERS)[number]
 
 export const TRIGGER_REASONS = ['stuck', 'loop', 'hotkey', 'periodic'] as const
@@ -97,6 +97,8 @@ export interface Gates {
 
 export interface GlancePortRequest {
   frame: Frame
+  // The on-device guess of the app's kind, sent beside the frame as a hint.
+  appKind: AppKindOrUnknown
   gates: Gates
   trigger: TriggerReason
 }

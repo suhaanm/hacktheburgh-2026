@@ -5,7 +5,7 @@ export interface Route {
   query: URLSearchParams;
 }
 
-export const SCREENS = ["genome", "presence", "week", "routines", "briefing", "queue", "agents", "graph", "today", "memory", "privacy", "evidence", "onboarding"] as const;
+export const SCREENS = ["genome", "presence", "week", "routines", "briefing", "queue", "agents", "graph", "today", "memory", "privacy", "evidence", "onboarding", "growth", "models", "git"] as const;
 export type Screen = (typeof SCREENS)[number];
 
 function read(): Route {

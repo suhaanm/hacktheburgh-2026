@@ -72,6 +72,42 @@ def _iso(t: float) -> str:
     return fmt_t(datetime.fromtimestamp(t, tz=timezone.utc))
 
 
+@dataclass(frozen=True)
+class CogView:
+    """One cog of the open window: its id and when it started (unix seconds). No event payloads."""
+    id: str
+    t0: float
+
+
+@dataclass(frozen=True)
+class SkillView:
+    """What the level engine and the tracer hold for one cog."""
+    cog: str
+    level: int
+    mastery: float
+
+
+@dataclass(frozen=True)
+class CoachSnapshot:
+    """A read-only picture of one person's live state for other engines (the cue engine). Immutable, plain values only: no events,
+    no payloads, nothing to mutate. ``p_source`` is "model" (the hazard model) or "rule" (the time-since-progress fallback)."""
+    person: str
+    t: float
+    role: str
+    origin: str
+    task_open: bool
+    task_id: str | None
+    implicit: bool
+    cogs: tuple[CogView, ...]
+    current_cog: str | None
+    last_progress_t: float | None
+    last_input_t: float | None
+    p_stuck: float | None
+    p_source: str | None
+    skills: tuple[SkillView, ...]
+    tasks_finished: int
+
+
 @dataclass
 class _Bundle:
     pack: object
@@ -609,6 +645,38 @@ class CoachBrain:
             if cog in snap:
                 skill[cog] = {"level": f"L{snap[cog]['level']}", "chip": snap[cog]["chip"], "mastery": round(snap[cog]["mastery"], 3)}
         return {"decision_id": did, "outcome": outcome, "recorded": True, "event_id": ev.id, "implicit": implicit, "skill": skill}
+
+    # ------------------------------------------------------------------ read-only view for other engines
+    def snapshot(self, person: str, now: datetime | float | None = None, *, sync: bool = True) -> CoachSnapshot:
+        """The person's live state as an immutable value: open-window cogs (ids and start times), last progress and input times,
+        the stuck probability with its source, and the level and mastery of every cog the tracker knows. Reads the store for new
+        events when ``sync`` (that is how the brain stays current); it never acts, never writes an event, never moves the gate."""
+        with self._lock:
+            t = _ts(now)
+            st = self._state(person)
+            if sync:
+                if t < st.last_event_t - 1e-6:
+                    self._people.pop(person, None)
+                    st = self._state(person)
+                self._sync(st, t)
+            bundle = self._bundle(st.role)
+            cogs: list[Cog] = []
+            window: list[Event] = []
+            if st.open is not None and bundle is not None:
+                window = [e for e in st.open if e.t.timestamp() <= t]
+                cogs = to_cogs(window, bundle.mapping)
+            progress_t = [e.t.timestamp() for e in window if e.type == "progress"]
+            p, src = None, None
+            if cogs and window:
+                p, src = self.scorer.p_stuck(cogs=cogs, progress_t=progress_t, t0=window[0].t.timestamp(), now=t, person=person, role=st.role)
+                src = "model" if src == "hazard" else "rule"
+            skills = tuple(SkillView(c, int(v["level"]), float(v["mastery"])) for c, v in sorted(st.tracker.snapshot(t).items()))
+            return CoachSnapshot(
+                person=person, t=t, role=st.role, origin=st.origin, task_open=st.open is not None, task_id=st.open_task, implicit=st.implicit,
+                cogs=tuple(CogView(c.id, c.t0) for c in cogs), current_cog=cogs[-1].id if cogs else None,
+                last_progress_t=max(progress_t) if progress_t else None, last_input_t=st.last_event_t if st.last_event_t > 0 else None,
+                p_stuck=None if p is None else round(float(p), 4), p_source=src, skills=skills, tasks_finished=st.n_tasks,
+            )
 
     # ------------------------------------------------------------------ for the Today screen and tests
     def skill_snapshot(self, person: str, now: datetime | float | None = None) -> dict:

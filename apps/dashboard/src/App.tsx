@@ -1,11 +1,11 @@
 import { Component, Suspense, lazy, useCallback, useEffect, useState, type ReactNode } from "react";
-import { api, ENGINE_URL, forgetBackoff, refreshQueueBadge } from "./api";
+import { api, ENGINE_LABEL, forgetBackoff, refreshQueueBadge } from "./api";
 import { navigate, screenOf, useRoute, type Screen } from "./router";
 import { dataMode, getState, resetSources, setState, useAppState } from "./store";
-import { EmptyState, Loading } from "./components/common";
+import { Loading } from "./components/common";
 import { ToastHost, useToast } from "./components/Toasts";
 import { AuthContextProvider, createAuth, useAuth } from "./auth";
-import { EXT_SCREENS, FLAG_FOR, extensionsFrom, screenEnabled, type ExtScreen } from "./lib/ext";
+import { extensionsFrom } from "./lib/ext";
 
 const screens: Record<Screen, ReturnType<typeof lazy>> = {
   genome: lazy(() => import("./screens/Genome")),
@@ -21,40 +21,38 @@ const screens: Record<Screen, ReturnType<typeof lazy>> = {
   briefing: lazy(() => import("./screens/Briefing")),
   agents: lazy(() => import("./screens/Agents")),
   privacy: lazy(() => import("./screens/Privacy")),
+  growth: lazy(() => import("./screens/Growth")),
+  models: lazy(() => import("./screens/Models")),
+  git: lazy(() => import("./screens/Git")),
 };
 
-const NAV: { id: Screen; label: string; hint: string; ext?: ExtScreen }[] = [
+interface NavItem { id: Screen; label: string; hint: string }
+
+/** The seven screens a first visit needs. The work ribbon, presence and work graph come first because they are the product. */
+const MAIN: NavItem[] = [
   { id: "genome", label: "Genome", hint: "Where time is lost" },
   { id: "presence", label: "Presence", hint: "Your working week" },
+  { id: "graph", label: "Graph", hint: "How your work connects" },
+  { id: "growth", label: "Growth", hint: "How much less help you need" },
   { id: "routines", label: "Routines", hint: "What could run for you" },
   { id: "queue", label: "Queue", hint: "Waiting for approval" },
-  { id: "graph", label: "Graph", hint: "How your work connects" },
+  { id: "evidence", label: "Evidence", hint: "What we can prove" },
+];
+/** Everything else, one click away. Each of the second group is an optional layer: with it off the screen shows example data and says so. */
+const MORE: NavItem[] = [
   { id: "today", label: "Today", hint: "The current task" },
   { id: "memory", label: "Memory", hint: "What it knows about you" },
-  { id: "evidence", label: "Evidence", hint: "What we can prove" },
   { id: "onboarding", label: "Set up", hint: "Choose a role" },
-  { id: "week", label: "Week", hint: "Your calendar, against an expert's", ext: "week" },
-  { id: "briefing", label: "Briefing", hint: "Up to three things for today", ext: "briefing" },
-  { id: "agents", label: "Agents", hint: "Background helpers", ext: "agents" },
-  { id: "privacy", label: "Privacy", hint: "What was sent to a model", ext: "privacy" },
 ];
-
-/** A screen that belongs to an optional layer: shown only when that layer is on (or in demo-fixture mode). */
-function Gated({ screen, label, children }: { screen: ExtScreen; label: string; children: ReactNode }) {
-  const s = useAppState();
-  if (!s.extReady) return <div className="page"><Loading label="Checking which features are on" /></div>;
-  if (screenEnabled(screen, s.ext)) return <>{children}</>;
-  const layer = EXT_SCREENS[screen];
-  return (
-    <div className="page page--read">
-      <EmptyState
-        title={`${label} is not switched on`}
-        body={<>This screen belongs to an optional feature that is off by default, so nothing is read or sent for it. To switch it on, start the engine with <code>{FLAG_FOR[layer]}=1</code> (or <code>UNDERSTUDY_X=1</code> for all of them), then reload.</>}
-        action={<a className="btn btn--secondary" href="#/genome">Back to the Genome</a>}
-      />
-    </div>
-  );
-}
+const BEYOND: NavItem[] = [
+  { id: "week", label: "Week", hint: "Your calendar, against an expert's" },
+  { id: "briefing", label: "Briefing", hint: "Up to three things for today" },
+  { id: "git", label: "Git habits", hint: "How you commit, against experts" },
+  { id: "agents", label: "Agents", hint: "Background helpers" },
+  { id: "models", label: "Models", hint: "Which model, how fast, what it costs" },
+  { id: "privacy", label: "Privacy", hint: "What was sent to a model" },
+];
+const NAV: NavItem[] = [...MAIN, ...MORE, ...BEYOND];
 
 type Theme = "auto" | "light" | "dark";
 function loadTheme(): Theme {
@@ -89,13 +87,35 @@ class Boundary extends Component<{ children: ReactNode; screen: string }, { erro
   }
 }
 
-function NavLink({ n, current, pending }: { n: (typeof NAV)[number]; current: string; pending: number }) {
+function NavLink({ n, current, pending }: { n: NavItem; current: string; pending: number }) {
   return (
     <a href={`#/${n.id}`} className="nav__link" aria-current={current === n.id ? "page" : undefined}>
       <span className="nav__label">{n.label}</span>
       {n.id === "queue" && pending > 0 && <span className="nav__count" aria-label={`${pending} waiting`}>{pending}</span>}
       <span className="nav__hint">{n.hint}</span>
     </a>
+  );
+}
+
+/** The quieter screens, folded away until asked for. It opens by itself when you are on one of them. */
+function NavMore({ current, pending }: { current: string; pending: number }) {
+  const inside = [...MORE, ...BEYOND].some((n) => n.id === current);
+  const [open, setOpen] = useState<boolean>(() => { try { return window.localStorage.getItem("understudy-nav-more") === "1"; } catch { return false; } });
+  useEffect(() => { if (inside) setOpen(true); }, [inside]);
+  const toggle = () => { const v = !open; setOpen(v); try { window.localStorage.setItem("understudy-nav-more", v ? "1" : "0"); } catch { /* storage can be blocked */ } };
+  return (
+    <div className="nav__more">
+      <button type="button" className="nav__morebtn" aria-expanded={open} aria-controls="nav-more" onClick={toggle}>
+        <span className="nav__label">More</span>
+        <span className="nav__chev" aria-hidden="true" data-open={open} />
+        {!open && <span className="nav__hint">Today, Memory, Week, Briefing, Agents and more</span>}
+      </button>
+      <div id="nav-more" className="nav__morelist" hidden={!open}>
+        {MORE.map((n) => <NavLink key={n.id} n={n} current={current} pending={pending} />)}
+        <p className="nav__group t-label">Beyond the screen</p>
+        {BEYOND.map((n) => <NavLink key={n.id} n={n} current={current} pending={pending} />)}
+      </div>
+    </div>
   );
 }
 
@@ -137,7 +157,7 @@ function DataNote() {
     <p className="datanote" data-mode={mode}>
       <span className="datanote__dot" aria-hidden="true" />
       {mode === "demo" ? "Demo data" : "Some demo data"}
-      <span className="datanote__why">The engine at {ENGINE_URL.replace(/^https?:\/\//, "")} {mode === "demo" ? "is not running" : "does not answer every request"}.</span>
+      <span className="datanote__why">{ENGINE_LABEL} {mode === "demo" ? "is not running" : "does not answer every request"}.</span>
       <button type="button" className="linkish" onClick={retry}>Try again</button>
     </p>
   );
@@ -251,10 +271,12 @@ function Shell() {
   const [nonce, setNonce] = useState(0);
 
   useEffect(() => {
-    const health = () => api.health().then((r) => setState({ mock: r.data?.mock ?? null, ext: extensionsFrom(r.data, r.source), extReady: true })).catch(() => setState({ ext: extensionsFrom(null, "demo"), extReady: true }));
+    // One look at both services and the identity, then every optional screen knows whether to ask for its own data or show an example.
+    const health = () => Promise.all([api.health(), api.agentHealth(), api.identity()])
+      .then(([r, agent, who]) => setState({ mock: r.data?.mock ?? null, ext: extensionsFrom(r.data, r.source, agent), agentUp: agent !== null, person: who?.person ?? null, role: who?.role ?? null, extReady: true }))
+      .catch(() => setState({ ext: extensionsFrom(null, "demo"), extReady: true }));
     void health();
     void refreshQueueBadge();
-    void api.identity().then((i) => setState({ role: i?.role ?? null }));
     const on = () => { setNonce((n) => n + 1); void refreshQueueBadge(); void health(); };
     window.addEventListener("understudy:retry", on);
     return () => window.removeEventListener("understudy:retry", on);
@@ -265,7 +287,6 @@ function Shell() {
   useEffect(() => { if (current === "unknown") navigate("/genome"); }, [current]);
 
   const Screen = current === "unknown" ? screens.genome : screens[current];
-  const extOf = NAV.find((n) => n.id === current)?.ext;
   return (
     <div className="app">
       <a className="skip" href="#main">Skip to the screen</a>
@@ -279,9 +300,8 @@ function Shell() {
       <aside className="side" data-open={menu}>
         <div className="side__brand"><Wordmark /></div>
         <nav id="nav" aria-label="Screens" className="nav">
-          {NAV.filter((n) => !n.ext).map((n) => <NavLink key={n.id} n={n} current={current} pending={s.pendingQueue} />)}
-          {NAV.some((n) => n.ext && screenEnabled(n.ext, s.ext)) && <p className="nav__group t-label">Beyond the screen</p>}
-          {NAV.filter((n) => n.ext && screenEnabled(n.ext, s.ext)).map((n) => <NavLink key={n.id} n={n} current={current} pending={s.pendingQueue} />)}
+          {MAIN.map((n) => <NavLink key={n.id} n={n} current={current} pending={s.pendingQueue} />)}
+          <NavMore current={current} pending={s.pendingQueue} />
         </nav>
         <div className="side__foot">
           <AuthControl />
@@ -292,7 +312,7 @@ function Shell() {
       <main id="main" className="main" tabIndex={-1}>
         <Boundary screen={current}>
           <Suspense fallback={<div className="page"><Loading label="Loading screen" /></div>}>
-            {extOf ? <Gated screen={extOf} label={NAV.find((n) => n.id === current)!.label}><Screen key={`${current}-${nonce}`} /></Gated> : <Screen key={`${current}-${nonce}`} />}
+            <Screen key={`${current}-${nonce}`} />
           </Suspense>
         </Boundary>
       </main>

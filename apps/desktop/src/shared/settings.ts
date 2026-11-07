@@ -47,6 +47,11 @@ export const SettingsSchema = z.object({
   glancePeriodic: z.boolean().default(false),
   // Quiet for a while from the menu bar ("Pause for 1 hour"): the time it ends, as milliseconds since the epoch, or null.
   pausedUntil: z.number().int().nullable().default(null),
+  // Cue (the proactive coach cards; env gate UNDERSTUDY_X_CUE=1). Off until the person turns it on; "Quiet Cue for an hour" sets cueQuietUntil.
+  cueEnabled: z.boolean().default(false),
+  cueProactivity: z.enum(['quiet', 'balanced', 'eager']).default('balanced'),
+  cueVoice: z.boolean().default(false),
+  cueQuietUntil: z.number().int().nullable().default(null),
   // Look and feel (DESIGN). `glass` makes the dock translucent; opacity is clamped so text stays readable.
   theme: z.enum(['system', 'light', 'dark']).default('system'),
   glass: z.boolean().default(true),

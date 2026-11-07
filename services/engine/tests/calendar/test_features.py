@@ -217,3 +217,17 @@ def test_features_contain_only_numbers():
     f = week([blk(0, 9, 0, 10, 0, rec=True, series="k")]).features
     assert all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in f.values())
     assert set(F.CONTRACT_KEYS) <= set(f) and set(f) == set(F.ALL_KEYS)
+
+
+def test_localmodel_classifier_is_optional_and_falls_back_to_the_rules(monkeypatch):
+    items = [item("Lunch", n=1), item("Planning", n=4)]
+    base, _, _ = to_blocks(items)
+    same, _, _ = to_blocks(items, classifier="localmodel")                      # model mode is off here: the rules decide
+    assert [(b.kind, b.tag) for b in base] == [(b.kind, b.tag) for b in same] == [("offscreen", ""), ("meeting", "")]
+    import understudy_engine.localmodel as lm
+    monkeypatch.setattr(lm, "mode", lambda: "model")
+    monkeypatch.setattr(lm, "event_digest", lambda payload: [{"category": "focus"}, {"category": "team_meeting"}])
+    blocks, _, _ = to_blocks(items, classifier="localmodel")
+    assert [(b.kind, b.tag) for b in blocks] == [("focus", ""), ("meeting", "")]          # the model says the solo hold is focus time
+    monkeypatch.setattr(lm, "event_digest", lambda payload: (_ for _ in ()).throw(RuntimeError("model down")))
+    assert [(b.kind, b.tag) for b in to_blocks(items, classifier="localmodel")[0]] == [("offscreen", ""), ("meeting", "")]

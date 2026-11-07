@@ -3,9 +3,7 @@ from __future__ import annotations
 
 import json
 import re
-from pathlib import Path
 
-import pytest
 
 from understudy_engine.calendar import canary_run, real_check
 from understudy_engine.plugins.base import Source
@@ -75,11 +73,11 @@ def test_small_counts_can_be_bucketed(store):
 
 
 def test_writes_nothing_and_logs_nothing(store, tmp_path, monkeypatch, caplog):
-    import logging
     monkeypatch.chdir(tmp_path)
     caplog.set_level(1)
     before = sorted(p.name for p in tmp_path.rglob("*"))
-    real_check.run(*store.source_for("p_nov05")[:2][:1], work=store.source_for("p_nov05")[1])
+    src, work, _ = store.source_for("p_nov05")
+    real_check.run(src, work=work)
     assert sorted(p.name for p in tmp_path.rglob("*")) == before
     assert caplog.records == []
 
@@ -102,19 +100,15 @@ class Fake(Source):
         yield from self.items
 
 
-def test_raw_items_are_not_kept_by_the_check():
-    import gc
-    import weakref
+def test_a_source_with_text_everywhere_yields_a_text_free_result():
     from datetime import datetime, timezone
     from understudy_engine.plugins.base import RawItem
     t = datetime(2026, 11, 3, 10, tzinfo=timezone.utc)
     item = RawItem("calendar_event", t, t.replace(hour=11), {"title": "Zephyr merger", "organizer": "x@y.example", "attendees": ["a@y.example", "x@y.example"],
+                                                              "location": "Quillmoor Annexe", "series_id": "UID-ZEPHYR", "source_id": "UID-ZEPHYR-2",
                                                               "n_attendees": 2, "show_as": "busy", "status": "confirmed", "response": "none"})
-    src = Fake([item])
-    ref = weakref.ref(item)
-    res = real_check.run(src)
-    assert res["meetings"]["n"] == 1 and "Zephyr" not in json.dumps(res)
-    src.items = []
-    del item
-    gc.collect()
-    assert ref() is None or True                                                     # the check holds no reference of its own; the caller's list was cleared
+    res = real_check.run(Fake([item]))
+    blob = json.dumps(res).lower()
+    assert res["meetings"]["n"] == 1
+    for secret in ("zephyr", "merger", "x@y", "a@y", "quillmoor", "uid-"):
+        assert secret not in blob

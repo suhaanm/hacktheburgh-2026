@@ -8,9 +8,34 @@ checks). Nothing in the providers is edited.
 """
 from __future__ import annotations
 
+import copy
+import json
 from typing import Any
 
+from ..models.mock_provider import MockProvider
 from .spec import roles
+
+
+class AdaptiveMock(MockProvider):
+    """The mock provider plus optional POLICIES: a function that stands in for the model on a schema title and chooses its reply
+    from the typed payload (what the model would receive through the egress guard). It lets a long-horizon run be deterministic
+    AND adaptive (what it does next depends on the typed signals), and a step that was interrupted is simply planned again.
+    Only subclasses the public provider; nothing in it is edited."""
+
+    def __init__(self, scenario: str = "benefits_clean") -> None:
+        super().__init__(scenario)
+        self._policies: dict[str, Any] = {}
+
+    def set_policy(self, title: str, fn: Any) -> None:
+        self._policies[title] = fn
+
+    def plan(self, messages: list[dict[str, Any]], schema: dict[str, Any] | None = None) -> dict[str, Any]:
+        fn = self._policies.get((schema or {}).get("title", ""))
+        if fn is None:
+            return super().plan(messages, schema)
+        self._record("plan", messages=copy.deepcopy(messages), schema=schema)
+        payload = json.loads(messages[-1]["content"])["payload"]
+        return copy.deepcopy(fn(payload))
 
 
 def mock_plan(kind: str) -> dict[str, Any]:
@@ -21,8 +46,9 @@ def mock_plan(kind: str) -> dict[str, Any]:
     for i, role in enumerate(KINDS[kind].roles, 1):
         rd = rdefs[role]
         ws = "worktree" if "worktree" in rd.workspaces else "tmp" if "tmp" in rd.workspaces else "none"
-        children.append({"id": f"c{i}", "role": role, "tools": sorted(rd.allowed_tools), "max_steps": 10, "max_seconds": 120,
-                         "max_tokens": 20000, "workspace": ws, "output_schema": rd.output_schema, "playbook": rd.playbook})
+        steps, secs, toks = KINDS[kind].budget
+        children.append({"id": f"c{i}", "role": role, "tools": sorted(rd.allowed_tools), "max_steps": steps, "max_seconds": secs,
+                         "max_tokens": toks, "workspace": ws, "output_schema": rd.output_schema, "playbook": rd.playbook})
     return {"children": children}
 
 
@@ -47,7 +73,16 @@ def install(port: Any, scripts: dict[str, list[dict[str, Any]]]) -> bool:
 
 
 def install_if_mock(port: Any, kind: str, params: dict[str, Any]) -> bool:
-    """Queue the scripted replies when the port is the mock or the capturing test port; real providers are untouched."""
+    """Queue the scripted replies when the port is the mock or the capturing test port; real providers are untouched. A kind
+    with a policy gets it on an AdaptiveMock (the policy replaces the child-step script); the parent's plan is always scripted."""
     if getattr(port, "name", "") not in ("mock", "capturing"):
         return False
-    return install(port, scripts_for(kind, params))
+    from .exemplars.base import KINDS
+
+    ex = KINDS[kind]
+    scripts = scripts_for(kind, params)
+    if ex.policy is not None and hasattr(port, "set_policy"):
+        for role in ex.roles:
+            scripts.pop(f"child_step_{role}", None)
+            port.set_policy(f"child_step_{role}", lambda payload, role=role: ex.policy(role, params, payload))  # type: ignore[misc]
+    return install(port, scripts)

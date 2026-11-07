@@ -458,3 +458,57 @@ class Supervisor:
                 self._pending.handle._resolve("stopped", reason="supervisor closed")
                 self._pending = None
             self._cond.notify_all()
+
+
+class PauseGate:
+    """Step-level pause and resume for a running agent (LH-2). Unlike a yield (which cancels and restarts), a pause keeps
+    the run, its browser pages and its place: the loop calls `await gate.wait_if_paused()` at every step boundary and
+    right before it acts, and blocks there while the human is active.
+
+    The gate pauses when the human-input signal moves and resumes once the human has been quiet for `hold_off_s`.
+    `pause()` and `resume()` do the same by hand. It never cancels anything: stop and kill still win through the
+    supervisor's generation."""
+
+    def __init__(self, human: HumanInputSignal | None = None, *, hold_off_s: float = 2.0, poll_s: float = 0.05,
+                 clock: Callable[[], float] = time.monotonic) -> None:
+        self.human, self.hold_off_s, self.poll_s, self._clock = human, hold_off_s, poll_s, clock
+        self._seen = human.seq if human else 0
+        self._manual = False
+        self.pauses = 0
+        self.waited_s = 0.0
+        self.paused_at: list[float] = []
+        self.resumed_at: list[float] = []
+
+    @property
+    def paused(self) -> bool:
+        return self._manual or self._human_active()
+
+    def _human_active(self) -> bool:
+        return bool(self.human) and (self.human.seq != self._seen or not self.human.quiet_for(self.hold_off_s))
+
+    def pause(self) -> None:
+        self._manual = True
+
+    def resume(self) -> None:
+        self._manual = False
+
+    async def wait_if_paused(self) -> bool:
+        """Returns True if it had to wait."""
+        import asyncio
+
+        if not self.paused:
+            return False
+        t0 = self._clock()
+        self.pauses += 1
+        self.paused_at.append(t0)
+        while self.paused:
+            if self.human and self.human.seq != self._seen and not self._manual:
+                if self.human.quiet_for(self.hold_off_s):
+                    self._seen = self.human.seq
+                    break
+            await asyncio.sleep(self.poll_s)
+        if self.human:
+            self._seen = self.human.seq
+        self.resumed_at.append(self._clock())
+        self.waited_s += self._clock() - t0
+        return True

@@ -256,6 +256,7 @@ class DslRuntime:
     post_timeout_ms: int = 5000
     run_id: str | None = None
     stop_before_irreversible: bool = False
+    pause: Any = None                 # a PauseGate: the run waits at step boundaries while the human is active
     never: list[str] = field(default_factory=list)   # phrases the bundle must never click (from bundle["never"])
 
 
@@ -338,6 +339,8 @@ async def run_bundle(bundle: dict[str, Any], rt: DslRuntime) -> DslResult:
         sid = step.get("id", f"s{idx}")
         if not rt.is_current():
             raise asyncio.CancelledError()
+        if rt.pause is not None:
+            await rt.pause.wait_if_paused()
         if res.steps_run >= rt.step_cap:
             raise StepBudgetExceeded(f"bundle step cap {rt.step_cap}")
         n += 1

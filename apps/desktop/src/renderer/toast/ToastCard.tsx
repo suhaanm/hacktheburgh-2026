@@ -1,7 +1,7 @@
 import type { MouseEvent, ReactElement } from 'react'
 import type { ConfirmRequest } from '../../shared/protocol'
 
-export const TOAST_TITLE = 'Alongside needs your OK'
+export const TOAST_TITLE = 'Understudy needs your OK'
 
 export interface ToastCardProps {
   request: ConfirmRequest

@@ -24,11 +24,11 @@ import random
 from collections import defaultdict
 from datetime import datetime, timezone
 from statistics import fmean
-from typing import Any, Callable, Iterable
+from typing import Any, Iterable
 
 from . import canary_run, service
 from . import suggest as sug
-from .expert import GAP_FEATURES, gap_rows
+from .expert import gap_rows
 from .model import week_label
 from .store import CalendarStore, default_store
 from .synth import PROBLEMS
@@ -207,7 +207,6 @@ def pattern_recovery(store: CalendarStore, n_boot: int, seed: int) -> dict[str, 
                 1 for p, pairs in units.items() for (t, pred), wk in zip(pairs, [week_label(m) for m in store.get(p).weeks])
                 if pred and not t and week_problems(truth[p]["weeks"][wk]) & implied[name])
         rows[name] = r
-    scored = [r for r in rows.values() if r["precision"] is not None and r["recall"] is not None]
     tp = sum(r["tp"] for r in rows.values())
     fp = sum(r["fp"] for r in rows.values())
     fn = sum(r["fn"] for r in rows.values())

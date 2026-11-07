@@ -209,7 +209,7 @@ class RunOptions:
     security: SecurityConfig | None = None
     use_tier1: bool = True
     allow_tier3: bool = False
-    max_actions: int = 20
+    max_actions: int = 150                     # hard cap on model-driven actions per navigator; the real limit is progress
     deadline_s: float = 300.0
     routine_id: str | None = None
     opted_in: frozenset[Any] = frozenset()
@@ -219,6 +219,10 @@ class RunOptions:
     unattended: bool = False                            # the worker is away: the gate is stricter about unreadable clicks
     rung: str = "A0"                                    # autonomy rung from the routine's consent
     page_state: bool = False                            # tier 2: the quarantined reader tells the planner the page KIND each step
+    start_tier: int = 1                                 # 3: computer use from the first step (tiers 1 and 2 off)
+    t3_max_steps: int = 200                             # hard cap on computer-use steps per navigator
+    stall_limit: int = 12                               # steps with no visible progress before a loop gives up
+    pause: Any = None                                   # a PauseGate shared by every navigator (step-level pause and resume)
 
 
 @dataclass
@@ -384,7 +388,8 @@ class BenefitsRun:
                 emit=self.emit_step, is_current=self.is_current, query=self.opt.query.get(s, ""),
                 ledger=self.ledger, use_tier1=self.opt.use_tier1, max_actions=self.opt.max_actions,
                 allow_tier3=self.opt.allow_tier3, bundle=(self.opt.bundles or {}).get(s),
-                page_state=self.opt.page_state, defer_cliff=True)
+                page_state=self.opt.page_state, defer_cliff=True, start_tier=self.opt.start_tier,
+                t3_max_steps=self.opt.t3_max_steps, stall_limit=self.opt.stall_limit, pause=self.opt.pause)
             jobs[s] = job
             self.nav_state[nid] = {"id": nid, "site": s, "step": 0, "tier": 1, "state": "running"}
         self.stage("navigators_start", n=len(navs))
@@ -490,7 +495,8 @@ class BenefitsRun:
         scribe = Navigator("scribe", context=ctx, model=self.model, guard=sg, base_url=self.base_urls["a"],
                            emit=self.emit_step, is_current=self.is_current, query=self.opt.query.get("a", ""),
                            ledger=self.ledger, use_tier1=self.opt.use_tier1, max_actions=self.opt.max_actions,
-                           allow_tier3=self.opt.allow_tier3)
+                           allow_tier3=self.opt.allow_tier3, start_tier=self.opt.start_tier,
+                           t3_max_steps=self.opt.t3_max_steps, stall_limit=self.opt.stall_limit, pause=self.opt.pause)
         self.nav_state["scribe"] = {"id": "scribe", "site": "casenote", "step": 0, "tier": 1, "state": "running"}
         sres = await scribe.run(job)
         self.nav_state["scribe"]["state"] = sres.state

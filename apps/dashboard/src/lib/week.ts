@@ -1,4 +1,4 @@
-import type { CalBlock, CalDay, GapRow, WeekFeatures } from "../types";
+import type { CalBlock, CalDay, CalPerson, GapRow, RibbonOp, WeekFeatures } from "../types";
 
 /** "HH:MM", minutes since midnight, or an ISO time, all become minutes since midnight. NaN when unreadable. */
 export function toMinutes(v: string | number): number {
@@ -72,9 +72,65 @@ export function weekHeadline(f: WeekFeatures, e: WeekFeatures): string {
   const m = f.meeting_h, em = e.meeting_h;
   if (typeof m !== "number" || typeof em !== "number") return "Your week against the expert's";
   const d = Math.round((m - em) * 10) / 10;
-  if (Math.abs(d) < 0.5) return `Your meeting load is about the same as the expert's, ${m} hours a week`;
-  return `You spend ${m} hours a week in meetings, ${Math.abs(d)} ${d > 0 ? "more" : "fewer"} than the expert`;
+  const mr = Math.round(m * 10) / 10;
+  if (Math.abs(d) < 0.5) return `Your meeting load is about the same as the expert's, ${mr} hours a week`;
+  return `You spend ${mr} hours a week in meetings, ${Math.abs(d)} ${d > 0 ? "more" : "fewer"} than the expert`;
 }
 
-/** Does the interval exclude zero? Then the difference is not just noise at this sample size. */
-export const gapClear = (r: Pick<GapRow, "ci">): boolean => r.ci[0] > 0 || r.ci[1] < 0;
+/** Does the interval exclude zero? Then the difference is not just noise at this sample size. The engine's own verdict, when it sends one, wins. */
+export const gapClear = (r: Pick<GapRow, "ci"> & { significant?: boolean }): boolean => (typeof r.significant === "boolean" ? r.significant : r.ci[0] > 0 || r.ci[1] < 0);
+
+/** How big a gap is next to the spread experts show among themselves: the distance from the expert mean in units of the expert range's width. */
+export function gapSize(r: Pick<GapRow, "delta" | "expert_range">): number {
+  const w = r.expert_range ? r.expert_range[1] - r.expert_range[0] : 0;
+  return w > 0 ? Math.abs(r.delta) / w : Math.abs(r.delta);
+}
+
+/** Clear gaps first, the biggest first (by how many expert-ranges away); the rest keep the engine's order. */
+export function sortGaps<T extends Pick<GapRow, "delta" | "ci" | "expert_range"> & { significant?: boolean }>(rows: T[]): T[] {
+  const idx = new Map(rows.map((r, i) => [r, i]));
+  return [...rows].sort((a, b) => Number(gapClear(b)) - Number(gapClear(a)) || (gapClear(a) && gapClear(b) ? gapSize(b) - gapSize(a) : (idx.get(a) ?? 0) - (idx.get(b) ?? 0)));
+}
+
+export interface AlignmentTotals { total: number; matched: number; mismatch: number; learnerOnly: number; expertOnly: number; outOfStep: number }
+/** Minutes in each kind of column of the week alignment. `learnerOnly` is time you spend that the expert's week has no counterpart for; `expertOnly` is the reverse. */
+export function alignmentTotals(alignment: RibbonOp[]): AlignmentTotals {
+  const t: AlignmentTotals = { total: 0, matched: 0, mismatch: 0, learnerOnly: 0, expertOnly: 0, outOfStep: 0 };
+  for (const c of alignment) {
+    const m = Number.isFinite(c.minutes) ? Math.max(0, c.minutes) : 0;
+    t.total += m;
+    if (c.op === "match") t.matched += m;
+    else if (c.op === "mismatch") t.mismatch += m;
+    else if (c.op === "gap_expert") t.learnerOnly += m;
+    else if (c.op === "gap_novice") t.expertOnly += m;
+  }
+  t.outOfStep = t.mismatch + t.learnerOnly + t.expertOnly;
+  return t;
+}
+
+/** The people who have a week to show, learners first: personas, then novices, then experts. */
+export function peopleByGroup(people: CalPerson[]): { group: string; label: string; people: CalPerson[] }[] {
+  const order: [string, string][] = [["persona", "Demo people"], ["novice", "Novices"], ["expert", "Experts"]];
+  const out = order.map(([g, label]) => ({ group: g, label, people: people.filter((p) => p.group === g) })).filter((x) => x.people.length);
+  const known = new Set(order.map(([g]) => g));
+  const rest = people.filter((p) => !known.has(p.group ?? ""));
+  if (rest.length) out.push({ group: "other", label: "Others", people: rest });
+  return out;
+}
+
+/** "2026-W44" as "week 44". Anything else is shown as it came. */
+export function weekLabel(w: string): string {
+  const m = /^(\d{4})-W(\d{1,2})$/.exec(w);
+  return m ? `Week ${Number(m[2])}, ${m[1]}` : w;
+}
+
+export const OP_LABEL: Record<string, string> = {
+  match: "Same as the expert",
+  mismatch: "Different from the expert",
+  gap_expert: "Only in your week",
+  gap_novice: "Only in the expert's week",
+};
+
+const ENUM_LABEL: Record<string, string> = { MEETING: "meeting", FOCUS: "focus", SLIVER: "short gap", REVIEW: "review", OFFSCREEN: "off screen", BREAK: "break", FREE: "free" };
+/** The engine's block-kind enums in plain words. */
+export const enumLabel = (e: string | null): string => (e == null ? "nothing" : ENUM_LABEL[e] ?? e.toLowerCase().replace(/_/g, " "));

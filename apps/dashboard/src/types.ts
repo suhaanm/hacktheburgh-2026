@@ -6,7 +6,8 @@ export type Interval = [number, number];
 export interface AnalyticMeta {
   origin: "real" | "synthetic" | "mixed";
   n: number;
-  n_unit: "people" | "personas" | "households" | "episodes" | "days";
+  /** Open: services also send "commits", "decisions", "runs" and others. */
+  n_unit: "people" | "personas" | "households" | "episodes" | "days" | (string & {});
   split: string | null;
   interval_level: number;
   note: string | null;
@@ -27,6 +28,8 @@ export interface Health {
   /** Which REQ-2 layers are switched on. Absent means none. */
   extensions?: Partial<Record<ExtensionName, boolean>>;
 }
+/** Agent service health. Its own `extensions` map carries the `agents` flag. */
+export interface AgentHealth { ok: boolean; mock?: boolean; extensions?: Partial<Record<ExtensionName, boolean>> }
 
 /* -- Genome ---------------------------------------------------------------- */
 export interface CogSegment {
@@ -402,24 +405,48 @@ export interface CalBlock {
   end: string | number;
   kind: BlockKind;
   n_attendees_bucket?: "lt5" | "5to9" | "10plus";
+  /** Additive: the same times as minutes since midnight, and whether the block is usable for focus. */
+  start_min?: number;
+  end_min?: number;
+  usable?: boolean;
 }
-export interface CalDay { dow: number; blocks: CalBlock[] }
+export interface CalDay { dow: number; blocks: CalBlock[]; /** additive: the date, and whether the day was worked */ date?: string; working?: boolean }
 export interface WeekFeatures {
   meeting_h?: number; focus_blocks_60?: number; focus_blocks_90?: number; longest_focus_min?: number;
   fragmentation?: number; back_to_back_runs?: number; work_span_h?: number; offscreen_h?: number;
   [k: string]: number | undefined | CalDay[];
 }
-export interface GapRow { feature: string; learner: number; expert: number; delta: number; ci: Interval }
+export interface GapRow {
+  feature: string; learner: number; expert: number; delta: number; ci: Interval;
+  /** Additive: the range experts themselves span, and the engine's own verdict on the difference. */
+  expert_range?: Interval; significant?: boolean;
+}
+export interface RibbonOp { op: "match" | "mismatch" | "gap_expert" | "gap_novice" | string; expert: string | null; learner: string | null; minutes: number }
+export interface WeekRibbonDistance {
+  distance: number;
+  placebo?: { distance: number; ci: Interval; n_experts?: number };
+  nearest_expert?: string;
+  alignment?: RibbonOp[];
+}
 export interface CalendarWeek {
   days: CalDay[];
   features: WeekFeatures;
   /** The expert's features. `days` (the expert's blocks) is additive and optional. */
   expert: WeekFeatures & { days?: CalDay[] };
-  gap: { rows: GapRow[] };
+  gap: { rows: GapRow[]; interval?: string; ribbon?: WeekRibbonDistance };
+  /** Additive. */
+  person?: string; role?: string; group?: string; week?: string; weeks_available?: string[]; timezone?: string;
+  counts?: Record<string, number>;
 }
+export interface CalPerson { person: string; group: string | null; role: string | null; label: string | null; weeks: string[] }
 export interface CalSuggestion {
   id: string;
   template: string;
+  /** Additive. */
+  title?: string;
+  priority?: number;
+  week?: string;
+  evidence_weeks?: number;
   text: string;
   numbers: Record<string, number | string>;
   expert_ref: Record<string, number | string>;
@@ -439,8 +466,19 @@ export interface BriefingCard {
   sources: string[];
   expires_at: string;
   status: "ready" | "fired" | "dismissed" | "stale";
-  /** Local only: what pressing "Approve and run" did, so the card can say which. */
-  fired?: { queue_id?: string; run_id?: string };
+  /** What pressing "Approve and run" made, once pressed (the engine also sends at, actor and verdict). */
+  fired?: { queue_id?: string; run_id?: string; at?: string; actor?: string; verdict?: string } | null;
+  /** Additive, from the engine. */
+  dismissed?: { at?: string; mode?: string } | null;
+  fire_type?: "queue" | "draft" | "agent" | string;
+  verdict?: "confirmed" | "stale" | string;
+  verify_note?: string;
+  edited?: boolean;
+  origin?: string;
+  wording?: string;
+  score?: number;
+  numbers?: Record<string, number | string>;
+  ranking?: { score?: number; rank?: number; decision?: string; cap?: number; min_score?: number; parts?: Record<string, { x: number; w: number; contribution: number }> };
 }
 export interface Briefing { cap: number; generated_at: string; cards: BriefingCard[] }
 
@@ -459,22 +497,106 @@ export interface AgentRun {
   parent: AgentNode;
   children: AgentNode[];
 }
+/** A job the agent service can run (GET /agents/kinds). */
+export interface AgentKind { kind: string; title: string; roles?: string[]; describe?: string }
 export interface AgentRunDetail { artifacts: { name: string; kind: string; path_ref: string }[]; result: unknown }
-export type SpawnKind = "programming.commit_analyst" | "programming.test_gap" | "programming.refactor_suggest" | "data.profile" | "data.chart" | "creative.weekly_summary";
+export type SpawnKind = "programming.commit_analyst" | "programming.test_gap" | "programming.refactor_suggest" | "data.profile" | "data.chart" | "creative.weekly_summary" | (string & {});
 
-export interface LedgerEntry { t: string; purpose: string; schema: string; fields: string[]; payload: Record<string, unknown>; model: string; bytes: number }
+export type ImageKind = "glance" | "point" | "verify" | "live_frame";
+export type ImageBlockReason = "unattended" | "no_consent" | "secure_input" | "denylisted_app";
+/** One call to a remote model. Text rows hold their payload exactly as sent; image rows never hold a picture or text. */
+export interface LedgerEntry {
+  t: string; purpose: string; schema: string | null; fields: string[]; payload: Record<string, unknown> | null; model: string | null; bytes: number;
+  /** Additive. Image rows: `kind: "image"`, a `status` and, when blocked, a `reason`. */
+  id?: string;
+  kind?: string;
+  status?: "ok" | "blocked" | "sending" | "failed" | string;
+  reason?: ImageBlockReason | string | null;
+  source?: "real_screen" | "sandbox" | string | null;
+  image?: { sha8?: string; bytes?: number; width?: number; height?: number; kind?: ImageKind | string } | null;
+  provider?: string | null;
+  mock?: boolean;
+  ok?: boolean | null;
+  latency_ms?: number | null;
+  input_tokens?: number | null;
+  output_tokens?: number | null;
+  cost_estimate_usd?: number | null;
+  error?: string | null;
+}
 export interface PrivacySummary {
   calls: number;
   by_purpose: Record<string, number>;
   last_call: string | null;
   local_only_note: string;
-  canary?: { runs: number; planted: number; leaked: number } | null;
+  canary?: { runs: number; planted: number; leaked: number; last_run?: string | null } | null;
+  /** Additive. */
+  mock_calls?: number;
+  worker_requested_calls?: number;
+  blocked_attempts?: number;
+  images?: { sent: number; blocked: number; blocked_by_reason: Record<string, number>; sent_by_source: Record<string, number>; bytes_sent: number; note?: string };
+  cleared?: { times: number; calls_removed: number; last_cleared_at: string | null };
 }
 export interface LocalModelStatus {
   enabled: boolean;
   running: boolean;
-  model?: { file: string; size_bytes: number; sha_ok: boolean } | null;
+  /** Size and checksum are null until a model file has been found and checked. */
+  model?: { file: string; size_bytes: number | null; sha_ok: boolean | null } | null;
   endpoint?: string;
   tokens_per_s?: number;
   mode: "model" | "rules";
+  /** Additive: why it is on rules ("mock_mode", "no_model_file", ...). */
+  reason?: string | null;
+}
+
+/* -- Git habits (programmer role) --------------------------------------------------------------------------- */
+export interface GitSuggestion {
+  id: string; template?: string; text: string; wording?: string; habits?: string[]; risk?: string; can_draft?: boolean; primary_habit?: string;
+}
+export interface GitHabit {
+  id: string; label: string; learner: number; expert: number; delta: number; ci: Interval;
+  /** Higher is worse (1) or lower is worse (-1). */
+  bad?: 1 | -1;
+  flagged?: boolean;
+  /** Why an unflagged habit was left alone: "below_min_delta" and others. */
+  reason?: string;
+  min_delta?: number; n_num?: number; n_den?: number; unit?: string;
+  suggestion?: GitSuggestion | null;
+}
+export interface GitHabits {
+  person: string; repo: string;
+  habits: GitHabit[];
+  suggestions?: GitSuggestion[];
+  digest_source: "model" | "rules";
+  digest_model_share?: number;
+  digest_warming?: boolean;
+  n_commits: number;
+  reference?: { n_experts: number; origin: string; note?: string };
+  features?: Record<string, unknown>;
+}
+export interface GitPeople { learners: { person: string; repo: string }[]; experts: string[]; registered?: unknown[]; default_person?: string }
+
+/* -- Models and cost (agent service, GET /models/status) ------------------------------------------------------ */
+export interface ModelStep { provider: string; tier: string; when: "primary" | "escalate" | "fallback" | string; model: string | null }
+export interface ModelRole { role: string; steps: ModelStep[]; escalate?: Record<string, unknown>; call_timeout_s?: number; deadline_s?: number }
+export interface Breaker { state: string; recent_failures: number; retry_in_s: number; opened_count: number }
+export interface ModelProvider {
+  name: string; configured: boolean; enabled_by_flag?: boolean | null; models: Record<string, string> | null; breaker: Breaker | null;
+  health: "ok" | "degraded" | "down" | "unknown" | string;
+}
+export interface MeterRow {
+  role: string; provider: string; model: string; n: number; ok: number; failed: number; p50_ms: number | null; p95_ms: number | null;
+  input_tokens: number; output_tokens: number; cost_usd_est: number | null;
+}
+export interface PriceAssumption { input_usd_per_million: number; output_usd_per_million: number; source: string }
+export interface ModelsStatus {
+  generated_at: string;
+  mock: boolean;
+  roles: ModelRole[];
+  providers: ModelProvider[];
+  boot: { provider: string; t?: string; ok?: boolean; mock?: boolean; missing?: string[] }[];
+  latencies: Record<string, number[]>;
+  meter: MeterRow[];
+  prices_assumed: Record<string, PriceAssumption>;
+  config_error: string | null;
+  bakeoff: unknown | null;
 }

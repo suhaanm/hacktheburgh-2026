@@ -25,6 +25,18 @@ TITLES = {
     "redteam_live": "Red team with a real model (secondary, cached)",
     "study": "Live study (n = 4)",
     "privacy": "Privacy layer (canary leaks, offline)",
+    "git": "Git habits (programmer role)",
+    "proactive": "Proactive cards",
+    "calendar": "Calendar layer",
+    "localmodel": "Local model digests",
+    "runtime": "Agent runtime",
+    "mlv2": "Models v2",
+    "evidence": "Evidence quality",
+    "cue": "Cue analysis",
+    "realism": "Persona realism",
+    "modelbench": "Model benchmark",
+    "study_roles": "Study across roles",
+    "agentic": "Agentic evaluation",
     "study_sim": "Simulated participants (language model), not people",
     "study_power": "Study power: what the design could detect",
 }
@@ -377,6 +389,85 @@ def _privacy(s: dict[str, Any]) -> str:
     return "\n\n".join(out)
 
 
+def _prop(d: dict[str, Any] | None) -> str:
+    d = d or {}
+    if d.get("value") is None:
+        return "n/a"
+    return f"{pc(d['value'])} ({d.get('k')} of {d.get('n')}) {ci(d.get('ci'), pct=True)}"
+
+
+def _git(s: dict[str, Any]) -> str:
+    out = [s.get("statement") or ""]
+    hr = s.get("habit_recovery") or {}
+    ov = hr.get("overall") or {}
+    rows = [["All habits", _prop(ov.get("precision")), _prop(ov.get("recall")), _prop(ov.get("specificity"))]]
+    rows += [[h, _prop(v.get("precision")), _prop(v.get("recall")), _prop(v.get("specificity"))] for h, v in (hr.get("by_habit") or {}).items()]
+    out.append(table(["Planted habit (synthetic developers)", "Precision [95%]", "Recall [95%]", "Specificity [95%]"], rows))
+    pl = (s.get("placebo") or {}).get("false_flags")
+    if pl:
+        out.append(f"Placebo (each expert against the other experts): false flags {_prop(pl)}.")
+    da = s.get("digest_accuracy") or {}
+    if da.get("accuracy"):
+        out.append(f"Digest rules against the generator's own labels ({da.get('n_commits')} commits): the labels are known by construction, so message-based fields are flattered; "
+                   "see the register.")
+    ag = s.get("digest_agreement") or {}
+    if ag.get("status"):
+        out.append(f"Local-model agreement: {ag['status'].replace('_', ' ')}. {ag.get('reason') or ''}")
+    g = s.get("genome") or {}
+    if g.get("reading"):
+        out.append(f"Alignment on commit sessions: {g['reading']}")
+    return "\n\n".join(x for x in out if x)
+
+
+def _calendar(s: dict[str, Any]) -> str:
+    out = [s.get("statement") or ""]
+    po = (s.get("pattern_recovery") or {}).get("overall") or {}
+    so = (s.get("suggestions") or {}).get("overall") or {}
+    out.append(table(["What was scored (synthetic calendars)", "Precision", "Recall"],
+                     [["Planted problems found, eight types, micro-average", pc(po.get("precision"), 1), pc(po.get("recall"), 1)],
+                      ["Suggestions against the planted cause", pc(so.get("precision"), 1), pc(so.get("recall"), 1)]]))
+    sg = s.get("suggestions") or {}
+    if sg.get("expert_weeks") is not None:
+        out.append(f"Expert weeks with a suggestion: {sg.get('expert_weeks_with_a_suggestion')} of {sg.get('expert_weeks')} (false-alarm rate {pc(sg.get('expert_false_alarm_rate'), 1)}).")
+    lc = s.get("leak_canary") or {}
+    if lc:
+        out.append(f"Leak canary: {lc.get('leaked')} of {lc.get('planted_tokens')} planted tokens leaked across {lc.get('outbound_requests')} outbound requests.")
+    return "\n\n".join(x for x in out if x)
+
+
+def _proactive(s: dict[str, Any]) -> str:
+    w = s.get("worth") or {}
+    ov = w.get("overall") or {}
+    rows = [["Judge (the shipped rules)", f"{ov.get('tp')} of {ov.get('surfaced')} cards were worth it", f"{pc(ov.get('precision'))} {ci(ov.get('precision_ci'), pct=True)}",
+             f"{pc(ov.get('recall'))} {ci(ov.get('recall_ci'), pct=True)}"]]
+    for k, v in (w.get("baselines") or {}).items():
+        rows.append([k.replace("_", " "), f"{v.get('tp')} of {v.get('surfaced')}", f"{pc(v.get('precision'))} {ci(v.get('precision_wilson'), pct=True)}", f"{pc(v.get('recall'))} {ci(v.get('recall_wilson'), pct=True)}"])
+    out = [table(["What surfaces cards (synthetic personas, learners and git learners)", "Cards worth surfacing", "Precision [95%]", "Recall [95%]"], rows)]
+    out.append(f"Interval over {ov.get('n_people')} people (bootstrap), which is the honest one; the Wilson interval on pooled counts is too narrow because points are correlated.")
+    st = s.get("structure") or {}
+    if st:
+        out.append(f"Briefings: {st.get('briefings')}, cap {st.get('cap')} cards, cap violations {st.get('cap_violations')}, mean cards {st.get('mean_cards')}; "
+                   f"unprompted fires {st.get('unprompted_fires')}, unprompted agent spawns {st.get('unprompted_agent_spawns')}.")
+    ac = s.get("acceptance") or {}
+    if ac.get("note"):
+        out.append(ac["note"])
+    return "\n\n".join(out)
+
+
+def _localmodel(s: dict[str, Any]) -> str:
+    mod = s.get("model") or {}
+    rows = [[f"{h.get('task')} / {h.get('field')}", str(h.get("n")), f"{pc(h.get('rules_acc'), 1)} {ci(h.get('rules_ci'), pct=True)}",
+             f"{pc(h.get('model_acc'), 1)} {ci(h.get('model_ci'), pct=True)}", str(h.get("verdict", "")).replace("_", " "), str(h.get("shipped_source", ""))]
+            for h in s.get("headline") or []]
+    out = [f"Model arm source: {mod.get('source')}" + (f" ({mod.get('reason')})" if mod.get("reason") else "") + ". Held-out test split; the dev split was used for tuning."]
+    if rows:
+        out.append(table(["Task / field (synthetic items)", "Held-out n", "Rules accuracy [95%]", "Local model accuracy [95%]", "Verdict", "Shipped"], rows))
+    fnd = [x for x in (s.get("findings") or []) if isinstance(x, str)]
+    if fnd:
+        out.append("\n".join(f"- {x}" for x in fnd[:6]))
+    return "\n\n".join(out)
+
+
 def _redteam_live(s: dict[str, Any]) -> str:
     rows = s.get("rows") or []
 
@@ -396,12 +487,27 @@ def _redteam_live(s: dict[str, Any]) -> str:
 
 
 RENDER = {"deficit_recovery": _deficit, "null_placebo": _null, "hazard": _hazard, "ope": _ope, "routing": _routing, "ski_rental": _ski,
-          "presence": _presence, "routines": _routines, "policy_gate": _gate, "skills": _skills, "forecast": _forecast, "pooling": _pooling, "agent_claims": _claims, "agent_runs": _agent_runs, "study_sim": _study_sim, "study_power": _study_power, "redteam_live": _redteam_live, "privacy": _privacy, "redteam": _redteam, "study": _study}
+          "presence": _presence, "routines": _routines, "policy_gate": _gate, "skills": _skills, "forecast": _forecast, "pooling": _pooling, "agent_claims": _claims, "agent_runs": _agent_runs, "study_sim": _study_sim, "study_power": _study_power, "redteam_live": _redteam_live, "privacy": _privacy, "git": _git, "calendar": _calendar, "proactive": _proactive, "localmodel": _localmodel, "redteam": _redteam, "study": _study}
 
 
 def _generic(s: dict[str, Any]) -> str:
     scal = [(k, v) for k, v in s.items() if k not in ("meta", "limitations", "caveats") and isinstance(v, (int, float, str, bool)) and v is not None]
     return "\n".join(f"- {k}: {f(v, 3) if isinstance(v, float) else v}" for k, v in scal[:14]) or "(see report.json)"
+
+
+def evidence_map_text(emap: list[dict[str, Any]]) -> str:
+    """The one table the owner can show first: every section, where its data comes from, its n, and whether it has numbers."""
+    ok = sum(1 for e in emap if e["status"] == "ok")
+    rows = []
+    for e in emap:
+        st = "ok" if e["status"] == "ok" else f"{e['status'].replace('_', ' ')}: {(e.get('reason') or '').split('. ')[0][:110]}"
+        n = f"{e['n']} {e.get('n_unit') or ''}".strip() if e.get("n") else "n/a"
+        origin = f"[{e['origin']}]" if e["status"] in ("ok", "not_run") else "n/a"
+        rows.append([e["title"], origin, n, st, e.get("label") or ""])
+    head = (f"{len(emap)} sections: {ok} with numbers, {sum(1 for e in emap if e['status'] == 'pending')} pending, {sum(1 for e in emap if e['status'] == 'not_run')} not run, "
+            f"{sum(1 for e in emap if e['status'] == 'failed')} failed. Origin: [synthetic] is data we planted or simulated, [real] is people, [mixed] is both. "
+            "A section without numbers says why instead of showing a made-up value.")
+    return head + "\n\n" + table(["Section", "Origin", "n", "Status", "Label"], rows)
 
 
 def render(report: dict[str, Any]) -> str:
@@ -411,6 +517,9 @@ def render(report: dict[str, Any]) -> str:
     out += ["", "Written by `python -m understudy_engine.eval` from the owning tracks' code; no number here is typed in by hand. "
             "Synthetic results are labelled synthetic. A section without numbers says why instead of showing a made-up value.", ""]
     secs = report["sections"]
+    emap = report.get("evidence_map") or []
+    if emap:
+        out += ["## Evidence map", "", evidence_map_text(emap), ""]
     for name, title in TITLES.items():
         if name not in secs:
             continue

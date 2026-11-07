@@ -194,3 +194,15 @@ def bound_value(spec: SiteSpec, param: str, params: dict[str, str]) -> str:
         mul, nd = t
         return f"{round(float(v) * mul, nd):.{nd}f}"
     return v
+
+
+# The text of each drop-down option on each site (what a person, or type-ahead, sees). Fact handles resolve to these
+# so that typing the resolved value into a focused drop-down selects the right option on every site.
+SELECT_LABELS: dict[str, dict[str, dict[str, str]]] = {
+    "a": {"adults": {"1": "1", "2": "2"}, "limited_capability": {"no": "No", "yes": "Yes"},
+          "tenure": {"rent": "Rent", "own": "Own"}, "bedrooms": {str(i): str(i) for i in range(1, 5)}},
+    "b": {"adults": {"1": "Just me", "2": "Me and a partner"}, "limited_capability": {"no": "No", "yes": "Yes"},
+          "tenure": {"rent": "Rent", "own": "Own"}, "bedrooms": {str(i): str(i) for i in range(1, 5)}},
+    "c": {"adults": {"1": "One adult", "2": "Two adults"}, "limited_capability": {"no": "No", "yes": "Yes"},
+          "tenure": {"rent": "Renting", "own": "Owner occupier"}, "bedrooms": {str(i): str(i) for i in range(1, 5)}},
+}

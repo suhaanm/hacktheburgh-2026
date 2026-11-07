@@ -16,7 +16,7 @@ from typing import Iterator
 from urllib.parse import quote
 
 from .base import RawItem, Source, overlaps
-from .graph_common import Fetch, GraphClient, TokenProvider, iso_z, parse_graph_dt, window
+from .graph_common import Fetch, GraphClient, TokenProvider, iso_z, window
 
 UTC = timezone.utc
 BASE = "https://graph.microsoft.com/v1.0"

@@ -342,6 +342,20 @@ class ScreenGuardedActuator:
     def scale(self) -> float:
         return self.inner.scale
 
+    @property
+    def url(self) -> Any:
+        return getattr(self.inner, "url", None)
+
+    async def read_target(self, action: Any) -> Any:
+        """Trusted target reading passes straight through: a wrapper that hid it would leave every click unreadable."""
+        reader = getattr(self.inner, "read_target", None)
+        return await reader(action) if reader is not None else None
+
+    def bind_cancel(self, is_cancelled: Any) -> None:
+        bind = getattr(self.inner, "bind_cancel", None)
+        if callable(bind):
+            bind(is_cancelled)
+
     def _check(self) -> None:
         from .tiers.computer_use import ActuatorRefused
 

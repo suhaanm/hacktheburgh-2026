@@ -143,13 +143,13 @@ class Workspace:
                 if repo_source is None:
                     raise WorkspaceError("repo_source_required")
                 ws._make_worktree(Path(repo_source))
-            for d in ("input", "out", ".run", ".tmp"):
+            for d in ("input", "out", ".run", ".tmp", "scratch"):
                 (ws.work / d).mkdir(mode=0o700, exist_ok=True)  # type: ignore[operator]
             if kind == "worktree":
                 excl = ws.repo_copy / ".git" / "info" / "exclude"  # type: ignore[operator]
                 excl.parent.mkdir(parents=True, exist_ok=True)
                 with open(excl, "a") as f:
-                    f.write("\n/input/\n/out/\n/.run/\n/.tmp/\n")
+                    f.write("\n/input/\n/out/\n/.run/\n/.tmp/\n/scratch/\n/status.json\n/state.json\n/control.json\n")
                     # the child's own scratch files (its script, its result file, the saved history) are not part of a patch
                     for name in scratch:
                         if re.fullmatch(r"[A-Za-z0-9._/\-]{1,100}", name) and ".." not in name:

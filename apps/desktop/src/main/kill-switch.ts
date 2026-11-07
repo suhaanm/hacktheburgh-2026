@@ -7,6 +7,7 @@
 import type { OverlayController } from '../shared/contracts'
 import type { AgentChip, SessionEndReason } from '../shared/protocol'
 import { isKilled, setKilled } from './kill-flag'
+import { createKillFile, type KillFile } from './kill-file'
 
 export type KillSource = 'hotkey' | 'tray' | 'hud' | 'cli'
 
@@ -16,6 +17,8 @@ export interface KillReport {
   localMs: number
   engine: boolean
   agent: boolean
+  // data/KILL was written (the file the Python actuators poll; it does not depend on any service running).
+  file?: boolean
 }
 
 export interface KillState {
@@ -25,6 +28,8 @@ export interface KillState {
   // After the network leg finished: did the engine and the agent acknowledge?
   engine: boolean | null
   agent: boolean | null
+  // data/KILL exists because of this app's stop (null before any stop).
+  file?: boolean | null
 }
 
 export interface KillDeps {
@@ -38,6 +43,8 @@ export interface KillDeps {
   cancelAgent(id: string): void
   overlay: Pick<OverlayController, 'clear' | 'caption'>
   engine: { kill(): Promise<{ engine: boolean; agent: boolean }>; clearKill(): Promise<{ engine: boolean; agent: boolean }> }
+  // data/KILL, written first and synchronously on every stop and removed on Resume. Default: the real file (see kill-file.ts).
+  killFile?: KillFile
   log?: (scope: string, ...args: unknown[]) => void
   now?: () => number
 }
@@ -56,7 +63,8 @@ export function createKillSwitch(deps: KillDeps): KillSwitch {
   const now = deps.now ?? Date.now
   const log = deps.log ?? (() => undefined)
   const listeners = new Set<(s: KillState) => void>()
-  let state: KillState = { killed: isKilled(), at: null, source: null, engine: null, agent: null }
+  const killFile = deps.killFile ?? createKillFile()
+  let state: KillState = { killed: isKilled(), at: null, source: null, engine: null, agent: null, file: null }
 
   const set = (next: Partial<KillState>): void => {
     state = { ...state, ...next }
@@ -81,6 +89,12 @@ export function createKillSwitch(deps: KillDeps): KillSwitch {
     async trigger(source) {
       const t0 = now()
       setKilled(true) // first: the actuator and every new start refuse from this instant
+      // ...and the file, before anything that could wait or throw: a separate process (the Python actuators, mac_check) sees only this.
+      let file = false
+      safely('KILL file', () => {
+        file = killFile.write(source, t0)
+      })
+      if (!file) log('kill', 'could not write data/KILL: only this app and the services that answer POST /kill are stopped')
       safely('act_for_me', () => deps.stopAgency())
       safely('approval', () => deps.cancelConfirm())
       safely('agents', () => {
@@ -94,7 +108,7 @@ export function createKillSwitch(deps: KillDeps): KillSwitch {
         deps.overlay.caption('system', STOPPED_LINE, true)
       })
       const localMs = now() - t0
-      set({ killed: true, at: t0, source, engine: null, agent: null })
+      set({ killed: true, at: t0, source, engine: null, agent: null, file })
       log('kill', `local stop done in ${localMs}ms (${source})`)
       // Best effort and in parallel: the engine and the agent service. Never throws, never delays the local stop above.
       let remote = { engine: false, agent: false }
@@ -105,11 +119,14 @@ export function createKillSwitch(deps: KillDeps): KillSwitch {
       }
       set({ engine: remote.engine, agent: remote.agent })
       log('kill', `engine ${remote.engine ? 'acknowledged' : 'not reached'}, agent ${remote.agent ? 'acknowledged' : 'not reached'}`)
-      return { source, at: t0, localMs, ...remote }
+      return { source, at: t0, localMs, file, ...remote }
     },
     async clear() {
       setKilled(false)
-      set({ killed: false, at: null, source: null, engine: null, agent: null })
+      safely('KILL file', () => {
+        if (!killFile.remove()) log('kill', 'could not remove data/KILL: Resume did not clear the file the actuators read')
+      })
+      set({ killed: false, at: null, source: null, engine: null, agent: null, file: null })
       safely('overlay', () => deps.overlay.caption('system', 'Resumed.', true))
       try {
         await deps.engine.clearKill()

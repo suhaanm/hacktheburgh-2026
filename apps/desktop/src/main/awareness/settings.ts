@@ -85,7 +85,10 @@ export function coerceAwarenessSettings(raw: unknown): AwarenessSettings {
   const out: Record<string, unknown> = { ...DEFAULT_AWARENESS_SETTINGS }
   for (const key of Object.keys(AwarenessSettingsSchema.shape) as (keyof AwarenessSettings)[]) {
     if (!(key in raw)) continue
-    const parsed = AwarenessSettingsSchema.shape[key].safeParse((raw as Record<string, unknown>)[key])
+    let value = (raw as Record<string, unknown>)[key]
+    // A saved file is read leniently: one bad bundle id costs that entry, not the whole list.
+    if (key === 'glanceDenylist' && Array.isArray(value)) value = normaliseDenylist(value.filter((v): v is string => typeof v === 'string'))
+    const parsed = AwarenessSettingsSchema.shape[key].safeParse(value)
     if (parsed.success) out[key] = parsed.data
   }
   out.glanceDenylist = normaliseDenylist(out.glanceDenylist as string[])

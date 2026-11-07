@@ -15,9 +15,13 @@ export interface AppState {
   /** Which REQ-2 layers are on. `extReady` is false until /health has answered. */
   ext: ExtFlags;
   extReady: boolean;
+  /** The engine's id for the worker once onboarding has run; null before. */
+  person: string | null;
+  /** Whether the agent service (port 7710) answered its health check. null until asked. */
+  agentUp: boolean | null;
 }
 
-let state: AppState = { live: 0, demo: 0, mock: null, killed: false, killedAt: null, killError: null, pendingQueue: 0, role: null, ext: {}, extReady: false };
+let state: AppState = { live: 0, demo: 0, mock: null, killed: false, killedAt: null, killError: null, pendingQueue: 0, role: null, ext: {}, extReady: false, person: null, agentUp: null };
 const listeners = new Set<() => void>();
 
 export function setState(patch: Partial<AppState>): void {
@@ -27,6 +31,17 @@ export function setState(patch: Partial<AppState>): void {
 
 export function getState(): AppState {
   return state;
+}
+
+/** Resolves once /health has said which layers are on (or after `maxMs`, so a screen never waits for ever). */
+export function whenExtReady(maxMs = 2500): Promise<void> {
+  if (state.extReady) return Promise.resolve();
+  return new Promise((resolve) => {
+    const done = () => { listeners.delete(check); window.clearTimeout(timer); resolve(); };
+    const check = () => { if (state.extReady) done(); };
+    const timer = window.setTimeout(done, maxMs);
+    listeners.add(check);
+  });
 }
 
 export function noteSource(source: "live" | "demo"): void {

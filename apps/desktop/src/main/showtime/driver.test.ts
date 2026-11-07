@@ -162,7 +162,7 @@ describe('showtime driver', () => {
     const h = setup()
     await h.driver.exec({ type: 'settings', patch: { dyslexiaFont: true } })
     await h.driver.exec({ type: 'baseline', persona: 'amelia' })
-    expect(h.settings.get().persona).toBe('amelia')
+    expect(h.settings.get().persona).toBe('understudy') // there is one identity now: a tour asking for a legacy persona gets Understudy
     expect(h.settings.get().dyslexiaFont).toBe(false)
   })
 

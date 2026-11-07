@@ -44,6 +44,14 @@ def to_strict_schema(schema: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(node, dict):
             return node
         node = {k: v for k, v in node.items() if k not in _UNSUPPORTED_KEYS}
+        if "enum" in node and "type" not in node and node["enum"]:
+            kinds = {type(v).__name__ for v in node["enum"] if v is not None}
+            if kinds == {"str"}:
+                node["type"] = "string"
+            elif kinds == {"bool"}:
+                node["type"] = "boolean"
+            elif kinds == {"int"}:
+                node["type"] = "integer"
         for key in ("properties", "$defs", "definitions"):
             if key in node and isinstance(node[key], dict):
                 node[key] = {k: walk(v) for k, v in node[key].items()}

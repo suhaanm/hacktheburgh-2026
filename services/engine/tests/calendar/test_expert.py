@@ -2,15 +2,13 @@
 from __future__ import annotations
 
 import copy
-from datetime import timedelta
 
 import pytest
 import yaml
 
 from understudy_engine.calendar import expert as E
 from understudy_engine.calendar import service
-from understudy_engine.calendar.features import ALL_KEYS, analyse_week, week_blocks_json
-from understudy_engine.calendar.model import week_label
+from understudy_engine.calendar.features import ALL_KEYS
 
 
 def test_every_role_pack_has_a_valid_template():

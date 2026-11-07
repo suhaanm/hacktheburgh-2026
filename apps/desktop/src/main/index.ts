@@ -1,6 +1,6 @@
 import path from 'node:path'
 import dotenv from 'dotenv'
-import { app, systemPreferences } from 'electron'
+import { app, nativeImage, systemPreferences } from 'electron'
 import { IPC } from '../shared/ipc'
 import type { EventArgs, EventChannel } from '../shared/ipc'
 import { Bus } from './bus'
@@ -9,8 +9,9 @@ import type { ServiceContext } from './context'
 import { startDebugServer } from './debug-server'
 import { redactingLog } from './model-port/redact'
 import { createModelPortFromEnv, runBootCheck } from './model-port'
-import { featureOn, forcedSettings } from './feature-flags'
+import { experimentOn, featureOn, forcedSettings } from './feature-flags'
 import { HELP_LEVEL_LABELS } from '../shared/protocol'
+import { appIconPath } from './app-icon'
 import { createUnderstudyCore, registerUnderstudy } from './understudy'
 import { registerHotkeys } from './hotkey'
 import { shouldShowDockAtStart } from './panel-rules'
@@ -42,6 +43,11 @@ let shellTray: ShellTray | null = null // SHELL: the menu-bar item keeps the app
 void app.whenReady().then(async () => {
   const headless = flag('ALONGSIDE_HEADLESS')
   const userDataDir = app.getPath('userData')
+  // The brand mark as the dock icon (macOS), instead of the Electron default.
+  if (process.platform === 'darwin') {
+    const icon = appIconPath(app.getAppPath(), process.resourcesPath)
+    if (icon) app.dock?.setIcon(nativeImage.createFromPath(icon))
+  }
 
   const bus = new Bus()
   const settings = new SettingsStore(userDataDir, { forced: forcedSettings() }) // voice-adjacent settings pinned off by feature flags
@@ -94,7 +100,7 @@ void app.whenReady().then(async () => {
   // NOTIFY: permission prompts also appear as a toast at the top of the screen (settings.confirmStyle; no window when headless / no overlay).
   const toast = registerToast({ ctx, adoptOwner, disabled: headless || flag('ALONGSIDE_NO_OVERLAY') })
   const unregisterLoginItem = registerLoginItem(settings, { log: (...args) => ctx.log('login-item', ...args) })
-  if (!headless) shellTray = registerTray({ bus, state, settings, windows, stop: (r) => session.stop(r), showtimeRunning: () => showtime.active(), kill: { trigger: () => void understudy.kill.trigger('tray'), clear: () => void understudy.kill.clear(), isKilled: () => understudy.kill.isKilled() }, openQueue: understudy.openQueue, captureMode: () => core.capture.mode(), coachLine: () => { const c = understudy.chip.current(); return c ? `Coach: ${HELP_LEVEL_LABELS[c.level]} (help level ${c.level})` : null }, log: (...args) => ctx.log('tray', ...args) })
+  if (!headless) shellTray = registerTray({ bus, state, settings, windows, stop: (r) => session.stop(r), showtimeRunning: () => showtime.active(), kill: { trigger: () => void understudy.kill.trigger('tray'), clear: () => void understudy.kill.clear(), isKilled: () => understudy.kill.isKilled() }, openQueue: understudy.openQueue, captureMode: () => core.capture.mode(), coachLine: () => { const c = understudy.chip.current(); return c ? `Help level ${c.level}: ${HELP_LEVEL_LABELS[c.level]}` : null }, openDashboard: understudy.openDashboard, voiceMenu: () => featureOn('voice'), cueMenu: () => experimentOn('cue'), queueCount: () => understudy.hudModel.state().queuePending, agentActing: () => understudy.hudModel.state().agentActing, log: (...args) => ctx.log('tray', ...args) })
   app.on('will-quit', () => {
     void showtime.dispose()
     shellTray?.dispose()
@@ -110,7 +116,7 @@ void app.whenReady().then(async () => {
 
   // The debug server has no auth (it serves /shot, /state, /tool, /settings): opt-in only, never by default.
   if (flag('ALONGSIDE_DEBUG')) {
-    startDebugServer({ ctx, services, dispatch, session, capture: { overlayPng: windows.overlayPng, overlayText: windows.overlayText, dockPng: windows.dockPng, hudPng: understudy.hud.png, hudPreview: understudy.hud.preview }, understudy: { kill: understudy.kill, hud: understudy.hudModel, dom: { status: () => ({ port: understudy.extServer()?.port() ?? null, pending: understudy.domGrounder.pending(), extensionSeenMs: understudy.extServer()?.lastSeenAt() ? Date.now() - (understudy.extServer()?.lastSeenAt() ?? 0) : null, ring: understudy.ring.current(), chip: understudy.chip.current(), capture: core.capture.mode(), coach: understudy.coachBrain.status() }) } }, tray: shellTray ?? undefined })
+    startDebugServer({ ctx, services, dispatch, session, capture: { overlayPng: windows.overlayPng, overlayText: windows.overlayText, dockPng: windows.dockPng, hudPng: understudy.hud.png, hudPreview: understudy.hud.preview, hudVisible: () => understudy.hud.window()?.isVisible() ?? null }, understudy: { kill: understudy.kill, hud: understudy.hudModel, dom: { status: () => ({ port: understudy.extServer()?.port() ?? null, pending: understudy.domGrounder.pending(), extensionSeenMs: understudy.extServer()?.lastSeenAt() ? Date.now() - (understudy.extServer()?.lastSeenAt() ?? 0) : null, ring: understudy.ring.current(), chip: understudy.chip.current(), capture: core.capture.mode(), coach: understudy.coachBrain.status() }) } }, tray: shellTray ?? undefined })
   }
 
   // Understudy: the microphone is only needed for voice or the wake word, both off unless their flags are set.

@@ -51,7 +51,7 @@ onboarding:
       default_hours: { start: "08:30", end: "17:00", days: [mon, tue, wed, thu, fri] }
 
 cogs:
-  extra: [LOAD_DATA, PROFILE_DATA, WRITE_QUERY, RUN_QUERY, INSPECT_RESULT, PLOT, EXPORT_RESULT]
+  extra: [LOAD_DATA, PROFILE_DATA, WRITE_QUERY, RUN_QUERY, INSPECT_RESULT, PLOT, EXPORT_RESULT, CLEAN_DATA, RECONCILE_CONTROL, GROUP_AGG]
   mapping: mapping.yaml
 
 expert_policy:

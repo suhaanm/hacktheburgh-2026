@@ -5,6 +5,7 @@ import path from 'node:path'
 import Ajv2020 from 'ajv/dist/2020'
 import addFormats from 'ajv-formats'
 import { afterEach, describe, expect, it } from 'vitest'
+import './fake-engine.test-util' // a private data dir with data/.token for the release routes
 import { createCoachTracker, withCoachTelemetry, wireCoachBus } from './coach-events'
 import { createEngineClient, toProposal } from './client'
 import { installDeskSignals, type PowerMonitorLike } from './desk-signals'
@@ -522,5 +523,63 @@ describe('role from memory', () => {
     const { roleFromMemory } = await import('./capture-consent')
     expect(roleFromMemory('---\nrole: unknown\nrevision: 0\n---\n')).toBeNull()
     expect(roleFromMemory('---\nrole: programmer\nrevision: 1\n---\n')).toBe('programmer')
+  })
+})
+
+describe('what the desktop sends with every write (REVIEW-SAFETY contract)', () => {
+  const ident = { person: 'p_9f3a1c20', role: 'benefits-processor' }
+  function capture(readToken: () => string | null) {
+    const calls: Array<{ url: string; init: RequestInit }> = []
+    const fetchImpl = (async (url: string | URL | Request, init?: RequestInit) => {
+      calls.push({ url: String(url), init: init ?? {} })
+      return new Response(JSON.stringify({}), { status: 200, headers: { 'content-type': 'application/json' } })
+    }) as typeof fetch
+    const client = createEngineClient({ endpoints: { engine: 'http://127.0.0.1:7700', agent: 'http://127.0.0.1:7710' }, identity: ident, fetchImpl, readToken, setTimer: () => 1, clearTimer: () => undefined })
+    return { calls, client }
+  }
+  const h = (c: { init: RequestInit }) => c.init.headers as Record<string, string>
+
+  it('every POST is JSON and names the worker as the actor; reads send neither', async () => {
+    const { calls, client } = capture(() => 'tok')
+    await client.coachFeedback('d_1', 'followed')
+    await client.kill()
+    await client.coachNext()
+    const post = calls.filter((c) => c.init.method === 'POST')
+    expect(post.length).toBe(3) // feedback, engine kill, agent kill
+    for (const c of post) expect(h(c)).toMatchObject({ 'content-type': 'application/json', 'x-understudy-actor': 'worker' })
+    const get = calls.find((c) => c.init.method === 'GET')!
+    expect(h(get)['x-understudy-actor']).toBeUndefined()
+    expect(h(get)['content-type']).toBeUndefined()
+  })
+
+  it('release routes (resume, routine consent) carry X-Understudy-Token, read fresh for each request; stop routes never do', async () => {
+    let token: string | null = 'first'
+    const { calls, client } = capture(() => token)
+    await client.clearKill()
+    token = 'second'
+    await client.decline('r1', 'not_now')
+    await client.kill()
+    await client.coachFeedback('d_1', 'dismissed')
+    const by = (suffix: string) => calls.filter((c) => c.url.endsWith(suffix))
+    expect(h(by('/kill/clear')[0]!)['x-understudy-token']).toBe('first')
+    expect(h(by('/routines/r1/consent')[0]!)['x-understudy-token']).toBe('second') // rotated between the two calls
+    for (const c of by('/kill')) expect(h(c)['x-understudy-token']).toBeUndefined() // stopping must never need a secret
+    expect(h(by('/coach/feedback')[0]!)['x-understudy-token']).toBeUndefined()
+  })
+
+  it('with no token file a release route is not sent at all and reads as "not reachable"', async () => {
+    const { calls, client } = capture(() => null)
+    expect(await client.clearKill()).toEqual({ engine: false, agent: false })
+    expect(await client.decline('r1', 'never')).toBe(false)
+    expect(calls).toEqual([])
+    await client.kill() // stop routes still go out without a token
+    expect(calls.length).toBe(2)
+  })
+
+  it('knows which routes release', async () => {
+    const { isReleaseRoute } = await import('./client')
+    for (const p of ['/kill/clear', '/queue/q1/approve', '/queue/q1/reject', '/routines/r/consent', '/routines/r/grants', '/offhours/consent', '/privacy/ledger/clear', '/resume']) expect(isReleaseRoute('POST', `http://127.0.0.1:7700${p}`), p).toBe(true)
+    for (const p of ['/kill', '/human-input', '/run/r1/stop', '/events', '/coach/feedback', '/study/mode']) expect(isReleaseRoute('POST', `http://127.0.0.1:7700${p}`), p).toBe(false)
+    expect(isReleaseRoute('GET', 'http://127.0.0.1:7700/kill/clear')).toBe(false)
   })
 })

@@ -1,0 +1,57 @@
+{
+ "meta": {
+  "origin": "synthetic",
+  "n": 4,
+  "n_unit": "people",
+  "split": null,
+  "interval_level": 0.95,
+  "note": "Synthetic calendars: 4 personas, 8 experts, 16 novices.",
+  "generated_at": null
+ },
+ "data": [
+  {
+   "person": "p_ninetofive",
+   "group": "persona",
+   "role": "benefits-processor",
+   "label": "Nine to five",
+   "weeks": [
+    "2026-W42",
+    "2026-W43",
+    "2026-W44"
+   ]
+  },
+  {
+   "person": "p_nightowl",
+   "group": "persona",
+   "role": "benefits-processor",
+   "label": "Night owl",
+   "weeks": [
+    "2026-W42",
+    "2026-W43",
+    "2026-W44"
+   ]
+  },
+  {
+   "person": "p_shiftwkr",
+   "group": "persona",
+   "role": "benefits-processor",
+   "label": "Shift worker",
+   "weeks": [
+    "2026-W42",
+    "2026-W43",
+    "2026-W44"
+   ]
+  },
+  {
+   "person": "p_irregular",
+   "group": "persona",
+   "role": "benefits-processor",
+   "label": "Irregular",
+   "weeks": [
+    "2026-W42",
+    "2026-W43",
+    "2026-W44"
+   ]
+  }
+ ]
+}

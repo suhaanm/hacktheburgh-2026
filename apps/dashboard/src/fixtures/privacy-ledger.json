@@ -1,14 +1,72 @@
 {
  "meta": {
-  "origin": "real",
-  "n": 6,
+  "origin": "synthetic",
+  "n": 10,
   "n_unit": "episodes",
   "split": null,
   "interval_level": 0.95,
-  "note": "The ledger is what this laptop recorded. It is local and you can clear it.",
+  "note": "Example rows. In your own ledger each line is one call to a remote model; lines marked mock reached no model.",
   "generated_at": "2026-11-07T17:05:00Z"
  },
  "data": [
+  {
+   "t": "2026-11-07T16:52:10Z",
+   "purpose": "glance.frame",
+   "schema": null,
+   "fields": [],
+   "payload": null,
+   "model": "mock-model",
+   "bytes": 48210,
+   "kind": "image",
+   "status": "ok",
+   "source": "sandbox",
+   "provider": "mock",
+   "mock": true,
+   "ok": true,
+   "latency_ms": 910,
+   "input_tokens": 1210,
+   "output_tokens": 42,
+   "cost_estimate_usd": 0.0004,
+   "image": {
+    "sha8": "3f9a1c0e22b7d841",
+    "bytes": 48210,
+    "width": 1280,
+    "height": 800,
+    "kind": "glance"
+   }
+  },
+  {
+   "t": "2026-11-07T16:51:02Z",
+   "purpose": "point.target",
+   "schema": null,
+   "fields": [],
+   "payload": null,
+   "model": "mock-model",
+   "bytes": 0,
+   "kind": "image",
+   "status": "blocked",
+   "reason": "unattended",
+   "source": "real_screen",
+   "provider": null,
+   "mock": true,
+   "image": null
+  },
+  {
+   "t": "2026-11-07T16:49:40Z",
+   "purpose": "glance.frame",
+   "schema": null,
+   "fields": [],
+   "payload": null,
+   "model": "mock-model",
+   "bytes": 0,
+   "kind": "image",
+   "status": "blocked",
+   "reason": "secure_input",
+   "source": "real_screen",
+   "provider": null,
+   "mock": true,
+   "image": null
+  },
   {
    "t": "2026-11-07T16:47:00Z",
    "purpose": "briefing_wording",
@@ -23,8 +81,37 @@
     "focus_blocks_90": "lt5",
     "expert_focus_blocks_90": "5to9"
    },
-   "model": "gpt-5.4-mini",
-   "bytes": 164
+   "model": "mock-model",
+   "bytes": 164,
+   "kind": "text",
+   "status": "ok",
+   "mock": true
+  },
+  {
+   "t": "2026-11-07T16:44:15Z",
+   "purpose": "verify.check",
+   "schema": null,
+   "fields": [],
+   "payload": null,
+   "model": "mock-model",
+   "bytes": 31002,
+   "kind": "image",
+   "status": "ok",
+   "source": "real_screen",
+   "provider": "mock",
+   "mock": true,
+   "ok": true,
+   "latency_ms": 1380,
+   "input_tokens": 980,
+   "output_tokens": 31,
+   "cost_estimate_usd": 0.0003,
+   "image": {
+    "sha8": "b01d77a9c4e2f650",
+    "bytes": 31002,
+    "width": 1024,
+    "height": 640,
+    "kind": "verify"
+   }
   },
   {
    "t": "2026-11-07T15:59:00Z",
@@ -40,8 +127,11 @@
     "meeting_h": "10to15",
     "back_to_back_runs": "lt5"
    },
-   "model": "gpt-5.4-mini",
-   "bytes": 171
+   "model": "mock-model",
+   "bytes": 171,
+   "kind": "text",
+   "status": "ok",
+   "mock": true
   },
   {
    "t": "2026-11-07T15:53:00Z",
@@ -57,8 +147,11 @@
     "focus_blocks_90": "lt5",
     "longest_focus_min": 120
    },
-   "model": "gpt-5.4-mini",
-   "bytes": 188
+   "model": "mock-model",
+   "bytes": 188,
+   "kind": "text",
+   "status": "ok",
+   "mock": true
   },
   {
    "t": "2026-11-07T13:41:00Z",
@@ -76,8 +169,11 @@
     "revert_share": 0.1,
     "size_bucket": "large"
    },
-   "model": "gpt-5.4-mini",
-   "bytes": 203
+   "model": "mock-model",
+   "bytes": 203,
+   "kind": "text",
+   "status": "ok",
+   "mock": true
   },
   {
    "t": "2026-11-07T12:05:00Z",
@@ -91,8 +187,11 @@
     "step": "read_result",
     "site_class": "calculator"
    },
-   "model": "gpt-5.5",
-   "bytes": 96
+   "model": "mock-model",
+   "bytes": 96,
+   "kind": "text",
+   "status": "ok",
+   "mock": true
   },
   {
    "t": "2026-11-07T10:53:00Z",
@@ -113,8 +212,11 @@
      "meetings": "10plus"
     }
    },
-   "model": "gpt-5.4-mini",
-   "bytes": 231
+   "model": "mock-model",
+   "bytes": 231,
+   "kind": "text",
+   "status": "ok",
+   "mock": true
   }
  ]
 }

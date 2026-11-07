@@ -291,3 +291,20 @@ def test_an_injection_planted_in_the_data_is_never_obeyed(tmp_path):
     assert r.state in ("done", "failed")
     for res in r.results.values():
         assert not res.reason.startswith("privacy_")
+
+
+def test_the_time_budget_ends_a_child_whose_script_runs_too_long():
+    """max_seconds=3 against a script that sleeps 60 s: the script is cut at the child's remaining time, not at 30 s."""
+    register_test_kinds()
+    plan = mock_plan("test.nap")
+    plan["children"][0]["max_seconds"] = 3
+    port = MockProvider("benefits_clean")
+    sc = scripts_for("test.nap", {"template": "nap_long"})
+    sc["agent_plan"] = [plan]
+    for t, rep in sc.items():
+        port.script_plan(t, *rep)
+    t0 = time.monotonic()
+    r = run_to_end("test.nap", {"template": "nap_long"}, port=port, auto_script=False)
+    took = time.monotonic() - t0
+    c = r.results["c1"]
+    assert c.status == "timeout" and not c.verified and took < 3 + 5, (c.status, took)

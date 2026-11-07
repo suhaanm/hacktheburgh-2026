@@ -589,6 +589,7 @@ def privacy(ctx: Ctx) -> dict[str, Any]:
     fn = owner_attr("privacy-layer", "understudy_engine.privacy.evaluate", "evaluate_privacy")
     r = dict(fn(record=False, seeds=tuple(range(3 if ctx.fast else 8))))          # fewer seeds per flow in --fast; the structure is the same
     r["meta"] = normalise_meta(r.get("meta"), {"origin": r.get("origin", "synthetic"), "n": r.get("n"), "n_unit": r.get("n_unit"), "split": r.get("split")})
+    r["meta"]["note"] = ((r["meta"].get("note") or "") + " The static-guard file counts and lists follow the code tree at run time, so they change when files are added.").strip()
     r.pop("purposes", None)                       # the purpose schemas are code documentation, not a result
     r["limitations"] = _limits(r)
     return r
@@ -842,6 +843,167 @@ def study_power(ctx: Ctx) -> dict[str, Any]:
     return r
 
 
+# ------------------------------------------------------------------------------------------------- newer owner sections
+OWNER_STUB_STATUSES = ("pending", "not_run", "failed")
+TIMING_KEYS = ("elapsed_s", "wall_s")          # how long the owner's own evaluation took: not a result, and not deterministic
+COMPACT_BYTES = 60_000                         # a top-level key bigger than this is replaced and listed under `trimmed`
+
+
+@contextlib.contextmanager
+def _offline():
+    """Owner code that can reach a model honours UNDERSTUDY_MOCK (the project-wide offline switch, NFR-2). The harness never calls a model, so every
+    newer owner section runs with it on, whatever the caller's environment says (the report's own ``mock`` flag is read before this)."""
+    import os
+
+    old = os.environ.get("UNDERSTUDY_MOCK")
+    os.environ["UNDERSTUDY_MOCK"] = "1"
+    try:
+        yield
+    finally:
+        if old is None:
+            os.environ.pop("UNDERSTUDY_MOCK", None)
+        else:
+            os.environ["UNDERSTUDY_MOCK"] = old
+
+
+def _text_limits(name: str, items: Any) -> list[dict[str, Any]]:
+    """Owner limitations as register entries; accepts dicts ({id, text, severity}) and plain sentences."""
+    out = []
+    for k, x in enumerate(items or []):
+        if isinstance(x, dict) and "id" in x and "text" in x:
+            out.append(dict(x))
+        elif isinstance(x, str):
+            out.append({"id": f"{name}-limit-{k + 1}", "text": x, "severity": "medium"})
+    return out
+
+
+def _shape_generic(name: str, r: dict[str, Any], *, fallback_meta: dict[str, Any] | None = None) -> dict[str, Any]:
+    """A newer owner's dict as a report section: ``status`` moved out of the way unless it says the section has no numbers, meta complete,
+    limitations as entries, timing dropped, oversized keys listed instead of copied."""
+    r = dict(r)
+    status = r.pop("status", None)
+    reason = r.get("reason")
+    for k in TIMING_KEYS:
+        r.pop(k, None)
+    meta = normalise_meta(r.get("meta"), {"origin": r.get("origin"), "n": r.get("n"), "n_unit": r.get("n_unit"), "split": r.get("split"), **(fallback_meta or {})})
+    r["meta"] = meta
+    r["limitations"] = _text_limits(name, r.get("limitations"))
+    if status in OWNER_STUB_STATUSES:
+        reason = reason or meta.get("note") or f"{name} reports status {status}"
+        return {"status": status, "reason": str(reason), "meta": meta, **{k: v for k, v in r.items() if k in ("limitations", "caveats", "label")}}
+    if status is not None:
+        r["owner_status"] = status
+    trimmed = []
+    for k, v in list(r.items()):
+        if k not in ("meta", "limitations") and len(json.dumps(v, default=str)) > COMPACT_BYTES:
+            trimmed.append({"key": k, "bytes": len(json.dumps(v, default=str))})
+            r[k] = None
+    if trimmed:
+        r["trimmed"] = trimmed
+    return r
+
+
+def _call_owner(ctx: Ctx, name: str, owner: str, module: str, attr: str, **extra: Any) -> dict[str, Any]:
+    import inspect
+
+    fn = owner_attr(owner, module, attr)
+    params = inspect.signature(fn).parameters
+    kw = ({"fast": ctx.fast} if "fast" in params else {}) | extra
+    with _offline():
+        r = fn(**kw)
+    return _shape_generic(name, r)
+
+
+def git(ctx: Ctx) -> dict[str, Any]:
+    return _call_owner(ctx, "git", "git-analysis", "understudy_engine.gitanalysis.evaluate", "evaluate_git")
+
+
+def proactive(ctx: Ctx) -> dict[str, Any]:
+    return _call_owner(ctx, "proactive", "proactive", "understudy_engine.proactive.evaluate", "evaluate_proactive")
+
+
+def calendar(ctx: Ctx) -> dict[str, Any]:
+    return _call_owner(ctx, "calendar", "calendar", "understudy_engine.calendar.evaluate", "evaluate_calendar")
+
+
+def localmodel(ctx: Ctx) -> dict[str, Any]:
+    # force_live stays False and the call runs offline (mock on), so the local model is read from its recorded answers and never started here
+    return _call_owner(ctx, "localmodel", "local-model", "understudy_engine.localmodel.evaluate", "evaluate_localmodel", force_live=False)
+
+
+def mlv2(ctx: Ctx) -> dict[str, Any]:
+    return _call_owner(ctx, "mlv2", "mlv2", "understudy_engine.mlv2.evaluate", "evaluate_mlv2")
+
+
+def evidence(ctx: Ctx) -> dict[str, Any]:
+    return _call_owner(ctx, "evidence", "evidence", "understudy_engine.evidence.evaluate", "evaluate_evidence")
+
+
+def cue(ctx: Ctx) -> dict[str, Any]:
+    return _call_owner(ctx, "cue", "cue", "understudy_engine.cue.evaluate", "evaluate_cue")
+
+
+def realism(ctx: Ctx) -> dict[str, Any]:
+    return _call_owner(ctx, "realism", "personas-v2", "understudy_engine.personas_v2.evaluate", "evaluate_realism")
+
+
+def _read_json_file(owner: str, path: Path, how: str, shown: str) -> dict[str, Any]:
+    if not path.is_file():
+        raise Skipped(f"{owner} not landed: {shown} is absent ({how}); `make eval` reads results and never runs models")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError(f"{path.name} is not a JSON object")
+    return data
+
+
+def runtime(ctx: Ctx) -> dict[str, Any]:
+    """The agent runtime evaluation, read from the file the agent track writes (``python -m understudy_agent.runtime.evaluate``)."""
+    r = _read_json_file("agent-runtime", resolve_root(ctx.root) / "eval" / "runtime_eval.json", "the agent track writes it with `python -m understudy_agent.runtime.evaluate`", "data/eval/runtime_eval.json")
+    return _shape_generic("runtime", r, fallback_meta={"n_unit": "runs"})
+
+
+def modelbench(ctx: Ctx) -> dict[str, Any]:
+    r = _read_json_file("modelbench", resolve_root(ctx.root) / "eval" / "modelbench.json", "the model-benchmark track writes it", "data/eval/modelbench.json")
+    return _shape_generic("modelbench", r)
+
+
+def _dir_section(owner: str, d: Path, attrs: tuple[str, ...], files: tuple[str, ...]) -> dict[str, Any]:
+    """A section an owner publishes from a directory under evals/: a function in the package, else a results file."""
+    if not d.is_dir():
+        raise NotLanded(owner, f"evals/{d.name} does not exist yet")
+    fn = None
+    for attr in attrs:
+        try:
+            fn = _find_in_dir(owner, d, attr)
+            break
+        except NotLanded:
+            continue
+    if fn is not None:
+        try:
+            with _repo_on_path(), _offline():
+                return dict(fn())
+        except ModuleNotFoundError as e:
+            if (e.name or "").startswith(f"_understudy_{d.name}_"):
+                raise NotLanded(owner, f"evals/{d.name}/{(e.name or '').rsplit('.', 1)[-1]}.py does not exist yet") from e
+            raise
+    for f in files:
+        p = d / f
+        if p.is_file():
+            return json.loads(p.read_text(encoding="utf-8"))
+    raise NotLanded(owner, f"evals/{d.name} has none of {', '.join(attrs)}() or {', '.join(files)} yet")
+
+
+def study_roles(ctx: Ctx) -> dict[str, Any]:
+    """Role-pack study results (study-roles track). Never the live `study`: that section is people only and does not read this."""
+    r = _dir_section("study-roles", evals_out_dir() / "study_roles", ("study_roles_section", "section"), ("section.json", "summary.json", "results/summary.json"))
+    return _shape_generic("study_roles", r)
+
+
+def agentic(ctx: Ctx) -> dict[str, Any]:
+    r = _dir_section("agentic", evals_out_dir() / "agentic", ("agentic_section", "section"), ("section.json", "summary.json", "results/summary.json", "report.json"))
+    return _shape_generic("agentic", r)
+
+
 # ---------------------------------------------------------------------------------------------------------------- table
 @dataclass(frozen=True)
 class SectionSpec:
@@ -869,6 +1031,18 @@ SECTIONS: tuple[SectionSpec, ...] = (
     SectionSpec("redteam", "agent-safety", redteam, needs_synthetic=False),
     SectionSpec("redteam_live", "agent-safety", redteam_live, needs_synthetic=False),
     SectionSpec("privacy", "privacy-layer", privacy, needs_synthetic=False),
+    SectionSpec("git", "git-analysis", git, needs_synthetic=False),
+    SectionSpec("proactive", "proactive", proactive, needs_synthetic=False),
+    SectionSpec("calendar", "calendar", calendar, needs_synthetic=False),
+    SectionSpec("localmodel", "local-model", localmodel, needs_synthetic=False),
+    SectionSpec("runtime", "agent-runtime", runtime, needs_synthetic=False),
+    SectionSpec("mlv2", "mlv2", mlv2, needs_synthetic=False),
+    SectionSpec("evidence", "evidence", evidence, needs_synthetic=False),
+    SectionSpec("cue", "cue", cue, needs_synthetic=False),
+    SectionSpec("realism", "personas-v2", realism, needs_synthetic=False),
+    SectionSpec("modelbench", "modelbench", modelbench, needs_synthetic=False),
+    SectionSpec("study_roles", "study-roles", study_roles, needs_synthetic=False),
+    SectionSpec("agentic", "agentic", agentic, needs_synthetic=False),
     SectionSpec("study", "platform", study, needs_synthetic=False),
     SectionSpec("study_sim", "study-sim", study_sim, needs_synthetic=False),
     SectionSpec("study_power", "engine-analytics", study_power, needs_synthetic=False),

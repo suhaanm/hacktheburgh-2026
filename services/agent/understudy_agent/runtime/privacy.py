@@ -22,13 +22,16 @@ from pydantic import Field
 try:  # the privacy spine lives in the engine package
     from understudy_engine.privacy import egress, ledger
     from understudy_engine.privacy.egress import EgressError
-    from understudy_engine.privacy.bucket import Count
+    from understudy_engine.privacy.bucket import Count, Numbers, register_feature
     from understudy_engine.privacy.payload import SafePayload, Vocab, register_payload, register_vocabulary
 except ImportError as _exc:  # pragma: no cover - the agent environment includes the engine
     raise ImportError("the agent runtime needs understudy_engine.privacy (the egress guard)") from _exc
 
 from . import policy
 from .spec import AGENT_PLAN_SCHEMA, TOOL_NAMES, plan_schema, roles
+
+for _name in policy.SIGNAL_NAMES:        # typed signals a script may report; sent as plain numbers (no bucketing: they are step counters)
+    register_feature(_name, "raw")
 
 ToolId = Literal["read_file", "list_dir", "git_log", "run_python", "write_workspace", "emit_result", "none"]
 CheckId = Literal["verified", "uncertain", "failed"]
@@ -61,8 +64,13 @@ WORDING_INSTRUCTIONS = ("Write one plain sentence of at most 40 words that says 
                         "project or customer.")
 
 
+MenuId = Annotated[str, Vocab("agents.menu_id")]
+
+
 class HistItem(SafePayload):
     tool: ToolId
+    file: MenuId
+    template: MenuId
     ok: bool
     check: CheckId
 
@@ -76,6 +84,7 @@ class ChildStepPayload(SafePayload):
     steps_left: Annotated[int, Field(ge=0, le=policy.MAX_STEPS)]
     last: LastId
     history: Annotated[list[HistItem], Field(max_length=policy.MAX_STEPS)]
+    signals: Numbers = Field(default_factory=dict)
 
 
 _registered_sig: tuple | None = None
@@ -132,6 +141,8 @@ def ensure_registered() -> None:
 
     register_vocabulary("agents.kind", [kind_id(k) for k in KINDS], extend=True)
     register_vocabulary("agents.role", list(MENUS), extend=True)
+    register_vocabulary("agents.menu_id", sorted({"none", *(f for m in MENUS.values() for f in m.files),
+                                                  *(t for m in MENUS.values() for t in m.templates)}), extend=True)
     register_payload("agents.parent_plan", ParentPlanPayload, instructions=parent_instructions(), replace=True,
                      response_schema=plan_schema(sorted(MENUS), sorted(output_schemas()), sorted(known_playbooks())))
     register_payload("agents.result_wording", ResultWordingPayload, instructions=WORDING_INSTRUCTIONS,
@@ -152,12 +163,14 @@ def parent_plan(kind: str, mode: str, port: Any) -> Any:
                        port=port).output
 
 
-def child_step(role: str, kind: str, steps_left: int, last: str, history: list[dict[str, Any]], port: Any) -> Any:
+def child_step(role: str, kind: str, steps_left: int, last: str, history: list[dict[str, Any]], port: Any,
+               signals: dict[str, Any] | None = None) -> Any:
     from .exemplars.base import kind_id
 
     ensure_registered()
     return egress.send(f"agents.child_step_{role}", {"role": role, "kind": kind_id(kind), "steps_left": steps_left,
-                                                     "last": last, "history": history[-policy.MAX_STEPS:]},
+                                                     "last": last, "history": history[-policy.MAX_STEPS:],
+                                                     "signals": dict(signals or {})},
                        port=port).output
 
 

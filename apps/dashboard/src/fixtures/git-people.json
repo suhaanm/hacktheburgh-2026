@@ -1,0 +1,32 @@
+{
+ "learners": [
+  {
+   "person": "p_git_learner_1",
+   "repo": "r_git_learner_1"
+  },
+  {
+   "person": "p_git_learner_2",
+   "repo": "r_git_learner_2"
+  },
+  {
+   "person": "p_git_learner_3",
+   "repo": "r_git_learner_3"
+  },
+  {
+   "person": "p_git_learner_4",
+   "repo": "r_git_learner_4"
+  }
+ ],
+ "experts": [
+  "p_git_expert_1",
+  "p_git_expert_2",
+  "p_git_expert_3",
+  "p_git_expert_4",
+  "p_git_expert_5",
+  "p_git_expert_6",
+  "p_git_expert_7",
+  "p_git_expert_8"
+ ],
+ "registered": [],
+ "default_person": "p_git_learner_1"
+}

@@ -31,3 +31,23 @@ skills:
       L1: Does the change since last period make sense? What would explain it?
       L2: What changed since last period?
       L3: Compare first.
+  - id: reconcile-to-control
+    label: Reconcile with the control figure before reporting
+    order: 4
+    cogs: [RECONCILE_CONTROL]
+    prerequisites: [inspect-before-trusting]
+    expert_signal: Compares the table's total with the control figure and explains the gap before reporting.
+    prompts:
+      L1: Does your total match the figure the finance system holds? What explains the gap?
+      L2: Matches the control?
+      L3: Reconcile first.
+  - id: segment-before-concluding
+    label: Cut by the right dimension before comparing or averaging
+    order: 5
+    cogs: [GROUP_AGG]
+    prerequisites: [inspect-before-trusting]
+    expert_signal: Groups by the segment that matters, and counts the right unit, before drawing a conclusion.
+    prompts:
+      L1: Does the overall number hide a difference between segments, or count the wrong unit?
+      L2: Cut by segment?
+      L3: Group first.

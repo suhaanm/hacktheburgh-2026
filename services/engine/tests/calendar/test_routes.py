@@ -1,7 +1,6 @@
 """GET /calendar/week and /calendar/suggestions: flag gating, envelope, shapes, errors, no text."""
 from __future__ import annotations
 
-import json
 import re
 
 import pytest

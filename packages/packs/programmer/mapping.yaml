@@ -3,7 +3,7 @@
 # samples for a thin pack: selectors for real tools are starting points, not guarantees).
 version: 1
 params: { follow_s: 5, gap_idle_s: 15, reformulate_within_s: 90, max_cog_s: 240 }
-extra_cogs: [READ_CODE, EDIT_CODE, RUN_TESTS, READ_TRACE, REVIEW_DIFF, COMMIT, SEARCH_DOCS]
+extra_cogs: [READ_CODE, EDIT_CODE, RUN_TESTS, READ_TRACE, REVIEW_DIFF, COMMIT, SEARCH_DOCS, PROBE_EDGE, INSPECT_INPUT, WRITE_TEST]
 
 zones:
   - code_view
@@ -13,6 +13,10 @@ zones:
   - diff_view
   - commit_box
   - docs_page
+  - edge_probe
+  - input_data
+  - test_editor
+  - test_report
   - doc
   - form_field
   - search_box
@@ -33,6 +37,13 @@ rules:
   - { match: { type: [scroll, click, focus], zone: ci_log }, cog: READ_TRACE }
   - { match: { type: [scroll, click, focus], zone: code_view }, cog: READ_CODE }
   - { match: { type: [nav, tab, search, scroll, click], zone: docs_page }, cog: SEARCH_DOCS }
+  # ---- programmer role cogs added for the role sandbox (STU): probe an edge, look at real inputs, write the test
+  - { match: { type: [click, focus], zone: edge_probe }, cog: PROBE_EDGE }
+  - { match: { type: [click, focus, scroll], zone: input_data }, cog: INSPECT_INPUT }
+  - { match: { type: [click, focus], zone: test_editor }, cog: WRITE_TEST }
+  - { match: { type: nav, zone: test_report }, cog: READ_TRACE, starts: true }   # the sandbox navigates to #run-N when a test run finishes: the output is on screen
+  - { match: { type: nav, zone: commit_box }, cog: COMMIT }
+  - { match: { type: nav, zone: decision_btn }, cog: DECIDE }
   # ---- base cogs
   - { match: { type: idle }, cog: IDLE, backdate_meta: idle_s }
   - { match: { type: undo }, cog: REVERT }
@@ -82,6 +93,32 @@ capture_sites:
     tab_default: docs_page
     elements:
       - { zone: docs_page, selector: "main, article, #content, .answercell" }
+  - id: roles_sandbox
+    hosts: ["127.0.0.1:7941", "127.0.0.1:7942", "127.0.0.1:7943", "127.0.0.1:7944", "127.0.0.1:7945", "127.0.0.1:7946", "127.0.0.1:7947", "127.0.0.1:7948", "localhost:7941", "localhost:7942", "localhost:7943", "localhost:7944", "localhost:7945", "localhost:7946", "localhost:7947", "localhost:7948"]
+    nav_default: code_view
+    tab_default: compare_view
+    nav:
+      - { zone: test_report, when: 'body[data-nav="run"]' }
+      - { zone: commit_box, when: 'body[data-nav="commit"]' }
+      - { zone: decision_btn, when: 'body[data-nav="done"]' }
+    elements:
+      - { zone: edge_probe, selector: '#probe-panel' }
+      - { zone: input_data, selector: '#inputs-panel' }
+      - { zone: test_editor, selector: '#editor[data-kind="test"]' }
+      - { zone: code_editor, selector: '#editor' }
+      - { zone: test_runner, selector: '#run-tests' }
+      - { zone: ci_log, selector: '#test-output' }
+      - { zone: diff_view, selector: '#diff-panel, #diff-btn' }
+      - { zone: commit_box, selector: '#git-panel' }
+      - { zone: docs_page, selector: '#docs-panel' }
+      - { zone: code_view, selector: '#file-tree' }
+      - { zone: decision_btn, selector: '#done-btn' }
+    markers:
+      task_start: { zone: code_view, idle_s: 120 }
+      progress:
+        - { kind: tests_run, when: 'body[data-nav="run"]' }
+        - { kind: committed, when: 'body[data-nav="commit"]' }
+      task_end: { when: '#case-done', reason: done }
 
 examples:
   - name: failing build, read the log, re-run
@@ -91,3 +128,14 @@ examples:
       - { dt: 20, type: scroll, meta: { zone: ci_log, depth_bin: 3 } }
       - { dt: 30, type: click,  role: button, meta: { zone: test_runner } }
     expect: [NAVIGATE, READ_TRACE, READ_TRACE, RUN_TESTS]
+  - name: run the tests, read the failure, try an edge in the console, look at the inputs, write a test
+    events:
+      - { dt: 0,  type: click, role: button, meta: { zone: test_runner } }
+      - { dt: 2,  type: nav,   meta: { zone: test_report, spa: true } }
+      - { dt: 8,  type: click, role: button, meta: { zone: input_data } }
+      - { dt: 6,  type: focus, role: textbox, meta: { zone: test_editor } }
+      - { dt: 20, type: focus, role: textbox, meta: { zone: code_editor } }
+      - { dt: 20, type: click, role: button, meta: { zone: edge_probe } }
+      - { dt: 8,  type: click, role: button, meta: { zone: diff_view } }
+      - { dt: 8,  type: click, role: button, meta: { zone: commit_box } }
+    expect: [RUN_TESTS, READ_TRACE, INSPECT_INPUT, WRITE_TEST, EDIT_CODE, PROBE_EDGE, REVIEW_DIFF, COMMIT]

@@ -83,9 +83,9 @@ export function Panel(props: PanelProps): ReactElement {
         {tab === 'settings' ? <SettingsPanel settings={settings} onChange={props.onSettings} personas={PERSONA_OPTIONS} more={<MoreExtras onSetUpAgain={props.onSetUpAgain} files={props.files} />} /> : null}
       </div>
 
-      {settings.listeningLight || stoppable ? (
+      {(settings.listeningLight && state.phase !== 'asleep') || stoppable ? (
       <div className="al-dock__foot">
-        {settings.listeningLight ? <ListeningLight phase={state.phase} muted={state.micMuted} personaName={personaName} screenBlocked={screenBlocked} onFixScreen={() => window.alongside.permissions.openSettings('screen')} /> : <span style={{ flex: 1 }} />}
+        {settings.listeningLight && state.phase !== 'asleep' ? <ListeningLight phase={state.phase} muted={state.micMuted} personaName={personaName} screenBlocked={screenBlocked} onFixScreen={() => window.alongside.permissions.openSettings('screen')} /> : <span style={{ flex: 1 }} />}
         {stoppable ? <StopButton onStop={props.onStop} /> : null}
       </div>
       ) : null}

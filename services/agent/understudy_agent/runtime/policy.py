@@ -42,3 +42,14 @@ def agents_enabled(env: dict[str, str] | None = None) -> bool:
 def estimate_tokens(text: str) -> int:
     """Token budgets are estimates (characters / 4). Reported as such; the real provider counts are not per child."""
     return (len(text) + 3) // 4
+
+
+# Typed signals a vetted script may report after a step (status file); only these names, only numbers. They are the only
+# thing about a step's RESULT that goes back to the model, and they pass the egress guard as registered features.
+SIGNAL_NAMES: Final = (
+    "tests_total", "tests_failing", "suspects_left", "classes_tried", "fixes_kept", "backtracks", "rows_in", "rows_out",
+    "duplicates_found", "duplicates_removed", "unit_suspects", "unit_fixes", "outliers_found", "outliers_flagged",
+    "reconcile_gap_cents", "reconciled", "phases_done", "script_crashed",
+)
+MAX_RECOVERIES: Final = 3        # failed script runs a child may recover from (retry or change course) before it stops
+STATUS_FILE: Final = "status.json"

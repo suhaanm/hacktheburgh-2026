@@ -11,7 +11,6 @@ import pytest
 
 from understudy_engine.calendar import canary_run, real_check, service
 from understudy_engine.calendar import suggest as S
-from understudy_engine.calendar.model import week_label
 from understudy_engine.privacy import testing
 
 ROOT = Path(__file__).resolve().parents[2] / "understudy_engine"
@@ -23,7 +22,6 @@ def tokens(canary_store):
 
 
 def test_canary_calendars_have_real_looking_text_and_the_same_structure(store, canary_store, tokens):
-    from understudy_engine.plugins.ics import ICSSource
     assert len(tokens) > 5000
     src, work, _ = canary_store.source_for("p_nov05")
     items = list(src.read())

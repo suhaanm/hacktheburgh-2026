@@ -143,8 +143,14 @@ try {
     await sleep(1200)
     const overlay = Buffer.from(await (await api('/overlay.png')).arrayBuffer())
     const huds = {}
+    // idle: the HUD window is hidden (nothing on the screen); an agent acting brings the Stop all pill up
     await post('/hud/preview', { mode: 'none' })
-    await sleep(500)
+    await post('/hud/acting', { acting: false })
+    await sleep(700)
+    huds.idleVisible = (await api('/hud/visible').then((r) => r.json()).catch(() => ({}))).visible === true ? 'window visible' : 'window hidden'
+    await post('/hud/acting', { acting: true })
+    await sleep(900)
+    huds.actingVisible = (await api('/hud/visible').then((r) => r.json()).catch(() => ({}))).visible === true ? 'window visible' : 'window hidden'
     huds.idle = Buffer.from(await (await api('/hud.png')).arrayBuffer()).toString('base64')
     await post('/hud/preview', { mode: 'hover' })
     await sleep(600)
@@ -155,8 +161,15 @@ try {
     await sleep(1500)
     huds.stopped = Buffer.from(await (await api('/hud.png')).arrayBuffer()).toString('base64')
     await post('/kill/clear', {})
+    await post('/hud/acting', { acting: false })
     await sleep(800)
-    extras.push({ os, overlay: overlay.toString('base64'), huds })
+    // the level-change toast (two seconds): captured while it is up
+    await post('/overlay', { cmd: { type: 'chip', level: 2, label: 'Walk with me' } })
+    await sleep(1100)
+    const toast = Buffer.from(await (await api('/overlay.png')).arrayBuffer()).toString('base64')
+    await sleep(2200)
+    const toastGone = Buffer.from(await (await api('/overlay.png')).arrayBuffer()).toString('base64')
+    extras.push({ os, overlay: overlay.toString('base64'), huds, toast, toastGone })
   }
   await post('/theme', { mode: 'system' })
 
@@ -194,16 +207,21 @@ try {
         const ov = await load(e.overlay)
         const k = ov.naturalWidth / (ov.naturalWidth / (ov.naturalWidth > 3000 ? 2 : 2))
         const w = Math.round(ov.naturalWidth * 0.28), h = Math.round(ov.naturalHeight * 0.1)
+        const tw = Math.round(ov.naturalWidth * 0.34), x0 = Math.round((ov.naturalWidth - tw) / 2)
+        const tt = await load(e.toast), tg = await load(e.toastGone)
         for (const bg of ['#ffffff', '#0e1319']) {
-          const c = document.createElement('canvas'); c.width = w; c.height = h
-          const g = c.getContext('2d'); g.fillStyle = bg; g.fillRect(0, 0, w, h)
-          g.drawImage(ov, ov.naturalWidth - w, 0, w, h, 0, 0, w, h)
-          g.font = '22px system-ui'; g.fillStyle = '#c0392b'; g.fillText(`top-right, overlay ${e.os}, page ${bg === '#fff' || bg === '#ffffff' ? 'light' : 'dark'}`, 10, 26)
-          chips.push(c)
+          for (const [img, tag] of [[ov, 'top-right (the old chip place), no toast'], [tt, 'level toast, 1.1 s after the change'], [tg, 'toast 3.3 s after: gone']]) {
+            const c = document.createElement('canvas'); c.width = tw; c.height = h
+            const g = c.getContext('2d'); g.fillStyle = bg; g.fillRect(0, 0, tw, h)
+            if (img === ov) g.drawImage(img, img.naturalWidth - tw, 0, tw, h, 0, 0, tw, h)
+            else g.drawImage(img, x0, 0, tw, h, 0, 0, tw, h)
+            g.font = '20px system-ui'; g.fillStyle = '#c0392b'; g.fillText(`${tag}, overlay ${e.os}, page ${bg === '#ffffff' ? 'light' : 'dark'}`, 10, 26)
+            chips.push(c)
+          }
         }
         void k
       }
-      out.chips = montage(chips, 2)
+      out.chips = montage(chips, 3)
       // the HUD window captures (its own pixels, on a light and on a dark page behind it): rows idle, hover, stopped
       const cells = []
       for (const state of ['idle', 'hover', 'stopped']) {
@@ -233,6 +251,7 @@ try {
     writeFileSync(file, Buffer.from(url.split(',')[1], 'base64'))
     out.files.push(file)
   }
+  out.hudWindowWhenIdle = extras.map((e) => `idle: ${e.huds.idleVisible}; acting: ${e.huds.actingVisible}`)
   out.ok = true
 } catch (e) {
   out.error = String(e?.stack ?? e)

@@ -23,6 +23,68 @@
   "run": {
    "type": "object"
   },
+  "evidence_map": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "properties": {
+     "section": {
+      "type": "string"
+     },
+     "title": {
+      "type": "string"
+     },
+     "status": {
+      "enum": [
+       "ok",
+       "pending",
+       "not_run",
+       "failed"
+      ]
+     },
+     "origin": {
+      "enum": [
+       "real",
+       "synthetic",
+       "mixed"
+      ]
+     },
+     "n": {
+      "type": [
+       "integer",
+       "null"
+      ]
+     },
+     "n_unit": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "label": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "reason": {
+      "type": [
+       "string",
+       "null"
+      ]
+     }
+    },
+    "required": [
+     "section",
+     "title",
+     "status",
+     "origin",
+     "n",
+     "n_unit"
+    ],
+    "additionalProperties": true
+   }
+  },
   "sections": {
    "type": "object",
    "properties": {
@@ -304,6 +366,174 @@
      },
      "else": {
       "$ref": "#/$defs/pooling"
+     }
+    },
+    "git": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/git"
+     }
+    },
+    "proactive": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/proactive"
+     }
+    },
+    "calendar": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/calendar"
+     }
+    },
+    "localmodel": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/localmodel"
+     }
+    },
+    "runtime": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/runtime"
+     }
+    },
+    "mlv2": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/mlv2"
+     }
+    },
+    "evidence": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/evidence"
+     }
+    },
+    "cue": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/cue"
+     }
+    },
+    "realism": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/realism"
+     }
+    },
+    "modelbench": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/modelbench"
+     }
+    },
+    "study_roles": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/study_roles"
+     }
+    },
+    "agentic": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/agentic"
      }
     },
     "limitations": {
@@ -2105,6 +2335,42 @@
    "$ref": "#/$defs/meta_only"
   },
   "pooling": {
+   "$ref": "#/$defs/meta_only"
+  },
+  "git": {
+   "$ref": "#/$defs/meta_only"
+  },
+  "proactive": {
+   "$ref": "#/$defs/meta_only"
+  },
+  "calendar": {
+   "$ref": "#/$defs/meta_only"
+  },
+  "localmodel": {
+   "$ref": "#/$defs/meta_only"
+  },
+  "runtime": {
+   "$ref": "#/$defs/meta_only"
+  },
+  "mlv2": {
+   "$ref": "#/$defs/meta_only"
+  },
+  "evidence": {
+   "$ref": "#/$defs/meta_only"
+  },
+  "cue": {
+   "$ref": "#/$defs/meta_only"
+  },
+  "realism": {
+   "$ref": "#/$defs/meta_only"
+  },
+  "modelbench": {
+   "$ref": "#/$defs/meta_only"
+  },
+  "study_roles": {
+   "$ref": "#/$defs/meta_only"
+  },
+  "agentic": {
    "$ref": "#/$defs/meta_only"
   }
  }

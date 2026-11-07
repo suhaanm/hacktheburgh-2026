@@ -58,7 +58,7 @@ import type { TrayModel } from './tray'
 import { trayTitle } from './panel-rules'
 import type { TrayStateInput } from './panel-rules'
 
-const base: TrayModel = { phase: 'asleep', micMuted: false, persona: null, dockVisible: true, showtimeRunning: false }
+const base: TrayModel = { phase: 'asleep', micMuted: false, persona: null, dockVisible: true, showtimeRunning: false, voiceMenu: true }
 const labels = (m: Partial<TrayModel> = {}) => buildMenuEntries({ ...base, ...m }).filter((e) => !e.separator).map((e) => e.label)
 const byId = (m: Partial<TrayModel>, id: string) => buildMenuEntries({ ...base, ...m }).find((e) => e.id === id)
 
@@ -68,19 +68,58 @@ describe('menu content', () => {
     expect(all).toEqual([
       'Asleep',
       'Show panel',
-      'Talk to Marcus',
-      'Talk to Amelia',
+      'Talk to Understudy',
+      'Pause for 1 hour',
       'Type instead',
       'Mute microphone',
       'Stop',
       'Stop everything',
+      'Open dashboard',
       'Open morning queue',
       'Run the demo walkthrough',
       'Set up again…',
       'Permissions…',
-      'Quit Alongside',
+      'Quit Understudy',
     ])
     for (const label of all) expect(label).not.toMatch(/\p{Extended_Pictographic}/u)
+  })
+
+  it('the calm menu (voice off, the default): help level, talk, pause, awareness, stop everything, dashboard, queue, quit', () => {
+    const calm = { voiceMenu: false, coach: 'Help level 1: Watch me', awareness: { enabled: false, onTrigger: false, periodic: false } }
+    expect(labels(calm)).toEqual([
+      'Asleep',
+      'Help level 1: Watch me',
+      'Show panel',
+      'Talk to Understudy',
+      'Pause for 1 hour',
+      'Awareness',
+      'Glance when I seem stuck',
+      'Look now and then',
+      'Stop everything',
+      'Open dashboard',
+      'Open morning queue',
+      'Permissions…',
+      'Quit Understudy',
+    ])
+    // the glance switches are the AWARENESS settings, unavailable until awareness itself is on
+    expect(byId(calm, 'awareness')).toMatchObject({ checked: false, enabled: true })
+    expect(byId(calm, 'glance_trigger')).toMatchObject({ checked: false, enabled: false })
+    const on = { ...calm, awareness: { enabled: true, onTrigger: true, periodic: false } }
+    expect(byId(on, 'glance_trigger')).toMatchObject({ checked: true, enabled: true })
+    expect(byId(on, 'glance_periodic')).toMatchObject({ checked: false, enabled: true })
+    expect(byId({ voiceMenu: false }, 'type')).toBeUndefined()
+    expect(byId({ voiceMenu: false }, 'mute')).toBeUndefined()
+  })
+
+  it('shows the talk key next to Talk to Understudy, and offers Resume now while paused (with the time in the status line)', () => {
+    expect(byId({ talkAccelerator: 'Alt+Space' }, 'talk:understudy')?.accelerator).toBe('Alt+Space')
+    const now = new Date(2026, 10, 7, 17, 30).getTime()
+    const until = now + 60 * 60_000
+    const entries = buildMenuEntries({ ...base, pausedUntil: until }, now)
+    expect(entries[0]!.label).toBe('Paused until 18:30')
+    expect(entries.find((e) => e.id === 'unpause')?.label).toBe('Resume now')
+    expect(entries.find((e) => e.id === 'pause')).toBeUndefined()
+    expect(buildMenuEntries({ ...base, pausedUntil: now - 1 }, now).find((e) => e.id === 'pause')).toBeTruthy() // an ended pause is no pause
   })
 
   it('describes each phase', () => {
@@ -88,18 +127,22 @@ describe('menu content', () => {
     expect(describeStatus({ phase: 'listening_for_name', micMuted: false, persona: null })).toBe('Waiting to hear its name')
     expect(describeStatus({ phase: 'connecting', micMuted: false, persona: 'amelia' })).toBe('Connecting to Amelia…')
     expect(describeStatus({ phase: 'live', micMuted: false, persona: 'amelia' })).toBe('Live with Amelia')
-    expect(describeStatus({ phase: 'thinking', micMuted: false, persona: null })).toBe('Marcus is thinking')
-    expect(describeStatus({ phase: 'speaking', micMuted: false, persona: 'marcus' })).toBe('Marcus is speaking')
+    expect(describeStatus({ phase: 'thinking', micMuted: false, persona: null })).toBe('Understudy is thinking')
+    expect(describeStatus({ phase: 'speaking', micMuted: false, persona: 'understudy' })).toBe('Understudy is speaking')
     expect(describeStatus({ phase: 'error', micMuted: false, persona: null })).toBe('Something went wrong')
-    expect(describeStatus({ phase: 'live', micMuted: true, persona: 'marcus' })).toBe('Microphone muted')
+    expect(describeStatus({ phase: 'live', micMuted: true, persona: 'understudy' })).toBe('Microphone muted')
   })
 
-  it('picks the icon from mute first, then session activity', () => {
+  it('picks the icon badge: paused first, then a glance in flight, then an agent acting; mute no longer changes it', () => {
     expect(iconKind({ phase: 'asleep', micMuted: false })).toBe('idle')
     expect(iconKind({ phase: 'listening_for_name', micMuted: false })).toBe('idle')
-    for (const phase of ['connecting', 'live', 'thinking', 'speaking'] as const) expect(iconKind({ phase, micMuted: false })).toBe('live')
-    expect(iconKind({ phase: 'live', micMuted: true })).toBe('muted')
-    expect(iconKind({ phase: 'asleep', micMuted: true })).toBe('muted')
+    for (const phase of ['connecting', 'live', 'thinking', 'speaking'] as const) expect(iconKind({ phase, micMuted: false })).toBe('acting')
+    expect(iconKind({ phase: 'live', micMuted: true })).toBe('acting')
+    expect(iconKind({ phase: 'asleep', micMuted: true })).toBe('idle')
+    expect(iconKind({ phase: 'asleep', micMuted: false, agents: [{ status: 'running' }] })).toBe('acting')
+    expect(iconKind({ phase: 'asleep', micMuted: false, agentActing: true })).toBe('acting') // an agent-service run counts
+    expect(iconKind({ phase: 'asleep', micMuted: false, glanceInFlight: true })).toBe('glance')
+    expect(iconKind({ phase: 'live', micMuted: false, glanceInFlight: true, paused: true })).toBe('paused')
   })
 
   it('enables Stop only while a session is active', () => {
@@ -118,15 +161,13 @@ describe('menu content', () => {
 
   it('shows the real hotkeys on the persona the hotkey starts, and on Stop', () => {
     const m = { startAccelerator: 'CommandOrControl+Alt+Space', stopAccelerator: 'CommandOrControl+Alt+M' }
-    expect(byId({ ...m, persona: null }, 'talk:marcus')?.accelerator).toBe(m.startAccelerator)
-    expect(byId({ ...m, persona: null }, 'talk:amelia')?.accelerator).toBeUndefined()
-    expect(byId({ ...m, persona: 'amelia' }, 'talk:amelia')?.accelerator).toBe(m.startAccelerator)
+    expect(byId({ ...m, persona: null }, 'talk:understudy')?.accelerator).toBe(m.startAccelerator)
     expect(byId({ ...m, phase: 'live' }, 'stop')?.accelerator).toBe(m.stopAccelerator)
     expect(byId({}, 'stop')?.accelerator).toBeUndefined()
   })
 })
 
-function setup(opts: { showMenuBarIcon?: boolean; iconDir?: string; dockVisible?: boolean } = {}) {
+function setup(opts: { showMenuBarIcon?: boolean; iconDir?: string; dockVisible?: boolean; voice?: boolean; cue?: boolean; now?: () => number; openDashboard?: () => void; glanceInFlight?: () => boolean } = {}) {
   mocks.FakeTray.instances.length = 0
   const bus = new Bus()
   const settings = new SettingsStore(null)
@@ -149,7 +190,8 @@ function setup(opts: { showMenuBarIcon?: boolean; iconDir?: string; dockVisible?
   const events: unknown[] = []
   bus.on('session:request', (e) => events.push({ name: 'session:request', ...e }))
   bus.on('showtime:request', (e) => events.push({ name: 'showtime:request', ...e }))
-  const shell = registerTray({ bus, state, settings, windows, stop, quit, log: () => undefined, iconDir: opts.iconDir ?? path.join(process.cwd(), 'resources', 'tray') })
+  bus.on('talk', (e) => events.push({ name: 'talk', ...e }))
+  const shell = registerTray({ bus, state, settings, windows, stop, quit, log: () => undefined, iconDir: opts.iconDir ?? path.join(process.cwd(), 'resources', 'tray'), voiceMenu: () => opts.voice ?? true, cueMenu: () => opts.cue ?? false, now: opts.now, openDashboard: opts.openDashboard, glanceInFlight: opts.glanceInFlight })
   return { shell, bus, settings, state, windows, stop, quit, events, tray: () => mocks.FakeTray.instances.at(-1)! }
 }
 
@@ -160,7 +202,7 @@ describe('tray lifecycle', () => {
     const { shell, tray } = setup()
     expect(shell.hasTray()).toBe(true)
     expect(tray().image).toMatchObject({ file: expect.stringContaining('trayTemplate.png') })
-    expect(tray().tooltip).toBe('Alongside: Asleep')
+    expect(tray().tooltip).toBe('Understudy: Asleep')
     expect(shell.info().bounds).toEqual({ x: 900, y: 0, width: 24, height: 24 })
   })
 
@@ -188,22 +230,22 @@ describe('tray lifecycle', () => {
     const { state, tray } = setup()
     const spy = vi.spyOn(tray(), 'setImage')
     state.patch({ phase: 'listening_for_name' })
-    expect(tray().tooltip).toBe('Alongside: Waiting to hear its name')
+    expect(tray().tooltip).toBe('Understudy: Waiting to hear its name')
     expect(spy).toHaveBeenCalledTimes(1) // tooltip changed, same idle icon key set
-    state.patch({ phase: 'live', persona: 'amelia' })
-    expect(tray().tooltip).toBe('Alongside: Live with Amelia')
-    expect(tray().image).toMatchObject({ file: expect.stringContaining('trayLiveTemplate.png') })
+    state.patch({ phase: 'live', persona: 'understudy' })
+    expect(tray().tooltip).toBe('Understudy: Live with Understudy')
+    expect(tray().image).toMatchObject({ file: expect.stringContaining('trayActingTemplate.png') })
     const calls = spy.mock.calls.length
     state.patch({ captions: [] }) // unrelated
     expect(spy.mock.calls.length).toBe(calls)
     state.patch({ micMuted: true })
-    expect(tray().image).toMatchObject({ file: expect.stringContaining('trayMutedTemplate.png') })
-    expect(tray().tooltip).toBe('Alongside: Microphone muted')
+    expect(tray().image).toMatchObject({ file: expect.stringContaining('trayActingTemplate.png') }) // the badge says an agent or session is on, mute or not
+    expect(tray().tooltip).toBe('Understudy: Microphone muted')
   })
 
   it('falls back to a text title if the icon files are missing', () => {
     const { tray, shell } = setup({ iconDir: path.join(process.cwd(), 'no-such-dir') })
-    expect(tray().title).toBe('Alongside')
+    expect(tray().title).toBe('Understudy')
     expect(shell.hasTray()).toBe(true)
   })
 
@@ -237,27 +279,73 @@ describe('click handlers', () => {
     const items = tray().popped[0].items as { label?: string; enabled?: boolean; type?: string }[]
     expect(items.find((i) => i.label === 'Unmute microphone')).toBeTruthy()
     expect(items.find((i) => i.label === 'Stop')?.enabled).toBe(true)
-    expect(items.filter((i) => i.type === 'separator')).toHaveLength(5)
+    expect(items.filter((i) => i.type === 'separator')).toHaveLength(6)
   })
 
   it('menu clicks run the entry', () => {
     const { tray, events } = setup()
     tray().handlers['right-click']()
     const items = tray().popped[0].items as { label?: string; click?: () => void }[]
-    items.find((i) => i.label === 'Talk to Amelia')?.click?.()
-    expect(events).toEqual([{ name: 'session:request', personaId: 'amelia', source: 'button' }])
+    items.find((i) => i.label === 'Talk to Understudy')?.click?.()
+    expect(events).toEqual([{ name: 'session:request', personaId: 'understudy', source: 'button' }])
   })
 })
 
 describe('menu actions', () => {
-  it('Talk to <persona> emits session:request from the button', () => {
+  it('Talk to Understudy emits session:request from the button while the old voice menu is on', () => {
     const { shell, events } = setup()
-    expect(shell.activate('talk:marcus')).toBe(true)
-    expect(shell.activate('talk:amelia')).toBe(true)
-    expect(events).toEqual([
-      { name: 'session:request', personaId: 'marcus', source: 'button' },
-      { name: 'session:request', personaId: 'amelia', source: 'button' },
-    ])
+    expect(shell.activate('talk:understudy')).toBe(true)
+    expect(shell.activate('talk:amelia')).toBe(false) // the legacy personas are not offered
+    expect(events).toEqual([{ name: 'session:request', personaId: 'understudy', source: 'button' }])
+  })
+
+  it('with voice off (the default) Talk to Understudy raises the panel and emits talk from the tray, and starts no session', () => {
+    const { shell, events, windows } = setup({ voice: false })
+    expect(shell.activate('talk:understudy')).toBe(true)
+    expect(windows.showDock).toHaveBeenCalled()
+    expect(events).toEqual([{ name: 'talk', source: 'tray', phase: 'press' }])
+    expect(shell.info().menu.some((e) => e.id === 'type' || e.id === 'mute' || e.id === 'demo' || e.id === 'setup')).toBe(false)
+  })
+
+  it('Pause for 1 hour sets pausedUntil an hour ahead, shows the paused icon, and Resume now clears it', () => {
+    const { shell, settings, tray } = setup({ now: () => 1_000_000 })
+    expect(shell.activate('pause')).toBe(true)
+    expect(settings.get().pausedUntil).toBe(1_000_000 + 3_600_000)
+    expect(tray().image).toMatchObject({ file: expect.stringContaining('trayPausedTemplate.png') })
+    expect(shell.activate('pause')).toBe(false) // offered as Resume now while paused
+    expect(shell.activate('unpause')).toBe(true)
+    expect(settings.get().pausedUntil).toBeNull()
+    expect(tray().image).toMatchObject({ file: expect.stringContaining('trayTemplate.png') })
+  })
+
+  it('the awareness and glance checkboxes flip the AWARENESS settings; the glance switches need awareness on', () => {
+    const { shell, settings } = setup()
+    expect(shell.activate('glance_trigger')).toBe(false) // awareness is off
+    expect(shell.activate('awareness')).toBe(true)
+    expect(settings.get().awarenessEnabled).toBe(true)
+    expect(shell.activate('glance_trigger')).toBe(true)
+    expect(shell.activate('glance_periodic')).toBe(true)
+    expect(settings.get()).toMatchObject({ glanceOnTrigger: true, glancePeriodic: true })
+    expect(shell.activate('awareness')).toBe(true)
+    expect(settings.get().awarenessEnabled).toBe(false)
+  })
+
+  it('shows a glance in flight with its own badge', () => {
+    let inFlight = false
+    const { shell, tray, state } = setup({ glanceInFlight: () => inFlight })
+    inFlight = true
+    state.patch({ captions: [] }) // any change refreshes the icon
+    shell.info()
+    state.patch({ phase: 'listening_for_name' })
+    expect(tray().image).toMatchObject({ file: expect.stringContaining('trayGlanceTemplate.png') })
+  })
+
+  it('Open dashboard opens the dashboard', () => {
+    const open = vi.fn()
+    const { shell } = setup({ openDashboard: open })
+    expect(shell.activate('dashboard')).toBe(true)
+    expect(open).toHaveBeenCalledTimes(1)
+    expect(setup().shell.activate('dashboard')).toBe(false) // nothing wired
   })
 
   it('Type instead opens the chat view and shows the dock', () => {
@@ -375,7 +463,7 @@ describe('menu actions', () => {
     const { shell } = setup()
     expect(shell.info().menu.some((e) => e.accelerator)).toBe(false)
     mocks.registered.add('CommandOrControl+Alt+Shift+Space')
-    expect(setup().shell.info().menu.find((e) => e.id === 'talk:marcus')?.accelerator).toBe('CommandOrControl+Alt+Shift+Space')
+    expect(setup().shell.info().menu.find((e) => e.id === 'talk:understudy')?.accelerator).toBe('CommandOrControl+Alt+Shift+Space')
     mocks.registered.add('CommandOrControl+Alt+Space')
     mocks.registered.add('CommandOrControl+Alt+M')
   })
@@ -404,11 +492,11 @@ describe('menu bar state', () => {
     state.patch({ phase: 'listening_for_name' })
     expect(tray().title).toBe('Listening')
     expect(shell.info().title).toBe('Listening')
-    state.patch({ phase: 'live', persona: 'marcus' })
+    state.patch({ phase: 'live', persona: 'understudy' })
     expect(tray().title).toBe('Live')
     state.patch({ agents: [{ id: 'a1', kind: 'act_for_me', title: 't', status: 'running', startedAt: 1 }] as never })
     expect(tray().title).toBe('Working…')
-    expect(tray().tooltip).toBe('Alongside: Marcus is working for you')
+    expect(tray().tooltip).toBe('Understudy: Understudy is working for you')
     state.patch({ agents: [] })
     state.patch({ micMuted: true })
     expect(tray().title).toBe('Muted')
@@ -473,8 +561,62 @@ describe('desk capture line in the menu', () => {
 
 describe('coach line in the menu (the coach is not drawn on the screen)', () => {
   it('names the help level plainly, as a disabled line under the capture line, and is omitted when unknown', () => {
-    expect(labels({})).not.toContain('Coach: Watch me (help level 1)')
-    expect(labels({ capture: 'times_only', coach: 'Coach: Watch me (help level 1)' })[2]).toBe('Coach: Watch me (help level 1)')
-    expect(byId({ coach: 'Coach: Watch me (help level 1)' }, 'coach')?.enabled).toBe(false)
+    expect(labels({})).not.toContain('Help level 1: Watch me')
+    expect(labels({ capture: 'times_only', coach: 'Help level 1: Watch me' })[2]).toBe('Help level 1: Watch me')
+    expect(byId({ coach: 'Help level 1: Watch me' }, 'coach')?.enabled).toBe(false)
+  })
+})
+
+describe('Cue entries (the UNDERSTUDY_X_CUE experiment) and the queue count', () => {
+  const now = new Date(2026, 10, 7, 9, 5).getTime()
+  const cue = (quietUntil: number | null) => buildMenuEntries({ ...base, voiceMenu: false, cue: { quietUntil } }, now)
+
+  it('offers "Quiet Cue for an hour", and while it is quiet a disabled "Cue is quiet until HH:MM" with "Resume Cue"', () => {
+    expect(cue(null).find((e) => e.id === 'cue_quiet')?.label).toBe('Quiet Cue for an hour')
+    const quiet = cue(now + 3_600_000)
+    expect(quiet.find((e) => e.id === 'cue_status')).toMatchObject({ label: 'Cue is quiet until 10:05', enabled: false })
+    expect(quiet.find((e) => e.id === 'cue_resume')?.label).toBe('Resume Cue')
+    expect(quiet.find((e) => e.id === 'cue_quiet')).toBeUndefined()
+    expect(cue(now - 1).find((e) => e.id === 'cue_quiet')).toBeTruthy() // a quiet period that ended is no quiet period
+    expect(buildMenuEntries({ ...base, voiceMenu: false }, now).some((e) => e.id.startsWith('cue_'))).toBe(false) // no experiment, no entries
+  })
+
+  it('Quiet Cue sets cueQuietUntil an hour ahead and Resume Cue clears it', () => {
+    const { shell, settings } = setup({ now: () => 5_000_000, cue: true })
+    expect(shell.activate('cue_quiet')).toBe(true)
+    expect(settings.get().cueQuietUntil).toBe(5_000_000 + 3_600_000)
+    expect(shell.activate('cue_quiet')).toBe(false) // offered as Resume Cue now
+    expect(shell.activate('cue_resume')).toBe(true)
+    expect(settings.get().cueQuietUntil).toBeNull()
+  })
+
+  it('says how many approvals wait in the morning queue (the screen no longer does)', () => {
+    expect(buildMenuEntries({ ...base, queuePending: 3 }, now).find((e) => e.id === 'queue')?.label).toBe('Open morning queue (3)')
+    expect(buildMenuEntries({ ...base, queuePending: 0 }, now).find((e) => e.id === 'queue')?.label).toBe('Open morning queue')
+    expect(buildMenuEntries({ ...base, queuePending: null }, now).find((e) => e.id === 'queue')?.label).toBe('Open morning queue')
+  })
+})
+
+describe('settings keys for the new tracks', () => {
+  it('default off, with Cue proactivity balanced, and reject bad values key by key', () => {
+    const s = new SettingsStore(null)
+    expect(s.get()).toMatchObject({ cueEnabled: false, cueProactivity: 'balanced', cueVoice: false, cueQuietUntil: null, awarenessEnabled: false, glanceOnTrigger: false, glancePeriodic: false, pausedUntil: null, talkHotkey: 'Alt+Space', wakeEnabled: false })
+    s.patch({ cueProactivity: 'eager', cueQuietUntil: 1_700_000_000_000, cueEnabled: true })
+    expect(s.get()).toMatchObject({ cueProactivity: 'eager', cueQuietUntil: 1_700_000_000_000, cueEnabled: true })
+    s.patch({ cueProactivity: 'loud', cueQuietUntil: 'soon' })
+    expect(s.get()).toMatchObject({ cueProactivity: 'eager', cueQuietUntil: 1_700_000_000_000 })
+  })
+
+  it('a saved Marcus or Amelia becomes Understudy, and a ring annotation accepts the light weight', async () => {
+    const { coerceSettings } = await import('../shared/settings')
+    expect(coerceSettings({ persona: 'marcus' }).persona).toBe('understudy')
+    expect(coerceSettings({ persona: 'amelia' }).persona).toBe('understudy')
+    expect(coerceSettings({}).persona).toBe('understudy')
+    const { AnnotationSchema } = await import('../shared/protocol')
+    const ring = { id: 'r', kind: 'ring', tone: 'guide', box: { xmin: 1, ymin: 2, xmax: 3, ymax: 4 } }
+    expect(AnnotationSchema.safeParse({ ...ring, weight: 'light' }).success).toBe(true)
+    expect(AnnotationSchema.safeParse({ ...ring, weight: 'regular' }).success).toBe(true)
+    expect(AnnotationSchema.safeParse(ring).success).toBe(true)
+    expect(AnnotationSchema.safeParse({ ...ring, weight: 'heavy' }).success).toBe(false)
   })
 })

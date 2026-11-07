@@ -99,22 +99,24 @@ export function StoppedCard({ kill, onAction }: { kill: HudState['kill']; onActi
   )
 }
 
-export function HudView({ state, onAction }: HudViewProps): ReactElement {
-  const { kill, proposal, queuePending } = state
+/** Whether the HUD has anything to draw: the Stopped card, a proposal, or the Stop all pill (only while an agent acts). */
+export function hudHasContent(state: HudState): boolean {
+  return state.kill.killed || state.proposal !== null || state.agentActing
+}
+
+export function HudView({ state, onAction }: HudViewProps): ReactElement | null {
+  const { kill, proposal, agentActing } = state
+  // Idle: nothing at all. The window hides itself; the kill hotkey and the menu-bar item are always there.
+  if (!hudHasContent(state)) return null
   return (
     <div className="stack" data-hud-card>
       {kill.killed ? <StoppedCard kill={kill} onAction={onAction} /> : proposal ? <ProposalCard proposal={proposal} onAction={onAction} /> : null}
-      {kill.killed ? null : (
+      {kill.killed || !agentActing ? null : (
         <div className="pill-row">
           <button type="button" className="pill stop" data-hint={KILL_HINT} onClick={() => onAction({ type: 'kill' })} aria-label="Stop everything. This is the kill switch.">
             <span className="glyph" aria-hidden="true" />
             Stop all
           </button>
-          {queuePending !== null && queuePending > 0 ? (
-            <button type="button" className="pill link" onClick={() => onAction({ type: 'open_queue' })}>
-              Morning queue <span className="count">{queuePending}</span>
-            </button>
-          ) : null}
         </div>
       )}
     </div>

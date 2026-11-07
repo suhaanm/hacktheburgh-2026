@@ -24,7 +24,7 @@ from __future__ import annotations
 import base64
 import os
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Literal
 
 import httpx
@@ -32,7 +32,7 @@ import httpx
 from .config import ENV_GEMINI_KEY
 from .errors import ConfigError, ModelRefusal, ProviderError
 from .redact import redact_text
-from .safe_image import SafeImage
+from .imaging import sniff_mime
 
 BASE_URL = "https://generativelanguage.googleapis.com"
 ENV_API = "GEMINI_API"            # interactions (default) | generate_content
@@ -51,20 +51,22 @@ class GeminiHTTPError(ProviderError):
 
 @dataclass(frozen=True)
 class Part:
-    """One input part: text, or an image. Build with `Part.text(...)` / `Part.image(safe_image)`."""
+    """One input part: text, or image bytes (PNG or JPEG, already gated by the caller). Build with `Part.text` / `Part.image`.
+    The bytes are hidden from `repr` so a log line or an assertion message can never carry them."""
 
     kind: Literal["text", "image"]
-    value: str | SafeImage
+    value: str | bytes = field(repr=False)
+    mime: str = ""
 
     @classmethod
     def text(cls, s: str) -> "Part":
         return cls("text", s)
 
     @classmethod
-    def image(cls, img: SafeImage) -> "Part":
-        if not isinstance(img, SafeImage):
-            raise TypeError("images go to Gemini only as SafeImage")
-        return cls("image", img)
+    def image(cls, data: bytes) -> "Part":
+        if not isinstance(data, (bytes, bytearray)) or not data:
+            raise TypeError("an image part needs the image bytes")
+        return cls("image", bytes(data), sniff_mime(bytes(data)))
 
 
 @dataclass(frozen=True)
@@ -163,8 +165,8 @@ class GeminiClient:
         return self._generate_content(model, parts, system, schema, thinking, max_output_tokens, timeout_s)
 
     @staticmethod
-    def _b64(img: SafeImage) -> str:
-        return base64.b64encode(img.data).decode("ascii")
+    def _b64(data: bytes) -> str:
+        return base64.b64encode(data).decode("ascii")
 
     def _interactions(self, model: str, parts: list[Part], system: str | None, schema: dict[str, Any] | None,
                       thinking: str | None, max_out: int, timeout_s: float | None) -> GeminiReply:
@@ -173,9 +175,8 @@ class GeminiClient:
             if p.kind == "text":
                 inp.append({"type": "text", "text": str(p.value)})
             else:
-                img = p.value
-                assert isinstance(img, SafeImage)
-                inp.append({"type": "image", "data": self._b64(img), "mime_type": img.mime})
+                assert isinstance(p.value, bytes)
+                inp.append({"type": "image", "data": self._b64(p.value), "mime_type": p.mime})
         body: dict[str, Any] = {"model": model, "store": False, "input": inp}
         if system:
             body["system_instruction"] = system
@@ -208,9 +209,8 @@ class GeminiClient:
             if p.kind == "text":
                 ps.append({"text": str(p.value)})
             else:
-                img = p.value
-                assert isinstance(img, SafeImage)
-                ps.append({"inline_data": {"mime_type": img.mime, "data": self._b64(img)}})
+                assert isinstance(p.value, bytes)
+                ps.append({"inline_data": {"mime_type": p.mime, "data": self._b64(p.value)}})
         gen: dict[str, Any] = {"maxOutputTokens": max_out}
         if schema is not None:
             gen["responseMimeType"] = "application/json"

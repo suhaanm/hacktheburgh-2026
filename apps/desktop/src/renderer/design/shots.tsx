@@ -7,6 +7,8 @@ import type { CompanionState } from '../../shared/protocol'
 import { DEFAULT_SETTINGS, type Settings } from '../../shared/settings'
 import { Panel } from '../dock/Panel'
 import { Pill } from '../dock/Pill'
+import { ToastCard } from '../toast/ToastCard'
+import '../toast/toast.css'
 import { applyDesignSettings } from './index'
 import './gallery'
 import './styles'
@@ -14,7 +16,7 @@ import './styles'
 const q = new URLSearchParams(location.search)
 const settings: Settings = {
   ...DEFAULT_SETTINGS,
-  persona: 'marcus',
+  persona: 'understudy',
   theme: q.get('theme') === 'dark' ? 'dark' : 'light',
   glass: q.get('glass') !== '0',
   glassOpacity: Number(q.get('opacity') ?? 0.6),
@@ -23,13 +25,13 @@ const settings: Settings = {
   textScale: Number(q.get('scale') ?? 1),
 }
 // The imported gallery applies its own settings after mount; re-apply ours a few times so the query wins.
-const apply = (): void => applyDesignSettings(settings, 'marcus', document.documentElement, { glassSupported: true })
+const apply = (): void => applyDesignSettings(settings, 'understudy', document.documentElement, { glassSupported: q.get('glass') !== '0' })
 apply()
 for (const ms of [30, 150, 400, 900, 1600]) setTimeout(apply, ms)
 const now = Date.now()
-const name = PERSONAS.marcus.displayName
+const name = PERSONAS.understudy.displayName
 const st = (over: Partial<CompanionState>): CompanionState => ({
-  persona: 'marcus', phase: 'live', micMuted: false, level: 2, levelLocked: false, captions: [], agents: [], settings, ...over,
+  persona: 'understudy', phase: 'live', micMuted: false, level: 2, levelLocked: false, captions: [], agents: [], settings, ...over,
 })
 const noop = (): void => undefined
 const panel = (tab: 'chat' | 'progress' | 'settings' | 'profile', over: Partial<CompanionState> = {}): ReactElement => (
@@ -45,8 +47,10 @@ const pill = (over: Partial<CompanionState>): ReactElement => (
 
 const css = document.createElement('style')
 css.textContent = `
-  body { margin: 0; background: linear-gradient(150deg, #5d7ba6 0%, #8a5da6 55%, #d6935a 100%); min-height: 100vh; }
-  #shots { display: flex; flex-wrap: wrap; gap: 24px; padding: 28px; align-items: flex-start; width: 1700px; }
+  body { margin: 0; background: ${q.get('glass') === '1' ? 'linear-gradient(150deg, #5d7ba6 0%, #8a5da6 55%, #d6935a 100%)' : 'var(--bg)'}; min-height: 100vh; }
+  #shots { display: flex; flex-wrap: wrap; gap: 24px; padding: 24px 16px; align-items: flex-start; box-sizing: border-box; width: 100%; max-width: 1700px; }
+  .shot-win { max-width: 100%; }
+  .shot-toast { width: 360px; max-width: 100%; }
   .shot-win { width: 360px; position: relative; }
   .shot-pills { display: flex; flex-direction: column; gap: 14px; width: 100%; flex-basis: 100%; }
   .shot-pills > div { display: flex; gap: 14px; }
@@ -61,6 +65,9 @@ createRoot(document.getElementById('shots') as HTMLElement).render(
         {pill({ phase: 'speaking', level: 3 })}
         {pill({ phase: 'live', micMuted: true })}
       </div>
+    </div>
+    <div className="shot-toast">
+      <ToastCard request={{ id: 't1', question: 'Understudy wants to open the case note in your browser. Is that all right?', options: ['Yes, open it', 'Not now'] }} remaining={0.6} armed onAnswer={noop} />
     </div>
     {panel('chat')}
     {panel('progress')}

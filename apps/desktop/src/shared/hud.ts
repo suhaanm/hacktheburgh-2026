@@ -24,6 +24,9 @@ export interface HudState {
   // Pending approvals waiting in the morning queue (null: the engine is not reachable, so unknown).
   queuePending: number | null
   proposal: HudProposal | null
+  // An agent (or a session) is acting for the person right now. The Stop all pill is on screen only while this is true (or the
+  // Stopped card is up); the kill hotkey and the menu-bar item work all the time.
+  agentActing: boolean
 }
 
 export type HudAction =
@@ -38,4 +41,4 @@ export interface HudApi {
   action(a: HudAction): void
 }
 
-export const EMPTY_HUD_STATE: HudState = { kill: { killed: false, engine: null, agent: null }, queuePending: null, proposal: null }
+export const EMPTY_HUD_STATE: HudState = { kill: { killed: false, engine: null, agent: null }, queuePending: null, proposal: null, agentActing: false }

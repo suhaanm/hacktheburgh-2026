@@ -280,3 +280,37 @@ the section if they differ).
 ## Amendment log
 
 _Dated entries only; sections above are never edited._
+
+**Amendment 1 (2026-11-07, 17:40 GMT, before any held-out run and before any alarm-rule result was read; implementation clarifications only).**
+(a) The header time "about 17:40 GMT" was an estimate written early; the git commit timestamp governs. (b) C1 (section 6.4): an episode can hold more than one false alarm, so a
+Clopper-Pearson bound on "an episode contains a false alarm" would not bound the false-alarm rate. C1 therefore uses the exact one-sided **Poisson (Garwood) upper limit on the
+total false-alarm count divided by the observed non-event exposure** (the count analogue of Clopper-Pearson; no Hoeffding bound on the exposure is needed), delta 0.05 split
+over the two confirm options (0.025 each), fixed-sequence over thresholds as planned. Assumption added to the stated guarantee: false alarms arrive independently given the exposure.
+(c) A6 (section 6.2): the logit shift is measured against the **prior mean** a / (a + b) of the fitted Beta prior rather than "the training pooled rate", so that no own history
+gives exactly zero shift, as the plan requires; the two differ only by the prior's fitting error. (d) Replicate person ids are `p_ninetofived1`, `p_nightowlh3`, ... (the event schema
+allows only lowercase letters and digits after `p_`).
+
+**Amendment 2 (2026-11-07, 17:40 GMT, before any held-out run).** The held-out command runs **one part at a time** (`hazard`: families A, C, the time-to-event head, the controls and the
+M1 ablation on HELD; `genome`: families E and Q on APP-HELD; `mismatch`: M6; M5 is separate and test-only). Each part is run **exactly once**, is logged in `heldout_log.jsonl` and writes
+its own file; the parts use disjoint data (persona replicates, apprentice replicates, mismatch cohorts), so the order cannot leak information from one into another. Nothing else about
+section 5 changes.
+
+**Amendment 3 (2026-11-07, 17:40 GMT, before any control result was recorded).** The shuffled-label control (section 6.2) permutes the label vector over **all bins of the pool**, not
+"over a person's episodes with an episode's bins together". The planned form keeps position-in-episode structure and each person's own stuck rate, both of which a model may legitimately
+use (the personal prior shift A6 is designed to learn a person's rate), so the control would fail for a harmless reason. A within-person permutation is reported as a labelled diagnostic.
+The criterion (no variant beats the base rate by more than 0.003 nats) is unchanged.
+
+**Amendment 4 (2026-11-07, 17:40 GMT, before any real ablation was read).** M1 controls (section 6.1) pass when they show **no gain** (the upper end of the paired log-loss interval is not
+below zero), not when the interval includes zero: an uninformative extra column costs a little log loss (it adds a parameter), which a paired bootstrap on identical rows can detect
+(observed on the stub, about +0.0007 nats), so "includes zero" would fail for a harmless reason.
+
+**Amendment 5 (2026-11-07, 17:55 GMT, after the D0 ablation was read: awareness columns gave no gain on the planned label).** On D0 the 25 synthetic awareness columns did not improve the
+v1 logistic on the planned label (no progress in the next 60 s). The awareness generator plants its cursor signal against the planted stuck spells in `truth.json`, which are not the same
+thing as that label (spells cover a small share of the label-1 bins). A **supplementary** ablation is added: the same harness on the label "a planted spell overlaps the next 60 s" (v1's
+`vs_planted` label), reported beside the planned one and labelled supplementary; it asks whether the pipeline can use the planted signal at all. The planned ablation stays the primary result.
+No decision depends on either.
+
+**Amendment 6 (2026-11-07, 17:55 GMT, before any alarm-rule result on HELD).** Analysis note on family C, not a change: the registered primary metric is the clipped budget overshoot
+`max(0, FA/h - 1)`. In resamples where v1 does not overshoot, the paired difference is exactly zero, so the interval's upper end is below zero only if v1 overshoots in more than 97.5% of
+resamples. When v1 meets the budget on the pool the rule is null by construction (as section 6.4 already says); the unclipped paired difference in false alarms an hour is reported
+beside it, **never used for acceptance**.

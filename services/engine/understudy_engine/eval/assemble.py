@@ -132,9 +132,29 @@ def build_report(*, fast: bool = False, sections: list[str] | None = None, root:
         report["git_rev"] = rev
     report["run"] = {"fast": fast, "seed": seed, "seconds_total": round(time.perf_counter() - t_start, 1), "seconds_by_section": secs,
                      "note": "timing only; excluded from the determinism check"}
+    _stamp_meta(out, generated_at)
+    report["evidence_map"] = evidence_map(out)
     report["sections"] = out
-    _stamp_meta(report["sections"], generated_at)
     return report
+
+
+def evidence_map(sections: dict[str, Any]) -> list[dict[str, Any]]:
+    """One row per section, in report order: where its data comes from, its n, and whether it has numbers (the owner's demo table)."""
+    from .render_md import TITLES
+
+    rows = []
+    order = [s.name for s in SECTIONS] + [k for k in sections if k not in {s.name for s in SECTIONS} and k != "limitations"]
+    for name in order:
+        s = sections.get(name)
+        if not isinstance(s, dict):
+            continue
+        m = s.get("meta") or {}
+        status = s.get("status", "ok")
+        reason = s.get("reason")
+        rows.append({"section": name, "title": TITLES.get(name, name), "status": status, "origin": m.get("origin", "synthetic"),
+                     "n": m.get("n") if status == "ok" or m.get("n") else None, "n_unit": m.get("n_unit"),
+                     "label": s.get("label") if isinstance(s.get("label"), str) else None, "reason": str(reason)[:300] if reason else None})
+    return rows
 
 
 def deterministic_view(report: dict[str, Any]) -> dict[str, Any]:

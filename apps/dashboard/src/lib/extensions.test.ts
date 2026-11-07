@@ -66,7 +66,8 @@ describe("week ribbon", () => {
     expect(fmtFeature("fragmentation", 0.31)).toBe("0.31");
   });
   it("states the headline in words and flags which gaps exclude zero", () => {
-    expect(weekHeadline(week.features, week.expert)).toMatch(new RegExp(`${week.features.meeting_h} hours a week in meetings, ${Math.round(((week.features.meeting_h as number) - (week.expert.meeting_h as number)) * 10) / 10} more than the expert`));
+    const r1 = (n: number) => Math.round(n * 10) / 10;
+    expect(weekHeadline(week.features, week.expert)).toBe(`You spend ${r1(week.features.meeting_h as number)} hours a week in meetings, ${r1((week.features.meeting_h as number) - (week.expert.meeting_h as number))} more than the expert`);
     const clear = week.gap.rows.filter(gapClear).map((r) => r.feature);
     expect(clear).toContain("meeting_h");
     expect(clear).not.toContain("work_span_h");
@@ -74,7 +75,10 @@ describe("week ribbon", () => {
   it("carries no free text: only block kinds, times and attendee buckets", () => {
     const keys = new Set<string>();
     for (const d of week.days) for (const b of d.blocks) Object.keys(b).forEach((k) => keys.add(k));
-    expect([...keys].sort()).toEqual(["end", "kind", "n_attendees_bucket", "start"]);
+    const allowed = new Set(["start", "end", "start_min", "end_min", "kind", "usable", "n_attendees_bucket"]);
+    for (const k of keys) expect(allowed.has(k), `unexpected block field ${k}`).toBe(true);
+    // Day fields are a date, a flag and the blocks: no title or name can be carried.
+    for (const d of week.days) for (const k of Object.keys(d)) expect(["dow", "date", "working", "blocks"]).toContain(k);
   });
 });
 
@@ -156,7 +160,7 @@ describe("privacy ledger", () => {
     expect(canaryReading({ runs: 0, planted: 0, leaked: 0 }).tone).toBe("none");
   });
   it("lists only enums, numbers and ids in the fixture payloads: no free text", () => {
-    for (const e of ledger) for (const [k, v] of Object.entries(e.payload)) {
+    for (const e of ledger) for (const [k, v] of Object.entries(e.payload ?? {})) {
       expect(e.fields).toContain(k);
       const ok = typeof v === "number" || typeof v === "boolean" || (typeof v === "string" && /^[a-z0-9_]+$/.test(v)) || typeof v === "object";
       expect(ok).toBe(true);

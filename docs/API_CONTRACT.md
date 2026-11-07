@@ -139,3 +139,33 @@ Spawn kinds (v1): `programming.commit_analyst`, `programming.test_gap`, `program
 Additive fields agreed after the Clicky reuse study (K1): in `GET /agents/runs` and `/agents/runs/{id}` each child carries `lease: { ttl_s, remaining_s, steps_left, tools: [..], revoked: bool }` (a per-child tool scope with expiry, step cap and revocation; a parent revocation cascades; no site or app scope, SEC-10 still holds) and each step in the result carries `check: "verified"|"uncertain"|"failed"` (a declarative postcondition check run by code after the step; blockers beat success; an unreadable field is "uncertain"; no page text is ever echoed). `POST /agents/runs/{id}/children/{child_id}/revoke` (worker actor header) ends one child at once.
 
 Additive details agreed with the dashboard for the extension screens (7 Nov): `GET /calendar/week` returns `expert.days` (the expert's blocks in the same shape as the learner's `days`, so the second ribbon can be drawn) next to `expert`'s feature keys; block `start`/`end` are `"HH:MM"` strings; `PUT /briefing/{id}/prepared` takes the prepared object itself as the body (`{ text?, steps? }`); `POST /briefing/{id}/dismiss` takes an optional body `{ mode: "not_now"|"never" }` and "never" must be recorded and honoured for that card kind and source; `POST /briefing/{id}/fire` is sent with actor header `worker_approval` and returns `{ queue_id?, run_id? }`; agent-service writes (spawn, stop, revoke) take actor header `worker`; agent result steps are `result.steps[].{ step, check }` where `check` is `verified|uncertain|failed`.
+
+## Extensions added for REQ-5, REQ-6 and REQ-7 (7 Nov 2026)
+
+All behind flags (`UNDERSTUDY_X_<LAYER>` or `UNDERSTUDY_X`); handlers answer 404 `extension_off` when off. Responses use the `{meta, data}` envelope unless stated. No route ever carries free text from a screen, a model or a worker, and no frame or audio is ever stored.
+
+### Awareness (engine, :7700; flag `UNDERSTUDY_X_AWARENESS`)
+- `POST /awareness/events`: one event or a list of at most 500 (schema `packages/schema/awareness.schema.json`, enums and numbers only). Loopback only; Origin `app://` or localhost if any. Reply `{accepted, duplicates, rejected:[{index, reason}]}` (reason names a rule and path, never a value).
+- `GET /awareness/summary?person=&origin=&since=&until=`; `GET /awareness/windows?person=&origin=&since=&until=&limit=` -> `{windows, loose_glances}`; `GET /awareness/columns` -> `{columns, span_s: 30}`; `POST /awareness/clear {person?, origin?}` (worker actor).
+- `meta.n_unit` is "windows". Hazard features: `awareness.features.awareness_features`, `features_by_bin`, `AWARENESS_COLUMNS` (25 `aw_*` columns; the stuck trigger is deliberately not a column).
+
+### Glance (agent service, :7710; wraps the awareness handler)
+- `POST /glance` request `{frame_b64, gates:{consent, denylisted_app, secure_input, unattended}, trigger: stuck|loop|hotkey|periodic, app_kind?, width, height}`. Source is fixed `real_screen` server-side and never read from the request; any Origin other than `app://` or `file://` is refused.
+- Replies: `200 {ok:true, result, model, latency_ms, cost_usd_est?, ledger_id, mock}`; `200 {ok:false, blocked_reason}` for a closed gate (unattended, secure_input, denylisted_app, no_consent) or `output_rejected`; `403` or `422 {error:{code,message}}`; `502 model_failed`; `503 ledger_unavailable`. The route must not log bodies.
+- Closed answer (purpose `awareness.glance`): `app_kind` browser|spreadsheet|email|code_editor|terminal|chat|other; `task_phase` idle|reading|searching|entering|comparing|reviewing|submitting|waiting|unknown; `blocker` none|unclear_next_step|cannot_find_control|error_message|unexpected_state|waiting_for_load|needs_information|permission_prompt|unknown; `confidence` 0..1; optional `box_2d` [ymin,xmin,ymax,xmax] on 0..1000.
+
+### Cue grounding and models (agent service; the MODELS track)
+- `POST /cue/ground` request `{frame:{mime:"image/jpeg", b64, width, height}, menu:[{id,label}] (2..6), app_kind?, tier_hint?: "lite"|"full", purpose:"cue.ground", gates:{...}}`; response `{available:[ids], chosen: id|null, box_2d:[y0,x0,y1,x1]|null, confidence, source:"vision", model_tier, latency_ms}`. DOM grounding in the desktop returns the same shape with `source:"dom"`.
+- `GET /models/status` -> `{roles:[{role, provider, model_id, fallback, health, breaker, last_latency_ms, calls, cost_usd_est}], prices_assumed, ledger_coverage, bakeoff|null}`. Never a key.
+
+### Privacy additions (engine; flag `UNDERSTUDY_X_PRIVACY`)
+- Image rows in `GET /privacy/ledger` (merged, one per call): `{kind: glance|point|verify|live_frame, source: real_screen|sandbox, status: ok|blocked, reason?, sha8, bytes, width, height, provider, model, latency_ms, tokens, cost_estimate_usd}`; `payload` is null on blocked rows. Summary gains `images:{sent, blocked, blocked_by_reason, sent_by_source, bytes_sent}`.
+- `POST /privacy/ledger/live` (+ `/result`): metadata for Live frame batches from the desktop main process (body at most 4096 bytes; loopback and worker actor; no Origin); gate precedence unattended+real_screen, secure input, denylisted app, no consent.
+- Direct (metadata-only) rows are written for every provider call regardless of flags (`record_direct`; no prompt text, page text, images or replies).
+
+### Cue and Growth (engine; flag `UNDERSTUDY_X_CUE`; starting contract, CUE-ENGINE finalises)
+- `GET /cue/next?person=&dry=&voice_ok=0|1` -> `{meta, data: CueDecision}` with `kind` none|confirm|cue|ask|offer, `episode_id`, `tier` 1..4|null, `step{id,label,reason_id}`, `target{box_2d,source dom|vision|none,confidence}`, `options[{id,label}]`, `say{chip (<=40 chars), whisper (<=8 words)|null}`, `why{path_prob, margin, p_stuck, mastery, level, reasons[]}`, `budget_left`, `cooldown_s`, `source model|rule`, plus additive `new`, `question{type,text}`, `expires_in_s`, `retrieval`, `ground_wanted`.
+- `POST /cue/feedback {episode_id, event: shown|accepted|dismissed|answered|resolved|abandoned|know_this, answer_id?, seconds?}`; `GET /cue/ledger?person=`; `DELETE /cue/ledger` (worker); `POST /cue/quiet {minutes}`; `GET /growth?person=&skill=` (independence score with components, intervals, n, trend, offloaded-work counts; delegated and automation streams never enter the score).
+
+### Evidence (engine; flag `UNDERSTUDY_X_EVIDENCE`; EVIDENCE track finalises)
+- `GET /evidence/packet?person=&case=`; `POST /evidence/explain {person, case?, question?}`: a closed-schema packet and an explanation whose every number is verified against the packet, with `source` template|local|cloud and the verdict of the provenance check.

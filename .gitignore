@@ -38,3 +38,5 @@ evals/study_sim/GO
 extension/dist-*/
 evals/study_sim/aborted_run1/
 evals/study_sim/aborted_run*/
+data/.token
+apps/desktop/src/renderer/cue/harness/shots/

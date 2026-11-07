@@ -26,7 +26,17 @@ export function offMessage(f: Feature): string {
   return what[f]
 }
 
+// REQ-5 experiments (UNDERSTUDY_X_<NAME>=1): off unless '1'; under vitest on unless '0', like the flags above.
+export type Experiment = 'cue' | 'awareness' | 'gemini' | 'live'
+export const experimentVar = (e: Experiment): string => `UNDERSTUDY_X_${e.toUpperCase()}`
+export function experimentOn(e: Experiment, env: Record<string, string | undefined> = process.env): boolean {
+  const v = env[experimentVar(e)]
+  if (v === '1') return true
+  if (v === '0') return false
+  return env.VITEST !== undefined && env.VITEST !== ''
+}
+
 /** Settings pinned by the flags: a switched-off feature cannot be enabled from the settings UI or by a patch. */
-export function forcedSettings(env: Record<string, string | undefined> = process.env): { wakeEnabled?: false; filesEnabled?: false } {
-  return { ...(featureOn('wake', env) ? {} : { wakeEnabled: false as const }), ...(featureOn('files', env) ? {} : { filesEnabled: false as const }) }
+export function forcedSettings(env: Record<string, string | undefined> = process.env): { wakeEnabled?: false; filesEnabled?: false; cueEnabled?: false } {
+  return { ...(featureOn('wake', env) ? {} : { wakeEnabled: false as const }), ...(featureOn('files', env) ? {} : { filesEnabled: false as const }), ...(experimentOn('cue', env) ? {} : { cueEnabled: false as const }) }
 }

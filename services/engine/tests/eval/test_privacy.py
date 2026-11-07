@@ -36,6 +36,16 @@ def test_privacy_is_pending_if_the_module_is_missing(monkeypatch):
     assert s["status"] == "pending" and "privacy-layer not landed" in s["reason"]
 
 
+def _without_tree_scan(report):
+    """The privacy section minus what follows the code tree at run time (the static-guard scan and which layers have registered flows):
+    other tracks add files while this suite runs, so those parts are not a determinism property of the evaluation."""
+    sec = json.loads(json.dumps(deterministic_view(report)["sections"]["privacy"]))
+    for k in ("static_guard", "layers"):
+        sec.pop(k, None)
+    sec["headline"] = {k: v for k, v in sec["headline"].items() if not k.startswith(("static_guard", "layers_without"))}
+    return sec
+
+
 def test_privacy_eval_writes_no_summary_file_uses_no_network_and_is_deterministic(monkeypatch):
     """Two back-to-back runs under a network guard: identical numbers, and the layer's own summary file is never written by the harness.
     (Compared with each other, not with an earlier run: the static-guard file count follows the code tree, which other tracks are still changing.)"""
@@ -49,7 +59,8 @@ def test_privacy_eval_writes_no_summary_file_uses_no_network_and_is_deterministi
     monkeypatch.setattr(socket, "getaddrinfo", deny)
     a = build_report(sections=["privacy"], fast=True, now=NOW, regenerate=False, log=lambda m: None)
     b = build_report(sections=["privacy"], fast=True, now=NOW, regenerate=False, log=lambda m: None)
-    assert "status" not in a["sections"]["privacy"] and deterministic_view(a) == deterministic_view(b)
+    assert "status" not in a["sections"]["privacy"]
+    assert _without_tree_scan(a) == _without_tree_scan(b)
     after = target.stat().st_mtime_ns if target.exists() else None
     assert before == after
 

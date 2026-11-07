@@ -9,6 +9,7 @@ import type { ShellTray } from './tray'
 import type { Dispatch } from './tools/dispatcher'
 import { z } from 'zod'
 import { getStageTruthSource, type ElectronStageSource } from './showtime/stage-truth'
+import { lastHotkeyReport } from './hotkey'
 
 export interface DebugDeps {
   ctx: ServiceContext
@@ -16,11 +17,11 @@ export interface DebugDeps {
   dispatch: Dispatch
   session: SessionController
   // Optional window capture helpers (Electron only); absent in unit tests.
-  capture?: { overlayPng(): Promise<Buffer | null>; overlayText?(): Promise<string | null>; dockPng(): Promise<Buffer | null>; hudPng?(): Promise<Buffer | null>; hudPreview?(mode: 'hover' | 'none'): Promise<void> }
+  capture?: { overlayPng(): Promise<Buffer | null>; overlayText?(): Promise<string | null>; dockPng(): Promise<Buffer | null>; hudPng?(): Promise<Buffer | null>; hudPreview?(mode: 'hover' | 'none'): Promise<void>; hudVisible?(): boolean | null }
   // Understudy: kill switch, HUD and model port inspection (dev only, like the rest of this surface).
   understudy?: {
     kill: Pick<import('./kill-switch').KillSwitch, 'trigger' | 'clear' | 'state'>
-    hud?: Pick<import('./hud-model').HudModel, 'state' | 'setProposal' | 'setQueuePending'>
+    hud?: Pick<import('./hud-model').HudModel, 'state' | 'setProposal' | 'setQueuePending' | 'setAgentActing'>
     // DOM-first grounding and the coach chip, for looking at them while the app runs.
     dom?: { status(): { port: number | null; pending: number; extensionSeenMs: number | null; ring: unknown; chip: unknown; capture: string; coach?: unknown } }
   }
@@ -83,7 +84,9 @@ export function startDebugServer(deps: DebugDeps): http.Server {
 
       switch (route) {
         case 'GET /health':
-          return send(200, { ok: true, pid: process.pid, mock: process.env.ALONGSIDE_MOCK === '1', phase: ctx.state.get().phase })
+          return send(200, { ok: true, pid: process.pid, mock: process.env.ALONGSIDE_MOCK === '1', phase: ctx.state.get().phase, killHotkey: lastHotkeyReport()?.killRegistered ?? null })
+        case 'GET /hotkeys':
+          return send(200, lastHotkeyReport() ?? { error: 'hotkeys not registered yet' })
         case 'GET /state':
           return send(200, ctx.state.get())
         case 'POST /tool': {
@@ -181,6 +184,16 @@ export function startDebugServer(deps: DebugDeps): http.Server {
         case 'GET /model': {
           const { lastBootReport } = await import('./model-port')
           return send(200, { provider: ctx.modelPort?.provider ?? null, models: ctx.modelPort?.models() ?? null, boot: lastBootReport() })
+        }
+        case 'GET /hud/visible': {
+          const v = deps.capture?.hudVisible?.()
+          return v === undefined || v === null ? send(404, { error: 'no HUD window' }) : send(200, { visible: v })
+        }
+        case 'POST /hud/acting': {
+          if (!deps.understudy?.hud) return send(404, { error: 'no HUD' })
+          const body = z.object({ acting: z.boolean() }).parse(await readJson(req))
+          deps.understudy.hud.setAgentActing(body.acting)
+          return send(200, deps.understudy.hud.state())
         }
         case 'POST /hud/preview': {
           const body = z.object({ mode: z.enum(['hover', 'none']) }).parse(await readJson(req))

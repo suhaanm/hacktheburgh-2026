@@ -71,9 +71,9 @@ def test_model_calls_are_caught_by_method_and_receiver(src):
     assert "model_call" in rules(src), src
 
 
-@pytest.mark.parametrize("src", ["subprocess.run(['curl', 'https://x'])", "os.system('wget http://x')"])
+@pytest.mark.parametrize("src", ["import subprocess\nsubprocess.run(['curl', 'https://x'])", "import os\nos.system('wget http://x')"])
 def test_shelling_out_to_fetchers_is_caught(src):
-    assert "shell_fetch" in rules(src)
+    assert "process_fetcher" in rules(src)
 
 
 @pytest.mark.parametrize("src", [
@@ -83,7 +83,6 @@ def test_shelling_out_to_fetchers_is_caught(src):
     "def f(plan): return plan.check(1)",                 # not port-like receivers
     "x = 'https://json-schema.org/draft-07/schema#'",     # a URL literal alone is not egress
     "\"\"\"See https://docs.example.org for details.\"\"\"\nimport json",
-    "import importlib\nm = importlib.import_module(name)",   # dynamic by variable: documented limit, not flagged
 ])
 def test_ordinary_code_is_not_flagged(src):
     assert v(src) == [], v(src)
@@ -176,8 +175,8 @@ def test_runtime_rule_accepts_a_direct_call_that_records_and_calls_that_go_throu
 def test_runtime_rule_still_bans_provider_sdks_and_network_clients():
     assert "model_client_import" in rv("import openai\n")
     assert "model_client_import" in rv("from anthropic import Anthropic\n")
-    assert "model_client_import" in rv("import httpx\n")
-    assert "model_client_import" in rv("import urllib.request\n")
+    assert "network_import" in rv("import httpx\n")
+    assert "network_import" in rv("import urllib.request\n")
 
 
 def test_the_real_runtime_has_no_unrecorded_direct_model_call_and_no_provider_import():
@@ -185,3 +184,53 @@ def test_the_real_runtime_has_no_unrecorded_direct_model_call_and_no_provider_im
     if not rep.files:
         pytest.skip("the agent runtime is not present")
     assert rep.ok, "the agent runtime must send payloads through egress.send and record every direct call:\n" + "\n".join(map(str, rep.violations))
+
+
+# --------------------------------------------------------------------------- pure-compute layers and the newer layers
+def test_cue_awareness_evidence_mlv2_and_personas_v2_are_guarded_and_two_are_pure_compute():
+    for layer in ("cue", "awareness", "evidence", "mlv2", "personas_v2"):
+        assert layer in guard.GUARDED_DIRS
+    assert set(guard.PURE_COMPUTE_DIRS) == {"mlv2", "personas_v2"}
+    assert {"routes_cue.py", "routes_evidence.py", "routes_mlv2.py", "routes_personas_v2.py"} <= set(guard.GUARDED_FILES)
+
+
+@pytest.mark.parametrize("src,rule", [
+    ("import subprocess\n", "pure_compute_import"),
+    ("import webbrowser\n", "pure_compute_import"),
+    ("import ctypes\n", "pure_compute_import"),
+    ("from subprocess import run\n", "pure_compute_import"),
+    ("import os\nos.system('ls')\n", "pure_compute_call"),
+    ("import os\nos.popen('ls')\n", "pure_compute_call"),
+    ("import httpx\n", "network_import"),
+    ("import socket\n", "network_import"),
+    ("import openai\n", "model_client_import"),
+    ("from understudy_agent.models import get_model_port\n", "model_client_import"),
+    ("def f(port): return port.plan([], None)\n", "model_call"),
+    ("U = 'https://example.org/data.csv'\n", "pure_compute_url"),
+])
+def test_a_pure_compute_layer_refuses_processes_network_models_and_urls(src, rule):
+    assert rule in rules(src, "mlv2/x.py") and rule in rules(src, "personas_v2/y.py")
+
+
+def test_pure_compute_allows_ordinary_numerics_and_docstring_urls():
+    ok = '"""Fits a model. See https://example.org/paper for the method."""\nimport math, json, random\nimport numpy as np\n\ndef f(x):\n    return np.mean(x)\n'
+    assert v(ok, "mlv2/x.py") == []
+
+
+def test_the_same_code_is_allowed_in_an_ordinary_layer_where_it_is_not_a_model_or_network_client():
+    assert v("import subprocess\nsubprocess.run(['git', 'log'])\n", "gitanalysis/x.py") == []
+    assert v("U = 'https://example.org/data.csv'\n", "calendar/x.py") == []
+
+
+def test_no_reviewed_exception_can_apply_to_a_pure_compute_layer(monkeypatch):
+    monkeypatch.setitem(guard.ALLOW, "mlv2/client.py", guard.Allow("a mistaken entry", frozenset({"httpx"})))
+    assert "network_import" in rules("import httpx\n", "mlv2/client.py")
+    assert v("import httpx\nBASE = 'http://127.0.0.1:8089'\n", "localmodel/client.py") == []     # the real exception still works where it belongs
+
+
+def test_the_real_pure_compute_layers_are_clean_and_present_ones_are_scanned():
+    rep = guard.scan_tree()
+    for layer in guard.PURE_COMPUTE_DIRS:
+        if (guard.ENGINE_PKG / layer).is_dir():
+            assert any(f.startswith(layer + "/") for f in rep.files), f"{layer} exists but was not scanned"
+    assert not [x for x in rep.violations if x.file.split("/")[0] in guard.PURE_COMPUTE_DIRS]

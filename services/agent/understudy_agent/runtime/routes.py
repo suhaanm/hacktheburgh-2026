@@ -25,11 +25,10 @@ from fastapi.responses import FileResponse, JSONResponse
 from ..security.killflag import is_killed
 from ..security.paths import runs_dir
 from . import policy
+from .httpguard import check_write
 from .run import AgentRun, get_run, live_runs, persisted_runs, register
 
 router = APIRouter(prefix="/agents", tags=["agents"])
-_WORKER_ACTORS = {"worker", "worker_approval"}
-_ORIGINS = ("http://localhost", "http://127.0.0.1", "https://localhost", "file://", "app://")
 _SAFE_NAME = re.compile(r"^[A-Za-z0-9._-]{1,60}$")
 _RUN = re.compile(r"^r_[a-z0-9]{6,12}$")
 MAX_LIVE_RUNS = 3
@@ -46,14 +45,8 @@ def _disabled() -> JSONResponse | None:
     return None
 
 
-def _guard(request: Request) -> JSONResponse | None:
-    actor = request.headers.get("x-understudy-actor", "worker").strip() or "worker"
-    origin = request.headers.get("origin")
-    if actor not in _WORKER_ACTORS:
-        return _err(403, "write_refused", "Only the worker starts or stops agents; this actor cannot.")
-    if origin is not None and not origin.startswith(_ORIGINS):
-        return _err(403, "write_refused", "Writes only come from the worker's own app on this machine.")
-    return None
+def _guard(request: Request, *, json_body: bool = False) -> JSONResponse | None:
+    return check_write(request, json_body=json_body)
 
 
 def spawn_kinds() -> list[str]:
@@ -131,7 +124,7 @@ def get_one(run_id: str) -> Any:
 async def spawn(request: Request) -> Any:
     if (d := _disabled()) is not None:
         return d
-    if (g := _guard(request)) is not None:
+    if (g := _guard(request, json_body=True)) is not None:
         return g
     try:
         body = await request.json()
@@ -152,7 +145,17 @@ async def spawn(request: Request) -> Any:
     with _spawn_lock:
         if sum(1 for r in live_runs() if not r.finished) >= MAX_LIVE_RUNS:
             return _err(429, "too_many_runs", f"At most {MAX_LIVE_RUNS} agent runs at a time.")
-        raw_ok = bool(params.pop("raw_ok", False))
+        raw_ok = body.get("raw_ok") is True                # a top-level field only; params can never turn it on
+        if "raw_ok" in params:
+            return _err(422, "bad_params", "raw_ok is a top-level field, not a parameter.")
+        if raw_ok:
+            from .exemplars.base import KINDS
+
+            named = any(params.get(k) for k in KINDS[kind].explicit_files)
+            explicit = request.headers.get("x-understudy-actor", "").strip() in ("worker", "worker_approval")
+            if mode != "foreground" or not named or not explicit:
+                return _err(422, "raw_not_allowed", "Raw file content may be shown to the model only in a foreground run, on a file "
+                                                     "you named, from a request that carries the explicit worker header.")
         try:
             run = AgentRun(kind=kind, params=params, mode=mode, raw_ok=raw_ok, person=body.get("person"),
                            human=_human(request))

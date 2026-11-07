@@ -1,66 +1,48 @@
-"""Closed response schemas for the pointing and glance capabilities.
+"""Closed response schemas for pointing, glances and screen checks, and the code that parses a model's answer.
 
-"Closed" means every string field is an enum: nothing the model says can carry free text out of, or back into, the system. This
-is also what the privacy track's `egress.send_image` will enforce when a purpose is registered, so the shapes here are the ones
-to register. The AWARENESS track may move the enums into `packages/schema/` later; until then they live here and the lead
-knows (see the DONE report).
+The schemas are the privacy track's (`understudy_engine.privacy.purposes`: GLANCE_RESPONSE, POINT_RESPONSE, VERIFY_RESPONSE): one
+source of truth, so what the bake-off measures is exactly what `egress.send_image` will enforce. They are CLOSED: every string is an
+enum, so nothing read off a screen can come back as text. `closed_problem()` re-checks that with the privacy track's own checker.
 
-* `POINT_SCHEMA`  -> `PointResult` : found, box_2d [ymin, xmin, ymax, xmax] in 0..1000 (the Gemini convention), confidence 0..1.
-* `GLANCE_SCHEMA` -> `GlanceResult`: app_kind, task_phase, blocker (enums), confidence, box_2d (all-zero when there is none).
+* point.element       -> `PointResult`: found, confidence 0..1, box_2d [ymin, xmin, ymax, xmax] in 0..1000 (the Gemini convention;
+                         optional when not found).
+* glance.screen_state -> `GlanceResult`: app_kind, task_phase, blocker (enums), confidence, optional box_2d.
+* verify.agent_run    -> a verdict dict {verdict: yes|no|unsure, confidence}.
 
-Deterministic code, not the model, decides what a box is worth: `parse_point` rejects degenerate and oversize boxes.
+Deterministic code, not the model, decides what a box is worth: `parse_point` rejects degenerate and oversize boxes. The AWARENESS
+track may move the enums into `packages/schema/`; until then they live in the privacy purposes (the lead knows).
 """
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 from typing import Any, Literal
+
+from understudy_engine.privacy.image import closed_schema_problem
+from understudy_engine.privacy.purposes import GLANCE_RESPONSE, POINT_RESPONSE, VERIFY_RESPONSE
 
 from .errors import SchemaViolation
 
 BoxYXYX = tuple[int, int, int, int]  # [ymin, xmin, ymax, xmax], 0..1000, origin top-left
 
-APP_KINDS = ("browser", "editor_or_ide", "terminal", "spreadsheet", "document", "email", "chat", "calendar",
-             "file_manager", "video_call", "settings", "other", "unknown")
-TASK_PHASES = ("starting", "entering_data", "reviewing_result", "waiting", "error_state", "finished", "unknown")
-BLOCKERS = ("none", "error_message", "validation_error", "login_or_verification", "loading", "dialog_or_popup",
-            "unclear_next_step", "unknown")
+POINT_SCHEMA: dict[str, Any] = copy.deepcopy(POINT_RESPONSE)
+GLANCE_SCHEMA: dict[str, Any] = copy.deepcopy(GLANCE_RESPONSE)
+VERIFY_SCHEMA: dict[str, Any] = copy.deepcopy(VERIFY_RESPONSE)
+
+APP_KINDS = tuple(GLANCE_SCHEMA["properties"]["app_kind"]["enum"])
+TASK_PHASES = tuple(GLANCE_SCHEMA["properties"]["task_phase"]["enum"])
+BLOCKERS = tuple(GLANCE_SCHEMA["properties"]["blocker"]["enum"])
+VERDICTS = tuple(VERIFY_SCHEMA["properties"]["verdict"]["enum"])
 
 MAX_BOX_AREA_FRACTION = 0.5   # a box over half the screen is "did not really find it" (same rule as the old project)
 MIN_BOX_SIDE = 3              # normalised units (about 4 px on a 1280-wide screen)
 
-POINT_SCHEMA: dict[str, Any] = {
-    "title": "PointResult",
-    "type": "object",
-    "properties": {
-        "found": {"type": "boolean"},
-        "box_2d": {"type": "array", "items": {"type": "integer"}, "minItems": 4, "maxItems": 4},
-        "confidence": {"type": "number"},
-    },
-    "required": ["found", "box_2d", "confidence"],
-}
-
-GLANCE_SCHEMA: dict[str, Any] = {
-    "title": "GlanceResult",
-    "type": "object",
-    "properties": {
-        "app_kind": {"type": "string", "enum": list(APP_KINDS)},
-        "task_phase": {"type": "string", "enum": list(TASK_PHASES)},
-        "blocker": {"type": "string", "enum": list(BLOCKERS)},
-        "confidence": {"type": "number"},
-        "box_2d": {"type": "array", "items": {"type": "integer"}, "minItems": 4, "maxItems": 4},
-    },
-    "required": ["app_kind", "task_phase", "blocker", "confidence", "box_2d"],
-}
-
-# A yes/no screen check (the independent verifier). One boolean and a confidence: no text.
-VERIFY_SCHEMA: dict[str, Any] = {
-    "title": "ScreenCheck",
-    "type": "object",
-    "properties": {"holds": {"type": "boolean"}, "confidence": {"type": "number"}},
-    "required": ["holds", "confidence"],
-}
-
 PointReason = Literal["ok", "model_not_found", "no_box", "degenerate_box", "oversize_box", "timeout", "unavailable", "error"]
+
+
+def closed_problem(schema: dict[str, Any]) -> str | None:
+    """Why a schema could let free text come back, or None (the privacy track's checker)."""
+    return closed_schema_problem(schema)
 
 
 @dataclass(frozen=True)
@@ -108,7 +90,7 @@ def _clamp(n: float) -> int:
 
 
 def _box(raw: Any) -> BoxYXYX | None:
-    """Validate and normalise a model box. All-zero means 'none'. Swapped corners are tolerated, never invented."""
+    """Validate and normalise a model box. All-zero or missing means 'none'. Swapped corners are tolerated, never invented."""
     if raw is None:
         return None
     if not isinstance(raw, (list, tuple)) or len(raw) != 4 or any(
@@ -153,11 +135,12 @@ def parse_point(raw: dict[str, Any]) -> PointResult:
     return PointResult(found=True, box_2d=box, confidence=conf, reason="ok")
 
 
-def parse_glance(raw: dict[str, Any]) -> GlanceResult:
+def parse_glance(raw: dict[str, Any], *, check_enums: bool = True) -> GlanceResult:
+    """`check_enums=False` when the answer already passed a closed schema that has other enum values (the AWARENESS glance)."""
     if not isinstance(raw, dict):
         raise SchemaViolation("glance result must be an object")
     for key, allowed in (("app_kind", APP_KINDS), ("task_phase", TASK_PHASES), ("blocker", BLOCKERS)):
-        if raw.get(key) not in allowed:
+        if not isinstance(raw.get(key), str) or (check_enums and raw.get(key) not in allowed):
             raise SchemaViolation(f"glance field {key!r} is not one of the allowed values")
     box = _box(raw.get("box_2d"))
     if box is not None and box_problem(box):
@@ -166,24 +149,7 @@ def parse_glance(raw: dict[str, Any]) -> GlanceResult:
                         confidence=_conf(raw.get("confidence", 0.0)), box_2d=box)
 
 
-def is_closed(schema: dict[str, Any]) -> bool:
-    """True when no string in the schema is free text (every string has an enum). Used by tests and, later, by the egress guard."""
-    def walk(node: Any) -> bool:
-        if not isinstance(node, dict):
-            return True
-        t = node.get("type")
-        types = t if isinstance(t, list) else [t]
-        if "string" in types and "enum" not in node:
-            return False
-        for key in ("properties", "$defs", "definitions"):
-            if isinstance(node.get(key), dict) and not all(walk(v) for v in node[key].values()):
-                return False
-        for key in ("items", "not"):
-            if key in node and not walk(node[key]):
-                return False
-        for key in ("anyOf", "oneOf", "allOf"):
-            if key in node and not all(walk(v) for v in node[key]):
-                return False
-        return True
-
-    return walk(schema)
+def parse_verify(raw: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(raw, dict) or raw.get("verdict") not in VERDICTS:
+        raise SchemaViolation("verify result needs a verdict of yes, no or unsure")
+    return {"verdict": raw["verdict"], "confidence": _conf(raw.get("confidence", 0.0))}

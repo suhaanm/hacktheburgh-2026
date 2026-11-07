@@ -306,7 +306,6 @@ def analyse_week(blocks: list[Block], cfg: WorkConfig, monday: date, off_dates: 
         "short_meetings_n": sum(d.metrics["short_meetings_n"] for d in days),
         "longest_b2b_min": max((d.metrics["longest_b2b_min"] for d in days), default=0),
     }
-    n = sum(len(d.meetings) for d in days) + sum(1 for d in days for _ in d.commitments) - sum(len(d.meetings) for d in days)
     return WeekAnalysis(monday=monday, features=f, days=days, n_blocks=len(blocks))
 
 

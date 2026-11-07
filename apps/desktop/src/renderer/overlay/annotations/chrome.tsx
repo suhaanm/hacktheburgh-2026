@@ -151,8 +151,8 @@ export function LevelChipEcho({
           padding: `${l.padding.y}px ${l.padding.x}px`,
           fontFamily: style.bubble.fontFamily,
           fontSize: l.fontSize,
-          fontWeight: 700,
-          boxShadow: '0 4px 14px rgba(5, 7, 13, 0.3)',
+          fontWeight: 500,
+          boxShadow: style.bubble.shadow,
         }}
       >
         <span aria-hidden style={{ display: 'inline-flex', alignItems: 'flex-end', gap: l.fontSize * 0.15, height: l.fontSize }}>
@@ -162,9 +162,10 @@ export function LevelChipEcho({
               style={{
                 width: l.fontSize * 0.2,
                 height: l.fontSize * (0.35 + i * 0.16),
-                borderRadius: 2,
-                background: filledNow(i) ? '#fff' : 'rgba(255,255,255,0.28)',
-                transition: frozen !== null || !animate ? 'none' : `background ${l.changeMs * 0.45}ms ease ${barDelay(i, from, to)}ms`,
+                borderRadius: 1,
+                background: l.color,
+                opacity: filledNow(i) ? 1 : 0.28,
+                transition: frozen !== null || !animate ? 'none' : `opacity ${l.changeMs * 0.45}ms ease ${barDelay(i, from, to)}ms`,
               }}
             />
           ))}

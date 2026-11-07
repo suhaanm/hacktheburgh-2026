@@ -27,6 +27,8 @@ export interface HudModel {
   state(): HudState
   setProposal(p: HudProposal | null): void
   setQueuePending(n: number | null): void
+  // An agent or a session is acting for the person (shows the Stop all pill while true).
+  setAgentActing(acting: boolean): void
   handle(raw: unknown): boolean
   dispose(): void
 }
@@ -49,6 +51,9 @@ export function createHudModel(deps: HudModelDeps): HudModel {
     },
     setQueuePending(n) {
       if (state.queuePending !== n) set({ queuePending: n })
+    },
+    setAgentActing(acting) {
+      if (state.agentActing !== acting) set({ agentActing: acting })
     },
     handle(raw) {
       const parsed = HudActionSchema.safeParse(raw)

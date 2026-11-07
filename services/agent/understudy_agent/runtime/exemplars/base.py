@@ -57,6 +57,10 @@ class Exemplar:
     prepare: Callable[[dict[str, Any], Path], dict[str, Any]]   # (params, run dir) -> cleaned params (may make fixtures)
     mock_steps: Callable[[str, dict[str, Any]], list[dict[str, Any]]]   # role -> scripted menu steps
     explicit_files: tuple[str, ...] = ()        # params naming files the worker chose (for raw mode)
+    # optional adaptive stand-in for the model (mock mode): (role, params, payload) -> menu reply, a function of the typed
+    # payload the model would receive (steps left, last outcome, typed history, typed signals)
+    policy: Callable[[str, dict[str, Any], dict[str, Any]], dict[str, Any]] | None = None
+    budget: tuple[int, float, int] = (10, 120.0, 20000)   # (steps, seconds, size units) the mock plan gives each child
 
 
 KINDS: dict[str, Exemplar] = {}

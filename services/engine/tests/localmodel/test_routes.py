@@ -82,3 +82,15 @@ def test_items_ref_cannot_escape_the_items_directory(client, ref):
 def test_missing_items_file_is_404_and_extra_fields_are_refused(client):
     assert client.post("/localmodel/digest", json={"task": "event_digest", "items_ref": "nope.json"}).status_code == 404
     assert client.post("/localmodel/digest", json={"task": "event_digest", "items_ref": "a.json", "items": ["raw"]}).status_code == 422
+
+
+def test_engine_app_includes_the_router_only_when_the_flag_is_on(tmp_path, monkeypatch):
+    from understudy_engine.api.app import create_app
+
+    monkeypatch.setenv("UNDERSTUDY_NO_WARM", "1")
+    off = TestClient(create_app(tmp_path, warm=False))
+    assert off.get("/localmodel/status").status_code == 404
+    monkeypatch.setenv("UNDERSTUDY_X_LOCALMODEL", "1")
+    on = TestClient(create_app(tmp_path, warm=False))
+    r = on.get("/localmodel/status")
+    assert r.status_code == 200 and r.json()["data"]["mode"] == "rules"          # mock mode: never starts a server

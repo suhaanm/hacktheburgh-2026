@@ -483,9 +483,9 @@ def _default_port() -> ModelPort:
     from ..models import get_model_port, mock_enabled
 
     if mock_enabled():
-        from ..models.mock_provider import MockProvider
+        from .mockscripts import AdaptiveMock
 
-        return MockProvider("benefits_clean")      # a fresh one per run, so scripted queues never stack
+        return AdaptiveMock("benefits_clean")      # a fresh one per run, so scripted queues never stack
     return get_model_port()
 
 

@@ -138,7 +138,6 @@ def test_wording_payload_is_numbers_and_enums_only():
 
 
 def test_reword_goes_through_egress_and_is_recorded(tmp_path):
-    from understudy_engine.privacy import ledger
     from understudy_engine.privacy.testing import CapturingPort, assert_ledger_complete  # noqa: F401
     f, s = _one()
     port = _port("Hold one longer focus block on most days.")

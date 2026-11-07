@@ -56,6 +56,7 @@ class Net:
 @pytest.fixture
 def live(monkeypatch):
     monkeypatch.setenv("UNDERSTUDY_VOICE", "1")
+    monkeypatch.setenv("UNDERSTUDY_VOICE_DEBUG_TEXT", "1")  # these tests exercise the free-text (debug) path; lines are in test_voice_lines.py
     monkeypatch.setenv("UNDERSTUDY_MOCK", "0")
     monkeypatch.setenv("ELEVENLABS_API_KEY", FAKE_KEY)
     monkeypatch.delenv("ELEVENLABS_VOICE_ID", raising=False)
@@ -215,6 +216,7 @@ def client():
 
 
 def test_router_status_and_speak_in_mock_mode(monkeypatch):
+    monkeypatch.setenv("UNDERSTUDY_VOICE_DEBUG_TEXT", "1")  # free text only exists behind the debug flag (the default is a 422: test_voice_lines.py)
     c = client()
     s = c.get("/voice/status").json()
     assert s["enabled"] is False and s["mock"] is True
@@ -255,6 +257,7 @@ def test_live_elevenlabs_tiny_call_then_cache_offline(monkeypatch):
     if not os.environ.get("ELEVENLABS_API_KEY"):
         pytest.skip("no ELEVENLABS_API_KEY in the environment")
     monkeypatch.setenv("UNDERSTUDY_VOICE", "1")
+    monkeypatch.setenv("UNDERSTUDY_VOICE_DEBUG_TEXT", "1")
     monkeypatch.setenv("UNDERSTUDY_MOCK", "0")
     monkeypatch.setenv("UNDERSTUDY_DATA_DIR", str(__import__("tempfile").mkdtemp()))
     r = tts.speak_detailed("Hello.", "nudge", deadline_s=8.0)

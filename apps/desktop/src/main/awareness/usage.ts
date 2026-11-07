@@ -61,3 +61,25 @@ export class UsageMeter {
     if (this.entries.length > 5000) this.entries = this.entries.slice(-5000)
   }
 }
+
+const GLANCE_PURPOSE = 'awareness.glance'
+
+/**
+ * Turns the engine's GET /privacy/ledger answer ({meta, data: rows} or a bare list, newest first) into usage entries for the glance purpose,
+ * so the hourly and daily caps survive a restart. Rows carry only metadata; the cost is `cost_estimate_usd` when the provider reported
+ * one. A row we cannot read is skipped. Needs the privacy layer on; with it off the ledger answers 404 and nothing is seeded.
+ */
+export function parseLedgerUsage(json: unknown): UsageEntry[] {
+  const rows = Array.isArray(json) ? json : typeof json === 'object' && json !== null && Array.isArray((json as { data?: unknown }).data) ? (json as { data: unknown[] }).data : []
+  const out: UsageEntry[] = []
+  for (const r of rows) {
+    if (typeof r !== 'object' || r === null) continue
+    const row = r as Record<string, unknown>
+    if (row.purpose !== GLANCE_PURPOSE || typeof row.t !== 'string') continue
+    const at = Date.parse(row.t)
+    if (!Number.isFinite(at)) continue
+    const usd = typeof row.cost_estimate_usd === 'number' && Number.isFinite(row.cost_estimate_usd) && row.cost_estimate_usd > 0 ? row.cost_estimate_usd : 0
+    out.push({ at, usd })
+  }
+  return out
+}

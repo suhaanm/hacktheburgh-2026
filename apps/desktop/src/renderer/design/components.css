@@ -2494,3 +2494,158 @@
   position: absolute;
   inset: -6px 0;
 }
+
+/* =====================================================================================================================
+   Understudy look (REQ-5 item 4). Calm, hairline, flat, one accent: no gradient, no glow, nothing loops for decoration, small type.
+   Everything here reads its values from tokens.css and wins over the earlier rules because it comes last.
+   ===================================================================================================================== */
+:root {
+  --v3-radius: 10px;
+  --v3-sheen: none;
+}
+:root[data-theme='dark'] {
+  --v3-sheen: none;
+}
+body,
+.al-app {
+  font-family: var(--font-ui);
+  font-size: var(--fs-base);
+}
+h1,
+h2,
+h3,
+.al-dock__title,
+.al-title {
+  font-family: var(--font-display);
+  font-weight: var(--fw-strong);
+  letter-spacing: -0.01em;
+}
+.al-dock,
+:root[data-glass='true'] .al-app.al-dock--fill,
+:root[data-theme='dark'][data-glass='true'] .al-app.al-dock--fill {
+  border-radius: var(--v3-radius);
+  background-image: none;
+  border: var(--border-w) solid var(--line);
+  box-shadow: none;
+}
+.al-eyebrow,
+.al-group__title {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+
+/* presence: the brand mark, a solid disc with a ring offset behind it; it does not breathe, pulse or glow */
+.al-orb__halo {
+  display: none;
+}
+.al-orb__core {
+  inset: 8% 32% 32% 8%;
+  background: var(--accent);
+  box-shadow: none;
+  font-size: 0;
+}
+.al-orb__ring {
+  inset: 32% 8% 8% 32%;
+  border: max(1.5px, calc(var(--orb-size) * 0.05)) solid var(--accent);
+  opacity: 0.6;
+}
+.al-orb__ring::after {
+  display: none;
+}
+.al-orb *,
+.al-orb__ring::after {
+  animation: none !important;
+}
+.al-orb[data-phase='asleep'] .al-orb__core {
+  opacity: 0.4;
+  filter: none;
+}
+.al-orb[data-phase='asleep'] .al-orb__ring {
+  opacity: 0.25;
+  border-style: solid;
+}
+.al-orb[data-phase='thinking'] .al-orb__ring,
+.al-orb[data-phase='connecting'] .al-orb__ring {
+  border-style: dashed;
+}
+.al-orb[data-phase='error'] .al-orb__core {
+  background: var(--danger-ink);
+}
+.al-light__dot::after {
+  display: none;
+}
+.al-light__dot,
+.al-light__dot * {
+  animation: none !important;
+}
+
+/* buttons: hairline controls, the accent only on the one primary action, no stretching */
+.al-btn {
+  font-weight: 500;
+  border-radius: var(--r-md);
+}
+.al-btn--lg {
+  min-height: 40px;
+  padding: 0 var(--sp-4);
+  font-size: var(--fs-md);
+  border-radius: var(--r-md);
+}
+.al-btn--primary:hover {
+  filter: none;
+  background: color-mix(in srgb, var(--accent) 88%, var(--ink));
+}
+/* Stop is a quiet monochrome pill with a stop glyph, not a red slab (the red HUD pill is gone too: see hud.css) */
+.al-btn--danger.al-stop {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line-strong);
+  border-radius: var(--r-pill);
+  min-height: 28px;
+  padding: 0 var(--sp-3);
+  font-size: var(--fs-sm);
+}
+.al-btn--danger.al-stop:hover {
+  filter: none;
+  background: var(--surface-sunken);
+  border-color: var(--ink);
+}
+.al-bubble[data-role='user'] {
+  background: var(--accent);
+  box-shadow: none;
+}
+.al-preview {
+  background: var(--surface-sunken);
+  background-image: none;
+}
+
+/* switches: a small track and knob; the position of the knob and the checkbox itself carry the state */
+.al-switch {
+  min-height: var(--target-min);
+  padding: var(--sp-2) 0;
+}
+.al-switch__label {
+  font-weight: 500;
+}
+.al-switch__track {
+  width: 34px;
+  height: 20px;
+  padding: 2px;
+}
+.al-switch__thumb {
+  width: 14px;
+  height: 14px;
+  font-size: 0;
+  background: var(--ink-muted);
+}
+.al-switch__thumb::before,
+.al-switch input:checked + .al-switch__track .al-switch__thumb::before {
+  content: none;
+}
+.al-switch input:checked + .al-switch__track .al-switch__thumb {
+  transform: translateX(14px);
+}
+.al-switch input:focus-visible + .al-switch__track {
+  outline-offset: 2px;
+}

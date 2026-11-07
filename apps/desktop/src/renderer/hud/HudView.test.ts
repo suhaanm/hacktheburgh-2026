@@ -1,7 +1,7 @@
 import { isValidElement, type ReactElement, type ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { EMPTY_HUD_STATE, type HudState } from '../../shared/hud'
-import { HudView, hoursText, killDetail } from './HudView'
+import { HudView, hoursText, hudHasContent, killDetail } from './HudView'
 
 type Props = Record<string, unknown> & { children?: ReactNode }
 function walk(node: ReactNode, visit: (el: ReactElement<Props>) => void): void {
@@ -42,24 +42,25 @@ const proposal = { id: 'r1', title: 'Enter the household into three calculators'
 const base = (over: Partial<HudState> = {}): HudState => ({ ...EMPTY_HUD_STATE, ...over })
 
 describe('HudView', () => {
-  it('quiet state: just the Stop all pill, which sends kill', () => {
+  it('idle: nothing on the screen at all (the Stop all pill is only for while an agent acts)', () => {
+    expect(HudView({ state: base(), onAction: vi.fn() })).toBeNull()
+    expect(hudHasContent(base())).toBe(false)
+    // a morning queue waiting does not put a pill on screen: it is in the menu bar menu and the dashboard
+    expect(HudView({ state: base({ queuePending: 3 }), onAction: vi.fn() })).toBeNull()
+  })
+
+  it('while an agent is acting: just the Stop all pill, which sends kill', () => {
     const onAction = vi.fn()
-    const el = HudView({ state: base(), onAction })
+    const el = HudView({ state: base({ agentActing: true }), onAction })
+    expect(hudHasContent(base({ agentActing: true }))).toBe(true)
     expect(buttons(el).map((b) => b.label)).toEqual(['Stop all'])
     buttons(el)[0].onClick()
     expect(onAction).toHaveBeenCalledWith({ type: 'kill' })
   })
 
-  it('shows a Morning queue link with the count only when something is waiting', () => {
-    expect(buttons(HudView({ state: base({ queuePending: 0 }), onAction: vi.fn() })).map((b) => b.label)).toEqual(['Stop all'])
-    expect(buttons(HudView({ state: base({ queuePending: null }), onAction: vi.fn() })).map((b) => b.label)).toEqual(['Stop all'])
-    const withQueue = buttons(HudView({ state: base({ queuePending: 3 }), onAction: vi.fn() }))
-    expect(withQueue.map((b) => b.label)).toEqual(['Stop all', 'Morning queue 3'])
-  })
-
   it('proposal toast: plain facts and three equal choices, each sending its own action', () => {
     const onAction = vi.fn()
-    const el = HudView({ state: base({ proposal }), onAction })
+    const el = HudView({ state: base({ proposal, agentActing: true }), onAction })
     const t = texts(el)
     for (const piece of ['I noticed something', proposal.title, proposal.what, 'about 14 times in 3 weeks', 'about 3.1 to 5.2 hours over 4 weeks', 'gov.uk check, turn2us', 'submit', 'Nothing runs unless you say so.']) expect(t).toContain(piece)
     const bs = buttons(el)
@@ -80,6 +81,7 @@ describe('HudView', () => {
     expect(texts(el)).toContain('Everything is paused. Nothing will run until you resume.')
     expect(texts(el)).toContain('The engine was told to stop. The agent could not be reached.')
     expect(buttons(el).map((b) => b.label)).toEqual(['Resume', 'Open morning queue'])
+    expect(hudHasContent(base({ kill: { killed: true, engine: true, agent: false } }))).toBe(true)
     buttons(el)[0].onClick()
     buttons(el)[1].onClick()
     expect(onAction.mock.calls.map((c) => c[0])).toEqual([{ type: 'resume' }, { type: 'open_queue' }])

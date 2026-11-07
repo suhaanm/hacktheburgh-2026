@@ -3,7 +3,7 @@
 # samples for a thin pack: selectors for real tools are starting points, not guarantees).
 version: 1
 params: { follow_s: 8, gap_idle_s: 30, reformulate_within_s: 90, max_cog_s: 300 }
-extra_cogs: [LOAD_DATA, PROFILE_DATA, WRITE_QUERY, RUN_QUERY, INSPECT_RESULT, PLOT, EXPORT_RESULT]
+extra_cogs: [LOAD_DATA, PROFILE_DATA, WRITE_QUERY, RUN_QUERY, INSPECT_RESULT, PLOT, EXPORT_RESULT, CLEAN_DATA, RECONCILE_CONTROL, GROUP_AGG]
 
 zones:
   - data_browser
@@ -13,6 +13,9 @@ zones:
   - query_result
   - chart_panel
   - export_panel
+  - clean_panel
+  - control_panel
+  - pivot_panel
   - doc
   - form_field
   - search_box
@@ -33,6 +36,15 @@ rules:
   - { match: { type: [scroll, focus, click], zone: query_result }, cog: INSPECT_RESULT }
   - { match: { type: [click, focus], zone: chart_panel }, cog: PLOT }
   - { match: { type: click, zone: export_panel }, cog: EXPORT_RESULT }
+  # ---- data-analyst cogs added for the role sandbox (STU): clean the data, reconcile with a control figure, group and aggregate
+  - { match: { type: [click, focus], zone: clean_panel }, cog: CLEAN_DATA }
+  - { match: { type: [click, focus], zone: control_panel }, cog: RECONCILE_CONTROL }
+  - { match: { type: [click, focus, scroll], zone: pivot_panel }, cog: GROUP_AGG }
+  - { match: { type: nav, zone: profile_panel }, cog: PROFILE_DATA }          # the sandbox navigates to a #profile/#pivot/#control/#clean hash when the result is on screen
+  - { match: { type: nav, zone: pivot_panel }, cog: GROUP_AGG }
+  - { match: { type: nav, zone: control_panel }, cog: RECONCILE_CONTROL }
+  - { match: { type: nav, zone: clean_panel }, cog: CLEAN_DATA }
+  - { match: { type: nav, zone: decision_btn }, cog: DECIDE }
   # ---- base cogs
   - { match: { type: idle }, cog: IDLE, backdate_meta: idle_s }
   - { match: { type: undo }, cog: REVERT }
@@ -84,6 +96,34 @@ capture_sites:
     elements:
       - { zone: chart_panel, selector: 'svg, canvas, [data-testid*="chart"]' }
       - { zone: export_panel, selector: 'button[aria-label*="Export"], button[aria-label*="Download"]' }
+  - id: roles_sandbox
+    hosts: ["127.0.0.1:7951", "127.0.0.1:7952", "127.0.0.1:7953", "127.0.0.1:7954", "127.0.0.1:7955", "127.0.0.1:7956", "127.0.0.1:7957", "127.0.0.1:7958", "localhost:7951", "localhost:7952", "localhost:7953", "localhost:7954", "localhost:7955", "localhost:7956", "localhost:7957", "localhost:7958"]
+    nav_default: data_browser
+    tab_default: compare_view
+    nav:
+      - { zone: profile_panel, when: 'body[data-nav="profile"]' }
+      - { zone: pivot_panel, when: 'body[data-nav="pivot"]' }
+      - { zone: control_panel, when: 'body[data-nav="control"]' }
+      - { zone: clean_panel, when: 'body[data-nav="clean"]' }
+      - { zone: decision_btn, when: 'body[data-nav="done"]' }
+    elements:
+      - { zone: profile_panel, selector: '#profile-panel' }
+      - { zone: pivot_panel, selector: '#pivot-panel' }
+      - { zone: clean_panel, selector: '#clean-panel' }
+      - { zone: control_panel, selector: '#control-panel' }
+      - { zone: chart_panel, selector: '#chart-panel' }
+      - { zone: sql_editor, selector: '#query-builder' }
+      - { zone: run_control, selector: '#apply-btn' }
+      - { zone: query_result, selector: '#result-panel' }
+      - { zone: decision_btn, selector: '#answer-submit' }
+      - { zone: data_browser, selector: '#table-panel' }
+    markers:
+      task_start: { zone: data_browser, idle_s: 120 }
+      progress:
+        - { kind: profiled, when: 'body[data-nav="profile"]' }
+        - { kind: aggregated, when: 'body[data-nav="pivot"]' }
+        - { kind: reconciled, when: 'body[data-nav="control"]' }
+      task_end: { when: '#case-done', reason: answered }
 
 examples:
   - name: write, run and inspect a query
@@ -94,3 +134,13 @@ examples:
       - { dt: 15, type: copy }
       - { dt: 4,  type: click,  role: button,  meta: { zone: chart_panel } }
     expect: [WRITE_QUERY, RUN_QUERY, INSPECT_RESULT, COPY, PLOT]
+  - name: profile, clean, reconcile with the control, group by segment
+    events:
+      - { dt: 0,  type: click, role: button, meta: { zone: profile_panel } }
+      - { dt: 2,  type: nav,   meta: { zone: profile_panel, spa: true } }
+      - { dt: 10, type: click, role: button, meta: { zone: clean_panel } }
+      - { dt: 10, type: click, role: button, meta: { zone: control_panel } }
+      - { dt: 10, type: focus, role: combobox, meta: { zone: pivot_panel } }
+      - { dt: 8,  type: click, role: button, meta: { zone: pivot_panel } }
+      - { dt: 8,  type: click, role: button, meta: { zone: chart_panel } }
+    expect: [PROFILE_DATA, PROFILE_DATA, CLEAN_DATA, RECONCILE_CONTROL, GROUP_AGG, GROUP_AGG, PLOT]

@@ -46,6 +46,7 @@ from .sandbox_sites.lock import sandbox_lock
 from .sandbox_sites.runner import SandboxCluster, SharedSites
 from .security.denylist import Denylist
 from .supervisor import data_dir
+from .tiers.computer_use import BrowserPageActuator
 
 CONDITIONS = ("clean", "layout_v2", "glitch", "injected")
 SITES = ("a", "b", "c")
@@ -271,15 +272,14 @@ async def one_run(h: Household, condition: str, i: int, model: LiveModel, urls: 
 
 
 # ----------------------------------------------------------------------------- tier 3 against a simulated actuator
-class ScreenshotSimActuator:
+class ScreenshotSimActuator(BrowserPageActuator):
     """Shows the model a REAL screenshot of the headless sandbox page and records what it would have done.
     Nothing is clicked or typed anywhere. For each proposed pointer action it hit-tests the page to see whether the
-    point lands on an interactive element (a measure of the model's grounding)."""
-
-    scale = 1.0
+    point lands on an interactive element (a measure of the model's grounding). Targets are read from the DOM by the
+    same code as the real page actuator, so the gate sees what it would see for real."""
 
     def __init__(self, page: Any) -> None:
-        self.page = page
+        super().__init__(page)
         self.actions: list[dict[str, Any]] = []
 
     async def screenshot(self) -> bytes:
@@ -320,8 +320,7 @@ async def one_tier3_run(h: Household, i: int, model: LiveModel, urls: dict[str, 
         page = await (await host.new_context()).new_page()
         await page.goto(urls[site] + job.start_path, wait_until="domcontentloaded")
         act = ScreenshotSimActuator(page)
-        guard = Guard(model, run_id=run_id, mode="model_driven", audit=audit, queue=queue, denylist=Denylist(),
-                      unresolved_clicks_ok=True)
+        guard = Guard(model, run_id=run_id, mode="model_driven", audit=audit, queue=queue, denylist=Denylist())
 
         async def verify() -> bool:  # nothing changes in a simulation, so a claim of success cannot be true
             return False

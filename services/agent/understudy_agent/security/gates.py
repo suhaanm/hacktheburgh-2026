@@ -9,13 +9,16 @@ need a human click UNLESS the worker opted that routine in for those named class
 * An opt-in has no effect while the routine sits on rung A0 or A1 (it has not earned autonomy), and a detector hit
   lowers the rung.
 * While the kill flag is set, everything is blocked.
-* Unattended model-driven clicks whose target cannot be read (no label from the DOM or accessibility tree) go to the
-  queue, unless the routine says unresolved clicks are fine (for example a TextEdit demo with nothing risky in reach).
+* A pointer click or drag, an Enter key press, or typed text that contains a newline (an implicit Enter) is only
+  classified from what TRUSTED code read at the target (the DOM or the accessibility tree, never the model's own label).
+  When nothing could be read there, the step is `needs_human` in EVERY mode, attended or not (S-01). The old
+  `unresolved_clicks_ok` flag no longer changes this.
 
 The gate blocks by default: it returns `allow` only when it has positively classified the step as normal or opted in.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any, Literal
 
@@ -40,7 +43,7 @@ class RoutineContext:
     opted_in: frozenset[ActionClass] = frozenset()   # classes the worker opted this routine into (D11)
     typed_confirm: bool = False                      # model-driven opt-in needs the typed confirmation
     recorded_hosts: frozenset[str] = frozenset()     # sites the routine recorded (layer 5 only; never limits navigation)
-    unresolved_clicks_ok: bool = False
+    unresolved_clicks_ok: bool = False               # DEPRECATED, no effect: an unreadable target always needs a human (S-01)
     run_id: str | None = None
 
     def with_rung(self, rung: str) -> "RoutineContext":
@@ -78,6 +81,19 @@ class GateDecision:
         return "outward_step" if self.risk_class == "outward" else "irreversible_step"
 
 
+POINTER_KINDS = ("click", "double_click", "drag")
+_NEWLINE = re.compile(r"[\r\n]")
+
+
+def enter_like(kind: str, args: dict[str, Any]) -> bool:
+    """An Enter key press, or typed text with a newline in it (which presses Enter, and so can submit a form)."""
+    if kind in ("key", "press"):
+        return any(str(k).lower() in ("enter", "return") for k in (args.get("keys") or []))
+    if kind == "type":
+        return bool(_NEWLINE.search(str(args.get("text") or "")))
+    return False
+
+
 def classify_step(kind: str, args: dict[str, Any], target: TargetInfo | None = None) -> set[ActionClass]:
     """Classes a step belongs to. Always includes a base class (read, navigate or fill)."""
     target = target or TargetInfo()
@@ -92,11 +108,10 @@ def classify_step(kind: str, args: dict[str, Any], target: TargetInfo | None = N
         classes.add(ActionClass.READ)  # base: a click on an unremarkable target changes nothing outward
     if kind in ("key", "press"):
         classes |= classify_keys(args.get("keys", []))
-        keys = [k.lower() for k in args.get("keys", [])]
-        if any(k in ("enter", "return") for k in keys):
-            classes |= classify_label(target.label)  # Enter acts like the focused control
         if not classes:
             classes.add(ActionClass.FILL)
+    if enter_like(kind, args):
+        classes |= classify_label(target.label)  # Enter acts like the focused control (or the form's own submit button)
     if kind in ("click", "double_click", "click_element"):
         classes |= classify_label(target.label)
         classes |= classify_label(args.get("label"))  # hint from the proposer; it can only ADD risk, never remove it
@@ -126,12 +141,14 @@ def gate(kind: str, args: dict[str, Any], ctx: RoutineContext, target: TargetInf
     risk = risk_class(top)
     frozen = frozenset(classes)
 
+    # A pixel click, an Enter press or a newline does whatever the control under it does. If trusted code could not
+    # read that control, nothing can classify the step: a human decides, in every mode (S-01).
+    if (kind in POINTER_KINDS or enter_like(kind, args)) and not target.resolved:
+        return GateDecision("needs_human", frozen, top, "normal" if top is None else risk,
+                            "the control under this click or Enter press could not be read by trusted code; "
+                            "it needs a human click")
+
     if top in NORMAL_CLASSES or top is None:
-        # Unattended model-driven pointer actions on a target nobody could read: ask first.
-        if (ctx.unattended and ctx.mode == "model_driven" and kind in ("click", "double_click", "drag")
-                and not target.resolved and not ctx.unresolved_clicks_ok):
-            return GateDecision("needs_human", frozen, top, "normal",
-                                "an unattended click landed on a target that could not be read; it needs a human click")
         return GateDecision("allow", frozen, top, "normal", "normal step")
 
     # An outward or irreversible class is present.

@@ -6,11 +6,9 @@ import json
 from datetime import date
 from pathlib import Path
 
-import pytest
 
 from understudy_engine.calendar import synth
 from understudy_engine.calendar.model import week_label
-from understudy_engine.plugins.ics import ICSSource
 
 KEYS_EXACT = ("focus_blocks_60", "focus_blocks_90", "longest_focus_min", "back_to_back_runs", "fragmented_days", "external_unbuffered_n",
               "review_slots", "batch_windows", "meetings_n", "days_worked")
@@ -57,9 +55,11 @@ def test_ics_looks_like_a_real_export(synth_root):
     assert text.startswith("BEGIN:VCALENDAR\r\n") and "PRODID:" in text and "BEGIN:VTIMEZONE" in text
     assert "RRULE:FREQ=WEEKLY" in text and "EXDATE" in text
     assert all(len(line.encode()) <= 75 for line in text.split("\r\n"))                         # folded to 75 octets
-    assert "TZID=GMT Standard Time" in text                                                     # odd novices use Outlook's Windows zone name
-    even = (synth_root / "synthetic" / "calendars" / "p_nov04" / "calendar.ics").read_bytes().decode()
-    assert "TZID=Europe/London" in even
+    assert 'TZID="(UTC+00:00) Dublin, Edinburgh, Lisbon, London"' in text                       # novice 5: Outlook's display-name zone, resolved from its VTIMEZONE
+    windows = (synth_root / "synthetic" / "calendars" / "p_nov04" / "calendar.ics").read_bytes().decode()
+    assert "TZID=GMT Standard Time" in windows                                                  # novice 4: a Windows zone name
+    iana = (synth_root / "synthetic" / "calendars" / "p_nov03" / "calendar.ics").read_bytes().decode()
+    assert "TZID=Europe/London" in iana                                                         # novice 3: an IANA name
     utc = (synth_root / "synthetic" / "calendars" / "p_ninetofive" / "calendar.ics").read_bytes().decode()
     assert "DTSTART:2026" in utc and "TZID" not in utc.split("BEGIN:VEVENT", 1)[1]
 

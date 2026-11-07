@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { isKilled, setKilled } from './kill-flag'
 import { createKillSwitch, STOPPED_LINE, type KillDeps } from './kill-switch'
 
@@ -89,5 +89,63 @@ describe('kill switch', () => {
     const p = ks.trigger('cli')
     expect(Date.now() - t0).toBeLessThan(100) // everything before the first await is synchronous
     await p
+  })
+})
+
+describe('data/KILL (the file the Python actuators poll)', () => {
+  const fs = require('node:fs') as typeof import('node:fs')
+  const os = require('node:os') as typeof import('node:os')
+  const path = require('node:path') as typeof import('node:path')
+  let dir = ''
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'understudy-kill-'))
+    process.env.UNDERSTUDY_DATA_DIR = dir
+  })
+  afterEach(() => {
+    delete process.env.UNDERSTUDY_DATA_DIR
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+  const make = (killFn: () => Promise<{ engine: boolean; agent: boolean }>) => {
+    const noop = (): void => undefined
+    return createKillSwitch({ stopSession: noop, stopAgency: noop, stopShowtime: noop, cancelConfirm: noop, agents: () => [], cancelAgent: noop, overlay: { clear: noop, caption: noop }, engine: { kill: killFn, clearKill: async () => ({ engine: false, agent: false }) } })
+  }
+
+  it('is on disk within 100 ms of the press, with no service running, from every source (hotkey, tray, HUD pill)', async () => {
+    for (const source of ['hotkey', 'tray', 'hud'] as const) {
+      const ks = make(async () => {
+        throw new Error('ECONNREFUSED')
+      })
+      const t0 = Date.now()
+      const done = ks.trigger(source) // not awaited: the file must not wait for the network leg
+      expect(fs.existsSync(path.join(dir, 'KILL'))).toBe(true) // synchronous: already there when trigger() returned its promise
+      expect(Date.now() - t0).toBeLessThan(100)
+      const report = await done
+      expect(report.file).toBe(true)
+      expect(ks.state().file).toBe(true)
+      const body = JSON.parse(fs.readFileSync(path.join(dir, 'KILL'), 'utf8')) as { source: string }
+      expect(body.source).toBe(source)
+      expect(fs.readdirSync(dir).filter((f) => f.endsWith('.tmp'))).toEqual([]) // written by rename: no half file left
+      await ks.clear()
+      expect(fs.existsSync(path.join(dir, 'KILL'))).toBe(false) // Resume removes it
+    }
+  })
+
+  it('a failed write is reported, never thrown, and the rest of the stop still happens', async () => {
+    process.env.UNDERSTUDY_DATA_DIR = path.join(dir, 'KILL-is-a-file', 'nope')
+    fs.writeFileSync(path.join(dir, 'KILL-is-a-file'), 'x') // the data dir cannot be created under a regular file
+    const stopped: string[] = []
+    const noop = (): void => undefined
+    const ks = createKillSwitch({ stopSession: () => void stopped.push('session'), stopAgency: noop, stopShowtime: noop, cancelConfirm: noop, agents: () => [], cancelAgent: noop, overlay: { clear: noop, caption: noop }, engine: { kill: async () => ({ engine: true, agent: true }), clearKill: async () => ({ engine: true, agent: true }) } })
+    const report = await ks.trigger('hotkey')
+    expect(report.file).toBe(false)
+    expect(stopped).toEqual(['session'])
+    expect(ks.isKilled()).toBe(true)
+  })
+
+  it('a test run without a private data dir never touches the shared <repo>/data/KILL', async () => {
+    delete process.env.UNDERSTUDY_DATA_DIR
+    const ks = make(async () => ({ engine: false, agent: false }))
+    const report = await ks.trigger('hotkey')
+    expect(report.file).toBe(false)
   })
 })

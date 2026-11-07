@@ -10,13 +10,14 @@ UNDERSTUDY_X_GEMINI is on; with the flag off nothing about Gemini runs. Mock mod
 """
 from __future__ import annotations
 
+import os
 import re
 import sys
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-from .config import (ENV_COMPUTER, ENV_FAST, ENV_GEMINI_ACCURATE, ENV_GEMINI_FAST, ENV_GEMINI_LIVE, GeminiModelIds, ModelIds,
+from .config import (ENV_COMPUTER, ENV_FAST, ENV_PLANNER, ENV_GEMINI_ACCURATE, ENV_GEMINI_FAST, ENV_GEMINI_LIVE, GeminiModelIds, ModelIds,
                      gemini_flag_enabled, gemini_key_present, mock_enabled)
 from .errors import ConfigError, ProviderError
 from .redact import redact_text
@@ -54,7 +55,7 @@ def boot_check(*, client: Any | None = None, raise_on_fail: bool = True, out: Ca
     """In mock mode this is a no-op that makes no network call. Otherwise it lists the models the key can use
     and, if a configured id is missing, prints the usable ids and stops with instructions. When UNDERSTUDY_X_GEMINI is on the
     Gemini ids are checked too (same loud failure)."""
-    rep = _openai_boot_check(client=client, raise_on_fail=raise_on_fail, out=out)
+    rep = _remember(_openai_boot_check(client=client, raise_on_fail=raise_on_fail, out=out))
     if mock_enabled() or not gemini_flag_enabled():
         return rep
     if not rep.ok:
@@ -113,13 +114,96 @@ def _openai_boot_check(*, client: Any | None = None, raise_on_fail: bool = True,
     return BootReport(ok=False, mock=False, configured=ids.as_dict(), missing=missing, usable=usable, message=msg)
 
 
-if __name__ == "__main__":
+def gemini_boot_check(*, client: Any | None = None, raise_on_fail: bool = True,
+                      out: Callable[[str], None] = print) -> BootReport:
+    """Verify GEMINI_MODEL_FAST / _ACCURATE / _LIVE against `models.list`. Fails loudly with the usable ids; never guesses an id.
+    `client` is anything with `list_models() -> {id: [methods]}` (the real one is `GeminiClient`)."""
+    def fail(msg: str, **kw: Any) -> BootReport:
+        out(msg)
+        if raise_on_fail:
+            raise SystemExit(msg)
+        return _remember(BootReport(ok=False, mock=False, message=msg, provider="gemini", **kw))
+
+    if mock_enabled():
+        return BootReport(ok=True, mock=True, message="mock mode: no models checked", provider="gemini")
+    try:
+        ids = GeminiModelIds.from_env()
+    except ConfigError as e:
+        return fail(str(e))
+    if client is None:
+        from .gemini_http import GeminiClient
+
+        try:
+            client = GeminiClient(timeout_s=20.0)
+        except ConfigError as e:
+            return fail(str(e), configured=ids.as_dict())
+    try:
+        usable_methods: dict[str, list[str]] = client.list_models()
+    except ProviderError as e:  # already redacted by the client
+        return fail(f"Could not list Gemini models: {redact_text(e, max_chars=200)}. Check the key, network and quota.",
+                    configured=ids.as_dict())
+    except Exception as e:  # noqa: BLE001
+        return fail(f"Could not list Gemini models ({type(e).__name__}). Check the key, network and quota.",
+                    configured=ids.as_dict())
+    need = {"fast": "generateContent", "accurate": "generateContent", "live": "bidiGenerateContent"}
+    envs = {"fast": ENV_GEMINI_FAST, "accurate": ENV_GEMINI_ACCURATE, "live": ENV_GEMINI_LIVE}
+    missing: dict[str, str] = {}
+    unsupported: dict[str, str] = {}
+    for role, mid in ids.as_dict().items():
+        if mid not in usable_methods:
+            missing[role] = mid
+        elif usable_methods[mid] and need[role] not in usable_methods[mid]:
+            unsupported[role] = mid
+    if not missing and not unsupported:
+        return _remember(BootReport(ok=True, mock=False, configured=ids.as_dict(), usable=sorted(usable_methods),
+                                    message="all configured Gemini models are usable", provider="gemini"))
+    lines = []
+    if missing:
+        lines.append("The key cannot use these configured Gemini models:")
+        lines += [f"  {envs[r]}={m}" for r, m in missing.items()]
+    if unsupported:
+        lines.append("These configured Gemini models do not support the method this role needs:")
+        lines += [f"  {envs[r]}={m} (needs {need[r]})" for r, m in unsupported.items()]
+    gen = sorted(m for m, meth in usable_methods.items() if "generateContent" in meth and m.startswith("gemini"))
+    live = sorted(m for m, meth in usable_methods.items() if "bidiGenerateContent" in meth and "live" in m)
+    lines.append("Usable ids for GEMINI_MODEL_FAST / GEMINI_MODEL_ACCURATE (generateContent):")
+    lines += [f"  {m}" for m in gen]
+    lines.append("Usable ids for GEMINI_MODEL_LIVE (bidiGenerateContent, live models):")
+    lines += [f"  {m}" for m in live]
+    lines.append("Edit .env so each GEMINI_MODEL_* is one of the ids above, then start again. Ids are never guessed.")
+    return fail("\n".join(lines), configured=ids.as_dict(), missing={**missing, **unsupported}, usable=sorted(usable_methods))
+
+
+def _gemini_wanted() -> bool:
+    return gemini_key_present() or gemini_flag_enabled() or any(
+        os.environ.get(k, "").strip() for k in (ENV_GEMINI_FAST, ENV_GEMINI_ACCURATE, ENV_GEMINI_LIVE))
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
     try:
         from dotenv import load_dotenv
 
         load_dotenv()  # the app loads .env itself; harmless if already loaded
     except Exception:
         pass
-    rep = boot_check(raise_on_fail=False)
-    print(f"mock={rep.mock} ok={rep.ok} configured={rep.configured}")
-    sys.exit(0 if rep.ok else 1)
+    show_all = "--list" in argv
+    reports: list[BootReport] = []
+    rep = _remember(_openai_boot_check(raise_on_fail=False, out=print))
+    reports.append(rep)
+    print(f"openai: mock={rep.mock} ok={rep.ok} configured={rep.configured}")
+    if show_all and rep.usable:
+        print("  usable openai ids: " + ", ".join(m for m in rep.usable if _RELEVANT.match(m)))
+    if _gemini_wanted():
+        grep = gemini_boot_check(raise_on_fail=False, out=print)
+        reports.append(grep)
+        print(f"gemini: mock={grep.mock} ok={grep.ok} configured={grep.configured}")
+        if show_all and grep.usable:
+            print("  usable gemini ids: " + ", ".join(grep.usable))
+    else:
+        print("gemini: not configured (no GEMINI_API_KEY and no GEMINI_MODEL_*); skipped")
+    return 0 if all(r.ok for r in reports) else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

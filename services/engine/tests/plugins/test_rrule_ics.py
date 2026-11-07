@@ -4,7 +4,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 
-import pytest
 
 from understudy_engine.plugins.base import RawItem
 from understudy_engine.plugins.ics import ICSSource, parse_duration, parse_line, unfold, unescape
@@ -145,7 +144,7 @@ def test_all_day_and_timezone_fallbacks():
     vtz = ("BEGIN:VTIMEZONE\r\nTZID:Custom Zone\r\nBEGIN:STANDARD\r\nDTSTART:16010101T000000\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0200\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\n")
     custom = wrap(vev("UID:z", "DTSTART;TZID=Custom Zone:20261012T090000", "DTEND;TZID=Custom Zone:20261012T100000", "SUMMARY:x"), tz=vtz)
     cs = ICSSource(custom)
-    assert [i.t0 for i in cs.read()] == [utc(2026, 10, 12, 7)] and cs.stats["tz_fixed_offset_fallback"] >= 1
+    assert [i.t0 for i in cs.read()] == [utc(2026, 10, 12, 7)] and cs.stats["tz_vtimezone_used"] >= 1
 
 
 def test_bad_input_never_raises_and_never_echoes_content():
@@ -162,3 +161,20 @@ def test_item_repr_hides_fields():
     assert isinstance(it, RawItem)
     assert "secret" not in repr(it) and "secret" not in str(it) and "Vault" not in repr(it) and "withheld" in repr(it)
     assert it.fields["title"] == "Top secret merger"
+
+
+def test_outlook_display_name_zone_follows_its_vtimezone_rules_across_the_clock_change():
+    """Outlook desktop exports name a zone by its display text; only the file's VTIMEZONE says what it is. The rules (last Sunday of March and
+    October) must be followed, so 09:00 stays 09:00 local before and after 25 Oct 2026."""
+    tzid = "(UTC+00:00) Dublin, Edinburgh, Lisbon, London"
+    vtz = ("BEGIN:VTIMEZONE\r\nTZID:" + tzid + "\r\nBEGIN:STANDARD\r\nDTSTART:16011028T020000\r\nRRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10\r\n"
+           "TZOFFSETFROM:+0100\r\nTZOFFSETTO:+0000\r\nEND:STANDARD\r\nBEGIN:DAYLIGHT\r\nDTSTART:16010325T010000\r\nRRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=3\r\n"
+           "TZOFFSETFROM:+0000\r\nTZOFFSETTO:+0100\r\nEND:DAYLIGHT\r\nEND:VTIMEZONE\r\n")
+    text = wrap(vev("UID:d", "DTSTART;TZID=\"" + tzid + "\":20261022T090000", "DTEND;TZID=\"" + tzid + "\":20261022T100000", "RRULE:FREQ=DAILY;COUNT=6", "SUMMARY:x"), tz=vtz)
+    src = ICSSource(text)
+    got = [i.t0 for i in src.read()]
+    assert got[:3] == [utc(2026, 10, 22, 8), utc(2026, 10, 23, 8), utc(2026, 10, 24, 8)]            # still summer time
+    assert got[3:] == [utc(2026, 10, 25, 9), utc(2026, 10, 26, 9), utc(2026, 10, 27, 9)]            # clock change on the 25th
+    assert src.stats["tz_vtimezone_used"] >= 1
+    spring = wrap(vev("UID:s", "DTSTART;TZID=\"" + tzid + "\":20270401T090000", "DTEND;TZID=\"" + tzid + "\":20270401T100000", "SUMMARY:x"), tz=vtz)
+    assert [i.t0 for i in read(spring)] == [utc(2027, 4, 1, 8)]

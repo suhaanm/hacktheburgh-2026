@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { AnalyticMeta, Rung } from "../types";
 import { ApiError } from "../api";
+import { FALLBACK_LABEL, type Fallback } from "../lib/fallback";
 
 const UNIT: Record<string, [string, string]> = {
   people: ["person", "people"],
@@ -24,6 +25,22 @@ export function OriginBadge({ meta, always = false }: { meta: AnalyticMeta | nul
       {meta.origin}
     </span>
   );
+}
+
+/** "Example data": this screen is showing a built-in sample, not what the engine holds. Dashed like the synthetic badge; the reason is in the tooltip and printed by <SourceNote>. */
+export function ExampleBadge({ why }: { why: Fallback | null | undefined }) {
+  if (!why) return null;
+  return (
+    <span className="pill pill--origin" data-origin="example" title={`${FALLBACK_LABEL[why.kind]}. ${why.message}`}>
+      example data
+    </span>
+  );
+}
+
+/** One plain line saying why the screen shows example data. An engine error is printed in full, as a warning. */
+export function SourceNote({ why }: { why: Fallback | null | undefined }) {
+  if (!why) return null;
+  return <Note tone={why.kind === "error" ? "warn" : "plain"}>{why.message}</Note>;
 }
 
 /** Footer printed under every chart: n, unit, split, interval level, origin. */

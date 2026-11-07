@@ -23,6 +23,13 @@ function Group({ title, children }: { title: string; children: ReactNode }): Rea
   )
 }
 
+// Presets for the hold-to-talk key (Electron accelerators; Alt is Option on a Mac). The setting accepts any accelerator.
+const TALK_KEYS = [
+  { value: 'Alt+Space', label: 'Option Space' },
+  { value: 'Alt+Shift+Space', label: 'Option Shift Space' },
+  { value: 'Control+Alt+T', label: 'Control Option T' },
+]
+
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }): ReactElement {
   return (
     <div className="al-setrow">
@@ -162,6 +169,14 @@ export function SettingsPanel({ settings, onChange, personas, more }: SettingsPa
           </Group>
 
           <Group title="Listening">
+            <Field label="Talk key" hint="Hold it to talk to Understudy. For now it brings the panel up; voice comes later. It never uses the microphone by itself.">
+              <Segmented
+                label="Talk key"
+                value={TALK_KEYS.some((k) => k.value === settings.talkHotkey) ? settings.talkHotkey : TALK_KEYS[0]!.value}
+                onChange={(talkHotkey) => onChange({ talkHotkey })}
+                options={TALK_KEYS}
+              />
+            </Field>
             <Switch
               label="Listen for my name"
               hint="Off by default. Turning it on streams your microphone to a cloud model so it can hear the name. The talk key and the menu bar need no microphone."

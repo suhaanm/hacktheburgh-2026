@@ -1,25 +1,23 @@
-"""Static egress guard: no module in the new layers may reach a model except through ``privacy/egress.py``.
+"""Static egress guard: no module in the extension layers, the agent service or the agent runtime may reach a model, the network or a
+fetcher process except through the reviewed paths. The analysis itself is in ``netscan.py``; this file is the policy.
 
-``scan_tree()`` walks the extension layers (``calendar/``, ``gitanalysis/``, ``proactive/``, ``localmodel/``, ``plugins/`` and
-their ``routes_*.py``) and reports every place that
+Three scans (each resolves aliases, constant-folds built strings and follows ``importlib``, ``__import__``, ``getattr``, ``exec``
+and ``-c`` code; see ``netscan`` for the full list and its stated limits):
 
-* imports a model or network client (``openai``, ``anthropic``, ``google.*``, ``requests``, ``aiohttp``, ``httpx``,
-  ``urllib.request``, ``http.client``, ``socket``, ``smtplib`` and friends),
-* imports or names ``ModelPort``, ``get_model_port``, ``understudy_agent.models`` or a provider class,
-* calls ``.computer_step`` or ``.vision`` on anything, or ``.plan`` / ``.check`` / ``.read`` on a receiver whose name says it
-  is a port, model, provider, client or llm,
-* shells out to ``curl`` or ``wget``,
-* or imports a network module by a constant name through ``importlib`` / ``__import__``.
+* ``scan_tree()``: the extension layers (``calendar``, ``gitanalysis``, ``proactive``, ``localmodel``, ``plugins``, ``awareness``,
+  ``cue``, ``evidence``, ``mlv2``, ``personas_v2`` and their ``routes_*.py``). No model client, ``ModelPort`` or provider class, no
+  ``.plan``/``.vision``/``.computer_step`` call, no network, and no process that is a fetcher or carries a URL. ``mlv2`` and
+  ``personas_v2`` are pure compute: no process, no URL, no reviewed exception at all.
+* ``scan_agent()``: every other module of the agent service (``services/agent/understudy_agent``, except ``models/`` which is the
+  provider package, and ``runtime/``). The network rules apply; the model port is the agent's job and is not flagged. A file that
+  legitimately uses the network is in ``AGENT_ALLOW`` with a one-line reason, and a client in it must be demonstrably loopback.
+* ``scan_runtime()``: the agent runtime. Children run sandboxed with no network, so the network rules apply with no exceptions, and
+  any visible direct model call must record a metadata-only ledger line.
 
-A file may use a network client only if it is in ``ALLOW`` with a reason, and then only for the URLs the entry names:
-loopback hosts, an explicitly allowed host, or an f-string that starts with a named loopback helper such as ``agent_url()``.
-Nothing is ever allowed to import a model client or ``ModelPort``.
-
-Limits, stated plainly: this is a static, name-based check. It does not follow a module name held in a variable
-(``importlib.import_module(name)``), it cannot see code added at run time, and it judges ``.plan`` and ``.check`` by the
-receiver's name. It catches the mistakes honest code makes (importing the OpenAI SDK "just for wording"); it is not a
-defence against deliberate evasion. The runtime defence is that ``egress.send`` is the only function that builds a model
-request from a ``SafePayload`` and writes the ledger.
+A file may use a network client only if it is in ``ALLOW`` (engine) or ``AGENT_ALLOW`` (agent) with a reason, only for what the entry
+names, and only if the module carries a literal ``127.0.0.1`` or ``localhost`` (or the one remote host the entry names). Entries marked
+``pending`` are not accepted: they are exceptions waiting for a fix and are reported by ``pending_exceptions()`` and in the evaluation.
+Nothing is ever allowed to import a model client or ``ModelPort`` in an extension layer.
 """
 from __future__ import annotations
 
@@ -30,63 +28,54 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 
+from .netscan import (
+    ALWAYS_CALLS, LOOPBACK_HOSTS, MODEL_NAMES, PORTISH_CALLS, PORTISH_RECEIVER, Allow, Policy, Violation, analyse, dotted, host_of,
+)
+
 ENGINE_PKG = Path(__file__).resolve().parents[1]
-GUARDED_DIRS = ("calendar", "gitanalysis", "proactive", "localmodel", "plugins", "awareness")
+GUARDED_DIRS = ("calendar", "gitanalysis", "proactive", "localmodel", "plugins", "awareness", "cue", "evidence", "mlv2", "personas_v2")
 GUARDED_FILES = ("routes_calendar.py", "routes_git.py", "routes_localmodel.py", "routes_proactive.py", "routes_plugins.py",
-                 "routes_awareness.py")
+                 "routes_awareness.py", "routes_cue.py", "routes_evidence.py", "routes_mlv2.py", "routes_personas_v2.py")
+#: layers that are pure computation: no model, no network, no process, no URL, and no reviewed exception (``ALLOW`` does not apply)
+PURE_COMPUTE_DIRS = ("mlv2", "personas_v2")
 
-MODEL_ROOTS = {
-    "openai", "anthropic", "google", "cohere", "mistralai", "groq", "litellm", "langchain", "langchain_openai", "ollama",
-    "together", "replicate", "vertexai", "transformers",
-}
-NETWORK_MODULES = {
-    "requests", "aiohttp", "urllib3", "httplib2", "websockets", "websocket", "pycurl", "grpc", "boto3", "httpx", "urllib.request",
-    "http.client", "socket", "ssl", "smtplib", "ftplib", "imaplib", "poplib", "telnetlib", "xmlrpc.client",
-}
-MODEL_NAMES = {"ModelPort", "get_model_port", "OpenAIProvider", "GeminiProvider", "MockProvider", "reset_model_port"}
-MODEL_PACKAGES = ("understudy_agent.models",)
-ALWAYS_CALLS = {"computer_step", "vision"}
-PORTISH_CALLS = {"plan", "check", "read"}
-PORTISH_RECEIVER = re.compile(r"port|model|provider|llm|openai|client", re.I)
-LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1", "[::1]"}
-SHELL_FETCHERS = ("curl", "wget")
-
-
-@dataclass(frozen=True)
-class Allow:
-    """Why a guarded file may open a network connection, and to where."""
-
-    reason: str
-    imports: frozenset[str] = frozenset()
-    hosts: frozenset[str] = frozenset()                 # remote hosts its URL literals may name (besides loopback)
-    loopback_helpers: frozenset[str] = frozenset()      # f"{helper()}/path" is loopback by construction
-    loopback_names: frozenset[str] = frozenset()        # f"http://{name}:..." where ``name`` is a constant checked to be loopback
-
-
-# Reviewed exceptions. Key = path relative to the engine package, glob allowed. Add an entry only with a reason a reviewer accepts.
+# Reviewed exceptions for the extension layers. Key = path relative to the engine package, glob allowed. Add an entry only with a
+# reason a reviewer accepts; a pure-compute layer can have none.
 ALLOW: dict[str, Allow] = {
-    "localmodel/client.py": Allow("talks to llama-server on this machine only; assert_loopback() refuses any other host", frozenset({"httpx"})),
+    "localmodel/client.py": Allow("talks to llama-server on this machine only; assert_loopback() refuses any other host", frozenset({"httpx"}),
+                                  loopback_helpers=frozenset({"assert_loopback"})),
     "localmodel/server.py": Allow("starts and probes llama-server on a loopback port", frozenset({"socket", "httpx", "urllib.request", "http.client"}),
                                   loopback_names=frozenset({"config.HOST"})),
-    "localmodel/stub_server.py": Allow("a loopback-only stand-in server for tests", frozenset({"socket", "http.client", "httpx", "urllib.request"})),
+    "localmodel/stub_server.py": Allow("a loopback-only stand-in server for tests", frozenset({"socket", "http.client", "http.server", "httpx", "urllib.request"})),
     "plugins/graph_common.py": Allow("Microsoft Graph read-only source plugin: the worker's own sign-in, off by default, https://graph.microsoft.com only",
                                      frozenset({"urllib.request"}), frozenset({"graph.microsoft.com"})),
     "proactive/fire.py": Allow("calls the local agent service to start a run the worker pressed", frozenset({"httpx"}),
                                loopback_helpers=frozenset({"agent_url"})),
     "proactive/sources.py": Allow("reads run lists from the local agent service", frozenset({"httpx"}),
                                   loopback_helpers=frozenset({"agent_url"})),
+    "plugins/manifest.py": Allow("loads a plugin's entry class from the bundled plugin directory by the module name in its manifest",
+                                 dynamic_import=True),
 }
 
+AGENT_PKG = ENGINE_PKG.parents[1] / "agent" / "understudy_agent"
+# Reviewed exceptions for the agent service. Key = path relative to services/agent (so it starts with understudy_agent/).
+AGENT_ALLOW: dict[str, Allow] = {
+    "understudy_agent/handoff_io.py": Allow("the agent's thin client for the engine API on this machine (default http://127.0.0.1:7700)", frozenset({"httpx"})),
+    "understudy_agent/server.py": Allow("the agent API: health probes of the sandbox sites on loopback and uvicorn bound to 127.0.0.1", frozenset({"httpx"})),
+    "understudy_agent/sandbox_sites/runner.py": Allow("serves and probes the three sandbox calculator sites on 127.0.0.1", frozenset({"socket", "httpx"}),
+                                                      loopback_names=frozenset({"HOST"})),
+    "understudy_agent/sandbox_roles/base.py": Allow("serves the role sandboxes (programmer, analyst workbenches) on 127.0.0.1", frozenset({"socket"}),
+                                                    loopback_names=frozenset({"HOST"})),
+    "understudy_agent/voice/tts.py": Allow("ElevenLabs text-to-speech (D19). NOT ACCEPTED YET: it sends free text with no purpose, no SafePayload and "
+                                           "no ledger row (REVIEW-PRIVACY P1b); the LIVE agent is to route it through the ledger", frozenset({"httpx"}),
+                                           frozenset({"api.elevenlabs.io"}),
+                                           pending="voice text is sent to a third party outside the egress guard and ledger"),
+}
+AGENT_SKIP = ("understudy_agent/models/", "understudy_agent/runtime/")        # the provider package is the allowed client; runtime has its own scan
 
-@dataclass(frozen=True)
-class Violation:
-    file: str
-    line: int
-    rule: str
-    detail: str
-
-    def __str__(self) -> str:
-        return f"{self.file}:{self.line}: {self.rule}: {self.detail}"
+#: the models package may use provider SDKs; no reviewed entry can extend this to another file
+RUNTIME_DIR = AGENT_PKG / "runtime"
+RECORDERS = {"record_raw_call", "record_direct", "LedgeredPort"}
 
 
 @dataclass
@@ -100,8 +89,8 @@ class GuardReport:
         return not self.violations
 
 
-def _allow_for(relpath: str) -> Allow | None:
-    for pat, a in ALLOW.items():
+def _allow_for(relpath: str, table: dict[str, Allow] | None = None) -> Allow | None:
+    for pat, a in (ALLOW if table is None else table).items():
         if fnmatch.fnmatch(relpath, pat):
             return a
     return None
@@ -112,129 +101,28 @@ def _root(mod: str) -> str:
 
 
 def _host(url: str) -> str | None:
-    m = re.match(r"^[a-zA-Z][a-zA-Z0-9+.\-]*://(\[[^\]]+\]|[^/:?#\s{}]*)", url)
-    return m.group(1).lower() if m else None
+    return host_of(url)
 
 
-def _dotted(node: ast.AST) -> str:
-    parts: list[str] = []
-    while isinstance(node, ast.Attribute):
-        parts.append(node.attr)
-        node = node.value
-    if isinstance(node, ast.Name):
-        parts.append(node.id)
-    elif isinstance(node, ast.Call):
-        parts.append(_dotted(node.func) + "()")
-    return ".".join(reversed(parts))
+def pending_exceptions() -> list[dict[str, str]]:
+    """Reviewed-entry exceptions that are NOT accepted and wait for a fix (listed in the evaluation until they are gone)."""
+    out = []
+    for table in (ALLOW, AGENT_ALLOW):
+        for path, a in table.items():
+            if a.pending:
+                out.append({"file": path, "reason": a.reason, "pending": a.pending})
+    return out
 
 
-def scan_source(src: str, relpath: str) -> tuple[list[Violation], list[str]]:
-    """Scan one module's source. Returns (violations, notes about allowed uses)."""
-    allow = _allow_for(relpath)
-    out: list[Violation] = []
-    used: list[str] = []
-    try:
-        tree = ast.parse(src)
-    except SyntaxError as exc:
-        return [Violation(relpath, exc.lineno or 0, "unparseable", "the file does not parse, so it cannot be checked")], used
-
-    def bad(node: ast.AST, rule: str, detail: str) -> None:
-        out.append(Violation(relpath, getattr(node, "lineno", 0), rule, detail))
-
-    def check_module(node: ast.AST, mod: str) -> None:
-        if mod.startswith(MODEL_PACKAGES) or _root(mod) in MODEL_ROOTS:
-            bad(node, "model_client_import", f"imports {mod}; send through privacy.egress.send instead")
-            return
-        for net in NETWORK_MODULES:
-            if mod == net or mod.startswith(net + "."):
-                if allow and net in allow.imports:
-                    used.append(f"{relpath}: {net} ({allow.reason})")
-                else:
-                    bad(node, "network_import", f"imports {mod}; extension layers may not open network connections "
-                                                f"(add a reviewed entry to guard.ALLOW if this is not a model client)")
-                return
-
-    class V(ast.NodeVisitor):
-        def visit_Import(self, node: ast.Import) -> None:
-            for a in node.names:
-                check_module(node, a.name)
-                if a.name.split(".")[-1] in MODEL_NAMES:
-                    bad(node, "model_port_name", f"imports {a.name}")
-
-        def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
-            mod = ("." * node.level) + (node.module or "")
-            if node.level == 0 and node.module:
-                check_module(node, node.module)
-            for a in node.names:
-                if a.name in MODEL_NAMES:
-                    bad(node, "model_port_name", f"imports {a.name} from {mod or '.'}")
-
-        def visit_Name(self, node: ast.Name) -> None:
-            if node.id in MODEL_NAMES:
-                bad(node, "model_port_name", f"uses {node.id}")
-
-        def visit_Attribute(self, node: ast.Attribute) -> None:
-            if node.attr in MODEL_NAMES:
-                bad(node, "model_port_name", f"uses .{node.attr}")
-            self.generic_visit(node)
-
-        def visit_Call(self, node: ast.Call) -> None:
-            f = node.func
-            if isinstance(f, ast.Attribute):
-                recv = _dotted(f.value)
-                if f.attr in ALWAYS_CALLS:
-                    bad(node, "model_call", f"calls .{f.attr}() on {recv or 'an object'}")
-                elif f.attr in PORTISH_CALLS and PORTISH_RECEIVER.search(recv.split(".")[-1] if recv else ""):
-                    bad(node, "model_call", f"calls {recv}.{f.attr}(): model calls go through privacy.egress.send")
-            name = _dotted(f)
-            if name.endswith(("import_module", "__import__")) and node.args and isinstance(node.args[0], ast.Constant) \
-                    and isinstance(node.args[0].value, str):
-                check_module(node, node.args[0].value)
-            self.generic_visit(node)
-
-        def visit_Constant(self, node: ast.Constant) -> None:
-            v = node.value
-            if isinstance(v, str):
-                if v in SHELL_FETCHERS or v.startswith(tuple(s + " " for s in SHELL_FETCHERS)):
-                    bad(node, "shell_fetch", f"mentions {v.split()[0]} as a command")
-                h = _host(v)
-                # A URL literal only matters where a network client is allowed at all (elsewhere the import is already a
-                # violation); documentation and schema ids in other files are not egress.
-                if allow and h is not None and h not in LOOPBACK_HOSTS and "{" not in h and not relpath_in_docstring(node):
-                    if h in allow.hosts:
-                        used.append(f"{relpath}: host {h}")
-                    else:
-                        bad(node, "remote_url", f"a URL literal names the host {h}")
-
-        def visit_JoinedStr(self, node: ast.JoinedStr) -> None:
-            first = node.values[0] if node.values else None
-            if allow and isinstance(first, ast.Constant) and isinstance(first.value, str) and "://" in first.value:
-                h = _host(first.value)
-                second = ast.unparse(node.values[1].value) if len(node.values) > 1 and isinstance(node.values[1], ast.FormattedValue) else ""
-                if not h and second in allow.loopback_names and re.fullmatch(r"[a-zA-Z][a-zA-Z0-9+.\-]*://", first.value):
-                    used.append(f"{relpath}: URL host from {second}")
-                elif not h or (h not in LOOPBACK_HOSTS and h not in allow.hosts):
-                    bad(node, "remote_url", "an f-string URL does not start with a loopback or allowed host literal")
-                for v in node.values[1:]:
-                    self.visit(v) if isinstance(v, ast.FormattedValue) else None
-                return
-            if isinstance(first, ast.FormattedValue) and any(isinstance(v, ast.Constant) and isinstance(v.value, str) and v.value.startswith("/")
-                                                              for v in node.values[1:2]):
-                # f"{base}/path": fine only if base is a named loopback helper (or an attribute of the checked loopback client)
-                src_first = ast.unparse(first.value)
-                helpers = allow.loopback_helpers if allow else frozenset()
-                if any(h + "(" in src_first for h in helpers):
-                    used.append(f"{relpath}: URL from {src_first}")
-            self.generic_visit(node)
-
-    docstring_nodes = {id(n.body[0].value) for n in ast.walk(tree) if isinstance(n, (ast.Module, ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef))
-                       and n.body and isinstance(n.body[0], ast.Expr) and isinstance(getattr(n.body[0], "value", None), ast.Constant)}
-
-    def relpath_in_docstring(node: ast.AST) -> bool:
-        return id(node) in docstring_nodes
-
-    V().visit(tree)
-    return out, used
+def scan_source(src: str, relpath: str, *, kind: str | None = None) -> tuple[list[Violation], list[str]]:
+    """Scan one module's source with the rules for its place. ``kind`` defaults from the path: a path under ``understudy_agent/runtime/``
+    is the runtime, another ``understudy_agent/`` path is the agent service, anything else is an extension layer."""
+    if kind is None:
+        kind = "runtime" if relpath.startswith("understudy_agent/runtime/") else "agent" if relpath.startswith("understudy_agent/") else "layer"
+    pure = kind == "layer" and relpath.split("/", 1)[0] in PURE_COMPUTE_DIRS
+    allow = None if (pure or kind == "runtime") else _allow_for(relpath, AGENT_ALLOW if kind == "agent" else ALLOW)
+    pkg = "understudy_agent" if kind in ("agent", "runtime") else "understudy_engine"
+    return analyse(src, relpath, Policy(kind=kind, pure=pure, package_root=pkg), allow)
 
 
 def guarded_files(root: Path | None = None) -> list[Path]:
@@ -261,30 +149,45 @@ def scan_tree(root: Path | None = None, files: Iterable[Path] | None = None) -> 
     return rep
 
 
+# ----------------------------------------------------------------------------------------------------- the agent service
+def scan_agent_source(src: str, relpath: str) -> tuple[list[Violation], list[str]]:
+    """One agent-service module (path starting ``understudy_agent/``) under the agent rules, with its reviewed entry if it has one."""
+    return scan_source(src, relpath, kind="agent")
+
+
+def agent_files(root: Path | None = None) -> list[Path]:
+    root = root or AGENT_PKG
+    return [p for p in sorted(root.rglob("*.py")) if "__pycache__" not in p.parts]
+
+
+def scan_agent(root: Path | None = None) -> GuardReport:
+    """Every module of the agent service except the provider package (``models/``, the allowed client) and ``runtime/`` (its own scan).
+    Unreviewed network use is a violation; a reviewed file may use only what its ``AGENT_ALLOW`` entry names."""
+    root = root or AGENT_PKG
+    rep = GuardReport()
+    for p in agent_files(root):
+        rel = f"{root.name}/{p.relative_to(root).as_posix()}"
+        if rel.startswith(AGENT_SKIP):
+            continue
+        rep.files.append(rel)
+        viol, used = scan_agent_source(p.read_text(encoding="utf-8"), rel)
+        rep.violations.extend(viol)
+        rep.allowed_uses.extend(used)
+    return rep
+
+
 # ----------------------------------------------------------------------------------------------------- the agent runtime
-RUNTIME_DIR = ENGINE_PKG.parents[1] / "agent" / "understudy_agent" / "runtime"
-RECORDERS = {"record_raw_call", "record_direct", "LedgeredPort"}
-
-
 def scan_runtime_source(src: str, relpath: str) -> list[Violation]:
-    """The agent runtime plans through ``ModelPort`` by design (parent and child steps), so it is checked by a different rule: it
-    imports no provider SDK or network client, and any visible direct call to a port (``.plan``, ``.read``, ``.check``, ``.vision``,
-    ``.computer_step`` on a port-like receiver) must sit in a function that also records a metadata-only ledger line
-    (``record_raw_call``, ``ledger.record_direct`` or a ``LedgeredPort``). Calls that carry a SafePayload go through ``egress.send``
-    and are not direct. A call hidden inside another object (for example a safety pipeline's reader) is not visible to this check."""
-    out: list[Violation] = []
-    try:
-        tree = ast.parse(src)
-    except SyntaxError as exc:
-        return [Violation(relpath, exc.lineno or 0, "unparseable", "the file does not parse, so it cannot be checked")]
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for a in node.names:
-                if _root(a.name) in MODEL_ROOTS or any(a.name == n or a.name.startswith(n + ".") for n in NETWORK_MODULES):
-                    out.append(Violation(relpath, node.lineno, "model_client_import", f"imports {a.name}"))
-        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
-            if _root(node.module) in MODEL_ROOTS or any(node.module == n or node.module.startswith(n + ".") for n in NETWORK_MODULES):
-                out.append(Violation(relpath, node.lineno, "model_client_import", f"imports {node.module}"))
+    """The agent runtime plans through ``ModelPort`` by design (parent and child steps), so it is checked by two rules: the network rules
+    with no exceptions (children are sandboxed and have no network; ``netscan``), and any visible direct call to a port (``.plan``,
+    ``.read``, ``.check``, ``.vision``, ``.computer_step`` on a port-like receiver) must sit in a function that also records a
+    metadata-only ledger line (``record_raw_call``, ``ledger.record_direct`` or a ``LedgeredPort``). Calls that carry a SafePayload go
+    through ``egress.send`` and are not direct. A call hidden inside another object (for example a safety pipeline's reader) is not
+    visible to this check."""
+    out: list[Violation] = list(analyse(src, relpath, Policy(kind="runtime", package_root="understudy_agent"), None)[0])
+    if any(v.rule == "unparseable" for v in out):
+        return out
+    tree = ast.parse(src)
     for fn in [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]:
         direct: list[ast.Call] = []
         recorded = False
@@ -296,7 +199,7 @@ def scan_runtime_source(src: str, relpath: str) -> list[Violation]:
             if name in RECORDERS:
                 recorded = True
             if isinstance(f, ast.Attribute):
-                recv = _dotted(f.value)
+                recv = dotted(f.value)
                 last = recv.split(".")[-1] if recv else ""
                 if f.attr in ALWAYS_CALLS or (f.attr in PORTISH_CALLS and PORTISH_RECEIVER.search(last)):
                     direct.append(c)
@@ -308,7 +211,7 @@ def scan_runtime_source(src: str, relpath: str) -> list[Violation]:
     seen = set()
     uniq = []
     for v in out:
-        k = (v.file, v.line, v.rule)
+        k = (v.file, v.line, v.rule, v.detail)
         if k not in seen:
             seen.add(k)
             uniq.append(v)
@@ -331,8 +234,13 @@ def scan_runtime(root: Path | None = None) -> GuardReport:
 # ----------------------------------------------------------------------------------------------------- image endpoints (REQ-5)
 REPO_ROOT = ENGINE_PKG.parents[2]
 AGENT_PKG = REPO_ROOT / "services" / "agent" / "understudy_agent"
-PROVIDER_HOSTS = ("generativelanguage.googleapis.com", "aiplatform.googleapis.com", "api.openai.com", "openai.azure.com", "api.openai")
-PROVIDER_IMPORT_ROOTS = {"openai", "vertexai"}
+PROVIDER_HOSTS = (
+    "generativelanguage.googleapis.com", "aiplatform.googleapis.com", "api.openai.com", "openai.azure.com", "api.openai",
+    "api.anthropic.com", "openrouter.ai", "api.mistral.ai", "api.cohere", "api.groq.com", "api.together.xyz", "api.together.ai",
+    "api.deepseek.com", "api.x.ai", "api.perplexity.ai", "api.fireworks.ai", "api.replicate.com", "inference.huggingface",
+    "api-inference.huggingface.co", "bedrock-runtime", "api.ai21.com", "api.voyageai.com", "api.cerebras.ai",
+)
+PROVIDER_IMPORT_ROOTS = {"openai", "vertexai", "anthropic", "cohere", "mistralai", "groq", "litellm", "ollama", "together", "replicate"}
 PROVIDER_IMPORT_PREFIXES = ("google.genai", "google.generativeai", "google.cloud.aiplatform", "google.ai")
 #: the only Python files that may import a Gemini or OpenAI client or name their API hosts: the provider modules, the egress
 #: module, and this guard (which holds the host names it searches for)
@@ -343,9 +251,11 @@ def _provider_allowed(rel: str) -> bool:
     return any(fnmatch.fnmatch(rel, pat) for pat in PROVIDER_ALLOWED)
 
 
-def provider_endpoint_violations(src: str, relpath: str) -> list[Violation]:
-    """In one Python file outside the allowed modules: any import of a Gemini or OpenAI client, and any string (including the literal
-    parts of an f-string) that names their API hosts."""
+def provider_endpoint_violations(src: str, relpath: str, *, include_agent_network: bool = True) -> list[Violation]:
+    """In one Python file outside the allowed modules: any import of a model-provider client (Gemini, OpenAI, Anthropic and the other
+    hosted-model SDKs), and any string (including the literal parts of an f-string) that names a hosted-model API host. For a path
+    under ``understudy_agent/`` the agent network rules (``scan_agent_source``) are added, so one call answers "may this agent module
+    send data to a host?"; ``scan_provider_endpoints`` passes ``include_agent_network=False`` because ``scan_agent`` reports those."""
     out: list[Violation] = []
     try:
         tree = ast.parse(src)
@@ -367,10 +277,12 @@ def provider_endpoint_violations(src: str, relpath: str) -> list[Violation]:
                 if h in low:
                     out.append(Violation(relpath, node.lineno, "provider_host", f"names the API host {h}"))
                     break
-    seen: set[tuple[str, int, str]] = set()
+    if include_agent_network and relpath.startswith("understudy_agent/") and not relpath.startswith(AGENT_SKIP[0]):
+        out.extend(scan_agent_source(src, relpath)[0] if not relpath.startswith(AGENT_SKIP[1]) else scan_runtime_source(src, relpath))
+    seen: set[tuple[str, int, str, str]] = set()
     uniq = []
     for v in out:
-        k = (v.file, v.line, v.rule)
+        k = (v.file, v.line, v.rule, v.detail)
         if k not in seen:
             seen.add(k)
             uniq.append(v)
@@ -388,7 +300,7 @@ def scan_provider_endpoints(roots: Iterable[Path] | None = None) -> GuardReport:
             if "__pycache__" in rel or _provider_allowed(rel):
                 continue
             rep.files.append(rel)
-            rep.violations.extend(provider_endpoint_violations(p.read_text(encoding="utf-8"), rel))
+            rep.violations.extend(provider_endpoint_violations(p.read_text(encoding="utf-8"), rel, include_agent_network=False))
     return rep
 
 

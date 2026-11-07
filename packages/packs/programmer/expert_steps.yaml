@@ -1,4 +1,11 @@
-# Stub expert policy (thin pack). Semantics: pack.schema.json#/$defs/expert_steps.
+# Expert policy for the programmer pack. Semantics: pack.schema.json#/$defs/expert_steps.
+# Coverage stays "stub": one task family (fix a failing test and commit it), no oracle in the pack. The role sandbox
+# (services/agent/understudy_agent/sandbox_roles/programmer, REQ-7 STU) adds the checks that the three study skills need:
+#   probe-the-boundary          probe_edges        (try the edges in the console before committing)
+#   inspect-the-inputs          inspect_inputs     (look at the real sample inputs before changing code)
+#   test-first-clean-commits    write_failing_test (write the failing test before changing code), review_diff (read the diff before committing)
+# `after` is a hard prerequisite; the coach (study mode, skill_on) speaks only for the steps of one skill, and a task that does
+# not need a step drops it with study mode `steps_off` (the sandbox tasks say which).
 version: 1
 task: fix-a-failing-build
 coverage: stub
@@ -10,16 +17,72 @@ checks:
     required: true
     critical: true
     after: []
+    skill: read-the-trace-first
+    expert_median_s: 40
     coach: { question: "What is the first line that is actually wrong in the log?" }
-  - id: edit_and_commit
-    label: Make the smallest change and commit it
-    cogs: [READ_CODE, EDIT_CODE, COMMIT]
+  - id: inspect_inputs
+    label: Look at the sample inputs before you change the code
+    cogs: [INSPECT_INPUT]
     required: true
-    after: [read_trace_first]
+    critical: true
+    after: []
+    skill: inspect-the-inputs
+    expert_median_s: 25
+    coach:
+      question: "Which real inputs reach this code, and could any of them be empty or missing?"
+      hint: "Open Sample inputs and read every example, including the odd ones."
+  - id: write_failing_test
+    label: Write a failing test before you change the code
+    cogs: [WRITE_TEST]
+    required: true
+    critical: true
+    after: []
+    skill: test-first-clean-commits
+    expert_median_s: 70
+    coach:
+      question: "How will you know the bug is really fixed, and not just moved?"
+      hint: "Add a test that fails on today's code, then change the code."
+  - id: edit_and_commit
+    label: Make the smallest change that could work
+    cogs: [EDIT_CODE]
+    required: true
+    after: [read_trace_first, inspect_inputs, write_failing_test]
+    skill: smallest-change
+    expert_median_s: 90
   - id: rerun_and_confirm
     label: Re-run the tests and confirm they pass
     cogs: [RUN_TESTS, READ_TRACE]
     required: true
     critical: true
     after: [edit_and_commit]
+    skill: confirm-the-fix
+    expert_median_s: 20
     coach: { question: "How do you know the change fixed this, rather than just moving it?" }
+  - id: probe_edges
+    label: Try the edges in the console before you commit
+    cogs: [PROBE_EDGE]
+    required: true
+    critical: true
+    after: [edit_and_commit]
+    skill: probe-the-boundary
+    expert_median_s: 45
+    coach:
+      question: "What happens at the edges: empty, one item, exactly full, one past the end?"
+      hint: "Type a call with an edge value into Try an expression and read the answer."
+  - id: review_diff
+    label: Review the diff before you commit
+    cogs: [REVIEW_DIFF]
+    required: true
+    critical: true
+    after: [edit_and_commit]
+    skill: test-first-clean-commits
+    expert_median_s: 25
+    coach:
+      question: "Is every line in this diff part of the fix, and nothing else?"
+      hint: "Open Review diff and read what you are about to commit."
+  - id: commit_fix
+    label: Commit the fix with a clear message
+    cogs: [COMMIT]
+    required: true
+    after: [probe_edges, review_diff]
+    expert_median_s: 40

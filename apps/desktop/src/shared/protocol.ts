@@ -229,7 +229,8 @@ const AnnotationBaseSchema = z.object({
 export const AnnotationSchema = z.discriminatedUnion('kind', [
   // `exact`: draw around exactly this box (a measured browser element); without it a ring is capped to a target-sized circle about the centre.
   // `note`: the coach's words for this ring, shown as one short line (the overlay keeps about 40 characters). `label` names the element.
-  AnnotationBaseSchema.extend({ kind: z.literal('ring'), box: NormBoxSchema, label: z.string().optional(), note: z.string().max(200).optional(), step: z.number().int().optional(), exact: z.boolean().optional() }),
+  // `weight`: `regular` (default) is the full ring; `light` is for help level L3: the same ring and corner ticks, thinner and quieter.
+  AnnotationBaseSchema.extend({ kind: z.literal('ring'), box: NormBoxSchema, label: z.string().optional(), note: z.string().max(200).optional(), step: z.number().int().optional(), exact: z.boolean().optional(), weight: z.enum(['regular', 'light']).optional() }),
   AnnotationBaseSchema.extend({
     kind: z.literal('arrow'),
     to: z.union([NormPointSchema, NormBoxSchema]),

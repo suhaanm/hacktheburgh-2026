@@ -1,4 +1,6 @@
-// The persistent coach chip: how much of it to show, driven by the level engine (deterministic code, not the model).
+// The coach's level, driven by the level engine (deterministic code, not the model). Nothing about it stays on the screen: when the
+// level CHANGES the overlay shows a small toast for two seconds ("Help level 2: Walk with me"); the level itself lives in the menu bar
+// menu and the dashboard. The persistent chip below is only drawn when the person turns on the optional 7 px dot (settings.coachDot).
 //   L1 Watch me, L2 Walk with me   full   (bars and the level name)
 //   L3 Nudge me                    small  (the bars)
 //   L4 On my own                   dot
@@ -28,7 +30,8 @@ export function levelFromEngine(v: unknown): HelpLevel | null {
 }
 
 export interface ChipDriverDeps {
-  overlay: Pick<OverlayController, 'coach'>
+  // `coach` keeps the optional dot's fade state current; `chip` is the two-second toast when the level changes.
+  overlay: Pick<OverlayController, 'coach'> & Partial<Pick<OverlayController, 'chip'>>
   // The level engine's view of the worker right now.
   local: () => { level: HelpLevel; streakClean: number }
   killed?: () => boolean
@@ -74,6 +77,8 @@ export function createChipDriver(deps: ChipDriverDeps): ChipDriver {
       let fade: ChipFade = usable?.fade ?? fadeForLevel(level, usable?.level ? 0 : local.streakClean)
       if (deps.killed?.()) fade = 'gone' // everything is stopped: the help indicator goes too
       const t = now()
+      // A level change (not the first reading, not a repeat) is announced once, for two seconds.
+      if (!force && sent && sent.level !== level && !deps.killed?.()) deps.overlay.chip?.(level, HELP_LEVEL_LABELS[level])
       if (force || !sent || sent.fade !== fade || sent.level !== level || t - sent.at >= keepMs) {
         // `gone` is sent once (to fade it out) and then left alone, unless the overlay page was just reloaded.
         if (force || !(fade === 'gone' && sent?.fade === 'gone')) deps.overlay.coach?.(fade, level, HELP_LEVEL_LABELS[level])

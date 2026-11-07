@@ -51,9 +51,16 @@ export interface HotkeyReport {
   failed: string[]
 }
 
+let latest: HotkeyReport | null = null
+/** What the last registerHotkeys call managed to bind (the pre-R1 checklist needs `kill` to be non-empty). Null before any call. */
+export function lastHotkeyReport(): (HotkeyReport & { killRegistered: boolean; talkRegistered: boolean }) | null {
+  return latest ? { ...latest, killRegistered: latest.kill.length > 0, talkRegistered: latest.talk.length > 0 } : null
+}
+
 export function registerHotkeys(bus: Bus, settings: SettingsStore, deps: HotkeyDeps = {}): () => void {
   const registered: string[] = []
   const report: HotkeyReport = { start: [], stop: [], panel: [], kill: [], talk: [], failed: [] }
+  latest = report
 
   const onStart = (): void => {
     if (deps.state && ACTIVE.has(deps.state.get().phase)) return

@@ -121,9 +121,11 @@ def _normalise(out: dict[str, Any]) -> dict[str, Any]:
 class BrowserAgent:
     def __init__(self, model: ModelPort, guard: Guard, *, navigator: str, emit: Emit | None = None,
                  is_current: Callable[[], bool] = lambda: True, step_start: int = 0, max_actions: int = 20,
-                 ledger: ClaimLedger | None = None, page_state: bool = False) -> None:
+                 ledger: ClaimLedger | None = None, page_state: bool = False, pause: Any = None,
+                 stall_limit: int = 10) -> None:
         self.model, self.guard, self.navigator = model, guard, navigator
         self.page_state = page_state    # ask the quarantined reader what KIND of page this is, every step
+        self.pause, self.stall_limit = pause, stall_limit
         self.ledger = ledger or ClaimLedger()
         self.emit = emit
         self.is_current = is_current
@@ -147,10 +149,21 @@ class BrowserAgent:
         rejected_streak = 0
         prev_path: str | None = None
         n = self.step_start
+        last_sig: tuple[Any, ...] | None = None
+        stalled = 0
         while res.actions < self.max_actions:
             if not self.is_current():
                 raise asyncio.CancelledError()
+            if self.pause is not None:
+                await self.pause.wait_if_paused()
             obs = await observe(page)
+            # progress-based budgeting: the run may go on while something changes (a page, a field set, the text);
+            # it stops after `stall_limit` actions with no change at all. `max_actions` stays as the hard cap.
+            sig = (urlparse(obs.url).path, hash(obs.text), sum(len(v) for v in done_on.values()))
+            stalled = 0 if sig != last_sig else stalled + 1
+            last_sig = sig
+            if stalled >= self.stall_limit:
+                raise StepBudgetExceeded(f"tier 2 made no progress in {stalled} actions")
             candidate = task.looks_final(obs)
             schema = task.schema if candidate else (PAGE_STATE_SCHEMA if self.page_state else None)
             seen = await asyncio.to_thread(self.guard.observe_obs, obs, schema=schema, navigator=self.navigator)
@@ -190,6 +203,8 @@ class BrowserAgent:
                     raise
                 continue
             act = _normalise(raw if isinstance(raw, dict) else {})
+            if self.pause is not None and await self.pause.wait_if_paused():
+                continue   # the human arrived while the model was thinking: the plan is stale, look again after they leave
             res.actions += 1
             self.used = res.actions
             n += 1

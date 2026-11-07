@@ -1,76 +1,81 @@
 /*
- * Alongside design tokens.
+ * Understudy desktop tokens: the ONE file the panel, dock, settings, toast and HUD take their colours, type scale, spacing, radii,
+ * shadows and motion from. The values mirror packages/design/tokens.css (calm, precise, hairline; one accent; no gradient, no glow):
+ * a test (design/tokens-mirror.test.ts) fails if a shared colour drifts from it. To move to the owner's newer design system, change
+ * the values in THIS file only (the names below are what components.css and the other windows use).
+ *
  * Theme is chosen by attributes on <html> (see apply-settings.ts):
- *   data-theme="light|dark"        data-high-contrast="true"   data-dyslexia-font="true"
- *   data-big-annotations="true"    data-persona="<personaId>"  data-motion="reduced" (optional manual override)
+ *   data-theme="light|dark"   data-high-contrast="true"   data-dyslexia-font="true"   data-big-annotations="true"
  * Colour tokens are plain hex so scripts can check contrast (see contrast.test.ts). Keep them that way.
  */
 
 :root {
   color-scheme: light;
 
-  /* ---- colour roles: light ("paper") ---- */
-  --bg: #f6f1e9;
-  --surface: #fffdf8;
+  /* ---- colour roles: light ---- */
+  --bg: #f4f6f9;
+  --surface: #ffffff;
   --surface-raised: #ffffff;
-  --surface-sunken: #eee7da;
-  --ink: #1c1917;
-  --ink-muted: #4a453f;
-  --ink-subtle: #615a51;
-  --line: #d9d0c2;
-  --line-strong: #8c8376;
-  --focus: #0b3fa8;
+  --surface-sunken: #ebeef3;
+  --ink: #141922;
+  --ink-muted: #566074;
+  --ink-subtle: #566074;
+  --line: #d8dee8;
+  --line-strong: #7d889b; /* the edge of a control: 3:1 against the surface (design: --control-line) */
+  --focus: #0a7c78;
 
-  --success-ink: #1b6b3a;
-  --success-soft: #e0f2e6;
-  --warn-ink: #8a5300;
-  --warn-soft: #fbebcb;
-  --danger-ink: #a32a1d;
-  --danger-soft: #fbe3df;
+  --success-ink: #177540;
+  --success-soft: #def2e5;
+  --warn-ink: #8a6100;
+  --warn-soft: #f7efd0;
+  --danger-ink: #b3261e;
+  --danger-soft: #fbe5e3;
   --on-danger: #ffffff;
 
-  /* accent triples: default, and one per persona slot */
-  --accent-default: #2a4f8f;
-  --accent-default-soft: #e2eaf6;
+  /* one accent: there is one identity. The persona slots stay only so older saved settings and the dormant code resolve; they are the accent. */
+  --accent-default: #0a7c78;
+  --accent-default-soft: #dff1ef;
   --on-accent-default: #ffffff;
-  --accent-marcus: #0f6a63;
-  --accent-marcus-soft: #dcf0ee;
+  --accent-marcus: #0a7c78;
+  --accent-marcus-soft: #dff1ef;
   --on-accent-marcus: #ffffff;
-  --accent-amelia: #8b3560;
-  --accent-amelia-soft: #f6e2ec;
+  --accent-amelia: #0a7c78;
+  --accent-amelia-soft: #dff1ef;
   --on-accent-amelia: #ffffff;
 
-  /* ink and halo for marks drawn over the user's own screen (mirrors annotation-style.ts) */
+  /* ink and halo for marks drawn over the person's own screen (mirrors annotation-style.ts) */
   --mark-ink: #0b1220;
   --mark-halo: #ffffff;
-  --tone-guide: #4fb3ff;
-  --tone-success: #2fd39a;
-  --tone-warn: #ffb000;
-  --tone-danger: #ff6a4d;
+  --tone-guide: #0a7c78;
+  --tone-success: #177540;
+  --tone-warn: #8a6100;
+  --tone-danger: #b3261e;
 
-  /* resolved accent (persona overrides below) */
+  /* resolved accent */
   --accent: var(--accent-default);
   --accent-soft: var(--accent-default-soft);
   --on-accent: var(--on-accent-default);
 
-  /* ---- type ---- */
+  /* ---- type: Source Sans 3 for words, Bricolage Grotesque for headings and key figures, JetBrains Mono for numerals ---- */
   --ui-scale: 1;
-  --font-ui: 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --fs-sm: calc(16px * var(--ui-scale));
-  --fs-base: calc(18px * var(--ui-scale));
-  --fs-md: calc(20px * var(--ui-scale));
-  --fs-lg: calc(24px * var(--ui-scale));
-  --fs-xl: calc(30px * var(--ui-scale));
-  --fs-2xl: calc(40px * var(--ui-scale));
-  --fs-hero: calc(56px * var(--ui-scale));
+  --font-ui: 'Source Sans 3', 'Source Sans Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Bricolage Grotesque', 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --fs-sm: calc(12px * var(--ui-scale));
+  --fs-base: calc(14px * var(--ui-scale));
+  --fs-md: calc(16px * var(--ui-scale));
+  --fs-lg: calc(20px * var(--ui-scale));
+  --fs-xl: calc(24px * var(--ui-scale));
+  --fs-2xl: calc(30px * var(--ui-scale));
+  --fs-hero: calc(40px * var(--ui-scale));
   --lh-body: 1.5;
   --lh-tight: 1.25;
-  --ls-body: 0.005em;
+  --ls-body: 0;
   --ws-body: 0;
   --fw-body: 400;
-  --fw-strong: 700;
+  --fw-strong: 600;
 
-  /* ---- space, shape, depth ---- */
+  /* ---- space, shape, depth: 4 px unit, hairlines, almost no shadow ---- */
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
@@ -79,25 +84,25 @@
   --sp-6: 32px;
   --sp-7: 48px;
   --sp-8: 64px;
-  --r-sm: 8px;
-  --r-md: 14px;
-  --r-lg: 22px;
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
   --r-pill: 999px;
-  --target-min: 44px;
-  --border-w: 1.5px;
-  --focus-w: 3px;
-  --shadow-1: 0 1px 2px rgba(60, 40, 20, 0.08), 0 2px 8px rgba(60, 40, 20, 0.06);
-  --shadow-2: 0 2px 4px rgba(60, 40, 20, 0.08), 0 12px 32px rgba(60, 40, 20, 0.16);
-  --scrim: rgba(28, 25, 23, 0.55);
+  --target-min: 32px;
+  --border-w: 1px;
+  --focus-w: 2px;
+  --shadow-1: 0 0 0 1px var(--line);
+  --shadow-2: 0 1px 2px rgba(20, 25, 34, 0.08), 0 14px 30px -16px rgba(20, 25, 34, 0.3);
+  --scrim: rgba(20, 25, 34, 0.4);
 
-  /* ---- motion ---- */
-  --dur-instant: 90ms;
-  --dur-fast: 160ms;
-  --dur-base: 260ms;
-  --dur-slow: 480ms;
-  --dur-hero: 1100ms;
-  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
-  --ease-inout: cubic-bezier(0.45, 0, 0.25, 1);
+  /* ---- motion: calm, only to show a state change ---- */
+  --dur-instant: 80ms;
+  --dur-fast: 140ms;
+  --dur-base: 240ms;
+  --dur-slow: 360ms;
+  --dur-hero: 560ms;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
   --breath-ms: 4800ms;
   --speak-ms: 1100ms;
   --think-ms: 2600ms;
@@ -105,38 +110,43 @@
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --bg: #14110f;
-  --surface: #1d1916;
-  --surface-raised: #27221e;
-  --surface-sunken: #0f0d0b;
-  --ink: #f5efe6;
-  --ink-muted: #cfc6b8;
-  --ink-subtle: #a89f91;
-  --line: #3a332d;
-  --line-strong: #8f8678;
-  --focus: #9cc0ff;
+  --bg: #0e1319;
+  --surface: #161d26;
+  --surface-raised: #161d26;
+  --surface-sunken: #0a0e13;
+  --ink: #e7ebf1;
+  --ink-muted: #9aa6b8;
+  --ink-subtle: #9aa6b8;
+  --line: #283341;
+  --line-strong: #6c7a90;
+  --focus: #4fd1c5;
 
-  --success-ink: #6fd99a;
-  --success-soft: #1b2e22;
-  --warn-ink: #ffc55c;
-  --warn-soft: #3a2d0f;
-  --danger-ink: #ff8f7d;
-  --danger-soft: #3d1d18;
-  --on-danger: #2a0905;
+  --success-ink: #5ad08a;
+  --success-soft: #123221;
+  --warn-ink: #e7c24c;
+  --warn-soft: #342b0d;
+  --danger-ink: #ff8a80;
+  --danger-soft: #3c1b19;
+  --on-danger: #2b0a07;
 
-  --accent-default: #8db4f2;
-  --accent-default-soft: #1d2a40;
-  --on-accent-default: #0f1b33;
-  --accent-marcus: #5fd0c5;
-  --accent-marcus-soft: #17302d;
-  --on-accent-marcus: #062b27;
-  --accent-amelia: #f0a3c4;
-  --accent-amelia-soft: #3a1f2d;
-  --on-accent-amelia: #3a0f25;
+  --accent-default: #4fd1c5;
+  --accent-default-soft: #123331;
+  --on-accent-default: #04211f;
+  --accent-marcus: #4fd1c5;
+  --accent-marcus-soft: #123331;
+  --on-accent-marcus: #04211f;
+  --accent-amelia: #4fd1c5;
+  --accent-amelia-soft: #123331;
+  --on-accent-amelia: #04211f;
 
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.35);
-  --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.5), 0 14px 36px rgba(0, 0, 0, 0.6);
-  --scrim: rgba(0, 0, 0, 0.7);
+  --tone-guide: #4fd1c5;
+  --tone-success: #5ad08a;
+  --tone-warn: #e7c24c;
+  --tone-danger: #ff8a80;
+
+  --shadow-1: 0 0 0 1px var(--line);
+  --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 34px -16px rgba(0, 0, 0, 0.8);
+  --scrim: rgba(0, 0, 0, 0.6);
 }
 
 /* high contrast, light */
@@ -160,19 +170,19 @@
   --danger-soft: #ffe3e0;
   --on-danger: #ffffff;
 
-  --accent-default: #0030a0;
-  --accent-default-soft: #e6ecfb;
+  --accent-default: #005a56;
+  --accent-default-soft: #dff1ef;
   --on-accent-default: #ffffff;
-  --accent-marcus: #00504b;
-  --accent-marcus-soft: #dff3f1;
+  --accent-marcus: #005a56;
+  --accent-marcus-soft: #dff1ef;
   --on-accent-marcus: #ffffff;
-  --accent-amelia: #7a0046;
-  --accent-amelia-soft: #fbe4ef;
+  --accent-amelia: #005a56;
+  --accent-amelia-soft: #dff1ef;
   --on-accent-amelia: #ffffff;
 
   --border-w: 3px;
   --focus-w: 4px;
-  --target-min: 48px;
+  --target-min: 44px;
   --shadow-1: none;
   --shadow-2: 0 0 0 3px #000000;
 }
@@ -198,36 +208,32 @@
   --danger-soft: #330a07;
   --on-danger: #000000;
 
-  --accent-default: #ffd60a;
-  --accent-default-soft: #2e2600;
+  --accent-default: #5cfff0;
+  --accent-default-soft: #00292a;
   --on-accent-default: #000000;
   --accent-marcus: #5cfff0;
   --accent-marcus-soft: #00292a;
   --on-accent-marcus: #000000;
-  --accent-amelia: #ff9fd0;
-  --accent-amelia-soft: #33001c;
+  --accent-amelia: #5cfff0;
+  --accent-amelia-soft: #00292a;
   --on-accent-amelia: #000000;
 
   --shadow-2: 0 0 0 3px #ffffff;
   --scrim: rgba(0, 0, 0, 0.82);
 }
 
-/* persona accent slots: ids are config keys from src/shared/personas.ts, never display names */
-:root[data-persona='marcus'] {
-  --accent: var(--accent-marcus);
-  --accent-soft: var(--accent-marcus-soft);
-  --on-accent: var(--on-accent-marcus);
-}
+/* persona accent slots: all the one accent now (ids are config keys from src/shared/personas.ts, never display names) */
+:root[data-persona='marcus'],
 :root[data-persona='amelia'] {
-  --accent: var(--accent-amelia);
-  --accent-soft: var(--accent-amelia-soft);
-  --on-accent: var(--on-accent-amelia);
+  --accent: var(--accent-default);
+  --accent-soft: var(--accent-default-soft);
+  --on-accent: var(--on-accent-default);
 }
 
 /* settings that visibly reshape the UI */
 :root[data-big-annotations='true'] {
-  --focus-w: 4px;
-  --target-min: 52px;
+  --focus-w: 3px;
+  --target-min: 44px;
 }
 :root[data-high-contrast='true'][data-big-annotations='true'] {
   --focus-w: 5px;
@@ -249,24 +255,24 @@
 :root {
   --glass-shell: 100%;
   --glass-card: 100%;
-  --glass-blur: 26px;
+  --glass-blur: 22px;
 }
 :root[data-glass='true'] {
-  --ink-muted: #2f2a26;
-  --ink-subtle: #3d3732;
-  --bg: color-mix(in srgb, #f6f1e9 var(--glass-shell), transparent);
-  --surface: color-mix(in srgb, #fffdf8 var(--glass-shell), transparent);
+  --ink-muted: #262e3d;
+  --ink-subtle: #262e3d;
+  --bg: color-mix(in srgb, #f4f6f9 var(--glass-shell), transparent);
+  --surface: color-mix(in srgb, #ffffff var(--glass-shell), transparent);
   --surface-raised: color-mix(in srgb, #ffffff var(--glass-card), transparent);
-  --surface-sunken: color-mix(in srgb, #eee7da var(--glass-card), transparent);
-  --scrim: rgba(28, 25, 23, 0.4);
+  --surface-sunken: color-mix(in srgb, #ebeef3 var(--glass-card), transparent);
+  --scrim: rgba(20, 25, 34, 0.3);
 }
 :root[data-theme='dark'][data-glass='true'] {
-  --ink-muted: #e6dfd3;
-  --ink-subtle: #e0d8cb;
-  --bg: color-mix(in srgb, #14110f var(--glass-shell), transparent);
-  --surface: color-mix(in srgb, #1d1916 var(--glass-shell), transparent);
-  --surface-raised: color-mix(in srgb, #27221e var(--glass-card), transparent);
-  --surface-sunken: color-mix(in srgb, #0f0d0b var(--glass-card), transparent);
+  --ink-muted: #f0f3f8;
+  --ink-subtle: #f0f3f8;
+  --bg: color-mix(in srgb, #0e1319 var(--glass-shell), transparent);
+  --surface: color-mix(in srgb, #161d26 var(--glass-shell), transparent);
+  --surface-raised: color-mix(in srgb, #161d26 var(--glass-card), transparent);
+  --surface-sunken: color-mix(in srgb, #0a0e13 var(--glass-card), transparent);
   --scrim: rgba(0, 0, 0, 0.5);
 }
 
@@ -283,7 +289,7 @@
 :root[data-motion='reduced'] {
   --dur-instant: 1ms;
   --dur-fast: 1ms;
-  --dur-base: 1ms;
   --dur-slow: 1ms;
+  --dur-base: 1ms;
   --dur-hero: 1ms;
 }

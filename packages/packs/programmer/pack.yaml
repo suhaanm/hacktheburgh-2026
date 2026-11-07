@@ -52,7 +52,7 @@ onboarding:
       default_hours: { start: "10:00", end: "19:00", days: [mon, tue, wed, thu, fri] }
 
 cogs:
-  extra: [READ_CODE, EDIT_CODE, RUN_TESTS, READ_TRACE, REVIEW_DIFF, COMMIT, SEARCH_DOCS]
+  extra: [READ_CODE, EDIT_CODE, RUN_TESTS, READ_TRACE, REVIEW_DIFF, COMMIT, SEARCH_DOCS, PROBE_EDGE, INSPECT_INPUT, WRITE_TEST]
   mapping: mapping.yaml
 
 expert_policy:

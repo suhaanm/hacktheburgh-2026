@@ -68,8 +68,15 @@ export function registerHud(deps: HudDeps): HudHandle {
     void win.webContents
       .executeJavaScript(`(() => { const c = document.querySelector('[data-hud-card]'); if (!c) return null; const r = c.getBoundingClientRect(); return { w: Math.ceil(r.width), h: Math.ceil(r.height) } })()`)
       .then((size: { w: number; h: number } | null) => {
-        if (!alive() || !size) return
+        if (!alive()) return
+        if (!size) {
+          // Nothing to show (no agent acting, nothing stopped, no proposal): the window goes away, so no invisible patch of screen
+          // is left over other apps. The kill hotkey and the menu-bar item do not depend on this window.
+          if (win.isVisible()) win.hide()
+          return
+        }
         win.setBounds(hudBounds(wa(), { width: Math.max(MIN.width, size.w + 6), height: Math.min(MAX_HEIGHT, Math.max(MIN.height, size.h + 6)) }))
+        if (!win.isVisible()) win.showInactive()
       })
       .catch(() => undefined)
   }
@@ -94,10 +101,7 @@ export function registerHud(deps: HudDeps): HudHandle {
   const devUrl = process.env.ELECTRON_RENDERER_URL
   if (devUrl) void win.loadURL(`${devUrl}/hud/index.html`)
   else void win.loadFile(path.join(__dirname, '../renderer/hud/index.html'))
-  win.webContents.on('did-finish-load', () => {
-    push()
-    win.showInactive()
-  })
+  win.webContents.on('did-finish-load', () => push()) // shown by `fit` when there is something to show
 
   return {
     push,

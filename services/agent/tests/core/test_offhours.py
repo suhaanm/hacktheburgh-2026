@@ -22,7 +22,7 @@ from understudy_agent.sandbox_sites.households import generate_households
 from understudy_agent.sandbox_sites.recordings import synthetic_recording
 from understudy_agent.shadow import BackgroundRunner
 from understudy_agent.supervisor import HumanInputSignal, Supervisor
-from understudy_agent.tiers.computer_use import ActuatorRefused, SimulatedActuator
+from understudy_agent.tiers.computer_use import ActuatorRefused, SimulatedActuator, TargetRead
 from understudy_agent.tiers.heuristic import HeuristicModelPort
 from understudy_agent.tiers.safety import Guard
 
@@ -226,9 +226,8 @@ def test_presence_watcher_ignores_the_agents_own_input():
 # ------------------------------------------------------------------ desktop runner (simulated actuator only)
 async def test_desktop_runner_stops_when_the_screen_locks_mid_run():
     screen = FakeScreenState()
-    guard = Guard(MockProvider("computer_notepad"), run_id="r_desk", mode="model_driven", unattended=True,
-                  unresolved_clicks_ok=True)
-    sim = SimulatedActuator()
+    guard = Guard(MockProvider("computer_notepad"), run_id="r_desk", mode="model_driven", unattended=True)
+    sim = SimulatedActuator(targets=TargetRead("Text area", "textbox"))
 
     class LocksAfterOne(ScreenGuardedActuator):
         async def execute(self, action):

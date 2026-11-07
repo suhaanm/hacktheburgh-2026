@@ -257,10 +257,50 @@ def seed(*, reset: bool = False, now: datetime | None = None, out: Callable[[str
         else:
             result["bundle"] = None
             out("demo bundle: not requested (--no-bundle); steps.json not installed")
+        result["briefing"] = _seed_briefing(home, dd, now, out, force=reset)
         out("done. Start the engine and the agent with the same UNDERSTUDY_HOME, UNDERSTUDY_DATA_DIR and UNDERSTUDY_MOCK=1 to run the demo.")
     elif result.get("seeded"):
         out("done (home only). Start the engine with this UNDERSTUDY_HOME to run the demo.")
     return result
+
+
+def _seed_briefing(home: Path, dd: Path, now: datetime | None, out: Callable[[str], None], *, force: bool = False) -> dict[str, Any] | None:
+    """The proactive briefing's three cards for the demo person (extension layer PRO). Only when that layer is switched on
+    (UNDERSTUDY_X_PROACTIVE or UNDERSTUDY_X); idempotent; seeded again (``reseed=True``) when the extension flags changed since the
+    last seed or the demo was reset. The flags last seen live in the demo state file (``demo.extension_flags``), so no new file
+    appears and ``--reset`` forgets them with the rest. Never raises: the base demo does not depend on it."""
+    from .api.flags import extension_flags
+
+    flags = sorted(k for k, v in extension_flags().items() if v)
+    ms = MemoryStore(home)
+
+    def remember() -> None:
+        try:
+            st = ms.load_state()
+            st.setdefault("demo", {})["extension_flags"] = flags
+            ms.save_state(st, actor="worker")
+        except Exception:                                  # a state file we cannot write is not a reason to fail the demo
+            pass
+
+    prev = ((ms.load_state().get("demo") or {}).get("extension_flags")) if ms.state_path.exists() else None
+    if "proactive" not in flags:
+        out("briefing: the proactive layer is off (UNDERSTUDY_X_PROACTIVE=1 or UNDERSTUDY_X=1 turns it on): not seeded.")
+        remember()
+        return None
+    try:
+        from .proactive.seed import seed_demo
+    except ImportError as exc:
+        out(f"briefing: skipped ({exc}).")
+        return None
+    reseed = force or (prev is not None and prev != flags)
+    try:
+        res = seed_demo(home, dd, now=now, reseed=reseed)
+    except Exception as exc:  # the demo's base story must not fail because the extension could not seed
+        out(f"briefing: not seeded ({type(exc).__name__}: {exc}).")
+        return {"seeded": False, "error": f"{type(exc).__name__}: {exc}"}
+    remember()
+    out(f"briefing: {'seeded' if res.get('seeded') else 'already there'} ({len(res.get('cards', []))} cards{', reseeded' if reseed else ''}).")
+    return res
 
 
 def _seed_home(store: MemoryStore, home: Path, reset: bool, now: datetime | None, out: Callable[[str], None]) -> dict[str, Any]:

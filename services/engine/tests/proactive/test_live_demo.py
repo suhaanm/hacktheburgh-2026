@@ -64,7 +64,11 @@ def test_the_engine_app_serves_the_seeded_briefing_under_the_flag(demo_env):
     from understudy_engine.api.app import create_app
     from understudy_engine.proactive.seed import seed_demo
 
-    assert seed_demo(demo_env.home, demo_env.data, now=datetime(2026, 11, 8, 8, 0, tzinfo=timezone.utc))["seeded"]
+    # the demo seed may already have seeded the briefing (when the layer is on); either order must leave exactly one seeded set
+    first = seed_demo(demo_env.home, demo_env.data, now=datetime(2026, 11, 8, 8, 0, tzinfo=timezone.utc))
+    assert sorted(first["kinds"]) == ["automate", "focus_block", "practice"]
+    again = seed_demo(demo_env.home, demo_env.data, now=datetime(2026, 11, 9, 8, 0, tzinfo=timezone.utc))
+    assert again["seeded"] is False and again["cards"] == first["cards"]               # idempotent
     app = create_app()
     assert app.state.extensions.get("proactive") is True
     c = TestClient(app)
@@ -94,7 +98,7 @@ def test_switching_the_routine_on_elsewhere_makes_its_card_stale(demo_env):
     from understudy_engine.api.app import create_app
     from understudy_engine.proactive.seed import seed_demo
 
-    seed_demo(demo_env.home, demo_env.data, now=datetime(2026, 11, 8, 8, 0, tzinfo=timezone.utc))
+    assert seed_demo(demo_env.home, demo_env.data, now=datetime(2026, 11, 8, 8, 0, tzinfo=timezone.utc))["cards"]
     c = TestClient(create_app())
     ok = c.post("/routines/calc-entry-3x/consent", json={"mode": "shadow"}, headers={"X-Understudy-Actor": "worker"})
     assert ok.status_code == 200, ok.text

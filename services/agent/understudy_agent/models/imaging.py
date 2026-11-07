@@ -88,3 +88,31 @@ def make_test_png(w: int = 1280, h: int = 720, label: str = "Calculate") -> byte
     buf = io.BytesIO()
     im.save(buf, "PNG")
     return buf.getvalue()
+
+
+def sniff_mime(data: bytes) -> str:
+    """image/png or image/jpeg from the file header, else ValueError (only those two ever go to a model)."""
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    if data[:2] == b"\xff\xd8":
+        return "image/jpeg"
+    raise ValueError("only PNG and JPEG images are accepted")
+
+
+def prepare_frame(raw: bytes, *, long_edge: int = 1280, max_bytes: int = 400 * 1024, quality: int = 80) -> bytes:
+    """Any image bytes -> a JPEG whose long edge is at most `long_edge` and whose size is at most `max_bytes` (the limits of the
+    privacy track's SafeImage). Lowers the JPEG quality in steps to fit. Pure; nothing is written anywhere."""
+    with Image.open(io.BytesIO(raw)) as im:
+        im.load()
+        w, h = im.size
+        scale = min(1.0, long_edge / max(w, h))
+        im = im.convert("RGB")
+        if scale < 1.0:
+            im = im.resize((max(1, round(w * scale)), max(1, round(h * scale))), Image.LANCZOS)
+        q = quality
+        while True:
+            buf = io.BytesIO()
+            im.save(buf, "JPEG", quality=q, optimize=False)
+            if buf.tell() <= max_bytes or q <= 30:
+                return buf.getvalue()
+            q -= 10

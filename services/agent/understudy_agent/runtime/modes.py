@@ -169,12 +169,13 @@ def _iso_ge(a: str, b: str | None) -> bool:
     return b is None or str(a) >= str(b)
 
 
-def agent_morning_report(audit: AuditLog, queue: ApprovalQueue | None = None, since: str | None = None) -> dict[str, Any]:
+def agent_morning_report(audit: AuditLog, queue: ApprovalQueue | None = None, since: str | None = None,
+                         run_ids: set[str] | None = None) -> dict[str, Any]:
     """BGA-3: which agent runs happened, with every child and its outcome, what is queued for approval, and what was refused.
     Built from the run records and the redacted audit log; no file text anywhere in it."""
     runs = []
     for d in persisted_runs():
-        if not _iso_ge(d.get("started", ""), since):
+        if not _iso_ge(d.get("started", ""), since) or (run_ids is not None and d.get("run_id") not in run_ids):
             continue
         res = d.get("result", {})
         runs.append({"run_id": d["run_id"], "kind": d["kind"], "mode": d["mode"], "state": d["state"], "started": d["started"],
@@ -189,7 +190,9 @@ def agent_morning_report(audit: AuditLog, queue: ApprovalQueue | None = None, si
             if datetime.fromisoformat(str(ln["t"]).replace("Z", "+00:00")) >= t0:
                 refused.append({"routine": ln["routine"], "at": ln["t"], "code": ln.get("note"),
                                 "reason": REASONS.get(str(ln.get("note")), "refused")})
-    pending = [i["id"] for i in (queue.list("pending") if queue is not None else []) if str(i.get("routine_id", "")).startswith("agent-")]
+    pending = [i["id"] for i in (queue.list("pending") if queue is not None else [])
+               if str(i.get("routine_id", "")).startswith("agent-") and _iso_ge(i.get("created_at", ""), since)
+               and (run_ids is None or i.get("run_id") in run_ids)]
     n_ver = sum(r["verified"] for r in runs)
     n_tot = sum(r["total"] for r in runs)
     summary = (f"{len(runs)} agent run{'s' if len(runs) != 1 else ''}: {n_ver} of {n_tot} children verified by code; "

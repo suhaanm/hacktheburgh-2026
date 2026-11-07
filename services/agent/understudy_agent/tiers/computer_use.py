@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import io
 import os
+import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -39,12 +40,40 @@ class ActuatorRefused(TierError):
     """An actuator guard refused (wrong frontmost app, locked screen, budget, kill flag)."""
 
 
+@dataclass(frozen=True)
+class TargetRead:
+    """What TRUSTED code read at the target of an action: the DOM element under the point, the accessibility element
+    under the pointer, or the focused control. Never the model's own words about it. `label` is the accessible name
+    (for Enter, the form's default submit button is appended); `role` its role; `field_attrs` the attributes a
+    sensitive-field check needs. The gate classifies a pixel click, an Enter press or a newline from this alone."""
+
+    label: str | None
+    role: str | None = None
+    url: str | None = None
+    field_attrs: dict[str, Any] | None = None
+
+    @property
+    def key(self) -> tuple[str | None, str | None]:
+        return (self.label, self.role)
+
+
 class Actuator(Protocol):
     scale: float  # screenshot pixels per point
 
     async def screenshot(self) -> bytes: ...
     async def execute(self, action: Action) -> None: ...
     async def release_all(self) -> None: ...
+    # Optional: async def read_target(self, action) -> TargetRead | None   (an actuator without it is gated as unreadable)
+    # Optional: def bind_cancel(self, is_cancelled) -> None                 (stop wins inside a long action)
+
+
+def merge_reads(reads: list["TargetRead | None"]) -> "TargetRead | None":
+    """A drag touches two places: both must be readable, and the gate sees both labels."""
+    if not reads or any(r is None for r in reads):
+        return None
+    first = reads[0]
+    labels = [r.label for r in reads if r and r.label]
+    return TargetRead(" / ".join(dict.fromkeys(labels)) if labels else first.label, first.role, first.url, first.field_attrs)
 
 
 def blank_png(w: int = 1280, h: int = 720) -> bytes:
@@ -59,9 +88,11 @@ def blank_png(w: int = 1280, h: int = 720) -> bytes:
 class SimulatedActuator:
     """Records actions and returns a blank screenshot. Nothing happens anywhere. The default and the test double."""
 
-    def __init__(self, size: tuple[int, int] = (1280, 720), *, max_actions: int = 200) -> None:
+    def __init__(self, size: tuple[int, int] = (1280, 720), *, max_actions: int = 200,
+                 targets: "TargetRead | Callable[[Action], TargetRead | None] | None" = None) -> None:
         self.size = size
         self.scale = 1.0
+        self._targets = targets          # what "trusted code" reads at a target; None means unreadable (the safe default)
         self.actions: list[Action] = []
         self.max_actions = max_actions
         self.released = 0
@@ -83,15 +114,121 @@ class SimulatedActuator:
     async def release_all(self) -> None:
         self.released += 1
 
+    async def read_target(self, action: Action) -> "TargetRead | None":
+        t = self._targets
+        return t(action) if callable(t) else t
+
+
+_PW_KEYS = {"enter": "Enter", "return": "Enter", "tab": "Tab", "esc": "Escape", "escape": "Escape", "space": "Space",
+            "backspace": "Backspace", "delete": "Delete", "del": "Delete", "up": "ArrowUp", "down": "ArrowDown",
+            "left": "ArrowLeft", "right": "ArrowRight", "home": "Home", "end": "End", "pageup": "PageUp",
+            "page_up": "PageUp", "pagedown": "PageDown", "page_down": "PageDown", "ctrl": "Control", "control": "Control",
+            "alt": "Alt", "option": "Alt", "shift": "Shift", "cmd": "Meta", "command": "Meta", "meta": "Meta"}
+
+
+def playwright_key(keys: list[str]) -> str:
+    """The pipeline normalises key names to lower case; Playwright wants Enter, ArrowDown, Control and so on."""
+    out = []
+    for k in keys:
+        low = k.lower()
+        out.append(_PW_KEYS.get(low) or (low.upper() if re.fullmatch(r"f\d{1,2}", low) else k))
+    return "+".join(out)
+
+
+READ_TARGET_JS = r"""
+([x, y]) => {
+  const txt = e => (e.innerText || e.textContent || '').replace(/\s+/g, ' ').trim();
+  const CTRL = 'button,a[href],input,select,textarea,summary,[role=button],[role=link],[role=menuitem],[role=checkbox],' +
+               '[role=radio],[role=tab],[role=switch],[role=option],[onclick]';
+  const BTN = ['submit', 'button', 'reset', 'image'];
+  const name = e => {
+    const al = e.getAttribute('aria-label'); if (al && al.trim()) return al.trim();
+    const lb = e.getAttribute('aria-labelledby');
+    if (lb) { const t = lb.split(/\s+/).map(i => document.getElementById(i)).filter(Boolean).map(txt).join(' ').trim(); if (t) return t; }
+    const tag = e.tagName.toLowerCase(), ty = (e.getAttribute('type') || '').toLowerCase();
+    if (tag === 'input' && BTN.includes(ty)) return (e.value || e.getAttribute('alt') || e.getAttribute('title') || '').trim();
+    if (e.labels && e.labels.length) { const t = Array.from(e.labels).map(txt).join(' ').trim(); if (t) return t; }
+    if (['input', 'textarea', 'select'].includes(tag)) return (e.getAttribute('placeholder') || e.getAttribute('title') || '').trim();
+    const t = txt(e); if (t) return t.slice(0, 120);
+    return (e.getAttribute('alt') || e.getAttribute('title') || '').trim();
+  };
+  const focus = (x === null || x === undefined);
+  let el = focus ? document.activeElement : document.elementFromPoint(x, y);
+  for (let i = 0; !focus && i < 5 && el && el.shadowRoot && el.shadowRoot.elementFromPoint; i++) {
+    const inner = el.shadowRoot.elementFromPoint(x, y); if (!inner || inner === el) break; el = inner;
+  }
+  if (!el) return {ok: false, why: 'nothing there'};
+  if (['iframe', 'frame', 'embed', 'object', 'canvas', 'video'].includes(el.tagName.toLowerCase()))
+    return {ok: false, why: 'opaque content'};
+  if (focus && (el === document.body || el === document.documentElement)) return {ok: true, label: '', role: 'document', field: null};
+  let t = el.closest(CTRL);
+  if (!t) { const lab = el.closest('label'); t = (lab && lab.control) ? lab.control : el; }
+  const tag = t.tagName.toLowerCase(), ty = (t.getAttribute('type') || '').toLowerCase();
+  const implicit = {button: 'button', a: 'link', select: 'combobox', textarea: 'textbox', summary: 'button'};
+  const byType = {submit: 'button', button: 'button', reset: 'button', image: 'button', checkbox: 'checkbox', radio: 'radio'};
+  const role = t.getAttribute('role') || (tag === 'input' ? (byType[ty] || 'textbox') : implicit[tag]) || 'generic';
+  const own = role === 'generic' && !t.matches(CTRL) ? '' : name(t);
+  const named = ['button', 'link', 'menuitem', 'tab', 'switch', 'option', 'checkbox', 'radio'].includes(role);
+  if (named && !own) return {ok: false, why: 'unnamed control'};
+  let label = own;
+  if (focus && (tag === 'input' || tag === 'select') && !BTN.includes(ty)) {      // Enter here submits the form's default button
+    const f = t.form || t.closest('form');
+    const b = f && f.querySelector('input[type=submit],button[type=submit],button:not([type]),input[type=image]');
+    if (b) { const sn = name(b); label = label ? label + ' / ' + sn : sn; }
+  }
+  const isField = ['input', 'textarea', 'select'].includes(tag);
+  const field = isField ? {name: t.getAttribute('name') || '', id: t.id || '', label: own, placeholder: t.getAttribute('placeholder') || '',
+                           autocomplete: t.getAttribute('autocomplete') || '', aria_label: t.getAttribute('aria-label') || '',
+                           type: ty || (tag === 'input' ? 'text' : tag), role} : null;
+  return {ok: true, label, role, field};
+}
+"""
+
 
 class BrowserPageActuator:
     """Mouse and keyboard on ONE headless Playwright page, in the agent's own context. Not the desktop."""
 
-    def __init__(self, page: Any, *, max_actions: int = 100) -> None:
+    def __init__(self, page: Any, *, max_actions: int = 400) -> None:
         self.page, self.scale, self.max_actions, self.n = page, 1.0, max_actions, 0
 
+    @property
+    def url(self) -> str | None:
+        try:
+            return self.page.url
+        except Exception:  # noqa: BLE001
+            return None
+
+    async def read_target(self, action: Action) -> TargetRead | None:
+        """The element under the pointer (or the focused control, for typing and Enter), read from the DOM by this
+        code. None when it cannot be read (nothing there, an iframe or canvas, a button with no name)."""
+        a = action.args
+        if action.kind in ("click", "double_click"):
+            points: list[Any] = [[a["x"], a["y"]]]
+        elif action.kind == "drag":
+            path = a["path"]
+            points = [[path[0]["x"], path[0]["y"]], [path[-1]["x"], path[-1]["y"]]]
+        else:
+            points = [[None, None]]
+        reads: list[TargetRead | None] = []
+        for pt in points:
+            try:
+                r = await self.page.evaluate(READ_TARGET_JS, pt)
+            except Exception:  # noqa: BLE001 - a page mid-navigation cannot be read: unreadable, never "fine"
+                return None
+            reads.append(TargetRead(r["label"], r["role"], self.url, r.get("field")) if r and r.get("ok") else None)
+        return merge_reads(reads)
+
     async def screenshot(self) -> bytes:
-        return await self.page.screenshot(type="png")
+        """A click that submits a form can leave the page mid-navigation; wait for it, and retry once on a timeout."""
+        last: Exception | None = None
+        for _ in range(2):
+            try:
+                await self.page.wait_for_load_state("domcontentloaded", timeout=5000)
+                return await self.page.screenshot(type="png", timeout=15000, animations="disabled")
+            except Exception as exc:  # noqa: BLE001 - Playwright timeouts
+                last = exc
+                await asyncio.sleep(0.2)
+        raise ActuatorRefused(f"could not take a screenshot: {type(last).__name__}")
 
     async def execute(self, action: Action) -> None:
         self.n += 1
@@ -107,11 +244,13 @@ class BrowserPageActuator:
         elif action.kind == "type":
             await p.keyboard.type(a["text"])
         elif action.kind == "key":
-            await p.keyboard.press("+".join(a["keys"]))
+            await p.keyboard.press(playwright_key(list(a["keys"])))
         elif action.kind == "scroll":
             await p.mouse.wheel(a.get("scroll_x", 0), a.get("scroll_y", 0))
         elif action.kind == "wait":
             await asyncio.sleep(float(a.get("seconds", 1)))
+        elif action.kind != "screenshot":
+            raise ActuatorRefused(f"the page actuator cannot perform {action.kind!r}")
 
     async def release_all(self) -> None:
         return None
@@ -416,21 +555,77 @@ class MacActuator:
 # ----------------------------------------------------------------------------- the tier-3 loop
 @dataclass
 class Tier3Result:
-    outcome: str                       # done | claimed_not_verified | step_cap | stopped
+    outcome: str                       # done | claimed_not_verified | gave_up | stalled | step_cap | stopped
     steps: int = 0
     claimed_done: bool = False
     false_claim: bool = False
     history: list[dict[str, Any]] = field(default_factory=list)
+    progress_steps: int = 0            # steps after which the screen had visibly changed
+    refusals: int = 0                  # typed literals, unknown handles or letter keys refused by the fact-handle check
+    done_summary_len: int = 0
+    last_summary: str = ""             # the model's own closing words (model output, never page text or values)
+
+
+FP_SIZE = (640, 400)
+PIXEL_DELTA = 24        # grey levels a pixel must move to count as changed
+CHANGED_PIXELS = 12     # changed pixels (at 640 x 400) that make a screen "different": a typed digit is 15 to 25
+
+
+def screen_fingerprint(png: bytes) -> bytes | None:
+    """A half-size grey-scale copy of a screenshot, to tell whether the screen changed. None if undecodable."""
+    try:
+        from PIL import Image
+
+        return Image.open(io.BytesIO(png)).convert("L").resize(FP_SIZE).tobytes()
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def screen_changed(a: bytes, b: bytes, min_pixels: int = CHANGED_PIXELS) -> bool:
+    """True if at least `min_pixels` pixels moved by more than PIXEL_DELTA grey levels. One typed character changes
+    well over a dozen pixels; a pointer shadow or anti-aliasing flicker does not."""
+    if len(a) != len(b) or not a:
+        return True
+    n = 0
+    for x, y in zip(a, b):
+        if x != y and abs(x - y) > PIXEL_DELTA:
+            n += 1
+            if n >= min_pixels:
+                return True
+    return False
+
+
+_TARGETED = ("click", "double_click", "drag", "type", "key")   # actions whose effect depends on what is under them
 
 
 class ComputerUse:
+    """The tier-3 loop. Budgeting is by PROGRESS, not a flat cap: the run may go on while the screen keeps changing
+    (a form being filled, pages advancing) up to `max_steps`, and stops early after `stall_limit` consecutive steps in
+    which the screen did not change (the stuck-loop detector covers repeats on top of that).
+
+    `facts` switches on fact handles: typed text must be exactly one handle from the closed vocabulary, which is
+    resolved to the real value only at the moment of actuation. Without `facts` the loop behaves as before."""
+
     def __init__(self, model: ModelPort, actuator: Actuator, guard: Guard, *, navigator: str,
                  emit: Emit | None = None, is_current: Callable[[], bool] = lambda: True, step_start: int = 0,
-                 max_steps: int = 20, deadline_s: float = 120.0, screenshot_size: tuple[int, int] = (1280, 720)) -> None:
+                 max_steps: int = 120, deadline_s: float = 600.0, screenshot_size: tuple[int, int] = (1280, 720),
+                 facts: Any = None, stall_limit: int = 12, pause: Any = None) -> None:
         self.model, self.actuator, self.guard, self.navigator = model, actuator, guard, navigator
         self.emit, self.is_current, self.step_start = emit, is_current, step_start
         self.max_steps, self.deadline_s, self.size = max_steps, deadline_s, screenshot_size
+        self.facts, self.stall_limit, self.pause = facts, stall_limit, pause
         self.stuck = StuckDetector()
+
+    async def _read_target(self, out: Action) -> TargetRead | None:
+        reader = getattr(self.actuator, "read_target", None)
+        if reader is None or out.kind not in _TARGETED:
+            return None
+        try:
+            return await reader(out)
+        except ActuatorRefused:
+            raise
+        except Exception:  # noqa: BLE001 - an unreadable target is unresolved, which the gate sends to a human
+            return None
 
     def _event(self, n: int, action: str, ok: bool, detail: str = "") -> None:
         ev = StepEvent(navigator=self.navigator, step=n, tier=3, action=action, ok=ok, detail=detail)
@@ -439,22 +634,48 @@ class ComputerUse:
             self.emit(ev)
 
     async def run(self, goal: str, verify: Callable[[], Awaitable[bool]]) -> Tier3Result:
+        from .facts import FactRefused, UnresolvedFact, key_would_type_text
+
+        base_goal = goal + ("\n\n" + self.facts.goal_block() if self.facts is not None else "")
         self.guard.set_mode("model_driven")
         self.guard.set_goal(goal)
+        bind = getattr(self.actuator, "bind_cancel", None)
+        if callable(bind):            # Stop wins inside a long action too (a chunked type checks this between chunks)
+            bind(lambda: not self.is_current())
+        attach = getattr(self.model, "attach", None)
+        if callable(attach):          # test doubles that need the actuator's page; real providers have no such hook
+            attach(self.navigator, self.actuator)
         res = Tier3Result("step_cap")
         t0 = time.monotonic()
         n = self.step_start
+        last_fp: bytes | None = None
+        stalled = 0
+        refused_streak = 0
+        retargets = 0
+        feedback = ""
         try:
             while res.steps < self.max_steps:
                 if not self.is_current():
                     raise asyncio.CancelledError()
+                if self.pause is not None:
+                    await self.pause.wait_if_paused()          # step-level pause: the run keeps its place and its page
                 if time.monotonic() - t0 > self.deadline_s:
                     res.outcome = "stopped"
                     raise StepBudgetExceeded("tier 3 time budget used up")
                 shot = await self.actuator.screenshot()
+                fp = screen_fingerprint(shot)
+                if fp is not None and last_fp is not None:
+                    changed = screen_changed(fp, last_fp)
+                    stalled = 0 if changed else stalled + 1
+                    res.progress_steps += 1 if changed else 0
+                    if stalled >= self.stall_limit:
+                        res.outcome = "stalled"
+                        raise StepBudgetExceeded(f"tier 3 made no visible progress in {stalled} steps")
+                last_fp = fp if fp is not None else last_fp
                 pobs = self.guard.observe_screen()  # one fresh observation authorises exactly one action
-                out = await asyncio.to_thread(self.model.computer_step, goal, shot, list(res.history),
+                out = await asyncio.to_thread(self.model.computer_step, base_goal + feedback, shot, list(res.history),
                                               session=self.navigator)
+                feedback = ""
                 res.steps += 1
                 n += 1
                 if isinstance(out, SafetyStop):
@@ -468,25 +689,88 @@ class ComputerUse:
                     raise ProviderSafetyStop(out.checks, item["id"])
                 if isinstance(out, Done):
                     res.claimed_done = out.claimed_success
+                    res.done_summary_len = len(out.summary or "")
+                    res.last_summary = out.summary or ""
                     ok = await verify()
                     res.false_claim = bool(out.claimed_success and not ok)
                     res.outcome = "done" if ok else ("claimed_not_verified" if out.claimed_success else "gave_up")
                     self._event(n, "done", ok, "claim verified" if ok else (
                         "claim NOT verified by code" if out.claimed_success else "the model said it could not finish"))
                     return res
-                label = str(out.args.get("label") or "") or None
-                dec = self.guard.authorise(out, pobs, label=label, url=None, screen=self.size)
+                handle: str | None = None
+                if self.facts is not None:
+                    try:
+                        if out.kind == "type":
+                            handle = self.facts.check(out.args.get("text"))
+                        elif out.kind == "key" and key_would_type_text(list(out.args.get("keys", []))):
+                            raise FactRefused("key_types_text", "a letter or digit key would type a literal value")
+                    except FactRefused as exc:
+                        res.refusals += 1
+                        refused_streak += 1
+                        res.history.append({"kind": out.kind, "ok": False, "why": exc.code})
+                        self.guard.note("fact_refused", "refused", exc.code, tier=3)
+                        self._event(n, "type_fact" if out.kind == "type" else out.kind, False, f"refused: {exc.code}")
+                        feedback = ("\nNOTE: your last action was refused. Type only a handle from the FACTS list, "
+                                    "exactly, as the whole text of one type action. Do not type values or press letter keys.")
+                        if refused_streak >= 4:
+                            raise StuckLoop(f"the model keeps trying to type literal values ({exc.code})") from None
+                        continue
+                refused_streak = 0
+                if self.pause is not None and await self.pause.wait_if_paused():
+                    res.steps -= 1                              # the human arrived while the model was thinking:
+                    n -= 1                                      # that action is stale, look at the screen again
+                    continue
+                if not self.is_current():                       # Stop or a human taking over while the model thought (S-03)
+                    raise asyncio.CancelledError()
+                # What the gate sees is what TRUSTED code reads at the target. The model's own `label` is only a hint
+                # that can add risk (it stays in the action's args); it never makes a step "resolved" (S-01).
+                tr = await self._read_target(out)
+                dec = self.guard.authorise(out, pobs, label=tr.label if tr else None, role=tr.role if tr else None,
+                                           url=(tr.url if tr else None) or getattr(self.actuator, "url", None),
+                                           field_attrs=tr.field_attrs if tr else None, screen=self.size)
                 if dec.verdict == "block" and dec.layer == "actions":
                     res.history.append({"kind": getattr(out, "kind", "?"), "ok": False})
                     self._event(n, getattr(out, "kind", "?"), False, f"rejected: {dec.codes[:1]}")
                     continue
                 if dec.verdict != "allow":
                     self._event(n, out.kind, False, f"{dec.verdict} {dec.layer or ''}".strip())
-                self.guard.require(dec, label or out.kind, navigator=self.navigator)
-                if self.stuck.push((out.kind, tuple(sorted((k, str(v)) for k, v in out.args.items())))):
+                self.guard.require(dec, (tr.label if tr else None) or out.kind, navigator=self.navigator)
+                if self.stuck.push((out.kind, tuple(sorted((k, str(v)) for k, v in out.args.items())), fp)):
                     self._event(n, out.kind, False, "stuck loop")
                     raise StuckLoop("tier 3 stuck loop")
                 act = Action(dec.action.kind, dict(dec.action.args)) if dec.action else out  # the validated form
+                # Stop wins, and the page may have moved under the pointer since the read: look once more, right before
+                # the event. A different target, or one that became unreadable, voids this action (nothing was done).
+                if not self.is_current():
+                    raise asyncio.CancelledError()
+                if out.kind in _TARGETED:
+                    tr2 = await self._read_target(out)
+                    if (tr is None) != (tr2 is None) or (tr is not None and tr.key != tr2.key):
+                        res.steps -= 1
+                        n -= 1
+                        retargets += 1
+                        if retargets > 5:
+                            raise StepBudgetExceeded("the target under the pointer keeps changing before the action runs")
+                        self.guard.note("target_changed", "refused", out.kind, tier=3)
+                        self._event(n + 1, out.kind, False, "the target changed before the action; looking again")
+                        feedback = "\nNOTE: the screen changed before your last action ran, so it was not performed."
+                        continue
+                if handle is not None:
+                    try:
+                        value = self.facts.resolve(handle)      # the ONLY place a value exists, and it goes straight out
+                    except UnresolvedFact as exc:  # pragma: no cover - the vocabulary check already passed
+                        raise TierError(str(exc)) from None
+                    self.guard.record(dec, True)
+                    if value == "":
+                        res.history.append({"kind": "type", "handle": handle, "ok": True, "empty": True})
+                        self._event(n, "type_fact", True, f"handle={handle} (no value for this household)")
+                        continue
+                    await self.actuator.execute(Action("type", {"text": value}))
+                    del value
+                    res.history.append({"kind": "type", "handle": handle, "ok": True})
+                    self._event(n, "type_fact", True, f"handle={handle}")
+                    continue
+                retargets = 0
                 await self.actuator.execute(act)
                 self.guard.record(dec, True)
                 res.history.append({"kind": act.kind, "args": {k: v for k, v in act.args.items() if k != "text"}, "ok": True})

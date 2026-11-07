@@ -13,7 +13,7 @@ export const TOAST_MARGIN = 12
 const MIN_HEIGHT = 140
 const MAX_HEIGHT = 560
 const LOAD_TIMEOUT_MS = 4000
-export const NOTIFICATION_TITLE = 'Alongside needs your OK'
+export const NOTIFICATION_TITLE = 'Understudy needs your OK'
 
 export interface ToastDeps {
   ctx: Pick<ServiceContext, 'state' | 'settings' | 'log'>

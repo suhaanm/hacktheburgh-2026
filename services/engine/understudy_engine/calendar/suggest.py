@@ -12,9 +12,8 @@ Every suggestion is opt-in and low risk: it proposes a calendar hold or a habit,
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
-from .bucket import FROM_PRIVACY
 from .features import safe_features
 
 CATALOGUE_VERSION = 1

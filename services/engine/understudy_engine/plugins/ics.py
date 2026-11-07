@@ -1,7 +1,7 @@
 """ICS (RFC 5545) calendar source: a local ``.ics`` export or text, with recurrence expansion. Read-only, no network.
 
 Handles line unfolding, property parameters (quoted values), text escapes, ``DTSTART``/``DTEND``/``DURATION`` in UTC,
-floating, ``TZID`` (IANA, Windows and Mozilla-style names, with a ``VTIMEZONE`` standard-offset fallback) and all-day
+floating, ``TZID`` (IANA, Windows and Mozilla-style names, with the file's own ``VTIMEZONE`` rules as the fallback, as in Outlook's display-name zones) and all-day
 dates, ``RRULE`` (see ``rrule.py``) with ``EXDATE``, ``RDATE`` and ``RECURRENCE-ID`` overrides, ``STATUS:CANCELLED``,
 ``TRANSP``, Microsoft busy-status and conference hints. Nested ``VALARM`` blocks are skipped.
 
@@ -13,13 +13,13 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from datetime import date, datetime, time, timedelta, timezone, tzinfo
+from datetime import date, datetime, timedelta, timezone, tzinfo
 from pathlib import Path
 from typing import Iterator
 
 from .base import RawItem, Source, SourceError, overlaps
 from .rrule import RRuleError, expand, parse_rrule
-from .tz import local_to_utc, resolve_tz
+from .tz import Observance, VTimezone, local_to_utc, parse_offset, resolve_tz
 
 UTC = timezone.utc
 MAX_BYTES = 64 * 1024 * 1024
@@ -141,7 +141,8 @@ class _Cal:
 
     def __init__(self) -> None:
         self.events: list[_Ev] = []
-        self.vtz_offsets: dict[str, timedelta] = {}
+        self.vtz: dict[str, list[Observance]] = {}
+        self.vtz_zones: dict[str, VTimezone] = {}
 
 
 def parse_calendar(text: str) -> _Cal:
@@ -149,7 +150,8 @@ def parse_calendar(text: str) -> _Cal:
     stack: list[str] = []
     cur: _Ev | None = None
     vtz_id: str | None = None
-    vtz_kind: str | None = None
+    obs: dict[str, str] | None = None
+    rdates: list[str] = []
     for line in unfold(text):
         u = line.strip().upper()
         if u.startswith("BEGIN:"):
@@ -159,8 +161,8 @@ def parse_calendar(text: str) -> _Cal:
                 cur = _Ev(uid="")
             elif comp == "VTIMEZONE":
                 vtz_id = None
-            elif comp in ("STANDARD", "DAYLIGHT"):
-                vtz_kind = comp
+            elif comp in ("STANDARD", "DAYLIGHT") and "VTIMEZONE" in stack:
+                obs, rdates = {}, []
             continue
         if u.startswith("END:"):
             comp = u[4:]
@@ -171,8 +173,18 @@ def parse_calendar(text: str) -> _Cal:
                 cur.uid = uid.value.strip() if uid else ""
                 cal.events.append(cur)
                 cur = None
-            elif comp in ("STANDARD", "DAYLIGHT"):
-                vtz_kind = None
+            elif comp in ("STANDARD", "DAYLIGHT") and obs is not None and vtz_id:
+                m = _COMPACT_DT.match(obs.get("DTSTART", ""))
+                off_to, off_from = parse_offset(obs.get("TZOFFSETTO", "")), parse_offset(obs.get("TZOFFSETFROM", ""))
+                if m and off_to is not None:
+                    start = datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4) or 0), int(m.group(5) or 0), int(m.group(6) or 0))
+                    extra = []
+                    for r in rdates:
+                        mr = _COMPACT_DT.match(r)
+                        if mr:
+                            extra.append(datetime(int(mr.group(1)), int(mr.group(2)), int(mr.group(3)), int(mr.group(4) or 0), int(mr.group(5) or 0)))
+                    cal.vtz.setdefault(vtz_id, []).append(Observance(start, off_from if off_from is not None else off_to, off_to, obs.get("RRULE"), extra))
+                obs = None
             elif comp == "VTIMEZONE":
                 vtz_id = None
             continue
@@ -186,11 +198,11 @@ def parse_calendar(text: str) -> _Cal:
             cur.props.append(prop)
         elif top == "VTIMEZONE" and prop.name == "TZID":
             vtz_id = prop.value.strip()
-        elif top == "STANDARD" and prop.name == "TZOFFSETTO" and vtz_id:
-            m = re.fullmatch(r"([+-])(\d{2})(\d{2})(\d{2})?", prop.value.strip())
-            if m:
-                off = timedelta(hours=int(m.group(2)), minutes=int(m.group(3)))
-                cal.vtz_offsets[vtz_id] = off if m.group(1) == "+" else -off
+        elif top in ("STANDARD", "DAYLIGHT") and obs is not None:
+            if prop.name == "RDATE":
+                rdates.extend(prop.value.split(","))
+            elif prop.name in ("DTSTART", "RRULE", "TZOFFSETFROM", "TZOFFSETTO"):
+                obs[prop.name] = prop.value.strip()
     return cal
 
 
@@ -223,10 +235,12 @@ class ICSSource(Source):
         z = resolve_tz(tzid)
         if z is not None:
             return z
-        off = cal.vtz_offsets.get(tzid)
-        if off is not None:
-            self._note("tz_fixed_offset_fallback")
-            return timezone(off)
+        obs = cal.vtz.get(tzid)
+        if obs:
+            self._note("tz_vtimezone_used")
+            if tzid not in cal.vtz_zones:
+                cal.vtz_zones[tzid] = VTimezone(obs)
+            return cal.vtz_zones[tzid]
         self._note("tz_unknown_default_used")
         return self._default_tz
 

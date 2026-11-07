@@ -1,0 +1,56 @@
+{
+  "generated_at": "2026-11-07T17:05:00Z",
+  "mock": true,
+  "roles": {
+    "point": {
+      "steps": [
+        { "provider": "gemini", "tier": "fast", "when": "primary", "model": "fast-model-id" },
+        { "provider": "gemini", "tier": "accurate", "when": "escalate", "model": "accurate-model-id" },
+        { "provider": "openai", "tier": "fast", "when": "fallback", "model": "fallback-model-id" }
+      ],
+      "escalate": { "not_found": true, "confidence_below": 0.7, "schema_failure": true, "timeout": true },
+      "call_timeout_s": 6.0, "deadline_s": 6.0
+    },
+    "glance": {
+      "steps": [
+        { "provider": "gemini", "tier": "fast", "when": "primary", "model": "fast-model-id" },
+        { "provider": "gemini", "tier": "accurate", "when": "escalate", "model": "accurate-model-id" },
+        { "provider": "openai", "tier": "fast", "when": "fallback", "model": "fallback-model-id" }
+      ],
+      "escalate": { "not_found": false, "confidence_below": 0.0, "schema_failure": true, "timeout": true },
+      "call_timeout_s": 8.0, "deadline_s": 12.0
+    },
+    "verify": {
+      "steps": [
+        { "provider": "gemini", "tier": "fast", "when": "primary", "model": "fast-model-id" },
+        { "provider": "gemini", "tier": "accurate", "when": "escalate", "model": "accurate-model-id" },
+        { "provider": "openai", "tier": "fast", "when": "fallback", "model": "fallback-model-id" }
+      ],
+      "escalate": { "not_found": false, "confidence_below": 0.7, "schema_failure": true, "timeout": true },
+      "call_timeout_s": 10.0, "deadline_s": 14.0
+    }
+  },
+  "providers": {
+    "openai": { "configured": true, "models": { "planner": "planner-model-id", "fast": "fallback-model-id", "computer_use": "computer-model-id" }, "breaker": { "state": "closed", "recent_failures": 0, "retry_in_s": 0.0, "opened_count": 0 }, "health": "ok" },
+    "gemini": { "configured": true, "enabled_by_flag": true, "models": { "fast": "fast-model-id", "accurate": "accurate-model-id" }, "api": "interactions", "breaker": { "state": "closed", "recent_failures": 1, "retry_in_s": 0.0, "opened_count": 0 }, "health": "ok" }
+  },
+  "boot": {
+    "openai": { "t": "2026-11-07T17:00:00Z", "ok": true, "mock": true, "configured": {}, "missing": {} },
+    "gemini": { "t": "2026-11-07T17:00:00Z", "ok": true, "mock": true, "configured": {}, "missing": {} }
+  },
+  "last_latencies_ms": { "gemini:fast-model-id": [880, 910, 1120, 860, 940], "openai:fallback-model-id": [1450, 1320] },
+  "meter": [
+    { "role": "glance", "provider": "gemini", "model": "fast-model-id", "n": 24, "ok": 23, "failed": 1, "p50_ms": 900, "p95_ms": 1180, "input_tokens": 31200, "output_tokens": 2100, "cost_usd_est": 0.0146 },
+    { "role": "point", "provider": "gemini", "model": "fast-model-id", "n": 12, "ok": 12, "failed": 0, "p50_ms": 880, "p95_ms": 1120, "input_tokens": 15600, "output_tokens": 900, "cost_usd_est": 0.0069 },
+    { "role": "verify", "provider": "openai", "model": "fallback-model-id", "n": 2, "ok": 2, "failed": 0, "p50_ms": 1380, "p95_ms": 1450, "input_tokens": 2600, "output_tokens": 300, "cost_usd_est": 0.0033 }
+  ],
+  "prices_assumed": {
+    "gemini.accurate": { "input_usd_per_million": 0.75, "output_usd_per_million": 3.75, "source": "assumed_default" },
+    "gemini.fast": { "input_usd_per_million": 0.3, "output_usd_per_million": 2.5, "source": "assumed_default" },
+    "gemini.live": { "input_usd_per_million": 0.75, "output_usd_per_million": 3.75, "source": "assumed_default" },
+    "openai.computer": { "input_usd_per_million": 5.0, "output_usd_per_million": 30.0, "source": "assumed_default" },
+    "openai.fast": { "input_usd_per_million": 0.75, "output_usd_per_million": 4.5, "source": "assumed_default" },
+    "openai.planner": { "input_usd_per_million": 5.0, "output_usd_per_million": 30.0, "source": "assumed_default" }
+  },
+  "config_error": null
+}

@@ -1,10 +1,14 @@
-import { noteSource, setState } from "./store";
+import { getState, noteSource, setState, whenExtReady } from "./store";
 import type { ApprovalAuth } from "./auth/types";
 import type {
   Analytic, AnalyticMeta, AuditLine, CoachState, EvalReport, Genome, Hazard, Health, KillState, Memory,
-  AgentRun, AgentRunDetail, Briefing, CalSuggestion, CalendarWeek, CoachDecision, CoachOutcome, LedgerEntry, LocalModelStatus, OffhoursReport, OnboardingAnswers, OnboardingQuestions, OnboardingResult, Pack, Presence, QueueItem, QuietHours,
+  AgentHealth, AgentKind, AgentRun, AgentRunDetail, Briefing, CalPerson, CalSuggestion, CalendarWeek, CoachDecision, CoachOutcome, ExtensionName, GitHabits, GitPeople, LedgerEntry, LocalModelStatus, ModelsStatus, OffhoursReport, OnboardingAnswers, OnboardingQuestions, OnboardingResult, Pack, Presence, QueueItem, QuietHours,
   PrivacySummary, Prepared, Replay, Routine, RuleProposal, SpawnKind, Transitions, WorkGraph,
 } from "./types";
+import { classify, type Fallback } from "./lib/fallback";
+import { requestBody, requestHeaders, MISSING_HEADER, notReadyReason, type Actor } from "./lib/http";
+import { FLAG_FOR } from "./lib/ext";
+import { normaliseModelsStatus } from "./lib/models";
 import genomeFx from "./fixtures/genome.json";
 import transitionsFx from "./fixtures/transitions.json";
 import presenceFx from "./fixtures/presence.json";
@@ -28,18 +32,30 @@ import agentsFx from "./fixtures/agents-runs.json";
 import ledgerFx from "./fixtures/privacy-ledger.json";
 import privacySummaryFx from "./fixtures/privacy-summary.json";
 import localModelFx from "./fixtures/localmodel-status.json";
+import calPeopleFx from "./fixtures/calendar-people.json";
+import gitHabitsFx from "./fixtures/git-habits.json";
+import gitPeopleFx from "./fixtures/git-people.json";
+import modelsFx from "./fixtures/models-status.json";
+import agentKindsFx from "./fixtures/agents-kinds.json";
 import { parseMemory, removeLineText, serializeMemory, toMemory } from "./lib/memory";
 import { buildPreview } from "./lib/memoryPreview";
 import { idleCapacity } from "./lib/heatmap";
 import { dayKeys, normDays } from "./lib/days";
 
-export const ENGINE_URL: string = (import.meta.env.VITE_ENGINE_URL as string | undefined) ?? "http://127.0.0.1:7700";
-export const AGENT_URL: string = (import.meta.env.VITE_AGENT_URL as string | undefined) ?? "http://127.0.0.1:7710";
+/**
+ * The page calls its own origin under /engine and /agent; the Vite server forwards to ports 7700 and 7710 and adds the per-boot
+ * token the services require for release actions (see vite.proxy.ts). VITE_ENGINE_URL and VITE_AGENT_URL can point at a service
+ * directly, but then no token is added and the release buttons will say the engine is not ready.
+ */
+export const ENGINE_URL: string = (import.meta.env.VITE_ENGINE_URL as string | undefined) ?? "/engine";
+export const AGENT_URL: string = (import.meta.env.VITE_AGENT_URL as string | undefined) ?? "/agent";
+/** The engine as people name it, for messages. */
+export const ENGINE_LABEL = "The engine (port 7700)";
 /** The first calls to a cold engine are slow (a genome about 3 s, routines about 7 s, a hazard 6 to 12 s). Only a hung connection hits this. */
 const TIMEOUT_MS = 40_000;
 
-/** Writes carry who is acting. The engine refuses anything but the worker's own UI (403 write_refused). */
-export type Actor = "worker" | "worker_approval";
+/** Writes carry who is acting. The engine refuses anything but the worker's own UI (403 write_refused). See lib/http.ts. */
+export type { Actor };
 
 export class ApiError extends Error {
   status: number;
@@ -55,9 +71,48 @@ export interface Loaded<T> {
   data: T;
   meta: AnalyticMeta | null;
   source: "live" | "demo";
+  /** Set when `source` is "demo": why the screen shows example data. Null when the data is live. */
+  why?: Fallback | null;
 }
 
 const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
+
+/** A query string from the values that are set. */
+function qs(p: Record<string, string | number | undefined | null>): string {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(p)) if (v !== undefined && v !== null && v !== "") q.set(k, String(v));
+  const t = q.toString();
+  return t ? `?${t}` : "";
+}
+
+/** A GET for a plain-text answer (the ledger export). */
+async function sendText(base: string, path: string): Promise<{ ok: boolean; text: string }> {
+  try {
+    const res = await fetch(`${base}${path}`);
+    return { ok: res.ok, text: res.ok ? await res.text() : "" };
+  } catch {
+    return { ok: false, text: "" };
+  }
+}
+
+/** The summary the engine would give for the example ledger, so list and summary never disagree. */
+function summariseDemoLedger(base: PrivacySummary, ledger: LedgerEntry[]): PrivacySummary {
+  const sent = ledger.filter((e) => e.status !== "blocked");
+  const by: Record<string, number> = {};
+  for (const e of sent) by[e.purpose] = (by[e.purpose] ?? 0) + 1;
+  const imgs = ledger.filter((e) => e.kind === "image");
+  const blocked = imgs.filter((e) => e.status === "blocked");
+  const okImgs = imgs.filter((e) => e.status !== "blocked");
+  const count = (rows: LedgerEntry[], f: (e: LedgerEntry) => string | null | undefined) => {
+    const o: Record<string, number> = {};
+    for (const e of rows) { const k = f(e) ?? "unknown"; o[k] = (o[k] ?? 0) + 1; }
+    return o;
+  };
+  return {
+    ...base, calls: sent.length, by_purpose: by, last_call: sent[0]?.t ?? null,
+    images: { sent: okImgs.length, blocked: blocked.length, blocked_by_reason: count(blocked, (e) => e.reason as string | null), sent_by_source: count(okImgs, (e) => e.source), bytes_sent: okImgs.reduce((a, e) => a + (e.image?.bytes ?? e.bytes ?? 0), 0), note: base.images?.note },
+  };
+}
 const fx = <T,>(x: unknown) => x as T;
 
 /** Accept both `{meta, data}` and a bare body, so a service that skips the envelope still works. */
@@ -69,7 +124,7 @@ function unwrap<T>(body: unknown): { data: T; meta: AnalyticMeta | null } {
   return { data: body as T, meta: null };
 }
 
-type Reached = { reached: true; status: number; body: unknown } | { reached: false; timedOut?: boolean };
+type Reached = { reached: true; status: number; body: unknown; tokenMissing?: boolean } | { reached: false; timedOut?: boolean };
 
 /** After a network failure, skip that service for a few seconds: faster screens, no console spam. */
 const downUntil = new Map<string, number>();
@@ -82,18 +137,17 @@ async function send(base: string, path: string, method: string, payload?: unknow
   let timedOut = false;
   const timer = window.setTimeout(() => { timedOut = true; ctl.abort(); }, TIMEOUT_MS);
   try {
-    const headers: Record<string, string> = {};
-    if (payload !== undefined) headers["Content-Type"] = "application/json";
-    if (actor) headers["X-Understudy-Actor"] = actor;
+    // Every write carries JSON and the actor header, in this one place (lib/http.ts).
     const res = await fetch(`${base}${path}`, {
       method,
       signal: ctl.signal,
-      headers: Object.keys(headers).length ? headers : undefined,
-      body: payload !== undefined ? JSON.stringify(payload) : undefined,
+      headers: requestHeaders(method, actor),
+      body: requestBody(method, payload),
     });
     let body: unknown = null;
     try { body = await res.json(); } catch { body = null; }
-    return { reached: true, status: res.status, body };
+    // The dev server says so when it found no per-boot token to add (see vite.proxy.ts).
+    return { reached: true, status: res.status, body, tokenMissing: res.headers.get(MISSING_HEADER) === "missing" };
   } catch {
     // A refused connection means the service is down: skip it for a few seconds. A timeout means it is slow, not gone.
     if (!timedOut) downUntil.set(base, Date.now() + BACKOFF_MS);
@@ -103,8 +157,10 @@ async function send(base: string, path: string, method: string, payload?: unknow
   }
 }
 
-function toApiError(status: number, body: unknown): ApiError {
+function toApiError(status: number, body: unknown, tokenMissing = false): ApiError {
   const e = (body as { error?: { code?: string; message?: string } } | null)?.error;
+  const notReady = notReadyReason(status, e?.code, tokenMissing);
+  if (notReady) return new ApiError(status, "engine_not_ready", notReady);
   const plain: Record<number, string> = {
     403: "The engine refused this change because it did not come from your own app.",
     404: "The engine does not have that.",
@@ -117,27 +173,68 @@ function toApiError(status: number, body: unknown): ApiError {
 /** The service is down, or does not have this route yet: use demo data. */
 const isMissing = (r: Reached) => !r.reached || r.status >= 500 || r.status === 404 || r.status === 405 || r.status === 501;
 
-async function read<T>(path: string, fallback: () => { data: T; meta?: AnalyticMeta | null }, base = ENGINE_URL): Promise<Loaded<T>> {
-  const r = await send(base, path, "GET");
-  if (isMissing(r)) {
+/** A write may fall back to the demo state only when nobody is there to take it: the service is down, or the route is absent or switched off.
+ *  A 404 that carries an error body of its own ("There is no card x") is a real answer and is shown, not faked. A 5xx is an error to show. */
+function writeMissing(r: Reached): boolean {
+  if (!r.reached) return true;
+  if (r.status === 405 || r.status === 501) return true;
+  if (r.status === 404) return classify({ reached: true, status: 404, body: r.body }, { service: "x" }).kind !== "error";
+  return false;
+}
+
+interface ReadOpts {
+  who?: { service: string; flag?: string };
+  /** Any answer but success becomes example data plus the reason, never an error screen. For optional extension screens. */
+  soft?: boolean;
+  /** The layer whose flag /health reports: when it is known to be off, do not ask. */
+  layer?: ExtensionName;
+}
+const ENGINE_WHO = { service: "The engine" };
+const AGENT_WHO = { service: "The agent service" };
+
+/** The flag for a layer is known to be off: say so without making a request that would 404. */
+function knownOff(layer: ExtensionName | undefined, who: { service: string }): Fallback | null {
+  if (!layer) return null;
+  const s = getState();
+  if (!s.extReady || s.ext[layer] !== false) return null;
+  // The agents flag comes from the agent service: believe it only when that service answered. (When the engine is unreachable every flag reads true.)
+  if (layer === "agents" && s.agentUp !== true) return null;
+  return { kind: "extension_off", status: 404, code: "extension_off", message: `This feature is switched off in ${who.service}. Start it with ${FLAG_FOR[layer]}=1 (or UNDERSTUDY_X=1 for every extension) to see your own data. Until then this screen shows example data.` };
+}
+
+async function read<T>(path: string, fallback: () => { data: T; meta?: AnalyticMeta | null }, base = ENGINE_URL, opts: ReadOpts = {}): Promise<Loaded<T>> {
+  const who = opts.who ?? (base === AGENT_URL ? AGENT_WHO : ENGINE_WHO);
+  const demoWith = (why: Fallback): Loaded<T> => {
     noteSource("demo");
     const f = fallback();
-    return { data: clone(f.data), meta: f.meta ? clone(f.meta) : null, source: "demo" };
+    return { data: clone(f.data), meta: f.meta ? clone(f.meta) : null, source: "demo", why };
+  };
+  if (opts.layer) {
+    await whenExtReady();
+    const off = knownOff(opts.layer, who);
+    if (off) return demoWith(off);
   }
-  if (r.reached && r.status >= 400) throw toApiError(r.status, r.body);
+  const r = await send(base, path, "GET");
+  const fail = { reached: r.reached, status: r.reached ? r.status : undefined, body: r.reached ? r.body : undefined };
+  const flag = opts.layer ? FLAG_FOR[opts.layer] : opts.who?.flag;
+  if (isMissing(r)) return demoWith(classify(fail, { ...who, flag }));
+  if (r.reached && r.status >= 400) {
+    if (opts.soft) return demoWith(classify(fail, { ...who, flag }));
+    throw toApiError(r.status, r.body);
+  }
   noteSource("live");
   const u = unwrap<T>(r.reached ? r.body : null);
-  return { ...u, source: "live" };
+  return { ...u, source: "live", why: null };
 }
 
 /** A write. When the service is down the demo state takes it, so the screen still works. */
 async function write<T>(path: string, method: "POST" | "PUT", payload: unknown, fallback: () => T, actor: Actor = "worker", base = ENGINE_URL): Promise<{ data: T; source: "live" | "demo" }> {
   const r = await send(base, path, method, payload, false, actor);
-  if (isMissing(r)) {
+  if (writeMissing(r)) {
     noteSource("demo");
     return { data: fallback(), source: "demo" };
   }
-  if (r.reached && r.status >= 400) throw toApiError(r.status, r.body);
+  if (r.reached && r.status >= 400) throw toApiError(r.status, r.body, r.tokenMissing);
   noteSource("live");
   return { data: unwrap<T>(r.reached ? r.body : null).data, source: "live" };
 }
@@ -177,6 +274,13 @@ const dataOf = <T,>(fixture: unknown) => (fixture as Analytic<T>).data;
 /* -- Reads ------------------------------------------------------------------------------------ */
 export const api = {
   health: () => read<Health>("/health", () => ({ data: fx<Health>(healthFx) })),
+
+  /** The agent service's own health. It carries the `agents` flag, which the engine does not know. Null when it does not answer. */
+  agentHealth: async (): Promise<AgentHealth | null> => {
+    const r = await send(AGENT_URL, "/health", "GET");
+    if (!r.reached || r.status >= 400) return null;
+    return unwrap<AgentHealth>(r.body).data ?? null;
+  },
 
   genome: (task = "t_entitlement_check", person?: string, reference: "nearest_expert" | "consensus" = "nearest_expert") =>
     read<Genome>(`/genome/${encodeURIComponent(task)}?${new URLSearchParams({ ...(person ? { person } : {}), reference })}`, () => ({
@@ -267,14 +371,18 @@ export const api = {
     read<EvalReport>("/eval/report", () => ({ data: fx<EvalReport>(evalFx), meta: null })),
 
   /* -- Extensions (REQ-2): each is flag-gated; without the engine the fixtures answer ----------------------------- */
-  calendarWeek: (person?: string) =>
-    read<CalendarWeek>(`/calendar/week${person ? `?person=${encodeURIComponent(person)}` : ""}`, () => ({ data: dataOf<CalendarWeek>(weekFx), meta: metaOf(weekFx) })),
+  calendarWeek: (person?: string, week?: string) =>
+    read<CalendarWeek>(`/calendar/week${qs({ person, week })}`, () => ({ data: dataOf<CalendarWeek>(weekFx), meta: metaOf(weekFx) }), ENGINE_URL, { layer: "calendar", soft: true }),
 
-  calendarSuggestions: (person?: string) =>
-    read<CalSuggestion[]>(`/calendar/suggestions${person ? `?person=${encodeURIComponent(person)}` : ""}`, () => ({ data: dataOf<CalSuggestion[]>(suggestionsFx), meta: metaOf(suggestionsFx) })),
+  /** Who has a calendar (additive route): drives the person and week pickers. */
+  calendarPeople: () =>
+    read<CalPerson[]>("/calendar/people", () => ({ data: dataOf<CalPerson[]>(calPeopleFx), meta: metaOf(calPeopleFx) }), ENGINE_URL, { layer: "calendar", soft: true }),
+
+  calendarSuggestions: (person?: string, week?: string) =>
+    read<CalSuggestion[]>(`/calendar/suggestions${qs({ person, week })}`, () => ({ data: dataOf<CalSuggestion[]>(suggestionsFx), meta: metaOf(suggestionsFx) }), ENGINE_URL, { layer: "calendar", soft: true }),
 
   briefing: (person?: string) =>
-    read<Briefing>(`/briefing${person ? `?person=${encodeURIComponent(person)}` : ""}`, () => ({ data: demo.briefing, meta: metaOf(briefingFx) })),
+    read<Briefing>(`/briefing${qs({ person })}`, () => ({ data: demo.briefing, meta: metaOf(briefingFx) }), ENGINE_URL, { layer: "proactive", soft: true }),
 
   /** Edit the prepared block. The body is the prepared content itself: { text?, steps? }. */
   briefingEdit: (id: string, prepared: Prepared) =>
@@ -309,10 +417,14 @@ export const api = {
     }),
 
   agentsRuns: (person?: string) =>
-    read<AgentRun[]>(`/agents/runs${person ? `?person=${encodeURIComponent(person)}` : ""}`, () => ({ data: demo.runs, meta: metaOf(agentsFx) }), AGENT_URL),
+    read<AgentRun[]>(`/agents/runs${qs({ person })}`, () => ({ data: demo.runs, meta: metaOf(agentsFx) }), AGENT_URL, { layer: "agents", soft: true }),
 
   agentsRunDetail: (id: string) =>
-    read<AgentRunDetail>(`/agents/runs/${encodeURIComponent(id)}`, () => ({ data: agentDetails[id] ?? { artifacts: [], result: null } }), AGENT_URL),
+    read<AgentRunDetail>(`/agents/runs/${encodeURIComponent(id)}`, () => ({ data: agentDetails[id] ?? { artifacts: [], result: null } }), AGENT_URL, { layer: "agents", soft: true }),
+
+  /** The jobs this service can run, with plain titles. Falls back to the six the contract names. */
+  agentsKinds: () =>
+    read<AgentKind[]>("/agents/kinds", () => ({ data: fx<AgentKind[]>(agentKindsFx) }), AGENT_URL, { layer: "agents", soft: true }),
 
   agentsSpawn: async (kind: SpawnKind, mode: "foreground" | "nightly", params: Record<string, unknown> = {}): Promise<{ run_id: string }> => {
     const r = await write<{ run_id: string }>("/agents/spawn", "POST", { kind, params, mode }, () => {
@@ -349,20 +461,36 @@ export const api = {
     }, "worker", AGENT_URL),
 
   privacyLedger: (limit = 200) =>
-    read<LedgerEntry[]>(`/privacy/ledger?limit=${limit}`, () => ({ data: demo.ledger, meta: metaOf(ledgerFx) })),
+    read<LedgerEntry[]>(`/privacy/ledger?limit=${limit}`, () => ({ data: demo.ledger, meta: metaOf(ledgerFx) }), ENGINE_URL, { layer: "privacy", soft: true }),
 
   privacySummary: () =>
     read<PrivacySummary>("/privacy/summary", () => {
-      const by: Record<string, number> = {};
-      for (const e of demo.ledger) by[e.purpose] = (by[e.purpose] ?? 0) + 1;
       const base = dataOf<PrivacySummary>(privacySummaryFx);
-      return { data: { ...base, calls: demo.ledger.length, by_purpose: by, last_call: demo.ledger[0]?.t ?? null }, meta: metaOf(privacySummaryFx) };
-    }),
+      return { data: summariseDemoLedger(base, demo.ledger), meta: metaOf(privacySummaryFx) };
+    }, ENGINE_URL, { layer: "privacy", soft: true }),
+
+  /** What the worker saves: the engine's own export (JSON lines, oldest first) when it is there, else the list on screen. */
+  privacyExport: async (): Promise<{ text: string; source: "live" | "demo" }> => {
+    const r = await sendText(ENGINE_URL, "/privacy/ledger/export");
+    if (r.ok) return { text: r.text, source: "live" };
+    return { text: demo.ledger.map((e) => JSON.stringify(e)).join("\n") + (demo.ledger.length ? "\n" : ""), source: "demo" };
+  },
 
   privacyClear: () =>
-    write<unknown>("/privacy/ledger/clear", "POST", undefined, () => { demo.ledger = []; return { ok: true }; }),
+    write<{ cleared?: number; blocked_cleared?: number; at?: string }>("/privacy/ledger/clear", "POST", undefined, () => { const n = demo.ledger.length; demo.ledger = []; return { cleared: n, blocked_cleared: 0, at: new Date().toISOString() }; }),
 
-  localModel: () => read<LocalModelStatus>("/localmodel/status", () => ({ data: fx<LocalModelStatus>(localModelFx) })),
+  localModel: () => read<LocalModelStatus>("/localmodel/status", () => ({ data: fx<LocalModelStatus>(localModelFx) }), ENGINE_URL, { layer: "localmodel", soft: true }),
+
+  gitPeople: () => read<GitPeople>("/git/people", () => ({ data: fx<Analytic<GitPeople>>(gitPeopleFx).data ?? fx<GitPeople>(gitPeopleFx), meta: null }), ENGINE_URL, { layer: "git", soft: true }),
+
+  gitHabits: (person?: string, repo?: string) =>
+    read<GitHabits>(`/git/habits${qs({ person, repo })}`, () => ({ data: dataOf<GitHabits>(gitHabitsFx), meta: metaOf(gitHabitsFx) }), ENGINE_URL, { layer: "git", soft: true }),
+
+  /** Model roles, provider health, breakers, latencies and the cost meter. Read from the agent service; the route may not be wired yet. */
+  modelsStatus: async (): Promise<Loaded<ModelsStatus>> => {
+    const r = await read<unknown>("/models/status", () => ({ data: modelsFx as unknown }), AGENT_URL, { soft: true, who: { service: "The agent service" } });
+    return { ...r, data: normaliseModelsStatus(r.data) };
+  },
 
   /** Optional route (additive): the kill flag as the engine sees it. Absent routes fall back to local state. */
   killState: () => read<KillState>("/kill", () => ({ data: { killed: demo.killed, at: demo.killedAt } })),

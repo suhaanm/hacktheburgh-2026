@@ -14,7 +14,7 @@ vi.mock('electron', () => ({
 }))
 
 import { Bus } from '../../src/main/bus'
-import { registerHotkeys, PANEL_ACCELERATORS, START_ACCELERATORS, STOP_ACCELERATORS } from '../../src/main/hotkey'
+import { lastHotkeyReport, registerHotkeys, PANEL_ACCELERATORS, START_ACCELERATORS, STOP_ACCELERATORS } from '../../src/main/hotkey'
 import { StateStore } from '../../src/main/state'
 import { registerSession } from '../../src/main/session'
 import { IPC } from '../../src/shared/ipc'
@@ -199,5 +199,18 @@ describe('the talk key (hold to talk; the panel comes up, `talk` is emitted)', (
     listener!({}, { talkHotkey: hot })
     expect(handlers.has('Control+Alt+T')).toBe(true)
     expect(handlers.has('Alt+Space')).toBe(false)
+  })
+})
+
+describe('hotkey registration report (the pre-R1 checklist: the kill hotkey must be bound)', () => {
+  it('says whether the kill hotkey and the talk key registered, and which combos failed', () => {
+    registerHotkeys(new Bus(), settingsStub(null), { kill: () => undefined })
+    expect(lastHotkeyReport()).toMatchObject({ killRegistered: true, talkRegistered: true })
+    expect(lastHotkeyReport()!.kill.length).toBeGreaterThan(0)
+    handlers.clear()
+    taken = new Set(['CommandOrControl+Alt+Shift+K', 'CommandOrControl+Alt+Shift+Backspace', 'CommandOrControl+Alt+Shift+.'])
+    registerHotkeys(new Bus(), settingsStub(null), { kill: () => undefined })
+    expect(lastHotkeyReport()).toMatchObject({ killRegistered: false, kill: [] })
+    expect(lastHotkeyReport()!.failed).toContain('CommandOrControl+Alt+Shift+K')
   })
 })

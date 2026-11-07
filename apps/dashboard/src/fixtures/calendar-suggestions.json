@@ -1,71 +1,97 @@
 {
  "meta": {
   "origin": "synthetic",
-  "n": 20,
+  "n": 3,
   "n_unit": "days",
-  "split": "same weeks as the week ribbon",
+  "split": null,
   "interval_level": 0.95,
-  "note": "Chosen by code from a fixed catalogue. The wording is built from the safe aggregates above, never from event titles.",
-  "generated_at": "2026-11-07T17:05:00Z"
+  "note": "Chosen by code from fixed thresholds against the expert reference; text is templated. Synthetic calendar; every suggestion is opt-in and low risk.",
+  "generated_at": "2026-11-07T17:24:45+00:00"
  },
  "data": [
   {
-   "id": "s_focus",
-   "template": "protect_focus_block",
-   "text": "Protect a 90-minute focus block on two mornings. You have 2 such blocks a week; the expert has 9.",
-   "numbers": {
-    "focus_blocks_90": 2,
-    "longest_focus_min": 120
-   },
-   "expert_ref": {
-    "focus_blocks_90": 9,
-    "longest_focus_min": 150
-   },
-   "risk": "low",
-   "can_draft": true
-  },
-  {
-   "id": "s_b2b",
-   "template": "reduce_back_to_back",
-   "text": "Leave a 15-minute gap between meetings. You have 6 back-to-back runs a week; the expert has 0.",
-   "numbers": {
-    "back_to_back_runs": 6,
-    "fragmentation": 0.6
-   },
-   "expert_ref": {
-    "back_to_back_runs": 0,
-    "fragmentation": 0.3
-   },
-   "risk": "low",
-   "can_draft": true
-  },
-  {
-   "id": "s_batch",
+   "id": "cal:batch_similar_work:p_ninetofive:2026-W44",
    "template": "batch_similar_work",
-   "text": "Group your meetings into fewer stretches. Your week is chopped up at 0.62 on a scale of 0 to 1; the expert's is 0.31.",
+   "title": "Batch similar work",
+   "text": "Group similar work into one batch window. Batch windows this week: 2 (expert pattern: at least 3); fragmented days: 3 (expert pattern: at most 1).",
    "numbers": {
-    "fragmentation": 0.62,
-    "meeting_h": 14.5
+    "batch_windows": 2,
+    "fragmented_days": 3,
+    "fragmentation": 0.735
    },
    "expert_ref": {
-    "fragmentation": 0.31,
-    "meeting_h": 6.0
+    "batch_windows_min": 3,
+    "fragmented_days_max": 1,
+    "batch_windows_reference": 4.33,
+    "fragmented_days_reference": 0.0,
+    "fragmentation_reference": 0.6
    },
    "risk": "low",
-   "can_draft": true
+   "can_draft": false,
+   "priority": 1.0,
+   "week": "2026-W44",
+   "evidence_weeks": 3,
+   "source": "templated"
   },
   {
-   "id": "s_off",
-   "template": "offcomputer_break",
-   "text": "Schedule an off-computer break on most days. You have about 2.5 hours a week; the expert has about 5.0.",
+   "id": "cal:trim_meeting_load:p_ninetofive:2026-W44",
+   "template": "trim_meeting_load",
+   "title": "Trim the meeting load",
+   "text": "Trim the meeting load. Meeting hours this week: 12.4, 30% of working time (expert pattern: at most 8 hours).",
    "numbers": {
-    "offscreen_h": 2.5
+    "meeting_h": 12.45,
+    "meeting_share": 0.302
    },
    "expert_ref": {
-    "offscreen_h": 5.0
+    "meeting_h_max": 8.0,
+    "meeting_share_max": 0.25,
+    "meeting_h_reference": 4.96,
+    "meeting_share_reference": 0.12
    },
    "risk": "low",
-   "can_draft": true
+   "can_draft": false,
+   "priority": 0.556,
+   "week": "2026-W44",
+   "evidence_weeks": 3,
+   "source": "templated"
+  },
+  {
+   "id": "cal:add_review_slot:p_ninetofive:2026-W44",
+   "template": "add_review_slot",
+   "title": "Add a review slot",
+   "text": "Add a short review slot at the end of the day. Review slots this week: 2 (expert pattern: at least 3).",
+   "numbers": {
+    "review_slots": 2
+   },
+   "expert_ref": {
+    "review_slots_min": 3,
+    "review_slots_reference": 4.62
+   },
+   "risk": "low",
+   "can_draft": true,
+   "priority": 0.333,
+   "week": "2026-W44",
+   "evidence_weeks": 3,
+   "source": "templated"
+  },
+  {
+   "id": "cal:auto_hold_scheduling:p_ninetofive:2026-W44",
+   "template": "auto_hold_scheduling",
+   "title": "Automate scheduling with an auto-hold",
+   "text": "Let an auto-hold keep a 90-minute focus block free for you. You were short of focus blocks in 3 of 3 weeks (this week 4, expert pattern: at least 6), so a one-off block will not stick.",
+   "numbers": {
+    "focus_blocks_90": 4
+   },
+   "expert_ref": {
+    "focus_blocks_90_min": 6,
+    "focus_blocks_90_reference": 9.46
+   },
+   "risk": "low",
+   "can_draft": true,
+   "priority": 0.333,
+   "week": "2026-W44",
+   "evidence_weeks": 3,
+   "source": "templated"
   }
  ]
 }

@@ -23,6 +23,7 @@ from .tiers.base import (
 )
 from .tiers.browser_agent import BrowserAgent, Tier2Task
 from .tiers.computer_use import Actuator, BrowserPageActuator, ComputerUse, ProviderSafetyStop
+from .tiers.facts import FactStore
 from .tiers.dsl import DslRuntime, run_bundle
 from .tiers.observe import observe
 from .tiers.safety import Guard
@@ -61,6 +62,25 @@ RESULT_SCHEMA: dict[str, Any] = {
 
 
 # ----------------------------------------------------------------------------- jobs
+OBSTRUCTION_JS = r"""
+() => {
+  document.querySelectorAll('[data-obstruction-dismiss]').forEach(e => e.removeAttribute('data-obstruction-dismiss'));
+  const vis = (el) => { const r = el.getBoundingClientRect(), s = getComputedStyle(el);
+    return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
+  for (const dlg of document.querySelectorAll('[role=dialog],[role=alertdialog],[aria-modal=true]')) {
+    if (!vis(dlg)) continue;
+    for (const b of dlg.querySelectorAll('button,a[href],[role=button]')) {
+      const t = (b.innerText || b.getAttribute('aria-label') || '').trim();
+      if (vis(b) && /^(reject|decline|no,? thanks|not now|dismiss|close|got it|maybe later|skip)/i.test(t)) {
+        b.setAttribute('data-obstruction-dismiss', '1'); return t.slice(0, 80);
+      }
+    }
+  }
+  return null;
+}
+"""
+
+
 class CalculatorJob:
     kind = "calculator"
 
@@ -77,7 +97,9 @@ class CalculatorJob:
         return calculator_bundle(self.site, layout)
 
     schema = RESULT_SCHEMA
-    goal_words = ("Fill in the household details (adults, age, children, pay, earnings, health, rent, housing, "
+    goal_words = ("Click each field and type the matching fact, press the Tab key after a drop-down choice, and press "
+                  "Continue, Next, Calculate, Show results, See entitlement or Work it out to move on. "
+                  "Fill in the household details (adults, age, children, pay, earnings, health, rent, housing, "
                   "bedrooms, savings, childcare) and press Continue, Next, Calculate, Show results, See entitlement "
                   "or Work it out to reach the estimate page.")
 
@@ -93,6 +115,10 @@ class CalculatorJob:
     def finalize(self, outputs: dict[str, Any]) -> ResultFields | None:
         fields, _ = validate_result_fields(self.site, outputs)
         return fields
+
+    def facts(self) -> FactStore:
+        """The handles tier 3 may type for this site; values resolve in code at actuation time."""
+        return FactStore.for_calculator(self.site, self.params)
 
 
 class CaseNoteJob:
@@ -111,7 +137,8 @@ class CaseNoteJob:
         return casenote_bundle(layout)
 
     schema = None
-    goal_words = ("Fill in the case reference, the GovCalc, Quick Estimator and EntitledTo results, the "
+    goal_words = ("Click each field and type the matching fact, press the Tab key after a drop-down choice, and press "
+                  "Save draft. Fill in the case reference, the GovCalc, Quick Estimator and EntitledTo results, the "
                   "reconciliation and the note, then press Save draft.")
 
     def looks_final(self, obs: Observation) -> bool:
@@ -120,6 +147,9 @@ class CaseNoteJob:
     def parse(self, obs: Observation, fields: dict[str, Any] | None) -> dict[str, Any] | None:
         m = NOTE_ID_RE.search(obs.text)
         return {"note_id": m.group(0), "status": "Draft", "body": obs.text} if m else None
+
+    def facts(self) -> FactStore:
+        return FactStore.for_casenote(self.params)
 
     def finalize(self, outputs: dict[str, Any]) -> dict[str, Any] | None:
         nid = str(outputs.get("note_id", ""))
@@ -163,10 +193,15 @@ class Navigator:
         use_tier1: bool = True,
         bundle_layout: str = "v1",
         bundle: dict[str, Any] | None = None,
-        max_actions: int = 20,
+        max_actions: int = 150,
         allow_tier3: bool = False,
         page_state: bool = False,
         defer_cliff: bool = False,
+        start_tier: int = 1,
+        clear_obstructions: bool = True,
+        t3_max_steps: int = 200,
+        stall_limit: int = 12,
+        pause: Any = None,
         actuator_factory: Callable[[Any], Actuator] | None = None,
         shot_hook: Callable[[str, bytes], None] | None = None,
     ) -> None:
@@ -179,8 +214,13 @@ class Navigator:
         self.t_left = max_actions
         self.allow_tier3 = allow_tier3
         self.page_state, self.defer_cliff = page_state, defer_cliff
+        self.start_tier, self.t3_max_steps, self.stall_limit, self.pause = start_tier, t3_max_steps, stall_limit, pause
+        self.clear_obstructions = clear_obstructions
+        self.obstructions_cleared = 0
         self.actuator_factory = actuator_factory or (lambda page: BrowserPageActuator(page))
         self.steps = 0
+        self.tier3_steps = 0
+        self.refusals = 0
         self.tiers_used: list[int] = []
 
     # ------------------------------------------------------------------ plumbing
@@ -204,7 +244,29 @@ class Navigator:
         page = await self.context.new_page()
         await page.goto(self.base_url + job.start_path + self.query, wait_until="domcontentloaded")
         await self._scan(page)
+        if self.clear_obstructions:
+            await self._clear_obstruction(page)
         return page
+
+    async def _clear_obstruction(self, page: Any) -> bool:
+        """A cookie or consent dialog in the way: press its reject, decline or close button (never accept), through the
+        pipeline like any other click. Returns True if one was dismissed."""
+        try:
+            label = await page.evaluate(OBSTRUCTION_JS)
+        except Exception:  # noqa: BLE001 - a page that cannot be inspected has nothing to dismiss
+            return False
+        if not label:
+            return False
+        sel = '[data-obstruction-dismiss="1"]'
+        seen = await self.guard.observe(page, navigator=self.id, tier=1)
+        dec = self.guard.authorise({"kind": "click_element", "args": {"selector": sel, "label": str(label)[:120]}}, seen,
+                                   label=str(label), role="button", url=page.url)
+        self.guard.require(dec, str(label), navigator=self.id)
+        await page.locator(sel).click(timeout=3000)
+        self.guard.record(dec, True)
+        self.obstructions_cleared += 1
+        self._note("dismiss_obstruction", True, "dialog", 1)
+        return True
 
     async def _scan(self, page: Any) -> None:
         """Injection detector over visible text, hidden elements and alt text. A hit pauses the run."""
@@ -224,7 +286,7 @@ class Navigator:
         bundle = self.bundle_override or job.bundle(self.bundle_layout)
         rt = DslRuntime(page=page, params=job.params, base_url=self.base_url, query=self.query,
                         navigator=self.id, emit=self._emit, guard=self.guard, is_current=self.is_current,
-                        step_start=self.steps, pre_timeout_ms=1500, post_timeout_ms=2500)
+                        step_start=self.steps, pre_timeout_ms=1500, post_timeout_ms=2500, pause=self.pause)
         res = await run_bundle(bundle, rt)
         await self._scan(page)  # the result page is scanned too before its numbers are trusted
         return res.outputs
@@ -235,7 +297,8 @@ class Navigator:
 
         agent = BrowserAgent(self.model, self.guard, navigator=self.id, emit=self._emit,
                              is_current=self.is_current, step_start=self.steps, max_actions=self.t_left,
-                             ledger=self.ledger, page_state=self.page_state)
+                             ledger=self.ledger, page_state=self.page_state, pause=self.pause,
+                             stall_limit=self.stall_limit)
         try:
             res = await agent.run(page, Tier2Task(job.goal, job.params, job.allowed_params, job.looks_final,
                                                   job.schema, job.parse, job.param_help))
@@ -245,9 +308,13 @@ class Navigator:
         return res.outputs
 
     async def _tier3(self, page: Any, job: Any) -> dict[str, Any]:
+        """Computer use on this page: screenshots, clicks, and typed FACT HANDLES (never values)."""
         actuator = self.actuator_factory(page)
+        vp = page.viewport_size or {"width": 1280, "height": 800}
         cu = ComputerUse(self.model, actuator, self.guard, navigator=self.id, emit=self._emit,
-                         is_current=self.is_current, step_start=self.steps, max_steps=min(self.t_left, 20))
+                         is_current=self.is_current, step_start=self.steps, max_steps=self.t3_max_steps,
+                         facts=job.facts(), stall_limit=self.stall_limit, pause=self.pause,
+                         screenshot_size=(int(vp["width"]), int(vp["height"])))
         last: dict[str, Any] = {}
 
         async def verify() -> bool:
@@ -257,7 +324,8 @@ class Navigator:
             return raw is not None
 
         res = await cu.run(job.goal, verify)
-        self.t_left -= res.steps
+        self.tier3_steps += res.steps
+        self.refusals += res.refusals
         if res.false_claim:
             self.ledger.record(f"tier3:{self.id}", True, False, "computer-use Done not confirmed by code")
         if res.outcome != "done":
@@ -268,14 +336,14 @@ class Navigator:
     async def run(self, job: Any) -> NavResult:
         res = NavResult(nav_id=self.id, site=job.site)
         page: Any = await self._fresh_page(job)
-        plan = ["t1_keep"] if self.use_tier1 else ["t2_keep"]
+        plan = ["t3_keep"] if self.start_tier == 3 else (["t1_keep"] if self.use_tier1 else ["t2_keep"])
         tried = 0
         try:
             while True:
                 if not self.is_current():
                     raise asyncio.CancelledError()
                 if not plan:
-                    plan = ["t3_keep"] if (self.allow_tier3 and self.t_left > 0 and not any(
+                    plan = ["t3_keep"] if (self.allow_tier3 and self.t_left > 0 and self.start_tier != 3 and not any(
                         a["tier"] == 3 for a in res.attempts)) else []
                 if not plan:
                     break
@@ -305,6 +373,9 @@ class Navigator:
                     kind = type(exc).__name__
                     res.attempts.append({"tier": tier, "mode": mode, "error": kind, "detail": str(exc)[:100]})
                     self._note("escalate", False, f"tier {tier} failed: {kind}", tier)
+                    if self.clear_obstructions and await self._clear_obstruction(page):
+                        plan = [f"t{tier}_fresh"] + plan      # a dialog was in the way: same tier again, on a fresh page
+                        continue
                     transient = False
                     try:
                         transient = (await page.locator('[role="alert"]').count()) > 0
@@ -316,6 +387,8 @@ class Navigator:
                         plan = ["t1_fresh", "t2_fresh"] if transient else ["t2_keep", "t2_fresh"]
                     elif tier == 2 and not any(a["mode"] == "fresh" and a["tier"] == 2 for a in res.attempts):
                         plan = ["t2_fresh"]
+                    elif tier == 3 and self.start_tier == 3 and not any(a["mode"] == "fresh" and a["tier"] == 3 for a in res.attempts):
+                        plan = ["t3_fresh"]     # tier-3-only run: one restart on a fresh page (a 503, a blanked form)
                     else:
                         plan = []
             if res.state != "done":
@@ -333,6 +406,9 @@ class Navigator:
 
     async def _cliff_check(self, page: Any, job: Any, outputs: dict[str, Any], res: NavResult) -> None:
         """CHECK_CLIFF, the expert's signature step. Already done by a tier-1 bundle, otherwise do it now."""
+        if not outputs.get("cliff") and self.start_tier == 3:
+            await self._cliff_tier3(page, job, res)
+            return
         if not outputs.get("cliff") and not self.use_tier1:
             await self._cliff_tier2(page, job, res)
             return
@@ -349,6 +425,32 @@ class Navigator:
                 self._note("cliff_check", False, type(exc).__name__, 1)
         res.cliff_text = str(outputs.get("cliff", ""))
         res.cliff_checked = bool(res.cliff_text)
+
+    async def _cliff_tier3(self, page: Any, job: Any, res: NavResult) -> None:
+        """Tier-3-only runs do the cliff check by computer use too: press the button, read the panel."""
+        marker = "Cliff edges for this household"
+        vp = page.viewport_size or {"width": 1280, "height": 800}
+        cu = ComputerUse(self.model, self.actuator_factory(page), self.guard, navigator=self.id, emit=self._emit,
+                         is_current=self.is_current, step_start=self.steps, max_steps=8, stall_limit=6,
+                         pause=self.pause, screenshot_size=(int(vp["width"]), int(vp["height"])),
+                         facts=FactStore({}, {}))        # nothing to type here: any typed text is refused
+
+        async def verify() -> bool:
+            return marker in (await observe(page)).text
+
+        try:
+            out = await cu.run("Press the button labelled Check cliff edges to open the cliff panel for this result. "
+                               "Say you are done once the panel with the heading Cliff edges for this household is showing.",
+                               verify)
+        except (GateStop, InjectionStop, asyncio.CancelledError):
+            raise
+        except Exception as exc:  # noqa: BLE001 - a missing panel is reported, not fatal
+            self._note("cliff_check", False, type(exc).__name__, 3)
+            return
+        if out.outcome == "done":
+            text = (await observe(page)).text
+            res.cliff_text = text[text.index(marker):][:600] if marker in text else ""
+            res.cliff_checked = bool(res.cliff_text)
 
     async def _cliff_tier2(self, page: Any, job: Any, res: NavResult) -> None:
         """With tier 1 switched off the cliff check is the browser agent's job too: press the button, read the panel."""

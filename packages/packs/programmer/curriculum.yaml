@@ -31,3 +31,33 @@ skills:
       L1: How do you know this fixed it, rather than moved it?
       L2: Did the failing job pass?
       L3: Confirm.
+  - id: inspect-the-inputs
+    label: Look at the real inputs before changing code
+    order: 4
+    cogs: [INSPECT_INPUT]
+    prerequisites: [read-the-trace-first]
+    expert_signal: Reads the sample inputs, including empty and missing ones, before the first edit.
+    prompts:
+      L1: Which real inputs reach this code, and could any be empty or missing?
+      L2: Have you read the sample inputs?
+      L3: Inputs first.
+  - id: test-first-clean-commits
+    label: Test first, then commit only the fix
+    order: 5
+    cogs: [WRITE_TEST, REVIEW_DIFF]
+    prerequisites: [smallest-change]
+    expert_signal: Writes a test that fails on the bug before editing, and reads the diff before committing.
+    prompts:
+      L1: How will you know the bug is fixed, and not just moved? Is every line in the diff part of the fix?
+      L2: Failing test first? Diff read?
+      L3: Test, then diff.
+  - id: probe-the-boundary
+    label: Try the edges before trusting a fix
+    order: 6
+    cogs: [PROBE_EDGE]
+    prerequisites: [confirm-the-fix]
+    expert_signal: After the visible tests pass, tries empty, one, exactly full and one past the end.
+    prompts:
+      L1: "What happens at the edges: empty, one item, exactly full, one past the end?"
+      L2: Edges tried?
+      L3: Try the edges.

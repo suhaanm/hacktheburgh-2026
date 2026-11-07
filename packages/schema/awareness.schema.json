@@ -14,12 +14,12 @@
       "enum": ["browser", "spreadsheet", "email", "code_editor", "terminal", "chat", "other", "unknown"]
     },
     "TaskPhase": {
-      "description": "What the worker seems to be doing, as the glance model sees it. A closed list; anything else is dropped.",
-      "enum": ["idle", "reading", "searching", "entering", "comparing", "reviewing", "submitting", "waiting"]
+      "description": "What the worker seems to be doing, as the glance model sees it. A closed list ('unknown' when the model is unsure); anything else is dropped.",
+      "enum": ["idle", "reading", "searching", "entering", "comparing", "reviewing", "submitting", "waiting", "unknown"]
     },
     "Blocker": {
       "description": "What seems to be in the way, as the glance model sees it. 'none' means nothing visible. A closed list; anything else is dropped.",
-      "enum": ["none", "unclear_next_step", "cannot_find_control", "error_message", "unexpected_state", "waiting_for_load", "needs_information", "permission_prompt"]
+      "enum": ["none", "unclear_next_step", "cannot_find_control", "error_message", "unexpected_state", "waiting_for_load", "needs_information", "permission_prompt", "unknown"]
     },
     "TriggerReason": {
       "description": "Why a glance was allowed: stuck probability over its threshold twice running, a loop signature, the worker's hotkey, or the opt-in periodic timer.",
@@ -120,6 +120,7 @@
           }
         },
         "trigger": { "$ref": "#/$defs/TriggerReason" },
+        "app_kind": { "$ref": "#/$defs/AppKindOrUnknown", "description": "The on-device guess of the frontmost app's kind (from its bundle id), as a hint beside the frame." },
         "width": { "type": "integer", "minimum": 1, "maximum": 1280 },
         "height": { "type": "integer", "minimum": 1, "maximum": 1280 }
       }

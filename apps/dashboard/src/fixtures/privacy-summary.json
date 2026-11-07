@@ -1,6 +1,6 @@
 {
  "meta": {
-  "origin": "real",
+  "origin": "synthetic",
   "n": 6,
   "n_unit": "episodes",
   "split": null,
@@ -20,9 +20,32 @@
   "last_call": "2026-11-07T16:47:00Z",
   "local_only_note": "Raw calendar and git content stays on this laptop. The calls listed here sent only the fields shown. Model calls for steps you asked for are listed too.",
   "canary": {
-   "runs": 14,
-   "planted": 126,
-   "leaked": 0
+   "runs": 80,
+   "planted": 11336,
+   "leaked": 0,
+   "last_run": "2026-11-07T17:38:00Z"
+  },
+  "images": {
+   "sent": 2,
+   "blocked": 2,
+   "blocked_by_reason": {
+    "unattended": 1,
+    "secure_input": 1
+   },
+   "sent_by_source": {
+    "real_screen": 1,
+    "sandbox": 1
+   },
+   "bytes_sent": 79212,
+   "note": "Frames are held in memory for one call and never stored; a row records size, a short hash, model and latency only."
+  },
+  "mock_calls": 10,
+  "worker_requested_calls": 1,
+  "blocked_attempts": 0,
+  "cleared": {
+   "times": 0,
+   "calls_removed": 0,
+   "last_cleared_at": null
   }
  }
 }

@@ -45,7 +45,7 @@ export function WeekRibbon({ title, days, window: win }: { title: string; days: 
             return (
               <g key={name}>
                 <text className="hm-day" style={{ cursor: "default" }} x={0} y={y + rowH / 2 + 4}>{name}</text>
-                {sp.length === 0 && <text className="svg-text" x={px(lo) + 6} y={y + rowH / 2 + 3.5}>no blocks</text>}
+                {sp.length === 0 && <text className="svg-text" x={px(lo) + 6} y={y + rowH / 2 + 3.5}>{d && d.working === false ? "day off" : "no blocks"}</text>}
                 {sp.map((s, i) => {
                   const x = px(s.from), w = Math.max(1.5, px(s.to) - px(s.from) - 1);
                   const cls = s.kind === "meeting" ? `cb-meeting cb-meeting--${s.attendees ?? "none"}` : `cb-${s.kind}`;

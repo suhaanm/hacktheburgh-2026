@@ -33,7 +33,7 @@ from . import ledger
 from ._paths import is_mock
 from ._stub import BuiltinMockPort
 from .patterns import Hit, clean_rules, scan_text, scan_value
-from .image import ImageGate, ImageRejectedError, ImageUsage, SafeImage, get_image_purpose
+from .image import ImageGate, ImageUsage, SafeImage, get_image_purpose
 from .payload import (
     MAX_PAYLOAD_BYTES, PurposeError, SafePayload, explain_validation_error, get_purpose,
 )

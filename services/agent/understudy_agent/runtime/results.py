@@ -72,7 +72,8 @@ def png_ok(path: Path, min_bytes: int = 1500, min_side: int = 100) -> bool:
 
 def finalise_child(*, spec_id: str, role: str, status: ChildStatus, reason: str, claimed: bool, output: dict[str, Any] | None,
                    steps: list[StepRecord], spent: Spent, ws: Workspace | None, params: dict[str, Any],
-                   run_dir: Path | None, repo: Path | None = None, collect: bool = True) -> ChildResult:
+                   run_dir: Path | None, repo: Path | None = None, collect: bool = True,
+                   recoveries: int = 0) -> ChildResult:
     """Build the typed result. Artifacts are collected by code from WORK/out (and the patch from the worktree diff);
     `verified` needs status done, an accepted emit and every check ok."""
     checks: list[Check] = []
@@ -111,5 +112,5 @@ def finalise_child(*, spec_id: str, role: str, status: ChildStatus, reason: str,
     elif status == "failed" and not claimed and reason == "":
         final_status = "no_result"
     return ChildResult(child_id=spec_id, role=role, status=final_status, verified=verified, claimed_success=claimed,
-                       output=out if verified else ({} if not claimed else out), checks=checks, artifacts=artifacts,
-                       steps=steps, spent=spent, reason=re.sub(r"[^A-Za-z0-9_:.,\- ]", "", reason)[:160])
+                       output=out, checks=checks, artifacts=artifacts,
+                       steps=steps, spent=spent, recoveries=recoveries, reason=re.sub(r"[^A-Za-z0-9_:.,\- ]", "", reason)[:160])

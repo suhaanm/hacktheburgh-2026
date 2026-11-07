@@ -7,9 +7,9 @@ from datetime import date, datetime, timezone
 from typing import Any
 
 from . import suggest as sug
-from .expert import ALL_KEYS, GAP_FEATURES, ExpertReference, build_reference, gap_rows, load_template, ribbon_distance
-from .features import CONTRACT_KEYS, WeekAnalysis, week_blocks_json
-from .model import monday_of, parse_week, week_label
+from .expert import ALL_KEYS, ExpertReference, build_reference, gap_rows, load_template
+from .features import week_blocks_json
+from .model import parse_week, week_label
 from .store import CalendarStore, PersonCalendar
 
 _lock = threading.Lock()

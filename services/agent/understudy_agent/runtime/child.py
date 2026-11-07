@@ -139,6 +139,9 @@ class ChildAgent:
         self._obs: Observation | None = None
         self._history: list[str] = []          # raw mode prompt text (codes and short names)
         self._typed: list[dict[str, Any]] = []  # menu mode payload history
+        self._signals: dict[str, Any] = {}      # typed numbers from the last script run (menu mode payload)
+        self._ids: tuple[str, str] = ("none", "none")   # the file and template ids of the step being run
+        self.recoveries = 0
         self._last = "start"
         self._invalid = 0
         self._n = 0
@@ -186,8 +189,11 @@ class ChildAgent:
         if self.lease is not None:
             self.lease.revoke("resumed")
         left_s = max(1.0, self.spec.budget.seconds - self.clock())
+        # `failed` does not stop the lease by itself: a script that exits non-zero is recoverable (a few times); anything
+        # else that fails is stopped below by the child. `uncertain` and a blocking prompt always stop it.
         self.lease = self.book.issue(holder=self.child_run_id, tools=self.spec.tools, ttl_s=left_s,
-                                     max_steps=max(1, self._steps_left()), parent=self.parent_lease)
+                                     max_steps=max(1, self._steps_left()), parent=self.parent_lease,
+                                     stop_on_verdicts=frozenset({"uncertain", "blocked_by_prompt"}))
 
     def revoke(self, reason: str = "revoked") -> None:
         if self.lease is not None:
@@ -271,7 +277,10 @@ class ChildAgent:
         self.steps.append(StepRecord(n=self._n, tool=tool, ok=outcome.ok, check=check,
                                      codes=(outcome.codes + [f"post:{post.reason}", *post.failed_checks])[:6],
                                      ms=int((time.monotonic() - t0) * 1000)))
-        self._typed.append({"tool": tool, "ok": bool(outcome.ok), "check": check})
+        self._typed.append({"tool": tool, "file": self._ids[0], "template": self._ids[1], "ok": bool(outcome.ok), "check": check})
+        self._ids = ("none", "none")
+        if tool == "run_python":
+            self._signals = dict(outcome.signals)
         self._last = "ok" if outcome.ok and check == "verified" else "failed"
         self._audit("step", "post_" + post.verdict, f"post:{post.reason}"[:60], **post.audit_meta())
         self._history.append(f"{self._n}. {tool} {_short(str(args.get('path') or args.get('result_file') or args.get('save_as') or ''))} "
@@ -281,7 +290,14 @@ class ChildAgent:
             return
         if outcome.terminal and post.ok:
             self._finish("done", "emitted")
+        elif post.verdict == "failed" and (outcome.py is not None or tool == "emit_result") and not blockers \
+                and self.recoveries < policy.MAX_RECOVERIES and self.clock() < self.spec.budget.seconds - 0.05:
+            # a vetted script exited non-zero, or the result was emitted before it existed or did not match its schema: a
+            # recoverable failure. The child tells the model (last = failed) and goes on, a few times at most.
+            self.recoveries += 1
+            self._audit("agent_recover", "script_failed", f"recovery:{self.recoveries}", recoveries=self.recoveries)
         elif not post.ok:
+            self.lease.revoke("postcheck_failed")
             if self.clock() >= self.spec.budget.seconds - 0.05:      # the step failed because the time budget ran out
                 self._finish("timeout", "budget_seconds")
             else:
@@ -297,7 +313,8 @@ class ChildAgent:
         from . import privacy as rtprivacy
 
         try:
-            raw = rtprivacy.child_step(self.spec.role, self.kind, self._steps_left(), self._last, list(self._typed), self.port)
+            raw = rtprivacy.child_step(self.spec.role, self.kind, self._steps_left(), self._last, list(self._typed), self.port,
+                                       self._signals)
         except rtprivacy.EgressError as e:
             self._audit("agent_child", "egress_error", e.code if re.fullmatch(r"[a-z_]{1,40}", e.code) else None)
             if e.code in ("model_call_failed", "model_output_rejected"):   # a bad reply is a bad step, not a privacy breach
@@ -311,7 +328,9 @@ class ChildAgent:
         if self.tokens > self.spec.budget.tokens:
             self._finish("budget", "budget_tokens")
             raise StepRejected("budget_tokens")
-        return resolve_menu_step(self.menu, raw, self.spec.tools)
+        step = resolve_menu_step(self.menu, raw, self.spec.tools)
+        self._ids = (raw.get("file") or "none", raw.get("template") or "none") if isinstance(raw, dict) else ("none", "none")
+        return step
 
     def _plan_raw(self, ctx: TaskContext, obs: Observation) -> tuple[str, dict[str, Any]]:
         from . import privacy as rtprivacy
@@ -331,7 +350,7 @@ class ChildAgent:
 
     def _next_observation(self, outcome: ToolOutcome) -> None:
         if outcome.text is None:
-            self._obs = self._trusted_obs(outcome.trusted)
+            self._obs = self._trusted_obs({**outcome.trusted, **{f"sig_{k}": v for k, v in outcome.signals.items()}})
             return
         text = outcome.text
         if self.planner == "menu":
@@ -357,7 +376,7 @@ class ChildAgent:
         self._invalid += 1
         self._n += 1
         self.steps.append(StepRecord(n=self._n, tool="none", ok=False, check="failed", codes=[f"rejected:{code}"]))
-        self._typed.append({"tool": "none", "ok": False, "check": "failed"})
+        self._typed.append({"tool": "none", "file": "none", "template": "none", "ok": False, "check": "failed"})
         self._last = "rejected"
         self._history.append(f"{self._n}. rejected step ({code})")
         self._obs = self._trusted_obs({"rejected": True, "steps_left": self._steps_left()})
@@ -371,7 +390,7 @@ class ChildAgent:
             self.queue_ids.append(decision.queue_id)
         self._n += 1
         self.steps.append(StepRecord(n=self._n, tool=tool, ok=False, check="failed", codes=[f"gate:{code}"[:80]]))
-        self._typed.append({"tool": tool, "ok": False, "check": "failed"})
+        self._typed.append({"tool": tool, "file": "none", "template": "none", "ok": False, "check": "failed"})
         self._last = "blocked"
         if decision.verdict == "block" and code.startswith("kill:"):
             return self._finish("killed", "kill_flag")
@@ -397,4 +416,5 @@ class ChildAgent:
         return finalise_child(spec_id=self.spec.id, role=self.spec.role, status=st, reason=reason or self.reason,
                               claimed=claimed, output=self.tctx.emitted, steps=list(self.steps), spent=self.spent(),
                               ws=self.ws, params=params if params is not None else self.params, run_dir=run_dir,
-                              repo=repo, collect=st in ("done", "failed", "no_result", "budget", "timeout", "paused"))
+                              repo=repo, collect=st in ("done", "failed", "no_result", "budget", "timeout", "paused"),
+                              recoveries=self.recoveries)

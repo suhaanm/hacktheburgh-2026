@@ -510,7 +510,6 @@ def test_a_failing_provider_raises_a_plain_error_records_a_failed_result_and_lea
 
 def test_a_provider_exception_object_does_not_keep_the_frames_traceback_alive():
     import gc
-    import weakref
 
     class Holder:
         pass
@@ -714,3 +713,54 @@ def test_the_real_awareness_and_live_code_never_constructs_sandbox():
 
 def test_awareness_is_now_a_guarded_extension_layer():
     assert "awareness" in guard.GUARDED_DIRS and "routes_awareness.py" in guard.GUARDED_FILES
+
+
+# --------------------------------------------------------------------------- the one-call kit for other tracks
+def test_image_canary_flow_passes_a_flow_that_sends_through_the_guard_and_reports_its_counts():
+    from understudy_engine.privacy.testing import image_canary_flow
+
+    def run(pi, port):
+        egress.send_image("glance.screen_state", pi.safe_image(), GOOD, gate=OPEN, port=port)
+        try:
+            egress.send_image("glance.screen_state", pi.safe_image(), GOOD, gate=ImageGate(True, False, True, False), port=port)
+        except ImageBlocked:
+            pass
+
+    r = image_canary_flow("awareness.glance", run, seed=4)
+    assert r["ok"] and r["requests"] == 1 and r["ledger_rows"] == 2 and r["residue"] == []
+
+
+def test_image_canary_flow_catches_each_way_a_flow_could_keep_the_frame(data_dir):
+    from understudy_engine.privacy.testing import image_canary_flow
+
+    def logs_b64(pi, port):
+        logging.getLogger("awareness").info("frame %s", base64.b64encode(pi.data).decode())
+
+    def writes_file(pi, port):
+        (data_dir / "last_frame.png").write_bytes(pi.data)
+
+    def tmp_file(pi, port):
+        fd, _ = tempfile.mkstemp(suffix=".png")
+        import os
+        os.write(fd, pi.data)
+        os.close(fd)
+
+    def bytes_in_a_prompt(pi, port):
+        port.plan([{"role": "user", "content": "what is " + base64.b64encode(pi.data).decode()}], None)
+
+    def error_text(pi, port):
+        raise RuntimeError("could not read " + repr(pi.data[:80]) + pi.token)
+
+    def hash_in_row(pi, port):
+        ledger.append({"kind": "image", "status": "ok", "purpose": "x.y", "image": {"sha8": "0" * 16, "full": hashlib.sha256(pi.data).hexdigest()}})
+
+    for fn in (logs_b64, writes_file, tmp_file, bytes_in_a_prompt, error_text, hash_in_row):
+        r = image_canary_flow(f"leaky.{fn.__name__}", fn, seed=5, strict=False)
+        assert not r["ok"] and r["residue"], fn.__name__
+        for p in data_dir.glob("last_frame.png"):
+            p.unlink()
+        with pytest.raises(AssertionError, match="residue"):
+            image_canary_flow(f"leaky.{fn.__name__}", fn, seed=5)
+        for p in data_dir.glob("last_frame.png"):
+            p.unlink()
+        ledger.reset_all()

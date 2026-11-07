@@ -124,13 +124,23 @@ def test_interactive_mode_always_confirms_even_when_opted_in():
     assert g("click", {"x": 1, "y": 1}, ctx, btn("Submit")).verdict == "needs_human"
 
 
-def test_unattended_unresolved_click_is_queued_unless_routine_says_ok():
+def test_unresolved_pointer_click_or_enter_always_needs_a_human_in_every_mode():
+    """S-01: nothing can classify a pixel click or Enter whose control trusted code could not read; no mode or flag lifts that."""
+    for ctx in (RoutineContext(mode="model_driven", unattended=True), RoutineContext(mode="model_driven"),
+                RoutineContext(mode="interactive"), RoutineContext(mode="compiled"),
+                RoutineContext(mode="model_driven", unattended=True, unresolved_clicks_ok=True)):
+        for kind, args in (("click", {"x": 1, "y": 1}), ("double_click", {"x": 1, "y": 1}),
+                           ("drag", {"path": [{"x": 1, "y": 1}, {"x": 5, "y": 5}]}), ("key", {"keys": ["Enter"]}),
+                           ("type", {"text": "x\n"}), ("type", {"text": "x\r\ny"})):
+            assert g(kind, args, ctx, TargetInfo()).verdict == "needs_human", (ctx, kind)
     ctx = RoutineContext(mode="model_driven", unattended=True)
-    assert g("click", {"x": 1, "y": 1}, ctx, TargetInfo()).verdict == "needs_human"
     assert g("click", {"x": 1, "y": 1}, ctx, btn("Calculate")).verdict == "allow"
-    ok = RoutineContext(mode="model_driven", unattended=True, unresolved_clicks_ok=True)
-    assert g("click", {"x": 1, "y": 1}, ok, TargetInfo()).verdict == "allow"
-    assert g("click", {"x": 1, "y": 1}, RoutineContext(mode="model_driven"), TargetInfo()).verdict == "allow"  # attended
+    assert g("click", {"x": 1, "y": 1}, RoutineContext(mode="model_driven"), btn("Calculate")).verdict == "allow"
+    assert g("key", {"keys": ["Enter"]}, RoutineContext(mode="model_driven"), btn("Calculate")).verdict == "allow"
+    assert g("key", {"keys": ["Enter"]}, RoutineContext(mode="model_driven"), btn("Submit application")).verdict == "needs_human"
+    assert g("type", {"text": "a\n"}, RoutineContext(mode="model_driven"), btn("Submit application")).verdict == "needs_human"
+    assert g("type", {"text": "plain text"}, RoutineContext(mode="model_driven"), TargetInfo()).verdict == "allow"
+    assert g("key", {"keys": ["Tab"]}, RoutineContext(mode="model_driven"), TargetInfo()).verdict == "allow"
 
 
 def test_never_types_into_sensitive_fields():

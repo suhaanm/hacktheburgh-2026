@@ -89,11 +89,34 @@ def _domain(addr: str) -> str:
     return addr.rsplit("@", 1)[1] if "@" in addr else ""
 
 
-def to_blocks(items: Iterable[RawItem], cfg: WorkConfig | None = None, *, internal_domains: Iterable[str] | None = None
-              ) -> tuple[list[Block], frozenset[date], NormStats]:
-    """-> (blocks, local dates marked out of office all day, counts). ``cfg`` supplies the zone for the day-off dates."""
+LOCALMODEL_KIND = {"focus": ("focus", ""), "review": ("focus", "review"), "social": ("offscreen", ""), "travel": ("offscreen", ""), "admin": ("focus", "batch")}
+SOLO_ONLY = {"review", "social", "travel", "admin", "focus"}          # these categories only make sense for time the owner owns
+MEETING_CATEGORIES = {"one_to_one", "team_meeting", "external"}
+
+
+def _localmodel_categories(items: list[RawItem]) -> list[str] | None:
+    """Categories from the local-model digest (``understudy_engine.localmodel``) when it is running in model mode, else None (the keyword rules
+    then decide). Titles go in only in memory; only a fixed-vocabulary category comes out. Never used in mock mode."""
+    try:
+        from ..localmodel import event_digest, mode
+        if mode() != "model":
+            return None
+        payload = [{"title": i.fields.get("title", ""), "start": i.t0.isoformat(), "end": i.t1.isoformat(), "attendee_count": int(i.fields.get("n_attendees", 1) or 1),
+                    "recurring": bool(i.fields.get("recurring")), "online": bool(i.fields.get("online")), "all_day": bool(i.fields.get("all_day"))} for i in items]
+        return [str(d.get("category", "unknown")) for d in event_digest(payload)]
+    except Exception:                                   # any problem: fall back to the rules, never fail a read
+        return None
+
+
+def to_blocks(items: Iterable[RawItem], cfg: WorkConfig | None = None, *, internal_domains: Iterable[str] | None = None,
+              classifier: str = "rules") -> tuple[list[Block], frozenset[date], NormStats]:
+    """-> (blocks, local dates marked out of office all day, counts). ``cfg`` supplies the zone for the day-off dates.
+
+    ``classifier="rules"`` (default, the evaluation baseline) decides meeting, focus, break or off-screen from keywords and attendee counts;
+    ``classifier="localmodel"`` asks the local-model digest for a category when it is running and falls back to the rules otherwise."""
     cfg = cfg or WorkConfig()
     items = [i for i in items if i.kind == "calendar_event"]
+    cats = _localmodel_categories(items) if classifier == "localmodel" else None
     stats = NormStats()
     # the internal domain is the most common one among organisers and attendees unless told otherwise
     if internal_domains is None:
@@ -109,7 +132,7 @@ def to_blocks(items: Iterable[RawItem], cfg: WorkConfig | None = None, *, intern
         internal = {d.lower() for d in internal_domains}
     blocks: list[Block] = []
     off: set[date] = set()
-    for it in items:
+    for idx, it in enumerate(items):
         f = it.fields
         stats.read += 1
         if f.get("status") == "cancelled":
@@ -135,6 +158,12 @@ def to_blocks(items: Iterable[RawItem], cfg: WorkConfig | None = None, *, intern
         n = int(f.get("n_attendees", 1) or 1)
         online = bool(f.get("online"))
         kind, tag = classify(str(f.get("title", "")), n, str(f.get("show_as", "busy")), online, minutes)
+        if cats is not None and idx < len(cats) and f.get("show_as") != "oof":
+            cat = cats[idx]
+            if cat in MEETING_CATEGORIES or (cat in SOLO_ONLY and (online or n > 1)):
+                kind, tag = "meeting", ""
+            elif cat in LOCALMODEL_KIND and n <= 1 and not online:
+                kind, tag = LOCALMODEL_KIND[cat]
         if f.get("show_as") == "free" and (kind == "meeting" or (kind == "focus" and not _explicit_focus(str(f.get("title", ""))))):
             stats.free_skipped += 1                     # free time does not commit anyone: a placeholder or an unrecognised solo hold
             continue

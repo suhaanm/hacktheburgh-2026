@@ -74,11 +74,14 @@ export class FakeImage implements ImageLike {
 
   toJPEG(quality: number): Buffer {
     ;(this.parent ?? this).qualities.push(quality)
-    const h = createHash('sha256').update(this.png).update(`${this.size.width}x${this.size.height}q${quality}`).digest()
-    // SOI, APP0 "JFIF", a body whose length follows the pixel count a little (so a smaller frame is smaller), EOI.
-    const body = Buffer.alloc(Math.max(64, Math.round((this.size.width * this.size.height) / 400)))
+    const { width, height } = this.size
+    const h = createHash('sha256').update(this.png).update(`${width}x${height}q${quality}`).digest()
+    // SOI, APP0 "JFIF", a baseline SOF0 segment that carries the real width and height (so the engine's own header check accepts it),
+    // a body that grows a little with the pixel count, EOI. Not decodable, but a valid enough header for every size check.
+    const sof = Buffer.from([0xff, 0xc0, 0x00, 0x11, 0x08, height >> 8, height & 0xff, width >> 8, width & 0xff, 0x03, 0x01, 0x22, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01])
+    const body = Buffer.alloc(Math.max(64, Math.round((width * height) / 400)))
     h.copy(body)
-    return Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00]), body, Buffer.from([0xff, 0xd9])])
+    return Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00]), sof, body, Buffer.from([0xff, 0xd9])])
   }
 }
 

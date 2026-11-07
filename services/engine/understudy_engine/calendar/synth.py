@@ -13,7 +13,7 @@ Planted problems (``PROBLEMS``): fragmented days, no focus blocks (meeting-heavy
 meetings in the peak focus window, no review slot, no breaks, external calls with no buffer, meetings outside hours.
 Decoys exercise the parsers: cancelled and declined meetings sitting in free time, free-time placeholders, tentative
 holds, an all-day out-of-office day, busy days that are not fragmented, series with exceptions and moved occurrences, and
-a clock change (25 Oct) for the London calendars (half use Windows zone names, as Outlook exports do).
+a clock change (25 Oct) for the London calendars (a third use Windows zone names and a third Outlook's display-name zones, as Outlook exports do).
 
 Output per person: ``calendar.ics`` (RFC 5545 with RRULE series, EXDATE and RECURRENCE-ID overrides) and ``calendar.json``
 (the same events expanded), plus ``truth.json`` (what was planted, derived from the construction and not from the feature
@@ -28,12 +28,12 @@ from __future__ import annotations
 import json
 import random
 from collections import defaultdict
-from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from dataclasses import dataclass
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
-from ..plugins.tz import local_to_utc, resolve_tz
+from ..plugins.tz import resolve_tz
 from ..store.paths import data_dir
 from .expert import DOW, ExpertTemplate, Slot, load_template
 from .model import WorkConfig, week_label
@@ -85,7 +85,7 @@ class PersonSpec:
     problems: tuple[str, ...]
     seed: int
     windows_name: str = "template"  # template | persona:<slug>
-    win_style: int = 0             # 0 IANA zone name in the ICS, 1 Windows zone name
+    win_style: int = 0             # how the ICS names the zone: 0 IANA name, 1 Windows name (GMT Standard Time), 2 Outlook display name
 
 
 def person_specs() -> list[PersonSpec]:
@@ -94,7 +94,7 @@ def person_specs() -> list[PersonSpec]:
     for p in PERSONAS:
         specs.append(PersonSpec(p.person, "persona", p.label, "UTC", PERSONA_PROBLEMS[p.person], SEED + p.seed, f"persona:{p.slug}"))
     for i in range(1, 9):
-        specs.append(PersonSpec(f"p_exp{i:02d}", "expert", f"Expert {i}", "Europe/London", (), SEED + 100 + i, "template", i % 2))
+        specs.append(PersonSpec(f"p_exp{i:02d}", "expert", f"Expert {i}", "Europe/London", (), SEED + 100 + i, "template", i % 3))
     core = {1: (), 2: ("fragmented_days",), 3: ("no_focus_blocks",), 4: ("back_to_back_runs",), 5: ("recurring_in_peak",),
             6: ("fragmented_days", "back_to_back_runs"), 7: ("back_to_back_runs", "recurring_in_peak"), 8: ("no_focus_blocks",),
             9: ("fragmented_days",), 10: ("recurring_in_peak",), 11: ("fragmented_days", "back_to_back_runs"), 12: ("back_to_back_runs",),
@@ -105,7 +105,7 @@ def person_specs() -> list[PersonSpec]:
             for e, name in enumerate(PROBLEMS[4:]):
                 if ((i * (3 + 2 * e) + e) % 16) < 8:
                     probs.append(name)
-        specs.append(PersonSpec(f"p_nov{i:02d}", "novice", f"Novice {i}", "Europe/London", tuple(probs), SEED + 200 + i, "template", i % 2))
+        specs.append(PersonSpec(f"p_nov{i:02d}", "novice", f"Novice {i}", "Europe/London", tuple(probs), SEED + 200 + i, "template", i % 3))
     return specs
 
 
@@ -647,7 +647,10 @@ def _fmt_dt(d: date, minute: int) -> str:
 
 
 def _dtprop(name: str, d: date, minute: int, tz_name: str, tzid: str | None) -> str:
-    return f"{name}:{_fmt_dt(d, minute)}Z" if tz_name == "UTC" else f"{name};TZID={tzid}:{_fmt_dt(d, minute)}"
+    if tz_name == "UTC":
+        return f"{name}:{_fmt_dt(d, minute)}Z"
+    q = f'"{tzid}"' if any(c in (tzid or "") for c in ',:;') else tzid        # a parameter value with a comma or colon must be quoted
+    return f"{name};TZID={q}:{_fmt_dt(d, minute)}"
 
 
 def _row(o: Occ, uid: str, org: tuple[str, str], parts: list[tuple[str, str]], text: tuple[str, str, str], series_uid: str | None) -> dict[str, Any]:
@@ -669,7 +672,11 @@ def build_files(spec: PersonSpec, canary: bool = False) -> tuple[str, dict[str, 
     tpl = load_template(ROLE)
     occs, series, truth, wins = plan_person(spec)
     namer = Namer(spec, canary)
-    tzid = "GMT Standard Time" if (spec.tz_name != "UTC" and spec.win_style) else spec.tz_name
+    tzid = spec.tz_name
+    if spec.tz_name != "UTC" and spec.win_style == 1:
+        tzid = "GMT Standard Time"
+    elif spec.tz_name != "UTC" and spec.win_style == 2:
+        tzid = "(UTC+00:00) Dublin, Edinburgh, Lisbon, London"
     uid_dom = "canarycorp.example" if canary else INTERNAL
     me_name, me_addr = namer.me
     lines = ["BEGIN:VCALENDAR", "PRODID:-//Fenwick Council//Exchange Calendar 16.0//EN", "VERSION:2.0", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
@@ -710,7 +717,7 @@ def build_files(spec: PersonSpec, canary: bool = False) -> tuple[str, dict[str, 
 
     def vevent(uid: str, o: Occ, org, parts, text, *, day: date, s: int, e: int, rid: str | None = None, rrule: str | None = None,
                exdates: list[str] | None = None) -> list[str]:
-        ev = ["BEGIN:VEVENT", f"UID:{uid}", f"DTSTAMP:20261001T080000Z"]
+        ev = ["BEGIN:VEVENT", f"UID:{uid}", "DTSTAMP:20261001T080000Z"]
         if o.all_day:
             ev += [f"DTSTART;VALUE=DATE:{day.strftime('%Y%m%d')}", f"DTEND;VALUE=DATE:{(day + timedelta(days=1)).strftime('%Y%m%d')}"]
         else:

@@ -52,7 +52,7 @@ def test_reference_and_integration_flows_are_reported_separately(report):
 
 def test_layers_without_integration_flows_are_listed_not_counted_as_passed(report):
     for layer, v in report["layers"].items():
-        assert v["status"] in ("registered", "none_registered", "adapter", "error", "not_applicable")
+        assert v["status"] in ("registered", "none_registered", "adapter", "error", "not_applicable", "pure_compute", "not_present")
     uncovered = set(report["headline"]["layers_without_integration_flows"])
     assert uncovered == {l for l, v in report["layers"].items() if v["status"] in ("none_registered", "error")}
     assert any("none_registered" in l["text"] for l in report["limitations"])
@@ -170,3 +170,120 @@ def test_the_scan_is_shown_to_be_able_to_see_rewrites_and_not_to_cry_wolf(report
     assert all(v["detected"] == v["cases"] for v in sens["by_rewrite"].values()) and "paraphrase" in sens["not_tested"]
     assert spec["clean_bodies"] >= 3000 and spec["false_positives"] == 0
     assert report["headline"]["scan_detects_known_rewrites"] == f"{sens['detected']}/{sens['cases']}" and report["headline"]["scan_false_positives"] == 0
+
+
+# --------------------------------------------------------------------------- REQ-5: the image block
+def test_the_report_has_an_image_block_with_runs_zero_leaks_and_blocked_by_reason(report):
+    im = report["image"]
+    assert im["runs"] >= 80 and im["seeds"] >= 8 and im["frames_planted"] == im["seeds"]
+    assert im["leaks"] == 0 and im["leak_details"] == []
+    assert im["blocked_by_reason"] == {"denylisted_app": im["seeds"], "no_consent": im["seeds"], "secure_input": im["seeds"], "unattended": im["seeds"]}
+    assert im["sent"] == 2 * im["seeds"] and im["provider_failed"] == im["seeds"] and im["output_rejected"] == im["seeds"]
+    h = report["headline"]
+    assert h["image_runs"] == im["runs"] and h["image_leaks"] == 0 and h["image_blocked_by_reason"] == im["blocked_by_reason"]
+
+
+def test_unattended_real_screen_never_reached_a_provider_and_a_block_never_called_one(report):
+    im = report["image"]
+    assert im["unattended_real_screen"] == {"attempts": im["seeds"], "reached_a_provider": 0} and im["provider_calls_after_a_block"] == 0
+    assert im["gate"]["cases"] == 33 and im["gate"]["failures"] == 0
+
+
+def test_every_image_call_has_exactly_one_row_with_only_allowed_fields_and_nothing_was_left_in_temp_or_logs(report):
+    im = report["image"]
+    assert im["ledger"]["one_row_per_call"] is True and im["ledger"]["rows_with_disallowed_fields"] == 0
+    assert im["ledger"]["physical_lines"] > im["ledger"]["image_rows"]             # image + image_result lines, merged on read
+    assert im["scanned"]["temp_dir"] == "empty after every seed" and im["scanned"]["log_records"] >= im["seeds"] and im["scanned"]["error_messages"] > 0
+
+
+def test_image_controls_prove_the_residue_scan_and_the_gates_can_fail(report):
+    c = report["image"]["controls"]
+    assert len(c) >= 7 and all(x["passed"] for x in c), [x for x in c if not x["passed"]]
+
+
+def test_image_static_guard_and_caveats_are_reported_with_the_sandbox_convention_stated(report):
+    g = report["image"]["static_guard"]
+    assert g["provider_endpoint_violations"] == [] and g["sandbox_claim_violations"] == [] and g["provider_endpoint_files"] > 100
+    assert isinstance(g["ts_provider_references"], list)
+    ids = {c["id"]: c for c in report["image"]["caveats"]}
+    assert {"img_raw_by_nature", "img_sandbox_convention", "img_gate_is_caller_truth", "img_memory_best_effort"} <= set(ids)
+    assert "BY CONVENTION ONLY" in ids["img_sandbox_convention"]["text"] and "ENFORCED" in ids["img_sandbox_convention"]["text"]
+    assert {c["id"] for c in report["image"]["caveats"]} <= {l["id"] for l in report["limitations"]}
+
+
+def test_image_evaluation_runs_alone_and_does_not_touch_the_callers_ledger():
+    import os
+
+    before = os.environ["UNDERSTUDY_DATA_DIR"]
+    ledger.append({"purpose": "t.keep", "payload": {}})
+    r = evaluate.image_evaluation(seeds=[0, 1])
+    assert r["leaks"] == 0 and r["runs"] == 22 and os.environ["UNDERSTUDY_DATA_DIR"] == before
+    assert [x["purpose"] for x in ledger.read_all()] == ["t.keep"]
+
+
+# --------------------------------------------------------------------------- the coverage table for the Evidence map
+def test_coverage_has_one_row_per_guarded_layer_plus_the_agent_runtime(report):
+    from understudy_engine.privacy import guard
+
+    cov = {c["layer"]: c for c in report["coverage"]}
+    assert list(cov)[: len(guard.GUARDED_DIRS)] == list(guard.GUARDED_DIRS) and "agent_runtime" in cov
+    for c in cov.values():
+        assert {"layer", "present", "pure_compute", "files_scanned", "static_guard_violations", "canary_flow", "flows", "registered_by_layer",
+                "real_code_flow", "runs", "requests", "planted", "leaked", "image_flows", "image_runs", "image_residue", "note"} <= set(c)
+        assert c["canary_flow"] in ("registered", "adapter", "none_registered", "not_applicable", "pure_compute", "not_present", "error", "not_checked")
+        assert c["static_guard_violations"] == 0 and c["leaked"] == 0 and c["image_residue"] == 0
+    assert cov["mlv2"]["pure_compute"] and cov["personas_v2"]["pure_compute"]
+
+
+def test_coverage_counts_real_code_flows_and_lists_the_gaps_without_calling_them_covered(report):
+    cov = {c["layer"]: c for c in report["coverage"]}
+    s = report["headline"]["coverage_summary"]
+    for layer, c in cov.items():
+        if c["canary_flow"] in ("none_registered", "error", "not_checked"):
+            assert layer in s["gaps"] and c["real_code_flow"] is False
+        if c["real_code_flow"]:
+            assert layer in s["with_real_code_flow"] and c["flows"] and c["planted"] > 0 and c["requests"] > 0
+    assert set(s["pure_compute"]) == {l for l, c in cov.items() if c["canary_flow"] == "pure_compute"}
+    assert cov["calendar"]["real_code_flow"] is True and cov["localmodel"]["real_code_flow"] is True
+    assert report["headline"]["layers_without_integration_flows"] == [l for l in report["layers"] if report["layers"][l]["status"] in ("none_registered", "error")]
+
+
+def test_a_layer_whose_directory_does_not_exist_yet_is_not_present_not_a_gap(monkeypatch):
+    from understudy_engine.privacy import guard
+
+    monkeypatch.setattr(guard, "GUARDED_DIRS", guard.GUARDED_DIRS + ("not_written_yet",))
+    monkeypatch.setattr(evaluate, "LAYERS", guard.GUARDED_DIRS)
+    r = evaluate.evaluate_privacy(seeds=[0], record=False, discover=True)
+    row = next(c for c in r["coverage"] if c["layer"] == "not_written_yet")
+    assert row["canary_flow"] == "not_present" and row["present"] is False and "not_written_yet" in r["headline"]["coverage_summary"]["not_present"]
+    assert "not_written_yet" not in r["headline"]["coverage_summary"]["gaps"]
+
+
+def test_layer_supplied_image_flows_are_run_and_a_leaky_one_shows_residue_in_the_coverage_row(monkeypatch):
+    import sys
+    import types
+
+    from understudy_engine.privacy.egress import send_image
+    from understudy_engine.privacy.image import ImageGate
+    from understudy_engine.privacy.testing import ImageCanaryFlow
+
+    def clean(pi, port):
+        send_image("glance.screen_state", pi.safe_image(), {"mode": "triggered", "trigger": "stuck", "strict": False}, gate=ImageGate(True, False, False, False), port=port)
+
+    def leaky(pi, port):
+        import base64
+        import logging
+        clean(pi, port)
+        logging.getLogger("awareness").info("frame %s", base64.b64encode(pi.data).decode())
+
+    mod = types.ModuleType("understudy_engine.cue.canary_flows")
+    mod.FLOWS = []
+    mod.IMAGE_FLOWS = [ImageCanaryFlow("cue.clean", clean, "cue"), ImageCanaryFlow("cue.leaky", leaky, "cue")]
+    monkeypatch.setitem(sys.modules, "understudy_engine.cue.canary_flows", mod)
+    r = evaluate.evaluate_privacy(seeds=[0, 1], record=False, discover=True)
+    row = next(c for c in r["coverage"] if c["layer"] == "cue")
+    assert row["canary_flow"] == "registered" and row["real_code_flow"] is True and set(row["image_flows"]) == {"cue.clean", "cue.leaky"}
+    assert row["image_runs"] == 4 and row["image_residue"] >= 2
+    lf = {f["flow"]: f for f in r["image"]["layer_flows"]}
+    assert lf["cue.clean"]["residue"] == 0 and lf["cue.leaky"]["residue"] >= 2
+    assert r["image"]["leaks"] >= 2 and r["headline"]["image_leaks"] >= 2

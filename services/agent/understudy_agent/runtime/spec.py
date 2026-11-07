@@ -123,6 +123,7 @@ class ChildResult(BaseModel):
     artifacts: list[Artifact] = Field(default_factory=list)
     steps: list[StepRecord] = Field(default_factory=list)
     spent: Spent = Field(default_factory=Spent)
+    recoveries: int = 0                         # failed script runs the child recovered from
     reason: str = ""
 
 

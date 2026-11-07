@@ -64,7 +64,8 @@ export const STALE_GUARD_MS = 120_000
 const TICK_TTL_MS = 3_500
 const BUBBLE_TTL_MS = 12_000
 const GHOST_AFTERGLOW_MS = 2_200
-const CHIP_VISIBLE_MS = 6_000
+// The level-change toast: two seconds, then gone.
+export const CHIP_VISIBLE_MS = 2_000
 // Main re-sends the coach chip every few seconds; if it stops (a crash), the chip is not left on the screen for ever.
 export const COACH_CHIP_GUARD_MS = 5 * 60_000
 const CAPTION_STREAMING_GUARD_MS = 20_000

@@ -1,0 +1,8 @@
+[
+  { "kind": "programming.commit_analyst", "title": "Analyse a repository's commits", "roles": ["commit_analyst"], "describe": "Analyse a repository's commits in an isolated worktree copy." },
+  { "kind": "programming.test_gap", "title": "Find code that changed without a test", "roles": ["test_finder"], "describe": "Look for code that changed without a test, in an isolated copy of the repo." },
+  { "kind": "programming.refactor_suggest", "title": "Suggest a refactor as a patch draft", "roles": ["refactor_suggest"], "describe": "Suggest a refactor as a patch draft in an isolated worktree copy." },
+  { "kind": "data.profile", "title": "Profile a CSV", "roles": ["data_profiler"], "describe": "Profile a CSV in a sandbox with no network." },
+  { "kind": "data.chart", "title": "Chart a CSV", "roles": ["chart_builder"], "describe": "Chart a CSV in a sandbox with no network." },
+  { "kind": "creative.weekly_summary", "title": "Draft a weekly write-up from digests", "roles": ["weekly_writer"], "describe": "Draft a weekly write-up that cites digest ids only." }
+]

@@ -15,7 +15,6 @@ from ..privacy.testing import CanaryFlow, CapturingPort
 from . import suggest as sug
 from .expert import load_template, template_reference
 from .features import analyse_week
-from .model import monday_of
 from .normalize import to_blocks
 from .synth import esc, fold
 

@@ -24,10 +24,13 @@ def main(argv: list[str] | None = None) -> int:
             json.dump(rep, fh, indent=1)
     h = rep["headline"]
     print(json.dumps(h, indent=1))
-    for c in rep["negative_controls"]:
+    for c in rep["negative_controls"] + rep["image"]["controls"]:
         print(("ok   " if c["passed"] else "FAIL ") + c["name"])
+    img = rep["image"]
     ok = h["leaked"] == 0 and h["artifact_leaked"] == 0 and h["ledger_complete"] and h["controls_passed"] == h["controls_total"] \
-        and h["bucketing_failures"] == 0 and h["static_guard_violations"] == 0
+        and h["bucketing_failures"] == 0 and h["static_guard_violations"] == 0 and img["leaks"] == 0 \
+        and all(c["passed"] for c in img["controls"]) and img["gate"]["failures"] == 0 \
+        and not img["static_guard"]["provider_endpoint_violations"] and not img["static_guard"]["sandbox_claim_violations"]
     print("PRIVACY EVALUATION:", "clean" if ok else "NOT CLEAN (see the report)")
     return 0 if ok else 1
 

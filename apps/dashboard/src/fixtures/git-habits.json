@@ -1,0 +1,220 @@
+{
+ "meta": {
+  "origin": "synthetic",
+  "n": 127,
+  "n_unit": "commits",
+  "split": "learner days resampled with replacement; reference experts resampled by person and by day; 500 draws, 95% percentile intervals",
+  "interval_level": 0.95,
+  "note": "Planted-habit data: every learner here is scripted. Habits are commit-level shares; a flagged habit differs from the reference by at least its floor with an interval that excludes zero.",
+  "generated_at": "2026-11-07T17:24:29+00:00"
+ },
+ "data": {
+  "person": "p_git_learner_1",
+  "repo": "r_git_learner_1",
+  "habits": [
+   {
+    "id": "big_commits",
+    "label": "Large commits (over 250 lines)",
+    "learner": 0.2205,
+    "expert": 0.0281,
+    "bad": 1,
+    "min_delta": 0.1,
+    "n_den": 127,
+    "n_num": 28,
+    "unit": "share",
+    "delta": 0.1923,
+    "ci": [
+     0.1233,
+     0.2649
+    ],
+    "flagged": true,
+    "reason": "flagged",
+    "suggestion": {
+     "id": "GIT_SMALLER_COMMITS",
+     "text": "22% of your commits changed more than 250 lines (28 of 127); the reference experts' share is 3%. Try committing each logical step on its own, so every change can be reviewed and undone separately.",
+     "wording": "template"
+    }
+   },
+   {
+    "id": "tests_with_changes",
+    "label": "Feature and fix commits that touch tests",
+    "learner": 0.1444,
+    "expert": 0.7423,
+    "bad": -1,
+    "min_delta": 0.2,
+    "n_den": 90,
+    "n_num": 13,
+    "unit": "share",
+    "delta": -0.5979,
+    "ci": [
+     -0.6962,
+     -0.5007
+    ],
+    "flagged": true,
+    "reason": "flagged",
+    "suggestion": {
+     "id": "GIT_TESTS_WITH_CHANGES",
+     "text": "Only 14% of your feature and fix commits touched a test file (13 of 90); the reference experts' share is 74%. Add or update a test in the same commit as the change it covers.",
+     "wording": "template"
+    }
+   },
+   {
+    "id": "fix_after_fix",
+    "label": "Fixes followed by another fix within an hour",
+    "learner": 0.037,
+    "expert": 0.1609,
+    "bad": 1,
+    "min_delta": 0.15,
+    "n_den": 27,
+    "n_num": 1,
+    "unit": "share",
+    "delta": -0.1238,
+    "ci": [
+     -0.2279,
+     -0.0029
+    ],
+    "flagged": false,
+    "reason": "below_min_delta"
+   },
+   {
+    "id": "reverts",
+    "label": "Reverted work",
+    "learner": 0.0079,
+    "expert": 0.0167,
+    "bad": 1,
+    "min_delta": 0.03,
+    "n_den": 127,
+    "n_num": 1,
+    "unit": "share",
+    "delta": -0.0088,
+    "ci": [
+     -0.0299,
+     0.0151
+    ],
+    "flagged": false,
+    "reason": "below_min_delta"
+   },
+   {
+    "id": "vague_messages",
+    "label": "Vague commit messages",
+    "learner": 0.0551,
+    "expert": 0.0384,
+    "bad": 1,
+    "min_delta": 0.15,
+    "n_den": 127,
+    "n_num": 7,
+    "unit": "share",
+    "delta": 0.0167,
+    "ci": [
+     -0.0259,
+     0.0626
+    ],
+    "flagged": false,
+    "reason": "below_min_delta"
+   },
+   {
+    "id": "late_night",
+    "label": "Commits between midnight and 5am",
+    "learner": 0.0709,
+    "expert": 0.0396,
+    "bad": 1,
+    "min_delta": 0.06,
+    "n_den": 127,
+    "n_num": 9,
+    "unit": "share",
+    "delta": 0.0313,
+    "ci": [
+     -0.0493,
+     0.1242
+    ],
+    "flagged": false,
+    "reason": "below_min_delta"
+   }
+  ],
+  "suggestions": [
+   {
+    "id": "GIT_TESTS_WITH_CHANGES",
+    "template": "tests_with_changes",
+    "habits": [
+     "tests_with_changes"
+    ],
+    "text": "Only 14% of your feature and fix commits touched a test file (13 of 90); the reference experts' share is 74%. Add or update a test in the same commit as the change it covers.",
+    "text_templated": "Only 14% of your feature and fix commits touched a test file (13 of 90); the reference experts' share is 74%. Add or update a test in the same commit as the change it covers.",
+    "wording": "template",
+    "numbers": {
+     "tests_with_changes": {
+      "learner": 0.1444,
+      "expert": 0.7423,
+      "delta": -0.5979,
+      "ci": [
+       -0.6962,
+       -0.5007
+      ],
+      "n_num": 13,
+      "n_den": 90
+     }
+    },
+    "expert_ref": {
+     "values": {
+      "tests_with_changes": 0.7423
+     },
+     "n_experts": 8,
+     "origin": "synthetic",
+     "note": "the mean of each reference expert's own share"
+    },
+    "risk": "low",
+    "can_draft": false,
+    "primary_habit": "tests_with_changes"
+   },
+   {
+    "id": "GIT_SMALLER_COMMITS",
+    "template": "smaller_commits",
+    "habits": [
+     "big_commits"
+    ],
+    "text": "22% of your commits changed more than 250 lines (28 of 127); the reference experts' share is 3%. Try committing each logical step on its own, so every change can be reviewed and undone separately.",
+    "text_templated": "22% of your commits changed more than 250 lines (28 of 127); the reference experts' share is 3%. Try committing each logical step on its own, so every change can be reviewed and undone separately.",
+    "wording": "template",
+    "numbers": {
+     "big_commits": {
+      "learner": 0.2205,
+      "expert": 0.0281,
+      "delta": 0.1923,
+      "ci": [
+       0.1233,
+       0.2649
+      ],
+      "n_num": 28,
+      "n_den": 127
+     }
+    },
+    "expert_ref": {
+     "values": {
+      "big_commits": 0.0281
+     },
+     "n_experts": 8,
+     "origin": "synthetic",
+     "note": "the mean of each reference expert's own share"
+    },
+    "risk": "low",
+    "can_draft": false,
+    "primary_habit": "big_commits"
+   }
+  ],
+  "digest_source": "rules",
+  "digest_model_share": 0.0,
+  "digest_warming": false,
+  "n_commits": 127,
+  "features": {
+   "n_commits": 127,
+   "n_active_days": 34,
+   "span_days": 42,
+   "commits_per_active_day": 3.74
+  },
+  "reference": {
+   "n_experts": 8,
+   "origin": "synthetic",
+   "note": "scripted synthetic developers with baseline habits; nobody is real"
+  }
+ }
+}

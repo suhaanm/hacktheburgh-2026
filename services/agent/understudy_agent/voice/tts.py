@@ -1,8 +1,18 @@
 """ElevenLabs text-to-speech adapter (P2, off by default).
 
-    speak(text, kind) -> (audio_bytes, mime)
+    speak_line(line_id, slots) -> SpeakResult        the ONLY thing a caller on the network may ask for (see lines.py)
+    speak_detailed(text, kind) -> SpeakResult        free text: refused unless UNDERSTUDY_VOICE_DEBUG_TEXT=1 (a worker-only debug flag)
 
-Used for narrated coach nudges and the morning briefing. Rules:
+Used for narrated coach nudges and the morning briefing. Rules (REVIEW-PRIVACY P1b fixes first):
+* A caller names a FIXED LINE (an id from `lines.py`) and typed slots (bounded numbers, ids from a closed set). The sentence is
+  produced here, in code, so what can be spoken is a closed set we wrote plus numbers: never a name, never screen text.
+  Free-form text is refused (`FreeTextRefused`; the route answers 422) unless the debug flag is set, and then it is ledgered as
+  `voice.speak_free`.
+* Every real call to the speech service writes a metadata-only ledger row through `privacy.ledger.record_direct`, whether or not the
+  privacy extension is on: purpose `voice.speak`, provider and model, a character-count bucket, a hash of the voice id, cache miss,
+  latency, ok. No text. If the ledger cannot be written, nothing is sent. A cached clip makes no network call and writes no row
+  (it is counted in `status()`).
+* The personal-data filter below stays as a second layer on the finished sentence.
 * Flag off by default: set UNDERSTUDY_VOICE=1 to enable. With the flag off, in mock mode (UNDERSTUDY_MOCK=1) or with no
   key, the result is a short silent WAV, so every caller works offline and the demo never depends on the network.
 * The key and the voice and model ids come from the environment only (ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID,
@@ -31,6 +41,7 @@ from typing import Any, Callable
 import httpx
 
 from ..security.dataflow import personal_kinds
+from . import lines as _lines
 from ..security.paths import data_dir
 from ..security.sanitize import sanitize_untrusted
 
@@ -40,6 +51,7 @@ MAX_CHARS = {"nudge": 280, "briefing": 1500}
 SILENT_MIME = "audio/wav"
 
 ENV_FLAG = "UNDERSTUDY_VOICE"
+ENV_DEBUG_TEXT = "UNDERSTUDY_VOICE_DEBUG_TEXT"   # worker-only debug flag: allow free-form text (ledgered as voice.speak_free)
 ENV_KEY = "ELEVENLABS_API_KEY"
 ENV_VOICE = "ELEVENLABS_VOICE_ID"
 ENV_MODEL = "ELEVENLABS_MODEL"
@@ -67,6 +79,14 @@ def _truthy(v: str | None) -> bool:
 
 def enabled() -> bool:
     return _truthy(os.environ.get(ENV_FLAG))
+
+
+def debug_text_enabled() -> bool:
+    return _truthy(os.environ.get(ENV_DEBUG_TEXT))
+
+
+class FreeTextRefused(PermissionError):
+    """Free-form text was offered to the speech service without the debug flag. Nothing was sent."""
 
 
 def mock_mode() -> bool:
@@ -176,8 +196,9 @@ def _ensure_voice(client: httpx.Client) -> str | None:
     return best["voice_id"]
 
 
-def _synthesise(text: str, fmt: str) -> tuple[bytes, str, str]:
-    """Network call. Returns (audio, mime, voice_id). Raises on any failure."""
+def _synthesise(text: str, fmt: str, attempt: dict[str, Any] | None = None) -> tuple[bytes, str, str]:
+    """Network call. Returns (audio, mime, voice_id). Raises on any failure. `attempt["posted"]` becomes True just before the text is
+    sent, so the caller can write a ledger row only for a call in which text actually left."""
     model = os.environ.get(ENV_MODEL, "").strip()
     with _http_factory() as client:
         voice = _ensure_voice(client)
@@ -186,6 +207,9 @@ def _synthesise(text: str, fmt: str) -> tuple[bytes, str, str]:
         body: dict[str, Any] = {"text": text}
         if model:
             body["model_id"] = model
+        if attempt is not None:
+            attempt["posted"] = True
+            attempt["voice"] = voice
         r = client.post(f"/text-to-speech/{voice}", params={"output_format": fmt}, headers={**_headers(), "accept": "*/*"}, json=body)
         r.raise_for_status()
         if not r.content:
@@ -205,11 +229,14 @@ def _tmp_suffix() -> str:
 
 
 def _lookup(key: str) -> tuple[bytes, str] | None:
-    d = cache_dir()
-    for mime in ("audio/mpeg", "audio/wav", "audio/ogg", "application/octet-stream"):
-        p = d / f"{key}.{_ext_for(mime)}"
-        if p.exists():
-            return p.read_bytes(), mime
+    try:
+        d = cache_dir()
+        for mime in ("audio/mpeg", "audio/wav", "audio/ogg", "application/octet-stream"):
+            p = d / f"{key}.{_ext_for(mime)}"
+            if p.exists():
+                return p.read_bytes(), mime
+    except OSError:
+        return None  # an unwritable data directory has no cache; the ledger check then stops any send
     return None
 
 
@@ -225,18 +252,75 @@ class SpeakResult:
         return self.audio, self.mime
 
 
+# --------------------------------------------------------------------------- ledger (metadata only)
+_cache_hits = 0
+_CHAR_BUCKETS = ((20, "1-20"), (40, "21-40"), (80, "41-80"), (160, "81-160"), (320, "161-320"), (640, "321-640"))
+
+
+def _chars_bucket(n: int) -> str:
+    for hi, name in _CHAR_BUCKETS:
+        if n <= hi:
+            return name
+    return "641+"
+
+
+def _voice_hash(voice_id: str | None) -> str:
+    return hashlib.sha256((voice_id or "auto").encode("utf-8")).hexdigest()[:8]
+
+
+def _ledger_writable() -> bool:
+    """Can a ledger line be written? Checked BEFORE text leaves: if the ledger cannot take a row, nothing is sent."""
+    try:
+        from understudy_engine.privacy import ledger
+
+        p = ledger.ledger_path()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        os.close(os.open(str(p), os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600))
+        return True
+    except Exception:
+        return False
+
+
+def _record_call(*, purpose: str, chars: int, voice_id: str | None, ok: bool, latency_ms: int) -> None:
+    """One metadata-only ledger row for a real call to the speech service. Never the text. Purpose `voice.speak` (a fixed line) or
+    `voice.speak_free` (debug free text). Written whether or not the privacy extension is on."""
+    from understudy_engine.privacy import ledger
+
+    model = os.environ.get(ENV_MODEL, "").strip() or "default"
+    note = f"chars={_chars_bucket(chars)} voice={_voice_hash(voice_id)} cache=miss ok={int(ok)} ms={latency_ms}"
+    try:
+        ledger.record_direct(method="tts", model=f"elevenlabs:{model}", bytes_sent=chars, purpose=purpose, note=note)
+    except OSError:
+        pass  # the pre-send check passed; a late failure cannot unsend, and must not break the clip
+
+
 def _clean(text: str, kind: str) -> str:
     cleaned = " ".join(sanitize_untrusted(text, max_chars=MAX_CHARS.get(kind, 280)).text.split())
     return cleaned
 
 
+def speak_line(line_id: str, slots: dict[str, Any] | None = None, *, deadline_s: float = DEFAULT_DEADLINE_S) -> SpeakResult:
+    """Speak a FIXED line by id with typed slots. Raises `lines.LineError` for an unknown id or a bad slot (nothing is sent)."""
+    r = _lines.resolve(line_id, slots)
+    return _speak(r.text, r.kind, deadline_s=deadline_s, purpose="voice.speak")
+
+
 def speak_detailed(text: str, kind: str = "nudge", *, deadline_s: float = DEFAULT_DEADLINE_S) -> SpeakResult:
+    """FREE-FORM text. Refused (`FreeTextRefused`) unless UNDERSTUDY_VOICE_DEBUG_TEXT=1 and the call would reach the network; with the
+    voice off or in mock mode nothing is sent, so the usual silence is returned. Production callers use `speak_line`."""
+    return _speak(text, kind, deadline_s=deadline_s, purpose="voice.speak_free")
+
+
+def _speak(text: str, kind: str, *, deadline_s: float, purpose: str) -> SpeakResult:
     if kind not in MAX_CHARS:
         raise ValueError(f"kind must be one of {sorted(MAX_CHARS)}")
     if not enabled():
         return SpeakResult(SILENT_WAV, SILENT_MIME, "disabled")
     if mock_mode():
         return SpeakResult(SILENT_WAV, SILENT_MIME, "mock")
+    free = purpose == "voice.speak_free"
+    if free and not debug_text_enabled():
+        raise FreeTextRefused("free-form text is not sent to the speech service; ask for a fixed line by id")
     clean = _clean(text, kind)
     if not clean:
         return SpeakResult(SILENT_WAV, SILENT_MIME, "silent")
@@ -248,14 +332,21 @@ def speak_detailed(text: str, kind: str = "nudge", *, deadline_s: float = DEFAUL
     key = cache_key(clean, voice, os.environ.get(ENV_MODEL, "").strip() or "default", fmt)
     hit = _lookup(key)
     if hit:
+        global _cache_hits
+        _cache_hits += 1
         return SpeakResult(hit[0], hit[1], "cache")
+    if not _ledger_writable():
+        return SpeakResult(SILENT_WAV, SILENT_MIME, "error")  # no ledger row possible, so nothing leaves
     # Until the first call has picked a voice the key uses 'auto'; the result is stored under both keys.
     result: dict[str, Any] = {}
     done = threading.Event()
+    n_chars = len(clean)
 
     def work() -> None:
+        attempt: dict[str, Any] = {}
+        t0 = time.monotonic()
         try:
-            audio, mime, used_voice = _synthesise(clean, fmt)
+            audio, mime, used_voice = _synthesise(clean, fmt, attempt)
             result["ok"] = (audio, mime)
             k2 = cache_key(clean, used_voice, os.environ.get(ENV_MODEL, "").strip() or "default", fmt)
             _store(k2, audio, mime)
@@ -264,6 +355,9 @@ def speak_detailed(text: str, kind: str = "nudge", *, deadline_s: float = DEFAUL
         except Exception as e:  # network, auth, quota, timeout: never raised to the caller
             result["err"] = type(e).__name__
         finally:
+            if attempt.get("posted"):
+                _record_call(purpose=purpose, chars=n_chars, voice_id=attempt.get("voice"), ok="ok" in result,
+                             latency_ms=int((time.monotonic() - t0) * 1000))
             done.set()
             with _inflight_lock:
                 _inflight.pop(key, None)
@@ -293,13 +387,18 @@ def _wait(th: threading.Thread, done: threading.Event, deadline_s: float) -> boo
     return done.is_set()
 
 
+def prewarm_line(line_id: str, slots: dict[str, Any] | None = None) -> None:
+    """Start synthesis of a FIXED line in the background without waiting (the morning briefing, so it is cached by 08:00)."""
+    speak_line(line_id, slots, deadline_s=0.0)
+
+
 def prewarm(text: str, kind: str = "briefing") -> None:
-    """Start synthesis in the background without waiting (for example the morning briefing, so it is cached by 08:00)."""
+    """Debug only (free text; see `speak_detailed`)."""
     speak_detailed(text, kind, deadline_s=0.0)
 
 
 def speak(text: str, kind: str = "nudge") -> tuple[bytes, str]:
-    """Narrate `text`. Always returns (audio_bytes, mime); silence on any problem. Never raises for network trouble."""
+    """Debug only (free text). Always returns (audio_bytes, mime); silence on any network trouble."""
     return speak_detailed(text, kind).as_tuple()
 
 
@@ -318,3 +417,8 @@ def wait_for_background(timeout_s: float = 5.0) -> None:
 def status() -> dict[str, Any]:
     c = voice_choice()
     return {"enabled": enabled(), "mock": mock_mode(), "voice_configured": bool(c), "voice": (c or {}).get("name") or None}
+
+
+def diagnostics() -> dict[str, Any]:
+    """Counters and the debug flag, for the status route. No text, no ids."""
+    return {"free_text": debug_text_enabled(), "cache_hits": _cache_hits}

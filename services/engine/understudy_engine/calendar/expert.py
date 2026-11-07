@@ -31,7 +31,7 @@ from ..core import Cog
 from ..genome.align import Alignment, CostModel, align
 from ..plugins.tz import local_to_utc, resolve_tz
 from ..store.paths import repo_root, schema_dir
-from .features import (ALL_KEYS, CONTRACT_KEYS, DAY, MEETING, FOCUS, SLIVER, BATCH, REVIEW, OFFSCREEN, WeekAnalysis, analyse_week)
+from .features import (ALL_KEYS, CONTRACT_KEYS, DAY, FOCUS, SLIVER, BATCH, REVIEW, WeekAnalysis, analyse_week)
 from .model import Block, WorkConfig
 from .normalize import _series_key
 

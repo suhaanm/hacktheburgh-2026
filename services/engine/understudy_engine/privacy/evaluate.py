@@ -30,9 +30,13 @@ the real provider is never called.
 """
 from __future__ import annotations
 
+import base64
 import contextlib
+import hashlib
 import importlib
+import itertools
 import json
+import logging
 import os
 import random
 import tempfile
@@ -46,10 +50,10 @@ from .egress import EgressError
 from .payload import UnsafeFieldError
 from .purposes import BriefingCardWording, CalendarSuggestionWording, DigestMeta, GitHabitWording
 from .payload import purposes as all_purposes
-from .testing import CanaryFlow, CapturingPort, FlowResult, run_flow, vocabulary_problems
+from .testing import CanaryFlow, CapturingPort, FlowResult, ImageCanaryFlow, image_canary_flow, run_flow, vocabulary_problems
 
 _env_lock = threading.RLock()
-LAYERS = ("calendar", "gitanalysis", "proactive", "localmodel", "plugins")
+LAYERS = guard.GUARDED_DIRS
 
 
 # ----------------------------------------------------------------------------------------------------- reference flows
@@ -146,6 +150,18 @@ def _proactive_adapter() -> CanaryFlow:
     return CanaryFlow("proactive.reword_why (adapter)", fixture, run, layer="proactive", kind="integration")
 
 
+def discover_image_flows() -> list[ImageCanaryFlow]:
+    """Layer-supplied image flows: ``understudy_engine.<layer>.canary_flows.IMAGE_FLOWS``."""
+    out: list[ImageCanaryFlow] = []
+    for layer in LAYERS:
+        try:
+            mod = importlib.import_module(f"understudy_engine.{layer}.canary_flows")
+        except Exception:
+            continue
+        out.extend(f for f in getattr(mod, "IMAGE_FLOWS", []) if isinstance(f, ImageCanaryFlow))
+    return out
+
+
 def discover_flows() -> tuple[list[CanaryFlow], dict[str, dict[str, Any]]]:
     """Layer-supplied flows from ``understudy_engine.<layer>.canary_flows.FLOWS`` plus adapters for known entry points."""
     flows: list[CanaryFlow] = []
@@ -156,19 +172,28 @@ def discover_flows() -> tuple[list[CanaryFlow], dict[str, dict[str, Any]]]:
             mod = importlib.import_module(name)
             got = list(getattr(mod, "FLOWS", []))
             flows.extend(got)
+            img = [f for f in getattr(mod, "IMAGE_FLOWS", []) if isinstance(f, ImageCanaryFlow)]
             na = getattr(mod, "NOT_APPLICABLE", None)
-            if got:
-                layers[layer] = {"status": "registered", "flows": [f.name for f in got]}
+            if got or img:
+                layers[layer] = {"status": "registered", "flows": [f.name for f in got], "image_flows": [f.name for f in img]}
             elif isinstance(na, str) and na.strip():
                 # the layer says it has no model path (for example sources only); the static guard is what covers it
                 layers[layer] = {"status": "not_applicable", "flows": [], "note": na.strip()[:240]}
             else:
                 layers[layer] = {"status": "none_registered", "flows": []}
         except ModuleNotFoundError as exc:
-            layers[layer] = {"status": "none_registered", "flows": [], "note": "no canary_flows module"} if exc.name == name else \
-                {"status": "error", "flows": [], "note": f"import failed: {exc.name}"}
+            if not (guard.ENGINE_PKG / layer).is_dir():
+                layers[layer] = {"status": "not_present", "flows": [], "note": "the layer's directory does not exist yet"}
+            elif exc.name == name:
+                layers[layer] = {"status": "none_registered", "flows": [], "note": "no canary_flows module"}
+            else:
+                layers[layer] = {"status": "error", "flows": [], "note": f"import failed: {exc.name}"}
         except Exception as exc:  # a broken layer must not break the evaluation
             layers[layer] = {"status": "error", "flows": [], "note": f"{type(exc).__name__} while importing"}
+    for layer in guard.PURE_COMPUTE_DIRS:
+        if layers.get(layer, {}).get("status") == "none_registered":
+            layers[layer] = {"status": "pure_compute", "flows": [], "note": "no model or network path by rule; the static guard (no client, no process, "
+                                                                           "no URL, no reviewed exceptions) is the control"}
     if layers.get("proactive", {}).get("status") != "registered":
         try:
             f = _proactive_adapter()
@@ -492,6 +517,273 @@ def backstop_corpus(seed: int = 7) -> dict[str, Any]:
             "hashed_ids_tested": len(hashes), "hashed_id_false_positives": hash_fp, "sensitive_snake_case_names_matched": sens_ok}
 
 
+# ----------------------------------------------------------------------------------------------------- images (REQ-5)
+IMAGE_ROW_KEYS = frozenset({"id", "t", "kind", "status", "purpose", "schema", "method", "fields", "payload", "image", "source", "provider",
+                            "model", "bytes", "mock", "ok", "latency_ms", "input_tokens", "output_tokens", "cost_estimate_usd", "error",
+                            "reason"})
+IMAGE_META_KEYS = frozenset({"sha8", "bytes", "width", "height", "kind", "mime", "source"})
+_GOOD_GLANCE = {"mode": "triggered", "trigger": "stuck", "strict": False}
+
+IMAGE_CAVEATS = [
+    {"id": "img_raw_by_nature", "severity": "high",
+     "text": "A screen frame is raw content. The guard decides whether a frame may leave, from which kind of source, what may come back and "
+             "what is ever recorded; it does not redact or generalise pixels, and when a frame is allowed the provider sees everything on "
+             "the screen. What a provider does with a frame it received is the provider's policy and is not measured here."},
+    {"id": "img_answer_closed_not_sight", "severity": "medium",
+     "text": "Closed answer schemas (every string is an enum) stop text read off the screen from coming back. They cannot stop the model "
+             "from seeing it."},
+    {"id": "img_memory_best_effort", "severity": "medium",
+     "text": "A frame is held in a buffer that is wiped after the call and is never written by this layer. Copies handed to a provider SDK "
+             "or the HTTP stack, and freed memory the interpreter has not reused, cannot be wiped or controlled from here; swap and core "
+             "dumps are outside this check."},
+    {"id": "img_scan_exact", "severity": "medium",
+     "text": "The residue scan looks for the planted PNG's raw bytes, the token written into its metadata, its full SHA-256, and base64 or "
+             "hex renderings of the file. It cannot see pixels, a re-encoded copy (a JPEG of the same frame), or a description of the frame."},
+    {"id": "img_gate_is_caller_truth", "severity": "high",
+     "text": "The gate is a pure function of four booleans and a source that the caller computes. The guard cannot check that secure input or "
+             "a denylisted app was detected correctly, or that a frame really came from the source it declares."},
+    {"id": "img_sandbox_convention", "severity": "high",
+     "text": "ENFORCED: the Python awareness package and the awareness, Live and hotkey TypeScript may not contain the string 'sandbox' "
+             "(static scan, test files skipped); the frame route can refuse another machine, an unknown source, and a sandbox claim from a "
+             "web page whose Origin is not one of our sandbox sites (frame_request_problem). BY CONVENTION ONLY: a local process on this Mac "
+             "sends no Origin header, so the route cannot tell the Electron main process from the agent service; a local process that wrongly "
+             "declares sandbox is not stopped, only visible in the ledger's source column."},
+    {"id": "img_old_ts_provider_code", "severity": "medium",
+     "text": "Old project TypeScript under apps/desktop still names Gemini and OpenAI hosts behind flags (listed in static_guard_ts_references, "
+             "report only). The rule is that frames reach a provider through the engine's egress guard; the Python tree is checked for it, the "
+             "TypeScript is not enforced."},
+    {"id": "img_no_real_provider", "severity": "medium",
+     "text": "No real provider was called: a capturing port and a fake client check request shapes and the guard. Gemini and OpenAI behaviour "
+             "(latency, accuracy, cost) is the MODELS track's own measurement."},
+]
+
+
+def _gate_reference(consent: bool, deny: bool, secure: bool, unattended: bool, source: str) -> str | None:
+    """An independent restatement of the gate rules, for checking ``ImageGate`` against."""
+    if source == "real_screen":
+        for cond, name in ((unattended, "unattended"), (secure, "secure_input"), (deny, "denylisted_app"), (not consent, "no_consent")):
+            if cond:
+                return name
+        return None
+    for cond, name in ((secure, "secure_input"), (deny, "denylisted_app")):
+        if cond:
+            return name
+    return None
+
+
+def image_evaluation(seeds: Iterable[int] = tuple(range(8))) -> dict[str, Any]:
+    """Run the image flows with a planted PNG per seed and report: sends, gate blocks by reason, failures, and every place the planted
+    image could have left a residue (files, temp files, log records, error messages, ledger rows). Offline; isolated data dir."""
+    from .canary import plant_image, scan_image_residue
+    from .egress import ImageBlocked, ImageRejected, send_image
+    from .image import ImageGate, SafeImage, register_image_purpose, unregister_image_purpose
+    from .payload import PurposeError, SafePayload
+    from .testing import LogCapture
+
+    seeds = list(seeds)
+    with _isolated_data_dir():
+        from ._paths import data_dir
+
+        root = data_dir()
+        tmpmon = root / "_tmpmon"
+        tmpmon.mkdir(parents=True, exist_ok=True)
+        old_tmp = tempfile.tempdir
+        tempfile.tempdir = str(tmpmon)
+        stats: dict[str, Any] = {"runs": 0, "attempts": 0, "refused_before_send": 0, "failed_calls": 0, "output_rejected": 0,
+                                 "port_calls_when_blocked": 0, "unattended_real_screen_attempts": 0, "unattended_real_screen_sent": 0,
+                                 "residue": [], "log_records": 0, "error_messages": 0, "files_scanned": 0}
+        flows_run: list[str] = []
+        try:
+            for seed in seeds:
+                pi = plant_image(seed)
+                errors: list[str] = []
+                with LogCapture() as logs:
+                    def attempt(name: str, fn: Any) -> None:
+                        stats["runs"] += 1
+                        stats["attempts"] += 1
+                        if name not in flows_run:
+                            flows_run.append(name)
+                        try:
+                            fn()
+                        except Exception as exc:     # every refusal and failure is expected here; keep only its text for the scan
+                            errors.append(f"{type(exc).__name__}: {exc}")
+
+                    open_gate = ImageGate(True, False, False, False)
+                    attempt("sent_real_screen", lambda: send_image("glance.screen_state", pi.safe_image(), _GOOD_GLANCE, gate=open_gate,
+                                                                   port=CapturingPort().with_usage(input_tokens=300, output_tokens=30, cost_estimate_usd=0.0002)))
+                    attempt("sent_sandbox_unattended", lambda: send_image(
+                        "verify.agent_run", pi.safe_image("verify", "sandbox"), {"check": "page_shows_result"},
+                        gate=ImageGate(False, False, False, True, "sandbox"), port=CapturingPort()))
+                    for gate in (ImageGate(False, False, False, False), ImageGate(True, True, False, False), ImageGate(True, False, True, False),
+                                 ImageGate(True, False, False, True)):
+                        port = CapturingPort()
+                        if gate.unattended:
+                            stats["unattended_real_screen_attempts"] += 1
+                        attempt(f"blocked_{gate.reason()}", lambda g=gate, p=port: send_image("glance.screen_state", pi.safe_image(), _GOOD_GLANCE, gate=g, port=p))
+                        stats["port_calls_when_blocked"] += len(port)
+                        if gate.unattended:
+                            stats["unattended_real_screen_sent"] += len(port)
+
+                    class _Boom(CapturingPort):
+                        def vision(self, image, prompt, schema=None):  # noqa: A003
+                            raise RuntimeError("upstream said " + base64.b64encode(image[:60]).decode() + " " + repr(image[:40]))
+
+                    attempt("provider_fails", lambda: send_image("glance.screen_state", pi.safe_image(), _GOOD_GLANCE, gate=open_gate, port=_Boom()))
+                    attempt("answer_with_free_text", lambda: send_image(
+                        "glance.screen_state", pi.safe_image(), _GOOD_GLANCE, gate=open_gate,
+                        port=CapturingPort().script("vision", {"app_kind": pi.token, "task_phase": "start", "blocker": "none", "confidence": 1})))
+                    attempt("free_text_beside_frame", lambda: send_image("glance.screen_state", pi.safe_image(), {**_GOOD_GLANCE, "mode": pi.token},
+                                                                         gate=open_gate, port=CapturingPort()))
+                    attempt("frame_too_large", lambda: SafeImage(pi.data + b"\x00" * (410 * 1024), "glance"))
+                    attempt("declared_size_lies", lambda: SafeImage(pi.data, "glance", width=7, height=7))
+                    logging.getLogger("understudy.privacy.eval").info("image flows done for one planted frame (%s)", "capture is live")
+                rows = ledger.read_all()
+                for r in rows:
+                    if set(r) - IMAGE_ROW_KEYS or (r.get("image") and set(r["image"]) - IMAGE_META_KEYS):
+                        stats["residue"].append(f"seed {seed}: a ledger row has a field outside the allowed set")
+                stats["log_records"] += len(logs.texts)
+                stats["error_messages"] += len(errors)
+                found = scan_image_residue(pi, paths=[root, ], texts=logs.texts + errors + [json.dumps(rows)])
+                found = [f for f in found if "_tmpmon" not in f]
+                stats["residue"].extend(f"seed {seed}: {f}" for f in found)
+                stats["files_scanned"] += sum(1 for p in root.rglob("*") if p.is_file())
+                left = [p.name for p in tmpmon.iterdir()]
+                if left:
+                    stats["residue"].append(f"seed {seed}: {len(left)} temporary file(s) left behind")
+            rows = ledger.read_all()
+            image_rows = [r for r in rows if r.get("kind") == "image"]
+            blocked: dict[str, int] = {}
+            for r in image_rows:
+                if r.get("status") == "blocked":
+                    blocked[str(r["reason"])] = blocked.get(str(r["reason"]), 0) + 1
+            by_status: dict[str, int] = {}
+            for r in image_rows:
+                by_status[str(r.get("status"))] = by_status.get(str(r.get("status")), 0) + 1
+            physical = [json.loads(x) for x in (root / "egress_ledger.jsonl").read_text().splitlines() if x.strip()] if (root / "egress_ledger.jsonl").exists() else []
+            one_row_per_call = len(image_rows) == sum(1 for x in physical if x.get("kind") == "image")
+
+            controls: list[dict[str, Any]] = []
+
+            def control(name: str, expected: str, fn: Any) -> None:
+                try:
+                    observed, ok = fn()
+                except Exception as exc:  # pragma: no cover
+                    observed, ok = f"control raised {type(exc).__name__}", False
+                controls.append({"name": name, "expected": expected, "observed": observed, "passed": bool(ok)})
+
+            ctl = plant_image(99)
+
+            def log_dump() -> tuple[str, bool]:
+                with LogCapture() as lc:
+                    logging.getLogger("control").info("frame %s", base64.b64encode(ctl.data).decode())
+                f = scan_image_residue(ctl, texts=lc.texts)
+                return (f"{len(f)} hit(s)", bool(f))
+
+            def file_dump() -> tuple[str, bool]:
+                p = root / "_control_dump.bin"
+                p.write_bytes(ctl.data)
+                try:
+                    f = scan_image_residue(ctl, paths=[root])
+                finally:
+                    p.unlink()
+                return (f"{len(f)} hit(s)", bool(f))
+
+            def hash_in_name() -> tuple[str, bool]:
+                p = root / f"{hashlib.sha256(ctl.data).hexdigest()}.cache"
+                p.write_text("x")
+                try:
+                    f = scan_image_residue(ctl, paths=[root])
+                finally:
+                    p.unlink()
+                return (f"{len(f)} hit(s)", bool(f))
+
+            def tmp_file() -> tuple[str, bool]:
+                fd, name = tempfile.mkstemp()
+                os.write(fd, ctl.data)
+                os.close(fd)
+                left = os.listdir(tmpmon)
+                os.unlink(name)
+                return (f"{len(left)} temporary file(s) seen", len(left) == 1)
+
+            def free_schema() -> tuple[str, bool]:
+                class P(SafePayload):
+                    n: int = 0
+
+                bad = {"type": "object", "additionalProperties": False, "properties": {"text": {"type": "string"}}, "required": ["text"]}
+                try:
+                    register_image_purpose("control.free_text", P, response_schema=bad, kinds=("glance",))
+                except PurposeError:
+                    return ("PurposeError at registration", True)
+                unregister_image_purpose("control.free_text")
+                return ("registered", False)
+
+            def unattended_real() -> tuple[str, bool]:
+                class Remote:
+                    name = "gemini"
+                    calls = 0
+
+                    def vision(self, *a, **k):
+                        Remote.calls += 1
+                        return {}
+
+                ok = True
+                for consent, deny, secure in itertools.product([True, False], repeat=3):
+                    try:
+                        send_image("glance.screen_state", ctl.safe_image(), _GOOD_GLANCE, gate=ImageGate(consent, deny, secure, True), port=Remote())
+                        ok = False
+                    except ImageBlocked as exc:
+                        ok = ok and exc.reason == "unattended"
+                return (f"8 combinations blocked, provider calls: {Remote.calls}", ok and Remote.calls == 0)
+
+            def source_mismatch() -> tuple[str, bool]:
+                try:
+                    send_image("verify.agent_run", ctl.safe_image("verify", "sandbox"), {"check": "form_saved"}, gate=ImageGate(True, False, False, False), port=CapturingPort())
+                except ImageRejected:
+                    return ("ImageRejected", True)
+                return ("sent", False)
+
+            control("a frame dumped into a log record as base64 is found by the residue scan", "found", log_dump)
+            control("a frame written into the data directory is found", "found", file_dump)
+            control("a file named by the frame's full hash is found", "found", hash_in_name)
+            control("a temporary file holding a frame is seen by the temp-file check", "seen", tmp_file)
+            control("an image purpose whose answer could carry free text cannot be registered", "PurposeError", free_schema)
+            control("unattended + real_screen never reaches a provider, with or without consent", "blocked in 8 of 8", unattended_real)
+            control("an image declaring a different source than its gate is refused", "ImageRejected", source_mismatch)
+
+            gate_cases = fails = 0
+            for source in ("real_screen", "sandbox"):
+                for consent, deny, secure, unattended in itertools.product([True, False], repeat=4):
+                    gate_cases += 1
+                    fails += 0 if ImageGate(consent, deny, secure, unattended, source).reason() == _gate_reference(consent, deny, secure, unattended, source) else 1
+            gate_cases += 1
+            fails += 0 if all(ImageGate(c, d, s, True).reason() == "unattended" for c, d, s in itertools.product([True, False], repeat=3)) else 1
+            summary = ledger.summary()["images"]
+        finally:
+            tempfile.tempdir = old_tmp
+    from . import guard as _guard
+
+    prov = _guard.scan_provider_endpoints()
+    claims = _guard.scan_sandbox_claims()
+    return {
+        "runs": stats["runs"], "seeds": len(seeds), "flows": flows_run, "frames_planted": len(seeds),
+        "sent": by_status.get("ok", 0), "blocked_by_reason": dict(sorted(blocked.items())), "provider_failed": by_status.get("failed", 0),
+        "output_rejected": by_status.get("output_rejected", 0),
+        "unattended_real_screen": {"attempts": stats["unattended_real_screen_attempts"], "reached_a_provider": stats["unattended_real_screen_sent"]},
+        "provider_calls_after_a_block": stats["port_calls_when_blocked"],
+        "leaks": len(stats["residue"]), "leak_details": stats["residue"][:10],
+        "scanned": {"data_dir_files": stats["files_scanned"], "log_records": stats["log_records"], "error_messages": stats["error_messages"],
+                    "ledger_rows": len(rows), "temp_dir": "empty after every seed" if not any("temporary file" in r for r in stats["residue"]) else "files left"},
+        "ledger": {"image_rows": len(image_rows), "one_row_per_call": one_row_per_call, "physical_lines": len(physical),
+                   "rows_with_disallowed_fields": len([r for r in stats["residue"] if "outside the allowed set" in r]), "summary": summary},
+        "gate": {"cases": gate_cases, "failures": fails},
+        "controls": controls,
+        "static_guard": {"provider_endpoint_files": len(prov.files), "provider_endpoint_violations": [str(v) for v in prov.violations],
+                         "sandbox_claim_files": len(claims.files), "sandbox_claim_violations": [str(v) for v in claims.violations],
+                         "ts_provider_references": _guard.ts_provider_references()},
+        "caveats": IMAGE_CAVEATS,
+    }
+
+
 # ----------------------------------------------------------------------------------------------------- the evaluation
 @contextlib.contextmanager
 def _isolated_data_dir() -> Iterable[None]:
@@ -537,6 +829,43 @@ LIMITATIONS = [
      "text": "The ledger is a plain local file the worker can clear (the clear is itself counted). It records what the guard sent; it cannot "
              "record what a module sends by bypassing the guard, which is what the static guard and the canary flows are for."},
 ]
+
+
+def coverage_table(layers: dict[str, dict[str, Any]], rows: list[dict[str, Any]], guard_rep: Any, runtime_rep: Any,
+                   image_layer_flows: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+    """One row per guarded layer for the Evidence map: is the directory there, how many of its files the static guard read and with how
+    many violations, and whether a real-code canary flow was run for it. ``registered`` = the layer supplied its own flow; ``adapter`` =
+    the privacy layer wraps the layer's real entry point; ``pure_compute`` = no model or network path by rule (the static guard is the
+    control); ``none_registered`` is a gap and is never counted as covered; ``not_present`` = the directory does not exist yet."""
+    out: list[dict[str, Any]] = []
+    image_layer_flows = image_layer_flows or []
+    for layer in guard.GUARDED_DIRS:
+        info = layers.get(layer, {"status": "not_checked", "flows": []})
+        present = (guard.ENGINE_PKG / layer).is_dir()
+        files = [f for f in guard_rep.files if f.startswith(layer + "/")]
+        viol = [v for v in guard_rep.violations if v.file.startswith(layer + "/")]
+        mine = [r for r in rows if r["flow"] in info.get("flows", []) and r["kind"] == "integration"]
+        img_mine = [f for f in image_layer_flows if f["flow"] in info.get("image_flows", [])]
+        status = info["status"] if present else "not_present"
+        out.append({
+            "layer": layer, "present": present, "pure_compute": layer in guard.PURE_COMPUTE_DIRS, "files_scanned": len(files),
+            "static_guard_violations": len(viol), "canary_flow": status, "flows": [r["flow"] for r in mine],
+            "registered_by_layer": status == "registered", "real_code_flow": status in ("registered", "adapter") and bool(mine or img_mine),
+            "image_flows": [f["flow"] for f in img_mine], "image_runs": sum(f["runs"] for f in img_mine),
+            "image_residue": sum(f["residue"] for f in img_mine),
+            "runs": sum(r["seeds"] for r in mine), "requests": sum(r["requests"] for r in mine), "planted": sum(r["planted"] for r in mine),
+            "leaked": sum(r["leaked"] for r in mine), "note": info.get("note"),
+        })
+    rt_files = list(runtime_rep.files)
+    out.append({
+        "layer": "agent_runtime", "present": bool(rt_files), "pure_compute": False, "files_scanned": len(rt_files),
+        "static_guard_violations": len(runtime_rep.violations), "canary_flow": "none_registered" if rt_files else "not_present", "flows": [],
+        "registered_by_layer": False, "real_code_flow": False, "image_flows": [], "image_runs": 0, "image_residue": 0, "runs": 0,
+        "requests": 0, "planted": 0, "leaked": 0,
+        "note": "services/agent runtime: plans through egress.send and records worker-requested calls; its own leak tests live in "
+                "services/agent/tests/runtime and are not run by this evaluation",
+    })
+    return out
 
 
 def evaluate_privacy(*, seeds: Iterable[int] = tuple(range(8)), record: bool = True, extra_flows: Iterable[CanaryFlow] = (),
@@ -586,19 +915,38 @@ def evaluate_privacy(*, seeds: Iterable[int] = tuple(range(8)), record: bool = T
 
     guard_rep = guard.scan_tree()
     runtime_rep = guard.scan_runtime()
+    image_block = image_evaluation()
+    image_layer_flows: list[dict[str, Any]] = []
+    if discover:
+        with _isolated_data_dir():
+            for fl in discover_image_flows():
+                res = [image_canary_flow(fl.name, fl.run, seed=sd, strict=False) for sd in seeds]
+                image_layer_flows.append({"flow": fl.name, "layer": fl.layer, "runs": len(res), "requests": sum(x["requests"] for x in res),
+                                          "residue": sum(len(x["residue"]) for x in res), "residue_details": [d for x in res for d in x["residue"]][:5]})
+    image_block["layer_flows"] = image_layer_flows
+    image_block["leaks"] += sum(f["residue"] for f in image_layer_flows)
+    image_block["runs"] += sum(f["runs"] for f in image_layer_flows)
     props = bucketing_properties()
     sensitivity = scan_sensitivity()
     specificity = scan_specificity()
     corpus = backstop_corpus()
     total = agg(None)
     not_covered = [layer for layer, v in layers.items() if v["status"] in ("none_registered", "error")]
+    coverage = coverage_table(layers, rows, guard_rep, runtime_rep, image_layer_flows)
+    cov_summary = {
+        "layers": len([c for c in coverage if c["layer"] != "agent_runtime"]),
+        "with_real_code_flow": [c["layer"] for c in coverage if c["real_code_flow"]],
+        "pure_compute": [c["layer"] for c in coverage if c["canary_flow"] == "pure_compute"],
+        "not_present": [c["layer"] for c in coverage if c["canary_flow"] == "not_present"],
+        "gaps": [c["layer"] for c in coverage if c["canary_flow"] in ("none_registered", "error", "not_checked")],
+    }
     data = {
         "meta": {"origin": "synthetic", "n": total["planted"], "n_unit": "tokens", "split": None, "interval_level": 0.95,
                  "note": ("Synthetic fixtures with planted canaries, a capturing fake model port, an isolated data directory. "
                           f"{len(seeds)} seeds per flow. Reference flows test the guard; integration flows test a layer's real code."),
                  "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")},
         "headline": {**total, "controls_passed": sum(1 for c in controls if c["passed"]), "controls_total": len(controls),
-                     "layers_without_integration_flows": not_covered,
+                     "layers_without_integration_flows": not_covered, "coverage_summary": cov_summary,
                      "artifact_files_scanned": total["artifact_files_scanned"], "artifact_leaked": total["artifact_leaked"],
                      "bucketing_failures": sum(r["failures"] for r in props), "bucketing_cases": sum(r["cases"] for r in props),
                      "static_guard_violations": len(guard_rep.violations) + len(runtime_rep.violations),
@@ -606,12 +954,16 @@ def evaluate_privacy(*, seeds: Iterable[int] = tuple(range(8)), record: bool = T
                      "vocabulary_problems": len(vocabulary_problems()),
                      "purposes_registered": len([p for p in all_purposes() if not p.startswith("control.")]),
                      "backstop_must_catch": f"{corpus['must_catch_caught']}/{corpus['must_catch_total']}",
+                     "image_runs": image_block["runs"], "image_leaks": image_block["leaks"],
+                     "image_blocked_by_reason": image_block["blocked_by_reason"],
+                     "image_controls_passed": f"{sum(1 for c in image_block['controls'] if c['passed'])}/{len(image_block['controls'])}",
                      "scan_detects_known_rewrites": f"{sensitivity['detected']}/{sensitivity['cases']}",
                      "scan_false_positives": specificity["false_positives"],
                      "backstop_false_positives": corpus["ordinary_false_positives"] + corpus["hashed_id_false_positives"]},
         "by_kind": {"reference": agg("reference"), "integration": agg("integration")},
         "flows": rows,
         "layers": layers,
+        "coverage": coverage,
         "negative_controls": controls,
         "bucketing": props,
         "backstop": corpus,
@@ -621,9 +973,10 @@ def evaluate_privacy(*, seeds: Iterable[int] = tuple(range(8)), record: bool = T
                          "runtime": {"files": len(runtime_rep.files), "violations": [str(v) for v in runtime_rep.violations],
                                      "rule": "no provider SDK or network client; every visible direct model call records a metadata-only ledger line"}},
         "ledger": {"lines_written_during_evaluation": ledger_lines_total},
+        "image": image_block,
         "purposes": [p.public() for p in all_purposes().values() if not p.name.startswith("control.")],
         "vocabulary_problems": vocabulary_problems(),
-        "limitations": LIMITATIONS,
+        "limitations": LIMITATIONS + IMAGE_CAVEATS,
     }
     if record:
         for r in rows:

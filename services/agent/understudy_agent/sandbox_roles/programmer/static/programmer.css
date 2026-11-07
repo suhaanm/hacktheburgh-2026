@@ -1,0 +1,59 @@
+:root {
+  --bg: #f6f6f3; --panel: #ffffff; --ink: #1d1d1f; --muted: #6b6b70; --line: #dcdcd6; --accent: #1f5fbf; --accent-ink: #ffffff;
+  --ok: #1a7f4b; --bad: #b3261e; --warn: #8a5a00; --code-bg: #f1f1ec; --focus: #1f5fbf;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161618; --panel: #1f1f22; --ink: #ececec; --muted: #9a9aa0; --line: #38383d; --accent: #6ea2f0; --accent-ink: #0c1626;
+    --ok: #53c68a; --bad: #f2827a; --warn: #e0b052; --code-bg: #26262a; --focus: #6ea2f0;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161618; --panel: #1f1f22; --ink: #ececec; --muted: #9a9aa0; --line: #38383d; --accent: #6ea2f0; --accent-ink: #0c1626;
+  --ok: #53c68a; --bad: #f2827a; --warn: #e0b052; --code-bg: #26262a; --focus: #6ea2f0;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 -apple-system, "Segoe UI", system-ui, sans-serif; }
+body { padding: 16px; }
+main#app { max-width: 1280px; margin: 0 auto; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+h1 { font-size: 20px; margin: 0; font-weight: 650; }
+h2 { font-size: 13px; margin: 0 0 8px; color: var(--muted); font-weight: 600; letter-spacing: .02em; text-transform: uppercase; }
+.chip { padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); font-size: 13px; color: var(--muted); }
+.chip[data-state="pass"] { color: var(--ok); border-color: var(--ok); }
+.chip[data-state="fail"] { color: var(--bad); border-color: var(--bad); }
+.grid { display: grid; gap: 12px; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); grid-template-areas: "ticket ticket" "files run" "files probe" "files extras" "git git" "finish finish"; }
+.v2 .grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); grid-template-areas: "ticket ticket" "run files" "probe files" "extras files" "git finish" "git finish"; }
+.ticket { grid-area: ticket; } .files { grid-area: files; } .run { grid-area: run; } .probe { grid-area: probe; } .extras { grid-area: extras; } .git { grid-area: git; } .finish { grid-area: finish; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.ticket p { margin: 0 0 6px; } .ticket p:last-child { margin: 0; }
+ul { list-style: none; margin: 0; padding: 0; }
+#file-tree { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 6px 12px; }
+button:hover { border-color: var(--accent); }
+button:disabled { opacity: .55; cursor: default; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+button.danger { color: var(--bad); border-color: var(--bad); background: transparent; }
+button.file { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; padding: 4px 9px; }
+button.file.open { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+button.file.dirty::after { content: " \25CF"; color: var(--warn); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+textarea#editor { width: 100%; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; resize: vertical; min-height: 260px; }
+input[type="text"], input:not([type]), input[id] { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--code-bg); min-width: 0; }
+input[type="checkbox"] { margin-right: 6px; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.row input { flex: 1 1 14rem; }
+pre { margin: 0; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--code-bg); border-radius: 8px; padding: 10px; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; }
+#test-output { min-height: 90px; }
+details { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; }
+summary { cursor: pointer; font-weight: 600; }
+details pre { margin-top: 8px; }
+.hint { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+#changes li { padding: 3px 0; } .none { color: var(--muted); }
+#git-log { margin: 8px 0 0; padding-left: 22px; color: var(--muted); font-size: 13px; }
+#case-done { color: var(--ok); font-weight: 600; margin: 8px 0 0; }
+@media (max-width: 900px) {
+  .grid, .v2 .grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "ticket" "files" "run" "probe" "extras" "git" "finish"; }
+  body { padding: 12px; }
+}

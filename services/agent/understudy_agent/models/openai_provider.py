@@ -19,6 +19,7 @@ import threading
 from dataclasses import dataclass
 from typing import Any
 
+from . import coverage
 from ..security.sanitize import is_wrapped, sanitize_untrusted, wrap_untrusted
 from .config import ModelIds, effort_for
 from .errors import ConfigError, ModelRefusal, ProviderError, SchemaViolation
@@ -136,6 +137,7 @@ class OpenAIProvider:
         self._no_reasoning: set[str] = set()
         self.stats: dict[str, Any] = {"calls": 0, "input_tokens": 0, "output_tokens": 0, "by_role": {}}
         self.last_step: dict[str, Any] = {}
+        coverage.register(self)
 
     # ------------------------------------------------------------------ plumbing
     @property
