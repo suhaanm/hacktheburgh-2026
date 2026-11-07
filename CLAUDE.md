@@ -26,6 +26,7 @@ A system that watches how people work, shows where a novice loses time against a
 **Safety and privacy**
 - Never commit `.env`, keys or personal data. Never print the API key.
 - Logs and memory stay on the device. L0 capture stores no page text, no URLs, no field values. Never record fields listed in `packages/schema/sensitive_fields.json`.
+- **Screen frames (REQ-5, owner decision D30):** a frame is held in memory for one call and never written to disk or logs. Frames leave the device only through the egress guard and ledger (size, hash, model, latency; never the image), only when the worker opted in, never from a denylisted app or while secure input is on, and never in an unattended run. The Gemini key lives only in `.env` and main-process code; renderers get ephemeral tokens.
 - **No allowlists.** The agent may go anywhere. The worker keeps an optional denylist. The eight security layers in the implementation spec are mandatory, and mostly code, not model judgement.
 - **The model proposes, code decides.** Levels, permissions, promotion, routing and gates are deterministic code.
 - Every automation is opt-in. Irreversible actions during unattended runs need a per-routine opt-in by the worker.

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" width="18" height="18" role="img" aria-label="Understudy">
+  <!-- macOS menu-bar template image: pure black on transparent; macOS recolours it for light, dark and highlighted bars. -->
+  <circle cx="10.6" cy="10.4" r="4.4" fill="none" stroke="#000" stroke-width="1.5"/>
+  <circle cx="7.4" cy="7.6" r="4.4" fill="#000"/>
+</svg>

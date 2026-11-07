@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Understudy">
+  <!-- App icon: ink tile, a solid disc (the worker) and a teal ring offset behind-right (the understudy shadowing them). -->
+  <rect width="128" height="128" rx="28" fill="#0e1319"/>
+  <circle cx="76" cy="72" r="22" fill="none" stroke="#4fd1c5" stroke-width="7"/>
+  <circle cx="54" cy="56" r="22" fill="#e7ebf1"/>
+</svg>
