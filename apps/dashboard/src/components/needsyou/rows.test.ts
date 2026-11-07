@@ -11,7 +11,7 @@ import { AWAY_TEXT, WATCH_TEXT } from "../routines/consent";
 import { RunningRow } from "../routines/RunningRow";
 import { ApprovalRow } from "./ApprovalRow";
 import { PreparedRow } from "./PreparedRow";
-import { ProposalRow } from "./ProposalRow";
+import { MoreWays, ProposalRow } from "./ProposalRow";
 
 const queue = (queueFx as unknown as { data: QueueItem[] }).data;
 const routines = (routinesFx as unknown as { data: Routine[] }).data;
@@ -51,15 +51,24 @@ describe("a routine proposal", () => {
     for (const label of ["Watch first", "Not now", "Never"]) expect(html).toMatch(new RegExp(`btn btn--secondary[^>]*>${label}<`));
     expect(html).not.toMatch(/btn--primary/);
   });
-  it("prints what it will never do, whole, and the consent for Watch first", () => {
+  it("prints what it will never do, whole, as its own line", () => {
     const t = text(html);
     for (const n of proposal.proposal.never) expect(t.toLowerCase()).toContain(n.charAt(0).toLowerCase() + n.slice(1).replace(/\.$/, "").toLowerCase());
     expect(t).toContain("It will never");
-    expect(t).toContain(WATCH_TEXT);
+    expect(html).toMatch(/data-testid="never"[^>]*>(<p[^>]*>)?It will never/);
+    if (proposal.proposal.never.length > 1) expect(html).toMatch(/<ul class="ny-never">/);       // several limits, one to a line
   });
-  it("keeps the other ways to say yes one click away", () => {
-    expect(text(html)).toContain("More ways to say yes");
-    expect(html).toMatch(/aria-expanded="false"/);
+  it("keeps the other ways to say yes one click away, under a short visible label with the whole name for a screen reader", () => {
+    expect(html).toMatch(/aria-label="More ways to say yes"[^>]*aria-expanded="false"[^>]*>More ways</);
+    expect(text(html)).not.toContain(WATCH_TEXT);
+    expect(html).not.toMatch(/data-testid="more-ways"/);
+  });
+  it("opened, it prints what every way of saying yes does, with the away consent next to its own button", () => {
+    const open = text(renderToStaticMarkup(createElement(MoreWays, { routine: proposal, busy: false, onApproval: noop, onDecide: async () => undefined })));
+    expect(open).toContain(WATCH_TEXT);
+    expect(open).toContain("Run with my approval");
+    expect(open).toContain(AWAY_TEXT);
+    expect(open).toContain("Allow while I'm away");
   });
   it("says the interval behind the hours is in the hint, and prints one range", () => {
     expect(text(html)).toMatch(/Could save [\d.]+ to [\d.]+ hours\./);
@@ -89,13 +98,17 @@ describe("Run while I'm away", () => {
 
 describe("a running routine", () => {
   const running = routines.find((r) => r.status === "approval")!;
-  const closed = renderToStaticMarkup(createElement(RunningRow, { routine: running, open: false, onToggle: noop, onDecide: async () => undefined, canRun: true }));
+  const closed = renderToStaticMarkup(createElement(RunningRow, { routine: running, open: false, onToggle: noop, onDecide: async () => undefined, onRun: async () => null, canRun: true }));
   const open = renderToStaticMarkup(createElement(RunningRow, { routine: running, open: true, onToggle: noop, onDecide: async () => undefined, onRun: async () => null, canRun: true }));
-  it("closed, it is one title and one sentence, and the control that opens it has no words of its own", () => {
+  it("closed, it is one title and one sentence, with Run now on the row, and the control that opens it has no words of its own", () => {
     expect(closed).toMatch(/<button[^>]*class="rt-row__open"[^>]*aria-label="[^"]+: open"[^>]*><\/button>/);
-    expect(text(closed)).not.toMatch(/Run now|Stop for good/);
+    expect(text(closed)).toContain("Run now");          // one click from the list
+    expect(text(closed)).not.toMatch(/Stop for good/);
   });
-  it("open, it offers Run now and Stop for good but no Pause (the engine has none)", () => {
+  it("without the agent route there is no Run now", () => {
+    expect(text(renderToStaticMarkup(createElement(RunningRow, { routine: running, open: false, onToggle: noop, onDecide: async () => undefined, canRun: false })))).not.toContain("Run now");
+  });
+  it("open, it offers Stop for good but no Pause (the engine has none), and Run now stays on the row", () => {
     expect(text(open)).toContain("Run now");
     expect(text(open)).toContain("Stop for good");
     expect(text(open)).not.toMatch(/\bPause\b/);

@@ -25,6 +25,8 @@ export interface SettingsViewProps {
   /** Hey Knack's switch and status from the app, or null (a browser tab, or a build without the listener). */
   wake: WakeStatus | null;
   onWake: (on: boolean) => void;
+  /** Today's counts and the held items that need the worker, with their Why? (inside Per kind). Null while it loads or when the layer is off. */
+  today?: ReactNode;
   /** The desktop app's own settings, or null in a browser tab. */
   desktop: DesktopSettings | null;
   onDesktop: (patch: Partial<DesktopSettings>) => void;
@@ -103,6 +105,7 @@ export function SettingsView(p: SettingsViewProps) {
         <div className="st-sub">
           <Details summary="Per kind" wide>
             <div className="st-kinds">
+              {p.today}
               {groups.map((g) => {
                 const fixed = g.rows.filter((r) => r.fixed);
                 const rows = g.rows.filter((r) => !r.fixed);

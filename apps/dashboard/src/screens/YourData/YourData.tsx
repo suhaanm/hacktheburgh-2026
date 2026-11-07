@@ -3,7 +3,7 @@ import { ApiError, api } from "../../api";
 import { ErrorState, Loading } from "../../components/common";
 import { AdminSees } from "../../components/yourdata/AdminSees";
 import { Measured } from "../../components/yourdata/Measured";
-import { OriginBadge, OriginDetails } from "../../components/needsyou/Origin";
+import { OriginBadge, SectionSource } from "../../components/needsyou/Origin";
 import { Remembers } from "../../components/yourdata/Remembers";
 import { Sent } from "../../components/yourdata/Sent";
 import { Switches } from "../../components/yourdata/Switches";
@@ -105,13 +105,12 @@ export default function YourData() {
   };
 
   const f = { lines: items.length, rules: (rules.data ?? []).filter((p) => p.status === "proposed").length, capture, entries, steps: stepTotal, shared: sharing.data ? sharing.data.items.length : null };
-  // The section the address names speaks first: its own source explains why the screen shows example data.
-  const sources = want === "sent" ? [ledger, mem, steps] : [mem, ledger, steps];
+  const sources = [mem, ledger, steps, sharing];
   const body: Record<Id, ReactNode> = {
-    remembers: <Remembers memory={m} proposals={rules.data ?? []} onChanged={() => { mem.reload(); rules.reload(); }} />,
-    measured: <Measured capture={capture} view={steps.data} example={exampleSteps} onExport={async () => { const x = await exportLedger("going", exampleSteps); downloadText(x.filename.replace("understudy", "knack"), x.text); }} onDelete={async () => { const n = await deleteLedger("going", exampleSteps); steps.reload(); return n; }} />,
-    sent: <Sent entries={entries} summary={summary.data} onChanged={() => { ledger.reload(); summary.reload(); }} />,
-    "admin-sees": sharing.data ? <AdminSees sharing={sharing.data} /> : <div className="yd-body"><Loading label="Loading what your admin can see" /></div>,
+    remembers: <><SectionSource why={mem.why} /><Remembers memory={m} proposals={rules.data ?? []} onChanged={() => { mem.reload(); rules.reload(); }} /></>,
+    measured: <><SectionSource why={steps.why} /><Measured capture={capture} view={steps.data} example={exampleSteps} onExport={async () => { const x = await exportLedger("going", exampleSteps); downloadText(x.filename.replace("understudy", "knack"), x.text); }} onDelete={async () => { const n = await deleteLedger("going", exampleSteps); steps.reload(); return n; }} /></>,
+    sent: <><SectionSource why={ledger.why ?? summary.why} /><Sent entries={entries} summary={summary.data} onChanged={() => { ledger.reload(); summary.reload(); }} /></>,
+    "admin-sees": sharing.data ? <><SectionSource why={sharing.why} /><AdminSees sharing={sharing.data} /></> : <div className="yd-body"><Loading label="Loading what your admin can see" /></div>,
     switches: <Switches capture={capture} onCapture={(on) => void onCapture(on)} busy={busy} glance={awareness ? glance : null} onGlance={onGlance} desktop={desktop ? dset : null} onDesktop={onDesktop} error={err} />,
   };
 
@@ -121,7 +120,6 @@ export default function YourData() {
         <h1 className="kc-title">Your data</h1>
         <OriginBadge sources={sources} />
       </div>
-      <OriginDetails sources={sources} />
 
       <div className="yd">
         {YD_SECTIONS.map((id) => (
