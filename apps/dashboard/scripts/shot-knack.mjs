@@ -36,7 +36,10 @@ for (const theme of themes) {
     await page.waitForTimeout(800);
     if (view === "admin") {
       const old = page.locator(".viewas .segmented button", { hasText: "Admin" });
-      if (await old.count()) { await old.first().click(); }
+      // At phone width the old sidebar sits behind a Menu button.
+      const menu = page.getByRole("button", { name: /^Menu$/ });
+      if (w <= 760 && (await menu.count()) && (await menu.first().isVisible())) { await menu.first().click(); await page.waitForTimeout(300); }
+      if (await old.count()) { await old.first().click(); await page.waitForTimeout(300); if (w <= 760 && (await menu.count())) { await page.keyboard.press("Escape"); const close = page.getByRole("button", { name: /^(Close|Menu)$/ }); if (await close.count() && await close.first().isVisible()) await close.first().click().catch(() => undefined); } }
       else {
         await page.locator("[data-account], .acct, button[aria-label*='ccount' i]").first().click();
         await page.getByRole("menuitemradio", { name: /admin/i }).or(page.getByRole("menuitem", { name: /admin/i })).or(page.getByRole("button", { name: /view as admin|^admin$/i })).first().click();
