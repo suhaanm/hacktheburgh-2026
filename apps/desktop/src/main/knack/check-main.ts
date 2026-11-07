@@ -64,7 +64,11 @@ function fakeService(name: string, health: () => unknown): Promise<{ server: htt
         }
         if (req.url === '/health') return send(health())
         if (req.url?.startsWith('/agents/runs')) return send([])
-        send({ ok: true, echo: req.url })
+        if (req.method === 'POST') return send({ ok: true, echo: req.url })
+        // A route the stand-in does not know is a plain 404, as a service that is up but has not that layer: the dashboard then shows its example data
+        // instead of choking on a made-up shape.
+        res.statusCode = 404
+        send({ error: { code: 'not_found', message: 'stand-in' } })
       })
     })
     server.listen(0, '127.0.0.1', () => resolve({ server, port: (server.address() as { port: number }).port }))

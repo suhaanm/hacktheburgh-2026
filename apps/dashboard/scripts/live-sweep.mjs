@@ -5,9 +5,10 @@
 import { chromium } from "playwright";
 
 const base = process.argv[2] ?? "http://127.0.0.1:5173";
-const WORKER = ["home", "growth", "repeats", "routines", "queue", "privacy", "genome", "presence", "graph", "week", "git", "predictions",
-  "today", "memory", "notices", "onboarding", "briefing", "agents", "models", "evidence"];
-const ADMIN = ["firm", "firm/roles", "firm/people", "firm/onboarding", "firm/automation", "firm/risk", "firm/forecasts", "firm/brief"];
+// Canonical routes of the Knack information architecture, plus the old routes (each must redirect, not blank).
+const WORKER = ["home", "needs-you", "routines", "growth", "your-data", "genome", "presence", "graph", "week", "git", "today", "agents", "models", "evidence", "setup",
+  "queue", "briefing", "repeats", "privacy", "memory", "notices"];
+const ADMIN = ["firm", "roles", "onboarding", "forecasts", "firm/people", "firm/automation", "firm/risk", "firm/forecasts", "firm/brief"];
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: "light" });
@@ -23,6 +24,7 @@ page.on("response", (r) => {
 const rows = [];
 async function visit(route) {
   errors = []; consoleErrors = []; failed = [];
+  await page.keyboard.press("Escape").catch(() => undefined); // an old route can open the Settings sheet; close it before the next visit
   await page.evaluate((h) => { location.hash = h; }, `#/${route}`);
   await page.waitForTimeout(2200);
   const text = await page.evaluate(() => document.body.innerText);
@@ -33,7 +35,13 @@ async function visit(route) {
 await page.goto(`${base}/#/home`);
 await page.waitForTimeout(2500);
 for (const r of WORKER) await visit(r);
-await page.locator(".viewas .segmented button", { hasText: "Admin" }).click();
+await page.keyboard.press("Escape").catch(() => undefined);
+await page.evaluate(() => { location.hash = "#/home"; });
+await page.waitForTimeout(800);
+// The View as switch lives in the Account menu now (two clicks the first time).
+await page.getByRole("button", { name: /^Account/ }).first().click();
+await page.getByRole("menuitemradio", { name: /^Admin$/ }).first().click();
+await page.waitForTimeout(800);
 for (const r of ADMIN) await visit(r);
 await browser.close();
 

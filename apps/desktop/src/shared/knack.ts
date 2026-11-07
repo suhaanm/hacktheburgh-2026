@@ -29,11 +29,29 @@ export interface KnackModelsState {
 }
 export type KnackModelsSetResult = { ok: true } | { ok: false; reason: 'no_key' | 'running' | 'bad_request' }
 
+/** Hey Knack's status for the Settings row: the worker's switch, whether it is listening, and the one plain line to print under it. */
+export interface KnackWakeStatus {
+  switchOn: boolean
+  listening: boolean
+  line: string
+}
+/** What the shell may report for the voice conversation's context packet: ids and counts only (validated again in main). */
+export interface KnackWakeContext {
+  insight?: { id: string; template: string } | null
+  routine?: { id: string; step: number; of: number } | null
+}
+
 export interface KnackShellApi {
   get(): Promise<ShellUiState>
   onState(cb: (s: ShellUiState) => void): () => void
   retry(): void
   platform: string
+  /** Hey Knack's status and switch (absent in a build without the listener). */
+  wake?: {
+    state(): Promise<KnackWakeStatus>
+    set(listen: boolean): Promise<KnackWakeStatus>
+    context(c: KnackWakeContext): Promise<boolean>
+  }
   models: {
     get(): Promise<KnackModelsState>
     /** Changing it restarts the app (the model port is built once, at start): about 20 seconds. */
