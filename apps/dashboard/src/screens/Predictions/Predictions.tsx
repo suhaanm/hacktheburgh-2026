@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { PageHead } from "../../components/common";
 import { ScorecardView, useScorecard } from "../../components/firm/ScorecardPanel";
-import { APP_NAME } from "../../brand";
 
 /**
  * Predictions: how well we forecast the moments when someone gets stuck. One hero (the reliability diagram), then the comparison with
@@ -10,7 +9,7 @@ import { APP_NAME } from "../../brand";
  */
 export default function Predictions() {
   const { load, read } = useScorecard();
-  useEffect(() => { document.title = `Predictions · ${APP_NAME}`; }, []);
+  useEffect(() => { document.title = "Predictions · Understudy"; }, []);
   return (
     <div className="page page--wide">
       <PageHead eyebrow="Details" title="Predictions" lede="How well we forecast the moments when someone gets stuck." />

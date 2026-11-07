@@ -1,12 +1,11 @@
 // Pure words for the worker home: the title, the week label and the one line about repeated work. Numbers come from the data; the words are fixed.
 import type { WireWorker } from "../../components/firm/wire";
-import { APP_NAME } from "../../brand";
 
 const COUNT_WORD = ["No", "One", "Two", "Three"];
 
 /** The page title. A week with nothing to say says so plainly, and a new person is told what is happening instead of shown an empty page. */
 export function homeTitle(status: string, shown: number): string {
-  if (status === "onboarding") return `${APP_NAME} is getting to know your work`;
+  if (status === "onboarding") return "Understudy is getting to know your work";
   if (status === "no_data") return "There is nothing to show yet";
   if (status === "stale") return "These numbers are not fresh";
   if (status === "role_changed") return "Your role changed, so we are starting again";
@@ -18,7 +17,7 @@ export function homeTitle(status: string, shown: number): string {
 export function quietBody(status: string): string {
   if (status === "onboarding") return "It needs a few more days of your normal work before it can say anything useful. You do not have to do anything extra.";
   if (status === "no_data") return "No steps from your role have been counted yet. Nothing was lost; there is simply nothing to compare.";
-  if (status === "stale") return `Some of the sources are out of date, so ${APP_NAME} is saying nothing rather than something old.`;
+  if (status === "stale") return "Some of the sources are out of date, so Understudy is saying nothing rather than something old.";
   if (status === "role_changed") return "Pointers start again for a new role, so you are not compared with your old one.";
   return "That is a normal result: none of your numbers moved far enough to be worth your time.";
 }

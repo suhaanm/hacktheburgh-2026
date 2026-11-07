@@ -4,7 +4,6 @@ import { Details } from "../ui";
 import { loadWhy, sendFeedback, type FeedbackEvent } from "../../screens/Home/data";
 import type { Loaded } from "../../api";
 import { PolarityGlyph, lookOfPolarity } from "./PolarityGlyph";
-import { APP_NAME } from "../../brand";
 
 /** The link a pointer's one action opens. */
 export const pointerHref = (a: NonNullable<WirePointer["action"]>): string => `#/${a.to}${a.query ? `?${a.query}` : ""}`;
@@ -41,7 +40,7 @@ function Why({ p, person, onGone }: { p: WirePointer; person: string | null; onG
           {why.because.length > 0 && <ul>{why.because.map((b) => <li key={b}>{b}</li>)}</ul>}
           {why.sources.length > 0 && <p className="home__source">Source: {why.sources.map((s) => s.label).join(", ")}</p>}
           {why.limits.length > 0 && <ul className="home__limits">{why.limits.map((l) => <li key={l}>{l}</li>)}</ul>}
-          <div className="home__tell" role="group" aria-label={`Tell ${APP_NAME} how this landed`}>
+          <div className="home__tell" role="group" aria-label="Tell Understudy how this landed">
             {said ? <p role="status" className="home__said">{said}</p> : (
               <>
                 <button type="button" className="btn btn--quiet btn--sm" onClick={() => tell("useful", "Noted. This kind of pointer stays.")}>Useful</button>

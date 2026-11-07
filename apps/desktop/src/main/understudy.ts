@@ -105,6 +105,9 @@ export interface UnderstudyDeps {
   onPageContent?: (rects: Rect[]) => void
   // Every poll of the agent service (the Knack pill reads the supervisor and run states from it: one poll, two readers).
   onAgentSample?: (sample: { health: unknown; runs: unknown }) => void
+  // KNACK: the corner column is in charge of the HUD (bottom-right pill and card), and the shell hears when an agent of this app is acting on the worker's own screen.
+  corner?: boolean
+  onLocalActing?: (acting: boolean) => void
 }
 
 /** After the services, the session and the confirm broker exist: the kill switch, the HUD and the desk signals. */
@@ -176,9 +179,10 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
     // 'look' already opened the dashboard. The scheduler remembers the choice and sends declines to the engine (a decline is a label).
     onProposalChoice: (id, choice) => proposals?.choice(id, choice),
     push: () => hudPush(),
+    corner: deps.corner,
     log: ctx.log,
   })
-  const hud = registerHud({ model: hudModel, log: ctx.log, disabled: deps.headless || deps.noOverlay })
+  const hud = registerHud({ model: hudModel, log: ctx.log, disabled: deps.headless || deps.noOverlay, corner: deps.corner })
   hudPush = hud.push
   // The Stop all pill is on screen only while something acts for the person: a running agent, or a Live session (voice, flagged off).
   const ACTIVE_PHASES = new Set(['connecting', 'live', 'thinking', 'speaking'])
@@ -188,7 +192,11 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
   }
   // ...or a run of the agent service (background, shadow, benefits): read-only polling of its supervisor and run list.
   let serviceActing = false
-  const refreshActing = (): void => hudModel.setAgentActing(actingNow() || serviceActing)
+  const localAgentsRunning = (): boolean => (ctx.state.get().agents ?? []).some((a) => a.status === 'running')
+  const refreshActing = (): void => {
+    hudModel.setAgentActing(actingNow() || serviceActing)
+    deps.onLocalActing?.(localAgentsRunning())
+  }
   refreshActing()
   const offActing = ctx.state.subscribe(refreshActing)
   const agentActivity = createAgentActivity({

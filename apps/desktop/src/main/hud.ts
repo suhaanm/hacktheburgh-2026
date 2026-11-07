@@ -5,7 +5,7 @@ import path from 'node:path'
 import { BrowserWindow, ipcMain, screen } from 'electron'
 import { HUD_IPC } from '../shared/hud'
 import type { HudModel } from './hud-model'
-import { hudBounds } from './hud-model'
+import { cornerBounds, hudBounds } from './hud-model'
 import { WINDOW_TITLES } from '../shared/brand'
 
 export interface HudDeps {
@@ -13,6 +13,10 @@ export interface HudDeps {
   log: (scope: string, ...args: unknown[]) => void
   disabled?: boolean // ALONGSIDE_HEADLESS / ALONGSIDE_NO_OVERLAY
   capturable?: boolean // ALONGSIDE_OVERLAY_CAPTURABLE=1 (demo recording)
+  // KNACK: the corner column: bottom-right, 16 px in, on the display where the pointer was when the pill or a card first appeared (it stays there until the column is empty).
+  corner?: boolean
+  // The hidden check: the window is created, sized and painted but never shown.
+  hidden?: boolean
 }
 
 export interface HudHandle {
@@ -34,9 +38,20 @@ export function registerHud(deps: HudDeps): HudHandle {
   if (disabled) return { push: () => undefined, window: () => null, png: async () => null, preview: async () => undefined, dispose: () => undefined }
   const capturable = deps.capturable ?? env.ALONGSIDE_OVERLAY_CAPTURABLE === '1'
 
-  const wa = () => screen.getPrimaryDisplay().workArea
+  const corner = deps.corner === true
+  // The corner column goes to the display holding the pointer when it first appears, and stays there until it is empty again.
+  let columnDisplayId: number | null = null
+  const wa = () => {
+    if (!corner) return screen.getPrimaryDisplay().workArea
+    const displays = screen.getAllDisplays()
+    const found = columnDisplayId !== null ? displays.find((d) => d.id === columnDisplayId) : undefined
+    const chosen = found ?? screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
+    columnDisplayId = chosen.id
+    return chosen.workArea
+  }
+  const place = (size: { width: number; height: number }) => (corner ? cornerBounds(wa(), size) : hudBounds(wa(), size))
   const win = new BrowserWindow({
-    ...hudBounds(wa(), MIN),
+    ...(corner ? cornerBounds(screen.getPrimaryDisplay().workArea, MIN) : hudBounds(wa(), MIN)),
     show: false,
     frame: false,
     transparent: true,
@@ -74,10 +89,11 @@ export function registerHud(deps: HudDeps): HudHandle {
           // Nothing to show (no agent acting, nothing stopped, no proposal): the window goes away, so no invisible patch of screen
           // is left over other apps. The kill hotkey and the menu-bar item do not depend on this window.
           if (win.isVisible()) win.hide()
+          columnDisplayId = null
           return
         }
-        win.setBounds(hudBounds(wa(), { width: Math.max(MIN.width, size.w + 6), height: Math.min(MAX_HEIGHT, Math.max(MIN.height, size.h + 6)) }))
-        if (!win.isVisible()) win.showInactive()
+        win.setBounds(place({ width: Math.max(MIN.width, size.w + 6), height: Math.min(MAX_HEIGHT, Math.max(MIN.height, size.h + 6)) }))
+        if (!win.isVisible() && !deps.hidden) win.showInactive()
       })
       .catch(() => undefined)
   }

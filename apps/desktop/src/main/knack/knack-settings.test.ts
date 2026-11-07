@@ -5,9 +5,9 @@ import { applyShowInDock, registerDock } from './dock'
 
 describe('the Knack settings', () => {
   it('default to a Dock icon, minimising while a run works, and live models', () => {
-    expect(DEFAULT_SETTINGS).toMatchObject({ showInDock: true, minimiseWhileWorking: true, useLiveModels: true })
-    expect(coerceSettings({ onboardingDone: true })).toMatchObject({ showInDock: true, minimiseWhileWorking: true, useLiveModels: true }) // an older file without the keys
-    expect(coerceSettings({ showInDock: false, minimiseWhileWorking: false, useLiveModels: false })).toMatchObject({ showInDock: false, minimiseWhileWorking: false, useLiveModels: false })
+    expect(DEFAULT_SETTINGS).toMatchObject({ showInDock: true, moveAsideWhileWorking: true, useLiveModels: true })
+    expect(coerceSettings({ onboardingDone: true })).toMatchObject({ showInDock: true, moveAsideWhileWorking: true, useLiveModels: true }) // an older file without the keys
+    expect(coerceSettings({ showInDock: false, moveAsideWhileWorking: false, useLiveModels: false })).toMatchObject({ showInDock: false, moveAsideWhileWorking: false, useLiveModels: false })
   })
   it('live models can only be switched from the Settings UI: it costs money, so main drops it from every other source', () => {
     const s = new SettingsStore(null)
@@ -39,7 +39,7 @@ describe('the Dock icon', () => {
     const off = registerDock(settings, { platform: 'darwin', dock: f.dock })
     expect(f.calls).toEqual(['show'])
     settings.patch({ showInDock: false })
-    settings.patch({ minimiseWhileWorking: false }) // unrelated: nothing happens
+    settings.patch({ moveAsideWhileWorking: false }) // unrelated: nothing happens
     settings.patch({ showInDock: true })
     expect(f.calls).toEqual(['show', 'hide', 'show'])
     off()

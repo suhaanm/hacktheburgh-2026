@@ -115,8 +115,8 @@ void app.whenReady().then(async () => {
   }
   const state = new StateStore(settings.get())
   // SHELL2: the panel stays hidden unless showDock is on, setup is unfinished, or there is no menu bar item to reopen it. The window still exists and runs (mic, wake spotter, Live session).
-  // KNACK: the side panel is no longer the front door (the main window is), so it stays away until the worker asks for it.
-  const windows = createWindows({ noOverlay: flag('ALONGSIDE_NO_OVERLAY'), headless, showDockAtStart: knackWanted ? !headless && settings.get().showDock : shouldShowDockAtStart(settings.get(), headless) })
+  // KNACK: the side panel is not drawn (the main window is the front door); its hidden window stays as the host of the microphone and the Live audio.
+  const windows = createWindows({ noOverlay: flag('ALONGSIDE_NO_OVERLAY'), headless, showDockAtStart: knackWanted ? false : shouldShowDockAtStart(settings.get(), headless) })
   lateBox.windows = windows
 
   const ctx: ServiceContext = {
@@ -215,6 +215,8 @@ void app.whenReady().then(async () => {
     onCoachDecision: (d) => awarenessBox.a?.observeStuck(pStuckForTrigger(d)),
     onPageContent: (rects) => cueContent.set(rects),
     onAgentSample: (sample) => knack?.feedAgentSample(sample),
+    onLocalActing: (acting) => knack?.feedLocalActing(acting),
+    corner: knackWanted,
   })
   lateBox.kill = () => void understudy.kill.trigger('hud')
 
@@ -252,14 +254,21 @@ void app.whenReady().then(async () => {
   const screenShare = createScreenShareProbe()
   // KNACK: the corner pill and the minimise and restore rules. The pill is never over a secure input or a denylisted app (the same probes Cue reads) and not
   // while a screen is shared; a probe that cannot be read counts as "stay away".
+  let shareAt = 0
+  let sharing = false
   knack?.attach({
     kill: { trigger: (source) => understudy.kill.trigger(source), isKilled: () => understudy.kill.isKilled(), subscribe: (cb) => understudy.kill.subscribe(() => cb()) },
+    // Cue's own signal reader polls every 2 s when it runs; otherwise one look is taken here. The screen-share look (a process list) is taken every 10 s.
     probe: async () => {
-      await cueSignals.refresh()
-      return { suppressed: cueSignals.suppressed(), presenting: (await screenShare.read()) === true }
+      if (!cueOn) await cueSignals.refresh()
+      if (Date.now() - shareAt > 10_000) {
+        shareAt = Date.now()
+        sharing = (await screenShare.read()) === true
+      }
+      return { suppressed: cueSignals.suppressed(), presenting: sharing }
     },
+    hud: understudy.hudModel,
     pendingQueue: () => core.engine.pendingQueue(),
-    capturable: flag('ALONGSIDE_OVERLAY_CAPTURABLE'),
   })
   const attentionWiring = wireAttention({
     endpoints: core.endpoints,
@@ -340,7 +349,7 @@ void app.whenReady().then(async () => {
 
   // The debug server has no auth (it serves /shot, /state, /tool, /settings): opt-in only, never by default.
   if (flag('ALONGSIDE_DEBUG')) {
-    startDebugServer({ ctx, services, dispatch, session, capture: { overlayPng: windows.overlayPng, overlayText: windows.overlayText, dockPng: windows.dockPng, hudPng: understudy.hud.png, hudPreview: understudy.hud.preview, hudVisible: () => understudy.hud.window()?.isVisible() ?? null }, understudy: { kill: understudy.kill, hud: understudy.hudModel, dom: { status: () => ({ port: understudy.extServer()?.port() ?? null, pending: understudy.domGrounder.pending(), extensionSeenMs: understudy.extServer()?.lastSeenAt() ? Date.now() - (understudy.extServer()?.lastSeenAt() ?? 0) : null, ring: understudy.ring.current(), chip: understudy.chip.current(), capture: core.capture.mode(), coach: understudy.coachBrain.status() }) } }, tray: shellTray ?? undefined })
+    startDebugServer({ ctx, services, dispatch, session, capture: { overlayPng: windows.overlayPng, overlayText: windows.overlayText, dockPng: windows.dockPng, hudPng: understudy.hud.png, hudPreview: understudy.hud.preview, hudVisible: () => understudy.hud.window()?.isVisible() ?? null }, knack: knack ? { dispatch: (e) => knack?.dispatch(e as never), info: () => knack?.info() } : undefined, understudy: { kill: understudy.kill, hud: understudy.hudModel, dom: { status: () => ({ port: understudy.extServer()?.port() ?? null, pending: understudy.domGrounder.pending(), extensionSeenMs: understudy.extServer()?.lastSeenAt() ? Date.now() - (understudy.extServer()?.lastSeenAt() ?? 0) : null, ring: understudy.ring.current(), chip: understudy.chip.current(), capture: core.capture.mode(), coach: understudy.coachBrain.status() }) } }, tray: shellTray ?? undefined })
   }
 
   // Understudy: the microphone is only needed for voice or the wake word, both off unless their flags are set.

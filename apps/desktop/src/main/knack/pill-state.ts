@@ -34,6 +34,8 @@ export const ACTING_RUN_STATES: ReadonlySet<string> = new Set(['created', 'plann
 export interface RunSample {
   id: string
   state: string
+  /** Children done and in all, when the run lists them: "n of m". */
+  progress?: { done: number; total: number }
 }
 
 export interface PillSignals {
@@ -45,6 +47,8 @@ export interface PillSignals {
   runs: readonly RunSample[]
   /** The kill switch is on (this app's, or the agent service says killed). */
   killed: boolean
+  /** An agent of this app is acting on the worker's own screen (the desktop's act-for-me), which the agent service cannot see. Absent means no. */
+  local?: boolean
   /** Approvals waiting in the queue now; null when the engine cannot be asked. */
   pending: number | null
 }
@@ -108,7 +112,7 @@ export function stepPill(prev: PillState, s: PillSignals, now: number, timing: P
     return expire(was, now, timing)
   }
 
-  const acting = s.supervisor === 'running' || s.runs.some((r) => ACTING_RUN_STATES.has(r.state))
+  const acting = s.local === true || s.supervisor === 'running' || s.runs.some((r) => ACTING_RUN_STATES.has(r.state))
   const waiting = was.baseline !== null && s.pending !== null && s.pending > was.baseline
 
   if (acting) {

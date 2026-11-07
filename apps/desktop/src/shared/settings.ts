@@ -68,7 +68,7 @@ export const SettingsSchema = z.object({
   showInDock: z.boolean().default(true),
   // KNACK: the main window minimises itself while an agent run works and comes back only when something needs the worker, or when the worker
   // clicks the corner pill or the Dock icon.
-  minimiseWhileWorking: z.boolean().default(true),
+  moveAsideWhileWorking: z.boolean().default(true),
   // KNACK: real models (Gemini, keys from the repo's .env) and the isolated live data, when a key is present and the models boot check passes; example data
   // otherwise, with one line saying so. Changing it restarts the services Knack started. Costs real money per agent run, so only the Settings UI
   // (trusted) can change it: main drops it from every other source, like awaySeconds.

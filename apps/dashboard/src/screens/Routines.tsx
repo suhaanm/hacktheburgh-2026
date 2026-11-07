@@ -8,7 +8,6 @@ import { Brief, Details } from "../components/ui";
 import { useToast } from "../components/Toasts";
 import { fmtNum } from "../lib/format";
 import type { Routine } from "../types";
-import { APP_NAME } from "../brand";
 
 export default function Routines() {
   const r = useLoad(() => api.routines(), []);
@@ -42,7 +41,7 @@ export default function Routines() {
           {proposals.map((p) => <Proposal key={p.id} routine={p} leaving={leaving === p.id} onDecide={decide} />)}
         </section>
       ) : (
-        <EmptyState title="No new proposals" body={`When ${APP_NAME} sees the same steps three or more times, a proposal card appears here between tasks. You can say no, never, or watch first.`} />
+        <EmptyState title="No new proposals" body="When Understudy sees the same steps three or more times, a proposal card appears here between tasks. You can say no, never, or watch first." />
       )}
 
       {active.length > 0 && (
@@ -91,7 +90,7 @@ function plainGate(message: string): string {
 function SkillGate({ gate, busy, onOverride, onDismiss }: { gate: Gate; busy: boolean; onOverride: () => void; onDismiss: () => void }) {
   return (
     <div className="note note--warn stack" role="alert" style={{ gap: "var(--space-3)" }}>
-      <p><b>{APP_NAME} would rather coach you on this one first.</b> {plainGate(gate.message)}</p>
+      <p><b>Understudy would rather coach you on this one first.</b> {plainGate(gate.message)}</p>
       <p>If you already know it well, say so. That is written into your memory file, and the routine still starts at the lowest rung.</p>
       <div className="row">
         <button type="button" className="btn btn--secondary btn--sm" disabled={busy} onClick={onOverride}>I already know this one</button>

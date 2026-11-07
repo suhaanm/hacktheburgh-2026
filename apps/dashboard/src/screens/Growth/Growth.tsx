@@ -15,7 +15,6 @@ import { EarlyHero, EmptyHero } from "../../components/growth/States";
 import { buildView, countsOf, ledgerFields, marksOf, normalizeGrowth, offloadItems, originSentence, type LedgerCounts } from "../../components/growth/model";
 import "../../components/growth/growth.css";
 import { STORIES, deleteLedger, downloadText, exportLedger, loadGrowth, loadLedger, type Story } from "./data";
-import { APP_NAME } from "../../brand";
 
 const STORY_ALIAS: Record<string, Story> = { improves: "improves", improve: "improves", plateau: "plateaus", plateaus: "plateaus", going: "going", early: "going", sparse: "sparse", new: "sparse" };
 
@@ -33,7 +32,7 @@ export default function Growth() {
 
   // A story is only a thing to pick when the screen shows example data.
   const example = g.source === "demo";
-  useEffect(() => { document.title = `Growth · ${APP_NAME}`; }, []);
+  useEffect(() => { document.title = "Growth · Understudy"; }, []);
 
   const levelPct = Math.round((g.meta?.interval_level ?? 0.95) * 100);
   const wire = useMemo(() => (g.data ? normalizeGrowth(g.data) : null), [g.data]);

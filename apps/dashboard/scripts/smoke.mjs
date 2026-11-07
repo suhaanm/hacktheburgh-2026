@@ -404,7 +404,7 @@ check("privacy: clearing empties the list and says so", (await page.locator(".le
   await page.locator("[data-testid=needs-you] summary", { hasText: "Why?" }).first().click();
   await page.waitForTimeout(500);
   check("notices: a Why? on an item that needs you gives the engine's fixed reason", /Held because Understudy could not tell whether you were busy\./.test(await page.locator("[data-testid=needs-you]").innerText()));
-  await page.getByRole("button", { name: "Reset what Knack learned" }).click();
+  await page.getByRole("button", { name: "Reset what Understudy learned" }).click();
   check("notices: reset asks once, inline", (await page.getByRole("button", { name: "Yes, reset what it learned" }).count()) === 1);
   await page.getByRole("button", { name: "Yes, reset what it learned" }).click();
   await page.waitForTimeout(400);

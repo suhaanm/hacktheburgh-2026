@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { mondayNote, noteLines, MONDAY_INTRO } from "./monday";
-import { APP_NAME } from "../../brand";
 import type { WirePointer } from "../firm/wire";
 
 const ptr = (id: string, headline: string): WirePointer => ({
@@ -21,7 +20,7 @@ describe("mondayNote", () => {
   });
   it("uses the singular for one pointer and adds the number to try", () => {
     const n = mondayNote({ pointers: [ptr("a", "One thing.")], try: { label: "Times you used the checklist", value: 3, unit: "times" }, monday_note: null }) ?? "";
-    expect(n.startsWith(`${APP_NAME} has 1 pointer for your week.`)).toBe(true);
+    expect(n.startsWith("Understudy has 1 pointer for your week.")).toBe(true);
     expect(n.endsWith("One thing to try: times you used the checklist, 3 times.")).toBe(true);
   });
   it("never types a number of its own into the note", () => {

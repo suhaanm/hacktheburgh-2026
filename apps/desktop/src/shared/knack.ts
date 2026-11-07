@@ -20,34 +20,3 @@ export interface KnackShellApi {
   retry(): void
   platform: string
 }
-
-// ---- the corner pill
-export const PILL_IPC = {
-  get: 'knack:pill:get', // invoke: current PillViewDto
-  state: 'knack:pill:state', // main -> pill
-  action: 'knack:pill:action', // pill -> main: Stop, or open Knack
-  interactive: 'knack:pill:interactive', // pill -> main: the pointer is over a part that takes clicks (true) or left it (false)
-} as const
-
-export type PillKindDto = 'idle' | 'working' | 'needs-you' | 'done' | 'error' | 'killed'
-
-export interface PillViewDto {
-  kind: PillKindDto
-  /** One of a closed list of short sentences (main/knack/pill-state.ts PILL_TEXTS), or '' when idle. */
-  text: string
-  /** Show the Stop button. */
-  stop: boolean
-  /** The label opens Knack. */
-  open: boolean
-}
-
-export type PillActionDto = { type: 'stop' } | { type: 'open' }
-
-export interface KnackPillApi {
-  get(): Promise<PillViewDto>
-  onState(cb: (v: PillViewDto) => void): () => void
-  action(a: PillActionDto): void
-  setInteractive(on: boolean): void
-}
-
-export const EMPTY_PILL_VIEW: PillViewDto = { kind: 'idle', text: '', stop: false, open: false }

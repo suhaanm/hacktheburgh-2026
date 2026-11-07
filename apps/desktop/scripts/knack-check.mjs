@@ -17,7 +17,10 @@ const desktop = path.resolve(here, '..')
 const repo = path.resolve(desktop, '../..')
 const argv = process.argv.slice(2)
 const out = argv.includes('--out') ? path.resolve(argv[argv.indexOf('--out') + 1]) : fs.mkdtempSync(path.join(os.tmpdir(), 'knack-check-out-'))
-const work = fs.mkdtempSync(path.join(os.tmpdir(), 'knack-check-build-'))
+// Inside apps/desktop (out/ is git-ignored), so the app's external packages (dotenv, zod) resolve from its node_modules as they do in the real build.
+const work = path.join(desktop, 'out', 'knack-check')
+fs.rmSync(work, { recursive: true, force: true })
+fs.mkdirSync(work, { recursive: true })
 const brand = JSON.parse(fs.readFileSync(path.join(repo, 'packages/design/brand/brand.json'), 'utf8'))
 
 const run = (cmd, args, cwd) => {
@@ -30,12 +33,13 @@ const run = (cmd, args, cwd) => {
 
 console.log('building the desktop app (private folder)')
 run(path.join(desktop, 'node_modules/.bin/electron-vite'), ['build', '--outDir', path.join(work, 'desktop')], desktop)
+run(path.join(desktop, 'node_modules/.bin/electron-vite'), ['build', '--config', 'electron.vite.check.config.ts', '--outDir', path.join(work, 'desktop')], desktop)
 console.log('building the dashboard (private folder)')
 run(path.join(repo, 'apps/dashboard/node_modules/.bin/vite'), ['build', '--outDir', path.join(work, 'dashboard'), '--emptyOutDir'], path.join(repo, 'apps/dashboard'))
 
 const electron = (await import('electron')).default
 const child = spawn(electron, [path.join(work, 'desktop/main/knack-check.js')], {
-  cwd: work,
+  cwd: desktop,
   env: { ...process.env, KNACK_CHECK_OUT: out, KNACK_CHECK_DIST: path.join(work, 'dashboard'), KNACK_CHECK_GLYPH: path.join(repo, 'packages/design/brand', brand.files.glyph), ELECTRON_ENABLE_LOGGING: '0' },
   stdio: ['ignore', 'inherit', 'pipe'],
 })

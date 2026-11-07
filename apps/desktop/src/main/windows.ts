@@ -158,7 +158,9 @@ export function createWindows(opts: WindowOptions): Windows {
     dock.hide()
   })
 
-  app.on('before-quit', () => {
+  app.on('before-quit', (event) => {
+    // KNACK: the quit guard may have stopped this quit to ask the worker ("Knack is working. Stop it and quit?"); the windows stay until the answer.
+    if (event.defaultPrevented) return
     quitting = true
     dock.destroy()
     overlay?.destroy()

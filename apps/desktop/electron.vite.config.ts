@@ -11,8 +11,7 @@ const brandHtml = () => ({
 
 export default defineConfig({
   main: {
-    // knack-check is the hidden check of the Knack shell (scripts/knack-check.mjs); it is built beside the app and left out of the package.
-    build: { rollupOptions: { input: { index: resolve(__dirname, 'src/main/index.ts'), 'knack-check': resolve(__dirname, 'src/main/knack/check-main.ts') } } },
+    build: { rollupOptions: { input: { index: resolve(__dirname, 'src/main/index.ts') } } },
   },
   preload: {
     build: {
@@ -22,7 +21,6 @@ export default defineConfig({
           hud: resolve(__dirname, 'src/preload/hud.ts'),
           cue: resolve(__dirname, 'src/main/cue/preload.ts'),
           knack: resolve(__dirname, 'src/preload/knack.ts'),
-          pill: resolve(__dirname, 'src/preload/pill.ts'),
         },
       },
     },
@@ -38,7 +36,6 @@ export default defineConfig({
           toast: resolve(__dirname, 'src/renderer/toast/index.html'),
           hud: resolve(__dirname, 'src/renderer/hud/index.html'),
           cue: resolve(__dirname, 'src/renderer/cue/card/index.html'),
-          pill: resolve(__dirname, 'src/renderer/pill/index.html'),
         },
       },
     },

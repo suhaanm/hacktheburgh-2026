@@ -2,7 +2,6 @@
 // To add a screen to the app: add its id to router.ts, a lazy() entry in App.tsx, and one row here.
 import { DEFAULT_SCREEN, type Screen } from "../../router";
 import type { ViewRole } from "./viewAs";
-import { APP_NAME } from "../../brand";
 
 export { DEFAULT_SCREEN };
 
@@ -62,7 +61,7 @@ export function groupOf(view: ViewRole, group: NavGroup): NavEntry[] {
   return entriesFor(view).filter((e) => e.group === group);
 }
 
-export const labelOf = (id: Screen | "unknown"): string => NAV_ENTRIES.find((e) => e.id === id)?.label ?? APP_NAME;
+export const labelOf = (id: Screen | "unknown"): string => NAV_ENTRIES.find((e) => e.id === id)?.label ?? "Understudy";
 
 /** The Details group opens by itself when you are on one of its screens. */
 export const inGroup = (id: Screen | "unknown", group: NavGroup): boolean => NAV_ENTRIES.some((e) => e.id === id && e.group === group);

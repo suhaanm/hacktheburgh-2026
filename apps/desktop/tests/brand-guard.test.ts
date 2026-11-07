@@ -50,12 +50,8 @@ describe('the scanner', () => {
   })
 })
 
-describe('no visible old name', () => {
-  it('the dashboard says Knack', () => {
-    const dash = path.join(repo, 'apps/dashboard')
-    const hits = [...scanTree(path.join(dash, 'src'), repo), ...scanSource(fs.readFileSync(path.join(dash, 'index.html'), 'utf8'), 'apps/dashboard/index.html', 'html')]
-    expect(fmt(hits)).toBe('')
-  })
+describe('no visible old name in the desktop app', () => {
+  // The dashboard carries its own check (Track D's copy-lint.test.ts scans it); this one holds the desktop app.
   it('the desktop renderer, shared code and preloads say Knack', () => {
     const hits = ['src/renderer', 'src/shared', 'src/preload'].flatMap((d) => scanTree(path.join(desktop, d), repo))
     expect(fmt(hits)).toBe('')
