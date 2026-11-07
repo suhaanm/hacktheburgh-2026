@@ -597,3 +597,20 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
   .alert--live, .alert--live .alert__icon::after, .alert--stop .alert__icon { animation: none; }
   .hold[data-holding="true"]::before { transition: none; }
 }
+
+/* ==========================================================================
+   Knack (8 Nov 2026, KNACK_UX section 6). Restraint and consistency: one
+   left-aligned column, 44 px rows, sentence-case origin badge, the lockup.
+   ========================================================================== */
+
+/* -- Lockup: glyph plus the word. Disc is --fg, ring is --accent, both full strength.
+      The word is set in the display face at 600, never in capitals. Clear space is one K. ---- */
+.lockup { display: inline-flex; align-items: center; gap: calc(var(--lockup-glyph, 20px) * 0.3); color: var(--fg); text-decoration: none; line-height: 1; }
+.lockup:hover { text-decoration: none; }
+.lockup__word { font: 600 var(--lockup-word, 17.5px)/1 var(--font-display); letter-spacing: var(--tracking-display); text-transform: none; }
+.lockup--glyph { gap: 0; }
+.glyph { flex: none; display: block; }
+.glyph__disc { fill: var(--fg); }
+.glyph__ring { stroke: var(--accent); }
+.glyph--mono .glyph__disc { fill: currentColor; }
+.glyph--mono .glyph__ring { stroke: currentColor; opacity: 0.62; }
