@@ -14,6 +14,8 @@ What each model sees is built by code from typed facts, with a budget, a freshne
 
 An audit listed every model-facing call site and its prompt sections. A shared library assembles prompts under nine rules: typed first; trust enforced by audience (the planner never receives raw untrusted text; the reader receives untrusted text but no worker memory); stable first and volatile last so a provider can cache; bounded, with a fixed truncation order and nothing cut mid-item; code-held task state after a resume; one frame and at most one thumbnail; keyed, capped retrieval from the memory file (at most six lines); fresh or named; and measured with a metadata-only manifest. Computer use runs statelessly by default.
 
+**What is different.** Prompts are built from typed facts under a budget with a freshness check, trusted and untrusted text never share a prompt, and a long run carries code-held state instead of a transcript.
+
 ## Where to see it
 
 Not visible on a screen. It is behind every agent run and shows up as cost and latency in Models and cost.

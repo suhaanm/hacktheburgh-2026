@@ -18,6 +18,8 @@ A second audience. The Admin view shows where the firm loses time, compares expe
 
 Roles are Worker and Admin; the admin switch lives in the account menu and is remembered. An admin sees summaries of numbers and enums only (counts, trend classes, intervals, per-skill independence and time-lost, automation counts): never raw events, screenshots, page or file text, memory-file contents or assist-ledger rows beyond counts. Group comparisons need at least 5 people. There is no ranking of individuals and no single performance score. Every admin text carries the line 'For coaching and onboarding, not for evaluating individuals.' A worker has a plain 'what your admin can see' page in Your data. The Firm screen shows at most three rows by default, then Show all; Roles shows one row per role as a dot-and-whisker strip; Onboarding shows one small chart per role with the median step to the target.
 
+**What is different.** The admin sees numbers and enums only, never a ranking or a single score, groups under 5 are never compared, and the worker has a page that shows exactly what the admin can see.
+
 ### Where to see it
 
 Account menu, View as Admin; sidebar Firm, Roles, Onboarding; More, Firm rows (People, Automation, Risk and coverage, Forecasts, Firm brief).
@@ -53,6 +55,8 @@ Extras for the admin: a short Monday note, a one-page firm brief that prints, an
 ### How it works
 
 The Monday note is a few plain sentences built from the same deterministic insights (the engine sends ready text when it has it; otherwise it is composed from the pointers). The spec puts 'Copy my Monday note' in the command palette; that row was not on main when this was written. The firm brief is a print view of the top rows. The scorecard is the Forecasts screen (reliability diagram and baselines) read from the evaluation report.
+
+**What is different.** Nothing new is claimed: it reuses the insights engine and the evaluation report.
 
 ### Where to see it
 

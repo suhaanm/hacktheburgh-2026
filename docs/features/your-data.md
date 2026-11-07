@@ -18,6 +18,8 @@ Your data holds five things in one place: what Knack remembers, what it measures
 
 Seeing anything takes one click and deleting takes three at most (Your data, Forget, Forget it, confirmed inline). The delete wording is identical in every section. No file path is printed on screen. The worker's plain 'what your admin can see' page lives here. Capture, screen glances, the microphone and folders are controlled here; behaviour preferences live in Settings.
 
+**What is different.** What Knack remembers, measures and has sent is one place with identical delete wording, instead of five scattered ones.
+
 ### Where to see it
 
 Your data, the fifth item in the sidebar. The spec adds a palette row 'Delete my data' with no shortcut; it was not in the palette on main when this was written.
@@ -51,6 +53,8 @@ Knack adapts to a worker through one readable, editable Markdown file on the dev
 ### How it works
 
 Sections: Preferences, Procedure, Routines, Corrections, Skill state and Never, with a revision number in the header. Writes are atomic, a stale revision is rejected, the worker's edit wins and unknown sections are kept. A worker's correction is a precedent; three consistent ones become a proposed rule whose ceiling is no looser than anything already approved; a separate approval activates it; the rule is a versioned line, so deleting the line ends it. Precedents decay with a 30-day half-life. A personal procedure rule must also match expert outcomes in a shadow comparison. The first-run defaults come from the role pack.
+
+**What is different.** Only the worker's own actions can write to it; a correction becomes a precedent, three consistent precedents become a proposal, and a separate approval activates it as a versioned line.
 
 ### Where to see it
 

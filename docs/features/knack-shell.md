@@ -18,6 +18,8 @@ Knack.app is the dashboard in its own window with a Dock icon and a menu-bar ite
 
 Window: 80% by 84% of the work area, centred, remembered per display; closing hides it; the Dock icon brings it back; quitting while a job runs asks first. The pill sits bottom-right, 16 pixels from the edges, holds a label of at most five words, and is never over a password or payment field. Only one interrupting surface shows at a time, and an approval raises a card, never a modal. A pure state machine of 18 transitions decides what the window and pill do, with kill always winning. The app starts its own engine and agent: live models if a Gemini key is present, example data otherwise, with a status line that says which. Unsigned local app and dmg build with electron-builder; a signed release needs the owner's Apple Developer ID.
 
+**What is different.** Only one interrupting surface shows at a time, the pill is a status and not an interruption, and the window never pops back on its own.
+
 ### Where to see it
 
 The app itself: window, Dock icon, menu bar, corner pill. The sidebar status line reads Live models or Running with example data.
@@ -53,6 +55,8 @@ First launch asks two questions and shows one summary: a role card, one capture 
 
 Click 1 picks a role (three cards from the packs); the pack's tools, risky actions set to 'never without me', short tone, gradual pace and hours are written to the memory file. Click 2 is the one consent: 'It records when you are active, never what you read: no page text, no URLs, no field values. The record stays on this laptop.' Yes, Not now and Never have equal weight; Not now asks again once after a week; Never never asks again. Click 3 shows four plain lines from the file just written and opens Home. Screen glances, the microphone, Accessibility, Screen Recording and Open at login are each asked once, in context, when first needed. The role card will also offer connection presets (landing), which adds one click.
 
+**What is different.** Two questions and one summary, with a consent whose three buttons weigh the same.
+
 ### Where to see it
 
 The first window on first launch (no sidebar yet). Settings, Set up again reruns it.
@@ -86,6 +90,8 @@ Command-K goes anywhere or runs a command, Option-Space asks Knack (hold to talk
 ### How it works
 
 In the dashboard today: Command-1 to Command-5 go to the five destinations, Command-comma opens Settings, Command-slash opens About this screen, Shift-Command-K stops everything while Knack is frontmost (a test says no key reaches an approval). Command-K opens the palette, which lists every screen and these actions: Take the tour, Switch to the Admin view (and back) and Print the firm brief. In the desktop: Option-Space (hold to talk), Option-Shift-Command-K anywhere to stop, Option-Command-P to pause or resume for an hour. The spec adds further palette verbs (Pause for 1 hour, Stop everything, Ask Knack, Copy my Monday note, Explain this screen and a palette-only 'Delete my data' with no shortcut by design); they were not on main when this was written. A guided tour of the five destinations is one row in the account menu.
+
+**What is different.** Nothing new is claimed; the one deliberate rule is that no keystroke can approve anything.
 
 ### Where to see it
 

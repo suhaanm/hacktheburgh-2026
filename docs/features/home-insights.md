@@ -18,6 +18,8 @@ Home shows one sentence about the worker's week, one action and at most two quie
 
 The hero is the top pointer written from a fixed template: 'On {step} you usually take about {n} {unit} {longer or less} than the expert.' At most 16 words and one quantity. 'Why this?' opens the method (fixed rules, not a model), the interval, n and where the data came from. Something the worker must decide outranks something they could learn. When there is nothing, the screen says so in five words.
 
+**What is different.** A one-quantity rule limits a sentence to one number, and a lint checks it, so the home screen cannot grow back into a report.
+
 ### Where to see it
 
 Home, the first item in the sidebar and the page Knack opens on.
@@ -51,6 +53,8 @@ Each week, a deterministic engine picks at most three pointers for a worker and 
 ### How it works
 
 A fixed list of candidate kinds (for example time lost on a habit, a habit improved, an independence milestone, a skill due for retention practice, a relapse, an automation opportunity). Each candidate must pass a reliability gate (minimum occurrences, an interval that excludes zero, an effect size and a sign that persists over weeks), then a family-wise control for the number of comparisons, guard metrics (faster but with more errors is a trade-off, never a celebration), diversity and caps. Text comes from a fixed template. Admin groups under 5 people are never compared. Output is deterministic: the same input twice, or shuffled, gives the same answer.
+
+**What is different.** Silence is a valid output: candidates pass a reliability gate and a comparison-wide control, and a weak insight is dropped, not shown weakly.
 
 ### Where to see it
 

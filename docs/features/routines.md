@@ -18,6 +18,8 @@ Knack finds work you repeat, estimates how much time automating it would save, a
 
 Episodes are segmented and clustered by alignment distance, with at least 3 supports. Each cluster is scored by count, minutes a week, variability and judgement share (searches, compares and decides divided by length) and matched to the role pack's routine templates. A value gate then keeps only proposals with a worthwhile saving. A recurrence forecast gives an interval on future runs. Proposals arrive only at episode boundaries, at most a few a day, and the system learns P(accept) per person. A routine is a JSON step language with a precondition and postcondition per step: model-written code is never executed.
 
+**What is different.** A routine is eligible for automation only if the worker has mastered its steps or the pack marks it as not learning-relevant; otherwise Knack coaches it instead of taking it over.
+
 ### Where to see it
 
 Needs you (the proposal is a row with three equal buttons and 'More ways to say yes'); Routines, Running and Could automate.
@@ -55,6 +57,8 @@ A routine earns autonomy by practising beside the worker. In Watch first it shad
 
 Four rungs: observe; suggest and shadow; do with approval; do then report. Promotion from shadow to 'asks first' needs at least 20 shadow runs with a Wilson lower bound of 0.8 on matches (20 clean runs give about 0.84). The top rung needs a lower bound of 0.95 (about 75 clean runs), a target the demo does not reach, and the screen says so. A failure, an undo within seconds or an injection hit demotes one rung. A divergence in shadow counts as a non-match. In the app the rungs read Watching, Asks first and Runs on its own; 'while I'm away' is its own switch, and irreversible steps in unattended runs need a separate per-routine opt-in.
 
+**What is different.** Autonomy is earned by matching what the worker does, with a Wilson lower bound on shadow matches, and any failure, undo or injection hit demotes it.
+
 ### Where to see it
 
 Routines: a row opens in place with a three-state control; a step up is enabled only when the record earned it and a disabled step prints what it needs.
@@ -89,6 +93,8 @@ A compact list of actions you repeat that could be automated, ranked by minutes 
 ### How it works
 
 Ranked by estimated minutes saved a week, then by count. A sequence that matches a pack routine needs 3 repeats; an unmatched sequence needs 5 repeats on at least 2 days. Seven rows then Show all; folds for Already automated and Hidden. One honest line says what repeats but is not offered: work that needs judgement, an irreversible first step, work that is too varied, or denylisted work. A firm aggregate suppresses groups under 5 people. It is inspired by the JetBrains Key Promoter X list of missed shortcuts, but counts repeated actions and never nags.
+
+**What is different.** One row per repeated task even across tools, ranked by minutes saved, with an honest line for what repeats but is not offered and why.
 
 ### Where to see it
 

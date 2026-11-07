@@ -20,6 +20,8 @@ An agent enters a household into three differently built calculator sites in par
 
 An orchestrator turns a case into a task graph. Navigators run in parallel, each in its own browser context, with a step cap. A verifier checks a fresh observation, a critic compares the evidence with the expert policy, a recovery step tries an alternative route and then escalates, and the scribe writes the note and an evidence bundle. Tier 1 runs a compiled step script; tier 2 is a browser agent; tier 3 is computer use. It escalates only when a precondition fails and logs the tier on every step. The submit step goes to the approval queue and waits for a real click.
 
+**What is different.** Three differently built sites are worked in parallel with a verifier, a critic against the expert policy and a recovery step, and the tiers escalate only when a precondition fails.
+
 ### Where to see it
 
 Routines, then Run now (the window minimises and the corner pill shows what is happening); the result arrives in Needs you. More, then Background runs shows runs.
@@ -57,6 +59,8 @@ A model saying it has finished counts for nothing. After the last step, code loo
 
 The check compares named result fields with the values the page schema expects, on a fresh observation taken after the final step, never relaxed for goals that sound like navigation. It returns ok, what is missing and whether a model claimed success while the check failed. A separate small classifier can flag which claimed successes are risky, but a low risk score never replaces the check.
 
+**What is different.** 'Done' is checked by code on a fresh observation against named fields, and the false-claim count is a first-class output, not a footnote.
+
 ### Where to see it
 
 Needs you (the evidence opens in place: found against expected); Evidence page, section on agent runs.
@@ -91,6 +95,8 @@ A second model family looks at the screen after an agent step and says whether t
 ### How it works
 
 A closed question with yes, no or unsure; unsure is never accepted; code requires yes with confidence of at least 0.7. It runs through the egress guard like every other call.
+
+**What is different.** A different model family checks the actor, and code requires 'yes' with a confidence floor; an 'unsure' is never an accept.
 
 ### Where to see it
 

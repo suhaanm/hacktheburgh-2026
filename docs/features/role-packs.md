@@ -18,6 +18,8 @@ A role pack turns raw events into steps, says what an expert does, which actions
 
 A pack is a validated folder (id, onboarding questions for tools, risky actions, tone, pace and hours; extra step types and their mapping from events; expert steps with allowed reorderings; risk classes with label patterns; routine templates; a curriculum; persona parameters; priors for pooling). The benefits pack also has an oracle, task configuration and sandbox sites. The thin packs fill every key but the oracle, tasks and the full expert policy, and differ visibly in questions, steps, risk classes and tone: the programmer's risky actions are force-push, deleting a branch, merging to main and publishing; the benefits processor's are submitting a case, issuing a payment and sending a letter. A loader checks packs against a JSON Schema and the pack format reserves a slot for plugin references.
 
+**What is different.** A role is a validated folder of data (steps, expert policy, risk classes, tone, routines, curriculum), so adding a job is adding data, and the thin packs differ visibly in their risky actions.
+
 ### Where to see it
 
 First run (the role cards), Settings, Set up again, and the Admin Roles view.
@@ -54,6 +56,8 @@ The two thin roles are being given more depth: more steps and habits, without ch
 ### How it works
 
 Per owner decision D55 the work is additive only, and per the lead's decision D56 every new step is optional and uses new step types, so the frozen sandbox tasks and the role studies are untouched. No synthetic traces exist for the new step types, so screens that depend on them say 'not enough data'. The role studies use private sandbox worlds for the programmer (editor, tests, console) and the analyst (table, filter, pivot, chart with planted data issues).
+
+**What is different.** Additive only: new optional steps on new step types, so nothing already measured changes.
 
 ### Where to see it
 

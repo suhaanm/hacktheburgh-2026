@@ -18,6 +18,8 @@ From live events, the coach decides whether to say nothing, nudge, draw a ring o
 
 Plain code, no model. The actions are silent, nudge, annotate and takeover. The dignity gate acts after two consecutive stuck signals, then holds a cooldown, and stays silent when unsure. The worker's own reaction labels each prompt without a questionnaire: followed within 10 seconds, dismissed within 4, repeated within 10, undone within 10. Those labels feed a bandit that logs the probability of each choice, so any new policy is first judged off-policy on old logs (inverse propensity, self-normalised, doubly robust) before it is switched on.
 
+**What is different.** A dignity gate holds the coach back, and a bandit logs the probability of every choice so a new policy is judged off-policy on old logs before it is switched on.
+
 ### Where to see it
 
 More, then Live coach (address #/today) shows the current task and the help level. The ring and card appear on the real screen.
@@ -53,6 +55,8 @@ Help gets lighter as a skill is mastered, from L1 'watch me' to L4 'on my own'. 
 ### How it works
 
 The engine's level module is the authority (L1 full help, L2 small help, L3 a dot, L4 gone). It promotes one level after three clean runs in a row and demotes after two or more errors among the last five counted outcomes; an assisted run is neutral; a level change resets the streak and the window so the new level gets a fair trial. The desktop's own learner store, kept from the owner's earlier library, has its own step-up settings. Per-skill mastery with forgetting feeds the engine and decays with absence, so a skill not seen for weeks is not treated as mastered. The worker's pace setting (gentle, steady, quick) changes how many clean cases come before a prompt gets lighter. The level shows for two seconds when it changes, then lives in the menu bar and Settings.
+
+**What is different.** Levels are code with no model, no randomness and no clock, and mastery can only lower a level after an absence, never raise it.
 
 ### Where to see it
 

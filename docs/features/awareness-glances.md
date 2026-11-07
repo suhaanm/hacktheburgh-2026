@@ -14,6 +14,8 @@ Knack notices cursor dwell, typing rhythm and which kind of app is in front, on 
 
 Level 0 is always on: input rhythm, cursor dwell and wandering, app kind (no titles stored), hashed browser events. Level 1 is a triggered glance: when the stuck probability crosses its threshold, a loop signature appears, or the worker presses the hotkey, one image (long edge at most 1280 pixels) is held in memory for one call and sent through the egress guard, which logs size, hash, model and latency but never the image. A frame is skipped while macOS secure input is on, when the frontmost app is on the denylist, and in any unattended run. The answer is a closed schema (app kind, task phase, blocker, confidence, optional box); no free text is kept. Periodic glances about every 30 seconds are opt-in and off by default, with a count in the menu bar.
 
+**What is different.** Level 0 sends nothing; a frame goes through a gate that is a pure function of a few booleans and a ledger that records size, hash, model and latency and never the image.
+
 ## Where to see it
 
 First use shows a consent card with equal buttons: Yes, Not now, Never. Your data, 'What it looked at or sent' lists every call; 'Capture and glances' holds the switches.

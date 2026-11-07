@@ -14,6 +14,8 @@ A single action stops every running agent and holds them stopped until the worke
 
 Stopping flips a kill flag on disk and cancels the supervisor's current generation, so the stop never waits for a model call. Results from an older generation are dropped even if a task ignores cancellation. Paths: Option-Shift-Command-K anywhere, Shift-Command-K or Shift-Escape inside Knack, the Stop button on the corner pill while something runs, a small Stop button in the sidebar, and 'Stop everything' or 'Pause for 1 hour' in the menu bar. The Stopped card stays until Resume, and Resume needs a per-boot token so a web page cannot clear it. Page content cannot change or click the kill switch.
 
+**What is different.** Stop is a flag on disk plus a supervisor that drops stale results, so it does not depend on any model call or any in-process cooperation.
+
 ## Where to see it
 
 Corner pill (while working), sidebar footer, menu bar, keyboard.

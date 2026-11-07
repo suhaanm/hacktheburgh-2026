@@ -18,6 +18,8 @@ One token file and ten rules govern every screen: one hero per screen, details b
 
 Budgets: a hero sentence of at most 16 words; a card with 8 words of title, 20 of body, a button of 3 (a hero action 5 words, decision D56); Home at most 50 words above the fold, Needs you 120, Growth 60; no paragraph over two lines in a default view; one badge above the fold; a sidebar of 6 rows with no hint words. check-copy.mjs reads the running screens against these budgets; check-clicks.mjs replays the ten jobs and fails above their click budget; a copy lint rejects banned phrases and a visible old product name; contrast is tested at AA in both themes. Weights are 400 and 600 only; icons are 14 inline SVGs; mono capitals appear only on chart axes and the work ribbon. A Hint (a small accessible 'i') may hold a unit, a definition or an interval and is never the only copy of a fact: origin badges, consent text, consequences, errors and limits stay printed.
 
+**What is different.** Word, click and contrast budgets are tests that fail the build, and a Hint may never hold the only copy of a fact.
+
 ### Where to see it
 
 Every screen; docs/knack-ux/before and after hold the screenshots; packages/design/design-system.html is the preview.
@@ -52,6 +54,8 @@ The mark is a solid disc with a ring offset behind it: the worker, and the under
 ### How it works
 
 The lockup is the glyph then the word Knack in the display face at weight 600, with the disc as tall as the capital K and one disc radius between them. The ring is never recoloured for status; status is the pill's words and the menu-bar badge. The menu-bar template has six states in a fixed priority (stopped, needs you, glance, working, paused, idle). The Dock icon is an ink tile with a teal ring on the macOS canvas. There is no tagline in the app.
+
+**What is different.** Nothing new is claimed; it is a design choice.
 
 ### Where to see it
 

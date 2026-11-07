@@ -20,6 +20,8 @@ A model sees screenshots and clicks and types on a calculator page. It never see
 
 Tier-3 goals carry typed handles such as the household's income or number of children. The model emits 'type this fact'; code resolves the value and the actuator types it. Every click and key press passes the same action-class gate, goal-drift check and trusted read of the element under the pointer. A read-back after each typed value and a guard against leaving fields unfilled before the final button are being added. The earlier failure was our design: with no values in the goal the model had nothing to type and declined at step one.
 
+**What is different.** The model never sees the real values: it names a fact by handle and code types it, so prompts and logs hold handles only.
+
 ### Where to see it
 
 Behind Routines, Run now, when a routine needs tier 3. Evidence has the agentic section.
@@ -56,6 +58,8 @@ Real desktop clicks come in rungs, each needing the owner present and a go in ch
 ### How it works
 
 Every real action needs a single-use permit made from the owner's one-time token (or, for an unattended run, a routine's consent record), the pinned window, a countdown with the target in front, the kill file and the supervisor stop. The actuator checks the frontmost app, hit-tests the click point, checks display scale and keeps an action budget. The real backend also needs pyobjc, which the agent environment does not install, so it stays inert until the owner runs the documented first-rung command. Rungs (evals/agentic/REAL_CLICKS.md): R0 read-only code with zero events; R1 one short word into a fresh TextEdit document by a scripted check, not a model; R2 a model proposes one step in TextEdit (at most 8 actions, 90 seconds); R3 a model drives one localhost sandbox calculator in a dedicated browser window; R4 the benefits task end to end on the real screen, attended, stopping before the real Submit. A model never drives R0 or R1, and unattended real-desktop runs are not part of the ladder.
+
+**What is different.** Each real action needs a single-use permit made from the owner's one-time token, a pinned window and a countdown with the target in front, and the ladder is climbed one rung at a time with the owner present.
 
 ### Where to see it
 

@@ -18,6 +18,8 @@ A weekly map of when you are at your machine, with intervals, and an estimate of
 
 672 fifteen-minute bins a week; each has a Beta posterior for 'active', seeded from the role pack's hours and smoothed across neighbouring bins and the same hour on other days. The window forecast estimates the chance S(D | t) that a gap starting now lasts D minutes, from the worker's own past idle spells. A run of length D starts only if S(D | t) is greater than L divided by G plus L, where G is the value of finishing and L the cost of colliding with the worker's return (a critical-fractile rule). It never starts on a locked or sleeping machine.
 
+**What is different.** The start decision is a critical-fractile rule on a forecast of how long this worker stays away, judged against two baselines, rather than 'start when idle'.
+
 ### Where to see it
 
 More, then Your hours (address #/presence). Your data also lists the hours Knack holds.
@@ -52,6 +54,8 @@ A graph of routines, skills and remembered facts. Nodes link when related, merge
 ### How it works
 
 Size is weekly minutes or mastery, colour is the node type, opacity is strength, and fading uses the same decay as the help-level engine. Deleting a memory node edits the memory file, so the graph is a view of what Knack holds, not a second store. One of the product's three signature visuals.
+
+**What is different.** Fading is literal: nodes decay with the same rule the help levels use, and deleting a node edits the file the worker owns, so the graph is a view and not a second store.
 
 ### Where to see it
 

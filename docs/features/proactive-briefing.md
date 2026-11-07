@@ -14,6 +14,8 @@ From routines, skill gaps, calendar and commit suggestions and agent results, Kn
 
 Four steps in code. Judge ranks candidates and prefers fewer, even zero. Verify re-checks each candidate against the current state and drops stale ones. Prepare builds the editable content from templates (a model may reword through the egress guard). Fire acts only on the worker's press: it either puts an approval item in the queue or starts a background run that only reads, never both unprompted. Each card carries a risk class and source tags. Acceptance is learned from the worker's reactions, starting from a prior of 0.4 for the role. The design idea (judge, prepare, execute on press, drop stale items) comes from the owner's notes on Sentient OS and was re-implemented in our own code and words.
 
+**What is different.** Nothing fires unprompted, stale candidates are dropped before a card is drawn, and zero cards is a valid result.
+
 ## Where to see it
 
 Needs you: a prepared action is a row. After a press the screen says what was made, for example 'Created an item here for your approval. Nothing runs until you approve it.'

@@ -14,6 +14,8 @@ Every 30 seconds Knack estimates the chance that there will be no progress in th
 
 Bins of 30 seconds. Features: the last three step types, dwell, repeated actions, time since progress and a role prior. The first model (v1) is a hand-written logistic regression. It is scored leave one person out; the alarm threshold is chosen on the training people only, under the budget; scoring is by event (episodes detected, false alarms an hour), not by window. v2 (gradient boosting with monotone constraints, Platt-calibrated) was accepted as a small gain for the benefits processor and the programmer. The prediction is one input to the coach and to Cue; both also need deterministic signals.
 
+**What is different.** It is scored by event with a false-alarm budget and set beside two plain baselines at the same budget, and its shortfall against them is published on the same screen.
+
 ## Where to see it
 
 More, then Forecasts (address #/forecasts; for admins, Firm, Forecasts). The coach and Cue use the same signal.

@@ -1,10 +1,10 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sat 07 Nov 2026, 23:51 UTC. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sat 07 Nov 2026, 23:52 UTC. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
 This is the master document. It lists 61 entries (57 features and 4 write-ups of results that did not hold up) on 33 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
-**How to read an entry.** Name and status; what it does; how it works; where to see it; the demo moment; the evidence with its label; the honest limit; the hackathon target. **Status words:** `verified` (the lead saw it work end to end), `built` (built and tested by its track, on main, not yet seen end to end by the lead), `landing` (not on main yet), `not run`. **Evidence labels:** `synthetic` (data we generated), `simulated` (language-model participants, not people), `real model, small n` (a language model on our sandbox sites), `offline tests`, `owner-present`, `not run`. Nothing in this document is evidence about real workers. **Badge wording on screen:** an engine answer computed from synthetic people reads 'Synthetic data' (or 'Synthetic firm' in the Admin view); 'Example data' appears only when a fixture was drawn (docs/FIRST_LAUNCH.md, state at 23:50 GMT).
+**How to read an entry.** Name and status; what it does; how it works (ending in one 'What is different' sentence, which compares with the approaches in our own reference notes and is not a claim of priority over the whole field); where to see it; the demo moment; the evidence with its label; the honest limit; the hackathon target. **Status words:** `verified` (the lead saw it work end to end), `built` (built and tested by its track, on main, not yet seen end to end by the lead), `landing` (not on main yet), `not run`. **Evidence labels:** `synthetic` (data we generated), `simulated` (language-model participants, not people), `real model, small n` (a language model on our sandbox sites), `offline tests`, `owner-present`, `not run`. Nothing in this document is evidence about real workers. **Badge wording on screen:** an engine answer computed from synthetic people reads 'Synthetic data' (or 'Synthetic firm' in the Admin view); 'Example data' appears only when a fixture was drawn (docs/FIRST_LAUNCH.md, state at 23:50 GMT).
 
 ## Contents
 
@@ -72,6 +72,8 @@ A Chrome extension records roles and salted hashes of what a worker clicks, open
 
 A content script (isolated world, local salt) turns each click, navigation, focus, scroll bin, tab switch, copy or paste flag and search (length only) into a small event with an origin (real or synthetic) and an actor (human or agent). A service worker batches events to the local engine every 2 seconds. Identifiers are hashed with a per-install salt; fields named in packages/schema/sensitive_fields.json are never touched. The engine keeps an append-only JSONL log, partitioned real and synthetic, with a pure reducer so a replay always gives the same state. Agent actions run in a separate browser profile and never enter the human trace.
 
+**What is different.** The event schema allows only enums, counts and salted hashes, so there is nothing to redact later, and real and synthetic events are kept in separate partitions that are never mixed (the event-log projects we read keep rich text).
+
 #### Where to see it
 
 The extension's popup holds the capture switch. In the app, Your data has a section for capture and glances with the same switch. First run asks once: Yes, Not now or Never, with equal weight.
@@ -109,6 +111,8 @@ Aligns a novice's steps with the nearest expert's and puts a price in seconds on
 
 Events become steps through the role pack's mapping. A sequence alignment (Needleman-Wunsch, with a cost for each pair of step types) pairs each novice trace with the nearest expert trace. A step with no partner costs the time it took; a mismatched pair costs the difference in dwell. The gap is split by habit with a regression on behaviour counts, and intervals come from a bootstrap by person. A transition graph lists the step-to-step moves a novice never makes, and a replay slider plays a recorded trace on a virtual clock with idle gaps squeezed (the same events always give the same state). Everything here is plain code: no language model.
 
+**What is different.** The gap is priced in seconds against the nearest expert, printed beside two controls, and priced again in wrong answers; the first version let a skipped step look like time saved.
+
 #### Where to see it
 
 More, then Where time goes (address #/genome). The Home hero's action, See where the time goes, opens it on that step. Settings, Views, Pinned views puts it in the sidebar.
@@ -145,6 +149,8 @@ Before a gap is shown, Knack compares experts with experts and re-runs the whole
 
 The placebo aligns each expert to the nearest other expert. The null shuffles the expert and novice labels across people and repeats the whole procedure, 1,000 permutations. Both should include zero; the real gap should not. The Evidence page prints both beside the real gap.
 
+**What is different.** The controls are on the screen next to the real gap, not an offline check, so a reader can see whether the gap stands clear of them.
+
 #### Where to see it
 
 Where time goes (the controls under the ribbon) and Evidence (More, For reviewers).
@@ -178,6 +184,8 @@ Skipping a step looks free in seconds, so Knack also prices it in answers: how o
 #### How it works
 
 On 200 synthetic households scored by the sandbox oracle, skipping reconcile means writing one calculator's figure into the note without comparing the three. Skipping the cliff check means no warning that a small documented change (savings, rent, childcare, earnings) would move the award. The result is a count with an interval. The reason it exists: the work ribbon's waterfall shows a skipped step as time saved, which is correct arithmetic and a misleading story.
+
+**What is different.** The cost of a missing step is measured in wrong answers against a known oracle on 200 households, not only in seconds.
 
 #### Where to see it
 
@@ -214,6 +222,8 @@ Every 30 seconds Knack estimates the chance that there will be no progress in th
 #### How it works
 
 Bins of 30 seconds. Features: the last three step types, dwell, repeated actions, time since progress and a role prior. The first model (v1) is a hand-written logistic regression. It is scored leave one person out; the alarm threshold is chosen on the training people only, under the budget; scoring is by event (episodes detected, false alarms an hour), not by window. v2 (gradient boosting with monotone constraints, Platt-calibrated) was accepted as a small gain for the benefits processor and the programmer. The prediction is one input to the coach and to Cue; both also need deterministic signals.
+
+**What is different.** It is scored by event with a false-alarm budget and set beside two plain baselines at the same budget, and its shortfall against them is published on the same screen.
 
 #### Where to see it
 
@@ -253,6 +263,8 @@ A weekly map of when you are at your machine, with intervals, and an estimate of
 
 672 fifteen-minute bins a week; each has a Beta posterior for 'active', seeded from the role pack's hours and smoothed across neighbouring bins and the same hour on other days. The window forecast estimates the chance S(D | t) that a gap starting now lasts D minutes, from the worker's own past idle spells. A run of length D starts only if S(D | t) is greater than L divided by G plus L, where G is the value of finishing and L the cost of colliding with the worker's return (a critical-fractile rule). It never starts on a locked or sleeping machine.
 
+**What is different.** The start decision is a critical-fractile rule on a forecast of how long this worker stays away, judged against two baselines, rather than 'start when idle'.
+
 #### Where to see it
 
 More, then Your hours (address #/presence). Your data also lists the hours Knack holds.
@@ -288,6 +300,8 @@ A graph of routines, skills and remembered facts. Nodes link when related, merge
 
 Size is weekly minutes or mastery, colour is the node type, opacity is strength, and fading uses the same decay as the help-level engine. Deleting a memory node edits the memory file, so the graph is a view of what Knack holds, not a second store. One of the product's three signature visuals.
 
+**What is different.** Fading is literal: nodes decay with the same rule the help levels use, and deleting a node edits the file the worker owns, so the graph is a view and not a second store.
+
 #### Where to see it
 
 More, then How work connects (address #/graph). Settings, Views, Pinned views puts it in the sidebar.
@@ -321,6 +335,8 @@ Compares a worker's week with an expert's: meeting load, focus blocks and review
 #### How it works
 
 Calendars become counts, durations and enums; no titles, attendees or bodies are stored. The expert reference is a hand-authored role template. Suggestions come from a fixed catalogue through the same guard as every other layer, never free text. A real read-only check of the owner's own calendar needs the owner's approval at run time (decision D26) and stores only counts and durations.
+
+**What is different.** The expert-against-learner comparison is applied to a week, with suggestions from a fixed catalogue and adapters that read aggregates only.
 
 #### Where to see it
 
@@ -356,6 +372,8 @@ For programmers: finds commit habits that experts do not have (very large commit
 #### How it works
 
 Reads the git history on the device. Features are counts and times; commit messages are turned into enums by rules, or by a local model on the Mac for the category, and are not sent out. Each learner is compared with eight experts of the same replicate, with a placebo of expert against expert. Commit sessions are aligned, but git records when a commit landed, not how long the work took, so the alignment sees the shape of sessions and not seconds.
+
+**What is different.** The same comparison is applied to commits, with a placebo of experts against experts and thresholds set on separate seeds from the test seeds.
 
 #### Where to see it
 
@@ -397,6 +415,8 @@ From live events, the coach decides whether to say nothing, nudge, draw a ring o
 
 Plain code, no model. The actions are silent, nudge, annotate and takeover. The dignity gate acts after two consecutive stuck signals, then holds a cooldown, and stays silent when unsure. The worker's own reaction labels each prompt without a questionnaire: followed within 10 seconds, dismissed within 4, repeated within 10, undone within 10. Those labels feed a bandit that logs the probability of each choice, so any new policy is first judged off-policy on old logs (inverse propensity, self-normalised, doubly robust) before it is switched on.
 
+**What is different.** A dignity gate holds the coach back, and a bandit logs the probability of every choice so a new policy is judged off-policy on old logs before it is switched on.
+
 #### Where to see it
 
 More, then Live coach (address #/today) shows the current task and the help level. The ring and card appear on the real screen.
@@ -433,6 +453,8 @@ Help gets lighter as a skill is mastered, from L1 'watch me' to L4 'on my own'. 
 
 The engine's level module is the authority (L1 full help, L2 small help, L3 a dot, L4 gone). It promotes one level after three clean runs in a row and demotes after two or more errors among the last five counted outcomes; an assisted run is neutral; a level change resets the streak and the window so the new level gets a fair trial. The desktop's own learner store, kept from the owner's earlier library, has its own step-up settings. Per-skill mastery with forgetting feeds the engine and decays with absence, so a skill not seen for weeks is not treated as mastered. The worker's pace setting (gentle, steady, quick) changes how many clean cases come before a prompt gets lighter. The level shows for two seconds when it changes, then lives in the menu bar and Settings.
 
+**What is different.** Levels are code with no model, no randomness and no clock, and mastery can only lower a level after an absence, never raise it.
+
 #### Where to see it
 
 Live coach shows the level; Growth has a closed 'The fade' disclosure; Settings has Coaching (on or off, level lock).
@@ -468,6 +490,8 @@ When Knack points at something it draws a thin ring with corner ticks and one sh
 
 In a browser the extension sends element rectangles so the ring lands exactly (DOM first: exact, free and instant). Elsewhere a fresh frame goes through the egress guard to a Gemini vision model that must answer in a closed form (found or not, and a box); a box is accepted only after sanity checks on size, position and denylisted regions. The ring follows its zone when the page moves and is dropped at once when the zone is gone. A ghost cursor, a small dot with a short trail, can show a move. The overlay is hidden while the Knack window itself is focused, and draws no label while an agent is acting.
 
+**What is different.** The ring is grounded from the page first (exact), a vision model answers only in a closed form with sanity checks, and the overlay draws no label while an agent is acting.
+
 #### Where to see it
 
 On the real screen, over the control being pointed at. Settings, Coaching turns coaching off.
@@ -502,6 +526,8 @@ Knack notices cursor dwell, typing rhythm and which kind of app is in front, on 
 #### How it works
 
 Level 0 is always on: input rhythm, cursor dwell and wandering, app kind (no titles stored), hashed browser events. Level 1 is a triggered glance: when the stuck probability crosses its threshold, a loop signature appears, or the worker presses the hotkey, one image (long edge at most 1280 pixels) is held in memory for one call and sent through the egress guard, which logs size, hash, model and latency but never the image. A frame is skipped while macOS secure input is on, when the frontmost app is on the denylist, and in any unattended run. The answer is a closed schema (app kind, task phase, blocker, confidence, optional box); no free text is kept. Periodic glances about every 30 seconds are opt-in and off by default, with a count in the menu bar.
+
+**What is different.** Level 0 sends nothing; a frame goes through a gate that is a pure function of a few booleans and a ledger that records size, hash, model and latency and never the image.
 
 #### Where to see it
 
@@ -541,6 +567,8 @@ When you are stuck, Cue works out the most likely next step from what experts do
 #### How it works
 
 Candidates come from the expert transition graph: the top three next steps with probabilities. In a browser the target is grounded from the page first; elsewhere a fresh frame and a closed menu go to a Gemini model. The decision is pure code from the stuck probability, the margin between the top two steps, grounding confidence, mastery, cooldowns, the daily attention budget, flow state and consent. Outcomes: nothing (the default), confirm, a cue at a tier, one question, or a small offer. Tiers: a ring; a ring and a chip of at most 40 characters; a ghost-cursor demonstration; a voice whisper of at most 8 words. Hard caps: at most 3 cues in 10 minutes, one question per episode, at least 90 seconds between cues for the same skill unless asked, never in a denylisted app or over secure input. The 'why' is 12 words or fewer, once.
+
+**What is different.** Candidate next steps come from the expert transition graph, so the model's only job is to find the step on the screen; it asks at most one question per episode and later withholds help to test recall.
 
 #### Where to see it
 
@@ -584,6 +612,8 @@ An agent enters a household into three differently built calculator sites in par
 
 An orchestrator turns a case into a task graph. Navigators run in parallel, each in its own browser context, with a step cap. A verifier checks a fresh observation, a critic compares the evidence with the expert policy, a recovery step tries an alternative route and then escalates, and the scribe writes the note and an evidence bundle. Tier 1 runs a compiled step script; tier 2 is a browser agent; tier 3 is computer use. It escalates only when a precondition fails and logs the tier on every step. The submit step goes to the approval queue and waits for a real click.
 
+**What is different.** Three differently built sites are worked in parallel with a verifier, a critic against the expert policy and a recovery step, and the tiers escalate only when a precondition fails.
+
 #### Where to see it
 
 Routines, then Run now (the window minimises and the corner pill shows what is happening); the result arrives in Needs you. More, then Background runs shows runs.
@@ -621,6 +651,8 @@ A model saying it has finished counts for nothing. After the last step, code loo
 
 The check compares named result fields with the values the page schema expects, on a fresh observation taken after the final step, never relaxed for goals that sound like navigation. It returns ok, what is missing and whether a model claimed success while the check failed. A separate small classifier can flag which claimed successes are risky, but a low risk score never replaces the check.
 
+**What is different.** 'Done' is checked by code on a fresh observation against named fields, and the false-claim count is a first-class output, not a footnote.
+
 #### Where to see it
 
 Needs you (the evidence opens in place: found against expected); Evidence page, section on agent runs.
@@ -656,6 +688,8 @@ A second model family looks at the screen after an agent step and says whether t
 
 A closed question with yes, no or unsure; unsure is never accepted; code requires yes with confidence of at least 0.7. It runs through the egress guard like every other call.
 
+**What is different.** A different model family checks the actor, and code requires 'yes' with a confidence floor; an 'unsure' is never an accept.
+
 #### Where to see it
 
 Behind the scenes: More, then Models and cost lists the route; agent runs show a verified chip per step where wired.
@@ -689,6 +723,8 @@ Anything on a page that is written at an AI is treated as data, and the agent ca
 #### How it works
 
 Layer 1 wraps everything from a page, screenshot, file or tool as untrusted data and strips invisible characters. Layer 2 is a quarantined reader: a model that sees raw content but returns only schema-checked fields, so the planner never sees raw text. Layer 3 is a fixed set of typed actions. Layer 4 is the action-class gate: send, post, submit, pay, delete, install or change permissions need a human click unless the worker opted that routine in. Layer 5 tags data with where it came from so tainted or personal data cannot be typed into a site the routine did not record. Layer 6 is an injection detector that pauses the run. Layer 7 is a goal-drift check plus a stuck-loop detector. Layer 8 protects settings: page content cannot change memory, the denylist, consent, quiet hours or the kill switch. Beside the layers sit an approval queue with evidence bundles, a hash-chained audit log, and local services that check the Host header on every request and the Origin on every write.
+
+**What is different.** There is no allowlist. The gate classifies an action from the control that code reads under the pointer, not from the model's own label, and each layer's cost and benefit is measured by switching it off in turn.
 
 #### Where to see it
 
@@ -727,6 +763,8 @@ When Auth0 is configured, approving something that cannot be undone, or that sen
 
 A thin sign-in sits behind an interface with a local fallback. Items of risk class irreversible or outward need a step-up. A sign-in that was closed, is not recent enough, or is from a different account approves nothing and the item keeps waiting. Only a hash of the signed-in subject is returned to the engine. A real click is still required: signing in does not approve anything by itself.
 
+**What is different.** Nothing new is claimed: a standard step-up sign-in placed on the irreversible step.
+
 #### Where to see it
 
 Needs you, on an irreversible or outward approval row: 'Approving this cannot be undone, so we ask you to sign in again.'
@@ -760,6 +798,8 @@ A model sees screenshots and clicks and types on a calculator page. It never see
 #### How it works
 
 Tier-3 goals carry typed handles such as the household's income or number of children. The model emits 'type this fact'; code resolves the value and the actuator types it. Every click and key press passes the same action-class gate, goal-drift check and trusted read of the element under the pointer. A read-back after each typed value and a guard against leaving fields unfilled before the final button are being added. The earlier failure was our design: with no values in the goal the model had nothing to type and declined at step one.
+
+**What is different.** The model never sees the real values: it names a fact by handle and code types it, so prompts and logs hold handles only.
 
 #### Where to see it
 
@@ -798,6 +838,8 @@ Real desktop clicks come in rungs, each needing the owner present and a go in ch
 
 Every real action needs a single-use permit made from the owner's one-time token (or, for an unattended run, a routine's consent record), the pinned window, a countdown with the target in front, the kill file and the supervisor stop. The actuator checks the frontmost app, hit-tests the click point, checks display scale and keeps an action budget. The real backend also needs pyobjc, which the agent environment does not install, so it stays inert until the owner runs the documented first-rung command. Rungs (evals/agentic/REAL_CLICKS.md): R0 read-only code with zero events; R1 one short word into a fresh TextEdit document by a scripted check, not a model; R2 a model proposes one step in TextEdit (at most 8 actions, 90 seconds); R3 a model drives one localhost sandbox calculator in a dedicated browser window; R4 the benefits task end to end on the real screen, attended, stopping before the real Submit. A model never drives R0 or R1, and unattended real-desktop runs are not part of the ladder.
 
+**What is different.** Each real action needs a single-use permit made from the owner's one-time token, a pinned window and a countdown with the target in front, and the ladder is climbed one rung at a time with the owner present.
+
 #### Where to see it
 
 Not visible in the product. Owner-present steps are in evals/agentic/REAL_CLICKS.md and docs/FIRST_LAUNCH.md.
@@ -834,6 +876,8 @@ While you work on something else, Knack can run helpers that profile a dataset, 
 #### How it works
 
 A parent plans and hands typed specs to children. In the default menu mode the model only sequences vetted steps by id; the analysis is done by scripts written in advance, so file text never reaches the model. Raw mode (free-form model-written code) exists only in the foreground, on files the worker named. Each child has step, token and time budgets, an isolated workspace, a lease that a child can only narrow, and results that code recounts from the source. Human input signalled from the desktop makes a child yield and write a checkpoint.
+
+**What is different.** In the default mode the model only orders vetted steps by id and scripts do the analysis, results are recounted by code, and a child's lease can only narrow its parent's.
 
 #### Where to see it
 
@@ -872,6 +916,8 @@ A routine the worker opted in for can run while they are away, then leave one su
 
 The engine's presence model says whether a window is likely long enough and the machine is unlocked; the agent service starts a checkpointed run with keep-awake and aborts within a second when idle time drops. Frames never leave the device in an unattended run, and an unattended run never writes to a real account. Irreversible actions in an unattended run need a per-routine opt-in. The morning report is one card on return; overnight work never changes the independence score.
 
+**What is different.** Whether to start is a decision on the worker's return forecast; the morning report is one line; and overnight work is excluded from the independence score.
+
 #### Where to see it
 
 Needs you (one line: 'Since you were away: 1 run finished, 0 failed', with Details); Routines, 'Run while I'm away' is its own switch on a routine.
@@ -907,6 +953,8 @@ A single action stops every running agent and holds them stopped until the worke
 #### How it works
 
 Stopping flips a kill flag on disk and cancels the supervisor's current generation, so the stop never waits for a model call. Results from an older generation are dropped even if a task ignores cancellation. Paths: Option-Shift-Command-K anywhere, Shift-Command-K or Shift-Escape inside Knack, the Stop button on the corner pill while something runs, a small Stop button in the sidebar, and 'Stop everything' or 'Pause for 1 hour' in the menu bar. The Stopped card stays until Resume, and Resume needs a per-boot token so a web page cannot clear it. Page content cannot change or click the kill switch.
+
+**What is different.** Stop is a flag on disk plus a supervisor that drops stale results, so it does not depend on any model call or any in-process cooperation.
 
 #### Where to see it
 
@@ -948,6 +996,8 @@ Knack finds work you repeat, estimates how much time automating it would save, a
 
 Episodes are segmented and clustered by alignment distance, with at least 3 supports. Each cluster is scored by count, minutes a week, variability and judgement share (searches, compares and decides divided by length) and matched to the role pack's routine templates. A value gate then keeps only proposals with a worthwhile saving. A recurrence forecast gives an interval on future runs. Proposals arrive only at episode boundaries, at most a few a day, and the system learns P(accept) per person. A routine is a JSON step language with a precondition and postcondition per step: model-written code is never executed.
 
+**What is different.** A routine is eligible for automation only if the worker has mastered its steps or the pack marks it as not learning-relevant; otherwise Knack coaches it instead of taking it over.
+
 #### Where to see it
 
 Needs you (the proposal is a row with three equal buttons and 'More ways to say yes'); Routines, Running and Could automate.
@@ -985,6 +1035,8 @@ A routine earns autonomy by practising beside the worker. In Watch first it shad
 
 Four rungs: observe; suggest and shadow; do with approval; do then report. Promotion from shadow to 'asks first' needs at least 20 shadow runs with a Wilson lower bound of 0.8 on matches (20 clean runs give about 0.84). The top rung needs a lower bound of 0.95 (about 75 clean runs), a target the demo does not reach, and the screen says so. A failure, an undo within seconds or an injection hit demotes one rung. A divergence in shadow counts as a non-match. In the app the rungs read Watching, Asks first and Runs on its own; 'while I'm away' is its own switch, and irreversible steps in unattended runs need a separate per-routine opt-in.
 
+**What is different.** Autonomy is earned by matching what the worker does, with a Wilson lower bound on shadow matches, and any failure, undo or injection hit demotes it.
+
 #### Where to see it
 
 Routines: a row opens in place with a three-state control; a step up is enabled only when the record earned it and a disabled step prints what it needs.
@@ -1019,6 +1071,8 @@ A compact list of actions you repeat that could be automated, ranked by minutes 
 #### How it works
 
 Ranked by estimated minutes saved a week, then by count. A sequence that matches a pack routine needs 3 repeats; an unmatched sequence needs 5 repeats on at least 2 days. Seven rows then Show all; folds for Already automated and Hidden. One honest line says what repeats but is not offered: work that needs judgement, an irreversible first step, work that is too varied, or denylisted work. A firm aggregate suppresses groups under 5 people. It is inspired by the JetBrains Key Promoter X list of missed shortcuts, but counts repeated actions and never nags.
+
+**What is different.** One row per repeated task even across tools, ranked by minutes saved, with an honest line for what repeats but is not offered and why.
 
 #### Where to see it
 
@@ -1056,6 +1110,8 @@ Approvals, paused runs, routine proposals and prepared actions are one list with
 
 Order is the attention layer's: safety first, then time-sensitive, then the rest, newest first inside a class. Three rows show by default plus any safety or blocking row, then Show all. The consequence is printed as plain text ('Cannot be undone.'), never a pill or a Hint. Evidence (screenshots, found against expected, the tier log, the run id) opens in place. An approval can only be a real click: no keystroke, and no voice, approves anything. The same number is in the sidebar, the menu bar and the Dock badge.
 
+**What is different.** Everything waiting for a decision is one list with one row shape, the consequence printed as plain text, and approval possible only by a real click.
+
 #### Where to see it
 
 Needs you in the sidebar (second item); a blocking approval also appears as a corner card.
@@ -1089,6 +1145,8 @@ Building an automation costs effort and saves time only if the routine keeps com
 #### How it works
 
 With the cost of building b (in units of one manual run), a forecast y of remaining runs and a trust parameter lambda between 0 and 1: if y is at least b, build after about lambda times b runs; otherwise after b divided by lambda. The rule is 1 + 1/lambda robust and 1 + lambda consistent (Kumar, Purohit and Svitkina); the constants were checked numerically. Lambda is chosen from past forecast error, a heuristic labelled as one.
+
+**What is different.** A rule with a proven worst case is applied to the build-or-wait decision with a forecast, and the table shows where building at once beats it.
 
 #### Where to see it
 
@@ -1124,6 +1182,8 @@ Auto-approve the safest agent outputs and send the rest to a person, with a stat
 
 Features: case complexity, the worker's trace, worker-versus-agent disagreement and agent confidence. Calibrated scores rank cases. The auto-approved set is the largest one whose Clopper-Pearson upper bound on the error rate is at most 0.05 on a calibration split; the bound is then checked on a held-out split.
 
+**What is different.** The auto-approved set is the largest one whose Clopper-Pearson bound stays under the target, checked on held-out cases, with the circularity stated.
+
 #### Where to see it
 
 Evidence (review routing); not a screen of its own.
@@ -1157,6 +1217,8 @@ From routines, skill gaps, calendar and commit suggestions and agent results, Kn
 #### How it works
 
 Four steps in code. Judge ranks candidates and prefers fewer, even zero. Verify re-checks each candidate against the current state and drops stale ones. Prepare builds the editable content from templates (a model may reword through the egress guard). Fire acts only on the worker's press: it either puts an approval item in the queue or starts a background run that only reads, never both unprompted. Each card carries a risk class and source tags. Acceptance is learned from the worker's reactions, starting from a prior of 0.4 for the role. The design idea (judge, prepare, execute on press, drop stale items) comes from the owner's notes on Sentient OS and was re-implemented in our own code and words.
+
+**What is different.** Nothing fires unprompted, stale candidates are dropped before a card is drawn, and zero cards is a valid result.
 
 #### Where to see it
 
@@ -1198,6 +1260,8 @@ A worker can connect a few tools Knack may read from. Presets come with the role
 
 Knack uses the official MCP Python SDK (MIT) as the client and the repository's own plugin framework for sources; hosted aggregators are not used because the data would leave the device. Presets named by the owner: Dev (GitHub, Git, Linear or Jira, Slack, Sentry, Filesystem), Data (SQLite and Postgres, BigQuery, Google Sheets and Drive, Jupyter, Notion, Slack), Benefits (Outlook, Teams, SharePoint). Presets are offered inside the role card of first run, which adds one click (first run becomes four). The demo uses local stand-ins only: a local folder, a SQLite database with the synthetic dataset, and a fake GitHub and Slack we write. No real account is used.
 
+**What is different.** The list is curated and read-only by default, starts off, and avoids hosted aggregators so data does not leave the device.
+
 #### Where to see it
 
 Settings has a Connections panel; first run shows the presets under the role card (both are slots on main; the panel itself is landing).
@@ -1236,6 +1300,8 @@ Knack is woken by the words 'hey knack'. Listening is on by default (the owner's
 
 A native helper uses macOS on-device speech recognition. If on-device recognition is not available it turns itself off with one plain line and never falls back to server recognition. The phrase is matched by a closed accept list: a greeting (hey, hay, heya) at the start of an utterance, then the name 'knack' (close spellings only at the end of an utterance or before a request word; 'knock' only before a request word). 'Hey Jack', 'a knack for it' and 'hey knock it off' are rejected. The listener is dormant, with the microphone released, when the switch is off, the screen is locked or the Mac asleep, Stop everything is engaged, Do Not Disturb, a call, a meeting or a screen share is on, a Live conversation or an agent run is under way, or the worker is away. macOS still asks for Microphone and Speech Recognition, which only the owner can grant.
 
+**What is different.** Recognition happens in a native helper that prints only a closed 'heard' event, so no text crosses into the app, and it fails closed instead of using server recognition.
+
 #### Where to see it
 
 Menu bar: a status row ('Listening for Hey Knack. Stays on this Mac, nothing stored.') and a 'Listen for Hey Knack' switch; macOS itself draws its orange microphone indicator whenever any process uses the microphone, which Knack cannot hide. First launch asks for the two macOS permissions. The corner pill shows 'Listening' after the wake.
@@ -1271,6 +1337,8 @@ After the wake, a live voice conversation starts. Knack speaks while it guides, 
 #### How it works
 
 The wake stops the listener (releasing the microphone) and starts the Live voice conversation (Gemini), hands-free, with a soft chime. Two first-wake cards ask once, each with Yes, Not now and Never of equal weight: whether your voice may go to a cloud voice model while you talk, and whether a small picture of the screen may go about every 5 seconds; only a real mouse click answers a card. Frames go through the image gate and the ledger: never from a denylisted app or over secure input, never unattended, never stored. The conversation is bounded: started by the worker, five minutes at most, a spending cap, and a quiet half minute ends it. The model's tools are a closed set: point_at (ring and ghost cursor), clear, show_step, ask_choice, end_session and do_it_for_me. The last fails closed until the owner has completed the first supervised real-click test; a record written only by that test turns it on. Even then, voice alone is never consent: a card 'Click for you?' with Allow once or Cancel needs a real mouse click, a 20-second timer means Cancel, and the click goes through the one-time token, the per-run permit, the countdown and every real-actuator guard. It is never unattended, never a purchase, never a real account. A typed context packet (closed grammar, freshness limits; a test feeds it hostile strings) tells the session what is on the screen, what waits for approval and what the coach is doing. Holding Option-Space talks.
+
+**What is different.** Voice can ask but never approve: the click is a separate consent, a real mouse click on a card, and the whole path stays closed until a supervised test has passed.
 
 #### Where to see it
 
@@ -1311,6 +1379,8 @@ Every model role runs on Gemini by default: a planner, fast checks, pointing and
 
 One model port with providers behind it. Roles map to environment variables (accurate, fast, computer use, live) and nothing hard-codes a model name; at boot the key's model list is read and a missing id stops start-up with the usable ids. Every call that leaves a Python service goes through the egress guard and a metadata-only ledger. The routes were chosen by a bake-off on our sandbox screens. The OpenAI key was revoked by OpenAI on 7 Nov (cause unknown) and the owner moved every OpenAI role to Gemini (D49); one further Gemini model on the key (Argon) is never configured, and a test guards that.
 
+**What is different.** Roles are routed by a bake-off on our own cases, model ids come from the environment and are checked at boot, and every call that leaves a service is ledgered.
+
 #### Where to see it
 
 More, then Models and cost; Settings, 'Use live models' is the master switch (it restarts the engine, about 20 seconds); the sidebar status line says Live models or Running with example data.
@@ -1347,6 +1417,8 @@ Raw commits and calendar entries are turned into short enums on the Mac by a loc
 #### How it works
 
 A 7B model (Qwen2.5, 4-bit) runs on the loopback through llama.cpp with constrained decoding, so nothing leaves a digest except vocabulary values. For each field the shipped policy keeps whichever of the model or the rules did better on a held-out split: the model for category, the rules for risk, message quality and whether preparation is needed. Code vetoes the two most consequential claims (a revert needs a revert-style message; focus time needs at most one attendee).
+
+**What is different.** For each field the shipped policy keeps whichever of the model or the rules did better on held-out data, and code vetoes the most consequential claims.
 
 #### Where to see it
 
@@ -1385,6 +1457,8 @@ Short spoken prompts come from a fixed set of lines, not from a model. A voice r
 
 Knack sends a line id, never free text, and the call is listed in the ledger. The draft submission text says cached audio supports the offline demo (the author did not confirm this in code). Cue speaks only when asked (decision D36). A developer escape hatch that lifts the fixed-lines rule exists and is off.
 
+**What is different.** Speech is a fixed vocabulary read by id, so no model can say anything unplanned (inside a started Live conversation the model's audio is free-form).
+
 #### Where to see it
 
 Spoken cues and the morning briefing, when voice is on.
@@ -1418,6 +1492,8 @@ The same product runs with no model calls and no network: scripted, deterministi
 #### How it works
 
 Mock mode is set by the demo command: it seeds an isolated home under data/ (never the worker's real folder), starts the engine, the agent service and the three sandbox sites, and opens the dashboard. Provider calls are replaced by scripted, deterministic ports. The app itself starts in live mode when a Gemini key is present and in mock mode when it is not.
+
+**What is different.** The whole product, including an agent run, is reproducible offline with deterministic scripted ports and an isolated home.
 
 #### Where to see it
 
@@ -1457,6 +1533,8 @@ Home shows one sentence about the worker's week, one action and at most two quie
 
 The hero is the top pointer written from a fixed template: 'On {step} you usually take about {n} {unit} {longer or less} than the expert.' At most 16 words and one quantity. 'Why this?' opens the method (fixed rules, not a model), the interval, n and where the data came from. Something the worker must decide outranks something they could learn. When there is nothing, the screen says so in five words.
 
+**What is different.** A one-quantity rule limits a sentence to one number, and a lint checks it, so the home screen cannot grow back into a report.
+
 #### Where to see it
 
 Home, the first item in the sidebar and the page Knack opens on.
@@ -1490,6 +1568,8 @@ Each week, a deterministic engine picks at most three pointers for a worker and 
 #### How it works
 
 A fixed list of candidate kinds (for example time lost on a habit, a habit improved, an independence milestone, a skill due for retention practice, a relapse, an automation opportunity). Each candidate must pass a reliability gate (minimum occurrences, an interval that excludes zero, an effect size and a sign that persists over weeks), then a family-wise control for the number of comparisons, guard metrics (faster but with more errors is a trade-off, never a celebration), diversity and caps. Text comes from a fixed template. Admin groups under 5 people are never compared. Output is deterministic: the same input twice, or shuffled, gives the same answer.
+
+**What is different.** Silence is a valid output: candidates pass a reliability gate and a comparison-wide control, and a weak insight is dropped, not shown weakly.
 
 #### Where to see it
 
@@ -1529,6 +1609,8 @@ A second audience. The Admin view shows where the firm loses time, compares expe
 
 Roles are Worker and Admin; the admin switch lives in the account menu and is remembered. An admin sees summaries of numbers and enums only (counts, trend classes, intervals, per-skill independence and time-lost, automation counts): never raw events, screenshots, page or file text, memory-file contents or assist-ledger rows beyond counts. Group comparisons need at least 5 people. There is no ranking of individuals and no single performance score. Every admin text carries the line 'For coaching and onboarding, not for evaluating individuals.' A worker has a plain 'what your admin can see' page in Your data. The Firm screen shows at most three rows by default, then Show all; Roles shows one row per role as a dot-and-whisker strip; Onboarding shows one small chart per role with the median step to the target.
 
+**What is different.** The admin sees numbers and enums only, never a ranking or a single score, groups under 5 are never compared, and the worker has a page that shows exactly what the admin can see.
+
 #### Where to see it
 
 Account menu, View as Admin; sidebar Firm, Roles, Onboarding; More, Firm rows (People, Automation, Risk and coverage, Forecasts, Firm brief).
@@ -1564,6 +1646,8 @@ Extras for the admin: a short Monday note, a one-page firm brief that prints, an
 #### How it works
 
 The Monday note is a few plain sentences built from the same deterministic insights (the engine sends ready text when it has it; otherwise it is composed from the pointers). The spec puts 'Copy my Monday note' in the command palette; that row was not on main when this was written. The firm brief is a print view of the top rows. The scorecard is the Forecasts screen (reliability diagram and baselines) read from the evaluation report.
+
+**What is different.** Nothing new is claimed: it reuses the insights engine and the evaluation report.
 
 #### Where to see it
 
@@ -1602,6 +1686,8 @@ Knack counts the steps you finished with no accepted cue and shows the trend wit
 #### How it works
 
 An assist ledger holds one row per assist episode with enums and numbers only: no text and no screenshots. Three streams are kept apart: assist (feeds the score), delegated and automation (shown as offloaded work, never in the score). Independence is the share of the last 20 occurrences of a skill finished with no accepted cue, with a Wilson lower bound. The help-need trend is a Theil-Sen slope with a bootstrap interval. Gap closure compares seconds lost with the first five occurrences, and retention counts unaided success on the first occurrence three or more days after being taught. A composite from 0 to 100 exists (weights stated as assumptions) but the headline is the trend. Dismissing a cue without completing the step is not independence; an error is penalised. The curve starts after 10 steps.
+
+**What is different.** Assisted work is kept apart from delegated and overnight work, so an agent doing the job never raises the worker's score; the headline is a trend with an interval, not a single number.
 
 #### Where to see it
 
@@ -1643,6 +1729,8 @@ Every part of Knack that could interrupt (Cue, briefings, approvals, agent resul
 
 A pure function of the event, the worker's state (flow, a call, a meeting, a screen share, away, locked) and recent history. Principles in code: silence is the default; safety is never suppressed; a decision is shown once and reminded at most once; one voice at a time; nothing important sits unseen (a passive marker exists the moment an item exists); learning can only quiet; the worker can always see why (a one-line fixed reason); metadata only. Channels run from a silent log through a badge, banner, chip and toast to a question card and voice. A digest replaces pings when the worker returns. A new interrupting type needs a row in the attention table first.
 
+**What is different.** Every producer of an interruption goes through one router with a fixed reason for every decision, and learning can only quiet, never amplify.
+
 #### Where to see it
 
 Everywhere a notice appears; Needs you; the corner card; Settings, Interruptions (Rarely, Balanced, Often).
@@ -1678,6 +1766,8 @@ What each model sees is built by code from typed facts, with a budget, a freshne
 #### How it works
 
 An audit listed every model-facing call site and its prompt sections. A shared library assembles prompts under nine rules: typed first; trust enforced by audience (the planner never receives raw untrusted text; the reader receives untrusted text but no worker memory); stable first and volatile last so a provider can cache; bounded, with a fixed truncation order and nothing cut mid-item; code-held task state after a resume; one frame and at most one thumbnail; keyed, capped retrieval from the memory file (at most six lines); fresh or named; and measured with a metadata-only manifest. Computer use runs statelessly by default.
+
+**What is different.** Prompts are built from typed facts under a budget with a freshness check, trusted and untrusted text never share a prompt, and a long run carries code-held state instead of a transcript.
 
 #### Where to see it
 
@@ -1715,6 +1805,8 @@ Knack.app is the dashboard in its own window with a Dock icon and a menu-bar ite
 
 Window: 80% by 84% of the work area, centred, remembered per display; closing hides it; the Dock icon brings it back; quitting while a job runs asks first. The pill sits bottom-right, 16 pixels from the edges, holds a label of at most five words, and is never over a password or payment field. Only one interrupting surface shows at a time, and an approval raises a card, never a modal. A pure state machine of 18 transitions decides what the window and pill do, with kill always winning. The app starts its own engine and agent: live models if a Gemini key is present, example data otherwise, with a status line that says which. Unsigned local app and dmg build with electron-builder; a signed release needs the owner's Apple Developer ID.
 
+**What is different.** Only one interrupting surface shows at a time, the pill is a status and not an interruption, and the window never pops back on its own.
+
 #### Where to see it
 
 The app itself: window, Dock icon, menu bar, corner pill. The sidebar status line reads Live models or Running with example data.
@@ -1750,6 +1842,8 @@ First launch asks two questions and shows one summary: a role card, one capture 
 
 Click 1 picks a role (three cards from the packs); the pack's tools, risky actions set to 'never without me', short tone, gradual pace and hours are written to the memory file. Click 2 is the one consent: 'It records when you are active, never what you read: no page text, no URLs, no field values. The record stays on this laptop.' Yes, Not now and Never have equal weight; Not now asks again once after a week; Never never asks again. Click 3 shows four plain lines from the file just written and opens Home. Screen glances, the microphone, Accessibility, Screen Recording and Open at login are each asked once, in context, when first needed. The role card will also offer connection presets (landing), which adds one click.
 
+**What is different.** Two questions and one summary, with a consent whose three buttons weigh the same.
+
 #### Where to see it
 
 The first window on first launch (no sidebar yet). Settings, Set up again reruns it.
@@ -1783,6 +1877,8 @@ Command-K goes anywhere or runs a command, Option-Space asks Knack (hold to talk
 #### How it works
 
 In the dashboard today: Command-1 to Command-5 go to the five destinations, Command-comma opens Settings, Command-slash opens About this screen, Shift-Command-K stops everything while Knack is frontmost (a test says no key reaches an approval). Command-K opens the palette, which lists every screen and these actions: Take the tour, Switch to the Admin view (and back) and Print the firm brief. In the desktop: Option-Space (hold to talk), Option-Shift-Command-K anywhere to stop, Option-Command-P to pause or resume for an hour. The spec adds further palette verbs (Pause for 1 hour, Stop everything, Ask Knack, Copy my Monday note, Explain this screen and a palette-only 'Delete my data' with no shortcut by design); they were not on main when this was written. A guided tour of the five destinations is one row in the account menu.
+
+**What is different.** Nothing new is claimed; the one deliberate rule is that no keystroke can approve anything.
 
 #### Where to see it
 
@@ -1818,6 +1914,8 @@ One token file and ten rules govern every screen: one hero per screen, details b
 
 Budgets: a hero sentence of at most 16 words; a card with 8 words of title, 20 of body, a button of 3 (a hero action 5 words, decision D56); Home at most 50 words above the fold, Needs you 120, Growth 60; no paragraph over two lines in a default view; one badge above the fold; a sidebar of 6 rows with no hint words. check-copy.mjs reads the running screens against these budgets; check-clicks.mjs replays the ten jobs and fails above their click budget; a copy lint rejects banned phrases and a visible old product name; contrast is tested at AA in both themes. Weights are 400 and 600 only; icons are 14 inline SVGs; mono capitals appear only on chart axes and the work ribbon. A Hint (a small accessible 'i') may hold a unit, a definition or an interval and is never the only copy of a fact: origin badges, consent text, consequences, errors and limits stay printed.
 
+**What is different.** Word, click and contrast budgets are tests that fail the build, and a Hint may never hold the only copy of a fact.
+
 #### Where to see it
 
 Every screen; docs/knack-ux/before and after hold the screenshots; packages/design/design-system.html is the preview.
@@ -1852,6 +1950,8 @@ The mark is a solid disc with a ring offset behind it: the worker, and the under
 #### How it works
 
 The lockup is the glyph then the word Knack in the display face at weight 600, with the disc as tall as the capital K and one disc radius between them. The ring is never recoloured for status; status is the pill's words and the menu-bar badge. The menu-bar template has six states in a fixed priority (stopped, needs you, glance, working, paused, idle). The Dock icon is an ink tile with a teal ring on the macOS canvas. There is no tagline in the app.
+
+**What is different.** Nothing new is claimed; it is a design choice.
 
 #### Where to see it
 
@@ -1891,6 +1991,8 @@ One choke point sits between Knack and any remote model. Prompts are built from 
 
 Text calls carry only typed payloads (ids, enums, numbers built by code) from registered purposes. Image calls carry one frame held in memory for one call; the ledger records size, hash, model and latency but never the image. A frame is refused while secure input is on, from a denylisted app, from an unknown source, and in any unattended run; the Gemini key lives only in the main process and renderers get ephemeral tokens. The canary harness plants synthetic secrets in eleven flows, with a capturing fake model port, and counts how many arrive. A layer that registered no flow is listed as none, never counted as passed. The older desktop code that could send screenshots and file text straight to a model is off by default (decision D38) behind one switch.
 
+**What is different.** A layer with no registered test flow is never counted as passed, the canary harness has negative controls to show it can fail, and the picture is never kept.
+
 #### Where to see it
 
 Your data, section 'What it looked at or sent': every call, with a delete beside it. Evidence has the canary table.
@@ -1928,6 +2030,8 @@ Your data holds five things in one place: what Knack remembers, what it measures
 
 Seeing anything takes one click and deleting takes three at most (Your data, Forget, Forget it, confirmed inline). The delete wording is identical in every section. No file path is printed on screen. The worker's plain 'what your admin can see' page lives here. Capture, screen glances, the microphone and folders are controlled here; behaviour preferences live in Settings.
 
+**What is different.** What Knack remembers, measures and has sent is one place with identical delete wording, instead of five scattered ones.
+
 #### Where to see it
 
 Your data, the fifth item in the sidebar. The spec adds a palette row 'Delete my data' with no shortcut; it was not in the palette on main when this was written.
@@ -1961,6 +2065,8 @@ Knack adapts to a worker through one readable, editable Markdown file on the dev
 #### How it works
 
 Sections: Preferences, Procedure, Routines, Corrections, Skill state and Never, with a revision number in the header. Writes are atomic, a stale revision is rejected, the worker's edit wins and unknown sections are kept. A worker's correction is a precedent; three consistent ones become a proposed rule whose ceiling is no looser than anything already approved; a separate approval activates it; the rule is a versioned line, so deleting the line ends it. Precedents decay with a 30-day half-life. A personal procedure rule must also match expert outcomes in a shadow comparison. The first-run defaults come from the role pack.
+
+**What is different.** Only the worker's own actions can write to it; a correction becomes a precedent, three consistent precedents become a proposal, and a separate approval activates it as a versioned line.
 
 #### Where to see it
 
@@ -2000,6 +2106,8 @@ One command rebuilds a report from the code that owns each number; the Evidence 
 
 `make eval` runs each section's own code and writes evals/report.json and report.md. Each section carries its origin badge (synthetic, simulated, real, unknown), n, split and interval level. Findings are generated, not footnotes. A limitations register keeps every known weakness with a severity. A section with no numbers says why instead of showing an invented value; the live study shows 'not run'.
 
+**What is different.** The report is generated by the code that owns each number, findings are generated rather than written, and the limitations register ships inside the product.
+
 #### Where to see it
 
 More, For reviewers, Evidence (address #/evidence; exempt from the word budgets).
@@ -2036,6 +2144,8 @@ Almost everything in the report is synthetic or simulated. The register is long 
 
 An evidence packet holds the typed facts. The shipped wording is a code template that passes its own check on every packet and every intent. A model's wording (a local model first; a cloud wording attempt is on by default since D48, routed to Gemini) is used only if it passes the same check; otherwise the template is shown. The check proves each number traces to a field of the packet. It does not prove the packet is true.
 
+**What is different.** A model's words are used only if every number in them traces to the evidence packet; otherwise the code template is shown.
+
 #### Where to see it
 
 Beside figures on the detail screens (Explain) and in Evidence.
@@ -2070,6 +2180,8 @@ We asked how much of each result survives when the pipeline is tested on a synth
 #### How it works
 
 Three structurally different generators (continuous person effects, many valid paths, noisy capture, interruptions, a label that is a hidden state, not read from an emission table) with 40 people per dataset and three replicates. Every ordered pair of fit family and test family is scored, with a person-cluster bootstrap. Five expectations were pre-registered and scored afterwards.
+
+**What is different.** We tested our own methods on generators they were not built on and published the drop, with expectations registered beforehand.
 
 #### Where to see it
 
@@ -2109,6 +2221,8 @@ We tried to improve the stuck model and the genome with pre-registered candidate
 
 Candidates and rules were frozen before the held-out run, which ran once. The primary metric for the genome families is the mean absolute error in seconds of the recovered price of a deficit, paired against the first method; for the stuck model it is log loss, paired against the first model, with adjusted intervals.
 
+**What is different.** Candidates and decision rules were frozen before a single held-out run, and the rejections are reported as findings.
+
 #### Where to see it
 
 Evidence (Findings: ML v2); evals/mlv2/PLAN.md and results.
@@ -2144,6 +2258,8 @@ We ran a pre-registered study with language-model participants (not people) to t
 #### How it works
 
 16 coached and 8 sham-arm participants, within-participant and counterbalanced, with an A/A arm in which the coach is silent in every block. Participants are language models with a 280-character self-written note as 'memory'. A follow-up pilot with more reasoning effort was stopped by its own criterion.
+
+**What is different.** A study design was run end to end with language-model participants to test the pipeline and its enforcement, with an A/A arm and a power calculation, and a null reported as a null.
 
 #### Where to see it
 
@@ -2182,6 +2298,8 @@ Four more results that did not meet their targets, stated beside the features th
 #### How it works
 
 Each target was written before its held-out run; a miss is reported, not reworded.
+
+**What is different.** Targets were written before the held-out runs; a miss is reported against its target.
 
 #### Where to see it
 
@@ -2224,6 +2342,8 @@ A role pack turns raw events into steps, says what an expert does, which actions
 
 A pack is a validated folder (id, onboarding questions for tools, risky actions, tone, pace and hours; extra step types and their mapping from events; expert steps with allowed reorderings; risk classes with label patterns; routine templates; a curriculum; persona parameters; priors for pooling). The benefits pack also has an oracle, task configuration and sandbox sites. The thin packs fill every key but the oracle, tasks and the full expert policy, and differ visibly in questions, steps, risk classes and tone: the programmer's risky actions are force-push, deleting a branch, merging to main and publishing; the benefits processor's are submitting a case, issuing a payment and sending a letter. A loader checks packs against a JSON Schema and the pack format reserves a slot for plugin references.
 
+**What is different.** A role is a validated folder of data (steps, expert policy, risk classes, tone, routines, curriculum), so adding a job is adding data, and the thin packs differ visibly in their risky actions.
+
 #### Where to see it
 
 First run (the role cards), Settings, Set up again, and the Admin Roles view.
@@ -2260,6 +2380,8 @@ The two thin roles are being given more depth: more steps and habits, without ch
 #### How it works
 
 Per owner decision D55 the work is additive only, and per the lead's decision D56 every new step is optional and uses new step types, so the frozen sandbox tasks and the role studies are untouched. No synthetic traces exist for the new step types, so screens that depend on them say 'not enough data'. The role studies use private sandbox worlds for the programmer (editor, tests, console) and the analyst (table, filter, pivot, chart with planted data issues).
+
+**What is different.** Additive only: new optional steps on new step types, so nothing already measured changes.
 
 #### Where to see it
 

@@ -18,6 +18,8 @@ Building an automation costs effort and saves time only if the routine keeps com
 
 With the cost of building b (in units of one manual run), a forecast y of remaining runs and a trust parameter lambda between 0 and 1: if y is at least b, build after about lambda times b runs; otherwise after b divided by lambda. The rule is 1 + 1/lambda robust and 1 + lambda consistent (Kumar, Purohit and Svitkina); the constants were checked numerically. Lambda is chosen from past forecast error, a heuristic labelled as one.
 
+**What is different.** A rule with a proven worst case is applied to the build-or-wait decision with a forecast, and the table shows where building at once beats it.
+
 ### Where to see it
 
 Behind the proposals in Needs you and the value line on a proposal; Evidence has the regret table.
@@ -51,6 +53,8 @@ Auto-approve the safest agent outputs and send the rest to a person, with a stat
 ### How it works
 
 Features: case complexity, the worker's trace, worker-versus-agent disagreement and agent confidence. Calibrated scores rank cases. The auto-approved set is the largest one whose Clopper-Pearson upper bound on the error rate is at most 0.05 on a calibration split; the bound is then checked on a held-out split.
+
+**What is different.** The auto-approved set is the largest one whose Clopper-Pearson bound stays under the target, checked on held-out cases, with the circularity stated.
 
 ### Where to see it
 

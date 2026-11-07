@@ -18,6 +18,8 @@ Aligns a novice's steps with the nearest expert's and puts a price in seconds on
 
 Events become steps through the role pack's mapping. A sequence alignment (Needleman-Wunsch, with a cost for each pair of step types) pairs each novice trace with the nearest expert trace. A step with no partner costs the time it took; a mismatched pair costs the difference in dwell. The gap is split by habit with a regression on behaviour counts, and intervals come from a bootstrap by person. A transition graph lists the step-to-step moves a novice never makes, and a replay slider plays a recorded trace on a virtual clock with idle gaps squeezed (the same events always give the same state). Everything here is plain code: no language model.
 
+**What is different.** The gap is priced in seconds against the nearest expert, printed beside two controls, and priced again in wrong answers; the first version let a skipped step look like time saved.
+
 ### Where to see it
 
 More, then Where time goes (address #/genome). The Home hero's action, See where the time goes, opens it on that step. Settings, Views, Pinned views puts it in the sidebar.
@@ -54,6 +56,8 @@ Before a gap is shown, Knack compares experts with experts and re-runs the whole
 
 The placebo aligns each expert to the nearest other expert. The null shuffles the expert and novice labels across people and repeats the whole procedure, 1,000 permutations. Both should include zero; the real gap should not. The Evidence page prints both beside the real gap.
 
+**What is different.** The controls are on the screen next to the real gap, not an offline check, so a reader can see whether the gap stands clear of them.
+
 ### Where to see it
 
 Where time goes (the controls under the ribbon) and Evidence (More, For reviewers).
@@ -87,6 +91,8 @@ Skipping a step looks free in seconds, so Knack also prices it in answers: how o
 ### How it works
 
 On 200 synthetic households scored by the sandbox oracle, skipping reconcile means writing one calculator's figure into the note without comparing the three. Skipping the cliff check means no warning that a small documented change (savings, rent, childcare, earnings) would move the award. The result is a count with an interval. The reason it exists: the work ribbon's waterfall shows a skipped step as time saved, which is correct arithmetic and a misleading story.
+
+**What is different.** The cost of a missing step is measured in wrong answers against a known oracle on 200 households, not only in seconds.
 
 ### Where to see it
 

@@ -14,6 +14,8 @@ One choke point sits between Knack and any remote model. Prompts are built from 
 
 Text calls carry only typed payloads (ids, enums, numbers built by code) from registered purposes. Image calls carry one frame held in memory for one call; the ledger records size, hash, model and latency but never the image. A frame is refused while secure input is on, from a denylisted app, from an unknown source, and in any unattended run; the Gemini key lives only in the main process and renderers get ephemeral tokens. The canary harness plants synthetic secrets in eleven flows, with a capturing fake model port, and counts how many arrive. A layer that registered no flow is listed as none, never counted as passed. The older desktop code that could send screenshots and file text straight to a model is off by default (decision D38) behind one switch.
 
+**What is different.** A layer with no registered test flow is never counted as passed, the canary harness has negative controls to show it can fail, and the picture is never kept.
+
 ## Where to see it
 
 Your data, section 'What it looked at or sent': every call, with a delete beside it. Evidence has the canary table.

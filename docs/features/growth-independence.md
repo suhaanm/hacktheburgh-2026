@@ -14,6 +14,8 @@ Knack counts the steps you finished with no accepted cue and shows the trend wit
 
 An assist ledger holds one row per assist episode with enums and numbers only: no text and no screenshots. Three streams are kept apart: assist (feeds the score), delegated and automation (shown as offloaded work, never in the score). Independence is the share of the last 20 occurrences of a skill finished with no accepted cue, with a Wilson lower bound. The help-need trend is a Theil-Sen slope with a bootstrap interval. Gap closure compares seconds lost with the first five occurrences, and retention counts unaided success on the first occurrence three or more days after being taught. A composite from 0 to 100 exists (weights stated as assumptions) but the headline is the trend. Dismissing a cue without completing the step is not independence; an error is penalised. The curve starts after 10 steps.
 
+**What is different.** Assisted work is kept apart from delegated and overnight work, so an agent doing the job never raises the worker's score; the headline is a trend with an interval, not a single number.
+
 ## Where to see it
 
 Growth in the sidebar: a one-sentence title, one chart with its band, skills as rows, and closed disclosures (The fade, Your ledger, What Knack did for you). Export and delete are in Your data.

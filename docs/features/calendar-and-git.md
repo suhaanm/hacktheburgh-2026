@@ -18,6 +18,8 @@ Compares a worker's week with an expert's: meeting load, focus blocks and review
 
 Calendars become counts, durations and enums; no titles, attendees or bodies are stored. The expert reference is a hand-authored role template. Suggestions come from a fixed catalogue through the same guard as every other layer, never free text. A real read-only check of the owner's own calendar needs the owner's approval at run time (decision D26) and stores only counts and durations.
 
+**What is different.** The expert-against-learner comparison is applied to a week, with suggestions from a fixed catalogue and adapters that read aggregates only.
+
 ### Where to see it
 
 More, then Calendar (address #/week).
@@ -52,6 +54,8 @@ For programmers: finds commit habits that experts do not have (very large commit
 ### How it works
 
 Reads the git history on the device. Features are counts and times; commit messages are turned into enums by rules, or by a local model on the Mac for the category, and are not sent out. Each learner is compared with eight experts of the same replicate, with a placebo of expert against expert. Commit sessions are aligned, but git records when a commit landed, not how long the work took, so the alignment sees the shape of sessions and not seconds.
+
+**What is different.** The same comparison is applied to commits, with a placebo of experts against experts and thresholds set on separate seeds from the test seeds.
 
 ### Where to see it
 

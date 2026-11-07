@@ -14,6 +14,8 @@ When Knack points at something it draws a thin ring with corner ticks and one sh
 
 In a browser the extension sends element rectangles so the ring lands exactly (DOM first: exact, free and instant). Elsewhere a fresh frame goes through the egress guard to a Gemini vision model that must answer in a closed form (found or not, and a box); a box is accepted only after sanity checks on size, position and denylisted regions. The ring follows its zone when the page moves and is dropped at once when the zone is gone. A ghost cursor, a small dot with a short trail, can show a move. The overlay is hidden while the Knack window itself is focused, and draws no label while an agent is acting.
 
+**What is different.** The ring is grounded from the page first (exact), a vision model answers only in a closed form with sanity checks, and the overlay draws no label while an agent is acting.
+
 ## Where to see it
 
 On the real screen, over the control being pointed at. Settings, Coaching turns coaching off.

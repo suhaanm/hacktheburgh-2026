@@ -18,6 +18,8 @@ While you work on something else, Knack can run helpers that profile a dataset, 
 
 A parent plans and hands typed specs to children. In the default menu mode the model only sequences vetted steps by id; the analysis is done by scripts written in advance, so file text never reaches the model. Raw mode (free-form model-written code) exists only in the foreground, on files the worker named. Each child has step, token and time budgets, an isolated workspace, a lease that a child can only narrow, and results that code recounts from the source. Human input signalled from the desktop makes a child yield and write a checkpoint.
 
+**What is different.** In the default mode the model only orders vetted steps by id and scripts do the analysis, results are recounted by code, and a child's lease can only narrow its parent's.
+
 ### Where to see it
 
 More, then Background runs. Results arrive in Needs you.
@@ -54,6 +56,8 @@ A routine the worker opted in for can run while they are away, then leave one su
 ### How it works
 
 The engine's presence model says whether a window is likely long enough and the machine is unlocked; the agent service starts a checkpointed run with keep-awake and aborts within a second when idle time drops. Frames never leave the device in an unattended run, and an unattended run never writes to a real account. Irreversible actions in an unattended run need a per-routine opt-in. The morning report is one card on return; overnight work never changes the independence score.
+
+**What is different.** Whether to start is a decision on the worker's return forecast; the morning report is one line; and overnight work is excluded from the independence score.
 
 ### Where to see it
 

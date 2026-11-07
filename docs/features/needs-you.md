@@ -14,6 +14,8 @@ Approvals, paused runs, routine proposals and prepared actions are one list with
 
 Order is the attention layer's: safety first, then time-sensitive, then the rest, newest first inside a class. Three rows show by default plus any safety or blocking row, then Show all. The consequence is printed as plain text ('Cannot be undone.'), never a pill or a Hint. Evidence (screenshots, found against expected, the tier log, the run id) opens in place. An approval can only be a real click: no keystroke, and no voice, approves anything. The same number is in the sidebar, the menu bar and the Dock badge.
 
+**What is different.** Everything waiting for a decision is one list with one row shape, the consequence printed as plain text, and approval possible only by a real click.
+
 ## Where to see it
 
 Needs you in the sidebar (second item); a blocking approval also appears as a corner card.

@@ -18,6 +18,8 @@ We asked how much of each result survives when the pipeline is tested on a synth
 
 Three structurally different generators (continuous person effects, many valid paths, noisy capture, interruptions, a label that is a hidden state, not read from an emission table) with 40 people per dataset and three replicates. Every ordered pair of fit family and test family is scored, with a person-cluster bootstrap. Five expectations were pre-registered and scored afterwards.
 
+**What is different.** We tested our own methods on generators they were not built on and published the drop, with expectations registered beforehand.
+
 ### Where to see it
 
 Evidence (Findings), the realism section; evals/realism/INTERPRETATION.md.
@@ -56,6 +58,8 @@ We tried to improve the stuck model and the genome with pre-registered candidate
 
 Candidates and rules were frozen before the held-out run, which ran once. The primary metric for the genome families is the mean absolute error in seconds of the recovered price of a deficit, paired against the first method; for the stuck model it is log loss, paired against the first model, with adjusted intervals.
 
+**What is different.** Candidates and decision rules were frozen before a single held-out run, and the rejections are reported as findings.
+
 ### Where to see it
 
 Evidence (Findings: ML v2); evals/mlv2/PLAN.md and results.
@@ -91,6 +95,8 @@ We ran a pre-registered study with language-model participants (not people) to t
 ### How it works
 
 16 coached and 8 sham-arm participants, within-participant and counterbalanced, with an A/A arm in which the coach is silent in every block. Participants are language models with a 280-character self-written note as 'memory'. A follow-up pilot with more reasoning effort was stopped by its own criterion.
+
+**What is different.** A study design was run end to end with language-model participants to test the pipeline and its enforcement, with an A/A arm and a power calculation, and a null reported as a null.
 
 ### Where to see it
 
@@ -129,6 +135,8 @@ Four more results that did not meet their targets, stated beside the features th
 ### How it works
 
 Each target was written before its held-out run; a miss is reported, not reworded.
+
+**What is different.** Targets were written before the held-out runs; a miss is reported against its target.
 
 ### Where to see it
 

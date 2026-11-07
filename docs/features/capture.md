@@ -14,6 +14,8 @@ A Chrome extension records roles and salted hashes of what a worker clicks, open
 
 A content script (isolated world, local salt) turns each click, navigation, focus, scroll bin, tab switch, copy or paste flag and search (length only) into a small event with an origin (real or synthetic) and an actor (human or agent). A service worker batches events to the local engine every 2 seconds. Identifiers are hashed with a per-install salt; fields named in packages/schema/sensitive_fields.json are never touched. The engine keeps an append-only JSONL log, partitioned real and synthetic, with a pure reducer so a replay always gives the same state. Agent actions run in a separate browser profile and never enter the human trace.
 
+**What is different.** The event schema allows only enums, counts and salted hashes, so there is nothing to redact later, and real and synthetic events are kept in separate partitions that are never mixed (the event-log projects we read keep rich text).
+
 ## Where to see it
 
 The extension's popup holds the capture switch. In the app, Your data has a section for capture and glances with the same switch. First run asks once: Yes, Not now or Never, with equal weight.

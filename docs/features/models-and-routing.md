@@ -18,6 +18,8 @@ Every model role runs on Gemini by default: a planner, fast checks, pointing and
 
 One model port with providers behind it. Roles map to environment variables (accurate, fast, computer use, live) and nothing hard-codes a model name; at boot the key's model list is read and a missing id stops start-up with the usable ids. Every call that leaves a Python service goes through the egress guard and a metadata-only ledger. The routes were chosen by a bake-off on our sandbox screens. The OpenAI key was revoked by OpenAI on 7 Nov (cause unknown) and the owner moved every OpenAI role to Gemini (D49); one further Gemini model on the key (Argon) is never configured, and a test guards that.
 
+**What is different.** Roles are routed by a bake-off on our own cases, model ids come from the environment and are checked at boot, and every call that leaves a service is ledgered.
+
 ### Where to see it
 
 More, then Models and cost; Settings, 'Use live models' is the master switch (it restarts the engine, about 20 seconds); the sidebar status line says Live models or Running with example data.
@@ -54,6 +56,8 @@ Raw commits and calendar entries are turned into short enums on the Mac by a loc
 ### How it works
 
 A 7B model (Qwen2.5, 4-bit) runs on the loopback through llama.cpp with constrained decoding, so nothing leaves a digest except vocabulary values. For each field the shipped policy keeps whichever of the model or the rules did better on a held-out split: the model for category, the rules for risk, message quality and whether preparation is needed. Code vetoes the two most consequential claims (a revert needs a revert-style message; focus time needs at most one attendee).
+
+**What is different.** For each field the shipped policy keeps whichever of the model or the rules did better on held-out data, and code vetoes the most consequential claims.
 
 ### Where to see it
 
@@ -92,6 +96,8 @@ Short spoken prompts come from a fixed set of lines, not from a model. A voice r
 
 Knack sends a line id, never free text, and the call is listed in the ledger. The draft submission text says cached audio supports the offline demo (the author did not confirm this in code). Cue speaks only when asked (decision D36). A developer escape hatch that lifts the fixed-lines rule exists and is off.
 
+**What is different.** Speech is a fixed vocabulary read by id, so no model can say anything unplanned (inside a started Live conversation the model's audio is free-form).
+
 ### Where to see it
 
 Spoken cues and the morning briefing, when voice is on.
@@ -125,6 +131,8 @@ The same product runs with no model calls and no network: scripted, deterministi
 ### How it works
 
 Mock mode is set by the demo command: it seeds an isolated home under data/ (never the worker's real folder), starts the engine, the agent service and the three sandbox sites, and opens the dashboard. Provider calls are replaced by scripted, deterministic ports. The app itself starts in live mode when a Gemini key is present and in mock mode when it is not.
+
+**What is different.** The whole product, including an agent run, is reproducible offline with deterministic scripted ports and an isolated home.
 
 ### Where to see it
 

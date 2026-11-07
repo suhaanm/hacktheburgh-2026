@@ -14,6 +14,8 @@ A worker can connect a few tools Knack may read from. Presets come with the role
 
 Knack uses the official MCP Python SDK (MIT) as the client and the repository's own plugin framework for sources; hosted aggregators are not used because the data would leave the device. Presets named by the owner: Dev (GitHub, Git, Linear or Jira, Slack, Sentry, Filesystem), Data (SQLite and Postgres, BigQuery, Google Sheets and Drive, Jupyter, Notion, Slack), Benefits (Outlook, Teams, SharePoint). Presets are offered inside the role card of first run, which adds one click (first run becomes four). The demo uses local stand-ins only: a local folder, a SQLite database with the synthetic dataset, and a fake GitHub and Slack we write. No real account is used.
 
+**What is different.** The list is curated and read-only by default, starts off, and avoids hosted aggregators so data does not leave the device.
+
 ## Where to see it
 
 Settings has a Connections panel; first run shows the presets under the role card (both are slots on main; the panel itself is landing).

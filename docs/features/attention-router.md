@@ -14,6 +14,8 @@ Every part of Knack that could interrupt (Cue, briefings, approvals, agent resul
 
 A pure function of the event, the worker's state (flow, a call, a meeting, a screen share, away, locked) and recent history. Principles in code: silence is the default; safety is never suppressed; a decision is shown once and reminded at most once; one voice at a time; nothing important sits unseen (a passive marker exists the moment an item exists); learning can only quiet; the worker can always see why (a one-line fixed reason); metadata only. Channels run from a silent log through a badge, banner, chip and toast to a question card and voice. A digest replaces pings when the worker returns. A new interrupting type needs a row in the attention table first.
 
+**What is different.** Every producer of an interruption goes through one router with a fixed reason for every decision, and learning can only quiet, never amplify.
+
 ## Where to see it
 
 Everywhere a notice appears; Needs you; the corner card; Settings, Interruptions (Rarely, Balanced, Often).

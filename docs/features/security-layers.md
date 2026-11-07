@@ -18,6 +18,8 @@ Anything on a page that is written at an AI is treated as data, and the agent ca
 
 Layer 1 wraps everything from a page, screenshot, file or tool as untrusted data and strips invisible characters. Layer 2 is a quarantined reader: a model that sees raw content but returns only schema-checked fields, so the planner never sees raw text. Layer 3 is a fixed set of typed actions. Layer 4 is the action-class gate: send, post, submit, pay, delete, install or change permissions need a human click unless the worker opted that routine in. Layer 5 tags data with where it came from so tainted or personal data cannot be typed into a site the routine did not record. Layer 6 is an injection detector that pauses the run. Layer 7 is a goal-drift check plus a stuck-loop detector. Layer 8 protects settings: page content cannot change memory, the denylist, consent, quiet hours or the kill switch. Beside the layers sit an approval queue with evidence bundles, a hash-chained audit log, and local services that check the Host header on every request and the Origin on every write.
 
+**What is different.** There is no allowlist. The gate classifies an action from the control that code reads under the pointer, not from the model's own label, and each layer's cost and benefit is measured by switching it off in turn.
+
 ### Where to see it
 
 Needs you shows a paused run with 'Cannot be undone' printed; Your data shows what was sent; Evidence has the red-team tables.
@@ -54,6 +56,8 @@ When Auth0 is configured, approving something that cannot be undone, or that sen
 ### How it works
 
 A thin sign-in sits behind an interface with a local fallback. Items of risk class irreversible or outward need a step-up. A sign-in that was closed, is not recent enough, or is from a different account approves nothing and the item keeps waiting. Only a hash of the signed-in subject is returned to the engine. A real click is still required: signing in does not approve anything by itself.
+
+**What is different.** Nothing new is claimed: a standard step-up sign-in placed on the irreversible step.
 
 ### Where to see it
 

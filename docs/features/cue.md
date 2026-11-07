@@ -14,6 +14,8 @@ When you are stuck, Cue works out the most likely next step from what experts do
 
 Candidates come from the expert transition graph: the top three next steps with probabilities. In a browser the target is grounded from the page first; elsewhere a fresh frame and a closed menu go to a Gemini model. The decision is pure code from the stuck probability, the margin between the top two steps, grounding confidence, mastery, cooldowns, the daily attention budget, flow state and consent. Outcomes: nothing (the default), confirm, a cue at a tier, one question, or a small offer. Tiers: a ring; a ring and a chip of at most 40 characters; a ghost-cursor demonstration; a voice whisper of at most 8 words. Hard caps: at most 3 cues in 10 minutes, one question per episode, at least 90 seconds between cues for the same skill unless asked, never in a denylisted app or over secure input. The 'why' is 12 words or fewer, once.
 
+**What is different.** Candidate next steps come from the expert transition graph, so the model's only job is to find the step on the screen; it asks at most one question per episode and later withholds help to test recall.
+
 ## Where to see it
 
 On the real screen when stuck (ring and card); More, then Live coach; Growth shows the effect over time.
