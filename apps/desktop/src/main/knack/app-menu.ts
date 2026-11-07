@@ -23,11 +23,9 @@ export interface AppMenuInput {
 export function buildAppMenuTemplate(i: AppMenuInput): MenuItemConstructorOptions[] {
   const mac = i.platform === 'darwin'
   const settings: MenuItemConstructorOptions = { label: 'Settings…', accelerator: 'CommandOrControl+,', click: () => i.handlers.openSettings() }
-  const stop: MenuItemConstructorOptions = {
-    label: 'Stop Everything',
-    ...(i.killAccelerator ? { accelerator: i.killAccelerator, registerAccelerator: false } : {}),
-    click: () => i.handlers.stopEverything(),
-  }
+  // Command-Shift-K works while Knack is frontmost (a menu accelerator is app-local); the global Option-Shift-Command-K stays in hotkey.ts and is shown on the menu bar
+  // item. A global Command-Shift-K would take a common shortcut from other apps.
+  const stop: MenuItemConstructorOptions = { label: 'Stop Everything', accelerator: 'Shift+CommandOrControl+K', click: () => i.handlers.stopEverything() }
   const appMenu: MenuItemConstructorOptions = {
     label: i.appName,
     submenu: [

@@ -73,3 +73,11 @@ export function modelStatus(mock: boolean | null, decision: ModelDecision | null
   if (decision) return { live: decision.mode === 'live', text: decision.mode === 'live' ? LIVE_NOTICE : EXAMPLE_DATA_NOTICE }
   return { live: null, text: '' }
 }
+
+/** Whether the Use live models switch may change now, and why not. Pure; the shell asks it before it patches the setting. */
+export function canSwitchModels(i: { on: unknown; hasKey: boolean; running: boolean }): { ok: true } | { ok: false; reason: 'no_key' | 'running' | 'bad_request' } {
+  if (typeof i.on !== 'boolean') return { ok: false, reason: 'bad_request' }
+  if (i.running) return { ok: false, reason: 'running' } // "A job is running. Stop it first."
+  if (i.on && !i.hasKey) return { ok: false, reason: 'no_key' } // "No Gemini key found. Add it to .env and reopen Knack."
+  return { ok: true }
+}

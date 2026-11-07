@@ -2,7 +2,7 @@
 // dashboard reads to leave room for the macOS traffic lights (apps/dashboard/src/main.tsx). It runs on the dashboard too (same window) and gives it nothing more.
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcRendererEvent } from 'electron'
-import { KNACK_IPC, type KnackShellApi, type ShellUiState } from '../shared/knack'
+import { KNACK_IPC, type KnackModelsSetResult, type KnackModelsState, type KnackShellApi, type ShellUiState } from '../shared/knack'
 
 const api: KnackShellApi = {
   get: () => ipcRenderer.invoke(KNACK_IPC.get) as Promise<ShellUiState>,
@@ -13,5 +13,9 @@ const api: KnackShellApi = {
   },
   retry: () => ipcRenderer.send(KNACK_IPC.retry),
   platform: process.platform,
+  models: {
+    get: () => ipcRenderer.invoke(KNACK_IPC.modelsGet) as Promise<KnackModelsState>,
+    setUseLiveModels: (on: boolean) => ipcRenderer.invoke(KNACK_IPC.modelsSet, on === true) as Promise<KnackModelsSetResult>,
+  },
 }
 contextBridge.exposeInMainWorld('knackShell', api)

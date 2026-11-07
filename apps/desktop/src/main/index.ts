@@ -58,14 +58,17 @@ if (process.env.ALONGSIDE_USERDATA) app.setPath('userData', path.resolve(process
 // dotenv never overrides a variable that is already set, and nothing is printed (quiet).
 dotenv.config({ path: path.join(app.getAppPath(), '.env'), quiet: true })
 dotenv.config({ path: path.join(app.getAppPath(), '../../.env'), quiet: true })
+// KNACK: the repository's own .env (the Gemini key) is loaded into this process BEFORE the defaults below apply, so an explicit 0 in it still wins (a Dock-launched app
+// has no .env next to it). Nothing is printed and a variable that is already set is never overridden.
+app.setName(APP_NAME)
+const knackWanted = knackShellEnabled(process.env, process.env.ALONGSIDE_HEADLESS === '1')
+const knackConfig = knackWanted ? prepareKnackEnv({ env: process.env, appPath: app.getAppPath(), resourcesPath: app.isPackaged ? process.resourcesPath : undefined, isPackaged: app.isPackaged }) : null
 applyDesktopDefaultFlags() // D48: voice and the REQ-5 layers are on unless a variable says '0'
 
 const flag = (name: string) => process.env[name] === '1'
 
 // KNACK: one app, a dashboard window plus a menu-bar item plus a corner pill, which starts the engine and the agent itself (src/main/knack). On by default; off
 // for headless runs and with KNACK_SHELL=0. The scheme must be declared before ready; a second launch hands over to the first instead of starting another.
-app.setName(APP_NAME)
-const knackWanted = knackShellEnabled(process.env, flag('ALONGSIDE_HEADLESS'))
 let secondInstance = false
 if (knackWanted) {
   registerAppScheme()
@@ -92,8 +95,7 @@ void app.whenReady().then(async () => {
   // data otherwise) and the services start. Everything built below (the model port included) then sees the environment that choice made.
   const lateBox: { windows: ReturnType<typeof createWindows> | null; kill: (() => void) | null } = { windows: null, kill: null }
   let knack: KnackShell | null = null
-  if (knackWanted) {
-    const knackConfig = prepareKnackEnv({ env: process.env, appPath: app.getAppPath(), resourcesPath: app.isPackaged ? process.resourcesPath : undefined, isPackaged: app.isPackaged })
+  if (knackWanted && knackConfig) {
     knack = createKnackShell({
       settings,
       userDataDir,

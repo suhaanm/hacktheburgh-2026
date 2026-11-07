@@ -23,7 +23,7 @@ import type { Upstream } from './app-protocol'
 import { buildAppMenuTemplate, buildDockMenuTemplate } from './app-menu'
 import { registerDock } from './dock'
 import { createMainWindow, type MainWindow } from './mainwindow'
-import { keyPresent, modelStatus, planModels, type ModelDecision } from './model-mode'
+import { canSwitchModels, keyPresent, modelStatus, planModels, type ModelDecision } from './model-mode'
 import type { PillSignals } from './pill-state'
 import { createQuitGuard, type QuitGuard } from './quit-guard'
 import { INITIAL_SHELL, TIMING, reduce, type Effect, type ShellEvent, type ShellState } from './shell-machine'
@@ -35,7 +35,7 @@ import { createWindowStateStore } from './window-state'
 export type MenubarState = 'working' | 'workingOff' | 'stopped' | 'idle' | 'count' | 'marker'
 
 export interface KnackEarlyDeps {
-  settings: { get(): Settings; onChange(l: (s: Settings, patch: Partial<Settings>) => void): () => void }
+  settings: { get(): Settings; patch(p: Partial<Settings>, opts?: { trusted?: boolean }): unknown; onChange(l: (s: Settings, patch: Partial<Settings>) => void): () => void }
   userDataDir: string
   config: StackConfig
   /** Windows exist and work but are never shown (the hidden check). */
@@ -166,6 +166,24 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
   })
   ipcMain.on(KNACK_IPC.retry, (event) => {
     if (main.owns(event.sender.id)) void stack.retry()
+  })
+
+  // "Use live models" in the dashboard's Settings: only this window's own page (the app's address, or the dev server's in development) may ask.
+  const fromOurPage = (e: { sender: { id: number }; senderFrame?: { url: string } | null }): boolean => {
+    if (!main.owns(e.sender.id)) return false
+    const url = e.senderFrame?.url ?? ''
+    return url.startsWith(APP_ORIGIN) || (config.devUrl !== null && url.startsWith(config.devUrl))
+  }
+  ipcMain.handle(KNACK_IPC.modelsGet, (event) => {
+    if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
+    return { useLiveModels: deps.settings.get().useLiveModels, keyPresent: keyPresent(env), live: status().live, running: machine.activity === 'working' || machine.activity === 'voice' }
+  })
+  ipcMain.handle(KNACK_IPC.modelsSet, (event, on: unknown) => {
+    if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
+    const can = canSwitchModels({ on, hasKey: keyPresent(env), running: machine.activity === 'working' || machine.activity === 'voice' })
+    if (!can.ok) return can
+    deps.settings.patch({ useLiveModels: on as boolean }, { trusted: true }) // main restarts the app when it changes (below)
+    return { ok: true }
   })
 
   const dashboardBase = (s: StackState): string => (s.phase === 'ready' && s.dashboard === 'dev-server' && config.devUrl ? config.devUrl : APP_ORIGIN)
@@ -492,6 +510,8 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
       tracker?.dispose()
       unprotocol()
       ipcMain.removeHandler(KNACK_IPC.get)
+      ipcMain.removeHandler(KNACK_IPC.modelsGet)
+      ipcMain.removeHandler(KNACK_IPC.modelsSet)
       ipcMain.removeAllListeners(KNACK_IPC.retry)
       await stack.stop()
       main.dispose()

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { EXAMPLE_DATA_NOTICE, boundedBootCheck, decideModels, keyPresent, modelStatus, planModels, wantsLive } from './model-mode'
+import { EXAMPLE_DATA_NOTICE, boundedBootCheck, canSwitchModels, decideModels, keyPresent, modelStatus, planModels, wantsLive } from './model-mode'
 
 describe('live or example data', () => {
   const base = { switchOn: true, hasKey: true, bootOk: true as boolean | null }
@@ -61,5 +61,17 @@ describe('the status next to the dot', () => {
     expect(modelStatus(null, decideModels({ switchOn: true, hasKey: true, bootOk: true }))).toEqual({ live: true, text: 'Live models' })
     expect(modelStatus(true, decideModels({ switchOn: true, hasKey: true, bootOk: true })).live).toBe(false) // an attached example-data stack is shown as it is
     expect(modelStatus(null, null)).toEqual({ live: null, text: '' })
+  })
+})
+
+describe('the Use live models switch', () => {
+  it('may change when nothing runs and, to on, a key is there', () => {
+    expect(canSwitchModels({ on: true, hasKey: true, running: false })).toEqual({ ok: true })
+    expect(canSwitchModels({ on: false, hasKey: false, running: false })).toEqual({ ok: true }) // off needs no key
+  })
+  it('says why not: no key, a job is running, or the request is not a plain true or false', () => {
+    expect(canSwitchModels({ on: true, hasKey: false, running: false })).toEqual({ ok: false, reason: 'no_key' })
+    expect(canSwitchModels({ on: false, hasKey: true, running: true })).toEqual({ ok: false, reason: 'running' })
+    for (const bad of ['yes', 1, null, undefined, {}]) expect(canSwitchModels({ on: bad, hasKey: true, running: false })).toEqual({ ok: false, reason: 'bad_request' })
   })
 })

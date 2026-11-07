@@ -30,12 +30,10 @@ describe('the macOS application menu', () => {
     const close = sub(file).find((i) => i.role === 'close')!
     expect(close.accelerator).toBe('CommandOrControl+W')
   })
-  it('shows the kill shortcut on Stop Everything without registering it a second time', () => {
+  it('Command-Shift-K stops everything while Knack is frontmost (an app-local accelerator; the global key stays Option-Shift-Command-K)', () => {
     const stop = sub(menu().find((x) => x.label === 'File')!).find((i) => i.label === 'Stop Everything')!
-    expect(stop.accelerator).toBe('CommandOrControl+Alt+Shift+K')
-    expect(stop.registerAccelerator).toBe(false)
-    const none = sub(menu({ killAccelerator: null }).find((x) => x.label === 'File')!).find((i) => i.label === 'Stop Everything')!
-    expect(none.accelerator).toBeUndefined()
+    expect(stop.accelerator).toBe('Shift+CommandOrControl+K')
+    expect(stop.registerAccelerator).toBeUndefined() // a real menu accelerator: it fires only when the app is in front
   })
   it('wires the items to the shell', () => {
     const h = handlers()
