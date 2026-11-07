@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key><string>app.knack.wake</string>
+  <key>CFBundleName</key><string>knack-wake</string>
+  <key>CFBundleVersion</key><string>1</string>
+  <key>NSMicrophoneUsageDescription</key><string>Knack listens for the words Hey Knack on this Mac. The listening stays on this Mac and nothing is recorded.</string>
+  <key>NSSpeechRecognitionUsageDescription</key><string>Knack uses speech recognition on this Mac to hear Hey Knack. It never uses a server for this and keeps no transcript.</string>
+</dict>
+</plist>

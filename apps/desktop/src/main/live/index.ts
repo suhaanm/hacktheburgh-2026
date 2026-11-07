@@ -29,6 +29,8 @@ export interface LiveRegistration {
   speaker: LineSpeaker
   workerUsedVoice: () => boolean
   settings: LiveSettingsStore
+  // The fixed-clip player (Hey Knack plays its soft chime through it).
+  clips: ClipPlayer
   dispose: () => void
 }
 
@@ -53,6 +55,7 @@ export function createLive(d: CreateLiveDeps): LiveRegistration {
     speaker,
     workerUsedVoice: () => manager.workerUsedVoice(),
     settings: d.settings,
+    clips: d.clips,
     dispose() {
       offTalk()
       offStatus()

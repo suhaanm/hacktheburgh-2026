@@ -39,7 +39,7 @@ import { GateMonitor, createGateReader } from './gates'
 import { checkLiveModel, createTokenMinter } from './token'
 import { liveModelId } from './flags'
 import type { OverlayController } from '../../shared/contracts'
-import type { GroundPort, LiveCuePort } from './ports'
+import type { DoItAnswer, DoItRequest, GroundPort, LiveCuePort } from './ports'
 import type { Bus } from '../bus'
 
 export interface RegisterLiveOptions {
@@ -50,6 +50,8 @@ export interface RegisterLiveOptions {
   owns: (webContentsId: number) => boolean
   overlay: Pick<OverlayController, 'show' | 'clear'>
   cue: LiveCuePort
+  // Hey Knack's `do_it_for_me` (wake sessions only). Late-bound by the caller; absent: the tool answers "not available".
+  doIt?: (req: DoItRequest) => Promise<DoItAnswer>
   killed: () => boolean
   agentActing: () => boolean
   cueVoiceOn?: () => boolean
@@ -106,6 +108,7 @@ export function registerLive(o: RegisterLiveOptions): LiveRegistration {
     cue: o.cue,
     ground: createCompositeGround(o.domGround ?? null, vision),
     ring: createRingPort(o.overlay),
+    doIt: o.doIt,
     usage: createUsageLog(dir),
     // Reads the status only. The prompt is the owner's to accept in System Settings; this code never calls askForMediaAccess.
     micStatus: () => (process.platform === 'darwin' ? systemPreferences.getMediaAccessStatus('microphone') : 'granted'),

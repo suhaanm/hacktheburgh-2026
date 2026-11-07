@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'none'; connect-src 'none'" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Knack</title>
+    <link rel="stylesheet" href="./card.css" />
+  </head>
+  <body>
+    <section id="card" class="card" role="alertdialog" aria-labelledby="t" aria-describedby="b" hidden>
+      <h2 id="t"></h2>
+      <p id="b"></p>
+      <div id="buttons" class="buttons"></div>
+    </section>
+    <script type="module" src="./card.ts"></script>
+  </body>
+</html>

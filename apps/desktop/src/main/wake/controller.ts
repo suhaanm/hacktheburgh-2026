@@ -1,0 +1,371 @@
+// The Hey Knack controller: keeps the on-device listener running exactly when it may (guards.ts), and turns a `heard` into a Live conversation
+// through the SAME manager entry the talk key uses, with the first-wake consent cards and the gated `do_it_for_me` click. Pure assembly of
+// injected ports (tests drive it with fakes); wake/electron.ts builds the real ones.
+//
+// What it never does: start the listener while any guard says dormant; give the listener's audio to any model (the helper only says `heard`);
+// click anything itself (the click machine only emits effects, and the card's Allow counts only as a real mouse click).
+import type { VoiceLock } from '../attention/lock'
+import type { DoItAnswer, DoItRequest } from '../live/ports'
+import { INITIAL, reduce, type ClickEffect, type ClickEvent, type ClickState, type ToolAnswer } from './click-machine'
+import { dormancy, type Dormancy, type WakeInputs } from './guards'
+import type { HelperStatus } from './helper'
+import type { RungReading } from './rung'
+import { consentOutcome, consentStep, type CardChoice, type WakeSettingsStore } from './settings'
+import { BLOCKED_LINE, CARDS, LISTENING_LINE, REFUSAL_LINE, dormantLine } from './texts'
+
+export interface CardSpec {
+  id: string
+  title: string
+  body: string
+  buttons: ReadonlyArray<{ id: string; label: string }>
+  expireMs: number
+}
+export interface CardAnswer {
+  buttonId: string
+  /** 'mouse' only for a real, trusted mouse click on the button (not a key, not a synthetic event). */
+  via: 'mouse' | 'other'
+}
+export interface CardPort {
+  ask(spec: CardSpec): Promise<CardAnswer | null>
+  close(id: string): void
+}
+
+export interface HelperPort {
+  start(): void
+  stop(): void
+  status(): HelperStatus
+  unblock(): void
+}
+
+export interface LivePort {
+  startFromWake(): boolean
+  status(): { phase: string; trigger: 'key' | 'wake' | null; refused: string | null }
+  subscribe(cb: () => void): () => void
+}
+
+export interface LiveSettingsPort {
+  get(): { liveEnabled: boolean; liveConsentVersion: number; liveFrames: boolean }
+  patch(raw: unknown, opts?: { trusted?: boolean }): unknown
+}
+
+export interface DesktopRunPort {
+  /** Asks the agent service to click the centre of the box once (full pipeline and real-actuator guards). Never throws. */
+  run(req: { box: [number, number, number, number]; cardId: string }): Promise<{ ok: boolean; reason?: string }>
+  stop(): void
+}
+
+export interface WakeStatus {
+  /** The worker's switch. */
+  switchOn: boolean
+  /** The helper is running and armed. */
+  listening: boolean
+  dormant: Dormancy | null
+  helper: HelperStatus
+  /** A Live conversation that began with the words is open. */
+  session: boolean
+  click: ClickState['k']
+  /** The one plain line for the menu bar and Settings. */
+  line: string
+}
+
+export interface WakeControllerDeps {
+  settings: WakeSettingsStore
+  liveSettings: LiveSettingsPort
+  live: LivePort
+  helper: HelperPort
+  inputs: () => Omit<WakeInputs, 'switchedOn' | 'liveSessionActive'>
+  cards: CardPort
+  lock: VoiceLock
+  rung: () => RungReading
+  desktop: DesktopRunPort
+  chime?: () => void
+  say?: (line: 'show_instead' | 'done' | 'did_not_work' | 'stopped') => void
+  now?: () => number
+  setTimer?: (fn: () => void, ms: number) => unknown
+  clearTimer?: (h: unknown) => void
+  setInterval?: (fn: () => void, ms: number) => unknown
+  clearInterval?: (h: unknown) => void
+  log?: (scope: string, ...args: unknown[]) => void
+  /** How long the listener stays off after a conversation ends, so the microphone is free of the last one. */
+  restartDelayMs?: number
+  pollMs?: number
+  cardMs?: number
+}
+
+export interface WakeController {
+  start(): void
+  dispose(): void
+  status(): WakeStatus
+  subscribe(cb: (s: WakeStatus) => void): () => void
+  /** Settings switch (a trusted write from the Settings screen or the menu). */
+  setListen(on: boolean): void
+  /** The kill switch changed (Stop everything engaged or cleared). */
+  setKilled(killed: boolean): void
+  /** Re-reads every guard now (screen lock, call, agent state changed). */
+  refresh(): void
+  /** The helper said `heard`. Exposed for the supervisor and for tests. */
+  onHeard(): Promise<void>
+  /** The wake session's `do_it_for_me` (the Live tool host calls it). */
+  doIt(req: DoItRequest): Promise<DoItAnswer>
+}
+
+export function createWakeController(d: WakeControllerDeps): WakeController {
+  const now = d.now ?? Date.now
+  const setT = d.setTimer ?? ((fn, ms) => setTimeout(fn, ms))
+  const clearT = d.clearTimer ?? ((h) => clearTimeout(h as ReturnType<typeof setTimeout>))
+  const setI = d.setInterval ?? ((fn, ms) => setInterval(fn, ms))
+  const clearI = d.clearInterval ?? ((h) => clearInterval(h as ReturnType<typeof setInterval>))
+  const log = d.log ?? (() => undefined)
+  const restartDelay = d.restartDelayMs ?? 1500
+  const cardMs = d.cardMs ?? 20_000
+
+  let machine: ClickState = INITIAL
+  let killed = false
+  let started = false
+  let cooldownUntil = 0 // the listener stays off until this time (after a conversation)
+  let waking = false // between the words and the conversation opening
+  let wakeSession = false
+  let lastRefusal: string | null = null
+  let pollHandle: unknown = null
+  let offLive: (() => void) | null = null
+  let cardSeq = 0
+  let pendingAnswer: ((a: ToolAnswer) => void) | null = null
+  let currentCard: { id: string; box: [number, number, number, number] } | null = null
+  let pendingBox: [number, number, number, number] | null = null
+  let restartTimer: unknown = null
+  const listeners = new Set<(s: WakeStatus) => void>()
+
+  const liveOpen = (): boolean => {
+    const p = d.live.status().phase
+    return p !== 'idle' && p !== 'off'
+  }
+
+  const input = (): WakeInputs => ({ ...d.inputs(), switchedOn: d.settings.get().wakeListen, killed: killed || d.inputs().killed, liveSessionActive: liveOpen() || waking })
+
+  const status = (): WakeStatus => {
+    const dorm = dormancy(input())
+    const h = d.helper.status()
+    const listening = dorm === null && h.state === 'listening'
+    let line = LISTENING_LINE
+    if (h.state === 'blocked' && h.code && dorm !== 'switched_off') line = BLOCKED_LINE[h.code]
+    else if (dorm) line = dormantLine(dorm)
+    else if (h.state !== 'listening' && lastRefusal) line = lastRefusal
+    else if (h.state === 'starting' || h.state === 'backoff') line = 'Starting Hey Knack.'
+    return { switchOn: d.settings.get().wakeListen, listening, dormant: dorm, helper: h, session: wakeSession, click: machine.k, line }
+  }
+  let lastKey = ''
+  const publish = (): void => {
+    const s = status()
+    const key = JSON.stringify([s.switchOn, s.listening, s.dormant, s.helper, s.session, s.click, s.line])
+    if (key === lastKey) return
+    lastKey = key
+    for (const l of listeners) {
+      try {
+        l(s)
+      } catch {
+        /* a listener never breaks the controller */
+      }
+    }
+  }
+
+  // ---- the click machine: events in, effects out
+  const dispatch = (e: ClickEvent): void => {
+    const r = reduce(machine, e, ++cardSeq)
+    machine = r.state
+    for (const eff of r.effects) perform(eff)
+    publish()
+  }
+
+  function perform(eff: ClickEffect): void {
+    switch (eff.t) {
+      case 'answer': {
+        const p = pendingAnswer
+        pendingAnswer = null
+        p?.(eff.answer)
+        break
+      }
+      case 'say':
+        d.say?.(eff.line)
+        break
+      case 'show_card': {
+        const id = `click-${eff.cardId}`
+        currentCard = { id, box: pendingBox ?? [0, 0, 0, 0] }
+        const text = CARDS.click
+        void d.cards.ask({ id, title: text.title, body: text.body, buttons: text.buttons, expireMs: cardMs }).then((a) => {
+          if (currentCard?.id !== id) return // already closed (kill, session end)
+          if (!a) return dispatch({ t: 'card_choice', choice: 'cancel', via: 'timer' })
+          const allow = a.buttonId === 'allow'
+          dispatch({ t: 'card_choice', choice: allow ? 'allow' : 'cancel', via: a.via === 'mouse' ? 'mouse' : 'key' })
+          // An Allow that was not a real mouse click is refused by the machine; the card is answered, so the request ends here as a Cancel.
+          if (allow && a.via !== 'mouse') dispatch({ t: 'card_choice', choice: 'cancel', via: 'timer' })
+        })
+        break
+      }
+      case 'close_card':
+        if (currentCard) {
+          const id = currentCard.id
+          if (machine.k !== 'running') currentCard = null
+          d.cards.close(id)
+        }
+        break
+      case 'request_run': {
+        const c = currentCard
+        currentCard = null
+        if (!c) break
+        void d.desktop.run({ box: c.box, cardId: c.id }).then(
+          (r) => dispatch({ t: 'run_result', ok: r.ok }),
+          () => dispatch({ t: 'run_result', ok: false }),
+        )
+        break
+      }
+      case 'stop_run':
+        d.desktop.stop()
+        break
+      case 'ignored':
+        log('wake', `ignored: ${eff.why}`)
+        break
+    }
+  }
+
+  // ---- the listener: running exactly when no guard says dormant
+  function evaluate(): void {
+    if (!started) return
+    const dorm = dormancy(input())
+    const h = d.helper.status()
+    const holdOff = now() < cooldownUntil
+    if (dorm === null && !holdOff) {
+      if (h.state === 'stopped') d.helper.start()
+      if (d.helper.status().state === 'listening' && machine.k === 'idle') dispatch({ t: 'listen_on' })
+    } else {
+      if (h.state !== 'stopped' && h.state !== 'blocked') d.helper.stop()
+      if (machine.k === 'listening') dispatch({ t: 'listen_off' })
+    }
+    // A worker who switched it off and on again gets another try after a failure that needed fixing.
+    publish()
+  }
+
+  const schedule = (ms: number): void => {
+    if (restartTimer !== null) clearT(restartTimer)
+    restartTimer = setT(() => {
+      restartTimer = null
+      evaluate()
+    }, ms)
+  }
+
+  // ---- the words were heard
+  async function onHeard(): Promise<void> {
+    if (!started || waking || dormancy(input()) !== null || machine.k !== 'listening') return
+    waking = true
+    lastRefusal = null
+    dispatch({ t: 'wake' })
+    d.helper.stop() // the microphone is released before the conversation opens its own
+    try {
+      if (!(await consent())) return end('declined')
+      if (!d.lock.acquire('asked', 120_000, undefined, 'wake')) return end('lock_held')
+      d.chime?.()
+      if (!d.live.startFromWake()) {
+        lastRefusal = REFUSAL_LINE[d.live.status().refused ?? ''] ?? 'Knack could not start talking.'
+        d.lock.release('asked', 'wake')
+        return end('refused')
+      }
+      wakeSession = true
+      waking = false
+    } catch {
+      end('error')
+    } finally {
+      publish()
+    }
+  }
+
+  function end(why: string): void {
+    log('wake', `no conversation: ${why}`)
+    waking = false
+    wakeSession = false
+    d.lock.release('asked', 'wake')
+    if (machine.k !== 'killed') dispatch({ t: 'session_ended' })
+    cooldownUntil = now() + restartDelay
+    schedule(restartDelay)
+    publish()
+  }
+
+  /** The first-wake cards, one at a time. True when the conversation may open. */
+  async function consent(): Promise<boolean> {
+    for (let i = 0; i < 2; i++) {
+      const step = consentStep(d.settings.get(), d.liveSettings.get(), now())
+      if (step.step === 'go') return true
+      if (step.step === 'refused') return false
+      const text = CARDS[step.card]
+      const a = await d.cards.ask({ id: `consent-${step.card}`, title: text.title, body: text.body, buttons: text.buttons, expireMs: 30_000 })
+      // Only a real mouse click on a button is an answer. A key, a timer or a closed card is no answer: nothing is remembered, nothing opens.
+      if (!a || a.via !== 'mouse' || !['yes', 'not_now', 'never'].includes(a.buttonId)) return false
+      const out = consentOutcome(step.card, a.buttonId as CardChoice, d.liveSettings.get().liveFrames, new Date(now()))
+      d.settings.patch(out.wake, { trusted: true })
+      d.liveSettings.patch(out.live, { trusted: true })
+      if (a.buttonId !== 'yes' && step.card === 'voice') return false
+    }
+    return consentStep(d.settings.get(), d.liveSettings.get(), now()).step === 'go'
+  }
+
+  // ---- the model's do_it_for_me
+  async function doIt(req: DoItRequest): Promise<DoItAnswer> {
+    if (machine.k === 'card_shown' || machine.k === 'running') return { ok: false, reason: 'busy' }
+    const rung = d.rung()
+    pendingBox = req.box
+    const answer = new Promise<ToolAnswer>((resolve) => {
+      pendingAnswer = resolve
+    })
+    dispatch({ t: 'tool_call', rungCleared: rung.cleared, targetFound: req.box !== null })
+    return answer
+  }
+
+  return {
+    start() {
+      if (started) return
+      started = true
+      offLive = d.live.subscribe(() => {
+        const open = liveOpen()
+        if (wakeSession && !open && d.live.status().trigger === null) {
+          // The wake conversation ended (goodbye, quiet, cap, Stop, kill).
+          wakeSession = false
+          d.lock.release('asked', 'wake')
+          dispatch({ t: 'session_ended' })
+          cooldownUntil = now() + restartDelay
+          schedule(restartDelay)
+        } else if (open && wakeSession) d.lock.extend('asked', 120_000, 'wake')
+        evaluate()
+      })
+      pollHandle = setI(() => evaluate(), d.pollMs ?? 3000)
+      evaluate()
+    },
+    dispose() {
+      started = false
+      if (pollHandle !== null) clearI(pollHandle)
+      pollHandle = null
+      if (restartTimer !== null) clearT(restartTimer)
+      restartTimer = null
+      offLive?.()
+      offLive = null
+      d.helper.stop()
+      if (currentCard) d.cards.close(currentCard.id)
+      listeners.clear()
+    },
+    status,
+    subscribe(cb) {
+      listeners.add(cb)
+      return () => listeners.delete(cb)
+    },
+    setListen(on) {
+      d.settings.patch({ wakeListen: on }, { trusted: true })
+      if (on) d.helper.unblock()
+      evaluate()
+    },
+    setKilled(k) {
+      killed = k
+      dispatch({ t: k ? 'kill' : 'resume' })
+      evaluate()
+    },
+    refresh: evaluate,
+    onHeard,
+    doIt,
+  }
+}

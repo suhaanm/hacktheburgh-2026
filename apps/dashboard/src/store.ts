@@ -19,9 +19,11 @@ export interface AppState {
   person: string | null;
   /** Whether the agent service (port 7710) answered its health check. null until asked. */
   agentUp: boolean | null;
+  /** Whether the engine (port 7700) answered /health. null until asked; the status line and the Home states read it. */
+  engineUp: boolean | null;
 }
 
-let state: AppState = { live: 0, demo: 0, mock: null, killed: false, killedAt: null, killError: null, pendingQueue: 0, role: null, ext: {}, extReady: false, person: null, agentUp: null };
+let state: AppState = { live: 0, demo: 0, mock: null, killed: false, killedAt: null, killError: null, pendingQueue: 0, role: null, ext: {}, extReady: false, person: null, agentUp: null, engineUp: null };
 const listeners = new Set<() => void>();
 
 export function setState(patch: Partial<AppState>): void {

@@ -54,3 +54,4 @@ evals/study_roles/GO
 evals/study_roles/cache/
 evals/study_roles/fake_runs/
 evals/study_roles/results/
+node_modules

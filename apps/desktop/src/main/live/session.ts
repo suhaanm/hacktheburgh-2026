@@ -41,6 +41,9 @@ export type SessionMode = 'converse' | 'transcribe'
 
 export interface SessionConfig {
   mode: SessionMode
+  // A session that began with the words "Hey Knack": hands-free (the microphone stays open, the server hears the turns), with the wake tools
+  // `clear` and `do_it_for_me`. Ends on a spoken goodbye, a quiet minute, the cap, Stop or the kill switch.
+  wake?: boolean
   model: string
   // Set in transcribe mode when a dedicated transcription model is configured: the answer is text, not audio.
   textOnlyModel?: boolean
@@ -225,7 +228,7 @@ export class LiveSession {
             model: this.c.model,
             voiceName: this.c.voiceName,
             systemInstruction: this.c.systemInstruction,
-            tools: this.c.mode === 'converse' ? buildToolDeclarations(this.d.tools.candidates()) : [],
+            tools: this.c.mode === 'converse' ? buildToolDeclarations(this.d.tools.candidates(), { wake: this.c.wake === true }) : [],
             resumptionHandle: handle,
             turnMode: this.c.turnMode,
             transcribeOnly: this.c.mode === 'transcribe',
@@ -447,6 +450,7 @@ export class LiveSession {
     if (this.d.agentActing()) return this.end('agent_acting')
     const cost = this.costReason()
     if (cost) return this.end(cost)
+    if (this.egress && this.c.wake === true && (this.generating || this.playing || this.inflight > 0)) this.lastActivityAt = t
     if (this.egress && t - this.lastActivityAt >= this.c.idleMs) return this.end('idle')
     if (!this.egress) return
     // The worker released and the model is done (or never started): after the grace, finish.
@@ -570,7 +574,7 @@ export class LiveSession {
   }
 
   private async execute(call: FunctionCall): Promise<Record<string, unknown>> {
-    const parsed = parseToolCall(call.name, call.args, this.d.tools.candidates())
+    const parsed = parseToolCall(call.name, call.args, this.d.tools.candidates(), { wake: this.c.wake === true })
     // The log keeps the name the model used (cleaned and cut short) and the outcome, never an argument.
     const logName = typeof call.name === 'string' ? call.name.replace(/[^A-Za-z0-9_]/g, '').slice(0, 30) : 'unknown'
     if (!parsed.ok) {
@@ -594,6 +598,16 @@ export class LiveSession {
           if (label) this.answerLabels.set(id, label)
         }
         return this.d.tools.askChoice(parsed.args.options) ? { ok: true, asked: true } : { ok: false, error: 'not_asked', message: 'The question could not be shown right now.' }
+      }
+      case 'clear':
+        this.d.tools.clear?.()
+        return { ok: true }
+      case 'do_it_for_me': {
+        const fn = this.d.tools.doItForMe
+        if (!fn) return { ok: false, error: 'not_available', message: 'That is not available here. Show the worker instead.' }
+        // The wake controller rings the target, applies the rung record and the card; the answer is closed (started, or a reason).
+        const r = await withTimeout(fn.call(this.d.tools, parsed.args.description), 90_000)
+        return r.ok ? { ok: true, started: true } : { ok: false, error: r.reason, message: 'Not clicked. Show the worker where it is instead.' }
       }
       case 'end_session':
         this.endAfterTurn = true

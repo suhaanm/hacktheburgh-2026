@@ -152,18 +152,18 @@ export function stillNeeded(w: Pick<WireGrowth, "readiness" | "trend">): number 
 export function trendSentence(trend: WireGrowth["trend"], levelPct = 95, more = 0, trendNeeded: number | null = null, have = 0): string {
   const { per10, ci } = improvement(trend);
   if (trend.direction === "too_early" || per10 == null || !ci) {
-    const need = trend.power_note ? ` ${trend.power_note}` : trendNeeded != null && trendNeeded > have ? ` A trend needs ${trendNeeded} occurrences and you have ${have}.` : "";
+    const need = trend.power_note ? ` ${trend.power_note}` : trendNeeded != null && trendNeeded > have ? ` A trend needs ${trendNeeded} steps and you have ${have}.` : "";
     return `Too early for a trend.${need}`;
   }
   const a = Math.abs(per10).toFixed(Math.abs(per10) < 10 ? 1 : 0);
   const range = `${levelPct}% interval ${pts(ci[0])} to ${pts(ci[1])} points`;
-  if (trend.direction === "less_help") return `About ${a} points more of your occurrences finish with no cue for every 10 more (${range}).`;
-  if (trend.direction === "more_help") return `About ${a} points fewer of your occurrences finish with no cue for every 10 more (${range}).`;
+  if (trend.direction === "less_help") return `About ${a} points more of your steps finish with no cue for every 10 more (${range}).`;
+  if (trend.direction === "more_help") return `About ${a} points fewer of your steps finish with no cue for every 10 more (${range}).`;
   const note = trend.power_note ?? "";
   const lead = /cannot tell/i.test(note) ? "" : "Cannot tell yet. ";
-  const fact = `The ${levelPct}% interval runs from ${pts(ci[0])} to ${pts(ci[1])} points per 10 occurrences and includes zero.`;
-  const middle = note ? ` ${note}` : " With this few occurrences a real change is often missed, so this is not a finding that nothing is changing.";
-  const tail = more > 0 && !note.includes(String(more)) ? ` About ${plural(more, "more occurrence")} would help.` : "";
+  const fact = `The ${levelPct}% interval runs from ${pts(ci[0])} to ${pts(ci[1])} points per 10 steps and includes zero.`;
+  const middle = note ? ` ${note}` : " With so few steps a real change is often missed, so this is not a finding that nothing is changing.";
+  const tail = more > 0 && !note.includes(String(more)) ? ` About ${plural(more, "more step")} would help.` : "";
   return `${lead}${fact}${middle}${tail}`;
 }
 
@@ -175,7 +175,7 @@ export const DIRECTION_WORD: Record<Direction, string> = {
 };
 
 export function heroTitle(status: Status, direction: Direction, name: string | null): string {
-  if (status === "empty") return "Nothing to show yet";
+  if (status === "empty") return "Not enough to show yet";
   if (status === "early" || direction === "too_early") return name ? `Too early to say how much help you need with ${name}` : "Too early to say how much help you need";
   if (direction === "less_help") return name ? `You need less help with ${name}` : "You need help less often than you did";
   if (direction === "more_help") return name ? `You have needed more help with ${name} lately` : "You have needed more help lately";
@@ -187,14 +187,14 @@ export function heroTitle(status: Status, direction: Direction, name: string | n
 export function recentSentence(name: string | null, first: WireRecent | null | undefined, last: WireRecent | null | undefined): string | null {
   if (!first || !last || first.n <= 0 || last.n <= 0) return null;
   const about = name ? ` with ${name}` : "";
-  return `You needed help${about} ${timesWord(first.assisted)} in your first ${first.n} occurrences; in your last ${last.n}, ${last.assisted}.`;
+  return `You needed help${about} ${timesWord(first.assisted)} in your first ${first.n} steps; in your last ${last.n}, ${last.assisted}.`;
 }
 
 export function baselineLine(w: WireGrowth): string | null {
   const b = w.baseline;
   const ind = w.components.independence;
   if (!b || !ind) return null;
-  return `In your first ${b.n} occurrences you finished ${b.k} without a cue. In the latest ${ind.n}, ${ind.k}.`;
+  return `In your first ${b.n} steps you finished ${b.k} without a cue. In the latest ${ind.n}, ${ind.k}.`;
 }
 
 /* -- The Fade: what cue weight the worker actually saw ----------------------------------------- */
@@ -285,11 +285,11 @@ export const levelName = (l: number) => LEVEL_NAME[Math.min(4, Math.max(1, Math.
 
 export function pointReadout(p: CurvePoint, window: number, levelPct = 95, smoothLevel = false): string {
   const lvl = p.lv == null ? "" : smoothLevel ? ` Help level about L${p.lv.toFixed(1)} on average (L1 full, L4 gone).` : ` Help level L${Math.round(p.lv)} (${levelName(p.lv)}).`;
-  const part = p.n < window ? ` Only ${p.n} occurrences so far, so the band is wide.` : "";
+  const part = p.n < window ? ` Only ${p.n} steps so far, so the band is wide.` : "";
   const cue = p.cue
     ? p.cue.cuedShare <= 0 ? " No cue shown." : ` A cue was shown in ${pct(p.cue.cuedShare)} of them, mean tier ${p.cue.meanTier?.toFixed(1)}.`
     : "";
-  return `Occurrence ${p.i} (${fmtDay(p.t)}): ${pct(p.p)} finished with no cue accepted, ${levelPct}% interval ${pctRange([p.lo, p.hi])}, n ${p.n}.${lvl}${cue}${part}`;
+  return `Step ${p.i} (${fmtDay(p.t)}): ${pct(p.p)} finished with no cue accepted, ${levelPct}% interval ${pctRange([p.lo, p.hi])}, n ${p.n}.${lvl}${cue}${part}`;
 }
 
 /* -- Components in plain words ----------------------------------------------------------------- */
@@ -310,7 +310,7 @@ export interface ComponentCard {
 }
 
 function retentionCard(r: WireRetention | null | undefined): ComponentCard {
-  const base = { id: "keep" as const, title: "Keeps it after a few days", measure: `Finished with no cue on the first occurrence ${RETENTION_DAYS} or more days after you were taught the step.`, scale: [0, 1] as [number, number] };
+  const base = { id: "keep" as const, title: "Keeps it after a few days", measure: `Finished with no cue on the first step ${RETENTION_DAYS} or more days after you were taught the step.`, scale: [0, 1] as [number, number] };
   if (!r || r.value == null) {
     return { ...base, display: "Not yet", value: null, ci: null, sentence: "", pending: `This appears once a step comes up again ${RETENTION_DAYS} or more days after you were taught it. It is blank until then, not zero.` };
   }
@@ -322,28 +322,28 @@ export function cardsOf(w: WireGrowth): ComponentCard[] {
   const help: ComponentCard = {
     id: "help",
     title: "Needs help less often",
-    measure: `Share of your latest ${ind?.n ?? w.window} occurrences that finished with no cue accepted.`,
+    measure: `Share of your latest ${ind?.n ?? w.window} steps that finished with no cue accepted.`,
     display: ind ? pct(ind.share) : "Not yet",
     value: ind?.share ?? null,
     ci: ind?.wilson ?? null,
     scale: [0, 1],
     sentence: ind ? `${ind.k} of ${ind.n} finished with no cue accepted${w.baseline ? `; in your first ${w.baseline.n}, ${w.baseline.k}` : ""}.` : "",
-    pending: ind ? null : "This appears once there are enough occurrences.",
+    pending: ind ? null : "This appears once there are enough steps.",
   };
   const g = w.components.gap_closure;
   const lo = g?.ci ? Math.min(0, g.ci[0]) : 0;
   const time: ComponentCard = {
     id: "time",
     title: "Recovers faster",
-    measure: "Seconds lost against the expert's median on the same step, now compared with your first 5 occurrences.",
+    measure: "Seconds lost against the expert's median on the same step, now compared with your first 5 steps.",
     display: g?.value != null ? pct(g.value) : "Not yet",
     value: g?.value ?? null,
     ci: g?.ci ?? null,
     scale: [lo, 1],
     sentence: g && g.value != null && g.first5_lost_s != null && g.last5_lost_s != null
-      ? `You lost ${Math.round(g.first5_lost_s)} s per step in your first ${g.n_first} occurrences and ${Math.round(g.last5_lost_s)} s in your last ${g.n_last}. ${g.value >= 0 ? "That is the share of the gap won back." : "That is more time lost than at the start."}`
+      ? `You lost ${Math.round(g.first5_lost_s)} s per step in your first ${g.n_first} steps and ${Math.round(g.last5_lost_s)} s in your last ${g.n_last}. ${g.value >= 0 ? "That is the share of the gap won back." : "That is more time lost than at the start."}`
       : "",
-    pending: g && g.value != null ? null : "This appears once there are enough occurrences to compare with your first 5.",
+    pending: g && g.value != null ? null : "This appears once there are enough steps to compare with your first 5.",
   };
   return [help, time, retentionCard(w.components.retention)];
 }
@@ -602,15 +602,15 @@ export function buildView(w: WireGrowth, levelPct = 95): GrowthView {
 export function limitations(v: Pick<GrowthView, "needed" | "window" | "levelPct" | "weights"> & { caveat?: string | null }, origin: "real" | "synthetic" | "mixed" | undefined): string[] {
   const w = v.weights;
   const out = [
-    `Fewer than ${v.needed} occurrences is too few to draw a curve, so until then you see counts only. Even after that, a window of ${v.window} gives a wide ${v.levelPct}% interval.`,
-    "An occurrence counts only when the step really came up in your work. A step that did not come up is not counted.",
+    `Fewer than ${v.needed} steps is too few to draw a curve, so until then you see counts only. Even after that, a window of ${v.window} gives a wide ${v.levelPct}% interval.`,
+    "An step counts only when the step really came up in your work. A step that did not come up is not counted.",
     "A step is independent only if you finished it without accepting a cue. Dismissing a cue and not finishing is not independence, and an error counts against you.",
     "Needing less help is not the same as being expert. This cannot tell whether the work is right, or whether you know why.",
     "This does not show that the cues caused the change. You may have been learning on your own, or the work may have got easier. There is no comparison group here.",
     `Keeping a skill is only measured when a step comes back ${RETENTION_DAYS} or more days after you were taught it. Until then it is blank, not zero.`,
     "Work you hand to the agent, and automations that ran overnight, are never counted. Handing work off cannot raise this score.",
     `The composite is experimental. Its weights (${Math.round(w.independence_lb * 100)}, ${Math.round(w.mastery * 100)}, ${Math.round(w.gap_closure * 100)} and ${Math.round(w.retention * 100)} percent) are stated assumptions, not fitted to data, and on simulated learners it could rise when their skill had not changed. Read the trend and the independence interval first.`,
-    "A trend whose interval includes zero is not evidence of no change. At this many occurrences a real improvement is often missed, so the page says it cannot tell yet.",
+    "A trend whose interval includes zero is not evidence of no change. At this many steps a real improvement is often missed, so the page says it cannot tell yet.",
   ];
   if (v.caveat) out.push(v.caveat);
   if (origin !== "real") out.push("These numbers come from invented learners or simulated participants with planted learning curves. They test that the method recovers what was planted. The live study, with 4 teammates, has not been run.");

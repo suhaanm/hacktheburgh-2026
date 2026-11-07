@@ -32,7 +32,7 @@ export function offMessage(f: Feature): string {
 }
 
 // REQ-5 experiments (UNDERSTUDY_X_<NAME>): on unless '0' (D48).
-export type Experiment = 'cue' | 'awareness' | 'gemini' | 'live'
+export type Experiment = 'cue' | 'awareness' | 'gemini' | 'live' | 'wake'
 export const experimentVar = (e: Experiment): string => `UNDERSTUDY_X_${e.toUpperCase()}`
 // D48: every REQ-5 experiment (Cue, awareness, Gemini, Live) is ON by default; an explicit '0' turns one off. Awareness still sends no
 // frame until the worker records consent, and Live is hold-to-talk only.

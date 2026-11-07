@@ -61,15 +61,16 @@ describe("searchItems", () => {
   const items = buildItems("worker");
   it("puts a prefix match ahead of a looser one", () => {
     expect(searchItems(items, "gro")[0].item.id).toBe("screen:growth");
-    expect(searchItems(items, "priv")[0].item.id).toBe("screen:privacy");
+    expect(searchItems(items, "your d")[0].item.id).toBe("screen:your-data");
+    expect(searchItems(items, "priv")[0].item.id).toBe("screen:your-data"); // the old name still finds it
   });
   it("finds a screen by letters in order", () => {
-    expect(searchItems(items, "prv").map((s) => s.item.id)).toContain("screen:privacy");
+    expect(searchItems(items, "ghb").map((s) => s.item.id)).toContain("screen:git");
   });
   it("matches words in the hint and in the extra keywords, and needs every word to match", () => {
-    expect(searchItems(items, "stuck forecast").map((s) => s.item.id)).toContain("screen:predictions");
+    expect(searchItems(items, "stuck forecast").map((s) => s.item.id)).toContain("screen:forecasts");
     expect(searchItems(items, "stuck zzzzqq")).toEqual([]);
-    expect(searchItems(items, "hit list").map((s) => s.item.id)).toContain("screen:repeats");
+    expect(searchItems(items, "hit list").map((s) => s.item.id)).toContain("screen:routines");
   });
   it("counts the label for more than the hint", () => {
     const list = [item("Alpha", { hint: "memory notes" }), item("Memory", { hint: "alpha" })];
@@ -78,7 +79,6 @@ describe("searchItems", () => {
   it("drops matches far weaker than the best one, so a clear hit has no tail of coincidences", () => {
     const hits = searchItems(items, "gro").map((s) => s.item.id);
     expect(hits[0]).toBe("screen:growth");
-    expect(hits).not.toContain("screen:agents"); // "Background helpers" contains the letters, nothing more
     const list = [item("Growth"), item("Notes", { hint: "background" })];
     expect(searchItems(list, "gro").map((s) => s.item.label)).toEqual(["Growth"]);
     // with no strong hit, weaker ones stay
@@ -116,7 +116,7 @@ describe("buildItems is role-aware", () => {
   });
   it("lists every screen the menu lists, in menu order", () => {
     const screens = buildItems("admin").filter((i) => i.kind === "screen").map((i) => i.id);
-    expect(screens).toEqual(NAV_ENTRIES.map((e) => `screen:${e.id}`));
+    expect(screens).toEqual(NAV_ENTRIES.filter((e) => e.group !== "hidden").map((e) => `screen:${e.id}`));
   });
   it("lists worker pointers only in the Worker view and admin insights only in the Admin view", () => {
     const extra = { pointers: [pointer("w1", "You repeated one step nine times")], insights: [insight("a1", "New starters reach independence later")] };
@@ -185,7 +185,7 @@ describe("groupRows", () => {
     const groups = groupRows(r.rows);
     const flat = groups.flatMap((g) => g.rows.map((x) => x.index));
     expect(flat).toEqual(r.rows.map((_, i) => i));
-    expect(groups[0].heading).toBe("Screens");
+    expect(groups[0].heading).toBe("Go to");
     expect(groups[groups.length - 1].heading).toBeNull();
   });
   it("can leave the headings off", () => {

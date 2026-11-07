@@ -22,6 +22,12 @@ describe('the menu bar menu in the Knack app: eight rows', () => {
     expect(labels(glance)).toContain('Screen glances: when stuck')
     expect(labels(knack({ awareness: { enabled: false, onTrigger: true, periodic: true } }))).not.toContain('Screen glances: when stuck')
   })
+  it('Hey Knack adds its one switch, only while the listener exists', () => {
+    expect(labels(knack())).not.toContain('Listen for Hey Knack')
+    const on = rows(knack({ wake: { on: true, line: 'Listening for Hey Knack' } })).find((r) => r.id === 'wake_listen')
+    expect(on).toMatchObject({ label: 'Listen for Hey Knack', checked: true, enabled: true })
+    expect(rows(knack({ wake: { on: false, line: 'Off' } })).find((r) => r.id === 'wake_listen')?.checked).toBe(false)
+  })
   it('the first line says what is happening, in one line', () => {
     expect(labels(knack({ k: { working: 'filling in calculator B' } }))[0]).toBe('Knack is working: filling in calculator B')
     expect(labels(knack({ k: { stopped: true } }))[0]).toBe('Stopped. Nothing will run.')

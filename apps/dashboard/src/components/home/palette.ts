@@ -21,7 +21,7 @@ export interface PaletteItem {
 }
 
 export const KIND_LABEL: Record<ItemKind, string> = { screen: "Screen", firm_tab: "Firm view", pointer: "Pointer", insight: "Insight", action: "Action" };
-export const GROUP_LABEL: Record<NavGroup, string> = { main: "Screens", details: "Details", more: "More screens", reviewers: "For reviewers" };
+export const GROUP_LABEL: Record<NavGroup, string> = { primary: "Go to", admin: "Admin", understand: "Understand your work", behind: "Behind the scenes", reviewers: "For reviewers", hidden: "" };
 export const GROUP_POINTERS = "This week";
 export const GROUP_INSIGHTS = "Firm insights";
 export const GROUP_FIRM = "Firm";

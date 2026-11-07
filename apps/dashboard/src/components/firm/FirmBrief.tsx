@@ -31,7 +31,7 @@ export function FirmBrief() {
       </div>
       <article className="brief-page" aria-labelledby="brief-title">
         <header className="brief-page__head">
-          <p className="t-label">Understudy · firm brief</p>
+          <p className="t-label">Knack · firm brief</p>
           <h2 id="brief-title" className="brief-page__title">How people are getting on</h2>
           <p className="brief-page__sub">{[brief.label, date ? `as of ${date}` : null, brief.summary].filter(Boolean).join(" · ")}</p>
           <p className="brief-page__statement">{brief.statement}</p>

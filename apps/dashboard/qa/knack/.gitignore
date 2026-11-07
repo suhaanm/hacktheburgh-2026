@@ -1,0 +1,2 @@
+# Screenshots from scripts/shot-knack.mjs stay local (do not commit large PNGs).
+*.png

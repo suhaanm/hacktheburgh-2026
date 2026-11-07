@@ -1,7 +1,8 @@
 // The design system's small components as React (packages/design/components.css is the source of truth; these emit its markup).
 // Rules for new components: packages/design/README.md. Detail goes behind <Details> or a <Hint>, never printed by default.
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Hint } from "./Hint";
+import { Icon, type IconName } from "./Icon";
 
 /** The one disclosure: "Why this?", "Details". Opens in place. */
 export function Details({ summary, children, defaultOpen = false, onToggle, className, wide = false }: { summary: ReactNode; children: ReactNode; defaultOpen?: boolean; onToggle?: (open: boolean) => void; className?: string; wide?: boolean }) {
@@ -173,5 +174,79 @@ export function QuestionCard({ question, options, other, chord = "⌥", onAnswer
         )}
       </div>
     </div>
+  );
+}
+
+/** A list of rows: hairlines, not a stack of cards. Put <Row> inside. */
+export function Rows({ children, label }: { children: ReactNode; label?: string }) {
+  return <ul className="listrows" aria-label={label}>{children}</ul>;
+}
+
+/**
+ * One 44 px row. A row that goes somewhere is a link (or a button) and the whole row is the target, with a chevron; a plain row may carry
+ * `actions`, which appear on hover and focus and are always visible on touch. A link or button row cannot hold other buttons, so `actions`
+ * only render on a plain row. Title is one line (12 words), the muted `meta` line at most 6.
+ */
+export function Row({ title, meta, icon, tone, href, onClick, chevron, end, actions, current, pressed, label }: {
+  title: ReactNode;
+  meta?: ReactNode;
+  icon?: IconName;
+  /** Colours the icon only; the title or the meta line always says the same thing in words. */
+  tone?: "bad" | "good" | "warn";
+  href?: string;
+  onClick?: () => void;
+  /** Shown automatically for a link or button row; pass false to hide. */
+  chevron?: boolean;
+  end?: ReactNode;
+  actions?: ReactNode;
+  current?: boolean;
+  /** A button row that switches something on or off (a skill filtering a chart): drawn as a toggle button. */
+  pressed?: boolean;
+  label?: string;
+}) {
+  const inner = (
+    <>
+      {icon && <span className={`listrow__icon${tone ? ` listrow__icon--${tone}` : ""}`}><Icon name={icon} /></span>}
+      <span className="listrow__text">
+        <span className="listrow__title">{title}</span>
+        {meta && <span className="listrow__meta">{meta}</span>}
+      </span>
+      {end && <span className="listrow__end">{end}</span>}
+    </>
+  );
+  const goes = Boolean(href || onClick);
+  const chev = chevron ?? goes;
+  const chevNode = chev ? <span className="listrow__chev"><Icon name="chevron" /></span> : null;
+  if (href) return <li><a className="listrow" href={href} aria-current={current ? "page" : undefined} aria-label={label}>{inner}{chevNode}</a></li>;
+  if (onClick) return <li><button type="button" className="listrow" onClick={onClick} aria-current={current ? "true" : undefined} aria-pressed={pressed} aria-label={label}>{inner}{chevNode}</button></li>;
+  return <li><div className="listrow" aria-label={label}>{inner}{actions && <span className="listrow__actions">{actions}</span>}{chevNode}</div></li>;
+}
+
+/**
+ * The inline "Forget it / Keep" row that stands where a modal would. The consequence is printed (never only in a Hint), the safe choice
+ * ("Keep") has the focus when the row opens, and Escape means Keep. Both choices are real clicks; no shortcut confirms.
+ */
+export function ConfirmRow({ question, consequence, confirmLabel, cancelLabel = "Keep", onConfirm, onCancel, busy = false }: {
+  question: ReactNode;
+  consequence?: ReactNode;
+  confirmLabel: string;
+  cancelLabel?: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  busy?: boolean;
+}) {
+  const keep = useRef<HTMLButtonElement>(null);
+  useEffect(() => { keep.current?.focus(); }, []);
+  return (
+    <li>
+      <div className="confirm-row" role="group" aria-label={typeof question === "string" ? question : "Confirm"} onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); onCancel(); } }}>
+        <span className="confirm-row__q">{question}</span>
+        {consequence && <span className="confirm-row__why">{consequence}</span>}
+        <span className="confirm-row__actions">
+          <button type="button" className="btn btn--secondary btn--sm" ref={keep} onClick={onCancel}>{cancelLabel}</button>
+          <button type="button" className="btn btn--danger btn--sm" onClick={onConfirm} disabled={busy}>{confirmLabel}</button>
+        </span>
+      </div>
+    </li>
   );
 }

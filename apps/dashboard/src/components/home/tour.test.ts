@@ -30,7 +30,7 @@ describe("tour steps", () => {
   it("only visits routes that exist, or stays put for the stop button", () => {
     for (const s of tourSteps("admin")) {
       if (s.route === null) {
-        expect(s.selector, s.id).toBe(".kill");
+        expect(s.selector, s.id).toBe(".stop-button");
         continue;
       }
       const screen = s.route.split("/")[1];
@@ -56,8 +56,8 @@ describe("tour steps", () => {
     expect(worker.map((s) => s.id)).toEqual(admin.filter((s) => !s.admin).map((s) => s.id));
   });
   it("covers the places the brief names", () => {
-    expect(tourSteps("worker").map((s) => s.route)).toEqual(["/home", "/repeats", "/growth", "/genome", "/privacy", null]);
-    expect(tourSteps("admin").map((s) => s.route)).toEqual(["/home", "/repeats", "/growth", "/genome", "/privacy", "/firm", "/firm/roles", null]);
+    expect(tourSteps("worker").map((s) => s.route)).toEqual(["/home", "/needs-you", "/routines", "/growth", "/your-data", null]);
+    expect(tourSteps("admin").map((s) => s.route)).toEqual(["/home", "/needs-you", "/routines", "/growth", "/your-data", "/firm", "/roles", null]);
   });
 });
 
@@ -65,8 +65,9 @@ describe("anchors", () => {
   it("rings a menu link or the stop button", () => {
     const steps = tourSteps("admin");
     expect(anchorSelector(steps[0])).toBe('nav#nav a[href="#/home"]');
-    expect(anchorSelector(steps[6])).toBe('nav#nav a[href="#/firm"]');
-    expect(anchorSelector(steps[7])).toBe(".kill");
+    expect(anchorSelector(steps[5])).toBe('nav#nav a[href="#/firm"]');
+    expect(anchorSelector(steps[6])).toBe('nav#nav a[href="#/roles"]');
+    expect(anchorSelector(steps[7])).toBe(".stop-button");
   });
 });
 
@@ -85,7 +86,7 @@ describe("step maths", () => {
     expect(progressShare(0, 0)).toBe(0);
   });
   it("keeps a step by its id when the view changes, and ends the tour when the step is gone", () => {
-    // Admin step 4 is Privacy (index 4); the worker list has it at 4 too.
+    // Admin step 4 is Your data (index 4); the worker list has it at 4 too.
     expect(stepAfterViewChange("admin", 4, "worker")).toBe(4);
     // Firm overview (admin index 5) and Roles (6) do not exist for a worker.
     expect(stepAfterViewChange("admin", 5, "worker")).toBeNull();
