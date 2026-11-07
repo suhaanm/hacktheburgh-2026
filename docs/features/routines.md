@@ -102,7 +102,7 @@ Routines, tab Could automate.
 
 ### Demo moment
 
-Open Could automate: 'Read the case, then open the calculators: about 25 minutes a week'. Press Automate; the Watch first peek opens; nothing starts.
+Open Could automate: each row names a repeated task and the minutes a week it could save (the wireframe example reads 'Read the case, then open the calculators: about 25 minutes a week'). Press Automate; the Watch first peek opens; nothing starts.
 
 ### Evidence and its label
 
