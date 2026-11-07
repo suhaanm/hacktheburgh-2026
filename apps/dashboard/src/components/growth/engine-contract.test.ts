@@ -138,7 +138,7 @@ describe("engine contract: the engine's own example payloads", () => {
       expect(v.title).toBe("Cannot tell yet whether you need less help");
       expect(v.trend.sentence).toContain(G.data.trend.power_note!);
     }
-    expect(v.lede).toBe(`In your first ${G.data.baseline!.n} occurrences you finished ${G.data.baseline!.k} without a cue. In the latest ${G.data.components.independence!.n}, ${G.data.components.independence!.k}.`);
+    expect(v.lede).toBe(`In your first ${G.data.baseline!.n} steps you finished ${G.data.baseline!.k} without a cue. In the latest ${G.data.components.independence!.n}, ${G.data.components.independence!.k}.`);
   });
   it("the counts in the lede match the engine's own counts: show the counts, not a verdict", () => {
     expect(G.data.claim).toContain(`Unaided on ${G.data.components.independence!.k} of the last ${G.data.components.independence!.n}`);
