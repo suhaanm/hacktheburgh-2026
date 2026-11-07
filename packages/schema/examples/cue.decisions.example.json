@@ -1,7 +1,7 @@
 {
  "close_call": {
   "meta": {
-   "generated_at": "2026-11-07T19:09:31Z",
+   "generated_at": "2026-11-07T19:45:31Z",
    "interval_level": 0.95,
    "n": 0,
    "n_unit": "occurrences",
@@ -33,7 +33,7 @@
     },
     "menu": null,
     "meta": {
-     "generated_at": "2026-11-07T19:09:31Z",
+     "generated_at": "2026-11-07T19:45:31Z",
      "interval_level": 0.95,
      "n": 0,
      "n_unit": "occurrences",
@@ -87,7 +87,7 @@
     },
     "menu": null,
     "meta": {
-     "generated_at": "2026-11-07T19:09:31Z",
+     "generated_at": "2026-11-07T19:45:31Z",
      "interval_level": 0.95,
      "n": 0,
      "n_unit": "occurrences",
@@ -141,7 +141,7 @@
     },
     "menu": null,
     "meta": {
-     "generated_at": "2026-11-07T19:09:31Z",
+     "generated_at": "2026-11-07T19:45:31Z",
      "interval_level": 0.95,
      "n": 0,
      "n_unit": "occurrences",
@@ -204,7 +204,7 @@
      }
     ],
     "meta": {
-     "generated_at": "2026-11-07T19:09:31Z",
+     "generated_at": "2026-11-07T19:45:31Z",
      "interval_level": 0.95,
      "n": 0,
      "n_unit": "occurrences",
@@ -243,7 +243,12 @@
      "id": "cliff_a",
      "label": "Check cliff edges (A)",
      "reason_id": "why.cliff",
-     "reason_text": "A figure near a limit can flip the answer."
+     "reason_text": "A figure near a limit can flip the answer.",
+     "target": {
+      "label_hint": "Check cliff edges",
+      "role_hint": "button",
+      "zone": "cliff_button"
+     }
     },
     "t": 87.5,
     "target": null,
@@ -266,7 +271,7 @@
  },
  "level_4": {
   "meta": {
-   "generated_at": "2026-11-07T19:09:31Z",
+   "generated_at": "2026-11-07T19:45:31Z",
    "interval_level": 0.95,
    "n": 0,
    "n_unit": "occurrences",
@@ -299,7 +304,7 @@
     },
     "menu": null,
     "meta": {
-     "generated_at": "2026-11-07T19:09:31Z",
+     "generated_at": "2026-11-07T19:45:31Z",
      "interval_level": 0.95,
      "n": 0,
      "n_unit": "occurrences",
@@ -334,7 +339,7 @@
  },
  "retrieval": {
   "meta": {
-   "generated_at": "2026-11-07T19:09:31Z",
+   "generated_at": "2026-11-07T19:45:31Z",
    "interval_level": 0.95,
    "n": 0,
    "n_unit": "occurrences",
@@ -367,7 +372,7 @@
     },
     "menu": null,
     "meta": {
-     "generated_at": "2026-11-07T19:09:31Z",
+     "generated_at": "2026-11-07T19:45:31Z",
      "interval_level": 0.95,
      "n": 0,
      "n_unit": "occurrences",
@@ -386,7 +391,12 @@
      "id": "cliff_a",
      "label": "Check cliff edges (A)",
      "reason_id": "why.cliff",
-     "reason_text": "A figure near a limit can flip the answer."
+     "reason_text": "A figure near a limit can flip the answer.",
+     "target": {
+      "label_hint": "Check cliff edges",
+      "role_hint": "button",
+      "zone": "cliff_button"
+     }
     },
     "t": 0,
     "target": null,
@@ -427,7 +437,7 @@
     },
     "menu": null,
     "meta": {
-     "generated_at": "2026-11-07T19:09:31Z",
+     "generated_at": "2026-11-07T19:45:31Z",
      "interval_level": 0.95,
      "n": 0,
      "n_unit": "occurrences",
@@ -446,7 +456,12 @@
      "id": "cliff_a",
      "label": "Check cliff edges (A)",
      "reason_id": "why.cliff",
-     "reason_text": "A figure near a limit can flip the answer."
+     "reason_text": "A figure near a limit can flip the answer.",
+     "target": {
+      "label_hint": "Check cliff edges",
+      "role_hint": "button",
+      "zone": "cliff_button"
+     }
     },
     "t": 60,
     "target": null,
@@ -467,7 +482,7 @@
  },
  "stuck_after_result": {
   "meta": {
-   "generated_at": "2026-11-07T19:09:31Z",
+   "generated_at": "2026-11-07T19:45:31Z",
    "interval_level": 0.95,
    "n": 0,
    "n_unit": "occurrences",
@@ -500,7 +515,7 @@
     },
     "menu": null,
     "meta": {
-     "generated_at": "2026-11-07T19:09:31Z",
+     "generated_at": "2026-11-07T19:45:31Z",
      "interval_level": 0.95,
      "n": 0,
      "n_unit": "occurrences",
@@ -555,7 +570,7 @@
     },
     "menu": null,
     "meta": {
-     "generated_at": "2026-11-07T19:09:31Z",
+     "generated_at": "2026-11-07T19:45:31Z",
      "interval_level": 0.95,
      "n": 0,
      "n_unit": "occurrences",
@@ -610,7 +625,7 @@
     },
     "menu": null,
     "meta": {
-     "generated_at": "2026-11-07T19:09:31Z",
+     "generated_at": "2026-11-07T19:45:31Z",
      "interval_level": 0.95,
      "n": 0,
      "n_unit": "occurrences",
@@ -665,7 +680,7 @@
     },
     "menu": null,
     "meta": {
-     "generated_at": "2026-11-07T19:09:31Z",
+     "generated_at": "2026-11-07T19:45:31Z",
      "interval_level": 0.95,
      "n": 0,
      "n_unit": "occurrences",
@@ -688,7 +703,12 @@
      "id": "cliff_a",
      "label": "Check cliff edges (A)",
      "reason_id": "why.cliff",
-     "reason_text": "A figure near a limit can flip the answer."
+     "reason_text": "A figure near a limit can flip the answer.",
+     "target": {
+      "label_hint": "Check cliff edges",
+      "role_hint": "button",
+      "zone": "cliff_button"
+     }
     },
     "t": 87.5,
     "target": {
@@ -740,7 +760,7 @@
     },
     "menu": null,
     "meta": {
-     "generated_at": "2026-11-07T19:09:31Z",
+     "generated_at": "2026-11-07T19:45:31Z",
      "interval_level": 0.95,
      "n": 0,
      "n_unit": "occurrences",
@@ -763,7 +783,12 @@
      "id": "cliff_a",
      "label": "Check cliff edges (A)",
      "reason_id": "why.cliff",
-     "reason_text": "A figure near a limit can flip the answer."
+     "reason_text": "A figure near a limit can flip the answer.",
+     "target": {
+      "label_hint": "Check cliff edges",
+      "role_hint": "button",
+      "zone": "cliff_button"
+     }
     },
     "t": 90,
     "target": {
@@ -813,7 +838,7 @@
     },
     "menu": null,
     "meta": {
-     "generated_at": "2026-11-07T19:09:31Z",
+     "generated_at": "2026-11-07T19:45:31Z",
      "interval_level": 0.95,
      "n": 0,
      "n_unit": "occurrences",
@@ -868,7 +893,7 @@
     },
     "menu": null,
     "meta": {
-     "generated_at": "2026-11-07T19:09:31Z",
+     "generated_at": "2026-11-07T19:45:31Z",
      "interval_level": 0.95,
      "n": 0,
      "n_unit": "occurrences",
@@ -891,7 +916,12 @@
      "id": "cliff_a",
      "label": "Check cliff edges (A)",
      "reason_id": "why.cliff",
-     "reason_text": "A figure near a limit can flip the answer."
+     "reason_text": "A figure near a limit can flip the answer.",
+     "target": {
+      "label_hint": "Check cliff edges",
+      "role_hint": "button",
+      "zone": "cliff_button"
+     }
     },
     "t": 120,
     "target": {

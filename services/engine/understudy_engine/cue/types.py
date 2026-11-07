@@ -98,7 +98,7 @@ class CueDecision:
     kind: str = "none"
     episode_id: str | None = None
     tier: int | None = None
-    step: dict | None = None                     # {id, label, reason_id}
+    step: dict | None = None                     # {id, label, reason_id, reason_text, target: {zone, label_hint, role_hint} | None} (target: where the control is, from the pack; not the ring box below)
     target: dict | None = None                   # {box_2d, source, confidence}
     options: list[dict] | None = None            # [{id, label}] (2..4 steps plus the fixed "something else")
     say: dict | None = None                      # {chip: <=40 chars | None, whisper: <=8 words | None}

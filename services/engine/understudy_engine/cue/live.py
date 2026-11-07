@@ -222,7 +222,7 @@ class LiveCue:
                 if step_done:
                     d0.why["reasons"] = ["step_done", "progress"]
                 return self._envelope(d0, person, ctx.role, ctx)
-            res = decide(inp, ps.state, params, reason_text=vocab.text_of, chooser=self._get_chooser())
+            res = decide(inp, ps.state, params, reason_text=vocab.text_of, step_target=vocab.target, chooser=self._get_chooser())
             d = res.decision
             if res.choice is not None and not dry:
                 self._log_choice(res.choice, inp)

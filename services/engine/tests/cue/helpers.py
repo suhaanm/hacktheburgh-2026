@@ -37,6 +37,7 @@ class Run:
         self.fixed = fixed
         self.progress_t = T0 - start_stall
         self.log: list = []
+        self.decide_kw: dict = {}          # extra keyword arguments for decide(), for example reason_text and step_target
 
     def poll(self, t: float, **kw):
         k = dict(self.fixed)
@@ -45,7 +46,7 @@ class Run:
         i = inp(t, stall=(T0 + t - self.progress_t) if stall is None else stall, **k)
         if stall is not None:
             self.progress_t = T0 + t - stall
-        r = decide(i, self.st, self.p)
+        r = decide(i, self.st, self.p, **self.decide_kw)
         self.st = r.state
         self.log.append((t, r))
         return r

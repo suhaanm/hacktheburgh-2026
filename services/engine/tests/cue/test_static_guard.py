@@ -25,6 +25,20 @@ def test_the_guard_covers_the_cue_directory_when_the_privacy_track_has_registere
         assert rep.ok and any(f.startswith("cue/") for f in rep.files)
 
 
+def test_cue_shares_the_coach_target_helper_and_the_guard_accepts_that():
+    """step.target comes from coach.messages.target_for (shared, not copied). The guard restricts models and the network, not imports between layers,
+    so cue may import the coach helper; and the helper itself must stay free of both, because cue now depends on it."""
+    from understudy_engine.coach import messages
+
+    src = (CUE / "target.py").read_text()
+    assert "from ..coach.messages import" in src and "target_for" in src
+    v, _ = guard.scan_source(src, "cue/target.py")
+    assert v == []
+    v2, _ = guard.scan_source(Path(messages.__file__).read_text(), "coach/messages.py")     # scanned under the extension-layer rules
+    assert v2 == [], [str(x) for x in v2]
+    assert "target.py" in {f.name for f in CUE.glob("*.py")}
+
+
 def test_cue_has_a_canary_flows_module_that_says_why_it_has_no_model_path():
     from understudy_engine.cue import canary_flows
 

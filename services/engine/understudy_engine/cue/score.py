@@ -44,9 +44,11 @@ RETENTION_DAYS = 3.0
 WEIGHTS = {"independence_lb": 0.4, "mastery": 0.3, "gap_closure": 0.2, "retention": 0.1}
 WEIGHTS_NOTE = "stated assumptions, not fitted"
 CLAIM_TAIL = "This is not a measure of expertise."
-# Measured on SIMULATED learners (dev seeds 0 to 59, 60 learners per kind; evals/cue/PLAN.md). The caveat is generated from these, never typed in copy.
-CAVEAT_FIGURES = {"bias_points": [6.0, 9.9], "false_rise_rate": 0.33, "n_learners": 60, "origin": "simulated", "seeds": "dev 0 to 59",
-                  "mastery_overstated_by": [0.29, 0.49]}
+# Measured on SIMULATED learners, V0 replay, 60 learners per kind: dev seeds 0 to 59 and held-out seeds 10000 to 10059 (evals/cue/PLAN.md). The caveat
+# is generated from these figures, never typed into copy. Composite bias over learners who did not improve (flat, forgetting, gamer): dev +6.0 to +9.9,
+# held-out +5.1 to +9.8 points; flat learners whose composite rose 10 points or more between occurrence 30 and 120: dev 33%, held-out 25%.
+CAVEAT_FIGURES = {"bias_points": [5.0, 9.9], "false_rise_rate": [0.25, 0.33], "n_learners": 60, "origin": "simulated", "seeds": "dev 0 to 59, held-out 10000 to 10059",
+                  "mastery_overstated_by": [0.30, 0.50]}
 # Share of simulated learners whose assisted share fell steadily from 0.5 to 0.2 over N occurrences for whom the trend interval excluded 0
 # (100 learners per size, dev; evals/cue/PLAN.md). 80% power is not reached within 360 occurrences.
 TREND_POWER = {30: 0.22, 45: 0.20, 60: 0.12, 90: 0.25, 120: 0.29, 180: 0.34, 240: 0.43, 360: 0.46}
@@ -227,8 +229,9 @@ def _mean(xs: Sequence[float]) -> float | None:
 def caveat_text(f: dict[str, Any] | None = None) -> str:
     f = f or CAVEAT_FIGURES
     lo, hi = f["bias_points"]
+    r_lo, r_hi = f["false_rise_rate"]
     return (f"Experimental. On simulated learners it overstated by {lo:.0f} to {hi:.0f} points when nobody improved, and rose 10 points or more "
-            f"in {round(100 * f['false_rise_rate']):d}% of learners whose skill never changed. Read the trend and the independence interval instead.")
+            f"in {round(100 * r_lo):d} to {round(100 * r_hi):d}% of learners whose skill never changed. Read the trend and the independence interval instead.")
 
 
 def trend_power_note(n: int, direction: str) -> str:

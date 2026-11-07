@@ -56,5 +56,9 @@ def schema_path() -> Path:
     return repo_root() / "packages" / "schema" / "assist_ledger.schema.json"
 
 
+def step_schema_path() -> Path:
+    return repo_root() / "packages" / "schema" / "cue_step.schema.json"
+
+
 def is_mock() -> bool:
     return _on("UNDERSTUDY_MOCK")

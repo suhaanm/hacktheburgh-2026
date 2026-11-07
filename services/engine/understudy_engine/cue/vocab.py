@@ -11,6 +11,8 @@ import re
 from dataclasses import dataclass, field
 
 from ..coach.steps import StepPolicy
+from ..cogs.mapper import Mapping
+from .target import step_target
 
 CHIP_MAX = 40
 WHISPER_WORDS = 8
@@ -48,6 +50,15 @@ REASONS: dict[str, str] = {
     "why.profile": "Bad rows hide in inputs; look before you query.",
     "why.inspect": "Reading the rows catches what a total hides.",
     "why.sanity": "A number you cannot explain should not be trusted.",
+    "why.inspect_inputs": "Real inputs include the odd ones; read them before you edit.",
+    "why.failing_test": "A test that fails first proves the fix later.",
+    "why.edges": "Bugs live at the edges: empty, one item, exactly full.",
+    "why.review_diff": "Reading the diff catches changes that are not the fix.",
+    "why.commit": "A clear message tells the next reader what changed and why.",
+    "why.clean": "Fix what the profile found before it reaches the total.",
+    "why.control": "A total that disagrees with the control figure is wrong somewhere.",
+    "why.segment": "An overall number can hide a difference between segments.",
+    "why.report": "Say what the number is and how sure you are.",
     "why.generic": "This is the step experts take next.",
 }
 
@@ -57,8 +68,16 @@ STEP_REASON: dict[str, dict[str, str]] = {
         "cliff_a": "why.cliff", "cliff_b": "why.cliff", "cliff_c": "why.cliff", "reconcile": "why.reconcile",
         "write_note": "why.note", "verify_note": "why.verify_note",
     },
-    "programmer": {"read_trace_first": "why.trace_first", "edit_and_commit": "why.small_change", "rerun_and_confirm": "why.rerun"},
-    "data-analyst": {"profile_inputs": "why.profile", "run_and_inspect": "why.inspect", "sanity_check": "why.sanity"},
+    "programmer": {
+        "read_trace_first": "why.trace_first", "inspect_inputs": "why.inspect_inputs", "write_failing_test": "why.failing_test",
+        "edit_and_commit": "why.small_change", "rerun_and_confirm": "why.rerun", "probe_edges": "why.edges",
+        "review_diff": "why.review_diff", "commit_fix": "why.commit",
+    },
+    "data-analyst": {
+        "profile_inputs": "why.profile", "clean_data": "why.clean", "run_and_inspect": "why.inspect",
+        "reconcile_to_control": "why.control", "segment_breakdown": "why.segment", "sanity_check": "why.sanity",
+        "report_answer": "why.report",
+    },
 }
 
 # Question templates by ambiguity type: fixed text, never model-written (CUE-4).
@@ -100,6 +119,7 @@ class StepVocab:
     labels: dict[str, str] = field(default_factory=dict)
     reasons: dict[str, str] = field(default_factory=dict)         # step id -> reason id
     reason_text: dict[str, str] = field(default_factory=dict)     # reason id -> text (pack overrides included)
+    mapping: Mapping | None = None                                # the pack's cog mapping: where the control for a step is (the coach's source)
 
     def label(self, step_id: str) -> str:
         if step_id in self.labels:
@@ -116,6 +136,10 @@ class StepVocab:
 
     def text_of(self, reason_id: str) -> str | None:
         return self.reason_text.get(reason_id) or REASONS.get(reason_id)
+
+    def target(self, step_id: str) -> dict | None:
+        """``{zone, label_hint, role_hint}`` for a step: the coach's own answer from the pack's mapping (``cue.target``), or None."""
+        return step_target(self.policy.steps.get(step_id), self.mapping)
 
     def group(self, step_id: str) -> str:
         return self.policy.pattern_mates(step_id)[0]
@@ -140,7 +164,7 @@ def _valid_override(table: object, kind: str) -> dict:
     return out
 
 
-def build_vocab(role: str, policy: StepPolicy, pack_cue: dict | None = None) -> StepVocab:
+def build_vocab(role: str, policy: StepPolicy, pack_cue: dict | None = None, mapping: Mapping | None = None) -> StepVocab:
     labels = dict(SHORT_LABELS.get(role, {}))
     reasons = dict(STEP_REASON.get(role, {}))
     texts = dict(REASONS)
@@ -149,7 +173,7 @@ def build_vocab(role: str, policy: StepPolicy, pack_cue: dict | None = None) -> 
     for step, r in _valid_override(pc.get("reasons"), "reason").items():
         reasons[step] = r["id"]
         texts[r["id"]] = r["text"]
-    return StepVocab(role, policy, labels, reasons, texts)
+    return StepVocab(role, policy, labels, reasons, texts, mapping)
 
 
 _CACHE: dict[tuple[str, str], StepVocab] = {}
@@ -164,7 +188,7 @@ def get_vocab(role: str, root=None) -> StepVocab | None:
         try:
             pack = load_pack(role, root)
             policy = StepPolicy.from_pack(pack)
-            _CACHE[key] = build_vocab(role, policy, pack.data.get("cue"))
+            _CACHE[key] = build_vocab(role, policy, pack.data.get("cue"), pack.cog_mapping())
         except (PackError, KeyError, FileNotFoundError, OSError):
             return None
     return _CACHE[key]
