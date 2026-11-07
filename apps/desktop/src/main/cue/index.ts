@@ -36,6 +36,8 @@ export interface CueStartContext extends ServiceContext {
   dom?: DomRecheckDeps
   // The page's visible text and controls in screen DIPs (from the browser extension's `content` field). Without it the card docks at a corner.
   content?: () => Rect[] | null
+  // Other windows of ours the card keeps clear of (the Knack corner column while it shows), in screen DIPs.
+  avoid?: () => Rect[]
   // "Something else" on a question: open the conversation (LIVE). Not called unless the worker picks it.
   onConverse?: () => void
   // Who the decisions are for (the engine client's identity).
@@ -97,7 +99,7 @@ export function startCue(ctx: CueStartContext): CueHandle | null {
 
   // The controller needs the panel's actions and the panel needs the controller: the panel reports through a box filled just below.
   const box: { act: (a: import('./ipc').CueCardAction) => void } = { act: () => undefined }
-  const panel = createPanelWindow({ onAction: (a) => box.act(a), shortcuts: globalShortcut, content: ctx.content, cursor, log: ctx.log })
+  const panel = createPanelWindow({ onAction: (a) => box.act(a), shortcuts: globalShortcut, content: ctx.content, cursor, avoid: ctx.avoid, log: ctx.log })
   const controller = createCueController({
     engine,
     overlay,

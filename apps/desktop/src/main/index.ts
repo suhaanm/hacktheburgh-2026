@@ -316,6 +316,8 @@ void app.whenReady().then(async () => {
     signals: { typingNow: cueSignals.typingNow, quietS: cueSignals.quietS, away: cueSignals.away, suppressed: cueSignals.suppressed } as NonNullable<CueStartContext['signals']>,
     // The page's visible text and controls from the DOM tracker's latest answer (stale after a few seconds: Cue then docks the card at a corner).
     content: () => cueContent.get(),
+    // KNACK: the corner pill column is a window of ours the no-target card must not cover: it stacks above it.
+    avoid: knack ? () => { const w = understudy.hud.window(); if (!w || !w.isVisible()) return []; const b = w.getBounds(); return [{ x: b.x, y: b.y, w: b.width, h: b.height }] } : undefined,
     attention: attentionWiring?.cuePort,
   })
 
