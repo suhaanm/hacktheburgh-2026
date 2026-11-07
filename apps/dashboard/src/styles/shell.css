@@ -16,10 +16,12 @@
   position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; min-height: 0;
   padding: 0 var(--space-3) var(--space-3); border-right: var(--hair) solid var(--line); background: var(--bg);
 }
-/* In the desktop window the first 40 px hold the traffic lights and drag the window. The page sets data-shell="desktop" on <html> when it is served by the app. */
-.side__drag { display: none; flex: none; height: 40px; -webkit-app-region: drag; }
-:root[data-shell="desktop"] .side__drag { display: block; }
-:root:not([data-shell="desktop"]) .side { padding-top: var(--space-4); }
+/* In the Mac desktop window (html[data-knack-shell="mac-inset"], set by the app) the traffic lights sit at x 16, y 16, so the sidebar keeps its top 56 px
+   free and makes the top 40 px of them drag the window. Nothing interactive is inside the strip. */
+.side__drag { display: none; flex: none; position: relative; height: 56px; }
+.side__drag::before { content: ""; position: absolute; inset: 0 0 16px 0; -webkit-app-region: drag; }
+:root[data-knack-shell="mac-inset"] .side__drag { display: block; }
+:root:not([data-knack-shell="mac-inset"]) .side { padding-top: var(--space-4); }
 .side__lockup { flex: none; padding: var(--space-2) var(--space-3) var(--space-4); }
 
 .nav { display: grid; align-content: start; gap: 2px; min-height: 0; }
@@ -186,6 +188,14 @@
   .side__foot { flex-direction: column; align-items: stretch; }
   .side .stop-button { justify-content: center; padding: 0; }
   .side .status-line { justify-content: center; padding-inline: 0; }
+}
+
+/* The traffic lights sit over the left of a bar that has no sidebar under it (first run, the narrow top bar): keep that corner clear and draggable. */
+:root[data-knack-shell="mac-inset"] .app[data-bare] .stopped-banner, :root[data-knack-shell="mac-inset"] .app[data-bare] .inline-banner { padding-left: 88px; }
+@media (max-width: 880px) {
+  :root[data-knack-shell="mac-inset"] .topbar { padding-left: 88px; -webkit-app-region: drag; }
+  :root[data-knack-shell="mac-inset"] .topbar a, :root[data-knack-shell="mac-inset"] .topbar button { -webkit-app-region: no-drag; }
+  :root[data-knack-shell="mac-inset"] .stopped-banner, :root[data-knack-shell="mac-inset"] .inline-banner { padding-left: 88px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
