@@ -314,3 +314,15 @@ No decision depends on either.
 `max(0, FA/h - 1)`. In resamples where v1 does not overshoot, the paired difference is exactly zero, so the interval's upper end is below zero only if v1 overshoots in more than 97.5% of
 resamples. When v1 meets the budget on the pool the rule is null by construction (as section 6.4 already says); the unclipped paired difference in false alarms an hour is reported
 beside it, **never used for acceptance**.
+
+**Amendment 7 (2026-11-07 18:07 GMT, correction of Amendments 1 to 6; no held-out data, no genome result, no mismatch result and no simulated-participant trace had been read).**
+The stamps "17:40 GMT" (Amendments 1 to 4) and "17:55 GMT" (Amendments 5 and 6) were **estimated, not read from a clock**, and the 17:55 stamps are wrong: all six amendments were written in one
+sitting, about 17:39 GMT, before the lead's checkpoint commit 7e950ae (committer time 17:40:12 GMT), which contains them. **Git's commit time is the authoritative bound**; from now on every stamp comes
+from `date -u`. Two "before" claims in the text were also not accurate and are corrected here. What I had read when the six amendments were written, as best I can state it: (a) the first DEV and D0 results
+of family A (log loss, guards, which variant the section 6.2 rule would pick: A5 failed its detection guard by point estimate, A7 on the Platt-calibrated boosting base was lowest); (b) the **dev** results
+of the alarm rules C0, C1, C2 on D0 and on DEV (on D0, C1 met the budget at the cost of detection; the clipped-overshoot interval touched zero), which is why Amendment 6 exists, so **Amendment 1's "before
+any alarm-rule result was read" is false: the Poisson form of C1 was written into the code before its first dev run and was chosen by reasoning about counts, not by a result, but dev alarm-rule results had
+been read when the amendment was written**; (c) the D0 and DEV awareness ablations on the planned label (cursor group a small lift on DEV, nothing on D0), so **Amendment 4's "before any real ablation
+was read" is false** (it was written because of the stub's behaviour, after the real ablations had been read; Amendment 5 already says the D0 one had been read); (d) a one-cohort diagnosis of v1's two
+weakest deficit rows (the alignment columns of a few cases from the dev apprentice seed 8808). Not read at that time: any HELD, APP-HELD, MIS-HELD or simulated-participant number; any result of E1 to E4,
+Q1, the time-to-event head, the shuffled-label controls on real dev data, or the mismatch matrix. Everything in Amendments 1 to 6 concerns DEV, never a held-out split; the held-out parts are still unrun.
