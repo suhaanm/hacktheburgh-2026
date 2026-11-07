@@ -1,0 +1,1373 @@
+{
+ "meta": {
+  "origin": "synthetic",
+  "badge": "synthetic: simulated workers, schedules, events and reactions; not people",
+  "split": "dev",
+  "seeds": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "workers_per_archetype": 10,
+  "archetypes": [
+   "nine-to-five",
+   "night-owl",
+   "shift-worker",
+   "irregular"
+  ],
+  "working_days_per_worker": 10,
+  "n_workers": 200,
+  "n_worker_days": 2000,
+  "schedule_source": "persona_truth",
+  "fast": false,
+  "interval": "95% person-level bootstrap, 1000 draws",
+  "params": {
+   "max_reminders": 1,
+   "budget_per_day": 10,
+   "min_gap_s": 90.0,
+   "wait_toasts_per_day": 3,
+   "loud_budget_mult": 1.5,
+   "quiet_budget_mult": 0.5,
+   "flow_quiet_s": 2.0,
+   "max_hold_soft_s": 600.0,
+   "break_after_task_quiet_s": 3.0,
+   "break_after_task_window_s": 90.0,
+   "break_idle_quiet_s": 15.0,
+   "break_midtask_quiet_s": 90.0,
+   "return_window_s": 120.0,
+   "reminder_after_s": 1200.0,
+   "reminder_after_loud_s": 600.0,
+   "deadline_reminder_min_s": 600.0,
+   "level_glance_per_hour": 2,
+   "n_min": 6.0,
+   "quiet_thr1": 0.25,
+   "quiet_thr2": 0.125,
+   "label_window": 60,
+   "never_subjects_for_max": 3,
+   "state_max_age_s": 10.0,
+   "welcome_away_s": 1800.0,
+   "morning_away_s": 14400.0,
+   "morning_hour_lo": 4,
+   "morning_hour_hi": 12,
+   "digest_gap_s": 10800.0,
+   "digest_max_lines": 7,
+   "needs_max_lines": 5
+  },
+  "budget_per_day": 6,
+  "frozen_config": null,
+  "cost_model_s": {
+   "flow": 25.0,
+   "flow_chip": 10.0,
+   "pause": 8.0,
+   "break": 3.0,
+   "hard_quiet": 30.0
+  },
+  "rates": {
+   "cue_stuck_per_h": 1.2,
+   "cue_false_per_h": 0.5,
+   "cue_ask_share": 0.15,
+   "cue_offer_share": 0.3,
+   "cue_stall_median_s": 80.0,
+   "cue_stall_sd": 0.7,
+   "cue_daily_budget": 12,
+   "cue_cap_n": 3,
+   "cue_cap_window_s": 600.0,
+   "cue_skill_gap_s": 90.0,
+   "proposal_p": 0.7,
+   "proposal_reoffer_s": 7200.0,
+   "proposal_max_reoffers": 2,
+   "approval_waiting_per_night": 0.8,
+   "approval_blocking": 0.6,
+   "irreversible_per_night": 0.15,
+   "run_finished_per_night": 2.0,
+   "run_finished_bg": 1.5,
+   "blocked_target": 0.5,
+   "blocked_error": 0.4,
+   "injection": 0.05,
+   "deadline": 0.5,
+   "service": 0.2,
+   "level": 0.4,
+   "kill": 0.03,
+   "reraise_s": 300.0
+  },
+  "step_s": 5.0,
+  "code": {
+   "router.py": "dd53dd30f305",
+   "service.py": "e28cf92334c0",
+   "vocab.py": "cc2eaf83d14e",
+   "state.py": "c64c7dbf689a",
+   "learning.py": "07a26e22e614",
+   "texts.py": "5f251274bddd",
+   "digest.py": "ae1232b7e94a",
+   "simulate.py": "ff02f9c94ec9",
+   "scenarios.py": "67fb664830ff",
+   "evaluate.py": "0dc60008f380"
+  },
+  "plan": "evals/attention/PLAN.md",
+  "wall_s": 464.4
+ },
+ "conditions": {
+  "R": {
+   "interruptions_per_flow_hour_all": {
+    "est": 0.1816,
+    "lo": 0.1711,
+    "hi": 0.1923
+   },
+   "interruptions_per_flow_hour_non_safety": {
+    "est": 0.1471,
+    "lo": 0.1387,
+    "hi": 0.1565
+   },
+   "interruptions_per_working_hour": {
+    "est": 1.0557,
+    "lo": 1.0115,
+    "hi": 1.0996
+   },
+   "hard_quiet_breaches_per_day": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "important_seen_within_window": {
+    "est": 0.9841,
+    "lo": 0.9812,
+    "hi": 0.9872
+   },
+   "duplicate_rate": {
+    "est": 0.0189,
+    "lo": 0.0169,
+    "hi": 0.0209
+   },
+   "acceptance_rate": {
+    "est": 0.6313,
+    "lo": 0.6109,
+    "hi": 0.6509
+   },
+   "fast_dismissal_rate": {
+    "est": 0.0543,
+    "lo": 0.0499,
+    "hi": 0.0589
+   },
+   "attention_cost_s_per_day": {
+    "est": 45.9985,
+    "lo": 44.4955,
+    "hi": 47.3085
+   },
+   "screen_share_exposures_per_day": {
+    "est": 0.0005,
+    "lo": 0.0,
+    "hi": 0.0015
+   },
+   "reminders_per_needs_you_item": {
+    "est": 0.001,
+    "lo": 0.0003,
+    "hi": 0.0018
+   },
+   "digest_lines_per_digest": {
+    "est": 2.9661,
+    "lo": 2.9165,
+    "hi": 3.0161
+   },
+   "items_folded_per_digest": {
+    "est": 4.4437,
+    "lo": 4.2645,
+    "hi": 4.653
+   },
+   "safety_missed_share": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "time_sensitive_missed_share": {
+    "est": 0.0232,
+    "lo": 0.0187,
+    "hi": 0.0277
+   },
+   "missed_urgent_safety": 0,
+   "missed_time_sensitive": 100,
+   "safety_items": 592,
+   "important_items": 6560,
+   "interrupting_displays": 15094,
+   "median_important_delay_s": {
+    "est": 80.0,
+    "lo": 75.0,
+    "hi": 86.3,
+    "share_of_draws_infinite": 0.0
+   },
+   "median_important_delay_s_seen_only": {
+    "est": 75.0,
+    "lo": 70.0,
+    "hi": 85.0,
+    "share_of_draws_infinite": 0.0
+   },
+   "max_reminders_per_needs_you_item": 1,
+   "dropped_by_reason": {
+    "dropped_away": 76,
+    "dropped_budget": 5003,
+    "dropped_dnd": 261,
+    "dropped_flow": 2548,
+    "dropped_in_meeting": 1134,
+    "dropped_lock": 34,
+    "dropped_on_call": 437,
+    "dropped_screen_sharing": 181,
+    "dropped_spacing": 4082,
+    "log_only": 69
+   }
+  },
+  "R-nolearn": {
+   "interruptions_per_flow_hour_all": {
+    "est": 0.1816,
+    "lo": 0.1711,
+    "hi": 0.1923
+   },
+   "interruptions_per_flow_hour_non_safety": {
+    "est": 0.1471,
+    "lo": 0.1387,
+    "hi": 0.1565
+   },
+   "interruptions_per_working_hour": {
+    "est": 1.0557,
+    "lo": 1.0115,
+    "hi": 1.0996
+   },
+   "hard_quiet_breaches_per_day": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "important_seen_within_window": {
+    "est": 0.9841,
+    "lo": 0.9812,
+    "hi": 0.9872
+   },
+   "duplicate_rate": {
+    "est": 0.0189,
+    "lo": 0.0169,
+    "hi": 0.0209
+   },
+   "acceptance_rate": {
+    "est": 0.6313,
+    "lo": 0.6109,
+    "hi": 0.6509
+   },
+   "fast_dismissal_rate": {
+    "est": 0.0543,
+    "lo": 0.0499,
+    "hi": 0.0589
+   },
+   "attention_cost_s_per_day": {
+    "est": 45.9985,
+    "lo": 44.4955,
+    "hi": 47.3085
+   },
+   "screen_share_exposures_per_day": {
+    "est": 0.0005,
+    "lo": 0.0,
+    "hi": 0.0015
+   },
+   "reminders_per_needs_you_item": {
+    "est": 0.001,
+    "lo": 0.0003,
+    "hi": 0.0018
+   },
+   "digest_lines_per_digest": {
+    "est": 2.9661,
+    "lo": 2.9165,
+    "hi": 3.0161
+   },
+   "items_folded_per_digest": {
+    "est": 4.4437,
+    "lo": 4.2645,
+    "hi": 4.653
+   },
+   "safety_missed_share": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "time_sensitive_missed_share": {
+    "est": 0.0232,
+    "lo": 0.0187,
+    "hi": 0.0277
+   },
+   "missed_urgent_safety": 0,
+   "missed_time_sensitive": 100,
+   "safety_items": 592,
+   "important_items": 6560,
+   "interrupting_displays": 15094,
+   "median_important_delay_s": {
+    "est": 80.0,
+    "lo": 75.0,
+    "hi": 86.3,
+    "share_of_draws_infinite": 0.0
+   },
+   "median_important_delay_s_seen_only": {
+    "est": 75.0,
+    "lo": 70.0,
+    "hi": 85.0,
+    "share_of_draws_infinite": 0.0
+   },
+   "max_reminders_per_needs_you_item": 1,
+   "dropped_by_reason": {
+    "dropped_away": 76,
+    "dropped_budget": 5003,
+    "dropped_dnd": 261,
+    "dropped_flow": 2548,
+    "dropped_in_meeting": 1134,
+    "dropped_lock": 34,
+    "dropped_on_call": 437,
+    "dropped_screen_sharing": 181,
+    "dropped_spacing": 4082,
+    "log_only": 69
+   }
+  },
+  "B1": {
+   "interruptions_per_flow_hour_all": {
+    "est": 1.5764,
+    "lo": 1.5045,
+    "hi": 1.649
+   },
+   "interruptions_per_flow_hour_non_safety": {
+    "est": 1.542,
+    "lo": 1.4718,
+    "hi": 1.611
+   },
+   "interruptions_per_working_hour": {
+    "est": 2.7902,
+    "lo": 2.6768,
+    "hi": 2.8939
+   },
+   "hard_quiet_breaches_per_day": {
+    "est": 1.3185,
+    "lo": 1.1995,
+    "hi": 1.4425
+   },
+   "important_seen_within_window": {
+    "est": 1.0,
+    "lo": 1.0,
+    "hi": 1.0
+   },
+   "duplicate_rate": {
+    "est": 0.327,
+    "lo": 0.3222,
+    "hi": 0.3314
+   },
+   "acceptance_rate": {
+    "est": 0.46,
+    "lo": 0.4447,
+    "hi": 0.4759
+   },
+   "fast_dismissal_rate": {
+    "est": 0.1246,
+    "lo": 0.12,
+    "hi": 0.1291
+   },
+   "attention_cost_s_per_day": {
+    "est": 270.986,
+    "lo": 260.9708,
+    "hi": 280.2189
+   },
+   "screen_share_exposures_per_day": {
+    "est": 0.1235,
+    "lo": 0.097,
+    "hi": 0.1535
+   },
+   "reminders_per_needs_you_item": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "digest_lines_per_digest": {
+    "est": NaN,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "items_folded_per_digest": {
+    "est": NaN,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "safety_missed_share": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "time_sensitive_missed_share": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "missed_urgent_safety": 0,
+   "missed_time_sensitive": 0,
+   "safety_items": 592,
+   "important_items": 6560,
+   "interrupting_displays": 39894,
+   "median_important_delay_s": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0,
+    "share_of_draws_infinite": 0.0
+   },
+   "median_important_delay_s_seen_only": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0,
+    "share_of_draws_infinite": 0.0
+   },
+   "max_reminders_per_needs_you_item": 0,
+   "dropped_by_reason": {}
+  },
+  "B2": {
+   "interruptions_per_flow_hour_all": {
+    "est": 0.102,
+    "lo": 0.0963,
+    "hi": 0.1082
+   },
+   "interruptions_per_flow_hour_non_safety": {
+    "est": 0.102,
+    "lo": 0.0963,
+    "hi": 0.1082
+   },
+   "interruptions_per_working_hour": {
+    "est": 0.1383,
+    "lo": 0.1326,
+    "hi": 0.1442
+   },
+   "hard_quiet_breaches_per_day": {
+    "est": 0.002,
+    "lo": 0.0005,
+    "hi": 0.004
+   },
+   "important_seen_within_window": {
+    "est": 0.2895,
+    "lo": 0.2784,
+    "hi": 0.3009
+   },
+   "duplicate_rate": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "acceptance_rate": {
+    "est": 0.4757,
+    "lo": 0.4499,
+    "hi": 0.5015
+   },
+   "fast_dismissal_rate": {
+    "est": 0.1375,
+    "lo": 0.1201,
+    "hi": 0.1552
+   },
+   "attention_cost_s_per_day": {
+    "est": 15.554,
+    "lo": 15.1184,
+    "hi": 16.02
+   },
+   "screen_share_exposures_per_day": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "reminders_per_needs_you_item": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "digest_lines_per_digest": {
+    "est": 6.2007,
+    "lo": 6.1207,
+    "hi": 6.2739
+   },
+   "items_folded_per_digest": {
+    "est": 8.7588,
+    "lo": 8.4736,
+    "hi": 9.0459
+   },
+   "safety_missed_share": {
+    "est": 0.3868,
+    "lo": 0.3493,
+    "hi": 0.4235
+   },
+   "time_sensitive_missed_share": {
+    "est": 0.9958,
+    "lo": 0.9938,
+    "hi": 0.9977
+   },
+   "missed_urgent_safety": 229,
+   "missed_time_sensitive": 4284,
+   "safety_items": 592,
+   "important_items": 6560,
+   "interrupting_displays": 1978,
+   "median_important_delay_s": {
+    "est": null,
+    "lo": null,
+    "hi": null,
+    "note": "no item was seen in time"
+   },
+   "median_important_delay_s_seen_only": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0,
+    "share_of_draws_infinite": 0.0
+   },
+   "max_reminders_per_needs_you_item": 0,
+   "dropped_by_reason": {}
+  }
+ },
+ "paired": {
+  "R_minus_R-nolearn": {
+   "interruptions_per_flow_hour_all": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "interruptions_per_flow_hour_non_safety": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "interruptions_per_working_hour": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "hard_quiet_breaches_per_day": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "important_seen_within_window": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "duplicate_rate": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "acceptance_rate": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "fast_dismissal_rate": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "attention_cost_s_per_day": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "screen_share_exposures_per_day": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "reminders_per_needs_you_item": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "digest_lines_per_digest": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "items_folded_per_digest": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "safety_missed_share": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "time_sensitive_missed_share": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   }
+  },
+  "R_minus_B1": {
+   "interruptions_per_flow_hour_all": {
+    "est": -1.3948,
+    "lo": -1.461,
+    "hi": -1.3294
+   },
+   "interruptions_per_flow_hour_non_safety": {
+    "est": -1.3948,
+    "lo": -1.4585,
+    "hi": -1.3291
+   },
+   "interruptions_per_working_hour": {
+    "est": -1.7345,
+    "lo": -1.8082,
+    "hi": -1.6599
+   },
+   "hard_quiet_breaches_per_day": {
+    "est": -1.3185,
+    "lo": -1.4425,
+    "hi": -1.1995
+   },
+   "important_seen_within_window": {
+    "est": -0.0159,
+    "lo": -0.0188,
+    "hi": -0.0128
+   },
+   "duplicate_rate": {
+    "est": -0.3082,
+    "lo": -0.313,
+    "hi": -0.3032
+   },
+   "acceptance_rate": {
+    "est": 0.1713,
+    "lo": 0.1638,
+    "hi": 0.1791
+   },
+   "fast_dismissal_rate": {
+    "est": -0.0703,
+    "lo": -0.074,
+    "hi": -0.0666
+   },
+   "attention_cost_s_per_day": {
+    "est": -224.9875,
+    "lo": -233.4654,
+    "hi": -216.0499
+   },
+   "screen_share_exposures_per_day": {
+    "est": -0.123,
+    "lo": -0.1525,
+    "hi": -0.0965
+   },
+   "reminders_per_needs_you_item": {
+    "est": 0.001,
+    "lo": 0.0003,
+    "hi": 0.0018
+   },
+   "safety_missed_share": {
+    "est": 0.0,
+    "lo": 0.0,
+    "hi": 0.0
+   },
+   "time_sensitive_missed_share": {
+    "est": 0.0232,
+    "lo": 0.0187,
+    "hi": 0.0277
+   }
+  },
+  "R_minus_B2": {
+   "interruptions_per_flow_hour_all": {
+    "est": 0.0795,
+    "lo": 0.0696,
+    "hi": 0.089
+   },
+   "interruptions_per_flow_hour_non_safety": {
+    "est": 0.0451,
+    "lo": 0.0361,
+    "hi": 0.0538
+   },
+   "interruptions_per_working_hour": {
+    "est": 0.9173,
+    "lo": 0.8775,
+    "hi": 0.9561
+   },
+   "hard_quiet_breaches_per_day": {
+    "est": -0.002,
+    "lo": -0.004,
+    "hi": -0.0005
+   },
+   "important_seen_within_window": {
+    "est": 0.6947,
+    "lo": 0.6836,
+    "hi": 0.7055
+   },
+   "duplicate_rate": {
+    "est": 0.0189,
+    "lo": 0.0169,
+    "hi": 0.0209
+   },
+   "acceptance_rate": {
+    "est": 0.1556,
+    "lo": 0.1304,
+    "hi": 0.1801
+   },
+   "fast_dismissal_rate": {
+    "est": -0.0832,
+    "lo": -0.1011,
+    "hi": -0.0664
+   },
+   "attention_cost_s_per_day": {
+    "est": 30.4445,
+    "lo": 28.9472,
+    "hi": 31.8308
+   },
+   "screen_share_exposures_per_day": {
+    "est": 0.0005,
+    "lo": 0.0,
+    "hi": 0.0015
+   },
+   "reminders_per_needs_you_item": {
+    "est": 0.001,
+    "lo": 0.0003,
+    "hi": 0.0018
+   },
+   "digest_lines_per_digest": {
+    "est": -3.2346,
+    "lo": -3.2996,
+    "hi": -3.1669
+   },
+   "items_folded_per_digest": {
+    "est": -4.3151,
+    "lo": -4.5155,
+    "hi": -4.1206
+   },
+   "safety_missed_share": {
+    "est": -0.3868,
+    "lo": -0.4235,
+    "hi": -0.3493
+   },
+   "time_sensitive_missed_share": {
+    "est": -0.9726,
+    "lo": -0.9773,
+    "hi": -0.9679
+   }
+  }
+ },
+ "scenarios": {
+  "S1": {
+   "id": "S1",
+   "title": "Overnight approval",
+   "assertions": {
+    "approval_is_the_first_thing_shown_on_return": true,
+    "approval_is_shown_exactly_once": true,
+    "a_badge_exists_from_the_moment_it_arrived": true,
+    "at_most_one_reminder": true,
+    "the_summary_does_not_announce_it_a_second_time": true,
+    "it_was_seen_in_its_window": true
+   },
+   "passed": true,
+   "numbers": {
+    "seconds_from_return_to_first_display": 0.0,
+    "displays": 1,
+    "reminders": 0,
+    "badge_polls_overnight": 52,
+    "summary_lines": [
+     "Approval queue: 1 approval is holding up a job.",
+     "Your overnight run: 3 finished.",
+     "Understudy: 1 can wait: 1 report."
+    ],
+    "summary_counts": {
+     "needs_you": 1,
+     "ran": 3,
+     "can_ignore": 1,
+     "lines": 3
+    }
+   },
+   "contrast": {
+    "B1": {
+     "displays": 2,
+     "hard_quiet_breaches": 0,
+     "flow_displays": 1,
+     "important_seen": 1,
+     "important_n": 1,
+     "safety_missed": 0,
+     "cost_s": 28.0
+    },
+    "B2": {
+     "displays": 2,
+     "hard_quiet_breaches": 0,
+     "flow_displays": 0,
+     "important_seen": 1,
+     "important_n": 1,
+     "safety_missed": 0,
+     "cost_s": 6.0
+    }
+   }
+  },
+  "S2": {
+   "id": "S2",
+   "title": "Meeting and screen share",
+   "assertions": {
+    "no_non_safety_interruption_in_the_meeting": true,
+    "all_three_cues_were_dropped_not_shown": true,
+    "the_injection_pause_was_shown_within_10_s_during_the_share": true,
+    "its_wording_is_content_free": true,
+    "the_held_approval_is_shown_at_the_first_pause_after_the_meeting": true,
+    "the_held_approval_is_not_lost": true
+   },
+   "passed": true,
+   "numbers": {
+    "meeting_interruptions_non_safety": 0,
+    "cues_dropped": 3,
+    "dropped_by_reason": {
+     "dropped_in_meeting": 1,
+     "dropped_screen_sharing": 2
+    },
+    "injection_seconds_to_display": 0.0,
+    "approval_displayed_minutes_after_meeting": 30.6,
+    "first_pause_after_meeting_minutes": 30.6
+   },
+   "contrast": {
+    "B1": {
+     "displays": 4,
+     "hard_quiet_breaches": 3,
+     "flow_displays": 0,
+     "important_seen": 2,
+     "important_n": 2,
+     "safety_missed": 0,
+     "cost_s": 120.0
+    },
+    "B2": {
+     "displays": 1,
+     "hard_quiet_breaches": 0,
+     "flow_displays": 1,
+     "important_seen": 0,
+     "important_n": 2,
+     "safety_missed": 1,
+     "cost_s": 25.0
+    }
+   }
+  },
+  "S3": {
+   "id": "S3",
+   "title": "Injection pause in a long run",
+   "assertions": {
+    "the_worker_was_typing_in_a_long_run": true,
+    "shown_within_5_s_despite_typing": true,
+    "exactly_one_toast": true,
+    "the_marker_persists_until_resolved": true,
+    "no_reminder": true,
+    "nothing_else_interrupts_in_that_minute": true
+   },
+   "passed": true,
+   "numbers": {
+    "seconds_to_display": 0.0,
+    "typing": true,
+    "deep_work": true,
+    "seconds_marker_persisted": 218.0
+   },
+   "contrast": {
+    "B1": {
+     "displays": 6,
+     "hard_quiet_breaches": 0,
+     "flow_displays": 6,
+     "important_seen": 1,
+     "important_n": 1,
+     "safety_missed": 0,
+     "cost_s": 120.0
+    },
+    "B2": {
+     "displays": 1,
+     "hard_quiet_breaches": 0,
+     "flow_displays": 1,
+     "important_seen": 0,
+     "important_n": 1,
+     "safety_missed": 1,
+     "cost_s": 25.0
+    }
+   }
+  },
+  "S4": {
+   "id": "S4",
+   "title": "A worker who dismisses everything",
+   "assertions": {
+    "helpful_now_interruptions_fall_from_the_first_days_to_the_last_days": true,
+    "learning_is_what_made_the_difference_vs_the_same_worker_without_it": true,
+    "time_sensitive_items_are_still_seen_in_their_window": true,
+    "no_safety_item_missed": true,
+    "approval_toasts_were_still_shown": true
+   },
+   "passed": true,
+   "numbers": {
+    "workers": 8,
+    "working_days": 14,
+    "helpful_per_day_first3": 4.25,
+    "helpful_per_day_last3": 1.38,
+    "helpful_late_minus_early": {
+     "est": -2.875,
+     "lo": -3.8333,
+     "hi": -1.5823
+    },
+    "wait_toasts_per_day_first3": 1.083,
+    "wait_toasts_per_day_last3": 1.208,
+    "wait_late_minus_early": {
+     "est": 0.125,
+     "lo": -0.2917,
+     "hi": 0.5
+    },
+    "helpful_late_router_minus_nolearn": {
+     "est": -2.4167,
+     "lo": -3.375,
+     "hi": -1.375
+    },
+    "time_sensitive_seen_share": 0.986,
+    "safety_missed": 0,
+    "safety_n": 26,
+    "approval_toasts_shown": 62
+   },
+   "contrast": {}
+  },
+  "S5": {
+   "id": "S5",
+   "title": "Kill state",
+   "assertions": {
+    "call: the stopped marker is present at the first poll": true,
+    "call: the marker stays until it is cleared": true,
+    "call: the notice is shown at once": true,
+    "call: the marker clears when it is cleared": true,
+    "away: the stopped marker is present at the first poll": true,
+    "away: the marker stays until it is cleared": true,
+    "away: the notice is first on return": true,
+    "away: the marker clears when it is cleared": true,
+    "typing: the stopped marker is present at the first poll": true,
+    "typing: the marker stays until it is cleared": true,
+    "typing: the notice is shown at once": true,
+    "typing: the marker clears when it is cleared": true
+   },
+   "passed": true,
+   "numbers": {
+    "call": {
+     "first_poll_stopped": true,
+     "seconds_to_notice": 0.0,
+     "notice_ctx": "hard_quiet"
+    },
+    "away": {
+     "first_poll_stopped": true,
+     "seconds_to_notice": 7200.0,
+     "notice_ctx": "break"
+    },
+    "typing": {
+     "first_poll_stopped": true,
+     "seconds_to_notice": 0.0,
+     "notice_ctx": "flow"
+    }
+   },
+   "contrast": {}
+  }
+ },
+ "tuning": {
+  "note": "reported separately: evals/attention/tuning_dev.json (this dev report is for the frozen configuration)"
+ },
+ "sensitivity": {
+  "cost_x0.5": {
+   "cost_per_day": {
+    "R": 23.27,
+    "B1": 135.97,
+    "B2": 8.25
+   },
+   "ordering": [
+    "B2",
+    "R",
+    "B1"
+   ],
+   "R_cheapest": false
+  },
+  "cost_x1.0": {
+   "cost_per_day": {
+    "R": 46.55,
+    "B1": 271.93,
+    "B2": 16.49
+   },
+   "ordering": [
+    "B2",
+    "R",
+    "B1"
+   ],
+   "R_cheapest": false
+  },
+  "cost_x2.0": {
+   "cost_per_day": {
+    "R": 93.1,
+    "B1": 543.86,
+    "B2": 32.99
+   },
+   "ordering": [
+    "B2",
+    "R",
+    "B1"
+   ],
+   "R_cheapest": false
+  },
+  "rates_x0.5": {
+   "R": {
+    "flow_non_safety": {
+     "est": 0.0894,
+     "lo": 0.066,
+     "hi": 0.1114
+    },
+    "important_seen": {
+     "est": 0.9818,
+     "lo": 0.9663,
+     "hi": 0.9957
+    },
+    "missed_urgent_safety": 0,
+    "hard_quiet_breaches_per_day": {
+     "est": 0.0,
+     "lo": 0.0,
+     "hi": 0.0
+    }
+   },
+   "B1": {
+    "flow_non_safety": {
+     "est": 0.9112,
+     "lo": 0.7957,
+     "hi": 1.0283
+    },
+    "important_seen": {
+     "est": 1.0,
+     "lo": 1.0,
+     "hi": 1.0
+    },
+    "missed_urgent_safety": 0,
+    "hard_quiet_breaches_per_day": {
+     "est": 0.6111,
+     "lo": 0.4306,
+     "hi": 0.8405
+    }
+   },
+   "B2": {
+    "flow_non_safety": {
+     "est": 0.107,
+     "lo": 0.09,
+     "hi": 0.1255
+    },
+    "important_seen": {
+     "est": 0.2591,
+     "lo": 0.1878,
+     "hi": 0.3299
+    },
+    "missed_urgent_safety": 4,
+    "hard_quiet_breaches_per_day": {
+     "est": 0.0,
+     "lo": 0.0,
+     "hi": 0.0
+    }
+   }
+  },
+  "rates_x2": {
+   "R": {
+    "flow_non_safety": {
+     "est": 0.2026,
+     "lo": 0.1582,
+     "hi": 0.248
+    },
+    "important_seen": {
+     "est": 0.9833,
+     "lo": 0.9754,
+     "hi": 0.991
+    },
+    "missed_urgent_safety": 0,
+    "hard_quiet_breaches_per_day": {
+     "est": 0.0,
+     "lo": 0.0,
+     "hi": 0.0
+    }
+   },
+   "B1": {
+    "flow_non_safety": {
+     "est": 2.6051,
+     "lo": 2.2194,
+     "hi": 2.9748
+    },
+    "important_seen": {
+     "est": 1.0,
+     "lo": 1.0,
+     "hi": 1.0
+    },
+    "missed_urgent_safety": 0,
+    "hard_quiet_breaches_per_day": {
+     "est": 2.4167,
+     "lo": 1.8818,
+     "hi": 2.9587
+    }
+   },
+   "B2": {
+    "flow_non_safety": {
+     "est": 0.1107,
+     "lo": 0.0917,
+     "hi": 0.1308
+    },
+    "important_seen": {
+     "est": 0.2681,
+     "lo": 0.2327,
+     "hi": 0.3033
+    },
+    "missed_urgent_safety": 27,
+    "hard_quiet_breaches_per_day": {
+     "est": 0.0,
+     "lo": 0.0,
+     "hi": 0.0
+    }
+   }
+  },
+  "cue_gate_leak_5pct": {
+   "R": {
+    "flow_non_safety": {
+     "est": 0.1472,
+     "lo": 0.1124,
+     "hi": 0.1803
+    },
+    "important_seen": {
+     "est": 0.9782,
+     "lo": 0.9666,
+     "hi": 0.9914
+    },
+    "missed_urgent_safety": 0,
+    "hard_quiet_breaches_per_day": {
+     "est": 0.0,
+     "lo": 0.0,
+     "hi": 0.0
+    }
+   },
+   "B1": {
+    "flow_non_safety": {
+     "est": 1.6021,
+     "lo": 1.397,
+     "hi": 1.8013
+    },
+    "important_seen": {
+     "est": 1.0,
+     "lo": 1.0,
+     "hi": 1.0
+    },
+    "missed_urgent_safety": 0,
+    "hard_quiet_breaches_per_day": {
+     "est": 1.3542,
+     "lo": 1.0415,
+     "hi": 1.6604
+    }
+   },
+   "B2": {
+    "flow_non_safety": {
+     "est": 0.1107,
+     "lo": 0.0917,
+     "hi": 0.1308
+    },
+    "important_seen": {
+     "est": 0.2511,
+     "lo": 0.1929,
+     "hi": 0.3
+    },
+    "missed_urgent_safety": 15,
+    "hard_quiet_breaches_per_day": {
+     "est": 0.0,
+     "lo": 0.0,
+     "hi": 0.0
+    }
+   }
+  },
+  "unknown_polls_10pct": {
+   "R": {
+    "flow_non_safety": {
+     "est": 0.1435,
+     "lo": 0.1103,
+     "hi": 0.175
+    },
+    "important_seen": {
+     "est": 0.9782,
+     "lo": 0.9666,
+     "hi": 0.9914
+    },
+    "missed_urgent_safety": 0,
+    "hard_quiet_breaches_per_day": {
+     "est": 0.0,
+     "lo": 0.0,
+     "hi": 0.0
+    }
+   },
+   "B1": {
+    "flow_non_safety": {
+     "est": 1.553,
+     "lo": 1.3429,
+     "hi": 1.758
+    },
+    "important_seen": {
+     "est": 1.0,
+     "lo": 1.0,
+     "hi": 1.0
+    },
+    "missed_urgent_safety": 0,
+    "hard_quiet_breaches_per_day": {
+     "est": 1.3403,
+     "lo": 1.0205,
+     "hi": 1.6536
+    }
+   },
+   "B2": {
+    "flow_non_safety": {
+     "est": 0.1107,
+     "lo": 0.0917,
+     "hi": 0.1308
+    },
+    "important_seen": {
+     "est": 0.2511,
+     "lo": 0.1929,
+     "hi": 0.3
+    },
+    "missed_urgent_safety": 15,
+    "hard_quiet_breaches_per_day": {
+     "est": 0.0,
+     "lo": 0.0,
+     "hi": 0.0
+    }
+   }
+  }
+ },
+ "acceptance": {
+  "criteria": {
+   "1_vs_B1_flow_interruptions_lower": "met",
+   "1_vs_B1_hard_quiet_breaches_zero": "met",
+   "1_vs_B1_duplicate_rate_lower": "met",
+   "2_important_seen_at_least_95pct": "met",
+   "2_not_more_than_3_points_below_B1": "met",
+   "3_missed_urgent_zero_for_R": "met",
+   "4_max_one_reminder_per_needs_you_item": "met",
+   "5_vs_B2_important_seen_higher": "met",
+   "5_vs_B2_missed_urgent_lower": "met",
+   "6_scenarios_hold": "met",
+   "7_learning_quietens_and_approvals_stay_visible": "met"
+  },
+  "met": 11,
+  "not_met": 0,
+  "inconclusive": 0,
+  "note": "Design targets fixed in evals/attention/PLAN.md before any run, not measured tolerances. met: the interval bound clears the target; not_met: the other bound misses it; inconclusive: the interval straddles it."
+ },
+ "limitations": [
+  {
+   "id": "att_sim_not_people",
+   "severity": "high",
+   "text": "Every number is simulated: workers, schedules, event streams, reactions and attention costs are my assumptions (simulate.py). This shows the policy behaves as designed under them. It does not show that real people find Understudy natural. The live check with four teammates (n = 4) is the real test and was not run."
+  },
+  {
+   "id": "att_costs_assumed",
+   "severity": "medium",
+   "text": "The attention-cost model (seconds of focus lost per interruption by context) is an assumption. The sensitivity run halves and doubles it and reports whether the ordering of conditions changes; the magnitudes stay assumptions."
+  },
+  {
+   "id": "att_rates_assumed",
+   "severity": "medium",
+   "text": "Producer rates are stated approximations of Cue, the briefing, the approval queue, the agent runtime, the calendar layer and health checks. The sensitivity run scales them by 0.5 and 2."
+  },
+  {
+   "id": "att_labels_proxy",
+   "severity": "medium",
+   "text": "Implicit labels (followed within 10 s, dismissed within 4 s, ignored, never) are noisy proxies for welcome: a dismissal can mean already knew. The simulated worker's labels come from the same reaction model, so learning is validated for its direction, not for its calibration against people."
+  },
+  {
+   "id": "att_probes_exact",
+   "severity": "medium",
+   "text": "Meeting, call, screen-share and quiet-hotkey states are known exactly here. In the product they come from probes that can be wrong or missing; an unknown worker is held, never interrupted, except for safety. The sensitivity run makes 10% of polls unknown to show the cost."
+  },
+  {
+   "id": "att_b1_b2_strawmen",
+   "severity": "low",
+   "text": "B1 and B2 are deliberately simple baselines (everything at once, one digest a day). They show the two failure modes the layer is designed to avoid; they are not what any real notifier does."
+  }
+ ],
+ "headline": {
+  "origin": "synthetic",
+  "flow_interruptions_per_hour_non_safety": {
+   "R": {
+    "est": 0.1471,
+    "lo": 0.1387,
+    "hi": 0.1565
+   },
+   "R-nolearn": {
+    "est": 0.1471,
+    "lo": 0.1387,
+    "hi": 0.1565
+   },
+   "B1": {
+    "est": 1.542,
+    "lo": 1.4718,
+    "hi": 1.611
+   },
+   "B2": {
+    "est": 0.102,
+    "lo": 0.0963,
+    "hi": 0.1082
+   }
+  },
+  "important_seen_within_window": {
+   "R": {
+    "est": 0.9841,
+    "lo": 0.9812,
+    "hi": 0.9872
+   },
+   "R-nolearn": {
+    "est": 0.9841,
+    "lo": 0.9812,
+    "hi": 0.9872
+   },
+   "B1": {
+    "est": 1.0,
+    "lo": 1.0,
+    "hi": 1.0
+   },
+   "B2": {
+    "est": 0.2895,
+    "lo": 0.2784,
+    "hi": 0.3009
+   }
+  },
+  "missed_urgent_safety": {
+   "R": 0,
+   "R-nolearn": 0,
+   "B1": 0,
+   "B2": 229
+  },
+  "R_minus_B1_flow_non_safety": {
+   "est": -1.3948,
+   "lo": -1.4585,
+   "hi": -1.3291
+  },
+  "R_minus_B1_duplicate_rate": {
+   "est": -0.3082,
+   "lo": -0.313,
+   "hi": -0.3032
+  },
+  "scenarios_passed": {
+   "S1": true,
+   "S2": true,
+   "S3": true,
+   "S4": true,
+   "S5": true
+  },
+  "acceptance": {
+   "met": 11,
+   "not_met": 0,
+   "inconclusive": 0
+  },
+  "caveat": "simulated workers and an assumed reaction and cost model; shows the policy behaves as designed, not that people find it natural"
+ },
+ "post_hoc_corrections": [
+  {
+   "stamped": "2026-11-07T20:07:29Z",
+   "what": "acceptance criterion 7",
+   "text": "The run's own acceptance block reports criterion 7 as met because its S4 test checked Cue's helpful-now displays (which do fall), not the plan's wording: later-day CAN-WAIT toasts below early-day toasts with the interval excluding 0. Read as the plan words it, criterion 7 is inconclusive (can-wait toasts per working day, last 3 days minus first 3: {\"est\": 0.125, \"lo\": -0.2917, \"hi\": 0.5}). The helpful-now part is reported as 7b. No number in this file was recomputed or changed; see PLAN.md amendment A3.",
+   "acceptance_as_pre_registered": {
+    "1_vs_B1_flow_interruptions_lower": "met",
+    "1_vs_B1_hard_quiet_breaches_zero": "met",
+    "1_vs_B1_duplicate_rate_lower": "met",
+    "2_important_seen_at_least_95pct": "met",
+    "2_not_more_than_3_points_below_B1": "met",
+    "3_missed_urgent_zero_for_R": "met",
+    "4_max_one_reminder_per_needs_you_item": "met",
+    "5_vs_B2_important_seen_higher": "met",
+    "5_vs_B2_missed_urgent_lower": "met",
+    "6_scenarios_hold": "met",
+    "7_s4_can_wait_toasts_later_below_early_and_approvals_unchanged": "inconclusive",
+    "7b_s4_helpful_now_displays_fall_with_learning": "met"
+   },
+   "met": 11,
+   "not_met": 0,
+   "inconclusive": 1
+  }
+ ]
+}

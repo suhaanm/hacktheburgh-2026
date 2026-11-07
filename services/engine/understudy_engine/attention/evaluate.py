@@ -218,34 +218,76 @@ def to_params(cfg: dict[str, Any]) -> tuple[Params, Settings]:
     return p, Settings(budget_per_day=int(cfg["budget_per_day"]))
 
 
+def _paired_ratio_diff(a: list[list[float]], b: list[list[float]], n_boot: int = 1000, seed: int = 5) -> dict[str, float]:
+    """(sum a_num / sum a_den) - (sum b_num / sum b_den) over the same workers, with a worker-level bootstrap interval."""
+    A, B = np.array(a, float), np.array(b, float)
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, len(A), (n_boot, len(A)))
+
+    def ratio(M: np.ndarray, ix: np.ndarray | None) -> Any:
+        num, den = (M[:, 0].sum(), M[:, 1].sum()) if ix is None else (M[ix, 0].sum(-1), M[ix, 1].sum(-1))
+        return num / den
+
+    return _ci(ratio(A, idx) - ratio(B, idx), ratio(A, None) - ratio(B, None))
+
+
 def select(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    """The plan's rule: among configurations with important-seen at least 95%, no safety item missed and a median important delay of at most
-    120 s, the lowest non-safety flow interruptions per hour; ties (within 0.01) go to the lowest attention cost, then to the defaults."""
+    """The plan's rule (section 5): among configurations with important-seen at least 95%, no safety item missed and a median important delay of at
+    most 120 s, the lowest non-safety flow interruptions per hour; ties (within 0.01) go to the lowest attention cost, then to the defaults. And the
+    plan's last sentence: if nothing beats the defaults by more than the dev interval, the defaults stay. Read here as: the paired, worker-level
+    95% interval of (chosen minus defaults) in non-safety flow interruptions per hour must lie below zero. (The first version of this function left
+    that sentence out; see amendment A2 in the plan.)"""
     ok = [r for r in rows if r["important_seen"] >= 0.95 and r["missed_urgent_safety"] == 0 and (r["median_delay_s"] is not None and r["median_delay_s"] <= 120.0)]
     pool = ok or sorted(rows, key=lambda r: (-r["important_seen"], r["missed_urgent_safety"]))[:1]
     best = min(r["flow_non_safety"] for r in pool)
     tied = [r for r in pool if r["flow_non_safety"] <= best + 0.01]
     tied.sort(key=lambda r: (r["cost_per_day"], r["name"] != "defaults"))
     chosen = tied[0]
-    return {"chosen": chosen["name"], "eligible": [r["name"] for r in ok], "rule_met_by_any": bool(ok), "tied": [r["name"] for r in tied]}
+    out = {"chosen": chosen["name"], "eligible": [r["name"] for r in ok], "rule_met_by_any": bool(ok), "tied": [r["name"] for r in tied]}
+    default = next((r for r in rows if r["name"] == "defaults"), None)
+    if default is not None and chosen["name"] != "defaults" and chosen.get("flow_pairs") and default.get("flow_pairs"):
+        iv = _paired_ratio_diff(chosen["flow_pairs"], default["flow_pairs"])
+        out["interval_vs_defaults"] = iv
+        out["first_choice_by_rate"] = chosen["name"]
+        if iv["hi"] >= 0.0:
+            out["chosen"] = "defaults"
+            out["reason"] = "no gain beyond the dev interval: the defaults stay"
+        else:
+            out["reason"] = "beats the defaults by more than the dev interval"
+    return out
 
 
-def tune_on_dev(*, per_archetype: int = 2, n_work_days: int = 6, seeds: tuple[int, ...] = DEV_SEEDS, root: Path | None = None) -> dict[str, Any]:
+def tune_on_dev(*, per_archetype: int = 2, n_work_days: int = 10, seeds: tuple[int, ...] = DEV_SEEDS, root: Path | None = None, part: tuple[int, int] | None = None) -> dict[str, Any]:
+    """Run the 13 configurations on the dev population. ``part=(k, n)`` runs only the configurations at positions k, k + n, ... (so a long run can be
+    cut into pieces for the short lane); the result then has ``rows`` for that part only and no selection."""
     assert not set(seeds) & set(HELD_SEEDS), "tuning never touches held-out seeds"
     rows = []
     worlds: list[World] = []
     for s in seeds:
         worlds += [build_world(sp, n_work_days, root=root) for sp in population(s, per_archetype)]
-    for cfg in configs():
+    todo = [c for i, c in enumerate(configs()) if part is None or i % part[1] == part[0]]
+    for cfg in todo:
         p, st = to_params(cfg)
         rs = [run_condition(w, "R", params=p, settings=st) for w in worlds]
         st_ = _stack(rs)
         rows.append({"name": cfg["name"], "config": {k: v for k, v in cfg.items() if k != "name"},
                      "flow_non_safety": round(_ratio(st_["interruptions_per_flow_hour_non_safety"]), 4), "important_seen": round(_ratio(st_["important_seen_within_window"]), 4),
                      "missed_urgent_safety": int(sum(r.safety_missed for r in rs)), "median_delay_s": round(_median_delay(rs), 1) if math.isfinite(_median_delay(rs)) else None,
-                     "cost_per_day": recost(rs, 1.0), "duplicate_rate": round(_ratio(st_["duplicate_rate"]), 4)})
-    return {"split": "dev", "seeds": list(seeds), "n_workers": len(worlds), "n_work_days": n_work_days, "rows": rows, "selection": select(rows),
-            "note": "13 configurations: the default and each one-factor change in the plan's grid (the plan's text says 16; the grid it lists gives 13)."}
+                     "cost_per_day": recost(rs, 1.0), "duplicate_rate": round(_ratio(st_["duplicate_rate"]), 4),
+                     "flow_pairs": [[float(x), float(y)] for x, y in st_["interruptions_per_flow_hour_non_safety"]]})
+    return {"split": "dev", "seeds": list(seeds), "n_workers": len(worlds), "n_work_days": n_work_days, "rows": rows, "selection": select(rows) if part is None else None,
+            "part": None if part is None else list(part), "note": "13 configurations: the default and each one-factor change in the plan's grid (the plan's text says 16; the grid it lists gives 13)."}
+
+
+def combine_parts(paths: list[Path]) -> dict[str, Any]:
+    """Join the pieces of a split tuning run, in the grid's own order, and apply the plan's selection rule to the whole."""
+    parts = [json.loads(p.read_text()) for p in paths]
+    n = {tuple(x["part"])[1] for x in parts}
+    assert len(n) == 1 and sorted(tuple(x["part"])[0] for x in parts) == list(range(n.pop())), "every piece of the tuning run is needed"
+    rows = {r["name"]: r for x in parts for r in x["rows"]}
+    ordered = [rows[c["name"]] for c in configs()]
+    base = parts[0]
+    return {**{k: base[k] for k in ("split", "seeds", "n_workers", "n_work_days", "note")}, "rows": ordered, "selection": select(ordered), "part": None}
 
 
 def config_hash(cfg: dict[str, Any]) -> str:
@@ -295,11 +337,38 @@ def acceptance(summary: dict[str, Any], scenarios: dict[str, Any], learning_ok: 
         "5_vs_B2_important_seen_higher": verdict(pb2["important_seen_within_window"]["lo"] > 0, pb2["important_seen_within_window"]["hi"] < 0),
         "5_vs_B2_missed_urgent_lower": verdict(b2["missed_urgent_safety"] > r["missed_urgent_safety"], b2["missed_urgent_safety"] < r["missed_urgent_safety"]) if b2["safety_items"] else "inconclusive",
         "6_scenarios_hold": verdict(all(s["passed"] for k, s in scenarios.items() if k != "S4"), not all(s["passed"] for k, s in scenarios.items() if k != "S4")),
-        "7_learning_quietens_and_approvals_stay_visible": verdict(bool(scenarios.get("S4", {}).get("passed")), scenarios.get("S4") is not None and not scenarios["S4"]["passed"]),
+        "7_s4_can_wait_toasts_later_below_early_and_approvals_unchanged": _criterion_7(scenarios.get("S4")),
+        "7b_s4_helpful_now_displays_fall_with_learning": _criterion_7b(scenarios.get("S4")),
     }
     return {"criteria": items, "met": sum(v == "met" for v in items.values()), "not_met": sum(v == "not_met" for v in items.values()),
             "inconclusive": sum(v == "inconclusive" for v in items.values()),
             "note": "Design targets fixed in evals/attention/PLAN.md before any run, not measured tolerances. met: the interval bound clears the target; not_met: the other bound misses it; inconclusive: the interval straddles it."}
+
+
+def _approvals_unchanged(n: dict[str, Any]) -> bool:
+    return bool(n.get("approval_toasts_shown", 0) > 0 and (n.get("time_sensitive_seen_share") or 0) >= 0.95 and n.get("safety_missed", 1) == 0)
+
+
+def _criterion_7(s4: dict[str, Any] | None) -> str:
+    """The plan's criterion 7 as written: in S4 the later-day can-wait toasts are below the early-day toasts with the interval excluding 0, and approvals
+    are unchanged (still shown, still seen, nothing urgent missed). (The first version of this function tested a different thing; see amendment A3.)"""
+    if not s4:
+        return "inconclusive"
+    n = s4["numbers"]
+    d = n["wait_late_minus_early"]
+    if not _approvals_unchanged(n):
+        return "not_met"
+    return "met" if d["hi"] < 0 else ("not_met" if d["lo"] > 0 else "inconclusive")
+
+
+def _criterion_7b(s4: dict[str, Any] | None) -> str:
+    """Not in the plan's list: the part of S4 that does fall. Cue's helpful-now displays are lower on the last days than on the first, and lower than
+    the same worker without learning, with intervals below zero."""
+    if not s4:
+        return "inconclusive"
+    n = s4["numbers"]
+    a, b = n["helpful_late_minus_early"], n["helpful_late_router_minus_nolearn"]
+    return "met" if a["hi"] < 0 and b["hi"] < 0 else ("not_met" if a["lo"] > 0 or b["lo"] > 0 else "inconclusive")
 
 
 LIMITATIONS = [
@@ -333,7 +402,7 @@ def _sensitivity(seeds: tuple[int, ...], per_archetype: int, n_work_days: int, p
 
 
 def evaluate_attention(fast: bool = False, *, held_out: bool = False, root: Path | str | None = None, params: Params | None = None, settings: Settings | None = None,
-                       tune: bool | None = None) -> dict[str, Any]:
+                       tune: bool | None = None, pieces_dir: Path | str | None = None) -> dict[str, Any]:
     t0 = time.time()
     root = Path(root) if root else None
     frozen = None
@@ -346,7 +415,11 @@ def evaluate_attention(fast: bool = False, *, held_out: bool = False, root: Path
     else:
         seeds, per_arch, days, n_boot, sc_seed = DEV_SEEDS, 10, 10, 1000, 0
     params = params or DEFAULT
-    pooled, source = run_seeds(seeds, per_arch, days, params=params, settings=settings, root=root)
+    pre_sens: dict[str, Any] = {}
+    if pieces_dir is not None:
+        pooled, source, pre_sens = _load_pieces(Path(pieces_dir), seeds)
+    else:
+        pooled, source = run_seeds(seeds, per_arch, days, params=params, settings=settings, root=root)
     summary = summarise(pooled, n_boot, 11)
     scenarios = SC.run_all(sc_seed, params=params, settings=settings, fast=fast, root=root)
     out: dict[str, Any] = {
@@ -358,19 +431,59 @@ def evaluate_attention(fast: bool = False, *, held_out: bool = False, root: Path
                  "cost_model_s": dict(COST), "rates": dict(RATES), "step_s": STEP, "code": code_hashes(), "plan": "evals/attention/PLAN.md"},
         "conditions": summary["conditions"], "paired": summary["paired"], "scenarios": scenarios,
     }
-    if not held_out and (tune if tune is not None else not fast):
-        out["tuning"] = tune_on_dev(per_archetype=2, n_work_days=6, root=root)
-        out["sensitivity"] = _sensitivity((0, 1, 2), 2, 6, params, settings, 200, root)
-    elif fast:
-        out["tuning"] = {"note": "skipped in fast mode"}
-        out["sensitivity"] = {"note": "skipped in fast mode"}
-    elif held_out:
-        out["sensitivity"] = _sensitivity(HELD_SEEDS[:3], 2, 6, params, settings, 200, root)
+    if not held_out:
+        if tune if tune is not None else not fast:
+            out["tuning"] = tune_on_dev(per_archetype=2, n_work_days=10, root=root)
+        elif fast:
+            out["tuning"] = {"note": "skipped in fast mode"}
+        else:
+            out["tuning"] = {"note": "reported separately: evals/attention/tuning_dev.json (this dev report is for the frozen configuration)"}
+        out["sensitivity"] = {"note": "skipped in fast mode"} if fast else (pre_sens or _sensitivity((0, 1, 2), 2, 6, params, settings, 200, root))
+    else:
+        out["sensitivity"] = pre_sens or _sensitivity(HELD_SEEDS[:3], 2, 6, params, settings, 200, root)
     out["acceptance"] = acceptance(summary, scenarios)
     out["limitations"] = LIMITATIONS
     out["headline"] = _headline(out)
     out["meta"]["wall_s"] = round(time.time() - t0, 1)
     return out
+
+
+# ------------------------------------------------------------------------------------------------ pieces (so a long run can use the short lane)
+def run_piece(which: str, *, held_out: bool, out_dir: Path | None = None, root: Path | None = None) -> Path:
+    """One piece of the full run, written as JSON: ``which`` is a population seed or ``sens`` (the sensitivity runs). The pieces together are
+    exactly what ``evaluate_attention`` computes in one go; ``evaluate_attention(..., pieces_dir=...)`` joins them. Held-out pieces use the frozen config."""
+    seeds = HELD_SEEDS if held_out else DEV_SEEDS
+    params, settings = DEFAULT, None
+    if held_out:
+        params, settings = to_params(load_frozen()["config"])
+    else:
+        fp = repo_root() / FROZEN
+        if fp.exists():
+            params, settings = to_params(json.loads(fp.read_text())["config"])
+    d = out_dir or repo_root() / ("evals/attention/held_out_parts" if held_out else "evals/attention/dev_parts")
+    d.mkdir(parents=True, exist_ok=True)
+    if which == "sens":
+        payload: dict[str, Any] = {"sens": _sensitivity(seeds[:3], 2, 6, params, settings, 200, root)}
+    else:
+        seed = int(which)
+        assert seed in seeds, "a piece is one of the split's own seeds"
+        res, worlds = run_population(seed, 10, 10, params=params, settings=settings, root=root)
+        payload = {"seed": seed, "source": "+".join(sorted({w.source for w in worlds})), "results": {c: [r.to_dict() for r in rs] for c, rs in res.items()}}
+    p = d / f"piece_{which}.json"
+    p.write_text(json.dumps(payload))
+    return p
+
+
+def _load_pieces(d: Path, seeds: tuple[int, ...]) -> tuple[dict[str, list[WorkerResult]], str, dict[str, Any]]:
+    pooled: dict[str, list[WorkerResult]] = {}
+    sources: set[str] = set()
+    for s in seeds:
+        j = json.loads((d / f"piece_{s}.json").read_text())
+        sources |= set(j["source"].split("+"))
+        for c, rs in j["results"].items():
+            pooled.setdefault(c, []).extend(WorkerResult.from_dict(r) for r in rs)
+    sens = json.loads((d / "piece_sens.json").read_text())["sens"] if (d / "piece_sens.json").exists() else {}
+    return pooled, "+".join(sorted(sources)), sens
 
 
 def _headline(o: dict[str, Any]) -> dict[str, Any]:
@@ -393,17 +506,49 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--freeze", action="store_true")
     ap.add_argument("--held-out", action="store_true")
     ap.add_argument("--out", type=str, default=None)
+    ap.add_argument("--tune-part", type=str, default=None, help="K/N: run only every Nth configuration from K (a piece of the tuning run); writes evals/attention/tuning_parts/part_K_of_N.json")
+    ap.add_argument("--piece", type=str, default=None, help="SEED or 'sens': run one piece of the full run (with --held-out or --dev) and write it as JSON")
+    ap.add_argument("--pieces-dir", type=str, default=None, help="join pieces written by --piece instead of running the populations")
+    ap.add_argument("--combine-parts", action="store_true", help="join the pieces, apply the selection rule, write tuning_dev.json; with --freeze also write the frozen config")
     a = ap.parse_args(argv)
-    if a.tune or a.freeze:
-        t = tune_on_dev()
+    if a.piece:
+        print(json.dumps({"piece": str(run_piece(a.piece, held_out=a.held_out))}))
+        return 0
+    if a.tune_part:
+        k, n = (int(x) for x in a.tune_part.split("/"))
+        t = tune_on_dev(part=(k, n))
+        d = repo_root() / "evals/attention/tuning_parts"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / f"part_{k}_of_{n}.json").write_text(json.dumps(t, indent=1))
+        print(json.dumps({"part": [k, n], "configs": [r["name"] for r in t["rows"]]}))
+        return 0
+    if a.combine_parts:
+        t = combine_parts(sorted((repo_root() / "evals/attention/tuning_parts").glob("part_*_of_*.json")))
+        (repo_root() / "evals/attention/tuning_dev.json").write_text(json.dumps(t, indent=1))
         print(json.dumps({"selection": t["selection"], "rows": [{k: r[k] for k in ("name", "flow_non_safety", "important_seen", "missed_urgent_safety", "median_delay_s", "cost_per_day")} for r in t["rows"]]}, indent=1))
-        if a.out:
-            Path(a.out).write_text(json.dumps(t, indent=1))
         if a.freeze:
             f = freeze_config(t)
             print(json.dumps({"frozen": f["name"], "hash": f["hash"], "path": FROZEN}))
         return 0
-    rep = evaluate_attention(fast=a.fast, held_out=a.held_out)
+    if a.tune or a.freeze:
+        t = tune_on_dev()
+        print(json.dumps({"selection": t["selection"], "rows": [{k: r[k] for k in ("name", "flow_non_safety", "important_seen", "missed_urgent_safety", "median_delay_s", "cost_per_day")} for r in t["rows"]]}, indent=1))
+        outp = Path(a.out) if a.out else repo_root() / "evals/attention/tuning_dev.json"
+        outp.parent.mkdir(parents=True, exist_ok=True)
+        outp.write_text(json.dumps(t, indent=1))
+        if a.freeze:
+            f = freeze_config(t)
+            print(json.dumps({"frozen": f["name"], "hash": f["hash"], "path": FROZEN}))
+        return 0
+    kw: dict[str, Any] = {}
+    if a.dev and not a.held_out:
+        fp = repo_root() / FROZEN
+        if fp.exists():                                   # the dev report is then shown for the chosen configuration, tuning reported separately
+            kw["params"], kw["settings"] = to_params(json.loads(fp.read_text())["config"])
+            kw["tune"] = False
+    if a.pieces_dir:
+        kw["pieces_dir"] = (repo_root() / a.pieces_dir) if not Path(a.pieces_dir).is_absolute() else Path(a.pieces_dir)
+    rep = evaluate_attention(fast=a.fast, held_out=a.held_out, **kw)
     out = a.out or ("evals/attention/report_held_out.json" if a.held_out else ("evals/attention/report_fast.json" if a.fast else "evals/attention/report_dev.json"))
     p = Path(out) if Path(out).is_absolute() else repo_root() / out
     p.parent.mkdir(parents=True, exist_ok=True)

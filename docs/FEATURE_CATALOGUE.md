@@ -60,7 +60,7 @@ Watch how people work, show where a novice loses time against an expert, coach o
 | Feature | What it does | Status |
 |---|---|---|
 | Context engineering | Every model call gets minimal, typed, fresh context; long runs keep a bounded working memory; trusted and untrusted text never mix | building (audit and shared library in progress) |
-| One attention layer | One router decides whether, where and when the worker is told anything; one voice at a time; digests instead of pings; safety items never hidden | building |
+| One attention layer | One router decides whether, where and when the worker is told anything; one voice at a time; digests instead of pings; safety items never hidden | built; held-out simulated evaluation 11 of 12 criteria met, **criterion 7 not met** (later-day can-wait toasts rose from 0.92 to 1.25 a day, wrong direction); simulated workers, not people; the n = 4 teammate check was not run. Against show-everything: 0.150 vs 1.512 non-safety interruptions per flow hour, 0 hard-quiet breaches, 98.4% of important items seen in window, median delay 85 s; against one daily digest it is louder but delivers (digest sees 28.3% of important items in window and misses 182 of 528 safety items) |
 
 ## 6. Evidence and honesty
 | Feature | What it does | Status |

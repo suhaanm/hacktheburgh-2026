@@ -468,6 +468,13 @@ class WorkerResult:
         d["delays"] = [None if math.isinf(x) else round(x, 1) for x in self.delays]
         return d
 
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> WorkerResult:
+        """The inverse of ``to_dict`` (an unseen important item is stored as null and comes back as infinity)."""
+        kw = {k: v for k, v in d.items() if k in cls.__dataclass_fields__}
+        kw["delays"] = [math.inf if x is None else float(x) for x in d.get("delays", [])]
+        return cls(**kw)
+
 
 def _important(type_id: str) -> bool:
     return V.TYPES[type_id].cls in (V.SAFETY, V.TIME) or type_id == "approval_waiting"
@@ -570,6 +577,7 @@ class Runner:
         self.reraises: list[tuple[float, int, Raw]] = []
         self.health: list[tuple[float, int, Raw]] = []
         self.cue_active: dict[str, float] = {}
+        self.b1_waiting: list[tuple[str, str]] = []
         self._n = 0
         self._hint = 5.0
         self._t = BASE_T                                     # the current tick (costs and flow are judged on the TRUE state at it)
@@ -611,11 +619,16 @@ class Runner:
         self.arr[key] = a
         return a
 
-    def _see(self, a: Arr, t: float) -> None:
-        if a.seen is None and a.t <= t <= a.expire and a.resolved is None:
+    def _see(self, a: Arr, t: float, delay: float | None = None) -> None:
+        """The worker sees ``a`` at ``t`` by some route. A needs-you item is then handled after ``delay`` (default: a couple of minutes); a later
+        sighting (a reminder, a glance) can only bring the handling forward."""
+        if a.resolved is not None or not (a.t <= t <= a.expire):
+            return
+        if a.seen is None:
             a.seen = t
-            if a.needs_you and a.type != "kill_engaged":          # the stopped state ends when the worker resumes, not when they have read about it
-                self._push(self.resolves, t + _lognorm(HANDLE_MEDIAN_S, HANDLE_SD, self.spec.wid, a.type, a.subject, "handle"), a)
+        if a.needs_you and a.type != "kill_engaged":              # the stopped state ends when the worker resumes, not when they have read about it
+            d = delay if delay is not None else _lognorm(HANDLE_MEDIAN_S, HANDLE_SD, self.spec.wid, a.type, a.subject, "handle", int(t // 60))
+            self._push(self.resolves, t + d, a)
 
     def _see_open_needs_you(self, t: float) -> None:
         for a in self.arr.values():
@@ -653,12 +666,20 @@ class Runner:
         if sp.cls == V.WAIT and channel == "toast":
             self.pd[d]["wait_toasts"] += 1
         a = self.arr.get((type_id, subject))
-        if a is not None:
-            a.reminders += int(reminder)
-            self._see(a, t)
         if type_id == "attention_digest":
+            if a is not None:
+                self._see(a, t)
             return
         label, secs = _react(self.spec, f"{type_id}|{subject}|{'r' if reminder else 'n'}|{int(t // 60)}", type_id, ctx)
+        if a is not None:
+            a.reminders += int(reminder)
+            # followed: handled within a couple of minutes. Dismissed or ignored: the worker saw it and put it off (about 20 to 30 minutes), which is
+            # what makes the one reminder worth having, and what a naive notifier keeps nagging about.
+            if label == "followed":
+                delay = _lognorm(HANDLE_MEDIAN_S, HANDLE_SD, self.spec.wid, type_id, subject, "handle", "r" if reminder else "n")
+            else:
+                delay = _lognorm(1200.0 if label != "ignored" else 1800.0, 0.8, self.spec.wid, type_id, subject, "postpone", "r" if reminder else "n")
+            self._see(a, t, delay)
         r.shown_labelled += 1
         r.followed += int(label == "followed")
         r.dismissed_fast += int(label == "dismissed_fast")
@@ -674,7 +695,7 @@ class Runner:
         ei = gi = di = 0
         t = BASE_T
         t_end = BASE_T + tl.n * STEP
-        digest_days: set[int] = set()
+        last_digest = -1e18
         last_poll = -1e18
         glances, dashes = self.w.glances, self.w.dashes
         prev_present = False
@@ -742,11 +763,15 @@ class Runner:
                 if (present and not prev_present) or t - last_poll >= interval - 1e-9:
                     last_poll = t
                     self._poll(get_ws(), t)
-            elif self.cond == "B2" and present:
-                day = self._day(t)
-                if day not in digest_days:
-                    digest_days.add(day)
-                    self._b2_digest(t)
+            elif self.cond == "B2" and present and t - last_digest >= 20 * 3600.0:      # one summary a day, at the first activity (not per calendar date: a night shift crosses midnight)
+                last_digest = t
+                self._b2_digest(t)
+            if present and self.b1_waiting:
+                for key in self.b1_waiting:
+                    a = self.arr.get(key)
+                    if a is not None:
+                        self._see(a, t)
+                self.b1_waiting = []
             prev_present = present
             if not present:
                 cand = [t + 300.0 if self.svc is not None else t + 600.0]
@@ -796,8 +821,11 @@ class Runner:
             self._r_submit(r, kw, ws, t)
         elif self.cond == "B1":
             chan = sp.modes["loud"][0]
-            if chan not in V.PASSIVE and not cont and present:
-                self._display(t, r.type, r.subject, chan)
+            if chan not in V.PASSIVE and not cont:
+                if present:
+                    self._display(t, r.type, r.subject, chan)
+                else:
+                    self.b1_waiting.append((r.type, r.subject))      # shown to an empty desk: it waits in the notification stack and is seen on return, at no cost
 
     def _r_submit(self, r: Raw, kw: dict[str, Any], ws: WorkerState, t: float) -> None:
         ev = Event(type=r.type, person=self.pid, subject=r.subject, **kw)

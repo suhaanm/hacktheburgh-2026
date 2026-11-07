@@ -11,7 +11,7 @@ Files: pure engine package `services/engine/understudy_engine/attention/**`, tes
 1. **Silence is the default.** An interruption needs a reason in a table, not an absence of a reason not to.
 2. **Safety is never suppressed, never batched, never repeated.** It is shown once, calmly, and then lives as a passive marker until resolved.
 3. **A decision is shown at most once, reminded at most once, and then never nagged.** Reminder caps are hard constants.
-4. **One voice at a time.** While a cue, a question card or a toast is up, nothing else interrupts (safety preempts; that is the only exception).
+4. **One voice at a time.** While a cue, a question card or a toast is up, nothing else interrupts. Safety preempts, and the worker's own ask (a cue they pressed for) preempts a lighter holder; nothing else does. A permission prompt (the ConfirmBroker's own toast) is never gated or delayed by the router: it only takes the local lock.
 5. **Nothing important sits unseen.** Every item that needs the worker has a passive marker the moment it exists, even while it is held.
 6. **Learning can only quiet.** Reactions can lower the loudness of low-value types. Nothing learned can raise a type above its table value or lower it below its floor.
 7. **The worker can always see why.** Every held, shown or dropped item has a one-line fixed reason.
@@ -36,7 +36,7 @@ Urgency classes: **safety** (safety-critical), **time** (time-sensitive), **now*
 | `cue_offer` | Cue "want a hand?" chip | now | n/a | no | `expires_in_s` | D | D | D |
 | `voice_line` | Cue tier 4 whisper, spoken briefing | now | n/a | no | 10 s | D | D | D |
 | `help_level_changed` | coach chip driver (the 2 s level toast) | info (glanceable) | n/a | no | 60 s | L | L | L |
-| `routine_proposal` | handoff routines (proposals.ts) | wait | n/a (opt-in) | yes | 72 h | H | HH | digest |
+| `routine_proposal` | handoff routines (proposals.ts) | wait | n/a (opt-in) | no | 72 h | H | HH | digest |
 | `briefing_ready` | proactive briefing (cards) | wait | n/a | no | 24 h to 72 h by card | H | HH | digest |
 | `approval_waiting` | approval queue, an item nothing waits on | wait | no | yes | queue max age | H | HH | digest |
 | `run_finished` | agent runtime (foreground or background result), offhours run end | wait | n/a | no | 24 h | H | HH | digest |
@@ -63,7 +63,7 @@ Two choices to flag to the owner (both reversible):
 | 5 | `question_card` | interrupting (needs a decision) | Cue's one question |
 | 6 | `voice` | interrupting (audio) | only when the worker asked or a voice session is already open; otherwise it degrades to `chip` |
 
-There is no phone channel. Nothing is ever pushed off the machine. Each type has a **ladder** (its allowed rungs from loudest to quietest) and a **floor** (the quietest rung it may reach). Safety types have the single rung `toast` and a floor of `toast`; `approval_blocking` has floor `badge`; everything else floors at `log`.
+There is no phone channel. Nothing is ever pushed off the machine. Each type has a **ladder** (its allowed rungs from loudest to quietest) and a **floor** (the quietest rung it may reach). Safety types have the single rung `toast` and a floor of `toast`. The time-sensitive types and `approval_waiting` floor at `badge` (a decision always stays visible in the count); `service_degraded` floors at `banner`; everything else floors at `log`.
 
 ## 3. The router
 
@@ -204,8 +204,8 @@ Module `understudy_engine/attention/routes.py` exports `router` and `enabled()`.
 
 An adapter polls `GET /attention/next` (about every 2 s while active, 15 s while away), renders through injected ports, and holds the local one-voice lock. It never edits `tray.ts`, `toast.ts` or `hud.ts`; the hooks it needs from DESKTOP-2 are listed in the message to the lead.
 
-**One-voice lock protocol (agreed with CUE-UX)**: a `VoiceLock` object owned by the adapter and injected into the Cue controller.
-`acquire(owner, priority, ttlMs) -> boolean`, `release(owner)`, `holder()`. Priorities: safety 3, decision (question card, approval toast) 2, cue 1, glance 0. Acquire succeeds when the lock is free, its TTL has run out, or the requester's priority is strictly higher (the holder's `onPreempt` is called and it must hide at once). A TTL is mandatory, so a crash cannot wedge the lock. The Cue controller acquires before it draws a cue or question and releases when it hides; the adapter acquires before it draws any toast. The engine keeps the same facts in the store (an item on screen holds the lock until its display time or its feedback) so both sides agree after a restart.
+**One-voice lock protocol (agreed with CUE-UX, implemented in `apps/desktop/src/main/attention/lock.ts`)**: a `VoiceLock` owned by the adapter and injected into the Cue controller as the `AttentionPort` (`adapter.cuePort()`: `admit(d, onPreempt)` returns a synchronous `{show, itemId}` from `POST /attention/events` and fails closed, `release()`, `feedback()`).
+`acquire(owner, ttlMs, onPreempt?, key?) -> boolean`, `release(owner, key?)`, `holder()`, `available(owner, key?)`, `extend(...)`. Owners: `safety`, `asked`, `decision`, `cue`, `notice`, `glance`. Only `safety` preempts a holder; `asked` preempts `cue`, `notice` and `glance`; nothing else does (a time-sensitive toast waits for a cue's 12 seconds rather than cutting it off). The same owner showing the same `key` (an episode id, an item id) is a continuation; the same owner showing something else waits, so two toasts never coexist. A TTL is mandatory (capped at 120 s), so a crash cannot wedge the lock. The engine keeps the same facts in the store (an item on screen holds the lock until its display time or its feedback), so both sides agree after a restart. If the desktop is handed an item it cannot draw (the voice is taken, a render fails) it sends feedback `deferred`: the item goes back to held, the spacing clock and the day's counters return to what they were, and no label is recorded.
 
 ### 8.3 Dashboard (for DASH-LIVE; no edits to `apps/dashboard` from this track)
 
@@ -216,6 +216,15 @@ A settings panel reading and writing `/attention/settings` (a mode per type in f
 A simulated workday generator (synthetic, badged) over the personas' schedules and the presence model, with event streams at the real producers' typical rates. The router is compared with two baselines: **B1** show everything immediately and **B2** one daily digest only. Metrics each with n, split, person-level bootstrap interval and the synthetic badge: interruptions per hour in flow; share of important items seen within their window; median delay of important items; duplicate rate; missed-urgent count (must be 0 for safety); reminders per item; digest length; acceptance rate. The attention-cost model is stated before any run. Thresholds are tuned on dev seeds only. `evaluate_attention(fast=False)` is exported for the eval harness, fast mode under 60 s.
 
 Honesty: the evaluation shows the policy behaves as designed under stated assumptions. It does not show that real people find the product natural. That test is a live check with the four teammates (n = 4) and is not run.
+
+## 9b. As built (7 Nov 2026)
+
+- Engine: `understudy_engine/attention/{paths,vocab,events,state,texts,learning,router,digest,store,service,routes,simulate,scenarios,evaluate}.py`; 234 tests in `services/engine/tests/attention`; the privacy static guard lists `attention` as a pure-compute layer and finds nothing.
+- Extra routes beyond section 8.1: `GET /attention/next?peek=1` (passive counts only, delivers nothing), `GET /attention/stats`, `GET /attention/export`, `DELETE /attention`, feedback `deferred`; the digest preview carries `today_detail` rows and ids so a screen can call `/why` per line.
+- Desktop adapter: `types, lock, signals, client, adapter, bridge, flags, index` under `apps/desktop/src/main/attention/`; no Electron import; every surface is a port the shell binds. The producer bridge turns the queue, the agent runs, the briefing, the proposals, the health pings and the morning report into raise and resolve events through injected sources.
+- The 2 s level glance is off with `settings.level_glance=false` or `UNDERSTUDY_ATTENTION_LEVEL_GLANCE=0`. The kill state, the Stop all pill, the acting dot and the glance ring are not event types at all: they are state drawn by their owners and no code in this layer can delay them; the `stopped` count in `/attention/next` is derived from open items only.
+- A time-sensitive item held for more than ten minutes is released at the first moment the worker is present, not typing and has been quiet for 2 s (it does not wait for a full natural break on top of the wait).
+- Reminders only follow a toast the worker neither opened nor closed; a closed toast leaves the item in the count and gets no reminder.
 
 ## 10. What is not covered
 

@@ -15,7 +15,7 @@ import numpy as np
 
 from . import texts
 from . import vocab as V
-from .events import Item
+from .events import Event, Item
 from .simulate import BASE_T, DaySched, Raw, WorkerSpec, build_world, population, run_condition
 from .state import DEFAULT, Params, Settings
 
@@ -115,19 +115,23 @@ def s2_meeting_and_share(seed: int = 0, *, params: Params = DEFAULT, settings: S
     tr = r.trace or []
     inside = [d for d in _displays(tr) if _t(11.0) <= d["t"] < _t(13.0) and _cls(d["type"]) != V.SAFETY]
     inj = [d for d in _displays(tr, type="injection_pause") if _t(11.75) <= d["t"] <= _t(11.75) + 60.0]
-    rendered = texts.render_item(Item.from_event(__import__("understudy_engine.attention.events", fromlist=["Event"]).Event(type="injection_pause", person="p_x", subject="ij2"), "i_x", _t(11.75)))
+    rendered = texts.render_item(Item.from_event(Event(type="injection_pause", person="p_x", subject="ij2"), "i_x", _t(11.75)))
     appr = [d for d in _displays(tr, type="approval_blocking", reminder=False) if d["t"] >= _t(11.0)]
     arr = r.arr.get(("approval_blocking", "qs2"))
     dropped_cues = sum(n for k, n in res.dropped.items() if k.startswith("dropped_"))
-    from .router import is_natural_break
+    # An item held for over `max_hold_soft_s` (here: about 80 minutes) is shown at the first moment the worker is present, not typing and has been
+    # quiet for 2 s: waiting for a full natural break on top of that would only add delay.
+    def _pause(x: float) -> bool:
+        w_ = world.tl.ws(float(x))
+        return bool(world.tl.present[world.tl.idx(float(x))]) and w_.hard_quiet() is None and not w_.typing_burst and w_.quiet_s >= params.flow_quiet_s
 
-    t_break = next((x for x in np.arange(_t(13.0), _t(17.0), 5.0) if world.tl.present[world.tl.idx(float(x))] and is_natural_break(world.tl.ws(float(x)), params)), None)
+    t_break = next((x for x in np.arange(_t(13.0), _t(17.0), 5.0) if _pause(float(x))), None)
     checks = {
         "no_non_safety_interruption_in_the_meeting": not inside,
         "all_three_cues_were_dropped_not_shown": dropped_cues == 3 and not _displays(tr, type="cue_cue"),
         "the_injection_pause_was_shown_within_10_s_during_the_share": bool(inj) and inj[0]["t"] - _t(11.75) <= 10.0 and inj[0]["ctx"] == "hard_quiet",
         "its_wording_is_content_free": "ij2" not in f"{rendered['title']} {rendered['body']}" and not texts.lint(rendered["title"], rendered["body"]),
-        "the_held_approval_is_shown_at_the_first_pause_after_the_meeting": bool(appr) and t_break is not None and 0.0 <= appr[0]["t"] - float(t_break) <= 30.0,
+        "the_held_approval_is_shown_at_the_first_pause_after_the_meeting": bool(appr) and t_break is not None and 0.0 <= appr[0]["t"] - float(t_break) <= 15.0,
         "the_held_approval_is_not_lost": arr is not None and arr.seen is not None,
     }
     nums = {"meeting_interruptions_non_safety": len(inside), "cues_dropped": dropped_cues, "dropped_by_reason": dict(res.dropped),
