@@ -169,3 +169,7 @@ uv run --package understudy-agent --env-file .env python -m understudy_agent.liv
 | 6 | old goal, no handles | smoke | 1 calculator | NOT reproduced: the model explored, the drift layer stopped a click; no Done | 0.06 |
 | 7 | frame hint made opt-in (pre-flight at the final gate) | two smokes | 1 calculator each | hint on: stuck at step 4 (screenshots only); hint off: done in 25 steps, 0 gate stops | 0.09 and 0.40 |
 No held-out household has been used. Everything above is in-sample.
+
+## Lead note (7 Nov 2026, 21:07 UTC): order of events for the held-out confirmation
+
+The two held-out confirmation runs (injected n = 20 on seed 9138, then clean n = 4 on seed 9137) were launched at about 21:01 UTC by the lead from the working tree at gate hash 35e964049fd0. The agentic code and tests were committed at 21:06 UTC (commit d61db91), about five minutes AFTER the launch, because the lead launched first and committed second. The working tree did not change between launch and commit (AGENTIC-2 had stopped editing and had no jobs running); the result files carry `gate_version`, which must equal 35e964049fd0, and the lead checks that before quoting any number. Everything the runs use that was frozen earlier (PLAN.md Amendments 1 and 2, the configuration of the confirmed run, the seeds, the budget flags) was committed before 21:01. Treat the ordering as a process deviation, not a result.
