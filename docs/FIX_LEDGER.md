@@ -30,7 +30,7 @@ Owner: AGENTIC-2. LH-2 checkpoint and WorkingMemory.snapshot, carry-over across 
 | design sync: remaining screens, Notices | DSN | docs/DESIGN_AUDIT.md complete |
 
 ## D. Desktop app
-DESKTOP-2: finish screens and the rehearsal re-run; `tsc --noEmit` and the full vitest once through scripts/heavy.sh; S-18 JXA click against fakes only; legacy-remote gating done; drop sensitive controls from the rect content (decided). Not built (owner-blocked): the screen-change watcher (Screen Recording).
+DESKTOP-2 done and committed (7 Nov ~20:00): legacy-remote gating, awareness, Cue and attention wiring, rect content without sensitive controls, S-18 guarded click against fakes, desktop vitest 2651 pass, tsc clean. Open: the 19-check rehearsal (headed Chromium plus the app in dry-run; I cancelled the queued run and will run it myself at a planned time); CueGrounder.recheck (CUEUX, from step.target, landed b8b8fa4); extension/dist rebuild after ROLES' `npm run gen`; tray listening badge and HUD timer for the Live session (cut-line item, Live is flagged off). Not built (owner-blocked): the screen-change watcher (Screen Recording).
 
 ## E. Engine, evaluation and honesty
 - INSIGHTS: dev evaluation, freeze, then the single held-out run by the lead. Plan committed 7 Nov.
