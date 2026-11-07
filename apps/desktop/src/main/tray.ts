@@ -20,7 +20,7 @@ import { APP_NAME } from '../shared/brand'
 //   idle    the mark alone        acting  a 3 px dot: an agent is acting for the person     glance  a 3 px ring: a glance is in flight
 //   paused  the disc and two bars: the person paused Understudy from this menu
 export type TrayIconKind = 'idle' | 'acting' | 'glance' | 'paused'
-export type TrayAction = 'cue_quiet' | 'cue_resume' | 'talk' | 'type' | 'mute' | 'stop' | 'kill' | 'resume' | 'queue' | 'panel' | 'demo' | 'setup' | 'permissions' | 'quit' | 'pause' | 'unpause' | 'awareness' | 'glance_trigger' | 'glance_periodic' | 'dashboard'
+export type TrayAction = 'cue_quiet' | 'cue_resume' | 'talk' | 'type' | 'mute' | 'stop' | 'kill' | 'resume' | 'queue' | 'panel' | 'demo' | 'setup' | 'permissions' | 'quit' | 'pause' | 'unpause' | 'awareness' | 'glance_trigger' | 'glance_periodic' | 'dashboard' | 'knack'
 
 export interface MenuEntry {
   id: string // 'status', 'talk:<personaId>', or a TrayAction
@@ -75,6 +75,10 @@ export interface TrayModel {
   startAccelerator?: string
   stopAccelerator?: string
   panelAccelerator?: string
+  // KNACK: the app's main window can be opened from here ("Open Knack"), and the one line that says which models are running ("Live models" or
+  // "Running with example data", with a small dot). Absent: the menu is exactly what it was.
+  openApp?: boolean
+  models?: { live: boolean | null; text: string }
 }
 
 const ACTIVE: ReadonlySet<CompanionState['phase']> = new Set(['connecting', 'live', 'thinking', 'speaking'])
@@ -143,6 +147,10 @@ const SKIP_WORDS: Record<string, string> = {
 const skipLabel = (reason: string): string => SKIP_WORDS[reason] ?? reason.replace(/_/g, ' ')
 const cueQuiet = (until: number | null | undefined, now: number): boolean => until !== null && until !== undefined && until > now
 
+// The tiny status dot in front of the models line: filled while the models are live, hollow on example data.
+export const MODELS_DOT_ON = '\u25CF'
+export const MODELS_DOT_OFF = '\u25CB'
+
 /** "1 thing needs you" / "2 things need you", or undefined when nothing does (the line is then left out of the menu). */
 export function attentionLine(a: TrayAttention | undefined): string | undefined {
   if (!a || a.needsYou <= 0) return undefined
@@ -170,9 +178,11 @@ export function buildMenuEntries(model: TrayModel, now: number = Date.now()): Me
   const entries: (MenuEntry | null)[] = [
     { id: 'status', label: describeStatus({ ...model, pausedLabel: paused }), enabled: false },
     ...(model.capture ? [{ id: 'capture', label: captureLabel(model.capture), enabled: false } as MenuEntry] : []),
+    ...(model.models && model.models.text ? [{ id: 'models', label: `${model.models.live ? MODELS_DOT_ON : MODELS_DOT_OFF} ${model.models.text}`, enabled: false } as MenuEntry] : []),
     ...(model.coach ? [{ id: 'coach', label: model.coach, enabled: false } as MenuEntry] : []),
     ...(attention ? [{ id: 'attention', label: attention, enabled: false } as MenuEntry] : []),
     sep('sep1'),
+    ...(model.openApp ? [{ id: 'knack', label: `Open ${APP_NAME}`, enabled: true } as MenuEntry] : []),
     { id: 'panel', label: 'Show panel', enabled: true, checked: model.dockVisible, ...(model.panelAccelerator ? { accelerator: model.panelAccelerator } : {}) },
     ...PERSONA_LIST.map((p): MenuEntry => ({
       id: `talk:${p.id}`,
@@ -250,6 +260,10 @@ export interface TrayDeps {
   coachLine?: () => string | null
   // Understudy: opens the dashboard in the browser.
   openDashboard?: () => void
+  // KNACK: opens the main window. When given, a click on the menu bar item opens Knack (instead of toggling the side panel) and the menu has "Open Knack".
+  openApp?: () => void
+  // KNACK: which models are running, for the status line and its dot.
+  models?: () => { live: boolean | null; text: string }
   // Understudy: a glance (a screen look) is in flight right now. The AWARENESS track wires this; absent means never.
   glanceInFlight?: () => boolean
   // The awareness module's view and switches (its own awareness.json store). Absent: no awareness items in the menu.
@@ -344,6 +358,8 @@ export function registerTray(deps: TrayDeps): ShellTray {
       talkAccelerator: firstRegistered([st0.talkHotkey, ...TALK_FALLBACKS]),
       voiceMenu: deps.voiceMenu?.() ?? false,
       queuePending: deps.queueCount?.() ?? null,
+      openApp: deps.openApp !== undefined,
+      models: deps.models?.(),
       agentActing: deps.agentActing?.() ?? false,
       attention: attentionSource?.() ?? undefined,
       cue: deps.cueMenu?.() ? { quietUntil: st0.cueQuietUntil } : undefined,
@@ -457,6 +473,10 @@ export function registerTray(deps: TrayDeps): ShellTray {
         refresh()
         return true
       }
+      case 'knack':
+        if (!deps.openApp) return false
+        deps.openApp()
+        return true
       case 'dashboard':
         if (!deps.openDashboard) return false
         deps.openDashboard()
@@ -476,7 +496,7 @@ export function registerTray(deps: TrayDeps): ShellTray {
     return Menu.buildFromTemplate(template)
   }
 
-  const primaryClick = (): void => togglePanel()
+  const primaryClick = (): void => (deps.openApp ? deps.openApp() : togglePanel())
 
   const iconFor = (kind: TrayIconKind): NativeImage => {
     let image = icons.get(kind)

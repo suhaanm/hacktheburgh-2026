@@ -63,6 +63,16 @@ export const SettingsSchema = z.object({
   // SHELL2: false (the default, also for older saved profiles without the key) keeps the side panel hidden; the menu bar item
   // and Cmd/Ctrl+Alt+P bring it up. First run (onboardingDone false) always shows it so setup is visible.
   showDock: z.boolean().default(false),
+  // KNACK: Knack has its own icon in the macOS Dock (the menu bar item stays either way). Off makes it a menu-bar-only app. Clicking the Dock icon
+  // brings the main window back.
+  showInDock: z.boolean().default(true),
+  // KNACK: the main window minimises itself while an agent run works and comes back only when something needs the worker, or when the worker
+  // clicks the corner pill or the Dock icon.
+  minimiseWhileWorking: z.boolean().default(true),
+  // KNACK: real models (Gemini, keys from the repo's .env) and the isolated live data, when a key is present and the models boot check passes; example data
+  // otherwise, with one line saying so. Changing it restarts the services Knack started. Costs real money per agent run, so only the Settings UI
+  // (trusted) can change it: main drops it from every other source, like awaySeconds.
+  useLiveModels: z.boolean().default(true),
   // FILES: the assistant may search an index of folders the user chose. Folders are added only through a native dialog in main.
   filesEnabled: z.boolean().default(false),
   fileFolders: z.array(z.string().max(1024)).max(20).default([]),

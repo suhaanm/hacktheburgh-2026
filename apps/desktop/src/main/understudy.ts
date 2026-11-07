@@ -103,6 +103,8 @@ export interface UnderstudyDeps {
   onCoachDecision?: (d: CoachDecision) => void
   // The page's visible text lines and controls (screen points, boxes only) from the DOM tracker's answers; Cue docks its card away from them.
   onPageContent?: (rects: Rect[]) => void
+  // Every poll of the agent service (the Knack pill reads the supervisor and run states from it: one poll, two readers).
+  onAgentSample?: (sample: { health: unknown; runs: unknown }) => void
 }
 
 /** After the services, the session and the confirm broker exist: the kill switch, the HUD and the desk signals. */
@@ -191,6 +193,7 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
   const offActing = ctx.state.subscribe(refreshActing)
   const agentActivity = createAgentActivity({
     agentUrl: core.endpoints.agent,
+    onSample: (sample) => deps.onAgentSample?.(sample),
     onChange: (acting) => {
       serviceActing = acting
       refreshActing()

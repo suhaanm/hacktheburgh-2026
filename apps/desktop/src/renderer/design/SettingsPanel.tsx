@@ -5,6 +5,7 @@ import { annotationStyle, strokeLayers } from './annotation-style'
 import { LEVEL_NAMES } from './levels'
 import { Icon } from './icons'
 import { Segmented, Switch } from './Switch'
+import { APP_NAME } from '../../shared/brand'
 
 export interface SettingsPanelProps {
   settings: Settings
@@ -211,6 +212,12 @@ export function SettingsPanel({ settings, onChange, personas, privacy, more }: S
               checked={settings.agency === 'autonomous'}
               onChange={(on) => onChange({ agency: on ? 'autonomous' : 'ask_each' })}
             />
+          </Group>
+
+          <Group title={APP_NAME}>
+            <Switch label="Use live models" hint="Real models when a key is set, otherwise example data. Changing it restarts the app." checked={settings.useLiveModels} onChange={toggle('useLiveModels')} />
+            <Switch label="Show in the Dock" checked={settings.showInDock} onChange={toggle('showInDock')} />
+            <Switch label="Step aside while it works" hint="The window minimises during a run and comes back when something needs you." checked={settings.minimiseWhileWorking} onChange={toggle('minimiseWhileWorking')} />
           </Group>
 
           <Group title="Menu bar">
