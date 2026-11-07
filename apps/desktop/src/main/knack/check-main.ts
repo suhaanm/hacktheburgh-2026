@@ -158,6 +158,17 @@ async function run(): Promise<void> {
   const spawnReq = seen.filter((s) => s.name === 'agent' && s.url === '/agents/spawn').at(-1)
   check('a write reaches the agent with the dashboard Origin, the JSON body, and a forged token replaced by the real one', write === 200 && spawnReq?.headers.origin === `http://127.0.0.1:${config.ports.dashboard}` && spawnReq?.headers['x-understudy-token'] === TOKEN && spawnReq?.body === '{"kind":"shadow"}')
 
+  // ---- 2b. the dashboard's Settings switches reach the desktop settings through the page's own bridge, and only the listed ones
+  const bridge = (await wc.executeJavaScript(`(async () => {
+    const before = await window.knackSettings.getSettings()
+    const after = await window.knackSettings.patchSettings({ minimiseWhileWorking: false, useLiveModels: false, fileFolders: ['/'], awaySeconds: 1 })
+    const models = await window.knackShell.models.get()
+    return { before, after, models }
+  })()`)) as { before: Record<string, unknown>; after: Record<string, unknown>; models: Record<string, unknown> }
+  check('the page reads the desktop switches and changes the move-aside one, and the other keys it sent are dropped', bridge.before.minimiseWhileWorking === true && bridge.after.minimiseWhileWorking === false && settings.get().moveAsideWhileWorking === false && settings.get().useLiveModels === true && bridge.after.useLiveModels === true && !('fileFolders' in bridge.after), bridge)
+  check('the live models switch reports its state to the page and is separate from the settings bridge', typeof bridge.models.useLiveModels === 'boolean' && typeof bridge.models.keyPresent === 'boolean' && typeof bridge.models.running === 'boolean', bridge.models)
+  settings.patch({ moveAsideWhileWorking: true })
+
   // ---- 3. pictures of the dashboard, light and dark, at the window's own size
   for (const theme of ['light', 'dark'] as const) {
     nativeTheme.themeSource = theme

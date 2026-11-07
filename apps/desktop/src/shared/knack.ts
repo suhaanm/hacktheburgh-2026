@@ -8,6 +8,8 @@ export const KNACK_IPC = {
   retry: 'knack:retry', // page -> main: the one Try again button
   modelsGet: 'knack:models:get', // invoke: KnackModelsState
   modelsSet: 'knack:models:set', // invoke(boolean): the Use live models switch
+  settingsGet: 'knack:settings:get', // invoke: the small view of the desktop settings the dashboard Settings shows
+  settingsPatch: 'knack:settings:patch', // invoke(patch): the switches the dashboard Settings may change (an allow-list, see settings-bridge.ts)
 } as const
 
 export type ShellUiState =
@@ -28,6 +30,24 @@ export interface KnackModelsState {
   running: boolean
 }
 export type KnackModelsSetResult = { ok: true } | { ok: false; reason: 'no_key' | 'running' | 'bad_request' }
+
+/** What the dashboard's Settings screen reads of the desktop settings. `minimiseWhileWorking` is the dashboard's name for the same switch as `moveAsideWhileWorking`. */
+export interface DashboardSettingsView {
+  useLiveModels: boolean
+  minimiseWhileWorking: boolean
+  moveAsideWhileWorking: boolean
+  showInDock: boolean
+  launchAtLogin: boolean
+  cueEnabled: boolean
+  helpLevelMode: 'auto' | 'locked'
+  lockedLevel: number
+}
+
+/** `window.knackSettings` in the Knack window: the same two calls the older settings bridge has, over the small view above. */
+export interface KnackSettingsApi {
+  getSettings(): Promise<DashboardSettingsView>
+  patchSettings(patch: Partial<DashboardSettingsView>): Promise<DashboardSettingsView>
+}
 
 export interface KnackShellApi {
   get(): Promise<ShellUiState>
