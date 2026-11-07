@@ -132,9 +132,10 @@ def _classify_one(exc: BaseException) -> tuple[str, bool] | None:
     of a message never decides anything."""
     kind = getattr(exc, "kind", None)
     if isinstance(kind, str) and kind in _KIND_CLASSES:
-        st = _status_class(getattr(exc, "status", None))
-        if kind == "api" and st is not None and st[0] == "transport":
-            return "transport", True
+        if kind == "api":                         # a Gemini `api` error says what it was by its HTTP status: 5xx transport, 429, 4xx permanent
+            st = _status_class(getattr(exc, "status", None))
+            if st is not None:
+                return st
         return _KIND_CLASSES[kind], kind not in _NO_RETRY_KINDS
     for attr in ("status_code", "status"):
         st = _status_class(getattr(exc, attr, None))

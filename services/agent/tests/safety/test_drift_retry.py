@@ -126,6 +126,11 @@ STEP = ProposedStep("click", "on 'Calculate'")
     (ConnectionResetError("reset"), "transport"),
     (provider_error_from(HTTPStatusError(503), label="APIStatusError"), "transport"),
     (GeminiHTTPError("network", "x"), "transport"),
+    (GeminiHTTPError("api", "x", 503), "transport"),
+    (GeminiHTTPError("api", "x", 429), "rate_limit"),
+    (GeminiHTTPError("api", "x", 400), "other"),
+    (GeminiHTTPError("api", "x"), "other"),
+    (GeminiHTTPError("incomplete", "gemini answer was cut off at the output token limit"), "invalid_answer"),
     (ProviderError("something nobody planned for"), "other"),
     (provider_error_from(HTTPStatusError(401), label="APIStatusError"), "other"),
     (GeminiHTTPError("auth", "x", 401), "other"),
@@ -208,7 +213,8 @@ def test_a_refusal_is_not_retried():
 
 @pytest.mark.parametrize("exc", [provider_error_from(HTTPStatusError(401), label="APIStatusError"),
                                  provider_error_from(HTTPStatusError(400), label="APIStatusError"),
-                                 GeminiHTTPError("auth", "x", 403), GeminiHTTPError("blocked", "x")])
+                                 GeminiHTTPError("auth", "x", 403), GeminiHTTPError("blocked", "x"),
+                                 GeminiHTTPError("api", "x", 400)])          # a schema or request the API refuses is the same on the next try
 def test_a_permanent_failure_is_not_retried(exc):
     port = ScriptedPort(exc, OK_ON)
     chk, clock = checker(port)

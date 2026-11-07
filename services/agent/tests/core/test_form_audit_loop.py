@@ -16,7 +16,7 @@ from understudy_agent.audit import AuditLog
 from understudy_agent.completion import check_completion, ResultFields
 from understudy_agent.models.mock_provider import MockProvider
 from understudy_agent.models.port import Action
-from understudy_agent.navigator import CalculatorJob, CaseNoteJob, Navigator
+from understudy_agent.navigator import CalculatorJob, Navigator
 from understudy_agent.queue import ApprovalQueue
 from understudy_agent.sandbox_sites.households import generate_households
 from understudy_agent.sandbox_sites.oracle import site_expected
@@ -110,6 +110,23 @@ async def test_no_household_value_reaches_a_prompt_an_event_an_audit_line_or_a_r
         for secret in secrets:
             assert secret not in text, (name, "a household value leaked")
     assert "form_audit" in blobs["audit"] and "readback:household.adult1_earnings:no_focus" in blobs["audit"] and "preflight:household.bedrooms:not_entered" in blobs["audit"]     # the per-step enums ARE logged
+
+
+NOTE = {"case_ref": "CASE-7001", "result_a": "£781", "result_b": "£955.00 per month", "result_c": "0.00 GBP / month",
+        "reconciliation": "discrepancy", "note_text": "Calculators disagree near the 16,000 limit. Cliff checked on all three."}
+
+
+@pytest.mark.parametrize("faults, blocks", [({}, 0), ({"skip": {"note.reconciliation"}}, 1)])
+async def test_the_case_note_is_audited_too_and_a_skipped_drop_down_never_reaches_the_saved_note(cluster, host, sinks, faults, blocks):
+    from understudy_agent.navigator import CaseNoteJob
+
+    model = DomOracleComputerModel(faults=faults)
+    res, events, nav = await run_nav(host, cluster, sinks, "a", DEV[COUPLE], model, job=CaseNoteJob(NOTE))
+    assert res.state == "done" and res.inputs_audit == "clean" and res.value["note_id"].startswith("CN-")
+    assert nav.t3_runs[-1]["form_audit"]["blocks"] == blocks and nav.t3_runs[-1]["form_audit"]["audits"] == blocks + 1
+    saved = list(cluster.state.notes.values())
+    assert len(saved) == 1 and saved[0]["reconciliation"] == "discrepancy" and saved[0]["note_text"] == NOTE["note_text"]    # the default would be "agree"
+    assert cluster.state.submissions == []
 
 
 # ----------------------------------------------------------------------------- a drop-down walked past (hh_0002 calculator B)

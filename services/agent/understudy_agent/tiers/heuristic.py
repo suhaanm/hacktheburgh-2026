@@ -276,6 +276,15 @@ class DomOracleComputerModel:
                 return Action("type", {"text": "12345"})        # a literal value: must be refused
             return Action("type", {"text": "{" + handle + "}"})
         if st["enter"]:
+            # The task state in the prompt lists what code recorded as entered on this page. If the handle just typed is not in it, that type
+            # never ran (a step discarded as stale while the run was paused): type it again before committing. A model that reads its task
+            # state does the same; the double used to carry on and leave the drop-down on its default.
+            m_en = re.search(r"entered on this page: ([^\n]*)", goal)
+            if m_en and st.get("last"):
+                raw = m_en.group(1).strip()
+                entered = set() if raw in ("", "nothing") else {x.strip() for x in raw.split(",")}
+                if st["last"][0] not in entered:
+                    return Action("type", {"text": "{" + st["last"][0] + "}"})
             st["enter"] = False
             return Action("key", {"keys": ["Tab"]})   # Enter would submit the form; Tab commits the choice
         cliff_goal = "Check cliff edges" in goal

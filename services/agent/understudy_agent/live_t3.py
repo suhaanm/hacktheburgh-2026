@@ -118,13 +118,26 @@ def audit_summary(t3: list[dict[str, Any]]) -> dict[str, Any]:
     return out
 
 
+def provider_name() -> str:
+    """The provider the round runs on (UNDERSTUDY_PROVIDER; `openai` when unset, as the factory does)."""
+    return (os.environ.get("UNDERSTUDY_PROVIDER", "").strip() or "openai").lower()
+
+
 def model_ids() -> dict[str, str]:
+    """The model ids in force for the planner, the fast role and computer use, read from the environment of the CURRENT provider (never
+    from code), plus the provider's name. The same three keys for either provider, so a result file reads the same."""
     try:
+        if provider_name() == "gemini":
+            from .models.config import GeminiModelIds
+
+            g = GeminiModelIds.from_env()
+            # as GeminiProvider resolves the roles: planner = the accurate model, fast = the fast model, computer use = its own id if set
+            return {"planner": g.accurate, "fast": g.fast, "computer_use": g.computer_use or g.accurate, "provider": "gemini"}
         from .models.config import ModelIds
 
-        return ModelIds.from_env().as_dict()
+        return {**ModelIds.from_env().as_dict(), "provider": provider_name()}
     except Exception:  # noqa: BLE001
-        return {}
+        return {"provider": provider_name()}
 
 
 def record(label: str, kind: str, tin: int, tout: int, cost_placeholder: float, **extra: Any) -> None:
@@ -142,6 +155,7 @@ def record(label: str, kind: str, tin: int, tout: int, cost_placeholder: float, 
                                    "tokens_in": tin, "tokens_out": tout, "cost_placeholder_usd": round(cost_placeholder, 4),
                                    "cost_lower_usd": round(tin / 1e6 * LOWER[0] + tout / 1e6 * LOWER[1], 4),
                                    "rates_in_out_per_m": list(prices()), "computer_use_model": model_ids().get("computer_use"),
+                                   "provider": provider_name(), "goal_hash": goal_text_hash(provider_name()),
                                    "gate_version": gate_version(), **extra})
             doc["spent_placeholder_usd"] = round(sum(e["cost_placeholder_usd"] for e in doc["entries"]), 4)
             doc["spent_lower_usd"] = round(sum(e["cost_lower_usd"] for e in doc["entries"]), 4)
