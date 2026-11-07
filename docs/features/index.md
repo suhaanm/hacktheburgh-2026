@@ -107,7 +107,7 @@
 | Context engineering: typed, bounded, fresh | [context-engineering](context-engineering.md) | **built** | Wordsmith |
 | One app, one window, one corner pill | [knack-shell](knack-shell.md) | **built** (merged to main; hidden end-to-end run passes; first visible launch with the owner pending) | Wordsmith |
 | First run in three clicks | [knack-shell](knack-shell.md) | **built** | G-Research |
-| Command palette and keyboard | [knack-shell](knack-shell.md) | **built** | Wordsmith |
+| Command palette and keyboard | [knack-shell](knack-shell.md) | **built** (shortcuts and the palette are on main; some of the spec's palette verbs are not) | Wordsmith |
 | Design system with budgets as tests | [design-system](design-system.md) | **built** (tokens, components and check scripts merged to main; screens still being brought to budget by their tracks) | G-Research |
 | The Knack mark and brand | [design-system](design-system.md) | **built** | G-Research |
 

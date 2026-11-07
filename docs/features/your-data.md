@@ -20,7 +20,7 @@ Seeing anything takes one click and deleting takes three at most (Your data, For
 
 ### Where to see it
 
-Your data, the fifth item in the sidebar; Command-K, 'Delete my data' (no shortcut by design).
+Your data, the fifth item in the sidebar. The spec adds a palette row 'Delete my data' with no shortcut; it was not in the palette on main when this was written.
 
 ### Demo moment
 

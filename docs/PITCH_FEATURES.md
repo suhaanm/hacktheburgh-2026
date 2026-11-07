@@ -1,6 +1,6 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sat 07 Nov 2026, 23:49 UTC. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sat 07 Nov 2026, 23:51 UTC. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
 This is the master document. It lists 61 entries (57 features and 4 write-ups of results that did not hold up) on 33 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
@@ -1493,7 +1493,7 @@ A fixed list of candidate kinds (for example time lost on a habit, a habit impro
 
 #### Where to see it
 
-Home (the hero and quiet rows); the Monday note in the command palette; Firm for admins.
+Home (the hero and quiet rows); the Monday note is built from the same pointers (its palette row is specified, not yet on main); Firm for admins.
 
 #### Demo moment
 
@@ -1563,15 +1563,15 @@ Extras for the admin: a short Monday note, a one-page firm brief that prints, an
 
 #### How it works
 
-The Monday note is a few sentences built from the same deterministic insights; 'Copy my Monday note' is in the command palette. The firm brief is a print view of the top rows. The scorecard is the Forecasts screen (reliability diagram and baselines) read from the evaluation report.
+The Monday note is a few plain sentences built from the same deterministic insights (the engine sends ready text when it has it; otherwise it is composed from the pointers). The spec puts 'Copy my Monday note' in the command palette; that row was not on main when this was written. The firm brief is a print view of the top rows. The scorecard is the Forecasts screen (reliability diagram and baselines) read from the evaluation report.
 
 #### Where to see it
 
-Command palette (Copy my Monday note); Firm, Print the firm brief; More, Forecasts.
+Command palette, Print the firm brief (and Copy my Monday note once it lands); More, Forecasts.
 
 #### Demo moment
 
-Press Command-K, type Monday, copy the note; open Print the firm brief.
+Press Command-K, choose Print the firm brief; then open More, Forecasts to show the scorecard.
 
 #### Evidence and its label
 
@@ -1774,15 +1774,15 @@ Measured on a prototype and by the reducer's tests; no person has done it. Permi
 
 ### Command palette and keyboard
 
-**Status:** built · **Page:** `docs/features/knack-shell.md` · **Targets:** Wordsmith
+**Status:** built (shortcuts and the palette are on main; some of the spec's palette verbs are not) · **Page:** `docs/features/knack-shell.md` · **Targets:** Wordsmith
 
 #### What it does
 
-Command-K goes anywhere or runs a command, Option-Space asks Knack (tap to type, hold to talk), and Option-Shift-Command-K stops everything. No keystroke ever approves anything.
+Command-K goes anywhere or runs a command, Option-Space asks Knack (hold to talk), and Option-Shift-Command-K stops everything. No keystroke ever approves anything.
 
 #### How it works
 
-Shortcuts: Command-1 to Command-5 for the five destinations, Command-slash for About this screen, Command-comma for Settings, Option-Command-P to pause or resume for an hour. The palette lists seven rows by default, then Show all; typing a phrase that matches nothing adds 'Ask Knack: <phrase>'. 'Delete my data' is palette-only with no shortcut by design. A guided tour of the five destinations is one row in the account menu (Take the tour).
+In the dashboard today: Command-1 to Command-5 go to the five destinations, Command-comma opens Settings, Command-slash opens About this screen, Shift-Command-K stops everything while Knack is frontmost (a test says no key reaches an approval). Command-K opens the palette, which lists every screen and these actions: Take the tour, Switch to the Admin view (and back) and Print the firm brief. In the desktop: Option-Space (hold to talk), Option-Shift-Command-K anywhere to stop, Option-Command-P to pause or resume for an hour. The spec adds further palette verbs (Pause for 1 hour, Stop everything, Ask Knack, Copy my Monday note, Explain this screen and a palette-only 'Delete my data' with no shortcut by design); they were not on main when this was written. A guided tour of the five destinations is one row in the account menu.
 
 #### Where to see it
 
@@ -1790,7 +1790,7 @@ Anywhere in Knack; the palette is Command-K.
 
 #### Demo moment
 
-Press Command-K, type 'forget' and show Delete my data with no shortcut beside it.
+Press Command-K, type the name of a screen and press Return; then press Command-2 to jump to Needs you. Say that no key approves anything.
 
 #### Evidence and its label
 
@@ -1800,7 +1800,7 @@ Press Command-K, type 'forget' and show Delete my data with no shortcut beside i
 
 #### Honest limit
 
-Option-Space's tap-to-type Ask bar window is a lower-priority item in the build plan and may not be complete.
+The tap-to-type Ask bar is a lower-priority item in the build plan and may not be complete; the palette verbs named above are specified, not all built.
 
 #### Hackathon target
 
@@ -1930,7 +1930,7 @@ Seeing anything takes one click and deleting takes three at most (Your data, For
 
 #### Where to see it
 
-Your data, the fifth item in the sidebar; Command-K, 'Delete my data' (no shortcut by design).
+Your data, the fifth item in the sidebar. The spec adds a palette row 'Delete my data' with no shortcut; it was not in the palette on main when this was written.
 
 #### Demo moment
 
@@ -2038,7 +2038,7 @@ An evidence packet holds the typed facts. The shipped wording is a code template
 
 #### Where to see it
 
-Beside figures on the detail screens (Explain), in Evidence, and 'Copy my Monday note'.
+Beside figures on the detail screens (Explain) and in Evidence.
 
 #### Demo moment
 

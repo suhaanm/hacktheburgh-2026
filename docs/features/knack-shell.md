@@ -77,15 +77,15 @@ Measured on a prototype and by the reducer's tests; no person has done it. Permi
 
 ## Command palette and keyboard
 
-**Status:** built · **Page:** `docs/features/knack-shell.md` · **Targets:** Wordsmith
+**Status:** built (shortcuts and the palette are on main; some of the spec's palette verbs are not) · **Page:** `docs/features/knack-shell.md` · **Targets:** Wordsmith
 
 ### What it does
 
-Command-K goes anywhere or runs a command, Option-Space asks Knack (tap to type, hold to talk), and Option-Shift-Command-K stops everything. No keystroke ever approves anything.
+Command-K goes anywhere or runs a command, Option-Space asks Knack (hold to talk), and Option-Shift-Command-K stops everything. No keystroke ever approves anything.
 
 ### How it works
 
-Shortcuts: Command-1 to Command-5 for the five destinations, Command-slash for About this screen, Command-comma for Settings, Option-Command-P to pause or resume for an hour. The palette lists seven rows by default, then Show all; typing a phrase that matches nothing adds 'Ask Knack: <phrase>'. 'Delete my data' is palette-only with no shortcut by design. A guided tour of the five destinations is one row in the account menu (Take the tour).
+In the dashboard today: Command-1 to Command-5 go to the five destinations, Command-comma opens Settings, Command-slash opens About this screen, Shift-Command-K stops everything while Knack is frontmost (a test says no key reaches an approval). Command-K opens the palette, which lists every screen and these actions: Take the tour, Switch to the Admin view (and back) and Print the firm brief. In the desktop: Option-Space (hold to talk), Option-Shift-Command-K anywhere to stop, Option-Command-P to pause or resume for an hour. The spec adds further palette verbs (Pause for 1 hour, Stop everything, Ask Knack, Copy my Monday note, Explain this screen and a palette-only 'Delete my data' with no shortcut by design); they were not on main when this was written. A guided tour of the five destinations is one row in the account menu.
 
 ### Where to see it
 
@@ -93,7 +93,7 @@ Anywhere in Knack; the palette is Command-K.
 
 ### Demo moment
 
-Press Command-K, type 'forget' and show Delete my data with no shortcut beside it.
+Press Command-K, type the name of a screen and press Return; then press Command-2 to jump to Needs you. Say that no key approves anything.
 
 ### Evidence and its label
 
@@ -103,7 +103,7 @@ Press Command-K, type 'forget' and show Delete my data with no shortcut beside i
 
 ### Honest limit
 
-Option-Space's tap-to-type Ask bar window is a lower-priority item in the build plan and may not be complete.
+The tap-to-type Ask bar is a lower-priority item in the build plan and may not be complete; the palette verbs named above are specified, not all built.
 
 ### Hackathon target
 

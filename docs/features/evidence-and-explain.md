@@ -56,7 +56,7 @@ An evidence packet holds the typed facts. The shipped wording is a code template
 
 ### Where to see it
 
-Beside figures on the detail screens (Explain), in Evidence, and 'Copy my Monday note'.
+Beside figures on the detail screens (Explain) and in Evidence.
 
 ### Demo moment
 

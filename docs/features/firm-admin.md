@@ -52,15 +52,15 @@ Extras for the admin: a short Monday note, a one-page firm brief that prints, an
 
 ### How it works
 
-The Monday note is a few sentences built from the same deterministic insights; 'Copy my Monday note' is in the command palette. The firm brief is a print view of the top rows. The scorecard is the Forecasts screen (reliability diagram and baselines) read from the evaluation report.
+The Monday note is a few plain sentences built from the same deterministic insights (the engine sends ready text when it has it; otherwise it is composed from the pointers). The spec puts 'Copy my Monday note' in the command palette; that row was not on main when this was written. The firm brief is a print view of the top rows. The scorecard is the Forecasts screen (reliability diagram and baselines) read from the evaluation report.
 
 ### Where to see it
 
-Command palette (Copy my Monday note); Firm, Print the firm brief; More, Forecasts.
+Command palette, Print the firm brief (and Copy my Monday note once it lands); More, Forecasts.
 
 ### Demo moment
 
-Press Command-K, type Monday, copy the note; open Print the firm brief.
+Press Command-K, choose Print the firm brief; then open More, Forecasts to show the scorecard.
 
 ### Evidence and its label
 

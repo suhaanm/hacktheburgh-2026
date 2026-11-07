@@ -54,7 +54,7 @@ A fixed list of candidate kinds (for example time lost on a habit, a habit impro
 
 ### Where to see it
 
-Home (the hero and quiet rows); the Monday note in the command palette; Firm for admins.
+Home (the hero and quiet rows); the Monday note is built from the same pointers (its palette row is specified, not yet on main); Firm for admins.
 
 ### Demo moment
 
