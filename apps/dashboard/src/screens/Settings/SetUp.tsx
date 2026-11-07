@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ApiError, api } from "../api";
-import { useLoad } from "../hooks";
-import { ErrorState, Loading, OriginBadge } from "../components/common";
-import { buildPreview } from "../lib/memoryPreview";
-import { normDays } from "../lib/days";
-import type { OnboardingAnswers, OnboardingQuestion, OnboardingQuestions, OnboardingResult, Pack } from "../types";
+import { ApiError, api } from "../../api";
+import { useLoad } from "../../hooks";
+import { ErrorState, Loading, OriginBadge } from "../../components/common";
+import { buildPreview } from "../../lib/memoryPreview";
+import { normDays } from "../../lib/days";
+import type { OnboardingAnswers, OnboardingQuestion, OnboardingQuestions, OnboardingResult, Pack } from "../../types";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const defaultHours = { start: "09:00", end: "17:30", days: [0, 1, 2, 3, 4] };
@@ -93,8 +93,8 @@ export default function Onboarding() {
                 <div className="stat"><span className="stat__label">Revision</span><span className="stat__value tabular" style={{ fontSize: "var(--text-xl)" }}>{result.revision}</span></div>
               </div>
               <div className="ob__nav">
-                <a className="btn btn--primary" href="#/memory">Open my memory file</a>
-                <a className="btn btn--secondary" href="#/today">Go to Today</a>
+                <a className="btn btn--primary" href="#/your-data?section=remembers">Open my memory file</a>
+                <a className="btn btn--secondary" href="#/home">Go to Home</a>
                 <button type="button" className="btn btn--quiet" onClick={restart}>Try another role</button>
               </div>
             </div>
@@ -122,7 +122,7 @@ export default function Onboarding() {
                 <label className="role-card">
                   <input type="radio" name="capture" value="yes" checked={answers.capture === true} onChange={() => setAnswers((x) => ({ ...x, capture: true }))} />
                   <span className="role-card__name">Yes, record times</span>
-                  <span className="role-card__desc">Understudy learns your working rhythm, so it can find the free hours.</span>
+                  <span className="role-card__desc">Knack learns your working rhythm, so it can find the free hours.</span>
                 </label>
                 <label className="role-card">
                   <input type="radio" name="capture" value="no" checked={answers.capture === false} onChange={() => setAnswers((x) => ({ ...x, capture: false }))} />
@@ -149,7 +149,7 @@ export default function Onboarding() {
         <aside className="ob__preview" aria-label="Preview of your memory file">
           <div className="row row--between">
             <span className="t-label">{finished ? "Written to" : "Your memory file, as you answer"}</span>
-            <span className="t-label">{finished ? "~/.understudy/memory.md" : "draft, nothing saved yet"}</span>
+            <span className="t-label">{finished ? "Your memory file" : "Draft, nothing saved yet"}</span>
           </div>
           <Preview text={finished ? result.memory_markdown : preview.text} fresh={finished ? new Set() : preview.fresh} />
         </aside>
