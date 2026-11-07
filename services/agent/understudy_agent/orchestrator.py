@@ -271,6 +271,11 @@ class RunOptions:
     rung: str = "A0"                                    # autonomy rung from the routine's consent
     page_state: bool = False                            # tier 2: the quarantined reader tells the planner the page KIND each step
     start_tier: int = 1                                 # 3: computer use from the first step (tiers 1 and 2 off)
+    # The tier the SCRIBE (the case-note step) starts at: None = the same as the calculators (the default, unchanged). 2 = the planner and
+    # the browser agent first, with computer use only as the fallback. Gemini's own computer-use safety policy answers `require_confirmation`
+    # to the click that saves the case note as a draft; a provider check is never auto-acknowledged, so a tier-3 scribe stops there. A
+    # round that must not depend on a human for that step sets 2, and says so (evals/agentic/PLAN_ROUND2.md).
+    scribe_tier: int | None = None
     t3_max_steps: int = 200                             # hard cap on computer-use steps per navigator
     stall_limit: int = 12                               # steps with no visible progress before a loop gives up
     pause: Any = None                                   # a PauseGate shared by every navigator (step-level pause and resume)
@@ -669,8 +674,8 @@ class BenefitsRun:
         ctx = await host.new_context()
         scribe = Navigator("scribe", context=ctx, model=self.model, guard=sg, base_url=self.base_urls["a"],
                            emit=self.emit_step, is_current=self.is_current, query=self.opt.query.get("a", ""),
-                           ledger=self.ledger, use_tier1=self.opt.use_tier1, max_actions=self.opt.max_actions,
-                           allow_tier3=self.opt.allow_tier3, start_tier=self.opt.start_tier,
+                           ledger=self.ledger, use_tier1=self.opt.use_tier1 and self.opt.scribe_tier is None, max_actions=self.opt.max_actions,
+                           allow_tier3=self.opt.allow_tier3, start_tier=self.opt.start_tier if self.opt.scribe_tier is None else self.opt.scribe_tier,
                            t3_max_steps=self.opt.t3_max_steps, stall_limit=self.opt.stall_limit, pause=self.opt.pause,
                            resume={"steps": self.ckpt.scribe_steps, "wm": None} if (self.ckpt is not None and self.ckpt.resumed
                                                                                     and self.ckpt.scribe_steps) else None,

@@ -219,9 +219,85 @@
    "household": "hh_0003",
    "cu_provider": "default",
    "old_goal": false
+  },
+  {
+   "at": "2026-11-07T23:30:28Z",
+   "label": "agentic3_g_round3_7001_n3",
+   "kind": "dev_round",
+   "tokens_in": 240501,
+   "tokens_out": 9734,
+   "cost_placeholder_usd": 0.2169,
+   "cost_lower_usd": 0.2242,
+   "rates_in_out_per_m": [
+    0.75,
+    3.75
+   ],
+   "computer_use_model": "gemini-3.8-flash",
+   "provider": "gemini",
+   "goal_hash": "a0af9d970002",
+   "gate_version": "bf343da6fcb9",
+   "household": "hh_0001",
+   "cu_provider": "default"
+  },
+  {
+   "at": "2026-11-07T23:33:30Z",
+   "label": "agentic3_g_round3_7001_n3",
+   "kind": "dev_round",
+   "tokens_in": 228598,
+   "tokens_out": 9217,
+   "cost_placeholder_usd": 0.206,
+   "cost_lower_usd": 0.2129,
+   "rates_in_out_per_m": [
+    0.75,
+    3.75
+   ],
+   "computer_use_model": "gemini-3.8-flash",
+   "provider": "gemini",
+   "goal_hash": "a0af9d970002",
+   "gate_version": "bf343da6fcb9",
+   "household": "hh_0002",
+   "cu_provider": "default"
+  },
+  {
+   "at": "2026-11-07T23:36:28Z",
+   "label": "agentic3_g_round3_7001_n3",
+   "kind": "dev_round",
+   "tokens_in": 233813,
+   "tokens_out": 9088,
+   "cost_placeholder_usd": 0.2094,
+   "cost_lower_usd": 0.2163,
+   "rates_in_out_per_m": [
+    0.75,
+    3.75
+   ],
+   "computer_use_model": "gemini-3.8-flash",
+   "provider": "gemini",
+   "goal_hash": "a0af9d970002",
+   "gate_version": "bf343da6fcb9",
+   "household": "hh_0003",
+   "cu_provider": "default"
+  },
+  {
+   "at": "2026-11-07T23:40:50Z",
+   "label": "agentic3_g_round4_7001_n1_scribe2",
+   "kind": "dev_round",
+   "tokens_in": 233631,
+   "tokens_out": 9249,
+   "cost_placeholder_usd": 0.2099,
+   "cost_lower_usd": 0.2168,
+   "rates_in_out_per_m": [
+    0.75,
+    3.75
+   ],
+   "computer_use_model": "gemini-3.8-flash",
+   "provider": "gemini",
+   "goal_hash": "a0af9d970002",
+   "gate_version": "52f5eee42650",
+   "household": "hh_0001",
+   "cu_provider": "default"
   }
  ],
- "spent_placeholder_usd": 1.2963,
- "spent_lower_usd": 1.3388,
- "pct_of_cap": 0.6
+ "spent_placeholder_usd": 2.1385,
+ "spent_lower_usd": 2.209,
+ "pct_of_cap": 1.1
 }

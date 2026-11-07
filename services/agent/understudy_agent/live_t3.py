@@ -309,7 +309,7 @@ def parse_shard(text: str) -> tuple[int, int]:
 
 
 async def dev_round(n: int, seed: int, condition: str, steps: int, budget: float, label: str, *, heldout: bool = False,
-                    cu_provider: str | None = None, shard: tuple[int, int] = (0, 1)) -> dict[str, Any]:
+                    cu_provider: str | None = None, shard: tuple[int, int] = (0, 1), scribe_tier: int | None = None) -> dict[str, Any]:
     """One round. `shard=(K, N)` makes this process ONE of N workers of the same round: it runs the households with index % N == K, in a
     private sandbox cluster (its own ports and its own state, so the per-household reset never touches another worker's household), with
     its own cache file, audit log and queue directories (the label differs per worker). Within a process households stay sequential:
@@ -329,7 +329,7 @@ async def dev_round(n: int, seed: int, condition: str, steps: int, budget: float
             run_id = f"r_{label}_{h.id}"
             tin0, tout0, cost0, blocked0 = *model.tokens(), model.cost(), model.blocked
             opts = RunOptions(denylist=Denylist(), use_tier1=False, allow_tier3=True, start_tier=3, t3_max_steps=steps,
-                              deadline_s=900.0, screenshots=False, query=sw)
+                              deadline_s=900.0, screenshots=False, query=sw, scribe_tier=scribe_tier)
             run = BenefitsRun(run_id, h, model=model, base_urls=cluster.urls, queue=queue, audit=audit, options=opts)
             t0 = time.monotonic()
             try:
@@ -392,6 +392,7 @@ async def dev_round(n: int, seed: int, condition: str, steps: int, budget: float
     doc = summarise(rows, label=label, heldout=heldout, seed=seed, condition=condition, dropped=dropped, models=model_ids(),
                     cu_provider=cu_provider or getattr(model.inner, "name", ""),
                     by_provider=model.inner.by_provider if isinstance(model.inner, SplitPort) else None)
+    doc["scribe_tier"] = scribe_tier           # None: the scribe starts at the same tier as the calculators (tier 3); 2: planner and browser agent first
     if nshards > 1:
         doc["shard"] = f"{k}/{nshards}"
     RESULTS.mkdir(parents=True, exist_ok=True)
@@ -478,6 +479,8 @@ def main() -> int:
     b.add_argument("--label", required=True)
     b.add_argument("--cu-provider", default=None, help="a different provider for the computer-use step only (for example gemini)")
     b.add_argument("--heldout", action="store_true", help="label the result as a held-out confirmation (single use of the seed)")
+    b.add_argument("--scribe-tier", type=int, default=None, choices=[2, 3],
+                   help="the tier the case-note step starts at (default: the same as the calculators, tier 3); 2 = planner and browser agent first")
     b.add_argument("--shard", default="0/1", help="K/N: this process is worker K of N of the same round (households with index %% N == K); give each "
                                                   "worker its own --label and put the files back together with `merge`")
     m = sub.add_parser("merge", help="merge the result files of a sharded round into one")
@@ -493,7 +496,7 @@ def main() -> int:
         out = asyncio.run(smoke(args.site, args.household, args.budget, args.steps, args.label, cu_provider=args.cu_provider, old_goal=args.old_goal))
     else:
         out = asyncio.run(dev_round(args.households, args.seed, args.condition, args.steps, args.budget, args.label, heldout=args.heldout,
-                                    cu_provider=args.cu_provider, shard=parse_shard(args.shard)))
+                                    cu_provider=args.cu_provider, shard=parse_shard(args.shard), scribe_tier=args.scribe_tier))
     print(json.dumps({k: v for k, v in out.items() if k not in ("rows", "actions")}, indent=1)[:3000])
     return 0
 

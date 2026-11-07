@@ -67,6 +67,19 @@ async def test_the_injected_condition_pauses_before_any_model_call_and_has_no_pr
     assert doc["note_injected"] and "TEXT-ONLY" in doc["note_injected"]
 
 
+async def test_the_scribe_tier_option_changes_only_where_the_case_note_step_starts(offline_harness):
+    from understudy_agent.orchestrator import RunOptions
+
+    assert RunOptions().scribe_tier is None                                  # the default is unchanged: the scribe starts where the calculators do
+    d3 = await live_t3.dev_round(1, 7001, "clean", 200, 5.0, "t_scribe3")
+    d2 = await live_t3.dev_round(1, 7001, "clean", 200, 5.0, "t_scribe2", scribe_tier=2)
+    assert d3["scribe_tier"] is None and d2["scribe_tier"] == 2
+    scribe3 = [t for t in d3["rows"][0]["tier3"] if t["navigator"] == "scribe"]
+    assert scribe3 and scribe3[0]["outcome"] == "done"                       # at tier 3 the scribe ran computer use
+    assert d2["rows"][0]["state"] == "done" and d2["rows"][0]["code_check_ok"]                      # from tier 2 the household still completes
+    assert not [t for t in d2["rows"][0]["tier3"] if t["navigator"] == "scribe" and t["outcome"] != "done"]   # no failed computer-use attempt either
+
+
 async def test_the_smoke_reports_what_the_site_received_and_the_goal_check_counts(offline_harness):
     out = await live_t3.smoke("b", 1, 1.0, 80, "t_smoke")
     assert out["state"] == "done" and out["inputs_audit"] == "clean" and out["inputs_exact"] is True and out["inputs_differ"] == []
