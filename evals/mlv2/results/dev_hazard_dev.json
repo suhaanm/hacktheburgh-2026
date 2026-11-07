@@ -1,0 +1,3664 @@
+{
+ "pool": "DEV",
+ "origin": "synthetic",
+ "n_people": 16,
+ "n_unit": "people",
+ "n_bins": 31791,
+ "n_episodes": 10944,
+ "split": "leave-one-person-out within the pool",
+ "inner": "grouped 5-fold within training people",
+ "interval_level": 0.95,
+ "n_boot": 4000,
+ "note": "Persona replicates from our own generator: fresh draws of the same four persona types. They catch overfitting to one noise realisation; they cannot show that a model avoided learning the generator.",
+ "persona_types": [
+  "p_irregular",
+  "p_nightowl",
+  "p_ninetofive",
+  "p_shiftwkr"
+ ],
+ "primary_a": null,
+ "family_a": {
+  "reference": "A0",
+  "primary": null,
+  "n_people": 16,
+  "n_bins": 31791,
+  "n_boot": 4000,
+  "adjusted_level": 0.99375,
+  "m_candidates": 8,
+  "rows": {
+   "A0": {
+    "id": "A0",
+    "label": "v1 logistic (reference)",
+    "level": 0.95,
+    "is_primary": false,
+    "metrics": {
+     "log_loss": {
+      "value": 0.43860372734708625,
+      "interval": [
+       0.42755852765057606,
+       0.4490134183995425
+      ]
+     },
+     "brier": {
+      "value": 0.14153642056414975,
+      "interval": [
+       0.137227621429439,
+       0.14556974311330556
+      ]
+     },
+     "ece": {
+      "value": 0.01560221517957539,
+      "interval": [
+       0.012511390260565166,
+       0.023117354289670617
+      ]
+     },
+     "auc": {
+      "value": 0.7746097902342733,
+      "interval": [
+       0.7680587250419327,
+       0.782649321389232
+      ]
+     }
+    },
+    "events": {
+     "false_alarms_per_hour": {
+      "value": 0.9502166039343797,
+      "interval": [
+       0.8034892649869213,
+       1.12313578964867
+      ]
+     },
+     "detection": {
+      "value": 0.32115249472944485,
+      "interval": [
+       0.2897752803640449,
+       0.3641414929057776
+      ]
+     },
+     "overshoot": {
+      "value": 0.0,
+      "interval": [
+       0.0,
+       0.12313578964866989
+      ]
+     }
+    },
+    "paired_vs_ref": {
+     "log_loss": {
+      "delta": 0.0,
+      "interval": [
+       0.0,
+       0.0
+      ],
+      "level": 0.95
+     },
+     "brier": {
+      "delta": 0.0,
+      "interval": [
+       0.0,
+       0.0
+      ],
+      "level": 0.95
+     },
+     "ece": {
+      "delta": 0.0,
+      "interval": [
+       0.0,
+       0.0
+      ],
+      "level": 0.95
+     },
+     "auc": {
+      "delta": 0.0,
+      "interval": [
+       0.0,
+       0.0
+      ],
+      "level": 0.95
+     },
+     "detection": {
+      "delta": 0.0,
+      "interval": [
+       0.0,
+       0.0
+      ],
+      "level": 0.95
+     },
+     "false_alarms_per_hour": {
+      "delta": 0.0,
+      "interval": [
+       0.0,
+       0.0
+      ],
+      "level": 0.95
+     },
+     "overshoot": {
+      "delta": 0.0,
+      "interval": [
+       0.0,
+       0.0
+      ],
+      "level": 0.95
+     }
+    },
+    "guards": {
+     "brier": {
+      "ok": true,
+      "side": "upper",
+      "margin": 0.002,
+      "bound": 0.0,
+      "delta": 0.0
+     },
+     "ece": {
+      "ok": true,
+      "side": "upper",
+      "margin": 0.01,
+      "bound": 0.0,
+      "delta": 0.0
+     },
+     "auc": {
+      "ok": true,
+      "side": "lower",
+      "margin": -0.01,
+      "bound": 0.0,
+      "delta": 0.0
+     },
+     "detection": {
+      "ok": true,
+      "side": "lower",
+      "margin": -0.03,
+      "bound": 0.0,
+      "delta": 0.0
+     }
+    },
+    "verdict": "reference",
+    "primary_improves": false,
+    "guards_ok": true,
+    "point_guards_hold": true
+   },
+   "A1": {
+    "id": "A1",
+    "label": "logistic + Platt",
+    "level": 0.99375,
+    "is_primary": false,
+    "metrics": {
+     "log_loss": {
+      "value": 0.43859889043341516,
+      "interval": [
+       0.42756352480765497,
+       0.4489932848680706
+      ]
+     },
+     "brier": {
+      "value": 0.1415291425643586,
+      "interval": [
+       0.1372199833143825,
+       0.1455548603658936
+      ]
+     },
+     "ece": {
+      "value": 0.01651843732692588,
+      "interval": [
+       0.013164817670854015,
+       0.023291179857149114
+      ]
+     },
+     "auc": {
+      "value": 0.774611188564017,
+      "interval": [
+       0.7680509217941569,
+       0.7826143398003474
+      ]
+     }
+    },
+    "events": {
+     "false_alarms_per_hour": {
+      "value": 0.9502166039343797,
+      "interval": [
+       0.8034892649869213,
+       1.12313578964867
+      ]
+     },
+     "detection": {
+      "value": 0.32115249472944485,
+      "interval": [
+       0.2897752803640449,
+       0.3641414929057776
+      ]
+     },
+     "overshoot": {
+      "value": 0.0,
+      "interval": [
+       0.0,
+       0.12313578964866989
+      ]
+     }
+    },
+    "paired_vs_ref": {
+     "log_loss": {
+      "delta": -4.836913671091292e-06,
+      "interval": [
+       -6.61966229254022e-05,
+       5.581524791556259e-05
+      ],
+      "level": 0.99375
+     },
+     "brier": {
+      "delta": -7.277999791138745e-06,
+      "interval": [
+       -2.5617522032731735e-05,
+       8.412848779141925e-06
+      ],
+      "level": 0.99375
+     },
+     "ece": {
+      "delta": 0.000916222147350489,
+      "interval": [
+       -0.000494051997866313,
+       0.0014618679614834737
+      ],
+      "level": 0.99375
+     },
+     "auc": {
+      "delta": 1.3983297436626074e-06,
+      "interval": [
+       -6.879417142467425e-05,
+       5.9308938622441465e-05
+      ],
+      "level": 0.99375
+     },
+     "detection": {
+      "delta": 0.0,
+      "interval": [
+       0.0,
+       0.0
+      ],
+      "level": 0.99375
+     },
+     "false_alarms_per_hour": {
+      "delta": 0.0,
+      "interval": [
+       0.0,
+       0.0
+      ],
+      "level": 0.99375
+     },
+     "overshoot": {
+      "delta": 0.0,
+      "interval": [
+       0.0,
+       0.0
+      ],
+      "level": 0.99375
+     }
+    },
+    "guards": {
+     "brier": {
+      "ok": true,
+      "side": "upper",
+      "margin": 0.002,
+      "bound": 8.412848779141925e-06,
+      "delta": -7.277999791138745e-06
+     },
+     "ece": {
+      "ok": true,
+      "side": "upper",
+      "margin": 0.01,
+      "bound": 0.0014618679614834737,
+      "delta": 0.000916222147350489
+     },
+     "auc": {
+      "ok": true,
+      "side": "lower",
+      "margin": -0.01,
+      "bound": -6.879417142467425e-05,
+      "delta": 1.3983297436626074e-06
+     },
+     "detection": {
+      "ok": true,
+      "side": "lower",
+      "margin": -0.03,
+      "bound": 0.0,
+      "delta": 0.0
+     }
+    },
+    "verdict": "null",
+    "primary_improves": false,
+    "guards_ok": true,
+    "point_guards_hold": true
+   },
+   "A2": {
+    "id": "A2",
+    "label": "logistic + isotonic",
+    "level": 0.99375,
+    "is_primary": false,
+    "metrics": {
+     "log_loss": {
+      "value": 0.43673843602006784,
+      "interval": [
+       0.4256578793728325,
+       0.4470355963479754
+      ]
+     },
+     "brier": {
+      "value": 0.14084772971133133,
+      "interval": [
+       0.13660034945710467,
+       0.14476422091844862
+      ]
+     },
+     "ece": {
+      "value": 0.003473905712939407,
+      "interval": [
+       0.0034912263650163254,
+       0.015117960103428599
+      ]
+     },
+     "auc": {
+      "value": 0.773676911220419,
+      "interval": [
+       0.7672703421152908,
+       0.7814846632514346
+      ]
+     }
+    },
+    "events": {
+     "false_alarms_per_hour": {
+      "value": 0.9587387259427598,
+      "interval": [
+       0.7911239658813505,
+       1.1409598834264152
+      ]
+     },
+     "detection": {
+      "value": 0.3141250878425861,
+      "interval": [
+       0.2784889139208091,
+       0.3605893138841655
+      ]
+     },
+     "overshoot": {
+      "value": 0.0,
+      "interval": [
+       0.0,
+       0.14095988342641527
+      ]
+     }
+    },
+    "paired_vs_ref": {
+     "log_loss": {
+      "delta": -0.0018652913270184035,
+      "interval": [
+       -0.0033511372483887372,
+       8.441073437951527e-05
+      ],
+      "level": 0.99375
+     },
+     "brier": {
+      "delta": -0.0006886908528184188,
+      "interval": [
+       -0.0011736155440684767,
+       -0.0002522973672587438
+      ],
+      "level": 0.99375
+     },
+     "ece": {
+      "delta": -0.012128309466635984,
+      "interval": [
+       -0.01598047702432697,
+       -0.0006889345246407745
+      ],
+      "level": 0.99375
+     },
+     "auc": {
+      "delta": -0.0009328790138543042,
+      "interval": [
+       -0.002202761136658893,
+       0.0002455199171777685
+      ],
+      "level": 0.99375
+     },
+     "detection": {
+      "delta": -0.007027406886858767,
+      "interval": [
+       -0.027786042529075513,
+       0.005691072029605057
+      ],
+      "level": 0.99375
+     },
+     "false_alarms_per_hour": {
+      "delta": 0.008522122008380095,
+      "interval": [
+       -0.05663934936429271,
+       0.05806047596785582
+      ],
+      "level": 0.99375
+     },
+     "overshoot": {
+      "delta": 0.0,
+      "interval": [
+       -0.025322835516432614,
+       0.05083069566054781
+      ],
+      "level": 0.99375
+     }
+    },
+    "guards": {
+     "brier": {
+      "ok": true,
+      "side": "upper",
+      "margin": 0.002,
+      "bound": -0.0002522973672587438,
+      "delta": -0.0006886908528184188
+     },
+     "ece": {
+      "ok": true,
+      "side": "upper",
+      "margin": 0.01,
+      "bound": -0.0006889345246407745,
+      "delta": -0.012128309466635984
+     },
+     "auc": {
+      "ok": true,
+      "side": "lower",
+      "margin": -0.01,
+      "bound": -0.002202761136658893,
+      "delta": -0.0009328790138543042
+     },
+     "detection": {
+      "ok": true,
+      "side": "lower",
+      "margin": -0.03,
+      "bound": -0.027786042529075513,
+      "delta": -0.007027406886858767
+     }
+    },
+    "verdict": "null",
+    "primary_improves": false,
+    "guards_ok": true,
+    "point_guards_hold": true
+   },
+   "A3": {
+    "id": "A3",
+    "label": "gradient boosting (monotone)",
+    "level": 0.99375,
+    "is_primary": false,
+    "metrics": {
+     "log_loss": {
+      "value": 0.43725896805822395,
+      "interval": [
+       0.4268462882517498,
+       0.4469406775737087
+      ]
+     },
+     "brier": {
+      "value": 0.14112611531951197,
+      "interval": [
+       0.1370410486375645,
+       0.14498656638055643
+      ]
+     },
+     "ece": {
+      "value": 0.019756224219525272,
+      "interval": [
+       0.01607702554525369,
+       0.027326294752644403
+      ]
+     },
+     "auc": {
+      "value": 0.7749067071254753,
+      "interval": [
+       0.767962348711967,
+       0.783349499293195
+      ]
+     }
+    },
+    "events": {
+     "false_alarms_per_hour": {
+      "value": 0.9502166039343797,
+      "interval": [
+       0.7978721905678369,
+       1.1130986505787475
+      ]
+     },
+     "detection": {
+      "value": 0.3394237526352776,
+      "interval": [
+       0.30714272839633333,
+       0.383251087166914
+      ]
+     },
+     "overshoot": {
+      "value": 0.0,
+      "interval": [
+       0.0,
+       0.11309865057874742
+      ]
+     }
+    },
+    "paired_vs_ref": {
+     "log_loss": {
+      "delta": -0.0013447592888622961,
+      "interval": [
+       -0.0036837223408197894,
+       0.001067733725976139
+      ],
+      "level": 0.99375
+     },
+     "brier": {
+      "delta": -0.00041030524463778195,
+      "interval": [
+       -0.0014412830993849454,
+       0.0005461439275208872
+      ],
+      "level": 0.99375
+     },
+     "ece": {
+      "delta": 0.004154009039949882,
+      "interval": [
+       -0.0024608684548257224,
+       0.010229992045417758
+      ],
+      "level": 0.99375
+     },
+     "auc": {
+      "delta": 0.000296916891201926,
+      "interval": [
+       -0.0033971267170219486,
+       0.004002734374968682
+      ],
+      "level": 0.99375
+     },
+     "detection": {
+      "delta": 0.018271257905832727,
+      "interval": [
+       -0.00966784338896025,
+       0.046408357363731646
+      ],
+      "level": 0.99375
+     },
+     "false_alarms_per_hour": {
+      "delta": 0.0,
+      "interval": [
+       -0.18482951012082946,
+       0.19192555823978236
+      ],
+      "level": 0.99375
+     },
+     "overshoot": {
+      "delta": 0.0,
+      "interval": [
+       -0.12426232539248977,
+       0.1171194763558221
+      ],
+      "level": 0.99375
+     }
+    },
+    "guards": {
+     "brier": {
+      "ok": true,
+      "side": "upper",
+      "margin": 0.002,
+      "bound": 0.0005461439275208872,
+      "delta": -0.00041030524463778195
+     },
+     "ece": {
+      "ok": false,
+      "side": "upper",
+      "margin": 0.01,
+      "bound": 0.010229992045417758,
+      "delta": 0.004154009039949882
+     },
+     "auc": {
+      "ok": true,
+      "side": "lower",
+      "margin": -0.01,
+      "bound": -0.0033971267170219486,
+      "delta": 0.000296916891201926
+     },
+     "detection": {
+      "ok": true,
+      "side": "lower",
+      "margin": -0.03,
+      "bound": -0.00966784338896025,
+      "delta": 0.018271257905832727
+     }
+    },
+    "verdict": "null",
+    "primary_improves": false,
+    "guards_ok": false,
+    "point_guards_hold": true
+   },
+   "A4": {
+    "id": "A4",
+    "label": "gradient boosting + Platt",
+    "level": 0.99375,
+    "is_primary": false,
+    "metrics": {
+     "log_loss": {
+      "value": 0.43560050760564245,
+      "interval": [
+       0.4251359458905614,
+       0.44544137179523324
+      ]
+     },
+     "brier": {
+      "value": 0.14077181651149434,
+      "interval": [
+       0.13687519900383485,
+       0.14442582827633912
+      ]
+     },
+     "ece": {
+      "value": 0.0167521349266406,
+      "interval": [
+       0.013427654421121737,
+       0.024103475990215575
+      ]
+     },
+     "auc": {
+      "value": 0.7749963172441123,
+      "interval": [
+       0.768089909490474,
+       0.7833966970999215
+      ]
+     }
+    },
+    "events": {
+     "false_alarms_per_hour": {
+      "value": 0.9502166039343797,
+      "interval": [
+       0.7978721905678369,
+       1.1130986505787475
+      ]
+     },
+     "detection": {
+      "value": 0.3394237526352776,
+      "interval": [
+       0.30714272839633333,
+       0.383251087166914
+      ]
+     },
+     "overshoot": {
+      "value": 0.0,
+      "interval": [
+       0.0,
+       0.11309865057874742
+      ]
+     }
+    },
+    "paired_vs_ref": {
+     "log_loss": {
+      "delta": -0.0030032197414437967,
+      "interval": [
+       -0.005914202739016452,
+       -0.00032240995212421927
+      ],
+      "level": 0.99375
+     },
+     "brier": {
+      "delta": -0.0007646040526554099,
+      "interval": [
+       -0.0020739513585280025,
+       0.00031156691169852054
+      ],
+      "level": 0.99375
+     },
+     "ece": {
+      "delta": 0.0011499197470652093,
+      "interval": [
+       -0.007209273813138303,
+       0.011685519277605591
+      ],
+      "level": 0.99375
+     },
+     "auc": {
+      "delta": 0.00038652700983898836,
+      "interval": [
+       -0.0033447625555069163,
+       0.00407591838521259
+      ],
+      "level": 0.99375
+     },
+     "detection": {
+      "delta": 0.018271257905832727,
+      "interval": [
+       -0.00966784338896025,
+       0.046408357363731646
+      ],
+      "level": 0.99375
+     },
+     "false_alarms_per_hour": {
+      "delta": 0.0,
+      "interval": [
+       -0.18482951012082946,
+       0.19192555823978236
+      ],
+      "level": 0.99375
+     },
+     "overshoot": {
+      "delta": 0.0,
+      "interval": [
+       -0.12426232539248977,
+       0.1171194763558221
+      ],
+      "level": 0.99375
+     }
+    },
+    "guards": {
+     "brier": {
+      "ok": true,
+      "side": "upper",
+      "margin": 0.002,
+      "bound": 0.00031156691169852054,
+      "delta": -0.0007646040526554099
+     },
+     "ece": {
+      "ok": false,
+      "side": "upper",
+      "margin": 0.01,
+      "bound": 0.011685519277605591,
+      "delta": 0.0011499197470652093
+     },
+     "auc": {
+      "ok": true,
+      "side": "lower",
+      "margin": -0.01,
+      "bound": -0.0033447625555069163,
+      "delta": 0.00038652700983898836
+     },
+     "detection": {
+      "ok": true,
+      "side": "lower",
+      "margin": -0.03,
+      "bound": -0.00966784338896025,
+      "delta": 0.018271257905832727
+     }
+    },
+    "verdict": "null",
+    "primary_improves": true,
+    "guards_ok": false,
+    "point_guards_hold": true
+   },
+   "A5": {
+    "id": "A5",
+    "label": "gradient boosting + isotonic",
+    "level": 0.99375,
+    "is_primary": false,
+    "metrics": {
+     "log_loss": {
+      "value": 0.435157651233513,
+      "interval": [
+       0.4245092555244865,
+       0.4451476915777822
+      ]
+     },
+     "brier": {
+      "value": 0.14065054602303434,
+      "interval": [
+       0.1367205321107353,
+       0.14435308803239355
+      ]
+     },
+     "ece": {
+      "value": 0.005028864257669234,
+      "interval": [
+       0.003995454740114902,
+       0.015144505490744234
+      ]
+     },
+     "auc": {
+      "value": 0.7732324061829858,
+      "interval": [
+       0.7663800426565873,
+       0.7816975697716766
+      ]
+     }
+    },
+    "events": {
+     "false_alarms_per_hour": {
+      "value": 0.42184503941481427,
+      "interval": [
+       0.30175288728613914,
+       0.5655817191283014
+      ]
+     },
+     "detection": {
+      "value": 0.2733661278988053,
+      "interval": [
+       0.23940286256814425,
+       0.3188766976552212
+      ]
+     },
+     "overshoot": {
+      "value": 0.0,
+      "interval": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "paired_vs_ref": {
+     "log_loss": {
+      "delta": -0.0034460761135732265,
+      "interval": [
+       -0.006201878315702759,
+       -0.0007116873897776566
+      ],
+      "level": 0.99375
+     },
+     "brier": {
+      "delta": -0.0008858745411154112,
+      "interval": [
+       -0.002152631907688839,
+       0.0001966644706605916
+      ],
+      "level": 0.99375
+     },
+     "ece": {
+      "delta": -0.010573350921906156,
+      "interval": [
+       -0.01605637169250802,
+       0.0011141859816131922
+      ],
+      "level": 0.99375
+     },
+     "auc": {
+      "delta": -0.0013773840512875113,
+      "interval": [
+       -0.00475332131871375,
+       0.0022427965190827434
+      ],
+      "level": 0.99375
+     },
+     "detection": {
+      "delta": -0.047786366830639526,
+      "interval": [
+       -0.07266943119183923,
+       -0.020758570345934396
+      ],
+      "level": 0.99375
+     },
+     "false_alarms_per_hour": {
+      "delta": -0.5283715645195655,
+      "interval": [
+       -0.7156072224145786,
+       -0.3949833948310468
+      ],
+      "level": 0.99375
+     },
+     "overshoot": {
+      "delta": 0.0,
+      "interval": [
+       -0.19902468749543378,
+       0.0
+      ],
+      "level": 0.99375
+     }
+    },
+    "guards": {
+     "brier": {
+      "ok": true,
+      "side": "upper",
+      "margin": 0.002,
+      "bound": 0.0001966644706605916,
+      "delta": -0.0008858745411154112
+     },
+     "ece": {
+      "ok": true,
+      "side": "upper",
+      "margin": 0.01,
+      "bound": 0.0011141859816131922,
+      "delta": -0.010573350921906156
+     },
+     "auc": {
+      "ok": true,
+      "side": "lower",
+      "margin": -0.01,
+      "bound": -0.00475332131871375,
+      "delta": -0.0013773840512875113
+     },
+     "detection": {
+      "ok": false,
+      "side": "lower",
+      "margin": -0.03,
+      "bound": -0.07266943119183923,
+      "delta": -0.047786366830639526
+     }
+    },
+    "verdict": "null",
+    "primary_improves": true,
+    "guards_ok": false,
+    "point_guards_hold": false
+   },
+   "A6": {
+    "id": "A6",
+    "label": "logistic + personal prior shift (partial pooling)",
+    "level": 0.99375,
+    "is_primary": false,
+    "metrics": {
+     "log_loss": {
+      "value": 0.4377422602524346,
+      "interval": [
+       0.42662065679109973,
+       0.44800983770967523
+      ]
+     },
+     "brier": {
+      "value": 0.141123002725531,
+      "interval": [
+       0.13680510673656462,
+       0.14501996040561252
+      ]
+     },
+     "ece": {
+      "value": 0.01488736067593507,
+      "interval": [
+       0.012389278956458727,
+       0.022233862132178053
+      ]
+     },
+     "auc": {
+      "value": 0.7784182700077379,
+      "interval": [
+       0.7718007695380724,
+       0.7863442098169673
+      ]
+     }
+    },
+    "events": {
+     "false_alarms_per_hour": {
+      "value": 0.9757829699595199,
+      "interval": [
+       0.82343859221732,
+       1.1495963502428954
+      ]
+     },
+     "detection": {
+      "value": 0.32677442023893183,
+      "interval": [
+       0.29762649286783344,
+       0.36164044294134295
+      ]
+     },
+     "overshoot": {
+      "value": 0.0,
+      "interval": [
+       0.0,
+       0.1495963502428953
+      ]
+     }
+    },
+    "paired_vs_ref": {
+     "log_loss": {
+      "delta": -0.0008614670946516245,
+      "interval": [
+       -0.002551371270040403,
+       0.0004948257989543861
+      ],
+      "level": 0.99375
+     },
+     "brier": {
+      "delta": -0.00041341783861875703,
+      "interval": [
+       -0.001079593809989203,
+       8.876469576371596e-05
+      ],
+      "level": 0.99375
+     },
+     "ece": {
+      "delta": -0.0007148545036403196,
+      "interval": [
+       -0.011762527217578058,
+       0.007825407246912662
+      ],
+      "level": 0.99375
+     },
+     "auc": {
+      "delta": 0.003808479773464546,
+      "interval": [
+       0.0020049540025518695,
+       0.005761987171186557
+      ],
+      "level": 0.99375
+     },
+     "detection": {
+      "delta": 0.00562192550948698,
+      "interval": [
+       -0.028618658884152194,
+       0.03194930780759931
+      ],
+      "level": 0.99375
+     },
+     "false_alarms_per_hour": {
+      "delta": 0.025566366025140175,
+      "interval": [
+       -0.1508041106974053,
+       0.1933391339869163
+      ],
+      "level": 0.99375
+     },
+     "overshoot": {
+      "delta": 0.0,
+      "interval": [
+       -0.11093524757779738,
+       0.1520413251761254
+      ],
+      "level": 0.99375
+     }
+    },
+    "guards": {
+     "brier": {
+      "ok": true,
+      "side": "upper",
+      "margin": 0.002,
+      "bound": 8.876469576371596e-05,
+      "delta": -0.00041341783861875703
+     },
+     "ece": {
+      "ok": true,
+      "side": "upper",
+      "margin": 0.01,
+      "bound": 0.007825407246912662,
+      "delta": -0.0007148545036403196
+     },
+     "auc": {
+      "ok": true,
+      "side": "lower",
+      "margin": -0.01,
+      "bound": 0.0020049540025518695,
+      "delta": 0.003808479773464546
+     },
+     "detection": {
+      "ok": true,
+      "side": "lower",
+      "margin": -0.03,
+      "bound": -0.028618658884152194,
+      "delta": 0.00562192550948698
+     }
+    },
+    "verdict": "null",
+    "primary_improves": false,
+    "guards_ok": true,
+    "point_guards_hold": true
+   },
+   "A7_A1": {
+    "id": "A7_A1",
+    "label": "A1 + personal prior shift",
+    "level": 0.99375,
+    "is_primary": false,
+    "metrics": {
+     "log_loss": {
+      "value": 0.43776297659471763,
+      "interval": [
+       0.42666309326709473,
+       0.4480158149706475
+      ]
+     },
+     "brier": {
+      "value": 0.14111411015534037,
+      "interval": [
+       0.1367983257527475,
+       0.1450138192190662
+      ]
+     },
+     "ece": {
+      "value": 0.0154362198814695,
+      "interval": [
+       0.01294116778267384,
+       0.022415324578705594
+      ]
+     },
+     "auc": {
+      "value": 0.7784399236411327,
+      "interval": [
+       0.7718240603499037,
+       0.7863766346639054
+      ]
+     }
+    },
+    "events": {
+     "false_alarms_per_hour": {
+      "value": 0.9757829699595199,
+      "interval": [
+       0.82343859221732,
+       1.1495963502428954
+      ]
+     },
+     "detection": {
+      "value": 0.3274771609276177,
+      "interval": [
+       0.2975539678776384,
+       0.36225456460355365
+      ]
+     },
+     "overshoot": {
+      "value": 0.0,
+      "interval": [
+       0.0,
+       0.1495963502428953
+      ]
+     }
+    },
+    "paired_vs_ref": {
+     "log_loss": {
+      "delta": -0.0008407507523686131,
+      "interval": [
+       -0.0025533842709590414,
+       0.0005485140919792813
+      ],
+      "level": 0.99375
+     },
+     "brier": {
+      "delta": -0.0004223104088093843,
+      "interval": [
+       -0.0010932602314382598,
+       8.07275380692313e-05
+      ],
+      "level": 0.99375
+     },
+     "ece": {
+      "delta": -0.0001659952981058893,
+      "interval": [
+       -0.011173731812051415,
+       0.007973113675216387
+      ],
+      "level": 0.99375
+     },
+     "auc": {
+      "delta": 0.0038301334068593373,
+      "interval": [
+       0.002012049766860581,
+       0.005789299042753286
+      ],
+      "level": 0.99375
+     },
+     "detection": {
+      "delta": 0.006324666198172846,
+      "interval": [
+       -0.028754485482795564,
+       0.03342195388725528
+      ],
+      "level": 0.99375
+     },
+     "false_alarms_per_hour": {
+      "delta": 0.025566366025140175,
+      "interval": [
+       -0.1508041106974053,
+       0.1933391339869163
+      ],
+      "level": 0.99375
+     },
+     "overshoot": {
+      "delta": 0.0,
+      "interval": [
+       -0.11093524757779738,
+       0.1520413251761254
+      ],
+      "level": 0.99375
+     }
+    },
+    "guards": {
+     "brier": {
+      "ok": true,
+      "side": "upper",
+      "margin": 0.002,
+      "bound": 8.07275380692313e-05,
+      "delta": -0.0004223104088093843
+     },
+     "ece": {
+      "ok": true,
+      "side": "upper",
+      "margin": 0.01,
+      "bound": 0.007973113675216387,
+      "delta": -0.0001659952981058893
+     },
+     "auc": {
+      "ok": true,
+      "side": "lower",
+      "margin": -0.01,
+      "bound": 0.002012049766860581,
+      "delta": 0.0038301334068593373
+     },
+     "detection": {
+      "ok": true,
+      "side": "lower",
+      "margin": -0.03,
+      "bound": -0.028754485482795564,
+      "delta": 0.006324666198172846
+     }
+    },
+    "verdict": "null",
+    "primary_improves": false,
+    "guards_ok": true,
+    "point_guards_hold": true
+   },
+   "A7_A4": {
+    "id": "A7_A4",
+    "label": "A4 + personal prior shift",
+    "level": 0.99375,
+    "is_primary": false,
+    "metrics": {
+     "log_loss": {
+      "value": 0.43489784841172285,
+      "interval": [
+       0.4244171135187751,
+       0.4447575421050166
+      ]
+     },
+     "brier": {
+      "value": 0.14045560837394833,
+      "interval": [
+       0.136531225325772,
+       0.1441292087710394
+      ]
+     },
+     "ece": {
+      "value": 0.015340452046282316,
+      "interval": [
+       0.009311843838021359,
+       0.024233092287863186
+      ]
+     },
+     "auc": {
+      "value": 0.7791132720694843,
+      "interval": [
+       0.7720178849626164,
+       0.7873062302709437
+      ]
+     }
+    },
+    "events": {
+     "false_alarms_per_hour": {
+      "value": 0.9715219089553299,
+      "interval": [
+       0.7557115926581806,
+       1.1905968846024169
+      ]
+     },
+     "detection": {
+      "value": 0.33801827125790584,
+      "interval": [
+       0.30368019793112716,
+       0.37630978016100886
+      ]
+     },
+     "overshoot": {
+      "value": 0.0,
+      "interval": [
+       0.0,
+       0.1905968846024168
+      ]
+     }
+    },
+    "paired_vs_ref": {
+     "log_loss": {
+      "delta": -0.0037058789353633936,
+      "interval": [
+       -0.007415262755035878,
+       -0.0005984665264895348
+      ],
+      "level": 0.99375
+     },
+     "brier": {
+      "delta": -0.0010808121902014245,
+      "interval": [
+       -0.00287797478267287,
+       0.00030418074374249644
+      ],
+      "level": 0.99375
+     },
+     "ece": {
+      "delta": -0.0002617631332930744,
+      "interval": [
+       -0.015878230903602554,
+       0.01166254424121494
+      ],
+      "level": 0.99375
+     },
+     "auc": {
+      "delta": 0.004503481835210987,
+      "interval": [
+       0.0005721270069241386,
+       0.007706434513216051
+      ],
+      "level": 0.99375
+     },
+     "detection": {
+      "delta": 0.016865776528460996,
+      "interval": [
+       -0.037843897907350724,
+       0.06163513184371219
+      ],
+      "level": 0.99375
+     },
+     "false_alarms_per_hour": {
+      "delta": 0.021305305020950183,
+      "interval": [
+       -0.3382932647337443,
+       0.34298389098556264
+      ],
+      "level": 0.99375
+     },
+     "overshoot": {
+      "delta": 0.0,
+      "interval": [
+       -0.18105587590809233,
+       0.26426538045611314
+      ],
+      "level": 0.99375
+     }
+    },
+    "guards": {
+     "brier": {
+      "ok": true,
+      "side": "upper",
+      "margin": 0.002,
+      "bound": 0.00030418074374249644,
+      "delta": -0.0010808121902014245
+     },
+     "ece": {
+      "ok": false,
+      "side": "upper",
+      "margin": 0.01,
+      "bound": 0.01166254424121494,
+      "delta": -0.0002617631332930744
+     },
+     "auc": {
+      "ok": true,
+      "side": "lower",
+      "margin": -0.01,
+      "bound": 0.0005721270069241386,
+      "delta": 0.004503481835210987
+     },
+     "detection": {
+      "ok": false,
+      "side": "lower",
+      "margin": -0.03,
+      "bound": -0.037843897907350724,
+      "delta": 0.016865776528460996
+     }
+    },
+    "verdict": "null",
+    "primary_improves": true,
+    "guards_ok": false,
+    "point_guards_hold": true
+   },
+   "TSP": {
+    "id": "TSP",
+    "label": "time since progress only",
+    "level": 0.95,
+    "is_primary": false,
+    "metrics": {
+     "log_loss": {
+      "value": 0.5203589086104828,
+      "interval": [
+       0.5069357179244737,
+       0.5327661239962427
+      ]
+     },
+     "brier": {
+      "value": 0.1688110801914967,
+      "interval": [
+       0.1629132561297438,
+       0.17429313618210598
+      ]
+     },
+     "ece": {
+      "value": 0.00331216001311065,
+      "interval": [
+       0.0014417821329694058,
+       0.013027116757705173
+      ]
+     },
+     "auc": {
+      "value": 0.5225200829697491,
+      "interval": [
+       0.5163861475282586,
+       0.5303576638269609
+      ]
+     }
+    },
+    "events": {
+     "false_alarms_per_hour": {
+      "value": 0.8649953838505787,
+      "interval": [
+       0.7610382199119154,
+       0.966955683383181
+      ]
+     },
+     "detection": {
+      "value": 0.20238931834153198,
+      "interval": [
+       0.1714445775829587,
+       0.23560319021017562
+      ]
+     },
+     "overshoot": {
+      "value": 0.0,
+      "interval": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "paired_vs_ref": {
+     "log_loss": {
+      "delta": 0.08175518126339659,
+      "interval": [
+       0.07618155472619226,
+       0.0873250124878566
+      ],
+      "level": 0.95
+     },
+     "brier": {
+      "delta": 0.02727465962734696,
+      "interval": [
+       0.024691277490852672,
+       0.029528051505958594
+      ],
+      "level": 0.95
+     },
+     "ece": {
+      "delta": -0.01229005516646474,
+      "interval": [
+       -0.01752406154651404,
+       -0.004089858359949909
+      ],
+      "level": 0.95
+     },
+     "auc": {
+      "delta": -0.2520897072645243,
+      "interval": [
+       -0.26136025247073413,
+       -0.2427455578259986
+      ],
+      "level": 0.95
+     },
+     "detection": {
+      "delta": -0.11876317638791287,
+      "interval": [
+       -0.16333341170116053,
+       -0.07773839951209749
+      ],
+      "level": 0.95
+     },
+     "false_alarms_per_hour": {
+      "delta": -0.08522122008380095,
+      "interval": [
+       -0.26868435299787974,
+       0.061716942112168514
+      ],
+      "level": 0.95
+     },
+     "overshoot": {
+      "delta": 0.0,
+      "interval": [
+       -0.12313578964866989,
+       0.0
+      ],
+      "level": 0.95
+     }
+    },
+    "guards": {
+     "brier": {
+      "ok": false,
+      "side": "upper",
+      "margin": 0.002,
+      "bound": 0.029528051505958594,
+      "delta": 0.02727465962734696
+     },
+     "ece": {
+      "ok": true,
+      "side": "upper",
+      "margin": 0.01,
+      "bound": -0.004089858359949909,
+      "delta": -0.01229005516646474
+     },
+     "auc": {
+      "ok": false,
+      "side": "lower",
+      "margin": -0.01,
+      "bound": -0.26136025247073413,
+      "delta": -0.2520897072645243
+     },
+     "detection": {
+      "ok": false,
+      "side": "lower",
+      "margin": -0.03,
+      "bound": -0.16333341170116053,
+      "delta": -0.11876317638791287
+     }
+    },
+    "verdict": "harmful",
+    "primary_improves": false,
+    "guards_ok": false,
+    "point_guards_hold": false
+   },
+   "BASE": {
+    "id": "BASE",
+    "label": "training base rate",
+    "level": 0.95,
+    "is_primary": false,
+    "metrics": {
+     "log_loss": {
+      "value": 0.5214565102148943,
+      "interval": [
+       0.5080193692571994,
+       0.5342447297957996
+      ]
+     },
+     "brier": {
+      "value": 0.16917501020681713,
+      "interval": [
+       0.16324993312705227,
+       0.17480443457945816
+      ]
+     },
+     "ece": {
+      "value": 6.132526077623401e-07,
+      "interval": [
+       0.00016876340397974503,
+       0.012659188352248095
+      ]
+     },
+     "auc": {
+      "value": 0.46627825142411106,
+      "interval": [
+       0.45774677038552397,
+       0.4786321868841957
+      ]
+     }
+    },
+    "events": {
+     "false_alarms_per_hour": {
+      "value": 0.0,
+      "interval": [
+       0.0,
+       0.0
+      ]
+     },
+     "detection": {
+      "value": 0.0,
+      "interval": [
+       0.0,
+       0.0
+      ]
+     },
+     "overshoot": {
+      "value": 0.0,
+      "interval": [
+       0.0,
+       0.0
+      ]
+     }
+    },
+    "paired_vs_ref": {
+     "log_loss": {
+      "delta": 0.082852782867808,
+      "interval": [
+       0.077178582609046,
+       0.08863316870523218
+      ],
+      "level": 0.95
+     },
+     "brier": {
+      "delta": 0.027638589642667383,
+      "interval": [
+       0.025040732898482028,
+       0.030036618139177094
+      ],
+      "level": 0.95
+     },
+     "ece": {
+      "delta": -0.015601601926967627,
+      "interval": [
+       -0.01856616530239207,
+       -0.0042301776278715186
+      ],
+      "level": 0.95
+     },
+     "auc": {
+      "delta": -0.3083315388101623,
+      "interval": [
+       -0.31976013670799963,
+       -0.29446969839585785
+      ],
+      "level": 0.95
+     },
+     "detection": {
+      "delta": -0.32115249472944485,
+      "interval": [
+       -0.3641414929057775,
+       -0.2897752803640449
+      ],
+      "level": 0.95
+     },
+     "false_alarms_per_hour": {
+      "delta": -0.9502166039343797,
+      "interval": [
+       -1.12313578964867,
+       -0.8034892649869213
+      ],
+      "level": 0.95
+     },
+     "overshoot": {
+      "delta": 0.0,
+      "interval": [
+       -0.12313578964866989,
+       0.0
+      ],
+      "level": 0.95
+     }
+    },
+    "guards": {
+     "brier": {
+      "ok": false,
+      "side": "upper",
+      "margin": 0.002,
+      "bound": 0.030036618139177094,
+      "delta": 0.027638589642667383
+     },
+     "ece": {
+      "ok": true,
+      "side": "upper",
+      "margin": 0.01,
+      "bound": -0.0042301776278715186,
+      "delta": -0.015601601926967627
+     },
+     "auc": {
+      "ok": false,
+      "side": "lower",
+      "margin": -0.01,
+      "bound": -0.31976013670799963,
+      "delta": -0.3083315388101623
+     },
+     "detection": {
+      "ok": false,
+      "side": "lower",
+      "margin": -0.03,
+      "bound": -0.3641414929057775,
+      "delta": -0.32115249472944485
+     }
+    },
+    "verdict": "harmful",
+    "primary_improves": false,
+    "guards_ok": false,
+    "point_guards_hold": false
+   }
+  },
+  "inner": "grouped 5-fold within training people"
+ },
+ "dev_primary_rule_result": "A7_A4",
+ "dev_a7_base": "A7_A4",
+ "tte": {
+  "s60": {
+   "head": {
+    "log_loss": {
+     "value": 0.4443245131538734,
+     "interval": [
+      0.4321190855529112,
+      0.45591066355626403
+     ]
+    },
+    "brier": {
+     "value": 0.14332432894445432,
+     "interval": [
+      0.13879113169884413,
+      0.14765303490307743
+     ]
+    },
+    "ece": {
+     "value": 0.01474462542090893,
+     "interval": [
+      0.00964349592070832,
+      0.02483782884308116
+     ]
+    }
+   },
+   "tsp_discrete": {
+    "log_loss": {
+     "value": 0.5205140582825907,
+     "interval": [
+      0.5070869031291058,
+      0.5328512265263573
+     ]
+    },
+    "brier": {
+     "value": 0.16887100246313136,
+     "interval": [
+      0.1629885027747484,
+      0.17430004389465237
+     ]
+    },
+    "ece": {
+     "value": 0.0009078910122190222,
+     "interval": [
+      0.0008173348834969666,
+      0.013149174721883193
+     ]
+    }
+   },
+   "A0": {
+    "log_loss": {
+     "value": 0.43860372734708625,
+     "interval": [
+      0.42755852765057606,
+      0.4490134183995425
+     ]
+    },
+    "brier": {
+     "value": 0.14153642056414975,
+     "interval": [
+      0.137227621429439,
+      0.14556974311330556
+     ]
+    },
+    "ece": {
+     "value": 0.01560221517957539,
+     "interval": [
+      0.012511390260565166,
+      0.023117354289670617
+     ]
+    }
+   },
+   "base_rate": {
+    "log_loss": {
+     "value": 0.5212766748592818,
+     "interval": [
+      0.5077681108721415,
+      0.5340395444047642
+     ]
+    },
+    "brier": {
+     "value": 0.16911414227759008,
+     "interval": [
+      0.16316472723260342,
+      0.17473514005080995
+     ]
+    },
+    "ece": {
+     "value": 8.582567724572315e-15,
+     "interval": [
+      0.00015799716836213185,
+      0.011833774191184037
+     ]
+    }
+   },
+   "paired": {
+    "head_minus_A0_log_loss": {
+     "delta": 0.005720785806787143,
+     "interval": [
+      0.004092389271225349,
+      0.007380840748535138
+     ]
+    },
+    "head_minus_tsp_discrete_log_loss": {
+     "delta": -0.07618954512871728,
+     "interval": [
+      -0.0810954127662386,
+      -0.07150856629125468
+     ]
+    }
+   },
+   "guard_within_0.02_of_A0": true
+  },
+  "c_index": {
+   "head": {
+    "value": 0.6965873375837036,
+    "interval": [
+     0.6904410337861927,
+     0.7027336413812145
+    ],
+    "method": "delete-one-person jackknife, t with 15 df"
+   },
+   "tsp_discrete": {
+    "value": 0.5292667356127432,
+    "interval": [
+     0.5248135377370126,
+     0.5337199334884738
+    ],
+    "method": "delete-one-person jackknife, t with 15 df"
+   }
+  },
+  "calibration_expected_minutes": [
+   {
+    "n": 6359,
+    "predicted_min": 0.6268175313061137,
+    "observed_km_min": 0.30613018273882037,
+    "n_people": 16
+   },
+   {
+    "n": 6358,
+    "predicted_min": 0.7372680215926868,
+    "observed_km_min": 0.43504427396894413,
+    "n_people": 16
+   },
+   {
+    "n": 6358,
+    "predicted_min": 0.8780204366340602,
+    "observed_km_min": 0.6356598279434377,
+    "n_people": 16
+   },
+   {
+    "n": 6358,
+    "predicted_min": 1.0502821715360122,
+    "observed_km_min": 0.8539388656495874,
+    "n_people": 16
+   },
+   {
+    "n": 6358,
+    "predicted_min": 1.3712369649197553,
+    "observed_km_min": 1.058244675419593,
+    "n_people": 16
+   }
+  ],
+  "mean_expected_min": 0.9327154027418767,
+  "km_restricted_mean_min": 0.6576184118313328,
+  "definition": "Discrete-time survival, 30 s steps to 5 minutes, logistic hazard on v1's features plus a step one-hot; expected minutes = restricted mean survival time to 5 minutes (features held at the origin). S(60 s) is scored on v1's own label."
+ },
+ "family_c": {
+  "on_A0": {
+   "reference": "C0",
+   "primary": "C1",
+   "prob_model": "A0",
+   "n_people": 16,
+   "budget_per_hour": 1.0,
+   "n_boot": 4000,
+   "guarantee": "With probability at least 1 - delta over the calibration sample, the chosen rule's false-alarm rate on a new episode from the pooled training population is at most the budget, assuming exchangeable episodes and false alarms that arrive independently given the exposure.",
+   "breaks": [
+    "a held-out person who differs from the training people (speed, skill, task mix)",
+    "a person who drifts (improves) over the weeks",
+    "positively correlated episodes within a person (the bound treats episodes as independent)",
+    "false alarms that cluster (over-dispersion relative to Poisson)"
+   ],
+   "per_person_fa_per_hour": {
+    "C0": [
+     0.8620689655172414,
+     1.1906449326718638,
+     0.3504672897196262,
+     0.935064935064935,
+     0.8720226079935406,
+     0.5837387074357192,
+     0.8851422550052689,
+     0.7966457023060798,
+     0.8207934336525309,
+     0.9828741623231569,
+     0.8876933422999328,
+     1.4644067796610167,
+     0.8275862068965517,
+     1.7220543806646527,
+     1.565217391304348,
+     1.3259668508287292
+    ],
+    "C1": [
+     0.7758620689655172,
+     1.1906449326718638,
+     0.3504672897196262,
+     0.7792207792207791,
+     0.823576907549455,
+     0.4169562195969423,
+     0.8851422550052689,
+     0.7966457023060798,
+     0.7387140902872777,
+     0.9828741623231569,
+     0.6455951580363147,
+     1.0576271186440678,
+     0.8275862068965517,
+     1.7220543806646527,
+     1.3043478260869565,
+     1.2312549329123914
+    ],
+    "C2": [
+     0.7758620689655172,
+     1.1906449326718638,
+     0.3504672897196262,
+     0.7792207792207791,
+     0.823576907549455,
+     0.4169562195969423,
+     0.8851422550052689,
+     0.7966457023060798,
+     0.7387140902872777,
+     0.9828741623231569,
+     0.6455951580363147,
+     1.0576271186440678,
+     0.8275862068965517,
+     1.7220543806646527,
+     1.3043478260869565,
+     1.2312549329123914
+    ]
+   },
+   "people": [
+    "p_irregular",
+    "p_irregulard1",
+    "p_irregulard2",
+    "p_irregulard3",
+    "p_nightowl",
+    "p_nightowld1",
+    "p_nightowld2",
+    "p_nightowld3",
+    "p_ninetofive",
+    "p_ninetofived1",
+    "p_ninetofived2",
+    "p_ninetofived3",
+    "p_shiftwkr",
+    "p_shiftwkrd1",
+    "p_shiftwkrd2",
+    "p_shiftwkrd3"
+   ],
+   "rows": {
+    "C0": {
+     "id": "C0",
+     "level": 0.95,
+     "is_primary": false,
+     "false_alarms_per_hour": {
+      "value": 0.9502166039343797,
+      "interval": [
+       0.8034892649869213,
+       1.12313578964867
+      ]
+     },
+     "detection": {
+      "value": 0.32115249472944485,
+      "interval": [
+       0.2897752803640449,
+       0.3641414929057776
+      ]
+     },
+     "overshoot": 0.0,
+     "budget_met": true,
+     "budget_demonstrated": false,
+     "paired_vs_ref": {
+      "overshoot": {
+       "delta": 0.0,
+       "interval": [
+        0.0,
+        0.0
+       ],
+       "level": 0.95
+      },
+      "detection": {
+       "delta": 0.0,
+       "interval": [
+        0.0,
+        0.0
+       ],
+       "level": 0.95
+      },
+      "false_alarms_per_hour": {
+       "delta": 0.0,
+       "interval": [
+        0.0,
+        0.0
+       ],
+       "level": 0.95
+      }
+     },
+     "guard_detection_ok": true,
+     "verdict": "reference",
+     "thresholds": [
+      0.42369979328357715,
+      0.41910869482261853,
+      0.4187295314485746,
+      0.4164758386869255,
+      0.41983650994713173,
+      0.4154811209397981,
+      0.43299421900271656,
+      0.4210880215248424,
+      0.4251124136298193,
+      0.42144947166691876,
+      0.4165958390311099,
+      0.41966293045839853,
+      0.4279060688163788,
+      0.4236787124809678,
+      0.4010482314019014,
+      0.42498002015071645
+     ],
+     "confirm_bins": [
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
+     ],
+     "never_alarms_in_folds": 0,
+     "train_budget_validated_folds": 16,
+     "n_events": 1423.0,
+     "non_event_hours": 234.68333333333334
+    },
+    "C1": {
+     "id": "C1",
+     "level": 0.95,
+     "is_primary": true,
+     "false_alarms_per_hour": {
+      "value": 0.8607343228463887,
+      "interval": [
+       0.7145362467764039,
+       1.02372590880035
+      ]
+     },
+     "detection": {
+      "value": 0.3049894588896697,
+      "interval": [
+       0.270458908463599,
+       0.35126592783303057
+      ]
+     },
+     "overshoot": 0.0,
+     "budget_met": true,
+     "budget_demonstrated": false,
+     "paired_vs_ref": {
+      "overshoot": {
+       "delta": 0.0,
+       "interval": [
+        -0.10055438393188004,
+        0.0
+       ],
+       "level": 0.95
+      },
+      "detection": {
+       "delta": -0.01616303583977513,
+       "interval": [
+        -0.026831286523294293,
+        -0.006503144902103798
+       ],
+       "level": 0.95
+      },
+      "false_alarms_per_hour": {
+       "delta": -0.08948228108799094,
+       "interval": [
+        -0.1490898227329918,
+        -0.04084049021409303
+       ],
+       "level": 0.95
+      }
+     },
+     "guard_detection_ok": true,
+     "verdict": "null",
+     "thresholds": [
+      0.4315882118857296,
+      0.4289632346918775,
+      0.4390544214624211,
+      0.4275527757419005,
+      0.4365702116736651,
+      0.43185822563057136,
+      0.43299421900271656,
+      0.4287884813727514,
+      0.4342529291670162,
+      0.42144947166691876,
+      0.43465404420685666,
+      0.43346754862700965,
+      0.43759035206366426,
+      0.4236787124809678,
+      0.4286923994133234,
+      0.4401147432098148
+     ],
+     "confirm_bins": [
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
+     ],
+     "never_alarms_in_folds": 0,
+     "train_budget_validated_folds": 16,
+     "n_events": 1423.0,
+     "non_event_hours": 234.68333333333334
+    },
+    "C2": {
+     "id": "C2",
+     "level": 0.975,
+     "is_primary": false,
+     "false_alarms_per_hour": {
+      "value": 0.8607343228463887,
+      "interval": [
+       0.7145362467764039,
+       1.02372590880035
+      ]
+     },
+     "detection": {
+      "value": 0.3049894588896697,
+      "interval": [
+       0.270458908463599,
+       0.35126592783303057
+      ]
+     },
+     "overshoot": 0.0,
+     "budget_met": true,
+     "budget_demonstrated": false,
+     "paired_vs_ref": {
+      "overshoot": {
+       "delta": 0.0,
+       "interval": [
+        -0.11752235832001028,
+        0.0
+       ],
+       "level": 0.975
+      },
+      "detection": {
+       "delta": -0.01616303583977513,
+       "interval": [
+        -0.028191072826938113,
+        -0.005246425349057834
+       ],
+       "level": 0.975
+      },
+      "false_alarms_per_hour": {
+       "delta": -0.08948228108799094,
+       "interval": [
+        -0.15710291264883405,
+        -0.035300820302939906
+       ],
+       "level": 0.975
+      }
+     },
+     "guard_detection_ok": true,
+     "verdict": "null",
+     "thresholds": [
+      0.4315882118857296,
+      0.4289632346918775,
+      0.4390544214624211,
+      0.4275527757419005,
+      0.4365702116736651,
+      0.43185822563057136,
+      0.43299421900271656,
+      0.4287884813727514,
+      0.4342529291670162,
+      0.42144947166691876,
+      0.43465404420685666,
+      0.43346754862700965,
+      0.43759035206366426,
+      0.4236787124809678,
+      0.4286923994133234,
+      0.4401147432098148
+     ],
+     "confirm_bins": [
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
+     ],
+     "never_alarms_in_folds": 0,
+     "train_budget_validated_folds": 16,
+     "n_events": 1423.0,
+     "non_event_hours": 234.68333333333334
+    }
+   }
+  },
+  "on_primary_a": {
+   "reference": "C0",
+   "primary": "C1",
+   "prob_model": "A7_A4",
+   "n_people": 16,
+   "budget_per_hour": 1.0,
+   "n_boot": 4000,
+   "guarantee": "With probability at least 1 - delta over the calibration sample, the chosen rule's false-alarm rate on a new episode from the pooled training population is at most the budget, assuming exchangeable episodes and false alarms that arrive independently given the exposure.",
+   "breaks": [
+    "a held-out person who differs from the training people (speed, skill, task mix)",
+    "a person who drifts (improves) over the weeks",
+    "positively correlated episodes within a person (the bound treats episodes as independent)",
+    "false alarms that cluster (over-dispersion relative to Poisson)"
+   ],
+   "per_person_fa_per_hour": {
+    "C0": [
+     0.9482758620689655,
+     1.615875265768958,
+     0.8411214953271029,
+     1.3246753246753247,
+     1.64715381509891,
+     1.1674774148714384,
+     0.6743940990516335,
+     0.7127882599580714,
+     0.24623803009575926,
+     0.5361131794489947,
+     0.9683927370544722,
+     1.871186440677966,
+     0.367816091954023,
+     0.9063444108761329,
+     0.782608695652174,
+     0.6629834254143646
+    ],
+    "C1": [
+     0.7758620689655172,
+     1.1906449326718638,
+     0.8411214953271029,
+     0.935064935064935,
+     1.1142511102139685,
+     0.917303683113273,
+     0.42149631190727094,
+     0.628930817610063,
+     0.08207934336525309,
+     0.5361131794489947,
+     0.9683927370544722,
+     1.1389830508474574,
+     0.27586206896551724,
+     0.8157099697885196,
+     0.782608695652174,
+     0.3788476716653512
+    ],
+    "C2": [
+     0.7758620689655172,
+     1.1906449326718638,
+     0.8411214953271029,
+     0.935064935064935,
+     1.1142511102139685,
+     0.917303683113273,
+     0.42149631190727094,
+     0.628930817610063,
+     0.08207934336525309,
+     0.5361131794489947,
+     0.9683927370544722,
+     1.1389830508474574,
+     0.27586206896551724,
+     0.8157099697885196,
+     0.782608695652174,
+     0.3788476716653512
+    ]
+   },
+   "people": [
+    "p_irregular",
+    "p_irregulard1",
+    "p_irregulard2",
+    "p_irregulard3",
+    "p_nightowl",
+    "p_nightowld1",
+    "p_nightowld2",
+    "p_nightowld3",
+    "p_ninetofive",
+    "p_ninetofived1",
+    "p_ninetofived2",
+    "p_ninetofived3",
+    "p_shiftwkr",
+    "p_shiftwkrd1",
+    "p_shiftwkrd2",
+    "p_shiftwkrd3"
+   ],
+   "rows": {
+    "C0": {
+     "id": "C0",
+     "level": 0.95,
+     "is_primary": false,
+     "false_alarms_per_hour": {
+      "value": 0.9715219089553299,
+      "interval": [
+       0.7557115926581806,
+       1.1905968846024169
+      ]
+     },
+     "detection": {
+      "value": 0.33801827125790584,
+      "interval": [
+       0.30368019793112716,
+       0.37630978016100886
+      ]
+     },
+     "overshoot": 0.0,
+     "budget_met": true,
+     "budget_demonstrated": false,
+     "paired_vs_ref": {
+      "overshoot": {
+       "delta": 0.0,
+       "interval": [
+        0.0,
+        0.0
+       ],
+       "level": 0.95
+      },
+      "detection": {
+       "delta": 0.0,
+       "interval": [
+        0.0,
+        0.0
+       ],
+       "level": 0.95
+      },
+      "false_alarms_per_hour": {
+       "delta": 0.0,
+       "interval": [
+        0.0,
+        0.0
+       ],
+       "level": 0.95
+      }
+     },
+     "guard_detection_ok": true,
+     "verdict": "reference",
+     "thresholds": [
+      0.4838612083040625,
+      0.4806917247141227,
+      0.48351564711559786,
+      0.4761522796130021,
+      0.47986512492182026,
+      0.4789432633247834,
+      0.4901930347958441,
+      0.48201140451888114,
+      0.4890369294422456,
+      0.4866534475525826,
+      0.48918938320329663,
+      0.488278837324748,
+      0.48608348288971787,
+      0.4880872422446444,
+      0.48374651972071614,
+      0.4897022299735408
+     ],
+     "confirm_bins": [
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
+     ],
+     "never_alarms_in_folds": 0,
+     "train_budget_validated_folds": 16,
+     "n_events": 1423.0,
+     "non_event_hours": 234.68333333333334
+    },
+    "C1": {
+     "id": "C1",
+     "level": 0.95,
+     "is_primary": true,
+     "false_alarms_per_hour": {
+      "value": 0.7456856757332576,
+      "interval": [
+       0.5932620420468447,
+       0.8905378652759208
+      ]
+     },
+     "detection": {
+      "value": 0.3106113843991567,
+      "interval": [
+       0.2772539091137883,
+       0.3514812507836071
+      ]
+     },
+     "overshoot": 0.0,
+     "budget_met": true,
+     "budget_demonstrated": true,
+     "paired_vs_ref": {
+      "overshoot": {
+       "delta": 0.0,
+       "interval": [
+        -0.19059688460241675,
+        0.0
+       ],
+       "level": 0.95
+      },
+      "detection": {
+       "delta": -0.027406886858749147,
+       "interval": [
+        -0.03860187640852187,
+        -0.017379340566643718
+       ],
+       "level": 0.95
+      },
+      "false_alarms_per_hour": {
+       "delta": -0.22583623322207225,
+       "interval": [
+        -0.3275894192769257,
+        -0.1285662457059673
+       ],
+       "level": 0.95
+      }
+     },
+     "guard_detection_ok": true,
+     "verdict": "null",
+     "thresholds": [
+      0.49629570874848106,
+      0.4940221911742971,
+      0.4959626725867191,
+      0.4905711875705555,
+      0.49450182064559106,
+      0.4920235803820747,
+      0.5036121287519338,
+      0.4942510756097638,
+      0.5017561856237541,
+      0.49990596200669024,
+      0.5018130279304275,
+      0.5005010801790014,
+      0.49722491017483816,
+      0.5001498099487279,
+      0.4950207045711064,
+      0.5015489049295195
+     ],
+     "confirm_bins": [
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
+     ],
+     "never_alarms_in_folds": 0,
+     "train_budget_validated_folds": 16,
+     "n_events": 1423.0,
+     "non_event_hours": 234.68333333333334
+    },
+    "C2": {
+     "id": "C2",
+     "level": 0.975,
+     "is_primary": false,
+     "false_alarms_per_hour": {
+      "value": 0.7456856757332576,
+      "interval": [
+       0.5932620420468447,
+       0.8905378652759208
+      ]
+     },
+     "detection": {
+      "value": 0.3106113843991567,
+      "interval": [
+       0.2772539091137883,
+       0.3514812507836071
+      ]
+     },
+     "overshoot": 0.0,
+     "budget_met": true,
+     "budget_demonstrated": true,
+     "paired_vs_ref": {
+      "overshoot": {
+       "delta": 0.0,
+       "interval": [
+        -0.22134819020806476,
+        0.0
+       ],
+       "level": 0.975
+      },
+      "detection": {
+       "delta": -0.027406886858749147,
+       "interval": [
+        -0.04047040731763983,
+        -0.016407742643844488
+       ],
+       "level": 0.975
+      },
+      "false_alarms_per_hour": {
+       "delta": -0.22583623322207225,
+       "interval": [
+        -0.3403618342956071,
+        -0.11726969149101199
+       ],
+       "level": 0.975
+      }
+     },
+     "guard_detection_ok": true,
+     "verdict": "null",
+     "thresholds": [
+      0.49629570874848106,
+      0.4940221911742971,
+      0.4959626725867191,
+      0.4905711875705555,
+      0.49450182064559106,
+      0.4920235803820747,
+      0.5036121287519338,
+      0.4942510756097638,
+      0.5017561856237541,
+      0.49990596200669024,
+      0.5018130279304275,
+      0.5005010801790014,
+      0.49722491017483816,
+      0.5001498099487279,
+      0.4950207045711064,
+      0.5015489049295195
+     ],
+     "confirm_bins": [
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
+     ],
+     "never_alarms_in_folds": 0,
+     "train_budget_validated_folds": 16,
+     "n_events": 1423.0,
+     "non_event_hours": 234.68333333333334
+    }
+   }
+  }
+ },
+ "controls": {
+  "shuffle_global": {
+   "base_rate_log_loss": 0.5213032878659735,
+   "tolerance": 0.003,
+   "rows": {
+    "A0": {
+     "log_loss": 0.5223143593918941,
+     "gain_over_base_rate": -0.0010110715259206149,
+     "passes": true
+    },
+    "A1": {
+     "log_loss": 0.5213670651459293,
+     "gain_over_base_rate": -6.37772799558789e-05,
+     "passes": true
+    },
+    "A2": {
+     "log_loss": 0.5214375413430756,
+     "gain_over_base_rate": -0.00013425347710216418,
+     "passes": true
+    },
+    "A3": {
+     "log_loss": 0.5219123792759095,
+     "gain_over_base_rate": -0.0006090914099360356,
+     "passes": true
+    },
+    "A4": {
+     "log_loss": 0.5213514346560378,
+     "gain_over_base_rate": -4.8146790064373945e-05,
+     "passes": true
+    },
+    "A5": {
+     "log_loss": 0.5214823467271231,
+     "gain_over_base_rate": -0.0001790588611496613,
+     "passes": true
+    },
+    "A6": {
+     "log_loss": 0.5223150913854322,
+     "gain_over_base_rate": -0.0010118035194587316,
+     "passes": true
+    },
+    "A7_A1": {
+     "log_loss": 0.5213676992676294,
+     "gain_over_base_rate": -6.441140165591719e-05,
+     "passes": true
+    },
+    "A7_A4": {
+     "log_loss": 0.5213520520420042,
+     "gain_over_base_rate": -4.876417603072447e-05,
+     "passes": true
+    }
+   },
+   "all_pass": true,
+   "role": "control"
+  },
+  "shuffle_person": {
+   "base_rate_log_loss": 0.5214565102148957,
+   "tolerance": 0.003,
+   "rows": {
+    "A0": {
+     "log_loss": 0.5229371717669036,
+     "gain_over_base_rate": -0.001480661552007878,
+     "passes": true
+    },
+    "A6": {
+     "log_loss": 0.522148262611197,
+     "gain_over_base_rate": -0.0006917523963012595,
+     "passes": true
+    }
+   },
+   "all_pass": true,
+   "role": "diagnostic (keeps each person's own stuck rate)"
+  }
+ },
+ "ablation": {
+  "primary_label": {
+   "n_people": 16,
+   "n_bins": 31791,
+   "level": 0.95,
+   "n_boot": 2000,
+   "inner": "grouped 5-fold within training people",
+   "without": {
+    "log_loss": 0.43860372734708625,
+    "brier": 0.14153642056414975,
+    "ece": 0.01560221517957539,
+    "auc": 0.7746097902342733
+   },
+   "without_events": {
+    "false_alarms_per_hour": 0.9502166039343797,
+    "detection": 0.32115249472944485,
+    "overshoot": 0.0
+   },
+   "rows": {
+    "with:cursor": {
+     "kind": "group",
+     "paired_vs_without": {
+      "log_loss": {
+       "delta": -0.001425631903754776,
+       "interval": [
+        -0.0019626193937427663,
+        -0.0008245202668876128
+       ]
+      },
+      "brier": {
+       "delta": -0.0005339199175428133,
+       "interval": [
+        -0.000746179793597556,
+        -0.000284445456951324
+       ]
+      },
+      "auc": {
+       "delta": 0.002334613895238924,
+       "interval": [
+        0.0014990432098619,
+        0.0031566657105435146
+       ]
+      },
+      "false_alarms_per_hour": {
+       "delta": -0.012783183012570198,
+       "interval": [
+        -0.06815522383507772,
+        0.04817673715951058
+       ]
+      },
+      "detection": {
+       "delta": 0.0,
+       "interval": [
+        -0.016342730644750714,
+        0.014494733507563157
+       ]
+      }
+     },
+     "improves_log_loss": true,
+     "interval_includes_zero": false,
+     "with": {
+      "log_loss": 0.43717809544333147,
+      "brier": 0.14100250064660694,
+      "ece": 0.015611807210470327,
+      "auc": 0.7769444041295123
+     },
+     "events": {
+      "false_alarms_per_hour": 0.9374334209218095,
+      "detection": 0.32115249472944485,
+      "overshoot": 0.0
+     }
+    },
+    "placebo:cursor": {
+     "kind": "placebo (permuted within person)",
+     "paired_vs_without": {
+      "log_loss": {
+       "delta": 0.0001215919928744813,
+       "interval": [
+        -0.00013480909645027092,
+        0.0003749798882225304
+       ]
+      },
+      "brier": {
+       "delta": 5.9707625427202204e-05,
+       "interval": [
+        -4.5457937451086324e-05,
+        0.00015756024348866548
+       ]
+      },
+      "auc": {
+       "delta": 0.0007433000200481876,
+       "interval": [
+        0.00026596953268539516,
+        0.0012048991890352633
+       ]
+      },
+      "false_alarms_per_hour": {
+       "delta": -0.008522122008380095,
+       "interval": [
+        -0.051436721630486675,
+        0.030344765326341065
+       ]
+      },
+      "detection": {
+       "delta": -0.0021082220660576523,
+       "interval": [
+        -0.00833915337138141,
+        0.003984129925480797
+       ]
+      }
+     },
+     "improves_log_loss": false,
+     "interval_includes_zero": true,
+     "with": {
+      "log_loss": 0.43872531933996073,
+      "brier": 0.14159612818957695,
+      "ece": 0.015068848969745844,
+      "auc": 0.7753530902543215
+     },
+     "events": {
+      "false_alarms_per_hour": 0.9416944819259996,
+      "detection": 0.3190442726633872,
+      "overshoot": 0.0
+     }
+    },
+    "with:app_kind": {
+     "kind": "group",
+     "paired_vs_without": {
+      "log_loss": {
+       "delta": 8.510331045874509e-06,
+       "interval": [
+        -0.00019814648074269184,
+        0.0002103850081815765
+       ]
+      },
+      "brier": {
+       "delta": -2.38039433911319e-05,
+       "interval": [
+        -0.00011186817694381485,
+        6.060701953356781e-05
+       ]
+      },
+      "auc": {
+       "delta": 4.79235101694675e-05,
+       "interval": [
+        -0.00029800786884607574,
+        0.00040852902369135316
+       ]
+      },
+      "false_alarms_per_hour": {
+       "delta": -0.021305305020950294,
+       "interval": [
+        -0.059650856521551734,
+        0.007082388397548746
+       ]
+      },
+      "detection": {
+       "delta": -0.0021082220660576523,
+       "interval": [
+        -0.010621114034630699,
+        0.005379658240811459
+       ]
+      }
+     },
+     "improves_log_loss": false,
+     "interval_includes_zero": true,
+     "with": {
+      "log_loss": 0.4386122376781321,
+      "brier": 0.14151261662075862,
+      "ece": 0.01602676041788978,
+      "auc": 0.7746577137444428
+     },
+     "events": {
+      "false_alarms_per_hour": 0.9289112989134294,
+      "detection": 0.3190442726633872,
+      "overshoot": 0.0
+     }
+    },
+    "placebo:app_kind": {
+     "kind": "placebo (permuted within person)",
+     "paired_vs_without": {
+      "log_loss": {
+       "delta": 6.800988786043183e-05,
+       "interval": [
+        -7.139483140767564e-05,
+        0.00024493845715789356
+       ]
+      },
+      "brier": {
+       "delta": 4.124188803125706e-05,
+       "interval": [
+        -1.2898052561045171e-05,
+        0.00010825108258728368
+       ]
+      },
+      "auc": {
+       "delta": 0.0003284056388190848,
+       "interval": [
+        -2.207669077730898e-05,
+        0.0006114982084448549
+       ]
+      },
+      "false_alarms_per_hour": {
+       "delta": -0.01704424401676019,
+       "interval": [
+        -0.040150200785941025,
+        0.0
+       ]
+      },
+      "detection": {
+       "delta": -0.0007027406886858656,
+       "interval": [
+        -0.004647740308719645,
+        0.0028904353913156724
+       ]
+      }
+     },
+     "improves_log_loss": false,
+     "interval_includes_zero": true,
+     "with": {
+      "log_loss": 0.4386717372349467,
+      "brier": 0.141577662452181,
+      "ece": 0.01615277107928083,
+      "auc": 0.7749381958730924
+     },
+     "events": {
+      "false_alarms_per_hour": 0.9331723599176195,
+      "detection": 0.320449754040759,
+      "overshoot": 0.0
+     }
+    },
+    "with:glance": {
+     "kind": "group",
+     "paired_vs_without": {
+      "log_loss": {
+       "delta": 3.0110959837459372e-05,
+       "interval": [
+        -0.0002173770812028991,
+        0.00032337455933101014
+       ]
+      },
+      "brier": {
+       "delta": 1.0472565543317991e-05,
+       "interval": [
+        -9.414737303304886e-05,
+        0.0001304957654941513
+       ]
+      },
+      "auc": {
+       "delta": 0.00011970638726255256,
+       "interval": [
+        -0.0001552685314982871,
+        0.0003858182810511866
+       ]
+      },
+      "false_alarms_per_hour": {
+       "delta": 0.0,
+       "interval": [
+        -0.017261545921644656,
+        0.016320202635602264
+       ]
+      },
+      "detection": {
+       "delta": -0.0007027406886858656,
+       "interval": [
+        -0.006768276420929542,
+        0.0048283258667908835
+       ]
+      }
+     },
+     "improves_log_loss": false,
+     "interval_includes_zero": true,
+     "with": {
+      "log_loss": 0.4386338383069237,
+      "brier": 0.14154689312969307,
+      "ece": 0.015646534718458036,
+      "auc": 0.7747294966215359
+     },
+     "events": {
+      "false_alarms_per_hour": 0.9502166039343797,
+      "detection": 0.320449754040759,
+      "overshoot": 0.0
+     }
+    },
+    "placebo:glance": {
+     "kind": "placebo (permuted within person)",
+     "paired_vs_without": {
+      "log_loss": {
+       "delta": 0.0001432160272005767,
+       "interval": [
+        -7.569546756233667e-05,
+        0.0003741313346377963
+       ]
+      },
+      "brier": {
+       "delta": 6.402226868010286e-05,
+       "interval": [
+        -1.0998810468083874e-05,
+        0.0001435906817309726
+       ]
+      },
+      "auc": {
+       "delta": -0.00014379978426870554,
+       "interval": [
+        -0.0005110749178273116,
+        0.00021358173569035742
+       ]
+      },
+      "false_alarms_per_hour": {
+       "delta": 0.004261061004189992,
+       "interval": [
+        -0.042537689644076226,
+        0.06255845446422094
+       ]
+      },
+      "detection": {
+       "delta": -0.0014054813773717867,
+       "interval": [
+        -0.007454346662944591,
+        0.0046513950391726165
+       ]
+      }
+     },
+     "improves_log_loss": false,
+     "interval_includes_zero": true,
+     "with": {
+      "log_loss": 0.4387469433742868,
+      "brier": 0.14160044283282985,
+      "ece": 0.015728419604519664,
+      "auc": 0.7744659904500046
+     },
+     "events": {
+      "false_alarms_per_hour": 0.9544776649385697,
+      "detection": 0.31974701335207306,
+      "overshoot": 0.0
+     }
+    },
+    "with:all": {
+     "kind": "group",
+     "paired_vs_without": {
+      "log_loss": {
+       "delta": -0.0014543960474805995,
+       "interval": [
+        -0.001972123845512759,
+        -0.000918118619296503
+       ]
+      },
+      "brier": {
+       "delta": -0.0005699525418573215,
+       "interval": [
+        -0.0007894879477512322,
+        -0.00034186801054501706
+       ]
+      },
+      "auc": {
+       "delta": 0.0021754968420624188,
+       "interval": [
+        0.0012533110822529616,
+        0.0031186728470402186
+       ]
+      },
+      "false_alarms_per_hour": {
+       "delta": -0.021305305020950294,
+       "interval": [
+        -0.08314130994574682,
+        0.04222496968446803
+       ]
+      },
+      "detection": {
+       "delta": -0.006324666198172901,
+       "interval": [
+        -0.02229067267699181,
+        0.0053051101837616075
+       ]
+      }
+     },
+     "improves_log_loss": true,
+     "interval_includes_zero": false,
+     "with": {
+      "log_loss": 0.43714933129960565,
+      "brier": 0.14096646802229243,
+      "ece": 0.016129330614293228,
+      "auc": 0.7767852870763358
+     },
+     "events": {
+      "false_alarms_per_hour": 0.9289112989134294,
+      "detection": 0.31482782853127195,
+      "overshoot": 0.0
+     }
+    },
+    "placebo:all": {
+     "kind": "placebo (permuted within person)",
+     "paired_vs_without": {
+      "log_loss": {
+       "delta": 0.00031428705171798743,
+       "interval": [
+        -6.782545763024654e-06,
+        0.000647475986757513
+       ]
+      },
+      "brier": {
+       "delta": 0.00015408507031772212,
+       "interval": [
+        4.1321618226211624e-05,
+        0.0002637136408989604
+       ]
+      },
+      "auc": {
+       "delta": 0.0005967152777962559,
+       "interval": [
+        0.00010373554968412247,
+        0.0010217255090541248
+       ]
+      },
+      "false_alarms_per_hour": {
+       "delta": -0.02982742702933039,
+       "interval": [
+        -0.08149421146992564,
+        0.0189565377199218
+       ]
+      },
+      "detection": {
+       "delta": -0.005621925509487036,
+       "interval": [
+        -0.013204262579666523,
+        0.0019158314568708111
+       ]
+      }
+     },
+     "improves_log_loss": false,
+     "interval_includes_zero": true,
+     "with": {
+      "log_loss": 0.43891801439880423,
+      "brier": 0.14169050563446747,
+      "ece": 0.015376012029025783,
+      "auc": 0.7752065055120696
+     },
+     "events": {
+      "false_alarms_per_hour": 0.9203891769050493,
+      "detection": 0.3155305692199578,
+      "overshoot": 0.0
+     }
+    },
+    "control:noise": {
+     "kind": "pure-noise column",
+     "paired_vs_without": {
+      "log_loss": {
+       "delta": 0.00044424796642861253,
+       "interval": [
+        0.0001086023595484377,
+        0.0007546202478826062
+       ]
+      },
+      "brier": {
+       "delta": 0.00015378460942036543,
+       "interval": [
+        2.1473808754989014e-05,
+        0.0002770705032651198
+       ]
+      },
+      "auc": {
+       "delta": 0.00045330164316381705,
+       "interval": [
+        -0.00021646514568725566,
+        0.0010861698242411982
+       ]
+      },
+      "false_alarms_per_hour": {
+       "delta": -0.021305305020950294,
+       "interval": [
+        -0.06476870172820104,
+        0.021601523767926168
+       ]
+      },
+      "detection": {
+       "delta": -0.0014054813773717867,
+       "interval": [
+        -0.01076136731441849,
+        0.007682852662197557
+       ]
+      }
+     },
+     "improves_log_loss": false,
+     "interval_includes_zero": false,
+     "with": {
+      "log_loss": 0.43904797531351486,
+      "brier": 0.14169020517357012,
+      "ece": 0.014170192515440152,
+      "auc": 0.7750630918774372
+     },
+     "events": {
+      "false_alarms_per_hour": 0.9289112989134294,
+      "detection": 0.31974701335207306,
+      "overshoot": 0.0
+     }
+    }
+   },
+   "controls_ok": true,
+   "note": "Extra columns from a synthetic generator show that the pipeline uses the planted signal, not that real signals predict stuck.",
+   "label": "no progress in the next 60 s (the label the hazard model is trained on; the planned ablation)"
+  },
+  "planted_label_supplementary": {
+   "n_people": 16,
+   "n_bins": 31791,
+   "level": 0.95,
+   "n_boot": 2000,
+   "inner": "grouped 5-fold within training people",
+   "without": {
+    "log_loss": 0.2547597596156982,
+    "brier": 0.0677625516831647,
+    "ece": 0.011340363097441386,
+    "auc": 0.7995630018876531
+   },
+   "without_events": {
+    "false_alarms_per_hour": 0.9334855837853268,
+    "detection": 0.7910750507099391,
+    "overshoot": 0.0
+   },
+   "rows": {
+    "with:cursor": {
+     "kind": "group",
+     "paired_vs_without": {
+      "log_loss": {
+       "delta": -0.019465841608928752,
+       "interval": [
+        -0.02219629437187579,
+        -0.01702708399977119
+       ]
+      },
+      "brier": {
+       "delta": -0.006443110506848024,
+       "interval": [
+        -0.007326990468484032,
+        -0.005585967121524438
+       ]
+      },
+      "auc": {
+       "delta": 0.015330304536537054,
+       "interval": [
+        0.012300831781628486,
+        0.01886408389018047
+       ]
+      },
+      "false_alarms_per_hour": {
+       "delta": -0.07279474735940616,
+       "interval": [
+        -0.16779736806137005,
+        0.029157921631875503
+       ]
+      },
+      "detection": {
+       "delta": 0.08012170385395545,
+       "interval": [
+        0.06096256684491974,
+        0.10011449312722973
+       ]
+      }
+     },
+     "improves_log_loss": true,
+     "interval_includes_zero": false,
+     "with": {
+      "log_loss": 0.23529391800676944,
+      "brier": 0.06131944117631667,
+      "ece": 0.006503572972297132,
+      "auc": 0.8148933064241901
+     },
+     "events": {
+      "false_alarms_per_hour": 0.8606908364259206,
+      "detection": 0.8711967545638946,
+      "overshoot": 0.0
+     }
+    },
+    "placebo:cursor": {
+     "kind": "placebo (permuted within person)",
+     "paired_vs_without": {
+      "log_loss": {
+       "delta": 0.00011270567250981633,
+       "interval": [
+        -9.330579013811786e-05,
+        0.00033995884571586665
+       ]
+      },
+      "brier": {
+       "delta": 4.20692031077724e-05,
+       "interval": [
+        -1.972406024818504e-05,
+        0.00010213471661078172
+       ]
+      },
+      "auc": {
+       "delta": 0.00021208276373962942,
+       "interval": [
+        -0.0007114614863949373,
+        0.0009802745813269642
+       ]
+      },
+      "false_alarms_per_hour": {
+       "delta": -0.07279474735940616,
+       "interval": [
+        -0.15045502028641453,
+        -0.00782875891411297
+       ]
+      },
+      "detection": {
+       "delta": -0.02129817444219062,
+       "interval": [
+        -0.04449403804714886,
+        -0.00480284371451233
+       ]
+      }
+     },
+     "improves_log_loss": false,
+     "interval_includes_zero": true,
+     "with": {
+      "log_loss": 0.254872465288208,
+      "brier": 0.06780462088627247,
+      "ece": 0.010371950146612761,
+      "auc": 0.7997750846513927
+     },
+     "events": {
+      "false_alarms_per_hour": 0.8606908364259206,
+      "detection": 0.7697768762677485,
+      "overshoot": 0.0
+     }
+    },
+    "with:app_kind": {
+     "kind": "group",
+     "paired_vs_without": {
+      "log_loss": {
+       "delta": 0.0001186568304782365,
+       "interval": [
+        -3.871151858861748e-05,
+        0.0002942416252527959
+       ]
+      },
+      "brier": {
+       "delta": 2.0240970657905977e-05,
+       "interval": [
+        -1.697520993302094e-05,
+        5.77949889691745e-05
+       ]
+      },
+      "auc": {
+       "delta": -0.000268887963786657,
+       "interval": [
+        -0.000870888621677723,
+        0.0002708933771473464
+       ]
+      },
+      "false_alarms_per_hour": {
+       "delta": 0.0,
+       "interval": [
+        -0.014958724070640719,
+        0.017609099478762404
+       ]
+      },
+      "detection": {
+       "delta": -0.001014198782961384,
+       "interval": [
+        -0.004444568038561394,
+        0.002123198657073041
+       ]
+      }
+     },
+     "improves_log_loss": false,
+     "interval_includes_zero": true,
+     "with": {
+      "log_loss": 0.2548784164461764,
+      "brier": 0.0677827926538226,
+      "ece": 0.0112042269171187,
+      "auc": 0.7992941139238664
+     },
+     "events": {
+      "false_alarms_per_hour": 0.9334855837853268,
+      "detection": 0.7900608519269777,
+      "overshoot": 0.0
+     }
+    },
+    "placebo:app_kind": {
+     "kind": "placebo (permuted within person)",
+     "paired_vs_without": {
+      "log_loss": {
+       "delta": 0.00010647453766354786,
+       "interval": [
+        1.5087246559372663e-05,
+        0.000187267466652391
+       ]
+      },
+      "brier": {
+       "delta": 2.5083776336226604e-05,
+       "interval": [
+        -9.570222186121648e-06,
+        5.61102950166977e-05
+       ]
+      },
+      "auc": {
+       "delta": -0.00014591959016863054,
+       "interval": [
+        -0.0005604772407070995,
+        0.00015520934854844028
+       ]
+      },
+      "false_alarms_per_hour": {
+       "delta": -0.04282043962318016,
+       "interval": [
+        -0.11540760004951134,
+        0.01336332704823968
+       ]
+      },
+      "detection": {
+       "delta": -0.007099391480730133,
+       "interval": [
+        -0.017545221750027182,
+        0.0010021301414510262
+       ]
+      }
+     },
+     "improves_log_loss": false,
+     "interval_includes_zero": false,
+     "with": {
+      "log_loss": 0.25486623415336174,
+      "brier": 0.06778763545950092,
+      "ece": 0.011255617699043114,
+      "auc": 0.7994170822974844
+     },
+     "events": {
+      "false_alarms_per_hour": 0.8906651441621466,
+      "detection": 0.783975659229209,
+      "overshoot": 0.0
+     }
+    },
+    "with:glance": {
+     "kind": "group",
+     "paired_vs_without": {
+      "log_loss": {
+       "delta": -0.0056339967665194335,
+       "interval": [
+        -0.006195369472357601,
+        -0.005104471797836118
+       ]
+      },
+      "brier": {
+       "delta": -0.0017616555963234776,
+       "interval": [
+        -0.001924726058080671,
+        -0.0015996569587673388
+       ]
+      },
+      "auc": {
+       "delta": 0.0019304048495056847,
+       "interval": [
+        0.0012326935344577435,
+        0.00271554382507311
+       ]
+      },
+      "false_alarms_per_hour": {
+       "delta": -0.1884099343419926,
+       "interval": [
+        -0.24773238592078084,
+        -0.12166306216937732
+       ]
+      },
+      "detection": {
+       "delta": 0.0253549695740366,
+       "interval": [
+        0.013105223200728855,
+        0.03754735500757677
+       ]
+      }
+     },
+     "improves_log_loss": true,
+     "interval_includes_zero": false,
+     "with": {
+      "log_loss": 0.24912576284917876,
+      "brier": 0.06600089608684122,
+      "ece": 0.007941424210498895,
+      "auc": 0.8014934067371587
+     },
+     "events": {
+      "false_alarms_per_hour": 0.7450756494433342,
+      "detection": 0.8164300202839757,
+      "overshoot": 0.0
+     }
+    },
+    "placebo:glance": {
+     "kind": "placebo (permuted within person)",
+     "paired_vs_without": {
+      "log_loss": {
+       "delta": -1.5993300125416443e-05,
+       "interval": [
+        -0.00021915894033105313,
+        0.0001850707565562798
+       ]
+      },
+      "brier": {
+       "delta": 1.2704659218598646e-05,
+       "interval": [
+        -3.267028592625792e-05,
+        5.812096139867978e-05
+       ]
+      },
+      "auc": {
+       "delta": 0.00034022549100720667,
+       "interval": [
+        -0.00042781013092303694,
+        0.0010510696351337275
+       ]
+      },
+      "false_alarms_per_hour": {
+       "delta": -0.05566657151013421,
+       "interval": [
+        -0.15782832104208422,
+        0.011958206081366428
+       ]
+      },
+      "detection": {
+       "delta": -0.014198782961460377,
+       "interval": [
+        -0.037735849056603765,
+        0.0
+       ]
+      }
+     },
+     "improves_log_loss": false,
+     "interval_includes_zero": true,
+     "with": {
+      "log_loss": 0.2547437663155728,
+      "brier": 0.0677752563423833,
+      "ece": 0.010724344559193117,
+      "auc": 0.7999032273786603
+     },
+     "events": {
+      "false_alarms_per_hour": 0.8778190122751925,
+      "detection": 0.7768762677484787,
+      "overshoot": 0.0
+     }
+    },
+    "with:all": {
+     "kind": "group",
+     "paired_vs_without": {
+      "log_loss": {
+       "delta": -0.020472928165175402,
+       "interval": [
+        -0.023414176678512793,
+        -0.01784013952228365
+       ]
+      },
+      "brier": {
+       "delta": -0.006754827661615621,
+       "interval": [
+        -0.007689848815479263,
+        -0.005878633390230065
+       ]
+      },
+      "auc": {
+       "delta": 0.015419813342000488,
+       "interval": [
+        0.01169533779611207,
+        0.019605609530617532
+       ]
+      },
+      "false_alarms_per_hour": {
+       "delta": -0.09420496717099625,
+       "interval": [
+        -0.17521050939975352,
+        -0.00775964495387233
+       ]
+      },
+      "detection": {
+       "delta": 0.09026369168357007,
+       "interval": [
+        0.07321599432933429,
+        0.10721747048684505
+       ]
+      }
+     },
+     "improves_log_loss": true,
+     "interval_includes_zero": false,
+     "with": {
+      "log_loss": 0.2342868314505228,
+      "brier": 0.061007724021549074,
+      "ece": 0.00631864489038823,
+      "auc": 0.8149828152296535
+     },
+     "events": {
+      "false_alarms_per_hour": 0.8392806166143305,
+      "detection": 0.8813387423935092,
+      "overshoot": 0.0
+     }
+    },
+    "placebo:all": {
+     "kind": "placebo (permuted within person)",
+     "paired_vs_without": {
+      "log_loss": {
+       "delta": 0.0002813393338393366,
+       "interval": [
+        1.470440029626853e-05,
+        0.0005214344730159449
+       ]
+      },
+      "brier": {
+       "delta": 8.372293458872027e-05,
+       "interval": [
+        9.263803323588882e-06,
+        0.00015301254223409956
+       ]
+      },
+      "auc": {
+       "delta": -0.0002732312279661864,
+       "interval": [
+        -0.0012340885161673666,
+        0.0006048178518765051
+       ]
+      },
+      "false_alarms_per_hour": {
+       "delta": -0.1327433628318584,
+       "interval": [
+        -0.23903133021463865,
+        -0.041295647189189814
+       ]
+      },
+      "detection": {
+       "delta": -0.0233265720081135,
+       "interval": [
+        -0.046743306864531806,
+        -0.007437521579072516
+       ]
+      }
+     },
+     "improves_log_loss": false,
+     "interval_includes_zero": false,
+     "with": {
+      "log_loss": 0.2550410989495375,
+      "brier": 0.06784627461775342,
+      "ece": 0.010131601533481879,
+      "auc": 0.7992897706596869
+     },
+     "events": {
+      "false_alarms_per_hour": 0.8007422209534684,
+      "detection": 0.7677484787018256,
+      "overshoot": 0.0
+     }
+    },
+    "control:noise": {
+     "kind": "pure-noise column",
+     "paired_vs_without": {
+      "log_loss": {
+       "delta": 0.0005631714333268478,
+       "interval": [
+        0.00023350995212240296,
+        0.0009230817624762244
+       ]
+      },
+      "brier": {
+       "delta": 0.00013831303259893846,
+       "interval": [
+        7.261194154680393e-05,
+        0.00021180797268093016
+       ]
+      },
+      "auc": {
+       "delta": -0.0010803552705581643,
+       "interval": [
+        -0.0023480879353471344,
+        -2.7809375825191356e-05
+       ]
+      },
+      "false_alarms_per_hour": {
+       "delta": -0.02141021981159008,
+       "interval": [
+        -0.08639227771402636,
+        0.017796260498151653
+       ]
+      },
+      "detection": {
+       "delta": -0.0030425963488843744,
+       "interval": [
+        -0.012876923930738526,
+        0.004301075268817178
+       ]
+      }
+     },
+     "improves_log_loss": false,
+     "interval_includes_zero": false,
+     "with": {
+      "log_loss": 0.25532293104902504,
+      "brier": 0.06790086471576363,
+      "ece": 0.011396665986084804,
+      "auc": 0.7984826466170949
+     },
+     "events": {
+      "false_alarms_per_hour": 0.9120753639737367,
+      "detection": 0.7880324543610547,
+      "overshoot": 0.0
+     }
+    }
+   },
+   "controls_ok": true,
+   "note": "Extra columns from a synthetic generator show that the pipeline uses the planted signal, not that real signals predict stuck.",
+   "label": "a planted stuck spell overlaps the next 60 s (supplementary: the label the awareness events were planted against)"
+  },
+  "note": "The link between planted stuck spells and cursor behaviour is assumed by the awareness generator; a lift here shows the pipeline can use a planted signal, not that real cursors predict being stuck.",
+  "origin": "synthetic"
+ },
+ "seconds": 3473.2,
+ "split_label": "dev"
+}
