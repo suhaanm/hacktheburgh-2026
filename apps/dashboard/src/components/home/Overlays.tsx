@@ -2,7 +2,11 @@ import { useEffect, useMemo } from "react";
 import { useAppState } from "../../store";
 import type { WireOverview, WireWorker } from "../firm/wire";
 import { CommandPalette, type PaletteLoaders } from "./CommandPalette";
-import { togglePalette } from "./overlayStore";
+import { navigate } from "../../router";
+import { openSettings, toggleAbout, togglePalette } from "./overlayStore";
+import { shellKeyAction } from "../shell/keys";
+import { SettingsSheet } from "../shell/SettingsSheet";
+import { getViewRole } from "./viewAs";
 import { GuidedTour } from "./GuidedTour";
 
 /**
@@ -45,6 +49,11 @@ export function Overlays({ loaders }: { loaders?: PaletteLoaders }) {
 
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
+      // Cmd-1 to Cmd-5, Cmd-comma and Cmd-slash. (Shift-Cmd-K, Stop, is handled by the stop control.) No key ever approves anything.
+      const a = shellKeyAction(e, getViewRole());
+      if (a?.type === "go") { e.preventDefault(); navigate(a.path); return; }
+      if (a?.type === "settings") { e.preventDefault(); openSettings(); return; }
+      if (a?.type === "about") { e.preventDefault(); toggleAbout(); return; }
       if (e.key.toLowerCase() !== "k" || e.altKey || e.shiftKey || !(e.metaKey || e.ctrlKey)) return;
       e.preventDefault(); // the browser's own Ctrl+K (search) is not wanted here
       togglePalette();
@@ -57,6 +66,7 @@ export function Overlays({ loaders }: { loaders?: PaletteLoaders }) {
     <>
       <CommandPalette loaders={real} />
       <GuidedTour />
+      <SettingsSheet />
     </>
   );
 }

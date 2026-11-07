@@ -1,1 +1,1 @@
-export default function FirstRun() { return null; }
+export { default } from "./FirstRun";
