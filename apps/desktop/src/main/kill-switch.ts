@@ -38,6 +38,8 @@ export interface KillDeps {
   stopShowtime(): void
   // The ring on a browser element and any wait for the extension (optional so older callers type-check).
   stopCoach?(): void
+  // Kills the osascript input script that is running right now (a long action must not outlive Stop). Optional so older callers type-check.
+  stopInput?(): void
   cancelConfirm(): void
   agents(): readonly Pick<AgentChip, 'id' | 'status'>[]
   cancelAgent(id: string): void
@@ -95,6 +97,7 @@ export function createKillSwitch(deps: KillDeps): KillSwitch {
         file = killFile.write(source, t0)
       })
       if (!file) log('kill', 'could not write data/KILL: only this app and the services that answer POST /kill are stopped')
+      safely('input in flight', () => deps.stopInput?.())
       safely('act_for_me', () => deps.stopAgency())
       safely('approval', () => deps.cancelConfirm())
       safely('agents', () => {

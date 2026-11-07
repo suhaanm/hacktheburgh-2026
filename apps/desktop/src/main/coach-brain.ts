@@ -33,6 +33,9 @@ export interface CoachBrainDeps {
   ring: Pick<DomCoach, 'point' | 'clear' | 'followed' | 'current'>
   // The level and chip the engine is acting at, so the chip on screen matches what the coach does (study mode included).
   chip?: Pick<ChipDriver, 'setDecisionHint' | 'refresh'>
+  // Called after each GET /coach/next that the engine answered, before the brain acts on it. The awareness layer's stuck trigger reads
+  // the decision's p_stuck here, so there is one poll, not two. A throwing listener never disturbs the brain.
+  onDecision?: (d: CoachDecision) => void
   // A nudge with nothing to point at: shown as text for a few seconds.
   say?: (text: string, decisionId: string | null) => void
   killed?: () => boolean
@@ -47,7 +50,7 @@ export interface CoachBrainDeps {
 }
 
 export interface CoachBrainStatus {
-  lastDecision: { action: string; decisionId: string | null; zone: string | null; message: string; reasons: string[]; level: number | null; missed: string[]; at: number } | null
+  lastDecision: { action: string; decisionId: string | null; zone: string | null; message: string; reasons: string[]; level: number | null; missed: string[]; pStuck: number | null; at: number } | null
   lastFeedback: { decisionId: string; outcome: FeedbackOutcome; ok: boolean; recorded: boolean | null; note: string | null; at: number } | null
   ringDecision: string | null
 }
@@ -110,11 +113,16 @@ export function createCoachBrain(deps: CoachBrainDeps): CoachBrain {
       }
       const decision = await deps.engine.coachNext()
       if (!decision) return // the engine did not answer: keep what is there; the ring has its own stale and time limits
+      try {
+        deps.onDecision?.(decision)
+      } catch (err) {
+        deps.log?.('coach-brain', `onDecision failed: ${err instanceof Error ? err.message : String(err)}`)
+      }
       if (deps.chip && (decision.chip || decision.level)) {
         deps.chip.setDecisionHint({ fade: decision.chip, level: decision.level })
         deps.chip.refresh()
       }
-      lastDecision = { action: decision.action, decisionId: decision.decisionId, zone: decision.target?.zone ?? null, message: decision.message, reasons: decision.reasons, level: decision.level, missed: decision.missed, at: now() }
+      lastDecision = { action: decision.action, decisionId: decision.decisionId, zone: decision.target?.zone ?? null, message: decision.message, reasons: decision.reasons, level: decision.level, missed: decision.missed, pStuck: decision.pStuck, at: now() }
       if (decision.action !== 'silent') lastActiveAt = now()
 
       const wantsRing = (decision.action === 'annotate' || decision.action === 'nudge') && decision.target !== null

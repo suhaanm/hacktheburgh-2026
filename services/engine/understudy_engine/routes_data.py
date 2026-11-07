@@ -18,7 +18,7 @@ from fastapi import APIRouter, Query, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from . import __version__
+from . import __version__, http_guard
 from .api import files
 from .api.flags import EXTENSIONS
 from .api.errors import ApiError
@@ -27,7 +27,7 @@ from .core import AnalyticMeta
 from .genome import GenomeError, GenomeService
 from .packs import list_packs
 from .store import EventStore, fmt_t, is_mock, replay, to_row
-from .store.paths import evals_dir
+from .store.paths import data_dir, data_dir_id, evals_dir
 
 router = APIRouter()
 START = time.time()
@@ -87,6 +87,9 @@ def health(request: Request):
         # additive (REQ-2): which extension routers are live (flag on AND importable), and whether the master flag UNDERSTUDY_X is set
         "extensions": {k: bool(getattr(request.app.state, "extensions", {}).get(k)) for k in EXTENSIONS},
         "x_flag": bool(getattr(request.app.state, "x_flag", False)),
+        # additive: guard status (no secrets): is the extension id pinned, and the warnings to show ("extension_id_unpinned")
+        "guard": http_guard.status(),
+        "warnings": http_guard.status()["warnings"],
     }
 
 
@@ -240,9 +243,51 @@ def get_audit(limit: int = Query(100, ge=1, le=5000)):
 
 
 # ------------------------------------------------------------------------------------------ kill
-def _notify_agent_kill() -> bool:
+def forward_to_agent_allowed(env=None) -> tuple[bool, str]:
+    """May this engine pass a stop on to the agent service? Only the engine of the live stack may: a throwaway engine (another port,
+    a temp data dir, a test) must never reach the live agent on :7710, whatever its default AGENT_PORT says.
+
+    1. it was started by ``understudy serve`` (that sets UNDERSTUDY_ENGINE_LISTEN_PORT) and listens on the stack's configured
+       ENGINE_PORT (default 7700);
+    2. when the launcher exports the agent's data dir (UNDERSTUDY_AGENT_DATA_DIR), it equals this engine's own data dir;
+    3. in mock or no-warm modes (tests and demos) AGENT_PORT must be set explicitly.
+    Returns (allowed, reason)."""
+    env = os.environ if env is None else env
+    listen = (env.get("UNDERSTUDY_ENGINE_LISTEN_PORT") or "").strip()
+    if not listen.isdigit():
+        return False, "not started by `understudy serve`: an in-process or throwaway engine"
+    if int(listen) != int(env.get("ENGINE_PORT") or 7700):
+        return False, f"listening on {listen}, not the stack's ENGINE_PORT"
+    agent_dir = (env.get("UNDERSTUDY_AGENT_DATA_DIR") or "").strip()
+    if agent_dir and Path(agent_dir).expanduser().resolve() != data_dir().resolve():
+        return False, "this engine's data dir is not the agent's"
+    quiet = (env.get("UNDERSTUDY_MOCK") or "").strip().lower() in ("1", "true", "yes", "on") or bool((env.get("UNDERSTUDY_NO_WARM") or "").strip())
+    if quiet and not (env.get("AGENT_PORT") or "").strip():
+        return False, "mock or no-warm mode without an explicit AGENT_PORT"
+    theirs = _agent_data_dir_id()
+    if theirs is not None and theirs != data_dir_id():
+        return False, "the agent service reports a different data dir"
+    return True, "ok"
+
+
+def _agent_data_dir_id() -> str | None:
+    """The agent's own answer to 'which data dir are you on?' (``data_dir_id`` in its /health), or None when it does not say or cannot be
+    reached. When it does say, it must match: that is the proof that this engine and that agent are one stack."""
     try:
-        return httpx.post(f"{agent_url()}/kill", timeout=0.8).status_code < 500
+        r = httpx.get(f"{agent_url()}/health", timeout=0.3)
+        v = r.json().get("data_dir_id") if r.status_code == 200 else None
+        return v if isinstance(v, str) else None
+    except (httpx.HTTPError, ValueError):
+        return None
+
+
+def _notify_agent_kill() -> bool:
+    ok, _ = forward_to_agent_allowed()
+    if not ok:
+        return False
+    try:        # the agent's guard wants JSON and an explicit actor even on a stop route
+        return httpx.post(f"{agent_url()}/kill", content=b"{}", headers={"Content-Type": "application/json", "X-Understudy-Actor": "worker"},
+                          timeout=0.8).status_code < 500
     except httpx.HTTPError:
         return False
 

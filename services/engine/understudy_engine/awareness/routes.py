@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Query, Request
+from .. import http_guard
 from fastapi.responses import JSONResponse
 
 from . import flag_enabled, schema
@@ -26,7 +27,6 @@ from .store import MAX_BATCH, ORIGINS, AwarenessStore, default_store
 router = APIRouter(tags=["awareness"])
 
 _LOCAL_HOSTS = {"127.0.0.1", "::1", "localhost", "testclient"}
-_ALLOWED_ORIGIN_PREFIXES = ("http://localhost", "http://127.0.0.1", "https://localhost", "app://", "file://")
 _FALLBACK_WORKER_ACTORS = frozenset({"worker", "worker_approval"})
 
 
@@ -53,7 +53,7 @@ def _guard(request: Request, *, worker: bool = False) -> JSONResponse | None:
     if host not in _LOCAL_HOSTS:
         return _error(403, "write_refused", "Awareness events are only accepted from this machine.")
     origin = request.headers.get("origin")
-    if origin is not None and not origin.startswith(_ALLOWED_ORIGIN_PREFIXES):
+    if origin is not None and not http_guard.origin_allowed(origin):
         return _error(403, "write_refused", "Writes only come from the Understudy app on this machine.")
     if worker:
         try:

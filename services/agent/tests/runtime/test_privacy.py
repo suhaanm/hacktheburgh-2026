@@ -33,7 +33,7 @@ def run_to_end(kind, params=None, *, timeout=120, **kw) -> AgentRun:
 
 
 def canary_strings(extra: list[str] = ()) -> list[str]:
-    return [CANARY, CANARY.lower(), "example.com", "canary-mail", "Customer ", "INC-", "Ada Ng", "ada@", "3960", "billing", "exporter",
+    return [CANARY, CANARY.lower(), "example.com", "canary-mail", "Customer ", "INC-", "Ada Ng", "ada@", "3960.0", "billing", "exporter",
             "seed_rows", "Add seed data", "Initial commit", *extra]
 
 
@@ -73,7 +73,7 @@ def test_canary_data_never_reaches_a_model_request(kind, mode, tmp_path):
     assert_clean(port, audit, q)
     # what actually left: only fixed ids, counts and booleans
     for row in rows:
-        assert set(row["payload"]) <= {"kind", "mode", "max_children", "role", "steps_left", "last", "history", "signals"}
+        assert set(row["payload"]) <= {"kind", "mode", "max_children", "role", "task"}
 
 
 def test_the_git_analysis_tracks_canary_repo_leaks_nothing(tmp_path):
@@ -126,7 +126,7 @@ def test_raw_mode_goes_through_the_reader_and_writes_direct_ledger_lines(tmp_pat
     plans = [c for c in port.calls if c["method"] == "plan" and c["schema"] and str(c["schema"].get("title", "")).startswith("child_step")]
     for c in plans:
         prompt = "\n".join(str(m["content"]) for m in c["messages"])
-        assert "north" not in prompt and "3960" not in prompt        # the planner never saw the raw rows
+        assert "north" not in prompt and "3960.0" not in prompt        # the planner never saw the raw rows
 
 
 def test_a_prompt_injection_in_a_file_is_detected_and_never_obeyed_in_raw_mode(tmp_path):
@@ -180,14 +180,18 @@ def test_a_clean_file_read_in_menu_mode_is_fine_and_still_never_reaches_a_model(
 
 def test_the_guard_refuses_a_payload_with_free_text_so_content_cannot_be_smuggled(tmp_path):
     from understudy_agent.runtime import privacy as rtp
+    from understudy_agent.runtime.context import TaskState
     from understudy_engine.privacy.egress import PayloadRejected
-
-    rtp.ensure_registered()
     from understudy_engine.privacy import egress
 
-    bad = {"role": "data_profiler", "kind": "data_profile", "steps_left": 3, "last": "ok",
-           "history": [{"tool": "read_file", "ok": True, "check": f"verified {CANARY}"}]}
-    with pytest.raises(PayloadRejected):
-        egress.send("agents.child_step_data_profiler", bad, port=CapturingPort())
-    with pytest.raises(PayloadRejected):
-        egress.send("agents.child_step_data_profiler", {**bad, "history": [], "role": f"data_profiler {CANARY}"}, port=CapturingPort())
+    rtp.ensure_registered()
+    task, _ = TaskState().payload(5)
+    good = {"role": "data_profiler", "kind": "data_profile", "task": task}
+    egress.send("agents.child_step_data_profiler", good, port=CapturingPort())              # the honest payload passes
+    bad_recent = dict(task, recent=[{"tool": "read_file", "file": "input", "template": "none", "ok": True, "check": f"verified {CANARY}"}])
+    bad_role = {**good, "role": f"data_profiler {CANARY}"}
+    bad_sig = {**good, "task": dict(task, signals={"customer_name": 3})}
+    bad_pending = {**good, "task": dict(task, pending=f"ctl_{CANARY}")}
+    for payload in (dict(good, task=bad_recent), bad_role, bad_sig, bad_pending):
+        with pytest.raises(PayloadRejected):
+            egress.send("agents.child_step_data_profiler", payload, port=CapturingPort())

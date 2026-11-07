@@ -3,7 +3,7 @@ import { ApiError, api } from "../api";
 import { useLoad } from "../hooks";
 import { EmptyState, ErrorState, ExampleBadge, Loading, Note, OriginBadge, PageHead, SourceNote } from "../components/common";
 import { useToast } from "../components/Toasts";
-import { IMAGE_KIND_LABEL, blockReasonLabel, callsToday, canaryReading, countLines, filterLedger, fmtBytes, imageSize, purposeLabel, purposesSorted, rowClass, sentRows, sourceLabel, type LedgerFilter } from "../lib/ledger";
+import { IMAGE_KIND_LABEL, blockReasonLabel, callsToday, canaryReading, countLines, filterLedger, fmtBytes, imageSize, lastCallTime, purposeLabel, purposesSorted, rowClass, sentRows, sourceLabel, type LedgerFilter } from "../lib/ledger";
 import { fmtDateTime } from "../lib/format";
 import type { LedgerEntry, LocalModelStatus, PrivacySummary } from "../types";
 
@@ -27,6 +27,7 @@ export default function Privacy() {
   const sent = sentRows(entries).length;
   const blocked = entries.length - sent;
   const visible = filterLedger(entries, filter);
+  const firstText = visible.findIndex((e) => rowClass(e) === "text"); // the newest text call opens by itself, so a first look shows what was sent
 
   const clear = async () => {
     setBusy(true); setErr(null);
@@ -87,7 +88,7 @@ export default function Privacy() {
             </div>
             {visible.length === 0 ? <p className="note">Nothing in this view.</p> : (
               <ol className="ledger" aria-label="Calls, newest first">
-                {visible.slice(0, shown).map((e, i) => <Row key={`${e.id ?? e.t}-${i}`} e={e} first={i === 0 && rowClass(e) === "text"} />)}
+                {visible.slice(0, shown).map((e, i) => <Row key={`${e.id ?? e.t}-${i}`} e={e} first={i === firstText} />)}
               </ol>
             )}
             {visible.length > shown && <div><button type="button" className="btn btn--quiet btn--sm" onClick={() => setShown((n) => n + PAGE)}>Show {Math.min(PAGE, visible.length - shown)} more</button></div>}
@@ -171,7 +172,7 @@ function Summary({ state, entries }: { state: ReturnType<typeof useLoad<PrivacyS
       <div className="stats">
         <div className="stat"><span className="stat__label">Calls in the ledger</span><span className="stat__value tabular">{s.calls}</span></div>
         <div className="stat"><span className="stat__label">Calls today</span><span className="stat__value tabular">{todayTotal}</span></div>
-        <div className="stat"><span className="stat__label">Last call</span><span className="stat__value" style={{ fontSize: "var(--text-lg)" }}>{s.last_call ? fmtDateTime(s.last_call) : "none"}</span></div>
+        <div className="stat"><span className="stat__label">Last call</span><span className="stat__value" style={{ fontSize: "var(--text-lg)" }}>{lastCallTime(s.last_call) ? fmtDateTime(lastCallTime(s.last_call)) : "none"}</span></div>
       </div>
       <div className="stack" style={{ gap: "var(--space-2)" }}>
         <span className="t-label">Calls by purpose</span>

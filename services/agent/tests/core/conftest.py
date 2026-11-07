@@ -19,6 +19,7 @@ def _hermetic(tmp_path, monkeypatch):
     monkeypatch.setenv("UNDERSTUDY_DATA_DIR", str(data))
     monkeypatch.setenv("UNDERSTUDY_HOME", str(tmp_path / "home"))
     monkeypatch.setenv("UNDERSTUDY_MOCK", "1")
+    monkeypatch.setenv("UNDERSTUDY_TEST_RELAXED_GUARD", "1")   # in-process local writes with no Origin need no release token
     for site in "ABC":
         monkeypatch.setenv(f"SANDBOX_PORT_{site}", "9")        # the discard port: nothing real is ever listening there
     monkeypatch.setenv("ENGINE_URL", "http://127.0.0.1:9")      # no accidental calls to the live engine

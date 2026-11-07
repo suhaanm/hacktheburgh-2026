@@ -1,6 +1,6 @@
 import { useWidth } from "../hooks";
 import { scaleLinear } from "d3-scale";
-import { fmtPoints, fmtPointsInterval, fmtShare, habitAxis, readHabit } from "../lib/git";
+import { fmtPoints, fmtPointsInterval, fmtShare, habitAxis, readHabit, wrapLabel } from "../lib/git";
 import type { GitHabit } from "../types";
 
 const pp = (x: number) => `${x < 0 ? "−" : x > 0 ? "+" : ""}${Math.abs(Math.round(x * 100))}`;
@@ -13,13 +13,13 @@ const pp = (x: number) => `${x < 0 ? "−" : x > 0 ? "+" : ""}${Math.abs(Math.ro
 export function HabitDeltas({ habits }: { habits: GitHabit[] }) {
   const [box, width] = useWidth<HTMLDivElement>();
   const compact = width > 0 && width < 640;
-  const labelW = compact ? 0 : 236;
+  const labelW = compact ? 0 : 252;
   const sideW = compact ? 0 : 168;
   const rowH = compact ? 58 : 44;
   const axis = habitAxis(habits);
   const plotW = Math.max(160, width - labelW - sideW - 8);
   const x = scaleLinear().domain([-axis, axis]).range([0, plotW]);
-  const H = habits.length * rowH + 34;
+  const H = habits.length * rowH + 46;
   const ticks = [-axis, -axis / 2, 0, axis / 2, axis];
   return (
     <div ref={box} className="chart">
@@ -47,7 +47,7 @@ export function HabitDeltas({ habits }: { habits: GitHabit[] }) {
               const tone = r.flagged ? (r.direction === "better" ? "good" : "bad") : "none";
               return (
                 <g key={h.id} opacity={r.flagged ? 1 : 0.85}>
-                  {!compact && <text className="wf-label" style={{ fontWeight: r.flagged ? 700 : 500 }} x={-14} y={cy + 4} textAnchor="end">{h.label.length > 34 ? `${h.label.slice(0, 33)}…` : h.label}</text>}
+                  {!compact && (() => { const ls = wrapLabel(h.label); return <text className="wf-label" style={{ fontWeight: r.flagged ? 700 : 500 }} x={-14} y={cy + (ls.length > 1 ? -2 : 4)} textAnchor="end">{ls.map((l, k) => <tspan key={k} x={-14} dy={k === 0 ? 0 : 13}>{l}</tspan>)}</text>; })()}
                   {compact && <text className="wf-label" style={{ fontWeight: r.flagged ? 700 : 500 }} x={0} y={top + 14}>{h.label}</text>}
                   {floor > 0 && <rect x={x(-floor)} y={cy - 9} width={x(floor) - x(-floor)} height={18} fill="url(#floor-hatch)" />}
                   <line className="dw-line" x1={x(h.ci[0])} x2={x(h.ci[1])} y1={cy} y2={cy} />

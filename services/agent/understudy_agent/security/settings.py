@@ -129,16 +129,66 @@ class SettingsGuard:
         return False
 
     # ---- file system
+    @staticmethod
+    def _frame(path: Path) -> tuple[list[tuple[int, int]], tuple[int, int] | None, tuple[str, ...]]:
+        """How a path relates to the disk, by IDENTITY (st_dev, st_ino), never by spelling: macOS volumes are
+        case-insensitive, so `DATA/.TOKEN` and `data/.token` are the same file. Returns the identities of every existing
+        ancestor-or-self, the identity of the deepest existing one, and the case-folded names below it (a file that does
+        not exist yet)."""
+        parts = Path(os.path.abspath(path)).parts
+        ids: list[tuple[int, int]] = []
+        deepest: tuple[int, int] | None = None
+        tail_from = len(parts)
+        for i in range(1, len(parts) + 1):
+            try:
+                st = os.stat(Path(*parts[:i]))
+            except OSError:
+                tail_from = i - 1
+                break
+            deepest = (st.st_dev, st.st_ino)
+            ids.append(deepest)
+        else:
+            tail_from = len(parts)
+        return ids, deepest, tuple(x.casefold() for x in parts[tail_from:])
+
     def check_path(self, path: str | os.PathLike[str]) -> SettingsDecision:
-        """Refuse agent access to the kill flag, memory file, denylist, consent store and the shared queue."""
+        """Refuse agent access to the kill flag, memory file, denylist, consent store, the control-plane token, the owner
+        tokens, the queue and its key. Decided by file identity (S-20), so another spelling of the same file is the same."""
         if not self.enabled:
             return _ALLOW
+        try:
+            p = Path(path).expanduser()
+            p_ids, p_deep, p_tail = self._frame(p)
+        except (OSError, RuntimeError, ValueError):
+            return SettingsDecision(False, None, "unreadable path")
+        protected = [kill_path(), data_dir() / "denylist.json", data_dir() / "queue", data_dir() / "routines",
+                     data_dir() / "audit.jsonl", data_dir() / ".token", data_dir() / "owner_tokens.json",
+                     data_dir() / ".queue_key"]
+        home = os.environ.get("UNDERSTUDY_HOME", "").strip()
+        protected.append(Path.home() / ".understudy")  # the default location is protected even when another home is configured
+        if home:
+            protected.append(Path(home).expanduser())
+        for q in protected:
+            try:
+                q_ids, q_deep, q_tail = self._frame(q)
+            except (OSError, RuntimeError, ValueError):
+                continue
+            hit = False
+            if not q_tail:                       # q exists: p is q, or is inside q, when some ancestor-or-self of p IS q
+                hit = q_deep is not None and q_deep in p_ids
+            else:                                # q does not exist yet: same deepest existing folder and p's remainder starts with q's
+                hit = q_deep is not None and q_deep == p_deep and p_tail[:len(q_tail)] == q_tail
+            if hit:
+                kind = Setting.KILL_SWITCH if q.name == "KILL" else Setting.MEMORY if q.name == ".understudy" else None
+                return SettingsDecision(False, kind, "the agent cannot touch Understudy's own settings or logs")
+        return _ALLOW
         try:
             p = Path(path).expanduser().resolve()
         except (OSError, RuntimeError):
             return SettingsDecision(False, None, "unreadable path")
         protected = [kill_path(), data_dir() / "denylist.json", data_dir() / "queue", data_dir() / "routines",
-                     data_dir() / "audit.jsonl"]
+                     data_dir() / "audit.jsonl", data_dir() / ".token", data_dir() / "owner_tokens.json",
+                     data_dir() / ".queue_key"]
         home = os.environ.get("UNDERSTUDY_HOME", "").strip()
         protected.append(Path.home() / ".understudy")  # the default location is protected even when another home is configured
         if home:

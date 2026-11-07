@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import { useLoad } from "../hooks";
+import { idle, useLoad } from "../hooks";
 import { ChartFoot, EmptyState, ErrorState, ExampleBadge, LegendItem, Loading, Note, OriginBadge, PageHead, SourceNote } from "../components/common";
 import { HabitDeltas } from "../components/HabitDeltas";
 import { DIGEST_LABEL, fmtPoints, fmtPointsInterval, fmtShare, gitHeadline, learnerLabel, readHabit, sortHabits } from "../lib/git";
@@ -15,7 +15,7 @@ export default function Git() {
     setPerson(people.data.default_person ?? people.data.learners[0]?.person ?? null);
   }, [people.data, person]);
   const repo = learners.find((l) => l.person === person)?.repo;
-  const h = useLoad(() => (person ? api.gitHabits(person, repo) : Promise.resolve(null as never)), [person, repo]);
+  const h = useLoad(() => (person ? api.gitHabits(person, repo) : idle<GitHabits>()), [person, repo]);
 
   if (people.status === "error" && !people.data) return <div className="page"><ErrorState error={people.error} retry={people.reload} what="who has a repository" /></div>;
   if (!people.data || !person) return <div className="page"><Loading label="Loading git habits" /></div>;

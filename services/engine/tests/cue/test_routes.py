@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from understudy_engine.api.errors import install_error_handlers
 from understudy_engine.cue import routes as R
 from understudy_engine.cue.live import LiveCue
+from understudy_engine.cue.params import DEFAULT, TUNED
 
 
 @pytest.fixture()
@@ -17,7 +18,7 @@ def client(monkeypatch):
     app = FastAPI()
     install_error_handlers(app)
     app.include_router(R.router)
-    app.state.cue_live = LiveCue()
+    app.state.cue_live = LiveCue(params=DEFAULT)
     return TestClient(app)
 
 
@@ -52,7 +53,7 @@ def test_next_over_the_stuck_fixture_walks_wait_cue_escalate():
     app = FastAPI()
     install_error_handlers(app)
     app.include_router(R.router)
-    app.state.cue_live = LiveCue()
+    app.state.cue_live = LiveCue(params=DEFAULT)
     import os
     os.environ["UNDERSTUDY_X_CUE"] = "1"
     try:
@@ -175,3 +176,78 @@ def test_reason_lookup(client):
 
 def test_proactivity_validated(client):
     assert client.get("/cue/next", params={"person": "p_demo", "fixture": "not_stuck", "proactivity": "loud"}).status_code == 422
+
+
+# ------------------------------------------------------------------------------------------------ the flags CUE-UX sends
+def first_non_none(c, name, person="p_flags", ts=None, **kw):
+    for t in ts or [0, 60, 85] + [87.5 + 2.5 * k for k in range(20)]:
+        d = nxt(c, name, t, person=person, **kw)["data"]
+        if d["kind"] != "none":
+            return t, d
+    return None, d
+
+
+def test_denied_never_shows_and_never_asks_for_a_frame(client):
+    for t in (0, 60, 85, 87.5, 90, 120):
+        d = nxt(client, "stuck_after_result", t, person="p_denied", denied=1)["data"]
+        assert d["kind"] == "none" and d["why"]["reasons"][0] == "denied" and not d["ground_wanted"] and d["menu"] is None
+    d = nxt(client, "close_call", 100, person="p_denied2", denied=1, asked=1)["data"]
+    assert d["kind"] == "none" and not d["ground_wanted"]                      # not even when asked
+
+
+def test_away_typing_and_short_quiet_hold(client):
+    for flag, reason in (({"away": 1}, "unsure_away"), ({"typing": 1}, "flow"), ({"quiet_s": 1.0}, "flow")):
+        for t in (60, 85, 87.5, 90):
+            d = nxt(client, "stuck_after_result", t, person=f"p_{reason}_{list(flag)[0]}", **flag)["data"]
+            assert d["kind"] == "none" and d["why"]["reasons"][0] == reason, (flag, d["why"])
+
+
+def test_asked_shows_even_while_typing_and_the_ladder_reaches_voice_only_with_voice_ok(client):
+    seen = {}
+    for k, t in enumerate((60, 62.5, 65, 67.5, 70, 72.5)):
+        d = nxt(client, "stuck_after_result", t, person="p_ask", asked=1, typing=1, voice_ok=1)["data"]
+        assert d["kind"] == "cue", d
+        seen[d["tier"]] = d
+    assert 4 in seen and seen[4]["say"]["whisper"] and seen[4]["say"]["whisper_id"] == "whisper.cliff_a"
+    assert len(seen[4]["say"]["whisper"].split()) <= 8
+    for tier, d in seen.items():
+        if tier < 4:
+            assert d["say"]["whisper"] is None and d["say"]["whisper_id"] is None
+    quiet_voice = [nxt(client, "stuck_after_result", t, person="p_ask2", asked=1, voice_ok=0)["data"] for t in (60, 62.5, 65, 67.5, 70)]
+    assert all(d["say"]["whisper"] is None and d["say"]["whisper_id"] is None for d in quiet_voice) and max(d["tier"] for d in quiet_voice) <= 3
+
+
+def test_proactivity_changes_when_help_arrives_but_not_the_caps(client):
+    def first(mode):
+        for k in range(120):
+            t = 40 + 2.5 * k
+            d = nxt(client, "stuck_after_result", t, person=f"p_{mode}", proactivity=mode)["data"]
+            if d["kind"] != "none":
+                return t
+        return None
+    assert first("eager") < first("balanced") < first("quiet")
+
+
+def test_show_me_is_an_accepted_event_with_how_show_me_and_jumps_to_the_demonstration(client):
+    t, d = first_non_none(client, "stuck_after_result", person="p_show")
+    assert d["kind"] == "cue" and d["tier"] == 1
+    r = client.post("/cue/feedback", json={"episode_id": d["episode_id"], "event": "accepted", "how": "show_me"})
+    assert r.status_code == 200 and r.json()["recorded"] is True
+    d2 = nxt(client, "stuck_after_result", t + 1.0, person="p_show")["data"]
+    assert d2["kind"] == "cue" and d2["tier"] == 3 and d2["target"]["box_2d"] and d2["new"] is True
+    assert client.post("/cue/feedback", json={"episode_id": d["episode_id"], "event": "accepted", "how": "teleport"}).status_code == 422
+
+
+def test_the_stable_codes_that_end_a_cue(client):
+    # progress and recovered come from the gate, step_done and resolved from the live service
+    t, d = first_non_none(client, "stuck_after_result", person="p_end")
+    gone = nxt(client, "not_stuck", 0.0, person="p_end2")["data"]
+    assert gone["kind"] == "none"
+    from understudy_engine.cue.types import REASONS
+
+    for code in ("progress", "recovered", "step_done", "resolved", "know_this", "timeout", "stale_input"):
+        assert code in REASONS
+
+
+def test_the_live_service_defaults_to_the_dev_tuned_parameters():
+    assert LiveCue().params == TUNED and TUNED.p_signal == 0.40

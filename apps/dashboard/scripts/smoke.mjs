@@ -9,7 +9,10 @@ const qa = join(dirname(fileURLToPath(import.meta.url)), "..", "qa");
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 // Demo-data mode on purpose: block the engine and agent so the checks are deterministic and never write to a live memory file.
-await ctx.route(/127\.0\.0\.1:77\d\d/, (route) => route.abort());
+// The page reaches the services only through its own origin: /engine/* and /agent/* (the Vite server forwards them).
+const ANY_SERVICE = /^https?:\/\/[^/]+\/(engine|agent)(\/|$)/;
+const ENGINE = /^https?:\/\/[^/]+\/engine(\/|$)/;
+await ctx.route(ANY_SERVICE, (route) => route.abort());
 const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
@@ -149,8 +152,22 @@ check("evidence: a not-run study says so and prints no defaults", /has not run y
 const pres = await page.locator("#presence").innerText();
 check("evidence: presence baselines show interruption and idle time, never a 0.000 Brier", /Fixed overnight window/.test(pres) && !/0\.000/.test(pres));
 check("evidence: ski rental and off-policy show the engine's labels", /Ski rental with predictions/.test(ev) && /Doubly robust/.test(ev));
-check("evidence: pooling appears, and a pending real-model run says why", /Partial pooling/.test(ev) && /real-model run is still being worked out/.test(ev));
+check("evidence: pooling appears", /Partial pooling/.test(ev));
+check("evidence: the map lists every section with origin, n and status, and names simulated participants as not people", (await page.locator(".ev-map__table tbody tr").count()) >= 20 && /Every part of the report/.test(ev) && /SYNTHETIC/i.test(ev) && (/Simulated participants are language models playing workers\. They are not people/.test(ev) || (await page.locator(".ev-map__table", { hasText: /simulated participants/i }).count()) === 0));
+check("evidence: the privacy block states planted strings, leaks and which layers have a real-code check", /planted test strings/.test(ev) && (await page.locator("[data-testid=ev-layers] tbody tr").count()) >= 5 && /evidence from planted strings, not a proof/i.test(ev));
 check("evidence: limitations carry their source", /From: engine-eval · null placebo/.test(ev));
+{
+  // The real-model block: every count is printed with its condition, and the fix is marked in-sample. No bare totals.
+  const liveBlock = page.locator("[data-testid=live-runs]");
+  const lv = await liveBlock.innerText();
+  const clean = await liveBlock.locator("[data-testid=live-clean]").innerText();
+  const glitch = await liveBlock.locator("[data-testid=live-glitch]").innerText();
+  const injected = await liveBlock.locator("[data-testid=live-injected]").innerText();
+  check("evidence: real-model block prints each count with its condition (clean 18 of 20, a 503 error 0 of 20 with 20 false claims)", /Clean pages: 18 of 20 passed/.test(clean) && /A 503 error mid-run: 0 of 20 passed, and 20 false claims/.test(glitch) && /Layout change: 20 of 20 passed/.test(lv));
+  check("evidence: an injected-instruction row counts the pause, not a pass", /paused on 20 of 20 runs/.test(injected) && /not a pass/.test(injected));
+  check("evidence: the fix is labelled in-sample and shows the result it replaces", /in-sample/i.test(await liveBlock.locator("[data-testid=live-fix]").innerText()) && /Before the fix, the same condition: 0 of 20 passed, 20 false claims/.test(lv));
+  check("evidence: the real-model block keeps its origin badge and says evidence, not proof", (await liveBlock.locator(".pill--origin").count()) >= 1 && /evidence from a small run, not proof/.test(lv));
+}
 await page.screenshot({ path: join(qa, "evidence-1440.png") });
 // A report full of stubs: reasons, not empty charts.
 await page.route("**/eval/report", (route) => route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ generated_at: "2026-11-07T15:00:00Z", mock: true, sections: {
@@ -185,8 +202,9 @@ await page.unroute("**/eval/report");
     study: { ...baseDecision, reason_codes: ["study_mode"], candidate: { action: "nudge", message: "SHOULD NOT SHOW", why: "x", target: null } },
   };
   const json = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" }, body: JSON.stringify(body) });
-  await page.route(/127\.0\.0\.1:7700\//, async (route) => {
+  await page.route(ENGINE, async (route) => {
     const req = route.request(), u = new URL(req.url());
+    u.pathname = u.pathname.replace(/^\/engine/, "");
     if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" } });
     if (u.pathname === "/coach/state") return json(route, { person: "p_t", task: { id: "t1", name: "Entitlement check, household H-9", step: 5, steps_total: 9 }, level: "L2", chip: "small", message: "state message", why: "state why", mastery: { READ: 0.9 }, case: 3 });
     if (u.pathname === "/coach/next") { nextCalls.push(u.search); return json(route, { meta, data: scenarios[scenario] }); }
@@ -209,25 +227,27 @@ await page.unroute("**/eval/report");
   scenario = "study"; await hop(); await page.waitForTimeout(600);
   const todayText = await page.locator("main").innerText();
   check("today: in study mode the coach shows nothing, not even a hint", !/SHOULD NOT SHOW|benefit cliff|What I would say|Stop coaching|Preview how help fades/i.test(todayText));
-  await page.unroute(/127\.0\.0\.1:7700\//);
+  await page.unroute(ENGINE);
 }
 
 // 8d. Extension screens (REQ-2), demo fixtures
 await go("/week", 900);
 const weekText = await page.locator("main").innerText();
 check("week: the ribbon, the gap table with intervals and 3 to 5 suggestion cards", (await page.locator(".weekribbon svg").count()) === 2 && /95% interval/i.test(weekText) && (await page.locator(".sug").count()) >= 3 && (await page.locator(".sug").count()) <= 5);
-check("week: every suggestion says it is a draft and that nothing is sent", (await page.locator(".sug", { hasText: "Draft only. Nothing is sent, booked or changed." }).count()) === (await page.locator(".sug").count()));
+check("week: every suggestion says that nothing is sent, booked or changed", (await page.locator(".sug", { hasText: /Nothing is sent, booked or changed\./ }).count()) === (await page.locator(".sug").count()));
 check("week: no titles or names anywhere on the screen", !/(standup|1:1|review with|@[a-z]+\.)/i.test(weekText));
 
 await go("/briefing", 900);
 const cardsBefore = await page.locator("article.proposal").count();
 check("briefing: at most three cards", cardsBefore > 0 && cardsBefore <= 3);
 const first = page.locator("article.proposal").first();
-await first.locator("textarea").fill("Hold Wednesday 10:00 to 12:00 for focus. Edited by me.");
+check("briefing: editing is one click away, not in the way", (await first.locator("textarea").count()) === 0);
+await first.getByRole("button", { name: "Edit what will happen" }).click();
+await first.locator("textarea").first().fill("Hold Wednesday 10:00 to 12:00 for focus. Edited by me.");
 await first.getByRole("button", { name: "Save my edit" }).click();
 await page.waitForTimeout(500);
 await go("/briefing", 700);
-check("briefing: the edit to the prepared block is kept", (await page.locator("article.proposal").first().locator("textarea").inputValue()).includes("Edited by me."));
+check("briefing: the edit to the prepared block is kept", (await page.locator("article.proposal").first().innerText()).includes("Edited by me."));
 await page.locator("article.proposal").first().getByRole("button", { name: "Approve and run" }).click();
 await page.waitForTimeout(600);
 check("briefing: pressing Approve and run says which thing it created", /Created approval item q_demo_b_01/.test(await page.locator("[data-testid=fired]").first().innerText()));
@@ -258,7 +278,7 @@ const detail = await page.locator("article.run", { hasText: "Data profile" }).in
 check("agents: result steps carry a check with a glyph and a word", /verified/.test(detail) && /uncertain/.test(detail) && (await page.locator(".pill--check .pill__glyph-char").count()) >= 3);
 
 await go("/privacy", 900);
-check("privacy: the ledger lists each call with its fields and the payload as sent", (await page.locator(".ledger__row").count()) === 6 && /Payload, exactly as sent/.test(await page.locator("main").innerText()) && (await page.locator("pre.payload").first().innerText()).includes("card_kind"));
+check("privacy: the ledger lists each call with its fields and the payload as sent", (await page.locator(".ledger__row").count()) >= 6 && /Payload, exactly as sent/.test(await page.locator("main").innerText()) && (await page.locator("pre.payload").first().innerText()).includes("card_kind"));
 const priv = await page.locator("main").innerText();
 check("privacy: it never claims that nothing leaves the laptop, and the canary reads as evidence not proof", !/nothing (ever )?leaves/i.test(priv) && /evidence from a test, not a proof/i.test(priv) && /Calls for steps you asked for are listed too/i.test(priv));
 await page.getByRole("button", { name: "Clear the ledger" }).click();
@@ -266,21 +286,133 @@ await page.getByRole("button", { name: "Yes, clear the list" }).click();
 await page.waitForTimeout(600);
 check("privacy: clearing empties the list and says so", (await page.locator(".ledger__row").count()) === 0 && (await page.getByText("The ledger is empty").count()) >= 1);
 
-// 8e. Extension gating: a screen shows only when /health lists its layer as true
+// 8e. A layer that /health lists as off: the screen is still there, shows example data and says how to switch the layer on, and asks for nothing
 {
   const json = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(body) });
-  await page.route(/127\.0\.0\.1:7700\//, (route) => {
+  let privacyAsked = 0;
+  await page.route(ENGINE, (route) => {
     const u = new URL(route.request().url());
+    u.pathname = u.pathname.replace(/^\/engine/, "");
     if (u.pathname === "/health") return json(route, { ok: true, version: "x", mock: true, extensions: { calendar: true, privacy: false, proactive: false, agents: false } });
+    if (u.pathname.startsWith("/privacy")) privacyAsked++;
     return json(route, { error: { code: "not_found", message: "not mocked" } }, 404);
   });
   await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(600);
-  const nav = await page.locator("nav#nav").innerText();
-  check("gating: only the layers /health lists as on appear in the menu", /Week/.test(nav) && !/Privacy/.test(nav) && !/Agents/.test(nav) && !/Briefing/.test(nav));
-  await page.goto(`${base}/#/privacy`); await page.waitForTimeout(500);
+  const nav = await page.locator("nav#nav").textContent();
+  check("layers off: nothing is hidden from the menu", /Week/.test(nav ?? "") && /Privacy/.test(nav ?? "") && /Agents/.test(nav ?? "") && /Briefing/.test(nav ?? "") && /Git habits/.test(nav ?? "") && /Models/.test(nav ?? ""));
+  await page.goto(`${base}/#/privacy`); await page.waitForTimeout(700);
   const off = await page.locator("main").innerText();
-  check("gating: a screen that is off says so and how to switch it on, and loads nothing", /Privacy is not switched on/.test(off) && /UNDERSTUDY_X_PRIVACY=1/.test(off));
-  await page.unroute(/127\.0\.0\.1:7700\//);
+  check("layers off: the screen shows example data, says it is switched off and how to switch it on, and asks the engine for nothing", /example data/i.test(off) && /switched off/.test(off) && /UNDERSTUDY_X_PRIVACY=1/.test(off) && privacyAsked === 0, `asked ${privacyAsked} times`);
+  await page.unroute(ENGINE);
+}
+
+// 8f. Explain: "Where did my time go?" on the Genome screen
+{
+  // Example answers first (the engine is blocked): the answer, where it came from, the checks, the limits and the footer are all there.
+  await go("/genome", 1500);
+  const ex = page.locator("#explain");
+  const exText = await ex.innerText();
+  check("explain: example data is badged and says the answers do not change with the question", /example data/i.test(exText) && /do not change with what you ask/i.test(exText));
+  check("explain: the answer comes first, then where the words came from and the check", (await ex.locator("[data-testid=explain-answer]").count()) === 1 && /Written from a fixed template/.test(exText) && /Checked against the data/.test(exText) && /not that the data is right/.test(exText));
+  check("explain: the limits and the footer are always shown with the badge", (await ex.locator("[data-testid=explain-limits] li").count()) >= 3 && /Based on n = 24 people; synthetic data\./.test(await ex.locator("[data-testid=explain-footer]").innerText()) && /SYNTHETIC/i.test(await ex.locator("[data-testid=explain-footer]").innerText()));
+  await ex.locator("details.explain__uses summary").first().click();
+  check("explain: each sentence shows the packet facts its numbers come from", /gap · case s/.test(await ex.locator("details.explain__uses").first().innerText()) && /9 min 45 s/.test(await ex.locator("details.explain__uses").first().innerText()));
+  check("explain: five example questions are offered", (await ex.locator("[aria-label='Example questions'] button").count()) === 5);
+  await ex.getByRole("button", { name: "How sure are you?" }).click();
+  await page.waitForTimeout(500);
+  check("explain: a chip asks, and the reply is labelled as an answer", /The answer/.test(await ex.innerText()));
+  // The question text is never echoed anywhere but the box.
+  const secret = "zzqmarker-where-did-the-time-go-today";
+  await ex.locator("#ex-q").fill(secret);
+  await ex.getByRole("button", { name: "Ask", exact: true }).click();
+  await page.waitForTimeout(500);
+  check("explain: the question text is only ever in the box", !(await page.locator("body").innerText()).includes(secret) && (await ex.locator("#ex-q").inputValue()) === secret && !page.url().includes("zzqmarker"));
+
+  // A real-engine scenario, mocked: a slow answer shows calm progress; a rejected model answer falls back to the template and says so.
+  const json = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" }, body: JSON.stringify(body) });
+  const meta = { origin: "synthetic", n: 24, n_unit: "people", split: "descriptive_nearest_expert", interval_level: 0.95, note: null, generated_at: "" };
+  const result = (over = {}) => ({ intent: "where_time_went", source: "template", model: null, footer: "Based on n = 24 people; synthetic data.", badge: { origin: "synthetic", n: 24, n_unit: "people", split: "descriptive_nearest_expert" },
+    check: { ok: true, checked: { sentences: 1, numbers: 2, intervals: 0 } }, attempts: [], fallback_reason: null, question: { asked_s: null, matches_case: null },
+    sections: [{ kind: "explanation", sentences: [{ text: "On this case you took 9 minutes 45 seconds.", uses: ["gap.case_s"] }] }, { kind: "coaching", actions: [] }, { kind: "limits", sentences: [{ id: "synthetic_data", text: "Synthetic data with planted patterns." }, { id: "association_only", text: "An association, not proof of cause." }, { id: "small_n", text: "A small sample." }] }], ...over });
+  let delayMs = 0, explainBody = null, scenario = result();
+  await page.route(ENGINE, async (route) => {
+    const req = route.request(), u = new URL(req.url());
+    u.pathname = u.pathname.replace(/^\/engine/, "");
+    if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" } });
+    if (u.pathname === "/health") return json(route, { ok: true, version: "x", mock: false, extensions: { evidence: true } });
+    if (u.pathname === "/evidence/packet") return json(route, { meta, data: { person: "p_t", case: "t_t", facts: [{ path: "gap.case_s", value: 585, unit: "s" }], limitations: [] } });
+    if (u.pathname === "/evidence/explain") { explainBody = { body: JSON.parse(req.postData() ?? "{}"), actor: req.headers()["x-understudy-actor"], type: req.headers()["content-type"] }; if (delayMs) await new Promise((r) => setTimeout(r, delayMs)); return json(route, { meta, data: scenario }); }
+    return json(route, { error: { code: "not_found", message: "not mocked" } }, 404);
+  });
+  const fresh = async () => { await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(6800); await page.goto(`${base}/#/genome`); await page.waitForTimeout(1500); };
+  await fresh();
+  const live = page.locator("#explain");
+  check("explain: with a real engine and no mock mode, nothing is asked until the worker presses", (await live.getByRole("button", { name: "Explain this case" }).count()) === 1 && explainBody === null && !/example data/i.test(await live.innerText()));
+  delayMs = 2500;
+  await live.getByRole("button", { name: "Explain this case" }).click();
+  await page.waitForTimeout(700);
+  check("explain: a slow answer shows a calm progress line, not a blank", /Writing the answer/.test(await live.innerText()));
+  await page.waitForTimeout(2600);
+  check("explain: the request is JSON from the worker and carries no question when none was typed", explainBody?.actor === "worker" && /application\/json/.test(explainBody?.type ?? "") && explainBody.body.question === undefined, JSON.stringify(explainBody));
+  check("explain: a live answer is not badged as an example", (await live.locator("[data-testid=explain-answer]").count()) === 1 && !/example data/i.test(await live.innerText()));
+  delayMs = 0;
+  scenario = result({ attempts: [{ route: "local", ok: false, reason: "provenance", codes: ["number_not_in_packet"] }], fallback_reason: "provenance" });
+  await live.getByRole("button", { name: "Why was I slow?" }).click();
+  await page.waitForTimeout(600);
+  check("explain: a rejected model answer says the template was used and why", /fixed template because a number or name in the model's words did not match the data/.test(await live.innerText()));
+  scenario = result({ check: { ok: false } });
+  await live.getByRole("button", { name: "How sure are you?" }).click();
+  await page.waitForTimeout(600);
+  check("explain: an answer that failed the check says so and is not called checked", /Did not pass the check/.test(await live.innerText()) && !/Checked against the data/.test(await live.innerText()));
+  await page.unroute(ENGINE);
+}
+
+// 8g. Notices: one row per kind of notice, locked safety rows, a Today strip, a passive banner
+{
+  await go("/notices", 1500);
+  const nt = await page.locator("main").innerText();
+  check("notices: example data is badged and the groups and the floor are in plain words", /example data/i.test(nt) && /Needs you/.test(nt) && /Helps in the moment/.test(nt) && /Can wait/.test(nt) && /Information/.test(nt) && /Safety stops and approvals that block a job always stay visible/.test(nt));
+  const kill = page.locator("[data-testid=notice-kill_engaged]");
+  check("notices: a safety kind is locked, not a choice", (await kill.locator(".segmented").count()) === 0 && /Always shown/.test(await kill.innerText()));
+  const rp = page.locator("[data-testid=notice-routine_proposal]");
+  await rp.getByRole("button", { name: "Quiet" }).click();
+  await page.waitForTimeout(400);
+  check("notices: choosing a mode takes effect and the row says what it does", (await rp.locator("button[aria-pressed=true]").innerText()) === "Quiet" && /A summary and a note on the dashboard only/.test(await rp.innerText()));
+  const strip = await page.locator("[data-testid=today-strip]").innerText();
+  check("notices: the Today strip counts shown, held and dropped, and says why in the engine's words", /Today: 2 shown, 2 held, 4 dropped/.test(strip) && /Held because you were typing\. Shown at your next pause\./.test(strip));
+  await page.getByRole("button", { name: "Reset what Understudy learned" }).click();
+  check("notices: reset asks once, inline", (await page.getByRole("button", { name: "Yes, reset what it learned" }).count()) === 1);
+  await page.getByRole("button", { name: "Yes, reset what it learned" }).click();
+  await page.waitForTimeout(400);
+  check("notices: after a reset it says nothing is learned", /Nothing yet\. Every kind of notice is as loud as you set it\./.test(await page.locator("main").innerText()));
+
+  // A real-engine scenario, mocked: a refused change reverts and shows the engine's own words; the banner shows counts and the summary link.
+  const json = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" }, body: JSON.stringify(body) });
+  const meta = { origin: "real", n: 0, n_unit: "items", split: null, interval_level: 0.95, note: null, generated_at: "" };
+  const settings = { modes: {}, budget_per_day: 10, level_glance: true, learned: {}, floors: [{ type: "kill_engaged", floor: "toast", why: "Safety stops are always shown once and stay visible." }],
+    types: [{ type: "routine_proposal", class: "wait", mode: "normal", fixed: false }, { type: "kill_engaged", class: "safety", mode: "normal", fixed: true }] };
+  let posted = null;
+  await page.route(ENGINE, async (route) => {
+    const req = route.request(), u = new URL(req.url());
+    u.pathname = u.pathname.replace(/^\/engine/, "");
+    if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" } });
+    if (u.pathname === "/health") return json(route, { ok: true, version: "x", mock: false, extensions: { attention: true } });
+    if (u.pathname === "/attention/settings" && req.method() === "GET") return json(route, { meta, data: settings });
+    if (u.pathname === "/attention/settings") { posted = { body: JSON.parse(req.postData() ?? "{}"), actor: req.headers()["x-understudy-actor"], type: req.headers()["content-type"] }; return json(route, { error: { code: "unknown_key", message: "That setting is not one the engine knows." } }, 422); }
+    if (u.pathname === "/attention/digest") return json(route, { meta, data: { kind: u.searchParams.get("kind"), lines: [], today: {}, budget: { used: 0, per_day: 10 } } });
+    if (u.pathname === "/attention/next") return json(route, { meta, data: { item: null, active: null, badges: { needs_you: 1, waiting: 3, marker: "needs_you", stopped: false }, digest_ready: true, poll_after_s: 2 } });
+    return json(route, { error: { code: "not_found", message: "not mocked" } }, 404);
+  });
+  await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(6800); await page.goto(`${base}/#/notices`); await page.waitForTimeout(1500);
+  const banner = await page.locator("[data-testid=notice-banner]").innerText();
+  check("notices: the passive banner shows counts and a summary link, and nothing about the stopped state", /1 needs you, 2 are waiting/.test(banner) && /Summary ready/.test(banner) && !/stopped/i.test(banner));
+  check("notices: with a real engine the screen is not badged as an example", !/example data/i.test(await page.locator("main").innerText()));
+  const row = page.locator("[data-testid=notice-routine_proposal]");
+  await row.getByRole("button", { name: "Digest only" }).click();
+  await page.waitForTimeout(500);
+  check("notices: a refused change goes back and shows the engine's own words", (await row.locator("button[aria-pressed=true]").innerText()) === "Normal" && /That setting is not one the engine knows\. \(unknown_key\)/.test(await page.locator("main").innerText()));
+  check("notices: the change was sent as JSON from the worker", posted?.actor === "worker" && /application\/json/.test(posted?.type ?? "") && posted.body.modes?.routine_proposal === "digest", JSON.stringify(posted));
+  await page.unroute(ENGINE);
 }
 
 // 9. Kill switch

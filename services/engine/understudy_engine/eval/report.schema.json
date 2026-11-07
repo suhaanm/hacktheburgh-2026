@@ -39,14 +39,16 @@
        "ok",
        "pending",
        "not_run",
-       "failed"
+       "failed",
+       "invalid_provenance"
       ]
      },
      "origin": {
       "enum": [
        "real",
        "synthetic",
-       "mixed"
+       "mixed",
+       "unknown"
       ]
      },
      "n": {
@@ -580,7 +582,8 @@
      "enum": [
       "real",
       "synthetic",
-      "mixed"
+      "mixed",
+      "unknown"
      ]
     },
     "n": {
@@ -631,7 +634,8 @@
      "enum": [
       "pending",
       "not_run",
-      "failed"
+      "failed",
+      "invalid_provenance"
      ]
     },
     "reason": {
@@ -1911,6 +1915,15 @@
         },
         "note": {
          "type": "string"
+        },
+        "condition": {
+         "type": "string"
+        },
+        "pass_by_condition": {
+         "type": "object"
+        },
+        "false_claims_by_condition": {
+         "type": "object"
         }
        },
        "required": [
@@ -1920,7 +1933,8 @@
         "tiers",
         "false_claims",
         "cost_usd_est",
-        "note"
+        "note",
+        "condition"
        ],
        "additionalProperties": true
       }

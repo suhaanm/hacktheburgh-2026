@@ -1,0 +1,87 @@
+{
+ "meta": {
+  "origin": "synthetic",
+  "n": 0,
+  "n_unit": "items",
+  "interval_level": null,
+  "note": "Counts and fixed lines only.",
+  "generated_at": "2026-11-07T18:37:28Z"
+ },
+ "data": {
+  "kind": "now",
+  "built_t": 1794076648.525,
+  "needs_you": 1,
+  "needs_you_unshown": 1,
+  "needs_you_items": [
+   {
+    "type": "approval_blocking",
+    "count": 1,
+    "id": "i_example_1",
+    "ids": [
+     "i_example_1"
+    ]
+   }
+  ],
+  "ran": 1,
+  "ran_outcomes": {
+   "done": 1
+  },
+  "can_ignore": 3,
+  "can_ignore_by_type": {
+   "briefing_ready": 3
+  },
+  "lines": [
+   "Approval queue: 1 approval is holding up a job.",
+   "Your overnight run: 1 finished.",
+   "Understudy: 3 can wait: 3 briefing cards."
+  ],
+  "counts": {
+   "needs_you": 1,
+   "ran": 1,
+   "can_ignore": 3,
+   "lines": 3
+  },
+  "today": {
+   "shown:toast": 2,
+   "held:held_typing": 2,
+   "dropped:dropped_flow": 3,
+   "dropped:dropped_budget": 1
+  },
+  "budget": {
+   "used": 2,
+   "per_day": 10
+  },
+  "today_detail": [
+   {
+    "state": "shown",
+    "code": "toast",
+    "n": 2,
+    "reason_text": "Shown as a notice, at a pause."
+   },
+   {
+    "state": "held",
+    "code": "held_typing",
+    "n": 2,
+    "reason_text": "Held because you were typing. Shown at your next pause."
+   },
+   {
+    "state": "dropped",
+    "code": "dropped_flow",
+    "n": 3,
+    "reason_text": "Not shown because you were typing or had only paused for a moment."
+   },
+   {
+    "state": "dropped",
+    "code": "dropped_budget",
+    "n": 1,
+    "reason_text": "Not shown because the day's attention budget is spent."
+   },
+   {
+    "state": "passive",
+    "code": "passive_digest",
+    "n": 2,
+    "reason_text": "Folded into the next summary instead of a separate notice."
+   }
+  ]
+ }
+}

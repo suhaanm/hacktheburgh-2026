@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { LedgerEntry } from "../types";
-import { blockReasonLabel, callsToday, countLines, filterLedger, fmtBytes, imageSize, rowClass, sentRows, sourceLabel } from "./ledger";
+import { blockReasonLabel, callsToday, countLines, filterLedger, fmtBytes, imageSize, lastCallTime, purposeLabel, rowClass, sentRows, sourceLabel } from "./ledger";
 
 const row = (o: Partial<LedgerEntry>): LedgerEntry => ({ t: "2026-11-07T10:00:00Z", purpose: "glance.frame", schema: null, fields: [], payload: null, model: null, bytes: 0, ...o });
 const entries: LedgerEntry[] = [
@@ -54,5 +54,17 @@ describe("ledger rows", () => {
       expect(e.fields).toEqual([]);
       for (const v of Object.values(e.image ?? {})) expect(typeof v === "number" || /^[a-z0-9_]+$/.test(String(v))).toBe(true);
     }
+  });
+  it("reads the last call whether the engine sends a time or the call itself", () => {
+    expect(lastCallTime("2026-11-07T17:39:10Z")).toBe("2026-11-07T17:39:10Z");
+    expect(lastCallTime({ t: "2026-11-07T17:39:10.104Z", purpose: "agents.parent_plan", bytes: 4 })).toBe("2026-11-07T17:39:10.104Z");
+    expect(lastCallTime(null)).toBeNull();
+    expect(lastCallTime({ purpose: "x" })).toBeNull();
+  });
+  it("makes purposes readable, including the agent ones the live ledger carries", () => {
+    expect(purposeLabel("agents.parent_plan")).toBe("Planning a background run");
+    expect(purposeLabel("agents.child_step_data_profiler")).toBe("A helper's next step (data profiler)");
+    expect(purposeLabel("briefing_wording")).toBe("Wording a briefing card");
+    expect(purposeLabel("glance.frame")).toBe("Glance frame");
   });
 });

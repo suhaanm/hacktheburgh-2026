@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import os
 
-LAYERS = ("privacy", "localmodel", "calendar", "git", "proactive", "agents", "awareness", "cue", "evidence", "mlv2", "personas_v2")
+LAYERS = ("privacy", "localmodel", "calendar", "git", "proactive", "agents", "awareness", "cue", "evidence", "mlv2", "personas_v2", "attention", "context")
 _TRUE = ("1", "true", "yes", "on")
 
 

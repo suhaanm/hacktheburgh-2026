@@ -1,5 +1,6 @@
-// Types local to the Live renderer module. Shared domain types come from src/shared (imported type-only elsewhere).
-import type { LiveAuth } from './wire'
+// Types local to the Live renderer module. The renderer-side Live SESSION is gone (voice runs in the main process, see main/live and
+// renderer/live/bridge.ts); these remain for the audio helpers and for the old dock controller, which still names them.
+export type LiveAuth = { kind: 'token'; value: string }
 
 // 'idle' = not started. The dock maps these onto CompanionState.phase / LiveStatus.phase.
 export type LivePhase = 'idle' | 'connecting' | 'live' | 'thinking' | 'speaking' | 'error' | 'ended'

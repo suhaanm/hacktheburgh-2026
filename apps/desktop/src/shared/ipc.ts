@@ -18,6 +18,7 @@ import type {
   SessionRequest,
   SessionSource,
 } from './protocol'
+import type { AwarenessCardState, AwarenessChoice } from './awareness'
 import type { AddFolderResult, FilesSearchResult, FilesStatus } from './files'
 import type { PermissionPane, PermissionStatus } from './permissions'
 import type { Settings, SettingsPatch } from './settings'
@@ -75,6 +76,9 @@ export const IPC = {
   permissionsUnsubscribe: 'permissions:unsubscribe', // send
   permissionsChanged: 'permissions:changed', // main -> subscriber
   shellCommand: 'shell:command', // main (tray) -> dock
+  // AWARENESS: the dock's consent card (trusted: only our own windows reach main; the choice is validated there).
+  awarenessState: 'awareness:state', // invoke
+  awarenessConsent: 'awareness:consent', // invoke
   // FILES: "Files I can look at". addFolder opens a native dialog in main; no renderer or model ever supplies a path to read.
   filesAddFolder: 'files:addFolder', // invoke
   filesRemoveFolder: 'files:removeFolder', // invoke
@@ -112,6 +116,8 @@ export interface IpcInvokeMap {
   [IPC.permissionsStatus]: { args: []; result: PermissionStatus }
   [IPC.permissionsRequestMicrophone]: { args: []; result: boolean }
   [IPC.permissionsRequestScreen]: { args: []; result: PermissionStatus }
+  [IPC.awarenessState]: { args: []; result: AwarenessCardState }
+  [IPC.awarenessConsent]: { args: [choice: AwarenessChoice]; result: AwarenessCardState }
   [IPC.filesAddFolder]: { args: []; result: AddFolderResult }
   [IPC.filesRemoveFolder]: { args: [path: string]; result: FilesStatus }
   [IPC.filesList]: { args: []; result: FilesStatus }
@@ -214,6 +220,12 @@ export interface AlongsideApi {
   }
   shell: {
     onCommand(cb: (cmd: ShellCommand) => void): Unsubscribe
+  }
+
+  // AWARENESS: the consent card
+  awareness: {
+    state(): Promise<AwarenessCardState>
+    setConsent(choice: AwarenessChoice): Promise<AwarenessCardState>
   }
 
   // DEMO: Showtime walkthrough (dock button, narration audio in the dock, roadmap strip in the overlay)

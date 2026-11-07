@@ -1,7 +1,8 @@
 // The small localhost server the browser extension talks to (default 127.0.0.1:7720), plus a local-only way for other Understudy
 // processes to ask for a ring.
 //   GET  /ext/want    the next RectWant (200) or 204.            extension -> desktop
-//   POST /ext/rect    a RectAnswer; 200 when it matched a pending want, 410 when it was late or unknown.
+//   POST /ext/rect    a RectAnswer; 200 when it matched a pending want, 410 when it was late or unknown. The optional `content` (up to 80
+//                     boxes of four integers) is parsed by protocol.parseAnswer; a worst-case answer is about 2.5 KB, well inside MAX_BODY.
 //   POST /coach/ring  { zone | label_hash | role+name, label?, message?, step? }  draw a ring on that element.   local processes only
 //   POST /coach/clear remove the ring.                                                         local processes only
 //   GET  /ext/status  { pending, extension_seen_ms }

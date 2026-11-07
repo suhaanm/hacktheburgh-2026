@@ -64,6 +64,11 @@ describe("the proxy table", () => {
     expect(o[AGENT_PREFIX].target).toBe("http://127.0.0.1:7791");
     expect(proxyTable({ ENGINE_PORT: "not a port" })[ENGINE_PREFIX].target).toBe("http://127.0.0.1:7700");
   });
+  it("forwards the service's own Host, which the services require, and leaves Origin to the browser", () => {
+    const t = proxyTable({});
+    expect(t[ENGINE_PREFIX].changeOrigin).toBe(true);
+    expect(t[AGENT_PREFIX].changeOrigin).toBe(true);
+  });
   it("strips its prefix and keeps the query", () => {
     const rw = proxyTable({})[ENGINE_PREFIX].rewrite!;
     expect(rw("/engine/queue?status=all")).toBe("/queue?status=all");
@@ -114,7 +119,7 @@ describe("the guard, with plain request objects", () => {
 
 /* A real Vite dev server in front of a fake engine, on ephemeral ports: what the upstream receives is what the page's request became. */
 describe("through a real Vite server", () => {
-  let upstream: Server, vite: ViteDevServer, dir: string, base: string;
+  let upstream: Server, vite: ViteDevServer, dir: string, base: string, upstreamPort = 0;
   const seen: { method?: string; url?: string; headers: IncomingHttpHeaders }[] = [];
 
   beforeAll(async () => {
@@ -126,6 +131,7 @@ describe("through a real Vite server", () => {
     });
     await new Promise<void>((r) => upstream.listen(0, "127.0.0.1", r));
     const port = (upstream.address() as AddressInfo).port;
+    upstreamPort = port;
     const env = { UNDERSTUDY_DATA_DIR: dir, ENGINE_PORT: String(port), AGENT_PORT: String(port) };
     vite = await createVite({
       configFile: false, root: dir, logLevel: "silent", optimizeDeps: { noDiscovery: true, include: [] },
@@ -150,9 +156,16 @@ describe("through a real Vite server", () => {
     expect(seen.at(-1)?.headers[TOKEN_HEADER]).toBe(TOKEN_A);
     expect(seen.at(-1)?.headers["x-understudy-actor"]).toBe("worker");
     expect(seen.at(-1)?.headers["content-type"]).toBe("application/json");
+    expect(seen.at(-1)?.headers.host).toBe(`127.0.0.1:${upstreamPort}`); // the service's own Host, not the dashboard's
     writeFileSync(join(dir, ".token"), `${TOKEN_B}\n`, { mode: 0o600 });
     await post("/agent/kill");
     expect(seen.at(-1)?.headers[TOKEN_HEADER]).toBe(TOKEN_B);
+  });
+
+  it("passes the browser's own Origin through to the service untouched", async () => {
+    writeFileSync(join(dir, ".token"), `${TOKEN_A}\n`);
+    await post("/engine/queue/q_1/approve", { Origin: base });
+    expect(seen.at(-1)?.headers.origin).toBe(base);
   });
 
   it("replaces a token the page tried to supply", async () => {

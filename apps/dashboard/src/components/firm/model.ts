@@ -1,0 +1,332 @@
+// Pure logic for the Firm screens and the worker home: reading the insight routes tolerantly, formatting estimates with their
+// intervals, grouping and sorting people (never ranking them), and the privacy threshold. No React and no network here, so all of
+// it is tested without a browser.
+import type {
+  AdminInsight, CurvePoint, DrillColumn, DrillRow, Est, FirmAggregate, FirmRole, Interval, Origin, OnboardingRole, RoleCompare, RoleHabit,
+  RoleMeasure, TenureBand, Trend, UserRow, Verdict, WireDrill, WireFirm, WireOnboarding, WireOverview, WirePointer, WireRisk, WireRoles,
+  WireSharing, WireWhy, WireWorker, PointerTarget,
+} from "./wire";
+import { TENURE_BANDS, TRENDS } from "./wire";
+
+type Obj = Record<string, unknown>;
+const isObj = (v: unknown): v is Obj => !!v && typeof v === "object" && !Array.isArray(v);
+const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v : null);
+const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+const num = (v: unknown, d = 0): number => (isNum(v) ? v : d);
+
+/* -- Reading ---------------------------------------------------------------------------------- */
+
+/** An interval from `[lo, hi]`, `{lo, hi}` or `{low, high}`. Null when it is not a proper pair (lo above hi is swapped, not trusted blindly). */
+export function interval(v: unknown): Interval | null {
+  let lo: unknown, hi: unknown;
+  if (Array.isArray(v) && v.length === 2) [lo, hi] = v;
+  else if (isObj(v)) { lo = v.lo ?? v.low ?? v.lower; hi = v.hi ?? v.high ?? v.upper; }
+  if (!isNum(lo) || !isNum(hi)) return null;
+  return lo <= hi ? [lo, hi] : [hi, lo];
+}
+
+/** An estimate from a bare number, `{value, ci}`, `{point, lo, hi}`, `{mean, interval}` or `{share, wilson}`. */
+export function est(v: unknown): Est | null {
+  if (isNum(v)) return { value: v, ci: null };
+  if (!isObj(v)) return null;
+  const value = [v.value, v.point, v.mean, v.share, v.median, v.estimate].find(isNum);
+  if (value === undefined) return null;
+  const ci = interval(v.ci ?? v.interval ?? v.wilson ?? (isNum(v.lo) && isNum(v.hi) ? [v.lo, v.hi] : null));
+  return { value: value as number, ci };
+}
+
+const origin = (v: unknown): Origin => (v === "real" || v === "mixed" ? v : "synthetic");
+const verdict = (v: unknown): Verdict => (v === "gap" ? "gap" : "cannot_tell");
+/** "steady" is the older spelling of "cannot_tell_yet". Anything unknown is "not enough data", never a guess. */
+const trend = (v: unknown): Trend => (v === "steady" ? "cannot_tell_yet" : (TRENDS as unknown[]).includes(v) ? (v as Trend) : "not_enough_data");
+const polarity = (v: unknown): "positive" | "attention" | "tradeoff" | "note" => (v === "positive" || v === "attention" || v === "tradeoff" ? v : "note");
+const tenure = (v: unknown): TenureBand => ((TENURE_BANDS as unknown[]).includes(v) ? (v as TenureBand) : "lt_4w");
+
+/** A body that came as `{meta, data}` or bare. */
+export const dataOf = (body: unknown): unknown => (isObj(body) && "data" in body ? body.data : body);
+
+export function pointer(v: unknown): WirePointer | null {
+  if (!isObj(v)) return null;
+  const id = str(v.id);
+  const headline = str(v.headline);
+  if (!id || !headline) return null;
+  const a: Obj = isObj(v.action) ? v.action : {};
+  const numbers: Record<string, number | string> = {};
+  if (isObj(v.numbers)) for (const [k, x] of Object.entries(v.numbers)) if (isNum(x) || typeof x === "string") numbers[k] = x;
+  return {
+    id, kind: str(v.kind) ?? "habit", headline, detail: str(v.detail), numbers, origin: origin(v.origin), n: isNum(v.n) ? v.n : null, n_unit: str(v.n_unit),
+    polarity: polarity(v.polarity), polarity_label: str(v.polarity_label), glyph: str(v.glyph), a11y_label: str(v.a11y_label), badge: str(v.badge),
+    details_available: v.details_available !== false,
+    action: str(a.to) ? { label: str(a.label) ?? "Open", to: str(a.to) as PointerTarget, query: str(a.query) } : null,
+  };
+}
+
+export function normaliseWorker(body: unknown): WireWorker {
+  const d = dataOf(body);
+  const o = isObj(d) ? d : {};
+  const pointers = arr(o.pointers).map(pointer).filter((p): p is WirePointer => !!p).slice(0, 3); // never more than three
+  const t = isObj(o.try) && str(o.try.label) && isNum(o.try.value) ? { label: str(o.try.label) as string, value: o.try.value as number, unit: str(o.try.unit) ?? "" } : null;
+  const w = isObj(o.week) ? o.week : null;
+  return {
+    person: str(o.person), role: str(o.role), week: w && str(w.from) && str(w.to) ? { from: str(w.from) as string, to: str(w.to) as string } : null,
+    nothing_stands_out: o.nothing_stands_out === true || pointers.length === 0, pointers, try: t, monday_note: str(o.monday_note),
+    status: str(o.status) ?? (pointers.length === 0 ? "nothing_stands_out" : "ok"), message: str(o.message),
+  };
+}
+
+export function normaliseWhy(body: unknown): WireWhy {
+  const o = (isObj(dataOf(body)) ? dataOf(body) : {}) as Obj;
+  return {
+    id: str(o.id) ?? "", headline: str(o.headline) ?? "",
+    because: arr(o.because).filter((x): x is string => typeof x === "string"),
+    sources: arr(o.sources).filter(isObj).map((s) => ({ label: str(s.label) ?? "", n: isNum(s.n) ? s.n : null, n_unit: str(s.n_unit), origin: origin(s.origin) })),
+    limits: arr(o.limits).filter((x): x is string => typeof x === "string"),
+    state: str(o.state), reason_text: str(o.reason_text),
+  };
+}
+
+export function normaliseSharing(body: unknown): WireSharing {
+  const o = (isObj(dataOf(body)) ? dataOf(body) : {}) as Obj;
+  const kinds = ["number", "enum", "count"];
+  return {
+    items: arr(o.items).filter(isObj).filter((i) => str(i.label)).map((i, k) => ({ id: str(i.id) ?? `item-${k}`, label: str(i.label) as string, kind: (kinds.includes(i.kind as string) ? i.kind : "number") as "number" | "enum" | "count", note: str(i.note) })),
+    never: arr(o.never).filter((x): x is string => typeof x === "string"),
+    notice: str(o.notice), preview: isObj(o.preview) ? o.preview : null, visible_since: str(o.visible_since), visible_to: str(o.visible_to), legal_note: str(o.legal_note),
+  };
+}
+
+export function insight(v: unknown): AdminInsight | null {
+  if (!isObj(v)) return null;
+  const id = str(v.id), headline = str(v.headline);
+  if (!id || !headline) return null;
+  const e = isObj(v.effect) && isNum(v.effect.value) ? { label: str(v.effect.label) ?? "", unit: str(v.effect.unit) ?? "", value: v.effect.value, ci: interval(v.effect.ci ?? v.effect.interval) } : null;
+  return {
+    id, headline, role: str(v.role) ?? "all", effect: e, n: num(v.n), n_unit: str(v.n_unit) ?? "people", origin: origin(v.origin), drill: str(v.drill) ?? id,
+    kind: str(v.kind), polarity: polarity(v.polarity), polarity_label: str(v.polarity_label), glyph: str(v.glyph), a11y_label: str(v.a11y_label),
+    position: isNum(v.position) ? v.position : null, text: str(v.text), badge: str(v.badge), split: str(v.split), statement: str(v.statement),
+  };
+}
+
+export function normaliseRisk(v: unknown): WireRisk | null {
+  if (!isObj(v)) return null;
+  const a = isObj(v.approval_backlog_age_h) && isNum(v.approval_backlog_age_h.median) ? { median: v.approval_backlog_age_h.median, max: num(v.approval_backlog_age_h.max, v.approval_backlog_age_h.median) } : null;
+  return { approval_backlog_age_h: a, injection_pauses_30d: num(v.injection_pauses_30d), kill_events_30d: num(v.kill_events_30d), open_approvals: num(v.open_approvals) };
+}
+
+export function normaliseOverview(body: unknown): WireOverview {
+  const o = (isObj(dataOf(body)) ? dataOf(body) : {}) as Obj;
+  const f = isObj(o.firm) ? o.firm : {};
+  const c = isObj(o.coverage) ? o.coverage : {};
+  return {
+    firm: { users: num(f.users), roles: num(f.roles), label: str(f.label) ?? "synthetic firm" },
+    top: arr(o.top).map(insight).filter((i): i is AdminInsight => !!i).slice(0, 7),
+    coverage: { users: num(c.users), enough_data: num(c.enough_data), min_occurrences: num(c.min_occurrences, 20) },
+    risk: normaliseRisk(o.risk),
+  };
+}
+
+function drillColumns(v: unknown): DrillColumn[] {
+  return arr(v).filter(isObj).filter((c) => str(c.key)).map((c) => ({ key: str(c.key) as string, label: str(c.label) ?? (str(c.key) as string), unit: str(c.unit) }));
+}
+function drillRows(v: unknown): DrillRow[] {
+  return arr(v).filter(isObj).filter((r) => str(r.label)).map((r) => {
+    const values: DrillRow["values"] = {};
+    if (isObj(r.values)) {
+      for (const [k, x] of Object.entries(r.values)) {
+        if (isNum(x) || typeof x === "string" || x === null) values[k] = x as number | string | null;
+        else { const iv = interval(x); if (iv) values[k] = iv; }
+      }
+    }
+    return { label: str(r.label) as string, group: str(r.group), values, n: isNum(r.n) ? r.n : null };
+  });
+}
+
+export function normaliseDrill(body: unknown): WireDrill {
+  const o = (isObj(dataOf(body)) ? dataOf(body) : {}) as Obj;
+  const columns = drillColumns(o.columns);
+  const rows = drillRows(o.rows);
+  const tables = arr(o.tables).filter(isObj).map((t, i) => ({ id: str(t.id) ?? `t${i}`, title: str(t.title) ?? "", columns: drillColumns(t.columns), rows: drillRows(t.rows) })).filter((t) => t.columns.length && t.rows.length);
+  const series = arr(o.series).filter(isObj).map((s) => ({
+    label: str(s.label) ?? "",
+    points: arr(s.points).filter(isObj).filter((p) => isNum(p.x) && isNum(p.y)).map((p) => ({ x: p.x as number, y: p.y as number, lo: isNum(p.lo) ? p.lo : null, hi: isNum(p.hi) ? p.hi : null })),
+  }));
+  return { id: str(o.id) ?? "", headline: str(o.headline) ?? "", columns, rows, series, notes: arr(o.notes).filter((x): x is string => typeof x === "string"), tables, method: str(o.method) };
+}
+
+function measure(v: unknown): RoleMeasure | null {
+  if (!isObj(v) || !str(v.key)) return null;
+  return { key: str(v.key) as string, label: str(v.label) ?? (str(v.key) as string), unit: str(v.unit) ?? "share", expert: est(v.expert), junior: est(v.junior), gap: est(v.gap), verdict: verdict(v.verdict) };
+}
+function habit(v: unknown): RoleHabit | null {
+  if (!isObj(v) || !str(v.label)) return null;
+  return { id: str(v.id) ?? (str(v.label) as string), label: str(v.label) as string, explains_s: est(v.explains_s), expert_rate: est(v.expert_rate), junior_rate: est(v.junior_rate), n: num(v.n), verdict: verdict(v.verdict) };
+}
+
+export function normaliseRoles(body: unknown): WireRoles {
+  const o = (isObj(dataOf(body)) ? dataOf(body) : {}) as Obj;
+  const roles: RoleCompare[] = arr(o.roles).filter(isObj).filter((r) => str(r.role)).map((r) => ({
+    role: str(r.role) as string, name: str(r.name) ?? (str(r.role) as string), n_expert: num(r.n_expert), n_junior: num(r.n_junior),
+    enough: r.enough !== false, reason: str(r.reason), standard: str(r.standard), measures: arr(r.measures).map(measure).filter((m): m is RoleMeasure => !!m), habits: arr(r.habits).map(habit).filter((h): h is RoleHabit => !!h),
+  }));
+  const s = isObj(o.same_scale) ? o.same_scale : {};
+  return { roles, same_scale: { min: num(s.min, 0), max: num(s.max, 1) } };
+}
+
+function userRow(v: unknown): UserRow | null {
+  if (!isObj(v) || !str(v.id)) return null;
+  const t = isObj(v.time_to_independence) ? v.time_to_independence : {};
+  const skills = arr(v.skills).filter(isObj).filter((k) => str(k.skill) || str(k.label)).map((k) => ({
+    skill: str(k.skill) ?? (str(k.label) as string), label: str(k.label) ?? (str(k.skill) as string), n: num(k.n), independence_share: isNum(k.independence_share) ? k.independence_share : null, lost_s: est(k.lost_s),
+  }));
+  return {
+    id: str(v.id) as string, label: str(v.label) ?? (str(v.id) as string), role: str(v.role), level: v.level === "expert" || v.level === "junior" ? v.level : null, status: str(v.status),
+    last_seen_days: isNum(v.last_seen_days) ? v.last_seen_days : null, skills, tenure_band: tenure(v.tenure_band), tenure_weeks: isNum(v.tenure_weeks) ? v.tenure_weeks : null,
+    trend: trend(v.trend), independence: est(v.independence), assisted_share: est(v.assisted_share),
+    time_to_independence: { reached: t.reached === true, value: isNum(t.value) ? t.value : null, unit: str(t.unit) ?? "occurrences" },
+    automations_running: num(v.automations_running), n: num(v.n),
+  };
+}
+function aggregate(v: unknown, users: number): FirmAggregate {
+  const o = isObj(v) ? v : {};
+  const t = isObj(o.time_to_independence) ? o.time_to_independence : {};
+  return {
+    n_users: num(o.n_users, users), independence: est(o.independence), assisted_share: est(o.assisted_share),
+    time_to_independence: { median: isNum(t.median) ? t.median : null, ci: interval(t.ci), unit: str(t.unit) ?? "occurrences", reached_share: est(t.reached_share) },
+  };
+}
+
+export function normaliseFirm(body: unknown): WireFirm {
+  const o = (isObj(dataOf(body)) ? dataOf(body) : {}) as Obj;
+  const roles: FirmRole[] = arr(o.roles).filter(isObj).filter((r) => str(r.role)).map((r) => {
+    const users = arr(r.users).map(userRow).filter((u): u is UserRow => !!u);
+    return { role: str(r.role) as string, name: str(r.name) ?? (str(r.role) as string), merged: r.merged === true, users, aggregate: aggregate(r.aggregate, users.length) };
+  });
+  const p = isObj(o.privacy) ? o.privacy : {};
+  const t = isObj(o.totals) ? o.totals : {};
+  const all = roles.reduce((a, r) => a + r.users.length, 0);
+  return {
+    roles, privacy: { min_group: num(p.min_group, 5), merged_roles: arr(p.merged_roles).filter((x): x is string => typeof x === "string") },
+    totals: { users: num(t.users, all), enough_data: num(t.enough_data, roles.reduce((a, r) => a + r.users.filter((u) => u.trend !== "not_enough_data").length, 0)) },
+  };
+}
+
+export function normaliseOnboarding(body: unknown): WireOnboarding {
+  const o = (isObj(dataOf(body)) ? dataOf(body) : {}) as Obj;
+  const t = isObj(o.target) ? o.target : {};
+  const points = (v: unknown): CurvePoint[] => arr(v).filter(isObj).filter((p) => isNum(p.x) && isNum(p.y)).map((p): CurvePoint => ({ x: p.x as number, y: p.y as number, lo: num(p.lo, p.y as number), hi: num(p.hi, p.y as number), n: isNum(p.n) ? p.n : isNum(p.n_at_risk) ? p.n_at_risk : null }));
+  const roles: OnboardingRole[] = arr(o.roles).filter(isObj).filter((r) => str(r.role)).map((r) => ({
+    role: str(r.role) as string, name: str(r.name) ?? (str(r.role) as string), n: num(r.n),
+    curve: points(r.curve), km: points(r.km), censored: isNum(r.censored) ? r.censored : null, reason: str(r.reason),
+    median_to_target: est(r.median_to_target), reached_share: est(r.reached_share),
+  }));
+  return { target: { value: num(t.value, 0.6), label: str(t.label) ?? "design target", rule: str(t.rule) }, x_unit: str(o.x_unit) ?? "occurrences", roles };
+}
+
+/* -- Formatting -------------------------------------------------------------------------------- */
+
+/** 0.624 -> "62%". */
+export const pct = (x: number): string => `${Math.round(x * 100)}%`;
+const trim = (x: number): string => (Math.abs(x) >= 100 ? String(Math.round(x)) : String(Math.round(x * 10) / 10));
+
+/** "62% (54% to 70%)" or "62% (no interval yet)". Words, not a dash, so a screen reader reads a range. */
+export function fmtShare(e: Est | null): string {
+  if (!e) return "not enough data";
+  return e.ci ? `${pct(e.value)} (${pct(e.ci[0])} to ${pct(e.ci[1])})` : `${pct(e.value)} (no interval yet)`;
+}
+export function fmtNum(e: Est | null, unit = ""): string {
+  if (!e) return "not enough data";
+  const u = unit ? ` ${unit}` : "";
+  return e.ci ? `${trim(e.value)}${u} (${trim(e.ci[0])} to ${trim(e.ci[1])})` : `${trim(e.value)}${u} (no interval yet)`;
+}
+/** A signed number for a gap: "+0.21" or "-12". */
+export const signed = (x: number, digits = 2): string => `${x > 0 ? "+" : x < 0 ? "-" : ""}${Math.abs(x).toFixed(digits)}`;
+
+/** Does this interval include zero? Then the sign of the estimate cannot be read. */
+export const spansZero = (ci: Interval | null): boolean => !!ci && ci[0] <= 0 && ci[1] >= 0;
+
+export const TREND_LABEL: Record<Trend, string> = {
+  improving: "Improving", cannot_tell_yet: "Cannot tell yet", needs_attention: "Needs attention", not_enough_data: "Not enough data",
+};
+/** A word and a glyph for each class, so the class is never carried by colour alone. */
+export const TREND_GLYPH: Record<Trend, string> = { improving: "↗", cannot_tell_yet: "→", needs_attention: "!", not_enough_data: "·" };
+export const TREND_HINT: Record<Trend, string> = {
+  improving: "The help this person needs has been falling, and the interval says so.",
+  cannot_tell_yet: "No change we can tell yet. The interval on the trend includes zero, so this is not the same as no change.",
+  needs_attention: "The help this person needs has not fallen as it usually does by this point. Worth a conversation, not a verdict.",
+  not_enough_data: "Fewer occurrences than the minimum, so no trend is shown.",
+};
+
+export const TENURE_LABEL: Record<TenureBand, string> = { lt_4w: "under 4 weeks", "1_3m": "1 to 3 months", "3_6m": "3 to 6 months", "6_12m": "6 to 12 months", "12m_plus": "over a year" };
+const TENURE_ORDER: Record<TenureBand, number> = { lt_4w: 0, "1_3m": 1, "3_6m": 2, "6_12m": 3, "12m_plus": 4 };
+
+export const ROLE_SHORT: Record<string, string> = { "benefits-processor": "Benefits", "data-analyst": "Data", programmer: "Programming" };
+
+/* -- People: grouped, sorted by name or tenure, never ranked ---------------------------------- */
+
+/** The only two sort keys. There is deliberately no "best", "score" or "rank": the page is for coaching and onboarding, not for evaluating individuals. */
+export type SortKey = "name" | "tenure";
+export const SORT_KEYS: SortKey[] = ["name", "tenure"];
+export const DEFAULT_SORT: SortKey = "name";
+
+/** A natural compare, so "BP-07" comes before "BP-10". */
+const byLabel = (a: UserRow, b: UserRow): number => a.label.localeCompare(b.label, "en", { numeric: true });
+
+/** A new array. By name, A to Z; or by tenure, longest first, ties by name. */
+export function sortUsers(users: UserRow[], by: SortKey = DEFAULT_SORT): UserRow[] {
+  const copy = [...users];
+  if (by === "tenure") {
+    copy.sort((a, b) => (b.tenure_weeks ?? TENURE_ORDER[b.tenure_band] * 13) - (a.tenure_weeks ?? TENURE_ORDER[a.tenure_band] * 13) || byLabel(a, b));
+  } else copy.sort(byLabel);
+  return copy;
+}
+
+/** A class filter (not a ranking): show only one trend class, or all of them. */
+export const filterUsers = (users: UserRow[], t: Trend | null): UserRow[] => (t ? users.filter((u) => u.trend === t) : users);
+
+export function trendCounts(users: UserRow[]): Record<Trend, number> {
+  const c: Record<Trend, number> = { improving: 0, cannot_tell_yet: 0, needs_attention: 0, not_enough_data: 0 };
+  for (const u of users) c[u.trend] += 1;
+  return c;
+}
+
+/**
+ * The privacy threshold for comparison tables: a role aggregate is shown only when the group has at least `min` people (default 5).
+ * The engine merges small groups itself; this is the second check on the page, so a small group's figure is never drawn.
+ */
+export const groupShown = (r: Pick<FirmRole, "aggregate" | "users" | "merged">, min: number): boolean => !r.merged && Math.max(r.aggregate.n_users, r.users.length) >= min;
+
+/** For a role comparison: both groups need at least `min` people. */
+export const compareShown = (r: Pick<RoleCompare, "n_expert" | "n_junior" | "enough">, min: number): boolean => r.enough && r.n_expert >= min && r.n_junior >= min;
+
+/** Roles under the threshold, merged into one name for the note. */
+export const smallRoles = (roles: Pick<FirmRole, "role" | "name" | "aggregate" | "users" | "merged">[], min: number): string[] => roles.filter((r) => !groupShown(r, min)).map((r) => r.name);
+
+/* -- Onboarding curves ------------------------------------------------------------------------- */
+
+/** Points with fewer than `min` people still in view are cut: past that the curve describes two or three people. */
+export const trimCurve = (points: CurvePoint[], min = 5): CurvePoint[] => points.filter((p) => p.n === null || p.n >= min).sort((a, b) => a.x - b.x);
+
+/** First x where the curve's lower bound reaches the target and stays there. Null when it never does. Read from the curve, so it can be checked. */
+export function crossing(points: CurvePoint[], target: number): number | null {
+  const ps = [...points].sort((a, b) => a.x - b.x);
+  for (let i = 0; i < ps.length; i++) if (ps.slice(i).every((p) => p.lo >= target)) return ps[i].x;
+  return null;
+}
+
+/* -- Overview ---------------------------------------------------------------------------------- */
+
+export function effectText(e: AdminInsight["effect"]): string | null {
+  if (!e) return null;
+  const u = e.unit === "share" ? "" : e.unit === "points" ? " points" : e.unit ? ` ${e.unit}` : "";
+  const f = (x: number) => (e.unit === "share" ? pct(x) : trim(x));
+  return e.ci ? `${f(e.value)}${u} (${f(e.ci[0])} to ${f(e.ci[1])})` : `${f(e.value)}${u} (no interval yet)`;
+}
+
+export const coverageShare = (c: WireOverview["coverage"]): number => (c.users > 0 ? c.enough_data / c.users : 0);
+
+/** One word for how far the interval supports a claim: "gap" or "cannot tell yet". */
+export const verdictText = (v: Verdict): string => (v === "gap" ? "A gap we can see" : "Cannot tell yet");
+
+/** Origin badge words. */
+export const originWord = (o: Origin): string => (o === "real" ? "real" : o);

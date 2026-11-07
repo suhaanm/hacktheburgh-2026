@@ -1,5 +1,5 @@
 import { useId, useRef, useState, type KeyboardEvent } from "react";
-import { area, curveStepAfter, line } from "d3-shape";
+import { area, curveLinear, curveStepAfter, line } from "d3-shape";
 import { useWidth } from "../../hooks";
 import { Y_TICKS, frameFor, nearestIndex, xScale, xTicks, yScale } from "./chart";
 import { glyphOf, pct, pctBracket, pctRange, pickSamples, pointReadout, signed, type GrowthView } from "./model";
@@ -18,6 +18,7 @@ export function GrowthChart({ view }: { view: GrowthView }) {
   const uid = useId().replace(/:/g, "");
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursor, setCursor] = useState<number | null>(null);
+  const [keyOpen, setKeyOpen] = useState<boolean | null>(null);
   const pts = view.curve;
   const last = pts.length - 1;
 
@@ -37,17 +38,17 @@ export function GrowthChart({ view }: { view: GrowthView }) {
   const glyphTop = levelTop + levelH + 12;
   const glyphH = 30;
   const H = glyphTop + glyphH + 6;
-  const lv = (l: number) => levelTop + ((l - 1) / 3) * levelH;
+  const lv = (l: number) => levelTop + ((Math.min(4, Math.max(1, l)) - 1) / 3) * levelH;
 
   const bandPath = area<(typeof pts)[number]>().x((p) => x(p.i)).y0((p) => y(p.lo)).y1((p) => y(p.hi))(pts) ?? "";
   const linePath = line<(typeof pts)[number]>().x((p) => x(p.i)).y((p) => y(p.p))(pts) ?? "";
-  const levelPath = line<(typeof pts)[number]>().defined((p) => p.level != null).x((p) => x(p.i)).y((p) => lv(p.level as number)).curve(curveStepAfter)(pts) ?? "";
+  const levelPath = line<(typeof pts)[number]>().defined((p) => p.lv != null).x((p) => x(p.i)).y((p) => lv(p.lv as number)).curve(view.smoothLevel ? curveLinear : curveStepAfter)(pts) ?? "";
 
   const markers = pickSamples(xs, f.compact ? 22 : 18);
   const glyphs = pickSamples(xs, f.compact ? 30 : 36);
   const b = view.baseline;
   const shown = cursor ?? last;
-  const readout = pts[shown] ? pointReadout(pts[shown], view.window, view.levelPct) : "";
+  const readout = pts[shown] ? pointReadout(pts[shown], view.window, view.levelPct, view.smoothLevel) : "";
 
   const move = (to: number) => setCursor(Math.max(0, Math.min(last, to)));
   const onKey = (e: KeyboardEvent<SVGSVGElement>) => {
@@ -69,7 +70,7 @@ export function GrowthChart({ view }: { view: GrowthView }) {
   };
 
   const hasFade = view.hasCueWeights;
-  const levelPts = pts.filter((p) => p.level != null);
+  const levelPts = pts.filter((p) => p.lv != null);
 
   return (
     <div className="gr-chart">
@@ -102,6 +103,8 @@ export function GrowthChart({ view }: { view: GrowthView }) {
             })}
             {!f.compact && <text className="svg-text gr-n" x={f.left} y={nRowY} textAnchor="end" dx={-6}>n</text>}
 
+            {/* the curve */}
+            <path className="gr-band" d={bandPath} />
             {/* baseline: the first occurrences, with its own interval */}
             {b && (
               <g className="gr-base">
@@ -115,9 +118,6 @@ export function GrowthChart({ view }: { view: GrowthView }) {
                 </text>
               </g>
             )}
-
-            {/* the curve */}
-            <path className="gr-band" d={bandPath} />
             <path className="gr-line" d={linePath} />
             {markers.map((i) => (
               <circle key={i} className={pts[i].n < view.window ? "gr-dot gr-dot--part" : "gr-dot"} cx={x(pts[i].i)} cy={y(pts[i].p)} r={3} />
@@ -159,7 +159,7 @@ export function GrowthChart({ view }: { view: GrowthView }) {
               <g className="gr-cursor" pointerEvents="none">
                 <line x1={x(pts[cursor].i)} x2={x(pts[cursor].i)} y1={f.top} y2={glyphTop + glyphH} />
                 <circle cx={x(pts[cursor].i)} cy={y(pts[cursor].p)} r={5.5} />
-                {pts[cursor].level != null && <circle cx={x(pts[cursor].i)} cy={lv(pts[cursor].level as number)} r={3.5} />}
+                {pts[cursor].lv != null && <circle cx={x(pts[cursor].i)} cy={lv(pts[cursor].lv as number)} r={3.5} />}
               </g>
             )}
             <title id={`t-${uid}`}>Independence curve and help fade</title>
@@ -170,6 +170,8 @@ export function GrowthChart({ view }: { view: GrowthView }) {
         {cursor == null ? "Latest. " : ""}{readout}
         {cursor == null && <span className="gr-readout__hint"> Hover the chart, or focus it and use the arrow keys, to read other points.</span>}
       </p>
+      <details className="details-lite gr-key" open={keyOpen ?? !f.compact} onToggle={(e) => setKeyOpen((e.currentTarget as HTMLDetailsElement).open)}>
+      <summary>Key to the curve and the fade</summary>
       <ul className="legend gr-legend" aria-label="How to read the curve">
         <li className="legend__item"><svg width="22" height="10" aria-hidden="true"><line className="gr-line" x1="0" x2="22" y1="5" y2="5" /></svg>Share finished with no cue accepted, over the {view.window} occurrences ending at each point</li>
         <li className="legend__item"><svg width="22" height="10" aria-hidden="true"><rect className="gr-band" x="0" y="1" width="22" height="8" /></svg>{view.levelPct}% interval</li>
@@ -178,7 +180,7 @@ export function GrowthChart({ view }: { view: GrowthView }) {
         <li className="legend__item">Bottom axis: occurrence number, then n for that window</li>
       </ul>
       <ul className="legend gr-legend" aria-label="How to read the fade">
-        <li className="legend__item"><svg width="22" height="12" aria-hidden="true"><line className="gr-level" x1="0" x2="22" y1="6" y2="6" /></svg>Help level: {LEVEL_WORD.slice(1).map((w, i) => `L${i + 1} ${w}`).join(", ")}</li>
+        <li className="legend__item"><svg width="22" height="12" aria-hidden="true"><line className="gr-level" x1="0" x2="22" y1="6" y2="6" /></svg>Help level: {LEVEL_WORD.slice(1).map((w, i) => `L${i + 1} ${w}`).join(", ")}{view.smoothLevel ? ", averaged over each window" : ""}</li>
         <li className="legend__item">
           <svg width="40" height="16" aria-hidden="true"><circle className="gr-cue__ring" cx="8" cy="8" r="6" strokeWidth="3" /><circle className="gr-cue__ring" cx="30" cy="8" r="6" strokeWidth="0.8" opacity="0.4" /></svg>
           Ring: thicker is a heavier cue, fainter means fewer occurrences were cued
@@ -186,6 +188,7 @@ export function GrowthChart({ view }: { view: GrowthView }) {
         <li className="legend__item"><svg width="16" height="16" aria-hidden="true"><circle className="gr-cue__ring" cx="8" cy="6" r="4.5" strokeWidth="1.5" /><rect className="gr-cue__chip" x="3" y="12" width="10" height="3" rx="1" /></svg>Bar: a text chip came with it</li>
         <li className="legend__item"><svg width="12" height="12" aria-hidden="true"><circle className="gr-nocue" cx="6" cy="6" r="2" /></svg>Dot: no cue at all</li>
       </ul>
+      </details>
       <span className="u-sr-only">{`Baseline ${b ? `${b.k} of ${b.n}, interval ${pctRange(b.wilson)}` : "not available"}. Last point ${pts[last] ? `${signed(pts[last].p * 100)} percent` : ""}.`}</span>
     </div>
   );

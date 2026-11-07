@@ -79,6 +79,9 @@ class GeminiReply:
     api: str
     model: str
     finish: str | None
+    calls: tuple[dict[str, Any], ...] = ()    # function calls the model asked for (computer use): {id, name, arguments}
+    cached_input_tokens: int | None = None    # input tokens served from the provider's prompt cache (None = not reported)
+    image_tokens: int | None = None           # input tokens spent on images (None = not reported)
 
     @property
     def billed_output_tokens(self) -> int | None:
@@ -89,6 +92,14 @@ class GeminiReply:
 
 def _int(v: Any) -> int | None:
     return int(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else None
+
+
+def _image_tokens(details: Any, token_key: str) -> int | None:
+    """Sum of the IMAGE modality entries in a usage breakdown ([{modality, tokens|tokenCount}]); None when there is no breakdown."""
+    if not isinstance(details, list):
+        return None
+    vals = [_int(d.get(token_key)) for d in details if isinstance(d, dict) and str(d.get("modality", "")).lower() == "image"]
+    return sum(v for v in vals if v is not None) if vals else (0 if details else None)
 
 
 class GeminiClient:
@@ -156,12 +167,14 @@ class GeminiClient:
 
     # ------------------------------------------------------------------ generation
     def generate(self, model: str, parts: list[Part], *, system: str | None = None, schema: dict[str, Any] | None = None,
-                 thinking: str | None = "low", max_output_tokens: int = 1024,
-                 timeout_s: float | None = None) -> GeminiReply:
+                 thinking: str | None = "low", max_output_tokens: int = 1024, timeout_s: float | None = None,
+                 tools: list[dict[str, Any]] | None = None) -> GeminiReply:
         if not model:
             raise ConfigError("no Gemini model id configured")
         if self.api == "interactions":
-            return self._interactions(model, parts, system, schema, thinking, max_output_tokens, timeout_s)
+            return self._interactions(model, parts, system, schema, thinking, max_output_tokens, timeout_s, tools)
+        if tools:
+            raise ProviderError("the computer-use tool is only wired on the interactions API (set GEMINI_API=interactions)")
         return self._generate_content(model, parts, system, schema, thinking, max_output_tokens, timeout_s)
 
     @staticmethod
@@ -169,7 +182,8 @@ class GeminiClient:
         return base64.b64encode(data).decode("ascii")
 
     def _interactions(self, model: str, parts: list[Part], system: str | None, schema: dict[str, Any] | None,
-                      thinking: str | None, max_out: int, timeout_s: float | None) -> GeminiReply:
+                      thinking: str | None, max_out: int, timeout_s: float | None,
+                      tools: list[dict[str, Any]] | None = None) -> GeminiReply:
         inp: list[dict[str, Any]] = []
         for p in parts:
             if p.kind == "text":
@@ -186,19 +200,24 @@ class GeminiClient:
         body["generation_config"] = gen
         if schema is not None:
             body["response_format"] = {"type": "text", "mime_type": "application/json", "schema": schema}
+        if tools:
+            body["tools"] = tools
         j, ms = self._post(f"{self.base_url}/v1beta/interactions", body, timeout_s)
         status = j.get("status")
         text = "".join(c.get("text", "") for s in j.get("steps") or [] if isinstance(s, dict) and s.get("type") == "model_output"
                        for c in s.get("content") or [] if isinstance(c, dict) and c.get("type") == "text")
+        calls = tuple({"id": str(s.get("id", "")), "name": str(s.get("name", "")), "arguments": s.get("arguments") or {}}
+                      for s in j.get("steps") or [] if isinstance(s, dict) and s.get("type") == "function_call")
         u = j.get("usage") or {}
         reply = GeminiReply(text=text, input_tokens=_int(u.get("total_input_tokens")), output_tokens=_int(u.get("total_output_tokens")),
                             thought_tokens=_int(u.get("total_thought_tokens")), latency_ms=ms, api="interactions", model=model,
-                            finish=str(status) if status else None)
+                            finish=str(status) if status else None, calls=calls, cached_input_tokens=_int(u.get("total_cached_tokens")),
+                            image_tokens=_image_tokens(u.get("input_tokens_by_modality"), "tokens"))
         if status == "incomplete":
             raise GeminiHTTPError("incomplete", "gemini answer was cut off at the output token limit")
         if status in ("failed", "cancelled"):
             raise GeminiHTTPError("api", f"gemini interaction status {self._redact(status, 40)}")
-        if not text:
+        if not text and not calls:
             raise GeminiHTTPError("empty", "gemini returned no text")
         return reply
 
@@ -234,7 +253,9 @@ class GeminiClient:
         u = j.get("usageMetadata") or {}
         reply = GeminiReply(text=text, input_tokens=_int(u.get("promptTokenCount")), output_tokens=_int(u.get("candidatesTokenCount")),
                             thought_tokens=_int(u.get("thoughtsTokenCount")) or 0, latency_ms=ms, api="generate_content",
-                            model=model, finish=str(finish) if finish else None)
+                            model=model, finish=str(finish) if finish else None,
+                            cached_input_tokens=_int(u.get("cachedContentTokenCount")),
+                            image_tokens=_image_tokens(u.get("promptTokensDetails"), "tokenCount"))
         if finish == "MAX_TOKENS":
             raise GeminiHTTPError("incomplete", "gemini answer was cut off at the output token limit")
         if finish in ("SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII", "IMAGE_SAFETY"):

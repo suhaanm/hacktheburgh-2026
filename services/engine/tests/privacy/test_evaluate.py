@@ -37,7 +37,11 @@ def test_zero_planted_canaries_reached_the_port_in_every_flow_that_ran(report):
     h = report["headline"]
     assert h["flows"] >= 5 and h["requests"] >= 15 and h["planted"] > 0
     assert h["leaked"] == 0 and h["ledger_complete"] is True and h["all_meet_min_requests"] is True
-    assert 0 < h["leak_rate_upper_95"] < 0.02                      # an upper bound, never "zero risk"
+    assert h["leak_bound_unit"] == "run" and h["runs_with_leak"] == 0 and h["flows_with_leak"] == 0
+    # the headline is the PER-RUN bound (tokens planted in one run are not independent trials), with the others beside it, labelled
+    assert h["leak_rate_upper_95"] == round(evaluate.upper_bound_95(0, h["runs"]), 4) and h["leak_rate_upper_95"] > 0.02
+    assert h["leak_rate_upper_95_per_flow"] == round(evaluate.upper_bound_95(0, h["flows"]), 4) and h["leak_rate_upper_95_per_flow"] > h["leak_rate_upper_95"]
+    assert 0 < h["leak_rate_upper_95_token_level"] < h["leak_rate_upper_95"] and "per-run bound is the headline" in h["leak_bound_note"]
     for f in report["flows"]:
         assert f["leaked"] == 0 and f["ledger_complete"] and f["ledger_lines"] == f["ledger_expected"] == f["requests"]
         assert f["flow_errors"] == []
@@ -226,11 +230,12 @@ def test_coverage_has_one_row_per_guarded_layer_plus_the_agent_runtime(report):
     from understudy_engine.privacy import guard
 
     cov = {c["layer"]: c for c in report["coverage"]}
-    assert list(cov)[: len(guard.GUARDED_DIRS)] == list(guard.GUARDED_DIRS) and "agent_runtime" in cov
+    assert list(cov)[: len(guard.GUARDED_DIRS)] == list(guard.GUARDED_DIRS) and "agent_runtime" in cov and "agent_service" in cov
     for c in cov.values():
         assert {"layer", "present", "pure_compute", "files_scanned", "static_guard_violations", "canary_flow", "flows", "registered_by_layer",
                 "real_code_flow", "runs", "requests", "planted", "leaked", "image_flows", "image_runs", "image_residue", "note"} <= set(c)
-        assert c["canary_flow"] in ("registered", "adapter", "none_registered", "not_applicable", "pure_compute", "not_present", "error", "not_checked")
+        assert c["canary_flow"] in ("registered", "adapter", "none_registered", "not_applicable", "pure_compute", "not_present", "error", "not_checked",
+                                    "static_guard_only")
         assert c["static_guard_violations"] == 0 and c["leaked"] == 0 and c["image_residue"] == 0
     assert cov["mlv2"]["pure_compute"] and cov["personas_v2"]["pure_compute"]
 
@@ -242,7 +247,8 @@ def test_coverage_counts_real_code_flows_and_lists_the_gaps_without_calling_them
         if c["canary_flow"] in ("none_registered", "error", "not_checked"):
             assert layer in s["gaps"] and c["real_code_flow"] is False
         if c["real_code_flow"]:
-            assert layer in s["with_real_code_flow"] and c["flows"] and c["planted"] > 0 and c["requests"] > 0
+            assert layer in s["with_real_code_flow"] and (c["flows"] or c["image_flows"])
+            assert (c["planted"] > 0 and c["requests"] > 0) or c["image_runs"] > 0
     assert set(s["pure_compute"]) == {l for l, c in cov.items() if c["canary_flow"] == "pure_compute"}
     assert cov["calendar"]["real_code_flow"] is True and cov["localmodel"]["real_code_flow"] is True
     assert report["headline"]["layers_without_integration_flows"] == [l for l in report["layers"] if report["layers"][l]["status"] in ("none_registered", "error")]
@@ -287,3 +293,60 @@ def test_layer_supplied_image_flows_are_run_and_a_leaky_one_shows_residue_in_the
     lf = {f["flow"]: f for f in r["image"]["layer_flows"]}
     assert lf["cue.clean"]["residue"] == 0 and lf["cue.leaky"]["residue"] >= 2
     assert r["image"]["leaks"] >= 2 and r["headline"]["image_leaks"] >= 2
+
+
+# --------------------------------------------------------------------------- the hardened guard in the report
+def test_the_report_shows_the_guard_catching_its_evasion_battery_and_not_crying_wolf(report):
+    b = report["static_guard"]["battery"]
+    assert b["evasion_cases"] >= 130 and b["flagged"] == b["evasion_cases"] and b["missed"] == []
+    assert b["runtime_missed"] == [] and b["clean_controls"] >= 20 and b["clean_flagged"] == 0
+    assert b["sources"] == {"reviewer_layer": 21, "reviewer_agent": 5, "reviewer_round2": 20, "further": b["sources"]["further"]}
+    assert "STATIC NET FOR HONEST MISTAKES" in b["limits"] and "egress.send" in b["limits"] and "run time" in b["limits"]
+    assert report["headline"]["static_guard_evasions_flagged"] == f"{b['flagged']}/{b['evasion_cases']}" and report["headline"]["static_guard_clean_flagged"] == 0
+
+
+def test_the_report_scans_the_agent_service_and_lists_pending_exceptions_honestly(report):
+    a = report["static_guard"]["agent"]
+    assert a["files"] > 40 and a["violations"] == [] and "understudy_agent/handoff_io.py" in a["reviewed_entries"]
+    pend = {p["file"]: p for p in report["static_guard"]["pending_exceptions"]}
+    assert "understudy_agent/voice/tts.py" in pend and report["headline"]["pending_exceptions"] == len(pend) >= 1
+    assert report["headline"]["static_guard_violations"] == 0
+
+
+def test_the_coverage_note_for_the_agent_service_states_the_reviewed_entries_pending_exceptions_and_the_legacy_ts_gap(report):
+    cov = {c["layer"]: c for c in report["coverage"]}
+    a = cov["agent_service"]
+    assert a["canary_flow"] == "static_guard_only" and a["real_code_flow"] is False and a["files_scanned"] > 40 and a["static_guard_violations"] == 0
+    assert "reviewed entry" in a["note"] and "pending" in a["note"] and "/privacy/ledger/direct" in a["note"] and "loopback" in a["note"]
+    assert "agent_service" not in report["headline"]["coverage_summary"]["gaps"] and "agent_service" in report["headline"]["coverage_summary"]["static_guard_only"]
+    assert "children have no network" in cov["agent_runtime"]["note"]
+
+
+def test_the_leak_bound_is_per_run_in_the_headline_with_the_honest_numbers_for_80_runs_and_10_flows():
+    assert evaluate.upper_bound_95(0, 80) == pytest.approx(0.0368, abs=0.0005)         # about 3.7%
+    assert evaluate.upper_bound_95(0, 10) == pytest.approx(0.2589, abs=0.0005)         # about 26%
+    assert evaluate.upper_bound_95(0, 11_456) < 0.0003                                  # the token-level figure the review called misleading
+
+
+def test_the_limitation_explains_the_unit_and_a_leaky_flow_moves_the_per_run_figures(report):
+    lim = {l["id"]: l for l in report["limitations"]}
+    assert lim["prv_leak_bound_unit"]["severity"] == "high" and "per RUN" in lim["prv_leak_bound_unit"]["text"] and "3.7%" in lim["prv_leak_bound_unit"]["text"]
+    assert report["image"]["leak_bound_unit"] == "run" and report["image"]["leak_rate_upper_95_per_run"] > 0.02
+
+    def run(fx, port):
+        port.plan([{"role": "user", "content": fx["events"][0]["title"]}], None)
+
+    leaky = CanaryFlow("test.leaky_bound", evaluate._cal_fixture, run, layer="calendar", kind="integration", min_requests=0)
+    r = evaluate.evaluate_privacy(seeds=[0, 1, 2, 3], record=False, extra_flows=[leaky], discover=False)
+    row = next(f for f in r["flows"] if f["flow"] == "test.leaky_bound")
+    assert row["runs_with_leak"] == 4 and row["leak_rate_upper_95"] == 1.0 or row["leak_rate_upper_95"] > 0.5
+    assert r["headline"]["runs_with_leak"] == 4 and r["headline"]["flows_with_leak"] == 1
+    assert r["headline"]["leak_rate_upper_95"] > 0.03
+
+
+def test_coverage_lists_the_agent_context_package_as_pure_compute_when_it_exists_and_not_present_otherwise(report):
+    cov = {c["layer"]: c for c in report["coverage"]}
+    assert "context" in cov and cov["context"]["pure_compute"] is True and cov["context"]["static_guard_violations"] == 0
+    assert cov["context"]["canary_flow"] in ("pure_compute", "not_present") and "attention" in cov
+    assert cov["attention"]["canary_flow"] in ("pure_compute", "not_present")
+    assert cov["context"]["canary_flow"] != "none_registered" and "context" not in report["headline"]["coverage_summary"]["gaps"]

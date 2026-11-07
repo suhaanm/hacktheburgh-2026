@@ -157,8 +157,13 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
         sup.close()
 
     app = FastAPI(title="Understudy agent service", version="0.1.0", lifespan=lifespan)
-    app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-                       allow_methods=["*"], allow_headers=["*"])
+    from understudy_engine import http_guard
+    from understudy_engine.store.paths import data_dir_id
+
+    if not http_guard.test_relaxed():
+        http_guard.rotate_token()    # a fresh per-boot token for the release routes (data/.token, mode 0600; read afresh per request)
+    app.add_middleware(CORSMiddleware, allow_origins=http_guard.cors_origins(), allow_methods=["GET", "POST", "OPTIONS"],
+                       allow_headers=http_guard.CORS_ALLOW_HEADERS)
     app.state.runs, app.state.supervisor, app.state.queue, app.state.audit = runs, sup, queue, audit
 
     voice = False
@@ -182,7 +187,20 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
             extensions["agents"], extension_status["agents"] = True, "enabled"
         except Exception as exc:  # noqa: BLE001 - ImportError or anything the extension does at import time
             extension_status["agents"] = f"not loaded: {type(exc).__name__}: {str(exc)[:120]}"
+    for key, mod, attr in (("models", ".models.routes", "router"), ("live", ".live", "router")):
+        extensions[key] = False
+        try:                                    # the model status/ground/glance routes and the live-voice router, when present
+            import importlib
+
+            app.include_router(getattr(importlib.import_module(mod, __package__), attr))
+            extensions[key], extension_status[key] = True, "enabled"
+        except Exception as exc:  # noqa: BLE001 - absent or broken: reported, never fatal
+            extension_status[key] = f"not loaded: {type(exc).__name__}: {str(exc)[:120]}"
     app.state.extensions, app.state.extension_status = extensions, extension_status
+    # S-02: the shared HTTP guard is the OUTERMOST layer, added last: Host on every request, exact Origin and JSON on writes,
+    # an explicit actor with an Origin, and the per-boot token on the release routes. The stop routes (/kill, /human-input,
+    # /run/<id>/stop) need no token (stopping is the safe direction; the desktop kill switch sends none) but pass the rest.
+    app.add_middleware(http_guard.GuardMiddleware, port=PORT, policy=http_guard.AGENT_POLICY)
 
     def err(status: int, code: str, message: str) -> JSONResponse:
         return JSONResponse({"error": {"code": code, "message": message}}, status_code=status)
@@ -230,7 +248,7 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
         sup.kill_flag_set(fresh=True)
         snap = sup.snapshot()
         return {"ok": True, "mock": mock_enabled(), "supervisor": {"generation": snap["generation"], "state": snap["state"]},
-                "voice": voice, "sandbox": sandbox_up(), "extensions": dict(extensions)}
+                "voice": voice, "sandbox": sandbox_up(), "extensions": dict(extensions), "data_dir_id": data_dir_id()}
 
     # ------------------------------------------------------------------ runs
     def pick_household(body: RunIn) -> Household:

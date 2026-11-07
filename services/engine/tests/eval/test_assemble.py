@@ -22,13 +22,15 @@ from understudy_engine.eval.__main__ import main
 from understudy_engine.eval.adapters import NotLanded, SectionSpec, owner_attr
 from understudy_engine.eval.meta import make_meta
 
+from .helpers import study_dir
+
 REPO = Path(__file__).resolve().parents[4]
 FAST_CORE = ["deficit_recovery", "null_placebo", "routing", "ski_rental", "agent_claims", "agent_runs", "redteam", "redteam_live", "study_power", "study"]
 NOW = "2026-11-07T15:00:00Z"
 
 
 @pytest.fixture(autouse=True)
-def _empty_study_dir(tmp_path, monkeypatch):
+def _emptystudy_dir(tmp_path, monkeypatch):
     """No live study results unless a test puts some there."""
     monkeypatch.setattr(adapters, "evals_out_dir", lambda: tmp_path / "evals")
 
@@ -57,7 +59,7 @@ def test_sections_whose_owner_has_not_landed_are_pending_with_a_reason_and_meta(
     for name, owner in (("hazard", "engine-analytics"), ("redteam", "agent-safety"), ("ski_rental", "engine-handoff")):
         s = rep["sections"][name]
         assert s["status"] == "pending" and s["reason"].startswith(f"{owner} not landed"), s
-        assert s["meta"]["generated_at"] == NOW and s["meta"]["origin"] in ("real", "synthetic", "mixed")
+        assert s["meta"]["generated_at"] == NOW and s["meta"]["origin"] in ("real", "synthetic", "mixed", "unknown")
     assert schema_errors(rep) == []
     ids = {e["id"] for e in rep["sections"]["limitations"]}
     assert {"eval-hazard-pending", "eval-redteam-pending", "eval-ski_rental-pending"} <= ids       # a missing section is itself a limitation
@@ -98,45 +100,16 @@ def test_unknown_section_name_is_an_error():
 def test_study_not_run_when_there_are_no_results():
     rep = build_report(sections=["study"], now=NOW, regenerate=False, log=lambda m: None)
     s = rep["sections"]["study"]
-    assert s["status"] == "not_run" and s["n"] == 4 and s["rows"] == [] and s["meta"]["origin"] == "real" and s["meta"]["n"] == 4
+    assert s["status"] == "not_run" and s["n"] == 4 and s["rows"] == [] and s["meta"]["origin"] == "unknown" and s["meta"]["n"] == 4
     assert schema_errors(rep) == []
     assert "eval-study-not_run" in {e["id"] for e in rep["sections"]["limitations"]}
-
-
-def _study_dir(tmp_path, done, post=None, practice=None, exclusion=None):
-    """A private evals/study with the platform's analyze.py and assignments.json and a made-up participants.csv (numbers for the test only)."""
-    import csv
-    import shutil
-
-    src = REPO / "evals" / "study"
-    d = tmp_path / "evals" / "study"
-    (d / "results").mkdir(parents=True)
-    shutil.copy(src / "analyze.py", d / "analyze.py")
-    shutil.copy(src / "assignments.json", d / "assignments.json")
-    asg = json.loads((src / "assignments.json").read_text())
-    possible = {"cliff": 2, "reconcile": 1}
-    cols = ["participant", "sequence", "block", "skill", "condition", "practice_case", "post_case", "practice_seconds", "practice_capped", "post_seconds",
-            "post_capped", "post_checks_done", "post_checks_possible", "nudges_shown", "nudges_followed", "nudges_dismissed", "exclusion", "notes"]
-    with (d / "results" / "participants.csv").open("w", newline="") as fh:
-        w = csv.DictWriter(fh, cols)
-        w.writeheader()
-        for p, plan in asg["participants"].items():
-            for b in plan["blocks"]:
-                key = (p, b["condition"])
-                w.writerow({"participant": p, "sequence": plan["sequence"], "block": b["block"], "skill": b["skill"], "condition": b["condition"],
-                            "practice_case": b["practice_case"], "post_case": b["post_case"], "practice_seconds": (practice or {}).get(key, 300),
-                            "practice_capped": "no", "post_seconds": (post or {}).get(key, 200), "post_capped": "no",
-                            "post_checks_done": min(done.get(key, 0), possible[b["skill"]]), "post_checks_possible": possible[b["skill"]],
-                            "nudges_shown": 6 if b["condition"] == "coached" else 0, "nudges_followed": 4 if b["condition"] == "coached" else 0,
-                            "nudges_dismissed": 1 if b["condition"] == "coached" else 0, "exclusion": (exclusion or {}).get(p, ""), "notes": ""})
-    return d
 
 
 def test_study_follows_the_analysis_plan_headline_is_unassisted_skill_score_and_speed_is_separate(tmp_path):
     done = {("P1", "coached"): 2, ("P1", "uncoached"): 0, ("P2", "coached"): 1, ("P2", "uncoached"): 0, ("P3", "coached"): 2, ("P3", "uncoached"): 1,
             ("P4", "coached"): 1, ("P4", "uncoached"): 0}
     post = {("P1", "coached"): 150, ("P1", "uncoached"): 210}
-    _study_dir(tmp_path, done, post=post)
+    study_dir(tmp_path, done, post=post)
     s = build_report(sections=["study"], now=NOW, regenerate=False, log=lambda m: None)["sections"]["study"]
     assert "status" not in s and s["n"] == 4 and s["meta"]["origin"] == "real" and s["meta"]["n"] == 4
     rows = {r["participant"]: r for r in s["rows"]}
@@ -157,7 +130,7 @@ def test_study_follows_the_analysis_plan_headline_is_unassisted_skill_score_and_
 def test_study_a_negative_difference_and_a_wide_interval_reach_the_register(tmp_path):
     done = {("P1", "coached"): 0, ("P1", "uncoached"): 1, ("P2", "coached"): 1, ("P2", "uncoached"): 0, ("P3", "coached"): 0, ("P3", "uncoached"): 0,
             ("P4", "coached"): 1, ("P4", "uncoached"): 0}
-    _study_dir(tmp_path, done)
+    study_dir(tmp_path, done)
     rep = build_report(sections=["study"], now=NOW, regenerate=False, log=lambda m: None)
     s = rep["sections"]["study"]
     ids = {e["id"] for e in s["limitations"]}
@@ -167,7 +140,7 @@ def test_study_a_negative_difference_and_a_wide_interval_reach_the_register(tmp_
 
 def test_study_exclusions_reduce_n_and_are_listed(tmp_path):
     done = {(p, c): (1 if c == "coached" else 0) for p in ("P1", "P2", "P3", "P4") for c in ("coached", "uncoached")}
-    _study_dir(tmp_path, done, exclusion={"P4": "stopped before finishing"})
+    study_dir(tmp_path, done, exclusion={"P4": "stopped before finishing"})
     rep = build_report(sections=["study"], now=NOW, regenerate=False, log=lambda m: None)
     s = rep["sections"]["study"]
     assert s["n"] == 3 and s["meta"]["n"] == 3 and s["excluded_participants"] == ["P4"]
@@ -177,7 +150,7 @@ def test_study_exclusions_reduce_n_and_are_listed(tmp_path):
 
 
 def test_study_without_the_analysis_script_is_pending_not_invented(tmp_path):
-    d = _study_dir(tmp_path, {})
+    d = study_dir(tmp_path, {})
     (d / "analyze.py").unlink()
     s = build_report(sections=["study"], now=NOW, regenerate=False, log=lambda m: None)["sections"]["study"]
     assert s["status"] == "pending" and "platform not landed" in s["reason"]
@@ -206,7 +179,7 @@ def test_every_section_carries_complete_meta_stamped_with_the_report_time(core_r
         m = s["meta"]
         assert set(m) >= {"origin", "n", "n_unit", "split", "interval_level", "note", "generated_at"}, name
         assert m["generated_at"] == NOW, name
-        assert m["origin"] in ("real", "synthetic", "mixed")
+        assert m["origin"] in ("real", "synthetic", "mixed", "unknown")
 
 
 def test_every_section_that_has_numbers_names_its_split(core_report):

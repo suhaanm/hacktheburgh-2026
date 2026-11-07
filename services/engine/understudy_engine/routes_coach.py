@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Request
+from . import http_guard
 from pydantic import BaseModel, ConfigDict
 
 from .api.errors import ApiError
@@ -74,7 +75,6 @@ def coach_feedback(request: Request, body: Feedback):
 
 # ------------------------------------------------------------------------------------------------ study mode
 _LOCAL_HOSTS = {"127.0.0.1", "::1", "localhost", "testclient"}
-_ALLOWED_ORIGIN_PREFIXES = ("http://localhost", "http://127.0.0.1", "app://", "file://")
 
 
 def _study_guard(request: Request) -> None:
@@ -85,11 +85,11 @@ def _study_guard(request: Request) -> None:
     host = request.client.host if request.client else ""
     if host not in _LOCAL_HOSTS:
         raise ApiError(403, "write_refused", "Study mode can only be changed from this machine.")
-    actor = request.headers.get("x-understudy-actor", "worker").strip()
+    actor = http_guard.actor_of(request)
     if actor not in WORKER_ACTORS:
         raise ApiError(403, "write_refused", f"Only the worker or the facilitator can change study mode; the actor {actor[:20]!r} cannot.")
     origin = request.headers.get("origin")
-    if origin is not None and not origin.startswith(_ALLOWED_ORIGIN_PREFIXES):
+    if origin is not None and not http_guard.origin_allowed(origin):
         raise ApiError(403, "write_refused", "Writes only come from the Understudy app on this machine.")
 
 

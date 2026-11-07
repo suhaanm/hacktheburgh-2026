@@ -1,0 +1,925 @@
+{
+ "close_call": {
+  "meta": {
+   "generated_at": "2026-11-07T18:16:51Z",
+   "interval_level": 0.95,
+   "n": 0,
+   "n_unit": "occurrences",
+   "note": "Cue is rules and counts, not a model: the next step comes from what experts did (a path prior) checked against the pack's order rules; the gate is code with hard caps. Numbers are synthetic until the live study says otherwise.",
+   "origin": "synthetic",
+   "split": null
+  },
+  "polls": [
+   {
+    "budget_left": 12,
+    "cooldown_s": 0.0,
+    "episode_id": null,
+    "expires_in_s": null,
+    "ground_wanted": false,
+    "kind": "none",
+    "manifest": {
+     "caps": {
+      "ledger_rows": 120,
+      "window_cogs": 120
+     },
+     "inputs_read": [
+      "snapshot",
+      "p_stuck",
+      "input_rhythm",
+      "candidates",
+      "progress"
+     ],
+     "inputs_stale": []
+    },
+    "menu": null,
+    "meta": {
+     "generated_at": "2026-11-07T18:16:51Z",
+     "interval_level": 0.95,
+     "n": 0,
+     "n_unit": "occurrences",
+     "note": "Cue is rules and counts, not a model: the next step comes from what experts did (a path prior) checked against the pack's order rules; the gate is code with hard caps. Numbers are synthetic until the live study says otherwise.",
+     "origin": "synthetic",
+     "split": null
+    },
+    "new": false,
+    "options": null,
+    "question": null,
+    "retrieval": false,
+    "say": null,
+    "source": "rule",
+    "stale": null,
+    "step": null,
+    "t": 0,
+    "target": null,
+    "teach": null,
+    "tier": null,
+    "why": {
+     "level": 2,
+     "margin": 0.04,
+     "mastery": 0.1,
+     "p_stuck": 0.023,
+     "path_prob": 0.52,
+     "reasons": [
+      "not_stuck"
+     ]
+    }
+   },
+   {
+    "budget_left": 12,
+    "cooldown_s": 0.0,
+    "episode_id": null,
+    "expires_in_s": null,
+    "ground_wanted": false,
+    "kind": "none",
+    "manifest": {
+     "caps": {
+      "ledger_rows": 120,
+      "window_cogs": 120
+     },
+     "inputs_read": [
+      "snapshot",
+      "p_stuck",
+      "input_rhythm",
+      "candidates",
+      "progress"
+     ],
+     "inputs_stale": []
+    },
+    "menu": null,
+    "meta": {
+     "generated_at": "2026-11-07T18:16:51Z",
+     "interval_level": 0.95,
+     "n": 0,
+     "n_unit": "occurrences",
+     "note": "Cue is rules and counts, not a model: the next step comes from what experts did (a path prior) checked against the pack's order rules; the gate is code with hard caps. Numbers are synthetic until the live study says otherwise.",
+     "origin": "synthetic",
+     "split": null
+    },
+    "new": false,
+    "options": null,
+    "question": null,
+    "retrieval": false,
+    "say": null,
+    "source": "rule",
+    "stale": null,
+    "step": null,
+    "t": 60,
+    "target": null,
+    "teach": null,
+    "tier": null,
+    "why": {
+     "level": 2,
+     "margin": 0.04,
+     "mastery": 0.1,
+     "p_stuck": 0.3208,
+     "path_prob": 0.52,
+     "reasons": [
+      "not_stuck"
+     ]
+    }
+   },
+   {
+    "budget_left": 12,
+    "cooldown_s": 0.0,
+    "episode_id": null,
+    "expires_in_s": null,
+    "ground_wanted": false,
+    "kind": "none",
+    "manifest": {
+     "caps": {
+      "ledger_rows": 120,
+      "window_cogs": 120
+     },
+     "inputs_read": [
+      "snapshot",
+      "p_stuck",
+      "input_rhythm",
+      "candidates",
+      "progress"
+     ],
+     "inputs_stale": []
+    },
+    "menu": null,
+    "meta": {
+     "generated_at": "2026-11-07T18:16:51Z",
+     "interval_level": 0.95,
+     "n": 0,
+     "n_unit": "occurrences",
+     "note": "Cue is rules and counts, not a model: the next step comes from what experts did (a path prior) checked against the pack's order rules; the gate is code with hard caps. Numbers are synthetic until the live study says otherwise.",
+     "origin": "synthetic",
+     "split": null
+    },
+    "new": false,
+    "options": null,
+    "question": null,
+    "retrieval": false,
+    "say": null,
+    "source": "rule",
+    "stale": null,
+    "step": null,
+    "t": 85,
+    "target": null,
+    "teach": null,
+    "tier": null,
+    "why": {
+     "level": 2,
+     "margin": 0.04,
+     "mastery": 0.1,
+     "p_stuck": 0.6225,
+     "path_prob": 0.52,
+     "reasons": [
+      "wait_signals"
+     ]
+    }
+   },
+   {
+    "budget_left": 11,
+    "cooldown_s": 0.0,
+    "episode_id": "e_22038716bf64",
+    "expires_in_s": 12.0,
+    "ground_wanted": true,
+    "kind": "ask",
+    "manifest": {
+     "caps": {
+      "ledger_rows": 120,
+      "window_cogs": 120
+     },
+     "inputs_read": [
+      "snapshot",
+      "p_stuck",
+      "input_rhythm",
+      "candidates",
+      "progress"
+     ],
+     "inputs_stale": []
+    },
+    "menu": [
+     {
+      "id": "cliff_a",
+      "label": "Check cliff edges (A)"
+     },
+     {
+      "id": "calc_b",
+      "label": "Run calculator B"
+     }
+    ],
+    "meta": {
+     "generated_at": "2026-11-07T18:16:51Z",
+     "interval_level": 0.95,
+     "n": 0,
+     "n_unit": "occurrences",
+     "note": "Cue is rules and counts, not a model: the next step comes from what experts did (a path prior) checked against the pack's order rules; the gate is code with hard caps. Numbers are synthetic until the live study says otherwise.",
+     "origin": "synthetic",
+     "split": null
+    },
+    "new": true,
+    "options": [
+     {
+      "id": "cliff_a",
+      "label": "Check cliff edges (A)"
+     },
+     {
+      "id": "calc_b",
+      "label": "Run calculator B"
+     },
+     {
+      "id": "other",
+      "label": "Something else"
+     }
+    ],
+    "question": {
+     "text": "Which of these is next?",
+     "type": "close_call"
+    },
+    "retrieval": false,
+    "say": {
+     "chip": "Which of these is next?",
+     "whisper": null,
+     "whisper_id": null
+    },
+    "source": "rule",
+    "stale": null,
+    "step": {
+     "id": "cliff_a",
+     "label": "Check cliff edges (A)",
+     "reason_id": "why.cliff",
+     "reason_text": "A figure near a limit can flip the answer."
+    },
+    "t": 87.5,
+    "target": null,
+    "teach": null,
+    "tier": null,
+    "why": {
+     "level": 2,
+     "margin": 0.04,
+     "mastery": 0.1,
+     "p_stuck": 0.6514,
+     "path_prob": 0.52,
+     "reasons": [
+      "stuck_signal",
+      "ungrounded",
+      "path_close_call"
+     ]
+    }
+   }
+  ]
+ },
+ "level_4": {
+  "meta": {
+   "generated_at": "2026-11-07T18:16:51Z",
+   "interval_level": 0.95,
+   "n": 0,
+   "n_unit": "occurrences",
+   "note": "Cue is rules and counts, not a model: the next step comes from what experts did (a path prior) checked against the pack's order rules; the gate is code with hard caps. Numbers are synthetic until the live study says otherwise.",
+   "origin": "synthetic",
+   "split": null
+  },
+  "polls": [
+   {
+    "budget_left": 12,
+    "cooldown_s": 0.0,
+    "episode_id": null,
+    "expires_in_s": null,
+    "ground_wanted": false,
+    "kind": "none",
+    "manifest": {
+     "caps": {
+      "ledger_rows": 120,
+      "window_cogs": 120
+     },
+     "inputs_read": [
+      "snapshot",
+      "p_stuck",
+      "input_rhythm",
+      "candidates",
+      "progress",
+      "grounding"
+     ],
+     "inputs_stale": []
+    },
+    "menu": null,
+    "meta": {
+     "generated_at": "2026-11-07T18:16:51Z",
+     "interval_level": 0.95,
+     "n": 0,
+     "n_unit": "occurrences",
+     "note": "Cue is rules and counts, not a model: the next step comes from what experts did (a path prior) checked against the pack's order rules; the gate is code with hard caps. Numbers are synthetic until the live study says otherwise.",
+     "origin": "synthetic",
+     "split": null
+    },
+    "new": false,
+    "options": null,
+    "question": null,
+    "retrieval": false,
+    "say": null,
+    "source": "rule",
+    "stale": null,
+    "step": null,
+    "t": 0,
+    "target": null,
+    "teach": null,
+    "tier": null,
+    "why": {
+     "level": 4,
+     "margin": 0.6667,
+     "mastery": 0.92,
+     "p_stuck": 0.023,
+     "path_prob": 0.8333,
+     "reasons": [
+      "level_4"
+     ]
+    }
+   }
+  ]
+ },
+ "retrieval": {
+  "meta": {
+   "generated_at": "2026-11-07T18:16:51Z",
+   "interval_level": 0.95,
+   "n": 0,
+   "n_unit": "occurrences",
+   "note": "Cue is rules and counts, not a model: the next step comes from what experts did (a path prior) checked against the pack's order rules; the gate is code with hard caps. Numbers are synthetic until the live study says otherwise.",
+   "origin": "synthetic",
+   "split": null
+  },
+  "polls": [
+   {
+    "budget_left": 12,
+    "cooldown_s": 0.0,
+    "episode_id": null,
+    "expires_in_s": null,
+    "ground_wanted": false,
+    "kind": "confirm",
+    "manifest": {
+     "caps": {
+      "ledger_rows": 120,
+      "window_cogs": 120
+     },
+     "inputs_read": [
+      "snapshot",
+      "p_stuck",
+      "input_rhythm",
+      "candidates",
+      "progress",
+      "grounding"
+     ],
+     "inputs_stale": []
+    },
+    "menu": null,
+    "meta": {
+     "generated_at": "2026-11-07T18:16:51Z",
+     "interval_level": 0.95,
+     "n": 0,
+     "n_unit": "occurrences",
+     "note": "Cue is rules and counts, not a model: the next step comes from what experts did (a path prior) checked against the pack's order rules; the gate is code with hard caps. Numbers are synthetic until the live study says otherwise.",
+     "origin": "synthetic",
+     "split": null
+    },
+    "new": false,
+    "options": null,
+    "question": null,
+    "retrieval": true,
+    "say": null,
+    "source": "rule",
+    "stale": null,
+    "step": {
+     "id": "cliff_a",
+     "label": "Check cliff edges (A)",
+     "reason_id": "why.cliff",
+     "reason_text": "A figure near a limit can flip the answer."
+    },
+    "t": 0,
+    "target": null,
+    "teach": null,
+    "tier": null,
+    "why": {
+     "level": 2,
+     "margin": 0.6667,
+     "mastery": 0.55,
+     "p_stuck": 0.023,
+     "path_prob": 0.8333,
+     "reasons": [
+      "retrieval_withheld"
+     ]
+    }
+   },
+   {
+    "budget_left": 12,
+    "cooldown_s": 0.0,
+    "episode_id": null,
+    "expires_in_s": null,
+    "ground_wanted": false,
+    "kind": "confirm",
+    "manifest": {
+     "caps": {
+      "ledger_rows": 120,
+      "window_cogs": 120
+     },
+     "inputs_read": [
+      "snapshot",
+      "p_stuck",
+      "input_rhythm",
+      "candidates",
+      "progress",
+      "grounding"
+     ],
+     "inputs_stale": []
+    },
+    "menu": null,
+    "meta": {
+     "generated_at": "2026-11-07T18:16:51Z",
+     "interval_level": 0.95,
+     "n": 0,
+     "n_unit": "occurrences",
+     "note": "Cue is rules and counts, not a model: the next step comes from what experts did (a path prior) checked against the pack's order rules; the gate is code with hard caps. Numbers are synthetic until the live study says otherwise.",
+     "origin": "synthetic",
+     "split": null
+    },
+    "new": false,
+    "options": null,
+    "question": null,
+    "retrieval": true,
+    "say": null,
+    "source": "rule",
+    "stale": null,
+    "step": {
+     "id": "cliff_a",
+     "label": "Check cliff edges (A)",
+     "reason_id": "why.cliff",
+     "reason_text": "A figure near a limit can flip the answer."
+    },
+    "t": 60,
+    "target": null,
+    "teach": null,
+    "tier": null,
+    "why": {
+     "level": 2,
+     "margin": 0.6667,
+     "mastery": 0.55,
+     "p_stuck": 0.3208,
+     "path_prob": 0.8333,
+     "reasons": [
+      "retrieval_withheld"
+     ]
+    }
+   }
+  ]
+ },
+ "stuck_after_result": {
+  "meta": {
+   "generated_at": "2026-11-07T18:16:51Z",
+   "interval_level": 0.95,
+   "n": 0,
+   "n_unit": "occurrences",
+   "note": "Cue is rules and counts, not a model: the next step comes from what experts did (a path prior) checked against the pack's order rules; the gate is code with hard caps. Numbers are synthetic until the live study says otherwise.",
+   "origin": "synthetic",
+   "split": null
+  },
+  "polls": [
+   {
+    "budget_left": 12,
+    "cooldown_s": 0.0,
+    "episode_id": null,
+    "expires_in_s": null,
+    "ground_wanted": false,
+    "kind": "none",
+    "manifest": {
+     "caps": {
+      "ledger_rows": 120,
+      "window_cogs": 120
+     },
+     "inputs_read": [
+      "snapshot",
+      "p_stuck",
+      "input_rhythm",
+      "candidates",
+      "progress",
+      "grounding"
+     ],
+     "inputs_stale": []
+    },
+    "menu": null,
+    "meta": {
+     "generated_at": "2026-11-07T18:16:51Z",
+     "interval_level": 0.95,
+     "n": 0,
+     "n_unit": "occurrences",
+     "note": "Cue is rules and counts, not a model: the next step comes from what experts did (a path prior) checked against the pack's order rules; the gate is code with hard caps. Numbers are synthetic until the live study says otherwise.",
+     "origin": "synthetic",
+     "split": null
+    },
+    "new": false,
+    "options": null,
+    "question": null,
+    "retrieval": false,
+    "say": null,
+    "source": "rule",
+    "stale": null,
+    "step": null,
+    "t": 0,
+    "target": null,
+    "teach": null,
+    "tier": null,
+    "why": {
+     "level": 2,
+     "margin": 0.6667,
+     "mastery": 0.1,
+     "p_stuck": 0.023,
+     "path_prob": 0.8333,
+     "reasons": [
+      "not_stuck"
+     ]
+    }
+   },
+   {
+    "budget_left": 12,
+    "cooldown_s": 0.0,
+    "episode_id": null,
+    "expires_in_s": null,
+    "ground_wanted": false,
+    "kind": "none",
+    "manifest": {
+     "caps": {
+      "ledger_rows": 120,
+      "window_cogs": 120
+     },
+     "inputs_read": [
+      "snapshot",
+      "p_stuck",
+      "input_rhythm",
+      "candidates",
+      "progress",
+      "grounding"
+     ],
+     "inputs_stale": []
+    },
+    "menu": null,
+    "meta": {
+     "generated_at": "2026-11-07T18:16:51Z",
+     "interval_level": 0.95,
+     "n": 0,
+     "n_unit": "occurrences",
+     "note": "Cue is rules and counts, not a model: the next step comes from what experts did (a path prior) checked against the pack's order rules; the gate is code with hard caps. Numbers are synthetic until the live study says otherwise.",
+     "origin": "synthetic",
+     "split": null
+    },
+    "new": false,
+    "options": null,
+    "question": null,
+    "retrieval": false,
+    "say": null,
+    "source": "rule",
+    "stale": null,
+    "step": null,
+    "t": 60,
+    "target": null,
+    "teach": null,
+    "tier": null,
+    "why": {
+     "level": 2,
+     "margin": 0.6667,
+     "mastery": 0.1,
+     "p_stuck": 0.3208,
+     "path_prob": 0.8333,
+     "reasons": [
+      "not_stuck"
+     ]
+    }
+   },
+   {
+    "budget_left": 12,
+    "cooldown_s": 0.0,
+    "episode_id": null,
+    "expires_in_s": null,
+    "ground_wanted": false,
+    "kind": "none",
+    "manifest": {
+     "caps": {
+      "ledger_rows": 120,
+      "window_cogs": 120
+     },
+     "inputs_read": [
+      "snapshot",
+      "p_stuck",
+      "input_rhythm",
+      "candidates",
+      "progress",
+      "grounding"
+     ],
+     "inputs_stale": []
+    },
+    "menu": null,
+    "meta": {
+     "generated_at": "2026-11-07T18:16:51Z",
+     "interval_level": 0.95,
+     "n": 0,
+     "n_unit": "occurrences",
+     "note": "Cue is rules and counts, not a model: the next step comes from what experts did (a path prior) checked against the pack's order rules; the gate is code with hard caps. Numbers are synthetic until the live study says otherwise.",
+     "origin": "synthetic",
+     "split": null
+    },
+    "new": false,
+    "options": null,
+    "question": null,
+    "retrieval": false,
+    "say": null,
+    "source": "rule",
+    "stale": null,
+    "step": null,
+    "t": 85,
+    "target": null,
+    "teach": null,
+    "tier": null,
+    "why": {
+     "level": 2,
+     "margin": 0.6667,
+     "mastery": 0.1,
+     "p_stuck": 0.6225,
+     "path_prob": 0.8333,
+     "reasons": [
+      "wait_signals"
+     ]
+    }
+   },
+   {
+    "budget_left": 11,
+    "cooldown_s": 25.0,
+    "episode_id": "e_ed2bb3887597",
+    "expires_in_s": 12.0,
+    "ground_wanted": false,
+    "kind": "cue",
+    "manifest": {
+     "caps": {
+      "ledger_rows": 120,
+      "window_cogs": 120
+     },
+     "inputs_read": [
+      "snapshot",
+      "p_stuck",
+      "input_rhythm",
+      "candidates",
+      "progress",
+      "grounding"
+     ],
+     "inputs_stale": []
+    },
+    "menu": null,
+    "meta": {
+     "generated_at": "2026-11-07T18:16:51Z",
+     "interval_level": 0.95,
+     "n": 0,
+     "n_unit": "occurrences",
+     "note": "Cue is rules and counts, not a model: the next step comes from what experts did (a path prior) checked against the pack's order rules; the gate is code with hard caps. Numbers are synthetic until the live study says otherwise.",
+     "origin": "synthetic",
+     "split": null
+    },
+    "new": true,
+    "options": null,
+    "question": null,
+    "retrieval": false,
+    "say": {
+     "chip": null,
+     "whisper": null,
+     "whisper_id": null
+    },
+    "source": "rule",
+    "stale": null,
+    "step": {
+     "id": "cliff_a",
+     "label": "Check cliff edges (A)",
+     "reason_id": "why.cliff",
+     "reason_text": "A figure near a limit can flip the answer."
+    },
+    "t": 87.5,
+    "target": {
+     "box_2d": [
+      412,
+      96,
+      466,
+      388
+     ],
+     "confidence": 0.91,
+     "source": "dom"
+    },
+    "teach": null,
+    "tier": 1,
+    "why": {
+     "level": 2,
+     "margin": 0.6667,
+     "mastery": 0.1,
+     "p_stuck": 0.6514,
+     "path_prob": 0.8333,
+     "reasons": [
+      "stuck_signal",
+      "grounded_dom",
+      "level_2"
+     ]
+    }
+   },
+   {
+    "budget_left": 11,
+    "cooldown_s": 22.5,
+    "episode_id": "e_ed2bb3887597",
+    "expires_in_s": 9.5,
+    "ground_wanted": false,
+    "kind": "cue",
+    "manifest": {
+     "caps": {
+      "ledger_rows": 120,
+      "window_cogs": 120
+     },
+     "inputs_read": [
+      "snapshot",
+      "p_stuck",
+      "input_rhythm",
+      "candidates",
+      "progress",
+      "grounding"
+     ],
+     "inputs_stale": []
+    },
+    "menu": null,
+    "meta": {
+     "generated_at": "2026-11-07T18:16:51Z",
+     "interval_level": 0.95,
+     "n": 0,
+     "n_unit": "occurrences",
+     "note": "Cue is rules and counts, not a model: the next step comes from what experts did (a path prior) checked against the pack's order rules; the gate is code with hard caps. Numbers are synthetic until the live study says otherwise.",
+     "origin": "synthetic",
+     "split": null
+    },
+    "new": false,
+    "options": null,
+    "question": null,
+    "retrieval": false,
+    "say": {
+     "chip": null,
+     "whisper": null,
+     "whisper_id": null
+    },
+    "source": "rule",
+    "stale": null,
+    "step": {
+     "id": "cliff_a",
+     "label": "Check cliff edges (A)",
+     "reason_id": "why.cliff",
+     "reason_text": "A figure near a limit can flip the answer."
+    },
+    "t": 90,
+    "target": {
+     "box_2d": [
+      412,
+      96,
+      466,
+      388
+     ],
+     "confidence": 0.91,
+     "source": "dom"
+    },
+    "teach": null,
+    "tier": 1,
+    "why": {
+     "level": 2,
+     "margin": 0.6667,
+     "mastery": 0.1,
+     "p_stuck": 0.6792,
+     "path_prob": 0.8333,
+     "reasons": [
+      "persisting"
+     ]
+    }
+   },
+   {
+    "budget_left": 11,
+    "cooldown_s": 7.5,
+    "episode_id": "e_ed2bb3887597",
+    "expires_in_s": null,
+    "ground_wanted": false,
+    "kind": "none",
+    "manifest": {
+     "caps": {
+      "ledger_rows": 120,
+      "window_cogs": 120
+     },
+     "inputs_read": [
+      "snapshot",
+      "p_stuck",
+      "input_rhythm",
+      "candidates",
+      "progress",
+      "grounding"
+     ],
+     "inputs_stale": []
+    },
+    "menu": null,
+    "meta": {
+     "generated_at": "2026-11-07T18:16:51Z",
+     "interval_level": 0.95,
+     "n": 0,
+     "n_unit": "occurrences",
+     "note": "Cue is rules and counts, not a model: the next step comes from what experts did (a path prior) checked against the pack's order rules; the gate is code with hard caps. Numbers are synthetic until the live study says otherwise.",
+     "origin": "synthetic",
+     "split": null
+    },
+    "new": false,
+    "options": null,
+    "question": null,
+    "retrieval": false,
+    "say": null,
+    "source": "rule",
+    "stale": null,
+    "step": null,
+    "t": 105,
+    "target": null,
+    "teach": null,
+    "tier": null,
+    "why": {
+     "level": 2,
+     "margin": 0.6667,
+     "mastery": 0.1,
+     "p_stuck": 0.8176,
+     "path_prob": 0.8333,
+     "reasons": [
+      "waiting_escalation"
+     ]
+    }
+   },
+   {
+    "budget_left": 10,
+    "cooldown_s": 25.0,
+    "episode_id": "e_ed2bb3887597",
+    "expires_in_s": 12.0,
+    "ground_wanted": false,
+    "kind": "cue",
+    "manifest": {
+     "caps": {
+      "ledger_rows": 120,
+      "window_cogs": 120
+     },
+     "inputs_read": [
+      "snapshot",
+      "p_stuck",
+      "input_rhythm",
+      "candidates",
+      "progress",
+      "grounding"
+     ],
+     "inputs_stale": []
+    },
+    "menu": null,
+    "meta": {
+     "generated_at": "2026-11-07T18:16:51Z",
+     "interval_level": 0.95,
+     "n": 0,
+     "n_unit": "occurrences",
+     "note": "Cue is rules and counts, not a model: the next step comes from what experts did (a path prior) checked against the pack's order rules; the gate is code with hard caps. Numbers are synthetic until the live study says otherwise.",
+     "origin": "synthetic",
+     "split": null
+    },
+    "new": true,
+    "options": null,
+    "question": null,
+    "retrieval": false,
+    "say": {
+     "chip": "Next: Check cliff edges (A)",
+     "whisper": null,
+     "whisper_id": null
+    },
+    "source": "rule",
+    "stale": null,
+    "step": {
+     "id": "cliff_a",
+     "label": "Check cliff edges (A)",
+     "reason_id": "why.cliff",
+     "reason_text": "A figure near a limit can flip the answer."
+    },
+    "t": 120,
+    "target": {
+     "box_2d": [
+      412,
+      96,
+      466,
+      388
+     ],
+     "confidence": 0.91,
+     "source": "dom"
+    },
+    "teach": null,
+    "tier": 2,
+    "why": {
+     "level": 2,
+     "margin": 0.6667,
+     "mastery": 0.1,
+     "p_stuck": 0.9047,
+     "path_prob": 0.8333,
+     "reasons": [
+      "stuck_signal",
+      "grounded_dom",
+      "long_stall",
+      "escalated"
+     ]
+    }
+   }
+  ]
+ }
+}

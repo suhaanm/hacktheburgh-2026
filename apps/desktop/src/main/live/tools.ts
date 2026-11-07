@@ -123,7 +123,10 @@ const NB = 'NON_BLOCKING' as const
 
 /** The declarations sent in the session setup. The id lists are the closed candidate list at the moment the session opens. */
 export function buildToolDeclarations(candidates: CandidateList): FunctionDeclaration[] {
-  const ids = candidates.items.slice(0, MAX_CANDIDATES).map((c) => c.id)
+  const listed = candidates.items.slice(0, MAX_CANDIDATES)
+  const ids = listed.map((c) => c.id)
+  // The closed menu, in the pack's own words (never anything the worker typed, said or has on screen): the model needs the labels to pick the right id.
+  const menu = listed.map((c) => `${c.id} = ${[...cleanLine(c.label)].slice(0, 40).join('')}`).join('; ')
   const tools: FunctionDeclaration[] = [
     {
       name: 'point_at',
@@ -143,7 +146,7 @@ export function buildToolDeclarations(candidates: CandidateList): FunctionDeclar
       {
         name: 'show_step',
         behavior: NB,
-        description: 'Shows one known step of the worker\'s task as a short guidance chip on the screen. Only use an id from the list; the chip text comes from the task pack, not from you.',
+        description: `Shows one known step of the worker's task as a short guidance chip on the screen. Only use an id from the list; the chip text comes from the task pack, not from you. Steps: ${menu}.`,
         parameters: { type: 'object', properties: { step_id: { type: 'string', enum: ids, description: 'One of the listed step ids.' } }, required: ['step_id'] },
       },
       {
@@ -151,7 +154,7 @@ export function buildToolDeclarations(candidates: CandidateList): FunctionDeclar
         behavior: NB,
         description:
           'Opens a small question card so the worker can pick which step they mean. Use it when you are not sure what they want. Offer 2 to 4 ids from the list. ' +
-          'The worker answers by click, key or voice; you cannot answer for them.',
+          `The worker answers by click, key or voice; you cannot answer for them. Steps: ${menu}.`,
         parameters: { type: 'object', properties: { options: { type: 'array', minItems: MIN_CHOICES, maxItems: MAX_CHOICES, items: { type: 'string', enum: ids }, description: 'Two to four different step ids from the list.' } }, required: ['options'] },
       },
     )
@@ -164,10 +167,13 @@ export function buildToolDeclarations(candidates: CandidateList): FunctionDeclar
   return tools
 }
 
-// How the model should treat a tool result: SILENT keeps it as context and says nothing; WHEN_IDLE speaks after the current sentence.
+// How the model should treat a tool result: SILENT keeps it as context and says nothing; WHEN_IDLE speaks (one short sentence, by the
+// instruction) after the current one. Measured against the live model on 7 Nov 2026: with SILENT after a point_at the model said nothing at all,
+// so a ring or a chip appeared with no words. Things that change the screen get a spoken acknowledgement; the question card (the worker is
+// about to answer it) and the goodbye stay silent.
 export function schedulingFor(name: string, result: unknown): Scheduling {
   const r = isObj(result) ? result : {}
   if (r.ok === false) return 'WHEN_IDLE'
-  if (name === 'point_at' && r.found === false) return 'WHEN_IDLE'
+  if (name === 'point_at' || name === 'show_step') return 'WHEN_IDLE'
   return 'SILENT'
 }

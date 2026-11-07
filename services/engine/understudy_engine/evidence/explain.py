@@ -10,7 +10,7 @@ What happens, in order, all of it code:
    built from it and checked by the same provenance check a model reply must pass: it is always available, so the feature works
    with no model.
 3. Routing (code decides; the model is replaceable): mock mode uses the template only. Otherwise the LOCAL model (Qwen through the
-   local-model server; it sees only the packet's facts) is tried first, then, only if the worker set ``UNDERSTUDY_EVIDENCE_CLOUD=1``,
+   local-model server; it sees only the packet's facts) is tried first, then, only if the worker set ``UNDERSTUDY_EVIDENCE_CLOUD=1`` and the privacy layer is on,
    a cloud wording through ``egress.send`` (the privacy spine writes the ledger line; this module never imports a model client).
 4. A model reply must match the strict reply schema and pass ``provenance.check_reply``. The first reply that does is used. Anything
    else (schema, a number that does not trace, a URL, an instruction, a causal claim, a model that is down) falls back to the next
@@ -31,31 +31,53 @@ from typing import Any, Protocol
 
 from pydantic import ValidationError
 
+from . import context as C
 from . import intent as I
 from . import menu as M
 from . import templates as T
 from . import vocab as V
 from .packet import EvidencePacket, ExplainRequest, FactTable, Question, facts
-from .provenance import REPLY_SCHEMA, Verdict, check_reply
+from .provenance import _PLACEHOLDER, REPLY_SCHEMA, canon_path, check_reply
 
 PURPOSE = "evidence.explain"
 CLOUD_ENV = "UNDERSTUDY_EVIDENCE_CLOUD"
 MAX_TOKENS_LOCAL = 700
 _TRUE = ("1", "true", "yes", "on")
 
+_NAMES = "; ".join(f"{k} means {v}" for k, v in V.HABIT_NAME.items())
 INSTRUCTIONS = (
-    "You receive one JSON object with facts about one worker's case: seconds, intervals, counts, shares, fixed ids, an intent and a "
-    "menu of coach ids. Write a short plain-English reply in the requested JSON format. "
-    "Use only numbers that appear in the facts: copy a number exactly, or round it to a whole number with the word about. "
-    "Never add, subtract, divide or compare numbers to make a new one, and never write twice, half or a share you worked out. "
-    "A share or probability such as 0.103 is written as a percentage, 10%. "
-    "Name only habits that appear in the facts. Say associated with, never because or caused. "
-    "Never say anyone will improve or become an expert. Do not give advice in a sentence: choose up to two ids from menu for coach_actions. "
-    "Give each sentence in uses the paths of the fields its numbers come from. In the packet, habits maps to habit, cohort_habits to "
-    "cohort_habit, cogs to cog, consequences to consequence and routines to routine, so a habit's seconds are habit.<id>.seconds; the "
-    "other blocks are gap.<field>, hazard.<field>, progress.<field>, coach.<field> and meta.<field>. "
-    "State an interval together with its value when both are in the facts. Use a section of kind explanation for a summary and kind "
-    "answer for an answer to the intent. At most four sentences per section."
+    "You receive one JSON object with facts about one worker's case, an intent and a menu of coach ids. Write a short reply in the "
+    "requested JSON format, speaking to the worker as you. Rules. "
+    "1. Never type a digit or a number word. Write every number as a placeholder in curly braces holding the path of its field, "
+    "for example {habit.pauses.seconds}, and write an interval as between {habit.pauses.lo} and {habit.pauses.hi}. "
+    "In the packet, habits maps to habit, cohort_habits to cohort_habit, cogs to cog, consequences to consequence and routines to "
+    "routine; the other blocks are gap, hazard, progress, coach and meta. "
+    "2. A positive difference is longer or lost time, a negative one is shorter or saved time: say which. "
+    "Say associated with, never because, caused or led to. "
+    "3. Name only habits that are in the facts, in these words: " + _NAMES + ". "
+    "Never write ids, menu items, models, performance, efficiency or productivity: write search loops, never search_loops. "
+    "4. Give no advice and never say anyone will improve or become an expert: choose up to two ids from menu for coach_actions instead. "
+    "Mention a stale reading only if a block in blocks has the status stale; otherwise never use the word stale. "
+    "Talk about at most three habits, the ones with the most seconds under habit, each named in words, never by its id; say largest or main "
+    "only of the habit with the most seconds. Do not list all the habits and never write a coach action in a sentence. "
+    "5. List in uses the paths each sentence relies on. Use a section of kind explanation for a summary and kind answer for an answer "
+    "to the intent, at most four sentences per section. "
+    "Example reply: {\"sections\":[{\"kind\":\"explanation\",\"sentences\":[{\"text\":\"You spent {gap.case_s} on this case against "
+    "{gap.reference_s} for the nearest expert, which is {gap.gap_s} longer.\",\"uses\":[\"gap.case_s\",\"gap.reference_s\",\"gap.gap_s\"]},"
+    "{\"text\":\"The alignment associates search loops with {habit.search_loops.seconds} and long pauses with {habit.pauses.seconds}.\","
+    "\"uses\":[\"habit.search_loops.seconds\",\"habit.pauses.seconds\"]}]}],\"coach_actions\":[\"search_once_then_stop\"]}"
+)
+
+
+REWORD_INSTRUCTIONS = (
+    "You are given a draft answer for one worker, written by code, and the facts it rests on. Rewrite it in plain, friendly English, "
+    "speaking to the worker as you. Keep every {placeholder} exactly as written, and do not add facts, numbers, names, advice or "
+    "reasons of your own. Keep the meaning: say associated with, never because, caused or led to; say longer, shorter or saved as the draft "
+    "does; keep any sentence that says a reading is stale or missing. Never use the words because, cause, causing, leads, led, leading, "
+    "results, contributes, due or so that. Do not coin labels such as the average pace: name only what the draft names. "
+    "Never write ids, menu items, models, performance or efficiency. "
+    "Return the same JSON structure: sections of sentences, each with uses listing the paths of the placeholders it contains. You may merge "
+    "or split sentences but not drop a placeholder. Choose up to two ids from menu for coach_actions."
 )
 
 
@@ -104,15 +126,6 @@ def local_schema(tab: FactTable, menu: list[str]) -> dict[str, Any]:
     return s
 
 
-def local_user_message(req: ExplainRequest, tab: FactTable) -> str:
-    """What the local model is shown: the packet flattened to ``path -> value`` (every value is a field of the packet), the enums, the
-    intent and the menu. Nothing else, and never the worker's words."""
-    body = {"intent": req.question.intent, "menu": list(req.menu),
-            "fields": {p: f.value for p, f in sorted(tab.facts.items())},
-            "labels": {p: v for p, v in sorted(tab.labels.items()) if not p.startswith("question.")}}
-    return json.dumps(body, sort_keys=True, separators=(",", ":"))
-
-
 class LocalBackend:
     """The local model through the local-model server (``localmodel.server``), constrained to the reply schema.
 
@@ -126,6 +139,7 @@ class LocalBackend:
         self._client = client
         self._own = client is None
         self.model = "local"
+        self.last_usage: dict[str, int] = {}
 
     def ready(self) -> str | None:
         if self._client is not None:
@@ -149,7 +163,8 @@ class LocalBackend:
         why = self.ready()
         if why is not None:
             raise BackendError(why)
-        messages = [{"role": "system", "content": INSTRUCTIONS}, {"role": "user", "content": local_user_message(req, tab)}]
+        draft = T.build_draft(req)
+        messages = [{"role": "system", "content": REWORD_INSTRUCTIONS}, {"role": "user", "content": C.user_message(req, tab, draft)}]
         try:
             from ..localmodel.client import ClientError
         except Exception:                       # pragma: no cover
@@ -163,7 +178,30 @@ class LocalBackend:
             raise
         except Exception as exc:
             raise BackendError(f"client:{type(exc).__name__}") from None
-        return getattr(res, "obj", res)
+        self.last_usage = {"prompt_tokens": int(getattr(res, "prompt_tokens", 0) or 0), "completion_tokens": int(getattr(res, "completion_tokens", 0) or 0)}
+        reply = getattr(res, "obj", res)
+        problem = reword_problem(draft, reply)
+        if problem is not None:
+            raise BackendError(f"reword:{problem}")
+        return reply
+
+
+def reword_problem(draft: list[dict[str, Any]], reply: Any) -> str | None:
+    """The local model is asked to reword a draft, not to compose: it must keep every placeholder of the draft and add none (it may merge
+    or split sentences). A reply that drops a fact or adds one is refused before the provenance check."""
+    try:
+        want = {canon_path(p) for s in draft for p in _PLACEHOLDER.findall(s["text"])}
+        got = [canon_path(p) for sec in reply["sections"] for s in sec["sentences"] for p in _PLACEHOLDER.findall(s["text"])]
+        n = sum(len(sec["sentences"]) for sec in reply["sections"])
+    except (KeyError, TypeError, AttributeError):
+        return None                                # not even shaped like a reply: the schema check says so
+    if want - set(got):
+        return "dropped_fact"
+    if set(got) - want:
+        return "added_fact"
+    if n > len(draft) + 2:
+        return "too_long"
+    return None
 
 
 # ------------------------------------------------------------------------------------------------ the cloud wording
@@ -192,7 +230,6 @@ class CloudBackend:
     def generate(self, req: ExplainRequest, tab: FactTable) -> Any:
         try:
             from ..privacy import egress
-            from ..privacy.egress import EgressError
 
             ensure_registered()
             res = egress.send(PURPOSE, req, port=self.port)
@@ -206,8 +243,14 @@ class CloudBackend:
 
 
 # ------------------------------------------------------------------------------------------------ routing
+def privacy_on() -> bool:
+    return any(os.environ.get(n, "").strip().lower() in _TRUE for n in ("UNDERSTUDY_X", "UNDERSTUDY_X_PRIVACY"))
+
+
 def cloud_allowed() -> bool:
-    return os.environ.get(CLOUD_ENV, "").strip().lower() in _TRUE
+    """The cloud wording needs the worker's own switch AND the privacy layer on, so every call that leaves is one line the worker can
+    read in the egress ledger (``GET /privacy/ledger``)."""
+    return os.environ.get(CLOUD_ENV, "").strip().lower() in _TRUE and privacy_on()
 
 
 def is_mock() -> bool:
@@ -273,12 +316,15 @@ def _footer(pk: EvidencePacket) -> str:
 
 
 def explain(packet: EvidencePacket, question: str | None = None, *, intent: str | None = None, backends: Backends | None = None,
-            mock: bool | None = None, allow_cloud: bool | None = None) -> dict[str, Any]:
+            mock: bool | None = None, allow_cloud: bool | None = None, budget: int = C.PROMPT_TOKEN_BUDGET) -> dict[str, Any]:
     """The explanation, the coaching and the limits for one packet, with the source and the check's verdict.
 
     Never raises for a model problem: the template is the floor. Raises ``ValueError`` only for a packet that cannot be sent as a
     request (a bug in a builder)."""
     try:
+        it = intent or I.classify(question)[0]
+        trimmed = C.trim(packet, it, system=REWORD_INSTRUCTIONS, budget=budget, draft_fn=T.build_draft)     # the packet the model, the check and the template all see
+        packet = trimmed.packet
         req = build_request(packet, question, intent)
     except ValidationError as exc:
         raise ValueError("the packet cannot be put in a request: " + "; ".join(f"{'.'.join(map(str, e['loc']))}: {e['msg']}"
@@ -290,6 +336,7 @@ def explain(packet: EvidencePacket, question: str | None = None, *, intent: str 
     attempts: list[Attempt] = []
     chosen: dict[str, Any] | None = None
     source, model, ledger_id, verdict = "template", None, None, t_verdict
+    usage: dict[str, int] = {}
     for be in plan_route(backends, mock=mock, allow_cloud=allow_cloud):
         why = be.ready()
         if why is not None:
@@ -300,15 +347,17 @@ def explain(packet: EvidencePacket, question: str | None = None, *, intent: str 
         except BackendError as exc:
             attempts.append(Attempt(be.name, False, exc.code))
             continue
+        finally:
+            usage = dict(getattr(be, "last_usage", None) or usage)
         v = check_reply(reply, req, menu=menu)
-        if v.ok and not _substance_ok(reply, req.question.intent):
+        if v.ok and not _substance_ok(v.expanded, req.question.intent):
             v.ok = False
             v.rejected.append(_no_substance())
         if not v.ok:
             attempts.append(Attempt(be.name, False, "schema" if not v.schema_ok else "provenance", v.codes))
             continue
         attempts.append(Attempt(be.name, True))
-        chosen, source, verdict = reply, be.name, v
+        chosen, source, verdict = v.expanded, be.name, v
         model = getattr(be, "model", None) or be.name
         ledger_id = getattr(be, "last_ledger_id", None)
         break
@@ -335,6 +384,7 @@ def explain(packet: EvidencePacket, question: str | None = None, *, intent: str 
         "footer": _footer(packet),
         "badge": {"origin": packet.meta.origin, "n": packet.meta.n, "n_unit": packet.meta.n_unit, "split": packet.meta.split},
         "check": {**verdict.to_dict(), "subject": "template" if chosen is None else "model", "template_ok": t_verdict.ok},
+        "context": {**trimmed.to_dict(), "measured": usage or None, "prompt_order": ["system", "fields", "labels", "names", "menu", "intent", "draft"]},
         "attempts": [{"route": a.route, "ok": a.ok, "reason": a.reason, "codes": a.codes} for a in attempts],
         "fallback_reason": fallback,
         "question": {"asked_s": req.question.asked_s, "matches_case": req.question.matches_case},

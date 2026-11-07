@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://understudy.local/schema/attention_event.schema.json",
+  "title": "Understudy attention event v1 (REQ-8)",
+  "description": "What a producer submits to POST /attention/events. A closed schema: a type from a closed enum, the person slug, an opaque subject id, an op, a few enums and small numbers. There is no free-text field. No screen, file, page, model or message text can pass through the attention layer, its store or its log. A value outside its enum or pattern is refused.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["type", "subject"],
+  "properties": {
+    "type": {
+      "enum": ["kill_engaged", "kill_cleared", "injection_pause", "irreversible_decision", "run_blocked_target", "run_blocked_error", "approval_blocking", "calendar_deadline", "cue_cue", "cue_ask", "cue_offer", "voice_line", "help_level_changed", "routine_proposal", "briefing_ready", "approval_waiting", "run_finished", "morning_report", "service_degraded"],
+      "description": "The kind of event. The router builds attention_digest itself; producers never submit it."
+    },
+    "person": { "type": "string", "pattern": "^p_[a-z0-9_]{1,30}$", "description": "The engine's person slug, never a name. May instead be given as ?person= on the request." },
+    "subject": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_.:-]{0,63}$", "description": "An opaque id naming what the event is about: the run, the queue item, the card, the Cue episode, the routine slug. Items with the same family and subject are one item." },
+    "op": { "enum": ["raise", "resolve"], "default": "raise", "description": "resolve says the situation is over (an approval decided elsewhere, a run finished by itself, a card went stale): the item is dropped without bothering anyone." },
+    "t": { "type": "number", "minimum": 0, "maximum": 4000000000, "description": "When the reading was taken, the producer's clock (the freshness convention). Honoured only in mock mode (replays); a real server uses its own clock." },
+    "risk_class": { "enum": ["irreversible", "outward", "normal"], "description": "The approval queue's risk class." },
+    "outcome": { "enum": ["done", "failed", "paused", "yielded", "stopped"], "description": "How a run ended." },
+    "run_mode": { "enum": ["overnight", "background", "foreground"], "description": "Which kind of run: it names the source in the wording." },
+    "service": { "enum": ["engine", "agent", "model", "calendar"], "description": "Which service is degraded (service_degraded only)." },
+    "count": { "type": "integer", "minimum": 1, "maximum": 999, "default": 1, "description": "How many things this event stands for (cards, approvals, runs)." },
+    "minutes": { "type": "number", "minimum": 0, "maximum": 1440, "description": "A duration, rounded to five minutes before it is worded." },
+    "expires_in_s": { "type": "number", "minimum": 1, "maximum": 604800, "description": "How long the event stays relevant. It may shorten the type's own expiry, never lengthen it." },
+    "deadline_in_s": { "type": "number", "minimum": 0, "maximum": 2678400, "description": "Seconds until a calendar deadline (calendar_deadline only, required there). The item expires at the deadline." },
+    "blocks_run": { "type": "boolean", "default": false, "description": "A running job waits on this (an approval_waiting with blocks_run is treated as approval_blocking)." },
+    "asked": { "type": "boolean", "default": false, "description": "The worker pressed for help (Cue). Only a cue can be asked for; quiet, budget and learning do not apply to it." },
+    "origin": { "enum": ["real", "synthetic"], "default": "real" },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional fresh worker state for the admission decision, so a helpful-now event is judged on the worker as they are now.",
+      "properties": {
+        "typing_burst": { "type": "boolean" }, "quiet_s": { "type": "number", "minimum": 0 }, "deep_work": { "type": "boolean" },
+        "task_in_progress": { "type": "boolean" }, "task_marker_s": { "type": "number", "minimum": 0 }, "away": { "type": "boolean" },
+        "away_s": { "type": "number", "minimum": 0 }, "locked": { "type": "boolean" }, "dnd": { "type": "boolean" },
+        "screen_sharing": { "type": "boolean" }, "on_call": { "type": "boolean" }, "in_meeting": { "type": "boolean" },
+        "voice_session": { "type": "boolean" }, "dashboard_focused": { "type": "boolean" },
+        "local_hour": { "type": "integer", "minimum": 0, "maximum": 23 }, "t": { "type": "number" }
+      }
+    }
+  }
+}

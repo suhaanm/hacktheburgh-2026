@@ -326,7 +326,7 @@ class MockProvider:
         return blank_for(schema)
 
     def computer_step(self, goal: str, screenshot: bytes, history: list[dict[str, Any]],
-                      *, session: str | None = None) -> Action | Done | SafetyStop:
+                      *, session: str | None = None, store: bool | None = None, note: str | None = None) -> Action | Done | SafetyStop:
         self._record("computer_step", goal=goal, n_history=len(history), session=session)
         script = self.scenario.computer
         i = len(history)

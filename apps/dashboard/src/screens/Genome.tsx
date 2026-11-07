@@ -5,6 +5,7 @@ import { useRoute } from "../router";
 import { ChartFoot, ErrorState, LegendItem, Loading, OriginBadge, PageHead } from "../components/common";
 import { Ribbon } from "../components/Ribbon";
 import { Waterfall } from "../components/Waterfall";
+import { Explain } from "../components/Explain";
 import { DotWhisker } from "../components/DotWhisker";
 import { TransitionGraph } from "../components/TransitionGraph";
 import { describeColumn, layoutRibbon } from "../lib/ribbon";
@@ -62,6 +63,10 @@ export default function Genome() {
         )}
         {view === "ribbon" && <ChartFoot meta={g.meta} />}
       </section>
+
+      <hr className="rule" />
+
+      <Explain person={person} />
 
       <hr className="rule" />
 

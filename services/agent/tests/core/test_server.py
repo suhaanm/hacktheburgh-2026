@@ -289,14 +289,14 @@ def test_agents_extension_is_off_by_default_and_never_breaks_the_server(cluster,
         return create_app(base_urls=cluster.urls, autostart_sandbox=False, supervisor=Supervisor(), shared_sites=False)
 
     with TestClient(app_()) as c:                                   # off by default
-        assert c.get("/health").json()["extensions"] == {"agents": False}
+        assert c.get("/health").json()["extensions"]["agents"] is False
         assert c.get("/agents/runs").status_code == 404
         assert "disabled" in c.app.state.extension_status["agents"]
     monkeypatch.setenv("UNDERSTUDY_X_AGENTS", "1")
     monkeypatch.setitem(sys.modules, "understudy_agent.runtime.routes", None)   # None makes the import raise ImportError
     with TestClient(app_()) as c:                                   # asked for, but the module cannot be imported
         h = c.get("/health").json()
-        assert h["ok"] and h["extensions"] == {"agents": False}
+        assert h["ok"] and h["extensions"]["agents"] is False and "models" in h["extensions"] and "live" in h["extensions"]
         status = c.app.state.extension_status["agents"]
         assert status.startswith("not loaded:")
     # a router that does import is included
@@ -311,6 +311,6 @@ def test_agents_extension_is_off_by_default_and_never_breaks_the_server(cluster,
     monkeypatch.delenv("UNDERSTUDY_X_AGENTS")
     monkeypatch.setenv("UNDERSTUDY_X", "1")
     with TestClient(app_()) as c:
-        assert c.get("/health").json()["extensions"] == {"agents": True}
+        assert c.get("/health").json()["extensions"]["agents"] is True
         assert c.get("/agents/runs").json() == {"runs": []}
         assert c.app.state.extension_status["agents"] == "enabled"

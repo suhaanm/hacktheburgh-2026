@@ -41,6 +41,16 @@ export const FALLBACK_OFFER = 'Want a hand?'
 export const toNormBox = (b: [number, number, number, number]): NormBox => ({ xmin: b[1], ymin: b[0], xmax: b[3], ymax: b[2] })
 export const boxCentre = (b: NormBox): NormPoint => ({ x: (b.xmin + b.xmax) / 2, y: (b.ymin + b.ymax) / 2 })
 
+// The speaker speaks fixed lines by id only (never text): `whisper.<step_id>` for a pack step. The engine's own id is used when it has the right form.
+const LINE_RE = /^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/
+const STEP_RE = /^[a-z][a-z0-9_]*$/
+export function whisperLineId(d: CueDecision): string | null {
+  const own = d.say.whisper_id
+  if (own && LINE_RE.test(own)) return own
+  const step = d.step?.id
+  return step && STEP_RE.test(step) ? `whisper.${step}` : null
+}
+
 export function planCue(d: CueDecision, o: PlanOptions): CuePlan | null {
   if (d.kind === 'none') return null
   const asked = d.trigger === 'asked'
@@ -66,7 +76,8 @@ export function planCue(d: CueDecision, o: PlanOptions): CuePlan | null {
   const chip = wantsChip ? { text: chipText, stepN: lv.stepPill ? d.step?.n ?? o.stepN ?? null : null } : null
   const ring = box ? { box, weight: (chip ? 'regular' : lv.ringWhenQuiet) as RingWeight, exact: d.target?.source === 'dom' } : null
   const ghost = box && (tier >= CUE_TOKENS.ghostFromTier || o.ghostRequested === true) ? { to: boxCentre(box) } : null
-  const whisper = tier === CUE_TOKENS.whisperTier && d.say.whisper && d.say.whisper_id ? { lineId: d.say.whisper_id, text: d.say.whisper } : null
+  const lineId = whisperLineId(d)
+  const whisper = tier === CUE_TOKENS.whisperTier && d.say.whisper && lineId ? { lineId, text: d.say.whisper } : null
   const reason = reasonLine(d)
   const phrase = pathPhrase(d.why.path_prob)
   const why = reason || phrase ? { reason, phrase, simulated: d.why.origin === 'synthetic' } : null

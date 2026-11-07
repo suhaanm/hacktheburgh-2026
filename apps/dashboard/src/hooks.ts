@@ -8,6 +8,9 @@ export type LoadState<T> =
   | { status: "ready"; data: T; meta: AnalyticMeta | null; source: "live" | "demo"; why: Fallback | null; error: null; reload: () => void }
   | { status: "error"; data: T | null; meta: AnalyticMeta | null; source: null; why: Fallback | null; error: Error; reload: () => void };
 
+/** A loader that waits: use it while a screen does not yet know what to ask for (the state stays "loading"). */
+export const idle = <T,>(): Promise<Loaded<T>> => new Promise<Loaded<T>>(() => undefined);
+
 /** Load a resource; keep the last good data while reloading so screens do not flash empty. */
 export function useLoad<T>(loader: () => Promise<Loaded<T>>, deps: unknown[]): LoadState<T> {
   const [s, setS] = useState<{ status: "loading" | "ready" | "error"; data: T | null; meta: AnalyticMeta | null; source: "live" | "demo" | null; why: Fallback | null; error: Error | null }>({

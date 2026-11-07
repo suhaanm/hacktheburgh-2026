@@ -3,6 +3,9 @@
 //   GET  https://api.openai.com/v1/models      (boot check: which models can this key use)
 // Rules: the key comes from OPENAI_API_KEY (env) and is only ever placed in the Authorization header; it is never logged,
 // returned, put in an error message or sent to a renderer. Model IDs come from OPENAI_MODEL_PLANNER / _FAST / _COMPUTER_USE.
+// LEGACY REMOTE (D38): this provider is DEFAULT OFF. Every request first goes through authorizeLegacy() (src/main/legacy-remote.ts):
+// UNDERSTUDY_LEGACY_REMOTE must be "1", the privacy gates must be open and the metadata ledger row must be written, or nothing is sent
+// (a ModelPortError with code 'blocked'). The boot check is a request too, so it is gated the same way.
 // Every request carries store:false (screenshots are not retained). Bodies and responses are never logged, only name, tier,
 // model, latency and token counts. The base URL is a constant: there is no environment override that could redirect the key.
 //
@@ -11,6 +14,7 @@
 // scroll, keypress, type, wait, screenshot). The guide does not show the pending_safety_checks shape, so any non-empty
 // `pending_safety_checks` array is treated as a stop (`blocked`) and is never acknowledged here. This path is UNVERIFIED against
 // a live key (spike S1); the request is stateless (goal + history + fresh screenshot each turn), so no previous_response_id.
+import { authorizeLegacy, LegacyRemoteBlocked, measureCompletion, purposeId, type LegacyCall, type LegacyRemoteGate, type LegacyTicket } from '../legacy-remote'
 import { ENV_VAR, hasKey, modelIdsFromEnv, type Env } from './env'
 import { ModelPortError } from './errors'
 import { strictify } from './json'
@@ -37,6 +41,8 @@ export interface OpenAiOptions {
   log?: Log
   // Tests only. Production always uses OPENAI_BASE_URL.
   baseUrl?: string
+  // Tests only: the legacy-remote gate. Production uses the process-wide one (src/main/legacy-remote.ts).
+  remote?: LegacyRemoteGate
 }
 
 const RETRYABLE = new Set([408, 409, 429, 500, 502, 503, 504])
@@ -185,8 +191,23 @@ export function createOpenAiProvider(opts: OpenAiOptions = {}): ModelProvider {
     return id
   }
 
+  // What a request is, described for the privacy ledger (no content). Built by each caller.
+  type Meta = Pick<LegacyCall, 'kind' | 'purpose' | 'bytes' | 'count'> & { model: string }
+
+  /** The legacy-remote gate (D38). Throws ModelPortError('blocked'): flag off, a closed privacy gate, or no ledger row. */
+  async function authorize(meta: Meta): Promise<LegacyTicket> {
+    try {
+      return await authorizeLegacy({ ...meta, provider: 'openai' }, { env, gate: opts.remote })
+    } catch (e) {
+      if (e instanceof LegacyRemoteBlocked) throw new ModelPortError('blocked', `request not sent: ${e.reason}`)
+      throw e
+    }
+  }
+
   /** One HTTP exchange with a deadline. Throws ModelPortError (never leaks the key or the body). */
-  async function http(method: 'GET' | 'POST', path: string, body: unknown, timeoutMs: number): Promise<{ status: number; json: unknown }> {
+  async function http(method: 'GET' | 'POST', path: string, body: unknown, timeoutMs: number, meta: Meta): Promise<{ status: number; json: unknown }> {
+    const ticket = await authorize(meta) // before the key is read and before anything is built for the network
+    const t0 = performance.now()
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), Math.max(200, timeoutMs))
     try {
@@ -202,8 +223,11 @@ export function createOpenAiProvider(opts: OpenAiOptions = {}): ModelProvider {
       } catch {
         json = null
       }
+      const usage = isObj(json) && isObj(json.usage) ? json.usage : {}
+      ticket.finish({ ok: res.status < 400, latencyMs: performance.now() - t0, inputTokens: typeof usage.input_tokens === 'number' ? usage.input_tokens : undefined, outputTokens: typeof usage.output_tokens === 'number' ? usage.output_tokens : undefined })
       return { status: res.status, json }
     } catch (e) {
+      ticket.finish({ ok: false, latencyMs: performance.now() - t0 })
       if (e instanceof ModelPortError) throw e
       if ((e as { name?: string } | null)?.name === 'AbortError') throw new ModelPortError('timeout', `request to ${path} timed out`)
       throw new ModelPortError('network', `request to ${path} failed: ${redactText(String((e as Error | undefined)?.message ?? e)).slice(0, 120)}`)
@@ -234,6 +258,7 @@ export function createOpenAiProvider(opts: OpenAiOptions = {}): ModelProvider {
   async function complete(req: CompletionRequest): Promise<CompletionResult> {
     const model = modelFor(req.tier)
     apiKey() // fail fast, before building anything
+    const meta: Meta = { ...measureCompletion(req), purpose: purposeId(req.name), model }
     const attempts = (req.retries ?? 1) + 1
     const deadline = Date.now() + req.timeoutMs
     let last: unknown
@@ -246,7 +271,7 @@ export function createOpenAiProvider(opts: OpenAiOptions = {}): ModelProvider {
       try {
         const reasoning = !noReasoning.has(model)
         const strict = !noStrict.has(model)
-        const { status, json } = await http('POST', '/responses', buildResponsesBody(req, model, { reasoning, strict }), remaining)
+        const { status, json } = await http('POST', '/responses', buildResponsesBody(req, model, { reasoning, strict }), remaining, meta)
         if (status >= 400) {
           // Capability learning: retry the same attempt once without `reasoning`, once with a non-strict schema.
           if (reasoning && req.effort && !reasoningTried && badReasoning(status, json)) {
@@ -304,7 +329,8 @@ export function createOpenAiProvider(opts: OpenAiOptions = {}): ModelProvider {
       tools: [{ type: 'computer' }],
       input: [{ role: 'user', content: [{ type: 'input_text', text: lines.join('\n') }, imageItem(req.screenshot)] }],
     }
-    const { status, json } = await http('POST', '/responses', body, req.timeoutMs)
+    const meta: Meta = { ...measureCompletion({ text: lines.join('\n'), system: req.system ?? DEFAULT_CU_SYSTEM, images: [req.screenshot] }), purpose: 'legacy.computer_step', model }
+    const { status, json } = await http('POST', '/responses', body, req.timeoutMs, meta)
     if (status >= 400) throw apiError(status, json)
     const parsed = parseResponse(json)
     const ms = Math.round(performance.now() - t0)
@@ -328,7 +354,7 @@ export function createOpenAiProvider(opts: OpenAiOptions = {}): ModelProvider {
     const report = (r: Partial<BootReport>): BootReport => ({ ok: false, provider: 'openai', configured, unset, missing: [], usable: [], listed: 0, ...r })
     if (!hasKey(env)) return report({ problem: 'OPENAI_API_KEY is not set. Put the key in .env (never commit it) and restart.' })
     try {
-      const { status, json } = await http('GET', '/models', null, 10_000)
+      const { status, json } = await http('GET', '/models', null, 10_000, { kind: 'text', purpose: 'legacy.boot_check', bytes: 0, count: 1, model: configured.fast || configured.planner || 'model-list' })
       if (status >= 400) throw apiError(status, json)
       const data = isObj(json) && Array.isArray(json.data) ? (json.data as unknown[]) : []
       const listed = data.filter(isObj).map((m) => String(m.id ?? '')).filter(Boolean)
@@ -346,6 +372,7 @@ export function createOpenAiProvider(opts: OpenAiOptions = {}): ModelProvider {
         ...(ok ? {} : { problem: `${problems.join('; ')}. Usable model IDs for this key: ${usable.slice(0, 40).join(', ') || '(none listed)'}. Set the OPENAI_MODEL_* variables in .env and restart.` }),
       })
     } catch (e) {
+      if (e instanceof ModelPortError && e.code === 'blocked') return report({ problem: 'The old OpenAI paths of this app are switched off (set UNDERSTUDY_LEGACY_REMOTE=1 to use them); nothing was requested.' })
       const why = e instanceof ModelPortError ? `${e.code}: ${e.message}` : 'unexpected error'
       return report({ problem: `Could not list models (${why}).` })
     }

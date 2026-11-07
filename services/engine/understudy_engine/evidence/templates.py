@@ -110,7 +110,7 @@ def cohort_line(pk: EvidencePacket) -> S | None:
     if g is None or g.cohort_gap_s is None:
         return None
     uses = ["gap.cohort_gap_s", "meta.n"]
-    text = (f"Across the {pk.meta.n} {V.N_UNIT_PHRASE[pk.meta.n_unit]} in this data, novices take on average "
+    text = (f"Across the {render(pk.meta.n, 'count')} {V.N_UNIT_PHRASE[pk.meta.n_unit]} in this data, novices take on average "
             f"{_sec(g.cohort_gap_s)} {_dir(g.cohort_gap_s)} per case than their nearest expert")
     if g.cohort_lo is not None and g.cohort_hi is not None:
         text += f" ({render_range(g.cohort_lo, g.cohort_hi, 's')})."
@@ -170,12 +170,12 @@ def consequence_lines(pk: EvidencePacket) -> list[S]:
         if c.p_error is None:
             continue
         uses = [f"consequence.{step}.p_error"]
-        text = f"In the sandbox households, skipping {V.STEP_NAME[step]} ended in a wrong answer {render(c.p_error, 'frac')} of the time"
+        text = f"In the sandbox households, a wrong answer came out {render(c.p_error, 'frac')} of the time when {V.STEP_NAME[step]} was left out"
         if c.lo is not None and c.hi is not None:
             text += f" ({render_range(c.lo, c.hi, 'frac')})"
             uses += [f"consequence.{step}.lo", f"consequence.{step}.hi"]
         if c.mean_gbp is not None and c.n is not None:
-            text += f"; when it was wrong the mean error was {render(c.mean_gbp, 'gbp')} a month (n = {c.n} households)."
+            text += f"; when it was wrong the mean error was {render(c.mean_gbp, 'gbp')} a month (n = {render(c.n, 'count')} households)."
             uses += [f"consequence.{step}.mean_gbp", f"consequence.{step}.n"]
         else:
             text += "."
@@ -250,7 +250,7 @@ def routine_lines(pk: EvidencePacket, trust_only: bool = False, k: int = 2) -> l
         if not trust_only:
             bits = []
             if r.episodes is not None:
-                bits.append(f"was seen {r.episodes} times")
+                bits.append(f"was seen {render(r.episodes, 'count')} times")
             if r.minutes_per_week is not None:
                 bits.append(f"takes about {render(r.minutes_per_week, 'min')} a week")
             text = f"The routine of {name} " + (" and ".join(bits) + " and is " if bits else "is ") + V.STATUS_PHRASE[r.status] + "."
@@ -259,10 +259,25 @@ def routine_lines(pk: EvidencePacket, trust_only: bool = False, k: int = 2) -> l
                 out.append(S(f"The forecast saving from {name} is {render_range(r.hours_lo, r.hours_hi, 'h')} over the next {render(r.horizon_weeks, 'weeks')}.", uses))
         text = f"The routine of {name} is at trust rung {r.rung}"
         if r.shadow_runs:
-            text += f", with {r.shadow_runs} shadow runs and a lower bound of {render(r.wilson_lower, 'frac')} on its match rate"
+            text += f", with {render(r.shadow_runs, 'count')} shadow runs and a lower bound of {render(r.wilson_lower, 'frac')} on its match rate"
         if r.next_rung and r.runs_to_next is not None:
-            text += f"; {r.runs_to_next} more clean {'run' if r.runs_to_next == 1 else 'runs'} in a row would reach rung {r.next_rung}"
+            text += f"; {render(r.runs_to_next, 'count')} more clean {'run' if r.runs_to_next == 1 else 'runs'} in a row would reach rung {r.next_rung}"
         out.append(S(text + ".", uses))
+    return out
+
+
+def stale_lines(pk: EvidencePacket, ids: tuple[str, ...]) -> list[S]:
+    """A block that is stale is said to be stale, with its age when the source gave one (an absent block is said by the intent's own
+    "there is no ..." line)."""
+    out: list[S] = []
+    for b in ids:
+        info = pk.blocks.get(b)
+        if info is None or info.status != "stale":
+            continue
+        if info.age_s is not None:
+            out.append(S(f"The {V.BLOCK_NAME[b]} is {render(info.age_s, 's')} old and stale, so read it with care.", [f"block.{b}.age_s"]))
+        else:
+            out.append(S(f"The {V.BLOCK_NAME[b]} is stale, so read it with care.", [f"block.{b}.status"]))
     return out
 
 
@@ -281,42 +296,45 @@ def compose(req: ExplainRequest) -> tuple[str, list[S]]:
     it = q.intent
     out: list[S]
     kind = "answer"
+    stale_for = {"where_time_went": ("genome",), "why_slow": ("genome",), "biggest_habit": ("genome",), "compare_expert": ("genome",),
+                 "stuck_reading": ("hazard", "coach"), "how_sure": ("genome", "hazard"), "routine_worth": ("routines",),
+                 "trust_level": ("routines",), "what_to_practise": ("genome",)}.get(it, ())
     if it == "where_time_went":
         kind = "explanation"
-        out = _first(case_line(pk)) + habit_lines(pk) + _first(cohort_line(pk), counterfactual_line(pk))
+        out = stale_lines(pk, stale_for) + _first(case_line(pk)) + habit_lines(pk) + _first(cohort_line(pk), counterfactual_line(pk))
         out += (consequence_lines(pk)[:1] or hazard_lines(pk)[:1])
     elif it == "why_slow":
-        out = []
+        out = stale_lines(pk, stale_for)
         if q.asked_s is not None and pk.gap is not None and pk.gap.case_s is not None and q.matches_case is False:
             out.append(S(f"You asked about {_sec(q.asked_s)}, but the record shows {_sec(pk.gap.case_s)} for this case.", ["question.asked_s", "gap.case_s"]))
         out += _first(case_line(pk)) + habit_lines(pk, 2) + _first(rank_line(pk))
         out.append(S("These are associations in the recorded steps, not proof that one thing produced the other.", []))
     elif it == "biggest_habit":
-        out = _first(rank_line(pk))
+        out = stale_lines(pk, stale_for) + _first(rank_line(pk))
         pos = sorted(((hid, h) for hid, h in pk.habits.items() if h.seconds >= 0.5), key=lambda t: -t[1].seconds)
         out += _first(cohort_habit_line(pk, pos[0][0]) if pos else None)
         if not out:
             pos2 = sorted(((hid, h) for hid, h in pk.cohort_habits.items() if h.seconds >= 0.5), key=lambda t: -t[1].seconds)
             out = _first(cohort_habit_line(pk, pos2[0][0]) if pos2 else None)
     elif it == "compare_expert":
-        out = _first(case_line(pk), cohort_line(pk), controls_line(pk))
+        out = stale_lines(pk, stale_for) + _first(case_line(pk), cohort_line(pk), controls_line(pk))
     elif it == "stuck_reading":
-        out = hazard_lines(pk)[:3] + _first(coach_line(pk), progress_line(pk))
+        out = stale_lines(pk, stale_for) + hazard_lines(pk)[:3] + _first(coach_line(pk), progress_line(pk))
         if not out:
             out = [nothing_line("stuck reading")]
     elif it == "how_sure":
-        out = _first(cohort_line(pk), controls_line(pk)) + consequence_lines(pk)[:1] + hazard_lines(pk)[1:3]
-        out.append(S(f"All of this rests on {pk.meta.n} {V.N_UNIT_PHRASE[pk.meta.n_unit]}.", ["meta.n"]))
+        out = stale_lines(pk, stale_for) + _first(cohort_line(pk), controls_line(pk)) + consequence_lines(pk)[:1] + hazard_lines(pk)[1:3]
+        out.append(S(f"All of this rests on {render(pk.meta.n, 'count')} {V.N_UNIT_PHRASE[pk.meta.n_unit]}.", ["meta.n"]))
     elif it == "routine_worth":
-        out = routine_lines(pk)
+        out = stale_lines(pk, stale_for) + routine_lines(pk)
         if not out:
             out = [nothing_line("routine candidate")]
     elif it == "trust_level":
-        out = routine_lines(pk, trust_only=True)
+        out = stale_lines(pk, stale_for) + routine_lines(pk, trust_only=True)
         if not out:
             out = [nothing_line("routine on the trust ladder")]
     elif it == "what_to_practise":
-        out = habit_lines(pk, 2)[:1] + _first(counterfactual_line(pk))
+        out = stale_lines(pk, stale_for) + habit_lines(pk, 2)[:1] + _first(counterfactual_line(pk))
         if not out:
             out = [S("Nothing stands out as a habit to work on in this data.", [])]
     else:
@@ -331,3 +349,55 @@ def build_reply(req: ExplainRequest) -> dict:
     kind, sents = compose(req)
     return {"sections": [{"kind": kind, "sentences": [{"text": s.text, "uses": s.uses} for s in sents]}],
             "coach_actions": default_choice(req.packet) if req.question.intent not in ("unsupported",) else []}
+
+
+# ------------------------------------------------------------------------------------------------ the draft (local reword mode)
+class TokenStyle(Style):
+    """Records every number the templates speak and writes a marker in its place, so a draft can carry ``{field.path}`` placeholders
+    instead of figures (see ``build_draft``)."""
+
+    def __init__(self) -> None:
+        self.seq: list[tuple[float, str, str]] = []
+
+    def _mark(self, value: float, unit: str, role: str) -> str:
+        self.seq.append((value, unit, role))
+        return f"\x00{len(self.seq) - 1}\x00"
+
+    def render(self, value: float, unit: str) -> str:
+        return self._mark(value, unit, "point")
+
+    def range(self, lo: float, hi: float, unit: str) -> str:
+        return f"between {self._mark(lo, unit, 'lo')} and {self._mark(hi, unit, 'hi')}"
+
+
+def build_draft(req: ExplainRequest) -> list[dict]:
+    """The template reply with each figure replaced by the ``{field.path}`` placeholder of the field it speaks. Code writes it, from the
+    packet only, so it holds no worker text and is safe to show the local model; ``provenance.expand_placeholders`` turns it back into the
+    canonical text. A figure that cannot be tied to a field of its sentence is written out in full."""
+    import re
+
+    from .packet import facts
+
+    tab = facts(req)
+    style = TokenStyle()
+    with use_style(style):
+        _, sents = compose(req)
+    out = []
+    for sent in sents:
+        covered = [f for u in sent.uses for f in tab.under(u)]
+        used: set[str] = set()
+        paths: list[str] = []
+
+        def sub(m: "re.Match[str]") -> str:
+            value, unit, role = style.seq[int(m.group(1))]
+            for f in covered:
+                if f.path in used or f.unit != unit or f.role != role or abs(abs(f.value) - abs(value)) > 1e-9:
+                    continue
+                used.add(f.path)
+                paths.append(f.path)
+                return "{" + f.path + "}"
+            return _N.render(abs(value), unit)
+
+        text = re.sub(r"\x00(\d+)\x00", sub, sent.text)
+        out.append({"text": text, "uses": paths or list(sent.uses)})
+    return out

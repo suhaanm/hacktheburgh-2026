@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import gitFx from "../fixtures/git-habits.json";
 import type { GitHabit, GitHabits } from "../types";
-import { excludesZero, fmtPoints, fmtPointsInterval, fmtShare, gitHeadline, habitAxis, learnerLabel, readHabit, sortHabits } from "./git";
+import { excludesZero, fmtPoints, fmtPointsInterval, fmtShare, gitHeadline, habitAxis, learnerLabel, readHabit, sortHabits, wrapLabel } from "./git";
 
 const habits = (gitFx as unknown as { data: GitHabits }).data.habits;
 
@@ -50,5 +50,19 @@ describe("git habits", () => {
     expect(gitHeadline(habits)).toMatch(/differ/);
     expect(gitHeadline([])).toMatch(/No commit habits/);
     expect(gitHeadline(habits.map((h) => ({ ...h, flagged: false })))).toBe("No commit habit stands out from the experts");
+  });
+  it("keeps the axis to values whose half is a whole number of points", () => {
+    const mk = (m: number) => [{ delta: m, ci: [-m, m] as [number, number], min_delta: 0 }];
+    expect(habitAxis(mk(0.03))).toBe(0.1);
+    expect(habitAxis(mk(0.15))).toBe(0.2);
+    expect(habitAxis(mk(0.7))).toBe(0.8);
+    expect(habitAxis(mk(0.99))).toBe(1);
+  });
+  it("wraps a long label onto two lines at a space", () => {
+    expect(wrapLabel("Large commits")).toEqual(["Large commits"]);
+    const w = wrapLabel("Feature and fix commits that touch tests");
+    expect(w).toHaveLength(2);
+    expect(w.join(" ")).toBe("Feature and fix commits that touch tests");
+    expect(Math.max(...w.map((l) => l.length))).toBeLessThanOrEqual(40);
   });
 });

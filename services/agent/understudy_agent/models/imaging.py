@@ -71,8 +71,11 @@ def downscale_png(data: bytes, max_w: int = DEFAULT_MAX_W, max_h: int = DEFAULT_
     return ScaledImage(png=buf.getvalue(), orig_w=ow, orig_h=oh, w=nw, h=nh)
 
 
-def data_url(png: bytes) -> str:
-    return "data:image/png;base64," + base64.b64encode(png).decode("ascii")
+MAX_FRAME_BYTES = 400 * 1024   # the privacy SafeImage limit; every image sent to a model stays inside it (and inside 1280 px on the long edge)
+
+
+def data_url(data: bytes, mime: str = "image/png") -> str:
+    return f"data:{mime};base64," + base64.b64encode(data).decode("ascii")
 
 
 def make_test_png(w: int = 1280, h: int = 720, label: str = "Calculate") -> bytes:

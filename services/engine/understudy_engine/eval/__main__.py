@@ -11,6 +11,8 @@ from pathlib import Path
 
 from .adapters import SECTION_NAMES
 from .assemble import build_report, default_out, dumps, write_atomic
+from .facts import build_facts
+from .fixture import dumps_min, trim
 from .render_md import render
 from .schema import errors
 
@@ -24,6 +26,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--data", default=None, help="data root (default: UNDERSTUDY_DATA_DIR or <repo>/data)")
     ap.add_argument("--no-generate", action="store_true", help="do not regenerate missing synthetic data; the sections become pending")
     ap.add_argument("--no-md", action="store_true", help="skip report.md")
+    ap.add_argument("--fixture", default=None, help="also write a trimmed copy for the dashboard fixture to PATH (for example apps/dashboard/src/fixtures/eval-report.json)")
+    ap.add_argument("--no-facts", action="store_true", help="skip report.facts.json (the headline counts docs quote by key)")
     ap.add_argument("--force", action="store_true", help="write even if the report fails schema validation")
     args = ap.parse_args(argv)
 
@@ -45,6 +49,10 @@ def main(argv: list[str] | None = None) -> int:
     write_atomic(out, dumps(report))
     if not args.no_md:
         write_atomic(out.with_suffix(".md"), render(report))
+    if not args.no_facts:
+        write_atomic(out.with_suffix(".facts.json"), dumps(build_facts(report)))
+    if args.fixture:
+        write_atomic(Path(args.fixture), dumps_min(trim(report)))
     secs = report["sections"]
     status = {k: (v.get("status", "ok") if isinstance(v, dict) else "ok") for k, v in secs.items() if k != "limitations"}
     bad = [k for k, v in status.items() if v == "failed"]

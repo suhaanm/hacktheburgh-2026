@@ -57,3 +57,26 @@ def test_habit_label_maps_cover_every_waterfall_bar_without_the_forbidden_word()
     assert set(EI.HABIT_OF_LABEL.values()) <= set(EI.HABIT_IDS)
     assert "skipped_steps" not in EI.HABIT_IDS
     assert set(EI.HABIT_OF_DEFICIT.values()) <= set(EI.HABIT_IDS)
+
+
+def test_builder_fills_validated_inputs_for_v1_and_v2_without_any_free_text(apprentice_d0):
+    from understudy_engine.mlv2.evidence_builder import build_evidence_inputs, hazard_input_from_summary
+
+    co = apprentice_d0.cohort
+    person = co.novices[0].person
+    haz = hazard_input_from_summary(0.31, "model", {"metrics": {"ece": {"value": 0.015}, "log_loss": {"value": 0.436}}, "n_bins": 7376,
+                                                    "events": {"false_alarms_per_hour": {"value": 1.2, "interval": [0.9, 1.5]}}}, 0.43)
+    v1 = build_evidence_inputs(co, person, model_version="v1", hazard=haz, n_boot=30)
+    v2 = build_evidence_inputs(co, person, model_version="v2", accepted=False, n_boot=30)
+    for x in (v1, v2):
+        x.validate()
+        assert x.cases and all(h.habit_id in EI.HABIT_IDS for c in x.cases for h in c.habits)
+        assert all(c.person_id == person for c in x.cases)
+        json.dumps(x.to_dict())
+    assert v1.accepted is None and v1.usable() and v2.accepted is False and not v2.usable()
+    assert all(h.counterfactual_s is None for c in v1.cases for h in c.habits)
+    assert any(h.counterfactual_s is not None and h.method == "splice" for c in v2.cases for h in c.habits)
+    assert v1.cases[0].hazard.calibration == "calibrated" and v1.cases[0].hazard.source == "model"
+    c = v1.cases[0]
+    assert abs(c.gap_s - sum(h.seconds for h in c.habits)) < 5.0 or c.habits      # the habits (bars above half a second) account for the gap
+    assert all(e.expert_lo_s <= e.expert_hi_s for e in c.envelope)

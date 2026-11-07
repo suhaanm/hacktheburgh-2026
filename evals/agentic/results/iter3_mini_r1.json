@@ -1,0 +1,198 @@
+{
+ "label": "iter3_mini_r1",
+ "in_sample": true,
+ "models": {
+  "planner": "gpt-5.5",
+  "fast": "gpt-5.4-mini",
+  "computer_use": "gpt-5.4-mini"
+ },
+ "rates_in_out_per_m": [
+  0.75,
+  4.5
+ ],
+ "seed": 7001,
+ "condition": "clean",
+ "n": 3,
+ "n_ok": 0,
+ "false_claims": 1,
+ "dropped": [],
+ "rows": [
+  {
+   "run_id": "r_iter3_mini_r1_hh_0001",
+   "household": "hh_0001",
+   "archetype": "single_worker",
+   "condition": "clean",
+   "switches": {},
+   "state": "failed",
+   "reason": "not every calculator produced a verified result",
+   "code_check_ok": false,
+   "claimed_success": true,
+   "false_claim": true,
+   "figures_match": {
+    "a": true,
+    "b": false,
+    "c": false
+   },
+   "awaiting_approval": false,
+   "submissions": 0,
+   "steps": 188,
+   "tier3": [
+    {
+     "navigator": "nav-a",
+     "outcome": "stopped:StuckLoop",
+     "steps": 11
+    },
+    {
+     "navigator": "nav-a",
+     "outcome": "done",
+     "steps": 15,
+     "progress_steps": 13,
+     "refusals": 0,
+     "claimed_done": true,
+     "false_claim": false,
+     "resets": 0,
+     "nudges": 0,
+     "premature_claims": 0,
+     "summary": "Estimate page shown with monthly amount and reference."
+    },
+    {
+     "navigator": "nav-b",
+     "outcome": "stopped:StepBudgetExceeded",
+     "steps": 60
+    },
+    {
+     "navigator": "nav-b",
+     "outcome": "done",
+     "steps": 55,
+     "progress_steps": 52,
+     "refusals": 0,
+     "claimed_done": true,
+     "false_claim": false,
+     "resets": 0,
+     "nudges": 0,
+     "premature_claims": 0,
+     "summary": "Estimate page shown with monthly entitlement and quote reference."
+    },
+    {
+     "navigator": "nav-c",
+     "outcome": "stopped:StuckLoop",
+     "steps": 18
+    },
+    {
+     "navigator": "nav-c",
+     "outcome": "stopped:StuckLoop",
+     "steps": 20
+    }
+   ],
+   "refusals": 0,
+   "wall_s": 308.5,
+   "error": "",
+   "tokens_in": 493169,
+   "tokens_out": 27997,
+   "cost_placeholder_usd": 0.4959,
+   "budget_truncated": false
+  },
+  {
+   "run_id": "r_iter3_mini_r1_hh_0002",
+   "household": "hh_0002",
+   "archetype": "couple_two_kids",
+   "condition": "clean",
+   "switches": {},
+   "state": "paused",
+   "reason": "the action gate stopped the run: needs_human",
+   "code_check_ok": false,
+   "claimed_success": false,
+   "false_claim": false,
+   "figures_match": {
+    "a": false,
+    "b": false,
+    "c": false
+   },
+   "awaiting_approval": false,
+   "submissions": 0,
+   "steps": 37,
+   "tier3": [
+    {
+     "navigator": "nav-a",
+     "outcome": "stopped:CancelledError",
+     "steps": 13
+    },
+    {
+     "navigator": "nav-b",
+     "outcome": "gave_up",
+     "steps": 8,
+     "progress_steps": 5,
+     "refusals": 0,
+     "claimed_done": false,
+     "false_claim": false,
+     "resets": 0,
+     "nudges": 0,
+     "premature_claims": 0,
+     "summary": "FAILED: missing household facts needed to fill the form accurately"
+    },
+    {
+     "navigator": "nav-b",
+     "outcome": "stopped:CancelledError",
+     "steps": 5
+    },
+    {
+     "navigator": "nav-c",
+     "outcome": "stopped:GateStop",
+     "steps": 12
+    }
+   ],
+   "refusals": 0,
+   "wall_s": 42.1,
+   "error": "",
+   "tokens_in": 103431,
+   "tokens_out": 5386,
+   "cost_placeholder_usd": 0.1018,
+   "budget_truncated": false
+  },
+  {
+   "run_id": "r_iter3_mini_r1_hh_0003",
+   "household": "hh_0003",
+   "archetype": "lone_parent_childcare",
+   "condition": "clean",
+   "switches": {},
+   "state": "paused",
+   "reason": "the action gate stopped the run: needs_human",
+   "code_check_ok": false,
+   "claimed_success": false,
+   "false_claim": false,
+   "figures_match": {
+    "a": false,
+    "b": false,
+    "c": false
+   },
+   "awaiting_approval": false,
+   "submissions": 0,
+   "steps": 29,
+   "tier3": [
+    {
+     "navigator": "nav-a",
+     "outcome": "stopped:CancelledError",
+     "steps": 10
+    },
+    {
+     "navigator": "nav-b",
+     "outcome": "stopped:CancelledError",
+     "steps": 10
+    },
+    {
+     "navigator": "nav-c",
+     "outcome": "stopped:GateStop",
+     "steps": 10
+    }
+   ],
+   "refusals": 0,
+   "wall_s": 35.2,
+   "error": "",
+   "tokens_in": 81224,
+   "tokens_out": 4684,
+   "cost_placeholder_usd": 0.082,
+   "budget_truncated": false
+  }
+ ],
+ "spent_placeholder_usd": 8.0934
+}

@@ -106,13 +106,17 @@ export function makeGuard(opts: { readToken: () => string | null }) {
   };
 }
 
-/** The proxy table. The ports come from the same variables `scripts/dev.sh` uses. */
+/**
+ * The proxy table. The ports come from the same variables `scripts/dev.sh` uses. `changeOrigin` makes the forwarded Host the service's own
+ * (127.0.0.1:7700 or :7710), which the services insist on; the browser's Origin is passed through untouched, so the service still sees
+ * which page the request came from.
+ */
 export function proxyTable(env: Env): Record<string, ProxyOptions> {
   const port = (v: string | undefined, d: number) => { const n = Number(v); return Number.isInteger(n) && n > 0 && n < 65536 ? n : d; };
   const strip = (prefix: string) => (path: string) => path.slice(prefix.length) || "/";
   return {
-    [ENGINE_PREFIX]: { target: `http://127.0.0.1:${port(env.ENGINE_PORT, 7700)}`, changeOrigin: false, rewrite: strip(ENGINE_PREFIX) },
-    [AGENT_PREFIX]: { target: `http://127.0.0.1:${port(env.AGENT_PORT, 7710)}`, changeOrigin: false, rewrite: strip(AGENT_PREFIX) },
+    [ENGINE_PREFIX]: { target: `http://127.0.0.1:${port(env.ENGINE_PORT, 7700)}`, changeOrigin: true, rewrite: strip(ENGINE_PREFIX) },
+    [AGENT_PREFIX]: { target: `http://127.0.0.1:${port(env.AGENT_PORT, 7710)}`, changeOrigin: true, rewrite: strip(AGENT_PREFIX) },
   };
 }
 

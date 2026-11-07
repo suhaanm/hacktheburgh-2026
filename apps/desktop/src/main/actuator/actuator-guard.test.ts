@@ -9,7 +9,8 @@ import { aspectMatches, normToPoints, pointsToNorm } from './mapping'
 afterEach(() => setKilled(false))
 
 const DISPLAY = { x: 0, y: 0, width: 1728, height: 1117 }
-const TEXTEDIT = { app: 'TextEdit' } as const
+const WIN = { id: 7, pid: 100, owner: 'TextEdit' }
+const TEXTEDIT = { app: 'TextEdit', window: WIN } as const
 
 interface Rig {
   actuator: ReturnType<typeof createActuator>
@@ -21,7 +22,7 @@ interface Rig {
   slept: number[]
 }
 
-function rig(opts: { hit?: (p: { x: number; y: number }) => { owner: string; layer: number } | null | Promise<never>; fronts?: Array<string | null>; dryRun?: boolean; display?: typeof DISPLAY; scale?: number } = {}): Rig {
+function rig(opts: { front?: { owner: string; layer: number; windowId?: number; pid?: number } | null; hit?: (p: { x: number; y: number }) => { owner: string; layer: number; windowId?: number; pid?: number } | null | Promise<never>; fronts?: Array<string | null>; dryRun?: boolean; display?: typeof DISPLAY; scale?: number } = {}): Rig {
   const osascript = vi.fn(async (_args: string[]) => undefined)
   const openApp = vi.fn(async (_n: string) => undefined)
   const writeClipboard = vi.fn(async (_t: string) => undefined)
@@ -31,9 +32,10 @@ function rig(opts: { hit?: (p: { x: number; y: number }) => { owner: string; lay
   const state = { frontReads: 0 }
   const probe: DesktopProbe = {
     frontmostApp: async () => fronts[Math.min(state.frontReads++, fronts.length - 1)],
+    frontWindow: async () => (opts.front === undefined ? { owner: 'TextEdit', layer: 0, windowId: 7, pid: 100 } : opts.front),
     topWindowAt: async (p) => {
       windowReads.push(p)
-      return opts.hit ? opts.hit(p) : { owner: 'TextEdit', layer: 0 }
+      return opts.hit ? opts.hit(p) : { owner: 'TextEdit', layer: 0, windowId: 7, pid: 100 }
     },
   }
   const actuator = createActuator({
@@ -77,7 +79,7 @@ describe('a click must name its app and land in that app\'s window', () => {
   })
 
   it('THE INCIDENT: the target app is in front but another app\'s window covers the point: refused, nothing sent to the OS', async () => {
-    const r = rig({ hit: () => ({ owner: 'Claude', layer: 0 }), fronts: ['TextEdit'] })
+    const r = rig({ hit: () => ({ owner: 'Claude', layer: 0, windowId: 7, pid: 100 }), fronts: ['TextEdit'] })
     const out = await r.actuator.clickAt({ x: 500, y: 500 }, { target: TEXTEDIT })
     expect(out).toMatchObject({ ok: false, reason: 'blocked' })
     expect(out.detail).toMatch(/belongs to Claude, not to TextEdit/)
@@ -94,20 +96,20 @@ describe('a click must name its app and land in that app\'s window', () => {
   })
 
   it('a window of the named app passes (case-insensitive), and the hit test asks about the very point that is clicked', async () => {
-    const r = rig({ hit: () => ({ owner: 'textedit', layer: 0 }) })
+    const r = rig({ hit: () => ({ owner: 'textedit', layer: 0, windowId: 7, pid: 100 }) })
     expect(await r.actuator.clickAt({ x: 500, y: 500 }, { target: TEXTEDIT })).toEqual({ ok: true })
-    expect(r.windowReads).toEqual([{ x: 864, y: 559 }])
+    expect(r.windowReads).toEqual([{ x: 864, y: 559 }, { x: 864, y: 559 }]) // the hit test, and a second look right before the click
     expect(r.osascript).toHaveBeenCalledWith(['-e', 'tell application "System Events" to click at {864, 559}'])
   })
 
   it('a double click and a scroll are guarded the same way', async () => {
-    const wrong = rig({ hit: () => ({ owner: 'Safari', layer: 0 }) })
+    const wrong = rig({ hit: () => ({ owner: 'Safari', layer: 0, windowId: 7, pid: 100 }) })
     expect(await wrong.actuator.clickAt({ x: 10, y: 10 }, { double: true, target: TEXTEDIT })).toMatchObject({ ok: false, reason: 'blocked' })
     expect(await wrong.actuator.scroll({ x: 500, y: 500 }, 5, { target: TEXTEDIT })).toMatchObject({ ok: false, reason: 'blocked' })
     expect(wrong.osascript).not.toHaveBeenCalled()
     const right = rig()
     expect(await right.actuator.scroll({ x: 500, y: 500 }, 5, { target: TEXTEDIT })).toEqual({ ok: true })
-    expect(right.windowReads).toHaveLength(1)
+    expect(right.windowReads).toHaveLength(2) // the hit test and the second look
   })
 
   it('the assistant\'s own app and terminals are never a target, whatever the caller says; a menu bar or Dock window is not the target either', async () => {
@@ -117,17 +119,17 @@ describe('a click must name its app and land in that app\'s window', () => {
       expect(r.osascript).not.toHaveBeenCalled()
       expect(r.windowReads, 'refused before the desktop was read').toEqual([])
     }
-    const bar = rig({ hit: () => ({ owner: 'Window Server', layer: 25 }) })
+    const bar = rig({ hit: () => ({ owner: 'Window Server', layer: 25, windowId: 7, pid: 100 }) })
     expect(await bar.actuator.clickAt({ x: 500, y: 1 }, { target: TEXTEDIT })).toMatchObject({ ok: false, reason: 'blocked' })
-    const dock = rig({ hit: () => ({ owner: 'Dock', layer: 20 }) })
+    const dock = rig({ hit: () => ({ owner: 'Dock', layer: 20, windowId: 7, pid: 100 }) })
     expect(await dock.actuator.clickAt({ x: 500, y: 999 }, { target: TEXTEDIT })).toMatchObject({ ok: false, reason: 'blocked' })
   })
 
   it('a browser task accepts any browser window and nothing else', async () => {
-    const safari = rig({ hit: () => ({ owner: 'Safari', layer: 0 }) })
-    expect(await safari.actuator.clickAt({ x: 500, y: 500 }, { target: { browser: true } })).toEqual({ ok: true })
-    const calc = rig({ hit: () => ({ owner: 'Calculator', layer: 0 }) })
-    expect(await calc.actuator.clickAt({ x: 500, y: 500 }, { target: { browser: true } })).toMatchObject({ ok: false, reason: 'blocked' })
+    const safari = rig({ hit: () => ({ owner: 'Safari', layer: 0, windowId: 7, pid: 100 }) })
+    expect(await safari.actuator.clickAt({ x: 500, y: 500 }, { target: { browser: true, window: { id: 7, pid: 100, owner: 'Safari' } } })).toEqual({ ok: true })
+    const calc = rig({ hit: () => ({ owner: 'Calculator', layer: 0, windowId: 7, pid: 100 }) })
+    expect(await calc.actuator.clickAt({ x: 500, y: 500 }, { target: { browser: true, window: { id: 7, pid: 100, owner: 'Safari' } } })).toMatchObject({ ok: false, reason: 'blocked' })
     expect(ownerMatchesTarget('Google Chrome', { browser: true })).toBe(true)
     expect(ownerMatchesTarget('Claude', { browser: true })).toBe(false)
   })
@@ -136,7 +138,7 @@ describe('a click must name its app and land in that app\'s window', () => {
     const r = rig({
       hit: () => {
         setKilled(true)
-        return { owner: 'TextEdit', layer: 0 }
+        return { owner: 'TextEdit', layer: 0, windowId: 7, pid: 100 }
       },
     })
     expect(await r.actuator.clickAt({ x: 500, y: 500 }, { target: TEXTEDIT })).toMatchObject({ ok: false, reason: 'blocked', detail: 'the kill switch is on' })
@@ -223,7 +225,7 @@ describe('typing waits for the focus and verifies it', () => {
 
   it('the typed text is never in the log', async () => {
     const log = vi.fn()
-    const a = createActuator({ platform: 'darwin', dryRun: false, isTrusted: () => true, displayBounds: () => DISPLAY, probe: { frontmostApp: async () => 'TextEdit', topWindowAt: async () => null }, osascript: async () => undefined, log, openExternal: async () => undefined, showItemInFolder: () => undefined })
+    const a = createActuator({ platform: 'darwin', dryRun: false, isTrusted: () => true, displayBounds: () => DISPLAY, probe: { frontmostApp: async () => 'TextEdit', frontWindow: async () => ({ owner: 'TextEdit', layer: 0, windowId: 7, pid: 100 }), topWindowAt: async () => null }, osascript: async () => undefined, log, openExternal: async () => undefined, showItemInFolder: () => undefined })
     await a.typeText('my private sentence', { target: TEXTEDIT })
     expect(JSON.stringify(log.mock.calls)).not.toContain('my private sentence')
   })
@@ -251,7 +253,7 @@ describe('scale: points, not pixels, from the display the point was computed on'
         expect(normToPoints(norm, d)).toEqual(expected)
         const r = rig({ display: d, scale })
         await r.actuator.clickAt(norm, { target: TEXTEDIT })
-        expect(r.windowReads).toEqual([expected]) // the hit test and the click use the same point
+        expect(r.windowReads).toEqual([expected, expected]) // the hit test, the second look and the click all use the same point
         expect(r.osascript).toHaveBeenCalledWith(['-e', `tell application "System Events" to click at {${expected.x}, ${expected.y}}`])
       }
       expect(rig({ display: d, scale }).actuator.displayInfo?.()).toEqual({ width: d.width, height: d.height, scaleFactor: scale })
@@ -273,9 +275,156 @@ describe('scale: points, not pixels, from the display the point was computed on'
 describe('probe helpers', () => {
   it('parses the window server answer (owner and layer only) and rejects anything else', () => {
     expect(parseWindowHit('{"owner":"TextEdit","layer":0}\n')).toEqual({ owner: 'TextEdit', layer: 0 })
+    expect(parseWindowHit('{"owner":"TextEdit","layer":0,"id":412,"pid":903}')).toEqual({ owner: 'TextEdit', layer: 0, windowId: 412, pid: 903 })
     expect(parseWindowHit('null')).toBeNull()
     expect(parseWindowHit('')).toBeNull()
     expect(parseWindowHit('{"owner":"","layer":0}')).toBeNull()
     expect(parseWindowHit('{"owner":"X"}')).toBeNull()
+  })
+})
+
+describe('S-05: the WINDOW the task started in, not just the app (REVIEW-SAFETY)', () => {
+  const personal = { owner: 'TextEdit', layer: 0, windowId: 99, pid: 100 } // another document of the same app, on top
+  it('a click whose topmost window is another window of the same app is refused', async () => {
+    const r = rig({ hit: () => personal })
+    expect(await r.actuator.clickAt({ x: 500, y: 500 }, { target: TEXTEDIT })).toMatchObject({ ok: false, reason: 'blocked', detail: expect.stringMatching(/not the one this task started in/) })
+    expect(r.osascript).not.toHaveBeenCalled()
+  })
+
+  it('the same window number under a different pid is refused too (a recycled number)', async () => {
+    const r = rig({ hit: () => ({ owner: 'TextEdit', layer: 0, windowId: 7, pid: 555 }) })
+    expect(await r.actuator.clickAt({ x: 500, y: 500 }, { target: TEXTEDIT })).toMatchObject({ ok: false, reason: 'blocked' })
+  })
+
+  it('a probe that cannot name the window number never matches', async () => {
+    const r = rig({ hit: () => ({ owner: 'TextEdit', layer: 0 }) })
+    expect(await r.actuator.clickAt({ x: 500, y: 500 }, { target: TEXTEDIT })).toMatchObject({ ok: false, reason: 'blocked' })
+  })
+
+  it('an unpinned target is refused in real mode: no window was pinned, so none is guessed', async () => {
+    const r = rig()
+    expect(await r.actuator.clickAt({ x: 500, y: 500 }, { target: { app: 'TextEdit' } })).toMatchObject({ ok: false, reason: 'blocked', detail: expect.stringMatching(/no window was pinned/) })
+    expect(await r.actuator.typeText('hi', { target: { app: 'TextEdit' } })).toMatchObject({ ok: false, reason: 'blocked' })
+  })
+
+  it('typing follows the window: when another window of the app comes to the front mid-text, the next chunk is refused and the count says how far it got', async () => {
+    let front = { owner: 'TextEdit', layer: 0, windowId: 7, pid: 100 }
+    const r = rig({ front: null })
+    // a rig whose front window changes after the second chunk
+    let chunks = 0
+    const actuator = createActuator({
+      platform: 'darwin',
+      dryRun: false,
+      isTrusted: () => true,
+      displayBounds: () => DISPLAY,
+      probe: { frontmostApp: async () => 'TextEdit', topWindowAt: async () => front, frontWindow: async () => front },
+      osascript: async () => {
+        chunks += 1
+        if (chunks === 2) front = { owner: 'TextEdit', layer: 0, windowId: 99, pid: 100 }
+      },
+      killFileExists: () => false,
+      sleep: async () => undefined,
+    })
+    const out = await actuator.typeText('abcdefghijklmnopqrstuvwxyz', { target: TEXTEDIT })
+    expect(out).toMatchObject({ ok: false, reason: 'blocked', detail: expect.stringMatching(/typed 12 of 26 characters/) })
+    expect(chunks).toBe(2) // two chunks of six went in; the third was refused before it was sent
+    void r
+  })
+
+  it('pinTarget records the front window of the target app, and refuses when another app is in front or the desktop cannot be read', async () => {
+    const r = rig({ front: { owner: 'TextEdit', layer: 0, windowId: 412, pid: 903 } })
+    expect(await r.actuator.pinTarget!({ app: 'TextEdit' })).toEqual({ ok: true, target: { app: 'TextEdit', window: { id: 412, pid: 903, owner: 'TextEdit' } } })
+    const browser = rig({ front: { owner: 'Google Chrome', layer: 0, windowId: 5, pid: 77 } })
+    expect(await browser.actuator.pinTarget!({ browser: true })).toMatchObject({ ok: true, target: { browser: true, window: { id: 5, pid: 77 } } })
+    expect(await rig({ front: { owner: 'Calculator', layer: 0, windowId: 5, pid: 77 } }).actuator.pinTarget!({ app: 'TextEdit' })).toMatchObject({ ok: false })
+    expect(await rig({ front: null }).actuator.pinTarget!({ app: 'TextEdit' })).toMatchObject({ ok: false })
+    expect(await rig({ dryRun: true }).actuator.pinTarget!({ app: 'TextEdit' })).toEqual({ ok: true, target: { app: 'TextEdit' } }) // a dry run reads nothing
+  })
+})
+
+describe('S-03: a Stop in the middle of an action ends it (REVIEW-SAFETY)', () => {
+  const make = (over: Partial<Parameters<typeof createActuator>[0]> = {}) => {
+    const typed: string[] = []
+    const actuator = createActuator({
+      platform: 'darwin',
+      dryRun: false,
+      isTrusted: () => true,
+      displayBounds: () => DISPLAY,
+      probe: { frontmostApp: async () => 'TextEdit', topWindowAt: async () => ({ owner: 'TextEdit', layer: 0, windowId: 7, pid: 100 }), frontWindow: async () => ({ owner: 'TextEdit', layer: 0, windowId: 7, pid: 100 }) },
+      osascript: async (args) => void typed.push(args[args.length - 1]!),
+      killFileExists: () => false,
+      sleep: async () => undefined,
+      ...over,
+    })
+    return { actuator, typed }
+  }
+
+  it('typing is in chunks of at most six characters', async () => {
+    const { actuator, typed } = make()
+    await actuator.typeText('x'.repeat(120), { target: TEXTEDIT })
+    expect(typed.length).toBe(20)
+    expect(Math.max(...typed.map((t) => t.length))).toBeLessThanOrEqual(6)
+  })
+
+  it('the caller\'s cancelled() is looked at before every chunk: a Stop during the second chunk types no more than three', async () => {
+    let stopped = false
+    const typed: string[] = []
+    const { actuator } = make({
+      osascript: async (args) => {
+        typed.push(args[args.length - 1]!)
+        if (typed.length >= 2) stopped = true // the person presses Stop during the 2nd chunk
+      },
+    })
+    const out = await actuator.typeText('x'.repeat(120), { target: TEXTEDIT, cancelled: () => stopped })
+    expect(typed.length).toBeLessThanOrEqual(3)
+    expect(out).toMatchObject({ ok: false, reason: 'blocked', detail: expect.stringMatching(/stopped; typed 12 of 120/) })
+  })
+
+  it('the kill flag and the data/KILL file stop the typing between chunks, and a click right before it is sent', async () => {
+    let file = false
+    const typed: string[] = []
+    const { actuator } = make({
+      osascript: async (args) => {
+        typed.push(args[args.length - 1]!)
+        if (typed.length === 2) file = true // a separate process writes data/KILL
+      },
+      killFileExists: () => file,
+    })
+    expect(await actuator.typeText('y'.repeat(60), { target: TEXTEDIT })).toMatchObject({ ok: false, detail: expect.stringMatching(/kill switch is on; typed 12/) })
+    expect(typed.length).toBe(2)
+    const clicker = make({ killFileExists: () => true })
+    expect(await clicker.actuator.clickAt({ x: 500, y: 500 }, { target: TEXTEDIT })).toMatchObject({ ok: false, detail: 'the kill switch is on' })
+    expect(await make().actuator.clickAt({ x: 500, y: 500 }, { target: TEXTEDIT, cancelled: () => true })).toMatchObject({ ok: false, detail: 'the run was stopped' })
+  })
+
+  it('abortInFlightInput reports how many scripts it ended (none when nothing runs)', async () => {
+    const { abortInFlightInput } = await import('./index')
+    expect(abortInFlightInput()).toBe(0)
+  })
+})
+
+describe('pasteText never destroys a clipboard that is not text', () => {
+  it('refuses when the clipboard holds an image or files, and pastes (concealed, then restored) when it holds text or nothing', async () => {
+    const events: string[] = []
+    const make = (kind: 'empty' | 'text' | 'other') =>
+      createActuator({
+        platform: 'darwin',
+        dryRun: false,
+        isTrusted: () => true,
+        displayBounds: () => DISPLAY,
+        probe: { frontmostApp: async () => 'TextEdit', topWindowAt: async () => ({ owner: 'TextEdit', layer: 0, windowId: 7, pid: 100 }), frontWindow: async () => ({ owner: 'TextEdit', layer: 0, windowId: 7, pid: 100 }) },
+        osascript: async () => void events.push('paste'),
+        readClipboard: async () => 'before',
+        writeClipboard: async (t) => void events.push(`write ${t}`),
+        clipboardKind: async () => kind,
+        killFileExists: () => false,
+        sleep: async () => undefined,
+      })
+    expect(await make('other').pasteText!('hello', { target: TEXTEDIT })).toMatchObject({ ok: false, reason: 'blocked', detail: expect.stringMatching(/image or files/) })
+    expect(events).toEqual([]) // nothing was written, nothing pressed
+    expect(await make('text').pasteText!('hello', { target: TEXTEDIT })).toEqual({ ok: true })
+    expect(events).toEqual(['write hello', 'paste', 'write before'])
+    events.length = 0
+    expect(await make('empty').pasteText!('hi', { target: TEXTEDIT })).toEqual({ ok: true })
   })
 })

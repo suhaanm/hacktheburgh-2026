@@ -22,6 +22,7 @@ import { StateStore } from '../state'
 import { teachingBundle } from '../teaching'
 import { createDispatcher } from '../tools/dispatcher'
 import { mockLiveBridge, mockOverlay } from '../mocks'
+import { ALLOW_ALL_FOR_TESTS, configureLegacyRemote } from '../legacy-remote'
 import { createModelPort } from '../model-port'
 import { createOpenAiProvider } from '../model-port/openai'
 import { createGrounder, groundingPresetFromEnv } from './grounder'
@@ -72,6 +73,8 @@ async function probe(stub: boolean) {
   {
     {
       if (stub) for (const [k, v] of Object.entries(STUB_ENV)) vi.stubEnv(k, v)
+      vi.stubEnv('UNDERSTUDY_LEGACY_REMOTE', '1') // the old OpenAI path is default off (D38); this test is about what it sends when on
+      configureLegacyRemote(ALLOW_ALL_FOR_TESTS)
       const key = process.env.OPENAI_API_KEY ?? '' // live: export it (and OPENAI_MODEL_*) in the shell; this test never reads .env
       expect(key.length).toBeGreaterThan(10)
 
@@ -203,6 +206,7 @@ async function probe(stub: boolean) {
           expect(respBlob.includes(w), `a debug response contains message text: "${w.slice(0, 30)}…"`).toBe(false)
         }
       } finally {
+        configureLegacyRemote(null)
         globalThis.fetch = realFetch
         server.close()
         s.agents.dispose?.()

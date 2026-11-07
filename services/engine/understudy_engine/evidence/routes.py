@@ -7,7 +7,7 @@
 The packet is the closed-schema object the explainer works from: numbers, intervals, ids and enums, no text. ``/evidence/explain``
 answers with the words, the source that wrote them (``template`` | ``local`` | ``cloud``), the provenance check's verdict and the
 coach actions chosen from the vetted menu. Mock mode (``UNDERSTUDY_MOCK=1``) uses the deterministic template only; the local model
-is used when the local-model layer is on; the cloud wording only when ``UNDERSTUDY_EVIDENCE_CLOUD=1`` and then only through the
+is used when the local-model layer is on; the cloud wording only when ``UNDERSTUDY_EVIDENCE_CLOUD=1`` and the privacy layer is on, and then only through the
 egress guard. Writes are the worker's own action: another actor in ``X-Understudy-Actor``, or a foreign origin, is refused with 403.
 """
 from __future__ import annotations
@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Body, Query, Request
+from .. import http_guard
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -30,7 +31,6 @@ FLAG = "UNDERSTUDY_X_EVIDENCE"
 router = APIRouter(tags=["evidence"])
 _TRUE = ("1", "true", "yes", "on")
 _WORKER = ("worker", "worker_approval")
-_ALLOWED_ORIGIN_PREFIXES = ("http://localhost", "http://127.0.0.1", "https://localhost", "file://", "app://")
 
 
 def enabled() -> bool:
@@ -46,11 +46,11 @@ def _off() -> JSONResponse:
 
 
 def _guard(request: Request) -> JSONResponse | None:
-    actor = request.headers.get("x-understudy-actor", "worker").strip()
+    actor = http_guard.actor_of(request)
     origin = request.headers.get("origin")
     if actor not in _WORKER:
         return _error(403, "write_refused", f"Only the worker can ask for an explanation; the actor {actor[:20]!r} cannot.")
-    if origin is not None and not origin.startswith(_ALLOWED_ORIGIN_PREFIXES):
+    if origin is not None and not http_guard.origin_allowed(origin):
         return _error(403, "write_refused", "Writes only come from the worker's own app on this machine.")
     return None
 

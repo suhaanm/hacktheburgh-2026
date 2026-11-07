@@ -2,7 +2,40 @@
 // gemini-live-ephemeral-tokens-websocket/frontend/audio-processors/capture.worklet.js, playback.worklet.js
 // Browser audio IO for the Live session; worklets are inlined as Blob URLs so no static asset path is needed under electron-vite.
 import type { AudioInput, AudioOutput } from './types'
-import { base64ToBytes, floatToPcm16Base64 } from './wire'
+
+// ---------- base64 <-> PCM16 (no Buffer: runs in the renderer) ----------
+function bytesToBase64(bytes: Uint8Array): string {
+  let bin = ''
+  const CHUNK = 0x8000
+  for (let i = 0; i < bytes.length; i += CHUNK) bin += String.fromCharCode(...bytes.subarray(i, i + CHUNK))
+  return btoa(bin)
+}
+
+function base64ToBytes(b64: string): Uint8Array {
+  const bin = atob(b64)
+  const out = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
+  return out
+}
+
+function floatToPcm16Base64(f32: Float32Array): string {
+  const i16 = new Int16Array(f32.length)
+  for (let i = 0; i < f32.length; i++) {
+    const s = Math.max(-1, Math.min(1, f32[i]!))
+    i16[i] = s < 0 ? s * 0x8000 : s * 0x7fff
+  }
+  return bytesToBase64(new Uint8Array(i16.buffer))
+}
+
+// Splits PCM16 samples into base64 chunks (default 100 ms @ 16 kHz).
+export function pcm16ToBase64Chunks(pcm: Int16Array, samplesPerChunk = 1600): string[] {
+  const out: string[] = []
+  for (let i = 0; i < pcm.length; i += samplesPerChunk) {
+    const part = pcm.subarray(i, Math.min(pcm.length, i + samplesPerChunk))
+    out.push(bytesToBase64(new Uint8Array(part.buffer, part.byteOffset, part.byteLength)))
+  }
+  return out
+}
 
 const CAPTURE_WORKLET = `
 class AlongsideCapture extends AudioWorkletProcessor {

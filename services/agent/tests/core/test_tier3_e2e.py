@@ -142,3 +142,15 @@ async def test_an_injected_page_pauses_a_tier3_run_before_the_model_is_asked(clu
     assert res.state == "paused" and "injection" in res.reason
     assert cluster.state.exfil_hits == [] and cluster.state.submissions == []
     assert not any(e["navigator"] == "nav-b" for e in res.tier_log)
+
+
+# ------------------------------------------------------------------ LH-3 faults at tier 3: a popup in the way, a session that expires
+@pytest.mark.parametrize("site,glitch", [("a", "popup"), ("b", "popup"), ("c", "expire"), ("a", "expire"), ("b", "expire")])
+async def test_tier3_survives_a_popup_and_an_expiring_session(cluster, host, sinks, site, glitch):
+    h = hh(3)
+    res, model, events, nav = await one_nav(host, cluster, sinks, site, h, query=f"?glitch={glitch}")
+    assert res.state == "done", (site, glitch, res.attempts, [(e.action, e.detail) for e in events][-8:])
+    assert res.value.amount == pytest.approx(site_expected(site, h)["uc_monthly"], abs=0.06)
+    assert res.false_claims == 0
+    if glitch == "popup":                     # dismissed with REJECT (never accept), through the pipeline, by a human-readable control
+        assert not any("accept" in str(e.detail).lower() for e in events)

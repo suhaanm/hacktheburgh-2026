@@ -133,6 +133,7 @@ export function createGeminiExtractor(deps: GeminiDeps): GeminiExtractor {
           model: deps.models.lite,
           timeoutMs: 60_000,
           retries: 1,
+          kind: 'file_text', // the worker's own file leaves the Mac: ledgered as file text, behind UNDERSTUDY_LEGACY_REMOTE (src/main/legacy-remote.ts)
           params: {
             // The Interactions API takes images and PDFs as "document" parts; "image" returned nothing for PNGs here.
             input: [

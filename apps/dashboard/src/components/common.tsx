@@ -44,7 +44,8 @@ export function SourceNote({ why }: { why: Fallback | null | undefined }) {
 }
 
 /** Footer printed under every chart: n, unit, split, interval level, origin. */
-export function ChartFoot({ meta, extra }: { meta: AnalyticMeta | null; extra?: ReactNode }) {
+/** `brief` leaves out the long note, for a second and third chart on a page that already printed it once. */
+export function ChartFoot({ meta, extra, brief = false }: { meta: AnalyticMeta | null; extra?: ReactNode; brief?: boolean }) {
   if (!meta) {
     return (
       <div className="chart__foot">
@@ -68,7 +69,7 @@ export function ChartFoot({ meta, extra }: { meta: AnalyticMeta | null; extra?: 
       </span>
       <OriginBadge meta={meta} always />
       {extra}
-      {meta.note && <span className="chart__note">{meta.note}</span>}
+      {meta.note && !brief && <span className="chart__note">{meta.note}</span>}
     </div>
   );
 }

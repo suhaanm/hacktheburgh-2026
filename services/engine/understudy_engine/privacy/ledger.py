@@ -20,6 +20,10 @@ written before the call and one small ``image_result`` line written after (laten
 pair, so every consumer sees exactly ONE row per call. A call refused by the gate is one row with ``status: "blocked"`` and a reason.
 An image row may hold only: sha8 (the first 8 bytes of the SHA-256), bytes, width, height, kind, source, provider, model,
 latency_ms, input and output tokens, a cost estimate and ok. Never the image.
+
+Two more row kinds follow the same two-line, merged-on-read pattern and carry no content either: ``audio`` (one worker turn of live
+audio: a seconds bucket, bytes, model, source) and ``reported`` (a call another process makes and reports: its content kind, byte count,
+item count, provider, model, source). Both can be refused by the same gate (a ``blocked`` row with a reason).
 """
 from __future__ import annotations
 
@@ -123,28 +127,50 @@ def record_direct(*, method: str, model: str, bytes_sent: int, purpose: str = "w
     })
 
 
+def begin_row(kind: str, entry: dict[str, Any]) -> dict[str, Any]:
+    """The first line of a call row (``image``, ``audio`` or ``reported``), written BEFORE the call with status ``sending``. Raises
+    OSError if it cannot be written."""
+    if kind not in CALL_ROW_KINDS:
+        raise ValueError(f"unknown call row kind {kind!r}")
+    return append({**entry, "kind": kind, "status": "sending"})
+
+
 def begin_image(entry: dict[str, Any]) -> dict[str, Any]:
     """The ``image`` line, written BEFORE the call (status ``sending``). Raises OSError if it cannot be written."""
-    return append({**entry, "kind": "image", "status": "sending"})
+    return begin_row("image", entry)
 
 
 def finish_image(ref: str, *, status: str, ok: bool, latency_ms: int | None, input_tokens: int | None = None,
-                 output_tokens: int | None = None, cost_estimate_usd: float | None = None, error: str | None = None) -> None:
-    """The ``image_result`` line written AFTER the call: numbers and an error type name only. Never raises (the call already
-    happened; a missing result line leaves the row at status ``sending``, which is honest)."""
+                 output_tokens: int | None = None, cost_estimate_usd: float | None = None, error: str | None = None,
+                 bytes_sent: int | None = None, seconds_bucket: str | None = None) -> None:
+    """The ``image_result`` line written AFTER the call: numbers and an error type name only (also finishes ``audio`` and ``reported``
+    rows; ``bytes_sent`` and ``seconds_bucket`` are known only afterwards for audio). Never raises (the call already happened; a missing
+    result line leaves the row at status ``sending``, which is honest)."""
+    line: dict[str, Any] = {"id": new_id(), "t": now_iso(), "kind": "image_result", "ref": ref, "status": status, "ok": bool(ok),
+                            "latency_ms": latency_ms, "input_tokens": input_tokens, "output_tokens": output_tokens,
+                            "cost_estimate_usd": cost_estimate_usd, "error": (error or None) and str(error)[:60]}
+    if bytes_sent is not None:
+        line["bytes"] = int(bytes_sent)
+    if seconds_bucket is not None:
+        line["seconds_bucket"] = seconds_bucket
     try:
-        _append_line(ledger_path(), {"id": new_id(), "t": now_iso(), "kind": "image_result", "ref": ref, "status": status, "ok": bool(ok),
-                                     "latency_ms": latency_ms, "input_tokens": input_tokens, "output_tokens": output_tokens,
-                                     "cost_estimate_usd": cost_estimate_usd, "error": (error or None) and str(error)[:60]})
+        _append_line(ledger_path(), line)
     except OSError:
         pass
 
 
+def record_blocked_row(kind: str, *, purpose: str, reason: str, source: str, meta: dict[str, Any] | None = None, mock: bool = False,
+                       meta_key: str = "image") -> dict[str, Any]:
+    """One row for a call the gate refused (kind ``image``, ``audio`` or ``reported``). Needs no content. Nothing was sent."""
+    if kind not in CALL_ROW_KINDS:
+        raise ValueError(f"unknown call row kind {kind!r}")
+    return append({"kind": kind, "status": "blocked", "reason": reason, "purpose": purpose, "source": source, "schema": None,
+                   "fields": [], "payload": None, meta_key: meta, "provider": None, "model": None, "bytes": 0, "mock": bool(mock), "ok": False})
+
+
 def record_image_blocked(*, purpose: str, reason: str, source: str, image_meta: dict[str, Any] | None = None, mock: bool = False) -> dict[str, Any]:
     """One row for a frame the gate refused. Needs no image: ``image_meta`` may be None. Nothing was sent."""
-    return append({"kind": "image", "status": "blocked", "reason": reason, "purpose": purpose, "source": source, "schema": None,
-                   "fields": [], "payload": None, "image": image_meta, "provider": None, "model": None, "bytes": 0, "mock": bool(mock),
-                   "ok": False})
+    return record_blocked_row("image", purpose=purpose, reason=reason, source=source, meta=image_meta, mock=mock, meta_key="image")
 
 
 def _iter_lines(path: Path) -> Iterator[tuple[dict[str, Any] | None, str]]:
@@ -166,11 +192,12 @@ def _iter_lines(path: Path) -> Iterator[tuple[dict[str, Any] | None, str]]:
 
 
 IMAGE_RESULT_FIELDS = ("status", "ok", "latency_ms", "input_tokens", "output_tokens", "cost_estimate_usd", "error")
+CALL_ROW_KINDS = ("image", "audio", "reported")          # kinds written as a begin line and finished by an image_result line
 
 
 def _merge_image_results(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """One row per image call: fold each ``image_result`` line into the ``image`` line it refers to (and drop it)."""
-    by_id = {r["id"]: r for r in rows if r.get("kind") == "image" and isinstance(r.get("id"), str)}
+    """One row per call: fold each ``image_result`` line into the ``image``, ``audio`` or ``reported`` line it refers to (and drop it)."""
+    by_id = {r["id"]: r for r in rows if r.get("kind") in CALL_ROW_KINDS and isinstance(r.get("id"), str)}
     out: list[dict[str, Any]] = []
     for r in rows:
         if r.get("kind") == "image_result":
@@ -179,6 +206,15 @@ def _merge_image_results(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 for k in IMAGE_RESULT_FIELDS:
                     if k in r:
                         parent[k] = r[k]
+                if "bytes" in r:                                  # the actual size, known only after the call
+                    parent["bytes"] = r["bytes"]
+                    for sub in ("audio", "content"):
+                        if isinstance(parent.get(sub), dict):
+                            parent[sub]["bytes"] = r["bytes"]
+                if "seconds_bucket" in r and isinstance(parent.get("audio"), dict):
+                    parent["audio"]["seconds_bucket"] = r["seconds_bucket"]
+                    if isinstance(parent.get("payload"), dict):
+                        parent["payload"]["seconds_bucket"] = r["seconds_bucket"]
             continue
         out.append(r)
     return out
@@ -293,6 +329,24 @@ def summary() -> dict[str, Any]:
     by_source: dict[str, int] = {}
     for r in sent_images:
         by_source[str(r.get("source"))] = by_source.get(str(r.get("source")), 0) + 1
+
+    def block(kind: str) -> dict[str, Any]:
+        mine = [r for r in rows if r.get("kind") == kind]
+        ok_rows = [r for r in mine if r.get("status") != "blocked"]
+        reasons: dict[str, int] = {}
+        for r in mine:
+            if r.get("status") == "blocked":
+                reasons[str(r.get("reason"))] = reasons.get(str(r.get("reason")), 0) + 1
+        out: dict[str, Any] = {"sent": len(ok_rows), "blocked": len(mine) - len(ok_rows), "blocked_by_reason": dict(sorted(reasons.items())),
+                               "bytes_sent": sum(int(r.get("bytes") or 0) for r in ok_rows)}
+        if kind == "reported":
+            by_kind: dict[str, int] = {}
+            by_provider: dict[str, int] = {}
+            for r in ok_rows:
+                by_kind[str((r.get("content") or {}).get("kind"))] = by_kind.get(str((r.get("content") or {}).get("kind")), 0) + 1
+                by_provider[str(r.get("provider"))] = by_provider.get(str(r.get("provider")), 0) + 1
+            out["sent_by_kind"], out["sent_by_provider"] = dict(sorted(by_kind.items())), dict(sorted(by_provider.items()))
+        return out
     return {
         "calls": len(sent),
         "by_purpose": dict(sorted(by_purpose.items())),
@@ -304,6 +358,8 @@ def summary() -> dict[str, Any]:
                    "sent_by_source": dict(sorted(by_source.items())),
                    "bytes_sent": sum(int((r.get("image") or {}).get("bytes", 0)) for r in sent_images),
                    "note": "Frames are held in memory for one call and never stored; a row records size, a short hash, model and latency only."},
+        "audio": {**block("audio"), "note": "A row is one worker turn: a seconds bucket, bytes, model and source. Audio and transcripts are never stored."},
+        "reported": {**block("reported"), "note": "Calls another process reports (legacy desktop paths): content kind, bytes, count, provider, model. Never the content."},
         "blocked_attempts": len([1 for o, _ in _iter_lines(blocked_path()) if o is not None]),
         "cleared": {"times": int(meta.get("clear_count", 0)), "calls_removed": int(meta.get("calls_removed_total", 0)),
                     "last_cleared_at": meta.get("last_cleared_at")},

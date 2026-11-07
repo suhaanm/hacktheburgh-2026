@@ -140,7 +140,7 @@ ReasonCode = Literal[
 REASON_NAME = {
     "policy_violation": "a step off the expert's path", "critical_step_missed": "a missed critical step", "gate_act": "the gate opened",
     "stuck_signal": "a stuck signal", "asked": "you asked for help", "issue_repeated": "the same issue repeated",
-    "worker_asked": "you asked for help", "on_track": "you were on track", "gate_wait_signals": "the gate was still waiting for a second signal",
+    "worker_asked": "you asked for help", "on_track": "you were on track", "gate_wait_signals": "the gate was still waiting for another signal",
     "gate_cooldown": "the gate was cooling down after a prompt", "gate_unsure": "the gate was not sure enough to speak",
     "unsure_away": "you seemed to be away", "already_prompted": "a prompt had just been shown", "level_3": "your help level is low",
     "level_4": "your help level is off", "no_active_task": "there was no active task", "no_events": "there were no events yet",
@@ -162,6 +162,16 @@ ROUTINE_NAME = {
 STATUS_PHRASE = {"proposed": "proposed", "declined": "declined for now", "never": "turned off", "shadow": "in shadow mode",
                  "approval": "running with your approval", "unattended": "running while you are away"}
 
+# ------------------------------------------------------------------------------------------------ blocks (freshness and source)
+BlockId = Literal["genome", "hazard", "coach", "routines", "mlv2"]
+BLOCK_IDS: tuple[str, ...] = ("genome", "hazard", "coach", "routines", "mlv2")
+BlockStatus = Literal["ok", "absent", "stale"]
+BlockSource = Literal["v1", "v2", "rule", "fixture"]
+BLOCK_NAME = {"genome": "comparison with the nearest expert", "hazard": "stuck reading", "coach": "coach decision",
+              "routines": "list of routine candidates", "mlv2": "improved analysis"}
+#: a block older than this (seconds) is reported as stale; None = never judged stale by age (the genome has no clock of its own)
+STALE_AFTER_S: dict[str, float | None] = {"genome": None, "hazard": 6 * 3600.0, "coach": 300.0, "routines": 24 * 3600.0, "mlv2": 24 * 3600.0}
+
 # ------------------------------------------------------------------------------------------------ limitations (fixed ids)
 LimitId = Literal[
     "synthetic_data", "simulated_participants", "small_n", "single_case", "association_only", "not_expert_claim",
@@ -172,6 +182,7 @@ LimitId = Literal[
     "additive_counterfactual", "interactions_not_modelled", "calibrated_on_synthetic",
     "alarm_budget_is_design_choice", "llm_participants_not_people", "timing_reconstructed",
     "heldout_same_generator", "generator_mismatch_tested", "small_n_simulated_participants", "interval_too_narrow",
+    "stale_data",
 ]
 LIMITATIONS: dict[str, str] = {
     "synthetic_data": "These figures come from synthetic data with planted patterns, so they show that the method recovers known structure, not that real people behave this way.",
@@ -201,6 +212,7 @@ LIMITATIONS: dict[str, str] = {
     "generator_mismatch_tested": "The model was also tested on data from a differently built generator, and those results are labelled separately.",
     "small_n_simulated_participants": "Only a few simulated participants finished, so the intervals are wide.",
     "interval_too_narrow": "The interval for this estimate was too narrow in testing and should be read as optimistic.",
+    "stale_data": "Some of the readings above are older than they should be, so they may not describe the present.",
 }
 LIMIT_IDS: tuple[str, ...] = tuple(LIMITATIONS)
 #: ids another track may use for the same limitation; the privacy backstop refuses any payload value of 32 or more id characters

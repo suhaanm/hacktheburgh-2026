@@ -13,8 +13,9 @@ red-team ablation; the kill flag, the denylist and the audit log are not layers 
 """
 from __future__ import annotations
 
+import hashlib
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace as dc_replace
 from typing import Any, Callable, Literal
 
 from ..audit import AuditLog
@@ -63,6 +64,15 @@ class Observation:
     def view(self) -> ObservationView:
         return ObservationView(source=self.source, fields=self.fields, raw_text=self.raw_text,
                                note="This page contained text aimed at an AI and the run is paused." if self.paused else "")
+
+
+def bind_target_signature(sig: str, target: TargetInfo | None) -> str:
+    """Tie an action signature to the control trusted code read under it (label, role, structure), so an approval for
+    one control is no use for another that happens to sit in the same pixel bucket (S-11)."""
+    if target is None or (target.label is None and target.role is None):
+        return sig
+    h = hashlib.sha256(f"{target.label or ''}|{target.role or ''}|{','.join(target.structure or ())}".encode()).hexdigest()[:10]
+    return f"{sig}|t:{h}"
 
 
 @dataclass
@@ -236,6 +246,7 @@ class SafetyPipeline:
             except Exception:
                 sig = f"{kind}:unsigned"
             va = ValidatedAction(kind, dict(args or {}), sig)
+        va = dc_replace(va, signature=bind_target_signature(va.signature, target))
         kind, args = va.kind, va.args
 
         # --- denylist (optional, the worker's own) and the page we are already on
@@ -258,7 +269,7 @@ class SafetyPipeline:
 
         approved = False
         if approved_queue_id:
-            chk = self.queue.try_consume_approval(approved_queue_id, va.signature)
+            chk = self.queue.try_consume_approval(approved_queue_id, va.signature, run_id=self._run)
             approved = chk.ok
             if chk.code == "expired":
                 self._approval_note = chk.reason  # the new queue item and the decision say why the worker is being asked again

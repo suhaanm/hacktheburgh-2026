@@ -27,6 +27,7 @@ import contextlib
 import json
 import os
 import random
+import sys
 import tempfile
 import time
 from collections import Counter
@@ -39,7 +40,6 @@ import jsonschema
 from ..trust.stats import wilson_interval
 from . import explain as E
 from . import fakes as F
-from . import menu as M
 from . import packet as P
 from . import templates as T
 from . import vocab as V
@@ -47,6 +47,7 @@ from .packet import EvidencePacket, ExplainRequest, facts
 from .provenance import check_reply
 
 LIVE_BUDGET_USD = 0.50
+RECORDED_LIVE = Path(__file__).resolve().parents[4] / "data" / "eval" / "evidence_live.json"
 LIVE_MAX_REPLIES_LOCAL = 30
 
 
@@ -171,6 +172,27 @@ def _faithful(packets: list[tuple[str, str, EvidencePacket]], draws: int, seed: 
             "draws_per_request": draws}
 
 
+def _paraphrase(packets: list[tuple[str, str, EvidencePacket]], draws: int, seed: int) -> dict[str, Any]:
+    """Correct replies in hand-written ordinary English (frames the templates never use): the check's false-reject rate on natural phrasing."""
+    n = k = 0
+    bad: Counter[str] = Counter()
+    for pi, (_, _, pk) in enumerate(packets):
+        req = E.build_request(pk, None, intent="where_time_went")
+        tab = facts(req)
+        for d in range(draws):
+            fake = F.ParaphraseFake(seed=seed + 100 * pi + d)
+            try:
+                reply = fake.generate(req, tab)
+            except E.BackendError:
+                continue
+            v = check_reply(reply, req, menu=req.menu)
+            n += 1
+            k += int(v.ok)
+            bad.update(v.codes)
+    return {"pass": _rate(k, n), "false_reject_rate": round(1 - k / n, 4) if n else None, "codes_when_rejected": dict(bad),
+            "note": "hand-written paraphrases (12 frames); small and written by us"}
+
+
 def _adversarial(packets: list[tuple[str, str, EvidencePacket]], intents: tuple[str, ...], seed: int) -> dict[str, Any]:
     per: dict[str, dict[str, int]] = {k: {"n": 0, "rejected": 0, "right_reason": 0} for k in F.KINDS}
     tot_n = tot_rej = tot_right = 0
@@ -235,6 +257,18 @@ def _fallback(packets: list[tuple[str, str, EvidencePacket]], seed: int, limit: 
 
 # ------------------------------------------------------------------------------------------------ the optional live block
 def _live(packets: list[tuple[str, str, EvidencePacket]], seed: int) -> dict[str, Any]:
+    try:
+        return _live_inner(packets, seed)
+    finally:                                         # a server this run started is stopped (the isolated data dir held its pid file)
+        mod = sys.modules.get("understudy_engine.localmodel.server")
+        if mod is not None:
+            try:
+                mod.get_server().stop_if_started_here()
+            except Exception:
+                pass
+
+
+def _live_inner(packets: list[tuple[str, str, EvidencePacket]], seed: int) -> dict[str, Any]:
     mode = os.environ.get("UNDERSTUDY_EVIDENCE_LIVE", "").strip().lower()
     if mode not in ("local", "cloud"):
         return {"status": "not_run", "reason": "set UNDERSTUDY_EVIDENCE_LIVE=local to measure the real local model (free), or =cloud with a key "
@@ -249,6 +283,8 @@ def _live(packets: list[tuple[str, str, EvidencePacket]], seed: int) -> dict[str
     n = k = schema_bad = backend_bad = 0
     bad: Counter[str] = Counter()
     lat: list[float] = []
+    prompt_tokens: list[int] = []
+    examples: list[dict[str, Any]] = []
     rng = random.Random(seed)
     picks = rng.sample(packets, min(len(packets), LIVE_MAX_REPLIES_LOCAL // 2))
     for _, _, pk in picks:
@@ -264,15 +300,47 @@ def _live(packets: list[tuple[str, str, EvidencePacket]], seed: int) -> dict[str
                 bad[exc.code] += 1
                 continue
             lat.append(time.perf_counter() - t0)
+            if be.last_usage.get("prompt_tokens"):
+                prompt_tokens.append(be.last_usage["prompt_tokens"])
             v = check_reply(reply, req, menu=req.menu)
             n += 1
             k += int(v.ok)
             schema_bad += int(not v.schema_ok)
             bad.update(v.codes)
+            if not v.ok and v.schema_ok and len(examples) < 4:
+                r0 = v.rejected[0]
+                text = next((sec["sentences"][r0.index]["text"] for sec in v.expanded["sections"]
+                             if sec["kind"] == r0.section and r0.index < len(sec["sentences"])), "")
+                examples.append({"intent": it, "codes": r0.codes, "sentence": text[:240]})
+    # the largest prompt of the cohort (by the estimate), measured once on the real model
+    from . import context as C
+
+    biggest = max(((C.trim(pk, it, system=E.REWORD_INSTRUCTIONS, budget=10**6, draft_fn=T.build_draft).tokens, it, pk) for _, _, pk in packets for it in V.INTENTS),
+                  key=lambda t: t[0], default=None)
+    largest = None
+    if biggest is not None:
+        req = E.build_request(biggest[2], None, intent=biggest[1])
+        try:
+            be.generate(req, facts(req))
+        except E.BackendError:
+            pass
+        largest = {"intent": biggest[1], "tokens_est": biggest[0], "tokens_measured": be.last_usage.get("prompt_tokens"), "budget": C.PROMPT_TOKEN_BUDGET}
     lat.sort()
-    return {"status": "ok", "model": be.model, "n_replies": n, "pass": _rate(k, n), "schema_failures": schema_bad, "backend_failures": backend_bad,
-            "codes_when_rejected": dict(bad), "latency_s": {"p50": round(lat[len(lat) // 2], 2), "p95": round(lat[int(0.95 * (len(lat) - 1))], 2)} if lat else None,
+    return {"status": "ok", "model": be.model, "largest_case": largest, "n_replies": n, "pass": _rate(k, n), "schema_failures": schema_bad, "backend_failures": backend_bad,
+            "codes_when_rejected": dict(bad), "examples_rejected": examples,
+            "prompt_tokens": ({"min": min(prompt_tokens), "max": max(prompt_tokens), "mean": round(sum(prompt_tokens) / len(prompt_tokens))} if prompt_tokens else None),
+            "mode": "reword: the model rewrites a code-written draft that carries {field.path} placeholders; code fills them in, then the same check runs",
+            "latency_s": {"p50": round(lat[len(lat) // 2], 2), "p95": round(lat[int(0.95 * (len(lat) - 1))], 2)} if lat else None,
             "note": f"Small n ({n}): a pass rate on the check for the real local model on synthetic packets, not a statement about other models or real data."}
+
+
+def recorded_live() -> dict[str, Any] | None:
+    """The live results recorded on 7 Nov 2026 (``data/eval/evidence_live.json``: real models, small n, labelled with their origin), if the
+    file exists. It is shown beside a default run's ``not_run``; it is never recomputed here."""
+    try:
+        return json.loads(RECORDED_LIVE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
 
 
 def live_cloud(port: Any, packets: list[tuple[str, str, EvidencePacket]], *, max_calls: int = 20, est_usd_per_call: float = 0.002,
@@ -331,10 +399,14 @@ def evaluate_evidence(fast: bool = False, *, seed: int = 0, with_live: bool = Tr
             "packets": {**info, **_schema_validity(packets)},
             "templates": _templates(packets),
             "faithful": _faithful(packets, 1 if fast else 2, seed),
+            "faithful_paraphrase": _paraphrase(packets, 3 if fast else 6, seed),
             "adversarial": _adversarial(packets, adv_intents, seed),
             "fallback": _fallback(packets, seed, 8 if fast else 16),
             "live": _live(packets, seed) if with_live else {"status": "not_run", "reason": "disabled for this call"},
         }
+        rec = recorded_live()
+        if rec is not None:
+            result["live"]["recorded"] = rec
     result["limitations"] = limitations(result)
     result["statement"] = ("No real people are involved. Packets come from synthetic apprentices; no model was called in the default run, and no "
                            "number here comes from a live service.")

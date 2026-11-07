@@ -25,10 +25,11 @@ from evals.modelbench import analyze, cases as cm, report  # noqa: E402
 from evals.modelbench.budget import Budget  # noqa: E402
 from evals.modelbench.cache import ResultCache  # noqa: E402
 from evals.modelbench.contenders import NAMES, Contender, check_environment  # noqa: E402
-from evals.modelbench.runner import Job, Runner  # noqa: E402
+from evals.modelbench.runner import Job, Runner, key_for  # noqa: E402
 
 CACHE = HERE / "cache"
-GROUPS = ("pointing", "steps", "verifier", "glance")
+GROUPS = ("pointing", "steps", "verifier", "glance", "latency")
+LATENCY_REPS = 15
 GLANCE_REPS = 5
 
 
@@ -36,7 +37,12 @@ def select_cases(manifest: dict) -> list[dict]:
     """The pointing cases that get model calls: every base case, a seeded sample of v2 and dark, and the injected cases whose
     injection is visible in the screenshot."""
     shots = cm.shot_index(manifest)
-    allc = [c for c in cm.cases_from(manifest) if not (c.cond == "injected" and not shots[c.shot_id]["injection_visible"])]
+    cases = cm.cases_from(manifest)
+    # an input (screenshot pixels + description) is asked once: a v2 or dark case that is pixel-identical to a base case is the same
+    # input, so it is not a new case. Only cases with a new input can fill the secondary samples.
+    base_inputs = {(shots[c.shot_id]["sha"], c.desc) for c in cases if c.cond == "base"}
+    allc = [c for c in cases if not (c.cond == "injected" and not shots[c.shot_id]["injection_visible"])
+            and not (c.cond != "base" and (shots[c.shot_id]["sha"], c.desc) in base_inputs)]
     sample = cm.sample_cases(allc)
     out = []
     for cond in ("base", "v2", "injected", "dark"):
@@ -66,11 +72,36 @@ def build_jobs(manifest: dict, only: set[str], smoke: int | None) -> list[Job]:
             s = shots[f"base__{screen}"]
             for rep in range(GLANCE_REPS):
                 jobs.append(Job("glance", screen, s["file"], s["sha"], rep=rep, group="base"))
+    if "latency" in only and not smoke:
+        first = next(c for c in manifest["selected_cases"] if c["cond"] == "base" and c["kind"] == "positive")
+        s = shots[first["shot_id"]]
+        for rep in range(LATENCY_REPS):
+            jobs.append(Job("point_desc", first["case_id"], s["file"], s["sha"], desc=first["desc"], rep=100 + rep, group="latency"))
     if "steps" in only:
         for c in manifest["step_cases"]:
             s = shots[c["shot_id"]]
             jobs.append(Job("point_step", c["case_id"], s["file"], s["sha"], step=c["step"], group=c["cond"]))
     return jobs
+
+
+def collect_rows(cache: ResultCache, contenders: list[Contender], jobs: list[Job]) -> tuple[list[dict], int]:
+    """Cached rows for exactly these jobs, found by cache key (so a re-render that renumbers the cases cannot misalign anything), each
+    labelled with its job's case id. A job whose input (key) already appeared is skipped: identical inputs are counted once.
+    Returns (rows, duplicate inputs skipped)."""
+    out: list[dict] = []
+    dup = 0
+    for c in contenders:
+        seen: set[str] = set()
+        for j in jobs:
+            k = key_for(c, j)
+            if k in seen:
+                dup += 1
+                continue
+            seen.add(k)
+            row = cache.peek(k)
+            if row is not None:
+                out.append({**row, "kind": j.kind, "contender": c.name, "case_id": j.case_id, "rep": j.rep})
+    return out, dup
 
 
 def assemble(manifest: dict, rows: list[dict], contenders: list[str]) -> dict:
@@ -80,6 +111,7 @@ def assemble(manifest: dict, rows: list[dict], contenders: list[str]) -> dict:
         "verifier": analyze.verifier_section(manifest, rows, contenders),
         "glance": analyze.glance_section(manifest, rows, contenders),
     }
+    sections["latency_recheck"] = analyze.latency_section(rows, contenders, sections["pointing"]["cells"])
     # routed cells only make sense for pointing; the step-id section keeps its simulated cells too (same rule, smaller n)
     sections["recommendation"] = report.recommend(sections)
     return sections
@@ -152,8 +184,11 @@ def main(argv: list[str] | None = None) -> int:
         counts = runner.counts
         print(f"calls: {counts}; est. spend US${budget.spent:.3f}; dropped {len(budget.dropped)}", flush=True)
 
-    rows = cache.rows()
+    rows, dup = collect_rows(cache, contenders, jobs)
     sections = assemble(manifest, rows, [c.name for c in contenders])
+    sections["recommendation"]["duplicate_inputs_skipped"] = dup
+    spend_lines = sum(1 for _ in (cache_dir / "spend.jsonl").open()) if (cache_dir / "spend.jsonl").exists() else 0
+    counts = {**counts, "live_calls_all_runs": spend_lines, "cache_rows": len(cache)}
     j = report.build_json(sections, models=models, budget=budget.summary(), counts=counts,
                           apis={c.name: c.api for c in contenders}, thinking={c.name: c.thinking for c in contenders})
     report.write_all(j, out_json=Path(a.out_json), out_md=Path(a.out_md), out_yaml=Path(a.out_yaml))

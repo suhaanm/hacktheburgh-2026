@@ -1,6 +1,6 @@
 // Errors from the model port. Codes are coarse on purpose; what a person hears is `plainByCode` (no codes, no blame, no guessing).
 
-export type ModelErrorCode = 'timeout' | 'api' | 'parse' | 'empty' | 'no_input' | 'auth' | 'rate_limit' | 'network' | 'config' | 'refusal'
+export type ModelErrorCode = 'timeout' | 'api' | 'parse' | 'empty' | 'no_input' | 'auth' | 'rate_limit' | 'network' | 'config' | 'refusal' | 'blocked'
 
 const PLAIN: Record<ModelErrorCode, string> = {
   auth: "I can't use my online helper because it isn't set up yet.",
@@ -11,6 +11,7 @@ const PLAIN: Record<ModelErrorCode, string> = {
   parse: 'I got a muddled answer and did not trust it.',
   empty: 'I did not get an answer.',
   refusal: 'My online helper declined to answer that.',
+  blocked: 'The old online helpers are switched off, or a privacy check stopped this, so nothing was sent.',
   no_input: 'There was nothing to look at.',
   api: 'Something went wrong on my side.',
 }

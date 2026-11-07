@@ -62,8 +62,11 @@ def test_events_are_only_accepted_from_this_machine_and_the_app(flag_on):
     assert r.status_code == 403 and r.json()["error"]["code"] == "write_refused"
     local = TestClient(app())
     assert local.post("/awareness/events", json=[window_event(1)], headers={"origin": "https://evil.example"}).status_code == 403
-    assert local.post("/awareness/events", json=[window_event(1)], headers={"origin": "app://understudy"}).status_code == 200
-    assert local.post("/awareness/events", json=[window_event(2)], headers={"origin": "http://localhost:5173"}).status_code == 200
+    # http_guard: the exact allow-list only (the dashboard origins, plus $UNDERSTUDY_ALLOWED_ORIGINS); a custom scheme is foreign, and the
+    # desktop's main process (no Origin header) is the app's way in. (The app-level middleware also wants the actor header with an Origin.)
+    assert local.post("/awareness/events", json=[window_event(1)], headers={"origin": "app://understudy"}).status_code == 403
+    assert local.post("/awareness/events", json=[window_event(2)], headers={"origin": "http://localhost:5173", "x-understudy-actor": "worker"}).status_code == 200
+    assert local.post("/awareness/events", json=[window_event(3)]).status_code == 200
 
 
 def test_summary_and_windows_carry_the_envelope_and_the_honest_note(client):

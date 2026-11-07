@@ -27,6 +27,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Body, Query, Request
+from .. import http_guard
 from fastapi.responses import JSONResponse
 
 from . import ledger as L
@@ -40,9 +41,8 @@ __all__ = ["router", "enabled", "FLAG"]
 
 router = APIRouter(tags=["cue"])
 _lock = threading.RLock()
-_ALLOWED_ORIGIN_PREFIXES = ("http://localhost", "http://127.0.0.1", "https://localhost", "file://", "app://")
 _WORKER = ("worker", "worker_approval")
-HOW = ("esc", "click", "timeout", "stale", "progress", "late", "superseded", "episode_end", "off", "quiet", "declined", "accepted_offer")
+HOW = ("esc", "click", "timeout", "stale", "progress", "late", "superseded", "episode_end", "off", "quiet", "declined", "accepted_offer", "show_me")
 _default: dict[str, LiveCue] = {}
 
 
@@ -77,12 +77,12 @@ def _audit(note: str) -> None:
 
 
 def _guard(request: Request, allowed: tuple[str, ...] = _WORKER) -> JSONResponse | None:
-    actor = request.headers.get("x-understudy-actor", "worker").strip()
+    actor = http_guard.actor_of(request)
     origin = request.headers.get("origin")
     if actor not in allowed:
         _audit(f"actor {_clean(actor)} on {request.url.path}")
         return _error(403, "write_refused", f"Only the worker can change Cue; the actor {_clean(actor)!r} cannot.")
-    if origin is not None and not origin.startswith(_ALLOWED_ORIGIN_PREFIXES):
+    if origin is not None and not http_guard.origin_allowed(origin):
         _audit(f"origin {_clean(origin)} on {request.url.path}")
         return _error(403, "write_refused", "Writes only come from the worker's own app on this machine.")
     return None
@@ -167,7 +167,7 @@ def cue_feedback(request: Request, body: dict[str, Any] = Body(...), person: str
     try:
         with _lock:
             return get_live(request).feedback(str(pid), event, episode_id=body.get("episode_id"), answer_id=body.get("answer_id") or body.get("option_id"),
-                                              seconds=None if secs is None else float(secs))
+                                              seconds=None if secs is None else float(secs), how=how)
     except CueError as exc:
         return _error(exc.status, exc.code, exc.message)
     except (TypeError, ValueError):
@@ -298,6 +298,8 @@ def get_growth(request: Request, person: str | None = Query(None), skill: str | 
     pid = person or _person(request, None)
     if not pid:
         return _error(404, "unknown_person", "No person is set up yet. Pass ?person=.")
-    rows = live.ledger.rows(pid)
+    from .freshness import MAX_GROWTH_ROWS
+
+    rows = live.ledger.rows(pid)[-MAX_GROWTH_ROWS:]
     g = score.growth(rows, person=pid, skill=None if skill in (None, "", "overall") else skill, now=now)
     return {"meta": _meta(g["_origin"], g["_n"], g["_note"], g["_split"]), "data": {k: v for k, v in g.items() if not k.startswith("_")}}

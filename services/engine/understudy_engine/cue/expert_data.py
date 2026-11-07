@@ -52,8 +52,10 @@ def apprentice_novice_paths(root: Path | str | None = None) -> dict[str, list[li
     return out
 
 
-def sample_path(vocab: StepVocab, rng: np.random.Generator, *, batch_p: float, optional_p: float = 0.6, noise_p: float = 0.05) -> list[str]:
-    """One expert case as a cog sequence: a random linear extension of the pack's order, expanded to cogs, with light noise."""
+def sample_steps(vocab: StepVocab, rng: np.random.Generator, *, batch_p: float, optional_p: float = 0.6) -> list[str]:
+    """One case as an ordered list of step ids: a random linear extension of the pack's partial order. A person who batches does all
+    the calculators first (policy order); one who does not takes what was just unlocked first (each cliff check right after its
+    calculator)."""
     policy = vocab.policy
     include = [sid for sid in policy.order if policy.steps[sid].required or rng.random() < optional_p]
     done: set[str] = set()
@@ -67,14 +69,19 @@ def sample_path(vocab: StepVocab, rng: np.random.Generator, *, batch_p: float, o
             break
         for s in ready:
             unlocked_at.setdefault(s, k)
-        if batch:
-            sid = ready[0]                               # policy order: all calculators first, then the cliff checks
-        else:
-            sid = max(ready, key=lambda s: (unlocked_at[s], -policy.order.index(s)))     # depth first: what was just unlocked
+        sid = ready[0] if batch else max(ready, key=lambda s: (unlocked_at[s], -policy.order.index(s)))
         k += 1
         done.add(sid)
-        cogs = list(policy.steps[sid].cogs)
-        for c in cogs:
+        seq.append(sid)
+    return seq
+
+
+def sample_path(vocab: StepVocab, rng: np.random.Generator, *, batch_p: float, optional_p: float = 0.6, noise_p: float = 0.05) -> list[str]:
+    """One expert case as a cog sequence: the steps of ``sample_steps`` expanded to cogs, with light noise."""
+    policy = vocab.policy
+    seq: list[str] = []
+    for sid in sample_steps(vocab, rng, batch_p=batch_p, optional_p=optional_p):
+        for c in policy.steps[sid].cogs:
             seq.append(c)
             if rng.random() < noise_p / 2:
                 seq.append(c)                            # a repeated read or check
@@ -83,11 +90,11 @@ def sample_path(vocab: StepVocab, rng: np.random.Generator, *, batch_p: float, o
     return seq
 
 
-def sample_paths(vocab: StepVocab, *, n_people: int = 30, cases: int = 3, seed: int = 0) -> dict[str, list[list[str]]]:
+def sample_paths(vocab: StepVocab, *, n_people: int = 30, cases: int = 3, seed: int = 0, batch_beta: tuple[float, float] = (1.2, 4.0)) -> dict[str, list[list[str]]]:
     rng = np.random.default_rng(seed)
     out: dict[str, list[list[str]]] = {}
     for i in range(n_people):
-        batch_p = float(rng.beta(1.2, 4.0))
+        batch_p = float(rng.beta(*batch_beta))
         noise = float(rng.uniform(0.0, 0.08))
         out[f"p_s{i + 1:02d}"] = [sample_path(vocab, rng, batch_p=batch_p, noise_p=noise) for _ in range(cases)]
     return out

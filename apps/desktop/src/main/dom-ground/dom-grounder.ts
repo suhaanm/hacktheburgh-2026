@@ -6,10 +6,14 @@
 // The extension is off until the worker turns it on, and sensitive elements are never returned by it; if nothing answers, the
 // caller falls back to vision (desktop apps only) or simply shows nothing.
 import { randomUUID } from 'node:crypto'
-import { mapAnswer, ageNow, type DisplayInfo, type Mapped, type MapFailure } from './rect-map'
+import { mapAnswer, mapContentRects, ageNow, type DisplayInfo, type Mapped, type MapFailure } from './rect-map'
 import { wantFor, type DomTarget, type RectAnswer, type RectWant } from './protocol'
 import type { NormBox } from '../../shared/protocol'
-import type { XY } from './protocol'
+import type { Rect, XY } from './protocol'
+
+// The extension's answer carries RectAnswer.content (page boxes, [y0,x0,y1,x1] on a 0..1000 grid of the viewport) beside the rect;
+// mapContentRects turns them into screen rects in points, with the mapping the rect itself gets.
+export { mapContentRects }
 
 export type RequestOutcome = { kind: 'answer'; answer: RectAnswer; receivedAt: number } | { kind: 'timeout' }
 
@@ -99,7 +103,8 @@ export function createDomGrounder(opts: DomGrounderOptions = {}): DomGrounder {
 export type HideReason = MapFailure | 'stale' | 'no_answer'
 
 export interface TrackCallbacks {
-  onVisible(box: NormBox, info: { scroll: XY | undefined; ageMs: number; moved: boolean }): void
+  // content: the answer's page-content boxes as screen rects in points (same mapping as the box); [] when the extension sent none.
+  onVisible(box: NormBox, info: { scroll: XY | undefined; ageMs: number; moved: boolean; content: Rect[] }): void
   onHidden(reason: HideReason): void
 }
 
@@ -171,7 +176,7 @@ export function trackTarget(grounder: Pick<DomGrounder, 'request'>, target: DomT
         lastReason = undefined
         lastScroll = out.answer.scroll
         armStale()
-        cb.onVisible(mapped.norm, { scroll: out.answer.scroll, ageMs: age, moved })
+        cb.onVisible(mapped.norm, { scroll: out.answer.scroll, ageMs: age, moved, content: mapContentRects(out.answer, { display: opts.display(), calibration: opts.calibration }) })
       }
     }
     if (!stopped) loopTimer = setT(() => void step(), refreshMs)

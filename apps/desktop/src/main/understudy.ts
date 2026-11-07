@@ -22,6 +22,7 @@ import { createEngineClient, type EngineClient } from './engine/client'
 import { installDeskSignals, type DeskSignals } from './engine/desk-signals'
 import { dashboardUrl, endpointsFromEnv, type Endpoints } from './engine/endpoints'
 import { createAgentActivity } from './engine/agent-activity'
+import { abortInFlightInput } from './actuator'
 import { loadIdentity, saveIdentity } from './engine/identity'
 import { registerHud, type HudHandle } from './hud'
 import { createHudModel, type HudModel } from './hud-model'
@@ -145,6 +146,7 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
       ring.clear('stop')
       domGrounder.cancelAll()
     },
+    stopInput: () => void abortInFlightInput(),
     stopSession: (r) => deps.stopSession(r),
     stopAgency: () => getAgency()?.stop(),
     stopShowtime: () => deps.bus.emit('showtime:request', { source: 'hotkey', stop: true }),

@@ -201,6 +201,8 @@ export function createActForMe(deps: AgencyDeps, sit: Situation, doneForMe: Done
   }
 
   async function loop(task: string, stopped: () => boolean): Promise<AgencyResult> {
+    // The windows pinned for this task, by target (see pinnedTarget below; function declarations are hoisted, so this must come first).
+    const pins = new Map<string, ActTarget>()
     const started = now()
     const mode = ctx.settings.get().agency
     const status = actuator.status()
@@ -511,7 +513,7 @@ export function createActForMe(deps: AgencyDeps, sit: Situation, doneForMe: Done
       let how = ''
       // Typed text that did not show up: the keystrokes may have gone elsewhere. Retry ONCE by pasting (clipboard restored), and say so.
       if (!changed && step.tool === 'type' && actuator.pasteText && !stopped()) {
-        const pr = await actuator.pasteText(step.text ?? '', { target: actTarget() })
+        const pr = await actuator.pasteText(step.text ?? '', { target: await pinnedTarget(), cancelled: stopped })
         how = pr.ok ? ' (typing did not show, so I pasted the text once)' : ' (typing did not show and pasting failed)'
         await audit({ decision: 'allowed', ok: pr.ok, code: pr.ok ? 'step' : 'failed', label: 'type: paste fallback', step: done })
         if (pr.ok) {
@@ -551,19 +553,36 @@ export function createActForMe(deps: AgencyDeps, sit: Situation, doneForMe: Done
       return app ? { app } : undefined
     }
 
+    // The window the task started in, pinned the first time the target is known (the actuator then requires that very window for every
+    // click, key and typed chunk). In a dry run, or when the actuator cannot pin, the target goes as it is (and real mode refuses it).
+    async function pinnedTarget(): Promise<ActTarget | undefined> {
+      const base = actTarget()
+      if (!base) return undefined
+      const key = 'browser' in base ? 'browser' : `app:${base.app.toLowerCase()}`
+      const known = pins.get(key)
+      if (known) return known
+      const r = await actuator.pinTarget?.(base)
+      if (r?.ok) {
+        pins.set(key, r.target)
+        return r.target
+      }
+      return base
+    }
+
     async function perform(step: ProposedStep): Promise<ActResult> {
-      const target = actTarget()
+      const target = await pinnedTarget()
+      const cancelled = stopped
       switch (step.tool) {
         case 'click':
-          return actuator.clickAt(step.point as NormPoint, { target })
+          return actuator.clickAt(step.point as NormPoint, { target, cancelled })
         case 'double_click':
-          return actuator.clickAt(step.point as NormPoint, { double: true, target })
+          return actuator.clickAt(step.point as NormPoint, { double: true, target, cancelled })
         case 'type':
-          return actuator.typeText(step.text ?? '', { target })
+          return actuator.typeText(step.text ?? '', { target, cancelled })
         case 'keys':
-          return actuator.pressKeys(step.keys ?? '', { target })
+          return actuator.pressKeys(step.keys ?? '', { target, cancelled })
         case 'scroll':
-          return actuator.scroll(step.point as NormPoint, step.dy ?? 0, { target })
+          return actuator.scroll(step.point as NormPoint, step.dy ?? 0, { target, cancelled })
         case 'wait':
           return { ok: true }
       }

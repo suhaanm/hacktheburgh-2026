@@ -39,7 +39,7 @@ export const FIXTURES: Record<string, unknown> = {
   // Tier 3: adds the ghost-cursor demonstration of the expert's move.
   'cue-t3': { ...base, kind: 'cue', tier: 3, step: STEP_WRITE_NOTE, target: TARGET(BOX.write_note), say: { chip: 'Next: Copy figures to the note', whisper: null }, why: WHY(1, 0.91, ['stuck_signal', 'escalated', 'long_stall']) },
   // Tier 4: a whisper (voice). The words are the pack line's caption; the audio is a cached clip named by whisper_id.
-  'cue-t4': { ...base, kind: 'cue', tier: 4, step: STEP_WRITE_NOTE, target: TARGET(BOX.write_note), say: { chip: 'Next: Copy figures to the note', whisper: 'Next, copy the figures across.', whisper_id: 'line_write_note' }, why: WHY(1, 0.91, ['stuck_signal', 'escalated', 'long_stall']) },
+  'cue-t4': { ...base, kind: 'cue', tier: 4, step: STEP_WRITE_NOTE, target: TARGET(BOX.write_note), say: { chip: 'Next: Copy figures to the note', whisper: 'Next, copy the figures across.', whisper_id: 'whisper.write_note' }, why: WHY(1, 0.91, ['stuck_signal', 'escalated', 'long_stall']) },
   // A cue with nothing to ring (the box failed the sanity checks upstream): the chip stands alone.
   'cue-no-target': { ...base, kind: 'cue', tier: 2, step: STEP_CALC_A, target: { box_2d: null, source: 'none', confidence: 0 }, say: { chip: 'Next: Run calculator A', whisper: null }, why: WHY(2, 0.78, ['stuck_signal', 'ungrounded']) },
 

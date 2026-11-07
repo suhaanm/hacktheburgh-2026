@@ -51,9 +51,15 @@ describe('planCue: tiers', () => {
     expect(planCue(d('cue-t2-l2'), { stepN: 1, ghostRequested: true })!.ghost).not.toBeNull()
   })
 
-  it('tier 4 carries the whisper only when the pack line has an audio id; it is never part of the screen', () => {
-    expect(planCue(d('cue-t4'), { stepN: 1 })!.whisper).toEqual({ lineId: 'line_write_note', text: 'Next, copy the figures across.' })
-    expect(planCue(d('cue-t4', { say: { chip: 'Next: x', whisper: 'Next, copy the figures across.' } }), { stepN: 1 })!.whisper).toBeNull()
+  it('tier 4 carries the whisper, as a fixed line id: the engine\'s own when it has the right form, else whisper.<step id>; never free text', () => {
+    expect(planCue(d('cue-t4'), { stepN: 1 })!.whisper).toEqual({ lineId: 'whisper.write_note', text: 'Next, copy the figures across.' })
+    const derived = planCue(d('cue-t4', { say: { chip: 'Next: x', whisper: 'Next, copy the figures across.', whisper_id: 'a sentence, not an id' } }), { stepN: 1 })!
+    expect(derived.whisper?.lineId).toBe('whisper.write_note')
+    expect(planCue(d('cue-t4', { say: { chip: 'Next: x', whisper: 'Next, copy the figures across.' } }), { stepN: 1 })!.whisper?.lineId).toBe('whisper.write_note')
+    // No step and no usable id: nothing to speak.
+    expect(planCue(d('cue-t4', { step: null, say: { chip: 'Next: x', whisper: 'Next, copy the figures across.' } }), { stepN: 1 })!.whisper).toBeNull()
+    // No whisper words: nothing to speak.
+    expect(planCue(d('cue-t4', { say: { chip: 'Next: x', whisper: null } }), { stepN: 1 })!.whisper).toBeNull()
   })
 
   it('a worker who asked is treated as at least level 2: the answer is not withheld', () => {

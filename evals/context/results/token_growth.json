@@ -1,0 +1,96 @@
+{
+ "origin": "modelled from our own code and one measured per-frame constant; offline; no model call",
+ "steps": 150,
+ "constants": {
+  "frame_tokens_1280x720": 1860,
+  "action_item_tokens_chained_assumed": 40,
+  "instructions_tokens": 191,
+  "goal_plus_facts_tokens": 530,
+  "cached_price_factor_assumed": 0.25
+ },
+ "summary": {
+  "chained": {
+   "tokens_at": {
+    "1": 2581,
+    "10": 19681,
+    "25": 48181,
+    "50": 95681,
+    "100": 190681,
+    "150": 285681
+   },
+   "max": 285681,
+   "cumulative_input_tokens": 21619650,
+   "cache_adjusted_cumulative": 5831498,
+   "envelope_growth_tokens_per_step": 1900.0,
+   "bounded": false
+  },
+  "chained_reset4": {
+   "tokens_at": {
+    "1": 2583,
+    "10": 4657,
+    "25": 2831,
+    "50": 4746,
+    "100": 8553,
+    "150": 4745
+   },
+   "max": 8555,
+   "cumulative_input_tokens": 848577,
+   "cache_adjusted_cumulative": 848577,
+   "envelope_growth_tokens_per_step": 0.1,
+   "bounded": true
+  },
+  "stateless_openai12": {
+   "tokens_at": {
+    "1": 2594,
+    "10": 2700,
+    "25": 2738,
+    "50": 2731,
+    "100": 2738,
+    "150": 2731
+   },
+   "max": 2740,
+   "cumulative_input_tokens": 409100,
+   "cache_adjusted_cumulative": 409100,
+   "envelope_growth_tokens_per_step": 0.0,
+   "bounded": true
+  },
+  "stateless_gemini12": {
+   "tokens_at": {
+    "1": 2582,
+    "10": 2694,
+    "25": 2733,
+    "50": 2726,
+    "100": 2733,
+    "150": 2725
+   },
+   "max": 2734,
+   "cumulative_input_tokens": 408251,
+   "cache_adjusted_cumulative": 408251,
+   "envelope_growth_tokens_per_step": 0.0,
+   "bounded": true
+  },
+  "library": {
+   "tokens_at": {
+    "1": 2736,
+    "10": 2809,
+    "25": 2812,
+    "50": 2772,
+    "100": 2801,
+    "150": 2822
+   },
+   "max": 2822,
+   "cumulative_input_tokens": 418597,
+   "cache_adjusted_cumulative": 418597,
+   "envelope_growth_tokens_per_step": 0.1,
+   "bounded": true
+  }
+ },
+ "steps_where_prompt_cannot_name_an_entered_handle": {
+  "stateless12": 94,
+  "library": 0,
+  "chained": 0,
+  "chained_reset4": 0
+ },
+ "ratio_chained_over_library_at_150": 101.2,
+ "ratio_cumulative_chained_over_library": 51.6
+}

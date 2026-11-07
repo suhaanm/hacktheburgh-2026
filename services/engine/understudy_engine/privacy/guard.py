@@ -23,29 +23,31 @@ from __future__ import annotations
 
 import ast
 import fnmatch
-import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 
 from .netscan import (
-    ALWAYS_CALLS, LOOPBACK_HOSTS, MODEL_NAMES, PORTISH_CALLS, PORTISH_RECEIVER, Allow, Policy, Violation, analyse, dotted, host_of,
+    ALWAYS_CALLS, PORTISH_CALLS, PORTISH_RECEIVER, Allow, Policy, Violation, analyse, dotted, host_of,
 )
 
 ENGINE_PKG = Path(__file__).resolve().parents[1]
-GUARDED_DIRS = ("calendar", "gitanalysis", "proactive", "localmodel", "plugins", "awareness", "cue", "evidence", "mlv2", "personas_v2")
+GUARDED_DIRS = ("calendar", "gitanalysis", "proactive", "localmodel", "plugins", "awareness", "cue", "evidence", "mlv2", "personas_v2", "attention")
 GUARDED_FILES = ("routes_calendar.py", "routes_git.py", "routes_localmodel.py", "routes_proactive.py", "routes_plugins.py",
                  "routes_awareness.py", "routes_cue.py", "routes_evidence.py", "routes_mlv2.py", "routes_personas_v2.py")
 #: layers that are pure computation: no model, no network, no process, no URL, and no reviewed exception (``ALLOW`` does not apply)
-PURE_COMPUTE_DIRS = ("mlv2", "personas_v2")
+PURE_COMPUTE_DIRS = ("mlv2", "personas_v2", "attention")
+#: pure-compute packages inside the agent service (no model client, no network, no process, no URL, no reviewed exception)
+AGENT_PURE_PREFIXES = ("understudy_agent/context/",)
 
 # Reviewed exceptions for the extension layers. Key = path relative to the engine package, glob allowed. Add an entry only with a
 # reason a reviewer accepts; a pure-compute layer can have none.
 ALLOW: dict[str, Allow] = {
     "localmodel/client.py": Allow("talks to llama-server on this machine only; assert_loopback() refuses any other host", frozenset({"httpx"}),
                                   loopback_helpers=frozenset({"assert_loopback"})),
-    "localmodel/server.py": Allow("starts and probes llama-server on a loopback port", frozenset({"socket", "httpx", "urllib.request", "http.client"}),
-                                  loopback_names=frozenset({"config.HOST"})),
+    "localmodel/server.py": Allow("starts and probes llama-server on a loopback port (the command is built by _command(); ps reads one process's own command line)",
+                                  frozenset({"socket", "httpx", "urllib.request", "http.client"}), loopback_names=frozenset({"config.HOST"}),
+                                  processes=frozenset({"ps"}), dynamic_process=True),
     "localmodel/stub_server.py": Allow("a loopback-only stand-in server for tests", frozenset({"socket", "http.client", "http.server", "httpx", "urllib.request"})),
     "plugins/graph_common.py": Allow("Microsoft Graph read-only source plugin: the worker's own sign-in, off by default, https://graph.microsoft.com only",
                                      frozenset({"urllib.request"}), frozenset({"graph.microsoft.com"})),
@@ -53,6 +55,12 @@ ALLOW: dict[str, Allow] = {
                                loopback_helpers=frozenset({"agent_url"})),
     "proactive/sources.py": Allow("reads run lists from the local agent service", frozenset({"httpx"}),
                                   loopback_helpers=frozenset({"agent_url"})),
+    "gitanalysis/source.py": Allow("runs read-only `git log` on a local repository; the argument list comes from git_argv(), which puts git first",
+                                   dynamic_process=True),
+    "gitanalysis/synth.py": Allow("builds synthetic local repositories for tests and demos with git; the argument lists are built by its own helpers",
+                                  dynamic_process=True),
+    "proactive/paths.py": Allow("home_dir() defaults to ~/.understudy (UNDERSTUDY_HOME), the same per-install state directory as the store", home_path=True),
+    "cue/paths.py": Allow("home_dir() defaults to ~/.understudy (UNDERSTUDY_HOME), the same per-install state directory as the store", home_path=True),
     "plugins/manifest.py": Allow("loads a plugin's entry class from the bundled plugin directory by the module name in its manifest",
                                  dynamic_import=True),
 }
@@ -61,11 +69,15 @@ AGENT_PKG = ENGINE_PKG.parents[1] / "agent" / "understudy_agent"
 # Reviewed exceptions for the agent service. Key = path relative to services/agent (so it starts with understudy_agent/).
 AGENT_ALLOW: dict[str, Allow] = {
     "understudy_agent/handoff_io.py": Allow("the agent's thin client for the engine API on this machine (default http://127.0.0.1:7700)", frozenset({"httpx"})),
-    "understudy_agent/server.py": Allow("the agent API: health probes of the sandbox sites on loopback and uvicorn bound to 127.0.0.1", frozenset({"httpx"})),
+    "understudy_agent/server.py": Allow("the agent API: health probes of the sandbox sites on loopback and uvicorn bound to 127.0.0.1; includes its "
+                                        "optional routers (models, live) by module names listed in a literal tuple", frozenset({"httpx"}), dynamic_import=True),
     "understudy_agent/sandbox_sites/runner.py": Allow("serves and probes the three sandbox calculator sites on 127.0.0.1", frozenset({"socket", "httpx"}),
                                                       loopback_names=frozenset({"HOST"})),
     "understudy_agent/sandbox_roles/base.py": Allow("serves the role sandboxes (programmer, analyst workbenches) on 127.0.0.1", frozenset({"socket"}),
                                                     loopback_names=frozenset({"HOST"})),
+    "understudy_agent/tiers/computer_use.py": Allow("the real-desktop actuator (off unless UNDERSTUDY_REAL_ACTUATOR=1) reads a TextEdit document with a constant "
+                                                    "AppleScript; osascript is accepted only with a constant -e script that has no shell, URL, mail or fetcher",
+                                                    processes=frozenset({"osascript"})),
     "understudy_agent/voice/tts.py": Allow("ElevenLabs text-to-speech (D19). NOT ACCEPTED YET: it sends free text with no purpose, no SafePayload and "
                                            "no ledger row (REVIEW-PRIVACY P1b); the LIVE agent is to route it through the ledger", frozenset({"httpx"}),
                                            frozenset({"api.elevenlabs.io"}),
@@ -119,9 +131,12 @@ def scan_source(src: str, relpath: str, *, kind: str | None = None) -> tuple[lis
     is the runtime, another ``understudy_agent/`` path is the agent service, anything else is an extension layer."""
     if kind is None:
         kind = "runtime" if relpath.startswith("understudy_agent/runtime/") else "agent" if relpath.startswith("understudy_agent/") else "layer"
-    pure = kind == "layer" and relpath.split("/", 1)[0] in PURE_COMPUTE_DIRS
-    allow = None if (pure or kind == "runtime") else _allow_for(relpath, AGENT_ALLOW if kind == "agent" else ALLOW)
+    agent_pure = kind == "agent" and relpath.startswith(AGENT_PURE_PREFIXES)
+    pure = (kind == "layer" and relpath.split("/", 1)[0] in PURE_COMPUTE_DIRS) or agent_pure
     pkg = "understudy_agent" if kind in ("agent", "runtime") else "understudy_engine"
+    if agent_pure:
+        kind = "layer"                               # held to the extension-layer rules (no model client, allowlisted imports), as pure compute
+    allow = None if (pure or kind == "runtime") else _allow_for(relpath, AGENT_ALLOW if kind == "agent" else ALLOW)
     return analyse(src, relpath, Policy(kind=kind, pure=pure, package_root=pkg), allow)
 
 
@@ -242,9 +257,10 @@ PROVIDER_HOSTS = (
 )
 PROVIDER_IMPORT_ROOTS = {"openai", "vertexai", "anthropic", "cohere", "mistralai", "groq", "litellm", "ollama", "together", "replicate"}
 PROVIDER_IMPORT_PREFIXES = ("google.genai", "google.generativeai", "google.cloud.aiplatform", "google.ai")
-#: the only Python files that may import a Gemini or OpenAI client or name their API hosts: the provider modules, the egress
-#: module, and this guard (which holds the host names it searches for)
-PROVIDER_ALLOWED = ("understudy_agent/models/*", "understudy_agent/models/**/*", "understudy_engine/privacy/egress.py", "understudy_engine/privacy/guard.py")
+#: the only Python files that may import a hosted-model client or name its API host: the provider modules, the egress module, and the
+#: guard and its sample data (which hold the host names they search for)
+PROVIDER_ALLOWED = ("understudy_agent/models/*", "understudy_agent/models/**/*", "understudy_engine/privacy/egress.py", "understudy_engine/privacy/guard.py",
+                    "understudy_engine/privacy/guard_samples.py")
 
 
 def _provider_allowed(rel: str) -> bool:

@@ -37,6 +37,17 @@ export function viewportOrigin(a: RectAnswer, zoom: number): XY {
   return a.window_offset ?? { x: 0, y: 0 }
 }
 
+/**
+ * A rect in the viewport's CSS pixels to screen points: the page zoom from dpr, the viewport's origin on the screen, then the
+ * calibration. The one mapping both the answered rect (mapAnswer) and the content boxes (mapContentRects) use.
+ */
+function cssRectToScreen(a: RectAnswer, r: Rect, opts: MapOptions): Rect {
+  const zoom = pageZoom(a.dpr as number, opts.display.scaleFactor)
+  const origin = viewportOrigin(a, zoom)
+  const cal = opts.calibration ?? { x: 0, y: 0 }
+  return { x: origin.x + r.x * zoom + cal.x, y: origin.y + r.y * zoom + cal.y, w: r.w * zoom, h: r.h * zoom }
+}
+
 export function toNormBox(r: Rect, display: DisplayInfo['bounds']): NormBox | null {
   const clamp = (n: number) => Math.min(1000, Math.max(0, n))
   const box = {
@@ -55,11 +66,9 @@ export function mapAnswer(a: RectAnswer, opts: MapOptions): Mapped {
   // A rect from a sub-frame is relative to that frame; this app has no frame offsets, so it cannot place it.
   if (a.frame_id !== 'top') return { ok: false, reason: 'frame_relative' }
   const zoom = pageZoom(a.dpr, opts.display.scaleFactor)
-  const origin = viewportOrigin(a, zoom)
   // Scrolled out of view: the viewport (when known) says whether any part of the element is inside it.
   if (a.viewport && (a.rect.x + a.rect.w <= 0 || a.rect.y + a.rect.h <= 0 || a.rect.x >= a.viewport.w || a.rect.y >= a.viewport.h)) return { ok: false, reason: 'out_of_view' }
-  const cal = opts.calibration ?? { x: 0, y: 0 }
-  const screen: Rect = { x: origin.x + a.rect.x * zoom + cal.x, y: origin.y + a.rect.y * zoom + cal.y, w: a.rect.w * zoom, h: a.rect.h * zoom }
+  const screen = cssRectToScreen(a, a.rect, opts)
   const norm = toNormBox(screen, opts.display.bounds)
   if (!norm) return { ok: false, reason: 'off_display' }
   if (norm.xmax - norm.xmin < MIN_SIDE_NORM || norm.ymax - norm.ymin < MIN_SIDE_NORM) {
@@ -70,6 +79,21 @@ export function mapAnswer(a: RectAnswer, opts: MapOptions): Mapped {
     return { ok: true, screen, zoom, norm: { xmin: Math.max(0, cx - h), ymin: Math.max(0, cy - h), xmax: Math.min(1000, cx + h), ymax: Math.min(1000, cy + h) } }
   }
   return { ok: true, screen, norm, zoom }
+}
+
+/**
+ * The answer's page-content boxes (RectAnswer.content, [y0,x0,y1,x1] on the 0..1000 grid of the viewport) as screen rects in points
+ * (DIPs, top-left origin, the space of Electron's display.bounds), one per box, in the same order. Each box becomes a rect in the
+ * viewport's CSS pixels (grid * viewport size / 1000) and goes through exactly the mapping the answered rect uses (page zoom, viewport
+ * origin, calibration), so a box that coincides with the answered rect maps to the same screen rect.
+ * Empty when there is nothing to place: no content, an answer that found nothing, a frame-relative answer (as in mapAnswer), or no
+ * viewport (without its size the grid has no scale). Unlike mapAnswer it does not care whether the answered rect itself is in view.
+ */
+export function mapContentRects(a: RectAnswer, opts: MapOptions): Rect[] {
+  if (!a.found || a.dpr === undefined || !a.content?.length || a.frame_id !== 'top') return []
+  const vp = a.viewport
+  if (!vp || !(vp.w > 0) || !(vp.h > 0)) return []
+  return a.content.map(([y0, x0, y1, x1]) => cssRectToScreen(a, { x: (x0 * vp.w) / 1000, y: (y0 * vp.h) / 1000, w: ((x1 - x0) * vp.w) / 1000, h: ((y1 - y0) * vp.h) / 1000 }, opts))
 }
 
 /** Age of the measurement now: how old it was when it was posted, plus how long ago it arrived. */

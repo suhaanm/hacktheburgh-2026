@@ -7,7 +7,7 @@ import { GOOD_ANSWER, fakeConsole, fakeFrontmost, fakePower, fakeShare, manualTi
 
 const FLAG_ON = { UNDERSTUDY_X_AWARENESS: '1' }
 
-function rig(opts: { ledgerRows?: unknown[] | null; env?: Record<string, string | undefined>; patch?: Record<string, unknown>; bundle?: string | null; stuckP?: () => number | null; point?: () => { x: number; y: number }; session?: () => boolean } = {}) {
+function rig(opts: { ledgerRows?: unknown[] | null; env?: Record<string, string | undefined>; patch?: Record<string, unknown>; bundle?: string | null; point?: () => { x: number; y: number }; session?: () => boolean } = {}) {
   const timers = manualTimers()
   let now = 1_800_000_000_000
   const store = new AwarenessSettingsStore(null, () => now)
@@ -30,7 +30,7 @@ function rig(opts: { ledgerRows?: unknown[] | null; env?: Record<string, string 
     getJson: async (u) => {
       urls.push(u)
       if (u.includes('/privacy/ledger')) return opts.ledgerRows === undefined ? null : opts.ledgerRows === null ? null : { meta: {}, data: opts.ledgerRows }
-      return { data: { p_stuck: opts.stuckP ? opts.stuckP() : 0.1, p_source: 'hazard', reason_codes: [] } }
+      return null
     },
     post,
     frontmost: front,
@@ -82,12 +82,12 @@ describe('with the flag off nothing runs', () => {
 })
 
 describe('the layer on, no consent: features only, nothing captured', () => {
-  it('samples the cursor and the app kind, posts window events, never reads the stuck score and never captures', async () => {
+  it('samples the cursor and the app kind, posts window events, never polls the engine for a stuck score and never captures', async () => {
     const r = rig({ patch: { awarenessEnabled: true } })
     r.awareness.start()
-    expect(r.timers.intervals().sort((a, b) => a - b)).toEqual([67, 2000]) // cursor 15 Hz, frontmost every 2 s; no stuck reader, no periodic
+    expect(r.timers.intervals().sort((a, b) => a - b)).toEqual([67, 2000]) // cursor 15 Hz, frontmost every 2 s; no periodic
     await r.run(7000)
-    expect(r.urls.filter((u) => u.includes('/coach/next'))).toEqual([]) // no stuck reader without consent
+    expect(r.urls.filter((u) => u.includes('/coach/next'))).toEqual([]) // awareness never polls /coach/next: the coach brain poll is shared (observeStuck)
     expect(r.frames.grabs()).toBe(0)
     await r.awareness.getAwarenessState()
     expect(r.awareness.getAwarenessState().queued).toBeGreaterThan(0)
@@ -116,13 +116,13 @@ describe('the layer on, no consent: features only, nothing captured', () => {
 })
 
 describe('consent turns the pieces on, and withdrawing turns them off', () => {
-  it('trigger consent starts the stuck reader; periodic consent starts the one-second check; withdrawing stops both', async () => {
+  it('trigger consent starts no timer of its own (the stuck score is fed by the coach brain poll); periodic consent starts the one-second check; withdrawing stops it', async () => {
     const r = rig({ patch: { awarenessEnabled: true } })
     r.awareness.start()
     r.awareness.setConsent({ trigger: true })
-    expect(r.timers.intervals().sort((a, b) => a - b)).toEqual([67, 2000, 3000])
+    expect(r.timers.intervals().sort((a, b) => a - b)).toEqual([67, 2000])
     r.awareness.setConsent({ trigger: true, periodic: true })
-    expect(r.timers.intervals().sort((a, b) => a - b)).toEqual([67, 1000, 2000, 3000])
+    expect(r.timers.intervals().sort((a, b) => a - b)).toEqual([67, 1000, 2000])
     r.awareness.setConsent({ trigger: false })
     expect(r.timers.intervals().sort((a, b) => a - b)).toEqual([67, 2000])
     const st = r.awareness.getAwarenessState()
@@ -143,25 +143,56 @@ describe('consent turns the pieces on, and withdrawing turns them off', () => {
 
 describe('triggers end to end', () => {
   it('two stuck readings over the threshold make one glance, with the reason stuck', async () => {
-    const r = rig({ stuckP: () => 0.85 })
+    const r = rig()
     r.awareness.start()
     r.awareness.setConsent({ trigger: true })
-    await r.run(12_000)
-    expect(r.urls[0]).toBe('http://127.0.0.1:7700/coach/next?person=p_demo01&dry=1')
+    r.awareness.observeStuck(0.85)
+    expect(r.port.calls).toHaveLength(0) // one reading is not enough
+    r.awareness.observeStuck(0.86)
+    await r.run(200)
     expect(r.port.calls).toHaveLength(1)
     expect(r.port.calls[0].trigger).toBe('stuck')
     const st = r.awareness.getAwarenessState()
     expect(st.last.glance).toMatchObject({ trigger: 'stuck', app_kind: GOOD_ANSWER.app_kind, blocker: 'cannot_find_control' })
     expect(st.usage.callsToday).toBe(1)
+    expect(st.sources.stuck).toMatch(/shared coach poll/)
+    expect(r.urls.filter((u) => u.includes('/coach/next'))).toEqual([])
   })
 
-  it('a low stuck probability never glances', async () => {
-    const r = rig({ stuckP: () => 0.2 })
+  it('a low stuck probability never glances, and neither does a broken chain', async () => {
+    const r = rig()
     r.awareness.start()
     r.awareness.setConsent({ trigger: true })
-    await r.run(30_000)
+    for (let i = 0; i < 10; i++) r.awareness.observeStuck(0.2)
+    r.awareness.observeStuck(0.9)
+    r.awareness.observeStuck(null) // an unreadable reading breaks the chain
+    r.awareness.observeStuck(0.9)
+    await r.run(500)
     expect(r.port.calls).toHaveLength(0)
     expect(r.frames.grabs()).toBe(0)
+  })
+
+  it('stuck readings are ignored without consent, with the layer off, while paused or killed, and with the flag off', async () => {
+    const none = rig({ patch: { awarenessEnabled: true } })
+    none.awareness.start()
+    none.awareness.observeStuck(0.95)
+    none.awareness.observeStuck(0.95)
+    await none.run(200)
+    expect(none.port.calls).toHaveLength(0)
+    const off = rig({ env: {} })
+    off.awareness.start()
+    off.awareness.observeStuck(0.95)
+    off.awareness.observeStuck(0.95)
+    await off.run(200)
+    expect(off.port.calls).toHaveLength(0)
+    const paused = rig()
+    paused.awareness.start()
+    paused.awareness.setConsent({ trigger: true })
+    paused.awareness.pause()
+    paused.awareness.observeStuck(0.95)
+    paused.awareness.observeStuck(0.95)
+    await paused.run(200)
+    expect(paused.port.calls).toHaveLength(0)
   })
 
   it('the hotkey glances once, then is rate-limited for 10 s', async () => {
@@ -305,5 +336,37 @@ describe('the state for the Privacy screen', () => {
     expect(r.timers.active()).toBeGreaterThan(0)
     r.awareness.dispose()
     expect(r.timers.active()).toBe(0)
+  })
+})
+
+describe('setSwitch (the tray checkboxes)', () => {
+  it('turning anything down is always allowed; turning glances up needs the consent already recorded, else it says so and changes nothing', () => {
+    const r = rig()
+    let o = r.awareness.setSwitch('trigger', true)
+    expect(o.needsConsent).toBe(true)
+    expect(o.state.consent.trigger).toBe(false)
+    o = r.awareness.setSwitch('periodic', true)
+    expect(o.needsConsent).toBe(true)
+    expect(o.state.consent.periodic).toBe(false)
+    o = r.awareness.setSwitch('enabled', true) // the always-on layer sends nothing by itself
+    expect(o).toMatchObject({ needsConsent: false, state: { enabled: true } })
+    r.awareness.setConsent({ trigger: true, periodic: true })
+    o = r.awareness.setSwitch('periodic', false)
+    expect(o.state.consent).toMatchObject({ trigger: true, periodic: false })
+    o = r.awareness.setSwitch('periodic', true) // same consent text: no card needed
+    expect(o).toMatchObject({ needsConsent: false, state: { consent: { trigger: true, periodic: true } } })
+    o = r.awareness.setSwitch('trigger', false) // withdrawing clears the record, and periodic with it
+    expect(o.state.consent).toMatchObject({ trigger: false, periodic: false, recordedVersion: 0 })
+    expect(r.awareness.setSwitch('trigger', true).needsConsent).toBe(true) // back to the card
+    expect(r.awareness.setSwitch('enabled', false).state.enabled).toBe(false)
+  })
+
+  it('periodic cannot be on without triggered glances', () => {
+    const r = rig()
+    r.awareness.setConsent({ trigger: true, periodic: false })
+    r.awareness.setSwitch('periodic', true)
+    expect(r.awareness.getAwarenessState().consent.periodic).toBe(true)
+    const r2 = rig({ patch: { glanceConsentVersion: CONSENT_VERSION, glanceOnTrigger: false } })
+    expect(r2.awareness.setSwitch('periodic', true)).toMatchObject({ needsConsent: true })
   })
 })

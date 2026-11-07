@@ -1,5 +1,6 @@
 // Batched, persistent delivery of L0 events to the engine (POST /events). The queue lives in storage so a
 // service worker restart loses nothing; it is capped, and revoking consent clears it.
+import { ACTOR, ACTOR_HEADER } from "../shared/actor";
 import type { L0Event } from "../shared/types";
 
 export interface Stats {
@@ -119,7 +120,7 @@ export class Batcher {
       try {
         const res = await this.deps.fetch(`${await this.deps.getUrl()}/events`, {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: { "content-type": "application/json", [ACTOR_HEADER]: ACTOR },
           body: JSON.stringify(batch),
         });
         status = res.status;

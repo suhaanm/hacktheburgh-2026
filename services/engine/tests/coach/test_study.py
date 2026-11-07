@@ -169,7 +169,8 @@ def test_study_mode_routes_and_their_guard(env):
     # the worker's own actor and an app origin on this machine only
     assert c.post("/study/mode", json=body, headers={"x-understudy-actor": "agent"}).status_code == 403
     assert c.post("/study/mode", json=body, headers={"origin": "https://evil.example"}).status_code == 403
-    assert c.post("/study/mode", json=body, headers={"origin": "http://localhost:5173"}).status_code == 200
+    assert c.post("/study/mode", json=body, headers={"origin": "http://localhost:5173", "x-understudy-actor": "worker"}).status_code == 200
+    assert c.post("/study/mode", json=body, headers={"origin": "http://localhost:5173"}).status_code == 403          # a browser must name the actor
     for bad in ({**body, "block": "warmup"}, {**body, "level": "L9"}, {**body, "extra": 1}, {**body, "skill_on": None}, {**body, "person": "ann"}):
         assert c.post("/study/mode", json=bad).status_code == 422
     assert c.post("/study/mode/clear", headers={"x-understudy-actor": "page"}).status_code == 403

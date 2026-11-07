@@ -21,6 +21,7 @@ class LiveContext:
     last_progress_t: float | None = None
     task_t0: float | None = None
     last_input_t: float | None = None
+    t: float | None = None                            # when the snapshot was taken (its age is checked against freshness.MAX_AGE_S)
     p_stuck: float | None = None
     p_source: str | None = None                       # "model" | "rule"
     level: dict[str, int] = field(default_factory=dict)       # cog -> help level 1..4
@@ -59,7 +60,7 @@ def from_snapshot(snap: Any) -> LiveContext | None:
                        task_open=bool(getattr(snap, "task_open", bool(cogs))), task_id=getattr(snap, "task_id", None), cogs=cogs,
                        last_progress_t=getattr(snap, "last_progress_t", None), task_t0=cogs[0][1] if cogs else None,
                        last_input_t=getattr(snap, "last_input_t", None), p_stuck=getattr(snap, "p_stuck", None),
-                       p_source=getattr(snap, "p_source", None), level=level, mastery=mastery)
+                       p_source=getattr(snap, "p_source", None), level=level, mastery=mastery, t=getattr(snap, "t", None))
 
 
 class BrainProvider:

@@ -5,6 +5,7 @@ import { PERSONA_LIST } from '../../shared/personas'
 import { Icon, ListeningLight, MuteButton, PHASE_LABELS, PresenceOrb, ProgressView, SettingsPanel, StopButton } from '../design'
 import { ChatTab } from './ChatTab'
 import { sessionActive, useProgressData, useScreenBlocked, useShowtimeActive } from './hooks'
+import { AwarenessSection } from './AwarenessSection'
 import { MoreExtras } from './MoreExtras'
 import { ProfileTab } from './ProfileTab'
 
@@ -80,7 +81,7 @@ export function Panel(props: PanelProps): ReactElement {
             <Icon name="down" />
           </button>
         ) : null}
-        {tab === 'settings' ? <SettingsPanel settings={settings} onChange={props.onSettings} personas={PERSONA_OPTIONS} more={<MoreExtras onSetUpAgain={props.onSetUpAgain} files={props.files} />} /> : null}
+        {tab === 'settings' ? <SettingsPanel settings={settings} onChange={props.onSettings} personas={PERSONA_OPTIONS} privacy={<AwarenessSection />} more={<MoreExtras onSetUpAgain={props.onSetUpAgain} files={props.files} />} /> : null}
       </div>
 
       {(settings.listeningLight && state.phase !== 'asleep') || stoppable ? (

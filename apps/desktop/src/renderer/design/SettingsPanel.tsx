@@ -10,6 +10,8 @@ export interface SettingsPanelProps {
   settings: Settings
   onChange: (patch: SettingsPatch) => void
   personas: readonly { id: PersonaId; name: string }[]
+  /** The privacy card (looking at the screen), shown right after the basics; the host supplies it. */
+  privacy?: ReactNode
   /** Extra rows at the end of "More settings" (files, demo, set up again). */
   more?: ReactNode
 }
@@ -72,7 +74,7 @@ export function AnnotationPreview({ settings }: { settings: Pick<Settings, 'bigA
   )
 }
 
-export function SettingsPanel({ settings, onChange, personas, more }: SettingsPanelProps): ReactElement {
+export function SettingsPanel({ settings, onChange, personas, privacy, more }: SettingsPanelProps): ReactElement {
   const [moreOpen, setMoreOpen] = useState(false)
   const toggle = (key: keyof Settings) => (checked: boolean) => onChange({ [key]: checked })
   const levels: HelpLevel[] = [1, 2, 3, 4]
@@ -118,6 +120,8 @@ export function SettingsPanel({ settings, onChange, personas, more }: SettingsPa
         <Switch label="Captions" checked={settings.captions} onChange={toggle('captions')} />
         <Switch label="High contrast" checked={settings.highContrast} onChange={toggle('highContrast')} />
       </Group>
+
+      {privacy}
 
       <button type="button" className="al-btn al-more" aria-expanded={moreOpen} aria-controls="al-more-settings" onClick={() => setMoreOpen((v) => !v)}>
         {moreOpen ? 'Fewer settings' : 'More settings'}

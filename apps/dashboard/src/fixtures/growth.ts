@@ -3,11 +3,12 @@
 // The files are loaded on demand, so the screen's own bundle stays small.
 import type { Envelope, WireGrowth, WireLedger } from "../components/growth/wire";
 
-export type Story = "improves" | "plateaus" | "sparse";
+export type Story = "improves" | "plateaus" | "going" | "sparse";
 
 export const STORIES: { id: Story; label: string; hint: string }[] = [
   { id: "improves", label: "Improves", hint: "A learner who needs less help each week" },
   { id: "plateaus", label: "Levels off", hint: "A learner whose help need stops falling" },
+  { id: "going", label: "Early curve", hint: "A learner with 20 occurrences: a curve, not yet a trend" },
   { id: "sparse", label: "Just started", hint: "A learner with 6 occurrences so far" },
 ];
 
@@ -24,6 +25,7 @@ export interface GrowthBundle {
 const loaders: Record<Story, () => Promise<{ default: unknown }>> = {
   improves: () => import("./growth.json"),
   plateaus: () => import("./growth-plateau.json"),
+  going: () => import("./growth-going.json"),
   sparse: () => import("./growth-sparse.json"),
 };
 
@@ -38,11 +40,11 @@ export function emptyGrowth(person: string, skill: string | null, template: Enve
     meta: template ? { ...template, n: 0, note: "Example data: no occurrences yet." } : null,
     data: {
       person, skill, window: 20,
-      readiness: { occurrences: 0, needed: 10, ready: false },
+      readiness: { occurrences: 0, needed: 10, ready: false, trend_needed: 30 },
       baseline: null,
-      score: { composite: null, composite_ci: null, composite_partial: false, available_weight: 0, weights: { independence_lb: 0.4, mastery: 0.3, gap_closure: 0.2, retention: 0.1 }, used_weights: null, weights_note: "Stated assumptions, not fitted." },
+      score: { composite: null, composite_ci: null, composite_experimental: null, composite_experimental_ci: null, composite_partial: false, available_weight: 0, weights: { independence_lb: 0.4, mastery: 0.3, gap_closure: 0.2, retention: 0.1 }, used_weights: null, weights_note: "Stated assumptions, not fitted.", composite_caveat: null },
       components: { independence: null, mastery: null, gap_closure: null, retention: null },
-      trend: { slope_per_10: null, ci: null, direction: "too_early", blocks: [] },
+      trend: { slope_per_10: null, ci: null, direction: "too_early", blocks: [], needed_more: null, power_note: null },
       curve: [],
       occurrences: { total: 0, unaided: 0, assisted: 0, errors: 0, abandoned: 0 },
       time_to_progress: null,

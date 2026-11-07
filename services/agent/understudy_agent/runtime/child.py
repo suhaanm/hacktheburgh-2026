@@ -4,7 +4,8 @@
 Two planners, one loop:
 
 * `menu` (the default, and the only one in nightly mode): the planner call is a registered `SafePayload` sent through the
-  egress guard. It carries the role, steps left and a typed history; the model replies with ids (tool, file, template)
+  egress guard. It carries the role and the code-maintained task state (runtime/context.py: phases done, pending phase, the last
+  steps verbatim, a rolled-up summary of older ones, typed readings with their age); the model replies with ids (tool, file, template)
   that code resolves from the role's menu. No file content, path or name goes to the model or comes back from it. Text
   the tools read is scanned by the local injection detector only (no model sees it).
 * `raw` (foreground, only on files the worker named): the existing quarantined-reader path. Text a tool reads passes the
@@ -37,7 +38,7 @@ from ..security.gates import RoutineContext, TargetInfo
 from ..security.pipeline import Observation, SafetyPipeline
 from ..security.reader import PromptLeak
 from ..supervisor import TaskContext
-from . import policy
+from . import context, policy
 from .results import finalise_child
 from .spec import AgentSpec, ChildResult, ChildStatus, Spent, StepRecord
 from .tools import (POSTCONDITIONS, StepRejected, ToolCtx, ToolOutcome, assert_trusted_fields, child_step_schema,
@@ -138,11 +139,10 @@ class ChildAgent:
         self.model_calls = 0
         self._obs: Observation | None = None
         self._history: list[str] = []          # raw mode prompt text (codes and short names)
-        self._typed: list[dict[str, Any]] = []  # menu mode payload history
-        self._signals: dict[str, Any] = {}      # typed numbers from the last script run (menu mode payload)
+        self.task = context.TaskState()          # the code-maintained state: the source of truth after a yield and a resume
+        self.state_path: Any = None              # set by the run: where the typed state is kept (ids and counts, never content)
         self._ids: tuple[str, str] = ("none", "none")   # the file and template ids of the step being run
         self.recoveries = 0
-        self._last = "start"
         self._invalid = 0
         self._n = 0
         self._used_steps = 0
@@ -194,6 +194,29 @@ class ChildAgent:
         self.lease = self.book.issue(holder=self.child_run_id, tools=self.spec.tools, ttl_s=left_s,
                                      max_steps=max(1, self._steps_left()), parent=self.parent_lease,
                                      stop_on_verdicts=frozenset({"uncertain", "blocked_by_prompt"}))
+
+    def _persist_task(self) -> None:
+        """Keep the typed state next to the run's other files (atomic), so a restart can resume exactly. Failure to write is not fatal."""
+        p = self.state_path
+        if p is None:
+            return
+        try:
+            import os as _os
+
+            p.parent.mkdir(parents=True, exist_ok=True)
+            tmp = p.with_suffix(f".{_os.getpid()}.tmp")
+            tmp.write_text(json.dumps({"task": self.task.to_json(), "used_steps": self._used_steps, "n": self._n, "recoveries": self.recoveries,
+                                       "tokens": self.tokens}))
+            _os.replace(tmp, p)
+        except OSError:
+            pass
+
+    def _count_artifacts(self) -> int:
+        try:
+            d = self.ws.work / "out" if self.ws.work else None
+            return len(list(d.iterdir())) if d is not None and d.is_dir() else 0
+        except OSError:
+            return 0
 
     def revoke(self, reason: str = "revoked") -> None:
         if self.lease is not None:
@@ -277,11 +300,11 @@ class ChildAgent:
         self.steps.append(StepRecord(n=self._n, tool=tool, ok=outcome.ok, check=check,
                                      codes=(outcome.codes + [f"post:{post.reason}", *post.failed_checks])[:6],
                                      ms=int((time.monotonic() - t0) * 1000)))
-        self._typed.append({"tool": tool, "file": self._ids[0], "template": self._ids[1], "ok": bool(outcome.ok), "check": check})
+        self.task.record({"tool": tool, "file": self._ids[0], "template": self._ids[1], "ok": bool(outcome.ok), "check": check},
+                         signals=outcome.signals if tool == "run_python" else None,
+                         artifacts=self._count_artifacts() if tool == "run_python" else None)
         self._ids = ("none", "none")
-        if tool == "run_python":
-            self._signals = dict(outcome.signals)
-        self._last = "ok" if outcome.ok and check == "verified" else "failed"
+        self._persist_task()
         self._audit("step", "post_" + post.verdict, f"post:{post.reason}"[:60], **post.audit_meta())
         self._history.append(f"{self._n}. {tool} {_short(str(args.get('path') or args.get('result_file') or args.get('save_as') or ''))} "
                              f"-> {'ok' if outcome.ok else 'failed'}/{check} "
@@ -312,9 +335,11 @@ class ChildAgent:
     def _plan_menu(self, ctx: TaskContext) -> tuple[str, dict[str, Any]]:
         from . import privacy as rtprivacy
 
+        self.task.recoveries = self.recoveries
+        task, meta = self.task.payload(self._steps_left())
+        self._audit("context", "built", None, **meta)                       # counts only, never content
         try:
-            raw = rtprivacy.child_step(self.spec.role, self.kind, self._steps_left(), self._last, list(self._typed), self.port,
-                                       self._signals)
+            raw = rtprivacy.child_step(self.spec.role, self.kind, task, self.port)
         except rtprivacy.EgressError as e:
             self._audit("agent_child", "egress_error", e.code if re.fullmatch(r"[a-z_]{1,40}", e.code) else None)
             if e.code in ("model_call_failed", "model_output_rejected"):   # a bad reply is a bad step, not a privacy breach
@@ -322,8 +347,11 @@ class ChildAgent:
             self._finish("failed", f"privacy_{e.code}"[:60])
             raise StepRejected("privacy") from None
         self.model_calls += 1
-        self.tokens += policy.estimate_tokens(json.dumps(self._typed[-policy.MAX_STEPS:])) + 400 + \
-            policy.estimate_tokens(json.dumps(raw, default=str)[:2000])
+        used = getattr(self.port, "last_call", None)               # the provider's own count for this thread's last call, when it keeps one
+        if isinstance(used, dict) and isinstance(used.get("input_tokens"), int):
+            self.tokens += used["input_tokens"] + int(used.get("output_tokens") or 0)
+        else:                                                       # otherwise an estimate: the payload, a fixed allowance for the
+            self.tokens += meta["tok_task"] + 400 + policy.estimate_tokens(json.dumps(raw, default=str)[:2000])   # instructions, the reply
         ctx.check()
         if self.tokens > self.spec.budget.tokens:
             self._finish("budget", "budget_tokens")
@@ -376,8 +404,7 @@ class ChildAgent:
         self._invalid += 1
         self._n += 1
         self.steps.append(StepRecord(n=self._n, tool="none", ok=False, check="failed", codes=[f"rejected:{code}"]))
-        self._typed.append({"tool": "none", "file": "none", "template": "none", "ok": False, "check": "failed"})
-        self._last = "rejected"
+        self.task.mark_rejected("none", "rejected")
         self._history.append(f"{self._n}. rejected step ({code})")
         self._obs = self._trusted_obs({"rejected": True, "steps_left": self._steps_left()})
         self._audit("step", "rejected", f"runtime:{code}"[:60])
@@ -390,8 +417,7 @@ class ChildAgent:
             self.queue_ids.append(decision.queue_id)
         self._n += 1
         self.steps.append(StepRecord(n=self._n, tool=tool, ok=False, check="failed", codes=[f"gate:{code}"[:80]]))
-        self._typed.append({"tool": tool, "file": "none", "template": "none", "ok": False, "check": "failed"})
-        self._last = "blocked"
+        self.task.mark_rejected(tool, "blocked")
         if decision.verdict == "block" and code.startswith("kill:"):
             return self._finish("killed", "kill_flag")
         if decision.verdict == "block" and code.startswith("actions:budget_"):

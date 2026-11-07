@@ -7,13 +7,13 @@ const validateRecording = ajvFor("recording.schema.json");
 
 function harness(opts: { identity?: { status: number; body?: unknown }; routines?: unknown; routinesStatus?: number; engineDown?: boolean; recordingStatus?: number; desktop?: (n: number) => Response | Error } = {}) {
   const store: Record<string, unknown> = {};
-  const sent: { url: string; method: string; body: any }[] = [];
+  const sent: { url: string; method: string; body: any; headers: Record<string, string> }[] = [];
   let clock = 1_800_000_000_000;
   let desktopCalls = 0;
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     const method = init?.method ?? "GET";
     const body = init?.body ? JSON.parse(init.body as string) : null;
-    sent.push({ url, method, body });
+    sent.push({ url, method, body, headers: { ...((init?.headers ?? {}) as Record<string, string>) } });
     if (url.startsWith("http://127.0.0.1:7720")) {
       if (method === "POST") return new Response("{}", { status: 200 });
       // default: the desktop app is not running, so the rect loop backs off and ends instead of spinning in a test
@@ -210,6 +210,23 @@ describe("worker core", () => {
     const h = harness();
     await h.w.init();
     expect(await h.w.handleMessage({ kind: "exec", code: "alert(1)" } as never)).toEqual({ ok: false });
+  });
+
+  describe("the actor header", () => {
+    it("every request to the engine says x-understudy-actor: extension; the desktop ring server gets none (it has its own guard)", async () => {
+      const h = harness({ engineDown: false, identity: { status: 404 }, routines: [{ id: "calc-entry-3x", status: "shadow", consent: { mode: "shadow" } }] });
+      await h.w.init();
+      await h.setConfig({ capturing: true });
+      await h.w.handleMessage(rec);
+      await h.w.refreshIdentity();
+      await h.w.batcher.flush();
+      const engine = h.sent.filter((s) => s.url.startsWith("http://127.0.0.1:7700"));
+      expect(engine.some((s) => s.url.endsWith("/events") && s.method === "POST")).toBe(true);
+      expect(engine.some((s) => s.url.endsWith("/identity"))).toBe(true);
+      expect(engine.length).toBeGreaterThanOrEqual(2);
+      for (const s of engine) expect(s.headers["x-understudy-actor"], `${s.method} ${s.url}`).toBe("extension");
+      for (const s of h.sent.filter((x) => x.url.startsWith("http://127.0.0.1:7720"))) expect(Object.keys(s.headers).map((k) => k.toLowerCase())).not.toContain("x-understudy-actor");
+    });
   });
 
   describe("identity", () => {

@@ -143,7 +143,9 @@ def test_every_allow_entry_matches_a_real_file_or_is_removed():
 
 def test_the_localmodel_host_constant_really_is_loopback():
     cfg = pytest.importorskip("understudy_engine.localmodel.config")
-    assert cfg.HOST in guard.LOOPBACK_HOSTS
+    from understudy_engine.privacy import netscan
+
+    assert cfg.HOST in netscan.LOOPBACK_HOSTS
 
 
 def test_egress_is_the_one_module_with_a_model_port_import_and_it_is_lazy():
@@ -190,7 +192,7 @@ def test_the_real_runtime_has_no_unrecorded_direct_model_call_and_no_provider_im
 def test_cue_awareness_evidence_mlv2_and_personas_v2_are_guarded_and_two_are_pure_compute():
     for layer in ("cue", "awareness", "evidence", "mlv2", "personas_v2"):
         assert layer in guard.GUARDED_DIRS
-    assert set(guard.PURE_COMPUTE_DIRS) == {"mlv2", "personas_v2"}
+    assert {"mlv2", "personas_v2", "attention"} == set(guard.PURE_COMPUTE_DIRS)
     assert {"routes_cue.py", "routes_evidence.py", "routes_mlv2.py", "routes_personas_v2.py"} <= set(guard.GUARDED_FILES)
 
 

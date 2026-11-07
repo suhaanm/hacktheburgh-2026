@@ -18,6 +18,7 @@ paths; the provenance check resolves them. ``facts()`` builds that table.
 """
 from __future__ import annotations
 
+import dataclasses
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -65,6 +66,7 @@ class Gap(SafePayload):
     null_lo: float | None = None
     null_hi: float | None = None
     UNITS: ClassVar[dict[str, str]] = {"cohort_n": "count", "*": "s"}
+    NOUNS: ClassVar[dict[str, tuple[str, ...]]] = {"cohort_n": ("novices", "novice", "people", "persons", "person")}
     SIGNED: ClassVar[frozenset[str]] = frozenset({"gap_s", "cohort_gap_s", "placebo_s"})
     INTERVALS: ClassVar[tuple[tuple[str, str, str | None], ...]] = (
         ("gap_lo", "gap_hi", "gap_s"), ("cohort_lo", "cohort_hi", "cohort_gap_s"), ("placebo_lo", "placebo_hi", "placebo_s"),
@@ -83,6 +85,7 @@ class Habit(SafePayload):
     cf_hi: float | None = None
     n: Annotated[int, Field(ge=0, le=100000)] | None = None
     UNITS: ClassVar[dict[str, str]] = {"n": "count", "*": "s"}
+    NOUNS: ClassVar[dict[str, tuple[str, ...]]] = {"n": ("cases", "case", "people", "novices", "episodes", "traces")}
     SIGNED: ClassVar[frozenset[str]] = frozenset({"seconds", "counterfactual_s"})
     INTERVALS: ClassVar[tuple[tuple[str, str, str | None], ...]] = (("lo", "hi", "seconds"), ("cf_lo", "cf_hi", "counterfactual_s"))
 
@@ -112,6 +115,7 @@ class Consequence(SafePayload):
     mean_gbp: float | None = None
     n: Annotated[int, Field(ge=0, le=100000)] | None = None
     UNITS: ClassVar[dict[str, str]] = {"p_error": "frac", "lo": "frac", "hi": "frac", "mean_gbp": "gbp", "n": "count"}
+    NOUNS: ClassVar[dict[str, tuple[str, ...]]] = {"n": ("households", "household", "cases")}
     SIGNED: ClassVar[frozenset[str]] = frozenset()
     INTERVALS: ClassVar[tuple[tuple[str, str, str | None], ...]] = (("lo", "hi", "p_error"),)
 
@@ -139,6 +143,7 @@ class Hazard(SafePayload):
                                        "model_log_loss": "score", "baseline_log_loss": "score", "ece": "score",
                                        "false_alarms_per_hour": "per_hour", "p_lo": "frac", "p_hi": "frac", "fa_lo": "per_hour",
                                        "fa_hi": "per_hour"}
+    NOUNS: ClassVar[dict[str, tuple[str, ...]]] = {"n_bins": ("bins", "bin", "readings", "reading", "points")}
     SIGNED: ClassVar[frozenset[str]] = frozenset()
     INTERVALS: ClassVar[tuple[tuple[str, str, str | None], ...]] = (("p_lo", "p_hi", "p_now"), ("fa_lo", "fa_hi", "false_alarms_per_hour"))
 
@@ -167,6 +172,7 @@ class Coach(SafePayload):
     gate_consecutive: Annotated[int, Field(ge=0, le=1000)] | None = None
     missed_steps: Annotated[int, Field(ge=0, le=1000)] | None = None
     UNITS: ClassVar[dict[str, str]] = {"gate_consecutive": "count", "missed_steps": "count"}
+    NOUNS: ClassVar[dict[str, tuple[str, ...]]] = {"gate_consecutive": ("signals", "signal"), "missed_steps": ("steps", "step")}
     SIGNED: ClassVar[frozenset[str]] = frozenset()
     INTERVALS: ClassVar[tuple[tuple[str, str, str | None], ...]] = ()
 
@@ -192,8 +198,23 @@ class Routine(SafePayload):
     UNITS: ClassVar[dict[str, str]] = {"episodes": "count", "minutes_per_week": "min", "cv": "score", "judgement_share": "frac",
                                        "hours_lo": "h", "hours_hi": "h", "horizon_weeks": "weeks", "shadow_runs": "count",
                                        "shadow_matches": "count", "wilson_lower": "frac", "runs_to_next": "count"}
+    NOUNS: ClassVar[dict[str, tuple[str, ...]]] = {
+        "episodes": ("times", "time", "episodes", "cases", "runs", "occasions"), "shadow_runs": ("runs", "run", "trials", "comparisons"),
+        "shadow_matches": ("matches", "match", "runs"), "runs_to_next": ("runs", "run")}
     SIGNED: ClassVar[frozenset[str]] = frozenset()
     INTERVALS: ClassVar[tuple[tuple[str, str, str | None], ...]] = (("hours_lo", "hours_hi", None),)
+
+
+class BlockInfo(SafePayload):
+    """Where one block of the packet came from and how fresh it is. A block that is missing or old is reported, never silently dropped."""
+
+    description = "Status (ok, absent or stale), source and age of one block."
+    status: V.BlockStatus
+    source: V.BlockSource | None = None
+    age_s: float | None = None
+    UNITS: ClassVar[dict[str, str]] = {"age_s": "s"}
+    SIGNED: ClassVar[frozenset[str]] = frozenset()
+    INTERVALS: ClassVar[tuple[tuple[str, str, str | None], ...]] = ()
 
 
 class EvidencePacket(SafePayload):
@@ -212,6 +233,7 @@ class EvidencePacket(SafePayload):
     progress: Progress | None = None
     coach: Coach | None = None
     routines: dict[V.RoutineKind, Routine] = Field(default_factory=dict)
+    blocks: dict[V.BlockId, BlockInfo] = Field(default_factory=dict)
     limitations: list[V.LimitId] = Field(default_factory=list)
 
     def to_wire(self) -> dict[str, Any]:                    # noqa: D401 - sent form: no nulls
@@ -259,6 +281,7 @@ class Fact:
     coll: str | None = None          # collection: habit, cohort_habit, cog, consequence, routine
     item: str | None = None          # id within the collection
     pair: str | None = None          # for lo/hi: the path of the interval's other end
+    nouns: tuple[str, ...] = ()      # for a count: the words that may follow it ("24 people", "21 times"); empty = unchecked
 
 
 @dataclass
@@ -291,7 +314,10 @@ class FactTable:
         return sorted(set(self.facts) | self.containers | set(self.labels))
 
 
-COLLECTIONS = {"habits": "habit", "cohort_habits": "cohort_habit", "cogs": "cog", "consequences": "consequence", "routines": "routine"}
+COLLECTIONS = {"habits": "habit", "cohort_habits": "cohort_habit", "cogs": "cog", "consequences": "consequence", "routines": "routine",
+               "blocks": "block"}
+_N_UNIT_NOUNS = {"people": ("people", "persons", "person"), "cases": ("cases", "case"), "episodes": ("episodes", "episode"),
+                 "households": ("households", "household"), "personas": ("personas", "persona")}
 BLOCKS = ("gap", "hazard", "progress", "coach")
 
 
@@ -331,7 +357,8 @@ def _add_leaf_facts(tab: FactTable, prefix: str, model: SafePayload, coll: str |
                 elif name == hi:
                     role = "hi"
             pair = f"{prefix}.{pairs[name]}" if name in pairs and name in interval_lo_hi else None
-            tab.facts[path] = Fact(path, float(v), _unit(model, name), role, name in signed, coll, item, pair)
+            tab.facts[path] = Fact(path, float(v), _unit(model, name), role, name in signed, coll, item, pair,
+                                   getattr(type(model), "NOUNS", {}).get(name, ()))
         elif isinstance(v, str):
             tab.labels[path] = v
         elif isinstance(v, list):
@@ -346,6 +373,8 @@ def facts(obj: EvidencePacket | ExplainRequest) -> FactTable:
     tab = FactTable()
     pk = obj.packet if isinstance(obj, ExplainRequest) else obj
     _add_leaf_facts(tab, "meta", pk.meta, None, None)
+    if "meta.n" in tab.facts:
+        tab.facts["meta.n"] = dataclasses.replace(tab.facts["meta.n"], nouns=_N_UNIT_NOUNS[pk.meta.n_unit])
     for blk in BLOCKS:
         m = getattr(pk, blk)
         if m is not None:
@@ -398,6 +427,8 @@ def limitations_for(pk: EvidencePacket) -> list[str]:
         out.append("saved_time_by_skips")
     if pk.meta.origin == "synthetic" and pk.hazard is not None:
         out.append("scripted_tasks")
+    if any(b.status == "stale" for b in pk.blocks.values()):
+        out.append("stale_data")
     seen: list[str] = []
     for x in out:
         if x not in seen:
@@ -405,9 +436,36 @@ def limitations_for(pk: EvidencePacket) -> list[str]:
     return seen
 
 
+def _default_blocks(pk: EvidencePacket) -> dict[str, BlockInfo]:
+    """A block that is present and has no entry yet is ``ok``, with the source its builder implies (``v1`` unless said otherwise)."""
+    out = dict(pk.blocks)
+    if (pk.gap or pk.habits or pk.cohort_habits) and "genome" not in out:
+        out["genome"] = BlockInfo(status="ok", source="v1")
+    if pk.hazard is not None and "hazard" not in out:
+        out["hazard"] = BlockInfo(status="ok", source="rule" if pk.hazard.source == "rule" else "v1")
+    if pk.coach is not None and "coach" not in out:
+        out["coach"] = BlockInfo(status="ok", source="v1")
+    if pk.routines and "routines" not in out:
+        out["routines"] = BlockInfo(status="ok", source="v1")
+    return out
+
+
 def finalise(pk: EvidencePacket) -> EvidencePacket:
-    """Return the packet with its limitation ids filled in by ``limitations_for``."""
+    """Return the packet with its block map completed and its limitation ids filled in by ``limitations_for``."""
+    pk = pk.model_copy(update={"blocks": _default_blocks(pk)})
     return pk.model_copy(update={"limitations": limitations_for(pk)})
+
+
+def block_info(status: str, source: str | None, age_s: float | None = None) -> BlockInfo:
+    """A block entry; a block older than ``vocab.STALE_AFTER_S`` for its id is stale whatever status the caller gave (``ok``)."""
+    return BlockInfo(status=status, source=source, age_s=None if age_s is None else round(max(0.0, age_s), 1))
+
+
+def judge_stale(block: str, info: BlockInfo) -> BlockInfo:
+    limit = V.STALE_AFTER_S.get(block)
+    if info.status == "ok" and limit is not None and info.age_s is not None and info.age_s > limit:
+        return info.model_copy(update={"status": "stale"})
+    return info
 
 
 # ------------------------------------------------------------------------------------------------ builders
@@ -569,9 +627,13 @@ def from_routines(rows: Iterable[dict[str, Any]]) -> dict[str, Routine]:
 
 
 def combine(base: EvidencePacket, *, hazard: Hazard | None = None, coach: Coach | None = None,
-            routines: dict[str, Routine] | None = None) -> EvidencePacket:
-    """Add blocks to a packet (a block already present is kept unless the new one is richer) and refresh its limitations."""
+            routines: dict[str, Routine] | None = None, blocks: dict[str, BlockInfo] | None = None) -> EvidencePacket:
+    """Add blocks to a packet (a block already present is kept unless the new one is richer), record their status and refresh the
+    limitations. ``blocks`` carries the status, source and age the caller knows (including ``absent`` for a source that was asked and
+    had nothing); a status given here wins over the default."""
     upd: dict[str, Any] = {}
+    if blocks:
+        upd["blocks"] = {**base.blocks, **{k: judge_stale(k, v) for k, v in blocks.items()}}
     if hazard is not None and (base.hazard is None or (base.hazard.source == "rule" and hazard.source == "model")
                                or (hazard.n_bins and not base.hazard.n_bins)):
         upd["hazard"] = hazard
@@ -670,7 +732,10 @@ def from_evidence_inputs(inp: Any, *, person: str | None = None, case: str | Non
             t = c.time_to_progress
             prog = Progress(expected_min=_r1(t.expected_min), lo=_r1(t.lo), hi=_r1(t.hi), c_index=_r3(t.c_index))
         lim += list(c.limitations)
-    pk = EvidencePacket(meta=m, gap=gap, habits=habits, cogs=cogs, hazard=hz, progress=prog)
+    blocks = {"mlv2": BlockInfo(status="ok", source="v2"), "genome": BlockInfo(status="ok", source="v2")}
+    if hz is not None:
+        blocks["hazard"] = BlockInfo(status="ok", source="rule" if hz.source == "rule" else "v2")
+    pk = EvidencePacket(meta=m, gap=gap, habits=habits, cogs=cogs, hazard=hz, progress=prog, blocks=blocks)
     pk = finalise(pk)
     extra = known_limitations(lim)
     merged = list(pk.limitations) + [x for x in extra if x not in pk.limitations]

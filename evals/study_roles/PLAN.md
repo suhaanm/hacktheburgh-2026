@@ -45,6 +45,7 @@ Per role there are three skills and a participant works **two of them (a pair)**
 * **Study mode.** Each case sets the engine's own study mode through `POST /study/mode`: `train` with `skill_on` = the block's pack skill id and level `L1` for a coached practice, `off`
   for an uncoached practice, `post_test` for every pre-test and post-test (always silent). Per-task `steps_off` drops pack steps that do not apply to a task (stated in the sandbox
   catalogue; e.g. the test-first task has no failing test to read, so `read_trace_first` is dropped).
+* **Order and interleaving.** The order of the two skill blocks is counterbalanced across sequences (as in the benefits study). An interleaved SCHEDULE within a participant and the weaker "novice" prompt of a prompt-sensitivity check are **not part of this plan** (the lead did not fund them); the `novice` persona text exists in `participant.py` only so that a later, separately funded amendment can state it in advance.
 * **The participant is told only** the facilitator's text for the role (`roles.py`), which says what the workbench is, to commit/answer and press the finishing button, and never to press
   the forbidden control; the case text is on the page. It is **not told** what the checks are called or why they matter.
 

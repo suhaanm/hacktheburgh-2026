@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Body, Query, Request
+from . import http_guard
 from fastapi.responses import JSONResponse
 
 from .memory import (
@@ -50,7 +51,6 @@ router = APIRouter(tags=["handoff"])
 
 _lock = threading.RLock()
 _cache: dict[tuple, Any] = {}
-_ALLOWED_ORIGIN_PREFIXES = ("http://localhost", "http://127.0.0.1", "https://localhost", "file://", "app://")
 DEFAULT_GAIN, DEFAULT_CAP = 1.0, 0.10
 
 
@@ -85,19 +85,19 @@ def _mem() -> MemoryStore:
 
 def _guard(request: Request) -> JSONResponse | None:
     """Only the worker's own UI writes. Anything naming another actor, or from a foreign origin, is refused."""
-    actor = request.headers.get("x-understudy-actor", "worker").strip()
+    actor = http_guard.actor_of(request)
     origin = request.headers.get("origin")
+    if origin is not None and not http_guard.origin_allowed(origin):          # judged first: a page that also names no actor is still "a foreign origin"
+        _audit("memory_write_refused", f"origin {_clean_actor(origin)} on {request.url.path}")
+        return _error(403, "write_refused", "Writes only come from the worker's own app on this machine.")
     if actor not in WORKER_ACTORS:
         _audit("memory_write_refused", f"actor {_clean_actor(actor)} on {request.url.path}")
         return _error(403, "write_refused", f"Only the worker can change memory, consent or quiet hours; the actor {_clean_actor(actor)!r} cannot.")
-    if origin is not None and not origin.startswith(_ALLOWED_ORIGIN_PREFIXES):
-        _audit("memory_write_refused", f"origin {_clean_actor(origin)} on {request.url.path}")
-        return _error(403, "write_refused", "Writes only come from the worker's own app on this machine.")
     return None
 
 
 def _actor(request: Request) -> str:
-    return request.headers.get("x-understudy-actor", "worker").strip() or "worker"
+    return http_guard.actor_of(request)
 
 
 def _src() -> PersonSource:
@@ -493,9 +493,12 @@ EVIDENCE_ACTORS = WORKER_ACTORS | {"agent"}
 
 def _guard_evidence(request: Request) -> JSONResponse | None:
     """Shadow results are evidence, not memory: the worker's app or the agent service may post them. Pages, models and tools may not."""
-    actor = request.headers.get("x-understudy-actor", "worker").strip()
+    actor = http_guard.actor_of(request)
     origin = request.headers.get("origin")
-    if actor not in EVIDENCE_ACTORS or (origin is not None and not origin.startswith(_ALLOWED_ORIGIN_PREFIXES)):
+    if origin is not None and not http_guard.origin_allowed(origin):
+        _audit("shadow_write_refused", f"origin {_clean_actor(origin)} on {request.url.path}")
+        return _error(403, "write_refused", "Only the worker's app or the agent service can post shadow results.")
+    if actor not in EVIDENCE_ACTORS:
         _audit("shadow_write_refused", f"actor {_clean_actor(actor)} on {request.url.path}")
         return _error(403, "write_refused", "Only the worker's app or the agent service can post shadow results.")
     return None

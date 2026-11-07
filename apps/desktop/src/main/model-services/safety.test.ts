@@ -2,8 +2,9 @@
 // through the model port (the real OpenAI provider over a fake fetch, and a fake port).
 import fs from 'node:fs'
 import path from 'node:path'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { LearnerSnapshot } from '../../shared/protocol'
+import { ALLOW_ALL_FOR_TESTS, configureLegacyRemote } from '../legacy-remote'
 import { createModelPort, createOpenAiProvider, ModelPortError, plainFailure, redactArg, redactText, type ModelPort } from '../model-port'
 import { apiError, fakePort, hasImage, modelOutput, sleep, testDeps, testShot, textInput } from '../model-port/fake-port.test-util'
 import { withSafeLog, type ModelDeps } from './deps'
@@ -19,7 +20,11 @@ const createGrounder = (deps: ModelDeps, cfg: GroundConfig = {}) => realCreateGr
 // Built at runtime so no key-shaped literal sits in the repo (secret scanners match the sk- and AIza shapes).
 const aiza = (rest: string) => ['AI', 'za', rest].join('')
 const FAKE_KEY = ['sk', '-proj-', 'FAKE'.repeat(8) + 'x1'].join('')
-const ENV = { OPENAI_API_KEY: FAKE_KEY, OPENAI_MODEL_PLANNER: 'plan-x', OPENAI_MODEL_FAST: 'fast-x', OPENAI_MODEL_COMPUTER_USE: 'cu-x' }
+// The OpenAI provider is DEFAULT OFF (D38): these tests are about what goes on the wire, so the flag is on and the gate allows everything.
+// The gate and the flag-off behaviour have their own tests (src/main/legacy-remote*.test.ts).
+beforeAll(() => configureLegacyRemote(ALLOW_ALL_FOR_TESTS))
+afterAll(() => configureLegacyRemote(null))
+const ENV = { UNDERSTUDY_LEGACY_REMOTE: '1', OPENAI_API_KEY: FAKE_KEY, OPENAI_MODEL_PLANNER: 'plan-x', OPENAI_MODEL_FAST: 'fast-x', OPENAI_MODEL_COMPUTER_USE: 'cu-x' }
 const learner: LearnerSnapshot = {
   skills: {
     video_call: { level: 2, streakClean: 1, lastSeen: null, nextReview: null },

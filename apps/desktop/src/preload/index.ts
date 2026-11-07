@@ -71,6 +71,10 @@ const api: AlongsideApi = {
   shell: {
     onCommand: (cb) => on(IPC.shellCommand, cb),
   },
+  awareness: {
+    state: () => invoke(IPC.awarenessState),
+    setConsent: (choice) => invoke(IPC.awarenessConsent, choice),
+  },
   showtime: {
     start: (opts) => invoke(IPC.showtimeStart, opts),
     stop: () => invoke(IPC.showtimeStop),

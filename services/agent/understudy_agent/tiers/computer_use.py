@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Protocol
 
+from ..context.working import PageState
 from ..models.port import Action, Done, ModelPort, SafetyStop
 from ..supervisor import kill_flag_path
 from .base import Emit, StepBudgetExceeded, StepEvent, StuckDetector, StuckLoop, TierError
@@ -51,10 +52,11 @@ class TargetRead:
     role: str | None = None
     url: str | None = None
     field_attrs: dict[str, Any] | None = None
+    structure: tuple[str, ...] = ()       # what the control structurally is (see security.gates.TargetInfo)
 
     @property
-    def key(self) -> tuple[str | None, str | None]:
-        return (self.label, self.role)
+    def key(self) -> tuple[Any, ...]:
+        return (self.label, self.role, self.structure)
 
 
 class Actuator(Protocol):
@@ -73,7 +75,9 @@ def merge_reads(reads: list["TargetRead | None"]) -> "TargetRead | None":
         return None
     first = reads[0]
     labels = [r.label for r in reads if r and r.label]
-    return TargetRead(" / ".join(dict.fromkeys(labels)) if labels else first.label, first.role, first.url, first.field_attrs)
+    structure = tuple(dict.fromkeys(t for r in reads if r for t in r.structure))
+    return TargetRead(" / ".join(dict.fromkeys(labels)) if labels else first.label, first.role, first.url,
+                      first.field_attrs, structure)
 
 
 def blank_png(w: int = 1280, h: int = 720) -> bytes:
@@ -141,6 +145,12 @@ READ_TARGET_JS = r"""
   const CTRL = 'button,a[href],input,select,textarea,summary,[role=button],[role=link],[role=menuitem],[role=checkbox],' +
                '[role=radio],[role=tab],[role=switch],[role=option],[onclick]';
   const BTN = ['submit', 'button', 'reset', 'image'];
+  const norm = s => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  const visible = e => {
+    const tag = e.tagName.toLowerCase(), ty = (e.getAttribute('type') || '').toLowerCase();
+    if (tag === 'input' && BTN.includes(ty)) return (e.value || '').trim();
+    return txt(e).slice(0, 120);
+  };
   const name = e => {
     const al = e.getAttribute('aria-label'); if (al && al.trim()) return al.trim();
     const lb = e.getAttribute('aria-labelledby');
@@ -152,6 +162,43 @@ READ_TARGET_JS = r"""
     const t = txt(e); if (t) return t.slice(0, 120);
     return (e.getAttribute('alt') || e.getAttribute('title') || '').trim();
   };
+  const hostOf = u => { try { const x = new URL(u, location.href); return (x.protocol === 'http:' || x.protocol === 'https:') ? x : null; } catch (e) { return null; } };
+  // what the ADDRESS says it does: the path and the query KEYS (never values), as words, for the gate to read
+  const pathWords = u => { try { const x = new URL(u, location.href);
+    return (decodeURIComponent(x.pathname) + ' ' + Array.from(x.searchParams.keys()).join(' ')).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  } catch (e) { return ''; } };
+  // Everything the page calls this control, and what it structurally is. The page chooses its names; it does not choose
+  // its type, its form target or its href.
+  const analyse = c => {
+    const tag = c.tagName.toLowerCase(), ty = (c.getAttribute('type') || '').toLowerCase();
+    const names = [], st = [];
+    const al = (c.getAttribute('aria-label') || '').trim(), vis = visible(c), ti = (c.getAttribute('title') || '').trim();
+    for (const n of [al, vis, ti, name(c)]) if (n && !names.map(norm).includes(norm(n))) names.push(n);
+    if (al && vis && !norm(al).includes(norm(vis)) && !norm(vis).includes(norm(al))) st.push('label_mismatch');
+    const form = c.form || c.closest('form');
+    const submits = (tag === 'button' && (ty === 'submit' || ty === '')) || (tag === 'input' && (ty === 'submit' || ty === 'image'));
+    if (submits && form) {
+      st.push('submit_control');
+      // read the ATTRIBUTES: the properties can be clobbered by a field named "action", and a button's formAction
+      // property answers with the page's own address when it has no formaction of its own
+      const fa = c.getAttribute('formaction') || form.getAttribute('action');
+      if (fa !== null && fa !== undefined && fa.trim() !== '') {
+        const u = hostOf(fa);
+        if (!u || u.origin !== location.origin) st.push('external_form:' + (u ? u.host : 'non-web'));
+        const pw = pathWords(fa); if (pw) st.push('path:' + pw);
+      }
+    }
+    if (tag === 'a' && c.hasAttribute('href')) {
+      const raw = (c.getAttribute('href') || '').trim();
+      const u = hostOf(c.href);
+      const back = /^javascript:\s*history\.(back\(\)|go\(\s*-1\s*\))\s*;?$/i.test(raw);   // the one script link that is plainly harmless
+      if (!back && (!u || u.origin !== location.origin)) st.push('cross_origin_link:' + (u ? u.host : 'non-web'));
+      if (!back && u) { const pw = pathWords(raw); if (pw) st.push('path:' + pw); }
+      if (c.hasAttribute('download')) st.push('download');
+    }
+    if (norm(c.getAttribute('aria-haspopup')) === 'dialog') st.push('opens_dialog');
+    return {names, st};
+  };
   const focus = (x === null || x === undefined);
   let el = focus ? document.activeElement : document.elementFromPoint(x, y);
   for (let i = 0; !focus && i < 5 && el && el.shadowRoot && el.shadowRoot.elementFromPoint; i++) {
@@ -160,27 +207,46 @@ READ_TARGET_JS = r"""
   if (!el) return {ok: false, why: 'nothing there'};
   if (['iframe', 'frame', 'embed', 'object', 'canvas', 'video'].includes(el.tagName.toLowerCase()))
     return {ok: false, why: 'opaque content'};
-  if (focus && (el === document.body || el === document.documentElement)) return {ok: true, label: '', role: 'document', field: null};
+  // a custom element (a hyphenated tag) or any shadow host hides what is inside it (a closed shadow root answers with the host)
+  for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
+    if (n.tagName.indexOf('-') >= 0 || n.shadowRoot) return {ok: false, why: 'opaque custom element'};
+  }
+  if (focus && (el === document.body || el === document.documentElement)) return {ok: true, label: '', role: 'document', field: null, structure: []};
   let t = el.closest(CTRL);
   if (!t) { const lab = el.closest('label'); t = (lab && lab.control) ? lab.control : el; }
   const tag = t.tagName.toLowerCase(), ty = (t.getAttribute('type') || '').toLowerCase();
   const implicit = {button: 'button', a: 'link', select: 'combobox', textarea: 'textbox', summary: 'button'};
   const byType = {submit: 'button', button: 'button', reset: 'button', image: 'button', checkbox: 'checkbox', radio: 'radio'};
   const role = t.getAttribute('role') || (tag === 'input' ? (byType[ty] || 'textbox') : implicit[tag]) || 'generic';
-  const own = role === 'generic' && !t.matches(CTRL) ? '' : name(t);
+  const ctrl = !(role === 'generic' && !t.matches(CTRL));
+  let own = ctrl ? analyse(t) : {names: [], st: []};
+  if (!ctrl) {
+    // A plain element can still be a script-driven button (a <div> with a listener, with or without a pointer cursor). Its own
+    // text and its ancestors' text up to three levels (short texts only: a button's name, not a paragraph) name it for the gate.
+    const parts = [];
+    for (let n = t, i = 0; n && n.nodeType === 1 && i < 4; n = n.parentElement, i++) {
+      const tx = txt(n); if (tx && tx.length <= 40 && !parts.includes(tx)) parts.push(tx);
+    }
+    const pointer = getComputedStyle(t).cursor === 'pointer';
+    if (pointer && !parts.length) return {ok: false, why: 'unnamed clickable'};
+    own = {names: parts, st: pointer ? ['script_clickable'] : []};
+  }
   const named = ['button', 'link', 'menuitem', 'tab', 'switch', 'option', 'checkbox', 'radio'].includes(role);
-  if (named && !own) return {ok: false, why: 'unnamed control'};
-  let label = own;
-  if (focus && (tag === 'input' || tag === 'select') && !BTN.includes(ty)) {      // Enter here submits the form's default button
+  if (named && !own.names.length) return {ok: false, why: 'unnamed control'};
+  // A text box does nothing outward when clicked, whatever its caption says ("Your take-home pay"): its caption is kept for
+  // the sensitive-field check, not for the action classes. Enter in it acts as the form's default button, so THAT is read.
+  const isField = ['input', 'textarea', 'select'].includes(tag);
+  const textField = isField && !(tag === 'input' && (BTN.includes(ty) || ty === 'checkbox' || ty === 'radio'));
+  let names = textField ? [] : own.names.slice(), st = textField ? [] : own.st.slice();
+  if (focus && textField && tag !== 'textarea') {                                // Enter here submits the form's default button
     const f = t.form || t.closest('form');
     const b = f && f.querySelector('input[type=submit],button[type=submit],button:not([type]),input[type=image]');
-    if (b) { const sn = name(b); label = label ? label + ' / ' + sn : sn; }
+    if (b) { const a2 = analyse(b); names = names.concat(a2.names); st = st.concat(a2.st); }
   }
-  const isField = ['input', 'textarea', 'select'].includes(tag);
-  const field = isField ? {name: t.getAttribute('name') || '', id: t.id || '', label: own, placeholder: t.getAttribute('placeholder') || '',
+  const field = isField ? {name: t.getAttribute('name') || '', id: t.id || '', label: own.names[0] || '', placeholder: t.getAttribute('placeholder') || '',
                            autocomplete: t.getAttribute('autocomplete') || '', aria_label: t.getAttribute('aria-label') || '',
                            type: ty || (tag === 'input' ? 'text' : tag), role} : null;
-  return {ok: true, label, role, field};
+  return {ok: true, label: names.join(' / '), role, field, structure: Array.from(new Set(st))};
 }
 """
 
@@ -215,7 +281,8 @@ class BrowserPageActuator:
                 r = await self.page.evaluate(READ_TARGET_JS, pt)
             except Exception:  # noqa: BLE001 - a page mid-navigation cannot be read: unreadable, never "fine"
                 return None
-            reads.append(TargetRead(r["label"], r["role"], self.url, r.get("field")) if r and r.get("ok") else None)
+            reads.append(TargetRead(r["label"], r["role"], self.url, r.get("field"), tuple(r.get("structure") or ()))
+                         if r and r.get("ok") else None)
         return merge_reads(reads)
 
     async def screenshot(self) -> bytes:
@@ -261,18 +328,26 @@ TITLE_BAR_PT = 28.0       # a typing target must be below the window's title bar
 TYPE_CHUNK = 6            # at most this many characters are typed per verification
 FOCUS_POLL_S = 0.025
 FOCUS_WAIT_S = 0.5
+MIN_SHOT_H = 16           # a capture shorter than this is not a screen; the vertical bound is only enforced above it
+OVERLAY_OWNERS = tuple(x.strip() for x in os.environ.get("UNDERSTUDY_OVERLAY_OWNERS", "Understudy,Electron").split(",") if x.strip())
 
 
 class MacBackend(Protocol):
     """Everything MacActuator needs from the operating system. `QuartzBackend` is the real one; tests pass a fake.
-    Methods are synchronous and fast. Coordinates are in POINTS."""
+    Methods are synchronous and fast. Coordinates are in POINTS.
+
+    `window_at` returns the topmost on-screen window of ANY layer at the point (that is the window that would take the
+    click: the Dock, a notification banner, a floating panel or a system alert count), as a dict with `owner`, `bounds`
+    and, when the OS gives them, `number`, `pid`, `layer`, `title`.
+    Optional (used when present): `windows_of(owner)`, `element_at(x, y)` and `focused_element()` (accessibility reads:
+    dicts with role, title, description, help, secure, in_dialog), `set_stop_check(fn)`, `read_document(app)`."""
 
     def frontmost_app(self) -> str: ...
     def screen_locked(self) -> bool: ...
     def backing_scale(self) -> float: ...                 # NSScreen.mainScreen().backingScaleFactor()
     def display_width_pts(self) -> float: ...             # CGDisplayBounds width, in points
-    def window_at(self, x_pt: float, y_pt: float) -> dict[str, Any] | None: ...  # topmost layer-0 window there
-    def mouse(self, kind: str, x_pt: float, y_pt: float) -> None: ...   # move | down | up
+    def window_at(self, x_pt: float, y_pt: float) -> dict[str, Any] | None: ...
+    def mouse(self, kind: str, x_pt: float, y_pt: float) -> None: ...   # move | down | up | drag
     def type_text(self, text: str) -> None: ...
     def key(self, keys: list[str]) -> None: ...
     def scroll(self, dx: int, dy: int) -> None: ...
@@ -280,18 +355,64 @@ class MacBackend(Protocol):
     def release_all(self) -> None: ...
 
 
-def png_width(png: bytes) -> int:
+def png_size(png: bytes) -> tuple[int, int] | None:
     import struct
 
     if len(png) < 24 or png[:8] != b"\x89PNG\r\n\x1a\n":
+        return None
+    w, h = struct.unpack(">II", png[16:24])
+    return int(w), int(h)
+
+
+def png_width(png: bytes) -> int:
+    size = png_size(png)
+    if size is None:
         raise ValueError("not a PNG")
-    return struct.unpack(">II", png[16:24])[0]
+    return size[0]
+
+
+# macOS virtual key codes (ANSI layout) for the chords the model may press.
+_KEYCODES = {**{c: k for c, k in zip("asdfhgzxcvbqweryt", [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17])},
+             "1": 18, "2": 19, "3": 20, "4": 21, "6": 22, "5": 23, "9": 25, "7": 26, "8": 28, "0": 29,
+             "o": 31, "u": 32, "i": 34, "p": 35, "l": 37, "j": 38, "k": 40, "n": 45, "m": 46,
+             "enter": 36, "return": 36, "tab": 48, "space": 49, "backspace": 51, "delete": 117, "esc": 53, "escape": 53,
+             "left": 123, "right": 124, "down": 125, "up": 126, "home": 115, "end": 119, "pageup": 116, "page_up": 116,
+             "pagedown": 121, "page_down": 121}
+_MOD_FLAGS = {"cmd": 0x100000, "command": 0x100000, "meta": 0x100000, "shift": 0x20000, "alt": 0x80000, "option": 0x80000,
+              "ctrl": 0x40000, "control": 0x40000}
+
+_AX_ROLES = {"AXButton": "button", "AXLink": "link", "AXCheckBox": "checkbox", "AXRadioButton": "radio",
+             "AXMenuItem": "menuitem", "AXMenuBarItem": "menuitem", "AXPopUpButton": "button", "AXTextField": "textbox",
+             "AXTextArea": "textbox", "AXComboBox": "textbox", "AXSecureTextField": "textbox", "AXTab": "tab"}
+_AX_NAMED = {"button", "link", "checkbox", "radio", "menuitem", "tab"}
+
+
+def target_from_ax(el: dict[str, Any] | None, *, app: str | None = None) -> TargetRead | None:
+    """An accessibility element as the gate wants it. None (unreadable) for a missing element, an unknown role, or a
+    control that has no name. Text boxes keep their caption for the sensitive-field check only."""
+    if not el:
+        return None
+    raw = str(el.get("role") or "")
+    role = _AX_ROLES.get(raw) or (raw[2:].lower() if raw.startswith("AX") and len(raw) > 2 else None)
+    if not role:
+        return None
+    names = [str(n).strip() for n in (el.get("title"), el.get("description"), el.get("help")) if n and str(n).strip()]
+    if role in _AX_NAMED and not names:
+        return None
+    structure = ("opens_dialog",) if el.get("in_dialog") else ()
+    if role == "textbox":
+        attrs = {"type": "password" if el.get("secure") or raw == "AXSecureTextField" else "text",
+                 "label": names[0] if names else "", "role": role}
+        return TargetRead("", role, None, attrs, structure)
+    return TargetRead(" / ".join(dict.fromkeys(names)), role, None, None, structure)
 
 
 class QuartzBackend:
-    """Real macOS events via pyobjc (Quartz CGEvent, AppKit NSWorkspace/NSScreen). Imports lazily; install with
-    `uv run --with pyobjc-framework-Quartz --with pyobjc-framework-Cocoa ...`. Reference: scripts/s2_textedit_test.py.
-    NOT exercised by tests: only the owner-supervised check runs it."""
+    """Real macOS events via pyobjc (Quartz CGEvent, AppKit NSWorkspace/NSScreen, ApplicationServices accessibility).
+    Imports lazily; install with `uv run --with pyobjc-framework-Quartz --with pyobjc-framework-Cocoa
+    --with pyobjc-framework-ApplicationServices ...`. Reference: scripts/s2_textedit_test.py. The window list and event
+    code is exercised against a fake Quartz module; the accessibility reads and real events only by the owner-supervised
+    check."""
 
     def __init__(self) -> None:
         try:
@@ -300,6 +421,11 @@ class QuartzBackend:
         except ImportError as exc:  # pragma: no cover - needs pyobjc
             raise ImportError("QuartzBackend needs pyobjc-framework-Quartz and pyobjc-framework-Cocoa") from exc
         self._down = False
+        self._stop: Callable[[], bool] | None = None
+
+    def set_stop_check(self, fn: Callable[[], bool]) -> None:
+        """Polled between every typed character: the kill file, a supervisor Stop. Stop wins inside a long type."""
+        self._stop = fn
 
     def frontmost_app(self) -> str:  # pragma: no cover - real desktop
         from AppKit import NSWorkspace
@@ -324,46 +450,100 @@ class QuartzBackend:
 
         return float(Quartz.CGDisplayBounds(Quartz.CGMainDisplayID()).size.width)
 
-    def window_at(self, x_pt: float, y_pt: float) -> dict[str, Any] | None:  # pragma: no cover - real desktop
-        """Topmost normal (layer 0) on-screen window containing the point. CGWindowList is ordered front to back."""
+    @staticmethod
+    def _win_dict(w: Any) -> dict[str, Any] | None:
+        b = w.get("kCGWindowBounds") or {}
+        x, y, ww, hh = float(b.get("X", 0)), float(b.get("Y", 0)), float(b.get("Width", 0)), float(b.get("Height", 0))
+        if ww <= 0 or hh <= 0 or float(w.get("kCGWindowAlpha", 1.0)) <= 0.0:
+            return None
+        return {"owner": str(w.get("kCGWindowOwnerName", "")), "bounds": (x, y, ww, hh),
+                "layer": int(w.get("kCGWindowLayer", 0)), "title": str(w.get("kCGWindowName", "") or ""),
+                "number": w.get("kCGWindowNumber"), "pid": w.get("kCGWindowOwnerPID")}
+
+    def _all_windows(self) -> list[dict[str, Any]]:
+        """On-screen windows front to back, EVERY layer (the Dock, banners, floating panels, system alerts and menus take
+        clicks too). Skipped: windows with no area or no opacity, the desktop, and the full-display Dock or Window Server
+        surfaces and the Understudy overlay (click-through; it covers the display and is never the click's target)."""
         import Quartz
 
         opts = Quartz.kCGWindowListOptionOnScreenOnly | Quartz.kCGWindowListExcludeDesktopElements
+        disp = Quartz.CGDisplayBounds(Quartz.CGMainDisplayID()).size
+        out = []
         for w in Quartz.CGWindowListCopyWindowInfo(opts, Quartz.kCGNullWindowID) or []:
-            if int(w.get("kCGWindowLayer", 1)) != 0 or float(w.get("kCGWindowAlpha", 1.0)) <= 0.0:
+            d = self._win_dict(w)
+            if d is None:
                 continue
-            b = w.get("kCGWindowBounds") or {}
-            x, y, ww, hh = float(b.get("X", 0)), float(b.get("Y", 0)), float(b.get("Width", 0)), float(b.get("Height", 0))
+            covers = d["bounds"][2] >= float(disp.width) - 1 and d["bounds"][3] >= float(disp.height) - 1
+            if covers and (d["owner"] in ("Dock", "Window Server") or d["owner"] in OVERLAY_OWNERS):
+                continue
+            out.append(d)
+        return out
+
+    def window_at(self, x_pt: float, y_pt: float) -> dict[str, Any] | None:
+        """The topmost window of any layer at the point: the one that would receive the click."""
+        for d in self._all_windows():
+            x, y, ww, hh = d["bounds"]
             if x <= x_pt < x + ww and y <= y_pt < y + hh:
-                return {"owner": str(w.get("kCGWindowOwnerName", "")), "bounds": (x, y, ww, hh), "layer": 0,
-                        "title": str(w.get("kCGWindowName", "") or "")}
+                return d
         return None
+
+    def windows_of(self, owner: str) -> list[dict[str, Any]]:
+        """The app's DOCUMENT windows (layer 0, not tiny): what an owner means by "the windows of this app"."""
+        return [d for d in self._all_windows() if d["owner"] == owner and d["layer"] == 0
+                and d["bounds"][2] * d["bounds"][3] >= 10000.0]
+
+    def all_windows_of(self, owner: str) -> list[dict[str, Any]]:
+        """EVERY on-screen window of the app, any size and any layer (a find panel, a popover, a tiny document count). The
+        actuator's single-window rule and the preflight use THIS one, so a small topmost window cannot be pinned by mistake."""
+        return [d for d in self._all_windows() if d["owner"] == owner]
+
+    def _post(self, ev: Any, flags: int = 0) -> None:
+        import Quartz as Q
+
+        Q.CGEventSetFlags(ev, flags)          # explicit: never inherit the modifiers the worker is physically holding (S-13)
+        Q.CGEventPost(Q.kCGHIDEventTap, ev)
 
     def mouse(self, kind: str, x_pt: float, y_pt: float) -> None:  # pragma: no cover - real desktop
         import Quartz as Q
 
-        ev_type = {"move": Q.kCGEventMouseMoved, "down": Q.kCGEventLeftMouseDown, "up": Q.kCGEventLeftMouseUp}[kind]
-        Q.CGEventPost(Q.kCGHIDEventTap, Q.CGEventCreateMouseEvent(None, ev_type, (x_pt, y_pt), Q.kCGMouseButtonLeft))
-        self._down = kind == "down" or (self._down and kind != "up")
+        ev_type = {"move": Q.kCGEventMouseMoved, "down": Q.kCGEventLeftMouseDown, "up": Q.kCGEventLeftMouseUp,
+                   "drag": Q.kCGEventLeftMouseDragged}[kind]
+        self._post(Q.CGEventCreateMouseEvent(None, ev_type, (x_pt, y_pt), Q.kCGMouseButtonLeft))
+        self._down = kind in ("down", "drag") or (self._down and kind != "up")
 
-    def type_text(self, text: str) -> None:  # pragma: no cover - real desktop
+    def type_text(self, text: str) -> None:
         import Quartz as Q
 
         for ch in text:
+            if self._stop is not None and self._stop():
+                self.release_all()
+                raise ActuatorRefused("stopped while typing (kill file or supervisor stop)")
             for down in (True, False):
                 ev = Q.CGEventCreateKeyboardEvent(None, 0, down)
                 Q.CGEventKeyboardSetUnicodeString(ev, len(ch), ch)
-                Q.CGEventPost(Q.kCGHIDEventTap, ev)
+                self._post(ev, 0)
                 time.sleep(0.012)
 
-    def key(self, keys: list[str]) -> None:  # pragma: no cover - real desktop
-        raise NotImplementedError("named key chords are not implemented; type_text covers the spike")
+    def key(self, keys: list[str]) -> None:
+        """A chord: modifiers (cmd, shift, alt/option, ctrl) plus one key from the keycode table, with the flags set
+        explicitly on both events. Anything not in the table is refused, never guessed."""
+        import Quartz as Q
+
+        mods = [k.lower() for k in keys if k.lower() in _MOD_FLAGS]
+        rest = [k.lower() for k in keys if k.lower() not in _MOD_FLAGS]
+        if len(rest) != 1 or rest[0] not in _KEYCODES:
+            raise ActuatorRefused(f"key chord {keys!r} is not supported by the real actuator")
+        flags = 0
+        for m in mods:
+            flags |= _MOD_FLAGS[m]
+        for down in (True, False):
+            self._post(Q.CGEventCreateKeyboardEvent(None, _KEYCODES[rest[0]], down), flags)
+            time.sleep(0.012)
 
     def scroll(self, dx: int, dy: int) -> None:  # pragma: no cover - real desktop
         import Quartz as Q
 
-        ev = Q.CGEventCreateScrollWheelEvent(None, Q.kCGScrollEventUnitPixel, 2, dy, dx)
-        Q.CGEventPost(Q.kCGHIDEventTap, ev)
+        self._post(Q.CGEventCreateScrollWheelEvent(None, Q.kCGScrollEventUnitPixel, 2, dy, dx))
 
     def screenshot_png(self) -> bytes:  # pragma: no cover - real desktop
         import subprocess
@@ -374,13 +554,59 @@ class QuartzBackend:
             subprocess.run(["screencapture", "-x", str(p)], check=True)
             return p.read_bytes()
 
-    def release_all(self) -> None:  # pragma: no cover - real desktop
+    def release_all(self) -> None:
         if self._down:
             import Quartz as Q
 
             p = Q.CGEventGetLocation(Q.CGEventCreate(None))
             self.mouse("up", float(p.x), float(p.y))
             self._down = False
+
+    # ---- accessibility (needs the Accessibility permission the owner already grants for events)
+    def _ax_dict(self, el: Any) -> dict[str, Any] | None:  # pragma: no cover - real desktop
+        import ApplicationServices as AS
+
+        def attr(e: Any, name: str) -> Any:
+            err, val = AS.AXUIElementCopyAttributeValue(e, name, None)
+            return val if err == 0 else None
+
+        role = attr(el, "AXRole")
+        if not role:
+            return None
+        win = attr(el, "AXWindow")
+        wrole, wsub = (attr(win, "AXRole"), attr(win, "AXSubrole")) if win is not None else (None, None)
+        in_dialog = str(wrole) == "AXSheet" or str(wsub) in ("AXDialog", "AXSystemDialog", "AXFloatingWindow")
+        return {"role": str(role), "subrole": str(attr(el, "AXSubrole") or ""), "title": attr(el, "AXTitle"),
+                "description": attr(el, "AXDescription"), "help": attr(el, "AXHelp"),
+                "secure": str(attr(el, "AXSubrole") or "") == "AXSecureTextField", "in_dialog": bool(in_dialog)}
+
+    def element_at(self, x_pt: float, y_pt: float) -> dict[str, Any] | None:  # pragma: no cover - real desktop
+        try:
+            import ApplicationServices as AS
+
+            err, el = AS.AXUIElementCopyElementAtPosition(AS.AXUIElementCreateSystemWide(), x_pt, y_pt, None)
+            return self._ax_dict(el) if err == 0 and el is not None else None
+        except Exception:  # noqa: BLE001 - unreadable, which the gate sends to a human
+            return None
+
+    def focused_element(self) -> dict[str, Any] | None:  # pragma: no cover - real desktop
+        try:
+            import ApplicationServices as AS
+
+            err, el = AS.AXUIElementCopyAttributeValue(AS.AXUIElementCreateSystemWide(), "AXFocusedUIElement", None)
+            return self._ax_dict(el) if err == 0 and el is not None else None
+        except Exception:  # noqa: BLE001
+            return None
+
+    def read_document(self, app: str) -> str | None:  # pragma: no cover - real desktop
+        """The frontmost document's text, read by trusted code through the OS (AppleScript), never by the model."""
+        import subprocess
+
+        if app != "TextEdit":
+            return None
+        r = subprocess.run(["osascript", "-e", 'tell application "TextEdit" to get text of document 1'],
+                           capture_output=True, text=True, timeout=5)
+        return r.stdout.rstrip("\n") if r.returncode == 0 else None
 
 
 class MacActuator:
@@ -391,39 +617,68 @@ class MacActuator:
       * scale: points come from the BACKING scale (NSScreen), cross-checked against screenshot pixel width divided by
         the display's width in points; if they disagree nothing is done. No pointer action runs before a screenshot
         has verified the scale.
-      * hit test before EVERY pointer action (move, click, double click, scroll): the topmost normal window at the
-        target point must belong to the target app, and for clicks the point must be below its title bar. Being the
-        frontmost app is not enough.
+      * space: a pointer point must lie inside the screenshot the model saw (no negatives, nothing beyond it).
+      * hit test before EVERY pointer action: the topmost window of ANY layer at the point must belong to the target
+        app (a banner, the Dock or an alert above it refuses) and, once the run has pinned its window at the first click,
+        must be THAT window (same number and pid; a second window of the same app refuses). The probe is repeated
+        immediately before every mouse-down with no wait in between.
+      * pointer buttons other than left, and held modifier keys, are refused rather than silently dropped.
       * after a click, poll up to 500 ms for two consecutive reads where the frontmost app AND the window at the click
-        point are the target; otherwise abort (activation lag is exactly what this catches).
+        point are the target window; otherwise abort (activation lag is exactly what this catches).
       * before EVERY typed chunk (at most 6 characters) and every key event the same check is repeated at the last
-        verified click point. Typing without a verified click is refused.
-      * kill flag, locked or asleep screen, action budget and time budget before every event.
-    `report` records the scale cross-check and every hit test for the owner to read.
-    """
+        verified click point. Typing without a verified click is refused. The kill file and the supervisor stop are
+        polled between chunks AND between characters.
+      * if the backend can enumerate windows, the target app must have exactly one at the first click.
+      * kill flag, supervisor stop, locked or asleep screen, action budget and time budget before every event.
+    `report` records the scale cross-check and every hit test for the owner to read."""
+
+    is_real = True
 
     def __init__(self, target_app: str, *, backend: MacBackend | None = None, kill_flag: Path | None = None,
                  max_actions: int = 40, time_budget_s: float = 120.0,
                  clock: Callable[[], float] = time.monotonic, env: dict[str, str] | None = None,
-                 focus_wait_s: float = FOCUS_WAIT_S, focus_poll_s: float = FOCUS_POLL_S) -> None:
+                 focus_wait_s: float = FOCUS_WAIT_S, focus_poll_s: float = FOCUS_POLL_S,
+                 is_cancelled: Callable[[], bool] | None = None, require_single_window: bool = True,
+                 permit: Any = None) -> None:
         if (env if env is not None else os.environ).get("UNDERSTUDY_REAL_ACTUATOR") != "1":
             raise ActuatorRefused("the real actuator is disabled; set UNDERSTUDY_REAL_ACTUATOR=1 (owner present only)")
         if not target_app:
             raise ActuatorRefused("a target app name is required")
         self.target_app = target_app
+        self.permit = permit                   # a RunPermit (tiers/owner_present.py): without a valid one every action is refused
         self.backend = backend or QuartzBackend()
         self._kill = kill_flag
+        self._cancelled = is_cancelled
         self.max_actions, self.time_budget_s, self._clock = max_actions, time_budget_s, clock
         self._focus_wait, self._focus_poll = focus_wait_s, focus_poll_s
+        self._require_single = require_single_window
         self._started = clock()
         self.n = 0
         self.scale = float(self.backend.backing_scale())
         self._scale_verified = False
+        self._shot_px: tuple[int, int] | None = None
         self._last_point: tuple[float, float] | None = None
+        self._pin: tuple[Any, ...] | None = None
+        self._expected: TargetRead | None = None
         self.report: dict[str, Any] = {"target_app": target_app, "backing_scale": self.scale, "scale_check": None,
-                                       "hits": [], "typed_chars": 0}
+                                       "hits": [], "typed_chars": 0, "pinned_window": None}
+        stop = getattr(self.backend, "set_stop_check", None)
+        if callable(stop):
+            stop(self._should_stop)
 
     # ------------------------------------------------------------------ guards
+    def bind_cancel(self, is_cancelled: Callable[[], bool]) -> None:
+        self._cancelled = is_cancelled
+
+    def expect_target(self, target: TargetRead | None) -> None:
+        """What trusted code read at the next pointer action's target. Re-read immediately before the mouse-down; a
+        different or unreadable target aborts (the screen moved between the read and the click)."""
+        self._expected = target
+
+    def _should_stop(self) -> bool:
+        flag = self._kill or kill_flag_path()
+        return flag.exists() or bool(self._cancelled and self._cancelled())
+
     def _abort(self, why: str) -> None:
         try:
             self.backend.release_all()
@@ -432,9 +687,17 @@ class MacActuator:
             raise ActuatorRefused(why)
 
     def _guard_passive(self) -> None:
+        if self.permit is None or not self.permit.valid_for(self.target_app):
+            self._abort("no valid owner permit: a real-desktop run needs the owner's one-time token consumed for this target")
         flag = self._kill or kill_flag_path()
         if flag.exists():
+            try:                                    # how long the stop took to be honoured (the owner reads this at R1)
+                self.report["kill_latency_ms"] = round(max(0.0, time.time() - flag.stat().st_mtime) * 1000, 1)
+            except OSError:
+                pass
             self._abort("kill flag present")
+        if self._cancelled is not None and self._cancelled():
+            self._abort("the run was stopped (supervisor stop or a human took over)")
         if self.backend.screen_locked():
             self._abort("screen is locked or asleep")
 
@@ -448,23 +711,62 @@ class MacActuator:
         if self._clock() - self._started > self.time_budget_s:
             self._abort("time budget used up")
 
-    def _hit(self, x_pt: float, y_pt: float, *, label: str, need_body: bool) -> dict[str, Any]:
-        """Refuse unless the topmost normal window at the point belongs to the target app."""
-        w = self.backend.window_at(x_pt, y_pt)
-        rec = {"at": label, "x_pt": round(x_pt, 2), "y_pt": round(y_pt, 2), "scale": self.scale,
-               "owner": (w or {}).get("owner"), "bounds": (w or {}).get("bounds")}
-        self.report["hits"].append(rec)
+    @staticmethod
+    def _identity(w: dict[str, Any]) -> tuple[Any, ...]:
+        if w.get("number") is not None:
+            return ("n", w.get("number"), w.get("pid"))
+        return ("t", w.get("owner"), w.get("title"))
+
+    def _window_ok(self, w: dict[str, Any] | None, *, y_pt: float, need_body: bool) -> str | None:
+        """None if the window may be acted in, else why not."""
         if w is None:
-            self._abort(f"no normal window at ({x_pt:.0f}, {y_pt:.0f}) pt; refusing to act there")
+            return "no window there"
         if w["owner"] != self.target_app:
-            self._abort(f"the window at ({x_pt:.0f}, {y_pt:.0f}) pt belongs to {w['owner']!r}, not {self.target_app!r}")
+            return f"the window at that point belongs to {w['owner']!r}, not {self.target_app!r}"
+        if self._pin is not None and self._identity(w) != self._pin:
+            return "the window under the point is not the window this run started in (another window of the same app)"
         bx, by, bw, bh = w["bounds"]
         if need_body and y_pt < by + TITLE_BAR_PT:
-            self._abort("the point is in the window's title bar, not in its body")
+            return "the point is in the window's title bar, not in its body"
+        return None
+
+    def _hit(self, x_pt: float, y_pt: float, *, label: str, need_body: bool) -> dict[str, Any]:
+        """Refuse unless the topmost window of any layer at the point is the target app's (pinned) window."""
+        w = self.backend.window_at(x_pt, y_pt)
+        rec = {"at": label, "x_pt": round(x_pt, 2), "y_pt": round(y_pt, 2), "scale": self.scale,
+               "owner": (w or {}).get("owner"), "bounds": (w or {}).get("bounds"),
+               "number": (w or {}).get("number"), "pid": (w or {}).get("pid")}
+        self.report["hits"].append(rec)
+        if w is not None and self._pin is None and need_body and w["owner"] == self.target_app:
+            self._pin_window(w)
+        why = self._window_ok(w, y_pt=y_pt, need_body=need_body)
+        if why:
+            self._abort(f"{why} ({x_pt:.0f}, {y_pt:.0f}) pt; refusing to act there" if w is None else why)
         return rec
+
+    def _pin_window(self, w: dict[str, Any]) -> None:
+        """The first verified click names the window this run acts in. Where the OS can enumerate windows, the target
+        app must have exactly one, so the first click cannot land in the wrong one of several."""
+        ws = getattr(self.backend, "all_windows_of", None) or getattr(self.backend, "windows_of", None)
+        if self._require_single and callable(ws):
+            wins = ws(self.target_app)
+            if len(wins) != 1:
+                self._abort(f"{self.target_app} has {len(wins)} windows on screen; close the others so the run cannot reach the wrong one")
+            if self._identity(wins[0]) != self._identity(w):
+                self._abort("the window under the point is not the app's one window on screen")
+        self._pin = self._identity(w)
+        self.report["pinned_window"] = {"number": w.get("number"), "pid": w.get("pid")}
 
     def _pt(self, v: int) -> float:
         return v / self.scale
+
+    def _check_px(self, x: int, y: int) -> None:
+        if x < 0 or y < 0:
+            self._abort("a negative coordinate is outside the screenshot the model saw")
+        if self._shot_px is not None:
+            w, h = self._shot_px
+            if x >= w or (h >= MIN_SHOT_H and y >= h):
+                self._abort(f"the point ({x}, {y}) px is outside the {w}x{h} screenshot the model saw")
 
     async def _focus_stable(self, x_pt: float, y_pt: float, *, need_body: bool) -> None:
         """Wait up to 500 ms for TWO consecutive consistent reads; abort if they never come."""
@@ -472,8 +774,8 @@ class MacActuator:
         good = 0
         while True:
             w = self.backend.window_at(x_pt, y_pt)
-            ok = (self.backend.frontmost_app() == self.target_app and w is not None
-                  and w["owner"] == self.target_app and (not need_body or y_pt >= w["bounds"][1] + TITLE_BAR_PT))
+            ok = (self.backend.frontmost_app() == self.target_app
+                  and self._window_ok(w, y_pt=y_pt, need_body=need_body) is None)
             good = good + 1 if ok else 0
             if good >= 2:
                 return
@@ -487,11 +789,42 @@ class MacActuator:
             self._abort("no verified click target yet; refusing to type")
         await self._focus_stable(*self._last_point, need_body=True)
 
+    # ------------------------------------------------------------------ trusted target reads (the gate's evidence)
+    async def read_target(self, action: Action) -> TargetRead | None:
+        """What is under the pointer (or focused, for typing and Enter), read through accessibility. None if the
+        backend cannot read it, which the gate sends to a human."""
+        self._guard_passive()
+        a = action.args
+        elem, focus = getattr(self.backend, "element_at", None), getattr(self.backend, "focused_element", None)
+        reads: list[TargetRead | None] = []
+        if action.kind in ("click", "double_click", "drag"):
+            if elem is None:
+                return None
+            pts = [(a["x"], a["y"])] if action.kind != "drag" else [(a["path"][0]["x"], a["path"][0]["y"]),
+                                                                     (a["path"][-1]["x"], a["path"][-1]["y"])]
+            for px, py in pts:
+                reads.append(target_from_ax(elem(self._pt(px), self._pt(py)), app=self.target_app))
+        else:
+            if focus is None:
+                return None
+            reads.append(target_from_ax(focus(), app=self.target_app))
+        return merge_reads(reads)
+
+    async def _expect_matches(self, action: Action) -> bool:
+        exp, self._expected = self._expected, None
+        if exp is None:
+            return True
+        now = await self.read_target(action)
+        return now is not None and now.key == exp.key
+
     # ------------------------------------------------------------------ screenshot and scale
     async def screenshot(self) -> bytes:
         self._guard_passive()
         png = self.backend.screenshot_png()
-        px = png_width(png)
+        size = png_size(png)
+        if size is None:
+            self._abort("the screenshot is not a PNG")
+        px = size[0]
         pts = float(self.backend.display_width_pts())
         measured = px / pts if pts else 0.0
         ok = abs(measured - self.scale) <= 0.05
@@ -500,6 +833,7 @@ class MacActuator:
         if not ok:
             self._abort(f"scale disagreement: backing scale {self.scale} but the screenshot says {measured:.3f}")
         self._scale_verified = True
+        self._shot_px = size
         return png
 
     # ------------------------------------------------------------------ actions
@@ -508,9 +842,17 @@ class MacActuator:
         a = action.args
         self.n += 1
         try:
-            if action.kind in ("move", "click", "double_click", "scroll"):
+            if action.kind in ("move", "click", "double_click", "scroll", "drag"):
+                if a.get("button", "left") != "left":
+                    self._abort("only the left mouse button is supported by the real actuator")
+                if a.get("hold_keys"):
+                    self._abort("held modifier keys are not supported by the real actuator")
                 if not self._scale_verified:
                     self._abort("the display scale has not been verified against a screenshot yet")
+                if action.kind == "drag":
+                    await self._drag(a["path"])
+                    return
+                self._check_px(a["x"], a["y"])
                 x, y = self._pt(a["x"]), self._pt(a["y"])
                 self._hit(x, y, label=action.kind, need_body=action.kind != "move")
                 self.backend.mouse("move", x, y)
@@ -518,11 +860,16 @@ class MacActuator:
                     return
                 await asyncio.sleep(0.05)
                 self._guard()
-                self._hit(x, y, label=f"{action.kind}:recheck", need_body=True)
                 if action.kind == "scroll":
+                    self._hit(x, y, label="scroll:recheck", need_body=True)
                     self.backend.scroll(int(a.get("scroll_x", 0)), int(a.get("scroll_y", 0)))
                     return
-                for _ in range(2 if action.kind == "double_click" else 1):
+                for i in range(2 if action.kind == "double_click" else 1):
+                    # one atomic step: probe the window, re-read the target, press, with no wait between (S-18)
+                    self._guard_passive()
+                    self._hit(x, y, label=f"{action.kind}:before-down", need_body=True)
+                    if i == 0 and not await self._expect_matches(action):
+                        self._abort("the control under the pointer is not the one that was authorised")
                     self.backend.mouse("down", x, y)
                     await asyncio.sleep(0.04)
                     self.backend.mouse("up", x, y)
@@ -536,6 +883,8 @@ class MacActuator:
                     self.backend.type_text(chunk)
                     self.report["typed_chars"] += len(chunk)
             elif action.kind == "key":
+                if a.get("hold_keys"):
+                    self._abort("held modifier keys are not supported by the real actuator")
                 await self._verify_typing_target()
                 self.backend.key(list(a["keys"]))
             elif action.kind == "wait":
@@ -547,6 +896,37 @@ class MacActuator:
         except BaseException:
             self.backend.release_all()
             raise
+
+    async def _drag(self, path: list[dict[str, int]]) -> None:
+        """Press at the first point, move through the rest, release at the last: every point is checked in the pixel
+        space and hit-tested, and the button is always released."""
+        for p in path:
+            self._check_px(p["x"], p["y"])
+        pts = [(self._pt(p["x"]), self._pt(p["y"])) for p in path]
+        for i, (x, y) in enumerate(pts):
+            self._hit(x, y, label=f"drag:{i}", need_body=True)
+        sx, sy = pts[0]
+        self.backend.mouse("move", sx, sy)
+        await asyncio.sleep(0.05)
+        self._guard()
+        self._hit(sx, sy, label="drag:before-down", need_body=True)
+        if not await self._expect_matches(Action("drag", {"path": path})):
+            self._abort("the control under the pointer is not the one that was authorised")
+        try:
+            self.backend.mouse("down", sx, sy)
+            for x, y in pts[1:]:
+                self._guard()
+                self._hit(x, y, label="drag:move", need_body=True)
+                self.backend.mouse("drag", x, y)
+                await asyncio.sleep(0.02)
+            ex, ey = pts[-1]
+            self._hit(ex, ey, label="drag:before-up", need_body=True)
+            self.backend.mouse("up", ex, ey)
+        except BaseException:
+            self.backend.release_all()
+            raise
+        await self._focus_stable(*pts[-1], need_body=True)
+        self._last_point = pts[-1]
 
     async def release_all(self) -> None:
         self.backend.release_all()
@@ -564,6 +944,10 @@ class Tier3Result:
     refusals: int = 0                  # typed literals, unknown handles or letter keys refused by the fact-handle check
     done_summary_len: int = 0
     last_summary: str = ""             # the model's own closing words (model output, never page text or values)
+    prompt_chars: list[int] = field(default_factory=list)   # size of the TEXT sent each step (goal, task state, history); frames excluded
+    resets: int = 0                    # times the provider's conversation was restarted from the compact task state
+    nudges: int = 0                    # times the model ended its turn early and the system told it, in its own words, to continue
+    premature_claims: int = 0          # of those, how many were a claimed success that code then refused to confirm
 
 
 FP_SIZE = (640, 400)
@@ -609,12 +993,49 @@ class ComputerUse:
     def __init__(self, model: ModelPort, actuator: Actuator, guard: Guard, *, navigator: str,
                  emit: Emit | None = None, is_current: Callable[[], bool] = lambda: True, step_start: int = 0,
                  max_steps: int = 120, deadline_s: float = 600.0, screenshot_size: tuple[int, int] = (1280, 720),
-                 facts: Any = None, stall_limit: int = 12, pause: Any = None) -> None:
+                 facts: Any = None, stall_limit: int = 12, pause: Any = None, context_reset_every: int = 4, max_nudges: int = 2, stateless: bool = True) -> None:
+        self.stateless = stateless               # no provider-side thread: each step is goal + code-built working memory + ONE fresh frame
+        self.max_nudges = max_nudges             # early endings the loop answers with a code-written 'not finished, continue'
+        self.context_reset_every = context_reset_every   # bounded working memory: restart the provider's thread this often
         self.model, self.actuator, self.guard, self.navigator = model, actuator, guard, navigator
         self.emit, self.is_current, self.step_start = emit, is_current, step_start
         self.max_steps, self.deadline_s, self.size = max_steps, deadline_s, screenshot_size
         self.facts, self.stall_limit, self.pause = facts, stall_limit, pause
         self.stuck = StuckDetector()
+        self.last_steps = 0
+
+    @staticmethod
+    def _sync_memory(wm: Any, res: "Tier3Result", synced: int) -> int:
+        """Typed step records into the working memory, from the history the loop keeps (handle names, kinds, outcomes)."""
+        from ..context.working import Outcome, StepRecord, code_of
+
+        for i in range(synced, len(res.history)):
+            h = res.history[i]
+            handle = h.get("handle")
+            why = code_of(h.get("why") or "", "")
+            if h.get("ok") is False:
+                outcome = Outcome.REFUSED if why in ("literal_text", "unknown_handle", "key_types_text", "value_not_single_line") else Outcome.FAILED
+            else:
+                outcome = Outcome.OK
+            wm.record(StepRecord(n=i + 1, kind="type_fact" if handle else code_of(h.get("kind"), "step"),
+                                 target=code_of(handle or "", ""), outcome=outcome, tier=3, code=why if h.get("ok") is False else ""))
+        return len(res.history)
+
+    @staticmethod
+    def _task_state(res: "Tier3Result") -> str:
+        """The code-kept TASK STATE: authoritative after any restart of the provider's thread. Built only from typed step
+        records (handle names, counts), so it holds no value, no page text and no model prose, and is bounded in size."""
+        if not res.history:
+            return ""
+        handles = [h["handle"] for h in res.history if h.get("handle")]
+        seen = list(dict.fromkeys(handles))[-24:]
+        kinds: dict[str, int] = {}
+        for h in res.history:
+            kinds[h.get("kind", "?")] = kinds.get(h.get("kind", "?"), 0) + 1
+        counts = ", ".join(f"{k} {v}" for k, v in sorted(kinds.items()))
+        return (f"\n\nTASK STATE (kept by the system; it is correct even if you remember otherwise): {res.steps} steps so far ({counts}); "
+                f"{res.progress_steps} changed the screen"
+                + (f"; handles already typed in this run: {', '.join(seen)}" if seen else "") + ".")
 
     async def _read_target(self, out: Action) -> TargetRead | None:
         reader = getattr(self.actuator, "read_target", None)
@@ -646,12 +1067,21 @@ class ComputerUse:
         if callable(attach):          # test doubles that need the actuator's page; real providers have no such hook
             attach(self.navigator, self.actuator)
         res = Tier3Result("step_cap")
+        wm = None
+        synced = 0
+        if self.stateless:
+            from ..context.adapters import computer_use_text
+            from ..context.working import WorkingMemory
+
+            hs = list(self.facts.handles) if self.facts is not None else []
+            wm = WorkingMemory(re.sub(r"[^a-z0-9_.:-]", "", self.navigator.lower())[:48] or "nav", handles=hs, pending=hs, last_k=6)
         t0 = time.monotonic()
         n = self.step_start
         last_fp: bytes | None = None
         stalled = 0
         refused_streak = 0
         retargets = 0
+        last_reset = 0
         feedback = ""
         try:
             while res.steps < self.max_steps:
@@ -663,6 +1093,9 @@ class ComputerUse:
                     res.outcome = "stopped"
                     raise StepBudgetExceeded("tier 3 time budget used up")
                 shot = await self.actuator.screenshot()
+                sz = png_size(shot)
+                if sz is not None:
+                    self.size = sz              # the model answers in THIS capture's pixels; validate in that space (S-10)
                 fp = screen_fingerprint(shot)
                 if fp is not None and last_fp is not None:
                     changed = screen_changed(fp, last_fp)
@@ -673,10 +1106,34 @@ class ComputerUse:
                         raise StepBudgetExceeded(f"tier 3 made no visible progress in {stalled} steps")
                 last_fp = fp if fp is not None else last_fp
                 pobs = self.guard.observe_screen()  # one fresh observation authorises exactly one action
-                out = await asyncio.to_thread(self.model.computer_step, base_goal + feedback, shot, list(res.history),
-                                              session=self.navigator)
+                # Working memory is bounded: the provider's thread (every earlier frame) is restarted every N steps from
+                # the compact TASK STATE below, which code builds from typed step records (never from model text).
+                if (not self.stateless and self.context_reset_every and res.steps and res.steps % self.context_reset_every == 0
+                        and res.steps != last_reset):
+                    reset = getattr(self.model, "reset_session", None)
+                    if callable(reset):
+                        reset(session=self.navigator)
+                        res.resets += 1
+                    last_reset = res.steps
+                if wm is not None:
+                    synced = self._sync_memory(wm, res, synced)
+                    url = getattr(self.actuator, "url", None)
+                    if url:                                       # a new page starts blank: handles typed on the last one no longer count
+                        import hashlib as _h
+                        from urllib.parse import urlsplit
+
+                        wm.set_page(PageState.UNKNOWN, "p" + _h.sha1(urlsplit(url).path.encode()).hexdigest()[:8])
+                    prompt = computer_use_text(base_goal, wm, None, feedback=feedback).text()
+                    res.prompt_chars.append(len(prompt))
+                    out = await asyncio.to_thread(self.model.computer_step, prompt, shot, [], session=self.navigator, store=False)
+                else:
+                    prompt = base_goal + self._task_state(res) + feedback
+                    res.prompt_chars.append(len(prompt) + sum(len(str(h)) for h in res.history[-12:]))
+                    out = await asyncio.to_thread(self.model.computer_step, prompt, shot, list(res.history),
+                                                  session=self.navigator)
                 feedback = ""
                 res.steps += 1
+                self.last_steps = res.steps
                 n += 1
                 if isinstance(out, SafetyStop):
                     item = self.guard.enqueue(
@@ -688,6 +1145,19 @@ class ComputerUse:
                     self._event(n, "safety_stop", False, "provider safety check")
                     raise ProviderSafetyStop(out.checks, item["id"])
                 if isinstance(out, Done):
+                    stray = not out.claimed_success and not str(out.summary or "").strip().upper().startswith("FAILED")
+                    if (out.claimed_success or stray) and res.nudges < self.max_nudges and not await verify():
+                        # The model ended its turn but code says the goal's final screen is not showing. Code decides, so the
+                        # claim is not believed; the model is told, once or twice, to carry on. The premature claim is
+                        # counted and reported; it is never hidden by the retry.
+                        res.nudges += 1
+                        res.premature_claims += 1 if out.claimed_success else 0
+                        self._event(n, "done", False, "ended early; the system said the task is not finished and told the model to continue")
+                        feedback = ("\nNOTE: you ended your turn, but the system checked and the goal is NOT finished: its final screen is "
+                                    "not showing yet. Look at the screenshot and take the next action. Reply DONE only when the final "
+                                    "screen the goal describes is on screen.")
+                        last_fp = None
+                        continue
                     res.claimed_done = out.claimed_success
                     res.done_summary_len = len(out.summary or "")
                     res.last_summary = out.summary or ""
@@ -727,7 +1197,9 @@ class ComputerUse:
                 tr = await self._read_target(out)
                 dec = self.guard.authorise(out, pobs, label=tr.label if tr else None, role=tr.role if tr else None,
                                            url=(tr.url if tr else None) or getattr(self.actuator, "url", None),
-                                           field_attrs=tr.field_attrs if tr else None, screen=self.size)
+                                           field_attrs=tr.field_attrs if tr else None, screen=self.size,
+                                           app=getattr(self.actuator, "target_app", None),
+                                           structure=tr.structure if tr else ())
                 if dec.verdict == "block" and dec.layer == "actions":
                     res.history.append({"kind": getattr(out, "kind", "?"), "ok": False})
                     self._event(n, getattr(out, "kind", "?"), False, f"rejected: {dec.codes[:1]}")
@@ -745,6 +1217,9 @@ class ComputerUse:
                     raise asyncio.CancelledError()
                 if out.kind in _TARGETED:
                     tr2 = await self._read_target(out)
+                    expect = getattr(self.actuator, "expect_target", None)
+                    if callable(expect):        # a real actuator re-reads this once more, right before the press
+                        expect(tr2)
                     if (tr is None) != (tr2 is None) or (tr is not None and tr.key != tr2.key):
                         res.steps -= 1
                         n -= 1
@@ -760,6 +1235,10 @@ class ComputerUse:
                         value = self.facts.resolve(handle)      # the ONLY place a value exists, and it goes straight out
                     except UnresolvedFact as exc:  # pragma: no cover - the vocabulary check already passed
                         raise TierError(str(exc)) from None
+                    self.guard.check_typed_value(value, url=(tr.url if tr else None) or getattr(self.actuator, "url", None),
+                                                 signature=dec.action.signature if dec.action else "type")
+                    if re.search(r"[\x00-\x1f\x7f]", value):      # typed values are single-line: a newline would press Enter
+                        raise TierError("a fact value contains a control character or newline; it will not be typed")
                     self.guard.record(dec, True)
                     if value == "":
                         res.history.append({"kind": "type", "handle": handle, "ok": True, "empty": True})

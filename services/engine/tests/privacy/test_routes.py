@@ -139,7 +139,9 @@ def test_clear_is_refused_from_a_foreign_origin_and_from_another_machine(monkeyp
     send_one()
     c = TestClient(make_app())
     assert c.post("/privacy/ledger/clear", headers={"origin": "https://evil.example.org"}).status_code == 403
-    assert c.post("/privacy/ledger/clear", headers={"origin": "http://localhost:5173"}).status_code == 200
+    # a browser caller (an Origin on the allow-list) must also name the actor explicitly: it is never defaulted for a page
+    assert c.post("/privacy/ledger/clear", headers={"origin": "http://localhost:5173"}).status_code == 403
+    assert c.post("/privacy/ledger/clear", headers={"origin": "http://localhost:5173", "x-understudy-actor": "worker"}).status_code == 200
     send_one()
     remote = TestClient(make_app(), client=("203.0.113.9", 4321))
     assert remote.post("/privacy/ledger/clear").status_code == 403

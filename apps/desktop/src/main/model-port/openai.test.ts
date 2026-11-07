@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { z } from 'zod'
+import { ALLOW_ALL_FOR_TESTS, configureLegacyRemote } from '../legacy-remote'
 import { ModelPortError } from './errors'
 import { isStrictCompatible, parseModelJson, strictify } from './json'
 import { buildResponsesBody, createOpenAiProvider, normaliseActions, parseResponse, usableModelIds } from './openai'
@@ -8,7 +9,11 @@ import { redactText } from './redact'
 import type { CompletionRequest } from './types'
 
 const KEY = 'sk-test-0123456789abcdefghijklmnop'
-const ENV = { OPENAI_API_KEY: KEY, OPENAI_MODEL_PLANNER: 'plan-x', OPENAI_MODEL_FAST: 'fast-x', OPENAI_MODEL_COMPUTER_USE: 'cu-x' }
+// The provider is DEFAULT OFF (D38): these tests exercise the wire format, so the flag is on and the process-wide gate allows everything.
+// The gate itself is tested in src/main/legacy-remote.test.ts and the flag-off behaviour in legacy-remote-paths.test.ts.
+beforeAll(() => configureLegacyRemote(ALLOW_ALL_FOR_TESTS))
+afterAll(() => configureLegacyRemote(null))
+const ENV = { UNDERSTUDY_LEGACY_REMOTE: '1', OPENAI_API_KEY: KEY, OPENAI_MODEL_PLANNER: 'plan-x', OPENAI_MODEL_FAST: 'fast-x', OPENAI_MODEL_COMPUTER_USE: 'cu-x' }
 
 interface Call {
   url: string

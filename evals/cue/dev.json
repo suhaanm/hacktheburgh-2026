@@ -1,0 +1,6981 @@
+{
+ "ambiguity_sweep": {
+  "note": "A prior fitted on experts who split evenly between batching the cliff checks and not (split_prior) makes close calls common, which exercises the one-question rule.",
+  "rows": {
+   "confident_prior": {
+    "asks_per_hour": {
+     "ci": [
+      0.0531,
+      0.1277
+     ],
+     "n": 18,
+     "n_workers": 40,
+     "value": 0.0891
+    },
+    "expert_batch_beta": [
+     1.2,
+     4.0
+    ],
+    "net_seconds_saved_per_hour": {
+     "baseline_no_cue": 0.0,
+     "ci": [
+      17.9571,
+      37.6487
+     ],
+     "n": 5453,
+     "n_workers": 40,
+     "note": "Stall seconds saved minus seconds lost to interruptions, per hour of work.",
+     "value": 27.0016
+    },
+    "p1_false_nudges_per_hour": {
+     "all": {
+      "ci": [
+       0.6217,
+       0.8586
+      ],
+      "n": 150,
+      "n_workers": 40,
+      "value": 0.7427
+     },
+     "baseline_no_cue": 0.0,
+     "design_target": 1.0,
+     "note": "A design target (at most 1.0 an hour), not a measured tolerance.",
+     "primary_975": {
+      "ci": [
+       0.6108,
+       0.8698
+      ],
+      "n": 150,
+      "n_workers": 40,
+      "value": 0.7427
+     }
+    },
+    "questions_per_episode": {
+     "ci": [
+      0.0393,
+      0.0989
+     ],
+     "n": 18,
+     "n_workers": 40,
+     "value": 0.0664
+    },
+    "stuck_episodes_with_a_correct_cue_share": {
+     "ci": [
+      0.2582,
+      0.334
+     ],
+     "n": 166,
+     "n_workers": 40,
+     "value": 0.297
+    },
+    "violations": {
+     "count": 0,
+     "kinds": []
+    }
+   },
+   "split_prior": {
+    "asks_per_hour": {
+     "ci": [
+      0.0531,
+      0.1277
+     ],
+     "n": 18,
+     "n_workers": 40,
+     "value": 0.0891
+    },
+    "expert_batch_beta": [
+     30.0,
+     30.0
+    ],
+    "net_seconds_saved_per_hour": {
+     "baseline_no_cue": 0.0,
+     "ci": [
+      17.9571,
+      37.6487
+     ],
+     "n": 5453,
+     "n_workers": 40,
+     "note": "Stall seconds saved minus seconds lost to interruptions, per hour of work.",
+     "value": 27.0016
+    },
+    "p1_false_nudges_per_hour": {
+     "all": {
+      "ci": [
+       0.6217,
+       0.8586
+      ],
+      "n": 150,
+      "n_workers": 40,
+      "value": 0.7427
+     },
+     "baseline_no_cue": 0.0,
+     "design_target": 1.0,
+     "note": "A design target (at most 1.0 an hour), not a measured tolerance.",
+     "primary_975": {
+      "ci": [
+       0.6108,
+       0.8698
+      ],
+      "n": 150,
+      "n_workers": 40,
+      "value": 0.7427
+     }
+    },
+    "questions_per_episode": {
+     "ci": [
+      0.0393,
+      0.0989
+     ],
+     "n": 18,
+     "n_workers": 40,
+     "value": 0.0664
+    },
+    "stuck_episodes_with_a_correct_cue_share": {
+     "ci": [
+      0.2582,
+      0.334
+     ],
+     "n": 166,
+     "n_workers": 40,
+     "value": 0.297
+    },
+    "violations": {
+     "count": 0,
+     "kinds": []
+    }
+   }
+  },
+  "split": "dev"
+ },
+ "bandit_offline": {
+  "actions": [
+   "none",
+   "ring",
+   "chip",
+   "ask",
+   "voice"
+  ],
+  "limitations": [
+   "Logged on simulated sessions only; the reward is a stated proxy (resumed within 30 s minus interruption cost minus label penalty).",
+   "The re-simulated value is per decision opportunity under the target's own trajectory, so it is an approximate truth for the estimators, not an exact one.",
+   "A dismissal can mean 'I already knew': the label penalty is a noisy proxy."
+  ],
+  "logging_policy": "the rule's action with probability 1 - 0.2 + 0.2/|allowed|, others 0.2/|allowed|; no learning",
+  "logging_policy_value": 0.0218,
+  "meta": {
+   "generated_at": "2026-11-07T18:27:14Z",
+   "interval_level": 0.95,
+   "n": 40,
+   "n_unit": "personas",
+   "note": "Simulated sessions; learning stays off by default.",
+   "origin": "synthetic",
+   "split": "dev; cross-fitted by worker; cluster bootstrap over workers"
+  },
+  "n_decisions": 491,
+  "n_workers": 40,
+  "ready_to_enable": false,
+  "reason": "the doubly robust difference to the rule is +0.273 with an interval that does not clear the rule's value, or the effective sample size (37) is too small: do not turn learning on",
+  "split": "dev population seed 11; replicate seeds [0, 1, 2]",
+  "targets": {
+   "greedy_table": {
+    "diagnostics": {
+     "ess": 36.5973,
+     "ess_share": 0.0745,
+     "match_rate": 0.0916,
+     "max_weight": 20.0,
+     "min_propensity": 0.05
+    },
+    "estimates": {
+     "dm": 0.2783,
+     "dr": 0.2765,
+     "ips": 0.2346,
+     "naive_matched": 0.1796,
+     "naive_on_policy": 0.0218,
+     "snips": 0.2595
+    },
+    "intervals": {
+     "dm": [
+      0.2542,
+      0.3123
+     ],
+     "dr": [
+      0.1615,
+      0.41
+     ],
+     "ips": [
+      0.0831,
+      0.4047
+     ],
+     "snips": [
+      0.1056,
+      0.3965
+     ]
+    },
+    "resimulated_n": 2199,
+    "resimulated_value": 0.2241
+   },
+   "rule": {
+    "diagnostics": {
+     "ess": 436.8237,
+     "ess_share": 0.8897,
+     "match_rate": 0.89,
+     "max_weight": 1.1765,
+     "min_propensity": 0.05
+    },
+    "estimates": {
+     "dm": 0.0181,
+     "dr": 0.0031,
+     "ips": 0.0049,
+     "naive_matched": 0.003,
+     "naive_on_policy": 0.0218,
+     "snips": 0.0049
+    },
+    "intervals": {
+     "dm": [
+      0.0011,
+      0.0338
+     ],
+     "dr": [
+      -0.0646,
+      0.0578
+     ],
+     "ips": [
+      -0.064,
+      0.0592
+     ],
+     "snips": [
+      -0.0631,
+      0.0595
+     ]
+    },
+    "resimulated_n": 464,
+    "resimulated_value": 0.0016
+   }
+  }
+ },
+ "candidates": {
+  "benefits_A_apprentices": {
+   "all": {
+    "bigram": {
+     "ci": {
+      "brier": [
+       0.0611,
+       0.1299
+      ],
+      "ece": [
+       0.0985,
+       0.1891
+      ],
+      "nll": [
+       0.2393,
+       0.5347
+      ],
+      "top1": [
+       0.7667,
+       0.9333
+      ],
+      "top3": [
+       1.0,
+       1.0
+      ]
+     },
+     "n": 240,
+     "value": {
+      "brier": 0.0886,
+      "ece": 0.1348,
+      "nll": 0.3575,
+      "top1": 0.8667,
+      "top3": 1.0
+     }
+    },
+    "cue": {
+     "ci": {
+      "brier": [
+       0.0048,
+       0.07
+      ],
+      "ece": [
+       0.0254,
+       0.0848
+      ],
+      "nll": [
+       0.0282,
+       0.2066
+      ],
+      "top1": [
+       0.9167,
+       1.0
+      ],
+      "top3": [
+       1.0,
+       1.0
+      ]
+     },
+     "n": 240,
+     "value": {
+      "brier": 0.0309,
+      "ece": 0.0492,
+      "nll": 0.0995,
+      "top1": 0.9667,
+      "top3": 1.0
+     }
+    },
+    "cue_order1": {
+     "ci": {
+      "brier": [
+       0.0051,
+       0.0691
+      ],
+      "ece": [
+       0.0082,
+       0.0665
+      ],
+      "nll": [
+       0.0291,
+       0.2023
+      ],
+      "top1": [
+       0.9167,
+       1.0
+      ],
+      "top3": [
+       1.0,
+       1.0
+      ]
+     },
+     "n": 240,
+     "value": {
+      "brier": 0.0307,
+      "ece": 0.0109,
+      "nll": 0.0984,
+      "top1": 0.9667,
+      "top3": 1.0
+     }
+    },
+    "ngram_no_rules": {
+     "ci": {
+      "brier": [
+       0.0529,
+       0.1124
+      ],
+      "ece": [
+       0.0541,
+       0.1159
+      ],
+      "nll": [
+       0.1949,
+       0.4255
+      ],
+      "top1": [
+       0.85,
+       0.9333
+      ],
+      "top3": [
+       1.0,
+       1.0
+      ]
+     },
+     "n": 240,
+     "value": {
+      "brier": 0.0767,
+      "ece": 0.0785,
+      "nll": 0.2871,
+      "top1": 0.9,
+      "top3": 1.0
+     }
+    },
+    "unigram": {
+     "ci": {
+      "brier": [
+       0.3115,
+       0.3115
+      ],
+      "ece": [
+       0.2675,
+       0.2675
+      ],
+      "nll": [
+       1.3198,
+       1.3198
+      ],
+      "top1": [
+       0.6,
+       0.6
+      ],
+      "top3": [
+       0.8667,
+       0.8667
+      ]
+     },
+     "n": 240,
+     "value": {
+      "brier": 0.3115,
+      "ece": 0.2675,
+      "nll": 1.3198,
+      "top1": 0.6,
+      "top3": 0.8667
+     }
+    }
+   },
+   "boundary": {
+    "bigram": {
+     "ci": {
+      "brier": [
+       0.1016,
+       0.2163
+      ],
+      "ece": [
+       0.1526,
+       0.3035
+      ],
+      "nll": [
+       0.3871,
+       0.8795
+      ],
+      "top1": [
+       0.6111,
+       0.8889
+      ],
+      "top3": [
+       1.0,
+       1.0
+      ]
+     },
+     "n": 144,
+     "value": {
+      "brier": 0.1475,
+      "ece": 0.213,
+      "nll": 0.5841,
+      "top1": 0.7778,
+      "top3": 1.0
+     }
+    },
+    "cue": {
+     "ci": {
+      "brier": [
+       0.0081,
+       0.1167
+      ],
+      "ece": [
+       0.0423,
+       0.1415
+      ],
+      "nll": [
+       0.047,
+       0.3442
+      ],
+      "top1": [
+       0.8611,
+       1.0
+      ],
+      "top3": [
+       1.0,
+       1.0
+      ]
+     },
+     "n": 144,
+     "value": {
+      "brier": 0.0515,
+      "ece": 0.082,
+      "nll": 0.1658,
+      "top1": 0.9444,
+      "top3": 1.0
+     }
+    },
+    "cue_order1": {
+     "ci": {
+      "brier": [
+       0.0085,
+       0.1151
+      ],
+      "ece": [
+       0.0132,
+       0.1084
+      ],
+      "nll": [
+       0.0485,
+       0.3348
+      ],
+      "top1": [
+       0.8611,
+       1.0
+      ],
+      "top3": [
+       1.0,
+       1.0
+      ]
+     },
+     "n": 144,
+     "value": {
+      "brier": 0.0512,
+      "ece": 0.0172,
+      "nll": 0.163,
+      "top1": 0.9444,
+      "top3": 1.0
+     }
+    },
+    "ngram_no_rules": {
+     "ci": {
+      "brier": [
+       0.0882,
+       0.1873
+      ],
+      "ece": [
+       0.0901,
+       0.1935
+      ],
+      "nll": [
+       0.3248,
+       0.7088
+      ],
+      "top1": [
+       0.75,
+       0.8889
+      ],
+      "top3": [
+       1.0,
+       1.0
+      ]
+     },
+     "n": 144,
+     "value": {
+      "brier": 0.1279,
+      "ece": 0.131,
+      "nll": 0.4784,
+      "top1": 0.8333,
+      "top3": 1.0
+     }
+    },
+    "unigram": {
+     "ci": {
+      "brier": [
+       0.2222,
+       0.2222
+      ],
+      "ece": [
+       0.0008,
+       0.0008
+      ],
+      "nll": [
+       1.4656,
+       1.4656
+      ],
+      "top1": [
+       0.3333,
+       0.3333
+      ],
+      "top3": [
+       0.7778,
+       0.7778
+      ]
+     },
+     "n": 144,
+     "value": {
+      "brier": 0.2222,
+      "ece": 0.0008,
+      "nll": 1.4656,
+      "top1": 0.3333,
+      "top3": 0.7778
+     }
+    }
+   },
+   "calibration_boundary": [
+    {
+     "freq": 1.0,
+     "n": 24,
+     "p_mean": 0.8095
+    },
+    {
+     "freq": 0.9333,
+     "n": 120,
+     "p_mean": 0.9936
+    }
+   ],
+   "n_boundary_positions": 144,
+   "n_people": 8,
+   "n_positions": 240,
+   "off_policy_positions": 0,
+   "paired_boundary": {
+    "brier_minus_bigram": {
+     "ci": [
+      -0.0984,
+      -0.0936
+     ],
+     "value": -0.096
+    },
+    "top1_minus_bigram": {
+     "ci": [
+      0.1111,
+      0.2229
+     ],
+     "value": 0.1676
+    },
+    "top1_minus_unigram": {
+     "ci": [
+      0.5549,
+      0.6667
+     ],
+     "value": 0.6101
+    }
+   }
+  },
+  "benefits_A_to_B": {
+   "bigram": {
+    "ci": {
+     "brier": [
+      0.1149,
+      0.1388
+     ],
+     "ece": [
+      0.0388,
+      0.0922
+     ],
+     "nll": [
+      0.8669,
+      1.0268
+     ],
+     "top1": [
+      0.6981,
+      0.7691
+     ],
+     "top3": [
+      0.9211,
+      0.9383
+     ]
+    },
+    "n": 863,
+    "value": {
+     "brier": 0.1266,
+     "ece": 0.0563,
+     "nll": 0.948,
+     "top1": 0.7335,
+     "top3": 0.9293
+    }
+   },
+   "cue": {
+    "ci": {
+     "brier": [
+      0.0249,
+      0.0485
+     ],
+     "ece": [
+      0.0027,
+      0.0307
+     ],
+     "nll": [
+      0.084,
+      0.1406
+     ],
+     "top1": [
+      0.9338,
+      0.9677
+     ],
+     "top3": [
+      1.0,
+      1.0
+     ]
+    },
+    "n": 863,
+    "value": {
+     "brier": 0.0369,
+     "ece": 0.0127,
+     "nll": 0.1126,
+     "top1": 0.9502,
+     "top3": 1.0
+    }
+   },
+   "cue_order1": {
+    "ci": {
+     "brier": [
+      0.0249,
+      0.0482
+     ],
+     "ece": [
+      0.0024,
+      0.0297
+     ],
+     "nll": [
+      0.0842,
+      0.1396
+     ],
+     "top1": [
+      0.9338,
+      0.9677
+     ],
+     "top3": [
+      1.0,
+      1.0
+     ]
+    },
+    "n": 863,
+    "value": {
+     "brier": 0.0368,
+     "ece": 0.0117,
+     "nll": 0.1122,
+     "top1": 0.9502,
+     "top3": 1.0
+    }
+   },
+   "ngram_no_rules": {
+    "ci": {
+     "brier": [
+      0.1053,
+      0.1253
+     ],
+     "ece": [
+      0.0244,
+      0.0591
+     ],
+     "nll": [
+      0.8052,
+      0.9445
+     ],
+     "top1": [
+      0.7561,
+      0.7956
+     ],
+     "top3": [
+      0.9211,
+      0.9383
+     ]
+    },
+    "n": 863,
+    "value": {
+     "brier": 0.1149,
+     "ece": 0.0387,
+     "nll": 0.8733,
+     "top1": 0.7752,
+     "top3": 0.9293
+    }
+   },
+   "unigram": {
+    "ci": {
+     "brier": [
+      0.2144,
+      0.2172
+     ],
+     "ece": [
+      0.0145,
+      0.0226
+     ],
+     "nll": [
+      1.7938,
+      1.8902
+     ],
+     "top1": [
+      0.3101,
+      0.3182
+     ],
+     "top3": [
+      0.7195,
+      0.7333
+     ]
+    },
+    "n": 863,
+    "value": {
+     "brier": 0.2158,
+     "ece": 0.0186,
+     "nll": 1.8439,
+     "top1": 0.314,
+     "top3": 0.7265
+    }
+   }
+  },
+  "benefits_B_sampled": {
+   "all": {
+    "bigram": {
+     "ci": {
+      "brier": [
+       0.066,
+       0.0825
+      ],
+      "ece": [
+       0.0103,
+       0.0372
+      ],
+      "nll": [
+       0.2586,
+       0.3278
+      ],
+      "top1": [
+       0.8514,
+       0.897
+      ],
+      "top3": [
+       0.9979,
+       1.0
+      ]
+     },
+     "n": 1403,
+     "value": {
+      "brier": 0.0736,
+      "ece": 0.0105,
+      "nll": 0.292,
+      "top1": 0.8746,
+      "top3": 0.9993
+     }
+    },
+    "cue": {
+     "ci": {
+      "brier": [
+       0.0155,
+       0.0321
+      ],
+      "ece": [
+       0.0034,
+       0.0243
+      ],
+      "nll": [
+       0.0525,
+       0.0972
+      ],
+      "top1": [
+       0.9599,
+       0.9829
+      ],
+      "top3": [
+       1.0,
+       1.0
+      ]
+     },
+     "n": 1403,
+     "value": {
+      "brier": 0.0237,
+      "ece": 0.0121,
+      "nll": 0.0742,
+      "top1": 0.9715,
+      "top3": 1.0
+     }
+    },
+    "cue_order1": {
+     "ci": {
+      "brier": [
+       0.0158,
+       0.0322
+      ],
+      "ece": [
+       0.0017,
+       0.0232
+      ],
+      "nll": [
+       0.0529,
+       0.0944
+      ],
+      "top1": [
+       0.9572,
+       0.9815
+      ],
+      "top3": [
+       1.0,
+       1.0
+      ]
+     },
+     "n": 1403,
+     "value": {
+      "brier": 0.0235,
+      "ece": 0.0099,
+      "nll": 0.0724,
+      "top1": 0.9701,
+      "top3": 1.0
+     }
+    },
+    "ngram_no_rules": {
+     "ci": {
+      "brier": [
+       0.0602,
+       0.0741
+      ],
+      "ece": [
+       0.0108,
+       0.0313
+      ],
+      "nll": [
+       0.227,
+       0.275
+      ],
+      "top1": [
+       0.8955,
+       0.9167
+      ],
+      "top3": [
+       0.9979,
+       1.0
+      ]
+     },
+     "n": 1403,
+     "value": {
+      "brier": 0.0669,
+      "ece": 0.0166,
+      "nll": 0.2507,
+      "top1": 0.9059,
+      "top3": 0.9993
+     }
+    },
+    "unigram": {
+     "ci": {
+      "brier": [
+       0.313,
+       0.3161
+      ],
+      "ece": [
+       0.2619,
+       0.2701
+      ],
+      "nll": [
+       1.4311,
+       1.4457
+      ],
+      "top1": [
+       0.5745,
+       0.5826
+      ],
+      "top3": [
+       0.8274,
+       0.8369
+      ]
+     },
+     "n": 1403,
+     "value": {
+      "brier": 0.3144,
+      "ece": 0.2655,
+      "nll": 1.439,
+      "top1": 0.578,
+      "top3": 0.8318
+     }
+    }
+   },
+   "boundary": {
+    "bigram": {
+     "ci": {
+      "brier": [
+       0.1075,
+       0.1339
+      ],
+      "ece": [
+       0.015,
+       0.0584
+      ],
+      "nll": [
+       0.4182,
+       0.5302
+      ],
+      "top1": [
+       0.7589,
+       0.8322
+      ],
+      "top3": [
+       0.9965,
+       1.0
+      ]
+     },
+     "n": 863,
+     "value": {
+      "brier": 0.1197,
+      "ece": 0.0152,
+      "nll": 0.4729,
+      "top1": 0.7961,
+      "top3": 0.9988
+     }
+    },
+    "cue": {
+     "ci": {
+      "brier": [
+       0.0252,
+       0.0523
+      ],
+      "ece": [
+       0.0056,
+       0.0394
+      ],
+      "nll": [
+       0.0857,
+       0.1574
+      ],
+      "top1": [
+       0.9346,
+       0.9723
+      ],
+      "top3": [
+       1.0,
+       1.0
+      ]
+     },
+     "n": 863,
+     "value": {
+      "brier": 0.0385,
+      "ece": 0.0197,
+      "nll": 0.1205,
+      "top1": 0.9537,
+      "top3": 1.0
+     }
+    },
+    "cue_order1": {
+     "ci": {
+      "brier": [
+       0.0257,
+       0.0525
+      ],
+      "ece": [
+       0.0027,
+       0.0375
+      ],
+      "nll": [
+       0.0859,
+       0.1536
+      ],
+      "top1": [
+       0.9305,
+       0.9699
+      ],
+      "top3": [
+       1.0,
+       1.0
+      ]
+     },
+     "n": 863,
+     "value": {
+      "brier": 0.0382,
+      "ece": 0.016,
+      "nll": 0.1175,
+      "top1": 0.9513,
+      "top3": 1.0
+     }
+    },
+    "ngram_no_rules": {
+     "ci": {
+      "brier": [
+       0.0982,
+       0.1205
+      ],
+      "ece": [
+       0.0175,
+       0.0507
+      ],
+      "nll": [
+       0.3691,
+       0.4473
+      ],
+      "top1": [
+       0.8304,
+       0.864
+      ],
+      "top3": [
+       0.9965,
+       1.0
+      ]
+     },
+     "n": 863,
+     "value": {
+      "brier": 0.1088,
+      "ece": 0.0269,
+      "nll": 0.4075,
+      "top1": 0.847,
+      "top3": 0.9988
+     }
+    },
+    "unigram": {
+     "ci": {
+      "brier": [
+       0.2141,
+       0.2173
+      ],
+      "ece": [
+       0.0001,
+       0.0064
+      ],
+      "nll": [
+       1.6,
+       1.6213
+      ],
+      "top1": [
+       0.3104,
+       0.3189
+      ],
+      "top3": [
+       0.7204,
+       0.7339
+      ]
+     },
+     "n": 863,
+     "value": {
+      "brier": 0.2154,
+      "ece": 0.0015,
+      "nll": 1.6116,
+      "top1": 0.314,
+      "top3": 0.7265
+     }
+    }
+   },
+   "calibration_boundary": [
+    {
+     "freq": 1.0,
+     "n": 2,
+     "p_mean": 0.6592
+    },
+    {
+     "freq": 1.0,
+     "n": 4,
+     "p_mean": 0.7213
+    },
+    {
+     "freq": 0.7692,
+     "n": 169,
+     "p_mean": 0.8538
+    },
+    {
+     "freq": 0.9985,
+     "n": 688,
+     "p_mean": 0.9998
+    }
+   ],
+   "n_boundary_positions": 863,
+   "n_people": 30,
+   "n_positions": 1403,
+   "off_policy_positions": 48,
+   "paired_boundary": {
+    "brier_minus_bigram": {
+     "ci": [
+      -0.0834,
+      -0.0786
+     ],
+     "value": -0.0812
+    },
+    "top1_minus_bigram": {
+     "ci": [
+      0.1409,
+      0.1757
+     ],
+     "value": 0.1581
+    },
+    "top1_minus_unigram": {
+     "ci": [
+      0.6185,
+      0.6585
+     ],
+     "value": 0.6393
+    }
+   }
+  },
+  "benefits_B_to_A": {
+   "bigram": {
+    "ci": {
+     "brier": [
+      0.0889,
+      0.1713
+     ],
+     "ece": [
+      0.0207,
+      0.1318
+     ],
+     "nll": [
+      0.3339,
+      0.6609
+     ],
+     "top1": [
+      0.6667,
+      0.8889
+     ],
+     "top3": [
+      1.0,
+      1.0
+     ]
+    },
+    "n": 144,
+    "value": {
+     "brier": 0.1301,
+     "ece": 0.0207,
+     "nll": 0.4974,
+     "top1": 0.7778,
+     "top3": 1.0
+    }
+   },
+   "cue": {
+    "ci": {
+     "brier": [
+      0.0048,
+      0.0834
+     ],
+     "ece": [
+      0.0047,
+      0.0786
+     ],
+     "nll": [
+      0.0351,
+      0.2312
+     ],
+     "top1": [
+      0.8889,
+      1.0
+     ],
+     "top3": [
+      1.0,
+      1.0
+     ]
+    },
+    "n": 144,
+    "value": {
+     "brier": 0.0441,
+     "ece": 0.0231,
+     "nll": 0.1332,
+     "top1": 0.9444,
+     "top3": 1.0
+    }
+   },
+   "cue_order1": {
+    "ci": {
+     "brier": [
+      0.0047,
+      0.0834
+     ],
+     "ece": [
+      0.0047,
+      0.0787
+     ],
+     "nll": [
+      0.0351,
+      0.2313
+     ],
+     "top1": [
+      0.8889,
+      1.0
+     ],
+     "top3": [
+      1.0,
+      1.0
+     ]
+    },
+    "n": 144,
+    "value": {
+     "brier": 0.0441,
+     "ece": 0.0231,
+     "nll": 0.1332,
+     "top1": 0.9444,
+     "top3": 1.0
+    }
+   },
+   "ngram_no_rules": {
+    "ci": {
+     "brier": [
+      0.0822,
+      0.1471
+     ],
+     "ece": [
+      0.0237,
+      0.1075
+     ],
+     "nll": [
+      0.3038,
+      0.5234
+     ],
+     "top1": [
+      0.7778,
+      0.8889
+     ],
+     "top3": [
+      1.0,
+      1.0
+     ]
+    },
+    "n": 144,
+    "value": {
+     "brier": 0.1147,
+     "ece": 0.0237,
+     "nll": 0.4136,
+     "top1": 0.8333,
+     "top3": 1.0
+    }
+   },
+   "unigram": {
+    "ci": {
+     "brier": [
+      0.2227,
+      0.2227
+     ],
+     "ece": [
+      0.0209,
+      0.0209
+     ],
+     "nll": [
+      1.5307,
+      1.5307
+     ],
+     "top1": [
+      0.3333,
+      0.3333
+     ],
+     "top3": [
+      0.7778,
+      0.7778
+     ]
+    },
+    "n": 144,
+    "value": {
+     "brier": 0.2227,
+     "ece": 0.0209,
+     "nll": 1.5307,
+     "top1": 0.3333,
+     "top3": 0.7778
+    }
+   }
+  },
+  "data-analyst_B_sampled": {
+   "all": {
+    "bigram": {
+     "ci": {
+      "brier": [
+       0.0797,
+       0.1097
+      ],
+      "ece": [
+       0.0453,
+       0.0917
+      ],
+      "nll": [
+       0.314,
+       0.4021
+      ],
+      "top1": [
+       0.8056,
+       0.8868
+      ],
+      "top3": [
+       0.9593,
+       0.9861
+      ]
+     },
+     "n": 784,
+     "value": {
+      "brier": 0.0941,
+      "ece": 0.0701,
+      "nll": 0.3561,
+      "top1": 0.8482,
+      "top3": 0.9745
+     }
+    },
+    "cue": {
+     "ci": {
+      "brier": [
+       0.0443,
+       0.0654
+      ],
+      "ece": [
+       0.017,
+       0.0508
+      ],
+      "nll": [
+       0.1378,
+       0.198
+      ],
+      "top1": [
+       0.9062,
+       0.9468
+      ],
+      "top3": [
+       0.9961,
+       1.0
+      ]
+     },
+     "n": 784,
+     "value": {
+      "brier": 0.0533,
+      "ece": 0.0313,
+      "nll": 0.1631,
+      "top1": 0.9298,
+      "top3": 0.9987
+     }
+    },
+    "cue_order1": {
+     "ci": {
+      "brier": [
+       0.0527,
+       0.08
+      ],
+      "ece": [
+       0.0306,
+       0.0817
+      ],
+      "nll": [
+       0.17,
+       0.2412
+      ],
+      "top1": [
+       0.8533,
+       0.9163
+      ],
+      "top3": [
+       0.9884,
+       0.9987
+      ]
+     },
+     "n": 784,
+     "value": {
+      "brier": 0.0655,
+      "ece": 0.0558,
+      "nll": 0.2033,
+      "top1": 0.8878,
+      "top3": 0.9936
+     }
+    },
+    "ngram_no_rules": {
+     "ci": {
+      "brier": [
+       0.0507,
+       0.0706
+      ],
+      "ece": [
+       0.0313,
+       0.0656
+      ],
+      "nll": [
+       0.1709,
+       0.2353
+      ],
+      "top1": [
+       0.9022,
+       0.9442
+      ],
+      "top3": [
+       0.991,
+       1.0
+      ]
+     },
+     "n": 784,
+     "value": {
+      "brier": 0.0591,
+      "ece": 0.0501,
+      "nll": 0.1979,
+      "top1": 0.9273,
+      "top3": 0.9962
+     }
+    },
+    "unigram": {
+     "ci": {
+      "brier": [
+       0.1024,
+       0.104
+      ],
+      "ece": [
+       0.037,
+       0.0395
+      ],
+      "nll": [
+       1.9268,
+       1.9332
+      ],
+      "top1": [
+       0.1138,
+       0.1161
+      ],
+      "top3": [
+       0.5197,
+       0.574
+      ]
+     },
+     "n": 784,
+     "value": {
+      "brier": 0.1031,
+      "ece": 0.0384,
+      "nll": 1.9305,
+      "top1": 0.1148,
+      "top3": 0.551
+     }
+    }
+   },
+   "boundary": {
+    "bigram": {
+     "ci": {
+      "brier": [
+       0.1032,
+       0.1426
+      ],
+      "ece": [
+       0.055,
+       0.1151
+      ],
+      "nll": [
+       0.402,
+       0.5199
+      ],
+      "top1": [
+       0.747,
+       0.8536
+      ],
+      "top3": [
+       0.9473,
+       0.982
+      ]
+     },
+     "n": 604,
+     "value": {
+      "brier": 0.1221,
+      "ece": 0.087,
+      "nll": 0.4583,
+      "top1": 0.803,
+      "top3": 0.9669
+     }
+    },
+    "cue": {
+     "ci": {
+      "brier": [
+       0.0574,
+       0.085
+      ],
+      "ece": [
+       0.0221,
+       0.0661
+      ],
+      "nll": [
+       0.1785,
+       0.2582
+      ],
+      "top1": [
+       0.8779,
+       0.9311
+      ],
+      "top3": [
+       0.9949,
+       1.0
+      ]
+     },
+     "n": 604,
+     "value": {
+      "brier": 0.0692,
+      "ece": 0.0407,
+      "nll": 0.2117,
+      "top1": 0.9089,
+      "top3": 0.9983
+     }
+    },
+    "cue_order1": {
+     "ci": {
+      "brier": [
+       0.0682,
+       0.1041
+      ],
+      "ece": [
+       0.0383,
+       0.1047
+      ],
+      "nll": [
+       0.2186,
+       0.3123
+      ],
+      "top1": [
+       0.809,
+       0.8915
+      ],
+      "top3": [
+       0.9849,
+       0.9983
+      ]
+     },
+     "n": 604,
+     "value": {
+      "brier": 0.085,
+      "ece": 0.0709,
+      "nll": 0.2624,
+      "top1": 0.8543,
+      "top3": 0.9917
+     }
+    },
+    "ngram_no_rules": {
+     "ci": {
+      "brier": [
+       0.0658,
+       0.0918
+      ],
+      "ece": [
+       0.0406,
+       0.0848
+      ],
+      "nll": [
+       0.2215,
+       0.3066
+      ],
+      "top1": [
+       0.8727,
+       0.9278
+      ],
+      "top3": [
+       0.9883,
+       1.0
+      ]
+     },
+     "n": 604,
+     "value": {
+      "brier": 0.0767,
+      "ece": 0.0649,
+      "nll": 0.2568,
+      "top1": 0.9056,
+      "top3": 0.995
+     }
+    },
+    "unigram": {
+     "ci": {
+      "brier": [
+       0.1256,
+       0.1284
+      ],
+      "ece": [
+       0.0018,
+       0.0059
+      ],
+      "nll": [
+       1.9357,
+       1.944
+      ],
+      "top1": [
+       0.1473,
+       0.1513
+      ],
+      "top3": [
+       0.4419,
+       0.4538
+      ]
+     },
+     "n": 604,
+     "value": {
+      "brier": 0.1268,
+      "ece": 0.0042,
+      "nll": 1.9404,
+      "top1": 0.149,
+      "top3": 0.447
+     }
+    }
+   },
+   "calibration_boundary": [
+    {
+     "freq": 1.0,
+     "n": 2,
+     "p_mean": 0.5516
+    },
+    {
+     "freq": 1.0,
+     "n": 33,
+     "p_mean": 0.6832
+    },
+    {
+     "freq": 0.6434,
+     "n": 143,
+     "p_mean": 0.7141
+    },
+    {
+     "freq": 1.0,
+     "n": 5,
+     "p_mean": 0.8309
+    },
+    {
+     "freq": 0.9905,
+     "n": 421,
+     "p_mean": 0.9959
+    }
+   ],
+   "n_boundary_positions": 604,
+   "n_people": 30,
+   "n_positions": 784,
+   "off_policy_positions": 40,
+   "paired_boundary": {
+    "brier_minus_bigram": {
+     "ci": [
+      -0.0644,
+      -0.0416
+     ],
+     "value": -0.0528
+    },
+    "top1_minus_bigram": {
+     "ci": [
+      0.0787,
+      0.1371
+     ],
+     "value": 0.1064
+    },
+    "top1_minus_unigram": {
+     "ci": [
+      0.7312,
+      0.7862
+     ],
+     "value": 0.76
+    }
+   }
+  },
+  "limitations": [
+   "Family A has two orderings and 8 people, so top-1 accuracy at boundaries is bounded by how often the held-out person used the rarer ordering; the interval is wide.",
+   "Family B is written from the pack's order rules, so the rules cannot lose on it. It shows spread, not that the rules are right.",
+   "These are expert paths from a generator; real experts will do things neither family contains."
+  ],
+  "meta": {
+   "generated_at": "2026-11-07T18:26:43Z",
+   "interval_level": 0.95,
+   "n": 98,
+   "n_unit": "personas",
+   "note": "Expert paths are synthetic: 8 scripted apprentice experts (two orderings) and experts sampled from the pack's own order rules.",
+   "origin": "synthetic",
+   "split": "leave-one-person-out over experts; cluster bootstrap over people (95%)"
+  },
+  "programmer_B_sampled": {
+   "all": {
+    "bigram": {
+     "ci": {
+      "brier": [
+       0.1129,
+       0.1179
+      ],
+      "ece": [
+       0.0228,
+       0.0335
+      ],
+      "nll": [
+       0.3662,
+       0.4119
+      ],
+      "top1": [
+       0.7556,
+       0.7778
+      ],
+      "top3": [
+       0.9827,
+       0.9963
+      ]
+     },
+     "n": 810,
+     "value": {
+      "brier": 0.1152,
+      "ece": 0.0245,
+      "nll": 0.3904,
+      "top1": 0.7667,
+      "top3": 0.9889
+     }
+    },
+    "cue": {
+     "ci": {
+      "brier": [
+       0.0,
+       0.0014
+      ],
+      "ece": [
+       0.0001,
+       0.0026
+      ],
+      "nll": [
+       0.0001,
+       0.0111
+      ],
+      "top1": [
+       0.9963,
+       1.0
+      ],
+      "top3": [
+       1.0,
+       1.0
+      ]
+     },
+     "n": 810,
+     "value": {
+      "brier": 0.0005,
+      "ece": 0.001,
+      "nll": 0.0038,
+      "top1": 0.9988,
+      "top3": 1.0
+     }
+    },
+    "cue_order1": {
+     "ci": {
+      "brier": [
+       0.0012,
+       0.0048
+      ],
+      "ece": [
+       0.0025,
+       0.0089
+      ],
+      "nll": [
+       0.0053,
+       0.0218
+      ],
+      "top1": [
+       0.9926,
+       1.0
+      ],
+      "top3": [
+       1.0,
+       1.0
+      ]
+     },
+     "n": 810,
+     "value": {
+      "brier": 0.0029,
+      "ece": 0.0051,
+      "nll": 0.0123,
+      "top1": 0.9963,
+      "top3": 1.0
+     }
+    },
+    "ngram_no_rules": {
+     "ci": {
+      "brier": [
+       0.0579,
+       0.0615
+      ],
+      "ece": [
+       0.0222,
+       0.0279
+      ],
+      "nll": [
+       0.1807,
+       0.2099
+      ],
+      "top1": [
+       0.8778,
+       0.8877
+      ],
+      "top3": [
+       0.9938,
+       1.0
+      ]
+     },
+     "n": 810,
+     "value": {
+      "brier": 0.0594,
+      "ece": 0.0245,
+      "nll": 0.1941,
+      "top1": 0.8827,
+      "top3": 0.9975
+     }
+    },
+    "unigram": {
+     "ci": {
+      "brier": [
+       0.107,
+       0.107
+      ],
+      "ece": [
+       0.0907,
+       0.0909
+      ],
+      "nll": [
+       2.0727,
+       2.0728
+      ],
+      "top1": [
+       0.1111,
+       0.1111
+      ],
+      "top3": [
+       0.4444,
+       0.4444
+      ]
+     },
+     "n": 810,
+     "value": {
+      "brier": 0.107,
+      "ece": 0.0908,
+      "nll": 2.0727,
+      "top1": 0.1111,
+      "top3": 0.4444
+     }
+    }
+   },
+   "boundary": {
+    "bigram": {
+     "ci": {
+      "brier": [
+       0.0961,
+       0.1018
+      ],
+      "ece": [
+       0.0877,
+       0.0998
+      ],
+      "nll": [
+       0.3245,
+       0.3759
+      ],
+      "top1": [
+       0.85,
+       0.875
+      ],
+      "top3": [
+       0.9806,
+       0.9958
+      ]
+     },
+     "n": 720,
+     "value": {
+      "brier": 0.0988,
+      "ece": 0.0897,
+      "nll": 0.3517,
+      "top1": 0.8625,
+      "top3": 0.9875
+     }
+    },
+    "cue": {
+     "ci": {
+      "brier": [
+       0.0,
+       0.0016
+      ],
+      "ece": [
+       0.0001,
+       0.0029
+      ],
+      "nll": [
+       0.0001,
+       0.0124
+      ],
+      "top1": [
+       0.9958,
+       1.0
+      ],
+      "top3": [
+       1.0,
+       1.0
+      ]
+     },
+     "n": 720,
+     "value": {
+      "brier": 0.0005,
+      "ece": 0.0011,
+      "nll": 0.0043,
+      "top1": 0.9986,
+      "top3": 1.0
+     }
+    },
+    "cue_order1": {
+     "ci": {
+      "brier": [
+       0.0013,
+       0.0054
+      ],
+      "ece": [
+       0.0023,
+       0.0095
+      ],
+      "nll": [
+       0.0054,
+       0.024
+      ],
+      "top1": [
+       0.9917,
+       1.0
+      ],
+      "top3": [
+       1.0,
+       1.0
+      ]
+     },
+     "n": 720,
+     "value": {
+      "brier": 0.0032,
+      "ece": 0.0052,
+      "nll": 0.0132,
+      "top1": 0.9958,
+      "top3": 1.0
+     }
+    },
+    "ngram_no_rules": {
+     "ci": {
+      "brier": [
+       0.0339,
+       0.0379
+      ],
+      "ece": [
+       0.0841,
+       0.0916
+      ],
+      "nll": [
+       0.1166,
+       0.1494
+      ],
+      "top1": [
+       0.9875,
+       0.9986
+      ],
+      "top3": [
+       0.9931,
+       1.0
+      ]
+     },
+     "n": 720,
+     "value": {
+      "brier": 0.0356,
+      "ece": 0.0874,
+      "nll": 0.1317,
+      "top1": 0.9931,
+      "top3": 0.9972
+     }
+    },
+    "unigram": {
+     "ci": {
+      "brier": [
+       0.1153,
+       0.1153
+      ],
+      "ece": [
+       0.0768,
+       0.077
+      ],
+      "nll": [
+       2.1317,
+       2.1319
+      ],
+      "top1": [
+       0.125,
+       0.125
+      ],
+      "top3": [
+       0.375,
+       0.375
+      ]
+     },
+     "n": 720,
+     "value": {
+      "brier": 0.1153,
+      "ece": 0.0769,
+      "nll": 2.1318,
+      "top1": 0.125,
+      "top3": 0.375
+     }
+    }
+   },
+   "calibration_boundary": [
+    {
+     "freq": 0.0,
+     "n": 1,
+     "p_mean": 0.6117
+    },
+    {
+     "freq": 1.0,
+     "n": 719,
+     "p_mean": 0.9997
+    }
+   ],
+   "n_boundary_positions": 720,
+   "n_people": 30,
+   "n_positions": 810,
+   "off_policy_positions": 42,
+   "paired_boundary": {
+    "brier_minus_bigram": {
+     "ci": [
+      -0.1014,
+      -0.0954
+     ],
+     "value": -0.0983
+    },
+    "top1_minus_bigram": {
+     "ci": [
+      0.125,
+      0.1473
+     ],
+     "value": 0.1361
+    },
+    "top1_minus_unigram": {
+     "ci": [
+      0.8708,
+      0.875
+     ],
+     "value": 0.8736
+    }
+   }
+  }
+ },
+ "code_hashes": {
+  "candidates.py": "46e2bf1f9b67",
+  "evals/cue/PLAN.md": "c519346fefa3",
+  "evaluate.py": "30c28ac6873c",
+  "evaluate_candidates.py": "1b0c3d47a9df",
+  "evaluate_score.py": "d0a84cb42b48",
+  "gate.py": "2edbc0806abc",
+  "params.py": "2b912880af7e",
+  "question.py": "e6130ec2b4a3",
+  "score.py": "15260b54aa41",
+  "simlearn.py": "947d6d18e4c4",
+  "simulate.py": "4a328240a2b8"
+ },
+ "design": {
+  "assumptions": {
+   "accept_beta": [
+    6.0,
+    2.5
+   ],
+   "answer_cost_when_stuck_s": 4.0,
+   "answer_prob": 0.85,
+   "answer_s": 4.0,
+   "batch_beta": [
+    1.2,
+    4.0
+   ],
+   "emulated_dprime": 1.5,
+   "error_prob": 0.03,
+   "error_prob_after_confusion": 0.15,
+   "false_nudge_cost_s": {
+    "ask": 10.0,
+    "chip": 5.0,
+    "ghost": 8.0,
+    "offer": 3.0,
+    "ring": 3.0,
+    "voice": 6.0
+   },
+   "false_nudge_dismiss": 0.85,
+   "follow_mastery_discount": 0.5,
+   "follow_when_help_wanted": 0.95,
+   "move_prob_pause": 0.03,
+   "move_prob_stall": 0.1,
+   "offer_accept_not_stuck": 0.05,
+   "offer_accept_stuck": [
+    0.1,
+    0.4
+   ],
+   "pause_beta": [
+    2.0,
+    6.0
+   ],
+   "pause_median_s": 25.0,
+   "pause_sigma": 0.8,
+   "practice_gain": {
+    "assisted": 0.08,
+    "clean": 0.03,
+    "struggled": 0.05
+   },
+   "react_median_s": 6.0,
+   "react_sigma": 0.4,
+   "speed_sigma": 0.2,
+   "stall_median_s": 80.0,
+   "stall_sigma": 0.7,
+   "stuck_base_beta": [
+    2.0,
+    12.0
+   ],
+   "stuck_exponent": 1.2,
+   "tier_boost": {
+    "1": 0.7,
+    "2": 0.9,
+    "3": 1.0,
+    "4": 0.9
+   },
+   "typing_prob_in_work": 0.8,
+   "work_sigma": 0.25,
+   "wrong_cue_confusion_s": 8.0,
+   "wrong_cue_dismiss": 0.8
+  },
+  "dt_s": 2.5,
+  "fast": false,
+  "seconds": 32.8,
+  "voice_ok": false
+ },
+ "dev": {
+  "acceptance_on_dev": {
+   "P1_false_nudges": "met",
+   "P2_faster_to_resume": "not_met",
+   "intervals": "97.5% (Bonferroni, two primary outcomes)",
+   "invariants": "met"
+  },
+  "metrics": {
+   "acceptance_rate": {
+    "ci": [
+     0.2137,
+     0.3082
+    ],
+    "n": 228,
+    "n_workers": 40,
+    "value": 0.2667
+   },
+   "asks_per_hour": {
+    "ci": [
+     0.0368,
+     0.0947
+    ],
+    "n": 31,
+    "n_workers": 40,
+    "value": 0.0615
+   },
+   "cases": 2400,
+   "cued_stalls_shortened_share": {
+    "ci": [
+     0.4035,
+     0.5364
+    ],
+    "n": 181,
+    "n_workers": 40,
+    "value": 0.4776
+   },
+   "cues_per_hour": {
+    "ci": [
+     1.4588,
+     1.94
+    ],
+    "n": 855,
+    "n_workers": 40,
+    "value": 1.697
+   },
+   "dismissal_rate": {
+    "ci": [
+     0.4096,
+     0.4989
+    ],
+    "n": 381,
+    "n_workers": 40,
+    "value": 0.4456
+   },
+   "hours": 503.8,
+   "ignored_rate": {
+    "ci": [
+     0.2518,
+     0.3234
+    ],
+    "n": 246,
+    "n_workers": 40,
+    "value": 0.2877
+   },
+   "median_stall_s": {
+    "no_cue": {
+     "ci": [
+      73.32,
+      78.36
+     ],
+     "n": 1395,
+     "value": 75.5
+    },
+    "with_cue": {
+     "ci": [
+      72.76,
+      75.04
+     ],
+     "n": 1395,
+     "value": 74.2
+    }
+   },
+   "n_workers": 40,
+   "net_seconds_saved_per_hour": {
+    "baseline_no_cue": 0.0,
+    "ci": [
+     15.5493,
+     31.4478
+    ],
+    "n": 12064,
+    "n_workers": 40,
+    "note": "Stall seconds saved minus seconds lost to interruptions, per hour of work.",
+    "value": 23.9455
+   },
+   "offers_per_hour": {
+    "ci": [
+     0.0,
+     0.006
+    ],
+    "n": 1,
+    "n_workers": 40,
+    "value": 0.002
+   },
+   "p1_false_nudges_per_hour": {
+    "all": {
+     "ci": [
+      0.664,
+      0.852
+     ],
+     "n": 380,
+     "n_workers": 40,
+     "value": 0.7542
+    },
+    "baseline_no_cue": 0.0,
+    "design_target": 1.0,
+    "note": "A design target (at most 1.0 an hour), not a measured tolerance.",
+    "primary_975": {
+     "ci": [
+      0.6472,
+      0.8662
+     ],
+     "n": 380,
+     "n_workers": 40,
+     "value": 0.7542
+    }
+   },
+   "p2_exploratory_mean_diff_s": {
+    "ci": [
+     -43.945,
+     -28.9946
+    ],
+    "n": -13969,
+    "n_workers": 40,
+    "value": -36.8587
+   },
+   "p2_seconds_to_resume_paired_diff": {
+    "baseline": 0.0,
+    "median": {
+     "ci": [
+      -10.99,
+      -0.0
+     ],
+     "n": 379,
+     "value": -0.0
+    },
+    "note": "Seconds from the first cue to resuming, with Cue minus the no-cue remaining stall, per cued stall; negative is faster."
+   },
+   "questions_per_episode": {
+    "ci": [
+     0.0286,
+     0.0737
+    ],
+    "n": 31,
+    "n_workers": 40,
+    "value": 0.0477
+   },
+   "seconds_from_first_cue_to_resume": {
+    "no_cue_counterfactual": {
+     "ci": [
+      40.48,
+      54.27
+     ],
+     "n": 379,
+     "value": 48.29
+    },
+    "with_cue": {
+     "ci": [
+      8.25,
+      10.92
+     ],
+     "n": 379,
+     "value": 9.43
+    }
+   },
+   "silence_precision": {
+    "baseline_always_silent": 0.9325,
+    "ci": [
+     0.9178,
+     0.949
+    ],
+    "n": 686634,
+    "n_workers": 40,
+    "note": "Share of silent moments that were genuinely not stuck; always staying silent scores the baseline.",
+    "value": 0.9341
+   },
+   "stuck_episodes": 1395,
+   "stuck_episodes_accepted_share": {
+    "ci": [
+     0.1238,
+     0.1674
+    ],
+    "n": 204,
+    "n_workers": 40,
+    "value": 0.1462
+   },
+   "stuck_episodes_with_a_correct_cue_share": {
+    "ci": [
+     0.2475,
+     0.2886
+    ],
+    "n": 377,
+    "n_workers": 40,
+    "value": 0.2703
+   },
+   "stuck_episodes_with_any_cue_share": {
+    "ci": [
+     0.2498,
+     0.2898
+    ],
+    "n": 379,
+    "n_workers": 40,
+    "value": 0.2717
+   },
+   "stuck_seconds_that_stayed_silent_share": {
+    "ci": [
+     0.9709,
+     0.9763
+    ],
+    "n": 48432,
+    "n_workers": 40,
+    "value": 0.9736
+   },
+   "violations": {
+    "count": 0,
+    "kinds": []
+   },
+   "wrong_target_cues_per_hour": {
+    "ci": [
+     0.004,
+     0.0214
+    ],
+    "n": 6,
+    "n_workers": 40,
+    "value": 0.0119
+   }
+  },
+  "params": {
+   "cap_window_s": 600.0,
+   "confident_p": 0.5,
+   "daily_budget": 12,
+   "defer_s": 10.0,
+   "display_s": 12.0,
+   "episode_timeout_s": 600.0,
+   "escalate_s": 25.0,
+   "ground_conf_thr": 0.7,
+   "know_this_hold_s": 300.0,
+   "margin_thr": 0.1,
+   "mastery_patience": 1.0,
+   "max_cues_window": 3,
+   "max_offers": 1,
+   "max_questions": 1,
+   "min_path_p": 0.3,
+   "need": 2,
+   "offer_after_s": 90.0,
+   "p_signal": 0.4,
+   "quiet_required_s": 2.0,
+   "skill_gap_s": 90.0,
+   "stall_min_l1": 15.0,
+   "stall_min_l2": 20.0,
+   "stall_min_l3": 45.0,
+   "start_tier_l1": 2,
+   "start_tier_l2": 1,
+   "start_tier_l3": 1
+  },
+  "split": "dev population seed 11 (40 workers), replicate seeds [0, 1, 2, 3, 4]"
+ },
+ "grounding_sweep": {
+  "accuracies": [
+   "0.6",
+   "0.7",
+   "0.8",
+   "0.9",
+   "1.0"
+  ],
+  "note": "A what-if: the fake port is right at this rate; wrong means not found or confidently another step.",
+  "rows": {
+   "0.6": {
+    "acceptance_rate": {
+     "ci": [
+      0.2327,
+      0.3572
+     ],
+     "n": 106,
+     "n_workers": 40,
+     "value": 0.3003
+    },
+    "dismissal_rate": {
+     "ci": [
+      0.3893,
+      0.5253
+     ],
+     "n": 158,
+     "n_workers": 40,
+     "value": 0.4476
+    },
+    "net_seconds_saved_per_hour": {
+     "baseline_no_cue": 0.0,
+     "ci": [
+      15.2411,
+      35.0624
+     ],
+     "n": 5128,
+     "n_workers": 40,
+     "note": "Stall seconds saved minus seconds lost to interruptions, per hour of work.",
+     "value": 25.392
+    },
+    "p1_false_nudges_per_hour": {
+     "all": {
+      "ci": [
+       0.6027,
+       0.844
+      ],
+      "n": 147,
+      "n_workers": 40,
+      "value": 0.7278
+     },
+     "baseline_no_cue": 0.0,
+     "design_target": 1.0,
+     "note": "A design target (at most 1.0 an hour), not a measured tolerance.",
+     "primary_975": {
+      "ci": [
+       0.5714,
+       0.8681
+      ],
+      "n": 147,
+      "n_workers": 40,
+      "value": 0.7278
+     }
+    },
+    "stuck_episodes_with_a_correct_cue_share": {
+     "ci": [
+      0.2476,
+      0.3253
+     ],
+     "n": 163,
+     "n_workers": 40,
+     "value": 0.2921
+    },
+    "wrong_target_cues_per_hour": {
+     "ci": [
+      0.025,
+      0.0848
+     ],
+     "n": 11,
+     "n_workers": 40,
+     "value": 0.0545
+    }
+   },
+   "0.7": {
+    "acceptance_rate": {
+     "ci": [
+      0.2264,
+      0.3417
+     ],
+     "n": 103,
+     "n_workers": 40,
+     "value": 0.2885
+    },
+    "dismissal_rate": {
+     "ci": [
+      0.3881,
+      0.527
+     ],
+     "n": 160,
+     "n_workers": 40,
+     "value": 0.4482
+    },
+    "net_seconds_saved_per_hour": {
+     "baseline_no_cue": 0.0,
+     "ci": [
+      16.6029,
+      36.9587
+     ],
+     "n": 5394,
+     "n_workers": 40,
+     "note": "Stall seconds saved minus seconds lost to interruptions, per hour of work.",
+     "value": 26.7171
+    },
+    "p1_false_nudges_per_hour": {
+     "all": {
+      "ci": [
+       0.6144,
+       0.8699
+      ],
+      "n": 150,
+      "n_workers": 40,
+      "value": 0.7429
+     },
+     "baseline_no_cue": 0.0,
+     "design_target": 1.0,
+     "note": "A design target (at most 1.0 an hour), not a measured tolerance.",
+     "primary_975": {
+      "ci": [
+       0.6041,
+       0.8933
+      ],
+      "n": 150,
+      "n_workers": 40,
+      "value": 0.7429
+     }
+    },
+    "stuck_episodes_with_a_correct_cue_share": {
+     "ci": [
+      0.25,
+      0.3259
+     ],
+     "n": 164,
+     "n_workers": 40,
+     "value": 0.2939
+    },
+    "wrong_target_cues_per_hour": {
+     "ci": [
+      0.0259,
+      0.0946
+     ],
+     "n": 12,
+     "n_workers": 40,
+     "value": 0.0594
+    }
+   },
+   "0.8": {
+    "acceptance_rate": {
+     "ci": [
+      0.2251,
+      0.3428
+     ],
+     "n": 103,
+     "n_workers": 40,
+     "value": 0.2877
+    },
+    "dismissal_rate": {
+     "ci": [
+      0.3916,
+      0.5289
+     ],
+     "n": 161,
+     "n_workers": 40,
+     "value": 0.4497
+    },
+    "net_seconds_saved_per_hour": {
+     "baseline_no_cue": 0.0,
+     "ci": [
+      16.5828,
+      37.6121
+     ],
+     "n": 5446,
+     "n_workers": 40,
+     "note": "Stall seconds saved minus seconds lost to interruptions, per hour of work.",
+     "value": 26.9771
+    },
+    "p1_false_nudges_per_hour": {
+     "all": {
+      "ci": [
+       0.6247,
+       0.87
+      ],
+      "n": 151,
+      "n_workers": 40,
+      "value": 0.7479
+     },
+     "baseline_no_cue": 0.0,
+     "design_target": 1.0,
+     "note": "A design target (at most 1.0 an hour), not a measured tolerance.",
+     "primary_975": {
+      "ci": [
+       0.6019,
+       0.8807
+      ],
+      "n": 151,
+      "n_workers": 40,
+      "value": 0.7479
+     }
+    },
+    "stuck_episodes_with_a_correct_cue_share": {
+     "ci": [
+      0.25,
+      0.3267
+     ],
+     "n": 164,
+     "n_workers": 40,
+     "value": 0.2939
+    },
+    "wrong_target_cues_per_hour": {
+     "ci": [
+      0.0154,
+      0.0722
+     ],
+     "n": 9,
+     "n_workers": 40,
+     "value": 0.0446
+    }
+   },
+   "0.9": {
+    "acceptance_rate": {
+     "ci": [
+      0.2262,
+      0.3355
+     ],
+     "n": 102,
+     "n_workers": 40,
+     "value": 0.2865
+    },
+    "dismissal_rate": {
+     "ci": [
+      0.3882,
+      0.5304
+     ],
+     "n": 160,
+     "n_workers": 40,
+     "value": 0.4494
+    },
+    "net_seconds_saved_per_hour": {
+     "baseline_no_cue": 0.0,
+     "ci": [
+      16.7171,
+      37.6014
+     ],
+     "n": 5453,
+     "n_workers": 40,
+     "note": "Stall seconds saved minus seconds lost to interruptions, per hour of work.",
+     "value": 27.0016
+    },
+    "p1_false_nudges_per_hour": {
+     "all": {
+      "ci": [
+       0.6148,
+       0.8682
+      ],
+      "n": 150,
+      "n_workers": 40,
+      "value": 0.7427
+     },
+     "baseline_no_cue": 0.0,
+     "design_target": 1.0,
+     "note": "A design target (at most 1.0 an hour), not a measured tolerance.",
+     "primary_975": {
+      "ci": [
+       0.6019,
+       0.8802
+      ],
+      "n": 150,
+      "n_workers": 40,
+      "value": 0.7427
+     }
+    },
+    "stuck_episodes_with_a_correct_cue_share": {
+     "ci": [
+      0.2571,
+      0.3286
+     ],
+     "n": 166,
+     "n_workers": 40,
+     "value": 0.297
+    },
+    "wrong_target_cues_per_hour": {
+     "ci": [
+      0.0,
+      0.0252
+     ],
+     "n": 2,
+     "n_workers": 40,
+     "value": 0.0099
+    }
+   },
+   "1.0": {
+    "acceptance_rate": {
+     "ci": [
+      0.2157,
+      0.3245
+     ],
+     "n": 97,
+     "n_workers": 40,
+     "value": 0.2748
+    },
+    "dismissal_rate": {
+     "ci": [
+      0.3995,
+      0.5414
+     ],
+     "n": 162,
+     "n_workers": 40,
+     "value": 0.4589
+    },
+    "net_seconds_saved_per_hour": {
+     "baseline_no_cue": 0.0,
+     "ci": [
+      15.1976,
+      34.5235
+     ],
+     "n": 5006,
+     "n_workers": 40,
+     "note": "Stall seconds saved minus seconds lost to interruptions, per hour of work.",
+     "value": 24.7738
+    },
+    "p1_false_nudges_per_hour": {
+     "all": {
+      "ci": [
+       0.6151,
+       0.8673
+      ],
+      "n": 150,
+      "n_workers": 40,
+      "value": 0.7423
+     },
+     "baseline_no_cue": 0.0,
+     "design_target": 1.0,
+     "note": "A design target (at most 1.0 an hour), not a measured tolerance.",
+     "primary_975": {
+      "ci": [
+       0.6034,
+       0.8826
+      ],
+      "n": 150,
+      "n_workers": 40,
+      "value": 0.7423
+     }
+    },
+    "stuck_episodes_with_a_correct_cue_share": {
+     "ci": [
+      0.2571,
+      0.3286
+     ],
+     "n": 166,
+     "n_workers": 40,
+     "value": 0.297
+    },
+    "wrong_target_cues_per_hour": {
+     "ci": [
+      0.0,
+      0.0
+     ],
+     "n": 0,
+     "n_workers": 40,
+     "value": 0.0
+    }
+   }
+  },
+  "split": "dev"
+ },
+ "held_out": {
+  "reason": "the held-out run is a separate frozen command (evals/cue/PLAN.md); evaluate_cue(fast) never looks at it",
+  "status": "not_run"
+ },
+ "limitations": [
+  {
+   "id": "cue-sim-world",
+   "severity": "high",
+   "text": "Every Cue result comes from a simulator written by the same team that wrote the policy: stalls, pauses, reaction times and interruption costs are assumptions. It shows the policy keeps its caps and trades help against nuisance as designed; it is not evidence about people."
+  },
+  {
+   "id": "cue-signal-rule",
+   "severity": "medium",
+   "text": "The headline stuck signal is the coach's rule fallback (time since progress). The real hazard model would change when help arrives; an emulated model signal is a secondary sweep and is labelled as an emulation."
+  },
+  {
+   "id": "cue-grounding-fake",
+   "severity": "medium",
+   "text": "Grounding is a fake port right at a chosen rate. Real accuracy on real screens is not measured here; the 60 to 100% sweep is a what-if."
+  },
+  {
+   "id": "cue-score-composite",
+   "severity": "high",
+   "text": "The composite overstates mastery for learners who do not improve and rises 10 points or more in about a third of them. It is experimental and in no headline; independence and the trend are the evidence, and the trend has low power."
+  },
+  {
+   "id": "cue-score-leak",
+   "severity": "medium",
+   "text": "A learner who dismisses a cue and then grinds through alone looks independent in the ledger; the guards remove dismiss-and-walk-away and implicit follows within 10 s but cannot remove that leak."
+  },
+  {
+   "id": "cue-candidates-families",
+   "severity": "medium",
+   "text": "Candidate accuracy is measured on 8 scripted apprentice experts and on experts sampled from the pack's own rules; real experts will do things neither contains."
+  }
+ ],
+ "meta": {
+  "generated_at": "2026-11-07T18:27:14Z",
+  "interval_level": 0.95,
+  "n": 40,
+  "n_unit": "personas",
+  "note": "Simulated workers and learners; nothing here is evidence about people. Design targets are design choices.",
+  "origin": "synthetic",
+  "split": "dev population seed 11; held-out seed 77 (separate command)"
+ },
+ "readings": [
+  "Candidates: the pack's order rules do most of the work (the same n-gram without them is clearly worse); family A is 8 people with two orderings, so its interval is wide; family B is written from the pack's rules, so it cannot make them lose.",
+  "Score: the independence interval and the trend are the headline. The composite overstates for learners who do not improve and rises falsely in about a third of them, so it is shown as experimental only. 'Steady' means cannot tell yet.",
+  "Cue: these numbers say how the policy behaves in a simulated world whose assumptions are in PLAN.md and cue/simulate.py. They do not say Cue works on people."
+ ],
+ "score_validation": {
+  "design": {
+   "early_checkpoint": 30,
+   "guess": 0.1,
+   "kinds": [
+    "improving",
+    "flat",
+    "forgetting",
+    "gamer"
+   ],
+   "occurrences_per_skill": 40,
+   "seconds": 18.4,
+   "skills": 3,
+   "variants": [
+    "engine_default",
+    "evidence_only",
+    "conservative",
+    "assisted_as_failure"
+   ],
+   "window": 20
+  },
+  "gaming": {
+   "reading": "flat learners whose true skill never changes; a rising score as acceptance falls is gaming inflation",
+   "rows": [
+    {
+     "accept_rate": 0.8,
+     "composite": {
+      "ci": [
+       37.6449,
+       41.1007
+      ],
+      "mean": 39.4125,
+      "n": 40
+     },
+     "independence_minus_truth": {
+      "ci": [
+       -0.0175,
+       0.0388
+      ],
+      "mean": 0.01,
+      "n": 40
+     },
+     "independence_share": {
+      "ci": [
+       0.3525,
+       0.4088
+      ],
+      "mean": 0.38,
+      "n": 40
+     },
+     "independence_share_guards_removed": {
+      "ci": [
+       0.4837,
+       0.54
+      ],
+      "mean": 0.5112,
+      "n": 40
+     },
+     "n_learners": 40,
+     "true_independence": {
+      "ci": [
+       0.37,
+       0.37
+      ],
+      "mean": 0.37,
+      "n": 40
+     }
+    },
+    {
+     "accept_rate": 0.4,
+     "composite": {
+      "ci": [
+       32.2725,
+       37.7229
+      ],
+      "mean": 35.0175,
+      "n": 40
+     },
+     "independence_minus_truth": {
+      "ci": [
+       0.0275,
+       0.0988
+      ],
+      "mean": 0.0638,
+      "n": 40
+     },
+     "independence_share": {
+      "ci": [
+       0.3975,
+       0.4688
+      ],
+      "mean": 0.4338,
+      "n": 40
+     },
+     "independence_share_guards_removed": {
+      "ci": [
+       0.7125,
+       0.7901
+      ],
+      "mean": 0.75,
+      "n": 40
+     },
+     "n_learners": 40,
+     "true_independence": {
+      "ci": [
+       0.37,
+       0.37
+      ],
+      "mean": 0.37,
+      "n": 40
+     }
+    },
+    {
+     "accept_rate": 0.0,
+     "composite": {
+      "ci": [
+       27.6361,
+       32.1429
+      ],
+      "mean": 29.7525,
+      "n": 40
+     },
+     "independence_minus_truth": {
+      "ci": [
+       0.1025,
+       0.1613
+      ],
+      "mean": 0.13,
+      "n": 40
+     },
+     "independence_share": {
+      "ci": [
+       0.4725,
+       0.5313
+      ],
+      "mean": 0.5,
+      "n": 40
+     },
+     "independence_share_guards_removed": {
+      "ci": [
+       1.0,
+       1.0
+      ],
+      "mean": 1.0,
+      "n": 40
+     },
+     "n_learners": 40,
+     "true_independence": {
+      "ci": [
+       0.37,
+       0.37
+      ],
+      "mean": 0.37,
+      "n": 40
+     }
+    }
+   ]
+  },
+  "meta": {
+   "generated_at": "2026-11-07T18:27:02Z",
+   "interval_level": 0.95,
+   "n": 240,
+   "n_unit": "simulated learners",
+   "note": "Simulated learners with planted curves and known truth; nobody here is a person.",
+   "origin": "synthetic",
+   "split": "replicate seeds 0..59 per kind"
+  },
+  "variants": {
+   "assisted_as_failure": {
+    "flat": {
+     "composite": {
+      "bias_points": {
+       "ci": [
+        -11.3578,
+        -7.5412
+       ],
+       "mean": -9.3867,
+       "n": 60
+      },
+      "conservative_variant": {
+       "bias_points": {
+        "ci": [
+         -14.6914,
+         -11.0133
+        ],
+        "mean": -12.8767,
+        "n": 60
+       },
+       "estimate": {
+        "ci": [
+         24.0086,
+         27.6867
+        ],
+        "mean": 25.8233,
+        "n": 60
+       }
+      },
+      "estimate": {
+       "ci": [
+        27.3422,
+        31.1588
+       ],
+       "mean": 29.3133,
+       "n": 60
+      },
+      "lb_shift_points": {
+       "ci": [
+        5.5158,
+        7.4423
+       ],
+       "mean": 6.4667,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        38.7,
+        38.7
+       ],
+       "mean": 38.7,
+       "n": 60
+      }
+     },
+     "gap_closure": {
+      "error": {
+       "ci": [
+        0.0482,
+        0.0819
+       ],
+       "mean": 0.0651,
+       "n": 60
+      },
+      "estimate": {
+       "ci": [
+        0.0482,
+        0.0819
+       ],
+       "mean": 0.0651,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "mean": 0.0,
+       "n": 60
+      }
+     },
+     "independence": {
+      "covered_by_wilson": {
+       "ci": [
+        0.8667,
+        0.9833
+       ],
+       "n": 60,
+       "rate": 0.9333
+      },
+      "estimate_mean": {
+       "ci": [
+        0.5166,
+        0.5734
+       ],
+       "mean": 0.5458,
+       "n": 60
+      },
+      "lower_bound_minus_truth": {
+       "ci": [
+        -0.1861,
+        -0.1379
+       ],
+       "mean": -0.1617,
+       "n": 60
+      },
+      "point_minus_truth": {
+       "ci": [
+        0.0116,
+        0.0684
+       ],
+       "mean": 0.0408,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.505,
+        0.505
+       ],
+       "mean": 0.505,
+       "n": 60
+      }
+     },
+     "mastery": {
+      "estimate_mean": {
+       "ci": [
+        0.2638,
+        0.3277
+       ],
+       "mean": 0.2947,
+       "n": 60
+      },
+      "estimate_minus_truth": {
+       "ci": [
+        -0.1862,
+        -0.1223
+       ],
+       "mean": -0.1553,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.45,
+        0.45
+       ],
+       "mean": 0.45,
+       "n": 60
+      }
+     },
+     "n_learners": 60,
+     "retention": {
+      "estimate": {
+       "ci": [
+        0.5,
+        0.5851
+       ],
+       "mean": 0.5429,
+       "n": 60
+      },
+      "probes_mean": {
+       "ci": [
+        13.3667,
+        14.4667
+       ],
+       "mean": 13.9333,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.505,
+        0.505
+       ],
+       "mean": 0.505,
+       "n": 60
+      }
+     },
+     "rise": {
+      "composite_up_10_points": {
+       "ci": [
+        0.1667,
+        0.4
+       ],
+       "n": 60,
+       "rate": 0.2833
+      },
+      "conservative_composite_up_10_points": {
+       "ci": [
+        0.1667,
+        0.3833
+       ],
+       "n": 60,
+       "rate": 0.2667
+      },
+      "independence_up_0.20": {
+       "ci": [
+        0.0167,
+        0.1333
+       ],
+       "n": 60,
+       "rate": 0.0667
+      },
+      "trend_says_less_help": {
+       "ci": [
+        0.0,
+        0.05
+       ],
+       "n": 60,
+       "rate": 0.0167
+      }
+     },
+     "trend": {
+      "direction_counts": {
+       "less_help": 1,
+       "more_help": 1,
+       "steady": 58,
+       "too_early": 0
+      },
+      "slope_per_10": {
+       "ci": [
+        -0.0034,
+        0.0029
+       ],
+       "mean": -0.0003,
+       "n": 60
+      }
+     },
+     "true_q": {
+      "first_30_mean": {
+       "ci": [
+        0.505,
+        0.505
+       ],
+       "mean": 0.505,
+       "n": 60
+      },
+      "last_30_mean": {
+       "ci": [
+        0.505,
+        0.505
+       ],
+       "mean": 0.505,
+       "n": 60
+      }
+     }
+    },
+    "forgetting": {
+     "composite": {
+      "bias_points": {
+       "ci": [
+        -14.4434,
+        -10.6714
+       ],
+       "mean": -12.6667,
+       "n": 60
+      },
+      "conservative_variant": {
+       "bias_points": {
+        "ci": [
+         -18.8541,
+         -14.9869
+        ],
+        "mean": -16.9967,
+        "n": 60
+       },
+       "estimate": {
+        "ci": [
+         23.9014,
+         27.8685
+        ],
+        "mean": 25.9817,
+        "n": 60
+       }
+      },
+      "estimate": {
+       "ci": [
+        28.3532,
+        32.2636
+       ],
+       "mean": 30.3117,
+       "n": 60
+      },
+      "lb_shift_points": {
+       "ci": [
+        5.5232,
+        7.216
+       ],
+       "mean": 6.4105,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        42.2304,
+        43.7619
+       ],
+       "mean": 42.9783,
+       "n": 60
+      }
+     },
+     "gap_closure": {
+      "error": {
+       "ci": [
+        -0.0123,
+        0.0242
+       ],
+       "mean": 0.0068,
+       "n": 60
+      },
+      "estimate": {
+       "ci": [
+        0.3139,
+        0.3538
+       ],
+       "mean": 0.3337,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.3136,
+        0.3413
+       ],
+       "mean": 0.3269,
+       "n": 60
+      }
+     },
+     "independence": {
+      "covered_by_wilson": {
+       "ci": [
+        0.95,
+        1.0
+       ],
+       "n": 60,
+       "rate": 0.9833
+      },
+      "estimate_mean": {
+       "ci": [
+        0.4883,
+        0.5383
+       ],
+       "mean": 0.5133,
+       "n": 60
+      },
+      "lower_bound_minus_truth": {
+       "ci": [
+        -0.1804,
+        -0.1381
+       ],
+       "mean": -0.1603,
+       "n": 60
+      },
+      "point_minus_truth": {
+       "ci": [
+        0.0162,
+        0.0644
+       ],
+       "mean": 0.0392,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.468,
+        0.4808
+       ],
+       "mean": 0.4741,
+       "n": 60
+      }
+     },
+     "mastery": {
+      "estimate_mean": {
+       "ci": [
+        0.2133,
+        0.2848
+       ],
+       "mean": 0.2493,
+       "n": 60
+      },
+      "estimate_minus_truth": {
+       "ci": [
+        -0.2596,
+        -0.1884
+       ],
+       "mean": -0.2241,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.4625,
+        0.4836
+       ],
+       "mean": 0.4734,
+       "n": 60
+      }
+     },
+     "n_learners": 60,
+     "retention": {
+      "estimate": {
+       "ci": [
+        0.3323,
+        0.3909
+       ],
+       "mean": 0.3608,
+       "n": 60
+      },
+      "probes_mean": {
+       "ci": [
+        17.6833,
+        19.0
+       ],
+       "mean": 18.3167,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.3232,
+        0.3332
+       ],
+       "mean": 0.3277,
+       "n": 60
+      }
+     },
+     "rise": {
+      "composite_up_10_points": {
+       "ci": [
+        0.1667,
+        0.3833
+       ],
+       "n": 60,
+       "rate": 0.2667
+      },
+      "conservative_composite_up_10_points": {
+       "ci": [
+        0.1833,
+        0.4167
+       ],
+       "n": 60,
+       "rate": 0.3
+      },
+      "independence_up_0.20": {
+       "ci": [
+        0.0833,
+        0.2667
+       ],
+       "n": 60,
+       "rate": 0.1667
+      },
+      "trend_says_less_help": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "n": 60,
+       "rate": 0.0
+      }
+     },
+     "trend": {
+      "direction_counts": {
+       "less_help": 0,
+       "more_help": 0,
+       "steady": 60,
+       "too_early": 0
+      },
+      "slope_per_10": {
+       "ci": [
+        -0.0028,
+        0.0015
+       ],
+       "mean": -0.0007,
+       "n": 60
+      }
+     },
+     "true_q": {
+      "first_30_mean": {
+       "ci": [
+        0.4027,
+        0.4135
+       ],
+       "mean": 0.4086,
+       "n": 60
+      },
+      "last_30_mean": {
+       "ci": [
+        0.4365,
+        0.4494
+       ],
+       "mean": 0.4426,
+       "n": 60
+      }
+     }
+    },
+    "gamer": {
+     "composite": {
+      "bias_points": {
+       "ci": [
+        -4.8234,
+        -0.7705
+       ],
+       "mean": -2.925,
+       "n": 60
+      },
+      "conservative_variant": {
+       "bias_points": {
+        "ci": [
+         -5.4102,
+         -1.2631
+        ],
+        "mean": -3.4533,
+        "n": 60
+       },
+       "estimate": {
+        "ci": [
+         20.9898,
+         25.1369
+        ],
+        "mean": 22.9467,
+        "n": 60
+       }
+      },
+      "estimate": {
+       "ci": [
+        21.5766,
+        25.6295
+       ],
+       "mean": 23.475,
+       "n": 60
+      },
+      "lb_shift_points": {
+       "ci": [
+        3.1168,
+        4.9674
+       ],
+       "mean": 4.1248,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        26.4,
+        26.4
+       ],
+       "mean": 26.4,
+       "n": 60
+      }
+     },
+     "gap_closure": {
+      "error": {
+       "ci": [
+        0.0161,
+        0.0328
+       ],
+       "mean": 0.0244,
+       "n": 60
+      },
+      "estimate": {
+       "ci": [
+        0.0161,
+        0.0328
+       ],
+       "mean": 0.0244,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "mean": 0.0,
+       "n": 60
+      }
+     },
+     "independence": {
+      "covered_by_wilson": {
+       "ci": [
+        0.6667,
+        0.8667
+       ],
+       "n": 60,
+       "rate": 0.7667
+      },
+      "estimate_mean": {
+       "ci": [
+        0.4442,
+        0.4959
+       ],
+       "mean": 0.4683,
+       "n": 60
+      },
+      "lower_bound_minus_truth": {
+       "ci": [
+        -0.1118,
+        -0.0701
+       ],
+       "mean": -0.0928,
+       "n": 60
+      },
+      "point_minus_truth": {
+       "ci": [
+        0.0742,
+        0.1259
+       ],
+       "mean": 0.0983,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.37,
+        0.37
+       ],
+       "mean": 0.37,
+       "n": 60
+      }
+     },
+     "mastery": {
+      "estimate_mean": {
+       "ci": [
+        0.2774,
+        0.3653
+       ],
+       "mean": 0.3183,
+       "n": 60
+      },
+      "estimate_minus_truth": {
+       "ci": [
+        -0.0226,
+        0.0653
+       ],
+       "mean": 0.0183,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.3,
+        0.3
+       ],
+       "mean": 0.3,
+       "n": 60
+      }
+     },
+     "n_learners": 60,
+     "retention": {
+      "estimate": {
+       "ci": [
+        null,
+        null
+       ],
+       "mean": null,
+       "n": 0
+      },
+      "probes_mean": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "mean": 0.0,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        null,
+        null
+       ],
+       "mean": null,
+       "n": 0
+      }
+     },
+     "rise": {
+      "composite_up_10_points": {
+       "ci": [
+        0.0667,
+        0.25
+       ],
+       "n": 60,
+       "rate": 0.15
+      },
+      "conservative_composite_up_10_points": {
+       "ci": [
+        0.0667,
+        0.25
+       ],
+       "n": 60,
+       "rate": 0.15
+      },
+      "independence_up_0.20": {
+       "ci": [
+        0.0,
+        0.0833
+       ],
+       "n": 60,
+       "rate": 0.0333
+      },
+      "trend_says_less_help": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "n": 60,
+       "rate": 0.0
+      }
+     },
+     "trend": {
+      "direction_counts": {
+       "less_help": 0,
+       "more_help": 0,
+       "steady": 60,
+       "too_early": 0
+      },
+      "slope_per_10": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "mean": 0.0,
+       "n": 60
+      }
+     },
+     "true_q": {
+      "first_30_mean": {
+       "ci": [
+        0.37,
+        0.37
+       ],
+       "mean": 0.37,
+       "n": 60
+      },
+      "last_30_mean": {
+       "ci": [
+        0.37,
+        0.37
+       ],
+       "mean": 0.37,
+       "n": 60
+      }
+     }
+    },
+    "improving": {
+     "composite": {
+      "bias_points": {
+       "ci": [
+        -11.0195,
+        -5.6946
+       ],
+       "mean": -8.2117,
+       "n": 60
+      },
+      "conservative_variant": {
+       "bias_points": {
+        "ci": [
+         -15.5925,
+         -10.2039
+        ],
+        "mean": -12.8117,
+        "n": 60
+       },
+       "estimate": {
+        "ci": [
+         52.4764,
+         57.7853
+        ],
+        "mean": 55.2267,
+        "n": 60
+       }
+      },
+      "estimate": {
+       "ci": [
+        57.135,
+        62.2571
+       ],
+       "mean": 59.8267,
+       "n": 60
+      },
+      "lb_shift_points": {
+       "ci": [
+        6.6729,
+        8.9598
+       ],
+       "mean": 7.748,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        67.2738,
+        68.7384
+       ],
+       "mean": 68.0383,
+       "n": 60
+      }
+     },
+     "gap_closure": {
+      "error": {
+       "ci": [
+        -0.0202,
+        0.0081
+       ],
+       "mean": -0.0057,
+       "n": 60
+      },
+      "estimate": {
+       "ci": [
+        0.5845,
+        0.6185
+       ],
+       "mean": 0.6021,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.5963,
+        0.6183
+       ],
+       "mean": 0.6078,
+       "n": 60
+      }
+     },
+     "independence": {
+      "covered_by_wilson": {
+       "ci": [
+        0.8667,
+        0.9833
+       ],
+       "n": 60,
+       "rate": 0.9333
+      },
+      "estimate_mean": {
+       "ci": [
+        0.7083,
+        0.7633
+       ],
+       "mean": 0.7375,
+       "n": 60
+      },
+      "lower_bound_minus_truth": {
+       "ci": [
+        -0.224,
+        -0.1668
+       ],
+       "mean": -0.1937,
+       "n": 60
+      },
+      "point_minus_truth": {
+       "ci": [
+        -0.0099,
+        0.0456
+       ],
+       "mean": 0.0201,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.7097,
+        0.7244
+       ],
+       "mean": 0.7174,
+       "n": 60
+      }
+     },
+     "mastery": {
+      "estimate_mean": {
+       "ci": [
+        0.6145,
+        0.7206
+       ],
+       "mean": 0.67,
+       "n": 60
+      },
+      "estimate_minus_truth": {
+       "ci": [
+        -0.077,
+        0.0266
+       ],
+       "mean": -0.0243,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.6854,
+        0.7028
+       ],
+       "mean": 0.6943,
+       "n": 60
+      }
+     },
+     "n_learners": 60,
+     "retention": {
+      "estimate": {
+       "ci": [
+        0.6465,
+        0.7034
+       ],
+       "mean": 0.6739,
+       "n": 60
+      },
+      "probes_mean": {
+       "ci": [
+        13.5329,
+        14.5671
+       ],
+       "mean": 14.0667,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.63,
+        0.6427
+       ],
+       "mean": 0.6357,
+       "n": 60
+      }
+     },
+     "rise": {
+      "composite_up_10_points": {
+       "ci": [
+        0.7333,
+        0.9167
+       ],
+       "n": 60,
+       "rate": 0.8167
+      },
+      "conservative_composite_up_10_points": {
+       "ci": [
+        0.8,
+        0.9667
+       ],
+       "n": 60,
+       "rate": 0.8833
+      },
+      "independence_up_0.20": {
+       "ci": [
+        0.3667,
+        0.6167
+       ],
+       "n": 60,
+       "rate": 0.4833
+      },
+      "trend_says_less_help": {
+       "ci": [
+        0.0496,
+        0.1833
+       ],
+       "n": 60,
+       "rate": 0.1
+      }
+     },
+     "trend": {
+      "direction_counts": {
+       "less_help": 6,
+       "more_help": 0,
+       "steady": 54,
+       "too_early": 0
+      },
+      "slope_per_10": {
+       "ci": [
+        -0.0198,
+        -0.0135
+       ],
+       "mean": -0.0167,
+       "n": 60
+      }
+     },
+     "true_q": {
+      "first_30_mean": {
+       "ci": [
+        0.4428,
+        0.4538
+       ],
+       "mean": 0.4484,
+       "n": 60
+      },
+      "last_30_mean": {
+       "ci": [
+        0.7108,
+        0.7241
+       ],
+       "mean": 0.7174,
+       "n": 60
+      }
+     }
+    }
+   },
+   "conservative": {
+    "flat": {
+     "composite": {
+      "bias_points": {
+       "ci": [
+        5.2783,
+        8.8057
+       ],
+       "mean": 7.0633,
+       "n": 60
+      },
+      "conservative_variant": {
+       "bias_points": {
+        "ci": [
+         1.9952,
+         5.2197
+        ],
+        "mean": 3.5817,
+        "n": 60
+       },
+       "estimate": {
+        "ci": [
+         40.6952,
+         43.9197
+        ],
+        "mean": 42.2817,
+        "n": 60
+       }
+      },
+      "estimate": {
+       "ci": [
+        43.9783,
+        47.5057
+       ],
+       "mean": 45.7633,
+       "n": 60
+      },
+      "lb_shift_points": {
+       "ci": [
+        5.5158,
+        7.4423
+       ],
+       "mean": 6.4667,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        38.7,
+        38.7
+       ],
+       "mean": 38.7,
+       "n": 60
+      }
+     },
+     "gap_closure": {
+      "error": {
+       "ci": [
+        0.0482,
+        0.0819
+       ],
+       "mean": 0.0651,
+       "n": 60
+      },
+      "estimate": {
+       "ci": [
+        0.0482,
+        0.0819
+       ],
+       "mean": 0.0651,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "mean": 0.0,
+       "n": 60
+      }
+     },
+     "independence": {
+      "covered_by_wilson": {
+       "ci": [
+        0.8667,
+        0.9833
+       ],
+       "n": 60,
+       "rate": 0.9333
+      },
+      "estimate_mean": {
+       "ci": [
+        0.5166,
+        0.5734
+       ],
+       "mean": 0.5458,
+       "n": 60
+      },
+      "lower_bound_minus_truth": {
+       "ci": [
+        -0.1861,
+        -0.1379
+       ],
+       "mean": -0.1617,
+       "n": 60
+      },
+      "point_minus_truth": {
+       "ci": [
+        0.0116,
+        0.0684
+       ],
+       "mean": 0.0408,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.505,
+        0.505
+       ],
+       "mean": 0.505,
+       "n": 60
+      }
+     },
+     "mastery": {
+      "estimate_mean": {
+       "ci": [
+        0.8161,
+        0.873
+       ],
+       "mean": 0.8432,
+       "n": 60
+      },
+      "estimate_minus_truth": {
+       "ci": [
+        0.3661,
+        0.423
+       ],
+       "mean": 0.3932,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.45,
+        0.45
+       ],
+       "mean": 0.45,
+       "n": 60
+      }
+     },
+     "n_learners": 60,
+     "retention": {
+      "estimate": {
+       "ci": [
+        0.5,
+        0.5851
+       ],
+       "mean": 0.5429,
+       "n": 60
+      },
+      "probes_mean": {
+       "ci": [
+        13.3667,
+        14.4667
+       ],
+       "mean": 13.9333,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.505,
+        0.505
+       ],
+       "mean": 0.505,
+       "n": 60
+      }
+     },
+     "rise": {
+      "composite_up_10_points": {
+       "ci": [
+        0.2833,
+        0.5333
+       ],
+       "n": 60,
+       "rate": 0.4167
+      },
+      "conservative_composite_up_10_points": {
+       "ci": [
+        0.2833,
+        0.5333
+       ],
+       "n": 60,
+       "rate": 0.4167
+      },
+      "independence_up_0.20": {
+       "ci": [
+        0.0167,
+        0.1333
+       ],
+       "n": 60,
+       "rate": 0.0667
+      },
+      "trend_says_less_help": {
+       "ci": [
+        0.0,
+        0.05
+       ],
+       "n": 60,
+       "rate": 0.0167
+      }
+     },
+     "trend": {
+      "direction_counts": {
+       "less_help": 1,
+       "more_help": 1,
+       "steady": 58,
+       "too_early": 0
+      },
+      "slope_per_10": {
+       "ci": [
+        -0.0034,
+        0.0029
+       ],
+       "mean": -0.0003,
+       "n": 60
+      }
+     },
+     "true_q": {
+      "first_30_mean": {
+       "ci": [
+        0.505,
+        0.505
+       ],
+       "mean": 0.505,
+       "n": 60
+      },
+      "last_30_mean": {
+       "ci": [
+        0.505,
+        0.505
+       ],
+       "mean": 0.505,
+       "n": 60
+      }
+     }
+    },
+    "forgetting": {
+     "composite": {
+      "bias_points": {
+       "ci": [
+        1.5583,
+        5.1807
+       ],
+       "mean": 3.4217,
+       "n": 60
+      },
+      "conservative_variant": {
+       "bias_points": {
+        "ci": [
+         -2.8242,
+         0.8171
+        ],
+        "mean": -0.9033,
+        "n": 60
+       },
+       "estimate": {
+        "ci": [
+         39.9966,
+         43.9009
+        ],
+        "mean": 42.075,
+        "n": 60
+       }
+      },
+      "estimate": {
+       "ci": [
+        44.3922,
+        48.2836
+       ],
+       "mean": 46.4,
+       "n": 60
+      },
+      "lb_shift_points": {
+       "ci": [
+        5.5232,
+        7.216
+       ],
+       "mean": 6.4105,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        42.2304,
+        43.7619
+       ],
+       "mean": 42.9783,
+       "n": 60
+      }
+     },
+     "gap_closure": {
+      "error": {
+       "ci": [
+        -0.0123,
+        0.0242
+       ],
+       "mean": 0.0068,
+       "n": 60
+      },
+      "estimate": {
+       "ci": [
+        0.3139,
+        0.3538
+       ],
+       "mean": 0.3337,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.3136,
+        0.3413
+       ],
+       "mean": 0.3269,
+       "n": 60
+      }
+     },
+     "independence": {
+      "covered_by_wilson": {
+       "ci": [
+        0.95,
+        1.0
+       ],
+       "n": 60,
+       "rate": 0.9833
+      },
+      "estimate_mean": {
+       "ci": [
+        0.4883,
+        0.5383
+       ],
+       "mean": 0.5133,
+       "n": 60
+      },
+      "lower_bound_minus_truth": {
+       "ci": [
+        -0.1804,
+        -0.1381
+       ],
+       "mean": -0.1603,
+       "n": 60
+      },
+      "point_minus_truth": {
+       "ci": [
+        0.0162,
+        0.0644
+       ],
+       "mean": 0.0392,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.468,
+        0.4808
+       ],
+       "mean": 0.4741,
+       "n": 60
+      }
+     },
+     "mastery": {
+      "estimate_mean": {
+       "ci": [
+        0.7505,
+        0.8218
+       ],
+       "mean": 0.7854,
+       "n": 60
+      },
+      "estimate_minus_truth": {
+       "ci": [
+        0.2792,
+        0.3464
+       ],
+       "mean": 0.312,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.4625,
+        0.4836
+       ],
+       "mean": 0.4734,
+       "n": 60
+      }
+     },
+     "n_learners": 60,
+     "retention": {
+      "estimate": {
+       "ci": [
+        0.3323,
+        0.3909
+       ],
+       "mean": 0.3608,
+       "n": 60
+      },
+      "probes_mean": {
+       "ci": [
+        17.6833,
+        19.0
+       ],
+       "mean": 18.3167,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.3232,
+        0.3332
+       ],
+       "mean": 0.3277,
+       "n": 60
+      }
+     },
+     "rise": {
+      "composite_up_10_points": {
+       "ci": [
+        0.2496,
+        0.4667
+       ],
+       "n": 60,
+       "rate": 0.35
+      },
+      "conservative_composite_up_10_points": {
+       "ci": [
+        0.2667,
+        0.4837
+       ],
+       "n": 60,
+       "rate": 0.3667
+      },
+      "independence_up_0.20": {
+       "ci": [
+        0.0833,
+        0.2667
+       ],
+       "n": 60,
+       "rate": 0.1667
+      },
+      "trend_says_less_help": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "n": 60,
+       "rate": 0.0
+      }
+     },
+     "trend": {
+      "direction_counts": {
+       "less_help": 0,
+       "more_help": 0,
+       "steady": 60,
+       "too_early": 0
+      },
+      "slope_per_10": {
+       "ci": [
+        -0.0028,
+        0.0015
+       ],
+       "mean": -0.0007,
+       "n": 60
+      }
+     },
+     "true_q": {
+      "first_30_mean": {
+       "ci": [
+        0.4027,
+        0.4135
+       ],
+       "mean": 0.4086,
+       "n": 60
+      },
+      "last_30_mean": {
+       "ci": [
+        0.4365,
+        0.4494
+       ],
+       "mean": 0.4426,
+       "n": 60
+      }
+     }
+    },
+    "gamer": {
+     "composite": {
+      "bias_points": {
+       "ci": [
+        -4.8234,
+        -0.7705
+       ],
+       "mean": -2.925,
+       "n": 60
+      },
+      "conservative_variant": {
+       "bias_points": {
+        "ci": [
+         -5.4102,
+         -1.2631
+        ],
+        "mean": -3.4533,
+        "n": 60
+       },
+       "estimate": {
+        "ci": [
+         20.9898,
+         25.1369
+        ],
+        "mean": 22.9467,
+        "n": 60
+       }
+      },
+      "estimate": {
+       "ci": [
+        21.5766,
+        25.6295
+       ],
+       "mean": 23.475,
+       "n": 60
+      },
+      "lb_shift_points": {
+       "ci": [
+        3.1168,
+        4.9674
+       ],
+       "mean": 4.1248,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        26.4,
+        26.4
+       ],
+       "mean": 26.4,
+       "n": 60
+      }
+     },
+     "gap_closure": {
+      "error": {
+       "ci": [
+        0.0161,
+        0.0328
+       ],
+       "mean": 0.0244,
+       "n": 60
+      },
+      "estimate": {
+       "ci": [
+        0.0161,
+        0.0328
+       ],
+       "mean": 0.0244,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "mean": 0.0,
+       "n": 60
+      }
+     },
+     "independence": {
+      "covered_by_wilson": {
+       "ci": [
+        0.6667,
+        0.8667
+       ],
+       "n": 60,
+       "rate": 0.7667
+      },
+      "estimate_mean": {
+       "ci": [
+        0.4442,
+        0.4959
+       ],
+       "mean": 0.4683,
+       "n": 60
+      },
+      "lower_bound_minus_truth": {
+       "ci": [
+        -0.1118,
+        -0.0701
+       ],
+       "mean": -0.0928,
+       "n": 60
+      },
+      "point_minus_truth": {
+       "ci": [
+        0.0742,
+        0.1259
+       ],
+       "mean": 0.0983,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.37,
+        0.37
+       ],
+       "mean": 0.37,
+       "n": 60
+      }
+     },
+     "mastery": {
+      "estimate_mean": {
+       "ci": [
+        0.2774,
+        0.3653
+       ],
+       "mean": 0.3183,
+       "n": 60
+      },
+      "estimate_minus_truth": {
+       "ci": [
+        -0.0226,
+        0.0653
+       ],
+       "mean": 0.0183,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.3,
+        0.3
+       ],
+       "mean": 0.3,
+       "n": 60
+      }
+     },
+     "n_learners": 60,
+     "retention": {
+      "estimate": {
+       "ci": [
+        null,
+        null
+       ],
+       "mean": null,
+       "n": 0
+      },
+      "probes_mean": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "mean": 0.0,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        null,
+        null
+       ],
+       "mean": null,
+       "n": 0
+      }
+     },
+     "rise": {
+      "composite_up_10_points": {
+       "ci": [
+        0.0667,
+        0.25
+       ],
+       "n": 60,
+       "rate": 0.15
+      },
+      "conservative_composite_up_10_points": {
+       "ci": [
+        0.0667,
+        0.25
+       ],
+       "n": 60,
+       "rate": 0.15
+      },
+      "independence_up_0.20": {
+       "ci": [
+        0.0,
+        0.0833
+       ],
+       "n": 60,
+       "rate": 0.0333
+      },
+      "trend_says_less_help": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "n": 60,
+       "rate": 0.0
+      }
+     },
+     "trend": {
+      "direction_counts": {
+       "less_help": 0,
+       "more_help": 0,
+       "steady": 60,
+       "too_early": 0
+      },
+      "slope_per_10": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "mean": 0.0,
+       "n": 60
+      }
+     },
+     "true_q": {
+      "first_30_mean": {
+       "ci": [
+        0.37,
+        0.37
+       ],
+       "mean": 0.37,
+       "n": 60
+      },
+      "last_30_mean": {
+       "ci": [
+        0.37,
+        0.37
+       ],
+       "mean": 0.37,
+       "n": 60
+      }
+     }
+    },
+    "improving": {
+     "composite": {
+      "bias_points": {
+       "ci": [
+        -1.8316,
+        1.0307
+       ],
+       "mean": -0.3183,
+       "n": 60
+      },
+      "conservative_variant": {
+       "bias_points": {
+        "ci": [
+         -6.4547,
+         -3.496
+        ],
+        "mean": -4.9283,
+        "n": 60
+       },
+       "estimate": {
+        "ci": [
+         61.4815,
+         64.3884
+        ],
+        "mean": 63.11,
+        "n": 60
+       }
+      },
+      "estimate": {
+       "ci": [
+        66.2195,
+        68.9325
+       ],
+       "mean": 67.72,
+       "n": 60
+      },
+      "lb_shift_points": {
+       "ci": [
+        6.6729,
+        8.9598
+       ],
+       "mean": 7.748,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        67.2738,
+        68.7384
+       ],
+       "mean": 68.0383,
+       "n": 60
+      }
+     },
+     "gap_closure": {
+      "error": {
+       "ci": [
+        -0.0202,
+        0.0081
+       ],
+       "mean": -0.0057,
+       "n": 60
+      },
+      "estimate": {
+       "ci": [
+        0.5845,
+        0.6185
+       ],
+       "mean": 0.6021,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.5963,
+        0.6183
+       ],
+       "mean": 0.6078,
+       "n": 60
+      }
+     },
+     "independence": {
+      "covered_by_wilson": {
+       "ci": [
+        0.8667,
+        0.9833
+       ],
+       "n": 60,
+       "rate": 0.9333
+      },
+      "estimate_mean": {
+       "ci": [
+        0.7083,
+        0.7633
+       ],
+       "mean": 0.7375,
+       "n": 60
+      },
+      "lower_bound_minus_truth": {
+       "ci": [
+        -0.224,
+        -0.1668
+       ],
+       "mean": -0.1937,
+       "n": 60
+      },
+      "point_minus_truth": {
+       "ci": [
+        -0.0099,
+        0.0456
+       ],
+       "mean": 0.0201,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.7097,
+        0.7244
+       ],
+       "mean": 0.7174,
+       "n": 60
+      }
+     },
+     "mastery": {
+      "estimate_mean": {
+       "ci": [
+        0.9197,
+        0.9455
+       ],
+       "mean": 0.933,
+       "n": 60
+      },
+      "estimate_minus_truth": {
+       "ci": [
+        0.2268,
+        0.2517
+       ],
+       "mean": 0.2387,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.6854,
+        0.7028
+       ],
+       "mean": 0.6943,
+       "n": 60
+      }
+     },
+     "n_learners": 60,
+     "retention": {
+      "estimate": {
+       "ci": [
+        0.6465,
+        0.7034
+       ],
+       "mean": 0.6739,
+       "n": 60
+      },
+      "probes_mean": {
+       "ci": [
+        13.5329,
+        14.5671
+       ],
+       "mean": 14.0667,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.63,
+        0.6427
+       ],
+       "mean": 0.6357,
+       "n": 60
+      }
+     },
+     "rise": {
+      "composite_up_10_points": {
+       "ci": [
+        0.75,
+        0.9171
+       ],
+       "n": 60,
+       "rate": 0.8333
+      },
+      "conservative_composite_up_10_points": {
+       "ci": [
+        0.7667,
+        0.9333
+       ],
+       "n": 60,
+       "rate": 0.85
+      },
+      "independence_up_0.20": {
+       "ci": [
+        0.3667,
+        0.6167
+       ],
+       "n": 60,
+       "rate": 0.4833
+      },
+      "trend_says_less_help": {
+       "ci": [
+        0.0496,
+        0.1833
+       ],
+       "n": 60,
+       "rate": 0.1
+      }
+     },
+     "trend": {
+      "direction_counts": {
+       "less_help": 6,
+       "more_help": 0,
+       "steady": 54,
+       "too_early": 0
+      },
+      "slope_per_10": {
+       "ci": [
+        -0.0198,
+        -0.0135
+       ],
+       "mean": -0.0167,
+       "n": 60
+      }
+     },
+     "true_q": {
+      "first_30_mean": {
+       "ci": [
+        0.4428,
+        0.4538
+       ],
+       "mean": 0.4484,
+       "n": 60
+      },
+      "last_30_mean": {
+       "ci": [
+        0.7108,
+        0.7241
+       ],
+       "mean": 0.7174,
+       "n": 60
+      }
+     }
+    }
+   },
+   "engine_default": {
+    "flat": {
+     "composite": {
+      "bias_points": {
+       "ci": [
+        8.522,
+        11.2628
+       ],
+       "mean": 9.9033,
+       "n": 60
+      },
+      "conservative_variant": {
+       "bias_points": {
+        "ci": [
+         5.1247,
+         7.6972
+        ],
+        "mean": 6.425,
+        "n": 60
+       },
+       "estimate": {
+        "ci": [
+         43.8247,
+         46.3972
+        ],
+        "mean": 45.125,
+        "n": 60
+       }
+      },
+      "estimate": {
+       "ci": [
+        47.222,
+        49.9628
+       ],
+       "mean": 48.6033,
+       "n": 60
+      },
+      "lb_shift_points": {
+       "ci": [
+        5.5158,
+        7.4423
+       ],
+       "mean": 6.4667,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        38.7,
+        38.7
+       ],
+       "mean": 38.7,
+       "n": 60
+      }
+     },
+     "gap_closure": {
+      "error": {
+       "ci": [
+        0.0482,
+        0.0819
+       ],
+       "mean": 0.0651,
+       "n": 60
+      },
+      "estimate": {
+       "ci": [
+        0.0482,
+        0.0819
+       ],
+       "mean": 0.0651,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "mean": 0.0,
+       "n": 60
+      }
+     },
+     "independence": {
+      "covered_by_wilson": {
+       "ci": [
+        0.8667,
+        0.9833
+       ],
+       "n": 60,
+       "rate": 0.9333
+      },
+      "estimate_mean": {
+       "ci": [
+        0.5166,
+        0.5734
+       ],
+       "mean": 0.5458,
+       "n": 60
+      },
+      "lower_bound_minus_truth": {
+       "ci": [
+        -0.1861,
+        -0.1379
+       ],
+       "mean": -0.1617,
+       "n": 60
+      },
+      "point_minus_truth": {
+       "ci": [
+        0.0116,
+        0.0684
+       ],
+       "mean": 0.0408,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.505,
+        0.505
+       ],
+       "mean": 0.505,
+       "n": 60
+      }
+     },
+     "mastery": {
+      "estimate_mean": {
+       "ci": [
+        0.9224,
+        0.9538
+       ],
+       "mean": 0.9381,
+       "n": 60
+      },
+      "estimate_minus_truth": {
+       "ci": [
+        0.4724,
+        0.5038
+       ],
+       "mean": 0.4881,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.45,
+        0.45
+       ],
+       "mean": 0.45,
+       "n": 60
+      }
+     },
+     "n_learners": 60,
+     "retention": {
+      "estimate": {
+       "ci": [
+        0.5,
+        0.5851
+       ],
+       "mean": 0.5429,
+       "n": 60
+      },
+      "probes_mean": {
+       "ci": [
+        13.3667,
+        14.4667
+       ],
+       "mean": 13.9333,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.505,
+        0.505
+       ],
+       "mean": 0.505,
+       "n": 60
+      }
+     },
+     "rise": {
+      "composite_up_10_points": {
+       "ci": [
+        0.2,
+        0.45
+       ],
+       "n": 60,
+       "rate": 0.3333
+      },
+      "conservative_composite_up_10_points": {
+       "ci": [
+        0.1996,
+        0.4167
+       ],
+       "n": 60,
+       "rate": 0.3
+      },
+      "independence_up_0.20": {
+       "ci": [
+        0.0167,
+        0.1333
+       ],
+       "n": 60,
+       "rate": 0.0667
+      },
+      "trend_says_less_help": {
+       "ci": [
+        0.0,
+        0.05
+       ],
+       "n": 60,
+       "rate": 0.0167
+      }
+     },
+     "trend": {
+      "direction_counts": {
+       "less_help": 1,
+       "more_help": 1,
+       "steady": 58,
+       "too_early": 0
+      },
+      "slope_per_10": {
+       "ci": [
+        -0.0034,
+        0.0029
+       ],
+       "mean": -0.0003,
+       "n": 60
+      }
+     },
+     "true_q": {
+      "first_30_mean": {
+       "ci": [
+        0.505,
+        0.505
+       ],
+       "mean": 0.505,
+       "n": 60
+      },
+      "last_30_mean": {
+       "ci": [
+        0.505,
+        0.505
+       ],
+       "mean": 0.505,
+       "n": 60
+      }
+     }
+    },
+    "forgetting": {
+     "composite": {
+      "bias_points": {
+       "ci": [
+        5.6932,
+        8.6387
+       ],
+       "mean": 7.165,
+       "n": 60
+      },
+      "conservative_variant": {
+       "bias_points": {
+        "ci": [
+         1.2097,
+         4.2607
+        ],
+        "mean": 2.84,
+        "n": 60
+       },
+       "estimate": {
+        "ci": [
+         44.2058,
+         47.2809
+        ],
+        "mean": 45.8183,
+        "n": 60
+       }
+      },
+      "estimate": {
+       "ci": [
+        48.5247,
+        51.592
+       ],
+       "mean": 50.1433,
+       "n": 60
+      },
+      "lb_shift_points": {
+       "ci": [
+        5.5232,
+        7.216
+       ],
+       "mean": 6.4105,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        42.2304,
+        43.7619
+       ],
+       "mean": 42.9783,
+       "n": 60
+      }
+     },
+     "gap_closure": {
+      "error": {
+       "ci": [
+        -0.0123,
+        0.0242
+       ],
+       "mean": 0.0068,
+       "n": 60
+      },
+      "estimate": {
+       "ci": [
+        0.3139,
+        0.3538
+       ],
+       "mean": 0.3337,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.3136,
+        0.3413
+       ],
+       "mean": 0.3269,
+       "n": 60
+      }
+     },
+     "independence": {
+      "covered_by_wilson": {
+       "ci": [
+        0.95,
+        1.0
+       ],
+       "n": 60,
+       "rate": 0.9833
+      },
+      "estimate_mean": {
+       "ci": [
+        0.4883,
+        0.5383
+       ],
+       "mean": 0.5133,
+       "n": 60
+      },
+      "lower_bound_minus_truth": {
+       "ci": [
+        -0.1804,
+        -0.1381
+       ],
+       "mean": -0.1603,
+       "n": 60
+      },
+      "point_minus_truth": {
+       "ci": [
+        0.0162,
+        0.0644
+       ],
+       "mean": 0.0392,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.468,
+        0.4808
+       ],
+       "mean": 0.4741,
+       "n": 60
+      }
+     },
+     "mastery": {
+      "estimate_mean": {
+       "ci": [
+        0.8863,
+        0.9326
+       ],
+       "mean": 0.9105,
+       "n": 60
+      },
+      "estimate_minus_truth": {
+       "ci": [
+        0.4141,
+        0.4581
+       ],
+       "mean": 0.437,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.4625,
+        0.4836
+       ],
+       "mean": 0.4734,
+       "n": 60
+      }
+     },
+     "n_learners": 60,
+     "retention": {
+      "estimate": {
+       "ci": [
+        0.3323,
+        0.3909
+       ],
+       "mean": 0.3608,
+       "n": 60
+      },
+      "probes_mean": {
+       "ci": [
+        17.6833,
+        19.0
+       ],
+       "mean": 18.3167,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.3232,
+        0.3332
+       ],
+       "mean": 0.3277,
+       "n": 60
+      }
+     },
+     "rise": {
+      "composite_up_10_points": {
+       "ci": [
+        0.25,
+        0.4667
+       ],
+       "n": 60,
+       "rate": 0.35
+      },
+      "conservative_composite_up_10_points": {
+       "ci": [
+        0.2996,
+        0.5167
+       ],
+       "n": 60,
+       "rate": 0.4
+      },
+      "independence_up_0.20": {
+       "ci": [
+        0.0833,
+        0.2667
+       ],
+       "n": 60,
+       "rate": 0.1667
+      },
+      "trend_says_less_help": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "n": 60,
+       "rate": 0.0
+      }
+     },
+     "trend": {
+      "direction_counts": {
+       "less_help": 0,
+       "more_help": 0,
+       "steady": 60,
+       "too_early": 0
+      },
+      "slope_per_10": {
+       "ci": [
+        -0.0028,
+        0.0015
+       ],
+       "mean": -0.0007,
+       "n": 60
+      }
+     },
+     "true_q": {
+      "first_30_mean": {
+       "ci": [
+        0.4027,
+        0.4135
+       ],
+       "mean": 0.4086,
+       "n": 60
+      },
+      "last_30_mean": {
+       "ci": [
+        0.4365,
+        0.4494
+       ],
+       "mean": 0.4426,
+       "n": 60
+      }
+     }
+    },
+    "gamer": {
+     "composite": {
+      "bias_points": {
+       "ci": [
+        3.7106,
+        8.4358
+       ],
+       "mean": 5.9983,
+       "n": 60
+      },
+      "conservative_variant": {
+       "bias_points": {
+        "ci": [
+         3.1128,
+         7.9537
+        ],
+        "mean": 5.465,
+        "n": 60
+       },
+       "estimate": {
+        "ci": [
+         29.5128,
+         34.3537
+        ],
+        "mean": 31.865,
+        "n": 60
+       }
+      },
+      "estimate": {
+       "ci": [
+        30.1106,
+        34.8357
+       ],
+       "mean": 32.3983,
+       "n": 60
+      },
+      "lb_shift_points": {
+       "ci": [
+        3.1168,
+        4.9674
+       ],
+       "mean": 4.1248,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        26.4,
+        26.4
+       ],
+       "mean": 26.4,
+       "n": 60
+      }
+     },
+     "gap_closure": {
+      "error": {
+       "ci": [
+        0.0161,
+        0.0328
+       ],
+       "mean": 0.0244,
+       "n": 60
+      },
+      "estimate": {
+       "ci": [
+        0.0161,
+        0.0328
+       ],
+       "mean": 0.0244,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "mean": 0.0,
+       "n": 60
+      }
+     },
+     "independence": {
+      "covered_by_wilson": {
+       "ci": [
+        0.6667,
+        0.8667
+       ],
+       "n": 60,
+       "rate": 0.7667
+      },
+      "estimate_mean": {
+       "ci": [
+        0.4442,
+        0.4959
+       ],
+       "mean": 0.4683,
+       "n": 60
+      },
+      "lower_bound_minus_truth": {
+       "ci": [
+        -0.1118,
+        -0.0701
+       ],
+       "mean": -0.0928,
+       "n": 60
+      },
+      "point_minus_truth": {
+       "ci": [
+        0.0742,
+        0.1259
+       ],
+       "mean": 0.0983,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.37,
+        0.37
+       ],
+       "mean": 0.37,
+       "n": 60
+      }
+     },
+     "mastery": {
+      "estimate_mean": {
+       "ci": [
+        0.5368,
+        0.6398
+       ],
+       "mean": 0.586,
+       "n": 60
+      },
+      "estimate_minus_truth": {
+       "ci": [
+        0.2368,
+        0.3398
+       ],
+       "mean": 0.286,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.3,
+        0.3
+       ],
+       "mean": 0.3,
+       "n": 60
+      }
+     },
+     "n_learners": 60,
+     "retention": {
+      "estimate": {
+       "ci": [
+        null,
+        null
+       ],
+       "mean": null,
+       "n": 0
+      },
+      "probes_mean": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "mean": 0.0,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        null,
+        null
+       ],
+       "mean": null,
+       "n": 0
+      }
+     },
+     "rise": {
+      "composite_up_10_points": {
+       "ci": [
+        0.15,
+        0.3667
+       ],
+       "n": 60,
+       "rate": 0.25
+      },
+      "conservative_composite_up_10_points": {
+       "ci": [
+        0.15,
+        0.3667
+       ],
+       "n": 60,
+       "rate": 0.25
+      },
+      "independence_up_0.20": {
+       "ci": [
+        0.0,
+        0.0833
+       ],
+       "n": 60,
+       "rate": 0.0333
+      },
+      "trend_says_less_help": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "n": 60,
+       "rate": 0.0
+      }
+     },
+     "trend": {
+      "direction_counts": {
+       "less_help": 0,
+       "more_help": 0,
+       "steady": 60,
+       "too_early": 0
+      },
+      "slope_per_10": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "mean": 0.0,
+       "n": 60
+      }
+     },
+     "true_q": {
+      "first_30_mean": {
+       "ci": [
+        0.37,
+        0.37
+       ],
+       "mean": 0.37,
+       "n": 60
+      },
+      "last_30_mean": {
+       "ci": [
+        0.37,
+        0.37
+       ],
+       "mean": 0.37,
+       "n": 60
+      }
+     }
+    },
+    "improving": {
+     "composite": {
+      "bias_points": {
+       "ci": [
+        -0.3651,
+        2.2328
+       ],
+       "mean": 1.02,
+       "n": 60
+      },
+      "conservative_variant": {
+       "bias_points": {
+        "ci": [
+         -4.9954,
+         -2.3847
+        ],
+        "mean": -3.5883,
+        "n": 60
+       },
+       "estimate": {
+        "ci": [
+         62.9625,
+         65.5968
+        ],
+        "mean": 64.45,
+        "n": 60
+       }
+      },
+      "estimate": {
+       "ci": [
+        67.6453,
+        70.1234
+       ],
+       "mean": 69.0583,
+       "n": 60
+      },
+      "lb_shift_points": {
+       "ci": [
+        6.6729,
+        8.9598
+       ],
+       "mean": 7.748,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        67.2738,
+        68.7384
+       ],
+       "mean": 68.0383,
+       "n": 60
+      }
+     },
+     "gap_closure": {
+      "error": {
+       "ci": [
+        -0.0202,
+        0.0081
+       ],
+       "mean": -0.0057,
+       "n": 60
+      },
+      "estimate": {
+       "ci": [
+        0.5845,
+        0.6185
+       ],
+       "mean": 0.6021,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.5963,
+        0.6183
+       ],
+       "mean": 0.6078,
+       "n": 60
+      }
+     },
+     "independence": {
+      "covered_by_wilson": {
+       "ci": [
+        0.8667,
+        0.9833
+       ],
+       "n": 60,
+       "rate": 0.9333
+      },
+      "estimate_mean": {
+       "ci": [
+        0.7083,
+        0.7633
+       ],
+       "mean": 0.7375,
+       "n": 60
+      },
+      "lower_bound_minus_truth": {
+       "ci": [
+        -0.224,
+        -0.1668
+       ],
+       "mean": -0.1937,
+       "n": 60
+      },
+      "point_minus_truth": {
+       "ci": [
+        -0.0099,
+        0.0456
+       ],
+       "mean": 0.0201,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.7097,
+        0.7244
+       ],
+       "mean": 0.7174,
+       "n": 60
+      }
+     },
+     "mastery": {
+      "estimate_mean": {
+       "ci": [
+        0.9725,
+        0.9822
+       ],
+       "mean": 0.9778,
+       "n": 60
+      },
+      "estimate_minus_truth": {
+       "ci": [
+        0.2767,
+        0.2904
+       ],
+       "mean": 0.2835,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.6854,
+        0.7028
+       ],
+       "mean": 0.6943,
+       "n": 60
+      }
+     },
+     "n_learners": 60,
+     "retention": {
+      "estimate": {
+       "ci": [
+        0.6465,
+        0.7034
+       ],
+       "mean": 0.6739,
+       "n": 60
+      },
+      "probes_mean": {
+       "ci": [
+        13.5329,
+        14.5671
+       ],
+       "mean": 14.0667,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.63,
+        0.6427
+       ],
+       "mean": 0.6357,
+       "n": 60
+      }
+     },
+     "rise": {
+      "composite_up_10_points": {
+       "ci": [
+        0.6833,
+        0.8833
+       ],
+       "n": 60,
+       "rate": 0.7833
+      },
+      "conservative_composite_up_10_points": {
+       "ci": [
+        0.75,
+        0.9167
+       ],
+       "n": 60,
+       "rate": 0.8333
+      },
+      "independence_up_0.20": {
+       "ci": [
+        0.3667,
+        0.6167
+       ],
+       "n": 60,
+       "rate": 0.4833
+      },
+      "trend_says_less_help": {
+       "ci": [
+        0.0496,
+        0.1833
+       ],
+       "n": 60,
+       "rate": 0.1
+      }
+     },
+     "trend": {
+      "direction_counts": {
+       "less_help": 6,
+       "more_help": 0,
+       "steady": 54,
+       "too_early": 0
+      },
+      "slope_per_10": {
+       "ci": [
+        -0.0198,
+        -0.0135
+       ],
+       "mean": -0.0167,
+       "n": 60
+      }
+     },
+     "true_q": {
+      "first_30_mean": {
+       "ci": [
+        0.4428,
+        0.4538
+       ],
+       "mean": 0.4484,
+       "n": 60
+      },
+      "last_30_mean": {
+       "ci": [
+        0.7108,
+        0.7241
+       ],
+       "mean": 0.7174,
+       "n": 60
+      }
+     }
+    }
+   },
+   "evidence_only": {
+    "flat": {
+     "composite": {
+      "bias_points": {
+       "ci": [
+        8.118,
+        10.9998
+       ],
+       "mean": 9.5583,
+       "n": 60
+      },
+      "conservative_variant": {
+       "bias_points": {
+        "ci": [
+         4.7313,
+         7.4918
+        ],
+        "mean": 6.08,
+        "n": 60
+       },
+       "estimate": {
+        "ci": [
+         43.4313,
+         46.1918
+        ],
+        "mean": 44.78,
+        "n": 60
+       }
+      },
+      "estimate": {
+       "ci": [
+        46.818,
+        49.6998
+       ],
+       "mean": 48.2583,
+       "n": 60
+      },
+      "lb_shift_points": {
+       "ci": [
+        5.5158,
+        7.4423
+       ],
+       "mean": 6.4667,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        38.7,
+        38.7
+       ],
+       "mean": 38.7,
+       "n": 60
+      }
+     },
+     "gap_closure": {
+      "error": {
+       "ci": [
+        0.0482,
+        0.0819
+       ],
+       "mean": 0.0651,
+       "n": 60
+      },
+      "estimate": {
+       "ci": [
+        0.0482,
+        0.0819
+       ],
+       "mean": 0.0651,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "mean": 0.0,
+       "n": 60
+      }
+     },
+     "independence": {
+      "covered_by_wilson": {
+       "ci": [
+        0.8667,
+        0.9833
+       ],
+       "n": 60,
+       "rate": 0.9333
+      },
+      "estimate_mean": {
+       "ci": [
+        0.5166,
+        0.5734
+       ],
+       "mean": 0.5458,
+       "n": 60
+      },
+      "lower_bound_minus_truth": {
+       "ci": [
+        -0.1861,
+        -0.1379
+       ],
+       "mean": -0.1617,
+       "n": 60
+      },
+      "point_minus_truth": {
+       "ci": [
+        0.0116,
+        0.0684
+       ],
+       "mean": 0.0408,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.505,
+        0.505
+       ],
+       "mean": 0.505,
+       "n": 60
+      }
+     },
+     "mastery": {
+      "estimate_mean": {
+       "ci": [
+        0.9085,
+        0.945
+       ],
+       "mean": 0.9265,
+       "n": 60
+      },
+      "estimate_minus_truth": {
+       "ci": [
+        0.4585,
+        0.495
+       ],
+       "mean": 0.4765,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.45,
+        0.45
+       ],
+       "mean": 0.45,
+       "n": 60
+      }
+     },
+     "n_learners": 60,
+     "retention": {
+      "estimate": {
+       "ci": [
+        0.5,
+        0.5851
+       ],
+       "mean": 0.5429,
+       "n": 60
+      },
+      "probes_mean": {
+       "ci": [
+        13.3667,
+        14.4667
+       ],
+       "mean": 13.9333,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.505,
+        0.505
+       ],
+       "mean": 0.505,
+       "n": 60
+      }
+     },
+     "rise": {
+      "composite_up_10_points": {
+       "ci": [
+        0.3158,
+        0.55
+       ],
+       "n": 60,
+       "rate": 0.4333
+      },
+      "conservative_composite_up_10_points": {
+       "ci": [
+        0.3,
+        0.5504
+       ],
+       "n": 60,
+       "rate": 0.4333
+      },
+      "independence_up_0.20": {
+       "ci": [
+        0.0167,
+        0.1333
+       ],
+       "n": 60,
+       "rate": 0.0667
+      },
+      "trend_says_less_help": {
+       "ci": [
+        0.0,
+        0.05
+       ],
+       "n": 60,
+       "rate": 0.0167
+      }
+     },
+     "trend": {
+      "direction_counts": {
+       "less_help": 1,
+       "more_help": 1,
+       "steady": 58,
+       "too_early": 0
+      },
+      "slope_per_10": {
+       "ci": [
+        -0.0034,
+        0.0029
+       ],
+       "mean": -0.0003,
+       "n": 60
+      }
+     },
+     "true_q": {
+      "first_30_mean": {
+       "ci": [
+        0.505,
+        0.505
+       ],
+       "mean": 0.505,
+       "n": 60
+      },
+      "last_30_mean": {
+       "ci": [
+        0.505,
+        0.505
+       ],
+       "mean": 0.505,
+       "n": 60
+      }
+     }
+    },
+    "forgetting": {
+     "composite": {
+      "bias_points": {
+       "ci": [
+        3.9879,
+        7.3619
+       ],
+       "mean": 5.7033,
+       "n": 60
+      },
+      "conservative_variant": {
+       "bias_points": {
+        "ci": [
+         -0.4418,
+         3.0118
+        ],
+        "mean": 1.3817,
+        "n": 60
+       },
+       "estimate": {
+        "ci": [
+         42.5605,
+         46.0835
+        ],
+        "mean": 44.36,
+        "n": 60
+       }
+      },
+      "estimate": {
+       "ci": [
+        46.8492,
+        50.3587
+       ],
+       "mean": 48.6817,
+       "n": 60
+      },
+      "lb_shift_points": {
+       "ci": [
+        5.5232,
+        7.216
+       ],
+       "mean": 6.4105,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        42.2304,
+        43.7619
+       ],
+       "mean": 42.9783,
+       "n": 60
+      }
+     },
+     "gap_closure": {
+      "error": {
+       "ci": [
+        -0.0123,
+        0.0242
+       ],
+       "mean": 0.0068,
+       "n": 60
+      },
+      "estimate": {
+       "ci": [
+        0.3139,
+        0.3538
+       ],
+       "mean": 0.3337,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.3136,
+        0.3413
+       ],
+       "mean": 0.3269,
+       "n": 60
+      }
+     },
+     "independence": {
+      "covered_by_wilson": {
+       "ci": [
+        0.95,
+        1.0
+       ],
+       "n": 60,
+       "rate": 0.9833
+      },
+      "estimate_mean": {
+       "ci": [
+        0.4883,
+        0.5383
+       ],
+       "mean": 0.5133,
+       "n": 60
+      },
+      "lower_bound_minus_truth": {
+       "ci": [
+        -0.1804,
+        -0.1381
+       ],
+       "mean": -0.1603,
+       "n": 60
+      },
+      "point_minus_truth": {
+       "ci": [
+        0.0162,
+        0.0644
+       ],
+       "mean": 0.0392,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.468,
+        0.4808
+       ],
+       "mean": 0.4741,
+       "n": 60
+      }
+     },
+     "mastery": {
+      "estimate_mean": {
+       "ci": [
+        0.8265,
+        0.8914
+       ],
+       "mean": 0.8617,
+       "n": 60
+      },
+      "estimate_minus_truth": {
+       "ci": [
+        0.3535,
+        0.4171
+       ],
+       "mean": 0.3883,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.4625,
+        0.4836
+       ],
+       "mean": 0.4734,
+       "n": 60
+      }
+     },
+     "n_learners": 60,
+     "retention": {
+      "estimate": {
+       "ci": [
+        0.3323,
+        0.3909
+       ],
+       "mean": 0.3608,
+       "n": 60
+      },
+      "probes_mean": {
+       "ci": [
+        17.6833,
+        19.0
+       ],
+       "mean": 18.3167,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.3232,
+        0.3332
+       ],
+       "mean": 0.3277,
+       "n": 60
+      }
+     },
+     "rise": {
+      "composite_up_10_points": {
+       "ci": [
+        0.2667,
+        0.4833
+       ],
+       "n": 60,
+       "rate": 0.3667
+      },
+      "conservative_composite_up_10_points": {
+       "ci": [
+        0.3,
+        0.5333
+       ],
+       "n": 60,
+       "rate": 0.4167
+      },
+      "independence_up_0.20": {
+       "ci": [
+        0.0833,
+        0.2667
+       ],
+       "n": 60,
+       "rate": 0.1667
+      },
+      "trend_says_less_help": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "n": 60,
+       "rate": 0.0
+      }
+     },
+     "trend": {
+      "direction_counts": {
+       "less_help": 0,
+       "more_help": 0,
+       "steady": 60,
+       "too_early": 0
+      },
+      "slope_per_10": {
+       "ci": [
+        -0.0028,
+        0.0015
+       ],
+       "mean": -0.0007,
+       "n": 60
+      }
+     },
+     "true_q": {
+      "first_30_mean": {
+       "ci": [
+        0.4027,
+        0.4135
+       ],
+       "mean": 0.4086,
+       "n": 60
+      },
+      "last_30_mean": {
+       "ci": [
+        0.4365,
+        0.4494
+       ],
+       "mean": 0.4426,
+       "n": 60
+      }
+     }
+    },
+    "gamer": {
+     "composite": {
+      "bias_points": {
+       "ci": [
+        -2.1634,
+        2.6369
+       ],
+       "mean": 0.21,
+       "n": 60
+      },
+      "conservative_variant": {
+       "bias_points": {
+        "ci": [
+         -2.7284,
+         2.22
+        ],
+        "mean": -0.3217,
+        "n": 60
+       },
+       "estimate": {
+        "ci": [
+         23.6716,
+         28.62
+        ],
+        "mean": 26.0783,
+        "n": 60
+       }
+      },
+      "estimate": {
+       "ci": [
+        24.2366,
+        29.0369
+       ],
+       "mean": 26.61,
+       "n": 60
+      },
+      "lb_shift_points": {
+       "ci": [
+        3.1168,
+        4.9674
+       ],
+       "mean": 4.1248,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        26.4,
+        26.4
+       ],
+       "mean": 26.4,
+       "n": 60
+      }
+     },
+     "gap_closure": {
+      "error": {
+       "ci": [
+        0.0161,
+        0.0328
+       ],
+       "mean": 0.0244,
+       "n": 60
+      },
+      "estimate": {
+       "ci": [
+        0.0161,
+        0.0328
+       ],
+       "mean": 0.0244,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "mean": 0.0,
+       "n": 60
+      }
+     },
+     "independence": {
+      "covered_by_wilson": {
+       "ci": [
+        0.6667,
+        0.8667
+       ],
+       "n": 60,
+       "rate": 0.7667
+      },
+      "estimate_mean": {
+       "ci": [
+        0.4442,
+        0.4959
+       ],
+       "mean": 0.4683,
+       "n": 60
+      },
+      "lower_bound_minus_truth": {
+       "ci": [
+        -0.1118,
+        -0.0701
+       ],
+       "mean": -0.0928,
+       "n": 60
+      },
+      "point_minus_truth": {
+       "ci": [
+        0.0742,
+        0.1259
+       ],
+       "mean": 0.0983,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.37,
+        0.37
+       ],
+       "mean": 0.37,
+       "n": 60
+      }
+     },
+     "mastery": {
+      "estimate_mean": {
+       "ci": [
+        0.3577,
+        0.466
+       ],
+       "mean": 0.4124,
+       "n": 60
+      },
+      "estimate_minus_truth": {
+       "ci": [
+        0.0577,
+        0.166
+       ],
+       "mean": 0.1124,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.3,
+        0.3
+       ],
+       "mean": 0.3,
+       "n": 60
+      }
+     },
+     "n_learners": 60,
+     "retention": {
+      "estimate": {
+       "ci": [
+        null,
+        null
+       ],
+       "mean": null,
+       "n": 0
+      },
+      "probes_mean": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "mean": 0.0,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        null,
+        null
+       ],
+       "mean": null,
+       "n": 0
+      }
+     },
+     "rise": {
+      "composite_up_10_points": {
+       "ci": [
+        0.1333,
+        0.3333
+       ],
+       "n": 60,
+       "rate": 0.2167
+      },
+      "conservative_composite_up_10_points": {
+       "ci": [
+        0.1167,
+        0.3167
+       ],
+       "n": 60,
+       "rate": 0.2
+      },
+      "independence_up_0.20": {
+       "ci": [
+        0.0,
+        0.0833
+       ],
+       "n": 60,
+       "rate": 0.0333
+      },
+      "trend_says_less_help": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "n": 60,
+       "rate": 0.0
+      }
+     },
+     "trend": {
+      "direction_counts": {
+       "less_help": 0,
+       "more_help": 0,
+       "steady": 60,
+       "too_early": 0
+      },
+      "slope_per_10": {
+       "ci": [
+        0.0,
+        0.0
+       ],
+       "mean": 0.0,
+       "n": 60
+      }
+     },
+     "true_q": {
+      "first_30_mean": {
+       "ci": [
+        0.37,
+        0.37
+       ],
+       "mean": 0.37,
+       "n": 60
+      },
+      "last_30_mean": {
+       "ci": [
+        0.37,
+        0.37
+       ],
+       "mean": 0.37,
+       "n": 60
+      }
+     }
+    },
+    "improving": {
+     "composite": {
+      "bias_points": {
+       "ci": [
+        -0.4453,
+        2.1724
+       ],
+       "mean": 0.9517,
+       "n": 60
+      },
+      "conservative_variant": {
+       "bias_points": {
+        "ci": [
+         -5.0837,
+         -2.4543
+        ],
+        "mean": -3.6617,
+        "n": 60
+       },
+       "estimate": {
+        "ci": [
+         62.8727,
+         65.5285
+        ],
+        "mean": 64.3767,
+        "n": 60
+       }
+      },
+      "estimate": {
+       "ci": [
+        67.5691,
+        70.0667
+       ],
+       "mean": 68.99,
+       "n": 60
+      },
+      "lb_shift_points": {
+       "ci": [
+        6.6729,
+        8.9598
+       ],
+       "mean": 7.748,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        67.2738,
+        68.7384
+       ],
+       "mean": 68.0383,
+       "n": 60
+      }
+     },
+     "gap_closure": {
+      "error": {
+       "ci": [
+        -0.0202,
+        0.0081
+       ],
+       "mean": -0.0057,
+       "n": 60
+      },
+      "estimate": {
+       "ci": [
+        0.5845,
+        0.6185
+       ],
+       "mean": 0.6021,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.5963,
+        0.6183
+       ],
+       "mean": 0.6078,
+       "n": 60
+      }
+     },
+     "independence": {
+      "covered_by_wilson": {
+       "ci": [
+        0.8667,
+        0.9833
+       ],
+       "n": 60,
+       "rate": 0.9333
+      },
+      "estimate_mean": {
+       "ci": [
+        0.7083,
+        0.7633
+       ],
+       "mean": 0.7375,
+       "n": 60
+      },
+      "lower_bound_minus_truth": {
+       "ci": [
+        -0.224,
+        -0.1668
+       ],
+       "mean": -0.1937,
+       "n": 60
+      },
+      "point_minus_truth": {
+       "ci": [
+        -0.0099,
+        0.0456
+       ],
+       "mean": 0.0201,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.7097,
+        0.7244
+       ],
+       "mean": 0.7174,
+       "n": 60
+      }
+     },
+     "mastery": {
+      "estimate_mean": {
+       "ci": [
+        0.9695,
+        0.9804
+       ],
+       "mean": 0.9753,
+       "n": 60
+      },
+      "estimate_minus_truth": {
+       "ci": [
+        0.2744,
+        0.2885
+       ],
+       "mean": 0.281,
+       "n": 60
+      },
+      "true_mean": {
+       "ci": [
+        0.6854,
+        0.7028
+       ],
+       "mean": 0.6943,
+       "n": 60
+      }
+     },
+     "n_learners": 60,
+     "retention": {
+      "estimate": {
+       "ci": [
+        0.6465,
+        0.7034
+       ],
+       "mean": 0.6739,
+       "n": 60
+      },
+      "probes_mean": {
+       "ci": [
+        13.5329,
+        14.5671
+       ],
+       "mean": 14.0667,
+       "n": 60
+      },
+      "truth": {
+       "ci": [
+        0.63,
+        0.6427
+       ],
+       "mean": 0.6357,
+       "n": 60
+      }
+     },
+     "rise": {
+      "composite_up_10_points": {
+       "ci": [
+        0.7663,
+        0.9333
+       ],
+       "n": 60,
+       "rate": 0.85
+      },
+      "conservative_composite_up_10_points": {
+       "ci": [
+        0.7667,
+        0.9333
+       ],
+       "n": 60,
+       "rate": 0.85
+      },
+      "independence_up_0.20": {
+       "ci": [
+        0.3667,
+        0.6167
+       ],
+       "n": 60,
+       "rate": 0.4833
+      },
+      "trend_says_less_help": {
+       "ci": [
+        0.0496,
+        0.1833
+       ],
+       "n": 60,
+       "rate": 0.1
+      }
+     },
+     "trend": {
+      "direction_counts": {
+       "less_help": 6,
+       "more_help": 0,
+       "steady": 54,
+       "too_early": 0
+      },
+      "slope_per_10": {
+       "ci": [
+        -0.0198,
+        -0.0135
+       ],
+       "mean": -0.0167,
+       "n": 60
+      }
+     },
+     "true_q": {
+      "first_30_mean": {
+       "ci": [
+        0.4428,
+        0.4538
+       ],
+       "mean": 0.4484,
+       "n": 60
+      },
+      "last_30_mean": {
+       "ci": [
+        0.7108,
+        0.7241
+       ],
+       "mean": 0.7174,
+       "n": 60
+      }
+     }
+    }
+   }
+  }
+ },
+ "signal_sweep": {
+  "emulated_model_signal": {
+   "net_seconds_saved_per_hour": {
+    "baseline_no_cue": 0.0,
+    "ci": [
+     27.4382,
+     54.9852
+    ],
+    "n": 8489,
+    "n_workers": 40,
+    "note": "Stall seconds saved minus seconds lost to interruptions, per hour of work.",
+    "value": 42.2332
+   },
+   "p1_false_nudges_per_hour": {
+    "all": {
+     "ci": [
+      0.6611,
+      0.998
+     ],
+     "n": 165,
+     "n_workers": 40,
+     "value": 0.8208
+    },
+    "baseline_no_cue": 0.0,
+    "design_target": 1.0,
+    "note": "A design target (at most 1.0 an hour), not a measured tolerance.",
+    "primary_975": {
+     "ci": [
+      0.6306,
+      1.0112
+     ],
+     "n": 165,
+     "n_workers": 40,
+     "value": 0.8208
+    }
+   },
+   "p2_seconds_to_resume_paired_diff": {
+    "baseline": 0.0,
+    "median": {
+     "ci": [
+      -20.11,
+      -0.0
+     ],
+     "n": 239,
+     "value": -0.0
+    },
+    "note": "Seconds from the first cue to resuming, with Cue minus the no-cue remaining stall, per cued stall; negative is faster."
+   },
+   "stuck_episodes_with_a_correct_cue_share": {
+    "ci": [
+     0.3841,
+     0.4622
+    ],
+    "n": 238,
+    "n_workers": 40,
+    "value": 0.4281
+   }
+  },
+  "note": "An emulation with stated discriminability (d-prime 1.5), not the real hazard model.",
+  "split": "dev"
+ }
+}

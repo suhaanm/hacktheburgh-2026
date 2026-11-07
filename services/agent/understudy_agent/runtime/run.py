@@ -278,6 +278,7 @@ class AgentRun:
                                playbook=load_playbook(spec.playbook), menu=MENUS[spec.role], book=self.book,
                                parent_lease=self.parent_lease, planner=self.planner, routine_id=self.routine_id,
                                unattended=self.mode == "nightly")
+            agent.state_path = self.run_dir / "children" / f"{spec.id}.task.json"
             with self._lock:
                 self.children[spec.id] = ChildRec(spec, agent, ws, self._new_supervisor())
 
@@ -438,7 +439,7 @@ class AgentRun:
             out.append({"id": cid, "role": rec.spec.role, "state": res.status if res else rec.status,
                         "budget": {"steps": rec.spec.budget.steps, "seconds": rec.spec.budget.seconds,
                                    "tokens": rec.spec.budget.tokens},
-                        "spent": sp, "lease": rec.agent.lease_snapshot(),
+                        "spent": sp, "lease": rec.agent.lease_snapshot(), "task": rec.agent.task.snapshot(),
                         **({"result_ref": f"data/runs/{self.run_id}/children/{cid}.json"} if res else {}),
                         **({"verified": res.verified} if res else {})})
         return out

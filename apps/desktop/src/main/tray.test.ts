@@ -167,7 +167,7 @@ describe('menu content', () => {
   })
 })
 
-function setup(opts: { showMenuBarIcon?: boolean; iconDir?: string; dockVisible?: boolean; voice?: boolean; cue?: boolean; now?: () => number; openDashboard?: () => void; glanceInFlight?: () => boolean } = {}) {
+function setup(opts: { showMenuBarIcon?: boolean; iconDir?: string; dockVisible?: boolean; voice?: boolean; cue?: boolean; now?: () => number; openDashboard?: () => void; glanceInFlight?: () => boolean; awareness?: boolean } = {}) {
   mocks.FakeTray.instances.length = 0
   const bus = new Bus()
   const settings = new SettingsStore(null)
@@ -191,8 +191,21 @@ function setup(opts: { showMenuBarIcon?: boolean; iconDir?: string; dockVisible?
   bus.on('session:request', (e) => events.push({ name: 'session:request', ...e }))
   bus.on('showtime:request', (e) => events.push({ name: 'showtime:request', ...e }))
   bus.on('talk', (e) => events.push({ name: 'talk', ...e }))
-  const shell = registerTray({ bus, state, settings, windows, stop, quit, log: () => undefined, iconDir: opts.iconDir ?? path.join(process.cwd(), 'resources', 'tray'), voiceMenu: () => opts.voice ?? true, cueMenu: () => opts.cue ?? false, now: opts.now, openDashboard: opts.openDashboard, glanceInFlight: opts.glanceInFlight })
-  return { shell, bus, settings, state, windows, stop, quit, events, tray: () => mocks.FakeTray.instances.at(-1)! }
+  // A stand-in for the awareness module: its own store, the same consent rule (glances need the card first).
+  const aw = { enabled: false, onTrigger: false, periodic: false, calls: 0, lastSkip: null as string | null, consented: false, switches: [] as string[] }
+  const awareness = opts.awareness === false ? undefined : {
+    view: () => ({ enabled: aw.enabled, onTrigger: aw.onTrigger, periodic: aw.periodic, calls: aw.calls, lastSkip: aw.lastSkip }),
+    setSwitch: (name: 'enabled' | 'trigger' | 'periodic', on: boolean) => {
+      aw.switches.push(`${name}:${on}`)
+      if (name === 'enabled') aw.enabled = on
+      else if (on && !aw.consented) return { needsConsent: true }
+      else if (name === 'trigger') aw.onTrigger = on
+      else aw.periodic = on
+      return { needsConsent: false }
+    },
+  }
+  const shell = registerTray({ bus, state, settings, windows, stop, quit, log: () => undefined, awareness, iconDir: opts.iconDir ?? path.join(process.cwd(), 'resources', 'tray'), voiceMenu: () => opts.voice ?? true, cueMenu: () => opts.cue ?? false, now: opts.now, openDashboard: opts.openDashboard, glanceInFlight: opts.glanceInFlight })
+  return { shell, bus, settings, state, windows, stop, quit, events, aw, tray: () => mocks.FakeTray.instances.at(-1)! }
 }
 
 describe('tray lifecycle', () => {
@@ -318,16 +331,46 @@ describe('menu actions', () => {
     expect(tray().image).toMatchObject({ file: expect.stringContaining('trayTemplate.png') })
   })
 
-  it('the awareness and glance checkboxes flip the AWARENESS settings; the glance switches need awareness on', () => {
-    const { shell, settings } = setup()
-    expect(shell.activate('glance_trigger')).toBe(false) // awareness is off
+  it('the awareness checkboxes read and write through the awareness module, never through settings.json', () => {
+    const { shell, settings, aw, windows } = setup()
+    expect(shell.activate('glance_trigger')).toBe(false) // awareness is off: the glance switches are disabled
     expect(shell.activate('awareness')).toBe(true)
-    expect(settings.get().awarenessEnabled).toBe(true)
+    expect(aw.enabled).toBe(true)
+    expect(Object.keys(settings.get())).not.toContain('awarenessEnabled')
+    expect(Object.keys(settings.get())).not.toContain('glanceOnTrigger')
+    expect(Object.keys(settings.get())).not.toContain('glancePeriodic')
+    // glances up need the consent card first: the tray opens it (the settings view) and changes nothing
+    expect(shell.activate('glance_trigger')).toBe(true)
+    expect(aw.onTrigger).toBe(false)
+    expect(windows.sendDock).toHaveBeenCalledWith(expect.anything(), { type: 'view', view: 'settings' })
+    aw.consented = true // the worker agreed on the card
     expect(shell.activate('glance_trigger')).toBe(true)
     expect(shell.activate('glance_periodic')).toBe(true)
-    expect(settings.get()).toMatchObject({ glanceOnTrigger: true, glancePeriodic: true })
+    expect(aw).toMatchObject({ onTrigger: true, periodic: true })
+    expect(shell.activate('glance_periodic')).toBe(true) // and back down
+    expect(aw.periodic).toBe(false)
     expect(shell.activate('awareness')).toBe(true)
-    expect(settings.get().awarenessEnabled).toBe(false)
+    expect(aw.enabled).toBe(false)
+  })
+
+  it('shows the glance count and the last skip in plain words, only while awareness is on', () => {
+    const { shell, aw } = setup()
+    expect(shell.info().menu.some((e) => e.id === 'glance_info')).toBe(false)
+    aw.enabled = true
+    aw.calls = 3
+    aw.lastSkip = 'secure_input'
+    shell.refresh?.()
+    const line = shell.info().menu.find((e) => e.id === 'glance_info')
+    expect(line).toMatchObject({ label: 'Looks today: 3, last skipped: a password field', enabled: false })
+    aw.calls = 0
+    aw.lastSkip = null
+    expect(shell.info().menu.some((e) => e.id === 'glance_info')).toBe(false)
+  })
+
+  it('without an awareness module the menu has no awareness items and the entries do nothing', () => {
+    const { shell } = setup({ awareness: false })
+    expect(shell.info().menu.some((e) => e.id === 'awareness')).toBe(false)
+    expect(shell.activate('awareness')).toBe(false)
   })
 
   it('shows a glance in flight with its own badge', () => {
@@ -600,7 +643,7 @@ describe('Cue entries (the UNDERSTUDY_X_CUE experiment) and the queue count', ()
 describe('settings keys for the new tracks', () => {
   it('default off, with Cue proactivity balanced, and reject bad values key by key', () => {
     const s = new SettingsStore(null)
-    expect(s.get()).toMatchObject({ cueEnabled: false, cueProactivity: 'balanced', cueVoice: false, cueQuietUntil: null, awarenessEnabled: false, glanceOnTrigger: false, glancePeriodic: false, pausedUntil: null, talkHotkey: 'Alt+Space', wakeEnabled: false })
+    expect(s.get()).toMatchObject({ cueEnabled: false, cueProactivity: 'balanced', cueVoice: false, cueQuietUntil: null, pausedUntil: null, talkHotkey: 'Alt+Space', wakeEnabled: false })
     s.patch({ cueProactivity: 'eager', cueQuietUntil: 1_700_000_000_000, cueEnabled: true })
     expect(s.get()).toMatchObject({ cueProactivity: 'eager', cueQuietUntil: 1_700_000_000_000, cueEnabled: true })
     s.patch({ cueProactivity: 'loud', cueQuietUntil: 'soon' })

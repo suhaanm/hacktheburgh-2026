@@ -84,6 +84,9 @@ export class SessionMeter {
   inputTokens = 0
   outputTokens = 0
   private tokensUsd = 0
+  // Tokens the server reported, by modality (AUDIO, TEXT, IMAGE ...), summed over the conversation. Numbers only.
+  readonly tokensIn: Record<string, number> = {}
+  readonly tokensOut: Record<string, number> = {}
   private readonly prices: LivePrices
 
   constructor(prices: LivePrices = pricesFromEnv()) {
@@ -108,6 +111,9 @@ export class SessionMeter {
     this.turns += 1
     this.inputTokens += u.promptTokens ?? 0
     this.outputTokens += (u.responseTokens ?? 0) + (u.thoughtsTokens ?? 0)
+    for (const d of u.promptDetails) this.tokensIn[d.modality] = (this.tokensIn[d.modality] ?? 0) + d.tokenCount
+    for (const d of u.responseDetails) this.tokensOut[d.modality] = (this.tokensOut[d.modality] ?? 0) + d.tokenCount
+    if (u.thoughtsTokens) this.tokensOut.THOUGHTS = (this.tokensOut.THOUGHTS ?? 0) + u.thoughtsTokens
     const out = tokenCost(u.responseDetails, u.responseTokens, this.prices, 'out') + ((u.thoughtsTokens ?? 0) * this.prices.textOutPerM) / 1e6
     this.tokensUsd += tokenCost(u.promptDetails, u.promptTokens, this.prices, 'in') + out
   }

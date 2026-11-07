@@ -17,6 +17,7 @@ EXTENSIONS = {
     "cue": "cue.routes",
     "awareness": "awareness.routes",
     "evidence": "evidence.routes",
+    "attention": "attention.routes",
 }
 _TRUE = ("1", "true", "yes", "on")
 

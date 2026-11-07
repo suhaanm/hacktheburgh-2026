@@ -25,3 +25,5 @@ def _hermetic_env(tmp_path_factory, monkeypatch):
     monkeypatch.setenv("UNDERSTUDY_DATA_DIR", str(root / "data"))
     monkeypatch.setenv("UNDERSTUDY_HOME", str(root / "home"))
     monkeypatch.delenv("UNDERSTUDY_REPO_ROOT", raising=False)
+    monkeypatch.setenv("AGENT_PORT", "1")                     # no engine under test may forward a stop to the live agent
+    monkeypatch.delenv("UNDERSTUDY_ENGINE_LISTEN_PORT", raising=False)

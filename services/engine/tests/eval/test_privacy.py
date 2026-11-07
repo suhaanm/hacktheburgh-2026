@@ -36,14 +36,14 @@ def test_privacy_is_pending_if_the_module_is_missing(monkeypatch):
     assert s["status"] == "pending" and "privacy-layer not landed" in s["reason"]
 
 
-def _without_tree_scan(report):
-    """The privacy section minus what follows the code tree at run time (the static-guard scan and which layers have registered flows):
-    other tracks add files while this suite runs, so those parts are not a determinism property of the evaluation."""
+def _stable(report):
+    """The parts of the privacy section that are properties of the evaluation: leaks, runs, controls, bucketing, backstop. Everything that follows the
+    code tree at run time (the static-guard scans, the layer registry, the coverage table, the discovered flow list) is left out: other tracks add files
+    while this suite runs."""
     sec = json.loads(json.dumps(deterministic_view(report)["sections"]["privacy"]))
-    for k in ("static_guard", "layers"):
-        sec.pop(k, None)
-    sec["headline"] = {k: v for k, v in sec["headline"].items() if not k.startswith(("static_guard", "layers_without"))}
-    return sec
+    head = {k: v for k, v in sec["headline"].items() if not k.startswith(("static_guard", "layers_without", "artifact_files"))}
+    return {"headline": head, "by_kind": sec.get("by_kind"), "negative_controls": sec.get("negative_controls"), "bucketing": sec.get("bucketing"),
+            "backstop": sec.get("backstop")}
 
 
 def test_privacy_eval_writes_no_summary_file_uses_no_network_and_is_deterministic(monkeypatch):
@@ -60,7 +60,10 @@ def test_privacy_eval_writes_no_summary_file_uses_no_network_and_is_deterministi
     a = build_report(sections=["privacy"], fast=True, now=NOW, regenerate=False, log=lambda m: None)
     b = build_report(sections=["privacy"], fast=True, now=NOW, regenerate=False, log=lambda m: None)
     assert "status" not in a["sections"]["privacy"]
-    assert _without_tree_scan(a) == _without_tree_scan(b)
+    flows = [[f.get("flow") for f in (r["sections"]["privacy"].get("flows") or [])] for r in (a, b)]
+    if flows[0] != flows[1]:
+        pytest.skip("another track registered a canary flow between the two runs; the flow set is discovered from the code tree")
+    assert _stable(a) == _stable(b)
     after = target.stat().st_mtime_ns if target.exists() else None
     assert before == after
 
@@ -100,3 +103,52 @@ def test_owner_limitations_are_kept_in_the_register(privacy_report):
 def test_real_data_dir_is_untouched_by_the_report_path_json_roundtrip(privacy_report):
     json.loads(json.dumps(privacy_report, allow_nan=False))
     assert Path(data_dir()).exists()
+
+
+# ----------------------------------------------------------------------- a violated static guard is never shown as a pass
+def _fake_privacy(monkeypatch, out):
+    import types
+
+    mod = types.ModuleType("understudy_engine.privacy.evaluate")
+    mod.evaluate_privacy = lambda record=True, seeds=(0,): out
+    monkeypatch.setitem(sys.modules, "understudy_engine.privacy.evaluate", mod)
+
+
+def _priv(violations=None, head_count=0, nested=False):
+    sg = {"files": 10, "violations": violations or []}
+    body = {"meta": {"origin": "synthetic", "n": 5, "n_unit": "tokens", "split": None, "interval_level": 0.95, "note": "x", "generated_at": None},
+            "headline": {"leaked": 0, "planted": 5, "leak_rate_upper_95": 0.1, "static_guard_violations": head_count}, "limitations": []}
+    if nested:
+        body["image"] = {"static_guard": sg}
+    else:
+        body["static_guard"] = sg
+    return body
+
+
+def test_static_guard_violations_make_the_section_failed_with_the_file_line_list(monkeypatch):
+    _fake_privacy(monkeypatch, _priv([{"file": "services/agent/x.py", "line": 12}, {"file": "apps/desktop/y.ts", "line": 7}], head_count=2))
+    rep = build_report(sections=["privacy"], now=NOW, regenerate=False, log=lambda m: None)
+    s = rep["sections"]["privacy"]
+    assert s["status"] == "failed" and "2 violation(s)" in s["reason"] and "services/agent/x.py:12" in s["reason"] and "apps/desktop/y.ts:7" in s["reason"]
+    assert s["violations"] == ["services/agent/x.py:12", "apps/desktop/y.ts:7"] and schema_errors(rep) == []
+    assert "eval-privacy-failed" not in {e["id"] for e in rep["sections"]["limitations"]}          # privacy is optional: no core status entry, the map and md show it
+    assert [e for e in rep["evidence_map"] if e["section"] == "privacy"][0]["status"] == "failed"
+    assert "static guard found 2 violation" in render(rep)
+
+
+def test_violations_in_a_nested_static_guard_block_count_too(monkeypatch):
+    _fake_privacy(monkeypatch, _priv(["a.py:1"], nested=True))
+    s = build_report(sections=["privacy"], now=NOW, regenerate=False, log=lambda m: None)["sections"]["privacy"]
+    assert s["status"] == "failed" and "a.py:1" in s["reason"]
+
+
+def test_a_headline_count_without_a_list_is_still_a_failure(monkeypatch):
+    _fake_privacy(monkeypatch, _priv([], head_count=27))
+    s = build_report(sections=["privacy"], now=NOW, regenerate=False, log=lambda m: None)["sections"]["privacy"]
+    assert s["status"] == "failed" and "27 violation(s)" in s["reason"] and "lists none" in s["reason"]
+
+
+def test_no_violations_is_an_ok_section(monkeypatch):
+    _fake_privacy(monkeypatch, _priv([]))
+    s = build_report(sections=["privacy"], now=NOW, regenerate=False, log=lambda m: None)["sections"]["privacy"]
+    assert "status" not in s and s["headline"]["leaked"] == 0

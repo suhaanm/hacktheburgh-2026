@@ -22,7 +22,8 @@ export interface Envelope<T> { meta: GrowthMeta | null; data: T }
 
 export type OriginDetail = "synthetic_learner" | "simulated_participants" | "live_worker";
 
-export interface WireWilson { k: number; n: number; share: number; wilson: Interval; lower?: number }
+/** A share with its Wilson interval. The engine sends nulls for share and wilson when n is 0; the screen's adapter turns that into "absent". */
+export interface WireWilson { k: number; n: number; share: number; wilson: Interval; lower?: number | null }
 
 export interface WireCurvePoint {
   /** Occurrence index: the sliding window of `window` occurrences ends here. */
@@ -67,16 +68,23 @@ export interface WireGrowth {
   skill: string | null;
   window: number;
   origin_detail?: OriginDetail;
-  readiness: { occurrences: number; needed: number; ready: boolean };
+  /** needed: occurrences before the curve and independence appear. trend_needed: occurrences before a trend can be computed at all. */
+  readiness: { occurrences: number; needed: number; ready: boolean; trend_needed?: number };
   baseline: WireWilson | null;
   score: {
+    /** The engine calls it composite_experimental; `composite` is the earlier name. The screen's adapter reads either. */
     composite: number | null;
     composite_ci: Interval | null;
+    composite_experimental?: number | null;
+    composite_experimental_ci?: Interval | null;
     composite_partial: boolean;
     available_weight: number;
     weights: { independence_lb: number; mastery: number; gap_closure: number; retention: number };
     used_weights?: { independence_lb: number; mastery: number; gap_closure: number; retention: number } | null;
     weights_note: string;
+    /** Plain text from the engine about how far the composite can be trusted. Printed verbatim; the page types no numbers about it. */
+    composite_caveat?: string | null;
+    composite_caveat_figures?: { bias_points?: Interval; false_rise_rate?: number; n_learners?: number; origin?: string } | null;
   };
   components: {
     independence: WireWilson | null;
@@ -90,12 +98,18 @@ export interface WireGrowth {
     ci: Interval | null;
     direction: Direction;
     blocks?: { i: number; n: number; assisted_share: number }[];
+    /** Extra occurrences before a real change would usually be seen; null or absent when unknown. */
+    needed_more?: number | null;
+    /** One plain sentence from the engine about the power of the trend. Printed verbatim when present. */
+    power_note?: string | null;
   };
   curve: WireCurvePoint[];
   occurrences: { total: number; unaided: number; assisted: number; errors: number; abandoned: number };
   time_to_progress: WireTtp | null;
   by_skill: WireSkill[];
-  offloaded: { delegated: number; automation: number; by_skill?: Record<string, number>; note?: string };
+  offloaded: { delegated: number; automation: number; minutes?: { delegated?: number; automation?: number }; by_skill?: Record<string, number>; note?: string };
+  /** Ledger rows by stream; a stream with no rows may be absent. */
+  counts?: { assist?: number; delegated?: number; automation?: number };
   claim?: string;
 }
 
@@ -107,8 +121,9 @@ export interface LedgerRow {
   /** Hour bucket only, for example "2026-11-07T17". */
   t_hour: string;
   role: string;
-  skill: string;
-  step: string;
+  /** Work done for the person may carry no skill or step. */
+  skill: string | null;
+  step: string | null;
   stream: "assist" | "delegated" | "automation";
   trigger: "none" | "auto" | "asked";
   stuck_bucket: string | null;
@@ -125,6 +140,10 @@ export interface LedgerRow {
   taught: boolean;
   retrieval: boolean;
   origin_detail?: OriginDetail;
+  /** Delegated and automation rows only: the routine slug, minutes of work and the result. */
+  routine?: string | null;
+  minutes?: number | null;
+  offload_outcome?: "done" | "queued" | "failed" | "yielded" | null;
 }
 
 export interface WireLedger {

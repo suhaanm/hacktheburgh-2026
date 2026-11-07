@@ -1,9 +1,6 @@
-export { LiveSession } from './LiveSession'
-export type { LiveSessionOptions, StartOptions } from './LiveSession'
-export { LiveConnection } from './connection'
-export { FrameLoop, shouldSendFrame } from './frames'
-export { LIVE_TOOLS, LIVE_TOOL_NAMES, isBlockingTool, schedulingFor } from './tools'
+// The renderer's part in voice: the microphone and the speaker, driven by main (bridge.ts). The old renderer-side session is removed
+// (legacy.ts is a stub that cannot be constructed, kept only so the old dock controller still compiles).
+export { startLiveBridge } from './bridge'
+export { LiveSession } from './legacy'
 export * from './types'
-export { buildSetup, liveUrl, msg, parseServerMessage, pcm16ToBase64Chunks } from './wire'
-export type { FunctionDeclaration, LiveAuth, LiveServerEvent } from './wire'
-export { AudioPlayer, MicCapture } from './audio'
+export { AudioPlayer, MicCapture, pcm16ToBase64Chunks } from './audio'

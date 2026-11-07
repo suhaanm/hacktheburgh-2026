@@ -62,8 +62,9 @@ export function sortHabits<T extends Pick<GitHabit, "delta" | "flagged">>(habits
 /** The symmetric axis (in share units) that holds every interval, rounded up to a tidy number of points. */
 export function habitAxis(habits: Pick<GitHabit, "delta" | "ci" | "min_delta">[]): number {
   const m = Math.max(0.05, ...habits.flatMap((h) => [Math.abs(h.delta), Math.abs(h.ci[0]), Math.abs(h.ci[1]), h.min_delta ?? 0]));
-  const step = m > 0.5 ? 0.25 : m > 0.2 ? 0.1 : 0.05;
-  return Math.min(1, Math.ceil(m / step) * step);
+  // Axes whose half is a whole number of points (±10 with 5, ±20 with 10, ±40 with 20 ...), so every tick is readable.
+  const ladder = [0.1, 0.2, 0.4, 0.6, 0.8, 1];
+  return ladder.find((a) => a >= m - 1e-9) ?? 1;
 }
 
 export function gitHeadline(habits: GitHabit[]): string {
@@ -74,3 +75,16 @@ export function gitHeadline(habits: GitHabit[]): string {
 }
 
 export const DIGEST_LABEL: Record<string, string> = { model: "A model on this laptop summarised the commits", rules: "Fixed rules summarised the commits" };
+
+/** Break a label into at most two lines near the middle, at a space. */
+export function wrapLabel(label: string, max = 34): string[] {
+  if (label.length <= max) return [label];
+  const words = label.split(" ");
+  let best = [label, ""], bestGap = Infinity;
+  for (let i = 1; i < words.length; i++) {
+    const a = words.slice(0, i).join(" "), b = words.slice(i).join(" ");
+    const gap = Math.abs(a.length - b.length);
+    if (a.length <= max && b.length <= max + 6 && gap < bestGap) { best = [a, b]; bestGap = gap; }
+  }
+  return best[1] ? best : [label.slice(0, max - 1) + "…"];
+}

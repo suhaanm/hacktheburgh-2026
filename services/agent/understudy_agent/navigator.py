@@ -8,6 +8,8 @@ Step cap: 20 model-driven actions per navigator (tier 2 and 3); tier-1 steps are
 """
 from __future__ import annotations
 
+import re
+
 import asyncio
 from dataclasses import dataclass, field
 from typing import Any, Callable
@@ -99,9 +101,10 @@ class CalculatorJob:
     schema = RESULT_SCHEMA
     goal_words = ("Click each field and type the matching fact, press the Tab key after a drop-down choice, and press "
                   "Continue, Next, Calculate, Show results, See entitlement or Work it out to move on. "
-                  "Fill in the household details (adults, age, children, pay, earnings, health, rent, housing, "
-                  "bedrooms, savings, childcare) and press Continue, Next, Calculate, Show results, See entitlement "
-                  "or Work it out to reach the estimate page.")
+                  "Fill in EVERY field of the household details (adults, age, children, pay, earnings, health, rent, housing, "
+                  "bedrooms, savings, childcare), then press the button that gives the estimate. Entering one field is "
+                  "never the end: you are finished only when the estimate page, showing a monthly amount and a reference, "
+                  "is on screen. Then reply DONE.")
 
     def looks_final(self, obs: Observation) -> bool:
         return bool(REF_RE.search(obs.text)) and parse_money(obs.text) is not None
@@ -138,8 +141,9 @@ class CaseNoteJob:
 
     schema = None
     goal_words = ("Click each field and type the matching fact, press the Tab key after a drop-down choice, and press "
-                  "Save draft. Fill in the case reference, the GovCalc, Quick Estimator and EntitledTo results, the "
-                  "reconciliation and the note, then press Save draft.")
+                  "Save draft. Fill in EVERY field (the case reference, the GovCalc, Quick Estimator and EntitledTo results, the "
+                  "reconciliation and the note), then press Save draft. You are finished only when the saved draft page, with "
+                  "a note number and the word Draft, is on screen. Then reply DONE.")
 
     def looks_final(self, obs: Observation) -> bool:
         return bool(NOTE_ID_RE.search(obs.text)) and "Draft" in obs.text
@@ -220,6 +224,7 @@ class Navigator:
         self.actuator_factory = actuator_factory or (lambda page: BrowserPageActuator(page))
         self.steps = 0
         self.tier3_steps = 0
+        self.t3_runs: list[dict[str, Any]] = []     # one record per tier-3 attempt: outcome, counts and the model's own closing words
         self.refusals = 0
         self.tiers_used: list[int] = []
 
@@ -323,7 +328,16 @@ class Navigator:
                 last.update(raw)
             return raw is not None
 
-        res = await cu.run(job.goal, verify)
+        try:
+            res = await cu.run(job.goal, verify)
+        except BaseException as exc:
+            self.t3_runs.append({"navigator": self.id, "outcome": f"stopped:{type(exc).__name__}", "steps": cu.last_steps})
+            raise
+        self.t3_runs.append({"navigator": self.id, "outcome": res.outcome, "steps": res.steps, "progress_steps": res.progress_steps,
+                             "refusals": res.refusals, "claimed_done": res.claimed_done, "false_claim": res.false_claim,
+                             "resets": res.resets, "nudges": res.nudges, "premature_claims": res.premature_claims,
+                             "prompt_chars": list(res.prompt_chars),
+                             "summary": re.sub(r"\d{3,}", "#", res.last_summary or "")[:300]})   # the model's own words, digit runs masked
         self.tier3_steps += res.steps
         self.refusals += res.refusals
         if res.false_claim:

@@ -36,3 +36,12 @@ def evals_dir() -> Path:
 
 def is_mock() -> bool:
     return os.environ.get("UNDERSTUDY_MOCK", "").strip().lower() in ("1", "true", "yes")
+
+
+def data_dir_id(path: Path | str | None = None) -> str:
+    """A short, stable id of a data directory (first 12 hex of the SHA-256 of its resolved path). A service can put it in /health so a peer
+    can tell, without reading any files, whether both services were started on the same data dir."""
+    import hashlib
+
+    p = Path(path).expanduser().resolve() if path is not None else data_dir().resolve()
+    return hashlib.sha256(str(p).encode("utf-8")).hexdigest()[:12]

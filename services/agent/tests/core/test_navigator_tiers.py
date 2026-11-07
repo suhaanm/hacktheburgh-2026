@@ -20,7 +20,7 @@ from understudy_agent.security.config import SecurityConfig
 from understudy_agent.tiers.base import GateStop, InjectionStop
 from understudy_agent.tiers.browser import BrowserHost
 from understudy_agent.tiers.computer_use import (
-    ActuatorRefused, ComputerUse, MacActuator, ProviderSafetyStop, SimulatedActuator,
+    ActuatorRefused, ComputerUse, MacActuator, ProviderSafetyStop, SimulatedActuator, TargetRead,
 )
 from understudy_agent.tiers.browser_agent import StuckLoop, convert_unit
 from understudy_agent.tiers.heuristic import HeuristicModelPort, param_for, read_calculator_result
@@ -245,10 +245,11 @@ def test_unit_conversion_and_reader_rules():
 
 # ------------------------------------------------------------------ tier 3 (SimulatedActuator only)
 GOAL3 = "click the text area, type a line and press a key"
+READABLE = TargetRead("Text area", "textbox")     # what trusted code would read under the pointer
 
 
 async def run_cu(scenario: str, safety, **kw):
-    act = SimulatedActuator()
+    act = SimulatedActuator(targets=READABLE)
     cu = ComputerUse(MockProvider(scenario), act, safety, navigator="nav-x", **kw)
 
     async def verify():
@@ -284,7 +285,7 @@ async def test_tier3_a_model_that_says_it_cannot_finish_is_not_a_false_claim(saf
 
             return Done(summary="I do not have the household details", claimed_success=False)
 
-    cu = ComputerUse(GivesUp(), SimulatedActuator(), safety, navigator="n")
+    cu = ComputerUse(GivesUp(), SimulatedActuator(targets=READABLE), safety, navigator="n")
 
     async def verify():
         return False
@@ -325,7 +326,7 @@ async def test_tier3_step_cap_and_cancellation(safety):
         def computer_step(self, goal, shot, history, **kw):
             Forever.n += 1
             return Action("click", {"x": 100 * Forever.n, "y": 50 * Forever.n})
-    act = SimulatedActuator()
+    act = SimulatedActuator(targets=READABLE)
     cu = ComputerUse(Forever(), act, safety, navigator="n", max_steps=5)
 
     async def never():
@@ -334,7 +335,7 @@ async def test_tier3_step_cap_and_cancellation(safety):
     with pytest.raises(StepBudgetExceeded):
         await cu.run("x", never)
     assert len(act.actions) == 5
-    cu2 = ComputerUse(Forever(), SimulatedActuator(), safety, navigator="n", is_current=lambda: False)
+    cu2 = ComputerUse(Forever(), SimulatedActuator(targets=READABLE), safety, navigator="n", is_current=lambda: False)
     with pytest.raises(asyncio.CancelledError):
         await cu2.run("x", never)
 
@@ -563,7 +564,7 @@ async def test_wrong_app_locked_killed_or_over_budget(tmp_path):
         await act.execute(Action("wait", {"seconds": 0}))
 
 
-async def test_scroll_and_move_are_hit_tested_too_and_drag_is_unsupported(tmp_path):
+async def test_scroll_move_and_drag_are_all_hit_tested(tmp_path):
     be = FakeBackend()
     act = mac(be, tmp_path)
     await act.screenshot()
@@ -573,7 +574,7 @@ async def test_scroll_and_move_are_hit_tested_too_and_drag_is_unsupported(tmp_pa
         await act.execute(Action("move", {"x": 1600, "y": 1400}))
     await act.execute(Action("scroll", {"x": 600, "y": 500, "scroll_x": 0, "scroll_y": 100}))
     assert ("scroll", 0, 100) in be.events
-    with pytest.raises(ActuatorRefused, match="not supported"):
+    with pytest.raises(ActuatorRefused, match="belongs to 'Claude'"):          # a drag is hit-tested at every point
         await act.execute(Action("drag", {"path": [{"x": 1, "y": 1}, {"x": 2, "y": 2}]}))
 
 
@@ -582,13 +583,13 @@ async def test_mac_check_dry_run_goes_through_pipeline_and_guards(tmp_path, monk
 
     monkeypatch.setenv("UNDERSTUDY_DATA_DIR", str(tmp_path / "data"))
     out = await run_check("TextEdit", (600, 300), "hello", real=False)   # (300, 150) pt: in the fake TextEdit window
-    assert out["ok"] and out["real"] is False and out["scale"] == 2.0
+    assert out["ok"] and out["real"] is False and out["scale"] == 2.0 and out["postcondition"] == "passed"
     assert [e[0] for e in out["events"] if e[0] in ("mouse", "type")][:4] == ["mouse", "mouse", "mouse", "type"]
     assert ["mouse", "move", 300.0, 150.0] in out["events"]
     assert out["report"]["scale_check"]["agree"] is True and out["report"]["hits"][0]["owner"] == "TextEdit"
     wrong = await run_check("TextEdit", (1400, 1000), "hello", real=False)   # (700, 500) pt: another app's window
-    assert wrong["ok"] is False and "belongs to 'Claude'" in wrong["reason"]
-    assert wrong["report"]["hits"][-1]["owner"] == "Claude"
+    # the pipeline refuses first: nothing under that point can be read as a control, so a click there is a human's
+    assert wrong["ok"] is False and wrong["log"][0]["target_read"] is False and "pipeline" in wrong["reason"]
     refused = await run_check("Safari", (10, 10), "x", real=False)
     assert refused["ok"] is False and "harmless" in refused["reason"]
     (tmp_path / "data").mkdir(exist_ok=True)

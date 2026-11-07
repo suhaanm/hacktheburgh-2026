@@ -321,7 +321,7 @@ SIGNATURE_BUCKET_PX = 24
 
 
 def action_signature(kind: str, args: dict[str, Any]) -> str:
-    """Canonical comparable form: coordinates in coarse buckets; typed text hashed (never stored); labels ignored."""
+    """Canonical comparable form: coordinates in coarse buckets; typed text hashed (never stored); the label hint included."""
     b = SIGNATURE_BUCKET_PX
     sig: dict[str, Any] = {"k": kind}
     for n in ("x", "y"):
@@ -341,6 +341,8 @@ def action_signature(kind: str, args: dict[str, Any]) -> str:
     for n in ("url", "selector", "role", "name", "param", "button"):
         if n in args:
             sig[n] = args[n]
+    if args.get("label"):                       # an approval for "Save" is not an approval for "Delete" (S-11)
+        sig["l"] = " ".join(str(args["label"]).lower().split())[:80]
     return json.dumps(sig, sort_keys=True, separators=(",", ":"))
 
 

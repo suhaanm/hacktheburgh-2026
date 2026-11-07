@@ -255,8 +255,8 @@ def test_long_tasks_leak_nothing_and_send_only_typed_signals(kind, tmp_path):
         assert needle not in blob, needle
     seen = set()
     for row in ledger.read_all():
-        if "signals" in row["payload"]:
-            seen |= set(row["payload"]["signals"])
+        if "task" in row["payload"]:
+            seen |= set(row["payload"]["task"]["signals"])
     assert seen and seen <= set(policy.SIGNAL_NAMES)
 
 

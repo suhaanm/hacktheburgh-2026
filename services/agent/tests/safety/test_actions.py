@@ -126,7 +126,9 @@ def test_signature_buckets_coordinates_and_hides_text():
     assert a == b and a != c
     s = action_signature("type", {"text": "SECRET-NINO"})
     assert "SECRET" not in s
-    assert action_signature("click", {"x": 1, "y": 1, "label": "A", "button": "left"}) == action_signature("click", {"x": 1, "y": 1, "label": "B", "button": "left"})
+    # S-11: a different label is a different step (an approval for "Save" is not one for "Delete"); case and spacing are not
+    assert action_signature("click", {"x": 1, "y": 1, "label": "A", "button": "left"}) != action_signature("click", {"x": 1, "y": 1, "label": "B", "button": "left"})
+    assert action_signature("click", {"x": 1, "y": 1, "label": "Save  Draft", "button": "left"}) == action_signature("click", {"x": 1, "y": 1, "label": "save draft", "button": "left"})
 
 
 # ---- budgets

@@ -34,9 +34,27 @@ export interface LedgerAnswer {
   ref: string | null
 }
 
+// One worker turn of audio (one talk-key press): announced before the first chunk is sent, completed when the turn ends. No content.
+export interface AudioTurn {
+  model: string
+  gate: GateBooleans
+  turn: 'converse' | 'transcribe'
+}
+
+export interface AudioTurnResult {
+  ok: boolean
+  seconds: number
+  bytes: number
+  latency_ms?: number
+  cost_estimate_usd?: number
+}
+
 export interface LiveLedgerPort {
   announce(b: LiveBatch): Promise<LedgerAnswer>
   result(ref: string, r: BatchResult): Promise<void>
+  /** Required: audio is ledgered per turn before it is sent. A route that is missing is `ledger_unavailable` (fail closed), never a pass-through. */
+  announceAudio(t: AudioTurn): Promise<LedgerAnswer>
+  audioResult(ref: string, r: AudioTurnResult): Promise<void>
 }
 
 /** The first 8 bytes of the SHA-256, as 16 lowercase hex characters: identifies a frame in the ledger without being any of it. */
@@ -96,6 +114,32 @@ export function createHttpLiveLedger(o: HttpLedgerOptions): LiveLedgerPort {
       const ref = typeof r.json.ledger_id === 'string' && /^e_[0-9a-f]{12,32}$/.test(r.json.ledger_id) ? r.json.ledger_id : null
       return ref ? { allowed: true, reason: null, ref } : { allowed: false, reason: 'ledger_unavailable', ref: null }
     },
+    async announceAudio(t) {
+      if (!MODEL_RE.test(t.model)) return { allowed: false, reason: 'ledger_unavailable', ref: null }
+      const r = await post('/privacy/ledger/live/audio', {
+        model: t.model,
+        source: 'real_screen',
+        provider: 'gemini',
+        gate: { consent: t.gate.consent, denylisted_app: t.gate.denylisted_app, secure_input: t.gate.secure_input, unattended: t.gate.unattended },
+        turn: t.turn,
+      })
+      // No answer, a 404 (an engine without the route, or the privacy extension off), a 503 or anything but a 200: the audio stays home.
+      if (!r || r.status !== 200 || !isObj(r.json)) return { allowed: false, reason: 'ledger_unavailable', ref: null }
+      const reason = typeof r.json.reason === 'string' && REASONS.has(r.json.reason) ? (r.json.reason as LedgerRefusal) : null
+      if (r.json.allowed !== true) return { allowed: false, reason: reason ?? 'ledger_unavailable', ref: null }
+      const ref = typeof r.json.ledger_id === 'string' && /^e_[0-9a-f]{12,32}$/.test(r.json.ledger_id) ? r.json.ledger_id : null
+      return ref ? { allowed: true, reason: null, ref } : { allowed: false, reason: 'ledger_unavailable', ref: null }
+    },
+    async audioResult(ref, res) {
+      await post('/privacy/ledger/live/audio/result', {
+        ref,
+        ok: res.ok,
+        seconds: Math.round(Math.min(600, Math.max(0, res.seconds)) * 10) / 10,
+        bytes: Math.max(0, Math.round(res.bytes)),
+        ...(res.latency_ms !== undefined ? { latency_ms: Math.max(0, Math.round(res.latency_ms)) } : {}),
+        ...(res.cost_estimate_usd !== undefined ? { cost_estimate_usd: Math.round(res.cost_estimate_usd * 1e6) / 1e6 } : {}),
+      })
+    },
     async result(ref, res) {
       await post('/privacy/ledger/live/result', {
         ref,
@@ -113,6 +157,8 @@ export function createHttpLiveLedger(o: HttpLedgerOptions): LiveLedgerPort {
 export interface MemoryLiveLedger extends LiveLedgerPort {
   readonly announced: LiveBatch[]
   readonly results: Array<{ ref: string; result: BatchResult }>
+  readonly audioAnnounced: AudioTurn[]
+  readonly audioResults: Array<{ ref: string; result: AudioTurnResult }>
   /** Refuse the next batches with this reason (null: allow). */
   refuse(reason: LedgerRefusal | null): void
 }
@@ -120,12 +166,25 @@ export interface MemoryLiveLedger extends LiveLedgerPort {
 export function createMemoryLiveLedger(): MemoryLiveLedger {
   const announced: LiveBatch[] = []
   const results: Array<{ ref: string; result: BatchResult }> = []
+  const audioAnnounced: AudioTurn[] = []
+  const audioResults: Array<{ ref: string; result: AudioTurnResult }> = []
   let refusal: LedgerRefusal | null = null
   let n = 0
   return {
     announced,
     results,
+    audioAnnounced,
+    audioResults,
     refuse: (r) => void (refusal = r),
+    async announceAudio(t) {
+      audioAnnounced.push({ ...t, gate: { ...t.gate } })
+      if (refusal) return { allowed: false, reason: refusal, ref: null }
+      n += 1
+      return { allowed: true, reason: null, ref: `e_${n.toString(16).padStart(12, '0')}` }
+    },
+    async audioResult(ref, r) {
+      audioResults.push({ ref, result: { ...r } })
+    },
     async announce(b) {
       announced.push({ ...b, gate: { ...b.gate } })
       if (refusal) return { allowed: false, reason: refusal, ref: null }

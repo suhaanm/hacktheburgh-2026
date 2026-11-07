@@ -107,13 +107,19 @@ def test_sandbox_needs_no_consent_and_may_be_unattended_and_the_row_says_so(clie
     assert ledger.summary()["images"]["sent_by_source"] == {"sandbox": 1}
 
 
-def test_a_web_page_cannot_report_a_sandbox_batch_but_the_local_main_process_can(client):
-    sb = batch(source="sandbox")
-    assert client.post("/privacy/ledger/live", json=sb, headers={"origin": "https://evil.example"}).status_code == 403
-    assert client.post("/privacy/ledger/live", json=sb, headers={"origin": "http://localhost:5173"}).status_code == 403
-    assert client.post("/privacy/ledger/live", json=sb, headers={"origin": "http://127.0.0.1:7801"}).status_code == 200
-    assert client.post("/privacy/ledger/live", json=sb).status_code == 200            # Electron main sends no Origin: convention, not enforcement
-    assert client.post("/privacy/ledger/live", json=batch(), headers={"origin": "app://understudy"}).status_code == 200
+def test_report_routes_refuse_any_request_that_carries_an_origin_and_accept_the_local_main_process(client, monkeypatch):
+    """A browser always sends an Origin on a write; the Electron main process and the agent service send none. So no Origin is the only way in,
+    whatever the source says: not the dashboard, not a page on a sandbox site, not an allow-listed app origin."""
+    w = {"x-understudy-actor": "worker"}
+    for source in ("real_screen", "sandbox"):
+        for origin in ("https://evil.example", "http://localhost:5173", "http://127.0.0.1:7801", "app://understudy", "null", "file://"):
+            r = client.post("/privacy/ledger/live", json=batch(source=source), headers={"origin": origin, **w})
+            assert r.status_code == 403, (source, origin, r.status_code)
+    monkeypatch.setenv("UNDERSTUDY_ALLOWED_ORIGINS", "app://understudy")
+    assert client.post("/privacy/ledger/live", json=batch(), headers={"origin": "app://understudy", **w}).status_code == 403
+    assert client.post("/privacy/ledger/live", json=batch(source="sandbox")).status_code == 200      # no Origin: convention, not enforcement
+    assert client.post("/privacy/ledger/live", json=batch()).status_code == 200
+    assert ledger.summary()["images"]["sent"] == 2
 
 
 def test_only_this_machine_and_the_worker_actor_can_report(monkeypatch):

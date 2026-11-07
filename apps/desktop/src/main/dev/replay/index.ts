@@ -1,3 +1,8 @@
+// DEV ONLY (owner decision D38): never part of a demo or a worker's machine. It is installed only when ALONGSIDE_DEV_STAGE, ALONGSIDE_RECORD
+// or ALONGSIDE_REPLAY is set (one guarded line in src/main/index.ts). Recording writes provider responses, and the first 200 characters of
+// each request's text, to <userData>/replay on disk, so it must never be switched on with real data in front of it. It records only what
+// the old Alongside paths send, and those paths are themselves default off (UNDERSTUDY_LEGACY_REMOTE, src/main/legacy-remote.ts): with that
+// flag unset there is nothing to record. It sits above the legacy gate and does not bypass it (a call the gate refuses never reaches fetch).
 // Record / replay of the HTTP Gemini calls (Grounder, Verifier, Architect, Scam, Router) as a venue-Wi-Fi backup.
 //   ALONGSIDE_RECORD=1  record every successful JSON response from *.googleapis.com, keyed by request hash.
 //   ALONGSIDE_REPLAY=1  serve recorded responses; a miss behaves like a dead network (services already handle that).

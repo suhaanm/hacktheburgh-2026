@@ -54,14 +54,21 @@ export interface SetupOptions {
   vad?: VadConfig
   // A transcription-only turn (Cue's listenOnce): no tools, transcripts of what the worker said, the model's answer is discarded.
   transcribeOnly?: boolean
+  // With a dedicated transcription model the answer is text, not audio.
+  textOnly?: boolean
+  // Keep the provider's running context small: compress when it reaches this many tokens, down to about the target.
+  compressionTriggerTokens?: number
+  compressionTargetTokens?: number
+  // Ask the server for a transcript of what the worker said. Only Cue's one-answer turn needs it; a conversation asks for none, so no
+  // transcript of either side ever arrives (nothing to keep, nothing to leak).
+  inputTranscript?: boolean
 }
 
 export function buildSetup(o: SetupOptions): { setup: Record<string, unknown> } {
   // thinkingConfig is deliberately absent: gemini-3.8-live rejects it (the socket closes with 1007), verified by the old LIVE role.
-  const generationConfig: Record<string, unknown> = {
-    responseModalities: ['AUDIO'],
-    speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: o.voiceName } } },
-  }
+  const generationConfig: Record<string, unknown> = o.textOnly
+    ? { responseModalities: ['TEXT'] }
+    : { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: o.voiceName } } } }
   const manual = o.turnMode === 'manual'
   const realtimeInputConfig: Record<string, unknown> = {
     automaticActivityDetection: manual ? { disabled: true } : { disabled: false, ...(o.vad ?? { startOfSpeechSensitivity: 'START_SENSITIVITY_LOW' }) },
@@ -75,10 +82,12 @@ export function buildSetup(o: SetupOptions): { setup: Record<string, unknown> } 
       tools: !o.transcribeOnly && o.tools.length ? [{ functionDeclarations: o.tools }] : undefined,
       realtimeInputConfig,
       // A voice turn here is at most five minutes, so compression is a safety net; resumption covers a dropped socket.
-      contextWindowCompression: { slidingWindow: {} },
+      contextWindowCompression: {
+        ...(o.compressionTriggerTokens ? { triggerTokens: o.compressionTriggerTokens } : {}),
+        slidingWindow: o.compressionTargetTokens ? { targetTokens: o.compressionTargetTokens } : {},
+      },
       sessionResumption: o.resumptionHandle ? { handle: o.resumptionHandle } : {},
-      inputAudioTranscription: {},
-      outputAudioTranscription: {},
+      ...(o.inputTranscript ? { inputAudioTranscription: {} } : {}),
     },
   }
 }

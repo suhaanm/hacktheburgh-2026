@@ -6,6 +6,7 @@ makes the calls that are missing. When the budget guard stops the run, every job
 """
 from __future__ import annotations
 
+import os
 import threading
 import time
 from dataclasses import dataclass
@@ -76,9 +77,13 @@ class Runner:
             with self._lock:
                 self.counts["dropped"] += 1
             return None
+        try:
+            load = round(os.getloadavg()[0], 1)    # the machine's 1-minute load average when the call went out (latency context)
+        except OSError:  # pragma: no cover
+            load = None
         out = self._call_fn(c, j, self.jpeg(j.image_file))
         row = self.cache.put(key, {"kind": j.kind, "contender": c.name, "model": c.model, "api": c.api, "case_id": j.case_id,
-                                   "rep": j.rep, "group": j.group, "image_sha": j.image_sha, **out.as_row()})
+                                   "rep": j.rep, "group": j.group, "image_sha": j.image_sha, "load_avg_1m": load, **out.as_row()})
         self.budget.add(out.cost_usd if out.cost_usd is not None else c.est_cost(), contender=c.name, kind=j.kind)
         with self._lock:
             self.counts["live" if out.ok else "failed"] += 1

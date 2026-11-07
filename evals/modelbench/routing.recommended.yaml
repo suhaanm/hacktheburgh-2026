@@ -1,0 +1,59 @@
+# Recommended routing from the 7 Nov 2026 bake-off (evals/modelbench). A starting point, not a decision: the lead decides.
+# Rules and the numbers behind each choice are in data/eval/modelbench.json (recommendation) and REPORT.md.
+version: 1
+breaker:
+  failures: 3
+  window_s: 60.0
+  open_s: 60.0
+roles:
+  point:
+    steps:
+    - provider: gemini
+      tier: fast
+      when: primary
+    - provider: openai
+      tier: fast
+      when: fallback
+    escalate:
+      not_found: true
+      confidence_below: 0.7
+      schema_failure: true
+      timeout: true
+    call_timeout_s: 6.0
+    deadline_s: 6.0
+  glance:
+    steps:
+    - provider: gemini
+      tier: fast
+      when: primary
+    - provider: gemini
+      tier: accurate
+      when: escalate
+    - provider: openai
+      tier: fast
+      when: fallback
+    escalate:
+      not_found: false
+      confidence_below: 0.0
+      schema_failure: true
+      timeout: true
+    call_timeout_s: 8.0
+    deadline_s: 12.0
+  verify:
+    steps:
+    - provider: gemini
+      tier: fast
+      when: primary
+    - provider: gemini
+      tier: accurate
+      when: escalate
+    - provider: openai
+      tier: fast
+      when: fallback
+    escalate:
+      not_found: false
+      confidence_below: 0.7
+      schema_failure: true
+      timeout: true
+    call_timeout_s: 10.0
+    deadline_s: 14.0

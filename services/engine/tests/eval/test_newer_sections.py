@@ -242,7 +242,7 @@ def test_the_live_study_adapter_never_reads_any_of_the_simulated_or_role_study_s
 def test_the_live_study_stays_not_run_even_if_every_other_study_section_has_numbers(evals):
     d = evals / "study_roles"
     d.mkdir()
-    (d / "summary.json").write_text(json.dumps({"meta": dict(META, origin="real", n=12, n_unit="people"), "rows": [1]}))
+    (d / "summary.json").write_text(json.dumps({"meta": dict(META, origin="synthetic", n=12, n_unit="runs"), "rows": [1]}))
     rep = build(["study", "study_roles"])
     assert rep["sections"]["study"]["status"] == "not_run" and rep["sections"]["study_roles"]["meta"]["n"] == 12
 
@@ -264,7 +264,7 @@ def test_evidence_map_has_one_row_per_section_with_origin_n_and_status(mapped):
     assert set(em) == {"cue", "mlv2", "study", "study_sim"}
     assert (em["cue"]["status"], em["cue"]["origin"], em["cue"]["n"], em["cue"]["n_unit"]) == ("ok", "mixed", 31, "people")
     assert em["mlv2"]["status"] == "pending" and "mlv2 not landed" in em["mlv2"]["reason"]
-    assert (em["study"]["status"], em["study"]["origin"], em["study"]["n"]) == ("not_run", "real", 4)
+    assert (em["study"]["status"], em["study"]["origin"], em["study"]["n"]) == ("not_run", "unknown", 4)
     assert "limitations" not in em and schema_errors(mapped) == []
 
 
@@ -275,7 +275,7 @@ def test_evidence_map_is_the_first_table_in_the_markdown_and_badges_every_origin
     sec = md[first:md.index("\n## ", first + 5)]
     assert "4 sections: 2 with numbers, 1 pending, 1 not run, 0 failed" in sec
     rows = {x.split("|")[1].strip(): [c.strip() for c in x.split("|")[2:-1]] for x in sec.splitlines() if x.startswith("| ") and not x.startswith("| Section")}
-    assert rows["Cue analysis"][:2] == ["[mixed]", "31 people"] and rows["Live study (n = 4)"][0] == "[real]" and rows["Live study (n = 4)"][1] == "4 people"
+    assert rows["Cue analysis"][:2] == ["[mixed]", "31 people"] and rows["Live study (n = 4)"][0] == "[unknown]" and rows["Live study (n = 4)"][1] == "4 people"
     assert rows["Models v2"][:2] == ["n/a", "n/a"] and rows["Models v2"][2].startswith("pending: mlv2 not landed")       # a pending section shows no origin badge
     assert rows["Simulated participants (language model), not people"][0] == "[synthetic]"
 

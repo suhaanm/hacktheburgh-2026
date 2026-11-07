@@ -50,6 +50,11 @@ class ResultCache:
             return row
         return None
 
+    def peek(self, key: str) -> dict[str, Any] | None:
+        """The stored row for a key whatever its state (success, or a failure still awaiting a retry)."""
+        with self._lock:
+            return self._d.get(key)
+
     def attempts(self, key: str) -> int:
         with self._lock:
             return int(self._d.get(key, {}).get("attempts", 0))

@@ -10,6 +10,7 @@ import type { ConfirmBroker } from './confirm'
 import type { ServiceContext } from './context'
 import { mintLiveToken, mintWakeToken } from './live-auth'
 import { registerFilesIpc } from './files'
+import type { AwarenessCardState } from '../shared/awareness'
 import type { Permissions } from './permissions'
 import type { SessionController } from './session'
 import type { Dispatch } from './tools/dispatcher'
@@ -23,6 +24,8 @@ export interface IpcDeps {
   confirm: ConfirmBroker
   session: SessionController
   permissions?: Permissions
+  // The awareness consent card (src/main/awareness-card.ts). Absent: the card reports `available: false` and writes are refused.
+  awareness?: { state(): AwarenessCardState; consent(raw: unknown): AwarenessCardState }
 }
 
 const PermissionPaneSchema = z.enum(['screen', 'microphone', 'accessibility'])
@@ -138,6 +141,11 @@ export function registerIpc(deps: IpcDeps): void {
     })
     ipcMain.on(IPC.permissionsUnsubscribe, (event) => permissions.unsubscribe(event.sender))
   }
+
+  // AWARENESS: the consent card. Only our own windows reach these (guard); the choice is validated again in awareness-card.ts.
+  const awarenessOff: AwarenessCardState = { available: false, consentText: '', consentShort: '', agreed: false, enabled: false, trigger: false, periodic: false, strict: true, intervalSec: 30, dailyUsd: 0, callsToday: 0, lastSkip: null }
+  handle(IPC.awarenessState, () => deps.awareness?.state() ?? awarenessOff)
+  handle(IPC.awarenessConsent, (choice) => deps.awareness?.consent(choice) ?? awarenessOff)
 
   // FILES: "Files I can look at" (folder dialog, status, reindex, delete, search).
   if (services.files) registerFilesIpc({ files: services.files, owns: (id) => windows.owns(id), log: ctx.log })

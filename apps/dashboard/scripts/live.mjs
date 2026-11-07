@@ -1,4 +1,4 @@
-// Read-only check of every screen against the live engine (127.0.0.1:7700). Makes only GET requests.
+// Read-only check of every screen against the live engine (through the dashboard's /engine and /agent proxy). Makes only GET requests.
 // Usage: node scripts/live.mjs [http://127.0.0.1:5173]   Screenshots go to qa/live-*.png
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
@@ -14,8 +14,8 @@ const errors = [];
 const missing = new Map();
 page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
 page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) errors.push(`console: ${m.text()}`); });
-page.on("response", (r) => { const u = new URL(r.url()); if (u.port === "7700" && r.status() >= 400) missing.set(`${r.request().method()} ${u.pathname} ${r.status()}`, 1); });
-page.on("request", (r) => { if (new URL(r.url()).port === "7700" && r.method() !== "GET") errors.push(`NON-GET to engine: ${r.method()} ${r.url()}`); });
+page.on("response", (r) => { const u = new URL(r.url()); if (/^\/(engine|agent)\//.test(u.pathname) && r.status() >= 400) missing.set(`${r.request().method()} ${u.pathname} ${r.status()}`, 1); });
+page.on("request", (r) => { if (/^\/(engine|agent)\//.test(new URL(r.url()).pathname) && r.method() !== "GET") errors.push(`NON-GET to engine: ${r.method()} ${r.url()}`); });
 let failed = 0;
 const check = (name, ok, extra = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${name}${extra ? "  " + extra : ""}`); if (!ok) failed++; };
 for (const s of screens) {

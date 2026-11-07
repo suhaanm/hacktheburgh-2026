@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Body, Query, Request
+from . import http_guard
 from fastapi.responses import JSONResponse
 
 from .proactive import briefing as B
@@ -38,7 +39,6 @@ __all__ = ["router", "enabled", "briefing_text", "FLAG"]
 FLAG = "UNDERSTUDY_X_PROACTIVE"
 router = APIRouter(tags=["proactive"])
 _lock = threading.RLock()
-_ALLOWED_ORIGIN_PREFIXES = ("http://localhost", "http://127.0.0.1", "https://localhost", "file://", "app://")
 _WORKER = ("worker", "worker_approval")
 
 
@@ -68,12 +68,12 @@ def _audit(note: str) -> None:
 
 def _guard(request: Request) -> JSONResponse | None:
     """Only the worker's own UI writes: anything naming another actor, or from a foreign origin, is refused."""
-    actor = request.headers.get("x-understudy-actor", "worker").strip()
+    actor = http_guard.actor_of(request)
     origin = request.headers.get("origin")
     if actor not in _WORKER:
         _audit(f"actor {_clean(actor)} on {request.url.path}")
         return _error(403, "write_refused", f"Only the worker can change or press a briefing card; the actor {_clean(actor)!r} cannot.")
-    if origin is not None and not origin.startswith(_ALLOWED_ORIGIN_PREFIXES):
+    if origin is not None and not http_guard.origin_allowed(origin):
         _audit(f"origin {_clean(origin)} on {request.url.path}")
         return _error(403, "write_refused", "Writes only come from the worker's own app on this machine.")
     return None

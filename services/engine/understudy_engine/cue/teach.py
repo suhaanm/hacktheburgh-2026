@@ -39,13 +39,14 @@ def row_time(r: dict[str, Any]) -> float:
     return hour_to_epoch(r["t_hour"]) + 1800.0
 
 
-def replay_mastery(rows: Sequence[dict[str, Any]], params: T.TracingParams = T.DEFAULT) -> T.CogMastery:
+def replay_mastery(rows: Sequence[dict[str, Any]], params: T.TracingParams = T.DEFAULT, assisted_as: str = "none") -> T.CogMastery:
     """Fold the assist rows of ONE skill, oldest first, through the tracing model. Abandoned counts as no evidence (assisted); an
     error is evidence against; a clean occurrence is evidence for. Delegated and automation rows must be filtered out by the caller
-    (``assist_rows``)."""
+    (``assist_rows``). ``assisted_as="error"`` counts an assisted occurrence as an unaided failure (the learner could not do it alone);
+    the default leaves it as no evidence, as the level engine does."""
     state = T.CogMastery()
     for r in sorted(rows, key=row_time):
-        ev = {"clean": "clean", "error": "error"}.get(r["outcome"], "assisted")
+        ev = {"clean": "clean", "error": "error"}.get(r["outcome"], "error" if (r["outcome"] == "assisted" and assisted_as == "error") else "assisted")
         state = T.observe(state, ev, row_time(r), params)          # type: ignore[arg-type]
     return state
 

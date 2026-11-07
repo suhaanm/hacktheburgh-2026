@@ -6,6 +6,9 @@ import { ChartFoot, EmptyState, ErrorState, Loading, PageHead, Range } from "../
 import { DotWhisker, type DwRow } from "../components/DotWhisker";
 import { Facts } from "../components/Facts";
 import { Reliability, RiskCoverage, type RcPoint, type RelPoint } from "../components/EvidenceCharts";
+import { EvidenceMap, OtherSections, PrivacyEvidence, useHashOpen } from "../components/EvidenceMap";
+import { LiveRuns } from "../components/LiveRuns";
+import { mapRows, otherSections } from "../lib/evidence";
 import { fmtInterval, fmtPct, fmtPctInterval, signed } from "../lib/format";
 import type { AnalyticMeta, EvalReport, Interval, Limitation } from "../types";
 
@@ -60,7 +63,7 @@ function Guard({ id, kicker, what, s, children }: { id: string; kicker: string; 
   return <>{children(s)}</>;
 }
 
-const NAV: [string, string][] = [["hazard", "Warning"], ["routing", "Review"], ["controls", "Controls"], ["ope", "Off-policy"], ["redteam", "Injection"], ["ski", "Ski rental"], ["deficits", "Deficits"], ["presence", "Presence"], ["agent", "Agent claims"], ["runs", "Agent runs"], ["study", "Live study"], ["limits", "Limits"]];
+const NAV: [string, string][] = [["hazard", "Warning"], ["routing", "Review"], ["controls", "Controls"], ["ope", "Off-policy"], ["redteam", "Injection"], ["ski", "Ski rental"], ["deficits", "Deficits"], ["presence", "Presence"], ["agent", "Agent claims"], ["runs", "Agent runs"], ["privacy", "Privacy"], ["study", "Live study"], ["other", "Other"], ["limits", "Limits"]];
 
 /** A sticky list of sections. The one you are reading is marked, so a very long page never loses its place. */
 function JumpBar({ onGo }: { onGo: (id: string) => (e: { preventDefault: () => void }) => void }) {
@@ -86,6 +89,7 @@ function JumpBar({ onGo }: { onGo: (id: string) => (e: { preventDefault: () => v
 
 export default function Evidence() {
   const r = useLoad(() => api.evalReport(), []);
+  useHashOpen();
   if (r.status === "error" && !r.data) return <div className="page"><ErrorState error={r.error} retry={r.reload} what="the evidence report" /></div>;
   if (!r.data) return <div className="page"><Loading label="Loading the evidence report" /></div>;
   const rep = r.data;
@@ -94,6 +98,8 @@ export default function Evidence() {
   const studyRan = !!study && !stubOf(study) && isNum(study.meta?.n) && (study.meta?.n ?? 0) > 0;
   const anySynthetic = Object.entries(rep.sections).some(([k, v]) => k !== "limitations" && (v as Sec)?.meta?.origin && (v as Sec).meta!.origin !== "real");
   const go = (id: string) => (e: { preventDefault: () => void }) => { e.preventDefault(); document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }); };
+  const rows = mapRows(rep);
+  const others = otherSections(rows);
 
   return (
     <div className="page page--wide">
@@ -102,6 +108,7 @@ export default function Evidence() {
         title="What we can show, and what we cannot"
         lede={<>{anySynthetic ? "Most numbers here come from synthetic apprentices and personas, and each one says so. " : ""}{studyRan ? `The live study has n = ${study!.meta!.n}. ` : "The live study has not run yet, so no human results are shown. "}Every chart prints its n, its split and its 95% interval. <a href="#limits" onClick={go("limits")}>{limits.length} limits are listed at the end.</a></>}
       />
+      <EvidenceMap rows={rows} onGo={go} />
       <JumpBar onGo={go} />
       <div className="ev">
         <Hazard rep={rep} />
@@ -114,7 +121,9 @@ export default function Evidence() {
         <PresenceBlock rep={rep} />
         <Claims rep={rep} />
         <AgentRuns rep={rep} />
+        <PrivacyEvidence s={sec(rep, "privacy")} row={rows.find((x) => x.section === "privacy") ?? null} />
         <Study rep={rep} />
+        <OtherSections rows={others} sections={rep.sections as unknown as Record<string, unknown>} />
         <Limits items={limits} />
       </div>
     </div>
@@ -496,7 +505,7 @@ function AgentRuns({ rep }: { rep: EvalReport }) {
         return (
           <Block id="runs" kicker="Does the agent finish the work, and survive a changed page?" claim={<>
             {clean ? `Clean path: ${clean.pass} of ${clean.n}. ` : ""}{robust ? `With failures injected: ${robust.pass} of ${robust.n}${isNum(t2) ? `, using tier 2 on ${t2} households` : ""}. ` : ""}
-            {disc ? `${disc.n} of ${disc.of} planted discrepancies flagged. ` : ""}{isNum(s.false_claims) ? `${s.false_claims} false claims.` : ""}</>}>
+            {disc ? `${disc.n} of ${disc.of} planted discrepancies flagged. ` : ""}{isNum(s.false_claims) ? `${typeof s.false_claims_scope === "string" && s.false_claims_scope ? `${s.false_claims_scope.charAt(0).toUpperCase()}${s.false_claims_scope.slice(1).replace(/\.$/, "")}: ` : "Scripted runs: "}${s.false_claims} false claims.` : ""}</>}>
             <div className="stats">
               {clean && <RunStat title="Clean path" r={clean} />}
               {robust && <RunStat title="With injected failures" r={robust} />}
@@ -509,7 +518,7 @@ function AgentRuns({ rep }: { rep: EvalReport }) {
                 <tbody>{inj.map((x) => <tr key={x.injection}><td>{x.injection}</td><td className="num">{x.n}</td><td className="num">{x.pass}</td><td className="num">{dashed(x.used_tier2, (n) => String(n))}</td></tr>)}</tbody>
               </table></div>
             )}
-            {live && typeof live === "object" && <Facts title="Real model, small n" v={live} />}
+            {live && typeof live === "object" && <LiveRuns live={live} meta={s.meta ?? null} />}
             <Caveats s={s} />
             <ChartFoot meta={s.meta ?? null} />
           </Block>

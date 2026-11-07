@@ -33,6 +33,8 @@ from .security.actions import validate_action
 from .security.config import SecurityConfig
 from .security.dataflow import host_key
 from .security.denylist import Denylist
+from .security.gates import TargetInfo
+from .security.pipeline import bind_target_signature
 from .supervisor import data_dir
 from .tiers.base import GateStop, InjectionStop, StepEvent, TierError
 from .tiers.browser import BrowserHost
@@ -269,6 +271,7 @@ class BenefitsRun:
         self.on_event = on_event
         self.ledger = ClaimLedger()
         self.events: list[dict[str, Any]] = []
+        self.navigator_objs: dict[str, Any] = {}
         self.nav_state: dict[str, dict[str, Any]] = {}
         self.result = RunResult(run_id=run_id, state="running", household_id=self.h.id)
         self._seq = 0
@@ -392,6 +395,7 @@ class BenefitsRun:
                 t3_max_steps=self.opt.t3_max_steps, stall_limit=self.opt.stall_limit, pause=self.opt.pause)
             jobs[s] = job
             self.nav_state[nid] = {"id": nid, "site": s, "step": 0, "tier": 1, "state": "running"}
+        self.navigator_objs = navs                    # kept for the evaluation harness: per-navigator tier-3 records
         self.stage("navigators_start", n=len(navs))
 
         tasks = {s: asyncio.create_task(navs[s].run(jobs[s])) for s in navs}
@@ -555,6 +559,7 @@ class BenefitsRun:
                     recon: Reconciliation) -> str | None:
         """Ask the real gate about the real submit button and attach the evidence bundle to its queue item."""
         va = validate_action("click_element", {"selector": SUBMIT_SELECTOR, "label": SUBMIT_LABEL})
+        sig = bind_target_signature(va.signature, TargetInfo(label=SUBMIT_LABEL, role="button"))   # as the pipeline will see it
         shots = [f"data/runs/{self.run_id}/s{i}.png" for i in range(1, 5)] if self.opt.screenshots else []
         evidence = {
             "screenshots": shots,
@@ -571,7 +576,7 @@ class BenefitsRun:
             summary=f"{self.h.case_ref}: " + ("calculators agree" if recon.status == "agree" else "calculators DISAGREE")
                     + f", monthly {recon.value:.2f}. The agent stopped before submit.",
             risk_class="irreversible", routine_id=self.opt.routine_id, run_id=self.run_id, evidence=evidence,
-            signature=va.signature, dedupe_key=f"{self.run_id}:{va.signature}:gates")
+            signature=sig, dedupe_key=f"{self.run_id}:{sig}:gates")
         seen = await guard.observe(page, navigator="scribe", tier=1)
         dec = guard.authorise({"kind": "click_element", "args": {"selector": SUBMIT_SELECTOR, "label": SUBMIT_LABEL}}, seen,
                               label=SUBMIT_LABEL, role="button", url=page.url)

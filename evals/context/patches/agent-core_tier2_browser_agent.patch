@@ -1,0 +1,24 @@
+--- a/services/agent/understudy_agent/tiers/browser_agent.py	2026-11-07 18:37:28
++++ b/services/agent/understudy_agent/tiers/browser_agent.py	2026-11-07 18:37:37
+@@ -19,6 +19,7 @@
+ from urllib.parse import urlparse
+ 
+ from ..completion import ClaimLedger
++from ..context import tier2_messages
+ from ..models.errors import ProviderError
+ from ..models.port import ModelPort
+ from ..security.sanitize import wrap_untrusted
+@@ -187,9 +188,10 @@
+                 "actions_left": self.max_actions - res.actions,
+             }
+             labels = "\n".join(f"{e.ref}: {e.name[:LABEL_CAP]}" for e in visible)
+-            extra = (TOOL_HELP + "\n\nSTATE: " + json.dumps(state, sort_keys=True)
+-                     + "\nELEMENT LABELS (copied from the page):\n" + wrap_untrusted(labels, source="web"))
+-            msgs = self.guard.planner_messages(task.goal, seen, history_summary=f"{res.actions} actions taken", extra=extra)
++            # REQ-8: the tool help and the parameter glossary go in front of everything that changes (a byte-identical prefix), the
++            # step counter leaves the first lines (STATE already carries actions_left), and the guard's own raw-text check still runs.
++            msgs = tier2_messages(self.guard, task.goal, seen, tool_help=TOOL_HELP, state=state,
++                                  labels_block=wrap_untrusted(labels, source="web"))
+             try:
+                 raw = await asyncio.to_thread(self.model.plan, msgs, TIER2_SCHEMA)
+             except (ProviderError, ValueError) as exc:  # a malformed or refused answer is one wasted turn, not a dead run

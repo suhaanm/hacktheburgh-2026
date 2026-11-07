@@ -6,7 +6,7 @@ const arg = (k, d) => { const i = rest.indexOf(k); return i >= 0 && rest[i + 1] 
 const w = Number(arg("--w", 1440)), h = Number(arg("--h", 900)), wait = Number(arg("--wait", 1500));
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: rest.includes("--dark") ? "dark" : "light" });
-await ctx.route(/127\.0\.0\.1:77\d\d/, (r) => r.abort());
+await ctx.route(/^https?:\/\/[^/]+\/(engine|agent)(\/|$)/, (r) => r.abort());
 const page = await ctx.newPage();
 page.on("pageerror", (e) => console.error("pageerror:", e.message));
 page.on("console", (m) => m.type() === "error" && !/Failed to load resource/.test(m.text()) && console.error("console.error:", m.text()));

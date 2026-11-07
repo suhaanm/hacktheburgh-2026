@@ -46,8 +46,8 @@ export interface TrayModel {
   coach?: string
   // Paused from the menu until this time (ms since the epoch), else absent. The menu offers "Resume now".
   pausedUntil?: number | null
-  // The AWARENESS track's switches (settings awarenessEnabled, glanceOnTrigger, glancePeriodic), shown as checkboxes.
-  awareness?: { enabled: boolean; onTrigger: boolean; periodic: boolean }
+  // The awareness module's switches (its own awareness.json store), shown as checkboxes, with the glance count today and the last skip.
+  awareness?: { enabled: boolean; onTrigger: boolean; periodic: boolean; calls?: number; lastSkip?: string | null }
   // Cue (the proactive cards; only offered when the cue experiment is on): quiet until this time, else null.
   cue?: { quietUntil: number | null }
   // Approvals waiting in the morning queue (null when unknown): the menu says how many, since the screen does not.
@@ -105,6 +105,31 @@ const clock = (ms: number): string => {
   const d = new Date(ms)
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
+// Plain words for the awareness module's skip reasons (the menu shows the last one, never a code).
+const SKIP_WORDS: Record<string, string> = {
+  layer_off: 'awareness is off',
+  no_consent: 'no consent yet',
+  killed: 'everything was stopped',
+  paused: 'paused',
+  locked: 'screen locked',
+  asleep: 'the Mac was asleep',
+  idle: 'you were away',
+  screen_share: 'screen shared',
+  thermal: 'the Mac was hot',
+  secure_input: 'a password field',
+  secure_input_unknown: 'could not check for a password field',
+  app_denied: 'an app on the skip list',
+  app_unknown: 'could not tell which app',
+  no_work_session: 'no task in progress',
+  too_soon: 'too soon after the last look',
+  hourly_cap: 'hourly limit',
+  daily_cap: 'daily limit',
+  ledger_unavailable: 'the privacy ledger was unavailable',
+  capture_failed: 'the screen could not be read',
+  port_blocked: 'the service said no',
+  port_failed: 'the service failed',
+}
+const skipLabel = (reason: string): string => SKIP_WORDS[reason] ?? reason.replace(/_/g, ' ')
 const cueQuiet = (until: number | null | undefined, now: number): boolean => until !== null && until !== undefined && until > now
 
 /** "Paused until 18:40" for the status line, or undefined when not paused. */
@@ -148,6 +173,9 @@ export function buildMenuEntries(model: TrayModel, now: number = Date.now()): Me
           { id: 'awareness', label: 'Awareness', enabled: true, checked: aw.enabled } as MenuEntry,
           { id: 'glance_trigger', label: 'Glance when I seem stuck', enabled: aw.enabled, checked: aw.onTrigger } as MenuEntry,
           { id: 'glance_periodic', label: 'Look now and then', enabled: aw.enabled, checked: aw.periodic } as MenuEntry,
+          ...(aw.enabled && (aw.calls || aw.lastSkip)
+            ? [{ id: 'glance_info', label: [aw.calls ? `Looks today: ${aw.calls}` : '', aw.lastSkip ? `last skipped: ${skipLabel(aw.lastSkip)}` : ''].filter(Boolean).join(', '), enabled: false } as MenuEntry]
+            : []),
         ]
       : []),
     ...(voice
@@ -174,6 +202,13 @@ export function buildMenuEntries(model: TrayModel, now: number = Date.now()): Me
   return entries.filter((e): e is MenuEntry => e !== null)
 }
 
+/** What the tray needs from the awareness module (src/main/awareness): its own state, and its switches (which enforce the consent rule). */
+export interface TrayAwareness {
+  view(): { enabled: boolean; onTrigger: boolean; periodic: boolean; calls: number; lastSkip: string | null }
+  // needsConsent: the worker has not agreed to the current consent text yet; nothing changed, so the tray opens the consent card.
+  setSwitch(name: 'enabled' | 'trigger' | 'periodic', on: boolean): { needsConsent: boolean }
+}
+
 export interface TrayDeps {
   bus: Bus
   state: { get(): CompanionState; patch(partial: Partial<CompanionState>): unknown; subscribe(l: () => void): () => void }
@@ -195,6 +230,8 @@ export interface TrayDeps {
   openDashboard?: () => void
   // Understudy: a glance (a screen look) is in flight right now. The AWARENESS track wires this; absent means never.
   glanceInFlight?: () => boolean
+  // The awareness module's view and switches (its own awareness.json store). Absent: no awareness items in the menu.
+  awareness?: TrayAwareness
   // The old Live-voice menu items are shown only when this says so (default: hidden).
   voiceMenu?: () => boolean
   // Approvals waiting in the morning queue (null when the engine is unreachable).
@@ -273,7 +310,7 @@ export function registerTray(deps: TrayDeps): ShellTray {
       capture: deps.captureMode?.(),
       coach: deps.coachLine?.() ?? undefined,
       pausedUntil: st0.pausedUntil,
-      awareness: { enabled: st0.awarenessEnabled, onTrigger: st0.glanceOnTrigger, periodic: st0.glancePeriodic },
+      awareness: deps.awareness ? deps.awareness.view() : undefined,
       glanceInFlight: deps.glanceInFlight?.() ?? false,
       talkAccelerator: firstRegistered([st0.talkHotkey, ...TALK_FALLBACKS]),
       voiceMenu: deps.voiceMenu?.() ?? false,
@@ -378,14 +415,18 @@ export function registerTray(deps: TrayDeps): ShellTray {
         refresh()
         return true
       case 'awareness':
-        deps.settings.patch({ awarenessEnabled: !deps.settings.get().awarenessEnabled })
-        return true
       case 'glance_trigger':
-        deps.settings.patch({ glanceOnTrigger: !deps.settings.get().glanceOnTrigger })
+      case 'glance_periodic': {
+        const aw = deps.awareness
+        if (!aw) return false
+        const v = aw.view()
+        const name = id === 'awareness' ? 'enabled' : id === 'glance_trigger' ? 'trigger' : 'periodic'
+        const on = !(name === 'enabled' ? v.enabled : name === 'trigger' ? v.onTrigger : v.periodic)
+        // Turning glances up goes through the awareness module, which wants the consent card first; the tray then opens it.
+        if (aw.setSwitch(name, on).needsConsent) showDockWith({ type: 'view', view: 'settings' })
+        refresh()
         return true
-      case 'glance_periodic':
-        deps.settings.patch({ glancePeriodic: !deps.settings.get().glancePeriodic })
-        return true
+      }
       case 'dashboard':
         if (!deps.openDashboard) return false
         deps.openDashboard()

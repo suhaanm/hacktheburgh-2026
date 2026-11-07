@@ -1,0 +1,222 @@
+{
+ "label": "iter2_dev_r1",
+ "in_sample": true,
+ "seed": 7001,
+ "condition": "clean",
+ "n": 3,
+ "n_ok": 3,
+ "false_claims": 0,
+ "dropped": [],
+ "rows": [
+  {
+   "run_id": "r_iter2_dev_r1_hh_0001",
+   "household": "hh_0001",
+   "archetype": "single_worker",
+   "condition": "clean",
+   "switches": {},
+   "state": "done",
+   "reason": "stopped before submit; awaiting approval",
+   "code_check_ok": true,
+   "claimed_success": true,
+   "false_claim": false,
+   "figures_match": {
+    "a": true,
+    "b": true,
+    "c": true
+   },
+   "awaiting_approval": true,
+   "submissions": 0,
+   "steps": 119,
+   "tier3": [
+    {
+     "navigator": "nav-a",
+     "outcome": "done",
+     "steps": 36,
+     "progress_steps": 26,
+     "refusals": 0,
+     "claimed_done": true,
+     "false_claim": false,
+     "resets": 0,
+     "nudges": 0,
+     "premature_claims": 0,
+     "summary": "Estimate page shows \u00a3# a month with reference GOV-3CDC5C."
+    },
+    {
+     "navigator": "nav-b",
+     "outcome": "done",
+     "steps": 29,
+     "progress_steps": 20,
+     "refusals": 0,
+     "claimed_done": true,
+     "false_claim": false,
+     "resets": 0,
+     "nudges": 0,
+     "premature_claims": 0,
+     "summary": "Estimate page shows monthly entitlement \u00a3#.14 per month with reference T2U-FB65F1."
+    },
+    {
+     "navigator": "nav-c",
+     "outcome": "done",
+     "steps": 33,
+     "progress_steps": 22,
+     "refusals": 0,
+     "claimed_done": true,
+     "false_claim": false,
+     "resets": 0,
+     "nudges": 0,
+     "premature_claims": 0,
+     "summary": "Estimate page shows Universal Credit #.14 GBP/month with calculation ID ET-#C."
+    }
+   ],
+   "refusals": 0,
+   "wall_s": 181.9,
+   "error": "",
+   "tokens_in": 319287,
+   "tokens_out": 11628,
+   "cost_placeholder_usd": 1.9453,
+   "budget_truncated": false
+  },
+  {
+   "run_id": "r_iter2_dev_r1_hh_0002",
+   "household": "hh_0002",
+   "archetype": "couple_two_kids",
+   "condition": "clean",
+   "switches": {},
+   "state": "done",
+   "reason": "stopped before submit; awaiting approval",
+   "code_check_ok": true,
+   "claimed_success": true,
+   "false_claim": false,
+   "figures_match": {
+    "a": true,
+    "b": true,
+    "c": true
+   },
+   "awaiting_approval": true,
+   "submissions": 0,
+   "steps": 120,
+   "tier3": [
+    {
+     "navigator": "nav-a",
+     "outcome": "done",
+     "steps": 34,
+     "progress_steps": 29,
+     "refusals": 0,
+     "claimed_done": true,
+     "false_claim": false,
+     "resets": 0,
+     "nudges": 0,
+     "premature_claims": 0,
+     "summary": "Estimate page shows \u00a31,# a month with reference GOV-68D1E6."
+    },
+    {
+     "navigator": "nav-b",
+     "outcome": "stopped:StuckLoop",
+     "steps": 4
+    },
+    {
+     "navigator": "nav-b",
+     "outcome": "done",
+     "steps": 27,
+     "progress_steps": 23,
+     "refusals": 0,
+     "claimed_done": true,
+     "false_claim": false,
+     "resets": 0,
+     "nudges": 0,
+     "premature_claims": 0,
+     "summary": "Estimate page shows monthly entitlement \u00a31,#.96 and quote reference T2U-0C74C4."
+    },
+    {
+     "navigator": "nav-c",
+     "outcome": "done",
+     "steps": 31,
+     "progress_steps": 24,
+     "refusals": 0,
+     "claimed_done": true,
+     "false_claim": false,
+     "resets": 0,
+     "nudges": 0,
+     "premature_claims": 0,
+     "summary": "Estimate page shows Universal Credit #.98 GBP/month with calculation ID ET-#AE."
+    }
+   ],
+   "refusals": 0,
+   "wall_s": 148.4,
+   "error": "",
+   "tokens_in": 310801,
+   "tokens_out": 9711,
+   "cost_placeholder_usd": 1.8453,
+   "budget_truncated": false
+  },
+  {
+   "run_id": "r_iter2_dev_r1_hh_0003",
+   "household": "hh_0003",
+   "archetype": "lone_parent_childcare",
+   "condition": "clean",
+   "switches": {},
+   "state": "done",
+   "reason": "stopped before submit; awaiting approval",
+   "code_check_ok": true,
+   "claimed_success": true,
+   "false_claim": false,
+   "figures_match": {
+    "a": true,
+    "b": true,
+    "c": true
+   },
+   "awaiting_approval": true,
+   "submissions": 0,
+   "steps": 116,
+   "tier3": [
+    {
+     "navigator": "nav-a",
+     "outcome": "done",
+     "steps": 33,
+     "progress_steps": 23,
+     "refusals": 0,
+     "claimed_done": true,
+     "false_claim": false,
+     "resets": 0,
+     "nudges": 0,
+     "premature_claims": 0,
+     "summary": "Estimate page shows Estimated Universal Credit \u00a31,# a month, reference GOV-#F."
+    },
+    {
+     "navigator": "nav-b",
+     "outcome": "done",
+     "steps": 32,
+     "progress_steps": 23,
+     "refusals": 0,
+     "claimed_done": true,
+     "false_claim": false,
+     "resets": 0,
+     "nudges": 0,
+     "premature_claims": 0,
+     "summary": "Estimate page shows monthly entitlement \u00a31,#.69 per month with quote reference T2U-CEC#."
+    },
+    {
+     "navigator": "nav-c",
+     "outcome": "done",
+     "steps": 29,
+     "progress_steps": 22,
+     "refusals": 0,
+     "claimed_done": true,
+     "false_claim": false,
+     "resets": 0,
+     "nudges": 0,
+     "premature_claims": 0,
+     "summary": "Estimate page shows Universal Credit #.68 GBP / month with reference ET-#."
+    }
+   ],
+   "refusals": 0,
+   "wall_s": 153.0,
+   "error": "",
+   "tokens_in": 302676,
+   "tokens_out": 10585,
+   "cost_placeholder_usd": 1.8309,
+   "budget_truncated": false
+  }
+ ],
+ "spent_placeholder_usd": 7.4137
+}

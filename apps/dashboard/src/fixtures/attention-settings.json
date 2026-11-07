@@ -1,0 +1,175 @@
+{
+ "meta": {
+  "origin": "synthetic",
+  "n": 0,
+  "n_unit": "items",
+  "interval_level": null,
+  "note": null,
+  "generated_at": "2026-11-07T18:36:37Z"
+ },
+ "data": {
+  "modes": {},
+  "budget_per_day": 10,
+  "level_glance": true,
+  "types": [
+   {
+    "type": "kill_engaged",
+    "class": "safety",
+    "mode": "normal",
+    "fixed": true
+   },
+   {
+    "type": "injection_pause",
+    "class": "safety",
+    "mode": "normal",
+    "fixed": true
+   },
+   {
+    "type": "irreversible_decision",
+    "class": "safety",
+    "mode": "normal",
+    "fixed": true
+   },
+   {
+    "type": "run_blocked_target",
+    "class": "time",
+    "mode": "normal",
+    "fixed": false
+   },
+   {
+    "type": "run_blocked_error",
+    "class": "time",
+    "mode": "normal",
+    "fixed": false
+   },
+   {
+    "type": "approval_blocking",
+    "class": "time",
+    "mode": "normal",
+    "fixed": false
+   },
+   {
+    "type": "calendar_deadline",
+    "class": "time",
+    "mode": "normal",
+    "fixed": false
+   },
+   {
+    "type": "cue_cue",
+    "class": "now",
+    "mode": "normal",
+    "fixed": false
+   },
+   {
+    "type": "cue_ask",
+    "class": "now",
+    "mode": "normal",
+    "fixed": false
+   },
+   {
+    "type": "cue_offer",
+    "class": "now",
+    "mode": "normal",
+    "fixed": false
+   },
+   {
+    "type": "voice_line",
+    "class": "now",
+    "mode": "normal",
+    "fixed": false
+   },
+   {
+    "type": "kill_cleared",
+    "class": "info",
+    "mode": "normal",
+    "fixed": false
+   },
+   {
+    "type": "help_level_changed",
+    "class": "info",
+    "mode": "normal",
+    "fixed": false
+   },
+   {
+    "type": "routine_proposal",
+    "class": "wait",
+    "mode": "normal",
+    "fixed": false
+   },
+   {
+    "type": "briefing_ready",
+    "class": "wait",
+    "mode": "normal",
+    "fixed": false
+   },
+   {
+    "type": "approval_waiting",
+    "class": "wait",
+    "mode": "normal",
+    "fixed": false
+   },
+   {
+    "type": "run_finished",
+    "class": "wait",
+    "mode": "normal",
+    "fixed": false
+   },
+   {
+    "type": "morning_report",
+    "class": "wait",
+    "mode": "normal",
+    "fixed": false
+   },
+   {
+    "type": "service_degraded",
+    "class": "wait",
+    "mode": "normal",
+    "fixed": false
+   },
+   {
+    "type": "attention_digest",
+    "class": "wait",
+    "mode": "normal",
+    "fixed": false
+   }
+  ],
+  "floors": [
+   {
+    "type": "kill_engaged",
+    "floor": "toast",
+    "why": "Safety stops are always shown once and stay visible."
+   },
+   {
+    "type": "injection_pause",
+    "floor": "toast",
+    "why": "Safety stops are always shown once and stay visible."
+   },
+   {
+    "type": "irreversible_decision",
+    "floor": "toast",
+    "why": "Safety stops are always shown once and stay visible."
+   },
+   {
+    "type": "approval_blocking",
+    "floor": "badge",
+    "why": "An approval that blocks a job always stays visible in the menu bar count."
+   }
+  ],
+  "learned": {
+   "routine_proposal": {
+    "n": 9,
+    "never_subjects": 1,
+    "drop_hours": [
+     14,
+     15
+    ],
+    "max_drop": 1
+   }
+  },
+  "defaults": {
+   "modes": {},
+   "budget_per_day": 10,
+   "level_glance": true
+  }
+ }
+}

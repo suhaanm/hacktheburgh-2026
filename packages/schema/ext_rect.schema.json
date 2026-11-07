@@ -250,6 +250,21 @@
             }
           },
           "description": "screenX and screenY of that window (screen points). window_offset mixes screen points with CSS pixels and is wrong at a page zoom other than 100%; prefer viewport, outer and screen, which let the desktop app work out the zoom itself."
+        },
+        "content": {
+          "type": "array",
+          "maxItems": 80,
+          "items": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000
+            }
+          },
+          "description": "Optional. One box [y0, x0, y1, x1] per visible text line and per visible control (input, textarea, select, button, a[href], img, svg, canvas, video) inside the viewport, each a tight bounding box, in reading order (top to bottom, then left to right). Integers on a 0..1000 grid of the same viewport (viewport.w by viewport.h) and in the same frame as rect, clamped; the desktop app maps a grid point to the screen exactly as it maps rect. At most 80 (the largest by area when there are more). Numbers only: no text, attribute, id, link or any string derived from the page. The text lines of an element the L0 sensitive-field rules flag are never included. An empty array when nothing is visible or the page could not be measured."
         }
       },
       "if": {

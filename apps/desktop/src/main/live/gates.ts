@@ -50,7 +50,8 @@ export function createGateReader(src: GateSources): GateReader {
       const t = now()
       const s = src.settings()
       const deny = src.deny()
-      const [bundleId, cons, share] = await Promise.all([src.frontmost.read(), src.console.read(), src.screenShare ? src.screenShare.read() : Promise.resolve(null)])
+      // The process list (screen sharing) is only looked at for frames: the audio check runs twice a second and must stay cheap.
+      const [bundleId, cons, share] = await Promise.all([src.frontmost.read(), src.console.read(), kind === 'frames' && src.screenShare ? src.screenShare.read() : Promise.resolve(null)])
       const app = decideApp(bundleId, appKindFor(bundleId), { strict: deny.strict, workerList: deny.workerList })
       const strictUnknown = kind === 'frames' && deny.strict
       const gate: GateBooleans = {

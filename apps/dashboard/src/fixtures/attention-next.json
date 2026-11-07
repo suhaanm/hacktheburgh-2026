@@ -1,0 +1,22 @@
+{
+ "meta": {
+  "origin": "synthetic",
+  "n": 0,
+  "n_unit": "items",
+  "interval_level": null,
+  "note": "A peek delivers nothing.",
+  "generated_at": "2026-11-07T18:37:28Z"
+ },
+ "data": {
+  "item": null,
+  "active": null,
+  "badges": {
+   "needs_you": 1,
+   "waiting": 4,
+   "marker": "needs_you",
+   "stopped": false
+  },
+  "digest_ready": false,
+  "poll_after_s": 2.0
+ }
+}

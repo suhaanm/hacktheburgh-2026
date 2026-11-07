@@ -10,10 +10,12 @@
               GET /agents/runs/{id}/artifacts/{child}/{name}
 
 Writes (spawn, stop, revoke, resume) are the worker's own actions: a request naming another actor in
-`X-Understudy-Actor` (page, agent, model, tool, ...) or coming from a foreign origin is refused with 403.
+`X-Understudy-Actor` (page, agent, model, tool, ...), a foreign Origin, a non-JSON body or a foreign Host is refused (the shared guard,
+understudy_engine.http_guard); resume and raw-content spawns also need the per-boot token.
 """
 from __future__ import annotations
 
+import os
 import re
 import threading
 from pathlib import Path
@@ -25,7 +27,6 @@ from fastapi.responses import FileResponse, JSONResponse
 from ..security.killflag import is_killed
 from ..security.paths import runs_dir
 from . import policy
-from .httpguard import check_write
 from .run import AgentRun, get_run, live_runs, persisted_runs, register
 
 router = APIRouter(prefix="/agents", tags=["agents"])
@@ -45,8 +46,23 @@ def _disabled() -> JSONResponse | None:
     return None
 
 
-def _guard(request: Request, *, json_body: bool = False) -> JSONResponse | None:
-    return check_write(request, json_body=json_body)
+def _guard(request: Request, *, release: bool | None = None) -> JSONResponse | None:
+    """The shared HTTP guard (understudy_engine.http_guard): exact Origin, JSON bodies, explicit actor, loopback Host, and the per-boot
+    token for release actions. On top of it, an actor header naming anyone but the worker is refused on every write."""
+    from understudy_engine import http_guard as hg
+
+    port = int(os.environ.get("AGENT_PORT", "7710") or 7710)
+    headers = {k.lower(): v for k, v in request.headers.items()}
+    ref = hg.evaluate(request.method, request.url.path, headers, request.client.host if request.client else None, port=port,
+                      policy=hg.AGENT_POLICY, release=release)
+    if ref is not None:
+        return JSONResponse(ref.body(), status_code=ref.status)
+    if headers.get("sec-fetch-site", "").lower() == "cross-site":       # the browser itself says the page is another site
+        return _err(403, "write_refused", "Writes only come from the worker's own app on this machine.")
+    actor = headers.get(hg.ACTOR_HEADER)
+    if actor is not None and actor.strip() not in hg.WORKER_ACTORS:
+        return _err(403, "write_refused", "Only the worker starts or stops agents; this actor cannot.")
+    return None
 
 
 def spawn_kinds() -> list[str]:
@@ -124,7 +140,7 @@ def get_one(run_id: str) -> Any:
 async def spawn(request: Request) -> Any:
     if (d := _disabled()) is not None:
         return d
-    if (g := _guard(request, json_body=True)) is not None:
+    if (g := _guard(request)) is not None:
         return g
     try:
         body = await request.json()
@@ -156,6 +172,8 @@ async def spawn(request: Request) -> Any:
             if mode != "foreground" or not named or not explicit:
                 return _err(422, "raw_not_allowed", "Raw file content may be shown to the model only in a foreground run, on a file "
                                                      "you named, from a request that carries the explicit worker header.")
+            if (g := _guard(request, release=True)) is not None:      # sending file text to a model needs the per-boot token too
+                return g
         try:
             run = AgentRun(kind=kind, params=params, mode=mode, raw_ok=raw_ok, person=body.get("person"),
                            human=_human(request))

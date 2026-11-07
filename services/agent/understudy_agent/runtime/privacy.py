@@ -4,7 +4,8 @@ Every request the runtime makes to a model, other than the existing quarantined-
 files the worker named, is a registered `SafePayload` sent through `egress.send`:
 
 * `agents.parent_plan`            the run kind and mode (fixed ids and a count); the model replies with a plan of ids
-* `agents.child_step_<role>`      the role, steps left and a typed history (tool ids, ok flags, checks); the model replies
+* `agents.child_step_<role>`      the role, the kind and the code-maintained task state (phases done, pending phase, the last steps
+                                  verbatim, a rolled-up summary of older ones, typed readings with age and source); the model replies
                                   with ids (tool, file, template) that code resolves from the role's menu
 
 No file text, path, commit message, name, address or number from the worker's data can be in those payloads, because a
@@ -27,7 +28,7 @@ try:  # the privacy spine lives in the engine package
 except ImportError as _exc:  # pragma: no cover - the agent environment includes the engine
     raise ImportError("the agent runtime needs understudy_engine.privacy (the egress guard)") from _exc
 
-from . import policy
+from . import context, policy
 from .spec import AGENT_PLAN_SCHEMA, TOOL_NAMES, plan_schema, roles
 
 for _name in policy.SIGNAL_NAMES:        # typed signals a script may report; sent as plain numbers (no bucketing: they are step counters)
@@ -75,16 +76,41 @@ class HistItem(SafePayload):
     check: CheckId
 
 
-class ChildStepPayload(SafePayload):
-    """What a child tells the model: its role, steps left and what it has done so far, as codes."""
+class StepSummary(SafePayload):
+    """Older steps rolled up by code, one line per tool: how many succeeded and how many failed."""
+    tool: ToolId
+    n_ok: Annotated[int, Field(ge=0, le=999)]
+    n_failed: Annotated[int, Field(ge=0, le=999)]
 
-    description = "Choose the next step of a child agent: role id, steps left and a typed history (no file content)."
-    role: Annotated[str, Vocab("agents.role")]
-    kind: Annotated[str, Vocab("agents.kind")]
-    steps_left: Annotated[int, Field(ge=0, le=policy.MAX_STEPS)]
-    last: LastId
-    history: Annotated[list[HistItem], Field(max_length=policy.MAX_STEPS)]
+
+class TaskState(SafePayload):
+    """The code-maintained state of a child (see runtime/context.py): what is done and verified, what is pending, the last few steps
+    verbatim, a rolled-up summary of the older ones, and the typed readings of the last script run with their age and provenance."""
+
+    description = "A child agent's task state: phases done, pending phase, recent and older steps, typed readings with age and source."
+    completed: Annotated[list[MenuId], Field(max_length=context.COMPLETED_MAX)]
+    written: Annotated[list[MenuId], Field(max_length=context.WRITTEN_MAX)]
+    pending: MenuId
+    recent: Annotated[list[HistItem], Field(max_length=context.K_RECENT)]
+    summary: Annotated[list[StepSummary], Field(max_length=context.SUMMARY_MAX)]
+    elided: Annotated[int, Field(ge=0, le=999)]
     signals: Numbers = Field(default_factory=dict)
+    signals_age: Annotated[int, Field(ge=0, le=999)]
+    signals_from: Literal["last_run", "none"]
+    steps_left: Annotated[int, Field(ge=0, le=policy.MAX_STEPS)]
+    verified: Annotated[int, Field(ge=0, le=999)]
+    failures: Annotated[int, Field(ge=0, le=999)]
+    recoveries: Annotated[int, Field(ge=0, le=99)]
+    last: LastId
+
+
+class ChildStepPayload(SafePayload):
+    """What a child tells the model: its role and kind (static, first) and its code-maintained task state (volatile, last)."""
+
+    description = "Choose the next step of a child agent: role id, kind and the code-maintained task state (no file content)."
+    kind: Annotated[str, Vocab("agents.kind")]
+    role: Annotated[str, Vocab("agents.role")]
+    task: TaskState
 
 
 _registered_sig: tuple | None = None
@@ -163,15 +189,11 @@ def parent_plan(kind: str, mode: str, port: Any) -> Any:
                        port=port).output
 
 
-def child_step(role: str, kind: str, steps_left: int, last: str, history: list[dict[str, Any]], port: Any,
-               signals: dict[str, Any] | None = None) -> Any:
+def child_step(role: str, kind: str, task: dict[str, Any], port: Any) -> Any:
     from .exemplars.base import kind_id
 
     ensure_registered()
-    return egress.send(f"agents.child_step_{role}", {"role": role, "kind": kind_id(kind), "steps_left": steps_left,
-                                                     "last": last, "history": history[-policy.MAX_STEPS:],
-                                                     "signals": dict(signals or {})},
-                       port=port).output
+    return egress.send(f"agents.child_step_{role}", {"role": role, "kind": kind_id(kind), "task": task}, port=port).output
 
 
 def word_result(kind: str, mode: str, n_children: int, n_verified: int, port: Any, fallback: str) -> str:

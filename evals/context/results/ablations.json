@@ -1,0 +1,126 @@
+{
+ "origin": "synthetic constructed inputs, offline, no model",
+ "prefix_stability": {
+  "inputs": "synthetic: a typical 14-element calculator page, 150 steps, the real prompt-building code",
+  "tier2_current_layout": {
+   "prompt_tokens_mean": 1382,
+   "shared_prefix_tokens_mean": 272,
+   "shared_prefix_tokens_min": 272,
+   "shared_share_of_prompt": 0.197
+  },
+  "tier2_library_layout": {
+   "prompt_tokens_mean": 1379,
+   "shared_prefix_tokens_mean": 804,
+   "shared_prefix_tokens_min": 803,
+   "shared_share_of_prompt": 0.583
+  },
+  "tier2_note": "the library layout moves the tool help and parameter glossary in front of everything that changes and removes the step counter from the first lines; a provider cache needs at least 1024 tokens, so the saving is a design property until a prefix passes that minimum",
+  "tier3_library": {
+   "steps": 150,
+   "distinct_prefix_hashes": 1,
+   "prefix_tokens": 532,
+   "prefix_changes_between_steps": 0
+  }
+ },
+ "stale_drops": {
+  "cases": 56,
+  "wrong_decisions_or_silent_drops": 0,
+  "missing_marker_present": true,
+  "rows_sample": [
+   {
+    "kind": "p_stuck",
+    "age_over_limit": 0.5,
+    "present": true,
+    "expected_present": true,
+    "named_when_dropped": true
+   },
+   {
+    "kind": "p_stuck",
+    "age_over_limit": 1.0,
+    "present": true,
+    "expected_present": true,
+    "named_when_dropped": true
+   },
+   {
+    "kind": "p_stuck",
+    "age_over_limit": 1.01,
+    "present": false,
+    "expected_present": false,
+    "named_when_dropped": true
+   },
+   {
+    "kind": "p_stuck",
+    "age_over_limit": 10.0,
+    "present": false,
+    "expected_present": false,
+    "named_when_dropped": true
+   },
+   {
+    "kind": "snapshot",
+    "age_over_limit": 0.5,
+    "present": true,
+    "expected_present": true,
+    "named_when_dropped": true
+   },
+   {
+    "kind": "snapshot",
+    "age_over_limit": 1.0,
+    "present": true,
+    "expected_present": true,
+    "named_when_dropped": true
+   }
+  ]
+ },
+ "adversarial_budgets": {
+  "page_text_1MB_to_reader": {
+   "budget": 1800,
+   "total_tokens": 1443,
+   "within_budget": true,
+   "dropped_items": 27898,
+   "assemble_ms": 1568,
+   "required_kept": true,
+   "told_something_was_left_out": true
+  },
+  "table_500_rows": {
+   "budget": 1200,
+   "total_tokens": 830,
+   "within_budget": true,
+   "dropped_items": 444,
+   "assemble_ms": 7,
+   "required_kept": true,
+   "told_something_was_left_out": true
+  },
+  "history_100k_lines": {
+   "budget": 800,
+   "total_tokens": 653,
+   "within_budget": true,
+   "dropped_items": 99886,
+   "assemble_ms": 5958,
+   "required_kept": true,
+   "told_something_was_left_out": true
+  },
+  "one_giant_item_plus_small": {
+   "budget": 600,
+   "total_tokens": 33,
+   "within_budget": true,
+   "dropped_items": 1,
+   "assemble_ms": 141,
+   "required_kept": true,
+   "told_something_was_left_out": true
+  },
+  "numbers_intact": {
+   "figures_kept": 43,
+   "all_complete": true
+  }
+ },
+ "trust_boundary": {
+  "trials_raw_untrusted_to_non_reader": 800,
+  "refused": 800,
+  "all_refused": true,
+  "reader_prompts_with_text_only_inside_markers": 200,
+  "reader_trials": 200,
+  "attack_text_in_a_stable_prefix": 0,
+  "attack_text_in_manifest": 0,
+  "working_memory_after_8_hostile_records_contains_attack_text": false
+ }
+}

@@ -160,7 +160,6 @@ button {
 .chip-wrap {
   display: grid;
   justify-items: start;
-  gap: 4px;
 }
 .chip {
   display: inline-flex;
@@ -265,6 +264,7 @@ button {
 }
 .pop-wrap[data-open='true'] {
   grid-template-rows: 1fr;
+  padding-top: 4px;
 }
 .pop-clip {
   min-height: 0;

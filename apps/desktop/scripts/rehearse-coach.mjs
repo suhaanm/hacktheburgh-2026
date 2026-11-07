@@ -33,6 +33,10 @@ const venv = join(repo, '.venv/bin')
 if (!existsSync(join(dist, 'manifest.json'))) throw new Error('build the extension first (extension/dist)')
 if (!existsSync(join(repo, 'data/synthetic/learners'))) throw new Error('data/synthetic/learners is missing')
 
+// This script starts a throwaway engine. An engine that gets POST /kill forwards it to the agent service on AGENT_PORT (default 7710),
+// which is the LIVE dev agent shared by every agent on this machine: so the throwaway engine gets AGENT_PORT=1, and the script refuses
+// to run at all if the environment points it at 7710.
+if (process.env.AGENT_PORT === '7710' || process.env.UNDERSTUDY_AGENT_URL?.includes(':7710')) throw new Error('refusing to run: AGENT_PORT / UNDERSTUDY_AGENT_URL point at the live agent service (7710)')
 const PERSON = 'p_learn01'
 const SITE = 'http://127.0.0.1:7801'
 const SITES = [7801, 7802, 7803]
@@ -250,7 +254,7 @@ try {
   const engine = `http://127.0.0.1:${enginePort}`
   start('engine', join(venv, 'understudy'), ['serve', '--port', String(enginePort)], {
     cwd: root,
-    env: { PATH: process.env.PATH, HOME: process.env.HOME, UNDERSTUDY_HOME: home, UNDERSTUDY_DATA_DIR: data, UNDERSTUDY_MOCK: '1', ENGINE_PORT: String(enginePort) },
+    env: { PATH: process.env.PATH, HOME: process.env.HOME, UNDERSTUDY_HOME: home, UNDERSTUDY_DATA_DIR: data, UNDERSTUDY_MOCK: '1', ENGINE_PORT: String(enginePort), AGENT_PORT: '1' }, // AGENT_PORT=1: a /kill can never reach the live agent
   })
   await until(() => fetch(`${engine}/health`).then((r) => r.ok).catch(() => false), 60_000, 'the throwaway engine', 300)
   const onboard = await postJson(`${engine}/onboarding`, { role: 'benefits-processor', answers: { capture: true }, person: PERSON })
@@ -278,6 +282,7 @@ try {
     OPENAI_API_KEY: '', // nothing here talks to a model
     UNDERSTUDY_ENGINE_URL: engine,
     UNDERSTUDY_AGENT_URL: 'http://127.0.0.1:9',
+    UNDERSTUDY_DATA_DIR: data, // the app's kill switch writes data/KILL: into the throwaway data dir, never the shared one
     UNDERSTUDY_EXT_PORT: String(EXT_PORT),
     ALONGSIDE_USERDATA: userData,
     ALONGSIDE_OVERLAY_CAPTURABLE: '1',

@@ -4,6 +4,8 @@
 // Additive fields this app understands when the extension sends them (proposed as a contract change, ignored when absent):
 //   viewport {w,h}  innerWidth/innerHeight in CSS px;  outer {w,h}  outerWidth/outerHeight;  screen {x,y}  screenX/screenY.
 // With them the desktop corrects the viewport origin for page zoom and knows when an element is scrolled out of view.
+//   content [[y0,x0,y1,x1], ...]  up to 80 boxes (one per visible text line and per visible control) as integers on a 0..1000 grid of the
+//   answered rect's viewport (viewport.w by viewport.h), in the rect's frame, in reading order. Numbers only. rect-map.mapContentRects puts them on the screen.
 export interface RectWant {
   request_id: string
   frame_id: string
@@ -25,6 +27,11 @@ export interface Size {
 }
 export interface Rect extends XY, Size {}
 
+/** One box of page content: [y0, x0, y1, x1], integers 0..1000 on the grid of the answered rect's viewport, y0 <= y1 and x0 <= x1. */
+export type ContentBox = [number, number, number, number]
+/** The most boxes an answer may carry (the schema's maxItems). */
+export const CONTENT_MAX = 80
+
 export interface RectAnswer {
   request_id: string
   frame_id: string
@@ -37,6 +44,8 @@ export interface RectAnswer {
   viewport?: Size
   outer?: Size
   screen?: XY
+  // Absent when the extension did not send the field; an array (possibly empty) when it did.
+  content?: ContentBox[]
 }
 
 // label_hash / role+name: an element by its salted label hash or its accessible name. zone: a capture zone, with the brain's hints
@@ -85,6 +94,30 @@ export function wantFor(target: DomTarget, request_id: string, frame_id = 'top')
   return { request_id, frame_id, ...target }
 }
 
+/**
+ * The `content` field of an answer, strictly: not an array, or more than 80 entries, gives []; each entry must be exactly four finite
+ * integers, which are clamped to 0..1000, and y0 <= y1 and x0 <= x1 must hold or the entry is dropped. Anything else in the array is
+ * dropped. Never throws (a hostile or odd value only costs the field).
+ */
+export function parseContent(v: unknown): ContentBox[] {
+  const out: ContentBox[] = []
+  try {
+    if (!Array.isArray(v) || v.length > CONTENT_MAX) return out
+    for (let i = 0; i < v.length; i++) {
+      const e: unknown = v[i]
+      if (!Array.isArray(e) || e.length !== 4) continue
+      const [a, b, c, d] = e as unknown[]
+      if (!Number.isInteger(a) || !Number.isInteger(b) || !Number.isInteger(c) || !Number.isInteger(d)) continue
+      const clamp = (n: unknown): number => Math.min(1000, Math.max(0, n as number))
+      const box: ContentBox = [clamp(a), clamp(b), clamp(c), clamp(d)]
+      if (box[0] <= box[2] && box[1] <= box[3]) out.push(box)
+    }
+  } catch {
+    return []
+  }
+  return out
+}
+
 /** Parses a POST /ext/rect body; null when it does not satisfy the schema (unknown keys are tolerated and dropped). */
 export function parseAnswer(raw: unknown): RectAnswer | null {
   if (!isObj(raw)) return null
@@ -102,5 +135,11 @@ export function parseAnswer(raw: unknown): RectAnswer | null {
   const viewport = size(raw.viewport)
   const outer = size(raw.outer)
   const screen = xy(raw.screen)
-  return { ...base, found: true, rect, window_offset, scroll, dpr: raw.dpr, ...(viewport ? { viewport } : {}), ...(outer ? { outer } : {}), ...(screen ? { screen } : {}) }
+  let content: ContentBox[] | null = null
+  try {
+    if (raw.content !== undefined) content = parseContent(raw.content)
+  } catch {
+    content = [] // a value that cannot even be read costs the field, not the answer
+  }
+  return { ...base, found: true, rect, window_offset, scroll, dpr: raw.dpr, ...(viewport ? { viewport } : {}), ...(outer ? { outer } : {}), ...(screen ? { screen } : {}), ...(content ? { content } : {}) }
 }

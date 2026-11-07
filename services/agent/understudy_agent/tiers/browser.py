@@ -9,6 +9,15 @@ import os
 from typing import Any
 
 
+def _viewport_from_env() -> dict[str, int]:
+    """The page size the computer-use model sees (frame size sets the image tokens per step). UNDERSTUDY_T3_VIEWPORT=WxH to change it."""
+    import os
+    import re
+
+    m = re.fullmatch(r"(\d{3,4})x(\d{3,4})", os.environ.get("UNDERSTUDY_T3_VIEWPORT", "").strip())
+    return {"width": int(m.group(1)), "height": int(m.group(2))} if m else {"width": 1280, "height": 800}
+
+
 class BrowserHost:
     def __init__(self, *, headless: bool | None = None) -> None:
         self.headless = (os.environ.get("UNDERSTUDY_AGENT_HEADED") != "1") if headless is None else headless
@@ -24,7 +33,7 @@ class BrowserHost:
         return self
 
     async def new_context(self, **kw: Any) -> Any:
-        kw.setdefault("viewport", {"width": 1280, "height": 800})
+        kw.setdefault("viewport", _viewport_from_env())
         kw.setdefault("accept_downloads", False)
         ctx = await self._browser.new_context(**kw)
         ctx.set_default_timeout(8000)

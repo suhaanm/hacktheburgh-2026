@@ -8,6 +8,8 @@ replayed for a different step.
 from __future__ import annotations
 
 import fcntl
+import hashlib
+import hmac
 import json
 import os
 import re
@@ -163,7 +165,37 @@ class ApprovalQueue:
             finally:
                 fcntl.flock(lk, fcntl.LOCK_UN)
 
+    # ---- integrity (S-11): every item carries an HMAC over its content, keyed by a per-install secret that lives BESIDE
+    # the queue directory (data/.queue_key, mode 0600, which the agent's own file tools may not touch). Editing an item's
+    # file (status=approved, a new signature) breaks the tag, and an approval whose tag does not verify is never honoured.
+    def _key(self) -> bytes:
+        p = self.root.parent / ".queue_key"
+        for _ in range(3):
+            try:
+                return bytes.fromhex(p.read_text().strip())
+            except (OSError, ValueError):
+                pass
+            try:
+                fd = os.open(p, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            except FileExistsError:
+                continue                                    # another writer made it between our read and our create
+            with os.fdopen(fd, "w") as fh:
+                fh.write(secrets.token_hex(32) + "\n")
+        raise QueueError("the queue integrity key is unreadable")
+
+    def _mac(self, item: dict[str, Any]) -> str:
+        body = json.dumps({k: v for k, v in item.items() if k != "mac"}, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+        return hmac.new(self._key(), body.encode("utf-8"), hashlib.sha256).hexdigest()
+
+    def integrity(self, item: dict[str, Any]) -> str:
+        """ok | unsigned (written before tags existed) | tampered (the file was edited outside the queue)."""
+        tag = item.get("mac")
+        if not tag:
+            return "unsigned"
+        return "ok" if hmac.compare_digest(str(tag), self._mac(item)) else "tampered"
+
     def _write(self, item: dict[str, Any]) -> None:
+        item["mac"] = self._mac(item)
         p = self._file(item["id"])
         tmp = p.with_suffix(f".{secrets.token_hex(3)}.tmp")
         tmp.write_text(json.dumps(item, indent=2, sort_keys=True), encoding="utf-8")
@@ -247,6 +279,8 @@ class ApprovalQueue:
         clean_auth = validate_auth(auth)  # validated before anything changes
         with self._locked():
             item = self._read(item_id)
+            if self.integrity(item) == "tampered":
+                raise QueueError("this item was modified outside the app; it cannot be decided")
             if item["status"] != "pending":
                 raise AlreadyDecided(f"item is already {item['status']}")
             item["status"] = status
@@ -284,7 +318,8 @@ class ApprovalQueue:
                     n += 1
         return n
 
-    def try_consume_approval(self, item_id: str, signature: str, *, max_age_s: float | None = None) -> ApprovalCheck:
+    def try_consume_approval(self, item_id: str, signature: str, *, max_age_s: float | None = None,
+                             run_id: str | None = None) -> ApprovalCheck:
         """Use an approval once. It must be approved, unconsumed, bound to this action signature, and not older than `max_age_s`
         (default 30 minutes, env UNDERSTUDY_APPROVAL_MAX_AGE_S): an older approval is cancelled (status becomes `expired`) and
         the step must be asked for again. Returns why it was refused."""
@@ -294,8 +329,12 @@ class ApprovalQueue:
                 item = self._read(item_id)
             except NotFound:
                 return ApprovalCheck(False, "not_found", "no such approval")
+            if self.integrity(item) != "ok":
+                return ApprovalCheck(False, "tampered", "this approval does not carry a valid integrity tag; ask again")
             if item["status"] != "approved":
                 return ApprovalCheck(False, "not_approved", f"the item is {item['status']}, not approved")
+            if run_id is not None and item.get("run_id") not in (None, run_id):
+                return ApprovalCheck(False, "run_mismatch", "this approval was given for a different run")
             if item.get("consumed_at"):
                 return ApprovalCheck(False, "consumed", "this approval was already used")
             if item.get("signature") != signature:
@@ -321,6 +360,7 @@ class ApprovalQueue:
         self._log("queue_decided", expired, "expired_old_approval", actor="system")
         return ApprovalCheck(False, "expired", reason)
 
-    def consume_approval(self, item_id: str, signature: str, *, max_age_s: float | None = None) -> bool:
+    def consume_approval(self, item_id: str, signature: str, *, max_age_s: float | None = None,
+                         run_id: str | None = None) -> bool:
         """True exactly once for a fresh, approved item whose signature matches (see try_consume_approval for the reason)."""
-        return self.try_consume_approval(item_id, signature, max_age_s=max_age_s).ok
+        return self.try_consume_approval(item_id, signature, max_age_s=max_age_s, run_id=run_id).ok

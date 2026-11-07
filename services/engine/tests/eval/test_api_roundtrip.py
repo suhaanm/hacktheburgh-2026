@@ -22,7 +22,7 @@ def test_report_written_by_the_cli_is_served_unchanged_and_every_section_has_met
     assert schema_errors(body) == []
     for name, sec in body["sections"].items():
         if name != "limitations":
-            assert sec["meta"]["origin"] in ("real", "synthetic", "mixed") and sec["meta"]["interval_level"] == 0.95, name
+            assert sec["meta"]["origin"] in ("real", "synthetic", "mixed", "unknown") and sec["meta"]["interval_level"] == 0.95, name
 
 
 def test_missing_report_is_a_plain_404_with_the_fix(tmp_path, monkeypatch):

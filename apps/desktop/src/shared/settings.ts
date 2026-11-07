@@ -41,10 +41,8 @@ export const SettingsSchema = z.object({
   wakeEnabled: z.boolean().default(false),
   // Hold-to-talk global shortcut (Electron accelerator syntax; Alt is Option on a Mac). Phase A only raises the panel and emits `talk`.
   talkHotkey: z.string().min(1).max(60).default('Alt+Space'),
-  // Always-on awareness (the AWARENESS track reads these): off until the person turns each one on.
-  awarenessEnabled: z.boolean().default(false),
-  glanceOnTrigger: z.boolean().default(false),
-  glancePeriodic: z.boolean().default(false),
+  // (Awareness and glance switches are NOT here: they live in the awareness module's own store, awareness.json, behind its consent card.
+  // An older settings.json that still carries awarenessEnabled, glanceOnTrigger or glancePeriodic is read without them: they are ignored.)
   // Quiet for a while from the menu bar ("Pause for 1 hour"): the time it ends, as milliseconds since the epoch, or null.
   pausedUntil: z.number().int().nullable().default(null),
   // Cue (the proactive coach cards; env gate UNDERSTUDY_X_CUE=1). Off until the person turns it on; "Quiet Cue for an hour" sets cueQuietUntil.

@@ -2,11 +2,11 @@ import { getState, noteSource, setState, whenExtReady } from "./store";
 import type { ApprovalAuth } from "./auth/types";
 import type {
   Analytic, AnalyticMeta, AuditLine, CoachState, EvalReport, Genome, Hazard, Health, KillState, Memory,
-  AgentHealth, AgentKind, AgentRun, AgentRunDetail, Briefing, CalPerson, CalSuggestion, CalendarWeek, CoachDecision, CoachOutcome, ExtensionName, GitHabits, GitPeople, LedgerEntry, LocalModelStatus, ModelsStatus, OffhoursReport, OnboardingAnswers, OnboardingQuestions, OnboardingResult, Pack, Presence, QueueItem, QuietHours,
+  AgentHealth, AgentKind, AgentRun, AgentRunDetail, AttentionDigest, AttentionPatch, AttentionPeek, AttentionSettings, Briefing, CalPerson, CalSuggestion, CalendarWeek, CoachDecision, CoachOutcome, ExtensionName, EvidencePacket, ExplainResult, GitHabits, GitPeople, LedgerEntry, LocalModelStatus, ModelsStatus, OffhoursReport, OnboardingAnswers, OnboardingQuestions, OnboardingResult, Pack, Presence, QueueItem, QuietHours,
   PrivacySummary, Prepared, Replay, Routine, RuleProposal, SpawnKind, Transitions, WorkGraph,
 } from "./types";
 import { classify, type Fallback } from "./lib/fallback";
-import { requestBody, requestHeaders, MISSING_HEADER, notReadyReason, type Actor } from "./lib/http";
+import { isWrite, requestBody, requestHeaders, MISSING_HEADER, notReadyReason, type Actor } from "./lib/http";
 import { FLAG_FOR } from "./lib/ext";
 import { normaliseModelsStatus } from "./lib/models";
 import genomeFx from "./fixtures/genome.json";
@@ -32,6 +32,11 @@ import agentsFx from "./fixtures/agents-runs.json";
 import ledgerFx from "./fixtures/privacy-ledger.json";
 import privacySummaryFx from "./fixtures/privacy-summary.json";
 import localModelFx from "./fixtures/localmodel-status.json";
+import attentionSettingsFx from "./fixtures/attention-settings.json";
+import attentionDigestFx from "./fixtures/attention-digest.json";
+import attentionNextFx from "./fixtures/attention-next.json";
+import evidencePacketFx from "./fixtures/evidence-packet.json";
+import evidenceExplainFx from "./fixtures/evidence-explain.json";
 import calPeopleFx from "./fixtures/calendar-people.json";
 import gitHabitsFx from "./fixtures/git-habits.json";
 import gitPeopleFx from "./fixtures/git-people.json";
@@ -131,11 +136,11 @@ const downUntil = new Map<string, number>();
 const BACKOFF_MS = 6000;
 export function forgetBackoff(): void { downUntil.clear(); }
 
-async function send(base: string, path: string, method: string, payload?: unknown, force = false, actor?: Actor): Promise<Reached> {
+async function send(base: string, path: string, method: string, payload?: unknown, force = false, actor?: Actor, retried = false, timeoutMs = TIMEOUT_MS): Promise<Reached> {
   if (!force && (downUntil.get(base) ?? 0) > Date.now()) return { reached: false };
   const ctl = new AbortController();
   let timedOut = false;
-  const timer = window.setTimeout(() => { timedOut = true; ctl.abort(); }, TIMEOUT_MS);
+  const timer = window.setTimeout(() => { timedOut = true; ctl.abort(); }, timeoutMs);
   try {
     // Every write carries JSON and the actor header, in this one place (lib/http.ts).
     const res = await fetch(`${base}${path}`, {
@@ -146,6 +151,11 @@ async function send(base: string, path: string, method: string, payload?: unknow
     });
     let body: unknown = null;
     try { body = await res.json(); } catch { body = null; }
+    // A service that restarted wrote a new token between our request and its answer: the dev server reads the file afresh on every
+    // request, so asking once more picks the new one up. One retry only.
+    if (!retried && res.status === 403 && isWrite(method) && (body as { error?: { code?: string } } | null)?.error?.code === "token_invalid") {
+      return send(base, path, method, payload, force, actor, true, timeoutMs);
+    }
     // The dev server says so when it found no per-boot token to add (see vite.proxy.ts).
     return { reached: true, status: res.status, body, tokenMissing: res.headers.get(MISSING_HEADER) === "missing" };
   } catch {
@@ -160,7 +170,7 @@ async function send(base: string, path: string, method: string, payload?: unknow
 function toApiError(status: number, body: unknown, tokenMissing = false): ApiError {
   const e = (body as { error?: { code?: string; message?: string } } | null)?.error;
   const notReady = notReadyReason(status, e?.code, tokenMissing);
-  if (notReady) return new ApiError(status, "engine_not_ready", notReady);
+  if (notReady) return new ApiError(status, e?.code ?? "engine_not_ready", `${notReady}${e?.code ? ` (${e.code})` : ""}`);
   const plain: Record<number, string> = {
     403: "The engine refused this change because it did not come from your own app.",
     404: "The engine does not have that.",
@@ -252,6 +262,7 @@ const demo = {
   briefing: clone(fx<Analytic<Briefing>>(briefingFx).data),
   runs: clone(fx<Analytic<AgentRun[]>>(agentsFx).data),
   ledger: clone(fx<Analytic<LedgerEntry[]>>(ledgerFx).data),
+  attention: clone(fx<Analytic<AttentionSettings>>(attentionSettingsFx).data),
   spawned: 0,
 };
 const agentDetails = (agentsFx as unknown as { details: Record<string, AgentRunDetail> }).details;
@@ -485,6 +496,65 @@ export const api = {
 
   gitHabits: (person?: string, repo?: string) =>
     read<GitHabits>(`/git/habits${qs({ person, repo })}`, () => ({ data: dataOf<GitHabits>(gitHabitsFx), meta: metaOf(gitHabitsFx) }), ENGINE_URL, { layer: "git", soft: true }),
+
+  /** Notices: how loudly each kind of notice speaks, the day's budget and what was learned. Metadata only. */
+  attentionSettings: (person?: string) =>
+    read<AttentionSettings>(`/attention/settings${qs({ person })}`, () => ({ data: demo.attention, meta: metaOf(attentionSettingsFx) }), ENGINE_URL, { layer: "attention", soft: true }),
+
+  /** The "Today" strip, from fixed lines and counts. `kind` is now, morning or return. */
+  attentionDigest: (person?: string, kind: "now" | "morning" | "return" = "now") =>
+    read<AttentionDigest>(`/attention/digest${qs({ person, kind })}`, () => ({ data: dataOf<AttentionDigest>(attentionDigestFx), meta: metaOf(attentionDigestFx) }), ENGINE_URL, { layer: "attention", soft: true }),
+
+  /** Passive counts for the banner. A peek delivers nothing; the desktop owns what is drawn on screen. */
+  attentionPeek: (person?: string) =>
+    read<AttentionPeek>(`/attention/next${qs({ person, peek: 1 })}`, () => ({ data: dataOf<AttentionPeek>(attentionNextFx), meta: metaOf(attentionNextFx) }), ENGINE_URL, { layer: "attention", soft: true }),
+
+  /** Change a setting. Safety kinds are fixed: the engine answers 422 safety_fixed and the screen shows its words. Sent as the worker. */
+  attentionSet: (patch: AttentionPatch, person?: string) =>
+    write<AttentionSettings>(`/attention/settings${qs({ person })}`, "POST", patch, () => {
+      const s = demo.attention;
+      for (const [type, mode] of Object.entries(patch.modes ?? {})) {
+        const row = s.types.find((t) => t.type === type);
+        if (!row) throw new ApiError(422, "unknown_type", `There is no kind of notice called ${type}.`);
+        if (row.fixed) throw new ApiError(422, "safety_fixed", "Safety stops cannot be changed. They are always shown once and stay visible until resolved.");
+        row.mode = mode;
+        if (mode === "normal") delete s.modes[type]; else s.modes[type] = mode;
+      }
+      if (typeof patch.budget_per_day === "number") s.budget_per_day = patch.budget_per_day;
+      if (typeof patch.level_glance === "boolean") s.level_glance = patch.level_glance;
+      if (patch.reset_learned === true) s.learned = {};
+      else if (Array.isArray(patch.reset_learned)) for (const t of patch.reset_learned) delete s.learned[t];
+      return clone(s);
+    }),
+
+  /** The numbers an explanation is built from. Each cited path in an explanation is looked up here. */
+  evidencePacket: (person?: string, caseId?: string) =>
+    read<EvidencePacket>(`/evidence/packet${qs({ person, case: caseId })}`, () => ({ data: dataOf<EvidencePacket>(evidencePacketFx), meta: metaOf(evidencePacketFx) }), ENGINE_URL, { layer: "evidence", soft: true }),
+
+  /**
+   * "Where did my time go?" The words, the source that wrote them and the check's verdict. A write because it may call a model, so it
+   * carries the worker actor. The first call to a local model can take about two minutes, hence the long wait. The question is sent
+   * to the engine and nowhere else: it is not kept, logged or put in a URL. `hint` only picks which example answer to show when the
+   * engine is not there; it is never sent.
+   */
+  evidenceExplain: async (body: { person?: string; case?: string; question?: string; include_packet?: boolean }, hint = "where_time_went"): Promise<Loaded<ExplainResult>> => {
+    const example = (why: Fallback): Loaded<ExplainResult> => {
+      noteSource("demo");
+      const fx = evidenceExplainFx as unknown as Record<string, Analytic<ExplainResult>>;
+      const pick = fx[hint] ?? fx.default;
+      return { data: clone(pick.data), meta: clone(pick.meta), source: "demo", why };
+    };
+    await whenExtReady();
+    const off = knownOff("evidence", ENGINE_WHO);
+    if (off) return example(off);
+    const r = await send(ENGINE_URL, "/evidence/explain", "POST", body, false, "worker", false, 180_000);
+    const fail = { reached: r.reached, status: r.reached ? r.status : undefined, body: r.reached ? r.body : undefined };
+    if (writeMissing(r)) return example(classify(fail, { ...ENGINE_WHO, flag: FLAG_FOR.evidence }));
+    if (r.reached && r.status >= 400) throw toApiError(r.status, r.body, r.tokenMissing);
+    noteSource("live");
+    const u = unwrap<ExplainResult>(r.reached ? r.body : null);
+    return { ...u, source: "live", why: null };
+  },
 
   /** Model roles, provider health, breakers, latencies and the cost meter. Read from the agent service; the route may not be wired yet. */
   modelsStatus: async (): Promise<Loaded<ModelsStatus>> => {

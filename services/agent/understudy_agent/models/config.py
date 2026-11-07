@@ -29,6 +29,7 @@ ENV_GEMINI_KEY = "GEMINI_API_KEY"
 ENV_GEMINI_FAST = "GEMINI_MODEL_FAST"          # flash-lite class: pointing and glances, first try
 ENV_GEMINI_ACCURATE = "GEMINI_MODEL_ACCURATE"  # flash class: escalation, verifier fallback
 ENV_GEMINI_LIVE = "GEMINI_MODEL_LIVE"          # live voice (phase D); only checked at boot, not called here
+ENV_GEMINI_COMPUTER = "GEMINI_MODEL_COMPUTER_USE"  # optional: computer-use dry runs; unset = the accurate model
 
 _TRUE = ("1", "true", "yes", "on")
 
@@ -44,6 +45,7 @@ class GeminiModelIds:
     fast: str
     accurate: str
     live: str | None = None
+    computer_use: str | None = None
 
     @classmethod
     def from_env(cls) -> "GeminiModelIds":
@@ -55,16 +57,21 @@ class GeminiModelIds:
                 "your key can use, then pick from that list. Model ids are never guessed."
             )
         live = os.environ.get(ENV_GEMINI_LIVE, "").strip() or None
-        return cls(fast=os.environ[ENV_GEMINI_FAST].strip(), accurate=os.environ[ENV_GEMINI_ACCURATE].strip(), live=live)
+        cu = os.environ.get(ENV_GEMINI_COMPUTER, "").strip() or None
+        return cls(fast=os.environ[ENV_GEMINI_FAST].strip(), accurate=os.environ[ENV_GEMINI_ACCURATE].strip(), live=live,
+                   computer_use=cu)
 
     def as_dict(self) -> dict[str, str]:
         d = {"fast": self.fast, "accurate": self.accurate}
         if self.live:
             d["live"] = self.live
+        if self.computer_use:
+            d["computer_use"] = self.computer_use
         return d
 
     def env_name(self, role: str) -> str:
-        return {"fast": ENV_GEMINI_FAST, "accurate": ENV_GEMINI_ACCURATE, "live": ENV_GEMINI_LIVE}[role]
+        return {"fast": ENV_GEMINI_FAST, "accurate": ENV_GEMINI_ACCURATE, "live": ENV_GEMINI_LIVE,
+                "computer_use": ENV_GEMINI_COMPUTER}[role]
 
 
 def gemini_ids_from_env_or_none() -> GeminiModelIds | None:

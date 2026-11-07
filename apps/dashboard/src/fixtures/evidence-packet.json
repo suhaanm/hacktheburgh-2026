@@ -1,0 +1,403 @@
+{
+ "meta": {
+  "origin": "synthetic",
+  "n": 24,
+  "n_unit": "people",
+  "split": "descriptive_nearest_expert",
+  "interval_level": 0.95,
+  "note": "A packet of numbers, intervals and ids from the engine's analytics. It holds no text, names or paths.",
+  "generated_at": "2026-11-07T18:03:57Z"
+ },
+ "data": {
+  "person": "p_nov13",
+  "case": "t_nov13a",
+  "blocks": {
+   "mlv2": "absent",
+   "genome": "ok",
+   "hazard": "absent",
+   "coach": "ok",
+   "routines": "absent"
+  },
+  "facts": [
+   {
+    "path": "coach.gate_consecutive",
+    "value": 0.0,
+    "unit": "count"
+   },
+   {
+    "path": "coach.missed_steps",
+    "value": 0.0,
+    "unit": "count"
+   },
+   {
+    "path": "cog.COPY_TO_NOTE.hi",
+    "value": 26.9,
+    "unit": "s"
+   },
+   {
+    "path": "cog.COPY_TO_NOTE.lo",
+    "value": 3.4,
+    "unit": "s"
+   },
+   {
+    "path": "cog.COPY_TO_NOTE.seconds",
+    "value": 14.6,
+    "unit": "s"
+   },
+   {
+    "path": "cog.READ.hi",
+    "value": 69.2,
+    "unit": "s"
+   },
+   {
+    "path": "cog.READ.lo",
+    "value": -28.3,
+    "unit": "s"
+   },
+   {
+    "path": "cog.READ.seconds",
+    "value": 25.1,
+    "unit": "s"
+   },
+   {
+    "path": "cog.READ_RESULT.hi",
+    "value": 152.4,
+    "unit": "s"
+   },
+   {
+    "path": "cog.READ_RESULT.lo",
+    "value": 41.4,
+    "unit": "s"
+   },
+   {
+    "path": "cog.READ_RESULT.seconds",
+    "value": 88.6,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.missed_check.hi",
+    "value": 42.5,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.missed_check.lo",
+    "value": 12.4,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.missed_check.n",
+    "value": 16.0,
+    "unit": "count"
+   },
+   {
+    "path": "cohort_habit.missed_check.seconds",
+    "value": 27.7,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.other_extra.hi",
+    "value": 15.2,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.other_extra.lo",
+    "value": 0.0,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.other_extra.n",
+    "value": 16.0,
+    "unit": "count"
+   },
+   {
+    "path": "cohort_habit.other_extra.seconds",
+    "value": 5.8,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.pace.hi",
+    "value": 94.6,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.pace.lo",
+    "value": 63.7,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.pace.n",
+    "value": 16.0,
+    "unit": "count"
+   },
+   {
+    "path": "cohort_habit.pace.seconds",
+    "value": 79.4,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.pauses.hi",
+    "value": 64.2,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.pauses.lo",
+    "value": 14.7,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.pauses.n",
+    "value": 16.0,
+    "unit": "count"
+   },
+   {
+    "path": "cohort_habit.pauses.seconds",
+    "value": 38.5,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.repeated_reads.hi",
+    "value": 35.7,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.repeated_reads.lo",
+    "value": 11.9,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.repeated_reads.n",
+    "value": 16.0,
+    "unit": "count"
+   },
+   {
+    "path": "cohort_habit.repeated_reads.seconds",
+    "value": 23.5,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.rework.hi",
+    "value": 1.9,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.rework.lo",
+    "value": 0.0,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.rework.n",
+    "value": 16.0,
+    "unit": "count"
+   },
+   {
+    "path": "cohort_habit.rework.seconds",
+    "value": 0.7,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.search_loops.hi",
+    "value": 58.6,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.search_loops.lo",
+    "value": 21.7,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.search_loops.n",
+    "value": 16.0,
+    "unit": "count"
+   },
+   {
+    "path": "cohort_habit.search_loops.seconds",
+    "value": 40.3,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.step_skips.hi",
+    "value": 0.0,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.step_skips.lo",
+    "value": -4.1,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.step_skips.n",
+    "value": 16.0,
+    "unit": "count"
+   },
+   {
+    "path": "cohort_habit.step_skips.seconds",
+    "value": -1.7,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.wrong_copy.hi",
+    "value": 26.2,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.wrong_copy.lo",
+    "value": 5.6,
+    "unit": "s"
+   },
+   {
+    "path": "cohort_habit.wrong_copy.n",
+    "value": 16.0,
+    "unit": "count"
+   },
+   {
+    "path": "cohort_habit.wrong_copy.seconds",
+    "value": 15.2,
+    "unit": "s"
+   },
+   {
+    "path": "consequence.RECONCILE.hi",
+    "value": 0.13,
+    "unit": "frac"
+   },
+   {
+    "path": "consequence.RECONCILE.lo",
+    "value": 0.078,
+    "unit": "frac"
+   },
+   {
+    "path": "consequence.RECONCILE.mean_gbp",
+    "value": 291.9,
+    "unit": "gbp"
+   },
+   {
+    "path": "consequence.RECONCILE.n",
+    "value": 200.0,
+    "unit": "count"
+   },
+   {
+    "path": "consequence.RECONCILE.p_error",
+    "value": 0.103,
+    "unit": "frac"
+   },
+   {
+    "path": "gap.case_s",
+    "value": 584.6,
+    "unit": "s"
+   },
+   {
+    "path": "gap.cohort_gap_s",
+    "value": 229.6,
+    "unit": "s"
+   },
+   {
+    "path": "gap.cohort_hi",
+    "value": 269.9,
+    "unit": "s"
+   },
+   {
+    "path": "gap.cohort_lo",
+    "value": 193.1,
+    "unit": "s"
+   },
+   {
+    "path": "gap.cohort_n",
+    "value": 16.0,
+    "unit": "count"
+   },
+   {
+    "path": "gap.gap_s",
+    "value": 179.4,
+    "unit": "s"
+   },
+   {
+    "path": "gap.null_hi",
+    "value": 109.1,
+    "unit": "s"
+   },
+   {
+    "path": "gap.null_lo",
+    "value": -45.1,
+    "unit": "s"
+   },
+   {
+    "path": "gap.placebo_hi",
+    "value": 18.4,
+    "unit": "s"
+   },
+   {
+    "path": "gap.placebo_lo",
+    "value": -3.1,
+    "unit": "s"
+   },
+   {
+    "path": "gap.placebo_s",
+    "value": 7.1,
+    "unit": "s"
+   },
+   {
+    "path": "gap.reference_s",
+    "value": 405.2,
+    "unit": "s"
+   },
+   {
+    "path": "habit.pace.seconds",
+    "value": 44.0,
+    "unit": "s"
+   },
+   {
+    "path": "habit.pauses.seconds",
+    "value": 38.6,
+    "unit": "s"
+   },
+   {
+    "path": "habit.search_loops.seconds",
+    "value": 96.9,
+    "unit": "s"
+   },
+   {
+    "path": "meta.level",
+    "value": 0.95,
+    "unit": "frac"
+   },
+   {
+    "path": "meta.n",
+    "value": 24.0,
+    "unit": "count"
+   }
+  ],
+  "limitations": [
+   {
+    "id": "synthetic_data",
+    "text": "These figures come from synthetic data with planted patterns, so they show that the method recovers known structure, not that real people behave this way."
+   },
+   {
+    "id": "association_only",
+    "text": "Everything here is an association in recorded traces, not proof of cause."
+   },
+   {
+    "id": "not_expert_claim",
+    "text": "This does not show that novices become experts; it shows where time differs from the nearest expert and how sure we are."
+   },
+   {
+    "id": "explainer_readability",
+    "text": "This explanation only rewords the numbers above; a clear sentence can still rest on a wrong number, and the check proves each number traces to the data, not that it is true."
+   },
+   {
+    "id": "small_n",
+    "text": "The sample is small, so the intervals are wide."
+   },
+   {
+    "id": "single_case",
+    "text": "A single case has no interval of its own; the intervals shown are for the cohort average."
+   },
+   {
+    "id": "consequence_rules",
+    "text": "Error rates come from a simplified internal rule set for the calculators, not from the law."
+   },
+   {
+    "id": "saved_time_by_skips",
+    "text": "Skipped steps show as saved time in the alignment; the consequences row says what skipping can cost."
+   }
+  ]
+ }
+}

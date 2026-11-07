@@ -1,0 +1,121 @@
+{
+ "cap_usd": 20.0,
+ "entries": [
+  {
+   "at": "2026-11-07T18:20:02Z",
+   "label": "diag_smoke_1",
+   "kind": "smoke",
+   "tokens_in": 211852,
+   "tokens_out": 1173,
+   "cost_placeholder_usd": 1.0945,
+   "cost_lower_usd": 0.1642,
+   "site": "b",
+   "household": "hh_0002"
+  },
+  {
+   "at": "2026-11-07T18:30:18Z",
+   "label": "diag_smoke_2",
+   "kind": "smoke",
+   "tokens_in": 74548,
+   "tokens_out": 2810,
+   "cost_placeholder_usd": 0.457,
+   "cost_lower_usd": 0.0686,
+   "site": "b",
+   "household": "hh_0002"
+  },
+  {
+   "at": "2026-11-07T18:34:32Z",
+   "label": "iter2_dev_r1",
+   "kind": "dev_round",
+   "tokens_in": 319287,
+   "tokens_out": 11628,
+   "cost_placeholder_usd": 1.9453,
+   "cost_lower_usd": 0.2918,
+   "household": "hh_0001"
+  },
+  {
+   "at": "2026-11-07T18:36:38Z",
+   "label": "diag_smoke_mini",
+   "kind": "smoke",
+   "tokens_in": 241612,
+   "tokens_out": 13224,
+   "cost_placeholder_usd": 0.2407,
+   "cost_lower_usd": 0.2407,
+   "rates_in_out_per_m": [
+    0.75,
+    4.5
+   ],
+   "computer_use_model": "gpt-5.4-mini",
+   "site": "b",
+   "household": "hh_0002"
+  },
+  {
+   "at": "2026-11-07T18:37:01Z",
+   "label": "iter2_dev_r1",
+   "kind": "dev_round",
+   "tokens_in": 310801,
+   "tokens_out": 9711,
+   "cost_placeholder_usd": 1.8453,
+   "cost_lower_usd": 0.2768,
+   "household": "hh_0002"
+  },
+  {
+   "at": "2026-11-07T18:39:34Z",
+   "label": "iter2_dev_r1",
+   "kind": "dev_round",
+   "tokens_in": 302676,
+   "tokens_out": 10585,
+   "cost_placeholder_usd": 1.8309,
+   "cost_lower_usd": 0.2746,
+   "household": "hh_0003"
+  },
+  {
+   "at": "2026-11-07T18:45:17Z",
+   "label": "iter3_mini_r1",
+   "kind": "dev_round",
+   "tokens_in": 493169,
+   "tokens_out": 27997,
+   "cost_placeholder_usd": 0.4959,
+   "cost_lower_usd": 0.4959,
+   "rates_in_out_per_m": [
+    0.75,
+    4.5
+   ],
+   "computer_use_model": "gpt-5.4-mini",
+   "household": "hh_0001"
+  },
+  {
+   "at": "2026-11-07T18:45:59Z",
+   "label": "iter3_mini_r1",
+   "kind": "dev_round",
+   "tokens_in": 103431,
+   "tokens_out": 5386,
+   "cost_placeholder_usd": 0.1018,
+   "cost_lower_usd": 0.1018,
+   "rates_in_out_per_m": [
+    0.75,
+    4.5
+   ],
+   "computer_use_model": "gpt-5.4-mini",
+   "household": "hh_0002"
+  },
+  {
+   "at": "2026-11-07T18:46:34Z",
+   "label": "iter3_mini_r1",
+   "kind": "dev_round",
+   "tokens_in": 81224,
+   "tokens_out": 4684,
+   "cost_placeholder_usd": 0.082,
+   "cost_lower_usd": 0.082,
+   "rates_in_out_per_m": [
+    0.75,
+    4.5
+   ],
+   "computer_use_model": "gpt-5.4-mini",
+   "household": "hh_0003"
+  }
+ ],
+ "spent_placeholder_usd": 8.0934,
+ "spent_lower_usd": 1.9964,
+ "pct_of_cap": 40.5
+}

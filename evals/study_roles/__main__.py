@@ -1,0 +1,428 @@
+"""Command line of the role studies.
+
+    uv run --package understudy-agent python -m evals.study_roles fake --role programmer --plan "1=skipper+obeys,5=expert"    # harness test, NO model, no cost
+    uv run --package understudy-agent python -m evals.study_roles experts --role programmer                                  # record the scripted EXPERT runs (no model)
+    uv run --package understudy-agent --env-file .env python -m evals.study_roles pilot --role programmer --tier fast         # feasibility pilot (needs GO)
+    uv run --package understudy-agent --env-file .env python -m evals.study_roles run --role programmer --tier fast --units 3  # the study (needs GO and a pilot that passed)
+    uv run --package understudy-agent python -m evals.study_roles analyze --role programmer                                  # summary.json and REPORT.md
+
+``fake`` and ``experts`` never write to results/. ``pilot`` and ``run`` refuse to start without the file evals/study_roles/GO (created only after the lead has committed PLAN.md
+and replied GO with a budget), without a model, and with UNDERSTUDY_MOCK set. Everything written is checked by ``analysis_io.check_output_dir`` (never under evals/study/).
+"""
+from __future__ import annotations
+
+import argparse
+import asyncio
+import json
+import os
+import sys
+import time
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parent.parent))
+
+from evals.study_roles import analysis_rows  # noqa: E402
+from evals.study_roles.design import ParticipantSpec, build_participants, build_pilot  # noqa: E402
+from evals.study_roles.roles import ROLE_CFG, cfg, world_port  # noqa: E402
+from evals.study_sim import analysis_io as sim_io  # noqa: E402
+from evals.study_sim.budget import Budget  # noqa: E402
+
+GO_FILE = HERE / "GO"
+RESULTS = HERE / "results"
+FAKE_DIR = HERE / "fake_runs"
+from evals.study_roles.budget_roles import CAP_USD as BUDGET_CAP_USD, RolesBudget  # noqa: E402   (US$14 for BOTH roles including the pilots: the lead's message of 7 Nov 2026)
+
+
+def make_worlds(role: str, n: int, outdir: Path | None):
+    from evals.study_roles.runner import RoleWorld
+    from evals.study_sim.infra import build_extension, snapshot_pipeline
+
+    info = snapshot_pipeline()
+    if outdir is not None:
+        sim_io.write_provenance(outdir)
+        (outdir / "snapshot.json").write_text(json.dumps({k: v for k, v in info.items() if k != "path"}, indent=1))
+    print(f"pipeline snapshot {info['fingerprint']} of git {info['git_head'][:8]} (+{info['uncommitted_files_in_snapshot_dirs']} uncommitted files)", flush=True)
+    worlds, built = [], []
+    for k in range(n):
+        name = f"roles-{ROLE_CFG[role].key[:4]}{k}"
+        base = 7961 + 3 * k + (30 if role == "data-analyst" else 0)          # the extension build's benefits ports (unused here): just distinct from the defaults
+        dist = build_extension(name, {"a": base, "b": base + 1, "c": base + 2})
+        built.append(dist)
+        w = RoleWorld(role, name, world_port(role, k), dist)
+        w.start()
+        worlds.append(w)
+    return worlds, built
+
+
+def close_worlds(worlds, built) -> None:
+    from evals.study_sim.infra import drop_snapshot, remove_extension_builds
+
+    for w in worlds:
+        w.stop()
+    remove_extension_builds(built)
+    for q in (HERE.parent.parent / "extension").glob("dist-roles-*"):
+        import shutil
+        shutil.rmtree(q, ignore_errors=True)
+    drop_snapshot()
+
+
+async def _run_many(role: str, specs: list[ParticipantSpec], make_policy_factory, outdir: Path, model_id: str, budget: Budget | None, *, worlds, pace: float, cap: int | None,
+                    poll_s: float, skip_done: set[str], tier: str = "", log=print) -> int:
+    """Participants are taken in the pre-registered order by whichever worker is free; the spec of each participant does not depend on the worker or on timing."""
+    from playwright.async_api import async_playwright
+
+    from evals.study_roles.runner import run_participant
+
+    queue: asyncio.Queue = asyncio.Queue()
+    for s in specs:
+        if s.pid in skip_done:
+            log(f"{s.pid}: already in participants.csv, skipped")
+        else:
+            queue.put_nowait(s)
+    stop = asyncio.Event()
+    in_flight = 0
+    done = 0
+    sim_io.write_provenance(outdir)
+    sim_io.write_provenance(outdir / "raw")
+    sim_io.write_provenance(outdir / "checks")
+
+    async def worker(pw, world) -> None:
+        nonlocal in_flight, done
+        while not stop.is_set():
+            try:
+                spec = queue.get_nowait()
+            except asyncio.QueueEmpty:
+                return
+            if budget is not None and not budget.can_start_participant(in_flight):
+                log(f"STOP: budget guard (estimated ${budget.usd:.2f} of ${budget.cap_usd:.2f}); not starting {spec.pid}")
+                stop.set()
+                return
+            spec.worker, spec.tier = world.name, tier
+            in_flight += 1
+            t0 = time.time()
+            log(f"{spec.pid} ({spec.arm} {spec.sequence} {spec.persona.code()}) on {world.name}: starting")
+            before = budget.per_participant.get(spec.pid, {}).get("usd", 0.0) if budget else 0.0
+            try:
+                res = await run_participant(spec, world=world, pw=pw, make_policy=make_policy_factory(spec), outdir=outdir, model_id=model_id, pace=pace, cap=cap, poll_s=poll_s, log=log)
+            except Exception as exc:  # noqa: BLE001 - BudgetExhausted or a bug in the harness itself
+                log(f"{spec.pid}: STOPPED by {type(exc).__name__}: {str(exc)[:200]}")
+                stop.set()
+                return
+            finally:
+                in_flight -= 1
+            analysis_rows.append_csv(outdir / "participants.csv", res.rows)
+            sim_io.append_jsonl(outdir / "actions.jsonl", res.actions)
+            (outdir / "checks" / f"{spec.pid}.json").write_text(json.dumps({"participant": spec.pid, "role": role, "arm": spec.arm, "sequence": spec.sequence, "worker": world.name,
+                "exclusion": res.exclusion, "wall_s": res.wall_s, "checks": res.checks,
+                "cases": [{"phase": c.phase, "block": c.block, "task": c.slot.task, "variant": c.slot.variant, "reason": c.reason, "used": c.used, "capped": c.capped, "wall_s": c.wall_s,
+                           "attempt": c.attempt, "outcome": (c.verdict or {}).get("outcome"), "points": (c.verdict or {}).get("points"), "harness_error": c.harness_error,
+                           "protocol_violation": c.protocol_violation} for c in res.cases]}, indent=1))
+            if budget:
+                budget.finished.add(spec.pid)
+            spent = (budget.per_participant.get(spec.pid, {}).get("usd", 0.0) - before) if budget else 0.0
+            viol = res.checks.get("study_mode_violations") or res.checks.get("study_mode_enforcement_from_store")
+            log(f"{spec.pid}: done in {time.time() - t0:.0f}s on {world.name}, exclusion={res.exclusion or 'none'}, outcomes="
+                f"{[(c.block, c.phase, (c.verdict or {}).get('outcome')) for c in res.cases]}, cost this participant ${spent:.3f}"
+                + (f", total ${budget.usd:.3f}" if budget else "") + (f"  *** STUDY MODE VIOLATION: {viol}" if viol else ""))
+            done += 1
+
+    async with async_playwright() as pw:
+        await asyncio.gather(*[worker(pw, w) for w in worlds])
+    return done
+
+
+def _parse_plan(plan: str, default: str) -> dict[int, dict]:
+    out: dict[int, dict] = {}
+    for item in (plan.split(",") if plan else []):          # "1=skipper+obeys,5=expert,6=skipper+presses"
+        idx, _, rest = item.partition("=")
+        style, *flags = rest.split("+")
+        out[int(idx)] = {"style": style, "obeys": "obeys" in flags, "dismisses": "dismisses" in flags, "presses_forbidden": "presses" in flags, "variation": 0}
+    return out
+
+
+def scripted_factory(role: str, plan: dict[int, dict], default: dict, layout: str = ""):
+    from evals.study_roles.participant import ScriptedParticipant
+
+    sb = cfg(role).sandbox
+
+    def factory(spec):
+        o = plan.get(spec.index) or default
+
+        def make(spec_, slot, phase):
+            lay = layout or "v1"
+            return ScriptedParticipant(spec_, slot, sb.program(slot.task, slot.variant, o["style"], variation=o.get("variation", 0), layout=lay), sb.snippets(slot.task, slot.variant, lay),
+                                       obeys=o["obeys"], dismisses=o["dismisses"], presses_forbidden=o["presses_forbidden"] and phase == "post")
+        return make
+    return factory
+
+
+def cmd_fake(a) -> int:
+    plan = _parse_plan(a.plan, a.style)
+    default = {"style": a.style, "obeys": a.obeys, "dismisses": a.dismisses, "presses_forbidden": False, "variation": 0}
+    specs_all = build_participants(a.role)
+    wanted = set(plan) or {int(x) for x in a.index.split(",")}
+    specs = [s for s in specs_all if s.index in wanted]
+    out = FAKE_DIR / (a.name or time.strftime("%Y%m%d-%H%M%S"))
+    sim_io.write_provenance(out)
+    worlds, built = make_worlds(a.role, a.workers, out)
+    try:
+        n = asyncio.run(_run_many(a.role, specs, scripted_factory(a.role, plan, default, a.layout), out, "fake", None, worlds=worlds, pace=a.pace, cap=a.cap, poll_s=a.poll, skip_done=set(), tier="fake"))
+    finally:
+        close_worlds(worlds, built)
+    sim_io.write_provenance_tree(out)
+    print(f"fake run: {n} participant(s) -> {out}")
+    return 0
+
+
+# ------------------------------------------------------------------------------------------------ model-driven commands (need GO)
+def _refuse_without_go() -> int | None:
+    if not GO_FILE.exists():
+        print("REFUSED: no GO. PLAN.md must be committed by the lead and GO (with a budget) received before any model-driven participant runs.")
+        return 2
+    if os.environ.get("UNDERSTUDY_MOCK", "").strip().lower() in ("1", "true", "yes", "on"):
+        print("REFUSED: UNDERSTUDY_MOCK is set; the model port would return scripted answers, not a model.")
+        return 2
+    return None
+
+
+def _port_for(tier: str):
+    """The model port for a declared tier. ``fast-low`` sets the fast role's reasoning effort to low BEFORE the port is built (it is read from the environment per call)."""
+    if tier == "fast-low":
+        os.environ["OPENAI_EFFORT_FAST"] = "low"
+    elif tier == "fast":
+        os.environ.pop("OPENAI_EFFORT_FAST", None)
+    from understudy_agent.models import get_model_port
+
+    port = get_model_port()
+    models = getattr(port, "models", None)
+    model_id = getattr(models, "planner" if tier == "planner" else "fast", "unknown")
+    return port, model_id
+
+
+def _read_json(p: Path) -> dict | None:
+    try:
+        return json.loads(p.read_text())
+    except (OSError, ValueError):
+        return None
+
+
+def planner_allowed(role: str, budget_left: float) -> tuple[bool, str]:
+    """Declared in PLAN.md: the planner tier is piloted ONLY IF both fast options (effort none, effort low) were piloted and both failed on the FLOOR criterion (not on a harness
+    error), AND the planner's estimated cost per participant (the fast cost times the price ratio) affords at least 12 participants inside what is left of the budget."""
+    from evals.study_roles.analysis import COST_SAFETY
+    from evals.study_roles.budget_roles import PLANNER_DEFAULT_PRICES
+
+    fast = [_read_json(RESULTS / role / f"PILOT_{t}.json") for t in ("fast", "fast-low")]
+    if not all(fast):
+        return False, "both fast options must be piloted first"
+    if any(f["usable"] or not any(r.startswith("floor") for r in f["reasons"]) for f in fast):
+        return False, "the planner tier is only for the case that both fast options fail on the floor criterion"
+    c_fast = max(f["mean_cost_per_participant_usd"] or 0 for f in fast)
+    pin = float(os.environ.get("STUDY_SIM_PRICE_IN", "0.75"))
+    ratio = PLANNER_DEFAULT_PRICES[0] / pin
+    est = c_fast * ratio
+    if 12 * est * COST_SAFETY > budget_left:
+        return False, f"estimated planner cost US${est:.2f} per participant: 12 participants would cost US${12 * est * COST_SAFETY:.2f}, more than the US${budget_left:.2f} left"
+    return True, f"estimated planner cost US${est:.2f} per participant affords 12 participants"
+
+
+def _finish_cost(budget: RolesBudget, outdir: Path, role: str, tier: str, model_id: str) -> None:
+    c = budget.summary()
+    c.update({"role": role, "tier": tier, "model": model_id})
+    (outdir / "cost.json").write_text(json.dumps(c, indent=1))
+
+
+def cmd_pilot(a) -> int:
+    refused = _refuse_without_go()
+    if refused:
+        return refused
+    from evals.study_roles.analysis import pilot_verdict, plan_units
+    from evals.study_roles.budget_roles import RolesBudget, apply_tier_prices, carried_usd
+    from evals.study_roles.participant import ModelParticipant
+    from evals.study_roles.roles import cfg as role_cfg
+
+    budget_left = BUDGET_CAP_USD - carried_usd(RESULTS)
+    if a.tier == "planner":
+        ok, why = planner_allowed(a.role, budget_left)
+        if not ok:
+            print(f"REFUSED: planner tier not allowed: {why}")
+            return 2
+        print(why)
+    pin, pout, src = apply_tier_prices(a.tier)
+    port, model_id = _port_for(a.tier)
+    outdir = RESULTS / a.role / f"pilot_{a.tier}"
+    budget = RolesBudget(ledger_path=RESULTS / "cost_ledger.jsonl", carried=carried_usd(RESULTS))
+    specs = build_pilot(a.role)
+
+    def factory(spec):
+        return lambda spec_, slot, phase: ModelParticipant(port, spec_, budget, a.tier, model_id)
+
+    worlds, built = make_worlds(a.role, a.workers, outdir)
+    try:
+        n = asyncio.run(_run_many(a.role, specs, factory, outdir, model_id, budget, worlds=worlds, pace=a.pace, cap=a.cap, poll_s=a.poll, skip_done=set(), tier=a.tier))
+    finally:
+        close_worlds(worlds, built)
+        _finish_cost(budget, outdir, a.role, a.tier, model_id)
+    rows = analysis_rows.load_rows(outdir / "participants.csv") if (outdir / "participants.csv").exists() else []
+    costs = [v["usd"] for k, v in budget.per_participant.items() if k in budget.finished]
+    verdict = pilot_verdict(rows, costs)
+    roles_left = 2 if a.role == (list(ROLE_CFG)[0]) else 1
+    verdict.update({"role": a.role, "tier": a.tier, "model": model_id, "prices_usd_per_mtok": [pin, pout, src], "participants_run": n,
+                    "plan": plan_units(verdict["mean_cost_per_participant_usd"], BUDGET_CAP_USD - budget.usd, roles_left)})
+    sim_io.write_provenance(RESULTS / a.role)
+    (RESULTS / a.role / f"PILOT_{a.tier}.json").write_text(json.dumps(verdict, indent=1))
+    sim_io.write_provenance_tree(RESULTS / a.role)
+    print(json.dumps({k: verdict[k] for k in ("usable", "reasons", "share_pretests_above_zero", "share_pretests_full", "share_cases_capped", "mean_cost_per_participant_usd", "plan")}, indent=1))
+    print(f"pilot {a.role}/{a.tier}: {n} participant(s); total spend estimate ${budget.usd:.3f} of ${budget.cap_usd:.2f}")
+    return 0
+
+
+def cmd_run(a) -> int:
+    refused = _refuse_without_go()
+    if refused:
+        return refused
+    from evals.study_roles.analysis import plan_units
+    from evals.study_roles.budget_roles import RolesBudget, apply_tier_prices, carried_usd
+    from evals.study_roles.participant import ModelParticipant
+
+    pilot = _read_json(RESULTS / a.role / f"PILOT_{a.tier}.json")
+    if not pilot or not pilot.get("usable"):
+        print(f"REFUSED: no usable pilot for {a.role} on tier {a.tier} (run `pilot` first; the study runs only on a participant option that passed the pre-registered floor criterion).")
+        return 2
+    carried = carried_usd(RESULTS)
+    plan = plan_units(pilot["mean_cost_per_participant_usd"], BUDGET_CAP_USD - carried, a.roles_left)
+    if not plan["run"]:
+        print(f"REFUSED: {plan['why']} (measured pilot cost US${pilot['mean_cost_per_participant_usd']}, US${BUDGET_CAP_USD - carried:.2f} left, {a.roles_left} role(s) left).")
+        return 2
+    units = min(a.units, plan["units"])
+    print(f"plan: {units} unit(s) = {8 * units} participants ({4 * units} coached + {4 * units} A/A); estimated cost US${units * 8 * pilot['mean_cost_per_participant_usd'] * 1.3:.2f}")
+    apply_tier_prices(a.tier)
+    port, model_id = _port_for(a.tier)
+    outdir = RESULTS / a.role
+    budget = RolesBudget(ledger_path=RESULTS / "cost_ledger.jsonl", carried=carried)
+    specs = build_participants(a.role)[:8 * units]
+    done_ids: set[str] = set()
+    csv_path = outdir / "participants.csv"
+    if csv_path.exists():
+        import csv
+        with csv_path.open() as fh:
+            done_ids = {r["participant"] for r in csv.DictReader(fh)}
+
+    def factory(spec):
+        return lambda spec_, slot, phase: ModelParticipant(port, spec_, budget, a.tier, model_id)
+
+    worlds, built = make_worlds(a.role, a.workers, outdir)
+    try:
+        n = asyncio.run(_run_many(a.role, specs, factory, outdir, model_id, budget, worlds=worlds, pace=a.pace, cap=a.cap, poll_s=a.poll, skip_done=done_ids, tier=a.tier))
+    finally:
+        close_worlds(worlds, built)
+        (outdir / "run").mkdir(parents=True, exist_ok=True)
+        _finish_cost(budget, outdir / "run", a.role, a.tier, model_id)
+    from evals.study_roles import report
+    report.write_all(a.role, outdir)
+    print(f"run {a.role}: {n} participant(s); spend estimate ${budget.usd:.3f} of ${budget.cap_usd:.2f}")
+    return 0
+
+
+def cmd_experts(a) -> int:
+    """Record scripted EXPERT runs (no model) through the real pipeline: one case per run, coach off, events and cogs saved under experts/<role>/."""
+    from playwright.async_api import async_playwright
+
+    from evals.study_roles import experts as X
+    from evals.study_roles.participant import ScriptedParticipant
+    from evals.study_roles.runner import run_participant
+
+    sb = cfg(a.role).sandbox
+    outdir = HERE / "experts" / a.role
+    plan = X.expert_plan(a.role, a.count)
+    worlds, built = make_worlds(a.role, 1, outdir)
+    world = worlds[0]
+    saved: list[Path] = []
+
+    async def go() -> None:
+        async with async_playwright() as pw:
+            for n, (task, variant, variation) in enumerate(plan, start=1):
+                spec = X.expert_spec(a.role, n, task, variant)
+                slot = X.expert_slot(a.role, task, variant)
+                box: dict = {}
+
+                def make(spec_, slot_, phase, task=task, variant=variant, variation=variation):
+                    return ScriptedParticipant(spec_, slot_, sb.program(task, variant, "expert", variation=variation), sb.snippets(task, variant))
+
+                def on_finish(engine, box=box, spec=spec):
+                    from evals.study_sim.infra import read_events
+                    box["events"] = read_events(engine.url, spec.person)
+
+                res = await run_participant(spec, world=world, pw=pw, make_policy=make, outdir=outdir, model_id="scripted-expert", pace=a.pace, slots=[slot], on_finish=on_finish)
+                verdict = res.cases[0].verdict if res.cases else None
+                saved.append(X.save_run(a.role, outdir, n, task, variant, variation, verdict, box.get("events", [])))
+                print(f"expert run {n}: {task} v{variant} variation {variation}: {(verdict or {}).get('outcome')}, {len(box.get('events', []))} events, exclusion={res.exclusion or 'none'}", flush=True)
+
+    try:
+        asyncio.run(go())
+    finally:
+        close_worlds(worlds, built)
+    m = X.manifest(outdir, a.role)
+    sim_io.write_provenance_tree(outdir)
+    print(f"{m['runs']} expert runs for {a.role}, all correct: {m['all_correct']} -> {outdir}")
+    return 0
+
+
+def cmd_analyze(a) -> int:
+    from evals.study_roles import report
+
+    report.write_all(a.role, RESULTS / a.role if not a.dir else Path(a.dir))
+    return 0
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(prog="study_roles")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    f = sub.add_parser("fake")
+    f.add_argument("--role", choices=list(ROLE_CFG), required=True)
+    f.add_argument("--index", default="1")
+    f.add_argument("--style", choices=["skipper", "expert", "claimer"], default="skipper")
+    f.add_argument("--obeys", action="store_true")
+    f.add_argument("--dismisses", action="store_true")
+    f.add_argument("--plan", default="", help="per participant: 1=skipper+obeys,5=expert,6=skipper+presses (overrides --index/--style)")
+    f.add_argument("--name", default="")
+    f.add_argument("--layout", default="", choices=["", "v1", "v2"])
+    f.add_argument("--pace", type=float, default=2.0)
+    f.add_argument("--cap", type=int, default=None)
+    f.add_argument("--poll", type=float, default=3.0)
+    f.add_argument("--workers", type=int, default=1)
+    f.set_defaults(fn=cmd_fake)
+    e = sub.add_parser("experts")
+    e.add_argument("--role", choices=list(ROLE_CFG), required=True)
+    e.add_argument("--count", type=int, default=8)
+    e.add_argument("--pace", type=float, default=1.5)
+    e.set_defaults(fn=cmd_experts)
+    pl = sub.add_parser("pilot")
+    pl.add_argument("--role", choices=list(ROLE_CFG), required=True)
+    pl.add_argument("--tier", choices=["fast", "fast-low", "planner"], required=True)
+    pl.add_argument("--pace", type=float, default=2.0)
+    pl.add_argument("--cap", type=int, default=None)
+    pl.add_argument("--poll", type=float, default=3.0)
+    pl.add_argument("--workers", type=int, default=1)
+    pl.set_defaults(fn=cmd_pilot)
+    r = sub.add_parser("run")
+    r.add_argument("--role", choices=list(ROLE_CFG), required=True)
+    r.add_argument("--tier", choices=["fast", "fast-low", "planner"], required=True)
+    r.add_argument("--units", type=int, default=3)
+    r.add_argument("--roles-left", type=int, default=2, help="how many roles still to run, this one included (splits what is left of the budget)")
+    r.add_argument("--pace", type=float, default=2.0)
+    r.add_argument("--cap", type=int, default=None)
+    r.add_argument("--poll", type=float, default=3.0)
+    r.add_argument("--workers", type=int, default=2, help="at most 2 (the lead's limit while the machine is shared)")
+    r.set_defaults(fn=cmd_run)
+    an = sub.add_parser("analyze")
+    an.add_argument("--role", choices=list(ROLE_CFG), required=True)
+    an.add_argument("--dir", default="")
+    an.set_defaults(fn=cmd_analyze)
+    a = ap.parse_args(argv)
+    return a.fn(a)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

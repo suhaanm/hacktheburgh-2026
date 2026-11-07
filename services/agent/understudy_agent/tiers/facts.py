@@ -157,9 +157,19 @@ _PRINTABLE_SINGLE = re.compile(r"^[^\s]$")
 
 
 def key_would_type_text(keys: list[str]) -> bool:
-    """A bare printable key (or shift plus one) types a literal. Shortcuts with ctrl, alt or cmd, and named keys
-    (Enter, Tab, Escape, arrows) do not."""
+    """True when the key press would enter a LITERAL by another route than a handle: a bare printable key (or shift plus
+    one), a paste (cmd, ctrl or shift+insert: the clipboard can hold anything, a password included), or option/alt plus a
+    character (it types a symbol). Other shortcuts (select all, copy) and named keys (Enter, Tab, Escape, arrows) do not."""
     low = [k.lower() for k in keys]
-    if any(k in ("ctrl", "control", "alt", "option", "cmd", "command", "meta", "super") for k in low):
-        return False
-    return any(_PRINTABLE_SINGLE.match(k) for k in keys)
+    mods = {"ctrl", "control", "alt", "option", "cmd", "command", "meta", "super"}
+    has_mod = any(k in mods for k in low)
+    rest = [k for k in low if k not in mods and k != "shift"]
+    if "insert" in rest and "shift" in low:
+        return True                                               # shift+insert pastes
+    if not has_mod:
+        return any(_PRINTABLE_SINGLE.match(k) for k in keys)
+    if any(k in ("alt", "option") for k in low) and any(_PRINTABLE_SINGLE.match(k) for k in rest):
+        return True                                               # option+character types a symbol
+    if any(k in ("cmd", "command", "meta", "super", "ctrl", "control") for k in low) and "v" in rest:
+        return True                                               # paste (also cmd+shift+v, cmd+alt+shift+v)
+    return False

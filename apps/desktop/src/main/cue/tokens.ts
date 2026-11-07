@@ -77,7 +77,8 @@ export const CUE_TOKENS = {
 
   chip: { maxChars: 40, maxWidth: 300, gap: 14 },
   card: { width: 280, maxOptions: 4, gap: 16 },
-  placement: { margin: 14 },
+  // chipReach: how far from its ring a chip may go to find a free spot when every spot touching the ring covers text.
+  placement: { margin: 14, contentAir: 8, chipReach: 120 },
   // Keys while a card is up. Only registered for as long as the card is on screen.
   keys: {
     answer: ['Alt+1', 'Alt+2', 'Alt+3', 'Alt+4'] as const,

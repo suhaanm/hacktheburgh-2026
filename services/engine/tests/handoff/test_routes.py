@@ -94,8 +94,8 @@ def test_injection_attempts_are_refused_and_audited_without_the_text(client):
     audit = (client.data / "audit.jsonl").read_text()
     assert "memory_write_refused" in audit and "IGNORE" not in audit and "evil" in audit.lower() or "origin" in audit
     # the worker's own app (localhost origin) is fine
-    ok = client.put("/memory", json={"markdown": before["markdown"], "base_revision": before["revision"]}, headers={"Origin": "http://localhost:5173"})
-    assert ok.status_code == 200
+    ok = client.put("/memory", json={"markdown": before["markdown"], "base_revision": before["revision"]}, headers={"Origin": "http://localhost:5173", "X-Understudy-Actor": "worker"})
+    assert ok.status_code == 200                                           # a browser names its actor explicitly (http_guard): never defaulted
 
 
 def test_corrections_to_proposal_to_approval_through_the_api(client):

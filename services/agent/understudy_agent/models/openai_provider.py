@@ -15,7 +15,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import re
 import threading
+import time
 from dataclasses import dataclass
 from typing import Any
 
@@ -23,7 +26,8 @@ from . import coverage
 from ..security.sanitize import is_wrapped, sanitize_untrusted, wrap_untrusted
 from .config import ModelIds, effort_for
 from .errors import ConfigError, ModelRefusal, ProviderError, SchemaViolation
-from .imaging import DEFAULT_MAX_H, DEFAULT_MAX_W, ScaledImage, data_url, downscale_png
+from .imaging import DEFAULT_MAX_H, DEFAULT_MAX_W, MAX_FRAME_BYTES, ScaledImage, data_url, downscale_png, prepare_frame
+from .meter import CallRecord, context_fields, default_meter, provider_records_suppressed
 from .port import Action, Done, SafetyStop
 from .prices import cost_estimate
 from .strict import schema_name, to_strict_schema, validate_output
@@ -54,6 +58,7 @@ _CU_INSTRUCTIONS = (
     "`DONE: <one line summary>` without taking another action."
 )
 
+_HANDLE = re.compile(r"^[a-z0-9][a-z0-9_.\-]{0,59}$")
 MAX_UNTRUSTED_CHARS = 60_000
 _MAX_INTERNAL_SCREENSHOTS = 3
 
@@ -103,6 +108,13 @@ def _usage_tokens(resp: Any) -> tuple[int, int]:
     if not u:
         return 0, 0
     return int(getattr(u, "input_tokens", 0) or 0), int(getattr(u, "output_tokens", 0) or 0)
+
+
+def _cached_tokens(resp: Any) -> int | None:
+    """`usage.input_tokens_details.cached_tokens` (the prompt-cache hit), or None when the response does not report it."""
+    d = getattr(getattr(resp, "usage", None), "input_tokens_details", None)
+    v = getattr(d, "cached_tokens", None) if d is not None else None
+    return int(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else None
 
 
 class OpenAIProvider:
@@ -158,6 +170,7 @@ class OpenAIProvider:
         if effort is not None and model not in self._no_reasoning and "reasoning" not in kw:
             kw["reasoning"] = {"effort": effort}
         kw.setdefault("max_output_tokens", self.max_output_tokens)
+        started = time.perf_counter()
         try:
             try:
                 resp = client.responses.create(model=model, **kw)
@@ -169,10 +182,22 @@ class OpenAIProvider:
                 else:
                     raise
         except openai.OpenAIError as e:
+            if not provider_records_suppressed():
+                default_meter().record(CallRecord(role=role, provider="openai", model=model, tier={"planner": "planner", "computer": "computer"}.get(role, "fast"),
+                                                  method=role, ok=False, latency_ms=round((time.perf_counter() - started) * 1000),
+                                                  error_kind=type(e).__name__[:40], **context_fields("openai")))
             raise ProviderError(f"{type(e).__name__}: {str(e)[:300]}") from e
         i, o = _usage_tokens(resp)
         tier = {"planner": "planner", "computer": "computer"}.get(role, "fast")
-        self._tls.last = {"input_tokens": i, "output_tokens": o, "cost_estimate_usd": cost_estimate("openai", tier, i, o)}
+        cached = _cached_tokens(resp)
+        cost = cost_estimate("openai", tier, i, o, cached)
+        self._tls.last = {"input_tokens": i, "output_tokens": o, "cost_estimate_usd": cost, "cached_input_tokens": cached,
+                          "image_tokens": None}   # OpenAI does not break image tokens out of the input count
+        if not provider_records_suppressed():
+            default_meter().record(CallRecord(
+                role=role, provider="openai", model=model, tier=tier, method=role, ok=True,
+                latency_ms=round((time.perf_counter() - started) * 1000), input_tokens=i, output_tokens=o, cost_usd=cost,
+                api="responses", cached_input_tokens=cached, **context_fields("openai")))
         with self._lock:
             self.stats["calls"] += 1
             self.stats["input_tokens"] += i
@@ -239,34 +264,55 @@ class OpenAIProvider:
     def vision(self, image: bytes, prompt: str, schema: dict[str, Any] | None = None, *,
                timeout_s: float | None = None) -> dict[str, Any]:
         scaled = downscale_png(image, *self.max_screen)
+        body, mime = scaled.png, "image/png"
+        if len(body) > MAX_FRAME_BYTES:   # a busy screen as PNG can be large: send a JPEG inside the same 400 KB limit as every frame
+            body, mime = prepare_frame(image, long_edge=max(self.max_screen)), "image/jpeg"
         input_ = [{"role": "user", "content": [
             {"type": "input_text", "text": prompt},
-            {"type": "input_image", "image_url": data_url(scaled.png), "detail": "auto"},
+            {"type": "input_image", "image_url": data_url(body, mime), "detail": "auto"},
         ]}]
         return self._structured("vision", self.models.fast, input_, schema, instructions=_VISION_INSTRUCTIONS,
                                 timeout_s=timeout_s)
 
     # ------------------------------------------------------------------ computer use
     def computer_step(self, goal: str, screenshot: bytes, history: list[dict[str, Any]],
-                      *, session: str | None = None) -> Action | Done | SafetyStop:
+                      *, session: str | None = None, store: bool | None = None, note: str | None = None) -> Action | Done | SafetyStop:
         """One action per turn from a fresh screenshot. Coordinates are returned in the PIXEL space of
         `screenshot` (the caller divides by its display scale to get points). `session` keeps parallel
-        navigators with identical goals apart."""
+        navigators with identical goals apart.
+
+        `store`: None (default) is the CHAINED configuration, unchanged (unless the environment sets UNDERSTUDY_CU_STATELESS=1, which
+        makes None mean False for every caller): the Responses API keeps each response so the next step can
+        continue from `previous_response_id` (its default retention applies to those responses and the frames in them). `False` is
+        STATELESS: every request sets `store: false`, nothing is chained (the goal, the action history and the fresh screenshot are
+        in each request), nothing is kept server-side, and a model request for a screenshot is returned as `Action("screenshot")`
+        for the caller to loop on (answering it internally would need a stored response). `True` stores explicitly.
+
+        `note`: a short line of our own about what just happened (for example that the last action was refused and why). Chained
+        requests are otherwise only a `computer_call_output`, so the model would never hear it; the note rides along as a user message
+        item (stateless requests carry it in the prompt text). Cleaned and cut to 300 characters; never screen content."""
+        if store is None and os.environ.get("UNDERSTUDY_CU_STATELESS", "").strip().lower() in ("1", "true", "yes", "on"):
+            store = False   # the worker-level opt-in: stateless computer use everywhere (privacy default; chaining is off)
         scaled = downscale_png(screenshot, *self.max_screen)
         key = session or "goal:" + hashlib.sha256(goal.encode()).hexdigest()[:16]
         n = len(history)
+        stateless = store is False
+        note_text = sanitize_untrusted(note, max_chars=300).text.strip() if note else ""
         with self._lock:
-            st = self._cu.get(key)
+            st = None if stateless else self._cu.get(key)
+        extra: dict[str, Any] = {} if store is None else {"store": store}
 
         resp = None
         if st is not None and st.steps == n and n > 0:
+            items: list[dict[str, Any]] = [self._cu_output_item(st.call_id, scaled)]
+            if note_text:
+                items.append({"role": "user", "content": [{"type": "input_text", "text": f"Note: {note_text}"}]})
             try:
-                resp = self._cu_create(previous_response_id=st.response_id,
-                                       input=[self._cu_output_item(st.call_id, scaled)])
+                resp = self._cu_create(previous_response_id=st.response_id, input=items, **extra)
             except ProviderError:
                 resp = None  # server-side state gone or stale: restart from the history summary
         if resp is None:
-            resp = self._cu_create(input=self._cu_first_input(goal, scaled, history))
+            resp = self._cu_create(input=self._cu_first_input(goal, scaled, history, note_text), **extra)
 
         parsed: Any = None
         call: Any = None
@@ -274,14 +320,16 @@ class OpenAIProvider:
             parsed, call = self._parse_cu(resp, scaled)
             if not isinstance(parsed, _NeedScreenshot):
                 break
-            if attempt == _MAX_INTERNAL_SCREENSHOTS:
+            if stateless or attempt == _MAX_INTERNAL_SCREENSHOTS:
                 parsed = Action("screenshot", {})
                 break
             resp = self._cu_create(previous_response_id=resp.id,
-                                   input=[self._cu_output_item(call.call_id, scaled)])
+                                   input=[self._cu_output_item(call.call_id, scaled)], **extra)
 
         with self._lock:
-            if isinstance(parsed, Action) and call is not None:
+            if stateless:
+                self._cu.pop(key, None)
+            elif isinstance(parsed, Action) and call is not None:
                 self._cu[key] = _CUState(response_id=resp.id, call_id=call.call_id, steps=n + 1)
             else:
                 self._cu.pop(key, None)
@@ -314,6 +362,8 @@ class OpenAIProvider:
         for i, h in enumerate(history[-12:], 1):
             kind = h.get("kind") or h.get("action") or "?"
             args = dict(h.get("args") or {})
+            if _HANDLE.match(str(h.get("handle") or "")):
+                args["handle"] = h["handle"]            # a fact-handle id (never a value): the model should see which fact was typed
             if "x" in args and "y" in args:
                 args["x"], args["y"] = scaled.to_model(args["x"], args["y"])
             if "text" in args:
@@ -322,8 +372,9 @@ class OpenAIProvider:
             lines.append(f"{i}. {kind} {json.dumps(args, sort_keys=True)}" + ("" if ok is None else f" -> {'ok' if ok else 'failed'}"))
         return "Actions already taken (oldest first):\n" + "\n".join(lines) + "\n"
 
-    def _cu_first_input(self, goal: str, scaled: ScaledImage, history: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        text = f"Goal: {goal}\n{self._history_text(history, scaled)}Take exactly one action toward the goal."
+    def _cu_first_input(self, goal: str, scaled: ScaledImage, history: list[dict[str, Any]], note: str = "") -> list[dict[str, Any]]:
+        text = (f"Goal: {goal}\n{self._history_text(history, scaled)}" + (f"Note: {note}\n" if note else "")
+                + "Take exactly one action toward the goal.")
         return [{"role": "user", "content": [
             {"type": "input_text", "text": text},
             {"type": "input_image", "image_url": data_url(scaled.png), "detail": "original"},

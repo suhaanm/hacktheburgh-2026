@@ -19,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .. import __version__
 from ..genome import GenomeService
+from .. import http_guard
 from ..store import EventStore
 from .errors import install_error_handlers
 
@@ -142,6 +143,8 @@ def create_app(root: Path | str | None = None, warm: bool | None = None) -> Fast
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        if not http_guard.test_relaxed():
+            http_guard.rotate_token()          # the per-boot token for release routes: every server start writes a fresh one (mode 0600)
         if warm:
             warm_up(app)
             warm_extensions(app)
@@ -153,11 +156,18 @@ def create_app(root: Path | str | None = None, warm: bool | None = None) -> Fast
     app = FastAPI(title="Understudy engine", version=__version__, lifespan=lifespan,
                   description="Event store, analytics, packs, queue, audit and kill switch. See docs/API_CONTRACT.md.")
     app.state.warm = {}
-    extra = [o.strip() for o in os.environ.get("UNDERSTUDY_CORS_ORIGINS", "").split(",") if o.strip()]
+    # CORS answers preflights from exactly the origins the guard allows (the same parsed allow-list); the guard itself is added last,
+    # so it is the outermost layer: Host, Origin, content type, actor and token are judged before anything else runs.
+    ext_origins, ext_regex = http_guard.cors_extension()
     app.add_middleware(
-        CORSMiddleware, allow_origins=DASHBOARD_ORIGINS + extra, allow_methods=["*"], allow_headers=["*"], max_age=600,
+        CORSMiddleware, allow_origins=http_guard.cors_origins() + ext_origins, allow_origin_regex=ext_regex,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], allow_headers=http_guard.CORS_ALLOW_HEADERS, max_age=600,
     )
+    app.add_middleware(http_guard.GuardMiddleware, port=int(os.environ.get("UNDERSTUDY_ENGINE_LISTEN_PORT") or os.environ.get("ENGINE_PORT", "7700")), policy=http_guard.ENGINE_POLICY,
+                   on_refusal=http_guard.RefusalAudit())
     install_error_handlers(app)
+    if not http_guard.test_relaxed():
+        http_guard.ensure_token()              # make sure data/.token exists; importing this module (tests, tools) never rotates a live token
     app.state.store = EventStore(root)
     app.state.genome = GenomeService(app.state.store)
     from ..coach import CoachBrain

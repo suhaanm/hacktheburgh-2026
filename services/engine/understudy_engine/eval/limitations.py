@@ -26,6 +26,11 @@ ABSORB = {"ana-claims-synthetic": "eval-claims-simulated", "ana-study-power": "e
 CORE_SECTIONS = ("deficit_recovery", "null_placebo", "hazard", "ope", "routing", "ski_rental", "presence", "routines", "agent_claims", "agent_runs", "redteam", "study")
 
 
+def _nz(x: Any) -> str:
+    """A count for prose; an unrecorded one is said to be unrecorded, never printed as None."""
+    return "an unrecorded number of" if x is None else str(x)
+
+
 def _pct(x: float | None, nd: int = 0) -> str:
     return "n/a" if x is None else f"{100 * x:.{nd}f}%"
 
@@ -226,15 +231,17 @@ def computed_entries(sections: dict[str, Any]) -> list[dict[str, str]]:
                                   + ". It does not show the fix generalises.", "high", "engine-eval:agent_runs"))
             t3 = live.get("tier3") or {}
             out.append(_entry("eval-agent-live-tier3",
-                              f"Tier 3 (computer use) is not demonstrated on the benefits task: {t3.get('runs')} runs against a simulated actuator on real screenshots made "
-                              f"{t3.get('pointer_actions')} pointer actions and landed on an interactive element {t3.get('landed_on_interactive')} times. "
+                              f"Tier 3 (computer use) is not demonstrated on the benefits task: {_nz(t3.get('runs'))} runs against a simulated actuator on real screenshots made "
+                              f"{_nz(t3.get('pointer_actions'))} pointer actions and landed on an interactive element {_nz(t3.get('landed_on_interactive'))} times. "
                               "Nothing is clicked in that setting, so a claim of done there is a false claim by construction.", "high", "engine-eval:agent_runs"))
             cs = live.get("cost") or {}
             pr = cs.get("price_assumption_usd_per_million") or {}
+            usd_ = cs.get("cumulative_usd_at_assumed_rates")
+            tok = (f" ({cs.get('tokens_in')} tokens in, {cs.get('tokens_out')} out)" if cs.get("tokens_in") is not None and cs.get("tokens_out") is not None else "")
             out.append(_entry("eval-agent-live-cost",
                               f"Cost is an estimate at placeholder rates ({pr.get('input')} and {pr.get('output')} USD per million tokens in and out), not the provider's price list: "
-                              f"about {cs.get('cumulative_usd_at_assumed_rates')} USD for the rows in the file ({cs.get('tokens_in')} tokens in, {cs.get('tokens_out')} out), "
-                              f"{cs.get('live_calls_in_rows')} live calls and {cs.get('cache_hits_in_rows')} cache hits across the runs. Cached answers cost nothing on a re-run.",
+                              + (f"about {usd_} USD for the rows in the file{tok}" if usd_ is not None else "not measured for the rows in the file") +
+                              f", {cs.get('live_calls_in_rows')} live calls and {cs.get('cache_hits_in_rows')} cache hits across the runs. Cached answers cost nothing on a re-run.",
                               "medium", "engine-eval:agent_runs"))
         else:
             out.append(_entry("eval-agent-live-absent", "Every agent run in this report uses the deterministic mock model on sandbox sites; no real-model run is included"
@@ -294,7 +301,7 @@ def computed_entries(sections: dict[str, Any]) -> list[dict[str, str]]:
                               "high", "engine-eval:redteam"))
     for name in CORE_SECTIONS:
         s = sections.get(name)
-        if isinstance(s, dict) and s.get("status") in ("pending", "not_run", "failed"):
+        if isinstance(s, dict) and s.get("status") in ("pending", "not_run", "failed", "invalid_provenance"):
             out.append(_entry(f"eval-{name}-{s['status']}", f"Section '{name}' has no numbers: {s.get('reason')}.", "high", f"engine-eval:{name}"))
     return out
 

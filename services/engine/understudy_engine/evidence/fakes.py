@@ -81,7 +81,9 @@ class VariedStyle(T.Style):
             return r.choice([f"{v:.1f} hours", f"about {half_up(v)} hours" if v >= 1 else f"{v:.1f} hours", f"{half_up(v * 60)} minutes"])
         if unit == "frac":
             p = v * 100
-            c = [f"{half_up(p)}%", f"{p:.1f}%", f"{half_up(p)} percent", f"about {int(p)}%", f"about {int(N._nearest(p, 5))}%"]
+            c = [f"{half_up(p)}%", f"{p:.1f}%", f"{half_up(p)} percent", f"about {int(p)}%"]
+            if p >= 10:
+                c.append(f"about {int(N._nearest(p, 5))}%")
             if p >= 20:
                 c.append(f"about {int(N._nearest(p, 10))}%")
             c.append(f"{v:.2f}")
@@ -173,7 +175,7 @@ EXPECTED: dict[str, set[str]] = {
     "unvetted_advice": {"unvetted_advice", "instruction_like"}, "wrong_direction": {"wrong_direction"},
     "swapped_attribution": {"swapped_attribution", "name_not_cited"}, "unknown_field": {"unknown_field"},
     "rank_claim_false": {"rank_claim_false"}, "share_claim_false": {"share_claim_false"}, "unknown_id": {"unknown_id"},
-    "invented_number_word": {"invented_number"}, "vague_quantity": {"vague_quantity"}, "schema_extra_key": {"schema"},
+    "invented_number_word": {"invented_number", "uncited_number"}, "vague_quantity": {"vague_quantity"}, "schema_extra_key": {"schema"},
     "schema_too_long": {"schema"},
 }
 
@@ -467,3 +469,64 @@ def enrich(pk: EvidencePacket, rng: random.Random) -> EvidencePacket:
 
 def faithful_menu(pk: EvidencePacket) -> list[str]:
     return M.applicable(pk)
+
+
+# ------------------------------------------------------------------------------------------------ hand-written paraphrases
+def _paraphrases(pk: EvidencePacket, style: VariedStyle) -> list[T.S]:
+    """Correct sentences written in ordinary English with frames the templates do not use. Each one is true of the packet; none is
+    emitted unless its claim holds (a "biggest" is only said of the largest). Hand-written, so n is small and the frames are ours."""
+    S = T.S
+    r = style.render
+    out: list[T.S] = []
+    g = pk.gap
+    pos = sorted(((hid, h) for hid, h in pk.habits.items() if h.seconds >= 0.5), key=lambda t: -t[1].seconds)
+    if g and g.case_s is not None and g.reference_s is not None:
+        out.append(S(f"You spent {r(g.case_s, 's')} on this case; the nearest expert needed {r(g.reference_s, 's')}.", ["gap.case_s", "gap.reference_s"]))
+        out.append(S(f"In round numbers, {r(g.case_s, 's')} against {r(g.reference_s, 's')}.", ["gap.case_s", "gap.reference_s"]))
+        if g.gap_s is not None and g.gap_s > 0.5:
+            out.append(S(f"That is {r(g.gap_s, 's')} more than the nearest expert took.", ["gap.gap_s"]))
+    if len(pos) >= 2:
+        (a, ha), (b, hb) = pos[0], pos[1]
+        out.append(S(f"The biggest contributors were {V.HABIT_NAME[a]} ({r(ha.seconds, 's')}) and {V.HABIT_NAME[b]} ({r(hb.seconds, 's')}).",
+                     [f"habit.{a}.seconds", f"habit.{b}.seconds"]))
+    if pos:
+        a, ha = pos[0]
+        out.append(S(f"{V.HABIT_NAME[a].capitalize()} stands out at {r(ha.seconds, 's')} on this case.", [f"habit.{a}.seconds"]))
+        out.append(S(f"{V.HABIT_NAME[a].capitalize()} accounts for {r(ha.seconds, 's')} of this case.", [f"habit.{a}.seconds"]))
+    if g and g.cohort_gap_s is not None and g.cohort_lo is not None and g.cohort_hi is not None and g.cohort_gap_s > 0:
+        out.append(S(f"For comparison, across {pk.meta.n} {V.N_UNIT_PHRASE[pk.meta.n_unit]} novices average {r(g.cohort_gap_s, 's')} more per case "
+                     f"(95% interval {style.range(g.cohort_lo, g.cohort_hi, 's')}).", ["gap.cohort_gap_s", "gap.cohort_lo", "gap.cohort_hi", "meta.n"]))
+    if g and g.placebo_s is not None and g.placebo_lo is not None and g.placebo_hi is not None and g.placebo_lo <= 0 <= g.placebo_hi and g.placebo_s > 0:
+        out.append(S(f"A control that compares experts with experts gives {r(g.placebo_s, 's')} longer, and its interval includes zero.",
+                     ["gap.placebo_s", "gap.placebo_lo", "gap.placebo_hi"]))
+    h = pk.hazard
+    if h and h.peak_p is not None and h.alarm_threshold is not None:
+        out.append(S(f"The stuck reading peaked at {r(h.peak_p, 'frac')}, with an alarm threshold of {r(h.alarm_threshold, 'frac')}.",
+                     ["hazard.peak_p", "hazard.alarm_threshold"]))
+    if h and h.p_now is not None:
+        out.append(S(f"The model puts the chance you were stuck at {r(h.p_now, 'frac')}.", ["hazard.p_now"]))
+    return out
+
+
+@dataclass
+class ParaphraseFake:
+    """A faithful stand-in that writes ordinary English with frames the templates do not use (see ``_paraphrases``)."""
+
+    name: str = "local"
+    seed: int = 0
+    model: str = "fake-paraphrase"
+    calls: int = 0
+
+    def ready(self) -> str | None:
+        return None
+
+    def generate(self, req: ExplainRequest, tab: FactTable) -> dict[str, Any]:
+        rng = random.Random(f"para:{self.seed}:{self.calls}")
+        self.calls += 1
+        pool = _paraphrases(req.packet, VariedStyle(rng))
+        if not pool:
+            raise BackendError("inapplicable")
+        rng.shuffle(pool)
+        pick = pool[: rng.choice([2, 3, 4])]
+        return {"sections": [{"kind": "answer", "sentences": [{"text": s.text, "uses": s.uses} for s in pick]}],
+                "coach_actions": req.menu[:1]}

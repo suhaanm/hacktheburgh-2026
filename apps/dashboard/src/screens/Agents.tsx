@@ -1,14 +1,13 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { ApiError, api } from "../api";
 import { useLoad } from "../hooks";
-import { CheckChip, EmptyState, ErrorState, Loading, OriginBadge, PageHead, StatePill } from "../components/common";
+import { CheckChip, EmptyState, ErrorState, ExampleBadge, Loading, Note, OriginBadge, PageHead, SourceNote, StatePill } from "../components/common";
 import { Facts } from "../components/Facts";
 import { useToast } from "../components/Toasts";
-import { KIND_DOES, KIND_LABEL, budgetBars, countStates, fmtClock, isActive, kindLabel, leaseLeft, resultWithoutSteps, runActive, stateTone, stepsOf } from "../lib/agents";
+import { KIND_DOES, budgetBars, childResults, countStates, falseClaim, fmtClock, isActive, kindLabel, leaseLeft, resultWithoutSteps, runActive, stateTone, stepsOf, stopReason, verifiedTally } from "../lib/agents";
 import { fmtDateTime } from "../lib/format";
-import type { AgentNode, AgentRun, SpawnKind } from "../types";
+import type { AgentKind, AgentNode, AgentRun, SpawnKind } from "../types";
 
-const KINDS = Object.keys(KIND_LABEL) as SpawnKind[];
 const POLL_MS = 3000;
 
 export default function Agents() {
@@ -39,8 +38,10 @@ export default function Agents() {
         eyebrow="Agents"
         title={n.active > 0 ? `${n.active} background ${n.active === 1 ? "run is" : "runs are"} working` : "No background run is working"}
         lede="A planner splits a job into a few small helpers. Each helper has a budget, a short lease on a few tools, and a workspace of its own. You can stop any run, or end one helper, at once."
-        aside={<OriginBadge meta={runs.meta} />}
+        aside={<><OriginBadge meta={runs.meta} /><ExampleBadge why={runs.why} /></>}
       />
+      <SourceNote why={runs.why} />
+      {runs.why && <Note>These are example runs. Stop, Revoke and Run in background here only change this screen: nothing is started or stopped for real.</Note>}
 
       {list.length === 0 ? (
         <EmptyState title="No background runs yet" body="Start one below. It works in an isolated copy, reports what it found, and never applies a change without your approval." />
@@ -51,18 +52,20 @@ export default function Agents() {
       )}
 
       <hr className="rule" />
-      <Spawn onStarted={runs.reload} />
+      <Spawn onStarted={runs.reload} example={!!runs.why} />
     </div>
   );
 }
 
-function Bars({ b, s }: { b: AgentNode["budget"]; s: AgentNode["spent"] }) {
+/** A budget bar turns red only when a run that is still going, or that failed, has used it all: a run that finished within budget is not in trouble. */
+function Bars({ b, s, state }: { b: AgentNode["budget"]; s: AgentNode["spent"]; state: string }) {
+  const finishedWell = state === "done" || state === "completed";
   return (
     <div className="budgets">
       {budgetBars(b, s).map((x) => (
-        <div key={x.key} className="budget" data-over={x.over}>
+        <div key={x.key} className="budget" data-over={x.over && !finishedWell}>
           <span className="budget__label">{x.label}</span>
-          <span className="budget__track" role="img" aria-label={`${x.label}: ${x.text}${x.over ? ", all spent" : ""}`}><i style={{ width: `${x.frac * 100}%` }} /></span>
+          <span className="budget__track" role="img" aria-label={`${x.label}: ${x.text}${x.over && !finishedWell ? ", all spent" : ""}`}><i style={{ width: `${x.frac * 100}%` }} /></span>
           <span className="budget__text tabular">{x.text}</span>
         </div>
       ))}
@@ -104,7 +107,7 @@ function Run({ run: r, elapsed, onChanged }: { run: AgentRun; elapsed: number; o
             <span className="tree__role">{r.parent.role}</span>
             <StatePill state={r.parent.state} tone={stateTone(r.parent.state)} />
           </div>
-          <Bars b={r.parent.budget} s={r.parent.spent} />
+          <Bars b={r.parent.budget} s={r.parent.spent} state={r.parent.state} />
           <ul className="tree__children">
             {r.children.map((c) => <Child key={c.id} runId={r.run_id} c={c} elapsed={elapsed} onChanged={onChanged} />)}
           </ul>
@@ -140,12 +143,12 @@ function Child({ runId, c, elapsed, onChanged }: { runId: string; c: AgentNode; 
           </button>
         )}
       </div>
-      <Bars b={c.budget} s={c.spent} />
+      <Bars b={c.budget} s={c.spent} state={c.state} />
       {l && (
         <p className="lease" data-revoked={revoked}>
           <span className="t-label">Lease</span>{" "}
           {revoked ? <b>revoked, no tools in scope</b> : <>
-            <b className="tabular">{live ? `${fmtClock(left)} left` : "ended"}</b> · <span className="tabular">{l.steps_left} {l.steps_left === 1 ? "step" : "steps"} left</span> · tools: {l.tools.length ? l.tools.map((t) => <code key={t}>{t}</code>) : "none"}
+            <b className="tabular">{live ? `${fmtClock(left)} left` : stopReason(l.stop_reason) ? `ended: ${stopReason(l.stop_reason)}` : "ended"}</b> · <span className="tabular">{l.steps_left} {l.steps_left === 1 ? "step" : "steps"} left</span> · tools: {l.tools.length ? l.tools.map((t) => <code key={t}>{t}</code>) : "none"}
           </>}
         </p>
       )}
@@ -159,15 +162,38 @@ function Detail({ id }: { id: string }) {
   if (d.status === "error" && !d.data) return <ErrorState error={d.error} retry={d.reload} what="this run's result" />;
   if (!d.data) return <Loading label="Loading the result" />;
   const steps = stepsOf(d.data.result);
+  const kids = childResults(d.data.result);
   const rest = resultWithoutSteps(d.data.result);
+  const tally = verifiedTally(d.data.result);
   return (
     <div className="stack">
       <div className="stack" style={{ gap: "var(--space-1)" }}>
         <span className="t-label">Artifacts</span>
         {d.data.artifacts.length === 0 ? <p className="note">None yet.</p> : (
-          <ul className="plain-list">{d.data.artifacts.map((a) => <li key={a.name} className="note"><b>{a.name}</b> <span className="pill">{a.kind}</span> <code>{a.path_ref}</code></li>)}</ul>
+          <ul className="plain-list">{d.data.artifacts.map((a) => <li key={`${a.name}-${a.path_ref}`} className="note"><b>{a.name}</b> <span className="pill">{a.kind}</span> <code>{a.path_ref}</code></li>)}</ul>
         )}
       </div>
+      {tally && <p className="note" data-testid="tally">{tally}.</p>}
+      {kids.map((k) => (
+        <div key={k.id} className="stack child-result" data-claim={falseClaim(k) ? "false" : "ok"}>
+          <div className="row">
+            <b>{k.role.replace(/_/g, " ")}</b>
+            <StatePill state={k.status} tone={stateTone(k.status)} />
+            {k.verified === true && <span className="pill"><span className="pill__glyph-char" aria-hidden="true">✓</span>checked by code</span>}
+            {k.verified === false && <span className="pill pill--blocked"><span className="pill__glyph-char" aria-hidden="true">✕</span>did not check out</span>}
+          </div>
+          {falseClaim(k) && <p className="field__error" role="alert">This helper said it succeeded, but the checks below do not back that up. Do not rely on its output.</p>}
+          {k.checks.length > 0 && (
+            <ul className="plain-list">{k.checks.map((c) => <li key={c.name} className="note"><span aria-hidden="true">{c.ok ? "✓" : "✕"}</span> {c.name}{c.ok ? "" : " failed"}{c.detail ? <span className="u-muted"> ({c.detail})</span> : null}</li>)}</ul>
+          )}
+          {k.steps.length > 0 && (
+            <details className="details-lite"><summary>{k.steps.length} steps, each checked by code afterwards</summary>
+              <ol className="steps">{k.steps.map((s, i) => <li key={i}><span>{s.label}</span>{s.check ? <CheckChip check={s.check} /> : <span className="pill">not checked</span>}</li>)}</ol>
+            </details>
+          )}
+          {k.output != null && <Facts title="What it found" v={k.output} />}
+        </div>
+      ))}
       {steps.length > 0 && (
         <div className="stack" style={{ gap: "var(--space-1)" }}>
           <span className="t-label">Steps, each checked by code afterwards</span>
@@ -179,9 +205,13 @@ function Detail({ id }: { id: string }) {
   );
 }
 
-function Spawn({ onStarted }: { onStarted: () => void }) {
+function Spawn({ onStarted, example }: { onStarted: () => void; example: boolean }) {
   const toast = useToast();
+  const kinds = useLoad(() => api.agentsKinds(), []);
+  const list: AgentKind[] = kinds.data ?? [];
   const [kind, setKind] = useState<SpawnKind>("programming.commit_analyst");
+  const current = list.find((k) => k.kind === kind) ?? list[0];
+  useEffect(() => { if (list.length && !list.some((k) => k.kind === kind)) setKind(list[0].kind); }, [list, kind]);
   const [mode, setMode] = useState<"foreground" | "nightly">("foreground");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -201,9 +231,9 @@ function Spawn({ onStarted }: { onStarted: () => void }) {
         <div className="field">
           <label className="field__label" htmlFor="spawn-kind">Job</label>
           <select id="spawn-kind" className="select" value={kind} onChange={(e) => setKind(e.target.value as SpawnKind)}>
-            {KINDS.map((k) => <option key={k} value={k}>{kindLabel(k)}</option>)}
+            {list.map((k) => <option key={k.kind} value={k.kind}>{k.title || kindLabel(k.kind)}</option>)}
           </select>
-          <span className="field__hint">{KIND_DOES[kind]}</span>
+          <span className="field__hint">{current?.describe ?? KIND_DOES[kind] ?? ""}{current?.roles?.length ? ` Helpers: ${current.roles.map((r) => r.replace(/_/g, " ")).join(", ")}.` : ""}</span>
         </div>
         <div className="field">
           <span className="field__label" id="spawn-mode">When</span>
@@ -214,7 +244,7 @@ function Spawn({ onStarted }: { onStarted: () => void }) {
           <span className="field__hint">{mode === "foreground" ? "Works while you work, steps aside the moment you touch the keyboard, and reports at a natural break." : "Waits for a quiet window when you are away, using the same start-or-wait rule as your other routines."}</span>
         </div>
         {err && <p className="field__error" role="alert">{err}</p>}
-        <div className="row"><button type="button" className="btn btn--primary" disabled={busy} onClick={go}>{busy ? "Starting" : "Run in background"}</button></div>
+        <div className="row"><button type="button" className="btn btn--primary" disabled={busy || !current} onClick={go}>{busy ? "Starting" : "Run in background"}</button>{example && <span className="note">Example mode: this adds a pretend run to the list above.</span>}</div>
       </div>
     </section>
   );

@@ -50,6 +50,11 @@ def f(x: Any, nd: int = 2, signed: bool = False) -> str:
     return str(x)
 
 
+def usd(x: Any) -> str:
+    """A cost, or plainly that it was not measured (never the word None)."""
+    return "not measured" if x is None else f"about {x} USD"
+
+
 def pc(x: Any, nd: int = 0) -> str:
     return "n/a" if x is None else f"{100 * float(x):.{nd}f}%"
 
@@ -208,7 +213,10 @@ def _agent_live(live: dict[str, Any]) -> str:
     if fix:
         body.append(row("After the fix, glitch only: IN-SAMPLE, made after seeing the glitch result", fix))
     head = ["Condition (REAL MODEL, small n)", "Households", "Passed the code check [95%]", "Claimed finished", "False claims", "Paused by the detector", "Attacks that succeeded", "Mean steps", "Mean seconds", "Tiers used"]
-    txt = f"**Real model ({live.get('households')} households per condition, {live.get('runs_total')} runs, tier 1 disabled).** {live.get('note')}\n\n" + table(head, body)
+    hc = live.get("condition") or live.get("headline_condition")
+    txt = (f"**Real model ({live.get('households')} households per condition, {live.get('runs_total')} runs, tier 1 disabled).** "
+           f"Headline condition: **{labels.get(hc, hc)}**: {live.get('pass')} of {live.get('n')} passed the code check, {live.get('false_claims')} false claims "
+           f"(these two numbers are for that condition alone; every other condition is in its own row below). {live.get('note')}\n\n" + table(head, body))
     gl = cond.get("glitch") or {}
     if gl:
         txt += (f"\n\nOn the one-off error page the model said it was finished in {gl.get('claimed_success')} of {gl.get('n')} runs and {gl.get('false_claims')} of those claims were false; "
@@ -219,12 +227,13 @@ def _agent_live(live: dict[str, Any]) -> str:
                 f"(before: {b.get('pass')} of {b.get('n')}). **This is in-sample** and only {fix.get('n')} runs"
                 + (f" ({fix.get('dropped_after_budget_stop')} later rows dropped when the run budget stopped)" if fix.get("dropped_after_budget_stop") else "") + ".")
     t3 = live.get("tier3") or {}
-    txt += (f"\n\nTier 3 (computer use) is not demonstrated on the benefits task: {t3.get('runs')} runs with a simulated actuator made {t3.get('pointer_actions')} pointer actions "
-            f"and landed on an interactive element {t3.get('landed_on_interactive')} times.")
+    txt += (f"\n\nTier 3 (computer use) is not demonstrated on the benefits task: {f(t3.get('runs'), 0)} runs with a simulated actuator made {f(t3.get('pointer_actions'), 0)} pointer actions "
+            f"and landed on an interactive element {f(t3.get('landed_on_interactive'), 0)} times.")
     c = live.get("cost") or {}
     pr = c.get("price_assumption_usd_per_million") or {}
-    txt += (f"\n\nCost: an estimate at placeholder rates ({pr.get('input')} and {pr.get('output')} USD per million tokens in and out), about {c.get('cumulative_usd_at_assumed_rates')} USD for these rows; "
-            f"{c.get('live_calls_in_rows')} live calls and {c.get('cache_hits_in_rows')} cache hits across the runs.")
+    txt += (f"\n\nCost: an estimate at placeholder rates ({pr.get('input')} and {pr.get('output')} USD per million tokens in and out), {usd(c.get('cumulative_usd_at_assumed_rates'))} for these rows"
+            + (f" (at smaller-model rates: {', '.join(f'{v} USD' for k, v in (c.get('usd_estimates') or {}).items() if 'placeholder' not in k and 'assumed' not in k)})" if len(c.get("usd_estimates") or {}) > 1 else "")
+            + f"; {c.get('live_calls_in_rows')} live calls and {c.get('cache_hits_in_rows')} cache hits across the runs.")
     return txt
 
 
@@ -300,7 +309,7 @@ def _cell(v: Any) -> str:
     return "n/a" if v is None else str(v).replace("|", "/")
 
 
-def _generic_tables(s: dict[str, Any], skip: tuple[str, ...], caption: str) -> str:
+def _generic_tables(s: dict[str, Any], skip: tuple[str, ...], caption: str, max_rows: int = 200) -> str:
     """Scalars as bullets, list-of-dicts and dict-of-dicts as tables, every block headed by ``caption`` (the shapes belong to the owner)."""
     out: list[str] = []
     scal = [(k, v) for k, v in s.items() if k not in skip and not isinstance(v, (dict, list)) and v is not None]
@@ -316,7 +325,8 @@ def _generic_tables(s: dict[str, Any], skip: tuple[str, ...], caption: str) -> s
             rows = [{"key": kk, **x} for kk, x in v.items()]
         if rows:
             cols = list(dict.fromkeys(c for x in rows for c in x))[:9]
-            out.append(f"{k} ({caption}):\n\n" + table(cols, [[_cell(x.get(c)) for c in cols] for x in rows]))
+            more = f"\n\n({len(rows) - max_rows} more rows in report.json)" if len(rows) > max_rows else ""
+            out.append(f"{k} ({caption}):\n\n" + table(cols, [[_cell(x.get(c)) for c in cols] for x in rows[:max_rows]]) + more)
         elif isinstance(v, dict):
             inner = ", ".join(f"{kk}: {_cell(vv)}" for kk, vv in list(v.items())[:12])
             out.append(f"- {k} ({caption}): {inner}")
@@ -441,7 +451,8 @@ def _proactive(s: dict[str, Any]) -> str:
     rows = [["Judge (the shipped rules)", f"{ov.get('tp')} of {ov.get('surfaced')} cards were worth it", f"{pc(ov.get('precision'))} {ci(ov.get('precision_ci'), pct=True)}",
              f"{pc(ov.get('recall'))} {ci(ov.get('recall_ci'), pct=True)}"]]
     for k, v in (w.get("baselines") or {}).items():
-        rows.append([k.replace("_", " "), f"{v.get('tp')} of {v.get('surfaced')}", f"{pc(v.get('precision'))} {ci(v.get('precision_wilson'), pct=True)}", f"{pc(v.get('recall'))} {ci(v.get('recall_wilson'), pct=True)}"])
+        got = f"{f(v.get('tp'), 1)} of {f(v.get('surfaced'), 0)}" if v.get("surfaced") is not None else f"{f(v.get('tp'), 1)} worth it (surfaced: n/a)"
+        rows.append([k.replace("_", " "), got, f"{pc(v.get('precision'))} {ci(v.get('precision_wilson'), pct=True)}", f"{pc(v.get('recall'))} {ci(v.get('recall_wilson'), pct=True)}"])
     out = [table(["What surfaces cards (synthetic personas, learners and git learners)", "Cards worth surfacing", "Precision [95%]", "Recall [95%]"], rows)]
     out.append(f"Interval over {ov.get('n_people')} people (bootstrap), which is the honest one; the Wilson interval on pooled counts is too narrow because points are correlated.")
     st = s.get("structure") or {}
@@ -491,8 +502,9 @@ RENDER = {"deficit_recovery": _deficit, "null_placebo": _null, "hazard": _hazard
 
 
 def _generic(s: dict[str, Any]) -> str:
-    scal = [(k, v) for k, v in s.items() if k not in ("meta", "limitations", "caveats") and isinstance(v, (int, float, str, bool)) and v is not None]
-    return "\n".join(f"- {k}: {f(v, 3) if isinstance(v, float) else v}" for k, v in scal[:14]) or "(see report.json)"
+    """A section with no dedicated renderer (a newer owner, shape unknown): scalars, small tables and one-line dicts, each captioned with its origin."""
+    origin = (s.get("meta") or {}).get("origin", "synthetic")
+    return _generic_tables(s, ("meta", "limitations", "caveats", "owner_status", "trimmed", "statement"), origin, max_rows=20)
 
 
 def evidence_map_text(emap: list[dict[str, Any]]) -> str:
@@ -536,8 +548,11 @@ def render(report: dict[str, Any]) -> str:
             out += [f"**{s['status'].upper().replace('_', ' ')}**: {s['reason']}{tail}", ""]
             continue
         if name == "study" and "status" in s:
-            out += [f"**NOT RUN**: {s['reason']}. The page says so; no numbers are shown.", ""]
+            label = "NOT RUN" if s["status"] == "not_run" else s["status"].upper().replace("_", " ")
+            out += [f"**{label}**: {s['reason']}. The page says so; no numbers are shown.", ""]
             continue
+        if name not in RENDER and isinstance(s.get("statement"), str):
+            out += [s["statement"], ""]
         out += [RENDER.get(name, _generic)(s), ""]
         if s.get("caveats"):
             cav = [c if not sim or SIM in c.lower() else f"{SIM[0].upper() + SIM[1:]}: {c}" for c in s["caveats"]]

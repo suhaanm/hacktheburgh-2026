@@ -36,8 +36,9 @@ def repo_root() -> Path:
 
 def data_dir() -> Path:
     """Shared data directory (queue, audit, KILL, runs, golden). Env override for tests."""
-    env = os.environ.get("UNDERSTUDY_DATA_DIR")
-    return Path(env) if env else repo_root() / "data"
+    from .security.paths import data_dir as _data_dir     # ONE rule for the data directory (S-12): strip, expand ~, resolve
+
+    return _data_dir()
 
 
 def kill_flag_path() -> Path:

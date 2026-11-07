@@ -16,7 +16,7 @@ export const STANDIN_CSS = `
 .si-top span{color:var(--si-muted);font-size:13px}
 .si-main{display:grid;grid-template-columns:320px 480px 340px;gap:30px;padding:46px 120px 0}
 .si-card{background:var(--si-panel);border:1px solid var(--si-line);border-radius:6px;padding:18px 20px}
-.si-card h2{margin:0 0 14px;font:600 14px/1.2 'Source Sans 3',system-ui,sans-serif;color:var(--si-fg)}
+.si-card h2{width:fit-content;margin:0 0 14px;font:600 14px/1.2 'Source Sans 3',system-ui,sans-serif;color:var(--si-fg)}
 .si-rec dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:9px 12px}
 .si-rec dt{color:var(--si-muted)}
 .si-rec dd{margin:0;font-weight:500;font-variant-numeric:tabular-nums}
@@ -25,8 +25,9 @@ export const STANDIN_CSS = `
 .si-input{height:32px;border:1px solid var(--si-control);border-radius:4px;background:var(--si-input);padding:0 10px;display:flex;align-items:center;font-variant-numeric:tabular-nums}
 .si-btn{display:inline-flex;align-items:center;justify-content:center;height:42px;min-width:132px;padding:0 20px;border-radius:4px;background:var(--si-primary);color:var(--si-on-primary);font:600 14px/1 'Source Sans 3',system-ui,sans-serif;margin-top:8px}
 .si-result{margin-top:20px;padding-top:16px;border-top:1px solid var(--si-line);color:var(--si-muted)}
-.si-result strong{display:block;margin-top:2px;font:600 24px/1.1 'Source Sans 3',system-ui,sans-serif;color:var(--si-fg);font-variant-numeric:tabular-nums}
-.si-link{display:inline-block;margin-top:12px;padding:3px 0;color:var(--si-link);text-decoration:underline;text-underline-offset:3px;font-weight:500}
+.si-result span,.si-result strong{display:block;width:fit-content}
+.si-result strong{margin-top:2px;font:600 24px/1.1 'Source Sans 3',system-ui,sans-serif;color:var(--si-fg);font-variant-numeric:tabular-nums}
+.si-link{margin-top:12px !important;padding:3px 0;color:var(--si-link);text-decoration:underline;text-underline-offset:3px;font-weight:500}
 .si-area{height:210px;border:1px solid var(--si-control);border-radius:4px;background:var(--si-input);padding:10px;color:var(--si-muted)}
 .si-save{display:inline-flex;align-items:center;height:32px;padding:0 14px;margin-top:12px;border:1px solid var(--si-control);border-radius:4px;font-weight:500}
 @media (max-width: 900px){
@@ -40,7 +41,8 @@ export const STANDIN_CSS = `
 }
 `
 
-export function StandIn({ dark }: { dark: boolean }): ReactElement {
+// `scroll`: on a narrow screen the page is one tall column; this scrolls it, so a target further down is on screen (as the worker would have it).
+export function StandIn({ dark, scroll = 0 }: { dark: boolean; scroll?: number }): ReactElement {
   const vars = dark
     ? { '--si-bg': '#0a0e13', '--si-panel': '#12181f', '--si-bar': '#161d26', '--si-fg': '#e7ebf1', '--si-muted': '#9aa6b8', '--si-line': '#283341', '--si-control': '#6c7a90', '--si-input': '#0e1319', '--si-primary': '#2a4f9c', '--si-on-primary': '#ffffff', '--si-link': '#8bb4ff' }
     : { '--si-bg': '#e9edf2', '--si-panel': '#ffffff', '--si-bar': '#f6f7f9', '--si-fg': '#141922', '--si-muted': '#566074', '--si-line': '#d8dee8', '--si-control': '#7d889b', '--si-input': '#ffffff', '--si-primary': '#1f4fa8', '--si-on-primary': '#ffffff', '--si-link': '#1f4fa8' }
@@ -56,62 +58,62 @@ export function StandIn({ dark }: { dark: boolean }): ReactElement {
       </div>
       <div className="si-page">
         <div className="si-top">
-          <strong>Benefit check</strong>
-          <span>Practice case 4417 (synthetic) · Calculator A</span>
+          <strong data-content>Benefit check</strong>
+          <span data-content>Practice case 4417 (synthetic) · Calculator A</span>
         </div>
-        <div className="si-main">
+        <div className="si-main" style={scroll > 0 && typeof window !== 'undefined' && window.innerWidth <= 900 ? { transform: `translateY(-${scroll}px)` } : undefined}>
           <section className="si-card si-rec" data-cue-target="read_case" aria-label="Household record">
-            <h2>Household record</h2>
+            <h2 data-content>Household record</h2>
             <dl>
-              <dt>Adults</dt>
-              <dd>2</dd>
-              <dt>Children</dt>
-              <dd>2</dd>
-              <dt>Monthly income</dt>
-              <dd>£1,640</dd>
-              <dt>Monthly rent</dt>
-              <dd>£720</dd>
-              <dt>Council tax band</dt>
-              <dd>C</dd>
-              <dt>Postcode area</dt>
-              <dd>EH8</dd>
+              <dt><span data-content>Adults</span></dt>
+              <dd data-content>2</dd>
+              <dt><span data-content>Children</span></dt>
+              <dd data-content>2</dd>
+              <dt><span data-content>Monthly income</span></dt>
+              <dd data-content>£1,640</dd>
+              <dt><span data-content>Monthly rent</span></dt>
+              <dd data-content>£720</dd>
+              <dt><span data-content>Council tax band</span></dt>
+              <dd data-content>C</dd>
+              <dt><span data-content>Postcode area</span></dt>
+              <dd data-content>EH8</dd>
             </dl>
           </section>
           <section className="si-card" aria-label="Calculator A">
-            <h2>Calculator A</h2>
+            <h2 data-content>Calculator A</h2>
             <div className="si-field">
-              <label>Adults</label>
-              <div className="si-input">2</div>
+              <label data-content>Adults</label>
+              <div className="si-input" data-content>2</div>
             </div>
             <div className="si-field">
-              <label>Children</label>
-              <div className="si-input">2</div>
+              <label data-content>Children</label>
+              <div className="si-input" data-content>2</div>
             </div>
             <div className="si-field">
-              <label>Monthly income (£)</label>
-              <div className="si-input">1640</div>
+              <label data-content>Monthly income (£)</label>
+              <div className="si-input" data-content>1640</div>
             </div>
             <div className="si-field">
-              <label>Monthly rent (£)</label>
-              <div className="si-input">720</div>
+              <label data-content>Monthly rent (£)</label>
+              <div className="si-input" data-content>720</div>
             </div>
-            <span className="si-btn" data-cue-target="calc_a">
+            <span className="si-btn" data-cue-target="calc_a" data-content>
               Calculate
             </span>
             <div className="si-result">
-              Estimated award
-              <strong>£412.60 a month</strong>
-              <span className="si-link" data-cue-target="cliff_a">
+              <span data-content>Estimated award</span>
+              <strong data-content>£412.60 a month</strong>
+              <span className="si-link" data-cue-target="cliff_a" data-content>
                 Check cliff edges
               </span>
             </div>
           </section>
           <section className="si-card" aria-label="Case note">
-            <h2>Case note</h2>
-            <div className="si-area" data-cue-target="write_note">
+            <h2 data-content>Case note</h2>
+            <div className="si-area" data-cue-target="write_note" data-content>
               Calculator A, household 4417 …
             </div>
-            <span className="si-save">Save note</span>
+            <span className="si-save" data-content>Save note</span>
           </section>
         </div>
       </div>

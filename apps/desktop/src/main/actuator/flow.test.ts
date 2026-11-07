@@ -35,7 +35,7 @@ function setup(opts: { allowed?: boolean; ground?: GroundResult; trusted?: boole
   let resolveAsk: (c: string | null) => void = () => undefined
   const ask = vi.fn((_q: string, _o: [string, string]) => (opts.choice !== undefined ? Promise.resolve(opts.choice) : new Promise<string | null>((r) => (resolveAsk = r))))
   const osascript = vi.fn(async (_args: string[]) => undefined)
-  const actuator = createActuator({ platform: 'darwin', displayBounds: () => ({ x: 0, y: 0, width: 1000, height: 1000 }), isTrusted: () => opts.trusted ?? true, osascript, dryRun: opts.dryRun ?? false, probe: { frontmostApp: async () => 'Calculator', topWindowAt: async () => (opts.hit === null ? null : { owner: opts.hit ?? 'Calculator', layer: 0 }) } })
+  const actuator = createActuator({ platform: 'darwin', displayBounds: () => ({ x: 0, y: 0, width: 1000, height: 1000 }), isTrusted: () => opts.trusted ?? true, osascript, dryRun: opts.dryRun ?? false, probe: { frontmostApp: async () => 'Calculator', frontWindow: async () => ({ owner: 'Calculator', layer: 0, windowId: 7, pid: 100 }), topWindowAt: async () => (opts.hit === null ? null : { owner: opts.hit ?? 'Calculator', layer: 0, windowId: 7, pid: 100 }) } })
   const clickAt = vi.spyOn(actuator, 'clickAt')
   const run = createDoItForMe({ ctx, s, confirm: { ask }, actuator, settleMs: 0, frontApp: frontSpy })
   return { run, ctx, bus, dir, shown, cleared, ask, clickAt, osascript, verify, grounded, grab, frontSpy, setAllowed: (v: boolean) => void (allowed = v), resolveAsk: (c: string | null) => resolveAsk(c) }
@@ -114,7 +114,7 @@ describe('approval flow', () => {
     expect(kinds(t.shown)).toEqual(['ring', 'ghostCursor', 'tick'])
     expect(t.ask).toHaveBeenCalledWith('I\'ll click "Settings" for you. OK?', [APPROVE, DECLINE])
     expect(t.clickAt).toHaveBeenCalledTimes(1)
-    expect(t.clickAt).toHaveBeenCalledWith({ x: 150, y: 250 }, { target: { app: 'Calculator' } })
+    expect(t.clickAt).toHaveBeenCalledWith({ x: 150, y: 250 }, { target: { app: 'Calculator', window: { id: 7, pid: 100, owner: 'Calculator' } } })
     expect(t.osascript).toHaveBeenCalledWith(['-e', 'tell application "System Events" to click at {150, 250}'])
     expect(t.verify).toHaveBeenCalledTimes(1)
     const lines = audit(t.dir)
@@ -247,6 +247,6 @@ describe('target guard: where the click may land', () => {
     const r = await t.run({ target: 'the Settings button' })
     expect(r).toMatchObject({ code: 'clicked', done: true })
     expect(t.frontSpy.mock.invocationCallOrder[0]).toBeLessThan(t.grab.mock.invocationCallOrder[0])
-    expect(t.clickAt).toHaveBeenCalledWith({ x: 150, y: 250 }, { target: { app: 'Calculator' } })
+    expect(t.clickAt).toHaveBeenCalledWith({ x: 150, y: 250 }, { target: { app: 'Calculator', window: { id: 7, pid: 100, owner: 'Calculator' } } })
   })
 })

@@ -10,8 +10,6 @@ from __future__ import annotations
 
 import re
 
-from . import vocab as V
-
 MAX_QUESTION = 400
 
 # first match wins; the order is the priority

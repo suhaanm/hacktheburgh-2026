@@ -1,0 +1,1289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://understudy.local/schema/evidence_packet.schema.json",
+  "$defs": {
+    "BlockInfo": {
+      "additionalProperties": false,
+      "description": "Where one block of the packet came from and how fresh it is. A block that is missing or old is reported, never silently dropped.",
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "absent",
+            "stale"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "enum": [
+                "v1",
+                "v2",
+                "rule",
+                "fixture"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "age_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Age S"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "BlockInfo",
+      "type": "object"
+    },
+    "Coach": {
+      "additionalProperties": false,
+      "description": "What the coach gate decided at this moment, as enums and two counts.",
+      "properties": {
+        "action": {
+          "enum": [
+            "silent",
+            "nudge",
+            "annotate",
+            "takeover_offer"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "level": {
+          "enum": [
+            "L1",
+            "L2",
+            "L3",
+            "L4"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "trigger": {
+          "anyOf": [
+            {
+              "enum": [
+                "expert_policy",
+                "stuck",
+                "ask"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trigger"
+        },
+        "reasons": {
+          "items": {
+            "enum": [
+              "policy_violation",
+              "critical_step_missed",
+              "gate_act",
+              "stuck_signal",
+              "asked",
+              "issue_repeated",
+              "worker_asked",
+              "on_track",
+              "gate_wait_signals",
+              "gate_cooldown",
+              "gate_unsure",
+              "unsure_away",
+              "already_prompted",
+              "level_3",
+              "level_4",
+              "no_active_task",
+              "no_events",
+              "no_pack",
+              "implicit_task",
+              "study_mode",
+              "study_post_test",
+              "study_off",
+              "other"
+            ],
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "gate_consecutive": {
+          "anyOf": [
+            {
+              "maximum": 1000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gate Consecutive"
+        },
+        "missed_steps": {
+          "anyOf": [
+            {
+              "maximum": 1000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Missed Steps"
+        }
+      },
+      "required": [
+        "action",
+        "level"
+      ],
+      "title": "Coach",
+      "type": "object"
+    },
+    "Cog": {
+      "additionalProperties": false,
+      "description": "Seconds one cog family accounts for in the gap decomposition (what the behaviour counts explain).",
+      "properties": {
+        "seconds": {
+          "title": "Seconds",
+          "type": "number"
+        },
+        "lo": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lo"
+        },
+        "hi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hi"
+        },
+        "novice_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Novice S"
+        },
+        "expert_lo_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expert Lo S"
+        },
+        "expert_hi_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expert Hi S"
+        }
+      },
+      "required": [
+        "seconds"
+      ],
+      "title": "Cog",
+      "type": "object"
+    },
+    "Consequence": {
+      "additionalProperties": false,
+      "description": "What skipping a step costs in outcome terms: the share of cases that end wrong, its interval and the mean error when wrong.",
+      "properties": {
+        "p_error": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P Error"
+        },
+        "lo": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lo"
+        },
+        "hi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hi"
+        },
+        "mean_gbp": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean Gbp"
+        },
+        "n": {
+          "anyOf": [
+            {
+              "maximum": 100000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "N"
+        }
+      },
+      "title": "Consequence",
+      "type": "object"
+    },
+    "Gap": {
+      "additionalProperties": false,
+      "description": "One case against the nearest expert (single case: no interval), the cohort average with its interval, and the controls.",
+      "properties": {
+        "case_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Case S"
+        },
+        "reference_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference S"
+        },
+        "gap_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gap S"
+        },
+        "gap_lo": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gap Lo"
+        },
+        "gap_hi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gap Hi"
+        },
+        "cohort_gap_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cohort Gap S"
+        },
+        "cohort_lo": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cohort Lo"
+        },
+        "cohort_hi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cohort Hi"
+        },
+        "cohort_n": {
+          "anyOf": [
+            {
+              "maximum": 100000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cohort N"
+        },
+        "placebo_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Placebo S"
+        },
+        "placebo_lo": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Placebo Lo"
+        },
+        "placebo_hi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Placebo Hi"
+        },
+        "null_lo": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Null Lo"
+        },
+        "null_hi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Null Hi"
+        }
+      },
+      "title": "Gap",
+      "type": "object"
+    },
+    "Habit": {
+      "additionalProperties": false,
+      "description": "Seconds associated with one habit (a waterfall bar); a counterfactual (what would change) only when the ML layer gives one.",
+      "properties": {
+        "seconds": {
+          "title": "Seconds",
+          "type": "number"
+        },
+        "lo": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lo"
+        },
+        "hi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hi"
+        },
+        "counterfactual_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Counterfactual S"
+        },
+        "cf_lo": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cf Lo"
+        },
+        "cf_hi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cf Hi"
+        },
+        "n": {
+          "anyOf": [
+            {
+              "maximum": 100000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "N"
+        }
+      },
+      "required": [
+        "seconds"
+      ],
+      "title": "Habit",
+      "type": "object"
+    },
+    "Hazard": {
+      "additionalProperties": false,
+      "description": "The stuck reading: a probability of 'no progress in the next minute' and where it came from (model or rule).",
+      "properties": {
+        "source": {
+          "enum": [
+            "model",
+            "rule"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "p_now": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P Now"
+        },
+        "peak_p": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Peak P"
+        },
+        "mean_p": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean P"
+        },
+        "alarm_threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alarm Threshold"
+        },
+        "n_bins": {
+          "anyOf": [
+            {
+              "maximum": 1000000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "N Bins"
+        },
+        "model_log_loss": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Log Loss"
+        },
+        "baseline_log_loss": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseline Log Loss"
+        },
+        "ece": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ece"
+        },
+        "false_alarms_per_hour": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "False Alarms Per Hour"
+        },
+        "p_lo": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P Lo"
+        },
+        "p_hi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P Hi"
+        },
+        "fa_lo": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fa Lo"
+        },
+        "fa_hi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fa Hi"
+        },
+        "calibration": {
+          "anyOf": [
+            {
+              "enum": [
+                "calibrated",
+                "overconfident",
+                "underconfident",
+                "untested"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calibration"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "Hazard",
+      "type": "object"
+    },
+    "Meta": {
+      "additionalProperties": false,
+      "description": "The badge and the sample: where the numbers come from and how many there are.",
+      "properties": {
+        "origin": {
+          "enum": [
+            "synthetic",
+            "simulated_participants",
+            "live"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "n": {
+          "maximum": 100000,
+          "minimum": 0,
+          "title": "N",
+          "type": "integer"
+        },
+        "n_unit": {
+          "enum": [
+            "people",
+            "cases",
+            "episodes",
+            "households",
+            "personas"
+          ],
+          "title": "N Unit",
+          "type": "string"
+        },
+        "split": {
+          "enum": [
+            "descriptive_nearest_expert",
+            "leave_one_person_out",
+            "none"
+          ],
+          "title": "Split",
+          "type": "string"
+        },
+        "level": {
+          "default": 0.95,
+          "title": "Level",
+          "type": "number"
+        }
+      },
+      "required": [
+        "origin",
+        "n",
+        "n_unit",
+        "split"
+      ],
+      "title": "Meta",
+      "type": "object"
+    },
+    "Progress": {
+      "additionalProperties": false,
+      "description": "Expected minutes until the next progress event (restricted mean), with an interval.",
+      "properties": {
+        "expected_min": {
+          "title": "Expected Min",
+          "type": "number"
+        },
+        "lo": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lo"
+        },
+        "hi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hi"
+        },
+        "c_index": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "C Index"
+        }
+      },
+      "required": [
+        "expected_min"
+      ],
+      "title": "Progress",
+      "type": "object"
+    },
+    "Routine": {
+      "additionalProperties": false,
+      "description": "A routine candidate and its place on the trust ladder.",
+      "properties": {
+        "episodes": {
+          "anyOf": [
+            {
+              "maximum": 100000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Episodes"
+        },
+        "minutes_per_week": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minutes Per Week"
+        },
+        "cv": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cv"
+        },
+        "judgement_share": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Judgement Share"
+        },
+        "hours_lo": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hours Lo"
+        },
+        "hours_hi": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hours Hi"
+        },
+        "horizon_weeks": {
+          "anyOf": [
+            {
+              "maximum": 520,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Horizon Weeks"
+        },
+        "status": {
+          "enum": [
+            "proposed",
+            "declined",
+            "never",
+            "shadow",
+            "approval",
+            "unattended"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "rung": {
+          "enum": [
+            "A0",
+            "A1",
+            "A2",
+            "A3"
+          ],
+          "title": "Rung",
+          "type": "string"
+        },
+        "shadow_runs": {
+          "default": 0,
+          "maximum": 100000,
+          "minimum": 0,
+          "title": "Shadow Runs",
+          "type": "integer"
+        },
+        "shadow_matches": {
+          "default": 0,
+          "maximum": 100000,
+          "minimum": 0,
+          "title": "Shadow Matches",
+          "type": "integer"
+        },
+        "wilson_lower": {
+          "default": 0.0,
+          "title": "Wilson Lower",
+          "type": "number"
+        },
+        "next_rung": {
+          "anyOf": [
+            {
+              "enum": [
+                "A0",
+                "A1",
+                "A2",
+                "A3"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Rung"
+        },
+        "runs_to_next": {
+          "anyOf": [
+            {
+              "maximum": 100000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Runs To Next"
+        }
+      },
+      "required": [
+        "status",
+        "rung"
+      ],
+      "title": "Routine",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Closed-schema evidence for one worker and (optionally) one case: ids, seconds, intervals, baselines, n, split, origin badge, hazard readings, coach decision, routines and limitation ids. No free text.",
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "meta": {
+      "$ref": "#/$defs/Meta"
+    },
+    "gap": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Gap"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "habits": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Habit"
+      },
+      "propertyNames": {
+        "enum": [
+          "pace",
+          "pauses",
+          "search_loops",
+          "repeated_reads",
+          "missed_check",
+          "wrong_copy",
+          "rework",
+          "step_skips",
+          "other_extra"
+        ]
+      },
+      "title": "Habits",
+      "type": "object"
+    },
+    "cohort_habits": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Habit"
+      },
+      "propertyNames": {
+        "enum": [
+          "pace",
+          "pauses",
+          "search_loops",
+          "repeated_reads",
+          "missed_check",
+          "wrong_copy",
+          "rework",
+          "step_skips",
+          "other_extra"
+        ]
+      },
+      "title": "Cohort Habits",
+      "type": "object"
+    },
+    "cogs": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Cog"
+      },
+      "propertyNames": {
+        "enum": [
+          "READ",
+          "SEARCH",
+          "REFORMULATE",
+          "NAVIGATE",
+          "ENTER",
+          "COPY",
+          "PASTE",
+          "COMPARE",
+          "CHECK",
+          "DECIDE",
+          "IDLE",
+          "REVERT",
+          "ASK",
+          "ENTER_HOUSEHOLD",
+          "OPEN_CALCULATOR",
+          "READ_RESULT",
+          "CHECK_CLIFF",
+          "COPY_TO_NOTE",
+          "RECONCILE",
+          "LOAD_DATA",
+          "PROFILE_DATA",
+          "WRITE_QUERY",
+          "RUN_QUERY",
+          "INSPECT_RESULT",
+          "PLOT",
+          "EXPORT_RESULT",
+          "CLEAN_DATA",
+          "RECONCILE_CONTROL",
+          "GROUP_AGG",
+          "READ_CODE",
+          "EDIT_CODE",
+          "RUN_TESTS",
+          "READ_TRACE",
+          "REVIEW_DIFF",
+          "COMMIT",
+          "SEARCH_DOCS",
+          "PROBE_EDGE",
+          "INSPECT_INPUT",
+          "WRITE_TEST",
+          "CODE",
+          "TEST",
+          "REFACTOR"
+        ]
+      },
+      "title": "Cogs",
+      "type": "object"
+    },
+    "consequences": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Consequence"
+      },
+      "propertyNames": {
+        "enum": [
+          "RECONCILE",
+          "CHECK_CLIFF"
+        ]
+      },
+      "title": "Consequences",
+      "type": "object"
+    },
+    "hazard": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Hazard"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "progress": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Progress"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "coach": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Coach"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "routines": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Routine"
+      },
+      "propertyNames": {
+        "enum": [
+          "calc-entry-3x",
+          "case-note-copy",
+          "cliff-recheck",
+          "queue-sweep",
+          "weekly-report",
+          "weekly-metric-refresh",
+          "rerun-failed-ci"
+        ]
+      },
+      "title": "Routines",
+      "type": "object"
+    },
+    "blocks": {
+      "additionalProperties": {
+        "$ref": "#/$defs/BlockInfo"
+      },
+      "propertyNames": {
+        "enum": [
+          "genome",
+          "hazard",
+          "coach",
+          "routines",
+          "mlv2"
+        ]
+      },
+      "title": "Blocks",
+      "type": "object"
+    },
+    "limitations": {
+      "items": {
+        "enum": [
+          "synthetic_data",
+          "simulated_participants",
+          "small_n",
+          "single_case",
+          "association_only",
+          "not_expert_claim",
+          "hazard_rule_fallback",
+          "hazard_not_diagnosis",
+          "scripted_tasks",
+          "explainer_readability",
+          "counterfactual_model",
+          "consequence_rules",
+          "saved_time_by_skips",
+          "synthetic_people_only",
+          "generator_planted_structure",
+          "n_four_personas",
+          "shared_steps_mispriced",
+          "additive_counterfactual",
+          "interactions_not_modelled",
+          "calibrated_on_synthetic",
+          "alarm_budget_is_design_choice",
+          "llm_participants_not_people",
+          "timing_reconstructed",
+          "heldout_same_generator",
+          "generator_mismatch_tested",
+          "small_n_simulated_participants",
+          "interval_too_narrow",
+          "stale_data"
+        ],
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "meta"
+  ],
+  "title": "EvidencePacket",
+  "type": "object"
+}

@@ -76,6 +76,10 @@ class Guard:
 
     # ------------------------------------------------------------------ plumbing
     @property
+    def unattended(self) -> bool:
+        return bool(self.pipe.routine.unattended)
+
+    @property
     def config(self) -> SecurityConfig:
         return self.pipe.config
 
@@ -132,11 +136,31 @@ class Guard:
     # ------------------------------------------------------------------ authorise
     def authorise(self, action: Any, seen: Seen | PipeObservation | None, *, label: str | None = None,
                   role: str | None = None, url: str | None = None, field_attrs: dict[str, Any] | None = None,
-                  screen: tuple[int, int] | None = None, approved_queue_id: str | None = None) -> StepDecision:
+                  screen: tuple[int, int] | None = None, approved_queue_id: str | None = None,
+                  app: str | None = None, structure: tuple[str, ...] = ()) -> StepDecision:
         pobs = seen.pipe if isinstance(seen, Seen) else seen
-        target = TargetInfo(label=label, role=role, url=url, field_attrs=field_attrs)
+        target = TargetInfo(label=label, role=role, url=url, app=app, field_attrs=field_attrs, structure=tuple(structure))
         return self.pipe.authorise(action, observation=pobs, target=target, screen=screen,
                                    approved_queue_id=approved_queue_id)
+
+    def check_typed_value(self, value: str, *, url: str | None, signature: str) -> None:
+        """Layer 5 on the value a fact handle ACTUALLY resolved to, at the moment it is about to be typed (S-15). The
+        handle string passed layer 5 when the step was authorised; the value did not. Tainted data (read from a page or a
+        file) typed into a site this routine never recorded goes to the queue, exactly as a literal would. The value
+        itself is never written down: the queue item carries the layer and a code."""
+        fd = self.pipe.dataflow.check_text_sink(value, url)
+        if fd is None or fd.verdict == "allow":
+            return
+        why = fd.reasons[0] if fd.reasons else "tainted data typed into a site the routine did not record"
+        item = self.pipe.queue.enqueue(
+            kind="outward_step", title="type: a fact value that came from a page", summary=why, risk_class="outward",
+            routine_id=self.routine_id, run_id=self.run_id,
+            evidence={"extracted": {"layer": "dataflow", "code": "tainted_value_via_handle"}, "tier_log": []},
+            signature=signature, dedupe_key=f"{self.run_id}:{signature}:dataflow")
+        self.audit.append("agent", "gate", routine=self.routine_id, run_id=self.run_id, outcome="needs_human",
+                          note_code="dataflow:tainted_value_via_handle")
+        dec = StepDecision("needs_human", [why], ["dataflow:tainted_value_via_handle"], "dataflow", item["id"], None)
+        raise GateStop(dec, "typed fact value")
 
     def require(self, dec: StepDecision, label: str = "", *, navigator: str = "") -> None:
         """Turn a non-allow verdict into the exception the tiers handle."""

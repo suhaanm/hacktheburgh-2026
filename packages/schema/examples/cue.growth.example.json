@@ -1,0 +1,1637 @@
+{
+ "data": {
+  "as_of": "2026-10-19T00:00:00Z",
+  "baseline": {
+   "k": 1,
+   "n": 5,
+   "share": 0.2,
+   "wilson": [
+    0.0362,
+    0.6245
+   ]
+  },
+  "by_skill": [
+   {
+    "assisted": 8,
+    "direction": "steady",
+    "first10": {
+     "assisted": 4,
+     "n": 10
+    },
+    "independence_lower": 0.5313,
+    "independent": 21,
+    "label": "Probe the cliff edge on every calculator",
+    "last10": {
+     "assisted": 2,
+     "n": 10
+    },
+    "level": 3,
+    "mastery": 0.9877,
+    "n": 30,
+    "name": "the cliff check",
+    "retention": {
+     "k": 3,
+     "n": 4,
+     "value": 0.75,
+     "wilson": [
+      0.3006,
+      0.9544
+     ]
+    },
+    "retrieval_due": false,
+    "skill": "check-the-cliff",
+    "time_to_progress": {
+     "after_cue": {
+      "ci": [
+       6.7,
+       10.6
+      ],
+      "median_s": 8.2,
+      "n": 8
+     },
+     "no_cue": null,
+     "note": "Seconds from the first cue to the next progress event. Live data has no no-cue counterfactual; the simulator pairs them."
+    }
+   },
+   {
+    "assisted": 9,
+    "direction": "steady",
+    "first10": {
+     "assisted": 4,
+     "n": 10
+    },
+    "independence_lower": 0.5313,
+    "independent": 20,
+    "label": "Enter the household once, accurately, then reuse it",
+    "last10": {
+     "assisted": 2,
+     "n": 10
+    },
+    "level": 3,
+    "mastery": 0.9984,
+    "n": 30,
+    "name": "entering the household once",
+    "retention": {
+     "k": 3,
+     "n": 4,
+     "value": 0.75,
+     "wilson": [
+      0.3006,
+      0.9544
+     ]
+    },
+    "retrieval_due": false,
+    "skill": "enter-household-once",
+    "time_to_progress": {
+     "after_cue": {
+      "ci": [
+       6.5,
+       10.2
+      ],
+      "median_s": 8.5,
+      "n": 9
+     },
+     "no_cue": null,
+     "note": "Seconds from the first cue to the next progress event. Live data has no no-cue counterfactual; the simulator pairs them."
+    }
+   },
+   {
+    "assisted": 10,
+    "direction": "steady",
+    "first10": {
+     "assisted": 4,
+     "n": 10
+    },
+    "independence_lower": 0.4329,
+    "independent": 18,
+    "label": "Reconcile the results before writing the note",
+    "last10": {
+     "assisted": 2,
+     "n": 10
+    },
+    "level": 3,
+    "mastery": 0.9571,
+    "n": 30,
+    "name": "reconciling before the note",
+    "retention": {
+     "k": 1,
+     "n": 3,
+     "value": 0.3333,
+     "wilson": [
+      0.0615,
+      0.7923
+     ]
+    },
+    "retrieval_due": false,
+    "skill": "reconcile-before-noting",
+    "time_to_progress": {
+     "after_cue": {
+      "ci": [
+       8.6,
+       11.3
+      ],
+      "median_s": 8.9,
+      "n": 10
+     },
+     "no_cue": null,
+     "note": "Seconds from the first cue to the next progress event. Live data has no no-cue counterfactual; the simulator pairs them."
+    }
+   }
+  ],
+  "claim": "Unaided on 15 of the last 20 occurrences (the first 5: 1). No skill has a clear trend yet, which means cannot tell yet, not no change. This is not a measure of expertise.",
+  "components": {
+   "gap_closure": {
+    "ci": [
+     0.4484,
+     0.5873
+    ],
+    "first5_lost_s": 32.34,
+    "last5_lost_s": 15.46,
+    "n_first": 5,
+    "n_last": 5,
+    "value": 0.522
+   },
+   "independence": {
+    "k": 15,
+    "lower": 0.5313,
+    "n": 20,
+    "share": 0.75,
+    "wilson": [
+     0.5313,
+     0.8881
+    ]
+   },
+   "mastery": {
+    "by_skill": {
+     "check-the-cliff": 0.9877,
+     "enter-household-once": 0.9984,
+     "reconcile-before-noting": 0.9571
+    },
+    "note": "From the tracing replay. On simulated learners who did not improve it overstated mastery by 0.3 to 0.5, so it is not used in any headline.",
+    "value": 0.9811,
+    "variant": "engine_default"
+   },
+   "retention": {
+    "after_days": 3.0,
+    "k": 7,
+    "n": 11,
+    "value": 0.6364,
+    "wilson": [
+     0.3538,
+     0.8483
+    ]
+   }
+  },
+  "counts": {
+   "assist": 90,
+   "automation": 2,
+   "delegated": 2
+  },
+  "curve": [
+   {
+    "hi": 0.5098,
+    "i": 10,
+    "independence": 0.2,
+    "level": 2,
+    "lo": 0.0567,
+    "n": 10,
+    "t_hour": "2026-09-26T09",
+    "tiers": [
+     2,
+     4,
+     4,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.477,
+    "i": 11,
+    "independence": 0.1818,
+    "level": 1,
+    "lo": 0.0514,
+    "n": 11,
+    "t_hour": "2026-09-26T09",
+    "tiers": [
+     2,
+     4,
+     5,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.5323,
+    "i": 12,
+    "independence": 0.25,
+    "level": 2,
+    "lo": 0.0889,
+    "n": 12,
+    "t_hour": "2026-09-26T10",
+    "tiers": [
+     3,
+     4,
+     5,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.5763,
+    "i": 13,
+    "independence": 0.3077,
+    "level": 2,
+    "lo": 0.1268,
+    "n": 13,
+    "t_hour": "2026-09-26T12",
+    "tiers": [
+     4,
+     4,
+     5,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.5465,
+    "i": 14,
+    "independence": 0.2857,
+    "level": 2,
+    "lo": 0.1172,
+    "n": 14,
+    "t_hour": "2026-09-26T23",
+    "tiers": [
+     4,
+     4,
+     6,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.5829,
+    "i": 15,
+    "independence": 0.3333,
+    "level": 2,
+    "lo": 0.1518,
+    "n": 15,
+    "t_hour": "2026-09-27T02",
+    "tiers": [
+     4,
+     5,
+     6,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.6136,
+    "i": 16,
+    "independence": 0.375,
+    "level": 2,
+    "lo": 0.1848,
+    "n": 16,
+    "t_hour": "2026-09-27T08",
+    "tiers": [
+     5,
+     5,
+     6,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.6399,
+    "i": 17,
+    "independence": 0.4118,
+    "level": 2,
+    "lo": 0.2161,
+    "n": 17,
+    "t_hour": "2026-09-27T08",
+    "tiers": [
+     6,
+     5,
+     6,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.6628,
+    "i": 18,
+    "independence": 0.4444,
+    "level": 2,
+    "lo": 0.2456,
+    "n": 18,
+    "t_hour": "2026-09-27T10",
+    "tiers": [
+     7,
+     5,
+     6,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.6829,
+    "i": 19,
+    "independence": 0.4737,
+    "level": 2,
+    "lo": 0.2733,
+    "n": 19,
+    "t_hour": "2026-09-28T14",
+    "tiers": [
+     8,
+     5,
+     6,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.6579,
+    "i": 20,
+    "independence": 0.45,
+    "level": 2,
+    "lo": 0.2582,
+    "n": 20,
+    "t_hour": "2026-09-29T06",
+    "tiers": [
+     9,
+     5,
+     6,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.7007,
+    "i": 21,
+    "independence": 0.5,
+    "level": 2,
+    "lo": 0.2993,
+    "n": 20,
+    "t_hour": "2026-09-30T07",
+    "tiers": [
+     10,
+     4,
+     6,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.7418,
+    "i": 22,
+    "independence": 0.55,
+    "level": 2,
+    "lo": 0.3421,
+    "n": 20,
+    "t_hour": "2026-09-30T08",
+    "tiers": [
+     10,
+     4,
+     6,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.7418,
+    "i": 23,
+    "independence": 0.55,
+    "level": 2,
+    "lo": 0.3421,
+    "n": 20,
+    "t_hour": "2026-09-30T08",
+    "tiers": [
+     11,
+     4,
+     5,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.7812,
+    "i": 24,
+    "independence": 0.6,
+    "level": 2,
+    "lo": 0.3866,
+    "n": 20,
+    "t_hour": "2026-09-30T16",
+    "tiers": [
+     12,
+     3,
+     5,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.7812,
+    "i": 25,
+    "independence": 0.6,
+    "level": 2,
+    "lo": 0.3866,
+    "n": 20,
+    "t_hour": "2026-10-01T06",
+    "tiers": [
+     12,
+     3,
+     5,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8188,
+    "i": 26,
+    "independence": 0.65,
+    "level": 2,
+    "lo": 0.4329,
+    "n": 20,
+    "t_hour": "2026-10-01T07",
+    "tiers": [
+     13,
+     3,
+     4,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8188,
+    "i": 27,
+    "independence": 0.65,
+    "level": 2,
+    "lo": 0.4329,
+    "n": 20,
+    "t_hour": "2026-10-01T21",
+    "tiers": [
+     13,
+     4,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8188,
+    "i": 28,
+    "independence": 0.65,
+    "level": 2,
+    "lo": 0.4329,
+    "n": 20,
+    "t_hour": "2026-10-02T12",
+    "tiers": [
+     13,
+     5,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8188,
+    "i": 29,
+    "independence": 0.65,
+    "level": 2,
+    "lo": 0.4329,
+    "n": 20,
+    "t_hour": "2026-10-02T18",
+    "tiers": [
+     13,
+     5,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8545,
+    "i": 30,
+    "independence": 0.7,
+    "level": 2,
+    "lo": 0.481,
+    "n": 20,
+    "t_hour": "2026-10-02T18",
+    "tiers": [
+     14,
+     4,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 31,
+    "independence": 0.75,
+    "level": 2,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-03T00",
+    "tiers": [
+     15,
+     4,
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 32,
+    "independence": 0.75,
+    "level": 2,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-03T06",
+    "tiers": [
+     15,
+     4,
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8545,
+    "i": 33,
+    "independence": 0.7,
+    "level": 2,
+    "lo": 0.481,
+    "n": 20,
+    "t_hour": "2026-10-03T12",
+    "tiers": [
+     14,
+     5,
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 34,
+    "independence": 0.75,
+    "level": 2,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-03T19",
+    "tiers": [
+     15,
+     5,
+     0,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8545,
+    "i": 35,
+    "independence": 0.7,
+    "level": 2,
+    "lo": 0.481,
+    "n": 20,
+    "t_hour": "2026-10-03T20",
+    "tiers": [
+     15,
+     4,
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8188,
+    "i": 36,
+    "independence": 0.65,
+    "level": 3,
+    "lo": 0.4329,
+    "n": 20,
+    "t_hour": "2026-10-03T23",
+    "tiers": [
+     14,
+     4,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8188,
+    "i": 37,
+    "independence": 0.65,
+    "level": 3,
+    "lo": 0.4329,
+    "n": 20,
+    "t_hour": "2026-10-04T08",
+    "tiers": [
+     14,
+     4,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8188,
+    "i": 38,
+    "independence": 0.65,
+    "level": 2,
+    "lo": 0.4329,
+    "n": 20,
+    "t_hour": "2026-10-04T21",
+    "tiers": [
+     13,
+     5,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8188,
+    "i": 39,
+    "independence": 0.65,
+    "level": 2,
+    "lo": 0.4329,
+    "n": 20,
+    "t_hour": "2026-10-04T23",
+    "tiers": [
+     13,
+     5,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8545,
+    "i": 40,
+    "independence": 0.7,
+    "level": 2,
+    "lo": 0.481,
+    "n": 20,
+    "t_hour": "2026-10-05T02",
+    "tiers": [
+     13,
+     5,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8545,
+    "i": 41,
+    "independence": 0.7,
+    "level": 2,
+    "lo": 0.481,
+    "n": 20,
+    "t_hour": "2026-10-05T14",
+    "tiers": [
+     13,
+     5,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8545,
+    "i": 42,
+    "independence": 0.7,
+    "level": 2,
+    "lo": 0.481,
+    "n": 20,
+    "t_hour": "2026-10-05T17",
+    "tiers": [
+     14,
+     4,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 43,
+    "independence": 0.75,
+    "level": 3,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-06T04",
+    "tiers": [
+     14,
+     4,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 44,
+    "independence": 0.75,
+    "level": 3,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-06T06",
+    "tiers": [
+     14,
+     4,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 45,
+    "independence": 0.75,
+    "level": 2,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-06T08",
+    "tiers": [
+     14,
+     4,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 46,
+    "independence": 0.75,
+    "level": 2,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-06T12",
+    "tiers": [
+     14,
+     4,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.9193,
+    "i": 47,
+    "independence": 0.8,
+    "level": 2,
+    "lo": 0.584,
+    "n": 20,
+    "t_hour": "2026-10-06T13",
+    "tiers": [
+     15,
+     3,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.9476,
+    "i": 48,
+    "independence": 0.85,
+    "level": 2,
+    "lo": 0.6396,
+    "n": 20,
+    "t_hour": "2026-10-06T14",
+    "tiers": [
+     16,
+     2,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.9193,
+    "i": 49,
+    "independence": 0.8,
+    "level": 3,
+    "lo": 0.584,
+    "n": 20,
+    "t_hour": "2026-10-06T21",
+    "tiers": [
+     15,
+     3,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 50,
+    "independence": 0.75,
+    "level": 2,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-07T17",
+    "tiers": [
+     14,
+     3,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 51,
+    "independence": 0.75,
+    "level": 2,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-07T17",
+    "tiers": [
+     14,
+     3,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8545,
+    "i": 52,
+    "independence": 0.7,
+    "level": 2,
+    "lo": 0.481,
+    "n": 20,
+    "t_hour": "2026-10-07T20",
+    "tiers": [
+     13,
+     4,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 53,
+    "independence": 0.75,
+    "level": 3,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-07T23",
+    "tiers": [
+     14,
+     3,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 54,
+    "independence": 0.75,
+    "level": 2,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-08T13",
+    "tiers": [
+     14,
+     3,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 55,
+    "independence": 0.75,
+    "level": 3,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-08T15",
+    "tiers": [
+     14,
+     3,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.9193,
+    "i": 56,
+    "independence": 0.8,
+    "level": 2,
+    "lo": 0.584,
+    "n": 20,
+    "t_hour": "2026-10-08T21",
+    "tiers": [
+     15,
+     3,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 57,
+    "independence": 0.75,
+    "level": 2,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-08T22",
+    "tiers": [
+     14,
+     3,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 58,
+    "independence": 0.75,
+    "level": 3,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-09T03",
+    "tiers": [
+     15,
+     2,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8545,
+    "i": 59,
+    "independence": 0.7,
+    "level": 3,
+    "lo": 0.481,
+    "n": 20,
+    "t_hour": "2026-10-09T08",
+    "tiers": [
+     14,
+     3,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8188,
+    "i": 60,
+    "independence": 0.65,
+    "level": 3,
+    "lo": 0.4329,
+    "n": 20,
+    "t_hour": "2026-10-09T16",
+    "tiers": [
+     13,
+     3,
+     4,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8188,
+    "i": 61,
+    "independence": 0.65,
+    "level": 3,
+    "lo": 0.4329,
+    "n": 20,
+    "t_hour": "2026-10-09T17",
+    "tiers": [
+     13,
+     3,
+     4,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8188,
+    "i": 62,
+    "independence": 0.65,
+    "level": 3,
+    "lo": 0.4329,
+    "n": 20,
+    "t_hour": "2026-10-10T01",
+    "tiers": [
+     13,
+     3,
+     4,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.7812,
+    "i": 63,
+    "independence": 0.6,
+    "level": 3,
+    "lo": 0.3866,
+    "n": 20,
+    "t_hour": "2026-10-10T01",
+    "tiers": [
+     12,
+     3,
+     5,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.7812,
+    "i": 64,
+    "independence": 0.6,
+    "level": 3,
+    "lo": 0.3866,
+    "n": 20,
+    "t_hour": "2026-10-10T11",
+    "tiers": [
+     12,
+     3,
+     5,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.7812,
+    "i": 65,
+    "independence": 0.6,
+    "level": 3,
+    "lo": 0.3866,
+    "n": 20,
+    "t_hour": "2026-10-10T18",
+    "tiers": [
+     12,
+     3,
+     5,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.7812,
+    "i": 66,
+    "independence": 0.6,
+    "level": 3,
+    "lo": 0.3866,
+    "n": 20,
+    "t_hour": "2026-10-11T03",
+    "tiers": [
+     12,
+     3,
+     5,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.7812,
+    "i": 67,
+    "independence": 0.6,
+    "level": 3,
+    "lo": 0.3866,
+    "n": 20,
+    "t_hour": "2026-10-11T12",
+    "tiers": [
+     12,
+     3,
+     5,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.7418,
+    "i": 68,
+    "independence": 0.55,
+    "level": 3,
+    "lo": 0.3421,
+    "n": 20,
+    "t_hour": "2026-10-12T00",
+    "tiers": [
+     11,
+     3,
+     6,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.7812,
+    "i": 69,
+    "independence": 0.6,
+    "level": 3,
+    "lo": 0.3866,
+    "n": 20,
+    "t_hour": "2026-10-12T02",
+    "tiers": [
+     12,
+     2,
+     6,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8188,
+    "i": 70,
+    "independence": 0.65,
+    "level": 3,
+    "lo": 0.4329,
+    "n": 20,
+    "t_hour": "2026-10-12T08",
+    "tiers": [
+     13,
+     2,
+     5,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8188,
+    "i": 71,
+    "independence": 0.65,
+    "level": 3,
+    "lo": 0.4329,
+    "n": 20,
+    "t_hour": "2026-10-12T18",
+    "tiers": [
+     13,
+     2,
+     5,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8545,
+    "i": 72,
+    "independence": 0.7,
+    "level": 3,
+    "lo": 0.481,
+    "n": 20,
+    "t_hour": "2026-10-12T18",
+    "tiers": [
+     14,
+     1,
+     5,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8188,
+    "i": 73,
+    "independence": 0.65,
+    "level": 3,
+    "lo": 0.4329,
+    "n": 20,
+    "t_hour": "2026-10-12T23",
+    "tiers": [
+     14,
+     1,
+     5,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8188,
+    "i": 74,
+    "independence": 0.65,
+    "level": 3,
+    "lo": 0.4329,
+    "n": 20,
+    "t_hour": "2026-10-13T01",
+    "tiers": [
+     14,
+     1,
+     5,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8545,
+    "i": 75,
+    "independence": 0.7,
+    "level": 3,
+    "lo": 0.481,
+    "n": 20,
+    "t_hour": "2026-10-13T03",
+    "tiers": [
+     15,
+     1,
+     4,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8545,
+    "i": 76,
+    "independence": 0.7,
+    "level": 3,
+    "lo": 0.481,
+    "n": 20,
+    "t_hour": "2026-10-13T06",
+    "tiers": [
+     15,
+     1,
+     4,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8545,
+    "i": 77,
+    "independence": 0.7,
+    "level": 3,
+    "lo": 0.481,
+    "n": 20,
+    "t_hour": "2026-10-13T06",
+    "tiers": [
+     15,
+     1,
+     4,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8545,
+    "i": 78,
+    "independence": 0.7,
+    "level": 3,
+    "lo": 0.481,
+    "n": 20,
+    "t_hour": "2026-10-13T12",
+    "tiers": [
+     15,
+     1,
+     4,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 79,
+    "independence": 0.75,
+    "level": 3,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-13T22",
+    "tiers": [
+     16,
+     0,
+     4,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.9193,
+    "i": 80,
+    "independence": 0.8,
+    "level": 3,
+    "lo": 0.584,
+    "n": 20,
+    "t_hour": "2026-10-13T23",
+    "tiers": [
+     17,
+     0,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.9193,
+    "i": 81,
+    "independence": 0.8,
+    "level": 3,
+    "lo": 0.584,
+    "n": 20,
+    "t_hour": "2026-10-14T00",
+    "tiers": [
+     17,
+     0,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 82,
+    "independence": 0.75,
+    "level": 3,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-14T05",
+    "tiers": [
+     16,
+     1,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 83,
+    "independence": 0.75,
+    "level": 3,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-14T08",
+    "tiers": [
+     16,
+     2,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8545,
+    "i": 84,
+    "independence": 0.7,
+    "level": 3,
+    "lo": 0.481,
+    "n": 20,
+    "t_hour": "2026-10-14T08",
+    "tiers": [
+     15,
+     2,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8545,
+    "i": 85,
+    "independence": 0.7,
+    "level": 3,
+    "lo": 0.481,
+    "n": 20,
+    "t_hour": "2026-10-15T00",
+    "tiers": [
+     15,
+     2,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8545,
+    "i": 86,
+    "independence": 0.7,
+    "level": 3,
+    "lo": 0.481,
+    "n": 20,
+    "t_hour": "2026-10-16T02",
+    "tiers": [
+     15,
+     2,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8545,
+    "i": 87,
+    "independence": 0.7,
+    "level": 3,
+    "lo": 0.481,
+    "n": 20,
+    "t_hour": "2026-10-18T04",
+    "tiers": [
+     15,
+     2,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 88,
+    "independence": 0.75,
+    "level": 3,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-18T11",
+    "tiers": [
+     16,
+     2,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 89,
+    "independence": 0.75,
+    "level": 3,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-18T21",
+    "tiers": [
+     16,
+     2,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 90,
+    "independence": 0.75,
+    "level": 3,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-18T23",
+    "tiers": [
+     16,
+     2,
+     2,
+     0,
+     0
+    ]
+   }
+  ],
+  "occurrences": {
+   "abandoned": 0,
+   "assisted": 27,
+   "errors": 4,
+   "total": 90,
+   "unaided": 59
+  },
+  "offloaded": {
+   "automation": 2,
+   "by_skill": {
+    "enter-household-once": 4
+   },
+   "delegated": 2,
+   "minutes": {
+    "automation": 28.0,
+    "delegated": 26.0
+   },
+   "note": "Work the agent did for you. It never changes the score."
+  },
+  "origin_detail": "synthetic_learner",
+  "person": "p_sim_learner",
+  "readiness": {
+   "needed": 10,
+   "occurrences": 90,
+   "ready": true,
+   "trend_needed": 30
+  },
+  "role": "benefits-processor",
+  "score": {
+   "available_weight": 1.0,
+   "composite_caveat": "Experimental. On simulated learners it overstated by 6 to 10 points when nobody improved, and rose 10 points or more in 33% of learners whose skill never changed. Read the trend and the independence interval instead.",
+   "composite_caveat_figures": {
+    "bias_points": [
+     6.0,
+     9.9
+    ],
+    "false_rise_rate": 0.33,
+    "mastery_overstated_by": [
+     0.29,
+     0.49
+    ],
+    "n_learners": 60,
+    "origin": "simulated",
+    "seeds": "dev 0 to 59"
+   },
+   "composite_experimental": 67.5,
+   "composite_experimental_ci": [
+    60.1,
+    78.1
+   ],
+   "composite_partial": false,
+   "used_weights": {
+    "gap_closure": 0.2,
+    "independence_lb": 0.4,
+    "mastery": 0.3,
+    "retention": 0.1
+   },
+   "weights": {
+    "gap_closure": 0.2,
+    "independence_lb": 0.4,
+    "mastery": 0.3,
+    "retention": 0.1
+   },
+   "weights_note": "stated assumptions, not fitted"
+  },
+  "skill": null,
+  "time_to_progress": {
+   "after_cue": {
+    "ci": [
+     7.9,
+     9.6
+    ],
+    "median_s": 8.7,
+    "n": 27
+   },
+   "no_cue": null,
+   "note": "Seconds from the first cue to the next progress event. Live data has no no-cue counterfactual; the simulator pairs them."
+  },
+  "trend": {
+   "blocks": [
+    {
+     "assisted_share": 0.8,
+     "i": 0,
+     "n": 10
+    },
+    {
+     "assisted_share": 0.2,
+     "i": 1,
+     "n": 10
+    },
+    {
+     "assisted_share": 0.2,
+     "i": 2,
+     "n": 10
+    },
+    {
+     "assisted_share": 0.3,
+     "i": 3,
+     "n": 10
+    },
+    {
+     "assisted_share": 0.1,
+     "i": 4,
+     "n": 10
+    },
+    {
+     "assisted_share": 0.5,
+     "i": 5,
+     "n": 10
+    },
+    {
+     "assisted_share": 0.2,
+     "i": 6,
+     "n": 10
+    },
+    {
+     "assisted_share": 0.1,
+     "i": 7,
+     "n": 10
+    },
+    {
+     "assisted_share": 0.3,
+     "i": 8,
+     "n": 10
+    }
+   ],
+   "ci": [
+    -0.06,
+    0.0083
+   ],
+   "direction": "steady",
+   "needed_more": null,
+   "power_note": "Cannot tell yet. In simulation, a steady fall in the share of occurrences that needed help from 0.5 to 0.2 was picked up by this test in about 2 of 10 learners at 90 occurrences, and in fewer than 5 of 10 even at 360, so a steady reading means cannot tell yet, never no change. The independence interval and the first-versus-latest counts say more.",
+   "slope_per_10": -0.0183,
+   "stride": 10,
+   "window": 10,
+   "windows": 9
+  },
+  "window": 20
+ },
+ "meta": {
+  "generated_at": "2026-11-07T18:16:51Z",
+  "interval_level": 0.95,
+  "n": 90,
+  "n_unit": "occurrences",
+  "note": "Independence is the share of the last 20 occurrences finished with no accepted cue, with its Wilson interval. The composite uses stated, unfitted weights; read the components. Delegated and automation work is not counted.",
+  "origin": "synthetic",
+  "split": null
+ }
+}

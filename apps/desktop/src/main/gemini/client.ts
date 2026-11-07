@@ -1,3 +1,6 @@
+// LEGACY REMOTE (D38): this module is DEFAULT OFF. `createAi()` hands out a client whose every call fails unless UNDERSTUDY_LEGACY_REMOTE=1,
+// and `callModel` asks src/main/legacy-remote.ts for permission before EVERY attempt (flag, privacy gates, metadata ledger row written
+// first); a refusal is a GeminiError with code 'blocked' and nothing is sent. See that file's header for the rules.
 // Shared Gemini plumbing: one Interactions-API call path with hard timeouts, jittered retries,
 // per-call latency + model logging, and `store:false` forced (every service may carry a screenshot).
 import { GoogleGenAI } from '@google/genai'
@@ -6,6 +9,7 @@ import type { ZodType } from 'zod'
 import { MODELS } from '../../shared/models'
 import { redactText, redactingLog } from './redact'
 import type { Shot, ShotPurpose } from '../../shared/protocol'
+import { authorizeLegacy, base64Bytes, LegacyRemoteBlocked, legacyRemoteOn, purposeId, type LegacyKind, type LegacyRemoteGate, type LegacyTicket } from '../legacy-remote'
 
 export type Models = typeof MODELS
 export type Log = (scope: string, ...args: unknown[]) => void
@@ -36,7 +40,7 @@ export interface GeminiDeps {
   capture?: { grab(purpose: ShotPurpose): Promise<Shot> }
 }
 
-export type GeminiErrorCode = 'timeout' | 'api' | 'parse' | 'empty' | 'no_input' | 'auth' | 'rate_limit' | 'network'
+export type GeminiErrorCode = 'timeout' | 'api' | 'parse' | 'empty' | 'no_input' | 'auth' | 'rate_limit' | 'network' | 'blocked'
 
 // What a person should hear for each kind of failure (plain English, no codes, no blame, no guessing).
 const PLAIN: Record<GeminiErrorCode, string> = {
@@ -48,6 +52,7 @@ const PLAIN: Record<GeminiErrorCode, string> = {
   empty: 'I did not get an answer.',
   no_input: 'There was nothing to look at.',
   api: 'Something went wrong on my side.',
+  blocked: 'The old online helpers are switched off, or a privacy check stopped this, so nothing was sent.',
 }
 export const plainByCode = (code: string): string => PLAIN[code as GeminiErrorCode] ?? PLAIN.api
 
@@ -77,6 +82,10 @@ export const isEnvironmental = (e: unknown): boolean => e instanceof GeminiError
  * each service degrades to its honest "could not check" answer instead of crashing.
  */
 export function createAi(): AiLike {
+  if (!legacyRemoteOn()) {
+    // Flag off: no key is read, no SDK client is built, nothing can be opened.
+    return { interactions: { create: () => Promise.reject(Object.assign(new Error('legacy cloud paths are off (UNDERSTUDY_LEGACY_REMOTE)'), { status: 403 })) } }
+  }
   if (!process.env.GEMINI_API_KEY) loadEnv({ path: `${process.cwd()}/.env`, quiet: true })
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
@@ -130,6 +139,10 @@ export interface CallOptions {
   params: Record<string, unknown>
   timeoutMs: number // hard wall-clock budget across all attempts
   retries?: number // extra attempts after the first (default 1)
+  // What the request carries, for the privacy ledger: file text for the files feature, otherwise image when a part carries bytes, else text.
+  kind?: LegacyKind
+  // Tests only: the legacy-remote gate (production uses the process-wide one).
+  remote?: LegacyRemoteGate
 }
 export interface CallResult {
   interaction: InteractionLike
@@ -164,6 +177,24 @@ export function functionCallsOf(i: InteractionLike): Array<{ name: string; args:
     .map((s) => ({ name: s.name as string, args: s.arguments ?? {} }))
 }
 
+/** What an Interactions request carries, as metadata only: text bytes, and the count and decoded size of any image or document part. */
+export function measureParams(params: Record<string, unknown>, kind?: LegacyKind): { kind: LegacyKind; bytes: number; count: number } {
+  const input = Array.isArray(params.input) ? (params.input as unknown[]) : []
+  let bytes = 0
+  let parts = 0
+  for (const part of input) {
+    if (typeof part !== 'object' || part === null) continue
+    const p = part as { type?: unknown; text?: unknown; data?: unknown }
+    if (typeof p.text === 'string') bytes += Buffer.byteLength(p.text, 'utf8')
+    if (typeof p.data === 'string') {
+      bytes += base64Bytes(p.data)
+      parts += 1
+    }
+  }
+  if (typeof params.system_instruction === 'string') bytes += Buffer.byteLength(params.system_instruction, 'utf8')
+  return { kind: kind ?? (parts > 0 ? 'image' : 'text'), bytes, count: Math.max(1, parts) }
+}
+
 export async function callModel(deps: GeminiDeps, o: CallOptions): Promise<CallResult> {
   const attempts = (o.retries ?? 1) + 1
   const deadline = Date.now() + o.timeoutMs
@@ -171,6 +202,14 @@ export async function callModel(deps: GeminiDeps, o: CallOptions): Promise<CallR
   for (let attempt = 0; attempt < attempts; attempt++) {
     const remaining = deadline - Date.now()
     if (remaining < 400) break
+    // Every attempt uploads the content again, so every attempt is announced to the ledger first (D38).
+    let ticket: LegacyTicket
+    try {
+      ticket = await authorizeLegacy({ ...measureParams(o.params, o.kind), purpose: purposeId(o.name), provider: 'gemini', model: o.model }, { gate: o.remote })
+    } catch (e) {
+      if (e instanceof LegacyRemoteBlocked) throw new GeminiError('blocked', `${o.name} not sent: ${e.reason}`)
+      throw e
+    }
     const t0 = performance.now()
     try {
       // The abort signal is best-effort inside the SDK; the race makes the deadline hard no matter what the transport does.
@@ -188,9 +227,11 @@ export async function callModel(deps: GeminiDeps, o: CallOptions): Promise<CallR
       const ms = Math.round(performance.now() - t0)
       recordLatency(o.name, ms)
       const u = interaction.usage ?? {}
+      ticket.finish({ ok: true, latencyMs: ms, inputTokens: u.total_input_tokens, outputTokens: u.total_output_tokens })
       deps.log('gemini', `${o.name} model=${o.model} ${ms}ms in=${u.total_input_tokens ?? '?'} out=${u.total_output_tokens ?? '?'} think=${u.total_thought_tokens ?? '?'}`)
       return { interaction, text: textOf(interaction), ms }
     } catch (e) {
+      ticket.finish({ ok: false, latencyMs: performance.now() - t0 })
       last = e
       if (isAbort(e)) throw new GeminiError('timeout', `${o.name} timed out after ${o.timeoutMs}ms`)
       const status = statusOf(e)

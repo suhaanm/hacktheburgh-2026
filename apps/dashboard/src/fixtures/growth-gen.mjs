@@ -215,7 +215,7 @@ function analyse(rows, seed, skill, allSkillRows) {
     : { value: null, k: 0, n: 0, wilson: null };
 
   // trend: assisted share per block, Theil-Sen slope per 10 occurrences, bootstrap interval
-  const B = skill ? 5 : 10;
+  const B = 10; // non-overlapping blocks of 10, as the engine does
   const blocks = [];
   for (let s = 0; s + B <= n; s += B) {
     const seg = mine.slice(s, s + B);
@@ -223,7 +223,7 @@ function analyse(rows, seed, skill, allSkillRows) {
   }
   const xs = blocks.map((b) => (b.i / 10)), ys = blocks.map((b) => b.assisted_share);
   let trend;
-  if (!ready || blocks.length < 3) trend = { slope_per_10: null, ci: null, direction: "too_early", blocks };
+  if (!ready || blocks.length < 3) trend = { slope_per_10: null, ci: null, direction: "too_early", blocks, needed_more: Math.max(0, 30 - n) || null, power_note: `A trend needs 30 occurrences (three blocks of 10); there are ${n} so far.` };
   else {
     const slope = theilSen(xs, ys);
     const bs = [];
@@ -236,7 +236,7 @@ function analyse(rows, seed, skill, allSkillRows) {
     }
     const ci = [quant(bs, 0.025), quant(bs, 0.975)];
     const dir = ci[1] < 0 ? "less_help" : ci[0] > 0 ? "more_help" : "steady";
-    trend = { slope_per_10: r3(slope), ci: ci.map(r3), direction: dir, blocks };
+    trend = { slope_per_10: r3(slope), ci: ci.map(r3), direction: dir, blocks, needed_more: null, power_note: dir === "steady" ? "Cannot tell yet: with this many occurrences a real fall in help need is often missed, so this is not evidence of no change." : null };
   }
 
   // time to progress after a cue
@@ -280,9 +280,9 @@ function analyse(rows, seed, skill, allSkillRows) {
   return {
     person: mine[0]?.person ?? rows[0]?.person, skill: skill ?? null, window: WINDOW,
     origin_detail: rows[0]?.origin_detail,
-    readiness: { occurrences: n, needed: NEEDED, ready },
+    readiness: { occurrences: n, needed: NEEDED, ready, trend_needed: 30 },
     baseline,
-    score: { composite, composite_ci, composite_partial: partial, available_weight: r3(avail), weights: W, used_weights: partial ? used : null, weights_note: "Stated assumptions, not fitted." },
+    score: { composite_experimental: composite, composite_experimental_ci: composite_ci, composite_partial: partial, available_weight: r3(avail), weights: W, used_weights: partial ? used : null, weights_note: "Stated assumptions, not fitted.", composite_caveat: "Experimental. On simulated learners whose skill did not change, this score still rose in a sizeable share of cases, so it is shown with its parts and is not a finding." },
     components: { independence, mastery: n ? { value: mastery, by_skill: bySkillMastery } : null, gap_closure: gap, retention },
     trend, curve,
     occurrences: { total: n, unaided: mine.filter(unaided).length, assisted: mine.filter((r) => r.outcome === "assisted").length, errors: mine.filter((r) => r.outcome === "error").length, abandoned: mine.filter((r) => r.outcome === "abandoned").length },
@@ -318,6 +318,12 @@ function bundle(story, spec, label) {
   const meta = (n) => ({ origin: "synthetic", n, n_unit: "occurrences", split: `sliding window of ${WINDOW} occurrences`, interval_level: 0.95, note: `Example data: ${spec.note}`, generated_at: AS_OF });
   const finish = (a, off) => {
     const { _lastRow, ...rest } = a;
+    // FIXTURE PLACEHOLDER: the engine states needed_more from its own power simulation. Here a fixed figure lets the screen show how
+    // "cannot tell yet" reads with a number. It is not a measurement.
+    if (spec.needMore && rest.trend.direction === "steady") {
+      rest.trend.needed_more = spec.needMore;
+      rest.trend.power_note = `Cannot tell yet: about ${spec.needMore} more occurrences would usually be needed to see a fall of 0.3 in the share that needed help. This is not evidence of no change.`;
+    }
     return { meta: meta(rest.occurrences.total), data: { ...rest, offloaded: off } };
   };
   const delegated = spec.delegated.map((d, i) => ({ stream: "delegated", day: d.day, skill: d.skill, outcome: d.outcome, i }));
@@ -366,7 +372,7 @@ const improves = bundle("improves", {
 }, "A learner who improves");
 
 const plateau = bundle("plateau", {
-  person: "p_example_plateau", seed: 77031, t0: T0, origin_detail: "simulated_participants",
+  person: "p_example_plateau", seed: 77031, t0: T0, origin_detail: "simulated_participants", needMore: 60,
   note: "a simulated participant (language model) whose help need levels off, 6 weeks.",
   perSkill: [
     { n: 30, start: 0.84, floor: 0.34, tau: 7, from: 0, to: 41 },
@@ -392,11 +398,25 @@ const sparse = bundle("sparse", {
   automation: [],
 }, "A learner with little data");
 
+const getting = bundle("getting-going", {
+  person: "p_example_going", seed: 9091, t0: T0, origin_detail: "synthetic_learner",
+  note: "a synthetic learner with 20 occurrences: enough for a curve, not yet for a trend.",
+  perSkill: [
+    { n: 9, start: 0.85, floor: 0.3, ramp: 14, from: 28, to: 42 },
+    { n: 7, start: 0.85, floor: 0.35, ramp: 12, from: 30, to: 42 },
+    { n: 4, start: 0.85, floor: 0.5, ramp: 10, from: 36, to: 42 },
+    { n: 0 }, { n: 0 },
+  ],
+  delegated: [{ day: 40, skill: "enter-household-once", outcome: "clean" }],
+  automation: [{ day: 40, skill: "reconcile-before-noting", outcome: "clean" }, { day: 41, skill: "reconcile-before-noting", outcome: "clean" }],
+}, "A learner with an early curve");
+
 out("growth.json", improves);
+out("growth-going.json", getting);
 out("growth-plateau.json", plateau);
 out("growth-sparse.json", sparse);
-for (const b of [improves, plateau, sparse]) {
+for (const b of [improves, plateau, getting, sparse]) {
   const o = b.overall.data;
-  console.log(b.story, "n", o.occurrences.total, "base", JSON.stringify(o.baseline), "indep", JSON.stringify(o.components.independence), "trend", o.trend.direction, o.trend.slope_per_10, JSON.stringify(o.trend.ci), "composite", o.score.composite, JSON.stringify(o.score.composite_ci), "partial", o.score.composite_partial, "ret", JSON.stringify(o.components.retention), "gap", JSON.stringify(o.components.gap_closure), "ttp", JSON.stringify(o.time_to_progress));
+  console.log(b.story, "n", o.occurrences.total, "base", JSON.stringify(o.baseline), "indep", JSON.stringify(o.components.independence), "trend", o.trend.direction, o.trend.slope_per_10, JSON.stringify(o.trend.ci), "composite", o.score.composite_experimental, JSON.stringify(o.score.composite_experimental_ci), "partial", o.score.composite_partial, "ret", JSON.stringify(o.components.retention), "gap", JSON.stringify(o.components.gap_closure), "ttp", JSON.stringify(o.time_to_progress));
   console.log("  skills:", o.by_skill.map((s) => `${s.skill}:${s.n}/${s.independent}/L${s.level}/${s.direction}/${s.retrieval_due ? "due" : "-"}`).join(" "));
 }

@@ -64,6 +64,7 @@ def _serve(args: argparse.Namespace) -> int:
     import uvicorn
 
     port = int(args.port or os.environ.get("ENGINE_PORT", "7700"))
+    os.environ["UNDERSTUDY_ENGINE_LISTEN_PORT"] = str(port)     # the guard's own port; and the proof this engine may speak for the stack
     uvicorn.run("understudy_engine.api.app:app", host=args.host, port=port, log_level="info")
     return 0
 

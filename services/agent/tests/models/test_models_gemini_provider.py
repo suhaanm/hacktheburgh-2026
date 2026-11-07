@@ -154,12 +154,6 @@ def test_text_methods_use_expected_tiers_and_sanitise():
     assert schema  # unused var guard
 
 
-def test_computer_step_is_not_supported():
-    p, _ = prov()
-    with pytest.raises(ProviderError):
-        p.computer_step("goal", b"x", [])
-
-
 def test_failure_leaves_last_call_none_and_error_propagates():
     p, _ = prov(reply({"found": False, "confidence": 0.5}), GeminiHTTPError("timeout", "gemini call timed out after 6001 ms"))
     p.point(JPEG, "x")

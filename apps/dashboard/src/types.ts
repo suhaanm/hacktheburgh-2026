@@ -331,6 +331,9 @@ export interface Limitation {
 export interface EvalReport {
   generated_at: string;
   mock: boolean;
+  /** Additive: one row per section the eval track knows about, with its status and why it has not run. */
+  evidence_map?: { section: string; title: string; status: string; origin: string; n: number | null; n_unit: string; label: string | null; reason: string | null }[];
+  git_rev?: string;
   sections: {
     deficit_recovery?: EvalSection<Record<string, unknown>>;
     routines?: EvalSection<Record<string, unknown>>;
@@ -396,7 +399,7 @@ export interface CoachDecision {
 export type CoachOutcome = "followed" | "dismissed" | "repeated" | "undone";
 
 /* -- Extensions (REQ-2). Everything is flag-gated; GET /health lists which are on. ---------------------------- */
-export type ExtensionName = "privacy" | "localmodel" | "calendar" | "git" | "proactive" | "agents";
+export type ExtensionName = "privacy" | "localmodel" | "calendar" | "git" | "proactive" | "agents" | "evidence" | "attention";
 
 export type BlockKind = "meeting" | "focus" | "break" | "offscreen" | "free";
 export interface CalBlock {
@@ -484,7 +487,7 @@ export interface Briefing { cap: number; generated_at: string; cards: BriefingCa
 
 export interface Budget { steps?: number; seconds?: number; tokens?: number; [k: string]: number | undefined }
 /** A per-child tool scope with an expiry, a step cap and revocation. It scopes tools only: there is no site or app scope. */
-export interface Lease { ttl_s: number; remaining_s: number; steps_left: number; tools: string[]; revoked: boolean }
+export interface Lease { ttl_s: number; remaining_s: number; steps_left: number; tools: string[]; revoked: boolean; /** additive: why a finished lease ended */ state?: string; stop_reason?: string }
 export interface AgentNode { id: string; role: string; state: string; budget: Budget; spent: Budget; result_ref?: string; /** additive, optional */ lease?: Lease }
 /** A step in a run's result. `check` is a declarative postcondition run by code after the step. */
 export type StepCheck = "verified" | "uncertain" | "failed";
@@ -526,7 +529,8 @@ export interface LedgerEntry {
 export interface PrivacySummary {
   calls: number;
   by_purpose: Record<string, number>;
-  last_call: string | null;
+  /** A time, or (from the engine) the last call itself: `{ t, purpose, model, bytes, mock }`. */
+  last_call: string | { t: string; purpose?: string; model?: string | null; bytes?: number; mock?: boolean } | null;
   local_only_note: string;
   canary?: { runs: number; planted: number; leaked: number; last_run?: string | null } | null;
   /** Additive. */
@@ -600,3 +604,64 @@ export interface ModelsStatus {
   config_error: string | null;
   bakeoff: unknown | null;
 }
+
+
+/* -- Explain: "Where did my time go?" (REQ-6, GET /evidence/packet and POST /evidence/explain) -------------------------------- */
+export interface PacketFact { path: string; value: number; unit: string }
+export interface EvidencePacket {
+  person: string; case: string;
+  blocks?: Record<string, string>;
+  facts: PacketFact[];
+  limitations: { id: string; text: string }[];
+}
+export interface ExplainSentence { text: string; uses: string[] }
+export interface ExplainAction { id: string; text: string; uses: string[]; chosen_by: string }
+export type ExplainSection =
+  | { kind: "explanation" | "answer"; sentences: ExplainSentence[] }
+  | { kind: "coaching"; actions: ExplainAction[] }
+  | { kind: "limits"; sentences: { id: string; text: string }[] };
+export interface ExplainAttempt { route: string; ok: boolean; reason: string | null; codes?: string[] }
+export interface ExplainResult {
+  intent: string;
+  source: "template" | "local" | "cloud";
+  model: string | null;
+  sections: ExplainSection[];
+  footer: string;
+  badge: { origin: string; n: number; n_unit: string; split: string | null };
+  check: { ok: boolean; schema_ok?: boolean; checked?: { sentences?: number; numbers?: number; names?: number; intervals?: number }; rejected?: unknown[]; dropped_actions?: unknown[]; subject?: string };
+  attempts: ExplainAttempt[];
+  fallback_reason: string | null;
+  question: { asked_s: number | null; matches_case: boolean | null };
+  person?: string; case?: string; blocks?: Record<string, string>;
+}
+
+/* -- Notices (REQ-8, the attention layer; flag UNDERSTUDY_X_ATTENTION) ---------------------------------------------------------- */
+export interface AttentionType { type: string; class: "safety" | "time" | "now" | "wait" | "info" | string; mode: string; fixed: boolean }
+export interface AttentionLearned { n?: number; never_subjects?: number | unknown[]; drop_hours?: number[]; max_drop?: number }
+export interface AttentionSettings {
+  /** Only the kinds set away from the default. */
+  modes: Record<string, string>;
+  budget_per_day: number;
+  level_glance: boolean;
+  types: AttentionType[];
+  /** The hard floors, in plain words, read-only. */
+  floors: { type: string; floor: string; why: string }[];
+  learned: Record<string, AttentionLearned>;
+  defaults?: { modes: Record<string, string>; budget_per_day: number; level_glance: boolean };
+}
+export interface AttentionDigest {
+  kind: string;
+  needs_you?: number;
+  needs_you_items?: { type: string; count: number }[];
+  ran?: number;
+  can_ignore?: number;
+  /** Fixed sentences, at most seven. */
+  lines: string[];
+  counts?: Record<string, number>;
+  /** Counts keyed "shown:toast", "held:held_typing", "dropped:dropped_flow". */
+  today?: Record<string, number>;
+  budget?: { used: number; per_day: number };
+}
+export interface AttentionBadges { needs_you: number; waiting: number; marker: "none" | "needs_you" | "stopped" | string; stopped: boolean }
+export interface AttentionPeek { badges: AttentionBadges; digest_ready: boolean; active?: unknown; poll_after_s?: number }
+export interface AttentionPatch { modes?: Record<string, string>; budget_per_day?: number; level_glance?: boolean; reset_learned?: boolean | string[] }

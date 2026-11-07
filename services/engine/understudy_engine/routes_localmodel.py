@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from typing import Any, Literal
 
 from fastapi import APIRouter, Request
+from . import http_guard
 from pydantic import BaseModel, ConfigDict
 
 from .api.errors import ApiError
@@ -25,7 +26,6 @@ from .localmodel.server import get_server, model_check
 
 router = APIRouter(tags=["localmodel"])
 _LOCAL_HOSTS = ("127.0.0.1", "::1", "localhost", "testclient")
-_ALLOWED_ORIGIN_PREFIXES = ("http://localhost", "http://127.0.0.1", "tauri://", "app://", "file://")
 _hash_thread: threading.Thread | None = None
 
 
@@ -68,11 +68,11 @@ def _guard(request: Request) -> None:
     host = request.client.host if request.client else ""
     if host not in _LOCAL_HOSTS:
         raise ApiError(403, "write_refused", "Digests can only be requested from this machine.")
-    actor = request.headers.get("x-understudy-actor", "worker").strip()
+    actor = http_guard.actor_of(request)
     if actor not in WORKER_ACTORS:
         raise ApiError(403, "write_refused", f"Only the worker's own app can request digests; the actor {actor[:20]!r} cannot.")
     origin = request.headers.get("origin")
-    if origin is not None and not origin.startswith(_ALLOWED_ORIGIN_PREFIXES):
+    if origin is not None and not http_guard.origin_allowed(origin):
         raise ApiError(403, "write_refused", "Digests are only requested from the Understudy app on this machine.")
 
 

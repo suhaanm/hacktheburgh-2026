@@ -59,6 +59,7 @@ const env = {
   UNDERSTUDY_AGENT_URL: 'http://127.0.0.1:9',
   UNDERSTUDY_EXT_PORT: '7733',
   ALONGSIDE_USERDATA: root,
+  UNDERSTUDY_DATA_DIR: join(root, 'data'), // the kill switch writes data/KILL: private, never the shared <repo>/data
   ALONGSIDE_OVERLAY_CAPTURABLE: '1',
   ALONGSIDE_ACTUATOR_DRYRUN: '1',
   ALONGSIDE_AGENCY_LOOP: '0',

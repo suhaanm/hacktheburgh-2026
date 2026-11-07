@@ -2,8 +2,8 @@
 
 Three things must never reach an exception message, a log line, a ledger line, a cache key or a fixture:
 
-* an API key (the literal value of an environment key, a Google-style `AIza...` key, an `sk-...` key, a bearer token,
-  an `x-goog-api-key` header value, a `key=` query parameter),
+* an API key (the literal value of an environment key, a Google-style `AIza...` key, an `sk-...` or ElevenLabs `sk_...` key, a GitHub
+  `ghp_...` token, a Live ephemeral token name `auth_tokens/...`, a bearer token, an `x-goog-api-key` header value, a `key=` query parameter),
 * image bytes (a base64 run of any real length is replaced by its size),
 * the response body of a failed call beyond a short, redacted excerpt.
 
@@ -24,7 +24,14 @@ _PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
      r"\1\2<redacted:key>"),
     (re.compile(r"(?i)([?&]key=)[^&\s'\"]+"), r"\1<redacted:key>"),
     (re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._~+/=\-]{12,}"), "Bearer <redacted:key>"),
+    # shapes added after the privacy review (L6): the Live ephemeral token's resource name, GitHub tokens, ElevenLabs keys
+    (re.compile(r"(?i)\bauth_tokens/[A-Za-z0-9._~+=\-]{6,}"), "auth_tokens/<redacted:token>"),
+    (re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}"), "<redacted:key>"),
+    (re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}"), "<redacted:key>"),
+    (re.compile(r"\bsk_[A-Za-z0-9]{16,}"), "<redacted:key>"),
 )
+#: the shapes that are key-shaped on their own (without a header or parameter name in front)
+_KEY_SHAPES = (_PATTERNS[0][0], _PATTERNS[1][0], _PATTERNS[5][0], _PATTERNS[6][0], _PATTERNS[7][0], _PATTERNS[8][0])
 # Image payloads are base64: a long unbroken run of the base64 alphabet is never prose.
 _B64_RUN = re.compile(r"(?:data:[a-z]+/[a-z0-9.+\-]+;base64,)?[A-Za-z0-9+/_\-]{200,}={0,2}")
 
@@ -56,4 +63,4 @@ def contains_secret(text: object) -> bool:
     s = str(text)
     if any(v in s for v in _secret_values()):
         return True
-    return bool(_PATTERNS[0][0].search(s) or _PATTERNS[1][0].search(s))
+    return any(p.search(s) for p in _KEY_SHAPES)

@@ -4,6 +4,7 @@ import { navigate, screenOf, useRoute, type Screen } from "./router";
 import { dataMode, getState, resetSources, setState, useAppState } from "./store";
 import { Loading } from "./components/common";
 import { ToastHost, useToast } from "./components/Toasts";
+import { AttentionBanner } from "./components/AttentionBanner";
 import { AuthContextProvider, createAuth, useAuth } from "./auth";
 import { extensionsFrom } from "./lib/ext";
 
@@ -24,6 +25,7 @@ const screens: Record<Screen, ReturnType<typeof lazy>> = {
   growth: lazy(() => import("./screens/Growth")),
   models: lazy(() => import("./screens/Models")),
   git: lazy(() => import("./screens/Git")),
+  notices: lazy(() => import("./screens/Notices")),
 };
 
 interface NavItem { id: Screen; label: string; hint: string }
@@ -42,6 +44,7 @@ const MAIN: NavItem[] = [
 const MORE: NavItem[] = [
   { id: "today", label: "Today", hint: "The current task" },
   { id: "memory", label: "Memory", hint: "What it knows about you" },
+  { id: "notices", label: "Notices", hint: "How loudly it speaks" },
   { id: "onboarding", label: "Set up", hint: "Choose a role" },
 ];
 const BEYOND: NavItem[] = [
@@ -157,7 +160,7 @@ function DataNote() {
     <p className="datanote" data-mode={mode}>
       <span className="datanote__dot" aria-hidden="true" />
       {mode === "demo" ? "Demo data" : "Some demo data"}
-      <span className="datanote__why">{ENGINE_LABEL} {mode === "demo" ? "is not running" : "does not answer every request"}.</span>
+      <span className="datanote__why">{mode === "demo" ? `${ENGINE_LABEL} is not running.` : "A service did not answer some requests, so some screens show example data."}</span>
       <button type="button" className="linkish" onClick={retry}>Try again</button>
     </p>
   );
@@ -310,6 +313,7 @@ function Shell() {
         </div>
       </aside>
       <main id="main" className="main" tabIndex={-1}>
+        <AttentionBanner />
         <Boundary screen={current}>
           <Suspense fallback={<div className="page"><Loading label="Loading screen" /></div>}>
             <Screen key={`${current}-${nonce}`} />

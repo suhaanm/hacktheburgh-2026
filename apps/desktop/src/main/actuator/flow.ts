@@ -8,7 +8,7 @@ import type { ConfirmBroker } from '../confirm'
 import type { ServiceContext } from '../context'
 import { isOwnApp, readFrontApp, type FrontApp } from '../agency/scope'
 import { appendAudit } from './audit'
-import type { Actuator } from './index'
+import type { ActTarget, Actuator } from './index'
 import { denylistMatch } from './policy'
 
 export const APPROVE = 'Yes, do it'
@@ -58,6 +58,12 @@ export function createDoItForMe({ ctx, s, confirm, actuator, settleMs = 700, fro
       lookingAt = (await frontApp?.()) ?? null
     } catch {
       lookingAt = null
+    }
+    // ...and the very window it is looking at: pinned now, so the click can only land in that window of that app.
+    let clickTarget: ActTarget | undefined = lookingAt && !isOwnApp(lookingAt) ? { app: lookingAt } : undefined
+    if (clickTarget) {
+      const pinned = await actuator.pinTarget?.(clickTarget)
+      if (pinned?.ok) clickTarget = pinned.target
     }
     const shot = await s.capture.grab('ground')
     const res = await s.grounder.ground({ target, shot, precise: true })
@@ -122,7 +128,7 @@ export function createDoItForMe({ ctx, s, confirm, actuator, settleMs = 700, fro
         return r
       }
 
-      const click = await actuator.clickAt(spot, { target: lookingAt && !isOwnApp(lookingAt) ? { app: lookingAt } : undefined })
+      const click = await actuator.clickAt(spot, { target: clickTarget })
       s.overlay.clear(['dfm-ghost'])
       if (!click.ok) {
         const code: DoItForMeCode = click.reason === 'accessibility' ? 'accessibility' : 'click_failed'

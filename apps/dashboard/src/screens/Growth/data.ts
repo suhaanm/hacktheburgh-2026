@@ -7,16 +7,15 @@ import { requestBody, requestHeaders } from "../../lib/http";
 import { noteSource } from "../../store";
 import type { AnalyticMeta } from "../../types";
 import { STORIES, emptyGrowth, loadBundle, type GrowthBundle, type Story } from "../../fixtures/growth";
-import type { Envelope, GrowthMeta, LedgerRow, WireDeleted, WireGrowth, WireLedger } from "../../components/growth/wire";
+import type { Envelope, LedgerRow, WireDeleted, WireGrowth, WireLedger } from "../../components/growth/wire";
 import { deletedCount } from "../../components/growth/model";
+import { envelope, failure, isMissing, qs, type Reached } from "../../components/growth/net";
 
 export { STORIES };
 export type { Story };
 
 const WHO = { service: "The engine", flag: "UNDERSTUDY_X_CUE" };
 const TIMEOUT_MS = 40_000;
-
-type Reached = { reached: true; status: number; body: unknown } | { reached: false };
 
 async function call(path: string, method: "GET" | "DELETE" = "GET"): Promise<Reached> {
   const ctl = new AbortController();
@@ -32,32 +31,6 @@ async function call(path: string, method: "GET" | "DELETE" = "GET"): Promise<Rea
   } finally {
     window.clearTimeout(timer);
   }
-}
-
-/** The service is down, or has no such route: show example data. */
-const isMissing = (r: Reached) => !r.reached || r.status === 404 || r.status === 405 || r.status === 501 || r.status >= 500;
-
-/** Describe a failed read for `classify`. A bare "no such route" 404 is a missing route, not a complaint: say it calmly. */
-function failure(r: Reached): { reached: boolean; status?: number; body?: unknown } {
-  if (!r.reached) return { reached: false };
-  const code = (r.body as { error?: { code?: string } } | null)?.error?.code;
-  const plain404 = r.status === 404 && code !== "extension_off" && code !== "extension_disabled";
-  return { reached: true, status: r.status, body: plain404 ? undefined : r.body };
-}
-
-function qs(p: Record<string, string | null | undefined>): string {
-  const q = new URLSearchParams();
-  for (const [k, v] of Object.entries(p)) if (v) q.set(k, v);
-  const t = q.toString();
-  return t ? `?${t}` : "";
-}
-
-function envelope<T>(body: unknown): Envelope<T> {
-  if (body && typeof body === "object" && "data" in body) {
-    const b = body as { meta?: GrowthMeta | null; data: T };
-    return { meta: b.meta ?? null, data: b.data };
-  }
-  return { meta: null, data: body as T };
 }
 
 function errorOf(r: Reached & { reached: true }): ApiError {
@@ -90,6 +63,12 @@ const asLoaded = <T,>(env: Envelope<T>, source: "live" | "demo", why: Fallback |
 export async function loadGrowth(skill: string | null, story: Story): Promise<Loaded<WireGrowth>> {
   const person = await whoAmI();
   const r = await call(`/growth${qs({ person, skill })}`);
+  // The engine is there and Cue is on, but nobody is set up yet: that is a real, empty answer, not a missing feature.
+  if (r.reached && r.status === 404 && (r.body as { error?: { code?: string } } | null)?.error?.code === "unknown_person") {
+    noteSource("live");
+    const b = await bundleOf(story);
+    return asLoaded(emptyGrowth("", skill, b.overall.meta), "live", null);
+  }
   if (isMissing(r)) {
     const why = classify(failure(r), WHO);
     noteSource("demo");

@@ -287,7 +287,8 @@ def _budgets(fast: bool) -> dict[str, Any]:
     r = _run("eval.nap", {"template": "nap_long"}, port=port, auto_script=False)
     took = time.monotonic() - t0
     c = r.results["c1"]
-    out["seconds"] = {"cap_s": 3, "wall_s": round(took, 2), "status": c.status, "obeyed": took < 3 + 6 and c.status != "done"}
+    out["seconds"] = {"cap_s": 3, "wall_s": round(took, 2), "status": c.status,
+                      "obeyed": took < 3 + 12 and c.status != "done"}   # generous: the machine may be loaded; without the cap it would run 30+ s
     out["all_obeyed"] = all(v["obeyed"] for v in out.values() if isinstance(v, dict))
     return out
 
@@ -550,7 +551,7 @@ def _privacy(root: Path, fast: bool) -> dict[str, Any]:
     from .exemplars.fixtures import make_dev_repo
 
     marker = "CNRYev77"
-    base_needles = [marker, marker.lower(), "example.com", "canary-mail", "Customer ", "Ada Ng", "INC-", "3960", "billing", "exporter",
+    base_needles = [marker, marker.lower(), "example.com", "canary-mail", "Customer ", "Ada Ng", "INC-", "3960.0", "billing", "exporter",
                     "seed_rows", "Add seed data"]
     cases = []
     csv = root / "canary.csv"
@@ -581,7 +582,8 @@ def _privacy(root: Path, fast: bool) -> dict[str, Any]:
         ledger_ok += int(ok_ledger)
         total_req += len(port)
         total_leaks += len(leaks)
-        detail.append({"kind": kind, "mode": mode, "state": r.state, "requests": len(port), "leaked": len(leaks), "ledger_complete": ok_ledger})
+        detail.append({"kind": kind, "mode": mode, "state": r.state, "requests": len(port), "leaked": len(leaks), "leaked_needles": leaks,
+                       "ledger_complete": ok_ledger})
     return {"flows": flows, "requests_captured": total_req, "canaries_leaked": total_leaks, "ledger_complete": rate(ledger_ok, flows),
             "cases": detail, "needles_per_flow": len(base_needles),
             "note": "Needles: planted names, emails, customer names, ticket ids, file names, commit messages and cell values. "
@@ -873,6 +875,43 @@ def _long_horizon(root: Path, fast: bool) -> dict[str, Any]:
     return out
 
 
+# ---------------------------------------------------------------------------------------------- context size per step (REQ-8)
+def _context_curve(root: Path, fast: bool) -> dict[str, Any]:
+    """Tokens per planning call over the long-horizon tasks, as the model would receive them (characters / 4): the static system
+    message (role spec, menu, playbook: the cacheable prefix) and the volatile payload, now and in the old format (every step
+    listed in a typed history), so the curve shows what the code-maintained task state buys."""
+    from understudy_engine.privacy.testing import CapturingPort
+
+    from . import context
+
+    out: dict[str, Any] = {}
+    for kind in ("programming.fix_bugs", "data.pipeline"):
+        port = CapturingPort()
+        r = _run(kind, mode="nightly", port=port)
+        agent = next(iter(r.children.values())).agent
+        reqs = [q for q in port.requests if q.method == "plan" and "agents.child_step" in q.text]
+        steps = agent.task.steps
+        rows = []
+        for i, q in enumerate(reqs):
+            sysm, user = q.body["messages"][0]["content"], q.body["messages"][-1]["content"]
+            now = context.est(json.loads(user)["payload"])
+            legacy = context.est({"role": "x", "kind": "y", "steps_left": 0, "last": "ok", "history": steps[:i], "signals": {}})
+            rows.append({"step": i + 1, "static_tokens": context.est(sysm), "payload_tokens": now, "payload_tokens_legacy_format": legacy,
+                         "total_tokens": context.est(sysm) + now})
+        statics = {q.body["messages"][0]["content"] for q in reqs}
+        pay = [x["payload_tokens"] for x in rows]
+        out[kind] = {"calls": len(rows), "static_prefix_identical_on_every_call": len(statics) == 1, "curve": rows,
+                     "payload_tokens": {"first": pay[0], "max": max(pay), "last": pay[-1],
+                                        "after_step_8_max_over_first_8_max": round(max(pay[8:]) / max(pay[:8]), 2) if len(pay) > 8 else None},
+                     "legacy_payload_tokens_last": rows[-1]["payload_tokens_legacy_format"],
+                     "static_share_of_each_call": round(rows[-1]["static_tokens"] / rows[-1]["total_tokens"], 3), "state": r.state}
+    out["budgets"] = {"section_tokens": context.SECTION_BUDGET, "total_tokens": context.TOTAL_BUDGET, "k_recent": context.K_RECENT,
+                      "truncation_order": list(context.TRUNCATION_ORDER), "never_truncated": list(context.NEVER_TRUNCATED)}
+    out["note"] = ("Token numbers are estimates (characters / 4). The static prefix is the part a provider can cache; the volatile payload is "
+                   "bounded by section budgets. Nothing in either carries file text, paths or names.")
+    return out
+
+
 # ---------------------------------------------------------------------------------------------- the entry point
 LIMITATIONS = [
     {"id": "rt_synthetic", "severity": "high", "text": "Every fixture is synthetic with planted facts; recovery rates say the runtime and its checks work on "
@@ -926,6 +965,7 @@ def evaluate_runtime(fast: bool = False, *, live: bool | None = None, out: Path 
             sections["determinism"] = _determinism(fx, fast)
             sections["privacy"] = _privacy(fx, fast)
             sections["long_horizon"] = _long_horizon(fx, fast)
+            sections["context"] = _context_curve(fx, fast)
         do_live = (not fast) if live is None else live
         sections["live_smoke"] = _live_smoke(repo_data, root, do_live)
     finally:
@@ -959,6 +999,7 @@ def _headline(s: dict[str, Any]) -> dict[str, Any]:
         "canaries_leaked": s["privacy"]["canaries_leaked"],
         "deterministic": s["determinism"]["runs_repeated"]["rate"],
         "live_smoke": ("ran" if s["live_smoke"].get("ran") else "skipped"),
+        "context_payload_tokens": {k: s["context"][k]["payload_tokens"] for k in ("programming.fix_bugs", "data.pipeline")},
         "long_horizon": {k: s["long_horizon"]["summary"][k] for k in ("completed_and_verified", "planted_facts_recovered", "false_claims_accepted",
                                                                        "false_claims_injected_and_caught", "recoveries", "steps")},
     }

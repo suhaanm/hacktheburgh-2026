@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import { useLoad } from "../hooks";
+import { idle, useLoad } from "../hooks";
 import { useAppState } from "../store";
 import { ChartFoot, EmptyState, ErrorState, ExampleBadge, Loading, OriginBadge, PageHead, SourceNote } from "../components/common";
 import { WeekLegend, WeekRibbon } from "../components/WeekRibbon";
 import { AlignLegend, CalAlignment } from "../components/CalAlignment";
-import { DAY_NAMES, KIND_LABEL, alignmentTotals, featureLabel, fmtFeature, gapClear, peopleByGroup, sortGaps, spans, toMinutes, weekHeadline, weekLabel, weekWindow } from "../lib/week";
+import { DAY_NAMES, KIND_LABEL, alignmentTotals, featureLabel, featureUnit, fmtFeature, gapClear, peopleByGroup, sortGaps, spans, toMinutes, weekHeadline, weekLabel, weekWindow } from "../lib/week";
 import { fmtInterval } from "../lib/format";
 import type { CalPerson, CalSuggestion, CalendarWeek, GapRow } from "../types";
 
@@ -26,8 +26,8 @@ export default function Week() {
     setPerson(me && known.has(me) ? me : known.has(DEMO_PERSON) ? DEMO_PERSON : people.data[0]?.person ?? DEMO_PERSON);
   }, [people.data, person, me]);
 
-  const w = useLoad(() => (person ? api.calendarWeek(person, week) : Promise.resolve(null as never)), [person, week]);
-  const sg = useLoad(() => (person ? api.calendarSuggestions(person, week) : Promise.resolve(null as never)), [person, week]);
+  const w = useLoad(() => (person ? api.calendarWeek(person, week) : idle<CalendarWeek>()), [person, week]);
+  const sg = useLoad(() => (person ? api.calendarSuggestions(person, week) : idle<CalSuggestion[]>()), [person, week]);
 
   if (people.status === "error" && !people.data) return <div className="page"><ErrorState error={people.error} retry={people.reload} what="who has a calendar" /></div>;
   if (!person || !people.data) return <div className="page"><Loading label="Loading your week" /></div>;
@@ -59,7 +59,7 @@ export default function Week() {
         ) : (
           <div className="stack">
             <div className="chart chart--wide stack" style={{ gap: "var(--space-6)" }}>
-              <WeekRibbon title={`${d.person ? "Their" : "Your"} week${d.week ? `, ${weekLabel(d.week)}` : ""}`} days={d.days} window={win} />
+              <WeekRibbon title={`${me && d.person === me ? "Your" : entry?.label ? `${entry.label}'s` : "This"} week${d.week ? `, ${weekLabel(d.week)}` : ""}`} days={d.days} window={win} />
               {d.expert.days && d.expert.days.length > 0 && <WeekRibbon title={`The expert's week${typeof d.expert.person === "string" ? ` (${d.expert.person})` : ""}`} days={d.expert.days} window={win} />}
             </div>
             <WeekLegend />
@@ -127,7 +127,7 @@ function Distance({ d, meta }: { d: CalendarWeek; meta: ReturnType<typeof useLoa
       <div className="chart chart--wide stack">
         <CalAlignment alignment={r.alignment ?? []} />
         <AlignLegend />
-        <ChartFoot meta={meta} extra={r.nearest_expert ? <span>nearest expert: <b>{r.nearest_expert}</b></span> : undefined} />
+        <ChartFoot brief meta={meta} extra={r.nearest_expert ? <span>nearest expert: <b>{r.nearest_expert}</b></span> : undefined} />
       </div>
       <p className="note">Read the placebo as the floor: even two experts' weeks differ by about that much, so a distance near it is normal.</p>
     </section>
@@ -184,14 +184,14 @@ function GapTable({ rows, meta, note }: { rows: GapRow[]; meta: ReturnType<typeo
             <td className="num">{fmtFeature(r.feature, r.learner)}</td>
             <td className="num">{fmtFeature(r.feature, r.expert)}</td>
             <td className="num"><b>{fmtFeature(r.feature, r.delta, true)}</b></td>
-            <td className="num interval">{fmtInterval(r.ci, Math.abs(r.delta) < 10 ? 1 : 0)}</td>
+            <td className="num interval">{fmtInterval(r.ci, featureUnit(r.feature) === "share" ? 2 : Math.abs(r.delta) < 10 ? 1 : 0)}</td>
             <td className="hide-narrow"><DeltaBar delta={r.delta} ci={r.ci} /></td>
             <td className="hide-narrow num interval">{r.expert_range ? `${fmtFeature(r.feature, r.expert_range[0])} to ${fmtFeature(r.feature, r.expert_range[1])}` : ""}</td>
             <td className="hide-narrow">{gapClear(r) ? <span className="pill"><b>clear</b></span> : <span className="pill">within noise</span>}</td>
           </tr>))}</tbody>
       </table></div>
       {rows.length > SHOWN && <div><button type="button" className="btn btn--quiet btn--sm" aria-expanded={all} onClick={() => setAll((v) => !v)}>{all ? "Show fewer" : `Show all ${rows.length}`}</button></div>}
-      <ChartFoot meta={meta} />
+      <ChartFoot brief meta={meta} />
     </section>
   );
 }
@@ -227,7 +227,7 @@ function Suggestions({ state }: { state: ReturnType<typeof useLoad<CalSuggestion
           ))}
         </div>
       )}
-      <ChartFoot meta={state.meta} />
+      <ChartFoot brief meta={state.meta} />
     </section>
   );
 }

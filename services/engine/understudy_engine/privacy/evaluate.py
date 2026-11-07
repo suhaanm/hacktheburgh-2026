@@ -4,8 +4,10 @@ What it measures, and what it does not claim
 --------------------------------------------
 * **Canary leaks.** Each registered flow is run several times, each with fresh fixtures seeded with unique planted tokens
   (person names, emails, meeting titles, file paths, commit messages, customer names), against a ``CapturingPort`` that records
-  every request body. The measurement is: how many planted tokens appear in any captured request. A one-sided exact
-  (Clopper-Pearson) 95% upper bound on the leak rate is reported with the count.
+  every request body. The count is how many planted tokens appear in any captured request. The HEADLINE interval is per RUN (a
+  leak belongs to a code path, and tokens planted in one run are not independent): a one-sided exact (Clopper-Pearson) 95% upper
+  bound on the share of runs that leak (0 of 80 is about 3.7%), with the per-flow bound (0 of 10 is about 26%) beside it. The
+  token-level bound is reported too, labelled as assuming independence.
 * **Logs, audit, queue (PRV-4).** After each run the ledger files, ``audit.jsonl``, the ``queue/`` items and ``logs/`` under the
   data dir, and every ``logging`` record emitted while the flow ran, are searched for the planted tokens.
 * **Ledger completeness.** For every flow run: one ledger line per captured request, no request that bypassed the guard, and
@@ -806,6 +808,12 @@ LIMITATIONS = [
      "text": "The canary scan looks for the exact planted strings, their invented words, simple rewrites (case, separators, URL "
              "encoding, base64, hex). A paraphrase, a translation, a hash or a character-code encoding of a token would not be caught. "
              "The claim measured is: these planted strings did not reach the model port, in these flows."},
+    {"id": "prv_leak_bound_unit", "severity": "high",
+     "text": "The leak bound is read per RUN, not per token. A leak is a property of a code path, and the many tokens planted in one run share that "
+             "path, so they are not independent trials. With 0 leaks the one-sided 95% upper bound is about 3 divided by the number of independent "
+             "units: per run (for example 0 of 80) about 3.7%, per flow (0 of 10) about 26%; the token-level figure (0 of thousands, well under "
+             "0.1%) assumes independence that does not hold and is shown only for comparison. Eight seeds per flow vary the planted strings, not the "
+             "code path, so more seeds do not shrink the per-flow bound."},
     {"id": "prv_flow_coverage", "severity": "high",
      "text": "Reference flows test the privacy layer with stand-in upstream code. Only integration flows test another layer's own code, "
              "and a layer that supplied none is listed as none_registered, not as passed. Zero leaks says nothing about a flow that was not run."},
@@ -831,8 +839,40 @@ LIMITATIONS = [
 ]
 
 
+def guard_battery() -> dict[str, Any]:
+    """Run the static guard over its own battery: the reviewer's evasions, further evasions, and clean code that must not be flagged.
+    Reports how many evasions each scan catches and how many clean samples it wrongly flags, so "0 violations" is read next to
+    "and it can see these"."""
+    from . import guard_samples as gs
+
+    def flagged(src: str, path: str) -> bool:
+        return bool(guard.scan_source(src, path)[0])
+
+    cases = [(n, src, "calendar/x.py") for n, (src, _) in sorted(gs.REVIEWER_LAYER.items())]
+    cases += [(f"extra_{i:02d}", src, "calendar/x.py") for i, (src, _) in enumerate(gs.EXTRA)]
+    cases += [(f"round2_{n}", src, "calendar/x.py") for n, src in sorted(gs.ROUND2.items())]
+    pure = [(n, src, "mlv2/x.py") for n, (src, _) in sorted(gs.REVIEWER_LAYER.items())]
+    agent = [(n, src) for n, src in sorted(gs.REVIEWER_AGENT.items())]
+    missed = [n for n, src, path in cases + pure if not flagged(src, path)]
+    missed += [f"agent:{n}" for n, src in agent if not guard.scan_agent_source(src, "understudy_agent/voice/x.py")[0]]
+    runtime_missed = [n for n, src in agent if not guard.scan_runtime_source(src, "runtime/x.py")]
+    false_pos = [i for i, src in enumerate(gs.CLEAN + [gs.ROUND2_CONTROL]) if flagged(src, "calendar/x.py")]
+    false_pos += [f"agent:{i}" for i, src in enumerate(gs.AGENT_CLEAN) if guard.scan_agent_source(src, "understudy_agent/tiers/x.py")[0]]
+    total = len(cases) + len(pure) + len(agent)
+    return {"evasion_cases": total, "flagged": total - len(missed), "missed": missed, "runtime_cases": len(agent),
+            "runtime_missed": runtime_missed, "clean_controls": len(gs.CLEAN) + 1 + len(gs.AGENT_CLEAN), "clean_flagged": len(false_pos),
+            "sources": {"reviewer_layer": len(gs.REVIEWER_LAYER), "reviewer_agent": len(gs.REVIEWER_AGENT), "reviewer_round2": len(gs.ROUND2),
+                        "further": len(gs.EXTRA)},
+"limits": ("THIS IS A STATIC NET FOR HONEST MISTAKES, NOT A SANDBOX. A string computed at run time (read from a file or the environment, chr() "
+                       "arithmetic, a base64 blob) is not folded, so a fetcher or host hidden that way is not seen; unfoldable arguments of dynamic "
+                       "import, exec and eval and unreadable process commands are flagged instead; an alias of a model method made through a "
+                       "second variable (y = x.plan) is not followed; a write path built from the environment is not checked. The extension "
+                       "layers are held to an import allowlist; the agent package is not (it browses by design). The real defence is "
+                       "egress.send, egress.send_image and the ledger, and the canary flows that measure them.")}
+
+
 def coverage_table(layers: dict[str, dict[str, Any]], rows: list[dict[str, Any]], guard_rep: Any, runtime_rep: Any,
-                   image_layer_flows: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+                   image_layer_flows: list[dict[str, Any]] | None = None, agent_rep: Any = None) -> list[dict[str, Any]]:
     """One row per guarded layer for the Evidence map: is the directory there, how many of its files the static guard read and with how
     many violations, and whether a real-code canary flow was run for it. ``registered`` = the layer supplied its own flow; ``adapter`` =
     the privacy layer wraps the layer's real entry point; ``pure_compute`` = no model or network path by rule (the static guard is the
@@ -862,9 +902,31 @@ def coverage_table(layers: dict[str, dict[str, Any]], rows: list[dict[str, Any]]
         "static_guard_violations": len(runtime_rep.violations), "canary_flow": "none_registered" if rt_files else "not_present", "flows": [],
         "registered_by_layer": False, "real_code_flow": False, "image_flows": [], "image_runs": 0, "image_residue": 0, "runs": 0,
         "requests": 0, "planted": 0, "leaked": 0,
-        "note": "services/agent runtime: plans through egress.send and records worker-requested calls; its own leak tests live in "
-                "services/agent/tests/runtime and are not run by this evaluation",
+        "note": "services/agent runtime: children have no network (the scan allows none), it plans through egress.send and records worker-requested "
+                "calls; its own leak tests live in services/agent/tests/runtime and are not run by this evaluation",
     })
+    if agent_rep is not None:
+        for pref in guard.AGENT_PURE_PREFIXES:
+            name = pref.split("/")[1]
+            pfiles = [f for f in agent_rep.files if f.startswith(pref)]
+            pviol = [v for v in agent_rep.violations if v.file.startswith(pref)]
+            out.append({"layer": name, "present": bool(pfiles), "pure_compute": True, "files_scanned": len(pfiles), "static_guard_violations": len(pviol),
+                        "canary_flow": "pure_compute" if pfiles else "not_present", "flows": [], "registered_by_layer": False, "real_code_flow": False,
+                        "image_flows": [], "image_runs": 0, "image_residue": 0, "runs": 0, "requests": 0, "planted": 0, "leaked": 0,
+                        "note": f"services/agent/{pref.rstrip('/')}: pure compute by rule (no model client, no network, no process, no URL, no reviewed exception); "
+                                "the static guard is the control"})
+        ag_files = list(agent_rep.files)
+        pend = guard.pending_exceptions()
+        out.append({
+            "layer": "agent_service", "present": bool(ag_files), "pure_compute": False, "files_scanned": len(ag_files),
+            "static_guard_violations": len(agent_rep.violations), "canary_flow": "static_guard_only" if ag_files else "not_present", "flows": [],
+            "registered_by_layer": False, "real_code_flow": False, "image_flows": [], "image_runs": 0, "image_residue": 0, "runs": 0, "requests": 0,
+            "planted": 0, "leaked": 0,
+            "note": (f"every module of services/agent outside models/ and runtime/ is statically scanned for network use; {len(guard.AGENT_ALLOW)} files "
+                     f"have a reviewed entry (loopback clients must carry a literal 127.0.0.1 or localhost); {len(pend)} exception(s) are pending, not "
+                     "accepted. Legacy desktop TypeScript still calls providers itself (see image.static_guard.ts_provider_references); those calls are "
+                     "on the ledger only if the caller reports them to POST /privacy/ledger/direct, which nothing here can force."),
+        })
     return out
 
 
@@ -894,7 +956,9 @@ def evaluate_privacy(*, seeds: Iterable[int] = tuple(range(8)), record: bool = T
         rows.append({
             "flow": fl.name, "layer": fl.layer, "kind": fl.kind, "status": "ran" if all(r.error is None or r.requests for r in rs) else "error",
             "seeds": len(rs), "requests": sum(r.requests for r in rs), "planted": planted, "leaked": leaked,
-            "leak_rate_upper_95": round(upper_bound_95(leaked, planted), 4) if planted else None,
+            "runs_with_leak": sum(1 for r in rs if r.leaked or r.artifact_leaked),
+            "leak_rate_upper_95": round(upper_bound_95(sum(1 for r in rs if r.leaked or r.artifact_leaked), len(rs)), 4) if rs else None,
+            "leak_rate_upper_95_token_level": round(upper_bound_95(leaked, planted), 4) if planted else None,
             "ledger_lines": sum(r.ledger_lines for r in rs), "ledger_expected": sum(r.ledger_expected for r in rs),
             "ledger_complete": all(r.ledger_complete for r in rs), "flow_errors": sorted({r.error for r in rs if r.error}),
             "meets_min_requests": all(r.requests >= fl.min_requests for r in rs),
@@ -907,14 +971,22 @@ def evaluate_privacy(*, seeds: Iterable[int] = tuple(range(8)), record: bool = T
     def agg(kind: str | None) -> dict[str, Any]:
         sel = [r for r in rows if kind is None or r["kind"] == kind]
         planted, leaked = sum(r["planted"] for r in sel), sum(r["leaked"] for r in sel)
-        return {"flows": len(sel), "runs": sum(r["seeds"] for r in sel), "requests": sum(r["requests"] for r in sel), "planted": planted,
-                "leaked": leaked, "leak_rate_upper_95": round(upper_bound_95(leaked, planted), 4) if planted else None,
+        runs, leaked_runs = sum(r["seeds"] for r in sel), sum(r["runs_with_leak"] for r in sel)
+        flows_n, leaked_flows = len(sel), sum(1 for r in sel if r["runs_with_leak"])
+        return {"flows": flows_n, "runs": runs, "requests": sum(r["requests"] for r in sel), "planted": planted, "leaked": leaked,
+                "runs_with_leak": leaked_runs, "flows_with_leak": leaked_flows,
+                # the headline bound is per RUN: a leak is a property of a code path, and tokens planted in one run share that path
+                "leak_rate_upper_95": round(upper_bound_95(leaked_runs, runs), 4) if runs else None, "leak_bound_unit": "run",
+                "leak_rate_upper_95_per_flow": round(upper_bound_95(leaked_flows, flows_n), 4) if flows_n else None,
+                "leak_rate_upper_95_token_level": round(upper_bound_95(leaked, planted), 4) if planted else None,
                 "ledger_complete": all(r["ledger_complete"] for r in sel) if sel else None,
                 "all_meet_min_requests": all(r["meets_min_requests"] for r in sel) if sel else None,
                 "artifact_files_scanned": sum(r["artifact_files_scanned"] for r in sel), "artifact_leaked": sum(r["artifact_leaked"] for r in sel)}
 
     guard_rep = guard.scan_tree()
     runtime_rep = guard.scan_runtime()
+    agent_rep = guard.scan_agent()
+    battery = guard_battery()
     image_block = image_evaluation()
     image_layer_flows: list[dict[str, Any]] = []
     if discover:
@@ -926,31 +998,38 @@ def evaluate_privacy(*, seeds: Iterable[int] = tuple(range(8)), record: bool = T
     image_block["layer_flows"] = image_layer_flows
     image_block["leaks"] += sum(f["residue"] for f in image_layer_flows)
     image_block["runs"] += sum(f["runs"] for f in image_layer_flows)
+    image_block["leak_rate_upper_95_per_run"] = round(upper_bound_95(1 if image_block["leaks"] else 0, image_block["runs"]), 4) if image_block["runs"] else None
+    image_block["leak_bound_unit"] = "run"
     props = bucketing_properties()
     sensitivity = scan_sensitivity()
     specificity = scan_specificity()
     corpus = backstop_corpus()
     total = agg(None)
     not_covered = [layer for layer, v in layers.items() if v["status"] in ("none_registered", "error")]
-    coverage = coverage_table(layers, rows, guard_rep, runtime_rep, image_layer_flows)
+    coverage = coverage_table(layers, rows, guard_rep, runtime_rep, image_layer_flows, agent_rep)
     cov_summary = {
         "layers": len([c for c in coverage if c["layer"] != "agent_runtime"]),
         "with_real_code_flow": [c["layer"] for c in coverage if c["real_code_flow"]],
         "pure_compute": [c["layer"] for c in coverage if c["canary_flow"] == "pure_compute"],
         "not_present": [c["layer"] for c in coverage if c["canary_flow"] == "not_present"],
         "gaps": [c["layer"] for c in coverage if c["canary_flow"] in ("none_registered", "error", "not_checked")],
+        "static_guard_only": [c["layer"] for c in coverage if c["canary_flow"] == "static_guard_only"],
     }
     data = {
         "meta": {"origin": "synthetic", "n": total["planted"], "n_unit": "tokens", "split": None, "interval_level": 0.95,
                  "note": ("Synthetic fixtures with planted canaries, a capturing fake model port, an isolated data directory. "
                           f"{len(seeds)} seeds per flow. Reference flows test the guard; integration flows test a layer's real code."),
                  "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")},
-        "headline": {**total, "controls_passed": sum(1 for c in controls if c["passed"]), "controls_total": len(controls),
+        "headline": {**total, "leak_bound_note": "per-run bound is the headline; per-flow and token-level bounds are beside it (see limitation prv_leak_bound_unit)",
+                     "controls_passed": sum(1 for c in controls if c["passed"]), "controls_total": len(controls),
                      "layers_without_integration_flows": not_covered, "coverage_summary": cov_summary,
                      "artifact_files_scanned": total["artifact_files_scanned"], "artifact_leaked": total["artifact_leaked"],
                      "bucketing_failures": sum(r["failures"] for r in props), "bucketing_cases": sum(r["cases"] for r in props),
-                     "static_guard_violations": len(guard_rep.violations) + len(runtime_rep.violations),
-                     "static_guard_files": len(guard_rep.files) + len(runtime_rep.files),
+                     "static_guard_violations": len(guard_rep.violations) + len(runtime_rep.violations) + len(agent_rep.violations),
+                     "static_guard_files": len(guard_rep.files) + len(runtime_rep.files) + len(agent_rep.files),
+                     "static_guard_evasions_flagged": f"{battery['flagged']}/{battery['evasion_cases']}",
+                     "static_guard_clean_flagged": battery["clean_flagged"],
+                     "pending_exceptions": len(guard.pending_exceptions()),
                      "vocabulary_problems": len(vocabulary_problems()),
                      "purposes_registered": len([p for p in all_purposes() if not p.startswith("control.")]),
                      "backstop_must_catch": f"{corpus['must_catch_caught']}/{corpus['must_catch_total']}",
@@ -971,7 +1050,14 @@ def evaluate_privacy(*, seeds: Iterable[int] = tuple(range(8)), record: bool = T
         "static_guard": {"files": len(guard_rep.files), "violations": [str(v) for v in guard_rep.violations],
                          "allowed_uses": sorted(set(guard_rep.allowed_uses)), "scanned_dirs": list(guard.GUARDED_DIRS),
                          "runtime": {"files": len(runtime_rep.files), "violations": [str(v) for v in runtime_rep.violations],
-                                     "rule": "no provider SDK or network client; every visible direct model call records a metadata-only ledger line"}},
+                                     "rule": "no network of any kind (children are sandboxed) and no reviewed exceptions; every visible direct model call "
+                                             "records a metadata-only ledger line"},
+                         "agent": {"files": len(agent_rep.files), "violations": [str(v) for v in agent_rep.violations],
+                                   "allowed_uses": sorted(set(agent_rep.allowed_uses)),
+                                   "reviewed_entries": {k: v.reason for k, v in guard.AGENT_ALLOW.items()},
+                                   "rule": "every module outside models/ and runtime/ is scanned; network use needs a reviewed entry with a reason and, for a "
+                                           "loopback client, a literal 127.0.0.1 or localhost in the module"},
+                         "pending_exceptions": guard.pending_exceptions(), "battery": battery},
         "ledger": {"lines_written_during_evaluation": ledger_lines_total},
         "image": image_block,
         "purposes": [p.public() for p in all_purposes().values() if not p.name.startswith("control.")],

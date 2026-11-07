@@ -32,6 +32,7 @@ from __future__ import annotations
 import ast
 import fnmatch
 import re
+import sys
 from dataclasses import dataclass
 from typing import Any
 
@@ -62,6 +63,26 @@ NETWORK_PREFIXES = tuple(p for p in NETWORK_PREFIXES if p != "logging.handlers.Q
 #: method names that open a connection whatever the receiver is called (a loop, a transport, an alias the resolver lost)
 NETWORK_METHODS = {"create_connection", "create_datagram_endpoint", "create_unix_connection", "sock_connect", "open_connection",
                    "getaddrinfo", "gethostbyname", "gethostbyname_ex", "getnameinfo"}
+#: the extension layers may import only the standard library, ``understudy_*`` and these pure-compute dependencies; anything else needs a
+#: reviewed entry. (The agent service has its own rules; it is not held to this list.)
+STDLIB = frozenset(sys.stdlib_module_names)
+THIRD_PARTY_OK = frozenset({"pydantic", "pydantic_core", "annotated_types", "numpy", "pandas", "scipy", "sklearn", "statsmodels", "lifelines", "jsonschema",
+                            "yaml", "orjson", "fastapi", "starlette", "threadpoolctl", "typing_extensions",
+                            "PIL"})        # PIL: pure image decoding and resizing (agent context frames); it opens no connection
+#: browser automation: the agent package browses by design (D12); an extension layer has no reason to
+BROWSER_PREFIXES = ("playwright", "selenium", "pyppeteer", "mechanize", "splinter")
+#: git subcommands an extension layer may run (read-only inspection, plus what building a synthetic local repository needs); no remote ones
+GIT_LAYER_OK = frozenset({"log", "rev-parse", "show", "diff", "diff-tree", "status", "ls-files", "ls-tree", "cat-file", "rev-list", "for-each-ref", "config",
+                          "init", "add", "commit", "branch", "checkout", "switch", "tag", "merge-base", "symbolic-ref", "describe", "blame", "shortlog",
+                          "name-rev", "worktree", "merge", "reset", "mv", "rm", "update-index", "hash-object", "write-tree", "commit-tree", "update-ref",
+                          "count-objects", "var", "version", "--version"})
+#: path fragments of folders that sync to someone else's servers
+SYNCED_MARKERS = ("Mobile Documents", "CloudDocs", "iCloud", "Dropbox", "OneDrive", "Google Drive", "GoogleDrive", "CloudStorage", "Box Sync", "pCloud",
+                  "/Volumes/", "Library/Group Containers")
+#: methods that call a model port; a reference to one is refused in an extension layer even without a call
+MODEL_METHODS = {"plan", "vision", "computer_step"}
+HIGHER_ORDER = {"partial", "partialmethod", "submit", "to_thread", "run_in_executor", "map", "starmap", "Thread", "Timer", "call_soon",
+                "call_soon_threadsafe", "apply_async", "attrgetter", "methodcaller", "ensure_future", "create_task"}
 PURE_BANNED = {"subprocess", "webbrowser", "ctypes", "pty", "pexpect", "paramiko", "fabric", "cffi"}
 PURE_BANNED_CALLS = {"os.system", "os.popen", "os.execv", "os.execve", "os.execvp", "os.execl", "os.execlp", "os.spawnl", "os.spawnv",
                      "os.startfile", "pty.spawn"}
@@ -119,6 +140,9 @@ class Allow:
     loopback_names: frozenset[str] = frozenset()        # a name whose value is a loopback constant (verified by a test)
     dynamic_import: bool = False                        # may import a module by a name it cannot fold (a plugin loader)
     dynamic_code: bool = False
+    processes: frozenset[str] = frozenset()             # argv[0] names an extension layer may run besides git; "osascript" only with a constant local script
+    dynamic_process: bool = False                       # may run a command whose argv it builds elsewhere (reviewed: what builds it)
+    home_path: bool = False                             # may read the home folder (reviewed: only for the per-install state directory ~/.understudy)
     pending: str | None = None                          # an exception that is NOT accepted: it is listed until it is fixed
 
 
@@ -335,6 +359,9 @@ class Analyzer(ast.NodeVisitor):
             return
         if self._model_check(node, q, via):
             return
+        if self.policy.kind == "layer" and any(_under(q, b) for b in BROWSER_PREFIXES):
+            self.bad(node, "browser_automation", f"{via} {q}: browsing belongs to the agent package (D12), not an extension layer")
+            return
         for p in NETWORK_PREFIXES:
             if _under(q, p):
                 if self.policy.kind == "runtime" or self.policy.pure or not self._allowed_import(q):
@@ -346,16 +373,30 @@ class Analyzer(ast.NodeVisitor):
                 return
 
     # ---- visiting
+    def _allowlist(self, node: ast.AST, mod: str, before: int, via: str = "imports") -> None:
+        """Extension layers: an import must be stdlib, ``understudy_*``, on THIRD_PARTY_OK or in a reviewed entry (when nothing else flagged it)."""
+        if self.policy.kind != "layer" or len(self.out) != before or not mod:
+            return
+        root = mod.split(".")[0]
+        if root in STDLIB or root.startswith("understudy") or root in THIRD_PARTY_OK or (self.allow and self._allowed_import(mod)):
+            return
+        self.bad(node, "import_not_allowed", f"{via} {mod}: a third-party module outside the extension layers' allowlist (standard library, understudy_*, "
+                 "pydantic, numpy, pandas, scipy, scikit-learn, statsmodels, lifelines, jsonschema, yaml, orjson, fastapi); add a reviewed entry with a reason if it is needed")
+
     def visit_Import(self, node: ast.Import) -> None:
         for a in node.names:
+            before = len(self.out)
             self._check_name(node, a.name, "imports")
             if a.name.split(".")[-1] in MODEL_NAMES and self.policy.kind == "layer":
                 self.bad(node, "model_port_name", f"imports {a.name}")
+            self._allowlist(node, a.name, before)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         mod = self._abs_module(node.level, node.module)
         if mod:
+            before = len(self.out)
             self._check_name(node, mod, "imports")
+            self._allowlist(node, mod, before)
         for a in node.names:
             if a.name == "*":
                 continue
@@ -372,6 +413,11 @@ class Analyzer(ast.NodeVisitor):
     def visit_Attribute(self, node: ast.Attribute) -> None:
         if node.attr in MODEL_NAMES and self.policy.kind == "layer":
             self.bad(node, "model_port_name", f"uses .{node.attr}")
+        if self.policy.kind == "layer" and isinstance(node.ctx, ast.Load):
+            recv = dotted(node.value)
+            last = recv.split(".")[-1] if recv else ""
+            if node.attr in ("vision", "computer_step") or (node.attr in MODEL_METHODS | PORTISH_CALLS and PORTISH_RECEIVER.search(last)):
+                self.bad(node, "model_call", f"refers to {recv + '.' if recv else '.'}{node.attr}: model calls go through privacy.egress.send")
         q = self.qualify(node)
         if q:
             self._check_name(node, q, "uses")
@@ -404,12 +450,61 @@ class Analyzer(ast.NodeVisitor):
             self.bad(node, "network_call", f"calls .{meth}(): this code may not open network connections")
         if self.policy.kind == "layer" and meth is not None:
             self._model_call(node, meth, dotted(f.value) if isinstance(f, ast.Attribute) else "")
+        if self.policy.kind == "layer":
+            self._model_reference(node, q)
+            self._path_calls(node, q)
         self._server_call(node, q)
         if self.allow and q and any(q.endswith(h + "()") or q == h for h in self.allow.loopback_helpers):
             self.loopback_evidence = True
         if self.allow and dotted(node.func).split("(")[0].rsplit(".", 1)[-1] in self.allow.loopback_helpers:
             self.loopback_evidence = True
         self.generic_visit(node)
+
+    def _model_reference(self, node: ast.Call, q: str | None) -> None:
+        """A model method reached without a plain call: ``functools.partial(x.plan, ...)``, ``operator.attrgetter('plan')``, ``methodcaller('plan')``,
+        ``getattr(x, 'plan')`` even when the result is only stored."""
+        fname = dotted(node.func).split("(")[0].rsplit(".", 1)[-1]
+        args = list(node.args) + [k.value for k in node.keywords]
+        if fname in HIGHER_ORDER:
+            for a in args:
+                if isinstance(a, ast.Attribute) and a.attr in MODEL_METHODS | PORTISH_CALLS | ALWAYS_CALLS and a.attr not in ("check", "read"):
+                    self.bad(node, "model_call", f"hands .{a.attr} to {fname}(): model calls go through privacy.egress.send")
+        if (q and q.rsplit(".", 1)[-1] in ("attrgetter", "methodcaller")) or fname in ("attrgetter", "methodcaller"):
+            for a in node.args[:1]:
+                name, ok = self.fold(a)
+                if ok and name in MODEL_METHODS | ALWAYS_CALLS:
+                    self.bad(node, "model_call", f"builds a getter for .{name}: model calls go through privacy.egress.send")
+        if (isinstance(node.func, ast.Name) and node.func.id == "getattr") or q in ("getattr", "builtins.getattr"):
+            if len(node.args) >= 2:
+                name, ok = self.fold(node.args[1])
+                if ok and name in MODEL_METHODS | ALWAYS_CALLS:
+                    self.bad(node, "model_call", f"fetches .{name} by name: model calls go through privacy.egress.send")
+
+    def visit_Subscript(self, node: ast.Subscript) -> None:
+        if self.policy.kind == "layer":
+            v = node.value
+            via_dict = (isinstance(v, ast.Call) and isinstance(v.func, ast.Name) and v.func.id == "vars") or (isinstance(v, ast.Attribute) and v.attr == "__dict__")
+            if via_dict:
+                name, ok = self.fold(node.slice)
+                if ok and name in MODEL_METHODS | ALWAYS_CALLS:
+                    self.bad(node, "model_call", f"reaches .{name} through a class or instance dictionary")
+        self.generic_visit(node)
+
+    # ---- paths: nothing in a layer reaches into the home folder or a synced folder
+    def _path_calls(self, node: ast.Call, q: str | None) -> None:
+        if self.allow and self.allow.home_path:
+            return
+        f = node.func
+        name = dotted(f).split("(")[0]
+        const = lambda a: (self.fold(a)[0] if a is not None else "")  # noqa: E731
+        if q in ("pathlib.Path.home", "pathlib.PosixPath.home") or (name.endswith("Path.home")):
+            self.bad(node, "home_path", "reads the home folder directly; layers keep their files under the data directory (privacy._paths.data_dir)")
+        if q == "os.path.expanduser" and node.args and const(node.args[0]).startswith("~"):
+            self.bad(node, "home_path", "expands ~ directly; layers keep their files under the data directory")
+        if isinstance(f, ast.Attribute) and f.attr == "expanduser" and isinstance(f.value, ast.Call) and f.value.args and const(f.value.args[0]).startswith("~"):
+            self.bad(node, "home_path", "expands ~ directly; layers keep their files under the data directory")
+        if q in ("os.getenv", "os.environ.get") and node.args and const(node.args[0]) in ("HOME", "USERPROFILE"):
+            self.bad(node, "home_path", "reads $HOME directly; layers keep their files under the data directory")
 
     # ---- model calls (extension layers only: the agent's own job is to call the port)
     def _model_call(self, node: ast.Call, meth: str, recv: str) -> None:
@@ -450,7 +545,9 @@ class Analyzer(ast.NodeVisitor):
             return
         name, ok = self.fold(node.args[0])
         if ok and name:
+            before = len(self.out)
             self._check_name(node, name, "imports dynamically")
+            self._allowlist(node, name, before, "imports dynamically")
             if name.split(".")[-1] in MODEL_NAMES and self.policy.kind == "layer":
                 self.bad(node, "model_port_name", f"imports {name} dynamically")
         elif not (self.allow and self.allow.dynamic_import):
@@ -506,8 +603,13 @@ class Analyzer(ast.NodeVisitor):
                 continue
             binary = b
             break
+        if self.policy.kind == "layer":
+            self._layer_process_rule(node, texts, elems, binary, i)
         if binary in FETCHERS:
-            self.bad(node, "process_fetcher", f"starts {binary}, a program that moves data over a network")
+            if binary == "osascript" and self.allow and "osascript" in self.allow.processes and self._applescript_is_local(texts, elems):
+                self.used.append(f"{self.relpath}: osascript with a constant local script ({self.allow.reason})")
+            else:
+                self.bad(node, "process_fetcher", f"starts {binary}, a program that moves data over a network")
         if binary == "git":
             rest = [t for t in texts[i + 1:]]
             sub, k = None, 0
@@ -538,12 +640,53 @@ class Analyzer(ast.NodeVisitor):
                 elif not ok:
                     self.bad(node, "process_code", f"hands {binary} -c code this check cannot read")
 
+    def _layer_process_rule(self, node: ast.Call, texts: list[str], elems: list[tuple[str, bool]], binary: str | None, idx: int) -> None:
+        """An extension layer may start only a process whose program and (for git) subcommand are constants it names: ``git log`` and the like,
+        or a program a reviewed entry lists. A command assembled elsewhere is refused unless a reviewed entry says what builds it."""
+        a = self.allow
+        resolved = bool(elems) and idx < len(elems) and elems[idx][1] and bool(binary)
+        if not resolved:
+            if not (a and a.dynamic_process):
+                self.bad(node, "process_unresolved", "starts a process whose program this check cannot read; an extension layer names its program as a "
+                         "constant (git log ...) or has a reviewed entry")
+            return
+        if binary == "git":
+            rest = texts[idx + 1:]
+            k, sub = 0, None
+            while k < len(rest):
+                if rest[k] in ("-C", "-c", "--git-dir", "--work-tree", "--exec-path"):
+                    k += 2
+                    continue
+                if rest[k].startswith("-") and rest[k] not in ("--version",):
+                    k += 1
+                    continue
+                sub = rest[k]
+                break
+            if sub is None and "--version" not in rest:
+                if not (a and a.dynamic_process):
+                    self.bad(node, "process_git_unreviewed", "runs git with a subcommand this check cannot read")
+            elif sub is not None and sub not in GIT_LAYER_OK and not (a and a.dynamic_process and sub == ""):
+                self.bad(node, "process_git_unreviewed", f"runs git {sub}: only read-only inspection and local-repository building are allowed in a layer")
+            return
+        if not (a and binary in a.processes):
+            self.bad(node, "process_unreviewed", f"starts {binary}: an extension layer may run git (read-only subcommands) or a program a reviewed entry lists")
+
     def _elem(self, e: ast.AST) -> tuple[str, bool]:
         """One element of a command line; ``sys.executable`` is the Python interpreter."""
         text, ok = self.fold(e)
         if not ok and self.qualify(e) == "sys.executable":
             return "python", True
         return text, ok
+
+    _APPLESCRIPT_RISK = ("shell script", "://", "open location", "curl", "wget", "ssh", "scp", "nc ", "do shell", "download", "http", "ftp", "mount volume",
+                         "system events", "sendmail", "mail")
+
+    def _applescript_is_local(self, texts: list[str], elems: list[tuple[str, bool]]) -> bool:
+        """An osascript call is accepted only when every -e script is a constant that has no shell, URL, mail or fetcher in it."""
+        scripts = [elems[i + 1] for i, t in enumerate(texts) if t == "-e" and i + 1 < len(elems)]
+        if not scripts:
+            return False
+        return all(ok and not any(w in text.lower() for w in self._APPLESCRIPT_RISK) for text, ok in scripts)
 
     def _shell_string(self, node: ast.AST, cmd: str) -> None:
         toks = cmd.replace(";", " ").replace("&&", " ").replace("|", " ").split()
@@ -607,10 +750,14 @@ class Analyzer(ast.NodeVisitor):
 
     def _fetcher_string(self, node: ast.AST, s: str) -> None:
         first = s.split()[0] if s.split() else ""
+        if self.allow and _basename(first) in ("osascript",) and "osascript" in self.allow.processes:
+            return                           # judged at the process call, where its script is visible
         if _basename(first) in BARE_FETCHERS and (len(s.split()) > 1 or s.strip() == first):
             self.bad(node, "process_fetcher", f"names {_basename(first)}, a program that moves data over a network")
 
     def _string(self, node: ast.AST, v: str, complete: bool) -> None:
+        if self.policy.kind == "layer" and any(m in v for m in SYNCED_MARKERS):
+            self.bad(node, "synced_folder_path", "names a folder that syncs to someone else's servers; layers write only under the data directory")
         if self.has_process:
             self._fetcher_string(node, v)
         h = host_of(v)

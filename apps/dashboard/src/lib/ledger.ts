@@ -7,7 +7,22 @@ export const PURPOSE_LABEL: Record<string, string> = {
   worker_requested_step: "A step you asked for",
   weekly_summary_wording: "Wording the weekly summary",
 };
-export const purposeLabel = (p: string): string => PURPOSE_LABEL[p] ?? p.replace(/_/g, " ");
+/** Plain words for a purpose. Known ones are written out; the rest are made readable ("agents.parent_plan" becomes "Planning a background run"). */
+export function purposeLabel(p: string): string {
+  if (PURPOSE_LABEL[p]) return PURPOSE_LABEL[p];
+  if (p === "agents.parent_plan") return "Planning a background run";
+  const step = /^agents\.child_step_(.+)$/.exec(p);
+  if (step) return `A helper's next step (${step[1].replace(/_/g, " ")})`;
+  const t = p.replace(/[._]/g, " ").trim();
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+/** The time of the last call. The engine sends the call itself (`{t, purpose, ...}`); older shapes send a bare time or nothing. */
+export function lastCallTime(last: unknown): string | null {
+  if (typeof last === "string") return last;
+  if (last && typeof last === "object" && typeof (last as { t?: unknown }).t === "string") return (last as { t: string }).t;
+  return null;
+}
 
 export function fmtBytes(n: number | null | undefined): string {
   if (n == null || !Number.isFinite(n)) return "size not known";

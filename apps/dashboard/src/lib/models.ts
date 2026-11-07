@@ -122,7 +122,8 @@ export function totalCalls(meter: MeterRow[]): { n: number; ok: number; failed: 
 export function fmtUsd(v: number | null): string {
   if (v == null) return "none yet";
   if (v === 0) return "$0.00";
-  return v < 0.01 ? `$${v.toFixed(4)}` : `$${v.toFixed(2)}`;
+  if (v < 0.01) return "$" + v.toFixed(4);
+  return v < 1 ? "$" + v.toFixed(3) : "$" + v.toFixed(2);
 }
 
 export function fmtMs(v: number | null): string {
@@ -157,4 +158,29 @@ export const roleLabel = (r: string): string => ROLE_LABEL[r] ?? r.replace(/_/g,
 export function providerName(p: string): string {
   const k = p.toLowerCase();
   return k === "openai" ? "OpenAI" : k === "gemini" ? "Gemini" : k === "local" ? "Local model" : p;
+}
+
+/** Roles the router does not handle (planning, quick checks, computer use) come straight from the provider's resolved ids. */
+export function directRoles(providers: ModelProvider[]): { role: string; provider: string; model: string }[] {
+  const oa = providers.find((p) => p.name === "openai");
+  if (!oa?.models) return [];
+  return (["planner", "fast", "computer_use"] as const)
+    .filter((k) => typeof oa.models![k] === "string")
+    .map((k) => ({ role: k, provider: "openai", model: oa.models![k] }));
+}
+
+/** Rows of an eval section as a table: only the scalar columns, in the order the first row gives them. Used for the bake-off and any section with no page of its own. */
+export function scalarRows(rows: unknown, maxCols = 8): { cols: string[]; rows: Record<string, string>[] } {
+  if (!Array.isArray(rows) || rows.length === 0) return { cols: [], rows: [] };
+  const first = rows.find((r) => r && typeof r === "object") as Record<string, unknown> | undefined;
+  if (!first) return { cols: [], rows: [] };
+  const cols = Object.keys(first).filter((k) => ["string", "number", "boolean"].includes(typeof first[k])).slice(0, maxCols);
+  const fmt = (v: unknown): string => (typeof v === "number" ? (Number.isInteger(v) ? String(v) : String(Math.round(v * 1000) / 1000)) : v == null ? "" : String(v));
+  return { cols, rows: rows.filter((r) => r && typeof r === "object").map((r) => Object.fromEntries(cols.map((c) => [c, fmt((r as Record<string, unknown>)[c])]))) };
+}
+
+/** The most recent latencies of each provider and model, newest last, as "880, 910 and 1120 ms". */
+export function latencyText(ms: number[]): string {
+  if (ms.length === 0) return "none yet";
+  return `${ms.map((m) => Math.round(m)).join(", ")} ms`;
 }

@@ -1,6 +1,7 @@
 // Uploads L1 steps for routines the worker opted in: POST {engine}/routines/{id}/recording.
 // The body validates against packages/schema/recording.schema.json. If the engine does not have the
 // endpoint yet (404/405) the buffer is kept (capped) and retried later.
+import { ACTOR, ACTOR_HEADER } from "../shared/actor";
 import type { RecordedStep } from "../shared/types";
 
 export interface RecordingDeps {
@@ -57,7 +58,7 @@ export class RecordingUploader {
       try {
         const res = await this.deps.fetch(`${await this.deps.getUrl()}/routines/${id}/recording`, {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: { "content-type": "application/json", [ACTOR_HEADER]: ACTOR },
           body: JSON.stringify({ schema: 1, routine_id: id, recording_id: this.recordingId, role, person, steps, skipped_sensitive: skipped }),
         });
         this.lastStatus = res.status;

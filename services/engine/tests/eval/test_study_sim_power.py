@@ -189,7 +189,7 @@ def test_the_study_adapter_never_touches_study_sim_even_when_it_exists(evals):
     put_sim(evals)
     rep = build(["study", "study_sim"])
     assert rep["sections"]["study"]["status"] == "not_run" and rep["sections"]["study"]["rows"] == [] and rep["sections"]["study"]["n"] == 4
-    assert rep["sections"]["study"]["meta"]["origin"] == "real"
+    assert rep["sections"]["study"]["meta"]["origin"] == "unknown"        # until a human-study manifest vouches for data
     assert rep["sections"]["study_sim"]["meta"]["origin"] == "synthetic"
 
 

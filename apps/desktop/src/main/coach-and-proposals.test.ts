@@ -132,7 +132,7 @@ describe('coach next parsing', () => {
 
   it('reads the decision, the zone target with its hints, the level and the decision id', async () => {
     const { parseCoachNext } = await import('./engine/coach-next')
-    expect(parseCoachNext(next())).toEqual({ action: 'annotate', message: 'Check the cliff edge before you copy.', why: 'You skipped it last time.', target: { zone: 'calc_result', label_hint: 'Result', role_hint: 'status' }, level: 2, chip: null, decisionId: 'd_0001', reasons: [], step: null, missed: [] })
+    expect(parseCoachNext(next())).toEqual({ action: 'annotate', message: 'Check the cliff edge before you copy.', why: 'You skipped it last time.', target: { zone: 'calc_result', label_hint: 'Result', role_hint: 'status' }, level: 2, chip: null, decisionId: 'd_0001', reasons: [], step: null, missed: [], pStuck: null })
     expect(parseCoachNext(next({ reason_codes: ['already_prompted', 'on_track', 'Bad Code!', 7], step: 'cliff_a', missed: ['cliff_a', 'no good'], chip: 'small' }))).toMatchObject({ reasons: ['already_prompted', 'on_track'], step: 'cliff_a', missed: ['cliff_a'], chip: 'small' })
     expect(parseCoachNext(next({ target: null }))).toMatchObject({ target: null })
     expect(parseCoachNext(next({ target: { zone: 'Bad Zone' } }))).toMatchObject({ target: null })

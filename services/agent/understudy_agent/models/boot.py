@@ -17,7 +17,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-from .config import (ENV_COMPUTER, ENV_FAST, ENV_PLANNER, ENV_GEMINI_ACCURATE, ENV_GEMINI_FAST, ENV_GEMINI_LIVE, GeminiModelIds, ModelIds,
+from .config import (ENV_COMPUTER, ENV_FAST, ENV_PLANNER, ENV_GEMINI_ACCURATE, ENV_GEMINI_COMPUTER, ENV_GEMINI_FAST,
+                     ENV_GEMINI_LIVE, GeminiModelIds, ModelIds,
                      gemini_flag_enabled, gemini_key_present, mock_enabled)
 from .errors import ConfigError, ProviderError
 from .redact import redact_text
@@ -145,8 +146,9 @@ def gemini_boot_check(*, client: Any | None = None, raise_on_fail: bool = True,
     except Exception as e:  # noqa: BLE001
         return fail(f"Could not list Gemini models ({type(e).__name__}). Check the key, network and quota.",
                     configured=ids.as_dict())
-    need = {"fast": "generateContent", "accurate": "generateContent", "live": "bidiGenerateContent"}
-    envs = {"fast": ENV_GEMINI_FAST, "accurate": ENV_GEMINI_ACCURATE, "live": ENV_GEMINI_LIVE}
+    need = {"fast": "generateContent", "accurate": "generateContent", "live": "bidiGenerateContent",
+            "computer_use": "generateContent"}
+    envs = {"fast": ENV_GEMINI_FAST, "accurate": ENV_GEMINI_ACCURATE, "live": ENV_GEMINI_LIVE, "computer_use": ENV_GEMINI_COMPUTER}
     missing: dict[str, str] = {}
     unsupported: dict[str, str] = {}
     for role, mid in ids.as_dict().items():
@@ -166,7 +168,7 @@ def gemini_boot_check(*, client: Any | None = None, raise_on_fail: bool = True,
         lines += [f"  {envs[r]}={m} (needs {need[r]})" for r, m in unsupported.items()]
     gen = sorted(m for m, meth in usable_methods.items() if "generateContent" in meth and m.startswith("gemini"))
     live = sorted(m for m, meth in usable_methods.items() if "bidiGenerateContent" in meth and "live" in m)
-    lines.append("Usable ids for GEMINI_MODEL_FAST / GEMINI_MODEL_ACCURATE (generateContent):")
+    lines.append("Usable ids for GEMINI_MODEL_FAST / GEMINI_MODEL_ACCURATE / GEMINI_MODEL_COMPUTER_USE (generateContent):")
     lines += [f"  {m}" for m in gen]
     lines.append("Usable ids for GEMINI_MODEL_LIVE (bidiGenerateContent, live models):")
     lines += [f"  {m}" for m in live]

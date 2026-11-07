@@ -48,14 +48,23 @@ const LABEL: Record<string, string> = {
   back_to_back_runs: "Back-to-back meeting runs",
   work_span_h: "Working day, start to finish",
   offscreen_h: "Time off the computer",
+  meeting_share: "Share of the working week in meetings",
+  fragmented_days: "Days chopped into slivers",
+  recurring_in_peak_h: "Recurring meetings in peak hours (h)",
+  external_unbuffered_n: "External meetings with no buffer",
+  review_slots: "Short review slots",
+  batch_windows: "Batch windows for similar work",
+  outside_hours_h: "Hours outside working hours",
+  meetings_n: "Meetings",
+  focus_h: "Focus hours a week",
 };
-export const featureLabel = (k: string): string => LABEL[k] ?? k.replace(/_/g, " ").replace(/\bh\b/, "(h)").replace(/\bmin\b/, "(min)");
+export const featureLabel = (k: string): string => LABEL[k] ?? k.replace(/_/g, " ").replace(/\bh\b/, "(h)").replace(/\bmin\b/, "(min)").replace(/^./, (c) => c.toUpperCase());
 
 /** Unit from the key: `_h` hours, `_min` minutes, `fragmentation` a 0 to 1 share, anything else a count. */
 export function featureUnit(k: string): "h" | "min" | "share" | "count" {
   if (k.endsWith("_h")) return "h";
   if (k.endsWith("_min")) return "min";
-  if (k === "fragmentation") return "share";
+  if (k === "fragmentation" || k.endsWith("_share")) return "share";
   return "count";
 }
 

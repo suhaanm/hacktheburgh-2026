@@ -2649,3 +2649,28 @@ h3,
 .al-switch input:focus-visible + .al-switch__track {
   outline-offset: 2px;
 }
+
+/* Awareness consent card (REQ-5): one short paragraph, the full text one tap away, everything off until the worker allows it. */
+.al-consent__lead {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+.al-consent__more summary {
+  cursor: pointer;
+  color: var(--text-2);
+  font-size: 0.8125rem;
+  padding: 4px 0;
+}
+.al-consent__more summary:focus-visible {
+  outline: 2px solid var(--focus, currentColor);
+  outline-offset: 2px;
+}
+.al-consent__more[open] summary {
+  margin-bottom: 4px;
+}
+.al-consent__actions {
+  display: flex;
+  gap: var(--s-2, 8px);
+}

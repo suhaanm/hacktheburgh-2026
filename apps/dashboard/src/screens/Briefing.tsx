@@ -8,6 +8,8 @@ import { KIND_LABEL, RISK_LABEL, checkedNote, cleanPrepared, expiresIn, fireWhat
 import type { BriefingCard, Prepared } from "../types";
 
 const DEMO_PERSON = "p_ninetofive";
+/** About one row per 80 characters, never fewer than `min` or more than 10, so the whole text is visible while editing. */
+const rowsFor = (t: string, min: number) => Math.min(10, Math.max(min, Math.ceil(t.length / 80) + 1));
 type Fired = { queue_id?: string; run_id?: string };
 
 export default function Briefing() {
@@ -92,6 +94,7 @@ function Card({ card: c, person, onFired, onDismissed, onChanged }: { card: Brie
   const [draft, setDraft] = useState<Prepared>({ text: c.prepared.text, steps: c.prepared.steps ? [...c.prepared.steps] : undefined, artifact_ref: c.prepared.artifact_ref });
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
   const dirty = preparedDirty(draft, c.prepared);
   const hasSteps = Array.isArray(draft.steps);
   const hasText = typeof draft.text === "string";
@@ -124,29 +127,39 @@ function Card({ card: c, person, onFired, onDismissed, onChanged }: { card: Brie
       </div>
 
       <div className="stack prepared">
-        <p className="t-label">Prepared for you. Edit it if you like.</p>
-        {hasText && (
-          <div className="field">
-            <label className="u-sr-only" htmlFor={`pt-${c.id}`}>Prepared text</label>
-            <textarea id={`pt-${c.id}`} className="textarea" rows={3} value={draft.text ?? ""} onChange={(e) => setDraft({ ...draft, text: e.target.value })} />
+        <div className="row row--between">
+          <p className="t-label">{editing ? "Prepared for you. Edit it if you like." : "Prepared for you"}</p>
+          {!editing && <button type="button" className="btn btn--quiet btn--sm" onClick={() => setEditing(true)}>Edit what will happen</button>}
+        </div>
+        {!editing && (
+          <div className="stack" style={{ gap: "var(--space-2)" }}>
+            {hasText && <p className="prepared__text">{draft.text}</p>}
+            {hasSteps && (draft.steps ?? []).length > 0 && <ol className="prepared__read">{(draft.steps ?? []).map((st, i) => <li key={i}>{st}</li>)}</ol>}
           </div>
         )}
-        {hasSteps && (
+        {editing && hasText && (
+          <div className="field">
+            <label className="u-sr-only" htmlFor={`pt-${c.id}`}>Prepared text</label>
+            <textarea id={`pt-${c.id}`} className="textarea" rows={rowsFor(draft.text ?? "", 3)} value={draft.text ?? ""} onChange={(e) => setDraft({ ...draft, text: e.target.value })} />
+          </div>
+        )}
+        {editing && hasSteps && (
           <ol className="prepared__steps">
-            {(draft.steps ?? []).map((s, i) => (
+            {(draft.steps ?? []).map((st, i) => (
               <li key={i}>
                 <label className="u-sr-only" htmlFor={`ps-${c.id}-${i}`}>Step {i + 1}</label>
-                <input id={`ps-${c.id}-${i}`} className="input" value={s} onChange={(e) => setDraft({ ...draft, steps: (draft.steps ?? []).map((x, j) => (j === i ? e.target.value : x)) })} />
+                <textarea id={`ps-${c.id}-${i}`} className="textarea" rows={rowsFor(st, 2)} value={st} onChange={(e) => setDraft({ ...draft, steps: (draft.steps ?? []).map((x, j) => (j === i ? e.target.value : x)) })} />
                 <button type="button" className="btn btn--quiet btn--sm" aria-label={`Remove step ${i + 1}`} onClick={() => setDraft({ ...draft, steps: (draft.steps ?? []).filter((_, j) => j !== i) })}>Remove</button>
               </li>
             ))}
             <li className="prepared__add"><button type="button" className="btn btn--quiet btn--sm" onClick={() => setDraft({ ...draft, steps: [...(draft.steps ?? []), ""] })}>Add a step</button></li>
           </ol>
         )}
-        {dirty && (
+        {editing && (
           <div className="row">
-            <button type="button" className="btn btn--secondary btn--sm" disabled={!!busy} onClick={() => run("save", async () => { await save(); toast({ tone: "success", text: "Your edit is saved." }); onChanged(); })}>{busy === "save" ? "Saving" : "Save my edit"}</button>
-            <button type="button" className="btn btn--quiet btn--sm" onClick={() => setDraft({ text: c.prepared.text, steps: c.prepared.steps ? [...c.prepared.steps] : undefined })}>Undo my edit</button>
+            {dirty && <button type="button" className="btn btn--secondary btn--sm" disabled={!!busy} onClick={() => run("save", async () => { await save(); toast({ tone: "success", text: "Your edit is saved." }); setEditing(false); onChanged(); })}>{busy === "save" ? "Saving" : "Save my edit"}</button>}
+            {dirty && <button type="button" className="btn btn--quiet btn--sm" onClick={() => setDraft({ text: c.prepared.text, steps: c.prepared.steps ? [...c.prepared.steps] : undefined })}>Undo my edit</button>}
+            {!dirty && <button type="button" className="btn btn--quiet btn--sm" onClick={() => setEditing(false)}>Done editing</button>}
           </div>
         )}
       </div>

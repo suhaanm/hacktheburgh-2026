@@ -402,11 +402,14 @@ def _live_block(raw: dict[str, Any]) -> dict[str, Any]:
     fixes = {k: _live_condition(v) for k, v in (fix_raw or {}).items()}
     meta = raw.get("meta") or {}
     cost = raw.get("cost") or {}
-    cum = cost.get("cumulative_in_this_file") or {}
+    cum = cost.get("cumulative_in_this_file") or cost.get("cumulative_rows_in_this_file") or {}
+    usd_estimates = {k: v for k, v in cum.items() if k.startswith("usd_") and isinstance(v, (int, float))}
+    primary_usd = next((v for k, v in usd_estimates.items() if "placeholder" in k or "assumed" in k), None)
+    if primary_usd is None and usd_estimates:
+        primary_usd = next(iter(usd_estimates.values()))
     runs = raw.get("runs") or []
     t3 = raw.get("tier3_simulated") or {}
     t3_runs = t3.get("runs") or []
-    clean = v1["clean"]
     dropped = meta.get("dropped_after_budget_stop")
     if dropped is None:
         m = re.search(r"(\w+) v2 rows dropped after the budget stop", str(cum.get("note") or ""))
@@ -420,20 +423,28 @@ def _live_block(raw: dict[str, Any]) -> dict[str, Any]:
                       "description": FIX_DESCRIPTION, "same_condition_before": {k: v1["glitch"][k] for k in ("n", "pass", "wilson", "false_claims")} if v1.get("glitch") else None,
                       "dropped_after_budget_stop": dropped,
                       "dropped_note": meta.get("dropped_note") or "the file lists rows dropped when the run budget stopped (meta.dropped_after_budget_stop in data/eval/agent_live_runs.json)"}
+    hc = "clean" if "clean" in v1 else next(iter(v1))
+    head = v1[hc]
     return {
-        "label": "real model", "headline_condition": "clean",
-        "n": clean["n"], "pass": clean["pass"], "wilson": clean["wilson"], "tiers": sorted({t for c in v1.values() for t in c["tiers"]}),
-        "false_claims": all_false, "cost_usd_est": cum.get("usd_at_assumed_rates", cost.get("estimated_usd")),
-        "note": ("Real model, small n: 20 households per condition shows the pipeline and its failure modes with a live model, not a pass rate. "
+        "label": "real model", "condition": hc, "headline_condition": hc,
+        # the contract keys below describe ONE condition (headline_condition): never read them as totals; every condition is in the *_by_condition maps
+        "n": head["n"], "pass": head["pass"], "wilson": head["wilson"], "tiers": head["tiers"], "false_claims": head["false_claims"],
+        "pass_by_condition": {k: {"pass": c["pass"], "n": c["n"], "wilson": c["wilson"]} for k, c in v1.items()},
+        "false_claims_by_condition": {k: c["false_claims"] for k, c in v1.items()},
+        "tiers_by_condition": {k: c["tiers"] for k, c in v1.items()},
+        "false_claims_all_conditions": all_false, "cost_usd_est": primary_usd,
+        "note": (f"Real model, small n. The headline figures (n, pass, wilson, tiers, false_claims) are for the '{hc}' condition only; the other conditions are in "
+                 "conditions and the *_by_condition maps. 20 households per condition shows the pipeline and its failure modes with a live model, not a pass rate. "
                  + str(meta.get("note") or "")).strip(),
         "households": meta.get("households"), "runs_total": meta.get("n"), "models": meta.get("models"),
         "conditions": v1, "glitch_fix": glitch_fix,
         "tier3": {"simulated_actuator": True, "runs": len(t3_runs), "pointer_actions": t3.get("pointer_actions"), "landed_on_interactive": t3.get("landed_on_interactive"),
                   "outcomes": sorted({r.get("outcome") for r in t3_runs if r.get("outcome")}), "note": t3.get("note")},
-        "cost": {"estimated_usd_this_run": cost.get("estimated_usd"), "cumulative_usd_at_assumed_rates": cum.get("usd_at_assumed_rates"),
+        "cost": {"estimated_usd_this_run": cost.get("estimated_usd"), "cumulative_usd_at_assumed_rates": primary_usd, "usd_estimates": usd_estimates,
                  "tokens_in": cum.get("tokens_in"), "tokens_out": cum.get("tokens_out"), "price_assumption_usd_per_million": meta.get("price_assumption_usd_per_million"),
                  "live_calls_in_rows": sum(int(r.get("live_calls") or 0) for r in runs), "cache_hits_in_rows": sum(int(r.get("cache_hits") or 0) for r in runs),
-                 "unique_prompts_cached": cost.get("unique_prompts_cached"), "note": cum.get("note")},
+                 "unique_prompts_cached": cost.get("unique_prompts_cached"),
+                 "note": cum.get("note") or cost.get("not_in_the_rows_above") or None},
     }
 
 
@@ -457,7 +468,8 @@ def agent_runs(ctx: Ctx) -> dict[str, Any]:
         except (KeyError, TypeError, ValueError, StopIteration) as e:
             live, live_error = None, f"{AGENT_LIVE} is present but could not be read: {type(e).__name__}: {e}"
     runs = c["n"] + (rb["n"] if rb else 0) + ((live.get("runs_total") or live["n"]) if live else 0)
-    false_claims = sum(x["false_claims"] or 0 for x in (c, rb, live) if x)
+    false_claims = sum(x["false_claims"] or 0 for x in (c, rb) if x)                      # mock-model runs only; the real-model block has its own by-condition map
+    false_claims_all = false_claims + ((live or {}).get("false_claims_all_conditions") or 0)
     out = {
         "meta": make_meta(
             "synthetic", runs, "runs",
@@ -471,6 +483,8 @@ def agent_runs(ctx: Ctx) -> dict[str, Any]:
         "clean": c, "robust": rb,
         "discrepancies_flagged": {"n": c["flagged_discrepancies"], "of": c["n"]},
         "false_claims": false_claims,
+        "false_claims_scope": "the mock-model clean and robust runs only; the real-model false claims are by condition in live.false_claims_by_condition",
+        "false_claims_all_runs": false_claims_all,
         "live": live,
     }
     if live_error:
@@ -583,12 +597,42 @@ def redteam_live(ctx: Ctx) -> dict[str, Any]:
 
 
 # ------------------------------------------------------------------------------------------------------------ privacy
+def _static_guard_violations(o: Any, path: str = "") -> list[str]:
+    """Every entry of any ``violations`` list found under a ``static_guard`` block, at any depth, as text (``file:line`` when the owner gives them)."""
+    found: list[str] = []
+    if isinstance(o, dict):
+        for k, v in o.items():
+            here = f"{path}/{k}"
+            if k == "violations" and "static_guard" in path and isinstance(v, list):
+                for x in v:
+                    if isinstance(x, dict):
+                        loc = x.get("file") or x.get("path") or x.get("module") or "?"
+                        line = x.get("line") or x.get("lineno")
+                        found.append(f"{loc}:{line}" if line is not None else str(loc) + (f" ({x['rule']})" if x.get("rule") else ""))
+                    else:
+                        found.append(str(x))
+            else:
+                found += _static_guard_violations(v, here)
+    elif isinstance(o, list):
+        for i, v in enumerate(o):
+            found += _static_guard_violations(v, f"{path}[{i}]")
+    return found
+
+
 def privacy(ctx: Ctx) -> dict[str, Any]:
     """The privacy layer's own offline evaluation (canary leaks, ledger completeness, negative controls, bucketing). Needs no model.
-    ``record=False``: the harness writes only its two report files, never the layer's summary file."""
+    ``record=False``: the harness writes only its report files, never the layer's summary file. A static-guard violation anywhere makes the whole
+    section ``failed`` (with the file:line list): an evaluation that found its own rule broken is not shown as passing."""
     fn = owner_attr("privacy-layer", "understudy_engine.privacy.evaluate", "evaluate_privacy")
     r = dict(fn(record=False, seeds=tuple(range(3 if ctx.fast else 8))))          # fewer seeds per flow in --fast; the structure is the same
     r["meta"] = normalise_meta(r.get("meta"), {"origin": r.get("origin", "synthetic"), "n": r.get("n"), "n_unit": r.get("n_unit"), "split": r.get("split")})
+    viol = _static_guard_violations(r)
+    n_head = (r.get("headline") or {}).get("static_guard_violations") or 0
+    if viol or n_head:
+        shown = ", ".join(viol[:8]) + (f" and {len(viol) - 8} more" if len(viol) > 8 else "")
+        count = len(viol) or n_head
+        return {"status": "failed", "reason": f"the privacy layer's static guard found {count} violation(s)" + (f": {shown}" if viol else " (the owner's headline counts them but lists none)"),
+                "meta": r["meta"], "violations": viol, "headline": r.get("headline")}
     r["meta"]["note"] = ((r["meta"].get("note") or "") + " The static-guard file counts and lists follow the code tree at run time, so they change when files are added.").strip()
     r.pop("purposes", None)                       # the purpose schemas are code documentation, not a result
     r["limitations"] = _limits(r)
@@ -625,6 +669,61 @@ def pooling(ctx: Ctx) -> dict[str, Any]:
 STUDY_N = 4
 
 
+MANIFEST = "MANIFEST.json"
+MANIFEST_FIELDS = ("origin", "consent_ref", "collected_by", "n_participants", "date")
+SIM_ID = re.compile(r"(^p_?sim)|(^sim[_-]?\d)|silicon|(^llm)|(^gpt)|synthetic", re.IGNORECASE)
+SIM_COLUMNS = {"arm", "persona", "model", "model_id", "effort_unit", "provider", "temperature"}
+
+
+def _symlink_in(path: Path, stop: Path) -> Path | None:
+    """The first symlink on the way from ``path`` up to ``stop`` (inclusive), if any."""
+    p = path
+    while True:
+        if p.is_symlink():
+            return p
+        if p == stop or p.parent == p:
+            return None
+        p = p.parent
+
+
+def _sim_signs(columns: list[str], ids: list[str]) -> list[str]:
+    bad = []
+    cols = [c for c in columns if c.strip().lower() in SIM_COLUMNS or "sim" in c.lower() or "llm" in c.lower()]
+    if cols:
+        bad.append("columns " + ", ".join(sorted(cols)))
+    ids_bad = sorted({i for i in ids if SIM_ID.search(str(i))})
+    if ids_bad:
+        bad.append("participant ids " + ", ".join(ids_bad[:5]))
+    return bad
+
+
+def _read_manifest(results: Path) -> tuple[dict[str, Any] | None, str | None]:
+    """(manifest, problem). The manifest is hand-written by the person who ran the study; origin must be "human" and every field present."""
+    p = results / MANIFEST
+    if not p.is_file():
+        return None, None
+    try:
+        m = json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        return None, f"{MANIFEST} is not valid JSON ({type(e).__name__})"
+    if not isinstance(m, dict):
+        return None, f"{MANIFEST} is not a JSON object"
+    missing = [k for k in MANIFEST_FIELDS if m.get(k) in (None, "", [])]
+    if missing:
+        return None, f"{MANIFEST} is missing {', '.join(missing)}"
+    if m["origin"] != "human":
+        return None, f"{MANIFEST} says origin {m['origin']!r}, not 'human'"
+    if not isinstance(m["n_participants"], int) or isinstance(m["n_participants"], bool) or m["n_participants"] < 1:
+        return None, f"{MANIFEST} n_participants must be a positive integer"
+    return m, None
+
+
+def _provenance_stub(reason: str, kind: str = "invalid_provenance") -> dict[str, Any]:
+    meta = make_meta("unknown", STUDY_N, "people", "within-subject, counterbalanced, teammates only",
+                     note="n = 4. Treat every number here as a case study, not a result. No data is shown without a human-study manifest.")
+    return {"status": kind, "reason": reason, "n": STUDY_N, "rows": [], "meta": meta}
+
+
 def _load_analyzer(study_dir: Path):
     """Import the platform's pre-registered analysis script (evals/study/analyze.py) by path, without running its CLI."""
     import importlib.util
@@ -639,40 +738,81 @@ def _load_analyzer(study_dir: Path):
     return mod
 
 
-def _study_analysis(study_dir: Path) -> dict[str, Any] | None:
-    """The analysis dict: computed fresh from participants.csv with the pre-registered script, else the summary.json it wrote."""
-    csv_path = study_dir / "results" / "participants.csv"
+def _study_analysis(study_dir: Path) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """(analysis, stub). A stub means: show this instead and never the data. Provenance is checked BEFORE any analysis runs:
+    no symlinks, a hand-written manifest saying human, no sign of a simulation in the columns or ids, and the manifest's n matching the file."""
+    results = study_dir / "results"
+    if not results.exists() and not results.is_symlink():
+        return None, None
+    csv_path, summary = results / "participants.csv", results / "summary.json"
+    for p in (results, csv_path, summary, results / MANIFEST, study_dir / "analyze.py", study_dir / "assignments.json"):
+        bad = _symlink_in(p, study_dir) if p.exists() or p.is_symlink() else None
+        if bad is not None:
+            return None, _provenance_stub(f"{bad.parent.name}/{bad.name} is a symlink; the live study's data and analysis must be real files written in place, "
+                                          "not links to results from elsewhere")
+    if study_dir.is_symlink():
+        return None, _provenance_stub("evals/study is a symlink; the live study's data must live in place")
+    for p in (results, csv_path, summary):
+        if p.exists() and study_dir.resolve() not in p.resolve().parents:
+            return None, _provenance_stub(f"{p.name} resolves outside evals/study")
+    if not csv_path.is_file() and not summary.is_file():
+        return None, None
+    manifest, problem = _read_manifest(results)
+    if problem:
+        return None, _provenance_stub(problem)
+    if manifest is None:
+        return None, _provenance_stub("no human-study manifest: data is present in evals/study/results/ but there is no hand-written MANIFEST.json "
+                                      "{origin: \"human\", consent_ref, collected_by, n_participants, date}, so it is not shown", kind="not_run")
     if csv_path.is_file():
+        import csv
+
+        with csv_path.open(newline="", encoding="utf-8") as fh:
+            reader = csv.DictReader(fh)
+            columns, ids = list(reader.fieldnames or []), [r.get("participant", "") for r in reader]
+        signs = _sim_signs(columns, ids)
+        if signs:
+            return None, _provenance_stub("the results look simulated (" + "; ".join(signs) + "), so they are not the live study even though a manifest says human")
         mod = _load_analyzer(study_dir)
         if mod is None:
             raise NotLanded("platform", "evals/study/analyze.py missing, cannot analyse participants.csv")
         rows = mod.load(csv_path)
         if not rows:
-            return None
+            return None, None
         asg = study_dir / "assignments.json"
-        return mod.analyse(rows, json.loads(asg.read_text()) if asg.is_file() else None)
-    summary = study_dir / "results" / "summary.json"
-    if summary.is_file():
-        data = json.loads(summary.read_text())
-        if _g(data, "meta", "origin") not in (None, "real"):
-            return None        # anything not marked real is never shown as the live study (simulated participants live in `study_sim`)
-        return data
-    return None
+        analysis = mod.analyse(rows, json.loads(asg.read_text()) if asg.is_file() else None)
+        n_file = len({r["participant"] for r in rows})
+    else:
+        analysis = json.loads(summary.read_text())
+        origin = _g(analysis, "meta", "origin")
+        blocks = _g(analysis, "headline_unassisted", "blocks", default=[]) or []
+        signs = _sim_signs([], [b.get("participant", "") for b in blocks])
+        if origin not in (None, "real") or signs:
+            return None, _provenance_stub(f"summary.json is not marked as people's data (origin {origin!r}" + (f"; {'; '.join(signs)}" if signs else "") + ")")
+        n_file = len({b.get("participant") for b in blocks})
+    if n_file != manifest["n_participants"]:
+        return None, _provenance_stub(f"the manifest says {manifest['n_participants']} participants but the results file has {n_file}")
+    analysis["_provenance"] = {k: manifest[k] for k in MANIFEST_FIELDS}
+    return analysis, None
 
 
 def study(ctx: Ctx) -> dict[str, Any]:
-    """Live study (n = 4), exactly as ANALYSIS_PLAN.md pre-registered it. LIVE HUMANS ONLY: this never reads `study_sim`. The headline is the UNASSISTED skill score on a later
-    matched case (coached skill minus uncoached skill, per participant); assisted speed is reported beside it, never combined.
+    """Live study (n = 4), exactly as ANALYSIS_PLAN.md pre-registered it. PEOPLE ONLY, and only with provenance: it needs a hand-written
+    ``results/MANIFEST.json`` saying origin human, refuses symlinks and anything that looks simulated, and its origin is "real" only after that.
+    Without a manifest the section is ``not_run``; with a bad one it is ``invalid_provenance``; the meta origin is "unknown" until validated.
 
-    Contract keys the dashboard reads are filled honestly from the secondary unassisted-time measure: ``unassisted_before_s`` is the post-test
-    time after the UNCOACHED skill block, ``unassisted_after_s`` after the COACHED block, ``mean_change_s`` their mean difference."""
+    The headline is the UNASSISTED skill score on a later matched case (coached skill minus uncoached skill, per participant); assisted speed is
+    reported beside it, never combined. Contract keys the dashboard reads are filled honestly from the secondary unassisted-time measure:
+    ``unassisted_before_s`` is the post-test time after the UNCOACHED skill block, ``unassisted_after_s`` after the COACHED block, ``mean_change_s`` their mean difference."""
     study_dir = evals_out_dir() / "study"
-    a = _study_analysis(study_dir)
-    default = make_meta("real", STUDY_N, "people", "within-subject, counterbalanced, teammates only",
+    a, stub = _study_analysis(study_dir)
+    if stub is not None:
+        return stub
+    default = make_meta("unknown", STUDY_N, "people", "within-subject, counterbalanced, teammates only",
                         note="n = 4. Treat every number here as a case study, not a result.")
     if not a or not a.get("headline_unassisted", {}).get("blocks"):
         return {"status": "not_run", "reason": "the live study has not been run: no data in evals/study/results/", "n": STUDY_N, "rows": [], "meta": default}
     meta = normalise_meta(a.get("meta"), default)
+    meta["origin"] = "real"                      # only reachable after the manifest and the content checks above
     head = a["headline_unassisted"]
     by_p: dict[str, dict[str, dict[str, Any]]] = {}
     for b in head["blocks"]:
@@ -714,6 +854,7 @@ def study(ctx: Ctx) -> dict[str, Any]:
         "design_problems": a.get("design_problems", []), "excluded_participants": a.get("excluded_participants", []),
         "not_claimed": a.get("not_claimed", []),
         "mean_change_s": us.get("mean_difference_s"), "mean_change_ci": us.get("ci95") or [None, None],
+        "provenance": a.get("_provenance"),
         "alias_note": ("Dashboard keys: unassisted_before_s / unassisted_after_s are the post-test seconds after the uncoached / coached skill block; "
                        "mean_change_s is their mean difference. The headline is `headline` (skill score), reported separately from assisted speed."),
         "limitations": lim,
@@ -837,6 +978,7 @@ def study_power(ctx: Ctx) -> dict[str, Any]:
     fn = owner_attr("engine-analytics", "understudy_engine.study_power", "evaluate_study_power")
     r = dict(fn(fast=ctx.fast))
     r["meta"] = normalise_meta(r.get("meta"), {"origin": r.get("origin", "synthetic"), "n": r.get("n"), "n_unit": r.get("n_unit"), "split": r.get("split")})
+    r["meta"]["origin"] = "synthetic"             # a Monte Carlo of the design: never a claim about people, whatever the owner's dict says
     r["limitations"] = _limits(r)
     r["caveats"] = _caveats(r)
     r["headline_power"] = _power_headline(r)
@@ -844,7 +986,7 @@ def study_power(ctx: Ctx) -> dict[str, Any]:
 
 
 # ------------------------------------------------------------------------------------------------- newer owner sections
-OWNER_STUB_STATUSES = ("pending", "not_run", "failed")
+OWNER_STUB_STATUSES = ("pending", "not_run", "failed", "invalid_provenance")
 TIMING_KEYS = ("elapsed_s", "wall_s")          # how long the owner's own evaluation took: not a result, and not deterministic
 COMPACT_BYTES = 60_000                         # a top-level key bigger than this is replaced and listed under `trimmed`
 
@@ -959,12 +1101,12 @@ def _read_json_file(owner: str, path: Path, how: str, shown: str) -> dict[str, A
 def runtime(ctx: Ctx) -> dict[str, Any]:
     """The agent runtime evaluation, read from the file the agent track writes (``python -m understudy_agent.runtime.evaluate``)."""
     r = _read_json_file("agent-runtime", resolve_root(ctx.root) / "eval" / "runtime_eval.json", "the agent track writes it with `python -m understudy_agent.runtime.evaluate`", "data/eval/runtime_eval.json")
-    return _shape_generic("runtime", r, fallback_meta={"n_unit": "runs"})
+    return _real_claim_needs_manifest("runtime", resolve_root(ctx.root) / "eval", r) or _shape_generic("runtime", r, fallback_meta={"n_unit": "runs"})
 
 
 def modelbench(ctx: Ctx) -> dict[str, Any]:
     r = _read_json_file("modelbench", resolve_root(ctx.root) / "eval" / "modelbench.json", "the model-benchmark track writes it", "data/eval/modelbench.json")
-    return _shape_generic("modelbench", r)
+    return _real_claim_needs_manifest("modelbench", resolve_root(ctx.root) / "eval", r) or _shape_generic("modelbench", r)
 
 
 def _dir_section(owner: str, d: Path, attrs: tuple[str, ...], files: tuple[str, ...]) -> dict[str, Any]:
@@ -993,15 +1135,48 @@ def _dir_section(owner: str, d: Path, attrs: tuple[str, ...], files: tuple[str, 
     raise NotLanded(owner, f"evals/{d.name} has none of {', '.join(attrs)}() or {', '.join(files)} yet")
 
 
+def _real_claim_needs_manifest(name: str, d: Path, r: dict[str, Any]) -> dict[str, Any] | None:
+    """A section may call its data 'real' or 'mixed' (people) only with a hand-written manifest saying human, no symlinks, and no sign of a simulation.
+    Returns a stub when the claim is not backed, else None."""
+    origin = _g(r, "meta", "origin", default=r.get("origin"))
+    if origin not in ("real", "mixed"):
+        return None
+    meta = normalise_meta(r.get("meta"), {"origin": "unknown", "n": r.get("n"), "n_unit": r.get("n_unit")})
+    meta["origin"] = "unknown"
+
+    def stub(reason: str) -> dict[str, Any]:
+        return {"status": "invalid_provenance", "reason": reason, "meta": meta}
+
+    bad = _symlink_in(d, d.parent) if d.exists() or d.is_symlink() else None
+    if bad is not None:
+        return stub(f"{bad.parent.name}/{bad.name} is a symlink, so its results cannot be shown as people's data")
+    if (d / MANIFEST).is_symlink():
+        return stub(f"{d.name}/{MANIFEST} is a symlink")
+    m, problem = _read_manifest(d)
+    if problem:
+        return stub(f"{name} claims origin {origin!r} but {problem}")
+    if m is None:
+        return stub(f"{name} claims origin {origin!r} but there is no hand-written {d.name}/{MANIFEST} (origin human, consent_ref, collected_by, n_participants, date)")
+    ids = [str(x.get("participant", "")) for x in (r.get("rows") or []) if isinstance(x, dict)]
+    cols = sorted({c for x in (r.get("rows") or []) if isinstance(x, dict) for c in x})
+    signs = _sim_signs(cols, ids)
+    if signs:
+        return stub(f"{name} claims origin {origin!r} but looks simulated ({'; '.join(signs)})")
+    return None
+
+
 def study_roles(ctx: Ctx) -> dict[str, Any]:
-    """Role-pack study results (study-roles track). Never the live `study`: that section is people only and does not read this."""
-    r = _dir_section("study-roles", evals_out_dir() / "study_roles", ("study_roles_section", "section"), ("section.json", "summary.json", "results/summary.json"))
-    return _shape_generic("study_roles", r)
+    """Role-pack study results (study-roles track). Never the live `study`: that section is people only and does not read this. An origin of real or
+    mixed is accepted only with a hand-written manifest (see ``_real_claim_needs_manifest``)."""
+    d = evals_out_dir() / "study_roles"
+    r = _dir_section("study-roles", d, ("study_roles_section", "section"), ("section.json", "summary.json", "results/summary.json"))
+    return _real_claim_needs_manifest("study_roles", d, r) or _shape_generic("study_roles", r)
 
 
 def agentic(ctx: Ctx) -> dict[str, Any]:
-    r = _dir_section("agentic", evals_out_dir() / "agentic", ("agentic_section", "section"), ("section.json", "summary.json", "results/summary.json", "report.json"))
-    return _shape_generic("agentic", r)
+    d = evals_out_dir() / "agentic"
+    r = _dir_section("agentic", d, ("agentic_section", "section"), ("section.json", "summary.json", "results/summary.json", "report.json"))
+    return _real_claim_needs_manifest("agentic", d, r) or _shape_generic("agentic", r)
 
 
 # ---------------------------------------------------------------------------------------------------------------- table

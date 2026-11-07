@@ -1,0 +1,172 @@
+{
+ "label": "diag_smoke_1",
+ "site": "b",
+ "household": "hh_0002",
+ "archetype": "couple_two_kids",
+ "state": "escalated",
+ "amount_ok": false,
+ "error": "",
+ "tier3": [
+  {
+   "navigator": "nav-b",
+   "outcome": "claimed_not_verified",
+   "steps": 2,
+   "progress_steps": 0,
+   "refusals": 0,
+   "claimed_done": true,
+   "false_claim": true,
+   "resets": 0,
+   "prompt_chars": [
+    1802,
+    2007
+   ],
+   "summary": "Clicked the \u201cAdults in household\u201d field."
+  },
+  {
+   "navigator": "nav-b",
+   "outcome": "stopped:BudgetExceeded",
+   "steps": 18
+  }
+ ],
+ "refusals": 0,
+ "actions": [
+  [
+   1,
+   "click",
+   true,
+   ""
+  ],
+  [
+   2,
+   "done",
+   false,
+   "claim NOT verified by code"
+  ],
+  [
+   3,
+   "escalate",
+   false,
+   "tier 3 failed: TierError"
+  ],
+  [
+   4,
+   "click",
+   true,
+   ""
+  ],
+  [
+   5,
+   "type_fact",
+   true,
+   "handle=household.adults"
+  ],
+  [
+   6,
+   "key",
+   true,
+   ""
+  ],
+  [
+   7,
+   "type_fact",
+   true,
+   "handle=household.adult1_age"
+  ],
+  [
+   8,
+   "key",
+   true,
+   ""
+  ],
+  [
+   9,
+   "type_fact",
+   true,
+   "handle=household.adult2_age"
+  ],
+  [
+   10,
+   "key",
+   true,
+   ""
+  ],
+  [
+   11,
+   "type_fact",
+   true,
+   "handle=household.children_ages"
+  ],
+  [
+   12,
+   "key",
+   true,
+   ""
+  ],
+  [
+   13,
+   "type_fact",
+   true,
+   "handle=household.adult1_earnings"
+  ],
+  [
+   14,
+   "key",
+   true,
+   ""
+  ],
+  [
+   15,
+   "type_fact",
+   true,
+   "handle=household.adult2_earnings"
+  ],
+  [
+   16,
+   "key",
+   true,
+   ""
+  ],
+  [
+   17,
+   "type_fact",
+   true,
+   "handle=household.limited_capability"
+  ],
+  [
+   18,
+   "key",
+   true,
+   ""
+  ],
+  [
+   19,
+   "type_fact",
+   true,
+   "handle=household.tenure"
+  ],
+  [
+   20,
+   "key",
+   true,
+   ""
+  ],
+  [
+   21,
+   "type_fact",
+   true,
+   "handle=household.rent"
+  ],
+  [
+   22,
+   "escalate",
+   false,
+   "tier 3 failed: BudgetExceeded"
+  ]
+ ],
+ "wall_s": 51.8,
+ "tokens_in": 211852,
+ "tokens_out": 1173,
+ "cost_placeholder_usd": 1.0945,
+ "live_calls": 25,
+ "budget_truncated": true
+}

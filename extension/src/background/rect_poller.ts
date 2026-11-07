@@ -1,7 +1,7 @@
 // Element-rect protocol, extension side (packages/schema/ext_rect.schema.json). Polls the desktop app's
 // GET /ext/want; 204 means nothing wanted. Answers with POST /ext/rect. Pure logic: the worker supplies
 // fetch, the resolver (which asks a content script) and the clock.
-import type { RectResult, RectWant } from "../content/rect";
+import type { ContentBox, RectResult, RectWant } from "../content/rect";
 
 export interface RectPollerDeps {
   fetch: typeof fetch;
@@ -15,6 +15,7 @@ const FRAME_RE = /^(top|f[0-9]{1,4})$/;
 const LABEL_HASH_RE = /^h:[0-9a-f]{4,16}$/;
 const ROLE_RE = /^[a-z][a-z0-9_-]{0,31}$/;
 const ZONE_RE = /^[a-z][a-z0-9_]{1,30}$/;
+const CONTENT_MAX = 80;   // the schema's maxItems for `content`
 
 export function parseWant(raw: unknown): RectWant | null {
   if (typeof raw !== "object" || raw === null) return null;
@@ -32,6 +33,22 @@ export function parseWant(raw: unknown): RectWant | null {
     want.zone = r.zone;
   } else return null;
   return want;
+}
+
+/**
+ * The `content` boxes as they go on the wire: at most 80 arrays of exactly four finite numbers, rounded and clamped to 0..1000, with
+ * y0 <= y1 and x0 <= x1. Anything else is dropped, so a string (or any other page-derived value) can never ride along.
+ */
+export function cleanContent(raw: unknown): ContentBox[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ContentBox[] = [];
+  for (const e of raw) {
+    if (out.length >= CONTENT_MAX) break;
+    if (!Array.isArray(e) || e.length !== 4 || !e.every((n) => typeof n === "number" && Number.isFinite(n))) continue;
+    const [y0, x0, y1, x1] = (e as number[]).map((n) => Math.round(Math.min(1000, Math.max(0, n)))) as ContentBox;
+    if (y0 <= y1 && x0 <= x1) out.push([y0, x0, y1, x1]);
+  }
+  return out;
 }
 
 export type PollOutcome = { delay: number; reachable: boolean; answered: boolean };
@@ -60,7 +77,7 @@ export class RectPoller {
     if (!want) return { delay: 400, reachable: true, answered: false };
     const found = await this.deps.resolve(want).catch(() => null);
     const body = found && found.found
-      ? { request_id: want.request_id, frame_id: found.frame_id, found: true, rect: found.rect, window_offset: found.window_offset, scroll: found.scroll, dpr: found.dpr, viewport: found.viewport, outer: found.outer, screen: found.screen, age_ms: Math.max(0, this.deps.now() - found.measured_at) }
+      ? { request_id: want.request_id, frame_id: found.frame_id, found: true, rect: found.rect, window_offset: found.window_offset, scroll: found.scroll, dpr: found.dpr, viewport: found.viewport, outer: found.outer, screen: found.screen, content: cleanContent(found.content), age_ms: Math.max(0, this.deps.now() - found.measured_at) }
       : { request_id: want.request_id, frame_id: want.frame_id, found: false, age_ms: 0 };
     try {
       await this.deps.fetch(`${base}/ext/rect`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });

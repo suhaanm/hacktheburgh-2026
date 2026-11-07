@@ -81,19 +81,37 @@ for (const [w, h] of sizes) {
         await close.screenshot({ path: path.join(out, `${state}.${theme}.${w}x${h}.crop.png`), clip })
         await close.close()
       }
-      // Layout checks: the panel's own box (without its shadow room) is inside the work area and clear of the target.
+      // Layout checks: the panel's own box (without its shadow room) is inside the work area, clear of the target, and covers none of the page's
+      // content (the stand-in marks its text and controls with data-content) whenever a free spot exists. The free-spot scan is done here, on
+      // the page's own rectangles, not taken from the placement code under test.
       const check = await page.evaluate(() => {
         const el = document.querySelector('[data-testid="cue-window"] .cue-layer:not([data-exiting="true"]) > *')
         const dbg = window.__cueDebug
         if (!el) return { shown: false }
         const r = el.getBoundingClientRect()
         const t = dbg?.target
-        const overlap = t ? Math.max(0, Math.min(r.right, t.x + t.w) - Math.max(r.left, t.x)) * Math.max(0, Math.min(r.bottom, t.y + t.h) - Math.max(r.top, t.y)) : 0
+        const ov = (a, b) => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y))
+        const box = { x: r.left, y: r.top, w: r.width, h: r.height }
+        const overlap = t ? Math.round(ov(box, t)) : 0
         const wk = dbg?.work
         const inside = wk ? r.left >= wk.x && r.top >= wk.y && r.right <= wk.x + wk.w && r.bottom <= wk.y + wk.h : true
-        return { shown: true, w: Math.round(r.width), h: Math.round(r.height), overlap: Math.round(overlap), inside, hscroll: document.documentElement.scrollWidth > window.innerWidth + 1 }
+        const content = Array.from(document.querySelectorAll('[data-content]')).map((c) => { const b = c.getBoundingClientRect(); return { x: b.left, y: b.top, w: b.width, h: b.height } })
+        const covers = content.filter((c) => ov(box, c) > 0).length
+        // A chip belongs to its ring, so for a chip only a free spot within 120 px of the ring counts; a card may go anywhere.
+        const isChip = !!document.querySelector('[data-testid="cue-window"] .cue-layer:not([data-exiting="true"]) .chip-wrap')
+        const reach = isChip && t ? { x: t.x - 120, y: t.y - 120, w: t.w + 240, h: t.h + 240 } : null
+        let free = false
+        if (wk) {
+          for (let y = wk.y + 14; y + r.height <= wk.y + wk.h - 14 && !free; y += 8)
+            for (let x = 14; x + r.width <= wk.x + wk.w - 14 && !free; x += 8) {
+              const cand = { x, y, w: r.width, h: r.height }
+              if (reach && ov(cand, reach) === 0) continue
+              if (!content.some((c) => ov(cand, c) > 0) && !(t && ov(cand, t) > 0)) free = true
+            }
+        }
+        return { shown: true, w: Math.round(r.width), h: Math.round(r.height), overlap, inside, covers, freeSpot: free, hscroll: document.documentElement.scrollWidth > window.innerWidth + 1 }
       })
-      const bad = check.shown && (check.overlap > 0 || !check.inside || check.hscroll)
+      const bad = check.shown && (check.overlap > 0 || !check.inside || check.hscroll || (check.covers > 0 && check.freeSpot))
       if (bad) problems += 1
       console.log(`${bad ? 'PROBLEM ' : ''}${path.relative(repo, file)} ${JSON.stringify(check)}`)
       await page.close()

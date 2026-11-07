@@ -9,7 +9,7 @@ function rig(over: { trusted?: boolean; osascriptFails?: boolean; dryRun?: boole
     isTrusted: () => over.trusted ?? true,
     dryRun: over.dryRun ?? false,
     displayBounds: () => ({ x: 0, y: 0, width: 1000, height: 800 }),
-    probe: { frontmostApp: async () => 'TextEdit', topWindowAt: async () => ({ owner: 'TextEdit', layer: 0 }) },
+    probe: { frontmostApp: async () => 'TextEdit', frontWindow: async () => ({ owner: 'TextEdit', layer: 0, windowId: 7, pid: 100 }), topWindowAt: async () => ({ owner: 'TextEdit', layer: 0, windowId: 7, pid: 100 }) },
     openExternal: async () => undefined,
     showItemInFolder: () => undefined,
     osascript: async (args) => {
@@ -25,7 +25,7 @@ function rig(over: { trusted?: boolean; osascriptFails?: boolean; dryRun?: boole
 describe('actuator.pasteText (the typing fallback)', () => {
   it('puts the text on the clipboard, presses Cmd+V, then restores the earlier clipboard', async () => {
     const { actuator, events, clip } = rig()
-    const r = await actuator.pasteText!('software engineer', { target: { app: 'TextEdit' } })
+    const r = await actuator.pasteText!('software engineer', { target: { app: 'TextEdit', window: { id: 7, pid: 100, owner: 'TextEdit' } } })
     expect(r.ok).toBe(true)
     expect(events[0]).toBe('read')
     expect(events[1]).toBe('write software engineer')
@@ -36,7 +36,7 @@ describe('actuator.pasteText (the typing fallback)', () => {
 
   it('restores the clipboard even when the paste keystroke fails, and says failed', async () => {
     const { actuator, clip } = rig({ osascriptFails: true })
-    const r = await actuator.pasteText!('hello', { target: { app: 'TextEdit' } })
+    const r = await actuator.pasteText!('hello', { target: { app: 'TextEdit', window: { id: 7, pid: 100, owner: 'TextEdit' } } })
     expect(r).toMatchObject({ ok: false, reason: 'failed' })
     expect(clip()).toBe('my earlier clipboard')
   })
@@ -53,10 +53,10 @@ describe('actuator.pasteText (the typing fallback)', () => {
 
   it('without Accessibility nothing is touched; a dry run touches nothing', async () => {
     const a = rig({ trusted: false })
-    expect(await a.actuator.pasteText!('hello', { target: { app: 'TextEdit' } })).toMatchObject({ ok: false, reason: 'accessibility' })
+    expect(await a.actuator.pasteText!('hello', { target: { app: 'TextEdit', window: { id: 7, pid: 100, owner: 'TextEdit' } } })).toMatchObject({ ok: false, reason: 'accessibility' })
     expect(a.events).toEqual([])
     const d = rig({ dryRun: true })
-    expect(await d.actuator.pasteText!('hello', { target: { app: 'TextEdit' } })).toMatchObject({ ok: true, reason: 'dry-run' })
+    expect(await d.actuator.pasteText!('hello', { target: { app: 'TextEdit', window: { id: 7, pid: 100, owner: 'TextEdit' } } })).toMatchObject({ ok: true, reason: 'dry-run' })
     expect(d.events).toEqual([])
   })
 })

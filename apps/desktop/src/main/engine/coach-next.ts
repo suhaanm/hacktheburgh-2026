@@ -26,6 +26,9 @@ export interface CoachDecision {
   // The step the worker is on, and the step ids the coach says were missed (as the engine names them).
   step: string | null
   missed: string[]
+  // The hazard model's chance of no progress in the next minute (body.p_stuck: finite, 0..1), else null. ONE poll serves two readers: the
+  // coach brain acts on the decision, and the awareness layer's stuck trigger reads this number (see pStuckForTrigger).
+  pStuck: number | null
 }
 
 // POST /coach/feedback -> { decision_id, outcome, recorded, note?, ... }. `recorded: false` with the note "already recorded" means the
@@ -60,5 +63,14 @@ export function parseCoachNext(raw: unknown): CoachDecision | null {
     reasons: codes(body.reason_codes, CODE_RE),
     step: typeof body.step === 'string' && STEP_RE.test(body.step) ? body.step : null,
     missed: codes(body.missed, STEP_RE),
+    pStuck: typeof body.p_stuck === 'number' && Number.isFinite(body.p_stuck) && body.p_stuck >= 0 && body.p_stuck <= 1 ? body.p_stuck : null,
   }
+}
+
+// Reasons under which the engine has no episode to score: p_stuck is then absent or meaningless, so the trigger gets no reading.
+const NO_EPISODE = new Set(['no_events', 'no_pack', 'no_active_task', 'study_mode', 'study_post_test', 'study_off'])
+
+/** The stuck probability the awareness trigger may use: null when the engine has no episode to score (or gave no number). */
+export function pStuckForTrigger(d: Pick<CoachDecision, 'pStuck' | 'reasons'>): number | null {
+  return d.pStuck !== null && !d.reasons.some((r) => NO_EPISODE.has(r)) ? d.pStuck : null
 }

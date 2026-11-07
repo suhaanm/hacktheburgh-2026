@@ -102,6 +102,17 @@ def round_duration_seconds(seconds: Any, step: int = DURATION_STEP_MIN) -> int:
     return round_duration_minutes(_real(seconds, "a duration") / 60.0, step)
 
 
+SECONDS_RANGES = ("0-5", "5-15", "15-60", "60+")
+
+
+def bucket_seconds_range(seconds: Any) -> str:
+    """Seconds of audio as one of four ranges: ``0-5``, ``5-15``, ``15-60``, ``60+`` (a worker turn is about 1 to 15 s)."""
+    x = _real(seconds, "a number of seconds")
+    if x < 0:
+        raise ValueError("seconds must not be negative")
+    return "0-5" if x < 5 else "5-15" if x < 15 else "15-60" if x < 60 else "60+"
+
+
 def bucket_hours(hours: Any) -> float:
     """Hours rounded to 5 minutes, returned in hours with two decimals (so 1h50m is 1.83)."""
     h = _real(hours, "a number of hours")

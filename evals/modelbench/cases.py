@@ -265,14 +265,14 @@ class Renderer:
 
     def _site_a(self, page: Any, cn: str, spec: Any, layout: str, *, glitch: str = "", final_only: bool = False,
                 values: dict[str, str] | None = None, mutate: str | None = None, final_name: str | None = None) -> Shot | None:
-        cond, base = CONDITIONS[cn], self.urls["a"]
+        cond = CONDITIONS[cn]
         vals = {**PARAMS, **(values or {})}
         btn = spec.buttons(layout)
         label = lambda i: spec.button_labels(layout)[i]  # noqa: E731
         res = spec.result(layout)
         nm_calc = [(f'the button labelled "{label(3)}"', (label(3).lower(),))]
         nm_cont = [(f'the button labelled "{label(0)}"', (label(0).lower(),))]
-        page.goto(self.urls["a"] + "/" + _qs(cond))
+        page.goto(self.urls["a"] + "/" + _qs(cond, glitch))
         if not final_only:
             self._snap(page, cn, "a_landing", "a", layout=layout)
         page.click('a:has-text("Start now")')
@@ -374,8 +374,11 @@ class Renderer:
         from understudy_agent.sandbox_sites.specs import SITES
 
         items: list[dict[str, Any]] = []
-        houses = [{"adult1_earnings_monthly": "1800", "savings": "1200"}, {"adult1_earnings_monthly": "2600", "savings": "300"},
-                  {"adult1_earnings_monthly": "900", "savings": "4000"}]
+        def house(i: int) -> dict[str, str]:
+            """A different synthetic household for every image, so no two result pages have the same pixels (the cache would
+            otherwise treat identical screenshots as one input)."""
+            return {"adult1_earnings_monthly": str(700 + 137 * i), "savings": str(200 + (331 * i) % 7000)}
+
         bad_totals = ["£NaN", "£undefined", "Error"]
         banner = ("(()=>{const m=document.querySelector('main');const d=document.createElement('div');"
                   "d.style.cssText='background:#fff3cd;border:2px solid #b8860b;padding:10px;margin:8px 0';"
@@ -392,7 +395,7 @@ class Renderer:
             name = f"verify__{group}__{site}__{cn}__{idx}"
             try:
                 fn = {"a": self._site_a, "b": self._site_b, "c": self._site_c}[site]
-                shot = fn(page, cn, SITES[site], cond["layout"], glitch=glitch, final_only=True, values=houses[idx % 3], mutate=mutate,
+                shot = fn(page, cn, SITES[site], cond["layout"], glitch=glitch, final_only=True, values=house(idx), mutate=mutate,
                           final_name=name)
             finally:
                 ctx.close()

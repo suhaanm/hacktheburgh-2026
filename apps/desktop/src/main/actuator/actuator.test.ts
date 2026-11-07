@@ -37,8 +37,9 @@ describe('denylist', () => {
 
 // Real-mode actions must name the app they are about and prove where they land (see actuator-guard.test.ts). These older tests are about
 // scripts and validation, so their actuator names TextEdit and a probe that agrees. `raw` is the one without those defaults.
-const TEXTEDIT = { app: 'TextEdit' } as const
-const okProbe = (over: Partial<DesktopProbe> = {}): DesktopProbe => ({ frontmostApp: async () => 'TextEdit', topWindowAt: async () => ({ owner: 'TextEdit', layer: 0 }), ...over })
+const WIN = { id: 7, pid: 100, owner: 'TextEdit' }
+const TEXTEDIT = { app: 'TextEdit', window: WIN } as const
+const okProbe = (over: Partial<DesktopProbe> = {}): DesktopProbe => ({ frontmostApp: async () => 'TextEdit', frontWindow: async () => ({ owner: 'TextEdit', layer: 0, windowId: 7, pid: 100 }), topWindowAt: async () => ({ owner: 'TextEdit', layer: 0, windowId: 7, pid: 100 }), ...over })
 const withDefaultTarget = (a: Actuator): Actuator => ({
   ...a,
   clickAt: (p, o) => a.clickAt(p, { target: TEXTEDIT, ...o }),
@@ -234,14 +235,19 @@ describe('typeText: injection and limits', () => {
   it.each(PAYLOADS)('passes %j as DATA (argv after --), never inside the script source', async (text) => {
     const t = make()
     expect(await t.actuator.typeText(text)).toEqual({ ok: true })
-    const args = t.osascript.mock.calls[0][0]
-    expect(args).toEqual(typeScript(text))
-    const dashIdx = args.indexOf('--')
-    expect(args.slice(dashIdx + 1)).toEqual([text])
-    // The script source (every -e statement) is the same fixed text whatever was typed.
-    const source = args.slice(0, dashIdx).filter((a) => a !== '-e')
-    expect(source).toEqual(['on run argv', 'tell application "System Events" to keystroke (item 1 of argv)', 'end run'])
-    for (const line of source) expect(line).not.toContain(text.length > 3 ? text : '\u0001')
+    // Typing goes in short chunks (at most 6 characters each); together they are exactly the text, and each chunk is DATA after `--`.
+    const calls = t.osascript.mock.calls.map((c) => c[0] as string[])
+    const chunks = calls.map((args) => args.slice(args.indexOf('--') + 1))
+    for (const [i, args] of calls.entries()) {
+      expect(args).toEqual(typeScript(chunks[i]![0]!))
+      expect(chunks[i]).toHaveLength(1)
+      expect([...chunks[i]![0]!].length).toBeLessThanOrEqual(6)
+      // The script source (every -e statement) is the same fixed text whatever was typed.
+      const source = args.slice(0, args.indexOf('--')).filter((a) => a !== '-e')
+      expect(source).toEqual(['on run argv', 'tell application "System Events" to keystroke (item 1 of argv)', 'end run'])
+      for (const line of source) expect(line).not.toContain(text.length > 3 ? text : '\u0001')
+    }
+    expect(chunks.map((c) => c[0]).join('')).toBe(text)
   })
   it('blocks control characters (newline, return, tab, NUL, escape), empty text and over-long text', async () => {
     const t = make()
@@ -250,7 +256,7 @@ describe('typeText: injection and limits', () => {
     }
     expect(await t.actuator.typeText('a'.repeat(301))).toMatchObject({ ok: false, reason: 'blocked' })
     expect(await t.actuator.typeText('a'.repeat(300))).toEqual({ ok: true })
-    expect(t.osascript).toHaveBeenCalledTimes(1)
+    expect(t.osascript).toHaveBeenCalledTimes(50) // 300 characters, 6 at a time
     expect(checkTypedText('x').ok).toBe(true)
   })
   it('needs Accessibility, and the log never contains the typed text', async () => {

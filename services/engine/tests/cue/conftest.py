@@ -59,3 +59,8 @@ def apprentice_root(tmp_path_factory):
     root = tmp_path_factory.mktemp("cue_apprentices")
     apprentices.generate(root)
     return root
+
+
+@pytest.fixture()
+def data_dir(tmp_path):
+    return tmp_path / "data"

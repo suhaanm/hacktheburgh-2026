@@ -157,7 +157,12 @@ def test_live_block_reads_the_four_conditions_the_in_sample_fix_tier3_and_cost_f
     assert list(c) == ["clean", "layout_v2", "glitch", "injected"]
     assert (c["glitch"]["pass"], c["glitch"]["claimed_success"], c["glitch"]["false_claims"]) == (0, 20, 20)
     assert (c["injected"]["paused"], c["injected"]["injection_detected"], c["injected"]["attack_success"], c["injected"]["mean_steps"]) == (20, 20, 0, 0.0)
-    assert lv["false_claims"] == 20 and s["false_claims"] == 20
+    # every live figure is scoped to a condition: the headline keys describe the clean condition only, the others sit in the by-condition maps
+    assert lv["condition"] == "clean" == lv["headline_condition"] and lv["false_claims"] == 0 and lv["tiers"] == [2]
+    assert lv["false_claims_by_condition"] == {"clean": 0, "layout_v2": 0, "glitch": 20, "injected": 0} and lv["false_claims_all_conditions"] == 20
+    assert lv["pass_by_condition"]["glitch"] == {"pass": 0, "n": 20, "wilson": wilson(0, 20)} and lv["pass_by_condition"]["clean"]["pass"] == 18
+    assert s["false_claims"] == 0 and s["false_claims_all_runs"] == 20 and "mock-model" in s["false_claims_scope"]
+    assert "'clean' condition only" in lv["note"]
     fix = lv["glitch_fix"]
     assert fix["in_sample"] is True and (fix["n"], fix["pass"], fix["false_claims"]) == (10, 10, 0) and fix["variant"] == "v2_page_state"
     assert fix["same_condition_before"]["pass"] == 0 and fix["same_condition_before"]["false_claims"] == 20 and fix["dropped_after_budget_stop"] == "nine"
@@ -329,3 +334,18 @@ def test_a_broken_agent_core_import_degrades_to_an_empty_injection_list_not_a_fa
     assert validates(rep)
     e = next(e for e in rep["sections"]["limitations"] if e["id"] == "eval-agent-runs-injected")
     assert "could not be read back" in e["text"]
+
+
+def test_the_live_markdown_prints_the_condition_next_to_the_headline_numbers_and_never_a_bare_total(root):
+    md = render(with_live(root))
+    sec = md[md.index("## Agent runs"):md.index("## Limitations register")]
+    assert "Headline condition: **Clean**: 18 of 20 passed the code check, 0 false claims" in sec and "for that condition alone" in sec
+    assert "20 of those claims were false" in sec                      # the glitch figure is stated with its condition
+    assert "false claims across all runs" not in sec.lower()
+
+
+def test_the_schema_requires_a_condition_on_the_live_block(root):
+    rep = with_live(root)
+    assert validates(rep)
+    del rep["sections"]["agent_runs"]["live"]["condition"]
+    assert any("condition" in e for e in schema_errors(rep))

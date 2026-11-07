@@ -253,7 +253,7 @@ REAL_ROUTES = {"privacy": "/privacy/ledger", "localmodel": "/localmodel/status",
 
 
 FIRST_FIVE = ["privacy", "localmodel", "calendar", "git", "proactive"]
-LATER = ["cue", "awareness", "evidence"]
+LATER = ["cue", "awareness", "evidence", "attention"]
 
 
 def test_every_real_extension_router_is_included_behind_its_flag_and_listed_in_health(tmp_path, monkeypatch):
@@ -300,3 +300,27 @@ def test_the_later_layers_are_found_by_their_dotted_module_and_skipped_when_miss
     assert st["cue.routes"] in ("included", "absent") and st["awareness.routes"] in ("included", "absent")
     ext = c.get("/health").json()["extensions"]
     assert ext["evidence"] is True and set(ext) == set(LAYERS)
+
+
+def test_the_attention_layer_is_wired_by_try_import_and_its_own_flag(tmp_path, monkeypatch):
+    """understudy_engine.attention.routes (router + enabled()): listed in /health extensions, on with UNDERSTUDY_X or UNDERSTUDY_X_ATTENTION,
+    skipped (never an error) while the module is missing."""
+    assert EXTENSIONS["attention"] == "attention.routes"
+    for var in FLAG_VARS:
+        monkeypatch.delenv(var, raising=False)
+    assert extension_flags()["attention"] is False
+    monkeypatch.setenv("UNDERSTUDY_X_ATTENTION", "1")
+    flags = extension_flags()
+    assert flags["attention"] is True and not any(v for k, v in flags.items() if k != "attention")
+    monkeypatch.delitem(sys.modules, "understudy_engine.attention.routes", raising=False)
+    app, c = app_and_client(tmp_path)
+    assert app.state.router_status["attention.routes"] in ("included", "absent")                   # absent until the ATTENTION track lands
+    assert c.get("/health").json()["extensions"]["attention"] == (app.state.router_status["attention.routes"] == "included")
+    monkeypatch.setitem(sys.modules, "understudy_engine.attention.routes", fake_router_module("attention"))
+    app, c = app_and_client(tmp_path)
+    assert app.state.router_status["attention.routes"] == "included" and c.get("/attention/ping").status_code == 200
+    assert c.get("/health").json()["extensions"]["attention"] is True
+    monkeypatch.delenv("UNDERSTUDY_X_ATTENTION")
+    app, c = app_and_client(tmp_path)
+    assert c.get("/health").json()["extensions"]["attention"] is False                               # no flag: not even imported
+    assert c.get("/attention/ping").status_code == 404

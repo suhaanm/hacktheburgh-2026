@@ -21,6 +21,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Callable, Protocol
 
 from .audit import AuditLog
@@ -356,6 +357,23 @@ class ScreenGuardedActuator:
         if callable(bind):
             bind(is_cancelled)
 
+    def expect_target(self, target: Any) -> None:
+        expect = getattr(self.inner, "expect_target", None)
+        if callable(expect):
+            expect(target)
+
+    @property
+    def is_real(self) -> bool:
+        return bool(getattr(self.inner, "is_real", False))
+
+    @property
+    def target_app(self) -> Any:
+        return getattr(self.inner, "target_app", None)
+
+    @property
+    def permit(self) -> Any:
+        return getattr(self.inner, "permit", None)
+
     def _check(self) -> None:
         from .tiers.computer_use import ActuatorRefused
 
@@ -378,21 +396,32 @@ class ScreenGuardedActuator:
         await self.inner.release_all()
 
 
-def make_actuator(target_app: str, *, real: bool = False, backend: Any = None, env: dict[str, str] | None = None) -> Any:
-    """SimulatedActuator unless `real` is asked for explicitly AND UNDERSTUDY_REAL_ACTUATOR=1 (MacActuator checks)."""
+def make_actuator(target_app: str, *, real: bool = False, backend: Any = None, env: dict[str, str] | None = None,
+                  permit: Any = None) -> Any:
+    """SimulatedActuator unless `real` is asked for explicitly AND UNDERSTUDY_REAL_ACTUATOR=1 (MacActuator checks) AND a
+    RunPermit (the owner's one-time token consumed, plus the routine's consent when unattended) is passed (S-14b): the
+    MacActuator itself refuses every action without a valid permit."""
     from .tiers.computer_use import MacActuator, SimulatedActuator
 
     if not real:
         return SimulatedActuator()
-    return MacActuator(target_app, backend=backend, env=env)
+    return MacActuator(target_app, backend=backend, env=env, permit=permit)
 
 
 async def run_desktop_task(goal: str, *, model: ModelPort, guard: Any, actuator: Any, screen: ScreenState,
                            is_current: Callable[[], bool], verify: Callable[[], Any], max_steps: int = 20,
                            deadline_s: float = 120.0) -> Any:
-    """Tier 3 on the desktop with the screen guard in front of every action. Defaults to simulated actuators."""
-    from .tiers.computer_use import ComputerUse
+    """Tier 3 on the desktop with the screen guard in front of every action. Defaults to simulated actuators. A REAL
+    actuator must carry a permit granted for THIS routine (and, if the run is unattended, granted with its consent)."""
+    from .tiers.computer_use import ActuatorRefused, ComputerUse
 
+    if getattr(actuator, "is_real", False):
+        permit = getattr(actuator, "permit", None)
+        rid = getattr(guard, "routine_id", None)
+        if permit is None or not permit.valid_for(getattr(actuator, "target_app", "") or ""):
+            raise ActuatorRefused("a real-desktop run needs the owner's permit (one-time token consumed for this run)")
+        if permit.routine_id != rid or (getattr(guard, "unattended", False) and not permit.unattended):
+            raise ActuatorRefused("the permit was not granted for this routine or for an unattended run")
     guarded = ScreenGuardedActuator(actuator, screen)
     cu = ComputerUse(model, guarded, guard, navigator="desktop", is_current=is_current, max_steps=max_steps,
                      deadline_s=deadline_s)

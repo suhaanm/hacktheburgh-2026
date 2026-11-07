@@ -22,6 +22,8 @@ def _hermetic(tmp_path, monkeypatch):
     monkeypatch.delenv("UNDERSTUDY_MOCK_SCENARIO", raising=False)
     monkeypatch.delenv("UNDERSTUDY_LIVE", raising=False)
     monkeypatch.setenv("ENGINE_URL", "http://127.0.0.1:9")
+    monkeypatch.setenv("UNDERSTUDY_TEST_RELAXED_GUARD", "1")      # as the engine's own tests: a local request with no Origin needs no token
+    monkeypatch.delenv("UNDERSTUDY_GUARD_STRICT", raising=False)
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test-not-a-real-key")
     monkeypatch.setenv("OPENAI_MODEL_PLANNER", "test-planner")
     monkeypatch.setenv("OPENAI_MODEL_FAST", "test-fast")

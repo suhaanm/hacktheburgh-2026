@@ -2,6 +2,7 @@
 import type { RectResult, RectWant } from "../content/rect";
 import { defaultUuid, makeEvent } from "../shared/events";
 import { ensureConfig, ensureSalt, normaliseConfig, parseIdentity, type StorageArea } from "../shared/config";
+import { ACTOR, ACTOR_HEADER } from "../shared/actor";
 import { randomHex } from "../shared/hash";
 import { DEFAULT_CONFIG, STORAGE_KEYS, type CaptureRecord, type EventType, type InstallConfig, type RecordedStep } from "../shared/types";
 import { Batcher, type Stats } from "./engine_client";
@@ -217,7 +218,7 @@ export function createWorker(api: WorkerApi, deps: WorkerDeps) {
   async function refreshIdentity(): Promise<void> {
     let body: unknown = null;
     try {
-      const res = await deps.fetch(`${cfg.engine_url}/identity`, { method: "GET", headers: { accept: "application/json" } });
+      const res = await deps.fetch(`${cfg.engine_url}/identity`, { method: "GET", headers: { accept: "application/json", [ACTOR_HEADER]: ACTOR } });
       if (!res.ok) return; // 404 before onboarding, or the engine is down: keep what we have
       body = await res.json().catch(() => null);
     } catch {

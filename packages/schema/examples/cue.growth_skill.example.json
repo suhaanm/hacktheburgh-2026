@@ -1,0 +1,645 @@
+{
+ "data": {
+  "as_of": "2026-10-19T00:00:00Z",
+  "baseline": {
+   "k": 2,
+   "n": 5,
+   "share": 0.4,
+   "wilson": [
+    0.1176,
+    0.7693
+   ]
+  },
+  "by_skill": [
+   {
+    "assisted": 8,
+    "direction": "steady",
+    "first10": {
+     "assisted": 4,
+     "n": 10
+    },
+    "independence_lower": 0.5313,
+    "independent": 21,
+    "label": "Probe the cliff edge on every calculator",
+    "last10": {
+     "assisted": 2,
+     "n": 10
+    },
+    "level": 3,
+    "mastery": 0.9877,
+    "n": 30,
+    "name": "the cliff check",
+    "retention": {
+     "k": 3,
+     "n": 4,
+     "value": 0.75,
+     "wilson": [
+      0.3006,
+      0.9544
+     ]
+    },
+    "retrieval_due": false,
+    "skill": "check-the-cliff",
+    "time_to_progress": {
+     "after_cue": {
+      "ci": [
+       6.4,
+       10.6
+      ],
+      "median_s": 8.2,
+      "n": 8
+     },
+     "no_cue": null,
+     "note": "Seconds from the first cue to the next progress event. Live data has no no-cue counterfactual; the simulator pairs them."
+    }
+   },
+   {
+    "assisted": 9,
+    "direction": "steady",
+    "first10": {
+     "assisted": 4,
+     "n": 10
+    },
+    "independence_lower": 0.5313,
+    "independent": 20,
+    "label": "Enter the household once, accurately, then reuse it",
+    "last10": {
+     "assisted": 2,
+     "n": 10
+    },
+    "level": 3,
+    "mastery": 0.9984,
+    "n": 30,
+    "name": "entering the household once",
+    "retention": {
+     "k": 3,
+     "n": 4,
+     "value": 0.75,
+     "wilson": [
+      0.3006,
+      0.9544
+     ]
+    },
+    "retrieval_due": false,
+    "skill": "enter-household-once",
+    "time_to_progress": {
+     "after_cue": {
+      "ci": [
+       6.5,
+       10.0
+      ],
+      "median_s": 8.5,
+      "n": 9
+     },
+     "no_cue": null,
+     "note": "Seconds from the first cue to the next progress event. Live data has no no-cue counterfactual; the simulator pairs them."
+    }
+   },
+   {
+    "assisted": 10,
+    "direction": "steady",
+    "first10": {
+     "assisted": 4,
+     "n": 10
+    },
+    "independence_lower": 0.4329,
+    "independent": 18,
+    "label": "Reconcile the results before writing the note",
+    "last10": {
+     "assisted": 2,
+     "n": 10
+    },
+    "level": 3,
+    "mastery": 0.9571,
+    "n": 30,
+    "name": "reconciling before the note",
+    "retention": {
+     "k": 1,
+     "n": 3,
+     "value": 0.3333,
+     "wilson": [
+      0.0615,
+      0.7923
+     ]
+    },
+    "retrieval_due": false,
+    "skill": "reconcile-before-noting",
+    "time_to_progress": {
+     "after_cue": {
+      "ci": [
+       8.6,
+       11.2
+      ],
+      "median_s": 8.9,
+      "n": 10
+     },
+     "no_cue": null,
+     "note": "Seconds from the first cue to the next progress event. Live data has no no-cue counterfactual; the simulator pairs them."
+    }
+   }
+  ],
+  "claim": "Unaided on 15 of the last 20 occurrences (the first 5: 2). No skill has a clear trend yet, which means cannot tell yet, not no change. This is not a measure of expertise.",
+  "components": {
+   "gap_closure": {
+    "ci": [
+     0.3512,
+     0.7064
+    ],
+    "first5_lost_s": 25.84,
+    "last5_lost_s": 12.42,
+    "n_first": 5,
+    "n_last": 5,
+    "value": 0.5193
+   },
+   "independence": {
+    "k": 15,
+    "lower": 0.5313,
+    "n": 20,
+    "share": 0.75,
+    "wilson": [
+     0.5313,
+     0.8881
+    ]
+   },
+   "mastery": {
+    "by_skill": {
+     "check-the-cliff": 0.9877
+    },
+    "note": "From the tracing replay. On simulated learners who did not improve it overstated mastery by 0.3 to 0.5, so it is not used in any headline.",
+    "value": 0.9877,
+    "variant": "engine_default"
+   },
+   "retention": {
+    "after_days": 3.0,
+    "k": 3,
+    "n": 4,
+    "value": 0.75,
+    "wilson": [
+     0.3006,
+     0.9544
+    ]
+   }
+  },
+  "counts": {
+   "assist": 90,
+   "automation": 2,
+   "delegated": 2
+  },
+  "curve": [
+   {
+    "hi": 0.8318,
+    "i": 10,
+    "independence": 0.6,
+    "level": 2,
+    "lo": 0.3127,
+    "n": 10,
+    "t_hour": "2026-10-02T18",
+    "tiers": [
+     5,
+     2,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8483,
+    "i": 11,
+    "independence": 0.6364,
+    "level": 2,
+    "lo": 0.3538,
+    "n": 11,
+    "t_hour": "2026-10-03T00",
+    "tiers": [
+     6,
+     2,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8619,
+    "i": 12,
+    "independence": 0.6667,
+    "level": 2,
+    "lo": 0.3906,
+    "n": 12,
+    "t_hour": "2026-10-03T06",
+    "tiers": [
+     7,
+     2,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8732,
+    "i": 13,
+    "independence": 0.6923,
+    "level": 2,
+    "lo": 0.4237,
+    "n": 13,
+    "t_hour": "2026-10-05T17",
+    "tiers": [
+     8,
+     2,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8828,
+    "i": 14,
+    "independence": 0.7143,
+    "level": 2,
+    "lo": 0.4535,
+    "n": 14,
+    "t_hour": "2026-10-06T08",
+    "tiers": [
+     9,
+     2,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.891,
+    "i": 15,
+    "independence": 0.7333,
+    "level": 2,
+    "lo": 0.4805,
+    "n": 15,
+    "t_hour": "2026-10-06T12",
+    "tiers": [
+     10,
+     2,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8584,
+    "i": 16,
+    "independence": 0.6875,
+    "level": 2,
+    "lo": 0.444,
+    "n": 16,
+    "t_hour": "2026-10-07T17",
+    "tiers": [
+     10,
+     2,
+     4,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8269,
+    "i": 17,
+    "independence": 0.6471,
+    "level": 2,
+    "lo": 0.413,
+    "n": 17,
+    "t_hour": "2026-10-07T20",
+    "tiers": [
+     10,
+     3,
+     4,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8372,
+    "i": 18,
+    "independence": 0.6667,
+    "level": 2,
+    "lo": 0.4375,
+    "n": 18,
+    "t_hour": "2026-10-08T13",
+    "tiers": [
+     11,
+     3,
+     4,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8085,
+    "i": 19,
+    "independence": 0.6316,
+    "level": 3,
+    "lo": 0.4104,
+    "n": 19,
+    "t_hour": "2026-10-08T15",
+    "tiers": [
+     11,
+     3,
+     5,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8188,
+    "i": 20,
+    "independence": 0.65,
+    "level": 3,
+    "lo": 0.4329,
+    "n": 20,
+    "t_hour": "2026-10-09T03",
+    "tiers": [
+     12,
+     3,
+     5,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8545,
+    "i": 21,
+    "independence": 0.7,
+    "level": 3,
+    "lo": 0.481,
+    "n": 20,
+    "t_hour": "2026-10-09T17",
+    "tiers": [
+     13,
+     3,
+     4,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 22,
+    "independence": 0.75,
+    "level": 3,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-11T12",
+    "tiers": [
+     14,
+     3,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8545,
+    "i": 23,
+    "independence": 0.7,
+    "level": 3,
+    "lo": 0.481,
+    "n": 20,
+    "t_hour": "2026-10-12T00",
+    "tiers": [
+     13,
+     3,
+     4,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 24,
+    "independence": 0.75,
+    "level": 3,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-12T02",
+    "tiers": [
+     14,
+     3,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 25,
+    "independence": 0.75,
+    "level": 3,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-13T12",
+    "tiers": [
+     15,
+     2,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 26,
+    "independence": 0.75,
+    "level": 3,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-13T23",
+    "tiers": [
+     15,
+     2,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 27,
+    "independence": 0.75,
+    "level": 3,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-14T00",
+    "tiers": [
+     15,
+     2,
+     3,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8545,
+    "i": 28,
+    "independence": 0.7,
+    "level": 3,
+    "lo": 0.481,
+    "n": 20,
+    "t_hour": "2026-10-14T08",
+    "tiers": [
+     14,
+     2,
+     4,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 29,
+    "independence": 0.75,
+    "level": 3,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-16T02",
+    "tiers": [
+     15,
+     1,
+     4,
+     0,
+     0
+    ]
+   },
+   {
+    "hi": 0.8881,
+    "i": 30,
+    "independence": 0.75,
+    "level": 3,
+    "lo": 0.5313,
+    "n": 20,
+    "t_hour": "2026-10-18T11",
+    "tiers": [
+     15,
+     1,
+     4,
+     0,
+     0
+    ]
+   }
+  ],
+  "occurrences": {
+   "abandoned": 0,
+   "assisted": 8,
+   "errors": 1,
+   "total": 30,
+   "unaided": 21
+  },
+  "offloaded": {
+   "automation": 2,
+   "by_skill": {
+    "enter-household-once": 4
+   },
+   "delegated": 2,
+   "minutes": {
+    "automation": 28.0,
+    "delegated": 26.0
+   },
+   "note": "Work the agent did for you. It never changes the score."
+  },
+  "origin_detail": "synthetic_learner",
+  "person": "p_sim_learner",
+  "readiness": {
+   "needed": 10,
+   "occurrences": 30,
+   "ready": true,
+   "trend_needed": 30
+  },
+  "role": "benefits-processor",
+  "score": {
+   "available_weight": 1.0,
+   "composite_caveat": "Experimental. On simulated learners it overstated by 6 to 10 points when nobody improved, and rose 10 points or more in 33% of learners whose skill never changed. Read the trend and the independence interval instead.",
+   "composite_caveat_figures": {
+    "bias_points": [
+     6.0,
+     9.9
+    ],
+    "false_rise_rate": 0.33,
+    "mastery_overstated_by": [
+     0.29,
+     0.49
+    ],
+    "n_learners": 60,
+    "origin": "simulated",
+    "seeds": "dev 0 to 59"
+   },
+   "composite_experimental": 68.8,
+   "composite_experimental_ci": [
+    55.9,
+    77.6
+   ],
+   "composite_partial": false,
+   "used_weights": {
+    "gap_closure": 0.2,
+    "independence_lb": 0.4,
+    "mastery": 0.3,
+    "retention": 0.1
+   },
+   "weights": {
+    "gap_closure": 0.2,
+    "independence_lb": 0.4,
+    "mastery": 0.3,
+    "retention": 0.1
+   },
+   "weights_note": "stated assumptions, not fitted"
+  },
+  "skill": "check-the-cliff",
+  "time_to_progress": {
+   "after_cue": {
+    "ci": [
+     6.4,
+     10.6
+    ],
+    "median_s": 8.2,
+    "n": 8
+   },
+   "no_cue": null,
+   "note": "Seconds from the first cue to the next progress event. Live data has no no-cue counterfactual; the simulator pairs them."
+  },
+  "trend": {
+   "blocks": [
+    {
+     "assisted_share": 0.4,
+     "i": 0,
+     "n": 10
+    },
+    {
+     "assisted_share": 0.2,
+     "i": 1,
+     "n": 10
+    },
+    {
+     "assisted_share": 0.2,
+     "i": 2,
+     "n": 10
+    }
+   ],
+   "ci": [
+    -0.3012,
+    0.0512
+   ],
+   "direction": "steady",
+   "needed_more": null,
+   "power_note": "Cannot tell yet. In simulation, a steady fall in the share of occurrences that needed help from 0.5 to 0.2 was picked up by this test in about 2 of 10 learners at 30 occurrences, and in fewer than 5 of 10 even at 360, so a steady reading means cannot tell yet, never no change. The independence interval and the first-versus-latest counts say more.",
+   "slope_per_10": -0.1,
+   "stride": 10,
+   "window": 10,
+   "windows": 3
+  },
+  "window": 20
+ },
+ "meta": {
+  "generated_at": "2026-11-07T18:16:51Z",
+  "interval_level": 0.95,
+  "n": 30,
+  "n_unit": "occurrences",
+  "note": "Independence is the share of the last 20 occurrences finished with no accepted cue, with its Wilson interval. The composite uses stated, unfitted weights; read the components. Delegated and automation work is not counted.",
+  "origin": "synthetic",
+  "split": null
+ }
+}

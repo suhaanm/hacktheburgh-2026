@@ -36,7 +36,6 @@ from .vocab import chip_text, whisper_text
 NEG = -1e18
 Chooser = Callable[[tuple[str, ...], str, dict], "tuple[str, float]"]
 ACTIONS = ("none", "ring", "chip", "ask", "voice")       # the bandit's action set (tier 3 is rule-governed)
-ASKED_FLAG = "asked"
 
 
 # ------------------------------------------------------------------------------------------------ state
@@ -66,6 +65,7 @@ class Episode:
     trigger: str = "auto"
     p_first: float | None = None     # the stuck probability when the first intervention was shown
     qtype: str | None = None         # the question template in use
+    want_tier: int | None = None     # the worker pressed Show me: jump to the ghost demo when there is a target
 
 
 @dataclass(frozen=True)
@@ -172,10 +172,12 @@ class _B:
     def base(self, kind: str, reasons: list[str], **kw) -> CueDecision:
         st, inp, p = self.st, self.inp, self.p
         ep = st.episode
+        if inp.stale and "stale_input" not in reasons:
+            reasons = reasons + ["stale_input"]
         d = CueDecision(kind=kind, episode_id=ep.id if ep else None, why=self.why(reasons, kw.pop("path_p", None), kw.pop("margin", None)),
                         budget_left=max(0, p.daily_budget - st.budget_used),
                         cooldown_s=round(cooldown_remaining(st, inp, p, self.top.skill if self.top else None), 1),
-                        source="model" if inp.p_source == "model" else "rule")
+                        source="model" if inp.p_source == "model" else "rule", stale=list(inp.stale) or None)
         for k, v in kw.items():
             setattr(d, k, v)
         return d
@@ -221,7 +223,8 @@ def decide(inp: CueInput, st: CueState, p: CueParams = DEFAULT, *, chooser: Choo
     if not asked and (inp.quiet_hour or now < st.quiet_until):
         return b.none("quiet")
     if not asked and (inp.typing_burst or inp.quiet_s < p.quiet_required_s):
-        return b.none("flow")
+        # typing is the opposite of stuck: the chain of consecutive stuck readings starts again
+        return b.none("flow", replace(st, gate=GateState(0, st.gate.last_act_t)) if st.episode is None else None)
     if inp.away and not asked:
         gd = gate_step(st.gate, 0.0, now, unsure=True, params=GateParams(need=p.need, cooldown_s=0.0, p_signal=p.p_signal))
         return b.none("unsure_away", replace(st, gate=gd.state))
@@ -324,7 +327,7 @@ def decide(inp: CueInput, st: CueState, p: CueParams = DEFAULT, *, chooser: Choo
             st2 = _count(replace(st, episode=ep2), ep2, now, p, asked, first=ep.shown_n == 0)
             b.st = st2
             d = b.base("ask", reasons, step=_step_dict(top, reason_text), options=options, question=q, new=True,
-                       say={"chip": q["text"][:40], "whisper": None}, expires_in_s=p.display_s, path_p=top.p)
+                       say={"chip": q["text"][:40], "whisper": None, "whisper_id": None}, expires_in_s=p.display_s, path_p=top.p)
             return GateResult(with_ground(d), st2, shown=True, opened=opened)
         if asked or (inp.stall_s >= p.offer_after_s and ep.offers < p.max_offers and ep.kind != "offer"):
             if not asked:
@@ -345,6 +348,8 @@ def decide(inp: CueInput, st: CueState, p: CueParams = DEFAULT, *, chooser: Choo
     else:
         tier = ep.tier + 1
         reasons.append("escalated")
+    if asked and ep.want_tier and grounded:
+        tier = max(tier, ep.want_tier)                       # Show me: the demonstration, when there is a target to demonstrate on
     if tier == 1 and not grounded:
         tier = 2
     if tier == 3 and not grounded:
@@ -381,7 +386,7 @@ def decide(inp: CueInput, st: CueState, p: CueParams = DEFAULT, *, chooser: Choo
                           first_shown_t=ep.first_shown_t if ep.first_shown_t is not None else now, p_first=ep.p_first if ep.p_first is not None else inp.p_stuck, options=tuple(o["id"] for o in options), qtype="close_call")
             st2 = _count(replace(st, episode=ep2), ep2, now, p, asked, first=ep.shown_n == 0)
             d = b.base("ask", reasons, step=_step_dict(top, reason_text), options=options, question=q, new=True,
-                       say={"chip": q["text"][:40], "whisper": None}, expires_in_s=p.display_s)
+                       say={"chip": q["text"][:40], "whisper": None, "whisper_id": None}, expires_in_s=p.display_s)
             b.st = st2
             return GateResult(with_ground(d), st2, shown=True, opened=opened, choice=choice)
         if act == "ring" and grounded:
@@ -390,12 +395,12 @@ def decide(inp: CueInput, st: CueState, p: CueParams = DEFAULT, *, chooser: Choo
             tier = max(2, tier) if ep.tier == 0 else tier
         elif act == "voice" and inp.voice_ok:
             tier = 4
-    ep2 = replace(ep, tier=tier, kind="cue", tier_t=now, shown_n=ep.shown_n + 1, help_wanted=False,
+    ep2 = replace(ep, tier=tier, kind="cue", tier_t=now, shown_n=ep.shown_n + 1, help_wanted=False, want_tier=None,
                   first_shown_t=ep.first_shown_t if ep.first_shown_t is not None else now, p_first=ep.p_first if ep.p_first is not None else inp.p_stuck, step_id=step.id, skill=step.skill)
     st2 = _count(replace(st, episode=ep2), ep2, now, p, asked, first=ep.shown_n == 0)
     b.st = st2
     d = b.base("cue", reasons, step=_step_dict(step, reason_text), tier=tier, new=True, expires_in_s=p.display_s,
-               target=_target(g, step, p) if tier != 2 or grounded else _target(g, step, p),
+               target=_target(g, step, p),
                say=_say(step, tier, inp.voice_ok), path_p=step.p if not (ep.answered and ep.answered != OTHER) else 1.0,
                margin=b.margin if not (ep.answered and ep.answered != OTHER) else 1.0)
     return GateResult(with_ground(d), st2, shown=True, opened=opened, choice=choice)
@@ -404,7 +409,7 @@ def decide(inp: CueInput, st: CueState, p: CueParams = DEFAULT, *, chooser: Choo
 def _say(step: Candidate, tier: int, voice_ok: bool) -> dict:
     chip = chip_text(step.label) if tier >= 2 else None
     whisper = whisper_text(step.label) if (tier >= 4 and voice_ok) else None
-    return {"chip": chip, "whisper": whisper}
+    return {"chip": chip, "whisper": whisper, "whisper_id": f"whisper.{step.id}" if whisper else None}
 
 
 def _count(st: CueState, ep: Episode, now: float, p: CueParams, asked: bool, first: bool) -> CueState:
@@ -425,7 +430,7 @@ def _offer(b: _B, ep: Episode, top: Candidate, reasons: list[str], now: float, p
     st2 = _count(replace(st, episode=ep2), ep2, now, p, asked, first=ep.shown_n == 0)
     b.st = st2
     d = b.base("offer", reasons + ["long_stall"] if "long_stall" not in reasons else reasons, step=_step_dict(top, reason_text), new=True,
-               say={"chip": "Want a hand?", "whisper": None}, expires_in_s=p.display_s)
+               say={"chip": "Want a hand?", "whisper": None, "whisper_id": None}, expires_in_s=p.display_s)
     return GateResult(with_ground(d), st2, shown=True, opened=opened)
 
 
@@ -442,15 +447,15 @@ def _again(b: _B, ep: Episode, top: Candidate, inp: CueInput, p: CueParams, reas
             return None
         opts = [{"id": o, "label": next((c.label for c in cands if c.id == o), "Something else" if o == OTHER else o)} for o in ep.options] or options
         return b.base("ask", reasons, step=_step_dict(top, reason_text), options=opts, question=q, new=False, expires_in_s=left,
-                      say={"chip": q["text"][:40], "whisper": None})
+                      say={"chip": q["text"][:40], "whisper": None, "whisper_id": None})
     if ep.kind == "offer":
-        return b.base("offer", reasons, step=_step_dict(top, reason_text), new=False, expires_in_s=left, say={"chip": "Want a hand?", "whisper": None})
+        return b.base("offer", reasons, step=_step_dict(top, reason_text), new=False, expires_in_s=left, say={"chip": "Want a hand?", "whisper": None, "whisper_id": None})
     return b.base("cue", reasons, step=_step_dict(step, reason_text), tier=ep.tier, new=False, expires_in_s=left, target=_target(g, step, p),
                   say=_say(step, ep.tier, inp.voice_ok))
 
 
 # ------------------------------------------------------------------------------------------------ feedback events
-def apply_event(st: CueState, event: str, now: float, p: CueParams = DEFAULT, *, answer_id: str | None = None) -> CueState:
+def apply_event(st: CueState, event: str, now: float, p: CueParams = DEFAULT, *, answer_id: str | None = None, how: str | None = None) -> CueState:
     """Fold one worker reaction into the state. Pure; unknown events raise ``ValueError``."""
     ep = st.episode
     if event not in ("shown", "accepted", "dismissed", "answered", "resolved", "abandoned", "know_this"):
@@ -461,7 +466,9 @@ def apply_event(st: CueState, event: str, now: float, p: CueParams = DEFAULT, *,
         return st
     ended = ep.tier_t if ep.tier_t < NEG / 2 else now
     ends_now = min(ended, now - p.display_s)
-    if event == "accepted":
+    if event == "accepted" and how == "show_me":              # the Show me button: a request for the demonstration
+        ep2 = replace(ep, accepted=True, tier_t=ends_now, help_wanted=True, want_tier=3, kind="none")
+    elif event == "accepted":
         ep2 = replace(ep, accepted=True, tier_t=ends_now if ep.kind == "offer" else ep.tier_t, help_wanted=ep.kind == "offer",
                       kind="none" if ep.kind == "offer" else ep.kind)
     elif event == "dismissed":

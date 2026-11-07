@@ -106,21 +106,26 @@
       "chart_panel",
       "check_box",
       "ci_log",
+      "clean_panel",
       "cliff_button",
       "cliff_panel",
       "code_editor",
       "code_view",
       "commit_box",
       "compare_view",
+      "control_panel",
       "data_browser",
       "decision_btn",
       "diff_view",
       "doc",
       "docs_page",
+      "edge_probe",
       "export_panel",
       "form_field",
       "help",
       "household_form",
+      "input_data",
+      "pivot_panel",
       "profile_panel",
       "query_edit",
       "query_result",
@@ -129,6 +134,8 @@
       "run_control",
       "search_box",
       "sql_editor",
+      "test_editor",
+      "test_report",
       "test_runner"
     ],
     "sites": [
@@ -425,6 +432,118 @@
         ]
       },
       {
+        "pack": "data-analyst",
+        "id": "roles_sandbox",
+        "hosts": [
+          "127.0.0.1:7951",
+          "127.0.0.1:7952",
+          "127.0.0.1:7953",
+          "127.0.0.1:7954",
+          "127.0.0.1:7955",
+          "127.0.0.1:7956",
+          "127.0.0.1:7957",
+          "127.0.0.1:7958",
+          "localhost:7951",
+          "localhost:7952",
+          "localhost:7953",
+          "localhost:7954",
+          "localhost:7955",
+          "localhost:7956",
+          "localhost:7957",
+          "localhost:7958"
+        ],
+        "nav_default": "data_browser",
+        "tab_default": "compare_view",
+        "nav": [
+          {
+            "zone": "profile_panel",
+            "when": "body[data-nav=\"profile\"]"
+          },
+          {
+            "zone": "pivot_panel",
+            "when": "body[data-nav=\"pivot\"]"
+          },
+          {
+            "zone": "control_panel",
+            "when": "body[data-nav=\"control\"]"
+          },
+          {
+            "zone": "clean_panel",
+            "when": "body[data-nav=\"clean\"]"
+          },
+          {
+            "zone": "decision_btn",
+            "when": "body[data-nav=\"done\"]"
+          }
+        ],
+        "elements": [
+          {
+            "zone": "profile_panel",
+            "selector": "#profile-panel"
+          },
+          {
+            "zone": "pivot_panel",
+            "selector": "#pivot-panel"
+          },
+          {
+            "zone": "clean_panel",
+            "selector": "#clean-panel"
+          },
+          {
+            "zone": "control_panel",
+            "selector": "#control-panel"
+          },
+          {
+            "zone": "chart_panel",
+            "selector": "#chart-panel"
+          },
+          {
+            "zone": "sql_editor",
+            "selector": "#query-builder"
+          },
+          {
+            "zone": "run_control",
+            "selector": "#apply-btn"
+          },
+          {
+            "zone": "query_result",
+            "selector": "#result-panel"
+          },
+          {
+            "zone": "decision_btn",
+            "selector": "#answer-submit"
+          },
+          {
+            "zone": "data_browser",
+            "selector": "#table-panel"
+          }
+        ],
+        "markers": {
+          "task_start": {
+            "zone": "data_browser",
+            "idle_s": 120
+          },
+          "progress": [
+            {
+              "kind": "profiled",
+              "when": "body[data-nav=\"profile\"]"
+            },
+            {
+              "kind": "aggregated",
+              "when": "body[data-nav=\"pivot\"]"
+            },
+            {
+              "kind": "reconciled",
+              "when": "body[data-nav=\"control\"]"
+            }
+          ],
+          "task_end": {
+            "when": "#case-done",
+            "reason": "answered"
+          }
+        }
+      },
+      {
         "pack": "programmer",
         "id": "git_host",
         "hosts": [
@@ -507,6 +626,110 @@
             "selector": "main, article, #content, .answercell"
           }
         ]
+      },
+      {
+        "pack": "programmer",
+        "id": "roles_sandbox",
+        "hosts": [
+          "127.0.0.1:7941",
+          "127.0.0.1:7942",
+          "127.0.0.1:7943",
+          "127.0.0.1:7944",
+          "127.0.0.1:7945",
+          "127.0.0.1:7946",
+          "127.0.0.1:7947",
+          "127.0.0.1:7948",
+          "localhost:7941",
+          "localhost:7942",
+          "localhost:7943",
+          "localhost:7944",
+          "localhost:7945",
+          "localhost:7946",
+          "localhost:7947",
+          "localhost:7948"
+        ],
+        "nav_default": "code_view",
+        "tab_default": "compare_view",
+        "nav": [
+          {
+            "zone": "test_report",
+            "when": "body[data-nav=\"run\"]"
+          },
+          {
+            "zone": "commit_box",
+            "when": "body[data-nav=\"commit\"]"
+          },
+          {
+            "zone": "decision_btn",
+            "when": "body[data-nav=\"done\"]"
+          }
+        ],
+        "elements": [
+          {
+            "zone": "edge_probe",
+            "selector": "#probe-panel"
+          },
+          {
+            "zone": "input_data",
+            "selector": "#inputs-panel"
+          },
+          {
+            "zone": "test_editor",
+            "selector": "#editor[data-kind=\"test\"]"
+          },
+          {
+            "zone": "code_editor",
+            "selector": "#editor"
+          },
+          {
+            "zone": "test_runner",
+            "selector": "#run-tests"
+          },
+          {
+            "zone": "ci_log",
+            "selector": "#test-output"
+          },
+          {
+            "zone": "diff_view",
+            "selector": "#diff-panel, #diff-btn"
+          },
+          {
+            "zone": "commit_box",
+            "selector": "#git-panel"
+          },
+          {
+            "zone": "docs_page",
+            "selector": "#docs-panel"
+          },
+          {
+            "zone": "code_view",
+            "selector": "#file-tree"
+          },
+          {
+            "zone": "decision_btn",
+            "selector": "#done-btn"
+          }
+        ],
+        "markers": {
+          "task_start": {
+            "zone": "code_view",
+            "idle_s": 120
+          },
+          "progress": [
+            {
+              "kind": "tests_run",
+              "when": "body[data-nav=\"run\"]"
+            },
+            {
+              "kind": "committed",
+              "when": "body[data-nav=\"commit\"]"
+            }
+          ],
+          "task_end": {
+            "when": "#case-done",
+            "reason": "done"
+          }
+        }
       }
     ]
   }

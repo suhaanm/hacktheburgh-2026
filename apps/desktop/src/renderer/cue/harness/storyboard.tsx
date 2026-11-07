@@ -28,7 +28,7 @@ declare global {
     __cueReady?: boolean
     __cueStates?: string[]
     // For the screenshot script's layout checks: the target the panel must keep clear of (px), and the work area.
-    __cueDebug?: { target: Rect | null; work: Rect }
+    __cueDebug?: { target: Rect | null; work: Rect; cover?: number; freeExists?: boolean | null }
   }
 }
 
@@ -38,6 +38,8 @@ interface Story {
   steps: Step[]
   // Freeze the ghost cursor at the landing (the press echo).
   ghost?: 'press'
+  // On a narrow screen the page is scrolled down this far, so that the step's target is on screen.
+  scroll?: number
 }
 
 const L = (level: number) => ({ why: { ...(FIXTURES['cue-t2-l2'] as { why: object }).why, level } })
@@ -49,8 +51,8 @@ export const STORIES: Record<string, Story> = {
   't2-l2': { label: 'Tier 2, level 2: ring and chip', steps: [{ fixture: 'cue-t2-l2' }] },
   't2-l1': { label: 'Tier 2, level 1: ring, chip, step pill', steps: [{ fixture: 'cue-t2-l1' }] },
   't2-l3-regular': { label: 'Tier 1, level 2: regular ring only (compare with level 3)', steps: [{ fixture: 'cue-t1-l3', patch: L(2) }] },
-  't3-ghost': { label: 'Tier 3: ghost cursor shows the move', steps: [{ fixture: 'cue-t3' }], ghost: 'press' },
-  't4-whisper': { label: 'Tier 4: whisper (voice; the screen is tier 2)', steps: [{ fixture: 'cue-t4' }] },
+  't3-ghost': { label: 'Tier 3: ghost cursor shows the move', steps: [{ fixture: 'cue-t3' }], ghost: 'press', scroll: 330 },
+  't4-whisper': { label: 'Tier 4: whisper (voice; the screen is tier 2)', steps: [{ fixture: 'cue-t4' }], scroll: 330 },
   'chip-only': { label: 'A chip with nothing to ring', steps: [{ fixture: 'cue-no-target' }] },
   'why-open': { label: '"Why this?" open', steps: [{ fixture: 'cue-t2-l2' }, { event: { type: 'why', open: true } }] },
   'why-open-l1': { label: '"Why this?" open at level 1 (pill)', steps: [{ fixture: 'cue-t2-l1' }, { event: { type: 'why', open: true } }] },
@@ -142,6 +144,8 @@ function Storyboard(): ReactElement {
   const work: Rect = { x: 0, y: 24, w: viewport.width, h: viewport.height - 24 - 76 }
 
   const [boxes, setBoxes] = useState<Record<string, Box> | null>(null)
+  // What the browser extension would report about the page: the rectangles of its visible text and controls (no text), here read from the stand-in.
+  const [content, setContent] = useState<Rect[]>([])
   useLayoutEffect(() => {
     document.documentElement.dataset.theme = theme ? 'dark' : 'light'
     const found: Record<string, Box> = {}
@@ -150,6 +154,7 @@ function Storyboard(): ReactElement {
       found[el.dataset.cueTarget as string] = [(r.top / viewport.height) * 1000, (r.left / viewport.width) * 1000, (r.bottom / viewport.height) * 1000, (r.right / viewport.width) * 1000].map((n) => Math.round(n * 10) / 10) as Box
     }
     setBoxes(found)
+    setContent(Array.from(document.querySelectorAll<HTMLElement>('[data-content]')).map((el) => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height } }))
   }, [theme, viewport])
 
   const [run, setRun] = useState<Run>({ machine: INITIAL_MACHINE, effects: [] })
@@ -220,7 +225,7 @@ function Storyboard(): ReactElement {
     const keep = [...run.effects].reverse().find((e) => e.type === 'panel')
     if (keep && keep.type === 'panel' && keep.keep) {
       // In a still the card was never on screen: the chip goes where the card of this question would have been.
-      const where = cardRect.current ?? placeWindow({ w: CUE_TOKENS.card.width + 12, h: 198 }, keep.anchor ? normBoxToRect(keep.anchor, display) : null, work, { prefer: CARD_SIDES, gap: CUE_TOKENS.card.gap }).rect
+      const where = cardRect.current ?? placeWindow({ w: CUE_TOKENS.card.width + 12, h: 198 }, keep.anchor ? normBoxToRect(keep.anchor, display) : null, work, { kind: 'card', prefer: CARD_SIDES, gap: CUE_TOKENS.card.gap, content }).rect
       return { side: 'corner' as const, rect: { ...where, w: size.w, h: size.h } }
     }
     const anchor = (() => {
@@ -231,13 +236,13 @@ function Storyboard(): ReactElement {
       return null
     })()
     const target = anchor ? normBoxToRect(anchor, display) : null
-    window.__cueDebug = { target, work }
     const card = view.mode !== 'chip'
-    const placed = placeWindow(size, target, work, { prefer: card ? CARD_SIDES : CHIP_SIDES, gap: card ? CUE_TOKENS.card.gap : CUE_TOKENS.chip.gap, anchorPoint: { x: viewport.width * 0.46, y: viewport.height * 0.5 } })
+    const placed = placeWindow(size, target, work, { kind: card ? 'card' : 'chip', prefer: card ? CARD_SIDES : CHIP_SIDES, gap: card ? CUE_TOKENS.card.gap : CUE_TOKENS.chip.gap, anchorPoint: { x: viewport.width * 0.46, y: viewport.height * 0.5 }, content })
+    window.__cueDebug = { target, work, cover: placed.cover, freeExists: placed.freeExists }
     if (card) cardRect.current = placed.rect
     return placed
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, size, run.effects])
+  }, [view, size, run.effects, content])
 
   // A ring or a tick with no panel beside it still has a target, for the screenshot script's close-up.
   useEffect(() => {
@@ -260,7 +265,7 @@ function Storyboard(): ReactElement {
 
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
-      <StandIn dark={theme} />
+      <StandIn dark={theme} scroll={STORIES[id].scroll ?? 0} />
       <OverlayScene state={ghostState} viewport={viewport} style={style} captionsEnabled={false} freezeGhostMs={freeze} />
       <div style={{ position: 'absolute', left: placement?.rect.x ?? 0, top: placement?.rect.y ?? 0, visibility: placement ? 'visible' : 'hidden' }} data-testid="cue-window">
         <CuePanel view={view} onAction={onAction} onSize={onSize} still={still} />

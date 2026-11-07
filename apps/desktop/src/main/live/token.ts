@@ -34,6 +34,8 @@ export interface TokenMinter {
 }
 
 export interface MinterOptions {
+  // How the token is tied to the model: 'model' locks the model id (the field mask names only it), 'none' leaves the token open. Default 'model'.
+  lock?: 'model' | 'none' | 'setup'
   env?: Env
   fetchImpl?: typeof fetch
   now?: () => number
@@ -48,6 +50,7 @@ export function createTokenMinter(o: MinterOptions = {}): TokenMinter {
   const doFetch = o.fetchImpl ?? ((i, init) => fetch(i, init))
   const now = o.now ?? Date.now
   const url = o.url ?? AUTH_TOKENS_URL
+  const lock = o.lock ?? 'model'
   if (!url.startsWith('https://') && !isLoopbackHttp(url)) throw new Error('the token service must be https (or a loopback test server)')
   return {
     async mint(model) {
@@ -65,7 +68,8 @@ export function createTokenMinter(o: MinterOptions = {}): TokenMinter {
             uses: 1,
             expireTime: new Date(t + 10 * 60_000).toISOString(),
             newSessionExpireTime: new Date(t + 60_000).toISOString(),
-            bidiGenerateContentSetup: { model: `models/${model}` },
+            ...(lock === 'none' ? {} : { bidiGenerateContentSetup: { model: `models/${model}` } }),
+            ...(lock === 'model' ? { fieldMask: 'model' } : {}),
           }),
           signal: ctl.signal,
         })

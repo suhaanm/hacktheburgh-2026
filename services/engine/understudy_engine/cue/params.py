@@ -65,5 +65,8 @@ FIELD_NAMES = tuple(f.name for f in fields(CueParams))
 DEFAULT = CueParams()
 # Hard caps no tuner may change.
 HARD_CAPS = ("max_cues_window", "cap_window_s", "max_questions", "skill_gap_s", "escalate_s", "max_offers")
-# TUNED is filled in after the dev-only tuning pass (see evals/cue/PLAN.md); until then it is the default.
-TUNED = DEFAULT
+# TUNED is the result of the one dev-only tuning pass of evals/cue/PLAN.md (15 configurations, dev population seed 11, replicate seeds 0 to 4,
+# 40 workers): the highest net seconds saved per hour among those whose dev false-nudge 97.5% upper bound was at most 1.0 an hour.
+# p_signal 0.30 saved a little more (25.8 against 23.9 seconds an hour) but its upper bound was 1.01. ``margin_thr`` made no difference to
+# any dev number (questions are rare when the path prior is confident), so 0.10 is the first of three identical rows, not a finding.
+TUNED = DEFAULT.with_(p_signal=0.40, margin_thr=0.10)

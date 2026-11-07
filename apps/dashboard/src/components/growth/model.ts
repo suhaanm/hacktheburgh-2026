@@ -47,6 +47,73 @@ export function fmtDayHour(t: string): string {
   return `${day}, ${hh}`;
 }
 
+/* -- Normalise: tolerate a slightly different or partial answer ------------------------------------ */
+/** The engine's first draft said "flat" and "unclear"; the agreed words are "steady" and "too_early". Anything else is "too_early". */
+export function directionOf(d: unknown): Direction {
+  if (d === "less_help" || d === "more_help" || d === "steady" || d === "too_early") return d;
+  if (d === "flat") return "steady";
+  return "too_early";
+}
+
+/** Fill what is missing so the screen never has to guess; absent numbers stay null, never 0. */
+export function normalizeGrowth(raw: Partial<WireGrowth>): WireGrowth {
+  const occ = raw.occurrences ?? { total: raw.readiness?.occurrences ?? 0, unaided: 0, assisted: 0, errors: 0, abandoned: 0 };
+  const total = raw.readiness?.occurrences ?? occ.total ?? 0;
+  const ready = raw.readiness?.ready ?? total >= DEFAULT_NEEDED;
+  const sc = raw.score;
+  return {
+    person: raw.person ?? "",
+    skill: raw.skill ?? null,
+    window: raw.window ?? DEFAULT_WINDOW,
+    origin_detail: raw.origin_detail,
+    readiness: { occurrences: total, needed: raw.readiness?.needed ?? DEFAULT_NEEDED, ready, trend_needed: raw.readiness?.trend_needed },
+    baseline: raw.baseline && raw.baseline.share != null && raw.baseline.wilson ? raw.baseline : null,
+    score: {
+      composite: sc?.composite_experimental ?? sc?.composite ?? null,
+      composite_ci: sc?.composite_experimental_ci ?? sc?.composite_ci ?? null,
+      composite_partial: sc?.composite_partial ?? false,
+      available_weight: sc?.available_weight ?? 1,
+      weights: sc?.weights ?? { independence_lb: 0.4, mastery: 0.3, gap_closure: 0.2, retention: 0.1 },
+      used_weights: sc?.used_weights && Object.keys(sc.used_weights).length ? sc.used_weights : null,
+      weights_note: sc?.weights_note ?? "Stated assumptions, not fitted.",
+      composite_caveat: sc?.composite_caveat ?? null,
+      composite_caveat_figures: sc?.composite_caveat_figures ?? null,
+    },
+    components: {
+      independence: raw.components?.independence && raw.components.independence.share != null && raw.components.independence.wilson ? raw.components.independence : null,
+      mastery: raw.components?.mastery ?? null,
+      gap_closure: raw.components?.gap_closure ?? null,
+      retention: raw.components?.retention ?? null,
+    },
+    trend: {
+      slope_per_10: raw.trend?.slope_per_10 ?? null, ci: raw.trend?.ci ?? null, direction: directionOf(raw.trend?.direction), blocks: raw.trend?.blocks ?? [],
+      needed_more: raw.trend?.needed_more ?? null, power_note: raw.trend?.power_note ?? null,
+    },
+    curve: raw.curve ?? [],
+    occurrences: occ,
+    time_to_progress: raw.time_to_progress ?? null,
+    by_skill: (raw.by_skill ?? []).map((s) => ({
+      ...s,
+      label: s.label || humanise(s.skill),
+      name: s.name || s.label || humanise(s.skill),
+      independent: s.independent ?? 0,
+      assisted: s.assisted ?? 0,
+      direction: directionOf(s.direction),
+      retrieval_due: !!s.retrieval_due,
+      first10: s.first10 ?? null,
+      last10: s.last10 ?? null,
+      time_to_progress: s.time_to_progress ?? null,
+      retention: s.retention ?? null,
+      independence_lower: s.independence_lower ?? null,
+      mastery: s.mastery ?? null,
+      level: s.level ?? null,
+    })),
+    offloaded: { delegated: raw.offloaded?.delegated ?? 0, automation: raw.offloaded?.automation ?? 0, minutes: raw.offloaded?.minutes, by_skill: raw.offloaded?.by_skill, note: raw.offloaded?.note },
+    counts: raw.counts,
+    claim: raw.claim,
+  };
+}
+
 /* -- Status ------------------------------------------------------------------------------------ */
 export type Status = "empty" | "early" | "ready";
 
@@ -67,19 +134,42 @@ export function improvement(trend: WireGrowth["trend"]): { per10: number | null;
 
 const pts = (n: number) => change(n, Math.abs(n) < 10 ? 1 : 0);
 
-export function trendSentence(trend: WireGrowth["trend"], levelPct = 95): string {
+/**
+ * How many more occurrences before a real change would usually be seen. The engine's own figure when it sends one; while the trend
+ * cannot be computed at all, what is left of `readiness.trend_needed`; otherwise 0 (nothing is known to be missing).
+ */
+export function stillNeeded(w: Pick<WireGrowth, "readiness" | "trend">): number {
+  const own = w.trend?.needed_more;
+  if (own != null && own > 0) return Math.round(own);
+  if (w.trend?.direction === "too_early" && w.readiness?.trend_needed != null) return Math.max(0, w.readiness.trend_needed - (w.readiness.occurrences ?? 0));
+  return 0;
+}
+
+/**
+ * The trend in words. A trend whose interval includes zero is never "no change": at these sample sizes a real improvement is often
+ * missed, so the page says it cannot tell yet. The engine's own sentence about power is printed verbatim when it sends one.
+ */
+export function trendSentence(trend: WireGrowth["trend"], levelPct = 95, more = 0, trendNeeded: number | null = null, have = 0): string {
   const { per10, ci } = improvement(trend);
-  if (trend.direction === "too_early" || per10 == null || !ci) return "Too early for a trend.";
+  if (trend.direction === "too_early" || per10 == null || !ci) {
+    const need = trend.power_note ? ` ${trend.power_note}` : trendNeeded != null && trendNeeded > have ? ` A trend needs ${trendNeeded} occurrences and you have ${have}.` : "";
+    return `Too early for a trend.${need}`;
+  }
   const a = Math.abs(per10).toFixed(Math.abs(per10) < 10 ? 1 : 0);
   const range = `${levelPct}% interval ${pts(ci[0])} to ${pts(ci[1])} points`;
   if (trend.direction === "less_help") return `About ${a} points more of your occurrences finish with no cue for every 10 more (${range}).`;
   if (trend.direction === "more_help") return `About ${a} points fewer of your occurrences finish with no cue for every 10 more (${range}).`;
-  return `No clear change: the ${levelPct}% interval runs from ${pts(ci[0])} to ${pts(ci[1])} points per 10 occurrences, and that includes zero.`;
+  const note = trend.power_note ?? "";
+  const lead = /cannot tell/i.test(note) ? "" : "Cannot tell yet. ";
+  const fact = `The ${levelPct}% interval runs from ${pts(ci[0])} to ${pts(ci[1])} points per 10 occurrences and includes zero.`;
+  const middle = note ? ` ${note}` : " With this few occurrences a real change is often missed, so this is not a finding that nothing is changing.";
+  const tail = more > 0 && !note.includes(String(more)) ? ` About ${plural(more, "more occurrence")} would help.` : "";
+  return `${lead}${fact}${middle}${tail}`;
 }
 
 export const DIRECTION_WORD: Record<Direction, string> = {
   less_help: "needs less help",
-  steady: "levelled off",
+  steady: "cannot tell yet",
   more_help: "needs more help",
   too_early: "too early to say",
 };
@@ -89,7 +179,7 @@ export function heroTitle(status: Status, direction: Direction, name: string | n
   if (status === "early" || direction === "too_early") return name ? `Too early to say how much help you need with ${name}` : "Too early to say how much help you need";
   if (direction === "less_help") return name ? `You need less help with ${name}` : "You need help less often than you did";
   if (direction === "more_help") return name ? `You have needed more help with ${name} lately` : "You have needed more help lately";
-  return name ? `Your need for help with ${name} has levelled off` : "Your need for help has levelled off";
+  return name ? `Cannot tell yet whether you need less help with ${name}` : "Cannot tell yet whether you need less help";
 }
 
 /* -- Sentences from counts --------------------------------------------------------------------- */
@@ -170,15 +260,31 @@ export interface CurvePoint {
   lo: number;
   hi: number;
   n: number;
+  /** The help level the engine reported at this occurrence (1 to 4). */
   level: number | null;
+  /** What the strip draws: for one skill the level itself, for everything the mean level over the window (the skills differ, so one occurrence's level would jump about). */
+  lv: number | null;
   cue: CueWeight | null;
 }
 
-export const curveOf = (c: WireCurvePoint[]): CurvePoint[] =>
-  c.map((p) => ({ i: p.i, t: p.t_hour, p: p.independence, lo: p.lo, hi: p.hi, n: p.n, level: p.level, cue: cueWeight(p.tiers) }));
+/** Mean of the non-null levels in a trailing window of `size` points (the point and the ones before it). */
+export function trailingMean(levels: (number | null)[], size: number): (number | null)[] {
+  return levels.map((_, k) => {
+    const seg = levels.slice(Math.max(0, k - size + 1), k + 1).filter((v): v is number => v != null);
+    return seg.length ? seg.reduce((a, b) => a + b, 0) / seg.length : null;
+  });
+}
 
-export function pointReadout(p: CurvePoint, window: number, levelPct = 95): string {
-  const lvl = p.level != null ? ` Help level L${p.level}.` : "";
+export function curveOf(c: WireCurvePoint[], opts: { smoothLevel?: boolean; window?: number } = {}): CurvePoint[] {
+  const means = opts.smoothLevel ? trailingMean(c.map((p) => p.level), opts.window ?? DEFAULT_WINDOW) : null;
+  return c.map((p, k) => ({ i: p.i, t: p.t_hour, p: p.independence, lo: p.lo, hi: p.hi, n: p.n, level: p.level, lv: means ? means[k] : p.level, cue: cueWeight(p.tiers) }));
+}
+
+const LEVEL_NAME = ["", "full", "small", "dot", "gone"];
+export const levelName = (l: number) => LEVEL_NAME[Math.min(4, Math.max(1, Math.round(l)))];
+
+export function pointReadout(p: CurvePoint, window: number, levelPct = 95, smoothLevel = false): string {
+  const lvl = p.lv == null ? "" : smoothLevel ? ` Help level about L${p.lv.toFixed(1)} on average (L1 full, L4 gone).` : ` Help level L${Math.round(p.lv)} (${levelName(p.lv)}).`;
   const part = p.n < window ? ` Only ${p.n} occurrences so far, so the band is wide.` : "";
   const cue = p.cue
     ? p.cue.cuedShare <= 0 ? " No cue shown." : ` A cue was shown in ${pct(p.cue.cuedShare)} of them, mean tier ${p.cue.meanTier?.toFixed(1)}.`
@@ -245,6 +351,9 @@ export function cardsOf(w: WireGrowth): ComponentCard[] {
 /* -- The composite, always with its parts ------------------------------------------------------ */
 export interface CompositePart { id: string; label: string; weight: number; value: number | null; shown: string }
 export interface CompositeView {
+  /** Always true: the composite overstated improvement on simulated learners whose skill did not change. */
+  experimental: true;
+  caveat: string;
   value: number;
   ci: Interval | null;
   partial: boolean;
@@ -259,15 +368,19 @@ export function compositeOf(w: WireGrowth): CompositeView | null {
   const wts = s.composite_partial && s.used_weights ? s.used_weights : s.weights;
   const c = w.components;
   const parts: CompositePart[] = [
-    { id: "ind", label: "Independence, lower bound", weight: wts.independence_lb, value: c.independence?.lower ?? c.independence?.wilson?.[0] ?? null, shown: "" },
-    { id: "mas", label: "Mastery, with forgetting", weight: wts.mastery, value: c.mastery?.value ?? null, shown: "" },
-    { id: "gap", label: "Time lost, won back", weight: wts.gap_closure, value: c.gap_closure?.value ?? null, shown: "" },
-    { id: "ret", label: "Kept after days", weight: wts.retention, value: c.retention?.value ?? null, shown: "" },
+    { id: "ind", label: "Independence, lower bound", weight: wts.independence_lb ?? 0, value: c.independence?.lower ?? c.independence?.wilson?.[0] ?? null, shown: "" },
+    { id: "mas", label: "Mastery, with forgetting", weight: wts.mastery ?? 0, value: c.mastery?.value ?? null, shown: "" },
+    { id: "gap", label: "Time lost, won back", weight: wts.gap_closure ?? 0, value: c.gap_closure?.value ?? null, shown: "" },
+    { id: "ret", label: "Kept after days", weight: wts.retention ?? 0, value: c.retention?.value ?? null, shown: "" },
   ].map((p) => ({ ...p, shown: p.value == null ? "not yet" : pct(p.value) }));
   const note = s.composite_partial
     ? `Not every part exists yet, so the score uses the parts that do (${pct(s.available_weight)} of the weight, re-weighted to 100%).`
     : "All four parts are in.";
-  return { value: s.composite, ci: s.composite_ci, partial: s.composite_partial, availableWeight: s.available_weight, parts, note };
+  return {
+    experimental: true,
+    caveat: s.composite_caveat || "Experimental. Read the trend and the independence interval instead.",
+    value: s.composite, ci: s.composite_ci, partial: s.composite_partial, availableWeight: s.available_weight, parts, note,
+  };
 }
 
 /* -- Skill rows -------------------------------------------------------------------------------- */
@@ -319,13 +432,18 @@ export function humanise(id: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : id;
 }
 
-/** "Needs less help on 3 of 5 skills." Counted from the rows, so it always agrees with them. */
+/** "Needs less help on 3 of 5 skills." Counted from the rows, so it always agrees with them. The rest are "cannot tell yet", never "no change". */
 export function claimOf(rows: SkillRowView[]): string {
-  const judged = rows.filter((r) => r.direction !== "too_early");
   if (!rows.length) return "";
+  const judged = rows.filter((r) => r.direction !== "too_early");
   if (!judged.length) return "Too early to say for any skill.";
   const less = judged.filter((r) => r.direction === "less_help").length;
-  return `Needs less help on ${less} of ${plural(judged.length, "skill")}${judged.length < rows.length ? ` (${rows.length - judged.length} still too early)` : ""}. This is not a measure of expertise.`;
+  const more = judged.filter((r) => r.direction === "more_help").length;
+  const rest = rows.length - less - more;
+  const parts = [`Needs less help on ${less} of ${plural(rows.length, "skill")}`];
+  if (more) parts.push(`more help on ${more}`);
+  const head = parts.join("; ");
+  return `${head}. ${rest > 0 ? `For ${rest === rows.length ? "all of them" : `the other ${rest}`}, it cannot tell yet. ` : ""}This is not a measure of expertise.`;
 }
 
 /* -- Origin wording ---------------------------------------------------------------------------- */
@@ -339,9 +457,11 @@ export function originSentence(detail: OriginDetail | undefined, origin: "real" 
 }
 
 /* -- Offloaded work ---------------------------------------------------------------------------- */
-export interface OffloadItem { id: string; when: string; stream: "delegated" | "automation"; streamWord: string; skill: string; outcome: string }
+export interface OffloadItem { id: string; when: string; stream: "delegated" | "automation"; streamWord: string; what: string; outcome: string; minutes: number | null }
 
 export const OUTCOME_WORD: Record<LedgerRow["outcome"], string> = { clean: "done", assisted: "needed you", error: "failed", abandoned: "stopped" };
+/** What happened to a run the agent did for the person. */
+export const OFFLOAD_WORD: Record<NonNullable<LedgerRow["offload_outcome"]>, string> = { done: "done", queued: "waiting for your approval", failed: "failed", yielded: "paused for you" };
 
 export function offloadItems(rows: LedgerRow[], labelOf: (skill: string) => string, limit = 8): OffloadItem[] {
   return rows
@@ -353,16 +473,22 @@ export function offloadItems(rows: LedgerRow[], labelOf: (skill: string) => stri
       when: fmtDayHour(r.t_hour),
       stream: r.stream as "delegated" | "automation",
       streamWord: r.stream === "delegated" ? "You asked" : "Overnight",
-      skill: labelOf(r.skill),
-      outcome: OUTCOME_WORD[r.outcome] ?? r.outcome,
+      what: r.skill ? labelOf(r.skill) : r.routine ? humanise(r.routine) : "A run",
+      outcome: r.offload_outcome ? OFFLOAD_WORD[r.offload_outcome] ?? r.offload_outcome : OUTCOME_WORD[r.outcome] ?? r.outcome,
+      minutes: r.minutes != null && r.minutes > 0 ? r.minutes : null,
     }));
 }
 
 /* -- Ledger controls --------------------------------------------------------------------------- */
 export interface LedgerCounts { assist: number; delegated: number; automation: number }
 
-export function countsOf(w: WireGrowth, fromLedger?: LedgerCounts | null): LedgerCounts {
-  return fromLedger ?? { assist: w.occurrences.total, delegated: w.offloaded.delegated, automation: w.offloaded.automation };
+export function countsOf(w: WireGrowth, fromLedger?: Partial<LedgerCounts> | null): LedgerCounts {
+  const c = fromLedger ?? w.counts;
+  return {
+    assist: c?.assist ?? w.occurrences.total,
+    delegated: c?.delegated ?? w.offloaded.delegated,
+    automation: c?.automation ?? w.offloaded.automation,
+  };
 }
 
 export const totalRows = (c: LedgerCounts) => c.assist + c.delegated + c.automation;
@@ -383,13 +509,15 @@ export function deletedCount(r: { deleted: number | { assist?: number; delegated
   return (d.assist ?? 0) + (d.delegated ?? 0) + (d.automation ?? 0);
 }
 
-/** Field names of a ledger row, so the page can say exactly what is stored. */
+/** Field names across the rows (a delegated row has a few more than an assist row), so the page can say exactly what is stored. */
 export function ledgerFields(rows: LedgerRow[]): string[] {
-  return rows.length ? Object.keys(rows[0]) : [];
+  const out: string[] = [];
+  for (const r of rows) for (const k of Object.keys(r)) if (!out.includes(k)) out.push(k);
+  return out;
 }
 
 /* -- Early state: the raw occurrences, no estimate claimed ------------------------------------- */
-export interface Mark { unaided: boolean; skill: string }
+export interface Mark { unaided: boolean; skill: string | null }
 export function marksOf(rows: LedgerRow[], skill: string | null): Mark[] {
   return rows
     .filter((r) => r.stream === "assist" && (!skill || r.skill === skill))
@@ -414,13 +542,19 @@ export interface GrowthView {
   title: string;
   lede: string;
   recentLine: string | null;
-  trend: { direction: Direction; sentence: string; per10: number | null; ci: Interval | null };
+  trend: { direction: Direction; sentence: string; per10: number | null; ci: Interval | null; stillNeeded: number };
+  /** Independence now: the headline figure beside the trend. */
+  independence: { share: number; ci: Interval; k: number; n: number } | null;
   composite: CompositeView | null;
   cards: ComponentCard[];
   skills: SkillRowView[];
   claim: string;
   offloaded: { delegated: number; automation: number };
   hasCueWeights: boolean;
+  /** True when the fade's level line is a mean over the window (everything), false when it is one skill's own level. */
+  smoothLevel: boolean;
+  /** Minutes of work done for the worker, by stream, when the engine reports them. */
+  offloadedMinutes: { delegated: number; automation: number };
   weights: WireGrowth["score"]["weights"];
   weightsNote: string;
   originDetail: OriginDetail | undefined;
@@ -431,7 +565,8 @@ export function buildView(w: WireGrowth, levelPct = 95): GrowthView {
   const skills = skillRows(w.by_skill ?? []);
   const focus = w.skill ? skills.find((s) => s.id === w.skill) ?? null : null;
   const focusName = w.skill ? (focus?.name ?? humanise(w.skill)) : null;
-  const curve = status === "ready" ? curveOf(w.curve) : [];
+  const smoothLevel = !w.skill;
+  const curve = status === "ready" ? curveOf(w.curve, { smoothLevel, window: w.window || DEFAULT_WINDOW }) : [];
   const direction: Direction = status === "ready" ? w.trend.direction : "too_early";
   const imp = improvement(w.trend);
   return {
@@ -447,13 +582,16 @@ export function buildView(w: WireGrowth, levelPct = 95): GrowthView {
     title: heroTitle(status, direction, focusName),
     lede: status === "ready" ? baselineLine(w) ?? "" : "",
     recentLine: focus?.recent ?? null,
-    trend: { direction, sentence: trendSentence({ ...w.trend, direction }, levelPct), per10: imp.per10, ci: imp.ci },
+    trend: { direction, sentence: trendSentence({ ...w.trend, direction }, levelPct, stillNeeded({ readiness: w.readiness, trend: { ...w.trend, direction } }), w.readiness.trend_needed ?? null, w.readiness.occurrences), per10: imp.per10, ci: imp.ci, stillNeeded: stillNeeded({ readiness: w.readiness, trend: { ...w.trend, direction } }) },
+    independence: w.components.independence ? { share: w.components.independence.share, ci: w.components.independence.wilson, k: w.components.independence.k, n: w.components.independence.n } : null,
     composite: status === "ready" ? compositeOf(w) : null,
     cards: cardsOf(w),
     skills,
-    claim: claimOf(skills),
+    claim: w.claim || claimOf(skills),
     offloaded: { delegated: w.offloaded.delegated, automation: w.offloaded.automation },
     hasCueWeights: curve.some((p) => p.cue != null),
+    smoothLevel,
+    offloadedMinutes: { delegated: w.offloaded.minutes?.delegated ?? 0, automation: w.offloaded.minutes?.automation ?? 0 },
     weights: w.score.weights,
     weightsNote: w.score.weights_note,
     originDetail: w.origin_detail,
@@ -461,7 +599,7 @@ export function buildView(w: WireGrowth, levelPct = 95): GrowthView {
 }
 
 /* -- What this does not show ------------------------------------------------------------------- */
-export function limitations(v: Pick<GrowthView, "needed" | "window" | "levelPct" | "weights">, origin: "real" | "synthetic" | "mixed" | undefined): string[] {
+export function limitations(v: Pick<GrowthView, "needed" | "window" | "levelPct" | "weights"> & { caveat?: string | null }, origin: "real" | "synthetic" | "mixed" | undefined): string[] {
   const w = v.weights;
   const out = [
     `Fewer than ${v.needed} occurrences is too few to draw a curve, so until then you see counts only. Even after that, a window of ${v.window} gives a wide ${v.levelPct}% interval.`,
@@ -471,8 +609,10 @@ export function limitations(v: Pick<GrowthView, "needed" | "window" | "levelPct"
     "This does not show that the cues caused the change. You may have been learning on your own, or the work may have got easier. There is no comparison group here.",
     `Keeping a skill is only measured when a step comes back ${RETENTION_DAYS} or more days after you were taught it. Until then it is blank, not zero.`,
     "Work you hand to the agent, and automations that ran overnight, are never counted. Handing work off cannot raise this score.",
-    `The composite's weights (${Math.round(w.independence_lb * 100)}, ${Math.round(w.mastery * 100)}, ${Math.round(w.gap_closure * 100)} and ${Math.round(w.retention * 100)} percent) are stated assumptions, not fitted to data.`,
+    `The composite is experimental. Its weights (${Math.round(w.independence_lb * 100)}, ${Math.round(w.mastery * 100)}, ${Math.round(w.gap_closure * 100)} and ${Math.round(w.retention * 100)} percent) are stated assumptions, not fitted to data, and on simulated learners it could rise when their skill had not changed. Read the trend and the independence interval first.`,
+    "A trend whose interval includes zero is not evidence of no change. At this many occurrences a real improvement is often missed, so the page says it cannot tell yet.",
   ];
+  if (v.caveat) out.push(v.caveat);
   if (origin !== "real") out.push("These numbers come from invented learners or simulated participants with planted learning curves. They test that the method recovers what was planted. The live study, with 4 teammates, has not been run.");
   else out.push("This is one person's own work. One person is not a study.");
   return out;

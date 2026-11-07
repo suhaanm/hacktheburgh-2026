@@ -1,0 +1,169 @@
+{
+ "participant": "p_prog01",
+ "role": "programmer",
+ "arm": "coached",
+ "sequence": "R01",
+ "worker": "roles-prog0",
+ "exclusion": "",
+ "wall_s": 323.5,
+ "checks": {
+  "consent_probe_events": 0,
+  "consent_off_events_after": 0,
+  "contaminated_attempts": [],
+  "events": {
+   "total": 144,
+   "from_extension": 144,
+   "schema_invalid": 0,
+   "types": {
+    "task_start": 6,
+    "nav": 24,
+    "task_end": 6,
+    "focus": 48,
+    "click": 36,
+    "progress": 12,
+    "scroll": 12
+   },
+   "zones": {
+    "code_view": 24,
+    "test_runner": 24,
+    "code_editor": 6,
+    "test_report": 6,
+    "commit_box": 36,
+    "doc": 12,
+    "decision_btn": 18
+   },
+   "first_invalid": null,
+   "task_starts": 6,
+   "task_ends": 6,
+   "tab_events": 0
+  },
+  "coach_events": {
+   "shown": 0,
+   "followed": 0,
+   "dismissed": 0,
+   "by_block_skill": {}
+  },
+  "study_mode_enforcement_from_store": [],
+  "kill": {
+   "engine_reports_killed": true,
+   "coach_action_after_kill": "silent"
+  },
+  "engine_log": {
+   "tracebacks": 0,
+   "error_lines": 0,
+   "events_post_failures": 0
+  },
+  "coach": {
+   "shown": [],
+   "polls": 48,
+   "p_source": {
+    "null": 48
+   },
+   "decisions_non_silent": 0,
+   "polls_by_mode": {
+    "train": 8,
+    "post_test": 32,
+    "off": 8
+   },
+   "non_silent_by_mode": {
+    "train": 0,
+    "post_test": 0,
+    "off": 0
+   }
+  },
+  "study_mode_violations": [],
+  "errors": []
+ },
+ "cases": [
+  {
+   "phase": "pre",
+   "block": 1,
+   "task": "p-boundary-1",
+   "variant": 1,
+   "reason": "done",
+   "used": 8,
+   "capped": false,
+   "wall_s": 20.3,
+   "attempt": 1,
+   "outcome": "partial",
+   "points": 1,
+   "harness_error": "",
+   "protocol_violation": ""
+  },
+  {
+   "phase": "practice",
+   "block": 1,
+   "task": "p-boundary-2",
+   "variant": 1,
+   "reason": "done",
+   "used": 8,
+   "capped": false,
+   "wall_s": 20.4,
+   "attempt": 1,
+   "outcome": "partial",
+   "points": 1,
+   "harness_error": "",
+   "protocol_violation": ""
+  },
+  {
+   "phase": "post",
+   "block": 1,
+   "task": "p-boundary-1",
+   "variant": 2,
+   "reason": "done",
+   "used": 8,
+   "capped": false,
+   "wall_s": 20.7,
+   "attempt": 1,
+   "outcome": "partial",
+   "points": 1,
+   "harness_error": "",
+   "protocol_violation": ""
+  },
+  {
+   "phase": "pre",
+   "block": 2,
+   "task": "p-missing-1",
+   "variant": 1,
+   "reason": "done",
+   "used": 8,
+   "capped": false,
+   "wall_s": 21.1,
+   "attempt": 1,
+   "outcome": "partial",
+   "points": 1,
+   "harness_error": "",
+   "protocol_violation": ""
+  },
+  {
+   "phase": "practice",
+   "block": 2,
+   "task": "p-missing-2",
+   "variant": 1,
+   "reason": "done",
+   "used": 8,
+   "capped": false,
+   "wall_s": 20.4,
+   "attempt": 1,
+   "outcome": "partial",
+   "points": 1,
+   "harness_error": "",
+   "protocol_violation": ""
+  },
+  {
+   "phase": "post",
+   "block": 2,
+   "task": "p-missing-1",
+   "variant": 2,
+   "reason": "done",
+   "used": 8,
+   "capped": false,
+   "wall_s": 20.4,
+   "attempt": 1,
+   "outcome": "partial",
+   "points": 1,
+   "harness_error": "",
+   "protocol_violation": ""
+  }
+ ]
+}

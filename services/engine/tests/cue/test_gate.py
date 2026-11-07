@@ -73,6 +73,14 @@ def test_flow_never_interrupts_typing_and_needs_two_seconds_of_quiet():
     assert run2.poll(2.5, quiet_s=2.0).decision.kind == "cue"
 
 
+def test_typing_resets_the_chain_of_stuck_readings():
+    run = Run()
+    run.poll(0)                                                        # one stuck reading
+    assert reasons(run.poll(2.5, typing_burst=True))[0] == "flow"      # typing: the chain starts again
+    assert reasons(run.poll(5))[0] == "wait_signals"
+    assert run.poll(7.5).decision.kind == "cue"
+
+
 def test_asked_bypasses_flow_quiet_and_level_four():
     r = Run().poll(0, asked=True, typing_burst=True, quiet_hour=True, level=4, p=0.0, stall=1)
     assert r.decision.kind == "cue" and r.shown and reasons(r)[0] == "asked"
@@ -115,9 +123,7 @@ def test_minimum_stall_scales_with_level_and_mastery():
 # ------------------------------------------------------------------------------------------------ tiers
 def test_start_tier_follows_the_level():
     for level, tier in ((1, 2), (2, 1), (3, 1)):
-        stall = 100.0
-        _, r = first_cue(Run(level=level), stall=None) if False else (None, None)
-        run = Run(level=level, start_stall=stall)
+        run = Run(level=level, start_stall=100.0)
         t, r = first_cue(run)
         assert r.decision.tier == tier, (level, r.decision.tier)
 
@@ -192,7 +198,7 @@ def test_progress_deescalates_at_once_and_closes_the_episode():
     run = Run()
     t, r = first_cue(run)
     run.progress(t + 3)
-    after = run.poll(t + 5.0, stall=2.0) if False else run.poll(t + 5.0)
+    after = run.poll(t + 5.0)
     assert after.decision.kind == "none" and reasons(after)[0] == "progress"
     assert run.st.episode is None
 
@@ -415,7 +421,6 @@ def test_no_candidates_is_silence_with_a_reason():
 
 
 def test_decision_shape_matches_the_brief():
-    r = Run().poll(0)
     r = Run()
     t, res = first_cue(r)
     d = res.decision.to_dict()

@@ -16,7 +16,7 @@ Written on Sat 7 Nov 2026, before any real event. Nothing on this page has been 
 | Hit test, any layer | the topmost window of any layer at the point must be the target app's PINNED window (number and pid), re-probed immediately before every mouse-down | `MacActuator._hit` |
 | Stop wins | kill file and supervisor stop polled before every event, between every chunk and between every character | `bind_cancel`, `set_stop_check` |
 | Only what it can do | other buttons and held modifiers are refused, not dropped; points outside the screenshot are refused | `MacActuator.execute` |
-| Owner token | a real run needs a one-time token printed by a dry run of the same command; unattended runs also need the routine's consent record | `owner_present.py`, `run_desktop_task` |
+| Permit in the actuator | `MacActuator` takes a `RunPermit` made by consuming the owner's one-time token (and, for an unattended run, finding the routine's consent record); every action is refused without a valid one, so no entry point can forget the check | `owner_present.py` (`grant_run_permit`), `MacActuator._guard_passive`, `run_desktop_task` |
 | Read-back | `ok` is true only when trusted code reads the document back and it matches | `mac_check.run_check` |
 
 ## Preflight (before R0 and before R1)
@@ -24,7 +24,7 @@ Written on Sat 7 Nov 2026, before any real event. Nothing on this page has been 
 `scripts/real_click_preflight.py` prints PASS or FAIL per item and exits 1 on any FAIL. The owner runs it in a shell where `UNDERSTUDY_REAL_ACTUATOR` is not set.
 
 1. The kill hotkey is registered (the desktop app reports a non-empty accelerator at `GET :7777/hotkeys`).
-2. A dry press writes `data/KILL` within 100 ms, and the file is cleared afterwards.
+2. A dry press writes `data/KILL` within 100 ms, and the file is cleared afterwards (it POSTs `/kill` to the running stack, so the script asks the owner to type YES first; the desktop app must run with `ALONGSIDE_DEBUG=1` or items 1 and 2 fail closed). 2p. The PHYSICAL hotkey: `--press-hotkey` waits up to 20 s for the owner to press Option-Shift-Command-K, reports the latency and clears the file.
 3. The display scale agrees: backing scale against capture width over display width.
 4. The hit test of the intended point names exactly one window of the target, and the target has exactly one window on screen.
 5. The target region is clear: a 5 by 5 grid over the window all hits the pinned window (no banner, Dock, menu or other app).
@@ -57,19 +57,23 @@ Stop and report if: the scale disagrees; a point lands in another app; the targe
 Setup: the preflight passed; TextEdit open with ONE empty untitled document and nothing else of TextEdit's on screen; no other app's window over the document region; Do Not Disturb on.
 
 Run (two steps, from a shell with pyobjc; see `mac_check.py` header):
-1. a dry run of the exact command, which prints a one-time `owner_token` (ten minutes, one use);
-2. the real run with `--owner-present <token>`.
+1. a dry run of the exact command, which prints a one-time `owner_token` (64 bits, ten minutes, one use);
+2. the real run with `--owner-present <token> --countdown 8`.
 
-Fixed limits, in code: text of 1 to 20 printable ASCII characters, no newline or tab; at most 6 actions; a 60 s budget; the click and the typing go through the pipeline and every guard above.
+**What the owner does, exactly.** Open a NEW EMPTY TextEdit document (one window, nothing else of TextEdit's on screen). Start the command from the terminal. A countdown prints "bring TextEdit to the front and keep your hands off: starting in 8 ...". Click TextEdit's window ONCE to bring it forward (the owner's click, not the agent's), then take hands off mouse and keyboard until it finishes. The countdown is polled every 100 ms; the kill file ends it at once; if TextEdit is not the front app for the whole last second, NOTHING is done. Then the actuator itself clicks the document body and types the word.
+
+**The token is not proof of presence.** It stops accidental or automated use (a routine, a stray script, a model). The process that runs the dry run for the owner could also read the token it prints and spend it. The owner-present control is the owner's own go in chat for each rung, which stays.
+
+Fixed limits, in code: a word of 1 to 20 LETTERS ONLY (a to z; digits and punctuation are refused because TextEdit's smart quotes and autocorrect can alter them, which would make the read-back fail closed), no newline or tab; at most 6 actions; a 60 s budget; the click and the typing go through the pipeline and every guard above.
 
 **Pass criteria, written before the run.** `ok` is true only if all hold: no guard fired; the document read back through the OS (AppleScript `text of document 1`, run by this code) equals the typed text; zero events outside the pinned window; the Claude chat input and every other app are unchanged (the owner looks); `report.pinned_window` names the TextEdit window; `postcondition` is `passed`.
 
-**Stop rules.** The owner presses the hotkey at the first surprise (pointer anywhere but the document, text anywhere but the document, a dialog, a banner). The same stop is `touch data/KILL`, Ctrl-C, or `k` then Enter in the check's terminal. Then: write the report (counts, enums, the printed JSON; no text) and do not run another rung.
+**Stop rules.** The owner presses the hotkey at the first surprise (pointer anywhere but the document, text anywhere but the document, a dialog, a banner). The channels that work while TextEdit is in front are the hotkey (the desktop app must be running, and the preflight proved it) and `touch data/KILL` from a SECOND terminal. Ctrl-C and `k` then Enter in the check's own terminal work only while that terminal has the keyboard focus, which it does not once TextEdit is in front: do not rely on them. Then: write the report (counts, enums, the printed JSON; no text) and do not run another rung.
 
 **Confirmations on the real desktop inside R1** (each is a separate, scripted, short run, each with the owner's go):
 - S-13: hold Shift while the scripted word is typed; the document must read back the plain word.
 - S-05: open two TextEdit windows; the first click must refuse (`2 windows on screen`).
-- S-06: put a notification banner over the target region (a test banner from the owner); the click must refuse.
+- S-06: put a window ABOVE layer 0 over the target region: a Stickies note set to Float on Top (Do Not Disturb stays on: it suppresses banners, so a banner would not appear); the click must refuse. (Or turn Do Not Disturb off for that one sub-run and use a test banner.)
 - S-03: run with `--latency-test` (up to 60 characters) and press the hotkey mid-type; `report.kill_latency_ms` is the time the stop took.
 
 ## R2: a model proposes, one step, in TextEdit (blocked until R1 passes)

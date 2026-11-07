@@ -40,7 +40,7 @@ from .config import (gemini_flag_enabled, gemini_ids_from_env_or_none, gemini_ke
                      model_ids_from_env_or_none)
 from .errors import ConfigError, ModelRefusal, ProviderError, SchemaViolation
 from .gemini_http import GeminiHTTPError
-from .meter import CallRecord, Meter, default_meter_path
+from .meter import CallRecord, Meter, context_fields, default_meter_path, suppress_provider_records
 from .prices import cost_estimate
 from .schemas import GlanceResult, PointResult, parse_glance, parse_point, parse_verify
 
@@ -169,6 +169,8 @@ class BackendOut:
     output_tokens: int | None       # visible
     thought_tokens: int | None
     api: str | None = None
+    cached_input_tokens: int | None = None
+    image_tokens: int | None = None
 
 
 class Backend(Protocol):
@@ -221,10 +223,12 @@ class GeminiBackend(_LazyBackend):
     def vision(self, tier: str, image: bytes, prompt: str, schema: dict[str, Any], *, thinking: str | None | bool,
                timeout_s: float) -> BackendOut:
         p = self._provider()
-        raw = p.vision(image, prompt, schema, tier=tier, thinking=thinking, timeout_s=timeout_s)
+        with suppress_provider_records():   # the router writes its own line for this call
+            raw = p.vision(image, prompt, schema, tier=tier, thinking=thinking, timeout_s=timeout_s)
         lc = p.last_call or {}
         out, thought = lc.get("output_tokens"), lc.get("thought_tokens") or 0
-        return BackendOut(raw, lc.get("input_tokens"), None if out is None else out - thought, thought, lc.get("api"))
+        return BackendOut(raw, lc.get("input_tokens"), None if out is None else out - thought, thought, lc.get("api"),
+                          lc.get("cached_input_tokens"), lc.get("image_tokens"))
 
 
 class OpenAIBackend(_LazyBackend):
@@ -252,9 +256,10 @@ class OpenAIBackend(_LazyBackend):
     def vision(self, tier: str, image: bytes, prompt: str, schema: dict[str, Any], *, thinking: str | None | bool,
                timeout_s: float) -> BackendOut:
         p = self._provider()
-        raw = p.vision(image, prompt, schema, timeout_s=timeout_s)
+        with suppress_provider_records():
+            raw = p.vision(image, prompt, schema, timeout_s=timeout_s)
         lc = p.last_call or {}
-        return BackendOut(raw, lc.get("input_tokens"), lc.get("output_tokens"), 0, "responses")
+        return BackendOut(raw, lc.get("input_tokens"), lc.get("output_tokens"), 0, "responses", lc.get("cached_input_tokens"), None)
 
 
 def _error_kind(e: BaseException) -> str:
@@ -310,7 +315,7 @@ class StepPort:
         self.out = out
         billed = None if out.output_tokens is None else out.output_tokens + (out.thought_tokens or 0)
         self.last_call = {"input_tokens": out.input_tokens, "output_tokens": billed,
-                          "cost_estimate_usd": cost_estimate(self.name, self.tier, out.input_tokens, billed)}
+                          "cost_estimate_usd": cost_estimate(self.name, self.tier, out.input_tokens, billed, out.cached_input_tokens)}
         return out.value
 
 
@@ -528,8 +533,10 @@ class ModelRouter:
                 role=role, provider=step.provider, model=model, tier=step.tier, method=role, ok=err_kind is None,
                 latency_ms=port.latency_ms, input_tokens=out.input_tokens if out else None,
                 output_tokens=out.output_tokens if out else None, thought_tokens=out.thought_tokens if out else None,
-                cost_usd=cost_estimate(step.provider, step.tier, out.input_tokens, billed) if out else None,
-                error_kind=err_kind, image_sha=image_sha, step=i, api=out.api if out else None))
+                cost_usd=cost_estimate(step.provider, step.tier, out.input_tokens, billed, out.cached_input_tokens) if out else None,
+                error_kind=err_kind, image_sha=image_sha, step=i, api=out.api if out else None,
+                image_tokens=out.image_tokens if out else None, cached_input_tokens=out.cached_input_tokens if out else None,
+                **context_fields(step.provider)))
             if err_kind is not None:
                 if err_kind != "refusal":   # refusals are not outages
                     breaker.record(False)

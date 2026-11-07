@@ -23,7 +23,7 @@ REASONS = (
     "no_consent", "denied", "quiet", "flow", "level_4", "not_stuck", "wait_signals", "unsure_away", "below_stall_min",
     "cap_10min", "cooldown_skill", "budget_spent", "waiting_escalation", "deferred", "dismissed_in_episode", "know_this",
     "no_candidates", "no_context", "progress", "ladder_done", "ambiguous_after_question", "no_target_for_tier",
-    "recovered", "timeout",
+    "recovered", "timeout", "stale_input", "attention_hold", "step_done", "resolved",
     # why something is shown
     "stuck_signal", "asked", "escalated", "retrieval_withheld", "path_confident", "path_close_call",
     "grounded_dom", "grounded_vision", "ungrounded", "screen_disagrees", "answer_known", "long_stall",
@@ -86,6 +86,7 @@ class CueInput:
     asked: bool = False                          # the worker pressed the hotkey or the ask button for this poll
     voice_ok: bool = False                       # the worker used voice or asked for it: only then may a whisper exist
     retrieval_due: bool = False                  # teach and fade: withhold help for this step, confirm afterwards
+    stale: tuple[str, ...] = ()                  # inputs that were too old or missing and were dropped (freshness.py)
 
     @property
     def stall_s(self) -> float:
@@ -113,6 +114,8 @@ class CueDecision:
     retrieval: bool = False
     ground_wanted: bool = False
     teach: dict | None = None                    # {reason_id, text}: the one-line why, on the poll that sees the step finished (once per skill per day)
+    manifest: dict | None = None                 # {inputs_read, inputs_stale, caps}: metadata only, what this decision read and the caps it ran under
+    stale: list[str] | None = None               # names of inputs dropped as stale or missing (reasons carry "stale_input")
     menu: list[dict] | None = None               # [{id, label}] the candidate steps: the menu a grounding call wants (with ground_wanted)
 
     def to_dict(self) -> dict[str, Any]:

@@ -1,5 +1,5 @@
 // Drives the write paths through the real UI against a THROWAWAY engine (own UNDERSTUDY_HOME and data dir, ephemeral port).
-// Requests the page sends to 127.0.0.1:7700 are redirected to that engine, so nothing touches the shared engine or the real memory file.
+// Requests the page sends to its own /engine prefix are redirected to that engine, so nothing touches the shared engine or the real memory file.
 // Usage: node scripts/live-write.mjs http://127.0.0.1:<port> [http://127.0.0.1:5173]
 import { chromium } from "playwright";
 
@@ -8,8 +8,8 @@ const base = process.argv[3] ?? "http://127.0.0.1:5173";
 if (!target) { console.error("usage: live-write.mjs <throwaway engine url> [dashboard url]"); process.exit(2); }
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-await ctx.route(/127\.0\.0\.1:7700\//, (route) => route.continue({ url: route.request().url().replace("127.0.0.1:7700", target.replace("http://", "")) }));
-await ctx.route(/127\.0\.0\.1:7710\//, (route) => route.abort()); // never reach the shared agent (kill and the like)
+await ctx.route(/^https?:\/\/[^/]+\/engine(\/|$)/, (route) => route.continue({ url: route.request().url().replace(/^(https?:\/\/[^/]+)\/engine/, target) }));
+await ctx.route(/^https?:\/\/[^/]+\/agent(\/|$)/, (route) => route.abort()); // never reach the shared agent (kill and the like)
 const page = await ctx.newPage();
 const writes = [];
 const errors = [];

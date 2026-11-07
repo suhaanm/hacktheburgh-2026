@@ -6,7 +6,7 @@
 //   awareness.getAwarenessState() / awareness.setConsent({ trigger: true, periodic: false })   // for the consent card and the Privacy screen
 //
 // With the flag off, or awarenessEnabled false, NO timer is created, nothing is sampled and nothing is captured (tests assert it).
-// Sub-parts start and stop with the settings: the cursor sampler and the frontmost poll while the layer is on; the stuck reader while
+// Sub-parts start and stop with the settings: the cursor sampler and the frontmost poll while the layer is on; the stuck detector (fed by the coach brain's poll, see observeStuck) while
 // triggered glances are consented; the one-second periodic check while the periodic glance is consented.
 import { appKindFor, decideApp, describeDenylist } from './denylist'
 import { awarenessFlagOn } from './flags'
@@ -14,7 +14,6 @@ import { createAwarenessSink, windowEvent, type AwarenessSink, type Identity, ty
 import { createGlancer, configFromSettings, createMemoryLedger, type GlanceOutcome, type Glancer, type LedgerPort, type MemoryLedger, type PowerState } from './glance'
 import { LoopWatcher, StopTracker } from './loop'
 import { createCursorSampler, unknownClicks, type ClickSource, type CursorSampler, type ZoneAt } from './cursor'
-import { createStuckReader, type StuckReader, type StuckReading } from './stuck-reader'
 import { CONSENT_TEXT, CONSENT_VERSION, consentFor, consentPatch, type AwarenessSettings, type AwarenessSettingsStore, type ConsentChoice } from './settings'
 import { StuckDetector, periodicDue } from './triggers'
 import { UsageMeter, parseLedgerUsage } from './usage'
@@ -80,7 +79,19 @@ export interface Awareness {
   stop(): void
   dispose(): void
   hotkey(): Promise<GlanceOutcome>
+  /**
+   * The shared stuck poll: the coach brain passes each GET /coach/next answer's p_stuck here (null when there is none). Two readings in a
+   * row at or over the threshold make one glance with the reason `stuck`, only while the layer is on, triggered glances are consented, and
+   * nothing is paused or killed. There is no second poll of the engine.
+   */
+  observeStuck(p: number | null, nowMs?: number): void
   getAwarenessState(): AwarenessState
+  /**
+   * The tray's checkboxes (a native surface only the worker can click). Turning anything down is always allowed. Turning triggered or
+   * periodic glances ON needs the worker to have agreed to the CURRENT consent text already; if not, nothing changes and `needsConsent`
+   * is true, and the caller opens the consent card instead. (Periodic also needs triggered glances on.)
+   */
+  setSwitch(name: 'enabled' | 'trigger' | 'periodic', on: boolean): { state: AwarenessState; needsConsent: boolean }
   /** The consent card's call (trusted). `trigger: false` withdraws consent for everything. */
   setConsent(choice: ConsentChoice): AwarenessState
   pause(ms?: number): AwarenessState
@@ -109,7 +120,8 @@ export function createAwareness(deps: AwarenessDeps): Awareness {
   let sessionStartedAt: number | null = null
   let lastSkip: AwarenessState['last']['skip'] = null
   let lastGlance: AwarenessState['last']['glance'] = null
-  let stuckReading: StuckReading | null = null
+  // The last stuck reading the shared coach poll fed in (the coach brain's GET /coach/next carries p_stuck; there is no second poll).
+  let stuckReading: { p: number; at: number } | null = null
   let seeded = false
 
   const power: PowerState = {
@@ -185,18 +197,6 @@ export function createAwareness(deps: AwarenessDeps): Awareness {
   const sampler: CursorSampler = createCursorSampler({ getPoint: deps.getCursorPoint, now, timers, zoneAt: deps.zoneAt ?? null, clicks: deps.clicks ?? unknownClicks, onWindow })
   let frontHandle: unknown = null
   let periodicHandle: unknown = null
-  const reader: StuckReader = createStuckReader({
-    engineUrl: deps.engineUrl,
-    person: () => deps.identity().person,
-    getJson: deps.getJson,
-    now,
-    timers,
-    onReading: (r, t) => {
-      stuckReading = r
-      if (stuck.observe(r ? r.p : null, t) && consentFor(settings.get(), 'trigger')) void request('stuck')
-    },
-  })
-
   const pollFront = (): void => {
     void deps.frontmost.read().then((b) => {
       currentBundle = b
@@ -230,9 +230,7 @@ export function createAwareness(deps: AwarenessDeps): Awareness {
       currentBundle = null
       stops.reset()
     }
-    if (layerOn && consentFor(s, 'trigger')) reader.start()
-    else {
-      reader.stop()
+    if (!(layerOn && consentFor(s, 'trigger'))) {
       stuck.reset()
       loops.clear()
       stuckReading = null
@@ -275,7 +273,7 @@ export function createAwareness(deps: AwarenessDeps): Awareness {
         clicks: deps.clicks && deps.clicks !== unknownClicks ? 'provided' : 'unavailable (needs Accessibility, not requested)',
         screenShare: deps.screenShare ? 'heuristic (Zoom share helper, screensharingd)' : 'not checked',
         screenCapture: deps.frames.kind,
-        stuck: stuckReading ? `${stuckReading.source} (GET /coach/next?dry=1)` : 'no reading',
+        stuck: stuckReading ? 'shared coach poll (GET /coach/next, p_stuck)' : 'no reading',
       },
       queued: sink.pending(),
     }
@@ -314,10 +312,34 @@ export function createAwareness(deps: AwarenessDeps): Awareness {
       sink.dispose()
     },
     hotkey: () => request('hotkey'),
+    observeStuck(p, at = now()) {
+      const s = settings.get()
+      const live = started && flagOn() && s.awarenessEnabled && consentFor(s, 'trigger') && !deps.killed?.() && s.glancePausedUntilMs <= now()
+      if (!live || p === null || !Number.isFinite(p)) {
+        stuck.observe(null, at) // an unreadable or unusable reading breaks the chain
+        stuckReading = null
+        return
+      }
+      stuckReading = { p, at }
+      if (stuck.observe(p, at)) void request('stuck')
+    },
     getAwarenessState: state,
     setConsent(choice) {
       settings.patch(consentPatch(choice, new Date(now())), { trusted: true })
       return state()
+    },
+    setSwitch(name, on) {
+      const s = settings.get()
+      const agreed = s.glanceConsentVersion === CONSENT_VERSION
+      if (name === 'enabled') settings.patch({ awarenessEnabled: on }, { trusted: true }) // the always-on layer sends nothing by itself
+      else if (name === 'trigger') {
+        if (!on) settings.patch(consentPatch({ trigger: false }), { trusted: true }) // withdrawing clears the record: coming back needs the card
+        else if (!agreed) return { state: state(), needsConsent: true }
+        else settings.patch({ awarenessEnabled: true, glanceOnTrigger: true }, { trusted: true })
+      } else if (!on) settings.patch({ glancePeriodic: false }, { trusted: true })
+      else if (!agreed || !s.glanceOnTrigger) return { state: state(), needsConsent: true }
+      else settings.patch({ glancePeriodic: true }, { trusted: true })
+      return { state: state(), needsConsent: false }
     },
     pause(ms) {
       settings.pauseFor(ms)

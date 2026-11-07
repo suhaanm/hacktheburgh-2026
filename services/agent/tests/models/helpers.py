@@ -38,9 +38,9 @@ class Clock:
 
 
 def reply(obj: Any, *, tin: int | None = 1200, tout: int | None = 40, think: int | None = 0, ms: int = 100,
-          model: str = "m") -> GeminiReply:
+          model: str = "m", calls: tuple[dict[str, Any], ...] = ()) -> GeminiReply:
     return GeminiReply(text=obj if isinstance(obj, str) else json.dumps(obj), input_tokens=tin, output_tokens=tout,
-                       thought_tokens=think, latency_ms=ms, api="interactions", model=model, finish="completed")
+                       thought_tokens=think, latency_ms=ms, api="interactions", model=model, finish="completed", calls=calls)
 
 
 class FakeGeminiClient:

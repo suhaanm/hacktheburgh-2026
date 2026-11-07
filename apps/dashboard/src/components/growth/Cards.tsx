@@ -8,6 +8,7 @@ export function Cards({ cards, levelPct }: { cards: ComponentCard[]; levelPct: n
       {cards.map((c) => (
         <section key={c.id} className="gr-comp" aria-labelledby={`gc-${c.id}`}>
           <h3 id={`gc-${c.id}`} className="gr-comp__title">{c.title}</h3>
+          <p className="gr-comp__measure">{c.measure}</p>
           <p className={`gr-comp__figure num${c.value == null ? " gr-comp__figure--none" : ""}`}>{c.display}</p>
           {c.ci && c.value != null ? (
             <>
@@ -18,7 +19,6 @@ export function Cards({ cards, levelPct }: { cards: ComponentCard[]; levelPct: n
           ) : null}
           {c.sentence && <p className="gr-comp__fact">{c.sentence}</p>}
           {c.pending && <p className="gr-comp__pending">{c.pending}</p>}
-          <p className="gr-comp__measure">{c.measure}</p>
         </section>
       ))}
     </div>

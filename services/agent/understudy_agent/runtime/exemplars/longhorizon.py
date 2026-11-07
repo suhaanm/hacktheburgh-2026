@@ -409,22 +409,12 @@ _RUN = {"tool": "run_python", "file": "script", "template": "none"}
 _EMIT = {"tool": "emit_result", "file": "result", "template": "none"}
 
 
-def _progress(h: list[dict[str, Any]]) -> tuple[bool, set[str], bool]:
-    """(wrote the engine, controls that were written AND run successfully, a control is written but not yet run)."""
-    ctl = [i for i, x in enumerate(h) if x["tool"] == "write_workspace" and x["file"] == "control" and x["ok"]]
-    ran = lambda i: any(y["tool"] == "run_python" and y["ok"] for y in h[i + 1:])
-    done = {h[i]["template"] for i in ctl if ran(i)}
-    pending = bool(ctl) and not ran(ctl[-1])
-    wrote = any(x["tool"] == "write_workspace" and x["file"] == "script" and x["ok"] for x in h)
-    return wrote, done, pending
-
-
 def policy_bug_fixer(role: str, params: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
-    h, sig = payload["history"], payload["signals"]
-    wrote, done, pending = _progress(h)
-    if not wrote:
+    t = payload["task"]                                      # the code-maintained state: all the policy needs, however long the task is
+    sig, done = t["signals"], set(t["completed"])
+    if "repair_engine" not in t["written"]:
         return _w("script", "repair_engine")
-    if pending:                                              # also the recovery after a crash: run the same phase again
+    if t["pending"] != "none":                               # also the recovery after a crash: run the same phase again
         return _RUN
     if "ctl_final" in done:
         return _EMIT
@@ -438,11 +428,11 @@ def policy_bug_fixer(role: str, params: dict[str, Any], payload: dict[str, Any])
 
 
 def policy_data_pipeline(role: str, params: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
-    h, sig = payload["history"], payload["signals"]
-    wrote, done, pending = _progress(h)
-    if not wrote:
+    t = payload["task"]
+    sig, done = t["signals"], set(t["completed"])
+    if "pipeline_engine" not in t["written"]:
         return _w("script", "pipeline_engine")
-    if pending:
+    if t["pending"] != "none":
         return _RUN
     if "ctl_final" in done:
         return _EMIT

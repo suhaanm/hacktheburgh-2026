@@ -24,7 +24,7 @@ from typing import Any, Literal
 
 from .killflag import is_killed
 from .labels import (IRREVERSIBLE_CLASSES, NORMAL_CLASSES, OPT_IN_ELIGIBLE, OUTWARD_CLASSES, ActionClass, classify_keys,
-                     classify_label, highest, risk_class, sensitive_path)
+                     classify_label, highest, is_benign_submit_label, risk_class, sensitive_path)
 from .sensitive import is_sensitive_attrs
 
 Verdict = Literal["allow", "needs_human", "block"]
@@ -61,6 +61,9 @@ class TargetInfo:
     url: str | None = None            # current page address
     app: str | None = None
     field_attrs: dict[str, Any] | None = None   # name, id, label, placeholder, autocomplete, aria_label, type for inputs
+    # What the control STRUCTURALLY is, read by trusted code whatever the page calls it: "submit_control",
+    # "external_form:<host>", "cross_origin_link:<host>", "download", "opens_dialog", "label_mismatch".
+    structure: tuple[str, ...] = ()
 
     @property
     def resolved(self) -> bool:
@@ -94,7 +97,36 @@ def enter_like(kind: str, args: dict[str, Any]) -> bool:
     return False
 
 
-def classify_step(kind: str, args: dict[str, Any], target: TargetInfo | None = None) -> set[ActionClass]:
+_OUTWARD_STRUCTURE = ("external_form", "cross_origin_link", "download", "opens_dialog", "label_mismatch")
+# words in a link or form ADDRESS that say it changes or ends something, whatever the page calls the control
+_PATH_RISK = re.compile(r"\b(delete|remove|close|logout|logoff|signout|sign out|log out|unsubscribe|cancel|order|orders|pay|payment|"
+                        r"checkout|confirm|submit|purchase|buy|transfer|withdraw|revoke|destroy|erase|wipe|terminate|deactivate)\b")
+
+
+def structural_classes(target: TargetInfo, recorded_hosts: frozenset[str] = frozenset()) -> set[ActionClass]:
+    """Classes from what the control IS, whatever its label says (S-16, S-17): a form that posts to another site, a
+    download, a dialog opener, or a name that disagrees with the visible text is outward; a submit control whose
+    verb nobody recognised as ordinary work is unknown, and unknown on a submit control is a human's call.
+    `recorded_hosts` (sites this routine has already used) only stops a destination from looking new."""
+    out: set[ActionClass] = set()
+    st = list(target.structure or ())
+    for tok in st:
+        kind, _, host = tok.partition(":")
+        if kind in _OUTWARD_STRUCTURE and host not in recorded_hosts:
+            out.add(ActionClass.SEND)
+        elif kind == "path":                       # `host` is the words of the link or form address: what the URL says it does
+            out |= classify_label(host) - NORMAL_CLASSES
+            if _PATH_RISK.search(host):
+                out.add(ActionClass.SUBMIT)
+    # a submit control, or a script-driven clickable (a div with a listener), whose verb nobody recognised is a human's call
+    if ("submit_control" in st or "script_clickable" in st) and not (classify_label(target.label) - NORMAL_CLASSES):
+        if not is_benign_submit_label(target.label):
+            out.add(ActionClass.SUBMIT)
+    return out
+
+
+def classify_step(kind: str, args: dict[str, Any], target: TargetInfo | None = None,
+                  recorded_hosts: frozenset[str] = frozenset()) -> set[ActionClass]:
     """Classes a step belongs to. Always includes a base class (read, navigate or fill)."""
     target = target or TargetInfo()
     classes: set[ActionClass] = set()
@@ -112,6 +144,9 @@ def classify_step(kind: str, args: dict[str, Any], target: TargetInfo | None = N
             classes.add(ActionClass.FILL)
     if enter_like(kind, args):
         classes |= classify_label(target.label)  # Enter acts like the focused control (or the form's own submit button)
+        classes |= structural_classes(target, recorded_hosts)
+    if kind in ("click", "double_click", "click_element", "drag"):
+        classes |= structural_classes(target, recorded_hosts)
     if kind in ("click", "double_click", "click_element"):
         classes |= classify_label(target.label)
         classes |= classify_label(args.get("label"))  # hint from the proposer; it can only ADD risk, never remove it
@@ -136,7 +171,7 @@ def gate(kind: str, args: dict[str, Any], ctx: RoutineContext, target: TargetInf
         return GateDecision("block", frozenset({ActionClass.CREDENTIAL}), ActionClass.CREDENTIAL, "irreversible",
                             "this is a password, card or identity field; the agent never types into those")
 
-    classes = classify_step(kind, args, target)
+    classes = classify_step(kind, args, target, ctx.recorded_hosts)
     top = highest(classes)
     risk = risk_class(top)
     frozen = frozenset(classes)

@@ -32,9 +32,16 @@ def _rows(rows: list[dict[str, Any]], kind: str) -> dict[tuple[str, str, int], d
     return {(r["contender"], r["case_id"], int(r.get("rep", 0))): r for r in rows if r["kind"] == kind}
 
 
+def _load(vals: list[float | None]) -> dict[str, Any]:
+    """Mean 1-minute load average recorded when the calls in a cell went out (None when the runs did not record it)."""
+    v = [x for x in vals if x is not None]
+    return {"n_calls_with_load": len(v), "mean": round(sum(v) / len(v), 1) if v else None, "max": max(v) if v else None}
+
+
 def point_record(case: dict[str, Any], shot: dict[str, Any], row: dict[str, Any] | None) -> dict[str, Any]:
     """One (case, contender) outcome. `case` has kind positive|negative and a truth `box` (px) for a positive."""
     rec: dict[str, Any] = {"case_id": case["case_id"], "kind": case["kind"], "cond": case.get("cond"), "site": case.get("site"),
+                           "load": row.get("load_avg_1m") if row else None,
                            "role": case.get("role", "control"), "present": row is not None, "ok": bool(row and row["ok"]),
                            "error_kind": row.get("error_kind") if row else "missing", "latency_ms": row.get("latency_ms") if row else None,
                            "cost_usd": row.get("cost_usd") if row else None, "input_tokens": row.get("input_tokens") if row else None,
@@ -80,6 +87,7 @@ def agg_point(recs: list[dict[str, Any]]) -> dict[str, Any]:
         "negatives": {"correct": stats.rate(sum(1 for r in neg if r["correct_negative"]), len(neg)),
                       "false_positives": sum(1 for r in neg if r["ok"] and r["found"])},
         "latency_ms": stats.summarize(lat) if lat else {"n": 0},
+        "load_avg_1m": _load([r.get("load") for r in recs]),
         "over_6s": stats.rate(sum(1 for v in lat if v > DEADLINE_MS), len(lat)),
         "failed_calls": dict(fails), "n_failed": sum(fails.values()),
         "tokens": {"mean_input": (round(statistics.mean(r["input_tokens"] for r in recs if r["input_tokens"] is not None), 1)
@@ -153,6 +161,8 @@ def pointing_section(manifest: dict[str, Any], rows: list[dict[str, Any]], conte
         per[c] = {r["case_id"]: r for r in recs}
         out["cells"][c] = point_cell(recs)
     both = [c for c in ("gemini_fast", "gemini_accurate") if c in per]
+    lite = flash = {}
+    common: list[str] = []
     if len(both) == 2 and per["gemini_fast"] and per["gemini_accurate"]:
         common = sorted(set(per["gemini_fast"]) & set(per["gemini_accurate"]))
         lite = {i: per["gemini_fast"][i] for i in common}
@@ -166,6 +176,13 @@ def pointing_section(manifest: dict[str, Any], rows: list[dict[str, Any]], conte
             out["cells"][label] = cell
     # paired differences on positives (same cases)
     pairs = {}
+    if lite and flash:
+        for label, dl in (("routed_6s_deadline", True), ("routed_no_deadline", False)):
+            sim = {r["case_id"]: r for r in routed_simulation(lite, flash, deadline=dl)}
+            pos = [cid for cid in common if lite[cid]["kind"] == "positive"]
+            if len(pos) >= 5:
+                pairs[f"{label}_minus_gemini_fast"] = {"on": "positive hit", **stats.paired_diff(
+                    [int(sim[c]["hit"]) for c in pos], [int(lite[c]["hit"]) for c in pos])}
     names = [c for c in contenders if c in per]
     for i, a in enumerate(names):
         for b in names[i + 1:]:
@@ -207,6 +224,7 @@ def verifier_section(manifest: dict[str, Any], rows: list[dict[str, Any]], conte
             verdict = row["value"]["verdict"] if ok else None
             conf = row["value"]["confidence"] if ok else None
             recs.append({"id": it["id"], "group": it["group"], "truth": it["truth_accept"], "ok": ok, "verdict": verdict, "conf": conf,
+                         "load": row.get("load_avg_1m"),
                          "accept": verdict == "yes", "gated_accept": verdict == "yes" and (conf or 0) >= ESCALATE_BELOW,
                          "latency_ms": row.get("latency_ms"), "cost_usd": row.get("cost_usd")})
         out["cells"][c] = _verify_cell(recs)
@@ -244,6 +262,7 @@ def _verify_cell(recs: list[dict[str, Any]]) -> dict[str, Any]:
             "code_gate_yes_and_confidence_at_least_0.7": block("gated_accept"),
             "unsure": stats.rate(sum(1 for r in recs if r["verdict"] == "unsure"), len(recs)),
             "by_group": groups, "latency_ms": stats.summarize(lat) if lat else {"n": 0},
+            "load_avg_1m": _load([r.get("load") for r in recs]),
             "cost_usd_est": {"total": round(sum(costs), 4), "n": len(costs)}}
 
 
@@ -315,5 +334,21 @@ def glance_section(manifest: dict[str, Any], rows: list[dict[str, Any]], contend
             "agreement_note": "repeats of one screenshot are not independent samples; the interval is indicative",
             "field_agreement": {f: stats.rate(a, b) for f, (a, b) in field_agree.items()},
             "plausible": stats.rate(plaus_k, n_ok), "by_screen": per_screen,
-            "latency_ms": stats.summarize(lat) if lat else {"n": 0}, "cost_usd_est": {"total": round(sum(costs), 4), "n": len(costs)}}
+            "latency_ms": stats.summarize(lat) if lat else {"n": 0}, "load_avg_1m": _load([r.get("load_avg_1m") for r in mine]),
+            "cost_usd_est": {"total": round(sum(costs), 4), "n": len(costs)}}
+    return out
+
+
+def latency_section(rows: list[dict[str, Any]], contenders: list[str], main: dict[str, Any] | None = None) -> dict[str, Any]:
+    """The latency re-check: the same pointing call repeated on one screenshot (rep 100 and up), the machine load recorded for every call.
+    Compared with the p50 of the main pointing run, which did not record load (that field was added afterwards)."""
+    out: dict[str, Any] = {"origin": ORIGIN, "what": "one pointing call (the same screenshot and description) repeated sequentially per contender, "
+                           "the three contenders side by side; the 1-minute load average is recorded at every call", "cells": {}}
+    for c in contenders:
+        mine = [r for r in rows if r["kind"] == "point_desc" and r["contender"] == c and int(r.get("rep", 0)) >= 100]
+        lat = [r["latency_ms"] for r in mine if r["ok"] and r["latency_ms"] is not None]
+        main_lat = ((main or {}).get(c) or {}).get("latency_ms") or {}
+        out["cells"][c] = {"n_calls": len(mine), "n_ok": len(lat), "latency_ms": stats.summarize(lat) if lat else {"n": 0},
+                           "load_avg_1m": _load([r.get("load_avg_1m") for r in mine]),
+                           "main_run_p50_ms": main_lat.get("p50"), "main_run_n": main_lat.get("n")}
     return out

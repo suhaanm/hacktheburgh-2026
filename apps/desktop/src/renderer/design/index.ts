@@ -11,6 +11,7 @@ export { ListeningLight, MuteButton, listeningLightState, listeningLightText, ty
 export { Onboarding, type OnboardingProps } from './Onboarding'
 export { PresenceOrb, type PresenceOrbProps } from './PresenceOrb'
 export { ConfidenceChart, HintsChart, ProgressView } from './ProgressView'
+export { AwarenessCard, type AwarenessCardProps } from './AwarenessCard'
 export { AnnotationPreview, SettingsPanel, type SettingsPanelProps } from './SettingsPanel'
 export { SkillStepper, type SkillStepperProps } from './SkillStepper'
 export { StopButton } from './StopButton'

@@ -1,0 +1,306 @@
+{
+ "default": {
+  "meta": {
+   "origin": "synthetic",
+   "n": 24,
+   "n_unit": "people",
+   "split": "descriptive_nearest_expert",
+   "interval_level": 0.95,
+   "note": "Words from the built-in template. Every number was checked against the packet; that proves it traces to the data, not that it is true.",
+   "generated_at": "2026-11-07T18:01:43Z"
+  },
+  "data": {
+   "intent": "where_time_went",
+   "source": "template",
+   "model": null,
+   "ledger_id": null,
+   "sections": [
+    {
+     "kind": "explanation",
+     "sentences": [
+      {
+       "text": "On this case you took 9 minutes 45 seconds against 6 minutes 45 seconds for the nearest expert, which is 2 minutes 59 seconds longer; a single case has no interval of its own.",
+       "uses": [
+        "gap.case_s",
+        "gap.reference_s",
+        "gap.gap_s"
+       ]
+      },
+      {
+       "text": "The alignment associates search loops with 97 seconds, a slower pace on shared steps with 44 seconds and long pauses with 39 seconds.",
+       "uses": [
+        "habit.search_loops.seconds",
+        "habit.pace.seconds",
+        "habit.pauses.seconds"
+       ]
+      },
+      {
+       "text": "Across the 24 people in this data, novices take on average 3 minutes 50 seconds longer per case than their nearest expert (between 3 minutes 13 seconds and 4 minutes 30 seconds).",
+       "uses": [
+        "gap.cohort_gap_s",
+        "meta.n",
+        "gap.cohort_lo",
+        "gap.cohort_hi"
+       ]
+      },
+      {
+       "text": "In the sandbox households, skipping the reconcile step ended in a wrong answer 10% of the time (between 8 and 13%); when it was wrong the mean error was \u00a3292 a month (n = 200 households).",
+       "uses": [
+        "consequence.RECONCILE.p_error",
+        "consequence.RECONCILE.lo",
+        "consequence.RECONCILE.hi",
+        "consequence.RECONCILE.mean_gbp",
+        "consequence.RECONCILE.n"
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "coaching",
+     "actions": [
+      {
+       "id": "search_once_then_stop",
+       "text": "When a search does not give what you need, change one thing in it and try once more rather than searching again and again; search loops are associated with 97 seconds here.",
+       "uses": [
+        "habit.search_loops.seconds"
+       ],
+       "chosen_by": "code"
+      },
+      {
+       "id": "keep_pace_with_reference",
+       "text": "On steps you already know, follow the nearest expert's pace; a slower pace on shared steps is associated with 44 seconds here.",
+       "uses": [
+        "habit.pace.seconds"
+       ],
+       "chosen_by": "code"
+      }
+     ]
+    },
+    {
+     "kind": "limits",
+     "sentences": [
+      {
+       "id": "synthetic_data",
+       "text": "These figures come from synthetic data with planted patterns, so they show that the method recovers known structure, not that real people behave this way."
+      },
+      {
+       "id": "association_only",
+       "text": "Everything here is an association in recorded traces, not proof of cause."
+      },
+      {
+       "id": "not_expert_claim",
+       "text": "This does not show that novices become experts; it shows where time differs from the nearest expert and how sure we are."
+      },
+      {
+       "id": "explainer_readability",
+       "text": "This explanation only rewords the numbers above; a clear sentence can still rest on a wrong number, and the check proves each number traces to the data, not that it is true."
+      },
+      {
+       "id": "small_n",
+       "text": "The sample is small, so the intervals are wide."
+      },
+      {
+       "id": "single_case",
+       "text": "A single case has no interval of its own; the intervals shown are for the cohort average."
+      },
+      {
+       "id": "consequence_rules",
+       "text": "Error rates come from a simplified internal rule set for the calculators, not from the law."
+      },
+      {
+       "id": "saved_time_by_skips",
+       "text": "Skipped steps show as saved time in the alignment; the consequences row says what skipping can cost."
+      }
+     ]
+    }
+   ],
+   "footer": "Based on n = 24 people; synthetic data.",
+   "badge": {
+    "origin": "synthetic",
+    "n": 24,
+    "n_unit": "people",
+    "split": "descriptive_nearest_expert"
+   },
+   "check": {
+    "ok": true,
+    "schema_ok": true,
+    "checked": {
+     "sentences": 4,
+     "numbers": 15,
+     "names": 3,
+     "intervals": 2
+    },
+    "rejected": [],
+    "dropped_actions": [],
+    "subject": "template",
+    "template_ok": true
+   },
+   "attempts": [],
+   "fallback_reason": null,
+   "question": {
+    "asked_s": null,
+    "matches_case": null
+   },
+   "person": "p_nov13",
+   "case": "t_nov13a",
+   "blocks": {
+    "mlv2": "absent",
+    "genome": "ok",
+    "hazard": "absent",
+    "coach": "ok",
+    "routines": "absent"
+   }
+  }
+ },
+ "how_sure": {
+  "meta": {
+   "origin": "synthetic",
+   "n": 24,
+   "n_unit": "people",
+   "split": "descriptive_nearest_expert",
+   "interval_level": 0.95,
+   "note": "Words from the built-in template. Every number was checked against the packet; that proves it traces to the data, not that it is true.",
+   "generated_at": "2026-11-07T18:01:44Z"
+  },
+  "data": {
+   "intent": "how_sure",
+   "source": "template",
+   "model": null,
+   "ledger_id": null,
+   "sections": [
+    {
+     "kind": "answer",
+     "sentences": [
+      {
+       "text": "Across the 24 people in this data, novices take on average 3 minutes 50 seconds longer per case than their nearest expert (between 3 minutes 13 seconds and 4 minutes 30 seconds).",
+       "uses": [
+        "gap.cohort_gap_s",
+        "meta.n",
+        "gap.cohort_lo",
+        "gap.cohort_hi"
+       ]
+      },
+      {
+       "text": "As a check on the method, comparing experts with each other gives 7.1 seconds longer (between -3.1 and 18 seconds), which includes zero.",
+       "uses": [
+        "gap.placebo_s",
+        "gap.placebo_lo",
+        "gap.placebo_hi"
+       ]
+      },
+      {
+       "text": "In the sandbox households, skipping the reconcile step ended in a wrong answer 10% of the time (between 8 and 13%); when it was wrong the mean error was \u00a3292 a month (n = 200 households).",
+       "uses": [
+        "consequence.RECONCILE.p_error",
+        "consequence.RECONCILE.lo",
+        "consequence.RECONCILE.hi",
+        "consequence.RECONCILE.mean_gbp",
+        "consequence.RECONCILE.n"
+       ]
+      },
+      {
+       "text": "All of this rests on 24 people.",
+       "uses": [
+        "meta.n"
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "coaching",
+     "actions": [
+      {
+       "id": "search_once_then_stop",
+       "text": "When a search does not give what you need, change one thing in it and try once more rather than searching again and again; search loops are associated with 97 seconds here.",
+       "uses": [
+        "habit.search_loops.seconds"
+       ],
+       "chosen_by": "code"
+      },
+      {
+       "id": "keep_pace_with_reference",
+       "text": "On steps you already know, follow the nearest expert's pace; a slower pace on shared steps is associated with 44 seconds here.",
+       "uses": [
+        "habit.pace.seconds"
+       ],
+       "chosen_by": "code"
+      }
+     ]
+    },
+    {
+     "kind": "limits",
+     "sentences": [
+      {
+       "id": "synthetic_data",
+       "text": "These figures come from synthetic data with planted patterns, so they show that the method recovers known structure, not that real people behave this way."
+      },
+      {
+       "id": "association_only",
+       "text": "Everything here is an association in recorded traces, not proof of cause."
+      },
+      {
+       "id": "not_expert_claim",
+       "text": "This does not show that novices become experts; it shows where time differs from the nearest expert and how sure we are."
+      },
+      {
+       "id": "explainer_readability",
+       "text": "This explanation only rewords the numbers above; a clear sentence can still rest on a wrong number, and the check proves each number traces to the data, not that it is true."
+      },
+      {
+       "id": "small_n",
+       "text": "The sample is small, so the intervals are wide."
+      },
+      {
+       "id": "single_case",
+       "text": "A single case has no interval of its own; the intervals shown are for the cohort average."
+      },
+      {
+       "id": "consequence_rules",
+       "text": "Error rates come from a simplified internal rule set for the calculators, not from the law."
+      },
+      {
+       "id": "saved_time_by_skips",
+       "text": "Skipped steps show as saved time in the alignment; the consequences row says what skipping can cost."
+      }
+     ]
+    }
+   ],
+   "footer": "Based on n = 24 people; synthetic data.",
+   "badge": {
+    "origin": "synthetic",
+    "n": 24,
+    "n_unit": "people",
+    "split": "descriptive_nearest_expert"
+   },
+   "check": {
+    "ok": true,
+    "schema_ok": true,
+    "checked": {
+     "sentences": 4,
+     "numbers": 13,
+     "names": 0,
+     "intervals": 3
+    },
+    "rejected": [],
+    "dropped_actions": [],
+    "subject": "template",
+    "template_ok": true
+   },
+   "attempts": [],
+   "fallback_reason": null,
+   "question": {
+    "asked_s": null,
+    "matches_case": null
+   },
+   "person": "p_nov13",
+   "case": "t_nov13a",
+   "blocks": {
+    "mlv2": "absent",
+    "genome": "ok",
+    "hazard": "absent",
+    "coach": "ok",
+    "routines": "absent"
+   }
+  }
+ }
+}

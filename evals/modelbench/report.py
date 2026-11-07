@@ -31,6 +31,10 @@ LIMITATIONS = [
     "The escalation rows are simulated from paired per-case measurements of flash-lite and flash, not run live as a router.",
     "Latency is wall-clock from this laptop's network on 7 Nov 2026 with one call at a time per contender (the three contenders ran side by "
     "side); it varies by hour and region. Percentiles over successful calls; the 6 s pointing deadline is applied afterwards.",
+    "The laptop was heavily loaded by other build agents during this session (the lead reported a 1-minute load average of 107 to 120 on 12 "
+    "cores; 55 to 92 was seen at 18:08). The main run did not record load per call (the field was added afterwards), so its latencies may be "
+    "inflated by client-side CPU contention and cannot be corrected; the latency re-check cell records the load at every call. API "
+    "latency is dominated by the network and the model, so the effect is probably small, but that is an inference, not a measurement.",
     "Cost is an estimate from token counters at assumed per-million prices (see meta.prices_assumed), not from an invoice. Thinking tokens are billed as output.",
     "The glance cell uses the AWARENESS track's awareness.glance enums; 'plausible' sets are this harness's choice and the repeats of one screenshot are not independent.",
     "OpenAI fast was called through OpenAIProvider.vision (detail auto, frame downscaled to at most 1280x720 by that provider) with the same "
@@ -71,6 +75,10 @@ def _p(r: dict[str, Any] | None) -> str:
     return f"{100 * r['p']:.0f}% [{100 * r['lo']:.0f}, {100 * r['hi']:.0f}] ({r['k']}/{r['n']})"
 
 
+def _secs(ms: Any) -> str:
+    return "n/a" if ms is None else f"{ms / 1000:.2f} s"
+
+
 def _lat(s: dict[str, Any]) -> str:
     if not s or not s.get("n"):
         return "n/a"
@@ -87,43 +95,60 @@ LABELS = {"gemini_fast": "Gemini flash-lite", "gemini_accurate": "Gemini flash",
           "routed_lite_then_flash_6s_deadline": "routed: lite, then flash when weak (6 s deadline, simulated)"}
 
 
+def _sig(d: dict[str, Any] | None) -> str | None:
+    """'better' / 'worse' / 'not significant' for a paired difference a - b, from its bootstrap 95% interval."""
+    if not d or not d.get("ci"):
+        return None
+    lo, hi = d["ci"]
+    return "better" if lo > 0 else ("worse" if hi < 0 else "not significant")
+
+
 def recommend(sections: dict[str, Any]) -> dict[str, Any]:
-    """Transparent rules over the measured cells. Returns {rules, findings, point_primary, ...}; the lead decides."""
+    """Transparent rules over the measured cells, decided by the INTERVALS (paired bootstrap 95% for differences on the same cases,
+    Wilson 95% for separate rates), never by point estimates alone. Returns {rules, findings, ...}; the lead decides."""
     findings: list[str] = []
     cells = (sections.get("pointing") or {}).get("cells") or {}
+    pairs = (sections.get("pointing") or {}).get("paired_hit_differences") or {}
     rules = [
-        "point: keep flash-lite as primary only if its hit-rate interval overlaps flash's and its p95 is inside the 6 s deadline; "
-        "keep the escalation step only if the simulated routed cell beats lite alone on hit rate by at least 2 points",
-        "point: make OpenAI fast primary only if its hit rate beats both Gemini cells with non-overlapping 95% intervals",
-        "verify: use a Gemini model as the independent verifier only if its false-accept rate on the 15 reject images is no worse than "
-        "OpenAI fast's (point estimate), and always keep the code gate (verdict yes and confidence >= 0.7)",
+        "point: flash-lite stays primary unless flash is SIGNIFICANTLY better on the same positives (paired bootstrap 95% interval of "
+        "flash minus lite entirely above 0) or lite's p95 is over the 6 s deadline",
+        "point: keep the lite-to-flash escalation step only if the simulated routed cell is SIGNIFICANTLY better than lite alone on the same "
+        "positives (paired interval of routed minus lite entirely above 0); otherwise it only adds latency and cost",
+        "point: make OpenAI fast primary only if its hit-rate Wilson interval lies entirely above both Gemini cells' intervals",
+        "verify: a Gemini model is acceptable as the independent verifier unless its false-accept Wilson interval lies entirely above "
+        "OpenAI fast's; the code gate (verdict yes and confidence >= 0.7) stays whatever the models do",
     ]
-    rec: dict[str, Any] = {"rules": rules, "findings": findings}
+    rec: dict[str, Any] = {"rules": rules, "findings": findings, "significance": {}}
     lite, flash, oa = cells.get("gemini_fast"), cells.get("gemini_accurate"), cells.get("openai_fast")
-    routed = cells.get("routed_lite_then_flash_6s_deadline")
     if lite and flash:
         lh, fh = lite["positives"]["hit"], flash["positives"]["hit"]
-        overlap = lh["hi"] >= fh["lo"] and fh["hi"] >= lh["lo"]
+        d_lf = pairs.get("gemini_fast_minus_gemini_accurate")
+        flash_better = bool(d_lf and d_lf.get("ci") and d_lf["ci"][1] < 0)
         p95 = (lite["latency_ms"] or {}).get("p95")
-        keep_lite = bool(overlap and (p95 is None or p95 <= analyze.DEADLINE_MS))
-        gain = None if not routed else (routed["positives"]["hit"]["p"] or 0) - (lh["p"] or 0)
-        keep_escalate = bool(routed and gain is not None and gain >= 0.02)
-        rec["point_lite_primary"] = keep_lite
-        rec["point_keep_escalation"] = keep_escalate
-        findings.append(f"point: lite hit {_p(lh)}, flash hit {_p(fh)}; intervals {'overlap' if overlap else 'do not overlap'}; "
-                        f"routed (6 s) minus lite = {'n/a' if gain is None else f'{100 * gain:+.1f} points'}")
+        rec["point_lite_primary"] = bool(not flash_better and (p95 is None or p95 <= analyze.DEADLINE_MS))
+        d_r = pairs.get("routed_6s_deadline_minus_gemini_fast")
+        rec["point_keep_escalation"] = bool(d_r and d_r.get("ci") and d_r["ci"][0] > 0)
+        rec["significance"]["lite_vs_flash_hit"] = _sig(d_lf)
+        rec["significance"]["routed_vs_lite_hit"] = _sig(d_r)
+        findings.append(f"point: lite hit {_p(lh)}, flash hit {_p(fh)}; lite minus flash on the same positives is "
+                        f"{_sig(d_lf) or 'n/a'}; routed (6 s) minus lite is {_sig(d_r) or 'n/a'}")
     if oa and lite and flash:
         oh = oa["positives"]["hit"]
         best_g = max((lite["positives"]["hit"], flash["positives"]["hit"]), key=lambda r: r["p"] or 0)
         rec["point_openai_primary"] = bool(oh["lo"] > best_g["hi"])
-        findings.append(f"point: OpenAI fast hit {_p(oh)} vs best Gemini {_p(best_g)}")
+        rec["significance"]["openai_vs_gemini_hit"] = _sig(pairs.get("gemini_fast_minus_openai_fast"))
+        findings.append(f"point: OpenAI fast hit {_p(oh)} vs best Gemini {_p(best_g)}; Gemini lite minus OpenAI is "
+                        f"{_sig(pairs.get('gemini_fast_minus_openai_fast')) or 'n/a'} (paired)")
     ver = (sections.get("verifier") or {}).get("cells") or {}
     if ver:
         fa = {c: v["verdict_yes_is_accept"]["false_accept"] for c, v in ver.items()}
         findings.append("verify false-accept (verdict yes on a reject image): " + "; ".join(f"{LABELS.get(c, c)} {_p(r)}" for c, r in fa.items()))
         g = [c for c in ("gemini_fast", "gemini_accurate") if c in fa]
         if g and "openai_fast" in fa:
-            rec["verify_gemini_ok"] = all((fa[c]["p"] or 0) <= (fa["openai_fast"]["p"] or 0) for c in g)
+            rec["verify_gemini_ok"] = all(not (fa[c]["lo"] > fa["openai_fast"]["hi"]) for c in g)
+            sep = [c for c in g if fa[c]["lo"] > fa["openai_fast"]["hi"]]
+            findings.append("verify: Gemini false-accept is " + ("significantly WORSE than OpenAI's for " + ", ".join(sep) if sep else
+                            "not significantly different from OpenAI's (the intervals overlap; the set is small)"))
     return rec
 
 
@@ -158,8 +183,16 @@ def render_markdown(j: dict[str, Any]) -> str:
     a("Contenders (model ids read from the environment): " + "; ".join(f"{LABELS.get(k, k)} = `{v}` ({m['api'].get(k, '?')}, {m['thinking'].get(k, '?')})"
                                                                         for k, v in m["model_ids_from_env"].items()) + ".")
     b = m["budget"]
-    a(f"Spend: estimated US${b['estimated_spend_usd']} of a US${b['cap_usd']} cap (guard counts {b['safety_factor']}x the estimate); "
-      f"{m['calls']['live']} live calls, {m['calls']['cached']} from cache, {m['calls']['failed']} failed, {b['n_dropped']} cells dropped by the budget guard.")
+    cn = m["calls"]
+    a(f"Spend: estimated US${b['estimated_spend_usd']} of a US${b['cap_usd']} cap (the guard counts {b['safety_factor']}x the estimate; "
+      f"includes about US${b['probe_spend_usd_included']} of hand-run probes). Live calls over all runs of this harness: {cn.get('live_calls_all_runs', cn.get('live', 0))}; "
+      f"distinct cached results: {cn.get('cache_rows', cn.get('cached', 0))}; cells dropped by the budget guard: {b['n_dropped']}; "
+      f"this invocation made {cn.get('live', 0)} live calls ({cn.get('failed', 0)} failed).")
+    a("")
+    dup = (j.get("recommendation") or {}).get("duplicate_inputs_skipped")
+    a("Counting rule: an input (screenshot pixels plus description) is asked once and counted once. A layout=v2 or dark case whose screenshot is "
+      "pixel-identical to a base case is the same input, so it cannot fill a secondary sample; "
+      + (f"{dup} repeated inputs were skipped in this analysis. " if dup is not None else "") + "A failed call counts as a miss on a positive and as not-correct on a negative.")
     a("")
     pt = j.get("pointing") or {}
     a("## 1. Pointing by description (direct path)")
@@ -169,12 +202,13 @@ def render_markdown(j: dict[str, Any]) -> str:
         a("Hit = predicted box centre inside the element's getBoundingClientRect. Negatives are elements that are not on screen; correct = not found. "
           "A failed call is a miss on a positive and not-correct on a negative.")
         a("")
-        a("| Cell | Positives hit | Mean IoU (n found) | Negatives correct | Latency (successful calls) | Over 6 s | Cost est. per call |")
-        a("|---|---|---|---|---|---|---|")
+        a("| Cell | Positives hit | Mean IoU (n found) | Negatives correct | Latency (successful calls) | Over 6 s | Failed calls | Cost est. per call |")
+        a("|---|---|---|---|---|---|---|---|")
         for k, c in cells.items():
             iou = c["positives"]["mean_iou_over_found"]
             a(f"| {LABELS.get(k, k)} | {_p(c['positives']['hit'])} | {'n/a' if iou is None else iou} ({c['positives']['n_iou']}) | "
               f"{_p(c['negatives']['correct'])} | {_lat(c['latency_ms'])} | {_p(c['over_6s'])} | "
+              f"{c['n_failed']}{' (' + ', '.join(f'{k}: {v}' for k, v in c['failed_calls'].items()) + ')' if c['n_failed'] else ''} | "
               f"US${c['cost_usd_est']['per_call'] if c['cost_usd_est']['per_call'] is not None else 'n/a'} |")
         a("")
         a("Split by condition (hit rate on positives; negatives correct):")
@@ -202,12 +236,13 @@ def render_markdown(j: dict[str, Any]) -> str:
             a("")
         pd = pt.get("paired_hit_differences") or {}
         if pd:
-            a("Paired hit-rate differences on the same positives (a minus b; bootstrap 95% interval; exact McNemar p):")
+            a("Paired hit-rate differences on the same positives (a minus b; bootstrap 95% interval; exact McNemar p; 'not significant' means the interval includes 0):")
             a("")
             for k, v in pd.items():
                 ci = v["ci"]
                 a(f"- {k.replace('_minus_', ' minus ')}: {100 * (v['diff'] or 0):+.1f} points"
-                  + (f" [{100 * ci[0]:+.1f}, {100 * ci[1]:+.1f}]" if ci else "") + f", only-a {v['only_a']}, only-b {v['only_b']}, p={v['mcnemar_p']} (n={v['n']})")
+                  + (f" [{100 * ci[0]:+.1f}, {100 * ci[1]:+.1f}]" if ci else "") + f", only-a {v['only_a']}, only-b {v['only_b']}, p={v['mcnemar_p']} (n={v['n']}): "
+                  f"**{_sig(v) or 'n/a'}**")
             a("")
     else:
         a("_No pointing results yet._")
@@ -249,6 +284,9 @@ def render_markdown(j: dict[str, Any]) -> str:
         for k, c in vc.items():
             a(f"| {LABELS.get(k, k)} | " + " | ".join(_p(c["by_group"][g]["correct"]) if g in c["by_group"] else "n/a" for g in groups) + " |")
         a("")
+        a("Reading this: all three models were right on every image, so this set cannot tell them apart; the honest statement is that each "
+          "model's false-accept rate on these 15 reject images is 0 with an upper 95% bound of 20%. It is too small and too easy to choose a verifier.")
+        a("")
         bl = vf.get("baselines")
         if bl:
             a(f"Baselines: always-accept is right {_p(bl['always_accept']['accuracy'])} of the time and falsely accepts every reject image; "
@@ -288,11 +326,30 @@ def render_markdown(j: dict[str, Any]) -> str:
       f"p50 {o['flash_lite_box']['p50_s']} s, p95 {o['flash_lite_box']['p95_s']} s. flash: {100 * o['flash_box']['hit_rate']:.0f}% on {o['flash_box']['n_positives']}, "
       f"negatives {o['flash_box']['negatives']}, p50 {o['flash_box']['p50_s']} s, p95 {o['flash_box']['p95_s']} s.")
     a("")
+    lr = (j.get("latency_recheck") or {}).get("cells") or {}
+    if any(c["n_calls"] for c in lr.values()):
+        a("## 5b. Latency re-check with the machine load recorded")
+        a("")
+        a(j["latency_recheck"]["what"] + ".")
+        a("")
+        a("| Cell | Calls ok / made | Latency | Mean 1-min load (max) at call time | p50 in the main run (load not recorded) |")
+        a("|---|---|---|---|---|")
+        for k, c in lr.items():
+            ld = c["load_avg_1m"]
+            a(f"| {LABELS.get(k, k)} | {c['n_ok']} / {c['n_calls']} | {_lat(c['latency_ms'])} | "
+              f"{ld['mean'] if ld['mean'] is not None else 'n/a'} ({ld['max'] if ld['max'] is not None else 'n/a'}) | "
+              f"{_secs(c['main_run_p50_ms'])} (n={c['main_run_n']}) |")
+        a("")
     rec = j.get("recommendation") or {}
     a("## 6. Routing recommendation (arithmetic on the cells above; the lead decides)")
     a("")
     for r in rec.get("findings", []):
         a(f"- {r}")
+    a("")
+    sig = rec.get("significance") or {}
+    if sig:
+        a("")
+        a("Significance (paired, same cases): " + "; ".join(f"{k.replace('_', ' ')} = {v}" for k, v in sig.items() if v))
     a("")
     a("Rules applied:")
     for r in rec.get("rules", []):

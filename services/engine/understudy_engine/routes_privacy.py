@@ -9,6 +9,10 @@ only when this module imports AND ``UNDERSTUDY_X_PRIVACY=1`` or ``UNDERSTUDY_X=1
   GET  /privacy/purposes             -> {meta, data: [{purpose, schema, method, fields, bucketed, ...}]}  what may be sent, and in what shape
   POST /privacy/ledger/live          -> {allowed, status, reason, ledger_id}   a batch of live frames sent from the Electron main process
   POST /privacy/ledger/live/result   -> {ledger_id, status}                   the result of a batch that was announced first
+  POST /privacy/ledger/live/audio    -> {allowed, status, reason, ledger_id}   one worker turn of live audio, announced BEFORE its first chunk
+  POST /privacy/ledger/live/audio/result -> {ledger_id, status, seconds_bucket}  its result: seconds (kept only as a range), bytes, latency
+  POST /privacy/ledger/direct        -> {allowed, status, reason, ledger_id}   a call a legacy path makes itself (image|audio|file_text|text)
+  POST /privacy/ledger/direct/result -> {ledger_id, status}                   its result, when it was announced first
 
 Nothing here calls a model. The ledger holds the payloads exactly as sent (numbers, codes, fixed ids); it never holds raw
 source text because none can reach a ``SafePayload``.
@@ -21,10 +25,12 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Query, Request
+from . import http_guard
 from fastapi.responses import JSONResponse, PlainTextResponse
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from .privacy import flags, ledger
+from .privacy.bucket import bucket_seconds_range
 from .privacy.image import MAX_BYTES, MAX_LONG_EDGE, ImageGate, frame_request_problem, image_purposes
 from .privacy.payload import purposes as registered_purposes
 
@@ -36,7 +42,6 @@ def enabled() -> bool:
     return flags.enabled("privacy")
 
 _LOCAL_HOSTS = {"127.0.0.1", "::1", "localhost", "testclient"}
-_ALLOWED_ORIGIN_PREFIXES = ("http://localhost", "http://127.0.0.1", "https://localhost", "app://", "file://")
 _FALLBACK_WORKER_ACTORS = frozenset({"worker", "worker_approval"})
 
 
@@ -74,11 +79,11 @@ def _write_guard(request: Request) -> JSONResponse | None:
         from .memory.store import WORKER_ACTORS as actors
     except Exception:  # pragma: no cover
         actors = _FALLBACK_WORKER_ACTORS
-    actor = request.headers.get("x-understudy-actor", "worker").strip()
+    actor = http_guard.actor_of(request)
     if actor not in actors:
         return _error(403, "write_refused", f"Only the worker can clear the ledger; the actor {actor[:20]!r} cannot.")
     origin = request.headers.get("origin")
-    if origin is not None and not origin.startswith(_ALLOWED_ORIGIN_PREFIXES):
+    if origin is not None and not http_guard.origin_allowed(origin):
         return _error(403, "write_refused", "Writes only come from the Understudy app on this machine.")
     return None
 
@@ -221,15 +226,17 @@ async def _live_body(request: Request, model: type[BaseModel]) -> tuple[BaseMode
 
 
 def _live_guard(request: Request, source: str) -> JSONResponse | None:
-    """Worker or the local Electron main process only: this machine, a worker actor, an app or no Origin, and the sandbox rule."""
+    """The report routes are for the worker's own local processes (the Electron main process and the agent service), never a web page:
+    this machine, a worker actor, NO Origin header at all (a browser always sends one on a write), and the sandbox rule."""
     if (g := _write_guard(request)) is not None:
         return g
+    if request.headers.get("origin") is not None:
+        return _error(403, "write_refused", "Call reports come from a local process, which sends no Origin header; a web page cannot send them.")
     host = request.client.host if request.client else ""
-    problem = frame_request_problem(source, client_host=host, origin=request.headers.get("origin"))
+    problem = frame_request_problem(source, client_host=host, origin=None)
     if problem is not None:
-        return _error(403, "write_refused", {"sandbox_origin": "A web page cannot report a sandbox frame batch.",
-                                              "not_this_machine": "Live batches are only reported from this machine.",
-                                              "unknown_source": "Unknown frame source."}.get(problem, "Refused."))
+        return _error(403, "write_refused", {"not_this_machine": "Reports are only accepted from this machine.",
+                                              "unknown_source": "Unknown source."}.get(problem, "Refused."))
     return None
 
 
@@ -296,4 +303,222 @@ async def post_live_result(request: Request):
     status = "ok" if res.ok else "failed"
     ledger.finish_image(res.ref, status=status, ok=res.ok, latency_ms=res.latency_ms, input_tokens=res.input_tokens,
                         output_tokens=res.output_tokens, cost_estimate_usd=res.cost_estimate_usd)
+    return {"ledger_id": res.ref, "status": status}
+
+
+# ----------------------------------------------------------------------------------------------------- live audio turns
+def _model_ok(m: str) -> str:
+    from .privacy.patterns import scan_text
+
+    if not _MODEL.match(m) or scan_text(m):
+        raise ValueError("model must be a model id (letters, digits, dots, colons, dashes)")
+    return m
+
+
+def _source_ok(src: str) -> str:
+    if src not in ("real_screen", "sandbox"):
+        raise ValueError("source must be real_screen or sandbox")
+    return src
+
+
+class LiveAudioAnnounce(BaseModel):
+    """One worker turn of live audio, announced before its first chunk leaves. Nothing but ids, enums and the four gate booleans."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, hide_input_in_errors=True)
+    model: str
+    source: str
+    gate: LiveGate
+    provider: str = "gemini"
+    turn: str = "converse"
+
+    @model_validator(mode="after")
+    def _checks(self) -> "LiveAudioAnnounce":
+        _model_ok(self.model)
+        _source_ok(self.source)
+        if self.provider not in ("gemini", "openai"):
+            raise ValueError("provider must be gemini or openai")
+        if self.turn not in ("converse", "transcribe"):
+            raise ValueError("turn must be converse or transcribe")
+        return self
+
+
+class LiveAudioResult(BaseModel):
+    """The result of an announced turn. ``seconds`` is turned into a range (0-5, 5-15, 15-60, 60+) and not stored."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, hide_input_in_errors=True)
+    ref: str = Field(pattern=r"^e_[0-9a-f]{12,32}$")
+    ok: bool
+    seconds: float = Field(ge=0, le=600)
+    bytes: int = Field(ge=0, le=10**9)
+    latency_ms: int | None = Field(default=None, ge=0, le=3_600_000)
+    input_tokens: int | None = Field(default=None, ge=0, le=10**9)
+    output_tokens: int | None = Field(default=None, ge=0, le=10**9)
+    cost_estimate_usd: float | None = Field(default=None, ge=0, le=1000)
+
+
+LIVE_AUDIO_PURPOSE = "live.audio_turn"
+
+
+@router.post("/privacy/ledger/live/audio")
+async def post_live_audio(request: Request):
+    """Announce one worker turn of live audio BEFORE the first chunk is sent. The gate is applied as for frames (unattended + real_screen
+    always blocks, then secure input, a denylisted app, no consent); a refusal writes one ``blocked`` row and answers ``allowed: false``:
+    send no audio. Otherwise a row with status ``sending``; finish it with ``/privacy/ledger/live/audio/result``."""
+    if (r := _off()) is not None:
+        return r
+    a, err = await _live_body(request, LiveAudioAnnounce)
+    if err is not None:
+        return err
+    assert isinstance(a, LiveAudioAnnounce)
+    if (g := _live_guard(request, a.source)) is not None:
+        return g
+    from .privacy._paths import is_mock
+
+    mock = is_mock()
+    meta = {"source": a.source, "kind": "live_audio"}
+    reason = ImageGate(a.gate.consent, a.gate.denylisted_app, a.gate.secure_input, a.gate.unattended, a.source).reason()
+    if reason is not None:
+        row = ledger.record_blocked_row("audio", purpose=LIVE_AUDIO_PURPOSE, reason=reason, source=a.source, meta=meta, mock=mock, meta_key="audio")
+        return {"allowed": False, "status": "blocked", "reason": reason, "ledger_id": row["id"]}
+    try:
+        row = ledger.begin_row("audio", {"purpose": LIVE_AUDIO_PURPOSE, "schema": "LiveAudioTurn", "method": "live", "fields": ["turn"],
+                                         "payload": {"turn": a.turn}, "audio": meta, "source": a.source, "provider": a.provider,
+                                         "model": f"{a.provider}:{a.model}", "bytes": 0, "mock": mock})
+    except OSError:
+        return _error(503, "ledger_unwritable", "The privacy ledger could not be written, so no audio may be sent for this turn.")
+    return {"allowed": True, "status": "sending", "reason": None, "ledger_id": row["id"]}
+
+
+@router.post("/privacy/ledger/live/audio/result")
+async def post_live_audio_result(request: Request):
+    """Finish an announced turn: ``{ref, ok, seconds, bytes, latency_ms?, tokens?, cost?}``. The seconds are stored only as a range."""
+    if (r := _off()) is not None:
+        return r
+    res, err = await _live_body(request, LiveAudioResult)
+    if err is not None:
+        return err
+    assert isinstance(res, LiveAudioResult)
+    if (g := _live_guard(request, "real_screen")) is not None:
+        return g
+    row = {x["id"]: x for x in ledger.read_all()}.get(res.ref)
+    if row is None or row.get("kind") != "audio" or row.get("purpose") != LIVE_AUDIO_PURPOSE:
+        return _error(404, "no_such_turn", "There is no live audio turn with that reference.")
+    if row.get("status") != "sending":
+        return _error(409, "already_finished", "That turn already has a result.")
+    status = "ok" if res.ok else "failed"
+    bucket = bucket_seconds_range(res.seconds)
+    ledger.finish_image(res.ref, status=status, ok=res.ok, latency_ms=res.latency_ms, input_tokens=res.input_tokens,
+                        output_tokens=res.output_tokens, cost_estimate_usd=res.cost_estimate_usd, bytes_sent=res.bytes, seconds_bucket=bucket)
+    return {"ledger_id": res.ref, "status": status, "seconds_bucket": bucket}
+
+
+# ----------------------------------------------------------------------------------------------------- legacy direct paths
+_PURPOSE_ID = re.compile(r"^[a-z][a-z0-9_]{1,30}(?:\.[a-z][a-z0-9_]{1,30}){0,2}$")
+_PROVIDER_ID = re.compile(r"^[a-z][a-z0-9_\-]{1,23}$")
+DIRECT_KINDS = ("image", "audio", "file_text", "text")
+
+
+class DirectCall(BaseModel):
+    """A call that a legacy desktop path makes to a provider ITSELF, reported here so it is on the ledger and subject to the gate.
+    Metadata only: what kind of content, how many bytes, how many items, which provider and model, from which source. No content."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, hide_input_in_errors=True)
+    kind: str
+    purpose: str
+    provider: str
+    model: str
+    bytes: int = Field(ge=0, le=2_000_000_000)
+    count: int = Field(ge=1, le=100_000)
+    source: str
+    gate: LiveGate
+    latency_ms: int | None = Field(default=None, ge=0, le=3_600_000)    # None: announced before the request, result to follow
+    ok: bool | None = None
+    input_tokens: int | None = Field(default=None, ge=0, le=10**9)
+    output_tokens: int | None = Field(default=None, ge=0, le=10**9)
+    cost_estimate_usd: float | None = Field(default=None, ge=0, le=1000)
+
+    @model_validator(mode="after")
+    def _checks(self) -> "DirectCall":
+        from .privacy.patterns import scan_text
+
+        if self.kind not in DIRECT_KINDS:
+            raise ValueError("kind must be image, audio, file_text or text")
+        if not _PURPOSE_ID.match(self.purpose) or scan_text(self.purpose, names=False):
+            raise ValueError("purpose must be a short dotted id such as desktop.glance")
+        if not _PROVIDER_ID.match(self.provider) or scan_text(self.provider, names=False):
+            raise ValueError("provider must be a short lower-case id such as gemini or openai")
+        _model_ok(self.model)
+        _source_ok(self.source)
+        return self
+
+
+class DirectResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True, hide_input_in_errors=True)
+    ref: str = Field(pattern=r"^e_[0-9a-f]{12,32}$")
+    ok: bool
+    latency_ms: int = Field(ge=0, le=3_600_000)
+    bytes: int | None = Field(default=None, ge=0, le=2_000_000_000)
+    input_tokens: int | None = Field(default=None, ge=0, le=10**9)
+    output_tokens: int | None = Field(default=None, ge=0, le=10**9)
+    cost_estimate_usd: float | None = Field(default=None, ge=0, le=1000)
+
+
+@router.post("/privacy/ledger/direct")
+async def post_direct_call(request: Request):
+    """One ledger row for a call a legacy path makes to a provider itself. The gate is applied as in ``egress.send_image`` (unattended +
+    real_screen always blocks, then secure input, a denylisted app, no consent; ``sandbox`` needs no consent and may be unattended): a
+    refusal writes one ``blocked`` row and answers ``allowed: false``, and the caller MUST read the body and make no request. Without
+    ``latency_ms`` the call is announced before the request and finished with ``/privacy/ledger/direct/result``; with it the call is
+    reported as complete (if the gate would have refused it, the row is ``blocked`` with ``error: reported_after_send``)."""
+    if (r := _off()) is not None:
+        return r
+    call, err = await _live_body(request, DirectCall)
+    if err is not None:
+        return err
+    assert isinstance(call, DirectCall)
+    if (g := _live_guard(request, call.source)) is not None:
+        return g
+    from .privacy._paths import is_mock
+
+    mock = is_mock()
+    meta = {"kind": call.kind, "bytes": call.bytes, "count": call.count, "source": call.source}
+    reason = ImageGate(call.gate.consent, call.gate.denylisted_app, call.gate.secure_input, call.gate.unattended, call.source).reason()
+    if reason is not None:
+        row = ledger.record_blocked_row("reported", purpose=call.purpose, reason=reason, source=call.source, meta=meta, mock=mock, meta_key="content")
+        if call.latency_ms is not None or call.ok is not None:
+            ledger.finish_image(row["id"], status="blocked", ok=False, latency_ms=call.latency_ms, error="reported_after_send")
+        return {"allowed": False, "status": "blocked", "reason": reason, "ledger_id": row["id"]}
+    try:
+        row = ledger.begin_row("reported", {"purpose": call.purpose, "schema": "ReportedCall", "method": "reported", "fields": ["count"],
+                                            "payload": {"count": call.count}, "content": meta, "source": call.source, "provider": call.provider,
+                                            "model": f"{call.provider}:{call.model}", "bytes": call.bytes, "mock": mock})
+    except OSError:
+        return _error(503, "ledger_unwritable", "The privacy ledger could not be written, so this call must not be made.")
+    status = "sending"
+    if call.latency_ms is not None:
+        status = "ok" if call.ok in (None, True) else "failed"
+        ledger.finish_image(row["id"], status=status, ok=status == "ok", latency_ms=call.latency_ms, input_tokens=call.input_tokens,
+                            output_tokens=call.output_tokens, cost_estimate_usd=call.cost_estimate_usd)
+    return {"allowed": True, "status": status, "reason": None, "ledger_id": row["id"]}
+
+
+@router.post("/privacy/ledger/direct/result")
+async def post_direct_result(request: Request):
+    """Finish an announced direct call: ``{ref, ok, latency_ms, bytes?, tokens?, cost?}``."""
+    if (r := _off()) is not None:
+        return r
+    res, err = await _live_body(request, DirectResult)
+    if err is not None:
+        return err
+    assert isinstance(res, DirectResult)
+    if (g := _live_guard(request, "real_screen")) is not None:
+        return g
+    row = {x["id"]: x for x in ledger.read_all()}.get(res.ref)
+    if row is None or row.get("kind") != "reported":
+        return _error(404, "no_such_call", "There is no reported call with that reference.")
+    if row.get("status") != "sending":
+        return _error(409, "already_finished", "That call already has a result.")
+    status = "ok" if res.ok else "failed"
+    ledger.finish_image(res.ref, status=status, ok=res.ok, latency_ms=res.latency_ms, input_tokens=res.input_tokens,
+                        output_tokens=res.output_tokens, cost_estimate_usd=res.cost_estimate_usd, bytes_sent=res.bytes)
     return {"ledger_id": res.ref, "status": status}

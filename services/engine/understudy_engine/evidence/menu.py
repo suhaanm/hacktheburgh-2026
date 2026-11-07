@@ -10,8 +10,6 @@ Every action is ordinary, low-stakes coaching about how to work; none starts any
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
-
 from . import vocab as V
 from .numbers import render
 from .packet import EvidencePacket

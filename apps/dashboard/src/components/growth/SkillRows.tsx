@@ -3,7 +3,7 @@ import { DIRECTION_WORD, pct, type SkillRowView } from "./model";
 const LEVEL_NAME = ["", "full", "small", "dot", "gone"];
 
 /** One row per skill, in the pack's own words. Click a row to focus the curve on it. */
-export function SkillRows({ rows, focusId, onFocus, levelPct }: { rows: SkillRowView[]; focusId: string; onFocus: (id: string | null) => void; levelPct: number }) {
+export function SkillRows({ rows, focusId, onFocus, levelPct, needed }: { rows: SkillRowView[]; focusId: string; onFocus: (id: string | null) => void; levelPct: number; needed: number }) {
   return (
     <>
       <ul className="gr-skills">
@@ -27,7 +27,7 @@ export function SkillRows({ rows, focusId, onFocus, levelPct }: { rows: SkillRow
                   {r.assisted > 0 && <i className="gr-seg gr-seg--assisted" style={{ flexGrow: r.assisted }} />}
                   {r.other > 0 && <i className="gr-seg gr-seg--other" style={{ flexGrow: r.other }} />}
                 </span>
-                <span className="gr-skill__count num">{r.independent} of {r.n} unaided <span className="gr-skill__pct">({pct(r.unaidedShare)})</span></span>
+                <span className="gr-skill__count num">{r.independent} of {r.n} unaided {r.n >= needed && <span className="gr-skill__pct">({pct(r.unaidedShare)})</span>}</span>
                 <span className="gr-skill__fact gr-skill__fact--ttp num">
                   <span className="gr-skill__k">After a cue</span>
                   <span className="gr-skill__v">

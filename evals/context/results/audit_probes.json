@@ -1,0 +1,21 @@
+{
+ "origin": "offline probe of the provider's request building with a fake client",
+ "chained_turn_after_refusal": {
+  "uses_previous_response_id": true,
+  "input_item_types": [
+   "computer_call_output"
+  ],
+  "feedback_note_in_request": false,
+  "goal_in_request": false
+ },
+ "store_and_truncation": {
+  "computer_use_request_sets_store": false,
+  "truncation": "auto",
+  "has_instructions": true
+ },
+ "stateless_via_empty_history": {
+  "second_call_uses_previous_response_id": false,
+  "goal_text_in_second_logical_call": true,
+  "images_in_second_logical_call_first_request": 1
+ }
+}

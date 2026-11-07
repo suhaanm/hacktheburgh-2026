@@ -1,7 +1,7 @@
 import { plural, type OffloadItem } from "./model";
 
 /** Work done for the person. Counted and listed apart from the score, and said to be outside it. */
-export function Offloaded({ delegated, automation, items }: { delegated: number; automation: number; items: OffloadItem[] }) {
+export function Offloaded({ delegated, automation, minutes, items }: { delegated: number; automation: number; minutes: { delegated: number; automation: number }; items: OffloadItem[] }) {
   const none = delegated + automation === 0;
   return (
     <section className="section gr-off" aria-labelledby="off-h">
@@ -14,16 +14,16 @@ export function Offloaded({ delegated, automation, items }: { delegated: number;
       ) : (
         <>
           <p className="gr-off__counts num">
-            <span><b>{delegated}</b> {delegated === 1 ? "run you asked for" : "runs you asked for"}</span>
-            <span><b>{automation}</b> {automation === 1 ? "overnight automation" : "overnight automations"}</span>
+            <span><b>{delegated}</b> {delegated === 1 ? "run you asked for" : "runs you asked for"}{minutes.delegated > 0 && <span className="gr-off__min"> · about {Math.round(minutes.delegated)} min</span>}</span>
+            <span><b>{automation}</b> {automation === 1 ? "overnight automation" : "overnight automations"}{minutes.automation > 0 && <span className="gr-off__min"> · about {Math.round(minutes.automation)} min</span>}</span>
           </p>
           {items.length > 0 && (
             <ol className="gr-off__list">
               {items.map((i) => (
                 <li key={i.id} className="gr-off__item">
                   <span className="gr-off__when num">{i.when}</span>
-                  <span className="gr-off__what">{i.streamWord}: {i.skill}</span>
-                  <span className="gr-off__outcome">{i.outcome}</span>
+                  <span className="gr-off__what">{i.streamWord}: {i.what}</span>
+                  <span className="gr-off__outcome">{i.outcome}{i.minutes != null ? ` · ${Math.round(i.minutes)} min` : ""}</span>
                 </li>
               ))}
             </ol>

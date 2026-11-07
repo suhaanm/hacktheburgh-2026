@@ -77,3 +77,13 @@ export function createKillFile(opts: { env?: Record<string, string | undefined>;
     },
   }
 }
+
+/** Does data/KILL exist right now? (A unit test with no private data directory never looks at the shared file.) */
+export function killFileExists(env: Record<string, string | undefined> = process.env, from: string = __dirname): boolean {
+  if ((env.VITEST ?? '') !== '' && (env.UNDERSTUDY_DATA_DIR ?? '').trim() === '') return false
+  try {
+    return fs.existsSync(killFilePath(env, from))
+  } catch {
+    return false
+  }
+}

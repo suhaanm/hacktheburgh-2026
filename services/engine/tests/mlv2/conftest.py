@@ -21,3 +21,13 @@ def sim_tab(sim_episodes):
     from understudy_engine.hazard.features import build_bins
 
     return build_bins(sim_episodes)
+
+
+@pytest.fixture(scope="session")
+def apprentice_d0(tmp_path_factory):
+    import os
+
+    os.environ["UNDERSTUDY_MLV2_CACHE"] = str(tmp_path_factory.mktemp("mlv2cache"))
+    from understudy_engine.mlv2 import apprentice_pool as AP
+
+    return AP.make_cohort(8808, "d0", cache=False)

@@ -7,6 +7,7 @@
 import { GoogleGenAI } from '@google/genai'
 import { config as loadEnv } from 'dotenv'
 import { MODELS } from '../../shared/models'
+import { authorizeLegacy, legacyRemoteOn, LegacyRemoteBlocked, type LegacyRemoteGate } from '../legacy-remote'
 
 export const EMBED_DIMS = 768
 
@@ -145,11 +146,50 @@ export function createGeminiEmbedder(client: EmbedClientLike, opts: GeminiEmbedd
   }
 }
 
-// The real client. Returns null without a key so the app still runs (keyword search only).
-export function createEmbedderFromEnv(log?: GeminiEmbedderOptions['log']): Embedder | null {
+// Measures one embedContent request as metadata (item count and text bytes; never the text) for the privacy ledger.
+function measureEmbed(p: Record<string, unknown>): { bytes: number; count: number } {
+  const contents = Array.isArray(p.contents) ? (p.contents as unknown[]) : []
+  let bytes = 0
+  for (const c of contents) {
+    if (typeof c === 'string') bytes += Buffer.byteLength(c, 'utf8')
+    else if (typeof c === 'object' && c !== null) for (const part of (c as { parts?: Array<{ text?: unknown }> }).parts ?? []) if (typeof part.text === 'string') bytes += Buffer.byteLength(part.text, 'utf8')
+  }
+  return { bytes, count: Math.max(1, contents.length) }
+}
+
+// The real client. LEGACY REMOTE (D38): null unless UNDERSTUDY_LEGACY_REMOTE=1 (keyword search only), and with the flag on every request
+// is announced to the privacy ledger before it is sent (file text, source real_screen: refused when unattended, in a skipped app, at a
+// password field, or without consent) and a refusal is an EmbedError('api'), so the search falls back to words. Returns null without a key.
+export function createEmbedderFromEnv(log?: GeminiEmbedderOptions['log'], remote?: LegacyRemoteGate): Embedder | null {
+  if (!legacyRemoteOn()) return null
   if (!process.env.GEMINI_API_KEY) loadEnv({ path: `${process.cwd()}/.env`, quiet: true })
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) return null
   const sdk = new GoogleGenAI({ apiKey })
-  return createGeminiEmbedder({ models: { embedContent: (p) => sdk.models.embedContent(p as never) } }, { log })
+  const model = MODELS.embed
+  return createGeminiEmbedder(
+    {
+      models: {
+        embedContent: async (p) => {
+          let ticket
+          try {
+            ticket = await authorizeLegacy({ kind: 'file_text', purpose: 'legacy.embed', provider: 'gemini', model, ...measureEmbed(p) }, { gate: remote })
+          } catch (e) {
+            if (e instanceof LegacyRemoteBlocked) throw Object.assign(new Error(`embedding not sent: ${e.reason}`), { status: 400 }) // 400: the retry loop gives up at once
+            throw e
+          }
+          const t0 = performance.now()
+          try {
+            const res = await sdk.models.embedContent(p as never)
+            ticket.finish({ ok: true, latencyMs: performance.now() - t0 })
+            return res
+          } catch (e) {
+            ticket.finish({ ok: false, latencyMs: performance.now() - t0 })
+            throw e
+          }
+        },
+      },
+    },
+    { log },
+  )
 }
