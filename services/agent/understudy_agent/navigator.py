@@ -8,6 +8,7 @@ Step cap: 20 model-driven actions per navigator (tier 2 and 3); tier-1 steps are
 """
 from __future__ import annotations
 
+import os
 import re
 
 import asyncio
@@ -62,6 +63,12 @@ RESULT_SCHEMA: dict[str, Any] = {
     },
     "required": ["amount_text", "status_text", "ref"],
 }
+
+
+def form_audit_mode() -> str:
+    """`full` | `readback` | `off` from UNDERSTUDY_FORM_AUDIT (anything else is `full`). See Navigator._tier3."""
+    m = os.environ.get("UNDERSTUDY_FORM_AUDIT", "full").strip().lower()
+    return m if m in ("full", "readback", "off") else "full"
 
 
 # ----------------------------------------------------------------------------- jobs
@@ -358,9 +365,14 @@ class Navigator:
             self.wm_carried += 1
         facts = job.facts()
         # The typed-input read-back and the pre-submit audit (tiers/form_audit.py). Sandbox jobs know the page's own ids for each handle and
-        # the name of the final button; a job without a fact store has nothing to audit.
-        audit = None if facts is None else FormAudit(facts, final_labels=getattr(job, "final_labels", lambda: ())(),
-                                                     field_hints=getattr(job, "field_hints", lambda: {})(), strict_stray=True)
+        # the name of the final button; a job without a fact store has nothing to audit. UNDERSTUDY_FORM_AUDIT picks the arm of an A/B on the
+        # development households (never the default of a confirmation): `full` (default) = read-back, pending-handles guard on the final button
+        # and the Done requirement; `readback` = read-back, notes and records only, no guard and no Done requirement; `off` = nothing (the build
+        # as it was at the first held-out round, as far as typing goes).
+        mode = form_audit_mode()
+        audit = None if (facts is None or mode == "off") else FormAudit(
+            facts, final_labels=() if mode == "readback" else getattr(job, "final_labels", lambda: ())(),
+            field_hints=getattr(job, "field_hints", lambda: {})(), strict_stray=True)
         cu = ComputerUse(self.model, actuator, self.guard, navigator=self.id, emit=self._emit,
                          is_current=self.is_current, step_start=self.steps, max_steps=self.t3_max_steps,
                          facts=facts, stall_limit=self.stall_limit, pause=self.pause,

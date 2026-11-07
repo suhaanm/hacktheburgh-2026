@@ -198,6 +198,82 @@ def code_check(h: Household, res: dict[str, Any]) -> tuple[bool, dict[str, Any]]
     return ok, {"figures_match": figures, "completion": res.get("completion")}
 
 
+# ----------------------------------------------------------------------------- input-level correctness (AGENTIC-3, ITERATIONS_8)
+# A figure can match by luck (savings of 6,000 or less change nothing) and can be wrong while well-formed (a drop-down left on its default).
+# These say whether each calculator was GIVEN the household's facts, two ways: from the sandbox's own record of what the site received
+# (exact; only the harness has it) and from the cliff panel the site rendered (what a run without ground truth could look at; it shows only
+# what the cliff rules read, and the stored text is cut at 400 characters, so it can say "not enough text to say").
+_MONEY_TOL = 0.02          # site C converts annual pay and weekly rent to monthly and rounds to pence
+
+
+def inputs_received(h: Household, received: dict[str, Any] | None) -> tuple[bool | None, list[str]]:
+    """(match, names of the fields that differ) between the household and what the site recorded for one calculation. None when the site
+    has no record. Field NAMES only, never values."""
+    if not received:
+        return None, []
+    want = h.to_dict()
+    diff: list[str] = []
+    wa, ga = want["adults"], received.get("adults", [])
+    if len(wa) != len(ga):
+        diff.append("adults")
+    for i, (x, y) in enumerate(zip(wa, ga)):
+        if int(x["age"]) != int(y["age"]):
+            diff.append(f"adult{i + 1}_age")
+        if abs(float(x["earnings_monthly"]) - float(y["earnings_monthly"])) > _MONEY_TOL:
+            diff.append(f"adult{i + 1}_earnings")
+    if sorted(want["children_ages"]) != sorted(received.get("children_ages", [])):
+        diff.append("children_ages")
+    if str(want["tenure"]) != str(received.get("tenure")):
+        diff.append("tenure")
+    rent = float(want["rent_monthly"]) if want["tenure"] == "rent" else 0.0
+    if abs(rent - float(received.get("rent_monthly", 0.0))) > _MONEY_TOL:
+        diff.append("rent")
+    if int(want["bedrooms"]) != int(received.get("bedrooms", 0)):
+        diff.append("bedrooms")
+    if abs(float(want["savings"]) - float(received.get("savings", 0.0))) > 0.01:
+        diff.append("savings")
+    if abs(float(want["childcare_monthly"]) - float(received.get("childcare_monthly", 0.0))) > _MONEY_TOL:
+        diff.append("childcare")
+    if bool(want["limited_capability"]) != bool(received.get("limited_capability")):
+        diff.append("limited_capability")
+    return not diff, diff
+
+
+def cliff_panel_matches(h: Household, panel_text: str) -> bool | None:
+    """Does the stored cliff-panel text (from the heading on, cut at some length) read as the panel for THIS household? True or False when
+    the text decides it; None when there is too little of it to say (or none)."""
+    from .sandbox_sites.oracle import cliff_report
+
+    marker = "Cliff edges for this household"
+    text = " ".join((panel_text or "").split())
+    if marker not in text:
+        return None
+    stored = text[text.index(marker) + len(marker):].strip()
+    expected = " ".join(" ".join(i["text"].split()) for i in cliff_report(h))
+    if len(stored) < 40:
+        return None
+    n = min(len(stored), len(expected))
+    return stored[:n] == expected[:n]
+
+
+def inputs_report(h: Household, res: dict[str, Any], state: Any) -> dict[str, Any]:
+    """Per calculator: did the site receive the household's facts (`exact`, from the sandbox's record keyed by the result's reference), what
+    differed (field names), and does the cliff panel agree (`panel`). `all_exact` is True only when every calculator was exact."""
+    got = res.get("results", {}) or {}
+    calc = getattr(state, "calc_households", {}) or {}
+    out: dict[str, Any] = {"exact": {}, "differs": {}, "panel": {}}
+    for s in SITES:
+        r = got.get(s)
+        if not r:
+            out["exact"][s], out["differs"][s], out["panel"][s] = None, [], None
+            continue
+        ok, diff = inputs_received(h, calc.get(r.get("ref")))
+        out["exact"][s], out["differs"][s] = ok, diff
+        out["panel"][s] = cliff_panel_matches(h, r.get("cliff", ""))
+    out["all_exact"] = all(v is True for v in out["exact"].values())
+    return out
+
+
 def features_of(res: dict[str, Any], events: list[dict[str, Any]], ledger_claims: list[dict[str, Any]],
                 deadline_s: float) -> dict[str, Any]:
     steps = [e for e in events if e.get("event") == "step"]
