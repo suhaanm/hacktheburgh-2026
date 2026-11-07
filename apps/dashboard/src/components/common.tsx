@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { AnalyticMeta, Rung } from "../types";
 import { ApiError } from "../api";
 import { EXAMPLE_LINE, FALLBACK_LABEL, type Fallback } from "../lib/fallback";
+import { originWords } from "../lib/evidence";
 import { AboutData, Details } from "./ui";
 import { Hint } from "./Hint";
 
@@ -22,10 +23,11 @@ export function nUnit(meta: AnalyticMeta): string {
 export function OriginBadge({ meta, always = false }: { meta: AnalyticMeta | null; always?: boolean }) {
   if (!meta) return null;
   if (meta.origin === "real" && !always) return null;
+  const words = originWords(meta.origin);
   return (
-    <span className="pill pill--origin" data-origin={meta.origin}>
-      {meta.origin}
-      <span className="u-sr-only">{meta.origin === "real" ? ", measured from real people" : ", not measured from real people"}</span>
+    <span className="pill pill--origin" data-origin={words.data}>
+      {words.text}
+      <span className="u-sr-only">{words.sr}</span>
     </span>
   );
 }

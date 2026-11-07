@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import reportFx from "../fixtures/eval-report.json";
 import type { EvalReport } from "../types";
-import { ANCHORS, describeSection, hasInterval, mapCounts, mapRows, nText, originKind, otherSections, sectionTitle } from "./evidence";
+import { ANCHORS, ORIGIN_LABEL, describeSection, hasInterval, mapCounts, mapRows, nText, originKind, originWords, otherSections, sectionTitle } from "./evidence";
 
 const rep = reportFx as unknown as EvalReport & { evidence_map: unknown[] };
 
@@ -30,7 +30,7 @@ describe("evidence map", () => {
     expect(runtime?.reason).toMatch(/not landed|absent/);
     const study = smallRows.find((r) => r.section === "study")!;
     expect(study.status).toBe("not_run");
-    expect(study.kind).toBe("live");
+    expect(study.kind).toBe("not_run");
     expect(study.n).toBe(4);
     expect(smallRows.find((r) => r.section === "hazard")?.reason).toBeNull();
   });
@@ -39,8 +39,9 @@ describe("evidence map", () => {
     expect(study.status).toBe("not_run");
     expect(study.n).toBe(4);
     expect(study.reason).toMatch(/not been run|no data/);
-    // The harness now writes origin "unknown" for a study that has not run. Nothing real was measured, so the row must never be badged as live data.
-    expect(study.kind).not.toBe("live");
+    // The harness writes origin "unknown" for a study that has not run. Nothing was measured, so the row says "not run": never "synthetic", never "live".
+    expect(study.kind).toBe("not_run");
+    expect(study.originLabel).toBe("not run");
     const roles = rows.find((r) => r.section === "study_roles")!;
     expect(roles.status).toBe("not_run");
     expect(roles.reason).toMatch(/not people/);
@@ -173,5 +174,55 @@ describe("real model block: every number carries its condition", () => {
     expect(v.tier3).toMatch(/simulated actuator|nothing is clicked/i);
     expect(liveRuns(null)).toBeNull();
     expect(liveRuns({ label: "x" })?.rows).toEqual([]);
+  });
+});
+
+describe("the origin badge for something that has not run", () => {
+  const m = (origin: string) => ({ origin, n: 4, n_unit: "people", split: null, interval_level: 0.95, note: null, generated_at: "" });
+  it("is 'not run' for a not_run section, whatever origin it carries", () => {
+    for (const origin of ["real", "synthetic", "mixed", "unknown"]) expect(originKind(origin, "people", null, "x", "not_run")).toBe("not_run");
+    expect(ORIGIN_LABEL.not_run).toBe("not run");
+  });
+  it("is 'not run' for an unknown origin even when the status says ok, and never 'synthetic' or 'live'", () => {
+    expect(originKind("unknown", "people", null, "x", "ok")).toBe("not_run");
+    expect(originKind("unknown", "people", null, "x")).toBe("not_run");
+    expect(originKind("unknown", "people", null, "x")).not.toBe("synthetic");
+    expect(originKind("unknown", "people", null, "x")).not.toBe("live");
+  });
+  it("leaves every section that has run exactly as it was", () => {
+    expect(originKind("real", "people", null, "Live study", "ok")).toBe("live");
+    expect(originKind("synthetic", "people", null, "x", "ok")).toBe("synthetic");
+    expect(originKind("mixed", "runs", null, "x", "ok")).toBe("mixed");
+    expect(originKind("synthetic", "silicon participants", null, "x", "ok")).toBe("simulated");
+    expect(originKind("synthetic", "people", null, "x", "pending")).toBe("synthetic");
+  });
+  it("shows 'not run' on the map row, both for status and for origin", () => {
+    const rep = { sections: {
+      live_study: { status: "not_run", reason: "no data", meta: m("real") },
+      role_studies: { status: "not_run", reason: "Simulated participants (language model), not people.", meta: m("synthetic"), label: "simulated participants (language model), not people" },
+      held: { meta: m("unknown"), rows: [{ a: 1 }] },
+      ran: { meta: m("synthetic"), rows: [{ a: 1, ci: [0, 2] }] },
+    } } as unknown as EvalReport;
+    const rows = mapRows(rep);
+    const label = (s: string) => rows.find((r) => r.section === s)?.originLabel;
+    expect(label("live_study")).toBe("not run");
+    expect(label("role_studies")).toBe("not run");
+    expect(label("held")).toBe("not run");
+    expect(label("ran")).toBe("synthetic");
+  });
+  it("shows 'not run' on every not_run or unknown-origin row of the real report, and 'synthetic' or 'live' on none of them", () => {
+    const realRows = mapRows(rep);
+    for (const r of realRows.filter((x) => x.status === "not_run" || x.origin === "unknown")) {
+      expect(r.kind).toBe("not_run");
+      expect(r.originLabel).toBe("not run");
+    }
+    expect(realRows.some((r) => r.status === "not_run")).toBe(true);
+  });
+  it("words a single analytic's badge the same way", () => {
+    expect(originWords("real")).toEqual({ text: "real", data: "real", sr: ", measured from real people" });
+    expect(originWords("synthetic").text).toBe("synthetic");
+    expect(originWords("mixed").text).toBe("mixed");
+    expect(originWords("unknown")).toEqual({ text: "not run", data: "not_run", sr: ", nothing was measured yet" });
+    expect(originWords("").text).toBe("not run");
   });
 });

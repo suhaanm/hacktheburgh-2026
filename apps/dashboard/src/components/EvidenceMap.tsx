@@ -11,7 +11,7 @@ const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFin
 
 /** The origin badge for one section: dashed for anything that is not a real person, a plain "live" for the study. */
 export function OriginPill({ row }: { row: Pick<MapRow, "kind" | "originLabel"> }) {
-  const data = row.kind === "live" ? "real" : row.kind === "simulated" ? "simulated" : row.kind === "mixed" ? "mixed" : "synthetic";
+  const data = row.kind === "live" ? "real" : row.kind === "simulated" ? "simulated" : row.kind === "mixed" ? "mixed" : row.kind === "not_run" ? "not_run" : "synthetic";
   return <span className="pill pill--origin" data-origin={data}>{row.originLabel}</span>;
 }
 
@@ -48,6 +48,7 @@ export function EvidenceMap({ rows, onGo }: { rows: MapRow[]; onGo: (id: string)
         <ul className="plain-list">
           <li className="note"><b>Synthetic.</b> {ORIGIN_NOTE.synthetic}</li>
           <li className="note"><b>Live.</b> {ORIGIN_NOTE.live} Read its n: the live study is small.</li>
+          {rows.some((r) => r.kind === "not_run") && <li className="note"><b>Not run.</b> {ORIGIN_NOTE.not_run}</li>}
         </ul>
       </Details>
     </section>
