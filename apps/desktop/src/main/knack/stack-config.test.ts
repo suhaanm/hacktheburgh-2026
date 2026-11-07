@@ -47,6 +47,11 @@ describe('the stack configuration', () => {
     expect(c).toMatchObject({ repoRoot: REPO, distDir: `${REPO}/apps/dashboard/dist`, devUrl: 'http://127.0.0.1:5173', preferDevServer: true, mode: 'demo' })
     expect(c.dirs).toEqual({ demo: { home: 'data/demo-home', data: 'data/demo-data' }, live: { home: 'data/live-home', data: 'data/live-data' } })
   })
+  it('starts the sandbox sites unless KNACK_SITES=0', () => {
+    expect(resolveStackConfig(input()).startSites).toBe(true)
+    expect(resolveStackConfig(input({ env: { KNACK_SITES: '1' } })).startSites).toBe(true)
+    expect(resolveStackConfig(input({ env: { KNACK_SITES: '0' } })).startSites).toBe(false)
+  })
   it('KNACK_DASHBOARD=dist makes development serve the built copy', () => {
     expect(resolveStackConfig(input({ env: { KNACK_DASHBOARD: 'dist' } })).preferDevServer).toBe(false)
   })
