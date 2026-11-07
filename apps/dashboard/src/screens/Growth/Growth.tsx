@@ -72,7 +72,9 @@ export default function Growth() {
   };
 
   // One origin badge per screen: the sample badge when the screen shows built-in example data, else the engine's origin in a worker's words.
-  const badge = g.why ? <ExampleBadge why={g.why} /> : <OriginBadge meta={g.meta} always label={g.meta ? workerOriginLabel(g.meta.origin) : undefined} />;
+  // A live answer with nothing counted shows no numbers, so there is nothing to qualify: no badge. The origin is still printed in "About this data".
+  const liveAndEmpty = !g.why && g.source === "live" && view.status === "empty";
+  const badge = g.why ? <ExampleBadge why={g.why} /> : liveAndEmpty ? null : <OriginBadge meta={g.meta} always label={g.meta ? workerOriginLabel(g.meta.origin) : undefined} />;
 
   return (
     <div className="page page--wide gr-page" aria-busy={busy}>

@@ -4,7 +4,6 @@ import { useLoad } from "../hooks";
 import { ErrorState, Loading, OriginBadge } from "../components/common";
 import { cogLabel } from "../lib/format";
 import { Details } from "../components/ui";
-import { Hint } from "../components/Hint";
 import type { AnalyticMeta, CoachDecision, CoachOutcome, CoachState } from "../types";
 
 type Chip = CoachDecision["chip"];
@@ -101,7 +100,7 @@ export default function Today() {
     <div className="page page--read">
       <section className="today" aria-labelledby="task-h">
         <div className="today__task">
-          <div className="row row--between"><span className="t-label">Today · step {step} of {s.task.steps_total}{(s as { case?: number }).case ? ` · case ${(s as { case?: number }).case}` : ""}</span><OriginBadge meta={live?.meta ?? state.meta} /></div>
+          <div className="row row--between"><span className="t-label">Step {step} of {s.task.steps_total}{(s as { case?: number }).case ? ` · case ${(s as { case?: number }).case}` : ""}</span><OriginBadge meta={live?.meta ?? state.meta} /></div>
           <h1 className="today__name" id="task-h">{s.task.name}</h1>
           <div className="today__steps" role="img" aria-label={`Step ${step} of ${s.task.steps_total}`}>
             {Array.from({ length: s.task.steps_total }, (_, i) => <i key={i} data-done={i + 1 < step} data-now={i + 1 === step} />)}
@@ -165,16 +164,16 @@ export default function Today() {
               )}
             </div>
 
-            <div className="stack">
-              <div className="row" role="group" aria-label="Preview how help fades">
-                <span className="t-label">Preview how help fades<Hint label="About fading help">As you master a step, help gets smaller, then a dot, then gone. After a long break it returns.</Hint></span>
-                <div className="segmented">
+            <Details summary="Preview how help fades" wide>
+              <div className="stack">
+                <p className="note">As you master a step, help gets smaller, then a dot, then gone. After a long break it returns.</p>
+                <div className="segmented" role="group" aria-label="Preview how help fades">
                   {(["full", "small", "dot", "gone"] as Chip[]).map((c) => (
                     <button key={c} type="button" aria-pressed={(preview ?? baseChip) === c} onClick={() => { setRevived(false); setStopped(false); setPreview(c); }}>{c === "full" ? "Full" : c === "small" ? "Small" : c === "dot" ? "Dot" : "Gone"}</button>
                   ))}
                 </div>
               </div>
-            </div>
+            </Details>
 
             <Details summary="How the coach decided" wide>
               <div className="stack">

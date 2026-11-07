@@ -15,6 +15,7 @@
 //   --narrow                    also read 390x844 (words and paragraphs only)
 //   --theme=light|dark          default light
 //   --example                   block the engine and the agent (deterministic example data)
+//   --live-via=http://127.0.0.1:5173   relay the page's engine and agent GETs through a running dashboard (real engine data, read-only)
 //   --out=qa/knack/copy-report.json   write the measurements
 //   --report-only               print and write, never exit 1 (for the baseline)
 //   --dump                      print every counted text node above the fold (what the words are)
@@ -23,7 +24,7 @@ import { chromium } from "playwright";
 import fs from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { openAs } from "./lib/knack-page.mjs";
+import { openAs, relayLive } from "./lib/knack-page.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const budgets = JSON.parse(fs.readFileSync(join(here, "..", "qa", "knack", "budgets.json"), "utf8"));
@@ -38,6 +39,7 @@ const viewports = opt("viewports", "") ? opt("viewports", "").split(",").map((v)
 const out = opt("out", "");
 const reportOnly = Boolean(flag("report-only"));
 const example = Boolean(flag("example"));
+const liveVia = opt("live-via", "");
 
 /** The budget for one route and one metric: the route's own number, else the default of its audience. */
 export function budgetFor(route, metric, audience, state = {}) {
@@ -184,11 +186,14 @@ function judge(id, spec, vp, m, narrow) {
       check("controls above the fold", m.controls, budgetFor(id, "controls", aud));
     }
   }
-  if (!narrow) {
+  const exempt = Boolean(budgets.exempt[id]);
+  if (!narrow && !exempt) {
     if (m.h1Words > (m.h1IsHero ? budgets.elements.heroWords : budgets.elements.screenTitleWords)) problems.push(`title is ${m.h1Words} words (limit ${m.h1IsHero ? budgets.elements.heroWords : budgets.elements.screenTitleWords})`);
     if (m.buttonsLong.length) problems.push(`buttons over ${budgets.elements.buttonWords} words: ${m.buttonsLong.join(" | ")}`);
     if (m.rowTitlesLong.length) problems.push(`row titles over ${budgets.elements.rowTitleWords} words: ${m.rowTitlesLong.length}`);
     if (m.ledesLong.length) problems.push(`ledes over ${budgets.elements.ledeWords} words: ${m.ledesLong.join(" | ")}`);
+  }
+  if (!narrow) {
     if (m.eyebrows.length) problems.push(`eyebrow above the title: ${m.eyebrows.join(" | ")}`);
     if (m.uppercaseCount) problems.push(`mono capitals outside axes: ${m.uppercase.join(" | ")}`);
   }
@@ -207,6 +212,7 @@ try {
       if (example && /^https?:\/\/[^/]+\/(engine|agent)(\/|$)/.test(req.url())) return r.abort();
       return r.continue();
     });
+    if (liveVia) await relayLive(ctx, liveVia);
     const page = await ctx.newPage();
     page.on("pageerror", (e) => notes.push(`pageerror at ${vp.join("x")}: ${e.message}`));
     for (const view of ["worker", "admin"]) {

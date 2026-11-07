@@ -21,11 +21,15 @@ export function nUnit(meta: AnalyticMeta): string {
 
 const sentenceCase = (t: string): string => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
 
-/** What a worker's screen calls an origin: "Example data" for numbers that were not measured from real people (the explanation is in "About this data"). */
+/**
+ * What a worker's screen calls an origin. "Example data" is a built-in sample drawn because the service did not answer (ExampleBadge). When the engine
+ * answered from synthetic traces the numbers are live but not from real people, and the badge says exactly that: "Synthetic data". The explanation
+ * ("Synthetic learners with planted learning curves, not people") is printed in "About this data".
+ */
 export function workerOriginLabel(origin: string): string {
   if (origin === "real") return "Real data";
-  if (origin === "mixed") return "Some example data";
-  if (origin === "synthetic") return "Example data";
+  if (origin === "mixed") return "Some synthetic data";
+  if (origin === "synthetic") return "Synthetic data";
   return "Not run";
 }
 

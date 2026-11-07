@@ -48,3 +48,21 @@ export async function openAs(page, base, view = "worker") {
   try { await viaMenu(page); } catch { return false; }
   return isAdmin(page);
 }
+
+/**
+ * Show the page real engine data without a token of its own: relay its GET requests for /engine and /agent through a running dashboard (the owner's
+ * :5173, whose proxy adds the per-boot token). Every other method is refused; nothing here can change anything. Register it AFTER the read-only route
+ * of the context so it wins for /engine and /agent.
+ */
+export async function relayLive(ctx, liveBase) {
+  const base = liveBase.replace(/\/$/, "");
+  await ctx.route(/^https?:\/\/[^/]+\/(engine|agent)(\/|$)/, async (route) => {
+    const req = route.request();
+    if (!["GET", "HEAD"].includes(req.method())) return route.abort();
+    const u = new URL(req.url());
+    let res = null;
+    try { res = await fetch(`${base}${u.pathname}${u.search}`); } catch { res = null; }
+    if (!res) return route.abort();
+    return route.fulfill({ status: res.status, headers: { "content-type": res.headers.get("content-type") ?? "application/json" }, body: Buffer.from(await res.arrayBuffer()) });
+  });
+}

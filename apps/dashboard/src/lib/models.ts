@@ -131,7 +131,7 @@ export function fmtMs(v: number | null): string {
   return v >= 1000 ? `${(v / 1000).toFixed(1)} s` : `${Math.round(v)} ms`;
 }
 
-export const WHEN_LABEL: Record<string, string> = { primary: "First", escalate: "If it cannot tell", fallback: "If the first provider fails" };
+export const WHEN_LABEL: Record<string, string> = { primary: "First", escalate: "If unsure", fallback: "If it fails" };
 
 /** The health of a provider in plain words, and a tone for the pill. The breaker, when open, wins. */
 export function healthReading(p: Pick<ModelProvider, "health" | "breaker" | "configured">): { label: string; tone: "good" | "warn" | "bad" | "muted" } {
