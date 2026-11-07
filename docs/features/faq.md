@@ -78,7 +78,7 @@ Code checks a fresh page for each calculator's result fields and the case-note i
 
 **18. How reliable is computer use?**
 
-Not reliable yet. After fact handles, 3 of 3 development households completed (in-sample). On new held-out households 1 of 4 completed, with 2 wrong calculator inputs and 1 paused goal check; injected pages paused 20 of 20 at step 0, but those carry text only. Seven households in all, so no rate should be quoted. The Gemini configuration has development results only (docs/FLAGS.md; evals/agentic/ITERATIONS.md).
+Not reliable yet. After fact handles, 3 of 3 development households completed (in-sample). On new held-out households 1 of 4 completed: in 2 runs calculator B got wrong inputs that only an independent recomputation caught, and 1 run paused because the goal-check call could not complete; injected pages paused 20 of 20 at step 0, but those carry text only. Seven households in all, so no rate should be quoted. The Gemini configuration has development results only (docs/FLAGS.md; evals/agentic/ITERATIONS.md).
 
 ## Choices
 
@@ -90,9 +90,9 @@ The OpenAI key was revoked on 7 Nov (cause unknown) and the owner moved every ro
 
 So private text, such as commits and calendar entries, becomes short labels on the Mac and a cloud model sees digests, not text. On held-out synthetic items the local model beat rules on category (91.8% against 77.5%) and not on risk, so rules are shipped there. The model can be steered by a planted line, so code vetoes the two most consequential claims (evals/report.md, Local model digests).
 
-**21. Why does 'the model proposes, code decides' matter?**
+**21. Isn't this just Clicky or Sentient OS?**
 
-Because a chatty or manipulated model can talk itself out of fading, into 'done', or past a gate. Levels, permissions, promotion, routing, completion and gates are deterministic code, so each can be tested and none depends on the model's word (CLAUDE.md; docs/SPEC_LIST.md PR1).
+No, and we read both without running them. Per our notes, the Clicky app points at things and never clicks, and its Windows fork's plugin runs single actions at screen coordinates for an outside agent; Sentient OS runs a real multi-step loop on real apps, with the loop in an external agent command line and success judged by the model's own final claim, and its repository holds no completion measurement. Knack's difference is the layer around the action: an expert comparison priced in seconds and in answers, help that fades by code, 'done' decided by code, eight layers, and a held-out result (1 of 4) we publish. We used a little of Clicky's MIT code with notices and Sentient OS only as ideas, through a clean-room note (docs/reference-notes/computer-use-comparison.md; docs/reference-notes/clicky-reuse.md; THIRD_PARTY_NOTICES.md).
 
 **22. Can the independence score be gamed?**
 

@@ -38,7 +38,7 @@ Say 'Hey Knack'. The pill shows 'Listening', a soft cue plays, and Knack answers
 
 ### Honest limit
 
-No real microphone has been used yet; the rates above describe the matching logic on strings, not how often a real recogniser and microphone trigger it (that needs the owner's first launch and a day of use). The one held-out false accept is 'Hey nack, nack, nack, that is all I hear from this network'; it was left and pinned in a test rather than tuned away. The phrase is an on-device detector's, so an unusual accent or a noisy room is untested. Earlier documents (docs/FLAGS.md, docs/FEATURE_CATALOGUE.md) still say there is no always-listening microphone; D52 supersedes that for Hey Knack.
+No real microphone has been used yet; the rates above describe the matching logic on strings, not how often a real recogniser and microphone trigger it (that needs the owner's first launch and a day of use). The one held-out false accept is 'Hey nack, nack, nack, that is all I hear from this network'; it was left and pinned in a test rather than tuned away. An unusual accent or a noisy room is untested. Earlier documents (docs/FLAGS.md, docs/FEATURE_CATALOGUE.md) still say there is no always-listening microphone; D52 supersedes that for Hey Knack.
 
 ### Hackathon target
 
