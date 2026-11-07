@@ -49,6 +49,7 @@ Restart the dev stack on current code (needs the owner's go: the dev agent shows
 ## G. Claims that must be corrected before the freeze (lead; NARRATIVE agent near the freeze)
 - docs/drafts/{DEVPOST,DEV_POST,README.draft,CLAIMS}.md quote the stuck model's v1 headline (0.436 vs 0.509). Add, next to every quote: the edge over time-since-progress falls from 0.071 to 0.008 to 0.015 nats per bin on three harder synthetic generator families, a v1-trained model is worse than that baseline there, and v1 and v2 both fail on the simulated-participant traces (M5). C04 and C05 get the same sentence.
 - The simulated study is a null at the floor (run 4; run 5 pilot stopped): the drafts must say it validated the pipeline and enforcement (zero nudges in post-tests), not that it measured the coach.
+- ML v2 held-out mismatch (M6): time-since-progress beats v1's full stuck model under mismatch in all three roles; v1's advantage over it does not survive a differently built generator. The drafts and the Devpost must say a simple rule does about as well, and the product decision (keep v1 hazard, or use the baseline rule as the default signal with v1 as a labelled option) is put to the owner at the freeze review. Cue and the coach still work either way: they gate on the hazard AND on deterministic signals.
 - No claim that the gate resists hostile pages from the text-only injected condition (S-19, S-26, S-28 are offline tests).
 
 ## Owner-only
