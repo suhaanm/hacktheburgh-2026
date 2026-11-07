@@ -51,4 +51,27 @@ def decide_from_dir(pilot_dir: Path) -> dict:
     d = decide(rows, float(cost["usd_est"]))
     write_provenance(Path(pilot_dir))
     (Path(pilot_dir) / "PILOT_DECISION.json").write_text(json.dumps(d, indent=1) + "\n")
+    (Path(pilot_dir).parent / "PILOT_REPORT.md").write_text(report_md(pilot_dir, d))
     return d
+
+
+def report_md(pilot_dir: Path, decision: dict) -> str:
+    """A short report of the pilot as a pilot (PLAN_RUN5.md section 4): facts only, no coach claim."""
+    import glob
+
+    pilot_dir = Path(pilot_dir)
+    rows = analysis.load_rows(pilot_dir / "participants.csv")
+    L = ["# Run 5 pilot (3 A/A participants, option P2: the fast-tier model at reasoning effort low)", "",
+         "**simulated participants (language model), not people.** Exploratory pilot, discarded from every analysis; it only decides whether run 5 proceeds. The coach was silent in every block.", ""]
+    L += ["| participant | block | skill | post-test score | post-test actions | post-test ended | calculations in the sandbox | saved draft |", "|---|---|---|---|---|---|---|---|"]
+    for r in sorted(rows, key=lambda x: (x["participant"], x["block"])):
+        st = pilot_dir / "raw" / f"{r['participant']}-block{int(r['block'])}-post.json"
+        d = __import__("json").loads(st.read_text()) if st.exists() else {}
+        L.append(f"| {r['participant']} | {int(r['block'])} | {r['skill']} | {int(r['post_checks_done'])}/{int(r['post_checks_possible'])} | {int(r['post_actions'])} | {r['post_end']} | {len(d.get('calculations', []))} | {'yes' if d.get('notes') else 'no'} |")
+    L += ["", f"**Declared criterion** (PLAN_RUN5.md section 4, decided by code): all three complete without harness exclusion, at least {decision['needed_above_zero']} of {decision['post_tests']} post-tests above zero, and the remaining budget pays for at least 8 participants.",
+          f"**Result:** {decision['post_tests_above_zero']} of {decision['post_tests']} post-tests scored above zero. Pilot spend US${decision['pilot_spend_usd']} (US${decision['mean_cost_per_participant_usd']} per participant at the assumed 0.75 and 4.50 per million tokens), "
+          f"affordable participants for the main stage {decision['affordable_participants']}. **Decision: {'PROCEED, n = ' + str(decision['n_planned']) if decision['pass'] else 'STOP, there is no run 5 proper'}.**"]
+    if decision["reasons_for_stopping"]:
+        L += ["", "Reasons: " + "; ".join(decision["reasons_for_stopping"]) + "."]
+    L += ["", "A pass would not have been evidence about the coach, and a stop is not either: it only says the stronger participant is or is not off the floor. No coach claim is made."]
+    return "\n".join(L) + "\n"

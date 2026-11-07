@@ -1,0 +1,28 @@
+{
+ "usd_est": 0.969,
+ "cap_usd": 6.0,
+ "calls": 582,
+ "cache_hits": 0,
+ "tokens": {
+  "in": 591456,
+  "out": 116676
+ },
+ "price_in_per_mtok": 0.75,
+ "price_out_per_mtok": 4.5,
+ "prices_from_env": true,
+ "usd_at_fast_tier_reference_rates": 0.969,
+ "token_source": "provider_usage",
+ "by_role": {
+  "decide": {
+   "calls": 576,
+   "in": 588148,
+   "out": 116169
+  },
+  "note": {
+   "calls": 6,
+   "in": 3308,
+   "out": 507
+  }
+ },
+ "carried_from_aborted_run": {}
+}
