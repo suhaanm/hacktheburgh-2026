@@ -1,0 +1,103 @@
+# Evidence page, make eval and the explainer
+
+> Every number has n, a split, an interval and an origin. The limitations register is a first-class screen. Plain-English explanations must pass a number check.
+
+**Capability:** Evidence and honesty · **Status:** verified · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
+
+This page covers Evidence page, make eval and the limitations register, Plain-English explainer with a number check.
+
+## Evidence page, make eval and the limitations register
+
+**Status:** verified · **Page:** `docs/features/evidence-and-explain.md` · **Targets:** G-Research, HRT
+
+### What it does
+
+One command rebuilds a report from the code that owns each number; the Evidence page renders it, ending on what it does not show. Nothing in the report is typed by hand.
+
+### How it works
+
+`make eval` runs each section's own code and writes evals/report.json and report.md. Each section carries its origin badge (synthetic, simulated, real, unknown), n, split and interval level. Findings are generated, not footnotes. A limitations register keeps every known weakness with a severity. A section with no numbers says why instead of showing an invented value; the live study shows 'not run'.
+
+### Where to see it
+
+More, For reviewers, Evidence (address #/evidence; exempt from the word budgets).
+
+### Demo moment
+
+Open Evidence: the map of sections with their origin badges, the findings, then scroll to the limitations. Point at 'Live study: not run'.
+
+### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| 35 sections: 33 with numbers, 2 not run (the live study and the role studies), 0 failed; 206 limitations (67 high, 111 medium, 28 low); 7 generated findings | synthetic origin throughout except the not-run live study | `evals/report.md; evals/report.facts.json` |
+| About 6,156 test functions across the code base (a static count; parametrised cases not expanded) | offline tests | `evals/report.facts.json (tests)` |
+
+### Honest limit
+
+Almost everything in the report is synthetic or simulated. The register is long on purpose. The report is regenerated at the freeze; quote the last full run, not a fast run.
+
+### Hackathon target
+
+- **G-Research (make the invisible visible)**: making our own uncertainty visible
+- **HRT (best use of data for predictions and decisions)**: baselines and intervals beside every number
+
+## Plain-English explainer with a number check
+
+**Status:** built · **Page:** `docs/features/evidence-and-explain.md` · **Targets:** G-Research
+
+### What it does
+
+'Explain this' writes a short plain-English account of where time went. Every number in it must trace to the data, and it may not make a causal or expert claim.
+
+### How it works
+
+An evidence packet holds the typed facts. The shipped wording is a code template that passes its own check on every packet and every intent. A model's wording (a local model first; a cloud wording attempt is on by default since D48, routed to Gemini) is used only if it passes the same check; otherwise the template is shown. The check proves each number traces to a field of the packet. It does not prove the packet is true.
+
+### Where to see it
+
+Beside figures on the detail screens (Explain), in Evidence, and 'Copy my Monday note'.
+
+### Demo moment
+
+Press Explain on Where time goes: a short paragraph with numbers; show that it is the template wording, and that a model's rewording would be used only if it passed the check.
+
+### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| The template wording passed its own check on 320 of 320 (1.000 [0.988, 1.000]) | synthetic packets from 32 apprentice episodes | `evals/report.md (Evidence quality)` |
+| Live, small n: local Qwen composing freely 1 of 30; rewording a code-written draft 12 of 30 [24.6, 57.7] first, then 24 of 30 [62.7, 90.5] after fixes (same kind of packets); cloud OpenAI composing 0 of 13 [0, 22.8]; cloud Gemini flash-lite 7 of 9 [45.3, 93.7] | real models, small n, packets synthetic, recorded 7 Nov | `evals/report.md (Limitations register: model_layer_is_optional_polish)` |
+
+### Honest limit
+
+It improves readability, not accuracy: a sentence can still mislead with numbers that all trace. The second local-model figure was measured after fixing what the first run showed. The model layer is optional polish; the default is the template.
+
+### Hackathon target
+
+- **G-Research (make the invisible visible)**: numbers a worker can read, each traceable to its source
+
+## 30-second spoken script
+
+> Every number in Knack comes with its n, its split, its interval, and where it came from, and one command rebuilds the report from the code that owns each number. Thirty-three sections have numbers, two were not run, and there are two hundred and six listed limitations. The explainer writes plain English, but every number it says has to trace back to the data, or the screen shows the plain template instead.
+
+## Slide bullets
+
+- `make eval` rebuilds the report from the code that owns each number.
+- 35 sections: 33 with numbers, 2 not run, 0 failed; 206 limitations (67 high).
+- Origin badges: synthetic, simulated, real, unknown; the live study says 'not run'.
+- Explainer: every number must trace to the data; template by default.
+- The check proves traceability, not truth.
+
+## Sources
+
+- `evals/report.md`
+- `evals/report.facts.json`
+- `docs/FEATURE_CATALOGUE.md`
+- `docs/UI_DIRECTION.md`
+- `docs/drafts/CLAIMS.md`
+- `docs/FLAGS.md`
+
+## Related pages
+
+`what-did-not-hold-up.md`, `home-insights.md`, `work-genome.md`
