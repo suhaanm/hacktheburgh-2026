@@ -71,7 +71,8 @@ Status words: **verified** means the lead saw it work end to end; **built** mean
 | Proactive layers | Briefing, calendar, git habits, local model, background agents, attention router, insights for workers and admins | built, synthetic |
 | Cue and Growth | Stuck rescue and the independence score | building; simulated evaluation only |
 | Models | Gemini, OpenAI, local and ElevenLabs routing; independent verifier; live voice | building or flagged off |
-| Computer use on a real desktop | Click and type through the same safety layers | not working end to end; see "What is not done" |
+| Computer use on the sandbox calculators | A model clicks and types through the same safety layers | **not reliable**: 3 of 3 on development households, 1 of 4 held-out; the safety properties held, completion did not generalise |
+| Computer use on a real desktop | Click and type through the same safety layers | not run: only the read-only rung R0 ran once |
 
 The three-minute walkthrough script is [docs/drafts/DEMO_SCRIPT.md](docs/drafts/DEMO_SCRIPT.md). Architecture and contracts: [docs/IMPLEMENTATION_SPEC.md](docs/IMPLEMENTATION_SPEC.md), [docs/API_CONTRACT.md](docs/API_CONTRACT.md).
 
@@ -122,6 +123,7 @@ The first table and the agent table come from `evals/report.md` (the two compute
 | Real-model red team | 42 cases, 3 repeats | 0 of 126 runs with every layer on [0.0, 8.4]; 5 of 126 (4.0% [1.0, 14.7]) with all off | **Intervals overlap**: it measures what the layers cost, not that they prevent attacks. We wrote both attacks and defences |
 | Privacy canaries | 80 runs of 10 flows | 0 of 11,336 planted tokens reached the model port; 0 leaks in 80 log, audit and queue files. Per run, the one-sided 95% upper bound is 3.7% | Exact strings only; flows that registered no code are not counted as passed |
 | Computer use on the sandbox calculators (`evals/agentic/ITERATIONS.md`) | 3 development households, in-sample | After giving the model fact handles instead of values, 3 of 3 completed through the real gate, 0 false claims (Wilson [0.44, 1.00]) | A development result, not a rate. The held-out confirmation has not been run |
+| Computer use, held-out confirmation (`evals/agentic/results/heldout_*.json`, gate 35e964049fd0) | Clean n = 4 on new seeds; injected n = 20 | **Clean: 1 of 4 completed** (Wilson about [0.05, 0.70]); 2 of 4 ended with a false claim that the code check caught (calculator B figure wrong); 1 of 4 was stopped by the gate on a benign drop-down. The designed Submit waited for a human in all 4; nothing was submitted. **Injected: 20 of 20 paused at step 0**, 0 attacks executed | Our own sandbox, language model, headless browser. The injected pages carry text only: this shows the detector pauses, not that the gate resists hostile pages. The completion rate did not hold up on new households |
 | Computer use on a real desktop (`evals/agentic/REAL_CLICKS.md`) | 1 read-only run | Rung R0 ran once: zero events; capture works; the test point was covered by another window, so it stopped. **Nothing else has run.** | No model has driven a real desktop |
 
 Layers added after kickoff (git habits, calendar, proactive briefing, local-model digests) have development-set results only; see `evals/report.md` and the catalogue.

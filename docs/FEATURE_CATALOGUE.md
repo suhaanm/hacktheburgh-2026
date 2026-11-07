@@ -43,7 +43,8 @@ Watch how people work, show where a novice loses time against an expert, coach o
 | Benefits-processing agent | Three calculators, cliff check, reconcile, case note, real gate on the real submit button | verified | sandbox; 20 of 20 (mock), live clean 18 of 20, 0 false claims |
 | Eight security layers | Injection pause, action classes, approval queue, hash-chained audit, kill flag, no allowlists | verified | red team: 42 attacks plus clean cases (source: evals/report.md, red-team section) |
 | Shadow mode to approval | A routine earns autonomy by matching what the worker does | verified | synthetic |
-| Computer use on the real screen | Click and type through the same safety layers | **not yet working** (REQ-7 AGT) | tier 3 n = 3, gave up (no values by design) |
+| Computer use on the sandbox calculators | A model clicks and types through the same safety layers, with fact handles instead of values | **works in-sample, not held-out**: 3 of 3 development households; held-out clean n = 4: 1 completed, 2 false claims caught by the code check, 1 false gate stop; injected n = 20: 20 of 20 paused at step 0 (text-only evidence). Designed Submit waited for a human in every run | sandbox we wrote, language model, headless browser; gate 35e964049fd0 |
+| Computer use on a real desktop | Same, through real clicks | not run; read-only rung R0 ran once (zero events) | owner present for every rung (`evals/agentic/REAL_CLICKS.md`) |
 | Background agents (programming, data, creative) | Parent spawns children in a sandbox, code-verified results | built | synthetic |
 | Overnight automations | Run for experts and novices alike; never change the independence score | built | synthetic |
 
