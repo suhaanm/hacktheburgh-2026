@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { app, BrowserWindow, screen, session, shell } from 'electron'
 import type { DockMode, EventArgs, EventChannel } from '../shared/ipc'
+import { WINDOW_TITLES } from '../shared/brand'
 import { configureOverlayWindow } from './capture/overlay-window'
 
 export interface WindowOptions {
@@ -73,7 +74,7 @@ export function createWindows(opts: WindowOptions): Windows {
     transparent: true,
     backgroundColor: '#00000000',
     ...(process.platform === 'darwin' ? { vibrancy: 'under-window' as const, visualEffectState: 'active' as const } : {}),
-    title: 'Alongside',
+    title: WINDOW_TITLES.panel,
     webPreferences: {
       preload: preloadPath(),
       contextIsolation: true,

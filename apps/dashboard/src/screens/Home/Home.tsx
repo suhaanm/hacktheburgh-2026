@@ -13,6 +13,7 @@ import { loadRepeats } from "../Repeats/data";
 import { WORKER_STORIES, STORY_LABEL, loadSharing, loadWorker, parseStory, type WorkerStory } from "./data";
 import { homeTitle, quietBody, repeatsLine, weekLabel } from "./model";
 import "../../components/home/home.css";
+import { APP_NAME } from "../../brand";
 
 /** The Monday note: three pointers and one number to try, in plain text the worker can copy. A disclosure, so the page keeps one hero. */
 function MondayNote({ w }: { w: WireWorker }) {
@@ -54,7 +55,7 @@ export default function Home() {
   const [gone, setGone] = useState<ReadonlySet<string>>(new Set());
   const w = useLoad(() => loadWorker(person, story), [person, story]);
   const rep = useLoad(() => loadRepeats(7), []);
-  useEffect(() => { document.title = "Your week · Understudy"; }, []);
+  useEffect(() => { document.title = `Your week · ${APP_NAME}`; }, []);
   useEffect(() => setGone(new Set()), [story, person]);
 
   const onGone = useCallback((id: string) => setGone((g) => new Set([...g, id])), []);

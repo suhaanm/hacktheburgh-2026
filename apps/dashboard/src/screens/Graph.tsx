@@ -8,6 +8,7 @@ import { NODE_COLOUR, NODE_LABEL, layoutGraph, nodeOpacity, placeLabels, radiusF
 import { findLine, replaceLineText } from "../lib/memory";
 import { fmtDate } from "../lib/format";
 import type { WorkGraph, WorkNode, WorkNodeType } from "../types";
+import { APP_NAME } from "../brand";
 
 /** Tween node positions between layouts so a merge or a deletion slides instead of jumping. */
 function useTweened(target: Placed[], ms: number): Placed[] {
@@ -89,12 +90,12 @@ export default function Graph() {
       <PageHead
         eyebrow="Graph"
         title="How your work connects"
-        lede={`${graph.nodes.length} things Understudy knows about your work${faded ? `, ${faded} fading now` : ""}.`}
+        lede={`${graph.nodes.length} things ${APP_NAME} knows about your work${faded ? `, ${faded} fading now` : ""}.`}
         aside={<OriginBadge meta={g.meta} />}
       />
 
       {graph.nodes.length === 0 ? (
-        <EmptyState title="Nothing here yet" body="The graph fills in as Understudy sees your routines, skills and the notes you keep. Finish set-up first, then come back." action={<a className="btn btn--secondary" href="#/onboarding">Go to set-up</a>} />
+        <EmptyState title="Nothing here yet" body={`The graph fills in as ${APP_NAME} sees your routines, skills and the notes you keep. Finish set-up first, then come back.`} action={<a className="btn btn--secondary" href="#/onboarding">Go to set-up</a>} />
       ) : (
         <div className="stack">
           <div className="gcanvas__stage" ref={box} style={{ height }}>
@@ -218,7 +219,7 @@ function NodePanel({ node: n, graph, onClose, onChanged }: { node: WorkNode; gra
           </div>
         )}
         {(n.type === "routine" || n.type === "automation") && <p className="note"><a href="#/routines">Open this in Routines</a> to change what it may do.</p>}
-        {!n.editable && <p className="lock-note">This one is kept by Understudy and cannot be edited by hand.</p>}
+        {!n.editable && <p className="lock-note">This one is kept by {APP_NAME} and cannot be edited by hand.</p>}
         {err && <p className="field__error" role="alert">{err}</p>}
       </div>
       {n.editable && (

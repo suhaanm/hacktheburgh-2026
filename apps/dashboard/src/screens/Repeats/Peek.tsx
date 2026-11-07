@@ -4,6 +4,7 @@ import { useToast } from "../../components/Toasts";
 import { fmtMinutes, fmtRange, plainGate, STOPS_TEXT, timesText } from "../../components/repeats/model";
 import type { HitRow } from "../../components/repeats/types";
 import { watchFirst } from "./data";
+import { APP_NAME } from "../../brand";
 
 /**
  * What opens under a row when the worker presses Automate: what Understudy saw, what it would touch, where it would stop, and the one safe
@@ -49,7 +50,7 @@ export function Peek({ row, windowDays, source, close, onDone }: { row: HitRow; 
       )}
       {gate && (
         <div className="note note--warn" role="alert">
-          <p><b>Understudy would rather coach you on this one first.</b> {gate}</p>
+          <p><b>{APP_NAME} would rather coach you on this one first.</b> {gate}</p>
           <p>If you already know it well, say so. That is written into your memory file, and it still starts at the lowest rung.</p>
           <div className="row" style={{ marginTop: "var(--space-2)" }}>
             <button type="button" className="btn btn--secondary btn--sm" disabled={busy} onClick={() => void go(true)}>I already know this one</button>

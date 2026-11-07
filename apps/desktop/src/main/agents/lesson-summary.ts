@@ -4,6 +4,7 @@ import { AgentUserError } from './errors'
 import { defineAgent } from './ports'
 import type { AgentDeps, AgentOutcome, ExportFs, SummaryPorts } from './ports'
 import { inlineSafe, redactSensitive } from './text-safety'
+import { APP_NAME } from '../../shared/brand'
 
 export const SUMMARY_TIMEOUT_MS = 30_000
 
@@ -49,7 +50,7 @@ export function buildCarerNote(snapshot: LearnerSnapshot, at: Date): string | un
   const lines: string[] = [
     `# Lesson summary: ${skill}`,
     '',
-    `Written on ${at.toDateString()} by Alongside, an AI helper. This note holds summaries only. It never includes screens or messages.`,
+    `Written on ${at.toDateString()} by ${APP_NAME}, an AI helper. This note holds summaries only. It never includes screens or messages.`,
     '',
   ]
   if (session?.summary) lines.push('## What happened', '', note(session.summary), '')

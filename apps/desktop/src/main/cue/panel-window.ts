@@ -11,6 +11,7 @@ import type { PanelPort } from './controller'
 import { CUE_IPC, type CueCardAction, type CueView } from './ipc'
 import { CARD_SIDES, CHIP_SIDES, normBoxToRect, placeWindow, type Pt, type Rect } from './place'
 import { CUE_TOKENS } from './tokens'
+import { WINDOW_TITLES } from '../../shared/brand'
 
 export interface PanelWindowDeps {
   onAction(a: CueCardAction): void
@@ -109,7 +110,7 @@ export function createPanelWindow(deps: PanelWindowDeps): PanelWindow {
       // Focusable, so a click gives the page the keyboard; it is never shown with focus (showInactive below).
       focusable: true,
       ...(process.platform === 'darwin' ? { type: 'panel' as const } : {}),
-      title: 'Understudy Cue',
+      title: WINDOW_TITLES.cue,
       webPreferences: { preload: path.join(__dirname, '../preload/cue.js'), contextIsolation: true, sandbox: true, nodeIntegration: false, backgroundThrottling: false },
     })
     win = w

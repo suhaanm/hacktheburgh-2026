@@ -7,6 +7,7 @@ import { ErrorState, ExampleBadge, Loading, OriginBadge, PageHead, SourceNote } 
 import { Details } from "../components/ui";
 import { BUDGET_FLOOR, SAFETY_LINE, BUDGET_MAX, BUDGET_MIN, MODES, MODE_LABEL, STATE_WORD, budgetWords, clampBudget, groupTypes, hasLines, learnedLines, modeLine, needsYouLine, todayHeadline, todaySummary, whyLines, withMode, type Mode } from "../lib/attention";
 import type { AttentionPatch, AttentionSettings } from "../types";
+import { APP_NAME } from "../brand";
 
 /** "Why?" for one item that needs you: loaded the first time it is opened, in the engine's own fixed words. */
 function WhyItem({ id }: { id: string }) {
@@ -185,7 +186,7 @@ export default function Notices() {
 
       <section className="section" aria-labelledby="learn-h">
         <div className="section__head">
-          <h2 className="section__title" id="learn-h">What Understudy learned</h2>
+          <h2 className="section__title" id="learn-h">What {APP_NAME} learned</h2>
           <p className="section__sub">It can make a low-value kind quieter, never louder, and never quieter than the floors below.<Hint label="About learning">It watches how you react to notices.</Hint></p>
         </div>
         {learned.length === 0 ? <p className="note">Nothing yet. Every kind of notice is as loud as you set it.</p> : (
@@ -197,7 +198,7 @@ export default function Notices() {
             <button type="button" className="btn btn--quiet btn--sm" onClick={() => setConfirm(false)}>Keep it</button>
           </div>
         ) : (
-          <div><button type="button" className="btn btn--secondary btn--sm" onClick={() => setConfirm(true)}>Reset what Understudy learned</button></div>
+          <div><button type="button" className="btn btn--secondary btn--sm" onClick={() => setConfirm(true)}>Reset what {APP_NAME} learned</button></div>
         ))}
       </section>
 

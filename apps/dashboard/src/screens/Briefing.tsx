@@ -8,6 +8,7 @@ import { Details } from "../components/ui";
 import { useToast } from "../components/Toasts";
 import { KIND_LABEL, RISK_LABEL, checkedNote, cleanPrepared, expiresIn, fireRisk, fireWhat, firedText, preparedDirty, rankingParts } from "../lib/briefing";
 import type { BriefingCard, Prepared } from "../types";
+import { APP_NAME } from "../brand";
 
 const DEMO_PERSON = "p_ninetofive";
 /** About one row per 80 characters, never fewer than `min` or more than 10, so the whole text is visible while editing. */
@@ -41,7 +42,7 @@ export default function Briefing() {
       <SourceNote why={b.why} also={example ? "These are example cards. A button here only changes this screen, and nothing is created in the Queue or started as a run." : undefined} />
 
       {ready.length === 0 ? (
-        <EmptyState title="Nothing worth your time today" body={`Understudy only shows a card when it is clearly worth it, and never more than ${cap}. Check back tomorrow.`} />
+        <EmptyState title="Nothing worth your time today" body={`${APP_NAME} only shows a card when it is clearly worth it, and never more than ${cap}. Check back tomorrow.`} />
       ) : (
         <section className="stack" aria-label="Today's cards" style={{ gap: "var(--space-6)" }}>
           {ready.map((c) => (

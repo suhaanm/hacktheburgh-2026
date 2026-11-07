@@ -4,6 +4,7 @@
 import http from 'node:http'
 import { randomUUID } from 'node:crypto'
 import { BrowserWindow, screen, systemPreferences } from 'electron'
+import { WINDOW_TITLES } from '../../shared/brand'
 import type { Services } from '../../shared/contracts'
 import type { Annotation, ShotPurpose } from '../../shared/protocol'
 import { grayGrid } from '../capture/change-score'
@@ -103,7 +104,7 @@ export function installDev({ ctx, services }: DevDeps): void {
     inject(text, opts)
   }
 
-  const dockWindow = () => BrowserWindow.getAllWindows().find((w) => w.getTitle() === 'Alongside' && !w.isDestroyed())
+  const dockWindow = () => BrowserWindow.getAllWindows().find((w) => w.getTitle() === WINDOW_TITLES.panel && !w.isDestroyed())
 
   // Stage capture: when the OS refuses Screen Recording to this Electron build, the real Grounder/Verifier still see
   // exactly what the stage window paints (capturePage), same Shot shape. Mode: ALONGSIDE_DEV_CAPTURE=real|stage|auto (auto = stage
@@ -173,7 +174,7 @@ export function installDev({ ctx, services }: DevDeps): void {
         fullscreenable: false,
         hasShadow: false,
         backgroundColor: '#ffffff',
-        title: 'Alongside QA stage',
+        title: `${WINDOW_TITLES.main} QA stage`,
         webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false },
       })
       stage.on('closed', () => {

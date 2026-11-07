@@ -7,6 +7,7 @@ import { Details } from "../components/ui";
 import { Hint } from "../components/Hint";
 import { captureOn, removeLineText, replaceLineText, setCapture } from "../lib/memory";
 import type { Memory as MemoryT, RuleProposal } from "../types";
+import { APP_NAME } from "../brand";
 
 interface Row { no: number; raw: string; kind: "front" | "h" | "item" | "blank" | "text"; id: string | null; text: string; note: string | null }
 
@@ -86,7 +87,7 @@ export default function Memory() {
     try {
       if (row.id) await api.forget(row.id);
       else { const md = removeLineText(m.markdown, row.text); if (!md) throw new ApiError(404, "gone", "That line is not in the file any more."); await api.putMemory(md, m.revision); }
-      toast({ tone: "success", text: "Forgotten.", detail: "The line is gone from the file and from how Understudy behaves." });
+      toast({ tone: "success", text: "Forgotten.", detail: `The line is gone from the file and from how ${APP_NAME} behaves.` });
       setForget(null); mem.reload();
     } catch (e) { setErr(e instanceof ApiError ? e.message : "Could not remove it. Try again."); }
     finally { setBusy(false); }
@@ -112,7 +113,7 @@ export default function Memory() {
     <div className="page page--read">
       <PageHead
         eyebrow="Memory"
-        title="What Understudy knows about you"
+        title={`What ${APP_NAME} knows about you`}
         lede={<>One Markdown file on this device, owned by you. Only your own actions and approvals can change it.<Hint label="About who can change it">Text from a web page or a tool never can.</Hint></>}
         aside={<span className="pill pill--path"><b>rev {m.revision}</b>{shortPath(m.path)}</span>}
       />
@@ -194,14 +195,14 @@ export default function Memory() {
           </div>
         )}
         {err && <p className="field__error" role="alert">{err}</p>}
-        {itemCount === 0 && mode === "read" && <EmptyState title="Your memory file is empty" body="Choose a role in set-up and Understudy writes the first lines here. Everything in it stays on this device." action={<a className="btn btn--secondary" href="#/onboarding">Go to set-up</a>} />}
+        {itemCount === 0 && mode === "read" && <EmptyState title="Your memory file is empty" body={`Choose a role in set-up and ${APP_NAME} writes the first lines here. Everything in it stays on this device.`} action={<a className="btn btn--secondary" href="#/onboarding">Go to set-up</a>} />}
       </section>
 
       <hr className="rule" />
 
       <section className="section" aria-labelledby="rules-h">
         <div className="section__head">
-          <h2 className="section__title" id="rules-h">Rules Understudy would like to add</h2>
+          <h2 className="section__title" id="rules-h">Rules {APP_NAME} would like to add</h2>
           <p className="section__sub">After three matching corrections it proposes a rule. Nothing turns on until you approve it.<Hint label="About working-method rules">A working-method rule must first match expert results in shadow runs.</Hint></p>
         </div>
         {props.status === "loading" && !props.data ? <Loading label="Loading rule proposals" /> : props.status === "error" && !props.data ? <ErrorState error={props.error} retry={props.reload} what="rule proposals" /> : (

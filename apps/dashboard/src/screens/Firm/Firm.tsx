@@ -18,6 +18,7 @@ import { ADMIN_MARKER } from "../../components/home/viewAs";
 import { loadFirm as loadFirmHits } from "../Repeats/data";
 import { loadFirm, loadOnboarding, loadOverview, loadRoles } from "./data";
 import "../../components/firm/firm.css";
+import { APP_NAME } from "../../brand";
 
 const TITLE: Record<FirmTab, string> = {
   overview: "Seven things to know",
@@ -134,7 +135,7 @@ export default function Firm() {
   const route = useRoute();
   const tab = firmTabOf(route.path);
   const openId = route.query.get("insight");
-  useEffect(() => { document.title = `${TITLE[tab]} · Firm · Understudy`; }, [tab]);
+  useEffect(() => { document.title = `${TITLE[tab]} · Firm · ${APP_NAME}`; }, [tab]);
   const body = useMemo(() => {
     switch (tab) {
       case "roles": return <Roles />;

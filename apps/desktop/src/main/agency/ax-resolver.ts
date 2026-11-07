@@ -9,6 +9,7 @@
 import { execFile } from 'node:child_process'
 import type { NormBox, NormPoint } from '../../shared/protocol'
 import { pointsToNorm, type DisplayBounds } from '../actuator/mapping'
+import { isOwnApp } from './scope'
 
 export interface AxElement {
   role: string
@@ -245,7 +246,7 @@ export function createAxResolver(deps: AxResolverDeps = {}): AxResolve {
       const snap = await read()
       if (!snap || !snap.els.length) return null
       // Never resolve inside our own windows: the overlay and dock are not the target.
-      if (/^(Electron|Alongside)$/i.test(snap.app)) return null
+      if (isOwnApp(snap.app)) return null
       const r = resolveFromElements(label, snap.els, await bounds(), visionNorm)
       deps.log?.('ax', `app=${snap.app} els=${snap.els.length} ${r ? `${r.how} -> "${r.text}" at ${Math.round(r.center.x)},${Math.round(r.center.y)}` : 'no confident match'}`)
       return r

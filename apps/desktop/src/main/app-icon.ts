@@ -1,4 +1,4 @@
-// The app icon (build/icon.png, exported from packages/design/brand/understudy-mark.svg by scripts/make-icons.mjs): the dock icon
+// The app icon (build/icon.png, exported from the brand mark, packages/design/brand/knack-mark.svg, by scripts/make-icons.mjs): the dock icon
 // while the app runs from source or packaged. The .icns next to it is for the installer.
 import fs from 'node:fs'
 import path from 'node:path'

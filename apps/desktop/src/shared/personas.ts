@@ -1,6 +1,7 @@
-// One identity: Understudy. The old placeholder personas (Marcus, Amelia) are gone from every screen and setting; their entries stay
+// One identity: the product name (src/shared/brand.ts). The old placeholder personas (Marcus, Amelia) are gone from every screen and setting; their entries stay
 // below (`legacy`) only so the dormant wake and demo code and their tests keep compiling. Config only; nothing else in the codebase
 // may hard-code a name.
+import { APP_NAME } from './brand'
 import type { PersonaId } from './protocol'
 
 export interface PersonaConfig {
@@ -24,9 +25,10 @@ export interface PersonaConfig {
 export const PERSONAS: Record<PersonaId, PersonaConfig> = {
   understudy: {
     id: 'understudy',
-    displayName: 'Understudy',
+    displayName: APP_NAME,
     gender: 'female',
-    wakePhrases: ['hey understudy', 'hi understudy', 'ok understudy', 'okay understudy'],
+    // The product is Knack; the old name still wakes it for anyone who learned it (the wake word is off unless the worker turns it on).
+    wakePhrases: ['hey knack', 'hi knack', 'ok knack', 'okay knack', 'hey understudy', 'hi understudy', 'ok understudy', 'okay understudy'],
     wakeAliases: ['hey under study', 'hey understudies', 'hey under studied', 'hay understudy', 'a understudy', 'hey understudy.'],
     voiceName: 'River',
     styleBlurb: 'Learns how you work, then helps at the moment you need it. Calm, brief, never in the way.',

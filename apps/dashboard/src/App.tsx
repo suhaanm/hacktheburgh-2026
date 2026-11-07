@@ -12,6 +12,7 @@ import { ViewAsSwitch } from "./components/home/ViewAsSwitch";
 import { ScreenFrame } from "./components/home/ScreenFrame";
 import { Overlays } from "./components/home/Overlays";
 import { labelOf } from "./components/home/navModel";
+import { APP_NAME, BRAND_GLYPH_SVG, titled } from "./brand";
 import "./components/home/home.css";
 
 const screens: Record<Screen, ReturnType<typeof lazy>> = {
@@ -75,12 +76,10 @@ class Boundary extends Component<{ children: ReactNode; screen: string }, { erro
 
 function Wordmark() {
   return (
-    <a className="wordmark" href={`#/${DEFAULT_SCREEN}`} aria-label="Understudy home">
-      <svg width="22" height="16" viewBox="0 0 22 16" aria-hidden="true">
-        <rect x="0" y="2" width="14" height="4.5" rx="1" fill="var(--expert)" />
-        <rect x="4" y="9.5" width="18" height="4.5" rx="1" fill="var(--novice)" />
-      </svg>
-      <span>Understudy</span>
+    <a className="wordmark" href={`#/${DEFAULT_SCREEN}`} aria-label={`${APP_NAME} home`}>
+      {/* The brand glyph itself (packages/design/brand/knack-glyph.svg, currentColor), so replacing that file replaces the mark. */}
+      <span className="wordmark__glyph" aria-hidden="true" dangerouslySetInnerHTML={{ __html: BRAND_GLYPH_SVG }} />
+      <span>{APP_NAME}</span>
     </a>
   );
 }
@@ -237,7 +236,7 @@ function Shell() {
   }, []);
   // The data note describes the screen you are on, so count sources afresh for each screen.
   useEffect(() => { resetSources(); }, [current]);
-  useEffect(() => { setMenu(false); window.scrollTo(0, 0); document.title = `${labelOf(current)} · Understudy`; }, [current]);
+  useEffect(() => { setMenu(false); window.scrollTo(0, 0); document.title = titled(labelOf(current)); }, [current]);
   useEffect(() => { if (current === "unknown") navigate(`/${DEFAULT_SCREEN}`); }, [current]);
 
   const Screen = current === "unknown" ? screens[DEFAULT_SCREEN] : screens[current];

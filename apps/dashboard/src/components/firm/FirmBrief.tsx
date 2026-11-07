@@ -5,6 +5,7 @@ import { loadOnboarding, loadOverview, loadRoles } from "../../screens/Firm/data
 import { BRIEF_LIMITS, buildBrief, longDate } from "./brief";
 import { OnboardingCurves } from "./OnboardingCurves";
 import { FirmBadge } from "./Badges";
+import { APP_NAME } from "../../brand";
 
 /**
  * The firm brief: one A4 page, printable (the screen's own menu and controls are left out of the print). It reads the same three answers as the
@@ -31,7 +32,7 @@ export function FirmBrief() {
       </div>
       <article className="brief-page" aria-labelledby="brief-title">
         <header className="brief-page__head">
-          <p className="t-label">Understudy · firm brief</p>
+          <p className="t-label">{APP_NAME} · firm brief</p>
           <h2 id="brief-title" className="brief-page__title">How people are getting on</h2>
           <p className="brief-page__sub">{[brief.label, date ? `as of ${date}` : null, brief.summary].filter(Boolean).join(" · ")}</p>
           <p className="brief-page__statement">{brief.statement}</p>

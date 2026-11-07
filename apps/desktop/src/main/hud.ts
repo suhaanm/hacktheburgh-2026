@@ -6,6 +6,7 @@ import { BrowserWindow, ipcMain, screen } from 'electron'
 import { HUD_IPC } from '../shared/hud'
 import type { HudModel } from './hud-model'
 import { hudBounds } from './hud-model'
+import { WINDOW_TITLES } from '../shared/brand'
 
 export interface HudDeps {
   model: HudModel
@@ -50,7 +51,7 @@ export function registerHud(deps: HudDeps): HudHandle {
     skipTaskbar: true,
     alwaysOnTop: true,
     ...(process.platform === 'darwin' ? { type: 'panel' as const } : {}),
-    title: 'Understudy',
+    title: WINDOW_TITLES.hud,
     webPreferences: { preload: path.join(__dirname, '../preload/hud.js'), contextIsolation: true, sandbox: true, nodeIntegration: false, backgroundThrottling: false },
   })
   win.setAlwaysOnTop(true, 'screen-saver', 2)

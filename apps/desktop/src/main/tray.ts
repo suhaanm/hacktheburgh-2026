@@ -14,6 +14,7 @@ import { captureLabel, type CaptureMode } from './engine/capture-consent'
 import { START_ACCELERATORS, STOP_ACCELERATORS, PANEL_ACCELERATORS, KILL_ACCELERATORS, TALK_FALLBACKS } from './hotkey'
 import { trayStateKind, trayTitle } from './panel-rules'
 import type { Windows } from './windows'
+import { APP_NAME } from '../shared/brand'
 
 // The menu-bar icon is the brand mark; its state is a tiny badge, no colour (template images are black and alpha):
 //   idle    the mark alone        acting  a 3 px dot: an agent is acting for the person     glance  a 3 px ring: a glance is in flight
@@ -218,7 +219,7 @@ export function buildMenuEntries(model: TrayModel, now: number = Date.now()): Me
       : []),
     { id: 'permissions', label: 'Permissions…', enabled: true },
     sep('sep4'),
-    { id: 'quit', label: 'Quit Understudy', enabled: true },
+    { id: 'quit', label: `Quit ${APP_NAME}`, enabled: true },
   ]
   return entries.filter((e): e is MenuEntry => e !== null)
 }
@@ -492,10 +493,10 @@ export function registerTray(deps: TrayDeps): ShellTray {
     const pausedText = pausedLabel(m.pausedUntil, nowMs())
     const kind = iconKind({ ...m, paused: pausedText !== undefined })
     const needs = attentionLine(m.attention)
-    const tooltip = `Understudy: ${describeStatus({ ...m, pausedLabel: pausedText })}${needs ? `. ${needs}` : ''}`
+    const tooltip = `${APP_NAME}: ${describeStatus({ ...m, pausedLabel: pausedText })}${needs ? `. ${needs}` : ''}`
     const image = iconFor(kind)
     // macOS shows this word next to the icon. Icon file missing: still show something. A dot follows it while something needs the worker.
-    const word = trayTitle(m) || (image.isEmpty() ? 'Understudy' : '')
+    const word = trayTitle(m) || (image.isEmpty() ? APP_NAME : '')
     const title = m.attention?.marker === 'needs_you' ? [word, ATTENTION_DOT].filter(Boolean).join(' ') : word
     const key = `${kind}|${tooltip}|${title}`
     if (key === shownKey) return
@@ -562,7 +563,7 @@ export function registerTray(deps: TrayDeps): ShellTray {
       return {
         exists: tray !== null,
         bounds: tray ? tray.getBounds() : null,
-        tooltip: `Understudy: ${describeStatus({ ...m, pausedLabel: pausedText })}${attentionLine(m.attention) ? `. ${attentionLine(m.attention)}` : ''}`,
+        tooltip: `${APP_NAME}: ${describeStatus({ ...m, pausedLabel: pausedText })}${attentionLine(m.attention) ? `. ${attentionLine(m.attention)}` : ''}`,
         title: shownTitle,
         icon: iconKind({ ...m, paused: pausedText !== undefined }),
         panelVisible: m.dockVisible,

@@ -5,6 +5,7 @@ import { ErrorState, Loading, OriginBadge } from "../components/common";
 import { buildPreview } from "../lib/memoryPreview";
 import { normDays } from "../lib/days";
 import type { OnboardingAnswers, OnboardingQuestion, OnboardingQuestions, OnboardingResult, Pack } from "../types";
+import { APP_NAME } from "../brand";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const defaultHours = { start: "09:00", end: "17:30", days: [0, 1, 2, 3, 4] };
@@ -122,7 +123,7 @@ export default function Onboarding() {
                 <label className="role-card">
                   <input type="radio" name="capture" value="yes" checked={answers.capture === true} onChange={() => setAnswers((x) => ({ ...x, capture: true }))} />
                   <span className="role-card__name">Yes, record times</span>
-                  <span className="role-card__desc">Understudy learns your working rhythm, so it can find the free hours.</span>
+                  <span className="role-card__desc">{APP_NAME} learns your working rhythm, so it can find the free hours.</span>
                 </label>
                 <label className="role-card">
                   <input type="radio" name="capture" value="no" checked={answers.capture === false} onChange={() => setAnswers((x) => ({ ...x, capture: false }))} />
