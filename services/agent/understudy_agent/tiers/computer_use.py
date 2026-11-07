@@ -27,6 +27,7 @@ from ..models.meter import call_context
 from ..models.port import Action, Done, ModelPort, SafetyStop
 from ..supervisor import kill_flag_path
 from .base import Emit, StepBudgetExceeded, StepEvent, StuckDetector, StuckLoop, TierError
+from .form_audit import FormAudit, FormAuditStop, key_names, token
 from .safety import Guard
 
 
@@ -350,6 +351,43 @@ class BrowserPageActuator:
             reads.append(TargetRead(r["label"], r["role"], self.url, r.get("field"), tuple(r.get("structure") or ()))
                          if r and r.get("ok") else None)
         return merge_reads(reads)
+
+    async def _eval_isolated(self, js: str, arg: dict[str, Any]) -> Any:
+        """Run a page script in the same ISOLATED world as the target read (the page's own scripts cannot replace any function it uses)
+        and return its value. Raises on any failure: the callers turn that into `unreadable`, never into "fine"."""
+        import json as _json
+
+        ctx = getattr(self.page, "context", None)
+        if ctx is None:
+            return await self.page.evaluate(js, arg)
+        cdp = await ctx.new_cdp_session(self.page)
+        try:
+            fid = (await cdp.send("Page.getFrameTree"))["frameTree"]["frame"]["id"]
+            world = await cdp.send("Page.createIsolatedWorld", {"frameId": fid, "worldName": "understudy-read"})
+            r = await cdp.send("Runtime.evaluate", {"expression": f"({js})({_json.dumps(arg)})",
+                                                    "contextId": world["executionContextId"], "returnByValue": True})
+            if "exceptionDetails" in r:
+                raise RuntimeError("the isolated script failed")
+            return r["result"].get("value")
+        finally:
+            try:
+                await cdp.detach()
+            except Exception:  # noqa: BLE001
+                pass
+
+    async def read_back(self, *, expected: str, hint: list[str] | None = None) -> dict[str, Any]:
+        """Did the text just typed land in the control that has focus? The comparison runs inside the page script: `expected` goes in, and
+        only enums, a short id token and a position come back (never the control's value). See tiers/form_audit.py."""
+        from .form_audit import READ_BACK_JS, script_arg
+
+        return await self._eval_isolated(READ_BACK_JS, script_arg(expected=expected, hint=hint))
+
+    async def audit_form(self, items: list[dict[str, Any]], *, stray: bool = False) -> dict[str, Any]:
+        """The pre-submit audit: for each item (a handle, the value it should hold and where it was bound) say whether the page holds
+        it. Enums only come back."""
+        from .form_audit import AUDIT_FORM_JS, script_arg
+
+        return await self._eval_isolated(AUDIT_FORM_JS, script_arg(items=items, stray=stray))
 
     async def screenshot(self) -> bytes:
         """A click that submits a form can leave the page mid-navigation; wait for it, and retry once on a timeout."""
@@ -1069,6 +1107,10 @@ class Tier3Result:
     resets: int = 0                    # times the provider's conversation was restarted from the compact task state
     nudges: int = 0                    # times the model ended its turn early and the system told it, in its own words, to continue
     premature_claims: int = 0          # of those, how many were a claimed success that code then refused to confirm
+    inputs: str = "n/a"                # the form audit's state when the loop ended (n/a | unaudited | clean | mismatch | uncertain); tiers/form_audit.py
+    readback_failures: int = 0         # typed handles that did NOT land in the control that had focus (the handle stays pending)
+    audit_blocks: int = 0              # final-button presses held back because the form was not as the facts say
+    audit: dict[str, Any] = field(default_factory=dict)   # the audit's summary: enums, counts and handle ids only
 
 
 FP_SIZE = (640, 400)
@@ -1138,7 +1180,8 @@ class ComputerUse:
                  max_steps: int = 120, deadline_s: float = 600.0, screenshot_size: tuple[int, int] = (1280, 720),
                  facts: Any = None, stall_limit: int = 12, pause: Any = None, context_reset_every: int = 4, max_nudges: int = 2, stateless: bool | None = None,
                  resume_wm: dict[str, Any] | None = None, page_kept: bool = False,
-                 on_snapshot: Callable[[int, dict[str, Any]], None] | None = None, postcondition: str = "final_page") -> None:
+                 on_snapshot: Callable[[int, dict[str, Any]], None] | None = None, postcondition: str = "final_page",
+                 form_audit: FormAudit | None = None) -> None:
         if stateless is None:                    # UNDERSTUDY_CU_STATELESS=0 opts back into the chained provider thread (comparison only)
             stateless = os.environ.get("UNDERSTUDY_CU_STATELESS", "1").strip().lower() not in ("0", "false", "no", "off")
         self.stateless = stateless               # no provider-side thread: each step is goal + code-built working memory + ONE fresh frame
@@ -1156,6 +1199,10 @@ class ComputerUse:
         self.resume_wm, self.page_kept, self.on_snapshot, self.postcondition = resume_wm, page_kept, on_snapshot, postcondition
         self.wm: Any = None
         self.last_manifest: dict[str, Any] | None = None
+        # The typed-input read-back and the pre-submit audit (tiers/form_audit.py). Only an actuator that can read the page's controls takes
+        # part (the page actuator); the desktop and simulated actuators run exactly as before.
+        self.form_audit = form_audit
+        self._audit_logged = 0
 
     def _snapshot(self, steps: int, wm: Any) -> None:
         if self.on_snapshot is None:
@@ -1216,6 +1263,43 @@ class ComputerUse:
         if self.emit:
             self.emit(ev)
 
+    def _page_key(self) -> str:
+        """A short id for the page the actuator is on (its URL path), so the audit can tell one page of a wizard from the next."""
+        url = getattr(self.actuator, "url", None)
+        if not url:
+            return ""
+        import hashlib as _h
+        from urllib.parse import urlsplit
+
+        return "p" + _h.sha1(urlsplit(url).path.encode()).hexdigest()[:8]
+
+    def _audit_in_use(self) -> FormAudit | None:
+        a = self.form_audit
+        if a is not None and callable(getattr(self.actuator, "read_back", None)) and callable(getattr(self.actuator, "audit_form", None)):
+            return a
+        return None
+
+    def _flush_audit(self, audit: FormAudit) -> None:
+        """One audit line per new record: kind, handle id, reason (all tokens; never a value)."""
+        for rec in audit.records[self._audit_logged:]:
+            self.guard.note("form_audit", rec["match"], f"{rec['k']}:{rec['handle'] or 'form'}:{rec['reason']}", tier=3)
+        self._audit_logged = len(audit.records)
+
+    @staticmethod
+    def _act_detail(act: Action, tr: "TargetRead | None") -> str:
+        """What the step touched, as enums and the page's own control id as a short token: never typed text, never a label. This is
+        what makes a misplaced click or key visible in the evidence afterwards."""
+        bits: list[str] = []
+        if act.kind == "key":
+            bits.append(f"keys={key_names([str(k) for k in act.args.get('keys', [])])}")
+        if tr is not None:
+            bits.append(f"role={token(tr.role, 16) or '?'}")
+            fa = tr.field_attrs or {}
+            ident = token(fa.get("id") or fa.get("name"))
+            if ident:
+                bits.append(f"field={ident}")
+        return " ".join(bits)
+
     async def run(self, goal: str, verify: Callable[[], Awaitable[bool]]) -> Tier3Result:
         from .facts import FactRefused, UnresolvedFact, key_would_type_text
 
@@ -1232,6 +1316,7 @@ class ComputerUse:
         if callable(attach):          # test doubles that need the actuator's page; real providers have no such hook
             attach(self.navigator, self.actuator)
         res = Tier3Result("step_cap")
+        audit = self._audit_in_use()
         wm = None
         synced = 0
         base_step = 0
@@ -1355,6 +1440,13 @@ class ComputerUse:
                     res.done_summary_len = len(out.summary or "")
                     res.last_summary = out.summary or ""
                     ok = await verify()
+                    inputs_refused = False
+                    if ok and audit is not None and not audit.inputs_ok:
+                        # The final page is showing, but the last pre-submit audit was not clean (or there was none): nothing confirms the
+                        # form held the household's facts when the calculation was asked for. A claim is not believed on that.
+                        ok, inputs_refused = False, True
+                    if audit is not None:
+                        res.inputs, res.audit = audit.state, audit.summary()
                     if ok:                                       # code looked at the final page and it is the page the goal describes
                         res.history.append({"kind": "verify", "ok": True, "verified": self.postcondition})
                     if wm is not None:
@@ -1363,7 +1455,8 @@ class ComputerUse:
                     res.false_claim = bool(out.claimed_success and not ok)
                     res.outcome = "done" if ok else ("claimed_not_verified" if out.claimed_success else "gave_up")
                     self._event(n, "done", ok, "claim verified" if ok else (
-                        "claim NOT verified by code" if out.claimed_success else "the model said it could not finish"))
+                        ("claim NOT verified by code (the form audit did not confirm the inputs)" if inputs_refused
+                         else "claim NOT verified by code") if out.claimed_success else "the model said it could not finish"))
                     return res
                 handle: str | None = None
                 if self.facts is not None:
@@ -1393,6 +1486,23 @@ class ComputerUse:
                 # What the gate sees is what TRUSTED code reads at the target. The model's own `label` is only a hint
                 # that can add risk (it stays in the action's args); it never makes a step "resolved" (S-01).
                 tr = await self._read_target(out)
+                if audit is not None and audit.is_final(out.kind, out.args, tr.label if tr else None):
+                    # The press of the FINAL button (or Enter that would press it): code reads every control back first. Anything that is
+                    # not as the facts say holds the press and tells the navigator which handles (ids and a closed reason, never a
+                    # value). Deterministic code, before any model call is spent on the step, and before the gate authorises it.
+                    pre = await audit.before_final(self.actuator, step=n, page_key=self._page_key())
+                    self._flush_audit(audit)
+                    if pre.state != "clean":
+                        res.audit_blocks += 1
+                        res.history.append({"kind": out.kind, "ok": False, "why": "form_not_ready"})
+                        self._event(n, out.kind, False, f"held: form check {pre.state}, {len(pre.bad)} not as it should be, "
+                                                        f"{len(pre.unreadable)} could not be read")
+                        if pre.state == "uncertain":
+                            raise FormAuditStop("a field could not be read, so a person is asked", retryable=False)
+                        if pre.exhausted:
+                            raise FormAuditStop("the form was still not right after the allowed number of checks on this page", retryable=True)
+                        feedback = audit.block_note(pre)
+                        continue
                 dec = self.guard.authorise(out, pobs, label=tr.label if tr else None, role=tr.role if tr else None,
                                            url=(tr.url if tr else None) or getattr(self.actuator, "url", None),
                                            field_attrs=tr.field_attrs if tr else None, screen=self.size,
@@ -1443,15 +1553,29 @@ class ComputerUse:
                         self._event(n, "type_fact", True, f"handle={handle} (no value for this household)")
                         continue
                     await self.actuator.execute(Action("type", {"text": value}))
+                    rb = None
+                    if audit is not None:
+                        # Read the focused control back: did the text land? The page script compares; only enums come back.
+                        rb = await audit.after_type(self.actuator, handle, value, step=n, page_key=self._page_key())
+                        self._flush_audit(audit)
                     del value
+                    if rb is not None and rb.landed == "no":
+                        res.readback_failures += 1
+                        res.history.append({"kind": "type", "handle": handle, "ok": False, "why": "not_landed"})
+                        self._event(n, "type_fact", False, f"handle={handle} landed=no reason={rb.reason} focus={rb.focus} field={rb.field}")
+                        if audit.readback_exhausted(handle):
+                            raise FormAuditStop(f"{handle} would not land after {audit.max_readback_fails} tries", retryable=True)
+                        feedback = audit.readback_note(handle, rb)
+                        continue
                     res.history.append({"kind": "type", "handle": handle, "ok": True})
-                    self._event(n, "type_fact", True, f"handle={handle}")
+                    self._event(n, "type_fact", True, f"handle={handle}" + (
+                        f" focus={rb.focus} field={rb.field} landed={rb.landed}" if rb is not None else ""))
                     continue
                 retargets = 0
                 await self.actuator.execute(act)
                 self.guard.record(dec, True)
                 res.history.append({"kind": act.kind, "args": {k: v for k, v in act.args.items() if k != "text"}, "ok": True})
-                self._event(n, act.kind, True)
+                self._event(n, act.kind, True, self._act_detail(act, tr))
             raise StepBudgetExceeded(f"tier 3 step cap {self.max_steps} reached")
         finally:
             await self.actuator.release_all()

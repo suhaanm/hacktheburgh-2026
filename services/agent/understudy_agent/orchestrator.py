@@ -23,7 +23,7 @@ from typing import Any, Callable
 from .audit import AuditLog
 from .checkpoint import CheckpointError, RunCheckpoint, calc_result
 from .completion import (
-    NOTE_ID_RE, ClaimLedger, CompletionResult, ResultFields, check_completion, validate_result_fields,
+    INPUTS_OK, NOTE_ID_RE, ClaimLedger, CompletionResult, ResultFields, check_completion, validate_result_fields,
 )
 from .models.port import ModelPort
 from .navigator import CalculatorJob, CaseNoteJob, NavResult, Navigator, RESULT_SCHEMA
@@ -621,7 +621,7 @@ class BenefitsRun:
             res.cliff_checked[s] = good[s].cliff_checked
             nav_steps = navs[s].steps if s in navs else good[s].steps
             res.results[s] = good[s].value.as_dict() | {"tiers": good[s].tiers_used, "steps": nav_steps,
-                                                        "cliff": good[s].cliff_text[:400]}
+                                                        "cliff": good[s].cliff_text[:400], "inputs": good[s].inputs_audit}
         self._ckpt_stage("verified")
         if self.opt.screenshots:
             for i, (s, r) in enumerate(good.items(), 1):
@@ -703,7 +703,7 @@ class BenefitsRun:
 
         # ---- completion: code decides, on a fresh observation of the final page
         final = await observe(sres.page)
-        comp = check_completion(final.text, results, res.note_id)
+        comp = check_completion(final.text, results, res.note_id, input_audits={s: r.inputs_audit for s, r in nres.items()})
         res.completion = comp.as_dict()
         if comp.ok:
             self._mark("verify_note")
@@ -758,6 +758,9 @@ class BenefitsRun:
         first: ResultFields = nr.value
         if again is None or (again.amount, again.ref, again.eligible) != (first.amount, first.ref, first.eligible):
             return False, "fresh observation does not match what the navigator reported"
+        if nr.inputs_audit not in INPUTS_OK:
+            # the figure reads fine, but the form audit did not confirm the form held the household's facts: not a result we report
+            return False, f"inputs not verified ({nr.inputs_audit})"
         return True, ""
 
     async def _shot(self, page: Any, n: int, name: str) -> str | None:

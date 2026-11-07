@@ -25,7 +25,8 @@ from .tiers.base import (
 )
 from .tiers.browser_agent import BrowserAgent, Tier2Task
 from .tiers.computer_use import Actuator, BrowserPageActuator, ComputerUse, ProviderSafetyStop
-from .tiers.facts import FactStore
+from .tiers.facts import FactStore, calculator_field_hints, casenote_field_hints
+from .tiers.form_audit import FormAudit, FormAuditStop
 from .tiers.dsl import DslRuntime, run_bundle
 from .tiers.observe import observe
 from .tiers.safety import Guard
@@ -123,6 +124,15 @@ class CalculatorJob:
         """The handles tier 3 may type for this site; values resolve in code at actuation time."""
         return FactStore.for_calculator(self.site, self.params)
 
+    def final_labels(self) -> tuple[str, ...]:
+        """The name(s) of the button that asks for the calculation (the last forward button, in both layouts): the pre-submit audit holds
+        its press until every fact is in the form (tiers/form_audit.py). The goal text is not touched by this."""
+        spec = SITES[self.site]
+        return tuple(dict.fromkeys((spec.button_labels("v1")[-1], spec.button_labels("v2")[-1])))
+
+    def field_hints(self) -> dict[str, tuple[str, ...]]:
+        return calculator_field_hints(self.site)
+
 
 class CaseNoteJob:
     kind = "casenote"
@@ -155,6 +165,12 @@ class CaseNoteJob:
     def facts(self) -> FactStore:
         return FactStore.for_casenote(self.params)
 
+    def final_labels(self) -> tuple[str, ...]:
+        return ("Save draft",)
+
+    def field_hints(self) -> dict[str, tuple[str, ...]]:
+        return casenote_field_hints()
+
     def finalize(self, outputs: dict[str, Any]) -> dict[str, Any] | None:
         nid = str(outputs.get("note_id", ""))
         if not NOTE_ID_RE.fullmatch(nid):
@@ -179,6 +195,7 @@ class NavResult:
     cliff_checked: bool = False
     cliff_text: str = ""
     raw_outputs: dict[str, Any] = field(default_factory=dict)
+    inputs_audit: str = "n/a"       # the form audit's verdict on what was entered (tier 3 only): n/a | unaudited | clean | mismatch | uncertain
 
 
 class Navigator:
@@ -237,6 +254,8 @@ class Navigator:
         self.t3_runs: list[dict[str, Any]] = []     # one record per tier-3 attempt: outcome, counts and the model's own closing words
         self.refusals = 0
         self.tiers_used: list[int] = []
+        self.last_inputs_audit = "n/a"                  # the latest tier-3 attempt's form-audit state (tiers/form_audit.py)
+        self.last_audit_summary: dict[str, Any] = {}    # and its summary: enums, counts and handle ids only
 
     # ------------------------------------------------------------------ plumbing
     def _emit(self, ev: StepEvent) -> None:
@@ -337,12 +356,18 @@ class Navigator:
         vp = page.viewport_size or {"width": 1280, "height": 800}
         if self._wm_snap is not None:
             self.wm_carried += 1
+        facts = job.facts()
+        # The typed-input read-back and the pre-submit audit (tiers/form_audit.py). Sandbox jobs know the page's own ids for each handle and
+        # the name of the final button; a job without a fact store has nothing to audit.
+        audit = None if facts is None else FormAudit(facts, final_labels=getattr(job, "final_labels", lambda: ())(),
+                                                     field_hints=getattr(job, "field_hints", lambda: {})(), strict_stray=True)
         cu = ComputerUse(self.model, actuator, self.guard, navigator=self.id, emit=self._emit,
                          is_current=self.is_current, step_start=self.steps, max_steps=self.t3_max_steps,
-                         facts=job.facts(), stall_limit=self.stall_limit, pause=self.pause,
+                         facts=facts, stall_limit=self.stall_limit, pause=self.pause,
                          screenshot_size=(int(vp["width"]), int(vp["height"])),
                          resume_wm=self._wm_snap, page_kept=kept, on_snapshot=self._snap,
-                         postcondition=f"final_page_{re.sub(r'[^a-z0-9]', '', str(job.site).lower())[:20] or 'x'}")
+                         postcondition=f"final_page_{re.sub(r'[^a-z0-9]', '', str(job.site).lower())[:20] or 'x'}",
+                         form_audit=audit)
         last: dict[str, Any] = {}
 
         async def verify() -> bool:
@@ -351,16 +376,29 @@ class Navigator:
                 last.update(raw)
             return raw is not None
 
+        def audit_record() -> dict[str, Any]:
+            if audit is None or cu._audit_in_use() is None:      # no audit took part (a desktop or simulated actuator, or no handles)
+                return {}
+            s = audit.summary()
+            return {"inputs": s["state"], "form_audit": {**{k: v for k, v in s.items() if k != "records"}, "records": s["records"][:80]},
+                    "readback_failures": sum(1 for r in s["records"] if r["k"] == "readback" and r["match"] == "no")}
+
         try:
             res = await cu.run(job.goal, verify)
         except BaseException as exc:
-            self.t3_runs.append({"navigator": self.id, "outcome": f"stopped:{type(exc).__name__}", "steps": cu.last_steps})
+            extra = audit_record()
+            self.last_inputs_audit = extra.get("inputs", "n/a")
+            self.last_audit_summary = extra.get("form_audit", {})
+            self.t3_runs.append({"navigator": self.id, "outcome": f"stopped:{type(exc).__name__}", "steps": cu.last_steps, **extra})
             raise
+        extra = audit_record()
+        self.last_inputs_audit = extra.get("inputs", "n/a")
+        self.last_audit_summary = extra.get("form_audit", {})
         self.t3_runs.append({"navigator": self.id, "outcome": res.outcome, "steps": res.steps, "progress_steps": res.progress_steps,
                              "refusals": res.refusals, "claimed_done": res.claimed_done, "false_claim": res.false_claim,
                              "resets": res.resets, "nudges": res.nudges, "premature_claims": res.premature_claims,
                              "prompt_chars": list(res.prompt_chars),
-                             "summary": re.sub(r"\d{3,}", "#", res.last_summary or "")[:300]})   # the model's own words, digit runs masked
+                             "summary": re.sub(r"\d{3,}", "#", res.last_summary or "")[:300], **extra})   # the model's own words, digit runs masked
         self.tier3_steps += res.steps
         self.refusals += res.refusals
         if res.false_claim:
@@ -389,6 +427,7 @@ class Navigator:
                 if mode == "fresh":
                     page = await self._fresh_page(job, page)
                 tried += 1
+                self.last_inputs_audit, self.last_audit_summary = "n/a", {}
                 try:
                     if tier == 1:
                         outputs = await self._tier1(page, job)
@@ -401,6 +440,7 @@ class Navigator:
                         raise TierError("outputs failed code validation")
                     res.value, res.state, res.page = value, "done", page
                     res.raw_outputs = outputs
+                    res.inputs_audit = self.last_inputs_audit
                     if job.kind == "calculator" and not self.defer_cliff:
                         await self._cliff_check(page, job, outputs, res)
                     break
@@ -418,7 +458,9 @@ class Navigator:
                         transient = (await page.locator('[role="alert"]').count()) > 0
                     except Exception:  # noqa: BLE001
                         pass
-                    if tried >= 5:
+                    if isinstance(exc, FormAuditStop) and not exc.retryable:
+                        plan = []                    # the audit could not decide (a control it cannot read): a second try would see the same
+                    elif tried >= 5:
                         plan = []
                     elif tier == 1:
                         plan = ["t1_fresh", "t2_fresh"] if transient else ["t2_keep", "t2_fresh"]
@@ -521,7 +563,10 @@ class Navigator:
             kind="batch_result", title=f"Needs a human: {job.label}",
             summary=f"{self.id} could not finish after {len(res.attempts)} attempts; nothing was submitted.",
             risk_class="normal",
-            evidence={"screenshots": [], "extracted": {}, "expected": {}, "diff": [],
+            evidence={"screenshots": [], "extracted": ({"inputs_audit": self.last_inputs_audit,
+                                                         "handles_not_entered": list(self.last_audit_summary.get("pending", []))[:12]}
+                                                        if self.last_inputs_audit != "n/a" else {}),
+                      "expected": {}, "diff": [],
                       "tier_log": [{"attempt": i + 1, "tier": a["tier"], "error": a["error"]}
                                    for i, a in enumerate(res.attempts)]})
         self.guard.note("escalate", "human", "attempts_exhausted")

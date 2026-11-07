@@ -59,6 +59,25 @@ _CANON = {"household.adults": "adults", "household.adult1_age": "adult1_age", "h
           "household.savings": "savings", "household.childcare": "childcare_monthly"}
 
 
+def calculator_field_hints(site: str) -> dict[str, tuple[str, ...]]:
+    """handle -> the page's own ids and names a handle belongs in on this site, in both layouts (sandbox sites only: a real page has no
+    such table). The form audit uses it to say `wrong_field` when text went into some other control."""
+    spec = SITES[site]
+    return {h: tuple(dict.fromkeys(k.lower() for k in (spec.fields("v1")[c], spec.fields("v2")[c]))) for h, c in _CANON.items()}
+
+
+def casenote_field_hints() -> dict[str, tuple[str, ...]]:
+    """The same for the case-note form: each handle's control id (both layouts) and its form field name."""
+    from ..sandbox_sites.specs import CASENOTE_FIELDS_V1, CASENOTE_FIELDS_V2
+
+    out: dict[str, tuple[str, ...]] = {}
+    for handle, key in (("note.case_ref", "case_ref"), ("note.result_a", "result_a"), ("note.result_b", "result_b"),
+                        ("note.result_c", "result_c"), ("note.reconciliation", "reconciliation"), ("note.text", "note_text")):
+        ids = [CASENOTE_FIELDS_V1[key].lstrip("#"), CASENOTE_FIELDS_V2[key].lstrip("#"), key]
+        out[handle] = tuple(dict.fromkeys(i.lower() for i in ids))
+    return out
+
+
 class FactRefused(ValueError):
     """The typed text is not exactly one known handle. `code` is audit-safe: no text is ever copied into it."""
 
@@ -150,6 +169,18 @@ class FactStore:
         if handle not in self._resolvers:
             raise UnresolvedFact(f"unknown handle {handle!r}")
         self.resolved.append(handle)
+        return self._resolvers[handle]()
+
+    # ---- for the form audit (tiers/form_audit.py): compare what a page holds with what code typed. The value goes straight into a page
+    # script's argument and is not kept; these do not count as a resolution for the model's typing.
+    def has_value(self, handle: str) -> bool:
+        """True when this handle has something to type for this task (an empty value means nothing is typed and nothing is required)."""
+        r = self._resolvers.get(handle)
+        return bool(r is not None and r() != "")
+
+    def peek(self, handle: str) -> str:
+        if handle not in self._resolvers:
+            raise UnresolvedFact(f"unknown handle {handle!r}")
         return self._resolvers[handle]()
 
 
