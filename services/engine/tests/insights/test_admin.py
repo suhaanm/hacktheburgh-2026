@@ -179,7 +179,7 @@ def test_per_user_rows_are_numbers_and_enums_in_label_order_with_no_rank_or_scor
     for r in rows:
         assert not (set(r) & forbidden)
         assert set(r) == {"id", "label", "role", "level", "unit", "tenure_band", "tenure_weeks", "status", "trend", "trend_label", "independence", "assisted_share",
-                          "time_to_independence", "automations_running", "automation", "n", "n_recent", "last_seen_days", "skills", "origin"}
+                          "time_to_independence", "automations_running", "automation", "n", "n_recent", "last_seen_days", "skills", "origin", "name"}
         assert r["trend"] in V.TREND_CLASSES and r["status"] in V.STATUSES_PERSON and r["tenure_band"] in V.TENURE_BANDS
 
 

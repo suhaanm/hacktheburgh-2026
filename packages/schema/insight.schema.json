@@ -400,6 +400,13 @@
         },
         "origin": {
           "$ref": "#/$defs/origin"
+        },
+        "stand_in": {
+          "const": true
+        },
+        "stand_in_label": {
+          "type": "string",
+          "maxLength": 24
         }
       }
     },
@@ -715,6 +722,13 @@
         },
         "origin": {
           "$ref": "#/$defs/origin"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 60
         }
       }
     },

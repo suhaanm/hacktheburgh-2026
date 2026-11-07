@@ -28,6 +28,7 @@ from .rows import (
     lost_values,
     row_t,
 )
+from .names import assign_names
 from .types import FirmSnapshot, PersonRecord
 
 _ASSIST_STATUS_OK = ("ok",)
@@ -73,6 +74,7 @@ class PersonSummary:
     reached: bool
     reached_at: int | None
     origin: str
+    name: str | None = None                      # an invented display name (synthetic firm only; display only: ``label`` stays the stable id and the sort key)
     _rows: tuple[dict[str, Any], ...] = field(default=(), repr=False)         # private: never serialised
     _grace: tuple[bool, ...] = field(default=(), repr=False)
     _person: PersonRecord | None = field(default=None, repr=False)
@@ -93,6 +95,7 @@ class PersonSummary:
             "time_to_independence": {"reached": self.reached, "value": self.reached_at, "unit": "occurrences"},
             "automations_running": int(self.automation.get("routines_approved", 0)), "automation": dict(self.automation), "n": int(self.n),
             "n_recent": int(self.n_recent), "last_seen_days": self.last_seen_days, "skills": [dict(s) for s in self.skills], "origin": self.origin,
+            "name": self.name,
         }
 
 
@@ -118,8 +121,17 @@ def _trend_class(rows: list[dict[str, Any]], seed: int) -> str:
     return {"less_help": "improving", "more_help": "needs_attention", "steady": "cannot_tell_yet", "too_early": "not_enough_data"}.get(tr.get("direction"), "not_enough_data")
 
 
-def summarise(person: PersonRecord, snap: FirmSnapshot, p: Params = DEFAULT) -> PersonSummary:
+def firm_names(snap: FirmSnapshot) -> dict[str, str]:
+    """``label -> invented name`` for the synthetic firm (``names.assign_names``); empty for a real ledger, which gets no invented name."""
+    if snap.badge != "synthetic firm":
+        return {}
+    return assign_names((pr.label or pr.id) for pr in snap.people)
+
+
+def summarise(person: PersonRecord, snap: FirmSnapshot, p: Params = DEFAULT, names: dict[str, str] | None = None) -> PersonSummary:
     now = snap.now
+    if names is None:
+        names = firm_names(snap)
     rows = current_role_rows(person)
     n = len(rows)
     last_t = max((row_t(r) for r in rows), default=None)
@@ -157,7 +169,7 @@ def summarise(person: PersonRecord, snap: FirmSnapshot, p: Params = DEFAULT) -> 
         id=person.id, label=person.label or person.id, role=person.role, level=person.level, unit=person.unit, tenure_weeks=person.tenure_weeks, status=status,
         n=n, n_window=len(win_idx), n_recent=n_recent, last_seen_days=None if last_t is None else int(max(0.0, now - last_t) // DAY), last_t=last_t, independence=ind, assisted=asst,
         trend=trend, skills=skills, automation={"routines_approved": len(approved), "runs_done": len(auto_rows), "minutes": int(round(math.fsum(r.get("minutes") or 0.0 for r in auto_rows)))},
-        reached=ri is not None, reached_at=ri, origin=person.origin, _rows=tuple(rows), _grace=tuple(grace), _person=person)
+        reached=ri is not None, reached_at=ri, origin=person.origin, name=names.get(person.label or person.id), _rows=tuple(rows), _grace=tuple(grace), _person=person)
 
 
 _SKILL_LABELS: dict[tuple[str, str], str] = {}
@@ -203,7 +215,8 @@ class AdminView:
     def __init__(self, snap: FirmSnapshot, p: Params = DEFAULT) -> None:
         self.snap, self.p, self.now = snap, p, snap.now
         self._cache: dict[Any, Any] = {}
-        self.sums: dict[str, PersonSummary] = {pr.id: summarise(pr, snap, p) for pr in snap.people}
+        names = firm_names(snap)
+        self.sums: dict[str, PersonSummary] = {pr.id: summarise(pr, snap, p, names) for pr in snap.people}
 
     # ----- groups
     def people(self, *, role: str | None = None, level: str | None = None, unit: str | None = None) -> list[PersonSummary]:

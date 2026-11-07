@@ -20,12 +20,13 @@ from . import texts as T
 from . import views as VW
 from . import vocab as V
 from .firm import build_firm
+from .names import natural_key
 from .params import DAY, DEFAULT, Params
 from .rows import iso_date, row_t, week_bounds
 from .select import history_entry, select
 from .store import InsightsStore
 from .summary import AdminView, summarise
-from .types import FirmSnapshot, InsightCandidate, PersonRecord, Selection
+from .types import FirmSnapshot, History, InsightCandidate, PersonRecord, Selection
 from .worker import WorkerCtx, worker_run
 
 FIRM_SEED = 0
@@ -94,6 +95,7 @@ class InsightsService:
         self.firm_seed = firm_seed
         self._firm: FirmSnapshot | None = None
         self._admin: dict[str, AdminBundle] = {}
+        self._stand: dict[tuple[str, str, str], tuple[str, str]] = {}
         self._pointer_sources: dict[str, Callable[[str, float], list[dict[str, Any]]]] = {}
         self._lock = threading.RLock()
 
@@ -362,6 +364,27 @@ class InsightsService:
             "legal_note": "A real deployment needs a lawful basis and a clear notice to workers before any of this is shared. This build only demonstrates it on a synthetic firm.",
             "statement": V.STATEMENT, "badge": snap.badge,
         }
+
+    def stand_in(self, role: str, source: str) -> tuple[str, str]:
+        """The fixed firm member that stands in for a profile that is not in the synthetic firm (mock mode, worker views only): the first member of ``role`` in natural label
+        order who has at least 2 worker pointers in the week, else the first member. The count ignores feedback and history, so the choice never moves. Returns ``(id, label)``."""
+        snap = self.snapshot(source)
+        key = (source, role, _rows_digest(snap))
+        hit = self._stand.get(key)
+        if hit is not None:
+            return hit
+        pool = [pr for pr in snap.people if pr.role == role] or list(snap.people)
+        members = sorted(pool, key=lambda pr: natural_key(pr.label or pr.id))
+        if not members:
+            raise UnknownPerson(role)
+        chosen = members[0]
+        for m in members:
+            out = worker_run(m, snap.now, self.p, self._ctx(m, snap))
+            if len(select(out.candidates, audience="worker", scope=m.id, now=snap.now, history=History(), params=self.p).selected) >= 2:
+                chosen = m
+                break
+        self._stand[key] = (chosen.id, chosen.label or chosen.id)
+        return self._stand[key]
 
     def forget_person(self, person: str) -> int:
         with self._lock:

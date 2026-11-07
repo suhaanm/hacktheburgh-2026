@@ -407,3 +407,118 @@ def test_the_transparency_page_is_for_the_workers_own_app_not_an_agent(client, s
     assert client.get("/insights/sharing", params={"person": pid}, headers={"x-understudy-actor": "agent"}).status_code == 403
     assert client.get("/insights/sharing", params={"person": pid}, headers={"x-understudy-actor": "worker"}).status_code == 200
     assert client.get("/insights/sharing", params={"person": pid}).status_code == 200
+
+
+# ---------------------------------------------------------------------------------------------------- the stand-in for the engine's own profile (mock mode, worker views only)
+class _Identity:
+    role = "benefits-processor"
+
+
+@pytest.fixture()
+def identity(monkeypatch):
+    """The engine knows one profile, p_learn01, that is not in the synthetic firm."""
+    from understudy_engine import routes_handoff as rh
+
+    monkeypatch.setattr(rh, "_resolve", lambda person: ((person or "p_learn01"), _Identity() if person in (None, "p_learn01") else None))
+    return "p_learn01"
+
+
+def expected_stand_in(snapshot):
+    from understudy_engine.insights.names import natural_key
+
+    svc = InsightsService(InsightsStore(), snapshot_provider=lambda s: snapshot, clock=lambda: snapshot.now)
+    members = sorted((p for p in snapshot.people if p.role == "benefits-processor"), key=lambda p: natural_key(p.label))
+    for m in members:
+        if len(svc.worker(m.id, "firm")["pointers"]) >= 2:
+            return m
+    return members[0]
+
+
+def test_the_engines_own_profile_gets_a_fixed_example_week_in_mock_mode(client, snapshot, identity):
+    r = client.get("/insights/worker", params={"person": identity})
+    assert r.status_code == 200
+    d, m = r.json()["data"], r.json()["meta"]
+    want = expected_stand_in(snapshot)
+    assert d["stand_in"] is True and d["person"] == identity and d["stand_in_label"] == want.label
+    assert len(d["pointers"]) >= 2 and d["status"] in V.STATUSES_WORKER
+    assert m["origin"] == "synthetic" and m["badge"] == "synthetic firm" and m["note"] == "An example week from the synthetic firm stands in for this profile."
+    assert "demo" not in json.dumps(r.json()).lower()
+    check = pytest.importorskip("jsonschema")
+    assert check is not None
+    from .test_schema import check as schema_check
+
+    schema_check("worker_response", d)
+
+
+def test_the_stand_in_is_deterministic_across_services_and_calls(snapshot, monkeypatch, identity):
+    outs = []
+    for _ in range(2):
+        monkeypatch.setenv("UNDERSTUDY_X_INSIGHTS", "1")
+        app = FastAPI()
+        install_error_handlers(app)
+        app.include_router(R.router)
+        app.state.insights = InsightsService(InsightsStore(), snapshot_provider=lambda s: snapshot, clock=lambda: snapshot.now)
+        c = TestClient(app)
+        outs.append([c.get("/insights/worker", params={"person": identity}).json()["data"] for _ in range(2)])
+    assert outs[0][0] == outs[0][1] == outs[1][0] == outs[1][1]
+
+
+def test_outside_mock_mode_the_404_stays_and_so_does_it_for_anyone_the_engine_does_not_know(client, monkeypatch, identity):
+    r = client.get("/insights/worker", params={"person": "p_nobody"})
+    assert r.status_code == 404 and r.json()["error"]["code"] == "unknown_person"                     # in mock mode too: only the engine's own profile is stood in for
+    monkeypatch.delenv("UNDERSTUDY_MOCK", raising=False)
+    for url in ("/insights/worker", "/insights/sharing"):
+        r = client.get(url, params={"person": identity, "source": "firm"})
+        assert r.status_code == 404 and r.json()["error"]["code"] == "unknown_person", url
+    r = client.get("/insights/why", params={"insight": "i_000000000000", "person": identity, "source": "firm"})
+    assert r.status_code == 404 and r.json()["error"]["code"] == "unknown_person"
+    r = client.post("/insights/feedback", json={"insight": "i_000000000000", "event": "useful"}, params={"person": identity, "source": "firm"})
+    assert r.status_code == 404 and r.json()["error"]["code"] == "unknown_person"
+
+
+def test_a_person_in_the_firm_and_the_admin_views_never_use_a_stand_in(client, snapshot, identity):
+    pid = a_person(snapshot)
+    d = client.get("/insights/worker", params={"person": pid}).json()
+    assert "stand_in" not in d["data"] and d["meta"]["note"] != "An example week from the synthetic firm stands in for this profile."
+    ov = client.get("/insights/admin/overview", headers=admin_headers())
+    assert ov.status_code == 200 and "stand_in" not in json.dumps(ov.json())
+    # an admin request for the engine's profile is not served either: the routes take no person
+    assert client.get("/insights/admin/firm", params={"person": identity}, headers=admin_headers()).status_code == 200
+
+
+def test_why_sharing_and_feedback_follow_the_stand_in_and_touch_only_its_own_state(client, snapshot, identity):
+    from understudy_engine.insights import routes as RR
+
+    want = expected_stand_in(snapshot)
+    d = client.get("/insights/worker", params={"person": identity}).json()["data"]
+    ptr = d["pointers"][0]
+    w = client.get("/insights/why", params={"insight": ptr["id"], "person": identity})
+    assert w.status_code == 200 and w.json()["data"]["stand_in"] is True and w.json()["data"]["state"] == "selected" and "demo" not in json.dumps(w.json()).lower()
+    sh = client.get("/insights/sharing", params={"person": identity}).json()
+    assert sh["data"]["stand_in"] is True and sh["data"]["person"] == identity and sh["data"]["preview"]["label"] == want.label
+    assert sh["meta"]["note"] == "An example week from the synthetic firm stands in for this profile."
+    f = client.post("/insights/feedback", json={"insight": ptr["id"], "event": "not_useful"}, params={"person": identity})
+    assert f.status_code == 200 and f.json() == {"insight": ptr["id"], "event": "not_useful", "recorded": True, "stand_in": True}
+    after = client.get("/insights/worker", params={"person": identity}).json()["data"]
+    assert ptr["id"] not in [p["id"] for p in after["pointers"]] and len(after["pointers"]) == len(d["pointers"]) - 1
+    store = client.app.state.insights.store
+    assert [e["event"] for e in store.events(want.id)] == ["not_useful"]
+    assert all(store.events(p.id) == [] for p in snapshot.people if p.id != want.id) and store.events("admin") == [] and RR.P.is_mock()
+
+
+def test_the_stand_in_rule_is_the_first_member_in_label_order_with_two_pointers_else_the_first_member():
+    from understudy_engine.insights.params import DEFAULT as PRM
+
+    from .helpers import NOW, habit_rows, person, snap as mk_snap
+
+    def svc_for(people):
+        s = mk_snap(people)
+        return InsightsService(InsightsStore(), snapshot_provider=lambda src: s, clock=lambda: NOW, params=PRM)
+
+    two = lambda pid: habit_rows(pid, lost=30.0) + habit_rows(pid, lost=30.0, skill="reconcile-before-noting", serial0=100)       # two pointers: two skills with a time loss
+    few = lambda pid: [habit_rows(pid, lost=0.0)[0]]
+    ppl = [person("p_a10", two("p_a10"), label="BP-10"), person("p_a02", two("p_a02"), label="BP-02"), person("p_a01", few("p_a01"), label="BP-01")]
+    assert svc_for(ppl).stand_in("benefits-processor", "firm") == ("p_a02", "BP-02")                          # BP-01 has no pointers; BP-02 sorts before BP-10 (natural order)
+    ppl = [person("p_a10", few("p_a10"), label="BP-10"), person("p_a02", few("p_a02"), label="BP-02"), person("p_a01", few("p_a01"), label="BP-01")]
+    assert svc_for(ppl).stand_in("benefits-processor", "firm") == ("p_a01", "BP-01")                          # nobody qualifies: the first member
+    assert svc_for(ppl).stand_in("data-analyst", "firm")[1] == "BP-01"                                          # no member of that role: the first member of the firm

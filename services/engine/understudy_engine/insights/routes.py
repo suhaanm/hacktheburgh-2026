@@ -166,6 +166,43 @@ def _meta(svc: InsightsService, source: str, *, n: int = 0, n_unit: str = "peopl
 NOTE_ADMIN = "For coaching and onboarding, not for evaluating individuals. Groups under 5 people are not compared."
 
 
+STAND_IN_NOTE = "An example week from the synthetic firm stands in for this profile."
+
+
+def _identity_role(pid: str) -> str | None:
+    """The role of a profile the engine itself knows (it has events for them, or they are the engine's default identity); None for anyone else."""
+    try:
+        from .. import routes_handoff as rh
+
+        _p, data = rh._resolve(pid)
+        if data is not None:
+            return str(getattr(data, "role", "") or "benefits-processor")
+        d_pid, d_data = rh._resolve(None)
+        if d_pid == pid:
+            return str(getattr(d_data, "role", "") or "benefits-processor") if d_data is not None else "benefits-processor"
+    except Exception:
+        return None
+    return None
+
+
+def _target(svc: InsightsService, src: str, pid: str) -> tuple[str, str | None]:
+    """``(person to serve, stand-in label or None)``. In MOCK mode only, a profile that is not in the synthetic firm but that the engine knows (its identity) is served from a
+    fixed stand-in member of the same role, so the worker's page shows an example week instead of "unknown person". Never outside mock mode (the 404 stays), never for admin."""
+    if not (P.is_mock() and src == "firm"):
+        return pid, None
+    try:
+        if any(p.id == pid for p in svc.snapshot(src).people):
+            return pid, None
+        role = _identity_role(pid)
+        if role is None:
+            return pid, None
+        firm_roles = {p.role for p in svc.snapshot(src).people}
+        sid, label = svc.stand_in(role if role in firm_roles else "benefits-processor", src)
+    except Exception:
+        return pid, None
+    return sid, label
+
+
 # ------------------------------------------------------------------------------------------------ worker
 @router.get("/insights/worker")
 def get_worker(request: Request, person: str | None = Query(None), source: str | None = Query(None)):
@@ -175,13 +212,17 @@ def get_worker(request: Request, person: str | None = Query(None), source: str |
     if not pid:
         return _error(404, "unknown_person", "No person is set up yet. Pass ?person=.")
     svc, src = get_service(request), _source(source)
+    eff, label = _target(svc, src, pid)
     try:
         with _lock:
-            data = svc.worker(pid, src)
+            data = svc.worker(eff, src)
     except UnknownPerson:
         return _error(404, "unknown_person", "There is no such person in this data.")
-    return {"meta": _meta(svc, src, n=len(data["pointers"]), n_unit="pointers", interval=False, audience="worker",
-                          note="A few pointers, chosen by fixed rules and worded from fixed sentences. No statistics are shown here."), "data": data}
+    note = "A few pointers, chosen by fixed rules and worded from fixed sentences. No statistics are shown here."
+    if label is not None:
+        data = {**data, "person": pid, "stand_in": True, "stand_in_label": label}
+        note = STAND_IN_NOTE
+    return {"meta": _meta(svc, src, n=len(data["pointers"]), n_unit="pointers", interval=False, audience="worker", note=note), "data": data}
 
 
 # ------------------------------------------------------------------------------------------------ admin
@@ -259,6 +300,9 @@ def get_why(request: Request, insight: str = Query(...), person: str | None = Qu
     pid = _person(person) if audience == "worker" else None
     if audience == "worker" and not pid:
         return _error(404, "unknown_person", "No person is set up yet. Pass ?person=.")
+    label = None
+    if audience == "worker" and pid:
+        pid, label = _target(svc, src, pid)
     try:
         with _lock:
             data = svc.why(insight, audience=audience, source=src, person=pid)
@@ -266,7 +310,11 @@ def get_why(request: Request, insight: str = Query(...), person: str | None = Qu
         return _error(404, "unknown_person", "There is no such person in this data.")
     if data is None:
         return _error(404, "unknown_insight", V.REASON_TEXT["unknown_insight"])
-    return {"meta": _meta(svc, src, interval=False, audience=audience, note="The reason is a fixed sentence, not model text."), "data": data}
+    note = "The reason is a fixed sentence, not model text."
+    if label is not None:
+        data = {**data, "stand_in": True, "stand_in_label": label}
+        note = STAND_IN_NOTE
+    return {"meta": _meta(svc, src, interval=False, audience=audience, note=note), "data": data}
 
 
 @router.post("/insights/feedback")
@@ -283,6 +331,9 @@ def post_feedback(request: Request, body: dict[str, Any] = Body(...), person: st
     pid = _person(person or body.get("person")) if audience == "worker" else None
     if audience == "worker" and not pid:
         return _error(404, "unknown_person", "No person is set up yet. Pass ?person=.")
+    label = None
+    if audience == "worker" and pid:
+        pid, label = _target(svc, src, pid)
     try:
         with _lock:
             out = svc.feedback(insight, event, audience=audience, source=src, person=pid)
@@ -290,7 +341,7 @@ def post_feedback(request: Request, body: dict[str, Any] = Body(...), person: st
         return _error(404, "unknown_person", "There is no such person in this data.")
     if out is None:
         return _error(404, "unknown_insight", V.REASON_TEXT["unknown_insight"])
-    return out
+    return {**out, "stand_in": True} if label is not None else out
 
 
 @router.get("/insights/sharing")
@@ -305,9 +356,14 @@ def get_sharing(request: Request, person: str | None = Query(None), source: str 
     if not pid:
         return _error(404, "unknown_person", "No person is set up yet. Pass ?person=.")
     svc, src = get_service(request), _source(source)
+    eff, label = _target(svc, src, pid)
     try:
         with _lock:
-            data = svc.sharing(pid, src)
+            data = svc.sharing(eff, src)
     except UnknownPerson:
         return _error(404, "unknown_person", "There is no such person in this data.")
-    return {"meta": _meta(svc, src, n=1, n_unit="people", interval=False, audience="worker", note="Read-only: this is exactly what an admin sees about you."), "data": data}
+    note = "Read-only: this is exactly what an admin sees about you."
+    if label is not None:
+        data = {**data, "person": pid, "stand_in": True, "stand_in_label": label}
+        note = STAND_IN_NOTE
+    return {"meta": _meta(svc, src, n=1, n_unit="people", interval=False, audience="worker", note=note), "data": data}
