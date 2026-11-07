@@ -326,6 +326,19 @@ Plans: `docs/REQ5_PLAN.md`, `docs/REQ7_PLAN.md`; ML v2 and the evidence layer ar
 | ATT-5 | P1 | Transparency and control: why an item was held or shown; per-type loud, normal, quiet, digest only; daily budget. | Seen rendered. |
 | ATT-6 | P1 | Simulated-workday evaluation against show-everything and daily-digest baselines. | Pre-registered; synthetic badge. |
 
+### 14d. REQ-9 additions (7 Nov 2026; engine BUILDING, admin UI PROPOSED)
+
+| ID | Prio | Statement | Acceptance |
+|---|---|---|---|
+| INS-1 | P1 | Deterministic insight catalogue for workers and admins over existing analytics; each candidate has an effect, interval, n, origin badge, evidence reference and an action id. | Pure functions; closed schema. |
+| INS-2 | P1 | Selection: reliability gate (interval excludes zero or n sufficient, minimum effect floor, not stale), guard metrics (no improvement shown if errors or false claims worsened), score, diversity, caps (3 for workers, 7 for admins), stable ordering, "nothing stands out" is valid. | Determinism and false-insight rate on null data measured. |
+| INS-3 | P1 | Edge cases decided and tested: new user, no expert reference, stale or partial data, role change, absence, outlier weeks, ties, conflicting metrics, Simpson's paradox across roles, tiny cohorts, revoked sharing, repeats. | Edge-case matrix with expected outputs. |
+| INS-4 | P1 | Workers see at most three pointers per week and no detailed statistics; details are optional and plain. | Worker route never returns admin-granularity data. |
+| INS-5 | P1 | Admin audience: expert versus junior per role, firm view by role with trends and intervals, bottleneck skills, onboarding speed, automation value, risk signals, coverage; drill-down to granular numbers; aggregates only above a privacy threshold (k = 5); individuals only if they opted in; no individual ranking or score. | Privacy-threshold tests; admin text says coaching and onboarding, not evaluating individuals. |
+| INS-6 | P1 | Sharing model: the worker sees exactly what an admin can see; opt-in; revocation removes data from admin views at once. | Tested. |
+| INS-7 | P2 | Synthetic firm (about 60 users across three roles, planted situations), badge "synthetic firm". | Deterministic; nothing typed by hand. |
+| INS-8 | P2 | Dashboard: simplified worker home with pointers; Firm screen for admins; "view as" demo switch; later Auth0 roles. | Seen rendered, light and dark, both sizes. |
+
 ## 15. How owner requests are handled
 
 Every new owner request or tweak gets a row in the **requests log** in `IDEA_BOARD.md` (`REQ-n`, date, request, analysis, status), new IDs in this file with a status (`PROPOSED`, `ACCEPTED`, `BUILDING`, `BUILT`, `CUT`), a decision number in `DECISIONS.md` where the owner chose something, and, if it changes ownership, an update to the roster in `AGENTS.md`. The lead does this before starting the work; locked decisions (section 0) are never reopened without an explicit owner instruction, and a conflict is recorded as a concern.
