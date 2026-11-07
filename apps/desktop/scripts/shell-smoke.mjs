@@ -12,6 +12,8 @@ const opt = (name, fallback) => {
 }
 const port = Number(opt('port', process.env.ALONGSIDE_DEBUG_PORT || 7777))
 const realScreen = argv.includes('--real-screen')
+// --hidden: the app was started with KNACK_HIDDEN=1 (scripts/knack-e2e.mjs), so its windows exist but are never shown: whether the corner window is on screen is not asked.
+const hiddenRun = argv.includes('--hidden')
 const base = `http://127.0.0.1:${port}`
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const get = async (p) => (await fetch(`${base}${p}`)).json()
@@ -35,12 +37,16 @@ try {
   let r = await post('/hud/activity', { phase: 'working', label: 'Filling in calculator B', step: 3, of: 8, realScreen })
   check('a run starts: the pill shows the words and n of m', r.body?.hud?.activity?.phase === 'working' && r.body.hud.activity.label === 'Filling in calculator B' && r.body.hud.activity.step === 3, r.body?.hud?.activity)
   await sleep(700)
-  const visible = await get('/hud/visible').catch(() => null)
-  check('the corner window is on screen', visible?.visible === true, visible)
+  if (!hiddenRun) {
+    const visible = await get('/hud/visible').catch(() => null)
+    check('the corner window is on screen', visible?.visible === true, visible)
+  }
 
   r = await post('/shell/event', { event: { type: 'decision_needed', class: 'approval' } })
   const s1 = await get('/state')
-  check('a blocked run raises one card and the main window is not restored by it', (await get('/hud')).approval !== null && s1.knack.window.visible === windowBefore.visible && s1.knack.window.minimised === windowBefore.minimised || realScreen, { before: windowBefore, after: s1.knack.window })
+  const withCard = await get('/hud')
+  check('a blocked run raises one card', withCard.approval !== null && withCard.corner === true, withCard.approval)
+  check('and the main window is not restored by it', s1.knack.window.visible === windowBefore.visible && s1.knack.window.minimised === windowBefore.minimised, { before: windowBefore, after: s1.knack.window })
 
   r = await post('/hud/activity', { phase: 'done' })
   check('a finished run turns the pill into a check', r.body?.hud?.activity?.phase === 'done', r.body?.hud?.activity)
