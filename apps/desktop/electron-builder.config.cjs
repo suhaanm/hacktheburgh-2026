@@ -34,8 +34,8 @@ module.exports = {
     gatekeeperAssess: false,
     // The Dock icon is the app's, so the app is a normal one (not LSUIElement); the usage strings are what macOS shows when the app first asks.
     extendInfo: {
-      NSMicrophoneUsageDescription: `${brand.name} listens only while you hold the talk key, and only if you turn voice on.`,
-      NSSpeechRecognitionUsageDescription: `${brand.name} can recognise its wake phrase on this Mac, if you turn that on.`,
+      NSMicrophoneUsageDescription: `${brand.name} listens for the words Hey ${brand.name} on this Mac. The listening stays on this Mac and nothing is recorded. It also uses the microphone while you talk with it.`,
+      NSSpeechRecognitionUsageDescription: `${brand.name} uses speech recognition on this Mac to hear Hey ${brand.name}. It never uses a server for this and keeps no transcript.`,
       NSAppleEventsUsageDescription: `${brand.name} can ask other apps to do steps for you when you allow it.`,
     },
   },
