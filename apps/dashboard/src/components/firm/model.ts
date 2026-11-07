@@ -70,7 +70,7 @@ export function normaliseWorker(body: unknown): WireWorker {
   const w = isObj(o.week) ? o.week : null;
   return {
     person: str(o.person), role: str(o.role), week: w && str(w.from) && str(w.to) ? { from: str(w.from) as string, to: str(w.to) as string } : null,
-    nothing_stands_out: o.nothing_stands_out === true || pointers.length === 0, pointers, try: t, monday_note: str(o.monday_note),
+    nothing_stands_out: o.nothing_stands_out === true || pointers.length === 0, stand_in: o.stand_in === true, pointers, try: t, monday_note: str(o.monday_note),
     status: str(o.status) ?? (pointers.length === 0 ? "nothing_stands_out" : "ok"), message: str(o.message),
   };
 }

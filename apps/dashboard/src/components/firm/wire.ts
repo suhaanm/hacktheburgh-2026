@@ -57,6 +57,8 @@ export interface WireWorker {
   role: string | null;
   week: { from: string; to: string } | null;
   nothing_stands_out: boolean;
+  /** True when an example week from the synthetic firm stands in for this profile (the engine's own profile, in mock mode only). */
+  stand_in: boolean;
   /** "ok" | "nothing_stands_out" | "onboarding" | "stale" | "no_data" | "role_changed", with a fixed message for the states that are not "ok". */
   status: string;
   message: string | null;

@@ -104,6 +104,7 @@ export default function Home() {
             {status === "onboarding" && <a className="btn btn--secondary btn--sm state__action" href="#/onboarding">Choose a role</a>}
           </div>
         )}
+        {data.stand_in && <p className="note">{(w.meta as { note?: string } | null)?.note ?? "An example week from the synthetic firm stands in for this profile."}</p>}
         <SourceNote why={w.why} />
       </section>
 

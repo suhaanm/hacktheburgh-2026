@@ -88,6 +88,10 @@ describe("the worker's answer", () => {
     }
     expect(w.monday_note).toMatch(/pointers? for your week/);
   });
+  it("knows when an example week stands in for the profile", () => {
+    expect(normaliseWorker(workerFx).stand_in).toBe(false);
+    expect(normaliseWorker({ data: { pointers: [], stand_in: true, stand_in_label: "BP-06" } }).stand_in).toBe(true);
+  });
   it("reads a week that is going well", () => {
     const g = normaliseWorker(workerGoodFx);
     expect(g.pointers).toHaveLength(3);
