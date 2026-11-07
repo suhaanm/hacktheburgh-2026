@@ -72,12 +72,19 @@ export function approvalLabels(kind: QueueItem["kind"]): { yes: string; no: stri
   }
 }
 
-/** The engine still says "shadow run" and "shadow copy" in its own titles; the worker sees "practice". */
+/**
+ * The engine's own sentences still carry words the worker never sees: "shadow run", a rung and its code (A0 to A3) and the old name. This is the
+ * one place they become the worker's words, for anything an engine sentence prints on Needs you and Routines (docs/KNACK_UX.md section 5).
+ */
 export function plainWords(text: string): string {
   const keep = (from: string, to: string) => (from.charAt(0) === from.charAt(0).toUpperCase() ? to.charAt(0).toUpperCase() + to.slice(1) : to);
   return text
     .replace(/\bshadow (run|copy|runs|copies)\b/gi, (m, w: string) => keep(m, `practice ${w.toLowerCase()}`))
-    .replace(/\bshadow\b/gi, (m) => keep(m, "practice"));
+    .replace(/\bshadow\b/gi, (m) => keep(m, "practice"))
+    .replace(/\bUnderstudy\b/g, "Knack")
+    .replace(/\brung A0\b/gi, "observing").replace(/\brung A1\b/gi, "watching").replace(/\brung A2\b/gi, "asking first").replace(/\brung A3\b/gi, "running on its own")
+    .replace(/\bA0\b/g, "observing").replace(/\bA1\b/g, "watching").replace(/\bA2\b/g, "asking first").replace(/\bA3\b/g, "running on its own")
+    .replace(/\brungs\b/gi, (m) => keep(m, "steps")).replace(/\brung\b/gi, (m) => keep(m, "step"));
 }
 
 const WORDS = (s: string): number => s.trim().split(/\s+/).filter(Boolean).length;

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ApiError } from "../../api";
-import { neverLine, saveHint, saveLine, seenLine, touchesLead } from "../../screens/NeedsYou/model";
+import { neverLine, plainWords, saveHint, saveLine, seenLine, touchesLead } from "../../screens/NeedsYou/model";
 import type { Routine } from "../../types";
 import { Hint } from "../Hint";
 import { APPROVAL_TEXT, WATCH_TEXT } from "../routines/consent";
@@ -20,7 +20,7 @@ export function ProposalRow({ routine: p, onDecide }: { routine: Routine; onDeci
   const [more, setMore] = useState(false);
   const [allTouches, setAllTouches] = useState(false);
   const touches = touchesLead(p.proposal.touches.length ? p.proposal.touches : p.touches);
-  const never = neverLine(p.proposal.never.length ? p.proposal.never : p.never);
+  const never = plainWords(neverLine(p.proposal.never.length ? p.proposal.never : p.never));
 
   const go = async (mode: string, done: string, override = false) => {
     setBusy(mode); setErr(null); setGate(null);
@@ -35,12 +35,12 @@ export function ProposalRow({ routine: p, onDecide }: { routine: Routine; onDeci
     <article className="kc-row" data-kind="proposal" data-cls="2" aria-labelledby={`ny-${p.id}`}>
       <h3 className="kc-row__title" id={`ny-${p.id}`}>
         <Glyph name="routine" />
-        <span>{p.title}</span>
+        <span>{plainWords(p.title)}</span>
         <span className="kc-row__when">new routine</span>
       </h3>
       <p className="kc-row__body">{seenLine(p.proposal.how_often)} {saveLine(p)}<Hint label="About the hours saved">{saveHint(p)}</Hint></p>
       <p className="kc-row__meta" data-testid="never">
-        Touches {allTouches ? p.proposal.touches.join(", ") : touches.lead}
+        Touches {plainWords(allTouches ? p.proposal.touches.join(", ") : touches.lead)}
         {touches.more > 0 && !allTouches && <> and <button type="button" className="kc-link" style={{ minHeight: 0, padding: 0, display: "inline", textDecoration: "underline" }} onClick={() => setAllTouches(true)}>{touches.more} more</button></>}
         . {never}
       </p>

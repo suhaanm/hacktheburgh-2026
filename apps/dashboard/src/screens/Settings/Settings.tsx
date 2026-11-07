@@ -7,10 +7,12 @@ import { withMode, type Mode } from "../../lib/attention";
 import { useLoad } from "../../hooks";
 import { setState, useAppState } from "../../store";
 import type { AttentionPatch, AttentionSettings, Health } from "../../types";
-import { STORY_LABEL, WORKER_STORIES } from "../Home/data";
+import { useTheme } from "../../components/shell/theme";
+import { usePinnedViews } from "../../components/shell/pinned";
+import { STORY_LABEL, WORKER_STORIES, parseStory } from "../Home/data";
+import { setExampleWeek, useExampleWeek } from "../Home/story";
 import { desktopBridge, type DesktopSettings } from "./bridge";
-import { liveModels, presetPatch, type Preset, type Theme } from "./model";
-import { getTheme, setPinned, setTheme, usePinned } from "./prefs";
+import { liveModels, presetPatch, type Preset } from "./model";
 
 type HealthExt = Health & { key_present?: boolean };
 
@@ -42,11 +44,11 @@ export default function Settings({ section }: { section?: string }) {
   const [liveError, setLiveError] = useState<string | null>(null);
   const [attention, setAttention] = useState<AttentionSettings | null>(null);
   const [attentionError, setAttentionError] = useState<string | null>(null);
-  const [theme, setThemeState] = useState<Theme>(getTheme);
+  const [theme, setTheme] = useTheme();
   const view = useViewRole();
-  const pinned = usePinned();
+  const [pinned, setPinned] = usePinnedViews();
   const seq = useRef(0);
-  const [story, setStory] = useState<string | null>(() => { try { return new URLSearchParams(window.location.hash.split("?")[1] ?? "").get("story"); } catch { return null; } });
+  const story = useExampleWeek();
 
   useEffect(() => { if (attn.data) setAttention(attn.data); }, [attn.data]);
   useEffect(() => { bridge?.getSettings().then(setDesktop, () => setDesktop(null)); }, [bridge]);
@@ -98,14 +100,14 @@ export default function Settings({ section }: { section?: string }) {
   };
 
   const example = health.source === "demo" || health.data?.mock === true;
-  const stories = example ? WORKER_STORIES.map((id) => ({ id, label: STORY_LABEL[id], selected: (story ?? "pointers") === id })) : undefined;
-  const onStory = (id: string) => { setStory(id); window.location.hash = `/home?story=${encodeURIComponent(id)}`; };
+  const stories = example ? WORKER_STORIES.map((id) => ({ id, label: STORY_LABEL[id], selected: story === id })) : undefined;
+  const onStory = (id: string) => setExampleWeek(parseStory(id));
 
   return (
     <SettingsView section={section} live={liveView} onLive={(on) => void onLive(on)}
       attention={attention} attentionExample={!!attn.why} attentionError={attentionError} onPreset={onPreset} onMode={onMode}
       desktop={bridge ? desktop : null} onDesktop={onDesktop}
-      theme={theme} onTheme={(t) => { setTheme(t); setThemeState(t); }}
+      theme={theme} onTheme={setTheme}
       view={view} onView={setViewRole}
       stories={stories} onStory={onStory}
       pinned={pinned} onPinned={setPinned}

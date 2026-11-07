@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ApiError, api } from "../../api";
 import { checkedNote, cleanPrepared, expiresIn, firedText, preparedDirty, rankingParts } from "../../lib/briefing";
-import { consequence, leadAndRest } from "../../screens/NeedsYou/model";
+import { consequence, leadAndRest, plainWords } from "../../screens/NeedsYou/model";
 import type { BriefingCard, Prepared } from "../../types";
 import { useToast } from "../Toasts";
 import { Details } from "../ui";
@@ -56,7 +56,7 @@ export function PreparedRow({ card: c, onFired, onDismissed, onChanged }: { card
     <article className="kc-row" data-kind="prepared" data-cls="2" data-risk={c.risk_class} aria-labelledby={`ny-${c.id}`}>
       <h3 className="kc-row__title" id={`ny-${c.id}`}>
         <Glyph name="decision" />
-        <span>{c.title}</span>
+        <span>{plainWords(c.title)}</span>
         <span className="kc-row__when">{expiresIn(c.expires_at) === "expired" ? "expired" : `expires ${expiresIn(c.expires_at)}`}</span>
       </h3>
       <p className="kc-row__body">{lead}</p>

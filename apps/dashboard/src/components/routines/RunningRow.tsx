@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ApiError } from "../../api";
-import { neverLine } from "../../screens/NeedsYou/model";
+import { neverLine, plainWords } from "../../screens/NeedsYou/model";
 import { touchesSentence } from "../../screens/Routines/model";
 import type { Routine } from "../../types";
 import { Ladder } from "../Ladder";
@@ -48,13 +48,13 @@ export function RunningRow({ routine: r, open, onToggle, onDecide, onRun, canRun
     catch (e) { setErr(e instanceof ApiError ? e.message : "It did not start. Nothing was changed. Try again."); }
     finally { setBusy(null); }
   };
-  const never = neverLine(r.proposal.never.length ? r.proposal.never : r.never);
+  const never = plainWords(neverLine(r.proposal.never.length ? r.proposal.never : r.never));
 
   return (
     <article className="rt-row" data-status={r.status} data-open={open}>
       <button type="button" className="rt-row__open" aria-expanded={open} aria-controls={`rt-${r.id}`} onClick={onToggle}>
         <span className="rt-row__text">
-          <span className="rt-row__title">{r.title}</span>
+          <span className="rt-row__title">{plainWords(r.title)}</span>
           <span className="rt-row__state">{stateLine(r)}</span>
         </span>
         <span className="rt-row__trust">{trustWord(r)}</span>
@@ -62,7 +62,7 @@ export function RunningRow({ routine: r, open, onToggle, onDecide, onRun, canRun
       </button>
       {open && (
         <div className="kc-panel rt-panel" id={`rt-${r.id}`}>
-          <p>{touchesSentence(r)} {never}</p>
+          <p>{plainWords(touchesSentence(r))} {never}</p>
           <div style={{ display: "grid", gap: "var(--space-2)" }}>
             <p className="kc-label" id={`auto-${r.id}`}>Autonomy</p>
             <div className="segmented" role="group" aria-labelledby={`auto-${r.id}`}>

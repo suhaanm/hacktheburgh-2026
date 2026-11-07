@@ -9,10 +9,10 @@ import "../../../../../packages/design/tokens.css";
 import "../../../../../packages/design/components.css";
 import "../../styles/app.css";
 import { ToastHost } from "../../components/Toasts";
-import { getTheme, applyTheme } from "./prefs";
+import { initTheme } from "../../components/shell/theme";
 import Settings from "./Settings";
 
-applyTheme(getTheme());
+initTheme();
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ToastHost>

@@ -26,7 +26,7 @@
 .kc-row__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-top: var(--space-1); }
 .kc-row__actions .kc-link { margin-left: auto; }
 .kc-glyph { width: 16px; height: 16px; flex: none; color: var(--muted); }
-.kc-row[data-cls="0"] .kc-glyph { color: var(--bad); }
+.kc-row[data-cls="0"] .kc-row__title .kc-glyph { color: var(--bad); }
 .kc-row .btn { min-height: var(--control-h, 32px); }
 
 /* A quiet link-button: "Evidence", "More ways to say yes", "Details". A real button, with its state in aria-expanded. */

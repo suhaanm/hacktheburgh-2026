@@ -55,11 +55,12 @@ export default function NeedsYou() {
     reload();
   };
 
-  const firstApproval = items.findIndex((i) => i.kind === "approval");
+  // The one primary button goes to the first real approval. A pause for safety and a practice run that differed are choices of equal weight.
+  const primaryKey = items.find((i) => i.kind === "approval" && i.queue.kind !== "injection_pause" && i.queue.kind !== "shadow_mismatch")?.key;
   const shown = visible(items, showAll);
-  const node = (it: NeedsItem, index: number) => {
+  const node = (it: NeedsItem) => {
     switch (it.kind) {
-      case "approval": return <ApprovalRow item={it.queue} cls={it.cls} primary={index === firstApproval} onDone={reload} />;
+      case "approval": return <ApprovalRow item={it.queue} cls={it.cls} primary={it.key === primaryKey} onDone={reload} />;
       case "proposal": return <ProposalRow routine={it.routine} onDecide={decide} />;
       case "prepared": return (
         <PreparedRow card={it.card} onChanged={reload}
@@ -88,7 +89,7 @@ export default function NeedsYou() {
         </div>
       ) : (
         <>
-          <RowList label="Waiting for you" rows={shown.map((it, i) => ({ key: it.key, node: node(it, i) }))} />
+          <RowList label="Waiting for you" rows={shown.map((it) => ({ key: it.key, node: node(it) }))} />
           {items.length > shown.length && <div><button type="button" className="btn btn--secondary btn--sm" onClick={() => setShowAll(true)}>Show all {items.length}</button></div>}
         </>
       )}
