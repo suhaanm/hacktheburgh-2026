@@ -16,6 +16,8 @@ export interface RibbonColumn {
   novice: RibbonBlock | null;
   /** Seconds lost, taken straight from the alignment. */
   lost: number;
+  /** Seconds saved: the alignment gave a negative number (a skipped step shows as time saved). */
+  saved: number;
   /** Which lane has the hole: the step is missing for that person. */
   missing: "expert" | "novice" | null;
 }
@@ -24,6 +26,7 @@ export interface RibbonLayout {
   columns: RibbonColumn[];
   width: number;
   totalLost: number;
+  totalSaved: number;
   maxLost: number;
   expertTotal: number;
   noviceTotal: number;
@@ -65,16 +68,19 @@ export function layoutRibbon(genome: Genome, width: number, gap = 3, minCol = 30
       expert: c.e ? { cog: c.e.cog, x, w: (dwell(c.e) / c.span) * w, seconds: dwell(c.e) } : null,
       novice: c.n ? { cog: c.n.cog, x, w: (dwell(c.n) / c.span) * w, seconds: dwell(c.n) } : null,
       lost: Math.max(0, c.a.seconds),
+      saved: Math.max(0, -c.a.seconds),
       missing: !c.e && c.n ? "expert" : c.e && !c.n ? "novice" : null,
     };
     x += w + gap;
     return col;
   });
   const totalLost = columns.reduce((s, c) => s + c.lost, 0);
+  const totalSaved = columns.reduce((s, c) => s + c.saved, 0);
   return {
     columns,
     width: Math.max(0, x - gap),
     totalLost,
+    totalSaved,
     maxLost: Math.max(0, ...columns.map((c) => c.lost)),
     expertTotal: expert.segments.reduce((s, g) => s + dwell(g), 0),
     noviceTotal: novice.segments.reduce((s, g) => s + dwell(g), 0),
@@ -107,6 +113,10 @@ export function describeColumn(col: RibbonColumn, index: number, total: number):
     return `${pos}${what} Expert ${Math.round(col.expert.seconds)} s, novice ${Math.round(col.novice.seconds)} s. ${lost > 0 ? `${lost} s lost.` : "No time lost."}`;
   }
   if (col.novice) return `${pos}Only the novice did this: ${cogText(col.novice.cog)}, ${Math.round(col.novice.seconds)} s. ${lost} s lost.`;
-  if (col.expert) return `${pos}Only the expert did this: ${cogText(col.expert.cog)}, ${Math.round(col.expert.seconds)} s. The novice skipped it. ${lost} s counted as lost.`;
+  if (col.expert) {
+    const saved = Math.round(col.saved);
+    const price = saved > 0 ? `Skipping it shows as ${saved} s saved here, but it often costs more later.` : `${lost} s counted as lost.`;
+    return `${pos}Only the expert did this: ${cogText(col.expert.cog)}, ${Math.round(col.expert.seconds)} s. The novice skipped it. ${price}`;
+  }
   return pos;
 }

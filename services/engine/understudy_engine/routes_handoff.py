@@ -138,6 +138,19 @@ def _unknown_person(person: str | None) -> JSONResponse:
     return _error(404, "unknown_person", f"No events for {person!r}. Known people: {', '.join(known) or 'none (is data/synthetic generated?)'}.")
 
 
+def _demo(mem: MemoryStore) -> dict[str, Any]:
+    """Demo configuration written by ``python -m understudy_engine.demo seed`` (empty in a real install)."""
+    return mem.load_state().get("demo") or {}
+
+
+def _case_for(person: str | None, case: int | None, mem: MemoryStore) -> int | None:
+    """The learner case to show: the caller's, else the demo person's seeded case, else the last case."""
+    if case is not None:
+        return case
+    d = _demo(mem)
+    return d.get("case") if d.get("person") and d.get("person") == person else None
+
+
 def _learner(person: str | None, case: int | None):
     """A learner-trajectory person (data/synthetic/learners): skill state from a SkillTracker built case by case."""
     from .routines.learners import learner_people, tracker_at
@@ -289,8 +302,8 @@ def coach_state(person: str | None = Query(None), step: int | None = Query(None,
     ``case`` (default: the last case); otherwise from the Skill state lines of the worker's memory file."""
     mem = _mem()
     doc = mem.read()
-    learner = _learner(person, case)
     pid, pd = _resolve(person)
+    learner = _learner(pid, _case_for(pid, case, mem))
     if person and person.startswith("p_learn") and learner is None:
         return _unknown_person(person)
     pack = _pack(doc.role if doc.role != "unknown" and learner is None else (pd.role if pd else "benefits-processor"))
@@ -382,12 +395,24 @@ def _invalidate() -> None:
             del _cache[k]
 
 
+def _detections_for(pd: PersonData, mem: MemoryStore) -> list[dict[str, Any]]:
+    """The routines to show for ``pd``. In a seeded demo the finder reads another persona's traces (the learner trajectories
+    are one task type, so they hold no calculator-entry routine) and only the listed routine ids, labelled as the demo person's."""
+    d = _demo(mem)
+    if d.get("person") == pd.person and d.get("routine_source"):
+        other = _src().load(d["routine_source"])
+        if other is not None:
+            ids = set(d.get("routine_ids") or [])
+            return [{**r, "person": pd.person} for r in _detected(other, mem) if not ids or r["id"] in ids]
+    return _detected(pd, mem)
+
+
 def _sync_routines(pd: PersonData, mem: MemoryStore, case: int | None = None) -> RoutineStore:
     """Detect (cached per data version), merge into the registry (the worker's decisions are kept), and re-evaluate the skill
     gates against current skill state: a learner's tracker at ``case``, or the Skill state lines of the memory file."""
     st = RoutineStore(mem)
-    st.merge(_detected(pd, mem))
-    learner = _learner(pd.person, case)
+    st.merge(_detections_for(pd, mem))
+    learner = _learner(pd.person, _case_for(pd.person, case, mem))
     if learner is not None:
         st.refresh_gate(learner.tracker, learner.t_ref, pd.person)
     else:
@@ -405,12 +430,12 @@ def post_detect(request: Request, body: dict[str, Any] | None = Body(None)):
     rows = [r for r in st.list() if r.get("last_seen") is not None]
     proposable = [r for r in rows if r["proposable"]]
     precision = recall = None
-    if pd.truth:
+    if pd.truth and "routines" in pd.truth and not _demo(mem).get("routine_source"):
         from .routines.evaluate import _score_clusters
 
         labels = {i["task_id"]: r["name"] for r in pd.truth["routines"] for i in r["instances"]}
         counts = {r["name"]: len(r["instances"]) for r in pd.truth["routines"]}
-        det = _detected(pd, mem)
+        det = _detections_for(pd, mem)
         scored = _score_clusters([d["member_task_ids"] for d in det if d["value"]["confidence"] >= 0.5 or d["template_id"]], labels, counts, 3)
         precision, recall = scored["precision"], scored["recall"]
     return {"proposals": len(proposable), "precision": precision, "recall": recall, "routines": len(rows)}
@@ -463,26 +488,56 @@ def post_consent(routine_id: str, request: Request, body: dict[str, Any] = Body(
         _invalidate()
 
 
+EVIDENCE_ACTORS = WORKER_ACTORS | {"agent"}
+
+
+def _guard_evidence(request: Request) -> JSONResponse | None:
+    """Shadow results are evidence, not memory: the worker's app or the agent service may post them. Pages, models and tools may not."""
+    actor = request.headers.get("x-understudy-actor", "worker").strip()
+    origin = request.headers.get("origin")
+    if actor not in EVIDENCE_ACTORS or (origin is not None and not origin.startswith(_ALLOWED_ORIGIN_PREFIXES)):
+        _audit("shadow_write_refused", f"actor {_clean_actor(actor)} on {request.url.path}")
+        return _error(403, "write_refused", "Only the worker's app or the agent service can post shadow results.")
+    return None
+
+
 @router.post("/routines/{routine_id}/shadow")
 def post_shadow(routine_id: str, request: Request, body: dict[str, Any] | None = Body(None)):
-    if (r := _guard(request)):
+    """Record shadow comparisons and apply the autonomy ladder (``understudy_engine.trust.ladder``).
+
+    Body for the agent's shadow runner::
+
+        { "results": [ { "run_id": "r_0042", "matched": true, "reason": "optional, at most 200 characters, no page text" } ] }
+
+    ``matched`` is the code-checked verdict (the compiled routine's result equals the worker's). An item may carry
+    ``"event": "failure" | "undo" | "injection"`` instead of ``matched``; that demotes one rung and restarts the count (an
+    injection hit also blocks the routine until the worker switches it on again). ``run_id`` is optional but should be sent:
+    one already recorded for this routine is ignored (a retried POST is harmless) and reported in ``duplicates``. At most 1000
+    results per request. Each accepted result is appended to ``data/routines/<id>/shadow_log.jsonl``.
+    Response: ``{runs, matches, wilson_lower, rung, promoted, demoted, accepted, duplicates, blocked, ceiling, next_rung, needs}``.
+    Errors: 404 unknown routine, 409 ``not_enabled`` (the worker has not switched the routine on) or ``blocked``, 422 bad body.
+    Also accepted: ``{matched}``, ``{runs, matches}``, ``{event}``. An empty body only simulates one run, and only in mock mode.
+    """
+    if (r := _guard_evidence(request)):
         return r
     mem = _mem()
     st = RoutineStore(mem)
     b = body or {}
+    if "results" in b and not isinstance(b["results"], list):
+        return _error(422, "bad_result", "results must be a list of {run_id, matched, reason?}.")
     try:
         simulated = False
         if not b:
             if not is_mock():
-                return _error(422, "body_required", "Send {matched}, {runs, matches} or {event} from a shadow run.")
+                return _error(422, "body_required", "Send {results: [{run_id, matched}]} (or {matched}, {runs, matches}, {event}) from a shadow run.")
             raw = st.get_raw(routine_id)
             n = raw["shadow"]["runs"]
             import hashlib
 
             h = int(hashlib.sha1(f"{routine_id}:{n}".encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
             b, simulated = {"matched": h < 0.95}, True   # mock mode only: a deterministic stand-in for one shadow run
-        out = st.shadow(routine_id, matched=b.get("matched", b.get("match")), runs=b.get("runs"), matches=b.get("matches"),
-                        event=b.get("event"), actor=_actor(request))
+        out = st.shadow(routine_id, results=b.get("results"), matched=b.get("matched", b.get("match")), runs=b.get("runs"),
+                        matches=b.get("matches"), event=b.get("event"), actor=_actor(request))
         if simulated:
             out["simulated"] = True
         _invalidate()
@@ -552,7 +607,7 @@ def get_work_graph(person: str | None = Query(None), case: int | None = Query(No
         return _unknown_person(pid)
     st = _sync_routines(pd, mem, case)
     doc = mem.read()
-    learner = _learner(pd.person, case)
+    learner = _learner(pd.person, _case_for(pd.person, case, mem))
     now = learner.t_ref if learner is not None else (pd.t_last if pd.origin == "synthetic" else time.time())
     g = build_work_graph(st, doc, _pack(pd.role), now, skill_snapshot=learner.snapshot if learner is not None else None, person=pd.person)
     return {"meta": _meta(pd.origin, len(g["nodes"]), "episodes", None,

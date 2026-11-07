@@ -15,19 +15,19 @@ import subprocess
 import sys
 import time
 import traceback
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from ..store.paths import repo_root
-from . import adapters
-from .adapters import SECTION_NAMES, SECTIONS, Ctx, NotLanded
+from .adapters import SECTION_NAMES, SECTIONS, Ctx, NotLanded, Skipped
 from .data import ensure_synthetic, evals_out_dir
 from .limitations import assemble as assemble_limitations
 from .meta import stub
 
 
 def _now() -> str:
-    return _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def is_mock() -> bool:
@@ -89,6 +89,8 @@ def run_section(spec, ctx: Ctx, log: Callable[[str], None]) -> tuple[dict[str, A
         sec = spec.fn(ctx)
     except NotLanded as e:
         sec = stub("pending", f"{e.owner} not landed ({e.detail})" if e.detail else f"{e.owner} not landed")
+    except Skipped as e:
+        sec = stub("pending", str(e))
     except FileNotFoundError as e:
         sec = stub("pending", f"data missing: {e}")
     except Exception as e:  # a bug in an owner's code must not take the whole report down; it is shown, loudly

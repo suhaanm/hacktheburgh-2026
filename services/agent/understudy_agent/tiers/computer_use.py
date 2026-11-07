@@ -118,13 +118,21 @@ class BrowserPageActuator:
 
 
 # ----------------------------------------------------------------------------- real desktop (guarded)
+TITLE_BAR_PT = 28.0       # a typing target must be below the window's title bar
+TYPE_CHUNK = 6            # at most this many characters are typed per verification
+FOCUS_POLL_S = 0.025
+FOCUS_WAIT_S = 0.5
+
+
 class MacBackend(Protocol):
-    """Everything MacActuator needs from the operating system. `QuartzBackend` is the real one;
-    tests pass a fake. Methods are synchronous and fast."""
+    """Everything MacActuator needs from the operating system. `QuartzBackend` is the real one; tests pass a fake.
+    Methods are synchronous and fast. Coordinates are in POINTS."""
 
     def frontmost_app(self) -> str: ...
     def screen_locked(self) -> bool: ...
-    def display_scale(self) -> float: ...
+    def backing_scale(self) -> float: ...                 # NSScreen.mainScreen().backingScaleFactor()
+    def display_width_pts(self) -> float: ...             # CGDisplayBounds width, in points
+    def window_at(self, x_pt: float, y_pt: float) -> dict[str, Any] | None: ...  # topmost layer-0 window there
     def mouse(self, kind: str, x_pt: float, y_pt: float) -> None: ...   # move | down | up
     def type_text(self, text: str) -> None: ...
     def key(self, keys: list[str]) -> None: ...
@@ -133,9 +141,18 @@ class MacBackend(Protocol):
     def release_all(self) -> None: ...
 
 
+def png_width(png: bytes) -> int:
+    import struct
+
+    if len(png) < 24 or png[:8] != b"\x89PNG\r\n\x1a\n":
+        raise ValueError("not a PNG")
+    return struct.unpack(">II", png[16:24])[0]
+
+
 class QuartzBackend:
-    """Real macOS events via pyobjc (Quartz CGEvent, AppKit NSWorkspace). Imports lazily; install with
-    `uv run --with pyobjc-framework-Quartz --with pyobjc-framework-Cocoa ...`. Reference: scripts/s2_textedit_test.py."""
+    """Real macOS events via pyobjc (Quartz CGEvent, AppKit NSWorkspace/NSScreen). Imports lazily; install with
+    `uv run --with pyobjc-framework-Quartz --with pyobjc-framework-Cocoa ...`. Reference: scripts/s2_textedit_test.py.
+    NOT exercised by tests: only the owner-supervised check runs it."""
 
     def __init__(self) -> None:
         try:
@@ -158,11 +175,30 @@ class QuartzBackend:
         asleep = bool(Quartz.CGDisplayIsAsleep(Quartz.CGMainDisplayID()))
         return bool(d.get("CGSSessionScreenIsLocked", 0)) or asleep
 
-    def display_scale(self) -> float:  # pragma: no cover - real desktop
+    def backing_scale(self) -> float:  # pragma: no cover - real desktop
+        from AppKit import NSScreen
+
+        return float(NSScreen.mainScreen().backingScaleFactor())
+
+    def display_width_pts(self) -> float:  # pragma: no cover - real desktop
         import Quartz
 
-        did = Quartz.CGMainDisplayID()
-        return float(Quartz.CGDisplayPixelsWide(did)) / float(Quartz.CGDisplayBounds(did).size.width)
+        return float(Quartz.CGDisplayBounds(Quartz.CGMainDisplayID()).size.width)
+
+    def window_at(self, x_pt: float, y_pt: float) -> dict[str, Any] | None:  # pragma: no cover - real desktop
+        """Topmost normal (layer 0) on-screen window containing the point. CGWindowList is ordered front to back."""
+        import Quartz
+
+        opts = Quartz.kCGWindowListOptionOnScreenOnly | Quartz.kCGWindowListExcludeDesktopElements
+        for w in Quartz.CGWindowListCopyWindowInfo(opts, Quartz.kCGNullWindowID) or []:
+            if int(w.get("kCGWindowLayer", 1)) != 0 or float(w.get("kCGWindowAlpha", 1.0)) <= 0.0:
+                continue
+            b = w.get("kCGWindowBounds") or {}
+            x, y, ww, hh = float(b.get("X", 0)), float(b.get("Y", 0)), float(b.get("Width", 0)), float(b.get("Height", 0))
+            if x <= x_pt < x + ww and y <= y_pt < y + hh:
+                return {"owner": str(w.get("kCGWindowOwnerName", "")), "bounds": (x, y, ww, hh), "layer": 0,
+                        "title": str(w.get("kCGWindowName", "") or "")}
+        return None
 
     def mouse(self, kind: str, x_pt: float, y_pt: float) -> None:  # pragma: no cover - real desktop
         import Quartz as Q
@@ -209,17 +245,28 @@ class QuartzBackend:
 
 
 class MacActuator:
-    """Real desktop actuator behind every guard the lead required. It is only constructed when
-    UNDERSTUDY_REAL_ACTUATOR=1, and only ever for the named harmless target app.
+    """Real desktop actuator behind every guard. Only constructed when UNDERSTUDY_REAL_ACTUATOR=1, and only ever
+    for the named harmless target app.
 
-    Guards, checked before EVERY event: the kill flag; the screen is not locked or asleep; the frontmost app is
-    the target; the action budget and the time budget. Pixels from screenshots are divided by the display scale to
-    get points. On any abort or refusal, held buttons and keys are released.
+    Guards (a failure aborts, releases held buttons and keys, and raises ActuatorRefused):
+      * scale: points come from the BACKING scale (NSScreen), cross-checked against screenshot pixel width divided by
+        the display's width in points; if they disagree nothing is done. No pointer action runs before a screenshot
+        has verified the scale.
+      * hit test before EVERY pointer action (move, click, double click, scroll): the topmost normal window at the
+        target point must belong to the target app, and for clicks the point must be below its title bar. Being the
+        frontmost app is not enough.
+      * after a click, poll up to 500 ms for two consecutive reads where the frontmost app AND the window at the click
+        point are the target; otherwise abort (activation lag is exactly what this catches).
+      * before EVERY typed chunk (at most 6 characters) and every key event the same check is repeated at the last
+        verified click point. Typing without a verified click is refused.
+      * kill flag, locked or asleep screen, action budget and time budget before every event.
+    `report` records the scale cross-check and every hit test for the owner to read.
     """
 
     def __init__(self, target_app: str, *, backend: MacBackend | None = None, kill_flag: Path | None = None,
                  max_actions: int = 40, time_budget_s: float = 120.0,
-                 clock: Callable[[], float] = time.monotonic, env: dict[str, str] | None = None) -> None:
+                 clock: Callable[[], float] = time.monotonic, env: dict[str, str] | None = None,
+                 focus_wait_s: float = FOCUS_WAIT_S, focus_poll_s: float = FOCUS_POLL_S) -> None:
         if (env if env is not None else os.environ).get("UNDERSTUDY_REAL_ACTUATOR") != "1":
             raise ActuatorRefused("the real actuator is disabled; set UNDERSTUDY_REAL_ACTUATOR=1 (owner present only)")
         if not target_app:
@@ -228,36 +275,22 @@ class MacActuator:
         self.backend = backend or QuartzBackend()
         self._kill = kill_flag
         self.max_actions, self.time_budget_s, self._clock = max_actions, time_budget_s, clock
+        self._focus_wait, self._focus_poll = focus_wait_s, focus_poll_s
         self._started = clock()
         self.n = 0
-        self.scale = float(self.backend.display_scale())
+        self.scale = float(self.backend.backing_scale())
+        self._scale_verified = False
+        self._last_point: tuple[float, float] | None = None
+        self.report: dict[str, Any] = {"target_app": target_app, "backing_scale": self.scale, "scale_check": None,
+                                       "hits": [], "typed_chars": 0}
 
-    def _guard(self) -> None:
-        flag = self._kill or kill_flag_path()
-        if flag.exists():
-            self._abort("kill flag present")
-        if self.backend.screen_locked():
-            self._abort("screen is locked or asleep")
-        front = self.backend.frontmost_app()
-        if front != self.target_app:
-            self._abort(f"frontmost app is {front!r}, not {self.target_app!r}")
-        if self.n >= self.max_actions:
-            self._abort("action budget used up")
-        if self._clock() - self._started > self.time_budget_s:
-            self._abort("time budget used up")
-
+    # ------------------------------------------------------------------ guards
     def _abort(self, why: str) -> None:
         try:
             self.backend.release_all()
         finally:
+            self.report["aborted"] = why
             raise ActuatorRefused(why)
-
-    def _pt(self, v: int) -> float:
-        return v / self.scale
-
-    async def screenshot(self) -> bytes:
-        self._guard_passive()
-        return self.backend.screenshot_png()
 
     def _guard_passive(self) -> None:
         flag = self._kill or kill_flag_path()
@@ -266,39 +299,115 @@ class MacActuator:
         if self.backend.screen_locked():
             self._abort("screen is locked or asleep")
 
+    def _guard(self) -> None:
+        self._guard_passive()
+        front = self.backend.frontmost_app()
+        if front != self.target_app:
+            self._abort(f"frontmost app is {front!r}, not {self.target_app!r}")
+        if self.n >= self.max_actions:
+            self._abort("action budget used up")
+        if self._clock() - self._started > self.time_budget_s:
+            self._abort("time budget used up")
+
+    def _hit(self, x_pt: float, y_pt: float, *, label: str, need_body: bool) -> dict[str, Any]:
+        """Refuse unless the topmost normal window at the point belongs to the target app."""
+        w = self.backend.window_at(x_pt, y_pt)
+        rec = {"at": label, "x_pt": round(x_pt, 2), "y_pt": round(y_pt, 2), "scale": self.scale,
+               "owner": (w or {}).get("owner"), "bounds": (w or {}).get("bounds")}
+        self.report["hits"].append(rec)
+        if w is None:
+            self._abort(f"no normal window at ({x_pt:.0f}, {y_pt:.0f}) pt; refusing to act there")
+        if w["owner"] != self.target_app:
+            self._abort(f"the window at ({x_pt:.0f}, {y_pt:.0f}) pt belongs to {w['owner']!r}, not {self.target_app!r}")
+        bx, by, bw, bh = w["bounds"]
+        if need_body and y_pt < by + TITLE_BAR_PT:
+            self._abort("the point is in the window's title bar, not in its body")
+        return rec
+
+    def _pt(self, v: int) -> float:
+        return v / self.scale
+
+    async def _focus_stable(self, x_pt: float, y_pt: float, *, need_body: bool) -> None:
+        """Wait up to 500 ms for TWO consecutive consistent reads; abort if they never come."""
+        deadline = self._clock() + self._focus_wait
+        good = 0
+        while True:
+            w = self.backend.window_at(x_pt, y_pt)
+            ok = (self.backend.frontmost_app() == self.target_app and w is not None
+                  and w["owner"] == self.target_app and (not need_body or y_pt >= w["bounds"][1] + TITLE_BAR_PT))
+            good = good + 1 if ok else 0
+            if good >= 2:
+                return
+            if self._clock() >= deadline:
+                self._abort("focus did not settle on the target app and window after the click")
+            await asyncio.sleep(self._focus_poll)
+
+    async def _verify_typing_target(self) -> None:
+        self._guard()
+        if self._last_point is None:
+            self._abort("no verified click target yet; refusing to type")
+        await self._focus_stable(*self._last_point, need_body=True)
+
+    # ------------------------------------------------------------------ screenshot and scale
+    async def screenshot(self) -> bytes:
+        self._guard_passive()
+        png = self.backend.screenshot_png()
+        px = png_width(png)
+        pts = float(self.backend.display_width_pts())
+        measured = px / pts if pts else 0.0
+        ok = abs(measured - self.scale) <= 0.05
+        self.report["scale_check"] = {"backing_scale": self.scale, "screenshot_px": px, "display_pts": pts,
+                                      "measured_scale": round(measured, 3), "agree": ok}
+        if not ok:
+            self._abort(f"scale disagreement: backing scale {self.scale} but the screenshot says {measured:.3f}")
+        self._scale_verified = True
+        return png
+
+    # ------------------------------------------------------------------ actions
     async def execute(self, action: Action) -> None:
         self._guard()
         a = action.args
         self.n += 1
         try:
-            if action.kind == "move":
-                self.backend.mouse("move", self._pt(a["x"]), self._pt(a["y"]))
-            elif action.kind in ("click", "double_click"):
+            if action.kind in ("move", "click", "double_click", "scroll"):
+                if not self._scale_verified:
+                    self._abort("the display scale has not been verified against a screenshot yet")
                 x, y = self._pt(a["x"]), self._pt(a["y"])
+                self._hit(x, y, label=action.kind, need_body=action.kind != "move")
                 self.backend.mouse("move", x, y)
+                if action.kind == "move":
+                    return
                 await asyncio.sleep(0.05)
-                self._guard_passive_front()
+                self._guard()
+                self._hit(x, y, label=f"{action.kind}:recheck", need_body=True)
+                if action.kind == "scroll":
+                    self.backend.scroll(int(a.get("scroll_x", 0)), int(a.get("scroll_y", 0)))
+                    return
                 for _ in range(2 if action.kind == "double_click" else 1):
                     self.backend.mouse("down", x, y)
                     await asyncio.sleep(0.04)
                     self.backend.mouse("up", x, y)
+                await self._focus_stable(x, y, need_body=True)   # activation lag is caught here, before any typing
+                self._last_point = (x, y)
             elif action.kind == "type":
-                self.backend.type_text(a["text"])
+                text = a["text"]
+                for i in range(0, len(text), TYPE_CHUNK):
+                    await self._verify_typing_target()     # re-verify before EVERY chunk
+                    chunk = text[i:i + TYPE_CHUNK]
+                    self.backend.type_text(chunk)
+                    self.report["typed_chars"] += len(chunk)
             elif action.kind == "key":
+                await self._verify_typing_target()
                 self.backend.key(list(a["keys"]))
-            elif action.kind == "scroll":
-                self.backend.scroll(int(a.get("scroll_x", 0)), int(a.get("scroll_y", 0)))
             elif action.kind == "wait":
                 await asyncio.sleep(float(a.get("seconds", 1)))
             elif action.kind != "screenshot":
-                raise ActuatorRefused(f"action kind {action.kind!r} is not supported by the real actuator")
+                self._abort(f"action kind {action.kind!r} is not supported by the real actuator")
+        except ActuatorRefused:
+            raise
         except BaseException:
             self.backend.release_all()
             raise
-
-    def _guard_passive_front(self) -> None:
-        if self.backend.frontmost_app() != self.target_app:
-            self._abort("target app lost focus before the click")
 
     async def release_all(self) -> None:
         self.backend.release_all()

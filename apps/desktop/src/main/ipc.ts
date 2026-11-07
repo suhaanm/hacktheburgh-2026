@@ -89,6 +89,7 @@ export function registerIpc(deps: IpcDeps): void {
   listen(IPC.overlayReady, (size) => {
     ctx.log('ipc', `overlay ready ${size.width}x${size.height}`)
     ctx.sendOverlay({ type: 'chip', level: ctx.state.get().level, label: HELP_LEVEL_LABELS[ctx.state.get().level] })
+    ctx.bus.emit('overlay:ready', {})
   })
   listen(IPC.wakeDetected, ({ personaId, source }) => {
     PersonaIdSchema.parse(personaId)

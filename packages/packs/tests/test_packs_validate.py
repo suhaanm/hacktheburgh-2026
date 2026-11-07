@@ -124,7 +124,8 @@ def test_benefits_params_and_rules_equal_the_engine_default():
 def test_thin_packs_carry_the_default_base_rules(pack):
     d = _engine_default()
     base_start = next(i for i, r in enumerate(d["rules"]) if r["match"].get("type") == "idle")
-    base = d["rules"][base_start:]
+    # base rules only: the default also keeps a benefits role rule (nav + calc_result) among them
+    base = [r for r in d["rules"][base_start:] if r["cog"] not in d["extra_cogs"]]
     m = yaml.safe_load((PACKS / pack / "mapping.yaml").read_text())
     assert m["rules"][-len(base):] == base
 
@@ -604,3 +605,123 @@ def test_persona_planted_routines_name_pack_templates():
     templates = {t["id"] for t in yaml.safe_load((BEN / "routines.yaml").read_text())["templates"]}
     assert {r["id"] for r in persona["planted_routines"]} <= templates
     assert {"calc-entry-3x", "case-note-copy", "cliff-recheck", "queue-sweep", "weekly-report"} <= templates
+
+
+# ---------------------------------------------------------------- param transform (unit conversion)
+
+def site_c_bundle() -> dict:
+    return json.loads((SCHEMA / "examples" / "steps.calc_entry_c.example.json").read_text())
+
+
+def test_site_c_example_validates_and_carries_the_unit_transforms():
+    b = site_c_bundle()
+    assert not list(validator("steps.schema.json").iter_errors(b))
+    t = {k: v["transform"] for k, v in b["params"].items() if "transform" in v}
+    assert t["adult1_earnings_monthly"] == {"mul": 12.0, "round": 2}
+    assert t["adult2_earnings_monthly"] == {"mul": 12.0, "round": 2}
+    assert t["rent_monthly"]["mul"] == pytest.approx(12 / 52) and t["childcare_monthly"]["round"] == 2
+    assert set(t) == {"adult1_earnings_monthly", "adult2_earnings_monthly", "rent_monthly", "childcare_monthly"}
+
+
+def test_site_c_example_transforms_equal_the_sandbox_spec():
+    specs = pytest.importorskip("understudy_agent.sandbox_sites.specs")
+    b = site_c_bundle()
+    got = {k: (v["transform"]["mul"], v["transform"]["round"]) for k, v in b["params"].items() if "transform" in v}
+    assert got == specs.SITES["c"].transforms
+    # the bundle's selectors are the spec's testid selectors; the two panels are separated by the next-tab click
+    sels = {s["selector"] for s in b["steps"] if "selector" in s}
+    assert specs.SITES["c"].selector("adult1_earnings_monthly") in sels
+    assert specs.SITES["c"].buttons()[0] in sels and specs.SITES["c"].buttons()[1] in sels
+
+
+def test_site_c_transform_applied_gives_the_values_the_site_expects():
+    """Typing the household's monthly figure through the declared transform gives the annual or weekly number."""
+    specs = pytest.importorskip("understudy_agent.sandbox_sites.specs")
+    households = pytest.importorskip("understudy_agent.sandbox_sites.households")
+    b = site_c_bundle()
+    h = next(x for x in households.generate_households(20, 2026) if x.archetype == "lone_parent_childcare")
+    params = h.params()
+    for name in ("adult1_earnings_monthly", "rent_monthly", "childcare_monthly"):
+        tr = b["params"][name]["transform"]
+        typed = f"{round(float(params[name]) * tr['mul'], tr['round']):.{tr['round']}f}"
+        assert typed == specs.bound_value(specs.SITES["c"], name, params)
+
+
+@pytest.mark.parametrize("transform,ok", [
+    ({"mul": 12.0, "round": 2}, True),
+    ({"mul": 12}, True),                          # round is optional: leave unrounded
+    ({"mul": 0.5, "round": 0}, True),
+    ({"round": 2}, False),                        # mul is required
+    ({"mul": "12", "round": 2}, False),
+    ({"mul": 0, "round": 2}, False),
+    ({"mul": -1, "round": 2}, False),
+    ({"mul": 12, "round": -1}, False),
+    ({"mul": 12, "round": 2.5}, False),
+    ({"mul": 12, "round": 9}, False),
+    ({"mul": 12, "round": 2, "add": 5}, False),   # no other operations
+    ("x12", False),
+])
+def test_param_transform_forms(transform, ok):
+    b = good_bundle()
+    b["params"]["earnings"] = {"type": "number", "source": "household.params.adult1_earnings_monthly", "transform": transform}
+    assert (not list(validator("steps.schema.json").iter_errors(b))) is ok
+
+
+# ---------------------------------------------------------------- task markers (task_start, progress, task_end)
+
+def test_calculator_sites_declare_task_markers_that_match_the_sandbox_selectors():
+    specs = pytest.importorskip("understudy_agent.sandbox_sites.specs")
+    cfg = yaml.safe_load((BEN / "tasks" / "sites.yaml").read_text())
+    for s in cfg["sites"]:
+        if s["kind"] != "calculator":
+            continue
+        mk = s["capture"]["markers"]
+        assert mk["task_start"] == {"zone": "calc_site", "idle_s": 120}
+        result_read = next(p for p in mk["progress"] if p["kind"] == "result_read")["when"]
+        spec = specs.SITES[s["id"]]
+        for selector in (spec.result_v1["amount"], spec.result_v2["amount"]):
+            assert selector in result_read, (s["id"], selector)
+    a = next(s for s in cfg["sites"] if s["id"] == "a")["capture"]["markers"]
+    status = [specs.CASENOTE_RESULT["v1"]["status"], specs.CASENOTE_RESULT["v2"]["status"]]
+    note = next(p for p in a["progress"] if p["kind"] == "note_field")["when"]
+    assert all(sel in note for sel in status) and all(sel in a["task_end"]["when"] for sel in status)
+    assert a["task_end"]["reason"] == "note_saved"
+    # the case note page is only on site a's port, so only site a carries the note markers
+    for s in cfg["sites"]:
+        if s["id"] in ("b", "c"):
+            assert "task_end" not in s["capture"]["markers"]
+
+
+def test_marker_zone_must_be_in_the_vocabulary(tmp_path):
+    dst = clone_pack(tmp_path, "benefits-processor")
+    edit_yaml(dst / "tasks" / "sites.yaml", lambda d: d["sites"][0]["capture"]["markers"]["task_start"].update(zone="mystery_zone"))
+    assert any("mystery_zone" in e for e in V.validate_pack(dst))
+
+
+def test_progress_markers_need_a_task_start(tmp_path):
+    dst = clone_pack(tmp_path, "benefits-processor")
+    edit_yaml(dst / "tasks" / "sites.yaml", lambda d: d["sites"][1]["capture"]["markers"].pop("task_start"))
+    assert any("without a task_start" in e for e in V.validate_pack(dst))
+
+
+def test_marker_selector_with_unbalanced_brackets_is_caught(tmp_path):
+    dst = clone_pack(tmp_path, "benefits-processor")
+    edit_yaml(dst / "tasks" / "sites.yaml", lambda d: d["sites"][0]["capture"]["markers"]["progress"][0].update(when='a[href="x"'))
+    assert any("unbalanced" in e for e in V.validate_pack(dst))
+
+
+@pytest.mark.parametrize("markers,ok", [
+    ({"task_start": {"zone": "calc_site", "idle_s": 120}}, True),
+    ({"task_start": {"zone": "calc_site", "idle_s": 5}}, False),                       # too short to mean a new case
+    ({"task_start": {"zone": "calc_site"}}, False),
+    ({"progress": [{"kind": "Result Read", "when": "#x"}]}, False),                    # kind is an enum token
+    ({"task_end": {"when": "#x"}}, False),                                             # reason is required
+    ({"surprise": 1}, False),
+])
+def test_markers_schema_forms(markers, ok):
+    v = def_validator_for("zoneMarkers")
+    assert (not list(v.iter_errors(markers))) is ok
+
+
+def def_validator_for(name: str):
+    return V.def_validator(name)

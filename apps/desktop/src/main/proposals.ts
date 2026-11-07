@@ -22,6 +22,8 @@ export interface BreakSignals {
   task(): { step: number; stepsTotal: number } | null
   // When the last episode (lesson, session or engine task) ended, ms since epoch, or null.
   lastEpisodeEndAt(): number | null
+  // When the coach brain last said something other than silence (GET /coach/next): a prompt in the last minute means mid-task.
+  lastCoachDecisionAt?(): number | null
 }
 
 export interface BreakRules {
@@ -29,16 +31,20 @@ export interface BreakRules {
   afterEpisodeIdleS: number // a quieter pause is enough shortly after an episode
   afterEpisodeWindowMs: number
   midTaskIdleS: number // while the engine says a task is in progress, the pause must be this long
+  coachQuietMs: number // after a coach prompt this long counts as mid-task
 }
 
-export const DEFAULT_RULES: BreakRules = { idleBreakS: 15, afterEpisodeIdleS: 3, afterEpisodeWindowMs: 90_000, midTaskIdleS: 90 }
+export const DEFAULT_RULES: BreakRules = { idleBreakS: 15, afterEpisodeIdleS: 3, afterEpisodeWindowMs: 90_000, midTaskIdleS: 90, coachQuietMs: 60_000 }
 
 export function isNaturalBreak(s: BreakSignals, now: number, rules: BreakRules = DEFAULT_RULES): boolean {
   if (s.killed() || s.locked() || s.confirmPending() || s.lessonActive()) return false
   const idle = s.idleSeconds()
   const task = s.task()
+  const decidedAt = s.lastCoachDecisionAt?.() ?? null
+  const coachBusy = decidedAt !== null && now - decidedAt <= rules.coachQuietMs
   const unfinished = !!task && task.step < task.stepsTotal
-  if (unfinished) return idle >= rules.midTaskIdleS
+  // A task in progress, or a coach prompt a moment ago: the worker is in the middle of something, so only a long pause is a break.
+  if (unfinished || coachBusy) return idle >= rules.midTaskIdleS
   const ended = s.lastEpisodeEndAt()
   if (ended !== null && now - ended <= rules.afterEpisodeWindowMs && idle >= rules.afterEpisodeIdleS) return true
   return idle >= rules.idleBreakS
@@ -124,7 +130,7 @@ export interface ProposalScheduler {
 }
 
 export function toHudProposal(p: RoutineProposal): HudProposal {
-  return { id: p.id, title: p.title, what: p.what || p.title, howOften: p.howOften, hoursSaved: p.hoursSaved, touches: p.touches, never: p.never }
+  return { id: p.id, title: p.title, what: p.what || p.title, howOften: p.howOften, hoursSaved: p.hoursSaved, horizonWeeks: p.horizonWeeks, touches: p.touches, never: p.never }
 }
 
 export function createProposalScheduler(deps: SchedulerDeps): ProposalScheduler {

@@ -1887,6 +1887,9 @@
                         }
                       }
                     }
+                  },
+                  "markers": {
+                    "$ref": "#/$defs/zoneMarkers"
                   }
                 }
               }
@@ -2122,6 +2125,9 @@
               }
             }
           }
+        },
+        "markers": {
+          "$ref": "#/$defs/zoneMarkers"
         }
       }
     },
@@ -2159,6 +2165,68 @@
         },
         "ref": {
           "$ref": "#/$defs/selectorStr"
+        }
+      }
+    },
+    "zoneMarkers": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Task markers the extension emits from page structure, so a live session has task_start, progress and task_end events (the coach opens a task only on task_start; the stuck hazard needs progress). Only element presence is tested, never text, and every emitted value is an enum token. task_start fires on a navigation whose zone equals task_start.zone when no task is open or the open task has been idle for idle_s. progress fires on a navigation when a `when` selector matches. task_end fires on a navigation when its `when` selector matches and closes the task. Every event from task_start until task_end carries the task_id.",
+      "properties": {
+        "task_start": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "zone",
+            "idle_s"
+          ],
+          "properties": {
+            "zone": {
+              "$ref": "#/$defs/zoneId"
+            },
+            "idle_s": {
+              "type": "number",
+              "minimum": 10,
+              "maximum": 3600
+            }
+          }
+        },
+        "progress": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "when"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{1,30}$"
+              },
+              "when": {
+                "$ref": "#/$defs/selectorStr"
+              }
+            }
+          }
+        },
+        "task_end": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "when",
+            "reason"
+          ],
+          "properties": {
+            "when": {
+              "$ref": "#/$defs/selectorStr"
+            },
+            "reason": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{1,30}$"
+            }
+          }
         }
       }
     }

@@ -61,6 +61,7 @@ rules:
   - { match: { type: scroll, zone: doc }, cog: READ }
   - { match: { type: copy }, cog: COPY }
   - { match: { type: paste }, cog: PASTE }
+  - { match: { type: nav, zone: calc_result }, cog: READ_RESULT, starts: true }   # a result page is short: arriving on it is reading it
   - { match: { type: [nav, tab] }, cog: NAVIGATE }
   - { match: { type: click, role: [link, tab, menuitem] }, cog: NAVIGATE }   # zoneless link clicks navigate
   - { match: { type: click }, cog: ENTER }
@@ -74,7 +75,7 @@ examples:
       - { dt: 6,  type: click,  role: button,  meta: { zone: household_form } }
       - { dt: 3,  type: nav,    meta: { zone: calc_result } }
       - { dt: 3,  type: scroll, meta: { zone: calc_result, depth_bin: 2 } }
-    expect: [OPEN_CALCULATOR, ENTER_HOUSEHOLD, ENTER_HOUSEHOLD, NAVIGATE, READ_RESULT]
+    expect: [OPEN_CALCULATOR, ENTER_HOUSEHOLD, ENTER_HOUSEHOLD, READ_RESULT, READ_RESULT]
   - name: compare results across tabs, copy a result into the case note
     events:
       - { dt: 0,  type: tab,    role: tab, meta: { zone: results_tabs } }

@@ -103,10 +103,11 @@ try {
         const g = c.getContext('2d', { willReadFrequently: true })
         g.drawImage(img, 0, 0)
         const { data, width, height } = g.getImageData(0, 0, c.width, c.height)
-        const box = (pred) => {
+        const box = (pred, within) => {
           let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1, n = 0
-          for (let y = 0; y < height; y++)
-            for (let x = 0; x < width; x++) {
+          const [ax, ay, bx, by] = within ?? [0, 0, width, height]
+          for (let y = Math.floor(Math.max(0, ay)); y < Math.min(height, Math.ceil(by)); y++)
+            for (let x = Math.floor(Math.max(0, ax)); x < Math.min(width, Math.ceil(bx)); x++) {
               const i = (y * width + x) * 4
               if (pred(data[i], data[i + 1], data[i + 2])) {
                 n++
@@ -120,24 +121,53 @@ try {
         }
         const scale = width / displayW // image px per point
         const magenta = box((r, g, b) => r > 215 && g < 70 && b > 215)
-        const ring = box((r, g, b) => b > 225 && g > 150 && g < 215 && r > 50 && r < 125) // the guide ring's core colour #4FB3FF
-        return { scale, width, height, magenta, ring }
+        // Only look for the ring close to the element: the rest of the screen has plenty of blue.
+        const pad = 45 * scale
+        const near = magenta ? [magenta.x0 - pad, magenta.y0 - pad, magenta.x1 + pad, magenta.y1 + pad] : null
+        // The ring (dark casing and blue core) is the only thing near the test button that is neither white page nor the magenta element.
+        const ring = near ? box((r, g, b) => 0.299 * r + 0.587 * g + 0.114 * b < 200 && !(r > 150 && b > 150 && g < 120), near) : null
+        // Optional: a small crop around the element (only the test page, never the rest of the screen) to look at.
+        let crop = null
+        if (magenta && globalThis.__wantCrop) {
+          const cw = Math.round(magenta.x1 - magenta.x0 + 2 * pad)
+          const ch = Math.round(magenta.y1 - magenta.y0 + 2 * pad)
+          const cc = document.createElement('canvas')
+          cc.width = cw
+          cc.height = ch
+          cc.getContext('2d').drawImage(c, magenta.x0 - pad, magenta.y0 - pad, cw, ch, 0, 0, cw, ch)
+          crop = cc.toDataURL('image/png')
+        }
+        return { scale, width, height, magenta, ring, crop }
       },
       { dataUrl, displayW },
     )
   }
-  const measure = async (label) => {
+  const predicted = (name) =>
+    page.evaluate((name) => {
+      const el = [...document.querySelectorAll('button')].find((b) => b.textContent === name)
+      const r = el.getBoundingClientRect()
+      // The extension's own recipe for where the viewport sits on the screen: screenX/Y plus the browser chrome above the page.
+      return { x: screenX + r.left, y: screenY + (outerHeight - innerHeight) + r.top, w: r.width, h: r.height }
+    }, name)
+  const measure = async (label, name) => {
     const jpeg = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/shot?purpose=live`)).arrayBuffer()
     const display = 1728
+    await page.evaluate((v) => (globalThis.__wantCrop = v), Boolean(process.env.CALIB_CROP_DIR))
     const r = await analyse(Buffer.from(jpeg).toString('base64'), display)
+    if (r.crop && process.env.CALIB_CROP_DIR) writeFileSync(join(process.env.CALIB_CROP_DIR, `crop-${label.replace(/\W+/g, '-')}.png`), Buffer.from(r.crop.split(',')[1], 'base64'))
     if (!r.magenta) return { label, error: 'the magenta element was not found in the frame (is the window visible and unobstructed?)' }
     if (!r.ring) return { label, error: 'no ring pixels found in the frame', magenta: r.magenta }
     const s = r.scale
     const m = r.magenta
     const k = r.ring
     const gaps = { left: (m.x0 - k.x0) / s, right: (k.x1 - m.x1) / s, top: (m.y0 - k.y0) / s, bottom: (k.y1 - m.y1) / s }
+    const want = await predicted(name)
+    const cx = (m.x0 + m.x1) / 2 / s
+    const cy = (m.y0 + m.y1) / 2 / s
     return {
       label,
+      predictedFromDomPoints: { x: +want.x.toFixed(1), y: +want.y.toFixed(1), w: want.w, h: want.h },
+      elementCentreErrorPoints: { dx: +(cx - (want.x + want.w / 2)).toFixed(1), dy: +(cy - (want.y + want.h / 2)).toFixed(1) },
       imagePxPerPoint: +s.toFixed(3),
       elementPoints: { x: +(m.x0 / s).toFixed(1), y: +(m.y0 / s).toFixed(1), w: +((m.x1 - m.x0) / s).toFixed(1), h: +((m.y1 - m.y0) / s).toFixed(1) },
       gapsPoints: Object.fromEntries(Object.entries(gaps).map(([a, b]) => [a, +b.toFixed(1)])),
@@ -154,14 +184,14 @@ try {
   await ring('Calibrate')
   await until(async () => (await dom()).ring?.visible === true, 15000, 'the ring to be drawn')
   await sleep(1500) // let the ring finish easing in
-  out.top = await measure('element at the top of the page')
+  out.top = await measure('element at the top of the page', 'Calibrate')
   out.dom = await dom()
 
   await page.evaluate(() => window.scrollTo(0, 1700))
   await ring('Far below')
   await until(async () => (await dom()).ring?.visible === true, 15000, 'the ring on the scrolled element')
   await sleep(1500)
-  out.scrolled = await measure('after scrolling, a different element')
+  out.scrolled = await measure('after scrolling, a different element', 'Far below')
 
   // Scroll away again: the ring must follow the page, then hide when the element leaves the viewport.
   await page.evaluate(() => window.scrollTo(0, 0))

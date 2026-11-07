@@ -17,11 +17,20 @@ export interface Target {
   domain_hash?: string;
 }
 
+/** Task markers found on a page at navigation time (enum tokens only; see pack.schema.json zoneMarkers). */
+export interface PageMarkers {
+  start?: { idle_s: number };
+  progress: string[];
+  end?: { reason: string };
+}
+
 /** What the content script reports. The service worker wraps it into a full event. */
 export interface CaptureRecord {
   type: EventType;
   target?: Target;
   meta?: Record<string, MetaValue>;
+  /** Only on nav records of configured sites: the worker turns these into task_start, progress and task_end events. */
+  markers?: PageMarkers;
 }
 
 export interface L0Event {
@@ -74,6 +83,7 @@ export const STORAGE_KEYS = {
   config: "config",
   salt: "salt",
   queue: "queue",
+  task: "task",
   l1Targets: "l1_targets",
   stats: "stats",
 } as const;

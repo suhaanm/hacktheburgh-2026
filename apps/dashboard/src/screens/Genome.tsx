@@ -102,8 +102,15 @@ function RibbonView({ data }: { data: GenomeData }) {
     return () => window.clearInterval(id);
   }, [playing, cols.length]);
 
-  const caption = active != null && cols[active]
-    ? describeColumn(cols[active], active, cols.length)
+  const consequences = data.consequences ?? [];
+  const consequenceFor = (cog: string | undefined) => consequences.find((c) => cog && c.step.toLowerCase().replace(/[ -]/g, "_") === cog.toLowerCase());
+  const sentence = (c: NonNullable<GenomeData["consequences"]>[number]) => {
+    const wrong = Math.round(c.p_error * c.n);
+    return `Skipping this step gives a wrong answer on ${wrong} of ${c.n} households, by about £${Math.round(c.mean_error_gbp)}${c.source ? ` (${c.source})` : ""}.`;
+  };
+  const activeCol = active != null ? cols[active] : null;
+  const caption = activeCol
+    ? `${describeColumn(activeCol, active as number, cols.length)}${activeCol.missing === "novice" && consequenceFor(activeCol.expert?.cog) ? ` ${sentence(consequenceFor(activeCol.expert?.cog)!)}` : ""}`
     : "Drag the slider, press Play, or hover a step to compare the two traces one step at a time.";
 
   return (
@@ -123,11 +130,15 @@ function RibbonView({ data }: { data: GenomeData }) {
         </div>
         <p className="scrub__caption" aria-live="polite">{caption}</p>
       </div>
+      <div className="stack" style={{ gap: "var(--space-2)" }}>
+        <p className="note">Skipping a step shows as time saved here. It often costs more later, and the waterfall counts that rework separately when it happened.</p>
+        {consequences.length > 0 && <ul className="plain-list">{consequences.map((c) => <li key={c.step} className="note"><b>{cogLabel(c.step)}:</b> {sentence(c)}</li>)}</ul>}
+      </div>
       <ul className="legend" aria-label="How to read the ribbon">
         <LegendItem swatch={<span className="sw sw--expert" />}>Expert step</LegendItem>
         <LegendItem swatch={<span className="sw sw--novice" />}>Novice step</LegendItem>
         <LegendItem swatch={<span className="sw sw--hatch sw--muted" />}>Hatched: this person did not do the step</LegendItem>
-        <LegendItem swatch={<span className="sw sw--bad" />}>Red: seconds lost in that column</LegendItem>
+        <LegendItem swatch={<span className="sw sw--bad" />}>Red: seconds lost in that column (a skipped step is not red: it counts as time saved)</LegendItem>
         <LegendItem swatch={<span className="sw sw--muted" />}>Column width: the longer of the two durations</LegendItem>
       </ul>
       <details className="details-lite">
@@ -141,7 +152,7 @@ function RibbonView({ data }: { data: GenomeData }) {
                   <td className="num">{i + 1}</td>
                   <td>{c.expert ? `${cogLabel(c.expert.cog)}, ${Math.round(c.expert.seconds)} s` : "no step"}</td>
                   <td>{c.novice ? `${cogLabel(c.novice.cog)}, ${Math.round(c.novice.seconds)} s` : "skipped"}</td>
-                  <td className="num">{Math.round(c.lost)} s</td>
+                  <td className="num">{c.saved > 0 ? `saved ${Math.round(c.saved)} s` : `${Math.round(c.lost)} s`}</td>
                 </tr>
               ))}
             </tbody>

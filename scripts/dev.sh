@@ -8,9 +8,16 @@ cd "$ROOT"
 mkdir -p data/logs data/pids
 
 ENGINE_PORT="${ENGINE_PORT:-7700}"; AGENT_PORT="${AGENT_PORT:-7710}"; DASHBOARD_PORT="${DASHBOARD_PORT:-5173}"
-PRE_MOCK="${UNDERSTUDY_MOCK-}"   # a value given on the command line wins over .env
+# Values given on the command line win over .env (so `UNDERSTUDY_HOME=... UNDERSTUDY_MOCK=1 make demo` is honoured).
+KEEP_VARS="UNDERSTUDY_MOCK UNDERSTUDY_HOME UNDERSTUDY_DATA_DIR UNDERSTUDY_VOICE ENGINE_PORT AGENT_PORT DASHBOARD_PORT SANDBOX_PORT_BASE"
+for v in $KEEP_VARS; do
+  if [[ -n "${!v-}" ]]; then eval "PRE_$v=\${$v}"; fi   # bash 3.2 compatible (macOS default)
+done
 if [[ -f .env ]]; then set -a; source .env; set +a; fi
-[[ -n "$PRE_MOCK" ]] && export UNDERSTUDY_MOCK="$PRE_MOCK"
+for v in $KEEP_VARS; do
+  p="PRE_$v"
+  if [[ -n "${!p-}" ]]; then export "$v=${!p}"; fi
+done
 ENGINE_PORT="${ENGINE_PORT:-7700}"; AGENT_PORT="${AGENT_PORT:-7710}"; DASHBOARD_PORT="${DASHBOARD_PORT:-5173}"
 
 busy() { lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1; }

@@ -140,6 +140,36 @@ await page.keyboard.press("ArrowRight");
 await page.waitForTimeout(150);
 check("presence: arrow keys read a cell with its interval", /95% interval/.test(await page.locator("p[aria-live]").first().innerText()));
 
+// 8b. Evidence: honest states
+await go("/evidence", 1200);
+const ev = await page.locator("main").innerText();
+check("evidence: a not-run study says so and prints no defaults", /has not run yet/.test(ev) && !/changed by [+\u2212-]?0 s/.test(ev));
+const pres = await page.locator("#presence").innerText();
+check("evidence: presence baselines show interruption and idle time, never a 0.000 Brier", /Fixed overnight window/.test(pres) && !/0\.000/.test(pres));
+check("evidence: ski rental and off-policy show the engine's labels", /Ski rental with predictions/.test(ev) && /Doubly robust/.test(ev));
+check("evidence: pooling appears, and a pending real-model run says why", /Partial pooling/.test(ev) && /real-model run is still being worked out/.test(ev));
+check("evidence: limitations carry their source", /From: engine-eval · null placebo/.test(ev));
+await page.screenshot({ path: join(qa, "evidence-1440.png") });
+// A report full of stubs: reasons, not empty charts.
+await page.route("**/eval/report", (route) => route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ generated_at: "2026-11-07T15:00:00Z", mock: true, sections: {
+  hazard: { status: "pending", reason: "The hazard model is still being scored.", meta: { origin: "synthetic", n: 0, n_unit: "episodes", split: null, interval_level: 0.95, note: null, generated_at: "" } },
+  deficit_recovery: { status: "failed", reason: "The apprentice traces could not be read.", meta: { origin: "synthetic", n: 0, n_unit: "personas", split: null, interval_level: 0.95, note: null, generated_at: "" } },
+  study: { n: 4, meta: { origin: "real", n: 4, n_unit: "people", split: "within-subject, counterbalanced", interval_level: 0.95, note: null, generated_at: "" },
+    headline: { mean_difference: 0.15, ci95: [-0.02, 0.31], per_participant_difference: [0.2, 0.1, 0.25, 0.05], sign_flip_p_two_sided: 0.125, smallest_possible_p: 0.125, ci_method: "t interval, n = 4" },
+    rows: [{ participant: "Teammate A", unassisted_before_s: 410, unassisted_after_s: 380 }, { participant: "Teammate B", unassisted_before_s: 455, unassisted_after_s: 430 }, { participant: "Teammate C", unassisted_before_s: 398, unassisted_after_s: 351 }, { participant: "Teammate D", unassisted_before_s: 470, unassisted_after_s: 462 }],
+    assisted_speed: { coached_mean_s: 301, uncoached_mean_s: 342 }, coach_use: { nudges_followed: 0.62 } },
+  limitations: [{ id: "L1", text: "Only a stub report.", severity: "high", source: "all" }] } }) }));
+// The API layer skips a service for 6 s after a refused connection; wait that out so this one request goes through the mock.
+await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(6800); await page.goto(`${base}/#/evidence`); await page.waitForTimeout(1500);
+const stubText = await page.locator("main").innerText();
+check("evidence: pending and failed sections give their reason", /still being scored/.test(stubText) && /could not be read/.test(stubText));
+check("evidence: a stub report still shows the limitations register", /Only a stub report/.test(stubText));
+const studyText = await page.locator("#study").innerText();
+check("study: headline is the skill difference with n, exact sign-flip p and the smallest possible p", /Coached minus uncoached unassisted skill: \+?0\.15/.test(studyText) && /p = 0\.125/.test(studyText) && /smallest p that is possible is 0\.125/.test(studyText) && /n = 4/.test(studyText));
+check("study: time columns say uncoached and coached, never before and after", /Uncoached block, time/i.test(studyText) && /\bCoached block, time/i.test(studyText) && !/\bbefore\b|\bafter\b/i.test(await page.locator("#study table thead").innerText()));
+check("study: assisted speed is reported separately", /Assisted speed, reported separately/i.test(studyText));
+await page.unroute("**/eval/report");
+
 // 9. Kill switch
 await go("/genome");
 await page.getByRole("button", { name: "Stop everything now" }).click();

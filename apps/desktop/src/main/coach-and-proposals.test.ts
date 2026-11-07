@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { HudProposal } from '../shared/hud'
 import type { ChipFade, HelpLevel } from '../shared/protocol'
 import { chipFromEngine, createChipDriver, fadeForLevel, levelFromEngine } from './coach-chip'
+import { createCoachBrain, outcomeFor } from './coach-brain'
 import { createCoachPoller } from './coach-poller'
 import { createEngineClient, type EngineClient } from './engine/client'
 import { parseCoachState } from './engine/coach-state'
@@ -76,73 +77,175 @@ describe('coach chip fade (driven by the level engine)', () => {
 })
 
 describe('coach state parsing', () => {
-  it('reads the contract fields and the optional ring target; ignores junk', () => {
-    const s = parseCoachState({ task: { id: 't_204', name: 'Benefits check', step: 2, steps_total: 5 }, level: 'L3', chip: 'small', message: 'Have you checked the cliff edge?', why: 'x', mastery: {}, target: { label_hash: 'h:abcd1234' }, target_label: '  Check   this ' })
-    expect(s).toEqual({ task: { id: 't_204', name: 'Benefits check', step: 2, stepsTotal: 5 }, level: 3, chip: 'small', message: 'Have you checked the cliff edge?', target: { label_hash: 'h:abcd1234' }, targetLabel: 'Check this' })
-    expect(parseCoachState({ data: { level: 'L1', chip: 'full', message: 'Hi' } })).toMatchObject({ task: null, level: 1, target: null })
-    expect(parseCoachState({ target: { role: 'button' } })?.target).toBeNull()
+  it('reads the contract fields; ignores junk', () => {
+    const s = parseCoachState({ task: { id: 't_204', name: 'Benefits check', step: 2, steps_total: 5 }, level: 'L3', chip: 'small', message: 'Have you checked the cliff edge?', why: 'x', mastery: {} })
+    expect(s).toEqual({ task: { id: 't_204', name: 'Benefits check', step: 2, stepsTotal: 5 }, level: 3, chip: 'small', message: 'Have you checked the cliff edge?' })
+    expect(parseCoachState({ data: { level: 'L1', chip: 'full', message: 'Hi' } })).toMatchObject({ task: null, level: 1 })
     expect(parseCoachState('nope')).toBeNull()
   })
 })
 
-describe('coach poller against a fake engine over HTTP', () => {
-  const state = (over: Record<string, unknown> = {}) => ({ task: { id: 't_1', name: 'Case', step: 1, steps_total: 4 }, level: 'L2', chip: 'full', message: 'Look here', why: '', mastery: {}, target: { role: 'button', name: 'Calculate' }, ...over })
+describe('coach state poller against a fake engine over HTTP', () => {
+  const state = (over: Record<string, unknown> = {}) => ({ task: { id: 't_1', name: 'Case', step: 1, steps_total: 4 }, level: 'L2', chip: 'full', message: 'Look here', why: '', mastery: {}, ...over })
 
   async function setup(initial: unknown) {
-    let body = initial
+    const body = initial
     const engine = await fakeServer((p) => (p.startsWith('/coach/state') ? { status: 200, body } : { status: 404 }))
     const client: EngineClient = createEngineClient({ endpoints: { engine: engine.url, agent: engine.url }, identity: ID, ...noTimers })
-    const ring = { point: vi.fn(), clear: vi.fn(), followed: vi.fn(), current: vi.fn(() => ({}) as never) }
     const hints: unknown[] = []
-    let fade: ChipFade = 'full'
-    const chip = { setEngineHint: (h: unknown) => void hints.push(h), refresh: () => fade }
-    let killed = false
-    const poller = createCoachPoller({ engine: client, chip, ring, killed: () => killed, immediate: false, ...noTimers })
-    return { engine, poller, ring, hints, set: (b: unknown) => (body = b), kill: () => (killed = true), setFade: (f: ChipFade) => (fade = f) }
+    const tasks: unknown[] = []
+    const poller = createCoachPoller({ engine: client, chip: { setEngineHint: (h: unknown) => void hints.push(h), refresh: () => 'full' as ChipFade }, onTask: (t) => void tasks.push(t), immediate: false, ...noTimers })
+    return { engine, poller, hints, tasks }
   }
 
-  it('asks for the coach state of this person, passes the chip hint on and rings the named element with the step number', async () => {
-    const { engine, poller, ring, hints } = await setup(state({ target_label: 'Cliff edge' }))
+  it('asks for the coach state of this person, passes the chip hint and the task on', async () => {
+    const { engine, poller, hints, tasks } = await setup(state())
     await poller.tick()
     expect(engine.requests.some((r) => r.path === '/coach/state?person=p_9f3a1c20')).toBe(true)
     expect(hints.at(-1)).toEqual({ fade: 'full', level: 2 })
-    expect(ring.point).toHaveBeenCalledWith({ role: 'button', name: 'Calculate' }, { label: 'Cliff edge', step: 1 })
+    expect(tasks.at(-1)).toEqual({ id: 't_1', name: 'Case', step: 1, stepsTotal: 4 })
+    expect(poller.lastState()?.level).toBe(2)
   })
 
-  it('a step going up while the ring is shown means the step was followed; the next target gets a ring', async () => {
-    const { poller, ring, set } = await setup(state())
-    await poller.tick()
-    set(state({ task: { id: 't_1', name: 'Case', step: 2, steps_total: 4 }, target: { label_hash: 'h:abcd1234' } }))
-    await poller.tick()
-    expect(ring.followed).toHaveBeenCalledTimes(1)
-    expect(ring.point).toHaveBeenLastCalledWith({ label_hash: 'h:abcd1234' }, { step: 2 })
-  })
-
-  it('a finished task, a missing target, a gone chip or the kill switch remove the ring', async () => {
-    const a = await setup(state())
-    await a.poller.tick()
-    a.set(state({ task: null, target: undefined }))
-    await a.poller.tick()
-    expect(a.ring.clear).toHaveBeenCalledWith('ended')
-
-    const b = await setup(state())
-    await b.poller.tick()
-    b.setFade('gone') // the chip has faded away: no more pointing
-    await b.poller.tick()
-    expect(b.ring.clear).toHaveBeenCalledWith('user')
-
-    const c = await setup(state())
-    c.kill()
-    await c.poller.tick()
-    expect(c.ring.point).not.toHaveBeenCalled()
-  })
-
-  it('an engine that is down leaves the ring and chip to their own timers and never throws', async () => {
-    const { engine, poller, ring, hints } = await setup(state())
+  it('an engine that is down clears the hint and never throws', async () => {
+    const { engine, poller, hints } = await setup(state())
     await engine.close()
     await poller.tick()
     expect(hints.at(-1)).toBeNull()
-    expect(ring.point).not.toHaveBeenCalled()
+    expect(poller.lastState()).toBeNull()
+  })
+})
+
+describe('coach next parsing', () => {
+  const next = (over: Record<string, unknown> = {}) => ({ meta: { origin: 'real' }, data: { action: 'annotate', message: 'Check the cliff edge before you copy.', why: 'You skipped it last time.', target: { zone: 'calc.result', label_hint: 'Result', role_hint: 'status' }, level: 'L2', decision_id: 'd_0001', ...over } })
+
+  it('reads the decision, the zone target with its hints, the level and the decision id', async () => {
+    const { parseCoachNext } = await import('./engine/coach-next')
+    expect(parseCoachNext(next())).toEqual({ action: 'annotate', message: 'Check the cliff edge before you copy.', why: 'You skipped it last time.', target: { zone: 'calc.result', label_hint: 'Result', role_hint: 'status' }, level: 2, decisionId: 'd_0001' })
+    expect(parseCoachNext(next({ target: null }))).toMatchObject({ target: null })
+    expect(parseCoachNext(next({ target: { zone: 'Bad Zone' } }))).toMatchObject({ target: null })
+    expect(parseCoachNext(next({ target: { label_hash: 'h:abcd1234' } }))).toMatchObject({ target: null }) // only zones are rung from here
+    expect(parseCoachNext(next({ decision_id: 'bad id!' }))).toMatchObject({ decisionId: null })
+  })
+
+  it('an action it does not know is silence, never something to act on', async () => {
+    const { parseCoachNext } = await import('./engine/coach-next')
+    expect(parseCoachNext(next({ action: 'delete_everything' }))?.action).toBe('silent')
+    expect(parseCoachNext({ data: {} })?.action).toBe('silent')
+    expect(parseCoachNext(null)).toBeNull()
+    expect(parseCoachNext({ action: 'takeover_offer', target: { zone: 'a.b' } })?.action).toBe('takeover_offer')
+  })
+})
+
+describe('coach brain: rings by zone, and the worker\'s response goes to /coach/feedback', () => {
+  const task = (step: number, id = 't_1') => ({ id, name: 'Case', step, stepsTotal: 8 })
+  const decision = (over: Record<string, unknown> = {}) => ({ meta: {}, data: { action: 'annotate', message: 'Check the result first.', why: 'w', target: { zone: 'calc.result' }, level: 'L2', decision_id: 'd_1', ...over } })
+
+  async function setup(initial: unknown, initialTask: ReturnType<typeof task> | null = task(2)) {
+    let body = initial
+    const engine = await fakeServer((p) => (p.startsWith('/coach/next') ? { status: 200, body } : p === '/coach/feedback' ? { status: 200, body: {} } : { status: 404 }))
+    const client: EngineClient = createEngineClient({ endpoints: { engine: engine.url, agent: engine.url }, identity: ID, ...noTimers })
+    let current: ReturnType<typeof task> | null = initialTask
+    let killed = false
+    const ringCalls: Array<[string, unknown?]> = []
+    let ringActive = false
+    const ring = {
+      point: (t: unknown, o: unknown) => void (ringCalls.push(['point', { t, o }]), (ringActive = true)),
+      clear: (how?: string) => void (ringCalls.push(['clear', how]), (ringActive = false)),
+      followed: () => void (ringCalls.push(['followed']), (ringActive = false)),
+      current: () => (ringActive ? ({} as never) : null),
+    }
+    const brain = createCoachBrain({ engine: client, state: () => (current ? { task: current, level: 2, chip: 'full', message: '' } : null), ring, killed: () => killed, immediate: false, ...noTimers })
+    return { engine, brain, ringCalls, set: (b: unknown) => (body = b), setTask: (t: typeof current) => (current = t), kill: () => (killed = true) }
+  }
+  const feedbacks = (e: Awaited<ReturnType<typeof setup>>['engine']) => e.requests.filter((r) => r.path === '/coach/feedback').map((r) => r.body)
+
+  it('while a task is active, asks /coach/next for this person and rings the ZONE with the nudge text, the step and the decision id', async () => {
+    const s = await setup(decision())
+    await s.brain.tick()
+    expect(s.engine.requests.some((r) => r.path === '/coach/next?person=p_9f3a1c20')).toBe(true)
+    expect(s.ringCalls).toEqual([['point', { t: { zone: 'calc.result' }, o: { message: 'Check the result first.', step: 2, ref: 'd_1' } }]])
+    await s.brain.tick() // the same decision again: nothing new
+    expect(s.ringCalls).toHaveLength(1)
+    expect(s.brain.lastActiveDecisionAt()).not.toBeNull()
+  })
+
+  it('does not ask at all when no task is in progress, and removes the ring when the task ends', async () => {
+    const s = await setup(decision(), null)
+    await s.brain.tick()
+    expect(s.engine.requests.filter((r) => r.path.startsWith('/coach/next'))).toHaveLength(0)
+    s.setTask(task(2))
+    await s.brain.tick()
+    s.setTask(null)
+    await s.brain.tick()
+    expect(s.ringCalls.at(-1)).toEqual(['clear', 'ended'])
+  })
+
+  it('silent, no zone and takeover_offer draw nothing (the desktop never acts on an offer)', async () => {
+    for (const d of [{ action: 'silent', target: null }, { action: 'nudge', target: null }, { action: 'takeover_offer', target: { zone: 'calc.go' } }]) {
+      const s = await setup(decision(d))
+      await s.brain.tick()
+      expect(s.ringCalls.filter((c) => c[0] === 'point'), JSON.stringify(d)).toHaveLength(0)
+    }
+  })
+
+  it('a new decision moves the ring; the step going up while it is shown is followed; a silent decision then clears it', async () => {
+    const s = await setup(decision())
+    await s.brain.tick()
+    s.set(decision({ decision_id: 'd_2', target: { zone: 'calc.note' }, message: 'Now the note.' }))
+    await s.brain.tick()
+    expect(s.ringCalls.filter((c) => c[0] === 'point')).toHaveLength(2)
+    s.setTask(task(3))
+    await s.brain.tick()
+    expect(s.ringCalls).toContainEqual(['followed'])
+    s.set(decision({ action: 'silent', target: null, decision_id: 'd_3' }))
+    await s.brain.tick()
+    expect(s.ringCalls.at(-1)).toEqual(['clear', 'ended'])
+  })
+
+  it('posts followed and dismissed (and only those, only for prompts that were really drawn, only for the brain\'s own decisions)', async () => {
+    const s = await setup(decision())
+    const end = (how: Parameters<typeof s.brain.onPromptEnd>[0]['how'], over: Partial<Parameters<typeof s.brain.onPromptEnd>[0]> = {}) => s.brain.onPromptEnd({ ref: 'd_1', how, shown: true, ...over })
+    end('followed')
+    end('stop')
+    end('user')
+    end('replaced')
+    end('stale')
+    end('ended')
+    end('followed', { shown: false }) // never drawn
+    end('followed', { ref: undefined }) // not a brain decision (POST /coach/ring)
+    await new Promise((r) => setTimeout(r, 50))
+    expect(feedbacks(s.engine)).toEqual([
+      { decision_id: 'd_1', outcome: 'followed' },
+      { decision_id: 'd_1', outcome: 'dismissed' },
+      { decision_id: 'd_1', outcome: 'dismissed' },
+    ])
+  })
+
+  it('stopped means no ring and no question; an engine that is down keeps what is there and never throws', async () => {
+    const s = await setup(decision())
+    await s.brain.tick()
+    s.kill()
+    await s.brain.tick()
+    expect(s.ringCalls.at(-1)).toEqual(['clear', 'ended'])
+
+    const down = await setup(decision())
+    await down.engine.close()
+    await down.brain.tick()
+    expect(down.ringCalls).toHaveLength(0)
+  })
+
+  it('outcomeFor maps only the worker\'s own responses', () => {
+    expect(['followed', 'user', 'stop', 'replaced', 'stale', 'ended'].map((h) => outcomeFor(h as never))).toEqual(['followed', 'dismissed', 'dismissed', null, null, null])
+  })
+})
+
+describe('feedback goes to the engine whatever the capture preference says', () => {
+  it('client.coachFeedback posts decision_id and outcome', async () => {
+    const engine = await fakeServer(() => ({ status: 200, body: {} }))
+    const client = createEngineClient({ endpoints: { engine: engine.url, agent: engine.url }, identity: ID, ...noTimers })
+    expect(await client.coachFeedback('d_9', 'dismissed')).toBe(true)
+    expect(engine.requests[0]).toEqual({ method: 'POST', path: '/coach/feedback', body: { decision_id: 'd_9', outcome: 'dismissed' } })
   })
 })
 
@@ -163,6 +266,14 @@ describe('natural breaks', () => {
     }
   })
 
+  it('a coach prompt in the last minute counts as mid-task: only a long pause is a break, then the usual rules apply again', () => {
+    const decided = sig({ idleSeconds: () => 20, lastCoachDecisionAt: () => now - 20_000 })
+    expect(isNaturalBreak(decided, now)).toBe(false)
+    expect(isNaturalBreak(sig({ idleSeconds: () => DEFAULT_RULES.midTaskIdleS, lastCoachDecisionAt: () => now - 20_000 }), now)).toBe(true)
+    expect(isNaturalBreak(sig({ idleSeconds: () => 20, lastCoachDecisionAt: () => now - 61_000 }), now)).toBe(true)
+    expect(isNaturalBreak(sig({ idleSeconds: () => 20, lastCoachDecisionAt: () => null }), now)).toBe(true)
+  })
+
   it('while the engine says a task is in progress it takes a long pause, and after the last step the usual rules apply', () => {
     expect(isNaturalBreak(sig({ idleSeconds: () => 30, task: () => ({ step: 2, stepsTotal: 5 }) }), now)).toBe(false)
     expect(isNaturalBreak(sig({ idleSeconds: () => DEFAULT_RULES.midTaskIdleS, task: () => ({ step: 2, stepsTotal: 5 }) }), now)).toBe(true)
@@ -171,7 +282,7 @@ describe('natural breaks', () => {
 })
 
 describe('proposal scheduler against a fake engine over HTTP', () => {
-  const routine = (id: string, hours: number, status = 'proposed') => ({ id, title: `Routine ${id}`, status, minutes_per_week: 60, value: { hours_saved: [hours, hours + 1] }, touches: ['case note'], never: ['submit'], proposal: { what: `What ${id}`, how_often: 'about 14 times in 3 weeks' } })
+  const routine = (id: string, hours: number, status = 'proposed') => ({ id, title: `Routine ${id}`, status, minutes_per_week: 60, value: { hours_saved: [hours, hours + 1], horizon_weeks: 4 }, touches: ['case note'], never: ['submit'], proposal: { what: `What ${id}`, how_often: 'about 14 times in 3 weeks' } })
 
   async function setup(routines: unknown[], over: { signals?: Partial<BreakSignals>; maxPerDay?: number; minGapMs?: number; store?: { m: ProposalMemory | null } } = {}) {
     let t = new Date('2026-11-07T10:00:00').getTime()
@@ -187,9 +298,9 @@ describe('proposal scheduler against a fake engine over HTTP', () => {
   it('shows the best proposal (most hours) at a break, once, with the card the HUD expects', async () => {
     const s = await setup([routine('small', 1), routine('big', 4), routine('declined', 9, 'declined')])
     expect(await s.sched.tick()).toBe('shown')
-    expect(s.proposal).toEqual({ id: 'big', title: 'Routine big', what: 'What big', howOften: 'about 14 times in 3 weeks', hoursSaved: [4, 5], touches: ['case note'], never: ['submit'] })
+    expect(s.proposal).toEqual({ id: 'big', title: 'Routine big', what: 'What big', howOften: 'about 14 times in 3 weeks', hoursSaved: [4, 5], horizonWeeks: 4, touches: ['case note'], never: ['submit'] })
     expect(await s.sched.tick()).toBe('showing')
-    expect(toHudProposal({ id: 'x', title: 'T', status: 'proposed', minutesPerWeek: null, hoursSaved: null, episodes: null, touches: [], never: [], what: '', howOften: '' }).what).toBe('T')
+    expect(toHudProposal({ id: 'x', title: 'T', status: 'proposed', minutesPerWeek: null, hoursSaved: null, horizonWeeks: null, episodes: null, touches: [], never: [], what: '', howOften: '' }).what).toBe('T')
   })
 
   it('never mid-task: no toast without a break, then it appears when the break comes', async () => {
@@ -286,5 +397,21 @@ describe('proposal scheduler against a fake engine over HTTP', () => {
     const second = await setup([routine('r', 3)], { store })
     expect(await second.sched.tick()).toBe('none')
     expect(emptyMemory('2026-11-07').shownToday).toBe(0)
+  })
+})
+
+describe('chip driver after the overlay page reloads', () => {
+  it('force sends the chip again even when nothing changed (and a gone chip too)', () => {
+    const sent: string[] = []
+    const d = createChipDriver({ overlay: { coach: (f) => void sent.push(f) }, local: () => ({ level: 3 as HelpLevel, streakClean: 0 }) })
+    d.refresh()
+    d.refresh()
+    d.refresh(true)
+    expect(sent).toEqual(['small', 'small'])
+    const g = createChipDriver({ overlay: { coach: (f) => void sent.push(f) }, local: () => ({ level: 4 as HelpLevel, streakClean: 3 }) })
+    g.refresh()
+    g.refresh()
+    g.refresh(true)
+    expect(sent.slice(2)).toEqual(['gone', 'gone'])
   })
 })

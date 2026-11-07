@@ -26,7 +26,7 @@ function setup() {
   return { model, kill, pushed, opened, choices }
 }
 
-const proposal = { id: 'calc-entry-3x', title: 'Enter the household into three calculators', what: 'You enter the same household three times.', howOften: 'about 14 times in 3 weeks', hoursSaved: [3.1, 5.2] as [number, number], touches: ['gov.uk check'], never: ['submit'] }
+const proposal = { id: 'calc-entry-3x', title: 'Enter the household into three calculators', what: 'You enter the same household three times.', howOften: 'about 14 times in 3 weeks', hoursSaved: [3.1, 5.2] as [number, number], horizonWeeks: 4, touches: ['gov.uk check'], never: ['submit'] }
 
 describe('HUD model', () => {
   it('the kill action triggers the switch, clears any proposal, and the stopped state is pushed', async () => {

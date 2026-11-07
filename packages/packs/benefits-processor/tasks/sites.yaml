@@ -29,6 +29,12 @@ sites:
         - { zone: case_note, when: 'form[action^="/casenote"], #note-id, #cn-id' }
         - { zone: calc_result, when: "#result-amount, #calc-total" }
         - { zone: household_form, when: 'form[action^="/step"], form[action^="/result"]' }
+      markers:
+        task_start: { zone: calc_site, idle_s: 120 }        # first calculator page when no task is open (or the open one is idle)
+        progress:
+          - { kind: result_read, when: "#result-amount, #calc-total" }
+          - { kind: note_field, when: "#note-status, #cn-state" }   # the case note was saved (status shown)
+        task_end: { when: "#note-status, #cn-state", reason: note_saved }
       elements:
         - { zone: cliff_button, selector: "#cliff-btn" }
         - { zone: cliff_panel, selector: "#cliff-panel" }
@@ -53,6 +59,10 @@ sites:
       page:
         - { zone: calc_result, when: "table" }
         - { zone: household_form, when: 'form[action^="/calculate"]' }
+      markers:
+        task_start: { zone: calc_site, idle_s: 120 }        # first calculator page when no task is open (or the open one is idle)
+        progress:
+          - { kind: result_read, when: "#estimate-monthly, #est-amount" }
       elements:
         - { zone: cliff_button, selector: "#cliff-btn" }
         - { zone: cliff_panel, selector: "#cliff-panel" }
@@ -76,6 +86,10 @@ sites:
       page:
         - { zone: calc_result, when: "table" }
         - { zone: household_form, when: 'form[action^="/results"]' }
+      markers:
+        task_start: { zone: calc_site, idle_s: 120 }        # first calculator page when no task is open (or the open one is idle)
+        progress:
+          - { kind: result_read, when: '[data-testid="out-amount"], [data-testid="x-out-amount"]' }
       elements:
         - { zone: cliff_button, selector: "#cliff-btn" }
         - { zone: cliff_panel, selector: "#cliff-panel" }

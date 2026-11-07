@@ -53,6 +53,7 @@ rules:
   - { match: { type: scroll, zone: doc }, cog: READ }
   - { match: { type: copy }, cog: COPY }
   - { match: { type: paste }, cog: PASTE }
+  - { match: { type: nav, zone: calc_result }, cog: READ_RESULT, starts: true }   # a result page is short: arriving on it is reading it
   - { match: { type: [nav, tab] }, cog: NAVIGATE }
   - { match: { type: click, role: [link, tab, menuitem] }, cog: NAVIGATE }   # zoneless link clicks navigate
   - { match: { type: click }, cog: ENTER }

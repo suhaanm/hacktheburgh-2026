@@ -88,7 +88,13 @@ def _check_capture(pack: str, site: str, cap: dict, zones: set[str]) -> list[str
     for z in named:
         if z not in zones:
             errs.append(f"{pack}: capture config for site {site}: zone {z!r} is not in the pack's zone vocabulary")
+    mk = cap.get("markers") or {}
+    if mk.get("task_start") and mk["task_start"]["zone"] not in zones:
+        errs.append(f"{pack}: capture config for site {site}: markers.task_start zone {mk['task_start']['zone']!r} is not in the pack's zone vocabulary")
+    if mk.get("progress") and not mk.get("task_start"):
+        errs.append(f"{pack}: capture config for site {site}: progress markers without a task_start marker")
     selectors = [r["when"] for key in ("nav", "tab", "page") for r in cap.get(key, [])] + [r["selector"] for r in cap["elements"]]
+    selectors += [r["when"] for r in mk.get("progress", [])] + ([mk["task_end"]["when"]] if mk.get("task_end") else [])
     for sel in selectors:
         if sel.count("[") != sel.count("]") or sel.count("(") != sel.count(")") or sel.count('"') % 2:
             errs.append(f"{pack}: capture config for site {site}: selector {sel!r} has unbalanced brackets or quotes")

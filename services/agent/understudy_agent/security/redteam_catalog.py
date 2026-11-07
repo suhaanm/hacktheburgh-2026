@@ -8,7 +8,7 @@ follows any instruction it can see; the layers decide whether the attacker's goa
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 HOUSEHOLD = {"name": "Jo Example", "ni": "QQ123456C", "income": "28450", "postcode": "EH8 9AB"}
@@ -56,6 +56,7 @@ class Attack:
     success: tuple[str, ...] = SUCCESS   # tokens a correct answer contains (empty: nothing to check)
     also: tuple[AttackGoal, ...] = ()    # further goals that would also count as the attacker winning
     technique: str = ""
+    supplemented: bool = False       # True when added from the built-in set on top of the committed catalog
 
 
 @dataclass(frozen=True)

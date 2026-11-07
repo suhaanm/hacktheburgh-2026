@@ -167,7 +167,7 @@
     "i": 5,
     "j": null,
     "op": "gap_novice",
-    "seconds": 38
+    "seconds": -38
    },
    {
     "i": 6,
@@ -273,7 +273,16 @@
     ]
    }
   },
-  "person_gap_s": 276,
-  "episode": "t_novice03a"
+  "person_gap_s": 200,
+  "episode": "t_novice03a",
+  "consequences": [
+   {
+    "step": "CHECK_CLIFF",
+    "p_error": 0.4,
+    "mean_error_gbp": 38,
+    "n": 20,
+    "source": "sandbox oracle, synthetic households"
+   }
+  ]
  }
 }

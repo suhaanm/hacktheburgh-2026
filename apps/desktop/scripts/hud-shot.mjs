@@ -17,7 +17,7 @@ if (!which || !out) {
 const dark = rest.includes('--dark')
 const scale = Number(rest[rest.indexOf('--scale') + 1]) || 2
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../out/renderer')
-const proposal = { id: 'calc-entry-3x', title: 'Enter the household into three calculators', what: 'You type the same household into three calculators, then copy the results into the case note.', howOften: 'about 14 times in 3 weeks', hoursSaved: [3.1, 5.2], touches: ['gov.uk check', 'turn2us', 'case note'], never: ['submit'] }
+const proposal = { id: 'calc-entry-3x', title: 'Enter the household into three calculators', what: 'You type the same household into three calculators, then copy the results into the case note.', howOften: 'about 14 times in 3 weeks', hoursSaved: [3.1, 5.2], horizonWeeks: 4, touches: ['gov.uk check', 'turn2us', 'case note'], never: ['submit'] }
 const states = {
   pill: { kill: { killed: false, engine: null, agent: null }, queuePending: null, proposal: null },
   queue: { kill: { killed: false, engine: null, agent: null }, queuePending: 3, proposal: null },

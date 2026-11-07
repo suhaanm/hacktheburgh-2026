@@ -2,7 +2,8 @@
 import type { RectResult, RectWant } from "../content/rect";
 import { defaultUuid, makeEvent } from "../shared/events";
 import { ensureConfig, ensureSalt, normaliseConfig, parseIdentity, type StorageArea } from "../shared/config";
-import { DEFAULT_CONFIG, STORAGE_KEYS, type CaptureRecord, type InstallConfig, type RecordedStep } from "../shared/types";
+import { randomHex } from "../shared/hash";
+import { DEFAULT_CONFIG, STORAGE_KEYS, type CaptureRecord, type EventType, type InstallConfig, type RecordedStep } from "../shared/types";
 import { Batcher, type Stats } from "./engine_client";
 import { pollConsent } from "./consent";
 import { RecordingUploader } from "./recording";
@@ -18,7 +19,13 @@ export interface WorkerApi {
   keepAlive(): void;
 }
 
+/** An open task is forgotten when nothing has happened for this long (the person went away). */
+export const STALE_TASK_MS = 10 * 60_000;
+const PROGRESS_MIN_GAP_MS = 5000;
+const TASK_PERSIST_MS = 5000;
+
 export interface WorkerDeps {
+  taskId?: () => string;
   fetch: typeof fetch;
   now: () => number;
   uuid?: () => string;
@@ -41,6 +48,12 @@ export function createWorker(api: WorkerApi, deps: WorkerDeps) {
   let l1TargetIds: string[] = [];
   let l1Timer: unknown = null;
   let rectPromise: Promise<void> | null = null;
+  // the open task: every event from task_start until task_end carries its id
+  let task: { id: string; lastAt: number } | null = null;
+  let taskPersistedAt = 0;
+  let stampAt = 0;
+  const lastProgress = new Map<string, number>();
+  const newTaskId = deps.taskId ?? (() => `t_${randomHex(6)}`);
   let rectReachable = false;
 
   const batcher = new Batcher({
@@ -87,6 +100,10 @@ export function createWorker(api: WorkerApi, deps: WorkerDeps) {
     const got = await api.storage.get(STORAGE_KEYS.l1Targets);
     const ids = got[STORAGE_KEYS.l1Targets];
     l1TargetIds = Array.isArray(ids) ? ids.filter((x): x is string => typeof x === "string") : [];
+    const saved = (await api.storage.get(STORAGE_KEYS.task))[STORAGE_KEYS.task] as { id?: unknown; last_at?: unknown } | undefined;
+    if (saved && typeof saved.id === "string" && /^t_[A-Za-z0-9_-]{1,32}$/.test(saved.id) && typeof saved.last_at === "number" && deps.now() - saved.last_at < STALE_TASK_MS) {
+      task = { id: saved.id, lastAt: saved.last_at };   // the worker was restarted in the middle of a task
+    }
     if (cfg.capturing) void startRect();
   }
 
@@ -98,6 +115,8 @@ export function createWorker(api: WorkerApi, deps: WorkerDeps) {
     if (was && !cfg.capturing) {
       await batcher.clear(); // consent revoked: forget what has not been sent
       uploader.clear();
+      task = null;
+      await api.storage.remove(STORAGE_KEYS.task);
       await api.storage.set({ [STORAGE_KEYS.l1Targets]: [] });
       l1TargetIds = [];
     }
@@ -115,14 +134,65 @@ export function createWorker(api: WorkerApi, deps: WorkerDeps) {
     }, 3000);
   }
 
+  /** Strictly increasing event times: events made in the same millisecond keep their order. */
+  function stamp(): number {
+    stampAt = Math.max(deps.now(), stampAt + 1);
+    return stampAt;
+  }
+
+  async function persistTask(force = false): Promise<void> {
+    if (!task) return;
+    const t = deps.now();
+    if (!force && t - taskPersistedAt < TASK_PERSIST_MS) return;
+    taskPersistedAt = t;
+    await api.storage.set({ [STORAGE_KEYS.task]: { id: task.id, last_at: task.lastAt } });
+  }
+
+  async function emitEvent(rec: CaptureRecord): Promise<boolean> {
+    const at = stamp();
+    const ev = makeEvent({ type: rec.type, target: rec.target, meta: rec.meta }, cfg, { now: () => at, uuid }, task?.id);
+    if (!ev) return false;
+    if (task) task.lastAt = at;
+    await batcher.add(ev);
+    return true;
+  }
+
+  /** One content record, plus the task markers it carries: task_start, the record, progress, task_end. */
+  async function handleRecord(rec: CaptureRecord): Promise<boolean> {
+    const markers = rec.markers;
+    const now = deps.now();
+    if (task && now - task.lastAt >= STALE_TASK_MS) {
+      task = null;
+      await api.storage.remove(STORAGE_KEYS.task);
+    }
+    if (markers?.start && (!task || now - task.lastAt >= markers.start.idle_s * 1000)) {
+      task = { id: newTaskId(), lastAt: now };
+      taskPersistedAt = 0;
+      await emitEvent({ type: "task_start", meta: rec.meta?.zone ? { zone: rec.meta.zone } : undefined });
+      await persistTask(true);
+    }
+    const ok = await emitEvent(rec);
+    for (const kind of markers?.progress ?? []) {
+      const key = `${task?.id ?? "-"}:${kind}`;
+      if (now - (lastProgress.get(key) ?? -Infinity) < PROGRESS_MIN_GAP_MS) continue;
+      lastProgress.set(key, now);
+      await emitEvent({ type: "progress" as EventType, meta: { kind } });
+    }
+    if (markers?.end && task) {
+      await emitEvent({ type: "task_end", meta: { reason: markers.end.reason } });
+      task = null;
+      await api.storage.remove(STORAGE_KEYS.task);
+    } else {
+      await persistTask();
+    }
+    return ok;
+  }
+
   async function handleMessage(msg: ContentMessage): Promise<unknown> {
     switch (msg?.kind) {
       case "record": {
         if (!cfg.capturing || !cfg.person) return { ok: false };
-        const ev = makeEvent(msg.record, cfg, { now: deps.now, uuid });
-        if (!ev) return { ok: false };
-        await batcher.add(ev);
-        return { ok: true };
+        return { ok: await handleRecord(msg.record) };
       }
       case "l1":
         if (cfg.capturing && l1TargetIds.length) {
@@ -209,6 +279,7 @@ export function createWorker(api: WorkerApi, deps: WorkerDeps) {
   return {
     init, handleMessage, onTabActivated, onConfigChanged, onAlarm, refreshConsent, refreshIdentity, startRect,
     batcher, uploader, poller,
+    get task() { return task; },
     get config() { return cfg; },
     get l1Targets() { return l1TargetIds; },
   };

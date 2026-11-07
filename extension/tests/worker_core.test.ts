@@ -5,7 +5,7 @@ import { ajvFor, validateAgainstEventSchema } from "./helpers";
 
 const validateRecording = ajvFor("recording.schema.json");
 
-function harness(opts: { routines?: unknown; routinesStatus?: number; engineDown?: boolean; recordingStatus?: number; desktop?: (n: number) => Response | Error } = {}) {
+function harness(opts: { identity?: { status: number; body?: unknown }; routines?: unknown; routinesStatus?: number; engineDown?: boolean; recordingStatus?: number; desktop?: (n: number) => Response | Error } = {}) {
   const store: Record<string, unknown> = {};
   const sent: { url: string; method: string; body: any }[] = [];
   let clock = 1_800_000_000_000;
@@ -22,6 +22,7 @@ function harness(opts: { routines?: unknown; routinesStatus?: number; engineDown
       return r;
     }
     if (opts.engineDown) throw new Error("refused");
+    if (url.endsWith("/identity")) return new Response(JSON.stringify(opts.identity?.body ?? {}), { status: opts.identity?.status ?? 404 });
     if (url.endsWith("/routines") && method === "GET") return new Response(JSON.stringify(opts.routines ?? []), { status: opts.routinesStatus ?? 200 });
     if (url.endsWith("/recording")) return new Response("{}", { status: opts.recordingStatus ?? 200 });
     if (url.endsWith("/events")) return new Response(JSON.stringify({ accepted: body.length, rejected: [] }), { status: 200 });
@@ -209,5 +210,77 @@ describe("worker core", () => {
     const h = harness();
     await h.w.init();
     expect(await h.w.handleMessage({ kind: "exec", code: "alert(1)" } as never)).toEqual({ ok: false });
+  });
+
+  describe("identity", () => {
+    it("adopts the engine's person and role once onboarding has created them, and retags unsent events", async () => {
+      const id: { status: number; body?: unknown } = { status: 404 };
+      const h = harness({ engineDown: false, identity: id, routines: [] });
+      await h.w.init();
+      await h.setConfig({ capturing: true });
+      const local = h.w.config.person;
+      await h.w.handleMessage(rec);
+      await h.w.refreshIdentity();                       // before onboarding: still ours
+      expect(h.w.config.person).toBe(local);
+      id.status = 200; id.body = { person: "p_ana1", role: "data-analyst" };
+      await h.w.refreshIdentity();
+      expect(h.w.config).toMatchObject({ person: "p_ana1", role: "data-analyst", identity_adopted: true });
+      expect((h.store[STORAGE_KEYS.config] as { person: string }).person).toBe("p_ana1");
+      expect((h.store[STORAGE_KEYS.queue] as { person: string; role: string }[])[0]).toMatchObject({ person: "p_ana1", role: "data-analyst" });
+      await h.w.handleMessage(rec);
+      await h.w.batcher.flush();
+      const sent = h.sent.find((s) => s.url.endsWith("/events"))!.body as { person: string }[];
+      expect(sent.map((e) => e.person)).toEqual(["p_ana1", "p_ana1"]);
+    });
+
+    it("keeps the local identity before onboarding (404) and when the engine is down", async () => {
+      const a = harness({ identity: { status: 404 } });
+      await a.w.init();
+      await a.setConfig({ capturing: true });
+      await a.w.refreshIdentity();
+      expect(a.w.config.identity_adopted).toBe(false);
+      const b = harness({ engineDown: true });
+      await b.w.init();
+      await b.w.refreshIdentity();
+      expect(b.w.config.identity_adopted).toBe(false);
+    });
+
+    it("ignores a malformed identity answer", async () => {
+      for (const body of [{ person: "someone", role: "data-analyst" }, { person: "p_ok1", role: "Not A Role" }, { role: "programmer" }, "x"]) {
+        const h = harness({ identity: { status: 200, body } });
+        await h.w.init();
+        await h.w.refreshIdentity();
+        expect(h.w.config.identity_adopted).toBe(false);
+      }
+    });
+
+    it("follows a later change of role from onboarding, and never goes back once adopted", async () => {
+      const first = { person: "p_ana1", role: "data-analyst" };
+      const h = harness({ identity: { status: 200, body: first } });
+      await h.w.init();
+      await h.w.refreshIdentity();
+      expect(h.w.config.role).toBe("data-analyst");
+      // the popup can no longer change the role: a config write that tries is normalised back by the next identity poll
+      await h.setConfig({ role: "programmer" });
+      await h.w.refreshIdentity();
+      expect(h.w.config.role).toBe("data-analyst");
+    });
+
+    it("the capture-off flow does not lose the adopted identity", async () => {
+      const h = harness({ identity: { status: 200, body: { person: "p_ana1", role: "programmer" } } });
+      await h.w.init();
+      await h.setConfig({ capturing: true });
+      await h.w.refreshIdentity();
+      await h.setConfig({ capturing: false });
+      expect(h.w.config).toMatchObject({ person: "p_ana1", identity_adopted: true });
+    });
+
+    it("refreshConsent polls the identity too, so a worker that never restarts still adopts it", async () => {
+      const h = harness({ identity: { status: 200, body: { person: "p_ana1", role: "programmer" } }, routines: [] });
+      await h.w.init();
+      await h.setConfig({ capturing: true });
+      await h.w.refreshConsent();
+      expect(h.w.config.person).toBe("p_ana1");
+    });
   });
 });

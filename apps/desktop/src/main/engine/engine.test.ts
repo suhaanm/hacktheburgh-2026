@@ -232,7 +232,7 @@ describe('engine client against a fake engine over HTTP', () => {
       status: 'proposed',
       episodes: 14,
       minutes_per_week: 96,
-      value: { hours_saved: [3.1, 5.2] },
+      value: { hours_saved: [3.1, 5.2], horizon_weeks: 4 },
       touches: ['gov.uk check', 'turn2us'],
       never: ['submit'],
       proposal: { what: 'You enter the same household three times.', how_often: 'about 14 times in 3 weeks' },
@@ -241,7 +241,7 @@ describe('engine client against a fake engine over HTTP', () => {
     const client = createEngineClient({ endpoints: { engine: engine.url, agent: engine.url }, identity: ID, ...manualTimers() })
     const list = await client.routines()
     expect(list).toHaveLength(1)
-    expect(list![0]).toEqual({ id: 'calc-entry-3x', title: 'Enter the household into three calculators', status: 'proposed', minutesPerWeek: 96, hoursSaved: [3.1, 5.2], episodes: 14, touches: ['gov.uk check', 'turn2us'], never: ['submit'], what: 'You enter the same household three times.', howOften: 'about 14 times in 3 weeks' })
+    expect(list![0]).toEqual({ id: 'calc-entry-3x', title: 'Enter the household into three calculators', status: 'proposed', minutesPerWeek: 96, hoursSaved: [3.1, 5.2], horizonWeeks: 4, episodes: 14, touches: ['gov.uk check', 'turn2us'], never: ['submit'], what: 'You enter the same household three times.', howOften: 'about 14 times in 3 weeks' })
     expect(await client.syncIdentity()).toEqual({ person: null, role: 'data-analyst', captureTimesOnly: false })
     expect(client.identity.role).toBe('data-analyst')
     expect(toProposal({ id: 'x', status: 'declined' })).toMatchObject({ id: 'x', title: 'x', hoursSaved: null })
@@ -460,6 +460,7 @@ describe('capture consent (PR3: desk events are opt-in)', () => {
     expect(await c.check()).toBe('times_only')
     expect(await c.check()).toBe('off') // the line is gone
     expect(fe.purged.length).toBeGreaterThan(0)
+    expect(new Set(fe.purged)).toEqual(new Set(['desk', 'coach'])) // coach telemetry is capture too
     expect(await c.check()).toBe('off') // engine unreachable: fail closed
     expect(modes).toEqual(['off', 'times_only', 'off']) // the first check announces the starting mode
     c.dispose()
@@ -513,5 +514,13 @@ describe('capture consent (PR3: desk events are opt-in)', () => {
     const c = createEngineClient({ endpoints: { engine: neither.url, agent: neither.url }, identity: ID, ...manualTimers() })
     expect(await c.syncIdentity()).toEqual({ person: null, role: null, captureTimesOnly: false })
     expect(c.identity).toEqual(ID) // nothing usable: the local identity stays
+  })
+})
+
+describe('role from memory', () => {
+  it('ignores the placeholder role the engine writes before onboarding', async () => {
+    const { roleFromMemory } = await import('./capture-consent')
+    expect(roleFromMemory('---\nrole: unknown\nrevision: 0\n---\n')).toBeNull()
+    expect(roleFromMemory('---\nrole: programmer\nrevision: 1\n---\n')).toBe('programmer')
   })
 })

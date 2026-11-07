@@ -19,6 +19,7 @@ TITLES = {
     "routines": "Routine finder",
     "forecast": "Recurrence forecast",
     "agent_claims": "Agent-claim calibration",
+    "agent_runs": "Agent runs on the sandbox (AGT-5, AGT-7)",
     "pooling": "Partial pooling for new people",
     "redteam": "Red team with ablations",
     "redteam_live": "Red team, live model (secondary)",
@@ -125,14 +126,58 @@ def _presence(s: dict[str, Any]) -> str:
     rows = [["Start-or-wait rule", pc(s["interruption_rate"], 1), pc(s["idle_time_used"], 1)],
             ["Fixed overnight window", pc(b["fixed_overnight"]["interruption_rate"], 1), pc(b["fixed_overnight"]["idle_time_used"], 1)],
             ["Run whenever idle 5 min", pc(b["idle_5min"]["interruption_rate"], 1), pc(b["idle_5min"]["idle_time_used"], 1)]]
-    return (f"Window-forecast Brier score {f(s['brier'], 3)} (pooled over personas); interruption cap {pc(s['cap'])}.\n\n"
-            + table(["Policy (synthetic)", "Interruption rate", "Idle time used"], rows))
+    txt = (f"Window-forecast Brier score {f(s['brier'], 3)} (mean over personas); interruption cap {pc(s['cap'])}. "
+           "The pooled numbers are means of four personas; the per-persona rows carry the intervals.\n\n"
+           + table(["Policy (synthetic, mean over personas)", "Interruption rate", "Idle time used"], rows))
+    per = s.get("per_persona") or {}
+    if per:
+        pr = [[n, f"{f(p.get('window_brier'), 3)} {ci(p.get('window_brier_ci'), 3)}", f"{pc(p.get('interruption_rate'), 1)} {ci(p.get('interruption_ci'), pct=True)}",
+               f"{pc(p.get('idle_time_used'), 1)} {ci(p.get('idle_time_used_ci'), pct=True)}"] for n, p in per.items()]
+        txt += "\n\n" + table(["Persona (synthetic)", "Window Brier [95%]", "Interruption rate, start-or-wait rule [95%]", "Idle time used [95%]"], pr)
+    return txt
 
 
 def _routines(s: dict[str, Any]) -> str:
-    rows = [[r["persona"], str(r["planted"]), str(r["found"]), pc(r["precision"]), pc(r["recall"])] for r in s["rows"]]
+    def cell(d: dict[str, Any] | None, count_key: str) -> str:
+        d = d or {}
+        if d.get("precision") is None:
+            return "n/a"
+        noun = "clusters" if count_key == "clusters" else "proposals"
+        return f"{d.get('correct')} of {d.get(count_key)} {noun} are planted routines: {pc(d['precision'])} {ci(d.get('precision_ci'), pct=True)}"
+
+    rows = [[r["persona"], str(r["planted"]), str(r["found"]), cell(r.get("raw_finder"), "clusters"), cell(r.get("after_value_gate"), "proposals"), pc(r["recall"])]
+            for r in s["rows"]]
     o = s["overall"]
-    return table(["Persona (synthetic)", "Planted", "Found", "Precision", "Recall"], rows) + f"\n\nOverall: precision {pc(o['precision'])}, recall {pc(o['recall'])}."
+    rows.append(["**All personas**", "", "", f"**{cell(o.get('raw_finder'), 'clusters')}**", f"**{cell(o.get('after_value_gate'), 'proposals')}**", f"**{pc(o['recall'])}** {ci(o.get('recall_ci'), pct=True)}"])
+    return (table(["Persona (synthetic)", "Planted routines", "Planted routines found", "Raw finder: precision over all clusters returned [95%]", "After value gate: precision over proposals shown [95%]", "Recall"], rows)
+            + "\n\nThe headline precision is the proposals' precision after the value gate. The raw finder alone returns many clusters of one-off work; "
+              "read the left precision column as the finder's accuracy and the right one as what the worker is shown.")
+
+
+def _agent_runs(s: dict[str, Any]) -> str:
+    def row(label: str, b: dict[str, Any]) -> list[str]:
+        th = ", ".join(f"tier {k}: {v}" for k, v in (b.get("tier_households") or {}).items()) or "n/a"
+        return [label, str(b["n"]), f"{b['pass']} of {b['n']}", ci(b["wilson"], 2), f(b.get("mean_s"), 1), th, str(b.get("false_claims", "n/a"))]
+
+    rows = [row("Clean path (compiled)", s["clean"])]
+    if s.get("robust"):
+        rows.append(row("Failure injection", s["robust"]))
+    if s.get("live"):
+        rows.append(row("Real model, small n", s["live"]))
+    txt = table(["Run (synthetic sandbox)", "Households", "Passed", "95% interval", "Mean seconds", "Households that used each tier", "False claims"], rows)
+    rb = s.get("robust") or {}
+    if rb.get("injected"):
+        txt += "\n\nWhat was injected, and what happened:\n\n" + table(["Injection", "Households", "Passed", "Needed tier 2"], [[x["injection"], str(x["n"]), str(x["pass"]), str(x.get("used_tier2", ""))] for x in rb["injected"]])
+    elif rb.get("injected_note"):
+        txt += f"\n\nInjection plan not shown: {rb['injected_note']}."
+    d = s.get("discrepancies_flagged") or {}
+    txt += f"\n\nPlanted calculator discrepancies flagged: {d.get('n')} of {d.get('of')} households. False success claims across all runs: {s.get('false_claims')}."
+    if s.get("live"):
+        txt += f"\n\nReal-model block (n = {s['live']['n']}, estimated cost {s['live'].get('cost_usd_est')} USD): {s['live'].get('note')}"
+    else:
+        txt += "\n\nNo real-model run is in this report."
+    return txt + ("\n\nCaveat: the clean path is the compiled path on the sandbox it was written against, so a full pass is expected. "
+                  "The discriminating evidence is the failure-injection rows.")
 
 
 def _claims(s: dict[str, Any]) -> str:
@@ -158,8 +203,38 @@ def _study(s: dict[str, Any]) -> str:
     return table(["Participant (real)", "Unassisted before (s)", "Unassisted after (s)", "Change (s)"], rows) + f"\n\nMean change {f(s['mean_change_s'], 1, True)} s, 95% interval {ci(s['mean_change_ci'], 1)}."
 
 
+
+def _gate(s: dict[str, Any]) -> str:
+    rows = []
+    for k, lab in (("bare_threshold", "Bare threshold on every 30 s bin"), ("dignity_gate", "Dignity gate (2 signals in a row, then a cooldown)")):
+        v = s.get(k) or {}
+        rows.append([lab, f(v.get("false_alarms_per_hour"), 2), pc(v.get("detection_rate")), str(v.get("nudges_total", "")), f(v.get("median_latency_s"), 0)])
+    return (table(["Rule (synthetic)", "False nudges per hour", "Stuck events reached", "Nudges", "Median latency (s)"], rows)
+            + f"\n\nFalse nudges per hour fall by {pc(s.get('false_nudges_per_hour_reduction'))}, at the price of reaching far fewer stuck events.")
+
+
+def _skills(s: dict[str, Any]) -> str:
+    rows = [[p.get("persona", k), str(p.get("n_tasks")), f(p.get("spearman_mastery_vs_planted_skill"), 2), str(p.get("final_level"))] for k, p in (s.get("per_persona") or {}).items()]
+    txt = table(["Persona (synthetic)", "Tasks", "Spearman, mastery vs planted skill", "Final level"], rows)
+    txt += f"\n\nMean Spearman across personas: {f(s.get('mean_spearman_mastery_vs_planted_skill'), 2)}. Mastery saturates on these high-volume personas; see the register."
+    return txt
+
+
+def _forecast(s: dict[str, Any]) -> str:
+    rows = [[r["persona"], r["routine"], f(r["predicted"], 1), f"[{f(r['lo'], 0)}, {f(r['hi'], 0)}]", f(r["actual"], 0), "yes" if r.get("inside") else "no"] for r in s.get("rows", [])]
+    m = s.get("metrics") or {}
+    return table(["Persona (synthetic)", "Routine", "Predicted runs", "95% interval", "Actual", "Inside"], rows) + f"\n\nInterval coverage: {pc(m.get('interval_coverage'))} {ci(m.get('interval_coverage_ci'), pct=True)}."
+
+
+def _pooling(s: dict[str, Any]) -> str:
+    ds = (s.get("datasets") or {}).get("stuck_rate_personas") or {}
+    rows = [[str(r["n_episodes"]), f(r["no_pooling"], 3), f(r["partial_pooling"], 3), ci(r.get("ci_partial_pooling"), 3), f(r["complete_pooling"], 3), str(r.get("best", ""))] for r in ds.get("rows", [])]
+    txt = table(["Own episodes seen (synthetic)", "No pooling", "Partial pooling", "95% interval", "Complete pooling", "Best"], rows) if rows else ""
+    return (txt + f"\n\n{s.get('note') or ''}").strip()
+
+
 RENDER = {"deficit_recovery": _deficit, "null_placebo": _null, "hazard": _hazard, "ope": _ope, "routing": _routing, "ski_rental": _ski,
-          "presence": _presence, "routines": _routines, "agent_claims": _claims, "redteam": _redteam, "study": _study}
+          "presence": _presence, "routines": _routines, "policy_gate": _gate, "skills": _skills, "forecast": _forecast, "pooling": _pooling, "agent_claims": _claims, "agent_runs": _agent_runs, "redteam": _redteam, "study": _study}
 
 
 def _generic(s: dict[str, Any]) -> str:

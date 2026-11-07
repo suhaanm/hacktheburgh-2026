@@ -79,7 +79,7 @@ export function defaultUuid(): string {
 }
 
 /** Wrap a content-script record into a full L0 event. Returns null when the result would be invalid. */
-export function makeEvent(rec: CaptureRecord, cfg: Pick<InstallConfig, "person" | "role">, deps: EventDeps): L0Event | null {
+export function makeEvent(rec: CaptureRecord, cfg: Pick<InstallConfig, "person" | "role">, deps: EventDeps, taskId?: string): L0Event | null {
   const ev: L0Event = {
     schema: 1,
     id: deps.uuid(),
@@ -91,6 +91,7 @@ export function makeEvent(rec: CaptureRecord, cfg: Pick<InstallConfig, "person" 
     source: "browser",
     type: rec.type,
   };
+  if (taskId) ev.task_id = taskId;
   if (rec.target && Object.keys(rec.target).length) ev.target = { ...rec.target };
   if (rec.meta && Object.keys(rec.meta).length) ev.meta = { ...rec.meta };
   return validateEvent(ev) === null ? ev : null;

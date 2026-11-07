@@ -179,6 +179,27 @@ def compose_note(h: Household, results: dict[str, ResultFields], recon: Reconcil
     return " ".join(parts)
 
 
+def run_async(coro: Any) -> Any:
+    """asyncio.run for a worker thread. A stop cancels Playwright calls mid-flight; the 'Task was cancelled' futures
+    that leaves behind are expected, so they are not printed as errors."""
+    loop = asyncio.new_event_loop()
+
+    def handler(lp: Any, ctx: dict[str, Any]) -> None:
+        exc = ctx.get("exception")
+        if exc is not None and "Task was cancelled" in str(exc):
+            return
+        lp.default_exception_handler(ctx)
+
+    loop.set_exception_handler(handler)
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        try:
+            loop.run_until_complete(loop.shutdown_asyncgens())
+        finally:
+            loop.close()
+
+
 # ----------------------------------------------------------------------------- the run
 @dataclass
 class RunOptions:
@@ -194,6 +215,9 @@ class RunOptions:
     opted_in: frozenset[Any] = frozenset()
     denylist: Denylist | None = None
     screenshots: bool = True
+    bundles: dict[str, dict[str, Any]] | None = None   # compiled routine bundles by site; None = built-in tier-1 bundles
+    unattended: bool = False                            # the worker is away: the gate is stricter about unreadable clicks
+    rung: str = "A0"                                    # autonomy rung from the routine's consent
 
 
 @dataclass
@@ -273,7 +297,8 @@ class BenefitsRun:
     def _guard(self, nav_id: str, goal: str) -> Guard:
         g = Guard(self.model, run_id=self.run_id, routine_id=self.opt.routine_id, config=self.opt.security,
                   audit=self.audit, queue=self.queue, mode="compiled", opted_in=self.opt.opted_in,
-                  recorded_hosts=self._hosts, goal=goal, denylist=self.denylist)
+                  recorded_hosts=self._hosts, goal=goal, denylist=self.denylist, unattended=self.opt.unattended,
+                  rung=self.opt.rung)
         self._guards.append(g)
         return g
 
@@ -357,7 +382,7 @@ class BenefitsRun:
                 nid, context=ctx, model=self.model, guard=guard, base_url=self.base_urls[s],
                 emit=self.emit_step, is_current=self.is_current, query=self.opt.query.get(s, ""),
                 ledger=self.ledger, use_tier1=self.opt.use_tier1, max_actions=self.opt.max_actions,
-                allow_tier3=self.opt.allow_tier3)
+                allow_tier3=self.opt.allow_tier3, bundle=(self.opt.bundles or {}).get(s))
             jobs[s] = job
             self.nav_state[nid] = {"id": nid, "site": s, "step": 0, "tier": 1, "state": "running"}
         self.stage("navigators_start", n=len(navs))

@@ -137,5 +137,7 @@ describe('persistent coach chip (Understudy)', () => {
     expect(full.opacity).toBeGreaterThan(small.opacity)
     expect(small.opacity).toBeGreaterThan(dot.opacity)
     expect(gone.opacity).toBe(0)
+    expect([full.dotBox, small.dotBox, gone.dotBox]).toEqual([null, null, null])
+    expect(dot.dotBox).toBeGreaterThan(0) // a true circle, not a capsule
   })
 })

@@ -15,7 +15,7 @@ def make_meta(origin: str, n: int, n_unit: str, split: str | None, note: str | N
 def normalise_meta(meta: dict[str, Any] | None, fallback: dict[str, Any] | None = None) -> dict[str, Any]:
     """Return a complete AnalyticMeta. Missing keys come from ``fallback``, then from safe defaults."""
     src = dict(fallback or {})
-    src.update({k: v for k, v in (meta or {}).items() if k in META_KEYS})
+    src.update({k: v for k, v in (meta or {}).items() if k in META_KEYS and v is not None})
     return {
         "origin": src.get("origin") or "synthetic",
         "n": int(src.get("n") or 0),

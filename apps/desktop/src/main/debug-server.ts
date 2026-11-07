@@ -164,7 +164,7 @@ export function startDebugServer(deps: DebugDeps): http.Server {
           const body = z
             .object({
               proposal: z
-                .object({ id: z.string(), title: z.string(), what: z.string(), howOften: z.string(), hoursSaved: z.tuple([z.number(), z.number()]).nullable(), touches: z.array(z.string()), never: z.array(z.string()) })
+                .object({ id: z.string(), title: z.string(), what: z.string(), howOften: z.string(), hoursSaved: z.tuple([z.number(), z.number()]).nullable(), horizonWeeks: z.number().nullable().default(null), touches: z.array(z.string()), never: z.array(z.string()) })
                 .nullable(),
             })
             .parse(await readJson(req))

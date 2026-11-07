@@ -10,6 +10,9 @@ export interface RectWant {
   label_hash?: string
   role?: string
   name?: string
+  // A capture ZONE (the coach brain addresses elements by zone; the extension resolves it from data-understudy-zone or its capture
+  // config). Proposed as an additive field of RectWant; until the extension understands it, a zone want simply gets no answer.
+  zone?: string
 }
 
 export interface XY {
@@ -36,12 +39,15 @@ export interface RectAnswer {
   screen?: XY
 }
 
-export type DomTarget = { label_hash: string } | { role: string; name: string }
+// label_hash / role+name: an element by its salted label hash or its accessible name. zone: a capture zone, with the brain's hints
+// kept here (only `zone` goes into the want; the hints are for logs and for a later protocol version).
+export type DomTarget = { label_hash: string } | { role: string; name: string } | { zone: string; label_hint?: string; role_hint?: string }
 
 export const REQUEST_ID_RE = /^[A-Za-z0-9_.:-]{1,64}$/
 export const FRAME_RE = /^(top|f[0-9]{1,4})$/
 export const LABEL_HASH_RE = /^h:[0-9a-f]{4,16}$/
 export const ROLE_RE = /^[a-z][a-z0-9_-]{0,31}$/
+export const ZONE_RE = /^[a-z][a-z0-9_.:-]{0,63}$/
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 const fin = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
@@ -50,9 +56,16 @@ const size = (v: unknown): Size | null => (isObj(v) && fin(v.w) && fin(v.h) && v
 
 export function targetProblem(t: unknown): string | null {
   if (!isObj(t)) return 'target must be an object'
+  const hasZone = t.zone !== undefined
   const hasHash = t.label_hash !== undefined
   const hasName = t.role !== undefined || t.name !== undefined
-  if (hasHash === hasName) return 'give either label_hash or role and name'
+  if (Number(hasZone) + Number(hasHash) + Number(hasName) !== 1) return 'give exactly one of zone, label_hash, or role and name'
+  if (hasZone) {
+    if (typeof t.zone !== 'string' || !ZONE_RE.test(t.zone)) return 'bad zone'
+    if (t.label_hint !== undefined && (typeof t.label_hint !== 'string' || t.label_hint.length > 80)) return 'bad label_hint'
+    if (t.role_hint !== undefined && (typeof t.role_hint !== 'string' || !ROLE_RE.test(t.role_hint))) return 'bad role_hint'
+    return null
+  }
   if (hasHash) return typeof t.label_hash === 'string' && LABEL_HASH_RE.test(t.label_hash) ? null : 'bad label_hash'
   if (typeof t.role !== 'string' || !ROLE_RE.test(t.role)) return 'bad role'
   if (typeof t.name !== 'string' || t.name.length < 1 || t.name.length > 80) return 'bad name'
@@ -61,11 +74,14 @@ export function targetProblem(t: unknown): string | null {
 
 export function toTarget(t: unknown): DomTarget | null {
   if (targetProblem(t) !== null) return null
-  const o = t as Record<string, string>
-  return o.label_hash ? { label_hash: o.label_hash } : { role: o.role, name: o.name }
+  const o = t as Record<string, string | undefined>
+  if (o.zone) return { zone: o.zone, ...(o.label_hint ? { label_hint: o.label_hint } : {}), ...(o.role_hint ? { role_hint: o.role_hint } : {}) }
+  return o.label_hash ? { label_hash: o.label_hash } : { role: o.role as string, name: o.name as string }
 }
 
 export function wantFor(target: DomTarget, request_id: string, frame_id = 'top'): RectWant {
+  // A zone want carries only the zone: the extension's schema has no other zone fields.
+  if ('zone' in target) return { request_id, frame_id, zone: target.zone }
   return { request_id, frame_id, ...target }
 }
 

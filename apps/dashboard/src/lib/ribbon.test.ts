@@ -25,7 +25,9 @@ describe("layoutRibbon", () => {
     expect(extras).toEqual(["SEARCH", "IDLE", "REVERT"]);
   });
   it("sums seconds lost to the total in the genome", () => {
-    expect(layout.totalLost).toBeCloseTo(genome.person_gap_s ?? genome.total_gap_s, 5);
+    // The engine's net gap counts a skipped step as time saved, so lost minus saved is the case's gap.
+    expect(layout.totalLost - layout.totalSaved).toBeCloseTo(genome.person_gap_s ?? genome.total_gap_s, 5);
+    expect(layout.totalSaved).toBe(38);
     expect(layout.maxLost).toBe(58);
   });
   it("sizes the longer block to the whole column and the other in proportion", () => {
@@ -46,5 +48,7 @@ describe("layoutRibbon", () => {
   it("describes a skipped step in plain words", () => {
     const c = layout.columns.find((x) => x.missing === "novice")!;
     expect(describeColumn(c, 7, 12)).toMatch(/novice skipped it/);
+    expect(describeColumn(c, 7, 12)).toMatch(/shows as 38 s saved/);
+    expect(describeColumn(c, 7, 12)).toMatch(/costs more later/);
   });
 });

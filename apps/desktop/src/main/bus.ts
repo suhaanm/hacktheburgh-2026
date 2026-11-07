@@ -9,6 +9,8 @@ export interface BusEvents {
   'screen:changed': { score: number }
   'lesson:step': LessonStepEvent
   'level:changed': LevelChangedEvent
+  // The overlay page finished loading (also after it reloads): anything persistent on it must be sent again.
+  'overlay:ready': Record<string, never>
   'agent:update': { chip: AgentChip }
   // DEMO owns the handler; SHELL (tray) emits it.
   'showtime:request': { source: 'tray' | 'dock' | 'hotkey' | 'cli'; full?: boolean; stop?: boolean }

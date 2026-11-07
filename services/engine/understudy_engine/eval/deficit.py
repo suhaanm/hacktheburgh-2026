@@ -32,7 +32,12 @@ from ..genome import GenomeError, GenomeService, components, deficit_prices
 from ..genome.service import TASK
 from ..store import EventStore
 from .meta import make_meta
-from .stats import boot_indices, cluster_mean_interval, interval, ratio_interval, rnd, wilson
+from .stats import (
+    boot_indices,
+    cluster_mean_interval,
+    interval,
+    rnd,
+)
 
 MIN_X_S = 1.0           # a detection threshold is never below one second
 X_QUANTILE = 0.95       # of the placebo attribution
@@ -54,7 +59,7 @@ class Settings:
     B_null: int       # label permutations
 
     @classmethod
-    def for_mode(cls, fast: bool) -> "Settings":
+    def for_mode(cls, fast: bool) -> Settings:
         return cls(B=300, B_null=150) if fast else cls(B=2000, B_null=1000)
 
 
@@ -95,7 +100,7 @@ def compute_from(co, truth: dict[str, Any], *, fast: bool = False, seed: int = S
         rec = _attribution(al)
         novice_rows.append((ep.person, ep.task_id, inj, rec, al.gap_s))
     # --- placebo: every expert case against its nearest other expert ---------------------------------------------
-    placebo_attr: dict[str, list[float]] = {d: [] for d in deficits}
+    placebo_attr: dict[str, list[float]] = {d: [] for d in deficits}   # absolute seconds attributed to d, per expert case
     placebo_gap: dict[str, list[float]] = defaultdict(list)
     for ep in co.experts:
         _ref, al = co.nearest(ep)
@@ -104,6 +109,8 @@ def compute_from(co, truth: dict[str, Any], *, fast: bool = False, seed: int = S
             placebo_attr[d].append(abs(rec.get(d, 0.0)))
         placebo_gap[ep.person].append(al.gap_s)
     X = {d: max(MIN_X_S, float(np.quantile(placebo_attr[d], X_QUANTILE))) for d in deficits}
+    placebo_max = {d: float(max(placebo_attr[d], default=0.0)) for d in deficits}
+    floor_only = all(x == MIN_X_S for x in X.values())
 
     people = sorted({r[0] for r in novice_rows})
     pidx = {p: i for i, p in enumerate(people)}
@@ -156,7 +163,7 @@ def compute_from(co, truth: dict[str, Any], *, fast: bool = False, seed: int = S
             "precision_ci": interval(ratio(tp, tp + fp)),
             "recall": rnd(rec_),
             "recall_ci": interval(ratio(tp, tp + fn)),
-            "threshold_s": rnd(x, 2),
+            "threshold_s": rnd(x, 2), "placebo_max_s": rnd(placebo_max[d], 2),
             "n_present": n_pres, "n_absent": n_abs,
             "tp": int(tp.sum()), "fp": int(fp.sum()), "fn": int(fn.sum()),
             "false_attribution_s": rnd(rec_absent.sum() / n_abs if n_abs else float("nan"), 2),
@@ -178,7 +185,9 @@ def compute_from(co, truth: dict[str, Any], *, fast: bool = False, seed: int = S
         f"cluster bootstrap by person, B = {cfg.B}",
         note=("Which deficit was injected, and what it costs. Detected = the alignment attributes at least X seconds to the right "
               "cog family, X = max(1 s, 95th percentile of what the same procedure attributes when two experts are compared). "
-              "Synthetic apprentices with a known price per trace; this shows the method recovers what we planted."),
+              + (f"In this data the placebo attributes at most {max(placebo_max.values()):.1f} s to any family, so X is the 1 s floor for every deficit. "
+                 if floor_only else "")
+              + "Synthetic apprentices with a known price per trace; this shows the method recovers what we planted."),
     )
     dr = {
         "meta": dr_meta, "rows": rows, "overall": overall,

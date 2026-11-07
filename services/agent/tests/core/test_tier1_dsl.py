@@ -148,7 +148,9 @@ def test_validator_rejects_bad_bundles():
     bad["steps"][1]["op"] = "eval"
     assert any("unknown op" in e for e in validate_bundle(bad))
     bad = copy.deepcopy(good)
-    bad["steps"][0]["url"] = "http://evil.example/"
+    bad["steps"][0]["url"] = "file:///etc/passwd"
+    assert any("goto url" in e for e in validate_bundle(bad))
+    bad["steps"][0]["url"] = "javascript:alert(1)"
     assert any("goto url" in e for e in validate_bundle(bad))
     bad = copy.deepcopy(good)
     bad["steps"][1]["value"] = {"param": "not_declared"}

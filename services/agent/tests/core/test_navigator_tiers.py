@@ -322,20 +322,57 @@ async def test_tier3_step_cap_and_cancellation(safety):
 
 
 # ------------------------------------------------------------------ MacActuator guards (fake backend, no desktop)
+import struct
+import zlib
+
+
+def png_of_width(w: int) -> bytes:
+    def chunk(t, d):
+        c = struct.pack(">I", len(d)) + t + d
+        return c + struct.pack(">I", zlib.crc32(t + d) & 0xFFFFFFFF)
+
+    raw = b"\x00" + b"\xff" * (w * 3)
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, 1, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
+
+
 class FakeBackend:
-    def __init__(self, front="TextEdit", locked=False, scale=2.0):
-        self.front, self.locked, self.scale = front, locked, scale
+    """A display of 1000 pt width. A TextEdit window sits at (100, 100) 400x300; a CLAUDE window covers the rest."""
+
+    def __init__(self, front="TextEdit", locked=False, backing=2.0, shot_scale=2.0):
+        self.front, self.locked, self.backing, self.shot_scale = front, locked, backing, shot_scale
         self.events: list[tuple] = []
         self.released = 0
+        self.window_override = None       # callable(x, y) -> dict | None
+        self.after_click_lag = 0          # number of window_at / frontmost reads that still show the OLD answer after a click
+        self._clicked = False
+        self._lag = 0
 
-    def frontmost_app(self): return self.front
+    def frontmost_app(self):
+        if self._clicked and self._lag > 0:
+            return "TextEdit" if self.front != "TextEdit" else self.front
+        return self.front
+
     def screen_locked(self): return self.locked
-    def display_scale(self): return self.scale
-    def mouse(self, kind, x, y): self.events.append(("mouse", kind, x, y))
+    def backing_scale(self): return self.backing
+    def display_width_pts(self): return 1000.0
+
+    def window_at(self, x, y):
+        if self.window_override:
+            return self.window_override(x, y)
+        if 100 <= x < 500 and 100 <= y < 400:
+            return {"owner": "TextEdit", "bounds": (100.0, 100.0, 400.0, 300.0), "layer": 0}
+        return {"owner": "Claude", "bounds": (0.0, 0.0, 1000.0, 800.0), "layer": 0}
+
+    def mouse(self, kind, x, y):
+        self.events.append(("mouse", kind, x, y))
+        if kind == "up":
+            self._clicked, self._lag = True, self.after_click_lag
+
     def type_text(self, text): self.events.append(("type", text))
     def key(self, keys): self.events.append(("key", tuple(keys)))
     def scroll(self, dx, dy): self.events.append(("scroll", dx, dy))
-    def screenshot_png(self): return b"png"
+    def screenshot_png(self): return png_of_width(int(1000 * self.shot_scale))
     def release_all(self): self.released += 1
 
 
@@ -343,7 +380,13 @@ ENV_ON = {"UNDERSTUDY_REAL_ACTUATOR": "1"}
 
 
 def mac(backend, tmp_path, **kw):
+    kw.setdefault("focus_wait_s", 0.2)
+    kw.setdefault("focus_poll_s", 0.005)
     return MacActuator("TextEdit", backend=backend, kill_flag=tmp_path / "KILL", env=ENV_ON, **kw)
+
+
+CLICK_IN_TEXTEDIT = Action("click", {"x": 600, "y": 500})      # (300, 250) pt: inside the TextEdit window body
+CLICK_IN_CLAUDE = Action("click", {"x": 1600, "y": 1400})      # (800, 700) pt: inside the other app's window
 
 
 def test_mac_actuator_is_off_unless_env_says_so(tmp_path):
@@ -353,31 +396,144 @@ def test_mac_actuator_is_off_unless_env_says_so(tmp_path):
         MacActuator("TextEdit", backend=FakeBackend(), env={"UNDERSTUDY_REAL_ACTUATOR": "0"})
 
 
-async def test_mac_actuator_maps_pixels_to_points_and_clicks(tmp_path):
-    be = FakeBackend(scale=2.0)
+async def test_happy_path_scale_hit_test_and_chunked_typing(tmp_path):
+    be = FakeBackend()
     act = mac(be, tmp_path)
-    await act.execute(Action("click", {"x": 1200, "y": 800}))
-    assert ("mouse", "move", 600.0, 400.0) in be.events
+    await act.screenshot()
+    assert act.report["scale_check"]["agree"] is True and act.report["scale_check"]["measured_scale"] == 2.0
+    await act.execute(CLICK_IN_TEXTEDIT)
+    assert ("mouse", "move", 300.0, 250.0) in be.events                     # pixels divided by the BACKING scale
     assert [e[1] for e in be.events if e[0] == "mouse"] == ["move", "down", "up"]
-    await act.execute(Action("type", {"text": "hi"}))
-    assert ("type", "hi") in be.events
+    await act.execute(Action("type", {"text": "hello world!"}))
+    typed = [e[1] for e in be.events if e[0] == "type"]
+    assert typed == ["hello ", "world!"] and all(len(t) <= 6 for t in typed)  # one short chunk per verification
+    hits = act.report["hits"]
+    assert hits and all(h["owner"] == "TextEdit" and h["scale"] == 2.0 for h in hits)
+    assert act.report["typed_chars"] == 12
 
 
-async def test_mac_actuator_refuses_when_wrong_app_locked_killed_or_over_budget(tmp_path):
+async def test_a_window_of_another_app_at_the_point_is_refused_even_if_the_target_is_frontmost(tmp_path):
+    be = FakeBackend(front="TextEdit")           # TextEdit IS frontmost, but Claude's window is topmost at (800, 700)
+    act = mac(be, tmp_path)
+    await act.screenshot()
+    with pytest.raises(ActuatorRefused, match="belongs to 'Claude'"):
+        await act.execute(CLICK_IN_CLAUDE)
+    assert not [e for e in be.events if e[0] == "mouse"] and be.released >= 1
+    assert act.report["hits"][-1]["owner"] == "Claude"
+
+
+async def test_a_click_in_the_title_bar_is_refused(tmp_path):
+    be = FakeBackend()
+    act = mac(be, tmp_path)
+    await act.screenshot()
+    with pytest.raises(ActuatorRefused, match="title bar"):
+        await act.execute(Action("click", {"x": 600, "y": 210}))   # (300, 105) pt: 5 pt below the window top
+    assert not [e for e in be.events if e[0] == "mouse"]
+
+
+async def test_stale_frontmost_after_click_aborts_before_any_typing(tmp_path):
+    """The real failure: after the click the OS still reports TextEdit, but the window at the point is another app's."""
+    be = FakeBackend()
+    act = mac(be, tmp_path)
+    await act.screenshot()
+    await act.execute(CLICK_IN_TEXTEDIT)
+    be.window_override = lambda x, y: {"owner": "Claude", "bounds": (0.0, 0.0, 1000.0, 800.0), "layer": 0}
+    with pytest.raises(ActuatorRefused):
+        await act.execute(Action("type", {"text": "hello"}))
+    assert not [e for e in be.events if e[0] == "type"] and be.released >= 1
+
+
+async def test_focus_that_never_settles_after_the_click_aborts(tmp_path):
+    class Lagging(FakeBackend):
+        def window_at(self, x, y):
+            if self._clicked:
+                return {"owner": "Claude", "bounds": (0.0, 0.0, 1000.0, 800.0), "layer": 0}
+            return super().window_at(x, y)
+
+    be = Lagging()
+    act = mac(be, tmp_path)
+    await act.screenshot()
+    with pytest.raises(ActuatorRefused, match="focus did not settle"):
+        await act.execute(CLICK_IN_TEXTEDIT)
+    assert be.released >= 1
+    with pytest.raises(ActuatorRefused, match="no verified click"):
+        await act.execute(Action("type", {"text": "x"}))
+    assert not [e for e in be.events if e[0] == "type"]
+
+
+async def test_focus_settling_within_500ms_is_accepted(tmp_path):
+    class Slow(FakeBackend):
+        reads = 0
+
+        def window_at(self, x, y):
+            if self._clicked:
+                Slow.reads += 1
+                if Slow.reads <= 3:
+                    return {"owner": "Claude", "bounds": (0.0, 0.0, 1000.0, 800.0), "layer": 0}
+            return super().window_at(x, y)
+
+    be = Slow()
+    act = mac(be, tmp_path, focus_wait_s=0.5)
+    await act.screenshot()
+    await act.execute(CLICK_IN_TEXTEDIT)
+    await act.execute(Action("type", {"text": "ok"}))
+    assert ("type", "ok") in be.events
+
+
+async def test_typing_is_reverified_before_every_chunk(tmp_path):
+    class Flips(FakeBackend):
+        typed_calls = 0
+
+        def type_text(self, text):
+            super().type_text(text)
+            Flips.typed_calls += 1
+            self.window_override = lambda x, y: {"owner": "Safari", "bounds": (0.0, 0.0, 1000.0, 800.0), "layer": 0}
+
+    be = Flips()
+    act = mac(be, tmp_path)
+    await act.screenshot()
+    await act.execute(CLICK_IN_TEXTEDIT)
+    with pytest.raises(ActuatorRefused):
+        await act.execute(Action("type", {"text": "this is a long line"}))
+    assert [e[1] for e in be.events if e[0] == "type"] == ["this i"]   # only the first chunk went out
+    assert act.report["typed_chars"] == 6 and be.released >= 1
+
+
+async def test_scale_disagreement_is_refused(tmp_path):
+    be = FakeBackend(backing=1.0, shot_scale=2.0)   # the CGDisplayPixelsWide mistake: 1.0 claimed, 2.0 measured
+    act = mac(be, tmp_path)
+    with pytest.raises(ActuatorRefused, match="scale disagreement"):
+        await act.screenshot()
+    assert act.report["scale_check"]["agree"] is False
+    with pytest.raises(ActuatorRefused, match="scale has not been verified"):
+        await act.execute(CLICK_IN_TEXTEDIT)
+    assert not [e for e in be.events if e[0] == "mouse"]
+
+
+async def test_no_pointer_action_before_the_scale_is_verified(tmp_path):
+    be = FakeBackend()
+    act = mac(be, tmp_path)
+    with pytest.raises(ActuatorRefused, match="not been verified"):
+        await act.execute(CLICK_IN_TEXTEDIT)
+
+
+async def test_wrong_app_locked_killed_or_over_budget(tmp_path):
     be = FakeBackend(front="Safari")
     act = mac(be, tmp_path)
+    await act.screenshot()
     with pytest.raises(ActuatorRefused, match="frontmost"):
-        await act.execute(Action("type", {"text": "x"}))
-    assert not [e for e in be.events if e[0] in ("type", "mouse")] and be.released >= 1
+        await act.execute(CLICK_IN_TEXTEDIT)
     be = FakeBackend(locked=True)
     with pytest.raises(ActuatorRefused, match="locked"):
-        await mac(be, tmp_path).execute(Action("type", {"text": "x"}))
+        await mac(be, tmp_path).screenshot()
     be = FakeBackend()
     (tmp_path / "KILL").write_text("1")
     with pytest.raises(ActuatorRefused, match="kill"):
-        await mac(be, tmp_path).execute(Action("type", {"text": "x"}))
+        await mac(be, tmp_path).screenshot()
     (tmp_path / "KILL").unlink()
-    act = mac(FakeBackend(), tmp_path, max_actions=2)
+    be = FakeBackend()
+    act = mac(be, tmp_path, max_actions=2)
+    await act.screenshot()
     await act.execute(Action("wait", {"seconds": 0}))
     await act.execute(Action("wait", {"seconds": 0}))
     with pytest.raises(ActuatorRefused, match="action budget"):
@@ -389,31 +545,32 @@ async def test_mac_actuator_refuses_when_wrong_app_locked_killed_or_over_budget(
         await act.execute(Action("wait", {"seconds": 0}))
 
 
-async def test_mac_actuator_rechecks_focus_between_move_and_click_and_releases_on_abort(tmp_path):
+async def test_scroll_and_move_are_hit_tested_too_and_drag_is_unsupported(tmp_path):
     be = FakeBackend()
-
-    class Flip(FakeBackend):
-        def mouse(self, kind, x, y):
-            super().mouse(kind, x, y)
-            if kind == "move":
-                self.front = "Safari"  # the user switched apps right after the pointer moved
-
-    be = Flip()
     act = mac(be, tmp_path)
-    with pytest.raises(ActuatorRefused, match="lost focus"):
-        await act.execute(Action("click", {"x": 10, "y": 10}))
-    assert [e[1] for e in be.events if e[0] == "mouse"] == ["move"]  # no mouse down was ever posted
-    assert be.released >= 1
+    await act.screenshot()
+    with pytest.raises(ActuatorRefused, match="belongs to 'Claude'"):
+        await act.execute(Action("scroll", {"x": 1600, "y": 1400, "scroll_x": 0, "scroll_y": 100}))
+    with pytest.raises(ActuatorRefused, match="belongs to 'Claude'"):
+        await act.execute(Action("move", {"x": 1600, "y": 1400}))
+    await act.execute(Action("scroll", {"x": 600, "y": 500, "scroll_x": 0, "scroll_y": 100}))
+    assert ("scroll", 0, 100) in be.events
+    with pytest.raises(ActuatorRefused, match="not supported"):
+        await act.execute(Action("drag", {"path": [{"x": 1, "y": 1}, {"x": 2, "y": 2}]}))
 
 
 async def test_mac_check_dry_run_goes_through_pipeline_and_guards(tmp_path, monkeypatch):
     from understudy_agent.tiers.mac_check import run_check
 
     monkeypatch.setenv("UNDERSTUDY_DATA_DIR", str(tmp_path / "data"))
-    out = await run_check("TextEdit", (1200, 800), "hello", real=False)
+    out = await run_check("TextEdit", (600, 300), "hello", real=False)   # (300, 150) pt: in the fake TextEdit window
     assert out["ok"] and out["real"] is False and out["scale"] == 2.0
     assert [e[0] for e in out["events"] if e[0] in ("mouse", "type")][:4] == ["mouse", "mouse", "mouse", "type"]
-    assert ["mouse", "move", 600.0, 400.0] in out["events"]
+    assert ["mouse", "move", 300.0, 150.0] in out["events"]
+    assert out["report"]["scale_check"]["agree"] is True and out["report"]["hits"][0]["owner"] == "TextEdit"
+    wrong = await run_check("TextEdit", (1400, 1000), "hello", real=False)   # (700, 500) pt: another app's window
+    assert wrong["ok"] is False and "belongs to 'Claude'" in wrong["reason"]
+    assert wrong["report"]["hits"][-1]["owner"] == "Claude"
     refused = await run_check("Safari", (10, 10), "x", real=False)
     assert refused["ok"] is False and "harmless" in refused["reason"]
     (tmp_path / "data").mkdir(exist_ok=True)

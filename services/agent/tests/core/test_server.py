@@ -26,6 +26,9 @@ def api(cluster, tmp_path, monkeypatch):
         yield c
 
 
+SLOW = {"a": "?layout=v2", "b": "?layout=v2", "c": "?layout=v2"}  # selector breakers: tier 2 everywhere, several seconds
+
+
 def wait_state(c, run_id, want, timeout=90):
     t0 = time.time()
     while time.time() - t0 < timeout:
@@ -72,7 +75,7 @@ def test_run_benefits_end_to_end_status_stream_and_result(api, cluster):
 
 
 def test_stop_wins_within_one_second(api, cluster):
-    rid = api.post("/run/benefits", json={"household_id": "hh_0001", "mode": "mock"}).json()["run_id"]
+    rid = api.post("/run/benefits", json={"household_id": "hh_0001", "mode": "mock", "switches": SLOW}).json()["run_id"]
     time.sleep(1.5)
     t0 = time.time()
     out = api.post(f"/run/{rid}/stop").json()
@@ -83,7 +86,7 @@ def test_stop_wins_within_one_second(api, cluster):
 
 
 def test_kill_stops_blocks_new_runs_and_clears(api, cluster):
-    rid = api.post("/run/benefits", json={"household_id": "hh_0001", "mode": "mock"}).json()["run_id"]
+    rid = api.post("/run/benefits", json={"household_id": "hh_0001", "mode": "mock", "switches": SLOW}).json()["run_id"]
     time.sleep(1.2)
     assert api.post("/kill").json() == {"killed": True}
     st = wait_state(api, rid, {"stopped", "failed", "done"}, timeout=3)
@@ -97,7 +100,7 @@ def test_kill_stops_blocks_new_runs_and_clears(api, cluster):
 
 
 def test_a_newer_run_replaces_the_running_one(api):
-    first = api.post("/run/benefits", json={"household_id": "hh_0001", "mode": "mock"}).json()["run_id"]
+    first = api.post("/run/benefits", json={"household_id": "hh_0001", "mode": "mock", "switches": SLOW}).json()["run_id"]
     time.sleep(0.8)
     second = api.post("/run/benefits", json={"household_id": "hh_0002", "mode": "mock"}).json()["run_id"]
     assert wait_state(api, first, {"stopped", "failed", "done"}, timeout=5)["state"] == "stopped"
@@ -144,3 +147,51 @@ def test_finalize_requires_the_approval_first(api, cluster):
     assert api.post(f"/run/{rid}/finalize").json()["submitted"] is True
     assert api.post(f"/run/{rid}/finalize").json()["submitted"] is False
     assert len(cluster.state.submissions) == 1
+
+
+def _consent(tmp_path, mode, rung="A2", revoked=False):
+    d = tmp_path / "data" / "routines" / "calc-entry-3x"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "consent.json").write_text(json.dumps({"mode": mode, "rung": rung, "irreversible_unattended": [], "revoked": revoked}))
+
+
+def test_routine_run_needs_consent_and_a_compiled_bundle_then_runs_in_the_background(api, cluster):
+    from understudy_agent.compile import compile_draft, save_bundle
+    from understudy_agent.sandbox_sites.recordings import synthetic_recording
+    from understudy_agent.models.mock_provider import MockProvider
+    from understudy_agent.tiers.heuristic import HeuristicModelPort
+
+    r = api.post("/routines/calc-entry-3x/run", json={"mode": "background"})
+    assert r.status_code == 409 and "no consent" in r.json()["error"]["message"]
+    _consent(api.tmp, "approval")
+    assert api.post("/routines/calc-entry-3x/run", json={"mode": "background"}).status_code == 404  # nothing compiled yet
+    model = HeuristicModelPort(MockProvider("benefits_clean"))
+    for site, name in (("a", "a"), ("b", "b"), ("c", "c")):
+        b, rep = compile_draft(synthetic_recording(site, base_urls=cluster.urls), base_urls=cluster.urls, model=model)
+        save_bundle(b, name=name, root=api.tmp / "data")
+    rid = api.post("/routines/calc-entry-3x/run", json={"mode": "background", "household_id": "hh_0002"}).json()["run_id"]
+    st = wait_state(api, rid, {"done", "failed", "paused", "stopped"})
+    assert st["state"] == "done" and st["awaiting_approval"] and cluster.state.submissions == []
+    _consent(api.tmp, "approval", revoked=True)
+    assert api.post("/routines/calc-entry-3x/run", json={"mode": "background"}).status_code == 409
+
+
+def test_human_input_yields_a_background_routine_run_through_the_api(api, cluster):
+    from understudy_agent.compile import compile_draft, save_bundle
+    from understudy_agent.sandbox_sites.recordings import synthetic_recording
+    from understudy_agent.models.mock_provider import MockProvider
+    from understudy_agent.tiers.heuristic import HeuristicModelPort
+
+    _consent(api.tmp, "approval")
+    model = HeuristicModelPort(MockProvider("benefits_clean"))
+    for site in "abc":
+        b, _ = compile_draft(synthetic_recording(site, base_urls=cluster.urls), base_urls=cluster.urls, model=model)
+        save_bundle(b, name=site, root=api.tmp / "data")
+    rid = api.post("/routines/calc-entry-3x/run", json={"mode": "background", "household_id": "hh_0001"}).json()["run_id"]
+    time.sleep(0.9)
+    t0 = time.time()
+    assert api.post("/human-input").json() == {"signalled": True}
+    st = wait_state(api, rid, {"stopped", "done", "failed"}, timeout=3)
+    assert time.time() - t0 < 1.5 and st["state"] == "stopped", st
+    rep = api.get("/offhours/report").json()
+    assert set(rep) >= {"ran", "queued", "failed", "yielded", "refused"}

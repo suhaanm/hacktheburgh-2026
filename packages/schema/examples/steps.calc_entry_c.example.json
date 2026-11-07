@@ -1,0 +1,400 @@
+{
+  "schema": 1,
+  "id": "calc-entry-3x",
+  "role": "benefits-processor",
+  "title": "Enter the household into EntitledTo (site c, layout v1)",
+  "created_from": "example from sandbox_sites/specs.py",
+  "never": [
+    "submit",
+    "submit to claimant record"
+  ],
+  "params": {
+    "adults": {
+      "type": "enum",
+      "source": "household.params.adults",
+      "values": [
+        "1",
+        "2"
+      ]
+    },
+    "adult1_age": {
+      "type": "string",
+      "source": "household.params.adult1_age"
+    },
+    "adult2_age": {
+      "type": "string",
+      "source": "household.params.adult2_age"
+    },
+    "children_ages": {
+      "type": "string",
+      "source": "household.params.children_ages"
+    },
+    "adult1_earnings_monthly": {
+      "type": "string",
+      "source": "household.params.adult1_earnings_monthly",
+      "transform": {
+        "mul": 12.0,
+        "round": 2
+      }
+    },
+    "adult2_earnings_monthly": {
+      "type": "string",
+      "source": "household.params.adult2_earnings_monthly",
+      "transform": {
+        "mul": 12.0,
+        "round": 2
+      }
+    },
+    "limited_capability": {
+      "type": "enum",
+      "source": "household.params.limited_capability",
+      "values": [
+        "no",
+        "yes"
+      ]
+    },
+    "tenure": {
+      "type": "enum",
+      "source": "household.params.tenure",
+      "values": [
+        "rent",
+        "own"
+      ]
+    },
+    "rent_monthly": {
+      "type": "string",
+      "source": "household.params.rent_monthly",
+      "transform": {
+        "mul": 0.23076923076923078,
+        "round": 2
+      }
+    },
+    "bedrooms": {
+      "type": "enum",
+      "source": "household.params.bedrooms",
+      "values": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ]
+    },
+    "savings": {
+      "type": "string",
+      "source": "household.params.savings"
+    },
+    "childcare_monthly": {
+      "type": "string",
+      "source": "household.params.childcare_monthly",
+      "transform": {
+        "mul": 0.23076923076923078,
+        "round": 2
+      }
+    },
+    "site_c_start": {
+      "type": "string",
+      "default": "http://127.0.0.1:7803/"
+    }
+  },
+  "steps": [
+    {
+      "op": "goto",
+      "url_param": "site_c_start",
+      "precondition": {
+        "always": true
+      },
+      "postcondition": {
+        "selector_visible": "[data-testid=\"adults-count\"]"
+      },
+      "id": "s1"
+    },
+    {
+      "op": "select",
+      "selector": "[data-testid=\"adults-count\"]",
+      "param": "adults",
+      "precondition": {
+        "selector_visible": "[data-testid=\"adults-count\"]"
+      },
+      "postcondition": {
+        "field_equals": {
+          "selector": "[data-testid=\"adults-count\"]",
+          "param": "adults"
+        }
+      },
+      "id": "s2"
+    },
+    {
+      "op": "fill",
+      "selector": "[data-testid=\"age-1\"]",
+      "param": "adult1_age",
+      "precondition": {
+        "selector_visible": "[data-testid=\"age-1\"]"
+      },
+      "postcondition": {
+        "field_equals": {
+          "selector": "[data-testid=\"age-1\"]",
+          "param": "adult1_age"
+        }
+      },
+      "id": "s3"
+    },
+    {
+      "op": "fill",
+      "selector": "[data-testid=\"age-2\"]",
+      "param": "adult2_age",
+      "precondition": {
+        "selector_visible": "[data-testid=\"age-2\"]"
+      },
+      "postcondition": {
+        "field_equals": {
+          "selector": "[data-testid=\"age-2\"]",
+          "param": "adult2_age"
+        }
+      },
+      "id": "s4"
+    },
+    {
+      "op": "fill",
+      "selector": "[data-testid=\"kids\"]",
+      "param": "children_ages",
+      "precondition": {
+        "selector_visible": "[data-testid=\"kids\"]"
+      },
+      "postcondition": {
+        "field_equals": {
+          "selector": "[data-testid=\"kids\"]",
+          "param": "children_ages"
+        }
+      },
+      "id": "s5"
+    },
+    {
+      "op": "click",
+      "selector": "[data-testid=\"next-tab\"]",
+      "precondition": {
+        "selector_visible": "[data-testid=\"next-tab\"]"
+      },
+      "postcondition": {
+        "selector_visible": "[data-testid=\"earn-1-annual\"]"
+      },
+      "id": "s6"
+    },
+    {
+      "op": "fill",
+      "selector": "[data-testid=\"earn-1-annual\"]",
+      "param": "adult1_earnings_monthly",
+      "precondition": {
+        "selector_visible": "[data-testid=\"earn-1-annual\"]"
+      },
+      "postcondition": {
+        "field_equals": {
+          "selector": "[data-testid=\"earn-1-annual\"]",
+          "param": "adult1_earnings_monthly"
+        }
+      },
+      "id": "s7"
+    },
+    {
+      "op": "fill",
+      "selector": "[data-testid=\"earn-2-annual\"]",
+      "param": "adult2_earnings_monthly",
+      "precondition": {
+        "selector_visible": "[data-testid=\"earn-2-annual\"]"
+      },
+      "postcondition": {
+        "field_equals": {
+          "selector": "[data-testid=\"earn-2-annual\"]",
+          "param": "adult2_earnings_monthly"
+        }
+      },
+      "id": "s8"
+    },
+    {
+      "op": "select",
+      "selector": "[data-testid=\"health-limits\"]",
+      "param": "limited_capability",
+      "precondition": {
+        "selector_visible": "[data-testid=\"health-limits\"]"
+      },
+      "postcondition": {
+        "field_equals": {
+          "selector": "[data-testid=\"health-limits\"]",
+          "param": "limited_capability"
+        }
+      },
+      "id": "s9"
+    },
+    {
+      "op": "select",
+      "selector": "[data-testid=\"tenure\"]",
+      "param": "tenure",
+      "precondition": {
+        "selector_visible": "[data-testid=\"tenure\"]"
+      },
+      "postcondition": {
+        "field_equals": {
+          "selector": "[data-testid=\"tenure\"]",
+          "param": "tenure"
+        }
+      },
+      "id": "s10"
+    },
+    {
+      "op": "fill",
+      "selector": "[data-testid=\"rent-weekly\"]",
+      "param": "rent_monthly",
+      "precondition": {
+        "selector_visible": "[data-testid=\"rent-weekly\"]"
+      },
+      "postcondition": {
+        "field_equals": {
+          "selector": "[data-testid=\"rent-weekly\"]",
+          "param": "rent_monthly"
+        }
+      },
+      "id": "s11"
+    },
+    {
+      "op": "select",
+      "selector": "[data-testid=\"bedrooms\"]",
+      "param": "bedrooms",
+      "precondition": {
+        "selector_visible": "[data-testid=\"bedrooms\"]"
+      },
+      "postcondition": {
+        "field_equals": {
+          "selector": "[data-testid=\"bedrooms\"]",
+          "param": "bedrooms"
+        }
+      },
+      "id": "s12"
+    },
+    {
+      "op": "fill",
+      "selector": "[data-testid=\"savings\"]",
+      "param": "savings",
+      "precondition": {
+        "selector_visible": "[data-testid=\"savings\"]"
+      },
+      "postcondition": {
+        "field_equals": {
+          "selector": "[data-testid=\"savings\"]",
+          "param": "savings"
+        }
+      },
+      "id": "s13"
+    },
+    {
+      "op": "fill",
+      "selector": "[data-testid=\"childcare-weekly\"]",
+      "param": "childcare_monthly",
+      "precondition": {
+        "selector_visible": "[data-testid=\"childcare-weekly\"]"
+      },
+      "postcondition": {
+        "field_equals": {
+          "selector": "[data-testid=\"childcare-weekly\"]",
+          "param": "childcare_monthly"
+        }
+      },
+      "id": "s14"
+    },
+    {
+      "op": "click",
+      "selector": "[data-testid=\"show-results\"]",
+      "precondition": {
+        "selector_visible": "[data-testid=\"show-results\"]"
+      },
+      "postcondition": {
+        "selector_visible": "[data-testid=\"out-amount\"]"
+      },
+      "timeout_ms": 8000,
+      "id": "s15"
+    },
+    {
+      "op": "extract",
+      "name": "amount",
+      "selector": "[data-testid=\"out-amount\"]",
+      "as": "number",
+      "pattern": "([0-9][0-9,.]*)",
+      "precondition": {
+        "selector_visible": "[data-testid=\"out-amount\"]"
+      },
+      "postcondition": {
+        "selector_visible": "[data-testid=\"out-amount\"]"
+      },
+      "id": "s16"
+    },
+    {
+      "op": "extract",
+      "name": "status",
+      "selector": "[data-testid=\"out-flag\"]",
+      "precondition": {
+        "selector_visible": "[data-testid=\"out-flag\"]"
+      },
+      "postcondition": {
+        "selector_visible": "[data-testid=\"out-flag\"]"
+      },
+      "id": "s17"
+    },
+    {
+      "op": "extract",
+      "name": "ref",
+      "selector": "[data-testid=\"out-id\"]",
+      "precondition": {
+        "selector_visible": "[data-testid=\"out-id\"]"
+      },
+      "postcondition": {
+        "selector_visible": "[data-testid=\"out-id\"]"
+      },
+      "id": "s18"
+    },
+    {
+      "op": "checkpoint",
+      "name": "site_c_done",
+      "resumable": true,
+      "precondition": {
+        "selector_visible": "[data-testid=\"out-id\"]"
+      },
+      "postcondition": {
+        "selector_visible": "[data-testid=\"out-id\"]"
+      },
+      "id": "s19"
+    },
+    {
+      "op": "click",
+      "selector": "#cliff-btn",
+      "precondition": {
+        "selector_visible": "#cliff-btn"
+      },
+      "postcondition": {
+        "selector_visible": "#cliff-panel li[data-cliff]"
+      },
+      "timeout_ms": 8000,
+      "id": "s20"
+    },
+    {
+      "op": "wait_for",
+      "selector": "#cliff-panel li[data-cliff]",
+      "precondition": {
+        "selector_visible": "#cliff-btn"
+      },
+      "postcondition": {
+        "selector_visible": "#cliff-panel"
+      },
+      "id": "s21"
+    },
+    {
+      "op": "extract",
+      "name": "cliff_panel",
+      "selector": "#cliff-panel",
+      "precondition": {
+        "selector_visible": "#cliff-panel"
+      },
+      "postcondition": {
+        "selector_visible": "#cliff-panel"
+      },
+      "id": "s22"
+    }
+  ]
+}

@@ -29,9 +29,11 @@ dev:
 stop:
 	@bash scripts/stop.sh
 
-# The three-minute demo path: mock mode, no model calls, no network.
+# The three-minute demo path: mock mode, no model calls, no network, isolated state (never your real ~/.understudy).
 demo:
-	@UNDERSTUDY_MOCK=1 bash scripts/dev.sh --open
+	@mkdir -p data/demo-home
+	@UNDERSTUDY_HOME=$(CURDIR)/data/demo-home UNDERSTUDY_MOCK=1 $(UV_A) python -m understudy_engine.demo seed --reset || echo "demo seed not available yet"
+	@UNDERSTUDY_HOME=$(CURDIR)/data/demo-home UNDERSTUDY_MOCK=1 bash scripts/dev.sh --open
 
 # Writes evals/report.json and evals/report.md (the Evidence page reads them). Add FAST=1 for a quick run.
 eval:

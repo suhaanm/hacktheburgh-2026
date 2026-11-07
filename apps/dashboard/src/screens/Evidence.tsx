@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { api } from "../api";
-import { useLoad } from "../hooks";
+import { useLoad, useWidth } from "../hooks";
+import { scaleLinear } from "d3-scale";
 import { ChartFoot, EmptyState, ErrorState, Loading, PageHead, Range } from "../components/common";
 import { DotWhisker, type DwRow } from "../components/DotWhisker";
 import { Reliability, RiskCoverage, type RcPoint, type RelPoint } from "../components/EvidenceCharts";
@@ -26,6 +27,18 @@ function Block({ id, kicker, claim, children }: { id: string; kicker: string; cl
       </div>
       {children}
     </section>
+  );
+}
+
+/** Caveats the engine attaches to a result, in its own words. Shown where the data carries them. */
+function Caveats({ s }: { s: Sec }) {
+  const list = arr<unknown>(s.caveats).filter((c): c is string => typeof c === "string");
+  if (!list.length) return null;
+  return (
+    <div className="stack" style={{ gap: "var(--space-1)" }}>
+      <span className="t-label">Caveats from the engine</span>
+      <ul className="plain-list">{list.map((c) => <li key={c} className="ev-note">{c}</li>)}</ul>
+    </div>
   );
 }
 
@@ -92,7 +105,7 @@ function Hazard({ rep }: { rep: EvalReport }) {
         const d = ((s as Record<string, unknown>).data ?? s) as { model?: { log_loss: number; brier: number; ece: number; ci_log_loss: Interval }; baselines?: Record<string, { log_loss: number; brier: number; ece: number }>; calibration?: RelPoint[]; false_alarms_per_hour?: number; split?: string; caveats?: string[] };
         const m = d.model, tsp = d.baselines?.time_since_progress, br = d.baselines?.base_rate;
         const better = m && tsp && br && m.log_loss < tsp.log_loss && m.log_loss < br.log_loss;
-        const caveats = arr<string>(d.caveats);
+        const dd = d as unknown as { false_alarms_within_budget?: boolean; budget_false_alarms_per_hour?: number; false_alarms_per_hour_ci?: Interval; detection_rate?: number; detection_rate_ci?: Interval; interval_note?: string };
         return (
           <Block id="hazard" kicker="Is the stuck warning calibrated?" claim={m && tsp && br ? <>Log loss {m.log_loss.toFixed(2)}, against {tsp.log_loss.toFixed(2)} for time since progress and {br.log_loss.toFixed(2)} for the base rate{better ? ": better than both." : ": not better than both."}</> : "Stuck warning"}>
             <div className="ev-grid">
@@ -108,13 +121,19 @@ function Hazard({ rep }: { rep: EvalReport }) {
                     </tbody></table></div>
                 )}
                 {m && <p className="ev-note">Log loss 95% interval {fmtInterval(m.ci_log_loss, 3)}. Lower is better in all three columns. A baseline can have a good ECE just because it says one number; log loss and Brier show whether it knows who is stuck.</p>}
-                {caveats.length > 0 && (
-                  <div className="stack" style={{ gap: "var(--space-1)" }}>
-                    <span className="t-label">Caveats from the engine</span>
-                    <ul className="plain-list">{caveats.map((c) => <li key={c} className="ev-note">{c}</li>)}</ul>
+                {isNum(d.false_alarms_per_hour) && (
+                  <div className="stat"><span className="stat__label">False alarms</span><span className="stat__value tabular">{d.false_alarms_per_hour.toFixed(1)}<span className="stat__unit">an hour</span></span>
+                    {Array.isArray(dd.false_alarms_per_hour_ci) && <span className="stat__interval">95% interval {fmtInterval(ivl(dd.false_alarms_per_hour_ci, 0), 1)}</span>}
+                    {isNum(dd.budget_false_alarms_per_hour) && <span className="stat__meta">Budget {dd.budget_false_alarms_per_hour.toFixed(1)} an hour: {dd.false_alarms_within_budget === false ? "over the budget on held-out people" : "within the budget"}.</span>}
                   </div>
                 )}
-                {isNum(d.false_alarms_per_hour) && <div className="stat"><span className="stat__label">False alarms</span><span className="stat__value tabular">{d.false_alarms_per_hour.toFixed(1)}<span className="stat__unit">an hour</span></span></div>}
+                {isNum(dd.detection_rate) && (
+                  <div className="stat"><span className="stat__label">Stuck moments warned about</span><span className="stat__value tabular">{fmtPct(dd.detection_rate)}</span>
+                    {Array.isArray(dd.detection_rate_ci) && <span className="stat__interval">95% interval {fmtPctInterval(ivl(dd.detection_rate_ci, 0)[0], ivl(dd.detection_rate_ci, 0)[1])}</span>}
+                  </div>
+                )}
+                {dd.interval_note && <p className="ev-note">{dd.interval_note}</p>}
+                <Caveats s={s} />
               </div>
             </div>
             <ChartFoot meta={s.meta ?? null} extra={d.split ? <span>held out: <b>{d.split}</b></span> : undefined} />
@@ -139,8 +158,9 @@ function Routing({ rep }: { rep: EvalReport }) {
               <div className="chart"><RiskCoverage curve={arr<RcPoint>(s.curve)} alpha={alpha} chosen={cov} heldOut={{ value: err, ci }} /></div>
               <div className="stack">
                 <div className="stat"><span className="stat__label">Held-out error at {fmtPct(cov)} coverage</span><span className="stat__value tabular">{fmtPct(err, 1)}</span><span className="stat__interval">95% interval {fmtPctInterval(ci[0], ci[1], 1)}</span></div>
-                <p className="ev-note">{under ? "The point estimate is under the target." : "The point estimate is over the target."}{ciOver ? " The interval reaches above it, so we do not claim the target always holds." : ""} The bound was chosen on a calibration split and checked on a separate held-out split{typeof s.bound_held === "boolean" ? `: the engine reports it ${s.bound_held ? "held" : "did not hold"}` : ""}.</p>
-                {isNum(s.expert_minutes_per_case) && <div className="stat"><span className="stat__label">Expert time</span><span className="stat__value tabular">{s.expert_minutes_per_case.toFixed(1)}<span className="stat__unit">min per case</span></span></div>}
+                <p className="ev-note">{under ? "The point estimate is under the target." : "The point estimate is over the target."}{ciOver ? " The interval reaches above it, so we do not claim the target always holds." : ""} The bound was chosen on a calibration split and checked on a separate held-out split{typeof s.bound_held === "boolean" ? `: the engine reports it ${s.bound_held ? "held" : "did not hold"}` : ""}.{typeof s.bound_held_definition === "string" ? ` Here "held" means: ${s.bound_held_definition}` : ""}</p>
+                {isNum(s.expert_minutes_per_case) && <div className="stat"><span className="stat__label">Expert time</span><span className="stat__value tabular">{s.expert_minutes_per_case.toFixed(1)}<span className="stat__unit">min per case</span></span>{isNum(s.expert_minutes_review_all) && <span className="stat__meta">against {s.expert_minutes_review_all.toFixed(1)} min per case if an expert reviewed everything</span>}</div>}
+                <Caveats s={s} />
               </div>
             </div>
             <ChartFoot meta={s.meta ?? null} extra={<span>band: 95% interval</span>} />
@@ -184,13 +204,15 @@ function Ope({ rep }: { rep: EvalReport }) {
         const nameOf = (e: { name: string; label?: string }) => e.label ?? e.name;
         const hit = est.filter((e) => e.ci[0] <= truth && truth <= e.ci[1]).map(nameOf);
         const miss = est.filter((e) => !(e.ci[0] <= truth && truth <= e.ci[1])).map(nameOf);
+        const naive = est.find((e) => e.name === "naive"), dr = est.find((e) => e.name === "dr");
         const rows: DwRow[] = est.map((e) => ({ label: nameOf(e), value: e.value, ci: e.ci, emphasis: e.name === "dr" ? "ref" : "plain" }));
         const lo = Math.min(truth, ...est.map((e) => e.ci[0])) - 0.02, hi = Math.max(truth, ...est.map((e) => e.ci[1])) + 0.02;
         return (
-          <Block id="ope" kicker="Can we judge a coaching policy before using it?" claim={<>{hit.length ? `Intervals that contain the true value: ${hit.join(", ")}.` : "No estimator contains the true value."}{miss.length ? ` Missed it: ${miss.join(", ")}.` : ""}</>}>
+          <Block id="ope" kicker="Can we judge a coaching policy before using it?" claim={naive && dr ? <>The naive average is off by {Math.abs(naive.value - truth).toFixed(3)}; doubly robust is off by {Math.abs(dr.value - truth).toFixed(3)}. {hit.length ? `Intervals that contain the true value: ${hit.join(", ")}.` : "No interval contains the true value."}</> : <>{hit.length ? `Intervals that contain the true value: ${hit.join(", ")}.` : "No estimator contains the true value."}{miss.length ? ` Missed it: ${miss.join(", ")}.` : ""}</>}>
             <div className="chart chart--wide">
               <DotWhisker rows={rows} unit="policy value" reference={truth} refLabel={`true ${truth.toFixed(3)}`} domain={[lo, hi]} digits={3} aria={`Off-policy estimates against the true value ${truth.toFixed(3)}. ${est.map((e) => `${nameOf(e)} ${e.value.toFixed(3)}`).join(", ")}.`} />
-              <p className="ev-note">The true value is known because the simulator is ours. This tests the estimators, not the policy on real people. The doubly robust estimate is the one we would use.</p>
+              <p className="ev-note">The true value is known because the simulator is ours. This tests the estimators, not the policy on real people.{typeof s.headline_target === "string" ? ` The policy being scored is ${s.headline_target.replace(/_/g, " ")}.` : ""}</p>
+              <Caveats s={s} />
               <ChartFoot meta={s.meta ?? null} />
             </div>
           </Block>
@@ -201,11 +223,12 @@ function Ope({ rep }: { rep: EvalReport }) {
 }
 
 /* -- Injection table (scripted planner, and a small real-model run when present) ----------------------------- */
-interface RtRow { ablation?: string; label?: string; attack_success: number; attack_ci?: Interval; task_success: number; task_ci?: Interval }
+interface RtRow { ablation?: string; label?: string; attack_success: number; attack_ci?: Interval; task_success: number; task_ci?: Interval; paused_rate?: number }
 function RtTable({ rows }: { rows: RtRow[] }) {
+  const paused = rows.some((r) => isNum(r.paused_rate));
   return (
     <div className="table-wrap"><table className="table">
-      <thead><tr><th>Condition</th><th>Attack succeeds</th><th aria-hidden="true" /><th>Task still succeeds</th></tr></thead>
+      <thead><tr><th>Condition</th><th>Attack succeeds</th><th aria-hidden="true" /><th>Task still succeeds</th>{paused && <th className="num">Run paused</th>}</tr></thead>
       <tbody>{rows.map((x) => {
         const a = ivl(x.attack_ci, x.attack_success), t = ivl(x.task_ci, x.task_success);
         return (
@@ -214,6 +237,7 @@ function RtTable({ rows }: { rows: RtRow[] }) {
             <td className="num">{fmtPct(x.attack_success)} <span className="interval">{fmtPctInterval(a[0], a[1])}</span></td>
             <td><Range lo={a[0]} hi={a[1]} pt={x.attack_success} min={0} max={1} /></td>
             <td className="num">{fmtPct(x.task_success)} <span className="interval">{fmtPctInterval(t[0], t[1])}</span></td>
+            {paused && <td className="num">{dashed(x.paused_rate, (n) => fmtPct(n))}</td>}
           </tr>);
       })}</tbody>
     </table></div>
@@ -231,7 +255,7 @@ function Redteam({ rep }: { rep: EvalReport }) {
         return (
           <Block id="redteam" kicker="Do the defences stop injected instructions?" claim={on && off ? <>Attacks succeed {fmtPct(on.attack_success)} of the time with every layer on, and {fmtPct(off.attack_success)} with every layer off.</> : "Injection red team"}>
             <RtTable rows={rows} />
-            <p className="ev-note">Each row switches off one layer.{isNum(fp) ? ` Clean pages were paused wrongly ${fmtPct(fp, 1)} of the time${Array.isArray(s.false_pause_ci) ? ` ${fmtPctInterval(ivl(s.false_pause_ci, fp)[0], ivl(s.false_pause_ci, fp)[1], 1)}` : ""}.` : ""} The attacks run on our own sandbox pages.</p>
+            <p className="ev-note">Each row switches off one layer. When a defence pauses the run, the task does not finish, so task success can be low even when the attack fails.{isNum(fp) ? ` Clean pages were paused wrongly ${fmtPct(fp, 1)} of the time${Array.isArray(s.false_pause_ci) ? ` ${fmtPctInterval(ivl(s.false_pause_ci, fp)[0], ivl(s.false_pause_ci, fp)[1], 1)}` : ""}.` : ""} The attacks run on our own sandbox pages.</p>
             <ChartFoot meta={s.meta ?? null} />
             {live && (stubOf(live) ? <StubState s={live} what="The real-model run" /> : (
               <div className="stack">
@@ -275,8 +299,9 @@ function Deficits({ rep }: { rep: EvalReport }) {
   return (
     <Guard id="deficits" kicker="Does the genome find the deficit we planted?" what="Deficit recovery" s={sec(rep, "deficit_recovery")}>
       {(s) => {
-        const rows = arr<{ deficit: string; label?: string; injected_price_s: number; recovered_price_s: number; ci: Interval; precision?: number; recall?: number }>(s.rows);
+        const rows = arr<{ deficit: string; label?: string; injected_price_s: number; recovered_price_s: number; ci: Interval; precision?: number; recall?: number; precision_ci?: Interval; recall_ci?: Interval }>(s.rows);
         const overall = s.overall as { precision: number; recall: number } | undefined;
+        const pc = (v: number | undefined, c?: Interval) => (isNum(v) ? <>{fmtPct(v)} {c && <span className="interval">{fmtPctInterval(c[0], c[1])}</span>}</> : "not reported");
         const weakest = [...rows].filter((r) => isNum(r.recall)).sort((a, b) => (a.recall as number) - (b.recall as number))[0];
         const lessPrecise = [...rows].filter((r) => isNum(r.precision)).sort((a, b) => (a.precision as number) - (b.precision as number))[0];
         return (
@@ -287,8 +312,14 @@ function Deficits({ rep }: { rep: EvalReport }) {
             </div>
             <div className="table-wrap"><table className="table">
               <thead><tr><th>Deficit</th><th className="num">Injected</th><th className="num">Recovered</th><th className="num">Precision</th><th className="num">Recall</th></tr></thead>
-              <tbody>{rows.map((x) => <tr key={x.deficit}><td>{x.label ?? x.deficit}</td><td className="num">{signed(x.injected_price_s, 1)} s</td><td className="num">{signed(x.recovered_price_s, 1)} s <span className="interval">{fmtInterval(x.ci)}</span></td><td className="num">{dashed(x.precision, (n) => fmtPct(n))}</td><td className="num">{dashed(x.recall, (n) => fmtPct(n))}</td></tr>)}</tbody>
+              <tbody>{rows.map((x) => <tr key={x.deficit}><td>{x.label ?? x.deficit}</td><td className="num">{signed(x.injected_price_s, 1)} s</td><td className="num">{signed(x.recovered_price_s, 1)} s <span className="interval">{fmtInterval(x.ci)}</span></td><td className="num">{pc(x.precision, x.precision_ci)}</td><td className="num">{pc(x.recall, x.recall_ci)}</td></tr>)}</tbody>
             </table></div>
+            {(typeof s.detection_rule === "string" || typeof s.price_definition === "string") && (
+              <ul className="plain-list">
+                {typeof s.price_definition === "string" && <li className="ev-note">Price: {s.price_definition}.</li>}
+                {typeof s.detection_rule === "string" && <li className="ev-note">Detection: {s.detection_rule}.</li>}
+              </ul>
+            )}
             {rt && (stubOf(rt) ? <StubState s={rt} what="The routine finder result" /> : <RoutineFinder s={rt} />)}
           </Block>
         );
@@ -299,13 +330,18 @@ function Deficits({ rep }: { rep: EvalReport }) {
 
 function RoutineFinder({ s }: { s: Sec }) {
   const rows = arr<{ persona: string; planted: number; found: number; precision: number; recall: number }>(s.rows);
+  const m = s.metrics as { precision?: number; precision_ci?: Interval; recall?: number; recall_ci?: Interval; finder_precision?: number; finder_precision_ci?: Interval } | undefined;
   const overall = s.overall as { precision: number; recall: number } | undefined;
-  const gate = s.proposals_after_value_gate as { proposed: number; real: number } | undefined;
+  const pc = (v: number, c?: Interval) => `${fmtPct(v)}${c ? ` ${fmtPctInterval(c[0], c[1])}` : ""}`;
   return (
     <div className="stack">
-      <h3 className="section__title" style={{ fontSize: "var(--text-lg)" }}>Does the routine finder find the routines we planted?{overall ? ` Raw precision ${fmtPct(overall.precision)}, recall ${fmtPct(overall.recall)}.` : ""}{gate ? ` After the value gate, ${gate.real} of ${gate.proposed} proposals are real.` : ""}</h3>
+      <h3 className="section__title" style={{ fontSize: "var(--text-lg)" }}>
+        Does the routine finder find the routines we planted?{" "}
+        {m && isNum(m.finder_precision) ? <>The finder alone is precise {pc(m.finder_precision, m.finder_precision_ci)} of the time. </> : null}
+        {m && isNum(m.precision) ? <>After the value gate, the proposals are precise {pc(m.precision, m.precision_ci)}{isNum(m.recall) ? ` and find ${pc(m.recall, m.recall_ci)} of the planted routines` : ""}.</> : overall ? <>Precision {fmtPct(overall.precision)}, recall {fmtPct(overall.recall)}.</> : null}
+      </h3>
       <div className="table-wrap"><table className="table">
-        <thead><tr><th>Persona</th><th className="num">Planted</th><th className="num">Found</th><th className="num">Precision</th><th className="num">Recall</th></tr></thead>
+        <thead><tr><th>Persona</th><th className="num">Planted</th><th className="num">Found</th><th className="num">Precision of proposals</th><th className="num">Recall</th></tr></thead>
         <tbody>{rows.map((x) => <tr key={x.persona}><td>{x.persona}</td><td className="num">{x.planted}</td><td className="num">{x.found}</td><td className="num">{fmtPct(x.precision)}</td><td className="num">{fmtPct(x.recall)}</td></tr>)}</tbody>
       </table></div>
       <ChartFoot meta={s.meta ?? null} />
@@ -346,21 +382,24 @@ function PresenceBlock({ rep }: { rep: EvalReport }) {
 }
 
 function Pooling({ s }: { s: Sec }) {
-  type Row = { n_episodes: number; no_pooling: number; partial_pooling: number; complete_pooling: number; ci?: Interval | Record<string, Interval> };
+  type Row = Record<string, unknown> & { n_episodes: number; no_pooling: number; partial_pooling: number; complete_pooling: number; best?: string };
   const rows = arr<Row>(s.rows);
   const cell = (r: Row, k: "no_pooling" | "partial_pooling" | "complete_pooling") => {
     const v = r[k];
-    const ci = Array.isArray(r.ci) ? (k === "partial_pooling" ? r.ci : null) : (r.ci as Record<string, Interval> | undefined)?.[k] ?? null;
-    return <>{v.toFixed(1)} {ci && <span className="interval">{fmtInterval(ci, 1)}</span>}</>;
+    // The engine sends ci_<method>; an older shape had one `ci` for partial pooling, or a map keyed by method.
+    const own = r[`ci_${k}`];
+    const ci: Interval | null = Array.isArray(own) ? ivl(own, v) : Array.isArray(r.ci) ? (k === "partial_pooling" ? ivl(r.ci, v) : null) : (r.ci as Record<string, Interval> | undefined)?.[k] ?? null;
+    return <span style={r.best === k ? { fontWeight: 700 } : undefined}>{v.toFixed(3)} {ci && <span className="interval">{fmtInterval(ci, 3)}</span>}</span>;
   };
   return (
     <div className="stack">
       <h3 className="section__title" style={{ fontSize: "var(--text-lg)" }}>How fast does a new person get a good forecast?</h3>
       <div className="table-wrap"><table className="table">
         <thead><tr><th>Episodes seen</th><th className="num">No pooling</th><th className="num">Partial pooling</th><th className="num">Complete pooling</th></tr></thead>
-        <tbody>{rows.map((r) => <tr key={r.n_episodes}><td className="num" style={{ textAlign: "left" }}>{r.n_episodes}</td><td className="num">{cell(r, "no_pooling")}</td><td className="num"><b>{cell(r, "partial_pooling")}</b></td><td className="num">{cell(r, "complete_pooling")}</td></tr>)}</tbody>
+        <tbody>{rows.map((r) => <tr key={r.n_episodes}><td className="num" style={{ textAlign: "left" }}>{r.n_episodes}</td><td className="num">{cell(r, "no_pooling")}</td><td className="num">{cell(r, "partial_pooling")}</td><td className="num">{cell(r, "complete_pooling")}</td></tr>)}</tbody>
       </table></div>
-      <p className="ev-note">{typeof s.note === "string" ? s.note : "Error of the forecast after this many episodes of a new person. Lower is better. Held out: leave one person out."} Partial pooling borrows from other people at first, then trusts the person's own days.</p>
+      <p className="ev-note">{typeof s.note === "string" ? s.note : "Error after this many episodes of a new person. Lower is better. Held out: leave one person out."} Bold marks the best method at each row. Partial pooling borrows from other people at first, then trusts the person's own days.</p>
+      <Caveats s={s} />
       <ChartFoot meta={s.meta ?? null} />
     </div>
   );
@@ -377,9 +416,10 @@ function Claims({ rep }: { rep: EvalReport }) {
             <div className="ev-grid">
               <div className="chart">{rel.length > 0 ? <Reliability points={rel} label="Agent claim calibration" /> : <EmptyState title="No reliability curve" body="The report has no calibration points for this." />}<ChartFoot meta={s.meta ?? null} /></div>
               <div className="stack">
-                {isNum(s.base_rate) && <div className="stat"><span className="stat__label">False success claims, base rate</span><span className="stat__value tabular">{fmtPct(s.base_rate, 1)}</span></div>}
+                {isNum(s.base_rate) && <div className="stat"><span className="stat__label">False success claims, base rate</span><span className="stat__value tabular">{fmtPct(s.base_rate, 1)}</span>{Array.isArray(s.false_claim_ci) && <span className="stat__interval">95% interval {fmtPctInterval(ivl(s.false_claim_ci, 0)[0], ivl(s.false_claim_ci, 0)[1], 1)}</span>}{isNum(s.claims) && isNum(s.false_claims) && <span className="stat__meta">{s.false_claims} of {s.claims} runs. The code check caught all {isNum(s.caught_by_code_check) ? s.caught_by_code_check : s.false_claims}.</span>}</div>}
                 {isNum(s.brier) && <div className="stat"><span className="stat__label">Brier score of the claim predictor</span><span className="stat__value tabular">{s.brier.toFixed(3)}</span></div>}
                 <p className="ev-note">The code check decides success, not the model, and it catches every false claim by construction. This block measures how well a false claim can be predicted from the trace, so a person can look first at the risky ones.</p>
+                <Caveats s={s} />
               </div>
             </div>
           </Block>
@@ -390,25 +430,92 @@ function Claims({ rep }: { rep: EvalReport }) {
 }
 
 /* -- Live study ----------------------------------------------------------------------------------------------------- */
+/** Humanise a key like `assisted_speed` or `mean_s`. */
+const nice = (k: string) => k.replace(/_/g, " ").replace(/\bs\b/, "(s)");
+
+/** Show what the engine reports for a part of the study whose inner shape is not fixed: numbers and short text, one level deep. */
+function Facts({ title, v }: { title: string; v: unknown }) {
+  if (v == null) return null;
+  const rows: [string, string][] = [];
+  const fmt = (x: unknown): string | null => (isNum(x) ? String(Math.round(x * 1000) / 1000) : typeof x === "string" && x.length < 90 ? x : Array.isArray(x) && x.every(isNum) ? `[${x.map((n) => Math.round((n as number) * 1000) / 1000).join(", ")}]` : null);
+  if (typeof v === "object" && !Array.isArray(v)) {
+    for (const [k, x] of Object.entries(v as Record<string, unknown>)) {
+      const f = fmt(x);
+      if (f != null) rows.push([nice(k), f]);
+      else if (x && typeof x === "object" && !Array.isArray(x)) for (const [k2, y] of Object.entries(x as Record<string, unknown>)) { const g = fmt(y); if (g != null) rows.push([`${nice(k)}, ${nice(k2)}`, g]); }
+    }
+  } else { const f = fmt(v); if (f != null) rows.push([title, f]); }
+  if (!rows.length) return null;
+  return (
+    <div className="stack" style={{ gap: "var(--space-1)" }}>
+      <span className="t-label">{title}</span>
+      <ul className="plain-list">{rows.map(([k, x]) => <li key={k} className="ev-note">{k}: <b className="tabular">{x}</b></li>)}</ul>
+    </div>
+  );
+}
+
+/** One dot per participant (coached minus uncoached skill), with the mean and its interval. Zero means no difference. */
+function DiffStrip({ values, mean, ci, labels }: { values: number[]; mean: number; ci: Interval; labels: string[] }) {
+  const [box, width] = useWidth<HTMLDivElement>();
+  const lo = Math.min(-0.1, ...values, ci[0]) - 0.05, hi = Math.max(0.1, ...values, ci[1]) + 0.05;
+  const x = scaleLinear().domain([lo, hi]).range([16, Math.max(200, width - 16)]).nice();
+  const H = 118;
+  return (
+    <div ref={box} className="chart">
+      {width > 0 && (
+        <svg width={width} height={H} viewBox={`0 0 ${width} ${H}`} role="img" aria-label={`Per-participant skill difference, coached minus uncoached: ${values.map((v, i) => `${labels[i] ?? `P${i + 1}`} ${signed(v, 2)}`).join(", ")}. Mean ${signed(mean, 2)}, interval ${fmtInterval(ci, 2)}.`}>
+          {x.ticks(6).map((t) => (<g key={t}><line className="svg-grid" x1={x(t)} x2={x(t)} y1={6} y2={78} /><text className="svg-text" x={x(t)} y={94} textAnchor="middle">{signed(t, 1)}</text></g>))}
+          <line className="ev-truth" x1={x(0)} x2={x(0)} y1={4} y2={80} />
+          <text className="ev-truth-text" x={x(0) + 4} y={14}>no difference</text>
+          {values.map((v, i) => (<g key={i}><circle className="ev-pt" cx={x(v)} cy={34} r={5.5}><title>{`${labels[i] ?? `Participant ${i + 1}`}: ${signed(v, 2)}`}</title></circle></g>))}
+          <line className="ev-whisker" x1={x(ci[0])} x2={x(ci[1])} y1={62} y2={62} /><line className="ev-whisker" x1={x(ci[0])} x2={x(ci[0])} y1={57} y2={67} /><line className="ev-whisker" x1={x(ci[1])} x2={x(ci[1])} y1={57} y2={67} />
+          <rect x={x(mean) - 5} y={57} width={10} height={10} transform={`rotate(45 ${x(mean)} 62)`} style={{ fill: "var(--fg)" }} />
+          <text className="svg-text" x={x(ci[1]) + 10} y={66}>mean {signed(mean, 2)}</text>
+          <text className="svg-text" x={width - 16} y={H - 4} textAnchor="end">skill score difference, 0 to 1 scale</text>
+        </svg>
+      )}
+    </div>
+  );
+}
+
+interface StudyRow { participant?: string; unassisted_before_s?: number; unassisted_after_s?: number }
 function Study({ rep }: { rep: EvalReport }) {
   return (
     <Guard id="study" kicker="Does it help real people?" what="The live study" s={sec(rep, "study")}>
       {(s) => {
-        const rows = arr<{ participant: string; unassisted_before_s: number; unassisted_after_s: number }>(s.rows);
-        if (rows.length === 0) return <Block id="study" kicker="Does it help real people?" claim="The live study"><StubState s={{ status: "not_run", reason: "There are no study results in the report yet.", meta: s.meta }} what="The live study" /></Block>;
-        const ci = Array.isArray(s.mean_change_ci) ? ivl(s.mean_change_ci, 0) : null;
+        const rows = arr<StudyRow>(s.rows);
+        const h = s.headline as { mean_difference?: number; ci95?: Interval; per_participant_difference?: number[]; sign_flip_p_two_sided?: number; smallest_possible_p?: number; ci_method?: string } | undefined;
+        const n = isNum(s.n) ? s.n : isNum(s.meta?.n) && (s.meta?.n ?? 0) > 0 ? s.meta!.n : rows.length;
+        if (rows.length === 0 && !h) return <Block id="study" kicker="Does it help real people?" claim="The live study"><StubState s={{ status: "not_run", reason: "There are no study results in the report yet.", meta: s.meta }} what="The live study" /></Block>;
+        const names = rows.map((r, i) => r.participant ?? `Participant ${i + 1}`);
+        const minP = h && isNum(h.smallest_possible_p) ? h.smallest_possible_p : n > 0 ? 2 / 2 ** n : null;
+        const hasHeadline = !!h && isNum(h.mean_difference) && Array.isArray(h.ci95);
+        const legacy = s as unknown as { mean_change_s?: number; mean_change_ci?: Interval };
         return (
-          <Block id="study" kicker="Does it help real people?" claim={<>n = {s.meta?.n ?? rows.length}.{isNum(s.mean_change_s) ? ` Unassisted time changed by ${signed(s.mean_change_s, 0)} s on average.` : ""} Treat it as a case study.</>}>
-            <div className="ev-grid">
-              <div className="table-wrap"><table className="table">
-                <thead><tr><th>Teammate</th><th className="num">Before</th><th className="num">After</th><th className="num">Change</th></tr></thead>
-                <tbody>{rows.map((x) => <tr key={x.participant}><td>{x.participant}</td><td className="num">{x.unassisted_before_s} s</td><td className="num">{x.unassisted_after_s} s</td><td className="num">{signed(x.unassisted_after_s - x.unassisted_before_s)} s</td></tr>)}</tbody>
-              </table></div>
-              <div className="stack">
-                {isNum(s.mean_change_s) && <div className="stat"><span className="stat__label">Mean change, unassisted</span><span className="stat__value tabular">{signed(s.mean_change_s, 1)}<span className="stat__unit">s</span></span>{ci && <span className="stat__interval">95% interval {fmtInterval(ci, 1)} s</span>}</div>}
-                <p className="ev-note">Unassisted time on a later, matched task, measured separately from assisted speed. With four people the interval is wide and the sample is not representative.</p>
+          <Block id="study" kicker="Does it help real people?" claim={hasHeadline ? <>n = {n}. Coached minus uncoached unassisted skill: {signed(h!.mean_difference!, 2)} {fmtInterval(ivl(h!.ci95, 0), 2)} on a 0 to 1 scale. A case study, not a result.</> : <>n = {n}. A case study, not a result.</>}>
+            {hasHeadline && (
+              <div className="ev-grid">
+                <DiffStrip values={arr<number>(h!.per_participant_difference).filter(isNum)} mean={h!.mean_difference!} ci={ivl(h!.ci95, 0)} labels={names} />
+                <div className="stack">
+                  <div className="stat"><span className="stat__label">Mean difference in unassisted skill</span><span className="stat__value tabular">{signed(h!.mean_difference!, 2)}</span><span className="stat__interval">95% interval {fmtInterval(ivl(h!.ci95, 0), 2)}</span>{h!.ci_method && <span className="stat__meta">Interval method: {h!.ci_method}</span>}</div>
+                  {isNum(h!.sign_flip_p_two_sided) && <div className="stat"><span className="stat__label">Sign-flip test, two-sided</span><span className="stat__value tabular">p = {h!.sign_flip_p_two_sided.toFixed(3)}</span>{minP != null && <span className="stat__meta">With n = {n}, the smallest p that is possible is {minP.toFixed(3)}. This page cannot show conventional significance, and does not claim it.</span>}</div>}
+                </div>
               </div>
+            )}
+            {rows.length > 0 && (
+              <div className="table-wrap"><table className="table">
+                <thead><tr><th>Teammate</th><th className="num">Uncoached block, time</th><th className="num">Coached block, time</th>{hasHeadline && <th className="num">Skill difference</th>}</tr></thead>
+                <tbody>{rows.map((x, i) => (
+                  <tr key={names[i] + i}><td>{names[i]}</td><td className="num">{dashed(x.unassisted_before_s, (v) => `${Math.round(v)} s`)}</td><td className="num">{dashed(x.unassisted_after_s, (v) => `${Math.round(v)} s`)}</td>{hasHeadline && <td className="num">{dashed(arr<number>(h!.per_participant_difference)[i], (v) => signed(v, 2))}</td>}</tr>))}</tbody>
+              </table></div>
+            )}
+            {!hasHeadline && isNum(legacy.mean_change_s) && <p className="ev-note">Mean difference in unassisted time, coached minus uncoached: {signed(legacy.mean_change_s, 0)} s{legacy.mean_change_ci ? ` ${fmtInterval(ivl(legacy.mean_change_ci, 0))} s` : ""}.</p>}
+            <div className="ev-grid">
+              <Facts title="Assisted speed, reported separately" v={s.assisted_speed} />
+              <Facts title="Unassisted speed" v={s.unassisted_speed} />
+              <Facts title="How the coach was used" v={s.coach_use} />
             </div>
+            <p className="ev-note">The headline is the unassisted skill score on a later, matched task: coached minus uncoached, per person. Speed with the coach on is reported separately and is not the headline. With four people the interval is wide and the sample is not representative.</p>
             <ChartFoot meta={s.meta ?? null} />
           </Block>
         );
@@ -418,26 +525,44 @@ function Study({ rep }: { rep: EvalReport }) {
 }
 
 /* -- Limitations register ------------------------------------------------------------------------------------------- */
+function srcOf(src?: string): string | null {
+  if (!src) return null;
+  return src.split(";")[0].trim().replace(/:\s*/g, " · ").replace(/_/g, " ");
+}
+
 function Limits({ items }: { items: Limitation[] }) {
+  const groups: [string, string][] = [["high", "High"], ["medium", "Medium"], ["low", "Low"]];
+  const known = new Set(groups.map(([k]) => k));
+  const other = items.filter((l) => !known.has(l.severity));
   return (
     <section className="ev-block" id="limits" aria-labelledby="limits-h">
       <div className="stack" style={{ gap: "var(--space-2)" }}>
-        <p className="t-label">Limitations register</p>
+        <p className="t-label">Limitations register · {items.length}</p>
         <h2 className="ev-claim" id="limits-h">What this does not show</h2>
-        <p className="ev-note">Kept here, in the product, on purpose. The most serious first.</p>
+        <p className="ev-note">Kept here, in the product, on purpose. Every limit the build agents raised is listed, the most serious first.</p>
       </div>
       {items.length === 0 ? <EmptyState title="No limitations listed" body="The report has no limitations register. That is itself a problem: every report must list its limits." /> : (
-        <ol className="limits">
-          {[...items].sort((a, b) => sevRank(a.severity) - sevRank(b.severity)).map((l) => (
-            <li key={l.id} className="limit">
-              <span className="limit__id">{l.id}</span>
-              <span className="limit__text">{l.text}{l.source && <span className="limit__src"> From: {l.source.replace(/_/g, " ")}</span>}</span>
-              <span className="sev" data-sev={l.severity}>{l.severity}</span>
-            </li>
-          ))}
-        </ol>
+        <div className="stack" style={{ gap: "var(--space-7)" }}>
+          {[...groups, ...(other.length ? ([["other", "Other"]] as [string, string][]) : [])].map(([sev, name]) => {
+            const list = sev === "other" ? other : items.filter((l) => l.severity === sev);
+            if (!list.length) return null;
+            return (
+              <div key={sev} className="stack" style={{ gap: "var(--space-2)" }}>
+                <h3 className="t-label">{name} ({list.length})</h3>
+                <ol className="limits">
+                  {list.map((l) => (
+                    <li key={l.id} className="limit">
+                      <span className="limit__id">{l.id.length > 6 ? "·" : l.id}</span>
+                      <span className="limit__text">{l.text}{srcOf(l.source) && <span className="limit__src" title={l.source}> From: {srcOf(l.source)}</span>}</span>
+                      <span className="sev" data-sev={l.severity}>{l.severity}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            );
+          })}
+        </div>
       )}
     </section>
   );
 }
-const sevRank = (s: string) => ({ high: 0, medium: 1, low: 2 } as Record<string, number>)[s] ?? 3;

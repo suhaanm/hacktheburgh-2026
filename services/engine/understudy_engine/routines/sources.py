@@ -34,6 +34,22 @@ class PersonData:
         return self.events[-1].t.timestamp() if self.events else 0.0
 
 
+def pack_mapping(role: str):
+    """The role pack's own event-to-cog mapping (engine rule format); None means the engine default."""
+    try:
+        from ..packs import load_pack
+
+        return load_pack(role).cog_mapping()
+    except Exception:  # an unknown role or a pack without a usable mapping falls back to the default rules
+        return None
+
+
+def segment_for_role(events, role: str):
+    from ..cogs import segment_episodes
+
+    return segment_episodes(events, pack_mapping(role))
+
+
 class PersonSource:
     def __init__(self, root: Path | None = None) -> None:
         self.root = root or data_dir()
@@ -118,9 +134,7 @@ class PersonSource:
             hit = self._cache.get(key)
             if hit is not None:
                 return hit
-        from ..cogs import segment_episodes
-
-        eps = segment_episodes(pd.events)
+        eps = segment_for_role(pd.events, pd.role)
         with self._lock:
             self._cache[key] = eps
         return eps

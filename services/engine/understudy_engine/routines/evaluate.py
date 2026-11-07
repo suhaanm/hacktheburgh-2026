@@ -25,13 +25,14 @@ from .forecast import DAY, backtest_coverage
 from .simulate import SimConfig
 
 
-def persona_episodes(name: str, root: Path | None = None):
+def persona_episodes(name: str, root: Path | None = None, *, use_pack_mapping: bool = True):
     """Episodes (via the cog mapper) and truth labels for one synthetic persona."""
+    from .sources import pack_mapping
     from ..cogs import segment_episodes
 
     rows, truth = load_persona(name, root)
     events = [Event.model_validate(r) for r in rows]
-    eps = segment_episodes(events)
+    eps = segment_episodes(events, pack_mapping(truth.get("role", "benefits-processor")) if use_pack_mapping else None)
     labels = {}
     for r in truth["routines"]:
         for i in r["instances"]:

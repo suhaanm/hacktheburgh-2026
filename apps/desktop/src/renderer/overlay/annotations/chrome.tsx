@@ -187,16 +187,16 @@ export function LevelChipEcho({
 export const COACH_CHIP_TOP = 44
 export const COACH_CHIP_RIGHT = 20
 
-export function coachChipLook(fade: CoachChipState['fade'], fontSize: number): { labelMax: number; barsMax: number; padX: number; padY: number; opacity: number; dotOpacity: number } {
+export function coachChipLook(fade: CoachChipState['fade'], fontSize: number): { labelMax: number; barsMax: number; padX: number; padY: number; opacity: number; dotOpacity: number; dotBox: number | null } {
   switch (fade) {
     case 'full':
-      return { labelMax: fontSize * 14, barsMax: fontSize * 2, padX: fontSize * 0.9, padY: fontSize * 0.45, opacity: 1, dotOpacity: 0 }
+      return { labelMax: fontSize * 14, barsMax: fontSize * 2, padX: fontSize * 0.9, padY: fontSize * 0.45, opacity: 1, dotOpacity: 0, dotBox: null }
     case 'small':
-      return { labelMax: 0, barsMax: fontSize * 2, padX: fontSize * 0.6, padY: fontSize * 0.35, opacity: 0.9, dotOpacity: 0 }
+      return { labelMax: 0, barsMax: fontSize * 2, padX: fontSize * 0.6, padY: fontSize * 0.35, opacity: 0.9, dotOpacity: 0, dotBox: null }
     case 'dot':
-      return { labelMax: 0, barsMax: 0, padX: fontSize * 0.4, padY: fontSize * 0.4, opacity: 0.75, dotOpacity: 1 }
+      return { labelMax: 0, barsMax: 0, padX: 0, padY: 0, opacity: 0.75, dotOpacity: 1, dotBox: fontSize * 1.1 }
     case 'gone':
-      return { labelMax: 0, barsMax: 0, padX: 0, padY: 0, opacity: 0, dotOpacity: 0 }
+      return { labelMax: 0, barsMax: 0, padX: 0, padY: 0, opacity: 0, dotOpacity: 0, dotBox: null }
   }
 }
 
@@ -218,6 +218,8 @@ export function CoachChipView({ chip, style }: { chip: CoachChipState; style: An
           border: l.border,
           borderRadius: 999,
           padding: `${look.padY}px ${look.padX}px`,
+          // The dot is a true circle: a fixed box, everything else hidden inside it.
+          ...(look.dotBox !== null ? { width: look.dotBox, height: look.dotBox, justifyContent: 'center', boxSizing: 'border-box' as const } : {}),
           opacity: look.opacity,
           fontFamily: style.bubble.fontFamily,
           fontSize: l.fontSize,
@@ -227,12 +229,12 @@ export function CoachChipView({ chip, style }: { chip: CoachChipState; style: An
           transition: t('padding, opacity'),
         }}
       >
-        <span style={{ display: 'inline-flex', alignItems: 'flex-end', gap: l.fontSize * 0.15, height: l.fontSize, maxWidth: look.barsMax, opacity: look.barsMax > 0 ? 1 : 0, overflow: 'hidden', transition: t('max-width, opacity') }}>
+        <span style={{ display: 'inline-flex', alignItems: 'flex-end', gap: l.fontSize * 0.15, height: look.barsMax > 0 ? l.fontSize : 0, maxWidth: look.barsMax, opacity: look.barsMax > 0 ? 1 : 0, overflow: 'hidden', transition: t('max-width, opacity') }}>
           {[1, 2, 3, 4].map((i) => (
             <span key={i} style={{ width: l.fontSize * 0.2, height: l.fontSize * (0.35 + i * 0.16), borderRadius: 2, background: i <= on ? '#fff' : 'rgba(255,255,255,0.28)', flex: 'none' }} />
           ))}
         </span>
-        <span style={{ display: 'inline-block', whiteSpace: 'nowrap', maxWidth: look.labelMax, opacity: look.labelMax > 0 ? 1 : 0, marginLeft: look.labelMax > 0 ? l.fontSize * 0.5 : 0, overflow: 'hidden', transition: t('max-width, opacity, margin-left') }}>{chip.label}</span>
+        <span style={{ display: 'inline-block', whiteSpace: 'nowrap', height: look.labelMax > 0 ? 'auto' : 0, maxWidth: look.labelMax, opacity: look.labelMax > 0 ? 1 : 0, marginLeft: look.labelMax > 0 ? l.fontSize * 0.5 : 0, overflow: 'hidden', transition: t('max-width, opacity, margin-left') }}>{chip.label}</span>
         <span style={{ display: 'inline-block', width: look.dotOpacity > 0 ? l.fontSize * 0.45 : 0, height: l.fontSize * 0.45, borderRadius: '50%', background: '#fff', opacity: look.dotOpacity, flex: 'none', transition: t('width, opacity') }} />
       </div>
     </div>

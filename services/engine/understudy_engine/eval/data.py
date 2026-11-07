@@ -23,6 +23,11 @@ def have_personas(root: Path | str | None = None) -> bool:
     return all((base / p / "events.jsonl").exists() and (base / p / "truth.json").exists() for p in PERSONAS)
 
 
+def have_learners(root: Path | str | None = None) -> bool:
+    d = resolve_root(root) / "synthetic" / "learners"
+    return (d / "events.jsonl").exists() and (d / "truth.json").exists()
+
+
 def ensure_synthetic(root: Path | str | None = None, log=None) -> list[str]:
     """Run the owners' own seeded generators for whatever is missing (same as ``understudy synth --all``).
 
@@ -44,6 +49,14 @@ def ensure_synthetic(root: Path | str | None = None, log=None) -> list[str]:
         log(f"eval: apprentices missing under {root}/synthetic; generating with the seeded generator")
         apprentices.generate(root)
         done.append("apprentices")
+    if not have_learners(root):
+        try:
+            from ..personas import learners
+        except ImportError:  # pragma: no cover - older checkouts
+            return done
+        log(f"eval: learners missing under {root}/synthetic; generating with the seeded generator")
+        learners.generate(root)
+        done.append("learners")
     return done
 
 

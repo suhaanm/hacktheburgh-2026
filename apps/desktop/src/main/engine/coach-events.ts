@@ -24,7 +24,7 @@ export interface CoachTrackerOptions {
 }
 
 export interface CoachTracker {
-  shown(promptId: string, extra?: { label_hash?: string; domain_hash?: string }): void
+  shown(promptId: string, extra?: { label_hash?: string; domain_hash?: string; zone?: string }): void
   followed(promptId?: string): void
   dismissed(promptId: string | undefined, how: CoachDismissHow): void
   // Called when a clear arrives for these ids: counts as a dismissal unless a ring is drawn within the replace window.
@@ -39,13 +39,14 @@ export function createCoachTracker(opts: CoachTrackerOptions): CoachTracker {
   const staleMs = opts.staleMs ?? 120_000
   const setT = opts.setTimer ?? ((fn, ms) => setTimeout(fn, ms))
   const clearT = opts.clearTimer ?? ((h) => clearTimeout(h as ReturnType<typeof setTimeout>))
-  const openPrompts = new Map<string, { at: number; label_hash?: string; domain_hash?: string }>()
+  const openPrompts = new Map<string, { at: number; label_hash?: string; domain_hash?: string; zone?: string }>()
   let pending: unknown = null
   let pendingIds: string[] = []
 
-  const meta = (extra: Record<string, number | string | boolean> = {}): Record<string, number | string | boolean> => {
+  const meta = (extra: Record<string, number | string | boolean> = {}, zone?: string): Record<string, number | string | boolean> => {
     const level = opts.level?.()
-    return { ...(level && /^l[1-4]$/.test(level) ? { level } : {}), ...extra }
+    // The capture zone is a short semantic id from the capture config, never page text; it only goes in when it fits the schema's token rule.
+    return { ...(level && /^l[1-4]$/.test(level) ? { level } : {}), ...(zone && /^[a-z0-9_:\-.]{1,32}$/.test(zone) ? { zone } : {}), ...extra }
   }
   const target = (p: { label_hash?: string; domain_hash?: string }): EventInput['target'] => ({ role: 'ring', ...(p.label_hash ? { label_hash: p.label_hash } : {}), ...(p.domain_hash ? { domain_hash: p.domain_hash } : {}) })
 
@@ -59,7 +60,7 @@ export function createCoachTracker(opts: CoachTrackerOptions): CoachTracker {
     const p = openPrompts.get(id)
     if (!p) return
     openPrompts.delete(id)
-    opts.emit({ source: 'coach', type: 'coach_dismissed', target: target(p), meta: meta({ latency_ms: Math.max(0, now() - p.at), how }) })
+    opts.emit({ source: 'coach', type: 'coach_dismissed', target: target(p), meta: meta({ latency_ms: Math.max(0, now() - p.at), how }, p.zone) })
   }
 
   const sweep = (): void => {
@@ -72,7 +73,7 @@ export function createCoachTracker(opts: CoachTrackerOptions): CoachTracker {
       cancelPending() // a ring drawn right after a clear: the clear was a replacement
       if (openPrompts.has(promptId)) return // the same ring redrawn: not a new prompt
       openPrompts.set(promptId, { at: now(), ...extra })
-      opts.emit({ source: 'coach', type: 'coach_shown', target: target(extra), meta: meta() })
+      opts.emit({ source: 'coach', type: 'coach_shown', target: target(extra), meta: meta({}, extra.zone) })
     },
     followed(promptId) {
       const ids = promptId ? [promptId] : [...openPrompts.keys()]
@@ -80,7 +81,7 @@ export function createCoachTracker(opts: CoachTrackerOptions): CoachTracker {
         const p = openPrompts.get(id)
         if (!p) continue
         openPrompts.delete(id)
-        opts.emit({ source: 'coach', type: 'coach_followed', target: target(p), meta: meta({ latency_ms: Math.max(0, now() - p.at) }) })
+        opts.emit({ source: 'coach', type: 'coach_followed', target: target(p), meta: meta({ latency_ms: Math.max(0, now() - p.at) }, p.zone) })
       }
     },
     dismissed(promptId, how) {

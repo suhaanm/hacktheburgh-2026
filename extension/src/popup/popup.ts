@@ -17,7 +17,7 @@ async function render(): Promise<void> {
   $("state").textContent = cfg.capturing ? "Capture is on" : "Capture is off";
   const sel = $("role") as HTMLSelectElement;
   // Once the engine's onboarding has created the identity, the role is its, not ours to choose.
-  $("role-row").hidden = cfg.identity_adopted;
+  $("role-row").hidden = $("role-row-label").hidden = cfg.identity_adopted;
   $("who").textContent = cfg.identity_adopted ? `${cfg.person} (from Understudy)` : `${cfg.person} (local until you onboard)`;
   if (!sel.options.length) for (const r of roles) sel.add(new Option(r, r));
   sel.value = roles.includes(cfg.role) ? cfg.role : roles[0] ?? "";

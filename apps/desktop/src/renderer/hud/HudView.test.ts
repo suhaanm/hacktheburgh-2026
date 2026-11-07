@@ -38,7 +38,7 @@ function texts(el: ReactNode): string {
   return out.join(' | ')
 }
 
-const proposal = { id: 'r1', title: 'Enter the household into three calculators', what: 'You enter the same household three times.', howOften: 'about 14 times in 3 weeks', hoursSaved: [3.1, 5.2] as [number, number], touches: ['gov.uk check', 'turn2us'], never: ['submit'] }
+const proposal = { id: 'r1', title: 'Enter the household into three calculators', what: 'You enter the same household three times.', howOften: 'about 14 times in 3 weeks', hoursSaved: [3.1, 5.2] as [number, number], horizonWeeks: 4, touches: ['gov.uk check', 'turn2us'], never: ['submit'] }
 const base = (over: Partial<HudState> = {}): HudState => ({ ...EMPTY_HUD_STATE, ...over })
 
 describe('HudView', () => {
@@ -61,7 +61,7 @@ describe('HudView', () => {
     const onAction = vi.fn()
     const el = HudView({ state: base({ proposal }), onAction })
     const t = texts(el)
-    for (const piece of ['I noticed something', proposal.title, proposal.what, 'about 14 times in 3 weeks', 'about 3.1 to 5.2 hours a week', 'gov.uk check, turn2us', 'submit', 'Nothing runs unless you say so.']) expect(t).toContain(piece)
+    for (const piece of ['I noticed something', proposal.title, proposal.what, 'about 14 times in 3 weeks', 'about 3.1 to 5.2 hours over 4 weeks', 'gov.uk check, turn2us', 'submit', 'Nothing runs unless you say so.']) expect(t).toContain(piece)
     const bs = buttons(el)
     expect(bs.map((b) => b.label)).toEqual(['Look at it', 'Not now', 'Never for this', 'Stop all'])
     bs[0].onClick()
@@ -91,7 +91,9 @@ describe('HudView', () => {
   })
 
   it('copy helpers', () => {
-    expect(hoursText([3, 5])).toBe('about 3 to 5 hours a week')
+    expect(hoursText([3, 5], 4)).toBe('about 3 to 5 hours over 4 weeks')
+    expect(hoursText([3, 5], 1)).toBe('about 3 to 5 hours over a week')
+    expect(hoursText([3, 5])).toBe('about 3 to 5 hours')
     expect(hoursText(null)).toBeNull()
     expect(killDetail({ killed: true, engine: null, agent: null })).toMatch(/Telling/)
     expect(killDetail({ killed: true, engine: true, agent: true })).toBe('The engine and the agent were told to stop.')

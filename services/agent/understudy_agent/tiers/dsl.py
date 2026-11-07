@@ -14,6 +14,7 @@ A failed precondition raises PreconditionFailed: the navigator escalates to tier
 from __future__ import annotations
 
 import asyncio
+import re
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable
 
@@ -21,10 +22,11 @@ from .base import Emit, GateStop, PostconditionFailed, PreconditionFailed, StepB
 from .safety import Guard
 
 OPS = {"goto", "click", "fill", "select", "wait_for", "assert_text", "extract", "checkpoint"}
-CONDITION_KEYS = {"visible", "exists", "absent", "text_contains", "url_contains", "value_equals"}
+CONDITION_KEYS = {"visible", "exists", "absent", "text_contains", "url_contains", "value_equals", "title_contains",
+                  "page_text", "page_text_absent"}
 MAX_STEPS = 60
-STEP_KEYS = {"id", "op", "url", "selector", "role", "name", "value", "contains", "timeout_ms", "pre", "post",
-             "optional", "note"}
+STEP_KEYS = {"id", "op", "url", "url_param", "selector", "role", "name", "value", "contains", "timeout_ms", "pre",
+             "post", "optional", "note", "pattern", "as", "resumable", "irreversible", "text", "url_contains"}
 
 
 # ----------------------------------------------------------------------------- validation
@@ -33,6 +35,11 @@ def validate_bundle(bundle: dict[str, Any]) -> list[str]:
     errs: list[str] = []
     if not isinstance(bundle, dict):
         return ["bundle must be an object"]
+    if is_platform_bundle(bundle):
+        try:
+            bundle = to_internal(bundle)
+        except (KeyError, TypeError) as exc:
+            return [f"malformed bundle: {exc!r}"[:120]]
     for k in ("id", "version", "steps", "params"):
         if k not in bundle:
             errs.append(f"missing key {k!r}")
@@ -60,15 +67,25 @@ def validate_bundle(bundle: dict[str, Any]) -> list[str]:
         if op not in OPS:
             errs.append(f"{where}: unknown op {op!r}")
             continue
-        if op == "goto" and not str(s.get("url", "")).startswith("{base}"):
-            errs.append(f"{where}: goto url must start with {{base}}")
+        if op == "goto":
+            u = str(s.get("url", ""))
+            if s.get("url_param"):
+                if s["url_param"] not in declared:
+                    errs.append(f"{where}: undeclared url_param {s['url_param']!r}")
+            elif not (u.startswith("{base}") or re.fullmatch(r"https?://[A-Za-z0-9._:/?=&%#-]+", u)):
+                errs.append(f"{where}: goto url must start with {{base}} or be an http(s) address")
         if op in ("click", "fill", "select", "wait_for", "assert_text", "extract"):
-            if not (s.get("selector") or (op == "click" and s.get("role") and s.get("name"))):
-                errs.append(f"{where}: needs a selector" + (" or role+name" if op == "click" else ""))
+            ok_target = s.get("selector") or (op in ("click", "fill", "select") and s.get("role") and s.get("name")) \
+                or (op == "wait_for" and (s.get("text") or s.get("url_contains"))) \
+                or (op == "assert_text" and s.get("contains"))
+            if not ok_target:
+                errs.append(f"{where}: needs a selector" + (" or role+name" if op in ("click", "fill", "select") else ""))
         if op in ("fill", "select"):
             errs += _check_value(s.get("value"), declared, where)
         if op == "assert_text":
             errs += _check_value(s.get("contains"), declared, where)
+        if op == "wait_for" and s.get("text") is not None:
+            errs += _check_value(s.get("text"), declared, where)
         if op == "extract" and not s.get("name"):
             errs.append(f"{where}: extract needs a name")
         if op == "checkpoint" and not s.get("name"):
@@ -79,7 +96,9 @@ def validate_bundle(bundle: dict[str, Any]) -> list[str]:
                     errs.append(f"{where}: bad {phase} condition {cond!r}")
                     continue
                 for k, v in cond.items():
-                    if k in ("text_contains", "value_equals"):
+                    if k in ("page_text", "page_text_absent"):
+                        errs += _check_value(v.get("value") if isinstance(v, dict) else None, declared, f"{where} {phase}")
+                    elif k in ("text_contains", "value_equals"):
                         if not isinstance(v, dict) or "selector" not in v:
                             errs.append(f"{where}: {phase}.{k} needs selector")
                         else:
@@ -100,6 +119,98 @@ def _check_value(v: Any, declared: set[str], where: str) -> list[str]:
 def bundle_params(bundle: dict[str, Any]) -> set[str]:
     return set(bundle.get("params", []))
 
+
+
+# ----------------------------------------------------------------------------- platform bundle format
+# packages/schema/steps.schema.json is the shared contract (engine, extension, compile step). The interpreter runs
+# it natively by converting it to the internal form above.
+def is_platform_bundle(b: Any) -> bool:
+    return isinstance(b, dict) and b.get("schema") == 1 and isinstance(b.get("params"), dict)
+
+
+def _val(spec: dict[str, Any], decls: dict[str, Any]) -> dict[str, Any]:
+    if "literal" in spec:
+        return {"literal": spec["literal"]}
+    out: dict[str, Any] = {"param": spec["param"]}
+    t = decls.get(spec["param"], {}).get("transform")
+    if t:
+        out.update({"mul": float(t["mul"]), "round": int(t.get("round", 2))})
+    return out
+
+
+def _conds(cond: dict[str, Any] | None, decls: dict[str, Any]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for k, v in (cond or {}).items():
+        if k == "always":
+            continue
+        if k == "selector_visible":
+            out.append({"visible": v})
+        elif k == "selector_absent":
+            out.append({"absent": v})
+        elif k in ("url_contains", "title_contains"):
+            out.append({k: v})
+        elif k == "text_contains":
+            out.append({"page_text": {"value": _val(v, decls)}})
+        elif k == "text_absent":
+            out.append({"page_text_absent": {"value": _val(v, decls)}})
+        elif k == "field_equals":
+            out.append({"value_equals": {"selector": v["selector"], "value": _val({"param": v["param"]}, decls)}})
+    return out
+
+
+def to_internal(b: dict[str, Any]) -> dict[str, Any]:
+    decls = b["params"]
+    steps: list[dict[str, Any]] = []
+    for st in b["steps"]:
+        op = st["op"]
+        s: dict[str, Any] = {"id": st["id"], "op": op, "pre": _conds(st.get("precondition"), decls),
+                             "post": _conds(st.get("postcondition"), decls)}
+        for k in ("selector", "role", "name", "url", "url_param", "timeout_ms", "url_contains", "pattern", "as", "note"):
+            if k in st:
+                s[k] = st[k]
+        if st.get("irreversible"):
+            s["irreversible"] = True
+        if op == "fill":
+            s["value"] = _val({"param": st["param"]}, decls)
+        elif op == "select":
+            s["value"] = _val({"param": st["param"]}, decls) if "param" in st else {"literal": st["option"]}
+        elif op == "assert_text":
+            s["contains"] = {"param": st["param"]} if "param" in st else {"literal": st["literal"]}
+            if "param" in st:
+                s["contains"] = _val({"param": st["param"]}, decls)
+        elif op == "wait_for" and "text" in st:
+            s["text"] = _val(st["text"], decls)
+        elif op == "extract":
+            s["name"] = st["name"]
+        elif op == "checkpoint":
+            s["name"] = st["name"]
+            if st.get("resumable"):
+                s["resumable"] = True
+        steps.append(s)
+    return {"id": b["id"], "version": 1, "params": list(decls), "param_decls": decls,
+            "never": list(b.get("never", [])), "steps": steps, "platform": True}
+
+
+def param_defaults(b: dict[str, Any]) -> dict[str, str]:
+    return {k: str(v["default"]) for k, v in (b.get("param_decls") or {}).items() if v.get("default") is not None}
+
+
+def goto_hosts(b: dict[str, Any]) -> set[str]:
+    """Hosts a bundle navigates to: its recorded sites (data-flow layer 5 only; never limits navigation)."""
+    from urllib.parse import urlsplit
+
+    hosts: set[str] = set()
+    decls = b.get("param_decls") or {}
+    for s in b.get("steps", []):
+        if s.get("op") != "goto":
+            continue
+        u = s.get("url") or ""
+        if s.get("url_param") and decls.get(s["url_param"], {}).get("default"):
+            u = str(decls[s["url_param"]]["default"])
+        if u.startswith("http"):
+            sp = urlsplit(u)
+            hosts.add(f"{sp.hostname}:{sp.port}" if sp.port else str(sp.hostname))
+    return hosts
 
 # ----------------------------------------------------------------------------- values
 class MissingParam(KeyError):
@@ -126,6 +237,7 @@ class DslResult:
     steps_run: int = 0
     checkpoints: list[str] = field(default_factory=list)
     last_step_id: str = ""
+    stopped_before: str = ""        # id of an irreversible step the run stopped in front of (dry runs, shadow mode)
 
 
 @dataclass
@@ -143,6 +255,8 @@ class DslRuntime:
     pre_timeout_ms: int = 2000
     post_timeout_ms: int = 5000
     run_id: str | None = None
+    stop_before_irreversible: bool = False
+    never: list[str] = field(default_factory=list)   # phrases the bundle must never click (from bundle["never"])
 
 
 async def _label_of(loc: Any) -> tuple[str, str]:
@@ -174,6 +288,23 @@ async def _cond_failure(rt: DslRuntime, conds: list[dict[str, Any]], timeout_ms:
                 await page.locator(v).first.wait_for(state="detached", timeout=timeout_ms)
             elif key == "url_contains":
                 await page.wait_for_url(lambda u, want=v: want in u, timeout=timeout_ms)
+            elif key == "title_contains":
+                deadline = asyncio.get_event_loop().time() + timeout_ms / 1000
+                while v not in await page.title():
+                    if asyncio.get_event_loop().time() > deadline:
+                        return f"title_contains {v}"
+                    await asyncio.sleep(0.05)
+            elif key in ("page_text", "page_text_absent"):
+                want = resolve_value(v["value"], rt.params)
+                deadline = asyncio.get_event_loop().time() + timeout_ms / 1000
+                while True:
+                    body = await page.locator("body").inner_text(timeout=timeout_ms)
+                    present = want in body
+                    if present == (key == "page_text"):
+                        break
+                    if asyncio.get_event_loop().time() > deadline:
+                        return f"{key}"
+                    await asyncio.sleep(0.05)
             elif key == "text_contains":
                 want = resolve_value(v["value"], rt.params)
                 loc = page.locator(v["selector"]).first
@@ -189,7 +320,7 @@ async def _cond_failure(rt: DslRuntime, conds: list[dict[str, Any]], timeout_ms:
         except Exception as exc:  # noqa: BLE001 - Playwright timeouts and detaches are all failed conditions
             if isinstance(exc, MissingParam):
                 raise
-            return f"{key} {v if isinstance(v, str) else v.get('selector', '')}"
+            return f"{key} {v if isinstance(v, str) else (v.get('selector', '') if isinstance(v, dict) else '')}"
     return None
 
 
@@ -197,6 +328,10 @@ async def run_bundle(bundle: dict[str, Any], rt: DslRuntime) -> DslResult:
     errs = validate_bundle(bundle)
     if errs:
         raise ValueError("invalid bundle: " + "; ".join(errs[:3]))
+    if is_platform_bundle(bundle):
+        bundle = to_internal(bundle)
+    rt.params = {**param_defaults(bundle), **rt.params}
+    rt.never = [str(x).lower() for x in bundle.get("never", [])]
     res = DslResult()
     n = rt.step_start
     for idx, step in enumerate(bundle["steps"]):
@@ -207,6 +342,9 @@ async def run_bundle(bundle: dict[str, Any], rt: DslRuntime) -> DslResult:
             raise StepBudgetExceeded(f"bundle step cap {rt.step_cap}")
         n += 1
         op = step["op"]
+        if step.get("irreversible") and rt.stop_before_irreversible:
+            res.stopped_before = sid
+            return res
         timeout_pre = int(step.get("timeout_ms", rt.pre_timeout_ms))
         fail = await _cond_failure(rt, step.get("pre", []), timeout_pre)
         if fail:
@@ -240,9 +378,18 @@ def typed_action(rt: DslRuntime, step: dict[str, Any], label: str | None, url: s
     op = step["op"]
     if op == "goto":
         return {"kind": "goto", "args": {"url": url}}
+    if op in ("wait_for", "assert_text", "extract") and not step.get("selector"):
+        if op == "wait_for" and step.get("text") is not None:
+            return {"kind": "wait_for", "args": {"text": resolve_value(step["text"], rt.params)[:200] or " ",
+                                                 "timeout_s": max(0.5, int(step.get("timeout_ms", rt.post_timeout_ms)) / 1000)}}
+        if op == "wait_for":
+            return {"kind": "wait_for", "args": {"text": str(step.get("url_contains", "page"))[:200],
+                                                 "timeout_s": max(0.5, int(step.get("timeout_ms", rt.post_timeout_ms)) / 1000)}}
+        return {"kind": "extract", "args": {"name": step.get("name", "assert_text"), "selector": "body"}}
     target = {"selector": step["selector"]} if step.get("selector") else {"role": step["role"], "name": step["name"]}
     if op == "click":
-        return {"kind": "click_element", "args": {**target, **({"label": label[:120]} if label else {})}}
+        hint = ((label or "") + (" (submit)" if step.get("irreversible") else "")).strip()
+        return {"kind": "click_element", "args": {**target, **({"label": hint[:120]} if hint else {})}}
     if op == "fill":
         v = step["value"]
         return {"kind": "fill", "args": {**target, **({"param": v["param"]} if "param" in v else {"value": v["literal"]})}}
@@ -262,10 +409,12 @@ async def _do_step(rt: DslRuntime, step: dict[str, Any], sid: str, res: DslResul
     n = rt.step_start + res.steps_run + 1
     url = None
     if op == "goto":
-        url = step["url"].replace("{base}", rt.base_url.rstrip("/"))
+        raw = rt.params[step["url_param"]] if step.get("url_param") else step["url"]
+        url = raw.replace("{base}", rt.base_url.rstrip("/"))
         if rt.query and "?" not in url:
             url += rt.query
-    loc = None if op == "goto" else _locator(page, step)
+    no_target = op == "goto" or (not step.get("selector") and not (step.get("role") and step.get("name")))
+    loc = None if no_target else _locator(page, step)
     label, role = None, None
     if op in ("click", "fill", "select"):
         try:
@@ -275,6 +424,11 @@ async def _do_step(rt: DslRuntime, step: dict[str, Any], sid: str, res: DslResul
         if await loc.count() != 1:
             raise PreconditionFailed(sid, f"target is not unique ({await loc.count()} matches)")
         label, role = await _label_of(loc)
+        if op == "click" and any(n and n in (label or "").lower() for n in rt.never):
+            from types import SimpleNamespace
+
+            raise GateStop(SimpleNamespace(verdict="block", layer="never", codes=["bundle_never"], queue_id=None,
+                                           reasons=["the routine says it must never do this"]), label or sid)
     dec = None
     if rt.guard:  # observe -> authorise (one fresh observation authorises exactly this one action)
         seen = await rt.guard.observe(page, navigator=rt.navigator, step=n, tier=1)
@@ -308,20 +462,34 @@ async def _execute(rt: DslRuntime, step: dict[str, Any], sid: str, res: DslResul
     elif op == "select":
         await loc.select_option(resolve_value(step["value"], rt.params), timeout=max(timeout_ms, 4000))
     elif op == "wait_for":
+        wait_ms = int(step.get("timeout_ms", rt.post_timeout_ms))
         try:
-            await loc.first.wait_for(state="visible", timeout=int(step.get("timeout_ms", rt.post_timeout_ms)))
+            if loc is not None:
+                await loc.first.wait_for(state="visible", timeout=wait_ms)
+            elif step.get("text") is not None:
+                await page.get_by_text(resolve_value(step["text"], rt.params), exact=False).first.wait_for(
+                    state="visible", timeout=wait_ms)
+            else:
+                await page.wait_for_url(lambda u, want=step["url_contains"]: want in u, timeout=wait_ms)
         except Exception:  # noqa: BLE001
-            raise PostconditionFailed(sid, f"wait_for {step['selector']}") from None
+            raise PostconditionFailed(sid, f"wait_for {step.get('selector') or step.get('text') or step.get('url_contains')}") from None
     elif op == "assert_text":
         want = resolve_value(step["contains"], rt.params)
         try:
-            got = await loc.first.inner_text(timeout=timeout_ms)
+            got = await (loc.first if loc is not None else page.locator("body")).inner_text(timeout=timeout_ms)
         except Exception:  # noqa: BLE001
-            raise PostconditionFailed(sid, f"assert_text target missing {step['selector']}") from None
+            raise PostconditionFailed(sid, "assert_text target missing") from None
         if want.lower() not in got.lower():
-            raise PostconditionFailed(sid, f"assert_text {step['selector']}")
+            raise PostconditionFailed(sid, f"assert_text {step.get('selector') or 'page'}")
     elif op == "extract":
         try:
-            res.outputs[step["name"]] = (await loc.first.inner_text(timeout=timeout_ms)).strip()
+            got = (await loc.first.inner_text(timeout=timeout_ms)).strip()
         except Exception:  # noqa: BLE001
             raise PostconditionFailed(sid, f"extract {step['selector']}") from None
+        if step.get("pattern"):
+            m = re.search(step["pattern"], got)
+            got = (m.group(1) if m and m.groups() else m.group(0)) if m else ""
+        if step.get("as") == "number":
+            m = re.search(r"-?\d[\d,]*\.?\d*", got)
+            got = m.group(0).replace(",", "") if m else ""
+        res.outputs[step["name"]] = got

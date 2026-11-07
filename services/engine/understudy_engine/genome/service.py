@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import threading
+from pathlib import Path
 from dataclasses import dataclass
 
 from ..cogs import segment_episodes
@@ -17,6 +18,60 @@ from .labels import components, deficit_prices, label_columns
 TASK = "benefits-household-entry"
 TASK_ALIASES = {TASK, "benefits", "benefits-processor", "benefits-household", "t_entitlement_check", "entitlement-check"}
 APPRENTICE_TRUTH = ("synthetic", "apprentices", "truth.json")
+
+
+def consequences_path() -> Path:
+    from ..store.paths import evals_dir
+
+    return evals_dir() / "cases" / "skip_consequences.json"
+
+
+_ALIASES = {
+    "step": ("step", "id", "skipped_step", "skip"),
+    "p_error": ("p_error", "share", "share_changed", "p_outcome_changes", "p_changes_outcome", "p"),
+    "mean_error_gbp": ("mean_error_gbp", "mean_error", "pound_error", "mean_gbp", "mean_abs_error_gbp"),
+    "n": ("n", "n_households", "count"),
+    "source": ("source", "note"),
+}
+
+
+def _pick(row: dict, key: str):
+    for a in _ALIASES[key]:
+        if a in row:
+            return row[a]
+    return None
+
+
+def load_consequences() -> list[dict]:
+    """What skipping a step costs in outcome terms (from evals/cases/skip_consequences.json, written by the platform track):
+    ``[{step, p_error, mean_error_gbp, n, source}]``. Empty when the file does not exist or has no rows. The waterfall prices
+    a skipped step as seconds saved, which is right but misleading without this."""
+    p = consequences_path()
+    if not p.is_file():
+        return []
+    try:
+        doc = json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    rows = doc
+    if isinstance(doc, dict):
+        rows = next((doc[k] for k in ("consequences", "steps", "rows", "skips") if k in doc), None)
+        if rows is None:
+            rows = [{"step": k, **v} for k, v in doc.items() if isinstance(v, dict)]
+    if isinstance(rows, dict):
+        rows = [{"step": k, **v} for k, v in rows.items() if isinstance(v, dict)]
+    out = []
+    for r in rows or []:
+        if not isinstance(r, dict):
+            continue
+        step = _pick(r, "step")
+        if step is None:
+            continue
+        out.append({
+            "step": str(step), "p_error": _pick(r, "p_error"), "mean_error_gbp": _pick(r, "mean_error_gbp"),
+            "n": _pick(r, "n"), "source": _pick(r, "source") or "evals/cases/skip_consequences.json",
+        })
+    return out
 
 
 class GenomeError(Exception):
@@ -172,6 +227,9 @@ class GenomeService:
             "people": {"novices": sorted(pp), "experts": sorted({e.person for e in co.experts})},
             "decomposition": {k: v for k, v in dec.items() if k != "statsmodels"},
         }
+        cons = load_consequences()
+        if cons:                                         # additive: what skipping a step does to the outcome, beside the seconds it saves
+            data["consequences"] = cons
         if b.truth is not None:
             tr = next(t for t in b.truth["traces"] if t["task_id"] == ep.task_id)
             rec = deficit_prices(comp)

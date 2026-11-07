@@ -191,7 +191,8 @@ export function installCapture(deps: CaptureDeps): () => void {
     const meta: Record<string, MetaValue> = { spa };
     const zone = zoner.forNav(doc);
     if (zone) meta.zone = zone;
-    emit({ type: "nav", target: { role: "document", domain_hash: domain() }, meta });
+    const markers = zoner.markersFor(zone, doc);
+    emit({ type: "nav", target: { role: "document", domain_hash: domain() }, meta, ...(markers ? { markers } : {}) });
   };
   const onSpa = safe(() => emitNav(true));
 

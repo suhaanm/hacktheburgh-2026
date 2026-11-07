@@ -5,7 +5,6 @@ import json
 import math
 
 import pytest
-
 from understudy_engine.eval import deficit
 from understudy_engine.eval.schema import errors
 

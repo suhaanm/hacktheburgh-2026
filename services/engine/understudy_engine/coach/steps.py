@@ -71,6 +71,7 @@ class StepPolicy:
     def __init__(self, steps: Sequence[Step], permutable: Sequence[Sequence[str]] = (), task: str = "", coverage: str = "full"):
         self.steps = {s.id: s for s in steps}
         self.order = [s.id for s in steps]
+        self._permutable = [list(g) for g in permutable]
         self.task = task
         self.coverage = coverage
         # groups of interchangeable steps: same cog pattern and listed together in a permutable set
@@ -98,6 +99,18 @@ class StepPolicy:
     @classmethod
     def from_pack(cls, pack) -> "StepPolicy":
         return cls.from_doc(pack.nested("expert_policy", "steps"))
+
+    def without(self, step_ids: Sequence[str]) -> "StepPolicy":
+        """The same policy for a task that leaves some steps out (the study case uses two calculators, not three):
+        the steps are dropped and nothing waits for them any more."""
+        drop = set(step_ids) & set(self.steps)
+        if not drop:
+            return self
+        from dataclasses import replace
+
+        kept = [replace(s, after=tuple(a for a in s.after if a not in drop)) for s in self.steps.values() if s.id not in drop]
+        perm = [[i for i in g if i not in drop] for g in self._permutable]
+        return StepPolicy(kept, [g for g in perm if g], task=self.task, coverage=self.coverage)
 
     # ------------------------------------------------------------------ tracking
     def track(self, cogs: Sequence[Cog], sites: Sequence[str | None] | None = None) -> Progress:
@@ -142,7 +155,15 @@ class StepPolicy:
                 if po is None or not po.complete or po.end >= occ.start:
                     missing.append(pre)
             if missing:
-                missing.sort(key=self.order.index)
+                # everything still undone that this step rests on, directly or through another step
+                stack, seen = list(missing), set(missing)
+                while stack:
+                    for pre in self.steps[stack.pop()].after:
+                        po = prog.occurrences.get(pre)
+                        if pre not in seen and (po is None or not po.complete or po.end >= occ.start):
+                            seen.add(pre)
+                            stack.append(pre)
+                missing = sorted(seen, key=self.order.index)
                 prog.violations.append(Violation(step.id, occ.start, occ.t0, tuple(missing)))
         # 4. the step in progress: a partial occurrence, else the most recently started one
         partial = [o for o in started if not o.complete]
@@ -157,13 +178,30 @@ class StepPolicy:
         """Steps not done whose prerequisites are all done, in policy order."""
         return [sid for sid in self.order if sid not in prog.done and all(a in prog.done for a in self.steps[sid].after)]
 
-    def pick_missed(self, missing: Sequence[str], prog: Progress) -> str | None:
-        """Which missing step to talk about: a critical one that can be done right now, else the first critical one."""
-        crit = [m for m in missing if self.steps[m].critical]
-        if not crit:
-            return None
-        ready = [m for m in crit if all(a in prog.done for a in self.steps[m].after)]
-        return (ready or crit)[0]
+    def pattern_mates(self, step_id: str) -> list[str]:
+        """Steps interchangeable with this one (same cogs, same permutable set): one prompt covers all of them."""
+        for ids in self.groups.values():
+            if step_id in ids:
+                return list(ids)
+        return [step_id]
+
+    def pick_missed(self, missing: Sequence[str], prog: Progress, exclude: Sequence[str] = (), only_skill: str | None = None) -> str | None:
+        """Which missing step to talk about: a critical one the worker can do right now (everything it needs is done).
+        A prompt about something that cannot be done yet is noise. Steps in ``exclude`` (already prompted) are skipped.
+
+        ``only_skill`` (study mode) restricts the choice to the steps of one skill and does not wait for the worker to
+        have done the steps of other skills first: the coach for one skill is silent about every other."""
+        for m in missing:
+            if m in exclude:
+                continue
+            step = self.steps[m]
+            if only_skill is not None:
+                if step.skill == only_skill:
+                    return m
+                continue
+            if step.critical and all(a in prog.done for a in step.after):
+                return m
+        return None
 
     def episode_outcomes(self, prog: Progress) -> dict[str, str]:
         """For skill tracing: ``{step_id: 'clean' | 'error'}`` for the required steps of a finished episode. A step that

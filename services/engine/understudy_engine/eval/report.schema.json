@@ -166,6 +166,20 @@
       "$ref": "#/$defs/redteam"
      }
     },
+    "agent_runs": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/agent_runs"
+     }
+    },
     "redteam_live": {
      "if": {
       "type": "object",
@@ -1030,6 +1044,104 @@
          "number",
          "null"
         ]
+       },
+       "raw_finder": {
+        "type": "object",
+        "properties": {
+         "clusters": {
+          "type": [
+           "integer",
+           "null"
+          ]
+         },
+         "correct": {
+          "type": [
+           "integer",
+           "null"
+          ]
+         },
+         "precision": {
+          "type": [
+           "number",
+           "null"
+          ]
+         },
+         "precision_ci": {
+          "type": "array",
+          "prefixItems": [
+           {
+            "type": [
+             "number",
+             "null"
+            ]
+           },
+           {
+            "type": [
+             "number",
+             "null"
+            ]
+           }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+         }
+        },
+        "required": [
+         "clusters",
+         "correct",
+         "precision",
+         "precision_ci"
+        ],
+        "additionalProperties": true
+       },
+       "after_value_gate": {
+        "type": "object",
+        "properties": {
+         "proposals": {
+          "type": [
+           "integer",
+           "null"
+          ]
+         },
+         "correct": {
+          "type": [
+           "integer",
+           "null"
+          ]
+         },
+         "precision": {
+          "type": [
+           "number",
+           "null"
+          ]
+         },
+         "precision_ci": {
+          "type": "array",
+          "prefixItems": [
+           {
+            "type": [
+             "number",
+             "null"
+            ]
+           },
+           {
+            "type": [
+             "number",
+             "null"
+            ]
+           }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+         }
+        },
+        "required": [
+         "proposals",
+         "correct",
+         "precision",
+         "precision_ci"
+        ],
+        "additionalProperties": true
        }
       },
       "required": [
@@ -1056,6 +1168,104 @@
         "number",
         "null"
        ]
+      },
+      "raw_finder": {
+       "type": "object",
+       "properties": {
+        "clusters": {
+         "type": [
+          "integer",
+          "null"
+         ]
+        },
+        "correct": {
+         "type": [
+          "integer",
+          "null"
+         ]
+        },
+        "precision": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "precision_ci": {
+         "type": "array",
+         "prefixItems": [
+          {
+           "type": [
+            "number",
+            "null"
+           ]
+          },
+          {
+           "type": [
+            "number",
+            "null"
+           ]
+          }
+         ],
+         "minItems": 2,
+         "maxItems": 2
+        }
+       },
+       "required": [
+        "clusters",
+        "correct",
+        "precision",
+        "precision_ci"
+       ],
+       "additionalProperties": true
+      },
+      "after_value_gate": {
+       "type": "object",
+       "properties": {
+        "proposals": {
+         "type": [
+          "integer",
+          "null"
+         ]
+        },
+        "correct": {
+         "type": [
+          "integer",
+          "null"
+         ]
+        },
+        "precision": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "precision_ci": {
+         "type": "array",
+         "prefixItems": [
+          {
+           "type": [
+            "number",
+            "null"
+           ]
+          },
+          {
+           "type": [
+            "number",
+            "null"
+           ]
+          }
+         ],
+         "minItems": 2,
+         "maxItems": 2
+        }
+       },
+       "required": [
+        "proposals",
+        "correct",
+        "precision",
+        "precision_ci"
+       ],
+       "additionalProperties": true
       }
      },
      "required": [
@@ -1205,6 +1415,248 @@
    ],
    "additionalProperties": true
   },
+  "agent_runs": {
+   "type": "object",
+   "properties": {
+    "meta": {
+     "$ref": "#/$defs/meta"
+    },
+    "clean": {
+     "type": "object",
+     "properties": {
+      "n": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "pass": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "wilson": {
+       "type": "array",
+       "prefixItems": [
+        {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       ],
+       "minItems": 2,
+       "maxItems": 2
+      },
+      "mean_s": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "tiers": {
+       "type": "array",
+       "items": {
+        "type": "integer"
+       }
+      }
+     },
+     "required": [
+      "n",
+      "pass",
+      "wilson",
+      "mean_s",
+      "tiers"
+     ],
+     "additionalProperties": true
+    },
+    "robust": {
+     "anyOf": [
+      {
+       "type": "null"
+      },
+      {
+       "type": "object",
+       "properties": {
+        "n": {
+         "type": "integer"
+        },
+        "pass": {
+         "type": "integer"
+        },
+        "wilson": {
+         "type": "array",
+         "prefixItems": [
+          {
+           "type": [
+            "number",
+            "null"
+           ]
+          },
+          {
+           "type": [
+            "number",
+            "null"
+           ]
+          }
+         ],
+         "minItems": 2,
+         "maxItems": 2
+        },
+        "mean_s": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "tiers": {
+         "type": "array",
+         "items": {
+          "type": "integer"
+         }
+        },
+        "injected": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "injection": {
+            "type": "string"
+           },
+           "n": {
+            "type": "integer"
+           },
+           "pass": {
+            "type": "integer"
+           },
+           "used_tier2": {
+            "type": "integer"
+           }
+          },
+          "required": [
+           "injection",
+           "n",
+           "pass"
+          ],
+          "additionalProperties": true
+         }
+        }
+       },
+       "required": [
+        "n",
+        "pass",
+        "wilson",
+        "mean_s",
+        "tiers",
+        "injected"
+       ],
+       "additionalProperties": true
+      }
+     ]
+    },
+    "discrepancies_flagged": {
+     "type": "object",
+     "properties": {
+      "n": {
+       "type": [
+        "integer",
+        "null"
+       ]
+      },
+      "of": {
+       "type": "integer"
+      }
+     },
+     "required": [
+      "n",
+      "of"
+     ],
+     "additionalProperties": true
+    },
+    "false_claims": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "live": {
+     "anyOf": [
+      {
+       "type": "null"
+      },
+      {
+       "type": "object",
+       "properties": {
+        "n": {
+         "type": "integer"
+        },
+        "pass": {
+         "type": "integer"
+        },
+        "wilson": {
+         "type": "array",
+         "prefixItems": [
+          {
+           "type": [
+            "number",
+            "null"
+           ]
+          },
+          {
+           "type": [
+            "number",
+            "null"
+           ]
+          }
+         ],
+         "minItems": 2,
+         "maxItems": 2
+        },
+        "tiers": {
+         "type": "array",
+         "items": {
+          "type": "integer"
+         }
+        },
+        "false_claims": {
+         "type": [
+          "integer",
+          "null"
+         ]
+        },
+        "cost_usd_est": {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        "note": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "n",
+        "pass",
+        "wilson",
+        "tiers",
+        "false_claims",
+        "cost_usd_est",
+        "note"
+       ],
+       "additionalProperties": true
+      }
+     ]
+    }
+   },
+   "required": [
+    "meta",
+    "clean",
+    "discrepancies_flagged",
+    "false_claims"
+   ],
+   "additionalProperties": true
+  },
   "redteam_live": {
    "type": "object",
    "properties": {
@@ -1296,10 +1748,16 @@
         "type": "string"
        },
        "unassisted_before_s": {
-        "type": "number"
+        "type": [
+         "number",
+         "null"
+        ]
        },
        "unassisted_after_s": {
-        "type": "number"
+        "type": [
+         "number",
+         "null"
+        ]
        }
       },
       "required": [
@@ -1338,6 +1796,44 @@
     "n": {
      "type": "integer",
      "minimum": 1
+    },
+    "headline": {
+     "type": "object",
+     "properties": {
+      "mean_difference": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "ci95": {
+       "type": "array",
+       "prefixItems": [
+        {
+         "type": [
+          "number",
+          "null"
+         ]
+        },
+        {
+         "type": [
+          "number",
+          "null"
+         ]
+        }
+       ],
+       "minItems": 2,
+       "maxItems": 2
+      },
+      "per_participant_difference": {
+       "type": "object"
+      }
+     },
+     "required": [
+      "mean_difference",
+      "ci95"
+     ],
+     "additionalProperties": true
     }
    },
    "required": [

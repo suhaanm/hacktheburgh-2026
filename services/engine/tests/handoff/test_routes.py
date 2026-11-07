@@ -508,3 +508,69 @@ def test_routines_and_graph_are_per_person(client):
     client.get("/routines", params={"person": "p_learn01", "case": 30})
     nine = client.get("/routines", params={"person": "p_ninetofive"}).json()["data"]
     assert all(not r["skill_gate"]["eligible"] for r in nine if "ENTER_HOUSEHOLD" in r["skill_gate"]["reason"])
+
+
+# ----------------------------------------------------------------------------- the agent's shadow body
+def _enabled(client, mode="approval"):
+    client.post("/onboarding", json={"role": "benefits-processor", "answers": {}})
+    rid = _routine(client)["id"]
+    assert client.post(f"/routines/{rid}/consent", json={"mode": mode, "skill_override": True}).status_code == 200
+    return rid
+
+
+def test_shadow_results_body_from_the_agent_runner(client):
+    rid = _enabled(client)
+    agent = {"X-Understudy-Actor": "agent"}
+    results = [{"run_id": f"r_{i:02d}", "matched": True} for i in range(19)]
+    out = client.post(f"/routines/{rid}/shadow", json={"results": results}, headers=agent)
+    assert out.status_code == 200
+    j = out.json()
+    assert {"runs", "matches", "wilson_lower", "rung", "promoted"} <= set(j)
+    assert j["runs"] == 19 and j["matches"] == 19 and j["rung"] == "A1" and j["promoted"] is False and j["accepted"] == 19 and j["duplicates"] == []
+    # a retried POST is harmless: the same run_ids are ignored
+    again = client.post(f"/routines/{rid}/shadow", json={"results": results[:5] + [{"run_id": "r_19", "matched": True, "reason": "same note"}]}, headers=agent).json()
+    assert again["runs"] == 20 and again["accepted"] == 1 and again["duplicates"] == [f"r_{i:02d}" for i in range(5)]
+    assert again["rung"] == "A2" and again["promoted"] is True and again["wilson_lower"] == pytest.approx(0.839, abs=0.002)
+    log = [json.loads(l) for l in (client.data / "routines" / rid / "shadow_log.jsonl").read_text().splitlines()]
+    assert len(log) == 20 and log[-1]["run_id"] == "r_19" and log[-1]["reason"] == "same note" and log[-1]["rung_after"] == "A2" and log[0]["actor"] == "agent"
+    # a mismatch above A1 means the result was wrong: demoted one rung, count restarts
+    bad = client.post(f"/routines/{rid}/shadow", json={"results": [{"run_id": "r_20", "matched": False, "reason": "total differs"}]}, headers=agent).json()
+    assert bad["rung"] == "A1" and bad["demoted"] is True and bad["runs"] == 0
+    # at A1 a mismatch only counts against the bound
+    mm = client.post(f"/routines/{rid}/shadow", json={"results": [{"run_id": "r_21", "matched": True}, {"run_id": "r_22", "matched": False}]}, headers=agent).json()
+    assert mm["rung"] == "A1" and mm["runs"] == 2 and mm["matches"] == 1 and mm["demoted"] is False
+    # the routine's rung shows on GET /routines and in the memory line
+    r = _routine(client)
+    assert r["rung"] == "A1" and r["shadow"]["runs"] == 2
+    assert any(l["text"].startswith(f"{rid} | rung A1") for l in client.get("/memory").json()["sections"]["Routines"])
+
+
+def test_shadow_results_validation_events_and_who_may_post(client):
+    rid = _enabled(client, "unattended")
+    ok_h = {"X-Understudy-Actor": "agent"}
+    for bad in ({"results": "nope"}, {"results": [{"run_id": "r_1"}]}, {"results": [{"run_id": "r 1", "matched": True}]},
+                {"results": [{"run_id": "r_1", "matched": True, "event": "explode"}]}, {"runs": 3, "matches": 9}):
+        r = client.post(f"/routines/{rid}/shadow", json=bad, headers=ok_h)
+        assert r.status_code == 422, bad
+    for actor in ("page", "model", "tool", "plugin:x"):
+        assert client.post(f"/routines/{rid}/shadow", json={"results": [{"run_id": "r_9", "matched": True}]}, headers={"X-Understudy-Actor": actor}).status_code == 403
+    assert client.post(f"/routines/{rid}/shadow", json={"results": [{"run_id": "r_9", "matched": True}]}, headers={"Origin": "https://evil.example"}).status_code == 403
+    assert client.post("/routines/nope-xx/shadow", json={"results": []}, headers=ok_h).status_code == 404
+    client.post(f"/routines/{rid}/shadow", json={"results": [{"run_id": f"c{i}", "matched": True} for i in range(80)]}, headers=ok_h)
+    assert _routine(client)["rung"] == "A3"
+    inj = client.post(f"/routines/{rid}/shadow", json={"results": [{"run_id": "x1", "event": "injection", "reason": "hidden text on the page"},
+                                                                   {"run_id": "x2", "matched": True}]}, headers=ok_h).json()
+    assert inj["rung"] == "A2" and inj["demoted"] and inj["blocked"] is True and inj["accepted"] == 1          # the rest of the batch is not counted
+    assert client.post(f"/routines/{rid}/shadow", json={"results": [{"run_id": "x3", "matched": True}]}, headers=ok_h).status_code == 409
+    client.post(f"/routines/{rid}/consent", json={"mode": "shadow", "skill_override": True})
+    assert client.post(f"/routines/{rid}/shadow", json={"results": [{"run_id": "x3", "matched": True}]}, headers=ok_h).status_code == 200
+
+
+def test_shadow_before_the_worker_enables_the_routine_is_a_409_and_mock_empty_body_simulates(client):
+    client.post("/onboarding", json={"role": "benefits-processor", "answers": {}})
+    rid = _routine(client)["id"]
+    r = client.post(f"/routines/{rid}/shadow", json={"results": [{"run_id": "r_1", "matched": True}]}, headers={"X-Understudy-Actor": "agent"})
+    assert r.status_code == 409 and r.json()["error"]["code"] == "not_enabled"
+    client.post(f"/routines/{rid}/consent", json={"mode": "shadow", "skill_override": True})
+    sim = client.post(f"/routines/{rid}/shadow").json()
+    assert sim["simulated"] is True and sim["runs"] == 1

@@ -43,7 +43,8 @@ export interface ChipDriver {
   // The engine answered GET /coach/state (null: it did not).
   setEngineHint(hint: { fade: ChipFade | null; level: HelpLevel | null } | null): void
   // Recompute and send. Called on level changes, lesson ends and a timer.
-  refresh(): ChipFade
+  // `force` sends the chip again even if nothing changed (the overlay page just (re)loaded).
+  refresh(force?: boolean): ChipFade
   current(): { fade: ChipFade; level: HelpLevel } | null
 }
 
@@ -58,16 +59,16 @@ export function createChipDriver(deps: ChipDriverDeps): ChipDriver {
     setEngineHint(h) {
       hint = h ? { ...h, at: now() } : null
     },
-    refresh() {
+    refresh(force = false) {
       const local = deps.local()
       const usable = hint && now() - hint.at <= freshMs ? hint : null
       const level = usable?.level ?? local.level
       let fade: ChipFade = usable?.fade ?? fadeForLevel(level, usable?.level ? 0 : local.streakClean)
       if (deps.killed?.()) fade = 'gone' // everything is stopped: the help indicator goes too
       const t = now()
-      if (!sent || sent.fade !== fade || sent.level !== level || t - sent.at >= keepMs) {
-        // `gone` is sent once (to fade it out) and then left alone.
-        if (!(fade === 'gone' && sent?.fade === 'gone')) deps.overlay.coach?.(fade, level, HELP_LEVEL_LABELS[level])
+      if (force || !sent || sent.fade !== fade || sent.level !== level || t - sent.at >= keepMs) {
+        // `gone` is sent once (to fade it out) and then left alone, unless the overlay page was just reloaded.
+        if (force || !(fade === 'gone' && sent?.fade === 'gone')) deps.overlay.coach?.(fade, level, HELP_LEVEL_LABELS[level])
         sent = { fade, level, at: t }
       }
       return fade

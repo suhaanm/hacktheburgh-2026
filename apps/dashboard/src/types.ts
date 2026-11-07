@@ -57,6 +57,8 @@ export interface Genome {
   /** additive, optional: seconds lost in the single case shown in the ribbon, and its episode id */
   person_gap_s?: number;
   episode?: string;
+  /** additive, optional: what skipping a step costs in wrong answers, from the sandbox oracle */
+  consequences?: { step: string; p_error: number; mean_error_gbp: number; n: number; source?: string }[];
   total_gap_ci: Interval;
   controls: {
     placebo: { gap_s: number; ci: Interval };

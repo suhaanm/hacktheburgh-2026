@@ -19,6 +19,7 @@ Rules enforced here, in code:
 from __future__ import annotations
 
 import json
+import os
 import re
 from collections.abc import Iterable
 from pathlib import Path
@@ -26,7 +27,6 @@ from typing import Any
 
 from ..memory import doc as D
 from ..memory.paths import data_dir
-from ..memory.shadow import wilson_lower
 from ..memory.store import MemoryStore, atomic_write, now_iso
 from .finder import edit_distance
 
@@ -34,8 +34,6 @@ MODES = ("not_now", "never", "shadow", "approval", "unattended")
 MODE_RANK = {"none": 0, "not_now": 0, "never": 0, "shadow": 1, "approval": 2, "unattended": 3}
 RUNGS = ("A0", "A1", "A2", "A3")
 CEILING = {"none": "A0", "not_now": "A0", "never": "A0", "shadow": "A1", "approval": "A2", "unattended": "A3"}
-PROMOTE_A2 = (20, 0.80)
-PROMOTE_A3 = (60, 0.95)
 STATUS_OF = {"not_now": "declined", "never": "never", "shadow": "shadow", "approval": "approval", "unattended": "unattended"}
 OWNED = ("status", "consent", "rung", "shadow", "declined_not_now_at", "skill_override", "decided_at", "blocked")
 _LINE = re.compile(r"^(?P<id>\S+)\s*\|\s*rung (?P<rung>A[0-3])\s*\|\s*consent:\s*(?P<mode>\w+)(?:.*?\|\s*unattended:\s*(?P<un>.*))?$")
@@ -264,20 +262,47 @@ class RoutineStore:
     # ----- shadow and the ladder -----
     @staticmethod
     def _earned(sh: dict[str, Any], at_least: str = "A0") -> str:
-        runs, lw = sh["runs"], sh["wilson_lower"]
-        if runs >= PROMOTE_A3[0] and lw >= PROMOTE_A3[1]:
-            rung = "A3"
-        elif runs >= PROMOTE_A2[0] and lw >= PROMOTE_A2[1]:
-            rung = "A2"
-        else:
-            rung = "A1"
+        from ..trust.ladder import earned_rung
+
+        rung = earned_rung(sh["runs"], sh["matches"])
         return rung if RUNGS.index(rung) >= RUNGS.index(at_least) else at_least
 
-    def shadow(self, rid: str, *, matched: bool | None = None, runs: int | None = None, matches: int | None = None,
-               event: str | None = None, actor: str = "worker") -> dict[str, Any]:
-        """Record shadow runs (one outcome, or a batch) or a failure event; returns the ladder state."""
+    def shadow(self, rid: str, *, results: list[dict[str, Any]] | None = None, matched: bool | None = None, runs: int | None = None,
+               matches: int | None = None, event: str | None = None, actor: str = "worker") -> dict[str, Any]:
+        """Record shadow evidence and apply the autonomy ladder (``understudy_engine.trust.ladder`` is the authority).
+
+        Preferred input (agent-core's shadow runner): ``results = [{run_id, matched: bool, reason?}]``, optionally
+        ``event: failure|undo|injection`` per item instead of ``matched``. A ``run_id`` already recorded for this routine
+        is ignored, so a retried POST is harmless. Also accepted: one ``matched``, a ``{runs, matches}`` batch (applied
+        mismatches first, the cautious order), or a single ``event``. Every accepted item is appended to
+        ``data/routines/<id>/shadow_log.jsonl``.
+        """
+        from ..trust.ladder import LadderState, record_run
+
         if event not in (None, "failure", "undo", "injection"):
             raise ConsentError("bad_event", "event must be failure, undo or injection")
+        items: list[dict[str, Any]] = []
+        for r in results or []:
+            ev = r.get("event")
+            if ev not in (None, "failure", "undo", "injection"):
+                raise ConsentError("bad_event", "event must be failure, undo or injection")
+            if ev is None and not isinstance(r.get("matched"), bool):
+                raise ConsentError("bad_result", "each result needs run_id and matched (true or false), or an event")
+            rid_ = r.get("run_id")
+            if rid_ is not None and not re.fullmatch(r"[A-Za-z0-9_.:\-]{1,64}", str(rid_)):
+                raise ConsentError("bad_result", "run_id must be 1 to 64 letters, digits or _ . : -")
+            items.append({"run_id": rid_, "outcome": ev or ("clean" if r["matched"] else "mismatch"), "reason": D.clean_text(str(r.get("reason") or ""), 200)})
+        if runs is not None:
+            if matches is None or not (0 <= matches <= runs) or runs > 1000:
+                raise ConsentError("bad_batch", "matches must be between 0 and runs, and runs at most 1000")
+            items += [{"run_id": None, "outcome": "mismatch", "reason": ""}] * (runs - matches) + [{"run_id": None, "outcome": "clean", "reason": ""}] * matches
+        if matched is not None:
+            items.append({"run_id": None, "outcome": "clean" if matched else "mismatch", "reason": ""})
+        if event:
+            items.append({"run_id": None, "outcome": event, "reason": ""})
+        if len(items) > 1000:
+            raise ConsentError("too_many", "at most 1000 results per request")
+
         st = self._load()
         r = st["routines"].get(rid)
         if r is None:
@@ -286,37 +311,60 @@ class RoutineStore:
         mode = e["consent"]["mode"]
         if mode not in ("shadow", "approval", "unattended"):
             raise ConsentError("not_enabled", "shadow runs only count once the routine is switched on in shadow mode or above", 409)
-        before = RUNGS.index(e["rung"])
-        sh = r["shadow"]
         if r.get("blocked"):
-            raise ConsentError("blocked", "an injection hit paused this routine; switch it on again yourself to continue", 409)
-        if event:
-            floor = 0 if event == "injection" else 1  # a hit drops to observe-only until the worker re-enables it
-            r["rung"] = RUNGS[max(floor, RUNGS.index(r["rung"]) - 1)]
-            r["shadow"] = {"runs": 0, "matches": 0, "wilson_lower": 0.0}
-            r["blocked"] = event == "injection"
-            demoted = True
-        else:
-            demoted = False
-            if runs is not None:
-                if matches is None or not (0 <= matches <= runs):
-                    raise ConsentError("bad_batch", "matches must be between 0 and runs")
-                sh["runs"] += runs
-                sh["matches"] += matches
-            else:
-                sh["runs"] += 1
-                sh["matches"] += 1 if matched else 0
-            sh["wilson_lower"] = wilson_lower(sh["matches"], sh["runs"])
-            earned = self._earned(sh, at_least="A1")
-            r["rung"] = RUNGS[min(RUNGS.index(earned), RUNGS.index(CEILING[mode]))]
+            raise ConsentError("blocked", "a failure or an injection hit paused this routine; switch it on again yourself to continue", 409)
+        cap = CEILING[mode]
+        sh = r["shadow"]
+        state = LadderState(e["rung"], sh["runs"], sh["matches"])
+        seen = list(r.get("shadow_run_ids", []))
+        seen_set = set(seen)
+        before = RUNGS.index(state.rung)
+        promoted = demoted = False
+        accepted, dups, log = 0, [], []
+        for it in items:
+            if it["run_id"] is not None and it["run_id"] in seen_set:
+                dups.append(it["run_id"])
+                continue
+            if r.get("blocked"):
+                break  # the rest of the batch is not counted once something paused the routine
+            d = record_run(state, it["outcome"], cap=cap)  # type: ignore[arg-type]
+            state = d.state
+            promoted = promoted or d.promoted
+            demoted = demoted or d.demoted
+            accepted += 1
+            if it["run_id"] is not None:
+                seen.append(it["run_id"])
+                seen_set.add(it["run_id"])
+            if it["outcome"] == "injection" or (it["outcome"] in ("failure", "undo") and state.rung == "A0"):
+                r["blocked"] = True  # observe-only until the worker switches the routine on again
+            log.append({"t": now_iso(), "run_id": it["run_id"], "outcome": it["outcome"], "reason": it["reason"], "rung_after": state.rung, "actor": actor})
+        r["rung"] = state.rung
+        r["shadow"] = {"runs": state.runs, "matches": state.clean, "wilson_lower": state.wilson_lower}
+        r["shadow_run_ids"] = seen[-500:]
         self._save(st)
         self._sync(r)
-        after = RUNGS.index(r["rung"])
+        self._append_log(rid, log)
         sh = r["shadow"]
+        from ..trust.ladder import LOWER_A2, LOWER_A3, MIN_RUNS_A2
+
         return {"runs": sh["runs"], "matches": sh["matches"], "wilson_lower": round(sh["wilson_lower"], 3), "rung": r["rung"],
-                "promoted": after > before, "demoted": demoted, "ceiling": CEILING[mode],
-                "next_rung": None if r["rung"] == "A3" else RUNGS[RUNGS.index(r["rung"]) + 1],
-                "needs": {"A2": {"runs": PROMOTE_A2[0], "wilson_lower": PROMOTE_A2[1]}, "A3": {"runs": PROMOTE_A3[0], "wilson_lower": PROMOTE_A3[1]}}}
+                "promoted": promoted or RUNGS.index(r["rung"]) > before, "demoted": demoted, "accepted": accepted, "duplicates": dups,
+                "blocked": bool(r.get("blocked")), "ceiling": cap, "next_rung": None if r["rung"] == "A3" else RUNGS[RUNGS.index(r["rung"]) + 1],
+                "needs": {"A2": {"runs": MIN_RUNS_A2, "wilson_lower": LOWER_A2}, "A3": {"runs": MIN_RUNS_A2, "wilson_lower": LOWER_A3}}}
+
+    def _append_log(self, rid: str, lines: list[dict[str, Any]]) -> None:
+        if not lines:
+            return
+        d = self.bundle_root / rid
+        try:
+            d.mkdir(parents=True, exist_ok=True)
+            fd = os.open(d / "shadow_log.jsonl", os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+            try:
+                os.write(fd, "".join(json.dumps(x) + "\n" for x in lines).encode())
+            finally:
+                os.close(fd)
+        except OSError:
+            pass  # the log is evidence for the morning report; the counters in the registry are the source of truth
 
     # ----- side effects: memory line and the file the agent reads -----
     def _sync(self, r: dict[str, Any]) -> None:

@@ -23,15 +23,19 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from . import golden
+from .compile import load_bundles
+from .handoff_io import ENGINE_URL, EngineClient, consent_allows, read_consent
+from .offhours import morning_report
+from .shadow import BackgroundRunner, ConsentRefused, ShadowRunner
 from .audit import AuditLog
 from .models import get_model_port, mock_enabled
-from .orchestrator import BenefitsRun, RunOptions, finalize
+from .orchestrator import BenefitsRun, RunOptions, finalize, run_async
 from .queue import ApprovalQueue
 from .sandbox_sites.households import Household, as_household, generate_households, get_household
 from .sandbox_sites.runner import SandboxCluster
 from .sandbox_sites.specs import DEFAULT_PORTS, SITE_IDS, site_base_urls
 from .security.killflag import clear_kill, set_kill
-from .supervisor import KillSwitchActive, Supervisor, TaskContext
+from .supervisor import HumanInputSignal, KillSwitchActive, Supervisor, TaskContext
 from .tiers.heuristic import HeuristicModelPort
 
 PORT = 7710
@@ -50,6 +54,8 @@ class RunIn(BaseModel):
 class RoutineRunIn(BaseModel):
     mode: str = Field("shadow", pattern="^(shadow|approved|background)$")
     household_id: str | None = None
+    # shadow mode compares with what the worker did; without it the routine still runs but nothing is compared
+    worker_results: dict[str, float] | None = None
 
 
 @dataclass
@@ -77,7 +83,10 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
                supervisor: Supervisor | None = None, queue: ApprovalQueue | None = None,
                audit: AuditLog | None = None) -> FastAPI:
     urls = base_urls or site_base_urls()
-    sup = supervisor or Supervisor()
+    human = (supervisor.human_input if supervisor is not None and supervisor.human_input else HumanInputSignal())
+    sup = supervisor or Supervisor(human_input=human)
+    if sup.human_input is None:
+        sup.attach_human_input(human)
     audit = audit or AuditLog()
     queue = queue or ApprovalQueue(audit=audit)
     runs: dict[str, RunRecord] = {}
@@ -192,7 +201,7 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
 
         def work(ctx: TaskContext) -> None:
             run.is_current = ctx.is_current
-            res = asyncio.run(run.execute())
+            res = run_async(run.execute())
             if ctx.is_current() or res.state == "stopped":
                 finish(rec, res.as_dict())
 
@@ -305,14 +314,66 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
         clear_kill()
         return {"killed": False}
 
-    # ------------------------------------------------------------------ routines (compiled runs: see compile.py, shadow.py)
+    # ------------------------------------------------------------------ human input, routines, off-hours
+    @app.post("/human-input")
+    def human_input() -> dict[str, Any]:
+        """The desktop app calls this when the worker touches the keyboard or pointer (HND-5): background runs yield."""
+        human.signal()
+        return {"signalled": True}
+
     @app.post("/routines/{routine_id}/run")
     def routine_run(routine_id: str, body: RoutineRunIn) -> dict[str, Any]:
-        return run_benefits(RunIn(household_id=body.household_id, mode="mock")) if routine_id == "calc-entry-3x" else \
-            _not_found(routine_id)
+        kind = {"shadow": "shadow", "approved": "approved", "background": "background"}[body.mode]
+        ok, why = consent_allows(read_consent(routine_id), kind)
+        if not ok:
+            raise HTTPException(409, f"not started: {why}")
+        bundles = load_bundles(routine_id)
+        if not bundles:
+            raise HTTPException(404, f"no compiled routine {routine_id!r} on this machine (data/routines/{routine_id}/steps.json)")
+        by_site = {k: v for k, v in bundles.items() if k != "primary"} or {"a": bundles["primary"]}
+        h = pick_household(RunIn(household_id=body.household_id))
+        rec = RunRecord(run_id="r_" + os.urandom(4).hex(), mode=body.mode, household_id=h.id)
+        runs[rec.run_id] = rec
+        model = _model_for("mock" if mock_enabled() else "live")
+        engine = EngineClient(ENGINE_URL)
+        if body.mode == "shadow":
+            from .tiers.browser import BrowserHost
 
-    def _not_found(routine_id: str) -> Any:
-        raise HTTPException(404, f"no compiled routine {routine_id!r} on this machine")
+            def work_shadow(ctx: TaskContext) -> None:
+                async def go() -> dict[str, Any]:
+                    async with BrowserHost() as host:
+                        sr = ShadowRunner(routine_id, by_site, model=model, engine=engine, audit=audit, queue=queue,
+                                          base_urls=urls)
+                        out = await sr.run_episode(host, h, body.worker_results or {}, run_id=rec.run_id)
+                    return {"state": "done", "matched": out.matched if body.worker_results else None,
+                            "diffs": out.diffs, "event": out.event, "engine": out.engine, "agent": out.agent,
+                            "completion": {"ok": out.event is None, "missing": []}}
+
+                finish(rec, run_async(go()))
+
+            rec.handle = sup.submit(work_shadow, name="shadow", run_id=rec.run_id, deadline_s=120.0)
+        else:
+            br = BackgroundRunner(routine_id, supervisor=sup, human_input=human, model=model, bundles=by_site,
+                                  base_urls=urls, audit=audit, queue=queue, engine=engine)
+            try:
+                rec.handle = br.start(h, run_id=rec.run_id)
+            except ConsentRefused as exc:
+                runs.pop(rec.run_id, None)
+                raise HTTPException(409, str(exc)) from None
+            rec.run = None
+
+            def after(handle: Any = rec.handle) -> None:
+                handle.wait()
+                if handle.state == "done" and isinstance(handle.result, dict):
+                    finish(rec, handle.result)
+
+            threading.Thread(target=after, daemon=True).start()
+        rec.generation = rec.handle.generation
+        return {"run_id": rec.run_id}
+
+    @app.get("/offhours/report")
+    def offhours_report(since: str | None = None) -> dict[str, Any]:
+        return morning_report(audit, queue, since)
 
     return app
 

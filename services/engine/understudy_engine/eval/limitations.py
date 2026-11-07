@@ -22,7 +22,7 @@ SEV_RANK = {"high": 0, "medium": 1, "low": 2}
 UMBRELLA = "eval-synthetic"
 FOLD_INTO_UMBRELLA = {"ana-synthetic-origin", "presence-synthetic", "routines-synthetic"}
 ABSORB = {"ana-claims-synthetic": "eval-claims-simulated"}      # an owner entry that says the same thing as a static one
-CORE_SECTIONS = ("deficit_recovery", "null_placebo", "hazard", "ope", "routing", "ski_rental", "presence", "routines", "agent_claims", "redteam", "study")
+CORE_SECTIONS = ("deficit_recovery", "null_placebo", "hazard", "ope", "routing", "ski_rental", "presence", "routines", "agent_claims", "agent_runs", "redteam", "study")
 
 
 def _pct(x: float | None, nd: int = 0) -> str:
@@ -46,14 +46,24 @@ def _oracle_text() -> str:
     return base + "It was cross-checked against PolicyEngine UK and the two disagree on many generated households (docs/SPIKES.md, S4)."
 
 
-def static_entries() -> list[dict[str, str]]:
+def _study_n(sections: dict[str, Any] | None) -> tuple[int, bool]:
+    """(n, ran): the n the study actually has, else the planned four."""
+    st = (sections or {}).get("study")
+    if isinstance(st, dict) and "status" not in st and isinstance(st.get("n"), int):
+        return st["n"], True
+    return 4, False
+
+
+def static_entries(sections: dict[str, Any] | None = None) -> list[dict[str, str]]:
+    n, ran = _study_n(sections)
     return [
         {"id": UMBRELLA, "severity": "high", "source": "engine-eval",
          "text": ("Almost every result in this report comes from synthetic apprentices, synthetic personas or simulators we wrote; each section "
                   "carries a synthetic badge. They show that the methods recover the structure we planted, not that real workers behave this way.")},
         {"id": "eval-study-n4", "severity": "high", "source": "engine-eval",
-         "text": ("The live study has n = 4, all teammates, none of them benefits processors. Intervals are wide and the result is a case study. "
-                  "The headline measure is unassisted performance on a later matched task, reported separately from assisted speed.")},
+         "text": (f"The live study has n = {n}, all teammates, none of them benefits processors" + ("" if ran else " (planned; it has not been run)") +
+                  ". Intervals are wide and the result is a case study. The headline measure is unassisted performance on a later matched "
+                  "task, reported separately from assisted speed.")},
         {"id": "eval-thin-real-data", "severity": "high", "source": "engine-eval",
          "text": ("Real data is thin: the only real signal is the team's own machine timestamps (times only, collected with consent). "
                   "There are no real benefits-processor traces, so nothing here has been validated on real casework.")},
@@ -153,6 +163,42 @@ def computed_entries(sections: dict[str, Any]) -> list[dict[str, str]]:
                 parts.append(f"Over {n_rep} independent replications the intervals covered the truth: {cov_txt}"
                              f" (naive {_pct(_num((reps.get('naive_on_policy') or {}).get('ci_coverage')))}); nominal is 95%.")
             out.append(_entry("eval-ope-coverage", " ".join(parts), "medium" if low_cov else "low", "engine-eval:ope"))
+    ar = ok("agent_runs")
+    if ar:
+        c, rb, live = ar.get("clean") or {}, ar.get("robust"), ar.get("live")
+        lo = (c.get("wilson") or [None])[0]
+        out.append(_entry("eval-agent-runs-clean-path",
+                          f"The clean-path result ({c.get('pass')} of {c.get('n')} households, 95% lower bound {_pct(lo)}) is the compiled path on the sandbox it was "
+                          "written against, so a full pass is expected and says little. The discriminating evidence is the robust and injected runs. "
+                          "Twenty households cannot rule out a pass rate well below 100%.", "medium", "engine-eval:agent_runs"))
+        if rb:
+            inj = rb.get("injected") or []
+            t2 = sum(x.get("used_tier2", 0) for x in inj)
+            if inj:
+                kinds = "; ".join(f"{x['injection']} ({x['pass']} of {x['n']} passed)" for x in inj)
+                out.append(_entry("eval-agent-runs-injected",
+                                  f"Failure injection covers {len(inj)} patterns only: {kinds}. {t2} of {rb.get('n')} households needed the tier-2 browser agent. "
+                                  f"{rb.get('pass')} of {rb.get('n')} passed (95% lower bound {_pct((rb.get('wilson') or [None])[0])}). Other failure kinds (a changed flow, "
+                                  "a wrong page, a slow site) were not injected.", "medium", "engine-eval:agent_runs"))
+            else:
+                out.append(_entry("eval-agent-runs-injected", f"Failure injection ran ({rb.get('pass')} of {rb.get('n')} passed) but the injection plan could not be read "
+                                  f"back, so the report cannot say which failures were injected. {rb.get('injected_note') or ''}".strip(), "medium", "engine-eval:agent_runs"))
+        else:
+            out.append(_entry("eval-agent-runs-no-robust", "No failure-injection run is in this report, so the agent runs show only the clean compiled path.", "high", "engine-eval:agent_runs"))
+        disc = ar.get("discrepancies_flagged") or {}
+        if disc.get("n"):
+            out.append(_entry("eval-agent-runs-discrepancies",
+                              f"{disc['n']} of {disc.get('of')} households are planted discrepancies between the sandbox calculators (quirks we wrote). A pass on them "
+                              "means the discrepancy was flagged, not that an entitlement was worked out, and the oracle is a simplified rule set, not the law.", "low", "engine-eval:agent_runs"))
+        if live:
+            out.append(_entry("eval-agent-live-small-n",
+                              f"The real-model block has n = {live.get('n')} runs ({live.get('pass')} passed, 95% interval {_ci(live.get('wilson'), 2)}), "
+                              f"cost estimate {live.get('cost_usd_est')} USD. Too few to estimate a pass rate; it shows the pipeline works with a live model.", "medium", "engine-eval:agent_runs"))
+        else:
+            out.append(_entry("eval-agent-live-absent", "Every agent run in this report uses the deterministic mock model on sandbox sites; no real-model run is included"
+                              + (f" ({ar['live_error']})." if ar.get("live_error") else "."), "medium", "engine-eval:agent_runs"))
+        if (ar.get("false_claims") or 0) > 0:
+            out.append(_entry("eval-agent-runs-false-claims", f"The agent made {ar['false_claims']} false success claim(s) across these runs; the code check caught them.", "high", "engine-eval:agent_runs"))
     rd = ok("redteam")
     if rd:
         on = next((r for r in rd.get("rows", []) if r.get("ablation") == "all_on"), None)
@@ -185,7 +231,7 @@ def assemble(sections: dict[str, Any]) -> list[dict[str, str]]:
         by_id[e["id"]] = e
         seen_text.add(_norm(e["text"]))
 
-    for e in static_entries():
+    for e in static_entries(sections):
         add(e)
     umbrella = by_id[UMBRELLA]
     folded: list[str] = []

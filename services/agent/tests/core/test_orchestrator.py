@@ -129,7 +129,7 @@ async def test_one_injected_site_stops_the_others_too(cluster, env):
 async def test_stop_wins_within_one_second(cluster, env):
     queue, audit, _ = env
     flag = {"on": True}
-    run, h = make_run(cluster, env, hid=0)
+    run, h = make_run(cluster, env, hid=0, query={"a": "?layout=v2", "b": "?layout=v2", "c": "?layout=v2"})
     run.is_current = lambda: flag["on"]
     task = asyncio.create_task(run.execute())
     await asyncio.sleep(1.2)  # let the navigators get going

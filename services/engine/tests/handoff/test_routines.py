@@ -276,3 +276,19 @@ def test_detect_routines_builds_contract_ready_objects_from_planted_episodes():
     assert not top["skill_gate"]["eligible"]                      # no skill record: coach first
     assert "not_proposable_because" in top and not top["proposable"]
     assert len({r["id"] for r in out}) == len(out)
+
+
+def test_episodes_use_the_packs_own_cog_mapping_and_fall_back_to_the_default():
+    from understudy_engine.memory.paths import data_dir
+    from understudy_engine.routines.sources import pack_mapping
+
+    assert pack_mapping("astronaut") is None                      # unknown role: engine default rules
+    m = pack_mapping("benefits-processor")
+    assert m is not None and "ENTER_HOUSEHOLD" in m.cogs
+    if not (data_dir() / "synthetic" / "nine-to-five" / "events.jsonl").exists():
+        pytest.skip("persona data not generated")
+    from understudy_engine.routines.evaluate import persona_episodes
+
+    a, _, _ = persona_episodes("nine-to-five", use_pack_mapping=False)
+    b, _, _ = persona_episodes("nine-to-five", use_pack_mapping=True)
+    assert [[c.id for c in e.cogs] for e in a] == [[c.id for c in e.cogs] for e in b]       # the pack copies the default rules for this role

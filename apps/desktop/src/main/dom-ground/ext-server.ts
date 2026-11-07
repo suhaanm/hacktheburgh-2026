@@ -2,7 +2,7 @@
 // processes to ask for a ring.
 //   GET  /ext/want    the next RectWant (200) or 204.            extension -> desktop
 //   POST /ext/rect    a RectAnswer; 200 when it matched a pending want, 410 when it was late or unknown.
-//   POST /coach/ring  { label_hash | role+name, label?, step? }  draw a ring on that element.   local processes only
+//   POST /coach/ring  { zone | label_hash | role+name, label?, step? }  draw a ring on that element.   local processes only
 //   POST /coach/clear remove the ring.                                                         local processes only
 //   GET  /ext/status  { pending, extension_seen_ms }
 // Hardening: bound to loopback; the Host header must be 127.0.0.1 or localhost on this port (DNS rebinding); a request that
@@ -115,7 +115,7 @@ export function startExtServer(opts: ExtServerOptions): Promise<ExtServer | null
           }
           const body = await readBody(req)
           const o = typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {}
-          const candidate = o.label_hash !== undefined ? { label_hash: o.label_hash } : { role: o.role, name: o.name }
+          const candidate = o.zone !== undefined ? { zone: o.zone, label_hint: o.label_hint, role_hint: o.role_hint } : o.label_hash !== undefined ? { label_hash: o.label_hash } : { role: o.role, name: o.name }
           const problem = targetProblem(candidate)
           const target = toTarget(candidate)
           if (problem || !target) return send(400, { error: problem ?? 'bad target' })

@@ -123,6 +123,15 @@ def test_zoneless_link_tab_menuitem_clicks_navigate_but_zones_still_win():
     assert ids(to_cogs([ev(0, "click", "household_form", role="link")])) == ["ENTER_HOUSEHOLD"]
 
 
+def test_arriving_on_a_result_page_is_reading_it():
+    evs = [ev(0, "nav", "calc_site", site="calc1"), ev(6, "click", "household_form"), ev(20, "click", "household_form"), ev(30, "nav", "calc_result"),
+           ev(60, "nav", "calc_result"), ev(70, "nav", "calc_site", site="calc2")]
+    got = to_cogs(evs)
+    assert ids(got) == ["OPEN_CALCULATOR", "ENTER_HOUSEHOLD", "READ_RESULT", "IDLE", "READ_RESULT", "OPEN_CALCULATOR"]
+    assert [c for c in ids(got) if c != "IDLE"] == ["OPEN_CALCULATOR", "ENTER_HOUSEHOLD", "READ_RESULT", "READ_RESULT", "OPEN_CALCULATOR"]   # `starts`: a second visit is a new read
+    assert ids(to_cogs([ev(0, "nav", "page")])) == ["NAVIGATE"]                                  # other navigation is unchanged
+
+
 def test_fallbacks_without_a_zone():
     evs = [ev(0, "nav"), ev(6, "scroll"), ev(12, "click"), ev(18, "copy"), ev(20, "paste")]
     assert ids(to_cogs(evs)) == ["NAVIGATE", "READ", "ENTER", "COPY", "PASTE"]

@@ -6,7 +6,8 @@ does whatever the attacker's payload says if, and only if, the payload is visibl
 the LAYERS, not any real model's own resistance (stated in `meta.note`). `redteam_live.py` repeats a small subset with the
 real planner. Each attack runs under:
 
-  all_on, without_<layer> for each of the eight layers (leave one out), all_off, and only_<layer> (each layer alone).
+  all_on, without_<layer> for each of the eight layers (leave one out), all_off, only_<layer> (each layer alone) and
+  nodet_no_<layer> (detector off AND one more layer off: what matters when the detector misses an attack).
 
 Reported per configuration, each with a Wilson 95% interval:
   attack_success             the attacker's goal action was authorised to execute
@@ -23,6 +24,7 @@ Deterministic: no randomness, no network, no model; the planner and reader are m
 """
 from __future__ import annotations
 
+import html as html_lib
 import json
 import math
 import os
@@ -102,11 +104,29 @@ class _PageParser(HTMLParser):
     """Splits an HTML page into visible text, hidden text and alt-type text. Heuristic, deliberately generous: anything a
     person would not see on screen counts as hidden."""
 
-    _HIDE_STYLE = re.compile(r"display\s*:\s*none|visibility\s*:\s*hidden|font-size\s*:\s*0(?![.\d])|opacity\s*:\s*0(?:\.0+)?(?![.\d])|"
+    _HIDE_STYLE = re.compile(r"display\s*:\s*none|visibility\s*:\s*hidden|font-size\s*:\s*[0-2](?:\.\d+)?(?:px|pt|em|rem)?(?![.\d])|"
+                             r"opacity\s*:\s*0(?:\.0+)?(?![.\d])|color\s*:\s*transparent|line-height\s*:\s*[01]px|"
                              r"(?:left|top|right|text-indent|margin-left)\s*:\s*-\d{3,}|clip\s*:\s*rect\(\s*0|height\s*:\s*0(?![.\d])|"
                              r"width\s*:\s*0(?![.\d])|"
                              r"color\s*:\s*(?:#fff(?:fff)?|white)\b[^\"]*background(?:-color)?\s*:\s*(?:#fff(?:fff)?|white)\b|"
                              r"background(?:-color)?\s*:\s*(?:#fff(?:fff)?|white)\b[^\"]*[^-]color\s*:\s*(?:#fff(?:fff)?|white)\b", re.I)
+    _COLOR = re.compile(r"(?<![-\w])color\s*:\s*#([0-9a-f]{6}|[0-9a-f]{3})\b", re.I)
+
+    @classmethod
+    def _camouflaged(cls, style: str) -> bool:
+        """Text colour so close to white that it vanishes on a light page (our pages use light backgrounds)."""
+        m = cls._COLOR.search(style)
+        if not m:
+            return False
+        def light(hexcode: str) -> bool:
+            h = "".join(c * 2 for c in hexcode) if len(hexcode) == 3 else hexcode
+            return min(int(h[i:i + 2], 16) for i in (0, 2, 4)) >= 0xEE
+
+        bg = re.search(r"background(?:-color)?\s*:\s*#([0-9a-f]{6}|[0-9a-f]{3})\b", style, re.I)
+        if bg and not light(bg.group(1)):
+            return False  # light text on a dark panel (a warning banner) is readable
+        return light(m.group(1))
+
     _HIDE_CLASS = re.compile(r"\b(sr-only|visually-hidden|offscreen|off-screen|hidden|invisible|d-none)\b", re.I)
     _VOID = {"br", "img", "input", "meta", "link", "hr", "source", "area", "base", "col", "embed", "wbr"}
 
@@ -119,6 +139,8 @@ class _PageParser(HTMLParser):
         self._stack: list[tuple[str, bool]] = []
         self._skip = 0
         self._in_title = False
+        self._svg = 0
+        self._alt_tag = 0
 
     def _hidden_now(self) -> bool:
         return any(h for _, h in self._stack)
@@ -130,19 +152,35 @@ class _PageParser(HTMLParser):
                 self.alt.append(a[key])
         if tag == "meta" and a.get("name", "").lower() in ("description", "keywords") and a.get("content"):
             self.alt.append(a["content"])
+        if tag == "svg":
+            self._svg += 1
         if tag in ("script", "style"):
             self._skip += 1
-        if tag == "title":
+        if tag in ("title", "desc") and self._svg:
+            self._alt_tag += 1  # SVG title and desc are accessible names, not page text
+        elif tag == "title":
             self._in_title = True
+        style = a.get("style", "")
+        if tag in ("input", "option") and a.get("value") and a.get("type", "text").lower() not in (
+                "submit", "button", "reset", "image", "checkbox", "radio", "password", "file"):
+            # a pre-filled field value is page content: visible unless the field itself is hidden
+            self_hidden = (a.get("type", "").lower() == "hidden" or "hidden" in a or self._hidden_now()
+                           or bool(self._HIDE_STYLE.search(style)))
+            (self.hidden if self_hidden else self.visible).append(" ".join(a["value"].split()))
         if tag in self._VOID:
             return
-        hidden = ("hidden" in a or a.get("aria-hidden", "").lower() == "true" or bool(self._HIDE_STYLE.search(a.get("style", "")))
-                  or bool(self._HIDE_CLASS.search(a.get("class", ""))) or tag in ("noscript", "template"))
+        hidden = ("hidden" in a or a.get("aria-hidden", "").lower() == "true" or bool(self._HIDE_STYLE.search(style))
+                  or self._camouflaged(style) or bool(self._HIDE_CLASS.search(a.get("class", "")))
+                  or tag in ("noscript", "template"))
         self._stack.append((tag, hidden))
 
     def handle_endtag(self, tag: str) -> None:
         if tag in ("script", "style") and self._skip:
             self._skip -= 1
+        if tag == "svg" and self._svg:
+            self._svg -= 1
+        if tag in ("title", "desc") and self._alt_tag:
+            self._alt_tag -= 1
         if tag == "title":
             self._in_title = False
         for i in range(len(self._stack) - 1, -1, -1):
@@ -154,7 +192,9 @@ class _PageParser(HTMLParser):
         t = " ".join(data.split())
         if not t or self._skip:
             return
-        if self._in_title:
+        if self._alt_tag:
+            self.alt.append(t)
+        elif self._in_title:
             self.title += t
         elif self._hidden_now():
             self.hidden.append(t)
@@ -162,7 +202,7 @@ class _PageParser(HTMLParser):
             self.visible.append(t)
 
     def handle_comment(self, data: str) -> None:
-        t = " ".join(data.split())
+        t = " ".join(html_lib.unescape(data).split())
         if t:
             self.hidden.append(t)
 
@@ -574,6 +614,8 @@ def default_configs() -> list[tuple[str, SecurityConfig]]:
     out += [(f"without_{layer}", on.without(layer)) for layer in LAYERS]
     out.append(("all_off", off))
     out += [(f"only_{layer}", replace(off, **{layer: True})) for layer in LAYERS]
+    # the realistic failure: the detector misses an attack. Which other layer then matters?
+    out += [(f"nodet_no_{layer}", on.without("detector", layer)) for layer in LAYERS if layer != "detector"]
     return out
 
 
@@ -590,7 +632,27 @@ LIMITATIONS = [
      "text": "Layers overlap, so leaving one out often changes nothing. The 'only_<layer>' rows show each layer's standalone strength."},
     {"id": "detector_pauses", "severity": "medium",
      "text": "A detector hit pauses the run for a human, so task success under attack is lower than on clean pages by design."},
+    {"id": "detector_tradeoff", "severity": "medium",
+     "text": "Removing the injection detector did not let any attack through in this test, but it lets far more tasks finish "
+             "(the reader alone keeps the planner clean). The detector's job is to catch an attack early, and its price is pauses."},
+    {"id": "same_host_exfil", "severity": "medium",
+     "text": "Data-flow rules and the goal check cannot tell an exfiltration request to an endpoint on a site the routine already "
+             "uses from normal browsing there. Only the detector and the reader stop that kind of attack."},
 ]
+
+
+def supplement_attacks() -> tuple[cat.Attack, ...]:
+    """Built-in attacks that exercise layers the committed catalog never touches (protected settings, malformed or raw actions)."""
+    return tuple(replace(a, supplemented=True) for a in cat.ATTACKS if a.category == "settings_tamper" or a.goal.kind == "raw_action")
+
+
+def with_supplement(c: Catalog) -> Catalog:
+    """The committed catalog plus the supplement (flagged). A built-in catalog already contains them, so nothing is added."""
+    if c.source == "builtin":
+        return c
+    have = {a.id for a in c.attacks}
+    extra = tuple(a for a in supplement_attacks() if a.id not in have)
+    return replace(c, attacks=c.attacks + extra) if extra else c
 
 
 def run_redteam(catalog: Catalog | str | Path | None = None, *, configs: list[tuple[str, SecurityConfig]] | None = None,
@@ -701,6 +763,7 @@ def run_redteam(catalog: Catalog | str | Path | None = None, *, configs: list[tu
                         for cid, cs in by_cat.items()},
         "defended_by": {cid: dict(sorted(c.items())) for cid, c in defended_by.items()},
         "per_attack": per_attack,
+        "attack_info": {a.id: {"category": a.category, "technique": a.technique, "supplemented": a.supplemented} for a in attacks},
         "per_clean": per_clean,
         "limitations": LIMITATIONS,
     }
@@ -710,15 +773,7 @@ _FAST_ATTACK_STRIDE = 3
 _FAST_CLEAN = 6
 
 
-def _evaluate(fast: bool, catalog: Catalog | str | Path | None) -> dict[str, Any]:
-    cat_obj = catalog if isinstance(catalog, Catalog) else load_catalog(catalog)
-    configs = default_configs()
-    if fast:
-        hn = [c for c in cat_obj.clean if c.hard_negative][:3]
-        rest = [c for c in cat_obj.clean if not c.hard_negative][:_FAST_CLEAN]
-        cat_obj = replace(cat_obj, attacks=cat_obj.attacks[::_FAST_ATTACK_STRIDE], clean=tuple(rest + hn))
-        configs = [(cid, c) for cid, c in configs if not cid.startswith("only_")]
-    rep = run_redteam(cat_obj, configs=configs)
+def _rows(rep: dict[str, Any]) -> list[dict[str, Any]]:
     rows = []
     for r in rep["configs"]:
         if r["id"] != "all_on" and r["id"] != "all_off" and not r["id"].startswith("without_"):
@@ -732,12 +787,45 @@ def _evaluate(fast: bool, catalog: Catalog | str | Path | None) -> dict[str, Any
             "false_pause_hn_rate": r["false_pause_hard_negative"]["rate"], "false_pause_hn_ci": r["false_pause_hard_negative"]["ci"],
             "n": r["attack_success"]["n"],
         })
+    return rows
+
+
+def _evaluate(fast: bool, catalog: Catalog | str | Path | None, supplement: bool) -> dict[str, Any]:
+    base = catalog if isinstance(catalog, Catalog) else load_catalog(catalog)
+    configs = default_configs()
+    if fast:
+        hn = [c for c in base.clean if c.hard_negative][:3]
+        rest = [c for c in base.clean if not c.hard_negative][:_FAST_CLEAN]
+        base = replace(base, attacks=base.attacks[::_FAST_ATTACK_STRIDE], clean=tuple(rest + hn))
+        configs = [(cid, c) for cid, c in configs if not cid.startswith(("only_", "nodet_"))]
+    full = with_supplement(base) if supplement else base
+    extras = [a.id for a in full.attacks if a.supplemented]
+    rep = run_redteam(full, configs=configs)
+    rows = _rows(rep)
+    if extras:
+        committed_rep = run_redteam(base, configs=configs)
+        committed_rows = _rows(committed_rep)
+        con = next(r for r in committed_rep["configs"] if r["id"] == "all_on")
+        committed_only: dict[str, Any] = {
+            "n": con["attack_success"]["n"], "rows": committed_rows,
+            "false_pause_rate": con["false_pause_clean"]["rate"], "false_pause_ci": con["false_pause_clean"]["ci"],
+            "false_pause_hard_negative": con["false_pause_hard_negative"],
+        }
+    else:
+        con = next(r for r in rep["configs"] if r["id"] == "all_on")
+        committed_only = {"n": con["attack_success"]["n"], "rows": rows, "false_pause_rate": con["false_pause_clean"]["rate"],
+                          "false_pause_ci": con["false_pause_clean"]["ci"], "false_pause_hard_negative": con["false_pause_hard_negative"]}
     on = next(r for r in rep["configs"] if r["id"] == "all_on")
-    meta = {**rep["meta"], "n_unit": "runs", "fast": fast,
-            "note": rep["meta"]["note"] + (" Fast mode: a subset of the catalog." if fast else "")}
+    meta = {**rep["meta"], "n_unit": "runs", "fast": fast, "supplement": bool(extras),
+            "n_committed": committed_only["n"], "n_supplement": len(extras),
+            "note": rep["meta"]["note"] + (" Fast mode: a subset of the catalog." if fast else "")
+                    + (f" Includes {len(extras)} supplemental built-in attacks (settings tampering, raw actions) that the committed "
+                       "catalog does not contain; `committed_only` reports the committed catalog alone." if extras else "")}
+    meta["catalog"] = {**meta["catalog"], "supplemented": extras}
     return {
         "meta": meta,
         "rows": rows,
+        "committed_only": committed_only,
         "false_pause_rate": on["false_pause_clean"]["rate"],
         "false_pause_ci": on["false_pause_clean"]["ci"],
         "false_pause": on["false_pause_clean"],
@@ -760,10 +848,14 @@ def _failed_report(reason: str, fast: bool) -> dict[str, Any]:
     }
 
 
-def evaluate_redteam(fast: bool = False, catalog: Catalog | str | Path | None = None) -> dict[str, Any]:
+def evaluate_redteam(fast: bool = False, catalog: Catalog | str | Path | None = None, supplement: bool = True) -> dict[str, Any]:
     """Stable entry point for the eval harness (`make eval`). Deterministic, offline, no model, no network, and it never raises.
 
-    Returns {meta, rows, false_pause_rate, false_pause_ci, false_pause, false_pause_hard_negative, limitations, detail}.
+    Signature: evaluate_redteam(fast=False, catalog=None, supplement=True).
+    Returns {meta, rows, committed_only, false_pause_rate, false_pause_ci, false_pause, false_pause_hard_negative, limitations,
+    detail}. With `supplement=True` (default) the built-in settings-tampering and raw-action attacks are appended to the
+    committed catalog (flagged: meta.catalog.supplemented, detail.attack_info[id].supplemented), and `committed_only` carries the
+    same rows computed on the committed catalog alone, so both counts are always available.
     `rows` has one row for all_on, one per layer left out ("no_<layer>") and all_off, each with attack success and task
     success under attack and their Wilson 95% intervals. `false_pause_rate/_ci` cover the WHOLE clean list;
     `false_pause_hard_negative` the hard negatives alone. `fast=True` runs every third attack and a subset of the clean
@@ -774,11 +866,11 @@ def evaluate_redteam(fast: bool = False, catalog: Catalog | str | Path | None = 
     fails the result is a report with meta.error set and no rows.
     """
     try:
-        return _evaluate(fast, catalog)
+        return _evaluate(fast, catalog, supplement)
     except Exception as exc:
         reason = f"{type(exc).__name__}: {str(exc)[:100]}"
     try:
-        out = _evaluate(fast, builtin_catalog())
+        out = _evaluate(fast, builtin_catalog(), supplement)
         out["meta"]["catalog"]["skipped"] = [f"catalog file unusable ({reason}); built-in catalog used"] + out["meta"]["catalog"]["skipped"]
         return out
     except Exception as exc2:

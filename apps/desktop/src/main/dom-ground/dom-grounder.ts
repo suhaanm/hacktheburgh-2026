@@ -42,7 +42,7 @@ export interface DomGrounder {
   cancelAll(): void
 }
 
-const keyOf = (t: DomTarget, frame: string): string => ('label_hash' in t ? `h|${t.label_hash}|${frame}` : `r|${t.role}|${t.name}|${frame}`)
+const keyOf = (t: DomTarget, frame: string): string => ('zone' in t ? `z|${t.zone}|${frame}` : 'label_hash' in t ? `h|${t.label_hash}|${frame}` : `r|${t.role}|${t.name}|${frame}`)
 
 export function createDomGrounder(opts: DomGrounderOptions = {}): DomGrounder {
   const now = opts.now ?? Date.now

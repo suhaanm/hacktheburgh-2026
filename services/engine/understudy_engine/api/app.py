@@ -23,7 +23,7 @@ from .errors import install_error_handlers
 
 log = logging.getLogger("understudy.engine")
 DASHBOARD_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
-OPTIONAL_ROUTERS = ("routes_analytics", "routes_handoff")
+OPTIONAL_ROUTERS = ("routes_analytics", "routes_handoff", "routes_coach")
 
 
 def warm_up(app: FastAPI) -> threading.Thread:
@@ -43,6 +43,11 @@ def warm_up(app: FastAPI) -> threading.Thread:
         except Exception as exc:  # pragma: no cover
             log.warning("genome warm-up failed: %s", exc)
             app.state.warm["genome"] = False
+        try:
+            app.state.coach.scorer.warm(background=False)
+            app.state.warm["coach"] = app.state.coach.scorer.state == "ready"
+        except Exception as exc:  # pragma: no cover
+            log.warning("coach warm-up failed: %s", exc)
         try:
             mod = importlib.import_module("understudy_engine.routes_analytics")
             if hasattr(mod, "warm"):
@@ -79,6 +84,9 @@ def create_app(root: Path | str | None = None, warm: bool | None = None) -> Fast
     install_error_handlers(app)
     app.state.store = EventStore(root)
     app.state.genome = GenomeService(app.state.store)
+    from ..coach import CoachBrain
+
+    app.state.coach = CoachBrain(app.state.store, root=root)
 
     from .. import routes_data
 

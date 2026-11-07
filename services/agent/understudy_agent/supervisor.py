@@ -226,6 +226,10 @@ class Supervisor:
         self._kill_cache = (now, v)
         return v
 
+    def attach_human_input(self, signal: HumanInputSignal) -> None:
+        self.human_input = signal
+        self._human_seen = signal.seq
+
     # ----- events
     def _event(self, kind: str, **details: Any) -> None:
         self._events.append({"t": time.time(), "kind": kind, "generation": self._generation, **details})

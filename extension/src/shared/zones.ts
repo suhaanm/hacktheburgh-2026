@@ -4,7 +4,14 @@
 // Fallbacks without a site config: generic base zones from the ARIA role (form_field, search_box).
 // An element or ancestor may also say so itself with data-understudy-zone="<zone>" (vocabulary values only).
 
+import type { PageMarkers } from "./types";
+
 export interface ZoneWhen { zone: string; when: string }
+export interface MarkerConfig {
+  task_start?: { zone: string; idle_s: number };
+  progress?: { kind: string; when: string }[];
+  task_end?: { when: string; reason: string };
+}
 export interface ZoneSite {
   pack: string;
   id: string;
@@ -15,6 +22,7 @@ export interface ZoneSite {
   tab?: ZoneWhen[];
   page?: ZoneWhen[];
   elements: { zone: string; selector: string }[];
+  markers?: MarkerConfig;
 }
 export interface ZoneConfig { vocabulary: string[]; sites: ZoneSite[] }
 
@@ -81,6 +89,17 @@ export class Zoner {
   forNav(doc: Document): string | undefined {
     if (!this.site) return undefined;
     return firstWhen(doc, this.site.nav) ?? this.site.nav_default;
+  }
+
+  /** Task markers for a navigation: only element presence is tested, and only enum tokens come out. */
+  markersFor(navZone: string | undefined, doc: Document): PageMarkers | undefined {
+    const mk = this.site?.markers;
+    if (!mk) return undefined;
+    const out: PageMarkers = { progress: [] };
+    if (mk.task_start && navZone === mk.task_start.zone) out.start = { idle_s: mk.task_start.idle_s };
+    for (const p of mk.progress ?? []) if (safeQuery(doc, p.when) && !out.progress.includes(p.kind)) out.progress.push(p.kind);
+    if (mk.task_end && safeQuery(doc, mk.task_end.when)) out.end = { reason: mk.task_end.reason };
+    return out.start || out.progress.length || out.end ? out : undefined;
   }
 
   forTab(doc: Document): string | undefined {

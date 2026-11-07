@@ -80,7 +80,8 @@ def health(request: Request):
         "models": {"planner": model("OPENAI_MODEL_PLANNER"), "fast": model("OPENAI_MODEL_FAST"), "computer_use": model("OPENAI_MODEL_COMPUTER_USE")},
         "services": {"engine": True, "agent": _agent_up()},
         # additive: which optional routers this engine loaded, and whether the caches are warm
-        "routers": {"data": True, "analytics": status.get("routes_analytics") == "included", "handoff": status.get("routes_handoff") == "included"},
+        "routers": {"data": True, "analytics": status.get("routes_analytics") == "included", "handoff": status.get("routes_handoff") == "included",
+                    "coach": status.get("routes_coach") == "included"},
         "warm": dict(getattr(request.app.state, "warm", {})),
     }
 

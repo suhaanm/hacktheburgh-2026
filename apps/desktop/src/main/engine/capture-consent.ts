@@ -1,5 +1,6 @@
-// Capture consent (principle PR3: opt-in everywhere). Desk events (idle, lock, unlock, sleep, resume: times only) are sent to the
-// engine ONLY while the worker's memory file says so, in its Preferences section:
+// Capture consent (principle PR3: opt-in everywhere). Desk events (idle, lock, unlock, sleep, resume: times only) and coach events
+// (coach_shown, coach_followed, coach_dismissed) are sent to the engine ONLY while the worker's memory file says so, in its
+// Preferences section (the worker's explicit answer to a prompt still goes to /coach/feedback: it is their own action):
 //     - Capture: times only
 // which onboarding writes after the worker turns capture on in the dashboard. Dev and demo can force it with
 // UNDERSTUDY_DESK_EVENTS=1. The file is read at startup and every few minutes; the moment the line is gone (or the engine
@@ -14,7 +15,8 @@ export function roleFromMemory(markdown: string): string | null {
   const m = /^---\s*\n([\s\S]*?)\n---/m.exec(markdown)
   if (!m) return null
   const line = /^role:\s*([a-z][a-z0-9-]{1,40})\s*$/m.exec(m[1])
-  return line ? line[1] : null
+  // "unknown" is what the engine writes before onboarding: not a role.
+  return line && line[1] !== 'unknown' ? line[1] : null
 }
 
 /** True when the Preferences section has the line "Capture: times only" (case and spacing tolerant). Other sections do not count. */
@@ -80,8 +82,9 @@ export function createCaptureConsent(opts: CaptureConsentOptions): CaptureConsen
     mode = next
     announced = true
     if (next === 'off') {
-      const dropped = opts.engine.purge('desk')
-      if (dropped) log('capture', `consent is off: ${dropped} unsent desk events discarded`)
+      // Everything that is capture (desk signals and coach telemetry) stops, and what has not been sent is thrown away.
+      const dropped = opts.engine.purge('desk') + opts.engine.purge('coach')
+      if (dropped) log('capture', `consent is off: ${dropped} unsent events discarded`)
     }
     if (changed) {
       log('capture', `desk capture is ${next}`)

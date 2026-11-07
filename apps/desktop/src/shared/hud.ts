@@ -13,6 +13,8 @@ export interface HudProposal {
   what: string
   howOften: string
   hoursSaved: [number, number] | null
+  // The period the hours cover, in weeks (null: not stated, so the card says no period).
+  horizonWeeks: number | null
   touches: string[]
   never: string[]
 }

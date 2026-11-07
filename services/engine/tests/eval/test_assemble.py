@@ -6,19 +6,24 @@ import os
 import socket
 import subprocess
 import sys
-import textwrap
 from pathlib import Path
 
 import pytest
-
-from understudy_engine.eval import adapters, assemble, build_report, deterministic_view, dumps, schema_errors
+from understudy_engine.eval import (
+    adapters,
+    assemble,
+    build_report,
+    deterministic_view,
+    dumps,
+    schema_errors,
+)
 from understudy_engine.eval import limitations as lim
 from understudy_engine.eval.__main__ import main
 from understudy_engine.eval.adapters import NotLanded, SectionSpec, owner_attr
 from understudy_engine.eval.meta import make_meta
 
 REPO = Path(__file__).resolve().parents[4]
-FAST_CORE = ["deficit_recovery", "null_placebo", "routing", "ski_rental", "agent_claims", "redteam", "study"]
+FAST_CORE = ["deficit_recovery", "null_placebo", "routing", "ski_rental", "agent_claims", "agent_runs", "redteam", "study"]
 NOW = "2026-11-07T15:00:00Z"
 
 
@@ -92,7 +97,7 @@ def test_unknown_section_name_is_an_error():
 def test_live_redteam_stays_pending_offline(synthetic_data):
     rep = build_report(sections=["redteam_live"], now=NOW, regenerate=False, log=lambda m: None)
     s = rep["sections"]["redteam_live"]
-    assert s["status"] == "pending" and "agent-safety" in s["reason"]
+    assert s["status"] == "pending" and ("real model" in s["reason"] or "agent-safety not landed" in s["reason"])
 
 
 # ---------------------------------------------------------------------------------------------------------- the study
@@ -104,28 +109,84 @@ def test_study_not_run_when_there_are_no_results():
     assert "eval-study-not_run" in {e["id"] for e in rep["sections"]["limitations"]}
 
 
-def test_study_reads_results_and_reports_the_mean_change_with_an_interval(tmp_path):
-    d = tmp_path / "evals" / "study" / "results"
-    d.mkdir(parents=True)
-    rows = [{"participant": "A", "unassisted_before_s": 512, "unassisted_after_s": 418}, {"participant": "B", "unassisted_before_s": 466, "unassisted_after_s": 431},
-            {"participant": "C", "unassisted_before_s": 540, "unassisted_after_s": 470}, {"participant": "D", "unassisted_before_s": 500, "unassisted_after_s": 505}]
-    (d / "results.json").write_text(json.dumps({"rows": rows}))
+def _study_dir(tmp_path, done, post=None, practice=None, exclusion=None):
+    """A private evals/study with the platform's analyze.py and assignments.json and a made-up participants.csv (numbers for the test only)."""
+    import csv
+    import shutil
+
+    src = REPO / "evals" / "study"
+    d = tmp_path / "evals" / "study"
+    (d / "results").mkdir(parents=True)
+    shutil.copy(src / "analyze.py", d / "analyze.py")
+    shutil.copy(src / "assignments.json", d / "assignments.json")
+    asg = json.loads((src / "assignments.json").read_text())
+    possible = {"cliff": 2, "reconcile": 1}
+    cols = ["participant", "sequence", "block", "skill", "condition", "practice_case", "post_case", "practice_seconds", "practice_capped", "post_seconds",
+            "post_capped", "post_checks_done", "post_checks_possible", "nudges_shown", "nudges_followed", "nudges_dismissed", "exclusion", "notes"]
+    with (d / "results" / "participants.csv").open("w", newline="") as fh:
+        w = csv.DictWriter(fh, cols)
+        w.writeheader()
+        for p, plan in asg["participants"].items():
+            for b in plan["blocks"]:
+                key = (p, b["condition"])
+                w.writerow({"participant": p, "sequence": plan["sequence"], "block": b["block"], "skill": b["skill"], "condition": b["condition"],
+                            "practice_case": b["practice_case"], "post_case": b["post_case"], "practice_seconds": (practice or {}).get(key, 300),
+                            "practice_capped": "no", "post_seconds": (post or {}).get(key, 200), "post_capped": "no",
+                            "post_checks_done": min(done.get(key, 0), possible[b["skill"]]), "post_checks_possible": possible[b["skill"]],
+                            "nudges_shown": 6 if b["condition"] == "coached" else 0, "nudges_followed": 4 if b["condition"] == "coached" else 0,
+                            "nudges_dismissed": 1 if b["condition"] == "coached" else 0, "exclusion": (exclusion or {}).get(p, ""), "notes": ""})
+    return d
+
+
+def test_study_follows_the_analysis_plan_headline_is_unassisted_skill_score_and_speed_is_separate(tmp_path):
+    done = {("P1", "coached"): 2, ("P1", "uncoached"): 0, ("P2", "coached"): 1, ("P2", "uncoached"): 0, ("P3", "coached"): 2, ("P3", "uncoached"): 1,
+            ("P4", "coached"): 1, ("P4", "uncoached"): 0}
+    post = {("P1", "coached"): 150, ("P1", "uncoached"): 210}
+    _study_dir(tmp_path, done, post=post)
+    s = build_report(sections=["study"], now=NOW, regenerate=False, log=lambda m: None)["sections"]["study"]
+    assert "status" not in s and s["n"] == 4 and s["meta"]["origin"] == "real" and s["meta"]["n"] == 4
+    rows = {r["participant"]: r for r in s["rows"]}
+    assert len(rows) == 4
+    p1 = rows["P1"]
+    assert p1["score_difference"] == pytest.approx(p1["score_coached"] - p1["score_uncoached"]) and p1["score_coached"] > p1["score_uncoached"]
+    h = s["headline"]
+    mean = sum(r["score_difference"] for r in s["rows"]) / 4
+    assert h["mean_difference"] == pytest.approx(mean, abs=1e-3) and h["ci95"][0] < h["mean_difference"] < h["ci95"][1]
+    assert h["smallest_possible_p"] == 0.125 and "t interval" in h["ci_method"]
+    assert s["assisted_speed"]["label"].startswith("ASSISTED") and s["unassisted_speed"]["label"].startswith("UNASSISTED")
+    assert "mean_difference" not in s["assisted_speed"] or s["assisted_speed"]["mean_difference_s"] != h["mean_difference"]      # never combined
+    # contract keys for the dashboard come from the secondary unassisted-time measure, labelled as such
+    assert s["mean_change_s"] == s["unassisted_speed"]["mean_difference_s"] and "alias_note" in s
+    assert schema_errors({"generated_at": NOW, "mock": True, "sections": {"study": s}}) == []
+
+
+def test_study_a_negative_difference_and_a_wide_interval_reach_the_register(tmp_path):
+    done = {("P1", "coached"): 0, ("P1", "uncoached"): 1, ("P2", "coached"): 1, ("P2", "uncoached"): 0, ("P3", "coached"): 0, ("P3", "uncoached"): 0,
+            ("P4", "coached"): 1, ("P4", "uncoached"): 0}
+    _study_dir(tmp_path, done)
     rep = build_report(sections=["study"], now=NOW, regenerate=False, log=lambda m: None)
     s = rep["sections"]["study"]
-    assert "status" not in s and s["n"] == 4
-    changes = [r["unassisted_after_s"] - r["unassisted_before_s"] for r in rows]
-    assert s["mean_change_s"] == pytest.approx(sum(changes) / 4, abs=0.01)
-    lo, hi = s["mean_change_ci"]
-    assert lo < s["mean_change_s"] < hi and "case study" in s["meta"]["note"]
-    assert schema_errors(rep) == []
+    ids = {e["id"] for e in s["limitations"]}
+    assert {"study-interval-includes-zero", "study-negative-differences"} <= ids
+    assert {"study-interval-includes-zero", "study-negative-differences"} <= {e["id"] for e in rep["sections"]["limitations"]}
 
 
-def test_study_reads_csv_too(tmp_path):
-    d = tmp_path / "evals" / "study" / "results"
-    d.mkdir(parents=True)
-    (d / "r.csv").write_text("participant,unassisted_before_s,unassisted_after_s\nA,500,450\nB,520,480\n")
+def test_study_exclusions_reduce_n_and_are_listed(tmp_path):
+    done = {(p, c): (1 if c == "coached" else 0) for p in ("P1", "P2", "P3", "P4") for c in ("coached", "uncoached")}
+    _study_dir(tmp_path, done, exclusion={"P4": "stopped before finishing"})
+    rep = build_report(sections=["study"], now=NOW, regenerate=False, log=lambda m: None)
+    s = rep["sections"]["study"]
+    assert s["n"] == 3 and s["meta"]["n"] == 3 and s["excluded_participants"] == ["P4"]
+    assert "study-exclusions" in {e["id"] for e in s["limitations"]}
+    n_entry = next(e for e in rep["sections"]["limitations"] if e["id"] == "eval-study-n4")
+    assert "n = 3" in n_entry["text"] and "planned" not in n_entry["text"]       # the register states the n the study actually has
+
+
+def test_study_without_the_analysis_script_is_pending_not_invented(tmp_path):
+    d = _study_dir(tmp_path, {})
+    (d / "analyze.py").unlink()
     s = build_report(sections=["study"], now=NOW, regenerate=False, log=lambda m: None)["sections"]["study"]
-    assert s["n"] == 2 and s["mean_change_s"] == -45.0
+    assert s["status"] == "pending" and "platform not landed" in s["reason"]
 
 
 # ---------------------------------------------------------------------------------------------------- the real sections
@@ -154,8 +215,21 @@ def test_every_section_carries_complete_meta_stamped_with_the_report_time(core_r
         assert m["origin"] in ("real", "synthetic", "mixed")
 
 
+def test_every_section_that_has_numbers_names_its_split(core_report):
+    for name, s in core_report["sections"].items():
+        if name != "limitations" and "status" not in s:
+            assert isinstance(s["meta"]["split"], str) and len(s["meta"]["split"]) > 8, name
+
+
+def test_meta_fallback_fills_gaps_but_never_loses_what_the_owner_gave():
+    from understudy_engine.eval.meta import normalise_meta
+
+    m = normalise_meta({"origin": "real", "n": 3, "split": None, "note": "kept"}, {"split": "from fallback", "n_unit": "people", "note": "ignored"})
+    assert m["origin"] == "real" and m["n"] == 3 and m["split"] == "from fallback" and m["note"] == "kept" and m["n_unit"] == "people"
+
+
 def test_synthetic_sections_say_so(core_report):
-    for name in ("deficit_recovery", "null_placebo", "routing", "ski_rental", "agent_claims", "presence", "routines"):
+    for name in ("deficit_recovery", "null_placebo", "routing", "ski_rental", "agent_claims", "agent_runs", "presence", "routines"):
         s = core_report["sections"][name]
         if "status" not in s:
             assert s["meta"]["origin"] == "synthetic", name
@@ -259,7 +333,7 @@ def test_two_processes_with_different_hash_seeds_give_identical_numbers(syntheti
         out = tmp_path / f"r{k}.json"
         env = dict(os.environ, PYTHONHASHSEED=hs, UNDERSTUDY_MOCK="1")
         p = subprocess.run([sys.executable, "-m", "understudy_engine.eval", "--fast", "--no-generate", "--no-md", "--sections",
-                            "deficit_recovery,null_placebo,ski_rental,routing,agent_claims,redteam,study", "--out", str(out)],
+                            "deficit_recovery,null_placebo,ski_rental,routing,agent_claims,agent_runs,redteam,study", "--out", str(out)],
                            capture_output=True, text=True, env=env, cwd=str(REPO), timeout=300)
         assert p.returncode == 0, p.stderr[-2000:]
         outs.append(deterministic_view(json.loads(out.read_text())))

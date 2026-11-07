@@ -30,7 +30,8 @@ def schema_dir() -> Path:
 
 
 def evals_dir() -> Path:
-    return repo_root() / "evals"
+    env = os.environ.get("UNDERSTUDY_EVALS_DIR")
+    return Path(env).expanduser() if env else repo_root() / "evals"
 
 
 def is_mock() -> bool:

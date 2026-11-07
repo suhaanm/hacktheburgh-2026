@@ -261,3 +261,27 @@ def test_service_without_data_gives_a_clear_error(tmp_path):
     with pytest.raises(GenomeError) as e:
         GenomeService(EventStore(tmp_path)).genome("benefits")
     assert e.value.code == "no_cohort" and "synth" in e.value.message
+
+
+def test_consequences_are_exposed_when_the_file_exists(cohort_data, tmp_path, monkeypatch):
+    store, truth, levels, _ = cohort_data
+    svc = GenomeService(store)
+    monkeypatch.setenv("UNDERSTUDY_EVALS_DIR", str(tmp_path / "ev"))
+    data, _ = svc.genome("benefits", person="p_nov04")
+    assert "consequences" not in data                                     # no file: the key is absent, nothing else changes
+    cases = tmp_path / "ev" / "cases"
+    cases.mkdir(parents=True)
+    (cases / "skip_consequences.json").write_text(json.dumps({"steps": [
+        {"step": "cliff", "p_error": 0.31, "mean_error_gbp": 142.5, "n": 200},
+        {"step": "reconcile", "share": 0.12, "mean_error": 38.0, "n_households": 200, "source": "oracle"},
+        {"no_step_here": 1},
+    ]}))
+    data, _ = svc.genome("benefits", person="p_nov04")
+    assert data["consequences"] == [
+        {"step": "cliff", "p_error": 0.31, "mean_error_gbp": 142.5, "n": 200, "source": "evals/cases/skip_consequences.json"},
+        {"step": "reconcile", "p_error": 0.12, "mean_error_gbp": 38.0, "n": 200, "source": "oracle"},
+    ]
+    (cases / "skip_consequences.json").write_text(json.dumps({"cliff": {"p_error": 0.2, "mean_error_gbp": 10, "n": 5}}))   # dict keyed by step
+    assert svc.genome("benefits", person="p_nov04")[0]["consequences"][0]["step"] == "cliff"
+    (cases / "skip_consequences.json").write_text("{broken")
+    assert "consequences" not in svc.genome("benefits", person="p_nov04")[0]

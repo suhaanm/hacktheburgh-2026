@@ -86,11 +86,13 @@ check("memory: forgetting a line removes it from the file (POST /memory/forget)"
 
 // 3. Presence quiet hours (day keys on the wire)
 await go("/presence", 2500);
-await page.locator("#qs").fill("23:00");
+const curStart = await page.locator("#qs").inputValue();
+const newStart = curStart === "23:00" ? "22:00" : "23:00";
+await page.locator("#qs").fill(newStart);
 await page.locator("#qe").fill("07:00");
 await page.getByRole("button", { name: "Save quiet hours" }).click();
 await page.waitForTimeout(1500);
-check("presence: quiet hours saved", await page.getByText("Quiet hours saved.").count() > 0 || (await page.locator("#qs").inputValue()) === "23:00");
+check("presence: quiet hours saved (day keys on the wire)", await page.getByText("Quiet hours saved.").count() > 0);
 
 // 4. Routines: consent, skill gate, override
 await go("/routines", 3000);

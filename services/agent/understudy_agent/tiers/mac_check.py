@@ -1,7 +1,7 @@
 """Owner-supervised check for the real desktop actuator (spike S2 follow-up). Harmless apps only.
 
     # dry run: goes through the safety pipeline and the actuator guards with a FAKE backend; nothing happens
-    uv run python -m understudy_agent.tiers.mac_check --target TextEdit --click-px 1200 800 --text "hello"
+    uv run python -m understudy_agent.tiers.mac_check --target TextEdit --click-px 600 300 --text "hello"
 
     # real run, owner present, TextEdit frontmost (needs pyobjc; see scripts/s2_textedit_test.py for the flags)
     UNDERSTUDY_REAL_ACTUATOR=1 uv run --with pyobjc-framework-Quartz --with pyobjc-framework-Cocoa \\
@@ -31,7 +31,8 @@ HARMLESS = {"TextEdit", "Calculator"}
 
 
 class DryBackend:
-    """Same interface as the real backend; records instead of acting."""
+    """Same interface as the real backend; records instead of acting. A fake 'TextEdit' window sits at
+    (150, 100) 300x180 pt on an 864 x 558 pt display (scale 2); everything else belongs to 'Claude'."""
 
     def __init__(self, front: str, scale: float = 2.0) -> None:
         self.front, self.scale = front, scale
@@ -39,12 +40,24 @@ class DryBackend:
 
     def frontmost_app(self) -> str: return self.front
     def screen_locked(self) -> bool: return False
-    def display_scale(self) -> float: return self.scale
+    def backing_scale(self) -> float: return self.scale
+    def display_width_pts(self) -> float: return 864.0
+
+    def window_at(self, x: float, y: float) -> dict[str, Any] | None:
+        if 150 <= x < 450 and 100 <= y < 280:
+            return {"owner": "TextEdit", "bounds": (150.0, 100.0, 300.0, 180.0), "layer": 0}
+        return {"owner": "Claude", "bounds": (0.0, 0.0, 864.0, 558.0), "layer": 0}
+
     def mouse(self, kind: str, x: float, y: float) -> None: self.events.append(("mouse", kind, x, y))
     def type_text(self, text: str) -> None: self.events.append(("type", len(text)))
     def key(self, keys: list[str]) -> None: self.events.append(("key", tuple(keys)))
     def scroll(self, dx: int, dy: int) -> None: self.events.append(("scroll", dx, dy))
-    def screenshot_png(self) -> bytes: return b""
+
+    def screenshot_png(self) -> bytes:
+        from .computer_use import blank_png
+
+        return blank_png(int(864 * self.scale), 40)
+
     def release_all(self) -> None: self.events.append(("release_all",))
 
 
@@ -68,6 +81,7 @@ async def run_check(target: str, click_px: tuple[int, int], text: str, *, real: 
         return {"ok": False, "reason": str(exc)}
     log: list[dict[str, Any]] = []
     try:
+        await act.screenshot()  # verifies the display scale before any pointer action
         for action in (Action("click", {"x": click_px[0], "y": click_px[1]}), Action("type", {"text": text})):
             pobs = guard.observe_screen()
             dec = guard.authorise(action, pobs, screen=(int(click_px[0] * 2 + 1000), int(click_px[1] * 2 + 1000)))
@@ -77,10 +91,10 @@ async def run_check(target: str, click_px: tuple[int, int], text: str, *, real: 
             await act.execute(Action(dec.action.kind, dict(dec.action.args)))  # type: ignore[union-attr]
             guard.record(dec, True)
     except ActuatorRefused as exc:
-        return {"ok": False, "reason": f"actuator guard: {exc}", "log": log}
+        return {"ok": False, "reason": f"actuator guard: {exc}", "log": log, "report": act.report}
     finally:
         await act.release_all()
-    out: dict[str, Any] = {"ok": True, "real": real, "scale": act.scale, "log": log}
+    out: dict[str, Any] = {"ok": True, "real": real, "scale": act.scale, "log": log, "report": act.report}
     if backend is not None:
         out["events"] = [list(e) for e in backend.events]
     return out

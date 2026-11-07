@@ -4,6 +4,7 @@
 import { buildEvent, eventProblem, isPerson, isRole, type EventInput, type Identity, type UnderstudyEvent } from './event'
 import { DEFAULT_ENDPOINTS, isLoopbackUrl, type Endpoints } from './endpoints'
 import { captureFromMemory, roleFromMemory } from './capture-consent'
+import { parseCoachNext, type CoachDecision, type FeedbackOutcome } from './coach-next'
 import { parseCoachState, type CoachStateInfo } from './coach-state'
 
 export type Log = (scope: string, ...args: unknown[]) => void
@@ -41,6 +42,8 @@ export interface RoutineProposal {
   status: string
   minutesPerWeek: number | null
   hoursSaved: [number, number] | null
+  // The period `hoursSaved` covers (the engine's value.horizon_weeks), or null when it does not say.
+  horizonWeeks: number | null
   episodes: number | null
   touches: string[]
   never: string[]
@@ -71,8 +74,13 @@ export interface EngineClient {
   clearKill(): Promise<KillResult>
   // GET /routines, trimmed to what a toast needs. Null when the engine is unreachable.
   routines(): Promise<RoutineProposal[] | null>
-  // GET /coach/state?person=: the chip fade and, when the engine says so, the element to ring. Null when unreachable.
+  // GET /coach/state?person=: the task in progress and the chip fade. Null when unreachable.
   coachState(): Promise<CoachStateInfo | null>
+  // GET /coach/next?person=: the coach brain's decision (what to do now, and which zone to point at). Null when unreachable.
+  coachNext(): Promise<CoachDecision | null>
+  // POST /coach/feedback: the worker's own response to a prompt (followed or dismissed). It updates their skill state; it is not
+  // telemetry, so it is sent whatever the capture preference says.
+  coachFeedback(decisionId: string, outcome: FeedbackOutcome): Promise<boolean>
   // GET /queue?status=pending -> how many approvals wait in the morning queue. Null when the engine is unreachable.
   pendingQueue(): Promise<number | null>
   // GET /identity (when the engine answers 200) and GET /memory: person, role and the capture preference. Null when the engine is unreachable or GET /memory is not usable.
@@ -101,6 +109,7 @@ export function toProposal(raw: unknown): RoutineProposal | null {
     status: raw.status,
     minutesPerWeek: num(raw.minutes_per_week),
     hoursSaved: hours && hours[0] !== null && hours[1] !== null ? [hours[0], hours[1]] : null,
+    horizonWeeks: num(value.horizon_weeks),
     episodes: num(raw.episodes),
     touches: strs(raw.touches),
     never: strs(raw.never),
@@ -245,6 +254,15 @@ export function createEngineClient(opts: EngineClientOptions): EngineClient {
       const res = await http('GET', `${endpoints.engine}/coach/state?person=${encodeURIComponent(identity.person)}`)
       if (!res || res.status >= 300) return null
       return parseCoachState(res.json)
+    },
+    async coachNext() {
+      const res = await http('GET', `${endpoints.engine}/coach/next?person=${encodeURIComponent(identity.person)}`)
+      if (!res || res.status >= 300) return null
+      return parseCoachNext(res.json)
+    },
+    async coachFeedback(decisionId, outcome) {
+      const res = await http('POST', `${endpoints.engine}/coach/feedback`, { decision_id: decisionId, outcome })
+      return !!res && res.status < 300
     },
     async pendingQueue() {
       const res = await http('GET', `${endpoints.engine}/queue?status=pending`)

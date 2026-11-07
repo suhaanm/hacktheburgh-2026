@@ -158,5 +158,6 @@ const report = {
       { id: "L9", text: "Autonomy rung A3 needs a Wilson lower bound of 0.95 (about 75 clean runs). The demo does not reach it, and says so.", severity: "low", source: "routines" } ],
   },
 };
-out("eval-report.json", report);
+// eval-report.json is owned by scripts/sync-eval-fixture.mjs (the real report from the eval harness); `report` above is kept only as a hand-made shape reference.
+void report;
 console.log("fixtures written: presence idle", r(idleSum, 1), "h; bins", bins.length);

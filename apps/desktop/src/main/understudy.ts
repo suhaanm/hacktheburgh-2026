@@ -8,6 +8,7 @@ import type { ConfirmBroker } from './confirm'
 import type { ServiceContext } from './context'
 import { getAgency } from './agency'
 import { createChipDriver, type ChipDriver } from './coach-chip'
+import { createCoachBrain, type CoachBrain } from './coach-brain'
 import { createCoachPoller, type CoachPoller } from './coach-poller'
 import { createDomCoach, type DomCoach } from './dom-ground/dom-coach'
 import { createDomGrounder, type DomGrounder } from './dom-ground/dom-grounder'
@@ -39,8 +40,6 @@ export function createUnderstudyCore(ctx: ServiceContext): UnderstudyCore {
   const endpoints = endpointsFromEnv()
   const identity = loadIdentity({ userDataDir: ctx.userDataDir })
   const engine = createEngineClient({ endpoints, identity, log: ctx.log })
-  const coach = createCoachTracker({ emit: (e) => engine.emit(e), level: () => `l${ctx.state.get().level}` })
-  ctx.coach = coach
   // One read of GET /memory at startup and every few minutes: the person id, the role and the capture preference. Fail closed.
   const capture = createCaptureConsent({
     engine,
@@ -51,6 +50,10 @@ export function createUnderstudyCore(ctx: ServiceContext): UnderstudyCore {
       if (info.person || info.role) saveIdentity(ctx.userDataDir, engine.identity)
     },
   })
+  // Coach telemetry is capture too: it is sent only while consent is on (fail closed). The worker's explicit answer to a prompt goes to
+  // /coach/feedback separately, whatever the preference says.
+  const coach = createCoachTracker({ emit: (e) => capture.allowed() && engine.emit(e), level: () => `l${ctx.state.get().level}` })
+  ctx.coach = coach
   const offBus = wireCoachBus(ctx.bus, coach)
   return {
     endpoints,
@@ -73,6 +76,7 @@ export interface UnderstudyShell {
   extServer(): ExtServer | null
   chip: ChipDriver
   coachPoller: CoachPoller
+  coachBrain: CoachBrain
   proposals: ProposalScheduler
   hud: HudHandle
   hudModel: HudModel
@@ -104,7 +108,16 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
     const d = screen.getPrimaryDisplay()
     return { bounds: d.bounds, scaleFactor: d.scaleFactor }
   }
-  const ring = createDomCoach({ grounder: domGrounder, overlay: services.overlay, display, tracker: ctx.coach, calibration: parseCalibration(process.env.UNDERSTUDY_RING_OFFSET), log: ctx.log })
+  let brain: CoachBrain | null = null
+  const ring = createDomCoach({
+    grounder: domGrounder,
+    overlay: services.overlay,
+    display,
+    tracker: ctx.coach,
+    calibration: parseCalibration(process.env.UNDERSTUDY_RING_OFFSET),
+    onEnd: (e) => brain?.onPromptEnd(e), // the worker's response to a brain decision goes to POST /coach/feedback
+    log: ctx.log,
+  })
   let extServer: ExtServer | null = null
   void startExtServer({
     grounder: domGrounder,
@@ -166,6 +179,7 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
   let lastEpisodeEnd: number | null = null
   let engineTask: { step: number; stepsTotal: number } | null = null
   const offLevel = deps.bus.on('level:changed', () => chip.refresh())
+  const offOverlay = deps.bus.on('overlay:ready', () => chip.refresh(true)) // the overlay page (re)loaded: draw the chip again
   const offStep = deps.bus.on('lesson:step', (e) => {
     if (e.phase === 'done' || e.phase === 'aborted') {
       lastEpisodeEnd = Date.now()
@@ -179,14 +193,15 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
   const coachPoller = createCoachPoller({
     engine: core.engine,
     chip,
-    ring,
-    killed: isKilled,
     onTask: (task) => {
       if (engineTask && !task) lastEpisodeEnd = Date.now() // the engine's task ended
       engineTask = task ? { step: task.step, stepsTotal: task.stepsTotal } : null
     },
     log: ctx.log,
   })
+  // The coach brain: while a task is in progress, GET /coach/next about every 2 s; annotate and nudge become a ring on the named zone.
+  brain = createCoachBrain({ engine: core.engine, state: () => coachPoller.lastState(), ring, killed: isKilled, log: ctx.log })
+  const coachBrain = brain
   const chipTimer = setInterval(() => chip.refresh(), 15_000)
   chipTimer.unref?.()
 
@@ -209,6 +224,7 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
       locked: () => desk?.state().locked === true || desk?.state().asleep === true,
       task: () => engineTask,
       lastEpisodeEndAt: () => lastEpisodeEnd,
+      lastCoachDecisionAt: () => coachBrain.lastActiveDecisionAt(),
     },
     log: ctx.log,
   })
@@ -240,6 +256,7 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
     extServer: () => extServer,
     chip,
     coachPoller,
+    coachBrain,
     proposals,
     hud,
     hudModel,
@@ -249,9 +266,11 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
       clearInterval(queueTimer)
       clearInterval(chipTimer)
       offLevel()
+      offOverlay()
       offStep()
       offEnd()
       coachPoller.dispose()
+      coachBrain.dispose()
       proposals?.dispose()
       ring.dispose()
       domGrounder.cancelAll()

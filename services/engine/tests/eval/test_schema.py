@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 from jsonschema import Draft202012Validator
-
 from understudy_engine.eval import schema_errors
 from understudy_engine.eval.schema import load_schema, validate
 
@@ -106,8 +105,7 @@ def test_dashboard_fixture_has_the_envelope_and_every_meta(fixture_report):
             assert {"origin", "n", "n_unit", "split", "interval_level", "note", "generated_at"} <= set(sec["meta"]), name
 
 
-@pytest.mark.xfail(strict=False, reason="the dashboard fixture predates the 7 Nov contract additions (see the mismatch list sent to main); "
-                                        "this starts passing when the dashboard fixture is brought in step")
 def test_dashboard_fixture_matches_the_contract_shapes(fixture_report):
+    """The dashboard's reference fixture is a copy of a generated report; it must keep validating as the schema and the generator move."""
     errs = schema_errors(fixture_report)
-    assert errs == [], "\n".join(errs[:60])
+    assert errs == [], "dashboard fixture does not match report.schema.json:\n" + "\n".join(errs[:60])

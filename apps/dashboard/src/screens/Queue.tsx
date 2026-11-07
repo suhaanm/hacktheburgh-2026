@@ -115,7 +115,7 @@ function Card({ item: it, onDone }: { item: QueueItem; onDone: () => void }) {
         <div className="evidence__body qi-evidence">
           {it.evidence.screenshots.length > 0 && (
             <div className="shots" aria-label="Screenshots">
-              {it.evidence.screenshots.map((s) => <Shot key={s} runId={it.run_id} path={s} />)}
+              {it.evidence.screenshots.map((s, i) => <Shot key={`${s}-${i}`} runId={it.run_id} path={s} />)}
             </div>
           )}
           {keys.length > 0 && (
@@ -131,7 +131,7 @@ function Card({ item: it, onDone }: { item: QueueItem; onDone: () => void }) {
           )}
           {diff.length > 0 && <p className="note"><b>Difference:</b> {diff.map((d) => `${d.field}: expected ${d.expected}, got ${d.got}`).join("; ")}</p>}
           {it.evidence.tier_log.length > 0 && (
-            <div className="row" aria-label="Which tier ran each step">{it.evidence.tier_log.map((t) => <TierPill key={t.step} tier={t.tier} step={t.step} />)}</div>
+            <div className="row" aria-label="Which tier ran each step">{it.evidence.tier_log.map((t, i) => <TierPill key={`${t.step}-${i}`} tier={t.tier} step={t.step} />)}</div>
           )}
         </div>
       </details>
@@ -174,7 +174,7 @@ function Report({ rep, audit, loading }: { rep: OffhoursReport | null; audit: Au
       </div>
       {rep.ran.length > 0 && (
         <div className="stack"><p className="t-label">Ran</p>
-          <ul>{rep.ran.map((r) => <li key={r.run_id}><b>{r.routine}</b><span>{r.outcome}</span><span className="t-data">{r.minutes} min</span><TierPill tier={r.tier} /></li>)}</ul></div>
+          <ul>{rep.ran.map((r, i) => <li key={`${r.run_id}-${i}`}><b>{r.routine}</b><span>{r.outcome}</span><span className="t-data">{r.minutes} min</span><TierPill tier={r.tier} /></li>)}</ul></div>
       )}
       {rep.failed.length > 0 && (
         <div className="stack"><p className="t-label">Failed</p>

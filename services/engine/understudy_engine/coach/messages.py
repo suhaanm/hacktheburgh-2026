@@ -93,8 +93,11 @@ def message_for(action: str, *, missed: Step | None, violating: Step | None, cur
         if coach.get("annotate"):
             msg = str(coach["annotate"])
         elif missed is not None and violating is not None:
-            act = ACTION_PHRASE.get(violating.cogs[0], _lower_first(violating.label.rstrip(".")))
-            msg = f"{short_label(step.label)} before you {act}."
+            if " before " in step.label.lower():          # the label already says what it comes before
+                msg = f"{short_label(step.label)}."
+            else:
+                act = ACTION_PHRASE.get(violating.cogs[0], _lower_first(violating.label.rstrip(".")))
+                msg = f"{short_label(step.label)} before you {act}."
             msg = msg[0].upper() + msg[1:]
         elif stuck:
             msg = coach.get("question") or prompts.get("L1") or "Stuck? Start with the next check."

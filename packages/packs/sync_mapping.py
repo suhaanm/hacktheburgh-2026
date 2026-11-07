@@ -5,13 +5,16 @@
     uv run python packages/packs/sync_mapping.py
 
 The deep pack's `params` and `rules` become a verbatim copy of the default (a test enforces equality).
-The thin packs keep their own role rules and params but take the default's base-cog rules, copied verbatim.
+The thin packs keep their own role rules and params but take the default's base-cog rules, copied verbatim
+(minus any rule that produces one of the benefits pack's role cogs).
 Everything else in each file (zones, capture_sites, examples, comments) is left alone.
 """
 from __future__ import annotations
 
 import re
 import sys
+
+import yaml
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -30,6 +33,11 @@ def main() -> int:
     d_params = default[default.index("params:\n"):default.index("extra_cogs:")]
     d_rules = default[default.index("rules:\n"):]
     d_base = d_rules[d_rules.index(BASE_MARK):]
+    # a role rule that sits among the base rules (the default keeps nav + calc_result -> READ_RESULT there) is not
+    # a base rule: thin packs get only the lines whose cog is not one of the default pack's extra cogs
+    extra = yaml.safe_load(default)["extra_cogs"]
+    d_base = "".join(line for line in d_base.splitlines(keepends=True)
+                     if not any(f"cog: {c}" in line for c in extra))
 
     ben = HERE / "benefits-processor" / "mapping.yaml"
     t = ben.read_text()

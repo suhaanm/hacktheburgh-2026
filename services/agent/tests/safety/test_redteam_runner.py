@@ -34,7 +34,7 @@ def test_configurations_are_all_on_each_layer_out_all_off_and_each_alone(report)
     ids = [r["id"] for r in report["configs"]]
     assert ids[0] == "all_on" and "all_off" in ids
     assert {f"without_{layer}" for layer in LAYERS} <= set(ids) and {f"only_{layer}" for layer in LAYERS} <= set(ids)
-    assert len(ids) == 1 + 8 + 1 + 8
+    assert len(ids) == 1 + 8 + 1 + 8 + 7 and {f"nodet_no_{layer}" for layer in LAYERS if layer != "detector"} <= set(ids)
 
 
 def test_with_every_layer_on_no_attack_executes_and_clean_pages_do_not_pause(report):
@@ -119,7 +119,7 @@ def test_a_real_kill_flag_does_not_change_the_experiment(tmp_path, monkeypatch, 
 
 # ------------------------------------------------------------------ evaluate_redteam (the eval harness entry point)
 def test_evaluate_redteam_shape_for_the_eval_harness():
-    out = rr.evaluate_redteam()
+    out = rr.evaluate_redteam(catalog=rr.builtin_catalog())
     assert [r["ablation"] for r in out["rows"]] == ["all_on", *[f"no_{layer}" for layer in LAYERS], "all_off"]
     for r in out["rows"]:
         assert set(r) >= {"ablation", "attack_success", "attack_ci", "task_success", "task_ci", "false_pause_rate", "n"}
@@ -127,16 +127,16 @@ def test_evaluate_redteam_shape_for_the_eval_harness():
     assert out["false_pause_rate"] == 0.0 and len(out["false_pause_ci"]) == 2
     assert out["meta"]["n_unit"] == "runs" and out["meta"]["origin"] == "synthetic" and out["meta"]["fast"] is False
     assert all(set(x) == {"id", "text", "severity"} for x in out["limitations"])
-    assert json.dumps(out) and json.dumps(out, sort_keys=True) == json.dumps(rr.evaluate_redteam(), sort_keys=True)
+    assert json.dumps(out) and json.dumps(out, sort_keys=True) == json.dumps(rr.evaluate_redteam(catalog=rr.builtin_catalog()), sort_keys=True)
 
 
 def test_evaluate_redteam_fast_is_a_deterministic_subset():
-    fast = rr.evaluate_redteam(fast=True)
-    full = rr.evaluate_redteam()
+    fast = rr.evaluate_redteam(fast=True, catalog=rr.builtin_catalog())
+    full = rr.evaluate_redteam(catalog=rr.builtin_catalog())
     assert fast["meta"]["fast"] is True and fast["rows"][0]["n"] < full["rows"][0]["n"]
     assert [r["ablation"] for r in fast["rows"]] == [r["ablation"] for r in full["rows"]]
-    assert not any(c["id"].startswith("only_") for c in fast["detail"]["configs"])
-    assert json.dumps(fast, sort_keys=True) == json.dumps(rr.evaluate_redteam(fast=True), sort_keys=True)
+    assert not any(c["id"].startswith(("only_", "nodet_")) for c in fast["detail"]["configs"])
+    assert json.dumps(fast, sort_keys=True) == json.dumps(rr.evaluate_redteam(fast=True, catalog=rr.builtin_catalog()), sort_keys=True)
     assert fast["rows"][0]["attack_success"] == 0.0 and fast["rows"][-1]["attack_success"] > 0.5
 
 
@@ -225,3 +225,182 @@ def test_html_parser_splits_visible_hidden_and_alt():
                            '<img alt="a chart"><script>var x=1</script><noscript>nojs</noscript></body>')
     assert spec.text == "Hi"
     assert set(spec.hidden) == {"skip", "ghost", "tiny", "off", "nojs"} and spec.alt == ("a chart",)
+
+
+# ------------------------------------------------------------------ the committed platform catalog (evals/redteam/attacks.json)
+import pathlib  # noqa: E402
+
+COMMITTED = pathlib.Path(__file__).resolve().parents[4] / "evals" / "redteam" / "attacks.json"
+needs_catalog = pytest.mark.skipif(not COMMITTED.exists(), reason="evals/redteam/attacks.json not present")
+GOAL_KINDS = {"exfil_type", "exfil_url", "navigate", "click_destructive", "settings_tamper", "raw_action"}
+
+
+@pytest.fixture(scope="module")
+def committed():
+    return rr.load_catalog()
+
+
+@pytest.fixture(scope="module")
+def committed_eval():
+    return rr.evaluate_redteam()
+
+
+@needs_catalog
+def test_committed_catalog_loads_completely(committed):
+    raw = json.loads(COMMITTED.read_text())
+    assert committed.source == str(COMMITTED) and committed.skipped == ()
+    assert len(committed.attacks) == len(raw["attacks"]) >= 24 and len(committed.clean) == len(raw["clean"]) >= 12
+    assert sum(c.hard_negative for c in committed.clean) == sum(bool(c.get("hard_negative")) for c in raw["clean"]) >= 10
+    assert all(a.payload and a.goal.kind in GOAL_KINDS and a.pages and a.task for a in committed.attacks)
+    assert len({a.id for a in committed.attacks}) == len(committed.attacks)
+    assert {a.category for a in committed.attacks} >= {"hidden_text", "fake_system_banner", "markdown_image_exfil",
+                                                       "tool_call_mimicry", "search_result", "pdf_text", "alt_text", "multi_step"}
+
+
+@needs_catalog
+def test_committed_catalog_success_tokens_ocr_sandbox_and_multistep_are_understood(committed):
+    raw = {e["id"]: e for e in json.loads(COMMITTED.read_text())["attacks"]}
+    by = {a.id: a for a in committed.attacks}
+    for aid, e in raw.items():
+        assert list(by[aid].success) == list(e.get("success_contains", []))
+        assert by[aid].task == e["task"]
+    ocr = [a for a in committed.attacks if a.where == "ocr"]
+    assert ocr and all(any(p.ocr for p in a.pages) for a in ocr)
+    sandbox = [a for a in committed.attacks if raw[a.id]["page"] is None]
+    assert sandbox and all(a.pages[0].url.startswith("http://127.0.0.1:78") and a.pages[0].hidden for a in sandbox)  # built offline
+    multi = [a for a in committed.attacks if a.category == "multi_step"]
+    assert multi and all(len(a.pages) >= 2 for a in multi)
+    assert any(a.also for a in committed.attacks)  # also_forbidden goals are carried
+
+
+@needs_catalog
+def test_committed_catalog_pages_put_each_payload_where_the_catalog_says(committed):
+    """The HTML parser must agree with the catalog's own `visible_to_user` flag, or the reader would see hidden text."""
+    raw = {e["id"]: e for e in json.loads(COMMITTED.read_text())["attacks"]}
+    for a in committed.attacks:
+        want_visible = raw[a.id].get("visible_to_user")
+        key = rr._alnum(raw[a.id]["hidden_payload"])[:40]
+        visible = any(key in rr._alnum(p.text) for p in a.pages)
+        anywhere = visible or any(key in rr._alnum(x) for p in a.pages for x in (*p.hidden, *p.alt, p.ocr))
+        assert anywhere, f"{a.id}: payload not found on its pages"
+        if want_visible is True:
+            assert visible, f"{a.id}: a visible payload was parsed as hidden"
+        if want_visible is False:
+            assert not visible, f"{a.id}: a hidden payload was parsed as visible"
+
+
+@needs_catalog
+def test_committed_catalog_clean_pages_hold_no_visible_instructions_and_hard_negatives_have_hidden_features(committed):
+    hn = [c for c in committed.clean if c.hard_negative]
+    assert hn and any(p.hidden for c in hn for p in c.pages)
+    assert all(c.task and c.pages for c in committed.clean)
+
+
+@needs_catalog
+def test_evaluate_redteam_on_the_committed_catalog_end_to_end(committed_eval):
+    out = committed_eval
+    assert "error" not in out["meta"] and out["meta"]["catalog"]["source"] == str(COMMITTED)
+    n_raw = len(json.loads(COMMITTED.read_text())["attacks"])
+    assert out["meta"]["catalog"]["skipped"] == [] and out["meta"]["n_committed"] == n_raw
+    assert out["meta"]["catalog"]["n_attacks"] == n_raw + out["meta"]["n_supplement"] == out["meta"]["n"]
+    assert out["meta"]["n_supplement"] >= 4 and len(out["meta"]["catalog"]["supplemented"]) == out["meta"]["n_supplement"]
+    assert out["committed_only"]["n"] == n_raw and out["committed_only"]["rows"][0]["n"] == n_raw and out["rows"][0]["n"] == n_raw + out["meta"]["n_supplement"]
+    info = out["detail"]["attack_info"]
+    assert {i for i, v in info.items() if v["supplemented"]} == set(out["meta"]["catalog"]["supplemented"])
+    assert [r["ablation"] for r in out["rows"]] == ["all_on", *[f"no_{layer}" for layer in LAYERS], "all_off"]
+    on, off = out["rows"][0], out["rows"][-1]
+    assert on["attack_success"] < off["attack_success"] and off["attack_success"] > 0.9
+    assert out["false_pause"]["n"] == out["meta"]["catalog"]["n_clean"] and out["false_pause_hard_negative"]["n"] >= 10
+    assert 0 <= out["false_pause_rate"] <= 1 and len(out["false_pause_ci"]) == 2 and len(out["false_pause_hard_negative"]["ci"]) == 2
+    assert json.dumps(out)
+
+
+@needs_catalog
+def test_evaluate_redteam_committed_catalog_is_deterministic_and_fast_mode_works():
+    a = json.dumps(rr.evaluate_redteam(fast=True), sort_keys=True)
+    b = json.dumps(rr.evaluate_redteam(fast=True), sort_keys=True)
+    assert a == b
+    fast = json.loads(a)
+    assert fast["meta"]["fast"] is True and fast["false_pause_hard_negative"]["n"] == 3 and fast["rows"][0]["n"] < 37
+
+
+# ------------------------------------------------------------------ evaluate_redteam never raises
+def test_evaluate_redteam_survives_a_broken_catalog_file(tmp_path):
+    bad = tmp_path / "attacks.json"
+    bad.write_text("{definitely not json")
+    out = rr.evaluate_redteam(fast=True, catalog=bad)
+    assert out["rows"] and out["meta"]["catalog"]["source"] == "builtin" and "error" not in out["meta"]
+
+
+def test_a_case_that_raises_is_skipped_and_listed_not_fatal(monkeypatch):
+    real = rr._run_case
+
+    def flaky(pages, attack, task, success, cfg, work, tag):
+        if attack is not None and attack.id == cat.ATTACKS[0].id:
+            raise RuntimeError("boom")
+        return real(pages, attack, task, success, cfg, work, tag)
+
+    monkeypatch.setattr(rr, "_run_case", flaky)
+    out = rr.evaluate_redteam(fast=False, catalog=rr.builtin_catalog())
+    skipped = out["meta"]["catalog"]["skipped"]
+    assert any(cat.ATTACKS[0].id in s and "boom" in s for s in skipped)
+    assert out["rows"][0]["n"] == len(cat.ATTACKS) - 1  # the rest ran and are counted honestly
+
+
+def test_if_everything_fails_the_result_still_has_an_error_field_and_no_exception(monkeypatch):
+    monkeypatch.setattr(rr, "_evaluate", lambda fast, catalog, supplement=True: (_ for _ in ()).throw(RuntimeError("total failure")))
+    out = rr.evaluate_redteam()
+    assert out["rows"] == [] and "total failure" in out["meta"]["error"] and out["meta"]["n"] == 0
+    assert any(x["id"] == "evaluation_failed" for x in out["limitations"]) and json.dumps(out)
+
+
+def test_attacks_carry_success_tokens_not_an_expected_dict():
+    assert cat.ATTACKS[0].success == ("812.4",) and cat.CLEAN[0].success == ("812.4",)
+
+
+# ------------------------------------------------------------------ html parsing of hiding tricks
+def test_html_parser_handles_svg_desc_comment_entities_tiny_and_camouflaged_text():
+    spec = rr.html_to_page(
+        '<body><main>Visible answer 55.</main>'
+        '<svg role="img"><title>Chart</title><desc>svg desc text</desc></svg>'
+        '<p style="font-size:1px;color:#f4f4f2">tiny</p><p style="color:transparent">clear</p>'
+        '<p style="font-size:12px;color:#fff;background:#b3261e">white on red banner</p>'
+        "<!-- it&#x27;s a comment --><input type='text' value='CASE-1007'><input type='hidden' value='secret-token'></body>")
+    assert "Visible answer 55." in spec.text and "white on red banner" in spec.text and "CASE-1007" in spec.text
+    assert "svg desc text" in spec.alt and "Chart" in spec.alt and "svg desc text" not in spec.text
+    assert {"tiny", "clear", "it's a comment", "secret-token"} <= set(spec.hidden)
+
+
+# ------------------------------------------------------------------ the supplement (settings tampering and raw actions) and the detector-miss rows
+@needs_catalog
+def test_supplement_adds_flagged_attacks_for_layers_3_and_8_and_reports_both_counts(committed_eval):
+    out = committed_eval
+    sup = out["meta"]["catalog"]["supplemented"]
+    assert set(sup) >= {"settings_kill", "settings_memory", "settings_quiet_hours", "toolcall_send_email", "toolcall_shell"}
+    assert out["meta"]["supplement"] is True and "committed_only" in out and "supplemental" in out["meta"]["note"].lower()
+    off = rr.evaluate_redteam(supplement=False)
+    assert off["meta"]["n"] == off["meta"]["n_committed"] and off["meta"]["catalog"]["supplemented"] == [] and off["meta"]["supplement"] is False
+    # the committed-only block equals what you get without the supplement
+    assert [r["attack_success"] for r in out["committed_only"]["rows"]] == [r["attack_success"] for r in off["rows"]]
+
+
+@needs_catalog
+def test_layers_3_and_8_show_an_effect_once_the_supplement_is_in_and_the_detector_misses(committed_eval):
+    cfg = {c["id"]: c for c in committed_eval["detail"]["configs"]}
+    assert cfg["only_settings"]["attack_success"]["rate"] < cfg["all_off"]["attack_success"]["rate"]
+    assert cfg["only_actions"]["attack_success"]["rate"] < cfg["all_off"]["attack_success"]["rate"]
+    assert cfg["nodet_no_settings"]["attack_success"]["rate"] >= cfg["without_detector"]["attack_success"]["rate"]
+    ids = committed_eval["detail"]["per_attack"]
+    assert ids["settings_kill"]["only_settings"].startswith("stopped:settings") and ids["settings_kill"]["all_off"] == "success"
+    assert ids["toolcall_shell"]["only_actions"].startswith("stopped:actions") and ids["toolcall_shell"]["all_off"] == "success"
+
+
+def test_builtin_catalog_is_not_double_supplemented():
+    out = rr.evaluate_redteam(fast=True, catalog=rr.builtin_catalog())
+    assert out["meta"]["catalog"]["supplemented"] == [] and out["meta"]["n"] == out["meta"]["n_committed"]
+
+
+def test_plain_language_limitations_are_present():
+    ids = {x["id"]: x["text"] for x in rr.LIMITATIONS}
+    assert "same_host_exfil" in ids and "detector_tradeoff" in ids
+    assert "pauses" in ids["detector_tradeoff"] and "already uses" in ids["same_host_exfil"]

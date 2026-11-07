@@ -8,11 +8,13 @@ export interface HudViewProps {
   onAction(action: HudAction): void
 }
 
-export function hoursText(range: [number, number] | null): string | null {
+// The hours are over the engine's horizon (for example 4 weeks), not per week: say the period or say nothing about it.
+export function hoursText(range: [number, number] | null, horizonWeeks: number | null = null): string | null {
   if (!range) return null
   const [lo, hi] = range
   const f = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
-  return `about ${f(lo)} to ${f(hi)} hours a week`
+  const period = horizonWeeks !== null && horizonWeeks > 0 ? ` over ${horizonWeeks === 1 ? 'a week' : `${Number.isInteger(horizonWeeks) ? horizonWeeks : horizonWeeks.toFixed(1)} weeks`}` : ''
+  return `about ${f(lo)} to ${f(hi)} hours${period}`
 }
 
 export function killDetail(kill: HudState['kill']): string {
@@ -23,7 +25,7 @@ export function killDetail(kill: HudState['kill']): string {
 }
 
 export function ProposalCard({ proposal, onAction }: { proposal: HudProposal; onAction(a: HudAction): void }): ReactElement {
-  const hours = hoursText(proposal.hoursSaved)
+  const hours = hoursText(proposal.hoursSaved, proposal.horizonWeeks)
   const choose = (choice: 'not_now' | 'never' | 'look') => () => onAction({ type: 'proposal', id: proposal.id, choice })
   return (
     <section className="card proposal" aria-labelledby="proposal-title">
