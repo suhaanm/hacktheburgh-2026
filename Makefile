@@ -29,11 +29,11 @@ dev:
 stop:
 	@bash scripts/stop.sh
 
-# The three-minute demo path: mock mode, no model calls, no network, isolated state (never your real ~/.understudy).
+# The three-minute walkthrough: mock mode, no model calls, no network, isolated state (never your real ~/.understudy). Every extension layer is on (UNDERSTUDY_X=1). Run `make stop` first if a stack is already running.
 demo:
 	@mkdir -p data/demo-home data/demo-data
 	@UNDERSTUDY_HOME=$(CURDIR)/data/demo-home UNDERSTUDY_DATA_DIR=$(CURDIR)/data/demo-data UNDERSTUDY_MOCK=1 $(UV_A) python -m understudy_engine.demo seed --reset
-	@UNDERSTUDY_HOME=$(CURDIR)/data/demo-home UNDERSTUDY_DATA_DIR=$(CURDIR)/data/demo-data UNDERSTUDY_MOCK=1 bash scripts/dev.sh --open
+	@UNDERSTUDY_HOME=$(CURDIR)/data/demo-home UNDERSTUDY_DATA_DIR=$(CURDIR)/data/demo-data UNDERSTUDY_MOCK=1 UNDERSTUDY_X=1 bash scripts/dev.sh --open
 
 # Plain green/amber/red readiness checklist (never prints secrets). `make preflight MODE=dev` relaxes the demo-only checks.
 preflight:
