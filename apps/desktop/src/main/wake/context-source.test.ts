@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildToolDeclarations } from '../live/tools'
-import { createContextHub, type ContextSourceDeps } from './context-source'
+import { createContextHub, screenIdFromUrl, type ContextSourceDeps } from './context-source'
 
 const tools = buildToolDeclarations({ items: [{ id: 'calc_a', label: 'Run calculator A' }, { id: 'read_case', label: 'Read the record' }] }, { wake: true })
 let t = 5_000_000
@@ -66,5 +66,28 @@ describe('the context hub', () => {
   it('a coach decision older than a minute is dropped', () => {
     const hub = createContextHub(deps({ coach: () => ({ step: 'calc_a', zone: 'main_form', t: t - 120_000 }) }))
     expect(hub.build({ tools, trigger: 'wake' })).not.toContain('coach=')
+  })
+})
+
+describe('screen ids and live readers', () => {
+  it('maps the dashboard route to the closed screen ids', () => {
+    expect(screenIdFromUrl('app://knack/#/home')).toBe('home')
+    expect(screenIdFromUrl('app://knack/#/needs-you?item=q1')).toBe('needs_you')
+    expect(screenIdFromUrl('app://knack/#/your-data')).toBe('your_data')
+    expect(screenIdFromUrl('app://knack/#/firm/people')).toBe('admin')
+    expect(screenIdFromUrl('app://knack/#/first-run')).toBe('first_run')
+    expect(screenIdFromUrl('app://knack/')).toBe('home')
+    expect(screenIdFromUrl('app://knack/#/genome')).toBe('other')
+    expect(screenIdFromUrl('app://knack/#/<script>alert(1)</script>')).toBe('other')
+  })
+  it('a live reader wins over a reported value, and null falls back to it', () => {
+    const hub = createContextHub(deps({ screen: () => 'needs_you', routine: () => ({ id: 'r_a', step: 1, of: 2 }) }))
+    hub.setScreen('home')
+    const text = hub.build({ tools, trigger: 'wake' })
+    expect(text).toContain('screen=needs_you')
+    expect(text).toContain('routine=r_a step=1/2')
+    const none = createContextHub(deps({ screen: () => null }))
+    none.setScreen('growth')
+    expect(none.build({ tools, trigger: 'wake' })).toContain('screen=growth')
   })
 })
