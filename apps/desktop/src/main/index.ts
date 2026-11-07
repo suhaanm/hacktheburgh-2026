@@ -21,6 +21,8 @@ import { isKilled } from './kill-flag'
 import { configureLegacyRemote, createLegacyRemoteGate, legacyGateReader, legacyRemoteOn } from './legacy-remote'
 import { liveFlagOn } from './live/flags'
 import { registerLive } from './live/electron'
+import { registerWake } from './wake/electron'
+import type { WakeController } from './wake/controller'
 import type { LiveRegistration } from './live'
 import type { CueSpeaker, CueVoice, LiveCuePort } from './cue/voice'
 import { redactingLog } from './model-port/redact'
@@ -90,6 +92,8 @@ void app.whenReady().then(async () => {
 
   // The awareness module is created below (it needs the coach poller); the legacy gate, the consent card and the tray read it through this box.
   const awarenessBox: { a: Awareness | null } = { a: null }
+  // Hey Knack (the on-device listener) is created after Live and the attention layer; the tray and Live's `do_it_for_me` read it through this box.
+  const wakeBox: { ctl: WakeController | null } = { ctl: null }
 
   // LEGACY REMOTE (D38): the old Alongside paths that can send a frame, file text or audio to OpenAI or Gemini are OFF unless
   // UNDERSTUDY_LEGACY_REMOTE=1. With it on, every request is gated like the privacy ImageGate and announced to the engine's ledger first.
@@ -199,7 +203,7 @@ void app.whenReady().then(async () => {
   // NOTIFY: permission prompts also appear as a toast at the top of the screen (settings.confirmStyle; no window when headless / no overlay).
   const toast = registerToast({ ctx, adoptOwner, disabled: headless || flag('ALONGSIDE_NO_OVERLAY') })
   const unregisterLoginItem = registerLoginItem(settings, { log: (...args) => ctx.log('login-item', ...args) })
-  if (!headless) shellTray = registerTray({ bus, state, settings, windows, stop: (r) => session.stop(r), showtimeRunning: () => showtime.active(), kill: { trigger: () => void understudy.kill.trigger('tray'), clear: () => void understudy.kill.clear(), isKilled: () => understudy.kill.isKilled() }, awareness: awareness ? trayAwareness(awareness) : undefined, openQueue: understudy.openQueue, captureMode: () => core.capture.mode(), coachLine: () => { const c = understudy.chip.current(); return c ? `Help level ${c.level}: ${HELP_LEVEL_LABELS[c.level]}` : null }, openDashboard: understudy.openDashboard, voiceMenu: () => featureOn('voice'), cueMenu: () => experimentOn('cue'), queueCount: () => understudy.hudModel.state().queuePending, agentActing: () => understudy.hudModel.state().agentActing, log: (...args) => ctx.log('tray', ...args) })
+  if (!headless) shellTray = registerTray({ bus, state, settings, windows, stop: (r) => session.stop(r), showtimeRunning: () => showtime.active(), kill: { trigger: () => void understudy.kill.trigger('tray'), clear: () => void understudy.kill.clear(), isKilled: () => understudy.kill.isKilled() }, awareness: awareness ? trayAwareness(awareness) : undefined, openQueue: understudy.openQueue, captureMode: () => core.capture.mode(), coachLine: () => { const c = understudy.chip.current(); return c ? `Help level ${c.level}: ${HELP_LEVEL_LABELS[c.level]}` : null }, openDashboard: understudy.openDashboard, wake: { view: () => (wakeBox.ctl ? { on: wakeBox.ctl.status().switchOn, line: wakeBox.ctl.status().line } : null), setListen: (on) => wakeBox.ctl?.setListen(on) }, voiceMenu: () => featureOn('voice'), cueMenu: () => experimentOn('cue'), queueCount: () => understudy.hudModel.state().queuePending, agentActing: () => understudy.hudModel.state().agentActing, log: (...args) => ctx.log('tray', ...args) })
   // The attention layer (the one-voice router). One call; null with its flag off.
   const screenShare = createScreenShareProbe()
   const attentionWiring = wireAttention({
@@ -251,6 +255,7 @@ void app.whenReady().then(async () => {
         owns: (id) => windows.owns(id),
         overlay: services.overlay,
         cue: cue?.livePort ?? noCuePort,
+        doIt: (req) => (wakeBox.ctl ? wakeBox.ctl.doIt(req) : Promise.resolve({ ok: false, reason: 'not_available' })),
         killed: isKilled,
         agentActing: () => understudy.hudModel.state().agentActing,
         cueVoiceOn: () => settings.get().cueVoice === true,
@@ -261,6 +266,27 @@ void app.whenReady().then(async () => {
   liveBox.reg = live
   live?.manager.start()
 
+  // Hey Knack (flag UNDERSTUDY_X_WAKE, on by default, D52): an on-device listener that opens the SAME Live conversation as the talk key. It is dormant
+  // while the screen is locked, during a call or meeting, while a conversation or an agent is active, and when the worker switches it off. The app
+  // runs normally without the helper binary or without the macOS permissions (one plain line in the menu).
+  const wake = live && !headless && experimentOn('wake')
+    ? registerWake({
+        userDataDir,
+        live,
+        endpoints: core.endpoints,
+        attentionSignals: attentionWiring ? () => attentionWiring.signals() : null,
+        lock: attentionWiring?.attention.lock ?? null,
+        mainSettings: settings,
+        agentActing: () => understudy.hudModel.state().agentActing,
+        killed: isKilled,
+        owns: (id) => windows.owns(id),
+        log: ctx.log,
+      })
+    : null
+  wakeBox.ctl = wake?.controller ?? null
+  wake?.controller.subscribe(() => shellTray?.refresh())
+  const offWakeKill = wake ? understudy.kill.subscribe((k) => wake.controller.setKilled(k.killed)) : null
+
   app.on('will-quit', () => {
     void showtime.dispose()
     shellTray?.dispose()
@@ -270,6 +296,8 @@ void app.whenReady().then(async () => {
     unregisterHotkeys()
     stopCue()
     cueSignals.stop()
+    offWakeKill?.()
+    wake?.dispose()
     live?.dispose()
     attentionWiring?.dispose()
     awareness?.dispose()
