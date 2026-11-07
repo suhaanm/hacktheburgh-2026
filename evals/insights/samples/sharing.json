@@ -1,0 +1,160 @@
+{
+ "data": {
+  "audience": "admin",
+  "badge": "synthetic firm",
+  "items": [
+   {
+    "id": "counts",
+    "kind": "count",
+    "label": "How many steps you did and how recently you were last seen"
+   },
+   {
+    "id": "independence",
+    "kind": "number",
+    "label": "The share of your last 20 steps finished without help, with its interval"
+   },
+   {
+    "id": "trend",
+    "kind": "enum",
+    "label": "Whether you need less help over time, as a plain class"
+   },
+   {
+    "id": "skills",
+    "kind": "number",
+    "label": "For each skill: how often you finished without help and how much longer than the expert's median you took, with intervals"
+   },
+   {
+    "id": "automation",
+    "kind": "count",
+    "label": "How many routines you approved and how many runs they did"
+   },
+   {
+    "id": "profile",
+    "kind": "enum",
+    "label": "Your role, unit, tenure band and a pseudonym label"
+   }
+  ],
+  "legal_note": "A real deployment needs a lawful basis and a clear notice to workers before any of this is shared. This build only demonstrates it on a synthetic firm.",
+  "level": "summary_numbers",
+  "never": [
+   "Raw events, clicks or keystrokes",
+   "Screenshots",
+   "Text from pages, files or messages",
+   "Your memory file",
+   "Individual ledger rows, times or ids beyond counts",
+   "Names of sites, files or people"
+  ],
+  "notice": "Your admin sees a summary of numbers about your work, shown below exactly as they see it. It is for coaching and onboarding, not for evaluating individuals. You can delete your assist ledger at any time; the summary then shows no data.",
+  "person": "p_f_bp06",
+  "preview": {
+   "assisted_share": {
+    "ci": [
+     0.1119,
+     0.4687
+    ],
+    "value": 0.25
+   },
+   "automation": {
+    "minutes": 0,
+    "routines_approved": 0,
+    "runs_done": 0
+   },
+   "automations_running": 0,
+   "id": "p_f_bp06",
+   "independence": {
+    "ci": [
+     0.481,
+     0.8545
+    ],
+    "value": 0.7
+   },
+   "label": "BP-06",
+   "last_seen_days": 2,
+   "level": "junior",
+   "n": 176,
+   "n_recent": 54,
+   "origin": "synthetic",
+   "role": "benefits-processor",
+   "skills": [
+    {
+     "independence_share": 0.5333,
+     "label": "Probe the cliff edge on every calculator",
+     "lost_s": {
+      "ci": [
+       39.7,
+       48.2
+      ],
+      "value": 44.6
+     },
+     "n": 45,
+     "skill": "check-the-cliff"
+    },
+    {
+     "independence_share": 0.8571,
+     "label": "Enter the household once, accurately, then reuse it",
+     "lost_s": {
+      "ci": [
+       0.2,
+       6.1
+      ],
+      "value": 1.6
+     },
+     "n": 42,
+     "skill": "enter-household-once"
+    },
+    {
+     "independence_share": 0.7451,
+     "label": "Read the error message before retrying",
+     "lost_s": {
+      "ci": [
+       -0.8,
+       4.0
+      ],
+      "value": 2.1
+     },
+     "n": 51,
+     "skill": "reads-error-first"
+    },
+    {
+     "independence_share": 0.5526,
+     "label": "Reconcile the results before writing the note",
+     "lost_s": {
+      "ci": [
+       17.6,
+       29.7
+      ],
+      "value": 21.8
+     },
+     "n": 38,
+     "skill": "reconcile-before-noting"
+    }
+   ],
+   "status": "ok",
+   "tenure_band": "1_3m",
+   "tenure_weeks": 12,
+   "time_to_independence": {
+    "reached": true,
+    "unit": "occurrences",
+    "value": 48
+   },
+   "trend": "cannot_tell_yet",
+   "trend_label": "Cannot tell yet",
+   "unit": "unit_a"
+  },
+  "statement": "For coaching and onboarding, not for evaluating individuals.",
+  "visible_since": "2026-08-17",
+  "visible_to": "People with the Admin role in your firm."
+ },
+ "meta": {
+  "as_of": "2026-11-09T09:00:00Z",
+  "audience": "worker",
+  "badge": "synthetic firm",
+  "generated_at": "2026-11-09T09:00:00Z",
+  "interval_level": null,
+  "n": 1,
+  "n_unit": "people",
+  "note": "Read-only: this is exactly what an admin sees about you.",
+  "origin": "synthetic",
+  "source": "firm"
+ }
+}

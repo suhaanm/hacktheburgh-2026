@@ -1,0 +1,82 @@
+{
+ "data": {
+  "badge": "synthetic firm",
+  "cap": 3,
+  "message": null,
+  "monday_note": "Understudy has 2 pointers for your week. On the cliff check, you usually take about 35 seconds longer than the expert's median. On reconciling before the note, you usually take about 15 seconds longer than the expert's median.",
+  "nothing_stands_out": false,
+  "origin": "synthetic",
+  "person": "p_f_bp06",
+  "pointers": [
+   {
+    "a11y_label": "Worth a look: On the cliff check, you usually take about 35 seconds longer than the expert's median.",
+    "action": {
+     "id": "open_growth",
+     "label": "Open Growth",
+     "to": "growth"
+    },
+    "badge": "synthetic firm",
+    "detail": "Open Growth to see where the time goes.",
+    "details_available": true,
+    "glyph": "clock",
+    "headline": "On the cliff check, you usually take about 35 seconds longer than the expert's median.",
+    "id": "i_c05775153981",
+    "kind": "time_loss_habit",
+    "numbers": {
+     "seconds": 35
+    },
+    "origin": "synthetic",
+    "polarity": "attention",
+    "polarity_label": "Worth a look",
+    "source": "Your assist ledger",
+    "text": "On the cliff check, you usually take about 35 seconds longer than the expert's median. Open Growth to see where the time goes. Source: Your assist ledger, synthetic firm data.",
+    "title": "A habit that costs time"
+   },
+   {
+    "a11y_label": "Worth a look: On reconciling before the note, you usually take about 15 seconds longer than the expert's median.",
+    "action": {
+     "id": "open_growth",
+     "label": "Open Growth",
+     "to": "growth"
+    },
+    "badge": "synthetic firm",
+    "detail": "Open Growth to see where the time goes.",
+    "details_available": true,
+    "glyph": "clock",
+    "headline": "On reconciling before the note, you usually take about 15 seconds longer than the expert's median.",
+    "id": "i_6dd1d0999b09",
+    "kind": "time_loss_habit",
+    "numbers": {
+     "seconds": 15
+    },
+    "origin": "synthetic",
+    "polarity": "attention",
+    "polarity_label": "Worth a look",
+    "source": "Your assist ledger",
+    "text": "On reconciling before the note, you usually take about 15 seconds longer than the expert's median. Open Growth to see where the time goes. Source: Your assist ledger, synthetic firm data.",
+    "title": "A habit that costs time"
+   }
+  ],
+  "role": "benefits-processor",
+  "stale_sources": [],
+  "status": "ok",
+  "try": null,
+  "week": {
+   "from": "2026-11-09",
+   "key": "2026-W46",
+   "to": "2026-11-15"
+  }
+ },
+ "meta": {
+  "as_of": "2026-11-09T09:00:00Z",
+  "audience": "worker",
+  "badge": "synthetic firm",
+  "generated_at": "2026-11-09T09:00:00Z",
+  "interval_level": null,
+  "n": 2,
+  "n_unit": "pointers",
+  "note": "A few pointers, chosen by fixed rules and worded from fixed sentences. No statistics are shown here.",
+  "origin": "synthetic",
+  "source": "firm"
+ }
+}

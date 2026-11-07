@@ -1,0 +1,164 @@
+{
+ "data": {
+  "columns": [
+   {
+    "key": "weight",
+    "label": "Share of expert occurrences",
+    "unit": "share"
+   },
+   {
+    "key": "gap",
+    "label": "Gap per case",
+    "unit": "seconds"
+   },
+   {
+    "key": "gap_ci",
+    "label": "Interval",
+    "unit": "seconds"
+   },
+   {
+    "key": "explains",
+    "label": "Explains",
+    "unit": "seconds"
+   },
+   {
+    "key": "share",
+    "label": "Share of the gap",
+    "unit": "share"
+   },
+   {
+    "key": "expert_rate",
+    "label": "Experts needed help",
+    "unit": "share"
+   },
+   {
+    "key": "junior_rate",
+    "label": "Juniors needed help",
+    "unit": "share"
+   }
+  ],
+  "headline": "Data analyst: juniors take about 20 seconds longer per case than experts.",
+  "id": "i_eaf2d8ab87bc",
+  "kind": "role_gap",
+  "method": "300 person-level bootstrap draws where an interval is a bootstrap; 3-week windows; seeds come from ids.",
+  "notes": [
+   "Each person counts once. Gaps are compared within each skill, then combined with the experts' skill mix as fixed weights.",
+   "The interval for the combined gap is a person-level bootstrap.",
+   "Data: synthetic firm. For coaching and onboarding, not for evaluating individuals."
+  ],
+  "reason_code": "selected_top_score",
+  "reason_text": "Selected: it passed every check and scored among the highest.",
+  "rows": [
+   {
+    "label": "Reconcile with the control figure before reporting",
+    "n": 11,
+    "values": {
+     "expert_rate": 0.0416,
+     "explains": 10.45,
+     "gap": 44.5,
+     "gap_ci": [
+      42.14,
+      46.85
+     ],
+     "junior_rate": 0.5061,
+     "share": 0.4978,
+     "weight": 0.2348
+    }
+   },
+   {
+    "label": "Compare to last period before sharing",
+    "n": 11,
+    "values": {
+     "expert_rate": 0.0265,
+     "explains": 5.22,
+     "gap": 17.58,
+     "gap_ci": [
+      14.93,
+      20.24
+     ],
+     "junior_rate": 0.416,
+     "share": 0.2488,
+     "weight": 0.297
+    }
+   },
+   {
+    "label": "Inspect the rows, not just the total",
+    "n": 11,
+    "values": {
+     "expert_rate": 0.0065,
+     "explains": 3.46,
+     "gap": 18.41,
+     "gap_ci": [
+      14.41,
+      22.41
+     ],
+     "junior_rate": 0.1939,
+     "share": 0.1648,
+     "weight": 0.1878
+    }
+   },
+   {
+    "label": "Profile the inputs before querying",
+    "n": 11,
+    "values": {
+     "expert_rate": 0.0297,
+     "explains": 1.86,
+     "gap": 6.64,
+     "gap_ci": [
+      4.7,
+      8.58
+     ],
+     "junior_rate": 0.1587,
+     "share": 0.0887,
+     "weight": 0.2805
+    }
+   }
+  ],
+  "series": [],
+  "state": "selected",
+  "statement": "For coaching and onboarding, not for evaluating individuals.",
+  "tables": [
+   {
+    "columns": [
+     {
+      "key": "gap",
+      "label": "Gap per case",
+      "unit": "seconds"
+     },
+     {
+      "key": "ci",
+      "label": "Interval",
+      "unit": "seconds"
+     }
+    ],
+    "id": "tenure",
+    "rows": [
+     {
+      "label": "1_3m",
+      "n": 11,
+      "values": {
+       "ci": [
+        20.0,
+        21.98
+       ],
+       "gap": 20.99
+      }
+     }
+    ],
+    "title": "Juniors by tenure band (groups under 5 are merged into Other)"
+   }
+  ]
+ },
+ "meta": {
+  "as_of": "2026-11-09T09:00:00Z",
+  "audience": "admin",
+  "badge": "synthetic firm",
+  "generated_at": "2026-11-09T09:00:00Z",
+  "interval_level": 0.95,
+  "n": 0,
+  "n_unit": "people",
+  "note": "For coaching and onboarding, not for evaluating individuals. Groups under 5 people are not compared.",
+  "origin": "synthetic",
+  "source": "firm"
+ }
+}

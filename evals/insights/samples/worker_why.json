@@ -1,0 +1,36 @@
+{
+ "data": {
+  "because": [
+   "It compares your time on this skill with the expert's median for the same step.",
+   "It uses your own work from the last three weeks."
+  ],
+  "headline": "On the cliff check, you usually take about 35 seconds longer than the expert's median.",
+  "id": "i_c05775153981",
+  "limits": [
+   "A pointer is a prompt to look, not a verdict.",
+   "It is a pattern in your own recent work and says nothing about your ability.",
+   "It is chosen by fixed rules, and worded from a fixed list of sentences."
+  ],
+  "reason_code": "selected_top_score",
+  "reason_text": "Selected: it passed every check and scored among the highest.",
+  "sources": [
+   {
+    "label": "Your assist ledger",
+    "origin": "synthetic"
+   }
+  ],
+  "state": "selected"
+ },
+ "meta": {
+  "as_of": "2026-11-09T09:00:00Z",
+  "audience": "worker",
+  "badge": "synthetic firm",
+  "generated_at": "2026-11-09T09:00:00Z",
+  "interval_level": null,
+  "n": 0,
+  "n_unit": "people",
+  "note": "The reason is a fixed sentence, not model text.",
+  "origin": "synthetic",
+  "source": "firm"
+ }
+}

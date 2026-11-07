@@ -1,0 +1,806 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://understudy.local/schema/insight.schema.json",
+  "title": "Understudy insight v1 (REQ-9)",
+  "description": "The public shapes of the insights layer: a worker pointer (fixed-template text, NO statistics), an admin insight card (effect, interval, n, split) and the admin's per-user row (numbers and enums only). Every field is an enum, a number, an id or a fixed-template sentence: there is no free-text field a model or a page could fill, and no ledger row, row id or hour bucket can appear. Admin text always ends with the coaching sentence. Additive: new optional keys may be added; the enums only grow.",
+  "$defs": {
+    "kind": {
+      "enum": [
+        "time_loss_habit",
+        "habit_improved",
+        "independence_milestone",
+        "retention_due",
+        "relapse",
+        "automation_opportunity",
+        "calendar_pointer",
+        "git_pointer",
+        "onboarding",
+        "stale_data",
+        "trade_off",
+        "role_gap",
+        "cohort_trend",
+        "bottleneck_skill",
+        "onboarding_speed",
+        "unit_attention",
+        "automation_value",
+        "automation_pending",
+        "risk_signal",
+        "coverage",
+        "data_stale"
+      ]
+    },
+    "polarity": {
+      "enum": [
+        "positive",
+        "attention",
+        "tradeoff",
+        "note"
+      ]
+    },
+    "glyph": {
+      "enum": [
+        "clock",
+        "trend_up",
+        "trend_down",
+        "check",
+        "refresh",
+        "repeat",
+        "calendar",
+        "branch",
+        "start",
+        "scale",
+        "pause",
+        "alert",
+        "people",
+        "gauge",
+        "bolt",
+        "layers"
+      ]
+    },
+    "origin": {
+      "enum": [
+        "real",
+        "synthetic",
+        "mixed"
+      ]
+    },
+    "badge": {
+      "enum": [
+        "live",
+        "synthetic",
+        "synthetic firm",
+        "simulated"
+      ]
+    },
+    "trend": {
+      "enum": [
+        "improving",
+        "cannot_tell_yet",
+        "needs_attention",
+        "not_enough_data"
+      ]
+    },
+    "reason": {
+      "enum": [
+        "not_enough_data",
+        "no_expert_reference",
+        "stale",
+        "interval_spans_zero",
+        "below_effect_floor",
+        "not_persistent",
+        "not_significant_after_family_control",
+        "group_too_small",
+        "short_absence",
+        "role_changed",
+        "onboarding",
+        "repeat_recently",
+        "same_kind_lower_score",
+        "same_subject_lower_score",
+        "over_cap",
+        "hidden_by_feedback",
+        "selected_top_score",
+        "selected_positive_slot",
+        "selected_reserved_risk",
+        "selected_trade_off",
+        "unknown_insight"
+      ]
+    },
+    "status_worker": {
+      "enum": [
+        "ok",
+        "nothing_stands_out",
+        "onboarding",
+        "stale",
+        "no_data",
+        "role_changed"
+      ]
+    },
+    "status_person": {
+      "enum": [
+        "ok",
+        "onboarding",
+        "stale",
+        "no_data"
+      ]
+    },
+    "tenure_band": {
+      "enum": [
+        "lt_4w",
+        "1_3m",
+        "3_6m",
+        "6_12m",
+        "12m_plus"
+      ]
+    },
+    "feedback_event": {
+      "enum": [
+        "useful",
+        "not_useful",
+        "dismissed",
+        "done",
+        "never_show",
+        "hide_kind",
+        "show_kind"
+      ]
+    },
+    "insight_id": {
+      "type": "string",
+      "pattern": "^i_[0-9a-f]{12}$"
+    },
+    "est": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "ci"
+      ],
+      "properties": {
+        "value": {
+          "type": "number"
+        },
+        "ci": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    },
+    "action": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "to"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "open_firm",
+            "open_git",
+            "open_growth",
+            "open_onboarding",
+            "open_practice",
+            "open_queue",
+            "open_repeats",
+            "open_roles",
+            "open_routines",
+            "open_week"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "to": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "query": {
+          "type": "string",
+          "maxLength": 24
+        }
+      }
+    },
+    "worker_pointer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "polarity",
+        "polarity_label",
+        "glyph",
+        "title",
+        "headline",
+        "detail",
+        "text",
+        "source",
+        "badge",
+        "origin",
+        "numbers",
+        "action",
+        "details_available",
+        "a11y_label"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/insight_id"
+        },
+        "kind": {
+          "$ref": "#/$defs/kind"
+        },
+        "polarity": {
+          "$ref": "#/$defs/polarity"
+        },
+        "polarity_label": {
+          "enum": [
+            "Going well",
+            "Worth a look",
+            "Trade-off",
+            "Note"
+          ]
+        },
+        "glyph": {
+          "$ref": "#/$defs/glyph"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "headline": {
+          "type": "string",
+          "maxLength": 240
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 400
+        },
+        "source": {
+          "enum": [
+            "Firm assist ledgers",
+            "Firm risk feeds",
+            "Firm routines",
+            "Understudy",
+            "Your assist ledger",
+            "Your calendar",
+            "Your git history",
+            "Your repeat list",
+            "Your routines"
+          ]
+        },
+        "badge": {
+          "$ref": "#/$defs/badge"
+        },
+        "origin": {
+          "$ref": "#/$defs/origin"
+        },
+        "numbers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "maxProperties": 4
+        },
+        "action": {
+          "$ref": "#/$defs/action"
+        },
+        "details_available": {
+          "type": "boolean"
+        },
+        "a11y_label": {
+          "type": "string",
+          "maxLength": 300
+        }
+      }
+    },
+    "worker_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "person",
+        "role",
+        "week",
+        "status",
+        "nothing_stands_out",
+        "message",
+        "pointers",
+        "try",
+        "monday_note",
+        "stale_sources",
+        "cap",
+        "badge",
+        "origin"
+      ],
+      "properties": {
+        "person": {
+          "type": "string",
+          "pattern": "^p_[a-z0-9_]{1,30}$"
+        },
+        "role": {
+          "type": "string"
+        },
+        "week": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "key",
+            "from",
+            "to"
+          ],
+          "properties": {
+            "key": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-W[0-9]{2}$"
+            },
+            "from": {
+              "type": "string",
+              "format": "date"
+            },
+            "to": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        },
+        "status": {
+          "$ref": "#/$defs/status_worker"
+        },
+        "nothing_stands_out": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 200
+        },
+        "pointers": {
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/worker_pointer"
+          }
+        },
+        "try": {
+          "type": "null"
+        },
+        "monday_note": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "stale_sources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cap": {
+          "const": 3
+        },
+        "badge": {
+          "$ref": "#/$defs/badge"
+        },
+        "origin": {
+          "$ref": "#/$defs/origin"
+        }
+      }
+    },
+    "admin_card": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "headline",
+        "text",
+        "polarity",
+        "polarity_label",
+        "glyph",
+        "role",
+        "effect",
+        "n",
+        "n_unit",
+        "split",
+        "origin",
+        "badge",
+        "source",
+        "drill",
+        "position",
+        "a11y_label",
+        "statement",
+        "action"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/insight_id"
+        },
+        "kind": {
+          "$ref": "#/$defs/kind"
+        },
+        "headline": {
+          "type": "string",
+          "maxLength": 240
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 600,
+          "pattern": "For coaching and onboarding, not for evaluating individuals\\.$"
+        },
+        "polarity": {
+          "$ref": "#/$defs/polarity"
+        },
+        "polarity_label": {
+          "enum": [
+            "Going well",
+            "Worth a look",
+            "Trade-off",
+            "Note"
+          ]
+        },
+        "glyph": {
+          "$ref": "#/$defs/glyph"
+        },
+        "role": {
+          "type": "string"
+        },
+        "effect": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "label",
+            "unit",
+            "value",
+            "ci"
+          ],
+          "properties": {
+            "label": {
+              "type": "string"
+            },
+            "unit": {
+              "type": "string"
+            },
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "ci": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          }
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "n_unit": {
+          "type": "string"
+        },
+        "split": {
+          "type": "object"
+        },
+        "origin": {
+          "$ref": "#/$defs/origin"
+        },
+        "badge": {
+          "$ref": "#/$defs/badge"
+        },
+        "source": {
+          "enum": [
+            "Firm assist ledgers",
+            "Firm risk feeds",
+            "Firm routines",
+            "Understudy",
+            "Your assist ledger",
+            "Your calendar",
+            "Your git history",
+            "Your repeat list",
+            "Your routines"
+          ]
+        },
+        "drill": {
+          "$ref": "#/$defs/insight_id"
+        },
+        "position": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7
+        },
+        "a11y_label": {
+          "type": "string"
+        },
+        "statement": {
+          "const": "For coaching and onboarding, not for evaluating individuals."
+        },
+        "action": {
+          "$ref": "#/$defs/action"
+        }
+      }
+    },
+    "user_row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "role",
+        "level",
+        "unit",
+        "tenure_band",
+        "tenure_weeks",
+        "status",
+        "trend",
+        "trend_label",
+        "independence",
+        "assisted_share",
+        "time_to_independence",
+        "automations_running",
+        "automation",
+        "n",
+        "n_recent",
+        "last_seen_days",
+        "skills",
+        "origin"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^p_[a-z0-9_]{1,30}$"
+        },
+        "label": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}-[0-9]{2,3}$|^p_"
+        },
+        "role": {
+          "type": "string"
+        },
+        "level": {
+          "enum": [
+            "expert",
+            "junior"
+          ]
+        },
+        "unit": {
+          "type": "string"
+        },
+        "tenure_band": {
+          "$ref": "#/$defs/tenure_band"
+        },
+        "tenure_weeks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "status": {
+          "$ref": "#/$defs/status_person"
+        },
+        "trend": {
+          "$ref": "#/$defs/trend"
+        },
+        "trend_label": {
+          "enum": [
+            "Improving",
+            "Cannot tell yet",
+            "Needs attention",
+            "Not enough data"
+          ]
+        },
+        "independence": {
+          "$ref": "#/$defs/est"
+        },
+        "assisted_share": {
+          "$ref": "#/$defs/est"
+        },
+        "time_to_independence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reached",
+            "value",
+            "unit"
+          ],
+          "properties": {
+            "reached": {
+              "type": "boolean"
+            },
+            "value": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "unit": {
+              "const": "occurrences"
+            }
+          }
+        },
+        "automations_running": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "automation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "routines_approved",
+            "runs_done",
+            "minutes"
+          ],
+          "properties": {
+            "routines_approved": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "runs_done": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minutes": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "n_recent": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "last_seen_days": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "skills": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "skill",
+              "label",
+              "n",
+              "independence_share",
+              "lost_s"
+            ],
+            "properties": {
+              "skill": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_.\\-]{0,47}$"
+              },
+              "label": {
+                "type": "string"
+              },
+              "n": {
+                "type": "integer"
+              },
+              "independence_share": {
+                "type": "number"
+              },
+              "lost_s": {
+                "$ref": "#/$defs/est"
+              }
+            }
+          }
+        },
+        "origin": {
+          "$ref": "#/$defs/origin"
+        }
+      }
+    },
+    "drill": {
+      "type": "object",
+      "required": [
+        "id",
+        "headline",
+        "kind",
+        "columns",
+        "rows",
+        "series",
+        "tables",
+        "notes",
+        "state",
+        "reason_code",
+        "reason_text",
+        "statement"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/insight_id"
+        },
+        "kind": {
+          "$ref": "#/$defs/kind"
+        },
+        "state": {
+          "enum": [
+            "selected",
+            "suppressed",
+            "unknown"
+          ]
+        },
+        "reason_code": {
+          "$ref": "#/$defs/reason"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "key",
+              "label"
+            ]
+          }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "label",
+              "values"
+            ]
+          }
+        },
+        "series": {
+          "type": "array"
+        },
+        "tables": {
+          "type": "array"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "statement": {
+          "const": "For coaching and onboarding, not for evaluating individuals."
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/worker_response"
+    },
+    {
+      "$ref": "#/$defs/admin_card"
+    },
+    {
+      "$ref": "#/$defs/user_row"
+    },
+    {
+      "$ref": "#/$defs/drill"
+    }
+  ]
+}

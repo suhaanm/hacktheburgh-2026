@@ -1,0 +1,946 @@
+{
+ "claims": [
+  "On null data the worker false-insight rate was 0.0052 per worker-week (22 of 4200 person-weeks, 600 people; 95% interval [0.0031, 0.0081]; target at most 0.05; met). Without family control it would have been 0.0562. Synthetic.",
+  "On null data the admin false-insight rate was 0.0 per admin-week (0 of 40, 10 firms; 95% interval [0.0, 0.0]; target at most 0.10; met). Synthetic.",
+  "Planted time loss 15s: selected in 99 of 100 worlds (rate 0.99, interval [0.9455, 0.9982]); passed the gate in 0.99. Synthetic.",
+  "Planted time loss 30s: selected in 100 of 100 worlds (rate 1.0, interval [0.963, 1.0]); passed the gate in 1.0. Synthetic.",
+  "Planted time loss 60s: selected in 100 of 100 worlds (rate 1.0, interval [0.963, 1.0]); passed the gate in 1.0. Synthetic.",
+  "Planted improved: selected in 86 of 100 worlds (rate 0.86, interval [0.7786, 0.9147]); passed the gate in 0.98. Synthetic.",
+  "Planted rise: selected in 47 of 100 worlds (rate 0.47, interval [0.3751, 0.5671]); passed the gate in 0.47. Synthetic.",
+  "Planted relapse: selected in 82 of 100 worlds (rate 0.82, interval [0.7333, 0.883]); passed the gate in 0.82. Synthetic.",
+  "Planted retention: selected in 100 of 100 worlds (rate 1.0, interval [0.963, 1.0]); passed the gate in 1.0. Synthetic.",
+  "Planted tradeoff: selected in 81 of 100 worlds (rate 0.81, interval [0.7222, 0.8749]); passed the gate in 0.97. Synthetic.",
+  "Of 251 empty worker lists on the planted firm, 214 had no planted effect and 37 had at least one that was missed (planted effects: 564, passed the gate 0.7606, selected in the top 3 0.7429). Synthetic.",
+  "With 5% of rows dropped, the worker top-3 sets had mean Jaccard 0.8782 among people with a non-empty set and the admin top-7 0.9167 (target 0.8). Synthetic.",
+  "Determinism: run twice identical True; shuffled rows and people identical True.",
+  "k-anonymity violations across 11 firms: 0 (target 0).",
+  "Edge-case matrix: 21 of 21 pass."
+ ],
+ "determinism": {
+  "hash": "6d4221b3bbf4bb07",
+  "regenerated_firm_identical": true,
+  "run_twice_identical": true,
+  "shuffled_rows_and_people_identical": true,
+  "target": "identical"
+ },
+ "edge_cases": [
+  {
+   "edge_case": "new_user_too_few_occurrences",
+   "expected": "status onboarding, one onboarding pointer, no comparison",
+   "pass": true,
+   "scenario": "5 occurrences",
+   "test": "test_worker::test_a_new_user_gets_an_onboarding_pointer_and_no_comparison"
+  },
+  {
+   "edge_case": "no_expert_reference",
+   "expected": "time comparison suppressed with reason no_expert_reference",
+   "pass": true,
+   "scenario": "14 occurrences without lost_s",
+   "test": "test_worker::test_no_expert_reference_gives_no_time_comparison_and_says_why"
+  },
+  {
+   "edge_case": "stale_data",
+   "expected": "status stale, a stale marker, no old insight",
+   "pass": true,
+   "scenario": "newest row 40 days old",
+   "test": "test_worker::test_stale_data_gives_a_stale_marker_not_silence_and_not_old_insights"
+  },
+  {
+   "edge_case": "partial_data",
+   "expected": "computed on the rows that have the figure (n counts only those), or no_expert_reference when under half have it; no crash",
+   "pass": true,
+   "scenario": "half the rows without lost_s",
+   "test": "test_worker"
+  },
+  {
+   "edge_case": "role_or_pack_change",
+   "expected": "baselines reset: status role_changed, an onboarding pointer, old rows unused",
+   "pass": true,
+   "scenario": "role changed 3 days ago, 4 new-role rows",
+   "test": "test_worker::test_a_role_change_resets_baselines_and_flags_the_discontinuity"
+  },
+  {
+   "edge_case": "absence_not_read_as_relapse",
+   "expected": "no relapse pointer",
+   "pass": true,
+   "scenario": "mastered skill, 34-day break, 4 weaker occurrences back",
+   "test": "test_worker::test_a_short_absence_is_not_read_as_a_relapse_and_gives_retention_not_decay_claims"
+  },
+  {
+   "edge_case": "outlier_week_regression_to_the_mean",
+   "expected": "no time-loss pointer (the sign must hold in 2 of 3 weeks)",
+   "pass": true,
+   "scenario": "all the loss in one week of three",
+   "test": "test_worker::test_one_extreme_week_cannot_make_a_habit_regression_to_the_mean"
+  },
+  {
+   "edge_case": "ties",
+   "expected": "same order, ties by id",
+   "pass": true,
+   "scenario": "six candidates with identical scores, input reversed",
+   "test": "test_select::test_order_is_by_score_ties_by_id_and_input_order_never_matters"
+  },
+  {
+   "edge_case": "conflicting_metrics",
+   "expected": "shown as a trade-off, never as a celebration",
+   "pass": true,
+   "scenario": "faster, with errors rising",
+   "test": "test_worker::test_faster_but_more_errors_is_shown_as_a_trade_off_never_as_a_celebration"
+  },
+  {
+   "edge_case": "simpsons_paradox",
+   "expected": "the standardised change is above the raw pooled change and shows improvement",
+   "pass": true,
+   "scenario": "a role whose task mix shifts to harder skills while every skill improves",
+   "test": "test_admin::test_simpsons_paradox_is_resolved_by_standardising_not_by_the_raw_rate"
+  },
+  {
+   "edge_case": "tiny_cohorts",
+   "expected": "no comparison; groups under 5 are not compared",
+   "pass": true,
+   "scenario": "4 experts and 4 juniors",
+   "test": "test_admin::test_a_comparison_group_below_five_is_refused_in_one_place"
+  },
+  {
+   "edge_case": "tiny_cohorts_merge_into_other",
+   "expected": "small cells pooled into Other (5 people) and never shown alone",
+   "pass": true,
+   "scenario": "cells of 6, 2, 1 and 2 people",
+   "test": "test_admin::test_merge_small_pools_small_cells_into_other_and_never_shows_a_group_below_k"
+  },
+  {
+   "edge_case": "deleted_ledger_or_no_data",
+   "expected": "status no_data, absent from every comparison group, counted in coverage",
+   "pass": true,
+   "scenario": "a person's ledger deleted",
+   "test": "test_admin::test_a_deleted_ledger_disappears_from_every_comparison_at_once"
+  },
+  {
+   "edge_case": "delegated_and_automation_never_in_independence",
+   "expected": "no candidate: offloaded work never moves an independence number",
+   "pass": true,
+   "scenario": "40 delegated and 40 automation rows, nothing else",
+   "test": "test_worker::test_delegated_and_automation_rows_never_reach_an_independence_insight"
+  },
+  {
+   "edge_case": "same_insight_repeated",
+   "expected": "suppressed (repeat_recently); a material change is shown again",
+   "pass": true,
+   "scenario": "shown twice in 28 days, unchanged; then doubled",
+   "test": "test_select::test_novelty_halves_per_repeat_and_suppresses_an_unchanged_insight_after_two_shows"
+  },
+  {
+   "edge_case": "time_zones",
+   "expected": "the week key follows the person's zone; an unknown zone is UTC",
+   "pass": true,
+   "scenario": "Sunday 23:59 UTC",
+   "test": "test_routes::test_the_worker_week_follows_the_workers_own_time_zone"
+  },
+  {
+   "edge_case": "origin_badges_on_every_insight",
+   "expected": "badge and origin set; the text names the source and says synthetic firm data",
+   "pass": true,
+   "scenario": "any selected pointer",
+   "test": "test_worker::test_origin_and_badge_are_on_every_candidate"
+  },
+  {
+   "edge_case": "accessibility_not_colour_alone",
+   "expected": "a word, a glyph name and an a11y label carry the meaning",
+   "pass": true,
+   "scenario": "every polarity",
+   "test": "test_texts::test_a11y_label_carries_the_polarity_in_words"
+  },
+  {
+   "edge_case": "no_individual_ranking_or_score",
+   "expected": "label order, no rank or score field",
+   "pass": true,
+   "scenario": "the per-user rows",
+   "test": "test_admin::test_per_user_rows_are_numbers_and_enums_in_label_order_with_no_rank_or_score"
+  },
+  {
+   "edge_case": "no_admin_insight_has_a_person_as_subject",
+   "expected": "subject is a role, unit, skill, signal or the firm",
+   "pass": true,
+   "scenario": "every admin candidate",
+   "test": "test_admin::test_no_admin_insight_has_a_person_as_its_subject"
+  },
+  {
+   "edge_case": "admin_role_gate",
+   "expected": "403 admin_token_required; the worker route never returns admin data",
+   "pass": true,
+   "scenario": "admin header without the per-boot token",
+   "test": "test_routes::test_the_admin_role_needs_the_header_and_the_per_boot_token (route level, run by the test suite)"
+  }
+ ],
+ "k_anonymity": {
+  "examples": [],
+  "firms_checked": 11,
+  "small_firm_comparisons": 0,
+  "target": 0,
+  "violations": 0
+ },
+ "limitations": [
+  "No human has used the layer: whether workers find the pointers useful, or admins decide better, is not shown (the live check with four teammates is not run).",
+  "The generators were written by the author of the selection, so planted effects are easier to recover than real ones. This is a test of the code paths and the statistics.",
+  "The false-insight rates are for null worlds with independent weeks; real people have autocorrelation, seasonality and shared events, which will raise them.",
+  "The thresholds are a priori values checked on synthetic data; they are not tuned for any real firm.",
+  "Per-user visibility for an employer needs a lawful basis and a notice to workers in a real deployment; nothing here supplies one."
+ ],
+ "meta": {
+  "badge": "synthetic firm",
+  "fast": false,
+  "origin": "synthetic",
+  "people_per_firm": 60,
+  "plan": "evals/insights/PLAN.md",
+  "seed_list": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "seeds": "dev"
+ },
+ "nothing_stands_out": {
+  "by_kind": {
+   "habit_improved": {
+    "n": 74,
+    "passed_gate": {
+     "ci": [
+      0.5077,
+      0.7235
+     ],
+     "k": 46,
+     "n": 74,
+     "rate": 0.6216
+    },
+    "selected": {
+     "ci": [
+      0.3889,
+      0.6111
+     ],
+     "k": 37,
+     "n": 74,
+     "rate": 0.5
+    }
+   },
+   "independence_milestone": {
+    "n": 51,
+    "passed_gate": {
+     "ci": [
+      0.0681,
+      0.2572
+     ],
+     "k": 7,
+     "n": 51,
+     "rate": 0.1373
+    },
+    "selected": {
+     "ci": [
+      0.0681,
+      0.2572
+     ],
+     "k": 7,
+     "n": 51,
+     "rate": 0.1373
+    }
+   },
+   "time_loss_habit": {
+    "n": 439,
+    "passed_gate": {
+     "ci": [
+      0.8206,
+      0.8862
+     ],
+     "k": 376,
+     "n": 439,
+     "rate": 0.8565
+    },
+    "selected": {
+     "ci": [
+      0.8181,
+      0.8842
+     ],
+     "k": 375,
+     "n": 439,
+     "rate": 0.8542
+    }
+   }
+  },
+  "by_size": {
+   "habit_improved 12 to 20 s": {
+    "n": 58,
+    "passed_gate": {
+     "ci": [
+      0.4245,
+      0.6725
+     ],
+     "k": 32,
+     "n": 58,
+     "rate": 0.5517
+    },
+    "selected": {
+     "ci": [
+      0.3275,
+      0.5755
+     ],
+     "k": 26,
+     "n": 58,
+     "rate": 0.4483
+    }
+   },
+   "habit_improved 20 to 40 s": {
+    "n": 16,
+    "passed_gate": {
+     "ci": [
+      0.6398,
+      0.965
+     ],
+     "k": 14,
+     "n": 16,
+     "rate": 0.875
+    },
+    "selected": {
+     "ci": [
+      0.444,
+      0.8584
+     ],
+     "k": 11,
+     "n": 16,
+     "rate": 0.6875
+    }
+   },
+   "time_loss_habit 12 to 20 s": {
+    "n": 123,
+    "passed_gate": {
+     "ci": [
+      0.6732,
+      0.8235
+     ],
+     "k": 93,
+     "n": 123,
+     "rate": 0.7561
+    },
+    "selected": {
+     "ci": [
+      0.6645,
+      0.8164
+     ],
+     "k": 92,
+     "n": 123,
+     "rate": 0.748
+    }
+   },
+   "time_loss_habit 20 to 40 s": {
+    "n": 260,
+    "passed_gate": {
+     "ci": [
+      0.8401,
+      0.918
+     ],
+     "k": 230,
+     "n": 260,
+     "rate": 0.8846
+    },
+    "selected": {
+     "ci": [
+      0.8401,
+      0.918
+     ],
+     "k": 230,
+     "n": 260,
+     "rate": 0.8846
+    }
+   },
+   "time_loss_habit 40 s or more": {
+    "n": 56,
+    "passed_gate": {
+     "ci": [
+      0.8539,
+      0.9816
+     ],
+     "k": 53,
+     "n": 56,
+     "rate": 0.9464
+    },
+    "selected": {
+     "ci": [
+      0.8539,
+      0.9816
+     ],
+     "k": 53,
+     "n": 56,
+     "rate": 0.9464
+    }
+   }
+  },
+  "empty_lists": 251,
+  "genuinely_null": 214,
+  "missed_a_planted_effect": 37,
+  "missed_effect_kinds_in_empty_lists": {
+   "habit_improved": 5,
+   "independence_milestone": 10,
+   "time_loss_habit": 28
+  },
+  "missed_effects_by_reason": {
+   "below_effect_floor": 51,
+   "interval_spans_zero": 7,
+   "no_candidate": 6,
+   "not_enough_data": 10,
+   "not_persistent": 2,
+   "not_significant_after_family_control": 58,
+   "short_absence": 1
+  },
+  "missed_share_of_empty": {
+   "ci": [
+    0.1089,
+    0.1966
+   ],
+   "k": 37,
+   "n": 251,
+   "rate": 0.1474
+  },
+  "note": "An effect can pass every check and still not be shown because only 3 pointers fit; 'selected_in_top_3' is the stricter number. A person with more than three real effects cannot show them all.",
+  "people_with_data": 570,
+  "planted_effects": {
+   "n": 564,
+   "passed_gate": {
+    "ci": [
+     0.7237,
+     0.794
+    ],
+    "k": 429,
+    "n": 564,
+    "rate": 0.7606
+   },
+   "selected_in_top_3": {
+    "ci": [
+     0.7053,
+     0.7772
+    ],
+    "k": 419,
+    "n": 564,
+    "rate": 0.7429
+   }
+  }
+ },
+ "null_admin": {
+  "admin_weeks": {
+   "ci": [
+    0.0,
+    0.0
+   ],
+   "clusters": 10,
+   "k": 0,
+   "n": 40,
+   "rate": 0.0
+  },
+  "false_insights_by_kind": {},
+  "firms": 10,
+  "target": 0.1
+ },
+ "null_worker": {
+  "false_pointers_by_kind": {
+   "habit_improved": 19,
+   "relapse": 3
+  },
+  "firms": 10,
+  "nothing_stands_out": {
+   "ci": [
+    0.9793,
+    0.987
+   ],
+   "k": 4131,
+   "n": 4200,
+   "rate": 0.9836
+  },
+  "person_weeks": {
+   "ci": [
+    0.0031,
+    0.0081
+   ],
+   "clusters": 600,
+   "k": 22,
+   "n": 4200,
+   "rate": 0.0052
+  },
+  "target": 0.05,
+  "without_family_control": {
+   "ci": [
+    0.0471,
+    0.0643
+   ],
+   "clusters": 600,
+   "k": 236,
+   "n": 4200,
+   "rate": 0.0562
+  }
+ },
+ "recall_admin": {
+  "seeds": 10,
+  "situations": {
+   "automation_value": {
+    "passed_gate": {
+     "ci": [
+      0.7225,
+      1.0
+     ],
+     "k": 10,
+     "n": 10,
+     "rate": 1.0
+    },
+    "selected_in_top_7": {
+     "ci": [
+      0.7225,
+      1.0
+     ],
+     "k": 10,
+     "n": 10,
+     "rate": 1.0
+    }
+   },
+   "bottleneck:benefits-processor": {
+    "passed_gate": {
+     "ci": [
+      0.4902,
+      0.9433
+     ],
+     "k": 8,
+     "n": 10,
+     "rate": 0.8
+    }
+   },
+   "bottleneck:data-analyst": {
+    "passed_gate": {
+     "ci": [
+      0.7225,
+      1.0
+     ],
+     "k": 10,
+     "n": 10,
+     "rate": 1.0
+    }
+   },
+   "bottleneck:programmer": {
+    "passed_gate": {
+     "ci": [
+      0.3006,
+      0.9544
+     ],
+     "k": 3,
+     "n": 4,
+     "rate": 0.75
+    }
+   },
+   "improving_trend:benefits-processor": {
+    "passed_gate": {
+     "ci": [
+      0.5958,
+      0.9821
+     ],
+     "k": 9,
+     "n": 10,
+     "rate": 0.9
+    }
+   },
+   "no_data_user:p_f_da18": {
+    "passed_gate": {
+     "ci": [
+      0.7225,
+      1.0
+     ],
+     "k": 10,
+     "n": 10,
+     "rate": 1.0
+    }
+   },
+   "no_expert_reference:programmer": {
+    "passed_gate": {
+     "ci": [
+      0.7225,
+      1.0
+     ],
+     "k": 10,
+     "n": 10,
+     "rate": 1.0
+    }
+   },
+   "plateau_unit_flagged:benefits-processor/unit_b": {
+    "passed_gate": {
+     "ci": [
+      0.4902,
+      0.9433
+     ],
+     "k": 8,
+     "n": 10,
+     "rate": 0.8
+    }
+   },
+   "risk_signals": {
+    "passed_gate": {
+     "ci": [
+      0.7225,
+      1.0
+     ],
+     "k": 10,
+     "n": 10,
+     "rate": 1.0
+    },
+    "selected_in_top_7": {
+     "ci": [
+      0.7225,
+      1.0
+     ],
+     "k": 10,
+     "n": 10,
+     "rate": 1.0
+    }
+   },
+   "role_gap:benefits-processor": {
+    "names_the_planted_habits": {
+     "ci": [
+      0.7225,
+      1.0
+     ],
+     "k": 10,
+     "n": 10,
+     "rate": 1.0
+    },
+    "passed_gate": {
+     "ci": [
+      0.7225,
+      1.0
+     ],
+     "k": 10,
+     "n": 10,
+     "rate": 1.0
+    },
+    "selected_in_top_7": {
+     "ci": [
+      0.7225,
+      1.0
+     ],
+     "k": 10,
+     "n": 10,
+     "rate": 1.0
+    }
+   },
+   "role_gap:data-analyst": {
+    "names_the_planted_habits": {
+     "ci": [
+      0.7225,
+      1.0
+     ],
+     "k": 10,
+     "n": 10,
+     "rate": 1.0
+    },
+    "passed_gate": {
+     "ci": [
+      0.7225,
+      1.0
+     ],
+     "k": 10,
+     "n": 10,
+     "rate": 1.0
+    },
+    "selected_in_top_7": {
+     "ci": [
+      0.7225,
+      1.0
+     ],
+     "k": 10,
+     "n": 10,
+     "rate": 1.0
+    }
+   },
+   "simpson:data-analyst": {
+    "passed_gate": {
+     "ci": [
+      0.2366,
+      0.7634
+     ],
+     "k": 5,
+     "n": 10,
+     "rate": 0.5
+    },
+    "standardised_above_raw_and_positive": {
+     "ci": [
+      0.7225,
+      1.0
+     ],
+     "k": 10,
+     "n": 10,
+     "rate": 1.0
+    }
+   },
+   "small_team_not_compared:prog_infra": {
+    "passed_gate": {
+     "ci": [
+      0.7225,
+      1.0
+     ],
+     "k": 10,
+     "n": 10,
+     "rate": 1.0
+    }
+   }
+  },
+  "target": "every situation recovered at the gate on at least 9 of 10 dev seeds"
+ },
+ "recall_worker": {
+  "false_celebration_when_errors_rise": {
+   "ci": [
+    0.0853,
+    0.2214
+   ],
+   "k": 14,
+   "n": 100,
+   "rate": 0.14,
+   "target": 0
+  },
+  "false_relapse_after_absence": {
+   "ci": [
+    0.0,
+    0.037
+   ],
+   "k": 0,
+   "n": 100,
+   "rate": 0.0,
+   "target": 0
+  },
+  "n_per_world": 100,
+  "target": 0.8,
+  "worlds": {
+   "improved": {
+    "passed_gate": {
+     "ci": [
+      0.93,
+      0.9945
+     ],
+     "k": 98,
+     "n": 100,
+     "rate": 0.98
+    },
+    "selected": {
+     "ci": [
+      0.7786,
+      0.9147
+     ],
+     "k": 86,
+     "n": 100,
+     "rate": 0.86
+    }
+   },
+   "relapse": {
+    "passed_gate": {
+     "ci": [
+      0.7333,
+      0.883
+     ],
+     "k": 82,
+     "n": 100,
+     "rate": 0.82
+    },
+    "selected": {
+     "ci": [
+      0.7333,
+      0.883
+     ],
+     "k": 82,
+     "n": 100,
+     "rate": 0.82
+    }
+   },
+   "retention": {
+    "passed_gate": {
+     "ci": [
+      0.963,
+      1.0
+     ],
+     "k": 100,
+     "n": 100,
+     "rate": 1.0
+    },
+    "selected": {
+     "ci": [
+      0.963,
+      1.0
+     ],
+     "k": 100,
+     "n": 100,
+     "rate": 1.0
+    }
+   },
+   "rise": {
+    "passed_gate": {
+     "ci": [
+      0.3751,
+      0.5671
+     ],
+     "k": 47,
+     "n": 100,
+     "rate": 0.47
+    },
+    "selected": {
+     "ci": [
+      0.3751,
+      0.5671
+     ],
+     "k": 47,
+     "n": 100,
+     "rate": 0.47
+    }
+   },
+   "time_loss_15s": {
+    "passed_gate": {
+     "ci": [
+      0.9455,
+      0.9982
+     ],
+     "k": 99,
+     "n": 100,
+     "rate": 0.99
+    },
+    "selected": {
+     "ci": [
+      0.9455,
+      0.9982
+     ],
+     "k": 99,
+     "n": 100,
+     "rate": 0.99
+    }
+   },
+   "time_loss_30s": {
+    "passed_gate": {
+     "ci": [
+      0.963,
+      1.0
+     ],
+     "k": 100,
+     "n": 100,
+     "rate": 1.0
+    },
+    "selected": {
+     "ci": [
+      0.963,
+      1.0
+     ],
+     "k": 100,
+     "n": 100,
+     "rate": 1.0
+    }
+   },
+   "time_loss_60s": {
+    "passed_gate": {
+     "ci": [
+      0.963,
+      1.0
+     ],
+     "k": 100,
+     "n": 100,
+     "rate": 1.0
+    },
+    "selected": {
+     "ci": [
+      0.963,
+      1.0
+     ],
+     "k": 100,
+     "n": 100,
+     "rate": 1.0
+    }
+   },
+   "tradeoff": {
+    "passed_gate": {
+     "ci": [
+      0.9155,
+      0.9897
+     ],
+     "k": 97,
+     "n": 100,
+     "rate": 0.97
+    },
+    "selected": {
+     "ci": [
+      0.7222,
+      0.8749
+     ],
+     "k": 81,
+     "n": 100,
+     "rate": 0.81
+    }
+   }
+  }
+ },
+ "stability": {
+  "admin_top7_jaccard": {
+   "ci": [
+    0.875,
+    0.9583
+   ],
+   "mean": 0.9167,
+   "n": 30
+  },
+  "perturbation": "5% of each person's rows dropped at random",
+  "target": 0.8,
+  "worker_top1_agreement": {
+   "ci": [
+    0.9451,
+    0.97
+   ],
+   "mean": 0.9585,
+   "n": 965
+  },
+  "worker_top3_jaccard_all": {
+   "ci": [
+    0.9201,
+    0.9417
+   ],
+   "mean": 0.9305,
+   "n": 1800
+  },
+  "worker_top3_jaccard_nonempty": {
+   "ci": [
+    0.8589,
+    0.8959
+   ],
+   "mean": 0.8782,
+   "n": 1028
+  }
+ },
+ "suppression": {
+  "admin_planted": {
+   "by_reason": {
+    "below_effect_floor": 10,
+    "group_too_small": 3,
+    "interval_spans_zero": 1,
+    "no_expert_reference": 1,
+    "over_cap": 7,
+    "same_kind_lower_score": 1
+   },
+   "selected": 7,
+   "suppressed": 23
+  },
+  "worker_null": {
+   "ci": [
+    0.9793,
+    0.987
+   ],
+   "k": 4131,
+   "n": 4200,
+   "rate": 0.9836
+  },
+  "worker_planted": {
+   "empty": 251,
+   "people_with_data": 570,
+   "share_empty": 0.4404
+  }
+ }
+}
