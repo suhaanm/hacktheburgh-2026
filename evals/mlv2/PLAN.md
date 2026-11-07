@@ -342,3 +342,8 @@ cohort is generated, loaded or scored, so **no held-out data were created, read 
 `start` line. The fix is in `run.py` only (a table `PART_POOL` mapping hazard to HELD, genome to APP-HELD, mismatch to MIS-HELD, with a regression test that runs the command for each part against stubs); none of the files
 that make up the genome part's code fingerprint changes, so the re-run has the same fingerprint as the failed start. The mismatch part had the same wiring bug (it would have asked for 'HELD'); it is fixed by the same change
 and has not been started. The held-out hazard part (started 18:48:09Z, fingerprint 10963d8c05c1... equal to the frozen fingerprint) was not affected and is still running. The re-run of the genome part uses `--amended`.
+
+**Amendment 10 (2026-11-07 20:11 GMT; correction of a statement in Amendment 9).** Amendment 9 said the genome re-run "has the same fingerprint as the failed start". It does not: the code fingerprint in `heldout_log.jsonl` is a hash over the part's
+code files **and PLAN.md**, and PLAN.md had grown by Amendment 9 in between (fingerprint 40cbc5b6... at the failed start 19:33:24Z, 647de3ab... at the successful start 20:04:53Z). The per-file hashes stored in the two
+log lines show that PLAN.md is the **only** file that differs; all eight code files of the genome part (`__init__.py`, `splits.py`, `stats.py`, `genome_part.py`, `envelope.py`, `counterfactual.py`, `apprentice_pool.py`,
+`genome_stats.py`) are byte-identical. The same applies to every later start line (the hazard fingerprint 10963d8c... equals the frozen one because PLAN.md had not yet changed when it started at 18:48:09Z).

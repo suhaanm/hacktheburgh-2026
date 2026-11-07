@@ -75,7 +75,7 @@ def test_builder_fills_validated_inputs_for_v1_and_v2_without_any_free_text(appr
         json.dumps(x.to_dict())
     assert v1.accepted is None and v1.usable() and v2.accepted is False and not v2.usable()
     assert all(h.counterfactual_s is None for c in v1.cases for h in c.habits)
-    assert any(h.counterfactual_s is not None and h.method == "splice" for c in v2.cases for h in c.habits)
+    assert all(h.counterfactual_s is None for c in v2.cases for h in c.habits)
     assert v1.cases[0].hazard.calibration == "calibrated" and v1.cases[0].hazard.source == "model"
     c = v1.cases[0]
     assert abs(c.gap_s - sum(h.seconds for h in c.habits)) < 5.0 or c.habits      # the habits (bars above half a second) account for the gap
@@ -83,6 +83,7 @@ def test_builder_fills_validated_inputs_for_v1_and_v2_without_any_free_text(appr
 
 
 def test_build_for_person_and_case_from_a_store(tmp_path, monkeypatch):
+    monkeypatch.setenv("UNDERSTUDY_EVALS_DIR", str(tmp_path / "evals"))               # no held-out file here: v2 must be unaccepted
     from understudy_engine.mlv2 import evidence_builder as EB
     from understudy_engine.personas import apprentices
 
@@ -93,6 +94,12 @@ def test_build_for_person_and_case_from_a_store(tmp_path, monkeypatch):
     assert len(one.cases) == 1 and one.cases[0].task_id == x.cases[0].task_id
     v2 = EB.build_for("p_nov01", root=tmp_path, model_version="v2", n_boot=20)
     assert v2.model_version == "v2" and v2.accepted is False and not v2.usable()        # no held-out acceptance: never reaches the explainer
+    assert all(h.counterfactual_s is None for c in v2.cases for h in c.habits)         # Q1 was rejected: no counterfactual attached
+    from understudy_engine.mlv2 import freeze
+
+    freeze.write_json(freeze.out_dir() / "results" / "heldout_genome.json", {"family_e": {"rows": {"E1": {"verdict": "accepted"}}}})
+    v2b = EB.build_for("p_nov01", root=tmp_path, model_version="v2", n_boot=20)
+    assert v2b.accepted is True and v2b.usable() and v2b.provenance.pool == "heldout"
     with pytest.raises(ValueError):
         EB.build_for("p_nobody", root=tmp_path)
     with pytest.raises(ValueError):

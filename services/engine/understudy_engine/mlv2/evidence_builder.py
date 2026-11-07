@@ -44,18 +44,18 @@ def _dwell_by_cog(ep) -> dict[str, float]:
     return out
 
 
-def build_evidence_inputs(cohort: Cohort, person: str, *, model_version: str = "v1", accepted: bool | None = None, split: str = "descriptive_nearest_expert",
+def build_evidence_inputs(cohort: Cohort, person: str, *, model_version: str = "v1", accepted: bool | None = None, with_counterfactual: bool = False, split: str = "descriptive_nearest_expert",
                           pool: str = "none", hazard: EI.HazardInput | None = None, origin: str = "synthetic", seed: int = 0, n_boot: int = 120,
                           limitations: tuple[str, ...] = ("synthetic_people_only", "generator_planted_structure", "shared_steps_mispriced",
                                                            "additive_counterfactual_assumes_rest_unchanged")) -> EI.EvidenceInputs:
     if model_version not in ("v1", "v2"):
         raise ValueError(model_version)
     model = EnvelopeModel(cohort.experts, seed=seed, n_boot=n_boot)
-    att_variant = VARIANTS["E4" if model_version == "v2" else "E0"]
+    att_variant = VARIANTS["E1" if model_version == "v2" else "E0"]      # v2 = the variant the held-out run accepted (E1); E4 and Q1 were rejected
     cases = []
     for ep in [e for e in cohort.episodes if e.person == person]:
         att = model.attribute(ep, att_variant, with_interval=True)
-        cf = model.attribute(ep, VARIANTS["E4"], with_interval=True, fn=q1_functional) if model_version == "v2" else None
+        cf = model.attribute(ep, VARIANTS["E4"], with_interval=True, fn=q1_functional) if with_counterfactual else None
         ranked = model._ranked(ep, model.cost_for(att_variant))
         ref_ep = ranked[0][0]
         top = [r for r, _ in ranked[: max(1, att_variant.m_experts)]]
@@ -89,9 +89,9 @@ def build_evidence_inputs(cohort: Cohort, person: str, *, model_version: str = "
 
 
 # ------------------------------------------------------------------------------------------------ the app-facing entry point
-def _heldout_accepted() -> bool:
-    """True only when the single held-out genome run accepted BOTH the v2 seconds (E4) and the v2 counterfactual (Q1) against v1. No held-out
-    file, or any other verdict, is False: unaccepted v2 numbers must never reach the explainer by omission."""
+def _heldout_accepted(variant: str = "E1") -> bool:
+    """True only when the single held-out genome run accepted ``variant`` (default E1, the one v2 variant it accepted) against v1. No held-out file,
+    or any other verdict, is False: unaccepted v2 numbers must never reach the explainer by omission."""
     from understudy_engine.mlv2 import freeze
 
     p = freeze.out_dir() / "results" / "heldout_genome.json"
@@ -99,7 +99,7 @@ def _heldout_accepted() -> bool:
         return False
     try:
         g = freeze.read_json(p)
-        return bool(g["family_e"]["rows"]["E4"]["verdict"] == "accepted" and g["family_q"]["rows"]["Q1"]["verdict"] == "accepted")
+        return bool(g["family_e"]["rows"][variant]["verdict"] == "accepted")
     except (KeyError, ValueError):
         return False
 
@@ -108,8 +108,8 @@ def build_for(person: str, case: str | None = None, *, root=None, model_version:
               seed: int = 0, n_boot: int = 120) -> EI.EvidenceInputs:
     """EvidenceInputs for one person (and optionally one case, by task id), from the engine's own synthetic apprentice cohort in the store.
 
-    ``model_version`` is "v1" (the default; ``accepted`` is None) or "v2" (``accepted`` is read from the held-out verdicts and is False unless both
-    primary candidates were accepted). Raises ValueError when the person is not in the cohort or the case is not theirs."""
+    ``model_version`` is "v1" (the default; ``accepted`` is None) or "v2" (E1, ``accepted`` read from the held-out verdict file, False when it is
+    absent or not "accepted"; no counterfactual, because Q1 was rejected). Raises ValueError when the person is not in the cohort or the case is not theirs."""
     from understudy_engine.genome.service import TASK, GenomeService
     from understudy_engine.store import EventStore
 
@@ -117,9 +117,9 @@ def build_for(person: str, case: str | None = None, *, root=None, model_version:
     cohort = bundle.cohort
     if person not in {e.person for e in cohort.episodes}:
         raise ValueError(f"person {person!r} is not in the synthetic cohort")
-    accepted = None if model_version == "v1" else _heldout_accepted()
+    accepted = None if model_version == "v1" else _heldout_accepted("E1")
     x = build_evidence_inputs(cohort, person, model_version=model_version, accepted=accepted, hazard=hazard, seed=seed, n_boot=n_boot,
-                              pool="none")
+                              pool="heldout" if accepted else "none")
     if case is not None:
         keep = tuple(c for c in x.cases if c.task_id == case)
         if not keep:
