@@ -69,8 +69,12 @@ Watch how people work, show where a novice loses time against an expert, coach o
 | Simulated study | Language-model participants, pre-registered, labelled not people | running (benefits) |
 | Role studies (REQ-7) | Same for programmer and data analyst | building |
 | Realistic data and generator-mismatch test (REQ-7) | Harder, more human-like synthetic data; still badged synthetic | building |
-| LLM explainer with number check (REQ-6) | Plain-English "where your time went"; every number must trace to the data | building |
-| ML v2 (REQ-6) | Better signals, calibrated stuck model, expert envelope, counterfactual seconds | building |
+| LLM explainer with number check (REQ-6) | Plain-English "where your time went"; every number must trace to the data. The shipped wording is a code template that passes its own check; a model's words are used only if they pass the same check; cloud wording is off by default | built (302 tests); synthetic packets; live arms small n: local Qwen reword 24 of 30, Gemini fast 7 of 9, OpenAI fast 0 of 13. The check proves traceability, not truth |
+| ML v2 (REQ-6) | Better signals, calibrated stuck model, expert envelope, counterfactual seconds | built; M5 transfer test on simulated participants **failed**: neither v1 nor v2 transfers to the floor-bound behaviour (calibration destroyed, label shift 65% vs 22%); reported as is |
+| Top insights for workers and admins (REQ-9) | A deterministic engine picks at most a few pointers per worker and a firm view for admins; reliability gate, guard metrics, k-anonymity, "nothing stands out" is a valid answer | engine built (144 tests), plan pre-registered (`evals/insights/PLAN.md`), held-out run pending; synthetic firm |
+| Repeat list (hit list) | Compact page of actions you repeated that could be automated, with counter-suggestions | building |
+| Admin role: Firm screen (REQ-9) | Per-user numbers and enums, expert versus junior, firm by role over time, onboarding-speed curves, Monday note, prediction scorecard | building (UI); synthetic firm, labelled |
+| Design system sync | Friend's enhanced design system adopted; Hint pattern; fewer words, details behind tooltips | phase 1 done, phase 2 (screen edits) building |
 
 ## Demo moments (candidates)
 1. A novice and an expert side by side; the gap in seconds, by habit, with intervals.
