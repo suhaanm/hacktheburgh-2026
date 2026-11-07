@@ -293,6 +293,7 @@ check("needs you: with nothing prepared left, none is shown", (await page.locato
 
 await go("/agents", 900);
 const runsBefore = await page.locator("article.run").count();
+await page.locator("summary", { hasText: "Start a background run" }).click();
 await page.locator("#spawn-kind").selectOption("data.chart");
 await page.getByRole("button", { name: "Nightly" }).click();
 await page.getByRole("button", { name: "Run in background" }).click();
@@ -308,7 +309,7 @@ await live.getByRole("button", { name: "Revoke the lease of habit counter" }).cl
 await page.waitForTimeout(700);
 await openAll(live);
 check("agents: revoking a lease ends that helper and says so", /revoked, no tools in scope/.test(await live.innerText()));
-await page.locator("article.run", { hasText: "Data profile" }).locator("summary", { hasText: "Artifacts and result" }).click();
+await page.locator("article.run", { hasText: "Data profile" }).locator("summary", { hasText: "Helpers and result" }).click();
 await page.waitForTimeout(500);
 const detail = await page.locator("article.run", { hasText: "Data profile" }).innerText();
 check("agents: result steps carry a check with a glyph and a word", /verified/.test(detail) && /uncertain/.test(detail) && (await page.locator(".pill--check .pill__glyph-char").count()) >= 3);

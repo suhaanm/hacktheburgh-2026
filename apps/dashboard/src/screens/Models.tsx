@@ -1,6 +1,7 @@
 import { api } from "../api";
 import { useLoad } from "../hooks";
-import { EmptyState, ErrorState, ExampleBadge, Loading, Note, OriginBadge, PageHead, SourceNote } from "../components/common";
+import { EmptyState, ErrorState, Loading, Note, PageHead, SourceNote } from "../components/common";
+import { OriginBadge } from "../components/needsyou/Origin";
 import "../components/kc.css";
 import { Hint } from "../components/Hint";
 import { Details } from "../components/ui";
@@ -23,7 +24,7 @@ export default function Models() {
       <PageHead
         title="Models and cost"
         lede="Costs are estimates from assumed prices, not a bill."
-        aside={<><OriginBadge meta={m.meta} /><ExampleBadge why={m.why} /></>}
+        aside={<OriginBadge sources={[m]} />}
       />
       <SourceNote why={m.why} />
       {s.config_error && <Note tone="warn">The model settings could not be read: {s.config_error}</Note>}

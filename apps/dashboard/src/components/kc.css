@@ -66,3 +66,9 @@ a.kc-link { text-decoration: none; }
   .kc-row__actions .kc-link { margin-left: 0; }
   .kc-row__actions .btn { flex: 1 1 auto; justify-content: center; }
 }
+
+/* A run's state as a word with a tone (Agents): plain text, not a pill. The word carries the meaning; the tone only helps. */
+.run__state { font-size: var(--text-sm); font-weight: 600; color: var(--muted); }
+.run__state[data-tone="go"] { color: var(--fg); }
+.run__state[data-tone="good"] { color: var(--good); }
+.run__state[data-tone="bad"] { color: var(--bad); }
