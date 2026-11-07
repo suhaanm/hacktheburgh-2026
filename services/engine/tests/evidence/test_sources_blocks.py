@@ -125,3 +125,45 @@ def test_judge_stale_only_judges_known_limits():
     assert P.judge_stale("hazard", ok).status == "stale" and P.judge_stale("hazard", P.BlockInfo(status="ok", age_s=5.0)).status == "ok"
     assert P.judge_stale("hazard", P.BlockInfo(status="absent")).status == "absent"
     assert set(V.STALE_AFTER_S) == set(V.BLOCK_IDS)
+
+
+def test_v1_inputs_never_become_an_mlv2_claim_and_the_genome_path_carries_the_numbers(parts):
+    from .test_packet import _inputs
+
+    b = build_packet("p_nov03", None, Sources(inputs=lambda p, c: _inputs(accepted=None, version="v1"), genome=lambda p, c: parts), now=NOW)
+    bl = b.packet.blocks
+    assert bl["genome"].status == "ok" and bl["genome"].source == "v1" and bl["mlv2"].status == "absent"
+    assert b.blocks["mlv2"].startswith("v1 inputs only") and b.blocks["genome"] == "ok"
+    assert b.packet.cohort_habits and b.packet.gap.cohort_gap_s is not None            # the genome path keeps the cohort block
+    assert not [x for x in bl.values() if x.source == "v2"]
+
+
+def test_v1_inputs_alone_are_still_recorded_as_v1(parts):
+    from .test_packet import _inputs
+
+    b = build_packet("p_nov01", "t_nov01a", Sources(inputs=lambda p, c: _inputs(accepted=None, version="v1")), now=NOW)
+    assert b.packet.blocks["genome"].source == "v1" and "mlv2" in b.packet.blocks and b.packet.blocks["mlv2"].status == "absent"
+    assert not [x for x in b.packet.blocks.values() if x.source == "v2"]
+    out = E.explain(b.packet, None)
+    assert out["check"]["ok"] and out["check"]["template_ok"]
+
+
+def test_when_the_builder_raises_value_error_the_genome_path_still_answers(parts):
+    def boom(p, c):
+        raise ValueError("person 'p_x' is not in the synthetic cohort")
+
+    b = build_packet("p_nov03", None, Sources(inputs=boom, genome=lambda p, c: parts), now=NOW)
+    assert b.packet.blocks["genome"].status == "ok" and b.packet.blocks["genome"].source == "v1"
+    assert b.packet.blocks["mlv2"].status == "absent" and b.blocks["mlv2"] == "absent: no apprentice data for this person"
+    assert E.explain(b.packet, None)["check"]["ok"]
+    other = build_packet("p_nov03", None, Sources(inputs=lambda p, c: (_ for _ in ()).throw(RuntimeError("x")), genome=lambda p, c: parts), now=NOW)
+    assert other.blocks["mlv2"] == "absent" and other.packet.blocks["genome"].status == "ok"
+
+
+def test_an_unaccepted_v2_is_dropped_and_the_v1_genome_numbers_are_used(parts):
+    from .test_packet import _inputs
+
+    for accepted in (False, None):
+        b = build_packet("p_nov03", None, Sources(inputs=lambda p, c, a=accepted: _inputs(accepted=a), genome=lambda p, c: parts), now=NOW)
+        assert b.packet.blocks["mlv2"].status == "absent" and b.blocks["mlv2"].startswith("dropped")
+        assert b.packet.blocks["genome"].source == "v1" and not [x for x in b.packet.blocks.values() if x.source == "v2" and x.status == "ok"]

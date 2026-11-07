@@ -110,7 +110,7 @@ function DataNote() {
   return (
     <p className="datanote" data-mode={mode}>
       <span className="datanote__dot" aria-hidden="true" />
-      {mode === "demo" ? "Demo data" : "Some demo data"}
+      {mode === "demo" ? "Example data" : "Some example data"}
       <span className="datanote__why">{mode === "demo" ? `${ENGINE_LABEL} is not running.` : "A service did not answer some requests, so some screens show example data."}</span>
       <button type="button" className="linkish" onClick={retry}>Try again</button>
     </p>
@@ -128,7 +128,7 @@ function KillSwitch() {
     try {
       const r = await api.kill();
       setState({ killed: r.killed, killedAt: r.at, killError: null });
-      toast({ tone: "success", text: "Stopped.", detail: dataMode(getState()) === "demo" ? "No service was reachable, so nothing was running. In demo mode this only changes the screen." : "Agent runs, background routines and coaching are off until you resume." });
+      toast({ tone: "success", text: "Stopped.", detail: dataMode(getState()) === "demo" ? "No service was reachable, so nothing was running. With no service running, this only changes the screen." : "Agent runs, background routines and coaching are off until you resume." });
     } catch (e) {
       const m = e instanceof Error ? e.message : "The stop request failed.";
       setState({ killError: m });

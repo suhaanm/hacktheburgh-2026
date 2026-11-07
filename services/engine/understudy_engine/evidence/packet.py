@@ -74,20 +74,20 @@ class Gap(SafePayload):
 
 
 class Habit(SafePayload):
-    """Seconds associated with one habit (a waterfall bar); a counterfactual (what would change) only when the ML layer gives one."""
+    """Seconds associated with one habit (a waterfall bar): an alignment attribution, with an interval where the source gives one.
 
-    description = "Seconds for one habit, with an interval for cohort rows and an optional counterfactual."
+    There is deliberately no counterfactual field ("seconds recovered if the habit were fixed"): the held-out run rejected the counterfactual
+    estimator as harmful, so a packet cannot carry one, a template cannot state one and the provenance check refuses a sentence that does."""
+
+    description = "Seconds for one habit (an alignment attribution), with an interval where the source gives one."
     seconds: float
     lo: float | None = None
     hi: float | None = None
-    counterfactual_s: float | None = None
-    cf_lo: float | None = None
-    cf_hi: float | None = None
     n: Annotated[int, Field(ge=0, le=100000)] | None = None
     UNITS: ClassVar[dict[str, str]] = {"n": "count", "*": "s"}
     NOUNS: ClassVar[dict[str, tuple[str, ...]]] = {"n": ("cases", "case", "people", "novices", "episodes", "traces")}
-    SIGNED: ClassVar[frozenset[str]] = frozenset({"seconds", "counterfactual_s"})
-    INTERVALS: ClassVar[tuple[tuple[str, str, str | None], ...]] = (("lo", "hi", "seconds"), ("cf_lo", "cf_hi", "counterfactual_s"))
+    SIGNED: ClassVar[frozenset[str]] = frozenset({"seconds"})
+    INTERVALS: ClassVar[tuple[tuple[str, str, str | None], ...]] = (("lo", "hi", "seconds"),)
 
 
 class Cog(SafePayload):
@@ -419,8 +419,8 @@ def limitations_for(pk: EvidencePacket) -> list[str]:
         out.append("hazard_not_diagnosis")
         if pk.hazard.source == "rule":
             out.append("hazard_rule_fallback")
-    if any(h.counterfactual_s is not None for h in list(pk.habits.values()) + list(pk.cohort_habits.values())):
-        out.append("counterfactual_model")
+    if any(h.lo is not None for h in pk.habits.values()):
+        out.append("interval_too_narrow")        # a case's habit seconds with an interval come from ML-V2, whose intervals were too narrow in testing
     if pk.consequences:
         out.append("consequence_rules")
     if "step_skips" in pk.habits or "step_skips" in pk.cohort_habits:
@@ -672,18 +672,22 @@ def _hazard_from(h: Any) -> Hazard | None:
 
 
 def _habit_from(x: Any) -> Habit:
-    cf = x.counterfactual_s is not None
-    return Habit(seconds=_r1(x.seconds), lo=_r1(x.seconds_lo), hi=_r1(x.seconds_hi),
-                 counterfactual_s=_r1(x.counterfactual_s) if cf else None, cf_lo=_r1(x.counterfactual_lo) if cf else None,
-                 cf_hi=_r1(x.counterfactual_hi) if cf else None, n=int(x.n) if x.n is not None else None)
+    """A habit from ML-V2's ``HabitInput``. Its counterfactual fields are never read: the held-out run rejected the counterfactual estimator,
+    so no counterfactual reaches a packet even if an input carries one."""
+    return Habit(seconds=_r1(x.seconds), lo=_r1(x.seconds_lo), hi=_r1(x.seconds_hi), n=int(x.n) if x.n is not None else None)
+
+
+#: limitations about a counterfactual: nothing here states one, so a limitation about it would describe a claim that is not made
+NO_COUNTERFACTUAL_LIMITS = frozenset({"additive_counterfactual", "counterfactual_model"})
 
 
 def known_limitations(ids: Iterable[str]) -> list[str]:
-    """Limitation ids another track named, mapped through the aliases and filtered to the fixed list (an unknown id is dropped)."""
+    """Limitation ids another track named, mapped through the aliases and filtered to the fixed list (an unknown id is dropped, and so is
+    one about counterfactuals, which are never stated)."""
     out: list[str] = []
     for i in ids:
         i = V.LIMIT_ALIASES.get(i, i)
-        if i in V.LIMITATIONS and i not in out:
+        if i in V.LIMITATIONS and i not in out and i not in NO_COUNTERFACTUAL_LIMITS:
             out.append(i)
     return out
 
@@ -692,15 +696,18 @@ def from_evidence_inputs(inp: Any, *, person: str | None = None, case: str | Non
     """Build a packet from ML-V2's ``mlv2.evidence_inputs.EvidenceInputs`` (frozen dataclasses; ``validate()`` has already refused
     ids outside the closed sets, non-finite numbers, ``lo > hi`` and free text).
 
-    * A variant with ``provenance.accepted is False`` raises ``InputNotAccepted`` (the caller falls back to the v1 packet).
+    * A variant with ``provenance.accepted is False``, or v2 numbers whose ``accepted`` is not True, raise ``InputNotAccepted`` (the caller
+      falls back to the genome packet). v1 inputs are accepted and recorded as the ``genome`` block at source ``v1``, never as ``mlv2``.
     * The case is the one whose ``person_id`` and ``task_id`` match ``person`` and ``case`` (else the first). Its habits become
-      ``habits`` (with counterfactual seconds and their own interval when present); its cog envelope becomes ``cogs``; its
+      ``habits`` (alignment seconds with their interval; a counterfactual is never carried); its cog envelope becomes ``cogs``; its
       hazard and time-to-progress become ``hazard`` and ``progress``. The cohort block fills ``cohort_gap_s`` and its interval.
     * ``baselines.placebo_expert_vs_expert`` becomes ``gap.placebo_s``. Other baselines are not quoted.
     * Limitation ids are the union of the inputs', the case's and the ones ``limitations_for`` derives; ids are mapped through
       ``vocab.LIMIT_ALIASES`` (the privacy backstop refuses a payload value of 32 or more id characters)."""
     if hasattr(inp, "usable") and not inp.usable():
         raise InputNotAccepted("the ML-V2 variant failed its acceptance test against v1")
+    if inp.provenance.model_version == "v2" and inp.provenance.accepted is not True:
+        raise InputNotAccepted("v2 numbers are used only when the held-out run accepted them (accepted is True)")
     if hasattr(inp, "validate"):
         inp.validate()
     pv = inp.provenance
@@ -732,9 +739,14 @@ def from_evidence_inputs(inp: Any, *, person: str | None = None, case: str | Non
             t = c.time_to_progress
             prog = Progress(expected_min=_r1(t.expected_min), lo=_r1(t.lo), hi=_r1(t.hi), c_index=_r3(t.c_index))
         lim += list(c.limitations)
-    blocks = {"mlv2": BlockInfo(status="ok", source="v2"), "genome": BlockInfo(status="ok", source="v2")}
+    ver = pv.model_version if pv.model_version in ("v1", "v2") else "v1"
+    # which block the numbers came from, never claiming more than they are: v1 inputs (alignment seconds against the nearest single
+    # expert, accepted None) are the genome block at source v1; the mlv2 block exists only for accepted v2 numbers
+    blocks = {"genome": BlockInfo(status="ok", source=ver)}
+    if ver == "v2":
+        blocks["mlv2"] = BlockInfo(status="ok", source="v2")
     if hz is not None:
-        blocks["hazard"] = BlockInfo(status="ok", source="rule" if hz.source == "rule" else "v2")
+        blocks["hazard"] = BlockInfo(status="ok", source="rule" if hz.source == "rule" else ver)
     pk = EvidencePacket(meta=m, gap=gap, habits=habits, cogs=cogs, hazard=hz, progress=prog, blocks=blocks)
     pk = finalise(pk)
     extra = known_limitations(lim)

@@ -27,7 +27,7 @@ export function refusalText(status: number, code: string | undefined, tokenMissi
     return "The engine did not receive this page's start-up token, so it will not show the firm. Restart everything with `make dev`, wait for it to say it is running, then try again. Nothing was changed.";
   }
   if (code === "admin_actor_refused" || code === "worker_actor_required") return "The engine only answers this for the person at the keyboard, not for a script or an agent. Nothing was shown and nothing was changed.";
-  if (code === "admin_only") return "The engine shows this only to the Admin role. Switch to the Admin view (demo role) in the menu, then try again.";
+  if (code === "admin_only") return "The engine shows this only to the Admin role. Choose the Admin view in the menu, then try again.";
   return null;
 }
 

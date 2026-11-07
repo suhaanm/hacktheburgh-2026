@@ -399,6 +399,10 @@ ENV_ON = {"UNDERSTUDY_REAL_ACTUATOR": "1"}
 
 
 def mac(backend, tmp_path, **kw):
+    from understudy_agent.tiers.owner_present import grant_run_permit, issue_owner_token, real_run_description
+
+    desc = real_run_description("TextEdit", None)
+    kw.setdefault("permit", grant_run_permit(issue_owner_token(desc), desc, target_app="TextEdit"))   # S-14b: no permit, no action
     kw.setdefault("focus_wait_s", 0.2)
     kw.setdefault("focus_poll_s", 0.005)
     return MacActuator("TextEdit", backend=backend, kill_flag=tmp_path / "KILL", env=ENV_ON, **kw)

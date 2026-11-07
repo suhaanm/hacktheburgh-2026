@@ -165,6 +165,11 @@ class LiveModel:
         self._guard()
         return self.inner.vision(image, prompt, schema)
 
+    def begin_task(self, session: str | None = None) -> None:
+        begin = getattr(self.inner, "begin_task", None)
+        if callable(begin):
+            begin(session)
+
     def computer_step(self, goal: str, screenshot: bytes, history: list[dict[str, Any]], **kw: Any) -> Any:
         self._guard()
         t0 = time.monotonic()

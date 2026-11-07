@@ -1,0 +1,387 @@
+{
+ "label": "synthetic expert (scripted driver), not a person",
+ "role": "data-analyst",
+ "task": "d-sanity-1",
+ "variant": 2,
+ "style": "expert",
+ "variation": 1,
+ "verdict": {
+  "outcome": "correct",
+  "points": 2,
+  "skill_check_done": true
+ },
+ "n_events": 17,
+ "events": [
+  {
+   "schema": 1,
+   "id": "6063742f-1998-4589-8483-64593283c3cf",
+   "t": "2026-11-07T20:21:58.261Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xanal07",
+   "role": "data-analyst",
+   "source": "browser",
+   "type": "task_start",
+   "task_id": "t_5404646397bc",
+   "meta": {
+    "zone": "data_browser"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "6106f372-cda2-4f37-ba28-e8546b000652",
+   "t": "2026-11-07T20:21:58.262Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xanal07",
+   "role": "data-analyst",
+   "source": "browser",
+   "type": "nav",
+   "target": {
+    "role": "document",
+    "domain_hash": "d:0d34c689f56f"
+   },
+   "task_id": "t_5404646397bc",
+   "meta": {
+    "spa": false,
+    "zone": "data_browser"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "239f958c-c57c-49d7-8fac-a80d95981f45",
+   "t": "2026-11-07T20:21:58.309Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xanal07",
+   "role": "data-analyst",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "button",
+    "label_hash": "h:a8bedae8b148",
+    "domain_hash": "d:0d34c689f56f"
+   },
+   "task_id": "t_5404646397bc",
+   "meta": {
+    "zone": "profile_panel"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "957148a7-1ee3-441d-86b5-d6e53e802804",
+   "t": "2026-11-07T20:21:58.310Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xanal07",
+   "role": "data-analyst",
+   "source": "browser",
+   "type": "click",
+   "target": {
+    "role": "button",
+    "label_hash": "h:a8bedae8b148",
+    "domain_hash": "d:0d34c689f56f"
+   },
+   "task_id": "t_5404646397bc",
+   "meta": {
+    "zone": "profile_panel"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "cb671e4b-fcf4-4809-b05b-71ca3636d097",
+   "t": "2026-11-07T20:21:58.323Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xanal07",
+   "role": "data-analyst",
+   "source": "browser",
+   "type": "scroll",
+   "target": {
+    "domain_hash": "d:0d34c689f56f"
+   },
+   "task_id": "t_5404646397bc",
+   "meta": {
+    "depth_bin": 4,
+    "zone": "doc"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "93247acd-4dca-4dc9-95ca-a000d6fc9538",
+   "t": "2026-11-07T20:22:01.621Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xanal07",
+   "role": "data-analyst",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "button",
+    "label_hash": "h:8d67cf324364",
+    "domain_hash": "d:0d34c689f56f"
+   },
+   "task_id": "t_5404646397bc",
+   "meta": {
+    "zone": "chart_panel"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "43ff6286-8d20-4d37-a3e2-91c52dcc69b9",
+   "t": "2026-11-07T20:22:01.622Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xanal07",
+   "role": "data-analyst",
+   "source": "browser",
+   "type": "click",
+   "target": {
+    "role": "button",
+    "label_hash": "h:8d67cf324364",
+    "domain_hash": "d:0d34c689f56f"
+   },
+   "task_id": "t_5404646397bc",
+   "meta": {
+    "zone": "chart_panel"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "04fe8537-1a07-4074-ab83-2eb9c0a2a446",
+   "t": "2026-11-07T20:22:03.406Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xanal07",
+   "role": "data-analyst",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "button",
+    "label_hash": "h:a319b03b65fd",
+    "domain_hash": "d:0d34c689f56f"
+   },
+   "task_id": "t_5404646397bc",
+   "meta": {
+    "zone": "clean_panel"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "a285a021-0d9d-467c-b06e-d892b138d4b4",
+   "t": "2026-11-07T20:22:03.407Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xanal07",
+   "role": "data-analyst",
+   "source": "browser",
+   "type": "click",
+   "target": {
+    "role": "button",
+    "label_hash": "h:a319b03b65fd",
+    "domain_hash": "d:0d34c689f56f"
+   },
+   "task_id": "t_5404646397bc",
+   "meta": {
+    "zone": "clean_panel"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "e0c396d3-431c-47b5-b992-209365bb3621",
+   "t": "2026-11-07T20:22:03.411Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xanal07",
+   "role": "data-analyst",
+   "source": "browser",
+   "type": "nav",
+   "target": {
+    "role": "document",
+    "domain_hash": "d:0d34c689f56f"
+   },
+   "task_id": "t_5404646397bc",
+   "meta": {
+    "spa": true,
+    "zone": "clean_panel"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "54923cf9-25ed-4159-8210-d67bcf42a923",
+   "t": "2026-11-07T20:22:05.206Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xanal07",
+   "role": "data-analyst",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "button",
+    "label_hash": "h:06c5ca806133",
+    "domain_hash": "d:0d34c689f56f"
+   },
+   "task_id": "t_5404646397bc",
+   "meta": {
+    "zone": "run_control"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "cc2424ff-f9cc-42ca-a3a6-f970f4d105c8",
+   "t": "2026-11-07T20:22:05.207Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xanal07",
+   "role": "data-analyst",
+   "source": "browser",
+   "type": "click",
+   "target": {
+    "role": "button",
+    "label_hash": "h:06c5ca806133",
+    "domain_hash": "d:0d34c689f56f"
+   },
+   "task_id": "t_5404646397bc",
+   "meta": {
+    "zone": "run_control"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "99e1441d-df3c-479e-8554-abe04d674fd5",
+   "t": "2026-11-07T20:22:06.982Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xanal07",
+   "role": "data-analyst",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "textbox",
+    "label_hash": "h:6e10bc0832dc",
+    "domain_hash": "d:0d34c689f56f"
+   },
+   "task_id": "t_5404646397bc",
+   "meta": {
+    "zone": "decision_btn"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "5b189585-a28d-4b67-977d-8c6bdc743a77",
+   "t": "2026-11-07T20:22:10.023Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xanal07",
+   "role": "data-analyst",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "button",
+    "label_hash": "h:b006b965243c",
+    "domain_hash": "d:0d34c689f56f"
+   },
+   "task_id": "t_5404646397bc",
+   "meta": {
+    "zone": "decision_btn"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "1be3a79f-c1d3-4659-8b5f-cf8562740e02",
+   "t": "2026-11-07T20:22:10.024Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xanal07",
+   "role": "data-analyst",
+   "source": "browser",
+   "type": "click",
+   "target": {
+    "role": "button",
+    "label_hash": "h:b006b965243c",
+    "domain_hash": "d:0d34c689f56f"
+   },
+   "task_id": "t_5404646397bc",
+   "meta": {
+    "zone": "decision_btn"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "68713ae3-2994-433b-b933-38a300ca0872",
+   "t": "2026-11-07T20:22:10.041Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xanal07",
+   "role": "data-analyst",
+   "source": "browser",
+   "type": "nav",
+   "target": {
+    "role": "document",
+    "domain_hash": "d:0d34c689f56f"
+   },
+   "task_id": "t_5404646397bc",
+   "meta": {
+    "spa": true,
+    "zone": "decision_btn"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "3c804be6-609f-444b-93f5-8e3ba30314be",
+   "t": "2026-11-07T20:22:10.047Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xanal07",
+   "role": "data-analyst",
+   "source": "browser",
+   "type": "task_end",
+   "task_id": "t_5404646397bc",
+   "meta": {
+    "reason": "answered"
+   }
+  }
+ ],
+ "cogs": [
+  {
+   "cog": "LOAD_DATA",
+   "t0": 1794082918.26,
+   "t1": 1794082918.31
+  },
+  {
+   "cog": "PROFILE_DATA",
+   "t0": 1794082918.31,
+   "t1": 1794082918.32
+  },
+  {
+   "cog": "READ",
+   "t0": 1794082918.32,
+   "t1": 1794082921.62
+  },
+  {
+   "cog": "PLOT",
+   "t0": 1794082921.62,
+   "t1": 1794082923.41
+  },
+  {
+   "cog": "CLEAN_DATA",
+   "t0": 1794082923.41,
+   "t1": 1794082925.21
+  },
+  {
+   "cog": "READ",
+   "t0": 1794082925.21,
+   "t1": 1794082925.21
+  },
+  {
+   "cog": "RUN_QUERY",
+   "t0": 1794082925.21,
+   "t1": 1794082926.98
+  },
+  {
+   "cog": "DECIDE",
+   "t0": 1794082926.98,
+   "t1": 1794082938.04
+  }
+ ]
+}

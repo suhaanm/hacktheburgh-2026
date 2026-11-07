@@ -9,6 +9,7 @@ import { Hint } from "../components/Hint";
 import { Details } from "../components/ui";
 import { DAY_NAMES, KIND_LABEL, alignmentTotals, featureLabel, featureUnit, fmtFeature, gapClear, peopleByGroup, sortGaps, spans, splitSentence, toMinutes, weekHeadline, weekLabel, weekWindow } from "../lib/week";
 import { fmtInterval } from "../lib/format";
+import { personName } from "../components/firm/model";
 import type { CalPerson, CalSuggestion, CalendarWeek, GapRow } from "../types";
 
 const BUCKET: Record<string, string> = { lt5: "fewer than 5", "5to9": "5 to 9", "10plus": "10 or more" };
@@ -45,7 +46,7 @@ export default function Week() {
     <div className="page page--wide">
       <PageHead
         eyebrow="Week"
-        title={weekHeadline(d.features, d.expert, me && d.person === me ? null : entry?.label ?? "This person")}
+        title={weekHeadline(d.features, d.expert, me && d.person === me ? null : personName(entry) || "This person")}
         lede="Your calendar blocks next to the expert's. No titles or names exist in this data."
         aside={<><OriginBadge meta={w.meta} /><ExampleBadge why={w.why} /></>}
       />
@@ -61,7 +62,7 @@ export default function Week() {
         ) : (
           <div className="stack">
             <div className="chart chart--wide stack" style={{ gap: "var(--space-6)" }}>
-              <WeekRibbon title={`${me && d.person === me ? "Your" : entry?.label ? `${entry.label}'s` : "This"} week${d.week ? `, ${weekLabel(d.week)}` : ""}`} days={d.days} window={win} />
+              <WeekRibbon title={`${me && d.person === me ? "Your" : personName(entry) ? `${personName(entry)}'s` : "This"} week${d.week ? `, ${weekLabel(d.week)}` : ""}`} days={d.days} window={win} />
               {d.expert.days && d.expert.days.length > 0 && <WeekRibbon title={`The expert's week${typeof d.expert.person === "string" ? ` (${d.expert.person})` : ""}`} days={d.expert.days} window={win} />}
             </div>
             <WeekLegend />
@@ -94,7 +95,7 @@ function Pickers({ people, person, entry, week, locked, onPerson, onWeek }: {
         <select id="wk-person" className="select" value={person} disabled={locked} onChange={(e) => onPerson(e.target.value)}>
           {groups.map((g) => (
             <optgroup key={g.group} label={g.label}>
-              {g.people.map((p) => <option key={p.person} value={p.person}>{p.label ?? p.person}</option>)}
+              {g.people.map((p) => <option key={p.person} value={p.person}>{personName(p) || p.person}</option>)}
             </optgroup>
           ))}
         </select>

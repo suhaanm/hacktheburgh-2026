@@ -239,7 +239,8 @@ class DomOracleComputerModel:
         path = urlparse(info["url"]).path
         if path != st["path"]:
             st["done"], st["pending"], st["enter"], st["path"] = set(), None, False, path
-        if history and history[-1].get("kind") == "type" and history[-1].get("ok") is False and st.get("last"):
+        refused = "was refused" in goal or bool(history and history[-1].get("kind") == "type" and history[-1].get("ok") is False)
+        if refused and st.get("last"):             # stateless requests carry the refusal as a note in the prompt, not in a history
             handle, is_select = st["last"]              # the type was refused: a competent model retries with the handle
             st["enter"] = is_select
             return Action("type", {"text": "{" + handle + "}"})

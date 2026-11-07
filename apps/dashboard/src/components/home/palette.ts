@@ -65,7 +65,7 @@ export function buildItems(view: ViewRole, extra: ExtraItems = {}): PaletteItem[
   }
   items.push({ id: "action:tour", kind: "action", label: "Take the tour", hint: "A short walk through the main screens", also: "help guide walkthrough", group: GROUP_ACTIONS, target: { type: "action", action: "tour" } });
   if (view === "worker") {
-    items.push({ id: "action:view_admin", kind: "action", label: "Switch to Admin view (demo)", hint: "Shows the Firm screen. A demo switch, not a permission", also: "role admin firm", group: GROUP_ACTIONS, target: { type: "action", action: "view_admin" } });
+    items.push({ id: "action:view_admin", kind: "action", label: "Switch to the Admin view", hint: "Shows the Firm screen. A view switch, not a permission", also: "role admin firm", group: GROUP_ACTIONS, target: { type: "action", action: "view_admin" } });
   } else {
     items.push({ id: "action:brief", kind: "action", label: "Print the firm brief", hint: "A one-page summary for the firm", also: "export pdf one-pager", group: GROUP_ACTIONS, target: { type: "route", path: "/firm/brief" } });
     items.push({ id: "action:view_worker", kind: "action", label: "Switch to Worker view", hint: "Leaves the Firm screens", also: "role worker", group: GROUP_ACTIONS, target: { type: "action", action: "view_worker" } });

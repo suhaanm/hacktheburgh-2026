@@ -23,7 +23,7 @@ export const RUNGS: RungInfo[] = [
   { id: "A0", name: "Observe", does: "Watches and suggests. Does nothing for you.", bound: null, runs: null },
   { id: "A1", name: "Shadow", does: "Practises on your next cases without saving. You compare.", bound: null, runs: null },
   { id: "A2", name: "With approval", does: "Does the work in the background and asks before outward steps.", bound: 0.8, runs: 20 },
-  { id: "A3", name: "Then report", does: "Does the work, then tells you. A target the demo does not reach.", bound: 0.95, runs: 75 },
+  { id: "A3", name: "Then report", does: "Does the work, then tells you. A target the example runs do not reach.", bound: 0.95, runs: 75 },
 ];
 
 export function nextRung(id: RungInfo["id"]): RungInfo | null {

@@ -19,8 +19,8 @@ Commands (heavy ones go through `scripts/heavy.sh`):
 # generators and tests (light)
 UNDERSTUDY_MOCK=1 uv run --package understudy-engine pytest services/engine/tests/personas_v2 -q
 
-# the full matrix: writes evals/realism/REPORT.md and data/eval/realism.json
-UNDERSTUDY_MOCK=1 scripts/heavy.sh uv run --package understudy-engine python -m understudy_engine.personas_v2.evaluate --full --workers 3
+# the full matrix: writes evals/realism/REPORT.md and data/eval/realism.json (fork is fast from a clean CLI parent; the default start method is spawn, which is safe everywhere)
+UNDERSTUDY_REALISM_FORK=1 UNDERSTUDY_MOCK=1 scripts/heavy.sh uv run --package understudy-engine python -m understudy_engine.personas_v2.evaluate --full --workers 3
 
 # leave-one-person-out diagnostics, then re-render the report with them
 UNDERSTUDY_MOCK=1 scripts/heavy.sh uv run --package understudy-engine python -m understudy_engine.personas_v2.evaluate --lopo --workers 1

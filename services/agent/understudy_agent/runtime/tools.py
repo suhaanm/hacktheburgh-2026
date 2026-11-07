@@ -28,6 +28,7 @@ from typing import Any, Callable
 
 import jsonschema
 
+from ..security.gates import TargetInfo
 from ..security.labels import sensitive_path
 from . import policy
 from .gitstats import parse_git_log, summarize
@@ -158,6 +159,23 @@ def pipeline_action(tool: str, args: dict[str, Any]) -> dict[str, Any]:
             value = "sha256:" + hashlib.sha256(str(body).encode()).hexdigest()[:12]
         return {"kind": "fill", "args": {"selector": sel, "value": value}}
     return {"kind": "extract", "args": {"name": tool, "selector": sel}}
+
+
+def pipeline_target(tool: str, args: dict[str, Any], ws: Workspace | None) -> TargetInfo:
+    """The TARGET the pipeline sees for the action `pipeline_action` builds (S-28: a fill whose target trusted code could not read is
+    a human's call). A write or a code run addresses ONE FILE in the child's own workspace, and TRUSTED code reads that here: the
+    path is resolved by `Workspace.resolve` (inside the workspace, no symlink, no escape). A path that does not resolve is an
+    UNREADABLE target, so the gate sends it to a human. Reads and the final emit are `extract` steps that type nothing (class read)."""
+    if tool not in ("write_workspace", "run_python"):
+        return TargetInfo()
+    if ws is None:
+        return TargetInfo()
+    sel = str(args.get("path") or args.get("result_file") or args.get("save_as") or ".")[:280]
+    try:
+        ws.resolve(sel)
+    except (WorkspaceError, ValueError, OSError):
+        return TargetInfo()
+    return TargetInfo(label="", role="workspace_file")
 
 
 # ------------------------------------------------------------------------------------------------ postconditions

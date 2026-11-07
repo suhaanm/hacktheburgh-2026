@@ -97,7 +97,8 @@ def lower_rung(rung: str) -> str:
 class SafetyPipeline:
     def __init__(self, port: ModelPort, config: SecurityConfig | None = None, *, audit: AuditLog | None = None,
                  queue: ApprovalQueue | None = None, routine: RoutineContext | None = None,
-                 denylist: Denylist | None = None, goal: str = "", clock: Callable[[], float] = time.monotonic) -> None:
+                 denylist: Denylist | None = None, goal: str = "", clock: Callable[[], float] = time.monotonic,
+                 reader_memo: int = 0) -> None:
         self.port = port
         self.config = config or SecurityConfig()
         self.audit = audit or AuditLog()
@@ -106,7 +107,7 @@ class SafetyPipeline:
         self.denylist = denylist or Denylist()
         self.goal = goal
         self.detector = InjectionDetector(enabled=self.config.detector)
-        self.reader = QuarantinedReader(port, config=self.config, detector=self.detector)
+        self.reader = QuarantinedReader(port, config=self.config, detector=self.detector, memo_size=reader_memo)
         self.drift = DriftChecker(port, enabled=self.config.drift)
         self.stuck = StuckLoopDetector()
         self.settings = SettingsGuard(enabled=self.config.settings)
@@ -139,7 +140,8 @@ class SafetyPipeline:
             self._log("rung_lowered", new, why)
 
     # ------------------------------------------------------------------ observe
-    def observe(self, page: PageObservation, schema: dict[str, Any] | None = None, *, source: str = "web") -> Observation:
+    def observe(self, page: PageObservation, schema: dict[str, Any] | None = None, *, source: str = "web",
+                fresh: bool = False) -> Observation:
         token = self.obs_clock.new_observation() if self.config.actions else None
         report = self.detector.scan_page(page) if self.config.detector else DetectionReport()
         obs = Observation(token=token, report=report, url=page.url, source=source)
@@ -168,7 +170,7 @@ class SafetyPipeline:
             return obs  # the run is paused: nothing downstream will read this page, so no reader call is spent on it
         if self.config.reader:
             if schema is not None:
-                rr = self.reader.read(visible, schema, source=source)
+                rr = self.reader.read(visible, schema, source=source, fresh=fresh)
                 obs.reader = rr
                 obs.fields = rr.fields if rr.ok else None
                 self._raw_seen = (self._raw_seen + [visible, *page.hidden_texts, *page.alt_texts])[-12:]

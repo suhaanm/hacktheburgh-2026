@@ -26,6 +26,8 @@ from ..security.pipeline import SafetyPipeline, StepDecision
 from .base import ActionRejected, GateStop, InjectionStop, Observation, StepEvent, StuckLoop
 from .observe import observe as observe_page
 
+from ..security.reader import MEMO_SIZE as READER_MEMO
+
 MIN_STEP_BUDGET = 120  # a compiled bundle is up to 60 steps, plus tier 2 and 3 on top (their own caps are 20)
 
 
@@ -70,7 +72,8 @@ class Guard:
             typed_confirm=typed_confirm, recorded_hosts=frozenset(recorded_hosts), run_id=run_id)
         self.port = port
         self.pipe = SafetyPipeline(port, cfg, audit=audit, queue=queue, routine=ctx,
-                                   denylist=denylist if denylist is not None else Denylist.load(), goal=goal)
+                                   denylist=denylist if denylist is not None else Denylist.load(), goal=goal,
+                                   reader_memo=READER_MEMO)   # one navigator, one person: the reader remembers its own closed output
         self.run_id, self.routine_id = run_id, routine_id
         self._apply_mode(mode)
 
@@ -103,16 +106,20 @@ class Guard:
     def set_goal(self, goal: str) -> None:
         self.pipe.goal = goal
 
+    def new_page(self) -> None:
+        """A fresh page: the reader's memo of earlier pages is dropped (it never carries from one page to another)."""
+        self.pipe.reader.clear_memo()
+
     # ------------------------------------------------------------------ observe
     async def observe(self, page: Any, *, obs: Observation | None = None, schema: dict[str, Any] | None = None,
                       navigator: str = "", step: int = 0, tier: int = 0) -> Seen:
         obs = obs or await observe_page(page)
         return self.observe_obs(obs, schema=schema, navigator=navigator)
 
-    def observe_obs(self, obs: Observation, *, schema: dict[str, Any] | None = None, navigator: str = "") -> Seen:
+    def observe_obs(self, obs: Observation, *, schema: dict[str, Any] | None = None, navigator: str = "", fresh: bool = False) -> Seen:
         po = PageObservation(text=obs.text, hidden_texts=list(obs.hidden_texts), alt_texts=list(obs.alt_texts),
                              title=obs.title, url=obs.url)
-        pobs = self.pipe.observe(po, schema=schema)
+        pobs = self.pipe.observe(po, schema=schema, fresh=fresh)
         if pobs.paused:
             raise InjectionStop(pobs.report.summary_code(), f"({navigator})")
         return Seen(obs, pobs)

@@ -32,7 +32,7 @@ export function Ladder({ routine }: { routine: Routine }) {
           <span className="bound__tick" style={{ left: "80%" }}><span>A2 0.80</span></span>
           <span className="bound__tick bound__tick--a3" style={{ left: "95%" }}><span>A3 0.95</span></span>
         </div>
-        <p className="note" style={{ marginTop: "var(--space-5)" }}>A3 is a target. At 0.95 it would take about 75 clean runs, so the demo does not reach it. Any failure, quick undo or injection alert drops a routine one rung.</p>
+        <p className="note" style={{ marginTop: "var(--space-5)" }}>A3 is a target. At 0.95 it would take about 75 clean runs, so the example runs do not reach it. Any failure, quick undo or injection alert drops a routine one rung.</p>
       </div>
     </div>
   );

@@ -63,8 +63,8 @@ describe("the demo view role", () => {
     setViewRole("root" as never);
     expect(getViewRole()).toBe("worker");
   });
-  it("says it is a demo role, so nobody takes it for a permission", () => {
-    expect(ADMIN_MARKER).toBe("Admin view (demo role)");
+  it("names the Admin view plainly", () => {
+    expect(ADMIN_MARKER).toBe("Admin view");
     expect(VIEW_LABEL).toEqual({ worker: "Worker", admin: "Admin" });
   });
 });

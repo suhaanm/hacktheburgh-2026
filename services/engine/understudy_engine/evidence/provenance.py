@@ -20,7 +20,8 @@ sentence the check proves, with no model in the loop:
 * **Nothing else rides along.** A URL, a path, an email or any other shape the privacy backstop refuses (``pii:<rule>``, ``link``),
   a quoted string that is not an allowed name (``quoted_string``), an instruction-like sentence (``injection``,
   ``instruction_like``), advice outside the vetted menu (``unvetted_advice``), a causal claim (``causal_claim``), a promise that
-  a novice becomes an expert or will improve (``expert_claim``).
+  a novice becomes an expert or will improve (``expert_claim``), a counterfactual ("if you had ... you would have saved N seconds",
+  ``counterfactual_claim``): the held-out run rejected the counterfactual estimator, so none is ever stated, whatever number it uses.
 
 What this does not do, stated plainly: it proves **traceability**, not **truth**. A sentence whose numbers all trace can still be
 a misleading reading of them, and a packet built from a wrong analysis yields a faithful explanation of a wrong number. The
@@ -469,6 +470,15 @@ _EXPERT_CLAIM = re.compile(
     r"reach(?:es|ing)? (?:the )?expert|no longer (?:an? )?novice|clos(?:e|es|ing|ed) the gap|catch(?:es|ing)? up|guarantee[sd]?|"
     r"going to (?:improve|get (?:better|faster)|become)|you(?:'ll| will) (?:be|get|improve|learn|become)|in (?:no|a few) (?:time|weeks|days)|"
     r"turn(?:s|ed|ing)? (?:you )?into an expert)\b", re.I)
+# A counterfactual ("if you had avoided X you would have saved N seconds") is never offered: the held-out run rejected the counterfactual
+# estimator as harmful, so a sentence that states one is refused even when the number in it is a real field of the packet.
+_COUNTERFACTUAL = re.compile(
+    r"\b(?:would|could|might|may)\s+(?:well\s+|easily\s+)?(?:have\s+)?(?:save[ds]?|cut|reduced?|recover(?:ed)?|gain(?:ed)?|been\s+(?:faster|quicker|shorter))\b|"
+    r"\bwould\s+(?:have\s+)?taken?\b|\bif\s+(?:you|the\s+worker|they)\s+(?:had|hadn'?t|avoided|fixed|removed|stopped|skipped|cut|did|didn'?t)\b|"
+    r"\bif\s+(?:this|that|it|the\s+\w+(?:\s+\w+)?)\s+(?:were|was|had\s+been|is|are)\s+(?:fixed|removed|avoided|gone|cut)\b|\bhad\s+you\b|"
+    r"\bfix(?:ing|ed)?\b[^.;]{0,40}\b(?:would|could|saves?|saving)\b|\bwithout\s+(?:this|that|the|these|those|any)\s+(?:habit|pauses?|loops?|reads?|rework|checks?)\b|"
+    r"\byou\s+could\s+save\b|\bcould\s+be\s+saved\b|\bremov(?:e|ing)\s+(?:this|that|the)\s+(?:habit|pauses?|loops?)\b|\bnext\s+time\b[^.;]{0,30}\bsave\b",
+    re.I)
 _POS_DIR = re.compile(r"\b(?:slower|longer|extra|lost|additional|more time|taking more|behind|late)\b", re.I)
 _NEG_DIR = re.compile(r"\b(?:faster|quicker|shorter|saved|saving|saves|less time|ahead of|ahead|earlier)\b", re.I)
 _RANK_TOP = re.compile(r"\b(?:largest|biggest|main|top|greatest|leading|dominant|most important|chief)\b", re.I)
@@ -699,6 +709,8 @@ def check_sentence(text: str, uses: list[str], ctx: _Ctx, counts: dict[str, int]
         add("causal_claim")
     if _EXPERT_CLAIM.search(t):
         add("expert_claim")
+    if _COUNTERFACTUAL.search(t):
+        add("counterfactual_claim")
 
     # ---- citations
     cited, bad = ctx.cited(uses)

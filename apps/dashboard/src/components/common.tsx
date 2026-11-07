@@ -142,7 +142,7 @@ export function ErrorState({ error, retry, what }: { error: Error; retry?: () =>
       <h2 className="state__title">Could not load {what}</h2>
       <p className="state__body">
         {error.message}
-        {status === 0 ? " Check that the engine is running on port 7700, or use the demo data." : ""}
+        {status === 0 ? " Check that the engine is running on port 7700, or use the example data." : ""}
       </p>
       {retry && (
         <button type="button" className="btn btn--secondary" onClick={retry}>

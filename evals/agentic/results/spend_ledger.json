@@ -129,9 +129,47 @@
    "computer_use_model": "gpt-5.5",
    "site": "b",
    "household": "hh_0002"
+  },
+  {
+   "at": "2026-11-07T20:21:19Z",
+   "label": "gemini_smoke_hh0001_b",
+   "kind": "smoke",
+   "tokens_in": 46369,
+   "tokens_out": 2600,
+   "cost_placeholder_usd": 0.3098,
+   "cost_lower_usd": 0.0465,
+   "rates_in_out_per_m": [
+    5.0,
+    30.0
+   ],
+   "computer_use_model": "gpt-5.5",
+   "gate_version": "f5696411cdfa",
+   "site": "b",
+   "household": "hh_0001",
+   "cu_provider": "gemini",
+   "old_goal": false
+  },
+  {
+   "at": "2026-11-07T20:22:29Z",
+   "label": "oldgoal_smoke_hh0001_b",
+   "kind": "smoke",
+   "tokens_in": 9190,
+   "tokens_out": 624,
+   "cost_placeholder_usd": 0.0647,
+   "cost_lower_usd": 0.0097,
+   "rates_in_out_per_m": [
+    5.0,
+    30.0
+   ],
+   "computer_use_model": "gpt-5.5",
+   "gate_version": "f5696411cdfa",
+   "site": "b",
+   "household": "hh_0001",
+   "cu_provider": "default",
+   "old_goal": true
   }
  ],
- "spent_placeholder_usd": 8.5423,
- "spent_lower_usd": 2.0637,
- "pct_of_cap": 42.7
+ "spent_placeholder_usd": 8.9168,
+ "spent_lower_usd": 2.1199,
+ "pct_of_cap": 44.6
 }

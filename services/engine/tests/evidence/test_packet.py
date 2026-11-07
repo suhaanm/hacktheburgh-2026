@@ -165,7 +165,7 @@ def test_ids_that_the_privacy_backstop_would_refuse_are_not_in_any_vocabulary():
 
 
 # ------------------------------------------------------------------------------------------------ ML-V2 adapter
-def _inputs(accepted=True):
+def _inputs(accepted=True, version="v2"):
     from understudy_engine.mlv2 import evidence_inputs as E
 
     hab = E.HabitInput("search_loops", ("SEARCH",), 65.6, 50.1, 80.2, 40.2, 30.0, 55.5, 24, "splice")
@@ -175,7 +175,7 @@ def _inputs(accepted=True):
     case = E.CaseInput("p_nov01", "t_nov01a", 500.0, 350.0, 150.0, 120.0, 180.0, (hab, hab2), (env,), hz, E.TimeToProgress(1.8, 1.2, 2.6, 0.7),
                        ("timing_reconstructed",))
     return E.EvidenceInputs(
-        E.Provenance("synthetic", 24, "people", "leave_one_person_out", "v2", accepted),
+        E.Provenance("synthetic", 24, "people", "leave_one_person_out", version, accepted),
         (case,), E.CohortInput(229.6, 193.1, 269.9, 16), None, {"placebo_expert_vs_expert": 7.1},
         ("additive_counterfactual_assumes_rest_unchanged", "held_out_replicates_same_generator", "n_four_personas"))
 
@@ -184,14 +184,17 @@ def test_evidence_inputs_adapter_maps_every_block():
     pk = P.from_evidence_inputs(_inputs(), person="p_nov01", case="t_nov01a")
     assert pk.gap.case_s == 500.0 and pk.gap.gap_lo == 120.0 and pk.gap.cohort_gap_s == 229.6 and pk.gap.placebo_s == 7.1
     h = pk.habits["search_loops"]
-    assert (h.seconds, h.lo, h.hi, h.counterfactual_s, h.cf_lo, h.cf_hi, h.n) == (65.6, 50.1, 80.2, 40.2, 30.0, 55.5, 24)
-    assert pk.habits["pauses"].counterfactual_s is None
+    assert (h.seconds, h.lo, h.hi, h.n) == (65.6, 50.1, 80.2, 24)
+    assert not any(f for f in type(h).model_fields if "counterfactual" in f or f.startswith("cf_")), "a packet has no counterfactual field"
+    assert "counterfactual" not in json.dumps(pk.to_wire())
     assert pk.cogs["SEARCH"].expert_hi_s == 70.0
     assert pk.hazard.source == "model" and pk.hazard.calibration == "calibrated" and pk.hazard.fa_hi == 1.48
     assert pk.progress.expected_min == 1.8
     assert "single_case" not in pk.limitations                              # the case has its own interval
-    for lid in ("additive_counterfactual", "heldout_same_generator", "n_four_personas", "timing_reconstructed", "counterfactual_model"):
+    for lid in ("heldout_same_generator", "n_four_personas", "timing_reconstructed", "interval_too_narrow"):
         assert lid in pk.limitations
+    for lid in ("additive_counterfactual", "counterfactual_model"):
+        assert lid not in pk.limitations, "nothing here states a counterfactual, so no limitation about one is shown"
     json.loads(P.SCHEMA_PATH.read_text())
     jsonschema.validate(pk.to_wire(), json.loads(P.SCHEMA_PATH.read_text()))
 
@@ -199,7 +202,19 @@ def test_evidence_inputs_adapter_maps_every_block():
 def test_a_variant_that_failed_acceptance_is_dropped():
     with pytest.raises(P.InputNotAccepted):
         P.from_evidence_inputs(_inputs(accepted=False))
-    P.from_evidence_inputs(_inputs(accepted=None))
+    with pytest.raises(P.InputNotAccepted):
+        P.from_evidence_inputs(_inputs(accepted=None))                      # v2 numbers are used only when accepted is True
+    P.from_evidence_inputs(_inputs(accepted=None, version="v1"))           # v1 numbers carry accepted None by design
+
+
+def test_blocks_name_the_version_the_numbers_really_are():
+    v2 = P.from_evidence_inputs(_inputs())
+    assert v2.blocks["mlv2"].source == "v2" and v2.blocks["genome"].source == "v2" and v2.blocks["hazard"].source == "v2"
+    v1 = P.from_evidence_inputs(_inputs(accepted=None, version="v1"))
+    assert v1.blocks["genome"].source == "v1" and v1.blocks["hazard"].source == "v1"
+    assert "mlv2" not in v1.blocks, "v1 numbers are the genome block; the mlv2 block is only for accepted v2 numbers"
+    assert not [b for b in v1.blocks.values() if b.source == "v2"]
+    json.loads(json.dumps(v1.to_wire()))
 
 
 def test_evidence_inputs_with_an_unknown_habit_id_never_reach_a_packet():
@@ -236,3 +251,19 @@ def test_builders_for_hazard_coach_and_routines():
     assert list(rows) == ["calc-entry-3x"]
     r = rows["calc-entry-3x"]
     assert r.next_rung == "A2" and r.runs_to_next is not None and r.runs_to_next > 0 and r.hours_lo == 3.1
+
+
+def test_limitation_wording_for_ml2_ids_is_theirs_word_for_word():
+    from understudy_engine.mlv2 import evidence_inputs as E
+
+    for ml_id, text in E.LIMITATIONS.items():
+        mine = V.LIMIT_ALIASES.get(ml_id, ml_id)
+        assert V.LIMITATIONS[mine] == text, ml_id
+    assert V.LIMITATIONS["interval_too_narrow"] == "The interval for this estimate was too narrow in testing and should be read as optimistic."
+
+
+def test_a_habit_interval_from_the_ml_layer_always_brings_the_too_narrow_limitation():
+    assert "interval_too_narrow" in P.from_evidence_inputs(_inputs()).limitations
+    assert "interval_too_narrow" in P.from_evidence_inputs(_inputs(accepted=None, version="v1")).limitations
+    plain = P.finalise(P.EvidencePacket(meta=P.Meta(origin="synthetic", n=5, n_unit="people", split="none"), habits={"pauses": P.Habit(seconds=9.0)}))
+    assert "interval_too_narrow" not in plain.limitations                  # the genome's single-case seconds carry no interval

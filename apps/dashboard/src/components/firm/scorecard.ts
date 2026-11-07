@@ -365,7 +365,9 @@ export function readScorecard(report: unknown, example?: unknown): ScorecardRead
 
   const v1 = hzOk ? readHazard(hzOk) : null;
   const verdictRaw = sc ? sc.verdict : null;
-  const verdict: Verdict | null = (VERDICTS as unknown[]).includes(verdictRaw) ? (verdictRaw as Verdict) : null;
+  // ML2 words an acceptance by how it was earned ("accepted_by_both_tests"): any word starting "accepted" means accepted.
+  const verdictNorm = typeof verdictRaw === "string" && verdictRaw.startsWith("accepted") ? "accepted" : verdictRaw;
+  const verdict: Verdict | null = (VERDICTS as unknown[]).includes(verdictNorm) ? (verdictNorm as Verdict) : null;
   const accepted = sc ? sc.accepted === true && (verdict === null || verdict === "accepted") : null;
 
   const scMeta = sc ? metaOf(sc.meta, isObj(sc.meta) ? (sc.meta as Obj) : undefined) : null;

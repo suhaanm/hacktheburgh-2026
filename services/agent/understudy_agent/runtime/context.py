@@ -40,7 +40,7 @@ SCRIPT_FILE = "script"                         # menus name the runnable file "s
 # estimated tokens per section (characters / 4); the sum is the budget of the whole task object
 SECTION_BUDGET = {"completed": 90, "written": 30, "recent": 170, "summary": 100, "signals": 90, "counters": 40}
 TOTAL_BUDGET = sum(SECTION_BUDGET.values())
-TRUNCATION_ORDER = ("summary:oldest", "summary:all", "recent:half")
+TRUNCATION_ORDER = ("summary:oldest", "recent:half")
 NEVER_TRUNCATED = ("completed", "written", "pending", "signals", "counters")
 
 

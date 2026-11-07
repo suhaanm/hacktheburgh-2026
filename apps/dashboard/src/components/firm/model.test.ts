@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_SORT, SORT_KEYS, compareShown, crossing, drillTable, effectText, est, filterUsers, fmtCell, fmtNum, fmtShare, groupShown, interval, normaliseDrill,
   normaliseFirm, normaliseOnboarding, normaliseOverview, normaliseRoles, normaliseSharing, normaliseWhy, normaliseWorker, pct, previewLines, roleGapLine,
-  smallRoles, sortUsers, spansZero, trendCounts, trimCurve, TREND_LABEL,
+  personName, smallRoles, sortUsers, spansZero, trendCounts, trimCurve, TREND_LABEL,
 } from "./model";
 import type { UserRow } from "./wire";
 import workerFx from "../../fixtures/home-worker.json";
@@ -17,7 +17,7 @@ import drillGapFx from "../../fixtures/firm-drill-role-gap.json";
 import drillTrendFx from "../../fixtures/firm-drill-cohort-trend.json";
 
 const user = (label: string, over: Partial<UserRow> = {}): UserRow => ({
-  id: label, label, role: "benefits-processor", level: "junior", status: "ok", last_seen_days: 1, skills: [], tenure_band: "1_3m", tenure_weeks: 8, trend: "improving",
+  id: label, label, name: null, role: "benefits-processor", level: "junior", status: "ok", last_seen_days: 1, skills: [], tenure_band: "1_3m", tenure_weeks: 8, trend: "improving",
   independence: { value: 0.7, ci: [0.6, 0.8] }, assisted_share: { value: 0.2, ci: [0.1, 0.3] }, time_to_independence: { reached: true, value: 40, unit: "occurrences" },
   automations_running: 0, automation: null, n: 50, n_recent: 20, ...over,
 });
@@ -122,7 +122,10 @@ describe("the worker's answer", () => {
     const lines = previewLines(normaliseSharing(sharingFx).preview);
     const text = lines.map(([k, v]) => `${k}: ${v}`).join("\n");
     expect(lines.length).toBeGreaterThan(6);
-    expect(text).toMatch(/Shown as: BP-\d\d/);
+    const shown = normaliseSharing(sharingFx).preview as { name?: string; label: string };
+    expect(text).toContain(`Shown as: ${shown.name}`);
+    expect(shown.name).toBeTruthy();
+    expect(text).not.toContain(`Shown as: ${shown.label}`);
     expect(text).toMatch(/Help needed over time: (Improving|Cannot tell yet|Needs attention|Not enough data)/);
     expect(text).not.toMatch(/score|rank|best/i);
     expect(previewLines(null)).toEqual([]);
@@ -223,11 +226,27 @@ describe("people are sorted by name or tenure, never ranked", () => {
     expect(filterUsers(people, null)).toHaveLength(3);
     expect(trendCounts(people)).toEqual({ improving: 1, cannot_tell_yet: 1, needs_attention: 1, not_enough_data: 0 });
   });
-  it("sorts the real fixture's thirty benefits processors by name without ranking by anything", () => {
+  it("sorts the real fixture's thirty benefits processors by the name shown, A to Z, without ranking by anything", () => {
     const bp = normaliseFirm(firmFx).roles[0].users;
     const sorted = sortUsers(bp);
-    expect(sorted[0].label).toBe("BP-01");
-    expect(sorted.map((u) => u.label)).toEqual([...bp.map((u) => u.label)].sort((a, b) => a.localeCompare(b, "en", { numeric: true })));
+    const shown = bp.map((u) => personName(u));
+    expect(sorted.map((u) => personName(u))).toEqual([...shown].sort((a, b) => a.localeCompare(b, "en", { numeric: true, sensitivity: "base" })));
+    expect(new Set(sorted.map((u) => u.label)).size).toBe(30);
+  });
+  it("shows a made-up name, keeps the label as the key, and falls back to the label when there is no name", () => {
+    const all = normaliseFirm(firmFx).roles.flatMap((r) => r.users);
+    expect(all.every((u) => !!u.name && u.name !== u.label)).toBe(true);
+    expect(new Set(all.map((u) => u.name)).size).toBe(all.length);
+    expect(new Set(all.map((u) => u.label)).size).toBe(all.length);
+    expect(personName({ name: "Mei Tan", label: "BP-07" })).toBe("Mei Tan");
+    expect(personName({ name: null, label: "BP-07" })).toBe("BP-07");
+    expect(personName({ name: "  ", label: "BP-07" })).toBe("BP-07");
+    expect(personName(null)).toBe("");
+  });
+  it("sorts by name when names are shown, and by label when they are not", () => {
+    const named = [user("BP-01", { name: "Zofia Adler" }), user("BP-02", { name: "Amara Okafor" })];
+    expect(sortUsers(named).map((u) => u.label)).toEqual(["BP-02", "BP-01"]);
+    expect(sortUsers([user("BP-10"), user("BP-02")]).map((u) => u.label)).toEqual(["BP-02", "BP-10"]);
   });
 });
 

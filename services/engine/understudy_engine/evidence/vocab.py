@@ -220,6 +220,25 @@ LIMIT_IDS: tuple[str, ...] = tuple(LIMITATIONS)
 LIMIT_ALIASES = {"additive_counterfactual_assumes_rest_unchanged": "additive_counterfactual",
                  "held_out_replicates_same_generator": "heldout_same_generator"}
 
+
+
+def _adopt_mlv2_wording() -> None:
+    """The limitation sentences ML-V2 wrote for its own ids are copied here word for word (one source of truth); the short id this package
+    uses for a long one (``LIMIT_ALIASES``) takes the same sentence. A missing or unreadable module leaves the wording above."""
+    try:
+        from ..mlv2 import evidence_inputs as _ei
+
+        theirs = dict(_ei.LIMITATIONS)
+    except Exception:
+        return
+    for ml_id, text in theirs.items():
+        mine = LIMIT_ALIASES.get(ml_id, ml_id)
+        if mine in LIMITATIONS and isinstance(text, str) and text.strip():
+            LIMITATIONS[mine] = text
+
+
+_adopt_mlv2_wording()
+
 # ------------------------------------------------------------------------------------------------ question intents
 Intent = Literal[
     "where_time_went", "why_slow", "biggest_habit", "compare_expert", "stuck_reading", "how_sure", "routine_worth",

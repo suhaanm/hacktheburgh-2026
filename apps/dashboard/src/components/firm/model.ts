@@ -156,7 +156,7 @@ function drillRows(v: unknown): DrillRow[] {
         else { const iv = interval(x); if (iv) values[k] = iv; }
       }
     }
-    return { label: str(r.label) as string, group: str(r.group), values, n: isNum(r.n) ? r.n : null };
+    return { label: str(r.label) as string, name: str(r.name), group: str(r.group), values, n: isNum(r.n) ? r.n : null };
   });
 }
 
@@ -198,7 +198,7 @@ export function userRow(v: unknown): UserRow | null {
     skill: str(k.skill) ?? (str(k.label) as string), label: str(k.label) ?? (str(k.skill) as string), n: num(k.n), independence_share: isNum(k.independence_share) ? k.independence_share : null, lost_s: est(k.lost_s),
   }));
   return {
-    id: str(v.id) as string, label: str(v.label) ?? (str(v.id) as string), role: str(v.role), level: v.level === "expert" || v.level === "junior" ? v.level : null, status: str(v.status),
+    id: str(v.id) as string, label: str(v.label) ?? (str(v.id) as string), name: str(v.name), role: str(v.role), level: v.level === "expert" || v.level === "junior" ? v.level : null, status: str(v.status),
     last_seen_days: isNum(v.last_seen_days) ? v.last_seen_days : null, skills, tenure_band: tenure(v.tenure_band), tenure_weeks: isNum(v.tenure_weeks) ? v.tenure_weeks : null,
     trend: trend(v.trend), independence: est(v.independence), assisted_share: est(v.assisted_share),
     time_to_independence: { reached: t.reached === true, value: isNum(t.value) ? t.value : null, unit: str(t.unit) ?? "occurrences" },
@@ -298,8 +298,11 @@ export type SortKey = "name" | "tenure";
 export const SORT_KEYS: SortKey[] = ["name", "tenure"];
 export const DEFAULT_SORT: SortKey = "name";
 
-/** A natural compare, so "BP-07" comes before "BP-10". */
-const byLabel = (a: UserRow, b: UserRow): number => a.label.localeCompare(b.label, "en", { numeric: true });
+/** What to show for a person: their made-up name when the row has one, else the stable label. The label stays the key and the aria id. */
+export const personName = (p: { name?: string | null; label?: string | null } | null | undefined): string => p?.name?.trim() || p?.label || "";
+
+/** A natural compare on what is shown, so "BP-07" comes before "BP-10" and names run A to Z. */
+const byLabel = (a: UserRow, b: UserRow): number => personName(a).localeCompare(personName(b), "en", { numeric: true, sensitivity: "base" }) || a.label.localeCompare(b.label, "en", { numeric: true });
 
 /** A new array. By name, A to Z; or by tenure, longest first, ties by name. */
 export function sortUsers(users: UserRow[], by: SortKey = DEFAULT_SORT): UserRow[] {
@@ -377,7 +380,7 @@ export function previewLines(preview: Record<string, unknown> | null): [string, 
   const u = preview ? userRow(preview) : null;
   if (!u) return [];
   const lines: [string, string][] = [];
-  lines.push(["Shown as", u.label]);
+  lines.push(["Shown as", personName(u)]);
   if (u.role) lines.push(["Role", `${roleWord(u.role)}${u.level ? `, ${LEVEL_WORD[u.level]}` : ""}`]);
   lines.push(["Time in role", TENURE_LABEL[u.tenure_band]]);
   lines.push(["Help needed over time", TREND_LABEL[u.trend]]);
@@ -420,7 +423,7 @@ export function drillTable(columns: DrillColumn[], rows: DrillRow[]): DrillView 
   return {
     heads: shown.map((c) => ({ key: c.key, label: c.label })),
     rows: rows.map((r) => ({
-      label: r.label, n: r.n, group: r.group,
+      label: personName(r), n: r.n, group: r.group,
       cells: shown.map((c) => {
         const iv = ciFor.get(c.key);
         const ci = iv ? interval(r.values[iv.key]) : null;

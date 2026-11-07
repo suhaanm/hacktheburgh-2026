@@ -34,6 +34,34 @@ FAKE_DIR = HERE / "fake_runs"
 from evals.study_roles.budget_roles import CAP_USD as BUDGET_CAP_USD, RolesBudget  # noqa: E402   (US$14 for BOTH roles including the pilots: the lead's message of 7 Nov 2026)
 
 
+def _port_free(port: int) -> bool:
+    """Nothing is listening on 127.0.0.1:port (a connect is refused) and it can be bound."""
+    import socket
+
+    with socket.socket() as s:
+        s.settimeout(0.3)
+        if s.connect_ex(("127.0.0.1", port)) == 0:
+            return False
+    try:
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", port))
+        return True
+    except OSError:
+        return False
+
+
+def pick_ports(role: str, n: int) -> list[int]:
+    """The ports of ``n`` private worlds: the first free ports of the role's block (programmer 7941-7948, analyst 7951-7958: the pack's capture sites name exactly these), so that two
+    runs of this harness side by side (a pilot and an expert recording, say) never share a sandbox or reset each other's state."""
+    from evals.study_roles.roles import PORT_BASE
+
+    base = PORT_BASE[role]
+    free = [p for p in range(base, base + 8) if _port_free(p)]
+    if len(free) < n:
+        raise SystemExit(f"fewer than {n} free private ports for {role} in {base}-{base + 7}: another run of this harness is using them")
+    return free[:n]
+
+
 def make_worlds(role: str, n: int, outdir: Path | None):
     from evals.study_roles.runner import RoleWorld
     from evals.study_sim.infra import build_extension, snapshot_pipeline
@@ -44,12 +72,13 @@ def make_worlds(role: str, n: int, outdir: Path | None):
         (outdir / "snapshot.json").write_text(json.dumps({k: v for k, v in info.items() if k != "path"}, indent=1))
     print(f"pipeline snapshot {info['fingerprint']} of git {info['git_head'][:8]} (+{info['uncommitted_files_in_snapshot_dirs']} uncommitted files)", flush=True)
     worlds, built = [], []
+    ports = pick_ports(role, n)
     for k in range(n):
-        name = f"roles-{ROLE_CFG[role].key[:4]}{k}"
+        name = f"roles-{ROLE_CFG[role].key[:4]}{k}-{os.getpid()}"            # unique per process: the in-tree extension build folder is named after it
         base = 7961 + 3 * k + (30 if role == "data-analyst" else 0)          # the extension build's benefits ports (unused here): just distinct from the defaults
         dist = build_extension(name, {"a": base, "b": base + 1, "c": base + 2})
         built.append(dist)
-        w = RoleWorld(role, name, world_port(role, k), dist)
+        w = RoleWorld(role, name, ports[k], dist)
         w.start()
         worlds.append(w)
     return worlds, built
@@ -244,7 +273,8 @@ def cmd_pilot(a) -> int:
         close_worlds(worlds, built)
         _finish_cost(budget, outdir, a.role, a.tier, model_id)
     rows = analysis_rows.load_rows(outdir / "participants.csv") if (outdir / "participants.csv").exists() else []
-    costs = [v["usd"] for k, v in budget.per_participant.items() if k in budget.finished]
+    excluded_ids = {r["participant"] for r in rows if str(r.get("exclusion", "")).strip()}
+    costs = [v["usd"] for k, v in budget.per_participant.items() if k in budget.finished and k not in excluded_ids]        # the cost of a participant that completed all its cases
     verdict = pilot_verdict(rows, costs)
     if n < len(specs):
         verdict["usable"] = False
@@ -320,6 +350,7 @@ def cmd_experts(a) -> int:
     sb = cfg(a.role).sandbox
     outdir = HERE / "experts" / a.role
     plan = X.expert_plan(a.role, a.count)
+    only = {int(x) for x in a.only.split(",")} if a.only else set(range(1, len(plan) + 1))
     worlds, built = make_worlds(a.role, 1, outdir)
     world = worlds[0]
     saved: list[Path] = []
@@ -327,6 +358,8 @@ def cmd_experts(a) -> int:
     async def go() -> None:
         async with async_playwright() as pw:
             for n, (task, variant, variation) in enumerate(plan, start=1):
+                if n not in only:
+                    continue
                 spec = X.expert_spec(a.role, n, task, variant)
                 slot = X.expert_slot(a.role, task, variant)
                 box: dict = {}
@@ -381,6 +414,7 @@ def main(argv=None) -> int:
     e.add_argument("--role", choices=list(ROLE_CFG), required=True)
     e.add_argument("--count", type=int, default=8)
     e.add_argument("--pace", type=float, default=1.5)
+    e.add_argument("--only", default="", help="re-record only these run numbers, e.g. 3,4")
     e.set_defaults(fn=cmd_experts)
     pl = sub.add_parser("pilot")
     pl.add_argument("--role", choices=list(ROLE_CFG), required=True)

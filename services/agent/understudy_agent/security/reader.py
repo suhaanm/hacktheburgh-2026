@@ -13,6 +13,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+from collections import OrderedDict
 import re
 import secrets
 import unicodedata
@@ -89,18 +90,57 @@ class ReaderResult:
     flag_reasons: tuple[str, ...] = ()
 
 
+MEMO_SIZE = 8
+
+
 class QuarantinedReader:
+    """OFF by default (`memo_size=0`); a navigator's guard turns it on (`MEMO_SIZE`). The memo: the SAME page text read under the SAME schema and source is answered from the reader's earlier CLOSED
+    output instead of another model call (tier 2 re-reads an unchanged page on every step it stays on). What is kept is the checked
+    `ReaderResult` only (typed, sanitised fields and the 16-hex digest), never the raw text; the key is a hash of the text, the schema
+    and the source. It is per reader, and a reader belongs to one navigator's guard, so nothing is shared across people; the navigator
+    clears it when it opens a fresh page (`clear_memo`), so nothing is shared across pages either. Only a successful read is kept: a
+    refusal or a schema failure is asked again. The injection detector over the page itself runs on every observation, memo or not."""
+
     def __init__(self, port: ModelPort, *, config: SecurityConfig | None = None,
                  detector: InjectionDetector | None = None, max_field_chars: int = MAX_FIELD_CHARS,
-                 verbatim_ok: frozenset[str] = VERBATIM_OK_FIELDS) -> None:
+                 verbatim_ok: frozenset[str] = VERBATIM_OK_FIELDS, memo_size: int = 0) -> None:
         self.verbatim_ok = verbatim_ok
         self.port = port
         self.config = config or SecurityConfig()
         self.detector = detector or InjectionDetector(enabled=self.config.detector)
         self.max_field_chars = max_field_chars
+        self.memo_size = max(0, int(memo_size))
+        self._memo: "OrderedDict[tuple[str, str, str], ReaderResult]" = OrderedDict()
+        self.memo_hits = 0
+        self.memo_misses = 0
 
-    def read(self, untrusted: str, schema: dict[str, Any], *, source: str = "web") -> ReaderResult:
-        digest = hashlib.sha256(untrusted.encode("utf-8", "replace")).hexdigest()[:16]
+    def clear_memo(self) -> None:
+        self._memo.clear()
+
+    def read(self, untrusted: str, schema: dict[str, Any], *, source: str = "web", fresh: bool = False) -> ReaderResult:
+        """`fresh=True` asks the model again whatever the memo holds (the orchestrator's verification re-read must be independent of
+        the first read). A fresh read is not stored."""
+        raw_bytes = untrusted.encode("utf-8", "replace")
+        full = hashlib.sha256(raw_bytes).hexdigest()
+        digest = full[:16]
+        key = (full, hashlib.sha256(json.dumps(schema, sort_keys=True, default=str).encode()).hexdigest()[:24], source)
+        if self.memo_size and not fresh:
+            hit = self._memo.get(key)
+            if hit is not None:
+                self._memo.move_to_end(key)
+                self.memo_hits += 1
+                return ReaderResult(fields=copy.deepcopy(hit.fields), ok=True, error=None, flagged_fields=hit.flagged_fields,
+                                    digest=hit.digest, flag_reasons=hit.flag_reasons)
+            self.memo_misses += 1
+        result = self._read_uncached(untrusted, schema, source, digest)
+        if self.memo_size and result.ok and not fresh:
+            self._memo[key] = ReaderResult(fields=copy.deepcopy(result.fields), ok=True, error=None, flagged_fields=result.flagged_fields,
+                                           digest=result.digest, flag_reasons=result.flag_reasons)
+            while len(self._memo) > self.memo_size:
+                self._memo.popitem(last=False)
+        return result
+
+    def _read_uncached(self, untrusted: str, schema: dict[str, Any], source: str, digest: str) -> ReaderResult:
         hardened = harden_schema(schema, self.max_field_chars)
         payload = wrap_untrusted(untrusted, source=source) if self.config.sanitize else untrusted
         try:

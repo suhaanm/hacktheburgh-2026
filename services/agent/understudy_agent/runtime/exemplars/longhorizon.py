@@ -412,7 +412,7 @@ _EMIT = {"tool": "emit_result", "file": "result", "template": "none"}
 def policy_bug_fixer(role: str, params: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
     t = payload["task"]                                      # the code-maintained state: all the policy needs, however long the task is
     sig, done = t["signals"], set(t["completed"])
-    if "repair_engine" not in t["written"]:
+    if not t["written"]:                                     # no engine script in the workspace yet
         return _w("script", "repair_engine")
     if t["pending"] != "none":                               # also the recovery after a crash: run the same phase again
         return _RUN
@@ -430,7 +430,7 @@ def policy_bug_fixer(role: str, params: dict[str, Any], payload: dict[str, Any])
 def policy_data_pipeline(role: str, params: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
     t = payload["task"]
     sig, done = t["signals"], set(t["completed"])
-    if "pipeline_engine" not in t["written"]:
+    if not t["written"]:
         return _w("script", "pipeline_engine")
     if t["pending"] != "none":
         return _RUN

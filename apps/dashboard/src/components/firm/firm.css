@@ -4,6 +4,7 @@
 
 .firm { gap: var(--space-6); }
 .firm-admin { border-style: dashed; border-color: var(--line-strong); color: var(--fg); }
+.firm-synthetic { white-space: normal; text-align: left; }
 
 /* -- The tab strip: links, because each view is its own address -------------------------------------- */
 .firm-tabs { gap: var(--space-5); margin-top: calc(-1 * var(--space-2)); }

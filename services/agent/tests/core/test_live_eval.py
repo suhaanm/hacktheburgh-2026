@@ -179,3 +179,39 @@ async def test_cache_only_mode_replays_without_any_live_call(cluster, tmp_path):
     with pytest.raises(CacheMiss):
         empty.plan([{"role": "user", "content": "unseen"}], {"title": "x", "type": "object", "properties": {}})
     assert empty.blocked == 1
+
+
+def test_split_port_sends_only_the_computer_use_step_to_the_other_provider_and_adds_the_counters():
+    from understudy_agent.live_t3 import OldGoalJob, SplitPort
+
+    class P:
+        def __init__(self, name):
+            self.name, self.stats, self.seen = name, {"calls": 0, "input_tokens": 0, "output_tokens": 0}, []
+
+        def _hit(self, what, tin, tout):
+            self.seen.append(what)
+            self.stats["calls"] += 1
+            self.stats["input_tokens"] += tin
+            self.stats["output_tokens"] += tout
+            return what
+
+        def plan(self, *a, **k): return self._hit("plan", 10, 1)
+        def read(self, *a, **k): return self._hit("read", 20, 2)
+        def check(self, *a, **k): return self._hit("check", 5, 1)
+        def vision(self, *a, **k): return self._hit("vision", 7, 1)
+        def computer_step(self, *a, **k): return self._hit("computer_step", 100, 3)
+
+    base, cu = P("openai"), P("gemini")
+    sp = SplitPort(base, cu)
+    assert (sp.plan(), sp.read(), sp.check(), sp.computer_step()) == ("plan", "read", "check", "computer_step")
+    assert base.seen == ["plan", "read", "check"] and cu.seen == ["computer_step"]
+    assert sp.stats == {"calls": 4, "input_tokens": 135, "output_tokens": 7} and sp.by_provider["gemini"]["input_tokens"] == 100
+    job = OldGoalJob("a", {})
+    assert job.facts() is None and "{household" not in job.goal and "DONE" in job.goal
+
+
+def test_the_gate_version_is_a_short_hash_that_changes_with_the_gate_code():
+    from understudy_agent.live_t3 import gate_version
+
+    v = gate_version()
+    assert len(v) == 12 and int(v, 16) >= 0 and gate_version() == v

@@ -30,4 +30,4 @@ export function resetViewRole(): void { current = "worker"; listeners.forEach((l
 
 export const VIEW_LABEL: Record<ViewRole, string> = { worker: "Worker", admin: "Admin" };
 /** The marker an admin-audience screen shows. It says the role is a demo, so nobody takes it for a permission. */
-export const ADMIN_MARKER = "Admin view (demo role)";
+export const ADMIN_MARKER = "Admin view";

@@ -42,7 +42,7 @@ from . import context, policy
 from .results import finalise_child
 from .spec import AgentSpec, ChildResult, ChildStatus, Spent, StepRecord
 from .tools import (POSTCONDITIONS, StepRejected, ToolCtx, ToolOutcome, assert_trusted_fields, child_step_schema,
-                    normalise_step, pipeline_action, resolve_menu_step, run_tool, tool_help)
+                    normalise_step, pipeline_action, pipeline_target, resolve_menu_step, run_tool, tool_help)
 from .workspace import Workspace
 
 FILE_FACTS_SCHEMA: dict[str, Any] = {
@@ -277,8 +277,7 @@ class ChildAgent:
         d = self.lease.check(tool)                                       # the lease, BEFORE the pipeline
         if not d.allowed:
             return self._finish(_LEASE_STATUS.get(d.code, "failed"), d.code)
-        decision = self.pipe.authorise(pipeline_action(tool, args), observation=obs,
-                                       target=TargetInfo(label=None, role=None, url=None))
+        decision = self.pipe.authorise(pipeline_action(tool, args), observation=obs, target=pipeline_target(tool, args, self.ws))
         if decision.verdict != "allow":
             return self._on_blocked(decision, tool, ctx)
         self._invalid = 0

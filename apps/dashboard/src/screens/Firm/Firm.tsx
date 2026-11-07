@@ -4,7 +4,7 @@ import { useLoad, type LoadState } from "../../hooks";
 import { ErrorState, ExampleBadge, Loading, PageHead, SourceNote } from "../../components/common";
 import { Details } from "../../components/ui";
 import { HitList } from "../../components/repeats/HitList";
-import { FirmBadge } from "../../components/firm/Badges";
+import { FirmBadge, SYNTHETIC_NOTE } from "../../components/firm/Badges";
 import { FirmBrief } from "../../components/firm/FirmBrief";
 import { InsightRows } from "../../components/firm/InsightRows";
 import { OnboardingCurves } from "../../components/firm/OnboardingCurves";
@@ -42,8 +42,8 @@ function PanelHead({ q, badge }: { q: Pick<LoadState<unknown>, "meta" | "why">; 
 }
 
 /** Wraps a loaded panel: loading, error and the example note are designed, never blank. */
-/** `badge` is false where every card carries its own synthetic-firm badge, so the page does not repeat it. */
-function Panel<T>({ q, what, badge = true, children }: { q: LoadState<T>; what: string; badge?: boolean; children: (d: T) => React.ReactNode }) {
+/** The synthetic note is said once in the page head and each card carries its own short badge, so a panel adds a badge only when `badge` is set. */
+function Panel<T>({ q, what, badge = false, children }: { q: LoadState<T>; what: string; badge?: boolean; children: (d: T) => React.ReactNode }) {
   if (q.status === "error" && !q.data) return <ErrorState error={q.error} retry={q.reload} what={what} />;
   if (!q.data) return <Loading label={`Loading ${what}`} />;
   return (
@@ -87,17 +87,17 @@ const REASON: Record<string, string> = {
 
 function Roles() {
   const q = useLoad(loadRoles, []);
-  return <Panel q={q} what="the role comparison" badge={false}>{(d) => <RoleMultiples roles={d.roles} min={MIN_GROUP} meta={q.meta} />}</Panel>;
+  return <Panel q={q} what="the role comparison">{(d) => <RoleMultiples roles={d.roles} min={MIN_GROUP} meta={q.meta} />}</Panel>;
 }
 
 function People() {
   const q = useLoad(loadFirm, []);
-  return <Panel q={q} what="the people list" badge={false}>{(d) => <PeopleTable firm={d} meta={q.meta} />}</Panel>;
+  return <Panel q={q} what="the people list">{(d) => <PeopleTable firm={d} meta={q.meta} />}</Panel>;
 }
 
 function Onboarding() {
   const q = useLoad(loadOnboarding, []);
-  return <Panel q={q} what="the onboarding curves" badge={false}>{(d) => <OnboardingCurves data={d} meta={q.meta} />}</Panel>;
+  return <Panel q={q} what="the onboarding curves">{(d) => <OnboardingCurves data={d} meta={q.meta} />}</Panel>;
 }
 
 function Automation() {
@@ -126,7 +126,7 @@ function Automation() {
 
 function Risk() {
   const q = useLoad(loadOverview, []);
-  return <Panel q={q} what="risk and coverage" badge={false}>{(o) => <RiskCoverage o={o} meta={q.meta} />}</Panel>;
+  return <Panel q={q} what="risk and coverage">{(o) => <RiskCoverage o={o} meta={q.meta} />}</Panel>;
 }
 
 /** The Firm screen (Admin view only). One idea per view, reached by the tab strip or the command palette. */
@@ -154,7 +154,7 @@ export default function Firm() {
         eyebrow="Firm"
         title={TITLE[tab]}
         lede="For coaching and onboarding, not for evaluating individuals."
-        aside={<span className="pill firm-admin">{ADMIN_MARKER}</span>}
+        aside={<><span className="pill firm-admin">{ADMIN_MARKER}</span><span className="pill pill--origin firm-synthetic" data-origin="synthetic">{SYNTHETIC_NOTE}</span></>}
       />
       <nav className="tabs firm-tabs" aria-label="Firm views">
         {FIRM_TABS.map((t) => (

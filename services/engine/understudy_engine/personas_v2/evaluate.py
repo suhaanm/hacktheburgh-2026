@@ -67,7 +67,8 @@ class Config:
     @classmethod
     def make(cls, fast: bool, workers: int | None = None) -> "Config":
         env = os.environ.get("UNDERSTUDY_REALISM_WORKERS")
-        w = workers or (int(env) if env else max(1, min(6, (os.cpu_count() or 4) - 2)))
+        # fast mode is serial by default (safe in any process, deterministic); the full run defaults to a small pool
+        w = workers or (int(env) if env else (1 if fast else max(1, min(6, (os.cpu_count() or 4) - 2))))
         if fast:
             return cls(True, ("benefits-processor",), 2, 14, 7, 14, 4, 2, B_FAST, (0.25, 0.35, 0.45), False, False, False, w)
         return cls(False, ROLE_ORDER, 3, 40, 14, 48, 8, 2, B_FULL, ER.GRID, True, True, True, w)
@@ -170,7 +171,10 @@ def _pmap(fn, items, workers: int, log=None, label: str = ""):
     from concurrent.futures import as_completed
 
     results: list = [None] * len(items)
-    with ProcessPoolExecutor(max_workers=workers, mp_context=mp.get_context("fork")) as ex:
+    # "spawn" is safe from inside a process that has already used BLAS (a forked child segfaults in the matrix multiply on macOS);
+    # the long CLI run sets UNDERSTUDY_REALISM_FORK=1 from a clean parent for speed.
+    method = "fork" if os.environ.get("UNDERSTUDY_REALISM_FORK") == "1" else "spawn"
+    with ProcessPoolExecutor(max_workers=workers, mp_context=mp.get_context(method)) as ex:
         futs = {ex.submit(fn, it): i for i, it in enumerate(items)}
         done = 0
         for fut in as_completed(futs):
@@ -569,12 +573,58 @@ def run(cfg: Config, log=print, resume: bool = False) -> dict[str, Any]:
     return result
 
 
+def _meta(cfg: Config, n_people: int) -> dict[str, Any]:
+    return {"origin": "synthetic", "badge": BADGE, "n": n_people, "n_unit": "people",
+            "split": ("fit on a replicate of family X, test on an independent replicate of family Y, every ordered pair; diagonal = independent draw of the same family; "
+                      "person-cluster bootstrap"),
+            "interval_level": 0.95,
+            "note": ("Synthetic, realism-calibrated. Marginals sit inside cited ranges where a constant was found; this does not show the data match real users, "
+                     "and the generators are written by the same team." + (" FAST MODE: small n, one role, v1 omitted." if cfg.fast else ""))}
+
+
+LIMITATIONS = [
+    {"id": "realism-synthetic", "severity": "high",
+     "text": "Every number here comes from generators we wrote. The v2 families have marginals inside cited ranges, but nothing shows they match real people; the live study (n = 4) and an optional labelled pilot are the only evidence about real people."},
+    {"id": "realism-shared-parts", "severity": "medium",
+     "text": "The three v2 families share the person hierarchy, the interruption process, the event emitter and noise model, the role vocabulary and the task grammar's valid paths. A family with less shared code would be a stronger test."},
+    {"id": "realism-label-circularity", "severity": "medium",
+     "text": "The hazard label is a point process driven by hidden stuck episodes, not an emission table, but both behaviour and label come from the same hidden state: the circularity is reduced, not removed."},
+    {"id": "realism-citations", "severity": "medium",
+     "text": "Published ranges were read from search-result summaries; primary papers were not opened. Hick-Hyman slope, circadian amplitude and warm-up are unverified wide assumptions."},
+    {"id": "realism-calibration", "severity": "low",
+     "text": "Deficit prevalence and stuck-episode rates were calibrated once to structural plausibility targets (S1 to S6) before any analytic was run; the families still differ a lot in prevalence."},
+]
+
+
+def assemble(cfg: Config, res: dict[str, Any]) -> dict[str, Any]:
+    from .cited import CITED, status_counts
+
+    n_people = cfg.n_ww * cfg.K * len(FAMS) * len(cfg.roles)
+    out = {
+        "name": "realism", "meta": _meta(cfg, n_people), "origin": "synthetic", "badge": BADGE,
+        "generator": {"params_sha256": params_sha256(), "generator_sha256": generator_sha256(), "families": list(FAMS), "roles": list(cfg.roles),
+                      "plan": "evals/realism/PLAN.md", "cited_status_counts": status_counts()},
+        "config": {"fast": cfg.fast, "K": cfg.K, "n_workweek_people": cfg.n_ww, "workweek_days": cfg.days, "n_cohort_people": cfg.n_coh, "cases_per_person": cfg.cases,
+                   "genome_cases_per_person": cfg.genome_cases, "bootstrap_B": cfg.B, "routine_grid": list(cfg.grid), "with_v1": cfg.with_v1,
+                   "proposals": cfg.proposals, "margins": MARGIN},
+        "results": res,
+        "cited_constants": {k: {"status": v["status"], "range": list(v["range"]) if v.get("range") else None, "source": v["source"], "note": v.get("note", "")} for k, v in CITED.items()},
+    }
+    out["limitations"] = LIMITATIONS
+    out["deviations"] = DEVIATIONS
+    return out
+
+
 DEVIATIONS = [
     "Hazard leave-one-person-out diagnostics (the public `evaluate_hazard`) were run for the benefits role only, on the first 16 people of replicate 0 of each family and on v1's four personas, because the nested leave-one-out costs people squared fits per variant; the plan said each family and role. The matrix itself (train on replicate k, test on replicate k + 1) covers every role.",
     "The genome uses the first 2 cases per person (as planned) and runs for the benefits role only (as planned: the named-deficit labels are benefits-specific).",
     "Routine proposals after the value gate (R3) are scored at the shipped finder config only; the finder cut height is fitted for R1 and R2.",
     "v1 as the training family has a single fit; it is tested on every replicate of each v2 family. v1 as the test family has four personas (hazard, routines) or 16 novices and 8 experts (genome); its diagonal is leave-one-persona-out (hazard, routines) or the apprentices' own expert-novice split (genome), because no independent v1 draw exists.",
     "Interpretation rule additions: when a delta interval lies entirely on the beneficial side but outside the margin, the pre-registered rule says inconclusive; the tables add '(better than the diagonal)' beside it for readability without changing the verdict.",
+    "Fast mode (`evaluate_realism(fast=True)`) uses K = 2 replicates of 14 people (the plan said one replicate, which cannot give an independent test replicate), benefits role only, no v1, serial by default; it is a smoke-level section with the same metrics, not the matrix.",
+    "The first full run was stopped after about 35 minutes (it had computed no analytic) so that the matrix could be rerun with a dataset cache and blocks written to disk as they finish, as the lead asked; generators and analyses were unchanged. The rerun saved every block and then stopped at the final assembly step because of a bug of mine (an accidentally deleted function); the report was assembled with `--resume` from the saved blocks and cached datasets.",
+    "The thin role packs (data analyst, programmer) were extended by another track after the generators were frozen; v2 emits the original seven pack cogs per thin role, so it does not exercise the new cogs.",
+    "The `markov` family draws hesitation pauses only through freezes and quiet stalls, so its pause-tail check (M3) is outside the cited range in 3 of the 5 datasets where it can be measured; the family was not changed after the freeze.",
     "No generator parameter, range or code was changed after PLAN.md was frozen (the report prints the two hashes and flags a mismatch).",
 ]
 

@@ -1,0 +1,321 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://understudy.local/schema/cue_ledger.schema.json",
+  "title": "The assist ledger as GET /cue/ledger returns it",
+  "description": "`{meta, data: {rows, counts}}`: the newest rows first (up to 5000), each exactly one row of data/assist/ledger.jsonl as assist_ledger.schema.json defines it (LedgerRow below is a copy; a test keeps the two equal), and the number of rows per stream. Delegated and automation rows are offloaded work and never enter the score.",
+  "$ref": "#/$defs/LedgerEnvelope",
+  "$defs": {
+    "Meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "n",
+        "n_unit",
+        "split",
+        "interval_level",
+        "note",
+        "generated_at"
+      ],
+      "properties": {
+        "origin": {
+          "enum": [
+            "real",
+            "synthetic",
+            "mixed"
+          ],
+          "description": "Drives the synthetic badge: 'mixed' when real and synthetic rows are both read."
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "n_unit": {
+          "const": "occurrences"
+        },
+        "split": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "interval_level": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "generated_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        }
+      },
+      "description": "The meta block every Cue answer carries (cue/routes.py _meta, cue/live.py _envelope)."
+    },
+    "LedgerRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "person",
+        "origin",
+        "t_hour",
+        "role",
+        "skill",
+        "stream",
+        "trigger",
+        "tier",
+        "options_shown",
+        "accepted",
+        "dismissed",
+        "outcome",
+        "taught",
+        "retrieval"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^a_[0-9a-f]{12}$"
+        },
+        "person": {
+          "type": "string",
+          "pattern": "^p_[a-z0-9_]{1,30}$",
+          "description": "The engine's person id (a slug), never a name."
+        },
+        "origin": {
+          "enum": [
+            "real",
+            "synthetic"
+          ],
+          "description": "Drives the synthetic badge. Simulated learners and participants are always 'synthetic'."
+        },
+        "origin_detail": {
+          "enum": [
+            "synthetic_learner",
+            "simulated_participants",
+            "live_worker"
+          ],
+          "description": "Optional wording for the badge: simulated participants (language model) are not people."
+        },
+        "t_hour": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}$",
+          "description": "UTC hour bucket (YYYY-MM-DDTHH). Never a finer timestamp."
+        },
+        "role": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9\\-]{0,31}$",
+          "description": "Role pack id."
+        },
+        "skill": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z][a-z0-9_.\\-]{0,47}$",
+          "description": "Pack skill id (or the step id when the pack names no skill). Null only for offloaded rows that map to no skill."
+        },
+        "step": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z][a-z0-9_.\\-]{0,47}$",
+          "description": "Pack step id."
+        },
+        "stream": {
+          "enum": [
+            "assist",
+            "delegated",
+            "automation"
+          ]
+        },
+        "trigger": {
+          "enum": [
+            "none",
+            "auto",
+            "asked"
+          ],
+          "description": "none: the occurrence had no cue at all. auto: Cue spoke on its own. asked: the worker asked."
+        },
+        "stuck_bucket": {
+          "enum": [
+            "p00_59",
+            "p60_79",
+            "p80_94",
+            "p95_100",
+            null
+          ],
+          "description": "Stuck probability bucket (percent) when the first cue was shown."
+        },
+        "tier": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4,
+          "description": "Highest tier reached: 0 none, 1 ring, 2 ring and chip, 3 ghost demo, 4 voice."
+        },
+        "options_shown": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4,
+          "description": "Step options in the question (without the fixed 'something else')."
+        },
+        "answer_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z][a-z0-9_.\\-]{0,47}$",
+          "description": "The option the worker chose: a step id, or 'other'."
+        },
+        "accepted": {
+          "type": "boolean",
+          "description": "The worker accepted a cue, offer or answered a question (explicit, or followed within 10 s)."
+        },
+        "dismissed": {
+          "type": "boolean"
+        },
+        "seconds_to_progress": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 3600,
+          "description": "Seconds from the first cue shown to the next progress event; null when there was no cue or no progress."
+        },
+        "lost_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": -600,
+          "maximum": 3600,
+          "description": "Seconds the occurrence took beyond the pack's expert median for that step (negative = faster than the expert median)."
+        },
+        "outcome": {
+          "enum": [
+            "clean",
+            "assisted",
+            "error",
+            "abandoned"
+          ],
+          "description": "clean: completed with no accepted cue. assisted: completed with an accepted cue or answer. error: completed wrongly. abandoned: not completed."
+        },
+        "level_before": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 4
+        },
+        "level_after": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 4
+        },
+        "taught": {
+          "type": "boolean",
+          "description": "The one-line reason (fixed table) was shown on this occurrence: once per skill per day."
+        },
+        "retrieval": {
+          "type": "boolean",
+          "description": "Help was withheld on purpose (retrieval practice scheduled by mastery decay)."
+        },
+        "routine": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z0-9][a-z0-9_.\\-]{0,47}$",
+          "description": "Offloaded rows only: the routine slug."
+        },
+        "minutes": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1440,
+          "description": "Offloaded rows only: minutes of agent work."
+        },
+        "offload_outcome": {
+          "enum": [
+            "done",
+            "queued",
+            "failed",
+            "yielded",
+            null
+          ],
+          "description": "Offloaded rows only."
+        }
+      },
+      "description": "One row of the assist ledger (a copy of assist_ledger.schema.json without its $id)."
+    },
+    "LedgerData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rows",
+        "counts"
+      ],
+      "properties": {
+        "rows": {
+          "type": "array",
+          "maxItems": 5000,
+          "items": {
+            "$ref": "#/$defs/LedgerRow"
+          }
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "assist",
+            "delegated",
+            "automation"
+          ],
+          "properties": {
+            "assist": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "delegated": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "automation": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "LedgerEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "meta",
+        "data"
+      ],
+      "properties": {
+        "meta": {
+          "$ref": "#/$defs/Meta"
+        },
+        "data": {
+          "$ref": "#/$defs/LedgerData"
+        }
+      }
+    }
+  }
+}

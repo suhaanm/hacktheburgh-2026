@@ -19,7 +19,8 @@ from typing import Any, Callable
 from urllib.parse import urlparse
 
 from ..completion import ClaimLedger
-from ..context import tier2_messages
+from ..context import manifest_of_parts, tier2_messages
+from ..models.meter import call_context
 from ..models.errors import ProviderError
 from ..models.port import ModelPort
 from ..security.sanitize import wrap_untrusted
@@ -193,7 +194,11 @@ class BrowserAgent:
             msgs = tier2_messages(self.guard, task.goal, seen, tool_help=TOOL_HELP, state=state,
                                   labels_block=wrap_untrusted(labels, source="web"))
             try:
-                raw = await asyncio.to_thread(self.model.plan, msgs, TIER2_SCHEMA)
+                # the meter records the sections and token counts of THIS planning call (never its text): the stable system part and the
+                # volatile state part, so a cache-friendly prefix shows up as one
+                man = manifest_of_parts("planner", [("system", str(msgs[0]["content"]), True), ("state", str(msgs[-1]["content"]), False)])
+                with call_context(man.to_meter_dict()):
+                    raw = await asyncio.to_thread(self.model.plan, msgs, TIER2_SCHEMA)
             except (ProviderError, ValueError) as exc:  # a malformed or refused answer is one wasted turn, not a dead run
                 res.actions += 1
                 self.used = res.actions

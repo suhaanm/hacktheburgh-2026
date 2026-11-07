@@ -11,6 +11,8 @@ has been quiet for the hold-off period.
 """
 from __future__ import annotations
 
+import re
+
 import asyncio
 import threading
 import time
@@ -143,13 +145,15 @@ class BackgroundRunner:
                  bundles: dict[str, dict[str, Any]] | None = None, base_urls: dict[str, str] | None = None,
                  audit: AuditLog | None = None, queue: ApprovalQueue | None = None, engine: EngineClient | None = None,
                  root: Path | None = None, hold_off_s: float = 3.0, unattended: bool = False,
-                 clock: Callable[[], float] = time.time) -> None:
+                 clock: Callable[[], float] = time.time, checkpoint_dir: Path | None = None) -> None:
         self.routine_id, self.sup, self.human, self.model = routine_id, supervisor, human_input, model
         self.bundles, self.base_urls = bundles, base_urls or site_base_urls()
         self.audit = audit or AuditLog()
         self.queue = queue or ApprovalQueue(audit=self.audit)
         self.engine, self.root, self.hold_off_s, self.unattended = engine, root, hold_off_s, unattended
         self.clock = clock
+        self.checkpoint_dir = checkpoint_dir     # set: each run keeps a typed step-level checkpoint here, and a start with a run id
+                                                 # that has one RESUMES from it (a yield no longer restarts the household)
         self.last: dict[str, Any] = {}
 
     def _kind(self) -> str:
@@ -178,8 +182,11 @@ class BackgroundRunner:
                     on_finish()
 
         def _work(ctx: Any) -> dict[str, Any]:
+            ck: dict[str, Any] = {}
+            if self.checkpoint_dir is not None:
+                ck = {"checkpoint_path": Path(self.checkpoint_dir) / (re.sub(r"[^A-Za-z0-9_.-]", "_", rid)[:80] + ".json"), "resume": True}
             opts = RunOptions(denylist=Denylist.load(), routine_id=self.routine_id, bundles=self.bundles,
-                              query=dict(query or {}), unattended=self.unattended, rung=consent.rung)
+                              query=dict(query or {}), unattended=self.unattended, rung=consent.rung, **ck)
             run = BenefitsRun(rid, h, model=self.model, base_urls=self.base_urls, queue=self.queue, audit=self.audit,
                               options=opts, is_current=ctx.is_current)
             t0 = self.clock()

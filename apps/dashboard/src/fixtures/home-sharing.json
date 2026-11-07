@@ -73,6 +73,7 @@
    "level": "junior",
    "n": 176,
    "n_recent": 54,
+   "name": "Maren Bjornsen",
    "origin": "synthetic",
    "role": "benefits-processor",
    "skills": [
@@ -108,7 +109,7 @@
      "lost_s": {
       "ci": [
        -0.8,
-       4.0
+       4
       ],
       "value": 2.1
      },

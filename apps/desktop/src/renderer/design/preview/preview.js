@@ -781,13 +781,13 @@ function SettingsPanel() {
       lockedRow,
       SetRow('Pace', Seg('Pace', [['gentle', 'Gentle'], ['fast', 'Quick']], () => S.settings.pacing, (v) => setSetting({ pacing: v }))),
       RangeRow('Voice speed', 0.75, 1.25, 0.05, () => S.settings.voiceSpeed, (v) => setSetting({ voiceSpeed: v }), 'Slower', 'Faster'),
-      sw('Ask me to explain it back', '', 'teachBack'), sw('Explain computer words', '', 'explainJargon'), sw('Demo mode', 'Move up after one clean try', 'demoMode')),
+      sw('Ask me to explain it back', '', 'teachBack'), sw('Explain computer words', '', 'explainJargon'), sw('Quick level-up', 'Move up after one clean try', 'demoMode')),
     group('On screen', SwitchOn('Big marks', '', () => S.big, (v) => set({ big: v })), AnnotationPreview(), sw('Text only, no speaking', '', 'textOnly')),
     group('Listening', sw('Listen for my name', '', 'wakeEnabled'), sw('Only when I press a key', '', 'pushToTalkOnly'), sw('Show the listening light', '', 'listeningLight')),
     group('Safety', sw('Scam check', '', 'scamShield'),
       SetRow('Let me do things for you', Seg('Let me do things for you', [['off', 'Off'], ['ask_each', 'Ask each time'], ['ask_per_task', 'Ask per task']], () => S.settings.agency || 'off', (v) => setSetting({ agency: v })), 'Off means I only show you how.')),
     group('Menu bar', sw('Show in the menu bar', '', 'showMenuBarIcon'), sw('Open at login', '', 'launchAtLogin')),
-    group('Other', h('div', { class: 'al-setrow' }, h('button', { class: 'al-btn', type: 'button' }, 'Run demo')), h('div', { class: 'al-setrow' }, h('button', { class: 'al-btn', type: 'button' }, 'Set up again'))));
+    group('Other', h('div', { class: 'al-setrow' }, h('button', { class: 'al-btn', type: 'button' }, 'Run the walkthrough')), h('div', { class: 'al-setrow' }, h('button', { class: 'al-btn', type: 'button' }, 'Set up again'))));
   function draw() {
     moreBtn.setAttribute('aria-expanded', String(moreOpen));
     moreBtn.replaceChildren(moreOpen ? 'Fewer settings' : 'More settings', icon('down'));
@@ -951,7 +951,7 @@ function ProfileTab() {
         }
       } else {
         editor.push(h('button', { class: 'al-btn', type: 'button', onclick: () => { st.draft = st.doc.content; st.latest = null; st.editing = true; draw(); } }, 'Edit the whole file'),
-          h('button', { class: 'pv-chipbtn', type: 'button', onclick: () => { fakeFile.stale = true; st.notice = 'Demo: the next save will act as if someone else changed the file.'; draw(); } }, 'Demo: make the next save fail'));
+          h('button', { class: 'pv-chipbtn', type: 'button', onclick: () => { fakeFile.stale = true; st.notice = 'Example: the next save will act as if someone else changed the file.'; draw(); } }, 'Example: make the next save fail'));
       }
       kids.push(h('div', { class: 'al-profile' },
         h('section', { class: 'al-group', 'aria-label': 'Edit the whole file' }, h('h3', { class: 'al-eyebrow' }, 'The whole file'), ...editor),

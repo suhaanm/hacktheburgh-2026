@@ -21,7 +21,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Protocol
 
-from ..context.working import PageState
+from ..context.adapters import TIER3_BUDGET_TOKENS
+from ..context.working import PageState, TypedIdError, WorkingMemory
+from ..models.meter import call_context
 from ..models.port import Action, Done, ModelPort, SafetyStop
 from ..supervisor import kill_flag_path
 from .base import Emit, StepBudgetExceeded, StepEvent, StuckDetector, StuckLoop, TierError
@@ -1098,6 +1100,28 @@ def screen_changed(a: bytes, b: bytes, min_pixels: int = CHANGED_PIXELS) -> bool
 _TARGETED = ("click", "double_click", "drag", "type", "key")   # actions whose effect depends on what is under them
 
 
+def seed_working_memory(goal_id: str, handles: list[str], snapshot: dict[str, Any] | None, *, page_kept: bool) -> WorkingMemory:
+    """The working memory for a tier-3 attempt: new, or seeded from a snapshot of an earlier attempt or of a checkpoint. What was
+    VERIFIED by code, the step count and the open problems carry over. What belongs to a PAGE (the handles typed on it, the page state)
+    carries over only when the page is kept: on a fresh page nothing is typed and nothing is known, so every handle is pending again and
+    the memory says it was resumed. A snapshot that is invalid or for another task or another list of handles is ignored."""
+    fresh = lambda: WorkingMemory(goal_id, handles=handles, pending=handles, last_k=6)  # noqa: E731
+    if snapshot is None:
+        return fresh()
+    try:
+        wm = WorkingMemory.restore(snapshot)
+    except (TypedIdError, ValueError, KeyError, TypeError):
+        return fresh()
+    if wm.goal_id != goal_id or tuple(wm.handles) != tuple(handles):
+        return fresh()
+    if page_kept:
+        wm.add_problem("previous_attempt_failed")
+    else:
+        wm.mark_resumed()
+        wm.set_pending(handles)
+    return wm
+
+
 class ComputerUse:
     """The tier-3 loop. Budgeting is by PROGRESS, not a flat cap: the run may go on while the screen keeps changing
     (a form being filled, pages advancing) up to `max_steps`, and stops early after `stall_limit` consecutive steps in
@@ -1109,7 +1133,9 @@ class ComputerUse:
     def __init__(self, model: ModelPort, actuator: Actuator, guard: Guard, *, navigator: str,
                  emit: Emit | None = None, is_current: Callable[[], bool] = lambda: True, step_start: int = 0,
                  max_steps: int = 120, deadline_s: float = 600.0, screenshot_size: tuple[int, int] = (1280, 720),
-                 facts: Any = None, stall_limit: int = 12, pause: Any = None, context_reset_every: int = 4, max_nudges: int = 2, stateless: bool | None = None) -> None:
+                 facts: Any = None, stall_limit: int = 12, pause: Any = None, context_reset_every: int = 4, max_nudges: int = 2, stateless: bool | None = None,
+                 resume_wm: dict[str, Any] | None = None, page_kept: bool = False,
+                 on_snapshot: Callable[[int, dict[str, Any]], None] | None = None, postcondition: str = "final_page") -> None:
         if stateless is None:                    # UNDERSTUDY_CU_STATELESS=0 opts back into the chained provider thread (comparison only)
             stateless = os.environ.get("UNDERSTUDY_CU_STATELESS", "1").strip().lower() not in ("0", "false", "no", "off")
         self.stateless = stateless               # no provider-side thread: each step is goal + code-built working memory + ONE fresh frame
@@ -1121,9 +1147,23 @@ class ComputerUse:
         self.facts, self.stall_limit, self.pause = facts, stall_limit, pause
         self.stuck = StuckDetector()
         self.last_steps = 0
+        # A snapshot of the working memory to seed from (a resume after a kill, or a second attempt after a failure); `page_kept` says
+        # whether the page the new attempt starts on is the one the snapshot was taken on. `on_snapshot(steps, snapshot)` is called after
+        # every step with the typed snapshot (the run checkpoint). `postcondition` is the id recorded when code verifies the final page.
+        self.resume_wm, self.page_kept, self.on_snapshot, self.postcondition = resume_wm, page_kept, on_snapshot, postcondition
+        self.wm: Any = None
+        self.last_manifest: dict[str, Any] | None = None
+
+    def _snapshot(self, steps: int, wm: Any) -> None:
+        if self.on_snapshot is None:
+            return
+        try:
+            self.on_snapshot(steps, wm.snapshot())
+        except Exception:  # noqa: BLE001 - a checkpoint that cannot be written must not stop the run; it is noted, never silent
+            self.guard.note("checkpoint_failed", "failed", "snapshot", tier=3)
 
     @staticmethod
-    def _sync_memory(wm: Any, res: "Tier3Result", synced: int) -> int:
+    def _sync_memory(wm: Any, res: "Tier3Result", synced: int, base: int = 0) -> int:
         """Typed step records into the working memory, from the history the loop keeps (handle names, kinds, outcomes)."""
         from ..context.working import Outcome, StepRecord, code_of
 
@@ -1135,8 +1175,9 @@ class ComputerUse:
                 outcome = Outcome.REFUSED if why in ("literal_text", "unknown_handle", "key_types_text", "value_not_single_line") else Outcome.FAILED
             else:
                 outcome = Outcome.OK
-            wm.record(StepRecord(n=i + 1, kind="type_fact" if handle else code_of(h.get("kind"), "step"),
-                                 target=code_of(handle or "", ""), outcome=outcome, tier=3, code=why if h.get("ok") is False else ""))
+            wm.record(StepRecord(n=base + i + 1, kind="type_fact" if handle else code_of(h.get("kind"), "step"),
+                                 target=code_of(handle or "", ""), outcome=outcome, tier=3, code=why if h.get("ok") is False else "",
+                                 verified=code_of(h.get("verified") or "", "")))
         return len(res.history)
 
     @staticmethod
@@ -1181,18 +1222,29 @@ class ComputerUse:
         bind = getattr(self.actuator, "bind_cancel", None)
         if callable(bind):            # Stop wins inside a long action too (a chunked type checks this between chunks)
             bind(lambda: not self.is_current())
+        begin = getattr(self.model, "begin_task", None)
+        if callable(begin):           # a provider that queues the rest of a multi-part action (click-and-type) starts this task clean
+            begin(self.navigator)
         attach = getattr(self.model, "attach", None)
         if callable(attach):          # test doubles that need the actuator's page; real providers have no such hook
             attach(self.navigator, self.actuator)
         res = Tier3Result("step_cap")
         wm = None
         synced = 0
+        base_step = 0
+        frames: Any = None
         if self.stateless:
             from ..context.adapters import computer_use_text
             from ..context.working import WorkingMemory
 
             hs = list(self.facts.handles) if self.facts is not None else []
-            wm = WorkingMemory(re.sub(r"[^a-z0-9_.:-]", "", self.navigator.lower())[:48] or "nav", handles=hs, pending=hs, last_k=6)
+            wm = seed_working_memory(re.sub(r"[^a-z0-9_.:-]", "", self.navigator.lower())[:48] or "nav", hs, self.resume_wm,
+                                     page_kept=self.page_kept)
+            base_step = wm.step                       # step numbers in the memory continue from a resumed or carried snapshot
+            self.wm = wm
+            from ..context.frames import FrameRetention
+
+            frames: Any = FrameRetention()            # the latest frame in full and one small thumbnail's worth of fingerprint, in memory only
         t0 = time.monotonic()
         n = self.step_start
         last_fp: bytes | None = None
@@ -1234,18 +1286,32 @@ class ComputerUse:
                         res.resets += 1
                     last_reset = res.steps
                 if wm is not None:
-                    synced = self._sync_memory(wm, res, synced)
+                    synced = self._sync_memory(wm, res, synced, base_step)
+                    self._snapshot(res.steps, wm)
                     url = getattr(self.actuator, "url", None)
                     if url:                                       # a new page starts blank: handles typed on the last one no longer count
                         import hashlib as _h
                         from urllib.parse import urlsplit
 
                         wm.set_page(PageState.UNKNOWN, "p" + _h.sha1(urlsplit(url).path.encode()).hexdigest()[:8])
-                    prompt = computer_use_text(base_goal, wm, None, feedback=feedback).text()
+                    try:
+                        plan = frames.push(shot, passthrough=True)       # the code-written hint: did the screen change since the last step
+                    except Exception:  # noqa: BLE001 - an undecodable capture simply has no hint
+                        plan = None
+                    profile = "openai_cu" if getattr(self.model, "name", "") == "openai" else "default"
+                    # the frame's own tokens are added to the budget, so the text sections keep the room they had before the hint existed
+                    from ..context.tokens import estimate_image_tokens
+
+                    extra = estimate_image_tokens(plan.frames[0].width, plan.frames[0].height, profile) if plan is not None else 0
+                    asm = computer_use_text(base_goal, wm, plan, feedback=feedback, budget_tokens=TIER3_BUDGET_TOKENS + extra, image_profile=profile)
+                    prompt = asm.text()
+                    manifest = asm.manifest.to_meter_dict()
+                    self.last_manifest = manifest
                     res.prompt_chars.append(len(prompt))
                     # a scripted double (the mock provider) indexes its script by history length; a real provider gets none
                     hist = list(res.history) if getattr(self.model, "name", "") == "mock" else []
-                    out = await asyncio.to_thread(self.model.computer_step, prompt, shot, hist, session=self.navigator, store=False)
+                    with call_context(manifest):          # the meter records the sections and token counts of THIS call, never the text
+                        out = await asyncio.to_thread(self.model.computer_step, prompt, shot, hist, session=self.navigator, store=False)
                 else:
                     prompt = base_goal + self._task_state(res) + feedback
                     res.prompt_chars.append(len(prompt) + sum(len(str(h)) for h in res.history[-12:]))
@@ -1282,6 +1348,11 @@ class ComputerUse:
                     res.done_summary_len = len(out.summary or "")
                     res.last_summary = out.summary or ""
                     ok = await verify()
+                    if ok:                                       # code looked at the final page and it is the page the goal describes
+                        res.history.append({"kind": "verify", "ok": True, "verified": self.postcondition})
+                    if wm is not None:
+                        synced = self._sync_memory(wm, res, synced, base_step)
+                        self._snapshot(res.steps, wm)
                     res.false_claim = bool(out.claimed_success and not ok)
                     res.outcome = "done" if ok else ("claimed_not_verified" if out.claimed_success else "gave_up")
                     self._event(n, "done", ok, "claim verified" if ok else (

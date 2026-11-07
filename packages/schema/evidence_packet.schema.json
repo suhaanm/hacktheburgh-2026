@@ -486,7 +486,7 @@
     },
     "Habit": {
       "additionalProperties": false,
-      "description": "Seconds associated with one habit (a waterfall bar); a counterfactual (what would change) only when the ML layer gives one.",
+      "description": "Seconds associated with one habit (a waterfall bar): an alignment attribution, with an interval where the source gives one.\n\nThere is deliberately no counterfactual field (\"seconds recovered if the habit were fixed\"): the held-out run rejected the counterfactual\nestimator as harmful, so a packet cannot carry one, a template cannot state one and the provenance check refuses a sentence that does.",
       "properties": {
         "seconds": {
           "title": "Seconds",
@@ -515,42 +515,6 @@
           ],
           "default": null,
           "title": "Hi"
-        },
-        "counterfactual_s": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Counterfactual S"
-        },
-        "cf_lo": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Cf Lo"
-        },
-        "cf_hi": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Cf Hi"
         },
         "n": {
           "anyOf": [

@@ -54,7 +54,8 @@ def test_coordinates_are_clamped_to_the_image():
 @pytest.mark.parametrize("name,args,kind,expect", [
     ("double_click", {"x": 500, "y": 500}, "double_click", {"x": 640, "y": 400}),
     ("hover_at", {"x": 250, "y": 750}, "move", {"x": 320, "y": 600}),
-    ("type_text_at", {"x": 10, "y": 10, "text": "hello"}, "type", {"text": "hello"}),
+    ("type_text_at", {"x": 10, "y": 10, "text": "hello"}, "click", {"x": 13, "y": 8, "button": "left"}),   # the click comes FIRST (below)
+    ("type_text", {"text": "hello"}, "type", {"text": "hello"}),
     ("key_combination", {"keys": "Control+a"}, "key", {"keys": ["Control", "a"]}),
     ("scroll_document", {"direction": "down", "amount": 5}, "scroll", {"x": 640, "y": 400, "scroll_x": 0, "scroll_y": 600}),
     ("scroll_at", {"x": 500, "y": 500, "direction": "up"}, "scroll", {"x": 640, "y": 400, "scroll_x": 0, "scroll_y": -360}),
@@ -135,3 +136,48 @@ def test_gemini_note_is_in_the_prompt_and_the_wrapper_passes_the_new_keywords(mo
     p2, _ = prov(call("click", x=1, y=1))
     w = LedgeredPort(p2)
     assert w.computer_step("g", PNG, [], session="s", store=False, note="n").kind == "click"      # the ledger wrapper forwards **kw
+
+
+def kinds(actions):
+    return [(a.kind, a.args) for a in actions]
+
+
+def test_type_text_at_is_a_click_then_the_typing_each_its_own_step_and_one_model_call():
+    """The API's click-and-type is two actions the gate must see one at a time: the click gets the trusted target read, then the typing
+    has a resolved focus. The flags are faithful: clear_before_typing selects all and deletes, press_enter presses Enter, and an absent
+    flag means the API's default (both on)."""
+    import sys
+
+    sel = ["cmd", "a"] if sys.platform == "darwin" else ["ctrl", "a"]
+    p, c = prov(call("type_text_at", x=500, y=500, text="{household.savings}", press_enter=False, clear_before_typing=False))
+    out = [p.computer_step("g", PNG, [], session="n1") for _ in range(2)]
+    assert kinds(out) == [("click", {"x": 640, "y": 400, "button": "left"}), ("type", {"text": "{household.savings}"})]
+    assert len(c.calls) == 1                                          # the second step needed no model call
+    p, c = prov(call("type_text_at", x=500, y=500, text="{a.b}", press_enter=True, clear_before_typing=True))
+    out = [p.computer_step("g", PNG, [], session="n1") for _ in range(5)]
+    assert kinds(out) == [("click", {"x": 640, "y": 400, "button": "left"}), ("key", {"keys": sel}), ("key", {"keys": ["backspace"]}),
+                          ("type", {"text": "{a.b}"}), ("key", {"keys": ["enter"]})] and len(c.calls) == 1
+    p, c = prov(call("type_text_at", x=500, y=500, text="{a.b}"), call("click", x=1, y=1))
+    out = [p.computer_step("g", PNG, [], session="n1") for _ in range(5)]
+    assert [k for k, _ in kinds(out)] == ["click", "key", "key", "type", "key"]       # defaults: clear and press enter
+    assert p.computer_step("g", PNG, [], session="n1").kind == "click" and len(c.calls) == 2    # the queue is empty: the model is asked again
+
+
+def test_the_queued_part_is_per_session_and_begin_task_drops_it():
+    p, c = prov(call("type_text_at", x=500, y=500, text="t", press_enter=False, clear_before_typing=False),
+                call("type_text_at", x=100, y=100, text="u", press_enter=False, clear_before_typing=False), call("click", x=1, y=1))
+    assert p.computer_step("g", PNG, [], session="a").kind == "click"
+    assert p.computer_step("g", PNG, [], session="b").kind == "click"           # another session is not served a's queued typing
+    assert p.computer_step("g", PNG, [], session="a").args == {"text": "t"}
+    assert p.computer_step("g", PNG, [], session="b").args == {"text": "u"}
+    p, c = prov(call("type_text_at", x=500, y=500, text="t", press_enter=False, clear_before_typing=False), call("click", x=2, y=2))
+    p.computer_step("g", PNG, [], session="a")
+    p.begin_task("a")                                                           # a fresh task: the queued typing is dropped, never carried
+    a = p.computer_step("g", PNG, [], session="a")
+    assert a.kind == "click" and a.args["x"] == 3 and len(c.calls) == 2
+
+
+def test_type_text_at_without_coordinates_is_plain_typing():
+    p, _ = prov(call("type_text_at", text="hi"))
+    a = p.computer_step("g", PNG, [])
+    assert a.kind == "type" and a.args == {"text": "hi"}

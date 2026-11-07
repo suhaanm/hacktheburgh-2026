@@ -80,7 +80,10 @@ class Sources:
             except Exception:
                 return None
             fn = getattr(ei, "build", None) or getattr(ei, "build_evidence_inputs", None)
-            return fn(person, case) if callable(fn) else None
+            if not callable(fn):
+                return None
+            # the builder reads the same store the app does; it raises ValueError for a person with no apprentice data
+            return fn(person, case, root=getattr(getattr(app.state, "store", None), "root", None))
 
         return cls(genome=genome, hazard=hazard, coach=coach, routines=routines, inputs=inputs)
 
@@ -126,9 +129,20 @@ def build_packet(person: str | None, case: str | None, src: Sources, *, now: dat
     notes: dict[str, str] = {}
     pk: P.EvidencePacket | None = None
     pid, cid = person, case
+    v1_inputs: Any = None
     if src.inputs is not None:
-        inp = _try(lambda: src.inputs(person, case))
-        if inp is not None:
+        try:
+            inp = src.inputs(person, case)
+        except ValueError:                           # the builder's answer for a person with no apprentice data: fall back to the genome path
+            inp = None
+            notes["mlv2"] = "absent: no apprentice data for this person"
+        except Exception:
+            inp = None
+            notes["mlv2"] = "absent"
+        if inp is None:
+            notes.setdefault("mlv2", "absent")
+            blocks["mlv2"] = P.block_info("absent", None)
+        elif getattr(getattr(inp, "provenance", None), "model_version", "v1") == "v2":
             try:
                 pk = P.from_evidence_inputs(inp, person=person, case=case)
                 notes["mlv2"] = "ok"
@@ -138,9 +152,10 @@ def build_packet(person: str | None, case: str | None, src: Sources, *, now: dat
             except Exception as exc:
                 notes["mlv2"] = f"dropped: {type(exc).__name__}"
                 blocks["mlv2"] = P.block_info("absent", "v2")
-        else:
-            notes["mlv2"] = "absent"
+        else:                                         # v1 inputs: the genome path carries the v1 numbers (and the cohort); no v2 claim is made
+            notes["mlv2"] = "v1 inputs only: the genome block carries the v1 numbers"
             blocks["mlv2"] = P.block_info("absent", None)
+            v1_inputs = inp
     if pk is None and src.genome is not None:
         got = _try(lambda: src.genome(person, case))
         if got is not None:
@@ -154,6 +169,15 @@ def build_packet(person: str | None, case: str | None, src: Sources, *, now: dat
         else:
             notes["genome"] = "absent"
             blocks["genome"] = P.block_info("absent", None)
+    if pk is None and v1_inputs is not None:         # no genome source answered: the v1 inputs are still the v1 numbers
+        try:
+            pk = P.from_evidence_inputs(v1_inputs, person=person, case=case)
+            pid = pid or person
+            cid = cid or case
+            blocks.pop("genome", None)
+            notes["genome"] = "ok (from v1 inputs)"
+        except Exception:
+            pass
     meta_hint: dict[str, Any] | None = None
     hz = None
     if src.hazard is not None and pid:

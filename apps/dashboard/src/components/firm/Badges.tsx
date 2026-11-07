@@ -1,5 +1,8 @@
 import type { AnalyticMeta } from "../../types";
 
+/** Said once, at the top of every Firm view, in the synthetic badge area: the firm is generated and so are the names. */
+export const SYNTHETIC_NOTE = "Names are made up. This firm is synthetic.";
+
 /** "synthetic firm" on every card of the Firm screen: the whole firm is generated, never measured from real people. */
 export function FirmBadge({ meta, label }: { meta?: (AnalyticMeta & { badge?: string }) | null; label?: string }) {
   const origin = meta?.origin ?? "synthetic";

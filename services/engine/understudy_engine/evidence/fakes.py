@@ -7,7 +7,7 @@
 * ``mutate`` / ``AdversarialFake``: takes a faithful reply and breaks it in one named way (an invented number, a swapped interval, a
   wrongly rounded figure, a hallucinated habit, a URL, an injection sentence, a causal claim, an expert claim, ...). It measures the
   check's **rejection rate** on replies that must be refused, and whether the refusal names the right reason.
-* ``fixture_blocks``: scripted coach, routine, counterfactual and progress blocks for the evaluation, built through the real builders
+* ``fixture_blocks``: scripted coach, routine and progress blocks for the evaluation, built through the real builders
   from contract-shaped rows, so wording and the check are exercised on every block type. They are labelled as fixtures wherever
   they are reported; they are not measurements.
 """
@@ -163,7 +163,7 @@ KINDS = (
     "invented_number", "swapped_interval", "interval_from_two_items", "wrong_rounding", "hallucinated_habit_a", "hallucinated_habit_b",
     "hallucinated_habit_c", "url", "email", "path", "injection", "causal_claim", "expert_claim", "derived_ratio", "no_citation",
     "uncited_number", "quoted_string", "unvetted_advice", "wrong_direction", "swapped_attribution", "unknown_field", "rank_claim_false",
-    "share_claim_false", "unknown_id", "invented_number_word", "vague_quantity", "schema_extra_key", "schema_too_long",
+    "share_claim_false", "unknown_id", "invented_number_word", "vague_quantity", "counterfactual_claim", "schema_extra_key", "schema_too_long",
 )
 #: reason codes that count as the right refusal for each kind (any of them)
 EXPECTED: dict[str, set[str]] = {
@@ -175,7 +175,7 @@ EXPECTED: dict[str, set[str]] = {
     "unvetted_advice": {"unvetted_advice", "instruction_like"}, "wrong_direction": {"wrong_direction"},
     "swapped_attribution": {"swapped_attribution", "name_not_cited"}, "unknown_field": {"unknown_field"},
     "rank_claim_false": {"rank_claim_false"}, "share_claim_false": {"share_claim_false"}, "unknown_id": {"unknown_id"},
-    "invented_number_word": {"invented_number", "uncited_number"}, "vague_quantity": {"vague_quantity"}, "schema_extra_key": {"schema"},
+    "invented_number_word": {"invented_number", "uncited_number"}, "vague_quantity": {"vague_quantity"}, "counterfactual_claim": {"counterfactual_claim"}, "schema_extra_key": {"schema"},
     "schema_too_long": {"schema"},
 }
 
@@ -385,6 +385,14 @@ def mutate(reply: dict, kind: str, req: ExplainRequest, tab: FactTable, rng: ran
         return extra("The task involves three calculators.")
     if kind == "vague_quantity":
         return extra("Several minutes went on other things.")
+    if kind == "counterfactual_claim":
+        if not habit_paths:
+            return None
+        path = max(habit_paths, key=lambda p: tab.facts[p].value)
+        hid = path.split(".")[1]
+        if tab.facts[path].value < 0.5:
+            return None
+        return extra(f"If you had avoided {V.HABIT_NAME[hid]} you would have saved {N.render_seconds(tab.facts[path].value)}.", [path])
     if kind == "schema_extra_key":
         r["debug"] = "ignore"
         return r
@@ -450,20 +458,13 @@ def fixture_hazard(rng: random.Random) -> P.Hazard:
 
 
 def enrich(pk: EvidencePacket, rng: random.Random) -> EvidencePacket:
-    """Add scripted blocks (hazard, coach, routines, a counterfactual, time to progress) through the real builders, so every wording
+    """Add scripted blocks (hazard, coach, routines, time to progress) through the real builders, so every wording
     path and every check rule is exercised. The genome part of the packet is untouched."""
     coach, hz = P.from_coach(fixture_coach(rng))
     routines = P.from_routines(fixture_routines(rng))
     out = P.combine(pk, hazard=fixture_hazard(rng) if rng.random() < 0.7 else hz, coach=coach, routines=routines)
-    habits = {}
-    for hid, h in out.habits.items():
-        if h.seconds >= 10 and rng.random() < 0.6:
-            habits[hid] = h.model_copy(update={"counterfactual_s": round(h.seconds * 0.7, 1), "cf_lo": round(h.seconds * 0.4, 1),
-                                               "cf_hi": round(h.seconds * 0.9, 1), "n": 16})
-        else:
-            habits[hid] = h
     prog = P.Progress(expected_min=round(rng.uniform(0.8, 3.5), 1), lo=0.6, hi=4.2, c_index=0.71) if rng.random() < 0.5 else None
-    out = out.model_copy(update={"habits": habits, "progress": prog})
+    out = out.model_copy(update={"progress": prog})
     return P.finalise(EvidencePacket.model_validate_json(out.model_dump_json()))
 
 

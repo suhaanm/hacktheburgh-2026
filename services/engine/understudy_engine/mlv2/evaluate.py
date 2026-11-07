@@ -193,19 +193,26 @@ def _calibration_d0(spec_id: str | None) -> tuple[list[dict], str]:
     return out, "D0: the four v1 personas, leave one person out (dev)"
 
 
-def scorecard(held: dict | None, dev_d0: dict, *, fast: bool, frozen: dict | None, tte_dev: dict | None = None) -> dict:
+def scorecard(held: dict | None, dev_d0: dict, *, fast: bool, frozen: dict | None, tte_dev: dict | None = None, decision: dict | None = None) -> dict:
     """ONE stable block for the dashboard's Predictions scorecard: the frozen v2 candidate against v1 and the baselines, with the pre-registered
     verdict. ``accepted`` is true only when the single held-out run accepted the candidate; otherwise v1 stays the default (shown as ``v1``)."""
     src = held if held else dev_d0
     rows = src["family_a"]["rows"]
-    prim = (frozen or {}).get("primary_a") or src.get("primary_a")
-    prim_id = prim if prim in rows else ((frozen or {}).get("a7_base") if prim == "A7" and (frozen or {}).get("a7_base") in rows else None)
-    accepted = bool(held and prim_id and rows[prim_id]["verdict"] == "accepted")
+    from understudy_engine.mlv2.decision import DEEP_ROLE
     from understudy_engine.mlv2.deployed import spec_by_id
 
-    label = None
-    if frozen and frozen.get("a7_base"):
-        label = (spec_by_id(frozen["a7_base"]).label if prim == "A7" else spec_by_id(prim).label) if prim else None
+    chosen = (decision or {}).get("default_v2", {}).get(DEEP_ROLE) if (decision or {}).get("status") == "complete" else None
+    if chosen:
+        # the variant that passed BOTH pre-registered tests (held-out persona replicates and generator mismatch) for the deep role
+        prim, prim_id, accepted = chosen, chosen, chosen in rows
+        label = spec_by_id(chosen).label
+    else:
+        prim = (frozen or {}).get("primary_a") or src.get("primary_a")
+        prim_id = prim if prim in rows else ((frozen or {}).get("a7_base") if prim == "A7" and (frozen or {}).get("a7_base") in rows else None)
+        accepted = False
+        label = None
+        if frozen and frozen.get("a7_base") and prim:
+            label = spec_by_id(frozen["a7_base"]).label if prim == "A7" else spec_by_id(prim).label
     baselines = {"base_rate": _row_block(rows["BASE"]), "time_since_progress": _row_block(rows["TSP"]), "v1": _row_block(rows["A0"])}
     model = _row_block(rows[prim_id]) if prim_id else baselines["v1"]
     budget = 1.0
@@ -222,7 +229,7 @@ def scorecard(held: dict | None, dev_d0: dict, *, fast: bool, frozen: dict | Non
     return {
         "meta": {"origin": "synthetic", "n": src["n_people"], "n_unit": "people", "split": src.get("split_label") or src.get("split"),
                  "pool": "held-out replicates (single frozen run)" if held else "D0 (dev), not held-out", "interval_level": 0.95},
-        "accepted": accepted, "verdict": rows[prim_id]["verdict"] if (held and prim_id) else ("not_run" if not held else "no_primary"),
+        "accepted": accepted, "verdict": ("accepted_by_both_tests" if accepted else (rows[prim_id]["verdict"] if (held and prim_id) else ("not_run" if not held else "no_primary"))),
         "model_version_shown_as_default": "v2" if accepted else "v1", "primary_id": prim_id,
         "primary_label": label or "no primary candidate", "model": model, "baselines": baselines,
         "calibration": cal, "calibration_source": cal_src, "false_alarms_per_hour": model["false_alarms_per_hour"],
@@ -271,7 +278,12 @@ def evaluate_mlv2(*, fast: bool = True, seed: int = 0, root: Any = None) -> dict
         out["heldout"] = held
         hz_res = _load("heldout_hazard.json")
         frozen = freeze.read_frozen()
-        out["scorecard"] = scorecard(hz_res, haz, fast=False, frozen=frozen)
+        from understudy_engine.mlv2.decision import decide
+
+        mm_res = _load("heldout_mismatch.json")
+        decision = decide(hz_res, mm_res)
+        out["final_decisions"] = decision
+        out["scorecard"] = scorecard(hz_res, haz, fast=False, frozen=frozen, decision=decision)
         out["verdicts"] = verdict_table(*(_load(f) for f in ("heldout_hazard.json", "heldout_genome.json", "heldout_mismatch.json")))
     out["stated_gaps"] = [
         "Not run, for time and compute: the time-to-event head under generator mismatch, and the expert-envelope and counterfactual families (E, Q) under generator mismatch. These are gaps, not negative results.",

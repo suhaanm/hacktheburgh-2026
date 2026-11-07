@@ -50,3 +50,7 @@ apps/dashboard/qa/design-sync/*/*-light-390.png
 evals/review/.vite-cache/
 apps/dashboard/qa/dl/
 apps/dashboard/qa/dl2/
+evals/study_roles/GO
+evals/study_roles/cache/
+evals/study_roles/fake_runs/
+evals/study_roles/results/

@@ -149,3 +149,12 @@ def test_fast_sign_flip_equals_the_reference():
     for n in (4, 7, 10):
         d = [rng.choice([-1, 0, 0.5, 1, 2]) for _ in range(n)]
         assert abs(_flip_p(d) - A.sign_flip_p(d)) < 1e-12
+
+
+def test_excluded_pilot_participants_are_not_counted_as_zeros_but_make_the_pilot_unusable():
+    rows = _pilot_rows([2, 2, 1, 2, 2, 1], [2, 2, 1, 2, 2, 1])
+    for r in rows[:2]:
+        r["exclusion"] = "harness error"
+        r["pre_points"], r["post_checks_done"] = 0.0, 0.0                   # what an unfinished participant leaves behind
+    v = AN.pilot_verdict(rows, [0.13])
+    assert not v["usable"] and v["n_unassisted_cases"] == 8 and v["share_zero"] == 0.0 and any("harness exclusions" in r for r in v["reasons"]) and not any(r.startswith("floor") for r in v["reasons"])

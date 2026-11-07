@@ -134,13 +134,39 @@ def mixed_script(label: str | None) -> bool:
     return False
 
 
+_BIDI_CONTROLS = frozenset(chr(c) for c in (*range(0x202A, 0x202F), *range(0x2066, 0x206A), 0x200E, 0x200F, 0x061C))
+_CJK_RANGES = ((0x3040, 0x30FF), (0x3400, 0x4DBF), (0x4E00, 0x9FFF), (0xAC00, 0xD7AF), (0xF900, 0xFAFF))   # kana, ideographs, hangul: the word lists have patterns for them
+SHORT_LABEL = 60
+
+
+def _fold(label: str) -> str:
+    """Compatibility decomposition (full-width and similar become ASCII, an accented letter becomes its base letter plus a mark), the
+    marks and the invisible characters dropped, then the Cyrillic and Greek look-alikes folded to Latin."""
+    s = unicodedata.normalize("NFKD", label)
+    s = "".join(ch for ch in s if unicodedata.category(ch) != "Mn")
+    s, _ = strip_invisible(s)
+    return s.translate(_CONFUSABLES)
+
+
 def normalise_label(label: str | None) -> str:
     if not label:
         return ""
-    s = unicodedata.normalize("NFKC", label)
-    s, _ = strip_invisible(s)                     # zero-width and bidi characters inside a word ("Pa<ZWSP>y now")
-    s = s.translate(_CONFUSABLES)                 # look-alike letters
-    return " ".join(s.split())[:200]
+    return " ".join(_fold(label).split())[:200]
+
+
+def odd_spelling(label: str | None) -> bool:
+    """True when a SHORT control name still has a letter outside ASCII after folding (a Latin small capital, a Cherokee letter, any
+    script that was not folded), or carries a bidi override that can show it reversed. Such a name is built to read as one word to a
+    person and as another to a word list, so it is a human's call. Kana, ideographs and hangul are exempt (the lists have patterns for
+    them), and so is a name too long to be a control's name."""
+    if not label:
+        return False
+    if any(ch in _BIDI_CONTROLS for ch in label):
+        return True
+    folded = " ".join(_fold(label).split())
+    if len(folded) > SHORT_LABEL:
+        return False
+    return any(ch.isalpha() and ord(ch) > 127 and not any(lo <= ord(ch) <= hi for lo, hi in _CJK_RANGES) for ch in folded)
 
 
 def is_benign_submit_label(label: str | None) -> bool:
@@ -150,7 +176,10 @@ def is_benign_submit_label(label: str | None) -> bool:
 def classify_label(label: str | None) -> set[ActionClass]:
     """Action classes suggested by a button, link or menu label. Empty set = nothing risky recognised."""
     text = normalise_label(label)
-    return {cls for cls, pat in LABEL_PATTERNS.items() if text and pat.search(text)}
+    found = {cls for cls, pat in LABEL_PATTERNS.items() if text and pat.search(text)}
+    if odd_spelling(label):
+        found.add(ActionClass.SUBMIT)              # spelled to read differently to a person and to a word list: a human's call
+    return found
 
 
 def canonical_keys(keys: list[str]) -> str:

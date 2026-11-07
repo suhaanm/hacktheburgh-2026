@@ -202,9 +202,9 @@ def unassisted_cases(rows: list[dict]) -> list[dict]:
 def pilot_verdict(rows: list[dict], costs_per_participant: list[float]) -> dict:
     """Is this participant option usable? ``rows`` are the pilot CSV rows (A/A arm only, 3 participants x 2 blocks). Criteria, all decided here in code (the PILOT_* constants):
     floor (share of unassisted cases scoring 0), ceiling (share fully correct), cap-binding (share that end by cap or use at least 95% of their cap), no harness exclusion."""
-    cases = unassisted_cases(rows)
-    n = len(cases)
     excluded = sorted({r["participant"] for r in rows if str(r.get("exclusion", "")).strip()})
+    cases = unassisted_cases([r for r in rows if r["participant"] not in excluded])        # an excluded participant's empty cases are not zeros: they are not data (the pilot is incomplete)
+    n = len(cases)
     zero = sum(1 for c in cases if c["points"] <= 0) / n if n else 1.0
     full = sum(1 for c in cases if c["points"] >= 2) / n if n else 0.0
     bound = sum(1 for c in cases if c["capped"] or (c["cap"] and c["actions"] >= CAP_USED_SHARE * c["cap"])) / n if n else 1.0

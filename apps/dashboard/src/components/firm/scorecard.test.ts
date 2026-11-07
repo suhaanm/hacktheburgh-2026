@@ -258,6 +258,14 @@ describe("reading an mlv2 scorecard that is accepted", () => {
     expect(c.meta.n).toBe(16);
     expect(c.tte?.candidate).toBe(false);
   });
+  it("reads ML2's wording of an acceptance ('accepted_by_both_tests') as accepted", () => {
+    const b = accepted();
+    b.verdict = "accepted_by_both_tests";
+    const c = ready(readScorecard(report, b));
+    expect(c.version).toBe("v2");
+    expect(c.accepted).toBe(true);
+    expect(c.verdict).toBe("accepted");
+  });
 });
 
 describe("nulls and missing sections", () => {

@@ -474,6 +474,10 @@ EXAMPLE_SCHEMAS = {
     "ext_rect.": "ext_rect.schema.json",
     "recording.": "recording.schema.json",
     "event.": "event.schema.json",
+    "cue.decisions.": "cue_decision.schema.json",
+    "cue.growth_skill.": "cue_growth.schema.json",     # the same shape as cue.growth.: the figures for one skill (data.skill set)
+    "cue.growth.": "cue_growth.schema.json",
+    "cue.ledger.": "cue_ledger.schema.json",
 }
 
 

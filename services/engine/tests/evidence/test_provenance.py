@@ -120,6 +120,12 @@ BAD = [
     ("Search loops are half of the gap.", S65, {"derived_ratio"}),
     ("About a third of the time went on pauses.", ["habit.pauses.seconds"], {"derived_ratio"}),
     ("Several minutes went on other things.", [], {"vague_quantity"}),
+    # a counterfactual, even with a real number in it
+    ("If you had avoided search loops you would have saved 65.6 seconds.", S65, {"counterfactual_claim"}),
+    ("Fixing search loops alone would save about a minute.", S65, {"counterfactual_claim"}),
+    ("You could have saved 66 seconds on this case.", S65, {"counterfactual_claim"}),
+    ("Without these search loops the case would have taken 8 minutes.", S65, {"counterfactual_claim"}),
+    ("Had you skipped the pauses it would be 38.6 seconds faster.", ["habit.pauses.seconds"], {"counterfactual_claim"}),
     # direction, rank, share
     ("The case was 179.4 seconds faster than the expert.", ["gap.gap_s"], {"wrong_direction"}),
     ("Skipped steps are associated with 12.4 seconds lost.", ["habit.step_skips.seconds"], {"wrong_direction"}),
@@ -349,3 +355,41 @@ def test_a_clause_such_as_the_analysis_suggests_does_not_make_a_known_habit_unkn
 
 def test_an_unknown_habit_after_such_a_clause_is_still_caught(pk):
     assert "unknown_habit" in verdict(pk, "The analysis suggests that tab switching is linked to {habit.pauses.seconds}.", []).codes
+
+
+def test_no_template_and_no_mlv2_packet_ever_offers_a_counterfactual(packets):
+    import re
+
+    from understudy_engine.evidence.provenance import _COUNTERFACTUAL
+    from .test_packet import _inputs
+
+    pks = list(packets) + [P.from_evidence_inputs(_inputs()), P.from_evidence_inputs(_inputs(accepted=None, version="v1"))]
+    for pk_ in pks:
+        for it in V.INTENTS:
+            out = E.explain(pk_, None, intent=it)
+            text = " ".join(s["text"] for sec in out["sections"] if sec["kind"] in ("explanation", "answer") for s in sec["sentences"])
+            text += " " + " ".join(a["text"] for sec in out["sections"] if sec["kind"] == "coaching" for a in sec["actions"])
+            assert not _COUNTERFACTUAL.search(text), (it, text)
+            assert not re.search(r"\b(?:would have|if you had|fixing .{0,30} would|could have saved)\b", text, re.I), (it, text)
+            assert out["check"]["ok"] and out["check"]["template_ok"]
+            assert "counterfactual" not in " ".join(x["id"] for sec in out["sections"] if sec["kind"] == "limits" for x in sec["sentences"])
+
+
+def test_a_model_that_states_a_counterfactual_from_a_real_field_falls_back_to_the_template(pk):
+    from understudy_engine.evidence import explain as EX
+    from understudy_engine.evidence import fakes as F
+
+    out = EX.explain(pk, "where did my time go?", backends=EX.Backends(local=F.AdversarialFake("counterfactual_claim")))
+    assert out["source"] == "template" and "counterfactual_claim" in out["attempts"][0]["codes"]
+    assert "would have saved" not in " ".join(s["text"] for sec in out["sections"] if sec["kind"] in ("explanation", "answer") for s in sec["sentences"])
+
+
+def test_the_mlv2_path_gets_the_alignment_seconds_and_the_too_narrow_limitation_but_no_counterfactual():
+    from .test_packet import _inputs
+
+    pk_ = P.from_evidence_inputs(_inputs())
+    out = E.explain(pk_, "what should I practise?")
+    limits = {x["id"]: x["text"] for sec in out["sections"] if sec["kind"] == "limits" for x in sec["sentences"]}
+    assert limits["interval_too_narrow"] == "The interval for this estimate was too narrow in testing and should be read as optimistic."
+    assert "additive_counterfactual" not in limits and "counterfactual_model" not in limits
+    assert out["check"]["ok"] and "saved" not in " ".join(s["text"] for sec in out["sections"] if sec["kind"] == "answer" for s in sec["sentences"])

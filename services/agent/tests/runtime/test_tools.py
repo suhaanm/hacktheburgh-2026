@@ -103,3 +103,28 @@ def test_read_and_list_return_untrusted_text_not_trusted_fields(tmp_path):
         assert not run_tool("read_file", {"path": "../x"}, ctx).ok
     finally:
         ws.cleanup()
+
+
+# ---- S-28 follow-up: a fill is gated on a target trusted code READ. The runtime's "fill" is a write into the child's own workspace.
+def test_a_workspace_write_has_a_readable_target_and_an_unresolvable_path_is_a_humans_call(tmp_path):
+    from understudy_agent.runtime.tools import pipeline_action, pipeline_target
+    from understudy_agent.runtime.workspace import Workspace
+    from understudy_agent.security.gates import RoutineContext, gate
+
+    ws = Workspace.create("tmp", run_id="r_gate01", child_id="c1", base=tmp_path)
+    try:
+        ctx = RoutineContext(mode="model_driven")
+        ok_args = {"path": "work/a.py", "content": "print(1)"}
+        act = pipeline_action("write_workspace", ok_args)
+        assert gate(act["kind"], act["args"], ctx, pipeline_target("write_workspace", ok_args, ws)).verdict == "allow"
+        for bad in ({"path": "../a.py", "content": "x"}, {"path": "/etc/passwd", "content": "x"}):
+            a = pipeline_action("write_workspace", bad)
+            assert gate(a["kind"], a["args"], ctx, pipeline_target("write_workspace", bad, ws)).verdict == "needs_human"
+        assert gate(act["kind"], act["args"], ctx, pipeline_target("write_workspace", ok_args, None)).verdict == "needs_human"
+        cred = pipeline_action("write_workspace", {"path": ".ssh/id_rsa", "content": "x"})
+        assert gate(cred["kind"], cred["args"], ctx, pipeline_target("write_workspace", {"path": ".ssh/id_rsa", "content": "x"}, ws)).verdict == "needs_human"
+        # a read or the final emit types nothing and addresses no field: never gated as a fill
+        rd = pipeline_action("read_file", {"path": "input/data.csv"})
+        assert rd["kind"] == "extract" and gate(rd["kind"], rd["args"], ctx, pipeline_target("read_file", {"path": "x"}, ws)).verdict == "allow"
+    finally:
+        ws.cleanup()

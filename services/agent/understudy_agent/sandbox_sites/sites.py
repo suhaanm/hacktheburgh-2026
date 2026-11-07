@@ -287,6 +287,13 @@ def _hidden(form: dict[str, str]) -> str:
     return "".join(f'<input type="hidden" name="{_e(k)}" value="{_e(v)}">' for k, v in form.items())
 
 
+def display_wording(site: str, amount: float, eligible: bool) -> tuple[str, str]:
+    """The (amount text, status text) a calculator site shows for a result: built with the SAME formatters the pages use, so a result
+    rebuilt from its typed outputs (a checkpoint holds the number and the flag, never the words) reads exactly as the page did."""
+    amt = _money(amount, pence=False) if site == "a" else f"{_money(amount, pence=True)} per month" if site == "b" else f"{amount:.2f} GBP / month"
+    return amt, _verdict(site, eligible)
+
+
 def _verdict(site: str, eligible: bool) -> str:
     if site == "a":
         return "You are likely to be eligible" if eligible else "You are unlikely to be eligible"

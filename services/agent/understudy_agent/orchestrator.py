@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import statistics
 import time
 from dataclasses import dataclass, field
@@ -20,6 +21,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .audit import AuditLog
+from .checkpoint import CheckpointError, RunCheckpoint, calc_result
 from .completion import (
     NOTE_ID_RE, ClaimLedger, CompletionResult, ResultFields, check_completion, validate_result_fields,
 )
@@ -33,7 +35,7 @@ from .security.actions import validate_action
 from .security.config import SecurityConfig
 from .security.dataflow import host_key
 from .security.denylist import Denylist
-from .security.gates import TargetInfo
+from .security.gates import TargetInfo, classify_step
 from .security.pipeline import bind_target_signature
 from .supervisor import data_dir
 from .tiers.base import GateStop, InjectionStop, StepEvent, TierError
@@ -181,6 +183,51 @@ def compose_note(h: Household, results: dict[str, ResultFields], recon: Reconcil
     return " ".join(parts)
 
 
+_PORT_RE = re.compile(r":\d{2,5}(?![\d.])")
+
+
+def _typed_text(s: Any, n: int = 60, *, digits: bool = True) -> str:
+    """A control name or a structure token for the gate-stop log: control characters out, digit runs masked, ports masked, short.
+    Never a household value (labels are control names), still scrubbed because a page chooses them."""
+    t = " ".join(_PORT_RE.sub(":#", re.sub(r"[\x00-\x1f\x7f]", " ", str(s or ""))).split())
+    return (re.sub(r"\d{3,}", "#", t) if digits else t)[:n]      # a structure token is a host or address words: kept readable
+
+
+def instrument_guard(g: Guard, nav_id: str, records: list[dict[str, Any]], hosts: frozenset[str], *,
+                     rejections: Callable[[], None] | None = None, step_of: Callable[[], Any] | None = None) -> None:
+    """Record every verdict of this guard that is not "allow", SEPARATELY from model failures (REQ-7 review S-26 note): a stop of a
+    benign control (label_mismatch under a new layout, an external_form to 127.0.0.1 against localhost, an unlisted verb) must be
+    readable one by one. A layer-3 rejection (a malformed or stale action) is the model's failure and goes to `rejections` instead.
+    A record holds enums, the action kind, the control's role, its structure tokens and a short sanitised control name; never a
+    typed value (a fact handle's value is not in the action) and never page text beyond that name. Behaviour is unchanged."""
+    inner = g.authorise
+
+    def authorise(action: Any, seen: Any, **kw: Any) -> Any:
+        dec = inner(action, seen, **kw)
+        if dec.verdict != "allow":
+            if dec.layer == "actions":
+                if rejections is not None:
+                    rejections()
+                return dec
+            kind = action.get("kind") if isinstance(action, dict) else getattr(action, "kind", None)
+            args = (action.get("args") if isinstance(action, dict) else getattr(action, "args", None)) or {}
+            structure = tuple(kw.get("structure") or ())
+            try:
+                classes = sorted(c.value for c in classify_step(str(kind), dict(args), TargetInfo(
+                    label=kw.get("label"), role=kw.get("role"), url=kw.get("url"), field_attrs=kw.get("field_attrs"),
+                    structure=structure), hosts))
+            except Exception:  # noqa: BLE001 - the log must never break a step
+                classes = []
+            records.append({
+                "nav": nav_id, "step": step_of() if step_of else None, "kind": str(kind), "verdict": dec.verdict,
+                "layer": dec.layer, "codes": [_typed_text(c, 80) for c in dec.codes[:3]], "role": _typed_text(kw.get("role"), 24),
+                "structure": [_typed_text(t, 60, digits=False) for t in structure[:8]], "classes": classes, "label": _typed_text(kw.get("label"), 60),
+                "designed": kw.get("label") == SUBMIT_LABEL and nav_id == "scribe"})   # the real Submit's stop is the design
+        return dec
+
+    g.authorise = authorise  # type: ignore[method-assign]
+
+
 def run_async(coro: Any) -> Any:
     """asyncio.run for a worker thread. A stop cancels Playwright calls mid-flight; the 'Task was cancelled' futures
     that leaves behind are expected, so they are not printed as errors."""
@@ -225,6 +272,8 @@ class RunOptions:
     t3_max_steps: int = 200                             # hard cap on computer-use steps per navigator
     stall_limit: int = 12                               # steps with no visible progress before a loop gives up
     pause: Any = None                                   # a PauseGate shared by every navigator (step-level pause and resume)
+    checkpoint_path: Any = None                         # a typed RunCheckpoint is written here at every step and stage boundary (LH-2)
+    resume: bool = False                                # continue from the checkpoint at `checkpoint_path` (same run id and household)
 
 
 @dataclass
@@ -249,6 +298,10 @@ class RunResult:
     evidence_dir: str | None = None
     elapsed_s: float = 0.0
     navigators: list[dict[str, Any]] = field(default_factory=list)
+    gate_stops: list[dict[str, Any]] = field(default_factory=list)   # every gate verdict that was not "allow" (typed fields, no label)
+    action_rejections: int = 0                                         # layer-3 rejections of a malformed or stale action: a model failure, not a gate stop
+    resumed: int = 0                                                   # how many times this run continued from its checkpoint
+    restored: list[str] = field(default_factory=list)                  # calculators NOT run again because their verified result was in the checkpoint
 
     def as_dict(self) -> dict[str, Any]:
         return {k: v for k, v in self.__dict__.items()}
@@ -277,6 +330,11 @@ class BenefitsRun:
         self._seq = 0
         self.done: dict[str, int] = {}
         self._guards: list[Guard] = []
+        self.gate_stops: list[dict[str, Any]] = []          # full records (with the sanitised control name), for the evaluation harness
+        self.action_rejections = 0
+        self.scribe_nav: Navigator | None = None
+        self.ckpt: RunCheckpoint | None = None
+        self._ckpt_path: Path | None = Path(self.opt.checkpoint_path) if self.opt.checkpoint_path else None
         self.denylist = self.opt.denylist if self.opt.denylist is not None else Denylist.load()
         hosts = {host_key(u) for u in self.base_urls.values()}
         self._hosts = frozenset(h for h in hosts if h)
@@ -308,7 +366,63 @@ class BenefitsRun:
                   recorded_hosts=self._hosts, goal=goal, denylist=self.denylist, unattended=self.opt.unattended,
                   rung=self.opt.rung)
         self._guards.append(g)
+        self._log_gate(g, nav_id)
         return g
+
+    def _log_gate(self, g: Guard, nav_id: str) -> None:
+        instrument_guard(g, nav_id, self.gate_stops, self._hosts, rejections=self._count_rejection,
+                         step_of=lambda: self.nav_state.get(nav_id, {}).get("step"))
+
+    def _count_rejection(self) -> None:
+        self.action_rejections += 1
+
+    # ------------------------------------------------------------------ checkpoint (LH-2)
+    def _ckpt_open(self) -> None:
+        """Load the checkpoint when resuming (same run id and household), else start a new one. A file that cannot be read raises
+        `CheckpointError`: a run never starts from nothing on top of a file it could not understand."""
+        if self._ckpt_path is None:
+            return
+        prev = RunCheckpoint.load(self._ckpt_path) if self.opt.resume else None
+        if prev is not None and prev.run_id == self.run_id and prev.household == self.h.id:
+            prev.resumed += 1
+            self.ckpt = prev
+            self.audit.append("agent", "run_resume", routine=self.opt.routine_id, run_id=self.run_id, outcome="resumed",
+                              note_code=f"stage:{prev.stage}")
+        else:
+            self.ckpt = RunCheckpoint(self.run_id, self.h.id)
+        self.result.resumed = self.ckpt.resumed
+        self._ckpt_save()
+
+    def _ckpt_save(self) -> None:
+        if self.ckpt is None or self._ckpt_path is None:
+            return
+        try:
+            self.ckpt.save(self._ckpt_path)
+        except OSError:
+            self.audit.append("agent", "checkpoint", routine=self.opt.routine_id, run_id=self.run_id, outcome="failed", note_code="write")
+
+    def _ckpt_stage(self, stage: str) -> None:
+        if self.ckpt is not None:
+            self.ckpt.set_stage(stage)
+            self._ckpt_save()
+
+    def _on_snapshot(self, nav_id: str, steps: int, snap: dict[str, Any]) -> None:
+        """Called by a navigator after every tier-3 step: its step count and its typed working memory go to the checkpoint."""
+        if self.ckpt is None:
+            return
+        if nav_id == "scribe":
+            self.ckpt.scribe_steps = steps
+        elif nav_id.startswith("nav-") and nav_id[4:] in self.ckpt.calcs:
+            c = self.ckpt.calcs[nav_id[4:]]
+            if c.state != "done":
+                c.state, c.steps, c.wm = "running", steps, snap
+        self._ckpt_save()
+
+    def _restored(self) -> dict[str, Any]:
+        """Calculators whose verified result is in the checkpoint: not run again."""
+        if self.ckpt is None or not self.opt.resume or not self.ckpt.resumed:
+            return {}
+        return self.ckpt.finished_results()
 
     # ------------------------------------------------------------------ stage 1: plan
     def plan(self) -> list[dict[str, Any]]:
@@ -321,7 +435,11 @@ class BenefitsRun:
                                                   "case-note. Stop before submit."},
                     {"role": "user", "content": json.dumps({"household": self.h.id, "adults": len(self.h.adults),
                                                             "children": len(self.h.children_ages)})}]
-            out = self.model.plan(msgs, PLAN_SCHEMA)
+            from .context import manifest_of_parts
+            from .models.meter import call_context
+
+            with call_context(manifest_of_parts("planner", [("system", msgs[0]["content"], True), ("state", msgs[-1]["content"], False)]).to_meter_dict()):
+                out = self.model.plan(msgs, PLAN_SCHEMA)
             sites = {SITE_ALIASES.get(str(s.get("site")), str(s.get("site"))) for s in out.get("steps", [])}
             if {"a", "b", "c"} <= sites and "case-note" in {str(s.get("site")) for s in out.get("steps", [])} \
                     and "submit" in [str(x).lower() for x in out.get("stop_before", [])]:
@@ -339,6 +457,7 @@ class BenefitsRun:
         main_task = asyncio.current_task()
         watcher = asyncio.create_task(self._watch(main_task))
         try:
+            self._ckpt_open()
             self._mark("read_case")
             graph = self.plan()
             self.stage("plan", steps=[{"id": s["id"], "site": s["site"]} for s in graph])
@@ -356,12 +475,16 @@ class BenefitsRun:
                 res.queue_ids.append(qid)
         except TierError as exc:
             res.state, res.reason = "failed", str(exc)[:160]
+        except CheckpointError as exc:
+            res.state, res.reason = "failed", f"the checkpoint could not be used: {exc}"[:160]
         finally:
             watcher.cancel()
             res.elapsed_s = round(time.monotonic() - t0, 2)
             res.false_claims = self.ledger.false_claims
             res.tier_log = [e for e in self.events if e.get("event") == "step"]
             res.navigators = [dict(v) for v in self.nav_state.values()]
+            res.gate_stops = [{k: v for k, v in r.items() if k != "label"} for r in self.gate_stops]
+            res.action_rejections = self.action_rejections
             res.expert_done = dict(self.done)
             self.audit.append("agent", "run_end", routine=self.opt.routine_id, run_id=self.run_id, outcome=res.state)
             self.stage("done", state=res.state, reason=res.reason)
@@ -379,28 +502,63 @@ class BenefitsRun:
         h = self.h
         flags = cliff_flags(h)
         params = h.params()
+        if self.opt.resume and self.ckpt is not None and self.ckpt.stage == "gated" and len(self.ckpt.finished_results()) == 3:
+            return await self._resume_gated(res, flags)
         navs: dict[str, Navigator] = {}
         jobs: dict[str, CalculatorJob] = {}
+        restored = self._restored()                    # calculators whose verified result is in the checkpoint: not run again
+        nres: dict[str, NavResult] = {}
         for s in SITE_IDS[: max(1, self.opt.navigators)]:
             nid = f"nav-{s}"
             job = CalculatorJob(s, params)
+            jobs[s] = job
+            if s in restored:
+                c = self.ckpt.calcs[s]                                                      # type: ignore[union-attr]
+                nres[s] = NavResult(nid, s, "done", restored[s], None, [3], steps=c.steps, cliff_checked=c.cliff)
+                self._mark(f"calc_{s}")
+                if c.cliff:
+                    self._mark(f"cliff_{s}")
+                res.restored.append(s)
+                self.nav_state[nid] = {"id": nid, "site": s, "step": c.steps, "tier": 3, "state": "done"}
+                continue
             guard = self._guard(nid, job.goal)
             ctx = await host.new_context()
+            c = self.ckpt.calcs[s] if self.ckpt is not None else None
+            resume = {"steps": c.steps, "wm": c.wm} if (c is not None and self.opt.resume and self.ckpt.resumed and c.steps) else None  # type: ignore[union-attr]
             navs[s] = Navigator(
                 nid, context=ctx, model=self.model, guard=guard, base_url=self.base_urls[s],
                 emit=self.emit_step, is_current=self.is_current, query=self.opt.query.get(s, ""),
                 ledger=self.ledger, use_tier1=self.opt.use_tier1, max_actions=self.opt.max_actions,
                 allow_tier3=self.opt.allow_tier3, bundle=(self.opt.bundles or {}).get(s),
                 page_state=self.opt.page_state, defer_cliff=True, start_tier=self.opt.start_tier,
-                t3_max_steps=self.opt.t3_max_steps, stall_limit=self.opt.stall_limit, pause=self.opt.pause)
-            jobs[s] = job
+                t3_max_steps=self.opt.t3_max_steps, stall_limit=self.opt.stall_limit, pause=self.opt.pause,
+                resume=resume, on_snapshot=self._on_snapshot if self.ckpt is not None else None)
             self.nav_state[nid] = {"id": nid, "site": s, "step": 0, "tier": 1, "state": "running"}
         self.navigator_objs = navs                    # kept for the evaluation harness: per-navigator tier-3 records
-        self.stage("navigators_start", n=len(navs))
+        self._ckpt_stage("navigators")
+        self.stage("navigators_start", n=len(navs), restored=sorted(restored))
 
-        tasks = {s: asyncio.create_task(navs[s].run(jobs[s])) for s in navs}
+        verified: dict[str, tuple[bool, str]] = {s: (True, "") for s in restored}
+
+        async def flow(s: str) -> NavResult:
+            """One calculator, end to end: run, verify its result on a fresh read, do its cliff check, and only then record it in the
+            checkpoint as done. A kill before that point costs this calculator, never another one."""
+            r = await navs[s].run(jobs[s])
+            if r.state == "done":
+                self._mark(f"calc_{s}")
+                verified[s] = await self._verify(s, r, navs[s])
+                if verified[s][0]:
+                    await navs[s].cliff_check(jobs[s], r)               # AFTER the verifier has re-read the result
+                    if r.cliff_checked:
+                        self._mark(f"cliff_{s}")
+                    if self.ckpt is not None:
+                        self.ckpt.calc_done(s, r.value, steps=navs[s].steps, wm=navs[s]._wm_snap)
+                        self.ckpt.calcs[s].cliff = bool(r.cliff_checked)
+                        self._ckpt_save()
+            return r
+
+        tasks = {s: asyncio.create_task(flow(s)) for s in navs}
         stop_exc: BaseException | None = None
-        nres: dict[str, NavResult] = {}
         pending = set(tasks.values())
         by_task = {t: s for s, t in tasks.items()}
         try:
@@ -430,29 +588,25 @@ class BenefitsRun:
         for s, r in nres.items():
             if r.queue_id:
                 res.queue_ids.append(r.queue_id)
-            if r.state == "done":
-                self._mark(f"calc_{s}")
         good = {s: r for s, r in nres.items() if r.state == "done"}
         self.stage("navigators_done", ok=sorted(good))
 
-        # ---- verifier: a fresh observation of each result page, read again, compared with what the navigator said
+        # ---- verifier outcomes (each calculator was verified on a fresh read inside its own flow, before its cliff check)
         results: dict[str, ResultFields] = {}
         for s, r in good.items():
-            ok, why = await self._verify(s, r, navs[s])
+            ok, why = verified.get(s, (False, "not verified"))
             if ok:
                 results[s] = r.value
             else:
                 self.ledger.record(f"verifier:nav-{s}", True, False, why)
                 self.nav_state[f"nav-{s}"]["state"] = "unverified"
         self.stage("verified", ok=sorted(results))
-        # the cliff check, the expert's signature step, AFTER the verifier has re-read each result
         for s in results:
-            await navs[s].cliff_check(jobs[s], good[s])
             res.cliff_checked[s] = good[s].cliff_checked
-            if good[s].cliff_checked:
-                self._mark(f"cliff_{s}")
-            res.results[s] = good[s].value.as_dict() | {"tiers": good[s].tiers_used, "steps": navs[s].steps,
+            nav_steps = navs[s].steps if s in navs else good[s].steps
+            res.results[s] = good[s].value.as_dict() | {"tiers": good[s].tiers_used, "steps": nav_steps,
                                                         "cliff": good[s].cliff_text[:400]}
+        self._ckpt_stage("verified")
         if self.opt.screenshots:
             for i, (s, r) in enumerate(good.items(), 1):
                 await self._shot(r.page, i, f"result_{s}")
@@ -469,6 +623,7 @@ class BenefitsRun:
         # ---- reconcile (code), then the note text, then the critic
         recon = reconcile(results)
         self._mark("reconcile")
+        self._ckpt_stage("reconciled")
         res.reconciliation = recon.as_dict()
         note_text = compose_note(h, results, recon, flags, res.cliff_checked)
         sites_disagree = (max(r.amount for r in results.values()) - min(r.amount for r in results.values())
@@ -500,9 +655,23 @@ class BenefitsRun:
                            emit=self.emit_step, is_current=self.is_current, query=self.opt.query.get("a", ""),
                            ledger=self.ledger, use_tier1=self.opt.use_tier1, max_actions=self.opt.max_actions,
                            allow_tier3=self.opt.allow_tier3, start_tier=self.opt.start_tier,
-                           t3_max_steps=self.opt.t3_max_steps, stall_limit=self.opt.stall_limit, pause=self.opt.pause)
+                           t3_max_steps=self.opt.t3_max_steps, stall_limit=self.opt.stall_limit, pause=self.opt.pause,
+                           resume={"steps": self.ckpt.scribe_steps, "wm": None} if (self.ckpt is not None and self.ckpt.resumed
+                                                                                    and self.ckpt.scribe_steps) else None,
+                           on_snapshot=self._on_snapshot if self.ckpt is not None else None)
         self.nav_state["scribe"] = {"id": "scribe", "site": "casenote", "step": 0, "tier": 1, "state": "running"}
-        sres = await scribe.run(job)
+        self.scribe_nav = scribe
+        saved_id = self.ckpt.note_id if (self.ckpt is not None and self.opt.resume and self.ckpt.resumed) else ""
+        if saved_id:
+            # The draft was already saved before the stop: it is never saved twice. Its page is opened by id (scanned like any page)
+            # and the completion check below runs on it.
+            page = await ctx.new_page()
+            await page.goto(f"{self.base_urls['a'].rstrip('/')}{CASENOTE_PATH}/{saved_id}{self.opt.query.get('a', '')}",
+                            wait_until="domcontentloaded")
+            await sg.observe(page, navigator="scribe", tier=0)
+            sres = NavResult("scribe", "casenote", "done", {"note_id": saved_id, "status": "Draft"}, page, [3])
+        else:
+            sres = await scribe.run(job)
         self.nav_state["scribe"]["state"] = sres.state
         if sres.state != "done":
             res.state, res.reason = "failed", "the case note could not be saved"
@@ -512,6 +681,9 @@ class BenefitsRun:
             return
         self._mark("write_note")
         res.note_id, res.note_text = sres.value["note_id"], note_text
+        if self.ckpt is not None:
+            self.ckpt.note_id = res.note_id
+            self._ckpt_stage("note_saved")
 
         # ---- completion: code decides, on a fresh observation of the final page
         final = await observe(sres.page)
@@ -527,15 +699,39 @@ class BenefitsRun:
         # ---- approval gate: the real gate, on the real submit button. We never click it.
         res.queue_id = await self._gate(sg, sres.page, final, res, results, recon)
         res.awaiting_approval = res.queue_id is not None
+        if comp.ok and res.queue_id and self.ckpt is not None:
+            self.ckpt.queue_id = res.queue_id
+            self._ckpt_stage("gated")
         res.state = "done" if comp.ok else "failed"
         res.reason = "stopped before submit; awaiting approval" if comp.ok else "completion check failed"
+        self._write_evidence(res, results, recon)
+
+    async def _resume_gated(self, res: RunResult, flags: list[str]) -> None:
+        """The checkpoint says this run already reached the approval gate: nothing is repeated, nothing is gated a second time (the
+        queue id is in the file); the run reports where it stands. It never presses Submit."""
+        ck = self.ckpt
+        assert ck is not None
+        results = ck.finished_results()
+        recon = reconcile(results)
+        for s in SITE_IDS:
+            res.cliff_checked[s] = ck.calcs[s].cliff
+            res.results[s] = results[s].as_dict() | {"tiers": [3], "steps": ck.calcs[s].steps, "cliff": ""}
+        res.restored = list(SITE_IDS)
+        res.reconciliation = recon.as_dict()
+        res.note_id, res.note_text = ck.note_id, compose_note(self.h, results, recon, flags, res.cliff_checked)
+        res.queue_id = ck.queue_id
+        item = self.queue.get(ck.queue_id)
+        res.awaiting_approval = bool(item and item.get("status") == "pending")
+        res.completion = {"ok": True, "missing": []}
+        res.state, res.reason = "done", "already at the approval gate (resumed from the checkpoint); nothing was repeated"
+        self.stage("resumed_at_gate", queue_id=ck.queue_id)
         self._write_evidence(res, results, recon)
 
     # ------------------------------------------------------------------ pieces
     async def _verify(self, site: str, nr: NavResult, nav: Navigator) -> tuple[bool, str]:
         """Fresh observation of the result page, read again by the quarantined reader, compared with the claim."""
         try:
-            raw = await nav._read_final(nr.page, nav_job_for(site, self.h))
+            raw = await nav._read_final(nr.page, nav_job_for(site, self.h), fresh=True)    # an independent second read, never the memo
         except InjectionStop:
             raise
         except Exception as exc:  # noqa: BLE001

@@ -347,3 +347,12 @@ and has not been started. The held-out hazard part (started 18:48:09Z, fingerpri
 code files **and PLAN.md**, and PLAN.md had grown by Amendment 9 in between (fingerprint 40cbc5b6... at the failed start 19:33:24Z, 647de3ab... at the successful start 20:04:53Z). The per-file hashes stored in the two
 log lines show that PLAN.md is the **only** file that differs; all eight code files of the genome part (`__init__.py`, `splits.py`, `stats.py`, `genome_part.py`, `envelope.py`, `counterfactual.py`, `apprentice_pool.py`,
 `genome_stats.py`) are byte-identical. The same applies to every later start line (the hazard fingerprint 10963d8c... equals the frozen one because PLAN.md had not yet changed when it started at 18:48:09Z).
+
+**Amendment 11 (2026-11-07 20:17 GMT; written AFTER all three held-out parts and the transfer test were read; it changes no verdict).**
+The final per-role decisions are computed by `mlv2/decision.py`, a direct encoding of section 6.8 (a variant replaces v1 for a role only if it was accepted on the held-out persona replicates **and** passes the pooled
+off-diagonal mismatch test with no harmful cell; the deep role, benefits-processor, decides, and a thin role cannot rescue a variant that fails it; alarm rules need the same two conditions). One thing the plan did not
+say, decided after the results were read and so labelled here: where several variants qualify, the default v2 is the one with the **lowest held-out log-loss difference**, a presentation choice that selects among variants
+that have already passed both tests and does not make any variant pass or fail. Applied to the results it gives: A4 (gradient boosting with monotone constraints, Platt-calibrated) and A3 qualify for benefits-processor and
+programmer; A7 (the frozen primary) passed the held-out persona test but fails the mismatch test for benefits-processor (its detection guard) and so does not replace v1; no variant qualifies for data-analyst; C1 and C2 are
+null on the held-out personas (v1 already met the budget there, so the registered clipped-overshoot metric cannot improve; Amendment 6) and therefore do not replace the v1 alarm rule, although under mismatch they reduce
+the overshoot. These numbers are in `results/heldout_hazard.json`, `results/heldout_mismatch.json` and the `final_decisions` block of `evaluate_mlv2()`.

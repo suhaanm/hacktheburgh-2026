@@ -1,0 +1,266 @@
+{
+ "label": "diag_smoke_800x500",
+ "site": "b",
+ "household": "hh_0002",
+ "archetype": "couple_two_kids",
+ "state": "done",
+ "amount_ok": true,
+ "error": "",
+ "tier3": [
+  {
+   "navigator": "nav-b",
+   "outcome": "done",
+   "steps": 33,
+   "progress_steps": 27,
+   "refusals": 0,
+   "claimed_done": true,
+   "false_claim": false,
+   "resets": 0,
+   "nudges": 0,
+   "premature_claims": 0,
+   "prompt_chars": [
+    2423,
+    2468,
+    2485,
+    2502,
+    2514,
+    2526,
+    2550,
+    2614,
+    2634,
+    2627,
+    2666,
+    2667,
+    2691,
+    2704,
+    2710,
+    2713,
+    2719,
+    2719,
+    2724,
+    2724,
+    2713,
+    2714,
+    2682,
+    2705,
+    2670,
+    2692,
+    2671,
+    2707,
+    2709,
+    2686,
+    2725,
+    2702,
+    2448
+   ],
+   "summary": "Estimate page shows monthly entitlement \u00a31,#.96 per month with quote reference T2U-OC74C."
+  }
+ ],
+ "refusals": 0,
+ "actions": [
+  [
+   1,
+   "screenshot",
+   true,
+   ""
+  ],
+  [
+   2,
+   "screenshot",
+   true,
+   ""
+  ],
+  [
+   3,
+   "screenshot",
+   true,
+   ""
+  ],
+  [
+   4,
+   "click",
+   true,
+   ""
+  ],
+  [
+   5,
+   "click",
+   true,
+   ""
+  ],
+  [
+   6,
+   "type_fact",
+   true,
+   "handle=household.adults"
+  ],
+  [
+   7,
+   "key",
+   true,
+   ""
+  ],
+  [
+   8,
+   "type_fact",
+   true,
+   "handle=household.adult1_age"
+  ],
+  [
+   9,
+   "key",
+   true,
+   ""
+  ],
+  [
+   10,
+   "type_fact",
+   true,
+   "handle=household.adult2_age"
+  ],
+  [
+   11,
+   "click",
+   true,
+   ""
+  ],
+  [
+   12,
+   "type_fact",
+   true,
+   "handle=household.children_ages"
+  ],
+  [
+   13,
+   "click",
+   true,
+   ""
+  ],
+  [
+   14,
+   "type_fact",
+   true,
+   "handle=household.adult1_earnings"
+  ],
+  [
+   15,
+   "click",
+   true,
+   ""
+  ],
+  [
+   16,
+   "type_fact",
+   true,
+   "handle=household.adult2_earnings"
+  ],
+  [
+   17,
+   "click",
+   true,
+   ""
+  ],
+  [
+   18,
+   "type_fact",
+   true,
+   "handle=household.limited_capability"
+  ],
+  [
+   19,
+   "click",
+   true,
+   ""
+  ],
+  [
+   20,
+   "type_fact",
+   true,
+   "handle=household.rent"
+  ],
+  [
+   21,
+   "scroll",
+   true,
+   ""
+  ],
+  [
+   22,
+   "key",
+   true,
+   ""
+  ],
+  [
+   23,
+   "type_fact",
+   true,
+   "handle=household.bedrooms"
+  ],
+  [
+   24,
+   "key",
+   true,
+   ""
+  ],
+  [
+   25,
+   "type_fact",
+   true,
+   "handle=household.savings"
+  ],
+  [
+   26,
+   "key",
+   true,
+   ""
+  ],
+  [
+   27,
+   "type_fact",
+   true,
+   "handle=household.childcare"
+  ],
+  [
+   28,
+   "click",
+   true,
+   ""
+  ],
+  [
+   29,
+   "click",
+   true,
+   ""
+  ],
+  [
+   30,
+   "type_fact",
+   true,
+   "handle=household.tenure"
+  ],
+  [
+   31,
+   "key",
+   true,
+   ""
+  ],
+  [
+   32,
+   "click",
+   true,
+   ""
+  ],
+  [
+   33,
+   "done",
+   true,
+   "claim verified"
+  ]
+ ],
+ "wall_s": 74.7,
+ "tokens_in": 71533,
+ "tokens_out": 3041,
+ "cost_placeholder_usd": 0.4489,
+ "live_calls": 40,
+ "budget_truncated": false
+}

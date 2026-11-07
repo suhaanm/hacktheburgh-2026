@@ -277,3 +277,14 @@ Outputs after GO: `results/<role>/participants.csv`, `raw/`, `actions.jsonl` (ac
 ## Amendment log
 
 _Entries are dated and never edit the sections above._
+
+**Amendment 1 (2026-11-07 20:27 UTC): programmer pilot run 1 was invalid because of a harness error; repaired; no threshold, prompt, cap, scoring rule or design changed.**
+What happened. After the lead's GO (programmer pilot, option `fast`, at most US$2) the pilot started at 20:17 UTC, while a no-model expert recording of mine was still running in the same lane. Both used private sandbox
+port 7941: the harness started each world on a fixed port and its readiness check was answered by the other job's server, so two of the three pilot participants (p_pprog1, p_pprog3) had their sandbox reset under them
+and were excluded by the contamination check (epoch changed) after their first pre-test; two expert recordings (p-missing-1 and p-missing-2) were contaminated the same way. The third participant (p_pprog2, port 7942) ran
+cleanly: model gpt-5.4-mini, option `fast`; pre-test p-missing-1 v1 correct (32 of 48 actions), post-test v2 correct (10 of 48), pre-test p-discipline-1 v1 wrong (61 of 60 actions: the cap), post-test v2 partial (21 of 60);
+74 calls, US$0.133. Run 1's outputs are kept in `results/programmer/pilot_aborted_1/` and used for NO decision (one participant is not a pilot); its spend (US$0.152) counts against the US$2 of the pilots and the US$8.
+Repairs (harness only, each with a test): worlds take the first FREE ports of the role's block (a connect test) and the in-tree extension build folder is named per process, so two runs of this harness side by side cannot
+share a world; the pilot criteria are computed over non-excluded participants only (an excluded participant's empty cases were counted as zeros: they are not data) while any exclusion still makes the pilot
+incomplete and unusable; the mean pilot cost is taken over participants that completed all their cases (it had averaged in the two excluded ones). The pilot is repeated from scratch on the same option, with the same thresholds.
+

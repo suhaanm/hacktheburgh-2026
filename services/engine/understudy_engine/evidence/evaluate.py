@@ -3,7 +3,7 @@
 Fast (about 10 to 25 seconds on a laptop), offline, deterministic (fixed seeds), no key, no model. What it measures, and what it does not:
 
 * ``packets``: packets built from the synthetic apprentices through the real builders (genome, and the real stuck-hazard evaluation in
-  the full run), plus scripted blocks (coach, routines, counterfactual, time to progress) added through the real builders so every
+  the full run), plus scripted blocks (coach, routines, time to progress) added through the real builders so every
   wording path is exercised. Schema validity is the share that validates against ``packages/schema/evidence_packet.schema.json``,
   round-trips through the typed model and passes the privacy backstop as an ``evidence.explain`` request.
 * ``templates``: the deterministic reply must pass its own check for every packet and every intent.
@@ -11,7 +11,7 @@ Fast (about 10 to 25 seconds on a laptop), offline, deterministic (fixed seeds),
   intervals three ways. Pass rate with a Wilson interval; its complement is the check's **false-reject rate on correct replies**.
   It is only as varied as the variations written for it, so on a real model the false-reject rate is likely higher (the live
   block measures that, small n).
-* ``adversarial``: the same replies broken in 28 named ways (invented number, swapped interval, wrongly rounded figure,
+* ``adversarial``: the same replies broken in 29 named ways (invented number, swapped interval, wrongly rounded figure,
   hallucinated habit, URL, email, path, prompt injection, causal claim, novice-becomes-expert claim, derived ratio, ...). Rejection
   rate per kind with a Wilson interval, and how often the refusal names the right reason. These are attacks **we wrote**; a rate of 100%
   here is a statement about this list, not about every possible reply.
@@ -378,7 +378,7 @@ def limitations(result: dict[str, Any]) -> list[dict[str, str]]:
          "text": "The false-reject rate is measured on a stand-in model that varies numbers and interval wording in the ways we wrote down. A real model "
                  "phrases things we did not anticipate, so its false-reject rate is likely higher; a rejected reply costs nothing (the template is used)."},
         {"id": "adversarial_set_is_ours", "severity": "medium",
-         "text": "The adversarial rejection rate is against the 28 attacks we wrote. The unknown-habit rule is a set of cue patterns (a cause or a share of "
+         "text": "The adversarial rejection rate is against the 29 attacks we wrote. The unknown-habit rule is a set of cue patterns (a cause or a share of "
                  "time attributed to a phrase that names nothing in the vocabulary), not a language model: a novel phrasing with no cue can pass."},
         {"id": "packet_from_synthetic_and_fixtures", "severity": "medium",
          "text": "Packets come from synthetic apprentices (and the real stuck-hazard evaluation in the full run); the coach, routine, counterfactual and "

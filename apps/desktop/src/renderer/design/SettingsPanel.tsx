@@ -163,7 +163,7 @@ export function SettingsPanel({ settings, onChange, personas, privacy, more }: S
             </Field>
             <Switch label="Ask me to explain it back" checked={settings.teachBack} onChange={toggle('teachBack')} />
             <Switch label="Explain computer words" checked={settings.explainJargon} onChange={toggle('explainJargon')} />
-            <Switch label="Demo mode" hint="Move up after one clean try" checked={settings.demoMode} onChange={toggle('demoMode')} />
+            <Switch label="Quick level-up" hint="Move up after one clean try" checked={settings.demoMode} onChange={toggle('demoMode')} />
           </Group>
 
           <Group title="On screen">

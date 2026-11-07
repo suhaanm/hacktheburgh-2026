@@ -149,21 +149,6 @@ def cohort_habit_line(pk: EvidencePacket, hid: str) -> S | None:
     return S(text, uses)
 
 
-def counterfactual_line(pk: EvidencePacket) -> S | None:
-    cands = [(hid, h) for hid, h in pk.habits.items() if h.counterfactual_s is not None and h.counterfactual_s >= 0.5]
-    if not cands:
-        return None
-    hid, h = max(cands, key=lambda t: t[1].counterfactual_s)
-    uses = [f"habit.{hid}.counterfactual_s"]
-    text = f"The model estimates that fixing {V.HABIT_NAME[hid]} alone would save {_sec(h.counterfactual_s)}"
-    if h.cf_lo is not None and h.cf_hi is not None:
-        text += f" ({render_range(h.cf_lo, h.cf_hi, 's')})."
-        uses += [f"habit.{hid}.cf_lo", f"habit.{hid}.cf_hi"]
-    else:
-        text += "."
-    return S(text, uses)
-
-
 def consequence_lines(pk: EvidencePacket) -> list[S]:
     out = []
     for step, c in pk.consequences.items():
@@ -301,7 +286,7 @@ def compose(req: ExplainRequest) -> tuple[str, list[S]]:
                  "trust_level": ("routines",), "what_to_practise": ("genome",)}.get(it, ())
     if it == "where_time_went":
         kind = "explanation"
-        out = stale_lines(pk, stale_for) + _first(case_line(pk)) + habit_lines(pk) + _first(cohort_line(pk), counterfactual_line(pk))
+        out = stale_lines(pk, stale_for) + _first(case_line(pk)) + habit_lines(pk) + _first(cohort_line(pk))
         out += (consequence_lines(pk)[:1] or hazard_lines(pk)[:1])
     elif it == "why_slow":
         out = stale_lines(pk, stale_for)
@@ -334,7 +319,7 @@ def compose(req: ExplainRequest) -> tuple[str, list[S]]:
         if not out:
             out = [nothing_line("routine on the trust ladder")]
     elif it == "what_to_practise":
-        out = stale_lines(pk, stale_for) + habit_lines(pk, 2)[:1] + _first(counterfactual_line(pk))
+        out = stale_lines(pk, stale_for) + habit_lines(pk, 2)[:1]
         if not out:
             out = [S("Nothing stands out as a habit to work on in this data.", [])]
     else:

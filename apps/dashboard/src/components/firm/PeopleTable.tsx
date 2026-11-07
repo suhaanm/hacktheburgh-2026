@@ -3,7 +3,7 @@ import { Range } from "../common";
 import { Hint } from "../Hint";
 import { FirmBadge } from "./Badges";
 import {
-  DEFAULT_SORT, SORT_KEYS, TENURE_LABEL, TREND_GLYPH, TREND_HINT, TREND_LABEL, filterUsers, fmtNum, fmtShare, groupShown, pct, sortUsers, trendCounts, unitWord,
+  DEFAULT_SORT, SORT_KEYS, personName, TENURE_LABEL, TREND_GLYPH, TREND_HINT, TREND_LABEL, filterUsers, fmtNum, fmtShare, groupShown, pct, sortUsers, trendCounts, unitWord,
   type SortKey,
 } from "./model";
 import type { AnalyticMeta } from "../../types";
@@ -46,9 +46,9 @@ function Row({ u, open, onToggle, cols }: { u: UserRow; open: boolean; onToggle:
     <Fragment>
       <tr data-status={u.status ?? "ok"}>
         <th scope="row" className="firm-person">
-          <button type="button" className="firm-person__btn" aria-expanded={open} onClick={onToggle}>
+          <button type="button" className="firm-person__btn" aria-expanded={open} aria-controls={`skills-${u.label}`} data-person={u.label} onClick={onToggle}>
             <span className="firm-person__chev" aria-hidden="true" data-open={open} />
-            <span>{u.label}</span>
+            <span>{personName(u)}</span>
           </button>
           <span className="firm-person__tenure">{TENURE_LABEL[u.tenure_band]}</span>
           {u.status && u.status !== "ok" && <span className="firm-person__status">{STATUS_WORD[u.status] ?? u.status}</span>}
@@ -67,7 +67,7 @@ function Row({ u, open, onToggle, cols }: { u: UserRow; open: boolean; onToggle:
         <td className="num col-opt">{u.automations_running}</td>
       </tr>
       {open && (
-        <tr className="firm-expand"><td colSpan={cols}><Skills u={u} /></td></tr>
+        <tr className="firm-expand" id={`skills-${u.label}`}><td colSpan={cols}><Skills u={u} /></td></tr>
       )}
     </Fragment>
   );

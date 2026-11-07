@@ -70,3 +70,23 @@ def test_the_cap_of_every_case_is_at_least_three_times_the_scripted_oracle_path(
             assert cap >= CAP_MULTIPLE * path and cap >= CAP_MIN and cap == max(CAP_MIN, CAP_MULTIPLE * path)
             caps.append((path, cap))
     assert (CAP_MULTIPLE, CAP_MIN) == (3, 30) and len(caps) == 12 and max(c for _, c in caps) >= 60
+
+
+def test_worlds_take_free_ports_so_two_runs_never_share_a_sandbox(role):
+    import socket
+
+    from evals.study_roles import __main__ as cli
+    from evals.study_roles.roles import PORT_BASE
+
+    base = PORT_BASE[role]
+    first = cli.pick_ports(role, 2)
+    held = socket.socket()
+    held.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    held.bind(("127.0.0.1", first[0]))
+    held.listen(1)
+    try:
+        now = cli.pick_ports(role, 2)
+        assert first[0] not in now and all(base <= p < base + 8 for p in now) and len(set(now)) == 2         # a port with a listener is skipped
+        assert not cli._port_free(first[0])
+    finally:
+        held.close()

@@ -57,7 +57,7 @@ export function ShowtimeBar(): ReactElement | null {
         </>
       ) : null}
       <button type="button" style={btn} onClick={() => void a.stop()}>
-        {s.handover ? 'Close' : 'Stop demo'}
+        {s.handover ? 'Close' : 'Stop the walkthrough'}
       </button>
     </div>
   )

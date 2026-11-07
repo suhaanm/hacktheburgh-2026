@@ -21,11 +21,10 @@ Drop order (each step is skipped for the intents named, which need what it remov
     3. hazard intervals              (p_lo, p_hi, fa_lo, fa_hi; kept for stuck_reading, how_sure)
     4. progress                      (time to progress; kept for stuck_reading)
     5. cohort habits below the top 3 (by seconds)
-    6. counterfactuals               (kept for what_to_practise)
-    7. habits below the top 4        (by absolute seconds)
-    8. routines below the top 2      (by minutes a week)
-    9. consequences                  (kept for how_sure, where_time_went)
-   10. hazard scores                 (log losses, ece, bins; kept for how_sure, stuck_reading)
+    6. habits below the top 4        (by absolute seconds)
+    7. routines below the top 2      (by minutes a week)
+    8. consequences                  (kept for how_sure, where_time_went)
+    9. hazard scores                 (log losses, ece, bins; kept for how_sure, stuck_reading)
 
 Never dropped: ``meta``, the case and cohort gap and the placebo control, the top habits, the coach decision, the hazard readings and
 threshold, ``blocks`` and ``limitations``. If the prompt is still over budget after step 10 it is sent as it is and the response says so.
@@ -105,13 +104,6 @@ def _drop_cohort_habits(pk: EvidencePacket) -> EvidencePacket | None:
     return pk.model_copy(update={"cohort_habits": kept}) if kept is not None else None
 
 
-def _drop_counterfactuals(pk: EvidencePacket) -> EvidencePacket | None:
-    if not any(h.counterfactual_s is not None for h in pk.habits.values()):
-        return None
-    hb = {k: h.model_copy(update={"counterfactual_s": None, "cf_lo": None, "cf_hi": None}) for k, h in pk.habits.items()}
-    return pk.model_copy(update={"habits": hb})
-
-
 def _drop_habits(pk: EvidencePacket) -> EvidencePacket | None:
     kept = _keep_top(pk.habits, 4, lambda h: abs(h.seconds))
     return pk.model_copy(update={"habits": kept}) if kept is not None else None
@@ -146,7 +138,6 @@ DROP_ORDER: tuple[Step, ...] = (
     Step("hazard.p_lo,p_hi,fa_lo,fa_hi", frozenset({"stuck_reading", "how_sure"}), _drop_hazard_intervals),
     Step("progress", frozenset({"stuck_reading"}), _drop_progress),
     Step("cohort_habits below top 3", frozenset(), _drop_cohort_habits),
-    Step("habit counterfactuals", frozenset({"what_to_practise"}), _drop_counterfactuals),
     Step("habits below top 4", frozenset(), _drop_habits),
     Step("routines below top 2", frozenset(), _drop_routines),
     Step("consequences", frozenset({"how_sure", "where_time_went"}), _drop_consequences),

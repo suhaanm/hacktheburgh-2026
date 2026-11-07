@@ -17,7 +17,7 @@ export function ScreenFrame({ current, children }: { current: Screen | "unknown"
         <div className="state" role="status">
           <span className="state__mark" aria-hidden="true" />
           <h1 className="state__title">This screen is part of the Admin view</h1>
-          <p className="state__body">You are in the Worker view, which shows your own week. Switch the demo view in the menu to see the firm.</p>
+          <p className="state__body">You are in the Worker view, which shows your own week. Choose the Admin view in the menu to see the firm.</p>
           <a className="btn btn--secondary state__action" href="#/home">Go to your week</a>
         </div>
       </div>

@@ -16,7 +16,7 @@ from understudy_engine.mlv2.conformal import make_c0_rule, make_c1_rule
 from understudy_engine.mlv2.models import A7_CANDIDATES, FAMILY_A, LEARNERS, Calibrator, VariantSpec, apply_personal_shift, fit_beta_prior_people
 from understudy_engine.mlv2.protocol import DEFAULT_BUDGET, inner_assignments
 
-DEFAULT_V2 = "A7_A4"          # the registry id of the DEV-picked primary candidate when none has been frozen (see results/frozen.json)
+DEFAULT_V2 = "A4"             # boosting + Platt: the variant that passed both pre-registered tests for the deep role (held-out personas and generator mismatch); the frozen primary A7 passed the first only
 
 
 def spec_by_id(vid: str) -> VariantSpec:

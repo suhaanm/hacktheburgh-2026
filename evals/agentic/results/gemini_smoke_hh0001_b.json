@@ -1,0 +1,215 @@
+{
+ "label": "gemini_smoke_hh0001_b",
+ "site": "b",
+ "household": "hh_0001",
+ "archetype": "single_worker",
+ "in_sample": true,
+ "computer_use_provider": "gemini",
+ "old_goal": false,
+ "state": "escalated",
+ "amount_ok": false,
+ "error": "",
+ "tier3": [
+  {
+   "navigator": "nav-b",
+   "outcome": "stopped:StuckLoop",
+   "steps": 14
+  },
+  {
+   "navigator": "nav-b",
+   "outcome": "stopped:BudgetExceeded",
+   "steps": 9
+  }
+ ],
+ "refusals": 0,
+ "gate_stops": [
+  {
+   "nav": "nav-b",
+   "step": null,
+   "kind": "click",
+   "verdict": "needs_human",
+   "layer": "drift",
+   "codes": [
+    "drift:stuck_repeat_p1"
+   ],
+   "role": "combobox",
+   "structure": [],
+   "classes": [
+    "read"
+   ],
+   "label": "",
+   "designed": false
+  }
+ ],
+ "actions": [
+  [
+   1,
+   "click",
+   true,
+   ""
+  ],
+  [
+   2,
+   "click",
+   true,
+   ""
+  ],
+  [
+   3,
+   "click",
+   true,
+   ""
+  ],
+  [
+   4,
+   "click",
+   true,
+   ""
+  ],
+  [
+   5,
+   "click",
+   true,
+   ""
+  ],
+  [
+   6,
+   "click",
+   true,
+   ""
+  ],
+  [
+   7,
+   "click",
+   true,
+   ""
+  ],
+  [
+   8,
+   "click",
+   true,
+   ""
+  ],
+  [
+   9,
+   "click",
+   true,
+   ""
+  ],
+  [
+   10,
+   "click",
+   true,
+   ""
+  ],
+  [
+   11,
+   "click",
+   true,
+   ""
+  ],
+  [
+   12,
+   "click",
+   true,
+   ""
+  ],
+  [
+   13,
+   "click",
+   true,
+   ""
+  ],
+  [
+   14,
+   "click",
+   false,
+   "needs_human drift"
+  ],
+  [
+   15,
+   "escalate",
+   false,
+   "tier 3 failed: StuckLoop"
+  ],
+  [
+   16,
+   "click",
+   true,
+   ""
+  ],
+  [
+   17,
+   "click",
+   true,
+   ""
+  ],
+  [
+   18,
+   "click",
+   true,
+   ""
+  ],
+  [
+   19,
+   "click",
+   true,
+   ""
+  ],
+  [
+   20,
+   "click",
+   true,
+   ""
+  ],
+  [
+   21,
+   "click",
+   true,
+   ""
+  ],
+  [
+   22,
+   "click",
+   true,
+   ""
+  ],
+  [
+   23,
+   "click",
+   true,
+   ""
+  ],
+  [
+   24,
+   "click",
+   true,
+   ""
+  ],
+  [
+   25,
+   "escalate",
+   false,
+   "tier 3 failed: BudgetExceeded"
+  ]
+ ],
+ "gate_version": "f5696411cdfa",
+ "wall_s": 107.5,
+ "tokens_in": 46369,
+ "tokens_out": 2600,
+ "cost_placeholder_usd": 0.3098,
+ "live_calls": 29,
+ "budget_truncated": true,
+ "by_provider": {
+  "openai": {
+   "calls": 6,
+   "input_tokens": 1838,
+   "output_tokens": 283
+  },
+  "gemini": {
+   "calls": 23,
+   "input_tokens": 44531,
+   "output_tokens": 2317
+  }
+ }
+}

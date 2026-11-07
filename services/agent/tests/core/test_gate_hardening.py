@@ -148,3 +148,96 @@ async def test_a_pointer_target_needs_both_reads_to_agree(agree, fail, readable)
 async def test_a_focus_read_has_no_pointer_and_needs_no_hit_test():
     tr = await BrowserPageActuator(_FakePage(_FakeCDP(agree=False))).read_target(Action("type", {"text": "x"}))
     assert tr is not None          # the hit-test mechanism applies to a point; a focus read is the isolated world's alone
+
+
+# ----------------------------------------------------------------------------- Gemini click-and-type through the real gate
+async def test_a_gemini_click_and_type_runs_as_two_gated_actions_and_one_model_call(tmp_path):
+    from playwright.async_api import async_playwright
+
+    from understudy_agent.models.config import GeminiModelIds
+    from understudy_agent.models.gemini_provider import GeminiProvider
+    from understudy_agent.tiers.computer_use import ComputerUse
+    from understudy_agent.tiers.facts import FactStore
+
+    from ..models.helpers import FakeGeminiClient, reply
+
+    html = '<body style="margin:0"><input id=t type=text style="position:absolute;left:100px;top:100px;width:300px;height:30px"></body>'
+    client = FakeGeminiClient(
+        reply("", calls=({"id": "c1", "name": "type_text_at", "arguments": {"x": 195, "y": 160, "text": "{x.y}", "press_enter": False,
+                                                                           "clear_before_typing": False}},)),
+        reply("DONE: typed it"))
+    gem = GeminiProvider(client=client, models=GeminiModelIds(fast="lite", accurate="flash"))
+    audit = AuditLog(tmp_path / "a.jsonl")
+    guard = Guard(MockProvider("benefits_clean"), run_id="r_gem", mode="model_driven", audit=audit,
+                  queue=ApprovalQueue(tmp_path / "q", audit=audit), denylist=Denylist())
+    async with async_playwright() as pw:
+        browser = await pw.chromium.launch(headless=True)
+        try:
+            page = await browser.new_page()
+            await page.route("http://calc.test/**", lambda route: route.fulfill(status=200, content_type="text/html", body=html))
+            await page.goto("http://calc.test/")
+
+            async def verify() -> bool:
+                return (await page.input_value("#t")) == "abc"
+
+            res = await ComputerUse(gem, BrowserPageActuator(page), guard, navigator="nav-g",
+                                    facts=FactStore({"x.y": "a value"}, {"x.y": lambda: "abc"})).run("g", verify)
+            got = await page.input_value("#t")
+        finally:
+            await browser.close()
+    assert got == "abc" and res.outcome == "done" and res.refusals == 0
+    assert len(client.calls) == 2                                   # one call for the click-and-type, one for DONE
+    assert [h["kind"] for h in res.history[:2]] == ["click", "type"]
+
+
+async def test_a_gemini_click_and_type_aimed_at_a_risky_control_stops_at_the_click_and_nothing_follows(tmp_path):
+    """The queued typing and Enter are separate steps through the gate, and a model-supplied flag can only ADD an Enter, never take
+    it off the gate: here the click on 'Place order' is a human's call, so no select-all, no typing and no Enter ever runs."""
+    from playwright.async_api import async_playwright
+
+    from understudy_agent.models.config import GeminiModelIds
+    from understudy_agent.models.gemini_provider import GeminiProvider
+    from understudy_agent.tiers.base import GateStop
+    from understudy_agent.tiers.computer_use import ComputerUse
+    from understudy_agent.tiers.facts import FactStore
+
+    from ..models.helpers import FakeGeminiClient, reply
+
+    html = ('<body style="margin:0"><form method=post action="/order"><button type=submit style="position:absolute;left:100px;top:100px;'
+            'width:300px;height:40px">Place order</button></form></body>')
+    client = FakeGeminiClient(reply("", calls=({"id": "c1", "name": "type_text_at", "arguments": {
+        "x": 195, "y": 160, "text": "{x.y}", "press_enter": True, "clear_before_typing": True}},)))
+    gem = GeminiProvider(client=client, models=GeminiModelIds(fast="lite", accurate="flash"))
+    audit = AuditLog(tmp_path / "a.jsonl")
+    guard = Guard(MockProvider("benefits_clean"), run_id="r_gem2", mode="model_driven", audit=audit,
+                  queue=ApprovalQueue(tmp_path / "q", audit=audit), denylist=Denylist())
+    posts: list[str] = []
+    did: list[str] = []
+
+    class Recording(BrowserPageActuator):
+        async def execute(self, action):
+            did.append(action.kind)
+            await super().execute(action)
+
+    async with async_playwright() as pw:
+        browser = await pw.chromium.launch(headless=True)
+        try:
+            page = await browser.new_page()
+
+            async def serve(route):
+                if route.request.method == "POST":
+                    posts.append(route.request.url)
+                await route.fulfill(status=200, content_type="text/html", body=html)
+
+            await page.route("http://shop.test/**", serve)
+            await page.goto("http://shop.test/")
+
+            async def verify() -> bool:
+                return False
+
+            with pytest.raises(GateStop):
+                await ComputerUse(gem, Recording(page), guard, navigator="nav-g",
+                                  facts=FactStore({"x.y": "a value"}, {"x.y": lambda: "abc"})).run("g", verify)
+        finally:
+            await browser.close()
+    assert did == [] and posts == [] and len(client.calls) == 1

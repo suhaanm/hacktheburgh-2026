@@ -360,8 +360,8 @@ export const api = {
       const c = dataOf<CoachState>(coachFx);
       const d: CoachDecision = {
         action: "nudge", message: c.message, why: c.why, target: null, missed: [], confidence: 0.8, level: c.level, chip: c.chip,
-        decision_id: "d_demo", task_id: c.task.id, step: c.task.step, trigger: "demo data", reason_codes: [],
-        gate: { consecutive: 2, reason: "demo data" }, p_stuck: null, p_source: null, candidate: null, mastery: c.mastery,
+        decision_id: "d_demo", task_id: c.task.id, step: c.task.step, trigger: "example data", reason_codes: [],
+        gate: { consecutive: 2, reason: "example data" }, p_stuck: null, p_source: null, candidate: null, mastery: c.mastery,
       };
       return { data: d, meta: metaOf(coachFx) };
     }),

@@ -147,7 +147,8 @@ export interface WireOverview {
 }
 
 export interface DrillColumn { key: string; label: string; unit: string | null }
-export interface DrillRow { label: string; group: string | null; values: Record<string, number | Interval | string | null>; n: number | null }
+/** `label` is the stable key (a skill, or a pseudonym such as "BP-07"); `name` is the person's made-up name when the row is about a person. Show `name ?? label`. */
+export interface DrillRow { label: string; name: string | null; group: string | null; values: Record<string, number | Interval | string | null>; n: number | null }
 export interface WireDrill {
   id: string;
   headline: string;
@@ -198,7 +199,10 @@ export interface WireRoles { roles: RoleCompare[]; same_scale: { min: number; ma
 
 export interface UserRow {
   id: string;
+  /** The stable pseudonym ("BP-07"): the key and the aria id. */
   label: string;
+  /** A made-up full name for the synthetic firm. Show `name ?? label`. */
+  name: string | null;
   role: string | null;
   level: "expert" | "junior" | null;
   status: string | null;

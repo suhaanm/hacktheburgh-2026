@@ -1,0 +1,1116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://understudy.local/schema/cue_decision.schema.json",
+  "title": "A Cue decision (GET /cue/next) and the example walks over the mock fixtures",
+  "description": "The file under packages/schema/examples/cue.decisions.example.json is a map from scenario name to {meta, polls}; each poll is a CueDecision plus the fixture clock `t`. The live answer of GET /cue/next is `{meta, data: CueDecision}` (`#/$defs/CueEnvelope`). Everything in a decision is an id, an enum, a number, a fixed template text or a string from the pack's vocabulary: no page text, no model text, no screen content. Every enum here is the engine's own list (cue/types.py KINDS, SOURCES, REASONS; cue/vocab.py QUESTIONS), and a test keeps them equal. CueStep and CueStepTarget are copies of the defs in cue_step.schema.json (a test keeps them equal; a schema file cannot reference another here because the validators in this repo load one file at a time).",
+  "type": "object",
+  "propertyNames": {
+    "pattern": "^[a-z][a-z0-9_]{0,40}$"
+  },
+  "additionalProperties": {
+    "$ref": "#/$defs/Walk"
+  },
+  "$defs": {
+    "Meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "n",
+        "n_unit",
+        "split",
+        "interval_level",
+        "note",
+        "generated_at"
+      ],
+      "properties": {
+        "origin": {
+          "enum": [
+            "real",
+            "synthetic",
+            "mixed"
+          ],
+          "description": "Drives the synthetic badge: 'mixed' when real and synthetic rows are both read."
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "n_unit": {
+          "const": "occurrences"
+        },
+        "split": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "interval_level": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "generated_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        }
+      },
+      "description": "The meta block every Cue answer carries (cue/routes.py _meta, cue/live.py _envelope)."
+    },
+    "CueStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "reason_id",
+        "reason_text",
+        "target"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$",
+          "description": "A step id from the pack's expert_steps.yaml."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "description": "The pack's short label for the step (32 characters or fewer so that 'Next: ' + label fits a 40-character chip)."
+        },
+        "reason_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z][a-z0-9_.-]{0,40}$",
+          "description": "The id of the one-line reason, from the fixed reason table."
+        },
+        "reason_text": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 120,
+          "description": "The reason's text, 12 words or fewer. Never null for a step of a shipped pack (a test checks every step of the benefits-processor, programmer and data-analyst packs)."
+        },
+        "target": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/CueStepTarget"
+            }
+          ],
+          "description": "Where the control for this step is, or null when the pack has no zone for it (the cue is then text only)."
+        }
+      }
+    },
+    "CueStepTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "zone",
+        "label_hint",
+        "role_hint"
+      ],
+      "properties": {
+        "zone": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{1,30}$",
+          "description": "A zone id from the pack's cog mapping (the same pattern as RectWant.zone in ext_rect.schema.json). The desktop asks the extension for the first visible element in this zone."
+        },
+        "label_hint": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "description": "The pack's own words for the control (the step label with its 'Open ... on calculator X' framing removed, or the pack's coach.target override). Never text read from the page."
+        },
+        "role_hint": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,31}$",
+          "description": "A role word: button, textbox, select or region from the coach helper, or the pack's own override (same pattern as RectWant.role)."
+        }
+      }
+    },
+    "Option": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        }
+      }
+    },
+    "CueDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "episode_id",
+        "tier",
+        "step",
+        "target",
+        "options",
+        "say",
+        "why",
+        "budget_left",
+        "cooldown_s",
+        "source",
+        "meta",
+        "new",
+        "question",
+        "expires_in_s",
+        "retrieval",
+        "ground_wanted",
+        "teach",
+        "manifest",
+        "stale",
+        "menu"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "none",
+            "confirm",
+            "cue",
+            "ask",
+            "offer"
+          ],
+          "description": "none: silence (the default, always with a reason). confirm: help withheld on purpose (retrieval practice), nothing shown. cue: a tier. ask: one multiple-choice question. offer: a small 'want a hand?' chip."
+        },
+        "episode_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^e_[0-9a-f]{12}$"
+        },
+        "tier": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 4
+        },
+        "step": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/CueStep"
+            }
+          ]
+        },
+        "target": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "box_2d",
+                "source",
+                "confidence"
+              ],
+              "properties": {
+                "box_2d": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 4,
+                      "maxItems": 4,
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000
+                      }
+                    }
+                  ],
+                  "description": "[y0, x0, y1, x1] on 0..1000, or null when there is nothing to ring."
+                },
+                "source": {
+                  "enum": [
+                    "dom",
+                    "vision",
+                    "none"
+                  ]
+                },
+                "confidence": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              },
+              "description": "The box the ring is drawn at. Not the step's own target (where the control is), which is step.target."
+            }
+          ]
+        },
+        "options": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 5,
+              "items": {
+                "$ref": "#/$defs/Option"
+              },
+              "description": "2 to 4 steps plus the fixed 'other' option."
+            }
+          ]
+        },
+        "say": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "chip",
+                "whisper",
+                "whisper_id"
+              ],
+              "properties": {
+                "chip": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 40
+                },
+                "whisper": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 80,
+                  "description": "8 words or fewer; only when the caller said voice_ok."
+                },
+                "whisper_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^whisper\\.[a-z][a-z0-9_.\\-]{0,63}$"
+                }
+              }
+            }
+          ]
+        },
+        "why": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path_prob",
+            "margin",
+            "p_stuck",
+            "mastery",
+            "level",
+            "reasons"
+          ],
+          "properties": {
+            "path_prob": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "margin": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 1
+            },
+            "p_stuck": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "mastery": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "level": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4
+            },
+            "reasons": {
+              "type": "array",
+              "maxItems": 12,
+              "items": {
+                "enum": [
+                  "no_consent",
+                  "denied",
+                  "quiet",
+                  "flow",
+                  "level_4",
+                  "not_stuck",
+                  "wait_signals",
+                  "unsure_away",
+                  "below_stall_min",
+                  "cap_10min",
+                  "cooldown_skill",
+                  "budget_spent",
+                  "waiting_escalation",
+                  "deferred",
+                  "dismissed_in_episode",
+                  "know_this",
+                  "no_candidates",
+                  "no_context",
+                  "progress",
+                  "ladder_done",
+                  "ambiguous_after_question",
+                  "no_target_for_tier",
+                  "recovered",
+                  "timeout",
+                  "stale_input",
+                  "attention_hold",
+                  "step_done",
+                  "resolved",
+                  "stuck_signal",
+                  "asked",
+                  "escalated",
+                  "retrieval_withheld",
+                  "path_confident",
+                  "path_close_call",
+                  "grounded_dom",
+                  "grounded_vision",
+                  "ungrounded",
+                  "screen_disagrees",
+                  "answer_known",
+                  "long_stall",
+                  "level_1",
+                  "level_2",
+                  "level_3",
+                  "voice_capped",
+                  "persisting"
+                ]
+              },
+              "description": "The first one is the reason for what happened. Every id is from cue/types.py REASONS."
+            }
+          }
+        },
+        "budget_left": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cooldown_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "source": {
+          "enum": [
+            "model",
+            "rule"
+          ],
+          "description": "Where the stuck signal came from."
+        },
+        "meta": {
+          "$ref": "#/$defs/Meta"
+        },
+        "new": {
+          "type": "boolean"
+        },
+        "question": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "close_call",
+                    "screen_disagrees",
+                    "unclear"
+                  ]
+                },
+                "text": {
+                  "enum": [
+                    "Which of these is next?",
+                    "I can see more than one option. Which is next?",
+                    "I cannot tell where you are. What is next?"
+                  ]
+                }
+              },
+              "description": "A fixed template, never model-written."
+            }
+          ]
+        },
+        "expires_in_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "retrieval": {
+          "type": "boolean"
+        },
+        "ground_wanted": {
+          "type": "boolean"
+        },
+        "teach": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "reason_id",
+                "text"
+              ],
+              "properties": {
+                "reason_id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,40}$"
+                },
+                "text": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 120
+                }
+              }
+            }
+          ]
+        },
+        "manifest": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "inputs_read",
+                "inputs_stale",
+                "caps"
+              ],
+              "properties": {
+                "inputs_read": {
+                  "type": "array",
+                  "maxItems": 6,
+                  "items": {
+                    "enum": [
+                      "snapshot",
+                      "p_stuck",
+                      "input_rhythm",
+                      "candidates",
+                      "progress",
+                      "grounding"
+                    ]
+                  }
+                },
+                "inputs_stale": {
+                  "type": "array",
+                  "maxItems": 4,
+                  "items": {
+                    "enum": [
+                      "snapshot",
+                      "p_stuck",
+                      "input_rhythm",
+                      "grounding"
+                    ]
+                  }
+                },
+                "caps": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "window_cogs",
+                    "ledger_rows"
+                  ],
+                  "properties": {
+                    "window_cogs": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "ledger_rows": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  }
+                }
+              },
+              "description": "Metadata only: what the decision read and the caps it ran under."
+            }
+          ]
+        },
+        "stale": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "enum": [
+                  "snapshot",
+                  "p_stuck",
+                  "input_rhythm",
+                  "grounding"
+                ]
+              }
+            }
+          ]
+        },
+        "menu": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/$defs/Option"
+              },
+              "description": "The candidate steps a grounding call wants (with ground_wanted)."
+            }
+          ]
+        }
+      },
+      "description": "data of GET /cue/next. All 21 keys are always present (null when not applicable)."
+    },
+    "CueEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "meta",
+        "data"
+      ],
+      "properties": {
+        "meta": {
+          "$ref": "#/$defs/Meta"
+        },
+        "data": {
+          "$ref": "#/$defs/CueDecision"
+        }
+      }
+    },
+    "Poll": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "t",
+        "kind",
+        "episode_id",
+        "tier",
+        "step",
+        "target",
+        "options",
+        "say",
+        "why",
+        "budget_left",
+        "cooldown_s",
+        "source",
+        "meta",
+        "new",
+        "question",
+        "expires_in_s",
+        "retrieval",
+        "ground_wanted",
+        "teach",
+        "manifest",
+        "stale",
+        "menu"
+      ],
+      "properties": {
+        "t": {
+          "type": "number",
+          "description": "Seconds since the worker's last progress event (the mock fixture's clock). Only in the example walks, never in a live answer."
+        },
+        "kind": {
+          "enum": [
+            "none",
+            "confirm",
+            "cue",
+            "ask",
+            "offer"
+          ],
+          "description": "none: silence (the default, always with a reason). confirm: help withheld on purpose (retrieval practice), nothing shown. cue: a tier. ask: one multiple-choice question. offer: a small 'want a hand?' chip."
+        },
+        "episode_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^e_[0-9a-f]{12}$"
+        },
+        "tier": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 4
+        },
+        "step": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/CueStep"
+            }
+          ]
+        },
+        "target": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "box_2d",
+                "source",
+                "confidence"
+              ],
+              "properties": {
+                "box_2d": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 4,
+                      "maxItems": 4,
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000
+                      }
+                    }
+                  ],
+                  "description": "[y0, x0, y1, x1] on 0..1000, or null when there is nothing to ring."
+                },
+                "source": {
+                  "enum": [
+                    "dom",
+                    "vision",
+                    "none"
+                  ]
+                },
+                "confidence": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              },
+              "description": "The box the ring is drawn at. Not the step's own target (where the control is), which is step.target."
+            }
+          ]
+        },
+        "options": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "minItems": 3,
+              "maxItems": 5,
+              "items": {
+                "$ref": "#/$defs/Option"
+              },
+              "description": "2 to 4 steps plus the fixed 'other' option."
+            }
+          ]
+        },
+        "say": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "chip",
+                "whisper",
+                "whisper_id"
+              ],
+              "properties": {
+                "chip": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 40
+                },
+                "whisper": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 80,
+                  "description": "8 words or fewer; only when the caller said voice_ok."
+                },
+                "whisper_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^whisper\\.[a-z][a-z0-9_.\\-]{0,63}$"
+                }
+              }
+            }
+          ]
+        },
+        "why": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path_prob",
+            "margin",
+            "p_stuck",
+            "mastery",
+            "level",
+            "reasons"
+          ],
+          "properties": {
+            "path_prob": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "margin": {
+              "type": "number",
+              "minimum": -1,
+              "maximum": 1
+            },
+            "p_stuck": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "mastery": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "level": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4
+            },
+            "reasons": {
+              "type": "array",
+              "maxItems": 12,
+              "items": {
+                "enum": [
+                  "no_consent",
+                  "denied",
+                  "quiet",
+                  "flow",
+                  "level_4",
+                  "not_stuck",
+                  "wait_signals",
+                  "unsure_away",
+                  "below_stall_min",
+                  "cap_10min",
+                  "cooldown_skill",
+                  "budget_spent",
+                  "waiting_escalation",
+                  "deferred",
+                  "dismissed_in_episode",
+                  "know_this",
+                  "no_candidates",
+                  "no_context",
+                  "progress",
+                  "ladder_done",
+                  "ambiguous_after_question",
+                  "no_target_for_tier",
+                  "recovered",
+                  "timeout",
+                  "stale_input",
+                  "attention_hold",
+                  "step_done",
+                  "resolved",
+                  "stuck_signal",
+                  "asked",
+                  "escalated",
+                  "retrieval_withheld",
+                  "path_confident",
+                  "path_close_call",
+                  "grounded_dom",
+                  "grounded_vision",
+                  "ungrounded",
+                  "screen_disagrees",
+                  "answer_known",
+                  "long_stall",
+                  "level_1",
+                  "level_2",
+                  "level_3",
+                  "voice_capped",
+                  "persisting"
+                ]
+              },
+              "description": "The first one is the reason for what happened. Every id is from cue/types.py REASONS."
+            }
+          }
+        },
+        "budget_left": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cooldown_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "source": {
+          "enum": [
+            "model",
+            "rule"
+          ],
+          "description": "Where the stuck signal came from."
+        },
+        "meta": {
+          "$ref": "#/$defs/Meta"
+        },
+        "new": {
+          "type": "boolean"
+        },
+        "question": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "text"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "close_call",
+                    "screen_disagrees",
+                    "unclear"
+                  ]
+                },
+                "text": {
+                  "enum": [
+                    "Which of these is next?",
+                    "I can see more than one option. Which is next?",
+                    "I cannot tell where you are. What is next?"
+                  ]
+                }
+              },
+              "description": "A fixed template, never model-written."
+            }
+          ]
+        },
+        "expires_in_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "retrieval": {
+          "type": "boolean"
+        },
+        "ground_wanted": {
+          "type": "boolean"
+        },
+        "teach": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "reason_id",
+                "text"
+              ],
+              "properties": {
+                "reason_id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_.-]{0,40}$"
+                },
+                "text": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 120
+                }
+              }
+            }
+          ]
+        },
+        "manifest": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "inputs_read",
+                "inputs_stale",
+                "caps"
+              ],
+              "properties": {
+                "inputs_read": {
+                  "type": "array",
+                  "maxItems": 6,
+                  "items": {
+                    "enum": [
+                      "snapshot",
+                      "p_stuck",
+                      "input_rhythm",
+                      "candidates",
+                      "progress",
+                      "grounding"
+                    ]
+                  }
+                },
+                "inputs_stale": {
+                  "type": "array",
+                  "maxItems": 4,
+                  "items": {
+                    "enum": [
+                      "snapshot",
+                      "p_stuck",
+                      "input_rhythm",
+                      "grounding"
+                    ]
+                  }
+                },
+                "caps": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "window_cogs",
+                    "ledger_rows"
+                  ],
+                  "properties": {
+                    "window_cogs": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "ledger_rows": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  }
+                }
+              },
+              "description": "Metadata only: what the decision read and the caps it ran under."
+            }
+          ]
+        },
+        "stale": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "enum": [
+                  "snapshot",
+                  "p_stuck",
+                  "input_rhythm",
+                  "grounding"
+                ]
+              }
+            }
+          ]
+        },
+        "menu": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/$defs/Option"
+              },
+              "description": "The candidate steps a grounding call wants (with ground_wanted)."
+            }
+          ]
+        }
+      },
+      "description": "A CueDecision plus the fixture clock, as the example walks store it."
+    },
+    "Walk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "meta",
+        "polls"
+      ],
+      "properties": {
+        "meta": {
+          "$ref": "#/$defs/Meta"
+        },
+        "polls": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 60,
+          "items": {
+            "$ref": "#/$defs/Poll"
+          }
+        }
+      }
+    }
+  }
+}

@@ -156,7 +156,7 @@ function Shot({ runId, path }: { runId: string; path: string }) {
   const live = useAppState().live > 0;
   const [failed, setFailed] = useState(false);
   const file = path.split("/").pop() ?? path;
-  if (!live || failed) return <span className="shot">{file}<br />{live ? "could not load" : "not available in demo data"}</span>;
+  if (!live || failed) return <span className="shot">{file}<br />{live ? "could not load" : "not available in example data"}</span>;
   return <img className="shot shot--img" src={`${ENGINE_URL}/runs/${encodeURIComponent(runId)}/${encodeURIComponent(file)}`} alt={`Screenshot ${file} from run ${runId}`} loading="lazy" onError={() => setFailed(true)} />;
 }
 

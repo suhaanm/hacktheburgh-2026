@@ -2,6 +2,7 @@ import { navigate, screenOf, useRoute } from "../../router";
 import { canView } from "./navModel";
 import { startTour, openPalette } from "./overlayStore";
 import { shortcutLabel } from "./Overlays";
+import { Hint } from "../Hint";
 import { VIEW_LABEL, setViewRole, useViewRole, type ViewRole } from "./viewAs";
 
 /**
@@ -19,7 +20,7 @@ export function ViewAsSwitch() {
   return (
     <div className="viewas">
       <div className="viewas__row">
-        <span className="viewas__label" id="viewas-label">Demo view</span>
+        <span className="viewas__label" id="viewas-label">View as<Hint label="About the view switch">This only changes what the screens show. It is not a permission: with a real sign-in, your role would come from your organisation.</Hint></span>
         <div className="segmented" role="group" aria-labelledby="viewas-label">
           {(["worker", "admin"] as ViewRole[]).map((r) => (
             <button key={r} type="button" aria-pressed={view === r} onClick={() => pick(r)}>{VIEW_LABEL[r]}</button>

@@ -1,6 +1,6 @@
 {
  "ok": true,
- "version": "0.1.0-demo",
+ "version": "0.1.0-example",
  "mock": true,
  "models": {
   "planner": "(set in environment)",

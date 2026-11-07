@@ -1,0 +1,904 @@
+{
+ "label": "synthetic expert (scripted driver), not a person",
+ "role": "programmer",
+ "task": "p-missing-1",
+ "variant": 1,
+ "style": "expert",
+ "variation": 2,
+ "verdict": {
+  "outcome": "correct",
+  "points": 2,
+  "skill_check_done": true
+ },
+ "n_events": 40,
+ "events": [
+  {
+   "schema": 1,
+   "id": "bec0af66-f806-47c4-8032-f4153f629fe4",
+   "t": "2026-11-07T20:27:32.780Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "task_start",
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "code_view"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "d2a5de9f-495a-47b4-8569-aac5ac8fa9f3",
+   "t": "2026-11-07T20:27:32.782Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "button",
+    "label_hash": "h:e81f5332d041",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "test_runner"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "c6c793e7-c760-48e7-a5c8-e98795d2b4e1",
+   "t": "2026-11-07T20:27:32.783Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "click",
+   "target": {
+    "role": "button",
+    "label_hash": "h:e81f5332d041",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "test_runner"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "177855b6-f119-47f6-89d5-eb8cc036cae0",
+   "t": "2026-11-07T20:27:34.560Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "nav",
+   "target": {
+    "role": "document",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "spa": false,
+    "zone": "code_view"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "4670b03f-309e-4181-8918-e231b7fbb35b",
+   "t": "2026-11-07T20:27:34.561Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "button",
+    "label_hash": "h:c8f1c37937bc",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "code_view"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "5796d9a1-6400-44f8-af1c-2e353d682afd",
+   "t": "2026-11-07T20:27:34.562Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "click",
+   "target": {
+    "role": "button",
+    "label_hash": "h:c8f1c37937bc",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "code_view"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "b1500771-8abb-43ec-b6ad-682ef6bfa81e",
+   "t": "2026-11-07T20:27:36.346Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "button",
+    "label_hash": "h:075f5af54379",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "input_data"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "925a9311-016a-4c61-a790-1af24e8d5169",
+   "t": "2026-11-07T20:27:36.348Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "click",
+   "target": {
+    "role": "button",
+    "label_hash": "h:075f5af54379",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "input_data"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "80391cf5-ea67-4457-950c-df60aa9abd92",
+   "t": "2026-11-07T20:27:38.128Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "button",
+    "label_hash": "h:1ae727824745",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "docs_page"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "1908b6b7-eee4-4c7d-8d4e-43210077fa54",
+   "t": "2026-11-07T20:27:38.129Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "click",
+   "target": {
+    "role": "button",
+    "label_hash": "h:1ae727824745",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "docs_page"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "c0415cfa-a944-477a-801c-689760448841",
+   "t": "2026-11-07T20:27:39.911Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "scroll",
+   "target": {
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "depth_bin": 3,
+    "zone": "doc"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "8ab03a1c-e075-414a-8f92-a5f1e56ff228",
+   "t": "2026-11-07T20:27:39.912Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "button",
+    "label_hash": "h:c8f1c37937bc",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "code_view"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "40e48c5b-992a-451d-857b-e39e7871706c",
+   "t": "2026-11-07T20:27:39.913Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "click",
+   "target": {
+    "role": "button",
+    "label_hash": "h:c8f1c37937bc",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "code_view"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "e10c043d-34ab-43d2-9dd8-35acd8b40610",
+   "t": "2026-11-07T20:27:39.925Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "scroll",
+   "target": {
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "depth_bin": 0,
+    "zone": "doc"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "3e1c8693-c4e2-43a1-a479-5b5b31b62684",
+   "t": "2026-11-07T20:27:42.441Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "textbox",
+    "label_hash": "h:3215d1b2a1eb",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "code_editor"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "4e9976d8-33b8-4175-834b-2f7278755f2e",
+   "t": "2026-11-07T20:27:43.229Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "textbox",
+    "label_hash": "h:c9c32bd82b94",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "edge_probe"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "27ffd1fb-6b01-4afc-99fc-e7d01abd8867",
+   "t": "2026-11-07T20:27:44.748Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "button",
+    "label_hash": "h:341bae2a39e9",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "edge_probe"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "e893f7bd-7e31-4b2e-80d6-93837f883ce2",
+   "t": "2026-11-07T20:27:44.750Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "click",
+   "target": {
+    "role": "button",
+    "label_hash": "h:341bae2a39e9",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "edge_probe"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "8be734d3-1b51-4b2d-ae73-78299a7cad42",
+   "t": "2026-11-07T20:27:46.552Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "textbox",
+    "label_hash": "h:c9c32bd82b94",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "edge_probe"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "1208b633-84b3-4058-bf8a-ee9be91dbb37",
+   "t": "2026-11-07T20:27:48.062Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "button",
+    "label_hash": "h:341bae2a39e9",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "edge_probe"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "b186203c-cb2d-49a7-b95d-1fa803954016",
+   "t": "2026-11-07T20:27:48.063Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "click",
+   "target": {
+    "role": "button",
+    "label_hash": "h:341bae2a39e9",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "edge_probe"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "03c7ac7a-a96e-45c2-930b-12b850c3a190",
+   "t": "2026-11-07T20:27:49.843Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "button",
+    "label_hash": "h:e81f5332d041",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "test_runner"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "8b4181f3-842d-468b-891c-d81b3f9b8b20",
+   "t": "2026-11-07T20:27:49.844Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "click",
+   "target": {
+    "role": "button",
+    "label_hash": "h:e81f5332d041",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "test_runner"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "07639b32-2fd7-42c8-996e-1fd1a43accdd",
+   "t": "2026-11-07T20:27:49.921Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "nav",
+   "target": {
+    "role": "document",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "spa": true,
+    "zone": "test_report"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "111c1512-c8f0-4d17-8002-77f86e69a6c2",
+   "t": "2026-11-07T20:27:49.922Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "progress",
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "kind": "tests_run"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "4660b2ee-c34b-4842-a6d5-8e8b1a801ca0",
+   "t": "2026-11-07T20:27:51.627Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "button",
+    "label_hash": "h:488696f2f873",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "diff_view"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "1b37ed00-a104-4576-ba3c-4ec1f508a9a5",
+   "t": "2026-11-07T20:27:51.628Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "click",
+   "target": {
+    "role": "button",
+    "label_hash": "h:488696f2f873",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "diff_view"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "58fff9d2-3950-4e61-b94e-87b5afdff6e0",
+   "t": "2026-11-07T20:27:51.652Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "scroll",
+   "target": {
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "depth_bin": 3,
+    "zone": "doc"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "d8a2cd4c-9574-4b35-81b5-f6fe7772a026",
+   "t": "2026-11-07T20:27:53.412Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "checkbox",
+    "label_hash": "h:7ebbc7fcb040",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "commit_box"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "889ff5db-5155-4af4-8ca0-23b113d5fdf8",
+   "t": "2026-11-07T20:27:53.413Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "click",
+   "target": {
+    "role": "checkbox",
+    "label_hash": "h:7ebbc7fcb040",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "commit_box"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "fdff6cc0-c1a0-4532-a8f9-e77e2fd18d39",
+   "t": "2026-11-07T20:27:55.192Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "textbox",
+    "label_hash": "h:7911868ad117",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "commit_box"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "334e9e6b-46c0-400e-8613-fdc994ed828d",
+   "t": "2026-11-07T20:27:55.193Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "scroll",
+   "target": {
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "depth_bin": 4,
+    "zone": "doc"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "2b206e58-da95-4d65-bd8e-ef1fcf5f56e5",
+   "t": "2026-11-07T20:27:56.732Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "button",
+    "label_hash": "h:dc474b13a847",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "commit_box"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "83a5bc23-1dc3-415b-b47d-36c0a37bfa74",
+   "t": "2026-11-07T20:27:56.733Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "click",
+   "target": {
+    "role": "button",
+    "label_hash": "h:dc474b13a847",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "commit_box"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "0a0bb2d9-ecc2-4f4b-874a-ffd0bfea708e",
+   "t": "2026-11-07T20:27:56.746Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "nav",
+   "target": {
+    "role": "document",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "spa": true,
+    "zone": "commit_box"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "1a4d41f3-b797-40f2-8676-aa1f3a101446",
+   "t": "2026-11-07T20:27:56.750Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "progress",
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "kind": "committed"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "9061dcb6-4cc8-45e6-bc9a-53e98c1a3622",
+   "t": "2026-11-07T20:27:58.510Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "focus",
+   "target": {
+    "role": "button",
+    "label_hash": "h:c7538b5433f2",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "decision_btn"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "8600674f-2991-4582-afff-d3aac711bd22",
+   "t": "2026-11-07T20:27:58.512Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "click",
+   "target": {
+    "role": "button",
+    "label_hash": "h:c7538b5433f2",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "zone": "decision_btn"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "e2a856c2-99a1-4483-8b03-eac91db655a1",
+   "t": "2026-11-07T20:27:58.529Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "nav",
+   "target": {
+    "role": "document",
+    "domain_hash": "d:5008e77b63b0"
+   },
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "spa": true,
+    "zone": "decision_btn"
+   }
+  },
+  {
+   "schema": 1,
+   "id": "85996fb1-8dd7-47cb-876d-6886298d64e4",
+   "t": "2026-11-07T20:27:58.534Z",
+   "origin": "real",
+   "actor": "human",
+   "person": "p_xprog03",
+   "role": "programmer",
+   "source": "browser",
+   "type": "task_end",
+   "task_id": "t_466d13c403a4",
+   "meta": {
+    "reason": "done"
+   }
+  }
+ ],
+ "cogs": [
+  {
+   "cog": "READ",
+   "t0": 1794083252.78,
+   "t1": 1794083252.78
+  },
+  {
+   "cog": "RUN_TESTS",
+   "t0": 1794083252.78,
+   "t1": 1794083254.56
+  },
+  {
+   "cog": "NAVIGATE",
+   "t0": 1794083254.56,
+   "t1": 1794083254.56
+  },
+  {
+   "cog": "READ_CODE",
+   "t0": 1794083254.56,
+   "t1": 1794083256.35
+  },
+  {
+   "cog": "INSPECT_INPUT",
+   "t0": 1794083256.35,
+   "t1": 1794083258.13
+  },
+  {
+   "cog": "READ",
+   "t0": 1794083258.13,
+   "t1": 1794083258.13
+  },
+  {
+   "cog": "SEARCH_DOCS",
+   "t0": 1794083258.13,
+   "t1": 1794083259.91
+  },
+  {
+   "cog": "READ",
+   "t0": 1794083259.91,
+   "t1": 1794083259.91
+  },
+  {
+   "cog": "READ_CODE",
+   "t0": 1794083259.91,
+   "t1": 1794083259.92
+  },
+  {
+   "cog": "READ",
+   "t0": 1794083259.92,
+   "t1": 1794083262.44
+  },
+  {
+   "cog": "EDIT_CODE",
+   "t0": 1794083262.44,
+   "t1": 1794083263.23
+  },
+  {
+   "cog": "PROBE_EDGE",
+   "t0": 1794083263.23,
+   "t1": 1794083269.84
+  },
+  {
+   "cog": "READ",
+   "t0": 1794083269.84,
+   "t1": 1794083269.84
+  },
+  {
+   "cog": "RUN_TESTS",
+   "t0": 1794083269.84,
+   "t1": 1794083269.92
+  },
+  {
+   "cog": "READ_TRACE",
+   "t0": 1794083269.92,
+   "t1": 1794083271.63
+  },
+  {
+   "cog": "REVIEW_DIFF",
+   "t0": 1794083271.63,
+   "t1": 1794083271.65
+  },
+  {
+   "cog": "READ",
+   "t0": 1794083271.65,
+   "t1": 1794083273.41
+  },
+  {
+   "cog": "COMMIT",
+   "t0": 1794083273.41,
+   "t1": 1794083275.19
+  },
+  {
+   "cog": "READ",
+   "t0": 1794083275.19,
+   "t1": 1794083276.73
+  },
+  {
+   "cog": "COMMIT",
+   "t0": 1794083276.73,
+   "t1": 1794083278.51
+  },
+  {
+   "cog": "READ",
+   "t0": 1794083278.51,
+   "t1": 1794083278.51
+  },
+  {
+   "cog": "DECIDE",
+   "t0": 1794083278.51,
+   "t1": 1794083283.53
+  }
+ ]
+}

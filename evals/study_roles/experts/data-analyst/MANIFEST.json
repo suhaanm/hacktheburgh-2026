@@ -1,0 +1,101 @@
+{
+ "label": "synthetic expert (scripted driver), not a person",
+ "role": "data-analyst",
+ "runs": 8,
+ "all_correct": true,
+ "tasks": [
+  "d-aggregation-1",
+  "d-aggregation-2",
+  "d-reconcile-1",
+  "d-reconcile-2",
+  "d-sanity-1",
+  "d-sanity-2"
+ ],
+ "cog_sequences": {
+  "run_01": [
+   "LOAD_DATA",
+   "PROFILE_DATA",
+   "READ",
+   "CLEAN_DATA",
+   "READ",
+   "RUN_QUERY",
+   "DECIDE"
+  ],
+  "run_02": [
+   "LOAD_DATA",
+   "PROFILE_DATA",
+   "READ",
+   "PLOT",
+   "CLEAN_DATA",
+   "READ",
+   "RUN_QUERY",
+   "DECIDE"
+  ],
+  "run_03": [
+   "LOAD_DATA",
+   "PROFILE_DATA",
+   "READ",
+   "RECONCILE_CONTROL",
+   "CLEAN_DATA",
+   "RECONCILE_CONTROL",
+   "CLEAN_DATA",
+   "RECONCILE_CONTROL",
+   "GROUP_AGG",
+   "DECIDE"
+  ],
+  "run_04": [
+   "LOAD_DATA",
+   "PROFILE_DATA",
+   "READ",
+   "RECONCILE_CONTROL",
+   "GROUP_AGG",
+   "WRITE_QUERY",
+   "CLEAN_DATA",
+   "WRITE_QUERY",
+   "CLEAN_DATA",
+   "RECONCILE_CONTROL",
+   "READ",
+   "RUN_QUERY",
+   "READ",
+   "DECIDE",
+   "READ",
+   "DECIDE"
+  ],
+  "run_05": [
+   "LOAD_DATA",
+   "PROFILE_DATA",
+   "READ",
+   "GROUP_AGG",
+   "DECIDE"
+  ],
+  "run_06": [
+   "LOAD_DATA",
+   "PROFILE_DATA",
+   "READ",
+   "GROUP_AGG",
+   "DECIDE"
+  ],
+  "run_07": [
+   "LOAD_DATA",
+   "PROFILE_DATA",
+   "READ",
+   "PLOT",
+   "CLEAN_DATA",
+   "READ",
+   "RUN_QUERY",
+   "DECIDE"
+  ],
+  "run_08": [
+   "LOAD_DATA",
+   "PROFILE_DATA",
+   "READ",
+   "CLEAN_DATA",
+   "PLOT",
+   "READ",
+   "RUN_QUERY",
+   "DECIDE",
+   "READ",
+   "DECIDE"
+  ]
+ }
+}

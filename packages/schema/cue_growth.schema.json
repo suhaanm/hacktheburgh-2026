@@ -1,0 +1,1215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://understudy.local/schema/cue_growth.schema.json",
+  "title": "Growth: the independence score and its components (GET /growth)",
+  "description": "`{meta, data}` as GET /growth returns it, and as packages/schema/examples/cue.growth.example.json and cue.growth_skill.example.json store it (the skill example has data.skill set and the figures for that skill). 'Needs less help', never 'became an expert': the headline is the trend with n and an interval, and the composite is experimental and always accompanied by its components. Delegated and automation work is only in `offloaded` and `counts`. SYNTHETIC unless meta.origin says real.",
+  "$ref": "#/$defs/GrowthEnvelope",
+  "$defs": {
+    "Meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "n",
+        "n_unit",
+        "split",
+        "interval_level",
+        "note",
+        "generated_at"
+      ],
+      "properties": {
+        "origin": {
+          "enum": [
+            "real",
+            "synthetic",
+            "mixed"
+          ],
+          "description": "Drives the synthetic badge: 'mixed' when real and synthetic rows are both read."
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "n_unit": {
+          "const": "occurrences"
+        },
+        "split": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "interval_level": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "generated_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        }
+      },
+      "description": "The meta block every Cue answer carries (cue/routes.py _meta, cue/live.py _envelope)."
+    },
+    "Weights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "independence_lb",
+        "mastery",
+        "gap_closure",
+        "retention"
+      ],
+      "properties": {
+        "independence_lb": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "mastery": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "gap_closure": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "retention": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "Baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "k",
+        "n",
+        "share",
+        "wilson"
+      ],
+      "properties": {
+        "k": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "share": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "wilson": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    },
+    "GrowthData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "person",
+        "role",
+        "skill",
+        "window",
+        "as_of",
+        "origin_detail",
+        "readiness",
+        "score",
+        "baseline",
+        "components",
+        "trend",
+        "curve",
+        "occurrences",
+        "time_to_progress",
+        "retrieval",
+        "by_skill",
+        "offloaded",
+        "counts",
+        "claim"
+      ],
+      "properties": {
+        "person": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "The person id as the caller passed it."
+        },
+        "role": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z][a-z0-9\\-]{0,31}$"
+        },
+        "skill": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 48,
+          "description": "The skill asked for; null for all skills."
+        },
+        "window": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "as_of": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "origin_detail": {
+          "enum": [
+            "synthetic_learner",
+            "simulated_participants",
+            "live_worker"
+          ]
+        },
+        "readiness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "occurrences",
+            "needed",
+            "ready",
+            "trend_needed"
+          ],
+          "properties": {
+            "occurrences": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "needed": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "ready": {
+              "type": "boolean"
+            },
+            "trend_needed": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "score": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "composite_experimental",
+            "composite_experimental_ci",
+            "composite_partial",
+            "available_weight",
+            "weights",
+            "used_weights",
+            "weights_note",
+            "composite_caveat",
+            "composite_caveat_figures"
+          ],
+          "properties": {
+            "composite_experimental": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 100
+            },
+            "composite_experimental_ci": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                }
+              ]
+            },
+            "composite_partial": {
+              "type": "boolean"
+            },
+            "available_weight": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "weights": {
+              "$ref": "#/$defs/Weights"
+            },
+            "used_weights": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [],
+              "properties": {
+                "independence_lb": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "mastery": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "gap_closure": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "retention": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            },
+            "weights_note": {
+              "type": "string"
+            },
+            "composite_caveat": {
+              "type": "string"
+            },
+            "composite_caveat_figures": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "bias_points",
+                "false_rise_rate",
+                "n_learners",
+                "origin",
+                "seeds",
+                "mastery_overstated_by"
+              ],
+              "properties": {
+                "bias_points": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "false_rise_rate": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                },
+                "n_learners": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "origin": {
+                  "type": "string"
+                },
+                "seeds": {
+                  "type": "string"
+                },
+                "mastery_overstated_by": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                }
+              }
+            }
+          },
+          "description": "The composite is experimental and always comes with its components, weights and caveat."
+        },
+        "baseline": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/Baseline"
+            }
+          ]
+        },
+        "components": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "independence",
+            "mastery",
+            "gap_closure",
+            "retention"
+          ],
+          "properties": {
+            "independence": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "k",
+                "n",
+                "share",
+                "wilson",
+                "lower"
+              ],
+              "properties": {
+                "k": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "n": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "share": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "wilson": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      }
+                    }
+                  ]
+                },
+                "lower": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            },
+            "mastery": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "by_skill",
+                "variant",
+                "note"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "by_skill": {
+                  "type": "object",
+                  "propertyNames": {
+                    "pattern": "^[a-z][a-z0-9_.\\-]{0,47}$"
+                  },
+                  "additionalProperties": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                },
+                "variant": {
+                  "enum": [
+                    "engine_default",
+                    "evidence_only",
+                    "conservative",
+                    "assisted_as_failure"
+                  ]
+                },
+                "note": {
+                  "type": "string"
+                }
+              }
+            },
+            "gap_closure": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "first5_lost_s",
+                "last5_lost_s",
+                "ci",
+                "n_first",
+                "n_last"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "first5_lost_s": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "last5_lost_s": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "ci": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      }
+                    }
+                  ]
+                },
+                "n_first": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "n_last": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "retention": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value",
+                "k",
+                "n",
+                "wilson",
+                "after_days"
+              ],
+              "properties": {
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "k": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "n": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "wilson": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      }
+                    }
+                  ]
+                },
+                "after_days": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        },
+        "trend": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "slope_per_10",
+            "ci",
+            "direction",
+            "windows",
+            "window",
+            "stride",
+            "blocks",
+            "needed_more",
+            "power_note"
+          ],
+          "properties": {
+            "slope_per_10": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": -1,
+              "maximum": 1
+            },
+            "ci": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "number",
+                    "minimum": -1,
+                    "maximum": 1
+                  }
+                }
+              ]
+            },
+            "direction": {
+              "enum": [
+                "too_early",
+                "less_help",
+                "more_help",
+                "steady"
+              ]
+            },
+            "windows": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "window": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "stride": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "blocks": {
+              "type": "array",
+              "maxItems": 400,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "i",
+                  "n",
+                  "assisted_share"
+                ],
+                "properties": {
+                  "i": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "n": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "assisted_share": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                }
+              }
+            },
+            "needed_more": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "power_note": {
+              "type": "string"
+            }
+          }
+        },
+        "curve": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "i",
+              "t_hour",
+              "independence",
+              "lo",
+              "hi",
+              "n",
+              "level",
+              "tiers"
+            ],
+            "properties": {
+              "i": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "t_hour": {
+                "type": "string",
+                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}$"
+              },
+              "independence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "lo": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "hi": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "n": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "level": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1,
+                "maximum": 4
+              },
+              "tiers": {
+                "type": "array",
+                "minItems": 5,
+                "maxItems": 5,
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        },
+        "occurrences": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "total",
+            "unaided",
+            "assisted",
+            "errors",
+            "abandoned"
+          ],
+          "properties": {
+            "total": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unaided": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "assisted": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "errors": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "abandoned": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "time_to_progress": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "after_cue",
+                "no_cue",
+                "note"
+              ],
+              "properties": {
+                "after_cue": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "median_s",
+                    "ci",
+                    "n"
+                  ],
+                  "properties": {
+                    "median_s": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "ci": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 2,
+                          "items": {
+                            "type": "number",
+                            "minimum": 0
+                          }
+                        }
+                      ]
+                    },
+                    "n": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  }
+                },
+                "no_cue": {
+                  "type": "null",
+                  "description": "Live data has no no-cue counterfactual; the simulator pairs them."
+                },
+                "note": {
+                  "type": "string"
+                }
+              }
+            }
+          ]
+        },
+        "retrieval": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "withheld",
+            "clean",
+            "assisted",
+            "error",
+            "abandoned"
+          ],
+          "properties": {
+            "withheld": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "clean": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "assisted": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "error": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "abandoned": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "by_skill": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "skill",
+              "label",
+              "name",
+              "n",
+              "independent",
+              "assisted",
+              "independence_lower",
+              "mastery",
+              "level",
+              "direction",
+              "first10",
+              "last10",
+              "time_to_progress",
+              "retention",
+              "retrieval_due"
+            ],
+            "properties": {
+              "skill": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_.\\-]{0,47}$"
+              },
+              "label": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "name": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "n": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "independent": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "assisted": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "independence_lower": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              },
+              "mastery": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              },
+              "level": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1,
+                "maximum": 4
+              },
+              "direction": {
+                "enum": [
+                  "too_early",
+                  "less_help",
+                  "more_help",
+                  "steady"
+                ]
+              },
+              "first10": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "n",
+                      "assisted"
+                    ],
+                    "properties": {
+                      "n": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "assisted": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              "last10": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "n",
+                      "assisted"
+                    ],
+                    "properties": {
+                      "n": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "assisted": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              "time_to_progress": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "after_cue",
+                      "no_cue",
+                      "note"
+                    ],
+                    "properties": {
+                      "after_cue": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "median_s",
+                          "ci",
+                          "n"
+                        ],
+                        "properties": {
+                          "median_s": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "ci": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "array",
+                                "minItems": 2,
+                                "maxItems": 2,
+                                "items": {
+                                  "type": "number",
+                                  "minimum": 0
+                                }
+                              }
+                            ]
+                          },
+                          "n": {
+                            "type": "integer",
+                            "minimum": 1
+                          }
+                        }
+                      },
+                      "no_cue": {
+                        "type": "null",
+                        "description": "Live data has no no-cue counterfactual; the simulator pairs them."
+                      },
+                      "note": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                ]
+              },
+              "retention": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "value",
+                  "k",
+                  "n",
+                  "wilson"
+                ],
+                "properties": {
+                  "value": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "k": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "n": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "wilson": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "retrieval_due": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "offloaded": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "delegated",
+            "automation",
+            "minutes",
+            "by_skill",
+            "note"
+          ],
+          "properties": {
+            "delegated": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "automation": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minutes": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "delegated",
+                "automation"
+              ],
+              "properties": {
+                "delegated": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "automation": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            },
+            "by_skill": {
+              "type": "object",
+              "propertyNames": {
+                "pattern": "^[a-z][a-z0-9_.\\-]{0,47}$"
+              },
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "note": {
+              "type": "string"
+            }
+          },
+          "description": "Work the agent did for the person. Listed, never scored."
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {
+            "assist": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "delegated": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "automation": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "description": "Ledger rows by stream; a stream with no rows is absent."
+        },
+        "claim": {
+          "type": "string"
+        }
+      },
+      "description": "data of GET /growth (cue/score.py growth()). Every number that cannot be computed yet is null, never 0."
+    },
+    "GrowthEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "meta",
+        "data"
+      ],
+      "properties": {
+        "meta": {
+          "$ref": "#/$defs/Meta"
+        },
+        "data": {
+          "$ref": "#/$defs/GrowthData"
+        }
+      }
+    }
+  }
+}

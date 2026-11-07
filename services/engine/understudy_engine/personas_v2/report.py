@@ -313,6 +313,8 @@ def write_report(sec: dict[str, Any]) -> str:
         add(f"| {k} | {v['status']} | {rg} | {v['source']} |")
     add("")
     add("`secondary` means the number was read from a search summary or a page that quotes the paper; the paper itself was not opened. `assumption` entries are not citations.")
+    add("")
+    add("See `evals/realism/INTERPRETATION.md` for the hand-written reading of this matrix (written after the run; not part of the pre-registration) and `evals/realism/DIAGNOSIS.md` for why v1 was easy.")
     return "\n".join(L) + "\n"
 
 

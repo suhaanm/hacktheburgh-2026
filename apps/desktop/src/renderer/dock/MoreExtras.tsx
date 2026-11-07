@@ -26,7 +26,7 @@ export function MoreExtras({ onSetUpAgain, files }: { onSetUpAgain: () => void; 
       {api ? (
         <div className="al-setrow">
           <button type="button" className="al-btn" onClick={() => (running ? void api.stop() : void api.start({}))}>
-            {running ? 'Stop demo' : 'Run demo'}
+            {running ? 'Stop the walkthrough' : 'Run the walkthrough'}
           </button>
         </div>
       ) : null}

@@ -208,6 +208,8 @@ class Navigator:
         pause: Any = None,
         actuator_factory: Callable[[Any], Actuator] | None = None,
         shot_hook: Callable[[str, bytes], None] | None = None,
+        resume: dict[str, Any] | None = None,
+        on_snapshot: Callable[[str, int, dict[str, Any]], None] | None = None,
     ) -> None:
         self.id, self.context, self.model, self.guard = nav_id, context, model, guard
         self.base_url, self.query = base_url.rstrip("/"), query
@@ -223,6 +225,14 @@ class Navigator:
         self.obstructions_cleared = 0
         self.actuator_factory = actuator_factory or (lambda page: BrowserPageActuator(page))
         self.steps = 0
+        # RESUME (LH-2): `resume = {"steps": n, "wm": <WorkingMemory.snapshot()>}` from a checkpoint. Step numbers continue from n, and the
+        # first tier-3 attempt is seeded from the snapshot on what is a FRESH page (a killed browser keeps no form).
+        self._wm_snap: dict[str, Any] | None = None
+        if resume:
+            self.steps = max(0, int(resume.get("steps", 0)))
+            self._wm_snap = resume.get("wm")
+        self.on_snapshot = on_snapshot
+        self.wm_carried = 0                          # tier-3 attempts that started from an earlier attempt's (or a checkpoint's) memory
         self.tier3_steps = 0
         self.t3_runs: list[dict[str, Any]] = []     # one record per tier-3 attempt: outcome, counts and the model's own closing words
         self.refusals = 0
@@ -246,6 +256,7 @@ class Navigator:
                 await old.close()
             except Exception:  # noqa: BLE001
                 pass
+        self.guard.new_page()
         page = await self.context.new_page()
         await page.goto(self.base_url + job.start_path + self.query, wait_until="domcontentloaded")
         await self._scan(page)
@@ -277,12 +288,13 @@ class Navigator:
         """Injection detector over visible text, hidden elements and alt text. A hit pauses the run."""
         await self.guard.observe(page, navigator=self.id, step=self.steps, tier=0)
 
-    async def _read_final(self, page: Any, job: Any) -> dict[str, Any] | None:
-        """Fresh observation of the page; if it looks final, the quarantined reader and the code check decide."""
+    async def _read_final(self, page: Any, job: Any, *, fresh: bool = False) -> dict[str, Any] | None:
+        """Fresh observation of the page; if it looks final, the quarantined reader and the code check decide. `fresh=True` (the
+        orchestrator's verification) bypasses the reader's memo: the second read must be a second read."""
         obs = await observe(page)
         if not job.looks_final(obs):
             return None
-        seen = await asyncio.to_thread(self.guard.observe_obs, obs, schema=job.schema, navigator=self.id)
+        seen = await asyncio.to_thread(self.guard.observe_obs, obs, schema=job.schema, navigator=self.id, fresh=fresh)
         return job.parse(obs, seen.fields)
 
     # ------------------------------------------------------------------ tiers
@@ -312,14 +324,25 @@ class Navigator:
         assert res.outputs is not None
         return res.outputs
 
-    async def _tier3(self, page: Any, job: Any) -> dict[str, Any]:
-        """Computer use on this page: screenshots, clicks, and typed FACT HANDLES (never values)."""
+    def _snap(self, steps: int, snap: dict[str, Any]) -> None:
+        self._wm_snap = snap
+        if self.on_snapshot is not None:
+            self.on_snapshot(self.id, self.steps, snap)
+
+    async def _tier3(self, page: Any, job: Any, kept: bool = False) -> dict[str, Any]:
+        """Computer use on this page: screenshots, clicks, and typed FACT HANDLES (never values). A later attempt is seeded from the
+        memory of the earlier one: what code verified and the step count carry over; the handles typed on a page carry over only when
+        the page is kept (`kept`), and on a fresh page every handle is pending again (page-scoped facts stay page-scoped)."""
         actuator = self.actuator_factory(page)
         vp = page.viewport_size or {"width": 1280, "height": 800}
+        if self._wm_snap is not None:
+            self.wm_carried += 1
         cu = ComputerUse(self.model, actuator, self.guard, navigator=self.id, emit=self._emit,
                          is_current=self.is_current, step_start=self.steps, max_steps=self.t3_max_steps,
                          facts=job.facts(), stall_limit=self.stall_limit, pause=self.pause,
-                         screenshot_size=(int(vp["width"]), int(vp["height"])))
+                         screenshot_size=(int(vp["width"]), int(vp["height"])),
+                         resume_wm=self._wm_snap, page_kept=kept, on_snapshot=self._snap,
+                         postcondition=f"final_page_{re.sub(r'[^a-z0-9]', '', str(job.site).lower())[:20] or 'x'}")
         last: dict[str, Any] = {}
 
         async def verify() -> bool:
@@ -372,7 +395,7 @@ class Navigator:
                     elif tier == 2:
                         outputs = await self._tier2(page, job)
                     else:
-                        outputs = await self._tier3(page, job)
+                        outputs = await self._tier3(page, job, mode == "keep" and bool(res.attempts))
                     value = job.finalize(outputs)
                     if value is None:
                         raise TierError("outputs failed code validation")

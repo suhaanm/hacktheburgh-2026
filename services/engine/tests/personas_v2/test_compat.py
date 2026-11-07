@@ -67,11 +67,15 @@ def test_truth_index_marks_material_pairs():
     assert idx["t_a"]["search_loop"]["material"] and not idx["t_a"]["copy_error"]["material"]
 
 
-def test_evaluate_realism_fast_has_the_section_shape(monkeypatch):
-    monkeypatch.setenv("UNDERSTUDY_REALISM_WORKERS", "2")
+def test_evaluate_realism_fast_has_the_section_shape():
+    import time
+
     from understudy_engine.personas_v2.evaluate import evaluate_realism
 
+    t0 = time.time()
+
     sec = evaluate_realism(fast=True)
+    assert sec["results"]["elapsed_s"] < 180        # the 60 s budget is for an idle machine; the section reports its own time
     assert sec["name"] == "realism" and sec["badge"] == "synthetic, realism-calibrated" and sec["meta"]["origin"] == "synthetic"
     assert sec["meta"]["interval_level"] == 0.95 and "n" in sec["meta"] and sec["limitations"]
     assert set(sec["results"]) >= {"hazard", "genome", "routines", "marginals", "elapsed_s"}
