@@ -84,6 +84,7 @@ Words above the fold: content 47 plus sidebar 10 = about 57 (before: 173 plus 51
 | Stale | These numbers are out of date. | Knack says nothing rather than something old. | Try again |
 | Role changed | Your role changed. | Pointers start again, so you are not compared with your old role. | none |
 | Could not load | Could not read your week. | Nothing was changed. | Try again |
+| An approval blocks a job | The approval is the hero: its title, one line, "Cannot be undone." when true, [Approve and submit] [Reject], Evidence › | | The week's pointer becomes the first quiet row |
 | Loading | (none; the hero area holds its height; "Reading your week" in muted 13 px after 600 ms) | | |
 
 Several pointers: the hero is the highest-ranked one; the second is a secondary row using the same template shortened to 12 words. The engine already caps at three, and "Show the others" is not offered.

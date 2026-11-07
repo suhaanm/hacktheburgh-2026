@@ -61,4 +61,4 @@ Annotations:
 
 Empty state: title "Not enough to show yet." Body: "Your curve starts after 10 steps." No ghost chart, no numbered list. First week: add "Knack counts a step each time one comes up in your work." only inside a Details ("How steps are counted").
 
-Words above the fold: about 35 (before: 152 empty, about 190 with data). Controls: 1 (skill filter) plus 4 disclosures.
+Words above the fold: 53 measured in the prototype with data (before: 152 when empty; the example learner screen has 811 words in all). Controls: 4 (the skill rows and the "About this data" link) plus the closed disclosures.

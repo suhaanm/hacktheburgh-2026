@@ -50,7 +50,7 @@ Measured: 157 words above the fold, 6 pills, 6 controls, 1169 px tall. Separate 
 Annotations:
 
 1. One list, one row shape. The glyph says the kind (decision, routine, paused run, prepared action); the order is the attention table's order: safety, then time-sensitive, then the rest, newest first inside a class. At most 7 rows, then "Show all N".
-2. A row opens by itself only when there are one or two rows; with more, rows are collapsed to title and time and open on click (so the list stays scannable). The first row is always open.
+2. Every row shows its title, time, one or two lines and its own buttons: a decision never costs an extra click to open. Only the evidence opens on demand. Three rows fit above the fold at 1152 by 735; the default list is at most 7 rows, then "Show all N".
 3. The consequence stays printed ("Cannot be undone.", "Reaches outside.") as plain text, never a pill, never behind a Hint. A row with the normal risk class prints nothing.
 4. Buttons say what they do (existing labels, kept). The primary is never the destructive-looking one; Reject and Keep mine are secondary and equal in size.
 5. A routine proposal is a row in the same list. Three equal buttons: Watch first (the opt-in, safe: it practises beside you, nothing saved or sent), Not now, Never. "More ways to say yes" opens inline: Run with my approval, Run while I'm away (its own switch and confirm on the card). Not now and Never weigh the same as Watch first. All four modes and the rung rules survive; only the layout changes.

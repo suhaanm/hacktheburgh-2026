@@ -1,6 +1,6 @@
 # Knack UX specification (UX-STRATEGY, 7 Nov 2026, 22:05 to 00:15 UTC)
 
-Status: PROPOSED for the lead to merge and for four implementer agents to build from tonight and tomorrow. Product name from now on: **Knack** in every user-visible place (internal identifiers, env names and file names keep `understudy`). Companion files in `docs/knack-ux/`: wireframes `01` to `08`, `jobs.json` (the ten jobs, today and target), `clutter-1440x900.json` (every measurement below), `scripts/` (the two measurement scripts), `before/` (screenshots), `knack-brand-sheet.svg`, `06-corner-states.svg`.
+Status: PROPOSED for the lead to merge and for four implementer agents to build from tonight and tomorrow. Product name from now on: **Knack** in every user-visible place (internal identifiers, env names and file names keep `understudy`). Companion files in `docs/knack-ux/`: wireframes `01` to `08`, a static prototype of the after state using the real tokens (`prototype/knack.html`, open with `#home`, `#needs`, `#routines`, `#growth`, `#firm`, `#roles`, `#first` and `?theme=dark`) and its renders (`after/`, light and dark at 1152 by 735 and 390 by 844), `jobs.json` (the ten jobs, today and target), `clutter-1440x900.json` (every measurement below), `scripts/` (the two measurement scripts), `before/` (screenshots), `knack-brand-sheet.svg`, `06-corner-states.svg`.
 
 What was measured and how. The running dashboard (127.0.0.1:5173, live mock engine, Worker view, then Admin view) was driven with headless Chromium at 1440 by 900, light theme, every non-GET request refused, so nothing changed. "Words above the fold" counts words in text nodes inside `#main` that are visible and intersect the first 900 px; the sidebar is counted separately. "Paragraphs over two lines" counts elements with at least 8 words of their own text that render on more than two lines. "Pills and badges" counts visible `.pill`, `*badge*` and `.chip` elements above the fold. "Controls" counts visible buttons, links, inputs, selects, summaries and role button, tab or switch above the fold in `#main`. The final click of a destructive job was counted and not executed. n = one engine in mock mode, one browser, no users: these are measurements of the interface, not of people. The Electron app was not run (no desktop capture or input was allowed), so section 7's "today" column is from reading `apps/desktop/src/main`.
 
@@ -25,7 +25,7 @@ Ten jobs, ranked by how often I expect them (an expectation, not data). "Today" 
 | J1 | See what matters this week | worker | 0 on the dashboard (it lands on Your week: 173 words and 10 controls above the fold). From the menu bar 3: right-click the icon, Open dashboard (opens at Today), sidebar "Your week" | **0.** Open Knack: Home. At most 50 words of content above the fold (about 60 with the sidebar) |
 | J2 | Approve or reject a queued item | worker | 2: sidebar Queue, "Approve and submit" (plus a sign-in step-up for an irreversible item when Auth0 is on). From the menu bar 3 | **1** when the item is Home's hero; **2** otherwise: Needs you, then the button |
 | J3 | Opt into an automation, or decline it | worker | 2: sidebar Routines, one of four buttons. "Run while I'm away" is 4: Routines, open the box, switch on, "Allow while I'm away" | **2:** Needs you, then Watch first, Not now or Never. "Run while I'm away" 3: Needs you, More ways to say yes, its switch and confirm |
-| J4 | See whether I need less help over time | worker | 1: sidebar Growth (152 words and 7 long paragraphs above the fold when empty; 811 on the whole screen with data) | **1:** Growth. One sentence and one chart above the fold, at most 40 words |
+| J4 | See whether I need less help over time | worker | 1: sidebar Growth (152 words and 7 long paragraphs above the fold when empty; 811 on the whole screen with data) | **1:** Growth. One sentence and one chart above the fold, at most 60 words |
 | J5 | See what Knack has of me, and delete it | worker | 4 to delete a memory line: More fold, Memory, Forget, "Forget it". 3 to clear the model ledger: Privacy, Clear the ledger, "Yes, clear the list". Five places hold "my data" (Memory, Privacy ledger, Presence, Growth ledger, Graph nodes), each with its own delete wording | **3** to delete anything: Your data, Forget, Forget it (inline confirm). **1** to see. "Delete everything Knack holds about me" is 3 as well |
 | J6 | Stop everything, or pause | worker | 1: the fixed "Stop everything" pill (Shift-Esc is 0). From the menu bar 2: right-click, Stop everything or "Pause for 1 hour" | **0:** Option-Shift-Command-K anywhere. **1:** the corner pill's Stop while working. **2:** menu bar when idle |
 | J7 | Start work and get the overlay out of my way | worker | 4 for a sandbox job (More fold, Agents, choose a job, "Run in background"; it runs on sample data). From the menu bar 2: "Talk to Understudy". The window never moves aside | **0:** Option-Space (tap to type, hold to talk), Enter. **2:** Routines, Run now: the window minimises and the pill shows |
@@ -102,6 +102,22 @@ Median above the fold: 173 words (worker, 20 screens), 214 (admin, 8 screens). T
 
 Graph (22 controls above the fold), Notices (23 controls: 18 kinds each with a four-way choice, to set one preference) and Growth when empty (152 words and 7 long paragraphs to say that nothing is there) follow. Evidence has 25,602 words and is exempt by D45, but it is a first-level sidebar item next to Privacy; that is an IA offender, not a copy one.
 
+### What the after state measures (static prototype, same method, 1152 by 735 window, light)
+
+`docs/knack-ux/prototype/knack.html` builds the five main screens with the real tokens and the spec's copy; `after/after-measurements.json` is the measurement. It carries only the headline content (Hints and disclosures closed, as they are by default), so the real screens will land a little above these numbers; the budgets in section 5 leave that headroom.
+
+| Screen | Words above the fold, before and after | Controls | Pills | Paragraphs over two lines | Sidebar |
+|---|---|---|---|---|---|
+| Home | 173 to 47 (plus 51 and 12 sidebar words) | 10 to 4 | 1 to 1 | 2 to 0 | 9 rows to 6 |
+| Needs you (Queue before) | 157 to 103 (three decisions, one more than Queue had) | 6 to 12 | 6 to 0 | 0 to 0 | |
+| Routines | 183 to 45 | 9 to 5 | 1 to 0 | 2 to 0 | |
+| Growth (before: empty state) | 152 to 53 (with data) | 0 to 4 | 1 to 1 | 7 to 0 | |
+| Firm overview | 206 to 80 | 14 to 5 | 2 to 1 | 0 to 0 | 10 rows to 9 |
+| Roles | 313 to 36 | 10 to 3 once the rows are links | 5 to 1 | 4 to 0 | |
+| First run (role screen) | 159 to 20 | 1 to 3 | 0 to 0 | 3 to 0 | no sidebar |
+
+Controls on Roles and on the first-run role screen are counted as they will be built (rows and cards are controls); the static prototype draws them as plain elements. Home's hero wraps to three lines at 390 px (24 px type); that is the one allowed exception to "no paragraph over two lines" and is exempt in `check-copy.mjs`.
+
 ### Cross-cutting offenders (fix once, every screen improves)
 
 1. **The sidebar**: 51 words of hints, two fold buttons with their own hints, six footer controls (profile, engine mode, View as with a Hint, Search, tour, theme). Replace with five items and an account button.
@@ -132,9 +148,11 @@ Sidebar width 208 px. Each item has a 16 px icon and a label; no second line. Ro
 
 Below the items: **More** (opens a sheet of at most ten one-line rows), then the footer: an account button (name, role label; opens View as, Appearance, Settings, Take the tour) and a 32 px Stop icon. Search is Command-K and the first row of the sheet on narrow windows.
 
-The sidebar has 6 rows for a worker (5 plus More) and 9 for an admin (5 worker, then a "Firm" group of 3, then More), against 9 and 10 by default today (22 with folds open). On a 390 px screen the sidebar becomes a bottom bar of the same five items (56 px high); More and the account sit in the first.
+The sidebar has 6 rows for a worker (5 plus More) and 9 for an admin (5 worker, then an "Admin" group of 3, then More), against 9 and 10 by default today (22 with folds open). On a 390 px screen the sidebar becomes a bottom bar of the same five items (56 px high); More and the account sit in the first.
 
 **More sheet** (rows, no hints; hints live in the palette): Understand your work: Where time goes (Genome), Your hours (Presence), How work connects (Graph), Calendar (Week), Git habits, Forecasts (Predictions). Behind the scenes: Background runs (Agents), Models and cost, Live coach (Today). For reviewers: Evidence. Admin adds: Firm: People, Automation, Risk and coverage, Forecasts, Firm brief.
+
+**The signature screens and the demo.** The work ribbon (Genome), the work graph and the presence heatmap are the product's three memorable visuals (`docs/UI_DIRECTION.md`), and this IA moves them out of the sidebar. They stay one click from Home: the hero's action ("See where the time goes") opens Genome focused on that step; Growth and the palette reach the others. For the demo and the video, `navModel.ts` carries `DEMO_PINS = [genome, graph, presence]`, off by default and switched on by Settings, Demo ("Show the signature screens in the sidebar"); the sidebar then shows them as a "Look closer" group of three (9 rows). The same setting writes the word "Stop everything" beside the sidebar's Stop icon, because the demo checklist wants the kill switch visibly labelled. Old routes keep working through the redirects (`#/genome`, `#/today`, `#/queue`, `#/privacy`, `#/evidence` in `docs/drafts/DEMO_SCRIPT.md`), and `DEFAULT_SCREEN` can still be flipped to Genome. The script still needs one pass to match the new labels.
 
 **Settings** (Command-comma, a sheet; one line per setting): Interruptions (Rarely, Balanced, Often; "Per kind" disclosure holds today's 18 rows; "Stops and blocking approvals always show." printed), Coaching (on or off; help level lock), Move aside while Knack works (on), Open at login (off), Appearance (Auto, Light, Dark), Models and cost (link), Demo (View as, example week), About (version; "Live engine, mock mode" lives here, and on the screen only when something is wrong). The rule that sorts a setting: **anything that lets Knack see or send something lives in Your data; anything about how Knack behaves lives in Settings.**
 
@@ -179,14 +197,14 @@ Rejected: a top tab bar (eight tabs do not fit with a window at 960 px); keeping
 ### What it shows (see `docs/knack-ux/01-home.md` for the wireframe and the states)
 
 1. A date line ("Week of 9 November") and the origin badge in sentence case ("Example data" or "Synthetic firm") when the data is not real.
-2. **The hero**: the top pointer as a sentence of at most 16 words, in the display face at 28 px, at most two lines. Template: `On {step} you usually take about {n} {unit} {longer|less} than {the expert|your peers}.`
+2. **The hero**: the top pointer as a sentence of at most 16 words, in the display face at 28 px, at most two lines. Template: `On {step} you usually take about {n} {unit} {longer|less} than {the expert|your peers}.` **Exception that makes J2 one click:** if an approval that blocks a running job, or a safety item, is waiting, it takes the hero slot (its title, one line, its own buttons, the consequence printed, "Evidence" opening in place) and the pointer becomes the first quiet row. Something the worker must decide outranks something they could learn.
 3. One line of what to try, at most 12 words, imperative. Absent when the engine has none.
 4. **One primary action**, at most four words, a verb phrase ("See where the time goes"), and a "Why this?" disclosure. It holds the method (fixed rules, not a model), the interval, n and the origin sentence.
-5. At most two quiet rows, in this order of claim: the needs-you count when above 0, the second pointer, then the best of Repeats and Growth. Each is a hairline row with an icon, one sentence of at most 12 words and a chevron.
+5. At most two quiet rows, in this order of claim: the live task when one is on ("Working on the entitlement check. Help level 2.", the old Today screen in one line), the needs-you count when above 0, the second pointer, then the best of Repeats and Growth. Each is a hairline row with an icon, one sentence of at most 12 words and a chevron.
 
 ### What it never shows
 
-A chart, a table, an interval or an n (they are behind "Why this?"), a lede about method, the Monday note (palette: "Copy my Monday note"), "What your admin can see" (Your data), the example-week selector (Settings, Demo), the data-mode line, a card per pointer, a second primary action, an eyebrow, a Stop button when nothing runs.
+A chart, a table, an interval or an n (they are behind "Why this?"), a lede about method, the Monday note (palette: "Copy my Monday note"), "What your admin can see" (Your data), the example-week selector (Settings, Demo), the data-mode line, a card per pointer, a second primary action, an eyebrow, a large Stop button when nothing runs (the sidebar's 32 px Stop icon is the only one while idle).
 
 ### The one-quantity rule
 
@@ -237,11 +255,11 @@ Rule for new items: an item may interrupt only if a row in the attention table s
 | Hint | 20 words, one sentence, never the only copy of a fact |
 | Disclosure body | 60 words or 7 list items |
 | Button | 3 words (4 for a hero action); a pill 2 words |
-| Above the fold, content only | Home 50; Needs you 120; Routines 100; Growth 40 (empty 25); Your data 90; other worker screens 120; Admin screens 150; Details (More) screens 120; Evidence exempt |
+| Above the fold, content only | Home 50; Needs you 120; Routines 100; Growth 60 (empty 25); Your data 90; other worker screens 120; Admin screens 150; Details (More) screens 120; Evidence exempt |
 | Whole default view, content only | worker 250, admin 400 (the old budget was 400 and 700) |
 | Paragraphs over two lines | 0 in any default view |
 | Pills and badges above the fold | 1 (the origin badge) |
-| Controls above the fold | Home 5 (content), other worker screens 8, Admin 10 |
+| Controls above the fold | Home 5 (content), Needs you 12 (each row carries its own buttons), other worker screens 8, Admin 10 |
 | Sidebar | 6 rows (worker), 9 (admin), 0 words of hints |
 
 A screen over its budget moves the excess into a Details, a Hint or the palette, or it is cut.
@@ -287,7 +305,7 @@ Calm, plain, second person, present tense, sentence case. Specific verbs. No hyp
 | 11 | Memory lede | "One Markdown file on this device, owned by you. Only your own actions and approvals can change it." | 18 | "What Knack remembers. Only you can change it." | 8 |
 | 12 | Firm badge | "NAMES ARE MADE UP. THIS FIRM IS SYNTHETIC." (mono capitals) | 8 | "Synthetic firm" (the sentence is its Hint; on Evidence it stays printed) | 2 |
 
-Also: the Details-screen frame note (16 words and a link) becomes a breadcrumb; the stop toast "Stopped. No service was reachable, so nothing was running. With no service running, this only changes the screen." (18) becomes "Stopped. No service was running." (5) when no service answered and "Stopped." (1) otherwise; the sidebar's two fold hints (14 words) become "More" (1). Total on these sixteen strings: 233 words before, 54 after.
+Also: the Details-screen frame note (16 words and a link) becomes a breadcrumb; the stop toast "Stopped. No service was reachable, so nothing was running. With no service running, this only changes the screen." (18) becomes "Stopped. No service was running." (5) when no service answered and "Stopped." (1) otherwise; the sidebar's two fold hints (14 words) become "More" (1). Total on these fifteen strings: 224 words before, 61 after.
 
 ---
 
@@ -339,7 +357,7 @@ The mark already in `packages/design/brand/` is kept: a solid disc with a ring o
 - **Lockup:** the glyph, then the word "Knack" in the display face at 600. **The disc is as tall as the capital K** (so the word is about 0.87 of the glyph's height). Gap between glyph and word: one disc radius.
 - **Clear space:** one K on every side.
 - **Colour in the UI:** disc in `--fg`, ring in `--accent`, both full strength (the existing `understudy-glyph.svg` draws the ring at 62% in `currentColor`; use that file only on single-colour surfaces: the menu bar, a monochrome favicon, print).
-- **Sizes and where the mark appears:** sidebar top: glyph 20 px with the word at 17.5 px (replaces the orange and blue bars the dashboard draws today). First run: glyph 56 px alone above the question. Corner pill: glyph 14 to 15 px alone. Favicon and the browser tab: the currentColor glyph at 16 px. Window title bar: native title text "Knack" only, no drawn mark (the traffic lights are the chrome). Dock: the existing ink tile with the teal ring, on the macOS 1024 canvas with an 824 px tile (icns from `apps/desktop/scripts/make-icons.mjs`). Menu bar: the template glyph, 18 and 36 px, with five states (idle, working dot, needs-you count, glance ring, stopped square; paused keeps the disc with two bars), priority stopped, needs you, glance, working, paused, idle.
+- **Sizes and where the mark appears:** sidebar top: glyph 20 px with the word at 17.5 px (replaces the orange and blue bars the dashboard draws today). First run: glyph 56 px alone above the question. Corner pill: glyph 14 to 15 px alone. Favicon and the browser tab: the currentColor glyph at 16 px. Window title bar: native title text "Knack" only, no drawn mark (the traffic lights are the chrome). Dock: the existing ink tile with the teal ring, on the macOS 1024 canvas with an 824 px tile (icns from `apps/desktop/scripts/make-icons.mjs`). Menu bar: the template glyph, 18 and 36 px, with six states (idle, working dot, needs-you count, glance ring, stopped square, and paused, which keeps today's disc with two bars), in the priority stopped, needs you, glance, working, paused, idle.
 - **Never:** recolour the ring for status (status is the pill text and the menu-bar badge), add a gradient or glow, set the word in capitals, or put the mark inside a rounded tile in the UI (the tile is for the Dock only).
 - **Tagline:** none inside the app.
 
@@ -347,7 +365,7 @@ The mark already in `packages/design/brand/` is kept: a solid disc with a ring o
 
 Tokens (add, never rename): `--sidebar-w: 208px`, `--content-read: 720px`, `--content-wide: 1080px`, `--row-h: 44px`, `--control-h: 32px`, `--pill-h: 32px`, `--corner-w: 340px`, `--corner-inset: 16px`, `--text-corner: 0.8125rem` (the corner column only: it sits beside other apps' interfaces and 13 px keeps the pill at 32 px; everything else uses the scale).
 
-Components to add: `navitem` (icon, label, count; restyle of `nav__link`), `row` (44 px, hairline, trailing chevron or action on hover and focus, always visible on touch), `hero-insight`, `inline-banner` (the needs-you or stopped line inside the window), `account-menu`, `more-sheet`, `settings-sheet`, `confirm-row` (the inline "Forget it / Keep" row), `corner-pill`, `corner-card`, `lockup`, `kbd`. Components to retire: `framenote`, `datanote`, the eyebrow slot of `PageHead`, `state__mark`, `killbar` as a permanent bar (it remains as the in-window stopped banner), the fixed `kill--fixed` button (it becomes the sidebar icon).
+Components to add: `navitem` (icon, label, count; restyle of `nav__link`), `row` (44 px, hairline, trailing chevron or action on hover and focus, always visible on touch), `hero-insight`, `inline-banner` (the needs-you or stopped line inside the window), `account-menu`, `more-sheet`, `settings-sheet`, `confirm-row` (the inline "Forget it / Keep" row), `corner-pill`, `corner-card`, `lockup`, `kbd`. Restyle `pill--origin` (today uppercase, tracked, 11 px): sentence case in the body face at 12 px and 600, dashed border kept (dashed means synthetic). Drop the 500 and 700 font imports in `apps/dashboard/src/main.tsx` (weights are 400 and 600 only). Components to retire: `framenote`, `datanote`, the eyebrow slot of `PageHead`, `state__mark`, `killbar` as a permanent bar (it remains as the in-window stopped banner), the fixed `kill--fixed` button (it becomes the sidebar icon).
 
 ---
 
@@ -376,7 +394,7 @@ The "dock" is a floating always-on-top panel (320 by 64 compact, 360 by 580 expa
 |---|---|---|
 | Minimise (yellow, Command-M) | window to the Dock | stops a run |
 | Close (red, Command-W) | hides the window (the page stays alive for a fast reopen); app, menu bar and Dock icon stay | quits, hides the Dock icon, stops a run |
-| Dock icon click or Activate | opens, restores from the Dock or brings to front, at the last size and place, on Home | opens a second window |
+| Dock icon click or Activate | from closed: opens on Home at the last size and place; from minimised: restores where it was; behind other windows: brings to front | opens a second window |
 | Command-H | hides the app | |
 | Quit (Command-Q, Dock menu, menu bar) | quits at once if nothing runs; otherwise a sheet: "Knack is working. Stop it and quit?" [Stop and quit] [Keep working]; if a routine set to run while away is due in 24 hours, one more line says it will not run while Knack is closed | quits silently over a running job |
 | Command-Shift-K | stops everything (when Knack is frontmost). The global key stays Option-Shift-Command-K: it exists, is tested, and does not take a common shortcut from other apps | |
@@ -414,6 +432,16 @@ The "dock" is a floating always-on-top panel (320 by 64 compact, 360 by 580 expa
 
 At any instant: at most one corner pill (a status), at most one interrupting surface (a corner card, an on-target Cue card, or the Ask bar), plus passive markers (the ring, the menu-bar state, the Dock badge, the in-window banner). Priority for the corner card is Stopped, safety, approval blocking a job, time-sensitive, digest, then a Cue card that has no target. The Ask bar holds every card except Stopped and safety while it is open. Cue cards anchored to an on-screen target belong to the annotation layer and are dropped (reason `agent_acting`) while Knack is acting and while any corner card is up. The ring overlay is hidden while the Knack window is focused (the coach does not annotate its own app) and draws no label while the agent acts. The dock panel is not drawn: a hidden window stays only as the microphone and Live audio host until that code moves; chat becomes the Ask bar and the voice pill, profile becomes Your data, settings become Settings, files become Settings and set-up becomes first run.
 
+### Rejected for this section
+
+- **Top-right for the pill.** macOS banners and Notification Center live there, so a card would collide with them. **Bottom-left** (the HUD's place today): chat sidebars, status bars and avatars sit there in the apps people use all day. Bottom-right is where the retired dock panel was, where Cue already falls back to, and it is free of both; the pill can be dragged if it covers something.
+- **The window popping back when a run finishes.** It takes the screen from whatever the worker moved on to. The Dock badge, the menu-bar count and the digest say it is done.
+- **Hiding the Dock icon when the window is closed** (an accessory app). The owner asked for the Dock icon; closing a window is not leaving the app.
+- **An always-on-top main window.** It would sit over the very app the agent is working in.
+- **A full-screen translucent status layer.** The ring overlay already owns the screen and is passive; a second one would block clicks.
+- **A macOS Notification Center banner for every card.** It cannot be non-focusable, cannot carry Stop, and cannot be silenced from Knack. The existing native notification for a permission prompt stays; nothing else uses one.
+- **A permanent in-window Stop bar.** The sidebar icon, the keyboard and the menu bar already reach it, and the pill carries it while something runs.
+
 ### What in the code changes
 
 | File or area (`apps/desktop/src/main`) | Change |
@@ -450,7 +478,7 @@ The engine and agent start from the moment the app opens (warm-up is about 20 s 
 
 Replaces: the desktop's eight-step set-up (`renderer/dock/onboarding`) and the dashboard's seven-question Onboarding. The latter stays reachable as Settings, "Set up again" (the questions are the pack's, shown once more, one per screen).
 
-Rejected: a tour as part of first run (the "Take the tour" row stays in the account menu); asking tone, pace and hours (defaults are editable, and fewer than three clicks is the owner's target); a memory-file preview that builds while answering (one idea per screen; it is shown once, on screen 3).
+Rejected: a tour as part of first run (the "Take the tour" row stays in the account menu); asking tone, pace and hours (defaults are editable, and three clicks is the budget); a memory-file preview that builds while answering (one idea per screen; it is shown once, on screen 3).
 
 ---
 
@@ -502,7 +530,7 @@ Cut lines if late: P2 items (Ask bar window, per-display pill, mobile bottom bar
 | A1 | P0, 90 min | `window-state.ts` (default 80 by 84, clamps, restore rules), `mainwindow.ts`, activate, close hides, quit sheet, `app.setName('Knack')`, Dock menu and badge, services started and stopped by the app. Packaging (`productName` Knack, so the Dock label reads Knack outside dev) needs a tool decision from the lead (question 5) | `window-state.test.ts`: table cases for 1280 by 800, 1440 by 900, 1920 by 1080, 2560 by 1440, a removed display, a half-offscreen save; `mainwindow.test.ts` with a fake window: close hides, activate shows, quit with a running job asks |
 | A2 | P0, 90 min | `shell-machine.ts`: the 18 transitions as a pure reducer with effects | `shell-machine.test.ts`: one test per row of `08-window-states.md`; invariants: never two cards, the window never restores except after a Review click, kill always wins |
 | A3 | P0, 60 min | the corner column: `hud-model.ts` activity, `cornerBounds` (bottom-right, per display), pill, done, error, card renderer in the new look | extend `hud-model.test.ts`, `HudView.test.ts`; `corner-place.test.ts` (inset 16, card above pill, drag snap, display change); a light and dark screenshot through the existing `hudPng` debug route compared by eye to `06-corner-states.svg` |
-| A4 | P1, 60 min | 8-row tray menu and icon states, Option-Space tap and hold, ⌥⌘P, ⇧⌘K, login prompt | `tray.test.ts`: at most 8 rows, the states and their priority; `login-item.test.ts`: a login launch shows no window |
+| A4 | P1, 60 min | 8-row tray menu and icon states, Option-Space tap and hold, ⌥⌘P, ⇧⌘K, login prompt, the rename pass over desktop strings (tray, toast and notification titles, window titles, `Quit Knack`, `Talk to` becomes `Ask Knack`) | `tray.test.ts`: at most 8 rows, the states and their priority; `login-item.test.ts`: a login launch shows no window |
 | A5 | P1 | permission prompt as a corner card; `agent_acting` hard quiet; digest and notices in the corner | `attention/signals.test.ts`, `attention/adapter.test.ts`: now-items dropped while acting; `confirm.test.ts`: an approval still needs a real click |
 | A6 | P2 | Ask bar window; retire the dock panel UI; per-display pill | manual with the owner |
 
@@ -512,7 +540,7 @@ Dev hook for proof without real input: the existing debug server (`ALONGSIDE_DEB
 
 | Step | Priority | Work | Proof |
 |---|---|---|---|
-| B0 | P0, 30 min | new `router.ts` screens and `navModel.ts` (five worker, three admin, More at most ten), `routeRedirects.ts` for every old route | `navModel.test.ts`: exactly 5 worker and 3 admin primary entries, More at most 10, every old route redirects; `jobs.test.ts`: every job in `docs/knack-ux/jobs.json` has a path within budget over the nav graph |
+| B0 | P0, 30 min | new `router.ts` screens and `navModel.ts` (five worker, three admin, More at most ten, and `DEMO_PINS`, below), `routeRedirects.ts` for every old route | `navModel.test.ts`: exactly 5 worker and 3 admin primary entries, More at most 10, every old route redirects; `jobs.test.ts`: every job in `docs/knack-ux/jobs.json` has a path within budget over the nav graph |
 | B1 | P0, 90 min | `Sidebar.tsx`, `AccountMenu.tsx`, `MoreSheet.tsx`, `SettingsSheet.tsx` shell, retire `framenote` and `datanote`, ⌘1 to ⌘5, ⌘, and ⌘/, one left-aligned column, bottom bar at 390 px | `scripts/check-clicks.mjs` (replays the ten paths; fails above budget); `scripts/check-copy.mjs` sidebar rule: at most 6 rows, 0 hint words |
 | B2 | P0, 90 min | Home hero and states per `01-home.md`; `FirstRun` (three screens) replaces Onboarding as the entry; the rename pass in shell strings | `screens/Home/model.test.ts` (title template, at most 16 words, one quantity); `oneQuantity.test.ts`; `firstRun.model.test.ts` (three states, one click each); `check-clicks.mjs` "launch to Home" at most 3 |
 | B3 | P1 | palette verbs and "Ask Knack" row; "About this screen" panel | `palette.test.ts` extended |
@@ -531,7 +559,7 @@ Dev hook for proof without real input: the existing debug server (`ALONGSIDE_DEB
 | Step | Priority | Work | Proof |
 |---|---|---|---|
 | D0 | P0, 60 min | tokens and components of section 6, lockup component, icon set, the lockup and tray SVGs into `packages/design/brand/`, `check-copy.mjs` (budgets from section 5 as `qa/knack/budgets.json`), `check-clicks.mjs` skeleton | `design-tokens.test.ts` extended (new tokens present, AA pairs hold); `design-system.html` rebuilt with `node packages/design/build.mjs`; the measurement baseline committed |
-| D1 | P0 | Growth per `04-growth.md`; Firm, Roles, Onboarding per `05-admin-firm.md` (retire the tab strip, one origin badge) | budgets: Growth at most 40 words with data, Firm screens at most 150; honesty: origin badge and printed n and intervals on Admin screens still asserted |
+| D1 | P0 | Growth per `04-growth.md`; Firm, Roles, Onboarding per `05-admin-firm.md` (retire the tab strip, one origin badge) | budgets: Growth at most 60 words with data, Firm screens at most 150; honesty: origin badge and printed n and intervals on Admin screens still asserted |
 | D2 | P1 | Genome, Presence, Graph, Week, Git, Predictions: cut ledes, legends and notes to the budgets; breadcrumb in place of the frame note | `check-copy.mjs` on each: at most 120 words above the fold, 0 long paragraphs, at most 1 pill |
 | D3 | P1 | the copy lint: banned phrases and a user-visible "Understudy" scan | `copy-lint.test.ts` scans source strings and rendered text; the allow-list is internal identifiers only |
 | D4 | P2 | Evidence stays whole; only its entry point and header chrome change | existing Evidence smoke stays green |
@@ -540,7 +568,7 @@ Dev hook for proof without real input: the existing debug server (`ALONGSIDE_DEB
 
 > 1. **Read first:** this file, `docs/knack-ux/*`, `docs/ATTENTION_DESIGN.md`, `packages/design/README.md`, `docs/DECISIONS.md` D45. Do not reopen section 3's list of five.
 > 2. **One hero per screen.** One left-aligned column; two widths; no eyebrow, no lede unless it is a real limit.
-> 3. **Budgets are tests.** Section 5's word, paragraph, pill, control and sidebar budgets are enforced by `check-copy.mjs`; the click budgets by `check-clicks.mjs`. A change that raises a number is a decision, written in `docs/DECISIONS.md`.
+> 3. **Budgets are tests.** Section 5's word, paragraph, pill, control and sidebar budgets are enforced by `check-copy.mjs`; the click budgets by `check-clicks.mjs`. A change that raises a number is a decision: send it to the lead, who records it in `docs/DECISIONS.md`.
 > 4. **Never hide an honesty item.** The origin badge, consent text, "It will never", the consequence of an irreversible step, errors, limits, the kill and glance states, n and intervals on Admin and Evidence stay printed. A Hint is never the only copy of one. Existing smoke assertions for these are not loosened.
 > 5. **No keystroke approves.** An approval is a real click. Safety is never held, batched or repeated.
 > 6. **Rename in what people see**: "Knack" in strings, titles, tray, notifications, window titles, aria labels. Internal identifiers, env names, file names and storage keys keep `understudy`. `copy-lint.test.ts` fails on a visible "Understudy".

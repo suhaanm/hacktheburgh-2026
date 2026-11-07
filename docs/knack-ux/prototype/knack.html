@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knack: after-state prototype</title>
+<!-- Static prototype of the after state in docs/KNACK_UX.md. Uses the real tokens and components.
+     Open as knack.html#home | #needs | #routines | #growth | #firm | #roles | #first   and add ?theme=dark.
+     Not production code: the implementers build from the spec, this shows the density and the look.
+     Fonts: the dashboard bundles Bricolage Grotesque, Source Sans 3 and JetBrains Mono; here the system stacks stand in unless the page is rendered with them. -->
+<link rel="stylesheet" href="../../../packages/design/tokens.css">
+<link rel="stylesheet" href="../../../packages/design/components.css">
+<!--FONTS-->
+<style>
+  :root { --sidebar-w: 208px; --content-read: 720px; --content-wide: 1080px; --row-h: 44px; --control-h: 32px; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 400 var(--text-sm)/1.4 var(--font-body); overflow: hidden; }
+  .app { display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr); height: 100vh; }
+
+  /* sidebar */
+  .side { display: flex; flex-direction: column; padding: 0 12px 12px; border-right: 1px solid var(--line); background: var(--bg); min-height: 0; }
+  .drag { height: 40px; display: flex; align-items: center; gap: 8px; padding-left: 4px; flex: none; }
+  .drag i { width: 12px; height: 12px; border-radius: 50%; background: var(--line-strong); display: block; }
+  .lockup { display: flex; align-items: center; gap: 8px; padding: 8px 10px 16px; font: 600 17.5px/1 var(--font-display); letter-spacing: -0.01em; color: var(--fg); }
+  .lockup svg { width: 21.6px; height: 20px; flex: none; }
+  .nav { display: grid; gap: 2px; }
+  .nav a, .nav button.more { display: flex; align-items: center; gap: 10px; height: var(--control-h); padding: 0 10px; border: 0; border-left: 2px solid transparent; border-radius: 4px; background: none; color: var(--muted); font: 600 var(--text-sm)/1 var(--font-body); text-decoration: none; cursor: pointer; text-align: left; }
+  .nav a:hover, .nav button.more:hover { color: var(--fg); background: var(--sunk); }
+  .nav a[aria-current="page"] { color: var(--fg); background: var(--panel); box-shadow: inset 0 0 0 1px var(--line); border-left-color: var(--accent); border-radius: 0 4px 4px 0; }
+  .nav svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .count { margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center; font: 600 var(--text-xs)/1 var(--font-mono); color: var(--on-accent); background: var(--accent); border-radius: 999px; }
+  .group { margin: 16px 10px 4px; font: 600 var(--text-xs)/1 var(--font-body); color: var(--muted); }
+  .foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .acct { flex: 1; display: flex; align-items: center; gap: 8px; height: var(--control-h); padding: 0 8px; border: 0; border-radius: 4px; background: none; color: var(--fg); font: 600 var(--text-sm)/1 var(--font-body); cursor: pointer; text-align: left; }
+  .acct:hover { background: var(--sunk); }
+  .avatar { width: 22px; height: 22px; border-radius: 50%; background: var(--sunk); border: 1px solid var(--line-strong); display: grid; place-items: center; font: 600 11px/1 var(--font-body); }
+  .stop { width: var(--control-h); height: var(--control-h); display: grid; place-items: center; border: 1px solid var(--control-line); border-radius: 4px; background: none; cursor: pointer; }
+  .stop i { width: 9px; height: 9px; background: var(--bad); display: block; }
+
+  /* content */
+  .main { overflow: auto; min-width: 0; }
+  .page { padding: 32px 40px 64px; display: none; }
+  .page .col { max-width: var(--content-read); display: grid; gap: 24px; }
+  .page.wide .col { max-width: var(--content-wide); }
+  body[data-screen="home"] #home, body[data-screen="needs"] #needs, body[data-screen="routines"] #routines, body[data-screen="growth"] #growth,
+  body[data-screen="firm"] #firm, body[data-screen="roles"] #roles, body[data-screen="first"] #first { display: block; }
+  body[data-screen="first"] .side { display: none; }
+  body[data-screen="first"] .app { grid-template-columns: 1fr; }
+  body:not([data-admin]) .admin { display: none; }
+
+  .meta { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: var(--text-sm); }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border: 1px dashed var(--control-line); border-radius: 999px; color: var(--muted); font: 600 var(--text-xs)/1.4 var(--font-body); }
+  .hero { font: 600 var(--text-2xl)/1.2 var(--font-display); letter-spacing: var(--tracking-display); text-wrap: balance; margin: 0; max-width: 24em; }
+  .why { color: var(--muted); font-size: var(--text-md); line-height: 1.5; max-width: 40ch; margin: 8px 0 0; }
+  .actions { display: flex; align-items: center; gap: 16px; margin-top: 16px; }
+  .btn { min-height: var(--control-h); }
+  .rows { border-top: 1px solid var(--line); }
+  .row { display: flex; align-items: center; gap: 12px; min-height: var(--row-h); padding: 8px 4px; border-bottom: 1px solid var(--line); color: var(--fg); text-decoration: none; }
+  .row svg.ic { width: 16px; height: 16px; flex: none; fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .row .chev { margin-left: auto; width: 16px; height: 16px; fill: none; stroke: var(--muted); stroke-width: 1.5; }
+  a.row:hover { background: var(--sunk); }
+  .title { font: 600 var(--text-xl)/1.25 var(--font-display); letter-spacing: var(--tracking-display); margin: 0; }
+  .muted { color: var(--muted); }
+  .note { color: var(--muted); font-size: var(--text-sm); }
+  .item { padding: 16px 4px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
+  .item:first-child { border-top: 1px solid var(--line); }
+  .item h3 { font: 600 var(--text-md)/1.3 var(--font-body); letter-spacing: 0; display: flex; align-items: center; gap: 10px; margin: 0; }
+  .item h3 time { margin-left: auto; font: 400 var(--text-xs)/1 var(--font-mono); color: var(--muted); }
+  .item p { margin: 0; font-size: var(--text-md); line-height: 1.5; max-width: 60ch; }
+  .item .btns { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+  .item .btns .link { margin-left: auto; color: var(--muted); font-size: var(--text-sm); text-decoration: none; }
+  .glyph { width: 16px; height: 16px; flex: none; fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .tabs2 { display: flex; gap: 20px; border-bottom: 1px solid var(--line); }
+  .tabs2 a { padding: 6px 0; margin-bottom: -1px; color: var(--muted); font-weight: 600; text-decoration: none; border-bottom: 2px solid transparent; }
+  .tabs2 a[aria-current] { color: var(--fg); border-bottom-color: var(--accent); }
+  .segmented > button { min-height: 28px; }
+  .skills .row { min-height: var(--row-h); }
+  .skills .row .t { font-weight: 600; }
+  .strip { display: grid; grid-template-columns: 180px 1fr 140px 24px; align-items: center; gap: 16px; min-height: var(--row-h); border-bottom: 1px solid var(--line); padding: 0 4px; }
+  .strip .name { font-weight: 600; }
+  .strip svg { width: 100%; height: 28px; }
+  .q { font: 600 var(--text-3xl)/1.1 var(--font-display); letter-spacing: var(--tracking-display); margin: 0; }
+  .cards3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .rolecard { padding: 20px 16px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); display: grid; gap: 4px; cursor: pointer; }
+  .rolecard:hover { border-color: var(--accent); }
+  .rolecard b { font: 600 var(--text-md)/1.25 var(--font-display); }
+  .progress { height: 2px; background: var(--line); }
+  .progress i { display: block; height: 100%; width: 33%; background: var(--accent); }
+  .firstwrap { max-width: 720px; margin: 0 auto; padding: 120px 40px; display: grid; gap: 28px; }
+  .bottombar { display: none; }
+  @media (max-width: 760px) {
+    .app { grid-template-columns: 1fr; }
+    .side { display: none; }
+    .page { padding: 20px 16px 88px; }
+    .bottombar { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0; height: 56px; background: var(--bg); border-top: 1px solid var(--line); }
+    .bottombar a { display: grid; place-items: center; align-content: center; gap: 2px; color: var(--muted); font: 600 11px/1 var(--font-body); text-decoration: none; position: relative; }
+    .bottombar a[aria-current] { color: var(--fg); }
+    .bottombar svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+    .hero { font-size: 24px; }
+    .cards3 { grid-template-columns: 1fr; }
+    .strip { grid-template-columns: 1fr 24px; }
+    .strip svg, .strip .num { display: none; }
+  }
+</style>
+</head>
+<body data-screen="home">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="glyph" viewBox="28 30 78 72"><circle cx="76" cy="72" r="22" fill="none" stroke="var(--accent)" stroke-width="7"/><circle cx="54" cy="56" r="22" fill="var(--fg)"/></symbol>
+  <symbol id="i-home" viewBox="0 0 16 16"><path d="M2.5 7.5 8 3l5.5 4.5M4 6.5V13h8V6.5"/></symbol>
+  <symbol id="i-needs" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><circle cx="8" cy="8" r="1.4" fill="currentColor"/></symbol>
+  <symbol id="i-routines" viewBox="0 0 16 16"><path d="M3 6h9l-2.5-2.5M13 10H4l2.5 2.5"/></symbol>
+  <symbol id="i-growth" viewBox="0 0 16 16"><path d="M2.5 12 6 8l2.5 2.5L13.5 4M10 4h3.5v3.5"/></symbol>
+  <symbol id="i-data" viewBox="0 0 16 16"><path d="M3 4h10M3 8h10M3 12h6"/></symbol>
+  <symbol id="i-more" viewBox="0 0 16 16"><circle cx="3.5" cy="8" r="1" fill="currentColor"/><circle cx="8" cy="8" r="1" fill="currentColor"/><circle cx="12.5" cy="8" r="1" fill="currentColor"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 16 16"><path d="M8 2.5 14 13H2L8 2.5ZM8 6.5v3M8 11.2v.1"/></symbol>
+  <symbol id="i-up" viewBox="0 0 16 16"><path d="M3 11l3.5-3.5 2 2L13 5M10 5h3v3"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 16 16"><path d="M6 3.5 10.5 8 6 12.5"/></symbol>
+  <symbol id="i-firm" viewBox="0 0 16 16"><path d="M3 13V6M8 13V3M13 13V8"/></symbol>
+  <symbol id="i-roles" viewBox="0 0 16 16"><circle cx="5.5" cy="6" r="2.2"/><circle cx="11" cy="9" r="2.2"/><path d="M2 13c.6-2 2-3 3.5-3M8.5 13.5c.5-1.6 1.4-2.3 2.5-2.3"/></symbol>
+  <symbol id="i-onb" viewBox="0 0 16 16"><path d="M2.5 12.5C5 12.5 5 6 8 6s3 6.5 5.5 6.5"/></symbol>
+</svg>
+
+<div class="app">
+  <aside class="side">
+    <div class="drag" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="lockup"><svg><use href="#glyph"/></svg><span>Knack</span></div>
+    <nav class="nav" aria-label="Screens">
+      <a href="#home" data-s="home"><svg><use href="#i-home"/></svg>Home</a>
+      <a href="#needs" data-s="needs"><svg><use href="#i-needs"/></svg>Needs you<span class="count">1</span></a>
+      <a href="#routines" data-s="routines"><svg><use href="#i-routines"/></svg>Routines</a>
+      <a href="#growth" data-s="growth"><svg><use href="#i-growth"/></svg>Growth</a>
+      <a href="#first" data-s="first"><svg><use href="#i-data"/></svg>Your data</a>
+      <div class="group admin">Admin</div>
+      <a class="admin" href="#firm" data-s="firm"><svg><use href="#i-firm"/></svg>Firm</a>
+      <a class="admin" href="#roles" data-s="roles"><svg><use href="#i-roles"/></svg>Roles</a>
+      <a class="admin" href="#roles" data-s="onb"><svg><use href="#i-onb"/></svg>Onboarding</a>
+      <button class="more" type="button"><svg><use href="#i-more"/></svg>More</button>
+    </nav>
+    <div class="foot">
+      <button class="acct" type="button"><span class="avatar">A</span>Ana</button>
+      <button class="stop" type="button" aria-label="Stop everything"><i></i></button>
+    </div>
+  </aside>
+
+  <main class="main" id="main">
+
+    <!-- HOME -->
+    <section class="page" id="home"><div class="col">
+      <div class="meta"><span>Week of 9 November</span><span class="badge">Example data</span></div>
+      <div>
+        <h1 class="hero">On the cliff check you usually take about 35 seconds longer than the expert.</h1>
+        <p class="why">Try the expert's order: read, then check.</p>
+        <div class="actions"><a class="btn btn--primary" href="#growth" style="text-decoration:none">See where the time goes</a><details class="details"><summary>Why this?</summary></details></div>
+      </div>
+      <div class="rows">
+        <a class="row" href="#needs"><svg class="ic"><use href="#i-needs"/></svg>1 thing needs you<svg class="chev"><use href="#i-chev"/></svg></a>
+        <a class="row" href="#routines"><svg class="ic"><use href="#i-routines"/></svg>About 1 hour a week could run for you.<svg class="chev"><use href="#i-chev"/></svg></a>
+      </div>
+    </div></section>
+
+    <!-- NEEDS YOU -->
+    <section class="page" id="needs"><div class="col">
+      <h1 class="title">Needs you</h1>
+      <div>
+        <article class="item">
+          <h3><svg class="glyph"><use href="#i-alert"/></svg>Submit case note CN-2041<time>13:03</time></h3>
+          <p>The three calculators agree. The note is written, waiting for your click.</p>
+          <p class="note" style="font-size:var(--text-sm)">Cannot be undone.</p>
+          <div class="btns"><button class="btn btn--primary" type="button">Approve and submit</button><button class="btn btn--secondary" type="button">Reject</button><a class="link" href="#needs">Evidence ›</a></div>
+        </article>
+        <article class="item">
+          <h3><svg class="glyph"><use href="#i-needs"/></svg>Shadow run differed from yours<time>13:04</time></h3>
+          <p>Calculator B gave 214 where your entry gave 241. Nothing was saved.</p>
+          <div class="btns"><button class="btn btn--secondary" type="button">Accept its answer</button><button class="btn btn--secondary" type="button">Keep mine</button><a class="link" href="#needs">Evidence ›</a></div>
+        </article>
+        <article class="item">
+          <h3><svg class="glyph"><use href="#i-routines"/></svg>Enter the household into three calculators<time>new routine</time></h3>
+          <p>Seen 58 times in 3 weeks. Could save 4 to 7 hours.<span class="hint"><button class="hint__btn" type="button" aria-label="About the hours saved"></button></span></p>
+          <p class="note">Touches GovCalc and 3 more. It will never submit.</p>
+          <div class="btns"><button class="btn btn--secondary" type="button">Watch first</button><button class="btn btn--secondary" type="button">Not now</button><button class="btn btn--secondary" type="button">Never</button><a class="link" href="#needs">More ways to say yes ›</a></div>
+        </article>
+      </div>
+      <p class="note">Since you were away: 1 run finished, 0 failed. <a href="#needs">Details</a></p>
+    </div></section>
+
+    <!-- ROUTINES -->
+    <section class="page" id="routines"><div class="col">
+      <h1 class="title">Routines</h1>
+      <div class="tabs2"><a href="#routines" aria-current="page">Running 3</a><a href="#routines">Could automate 2</a></div>
+      <div class="rows" style="border-top:0">
+        <a class="row" href="#routines" style="display:grid;gap:2px;padding:10px 4px"><span style="font-weight:600">Enter the household into three calculators</span><span class="muted">Watching: 12 of 20 practice runs match. Asks first.</span></a>
+        <a class="row" href="#routines" style="display:grid;gap:2px;padding:10px 4px"><span style="font-weight:600">Copy the agreed results into the case note</span><span class="muted">Asks before it submits.</span></a>
+        <a class="row" href="#routines" style="display:grid;gap:2px;padding:10px 4px"><span style="font-weight:600">Read the case, then open the calculators</span><span class="muted">Runs while you are away.</span></a>
+      </div>
+    </div></section>
+
+    <!-- GROWTH -->
+    <section class="page wide" id="growth"><div class="col">
+      <div>
+        <h1 class="hero" style="max-width:none">You need help less often than you did.</h1>
+        <div class="meta" style="margin-top:8px;justify-content:flex-start;gap:16px"><span>Measures help needed, not expertise.</span><span class="badge">Example data</span></div>
+      </div>
+      <figure style="margin:0">
+        <svg viewBox="0 0 1000 250" width="100%" role="img" aria-label="Independence curve: 85% finished with no cue accepted at the latest occurrence, rising from about 20% at occurrence 10." style="display:block">
+          <g stroke="var(--line)" stroke-width="1"><line x1="50" y1="20.0" x2="950" y2="20.0"/><line x1="50" y1="125.0" x2="950" y2="125.0"/><line x1="50" y1="230.0" x2="950" y2="230.0" stroke="var(--line-strong)"/></g>
+          <g font-family="var(--font-mono)" font-size="12" fill="var(--muted)"><text x="6" y="24.0">100%</text><text x="14" y="129.0">50%</text><text x="22" y="234.0">0%</text><text x="150" y="248">20</text><text x="360" y="248">60</text><text x="570" y="248">100</text><text x="780" y="248">140</text><text x="880" y="248">occurrence</text></g>
+          <path d="M90 164.9 L100 158.8 L110 153.0 L120 147.5 L130 142.5 L140 138.0 L150 133.9 L160 130.3 L170 127.0 L180 124.1 L190 121.3 L200 118.6 L210 116.0 L220 113.2 L230 110.4 L240 107.3 L250 104.1 L260 100.7 L270 97.3 L280 93.9 L290 90.6 L300 87.4 L310 84.6 L320 82.0 L330 79.9 L340 78.1 L350 76.7 L360 75.6 L370 74.6 L380 73.9 L390 73.1 L400 72.3 L410 71.3 L420 70.1 L430 68.7 L440 67.1 L450 65.2 L460 63.3 L470 61.3 L480 59.3 L490 57.4 L500 55.8 L510 54.5 L520 53.4 L530 52.8 L540 52.4 L550 52.3 L560 52.4 L570 52.5 L580 52.7 L590 52.7 L600 52.6 L610 52.3 L620 51.7 L630 50.8 L640 49.7 L650 48.4 L660 47.1 L670 45.7 L680 44.5 L690 43.5 L700 42.7 L710 42.2 L720 42.0 L730 42.2 L740 42.6 L750 43.1 L760 43.7 L770 44.3 L780 44.8 L790 45.1 L800 45.2 L810 44.9 L820 44.4 L830 43.7 L840 42.8 L850 41.7 L860 40.7 L870 39.8 L880 39.0 L890 38.5 L900 38.3 L910 38.4 L920 38.7 L920 64.2 L910 64.1 L900 64.2 L890 64.7 L880 65.5 L870 66.5 L860 67.7 L850 68.9 L840 70.2 L830 71.4 L820 72.4 L810 73.1 L800 73.6 L790 73.8 L780 73.8 L770 73.5 L760 73.2 L750 72.8 L740 72.5 L730 72.4 L720 72.5 L710 72.9 L700 73.6 L690 74.7 L680 75.9 L670 77.4 L660 79.0 L650 80.6 L640 82.1 L630 83.5 L620 84.6 L610 85.5 L600 86.1 L590 86.4 L580 86.6 L570 86.7 L560 86.8 L550 87.0 L540 87.3 L530 88.0 L520 88.9 L510 90.2 L500 91.7 L490 93.6 L480 95.7 L470 98.0 L460 100.2 L450 102.4 L440 104.5 L430 106.4 L420 108.1 L410 109.5 L400 110.7 L390 111.8 L380 112.8 L370 113.8 L360 115.0 L350 116.4 L340 118.1 L330 120.1 L320 122.5 L310 125.3 L300 128.4 L290 131.8 L280 135.3 L270 139.0 L260 142.7 L250 146.3 L240 149.8 L230 153.1 L220 156.2 L210 159.2 L200 162.1 L190 165.0 L180 168.0 L170 171.2 L160 174.7 L150 178.6 L140 182.9 L130 187.7 L120 193.0 L110 198.7 L100 204.7 L90 211.1 Z" fill="var(--accent-soft)"/>
+          <path d="M90 188.0 L100 181.7 L110 175.8 L120 170.2 L130 165.0 L140 160.3 L150 156.1 L160 152.3 L170 148.9 L180 145.8 L190 142.9 L200 140.1 L210 137.3 L220 134.4 L230 131.4 L240 128.2 L250 124.8 L260 121.3 L270 117.7 L280 114.1 L290 110.7 L300 107.4 L310 104.4 L320 101.7 L330 99.4 L340 97.5 L350 95.9 L360 94.6 L370 93.5 L380 92.6 L390 91.7 L400 90.7 L410 89.6 L420 88.3 L430 86.7 L440 84.9 L450 82.9 L460 80.8 L470 78.7 L480 76.5 L490 74.5 L500 72.7 L510 71.3 L520 70.1 L530 69.3 L540 68.7 L550 68.5 L560 68.4 L570 68.4 L580 68.4 L590 68.3 L600 68.1 L610 67.6 L620 66.8 L630 65.8 L640 64.5 L650 63.1 L660 61.6 L670 60.1 L680 58.7 L690 57.6 L700 56.6 L710 56.0 L720 55.7 L730 55.7 L740 55.9 L750 56.3 L760 56.8 L770 57.2 L780 57.6 L790 57.7 L800 57.6 L810 57.2 L820 56.6 L830 55.7 L840 54.6 L850 53.4 L860 52.3 L870 51.2 L880 50.3 L890 49.6 L900 49.2 L910 49.2 L920 49.4" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <circle cx="920" cy="49.4" r="4" fill="var(--accent)"/><text x="930" y="54.4" font-family="var(--font-display)" font-weight="600" font-size="18" fill="var(--fg)">85%</text>
+        </svg>
+        <figcaption class="note" style="margin-top:8px;display:flex;gap:16px">Latest: 85% finished with no cue accepted. <a href="#growth">About this data</a></figcaption>
+      </figure>
+      <div class="skills rows">
+        <div class="row"><span class="t">Check the cliff</span><span class="muted" style="margin-left:auto">needs less help</span><svg class="ic"><use href="#i-up"/></svg></div>
+        <div class="row"><span class="t">Reconcile before the note</span><span class="muted" style="margin-left:auto">about the same</span><svg class="ic"><use href="#i-chev"/></svg></div>
+        <div class="row"><span class="t">Read the case</span><span class="muted" style="margin-left:auto">needs less help</span><svg class="ic"><use href="#i-up"/></svg></div>
+      </div>
+      <p class="note"><a href="#growth">The fade</a> &nbsp; <a href="#growth">Your record</a> &nbsp; <a href="#growth">What Knack did for you</a></p>
+    </div></section>
+
+    <!-- FIRM (admin) -->
+    <section class="page wide" id="firm"><div class="col">
+      <div>
+        <div class="meta" style="justify-content:flex-start;gap:16px"><h1 class="title">Firm</h1><span class="badge">Synthetic firm</span><span class="muted">Admin view</span></div>
+        <p class="muted" style="margin:8px 0 0">For coaching and onboarding, not for evaluating individuals.</p>
+        <p class="muted" style="margin:4px 0 0">60 people, 3 roles. 57 have enough data for a trend.</p>
+      </div>
+      <div class="rows">
+        <a class="row" href="#roles" style="display:grid;grid-template-columns:20px 1fr 20px;gap:2px 12px;padding:12px 4px"><svg class="ic"><use href="#i-alert"/></svg><span style="font-weight:600">Juniors take about 20 seconds longer per case than experts, in both roles.</span><svg class="chev"><use href="#i-chev"/></svg><span></span><span class="muted num" style="font-family:var(--font-mono);font-size:var(--text-xs)">18.4 s (16.8 to 20.2), n = 29 people</span></a>
+        <a class="row" href="#roles" style="display:grid;grid-template-columns:20px 1fr 20px;gap:2px 12px;padding:12px 4px"><svg class="ic"><use href="#i-alert"/></svg><span style="font-weight:600">An approval has waited 72 hours.</span><svg class="chev"><use href="#i-chev"/></svg><span></span><span class="muted" style="font-family:var(--font-mono);font-size:var(--text-xs)">n = 3 approvals</span></a>
+        <a class="row" href="#roles" style="display:grid;grid-template-columns:20px 1fr 20px;gap:2px 12px;padding:12px 4px"><svg class="ic"><use href="#i-up"/></svg><span style="font-weight:600">Approved routines handled about 10 hours of work in four weeks.</span><svg class="chev"><use href="#i-chev"/></svg><span></span><span class="muted" style="font-family:var(--font-mono);font-size:var(--text-xs)">10.2 hours, n = 61 runs</span></a>
+      </div>
+      <p class="note"><a href="#firm">Show all 7</a> &nbsp;&nbsp; <a href="#firm">Print the firm brief</a></p>
+    </div></section>
+
+    <!-- ROLES (admin) -->
+    <section class="page wide" id="roles"><div class="col">
+      <div class="meta" style="justify-content:flex-start;gap:16px"><h1 class="title">Roles</h1><span class="badge">Synthetic firm</span></div>
+      <p class="muted" style="margin:-8px 0 0">Finished without help, experts and juniors, same 0 to 100% scale. <span style="white-space:nowrap"><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--expert);margin:0 4px 0 12px"></i>Experts</span> <span style="white-space:nowrap"><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--novice);margin:0 4px 0 12px"></i>Juniors</span></p>
+      <div class="rows">
+        <div class="strip"><span class="name">Benefits processor</span><svg viewBox="0 0 300 28"><line x1="0" y1="14" x2="300" y2="14" stroke="var(--line-strong)"/><circle cx="282" cy="14" r="5" fill="var(--expert)"/><line x1="170" y1="14" x2="204" y2="14" stroke="var(--novice)" stroke-width="2"/><circle cx="187" cy="14" r="5" fill="var(--novice)"/></svg><span class="muted">gap 32 points</span><svg class="chev" viewBox="0 0 16 16" style="width:16px;height:16px;fill:none;stroke:var(--muted);stroke-width:1.5"><use href="#i-chev"/></svg></div>
+        <div class="strip"><span class="name">Data analyst</span><svg viewBox="0 0 300 28"><line x1="0" y1="14" x2="300" y2="14" stroke="var(--line-strong)"/><circle cx="290" cy="14" r="5" fill="var(--expert)"/><line x1="165" y1="14" x2="190" y2="14" stroke="var(--novice)" stroke-width="2"/><circle cx="177" cy="14" r="5" fill="var(--novice)"/></svg><span class="muted">gap 37 points</span><svg class="chev" viewBox="0 0 16 16" style="width:16px;height:16px;fill:none;stroke:var(--muted);stroke-width:1.5"><use href="#i-chev"/></svg></div>
+        <div class="strip"><span class="name">Programmer</span><span class="muted" style="grid-column:2/4">Not compared yet: no expert in this role.</span><span></span></div>
+      </div>
+    </div></section>
+
+    <!-- FIRST RUN -->
+    <section class="page" id="first"><div class="drag" aria-hidden="true" style="position:absolute;left:12px;top:0"><i></i><i></i><i></i></div><div class="firstwrap">
+      <div style="display:flex;align-items:center;gap:8px;font:600 17.5px/1 var(--font-display)"><svg width="22" height="20"><use href="#glyph"/></svg>Knack</div>
+      <div class="progress" role="progressbar" aria-valuenow="33" aria-valuemin="0" aria-valuemax="100" aria-label="Set-up progress, 1 of 3"><i></i></div>
+      <h1 class="q">What work do you do?</h1>
+      <div class="cards3">
+        <div class="rolecard"><b>Benefits processor</b><span class="muted">Cases and calculators</span></div>
+        <div class="rolecard"><b>Data analyst</b><span class="muted">Queries and reports</span></div>
+        <div class="rolecard"><b>Programmer</b><span class="muted">Commits and reviews</span></div>
+      </div>
+    </div></section>
+
+  </main>
+</div>
+
+<nav class="bottombar" aria-label="Screens">
+  <a href="#home" data-s="home"><svg><use href="#i-home"/></svg>Home</a>
+  <a href="#needs" data-s="needs"><svg><use href="#i-needs"/></svg>Needs you</a>
+  <a href="#routines" data-s="routines"><svg><use href="#i-routines"/></svg>Routines</a>
+  <a href="#growth" data-s="growth"><svg><use href="#i-growth"/></svg>Growth</a>
+  <a href="#first" data-s="first"><svg><use href="#i-data"/></svg>Your data</a>
+</nav>
+
+<script>
+  (function () {
+    var q = new URLSearchParams(location.search);
+    if (q.get("theme") === "dark") document.documentElement.setAttribute("data-theme", "dark");
+    function sync() {
+      var s = (location.hash || "#home").slice(1);
+      document.body.dataset.screen = s;
+      if (s === "firm" || s === "roles") document.body.setAttribute("data-admin", ""); else if (q.get("admin") !== "1") document.body.removeAttribute("data-admin");
+      document.querySelectorAll("[data-s]").forEach(function (a) { if (a.dataset.s === s) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+    }
+    if (q.get("admin") === "1") document.body.setAttribute("data-admin", "");
+    addEventListener("hashchange", sync); sync();
+  })();
+</script>
+</body>
+</html>

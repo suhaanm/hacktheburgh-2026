@@ -28,7 +28,7 @@
       "id": "J4", "who": "worker", "name": "See whether I need less help over time",
       "current_clicks": 1, "current_path": ["sidebar: Growth"],
       "current_load": "152 words above the fold on an empty curve, 7 paragraphs over two lines",
-      "target_clicks": 1, "target_path": ["sidebar: Growth"], "target_load": "one sentence and one chart above the fold; at most 40 words"
+      "target_clicks": 1, "target_path": ["sidebar: Growth"], "target_load": "one sentence and one chart above the fold; at most 60 words"
     },
     {
       "id": "J5", "who": "worker", "name": "See what Knack has seen of me, and delete it",
