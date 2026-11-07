@@ -97,7 +97,7 @@ def draw_people(h: dict, role: RoleSpec, n: int, code: str, seed: int, rnd: rand
         slip_logit = logit(h["slip_med"]) + h["sd_logit_slip"] * (-lam * g + resid * rnd.gauss(0.0, 1.0))
         pause_logit = logit(h["p_pause_med"]) + h["sd_logit_pause"] * (-0.5 * lam * g + math.sqrt(1 - 0.25 * lam * lam) * rnd.gauss(0.0, 1.0))
         alpha = min(1.2, max(0.05, h["learn_alpha_mean"] + h["learn_alpha_sd"] * (0.5 * lam * g + 0.87 * rnd.gauss(0.0, 1.0))))
-        theta = {s: 2.0 + 0.9 * g + offsets[s] + h["deficit_difficulty_sd"] * rnd.gauss(0.0, 1.0) for s in skills}
+        theta = {s: 3.3 + 0.9 * g + offsets[s] + h["deficit_difficulty_sd"] * rnd.gauss(0.0, 1.0) for s in skills}
         strat = {}
         for dim, opts in role.strategy_dims.items():
             conc = h["strategy_kappa"] * len(opts)

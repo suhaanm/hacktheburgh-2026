@@ -121,7 +121,7 @@ CITED: dict[str, dict] = {
     },
     "slip_rate_per_step": {
         "what": "probability of an uncorrected-or-corrected slip per productive step",
-        "range": (0.005, 0.07),
+        "range": (0.0004, 0.065),
         "source": "a systematic review of clinical data entry reports single-entry error rates of 0.04 to 6.5 percent depending on field complexity (seen as a snippet only); vendor blogs quote 1 to 4 percent of fields and are not relied on",
         "status": "secondary", "note": "Low confidence: unit (field versus keystroke) differs across sources.",
     },

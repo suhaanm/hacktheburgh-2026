@@ -22,11 +22,11 @@ from ..core import Episode, Event
 from .core import Clock, Step, choose, lognormal, poisson, seeded
 from .ctx import Ctx
 from .emit import Emitter, emit_case, finalize, iso
-from .families import get_family
+from .families import FAMILY_ORDER, get_family
 from .params import draw_hyper, params_sha256
 from .people import Person, draw_people
 from .roles import RoleSpec, RoutineT, get_role
-from .cohort import LABEL, NO_NOISE
+from .cohort import LABEL, NO_NOISE, rows_to_events
 
 START_WW = datetime(2026, 10, 12, 0, 0, tzinfo=timezone.utc)   # a Monday
 
@@ -60,7 +60,7 @@ class V2Workweeks:
 
     def events(self) -> list[Event]:
         if "events" not in self._cache:
-            self._cache["events"] = [Event.model_validate(r) for r in self.rows]
+            self._cache["events"] = rows_to_events(self.rows)
         return self._cache["events"]
 
     def episodes(self, mapping=None) -> list[Episode]:
@@ -113,9 +113,9 @@ def _make_routine(tpl: RoutineT, role: RoleSpec, h: dict, rnd, n_days: int, exp_
     for _ in range(weeks):
         cur = [c + h["wk_routine_drift"] * 1.5 * rnd.gauss(0.0, 1.0) for c in cur]
         drift.append(list(cur))
-    rate = max(0.3, h["wk_routine_share"] * exp_tasks_day / n_r * rnd.uniform(0.6, 1.4))
     ndow = rnd.randint(3, 7)
     dows = set(rnd.sample(range(7), ndow))
+    rate = max(0.3, h["wk_routine_share"] * exp_tasks_day / n_r * (7.0 / ndow) * rnd.uniform(0.6, 1.4))
     return PRoutine(tpl, edits, [rnd.gauss(0.0, 1.0) for _ in range(nv)], drift, rate, dows, rnd.uniform(9.0, 17.0), rnd.uniform(0.8, 3.0))
 
 
@@ -244,11 +244,11 @@ def generate_workweeks(family: str, role: str, n_people: int = 40, n_days: int =
     over = dict(hyper_overrides or {})
     if not noise:
         over = {**NO_NOISE, **over}
-    h = draw_hyper(np.random.default_rng(seed + 7919), over)
-    rnd = seeded(seed, 11)
+    h = draw_hyper(np.random.default_rng([seed, FAMILY_ORDER.index(family), 7919]), over)
+    rnd = seeded(seed, FAMILY_ORDER.index(family), 11)
     people = draw_people(h, rs, n_people, fam.code, seed, rnd)
     for p in people:
-        fam.prepare_person(p, rs, h, seeded(seed, 12, p.idx))
+        fam.prepare_person(p, rs, h, seeded(seed, FAMILY_ORDER.index(family), 12, p.idx))
     t_start = (start or START_WW).timestamp()
 
     all_rows: list[dict] = []
@@ -257,8 +257,8 @@ def generate_workweeks(family: str, role: str, n_people: int = 40, n_days: int =
     people_truth: list[dict] = []
     n_tasks_total = 0
     for p in people:
-        prnd = seeded(seed, 13, p.idx)
-        em = Emitter(p, rs, h, seeded(seed, 14, p.idx), f"{p.id[2:]}")
+        prnd = seeded(seed, FAMILY_ORDER.index(family), 13, p.idx)
+        em = Emitter(p, rs, h, seeded(seed, FAMILY_ORDER.index(family), 14, p.idx), f"{p.id[2:]}")
         sched = _person_schedule(h, prnd)
         prev: dict = {}
         day_wins: list[list[tuple[float, float]]] = []
@@ -266,7 +266,7 @@ def generate_workweeks(family: str, role: str, n_people: int = 40, n_days: int =
             w, _s = _windows(sched, h, prnd, d, d % 7, prev)
             day_wins.append(w)
         active_h = [sum(b - a for a, b in w) for w in day_wins if w]
-        exp_tasks_day = h["wk_tasks_per_h"] * (sum(active_h) / max(1, len(active_h)) if active_h else 6.0) * 0.55
+        exp_tasks_day = h["wk_tasks_per_h"] * (sum(active_h) / max(1, len(active_h)) if active_h else 6.0) * 0.85
         n_r = prnd.randint(1, min(4, len(rs.routines)))
         chosen = prnd.sample(list(rs.routines), n_r)
         prs = [_make_routine(t, rs, h, prnd, n_days, exp_tasks_day, n_r) for t in chosen]
@@ -359,7 +359,7 @@ def generate_workweeks(family: str, role: str, n_people: int = 40, n_days: int =
             "daily": [{"day": d + 1, "dow": d % 7, "windows": [[round(a, 2), round(b, 2)] for a, b in w]} for d, w in enumerate(day_wins)],
         })
         all_rows.extend(em.rows)
-        _os_events_rows = Emitter(p, rs, h, seeded(seed, 15, p.idx), f"{p.id[2:]}o")
+        _os_events_rows = Emitter(p, rs, h, seeded(seed, FAMILY_ORDER.index(family), 15, p.idx), f"{p.id[2:]}o")
         _os_events(_os_events_rows, prnd, wins_abs, gap_after)
         all_rows.extend(_os_events_rows.rows)
 

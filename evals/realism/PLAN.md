@@ -1,6 +1,6 @@
 # Pre-registration: realism and generator-mismatch evaluation (REALISM track)
 
-**Status: DRAFT.** Written Sat 7 Nov 2026 before any analytic has been run on v2 data. While the status is DRAFT the generators are still being implemented and the parameter table may gain rows or move a range if a marginal check shows a bug (never because of an analytic result: none has been run). The status becomes FROZEN when the lead is told "PLAN FROZEN" with the hash; the commit of that version is the evidence that it predates the analytics. Any change after that is listed under "Deviations" in `REPORT.md` with the reason, and the report states whether the generator-parameter hash below still matches.
+**Status: FROZEN.** Written Sat 7 Nov 2026 before any analytic has been run on v2 data. While the status is DRAFT the generators are still being implemented and the parameter table may gain rows or move a range if a marginal check shows a bug (never because of an analytic result: none has been run). The status becomes FROZEN when the lead is told "PLAN FROZEN" with the hash; the commit of that version is the evidence that it predates the analytics. Any change after that is listed under "Deviations" in `REPORT.md` with the reason, and the report states whether the generator-parameter hash below still matches.
 
 **Honest boundary.** The v2 data are synthetic. Every table says "synthetic, realism-calibrated". The claim tested is *"the pipeline's results hold when the data come from generators it was not built on and whose marginals sit inside published ranges"*, never *"the pipeline works on real people"*. I do not tune the generators to make an analytic look good or bad: the generators are set from the published regularities in `personas_v2/cited.py` (checked marginals) and from structural plausibility, and whatever the analytics then do is reported.
 
@@ -14,16 +14,16 @@
 
 | Kind | Call | Size (per family, role, replicate) | Used for |
 |---|---|---|---|
-| cohort (the household-entry task, many people, 8 cases each) | `generate_cohort(family, role, n_people=48, cases_per_person=8, seed)` | 48 people, 384 episodes | genome (first 2 cases per person), marginal checks |
-| workweeks (continuous work over days: routines and ad hoc tasks, interruptions, breaks, days off) | `generate_workweeks(family, role, n_people=40, n_days=14, seed)` | 40 people, about 14 days each | hazard (primary), routine finder, presence marginals |
+| cohort (the household-entry task, many people, 8 cases each) | `generate_cohort(family, role, n_people=48, cases_per_person=8, seed)` | 48 people, 384 episodes | genome (first 2 cases per person), hazard (secondary, same protocol), marginal checks |
+| workweeks (continuous work over days: routines and ad hoc tasks, interruptions, breaks, days off) | `generate_workweeks(family, role, n_people=40, n_days=14, seed)` | 40 people, about 14 days each | hazard (primary), routine finder; the OS events (lock, unlock, sleep, resume, idle) are generated but the presence model is not evaluated here |
 
-**Replicates.** K = 3 independent replicates (independent hyper-parameter draws and independent people) per (family, role, kind). Seeds: `20261107 + 1000 * family_index + 100 * role_index + 10 * k + kind_index` with family_index markov 0, latent_skill 1, process_trace 2, role_index benefits 0, analyst 1, programmer 2, kind_index cohort 0, workweeks 1, k = 0, 1, 2. **v1** is a fourth "family" with its own seeded data (personas for hazard and routines, apprentices for the genome; the v1 generators are run with their own seeds into a temporary directory and are never modified).
+**Replicates.** K = 3 independent replicates (independent hyper-parameter draws and independent people) per (family, role, kind). Seeds (the generators also mix the family index into every internal stream, so two families never share people even for equal seeds): `20261107 + 1000 * family_index + 100 * role_index + 10 * k + kind_index` with family_index markov 0, latent_skill 1, process_trace 2, role_index benefits 0, analyst 1, programmer 2, kind_index cohort 0, workweeks 1, k = 0, 1, 2. **v1** is a fourth "family" with its own seeded data (personas for hazard and routines, apprentices for the genome; the v1 generators are run with their own seeds into a temporary directory and are never modified).
 
 **The progress label in v2 (added at the lead's request, 7 Nov).** In v1 the hazard label is produced by the emission table: a `progress` event is written at the end of every productive cog, and stuck spells are detour cogs with no progress in them (`DIAGNOSIS.md`, cause 1; only 25 percent of label-1 bins lie inside a planted spell). In all three v2 families the `progress` events come from a **separate point process on the time axis**: a non-homogeneous Poisson process whose rate is the person's base rate (`progress_rate_per_min`) times a graded activity multiplier per cog class (typing and committing 1.0, reading 0.6, searching and navigating 0.25, pausing 0.05, each with person-level lognormal noise `progress_act_noise`: a soft rate, not a rule that a cog does or does not produce progress), times a **hidden stuck-state multiplier**. Hidden stuck episodes are generated by the family's own mechanism (a detour burst in `markov`, the stuck state in `latent_skill`, a failed-method retry spell in `process_trace`); an episode suppresses progress completely with probability `stuck_suppress_full_p` and otherwise only down to the rate multiplier `stuck_suppress_partial`; `benign_detour_share` of detour episodes are not stuck at all (they look identical and do not suppress progress); `silent_stuck_share` of stuck episodes show no detour behaviour (a quiet stall). Progress events also lag the moment they happen, and spurious ones (autosave) arrive at a rate that is independent of everything. Consequences: the label is no longer a deterministic function of the cog sequence, a model can be wrong about stuck without being wrong about cogs, and the share of label-1 bins inside hidden stuck episodes is reported per family (marginal check M13). **The circularity is reduced, not removed:** the label still depends on behaviour because we generate both from the same hidden state.
 
 ## 2. Frozen generator parameters
 
-Each dataset draws one value per row below from its range (domain randomisation). The rows are in `personas_v2/params.py`, which has SHA-256 `712446a30a90317923389a20571e9a3edcbcf0c95a185939665e79f0d13ba075` at the time of this file. `REPORT.md` prints the hash at run time and flags a mismatch.
+Each dataset draws one value per row below from its range (domain randomisation). The rows are in `personas_v2/params.py`, which has SHA-256 `23a71289f6c4795ce412592b0eb0edf598a2573b00428303e594e98b4b8b4ddc` at the time of this file. The generator source as a whole (cited, params, core, roles, people, ctx, families, emit, cohort, workweeks) has SHA-256 `ae32e7be05ce2002820f3185dd7935e29c074ccca66461f3644a9c82ae87f242` (`personas_v2/version.py`). `REPORT.md` prints both hashes at run time and flags a mismatch.
 
 | Parameter | Low | High | Scale | Cited regularity (status) | Meaning |
 |---|---|---|---|---|---|
@@ -37,10 +37,10 @@ Each dataset draws one value per row below from its range (domain randomisation)
 | `pause_ln_sigma` | 0.8 | 1.3 | uniform | pause_lognormal_mixture (secondary) | log-SD of the lognormal pause component |
 | `pause_lomax_alpha` | 1.1 | 2.2 | uniform | burstiness_cv (secondary) | tail index of the Lomax pause component |
 | `pause_lomax_scale_s` | 3 | 10 | uniform | assumption | scale of the Lomax pause component (s) |
-| `slip_med` | 0.01 | 0.05 | loguniform | slip_rate_per_step (secondary) | median per-step slip probability |
-| `sd_logit_slip` | 0.4 | 0.9 | uniform | typing_population (qualitative) | SD across people of the logit of the slip probability |
+| `slip_med` | 0.008 | 0.04 | loguniform | slip_rate_per_step (secondary) | median per-step slip probability |
+| `sd_logit_slip` | 0.3 | 0.7 | uniform | typing_population (qualitative) | SD across people of the logit of the slip probability |
 | `g_loading` | 0.3 | 0.7 | uniform | typing_population (qualitative) | loading of the general ability factor on speed, slips, hesitation and learning (faster people slip less, so slowness and slips correlate positively) |
-| `theta_gap` | 1.5 | 3.5 | uniform | assumption | gap in log-odds mastery between zero practice and the asymptote |
+| `theta_gap` | 3 | 6 | uniform | assumption | gap in log-odds mastery between zero practice and the asymptote |
 | `learn_alpha_mean` | 0.2 | 0.7 | uniform | power_law_exponent (secondary) | mean learning exponent across people |
 | `learn_alpha_sd` | 0.05 | 0.2 | uniform | power_law_exponent (secondary) | SD of the learning exponent across people |
 | `learn_beta_novice` | 0.5 | 1.2 | uniform | assumption | initial relative slowdown above the asymptote at zero practice |
@@ -102,19 +102,19 @@ Each dataset draws one value per row below from its range (domain randomisation)
 | `spurious_progress_per_h` | 0.2 | 2 | loguniform | assumption | progress events not tied to anything (autosave, redundant saves), per hour |
 | `stuck_report_p` | 0.05 | 0.6 | uniform | assumption | probability a stuck episode gets a self-reported stuck event |
 | `stuck_false_per_h` | 0 | 0.5 | uniform | assumption | stuck reports outside any stuck episode, per hour |
-| `mk_detour_base` | 0.02 | 0.12 | loguniform | assumption | markov: per-step probability of starting a detour |
+| `mk_detour_base` | 0.04 | 0.25 | loguniform | assumption | markov: per-step probability of starting a detour |
 | `mk_selfexcite` | 0.2 | 0.7 | uniform | burstiness_cv (secondary) | markov: probability a detour continues (self-excitation) |
 | `mk_dirichlet_conc` | 2 | 12 | uniform | assumption | markov: concentration of people's detour matrices around the role's |
 | `mk_backtrack_p` | 0 | 0.1 | uniform | assumption | markov: probability of going back a step |
 | `mk_skipahead_p` | 0 | 0.08 | uniform | assumption | markov: probability of skipping ahead a step |
-| `ls_hesitate_a` | -2.6 | -1.2 | uniform | assumption | latent_skill: intercept of the logit of leaving flow for hesitation at mastery 0.5 |
+| `ls_hesitate_a` | -2 | -0.6 | uniform | assumption | latent_skill: intercept of the logit of leaving flow for hesitation at log-odds mastery 1 (a mastery of 0.73) |
 | `ls_hesitate_b` | 1 | 3 | uniform | assumption | latent_skill: how strongly low mastery pushes towards hesitation |
-| `ls_hes_to_stuck` | 0.1 | 0.4 | uniform | assumption | latent_skill: probability a hesitation becomes a stuck episode |
+| `ls_hes_to_stuck` | 0.25 | 0.6 | uniform | assumption | latent_skill: probability a hesitation becomes a stuck episode |
 | `ls_stuck_median_s` | 40 | 150 | uniform | assumption | latent_skill: median stuck episode length (s) |
 | `ls_stuck_lomax_alpha` | 1.2 | 2.2 | uniform | burstiness_cv (secondary) | latent_skill: tail index of stuck episode length |
 | `ls_theta_gain` | 0.5 | 2 | uniform | power_law_exponent (secondary) | latent_skill: gain in log-odds mastery from practice |
-| `pt_pointing_a_s` | 0.1 | 0.8 | uniform | fitts_mouse_slope_s_per_bit (secondary) | process_trace: Fitts intercept (s) |
-| `pt_pointing_b_s` | 0.08 | 0.2 | uniform | fitts_mouse_slope_s_per_bit (secondary) | process_trace: Fitts slope (s per bit) |
+| `pt_pointing_a_s` | 0.15 | 0.55 | uniform | fitts_mouse_throughput_bps (secondary) | process_trace: Fitts intercept (s); with the slope below it keeps the mean ISO throughput inside 2.5 to 6 bits/s |
+| `pt_pointing_b_s` | 0.12 | 0.2 | uniform | fitts_mouse_slope_s_per_bit (secondary) | process_trace: Fitts slope (s per bit) |
 | `pt_keystroke_s` | 0.12 | 0.4 | loguniform | klm_keystroke_s (secondary) | process_trace: median keystroke time K across people (s) |
 | `pt_mental_s` | 0.9 | 2 | uniform | klm_mental_s (secondary) | process_trace: mental operator M (s) |
 | `pt_homing_s` | 0.3 | 0.6 | uniform | klm_homing_s (secondary) | process_trace: homing operator H (s) |
@@ -139,7 +139,7 @@ Each dataset draws one value per row below from its range (domain randomisation)
 
 * **Cog mapping:** `cogs.segment_episodes(events, pack_mapping)` with the role pack's own mapping (the benefits mapping equals the engine default). Analytics see only what the mapper makes of the noisy events, not the planted cog list.
 * **Genome (benefits):** `genome.Cohort`, `Cohort.nearest`, `Cohort.novice_alignments`, `Cohort.placebo`, `genome.components`, `genome.deficit_prices`.
-* **Stuck hazard:** `hazard.build_bins`, `hazard.HazardModel` (variants full, tsp, base), `hazard.events.choose_config`, `hazard.events.score_rows`, `hazard.oof_predictions`, `hazard.evaluate_hazard` (diagnostics on one dataset per family and role).
+* **Stuck hazard:** `hazard.build_bins`, `hazard.HazardModel` (variants full, tsp, base), `hazard.events.choose_config` (budget 1.0, 30 thresholds, 1 or 2 confirming bins), `hazard.events.score_rows`, `hazard.oof_predictions`, and `hazard.evaluate_hazard` (leave-one-person-out diagnostics on replicate 0 of each family and role; the matrix itself uses train-on-replicate-k, test-on-replicate-(k+1) cells, which cost far less).
 * **Routines:** `routines.finder.find_routines` with `FinderConfig`, `routines.detect.detect_routines` with the role pack (value gate and skill gate as shipped).
 
 ## 4. Pre-registered metrics
@@ -175,8 +175,9 @@ Each dataset draws one value per row below from its range (domain randomisation)
 
 ## 5. Marginal checks (is each family within published ranges?)
 
-Computed from the generated data, not from any analytic; reported as "within published range" or "outside", with the status of the cited constant:
-M1 effective keystroke operator K in the KLM range; M2 effective pointing time and throughput inside the Fitts and ISO ranges; M3 hesitation pauses: p99 over median in the leptokurtic range; M4 dwell body lognormal (Kolmogorov-Smirnov distance of log dwell standardised within cog and person, reported, range 0.15 or less); M5 practice: individual learning exponent estimates in 0.1 to 1.0, and the average curve better fit by a power than a line; M6 interruptions per hour in 0.5 to 6; M7 inter-event times bursty (CV above 1.1); M8 slip rate per productive step in 0.005 to 0.07; M9 between-person SD of log speed in 0.10 to 0.35; M10 person-level correlation of speed and slips negative; M11 fatigue slope in 0 to 0.15 per hour; M12 capture noise realised rates inside their ranges; M13 label decoupling: share of label-1 bins inside hidden stuck episodes and share of hidden stuck episodes that leave at least one progress event inside (both reported, no range: the point is that neither is 0 or 1). Statuses (secondary, assumption) are printed beside each, and "within a range we assumed ourselves" is not called "published".
+Computed from the generated data (`personas_v2/marginals.py`), not from any analytic; reported as "inside" or "outside" per dataset with the status of the cited constant (`secondary`, `assumption`, `qualitative`); "inside a range we assumed ourselves" is not called published.
+* M1 effective KLM keystroke time; M2 pointing time, ISO throughput, Fitts and Hick slopes (process_trace); M3 pauses: p99 over median; M4 dwell body lognormal (Kolmogorov-Smirnov, bound 0.15); M5 learning exponent draw, visible learning in low-tenure people, fitted slope (informational); M6 interruptions per hour; M7 inter-event burstiness (CV); M8 slip rates; M9 SD of log speed across people; M10 sign of the slowness-slip correlation; M11 fatigue slope; M12 realised double-fire and missing-task_end shares; M13 **label decoupling** (share of label-1 bins inside hidden stuck episodes, share of those bins that are label 1, share of hidden stuck episodes that still contain a progress event; none of them should be 0 or 1; v1: 0.25 for the first).
+* **Structural plausibility targets S1 to S6** (ranges are our assumption, written down before any analytic ran): novice material deficits per case 0.1 to 2.5; expert material deficits per case 0 to 0.8 (experts are not clean); share of people with no material deficit 0.03 to 0.9; hidden stuck episodes per case 0.1 to 2.0; share of novice cases faster than the expert median 0.01 to 0.45 (the labels overlap); median expert case 300 to 1000 s (150 to 800 s for the thin roles, whose tasks are shorter) and novice over expert median 1.1 to 2.2. The generators were calibrated once against these, after looking at generator-only statistics and before any analytic was run: `theta_gap` 3 to 6 (was 1.5 to 3.5), the asymptotic mastery base 3.3 log-odds, `ls_hesitate_a` -2.0 to -0.6 (now centred on log-odds mastery 1) and `ls_hes_to_stuck` 0.25 to 0.6 (the latent_skill family produced almost no deficits or stuck episodes before), `mk_detour_base` 0.04 to 0.25 (the thin roles' markov chains produced almost no stuck episodes before), `slip_med` and `sd_logit_slip` narrowed, the Fitts intercept and slope ranges tightened to keep the ISO throughput inside 2.5 to 6 bits/s. The families still differ a lot in deficit prevalence; that is part of the test, and the report prints it.
 
 ## 6. Compute and fast mode
 

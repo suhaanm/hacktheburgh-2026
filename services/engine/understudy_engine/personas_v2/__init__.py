@@ -4,5 +4,6 @@ published-range timing, capture noise, a progress label that is a separate point
 from .cohort import V2Cohort, generate_cohort
 from .families import FAMILY_ORDER
 from .roles import ROLES, get_role
+from .workweeks import V2Workweeks, generate_workweeks
 
-__all__ = ["FAMILY_ORDER", "ROLES", "V2Cohort", "generate_cohort", "get_role"]
+__all__ = ["FAMILY_ORDER", "ROLES", "V2Cohort", "V2Workweeks", "generate_cohort", "generate_workweeks", "get_role"]

@@ -225,7 +225,7 @@ class Markov(Family):
                 ctx.plan.skipped += 1
                 i += 1
                 continue
-            p_start = min(0.5, h["mk_detour_base"] * (0.5 + 1.5 * ctx.mean_sev()) * burst)
+            p_start = min(0.5, h["mk_detour_base"] * (1.0 + 2.0 * ctx.mean_sev()) * burst)
             if r.random() < p_start:
                 n = self._detour(ctx, prev_cog, burst)
                 burst = min(3.0, burst * (1.0 + 0.4 * (n >= 2)))
@@ -340,7 +340,7 @@ class LatentSkill(Family):
             else:
                 spec, sev = None, ctx.mean_sev()
             th_eff = -logit(min(max(sev, 1e-4), 1 - 1e-4))            # the person's current log-odds mastery
-            p_h = expit(h["ls_hesitate_a"] - h["ls_hesitate_b"] * th_eff + shift + (0.8 if streak > 0 else 0.0))
+            p_h = expit(h["ls_hesitate_a"] - h["ls_hesitate_b"] * (th_eff - 1.0) + shift + (0.8 if streak > 0 else 0.0))
             state = "flow"
             if r.random() < p_h:
                 state = "hesitate"

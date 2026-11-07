@@ -54,6 +54,21 @@ def reference_sequences(role: RoleSpec) -> dict[str, list[str]]:
     return {"sequence_A": [s.cog for s in role.nominal(a, rnd)], "sequence_B": [s.cog for s in role.nominal(b, rnd)]}
 
 
+def rows_to_events(rows: list[dict]) -> list[Event]:
+    """Build ``core.Event`` objects without per-row validation (the rows are valid by construction and tested against the schema)."""
+    from ..core import Target
+
+    out = []
+    for r in rows:
+        tg = r.get("target")
+        out.append(Event.model_construct(
+            schema_version=1, id=r["id"], t=datetime.fromisoformat(r["t"].replace("Z", "+00:00")), origin=r["origin"], actor=r["actor"],
+            person=r["person"], role=r["role"], source=r["source"], type=r["type"], target=Target.model_construct(**tg) if tg else None,
+            task_id=r.get("task_id"), meta=r.get("meta") or {},
+        ))
+    return out
+
+
 @dataclass
 class V2Cohort:
     family: str
@@ -70,7 +85,7 @@ class V2Cohort:
 
     def events(self) -> list[Event]:
         if "events" not in self._cache:
-            self._cache["events"] = [Event.model_validate(r) for r in self.rows]
+            self._cache["events"] = rows_to_events(self.rows)
         return self._cache["events"]
 
     def episodes(self, mapping=None) -> list[Episode]:
@@ -121,11 +136,11 @@ def generate_cohort(family: str, role: str, n_people: int = 40, cases_per_person
     over = dict(hyper_overrides or {})
     if not noise:
         over = {**NO_NOISE, **over}
-    h = draw_hyper(np.random.default_rng(seed), over)
-    rnd = seeded(seed, 1)
+    h = draw_hyper(np.random.default_rng([seed, FAMILY_ORDER.index(family)]), over)
+    rnd = seeded(seed, FAMILY_ORDER.index(family), 1)
     people = draw_people(h, rs, n_people, fam.code, seed, rnd)
     for p in people:
-        fam.prepare_person(p, rs, h, seeded(seed, 2, p.idx))
+        fam.prepare_person(p, rs, h, seeded(seed, FAMILY_ORDER.index(family), 2, p.idx))
     t_start = (start or START).timestamp()
 
     all_rows: list[dict] = []
@@ -133,8 +148,8 @@ def generate_cohort(family: str, role: str, n_people: int = 40, cases_per_person
     stuck_eps: list[dict] = []
     people_truth: list[dict] = []
     for p in people:
-        prnd = seeded(seed, 3, p.idx)
-        em = Emitter(p, rs, h, seeded(seed, 4, p.idx), f"{p.id[2:]}")
+        prnd = seeded(seed, FAMILY_ORDER.index(family), 3, p.idx)
+        em = Emitter(p, rs, h, seeded(seed, FAMILY_ORDER.index(family), 4, p.idx), f"{p.id[2:]}")
         case_no, day, done_eff = 0, int(prnd.random() * 3), 0.0
         while case_no < cases_per_person:
             while day % 7 >= 5:
