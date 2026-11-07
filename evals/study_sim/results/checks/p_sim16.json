@@ -1,0 +1,137 @@
+{
+ "participant": "p_sim16",
+ "arm": "aa",
+ "sequence": "S4",
+ "worker": "ssim0",
+ "exclusion": "",
+ "wall_s": 1075.6,
+ "checks": {
+  "consent_probe_events": 0,
+  "consent_off_events_after": 0,
+  "contaminated_attempts": [],
+  "events": {
+   "total": 310,
+   "from_extension": 310,
+   "schema_invalid": 0,
+   "types": {
+    "task_start": 4,
+    "nav": 49,
+    "focus": 112,
+    "click": 40,
+    "progress": 8,
+    "tab": 97
+   },
+   "zones": {
+    "calc_site": 20,
+    "household_form": 147,
+    "calc_result": 8,
+    "results_tabs": 89,
+    "case_note": 24
+   },
+   "first_invalid": null,
+   "task_starts": 4,
+   "task_ends": 0,
+   "tab_events": 97
+  },
+  "coach_events": {
+   "shown": 0,
+   "followed": 0,
+   "dismissed": 0,
+   "by_block_skill": {}
+  },
+  "study_mode_enforcement_from_store": [],
+  "kill": {
+   "engine_reports_killed": true,
+   "coach_action_after_kill": "silent"
+  },
+  "engine_log": {
+   "tracebacks": 0,
+   "error_lines": 0,
+   "events_post_failures": 0
+  },
+  "engine_events_export": {
+   "events": 310,
+   "stripped_values": 0
+  },
+  "coach": {
+   "shown": [],
+   "polls": 329,
+   "p_source": {
+    "null": 329
+   },
+   "decisions_non_silent": 0,
+   "polls_by_mode": {
+    "train": 0,
+    "post_test": 152,
+    "off": 177
+   },
+   "non_silent_by_mode": {
+    "train": 0,
+    "post_test": 0,
+    "off": 0
+   }
+  },
+  "study_mode_violations": [],
+  "typed_values_cleaned": {
+   "fills_and_selects": 87,
+   "cleaned": 7
+  },
+  "errors": []
+ },
+ "cases": [
+  {
+   "phase": "practice",
+   "block": 1,
+   "reason": "finish",
+   "used": 57,
+   "capped": false,
+   "wall_s": 188.6,
+   "attempt": 1,
+   "score": null,
+   "harness_error": "",
+   "protocol_violation": ""
+  },
+  {
+   "phase": "post",
+   "block": 1,
+   "reason": "cap",
+   "used": 60,
+   "capped": true,
+   "wall_s": 264.9,
+   "attempt": 1,
+   "score": [
+    0,
+    1
+   ],
+   "harness_error": "",
+   "protocol_violation": ""
+  },
+  {
+   "phase": "practice",
+   "block": 2,
+   "reason": "cap",
+   "used": 61,
+   "capped": true,
+   "wall_s": 341.8,
+   "attempt": 1,
+   "score": null,
+   "harness_error": "",
+   "protocol_violation": ""
+  },
+  {
+   "phase": "post",
+   "block": 2,
+   "reason": "cap",
+   "used": 61,
+   "capped": true,
+   "wall_s": 186.2,
+   "attempt": 1,
+   "score": [
+    0,
+    2
+   ],
+   "harness_error": "",
+   "protocol_violation": ""
+  }
+ ]
+}

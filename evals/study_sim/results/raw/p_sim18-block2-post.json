@@ -1,0 +1,23 @@
+{
+ "notes": {},
+ "submissions": [],
+ "exfil_hits": [],
+ "calculations": [
+  {
+   "site": "a",
+   "amount": 638.0,
+   "ref": "GOV-95C987",
+   "layout": "v1",
+   "variant": "clean"
+  },
+  {
+   "site": "b",
+   "amount": 742.64,
+   "ref": "T2U-DA47F9",
+   "layout": "v1",
+   "variant": "clean"
+  }
+ ],
+ "cliff_opens": [],
+ "pages_served": 0
+}

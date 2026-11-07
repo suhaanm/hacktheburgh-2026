@@ -1,0 +1,137 @@
+{
+ "participant": "p_sim07",
+ "arm": "aa",
+ "sequence": "S3",
+ "worker": "ssim0",
+ "exclusion": "",
+ "wall_s": 810.3,
+ "checks": {
+  "consent_probe_events": 0,
+  "consent_off_events_after": 0,
+  "contaminated_attempts": [],
+  "events": {
+   "total": 253,
+   "from_extension": 253,
+   "schema_invalid": 0,
+   "types": {
+    "task_start": 4,
+    "nav": 31,
+    "focus": 73,
+    "click": 25,
+    "progress": 8,
+    "tab": 112
+   },
+   "zones": {
+    "calc_site": 14,
+    "household_form": 101,
+    "calc_result": 8,
+    "results_tabs": 112,
+    "case_note": 8
+   },
+   "first_invalid": null,
+   "task_starts": 4,
+   "task_ends": 0,
+   "tab_events": 112
+  },
+  "coach_events": {
+   "shown": 0,
+   "followed": 0,
+   "dismissed": 0,
+   "by_block_skill": {}
+  },
+  "study_mode_enforcement_from_store": [],
+  "kill": {
+   "engine_reports_killed": true,
+   "coach_action_after_kill": "silent"
+  },
+  "engine_log": {
+   "tracebacks": 0,
+   "error_lines": 0,
+   "events_post_failures": 0
+  },
+  "engine_events_export": {
+   "events": 253,
+   "stripped_values": 0
+  },
+  "coach": {
+   "shown": [],
+   "polls": 256,
+   "p_source": {
+    "null": 256
+   },
+   "decisions_non_silent": 0,
+   "polls_by_mode": {
+    "train": 0,
+    "post_test": 109,
+    "off": 147
+   },
+   "non_silent_by_mode": {
+    "train": 0,
+    "post_test": 0,
+    "off": 0
+   }
+  },
+  "study_mode_violations": [],
+  "typed_values_cleaned": {
+   "fills_and_selects": 59,
+   "cleaned": 8
+  },
+  "errors": []
+ },
+ "cases": [
+  {
+   "phase": "practice",
+   "block": 1,
+   "reason": "cap",
+   "used": 60,
+   "capped": true,
+   "wall_s": 234.2,
+   "attempt": 1,
+   "score": null,
+   "harness_error": "",
+   "protocol_violation": ""
+  },
+  {
+   "phase": "post",
+   "block": 1,
+   "reason": "finish",
+   "used": 30,
+   "capped": false,
+   "wall_s": 84.1,
+   "attempt": 1,
+   "score": [
+    0,
+    2
+   ],
+   "harness_error": "",
+   "protocol_violation": ""
+  },
+  {
+   "phase": "practice",
+   "block": 2,
+   "reason": "finish",
+   "used": 59,
+   "capped": false,
+   "wall_s": 198.0,
+   "attempt": 1,
+   "score": null,
+   "harness_error": "",
+   "protocol_violation": ""
+  },
+  {
+   "phase": "post",
+   "block": 2,
+   "reason": "finish",
+   "used": 58,
+   "capped": false,
+   "wall_s": 236.9,
+   "attempt": 1,
+   "score": [
+    0,
+    1
+   ],
+   "harness_error": "",
+   "protocol_violation": ""
+  }
+ ]
+}

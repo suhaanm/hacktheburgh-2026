@@ -59,19 +59,44 @@ def load_table(results_dir: Path) -> dict:
         samples = [json.loads(x) for x in sf.read_text().splitlines() if x.strip()]
     if not samples:
         return {"available": False}
-    nearest = lambda t: min(samples, key=lambda x: abs(x["t"] - t))["load1"]  # noqa: E731
+    def nearest(t: float):
+        x = min(samples, key=lambda y: abs(y["t"] - t))
+        return x["load1"] if abs(x["t"] - t) <= 60 else None            # no sample near this time (the sampler started after the first participants)
     rows = []
     for f in sorted((results_dir / "checks").glob("p_sim*.json")) if (results_dir / "checks").is_dir() else []:
         d = json.loads(f.read_text())
         end = f.stat().st_mtime
         start = end - float(d.get("wall_s", 0))
         rows.append({"participant": d["participant"], "load1_start": nearest(start), "load1_end": nearest(end), "wall_s": d.get("wall_s")})
-    vals = [r["load1_start"] for r in rows] + [r["load1_end"] for r in rows]
+    vals = [v for r in rows for v in (r["load1_start"], r["load1_end"]) if v is not None]
     if rows:
-        (results_dir / "load_by_participant.csv").write_text("participant,load1_start,load1_end,wall_s\n" + "".join(f"{r['participant']},{r['load1_start']},{r['load1_end']},{r['wall_s']}\n" for r in rows))
+        (results_dir / "load_by_participant.csv").write_text("participant,load1_start,load1_end,wall_s\n" + "".join(f"{r['participant']},{'' if r['load1_start'] is None else r['load1_start']},{'' if r['load1_end'] is None else r['load1_end']},{r['wall_s']}\n" for r in rows))
     cpus = samples[0].get("cpus")
     return {"available": True, "cpus": cpus, "samples": len(samples), "load1_min": min(x["load1"] for x in samples), "load1_max": max(x["load1"] for x in samples),
-            "load1_median_at_participant_start_or_end": round(statistics.median(vals), 1) if vals else None, "participants": len(rows)}
+            "load1_median_at_participant_start_or_end": round(statistics.median(vals), 1) if vals else None, "participants": len(rows), "participants_with_a_sample_at_start_or_end": sum(1 for r in rows if r["load1_start"] is not None or r["load1_end"] is not None)}
+
+
+def floor_check(results_dir: Path, rows: list[dict]) -> dict:
+    """Floor and ceiling descriptives of the unassisted post-tests, by arm (not part of the pre-registered estimates): how many scored zero, how many hit the action
+    cap, how many ended without a saved draft, and how many sandbox states hold any calculation at all."""
+    results_dir = Path(results_dir)
+    out = {}
+    for arm in ("coached", "aa"):
+        rs = [r for r in rows if r.get("arm") == arm and not str(r.get("exclusion", "")).strip()]
+        n = len(rs)
+        zero = sum(1 for r in rs if analysis.A.skill_score(r) == 0)
+        full = sum(1 for r in rs if analysis.A.skill_score(r) == 1)
+        capped = sum(1 for r in rs if r["post_capped"])
+        no_calc = saved = 0
+        for r in rs:
+            f = results_dir / "raw" / f"{r['participant']}-block{int(r['block'])}-post.json"
+            if f.exists():
+                st = json.loads(f.read_text())
+                no_calc += len(st.get("calculations", [])) == 0
+                saved += len(st.get("notes", {})) > 0
+        out[arm] = {"post_tests": n, "score_zero": zero, "score_full": full, "hit_the_action_cap": capped, "sandbox_state_with_no_calculation": no_calc,
+                    "ended_with_a_saved_draft": saved, "share_zero": round(zero / n, 3) if n else None}
+    return out
 
 
 def aggregate_checks(checks_dir: Path) -> dict:
@@ -215,8 +240,12 @@ def build_section(results_dir: Path = RESULTS, expected: tuple[int, int] = (N_CO
     cost = {}
     if (results_dir / "cost.json").exists():
         c = json.loads((results_dir / "cost.json").read_text())
-        cost = {"usd_est": c.get("usd_est"), "cap_usd": c.get("cap_usd"), "calls": c.get("calls"), "cache_hits": c.get("cache_hits"), "tokens": c.get("tokens"),
-                "prices_from_env": c.get("prices_from_env"), "usd_at_fast_tier_reference_rates": c.get("usd_at_fast_tier_reference_rates"), "price_in_per_mtok": c.get("price_in_per_mtok"), "price_out_per_mtok": c.get("price_out_per_mtok")}
+        ref = c.get("usd_at_fast_tier_reference_rates")
+        if ref is None and c.get("tokens"):
+            ref = round((c["tokens"]["in"] * 0.75 + c["tokens"]["out"] * 4.50) / 1e6, 3)
+        carried = round(sum(json.loads(x.read_text()).get("usd_est", 0) for x in results_dir.parent.glob("aborted_run*/cost.json")), 3)
+        cost = {"usd_est": c.get("usd_est"), "of_which_from_aborted_runs": carried, "cap_usd": c.get("cap_usd"), "calls": c.get("calls"), "cache_hits": c.get("cache_hits"), "tokens": c.get("tokens"),
+                "prices_from_env": c.get("prices_from_env"), "usd_at_fast_tier_reference_rates": ref, "price_in_per_mtok": c.get("price_in_per_mtok"), "price_out_per_mtok": c.get("price_out_per_mtok")}
     models = sorted({r.get("model", "") for r in rows})
     aborted = []
     for nf in sorted(results_dir.parent.glob("aborted_run*/NOTE.json")):
@@ -243,6 +272,7 @@ def build_section(results_dir: Path = RESULTS, expected: tuple[int, int] = (N_CO
                  "note": "Simulated participants (language model), not people. Never the live study. n counts silicon participants."},
     }
     section["analyze_py"] = a["analyze_py"]
+    section["floor"] = floor_check(results_dir, rows)
     section["findings"] = findings(section["pipeline_checks"])
     snap = results_dir / "snapshot.json"
     if snap.exists():
@@ -275,7 +305,8 @@ def render_md(s: dict) -> str:
         w(f"> **Status {s['status']}: fewer participants than planned ({s['meta'].get('expected_n', {}).get('coached', N_COACHED)} coached, {s['meta'].get('expected_n', {}).get('aa', N_AA)} sham). Read the numbers below as a harness or partial-run report; no headline claim is made.**")
         w("")
     for ab in s["meta"].get("aborted_runs", []):
-        w(f"> **An earlier run ({ab['id']}) was aborted after GO and is not analysed:** {ab['reason']}. Its spend (US${ab.get('usd_est')}, {ab.get('calls')} calls) counts against the cap. See the amendment log in PLAN.md. In the interest of honesty: the lead and I saw two post-test scores (p_sim01 and p_sim03) in the progress log before the repair; the repair was judged on a defect of the reply interface (typed values with JSON artifacts), not on outcomes, and nothing was analysed by arm.")
+        w(f"> **An earlier run ({ab['id']}) was aborted after GO and is not analysed:** {ab['reason']}. Its spend (US${ab.get('usd_est')}, {ab.get('calls')} calls) counts against the cap. See the amendment log in PLAN.md."
+          + (f" {ab['honesty']}" if ab.get("honesty") else ""))
         w("")
     w("## 1. Headline: unassisted skill score, coached skill minus uncoached skill")
     w("")
@@ -293,6 +324,13 @@ def render_md(s: dict) -> str:
     else:
         w("**Reading:** the interval includes zero. This is consistent with no effect and with a moderate one; with 16 participants a null is not evidence of no effect (see power below).")
     w("")
+    fl = s.get("floor") or {}
+    if fl.get("coached"):
+        c_, a_ = fl["coached"], fl.get("aa") or {}
+        w(f"**Floor check (descriptive, not a pre-registered estimate).** Of the {c_['post_tests']} unassisted post-tests in the coached arm, {c_['score_zero']} ({c_['share_zero']:.0%}) scored 0, {c_['hit_the_action_cap']} hit the action cap, "
+          f"{c_['sandbox_state_with_no_calculation']} ended with no calculation at all in the sandbox and only {c_['ended_with_a_saved_draft']} with a saved draft; in the A/A arm {a_.get('score_zero')} of {a_.get('post_tests')} scored 0 and {a_.get('hit_the_action_cap')} hit the cap. "
+          "**The measurement is at the floor: the headline and the A/A comparison say very little about the coach**, whatever their sign.")
+        w("")
     w("| per-participant difference | value |")
     w("|---|---|")
     for p, v in (h.get("per_participant_difference") or {}).items():
@@ -347,7 +385,7 @@ def render_md(s: dict) -> str:
     w(f"- **Transcript-free statement:** the engine event files kept for each participant (`results/raw/<participant>/engine_events.jsonl`, {ex['events']} events from {ex['participants_exported']} participants) contain no participant text: they are schema-valid L0 events (timestamps, types, zones, hashed ids, coach step and outcome ids). Strings that were not enum-like and had to be removed: {ex['stripped_values']} (expected 0); export errors: {ex['errors']}. The only model text kept anywhere is each participant's own 280-character note in `actions.jsonl`.")
     ml = pc.get("machine_load") or {}
     if ml.get("available"):
-        w(f"- Machine load while the participants ran (1-minute load average on {ml['cpus']} CPUs): min {ml['load1_min']}, max {ml['load1_max']} over {ml['samples']} samples; median at participant start or end {ml['load1_median_at_participant_start_or_end']}. Per participant in `load_by_participant.csv`. Timings and the coach's prompt delays are affected (see limitations).")
+        w(f"- Machine load while the participants ran (1-minute load average on {ml['cpus']} CPUs): min {ml['load1_min']}, max {ml['load1_max']} over {ml['samples']} samples; median at participant start or end {ml['load1_median_at_participant_start_or_end']} (the sampler started after the first participants; {ml.get('participants_with_a_sample_at_start_or_end')} of {ml['participants']} have a sample within a minute of their start or end). Per participant in `load_by_participant.csv`. Timings and the coach's prompt delays are affected (see limitations).")
     sn = s["meta"].get("pipeline_snapshot")
     if sn:
         w(f"- Code under test: a frozen snapshot of git {str(sn.get('git_head', ''))[:8]} plus {sn.get('uncommitted_files_in_snapshot_dirs')} uncommitted files in services/ and packages/ (fingerprint {sn.get('fingerprint')}, taken {sn.get('taken_at')}); engines and sandbox sites ran from that copy for the whole run, the extension from one build per worker.")
@@ -364,7 +402,7 @@ def render_md(s: dict) -> str:
     w("## 6. Cost")
     w("")
     cs = s.get("cost") or {}
-    w(f"Estimated spend US${_fmt(cs.get('usd_est'), 2)} of the US$8 cap; {cs.get('calls')} model calls ({cs.get('cache_hits')} cache hits); tokens {cs.get('tokens')}. "
+    w(f"Estimated spend US${_fmt(cs.get('usd_est'), 2)} of the US$8 cap (of which US${_fmt(cs.get('of_which_from_aborted_runs'), 2)} was spent by the aborted runs); {cs.get('calls')} model calls ({cs.get('cache_hits')} cache hits); tokens {cs.get('tokens')}. "
       f"Prices {'were set from the environment and are an ASSUMPTION (supplied by the lead, not verified against a bill)' if cs.get('prices_from_env') else 'were conservative defaults (the estimate is an upper bound if the model is cheaper)'}: "
       f"in {cs.get('price_in_per_mtok')}, out {cs.get('price_out_per_mtok')} per million tokens. For reference, the same tokens at the fast-tier rates of 0.75 and 4.50 would cost US${_fmt(cs.get('usd_at_fast_tier_reference_rates'), 2)}.")
     w("")
@@ -374,7 +412,7 @@ def render_md(s: dict) -> str:
         w(f"- ({x['severity']}) {x['text']}")
     w("")
     w("We do not claim that people learn from the coach, that the coach works on real benefits work, that a model's note is memory, any effect on speed, or statistical "
-      "significance beyond what the exact sign-flip test gives. No prompt, persona or analysis was changed after seeing any result; see the amendment log in PLAN.md.")
+      "significance beyond what the exact sign-flip test gives. After GO nothing about the prompts, personas, cases, caps, pace, scoring or analysis was changed except the harness repairs and reporting additions in the amendment log of PLAN.md, each dated, the repairs made before any run's participants were analysed by arm.")
     return "\n".join(L) + "\n"
 
 
