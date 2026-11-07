@@ -214,7 +214,7 @@ export function buildMenuEntries(model: TrayModel, now: number = Date.now()): Me
     { id: 'queue', label: model.queuePending ? `Open morning queue (${model.queuePending})` : 'Open morning queue', enabled: true },
     sep('sep2b'),
     ...(voice
-      ? [{ id: 'demo', label: model.showtimeRunning ? 'Stop the demo walkthrough' : 'Run the demo walkthrough', enabled: true } as MenuEntry, sep('sep3'), { id: 'setup', label: 'Set up again…', enabled: true } as MenuEntry]
+      ? [{ id: 'demo', label: model.showtimeRunning ? 'Stop the walkthrough' : 'Run the walkthrough', enabled: true } as MenuEntry, sep('sep3'), { id: 'setup', label: 'Set up again…', enabled: true } as MenuEntry]
       : []),
     { id: 'permissions', label: 'Permissions…', enabled: true },
     sep('sep4'),

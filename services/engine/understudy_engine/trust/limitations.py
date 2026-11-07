@@ -61,7 +61,7 @@ def analytics_limitations() -> list[dict]:
          "text": "In the live runs the model states a confidence only when it makes a finish claim itself, which happened only in the runs that went wrong. "
                  "Its presence copies the label, so it is kept out of the classifier and cannot be calibrated."},
         {"id": "ana-trust-ladder", "severity": "low",
-         "text": "The autonomy ladder needs 20 clean shadow runs to reach A2 and about 73 clean runs to reach A3; the demo reaches A1 or A2 at most. "
+         "text": "The autonomy ladder needs 20 clean shadow runs to reach A2 and about 73 clean runs to reach A3; the example runs reach A1 or A2 at most. "
                  "A3 is a target, not a result."},
     ]
 

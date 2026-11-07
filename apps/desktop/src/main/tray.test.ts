@@ -76,7 +76,7 @@ describe('menu content', () => {
       'Stop everything',
       'Open dashboard',
       'Open morning queue',
-      'Run the demo walkthrough',
+      'Run the walkthrough',
       'Set up again…',
       'Permissions…',
       'Quit Understudy',
@@ -156,7 +156,7 @@ describe('menu content', () => {
     expect(byId({ micMuted: true }, 'mute')?.label).toBe('Unmute microphone')
     expect(byId({ dockVisible: false }, 'panel')).toMatchObject({ label: 'Show panel', checked: false })
     expect(byId({ dockVisible: true }, 'panel')).toMatchObject({ label: 'Show panel', checked: true })
-    expect(byId({ showtimeRunning: true }, 'demo')?.label).toBe('Stop the demo walkthrough')
+    expect(byId({ showtimeRunning: true }, 'demo')?.label).toBe('Stop the walkthrough')
   })
 
   it('shows the real hotkeys on the persona the hotkey starts, and on Stop', () => {

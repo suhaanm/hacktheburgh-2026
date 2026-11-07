@@ -90,7 +90,7 @@ def static_entries(sections: dict[str, Any] | None = None) -> list[dict[str, str
         {"id": "eval-offhours-s2", "severity": "medium", "source": "agent-core: docs/SPIKES.md S2",
          "text": ("The off-hours live run depends on the conditions spike S2 passed under: macOS Accessibility and Screen Recording granted, an "
                   "unlocked screen, a harmless app, the owner present. The presence forecast and the start-or-wait rule are evaluated on "
-                  "synthetic personas; the live demo may fall back to a simulated clock.")},
+                  "synthetic personas; the live run may fall back to a simulated clock.")},
     ]
 
 

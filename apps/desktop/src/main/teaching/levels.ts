@@ -155,7 +155,7 @@ export function evaluateAttempt(attempt: AttemptRecord, state: SkillState, opts:
   return {
     state: { ...state, ...seen, level, streakClean: 0, nextReview: nextReviewAt(now, 0) },
     change: 'up',
-    reason: opts.demoMode ? 'one clean attempt (demo mode)' : `${need} clean attempts`,
+    reason: opts.demoMode ? 'one clean attempt (quick level-up)' : `${need} clean attempts`,
   }
 }
 

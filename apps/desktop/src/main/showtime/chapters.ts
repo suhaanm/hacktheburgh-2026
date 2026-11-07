@@ -143,7 +143,7 @@ export function buildChapters({ full, lines = SCRIPT_LINES }: BuildOptions): Cha
     t.do(go('desktop'))
     t.wait(300).do(userSays('Can you open the Age UK website for me?')).wait(500).say('c7-1')
     t.wait(2500).do({ type: 'agency.request' })
-    t.wait(2300).do({ type: 'caption', speaker: 'system', text: 'Demo approve: in real use this is your own click.' }, { type: 'agency.approve' })
+    t.wait(2300).do({ type: 'caption', speaker: 'system', text: 'Approved for you here: in real use this is your own click.' }, { type: 'agency.approve' })
     t.wait(700).do({ type: 'stage.hide' })
     t.untilQuiet().say('c7-2')
     t.wait(1400).do({ type: 'agency.audit' })
