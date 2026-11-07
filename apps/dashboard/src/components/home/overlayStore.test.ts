@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { closePalette, endTour, getOverlay, openPalette, resetOverlay, setTourStep, startTour, takeTourReturn, togglePalette } from "./overlayStore";
+import { closeAbout, closePalette, closeSettings, endTour, getOverlay, openAbout, openPalette, openSettings, resetOverlay, setTourStep, startTour, takeTourReturn, toggleAbout, togglePalette } from "./overlayStore";
 
 beforeEach(() => resetOverlay());
 
 describe("overlay store", () => {
   it("starts with nothing open: the tour never starts by itself", () => {
-    expect(getOverlay()).toEqual({ palette: false, tour: null });
+    expect(getOverlay()).toEqual({ palette: false, tour: null, settings: null, about: false });
   });
   it("opens, closes and toggles the palette", () => {
     openPalette();
@@ -20,7 +20,7 @@ describe("overlay store", () => {
   it("starting the tour closes the palette, so one thing speaks at a time", () => {
     openPalette();
     startTour();
-    expect(getOverlay()).toEqual({ palette: false, tour: { step: 0 } });
+    expect(getOverlay()).toEqual({ palette: false, tour: { step: 0 }, settings: null, about: false });
   });
   it("moves between steps, never below zero, and ignores a step when there is no tour", () => {
     setTourStep(3);
@@ -37,6 +37,25 @@ describe("overlay store", () => {
     endTour();
     expect(getOverlay().tour).toBeNull();
     expect(takeTourReturn()).toBeNull();
+  });
+  it("opens Settings at a section, and one surface at a time: each opener closes the others", () => {
+    openSettings("live-models");
+    expect(getOverlay().settings).toEqual({ section: "live-models" });
+    openPalette();
+    expect(getOverlay()).toEqual({ palette: true, tour: null, settings: null, about: false });
+    openAbout();
+    expect(getOverlay()).toEqual({ palette: false, tour: null, settings: null, about: true });
+    openSettings();
+    expect(getOverlay()).toEqual({ palette: false, tour: null, settings: { section: null }, about: false });
+    startTour();
+    expect(getOverlay().settings).toBeNull();
+    expect(getOverlay().tour).toEqual({ step: 0 });
+    closeSettings();
+    closeAbout();
+    toggleAbout();
+    expect(getOverlay().about).toBe(true);
+    toggleAbout();
+    expect(getOverlay().about).toBe(false);
   });
   it("keeps the same state object when nothing changes, so subscribers do not re-render for nothing", () => {
     const a = getOverlay();
