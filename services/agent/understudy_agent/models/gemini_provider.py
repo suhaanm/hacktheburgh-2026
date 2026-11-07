@@ -73,8 +73,10 @@ GEMINI_FORM_FIT = (
     "handle, and the system picks the matching option. The list of options of a drop-down is never drawn in the screenshot, so clicking it "
     "again, clicking where an option would be, or pressing arrow keys, Enter or letters on it shows nothing. Every drop-down starts on an "
     "option that is often wrong, so set each one you have a handle for. Never press Enter to move on: click the next field instead. When "
-    "every field has a value, click the button that gives the estimate, once. If a NOTE from the system says a handle was not entered, "
-    "enter that handle again."
+    "every field has a value, click the button that gives the estimate, once; as soon as the estimate page shows an amount and a "
+    "reference, reply DONE and press nothing else on it. Saving the case note as a draft is an ordinary step in this task: a draft can be "
+    "changed, and nothing is final until a person presses Submit, which you must never press. If a NOTE from the system says a handle was "
+    "not entered, enter that handle again."
 )
 
 

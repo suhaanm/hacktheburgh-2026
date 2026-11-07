@@ -142,6 +142,13 @@ class CalculatorJob:
         spec = SITES[self.site]
         return tuple(dict.fromkeys((spec.button_labels("v1")[-1], spec.button_labels("v2")[-1])))
 
+    def forward_labels(self) -> tuple[str, ...]:
+        """The buttons that move on from a page that is not the last (site A's Continue and Next, site C's Next: your money and Continue to
+        finances): the form audit holds their press while a handle that belongs on the page in front of it is not entered."""
+        spec = SITES[self.site]
+        final = set(self.final_labels())
+        return tuple(dict.fromkeys(x for layout in ("v1", "v2") for x in spec.button_labels(layout) if x not in final))
+
     def field_hints(self) -> dict[str, tuple[str, ...]]:
         return calculator_field_hints(self.site)
 
@@ -377,6 +384,7 @@ class Navigator:
         mode = form_audit_mode()
         audit = None if (facts is None or mode == "off") else FormAudit(
             facts, final_labels=() if mode == "readback" else getattr(job, "final_labels", lambda: ())(),
+            forward_labels=() if mode == "readback" else getattr(job, "forward_labels", lambda: ())(),
             field_hints=getattr(job, "field_hints", lambda: {})(), strict_stray=True)
         cu = ComputerUse(self.model, actuator, self.guard, navigator=self.id, emit=self._emit,
                          is_current=self.is_current, step_start=self.steps, max_steps=self.t3_max_steps,

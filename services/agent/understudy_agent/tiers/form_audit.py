@@ -192,7 +192,15 @@ AUDIT_FORM_JS = "(arg) => {" + _JS_COMMON + r"""
     if (claimed.has(e) || !['text', 'number', 'textarea'].includes(roleOf(e)) || sensitive(e)) continue;
     if (base(e.value) !== '') stray++;
   }
-  return {ok: true, controls: all.length, hidden: all.filter(isHidden).length, opaque_frames: opaque, results, stray};
+  // Which handles have a control that is on screen on THIS page (visible, text-like or a drop-down, not sensitive, its id or name one of the
+  // page's own ids for that handle)? Asked about the handles not entered yet, before a button that moves on.
+  const presence = [];
+  for (const p of (arg.presence || [])) {
+    const present = all.some(e => !isHidden(e) && !sensitive(e) && ['text', 'number', 'textarea', 'select'].includes(roleOf(e))
+      && [e.id, e.getAttribute('name')].filter(Boolean).map(x => x.toLowerCase()).some(i => p.hint.includes(i)));
+    presence.push({h: p.h, present});
+  }
+  return {ok: true, controls: all.length, hidden: all.filter(isHidden).length, opaque_frames: opaque, results, stray, presence};
 }"""
 
 
@@ -257,9 +265,13 @@ class FormAudit:
 
     def __init__(self, facts: Any, *, final_labels: Iterable[str] | None = None,
                  field_hints: Mapping[str, Iterable[str]] | None = None, strict_stray: bool = False,
-                 max_blocks_per_page: int = 3, max_readback_fails: int = 3, max_records: int = 200) -> None:
+                 max_blocks_per_page: int = 3, max_readback_fails: int = 3, max_records: int = 200,
+                 forward_labels: Iterable[str] | None = None) -> None:
         self.facts = facts
         self._finals = frozenset(_norm_label(x) for x in (final_labels or ()) if x)
+        # The buttons that move on from a page that is NOT the last (Continue, Next: your money): held while a handle whose control is on THIS
+        # page is not entered. Needs `field_hints` (the page's own ids per handle) to know which handles belong to the page.
+        self._forwards = frozenset(_norm_label(x) for x in (forward_labels or ()) if x)
         self.hints = {h: tuple(str(x).lower() for x in v) for h, v in (field_hints or {}).items() if v}
         self.strict_stray = strict_stray
         self.max_blocks_per_page, self.max_readback_fails, self.max_records = max_blocks_per_page, max_readback_fails, max_records
@@ -327,9 +339,9 @@ class FormAudit:
                 f"Click the right field, then type {handle} again.{extra}")
 
     # ------------------------------------------------------------------ 2. the final button
-    def is_final(self, kind: str, args: Mapping[str, Any], label: str | None) -> bool:
-        """Is this action the press of a final button (a click on it, or Enter in a field whose default button it is)?"""
-        if not self._finals or not label:
+    @staticmethod
+    def _presses(labels: frozenset[str], kind: str, args: Mapping[str, Any], label: str | None) -> bool:
+        if not labels or not label:
             return False
         if kind in ("click", "double_click"):
             pass
@@ -337,7 +349,59 @@ class FormAudit:
             pass
         else:
             return False
-        return any(_norm_label(part) in self._finals for part in str(label).split(" / "))
+        return any(_norm_label(part) in labels for part in str(label).split(" / "))
+
+    def is_final(self, kind: str, args: Mapping[str, Any], label: str | None) -> bool:
+        """Is this action the press of a final button (a click on it, or Enter in a field whose default button it is)?"""
+        return self._presses(self._finals, kind, args, label)
+
+    def is_forward(self, kind: str, args: Mapping[str, Any], label: str | None) -> bool:
+        """The same for a button that moves on from a page that is not the last one."""
+        return self._presses(self._forwards, kind, args, label)
+
+    async def before_forward(self, actuator: Any, *, step: int, page_key: str) -> PreSubmit:
+        """Before a button that moves on: every handle whose control is ON SCREEN on this page must be entered, and every handle bound on this
+        page must still hold its fact. A skipped field is then noticed on the page where it can be fixed, not at the final button of a wizard.
+        Nothing here changes the final state or asks a human: a control that cannot be read only means no hold at this stage."""
+        self.audits += 1
+        items: list[dict[str, Any]] = []
+        presence: list[dict[str, Any]] = []
+        here: dict[str, str] = {}
+        for h in self.required():
+            b = self.bound.get(h)
+            if b is not None and b.page == page_key:
+                here[h] = b.role
+                items.append({"h": h, "v": self.facts.peek(h), "ref": b.ref, "tag": b.tag, "id": b.id, "name": b.name,
+                              "hint": list(self.hints.get(h, ())) or None})
+            elif b is None and self.hints.get(h):
+                presence.append({"h": h, "hint": list(self.hints[h])})
+        bad: list[tuple[str, str]] = []
+        try:
+            raw = await actuator.audit_form(items, stray=False, presence=presence)
+        except Exception:  # noqa: BLE001
+            raw = None
+        finally:
+            items.clear()
+        ok = isinstance(raw, Mapping) and raw.get("ok")
+        got = {r.get("h"): r for r in raw.get("results", []) if isinstance(r, Mapping)} if ok else {}
+        there = {p.get("h"): bool(p.get("present")) for p in raw.get("presence", []) if isinstance(p, Mapping)} if ok else {}
+        for h, role in here.items():
+            r = got.get(h)
+            match = r.get("match") if r and r.get("match") in LANDED else "unreadable"
+            reason = r.get("reason") if r and r.get("reason") in REASONS else "unreadable"
+            self._rec(step, "forward", h, (r.get("role") if r and r.get("role") in FIELD_ROLES else role), match, reason)
+            if match == "no":
+                bad.append((h, reason))
+        for p in presence:
+            if there.get(p["h"]):
+                bad.append((p["h"], "not_entered"))
+                self._rec(step, "forward", p["h"], "other", "no", "not_entered")
+        exhausted = False
+        if bad:
+            self._blocks[page_key] = self._blocks.get(page_key, 0) + 1
+            self.blocks += 1
+            exhausted = self._blocks[page_key] > self.max_blocks_per_page
+        return PreSubmit("mismatch" if bad else "clean", tuple(bad), (), exhausted, 0)
 
     async def before_final(self, actuator: Any, *, step: int, page_key: str) -> PreSubmit:
         self.audits += 1
@@ -393,9 +457,13 @@ class FormAudit:
         self.last = PreSubmit(state, tuple(bad), tuple(unreadable), exhausted, stray)
         return self.last
 
-    def block_note(self, v: PreSubmit) -> str:
+    def block_note(self, v: PreSubmit, *, where: str = "final") -> str:
         parts = [f"{h} ({REASON_TEXT.get(r, r)})" if h else REASON_TEXT.get(r, r) for h, r in v.bad[:8]]
         more = f" and {len(v.bad) - 8} more" if len(v.bad) > 8 else ""
+        if where == "forward":
+            return ("\nNOTE (checked by the system, not page text): this page was checked before the button that moves on, and it is NOT "
+                    f"ready, so the button was not pressed. Not as it should be on this page: {'; '.join(parts)}{more}. Fix each one "
+                    "(click its field, type its handle again; clear the field first if it already holds text), then press the button again.")
         return ("\nNOTE (checked by the system, not page text): the form was checked before the final button and it is NOT ready, so the "
                 f"button was not pressed. Not as it should be: {'; '.join(parts)}{more}. Fix each one (click its field, type its handle "
                 "again; clear the field first if it already holds text), then press the final button again.")

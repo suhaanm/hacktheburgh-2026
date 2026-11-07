@@ -398,12 +398,14 @@ class BrowserPageActuator:
 
         return await self._eval_isolated(READ_BACK_JS, script_arg(expected=expected, hint=hint))
 
-    async def audit_form(self, items: list[dict[str, Any]], *, stray: bool = False) -> dict[str, Any]:
+    async def audit_form(self, items: list[dict[str, Any]], *, stray: bool = False,
+                         presence: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         """The pre-submit audit: for each item (a handle, the value it should hold and where it was bound) say whether the page holds
-        it. Enums only come back."""
+        it; for each `presence` entry (a handle and the page's own ids for it) say whether a control for it is on screen. Enums only
+        come back."""
         from .form_audit import AUDIT_FORM_JS, script_arg
 
-        return await self._eval_isolated(AUDIT_FORM_JS, script_arg(items=items, stray=stray))
+        return await self._eval_isolated(AUDIT_FORM_JS, script_arg(items=items, stray=stray, presence=presence or []))
 
     async def screenshot(self) -> bytes:
         """A click that submits a form can leave the page mid-navigation; wait for it, and retry once on a timeout."""
@@ -1529,6 +1531,19 @@ class ComputerUse:
                         if pre.exhausted:
                             raise FormAuditStop("the form was still not right after the allowed number of checks on this page", retryable=True)
                         feedback = audit.block_note(pre)
+                        continue
+                elif audit is not None and audit.is_forward(out.kind, out.args, tr.label if tr else None):
+                    # A button that moves on from a page that is not the last: a handle whose control is on THIS page and is not entered
+                    # holds the press, so a skipped field is fixed on the page where it exists (a wizard cannot go back).
+                    fwd = await audit.before_forward(self.actuator, step=n, page_key=self._page_key())
+                    self._flush_audit(audit)
+                    if fwd.state != "clean":
+                        res.audit_blocks += 1
+                        res.history.append({"kind": out.kind, "ok": False, "why": "page_not_ready"})
+                        self._event(n, out.kind, False, f"held: page check, {len(fwd.bad)} not as it should be on this page")
+                        if fwd.exhausted:
+                            raise FormAuditStop("this page was still not right after the allowed number of checks", retryable=True)
+                        feedback = audit.block_note(fwd, where="forward")
                         continue
                 dec = self.guard.authorise(out, pobs, label=tr.label if tr else None, role=tr.role if tr else None,
                                            url=(tr.url if tr else None) or getattr(self.actuator, "url", None),

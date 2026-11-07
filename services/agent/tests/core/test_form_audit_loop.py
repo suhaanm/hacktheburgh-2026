@@ -148,6 +148,46 @@ async def test_a_skipped_drop_down_holds_the_calculate_click_until_it_is_entered
     assert pre == [{"step": pre[0]["step"], "k": "preflight", "handle": "household.bedrooms", "role": "other", "match": "no", "reason": "not_entered"}]
 
 
+# ----------------------------------------------------------------------------- a field skipped on a wizard page: held on the page where it exists
+async def test_a_field_skipped_on_page_one_of_the_wizard_holds_continue_and_is_fixed_on_that_page(cluster, host, sinks):
+    h = DEV[COUPLE]
+    model = DomOracleComputerModel(faults={"skip": {"household.adult1_age"}})
+    res, events, nav = await run_nav(host, cluster, sinks, "a", h, model)
+    assert res.state == "done" and res.inputs_audit == "clean"
+    rec = nav.t3_runs[-1]["form_audit"]
+    assert rec["blocks"] == 1 and rec["audits"] == 5                       # Continue on page one held once, then Continue three times in all and the final button once
+    held = [e for e in events if e.detail.startswith("held: page check")]
+    assert len(held) == 1 and not held[0].ok and "1 not as it should be on this page" in held[0].detail
+    assert [r for r in rec["records"] if r["k"] == "forward" and r["match"] == "no"] == [
+        {"step": held[0].step, "k": "forward", "handle": "household.adult1_age", "role": "other", "match": "no", "reason": "not_entered"}]
+    told = [g for g in model.goals if "before the button that moves on" in g]
+    assert len(told) == 1 and "household.adult1_age (not entered yet)" in told[0] and "checked by the system, not page text" in told[0]
+    got = last_received(cluster)
+    assert [a["age"] for a in got["adults"]] == [a.age for a in h.adults] and len(cluster.state.calculations) == 1      # one calculation, right form
+
+
+async def test_the_next_button_of_site_c_is_held_while_a_field_of_the_visible_panel_is_not_entered(cluster, host, sinks):
+    h = DEV[COUPLE]
+    model = DomOracleComputerModel(faults={"skip": {"household.adult1_age"}})
+    res, events, nav = await run_nav(host, cluster, sinks, "c", h, model)
+    assert res.state == "done" and res.inputs_audit == "clean"
+    rec = nav.t3_runs[-1]["form_audit"]
+    assert rec["blocks"] == 1 and any(r["k"] == "forward" and r["handle"] == "household.adult1_age" and r["reason"] == "not_entered" for r in rec["records"])
+    assert [a["age"] for a in last_received(cluster)["adults"]] == [a.age for a in h.adults]
+
+
+async def test_the_forward_guard_does_not_count_controls_of_a_panel_that_is_not_on_screen(cluster, host, sinks):
+    """Pressing Next on panel one of site C must not ask for panel two's fields (they are in the page but hidden): a clean entry has no hold."""
+    res, events, nav = await run_nav(host, cluster, sinks, "c", DEV[COUPLE], DomOracleComputerModel())
+    assert nav.t3_runs[-1]["form_audit"]["blocks"] == 0 and not [e for e in events if e.detail.startswith("held:")]
+
+
+async def test_the_read_back_arm_has_no_forward_guard(cluster, host, sinks, monkeypatch):
+    monkeypatch.setenv("UNDERSTUDY_FORM_AUDIT", "readback")
+    res, events, nav = await run_nav(host, cluster, sinks, "a", DEV[COUPLE], DomOracleComputerModel(faults={"skip": {"household.adult1_age"}}))
+    assert not [e for e in events if e.detail.startswith("held:")]         # nothing is held in the read-back arm
+
+
 # ----------------------------------------------------------------------------- text typed with nothing focused (hh_0002 calculator A, savings)
 async def test_text_typed_when_nothing_has_focus_is_caught_at_once_and_typed_again(cluster, host, sinks):
     h = DEV[COUPLE]
@@ -218,8 +258,8 @@ async def test_text_that_keeps_going_into_the_wrong_field_stops_the_run_and_noth
 class UnreadableRent(BrowserPageActuator):
     """The page actuator, except that the pre-submit read cannot find the rent control (a page that re-rendered it, say)."""
 
-    async def audit_form(self, items, *, stray=False):
-        out = await super().audit_form(items, stray=stray)
+    async def audit_form(self, items, *, stray=False, presence=None):
+        out = await super().audit_form(items, stray=stray, presence=presence)
         for r in out["results"]:
             if r["h"] == "household.rent":
                 r.update(match="unreadable", reason="not_found", role="other")

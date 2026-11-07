@@ -198,9 +198,30 @@
    "gate_version": "a1feab203314",
    "household": "hh_0003",
    "cu_provider": "default"
+  },
+  {
+   "at": "2026-11-07T23:25:45Z",
+   "label": "agentic3_g_smoke5_a_hh0003",
+   "kind": "smoke",
+   "tokens_in": 66740,
+   "tokens_out": 2726,
+   "cost_placeholder_usd": 0.0603,
+   "cost_lower_usd": 0.0623,
+   "rates_in_out_per_m": [
+    0.75,
+    3.75
+   ],
+   "computer_use_model": "gemini-3.8-flash",
+   "provider": "gemini",
+   "goal_hash": "a0af9d970002",
+   "gate_version": "bf343da6fcb9",
+   "site": "a",
+   "household": "hh_0003",
+   "cu_provider": "default",
+   "old_goal": false
   }
  ],
- "spent_placeholder_usd": 1.236,
- "spent_lower_usd": 1.2765,
+ "spent_placeholder_usd": 1.2963,
+ "spent_lower_usd": 1.3388,
  "pct_of_cap": 0.6
 }
