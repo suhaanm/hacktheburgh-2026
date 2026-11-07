@@ -118,8 +118,14 @@ if (await up()) {
 } else {
   console.log(`FAIL the app did not come up (exit ${exited}). Last log lines:\n${log.split('\n').slice(-25).join('\n')}`)
 }
-child.kill('SIGTERM')
-await sleep(1500)
+// Quit through the real path (before-quit, the quit guard, will-quit, the services stop, exit): a termination signal asks the app to quit, and it must leave by itself with code 0.
+const quitAt = Date.now()
+if (exited === null) child.kill('SIGTERM')
+for (let i = 0; i < 80 && exited === null; i++) await sleep(100)
+const quitMs = Date.now() - quitAt
+const clean = exited === 0
+console.log(`${clean ? 'PASS' : 'FAIL'} the app quits by itself after a termination signal, exit code 0, in under 8 seconds (exit ${exited}, ${quitMs} ms)`)
+if (!clean) code = 1
 if (exited === null) child.kill('SIGKILL')
 engine.server.close()
 agent.server.close()
