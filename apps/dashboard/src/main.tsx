@@ -11,8 +11,7 @@ import "./styles/app.css";
 import { App } from "./App";
 import { initTheme } from "./components/shell/theme";
 
-// The desktop app serves this page from its own scheme (app://knack); there the sidebar leaves 40 px for the traffic lights.
-if (window.location.protocol === "app:") document.documentElement.dataset.shell = "desktop";
+// The desktop app sets document.documentElement.dataset.knackShell = "mac-inset" on every page load; styles/shell.css keeps the sidebar's top 56 px free for the traffic lights.
 initTheme();
 
 createRoot(document.getElementById("root")!).render(

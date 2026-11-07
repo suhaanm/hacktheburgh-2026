@@ -1,4 +1,4 @@
-// Screenshots of the Knack shell for the QA folder: node scripts/shot-knack.mjs [base=http://127.0.0.1:5191] [outDir=qa/knack] [--live] [--queue-empty] [--routes=home,needs-you,...] [--admin]
+// Screenshots of the Knack shell for the QA folder: node scripts/shot-shell.mjs [base=http://127.0.0.1:5191] [outDir=qa/knack] [--live] [--queue-empty] [--routes=home,needs-you,...] [--admin]
 // Light and dark at 1440 by 900, 1152 by 735 and 390 by 844. By default the engine and agent are blocked (example data, deterministic).
 // With --live the page talks to the engine through the dev server, but every request that is not a GET is refused, so nothing can change.
 import { chromium } from "playwright";
