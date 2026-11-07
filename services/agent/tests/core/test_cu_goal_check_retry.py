@@ -218,7 +218,7 @@ async def test_a_typed_handle_that_landed_without_changing_the_picture_is_confir
     note = ENTERED_NOTE.format(handle="a.b").strip()
     # the drop-down already says "One": typing "One" changes nothing on screen, so a model that judges by the picture would type it again
     prompts = await _run_typed("gemini", PAGE, [Action("click", ON_SELECT), TYPE, Action("screenshot", {})], "One")
-    assert note in prompts[3 - 1 + 0] or any(note in p for p in prompts[2:]), prompts[-1][-300:]
+    assert any(note in p for p in prompts[2:]), prompts[-1][-300:]                # the prompt of the step AFTER the typing step
     assert sum(note in p for p in prompts) == 1                                   # said once, after the typing step, never repeated
     # a text box that visibly changes: no note
     prompts = await _run_typed("gemini", PAGE, [Action("click", ON_TEXT), TYPE, Action("screenshot", {})], "12345")

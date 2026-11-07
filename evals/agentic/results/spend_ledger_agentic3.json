@@ -141,9 +141,66 @@
    "household": "hh_0001",
    "cu_provider": "default",
    "old_goal": false
+  },
+  {
+   "at": "2026-11-07T23:12:59Z",
+   "label": "agentic3_g_round2_7001_n3",
+   "kind": "dev_round",
+   "tokens_in": 233751,
+   "tokens_out": 10972,
+   "cost_placeholder_usd": 0.2165,
+   "cost_lower_usd": 0.2247,
+   "rates_in_out_per_m": [
+    0.75,
+    3.75
+   ],
+   "computer_use_model": "gemini-3.8-flash",
+   "provider": "gemini",
+   "goal_hash": "43bc7a77a3df",
+   "gate_version": "a1feab203314",
+   "household": "hh_0001",
+   "cu_provider": "default"
+  },
+  {
+   "at": "2026-11-07T23:15:12Z",
+   "label": "agentic3_g_round2_7001_n3",
+   "kind": "dev_round",
+   "tokens_in": 203987,
+   "tokens_out": 6960,
+   "cost_placeholder_usd": 0.1791,
+   "cost_lower_usd": 0.1843,
+   "rates_in_out_per_m": [
+    0.75,
+    3.75
+   ],
+   "computer_use_model": "gemini-3.8-flash",
+   "provider": "gemini",
+   "goal_hash": "43bc7a77a3df",
+   "gate_version": "a1feab203314",
+   "household": "hh_0002",
+   "cu_provider": "default"
+  },
+  {
+   "at": "2026-11-07T23:17:58Z",
+   "label": "agentic3_g_round2_7001_n3",
+   "kind": "dev_round",
+   "tokens_in": 225266,
+   "tokens_out": 8900,
+   "cost_placeholder_usd": 0.2023,
+   "cost_lower_usd": 0.209,
+   "rates_in_out_per_m": [
+    0.75,
+    3.75
+   ],
+   "computer_use_model": "gemini-3.8-flash",
+   "provider": "gemini",
+   "goal_hash": "43bc7a77a3df",
+   "gate_version": "a1feab203314",
+   "household": "hh_0003",
+   "cu_provider": "default"
   }
  ],
- "spent_placeholder_usd": 0.6381,
- "spent_lower_usd": 0.6585,
- "pct_of_cap": 0.3
+ "spent_placeholder_usd": 1.236,
+ "spent_lower_usd": 1.2765,
+ "pct_of_cap": 0.6
 }
