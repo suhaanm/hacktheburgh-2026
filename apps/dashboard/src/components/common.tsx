@@ -82,14 +82,14 @@ export function SourceNote({ why, also, alsoInline = false }: { why: Fallback | 
  * `variant="about"` is the worker view (D45): the origin badge stays visible and everything else (n, split, interval level, the note) sits in one
  * "About this data" disclosure. The default prints it all, which admin screens, the Evidence page and reviewers keep.
  */
-export function ChartFoot({ meta, extra, brief = false, variant = "full" }: { meta: AnalyticMeta | null; extra?: ReactNode; brief?: boolean; variant?: "full" | "about" }) {
+export function ChartFoot({ meta, extra, brief = false, variant = "full", badge = true }: { meta: AnalyticMeta | null; extra?: ReactNode; brief?: boolean; variant?: "full" | "about"; badge?: boolean }) {
   if (variant === "about") {
     const rows: [string, ReactNode][] = meta
       ? [["n", nUnit(meta)], ...(meta.split ? ([["split", meta.split]] as [string, ReactNode][]) : []), ["intervals", `${Math.round(meta.interval_level * 100)}%`], ["origin", meta.origin], ...(extra ? ([["also", extra]] as [string, ReactNode][]) : []), ...(meta.note && !brief ? ([["note", meta.note]] as [string, ReactNode][]) : [])]
       : [["n", "not reported by the service"]];
     return (
       <div className="chart__foot chart__foot--about">
-        <OriginBadge meta={meta} always />
+        {badge && <OriginBadge meta={meta} always />}
         <AboutData rows={rows} />
       </div>
     );

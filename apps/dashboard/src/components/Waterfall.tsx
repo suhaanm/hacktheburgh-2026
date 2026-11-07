@@ -47,7 +47,7 @@ export function Waterfall({ steps, totalCi }: { steps: WaterfallStep[]; totalCi:
                   <line className="wf-whisker" x1={x(wh)} x2={x(wh)} y1={cy - 4} y2={cy + 4} />
                   {!compact && <text className={`wf-label${r.total ? " wf-label--total" : ""}`} x={-12} y={cy + 4} textAnchor="end">{r.label}</text>}
                   {compact && <text className={`wf-label${r.total ? " wf-label--total" : ""}`} x={0} y={y + 14}>{r.label}</text>}
-                  <text className="wf-val" x={compact ? x.range()[1] : x(wh) + 8} y={compact ? y + 14 : cy + 4} textAnchor={compact ? "end" : "start"}>{r.total || r.seconds < 0 ? "" : "+"}{signed(r.seconds, Math.abs(r.seconds) < 10 && !r.total ? 1 : 0)} s <tspan className="svg-text">{fmtInterval(r.ci)}</tspan></text>
+                  <text className="wf-val" x={compact ? x.range()[1] : x(wh) + 8} y={compact ? y + 14 : cy + 4} textAnchor={compact ? "end" : "start"}>{`${r.total || r.seconds < 0 ? "" : "+"}${signed(r.seconds, Math.abs(r.seconds) < 10 && !r.total ? 1 : 0)} s `}<tspan className="svg-text">{fmtInterval(r.ci)}</tspan></text>
                 </g>
               );
             })}

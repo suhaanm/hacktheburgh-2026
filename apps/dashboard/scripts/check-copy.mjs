@@ -17,6 +17,7 @@
 //   --example                   block the engine and the agent (deterministic example data)
 //   --out=qa/knack/copy-report.json   write the measurements
 //   --report-only               print and write, never exit 1 (for the baseline)
+//   --dump                      print every counted text node above the fold (what the words are)
 //   --list                      print the routes and their budgets, then stop
 import { chromium } from "playwright";
 import fs from "node:fs";
@@ -50,7 +51,7 @@ if (flag("list")) {
 }
 
 /** Runs inside the page: everything is read from the rendered DOM. Mirrors measure-clutter.mjs, plus the element rules. */
-const measureInPage = () => {
+const measureInPage = (dump) => {
   const FOLD = window.innerHeight;
   const hiddenAncestor = (el) => {
     for (let e = el; e && e !== document.body; e = e.parentElement) {
@@ -58,6 +59,8 @@ const measureInPage = () => {
       const cs = getComputedStyle(e);
       if (cs.display === "none" || cs.visibility === "hidden") return true;
       if (e.classList.contains("u-sr-only")) return true;
+      // The shell's one-line "cannot reach its engine" banner is the state of the app, not content of the screen.
+      if (e.getAttribute && e.getAttribute("data-testid") === "engine-banner") return true;
       // The body of a closed disclosure is not on the screen, whatever geometry the browser still reports for it. Its summary is.
       if (e.tagName === "DETAILS" && !e.open) { const sm = el.closest("summary"); if (!(sm && sm.parentElement === e)) return true; }
     }
@@ -69,7 +72,9 @@ const measureInPage = () => {
     const r = el.getBoundingClientRect();
     return r.width > 2 && r.height > 2;
   };
-  const wc = (s) => s.split(/\s+/).filter(Boolean).length;
+  // A word has a letter or a digit in it: a separator such as a chevron, a slash or a lone full stop is not a word.
+  const wc = (s) => s.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
+  const sink = [];
   const words = (root, foldOnly) => {
     let n = 0;
     const tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -85,6 +90,7 @@ const measureInPage = () => {
       if (r.width <= 1 || r.height <= 1) continue;
       if (foldOnly && (r.top >= FOLD || r.bottom <= 0)) continue;
       n += wc(s);
+      if (dump && foldOnly && root.id === "main") sink.push(`${Math.round(r.top)}  ${el.tagName.toLowerCase()}  ${s.slice(0, 70)}`);
     }
     return n;
   };
@@ -113,11 +119,11 @@ const measureInPage = () => {
   const h1IsHero = Boolean(h1 && h1.matches(".hero-insight, [data-hero]"));
   const buttonsLong = sel(main, ".btn, button, a.btn", false)
     .filter((b) => !b.closest(".hint, .segmented, .tabs, .details, .listrow"))
-    .map((b) => ({ t: b.textContent.trim(), n: wc(b.textContent), primary: b.classList.contains("btn--primary") }))
+    .map((b) => ({ t: b.textContent.trim(), n: words(b, false), primary: b.classList.contains("btn--primary") }))
     .filter((b) => b.n > (b.primary ? 4 : 3))
     .map((b) => b.t.slice(0, 40));
-  const rowTitlesLong = sel(main, ".listrow__title", false).filter((e) => wc(e.textContent) > 12).map((e) => e.textContent.trim().slice(0, 50));
-  const ledesLong = sel(main, ".t-lede, .screenhead__limit, .page__lede", false).filter((e) => wc(e.textContent) > 10).map((e) => e.textContent.trim().slice(0, 50));
+  const rowTitlesLong = sel(main, ".listrow__title", false).filter((e) => words(e, false) > 12).map((e) => e.textContent.trim().slice(0, 50));
+  const ledesLong = sel(main, ".t-lede, .screenhead__limit, .page__lede", false).filter((e) => words(e, false) > 10).map((e) => e.textContent.trim().slice(0, 50));
   const eyebrows = h1 ? sel(main, ".page__head .t-label, .eyebrow", false).map((e) => e.textContent.trim().slice(0, 30)) : [];
   const upper = [];
   for (const el of main.querySelectorAll("*")) {
@@ -139,19 +145,22 @@ const measureInPage = () => {
     pills: pills.length, pillTexts: pills.slice(0, 6).map((e) => e.textContent.trim().slice(0, 28)),
     controls: controls.length,
     buttonsLong, rowTitlesLong, ledesLong, eyebrows, uppercase: upper.slice(0, 5), uppercaseCount: upper.length,
-    empty, busy,
+    empty, busy, dump: sink,
+    controlDump: dump ? controls.map((e) => `${e.tagName.toLowerCase()}${e.getAttribute("role") ? `[${e.getAttribute("role")}]` : ""} ${(e.getAttribute("aria-label") || e.textContent || "").trim().slice(0, 50)}`) : [],
+    pillDump: dump ? pills.map((e) => e.textContent.trim().slice(0, 40)) : [],
     gate: /part of the Admin view|Admin view only|not in this view/i.test(main.innerText),
   };
 };
 
 async function settle(page) {
-  let m = await page.evaluate(measureInPage);
+  let m = await page.evaluate(measureInPage, false);
   let prev = -1;
   for (let i = 0; i < 16 && !m.noMain && (m.wordsTotal !== prev || m.busy); i++) {
     prev = m.wordsTotal;
     await page.waitForTimeout(500);
-    m = await page.evaluate(measureInPage);
+    m = await page.evaluate(measureInPage, false);
   }
+  if (flag("dump")) m = await page.evaluate(measureInPage, true);
   return m;
 }
 
@@ -247,7 +256,8 @@ try {
           const sw = view === "admin" ? sb.words.admin : sb.words.worker;
           if (m.sideWords > sw) problems.push(`sidebar words ${m.sideWords} > ${sw}`);
         }
-        results.push({ view, route: id, viewport: vp.join("x"), theme, example, ...m, problems });
+        if (flag("dump")) console.log(m.dump.map((d) => `      ${d}`).join("\n") + "\n   controls: " + m.controlDump.join(" | ") + "\n   pills: " + m.pillDump.join(" | "));
+        results.push({ view, route: id, viewport: vp.join("x"), theme, example, ...m, dump: undefined, controlDump: undefined, pillDump: undefined, problems });
         const brief = `above ${String(m.wordsAbove).padStart(3)}/${budgetFor(id, "wordsAbove", aud, { empty: m.empty }) ?? "-"}  total ${String(m.wordsTotal).padStart(4)}/${budgetFor(id, "wordsTotal", aud) ?? "-"}  long ${m.longParas}  pills ${m.pills}  ctl ${String(m.controls).padStart(2)}  side ${m.sideRows}r ${m.sideWords}w ${m.sideHintWords}h`;
         console.log(`${problems.length ? "FAIL" : "PASS"}  ${tag.padEnd(24)} ${brief}${problems.length ? "\n      " + problems.join("\n      ") : ""}`);
         for (const p of problems) fails.push(`${tag}: ${p}`);
