@@ -1,6 +1,6 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sat 07 Nov 2026, 23:56 UTC. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sat 07 Nov 2026, 23:57 UTC. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
 This is the master document. It lists 61 entries (57 features and 4 write-ups of results that did not hold up) on 33 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
@@ -32,6 +32,20 @@ Knack watches how people do the same work and shows where a novice loses time an
 ## The loop in one line
 
 Watch how people work, show where a novice loses time against an expert, coach on the real screen with help that fades, step in when someone is stuck, let an agent take repetitive work only with opt-in, and prove how much less help the worker needs over time.
+
+## The Wordsmith workflow, end to end, in nine steps
+
+For judges who ask what the complicated browser workflow actually is. Each step names the page that holds its evidence and its limit.
+
+1. Knack notices a task the worker repeats and proposes it as a routine ([routines](features/routines.md), [proactive-briefing](features/proactive-briefing.md)).
+2. The worker chooses Watch first; the routine practises beside them, and autonomy is earned by matching what they do ([routines](features/routines.md)).
+3. The worker starts it, or opts that one routine in to run while they are away ([background-agents](features/background-agents.md)).
+4. An orchestrator turns a household into a task graph; navigators work the three calculator sites in parallel, using a compiled step script first, a browser agent when a precondition fails, and computer use last ([benefits-agent](features/benefits-agent.md), [computer-use](features/computer-use.md)).
+5. Every page is treated as data and every action passes the gate; hidden text aimed at an AI pauses the run ([security-layers](features/security-layers.md)).
+6. A verifier and a critic against the expert policy check the result (a second-model-family screen verifier is also built), and code, not the model, decides it is done ([benefits-agent](features/benefits-agent.md)).
+7. The case note is written, and the one irreversible step waits in Needs you with its evidence ([needs-you](features/needs-you.md)).
+8. The worker approves with a real click (and a fresh sign-in if Auth0 is configured); no key and no voice can approve ([needs-you](features/needs-you.md), [security-layers](features/security-layers.md)).
+9. One key stops everything at any point, and the audit log records what happened ([stop-everything](features/stop-everything.md)).
 
 ## Three spoken versions
 
