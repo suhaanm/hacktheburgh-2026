@@ -470,8 +470,9 @@ class ComputerUse:
                     res.claimed_done = out.claimed_success
                     ok = await verify()
                     res.false_claim = bool(out.claimed_success and not ok)
-                    res.outcome = "done" if ok else "claimed_not_verified"
-                    self._event(n, "done", ok, "claim verified" if ok else "claim NOT verified by code")
+                    res.outcome = "done" if ok else ("claimed_not_verified" if out.claimed_success else "gave_up")
+                    self._event(n, "done", ok, "claim verified" if ok else (
+                        "claim NOT verified by code" if out.claimed_success else "the model said it could not finish"))
                     return res
                 label = str(out.args.get("label") or "") or None
                 dec = self.guard.authorise(out, pobs, label=label, url=None, screen=self.size)

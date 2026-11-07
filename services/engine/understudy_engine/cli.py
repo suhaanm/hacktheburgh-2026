@@ -3,6 +3,7 @@
     understudy synth --all                 regenerate every synthetic dataset (deterministic)
     understudy synth --persona night-owl   one persona; --apprentices, --learners for the benefits-task datasets
     understudy pack validate [PATH ...]    validate role packs (ROL-1)
+    understudy plugin validate [PATH ...]  validate marketplace plugin references and manifests (plugins package)
     understudy serve                       run the engine API on ENGINE_PORT (default 7700)
 """
 from __future__ import annotations
@@ -50,6 +51,15 @@ def _pack(args: argparse.Namespace) -> int:
     return validate_command(args.paths)
 
 
+def _plugin(args: argparse.Namespace) -> int:
+    try:
+        from .plugins.cli import validate_command
+    except ImportError as exc:       # the plugins package is another track's: a plain message, not a traceback
+        print(f"plugin validation is not available: the plugins package is missing or does not import ({exc}).", file=sys.stderr)
+        return 2
+    return int(validate_command(list(args.paths), quiet=args.quiet) or 0)
+
+
 def _serve(args: argparse.Namespace) -> int:
     import uvicorn
 
@@ -76,6 +86,13 @@ def main(argv: list[str] | None = None) -> int:
     pv = psub.add_parser("validate", help="validate role packs against the pack schema")
     pv.add_argument("paths", nargs="*", help="pack directories (default: every pack under packages/packs)")
     pv.set_defaults(fn=_pack)
+
+    p = sub.add_parser("plugin", help="marketplace plugin tools")
+    plsub = p.add_subparsers(dest="plugin_cmd", required=True)
+    plv = plsub.add_parser("validate", help="validate plugin references and manifests")
+    plv.add_argument("paths", nargs="*", help="plugin directories or files (default: whatever the plugins package validates by default)")
+    plv.add_argument("--quiet", action="store_true", help="print only problems")
+    plv.set_defaults(fn=_plugin)
 
     p = sub.add_parser("serve", help="run the engine API")
     p.add_argument("--host", default="127.0.0.1")

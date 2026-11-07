@@ -732,3 +732,39 @@ def test_markers_schema_forms(markers, ok):
 
 def def_validator_for(name: str):
     return V.def_validator(name)
+
+
+# ---------------------------------------------------------------- the reconciliation select (zone reconcile_control)
+
+def test_reconcile_control_zone_is_in_the_vocabulary_the_capture_config_and_the_engine_rule():
+    m = yaml.safe_load((BEN / "mapping.yaml").read_text())
+    assert "reconcile_control" in m["zones"]
+    assert {"match": {"type": ["click", "focus"], "zone": "reconcile_control"}, "cog": "RECONCILE", "starts": True} in m["rules"]
+    cfg = yaml.safe_load((BEN / "tasks" / "sites.yaml").read_text())
+    site_a = next(s for s in cfg["sites"] if s["id"] == "a")["capture"]["elements"]
+    order = [e["zone"] for e in site_a]
+    assert order.index("reconcile_control") < order.index("case_note")        # it must win over the broader note zone
+    sel = next(e["selector"] for e in site_a if e["zone"] == "reconcile_control")
+    assert 'data-understudy-zone="reconcile_control"' in sel
+    for s in cfg["sites"]:
+        if s["id"] in ("b", "c"):
+            assert "reconcile_control" not in [e["zone"] for e in s["capture"]["elements"]]     # the note page is only on site a's port
+
+
+def test_reconcile_control_selectors_match_the_built_sandbox_markup():
+    specs = pytest.importorskip("understudy_agent.sandbox_sites.specs")
+    pytest.importorskip("starlette.testclient")
+    sites_mod = pytest.importorskip("understudy_agent.sandbox_sites.sites")
+    from starlette.testclient import TestClient
+    import re
+
+    cfg = yaml.safe_load((BEN / "tasks" / "sites.yaml").read_text())
+    sel = next(e["selector"] for e in next(s for s in cfg["sites"] if s["id"] == "a")["capture"]["elements"] if e["zone"] == "reconcile_control")
+    assert specs.CASENOTE_FIELDS_V1["reconciliation"] in sel and specs.CASENOTE_FIELDS_V2["reconciliation"] in sel
+    app = sites_mod.make_apps(sites_mod.SandboxState(), {"a": 7801, "b": 7802, "c": 7803})["a"]
+    for q, field in (("", specs.CASENOTE_FIELDS_V1["reconciliation"]), ("&layout=v2", specs.CASENOTE_FIELDS_V2["reconciliation"])):
+        html = TestClient(app).get(f"/casenote?case=CASE-1005{q}").text
+        tag = re.search(r'<select[^>]*data-understudy-zone="reconcile_control"[^>]*>', html)
+        assert tag, f"the reconciliation select must carry the zone attribute ({q or 'v1'})"
+        assert f'id="{field.lstrip("#")}"' in tag.group(0)
+        assert html.count('data-understudy-zone="reconcile_control"') == 1

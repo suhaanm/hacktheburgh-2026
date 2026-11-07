@@ -38,6 +38,7 @@ sites:
       elements:
         - { zone: cliff_button, selector: "#cliff-btn" }
         - { zone: cliff_panel, selector: "#cliff-panel" }
+        - { zone: reconcile_control, selector: '#reconciliation, #cn-recon, [data-understudy-zone="reconcile_control"]' }   # the case note's reconciliation select; before case_note so it wins
         - { zone: case_note, selector: 'form[action^="/casenote"], #note-id, #note-status, #note-body, #cn-id, #cn-state, #cn-text' }
         - { zone: calc_result, selector: "#result-amount, #result-status, #result-ref, #calc-total, #calc-outcome, #calc-reference" }
         - { zone: household_form, selector: 'form[action^="/step"], form[action^="/result"]' }

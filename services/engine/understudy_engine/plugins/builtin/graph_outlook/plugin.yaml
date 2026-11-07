@@ -1,0 +1,16 @@
+id: graph_outlook
+version: 0.1.0
+kind: source
+description: Microsoft Graph Outlook calendarView (read only). Off by default; needs the worker's own sign-in via an injected token provider.
+permissions: [read]
+egress: local_only
+schema: calendar_event.v1
+entry: understudy_engine.plugins.graph_outlook:OutlookGraphSource
+default_enabled: false
+network: true
+requires_token: true
+enable_flag: UNDERSTUDY_GRAPH
+limitations:
+  - Never exercised on a real account in tests; unit-tested against recorded fake responses only.
+  - Response shapes follow the public Graph documentation and are unverified against a live tenant.
+  - GET only; the next-page link must stay on graph.microsoft.com.

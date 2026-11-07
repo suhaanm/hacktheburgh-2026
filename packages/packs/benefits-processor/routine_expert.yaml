@@ -1,0 +1,55 @@
+# Expert weekly structure for the UK benefits processor (CAL-2). Schema: packages/schema/routine_expert.schema.json.
+# Hand-authored from the planted synthetic design, NOT measured on real experts. Every figure derived from it is
+# labelled synthetic and the template says nothing about what real benefits processors do.
+version: 1
+role: benefits-processor
+summary: Protected morning case-entry batch, one afternoon meeting a day at most, a daily review slot, a real lunch.
+timezone: Europe/London
+work_window: { start: "09:00", end: "17:30", days: [mon, tue, wed, thu, fri] }
+peak_focus:
+  start: "09:30"
+  end: "12:00"
+  why: Household entry and reconciliation need unbroken attention; standing meetings land after lunch.
+slots:
+  - { id: standup,      kind: meeting,   days: [mon, tue, wed, thu, fri], start: "09:00", end: "09:15", recurring: true,  attendees: 6 }
+  - { id: batch_entry,  kind: batch,     days: [mon, tue, wed, thu, fri], start: "09:30", end: "11:00", optional: true }
+  - { id: lunch,        kind: offscreen, days: [mon, tue, wed, thu, fri], start: "12:30", end: "13:15" }
+  - { id: planning,     kind: meeting,   days: [mon],                     start: "14:00", end: "14:45", recurring: true,  attendees: 8 }
+  - { id: one_to_one,   kind: meeting,   days: [tue],                     start: "14:00", end: "14:30", recurring: true,  attendees: 2 }
+  - { id: briefing,     kind: meeting,   days: [wed],                     start: "14:00", end: "15:00", recurring: true,  attendees: 12 }
+  - { id: housing_call, kind: meeting,   days: [thu],                     start: "14:30", end: "15:00", recurring: false, attendees: 3, external: true, optional: true }
+  - { id: huddle,       kind: meeting,   days: [fri],                     start: "13:30", end: "14:00", recurring: true,  attendees: 6 }
+  - { id: queue_review, kind: review,    days: [mon, tue, wed, thu, fri], start: "16:30", end: "17:00", optional: true }
+targets:
+  meeting_h_max: 8.0
+  meeting_share_max: 0.25
+  focus_blocks_90_min: 6
+  focus_blocks_60_min: 8
+  longest_focus_min_min: 150
+  fragmentation_max: 0.75
+  fragmented_days_max: 1
+  back_to_back_runs_max: 1
+  work_span_h_max: 9.5
+  offscreen_h_min: 3.0
+  recurring_in_peak_h_max: 1.0
+  external_unbuffered_max: 0
+  review_slots_min: 3
+  batch_windows_min: 3
+  outside_hours_h_max: 1.0
+plugin_refs:
+  - { kind: source, id: ics }
+  - { kind: source, id: jsoncal }
+  - { kind: source, id: graph_outlook }
+synth:
+  jitter_min: 10
+  skip_prob: 0.05
+  titles:
+    standup: ["Daily casework stand-up", "Morning queue stand-up"]
+    batch_entry: ["Batch: calculator entries", "Batch: household entry"]
+    lunch: ["Lunch", "Lunch - away from desk"]
+    planning: ["Weekly casework planning", "Casework planning and allocation"]
+    one_to_one: ["1:1 with line manager", "1:1 catch-up"]
+    briefing: ["Policy update briefing", "Benefit rules briefing"]
+    housing_call: ["Supplier call: housing association", "Partner call: landlord forum"]
+    huddle: ["Case review huddle", "Friday case huddle"]
+    queue_review: ["End-of-day queue review", "Queue review slot"]

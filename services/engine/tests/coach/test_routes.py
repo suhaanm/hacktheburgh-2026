@@ -46,10 +46,9 @@ def test_next_returns_the_decision_in_the_analytic_envelope(client):
     c, _ = client
     evs = signature_events()
     post_events(c, evs)
-    # poll twice at the end of the copy: the second consecutive signal opens the gate
-    r1 = c.get("/coach/next", params={"person": "p_hand", "now": iso(evs[-2])})
-    assert r1.status_code == 200
+    # two worker events since the violation began are already two signals: the first poll can act
     r2 = c.get("/coach/next", params={"person": "p_hand", "now": iso(evs[-1])})
+    assert r2.status_code == 200
     body = r2.json()
     meta, d = body["meta"], body["data"]
     assert meta["origin"] == "synthetic" and meta["n_unit"] == "episodes" and "no model call" in meta["note"]
@@ -82,7 +81,6 @@ def test_feedback_roundtrip_over_http(client):
     c, root = client
     evs = signature_events()
     post_events(c, evs)
-    c.get("/coach/next", params={"person": "p_hand", "now": iso(evs[-2])})
     d = c.get("/coach/next", params={"person": "p_hand", "now": iso(evs[-1])}).json()["data"]
     later = (evs[-1].t + timedelta(seconds=2)).strftime("%Y-%m-%dT%H:%M:%S.000Z")
     r = c.post("/coach/feedback", json={"decision_id": d["decision_id"], "outcome": "followed", "now": later})
@@ -100,3 +98,16 @@ def test_health_reports_the_coach_router(client):
     assert c.get("/health").json()["routers"]["coach"] is True
     paths = c.get("/openapi.json").json()["paths"]
     assert "/coach/next" in paths and "/coach/feedback" in paths and "/study/mode" in paths
+
+
+def test_the_poll_clock_needs_two_polls(client):
+    """gate_clock "polls" is the original rule: one signal per poll, so the first poll is only a wait."""
+    c, _ = client
+    app_coach = c.app.state.coach
+    app_coach.gate_clock = "polls"
+    evs = signature_events()
+    post_events(c, evs)
+    first = c.get("/coach/next", params={"person": "p_hand", "now": iso(evs[-1])}).json()["data"]
+    assert first["action"] == "silent" and "gate_wait_signals" in first["reason_codes"]
+    second = c.get("/coach/next", params={"person": "p_hand", "now": iso(evs[-1])}).json()["data"]
+    assert second["action"] == "annotate"

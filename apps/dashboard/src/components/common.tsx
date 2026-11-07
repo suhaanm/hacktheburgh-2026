@@ -180,3 +180,18 @@ export function Range({ lo, hi, pt, min, max }: { lo: number; hi: number; pt: nu
     </span>
   );
 }
+
+/** The check run after a step: a glyph and a word, so it never rests on colour alone. */
+export function CheckChip({ check }: { check: "verified" | "uncertain" | "failed" }) {
+  const g = { verified: ["\u2713", "verified"], uncertain: ["?", "uncertain"], failed: ["\u2715", "failed"] }[check];
+  return (
+    <span className="pill pill--check" data-check={check} title={check === "verified" ? "Code confirmed the result of this step" : check === "uncertain" ? "Code could not read the result of this step" : "Code found this step did not do what it should"}>
+      <span className="pill__glyph-char" aria-hidden="true">{g[0]}</span>{g[1]}
+    </span>
+  );
+}
+
+/** A run or child state as a pill: a dot for running, plain words for the rest. */
+export function StatePill({ state, tone }: { state: string; tone: "go" | "good" | "bad" | "muted" }) {
+  return <span className="pill pill--state" data-tone={tone}><span className="pill__dot" aria-hidden="true" />{state}</span>;
+}

@@ -38,6 +38,7 @@ rules:
   - { match: { type: copy, zone: calc_result }, cog: COPY_TO_NOTE }
   - { match: { type: [tab, paste, click, focus], zone: case_note }, cog: COPY_TO_NOTE }
   - { match: { type: [tab, click], zone: results_tabs }, cog: RECONCILE }
+  - { match: { type: [click, focus], zone: reconcile_control }, cog: RECONCILE, starts: true }   # the case note's reconciliation select
   # ---- base cogs
   - { match: { type: idle }, cog: IDLE, backdate_meta: idle_s }
   - { match: { type: undo }, cog: REVERT }

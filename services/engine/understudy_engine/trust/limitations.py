@@ -53,6 +53,13 @@ def analytics_limitations() -> list[dict]:
                  "household type breaks that assumption silently. Review time per case is an assumption."},
         {"id": "ana-claims-synthetic", "severity": "medium",
          "text": "Agent-claim calibration has not seen a real agent trace. Code still decides success; a low predicted risk never replaces the check."},
+        {"id": "ana-claims-live-tiny", "severity": "high",
+         "text": "The only real agent traces so far are 68 claimed successes from 20 households on the sandbox sites, from one real model. All 20 false claims are one "
+                 "family of failure: the model said it was done on a one-off error page. A classifier can mostly learn 'this was an error page', which a "
+                 "one-line rule also catches, so this does not show that claim risk can be predicted in general."},
+        {"id": "ana-claims-live-artifact", "severity": "medium",
+         "text": "In the live runs the model states a confidence only when it makes a finish claim itself, which happened only in the runs that went wrong. "
+                 "Its presence copies the label, so it is kept out of the classifier and cannot be calibrated."},
         {"id": "ana-trust-ladder", "severity": "low",
          "text": "The autonomy ladder needs 20 clean shadow runs to reach A2 and about 73 clean runs to reach A3; the demo reaches A1 or A2 at most. "
                  "A3 is a target, not a result."},
@@ -68,7 +75,8 @@ SECTION_LIMITATIONS = {
     "ope": ("ana-synthetic-origin", "ana-policy-sim"),
     "policy_gate": ("ana-synthetic-origin", "ana-hazard-people", "ana-hazard-label"),
     "routing": ("ana-synthetic-origin", "ana-routing-shift", "ana-routing-circular"),
-    "agent_claims": ("ana-synthetic-origin", "ana-claims-synthetic", "ana-trust-ladder"),
+    "agent_claims": ("ana-synthetic-origin", "ana-claims-synthetic", "ana-trust-ladder", "ana-claims-live-tiny", "ana-claims-live-artifact"),
+    "agent_claims_live": ("ana-claims-live-tiny", "ana-claims-live-artifact"),
 }
 
 

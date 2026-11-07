@@ -41,7 +41,8 @@ _P = lambda s: re.compile(s, re.I)  # noqa: E731
 
 LABEL_PATTERNS: dict[ActionClass, re.Pattern[str]] = {
     ActionClass.PAY: _P(r"\b(pay|buy|purchase|check ?out|place (your |the )?order|order now|donate|subscribe|"
-                        r"add (a )?(payment|card)|confirm payment|top ?up|transfer (funds|money))\b"),
+                        r"add (a )?(payment|card)|confirm payment|top ?up|transfer (funds|money)|"
+                        r"invoices?|wire (transfers?|funds|money))\b"),
     ActionClass.DELETE: _P(r"\b(delete|remove|erase|discard|destroy|wipe|trash|clear (all|history|data|cache)|"
                            r"uninstall|deactivate|close (my )?account|cancel (my )?(subscription|account|claim)|"
                            r"factory reset|reset all|format)\b"),
@@ -54,8 +55,9 @@ LABEL_PATTERNS: dict[ActionClass, re.Pattern[str]] = {
     ActionClass.PERMISSION: _P(r"\b(allow|grant|permissions?|authori[sz]e access|full disk access|accessibility|"
                                r"screen recording|privacy (settings|&)|security settings|firewall|turn off protection|"
                                r"disable)\b"),
-    ActionClass.CREDENTIAL: _P(r"\b(passwords?|sign[- ]?in|log[- ]?in|log[- ]?out|api keys?|tokens?|2fa|two[- ]factor|"
-                               r"passkeys?|recovery (code|email|phone)|change (my )?(email|password|phone))\b"),
+    ActionClass.CREDENTIAL: _P(r"\b(passwords?|pass-?codes?|sign[- ]?in|log[- ]?in|log[- ]?out|api keys?|tokens?|2fa|two[- ]factor|"
+                               r"otps?|one[- ]?time (pass-?)?(codes?|passwords?|pins?)|login codes?|seed phrases?|"
+                               r"(private|secret) keys?|passkeys?|recovery (code|email|phone)|change (my )?(email|password|phone))\b"),
 }
 
 # key combinations (lower-case, '+'-joined, modifiers sorted) that quit, close, delete or wipe

@@ -1,0 +1,12 @@
+{
+ "enabled": true,
+ "running": true,
+ "model": {
+  "file": "Qwen2.5-7B-Instruct-Q4_K_M.gguf",
+  "size_bytes": 4683073984,
+  "sha_ok": true
+ },
+ "endpoint": "http://127.0.0.1:8081",
+ "tokens_per_s": 38.2,
+ "mode": "model"
+}

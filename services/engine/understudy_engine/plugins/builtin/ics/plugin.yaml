@@ -1,0 +1,12 @@
+id: ics
+version: 0.1.0
+kind: source
+description: ICS (RFC 5545) calendar files, synthetic or a user export, with recurrence expansion. Local file, read only.
+permissions: [read]
+egress: local_only
+schema: calendar_event.v1
+entry: understudy_engine.plugins.ics:ICSSource
+default_enabled: true
+limitations:
+  - Common RRULE cases only (DAILY, WEEKLY, MONTHLY, YEARLY with BYDAY, BYMONTHDAY, BYSETPOS, COUNT, UNTIL); other rules are read as a single event.
+  - Whether a person attended or declined is known only when the owner's address is supplied.

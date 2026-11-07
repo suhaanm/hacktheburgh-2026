@@ -124,6 +124,7 @@
       "profile_panel",
       "query_edit",
       "query_result",
+      "reconcile_control",
       "results_tabs",
       "run_control",
       "search_box",
@@ -202,6 +203,10 @@
           {
             "zone": "cliff_panel",
             "selector": "#cliff-panel"
+          },
+          {
+            "zone": "reconcile_control",
+            "selector": "#reconciliation, #cn-recon, [data-understudy-zone=\"reconcile_control\"]"
           },
           {
             "zone": "case_note",

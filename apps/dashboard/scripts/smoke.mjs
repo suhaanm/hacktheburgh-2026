@@ -212,6 +212,77 @@ await page.unroute("**/eval/report");
   await page.unroute(/127\.0\.0\.1:7700\//);
 }
 
+// 8d. Extension screens (REQ-2), demo fixtures
+await go("/week", 900);
+const weekText = await page.locator("main").innerText();
+check("week: the ribbon, the gap table with intervals and 3 to 5 suggestion cards", (await page.locator(".weekribbon svg").count()) === 2 && /95% interval/i.test(weekText) && (await page.locator(".sug").count()) >= 3 && (await page.locator(".sug").count()) <= 5);
+check("week: every suggestion says it is a draft and that nothing is sent", (await page.locator(".sug", { hasText: "Draft only. Nothing is sent, booked or changed." }).count()) === (await page.locator(".sug").count()));
+check("week: no titles or names anywhere on the screen", !/(standup|1:1|review with|@[a-z]+\.)/i.test(weekText));
+
+await go("/briefing", 900);
+const cardsBefore = await page.locator("article.proposal").count();
+check("briefing: at most three cards", cardsBefore > 0 && cardsBefore <= 3);
+const first = page.locator("article.proposal").first();
+await first.locator("textarea").fill("Hold Wednesday 10:00 to 12:00 for focus. Edited by me.");
+await first.getByRole("button", { name: "Save my edit" }).click();
+await page.waitForTimeout(500);
+await go("/briefing", 700);
+check("briefing: the edit to the prepared block is kept", (await page.locator("article.proposal").first().locator("textarea").inputValue()).includes("Edited by me."));
+await page.locator("article.proposal").first().getByRole("button", { name: "Approve and run" }).click();
+await page.waitForTimeout(600);
+check("briefing: pressing Approve and run says which thing it created", /Created approval item q_demo_b_01/.test(await page.locator("[data-testid=fired]").first().innerText()));
+await page.locator("article.proposal").first().getByRole("button", { name: "Not now" }).click();
+await page.waitForTimeout(500);
+await page.locator("article.proposal").first().getByRole("button", { name: "Never for this" }).click();
+await page.waitForTimeout(500);
+check("briefing: with nothing left it says nothing is worth your time", (await page.getByText("Nothing worth your time today").count()) >= 1 && (await page.locator("article.proposal").count()) === 0);
+
+await go("/agents", 900);
+const runsBefore = await page.locator("article.run").count();
+await page.locator("#spawn-kind").selectOption("data.chart");
+await page.getByRole("button", { name: "Nightly" }).click();
+await page.getByRole("button", { name: "Run in background" }).click();
+await page.waitForTimeout(700);
+check("agents: spawning adds a run to the tree", (await page.locator("article.run").count()) === runsBefore + 1 && (await page.locator("article.run").first().innerText()).includes("Chart builder"));
+await page.locator("article.run").first().getByRole("button", { name: "Stop" }).click();
+await page.waitForTimeout(700);
+check("agents: Stop ends the run and its helpers", (await page.locator("article.run").first().innerText()).toLowerCase().includes("stopped"));
+const live = page.locator("article.run", { hasText: "Commit analyst" });
+check("agents: each helper shows budgets spent against allowed and its lease", /7 of 20 steps/.test(await live.innerText()) && /LEASE/i.test(await live.innerText()) && /git_log/.test(await live.innerText()));
+await live.getByRole("button", { name: "Revoke the lease of habit counter" }).click();
+await page.waitForTimeout(700);
+check("agents: revoking a lease ends that helper and says so", /revoked, no tools in scope/.test(await live.innerText()));
+await page.locator("article.run", { hasText: "Data profile" }).locator("summary", { hasText: "Artifacts and result" }).click();
+await page.waitForTimeout(500);
+const detail = await page.locator("article.run", { hasText: "Data profile" }).innerText();
+check("agents: result steps carry a check with a glyph and a word", /verified/.test(detail) && /uncertain/.test(detail) && (await page.locator(".pill--check .pill__glyph-char").count()) >= 3);
+
+await go("/privacy", 900);
+check("privacy: the ledger lists each call with its fields and the payload as sent", (await page.locator(".ledger__row").count()) === 6 && /Payload, exactly as sent/.test(await page.locator("main").innerText()) && (await page.locator("pre.payload").first().innerText()).includes("card_kind"));
+const priv = await page.locator("main").innerText();
+check("privacy: it never claims that nothing leaves the laptop, and the canary reads as evidence not proof", !/nothing (ever )?leaves/i.test(priv) && /evidence from a test, not a proof/i.test(priv) && /Calls for steps you asked for are listed too/i.test(priv));
+await page.getByRole("button", { name: "Clear the ledger" }).click();
+await page.getByRole("button", { name: "Yes, clear the list" }).click();
+await page.waitForTimeout(600);
+check("privacy: clearing empties the list and says so", (await page.locator(".ledger__row").count()) === 0 && (await page.getByText("The ledger is empty").count()) >= 1);
+
+// 8e. Extension gating: a screen shows only when /health lists its layer as true
+{
+  const json = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(body) });
+  await page.route(/127\.0\.0\.1:7700\//, (route) => {
+    const u = new URL(route.request().url());
+    if (u.pathname === "/health") return json(route, { ok: true, version: "x", mock: true, extensions: { calendar: true, privacy: false, proactive: false, agents: false } });
+    return json(route, { error: { code: "not_found", message: "not mocked" } }, 404);
+  });
+  await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(600);
+  const nav = await page.locator("nav#nav").innerText();
+  check("gating: only the layers /health lists as on appear in the menu", /Week/.test(nav) && !/Privacy/.test(nav) && !/Agents/.test(nav) && !/Briefing/.test(nav));
+  await page.goto(`${base}/#/privacy`); await page.waitForTimeout(500);
+  const off = await page.locator("main").innerText();
+  check("gating: a screen that is off says so and how to switch it on, and loads nothing", /Privacy is not switched on/.test(off) && /UNDERSTUDY_X_PRIVACY=1/.test(off));
+  await page.unroute(/127\.0\.0\.1:7700\//);
+}
+
 // 9. Kill switch
 await go("/genome");
 await page.getByRole("button", { name: "Stop everything now" }).click();

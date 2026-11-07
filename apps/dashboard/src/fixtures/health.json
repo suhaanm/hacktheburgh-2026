@@ -10,5 +10,13 @@
  "services": {
   "engine": true,
   "agent": true
+ },
+ "extensions": {
+  "privacy": true,
+  "localmodel": true,
+  "calendar": true,
+  "git": true,
+  "proactive": true,
+  "agents": true
  }
 }

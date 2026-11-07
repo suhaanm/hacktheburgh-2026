@@ -78,6 +78,9 @@ export interface EngineClient {
   coachState(): Promise<CoachStateInfo | null>
   // GET /coach/next?person=: the coach brain's decision (what to do now, and which zone to point at). Null when unreachable.
   coachNext(): Promise<CoachDecision | null>
+  // GET /events?partition=real&person=&since=: did the worker touch this capture zone (click, focus, tab, paste) at or after `sinceMs`?
+  // That is how the desktop knows the element a ring pointed at was used. Null when the engine did not answer.
+  touched(zone: string, sinceMs: number): Promise<boolean | null>
   // POST /coach/feedback: the worker's own response to a prompt (followed or dismissed). It updates their skill state; it is not
   // telemetry, so it is sent whatever the capture preference says.
   coachFeedback(decisionId: string, outcome: FeedbackOutcome): Promise<FeedbackResult>
@@ -93,6 +96,8 @@ export interface EngineClient {
   dispose(): void
 }
 
+// What counts as the worker using an element a ring pointed at.
+const TOUCH_TYPES = new Set(['click', 'focus', 'tab', 'paste'])
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
 const strs = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string').slice(0, 8) : [])
@@ -259,6 +264,12 @@ export function createEngineClient(opts: EngineClientOptions): EngineClient {
       const res = await http('GET', `${endpoints.engine}/coach/next?person=${encodeURIComponent(identity.person)}`)
       if (!res || res.status >= 300) return null
       return parseCoachNext(res.json)
+    },
+    async touched(zone, sinceMs) {
+      const q = new URLSearchParams({ partition: 'real', person: identity.person, since: new Date(sinceMs).toISOString(), limit: '200' })
+      const res = await http('GET', `${endpoints.engine}/events?${q.toString()}`, undefined, 1500)
+      if (!res || res.status >= 300 || !isObj(res.json) || !Array.isArray(res.json.events)) return null
+      return res.json.events.some((ev) => isObj(ev) && typeof ev.type === 'string' && TOUCH_TYPES.has(ev.type) && isObj(ev.meta) && ev.meta.zone === zone && Date.parse(String(ev.t)) >= sinceMs)
     },
     async coachFeedback(decisionId, outcome) {
       const res = await http('POST', `${endpoints.engine}/coach/feedback`, { decision_id: decisionId, outcome })

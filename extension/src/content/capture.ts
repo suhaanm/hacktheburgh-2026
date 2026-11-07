@@ -17,6 +17,8 @@ export interface CaptureDeps {
   now?: () => number;
   /** Production: true. Tests that dispatch synthetic events set false; one test pins the true behaviour. */
   requireTrusted?: boolean;
+  /** Count a script-dispatched `change` on a <select> too (automation only; see InstallConfig.accept_synthetic). */
+  acceptSyntheticChange?: boolean;
   isTop?: boolean;
 }
 
@@ -74,6 +76,17 @@ export function installCapture(deps: CaptureDeps): () => void {
     const d = describe(e.target);
     if (!d) return;
     emit({ type: "click", target: d.target, meta: withZone({}, d.zone) });
+  });
+
+  // ---- a value change on a <select> is an interaction with its zone: a click record with changed:true, never the value.
+  // A real user's click opens the list (a click event) and the choice then fires change; keyboard changes fire change too.
+  // An automated browser's selectOption dispatches only untrusted input and change, so it is counted only when asked to.
+  const onChange = safe((e: Event) => {
+    if (!(e.target instanceof win.HTMLSelectElement)) return;
+    if (!trusted(e) && !(deps.acceptSyntheticChange && e.type === "change")) return;
+    const d = describe(e.target);
+    if (!d) return;
+    emit({ type: "click", target: d.target, meta: withZone({ changed: true }, d.zone) });
   });
 
   // ---- focus (form fields and other interactive controls)
@@ -199,6 +212,7 @@ export function installCapture(deps: CaptureDeps): () => void {
   const opts = { capture: true, passive: true } as const;
   doc.addEventListener("click", onClick, opts);
   doc.addEventListener("focusin", onFocus, opts);
+  doc.addEventListener("change", onChange, opts);
   doc.addEventListener("scroll", onScroll, opts);
   win.addEventListener("scroll", onScroll, opts);
   doc.addEventListener("copy", onCopy, opts);
@@ -215,6 +229,7 @@ export function installCapture(deps: CaptureDeps): () => void {
   return () => {
     doc.removeEventListener("click", onClick, true);
     doc.removeEventListener("focusin", onFocus, true);
+    doc.removeEventListener("change", onChange, true);
     doc.removeEventListener("scroll", onScroll, true);
     win.removeEventListener("scroll", onScroll, true);
     doc.removeEventListener("copy", onCopy, true);

@@ -15,6 +15,7 @@ import secrets
 import threading
 import time
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterator
@@ -49,6 +50,29 @@ class NotPermitted(QueueError):
 
 class InvalidAuth(QueueError, ValueError):
     """The `auth` record on an approval is not one of the accepted shapes."""
+
+
+DEFAULT_APPROVAL_MAX_AGE_S = 1800.0   # an approval is good for 30 minutes
+ENV_APPROVAL_MAX_AGE = "UNDERSTUDY_APPROVAL_MAX_AGE_S"
+
+
+def approval_max_age_s(override: float | None = None) -> float:
+    """How long an approval stays usable: the argument, else env UNDERSTUDY_APPROVAL_MAX_AGE_S, else 30 minutes."""
+    if override is not None:
+        return float(override)
+    raw = os.environ.get(ENV_APPROVAL_MAX_AGE, "").strip()
+    try:
+        v = float(raw)
+        return v if v > 0 else DEFAULT_APPROVAL_MAX_AGE_S
+    except ValueError:
+        return DEFAULT_APPROVAL_MAX_AGE_S
+
+
+@dataclass(frozen=True)
+class ApprovalCheck:
+    ok: bool
+    code: str = "ok"      # ok | not_found | not_approved | consumed | signature_mismatch | expired
+    reason: str = ""
 
 
 AUTH_METHODS = ("local", "auth0_stepup")
@@ -111,8 +135,9 @@ def save_screenshot(run_id: str, step: int, png: bytes) -> str:
 
 class ApprovalQueue:
     def __init__(self, root: Path | None = None, *, audit: AuditLog | None = None,
-                 clock: Callable[[], float] = time.time) -> None:
+                 clock: Callable[[], float] = time.time, max_age_s: float | None = None) -> None:
         self._root = root
+        self._max_age_s = max_age_s
         self.audit = audit
         self._clock = clock
         self._tl = threading.Lock()
@@ -259,16 +284,43 @@ class ApprovalQueue:
                     n += 1
         return n
 
-    def consume_approval(self, item_id: str, signature: str) -> bool:
-        """True exactly once for an approved item whose signature matches. Used by the pipeline to let the
-        approved step through a single time."""
+    def try_consume_approval(self, item_id: str, signature: str, *, max_age_s: float | None = None) -> ApprovalCheck:
+        """Use an approval once. It must be approved, unconsumed, bound to this action signature, and not older than `max_age_s`
+        (default 30 minutes, env UNDERSTUDY_APPROVAL_MAX_AGE_S): an older approval is cancelled (status becomes `expired`) and
+        the step must be asked for again. Returns why it was refused."""
+        limit = approval_max_age_s(max_age_s if max_age_s is not None else self._max_age_s)
         with self._locked():
             try:
                 item = self._read(item_id)
             except NotFound:
-                return False
-            if item["status"] != "approved" or item.get("consumed_at") or item.get("signature") != signature:
-                return False
-            item["consumed_at"] = _iso(self._clock())
-            self._write(item)
-        return True
+                return ApprovalCheck(False, "not_found", "no such approval")
+            if item["status"] != "approved":
+                return ApprovalCheck(False, "not_approved", f"the item is {item['status']}, not approved")
+            if item.get("consumed_at"):
+                return ApprovalCheck(False, "consumed", "this approval was already used")
+            if item.get("signature") != signature:
+                return ApprovalCheck(False, "signature_mismatch", "this approval was given for a different step")
+            decided = item.get("decided_at")
+            try:
+                age = self._clock() - datetime.fromisoformat(str(decided).replace("Z", "+00:00")).timestamp()
+            except (TypeError, ValueError):
+                age = float("inf")  # no readable time of approval: cannot show it is fresh
+            if age > limit:
+                item["status"] = "expired"
+                item["expired_at"] = _iso(self._clock())
+                item["expired_reason"] = "approval_too_old"
+                self._write(item)
+                expired = item
+                minutes = "an unknown time" if age == float("inf") else f"{age / 60:.0f} minutes"
+                reason = (f"the approval was given {minutes} ago and approvals expire after {limit / 60:.0f} minutes; "
+                          "it has been cancelled, so ask again")
+            else:
+                item["consumed_at"] = _iso(self._clock())
+                self._write(item)
+                return ApprovalCheck(True)
+        self._log("queue_decided", expired, "expired_old_approval", actor="system")
+        return ApprovalCheck(False, "expired", reason)
+
+    def consume_approval(self, item_id: str, signature: str, *, max_age_s: float | None = None) -> bool:
+        """True exactly once for a fresh, approved item whose signature matches (see try_consume_approval for the reason)."""
+        return self.try_consume_approval(item_id, signature, max_age_s=max_age_s).ok

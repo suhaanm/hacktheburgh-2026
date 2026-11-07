@@ -301,3 +301,74 @@ def test_typing_is_still_policed_by_layers_4_and_5_without_the_drift_check(tmp_p
     assert bad.verdict == "needs_human" and bad.layer == "dataflow"
     secret = step(pipe, "type", {"text": "hunter2"}, TargetInfo(label="Password", role="textbox", url=PAGE, field_attrs={"type": "password"}))
     assert secret.verdict == "block"
+
+
+# ------------------------------------------------------------------ the finalize path (agent-core's): authorise(..., approved_queue_id=...) after the worker approved
+def aged_pipeline(tmp_path, clock, goal=GOAL + " and submit the case note"):
+    audit = AuditLog(tmp_path / "audit.jsonl")
+    queue = ApprovalQueue(tmp_path / "queue", audit=audit, clock=clock)
+    routine = RoutineContext(routine_id="calc-entry-3x", run_id="r_t1", mode="interactive", rung="A2", recorded_hosts=HOSTS)
+    pipe = SafetyPipeline(MockProvider("reader_basic"), SecurityConfig(), audit=audit, queue=queue, routine=routine, goal=goal)
+    return pipe, queue
+
+
+def submit_step(pipe, **kw):
+    obs = pipe.observe(CLEAN, SCHEMA)
+    return pipe.authorise(Action("click_element", {"selector": "#submit-note", "label": "Submit to claimant record"}), observation=obs,
+                          target=TargetInfo(label="Submit to claimant record", role="button", url=PAGE), **kw)
+
+
+def test_finalize_path_a_stale_approval_does_not_fire_and_the_worker_is_asked_again(tmp_path):
+    class Clock:
+        t = 1_800_000_000.0
+
+        def __call__(self):
+            return Clock.t
+
+    clock = Clock()
+    pipe, queue = aged_pipeline(tmp_path, clock)
+    first = submit_step(pipe)
+    assert first.verdict == "needs_human" and first.queue_id
+    queue.approve(first.queue_id, origin=Origin.HUMAN_UI)
+    Clock.t += 3 * 3600  # the worker approved, then walked away for hours
+    late = submit_step(pipe, approved_queue_id=first.queue_id)
+    assert late.verdict == "needs_human" and "approval:expired" in late.codes and late.queue_id != first.queue_id
+    assert "approvals expire after 30 minutes" in late.reasons[0] and "ask again" in late.reasons[0]
+    assert queue.get(first.queue_id)["status"] == "expired"
+    fresh = queue.get(late.queue_id)
+    assert fresh["status"] == "pending" and "approvals expire" in fresh["summary"]  # the worker sees why they are being asked again
+    queue.approve(late.queue_id, origin=Origin.HUMAN_UI)
+    Clock.t += 60
+    ok = submit_step(pipe, approved_queue_id=late.queue_id)
+    assert ok.verdict == "allow" and not ok.codes
+
+
+def test_finalize_path_a_fresh_approval_still_fires_once(tmp_path):
+    class Clock:
+        t = 1_800_000_000.0
+
+        def __call__(self):
+            return Clock.t
+
+    pipe, queue = aged_pipeline(tmp_path, Clock())
+    first = submit_step(pipe)
+    queue.approve(first.queue_id, origin=Origin.HUMAN_UI)
+    Clock.t += 600
+    assert submit_step(pipe, approved_queue_id=first.queue_id).verdict == "allow"
+    again = submit_step(pipe, approved_queue_id=first.queue_id)
+    assert again.verdict == "needs_human" and "approval:expired" not in again.codes  # already used, not old
+
+
+def test_the_pipeline_age_limit_follows_the_env_override(tmp_path, monkeypatch):
+    class Clock:
+        t = 1_800_000_000.0
+
+        def __call__(self):
+            return Clock.t
+
+    monkeypatch.setenv("UNDERSTUDY_APPROVAL_MAX_AGE_S", "30")
+    pipe, queue = aged_pipeline(tmp_path, Clock())
+    first = submit_step(pipe)
+    queue.approve(first.queue_id, origin=Origin.HUMAN_UI)
+    Clock.t += 31
+    assert "approval:expired" in submit_step(pipe, approved_queue_id=first.queue_id).codes

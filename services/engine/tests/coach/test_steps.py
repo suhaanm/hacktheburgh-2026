@@ -94,7 +94,9 @@ def test_target_comes_from_the_packs_own_mapping(pack, policy):
     m = pack.cog_mapping()
     t = target_for(policy.steps["cliff_a"], m, site="calc1")
     assert t == {"zone": "cliff_button", "label_hint": "Check cliff edges", "role_hint": "button", "site": "calc1"}
-    assert target_for(policy.steps["reconcile"], m)["zone"] == "results_tabs"
+    from .helpers import reconcile_zone
+
+    assert target_for(policy.steps["reconcile"], m)["zone"] == reconcile_zone()
     assert target_for(policy.steps["write_note"], m)["zone"] == "case_note"
     assert target_for(policy.steps["calc_a"], m)["zone"] == "calc_site"
     assert short_label("Open Check cliff edges on calculator B") == "Check cliff edges"
@@ -103,3 +105,18 @@ def test_target_comes_from_the_packs_own_mapping(pack, policy):
 def test_thin_pack_policy_also_loads():
     p = StepPolicy.from_pack(load_pack("data-analyst"))
     assert p.coverage == "stub" and any(s.critical for s in p.steps.values())
+
+
+def test_reconcile_target_is_the_case_note_select_with_the_tab_strip_as_fallback(policy):
+    from understudy_engine.cogs import load_mapping
+
+    t = target_for(policy.steps["reconcile"], load_mapping(None), site=None)
+    assert t == {"zone": "reconcile_control", "label_hint": "How do they compare", "role_hint": "select", "fallback_zones": ["results_tabs"]}
+    # a mapping that does not know the control keeps the tab strip (nothing is invented)
+    import yaml
+
+    old = load_mapping({"rules": [r for r in yaml.safe_load(open(load_mapping.__globals__["DEFAULT_MAPPING_PATH"]).read())["rules"]
+                                  if (r.get("match") or {}).get("zone") != "reconcile_control"]})
+    assert target_for(policy.steps["reconcile"], old)["zone"] == "results_tabs" and "fallback_zones" not in target_for(policy.steps["reconcile"], old)
+    # the cliff target is unchanged
+    assert target_for(policy.steps["cliff_a"], load_mapping(None))["zone"] == "cliff_button"

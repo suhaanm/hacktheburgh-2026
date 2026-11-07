@@ -170,6 +170,20 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
     except ImportError:
         pass
 
+    # Optional extension routers: only when asked for (UNDERSTUDY_X_AGENTS=1 or UNDERSTUDY_X=1, read at startup), only
+    # if they import, and a failure to load one never breaks the server; the reason is kept in a status dict.
+    extensions: dict[str, bool] = {"agents": False}
+    extension_status: dict[str, str] = {"agents": "disabled (set UNDERSTUDY_X_AGENTS=1 or UNDERSTUDY_X=1)"}
+    if os.environ.get("UNDERSTUDY_X_AGENTS") == "1" or os.environ.get("UNDERSTUDY_X") == "1":
+        try:
+            from .runtime.routes import router as agents_router
+
+            app.include_router(agents_router)
+            extensions["agents"], extension_status["agents"] = True, "enabled"
+        except Exception as exc:  # noqa: BLE001 - ImportError or anything the extension does at import time
+            extension_status["agents"] = f"not loaded: {type(exc).__name__}: {str(exc)[:120]}"
+    app.state.extensions, app.state.extension_status = extensions, extension_status
+
     def err(status: int, code: str, message: str) -> JSONResponse:
         return JSONResponse({"error": {"code": code, "message": message}}, status_code=status)
 
@@ -216,7 +230,7 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
         sup.kill_flag_set(fresh=True)
         snap = sup.snapshot()
         return {"ok": True, "mock": mock_enabled(), "supervisor": {"generation": snap["generation"], "state": snap["state"]},
-                "voice": voice, "sandbox": sandbox_up()}
+                "voice": voice, "sandbox": sandbox_up(), "extensions": dict(extensions)}
 
     # ------------------------------------------------------------------ runs
     def pick_household(body: RunIn) -> Household:

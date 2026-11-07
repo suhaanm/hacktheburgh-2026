@@ -10,6 +10,7 @@ resolution-markers = [
 members = [
     "understudy",
     "understudy-agent",
+    "understudy-clicky-lift",
     "understudy-engine",
 ]
 
@@ -1235,6 +1236,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
+    { name = "understudy-clicky-lift" },
     { name = "understudy-engine" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -1251,9 +1253,15 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.7" },
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "pyyaml", specifier = ">=6" },
+    { name = "understudy-clicky-lift", editable = "vendor/clicky" },
     { name = "understudy-engine", editable = "services/engine" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
 ]
+
+[[package]]
+name = "understudy-clicky-lift"
+version = "0.1.0"
+source = { editable = "vendor/clicky" }
 
 [[package]]
 name = "understudy-engine"

@@ -132,6 +132,18 @@ def test_arriving_on_a_result_page_is_reading_it():
     assert ids(to_cogs([ev(0, "nav", "page")])) == ["NAVIGATE"]                                  # other navigation is unchanged
 
 
+def test_reconcile_is_a_tab_switch_or_touching_the_case_note_reconciliation_control():
+    tabs = to_cogs([ev(0, "tab", "results_tabs"), ev(5, "click", "results_tabs")])
+    assert ids(tabs) == ["RECONCILE"]                                                    # the existing rule is kept
+    ctrl = to_cogs([ev(0, "focus", "reconcile_control"), ev(4, "click", "reconcile_control")])
+    assert ids(ctrl) == ["RECONCILE", "RECONCILE"] and ctrl[0].t1 == pytest.approx(ctrl[1].t0)   # `starts`: each touch is its own reconcile
+    # in the note: copy, then the control, is COPY_TO_NOTE then RECONCILE (the select is not the note field)
+    note = to_cogs([ev(0, "copy", "calc_result"), ev(3, "tab", "case_note"), ev(8, "paste", "case_note"), ev(14, "click", "reconcile_control")])
+    assert ids(note) == ["COPY_TO_NOTE", "RECONCILE"]
+    # a click on the note field itself is still writing the note
+    assert ids(to_cogs([ev(0, "click", "case_note")])) == ["COPY_TO_NOTE"]
+
+
 def test_fallbacks_without_a_zone():
     evs = [ev(0, "nav"), ev(6, "scroll"), ev(12, "click"), ev(18, "copy"), ev(20, "paste")]
     assert ids(to_cogs(evs)) == ["NAVIGATE", "READ", "ENTER", "COPY", "PASTE"]

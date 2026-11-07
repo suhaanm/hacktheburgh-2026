@@ -19,6 +19,7 @@ from typing import Any, Callable
 from urllib.parse import urlparse
 
 from ..completion import ClaimLedger
+from ..models.errors import ProviderError
 from ..models.port import ModelPort
 from ..security.sanitize import wrap_untrusted
 from .base import (
@@ -47,6 +48,16 @@ TIER2_SCHEMA: dict[str, Any] = {
     "required": ["tool", "reason"],
 }
 
+PAGE_STATE_SCHEMA: dict[str, Any] = {
+    "title": "page_state",
+    "type": "object",
+    "properties": {
+        "kind": {"type": "string", "enum": ["form", "result", "error", "saved_note", "other"]},
+        "error": {"type": "boolean"},
+    },
+    "required": ["kind", "error"],
+}
+
 TOOL_HELP = (
     "TOOLS (return exactly one as JSON):\n"
     "- click(ref): press a button or follow a link.\n"
@@ -58,10 +69,11 @@ TOOL_HELP = (
     "- finish(confidence): the page is showing the final result (the estimate, its status and its reference) or the saved "
     "case note. Say how sure you are, 0 to 1.\n"
     "Only fill a field once per page. Never invent a parameter name. Move on with the forward button when the page's "
-    "fields are done."
+    "fields are done. If the extracted page kind is `error`, the page is a problem page: do NOT finish. Press its Go "
+    "back or Try again link, then press the forward button again. Only finish on a `result` page or a `saved_note` page."
 )
 
-__all__ = ["BrowserAgent", "StuckLoop", "Tier2Task", "Tier2Result", "TIER2_SCHEMA", "convert_unit"]
+__all__ = ["BrowserAgent", "StuckLoop", "Tier2Task", "Tier2Result", "TIER2_SCHEMA", "PAGE_STATE_SCHEMA", "convert_unit"]
 
 
 def convert_unit(param: str, value: str, unit: str) -> str:
@@ -109,8 +121,9 @@ def _normalise(out: dict[str, Any]) -> dict[str, Any]:
 class BrowserAgent:
     def __init__(self, model: ModelPort, guard: Guard, *, navigator: str, emit: Emit | None = None,
                  is_current: Callable[[], bool] = lambda: True, step_start: int = 0, max_actions: int = 20,
-                 ledger: ClaimLedger | None = None) -> None:
+                 ledger: ClaimLedger | None = None, page_state: bool = False) -> None:
         self.model, self.guard, self.navigator = model, guard, navigator
+        self.page_state = page_state    # ask the quarantined reader what KIND of page this is, every step
         self.ledger = ledger or ClaimLedger()
         self.emit = emit
         self.is_current = is_current
@@ -132,19 +145,24 @@ class BrowserAgent:
         history: list[dict[str, Any]] = []
         res = Tier2Result(outputs=None)
         rejected_streak = 0
+        prev_path: str | None = None
         n = self.step_start
         while res.actions < self.max_actions:
             if not self.is_current():
                 raise asyncio.CancelledError()
             obs = await observe(page)
             candidate = task.looks_final(obs)
-            seen = self.guard.observe_obs(obs, schema=task.schema if candidate else None, navigator=self.navigator)
+            schema = task.schema if candidate else (PAGE_STATE_SCHEMA if self.page_state else None)
+            seen = await asyncio.to_thread(self.guard.observe_obs, obs, schema=schema, navigator=self.navigator)
             if candidate:
                 outputs = task.parse(obs, seen.fields)
                 if outputs is not None:
                     res.outputs, res.reason = outputs, "code check passed"
                     return res
             page_key = urlparse(obs.url).path
+            if page_key != prev_path:
+                done_on[page_key] = set()   # arriving on a page (a new one, or this one again after Back) starts it blank
+            prev_path = page_key
             visible = obs.visible_elements()
             state = {
                 "page": page_key,
@@ -159,7 +177,18 @@ class BrowserAgent:
             extra = (TOOL_HELP + "\n\nSTATE: " + json.dumps(state, sort_keys=True)
                      + "\nELEMENT LABELS (copied from the page):\n" + wrap_untrusted(labels, source="web"))
             msgs = self.guard.planner_messages(task.goal, seen, history_summary=f"{res.actions} actions taken", extra=extra)
-            raw = await asyncio.to_thread(self.model.plan, msgs, TIER2_SCHEMA)
+            try:
+                raw = await asyncio.to_thread(self.model.plan, msgs, TIER2_SCHEMA)
+            except (ProviderError, ValueError) as exc:  # a malformed or refused answer is one wasted turn, not a dead run
+                res.actions += 1
+                self.used = res.actions
+                n += 1
+                rejected_streak += 1
+                history.append({"tool": "plan", "ok": False, "why": type(exc).__name__})
+                self._event(n, "plan", False, f"rejected: {type(exc).__name__}")
+                if rejected_streak >= 3:
+                    raise
+                continue
             act = _normalise(raw if isinstance(raw, dict) else {})
             res.actions += 1
             self.used = res.actions
@@ -182,7 +211,7 @@ class BrowserAgent:
                 obs2 = await observe(page)
                 ok = False
                 if task.looks_final(obs2):
-                    seen2 = self.guard.observe_obs(obs2, schema=task.schema, navigator=self.navigator)
+                    seen2 = await asyncio.to_thread(self.guard.observe_obs, obs2, schema=task.schema, navigator=self.navigator)
                     ok = task.parse(obs2, seen2.fields) is not None
                 res.claims.append("verified" if ok else "false")
                 self.ledger.record(f"tier2:{self.navigator}", True, ok, "finish claimed")

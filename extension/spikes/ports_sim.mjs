@@ -41,7 +41,7 @@ async function pickPorts() {
   return [await freePort(), await freePort(), await freePort()];
 }
 
-async function runVariant(label, dist, ports, enginePort, events) {
+async function runVariant(label, dist, ports, enginePort, events, extra) {
   const userDataDir = mkdtempSync(join(tmp, "profile-"));
   const headless = process.env.SIM_HEADED !== "1";
   context = await chromium.launchPersistentContext(userDataDir, {
@@ -64,6 +64,7 @@ async function runVariant(label, dist, ports, enginePort, events) {
     await page.fill('[name="your_age"]', "36");       // a real field, in the household form
     await page.click("#continue");                     // a real click
     await until(() => events.some((e) => e.person === person && e.type === "click"), 15000, `the click event (${label})`);
+    if (extra) await extra({ page, sw, person });
     await sleep(3000);
     return events.filter((e) => e.person === person);
   } finally {
@@ -125,6 +126,38 @@ while True:
     schema_invalid: got.filter((e) => !validEvent(e)).length,
     page_text_found: ["Continue", "your_age", "Your age"].filter((t) => JSON.stringify(got).includes(t)),
   };
+  // 3b. the reconciliation select on the case-note page: keyboard change is trusted and captured; a script's selectOption is not, until
+  //     accept_synthetic is switched on; flush_ms 1000 gets it to the engine in about a second
+  const sel = {};
+  await (async () => {
+    const eventsBefore = events.length;
+    const ctx2Events = events;
+    await runVariant("sel", simDist, ports, enginePort, events, async ({ page, sw, person }) => {
+      const changed = () => events.filter((e) => e.person === person && e.type === "click" && e.meta?.changed === true);
+      await page.goto(`http://127.0.0.1:${ports[0]}/casenote?case=CASE-1005`);
+      await page.waitForSelector("#reconciliation");
+      await sleep(1500);
+      await page.focus("#reconciliation");
+      await page.keyboard.press("d");                                      // type-ahead picks "Discrepancy": a trusted input and change
+      await until(() => changed().length >= 1, 8000, "the keyboard change");
+      sel.keyboard_change = changed().length;
+      sel.keyboard_zone = changed()[0]?.meta?.zone;
+      await page.selectOption("#reconciliation", "agree");                 // script-dispatched: untrusted (no focus, no click)
+      await sleep(3500);
+      sel.selectoption_default_counted = changed().length - sel.keyboard_change;
+      await sw.evaluate(async () => { const cur = (await chrome.storage.local.get("config")).config; await chrome.storage.local.set({ config: { ...cur, accept_synthetic: true, flush_ms: 1000 } }); });
+      await sleep(800);
+      const n = changed().length;
+      const t0 = Date.now();
+      await page.selectOption("#reconciliation", "discrepancy");
+      await until(() => changed().length > n, 6000, "the synthetic change after accept_synthetic");
+      sel.accept_synthetic_latency_ms = Date.now() - t0;
+      sel.accept_synthetic_zone = changed().at(-1)?.meta?.zone;
+      sel.values_or_text_leaked = ["discrepancy", "agree", "Reconciliation", "Calculators"].filter((t) => JSON.stringify(events.filter((e) => e.person === person)).includes(t));
+    }).catch((e) => { sel.error = String(e); });
+  })();
+  report.steps.select_change = sel;
+
   // 4. control: the DEFAULT build on the same private ports must not zone anything (it only knows 7801 to 7803)
   const ctl = await runVariant("off", defDist, ports, enginePort, events);
   report.steps.default_build_control = {
@@ -142,6 +175,15 @@ while True:
   const generic = new Set(["form_field", "search_box", "doc"]);
   if (s.default_build_control.zones.some((z) => !generic.has(z)) || s.default_build_control.has_task_start) report.problems.push("the default build zoned a private port with a site zone: the control failed");
   if (!s.default_build_control.events) report.problems.push("the control captured nothing at all");
+  const sc = s.select_change;
+  if (sc.error) report.problems.push(`select check failed: ${sc.error}`);
+  else {
+    if (sc.keyboard_change !== 1 || sc.keyboard_zone !== "reconcile_control") report.problems.push("a keyboard change on the reconciliation select was not captured with its zone");
+    if (sc.selectoption_default_counted !== 0) report.problems.push("a script-dispatched change was counted without accept_synthetic");
+    if (sc.accept_synthetic_zone !== "reconcile_control") report.problems.push("with accept_synthetic the change was not captured with its zone");
+    if (!(sc.accept_synthetic_latency_ms < 2200)) report.problems.push(`flush_ms 1000 did not deliver within 2.2 s (${sc.accept_synthetic_latency_ms} ms)`);
+    if (sc.values_or_text_leaked.length) report.problems.push("a value or label leaked");
+  }
   report.ok = report.problems.length === 0;
 } catch (e) {
   report.error = String(e?.stack ?? e);

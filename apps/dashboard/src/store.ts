@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import type { ExtFlags } from "./lib/ext";
 
 /** Tiny shared store: where data came from, the kill state, and the pending-queue badge. */
 export interface AppState {
@@ -11,9 +12,12 @@ export interface AppState {
   pendingQueue: number;
   /** The role the engine knows the worker by, once onboarding has run. */
   role: string | null;
+  /** Which REQ-2 layers are on. `extReady` is false until /health has answered. */
+  ext: ExtFlags;
+  extReady: boolean;
 }
 
-let state: AppState = { live: 0, demo: 0, mock: null, killed: false, killedAt: null, killError: null, pendingQueue: 0, role: null };
+let state: AppState = { live: 0, demo: 0, mock: null, killed: false, killedAt: null, killError: null, pendingQueue: 0, role: null, ext: {}, extReady: false };
 const listeners = new Set<() => void>();
 
 export function setState(patch: Partial<AppState>): void {

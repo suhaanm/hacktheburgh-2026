@@ -2,9 +2,10 @@ import { Component, Suspense, lazy, useCallback, useEffect, useState, type React
 import { api, ENGINE_URL, forgetBackoff, refreshQueueBadge } from "./api";
 import { navigate, screenOf, useRoute, type Screen } from "./router";
 import { dataMode, getState, resetSources, setState, useAppState } from "./store";
-import { Loading } from "./components/common";
+import { EmptyState, Loading } from "./components/common";
 import { ToastHost, useToast } from "./components/Toasts";
 import { AuthContextProvider, createAuth, useAuth } from "./auth";
+import { EXT_SCREENS, FLAG_FOR, extensionsFrom, screenEnabled, type ExtScreen } from "./lib/ext";
 
 const screens: Record<Screen, ReturnType<typeof lazy>> = {
   genome: lazy(() => import("./screens/Genome")),
@@ -16,9 +17,13 @@ const screens: Record<Screen, ReturnType<typeof lazy>> = {
   memory: lazy(() => import("./screens/Memory")),
   evidence: lazy(() => import("./screens/Evidence")),
   onboarding: lazy(() => import("./screens/Onboarding")),
+  week: lazy(() => import("./screens/Week")),
+  briefing: lazy(() => import("./screens/Briefing")),
+  agents: lazy(() => import("./screens/Agents")),
+  privacy: lazy(() => import("./screens/Privacy")),
 };
 
-const NAV: { id: Screen; label: string; hint: string }[] = [
+const NAV: { id: Screen; label: string; hint: string; ext?: ExtScreen }[] = [
   { id: "genome", label: "Genome", hint: "Where time is lost" },
   { id: "presence", label: "Presence", hint: "Your working week" },
   { id: "routines", label: "Routines", hint: "What could run for you" },
@@ -28,7 +33,28 @@ const NAV: { id: Screen; label: string; hint: string }[] = [
   { id: "memory", label: "Memory", hint: "What it knows about you" },
   { id: "evidence", label: "Evidence", hint: "What we can prove" },
   { id: "onboarding", label: "Set up", hint: "Choose a role" },
+  { id: "week", label: "Week", hint: "Your calendar, against an expert's", ext: "week" },
+  { id: "briefing", label: "Briefing", hint: "Up to three things for today", ext: "briefing" },
+  { id: "agents", label: "Agents", hint: "Background helpers", ext: "agents" },
+  { id: "privacy", label: "Privacy", hint: "What was sent to a model", ext: "privacy" },
 ];
+
+/** A screen that belongs to an optional layer: shown only when that layer is on (or in demo-fixture mode). */
+function Gated({ screen, label, children }: { screen: ExtScreen; label: string; children: ReactNode }) {
+  const s = useAppState();
+  if (!s.extReady) return <div className="page"><Loading label="Checking which features are on" /></div>;
+  if (screenEnabled(screen, s.ext)) return <>{children}</>;
+  const layer = EXT_SCREENS[screen];
+  return (
+    <div className="page page--read">
+      <EmptyState
+        title={`${label} is not switched on`}
+        body={<>This screen belongs to an optional feature that is off by default, so nothing is read or sent for it. To switch it on, start the engine with <code>{FLAG_FOR[layer]}=1</code> (or <code>UNDERSTUDY_X=1</code> for all of them), then reload.</>}
+        action={<a className="btn btn--secondary" href="#/genome">Back to the Genome</a>}
+      />
+    </div>
+  );
+}
 
 type Theme = "auto" | "light" | "dark";
 function loadTheme(): Theme {
@@ -61,6 +87,16 @@ class Boundary extends Component<{ children: ReactNode; screen: string }, { erro
       </div>
     );
   }
+}
+
+function NavLink({ n, current, pending }: { n: (typeof NAV)[number]; current: string; pending: number }) {
+  return (
+    <a href={`#/${n.id}`} className="nav__link" aria-current={current === n.id ? "page" : undefined}>
+      <span className="nav__label">{n.label}</span>
+      {n.id === "queue" && pending > 0 && <span className="nav__count" aria-label={`${pending} waiting`}>{pending}</span>}
+      <span className="nav__hint">{n.hint}</span>
+    </a>
+  );
 }
 
 function Wordmark() {
@@ -215,10 +251,11 @@ function Shell() {
   const [nonce, setNonce] = useState(0);
 
   useEffect(() => {
-    api.health().then((r) => setState({ mock: r.data?.mock ?? null })).catch(() => undefined);
+    const health = () => api.health().then((r) => setState({ mock: r.data?.mock ?? null, ext: extensionsFrom(r.data, r.source), extReady: true })).catch(() => setState({ ext: extensionsFrom(null, "demo"), extReady: true }));
+    void health();
     void refreshQueueBadge();
     void api.identity().then((i) => setState({ role: i?.role ?? null }));
-    const on = () => { setNonce((n) => n + 1); void refreshQueueBadge(); };
+    const on = () => { setNonce((n) => n + 1); void refreshQueueBadge(); void health(); };
     window.addEventListener("understudy:retry", on);
     return () => window.removeEventListener("understudy:retry", on);
   }, []);
@@ -228,6 +265,7 @@ function Shell() {
   useEffect(() => { if (current === "unknown") navigate("/genome"); }, [current]);
 
   const Screen = current === "unknown" ? screens.genome : screens[current];
+  const extOf = NAV.find((n) => n.id === current)?.ext;
   return (
     <div className="app">
       <a className="skip" href="#main">Skip to the screen</a>
@@ -241,13 +279,9 @@ function Shell() {
       <aside className="side" data-open={menu}>
         <div className="side__brand"><Wordmark /></div>
         <nav id="nav" aria-label="Screens" className="nav">
-          {NAV.map((n) => (
-            <a key={n.id} href={`#/${n.id}`} className="nav__link" aria-current={current === n.id ? "page" : undefined}>
-              <span className="nav__label">{n.label}</span>
-              {n.id === "queue" && s.pendingQueue > 0 && <span className="nav__count" aria-label={`${s.pendingQueue} waiting`}>{s.pendingQueue}</span>}
-              <span className="nav__hint">{n.hint}</span>
-            </a>
-          ))}
+          {NAV.filter((n) => !n.ext).map((n) => <NavLink key={n.id} n={n} current={current} pending={s.pendingQueue} />)}
+          {NAV.some((n) => n.ext && screenEnabled(n.ext, s.ext)) && <p className="nav__group t-label">Beyond the screen</p>}
+          {NAV.filter((n) => n.ext && screenEnabled(n.ext, s.ext)).map((n) => <NavLink key={n.id} n={n} current={current} pending={s.pendingQueue} />)}
         </nav>
         <div className="side__foot">
           <AuthControl />
@@ -258,7 +292,7 @@ function Shell() {
       <main id="main" className="main" tabIndex={-1}>
         <Boundary screen={current}>
           <Suspense fallback={<div className="page"><Loading label="Loading screen" /></div>}>
-            <Screen key={`${current}-${nonce}`} />
+            {extOf ? <Gated screen={extOf} label={NAV.find((n) => n.id === current)!.label}><Screen key={`${current}-${nonce}`} /></Gated> : <Screen key={`${current}-${nonce}`} />}
           </Suspense>
         </Boundary>
       </main>

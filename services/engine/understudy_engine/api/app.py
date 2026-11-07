@@ -9,6 +9,7 @@ from __future__ import annotations
 import importlib
 import logging
 import os
+import sys
 import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -65,6 +66,32 @@ def _include(app: FastAPI, name: str, status: dict[str, str]) -> bool:
     return False
 
 
+SHUTDOWN_TIMEOUT_S = 3.0      # the local model's shutdown may never hold the engine's exit up longer than this
+
+
+def shutdown_localmodel(timeout: float | None = None) -> bool:
+    """Stop the llama-server this process started, if the local-model layer was loaded: ``understudy_engine.localmodel.shutdown()``.
+
+    Only looks at the module if something already imported it (a process that never loaded it started no server). It never
+    raises and never blocks longer than ``timeout`` seconds; returns True when shutdown() ran to completion in time."""
+    mod = sys.modules.get("understudy_engine.localmodel")
+    fn = getattr(mod, "shutdown", None) if mod is not None else None
+    if not callable(fn):
+        return False
+    done = threading.Event()
+
+    def run() -> None:
+        try:
+            fn()
+        except Exception as exc:  # shutdown must not fail the exit
+            log.warning("localmodel.shutdown() raised: %s", exc)
+        finally:
+            done.set()
+
+    threading.Thread(target=run, name="localmodel-shutdown", daemon=True).start()
+    return done.wait(SHUTDOWN_TIMEOUT_S if timeout is None else timeout)
+
+
 def warm_up(app: FastAPI) -> threading.Thread:
     """Fill the expensive caches in the background so the first dashboard request is fast: the genome (null, placebo,
     decomposition) and, if the analytics router has one, its own warm-up. Never raises, never blocks startup."""
@@ -111,7 +138,10 @@ def create_app(root: Path | str | None = None, warm: bool | None = None) -> Fast
     async def lifespan(app: FastAPI):
         if warm:
             warm_up(app)
-        yield
+        try:
+            yield
+        finally:
+            shutdown_localmodel()
 
     app = FastAPI(title="Understudy engine", version=__version__, lifespan=lifespan,
                   description="Event store, analytics, packs, queue, audit and kill switch. See docs/API_CONTRACT.md.")

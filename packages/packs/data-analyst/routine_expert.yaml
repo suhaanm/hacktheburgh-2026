@@ -1,0 +1,49 @@
+# Expert weekly structure for the data analyst (CAL-2). Hand-authored from the planted synthetic design, NOT measured on
+# real analysts. Figures derived from it are labelled synthetic.
+version: 1
+role: data-analyst
+summary: A protected analysis batch each morning, stakeholder meetings batched on two afternoons, a weekly metrics review slot.
+timezone: Europe/London
+work_window: { start: "08:30", end: "17:00", days: [mon, tue, wed, thu, fri] }
+peak_focus:
+  start: "09:00"
+  end: "12:00"
+  why: Exploration and checking need long unbroken runs; stakeholder syncs are batched into Tuesday and Thursday afternoons.
+slots:
+  - { id: standup,      kind: meeting,   days: [mon, tue, wed, thu, fri], start: "08:30", end: "08:45", recurring: true,  attendees: 5 }
+  - { id: analysis,     kind: batch,     days: [mon, tue, wed, thu, fri], start: "09:00", end: "11:30", optional: true }
+  - { id: lunch,        kind: offscreen, days: [mon, tue, wed, thu, fri], start: "12:15", end: "13:00" }
+  - { id: metrics_sync, kind: meeting,   days: [mon],                     start: "14:00", end: "14:30", recurring: true,  attendees: 6 }
+  - { id: stakeholder,  kind: meeting,   days: [tue, thu],                start: "14:00", end: "14:45", recurring: true,  attendees: 4 }
+  - { id: client_call,  kind: meeting,   days: [wed],                     start: "15:00", end: "15:30", recurring: false, attendees: 3, external: true, optional: true }
+  - { id: metrics_review, kind: review,  days: [mon, tue, wed, thu, fri], start: "16:00", end: "16:30", optional: true }
+targets:
+  meeting_h_max: 6.0
+  meeting_share_max: 0.2
+  focus_blocks_90_min: 6
+  focus_blocks_60_min: 8
+  longest_focus_min_min: 150
+  fragmentation_max: 0.75
+  fragmented_days_max: 1
+  back_to_back_runs_max: 1
+  work_span_h_max: 9.0
+  offscreen_h_min: 3.0
+  recurring_in_peak_h_max: 0.75
+  external_unbuffered_max: 0
+  review_slots_min: 3
+  batch_windows_min: 3
+  outside_hours_h_max: 1.0
+plugin_refs:
+  - { kind: source, id: ics }
+  - { kind: source, id: jsoncal }
+synth:
+  jitter_min: 10
+  skip_prob: 0.05
+  titles:
+    standup: ["Data team stand-up"]
+    analysis: ["Batch: analysis block", "Focus time: query and chart"]
+    lunch: ["Lunch"]
+    metrics_sync: ["Weekly metrics sync"]
+    stakeholder: ["Stakeholder sync"]
+    client_call: ["Client call: requirements"]
+    metrics_review: ["Metrics review slot", "End-of-day review"]

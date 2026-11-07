@@ -20,7 +20,7 @@ A system that watches how people work, shows where a novice loses time against a
 **Code and licences**
 - The base is the owner's **local copy of Alongside**, at the path in `ALONGSIDE_PATH` (set it in `.env`). It is the owner's own code. Copy it into `apps/desktop` as described in the implementation spec. Keep `THIRD_PARTY_NOTICES.md` and every `Adapted from` header: they carry notices for code that is not the owner's.
 - Run `scripts/clone-references.sh` once. It makes read-only local copies of the reference repos in `references/`. **Never run, install, build or import anything from `references/`.** Read only.
-- Copy code only from the two MIT sources in `docs/REFERENCES.md` (clickyyy, VisionOS), with a header comment and a notice entry. For every other reference, **re-implement from the idea in your own words**. Do not paste or closely transcribe their code. Do not contact their authors.
+- Copy code only from the MIT sources in `docs/REFERENCES.md` (clickyyy, VisionOS) and, since REQ-2 (owner decision D24, 7 Nov 2026), farzaa/clicky and its MIT Windows fork, with a header comment and a notice entry. Sentient OS (AGPL-3.0) is design-only: never copy or translate its code or prompts. For every other reference, **re-implement from the idea in your own words**. Do not paste or closely transcribe their code. Do not contact their authors.
 - Write a short `docs/reference-notes/<slug>.md` for each reference before building the module it informs.
 
 **Safety and privacy**

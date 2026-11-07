@@ -6,7 +6,7 @@ from understudy_engine.coach import CoachBrain, CoachError, StuckScorer
 from understudy_engine.policy.gate import GateParams
 from understudy_engine.store import EventStore
 
-from .helpers import T0, calc, cliff, copy_to_note, ev, expert_task, read, signature_events
+from .helpers import T0, calc, cliff, copy_to_note, ev, expert_task, read, reconcile, signature_events
 
 
 @pytest.fixture()
@@ -272,3 +272,76 @@ def test_gate_parameters_are_the_dignity_gate_defaults():
     from understudy_engine.coach import GATE
 
     assert GATE == GateParams(need=2, cooldown_s=120.0, p_signal=0.6, min_confidence=0.5)
+
+
+def test_touching_the_reconciliation_control_satisfies_reconcile_and_resolves_the_prompt(store, monkeypatch):
+    """With the default mapping (which knows the case note's reconciliation select), reconcile is done by touching it."""
+    from understudy_engine.cogs import load_mapping
+    from understudy_engine.packs.loader import Pack
+
+    monkeypatch.setattr(Pack, "cog_mapping", lambda self: load_mapping(None))
+    b = CoachBrain(store, scorer=StuckScorer(fit=False), tone="short")
+    task = "t_h1"
+    # two calculators with their cliff checks, then straight to the note without reconciling
+    evs = ([ev(0, "task_start", task=task, source="desk")] + read(task, 1) + calc(task, 12, "calc1") + cliff(task, 46) + calc(task, 56, "calc2")
+           + cliff(task, 90) + calc(task, 100, "calc3") + cliff(task, 134) + copy_to_note(task, 142))
+    trace = run(b, evs)
+    fired = acts(trace)
+    assert len(fired) == 1
+    d = fired[0][1]
+    assert d.missed[0] == "reconcile" and d.target == {"zone": "reconcile_control", "label_hint": "How do they compare", "role_hint": "select",
+                                                         "fallback_zones": ["results_tabs"]}
+    assert d.message == "Reconcile the three results before writing anything."
+    # the worker touches the select: the missed step is done, the signal is gone, and the prompt is labelled followed
+    more = evs + [ev(160, "focus", "reconcile_control", task=task), ev(163, "click", "reconcile_control", task=task)]
+    tail = run(b, more)[len(evs):]
+    assert not acts(tail) and tail[-1][1].missed == [] and "policy_violation" not in tail[-1][1].reason_codes
+    assert [x for x in b.store.read("synthetic", person="p_hand") if x.type == "coach_followed" and x.meta.get("implicit")]
+    # and the same case, but the worker switched tabs between the calculators instead: also reconciled (the old rule)
+    b2 = CoachBrain(EventStore(store.root.parent / "tabs"), scorer=StuckScorer(fit=False), tone="short")
+    evs2 = ([ev(0, "task_start", task=task, source="desk")] + read(task, 1) + calc(task, 12, "calc1") + cliff(task, 46) + calc(task, 56, "calc2")
+            + cliff(task, 90) + calc(task, 100, "calc3") + cliff(task, 134) + reconcile(task, 142) + copy_to_note(task, 158))
+    assert not acts(run(b2, evs2))
+
+
+def poll_run(brain, events, poll=3.0, batch=2.0, person="p_hand", offset=1.0):
+    """What the live harness does: the extension batches events (they become visible `batch` s late) and the desktop polls every
+    `poll` s. Returns [(poll time, decision)]."""
+    t0 = events[0].t.timestamp()
+    t, idx, fed, out = t0 + offset, 0, 0, []
+    while t <= events[-1].t.timestamp() + 12:
+        while idx < len(events) and events[idx].t.timestamp() <= t - batch:
+            idx += 1
+        out.append((t, brain.next_step(person, t, events=events[fed:idx])))
+        fed = idx
+        t += poll
+    return out
+
+
+def dense_signature_events(task="t_h1"):
+    """The signature case, but the copy and the move to the note land inside one poll window (events 0.8 s apart)."""
+    return ([ev(0, "task_start", task=task, source="desk")] + read(task, 1) + calc(task, 12)
+            + [ev(50, "copy", "calc_result", task=task), ev(50.8, "tab", "case_note", task=task), ev(52, "paste", "case_note", task=task),
+               ev(60, "click", "case_note", task=task)])
+
+
+def test_event_clock_lets_the_first_poll_act_when_two_signals_are_already_in_the_window(tmp_path):
+    evs = dense_signature_events()
+    copy_t = next(e for e in evs if e.type == "copy").t.timestamp()
+    lag = {}
+    for clock in ("polls", "events"):
+        b = CoachBrain(EventStore(tmp_path / clock), scorer=StuckScorer(fit=False), tone="short", gate_clock=clock)
+        fired = [(t, d) for t, d in poll_run(b, evs, offset=0.0) if d.action != "silent"]
+        assert len(fired) == 1 and fired[0][1].action == "annotate" and fired[0][1].target["zone"] == "cliff_button"
+        lag[clock] = fired[0][0] - copy_t
+    assert lag["polls"] == pytest.approx(7.0) and lag["events"] == pytest.approx(4.0)          # one poll interval (3 s) sooner
+
+
+def test_the_event_clock_does_not_count_a_signal_twice_or_skip_the_cooldown(tmp_path):
+    evs = signature_events()
+    b = CoachBrain(EventStore(tmp_path / "e"), scorer=StuckScorer(fit=False), tone="short", gate_clock="events")
+    run1 = poll_run(b, evs)
+    assert len([1 for _, d in run1 if d.action != "silent"]) == 1                      # acted once; the repeats are the cooldown
+    assert any("gate_cooldown" in d.reason_codes or "already_prompted" in d.reason_codes for _, d in run1)
+    with pytest.raises(ValueError):
+        CoachBrain(EventStore(tmp_path / "x"), gate_clock="sometimes")

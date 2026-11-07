@@ -10,6 +10,7 @@ from __future__ import annotations
 import contextlib
 import importlib
 import json
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -302,6 +303,7 @@ def agent_claims(ctx: Ctx) -> dict[str, Any]:
         "base_failure_rate": r.get("base_failure_rate"),
         # names the dashboard fixture reads. A false claim is a claimed success that the code check rejected, so the code check
         # catches every one by construction; what is measured is whether it can be predicted before the check runs.
+        "live": r.get("live"),     # slot: engine-analytics adds the claim-calibration result on the real-model runs here
         "claims": n, "false_claims": false_n, "false_claim_rate": rnd(false_n / n if n else float("nan")),
         "false_claim_ci": wilson(false_n, n), "caught_by_code_check": false_n,
         "caveats": _caveats(r), "limitations": _limits(r),
@@ -375,6 +377,65 @@ def _injected(robust: dict[str, Any]) -> tuple[list[dict[str, Any]], str | None]
     return out, None
 
 
+LIVE_CONDITION_LABEL = {"clean": "Clean", "layout_v2": "Layout change (layout v2)", "glitch": "One-off error page (glitch)", "injected": "Injected page (prompt injection)"}
+FIX_DESCRIPTION = ("a page-state label from the quarantined reader fed to the planner, retries, and the cliff check moved after the verifier; made AFTER the glitch "
+                   "result was seen")
+
+
+def _live_condition(c: dict[str, Any]) -> dict[str, Any]:
+    inj = c.get("injection") or {}
+    return {
+        "n": int(c["n"]), "pass": int(c["code_check_ok"]), "wilson": c.get("wilson_95") or wilson(int(c["code_check_ok"]), int(c["n"])), "success_rate": c.get("success_rate"),
+        "claimed_success": c.get("claimed_success"), "false_claims": c.get("false_claims"), "paused": c.get("paused"),
+        "injected_runs": inj.get("runs_with_injected_site"), "injection_detected": inj.get("detected"), "attack_success": inj.get("attack_success"),
+        "tiers": sorted(set(c.get("tiers_seen") or [])), "mean_steps": c.get("mean_steps"), "mean_latency_s": c.get("mean_latency_s"),
+        "failure_reasons": c.get("failure_reasons") or [], "cost_usd_est": c.get("cost_usd_est"),
+    }
+
+
+def _live_block(raw: dict[str, Any]) -> dict[str, Any]:
+    """The real-model run (agent-core C4): four conditions on the first variant, the in-sample fix on the second, tier 3 and cost, from the file."""
+    by_variant = raw.get("summary_by_variant") or {}
+    first = next(iter(by_variant.values()), None) if by_variant else raw["summary"]
+    v1 = {k: _live_condition(v) for k, v in first.items()}
+    fix_raw = next((v for name, v in by_variant.items() if name != next(iter(by_variant))), {}) if by_variant else {}
+    fixes = {k: _live_condition(v) for k, v in (fix_raw or {}).items()}
+    meta = raw.get("meta") or {}
+    cost = raw.get("cost") or {}
+    cum = cost.get("cumulative_in_this_file") or {}
+    runs = raw.get("runs") or []
+    t3 = raw.get("tier3_simulated") or {}
+    t3_runs = t3.get("runs") or []
+    clean = v1["clean"]
+    dropped = meta.get("dropped_after_budget_stop")
+    if dropped is None:
+        m = re.search(r"(\w+) v2 rows dropped after the budget stop", str(cum.get("note") or ""))
+        dropped = m.group(1) if m else None
+    elif isinstance(dropped, (list, tuple)):
+        dropped = len(dropped)
+    all_false = sum(int(c.get("false_claims") or 0) for c in list(v1.values()) + list(fixes.values()))
+    glitch_fix = None
+    if fixes.get("glitch"):
+        glitch_fix = {**fixes["glitch"], "variant": next((n for n in by_variant if n != next(iter(by_variant))), None), "in_sample": True,
+                      "description": FIX_DESCRIPTION, "same_condition_before": {k: v1["glitch"][k] for k in ("n", "pass", "wilson", "false_claims")} if v1.get("glitch") else None,
+                      "dropped_after_budget_stop": dropped, "dropped_note": "the file lists rows dropped when the run budget stopped; see meta.dropped_after_budget_stop in data/eval/agent_live_runs.json"}
+    return {
+        "label": "real model", "headline_condition": "clean",
+        "n": clean["n"], "pass": clean["pass"], "wilson": clean["wilson"], "tiers": sorted({t for c in v1.values() for t in c["tiers"]}),
+        "false_claims": all_false, "cost_usd_est": cum.get("usd_at_assumed_rates", cost.get("estimated_usd")),
+        "note": ("Real model, small n: 20 households per condition shows the pipeline and its failure modes with a live model, not a pass rate. "
+                 + str(meta.get("note") or "")).strip(),
+        "households": meta.get("households"), "runs_total": meta.get("n"), "models": meta.get("models"),
+        "conditions": v1, "glitch_fix": glitch_fix,
+        "tier3": {"simulated_actuator": True, "runs": len(t3_runs), "pointer_actions": t3.get("pointer_actions"), "landed_on_interactive": t3.get("landed_on_interactive"),
+                  "outcomes": sorted({r.get("outcome") for r in t3_runs if r.get("outcome")}), "note": t3.get("note")},
+        "cost": {"estimated_usd_this_run": cost.get("estimated_usd"), "cumulative_usd_at_assumed_rates": cum.get("usd_at_assumed_rates"),
+                 "tokens_in": cum.get("tokens_in"), "tokens_out": cum.get("tokens_out"), "price_assumption_usd_per_million": meta.get("price_assumption_usd_per_million"),
+                 "live_calls_in_rows": sum(int(r.get("live_calls") or 0) for r in runs), "cache_hits_in_rows": sum(int(r.get("cache_hits") or 0) for r in runs),
+                 "unique_prompts_cached": cost.get("unique_prompts_cached"), "note": cum.get("note")},
+    }
+
+
 def agent_runs(ctx: Ctx) -> dict[str, Any]:
     clean = _read_eval_file(ctx.root, AGENT_CLEAN)
     if clean is None:
@@ -391,19 +452,18 @@ def agent_runs(ctx: Ctx) -> dict[str, Any]:
     live_raw = _read_eval_file(ctx.root, AGENT_LIVE)
     if live_raw is not None:
         try:
-            live = _run_block(live_raw)
-            cost = live_raw.get("cost_usd_est", _g(live_raw, "meta", "cost_usd_est", default=_g(live_raw, "cost", "usd_est")))
-            live.update({"cost_usd_est": cost, "label": "real model",
-                         "note": "Real model, small n: these runs show the pipeline works with a live model, not a pass rate. " + str(_g(live_raw, "meta", "note", default=""))})
-        except (KeyError, TypeError, ValueError) as e:
+            live = _live_block(live_raw)
+        except (KeyError, TypeError, ValueError, StopIteration) as e:
             live, live_error = None, f"{AGENT_LIVE} is present but could not be read: {type(e).__name__}: {e}"
-    runs = c["n"] + (rb["n"] if rb else 0) + (live["n"] if live else 0)
+    runs = c["n"] + (rb["n"] if rb else 0) + ((live.get("runs_total") or live["n"]) if live else 0)
     false_claims = sum(x["false_claims"] or 0 for x in (c, rb, live) if x)
     out = {
         "meta": make_meta(
             "synthetic", runs, "runs",
             f"{c['n']} sandbox households run on the clean path" + (", and again with failures injected (layout changes, one-off 503s)" if rb else "")
-            + ("; plus a small real-model block" if live else "") + "; local sandbox calculators, deterministic mock model, simplified oracle",
+            + (f"; plus a real-model block ({live.get('households')} households x {len(live['conditions'])} conditions: "
+               + ", ".join(LIVE_CONDITION_LABEL.get(k, k).split(" (")[0].lower() for k in live["conditions"]) + ")" if live else "")
+            + "; local sandbox calculators, mock model except the real-model block, simplified oracle",
             note=("The clean path is the compiled path on the sandbox it was written against, so a full pass is expected and says little. The "
                   "discriminating evidence is the robust and injected runs. Households whose calculators disagree are planted discrepancies; "
                   "passing them means the discrepancy was flagged. Scored against a simplified internal oracle, not the law.")),
@@ -720,6 +780,8 @@ def study_sim(ctx: Ctx) -> dict[str, Any]:
     r["label"] = STUDY_SIM_LABEL
     r["meta"] = meta
     r["limitations"] = _limits(r)
+    if r.get("status") in ("pending", "not_run", "failed") and not r.get("reason"):
+        r["reason"] = (meta.get("note") or "the simulated study has not been run").strip()      # a stub needs a reason; the owner's note says why
     return r
 
 

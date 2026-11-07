@@ -22,6 +22,7 @@ zones:
   - cliff_panel
   - case_note
   - results_tabs
+  - reconcile_control
   - doc
   - form_field
   - search_box
@@ -46,6 +47,7 @@ rules:
   - { match: { type: copy, zone: calc_result }, cog: COPY_TO_NOTE }
   - { match: { type: [tab, paste, click, focus], zone: case_note }, cog: COPY_TO_NOTE }
   - { match: { type: [tab, click], zone: results_tabs }, cog: RECONCILE }
+  - { match: { type: [click, focus], zone: reconcile_control }, cog: RECONCILE, starts: true }   # the case note's reconciliation select
   # ---- base cogs
   - { match: { type: idle }, cog: IDLE, backdate_meta: idle_s }
   - { match: { type: undo }, cog: REVERT }
@@ -91,6 +93,12 @@ examples:
       - { dt: 4,  type: scroll, role: region, meta: { zone: cliff_panel, depth_bin: 1 } }
       - { dt: 3,  type: focus,  role: region, meta: { zone: cliff_panel } }
     expect: [CHECK_CLIFF, CHECK_CLIFF, CHECK_CLIFF]
+  - name: choose the reconciliation on the case note
+    events:
+      - { dt: 0,  type: focus, role: combobox, meta: { zone: reconcile_control } }
+      - { dt: 3,  type: click, role: combobox, meta: { zone: reconcile_control, changed: true } }
+      - { dt: 4,  type: paste, role: textbox,  meta: { zone: case_note } }
+    expect: [RECONCILE, RECONCILE, COPY_TO_NOTE]
   - name: base cogs outside any calculator
     events:
       - { dt: 0,  type: search, role: searchbox, meta: { zone: search_box, len: 14 } }

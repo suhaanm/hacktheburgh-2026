@@ -4,7 +4,7 @@ import type { L0Event } from "../src/shared/types";
 
 const ev = (i: number): L0Event => ({ schema: 1, id: `ev_${String(i).padStart(8, "0")}`, t: "2026-11-07T14:00:00.000Z", origin: "real", actor: "human", person: "p_9f3a", role: "benefits-processor", source: "browser", type: "click" });
 
-function setup(responder: (url: string, init: RequestInit) => Promise<Response> | Response, opts = {}) {
+function setup(responder: (url: string, init: RequestInit) => Promise<Response> | Response, opts = {}, getFlushMs?: () => number) {
   let clock = 0;
   const timers: { fn: () => void; at: number; id: number }[] = [];
   let nextId = 1;
@@ -22,6 +22,7 @@ function setup(responder: (url: string, init: RequestInit) => Promise<Response> 
     setTimer: (fn, ms) => { const id = nextId++; timers.push({ fn, at: clock + ms, id }); return id; },
     clearTimer: (h) => { const i = timers.findIndex((t) => t.id === h); if (i >= 0) timers.splice(i, 1); },
     now: () => clock,
+    getFlushMs,
   }, opts);
   const advance = async (ms: number) => {
     clock += ms;
@@ -51,6 +52,31 @@ describe("Batcher", () => {
     await s.advance(2100);
     expect(s.calls).toHaveLength(1);
     expect(s.calls[0]!.body).toHaveLength(2);
+  });
+
+  it("flush_ms: the default is 2 s; a smaller value sends the first batch that much sooner, and a change applies to the next batch", async () => {
+    const dflt = setup(() => ok(1));
+    await dflt.b.add(ev(1));
+    await dflt.advance(1500);
+    expect(dflt.calls).toHaveLength(0);
+    await dflt.advance(600);
+    expect(dflt.calls).toHaveLength(1);
+
+    let ms = 1000;
+    const fast = setup(() => ok(1), {}, () => ms);
+    await fast.b.add(ev(1));
+    await fast.advance(900);
+    expect(fast.calls).toHaveLength(0);
+    await fast.advance(200);
+    expect(fast.calls).toHaveLength(1);
+    ms = 300;                                       // changed in storage: the next timer uses it
+    await fast.b.add(ev(2));
+    await fast.advance(350);
+    expect(fast.calls).toHaveLength(2);
+    // events inside the window ride along in one request
+    ms = 1000;
+    await fast.b.add(ev(3)); await fast.advance(200); await fast.b.add(ev(4)); await fast.advance(900);
+    expect(fast.calls[2]!.body.map((e) => e.id)).toEqual(["ev_00000003", "ev_00000004"]);
   });
 
   it("keeps events and backs off when the engine is down, then delivers", async () => {

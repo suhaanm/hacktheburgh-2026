@@ -44,6 +44,8 @@ export function normaliseConfig(raw: unknown): InstallConfig {
     engine_url: cleanUrl(r.engine_url, DEFAULT_CONFIG.engine_url),
     desktop_url: cleanUrl(r.desktop_url, DEFAULT_CONFIG.desktop_url),
     identity_adopted: r.identity_adopted === true,
+    flush_ms: Number.isInteger(r.flush_ms) && (r.flush_ms as number) >= 100 && (r.flush_ms as number) <= 10_000 ? (r.flush_ms as number) : DEFAULT_CONFIG.flush_ms,
+    accept_synthetic: r.accept_synthetic === true,
   };
 }
 

@@ -21,6 +21,7 @@ Every acting decision is recorded as a ``coach_shown`` event; ``feedback`` recor
 """
 from __future__ import annotations
 
+import os
 import threading
 import time
 import uuid
@@ -43,6 +44,7 @@ from .skillstate import cog_outcomes, fold_episode
 from .steps import Progress, StepPolicy
 
 GATE = GateParams(need=2, cooldown_s=120.0, p_signal=0.6, min_confidence=0.5)
+GATE_CLOCK = "events"             # see CoachBrain.gate_clock; "polls" is the original one-signal-per-poll rule
 AWAY_S = 90.0                     # no event for this long: the worker is away, the coach is unsure and silent
 FOLLOW_WINDOW_S = 30.0            # a missed step done this soon after a prompt counts as followed
 RULE_CONFIDENCE = 0.9
@@ -119,12 +121,17 @@ class _Person:
 
 class CoachBrain:
     def __init__(self, store: EventStore | None = None, *, scorer: StuckScorer | None = None, gate: GateParams = GATE,
-                 tone: str | None = None, away_s: float = AWAY_S, root: Path | str | None = None) -> None:
+                 tone: str | None = None, away_s: float = AWAY_S, root: Path | str | None = None, gate_clock: str | None = None) -> None:
         self.store = store or EventStore(root)
         self.scorer = scorer if scorer is not None else StuckScorer(root)
         self.gate = gate
         self.tone = tone                      # None: read the worker's memory preference
         self.away_s = away_s
+        # "events": a policy signal counts one for every worker event since the violation began (event timestamps), so a prompt
+        # can arrive after one poll when two signals are already in the window. "polls": one per poll (the original rule).
+        self.gate_clock = (gate_clock or os.environ.get("UNDERSTUDY_COACH_GATE") or GATE_CLOCK).lower()
+        if self.gate_clock not in ("events", "polls"):
+            raise ValueError("gate_clock must be 'events' or 'polls'")
         self._people: dict[str, _Person] = {}
         self._bundles: dict[str, _Bundle | None] = {}
         self._records: dict[str, _Record] = {}
@@ -365,11 +372,11 @@ class CoachBrain:
         # --- the signal
         # one prompt per step pattern per task, unless the issue recurred right after a prompt (then one takeover offer)
         exclude = (st.prompted.get(task, set()) - st.repeated.get(task, set())) | st.offered.get(task, set())
-        missed_id, violating, missing_all = None, None, []
+        missed_id, violating, missing_all, viol_t = None, None, [], None
         for v in reversed(prog.unresolved()):
             cand = policy.pick_missed(v.missing, prog, exclude=tuple(exclude), only_skill=only_skill)
             if cand is not None:
-                missed_id, violating, missing_all = cand, policy.steps[v.step], list(v.missing)
+                missed_id, violating, missing_all, viol_t = cand, policy.steps[v.step], list(v.missing), v.t
                 break
         if missed_id is None and any(policy.pick_missed(v.missing, prog, only_skill=only_skill) for v in prog.unresolved()):
             dec.reason_codes.append("already_prompted")                    # the worker has seen it; do not nag
@@ -437,12 +444,23 @@ class CoachBrain:
                                           tone=tone_v, curriculum=bundle.curriculum)[0]
                 dec.why = dec.candidate["why"]
             return dec
-        gd = gate_step(st.gate, signal_p, now, unsure=away, confidence=conf, params=self.gate)
+        gate_in = st.gate
+        if self.gate_clock == "events" and trigger == "expert_policy" and viol_t is not None:
+            # two worker events since the violation began are two signals, whenever the polls happen to land
+            n_since = sum(1 for e in window if e.source != "coach" and e.type not in ("progress", "task_start", "task_end")
+                          and e.t.timestamp() >= viol_t)
+            prior = min(self.gate.need - 1, max(0, n_since - 1))
+            if prior > gate_in.consecutive:
+                gate_in = GateState(prior, gate_in.last_act_t)
+        gd = gate_step(gate_in, signal_p, now, unsure=away, confidence=conf, params=self.gate)
         if commit:
             st.gate = gd.state
         dec.gate = {"consecutive": gd.state.consecutive, "reason": gd.reason}
         if not gd.act:
             dec.reason_codes.append(f"gate_{gd.reason}")
+            return dec
+        if not commit:                                   # a look, not a prompt: say what would happen, change nothing
+            dec.reason_codes.append("dry_run_would_act")
             return dec
         dec.reason_codes.append("gate_act")
         action = "annotate" if (level <= 1 and trigger == "expert_policy") else "nudge"        # a stuck worker gets a question, not a ring

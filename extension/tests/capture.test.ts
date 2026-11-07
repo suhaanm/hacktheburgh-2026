@@ -133,6 +133,61 @@ describe("L0 capture", () => {
   });
 });
 
+describe("a change on a <select>", () => {
+  const page = '<label for="r">Reconciliation</label><select id="r" name="reconciliation"><option value="agree">Calculators agree</option><option value="discrepancy">Discrepancy: needs review</option></select><input id="t" name="adults">';
+  const startWith = (opts: { requireTrusted?: boolean; acceptSyntheticChange?: boolean }) => {
+    const r = recorder();
+    stop = installCapture({ win, salt: SALT, matcher, zoner: zonerFor("example.org"), emit: r.emit, now, isTop: true, ...opts });
+    return r;
+  };
+  const choose = (v: string) => { (q("#r") as HTMLSelectElement).value = v; return fire(q("#r"), new Event("change", { bubbles: true })); };
+
+  it("is a click record with changed:true, hashed label, role combobox, and never the value", () => {
+    setPage(page);
+    const { records } = startWith({ requireTrusted: false });
+    choose("discrepancy");
+    const c = records.filter((x) => x.type === "click");
+    expect(c).toHaveLength(1);
+    expect(c[0]).toMatchObject({ type: "click", target: { role: "combobox", label_hash: hashLabel(SALT, "Reconciliation") }, meta: { changed: true, zone: "form_field" } });
+    expect(JSON.stringify(records)).not.toMatch(/discrepancy|agree|review|Reconciliation/i);
+  });
+
+  it("ignores a page-dispatched (untrusted) change by default, so a page cannot forge activity", () => {
+    setPage(page);
+    const { records } = startWith({});            // requireTrusted defaults to true
+    choose("discrepancy");
+    expect(records.filter((x) => x.type !== "nav")).toHaveLength(0);
+  });
+
+  it("counts an automation's untrusted change only when asked to, and only for a select's change event", () => {
+    setPage(page);
+    const { records } = startWith({ acceptSyntheticChange: true });
+    choose("discrepancy");
+    fire(q("#r"), new Event("input", { bubbles: true }));                       // input alone: not counted
+    fire(q("#t"), new Event("change", { bubbles: true }));                      // a text field's change: not counted
+    fire(q("#t"), new MouseEvent("click", { bubbles: true }));                  // other untrusted events: still ignored
+    const rest = records.filter((x) => x.type !== "nav");
+    expect(rest).toHaveLength(1);
+    expect(rest[0]).toMatchObject({ type: "click", meta: { changed: true } });
+  });
+
+  it("is skipped for a sensitive select and inside a login form", () => {
+    setPage('<form><input type="password"><select id="r" name="reconciliation"><option>x</option></select></form><select id="s" autocomplete="cc-exp-month" name="m"><option>1</option></select>');
+    const { records } = startWith({ requireTrusted: false });
+    fire(q("#r"), new Event("change", { bubbles: true }));
+    fire(q("#s"), new Event("change", { bubbles: true }));
+    expect(records.filter((x) => x.type !== "nav")).toHaveLength(0);
+  });
+
+  it("stops listening after dispose", () => {
+    setPage(page);
+    const { records } = startWith({ requireTrusted: false });
+    stop!(); stop = null;
+    choose("agree");
+    expect(records.filter((x) => x.type === "click")).toHaveLength(0);
+  });
+});
+
 describe("hostile page", () => {
   const SECRETS = ["SECRET", "evil.example", "CN-2041", "token", "4111", "QQ123456C", "my private search", "hunter2", "ignore previous", "/case/"];
   const hostile = `

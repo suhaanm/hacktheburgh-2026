@@ -68,6 +68,13 @@ export interface InstallConfig {
   desktop_url: string;
   /** True once the engine's GET /identity answered: person and role then come from onboarding, not from us. */
   identity_adopted: boolean;
+  /** Milliseconds the first queued event waits before the batch is sent (100 to 10000). */
+  flush_ms: number;
+  /**
+   * Also count a script-dispatched `change` on a <select> (an automated browser's selectOption dispatches no trusted
+   * event at all). Off by default. Set only by an automated harness; only the select change path honours it.
+   */
+  accept_synthetic: boolean;
 }
 
 export const DEFAULT_CONFIG: InstallConfig = {
@@ -77,6 +84,8 @@ export const DEFAULT_CONFIG: InstallConfig = {
   engine_url: "http://127.0.0.1:7700",
   desktop_url: "http://127.0.0.1:7720",
   identity_adopted: false,
+  flush_ms: 2000,
+  accept_synthetic: false,
 };
 
 export const STORAGE_KEYS = {

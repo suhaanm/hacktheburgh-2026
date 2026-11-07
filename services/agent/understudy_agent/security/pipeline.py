@@ -108,6 +108,7 @@ class SafetyPipeline:
         self._pause_queue_id: str | None = None
         self._recent: list[str] = []
         self._raw_seen: list[str] = []
+        self._approval_note: str | None = None
 
     # ------------------------------------------------------------------ helpers
     @property
@@ -190,16 +191,21 @@ class SafetyPipeline:
                          risk: str, kind: str) -> StepDecision:
         item = self.queue.enqueue(
             kind=kind, title=f"{action.kind}: {safe_label(target.label or action.args.get('label') or '', 60)}".strip(": "),
-            summary=reason, risk_class=risk, routine_id=self.routine.routine_id, run_id=self._run,
+            summary=(f"{self._approval_note}; {reason}" if self._approval_note else reason), risk_class=risk, routine_id=self.routine.routine_id, run_id=self._run,
             evidence={"extracted": {"layer": layer, "code": code, "action": action.kind,
                                     "host": host_key(target.url)}, "tier_log": []},
             signature=action.signature, dedupe_key=f"{self._run}:{action.signature}:{layer}")
-        return self._decision("needs_human", layer, code, reason, action, item["id"])
+        dec = self._decision("needs_human", layer, code, reason, action, item["id"])
+        if self._approval_note:
+            dec.reasons.insert(0, self._approval_note)
+            dec.codes.append("approval:expired")
+        return dec
 
     def authorise(self, action: Any, *, observation: Observation | None = None, target: TargetInfo | None = None,
                   screen: tuple[int, int] | None = None, approved_queue_id: str | None = None) -> StepDecision:
         target = target or TargetInfo()
         cfg = self.config
+        self._approval_note = None
 
         if is_killed():
             return self._decision("block", "kill", "kill_flag", "the kill switch is set", None)
@@ -250,7 +256,12 @@ class SafetyPipeline:
             if not s.allowed:
                 return self._decision("block", "settings", "protected_target", s.reason, va)
 
-        approved = bool(approved_queue_id and self.queue.consume_approval(approved_queue_id, va.signature))
+        approved = False
+        if approved_queue_id:
+            chk = self.queue.try_consume_approval(approved_queue_id, va.signature)
+            approved = chk.ok
+            if chk.code == "expired":
+                self._approval_note = chk.reason  # the new queue item and the decision say why the worker is being asked again
 
         # --- layer 4: action-class gate
         g = gate(kind, args, self._ctx(), target, enabled=cfg.gates)

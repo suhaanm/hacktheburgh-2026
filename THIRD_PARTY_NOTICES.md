@@ -27,6 +27,9 @@ Alongside's npm dependencies keep their own licences (see `apps/desktop/package.
 |---|---|---|---|---|
 | _none yet_ | clickyyy (https://github.com/jayamitkatariya/clickyyy) | e.g. `src/shared/command-safety.ts` | MIT, Copyright (c) 2026 Jay Katariya | include licence text |
 | _none yet_ | VisionOS (https://github.com/yukevindai/VisionOS) | e.g. `backend/r3_vision/orchestration.py` | MIT, Copyright (c) 2026 Kevin Dai | include licence text |
+| `vendor/clicky/clicky_lift/lease.py` | rickkdev/clicky, a Windows fork of farzaa/clicky (https://github.com/rickkdev/clicky ; upstream https://github.com/farzaa/clicky) | `hermes-clicky-plugin/scoped_autopilot.py` | MIT, Copyright (c) 2026 Farza | reshaped: tool-name scope, monotonic clock, parent narrowing, audit-safe events; full licence text in `vendor/clicky/LICENSE` |
+| `vendor/clicky/clicky_lift/postcheck.py` | same | `hermes-clicky-plugin/post_action_verification.py` | MIT, Copyright (c) 2026 Farza | reshaped: declarative postconditions over code-read fields; full licence text in `vendor/clicky/LICENSE` |
+| `vendor/clicky/clicky_lift/__init__.py` | same | `hermes-clicky-plugin/` (package layout and names only) | MIT, Copyright (c) 2026 Farza | header only |
 
 Include the full MIT licence text of each source once the first file from it is copied.
 

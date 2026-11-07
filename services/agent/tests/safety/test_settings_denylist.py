@@ -116,13 +116,63 @@ def test_denylist_roundtrip_and_validation(tmp_path):
 
 
 # ---- SEC-10: no allowlist anywhere
-def test_no_allowlist_logic_anywhere_in_the_agent_service():
-    root = pathlib.Path(__file__).resolve().parents[2] / "understudy_agent"
-    pat = re.compile(r"allow[\s_\-]?list|white[\s_\-]?list|allowed[_\s](domains?|hosts?|sites?|urls?|origins?)|permitted[_\s](domains?|sites?|hosts?)",
-                     re.I)
+_ALLOWLIST_WORDS = re.compile(r"allow[\s_\-]?list|white[\s_\-]?list|allowed[_\s](domains?|hosts?|sites?|urls?|origins?)|permitted[_\s](domains?|sites?|hosts?)", re.I)
+
+
+def _logic_hits(path: pathlib.Path) -> list[str]:
+    """Identifiers and string values in CODE (not comments, not docstrings) that look like an allowlist."""
+    import ast
+
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8", errors="ignore"))
+    except SyntaxError:
+        return []
+    doc_ids: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) and node.body:
+            first = node.body[0]
+            if isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant) and isinstance(first.value.value, str):
+                doc_ids.add(id(first.value))
     hits = []
-    for f in root.rglob("*.py"):
-        for i, line in enumerate(f.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
-            if pat.search(line):
-                hits.append(f"{f.relative_to(root)}:{i}: {line.strip()[:90]}")
+    for node in ast.walk(tree):
+        names: list[str] = []
+        if isinstance(node, ast.Name):
+            names.append(node.id)
+        elif isinstance(node, ast.Attribute):
+            names.append(node.attr)
+        elif isinstance(node, ast.arg):
+            names.append(node.arg)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            names.append(node.name)
+        elif isinstance(node, ast.keyword) and node.arg:
+            names.append(node.arg)
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in doc_ids:
+            names.append(node.value)
+        for n in names:
+            if _ALLOWLIST_WORDS.search(n):
+                hits.append(f"{path.name}:{getattr(node, 'lineno', '?')}: {n[:70]}")
+    return hits
+
+
+def test_no_allowlist_logic_anywhere_in_the_agent_service():
+    """SEC-10: no code (identifier or string value) anywhere in the agent service implements a list of permitted sites.
+    Comments and docstrings that say there is none are fine, so they are not counted."""
+    root = pathlib.Path(__file__).resolve().parents[2] / "understudy_agent"
+    hits = [f"{f.relative_to(root.parent)}: {h}" for f in root.rglob("*.py") for h in _logic_hits(f)]
     assert not hits, "SEC-10 forbids allowlist logic:\n" + "\n".join(hits)
+
+
+def test_the_safety_modules_do_not_even_mention_the_word():
+    root = pathlib.Path(__file__).resolve().parents[2] / "understudy_agent"
+    own = [*(root / "models").glob("*.py"), *(root / "security").glob("*.py"), *(root / "voice").glob("*.py"), root / "queue.py", root / "audit.py"]
+    hits = [f"{f.name}:{i}" for f in own for i, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1) if _ALLOWLIST_WORDS.search(line)]
+    assert not hits, hits
+
+
+def test_the_allowlist_scan_catches_code_and_ignores_prose(tmp_path):
+    bad = tmp_path / "bad.py"
+    bad.write_text("ALLOWED_DOMAINS = {'a.example'}\ndef f(url):\n    return url in ALLOWED_DOMAINS\nx = 'site allowlist'\n")
+    assert len(_logic_hits(bad)) >= 3
+    ok = tmp_path / "ok.py"
+    ok.write_text('"""There is no site allowlist."""\n# SEC-10: not a site allowlist\ndef f():\n    """not an allowlist"""\n    return 1\n')
+    assert _logic_hits(ok) == []

@@ -275,6 +275,24 @@ async def test_tier3_false_done_is_caught(safety):
     assert res.outcome == "claimed_not_verified" and res.false_claim and res.claimed_done
 
 
+async def test_tier3_a_model_that_says_it_cannot_finish_is_not_a_false_claim(safety):
+    class GivesUp:
+        name = "gives-up"
+
+        def computer_step(self, goal, shot, history, **kw):
+            from understudy_agent.models.port import Done
+
+            return Done(summary="I do not have the household details", claimed_success=False)
+
+    cu = ComputerUse(GivesUp(), SimulatedActuator(), safety, navigator="n")
+
+    async def verify():
+        return False
+
+    res = await cu.run(GOAL3, verify)
+    assert res.outcome == "gave_up" and not res.false_claim and not res.claimed_done
+
+
 async def test_tier3_provider_safety_check_goes_to_the_queue_never_acked(safety, sinks):
     q, _ = sinks
     act, cu, verify = await run_cu("computer_safety_stop", safety)

@@ -1,0 +1,307 @@
+{
+ "meta": {
+  "origin": "synthetic",
+  "n": 3,
+  "n_unit": "episodes",
+  "split": null,
+  "interval_level": 0.95,
+  "note": "Runs on a synthetic repo and a sample CSV in isolated workspaces. Patch drafts are never applied without your approval.",
+  "generated_at": "2026-11-07T17:05:00Z"
+ },
+ "data": [
+  {
+   "run_id": "r_a01",
+   "kind": "programming.commit_analyst",
+   "mode": "foreground",
+   "state": "running",
+   "started": "2026-11-07T16:53:00Z",
+   "parent": {
+    "id": "p_01",
+    "role": "planner",
+    "state": "running",
+    "budget": {
+     "steps": 20,
+     "seconds": 300,
+     "tokens": 12000
+    },
+    "spent": {
+     "steps": 7,
+     "seconds": 96,
+     "tokens": 4100
+    }
+   },
+   "children": [
+    {
+     "id": "c_01",
+     "role": "commit reader",
+     "state": "done",
+     "budget": {
+      "steps": 12,
+      "seconds": 120,
+      "tokens": 5000
+     },
+     "spent": {
+      "steps": 9,
+      "seconds": 64,
+      "tokens": 3200
+     },
+     "result_ref": "r_a01/c_01.json",
+     "lease": {
+      "ttl_s": 120,
+      "remaining_s": 0,
+      "steps_left": 0,
+      "tools": [
+       "git_log",
+       "read_file"
+      ],
+      "revoked": false
+     }
+    },
+    {
+     "id": "c_02",
+     "role": "habit counter",
+     "state": "running",
+     "budget": {
+      "steps": 12,
+      "seconds": 120,
+      "tokens": 5000
+     },
+     "spent": {
+      "steps": 5,
+      "seconds": 38,
+      "tokens": 1700
+     },
+     "lease": {
+      "ttl_s": 120,
+      "remaining_s": 87,
+      "steps_left": 7,
+      "tools": [
+       "git_log",
+       "read_file",
+       "run_python"
+      ],
+      "revoked": false
+     }
+    },
+    {
+     "id": "c_03",
+     "role": "report writer",
+     "state": "queued",
+     "budget": {
+      "steps": 8,
+      "seconds": 90,
+      "tokens": 4000
+     },
+     "spent": {
+      "steps": 0,
+      "seconds": 0,
+      "tokens": 0
+     },
+     "lease": {
+      "ttl_s": 90,
+      "remaining_s": 90,
+      "steps_left": 8,
+      "tools": [
+       "write_workspace",
+       "emit_result"
+      ],
+      "revoked": false
+     }
+    }
+   ]
+  },
+  {
+   "run_id": "r_a02",
+   "kind": "data.profile",
+   "mode": "nightly",
+   "state": "done",
+   "started": "2026-11-07T08:05:00Z",
+   "parent": {
+    "id": "p_02",
+    "role": "planner",
+    "state": "done",
+    "budget": {
+     "steps": 20,
+     "seconds": 300,
+     "tokens": 12000
+    },
+    "spent": {
+     "steps": 6,
+     "seconds": 81,
+     "tokens": 3900
+    }
+   },
+   "children": [
+    {
+     "id": "c_04",
+     "role": "profiler",
+     "state": "done",
+     "budget": {
+      "steps": 12,
+      "seconds": 120,
+      "tokens": 5000
+     },
+     "spent": {
+      "steps": 8,
+      "seconds": 47,
+      "tokens": 2600
+     },
+     "result_ref": "r_a02/c_04.json",
+     "lease": {
+      "ttl_s": 120,
+      "remaining_s": 0,
+      "steps_left": 4,
+      "tools": [
+       "read_file",
+       "run_python"
+      ],
+      "revoked": false
+     }
+    },
+    {
+     "id": "c_05",
+     "role": "chart builder",
+     "state": "done",
+     "budget": {
+      "steps": 12,
+      "seconds": 120,
+      "tokens": 5000
+     },
+     "spent": {
+      "steps": 6,
+      "seconds": 39,
+      "tokens": 2100
+     },
+     "result_ref": "r_a02/c_05.json",
+     "lease": {
+      "ttl_s": 120,
+      "remaining_s": 0,
+      "steps_left": 6,
+      "tools": [
+       "run_python",
+       "write_workspace"
+      ],
+      "revoked": false
+     }
+    }
+   ]
+  },
+  {
+   "run_id": "r_a03",
+   "kind": "programming.test_gap",
+   "mode": "foreground",
+   "state": "failed",
+   "started": "2026-11-06T15:05:00Z",
+   "parent": {
+    "id": "p_03",
+    "role": "planner",
+    "state": "failed",
+    "budget": {
+     "steps": 20,
+     "seconds": 300,
+     "tokens": 12000
+    },
+    "spent": {
+     "steps": 20,
+     "seconds": 212,
+     "tokens": 9800
+    }
+   },
+   "children": [
+    {
+     "id": "c_06",
+     "role": "test finder",
+     "state": "failed",
+     "budget": {
+      "steps": 12,
+      "seconds": 120,
+      "tokens": 5000
+     },
+     "spent": {
+      "steps": 12,
+      "seconds": 120,
+      "tokens": 5000
+     },
+     "lease": {
+      "ttl_s": 120,
+      "remaining_s": 0,
+      "steps_left": 0,
+      "tools": [
+       "git_log",
+       "read_file"
+      ],
+      "revoked": false
+     }
+    }
+   ]
+  }
+ ],
+ "details": {
+  "r_a01": {
+   "artifacts": [],
+   "result": null
+  },
+  "r_a02": {
+   "artifacts": [
+    {
+     "name": "profile.json",
+     "kind": "json",
+     "path_ref": "data/agent_runs/r_a02/profile.json"
+    },
+    {
+     "name": "columns.png",
+     "kind": "chart",
+     "path_ref": "data/agent_runs/r_a02/columns.png"
+    }
+   ],
+   "result": {
+    "summary": {
+     "rows": 1200,
+     "columns": 8,
+     "numeric_columns": 5,
+     "missing_cells": 37,
+     "strongest_correlation": 0.82
+    },
+    "steps": [
+     {
+      "step": "Load the sample file",
+      "check": "verified"
+     },
+     {
+      "step": "Count rows and columns",
+      "check": "verified"
+     },
+     {
+      "step": "Find missing cells",
+      "check": "verified"
+     },
+     {
+      "step": "Read the strongest correlation",
+      "check": "uncertain"
+     },
+     {
+      "step": "Write the chart",
+      "check": "verified"
+     }
+    ]
+   }
+  },
+  "r_a03": {
+   "artifacts": [],
+   "result": {
+    "status": "stopped at the step budget",
+    "reason": "The child used all 12 steps before it found a test gap.",
+    "steps": [
+     {
+      "step": "List the changed files",
+      "check": "verified"
+     },
+     {
+      "step": "Match files to tests",
+      "check": "failed"
+     }
+    ]
+   }
+  }
+ }
+}

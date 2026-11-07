@@ -6,11 +6,12 @@ requires-python = ">=3.12,<3.14"
 dependencies = []
 
 [tool.uv.workspace]
-members = ["services/engine", "services/agent"]
+members = ["services/engine", "services/agent", "vendor/clicky"]
 
 [tool.uv.sources]
 understudy-engine = { workspace = true }
 understudy-agent = { workspace = true }
+understudy-clicky-lift = { workspace = true }
 
 [dependency-groups]
 dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6"]

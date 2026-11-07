@@ -1,0 +1,9 @@
+id: jsoncal
+version: 0.1.0
+kind: source
+description: Simple JSON calendar export (understudy.calendar.v1) for synthetic calendars and hand-made exports. Local file, read only.
+permissions: [read]
+egress: local_only
+schema: calendar_event.v1
+entry: understudy_engine.plugins.jsoncal:JSONCalendarSource
+default_enabled: true

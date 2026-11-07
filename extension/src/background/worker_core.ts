@@ -65,6 +65,7 @@ export function createWorker(api: WorkerApi, deps: WorkerDeps) {
     clearTimer: deps.clearTimer,
     now: deps.now,
     onStats: (s: Stats) => void api.storage.set({ [STORAGE_KEYS.stats]: s }),
+    getFlushMs: () => cfg.flush_ms,
   });
 
   const uploader = new RecordingUploader({

@@ -24,6 +24,15 @@ ACTION_PHRASE = {
 
 _PREFERRED_TYPES = ("click", "focus", "tab", "paste", "nav", "scroll", "copy")
 
+# Where the ring goes when a cog has a better element than the first interactive rule suggests. The reconcile prompt arrives on
+# the case-note page, which has the reconciliation select but no calculator tab strip, so the select comes first and the tab
+# strip stays as a fallback. Used only when the pack's mapping knows the zone (a pack without it keeps its own rules).
+NO_SITE_ZONES = frozenset({"reconcile_control", "case_note", "results_tabs"})   # one page for all calculators: no site to name
+
+TARGET_PREFS = {
+    "RECONCILE": {"zone": "reconcile_control", "label_hint": "How do they compare", "role_hint": "select", "fallback_zones": ["results_tabs"]},
+}
+
 
 def _lower_first(s: str) -> str:
     return s[:1].lower() + s[1:] if s and not s[:2].isupper() else s
@@ -36,8 +45,15 @@ def target_for(step: Step, mapping: Mapping, site: str | None = None) -> dict:
     override it with ``coach.target`` in the step.
     """
     override = (step.coach or {}).get("target")
+    known_zones = {z for r in mapping.rules for z in (r.zones or ())}
+    pref = TARGET_PREFS.get(step.cogs[0])
     if isinstance(override, dict) and override.get("zone"):
         out = {"zone": override["zone"], "label_hint": override.get("label_hint", step.label), "role_hint": override.get("role_hint", "button")}
+        if override.get("fallback_zones"):
+            out["fallback_zones"] = list(override["fallback_zones"])
+    elif pref and pref["zone"] in known_zones:
+        out = {"zone": pref["zone"], "label_hint": pref["label_hint"], "role_hint": pref["role_hint"],
+               "fallback_zones": [z for z in pref["fallback_zones"] if z in known_zones]}
     else:
         cog = step.cogs[0]
         best = None
@@ -51,7 +67,7 @@ def target_for(step: Step, mapping: Mapping, site: str | None = None) -> dict:
         zone = best[1] if best else None
         role = "button" if best and "click" in best[2] else ("textbox" if best and "paste" in best[2] else "region")
         out = {"zone": zone, "label_hint": short_label(step.label), "role_hint": role}
-    if site:
+    if site and out.get("zone") not in NO_SITE_ZONES:
         out["site"] = site
     return out
 

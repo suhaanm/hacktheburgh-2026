@@ -1,0 +1,120 @@
+{
+ "meta": {
+  "origin": "real",
+  "n": 6,
+  "n_unit": "episodes",
+  "split": null,
+  "interval_level": 0.95,
+  "note": "The ledger is what this laptop recorded. It is local and you can clear it.",
+  "generated_at": "2026-11-07T17:05:00Z"
+ },
+ "data": [
+  {
+   "t": "2026-11-07T16:47:00Z",
+   "purpose": "briefing_wording",
+   "schema": "briefing_aggregates.v1",
+   "fields": [
+    "card_kind",
+    "focus_blocks_90",
+    "expert_focus_blocks_90"
+   ],
+   "payload": {
+    "card_kind": "focus_block",
+    "focus_blocks_90": "lt5",
+    "expert_focus_blocks_90": "5to9"
+   },
+   "model": "gpt-5.4-mini",
+   "bytes": 164
+  },
+  {
+   "t": "2026-11-07T15:59:00Z",
+   "purpose": "calendar_suggestion_wording",
+   "schema": "calendar_aggregates.v1",
+   "fields": [
+    "template",
+    "meeting_h",
+    "back_to_back_runs"
+   ],
+   "payload": {
+    "template": "reduce_back_to_back",
+    "meeting_h": "10to15",
+    "back_to_back_runs": "lt5"
+   },
+   "model": "gpt-5.4-mini",
+   "bytes": 171
+  },
+  {
+   "t": "2026-11-07T15:53:00Z",
+   "purpose": "calendar_suggestion_wording",
+   "schema": "calendar_aggregates.v1",
+   "fields": [
+    "template",
+    "focus_blocks_90",
+    "longest_focus_min"
+   ],
+   "payload": {
+    "template": "protect_focus_block",
+    "focus_blocks_90": "lt5",
+    "longest_focus_min": 120
+   },
+   "model": "gpt-5.4-mini",
+   "bytes": 188
+  },
+  {
+   "t": "2026-11-07T13:41:00Z",
+   "purpose": "commit_digest_summary",
+   "schema": "commit_digest.v1",
+   "fields": [
+    "commits",
+    "test_touch_share",
+    "revert_share",
+    "size_bucket"
+   ],
+   "payload": {
+    "commits": "10plus",
+    "test_touch_share": 0.2,
+    "revert_share": 0.1,
+    "size_bucket": "large"
+   },
+   "model": "gpt-5.4-mini",
+   "bytes": 203
+  },
+  {
+   "t": "2026-11-07T12:05:00Z",
+   "purpose": "worker_requested_step",
+   "schema": "step_request.v1",
+   "fields": [
+    "step",
+    "site_class"
+   ],
+   "payload": {
+    "step": "read_result",
+    "site_class": "calculator"
+   },
+   "model": "gpt-5.5",
+   "bytes": 96
+  },
+  {
+   "t": "2026-11-07T10:53:00Z",
+   "purpose": "weekly_summary_wording",
+   "schema": "digest_ids.v1",
+   "fields": [
+    "digest_ids",
+    "counts"
+   ],
+   "payload": {
+    "digest_ids": [
+     "dg_17",
+     "dg_18",
+     "dg_21"
+    ],
+    "counts": {
+     "commits": "10plus",
+     "meetings": "10plus"
+    }
+   },
+   "model": "gpt-5.4-mini",
+   "bytes": 231
+  }
+ ]
+}

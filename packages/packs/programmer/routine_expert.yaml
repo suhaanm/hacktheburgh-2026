@@ -1,0 +1,50 @@
+# Expert weekly structure for the programmer (CAL-2). Hand-authored from the planted synthetic design, NOT measured on
+# real engineers. Figures derived from it are labelled synthetic.
+version: 1
+role: programmer
+summary: Two protected deep-work blocks before lunch, a short daily stand-up, a code-review slot, meetings kept to afternoons.
+timezone: Europe/London
+work_window: { start: "10:00", end: "18:30", days: [mon, tue, wed, thu, fri] }
+peak_focus:
+  start: "10:30"
+  end: "13:00"
+  why: Debugging and design need long uninterrupted stretches; reviews and syncs go after lunch.
+slots:
+  - { id: standup,    kind: meeting,   days: [mon, tue, wed, thu, fri], start: "10:00", end: "10:15", recurring: true,  attendees: 7 }
+  - { id: deep_work,  kind: batch,     days: [mon, tue, wed, thu, fri], start: "10:30", end: "12:30", optional: true }
+  - { id: lunch,      kind: offscreen, days: [mon, tue, wed, thu, fri], start: "13:00", end: "13:45" }
+  - { id: planning,   kind: meeting,   days: [mon],                     start: "14:30", end: "15:30", recurring: true,  attendees: 9 }
+  - { id: one_to_one, kind: meeting,   days: [wed],                     start: "15:00", end: "15:30", recurring: true,  attendees: 2 }
+  - { id: retro,      kind: meeting,   days: [thu],                     start: "15:00", end: "16:00", recurring: true,  attendees: 8 }
+  - { id: pr_review,  kind: review,    days: [mon, tue, wed, thu, fri], start: "16:00", end: "16:45", optional: true }
+targets:
+  meeting_h_max: 6.0
+  meeting_share_max: 0.2
+  focus_blocks_90_min: 6
+  focus_blocks_60_min: 8
+  longest_focus_min_min: 150
+  fragmentation_max: 0.75
+  fragmented_days_max: 1
+  back_to_back_runs_max: 1
+  work_span_h_max: 10.0
+  offscreen_h_min: 3.0
+  recurring_in_peak_h_max: 0.75
+  external_unbuffered_max: 0
+  review_slots_min: 3
+  batch_windows_min: 3
+  outside_hours_h_max: 1.0
+plugin_refs:
+  - { kind: source, id: ics }
+  - { kind: source, id: jsoncal }
+  - { kind: source, id: shell_times }
+synth:
+  jitter_min: 10
+  skip_prob: 0.05
+  titles:
+    standup: ["Engineering stand-up"]
+    deep_work: ["Deep work: build and tests", "Focus time: debugging"]
+    lunch: ["Lunch"]
+    planning: ["Sprint planning"]
+    one_to_one: ["1:1 with tech lead"]
+    retro: ["Team retrospective"]
+    pr_review: ["PR review slot", "Review time: pull requests"]

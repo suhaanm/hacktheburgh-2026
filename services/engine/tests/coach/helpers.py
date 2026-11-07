@@ -70,3 +70,12 @@ def expert_task(task, t, **kw):
 def signature_events(task="t_h1"):
     """Read the record, run calculator 1, read its result, then start copying toward the note without the cliff check."""
     return [ev(0, "task_start", task=task, source="desk")] + read(task, 1) + calc(task, 12) + copy_to_note(task, 50)
+
+
+def reconcile_zone() -> str:
+    """The zone the coach points at for reconcile with the benefits pack's own mapping: the reconciliation select once the pack
+    mapping carries `reconcile_control`, else the tab strip."""
+    from understudy_engine.packs import load_pack
+
+    known = {z for r in load_pack("benefits-processor").cog_mapping().rules for z in (r.zones or ())}
+    return "reconcile_control" if "reconcile_control" in known else "results_tabs"

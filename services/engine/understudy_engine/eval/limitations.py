@@ -57,6 +57,8 @@ def _study_n(sections: dict[str, Any] | None) -> tuple[int, bool]:
 
 def static_entries(sections: dict[str, Any] | None = None) -> list[dict[str, str]]:
     n, ran = _study_n(sections)
+    ac = (sections or {}).get("agent_claims")
+    live_n = ((ac.get("live") or {}).get("n") if isinstance(ac, dict) and "status" not in ac and isinstance(ac.get("live"), dict) else None)
     return [
         {"id": UMBRELLA, "severity": "high", "source": "engine-eval",
          "text": ("Almost every result in this report comes from synthetic apprentices, synthetic personas or simulators we wrote; each section "
@@ -72,9 +74,11 @@ def static_entries(sections: dict[str, Any] | None = None) -> list[dict[str, str
         {"id": "eval-sandbox-sites", "severity": "medium", "source": "agent-core",
          "text": ("The three calculators are sandbox sites we built, each with planted quirks, and each computes one Universal-Credit-shaped "
                   "entitlement. They say nothing about how real calculators behave or what their terms and bot protection allow.")},
-        {"id": "eval-claims-simulated", "severity": "medium", "source": "engine-analytics", 
-         "text": ("Agent-claim calibration uses simulated runs until real agent runs exist. A low predicted risk of a false claim never replaces "
-                  "the code check, which decides success.")},
+        {"id": "eval-claims-simulated", "severity": "medium", "source": "engine-analytics",
+         "text": (("Agent-claim calibration is mostly on simulated runs. The real-model result covers only " + str(live_n) + " claimed successes from one family of failure "
+                   "(see agent_claims.live), so it cannot show that claim risk can be predicted in general. " if live_n else
+                   "Agent-claim calibration uses simulated runs until real agent runs exist. ")
+                  + "A low predicted risk of a false claim never replaces the code check, which decides success.")},
         {"id": "eval-offhours-s2", "severity": "medium", "source": "agent-core: docs/SPIKES.md S2",
          "text": ("The off-hours live run depends on the conditions spike S2 passed under: macOS Accessibility and Screen Recording granted, an "
                   "unlocked screen, a harmless app, the owner present. The presence forecast and the start-or-wait rule are evaluated on "
@@ -192,14 +196,52 @@ def computed_entries(sections: dict[str, Any]) -> list[dict[str, str]]:
                               f"{disc['n']} of {disc.get('of')} households are planted discrepancies between the sandbox calculators (quirks we wrote). A pass on them "
                               "means the discrepancy was flagged, not that an entitlement was worked out, and the oracle is a simplified rule set, not the law.", "low", "engine-eval:agent_runs"))
         if live:
+            cond = live.get("conditions") or {}
+            cl, lay, gl, inj = (cond.get(k) or {} for k in ("clean", "layout_v2", "glitch", "injected"))
+            fails = "; ".join(f"'{r}'" for r in (cl.get("failure_reasons") or [])[:2])
             out.append(_entry("eval-agent-live-small-n",
-                              f"The real-model block has n = {live.get('n')} runs ({live.get('pass')} passed, 95% interval {_ci(live.get('wilson'), 2)}), "
-                              f"cost estimate {live.get('cost_usd_est')} USD. Too few to estimate a pass rate; it shows the pipeline works with a live model.", "medium", "engine-eval:agent_runs"))
+                              f"Real-model runs (agent-core, tier 1 disabled so every navigator uses the browser agent): {live.get('households')} households per condition, {live.get('runs_total')} runs. "
+                              f"Clean {cl.get('pass')} of {cl.get('n')} (95% interval {_ci(cl.get('wilson'), 2)}), {cl.get('n', 0) - cl.get('pass', 0)} honest failures"
+                              + (f" ({fails})" if fails else "") + f"; layout change {lay.get('pass')} of {lay.get('n')} ({_ci(lay.get('wilson'), 2)}). "
+                              "Twenty per condition shows the failure modes, not a pass rate; identical prompts are cached, so repeated page situations are one live sample each.",
+                              "medium", "engine-eval:agent_runs"))
+            if gl:
+                out.append(_entry("eval-agent-live-glitch-false-claims",
+                                  f"With a one-off error page the real model passed {gl.get('pass')} of {gl.get('n')} and said it was finished in {gl.get('claimed_success')} of {gl.get('n')} runs "
+                                  f"({gl.get('false_claims')} false claims): it declared success on an error page. The code check caught every one, which is why code, not the model, decides success.",
+                                  "high" if (gl.get("false_claims") or 0) else "medium", "engine-eval:agent_runs"))
+            if inj:
+                out.append(_entry("eval-agent-live-injected",
+                                  f"Injected pages: the detector paused {inj.get('paused')} of {inj.get('n')} runs ({inj.get('injection_detected')} detected of {inj.get('injected_runs')} injected) with "
+                                  f"{inj.get('mean_steps')} model-driven steps, and {inj.get('attack_success')} attacks succeeded. Task success is {inj.get('pass')} by design: a paused run does no task. "
+                                  "This tests the detector on these pages, which we wrote.", "medium", "engine-eval:agent_runs"))
+            fix = live.get("glitch_fix")
+            if fix:
+                before = fix.get("same_condition_before") or {}
+                dropped = fix.get("dropped_after_budget_stop")
+                out.append(_entry("eval-agent-live-fix-in-sample",
+                                  f"The glitch result was followed by a fix ({fix.get('description')}), then re-run on the same condition: {fix.get('pass')} of {fix.get('n')} succeeded with "
+                                  f"{fix.get('false_claims')} false claims, against {before.get('pass')} of {before.get('n')} before. This is in-sample: the fix was designed after seeing that failure, "
+                                  f"and only {fix.get('n')} runs were made because a budget stop hit" + (f" ({dropped} later rows were dropped)" if dropped else "")
+                                  + ". It does not show the fix generalises.", "high", "engine-eval:agent_runs"))
+            t3 = live.get("tier3") or {}
+            out.append(_entry("eval-agent-live-tier3",
+                              f"Tier 3 (computer use) is not demonstrated on the benefits task: {t3.get('runs')} runs against a simulated actuator on real screenshots made "
+                              f"{t3.get('pointer_actions')} pointer actions and landed on an interactive element {t3.get('landed_on_interactive')} times. "
+                              "Nothing is clicked in that setting, so a claim of done there is a false claim by construction.", "high", "engine-eval:agent_runs"))
+            cs = live.get("cost") or {}
+            pr = cs.get("price_assumption_usd_per_million") or {}
+            out.append(_entry("eval-agent-live-cost",
+                              f"Cost is an estimate at placeholder rates ({pr.get('input')} and {pr.get('output')} USD per million tokens in and out), not the provider's price list: "
+                              f"about {cs.get('cumulative_usd_at_assumed_rates')} USD for the rows in the file ({cs.get('tokens_in')} tokens in, {cs.get('tokens_out')} out), "
+                              f"{cs.get('live_calls_in_rows')} live calls and {cs.get('cache_hits_in_rows')} cache hits across the runs. Cached answers cost nothing on a re-run.",
+                              "medium", "engine-eval:agent_runs"))
         else:
             out.append(_entry("eval-agent-live-absent", "Every agent run in this report uses the deterministic mock model on sandbox sites; no real-model run is included"
                               + (f" ({ar['live_error']})." if ar.get("live_error") else "."), "medium", "engine-eval:agent_runs"))
-        if (ar.get("false_claims") or 0) > 0:
-            out.append(_entry("eval-agent-runs-false-claims", f"The agent made {ar['false_claims']} false success claim(s) across these runs; the code check caught them.", "high", "engine-eval:agent_runs"))
+        mock_false = sum((b or {}).get("false_claims") or 0 for b in (c, rb))
+        if mock_false > 0:
+            out.append(_entry("eval-agent-runs-false-claims", f"The mock-model agent made {mock_false} false success claim(s) in the clean and injected runs; the code check caught them.", "high", "engine-eval:agent_runs"))
     rl = ok("redteam_live")
     if rl:
         on = next((r for r in rl.get("rows", []) if r.get("ablation") == "all_on"), None)

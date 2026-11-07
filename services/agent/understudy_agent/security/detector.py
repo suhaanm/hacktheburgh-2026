@@ -84,7 +84,7 @@ RULES: tuple[Rule, ...] = (
     Rule("send_data_to", "exfiltration", HIGH,
          _c(r"\b(?:send|e-?mail|forward|post|upload|transmit|submit|exfiltrate|leak|share|copy|paste|type|enter|put)\b[^.\n]{0,70}\b(?:to|at|into|on|via)\b[^.\n]{0,25}(?:https?://|www\.|[\w.+\-]+@[\w\-]+\.[\w.\-]+)")),
     Rule("reveal_secrets", "exfiltration", HIGH,
-         _c(r"\b(?:reveal|print|output|repeat|leak|show|tell me|disclose|dump|display|read out)\b[^.\n]{0,30}\b(?:your|the|all) (?:system prompt|instructions|api keys?|secrets?|passwords?|credentials|memory|conversation|context|cookies|tokens?)\b")),
+         _c(r"\b(?:reveal|print|output|repeat|leak|show|tell me|disclose|dump|display|read out)\b[^.\n]{0,30}\b(?:your|the|all) (?:system prompt|instructions|api keys?|secrets?|passwords?|pass-?codes?|otps?|one[- ]?time (?:pass-?)?(?:codes?|passwords?|pins?)|login codes?|seed phrases?|(?:private|secret) keys?|recovery codes?|credentials|memory|conversation|context|cookies|tokens?)\b")),
     Rule("command_download", "exfiltration", HIGH,
          _c(r"\b(?:curl|wget|powershell|invoke-webrequest)\b[^\n]{0,80}https?://|\|\s*(?:sh|bash|zsh)\b")),
     # --- concealment and pressure

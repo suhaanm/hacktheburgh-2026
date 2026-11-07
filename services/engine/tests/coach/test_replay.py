@@ -183,3 +183,49 @@ def test_replay_without_task_markers_gives_the_same_rings_and_silent_experts(syn
     # with markers the replay rang on 14 planted cases; without them the same cases (one ring each) are found
     assert rings >= int(0.9 * len(skip)) and rings <= len(skip)
     print(f"\n[coach replay, no task markers] {rings} rings over {len(skip)} planted skipped-cliff cases, {expert_acts} acting decisions on experts over {polls} polls")
+
+
+def cadence_run(root, people, scorer, tmp, clock, poll=3.0, batch=2.0):
+    """Replay the way the live harness behaves: events become visible `batch` s late, polls every `poll` s (skipping long idle)."""
+    by = defaultdict(list)
+    for e in EventStore(root).read("synthetic"):
+        if e.person in people:
+            by[e.person].append(e)
+    out = {}
+    for person, evs in sorted(by.items()):
+        b = CoachBrain(EventStore(tmp / clock / person), scorer=scorer, tone="short", gate_clock=clock)
+        t, idx, fed, last_vis, acts = evs[0].t.timestamp(), 0, 0, None, []
+        while t <= evs[-1].t.timestamp() + 20:
+            while idx < len(evs) and evs[idx].t.timestamp() <= t - batch:
+                last_vis = evs[idx].t.timestamp()
+                idx += 1
+            if last_vis is not None and t - last_vis <= 150:
+                d = b.next_step(person, t, events=evs[fed:idx])
+                fed = idx
+                if d.action != "silent":
+                    acts.append((t, d))
+            t += poll
+        out[person] = acts
+    return out
+
+
+def test_event_timestamps_for_the_gate_are_as_safe_as_poll_counts_on_the_replay_set(synth_root, scorer, tmp_path):
+    """3 s polls, 2 s batching. Same acting decisions either way on the apprentices; no expert is prompted; the gain is only
+    when two events land inside one poll window."""
+    truth = json.loads((synth_root / "synthetic" / "apprentices" / "truth.json").read_text())
+    people = {p["person"] for p in truth["people"]}
+    skip = {t["task_id"] for t in truth["traces"] if any(d["type"] == "skipped_check_cliff" and d["instances"] for d in t["deficits"])}
+    res = {clock: cadence_run(synth_root, people, scorer, tmp_path, clock) for clock in ("polls", "events")}
+    for clock, run in res.items():
+        acts = [(p, t, d) for p, a in run.items() for t, d in a]
+        assert not [1 for p, _, _ in acts if p.startswith("p_exp")], clock                    # experts are never prompted
+        rings = {d.task_id for _, _, d in acts if d.trigger == "expert_policy"}
+        assert rings == skip, (clock, sorted(skip ^ rings))                                     # precision 1.00 and recall 1.00
+        assert all(d.task_id in skip for _, _, d in acts if d.trigger == "expert_policy")        # no ring on a case that did the checks
+        times = {p: [t for t, _ in a] for p, a in run.items()}
+        assert all(b - a >= COOLDOWN for ts in times.values() for a, b in zip(ts, ts[1:]))
+    same = {p: [d.task_id for _, d in a] for p, a in res["polls"].items()} == {p: [d.task_id for _, d in a] for p, a in res["events"].items()}
+    assert same
+    n_polls = sum(len(a) for a in res["events"].values())
+    print(f"\n[coach gate clock, 3 s polls, 2 s batching, apprentices n = 48 cases] polls vs events: identical prompts ({n_polls} acting decisions, "
+          f"0 on experts, 14 of 14 planted cases ringed, no ring on a clean case)")

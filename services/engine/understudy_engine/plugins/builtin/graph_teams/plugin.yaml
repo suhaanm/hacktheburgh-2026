@@ -1,0 +1,15 @@
+id: graph_teams
+version: 0.1.0
+kind: source
+description: Microsoft Graph Teams online-meeting metadata and attendance (read only). Off by default; injected token provider.
+permissions: [read]
+egress: local_only
+schema: calendar_event.v1
+entry: understudy_engine.plugins.graph_teams:TeamsMeetingsSource
+default_enabled: false
+network: true
+requires_token: true
+enable_flag: UNDERSTUDY_GRAPH
+limitations:
+  - Never exercised on a real account in tests; unit-tested against recorded fake responses only.
+  - Tenant policy decides whether online meetings can be listed at all.

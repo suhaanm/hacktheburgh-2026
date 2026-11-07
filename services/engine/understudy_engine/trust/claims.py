@@ -74,8 +74,10 @@ def _fit_predict(Xtr, ytr, Xte, l2: float) -> np.ndarray:
 
 
 def evaluate_claims(runs: ClaimRuns | None = None, *, k_folds: int = 5, l2: float = 3.0,
-                    n_boot: int = 300, seed: int = 0, review_budget: float = 0.2, fast: bool = False) -> dict:
-    """Grouped K-fold evaluation. Returns a plain dict for the Evidence page. `fast=True` caps resamples at 60."""
+                    n_boot: int = 300, seed: int = 0, review_budget: float = 0.2, fast: bool = False,
+                    include_live: bool = True, live_path=None) -> dict:
+    """Grouped K-fold evaluation on the SYNTHETIC generator. Returns a plain dict for the Evidence page. `fast=True` caps resamples at 60.
+    When agent-core's live-run file exists the real-trace result sits beside it under `live` (see claims_live.py)."""
     if fast:
         n_boot = min(n_boot, 60)
     runs = runs or simulate_claim_runs(seed=seed)
@@ -109,7 +111,7 @@ def evaluate_claims(runs: ClaimRuns | None = None, *, k_folds: int = 5, l2: floa
     flagged[order[:kk]] = True
     caught = int((y[flagged] == 1).sum())
     total_bad = int(y.sum())
-    return {
+    out = {
         "origin": runs.origin, "n": int(n), "n_unit": "runs", "n_groups": int(len(np.unique(g))),
         "split": f"grouped {k_folds}-fold (by household)", "interval_level": 0.95,
         "base_failure_rate": float(y.mean()),
@@ -133,3 +135,10 @@ def evaluate_claims(runs: ClaimRuns | None = None, *, k_folds: int = 5, l2: floa
             "Code still decides success. A low predicted risk never replaces the completion check.",
         ],
     }
+    if include_live:
+        from understudy_engine.trust.claims_live import evaluate_claims_live
+        try:
+            out["live"] = evaluate_claims_live(live_path, n_boot=n_boot, seed=seed, review_budget=review_budget, fast=fast)
+        except FileNotFoundError:
+            pass
+    return out

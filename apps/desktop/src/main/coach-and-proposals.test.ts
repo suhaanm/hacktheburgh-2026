@@ -157,7 +157,8 @@ describe('coach brain: rings by zone, and the worker\'s response goes to /coach/
 
   async function setup(initial: unknown, initialTask: ReturnType<typeof task> | null = task(2)) {
     let body = initial
-    const engine = await fakeServer((p) => (p.startsWith('/coach/next') ? { status: 200, body } : p === '/coach/feedback' ? { status: 200, body: { recorded: true } } : { status: 404 }))
+    let events: unknown[] = []
+    const engine = await fakeServer((p) => (p.startsWith('/coach/next') ? { status: 200, body } : p.startsWith('/events') ? { status: 200, body: { events } } : p === '/coach/feedback' ? { status: 200, body: { recorded: true } } : { status: 404 }))
     const client: EngineClient = createEngineClient({ endpoints: { engine: engine.url, agent: engine.url }, identity: ID, ...noTimers })
     let current: ReturnType<typeof task> | null = initialTask
     let killed = false
@@ -171,7 +172,7 @@ describe('coach brain: rings by zone, and the worker\'s response goes to /coach/
       current: () => (ringActive ? ({} as never) : null),
     }
     const brain = createCoachBrain({ engine: client, state: () => (current ? { task: current, level: 2, chip: 'full', message: '' } : null), ring, say: (t) => void said.push(t), killed: () => killed, immediate: false, ...noTimers })
-    return { engine, brain, ringCalls, said, ended: () => void (ringActive = false), set: (b: unknown) => (body = b), setTask: (t: typeof current) => (current = t), kill: () => (killed = true) }
+    return { engine, brain, ringCalls, said, ended: () => void (ringActive = false), events: (e: unknown[]) => (events = e), set: (b: unknown) => (body = b), setTask: (t: typeof current) => (current = t), kill: () => (killed = true) }
   }
   const feedbacks = (e: Awaited<ReturnType<typeof setup>>['engine']) => e.requests.filter((r) => r.path === '/coach/feedback').map((r) => r.body)
 
@@ -225,24 +226,47 @@ describe('coach brain: rings by zone, and the worker\'s response goes to /coach/
     expect(s.ringCalls.filter((c) => c[0] === 'point')).toHaveLength(2)
   })
 
-  it('the engine speaks once: silent polls with already_prompted keep the ring; when it stops saying it, the step was done (followed)', async () => {
+  it('the engine speaks once: silent polls (already_prompted, or nothing at all) keep the ring; reason codes are never read as "followed"', async () => {
     const s = await setup(decision())
     await s.brain.tick()
-    s.set(quietAfter(['already_prompted', 'on_track']))
-    await s.brain.tick()
-    await s.brain.tick()
+    for (const reasons of [['already_prompted', 'on_track'], ['on_track'], []]) {
+      s.set(quietAfter(reasons))
+      await s.brain.tick()
+      await s.brain.watch()
+    }
     expect(s.ringCalls).toHaveLength(1) // still up: no clear, no followed
-    s.set(quietAfter(['on_track']))
-    await s.brain.tick()
-    expect(s.ringCalls.at(-1)).toEqual(['followed'])
-    expect(s.brain.status().ringDecision).toBeNull()
+    expect(s.brain.status().ringDecision).toBe('d_1')
   })
 
-  it('an engine that sends no reason codes never makes the desktop guess: the ring waits for its own limit', async () => {
+  it('followed means the worker used the element the ring is on: their own event on that zone, after the ring came up', async () => {
+    const s = await setup(decision({ target: { zone: 'cliff_button' } }))
+    await s.brain.tick()
+    const asked = () => s.engine.requests.filter((r) => r.path.startsWith('/events')).map((r) => new URL(`http://x${r.path}`).searchParams)
+    s.events([]) // nothing yet
+    await s.brain.watch()
+    expect(s.ringCalls).toHaveLength(1)
+    s.events([{ type: 'click', t: new Date(Date.now() - 60_000).toISOString(), meta: { zone: 'cliff_button' } }]) // before the ring: not a response to it
+    await s.brain.watch()
+    s.events([{ type: 'click', t: new Date().toISOString(), meta: { zone: 'calc_result' } }, { type: 'scroll', t: new Date().toISOString(), meta: { zone: 'cliff_button' } }]) // another zone, or not an interaction
+    await s.brain.watch()
+    expect(s.ringCalls).toHaveLength(1)
+    s.events([{ type: 'click', t: new Date(Date.now() + 50).toISOString(), meta: { zone: 'cliff_button' } }])
+    await s.brain.watch()
+    expect(s.ringCalls.at(-1)).toEqual(['followed'])
+    expect(s.brain.status().ringDecision).toBeNull()
+    const q = asked().at(-1)
+    expect(q?.get('partition')).toBe('real')
+    expect(q?.get('person')).toBe('p_9f3a1c20')
+    expect(q?.get('since')).toMatch(/^\d{4}-\d\d-\d\dT/)
+  })
+
+  it('does not look for the worker unless a ring is up, and an engine that does not answer ends nothing', async () => {
     const s = await setup(decision())
+    await s.brain.watch()
+    expect(s.engine.requests.filter((r) => r.path.startsWith('/events'))).toHaveLength(0)
     await s.brain.tick()
-    s.set(quietAfter([]))
-    await s.brain.tick()
+    await s.engine.close()
+    await s.brain.watch()
     expect(s.ringCalls).toHaveLength(1)
   })
 

@@ -1,0 +1,9 @@
+id: shell_times
+version: 0.1.0
+kind: source
+description: Shell history timestamps only (zsh, bash, fish); command text is discarded while parsing (CAP-8). Local file, read only.
+permissions: [read]
+egress: local_only
+schema: shell_time.v1
+entry: understudy_engine.plugins.shell_times:ShellTimesSource
+default_enabled: true

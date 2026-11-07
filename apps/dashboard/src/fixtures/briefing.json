@@ -1,0 +1,68 @@
+{
+ "meta": {
+  "origin": "synthetic",
+  "n": 3,
+  "n_unit": "episodes",
+  "split": null,
+  "interval_level": 0.95,
+  "note": "Cards are chosen by code. The cap is 3, and fewer (even zero) is normal. Nothing fires unless you press.",
+  "generated_at": "2026-11-07T17:05:00Z"
+ },
+ "data": {
+  "cap": 3,
+  "generated_at": "2026-11-07T17:05:00Z",
+  "cards": [
+   {
+    "id": "b_01",
+    "kind": "focus_block",
+    "title": "Protect Wednesday morning for focus",
+    "why": "You have 2 long focus blocks a week and the expert has about 5. Wednesday 10:00 to 12:00 is free of meetings for the next three weeks.",
+    "prepared": {
+     "text": "Hold Wednesday 10:00 to 12:00 as a focus block each week for three weeks. This is a draft: nothing is sent to anyone."
+    },
+    "risk_class": "normal",
+    "sources": [
+     "calendar"
+    ],
+    "expires_at": "2026-11-08T00:05:00Z",
+    "status": "ready"
+   },
+   {
+    "id": "b_02",
+    "kind": "automate",
+    "title": "Let Understudy enter households into the three calculators",
+    "why": "You did these steps 58 times in 3 weeks, about 92 minutes a week. Your skill on them is at level 4. The routine is waiting for your decision.",
+    "prepared": {
+     "steps": [
+      "Open the three calculators in a separate browser profile",
+      "Enter the household from the case",
+      "Read back each result",
+      "Stop before the case note is submitted"
+     ]
+    },
+    "risk_class": "outward",
+    "sources": [
+     "routine",
+     "traces"
+    ],
+    "expires_at": "2026-11-08T03:05:00Z",
+    "status": "ready"
+   },
+   {
+    "id": "b_03",
+    "kind": "git_habit",
+    "title": "Run the tests before you commit",
+    "why": "Your last 12 commits changed code without touching tests. The expert touches tests in 7 of 10 commits.",
+    "prepared": {
+     "text": "Add a reminder to run the tests for the files you changed before each commit. This is a draft: nothing is changed in your repository."
+    },
+    "risk_class": "normal",
+    "sources": [
+     "git"
+    ],
+    "expires_at": "2026-11-08T17:05:00Z",
+    "status": "ready"
+   }
+  ]
+ }
+}

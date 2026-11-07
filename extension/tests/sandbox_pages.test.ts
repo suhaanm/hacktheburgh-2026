@@ -76,6 +76,17 @@ describe.each(["v1", "v2"] as const)("zones against the real sandbox markup (%s)
     expect(z.forTab(document)).toBe("case_note");
   });
 
+  it("the case note's reconciliation select is its own zone, the other note fields stay case_note", () => {
+    load(`a-casenote-${layout}`);
+    const sel = q("select");
+    const z = zonerFor(HOST.a);
+    expect(z.forElement(sel, "combobox")).toBe("reconcile_control");
+    expect(z.forElement(q("textarea"), "textbox")).toBe("case_note");
+    // configuration alone is enough: without the page's own data-understudy-zone attribute the selector still matches
+    sel.removeAttribute("data-understudy-zone");
+    expect(z.forElement(sel, "combobox")).toBe("reconcile_control");
+  });
+
   it("a calculator tab outside the case note is a results tab (RECONCILE when flipped)", () => {
     load(`b-result-${layout}`);
     expect(zonerFor(HOST.b).forTab(document)).toBe("results_tabs");
@@ -116,6 +127,25 @@ describe("capture on the real result page", () => {
     fire(note, new Event("paste", { bubbles: true }));
     expect(records.find((r) => r.type === "paste")?.meta?.zone).toBe("case_note");
     expect(JSON.stringify(records)).not.toContain("PRIVATE");
+  });
+
+  it("a change on the reconciliation select is captured as a zoned click: no value, no label, no text", () => {
+    for (const layout of ["v1", "v2"] as const) {
+      load(`a-casenote-${layout}`);
+      const records: CaptureRecord[] = [];
+      stop = installCapture({ win, salt: SALT, matcher, zoner: zonerFor(HOST.a), emit: (r) => void records.push(r), requireTrusted: false, isTop: true });
+      const sel = q("select") as HTMLSelectElement;
+      sel.value = "discrepancy";
+      fire(sel, new Event("change", { bubbles: true }));
+      const rec = records.find((r) => r.meta?.changed === true)!;
+      expect(rec).toMatchObject({ type: "click", target: { role: "combobox" }, meta: { zone: "reconcile_control", changed: true } });
+      expect(rec.target?.label_hash).toMatch(/^h:[0-9a-f]{12}$/);
+      const blob = JSON.stringify(records);
+      expect(blob).not.toMatch(/discrepancy|agree|Reconciliation|Calculators|review/i);
+      const ev = makeEvent(rec, { person: "p_9f3a", role: "benefits-processor" }, { now: () => 1_700_000_000_000, uuid: () => "6f1d2b9a-0c47-4a38-9a51-2d1b7e8f5c01" });
+      expect(validateAgainstEventSchema(ev), JSON.stringify(validateAgainstEventSchema.errors)).toBe(true);
+      stop?.(); stop = null;
+    }
   });
 
   it("the household fields are captured; only the health question is skipped, on purpose", () => {

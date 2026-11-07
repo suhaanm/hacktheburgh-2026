@@ -218,6 +218,7 @@ class RunOptions:
     bundles: dict[str, dict[str, Any]] | None = None   # compiled routine bundles by site; None = built-in tier-1 bundles
     unattended: bool = False                            # the worker is away: the gate is stricter about unreadable clicks
     rung: str = "A0"                                    # autonomy rung from the routine's consent
+    page_state: bool = False                            # tier 2: the quarantined reader tells the planner the page KIND each step
 
 
 @dataclass
@@ -382,7 +383,8 @@ class BenefitsRun:
                 nid, context=ctx, model=self.model, guard=guard, base_url=self.base_urls[s],
                 emit=self.emit_step, is_current=self.is_current, query=self.opt.query.get(s, ""),
                 ledger=self.ledger, use_tier1=self.opt.use_tier1, max_actions=self.opt.max_actions,
-                allow_tier3=self.opt.allow_tier3, bundle=(self.opt.bundles or {}).get(s))
+                allow_tier3=self.opt.allow_tier3, bundle=(self.opt.bundles or {}).get(s),
+                page_state=self.opt.page_state, defer_cliff=True)
             jobs[s] = job
             self.nav_state[nid] = {"id": nid, "site": s, "step": 0, "tier": 1, "state": "running"}
         self.stage("navigators_start", n=len(navs))
@@ -421,9 +423,6 @@ class BenefitsRun:
                 res.queue_ids.append(r.queue_id)
             if r.state == "done":
                 self._mark(f"calc_{s}")
-                if r.cliff_checked:
-                    self._mark(f"cliff_{s}")
-            res.cliff_checked[s] = r.cliff_checked
         good = {s: r for s, r in nres.items() if r.state == "done"}
         self.stage("navigators_done", ok=sorted(good))
 
@@ -433,15 +432,21 @@ class BenefitsRun:
             ok, why = await self._verify(s, r, navs[s])
             if ok:
                 results[s] = r.value
-                res.results[s] = r.value.as_dict() | {"tiers": r.tiers_used, "steps": r.steps,
-                                                       "cliff": r.cliff_text[:400]}
             else:
                 self.ledger.record(f"verifier:nav-{s}", True, False, why)
                 self.nav_state[f"nav-{s}"]["state"] = "unverified"
+        self.stage("verified", ok=sorted(results))
+        # the cliff check, the expert's signature step, AFTER the verifier has re-read each result
+        for s in results:
+            await navs[s].cliff_check(jobs[s], good[s])
+            res.cliff_checked[s] = good[s].cliff_checked
+            if good[s].cliff_checked:
+                self._mark(f"cliff_{s}")
+            res.results[s] = good[s].value.as_dict() | {"tiers": good[s].tiers_used, "steps": navs[s].steps,
+                                                        "cliff": good[s].cliff_text[:400]}
         if self.opt.screenshots:
             for i, (s, r) in enumerate(good.items(), 1):
                 await self._shot(r.page, i, f"result_{s}")
-        self.stage("verified", ok=sorted(results))
 
         if set(results) != set(SITE_IDS[: max(1, self.opt.navigators)]) or len(results) < 3:
             missing = [f"calculator {s}: no verified result" for s in SITE_IDS if s not in results]

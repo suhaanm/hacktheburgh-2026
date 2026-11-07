@@ -24,6 +24,8 @@ export interface Health {
   mock: boolean;
   models?: { planner?: string; fast?: string; computer_use?: string };
   services?: { engine: boolean; agent: boolean };
+  /** Which REQ-2 layers are switched on. Absent means none. */
+  extensions?: Partial<Record<ExtensionName, boolean>>;
 }
 
 /* -- Genome ---------------------------------------------------------------- */
@@ -389,3 +391,90 @@ export interface CoachDecision {
   mastery: Record<string, number>;
 }
 export type CoachOutcome = "followed" | "dismissed" | "repeated" | "undone";
+
+/* -- Extensions (REQ-2). Everything is flag-gated; GET /health lists which are on. ---------------------------- */
+export type ExtensionName = "privacy" | "localmodel" | "calendar" | "git" | "proactive" | "agents";
+
+export type BlockKind = "meeting" | "focus" | "break" | "offscreen" | "free";
+export interface CalBlock {
+  /** "HH:MM", minutes since midnight, or an ISO time: all are read. */
+  start: string | number;
+  end: string | number;
+  kind: BlockKind;
+  n_attendees_bucket?: "lt5" | "5to9" | "10plus";
+}
+export interface CalDay { dow: number; blocks: CalBlock[] }
+export interface WeekFeatures {
+  meeting_h?: number; focus_blocks_60?: number; focus_blocks_90?: number; longest_focus_min?: number;
+  fragmentation?: number; back_to_back_runs?: number; work_span_h?: number; offscreen_h?: number;
+  [k: string]: number | undefined | CalDay[];
+}
+export interface GapRow { feature: string; learner: number; expert: number; delta: number; ci: Interval }
+export interface CalendarWeek {
+  days: CalDay[];
+  features: WeekFeatures;
+  /** The expert's features. `days` (the expert's blocks) is additive and optional. */
+  expert: WeekFeatures & { days?: CalDay[] };
+  gap: { rows: GapRow[] };
+}
+export interface CalSuggestion {
+  id: string;
+  template: string;
+  text: string;
+  numbers: Record<string, number | string>;
+  expert_ref: Record<string, number | string>;
+  risk: string;
+  can_draft: boolean;
+}
+
+export type BriefingKind = "practice" | "automate" | "focus_block" | "git_habit" | "agent_result";
+export interface Prepared { text?: string; steps?: string[]; artifact_ref?: string }
+export interface BriefingCard {
+  id: string;
+  kind: BriefingKind | string;
+  title: string;
+  why: string;
+  prepared: Prepared;
+  risk_class: "normal" | "outward" | "irreversible";
+  sources: string[];
+  expires_at: string;
+  status: "ready" | "fired" | "dismissed" | "stale";
+  /** Local only: what pressing "Approve and run" did, so the card can say which. */
+  fired?: { queue_id?: string; run_id?: string };
+}
+export interface Briefing { cap: number; generated_at: string; cards: BriefingCard[] }
+
+export interface Budget { steps?: number; seconds?: number; tokens?: number; [k: string]: number | undefined }
+/** A per-child tool scope with an expiry, a step cap and revocation. It scopes tools only: there is no site or app scope. */
+export interface Lease { ttl_s: number; remaining_s: number; steps_left: number; tools: string[]; revoked: boolean }
+export interface AgentNode { id: string; role: string; state: string; budget: Budget; spent: Budget; result_ref?: string; /** additive, optional */ lease?: Lease }
+/** A step in a run's result. `check` is a declarative postcondition run by code after the step. */
+export type StepCheck = "verified" | "uncertain" | "failed";
+export interface AgentRun {
+  run_id: string;
+  kind: string;
+  mode: "foreground" | "nightly";
+  state: string;
+  started: string;
+  parent: AgentNode;
+  children: AgentNode[];
+}
+export interface AgentRunDetail { artifacts: { name: string; kind: string; path_ref: string }[]; result: unknown }
+export type SpawnKind = "programming.commit_analyst" | "programming.test_gap" | "programming.refactor_suggest" | "data.profile" | "data.chart" | "creative.weekly_summary";
+
+export interface LedgerEntry { t: string; purpose: string; schema: string; fields: string[]; payload: Record<string, unknown>; model: string; bytes: number }
+export interface PrivacySummary {
+  calls: number;
+  by_purpose: Record<string, number>;
+  last_call: string | null;
+  local_only_note: string;
+  canary?: { runs: number; planted: number; leaked: number } | null;
+}
+export interface LocalModelStatus {
+  enabled: boolean;
+  running: boolean;
+  model?: { file: string; size_bytes: number; sha_ok: boolean } | null;
+  endpoint?: string;
+  tokens_per_s?: number;
+  mode: "model" | "rules";
+}

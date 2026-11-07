@@ -19,6 +19,8 @@ export interface BatcherDeps {
   clearTimer: (h: unknown) => void;
   now: () => number;
   onStats?: (s: Stats) => void;
+  /** Read each time a flush timer is set, so a changed `flush_ms` applies to the next batch without a restart. */
+  getFlushMs?: () => number;
 }
 
 export interface BatcherOpts {
@@ -65,7 +67,7 @@ export class Batcher {
     }
     await this.deps.save(this.queue);
     if (this.queue.length >= this.opts.maxBatch) void this.flush();
-    else this.schedule(this.opts.flushMs);
+    else this.schedule(this.deps.getFlushMs?.() ?? this.opts.flushMs);
   }
 
   /** The engine's identity replaced ours: unsent events join the engine's person instead of staying orphaned. */

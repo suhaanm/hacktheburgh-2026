@@ -1,0 +1,356 @@
+"""Test kit for the extension tracks: a capturing fake ``ModelPort`` and a one-call canary flow.
+
+    from understudy_engine.privacy.testing import CapturingPort, canary_flow
+
+    def test_my_flow_leaks_nothing():
+        report = canary_flow(
+            "calendar.suggestions",
+            make_fixtures=lambda: {"events": [{"title": "Quarterly planning", "attendees": ["Ada"], "start": "2026-11-02T09:00"}]},
+            run=lambda fx, port: my_suggestions(fx, port=port),     # must send through egress.send(..., port=port)
+            min_requests=1,
+        )
+        assert report.ok
+
+``canary_flow`` plants canaries in fresh fixtures, runs the flow against a ``CapturingPort``, checks that every captured
+request has exactly one matching ledger line (and none extra), that no planted token appears in any request, and records the
+run so ``GET /privacy/summary`` can show it. Use inside a test that has isolated ``UNDERSTUDY_DATA_DIR``
+(``hermetic(monkeypatch, tmp_path)``).
+"""
+from __future__ import annotations
+
+import copy
+import hashlib
+import json
+import threading
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Callable
+
+from . import canary, ledger
+from ._stub import stub_from_schema
+
+
+def _canonical(obj: Any) -> str:
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=True, default=str)
+
+
+@dataclass
+class CapturedRequest:
+    """One request as the model would have received it. ``body`` is JSON-ready; ``text`` is its canonical JSON."""
+
+    index: int
+    method: str
+    body: Any
+
+    @property
+    def text(self) -> str:
+        return _canonical(self.body)
+
+    @property
+    def bytes(self) -> int:
+        return len(self.text.encode())
+
+
+class CapturingPort:
+    """A fake ``ModelPort``: records every request body, returns schema-valid stub output, never touches a network.
+
+    ``name == "capturing"`` and ``offline = True``, so the egress guard accepts it in mock mode and marks the ledger line
+    ``mock``. ``script("title_or_method", {...})`` queues specific answers (the last repeats); ``fail_with(exc)`` makes the
+    next calls raise (to test fail-closed paths).
+    """
+
+    name = "capturing"
+    offline = True
+
+    def __init__(self, *, stub_text: str = "stub wording") -> None:
+        self.requests: list[CapturedRequest] = []
+        self.stub_text = stub_text
+        self._scripted: dict[str, list[Any]] = {}
+        self._fail: Exception | None = None
+        self._lock = threading.Lock()
+
+    # ---- test helpers
+    def script(self, key: str, *outputs: Any) -> "CapturingPort":
+        """Queue answers for calls whose schema ``title`` (or method name) is ``key``."""
+        self._scripted.setdefault(key, []).extend(outputs)
+        return self
+
+    def fail_with(self, exc: Exception | None) -> "CapturingPort":
+        self._fail = exc
+        return self
+
+    def reset(self) -> None:
+        with self._lock:
+            self.requests.clear()
+
+    def __len__(self) -> int:
+        return len(self.requests)
+
+    def bodies(self) -> list[Any]:
+        return [r.body for r in self.requests]
+
+    def texts(self) -> list[str]:
+        return [r.text for r in self.requests]
+
+    # ---- internals
+    def _record(self, method: str, body: Any) -> None:
+        with self._lock:
+            self.requests.append(CapturedRequest(len(self.requests), method, copy.deepcopy(body)))
+        if self._fail is not None:
+            raise self._fail
+
+    def _answer(self, method: str, schema: dict[str, Any] | None) -> Any:
+        for key in ((schema or {}).get("title"), method):
+            q = self._scripted.get(key) if key else None
+            if q:
+                return copy.deepcopy(q.pop(0) if len(q) > 1 else q[0])
+        return stub_from_schema(schema, text=self.stub_text)
+
+    # ---- ModelPort
+    def plan(self, messages: list[dict[str, Any]], schema: dict[str, Any] | None = None) -> Any:
+        self._record("plan", {"messages": messages, "schema": schema})
+        return self._answer("plan", schema)
+
+    def read(self, untrusted: str, schema: dict[str, Any]) -> Any:
+        self._record("read", {"untrusted": untrusted, "schema": schema})
+        return self._answer("read", schema)
+
+    def check(self, prompt: str, schema: dict[str, Any]) -> Any:
+        self._record("check", {"prompt": prompt, "schema": schema})
+        return self._answer("check", schema)
+
+    def vision(self, image: bytes, prompt: str, schema: dict[str, Any] | None = None) -> Any:
+        self._record("vision", {"image_sha256": hashlib.sha256(image).hexdigest(), "image_bytes": len(image), "prompt": prompt,
+                                "schema": schema})
+        return self._answer("vision", schema)
+
+    def computer_step(self, goal: str, screenshot: bytes, history: list[dict[str, Any]]) -> Any:
+        self._record("computer_step", {"goal": goal, "screenshot_bytes": len(screenshot), "history": history})
+        try:
+            from understudy_agent.models.port import Done  # lazy: only when the agent package is installed
+        except ImportError:
+            raise NotImplementedError("CapturingPort cannot simulate computer use without the agent package") from None
+        return Done(summary="stub", claimed_success=False)
+
+
+class LogCapture:
+    """Capture every ``logging`` record (all loggers, all levels) in a ``with`` block, for the PRV-4 "logs hold no source text" check.
+
+        with LogCapture() as logs:
+            run_my_flow()
+        assert_no_canaries(logs.texts, planted)
+    """
+
+    def __init__(self) -> None:
+        import logging
+
+        self.records: list[Any] = []
+        outer = self
+
+        class _H(logging.Handler):
+            def emit(self, record: Any) -> None:  # noqa: D401
+                outer.records.append(record)
+
+        self._handler = _H(level=logging.DEBUG)
+        self._old_level: int | None = None
+
+    def __enter__(self) -> "LogCapture":
+        import logging
+
+        root = logging.getLogger()
+        self._old_level = root.level
+        root.setLevel(logging.DEBUG)
+        root.addHandler(self._handler)
+        return self
+
+    def __exit__(self, *exc: Any) -> None:
+        import logging
+
+        root = logging.getLogger()
+        root.removeHandler(self._handler)
+        if self._old_level is not None:
+            root.setLevel(self._old_level)
+
+    @property
+    def texts(self) -> list[str]:
+        out = []
+        for r in self.records:
+            try:
+                msg = r.getMessage()
+            except Exception:
+                msg = str(r.msg)
+            out.append(f"{r.name} {msg} {r.exc_text or ''} {' '.join(str(a) for a in (r.args if isinstance(r.args, tuple) else ()))}")
+        return out
+
+
+# --------------------------------------------------------------------------------------------------------- environment
+def hermetic(monkeypatch: Any, tmp_path: Path) -> Path:
+    """Point the data dir and home at ``tmp_path`` and turn mock mode off, so a test never touches the shared ``data/``.
+    Returns the data dir. (Pass the pytest ``monkeypatch`` and ``tmp_path`` fixtures.)"""
+    data = tmp_path / "data"
+    data.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("UNDERSTUDY_DATA_DIR", str(data))
+    monkeypatch.setenv("UNDERSTUDY_HOME", str(tmp_path / "home"))
+    monkeypatch.delenv("UNDERSTUDY_MOCK", raising=False)
+    return data
+
+
+# --------------------------------------------------------------------------------------------------------- ledger checks
+def _wire_from_request(req: CapturedRequest) -> dict[str, Any] | None:
+    """The ``{purpose, schema, payload}`` object egress put in the request, or None for requests not made through it."""
+    body = req.body
+    try:
+        if req.method == "plan":
+            text = body["messages"][-1]["content"]
+        elif req.method == "check":
+            text = body["prompt"].rsplit("\n\n", 1)[-1]
+        else:
+            return None
+        obj = json.loads(text)
+    except (KeyError, IndexError, TypeError, ValueError):
+        return None
+    return obj if isinstance(obj, dict) and {"purpose", "payload"} <= set(obj) else None
+
+
+def ledger_extension_rows() -> list[dict[str, Any]]:
+    return [r for r in ledger.read_all() if r.get("kind", "extension") == "extension"]
+
+
+def assert_ledger_complete(port: CapturingPort, rows: list[dict[str, Any]] | None = None) -> None:
+    """Exactly one ledger line per captured guarded request, in order, and each line's payload is exactly what the request
+    carried. Raises AssertionError otherwise."""
+    rows = ledger_extension_rows() if rows is None else rows
+    wires = [(r, _wire_from_request(r)) for r in port.requests]
+    guarded = [(r, w) for r, w in wires if w is not None]
+    unguarded = [r for r, w in wires if w is None]
+    assert not unguarded, f"{len(unguarded)} request(s) reached the port without going through egress.send (methods: " \
+                          f"{sorted({r.method for r in unguarded})})"
+    assert len(rows) == len(guarded), f"{len(guarded)} guarded request(s) but {len(rows)} ledger line(s)"
+    for i, ((req, wire), row) in enumerate(zip(guarded, rows)):
+        assert row["purpose"] == wire["purpose"], f"ledger line {i}: purpose differs from the request"
+        assert row["payload"] == wire["payload"], f"ledger line {i}: the payload in the ledger is not what was sent"
+        assert row["bytes"] == req.bytes, f"ledger line {i}: byte count differs ({row['bytes']} vs {req.bytes})"
+
+
+# --------------------------------------------------------------------------------------------------------- one-call flow
+def canary_flow(
+    name: str, make_fixtures: Callable[[], Any], run: Callable[[Any, CapturingPort], Any], *, seed: int = 0,
+    mode: str = "replace", min_requests: int = 1, record: bool = True, strict: bool = True,
+) -> canary.CanaryReport:
+    """Plant canaries in fresh fixtures, run ``run(fixtures, port)`` against a ``CapturingPort``, check the ledger and scan.
+
+    ``strict=True`` raises AssertionError on a leak, a missing or extra ledger line, a request that bypassed the guard, or
+    fewer than ``min_requests`` requests. ``strict=False`` returns the report without raising on leaks (the eval harness).
+    """
+    fixtures = make_fixtures()
+    planted = canary.plant(fixtures, seed=seed, mode=mode)
+    port = CapturingPort()
+    before = len(ledger_extension_rows())
+    run(fixtures, port)
+    report = canary.scan(port, planted)
+    if record:
+        canary.record_run(name, report)
+    if strict:
+        assert report.requests >= min_requests, f"{name}: expected at least {min_requests} captured request(s), saw {report.requests}"
+        assert_ledger_complete(port, ledger_extension_rows()[before:])
+        if report.leaks:
+            raise AssertionError(f"{name}: planted canary token(s) reached the model port: {report.summary()}")
+    return report
+
+
+# --------------------------------------------------------------------------------------------------------- flow registry
+@dataclass(frozen=True)
+class CanaryFlow:
+    """One flow to measure. A layer owner exposes ``FLOWS = [CanaryFlow(...), ...]`` in ``<layer>/canary_flows.py`` and
+    ``privacy.evaluate.evaluate_privacy()`` runs them all (several seeds each) against a ``CapturingPort``.
+
+    ``make_fixtures()`` builds FRESH fixtures (nested dicts and lists with names, emails, titles, paths, messages, customers);
+    ``run(fixtures, port)`` runs the real flow, sending only through ``egress.send(..., port=port)``; ``min_requests`` is how
+    many model calls it must make (0 for a flow that may legitimately send nothing). ``mode="append"`` keeps the original text
+    (use it when the code reads keywords from titles or messages).
+    """
+
+    name: str
+    make_fixtures: Callable[[], Any]
+    run: Callable[[Any, CapturingPort], Any]
+    layer: str = ""
+    kind: str = "integration"          # "integration" = the layer's real code; "reference" = the privacy layer's own upstream stand-in
+    min_requests: int = 1
+    mode: str = "replace"
+
+
+@dataclass
+class FlowResult:
+    name: str
+    layer: str
+    kind: str
+    seed: int
+    requests: int
+    planted: int
+    leaked: int
+    ledger_expected: int
+    ledger_lines: int
+    ledger_complete: bool
+    by_kind: dict[str, int]
+    leaked_kinds: list[str]
+    error: str | None = None
+    note: str | None = None
+    artifact_files: int = 0          # PRV-4: files of the audit log, queue, logs and ledgers that were read
+    artifact_log_records: int = 0    # PRV-4: logging records captured while the flow ran
+    artifact_leaked: int = 0         # planted tokens found in any of them
+
+
+def run_flow(flow: CanaryFlow, seed: int = 0) -> FlowResult:
+    """Run one flow once with canaries planted; never raises (an exception in the flow is recorded as ``error``)."""
+    fixtures = flow.make_fixtures()
+    try:
+        planted = canary.plant(fixtures, seed=seed, mode=flow.mode)
+    except AssertionError as exc:
+        return FlowResult(flow.name, flow.layer, flow.kind, seed, 0, 0, 0, 0, 0, False, {}, [], error=str(exc)[:160])
+    port = CapturingPort()
+    before = len(ledger_extension_rows())
+    error = None
+    with LogCapture() as logs:
+        try:
+            flow.run(fixtures, port)
+        except Exception as exc:  # a flow that fails closed (EgressError) is fine; record what happened, not the message text
+            error = type(exc).__name__
+    report = canary.scan(port, planted)
+    art = canary.scan_artifacts(planted)
+    log_report = canary.scan(logs.texts, planted)
+    art_leaked = len({(lk.kind, lk.token) for lk in art.leaks} | {(lk.kind, lk.token) for lk in log_report.leaks})
+    rows = ledger_extension_rows()[before:]
+    guarded = [r for r in port.requests if _wire_from_request(r) is not None]
+    try:
+        assert_ledger_complete(port, rows)
+        complete, note = True, None
+    except AssertionError as exc:
+        complete, note = False, str(exc)[:200]
+    if report.requests < flow.min_requests:
+        note = ((note + "; ") if note else "") + f"made {report.requests} request(s), expected at least {flow.min_requests}"
+    return FlowResult(flow.name, flow.layer, flow.kind, seed, report.requests, report.planted, report.leaked, len(guarded), len(rows),
+                      complete, report.by_kind, sorted({lk.kind for lk in report.leaks}), error, note,
+                      artifact_files=art.requests, artifact_log_records=log_report.requests, artifact_leaked=art_leaked)
+
+
+def assert_vocabularies_clean() -> None:
+    """Every registered vocabulary value and every registered purpose's instructions must pass the full backstop, so no id can be
+    refused at send time for a reason that could have been caught in a unit test. A track calls this at the end of its own suite."""
+    from . import patterns
+    from .payload import purposes, vocabularies
+
+    bad: list[str] = []
+    for name, v in vocabularies().items():
+        for val in v["values"] or []:
+            rules = patterns.scan_text(val)
+            if rules:
+                bad.append(f"vocabulary {name!r}: value trips {sorted(set(rules))}")
+    for pname, p in purposes().items():
+        rules = patterns.scan_text(p.instructions)
+        if rules:
+            bad.append(f"purpose {pname!r}: instructions trip {sorted(set(rules))}")
+        for fname in p.model.field_names():
+            rules = patterns.scan_text(fname, pii=False)
+            if rules:
+                bad.append(f"purpose {pname!r}: field name {fname!r} trips the sensitive-field patterns {sorted(set(rules))}")
+    assert not bad, "the privacy backstop would refuse these at send time:\n" + "\n".join(bad)

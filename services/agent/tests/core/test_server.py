@@ -273,3 +273,45 @@ def test_finalize_and_routine_runs_take_the_lock_too(api_shared, cluster):
         assert cluster.state.submissions == []
     assert api_shared.post(f"/run/{rid}/finalize").json()["submitted"] is True
     assert read_owner() is None
+
+
+def test_agents_extension_is_off_by_default_and_never_breaks_the_server(cluster, tmp_path, monkeypatch):
+    import sys
+    import types
+
+    from fastapi import APIRouter
+
+    monkeypatch.setenv("UNDERSTUDY_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.delenv("UNDERSTUDY_X_AGENTS", raising=False)
+    monkeypatch.delenv("UNDERSTUDY_X", raising=False)
+
+    def app_():
+        return create_app(base_urls=cluster.urls, autostart_sandbox=False, supervisor=Supervisor(), shared_sites=False)
+
+    with TestClient(app_()) as c:                                   # off by default
+        assert c.get("/health").json()["extensions"] == {"agents": False}
+        assert c.get("/agents/runs").status_code == 404
+        assert "disabled" in c.app.state.extension_status["agents"]
+    monkeypatch.setenv("UNDERSTUDY_X_AGENTS", "1")
+    monkeypatch.delitem(sys.modules, "understudy_agent.runtime.routes", raising=False)
+    monkeypatch.delitem(sys.modules, "understudy_agent.runtime", raising=False)
+    with TestClient(app_()) as c:                                   # asked for, but the module is missing or broken
+        h = c.get("/health").json()
+        assert h["ok"] and h["extensions"] == {"agents": False}
+        status = c.app.state.extension_status["agents"]
+        assert status.startswith("not loaded:")
+    # a router that does import is included
+    pkg = types.ModuleType("understudy_agent.runtime")
+    pkg.__path__ = []  # type: ignore[attr-defined]
+    mod = types.ModuleType("understudy_agent.runtime.routes")
+    r = APIRouter()
+    r.add_api_route("/agents/runs", lambda: {"runs": []}, methods=["GET"])
+    mod.router = r  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "understudy_agent.runtime", pkg)
+    monkeypatch.setitem(sys.modules, "understudy_agent.runtime.routes", mod)
+    monkeypatch.delenv("UNDERSTUDY_X_AGENTS")
+    monkeypatch.setenv("UNDERSTUDY_X", "1")
+    with TestClient(app_()) as c:
+        assert c.get("/health").json()["extensions"] == {"agents": True}
+        assert c.get("/agents/runs").json() == {"runs": []}
+        assert c.app.state.extension_status["agents"] == "enabled"

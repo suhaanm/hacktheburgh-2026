@@ -283,4 +283,25 @@ describe("worker core", () => {
       expect(h.w.config.person).toBe("p_ana1");
     });
   });
+
+  describe("flush_ms", () => {
+    it("the worker sends the first batch after the configured flush_ms, and after 2 s by default", async () => {
+      const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+      const fast = harness();
+      await fast.w.init();
+      await fast.setConfig({ capturing: true, flush_ms: 100 });
+      await fast.w.handleMessage(rec);
+      expect(fast.sent.filter((s) => s.url.endsWith("/events"))).toHaveLength(0);
+      await wait(450);
+      expect(fast.sent.filter((s) => s.url.endsWith("/events"))).toHaveLength(1);
+
+      const dflt = harness();
+      await dflt.w.init();
+      await dflt.setConfig({ capturing: true });
+      await dflt.w.handleMessage(rec);
+      await wait(450);
+      expect(dflt.sent.filter((s) => s.url.endsWith("/events"))).toHaveLength(0);       // still waiting: the default is unchanged
+      expect(dflt.w.config.flush_ms).toBe(2000);
+    });
+  });
 });

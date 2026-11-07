@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://understudy.local/schema/plugin.schema.json",
+  "title": "Understudy plugin manifest v1 (PLG-1)",
+  "description": "plugin.yaml for a source, skill or tool plugin. The pattern (id, version, kind, permissions, entry) follows the MIT Clicky Hermes plugin manifest and is re-implemented here. A source plugin is read-only and local-only: permissions is exactly [read], egress is local_only, and a plugin that needs the network or a token (the Graph sources) must be off by default and name the environment flag that turns it on. The loader checks, beyond this schema, that the entry imports, is a Source subclass whose plugin_id equals id, and that schema names a registered item schema (understudy_engine.plugins.schemas).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "version", "kind", "description", "permissions", "egress", "entry"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,40}$", "description": "Matches Source.plugin_id." },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "kind": { "enum": ["source", "skill", "tool"] },
+    "description": { "type": "string", "minLength": 8, "maxLength": 300 },
+    "permissions": { "type": "array", "items": { "const": "read" }, "minItems": 1, "maxItems": 1, "description": "Read only. A plugin never writes to the source it reads." },
+    "egress": { "const": "local_only", "description": "Raw items never leave the machine; only digests pass the egress guard (PRV-1)." },
+    "schema": { "type": "string", "pattern": "^[a-z_]+\\.v[0-9]+$", "description": "Item schema id, for example calendar_event.v1. Required for kind source." },
+    "entry": { "type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_.]*:[A-Za-z_][A-Za-z0-9_]*$", "description": "module.path:ClassName." },
+    "default_enabled": { "type": "boolean", "default": true },
+    "network": { "type": "boolean", "default": false, "description": "True when the plugin may call a remote API. Then default_enabled must be false and enable_flag is required." },
+    "requires_token": { "type": "boolean", "default": false },
+    "enable_flag": { "type": "string", "pattern": "^UNDERSTUDY_[A-Z0-9_]+$", "description": "Environment variable that must be 1 for the plugin to load." },
+    "limitations": { "type": "array", "items": { "type": "string", "maxLength": 200 }, "maxItems": 6 }
+  },
+  "allOf": [
+    { "if": { "properties": { "kind": { "const": "source" } }, "required": ["kind"] }, "then": { "required": ["schema"] } },
+    { "if": { "anyOf": [ { "properties": { "network": { "const": true } }, "required": ["network"] }, { "properties": { "requires_token": { "const": true } }, "required": ["requires_token"] } ] },
+      "then": { "required": ["enable_flag", "default_enabled"], "properties": { "default_enabled": { "const": false } } } }
+  ]
+}

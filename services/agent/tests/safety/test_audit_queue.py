@@ -297,3 +297,103 @@ def test_validate_auth_returns_a_clean_copy():
     src = {"method": "local", "sub_hash": "0123456789ab"}
     out = validate_auth(src)
     assert out == src and out is not src and validate_auth(None) is None
+
+
+# ------------------------------------------------------------------ approvals expire (default 30 minutes)
+from understudy_agent.queue import DEFAULT_APPROVAL_MAX_AGE_S, approval_max_age_s  # noqa: E402
+
+
+class Clock:
+    def __init__(self, t=1_800_000_000.0):
+        self.t = t
+
+    def __call__(self):
+        return self.t
+
+
+def aged_queue(tmp_path, clock, **kw):
+    return ApprovalQueue(tmp_path / "queue", audit=AuditLog(tmp_path / "audit.jsonl"), clock=clock, **kw)
+
+
+def approved_item(queue, clock, sig="sigA"):
+    item = mk(queue, signature=sig)
+    queue.approve(item["id"], origin=Origin.HUMAN_UI)
+    return item["id"]
+
+
+def test_default_age_limit_is_thirty_minutes_with_an_env_override(monkeypatch):
+    assert DEFAULT_APPROVAL_MAX_AGE_S == 1800 and approval_max_age_s() == 1800
+    monkeypatch.setenv("UNDERSTUDY_APPROVAL_MAX_AGE_S", "120")
+    assert approval_max_age_s() == 120 and approval_max_age_s(5) == 5  # an argument beats the environment
+    monkeypatch.setenv("UNDERSTUDY_APPROVAL_MAX_AGE_S", "not a number")
+    assert approval_max_age_s() == 1800
+    monkeypatch.setenv("UNDERSTUDY_APPROVAL_MAX_AGE_S", "-3")
+    assert approval_max_age_s() == 1800
+
+
+def test_a_fresh_approval_works_once_and_one_just_inside_the_limit_still_works(tmp_path):
+    clock = Clock()
+    queue = aged_queue(tmp_path, clock)
+    qid = approved_item(queue, clock)
+    clock.t += 1799
+    chk = queue.try_consume_approval(qid, "sigA")
+    assert chk.ok and chk.code == "ok"
+    again = queue.try_consume_approval(qid, "sigA")
+    assert not again.ok and again.code == "consumed"
+
+
+def test_an_old_approval_is_refused_cancelled_and_must_be_asked_for_again(tmp_path):
+    clock = Clock()
+    queue = aged_queue(tmp_path, clock)
+    qid = approved_item(queue, clock)
+    clock.t += 1801
+    chk = queue.try_consume_approval(qid, "sigA")
+    assert not chk.ok and chk.code == "expired"
+    assert "31 minutes ago" in chk.reason or "30 minutes ago" in chk.reason
+    assert "expire after 30 minutes" in chk.reason and "ask again" in chk.reason
+    item = queue.get(qid)
+    assert item["status"] == "expired" and item["expired_reason"] == "approval_too_old" and item["expired_at"] and "consumed_at" not in item
+    assert not queue.consume_approval(qid, "sigA")  # stays refused
+    assert queue.try_consume_approval(qid, "sigA").code == "not_approved"
+    with pytest.raises(AlreadyDecided):
+        queue.approve(qid, origin=Origin.HUMAN_UI)  # an expired item cannot be revived: a new item is needed
+    rows = [r for r in AuditLog(tmp_path / "audit.jsonl").read(limit=0) if r["kind"] == "queue_decided" and r["outcome"] == "expired_old_approval"]
+    assert len(rows) == 1 and rows[0]["actor"] == "system"
+
+
+def test_age_limit_can_be_set_per_queue_per_call_and_by_env(tmp_path, monkeypatch):
+    clock = Clock()
+    queue = aged_queue(tmp_path, clock, max_age_s=60)
+    qid = approved_item(queue, clock)
+    clock.t += 61
+    assert queue.try_consume_approval(qid, "sigA").code == "expired"
+    q2 = aged_queue(tmp_path / "b", clock)
+    q2id = approved_item(q2, clock)
+    clock.t += 3000
+    assert q2.try_consume_approval(q2id, "sigA", max_age_s=7200).ok  # a per-call limit
+    monkeypatch.setenv("UNDERSTUDY_APPROVAL_MAX_AGE_S", "10")
+    q3 = aged_queue(tmp_path / "c", clock)
+    q3id = approved_item(q3, clock)
+    clock.t += 11
+    assert q3.try_consume_approval(q3id, "sigA").code == "expired"
+
+
+def test_refusal_reasons_for_the_other_failures(tmp_path):
+    clock = Clock()
+    queue = aged_queue(tmp_path, clock)
+    assert queue.try_consume_approval("q_nope", "x").code == "not_found"
+    pending = mk(queue, signature="s")
+    assert queue.try_consume_approval(pending["id"], "s").code == "not_approved"
+    qid = approved_item(queue, clock, sig="right")
+    assert queue.try_consume_approval(qid, "wrong").code == "signature_mismatch" and queue.get(qid)["status"] == "approved"
+    assert queue.try_consume_approval(qid, "right").ok
+
+
+def test_an_approval_with_no_readable_time_is_not_trusted(tmp_path):
+    clock = Clock()
+    queue = aged_queue(tmp_path, clock)
+    qid = approved_item(queue, clock)
+    item = queue.get(qid)
+    item["decided_at"] = "garbage"
+    queue._write(item)
+    assert queue.try_consume_approval(qid, "sigA").code == "expired"

@@ -66,9 +66,15 @@ def tier2_heuristic(messages: list[dict[str, Any]]) -> dict[str, Any]:
         return {"tool": "wait", "reason": "no state"}
     state = json.loads(m.group(1))
     labels = {k: v.strip() for k, v in re.findall(r"^(e\d+): (.*)$", content, re.M)}
+    kind = (re.search(r"^kind: (\w+)$", content, re.M) or [None, ""])[1]
     done = set(state.get("already_set_on_this_page", []))
     allowed = set(state.get("params", []))
     elements = state.get("elements", [])
+    if kind == "error":   # a problem page: go back and try again, never finish
+        back = [e for e in elements if any(w in labels.get(e["ref"], "").lower() for w in ("go back", "try again", "back"))]
+        if back:
+            return {"tool": "click", "ref": back[0]["ref"], "reason": "the page is an error page: go back"}
+        return {"tool": "wait", "reason": "error page with nothing to press"}
     for e in elements:
         if e["role"] not in ("textbox", "spinbutton", "combobox"):
             continue
@@ -82,6 +88,18 @@ def tier2_heuristic(messages: list[dict[str, Any]]) -> dict[str, Any]:
     if fwd:
         return {"tool": "click", "ref": fwd[-1]["ref"], "reason": "move on"}
     return {"tool": "finish", "reason": "nothing left to fill or press on this page"}
+
+
+def read_page_state(text: str) -> dict[str, Any]:
+    t = text.lower()
+    if any(w in t for w in ("there is a problem", "temporarily unavailable", "having trouble", "(503)", "must be a number",
+                            "please enter", "is out of range", "service unavailable")):
+        return {"kind": "error", "error": True}
+    if REF_RE.search(text) and _AMOUNT.search(text):
+        return {"kind": "result", "error": False}
+    if re.search(r"\bCN-\d{4}\b", text) and "draft" in t:
+        return {"kind": "saved_note", "error": False}
+    return {"kind": "form", "error": False}
 
 
 def read_calculator_result(text: str) -> dict[str, str]:
@@ -120,6 +138,8 @@ class HeuristicModelPort:
         self.calls.append({"method": "read", "title": title, "chars": len(untrusted)})
         if title == "calculator_result":
             return read_calculator_result(untrusted)
+        if title == "page_state":
+            return read_page_state(untrusted)
         return self._need().read(untrusted, schema)
 
     def check(self, prompt: str, schema: dict[str, Any]) -> dict[str, Any]:

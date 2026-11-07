@@ -327,3 +327,18 @@ def test_cliff_button_expands_the_panel_in_a_browser(cluster, pw_browser):
 
 def test_tolerance_constant_is_one_pound():
     assert TOLERANCE_GBP == 1.0
+
+
+@pytest.mark.parametrize("layout", ["v1", "v2"])
+@pytest.mark.parametrize("variant", ["clean", "injected"])
+def test_the_case_note_reconcile_select_has_a_stable_zone_marker(cluster, layout, variant):
+    import re
+
+    q = f"?case=CASE-1001&layout={layout}" + ("&variant=injected" if variant == "injected" else "")
+    html = httpx.get(cluster.urls["a"] + "/casenote" + q).text
+    m = re.search(r'<select[^>]*data-understudy-zone="reconcile_control"[^>]*>(.*?)</select>', html, re.S)
+    assert m, "the reconciliation select must carry data-understudy-zone=reconcile_control"
+    assert re.search(r'id="(reconciliation|cn-recon)"', m.group(0)) or "reconciliation" in m.group(0)
+    assert 'value="agree"' in m.group(1) and 'value="discrepancy"' in m.group(1)
+    assert m.group(1).index('value="agree"') < m.group(1).index('value="discrepancy"')   # default stays "agree"
+    assert html.count('data-understudy-zone="reconcile_control"') == 1

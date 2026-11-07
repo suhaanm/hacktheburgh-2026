@@ -2,8 +2,8 @@ import { noteSource, setState } from "./store";
 import type { ApprovalAuth } from "./auth/types";
 import type {
   Analytic, AnalyticMeta, AuditLine, CoachState, EvalReport, Genome, Hazard, Health, KillState, Memory,
-  CoachDecision, CoachOutcome, OffhoursReport, OnboardingAnswers, OnboardingQuestions, OnboardingResult, Pack, Presence, QueueItem, QuietHours,
-  Replay, Routine, RuleProposal, Transitions, WorkGraph,
+  AgentRun, AgentRunDetail, Briefing, CalSuggestion, CalendarWeek, CoachDecision, CoachOutcome, LedgerEntry, LocalModelStatus, OffhoursReport, OnboardingAnswers, OnboardingQuestions, OnboardingResult, Pack, Presence, QueueItem, QuietHours,
+  PrivacySummary, Prepared, Replay, Routine, RuleProposal, SpawnKind, Transitions, WorkGraph,
 } from "./types";
 import genomeFx from "./fixtures/genome.json";
 import transitionsFx from "./fixtures/transitions.json";
@@ -21,6 +21,13 @@ import onboardingFx from "./fixtures/onboarding.json";
 import hazardFx from "./fixtures/hazard.json";
 import evalFx from "./fixtures/eval-report.json";
 import healthFx from "./fixtures/health.json";
+import weekFx from "./fixtures/calendar-week.json";
+import suggestionsFx from "./fixtures/calendar-suggestions.json";
+import briefingFx from "./fixtures/briefing.json";
+import agentsFx from "./fixtures/agents-runs.json";
+import ledgerFx from "./fixtures/privacy-ledger.json";
+import privacySummaryFx from "./fixtures/privacy-summary.json";
+import localModelFx from "./fixtures/localmodel-status.json";
 import { parseMemory, removeLineText, serializeMemory, toMemory } from "./lib/memory";
 import { buildPreview } from "./lib/memoryPreview";
 import { idleCapacity } from "./lib/heatmap";
@@ -145,6 +152,21 @@ const demo = {
   workDeleted: new Set<string>(),
   killed: false,
   killedAt: null as string | null,
+  briefing: clone(fx<Analytic<Briefing>>(briefingFx).data),
+  runs: clone(fx<Analytic<AgentRun[]>>(agentsFx).data),
+  ledger: clone(fx<Analytic<LedgerEntry[]>>(ledgerFx).data),
+  spawned: 0,
+};
+const agentDetails = (agentsFx as unknown as { details: Record<string, AgentRunDetail> }).details;
+
+/** Child roles a demo run is planned into, by kind. */
+const DEMO_CHILDREN: Record<string, string[]> = {
+  "programming.commit_analyst": ["commit reader", "habit counter"],
+  "programming.test_gap": ["test finder"],
+  "programming.refactor_suggest": ["code reader", "patch drafter"],
+  "data.profile": ["profiler"],
+  "data.chart": ["profiler", "chart builder"],
+  "creative.weekly_summary": ["digest reader", "writer"],
 };
 
 function metaOf(fixture: unknown): AnalyticMeta | null {
@@ -243,6 +265,104 @@ export const api = {
 
   evalReport: () =>
     read<EvalReport>("/eval/report", () => ({ data: fx<EvalReport>(evalFx), meta: null })),
+
+  /* -- Extensions (REQ-2): each is flag-gated; without the engine the fixtures answer ----------------------------- */
+  calendarWeek: (person?: string) =>
+    read<CalendarWeek>(`/calendar/week${person ? `?person=${encodeURIComponent(person)}` : ""}`, () => ({ data: dataOf<CalendarWeek>(weekFx), meta: metaOf(weekFx) })),
+
+  calendarSuggestions: (person?: string) =>
+    read<CalSuggestion[]>(`/calendar/suggestions${person ? `?person=${encodeURIComponent(person)}` : ""}`, () => ({ data: dataOf<CalSuggestion[]>(suggestionsFx), meta: metaOf(suggestionsFx) })),
+
+  briefing: (person?: string) =>
+    read<Briefing>(`/briefing${person ? `?person=${encodeURIComponent(person)}` : ""}`, () => ({ data: demo.briefing, meta: metaOf(briefingFx) })),
+
+  /** Edit the prepared block. The body is the prepared content itself: { text?, steps? }. */
+  briefingEdit: (id: string, prepared: Prepared) =>
+    write<unknown>(`/briefing/${encodeURIComponent(id)}/prepared`, "PUT", prepared, () => {
+      const c = demo.briefing.cards.find((x) => x.id === id);
+      if (!c) throw new ApiError(404, "no_such_card", "That card is gone.");
+      c.prepared = clone(prepared);
+      return { ok: true };
+    }),
+
+  /** Press to fire. Only the worker's press does this. Returns what it created: an approval item, a background run, or both. */
+  briefingFire: async (id: string): Promise<{ queue_id?: string; run_id?: string }> => {
+    const r = await write<{ queue_id?: string; run_id?: string }>(`/briefing/${encodeURIComponent(id)}/fire`, "POST", undefined, () => {
+      const c = demo.briefing.cards.find((x) => x.id === id);
+      if (!c) throw new ApiError(404, "no_such_card", "That card is gone.");
+      if (c.status !== "ready") throw new ApiError(409, "not_ready", "That card is no longer ready.");
+      const out = c.kind === "automate" || c.kind === "agent_result" ? { run_id: `r_demo_${c.id}` } : { queue_id: `q_demo_${c.id}` };
+      c.status = "fired";
+      c.fired = out;
+      return out;
+    }, "worker_approval");
+    return r.data ?? {};
+  },
+
+  /** "Not now" and "Never for this" both dismiss; `mode` is additive and tells the engine which. */
+  briefingDismiss: (id: string, mode: "not_now" | "never") =>
+    write<unknown>(`/briefing/${encodeURIComponent(id)}/dismiss`, "POST", { mode }, () => {
+      const c = demo.briefing.cards.find((x) => x.id === id);
+      if (!c) throw new ApiError(404, "no_such_card", "That card is gone.");
+      c.status = "dismissed";
+      return { ok: true };
+    }),
+
+  agentsRuns: (person?: string) =>
+    read<AgentRun[]>(`/agents/runs${person ? `?person=${encodeURIComponent(person)}` : ""}`, () => ({ data: demo.runs, meta: metaOf(agentsFx) }), AGENT_URL),
+
+  agentsRunDetail: (id: string) =>
+    read<AgentRunDetail>(`/agents/runs/${encodeURIComponent(id)}`, () => ({ data: agentDetails[id] ?? { artifacts: [], result: null } }), AGENT_URL),
+
+  agentsSpawn: async (kind: SpawnKind, mode: "foreground" | "nightly", params: Record<string, unknown> = {}): Promise<{ run_id: string }> => {
+    const r = await write<{ run_id: string }>("/agents/spawn", "POST", { kind, params, mode }, () => {
+      const run_id = `r_demo_${++demo.spawned}`;
+      const b = (steps: number, seconds: number, tokens: number) => ({ steps, seconds, tokens });
+      demo.runs.unshift({
+        run_id, kind, mode, state: mode === "nightly" ? "queued" : "running", started: new Date().toISOString(),
+        parent: { id: `p_${run_id}`, role: "planner", state: mode === "nightly" ? "queued" : "running", budget: b(20, 300, 12000), spent: b(0, 0, 0) },
+        children: (DEMO_CHILDREN[kind] ?? ["worker"]).map((role, i) => ({ id: `c_${run_id}_${i}`, role, state: "queued", budget: b(12, 120, 5000), spent: b(0, 0, 0) })),
+      });
+      return { run_id };
+    }, "worker", AGENT_URL);
+    return r.data;
+  },
+
+  agentsStop: (id: string) =>
+    write<unknown>(`/agents/runs/${encodeURIComponent(id)}/stop`, "POST", undefined, () => {
+      const run = demo.runs.find((x) => x.run_id === id);
+      if (!run) throw new ApiError(404, "no_such_run", "That run is gone.");
+      const stop = (n: { state: string }) => { if (["running", "queued", "paused", "starting"].includes(n.state)) n.state = "stopped"; };
+      stop(run); stop(run.parent); run.children.forEach(stop);
+      return { stopped: true };
+    }, "worker", AGENT_URL),
+
+  /** End one child at once (a parent revoke cascades to its children). Sent as the worker. */
+  agentsRevoke: (runId: string, childId: string) =>
+    write<unknown>(`/agents/runs/${encodeURIComponent(runId)}/children/${encodeURIComponent(childId)}/revoke`, "POST", undefined, () => {
+      const run = demo.runs.find((x) => x.run_id === runId);
+      const child = run?.children.find((c) => c.id === childId);
+      if (!run || !child) throw new ApiError(404, "no_such_child", "That child is gone.");
+      child.state = "revoked";
+      if (child.lease) { child.lease.revoked = true; child.lease.remaining_s = 0; }
+      return { revoked: true };
+    }, "worker", AGENT_URL),
+
+  privacyLedger: (limit = 200) =>
+    read<LedgerEntry[]>(`/privacy/ledger?limit=${limit}`, () => ({ data: demo.ledger, meta: metaOf(ledgerFx) })),
+
+  privacySummary: () =>
+    read<PrivacySummary>("/privacy/summary", () => {
+      const by: Record<string, number> = {};
+      for (const e of demo.ledger) by[e.purpose] = (by[e.purpose] ?? 0) + 1;
+      const base = dataOf<PrivacySummary>(privacySummaryFx);
+      return { data: { ...base, calls: demo.ledger.length, by_purpose: by, last_call: demo.ledger[0]?.t ?? null }, meta: metaOf(privacySummaryFx) };
+    }),
+
+  privacyClear: () =>
+    write<unknown>("/privacy/ledger/clear", "POST", undefined, () => { demo.ledger = []; return { ok: true }; }),
+
+  localModel: () => read<LocalModelStatus>("/localmodel/status", () => ({ data: fx<LocalModelStatus>(localModelFx) })),
 
   /** Optional route (additive): the kill flag as the engine sees it. Absent routes fall back to local state. */
   killState: () => read<KillState>("/kill", () => ({ data: { killed: demo.killed, at: demo.killedAt } })),

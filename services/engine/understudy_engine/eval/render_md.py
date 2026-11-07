@@ -164,22 +164,55 @@ def _agent_runs(s: dict[str, Any]) -> str:
     rows = [row("Clean path (compiled)", s["clean"])]
     if s.get("robust"):
         rows.append(row("Failure injection", s["robust"]))
-    if s.get("live"):
-        rows.append(row("Real model, small n", s["live"]))
-    txt = table(["Run (synthetic sandbox)", "Households", "Passed", "95% interval", "Mean seconds", "Households that used each tier", "False claims"], rows)
+    txt = table(["Run (mock model, synthetic sandbox)", "Households", "Passed", "95% interval", "Mean seconds", "Households that used each tier", "False claims"], rows)
     rb = s.get("robust") or {}
     if rb.get("injected"):
         txt += "\n\nWhat was injected, and what happened:\n\n" + table(["Injection", "Households", "Passed", "Needed tier 2"], [[x["injection"], str(x["n"]), str(x["pass"]), str(x.get("used_tier2", ""))] for x in rb["injected"]])
     elif rb.get("injected_note"):
         txt += f"\n\nInjection plan not shown: {rb['injected_note']}."
     d = s.get("discrepancies_flagged") or {}
-    txt += f"\n\nPlanted calculator discrepancies flagged: {d.get('n')} of {d.get('of')} households. False success claims across all runs: {s.get('false_claims')}."
-    if s.get("live"):
-        txt += f"\n\nReal-model block (n = {s['live']['n']}, estimated cost {s['live'].get('cost_usd_est')} USD): {s['live'].get('note')}"
+    txt += f"\n\nPlanted calculator discrepancies flagged: {d.get('n')} of {d.get('of')} households."
+    live = s.get("live")
+    if live:
+        txt += "\n\n" + _agent_live(live)
     else:
         txt += "\n\nNo real-model run is in this report."
     return txt + ("\n\nCaveat: the clean path is the compiled path on the sandbox it was written against, so a full pass is expected. "
-                  "The discriminating evidence is the failure-injection rows.")
+                  "The discriminating evidence is the failure-injection rows and, with a real model, the glitch and injected conditions.")
+
+
+def _agent_live(live: dict[str, Any]) -> str:
+    cond = live.get("conditions") or {}
+    labels = {"clean": "Clean", "layout_v2": "Layout change", "glitch": "One-off error page (glitch)", "injected": "Injected page (prompt injection)"}
+
+    def row(label: str, c: dict[str, Any]) -> list[str]:
+        return [label, str(c["n"]), f"{c['pass']} of {c['n']} {ci(c['wilson'], 2)}", f"{c.get('claimed_success')}", f"{c.get('false_claims')}", f"{c.get('paused')}",
+                f"{c.get('attack_success')} of {c.get('injected_runs')}" if c.get("injected_runs") else "n/a", f(c.get("mean_steps"), 1), f(c.get("mean_latency_s"), 1),
+                ", ".join(str(t) for t in c.get("tiers") or []) or "none"]
+
+    body = [row(labels.get(k, k), c) for k, c in cond.items()]
+    fix = live.get("glitch_fix")
+    if fix:
+        body.append(row("After the fix, glitch only: IN-SAMPLE, made after seeing the glitch result", fix))
+    head = ["Condition (REAL MODEL, small n)", "Households", "Passed the code check [95%]", "Claimed finished", "False claims", "Paused by the detector", "Attacks that succeeded", "Mean steps", "Mean seconds", "Tiers used"]
+    txt = f"**Real model ({live.get('households')} households per condition, {live.get('runs_total')} runs, tier 1 disabled).** {live.get('note')}\n\n" + table(head, body)
+    gl = cond.get("glitch") or {}
+    if gl:
+        txt += (f"\n\nOn the one-off error page the model said it was finished in {gl.get('claimed_success')} of {gl.get('n')} runs and {gl.get('false_claims')} of those claims were false; "
+                "the code check caught every one. Injected pages were paused by the detector before the planner acted, so task success there is 0 by design.")
+    if fix:
+        b = fix.get("same_condition_before") or {}
+        txt += (f"\n\nThe fix ({fix.get('description')}) was re-run on the glitch condition: {fix.get('pass')} of {fix.get('n')} succeeded with {fix.get('false_claims')} false claims "
+                f"(before: {b.get('pass')} of {b.get('n')}). **This is in-sample** and only {fix.get('n')} runs"
+                + (f" ({fix.get('dropped_after_budget_stop')} later rows dropped when the run budget stopped)" if fix.get("dropped_after_budget_stop") else "") + ".")
+    t3 = live.get("tier3") or {}
+    txt += (f"\n\nTier 3 (computer use) is not demonstrated on the benefits task: {t3.get('runs')} runs with a simulated actuator made {t3.get('pointer_actions')} pointer actions "
+            f"and landed on an interactive element {t3.get('landed_on_interactive')} times.")
+    c = live.get("cost") or {}
+    pr = c.get("price_assumption_usd_per_million") or {}
+    txt += (f"\n\nCost: an estimate at placeholder rates ({pr.get('input')} and {pr.get('output')} USD per million tokens in and out), about {c.get('cumulative_usd_at_assumed_rates')} USD for these rows; "
+            f"{c.get('live_calls_in_rows')} live calls and {c.get('cache_hits_in_rows')} cache hits across the runs.")
+    return txt
 
 
 def _claims(s: dict[str, Any]) -> str:
@@ -191,6 +224,12 @@ def _claims(s: dict[str, Any]) -> str:
         op = s["operating_point"]
         txt += (f" Reviewing the top {pc(op.get('review_share'))} by predicted risk catches {pc(op.get('recall'))} of false claims "
                 f"(precision {pc(op.get('precision'))}).")
+    lv = s.get("live")
+    if isinstance(lv, dict):
+        lm = lv.get("meta") or {}
+        txt += (f"\n\n**{lv.get('label', 'real model')}**: {lm.get('n', lv.get('n'))} claimed successes from {lv.get('n_groups')} households ({lm.get('split') or lv.get('split')}). "
+                f"Brier {f(lv.get('brier'), 3)} against {f(lv.get('base_rate'), 3)} for the base rate (the share of claims that were false). "
+                "The false claims are one family of failure (a finish claim on an error page), so a high score here does not show that claim risk can be predicted in general.")
     return txt
 
 

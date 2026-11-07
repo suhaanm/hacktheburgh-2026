@@ -22,14 +22,35 @@ def g(kind, args, ctx=None, target=None, **kw):
     ("Post comment", C.POST), ("Publish", C.POST), ("Pay now", C.PAY), ("Place order", C.PAY), ("Checkout", C.PAY),
     ("Delete account", C.DELETE), ("Remove item", C.DELETE), ("Install update", C.INSTALL),
     ("Allow", C.PERMISSION), ("Grant access", C.PERMISSION), ("Sign in", C.CREDENTIAL), ("Change password", C.CREDENTIAL),
+    ("Enter passcode", C.CREDENTIAL), ("Send OTP", C.CREDENTIAL), ("Resend one-time code", C.CREDENTIAL), ("Show seed phrase", C.CREDENTIAL),
+    ("Export private key", C.CREDENTIAL), ("Copy secret key", C.CREDENTIAL), ("Use login code", C.CREDENTIAL), ("One-time passcode", C.CREDENTIAL),
+    ("Pay invoice", C.PAY), ("Send wire transfer", C.PAY), ("Wire funds", C.PAY), ("View invoice", C.PAY),
 ])
 def test_label_classes(label, cls):
     assert cls in classify_label(label)
 
 
-@pytest.mark.parametrize("label", ["Calculate", "Next", "Back", "Household size", "Postcode", "Show result", "Cancel", "Help", ""])
+@pytest.mark.parametrize("label", ["Calculate", "Next", "Back", "Household size", "Postcode", "Show result", "Cancel", "Help", "",
+                                   "Information", "Formatting guide", "Passport photo", "Hotpot recipes", "Wire frame", "Invoicing guide", "Private keyboard",
+                                   "Secret garden", "Seed catalogue", "Passes and permits"])
 def test_ordinary_labels_are_not_risky(label):
     assert classify_label(label) == set()
+
+
+def test_new_credential_and_payment_words_are_word_bounded():
+    assert classify_label("information") == set() and classify_label("Format") == {C.DELETE}  # 'format' inside 'information' is not a match
+    assert classify_label("Hotpot") == set() and classify_label("OTP") == {C.CREDENTIAL} and classify_label("otp:") == {C.CREDENTIAL}
+    assert classify_label("Private keyboard") == set() and classify_label("Private key") == {C.CREDENTIAL}
+    assert classify_label("Invoicing") == set() and classify_label("Invoices") == {C.PAY}
+    assert classify_label("Wire frame") == set() and classify_label("Wire transfer") == {C.PAY}
+
+
+@pytest.mark.parametrize("label", ["Enter passcode", "Resend OTP", "Show seed phrase", "Pay invoice", "Wire transfer"])
+def test_new_words_can_never_be_opted_in_pay_and_credential(label):
+    cls = next(iter(classify_label(label)))
+    ctx = RoutineContext(mode="compiled", rung="A3", opted_in=frozenset({cls}), typed_confirm=True)
+    d = g("click", {"x": 1, "y": 1}, ctx, btn(label))
+    assert d.verdict == "needs_human" and "cannot be opted in" in d.reason
 
 
 def test_key_combos():

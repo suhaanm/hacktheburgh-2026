@@ -20,6 +20,7 @@ let stopCapture: (() => void) | null = null;
 let stopL1: (() => void) | null = null;
 let l1Active = false;
 let appliedRole = "";
+let appliedSynthetic = false;
 
 const isTop = (() => { try { return window.top === window; } catch { return false; } })();
 const send = (msg: unknown) => void chrome.runtime.sendMessage(msg).catch(() => undefined);
@@ -45,11 +46,12 @@ async function sync(): Promise<void> {
   if (!cfg.capturing) return stop();
   if (!salt) salt = await getSalt();
   if (!salt) return stop();
-  if (appliedRole && appliedRole !== cfg.role) stop(); // the role (and so the zone config) changed: start over
+  if ((appliedRole && appliedRole !== cfg.role) || appliedSynthetic !== cfg.accept_synthetic) stop(); // role or trust setting changed: start over
   appliedRole = cfg.role;
+  appliedSynthetic = cfg.accept_synthetic;
   zoner = new Zoner(zoneConfig, pickSite(zoneConfig, location.host, [cfg.role]));
   if (!stopCapture) {
-    stopCapture = installCapture({ win: window, salt, matcher, zoner, emit: (record: CaptureRecord) => send({ kind: "record", record }) });
+    stopCapture = installCapture({ win: window, salt, matcher, zoner, acceptSyntheticChange: cfg.accept_synthetic, emit: (record: CaptureRecord) => send({ kind: "record", record }) });
   }
   if (l1Active && !stopL1) {
     stopL1 = installL1({

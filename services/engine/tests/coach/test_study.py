@@ -16,7 +16,7 @@ from understudy_engine.store import EventStore, to_row  # noqa: E402
 from understudy_engine.study import StudyError, clear_state, read_log, read_state, validate, write_state  # noqa: E402
 from understudy_engine.study.__main__ import main as study_cli  # noqa: E402
 
-from .helpers import calc, cliff, copy_to_note, ev, read  # noqa: E402
+from .helpers import calc, cliff, copy_to_note, ev, read, reconcile_zone  # noqa: E402
 
 
 @pytest.fixture()
@@ -98,12 +98,12 @@ def test_train_acts_only_for_the_skill_switched_on(env):
     write_state("p_hand", "train", "reconcile-before-noting", "L1")
     b3 = CoachBrain(EventStore(env.parent / "d3"), scorer=StuckScorer(fit=False), tone="short")
     fired = acts(run(b3, study_case_cliffs_but_no_reconcile()))
-    assert len(fired) == 1 and fired[0][1].target["zone"] == "results_tabs" and fired[0][1].missed == ["reconcile"]
+    assert len(fired) == 1 and fired[0][1].target["zone"] == reconcile_zone() and fired[0][1].missed == ["reconcile"]
     assert fired[0][1].message == "Reconcile the three results before writing anything."
     # reconcile coaching on, and the cliff checks were skipped too: still only reconcile (the other skill is silent)
     b4 = CoachBrain(EventStore(env.parent / "d4"), scorer=StuckScorer(fit=False), tone="short")
     fired = acts(run(b4, study_case_no_cliff_checks()))
-    assert len(fired) == 1 and fired[0][1].missed == ["reconcile"] and fired[0][1].target["zone"] == "results_tabs"
+    assert len(fired) == 1 and fired[0][1].missed == ["reconcile"] and fired[0][1].target["zone"] == reconcile_zone()
 
 
 def test_the_study_case_uses_two_calculators_so_the_coach_does_not_wait_for_a_third(env):
@@ -189,7 +189,6 @@ def test_coach_next_honours_study_mode_over_http(env):
     d = c.get("/coach/next", params={"person": "p_hand", "now": iso(evs[-1])}).json()["data"]
     assert d["action"] == "silent" and d["chip"] == "gone" and "study_post_test" in d["reason_codes"]
     c.post("/study/mode", json={"person": "p_hand", "block": "train", "skill_on": "cliff", "level": "L1"})
-    c.get("/coach/next", params={"person": "p_hand", "now": iso(evs[-2])})
     d = c.get("/coach/next", params={"person": "p_hand", "now": iso(evs[-1])}).json()["data"]
     assert d["action"] == "annotate" and d["target"]["zone"] == "cliff_button"
 

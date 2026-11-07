@@ -1,0 +1,71 @@
+{
+ "meta": {
+  "origin": "synthetic",
+  "n": 20,
+  "n_unit": "days",
+  "split": "same weeks as the week ribbon",
+  "interval_level": 0.95,
+  "note": "Chosen by code from a fixed catalogue. The wording is built from the safe aggregates above, never from event titles.",
+  "generated_at": "2026-11-07T17:05:00Z"
+ },
+ "data": [
+  {
+   "id": "s_focus",
+   "template": "protect_focus_block",
+   "text": "Protect a 90-minute focus block on two mornings. You have 2 such blocks a week; the expert has 9.",
+   "numbers": {
+    "focus_blocks_90": 2,
+    "longest_focus_min": 120
+   },
+   "expert_ref": {
+    "focus_blocks_90": 9,
+    "longest_focus_min": 150
+   },
+   "risk": "low",
+   "can_draft": true
+  },
+  {
+   "id": "s_b2b",
+   "template": "reduce_back_to_back",
+   "text": "Leave a 15-minute gap between meetings. You have 6 back-to-back runs a week; the expert has 0.",
+   "numbers": {
+    "back_to_back_runs": 6,
+    "fragmentation": 0.6
+   },
+   "expert_ref": {
+    "back_to_back_runs": 0,
+    "fragmentation": 0.3
+   },
+   "risk": "low",
+   "can_draft": true
+  },
+  {
+   "id": "s_batch",
+   "template": "batch_similar_work",
+   "text": "Group your meetings into fewer stretches. Your week is chopped up at 0.62 on a scale of 0 to 1; the expert's is 0.31.",
+   "numbers": {
+    "fragmentation": 0.62,
+    "meeting_h": 14.5
+   },
+   "expert_ref": {
+    "fragmentation": 0.31,
+    "meeting_h": 6.0
+   },
+   "risk": "low",
+   "can_draft": true
+  },
+  {
+   "id": "s_off",
+   "template": "offcomputer_break",
+   "text": "Schedule an off-computer break on most days. You have about 2.5 hours a week; the expert has about 5.0.",
+   "numbers": {
+    "offscreen_h": 2.5
+   },
+   "expert_ref": {
+    "offscreen_h": 5.0
+   },
+   "risk": "low",
+   "can_draft": true
+  }
+ ]
+}

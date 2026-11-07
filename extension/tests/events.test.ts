@@ -60,3 +60,25 @@ describe("makeEvent", () => {
     expect(makeEvent({ type: "click" }, { person: "", role: "benefits-processor" }, deps)).toBeNull();
   });
 });
+
+import { normaliseConfig } from "../src/shared/config";
+import { DEFAULT_CONFIG } from "../src/shared/types";
+
+describe("config: flush_ms and accept_synthetic", () => {
+  it("defaults leave behaviour unchanged: 2000 ms, synthetic input not accepted", () => {
+    expect(DEFAULT_CONFIG.flush_ms).toBe(2000);
+    expect(DEFAULT_CONFIG.accept_synthetic).toBe(false);
+    expect(normaliseConfig({})).toMatchObject({ flush_ms: 2000, accept_synthetic: false });
+    expect(normaliseConfig(undefined)).toMatchObject({ flush_ms: 2000, accept_synthetic: false });
+  });
+  it("takes a sensible flush_ms and refuses nonsense", () => {
+    expect(normaliseConfig({ flush_ms: 1000 }).flush_ms).toBe(1000);
+    expect(normaliseConfig({ flush_ms: 100 }).flush_ms).toBe(100);
+    expect(normaliseConfig({ flush_ms: 10000 }).flush_ms).toBe(10000);
+    for (const bad of [0, 50, 99, 10001, -5, 1.5, "1000", null, NaN, Infinity]) expect(normaliseConfig({ flush_ms: bad }).flush_ms, String(bad)).toBe(2000);
+  });
+  it("accept_synthetic is true only for the boolean true", () => {
+    expect(normaliseConfig({ accept_synthetic: true }).accept_synthetic).toBe(true);
+    for (const bad of [1, "true", "yes", null, {}]) expect(normaliseConfig({ accept_synthetic: bad }).accept_synthetic).toBe(false);
+  });
+});

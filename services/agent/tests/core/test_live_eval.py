@@ -91,6 +91,7 @@ def test_budget_is_a_hard_stop(tmp_path):
     model.plan([{"role": "user", "content": "x"}], {"title": "benefits_plan", "type": "object", "properties": {}})
     with pytest.raises(BudgetExceeded):
         model.plan([{"role": "user", "content": "a different prompt"}], {"title": "benefits_plan", "type": "object", "properties": {}})
+    assert model.blocked == 1   # a run that sees this is flagged budget_truncated and discarded, never reported
     # a cached prompt is free even over budget
     model.plan([{"role": "user", "content": "x"}], {"title": "benefits_plan", "type": "object", "properties": {}})
     assert model.calls == {"live": 1, "cache_hit": 1}
@@ -136,3 +137,45 @@ async def test_tier3_runs_against_a_screenshot_simulation_and_never_acts(cluster
     assert r["outcome"] in ("claimed_not_verified", "done") or r["outcome"].startswith("stopped")
     assert r["pointer_actions"] >= 1 and r["claimed_done"] in (True, False)
     assert cluster.state.calculations == [] and cluster.state.submissions == []   # nothing was clicked, typed or submitted
+
+
+async def test_page_state_lets_the_planner_recover_from_a_503_instead_of_claiming_done(cluster, tmp_path):
+    """Baseline: the planner cannot see page text, so on an error page it claims it is finished (a false claim the code
+    check catches). With the reader telling it the page KIND, it goes back and tries again."""
+    model = make_model(tmp_path)
+    h = generate_households(20)[1]
+    base = await one_run(h, "glitch", 1, model, cluster.urls, cluster.state, tmp_path, 120.0, page_state=False)
+    assert base["false_claim"] and not base["code_check_ok"] and base["variant"] == "v1_no_page_state"
+    fixed = await one_run(h, "glitch", 1, model, cluster.urls, cluster.state, tmp_path, 120.0, page_state=True,
+                          max_actions=40)
+    assert fixed["variant"] == "v2_page_state" and fixed["run_id"].endswith("_v2")
+    assert fixed["code_check_ok"] and not fixed["false_claim"], (fixed["reason"], fixed["trace"][-8:])
+
+
+async def test_cache_only_mode_replays_without_any_live_call(cluster, tmp_path):
+    """The exact way to reproduce a recorded grid at zero cost: --cache-only never calls the model."""
+    import argparse
+
+    from understudy_agent.live_eval import CacheMiss, drive
+    from understudy_agent.supervisor import data_dir
+
+    cache = data_dir() / "eval" / "live_cache.json"
+    model = LiveModel(Meter(HeuristicModelPort(MockProvider("benefits_clean"))), cache, 100.0)
+    h = generate_households(20)[0]
+    await one_run(h, "clean", 0, model, cluster.urls, cluster.state, tmp_path, 120.0)
+    model.save()
+    assert cache.exists()
+    out = tmp_path / "replay.json"
+    ns = argparse.Namespace(households=1, conditions="clean", seed=2026, budget=0.0, deadline=120.0, smoke=False,
+                            tier3=0, t3_steps=6, max_actions=20, variant="v1", fresh=True, shared=False,
+                            cache_only=True, out=str(out))
+    assert await drive(ns) == 0
+    doc = json.loads(out.read_text())
+    assert doc["cost"]["live_calls"] == 0 and doc["runs"][0]["code_check_ok"] and doc["runs"][0]["live_calls"] == 0
+    assert doc["limitations"] and "in-sample" in doc["glitch_before_after"]["note"]
+    assert "usd_at_mini_class_rates_0.75_and_4.50_per_million" in doc["cost"]["cumulative_rows_in_this_file"]
+    # a miss is refused, never silently sent to the model
+    empty = LiveModel(None, tmp_path / "none.json", 0.0, cache_only=True)
+    with pytest.raises(CacheMiss):
+        empty.plan([{"role": "user", "content": "unseen"}], {"title": "x", "type": "object", "properties": {}})
+    assert empty.blocked == 1

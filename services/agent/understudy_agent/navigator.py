@@ -144,6 +144,7 @@ class NavResult:
     error: str = ""
     cliff_checked: bool = False
     cliff_text: str = ""
+    raw_outputs: dict[str, Any] = field(default_factory=dict)
 
 
 class Navigator:
@@ -164,6 +165,8 @@ class Navigator:
         bundle: dict[str, Any] | None = None,
         max_actions: int = 20,
         allow_tier3: bool = False,
+        page_state: bool = False,
+        defer_cliff: bool = False,
         actuator_factory: Callable[[Any], Actuator] | None = None,
         shot_hook: Callable[[str, bytes], None] | None = None,
     ) -> None:
@@ -175,6 +178,7 @@ class Navigator:
         self.use_tier1, self.bundle_layout, self.bundle_override = use_tier1, bundle_layout, bundle
         self.t_left = max_actions
         self.allow_tier3 = allow_tier3
+        self.page_state, self.defer_cliff = page_state, defer_cliff
         self.actuator_factory = actuator_factory or (lambda page: BrowserPageActuator(page))
         self.steps = 0
         self.tiers_used: list[int] = []
@@ -231,7 +235,7 @@ class Navigator:
 
         agent = BrowserAgent(self.model, self.guard, navigator=self.id, emit=self._emit,
                              is_current=self.is_current, step_start=self.steps, max_actions=self.t_left,
-                             ledger=self.ledger)
+                             ledger=self.ledger, page_state=self.page_state)
         try:
             res = await agent.run(page, Tier2Task(job.goal, job.params, job.allowed_params, job.looks_final,
                                                   job.schema, job.parse, job.param_help))
@@ -291,7 +295,8 @@ class Navigator:
                     if value is None:
                         raise TierError("outputs failed code validation")
                     res.value, res.state, res.page = value, "done", page
-                    if job.kind == "calculator":
+                    res.raw_outputs = outputs
+                    if job.kind == "calculator" and not self.defer_cliff:
                         await self._cliff_check(page, job, outputs, res)
                     break
                 except (GateStop, InjectionStop, ProviderSafetyStop, asyncio.CancelledError):
@@ -319,6 +324,12 @@ class Navigator:
             res.steps, res.tiers_used = self.steps, list(self.tiers_used)
             res.false_claims = sum(1 for c in self.ledger.claims if c["false_claim"] and self.id in c["source"])
         return res
+
+    async def cliff_check(self, job: Any, res: NavResult) -> None:
+        """Public: do the cliff check on this navigator's finished page (the orchestrator calls it AFTER the verifier has
+        re-read the result, so the cliff panel's own figures can never confuse the verification)."""
+        if job.kind == "calculator" and res.state == "done" and res.page is not None:
+            await self._cliff_check(res.page, job, res.raw_outputs, res)
 
     async def _cliff_check(self, page: Any, job: Any, outputs: dict[str, Any], res: NavResult) -> None:
         """CHECK_CLIFF, the expert's signature step. Already done by a tier-1 bundle, otherwise do it now."""
@@ -350,7 +361,8 @@ class Navigator:
             return {"cliff": obs.text[obs.text.index(marker):][:600]} if marker in obs.text else None
 
         agent = BrowserAgent(self.model, self.guard, navigator=self.id, emit=self._emit, is_current=self.is_current,
-                             step_start=self.steps, max_actions=max(1, min(4, self.t_left)), ledger=self.ledger)
+                             step_start=self.steps, max_actions=max(1, min(4, self.t_left)), ledger=self.ledger,
+                             page_state=self.page_state)
         task = Tier2Task("Press Check cliff edges to open the cliff panel for this result and read it.", job.params,
                          (), final, None, parse, {})
         try:

@@ -6,20 +6,28 @@
 //
 // The engine speaks once per decision: an annotate carries a decision_id and the polls after it are silent (reason `already_prompted`
 // while the issue is still open). So a silent answer does NOT take the ring down. The ring stays until
-//   the issue is resolved  -> the engine stops saying `already_prompted`: the worker did the step, the prompt was followed
-//   the worker stops it    -> Stop, kill, clear: dismissed
+//   the worker uses the element -> the worker's own event on the ring's zone (GET /events, polled about every 0.7 s while a ring is up):
+//                                  followed. This is the only thing the desktop calls "followed"; reason codes are not read as one,
+//                                  because they depend on study mode and on steps the worker has not reached yet
+//   the worker stops it         -> Stop, kill, clear: dismissed
 //   the case is over, study mode is silencing the coach, or the engine replaced its decision -> the ring just ends, nothing is posted
 //   nobody acts for a long time -> the ring's own limit ends it, nothing is posted
 // The worker's response goes to POST /coach/feedback with the decision id. "repeated" and "undone" are derived by the engine from
 // its own event stream; the desktop never guesses them. (The engine also labels a step done within 30 s of a prompt as followed
-// by itself, so the explicit post can come back `recorded: false, already recorded`; the label is the same either way.)
+// by itself, so the explicit post can come back `recorded: false, already recorded`; the label is the same either way. After 30 s only
+// the post records it.)
 import type { DomCoach, DomPromptEnd } from './dom-ground/dom-coach'
 import type { CoachDecision, FeedbackOutcome, FeedbackResult } from './engine/coach-next'
 import type { CoachStateInfo } from './engine/coach-state'
 import type { ChipDriver } from './coach-chip'
 
 export interface CoachBrainDeps {
-  engine: { coachNext(): Promise<CoachDecision | null>; coachFeedback(decisionId: string, outcome: FeedbackOutcome): Promise<FeedbackResult> }
+  engine: {
+    coachNext(): Promise<CoachDecision | null>
+    coachFeedback(decisionId: string, outcome: FeedbackOutcome): Promise<FeedbackResult>
+    // Did the worker use this capture zone at or after that time? (null: the engine did not answer.) Without it nothing is ever "followed" here.
+    touched?(zone: string, sinceMs: number): Promise<boolean | null>
+  }
   // The latest task from GET /coach/state (null when none is in progress or the engine did not answer).
   state: () => CoachStateInfo | null
   ring: Pick<DomCoach, 'point' | 'clear' | 'followed' | 'current'>
@@ -30,6 +38,8 @@ export interface CoachBrainDeps {
   killed?: () => boolean
   now?: () => number
   intervalMs?: number
+  // While a ring is up, how often to look for the worker using its element.
+  watchMs?: number
   immediate?: boolean
   setTimer?: (fn: () => void, ms: number) => unknown
   clearTimer?: (h: unknown) => void
@@ -44,6 +54,8 @@ export interface CoachBrainStatus {
 
 export interface CoachBrain {
   tick(): Promise<void>
+  // One look for the worker using the element the ring is on (runs by itself while a ring is up).
+  watch(): Promise<void>
   // DomCoach's onEnd: turns how a prompt ended into feedback.
   onPromptEnd(e: DomPromptEnd): void
   // The last decision that was not silent, for the proposal scheduler: a prompt in the last minute means the worker is mid-task.
@@ -66,9 +78,10 @@ export function createCoachBrain(deps: CoachBrainDeps): CoachBrain {
   const now = deps.now ?? Date.now
   const setT = deps.setTimer ?? ((fn, ms) => setInterval(fn, ms))
   const clearT = deps.clearTimer ?? ((h) => clearInterval(h as ReturnType<typeof setInterval>))
-  let mine: { decisionId: string } | null = null
+  let mine: { decisionId: string; zone: string; since: number } | null = null
   let lastActiveAt: number | null = null
   let busy = false
+  let watching = false
   let lastDecision: CoachBrainStatus['lastDecision'] = null
   let lastFeedback: CoachBrainStatus['lastFeedback'] = null
   // Decisions already put on the screen (or said). A decision the worker ended is never drawn again, whatever the engine repeats.
@@ -110,7 +123,7 @@ export function createCoachBrain(deps: CoachBrainDeps): CoachBrain {
         if (mine?.decisionId === id || handled.includes(id)) return // already on the screen, or already answered
         remember(id)
         deps.ring.point(decision.target, { message: decision.message, ref: decision.decisionId ?? undefined })
-        mine = { decisionId: id }
+        mine = { decisionId: id, zone: decision.target.zone, since: now() }
         return
       }
       if (decision.action === 'nudge' && decision.message) {
@@ -132,12 +145,7 @@ export function createCoachBrain(deps: CoachBrainDeps): CoachBrain {
         endMine('ended') // the engine decided something else (a takeover offer): the old prompt is replaced
         return
       }
-      // The engine says `already_prompted` while the issue it prompted about is still open. When it stops, the step was done.
-      // An engine that sends no reason codes at all leaves the ring to its own limit rather than guessing.
-      if (decision.action === 'silent' && decision.reasons.length > 0 && !decision.reasons.includes('already_prompted')) {
-        mine = null
-        deps.ring.followed()
-      }
+      // Anything else (silent, already_prompted ...): the ring stays; `watch` ends it when the worker uses the element.
     } catch (err) {
       deps.log?.('coach-brain', `tick failed: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
@@ -145,10 +153,29 @@ export function createCoachBrain(deps: CoachBrainDeps): CoachBrain {
     }
   }
 
+  const watch = async (): Promise<void> => {
+    if (watching || !mine || !deps.engine.touched || !deps.ring.current()) return
+    const m = mine
+    watching = true
+    try {
+      const used = await deps.engine.touched(m.zone, m.since)
+      if (used === true && mine === m && deps.ring.current() && !deps.killed?.()) {
+        mine = null
+        deps.ring.followed()
+      }
+    } catch (err) {
+      deps.log?.('coach-brain', `watch failed: ${err instanceof Error ? err.message : String(err)}`)
+    } finally {
+      watching = false
+    }
+  }
+
   const handle = setT(() => void tick(), deps.intervalMs ?? 2000)
+  const watchHandle = setT(() => void watch(), deps.watchMs ?? 700)
   if (deps.immediate !== false) void tick()
   return {
     tick,
+    watch,
     onPromptEnd(e) {
       if (!e.ref || !e.shown) return // never drawn, or not from the brain: no response to report
       const outcome = outcomeFor(e.how)
@@ -165,6 +192,7 @@ export function createCoachBrain(deps: CoachBrainDeps): CoachBrain {
     status: () => ({ lastDecision, lastFeedback, ringDecision: mine?.decisionId ?? null }),
     dispose() {
       clearT(handle)
+      clearT(watchHandle)
       endMine('stale') // quitting is not the worker's response: nothing is posted
     },
   }
