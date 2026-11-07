@@ -21,9 +21,129 @@
    "household": "hh_0002",
    "cu_provider": "default",
    "old_goal": false
+  },
+  {
+   "at": "2026-11-07T22:57:36Z",
+   "label": "agentic3_g_smoke2_b_hh0002",
+   "kind": "smoke",
+   "tokens_in": 61698,
+   "tokens_out": 2824,
+   "cost_placeholder_usd": 0.0569,
+   "cost_lower_usd": 0.059,
+   "rates_in_out_per_m": [
+    0.75,
+    3.75
+   ],
+   "computer_use_model": "gemini-3.8-flash",
+   "provider": "gemini",
+   "goal_hash": "9cbd4cff6f11",
+   "gate_version": "84be21513bc8",
+   "site": "b",
+   "household": "hh_0002",
+   "cu_provider": "default",
+   "old_goal": false
+  },
+  {
+   "at": "2026-11-07T23:02:53Z",
+   "label": "agentic3_g_round1_7001_n3",
+   "kind": "dev_round",
+   "tokens_in": 110823,
+   "tokens_out": 4955,
+   "cost_placeholder_usd": 0.1017,
+   "cost_lower_usd": 0.1054,
+   "rates_in_out_per_m": [
+    0.75,
+    3.75
+   ],
+   "computer_use_model": "gemini-3.8-flash",
+   "provider": "gemini",
+   "goal_hash": "9cbd4cff6f11",
+   "gate_version": "84be21513bc8",
+   "household": "hh_0001",
+   "cu_provider": "default"
+  },
+  {
+   "at": "2026-11-07T23:03:57Z",
+   "label": "agentic3_g_round1_7001_n3",
+   "kind": "dev_round",
+   "tokens_in": 103867,
+   "tokens_out": 4022,
+   "cost_placeholder_usd": 0.093,
+   "cost_lower_usd": 0.096,
+   "rates_in_out_per_m": [
+    0.75,
+    3.75
+   ],
+   "computer_use_model": "gemini-3.8-flash",
+   "provider": "gemini",
+   "goal_hash": "9cbd4cff6f11",
+   "gate_version": "84be21513bc8",
+   "household": "hh_0002",
+   "cu_provider": "default"
+  },
+  {
+   "at": "2026-11-07T23:04:47Z",
+   "label": "agentic3_g_smoke3_b_hh0002_fit_off",
+   "kind": "smoke",
+   "tokens_in": 205175,
+   "tokens_out": 5493,
+   "cost_placeholder_usd": 0.1745,
+   "cost_lower_usd": 0.1786,
+   "rates_in_out_per_m": [
+    0.75,
+    3.75
+   ],
+   "computer_use_model": "gemini-3.8-flash",
+   "provider": "gemini",
+   "goal_hash": "7a2ef5abcd75",
+   "gate_version": "84be21513bc8",
+   "site": "b",
+   "household": "hh_0002",
+   "cu_provider": "default",
+   "old_goal": false
+  },
+  {
+   "at": "2026-11-07T23:05:17Z",
+   "label": "agentic3_g_round1_7001_n3",
+   "kind": "dev_round",
+   "tokens_in": 130751,
+   "tokens_out": 4900,
+   "cost_placeholder_usd": 0.1164,
+   "cost_lower_usd": 0.1201,
+   "rates_in_out_per_m": [
+    0.75,
+    3.75
+   ],
+   "computer_use_model": "gemini-3.8-flash",
+   "provider": "gemini",
+   "goal_hash": "9cbd4cff6f11",
+   "gate_version": "84be21513bc8",
+   "household": "hh_0003",
+   "cu_provider": "default"
+  },
+  {
+   "at": "2026-11-07T23:06:54Z",
+   "label": "agentic3_g_smoke4_a_hh0001",
+   "kind": "smoke",
+   "tokens_in": 32183,
+   "tokens_out": 1093,
+   "cost_placeholder_usd": 0.0282,
+   "cost_lower_usd": 0.0291,
+   "rates_in_out_per_m": [
+    0.75,
+    3.75
+   ],
+   "computer_use_model": "gemini-3.8-flash",
+   "provider": "gemini",
+   "goal_hash": "9cbd4cff6f11",
+   "gate_version": "84be21513bc8",
+   "site": "a",
+   "household": "hh_0001",
+   "cu_provider": "default",
+   "old_goal": false
   }
  ],
- "spent_placeholder_usd": 0.0674,
- "spent_lower_usd": 0.0703,
- "pct_of_cap": 0.0
+ "spent_placeholder_usd": 0.6381,
+ "spent_lower_usd": 0.6585,
+ "pct_of_cap": 0.3
 }

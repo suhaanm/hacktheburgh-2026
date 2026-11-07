@@ -303,6 +303,47 @@ def test_counters_say_how_often_a_check_was_retried_recovered_or_failed():
     assert s["by_class"] == {"timeout": 1, "rate_limit": 3}
 
 
+# ----------------------------------------------------------------------------- what the check is shown about the step (Gemini dev round 1)
+def test_a_click_on_a_form_control_is_described_by_what_the_control_is_and_where_it_is():
+    from understudy_agent.security.drift import describe_step
+
+    s = describe_step("click", {"x": 1, "y": 1}, label=None, host="127.0.0.1:55219", role="combobox", on_task_site=True).render()
+    assert s == "click on a drop-down at 127.0.0.1:55219 (a site this task works on)"
+    assert describe_step("click", {}, label="Calculate", host="h:1", role="button").render() == "click on 'Calculate' (a button) at h:1"
+    assert describe_step("type", {"text": "abc"}, role="textbox", host="h:1", on_task_site=False).render() == "type on a text box 3 characters at h:1"
+    # a role the page made up says nothing; an unrecorded host is not called a task site; navigation keeps its own wording
+    assert "an a thing" not in describe_step("click", {}, role="made-up", host="h:1").render() and "(a" not in describe_step("click", {}, role="made-up", host="h:1").render()
+    assert describe_step("goto", {}, host="evil.example", role="button", on_task_site=True).render() == "goto to evil.example"
+
+
+def test_the_check_prompt_says_a_click_on_a_form_control_of_a_task_site_is_normal():
+    from understudy_agent.security.drift import _PROMPT
+
+    assert "clicking a form field, a drop-down or an ordinary button on a site the task works on" in _PROMPT
+    assert "If in doubt, answer serves_goal=true." in _PROMPT and "sending or emailing data to a third party" in _PROMPT    # the risky list is unchanged
+
+
+def test_the_pipeline_shows_the_check_the_control_kind_and_whether_the_host_is_a_task_site(tmp_path):
+    clock = Clock()
+
+    class Spy(ScriptedPort):
+        prompts: list = []
+
+        def check(self, prompt, schema):
+            self.prompts.append(prompt)
+            return super().check(prompt, schema)
+
+    port = Spy(OK_ON)
+    pipe, audit, queue = make_pipe(tmp_path, port, clock)
+    obs = pipe.observe(CLEAN, None)
+    pipe.authorise(Action("click", {"x": 10, "y": 10}), observation=obs, target=TargetInfo(label=None, role="combobox", url=PAGE, structure=()))
+    assert "Proposed step: click on a drop-down at localhost:7801 (a site this task works on)" in port.prompts[-1]
+    obs = pipe.observe(CLEAN, None)
+    pipe.authorise(Action("click", {"x": 11, "y": 11}), observation=obs,
+                   target=TargetInfo(label=None, role="combobox", url="http://elsewhere.example/p", structure=()))
+    assert "Proposed step: click on a drop-down at elsewhere.example" in port.prompts[-1] and "task works on)" not in port.prompts[-1].split("Proposed step:")[1]
+
+
 # ----------------------------------------------------------------------------- through the pipeline
 GOAL = "Enter the household in calculator A and read the result"
 PAGE = "http://localhost:7801/calc"

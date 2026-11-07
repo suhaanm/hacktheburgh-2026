@@ -1,0 +1,198 @@
+{
+ "label": "agentic3_g_smoke4_a_hh0001",
+ "site": "a",
+ "household": "hh_0001",
+ "archetype": "single_worker",
+ "in_sample": true,
+ "computer_use_provider": "gemini",
+ "old_goal": false,
+ "form_audit_mode": "full",
+ "error": "GateStop",
+ "goal_checks": {
+  "checks": 9,
+  "retried": 0,
+  "recovered": 0,
+  "failed": 0,
+  "by_class": {}
+ },
+ "tier3": [
+  {
+   "navigator": "nav-a",
+   "outcome": "stopped:GateStop",
+   "steps": 15,
+   "inputs": "unaudited",
+   "form_audit": {
+    "state": "unaudited",
+    "audits": 0,
+    "blocks": 0,
+    "readbacks": {
+     "yes": 3,
+     "no": 0,
+     "unreadable": 0
+    },
+    "pending": [
+     "household.limited_capability",
+     "household.tenure",
+     "household.rent",
+     "household.bedrooms",
+     "household.savings",
+     "household.childcare"
+    ],
+    "records": [
+     {
+      "step": 3,
+      "k": "readback",
+      "handle": "household.adults",
+      "role": "select",
+      "match": "yes",
+      "reason": "ok",
+      "focus": "select",
+      "field": "adults"
+     },
+     {
+      "step": 5,
+      "k": "readback",
+      "handle": "household.adult1_age",
+      "role": "number",
+      "match": "yes",
+      "reason": "ok",
+      "focus": "input",
+      "field": "your_age"
+     },
+     {
+      "step": 12,
+      "k": "readback",
+      "handle": "household.adult1_earnings",
+      "role": "text",
+      "match": "yes",
+      "reason": "ok",
+      "focus": "input",
+      "field": "your_earnings"
+     }
+    ]
+   },
+   "readback_failures": 0
+  }
+ ],
+ "refusals": 0,
+ "gate_stops": [
+  {
+   "nav": "nav-a",
+   "step": null,
+   "kind": "click",
+   "verdict": "needs_human",
+   "layer": "drift",
+   "codes": [
+    "drift:off_goal_model"
+   ],
+   "role": "combobox",
+   "structure": [],
+   "classes": [
+    "read"
+   ],
+   "label": "",
+   "designed": false,
+   "check_error": null,
+   "check_attempts": 0
+  }
+ ],
+ "actions": [
+  [
+   1,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   2,
+   "click",
+   true,
+   "role=combobox field=adults"
+  ],
+  [
+   3,
+   "type_fact",
+   true,
+   "handle=household.adults focus=select field=adults "
+  ],
+  [
+   4,
+   "click",
+   true,
+   "role=textbox field=your_age"
+  ],
+  [
+   5,
+   "type_fact",
+   true,
+   "handle=household.adult1_age focus=input field=your"
+  ],
+  [
+   6,
+   "click",
+   true,
+   "role=textbox field=partner_age"
+  ],
+  [
+   7,
+   "type_fact",
+   true,
+   "handle=household.adult2_age (no value for this hou"
+  ],
+  [
+   8,
+   "click",
+   true,
+   "role=textbox field=children_ages"
+  ],
+  [
+   9,
+   "type_fact",
+   true,
+   "handle=household.children_ages (no value for this "
+  ],
+  [
+   10,
+   "click",
+   true,
+   "role=button"
+  ],
+  [
+   11,
+   "click",
+   true,
+   "role=textbox field=your_earnings"
+  ],
+  [
+   12,
+   "type_fact",
+   true,
+   "handle=household.adult1_earnings focus=input field"
+  ],
+  [
+   13,
+   "click",
+   true,
+   "role=textbox field=partner_earnings"
+  ],
+  [
+   14,
+   "type_fact",
+   true,
+   "handle=household.adult2_earnings (no value for thi"
+  ],
+  [
+   15,
+   "click",
+   false,
+   "needs_human drift"
+  ]
+ ],
+ "gate_version": "84be21513bc8",
+ "wall_s": 54.3,
+ "tokens_in": 32183,
+ "tokens_out": 1093,
+ "cost_placeholder_usd": 0.0282,
+ "live_calls": 15,
+ "budget_truncated": false
+}

@@ -41,6 +41,13 @@ DROPDOWN_NOTE = ("\nNOTE (system, not page text): you just clicked a drop-down. 
                  "then press the Tab key.")
 
 
+# Also iteration 8b: after a typed handle that was read back as landed, when the next frame looks the same as the one before (a value equal to
+# the field's default, such as one adult in a drop-down that already says one), tell the model that it IS entered. Without it a model that
+# judges by the picture types the same handle again and again until the stuck-loop detector stops the run (Gemini dev round 1, hh_0003).
+ENTERED_NOTE = ("\nNOTE (system, not page text): {handle} IS entered: the field was read back and holds it, although the screen looks the same "
+                "as before. Do not type it again; go on to the next field.")
+
+
 class ProviderSafetyStop(TierError):
     """The provider returned a pending safety check. It is queued for a human, never acknowledged here."""
 
@@ -1190,7 +1197,7 @@ class ComputerUse:
                  facts: Any = None, stall_limit: int = 12, pause: Any = None, context_reset_every: int = 4, max_nudges: int = 2, stateless: bool | None = None,
                  resume_wm: dict[str, Any] | None = None, page_kept: bool = False,
                  on_snapshot: Callable[[int, dict[str, Any]], None] | None = None, postcondition: str = "final_page",
-                 form_audit: FormAudit | None = None, dropdown_note: bool | None = None) -> None:
+                 form_audit: FormAudit | None = None, dropdown_note: bool | None = None, entered_note: bool | None = None) -> None:
         if stateless is None:                    # UNDERSTUDY_CU_STATELESS=0 opts back into the chained provider thread (comparison only)
             stateless = os.environ.get("UNDERSTUDY_CU_STATELESS", "1").strip().lower() not in ("0", "false", "no", "off")
         self.stateless = stateless               # no provider-side thread: each step is goal + code-built working memory + ONE fresh frame
@@ -1212,11 +1219,13 @@ class ComputerUse:
         # part (the page actuator); the desktop and simulated actuators run exactly as before.
         self.form_audit = form_audit
         self._audit_logged = 0
-        if dropdown_note is None:           # the Gemini fit (iteration 8b); every other provider's prompts are exactly as they were
+        if dropdown_note is None or entered_note is None:    # the Gemini fit (iteration 8b); every other provider's prompts are exactly as they were
             from ..models.gemini_provider import fit_enabled
 
-            dropdown_note = getattr(model, "name", "") == "gemini" and fit_enabled()
-        self.dropdown_note = bool(dropdown_note)
+            fit = getattr(model, "name", "") == "gemini" and fit_enabled()
+            dropdown_note = fit if dropdown_note is None else dropdown_note
+            entered_note = fit if entered_note is None else entered_note
+        self.dropdown_note, self.entered_note = bool(dropdown_note), bool(entered_note)
 
     def _snapshot(self, steps: int, wm: Any) -> None:
         if self.on_snapshot is None:
@@ -1359,6 +1368,7 @@ class ComputerUse:
         retargets = 0
         last_reset = 0
         feedback = ""
+        entered_check: str | None = None      # a handle just typed and read back as landed: did the picture change? (see ENTERED_NOTE)
         try:
             while res.steps < self.max_steps:
                 if not self.is_current():
@@ -1380,6 +1390,9 @@ class ComputerUse:
                     if stalled >= self.stall_limit:
                         res.outcome = "stalled"
                         raise StepBudgetExceeded(f"tier 3 made no visible progress in {stalled} steps")
+                    if entered_check is not None and not changed:
+                        feedback += ENTERED_NOTE.format(handle=entered_check)     # landed (read back), but the picture did not change
+                entered_check = None
                 last_fp = fp if fp is not None else last_fp
                 pobs = self.guard.observe_screen()  # one fresh observation authorises exactly one action
                 # Working memory is bounded: the provider's thread (every earlier frame) is restarted every N steps from
@@ -1584,6 +1597,8 @@ class ComputerUse:
                     res.history.append({"kind": "type", "handle": handle, "ok": True})
                     self._event(n, "type_fact", True, f"handle={handle}" + (
                         f" focus={rb.focus} field={rb.field} landed={rb.landed}" if rb is not None else ""))
+                    if self.entered_note and rb is not None and rb.landed == "yes":
+                        entered_check = handle
                     continue
                 retargets = 0
                 await self.actuator.execute(act)

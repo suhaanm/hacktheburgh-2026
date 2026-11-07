@@ -171,6 +171,68 @@ async def test_another_provider_is_never_given_the_note_unless_it_is_switched_on
     assert all(DROPDOWN_NOTE.strip() not in p for p in await _run_clicks("gemini", PAGE, [ON_SELECT], dropdown_note=False))
 
 
+async def _run_typed(model, html, steps, value, entered_note=None):
+    """Scripted steps (click or type of the handle `a.b`) on a tiny page, with the form audit's read-back on; returns the prompts."""
+    from playwright.async_api import async_playwright
+
+    from understudy_agent.tiers.computer_use import BrowserPageActuator
+    from understudy_agent.tiers.facts import FactStore
+    from understudy_agent.tiers.form_audit import FormAudit
+
+    prompts: list[str] = []
+
+    class Named:
+        def __init__(self) -> None:
+            self.name, self.n = model, 0
+
+        def computer_step(self, goal, shot, history, **kw):
+            prompts.append(goal)
+            self.n += 1
+            return steps[self.n - 1] if self.n <= len(steps) else Done("done", True)
+
+    facts = FactStore({"a.b": "x"}, {"a.b": lambda: value})
+    guard = Guard(MockProvider("benefits_clean"), run_id="r_en", mode="model_driven", audit=AuditLog(), queue=ApprovalQueue(), recorded_hosts=frozenset())
+    async with async_playwright() as pw:
+        browser = await pw.chromium.launch(headless=True)
+        try:
+            page = await browser.new_page()
+            await page.route("http://form.test/**", lambda route: route.fulfill(status=200, content_type="text/html", body=html))
+            await page.goto("http://form.test/")
+
+            async def verify():
+                return True
+
+            await ComputerUse(Named(), BrowserPageActuator(page), guard, navigator="n", facts=facts, form_audit=FormAudit(facts), stall_limit=9,
+                              entered_note=entered_note).run("g", verify)
+        finally:
+            await browser.close()
+    return prompts
+
+
+TYPE = Action("type", {"text": "{a.b}"})
+
+
+async def test_a_typed_handle_that_landed_without_changing_the_picture_is_confirmed_to_the_gemini_model():
+    from understudy_agent.tiers.computer_use import ENTERED_NOTE
+
+    note = ENTERED_NOTE.format(handle="a.b").strip()
+    # the drop-down already says "One": typing "One" changes nothing on screen, so a model that judges by the picture would type it again
+    prompts = await _run_typed("gemini", PAGE, [Action("click", ON_SELECT), TYPE, Action("screenshot", {})], "One")
+    assert note in prompts[3 - 1 + 0] or any(note in p for p in prompts[2:]), prompts[-1][-300:]
+    assert sum(note in p for p in prompts) == 1                                   # said once, after the typing step, never repeated
+    # a text box that visibly changes: no note
+    prompts = await _run_typed("gemini", PAGE, [Action("click", ON_TEXT), TYPE, Action("screenshot", {})], "12345")
+    assert not any("IS entered" in p for p in prompts)
+
+
+async def test_the_entered_note_is_for_the_gemini_configuration_only_and_follows_the_switch(monkeypatch):
+    steps = [Action("click", ON_SELECT), TYPE, Action("screenshot", {})]
+    assert not any("IS entered" in p for p in await _run_typed("openai", PAGE, steps, "One"))
+    assert any("IS entered" in p for p in await _run_typed("openai", PAGE, steps, "One", entered_note=True))
+    monkeypatch.setenv("UNDERSTUDY_GEMINI_FIT", "0")
+    assert not any("IS entered" in p for p in await _run_typed("gemini", PAGE, steps, "One"))
+
+
 async def test_the_note_follows_the_fit_switch(monkeypatch):
     from understudy_agent.tiers.computer_use import DROPDOWN_NOTE
 

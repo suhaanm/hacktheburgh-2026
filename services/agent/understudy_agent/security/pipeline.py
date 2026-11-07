@@ -314,7 +314,8 @@ class SafetyPipeline:
             if kind not in _BENIGN_FOR_DRIFT and not approved and not on_recorded_site:
                 # Only the CHECK is retried when it fails to run (drift.py): the action in hand is authorised once, below, or not at all.
                 v = self.drift.check(self.goal, describe_step(kind, args, label=target.label or args.get("label"),
-                                                              host=host_key(target.url or args.get("url"))), self._recent,
+                                                              host=host_key(target.url or args.get("url")), role=target.role,
+                                                              on_task_site=self.dataflow.is_recorded(target.url)), self._recent,
                                      should_stop=is_killed)
                 if v.error_class:                  # at least one try failed to run: say so, with the class (a token) and the count, never text
                     self._log("drift_check", "recovered" if v.source == "model" else "failed", None,
