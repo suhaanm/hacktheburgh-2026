@@ -189,7 +189,11 @@ def _enqueue(tmp_path, **kw):
 
 def test_queue_list_and_status_filter(fresh):
     client, root = fresh
-    a, b = _enqueue(root), _enqueue(root, title="Send letter")
+    import time
+
+    a = _enqueue(root)
+    time.sleep(0.01)                      # created_at has millisecond resolution: keep the two apart so oldest-first is well defined
+    b = _enqueue(root, title="Send letter")
     body = client.get("/queue").json()
     assert body["meta"]["n"] == 2 and [i["id"] for i in body["data"]] == [a["id"], b["id"]]
     item = body["data"][0]
@@ -343,7 +347,7 @@ def test_every_owned_endpoint_in_the_contract_table_exists(client):
 
 def test_health_lists_routers_and_warm_state(client):
     h = client.get("/health").json()
-    assert set(h["routers"]) == {"data", "analytics", "handoff"} and h["routers"]["data"] is True
+    assert set(h["routers"]) == {"data", "analytics", "handoff", "coach"} and h["routers"]["data"] is True
     assert all(isinstance(v, bool) for v in h["routers"].values()) and isinstance(h["warm"], dict)
 
 
@@ -431,3 +435,18 @@ def test_mock_mode_answers_every_get_without_a_network(client, monkeypatch):
                  "/graph/transitions", "/queue", "/audit", "/kill"):
         assert client.get(path).status_code == 200, path
     assert client.get("/eval/report").status_code in (200, 404)
+
+
+def test_genome_response_carries_the_skip_consequences_when_the_platform_file_exists(client):
+    from understudy_engine.genome.service import consequences_path
+
+    data = client.get("/genome/benefits?person=p_nov04").json()["data"]
+    if not consequences_path().is_file():
+        assert "consequences" not in data
+        return
+    steps = {c["step"]: c for c in data["consequences"]}
+    assert {"RECONCILE", "CHECK_CLIFF"} <= set(steps)
+    for c in steps.values():
+        assert {"step", "p_error", "mean_error_gbp", "n", "source"} <= set(c)
+    assert steps["RECONCILE"]["p_error"] is not None and steps["CHECK_CLIFF"]["p_error"] is None
+    assert "consequences_meta" in data

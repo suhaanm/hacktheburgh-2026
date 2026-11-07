@@ -109,7 +109,7 @@ void app.whenReady().then(async () => {
 
   // The debug server has no auth (it serves /shot, /state, /tool, /settings): opt-in only, never by default.
   if (flag('ALONGSIDE_DEBUG')) {
-    startDebugServer({ ctx, services, dispatch, session, capture: { overlayPng: windows.overlayPng, dockPng: windows.dockPng, hudPng: understudy.hud.png }, understudy: { kill: understudy.kill, hud: understudy.hudModel, dom: { status: () => ({ port: understudy.extServer()?.port() ?? null, pending: understudy.domGrounder.pending(), extensionSeenMs: understudy.extServer()?.lastSeenAt() ? Date.now() - (understudy.extServer()?.lastSeenAt() ?? 0) : null, ring: understudy.ring.current(), chip: understudy.chip.current(), capture: core.capture.mode() }) } }, tray: shellTray ?? undefined })
+    startDebugServer({ ctx, services, dispatch, session, capture: { overlayPng: windows.overlayPng, overlayText: windows.overlayText, dockPng: windows.dockPng, hudPng: understudy.hud.png }, understudy: { kill: understudy.kill, hud: understudy.hudModel, dom: { status: () => ({ port: understudy.extServer()?.port() ?? null, pending: understudy.domGrounder.pending(), extensionSeenMs: understudy.extServer()?.lastSeenAt() ? Date.now() - (understudy.extServer()?.lastSeenAt() ?? 0) : null, ring: understudy.ring.current(), chip: understudy.chip.current(), capture: core.capture.mode(), coach: understudy.coachBrain.status() }) } }, tray: shellTray ?? undefined })
   }
 
   // Understudy: the microphone is only needed for voice or the wake word, both off unless their flags are set.

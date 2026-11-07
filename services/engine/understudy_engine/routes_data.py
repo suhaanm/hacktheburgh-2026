@@ -83,6 +83,9 @@ def health(request: Request):
         "routers": {"data": True, "analytics": status.get("routes_analytics") == "included", "handoff": status.get("routes_handoff") == "included",
                     "coach": status.get("routes_coach") == "included"},
         "warm": dict(getattr(request.app.state, "warm", {})),
+        # additive (REQ-2): which extension routers are live (flag on AND importable), and whether the master flag UNDERSTUDY_X is set
+        "extensions": {k: bool(v) for k, v in getattr(request.app.state, "extensions", {}).items()},
+        "x_flag": bool(getattr(request.app.state, "x_flag", False)),
     }
 
 

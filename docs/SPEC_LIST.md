@@ -199,3 +199,79 @@ These come from the project owner. Do not reopen them. If one looks wrong, build
 | NFR-7 | P0 | README discloses that Alongside is the author's earlier open-source library (first commit 31 Oct 2026) and lists what was reused |
 | NFR-8 | P1 | First paint of the main screen under 2 seconds; no layout shift |
 | NFR-9 | P1 | Accessible: keyboard focus, contrast, reduced motion respected |
+
+## 14. Extensions requested after kickoff (REQ-2, 7 Nov 2026)
+
+**Status: ACCEPTED (7 Nov).** The owner decided D24 (design-only reimplementation of Sentient OS), D25 (Qwen2.5-7B Q4_K_M local model), D26 (synthetic calendars plus one read-only aggregate-only real check) and D27 (all layers in parallel, flags turned on only after the lead verifies each end to end). Everything here is **off by default behind feature flags**, never touches the P0 demo path, runs deterministically in mock mode, and is evaluated on synthetic data with honest labels. Tracks: H = HRT, G = G-Research, W = Wordsmith. Source of ideas: Clicky (MIT, local copy), Sentient OS (AGPL-3.0, local copy; design only unless D24 says otherwise), the owner's request.
+
+### 14.1 Privacy and egress (PRV)
+
+| ID | Pri | Trk | Requirement | Acceptance |
+|---|---|---|---|---|
+| PRV-1 | P0 | H G | **Egress guard.** Every byte sent to a remote model from the new layers passes one function, `egress.send(purpose, payload)`. The payload is a typed `SafePayload` (numbers, booleans, enums, bucketed ranges, ids from fixed vocabularies; no free text from any source). Anything else raises. | Canary test: planted names, emails, meeting titles, file paths and commit messages in the sources never appear in any captured outbound request body, across every insight, briefing and digest flow |
+| PRV-2 | P0 | H G | **Egress ledger.** Every outbound call is recorded locally (time, purpose, schema id, field names, the payload as sent) and shown on a Privacy screen; the worker can export or clear it. | One ledger line per call; the screen lists them; clear works |
+| PRV-3 | P1 | H | **Generalisation.** Small counts become "fewer than 5", times round to 15 minutes, durations to 5 minutes, ratios to 10% steps, before they enter a payload. | Property tests on the bucketing |
+| PRV-4 | P0 | H G | **Local raw data.** Raw calendar and git content stays under `data/` or the worker's home, never in logs, audit lines, queue items or payloads; only digests are retained; delete removes them. | Grep of logs, audit and queue after a run finds no source text |
+
+### 14.2 Local model and digests (LOC)
+
+| ID | Pri | Trk | Requirement | Acceptance |
+|---|---|---|---|---|
+| LOC-1 | P1 | H G | Local model provider over `llama-server` (llama.cpp, OpenAI-compatible endpoint on localhost), model path from the environment, JSON-schema constrained output, fail-closed to rules when no model is present. | Health check; 20 synthetic commits digested; works offline |
+| LOC-2 | P1 | H G | **Digest pipeline.** The local model turns raw items (git diffs and messages, calendar entries) into schema-checked digests (categories from a fixed vocabulary, counts, durations); a no-verbatim-span check (n-gram overlap) and a PII regex backstop run on every digest; the frontier model only ever sees digests, through PRV-1. | Leak test on planted strings; digest accuracy against planted labels with intervals |
+| LOC-3 | P2 | H | Fine-tuning: **not planned** (cannot be validated in the time; claims would be unsupported). Constrained decoding and few-shot prompts instead. | Stated in the limitations register |
+
+### 14.3 Plugins and sources (PLG)
+
+| ID | Pri | Trk | Requirement | Acceptance |
+|---|---|---|---|---|
+| PLG-1 | P0 | W | Source plugin interface and manifest (pattern from the Clicky Hermes plugin, MIT): id, kind, read-only permissions, egress class, schemas; loader and validator; `plugin_refs` covers sources as well as skills. | `understudy plugin validate` passes the bundled plugins |
+| PLG-2 | P1 | G H | Adapters: git (local repos), ICS and JSON calendar (synthetic and a user export), Microsoft Graph Outlook and Teams (**off by default**, the worker's own sign-in, never exercised on a real account in tests, aggregate-only), shell-history times (CAP-8). | Each adapter validated on fixtures; Graph adapter unit-tested against recorded fake responses |
+| PLG-3 | P2 | W | Two skills from the Apache-2.0 knowledge-work plugins (data, engineering) as child-agent playbooks, with notices. | Playbook loads and drives a child in mock mode |
+
+### 14.4 Calendar routine layer (CAL)
+
+| ID | Pri | Trk | Requirement | Acceptance |
+|---|---|---|---|---|
+| CAL-1 | P1 | G H | Weekly calendar features: meeting load, focus blocks, fragmentation, back-to-back runs, recurring series, work-hours span, off-computer blocks. | Recovers planted structure in synthetic calendars |
+| CAL-2 | P1 | G | Expert routine templates per role pack and a week-level gap analysis, expert against learner (the "week ribbon"). | Planted gaps recovered; placebo near zero |
+| CAL-3 | P1 | H G | **Generic suggestions.** Code picks from a fixed catalogue (protect a focus block, batch similar work, add a review slot, automate scheduling with an auto-hold, schedule an off-computer break or handoff, reduce back-to-back); the model may word them from safe aggregates only; each cites its numbers and the expert reference; opt-in. | Catalogue coverage test; canary test (PRV-1) |
+| CAL-4 | P1 | H G | Synthetic calendars with planted structure and truth, for the personas and the experts. | Truth files exist; evaluation reports precision and recall |
+
+### 14.5 Proactive intelligence (PRO)
+
+| ID | Pri | Trk | Requirement | Acceptance |
+|---|---|---|---|---|
+| PRO-1 | P1 | H W | **Judge, verify, prepare, press to fire** (design from Sentient OS, reimplemented): at most 3 cards; each has editable prepared content, a risk class and source tags; firing creates an approval-queue item or a background agent run; nothing fires unprompted; stale cards are dropped when the situation changed. | Replay over personas: card count cap holds, no card fires, stale card dropped |
+| PRO-2 | P1 | H | Morning briefing screen (and a spoken briefing behind the voice flag). | Renders from the seeded demo state |
+| PRO-3 | P2 | H | Per-person acceptance learning from accepts and declines (reuse HND-7). | Acceptance rate recorded |
+
+### 14.6 Background agents (BGA)
+
+| ID | Pri | Trk | Requirement | Acceptance |
+|---|---|---|---|---|
+| BGA-1 | P1 | W | **Agent runtime.** A parent agent plans and spawns child agents from a typed `AgentSpec` (role, tool allowlist per child, budgets for steps, time and tokens, an isolated workspace, an output schema); supervisor generations and cancel; typed results checked by code; every step through the SafetyPipeline. (SEC-10 still holds: the tool list scopes a child's tools; it is not a site allowlist.) | Three children run in parallel; stop wins in 1 s; a child cannot write outside its workspace |
+| BGA-2 | P1 | W | Foreground mode: children run while the worker keeps working, yield to input, and report at natural breaks. | Yield within 1 s |
+| BGA-3 | P1 | W H | Nightly mode through the off-hours decision; the morning report lists children and outcomes. | Replay with a simulated clock |
+| BGA-4 | P1 | W | Programming exemplar: commit analyst, test-gap finder and refactor suggester on a synthetic repo in an isolated worktree; patch drafts are never applied or pushed without approval. | Planted facts found; zero writes outside the worktree |
+| BGA-5 | P1 | W | Data-analysis exemplar: profile and chart a sample CSV in a sandbox with no network; summary with numbers and a chart. | Planted facts found; budgets obeyed |
+| BGA-6 | P2 | W | Creative exemplar: draft a weekly write-up from digests. | Draft cites digest ids only |
+
+### 14.7 Git analysis (GIT) and reuse (CLK, SOS)
+
+| ID | Pri | Trk | Requirement | Acceptance |
+|---|---|---|---|---|
+| GIT-1 | P1 | G H | Git analysis for the programmer role: commit events (times, sizes, test-touch, reverts, message class by local digest), programmer pack cogs, expert against learner on synthetic repos, suggestions through CAL-3's guard. | Planted habits recovered with precision and recall |
+| CLK-1 | P1 | W | Clicky reuse study (MIT, local copy): a reuse map and, where a gap is filled, lifted modules with an `Adapted from` header and a notices entry (scoped autopilot session policy, post-action verification, confirmation state, plugin manifest). | `docs/reference-notes/clicky-reuse.md`; notices current |
+| SOS-1 | P1 | H W | Sentient OS: **design-only** reimplementation unless the owner chooses a literal port under AGPL (D24). | Implementers' notes cite the owner's research notes, not the Swift source |
+
+### 14.8 Non-functional additions
+
+| ID | Pri | Requirement |
+|---|---|---|
+| NFR-10 | P0 | All section 14 features are off by default behind flags; the three-minute demo path and `make demo` are unaffected when they are off. |
+| NFR-11 | P0 | Each feature ships with tests and an honest evaluation (n, split, interval, origin) and enters the limitations register. |
+
+## 15. How owner requests are handled
+
+Every new owner request or tweak gets a row in the **requests log** in `IDEA_BOARD.md` (`REQ-n`, date, request, analysis, status), new IDs in this file with a status (`PROPOSED`, `ACCEPTED`, `BUILDING`, `BUILT`, `CUT`), a decision number in `DECISIONS.md` where the owner chose something, and, if it changes ownership, an update to the roster in `AGENTS.md`. The lead does this before starting the work; locked decisions (section 0) are never reopened without an explicit owner instruction, and a conflict is recorded as a concern.

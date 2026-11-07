@@ -240,7 +240,10 @@ def test_queue_audit_killflag_import_without_pulling_in_models_or_servers():
             "bad=[m for m in ('openai','playwright','fastapi','understudy_agent.models','understudy_agent.voice',"
             "'understudy_agent.security.pipeline','understudy_agent.security.reader') if m in sys.modules];"
             "print(bad); sys.exit(1 if bad else 0)")
-    r = subprocess.run([sys.executable, "-I", "-c", code], capture_output=True, text=True)
+    import os
+
+    r = subprocess.run([sys.executable, "-I", "-c", code], capture_output=True, text=True,
+                       env={**os.environ, "UNDERSTUDY_DATA_DIR": os.environ["UNDERSTUDY_DATA_DIR"]})
     assert r.returncode == 0, r.stdout + r.stderr
 
 

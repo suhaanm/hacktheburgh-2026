@@ -139,10 +139,11 @@ try {
   // element-rect protocol
   wantQueue.push({ request_id: "rq_s3_1", label_hash: nodeLabelHash(salt, "Calculate"), frame_id: "top" });
   await until(() => rectAnswer, 15000, "the rect answer");
-  const truth = await page.evaluate(() => { const r = document.getElementById("go").getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, dpr: devicePixelRatio, sx: screenX, sy: screenY }; });
-  outcome.steps.rect = { answer: rectAnswer, page_truth: truth, schema_valid: validRect(rectAnswer), matches: Math.abs(rectAnswer.rect.x - truth.x) < 1 && Math.abs(rectAnswer.rect.w - truth.w) < 1 };
+  const truth = await page.evaluate(() => { const r = document.getElementById("go").getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, dpr: devicePixelRatio, sx: screenX, sy: screenY, iw: innerWidth, ih: innerHeight, ow: outerWidth, oh: outerHeight }; });
+  outcome.steps.rect = { answer: rectAnswer, page_truth: truth, schema_valid: validRect(rectAnswer), matches: Math.abs(rectAnswer.rect.x - truth.x) < 1 && Math.abs(rectAnswer.rect.w - truth.w) < 1,
+    raw_geometry_matches: rectAnswer.viewport?.w === truth.iw && rectAnswer.viewport?.h === truth.ih && rectAnswer.outer?.w === truth.ow && rectAnswer.outer?.h === truth.oh && rectAnswer.screen?.x === truth.sx && rectAnswer.screen?.y === truth.sy };
   outcome.ok = outcome.steps.service_worker && invalid.length === 0 && outcome.steps.leaks.length === 0 && outcome.steps.no_urls
-    && outcome.steps.events_from_login_form === 0 && outcome.steps.click_label_hash_matches_node_recomputation && outcome.steps.rect.schema_valid && outcome.steps.rect.matches;
+    && outcome.steps.events_from_login_form === 0 && outcome.steps.click_label_hash_matches_node_recomputation && outcome.steps.rect.schema_valid && outcome.steps.rect.matches && outcome.steps.rect.raw_geometry_matches;
 } catch (e) {
   outcome.error = String(e?.stack ?? e);
   outcome.debug = { events: events.length, storage: await context?.serviceWorkers()[0]?.evaluate(() => chrome.storage.local.get(null)).catch(() => null) };

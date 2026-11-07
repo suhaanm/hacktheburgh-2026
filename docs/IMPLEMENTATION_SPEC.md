@@ -386,3 +386,79 @@ These were researched but not confirmed. Check each and note the result in `docs
 - `statsmodels` Oaxaca-Blinder API, MAPIE API, library versions on Python 3.12.
 - Whether OpenAdapt (MIT) is worth importing for record and replay; the DSL interpreter is the default.
 - Graph library licences (d3-force, Cytoscape.js, Sigma.js).
+
+## 14. Extensions architecture (REQ-2): "beyond the screen"
+
+Requirements are in SPEC_LIST section 14. This section says how. Status: **proposed**; the order and scope are set by D27. Everything is behind flags (`UNDERSTUDY_X_*`), off by default, and the P0 demo path never imports it.
+
+### 14.1 Layers and data flow
+
+```mermaid
+flowchart LR
+  subgraph Local["Everything left of the egress guard stays on this Mac"]
+    SRC["Source plugins (read-only)<br/>git, ICS/JSON calendar, Graph (off), shell times"]
+    RAW["Raw items<br/>(never logged, never queued)"]
+    LM["Local model digests<br/>llama-server + constrained JSON, or rules"]
+    DIG["Digests<br/>enums, counts, durations"]
+    FEAT["Features: week ribbon, commit habits,<br/>routines, skills, presence"]
+    JUDGE["Judge (code selects) -> verify -> prepare"]
+    RT["Agent runtime<br/>parent -> children, supervisor, SafetyPipeline"]
+    Q["Approval queue, audit, morning report"]
+  end
+  EG{{"Egress guard<br/>SafePayload only + ledger"}}
+  FM["Frontier model<br/>wording and reasoning on digests"]
+  SRC --> RAW --> LM --> DIG --> FEAT --> JUDGE
+  DIG --> EG
+  FEAT --> EG
+  EG --> FM --> JUDGE
+  JUDGE -->|"press to fire"| Q
+  JUDGE --> RT --> Q
+```
+
+**Rule of thumb:** raw content is read only by code and the local model; the frontier model receives `SafePayload` objects and nothing else; code, not a model, selects which suggestion templates apply, which cards surface and what may fire.
+
+### 14.2 Privacy and egress (PRV)
+
+- Module `services/engine/understudy_engine/privacy/`: `payload.py` (`SafePayload`: a pydantic model whose fields are only `int`, `float`, `bool`, `Literal` enums, `list` of those, and ids matching fixed vocabularies; a `strict` validator rejects any other string), `bucket.py` (counts under 5 become `lt5`, times round to 15 minutes, durations to 5 minutes, ratios to 10% steps), `egress.py` (`send(purpose, payload, port)`: validate, bucket, scan with the PII/canary backstop, write the ledger line, then call the model port; the only function in the new layers that may reach `ModelPort.plan` or `.check` with content), `ledger.py` (append-only JSONL `data/egress_ledger.jsonl`: time, purpose, schema id, field names, the payload exactly as sent, model id; never raw source text because none can enter), `canary.py` (plants unique tokens in fixtures and scans captured request bodies).
+- Existing limits stay: the quarantined reader, SEC-1 to SEC-12, no allowlists, protected settings. The ledger is exposed read-only at `GET /privacy/ledger` and `GET /privacy/summary` (counts by purpose, last call, "nothing else left this laptop" is **not** claimed: model calls for steps the worker asked for are listed too).
+- Test strategy: a fake model port records every request body; the whole flow runs on fixtures seeded with canaries (a person's name, an email, a meeting title, a path, a commit message, a customer name); the assertion is zero canary hits and one ledger line per call.
+
+### 14.3 Local model and digests (LOC)
+
+- `services/engine/understudy_engine/localmodel/`: `server.py` (start, health and stop `llama-server` on a loopback port with the model path from `UNDERSTUDY_LOCAL_MODEL`; the binary is Homebrew `llama-server`), `client.py` (OpenAI-compatible `/v1/chat/completions` with a JSON schema or GBNF grammar), `digest.py` (task definitions: `commit_digest`, `event_digest`; each returns only fixed-vocabulary enums and numbers), `guards.py` (no-verbatim-span check with n-gram overlap, PII regex backstop, fail-closed on parse errors), `rules.py` (the deterministic fallback used when no model is present and in mock mode).
+- Model choice (D25): Qwen2.5-7B-Instruct Q4_K_M (4.68 GB, Apache-2.0) from `bartowski/Qwen2.5-7B-Instruct-GGUF`, fits this Mac (arm64, 32 GB). Digest quality is evaluated against planted labels; fine-tuning is out of scope.
+
+### 14.4 Plugins and sources (PLG)
+
+Manifest `plugin.yaml` (pattern from the Clicky Hermes plugin): `id`, `kind: source|skill|tool`, `permissions: [read]`, `egress: local_only`, `schema`, `entry`. Source plugins implement `read(since) -> Iterator[RawItem]` and never write. Adapters: `git` (local repos through `git log` with numstat), `ics` (RFC 5545 files and a JSON export), `graph_outlook` and `graph_teams` (Microsoft Graph, off by default, needs the worker's own sign-in, aggregate-only, tested only against recorded fake responses), `shell_times` (CAP-8). Packs reference plugins through `plugin_refs`.
+
+### 14.5 Calendar routine layer (CAL)
+
+`services/engine/understudy_engine/calendar/`: `features.py` (weekly meeting load, focus blocks of 60 and 90 minutes, fragmentation index, back-to-back runs, recurring series, work-hours span, off-computer blocks), `expert.py` (expert routine templates from `packages/packs/<role>/routine_expert.yaml` and the gap analysis, reusing the genome's alignment on a day-slot sequence), `suggest.py` (the fixed suggestion catalogue; code selects, the model may only reword from safe aggregates), `synth.py` (synthetic calendars with planted structure and truth for the four personas and the experts). API: `GET /calendar/week?person=` (the week ribbon), `GET /calendar/suggestions?person=` (each with its numbers and the expert reference).
+
+### 14.6 Proactive intelligence (PRO)
+
+`services/engine/understudy_engine/proactive/`: `judge.py` (code ranks candidates from routines, skill gaps, calendar suggestions, git habits, agent results; at most 3 cards; "fewer, even zero"), `verify.py` (re-checks each candidate against current state and drops stale ones), `prepare.py` (builds the editable prepared content from templates; a model may reword through the egress guard), `cards.py` (card schema with risk class and source tags), `fire.py` (on the worker's press only: enqueue an approval item or start a background agent run, never both unprompted). API: `GET /briefing`, `POST /briefing/{id}/fire`, `POST /briefing/{id}/dismiss`. Design source: the owner's research notes on Sentient OS (judge, research and prepare, execute on press; at most five ready cards; stale items dropped), reimplemented in our own code and words.
+
+### 14.7 Agent runtime (BGA)
+
+`services/agent/understudy_agent/runtime/`: `spec.py` (`AgentSpec`: role, tools, budgets (steps, seconds, tokens), workspace kind (`tmp`, `worktree`, `none`), output schema, playbook), `parent.py` (plans through `ModelPort.plan` into child specs; code validates every spec against policy and budgets; max 4 children), `child.py` (runs one child through `SafetyPipeline` with typed tools: `read_file`, `list_dir`, `git_log`, `run_python` (a subprocess in an isolated tmp dir, no network, time and memory limits), `write_workspace`, `emit_result`), `tools.py`, `workspace.py` (isolated tmp dir or `git worktree add` on a copy; writes outside it are refused), `modes.py` (foreground: yield on human input; nightly: through `offhours.py` with the presence decision), `results.py` (typed results; code-checked completion; artifacts listed in the queue item). Exemplars in `runtime/exemplars/`: programming (commit analyst, test-gap finder, refactor suggester), data analysis (profiler, chart builder), creative (weekly write-up). Everything uses the existing supervisor, queue, audit, kill flag and consent files; no new trust paths.
+
+### 14.8 Git analysis (GIT)
+
+Programmer pack gains cogs `CODE`, `TEST`, `REFACTOR`, `COMMIT`, `REVERT` mapped from commit events (time, files, additions and deletions, test-touch, revert), synthetic repos with planted expert and novice habits (huge commits, no tests, fix-after-fix loops), and suggestions through the CAL-3 guard.
+
+### 14.9 Milestones, order and cut lines (proposed; see D27)
+
+| Wave | When (GMT) | Output |
+|---|---|---|
+| X1 | Sat 17:00 to 20:00 | Egress guard and ledger with canary tests; local model server and digest pipeline with rules fallback; plugin interface and adapters (git, ICS, Graph off); agent runtime core with a mock child |
+| X2 | Sat 20:00 to Sun 00:30 | Calendar features, week ribbon and suggestions; proactive judge and briefing; programming and data-analysis exemplars; git analysis; dashboard screens Week, Briefing, Agents, Privacy |
+| X3 | Sun 00:30 to 04:00 | Evaluations in `make eval` (digest accuracy, leak canaries, calendar pattern recovery, runtime budgets and stop); Clicky reuse; polish; limitations register |
+| Freeze | Sun 08:00 | Only fixes |
+
+Cut lines, in order: (1) creative exemplar; (2) Graph adapters become interface plus fake responses only; (3) local model becomes rules only (keep the egress guard); (4) nightly mode for the exemplars becomes a simulated clock; (5) proactive cards become a static briefing from the existing routines. Never cut: the egress guard, the ledger, the canary tests, the limitations entries.
+
+### 14.10 What this does not claim
+
+No calendar, git or Graph feature is validated on real people; every figure is on synthetic data with planted truth, labelled so. "No data is leaked" is claimed only as measured: zero planted canaries in captured outbound requests, with the ledger as evidence; model calls the worker asked for are not hidden.

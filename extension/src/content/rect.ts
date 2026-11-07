@@ -4,6 +4,7 @@
 import { accessibleName, INTERACTIVE_SELECTOR, isVisible, roleOf } from "../shared/dom";
 import { hashLabel, normaliseLabel } from "../shared/hash";
 import type { SensitiveMatcher } from "../shared/sensitive";
+import type { Zoner } from "../shared/zones";
 
 export interface RectWant {
   request_id: string;
@@ -11,6 +12,7 @@ export interface RectWant {
   label_hash?: string;
   role?: string;
   name?: string;
+  zone?: string;
 }
 
 export interface RectResult {
@@ -19,6 +21,9 @@ export interface RectResult {
   window_offset?: { x: number; y: number };
   scroll?: { x: number; y: number };
   dpr?: number;
+  viewport?: { w: number; h: number };
+  outer?: { w: number; h: number };
+  screen?: { x: number; y: number };
   measured_at: number;
 }
 
@@ -28,9 +33,10 @@ function inViewport(win: Window, r: DOMRect): boolean {
   return r.bottom > 0 && r.right > 0 && r.top < win.innerHeight && r.left < win.innerWidth;
 }
 
-export function resolveRect(win: Window, want: RectWant, deps: { salt: string; matcher: SensitiveMatcher; now?: () => number }): RectResult {
+export function resolveRect(win: Window, want: RectWant, deps: { salt: string; matcher: SensitiveMatcher; zoner?: Zoner; now?: () => number }): RectResult {
   const now = deps.now ?? (() => Date.now());
   const doc = win.document;
+  if (want.zone !== undefined) return finish(win, zoneMatches(win, want.zone, deps), now);
   const candidates = Array.from(doc.querySelectorAll(`${INTERACTIVE_SELECTOR}, h1, h2, h3, label, [data-understudy-zone]`)).slice(0, MAX_CANDIDATES);
   const wantName = want.name !== undefined ? normaliseLabel(want.name) : null;
   const matches: Element[] = [];
@@ -44,6 +50,25 @@ export function resolveRect(win: Window, want: RectWant, deps: { salt: string; m
     } else continue;
     if (isVisible(el)) matches.push(el);
   }
+  return finish(win, matches, now);
+}
+
+/** Elements in document order that carry the zone attribute or match the zone's configured selector, never a sensitive one. */
+function zoneMatches(win: Window, zone: string, deps: { matcher: SensitiveMatcher; zoner?: Zoner }): Element[] {
+  const sels = deps.zoner?.selectorsFor(zone) ?? [];
+  if (!sels.length) return [];
+  let found: Element[] = [];
+  try {
+    found = Array.from(win.document.querySelectorAll(sels.join(", ")));
+  } catch {
+    for (const sel of sels) {      // one bad selector in a pack must not hide the others
+      try { found.push(...Array.from(win.document.querySelectorAll(sel))); } catch { /* skip it */ }
+    }
+  }
+  return found.filter((el) => !deps.matcher.inSensitiveContext(el) && isVisible(el)).slice(0, MAX_CANDIDATES);
+}
+
+function finish(win: Window, matches: Element[], now: () => number): RectResult {
   if (!matches.length) return { found: false, measured_at: now() };
   const best = matches.find((el) => inViewport(win, el.getBoundingClientRect())) ?? matches[0]!;
   const r = best.getBoundingClientRect();
@@ -71,6 +96,10 @@ export function resolveRect(win: Window, want: RectWant, deps: { salt: string; m
     window_offset: { x: top.screenX + side, y: top.screenY + chrome },
     scroll: { x: top.scrollX, y: top.scrollY },
     dpr: top.devicePixelRatio || 1,
+    // The raw window geometry, so the desktop app can work out the page zoom itself instead of trusting window_offset.
+    viewport: { w: top.innerWidth, h: top.innerHeight },
+    outer: { w: top.outerWidth, h: top.outerHeight },
+    screen: { x: top.screenX, y: top.screenY },
     measured_at: now(),
   };
 }

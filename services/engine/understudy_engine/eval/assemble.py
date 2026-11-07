@@ -101,7 +101,7 @@ def run_section(spec, ctx: Ctx, log: Callable[[str], None]) -> tuple[dict[str, A
 
 
 def build_report(*, fast: bool = False, sections: list[str] | None = None, root: Path | str | None = None, now: str | None = None,
-                 seed: int = 0, allow_live: bool | None = None, regenerate: bool = True,
+                 seed: int = 0, regenerate: bool = True,
                  log: Callable[[str], None] | None = None) -> dict[str, Any]:
     log = log or (lambda m: print(m, file=sys.stderr))
     wanted = list(SECTION_NAMES) if not sections else [s for s in sections if s != "limitations"]
@@ -115,8 +115,7 @@ def build_report(*, fast: bool = False, sections: list[str] | None = None, root:
             ensure_synthetic(root, log)
         except Exception as e:  # pragma: no cover
             log(f"eval: could not generate synthetic data: {type(e).__name__}: {e}")
-    ctx = Ctx(fast=fast, root=Path(root) if root else None, seed=seed,
-              allow_live=(os.environ.get("UNDERSTUDY_EVAL_LIVE") == "1" and not is_mock()) if allow_live is None else allow_live)
+    ctx = Ctx(fast=fast, root=Path(root) if root else None, seed=seed)
     out: dict[str, Any] = {}
     secs: dict[str, float] = {}
     for spec in specs:

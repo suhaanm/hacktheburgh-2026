@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Understudy capture</title>
+<style>
+  :root { color-scheme: light dark; --fg: #1b1f23; --muted: #5b6570; --bg: #fbfbfa; --line: #d9dcde; --on: #1d6b57; }
+  @media (prefers-color-scheme: dark) { :root { --fg: #e8eaec; --muted: #9aa4ae; --bg: #1a1d20; --line: #333a40; --on: #6cc7ad; } }
+  body { margin: 0; width: 300px; padding: 16px; font: 13px/1.45 system-ui, sans-serif; color: var(--fg); background: var(--bg); }
+  h1 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+  p { margin: 0 0 12px; color: var(--muted); }
+  label.row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); cursor: pointer; }
+  input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--on); }
+  dl { margin: 12px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
+  dt { color: var(--muted); } dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+  select { font: inherit; color: inherit; background: transparent; border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; }
+  .err { color: #b3261e; margin-top: 8px; }
+  @media (prefers-color-scheme: dark) { .err { color: #f2b8b5; } }
+</style>
+</head>
+<body>
+  <h1>Understudy capture</h1>
+  <p>Off until you turn it on. No page text, no addresses, no field values. Turn it off and unsent events are deleted.</p>
+  <label class="row"><input type="checkbox" id="on"><span id="state">Capture is off</span></label>
+  <dl>
+    <dt>Person</dt><dd id="who"></dd>
+    <dt id="role-row-label">Role</dt><dd id="role-row"><select id="role"></select></dd>
+    <dt>Waiting to send</dt><dd id="queued">0</dd>
+    <dt>Sent</dt><dd id="sent">0</dd>
+    <dt>Routine recording</dt><dd id="l1">off</dd>
+    <dt>Desktop app</dt><dd id="desk">not seen</dd>
+  </dl>
+  <div class="err" id="err" role="status"></div>
+  <script src="popup.js"></script>
+</body>
+</html>

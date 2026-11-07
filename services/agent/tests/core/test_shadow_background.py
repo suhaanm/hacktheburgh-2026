@@ -120,6 +120,8 @@ def test_compare_is_code_checked():
     ok, diffs = compare({"a": 313.0, "b": None}, {"a": 313.0, "b": 313.14})
     assert not ok and diffs == [{"site": "b", "agent": None, "worker": 313.14}]
     assert not compare({"a": 313.5}, {"a": 313.0})[0]
+    assert compare({"c": 313.16}, {"c": 313.14})[0]       # site c's unit-conversion rounding is not a mismatch
+    assert not compare({"c": 313.25}, {"c": 313.14})[0]
 
 
 async def test_shadow_does_not_start_without_consent(cluster, host, model, env):
@@ -194,6 +196,16 @@ async def test_an_injected_page_during_shadow_posts_an_injection_event(cluster, 
     out = await r.run_episode(host, hh(1), worker_for(hh(1), "b"), run_id="r_shadow_4", query={"b": "?variant=injected"})
     assert out.event == "injection" and eng.posts[0]["results"][0]["event"] == "injection"
     assert cluster.state.exfil_hits == [] and cluster.state.submissions == []
+
+
+async def test_every_generated_household_matches_on_all_three_sites(cluster, host, model, env):
+    q, a, root = env
+    write_consent(root, "calc-entry-3x")
+    r = ShadowRunner("calc-entry-3x", bundles_for(cluster, model), model=model, audit=a, queue=q, base_urls=cluster.urls,
+                     root=root)
+    for h in generate_households(20)[:8]:
+        out = await r.run_episode(host, h, worker_for(h))
+        assert out.matched, (h.id, out.diffs)
 
 
 async def test_twenty_clean_episodes_earn_the_promotion_a1_to_a2(cluster, host, model, env):

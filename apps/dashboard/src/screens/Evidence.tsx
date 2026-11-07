@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { api } from "../api";
 import { useLoad, useWidth } from "../hooks";
 import { scaleLinear } from "d3-scale";
@@ -35,10 +35,10 @@ function Caveats({ s }: { s: Sec }) {
   const list = arr<unknown>(s.caveats).filter((c): c is string => typeof c === "string");
   if (!list.length) return null;
   return (
-    <div className="stack" style={{ gap: "var(--space-1)" }}>
-      <span className="t-label">Caveats from the engine</span>
+    <details className="details-lite">
+      <summary>Caveats from the engine ({list.length})</summary>
       <ul className="plain-list">{list.map((c) => <li key={c} className="ev-note">{c}</li>)}</ul>
-    </div>
+    </details>
   );
 }
 
@@ -59,7 +59,29 @@ function Guard({ id, kicker, what, s, children }: { id: string; kicker: string; 
   return <>{children(s)}</>;
 }
 
-const NAV: [string, string][] = [["hazard", "Warning"], ["routing", "Review"], ["controls", "Controls"], ["ope", "Off-policy"], ["redteam", "Injection"], ["ski", "Ski rental"], ["deficits", "Deficits"], ["presence", "Presence"], ["agent", "Agent claims"], ["study", "Live study"], ["limits", "Limits"]];
+const NAV: [string, string][] = [["hazard", "Warning"], ["routing", "Review"], ["controls", "Controls"], ["ope", "Off-policy"], ["redteam", "Injection"], ["ski", "Ski rental"], ["deficits", "Deficits"], ["presence", "Presence"], ["agent", "Agent claims"], ["runs", "Agent runs"], ["study", "Live study"], ["limits", "Limits"]];
+
+/** A sticky list of sections. The one you are reading is marked, so a very long page never loses its place. */
+function JumpBar({ onGo }: { onGo: (id: string) => (e: { preventDefault: () => void }) => void }) {
+  const [here, setHere] = useState<string>(NAV[0][0]);
+  useEffect(() => {
+    const els = NAV.map(([id]) => document.getElementById(id)).filter((e): e is HTMLElement => !!e);
+    if (!els.length || typeof IntersectionObserver === "undefined") return;
+    const seen = new Map<string, number>();
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) seen.set(e.target.id, e.isIntersecting ? e.boundingClientRect.top : Infinity);
+      const open = [...seen.entries()].filter(([, t]) => t !== Infinity).sort((a, b) => a[1] - b[1])[0];
+      if (open) setHere(open[0]);
+    }, { rootMargin: "-15% 0px -70% 0px" });
+    els.forEach((e) => io.observe(e));
+    return () => io.disconnect();
+  }, []);
+  return (
+    <nav className="ev-jump" aria-label="Sections on this page">
+      {NAV.map(([id, t]) => <a key={id} href={`#${id}`} aria-current={here === id ? "true" : undefined} onClick={onGo(id)}>{t}</a>)}
+    </nav>
+  );
+}
 
 export default function Evidence() {
   const r = useLoad(() => api.evalReport(), []);
@@ -78,8 +100,8 @@ export default function Evidence() {
         eyebrow={`Evidence · generated ${new Date(rep.generated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}${rep.mock ? " · mock mode" : ""}`}
         title="What we can show, and what we cannot"
         lede={<>{anySynthetic ? "Most numbers here come from synthetic apprentices and personas, and each one says so. " : ""}{studyRan ? `The live study has n = ${study!.meta!.n}. ` : "The live study has not run yet, so no human results are shown. "}Every chart prints its n, its split and its 95% interval. <a href="#limits" onClick={go("limits")}>{limits.length} limits are listed at the end.</a></>}
-        aside={<nav className="row" aria-label="On this page" style={{ gap: "var(--space-2) var(--space-4)", maxWidth: 440 }}>{NAV.map(([id, t]) => <a key={id} className="t-data" href={`#${id}`} onClick={go(id)}>{t}</a>)}</nav>}
       />
+      <JumpBar onGo={go} />
       <div className="ev">
         <Hazard rep={rep} />
         <Routing rep={rep} />
@@ -90,6 +112,7 @@ export default function Evidence() {
         <Deficits rep={rep} />
         <PresenceBlock rep={rep} />
         <Claims rep={rep} />
+        <AgentRuns rep={rep} />
         <Study rep={rep} />
         <Limits items={limits} />
       </div>
@@ -328,22 +351,39 @@ function Deficits({ rep }: { rep: EvalReport }) {
   );
 }
 
+interface Stage { clusters?: number; proposals?: number; correct?: number; precision?: number; precision_ci?: Interval }
 function RoutineFinder({ s }: { s: Sec }) {
-  const rows = arr<{ persona: string; planted: number; found: number; precision: number; recall: number }>(s.rows);
-  const m = s.metrics as { precision?: number; precision_ci?: Interval; recall?: number; recall_ci?: Interval; finder_precision?: number; finder_precision_ci?: Interval } | undefined;
-  const overall = s.overall as { precision: number; recall: number } | undefined;
-  const pc = (v: number, c?: Interval) => `${fmtPct(v)}${c ? ` ${fmtPctInterval(c[0], c[1])}` : ""}`;
+  type Row = { persona: string; planted: number; found: number; precision: number; recall: number; raw_finder?: Stage; after_value_gate?: Stage };
+  const rows = arr<Row>(s.rows);
+  const o = (s.overall ?? {}) as { precision?: number; recall?: number; recall_ci?: Interval; raw_finder?: Stage; after_value_gate?: Stage; precision_basis?: string };
+  const m = (s.metrics ?? {}) as { precision?: number; precision_ci?: Interval; recall?: number; recall_ci?: Interval; finder_precision?: number; finder_precision_ci?: Interval };
+  const raw = o.raw_finder ?? (isNum(m.finder_precision) ? { precision: m.finder_precision, precision_ci: m.finder_precision_ci } : undefined);
+  const gated = o.after_value_gate ?? (isNum(m.precision) ? { precision: m.precision, precision_ci: m.precision_ci } : isNum(o.precision) ? { precision: o.precision } : undefined);
+  const recall = isNum(o.recall) ? o.recall : m.recall;
+  const recallCi = o.recall_ci ?? m.recall_ci;
+  const pc = (v?: number, c?: Interval) => (isNum(v) ? `${fmtPct(v)}${c ? ` ${fmtPctInterval(c[0], c[1])}` : ""}` : "not reported");
+  const of = (k: number | undefined, n: number | undefined, unit: string) => (isNum(k) && isNum(n) ? ` (${k} of ${n} ${unit})` : "");
+  const cell = (st: Stage | undefined, unit: "clusters" | "proposals") => {
+    if (!st || !isNum(st.precision)) return "not reported";
+    const n = unit === "clusters" ? st.clusters : st.proposals;
+    return <>{fmtPct(st.precision)} <span className="interval">{isNum(st.correct) && isNum(n) ? `${st.correct} of ${n}` : ""}</span></>;
+  };
+  const hasStages = rows.some((r) => r.raw_finder || r.after_value_gate);
   return (
     <div className="stack">
       <h3 className="section__title" style={{ fontSize: "var(--text-lg)" }}>
         Does the routine finder find the routines we planted?{" "}
-        {m && isNum(m.finder_precision) ? <>The finder alone is precise {pc(m.finder_precision, m.finder_precision_ci)} of the time. </> : null}
-        {m && isNum(m.precision) ? <>After the value gate, the proposals are precise {pc(m.precision, m.precision_ci)}{isNum(m.recall) ? ` and find ${pc(m.recall, m.recall_ci)} of the planted routines` : ""}.</> : overall ? <>Precision {fmtPct(overall.precision)}, recall {fmtPct(overall.recall)}.</> : null}
+        {raw ? <>The finder alone is right {pc(raw.precision, raw.precision_ci)}{of(raw.correct, raw.clusters, "clusters")}. </> : null}
+        {gated ? <>What the worker is shown is right {pc(gated.precision, gated.precision_ci)}{of(gated.correct, gated.proposals, "proposals")}{isNum(recall) ? `, and it finds ${pc(recall, recallCi)} of the planted routines` : ""}.</> : null}
       </h3>
       <div className="table-wrap"><table className="table">
-        <thead><tr><th>Persona</th><th className="num">Planted</th><th className="num">Found</th><th className="num">Precision of proposals</th><th className="num">Recall</th></tr></thead>
-        <tbody>{rows.map((x) => <tr key={x.persona}><td>{x.persona}</td><td className="num">{x.planted}</td><td className="num">{x.found}</td><td className="num">{fmtPct(x.precision)}</td><td className="num">{fmtPct(x.recall)}</td></tr>)}</tbody>
+        <thead><tr><th>Persona</th><th className="num">Planted</th><th className="num">Found</th>{hasStages ? <><th className="num">Finder alone, precision</th><th className="num">Shown to the worker, precision</th></> : <th className="num">Precision of proposals</th>}<th className="num">Recall</th></tr></thead>
+        <tbody>{rows.map((x) => (
+          <tr key={x.persona}><td>{x.persona}</td><td className="num">{x.planted}</td><td className="num">{x.found}</td>
+            {hasStages ? <><td className="num">{cell(x.raw_finder, "clusters")}</td><td className="num">{cell(x.after_value_gate, "proposals")}</td></> : <td className="num">{fmtPct(x.precision)}</td>}
+            <td className="num">{fmtPct(x.recall)}</td></tr>))}</tbody>
       </table></div>
+      {hasStages && <p className="ev-note">The left precision is the finder's accuracy: how many of the clusters it raised are real routines. The right is what the worker is shown, after the value gate drops the ones that would not pay for themselves.</p>}
       <ChartFoot meta={s.meta ?? null} />
     </div>
   );
@@ -422,6 +462,55 @@ function Claims({ rep }: { rep: EvalReport }) {
                 <Caveats s={s} />
               </div>
             </div>
+          </Block>
+        );
+      }}
+    </Guard>
+  );
+}
+
+/* -- Agent runs on the sandbox ---------------------------------------------------------------------------------------- */
+interface RunSet { n: number; pass: number; wilson?: Interval; mean_s?: number; tier_households?: Record<string, number>; injected?: { injection: string; n: number; pass: number; used_tier2?: number }[]; label?: string }
+function RunStat({ title, r }: { title: string; r: RunSet }) {
+  const t2 = r.tier_households?.["2"];
+  return (
+    <div className="stat">
+      <span className="stat__label">{title}</span>
+      <span className="stat__value tabular">{r.pass}<span className="stat__unit">of {r.n} passed</span></span>
+      {r.wilson && <span className="stat__interval">95% Wilson interval {fmtInterval(r.wilson, 2)}</span>}
+      <span className="stat__meta">{isNum(r.mean_s) ? `${r.mean_s.toFixed(1)} s per household` : ""}{isNum(t2) ? `${isNum(r.mean_s) ? ". " : ""}Tier 2 was needed on ${t2} households.` : ""}</span>
+    </div>
+  );
+}
+
+function AgentRuns({ rep }: { rep: EvalReport }) {
+  return (
+    <Guard id="runs" kicker="Does the agent finish the work, and survive a changed page?" what="Agent runs on the sandbox" s={sec(rep, "agent_runs")}>
+      {(s) => {
+        const clean = s.clean as RunSet | undefined, robust = s.robust as RunSet | undefined;
+        const disc = s.discrepancies_flagged as { n: number; of: number } | undefined;
+        const live = s.live as Record<string, unknown> | null | undefined;
+        const inj = robust?.injected ?? [];
+        const t2 = robust?.tier_households?.["2"];
+        return (
+          <Block id="runs" kicker="Does the agent finish the work, and survive a changed page?" claim={<>
+            {clean ? `Clean path: ${clean.pass} of ${clean.n}. ` : ""}{robust ? `With failures injected: ${robust.pass} of ${robust.n}${isNum(t2) ? `, using tier 2 on ${t2} households` : ""}. ` : ""}
+            {disc ? `${disc.n} of ${disc.of} planted discrepancies flagged. ` : ""}{isNum(s.false_claims) ? `${s.false_claims} false claims.` : ""}</>}>
+            <div className="stats">
+              {clean && <RunStat title="Clean path" r={clean} />}
+              {robust && <RunStat title="With injected failures" r={robust} />}
+              {disc && <div className="stat"><span className="stat__label">Planted discrepancies flagged</span><span className="stat__value tabular">{disc.n}<span className="stat__unit">of {disc.of} households</span></span><span className="stat__meta">Passing one means the disagreement between calculators was flagged, not hidden.</span></div>}
+            </div>
+            <p className="ev-note">The clean path is the compiled path on the sandbox it was written against, so a full pass is expected and says little. The table of injected failures is the evidence that discriminates.</p>
+            {inj.length > 0 && (
+              <div className="table-wrap"><table className="table">
+                <thead><tr><th>Injected failure</th><th className="num">Households</th><th className="num">Passed</th><th className="num">Needed tier 2</th></tr></thead>
+                <tbody>{inj.map((x) => <tr key={x.injection}><td>{x.injection}</td><td className="num">{x.n}</td><td className="num">{x.pass}</td><td className="num">{dashed(x.used_tier2, (n) => String(n))}</td></tr>)}</tbody>
+              </table></div>
+            )}
+            {live && typeof live === "object" && <Facts title="Real model, small n" v={live} />}
+            <Caveats s={s} />
+            <ChartFoot meta={s.meta ?? null} />
           </Block>
         );
       }}
@@ -525,44 +614,53 @@ function Study({ rep }: { rep: EvalReport }) {
 }
 
 /* -- Limitations register ------------------------------------------------------------------------------------------- */
-function srcOf(src?: string): string | null {
-  if (!src) return null;
-  return src.split(";")[0].trim().replace(/:\s*/g, " · ").replace(/_/g, " ");
-}
 
 function Limits({ items }: { items: Limitation[] }) {
   const groups: [string, string][] = [["high", "High"], ["medium", "Medium"], ["low", "Low"]];
   const known = new Set(groups.map(([k]) => k));
   const other = items.filter((l) => !known.has(l.severity));
+  const list = (rows: Limitation[]) => (
+    <ol className="limits">
+      {rows.map((l) => (
+        <li key={l.id} className="limit">
+          <span className="limit__id">{l.id.length > 6 ? "·" : l.id}</span>
+          <span className="limit__text">{l.text}{srcOf(l.source) && <span className="limit__src" title={l.source}> From: {srcOf(l.source)}</span>}</span>
+          <span className="sev" data-sev={l.severity}>{l.severity}</span>
+        </li>
+      ))}
+    </ol>
+  );
   return (
     <section className="ev-block" id="limits" aria-labelledby="limits-h">
       <div className="stack" style={{ gap: "var(--space-2)" }}>
         <p className="t-label">Limitations register · {items.length}</p>
         <h2 className="ev-claim" id="limits-h">What this does not show</h2>
-        <p className="ev-note">Kept here, in the product, on purpose. Every limit the build agents raised is listed, the most serious first.</p>
+        <p className="ev-note">Kept here, in the product, on purpose. Every limit the build agents raised is listed. The serious ones are open; the medium and low ones are one click away.</p>
       </div>
       {items.length === 0 ? <EmptyState title="No limitations listed" body="The report has no limitations register. That is itself a problem: every report must list its limits." /> : (
-        <div className="stack" style={{ gap: "var(--space-7)" }}>
+        <div className="stack" style={{ gap: "var(--space-6)" }}>
           {[...groups, ...(other.length ? ([["other", "Other"]] as [string, string][]) : [])].map(([sev, name]) => {
-            const list = sev === "other" ? other : items.filter((l) => l.severity === sev);
-            if (!list.length) return null;
-            return (
+            const rows = sev === "other" ? other : items.filter((l) => l.severity === sev);
+            if (!rows.length) return null;
+            return sev === "high" || sev === "other" ? (
               <div key={sev} className="stack" style={{ gap: "var(--space-2)" }}>
-                <h3 className="t-label">{name} ({list.length})</h3>
-                <ol className="limits">
-                  {list.map((l) => (
-                    <li key={l.id} className="limit">
-                      <span className="limit__id">{l.id.length > 6 ? "·" : l.id}</span>
-                      <span className="limit__text">{l.text}{srcOf(l.source) && <span className="limit__src" title={l.source}> From: {srcOf(l.source)}</span>}</span>
-                      <span className="sev" data-sev={l.severity}>{l.severity}</span>
-                    </li>
-                  ))}
-                </ol>
+                <h3 className="t-label">{name} ({rows.length})</h3>
+                {list(rows)}
               </div>
+            ) : (
+              <details key={sev} className="details-lite limits-fold">
+                <summary><span className="t-label">{name} ({rows.length})</span> <span className="u-muted">show</span></summary>
+                {list(rows)}
+              </details>
             );
           })}
         </div>
       )}
     </section>
   );
+}
+
+function srcOf(src?: string): string | null {
+  if (!src) return null;
+  return src.split(";")[0].trim().replace(/:\s*/g, " · ").replace(/_/g, " ");
 }

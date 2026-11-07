@@ -1,6 +1,6 @@
 # Understudy. Lead-owned. Services that do not exist yet are skipped by scripts/dev.sh.
 # Python: `uv run --package <pkg>` (plain `uv run pytest` at the root does not see the service dependencies).
-.PHONY: setup check refs synth dev stop demo eval redteam test test-engine test-agent test-packs test-ui lint
+.PHONY: setup check refs synth dev stop demo preflight eval redteam test test-engine test-agent test-packs test-ui lint
 
 UV_E = uv run --package understudy-engine
 UV_A = uv run --package understudy-agent
@@ -31,9 +31,13 @@ stop:
 
 # The three-minute demo path: mock mode, no model calls, no network, isolated state (never your real ~/.understudy).
 demo:
-	@mkdir -p data/demo-home
-	@UNDERSTUDY_HOME=$(CURDIR)/data/demo-home UNDERSTUDY_MOCK=1 $(UV_A) python -m understudy_engine.demo seed --reset || echo "demo seed not available yet"
-	@UNDERSTUDY_HOME=$(CURDIR)/data/demo-home UNDERSTUDY_MOCK=1 bash scripts/dev.sh --open
+	@mkdir -p data/demo-home data/demo-data
+	@UNDERSTUDY_HOME=$(CURDIR)/data/demo-home UNDERSTUDY_DATA_DIR=$(CURDIR)/data/demo-data UNDERSTUDY_MOCK=1 $(UV_A) python -m understudy_engine.demo seed --reset
+	@UNDERSTUDY_HOME=$(CURDIR)/data/demo-home UNDERSTUDY_DATA_DIR=$(CURDIR)/data/demo-data UNDERSTUDY_MOCK=1 bash scripts/dev.sh --open
+
+# Plain green/amber/red readiness checklist (never prints secrets). `make preflight MODE=dev` relaxes the demo-only checks.
+preflight:
+	$(UV_A) python scripts/preflight.py --fix-hints --mode $(or $(MODE),demo)
 
 # Writes evals/report.json and evals/report.md (the Evidence page reads them). Add FAST=1 for a quick run.
 eval:

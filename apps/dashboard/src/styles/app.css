@@ -373,3 +373,11 @@ button { cursor: pointer; }
 .memfile__bar > span { min-width: 0; overflow-wrap: anywhere; }
 .page__aside { min-width: 0; max-width: 100%; }
 .limit__src { display: block; margin-top: 2px; font: var(--text-xs)/1.4 var(--font-mono); color: var(--muted); }
+
+/* -- Evidence: sticky list of sections ------------------------------------------------------ */
+.ev-jump { position: sticky; top: 0; z-index: 15; display: flex; gap: var(--space-5); margin: 0 calc(-1 * var(--gutter-wide)); padding: var(--space-3) var(--gutter-wide); overflow-x: auto; white-space: nowrap; background: var(--bg); border-bottom: var(--hair) solid var(--line); }
+.ev-jump a { font: 600 var(--text-xs)/1.2 var(--font-mono); letter-spacing: 0.04em; color: var(--muted); text-decoration: none; padding: var(--space-1) 0; border-bottom: 2px solid transparent; }
+.ev-jump a:hover { color: var(--fg); text-decoration: none; }
+.ev-jump a[aria-current="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+.limits-fold > summary { display: flex; gap: var(--space-3); align-items: baseline; }
+@media (max-width: 880px) { .ev-jump { top: 54px; } }

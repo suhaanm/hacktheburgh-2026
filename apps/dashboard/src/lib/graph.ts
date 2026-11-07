@@ -24,10 +24,11 @@ export function nodeOpacity(strength: number): number {
 /** Size per type: routines and automations by weekly minutes, skills by mastery, memory fixed. */
 export function radiusFn(nodes: WorkNode[]): (n: WorkNode) => number {
   const maxOf = (t: WorkNodeType) => Math.max(1, ...nodes.filter((n) => n.type === t).map((n) => n.size));
+  // Each type is scaled to its own largest value, so a service that sends skill sizes as mastery (0 to 1) or as anything else still draws sensibly.
   const scales: Record<WorkNodeType, (v: number) => number> = {
-    routine: scaleSqrt().domain([0, maxOf("routine")]).range([8, 30]),
-    automation: scaleSqrt().domain([0, maxOf("automation")]).range([8, 22]),
-    skill: scaleSqrt().domain([0, 1]).range([7, 20]),
+    routine: scaleSqrt().domain([0, maxOf("routine")]).range([8, 30]).clamp(true),
+    automation: scaleSqrt().domain([0, maxOf("automation")]).range([8, 22]).clamp(true),
+    skill: scaleSqrt().domain([0, maxOf("skill")]).range([7, 20]).clamp(true),
     memory: () => 9,
   };
   return (n) => scales[n.type](n.size);
@@ -104,4 +105,49 @@ export function layoutGraph(graph: WorkGraph, width: number, height: number, com
 function lcg(seed: number) {
   let s = seed >>> 0;
   return () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296);
+}
+
+export interface LabelItem { id: string; x: number; y: number; r: number; text: string; priority: number }
+export interface LabelPlace { dx: number; dy: number; anchor: "start" | "middle" | "end"; hidden: boolean; w: number; box: [number, number, number, number] }
+
+const CHAR_W = 5.8;
+const LABEL_H = 13;
+
+/**
+ * Put each label where it collides with no other label and no other node, trying below, above, right, then left.
+ * The most important nodes choose first. If no spot is clear, the label is hidden (the node keeps its tooltip),
+ * unless it is the selected node, which always gets a label.
+ */
+export function placeLabels(items: LabelItem[], width: number, height: number, forced: string | null = null): Map<string, LabelPlace> {
+  const out = new Map<string, LabelPlace>();
+  const placed: [number, number, number, number][] = [];
+  const hit = (a: [number, number, number, number], b: [number, number, number, number], pad = 2) => a[0] < b[2] + pad && a[2] > b[0] - pad && a[1] < b[3] + pad && a[3] > b[1] - pad;
+  const circleHit = (b: [number, number, number, number], n: LabelItem) => {
+    const cx = Math.max(b[0], Math.min(n.x, b[2])), cy = Math.max(b[1], Math.min(n.y, b[3]));
+    return Math.hypot(cx - n.x, cy - n.y) < n.r + 2;
+  };
+  const order = [...items].sort((a, b) => (a.id === forced ? -1 : b.id === forced ? 1 : b.priority - a.priority));
+  for (const n of order) {
+    const w = n.text.length * CHAR_W;
+    const cands: { dx: number; dy: number; anchor: "start" | "middle" | "end" }[] = [
+      { dx: 0, dy: n.r + 15, anchor: "middle" },
+      { dx: 0, dy: -n.r - 8, anchor: "middle" },
+      { dx: n.r + 6, dy: 4, anchor: "start" },
+      { dx: -n.r - 6, dy: 4, anchor: "end" },
+    ];
+    const boxOf = (c: (typeof cands)[number]): [number, number, number, number] => {
+      const ty = n.y + c.dy;
+      const x0 = c.anchor === "middle" ? n.x - w / 2 : c.anchor === "start" ? n.x + c.dx : n.x + c.dx - w;
+      return [x0, ty - LABEL_H + 3, x0 + w, ty + 3];
+    };
+    const inside = (b: [number, number, number, number]) => b[0] >= 2 && b[2] <= width - 2 && b[1] >= 2 && b[3] <= height - 2;
+    const others = items.filter((o) => o.id !== n.id);
+    const clear = cands.find((c) => { const b = boxOf(c); return inside(b) && !placed.some((p) => hit(b, p)) && !others.some((o) => circleHit(b, o)); });
+    // No clear spot: hide the label (its node keeps a tooltip) rather than print it over another node. The selected node always gets one.
+    const soft = clear ?? (n.id === forced ? cands.find((c) => { const b = boxOf(c); return inside(b) && !placed.some((p) => hit(b, p)); }) : undefined);
+    if (soft) { const b = boxOf(soft); placed.push(b); out.set(n.id, { dx: soft.dx, dy: soft.dy, anchor: soft.anchor, hidden: false, w, box: b }); }
+    else if (n.id === forced) { const c = cands[0]; out.set(n.id, { dx: c.dx, dy: c.dy, anchor: c.anchor, hidden: false, w, box: boxOf(c) }); }
+    else out.set(n.id, { dx: 0, dy: n.r + 15, anchor: "middle", hidden: true, w, box: boxOf(cands[0]) });
+  }
+  return out;
 }

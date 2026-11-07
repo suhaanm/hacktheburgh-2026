@@ -124,7 +124,7 @@ export function createDomCoach(deps: DomCoachDeps): DomCoach {
             if (active !== state) return
             state.visible = true
             state.hiddenFor = undefined
-            const marks: Annotation[] = [{ id: DOM_RING_ID, kind: 'ring', tone: 'guide', box, ...(state.label ? { label: state.label } : {}), ...(state.step ? { step: state.step } : {}) }]
+            const marks: Annotation[] = [{ id: DOM_RING_ID, kind: 'ring', tone: 'guide', box, exact: true, ...(state.label ? { label: state.label } : {}), ...(state.step ? { step: state.step } : {}) }]
             if (state.message) marks.push({ id: DOM_BUBBLE_ID, kind: 'bubble', tone: 'guide', at: { x: (box.xmin + box.xmax) / 2, y: box.ymin }, text: state.message })
             deps.overlay.show(marks)
             if (!state.reported) {

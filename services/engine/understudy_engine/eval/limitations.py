@@ -19,9 +19,10 @@ from .adapters import SECTIONS
 
 OWNER = {s.name: s.owner for s in SECTIONS}
 SEV_RANK = {"high": 0, "medium": 1, "low": 2}
+SIM_PHRASE = "simulated participants (language model), not people"
 UMBRELLA = "eval-synthetic"
 FOLD_INTO_UMBRELLA = {"ana-synthetic-origin", "presence-synthetic", "routines-synthetic"}
-ABSORB = {"ana-claims-synthetic": "eval-claims-simulated"}      # an owner entry that says the same thing as a static one
+ABSORB = {"ana-claims-synthetic": "eval-claims-simulated", "ana-study-power": "eval-study-power-assumptions"}      # an owner entry that says the same thing as a static one
 CORE_SECTIONS = ("deficit_recovery", "null_placebo", "hazard", "ope", "routing", "ski_rental", "presence", "routines", "agent_claims", "agent_runs", "redteam", "study")
 
 
@@ -199,6 +200,38 @@ def computed_entries(sections: dict[str, Any]) -> list[dict[str, str]]:
                               + (f" ({ar['live_error']})." if ar.get("live_error") else "."), "medium", "engine-eval:agent_runs"))
         if (ar.get("false_claims") or 0) > 0:
             out.append(_entry("eval-agent-runs-false-claims", f"The agent made {ar['false_claims']} false success claim(s) across these runs; the code check caught them.", "high", "engine-eval:agent_runs"))
+    rl = ok("redteam_live")
+    if rl:
+        on = next((r for r in rl.get("rows", []) if r.get("ablation") == "all_on"), None)
+        if rl.get("reading"):
+            out.append(_entry("eval-redteam-live-reading", f"Real-model red team ({rl.get('label')}): {rl['reading']} The attacks were written by the team that wrote the "
+                              "defences, and a result is true of one model version on one day.", "high", "engine-eval:redteam_live"))
+        if on:
+            fp, hn = (on.get("false_pause_rate"), on.get("false_pause_hard_negatives") or {})
+            out.append(_entry("eval-redteam-live-in-sample",
+                              f"The live false-pause result ({(on.get('n_clean_runs') or 0) and round((fp or 0) * (on.get('n_clean_runs') or 0))} of {on.get('n_clean_runs')} clean runs, "
+                              f"{hn.get('k')} of {hn.get('n')} on hard negatives) is in-sample: the layer-7 (goal-drift) scope was changed while building on this same catalog, "
+                              "so it is not a held-out rate.", "medium", "engine-eval:redteam_live"))
+            if (on.get("attack_success") or 0) > 0:
+                out.append(_entry("eval-redteam-live-attacks-succeed", f"With the real model, attacks still succeeded {_pct(on['attack_success'], 1)} of the time with every layer on "
+                                  f"(interval {_ci(on.get('attack_ci'), 3)}).", "high", "engine-eval:redteam_live"))
+    if ok("study_sim"):
+        sim = SIM_PHRASE[0].upper() + SIM_PHRASE[1:]
+        src = "engine-eval:study_sim"
+        out += [
+            _entry("eval-study-sim-not-human", f"{sim}. A language model plays each participant, so nothing in this section says how people behave. "
+                   "The live study (n = 4 teammates) is the only human evidence and is reported separately; this section never feeds it.", "high", src),
+            _entry("eval-study-sim-planted-by-us", f"{sim}. The coach prompts and the sandbox calculators were written by us, so the simulation checks that the "
+                   "pipeline runs end to end under our own assumptions. It does not show that coaching works on anyone.", "high", src),
+            _entry("eval-study-sim-learning-proxy", f"{sim}. Learning between blocks is a note carried in the model's prompt, a proxy. It is not memory, practice or "
+                   "skill, so a simulated 'improvement' says little about a human one.", "high", src),
+            _entry("eval-study-sim-timing", f"{sim}. Times in this section are model response times or scripted numbers, not human reading, thinking or typing, "
+                   "so no timing result here is a human timing.", "high", src),
+        ]
+    if ok("study_power"):
+        out.append(_entry("eval-study-power-assumptions", "The power analysis only shows what the n = 4 design could detect under our own assumptions (effect size, "
+                          "carryover, order effect, how noisy the measure is). It is a property of the design, not a result about people, and not evidence that an effect exists.",
+                          "high", "engine-eval:study_power"))
     rd = ok("redteam")
     if rd:
         on = next((r for r in rd.get("rows", []) if r.get("ablation") == "all_on"), None)
@@ -210,6 +243,13 @@ def computed_entries(sections: dict[str, Any]) -> list[dict[str, str]]:
         if isinstance(s, dict) and s.get("status") in ("pending", "not_run", "failed"):
             out.append(_entry(f"eval-{name}-{s['status']}", f"Section '{name}' has no numbers: {s.get('reason')}.", "high", f"engine-eval:{name}"))
     return out
+
+
+def _sim_text(section: str, text: str) -> str:
+    """Every register text that comes from the simulated study says what it is."""
+    if section == "study_sim" and SIM_PHRASE not in text.lower():
+        return f"{SIM_PHRASE[0].upper() + SIM_PHRASE[1:]}: {text}"
+    return text
 
 
 def _norm(t: str) -> str:
@@ -235,6 +275,7 @@ def assemble(sections: dict[str, Any]) -> list[dict[str, str]]:
         add(e)
     umbrella = by_id[UMBRELLA]
     folded: list[str] = []
+    deferred: list[tuple[str, str, str, str]] = []
     for name, s in sections.items():
         if not isinstance(s, dict) or "status" in s:
             continue
@@ -244,12 +285,15 @@ def assemble(sections: dict[str, Any]) -> list[dict[str, str]]:
             if lim["id"] in FOLD_INTO_UMBRELLA:
                 folded.append(f"{owner}:{name}")
                 continue
+            text = _sim_text(name, str(lim["text"]))
             if lim["id"] in ABSORB:
-                add(_entry(ABSORB[lim["id"]], str(lim["text"]), sev, f"{owner}:{name}"))
+                deferred.append((ABSORB[lim["id"]], text, sev, f"{owner}:{name}"))      # merged after the computed entries exist
                 continue
-            add(_entry(str(lim["id"]), str(lim["text"]), sev, f"{owner}:{name}"))
+            add(_entry(str(lim["id"]), text, sev, f"{owner}:{name}"))
     for e in computed_entries(sections):
         add(e)
+    for target, text, sev, source in deferred:
+        add(_entry(target, text, sev, source))          # merges into the entry that says the same thing; kept only if there is none
     for name, s in sections.items():
         if not isinstance(s, dict) or "status" in s:
             continue
@@ -260,7 +304,7 @@ def assemble(sections: dict[str, Any]) -> list[dict[str, str]]:
                 continue
             if _norm(c) in seen_text:
                 continue
-            add(_entry(f"{name}-{head.lower()}", c.strip(), "medium", f"{owner}:{name} caveat"))
+            add(_entry(f"{name}-{head.lower()}", _sim_text(name, c.strip()), "medium", f"{owner}:{name} caveat"))
     if folded:
         umbrella["source"] += "; also stated by " + ", ".join(sorted(set(folded)))
     order = {e["id"]: i for i, e in enumerate(entries)}

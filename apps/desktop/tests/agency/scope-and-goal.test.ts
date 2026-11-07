@@ -8,7 +8,7 @@ import type { Proposal } from '../../src/main/agency/computer-use'
 import { evaluateAction, evaluateGoal, isConsentWord, stripNegatedClauses, type PolicyContext, type ProposedAction } from '../../src/main/agency/policy'
 import { checkScope, isBrowser, parseLsappinfoName, scopeFromGoal, type ScopeState } from '../../src/main/agency/scope'
 import { SettingsStore } from '../../src/main/settings'
-import { makeEnv } from './helpers'
+import { makeEnv, shot } from './helpers'
 
 const ctx = (over: Partial<PolicyContext> = {}): PolicyContext => ({ agency: 'ask_per_task', safetyCriticalStep: false, scamContext: false, planApproved: true, stageOrigin: 'http://127.0.0.1:5180', fileRoots: [], homeDir: '/Users/lily', ...over })
 
@@ -233,5 +233,76 @@ describe('scope in the act_for_me loop (fake front-app provider)', () => {
     const { env, act } = rig('open the careers page in Safari', [null], [click(500, 400), finished])
     expect((await act.run('open the careers page in Safari')).code).toBe('done')
     expect(env.calls).toEqual(['click 500,400'])
+  })
+})
+
+describe('the act_for_me loop hands its target app to the actuator, and checks the screenshot shape', () => {
+  const click = (x: number, y: number): Proposal => ({ kind: 'action', ms: 1, step: { id: `click:${x}:${y}`, tool: 'click', point: { x, y }, intent: 'Click the key' } })
+  const typed = (text: string): Proposal => ({ kind: 'action', ms: 1, step: { id: `type:${text}`, tool: 'type', text, intent: 'Type it' } })
+  const fin: Proposal = { kind: 'finished', text: 'done', ms: 1 }
+
+  function rig(goal: string, front: string, queue: Proposal[], over: { dryRun?: boolean } = {}) {
+    const env = makeEnv({ agency: 'ask_each', dryRun: over.dryRun })
+    const targets: Array<{ tool: string; target: unknown }> = []
+    const a = env.deps.actuator
+    const orig = { click: a.clickAt, type: a.typeText, keys: a.pressKeys, scroll: a.scroll }
+    a.clickAt = (p, o) => (targets.push({ tool: 'click', target: o?.target }), orig.click(p, o))
+    a.typeText = (t, o) => (targets.push({ tool: 'type', target: o?.target }), orig.type(t, o))
+    a.pressKeys = (k, o) => (targets.push({ tool: 'keys', target: o?.target }), orig.keys(k, o))
+    a.scroll = (p, dy, o) => (targets.push({ tool: 'scroll', target: o?.target }), orig.scroll(p, dy, o))
+    const proposals = [...queue]
+    const act = createActForMe(env.deps, new Situation(env.ctx), async () => undefined, {
+      port: () => {
+        throw new Error('no model')
+      },
+      loopEnabled: () => true,
+      frontApp: async () => front,
+      propose: async () => proposals.shift() ?? fin,
+    })
+    return { env, act, targets, goal }
+  }
+  const goal = 'unused'
+
+  it('a named native app is the target: Calculator', async () => {
+    const { act, targets } = rig('In the Calculator app press 7', 'Calculator', [click(500, 400), fin])
+    await act.run('In the Calculator app press 7')
+    expect(targets).toEqual([{ tool: 'click', target: { app: 'Calculator' } }])
+  })
+
+  it('a web goal targets any browser, for clicks and for typing', async () => {
+    const { act, targets } = rig('open the careers page in Safari', 'Safari', [click(500, 400), typed('engineer'), fin])
+    await act.run('open the careers page in Safari')
+    expect(targets).toEqual([
+      { tool: 'click', target: { browser: true } },
+      { tool: 'type', target: { browser: true } },
+    ])
+  })
+
+  it('a goal that names no app targets the first app it sees, and never a different one later', async () => {
+    const { act, targets } = rig('press the big green button', 'Pages', [click(500, 400), fin])
+    await act.run('press the big green button')
+    expect(targets).toEqual([{ tool: 'click', target: { app: 'Pages' } }])
+  })
+
+  it('refuses a screenshot whose shape is not the display\'s, with nothing sent to the actuator', async () => {
+    const { env, act } = rig('In the Calculator app press 7', 'Calculator', [click(500, 400), fin])
+    env.deps.actuator.displayInfo = () => ({ width: 1728, height: 1117, scaleFactor: 2 })
+    env.shots.push({ ...shot('wrong-shape'), widthPx: 1920, heightPx: 1080, takenAt: env.clock.t }) // a 16:9 capture of a 1.55:1 display
+    const r = await act.run('In the Calculator app press 7')
+    expect(r).toMatchObject({ allowed: false, done: false, code: 'blocked' })
+    expect(r.reason).toMatch(/does not have the shape of the display/)
+    expect(env.calls).toEqual([])
+    expect(env.auditLines().at(-1)).toMatchObject({ decision: 'blocked', label: 'display shape' })
+  })
+
+  it('a screenshot of the display\'s shape passes the check, and a dry run does not need it', async () => {
+    const ok = rig('In the Calculator app press 7', 'Calculator', [click(500, 400), fin])
+    ok.env.deps.actuator.displayInfo = () => ({ width: 1728, height: 1117, scaleFactor: 2 })
+    ok.env.shots.push({ ...shot('right-shape'), widthPx: 1920, heightPx: 1241, takenAt: ok.env.clock.t })
+    expect((await ok.act.run('In the Calculator app press 7')).code).toBe('done')
+    expect(ok.env.calls).toEqual(['click 500,400'])
+    const dry = rig('In the Calculator app press 7', 'Calculator', [click(500, 400), fin], { dryRun: true })
+    dry.env.deps.actuator.displayInfo = () => ({ width: 1728, height: 1117, scaleFactor: 2 })
+    expect((await dry.act.run('In the Calculator app press 7')).code).toBe('done')
   })
 })

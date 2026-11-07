@@ -142,6 +142,8 @@ check("presence: arrow keys read a cell with its interval", /95% interval/.test(
 
 // 8b. Evidence: honest states
 await go("/evidence", 1200);
+check("evidence: high limits are open, medium and low are folded, and there is a sticky jump list", (await page.locator("#limits .limit:visible").count()) > 0 && (await page.locator("details.limits-fold:not([open])").count()) === 2 && (await page.locator("nav.ev-jump a").count()) >= 10 && (await page.locator("nav.ev-jump").evaluate((el) => getComputedStyle(el).position)) === "sticky");
+await page.locator("main details").evaluateAll((els) => els.forEach((e) => (e.open = true)));
 const ev = await page.locator("main").innerText();
 check("evidence: a not-run study says so and prints no defaults", /has not run yet/.test(ev) && !/changed by [+\u2212-]?0 s/.test(ev));
 const pres = await page.locator("#presence").innerText();
@@ -169,6 +171,46 @@ check("study: headline is the skill difference with n, exact sign-flip p and the
 check("study: time columns say uncoached and coached, never before and after", /Uncoached block, time/i.test(studyText) && /\bCoached block, time/i.test(studyText) && !/\bbefore\b|\bafter\b/i.test(await page.locator("#study table thead").innerText()));
 check("study: assisted speed is reported separately", /Assisted speed, reported separately/i.test(studyText));
 await page.unroute("**/eval/report");
+
+// 8c. Today and the live coach brain (mocked engine so the checks are exact)
+{
+  let scenario = "nudge";
+  const nextCalls = [];
+  const feedback = [];
+  const meta = { origin: "synthetic", n: 1, n_unit: "episodes", split: null, interval_level: 0.95, note: null, generated_at: "" };
+  const baseDecision = { person: "p_t", action: "nudge", message: "Check the benefit cliff before you copy across.", why: "You skipped it on the last two cases.", target: { zone: "calc", label_hint: "Check cliff", role_hint: "button", site: "GovCalc" }, missed: ["CHECK_CLIFF"], confidence: 0.8, level: "L2", chip: "small", decision_id: "d1", task_id: "t1", step: 5, trigger: "skipped_check", reason_codes: ["rule_baseline"], gate: { consecutive: 2, reason: "two stuck signals" }, p_stuck: 0.62, p_source: "hazard model", candidate: null, mastery: { CHECK_CLIFF: 0.4 } };
+  const scenarios = {
+    nudge: baseDecision,
+    silent: { ...baseDecision, action: "silent", message: "", why: "", decision_id: null, chip: "gone", reason_codes: ["gate_not_open"], candidate: { action: "nudge", message: "Compare all three results first.", why: "That is the order the expert uses.", target: null, trigger: "order", step: 5 } },
+    study: { ...baseDecision, reason_codes: ["study_mode"], candidate: { action: "nudge", message: "SHOULD NOT SHOW", why: "x", target: null } },
+  };
+  const json = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" }, body: JSON.stringify(body) });
+  await page.route(/127\.0\.0\.1:7700\//, async (route) => {
+    const req = route.request(), u = new URL(req.url());
+    if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" } });
+    if (u.pathname === "/coach/state") return json(route, { person: "p_t", task: { id: "t1", name: "Entitlement check, household H-9", step: 5, steps_total: 9 }, level: "L2", chip: "small", message: "state message", why: "state why", mastery: { READ: 0.9 }, case: 3 });
+    if (u.pathname === "/coach/next") { nextCalls.push(u.search); return json(route, { meta, data: scenarios[scenario] }); }
+    if (u.pathname === "/coach/feedback") { feedback.push({ body: JSON.parse(req.postData() ?? "{}"), actor: req.headers()["x-understudy-actor"] }); return json(route, { ok: true }); }
+    return json(route, { error: { code: "not_found", message: "not mocked" } }, 404);
+  });
+  const hop = async () => { await page.goto(`${base}/#/genome`); await page.reload(); await page.waitForTimeout(200); await page.goto(`${base}/#/today`); };
+  // nudge: message, why, follow, feedback body and actor header, steady polling
+  await hop(); await page.waitForTimeout(7200);
+  check("today: the coach's message is shown with the level chip and a why link", (await page.getByText("Check the benefit cliff before you copy across.").count()) > 0 && (await page.getByText("L2").count()) > 0 && (await page.getByText("Why this").count()) > 0);
+  check("today: the first look is passive (dry=1), then it polls without it at a steady pace", /dry=1/.test(nextCalls[0] ?? "") && nextCalls.slice(1).every((q) => !/dry=1/.test(q)) && nextCalls.length >= 3 && nextCalls.length <= 5, `${nextCalls.length} calls: ${nextCalls.map((q) => (/dry/.test(q) ? "dry" : "live")).join(",")}`);
+  check("today: the target hint is shown", await page.getByText("Check cliff").first().isVisible());
+  await page.getByRole("button", { name: "I did that" }).click();
+  await page.waitForTimeout(400);
+  check("today: following sends feedback {decision_id, outcome} as the worker", feedback.length === 1 && feedback[0].body.decision_id === "d1" && feedback[0].body.outcome === "followed" && feedback[0].actor === "worker", JSON.stringify(feedback[0] ?? {}));
+  // silent with a candidate: nothing in the chip, a quiet "What I would say"
+  scenario = "silent"; await hop(); await page.waitForTimeout(600);
+  check("today: silent shows the candidate as a quiet 'What I would say'", (await page.getByText("What I would say", { exact: false }).count()) > 0 && (await page.getByText("Compare all three results first.").count()) > 0 && (await page.getByRole("button", { name: "I did that" }).count()) === 0);
+  // study mode: nothing, not even a hint
+  scenario = "study"; await hop(); await page.waitForTimeout(600);
+  const todayText = await page.locator("main").innerText();
+  check("today: in study mode the coach shows nothing, not even a hint", !/SHOULD NOT SHOW|benefit cliff|What I would say|Stop coaching|Preview how help fades/i.test(todayText));
+  await page.unroute(/127\.0\.0\.1:7700\//);
+}
 
 // 9. Kill switch
 await go("/genome");

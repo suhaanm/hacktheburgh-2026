@@ -90,3 +90,47 @@ def main() -> None:  # pragma: no cover - manual use
             time.sleep(3600)
     except KeyboardInterrupt:
         cluster.stop()
+
+
+class RemoteState:
+    """Same reset/snapshot interface as SandboxState, for sites that run in another process (the shared 7801-7803)."""
+
+    def __init__(self, base_url: str) -> None:
+        self.base = base_url.rstrip("/")
+
+    def reset(self) -> None:
+        import httpx
+
+        httpx.post(self.base + "/__reset", timeout=3)
+
+    def snapshot(self) -> dict:
+        import httpx
+
+        return httpx.get(self.base + "/__state", timeout=3).json()
+
+
+@dataclass
+class SharedSites:
+    """The sandbox sites already running on 7801 to 7803. Take `sandbox_lock` around a batch that uses them."""
+
+    ports: dict[str, int] = field(default_factory=lambda: dict(DEFAULT_PORTS))
+
+    @property
+    def urls(self) -> dict[str, str]:
+        return {s: f"http://{HOST}:{self.ports[s]}" for s in SITE_IDS}
+
+    @property
+    def state(self) -> RemoteState:
+        return RemoteState(self.urls["a"])
+
+    def __enter__(self) -> "SharedSites":
+        import httpx
+
+        try:
+            httpx.get(self.urls["a"] + "/healthz", timeout=1.0)
+        except Exception as exc:  # noqa: BLE001
+            raise RuntimeError("the shared sandbox sites are not running: uv run python -m understudy_agent.sandbox_sites") from exc
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        return None

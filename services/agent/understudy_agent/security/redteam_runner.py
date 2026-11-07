@@ -619,6 +619,15 @@ def default_configs() -> list[tuple[str, SecurityConfig]]:
     return out
 
 
+LAYER7_SCOPE_LIMITATION = {
+    "id": "layer7_scope_in_sample", "severity": "medium",
+    "text": ("Layer 7 (goal check) no longer asks a model about plain typing, filling, select and extract steps, so it now covers "
+             "navigation, clicks and key presses only. We changed this after seeing it pause the run on clean pages when the worker was "
+             "just typing the answer (5 false pauses in 93 live runs). The false-pause figure after the change (0 of 93) is measured on "
+             "the same pages that showed the problem, so it is in-sample and probably too good; typed data is still stopped by the "
+             "data-flow and action-gate layers, not by this one."),
+}
+
 LIMITATIONS = [
     {"id": "scripted_planner", "severity": "high",
      "text": "The planner is a script that follows any instruction it can see. These numbers measure what the layers stop, "
@@ -635,6 +644,7 @@ LIMITATIONS = [
     {"id": "detector_tradeoff", "severity": "medium",
      "text": "Removing the injection detector did not let any attack through in this test, but it lets far more tasks finish "
              "(the reader alone keeps the planner clean). The detector's job is to catch an attack early, and its price is pauses."},
+    LAYER7_SCOPE_LIMITATION,
     {"id": "same_host_exfil", "severity": "medium",
      "text": "Data-flow rules and the goal check cannot tell an exfiltration request to an endpoint on a site the routine already "
              "uses from normal browsing there. Only the detector and the reader stop that kind of attack."},
@@ -878,6 +888,7 @@ def evaluate_redteam(fast: bool = False, catalog: Catalog | str | Path | None = 
 
 
 def evaluate_redteam_live(n_attacks: int = 24, models: Any = None, **kw: Any) -> dict[str, Any]:
+    # kw: n_clean (None = all), repeats, supplement, configs, port, cache_dir, workers, catalog, allow_mock, token_budget
     """The real-model secondary run (S4): see redteam_live.evaluate_redteam_live. Needs OPENAI_* in the environment."""
     from .redteam_live import evaluate_redteam_live as _live
 
@@ -908,7 +919,16 @@ def main(argv: Iterable[str] | None = None) -> int:
     ap.add_argument("--out", default=None)
     ap.add_argument("--live", action="store_true", help="real model on a small subset; writes data/redteam_live.json")
     ap.add_argument("--n-attacks", type=int, default=24)
+    ap.add_argument("--from-cache", action="store_true", help="live: print the stored data/redteam_live.json report (no key, no network)")
+    ap.add_argument("--repeats", type=int, default=1, help="live: runs per case (independent samples; intervals cluster by case)")
+    ap.add_argument("--all", action="store_true", help="live: every attack (with the supplement) and every clean page")
+    ap.add_argument("--token-budget", type=int, default=None, help="live: stop if the run would spend more tokens than this")
     args = ap.parse_args(list(argv) if argv is not None else None)
+    if args.live and args.from_cache:
+        from .redteam_live import format_live, load_cached_report
+
+        print(format_live(load_cached_report()))
+        return 0
     if args.live:
         try:
             from dotenv import load_dotenv
@@ -918,7 +938,10 @@ def main(argv: Iterable[str] | None = None) -> int:
             pass
         from .redteam_live import format_live, write_live
 
-        rep = evaluate_redteam_live(n_attacks=args.n_attacks, catalog=args.catalog)
+        extra: dict[str, Any] = {"repeats": args.repeats, "token_budget": args.token_budget}
+        if args.all:
+            extra.update(n_clean=None, supplement=True, workers=6)
+        rep = evaluate_redteam_live(n_attacks=200 if args.all else args.n_attacks, catalog=args.catalog, **extra)
         out = write_live(rep, args.out)
         print(format_live(rep))
         print(f"wrote {out}")

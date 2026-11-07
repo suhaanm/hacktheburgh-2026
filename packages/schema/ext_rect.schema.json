@@ -34,6 +34,11 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 80
+        },
+        "zone": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{1,30}$",
+          "description": "A capture zone from the pack's vocabulary (for example cliff_button). The extension answers with the first visible element that carries data-understudy-zone=<zone> or matches that zone's selector in the bundled capture config; never a sensitive element."
         }
       },
       "oneOf": [
@@ -52,6 +57,11 @@
                 "required": [
                   "name"
                 ]
+              },
+              {
+                "required": [
+                  "zone"
+                ]
               }
             ]
           }
@@ -62,12 +72,46 @@
             "name"
           ],
           "not": {
-            "required": [
-              "label_hash"
+            "anyOf": [
+              {
+                "required": [
+                  "label_hash"
+                ]
+              },
+              {
+                "required": [
+                  "zone"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "required": [
+            "zone"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "label_hash"
+                ]
+              },
+              {
+                "required": [
+                  "role"
+                ]
+              },
+              {
+                "required": [
+                  "name"
+                ]
+              }
             ]
           }
         }
-      ]
+      ],
+      "description": "Address the target by exactly one of: label_hash (salted, as in L0), role+name, or zone."
     },
     "XY": {
       "type": "object",
@@ -151,6 +195,61 @@
           "type": "number",
           "minimum": 0,
           "description": "Milliseconds between the measurement and the POST."
+        },
+        "viewport": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "w",
+            "h"
+          ],
+          "properties": {
+            "w": {
+              "type": "number",
+              "minimum": 0
+            },
+            "h": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "description": "innerWidth and innerHeight of the top window the rect is expressed in (CSS pixels)."
+        },
+        "outer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "w",
+            "h"
+          ],
+          "properties": {
+            "w": {
+              "type": "number",
+              "minimum": 0
+            },
+            "h": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "description": "outerWidth and outerHeight of that window (CSS pixels)."
+        },
+        "screen": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x",
+            "y"
+          ],
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            }
+          },
+          "description": "screenX and screenY of that window (screen points). window_offset mixes screen points with CSS pixels and is wrong at a page zoom other than 100%; prefer viewport, outer and screen, which let the desktop app work out the zoom itself."
         }
       },
       "if": {
@@ -181,7 +280,8 @@
           "scroll",
           "dpr"
         ]
-      }
+      },
+      "description": "Geometry only. Limits (not verified at other page zooms, docked DevTools, a second display or cross-origin frames): see the extension notes."
     }
   },
   "oneOf": [

@@ -42,9 +42,24 @@ TIER2_SCHEMA: dict[str, Any] = {
         "param": {"type": ["string", "null"]},
         "unit": {"type": "string", "enum": list(UNITS)},
         "reason": {"type": "string", "maxLength": 200},
+        "confidence": {"type": ["number", "null"]},   # with `finish`: how sure you are the results page is showing (0 to 1)
     },
     "required": ["tool", "reason"],
 }
+
+TOOL_HELP = (
+    "TOOLS (return exactly one as JSON):\n"
+    "- click(ref): press a button or follow a link.\n"
+    "- fill(ref, param, unit): put the household value named `param` into the text field `ref`. Money parameters are "
+    "stored per month; if the field asks for a per-week or per-year amount, set unit to week or year, otherwise month. "
+    "Leave unit as none for everything else.\n"
+    "- select(ref, param): choose the option for `param` in the drop-down `ref`.\n"
+    "- wait: do nothing for a moment.\n"
+    "- finish(confidence): the page is showing the final result (the estimate, its status and its reference) or the saved "
+    "case note. Say how sure you are, 0 to 1.\n"
+    "Only fill a field once per page. Never invent a parameter name. Move on with the forward button when the page's "
+    "fields are done."
+)
 
 __all__ = ["BrowserAgent", "StuckLoop", "Tier2Task", "Tier2Result", "TIER2_SCHEMA", "convert_unit"]
 
@@ -65,6 +80,7 @@ class Tier2Task:
     looks_final: Callable[[Observation], bool]  # cheap: is this plausibly the finished page?
     schema: dict[str, Any] | None               # reader schema for a final page (None: parse the DOM text in code)
     parse: Callable[[Observation, dict[str, Any] | None], dict[str, Any] | None]  # code check; None = not done
+    param_help: dict[str, str] = field(default_factory=dict)   # trusted wording: what each household parameter means
 
 
 @dataclass
@@ -82,7 +98,8 @@ def _normalise(out: dict[str, Any]) -> dict[str, Any]:
         out = out["next_step"]
     if "tool" in out:
         return {"tool": out.get("tool"), "ref": out.get("ref"), "param": out.get("param"),
-                "unit": out.get("unit") or "none", "reason": out.get("reason", ""), "args": out.get("args", {})}
+                "unit": out.get("unit") or "none", "reason": out.get("reason", ""), "args": out.get("args", {}),
+                "confidence": out.get("confidence")}
     kind = out.get("kind")
     args = out.get("args", {}) if isinstance(out.get("args"), dict) else {}
     tool = {"wait": "wait", "goto": "goto", "click_element": "click_label", "type": "type_text"}.get(kind, str(kind))
@@ -102,8 +119,8 @@ class BrowserAgent:
         self.used = 0
         self.stuck = StuckDetector()
 
-    def _event(self, n: int, action: str, ok: bool, detail: str) -> None:
-        ev = StepEvent(navigator=self.navigator, step=n, tier=2, action=action, ok=ok, detail=detail)
+    def _event(self, n: int, action: str, ok: bool, detail: str, extra: dict[str, Any] | None = None) -> None:
+        ev = StepEvent(navigator=self.navigator, step=n, tier=2, action=action, ok=ok, detail=detail, extra=extra or {})
         self.guard.record_step(ev)
         if self.emit:
             self.emit(ev)
@@ -133,13 +150,14 @@ class BrowserAgent:
                 "page": page_key,
                 "elements": [e.as_prompt() for e in visible],
                 "params": list(task.allowed_params),
+                "param_meaning": task.param_help,
                 "already_set_on_this_page": sorted(done_on[page_key]),
                 "recent": history[-6:],
                 "actions_left": self.max_actions - res.actions,
             }
             labels = "\n".join(f"{e.ref}: {e.name[:LABEL_CAP]}" for e in visible)
-            extra = ("STATE: " + json.dumps(state, sort_keys=True) + "\nELEMENT LABELS (copied from the page):\n"
-                     + wrap_untrusted(labels, source="web"))
+            extra = (TOOL_HELP + "\n\nSTATE: " + json.dumps(state, sort_keys=True)
+                     + "\nELEMENT LABELS (copied from the page):\n" + wrap_untrusted(labels, source="web"))
             msgs = self.guard.planner_messages(task.goal, seen, history_summary=f"{res.actions} actions taken", extra=extra)
             raw = await asyncio.to_thread(self.model.plan, msgs, TIER2_SCHEMA)
             act = _normalise(raw if isinstance(raw, dict) else {})
@@ -177,7 +195,9 @@ class BrowserAgent:
     async def _act(self, page: Any, seen: Any, act: dict[str, Any], task: Tier2Task, done: set[str], n: int) -> None:
         tool, obs = act["tool"], seen.obs
         if tool == "finish":
-            self._event(n, "finish", True, "claim")
+            conf = act.get("confidence")
+            self._event(n, "finish", True, "claim",
+                        extra={"confidence": max(0.0, min(1.0, float(conf)))} if isinstance(conf, (int, float)) else None)
             return
         if tool == "wait":
             dec = self.guard.authorise({"kind": "wait", "args": {"seconds": 0.15}}, seen, url=obs.url)

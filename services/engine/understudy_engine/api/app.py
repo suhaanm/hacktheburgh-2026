@@ -24,6 +24,45 @@ from .errors import install_error_handlers
 log = logging.getLogger("understudy.engine")
 DASHBOARD_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 OPTIONAL_ROUTERS = ("routes_analytics", "routes_handoff", "routes_coach")
+# Extensions (REQ-2, D24 to D27): each router is included only when it imports AND its flag is on.
+# UNDERSTUDY_X=1 turns them all on; UNDERSTUDY_X_<LAYER>=1 turns one on. Flags are read once, when the app is created.
+EXTENSIONS = {
+    "privacy": "routes_privacy",
+    "localmodel": "routes_localmodel",
+    "calendar": "routes_calendar",
+    "git": "routes_git",
+    "proactive": "routes_proactive",
+}
+_TRUE = ("1", "true", "yes", "on")
+
+
+def _env_on(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in _TRUE
+
+
+def extension_flags(env_on=_env_on) -> dict[str, bool]:
+    """``{layer: bool}`` from the environment: the master flag UNDERSTUDY_X, or the layer's own UNDERSTUDY_X_<LAYER>."""
+    master = env_on("UNDERSTUDY_X")
+    return {layer: master or env_on(f"UNDERSTUDY_X_{layer.upper()}") for layer in EXTENSIONS}
+
+
+def _include(app: FastAPI, name: str, status: dict[str, str]) -> bool:
+    """Import ``understudy_engine.<name>`` and include its ``router``. Never raises: the reason goes into ``status``."""
+    try:
+        mod = importlib.import_module(f"understudy_engine.{name}")
+        app.include_router(mod.router)
+        status[name] = "included"
+        return True
+    except ModuleNotFoundError as exc:
+        if exc.name == f"understudy_engine.{name}":
+            status[name] = "absent"
+        else:
+            status[name] = f"import failed: {exc}"
+            log.warning("router %s not included: %s", name, exc)
+    except Exception as exc:  # a broken sibling track must not take the data routes down
+        status[name] = f"import failed: {type(exc).__name__}: {exc}"
+        log.warning("router %s not included: %s", name, exc)
+    return False
 
 
 def warm_up(app: FastAPI) -> threading.Thread:
@@ -93,19 +132,17 @@ def create_app(root: Path | str | None = None, warm: bool | None = None) -> Fast
     app.include_router(routes_data.router)
     status: dict[str, str] = {"routes_data": "included"}
     for name in OPTIONAL_ROUTERS:
-        try:
-            mod = importlib.import_module(f"understudy_engine.{name}")
-            app.include_router(mod.router)
-            status[name] = "included"
-        except ModuleNotFoundError as exc:
-            if exc.name == f"understudy_engine.{name}":
-                status[name] = "absent"
-            else:
-                status[name] = f"import failed: {exc}"
-                log.warning("router %s not included: %s", name, exc)
-        except Exception as exc:  # a broken sibling track must not take the data routes down
-            status[name] = f"import failed: {type(exc).__name__}: {exc}"
-            log.warning("router %s not included: %s", name, exc)
+        _include(app, name, status)
+    flags = extension_flags()
+    ext: dict[str, bool] = {}
+    for layer, name in EXTENSIONS.items():
+        if flags[layer]:
+            ext[layer] = _include(app, name, status)
+        else:
+            status[name] = "off (flag not set)"            # not even imported: a switched-off layer has no side effects
+            ext[layer] = False
+    app.state.extensions = ext
+    app.state.x_flag = _env_on("UNDERSTUDY_X")
     app.state.router_status = status
     return app
 

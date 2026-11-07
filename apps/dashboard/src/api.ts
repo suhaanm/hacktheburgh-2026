@@ -2,7 +2,7 @@ import { noteSource, setState } from "./store";
 import type { ApprovalAuth } from "./auth/types";
 import type {
   Analytic, AnalyticMeta, AuditLine, CoachState, EvalReport, Genome, Hazard, Health, KillState, Memory,
-  OffhoursReport, OnboardingAnswers, OnboardingQuestions, OnboardingResult, Pack, Presence, QueueItem, QuietHours,
+  CoachDecision, CoachOutcome, OffhoursReport, OnboardingAnswers, OnboardingQuestions, OnboardingResult, Pack, Presence, QueueItem, QuietHours,
   Replay, Routine, RuleProposal, Transitions, WorkGraph,
 } from "./types";
 import genomeFx from "./fixtures/genome.json";
@@ -212,6 +212,25 @@ export const api = {
 
   coach: (person?: string) =>
     read<CoachState>(`/coach/state${person ? `?person=${encodeURIComponent(person)}` : ""}`, () => ({ data: dataOf<CoachState>(coachFx), meta: metaOf(coachFx) })),
+
+  /**
+   * The live coach brain. Polling without `dry` advances its dignity gate, so call it at a steady pace (about every 3 s);
+   * use `dry` for a passive look. Without the engine, a decision is built from the demo coach state.
+   */
+  coachNext: (person: string, dry: boolean) =>
+    read<CoachDecision>(`/coach/next?person=${encodeURIComponent(person)}${dry ? "&dry=1" : ""}`, () => {
+      const c = dataOf<CoachState>(coachFx);
+      const d: CoachDecision = {
+        action: "nudge", message: c.message, why: c.why, target: null, missed: [], confidence: 0.8, level: c.level, chip: c.chip,
+        decision_id: "d_demo", task_id: c.task.id, step: c.task.step, trigger: "demo data", reason_codes: [],
+        gate: { consecutive: 2, reason: "demo data" }, p_stuck: null, p_source: null, candidate: null, mastery: c.mastery,
+      };
+      return { data: d, meta: metaOf(coachFx) };
+    }),
+
+  /** Tell the coach what the worker did with a decision. Sent as the worker. */
+  coachFeedback: (decision_id: string, outcome: CoachOutcome) =>
+    write<{ ok?: boolean }>("/coach/feedback", "POST", { decision_id, outcome }, () => ({ ok: true })),
 
   packs: () => read<Pack[]>("/packs", () => ({ data: fx<Pack[]>(packsFx) })),
 

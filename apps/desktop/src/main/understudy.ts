@@ -200,7 +200,11 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
     log: ctx.log,
   })
   // The coach brain: while a task is in progress, GET /coach/next about every 2 s; annotate and nudge become a ring on the named zone.
-  brain = createCoachBrain({ engine: core.engine, state: () => coachPoller.lastState(), ring, killed: isKilled, log: ctx.log })
+  // A nudge with nothing to point at (lighter help) is just the text, as a caption for a few seconds.
+  const say = (text: string): void => {
+    if (!isKilled()) services.overlay.caption('assistant', text, true)
+  }
+  brain = createCoachBrain({ engine: core.engine, state: () => coachPoller.lastState(), ring, chip, say, killed: isKilled, log: ctx.log })
   const coachBrain = brain
   const chipTimer = setInterval(() => chip.refresh(), 15_000)
   chipTimer.unref?.()

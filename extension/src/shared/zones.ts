@@ -91,6 +91,14 @@ export class Zoner {
     return firstWhen(doc, this.site.nav) ?? this.site.nav_default;
   }
 
+  /** Selectors that identify a zone: the explicit attribute plus the site's configured element selectors. */
+  selectorsFor(zone: string): string[] {
+    if (!this.vocab.has(zone)) return [];
+    const sels = [`[data-understudy-zone="${zone}"]`];
+    for (const rule of this.site?.elements ?? []) if (rule.zone === zone) sels.push(rule.selector);
+    return sels;
+  }
+
   /** Task markers for a navigation: only element presence is tested, and only enum tokens come out. */
   markersFor(navZone: string | undefined, doc: Document): PageMarkers | undefined {
     const mk = this.site?.markers;

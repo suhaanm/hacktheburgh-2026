@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import workFx from "../fixtures/workgraph.json";
 import transFx from "../fixtures/transitions.json";
 import type { Transitions, WorkGraph } from "../types";
-import { layoutGraph, nodeOpacity, radiusFn } from "./graph";
+import { layoutGraph, nodeOpacity, placeLabels, radiusFn } from "./graph";
 import { edgeKind, layers, layoutTransitions } from "./tgraph";
 
 const wg = (workFx as unknown as { data: WorkGraph }).data;
@@ -21,6 +21,11 @@ describe("work graph encodings", () => {
     const skills = wg.nodes.filter((n) => n.type === "skill").sort((a, b) => a.size - b.size);
     expect(r(skills[0])).toBeLessThan(r(skills[skills.length - 1]));
   });
+  it("keeps skill circles a sane size even when the service sends sizes outside 0 to 1", () => {
+    const odd = { nodes: wg.nodes.map((n) => (n.type === "skill" ? { ...n, size: n.size * 60 } : n)), links: wg.links };
+    const r = radiusFn(odd.nodes);
+    for (const n of odd.nodes.filter((x) => x.type === "skill")) expect(r(n)).toBeLessThanOrEqual(20);
+  });
   it("lays out every node deterministically, inside the canvas", () => {
     const a = layoutGraph(wg, 900, 560, false), b = layoutGraph(wg, 900, 560, false);
     expect(a).toEqual(b);
@@ -31,6 +36,32 @@ describe("work graph encodings", () => {
     const link = wg.links.find((l) => l.kind === "combined")!;
     const dist = (ps: ReturnType<typeof layoutGraph>) => { const a = ps.find((p) => p.id === link.a)!, b = ps.find((p) => p.id === link.b)!; return Math.hypot(a.x - b.x, a.y - b.y); };
     expect(dist(layoutGraph(wg, 900, 560, true))).toBeLessThan(dist(layoutGraph(wg, 900, 560, false)));
+  });
+});
+
+describe("label placement", () => {
+  const place = (w: number, h: number, forced: string | null = null) => {
+    const pts = layoutGraph(wg, w, h, true);
+    const items = pts.map((p) => { const n = wg.nodes.find((x) => x.id === p.id)!; return { id: p.id, x: p.x, y: p.y, r: p.r, text: n.label.length > 24 ? n.label.slice(0, 23) + "…" : n.label, priority: n.strength }; });
+    return { items, labels: placeLabels(items, w, h, forced) };
+  };
+  const boxes = (m: ReturnType<typeof place>["labels"]) => [...m.entries()].filter(([, l]) => !l.hidden).map(([id, l]) => ({ id, b: l.box }));
+  const overlap = (a: number[], b: number[]) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
+  for (const [w, h] of [[358, 720], [1100, 620]] as const) {
+    it(`no two visible labels overlap and all stay inside the canvas at ${w} x ${h}`, () => {
+      const vis = boxes(place(w, h).labels);
+      for (let i = 0; i < vis.length; i++) {
+        expect(vis[i].b[0]).toBeGreaterThanOrEqual(0); expect(vis[i].b[2]).toBeLessThanOrEqual(w);
+        expect(vis[i].b[1]).toBeGreaterThanOrEqual(0); expect(vis[i].b[3]).toBeLessThanOrEqual(h);
+        for (let j = i + 1; j < vis.length; j++) expect(overlap(vis[i].b, vis[j].b)).toBe(false);
+      }
+    });
+  }
+  it("keeps most labels on a desktop canvas and always labels the selected node", () => {
+    const d = place(1100, 620);
+    expect(boxes(d.labels).length).toBeGreaterThanOrEqual(Math.floor(wg.nodes.length * 0.8));
+    const f = place(358, 720, "mem-never-bank");
+    expect(f.labels.get("mem-never-bank")!.hidden).toBe(false);
   });
 });
 

@@ -259,3 +259,19 @@ def test_make_actuator_is_simulated_unless_explicitly_real():
     assert isinstance(make_actuator("TextEdit"), SimulatedActuator)
     with pytest.raises(ActuatorRefused, match="disabled"):
         make_actuator("TextEdit", real=True, env={})
+
+
+def test_the_morning_report_also_lists_an_approved_background_run(world, cluster):
+    """An approved routine run (not an off-hours run) shows up from its run_end line, with its approval item."""
+    from understudy_agent.models.mock_provider import MockProvider  # noqa: F401
+    write_consent(world["root"], mode="approval", rung="A2")
+    bg = BackgroundRunner("calc-entry-3x", supervisor=world["sup"], human_input=world["human"],
+                          model=HeuristicModelPort(MockProvider("benefits_clean")), base_urls=cluster.urls,
+                          audit=world["audit"], queue=world["queue"], root=world["root"])
+    h = bg.start(HH, run_id="r_bgrun_1")
+    assert h.wait(60) and h.state == "done"
+    bg.join_after(3)
+    rep = morning_report(world["audit"], world["queue"])
+    assert [r["run_id"] for r in rep["ran"]] == ["r_bgrun_1"] and rep["ran"][0]["routine"] == "calc-entry-3x"
+    assert rep["ran"][0]["outcome"] == "done" and rep["ran"][0]["minutes"] is not None and rep["ran"][0]["tier"] == 1
+    assert len(rep["queued"]) == 1

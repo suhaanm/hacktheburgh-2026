@@ -14,7 +14,7 @@ const BOX = { xmin: 100, ymin: 200, xmax: 200, ymax: 300 }
 const found = (label: string): GroundResult => ({ found: true, box: BOX, confidence: 0.9, label, latencyMs: 1, model: 'fake' })
 const step = (safetyCritical: boolean): LessonStep => ({ id: 's1', index: 0, instruction: 'Click it', targetDescription: 'a button', expectedOutcome: 'done', hints: { l1: '', l2: '', l3: '' }, safetyCritical })
 
-function setup(opts: { allowed?: boolean; ground?: GroundResult; trusted?: boolean; dryRun?: boolean; choice?: string | null; agents?: unknown[]; skill?: unknown } = {}) {
+function setup(opts: { allowed?: boolean; ground?: GroundResult; trusted?: boolean; dryRun?: boolean; choice?: string | null; agents?: unknown[]; skill?: unknown; front?: string | null; hit?: string | null } = {}) {
   const dir = mkdtempSync(path.join(os.tmpdir(), 'dfm-'))
   const bus = new Bus()
   let allowed = opts.allowed ?? true
@@ -23,9 +23,11 @@ function setup(opts: { allowed?: boolean; ground?: GroundResult; trusted?: boole
   const shown: Annotation[][] = []
   const cleared: (string[] | undefined)[] = []
   const grounded = vi.fn(async () => opts.ground ?? found('Settings'))
+  const grab = vi.fn(async () => SHOT)
+  const frontSpy = vi.fn(async () => (opts.front === undefined ? 'Calculator' : opts.front))
   const verify = vi.fn(async (): Promise<Verdict> => ({ completed: true, confidence: 0.9, evidence: 'changed', uncertain: false }))
   const s = {
-    capture: { grab: vi.fn(async () => SHOT) },
+    capture: { grab },
     grounder: { ground: grounded },
     overlay: { show: (a: Annotation[]) => void shown.push(a), clear: (ids?: string[]) => void cleared.push(ids) },
     verifier: { verify },
@@ -33,10 +35,10 @@ function setup(opts: { allowed?: boolean; ground?: GroundResult; trusted?: boole
   let resolveAsk: (c: string | null) => void = () => undefined
   const ask = vi.fn((_q: string, _o: [string, string]) => (opts.choice !== undefined ? Promise.resolve(opts.choice) : new Promise<string | null>((r) => (resolveAsk = r))))
   const osascript = vi.fn(async (_args: string[]) => undefined)
-  const actuator = createActuator({ platform: 'darwin', displayBounds: () => ({ x: 0, y: 0, width: 1000, height: 1000 }), isTrusted: () => opts.trusted ?? true, osascript, dryRun: opts.dryRun ?? false })
+  const actuator = createActuator({ platform: 'darwin', displayBounds: () => ({ x: 0, y: 0, width: 1000, height: 1000 }), isTrusted: () => opts.trusted ?? true, osascript, dryRun: opts.dryRun ?? false, probe: { frontmostApp: async () => 'Calculator', topWindowAt: async () => (opts.hit === null ? null : { owner: opts.hit ?? 'Calculator', layer: 0 }) } })
   const clickAt = vi.spyOn(actuator, 'clickAt')
-  const run = createDoItForMe({ ctx, s, confirm: { ask }, actuator, settleMs: 0 })
-  return { run, ctx, bus, dir, shown, cleared, ask, clickAt, osascript, verify, grounded, setAllowed: (v: boolean) => void (allowed = v), resolveAsk: (c: string | null) => resolveAsk(c) }
+  const run = createDoItForMe({ ctx, s, confirm: { ask }, actuator, settleMs: 0, frontApp: frontSpy })
+  return { run, ctx, bus, dir, shown, cleared, ask, clickAt, osascript, verify, grounded, grab, frontSpy, setAllowed: (v: boolean) => void (allowed = v), resolveAsk: (c: string | null) => resolveAsk(c) }
 }
 const kinds = (shown: Annotation[][]) => shown.flat().map((a) => a.kind)
 const audit = (dir: string) => readFileSync(path.join(dir, 'actions.log'), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
@@ -112,7 +114,7 @@ describe('approval flow', () => {
     expect(kinds(t.shown)).toEqual(['ring', 'ghostCursor', 'tick'])
     expect(t.ask).toHaveBeenCalledWith('I\'ll click "Settings" for you. OK?', [APPROVE, DECLINE])
     expect(t.clickAt).toHaveBeenCalledTimes(1)
-    expect(t.clickAt).toHaveBeenCalledWith({ x: 150, y: 250 })
+    expect(t.clickAt).toHaveBeenCalledWith({ x: 150, y: 250 }, { target: { app: 'Calculator' } })
     expect(t.osascript).toHaveBeenCalledWith(['-e', 'tell application "System Events" to click at {150, 250}'])
     expect(t.verify).toHaveBeenCalledTimes(1)
     const lines = audit(t.dir)
@@ -217,5 +219,34 @@ describe('approval flow', () => {
     expect(r).toMatchObject({ code: 'clicked', verified: false })
     const tick = t.shown.flat().find((a) => a.kind === 'tick')
     expect(tick).toMatchObject({ ok: false, tone: 'warn' })
+  })
+})
+
+
+describe('target guard: where the click may land', () => {
+  const approve = APPROVE
+
+  it('clicks only in the app the learner was looking at: another app\'s window over the point is refused and nothing is sent to the OS', async () => {
+    const t = setup({ choice: approve, hit: 'Claude' }) // the incident: the point is covered by a different app's window
+    const r = await t.run({ target: 'the Settings button' })
+    expect(r).toMatchObject({ code: 'click_failed', done: false })
+    expect(t.osascript).not.toHaveBeenCalled()
+  })
+
+  it('an unreadable window list, an unreadable front app or the assistant\'s own app in front: no click', async () => {
+    for (const over of [{ hit: null }, { front: null }, { front: 'Alongside' }, { front: 'Electron' }, { front: 'Terminal' }]) {
+      const t = setup({ choice: approve, ...over })
+      const r = await t.run({ target: 'the Settings button' })
+      expect(r.done, JSON.stringify(over)).toBe(false)
+      expect(t.osascript, JSON.stringify(over)).not.toHaveBeenCalled()
+    }
+  })
+
+  it('the front app is read BEFORE the screenshot, so the approval prompt taking focus cannot change the target', async () => {
+    const t = setup({ choice: approve })
+    const r = await t.run({ target: 'the Settings button' })
+    expect(r).toMatchObject({ code: 'clicked', done: true })
+    expect(t.frontSpy.mock.invocationCallOrder[0]).toBeLessThan(t.grab.mock.invocationCallOrder[0])
+    expect(t.clickAt).toHaveBeenCalledWith({ x: 150, y: 250 }, { target: { app: 'Calculator' } })
   })
 })

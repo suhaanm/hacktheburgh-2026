@@ -15,7 +15,10 @@ import httpx
 
 from .supervisor import data_dir
 
-ENGINE_URL = os.environ.get("ENGINE_URL", "http://127.0.0.1:7700")
+def engine_url() -> str:
+    """Read at call time so tests (and the live demo) can point it elsewhere."""
+    return os.environ.get("ENGINE_URL", "http://127.0.0.1:7700")
+
 RUNG_ORDER = ("A0", "A1", "A2", "A3")
 
 
@@ -29,7 +32,7 @@ class EngineClient:
     """Thin client. Pass `client=` (an httpx.Client or a Starlette TestClient) to talk to an in-process engine."""
 
     def __init__(self, base: str | None = None, *, client: httpx.Client | None = None, timeout: float = 3.0) -> None:
-        self.base = (base or ENGINE_URL).rstrip("/")
+        self.base = (base or engine_url()).rstrip("/")
         self._c = client or httpx.Client(timeout=timeout)
 
     def _req(self, method: str, path: str, **kw: Any) -> dict[str, Any]:

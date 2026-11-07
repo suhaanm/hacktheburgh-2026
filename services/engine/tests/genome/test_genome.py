@@ -285,3 +285,33 @@ def test_consequences_are_exposed_when_the_file_exists(cohort_data, tmp_path, mo
     assert svc.genome("benefits", person="p_nov04")[0]["consequences"][0]["step"] == "cliff"
     (cases / "skip_consequences.json").write_text("{broken")
     assert "consequences" not in svc.genome("benefits", person="p_nov04")[0]
+
+
+def test_consequences_from_the_platforms_skip_file(cohort_data):
+    """The real evals/cases/skip_consequences.json: every number is the file's own, none is typed here."""
+    from pathlib import Path
+
+    from understudy_engine.store.paths import repo_root
+
+    path = repo_root() / "evals" / "cases" / "skip_consequences.json"
+    if not path.is_file():
+        pytest.skip("evals/cases/skip_consequences.json is not present")
+    doc = json.loads(path.read_text())
+    st = doc["sets"]["households_200"]
+    store, truth, levels, _ = cohort_data
+    data, _ = GenomeService(store).genome("benefits", person="p_nov04")
+    rows = {r["step"]: r for r in data["consequences"]}
+    assert set(rows) == {"RECONCILE", "CHECK_CLIFF"}
+    rec = rows["RECONCILE"]
+    assert rec["p_error"] == st["RECONCILE"]["expected_wrong_share"] and rec["n"] == 200
+    assert rec["mean_error_gbp"] == st["RECONCILE"]["error_gbp_pooled_over_the_three_choices"]["mean_when_wrong"]
+    assert rec["p_error_ci95"] == st["RECONCILE"]["expected_wrong_share_ci95_bootstrap_by_household"]
+    assert rec["source"].startswith("evals/cases/skip_consequences.json") and rec["note"] == st["RECONCILE"]["sentence"]
+    cl = rows["CHECK_CLIFF"]
+    assert cl["p_error"] is None and cl["mean_error_gbp"] is None                       # the file defines none: nothing is invented
+    assert cl["households_near_an_edge"] == st["CHECK_CLIFF"]["households_near_an_edge"] and cl["material_n"] == st["CHECK_CLIFF"]["material_n"]
+    assert cl["share_near"] == st["CHECK_CLIFF"]["share_near"] and cl["impact_gbp_per_month_among_near"] == st["CHECK_CLIFF"]["impact_gbp_per_month_among_near"]
+    assert cl["n"] == st["CHECK_CLIFF"]["of"] and cl["note"] == st["CHECK_CLIFF"]["sentence"]
+    assert data["consequences_meta"]["note"] == doc["meta"]["note"] and data["consequences_meta"]["interval_level"] == doc["meta"]["interval_level"]
+    assert all(k in rec for k in ("step", "p_error", "mean_error_gbp", "n", "source"))
+    assert Path(path).name in rec["source"]

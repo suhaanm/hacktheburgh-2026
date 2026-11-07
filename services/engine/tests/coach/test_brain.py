@@ -150,9 +150,16 @@ def test_tone_follows_the_memory_preference(store, tmp_path, monkeypatch):
 
     monkeypatch.setenv("UNDERSTUDY_HOME", str(tmp_path / "home"))
     ms = MemoryStore()
-    ms.write_text("---\nrole: benefits-processor\nrevision: 1\n---\n## Preferences\n- Summaries: detailed. Tone: plain.\n", "worker", base_revision=0) if hasattr(ms, "write_text") else None
     b = CoachBrain(store, scorer=StuckScorer(fit=False))
-    assert b._tone() in ("short", "detailed")                 # reads without error either way; precise value covered when the file is written
+    assert b._tone() == "short"                                            # no memory file: short
+    ms.write_markdown("---\nrole: benefits-processor\nrevision: 0\n---\n## Preferences\n- Summaries: short. Tone: plain.\n", 0, actor="worker")
+    assert CoachBrain(store, scorer=StuckScorer(fit=False))._tone() == "short"
+    rev = ms.revision()
+    ms.write_markdown("---\nrole: benefits-processor\nrevision: 1\n---\n## Preferences\n- Summaries: detailed. Tone: plain.\n", rev, actor="worker")
+    b2 = CoachBrain(store, scorer=StuckScorer(fit=False))                 # tone=None: read the worker's preference
+    assert b2._tone() == "detailed"
+    d = acts(run(b2, signature_events()))[0][1]
+    assert "Press Check cliff edges under the result" in d.message           # the hint rides along for a worker who wants detail
 
 
 # ---------------------------------------------------------------------------------- feedback

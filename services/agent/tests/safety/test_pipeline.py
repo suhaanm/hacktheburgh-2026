@@ -280,3 +280,24 @@ def test_every_layer_has_a_switch_and_all_off_is_really_off():
     assert not any(SecurityConfig.all_off().as_dict().values()) and all(SecurityConfig.all_on().as_dict().values())
     with pytest.raises(KeyError):
         SecurityConfig().without("nope")
+
+
+# ------------------------------------------------------------------ layer 7 is not spent on plain typing (it caused false pauses)
+def test_plain_typing_does_not_spend_a_drift_model_call_but_navigation_and_clicks_do(tmp_path):
+    pipe, port, *_ = make(tmp_path)
+    checks = lambda: [c for c in port.calls if c["method"] == "check"]  # noqa: E731
+    assert step(pipe, "type", {"text": "812.40"}, TargetInfo(label="Case note", role="textbox", url="http://localhost:7803/case-note")).verdict == "allow"
+    assert step(pipe, "fill", {"selector": "#note", "value": "x"}, TargetInfo(label="Note", role="textbox", url=PAGE)).verdict == "allow"
+    assert not checks()
+    step(pipe, "goto", {"url": "https://calculator.example.org/entitlement"})
+    step(pipe, "click_element", {"role": "button", "name": "Calculate"}, btn("Calculate"))
+    assert len(checks()) == 2
+
+
+def test_typing_is_still_policed_by_layers_4_and_5_without_the_drift_check(tmp_path):
+    pipe, _, queue, _ = make(tmp_path)
+    pipe.dataflow.tag_fields({"ni": "QQ123456C"}, Taint.FILE)
+    bad = step(pipe, "type", {"text": "QQ123456C"}, TargetInfo(label="Msg", role="textbox", url="https://attacker.example/form"))
+    assert bad.verdict == "needs_human" and bad.layer == "dataflow"
+    secret = step(pipe, "type", {"text": "hunter2"}, TargetInfo(label="Password", role="textbox", url=PAGE, field_attrs={"type": "password"}))
+    assert secret.verdict == "block"

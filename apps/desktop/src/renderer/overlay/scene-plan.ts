@@ -38,10 +38,11 @@ export function shortLabel(text: string): string {
 }
 
 // Ring/spotlight rect from a grounded box: at least minSize, at most maxSize per side (shrunk about the centre), then padded.
-export function fitRect(box: Rect, style: AnnotationStyle, pad: number): Rect {
+// `exact` (a measured browser element): no upper size, the ring surrounds the whole element.
+export function fitRect(box: Rect, style: AnnotationStyle, pad: number, exact = false): Rect {
   const grown = atLeast(box, style.ring.minSize)
-  const w = Math.min(grown.w, style.ring.maxSize)
-  const h = Math.min(grown.h, style.ring.maxSize)
+  const w = exact ? grown.w : Math.min(grown.w, style.ring.maxSize)
+  const h = exact ? grown.h : Math.min(grown.h, style.ring.maxSize)
   const capped = { x: grown.x + (grown.w - w) / 2, y: grown.y + (grown.h - h) / 2, w, h }
   return inflate(capped, pad)
 }
@@ -92,7 +93,7 @@ export function planScene(entries: ActiveAnnotation[], vp: Size, style: Annotati
   for (const { annotation: a } of entries) {
     switch (a.kind) {
       case 'ring': {
-        const rect = fitRect(boxRect(a.box), style, style.ring.pad)
+        const rect = fitRect(boxRect(a.box), style, style.ring.pad, a.exact === true)
         const step =
           a.step !== undefined
             ? clampPoint({ x: rect.x + style.badge.offset, y: rect.y + style.badge.offset }, vp, style.badge.diameter * 0.75)

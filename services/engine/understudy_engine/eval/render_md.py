@@ -22,8 +22,10 @@ TITLES = {
     "agent_runs": "Agent runs on the sandbox (AGT-5, AGT-7)",
     "pooling": "Partial pooling for new people",
     "redteam": "Red team with ablations",
-    "redteam_live": "Red team, live model (secondary)",
+    "redteam_live": "Red team with a real model (secondary, cached)",
     "study": "Live study (n = 4)",
+    "study_sim": "Simulated participants (language model), not people",
+    "study_power": "Study power: what the design could detect",
 }
 
 
@@ -233,8 +235,107 @@ def _pooling(s: dict[str, Any]) -> str:
     return (txt + f"\n\n{s.get('note') or ''}").strip()
 
 
+SIM = "simulated participants (language model), not people"
+
+
+def _cell(v: Any) -> str:
+    if isinstance(v, float):
+        return f"{v:.3f}"
+    if isinstance(v, list) and len(v) == 2 and all(isinstance(x, (int, float)) or x is None for x in v):
+        return ci(v, 3)
+    if isinstance(v, (dict, list)):
+        return "(see report.json)"
+    return "n/a" if v is None else str(v).replace("|", "/")
+
+
+def _generic_tables(s: dict[str, Any], skip: tuple[str, ...], caption: str) -> str:
+    """Scalars as bullets, list-of-dicts and dict-of-dicts as tables, every block headed by ``caption`` (the shapes belong to the owner)."""
+    out: list[str] = []
+    scal = [(k, v) for k, v in s.items() if k not in skip and not isinstance(v, (dict, list)) and v is not None]
+    if scal:
+        out.append(f"Figures ({caption}):\n" + "\n".join(f"- {k}: {_cell(v)}" for k, v in scal))
+    for k, v in s.items():
+        if k in skip or v is None:
+            continue
+        rows = None
+        if isinstance(v, list) and v and all(isinstance(x, dict) for x in v):
+            rows = v
+        elif isinstance(v, dict) and v and all(isinstance(x, dict) for x in v.values()):
+            rows = [{"key": kk, **x} for kk, x in v.items()]
+        if rows:
+            cols = list(dict.fromkeys(c for x in rows for c in x))[:9]
+            out.append(f"{k} ({caption}):\n\n" + table(cols, [[_cell(x.get(c)) for c in cols] for x in rows]))
+        elif isinstance(v, dict):
+            inner = ", ".join(f"{kk}: {_cell(vv)}" for kk, vv in list(v.items())[:12])
+            out.append(f"- {k} ({caption}): {inner}")
+    return "\n\n".join(out) or "(see report.json)"
+
+
+def _study_sim(s: dict[str, Any]) -> str:
+    cap = SIM
+    head = (f"**{SIM[0].upper() + SIM[1:]}.** This is not the live study and is never combined with it. "
+            f"The live study (n = 4 people) is reported above and only there.")
+    body = _generic_tables(s, ("meta", "label", "owner_label", "limitations", "caveats"), cap)
+    return head + "\n\n" + body
+
+
+def _study_power(s: dict[str, Any]) -> str:
+    hp = s.get("headline_power") or {}
+    rows = s.get("rows") or []
+    out = ["**What the design could detect under our assumptions. A property of the design, not a result about people and not evidence that an effect exists.**"]
+    lines = []
+    for n in ("4", "16"):
+        h = hp.get(n)
+        if not h:
+            continue
+        mp = h.get("min_sign_flip_p")
+        lines.append(f"- n = {n}: the smallest attainable two-sided sign-flip p is {mp:.3g}" + (", so p < 0.05 is impossible." if h.get("p05_impossible") else ".")
+                     if mp is not None else f"- n = {n}")
+    out.append("\n".join(lines))
+    hdr = ["Effect (synthetic design)", "True effect (points)", "n = 4: chance the 95% t interval excludes 0", "n = 16: chance the 95% t interval excludes 0"]
+    h4, h16 = hp.get("4") or {}, hp.get("16") or {}
+    if h4 or h16:
+        tab = [[e, f(((h4 or h16).get("true_effect_pp") or {}).get(e), 1), pc((h4.get("power_ci") or {}).get(e), 1), pc((h16.get("power_ci") or {}).get(e), 1)]
+               for e in ("none", "small", "medium", "large")]
+        out.append("No spill-over, no order effect (the 'none' row is the false-positive rate):\n\n" + table(hdr, tab))
+    sp4, sp16 = (h4.get("spillover") or {}), (h16.get("spillover") or {})
+    spill = ("**Spill-over of the coached gain onto the other skill is not protected by the design.** It dilutes the contrast and the design cannot cancel it."
+             " Medium effect with full spill-over: ")
+    parts = []
+    for n, sp in (("4", sp4), ("16", sp16)):
+        if sp:
+            parts.append(f"at n = {n} the chance the interval excludes 0 falls from {pc(sp.get('power_ci_without'), 1)} to {pc(sp.get('power_ci_with'), 1)} and the estimate is off by {f(sp.get('bias_pp_with'), 1, True)} points")
+    out.append(spill + ("; ".join(parts) + "." if parts else "(see the grid in report.json)."))
+    sel = [x for x in rows if x.get("n") in (4, 16) and x.get("effect_label") == "medium"]
+    if sel:
+        cols = ["n", "spill-over", "order effect", "power: interval excludes 0", "power: p < 0.05", "bias (points)", "interval covers the truth"]
+        out.append("Medium effect under each nuisance setting (synthetic design):\n\n" + table(cols, [[str(x["n"]), f(x["carryover"], 1), f(x["order_effect"], 1), pc(x["power_ci"], 1), pc(x["power_p05"], 1), f(x.get("bias_pp"), 1, True), pc(x.get("coverage"), 1)] for x in sel]))
+    nd = s.get("needed_difference_n4") or {}
+    if nd.get("reading"):
+        out.append(f"At n = 4: {nd['reading']}")
+    return "\n\n".join(out)
+
+
+def _redteam_live(s: dict[str, Any]) -> str:
+    rows = s.get("rows") or []
+
+    def cnt(k: Any, n: Any, ci_: Any = None) -> str:
+        return f"{k} of {n}" + (f" {ci(ci_, pct=True)}" if ci_ else "")
+
+    body = []
+    for r in rows:
+        hn = r.get("false_pause_hard_negatives") or {}
+        body.append([r.get("label", r["ablation"]), f"{cnt(r.get('attack_successes'), r.get('attack_runs'))}: {pc(r['attack_success'], 1)} {ci(r['attack_ci'], pct=True)}",
+                     f"{pc(r['task_success'])} {ci(r['task_ci'], pct=True)}", pc(r.get("paused_rate")),
+                     f"{pc(r.get('false_pause_rate'), 1)} over {r.get('n_clean_runs')} clean runs {ci(r.get('false_pause_ci'), pct=True)}",
+                     f"{cnt(hn.get('k'), hn.get('n'))} {ci(hn.get('ci'), pct=True)}"])
+    txt = (f"**{s.get('label')}.** " + (s.get("reading") or "") + "\n\n"
+           + table(["Condition (real model)", "Attack succeeds, runs [95% over cases]", "Task still succeeds [95%]", "Paused", "False pauses on clean pages", "Hard negatives only"], body))
+    return txt + f"\n\nSource: {s.get('source')}. Intervals treat the repeats of one case as a single observation; they overlap, so read this as cost and a null, not a guarantee."
+
+
 RENDER = {"deficit_recovery": _deficit, "null_placebo": _null, "hazard": _hazard, "ope": _ope, "routing": _routing, "ski_rental": _ski,
-          "presence": _presence, "routines": _routines, "policy_gate": _gate, "skills": _skills, "forecast": _forecast, "pooling": _pooling, "agent_claims": _claims, "agent_runs": _agent_runs, "redteam": _redteam, "study": _study}
+          "presence": _presence, "routines": _routines, "policy_gate": _gate, "skills": _skills, "forecast": _forecast, "pooling": _pooling, "agent_claims": _claims, "agent_runs": _agent_runs, "study_sim": _study_sim, "study_power": _study_power, "redteam_live": _redteam_live, "redteam": _redteam, "study": _study}
 
 
 def _generic(s: dict[str, Any]) -> str:
@@ -253,18 +354,24 @@ def render(report: dict[str, Any]) -> str:
         if name not in secs:
             continue
         s = secs[name]
-        out += [f"## {title}", "", basis(s["meta"]), ""]
+        sim = name == "study_sim"
+        b = basis(s["meta"])
+        if sim:
+            b = b.replace("*origin", f"*{SIM} · origin", 1)
+        out += [f"## {title}", "", b, ""]
         if s["meta"].get("note"):
             out += [s["meta"]["note"], ""]
         if "status" in s and name != "study":
-            out += [f"**{s['status'].upper().replace('_', ' ')}**: {s['reason']}", ""]
+            tail = f" ({SIM}; not the live study)" if sim else ""
+            out += [f"**{s['status'].upper().replace('_', ' ')}**: {s['reason']}{tail}", ""]
             continue
         if name == "study" and "status" in s:
             out += [f"**NOT RUN**: {s['reason']}. The page says so; no numbers are shown.", ""]
             continue
         out += [RENDER.get(name, _generic)(s), ""]
         if s.get("caveats"):
-            out += ["Caveats:", ""] + [f"- {c}" for c in s["caveats"]] + [""]
+            cav = [c if not sim or SIM in c.lower() else f"{SIM[0].upper() + SIM[1:]}: {c}" for c in s["caveats"]]
+            out += [f"Caveats ({SIM}):" if sim else "Caveats:", ""] + [f"- {c}" for c in cav] + [""]
     lim = secs.get("limitations") or []
     out += ["## Limitations register", "", f"{len(lim)} entries, most serious first. Kept in the product on purpose.", ""]
     out += [table(["Id", "Severity", "What it means", "Source"], [[e["id"], e["severity"], e["text"].replace("|", "/"), e["source"]] for e in lim]), ""]

@@ -14,6 +14,7 @@ const REQUEST_ID_RE = /^[A-Za-z0-9_.:-]{1,64}$/;
 const FRAME_RE = /^(top|f[0-9]{1,4})$/;
 const LABEL_HASH_RE = /^h:[0-9a-f]{4,16}$/;
 const ROLE_RE = /^[a-z][a-z0-9_-]{0,31}$/;
+const ZONE_RE = /^[a-z][a-z0-9_]{1,30}$/;
 
 export function parseWant(raw: unknown): RectWant | null {
   if (typeof raw !== "object" || raw === null) return null;
@@ -21,11 +22,14 @@ export function parseWant(raw: unknown): RectWant | null {
   if (typeof r.request_id !== "string" || !REQUEST_ID_RE.test(r.request_id)) return null;
   if (typeof r.frame_id !== "string" || !FRAME_RE.test(r.frame_id)) return null;
   const want: RectWant = { request_id: r.request_id, frame_id: r.frame_id };
-  if (typeof r.label_hash === "string" && LABEL_HASH_RE.test(r.label_hash) && r.role === undefined && r.name === undefined) {
+  const none = (...ks: string[]) => ks.every((k) => r[k] === undefined);
+  if (typeof r.label_hash === "string" && LABEL_HASH_RE.test(r.label_hash) && none("role", "name", "zone")) {
     want.label_hash = r.label_hash;
-  } else if (typeof r.role === "string" && ROLE_RE.test(r.role) && typeof r.name === "string" && r.name.length > 0 && r.name.length <= 80 && r.label_hash === undefined) {
+  } else if (typeof r.role === "string" && ROLE_RE.test(r.role) && typeof r.name === "string" && r.name.length > 0 && r.name.length <= 80 && none("label_hash", "zone")) {
     want.role = r.role;
     want.name = r.name;
+  } else if (typeof r.zone === "string" && ZONE_RE.test(r.zone) && none("label_hash", "role", "name")) {
+    want.zone = r.zone;
   } else return null;
   return want;
 }
@@ -56,7 +60,7 @@ export class RectPoller {
     if (!want) return { delay: 400, reachable: true, answered: false };
     const found = await this.deps.resolve(want).catch(() => null);
     const body = found && found.found
-      ? { request_id: want.request_id, frame_id: found.frame_id, found: true, rect: found.rect, window_offset: found.window_offset, scroll: found.scroll, dpr: found.dpr, age_ms: Math.max(0, this.deps.now() - found.measured_at) }
+      ? { request_id: want.request_id, frame_id: found.frame_id, found: true, rect: found.rect, window_offset: found.window_offset, scroll: found.scroll, dpr: found.dpr, viewport: found.viewport, outer: found.outer, screen: found.screen, age_ms: Math.max(0, this.deps.now() - found.measured_at) }
       : { request_id: want.request_id, frame_id: want.frame_id, found: false, age_ms: 0 };
     try {
       await this.deps.fetch(`${base}/ext/rect`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });

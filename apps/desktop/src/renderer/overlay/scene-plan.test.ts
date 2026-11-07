@@ -18,6 +18,16 @@ describe('planScene', () => {
     expect(ring.rect.w).toBeGreaterThan(((480 - 400) / 1000) * vp.width)
     expect(ring.step!.x).toBeLessThan(ring.rect.x + style.badge.diameter)
   })
+  it('a normal ring is capped to a target-sized circle about the centre, but an exact ring (a measured browser element) surrounds the whole thing', () => {
+    const wide = { xmin: 200, ymin: 300, xmax: 700, ymax: 420 } // 864 x 134 points on this viewport: far larger than a button
+    const capped = planScene([entry({ id: 'r', kind: 'ring', tone: 'guide', box: wide })], vp, style, {}).rings.get('r')!.rect
+    expect(capped.w).toBeLessThan(style.ring.maxSize + 2 * style.ring.pad + 1)
+    const exact = planScene([entry({ id: 'r', kind: 'ring', tone: 'guide', box: wide, exact: true })], vp, style, {}).rings.get('r')!.rect
+    const wantW = ((700 - 200) / 1000) * vp.width
+    expect(exact.w).toBeCloseTo(wantW + 2 * style.ring.pad, 5)
+    expect(exact.x).toBeCloseTo((200 / 1000) * vp.width - style.ring.pad, 5)
+    expect(exact.h).toBeCloseTo(((420 - 300) / 1000) * vp.height + 2 * style.ring.pad, 5)
+  })
   it('tiny targets get a ring of at least minSize', () => {
     const plan = planScene([entry({ id: 'r', kind: 'ring', tone: 'guide', box: { xmin: 500, ymin: 500, xmax: 501, ymax: 501 } })], vp, style, {})
     expect(plan.rings.get('r')!.rect.w).toBeGreaterThanOrEqual(style.ring.minSize)

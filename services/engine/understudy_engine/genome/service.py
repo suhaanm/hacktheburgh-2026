@@ -42,17 +42,61 @@ def _pick(row: dict, key: str):
     return None
 
 
-def load_consequences() -> list[dict]:
-    """What skipping a step costs in outcome terms (from evals/cases/skip_consequences.json, written by the platform track):
-    ``[{step, p_error, mean_error_gbp, n, source}]``. Empty when the file does not exist or has no rows. The waterfall prices
-    a skipped step as seconds saved, which is right but misleading without this."""
+SRC = "evals/cases/skip_consequences.json"
+# the file's own fields copied beside the four standard keys (never typed here)
+_CLIFF_EXTRAS = ("households_near_an_edge", "share_near", "share_near_ci95_wilson", "of_those_sites_disagree",
+                 "material_threshold_gbp_per_month", "material_n", "material_share_of_near", "impact_gbp_per_month_among_near")
+
+
+def _read_consequences() -> dict | None:
     p = consequences_path()
     if not p.is_file():
-        return []
+        return None
     try:
-        doc = json.loads(p.read_text(encoding="utf-8"))
+        return json.loads(p.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _from_sets(doc: dict) -> list[dict]:
+    """The platform's format: ``sets.<set>.{RECONCILE, CHECK_CLIFF}`` priced in answers. The largest set is used."""
+    sets = doc["sets"]
+    name = max(sets, key=lambda k: sets[k].get("n") or 0)
+    st = sets[name]
+    out: list[dict] = []
+    rec = st.get("RECONCILE")
+    if isinstance(rec, dict):
+        pooled = rec.get("error_gbp_pooled_over_the_three_choices") or {}
+        out.append({
+            "step": "RECONCILE", "label": "Reconcile skipped", "p_error": rec.get("expected_wrong_share"),
+            "p_error_ci95": rec.get("expected_wrong_share_ci95_bootstrap_by_household"),
+            "mean_error_gbp": pooled.get("mean_when_wrong"), "n": rec.get("n", st.get("n")), "n_unit": st.get("n_unit", "households"),
+            "source": f"{SRC}#sets.{name}.RECONCILE", "note": rec.get("sentence"), "skipped_means": rec.get("skipped_means"),
+            "error_gbp": pooled or None,
+        })
+    cl = st.get("CHECK_CLIFF")
+    if isinstance(cl, dict):
+        # today's figure is unaffected by skipping the cliff check: the cost is an unwarned edge, so there is no p_error to give
+        row = {
+            "step": "CHECK_CLIFF", "label": "Cliff check skipped", "p_error": cl.get("p_error"), "mean_error_gbp": cl.get("mean_error_gbp"),
+            "n": cl.get("of", st.get("n")), "n_unit": st.get("n_unit", "households"), "source": f"{SRC}#sets.{name}.CHECK_CLIFF",
+            "note": cl.get("sentence"), "skipped_means": cl.get("skipped_means"),
+        }
+        row.update({k: cl[k] for k in _CLIFF_EXTRAS if k in cl})
+        out.append(row)
+    return out
+
+
+def load_consequences() -> list[dict]:
+    """What skipping a step costs in outcome terms (evals/cases/skip_consequences.json, written by the platform track):
+    ``[{step, p_error, mean_error_gbp, n, source, ...}]``. Empty when the file does not exist or cannot be read. The waterfall
+    prices a skipped step as seconds saved, which is arithmetically right but misleading without this. Every number comes from
+    the file; a field the file does not define is None."""
+    doc = _read_consequences()
+    if doc is None:
         return []
+    if isinstance(doc, dict) and isinstance(doc.get("sets"), dict) and doc["sets"]:
+        return _from_sets(doc)
     rows = doc
     if isinstance(doc, dict):
         rows = next((doc[k] for k in ("consequences", "steps", "rows", "skips") if k in doc), None)
@@ -69,9 +113,14 @@ def load_consequences() -> list[dict]:
             continue
         out.append({
             "step": str(step), "p_error": _pick(r, "p_error"), "mean_error_gbp": _pick(r, "mean_error_gbp"),
-            "n": _pick(r, "n"), "source": _pick(r, "source") or "evals/cases/skip_consequences.json",
+            "n": _pick(r, "n"), "source": _pick(r, "source") or SRC,
         })
     return out
+
+
+def load_consequences_meta() -> dict | None:
+    doc = _read_consequences()
+    return doc.get("meta") if isinstance(doc, dict) and isinstance(doc.get("meta"), dict) else None
 
 
 class GenomeError(Exception):
@@ -230,6 +279,9 @@ class GenomeService:
         cons = load_consequences()
         if cons:                                         # additive: what skipping a step does to the outcome, beside the seconds it saves
             data["consequences"] = cons
+            cmeta = load_consequences_meta()
+            if cmeta:
+                data["consequences_meta"] = {k: cmeta[k] for k in ("origin", "n_unit", "interval_level", "interval_method", "oracle_label", "note") if k in cmeta}
         if b.truth is not None:
             tr = next(t for t in b.truth["traces"] if t["task_id"] == ep.task_id)
             rec = deficit_prices(comp)

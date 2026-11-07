@@ -3,7 +3,7 @@ import { ApiError, api } from "../api";
 import { prefersReducedMotion, useLoad, useWidth } from "../hooks";
 import { ChartFoot, EmptyState, ErrorState, Loading, OriginBadge, PageHead } from "../components/common";
 import { useToast } from "../components/Toasts";
-import { NODE_COLOUR, NODE_LABEL, layoutGraph, nodeOpacity, radiusFn, type Placed } from "../lib/graph";
+import { NODE_COLOUR, NODE_LABEL, layoutGraph, nodeOpacity, placeLabels, radiusFn, type Placed } from "../lib/graph";
 import { findLine, replaceLineText } from "../lib/memory";
 import { fmtDate } from "../lib/format";
 import type { WorkGraph, WorkNode, WorkNodeType } from "../types";
@@ -44,13 +44,6 @@ function Shape({ type, r }: { type: WorkNodeType; r: number }) {
   return <circle r={r} style={{ fill }} />;
 }
 
-/** Keep labels inside the canvas: flip the anchor near an edge. */
-function labelAnchor(x: number, w: number, width: number): "start" | "middle" | "end" {
-  if (x + w / 2 > width - 8) return "end";
-  if (x - w / 2 < 8) return "start";
-  return "middle";
-}
-
 function capsule(ax: number, ay: number, bx: number, by: number, R: number): string {
   const dx = bx - ax, dy = by - ay;
   const len = Math.hypot(dx, dy) || 1;
@@ -81,9 +74,12 @@ export default function Graph() {
   const graph = g.data;
   const at = new Map(pos.map((p) => [p.id, p]));
   const radius = radiusFn(graph.nodes);
-  const labelAbove = new Set<string>();
-  if (combine) for (const l of graph.links) if (l.kind === "combined") { const a = at.get(l.a), b = at.get(l.b); if (a && b) labelAbove.add(a.y <= b.y ? l.a : l.b); }
   const byId = new Map(graph.nodes.map((n) => [n.id, n]));
+  const narrowCanvas = width < 560;
+  const maxChars = narrowCanvas ? 24 : 34;
+  const labelText = (n: WorkNode) => (n.label.length > maxChars ? `${n.label.slice(0, maxChars - 1)}…` : n.label);
+  // Labels are placed once per layout (on the settled positions), then ride along with their node while it moves.
+  const labels = placeLabels(target.map((p) => { const n = byId.get(p.id); return { id: p.id, x: p.x, y: p.y, r: p.r, text: n ? labelText(n) : "", priority: n ? n.strength + (n.type === "routine" ? 0.3 : 0) : 0 }; }), width, height, sel);
   const node = sel ? byId.get(sel) ?? null : null;
   const faded = graph.nodes.filter((n) => n.strength < 0.4).length;
 
@@ -125,7 +121,8 @@ export default function Graph() {
                       onClick={() => setSel(n.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSel(n.id); } }}>
                       <g className="gnode__body" style={{ opacity: op }}><Shape type={n.type} r={r} /></g>
                       <circle className="gnode__ring" r={r + 6} />
-                      <text className="gnode__label" y={labelAbove.has(n.id) ? -r - 9 : r + 15} textAnchor={labelAnchor(p.x, Math.min(n.label.length, 34) * 5.7, width)} style={{ opacity: shown ? Math.max(0.7, op) : 0 }}>{n.label.length > 34 ? `${n.label.slice(0, 33)}…` : n.label}</text>
+                      <title>{n.label}</title>
+                      {(() => { const lp = labels.get(n.id); return lp && !lp.hidden ? <text className="gnode__label" x={lp.dx} y={lp.dy} textAnchor={lp.anchor} style={{ opacity: shown ? Math.max(0.7, op) : 0 }}>{labelText(n)}</text> : null; })()}
                     </g>
                   );
                 })}

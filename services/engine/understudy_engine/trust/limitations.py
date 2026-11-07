@@ -38,6 +38,13 @@ def analytics_limitations() -> list[dict]:
         {"id": "ana-pooling-people", "severity": "medium",
          "text": "Cold-start priors are built from four synthetic personas (or 24 scripted apprentices with two cases each); with so few and such "
                  "alike people, partial pooling is hard to tell from complete pooling, and learning-curve drift is not modelled."},
+        {"id": "ana-study-power", "severity": "high",
+         "text": "The study power analysis only shows what the planned design could detect under assumptions we made up (how much people differ, how big "
+                 "the training gain is, how carry-over and fatigue behave). It does not show that an effect exists, and with four people no result "
+                 "can reach p below 0.05."},
+        {"id": "ana-study-n4", "severity": "high",
+         "text": "With four teammates the exact two-sided sign-flip p cannot go below 0.125, and the interval excludes zero only when the four differences "
+                 "nearly agree and are large. The expected outcome is an interval that includes zero."},
         {"id": "ana-policy-sim", "severity": "medium",
          "text": "Off-policy evaluation is validated in a simulator whose reward structure we invented, with exactly known propensities. "
                  "Real implicit labels (followed, dismissed, repeated, undone) are noisy proxies for 'it helped'."},
@@ -57,6 +64,7 @@ SECTION_LIMITATIONS = {
     "hazard": ("ana-synthetic-origin", "ana-hazard-people", "ana-hazard-alerts", "ana-hazard-label", "ana-apprentice-script"),
     "skills": ("ana-synthetic-origin", "ana-skills-saturate", "ana-skills-learners-n"),
     "pooling": ("ana-synthetic-origin", "ana-pooling-people"),
+    "study_power": ("ana-synthetic-origin", "ana-study-power", "ana-study-n4"),
     "ope": ("ana-synthetic-origin", "ana-policy-sim"),
     "policy_gate": ("ana-synthetic-origin", "ana-hazard-people", "ana-hazard-label"),
     "routing": ("ana-synthetic-origin", "ana-routing-shift", "ana-routing-circular"),

@@ -164,8 +164,9 @@ const runClipboardWrite = (text: string): Promise<void> =>
     child.stdin?.end(text)
   })
 
-// JXA: the topmost window under a global point, front to back from the window server's list. Windows of this process that cover the
-// whole display are the click-through overlay: skipped. Prints one JSON line (owner, layer) or null. Owner names only: no titles.
+// JXA: the topmost window under a global point, front to back from the window server's list. Full-display windows of this process
+// (the click-through overlay) and of the Dock and the window server (transparent layers) are skipped. Prints one JSON line (owner,
+// layer) or null. Owner names only: no titles.
 const WINDOW_AT_JXA = `ObjC.import('CoreGraphics');
 function run(argv) {
   var x = Number(argv[0]), y = Number(argv[1]), ownPid = Number(argv[2]), dw = Number(argv[3]), dh = Number(argv[4]);
@@ -174,7 +175,9 @@ function run(argv) {
     var w = list[i], b = w.kCGWindowBounds;
     if (!b || w.kCGWindowAlpha === 0) continue;
     if (x < b.X || x >= b.X + b.Width || y < b.Y || y >= b.Y + b.Height) continue;
-    if (w.kCGWindowOwnerPID === ownPid && b.Width >= dw - 2 && b.Height >= dh - 2) continue;
+    // Click-through furniture that covers the whole display: our own overlay, and the Dock's and the window server's full-screen layers.
+    var name = String(w.kCGWindowOwnerName);
+    if ((w.kCGWindowOwnerPID === ownPid || name === 'Dock' || name === 'Window Server') && b.Width >= dw - 2 && b.Height >= dh - 2) continue;
     return JSON.stringify({ owner: String(w.kCGWindowOwnerName), layer: Number(w.kCGWindowLayer) });
   }
   return 'null';
@@ -282,8 +285,7 @@ export function createActuator(deps: ActuatorDeps = {}): Actuator {
       const asked = checkAppName(target.app)
       if (asked.ok) await openAppProcess(asked.value).catch(() => undefined)
     }
-    const deadline = Date.now() + focusTimeout
-    while (Date.now() < deadline) {
+    for (let waited = 0; waited < focusTimeout; waited += focusPoll) {
       await sleep(focusPoll)
       front = await readFront()
       if (ok(front)) return null

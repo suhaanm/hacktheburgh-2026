@@ -22,6 +22,8 @@ export interface Windows {
   getDockMode(): DockMode
   owns(webContentsId: number): boolean
   overlayPng(): Promise<Buffer | null>
+  // The text currently drawn on the overlay (captions, bubbles, chips), for looking at it without a picture. Dev surface only.
+  overlayText(): Promise<string | null>
   dockPng(): Promise<Buffer | null>
   overlaySize(): { width: number; height: number } | null
 }
@@ -184,6 +186,11 @@ export function createWindows(opts: WindowOptions): Windows {
     getDockMode: () => dockMode,
     owns: ownsOrAdopted,
     overlayPng: () => capture(overlay),
+    overlayText: async () => {
+      if (!overlay || overlay.isDestroyed() || overlay.webContents.isDestroyed()) return null
+      const text: unknown = await overlay.webContents.executeJavaScript('document.body.innerText', true)
+      return typeof text === 'string' ? text : null
+    },
     dockPng: () => capture(dock),
     overlaySize: () => (overlay ? overlay.getBounds() : null),
   }

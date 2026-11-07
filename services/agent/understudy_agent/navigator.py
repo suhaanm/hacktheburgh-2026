@@ -27,6 +27,27 @@ from .tiers.dsl import DslRuntime, run_bundle
 from .tiers.observe import observe
 from .tiers.safety import Guard
 
+PARAM_HELP = {
+    "adults": "number of adults in the household (1 or 2)",
+    "adult1_age": "age of the first adult (the claimant)",
+    "adult2_age": "age of the partner, blank if none",
+    "children_ages": "ages of the children, comma separated, blank if none",
+    "adult1_earnings_monthly": "the first adult's take-home pay per month",
+    "adult2_earnings_monthly": "the partner's take-home pay per month",
+    "limited_capability": "yes or no: a health condition limits ability to work",
+    "tenure": "rent or own",
+    "rent_monthly": "rent per month",
+    "bedrooms": "bedrooms needed",
+    "savings": "total savings",
+    "childcare_monthly": "childcare costs per month",
+    "case_ref": "the case reference",
+    "result_a": "the figure GovCalc showed",
+    "result_b": "the figure Quick Estimator showed",
+    "result_c": "the figure EntitledTo showed",
+    "reconciliation": "agree or discrepancy",
+    "note_text": "the case note text",
+}
+
 RESULT_SCHEMA: dict[str, Any] = {
     "title": "calculator_result",
     "type": "object",
@@ -49,6 +70,7 @@ class CalculatorJob:
         self.label = SITES[site].name
         self.start_path = SITES[site].start_path
         self.allowed_params = tuple(CANONICAL_PARAMS)
+        self.param_help = {k: PARAM_HELP[k] for k in self.allowed_params}
         self.goal = f"Enter this household into {self.label}. " + self.goal_words
 
     def bundle(self, layout: str) -> dict[str, Any]:
@@ -82,6 +104,7 @@ class CaseNoteJob:
     def __init__(self, params: dict[str, str]) -> None:
         self.params = params
         self.allowed_params = ("case_ref", "result_a", "result_b", "result_c", "reconciliation", "note_text")
+        self.param_help = {k: PARAM_HELP[k] for k in self.allowed_params}
         self.goal = "Fill in the case note form and save it as a draft. " + self.goal_words
 
     def bundle(self, layout: str) -> dict[str, Any]:
@@ -211,7 +234,7 @@ class Navigator:
                              ledger=self.ledger)
         try:
             res = await agent.run(page, Tier2Task(job.goal, job.params, job.allowed_params, job.looks_final,
-                                                  job.schema, job.parse))
+                                                  job.schema, job.parse, job.param_help))
         finally:
             self.t_left -= agent.used
         assert res.outputs is not None
@@ -299,6 +322,9 @@ class Navigator:
 
     async def _cliff_check(self, page: Any, job: Any, outputs: dict[str, Any], res: NavResult) -> None:
         """CHECK_CLIFF, the expert's signature step. Already done by a tier-1 bundle, otherwise do it now."""
+        if not outputs.get("cliff") and not self.use_tier1:
+            await self._cliff_tier2(page, job, res)
+            return
         if not outputs.get("cliff"):
             self.guard.set_mode("compiled")
             rt = DslRuntime(page=page, params={}, base_url=self.base_url, navigator=self.id, emit=self._emit,
@@ -311,6 +337,32 @@ class Navigator:
             except Exception as exc:  # noqa: BLE001 - a missing panel is reported, not fatal
                 self._note("cliff_check", False, type(exc).__name__, 1)
         res.cliff_text = str(outputs.get("cliff", ""))
+        res.cliff_checked = bool(res.cliff_text)
+
+    async def _cliff_tier2(self, page: Any, job: Any, res: NavResult) -> None:
+        """With tier 1 switched off the cliff check is the browser agent's job too: press the button, read the panel."""
+        marker = "Cliff edges for this household"
+
+        def final(obs: Observation) -> bool:
+            return marker in obs.text
+
+        def parse(obs: Observation, fields: dict[str, Any] | None) -> dict[str, Any] | None:
+            return {"cliff": obs.text[obs.text.index(marker):][:600]} if marker in obs.text else None
+
+        agent = BrowserAgent(self.model, self.guard, navigator=self.id, emit=self._emit, is_current=self.is_current,
+                             step_start=self.steps, max_actions=max(1, min(4, self.t_left)), ledger=self.ledger)
+        task = Tier2Task("Press Check cliff edges to open the cliff panel for this result and read it.", job.params,
+                         (), final, None, parse, {})
+        try:
+            out = await agent.run(page, task)
+        except (GateStop, InjectionStop, asyncio.CancelledError):
+            raise
+        except Exception as exc:  # noqa: BLE001 - a missing panel is reported, not fatal
+            self._note("cliff_check", False, type(exc).__name__, 2)
+            return
+        finally:
+            self.t_left -= agent.used
+        res.cliff_text = str((out.outputs or {}).get("cliff", ""))
         res.cliff_checked = bool(res.cliff_text)
 
     async def _escalate_to_human(self, res: NavResult, job: Any) -> None:

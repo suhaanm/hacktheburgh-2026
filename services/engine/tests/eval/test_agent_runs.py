@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
-from understudy_engine.eval import build_report, schema_errors
+from understudy_engine.eval import adapters, build_report, schema_errors
 from understudy_engine.eval.adapters import AGENT_CLEAN, AGENT_LIVE, AGENT_ROBUST
 from understudy_engine.eval.render_md import render
 from understudy_engine.eval.stats import wilson
@@ -34,6 +34,17 @@ def eval_file(label, rows, flagged=7, seed=2026, no_false=None, mean=2.0):
             "pass_rate": {"passed": k, "n": n, "rate": k / n, "wilson_95": wilson(k, n)},
             "check_pass_counts": {"no_false_claims": n if no_false is None else no_false}, "flagged_discrepancies": {"count": flagged, "households": []},
             "tiers_seen": sorted({t for r in rows for t in r["tiers"]}), "mean_elapsed_s": mean, "rows": rows}
+
+
+def _plan_like_agent_core(n, seed):
+    """The four patterns agent-core cycles through (benefits_eval.robust_switches); a stand-in so these tests do not depend on that module importing."""
+    pats = [{"b": "?layout=v2"}, {"c": "?layout=v2"}, {"a": "?layout=v2", "b": "?glitch=503once"}, {"c": "?glitch=503once"}]
+    return {f"hh_{i + 1:04d}": pats[i % 4] for i in range(n)}
+
+
+@pytest.fixture(autouse=True)
+def _plan(monkeypatch):
+    monkeypatch.setattr(adapters, "_robust_plan_fn", lambda: _plan_like_agent_core)
 
 
 @pytest.fixture()
@@ -185,3 +196,27 @@ def test_routines_markdown_puts_both_precisions_in_one_table(routines_report):
 def test_routines_raw_counts_are_taken_from_the_owner_not_typed(routines_report):
     s = copy.deepcopy(routines_report["sections"]["routines"])
     assert s["overall"]["raw_finder"]["clusters"] == sum(r["raw_finder"]["clusters"] for r in s["rows"]) > 0
+
+
+def test_the_real_agent_core_plan_has_the_same_four_patterns(monkeypatch):
+    """One check against the real owner code (skipped if agent-core's module does not import right now)."""
+    monkeypatch.undo()
+    try:
+        from understudy_agent.benefits_eval import robust_switches
+    except Exception as e:  # pragma: no cover - depends on another track's import health
+        pytest.skip(f"agent-core benefits_eval not importable: {type(e).__name__}")
+    real = robust_switches(20, 2026)
+    assert {k: v for k, v in real.items()} == _plan_like_agent_core(20, 2026)
+
+
+def test_a_broken_agent_core_import_degrades_to_an_empty_injection_list_not_a_failed_section(root, monkeypatch):
+    def boom():
+        raise TypeError("non-default argument follows default argument")
+
+    monkeypatch.setattr(adapters, "_robust_plan_fn", boom)
+    rep = rep_for(root)
+    s = rep["sections"]["agent_runs"]
+    assert "status" not in s and s["robust"]["injected"] == [] and "could not be loaded" in s["robust"]["injected_note"]
+    assert validates(rep)
+    e = next(e for e in rep["sections"]["limitations"] if e["id"] == "eval-agent-runs-injected")
+    assert "could not be read back" in e["text"]

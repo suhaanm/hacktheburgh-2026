@@ -34,7 +34,7 @@ from .tiers.browser import BrowserHost
 from .tiers.dsl import DslRuntime, goto_hosts, run_bundle, to_internal
 from .tiers.safety import Guard
 
-MATCH_TOLERANCE = 0.01
+MATCH_TOLERANCE = 0.05   # site c converts annual and weekly figures back to monthly: a few pence of rounding
 
 
 class ConsentRefused(RuntimeError):
@@ -156,7 +156,10 @@ class BackgroundRunner:
         return "unattended" if self.unattended else "background"
 
     def start(self, household: Household | dict[str, Any], *, run_id: str | None = None,
-              query: dict[str, str] | None = None, deadline_s: float = 300.0) -> TaskHandle:
+              query: dict[str, str] | None = None, deadline_s: float = 300.0,
+              on_start: Callable[[], None] | None = None, on_finish: Callable[[], None] | None = None) -> TaskHandle:
+        """`on_start` / `on_finish` run in the worker thread around the run (the server uses them to hold and release
+        the shared sandbox lock for exactly as long as the browser is acting)."""
         ok, why = consent_allows(read_consent(self.routine_id, self.root), self._kind())
         if not ok:
             self.audit.append("agent", "consent", routine=self.routine_id, outcome="refused", note_code=f"{self._kind()}_refused")
@@ -166,6 +169,15 @@ class BackgroundRunner:
         consent = read_consent(self.routine_id, self.root)
 
         def work(ctx: Any) -> dict[str, Any]:
+            if on_start:
+                on_start()
+            try:
+                return _work(ctx)
+            finally:
+                if on_finish:
+                    on_finish()
+
+        def _work(ctx: Any) -> dict[str, Any]:
             opts = RunOptions(denylist=Denylist.load(), routine_id=self.routine_id, bundles=self.bundles,
                               query=dict(query or {}), unattended=self.unattended, rung=consent.rung)
             run = BenefitsRun(rid, h, model=self.model, base_urls=self.base_urls, queue=self.queue, audit=self.audit,

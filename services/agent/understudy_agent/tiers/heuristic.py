@@ -14,7 +14,7 @@ from typing import Any
 from ..completion import REF_RE
 
 _FORWARD = ("continue", "next", "calculate", "work it out", "estimate", "show my results", "see entitlement",
-            "save draft", "save")
+            "save draft", "save", "cliff", "go back", "try again")
 _STATUS = re.compile(r"(You are (?:likely|unlikely) to be eligible|Likely to qualify|Unlikely to qualify|NOT ELIGIBLE|ELIGIBLE)")
 _AMOUNT = re.compile(r"(£\s?[\d,]+(?:\.\d{1,2})?(?:\s*(?:per|a)\s*month)?|[\d,]+\.\d{2}\s*GBP\s*/\s*month)")
 

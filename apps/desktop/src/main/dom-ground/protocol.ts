@@ -47,7 +47,7 @@ export const REQUEST_ID_RE = /^[A-Za-z0-9_.:-]{1,64}$/
 export const FRAME_RE = /^(top|f[0-9]{1,4})$/
 export const LABEL_HASH_RE = /^h:[0-9a-f]{4,16}$/
 export const ROLE_RE = /^[a-z][a-z0-9_-]{0,31}$/
-export const ZONE_RE = /^[a-z][a-z0-9_.:-]{0,63}$/
+export const ZONE_RE = /^[a-z][a-z0-9_]{1,30}$/ // the schema's own pattern (ext_rect.schema.json)
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 const fin = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)

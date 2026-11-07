@@ -9,6 +9,7 @@ You are the coding agent on the owner's build laptop. You will build **Understud
 3. `docs/REFERENCES.md`: the ten reference projects and what to take from each.
 4. `docs/UI_DIRECTION.md`: **our own good-looking, uncluttered, standout UI. Follow it.**
 5. `docs/IDEA_BOARD.md`: what is committed, what is stretch, what is parked.
+6. `docs/SPEC_LIST.md` section 14 and `docs/IMPLEMENTATION_SPEC.md` section 14: the extensions requested after kickoff (privacy and egress, local digests, plugins, calendar layer, proactive intelligence, background agents, git analysis). They are flagged off by default and never touch the P0 demo path. New owner requests are handled as in SPEC_LIST section 15.
 
 ## What you are building, in one paragraph
 
@@ -28,7 +29,7 @@ A system that watches how people work, shows where a novice loses time against a
 - **No allowlists.** The agent may go anywhere. The worker keeps an optional denylist. The eight security layers in the implementation spec are mandatory, and mostly code, not model judgement.
 - **The model proposes, code decides.** Levels, permissions, promotion, routing and gates are deterministic code.
 - Every automation is opt-in. Irreversible actions during unattended runs need a per-routine opt-in by the worker.
-- Do not run any real desktop click, keystroke or unattended run until spike S2 has passed with the owner present. Never run an agent against a real account or a real purchase. Use the sandbox sites and synthetic data.
+- Do not run any real desktop click, keystroke or unattended run until spike S2 has passed with the owner present. Never run an agent against a real purchase. **Real accounts (owner decision D26, 7 Nov 2026):** the owner's own accounts (for example their Outlook calendar) may be read for a **read-only, aggregate-only** check, only after the owner approves that specific run in chat, only through the source plugin (never by pasting content into prompts or logs), and storing nothing but counts, durations and enums (no titles, attendees, bodies, names, paths or ids). Sending, posting, changing, accepting, deleting or any other write on a real account still needs the owner's approval for that single action, and unattended runs never write to real accounts. Everything else, including tests, demos and the study, uses the sandbox sites and synthetic data.
 
 **Honesty**
 - Every number has a baseline, a split and an interval. Synthetic results carry a badge. Say n = 4 for the live study. Do not claim that novices become experts; the claim is that the system lifts novices and shows its limits.

@@ -74,6 +74,17 @@ describe('coach chip fade (driven by the level engine)', () => {
     expect(driver.refresh()).toBe('gone')
     expect(sent.map((s) => s[0])).toEqual(['dot', 'full', 'small', 'gone'])
   })
+
+  it('what the coach is acting at (GET /coach/next) wins over the state hint while fresh, then the state hint takes over again', () => {
+    const { driver, advance } = driverSetup({ level: 2 as HelpLevel, streakClean: 0 })
+    driver.setEngineHint({ fade: 'gone', level: 4 }) // /coach/state: this learner is done...
+    driver.setDecisionHint({ fade: 'full', level: 1 }) // ...but study mode has the coach acting at L1
+    expect(driver.refresh()).toBe('full')
+    expect(driver.current()).toEqual({ fade: 'full', level: 1 })
+    advance(11_000)
+    driver.setEngineHint({ fade: 'gone', level: 4 })
+    expect(driver.refresh()).toBe('gone') // the decision hint went stale
+  })
 })
 
 describe('coach state parsing', () => {
@@ -117,11 +128,12 @@ describe('coach state poller against a fake engine over HTTP', () => {
 })
 
 describe('coach next parsing', () => {
-  const next = (over: Record<string, unknown> = {}) => ({ meta: { origin: 'real' }, data: { action: 'annotate', message: 'Check the cliff edge before you copy.', why: 'You skipped it last time.', target: { zone: 'calc.result', label_hint: 'Result', role_hint: 'status' }, level: 'L2', decision_id: 'd_0001', ...over } })
+  const next = (over: Record<string, unknown> = {}) => ({ meta: { origin: 'real' }, data: { action: 'annotate', message: 'Check the cliff edge before you copy.', why: 'You skipped it last time.', target: { zone: 'calc_result', label_hint: 'Result', role_hint: 'status' }, level: 'L2', decision_id: 'd_0001', ...over } })
 
   it('reads the decision, the zone target with its hints, the level and the decision id', async () => {
     const { parseCoachNext } = await import('./engine/coach-next')
-    expect(parseCoachNext(next())).toEqual({ action: 'annotate', message: 'Check the cliff edge before you copy.', why: 'You skipped it last time.', target: { zone: 'calc.result', label_hint: 'Result', role_hint: 'status' }, level: 2, decisionId: 'd_0001' })
+    expect(parseCoachNext(next())).toEqual({ action: 'annotate', message: 'Check the cliff edge before you copy.', why: 'You skipped it last time.', target: { zone: 'calc_result', label_hint: 'Result', role_hint: 'status' }, level: 2, chip: null, decisionId: 'd_0001', reasons: [], step: null, missed: [] })
+    expect(parseCoachNext(next({ reason_codes: ['already_prompted', 'on_track', 'Bad Code!', 7], step: 'cliff_a', missed: ['cliff_a', 'no good'], chip: 'small' }))).toMatchObject({ reasons: ['already_prompted', 'on_track'], step: 'cliff_a', missed: ['cliff_a'], chip: 'small' })
     expect(parseCoachNext(next({ target: null }))).toMatchObject({ target: null })
     expect(parseCoachNext(next({ target: { zone: 'Bad Zone' } }))).toMatchObject({ target: null })
     expect(parseCoachNext(next({ target: { label_hash: 'h:abcd1234' } }))).toMatchObject({ target: null }) // only zones are rung from here
@@ -133,21 +145,24 @@ describe('coach next parsing', () => {
     expect(parseCoachNext(next({ action: 'delete_everything' }))?.action).toBe('silent')
     expect(parseCoachNext({ data: {} })?.action).toBe('silent')
     expect(parseCoachNext(null)).toBeNull()
-    expect(parseCoachNext({ action: 'takeover_offer', target: { zone: 'a.b' } })?.action).toBe('takeover_offer')
+    expect(parseCoachNext({ action: 'takeover_offer', target: { zone: 'a_b' } })?.action).toBe('takeover_offer')
   })
 })
 
 describe('coach brain: rings by zone, and the worker\'s response goes to /coach/feedback', () => {
   const task = (step: number, id = 't_1') => ({ id, name: 'Case', step, stepsTotal: 8 })
-  const decision = (over: Record<string, unknown> = {}) => ({ meta: {}, data: { action: 'annotate', message: 'Check the result first.', why: 'w', target: { zone: 'calc.result' }, level: 'L2', decision_id: 'd_1', ...over } })
+  const decision = (over: Record<string, unknown> = {}) => ({ meta: {}, data: { action: 'annotate', message: 'Check the result first.', why: 'w', target: { zone: 'calc_result' }, level: 'L2', decision_id: 'd_1', ...over } })
+  // What the engine says on the polls after it spoke: silent, no decision id, and `already_prompted` while the issue is still open.
+  const quietAfter = (reasons: string[]) => ({ meta: {}, data: { action: 'silent', message: '', why: '', target: null, level: 'L1', decision_id: null, reason_codes: reasons } })
 
   async function setup(initial: unknown, initialTask: ReturnType<typeof task> | null = task(2)) {
     let body = initial
-    const engine = await fakeServer((p) => (p.startsWith('/coach/next') ? { status: 200, body } : p === '/coach/feedback' ? { status: 200, body: {} } : { status: 404 }))
+    const engine = await fakeServer((p) => (p.startsWith('/coach/next') ? { status: 200, body } : p === '/coach/feedback' ? { status: 200, body: { recorded: true } } : { status: 404 }))
     const client: EngineClient = createEngineClient({ endpoints: { engine: engine.url, agent: engine.url }, identity: ID, ...noTimers })
     let current: ReturnType<typeof task> | null = initialTask
     let killed = false
     const ringCalls: Array<[string, unknown?]> = []
+    const said: string[] = []
     let ringActive = false
     const ring = {
       point: (t: unknown, o: unknown) => void (ringCalls.push(['point', { t, o }]), (ringActive = true)),
@@ -155,19 +170,20 @@ describe('coach brain: rings by zone, and the worker\'s response goes to /coach/
       followed: () => void (ringCalls.push(['followed']), (ringActive = false)),
       current: () => (ringActive ? ({} as never) : null),
     }
-    const brain = createCoachBrain({ engine: client, state: () => (current ? { task: current, level: 2, chip: 'full', message: '' } : null), ring, killed: () => killed, immediate: false, ...noTimers })
-    return { engine, brain, ringCalls, set: (b: unknown) => (body = b), setTask: (t: typeof current) => (current = t), kill: () => (killed = true) }
+    const brain = createCoachBrain({ engine: client, state: () => (current ? { task: current, level: 2, chip: 'full', message: '' } : null), ring, say: (t) => void said.push(t), killed: () => killed, immediate: false, ...noTimers })
+    return { engine, brain, ringCalls, said, ended: () => void (ringActive = false), set: (b: unknown) => (body = b), setTask: (t: typeof current) => (current = t), kill: () => (killed = true) }
   }
   const feedbacks = (e: Awaited<ReturnType<typeof setup>>['engine']) => e.requests.filter((r) => r.path === '/coach/feedback').map((r) => r.body)
 
-  it('while a task is active, asks /coach/next for this person and rings the ZONE with the nudge text, the step and the decision id', async () => {
+  it('while a task is active, asks /coach/next for this person and rings the ZONE with the nudge text and the decision id (no step badge: the engine task step is not the coach step)', async () => {
     const s = await setup(decision())
     await s.brain.tick()
     expect(s.engine.requests.some((r) => r.path === '/coach/next?person=p_9f3a1c20')).toBe(true)
-    expect(s.ringCalls).toEqual([['point', { t: { zone: 'calc.result' }, o: { message: 'Check the result first.', step: 2, ref: 'd_1' } }]])
+    expect(s.ringCalls).toEqual([['point', { t: { zone: 'calc_result' }, o: { message: 'Check the result first.', ref: 'd_1' } }]])
     await s.brain.tick() // the same decision again: nothing new
     expect(s.ringCalls).toHaveLength(1)
     expect(s.brain.lastActiveDecisionAt()).not.toBeNull()
+    expect(s.brain.status()).toMatchObject({ ringDecision: 'd_1', lastDecision: { action: 'annotate', decisionId: 'd_1', zone: 'calc_result' } })
   })
 
   it('does not ask at all when no task is in progress, and removes the ring when the task ends', async () => {
@@ -181,29 +197,80 @@ describe('coach brain: rings by zone, and the worker\'s response goes to /coach/
     expect(s.ringCalls.at(-1)).toEqual(['clear', 'ended'])
   })
 
-  it('silent, no zone and takeover_offer draw nothing (the desktop never acts on an offer)', async () => {
-    for (const d of [{ action: 'silent', target: null }, { action: 'nudge', target: null }, { action: 'takeover_offer', target: { zone: 'calc.go' } }]) {
+  it('silent and takeover_offer draw nothing (the desktop never acts on an offer)', async () => {
+    for (const d of [{ action: 'silent', target: null }, { action: 'takeover_offer', target: { zone: 'calc_go' } }]) {
       const s = await setup(decision(d))
       await s.brain.tick()
       expect(s.ringCalls.filter((c) => c[0] === 'point'), JSON.stringify(d)).toHaveLength(0)
+      expect(s.said).toEqual([])
     }
   })
 
-  it('a new decision moves the ring; the step going up while it is shown is followed; a silent decision then clears it', async () => {
-    const s = await setup(decision())
+  it('a nudge with nothing to point at is said once, as text (lighter help), and never draws a ring', async () => {
+    const s = await setup(decision({ action: 'nudge', target: null, message: 'Is any figure close to a limit?', decision_id: 'd_7' }))
     await s.brain.tick()
-    s.set(decision({ decision_id: 'd_2', target: { zone: 'calc.note' }, message: 'Now the note.' }))
     await s.brain.tick()
-    expect(s.ringCalls.filter((c) => c[0] === 'point')).toHaveLength(2)
-    s.setTask(task(3))
+    expect(s.said).toEqual(['Is any figure close to a limit?'])
+    expect(s.ringCalls).toEqual([])
+    s.set(decision({ action: 'nudge', target: null, message: 'Another question?', decision_id: 'd_8' }))
     await s.brain.tick()
-    expect(s.ringCalls).toContainEqual(['followed'])
-    s.set(decision({ action: 'silent', target: null, decision_id: 'd_3' }))
-    await s.brain.tick()
-    expect(s.ringCalls.at(-1)).toEqual(['clear', 'ended'])
+    expect(s.said).toEqual(['Is any figure close to a limit?', 'Another question?'])
   })
 
-  it('posts followed and dismissed (and only those, only for prompts that were really drawn, only for the brain\'s own decisions)', async () => {
+  it('a new decision moves the ring', async () => {
+    const s = await setup(decision())
+    await s.brain.tick()
+    s.set(decision({ decision_id: 'd_2', target: { zone: 'calc_note' }, message: 'Now the note.' }))
+    await s.brain.tick()
+    expect(s.ringCalls.filter((c) => c[0] === 'point')).toHaveLength(2)
+  })
+
+  it('the engine speaks once: silent polls with already_prompted keep the ring; when it stops saying it, the step was done (followed)', async () => {
+    const s = await setup(decision())
+    await s.brain.tick()
+    s.set(quietAfter(['already_prompted', 'on_track']))
+    await s.brain.tick()
+    await s.brain.tick()
+    expect(s.ringCalls).toHaveLength(1) // still up: no clear, no followed
+    s.set(quietAfter(['on_track']))
+    await s.brain.tick()
+    expect(s.ringCalls.at(-1)).toEqual(['followed'])
+    expect(s.brain.status().ringDecision).toBeNull()
+  })
+
+  it('an engine that sends no reason codes never makes the desktop guess: the ring waits for its own limit', async () => {
+    const s = await setup(decision())
+    await s.brain.tick()
+    s.set(quietAfter([]))
+    await s.brain.tick()
+    expect(s.ringCalls).toHaveLength(1)
+  })
+
+  it('the case ending, or study mode silencing the coach, ends the ring without a response', async () => {
+    for (const reasons of [['no_active_task'], ['study_mode', 'study_post_test'], ['no_events']]) {
+      const s = await setup(decision())
+      await s.brain.tick()
+      s.set(quietAfter(reasons))
+      await s.brain.tick()
+      expect(s.ringCalls.at(-1), reasons.join()).toEqual(['clear', 'ended'])
+    }
+  })
+
+  it('a takeover offer replaces the ring (it ends, nothing is posted); a ring the worker stopped is not drawn again', async () => {
+    const s = await setup(decision())
+    await s.brain.tick()
+    s.set(decision({ action: 'takeover_offer', decision_id: 'd_5' }))
+    await s.brain.tick()
+    expect(s.ringCalls.at(-1)).toEqual(['clear', 'ended'])
+
+    const t = await setup(decision())
+    await t.brain.tick()
+    t.ended() // the worker pressed Stop: the ring is gone on its own
+    await t.brain.tick() // the (repeating) engine says the same thing: not drawn again
+    expect(t.ringCalls.filter((c) => c[0] === 'point')).toHaveLength(1)
+  })
+
+  it('posts followed and dismissed (and only those, only for prompts that were really drawn, only for the brain\'s own decisions) and keeps what the engine said', async () => {
     const s = await setup(decision())
     const end = (how: Parameters<typeof s.brain.onPromptEnd>[0]['how'], over: Partial<Parameters<typeof s.brain.onPromptEnd>[0]> = {}) => s.brain.onPromptEnd({ ref: 'd_1', how, shown: true, ...over })
     end('followed')
@@ -220,6 +287,7 @@ describe('coach brain: rings by zone, and the worker\'s response goes to /coach/
       { decision_id: 'd_1', outcome: 'dismissed' },
       { decision_id: 'd_1', outcome: 'dismissed' },
     ])
+    expect(s.brain.status().lastFeedback).toMatchObject({ decisionId: 'd_1', ok: true, recorded: true })
   })
 
   it('stopped means no ring and no question; an engine that is down keeps what is there and never throws', async () => {
@@ -235,6 +303,14 @@ describe('coach brain: rings by zone, and the worker\'s response goes to /coach/
     expect(down.ringCalls).toHaveLength(0)
   })
 
+  it('tells the chip which level and fade the engine is acting at (study mode included), every time it answers', async () => {
+    const s = await setup(decision({ level: 'L1', chip: 'full' }))
+    const hints: unknown[] = []
+    const brain = createCoachBrain({ engine: createEngineClient({ endpoints: { engine: s.engine.url, agent: s.engine.url }, identity: ID, ...noTimers }), state: () => ({ task: task(1), level: 4, chip: 'gone', message: '' }), ring: { point: () => undefined, clear: () => undefined, followed: () => undefined, current: () => null }, chip: { setDecisionHint: (h) => void hints.push(h), refresh: () => 'full' }, immediate: false, ...noTimers })
+    await brain.tick()
+    expect(hints).toEqual([{ fade: 'full', level: 1 }])
+  })
+
   it('outcomeFor maps only the worker\'s own responses', () => {
     expect(['followed', 'user', 'stop', 'replaced', 'stale', 'ended'].map((h) => outcomeFor(h as never))).toEqual(['followed', 'dismissed', 'dismissed', null, null, null])
   })
@@ -244,8 +320,16 @@ describe('feedback goes to the engine whatever the capture preference says', () 
   it('client.coachFeedback posts decision_id and outcome', async () => {
     const engine = await fakeServer(() => ({ status: 200, body: {} }))
     const client = createEngineClient({ endpoints: { engine: engine.url, agent: engine.url }, identity: ID, ...noTimers })
-    expect(await client.coachFeedback('d_9', 'dismissed')).toBe(true)
+    expect(await client.coachFeedback('d_9', 'dismissed')).toEqual({ ok: true, recorded: null, note: null })
     expect(engine.requests[0]).toEqual({ method: 'POST', path: '/coach/feedback', body: { decision_id: 'd_9', outcome: 'dismissed' } })
+  })
+
+  it('reads whether the engine recorded it, and says so plainly when the engine did not answer', async () => {
+    const engine = await fakeServer(() => ({ status: 200, body: { decision_id: 'd_9', outcome: 'followed', recorded: false, note: 'already recorded' } }))
+    const client = createEngineClient({ endpoints: { engine: engine.url, agent: engine.url }, identity: ID, ...noTimers })
+    expect(await client.coachFeedback('d_9', 'followed')).toEqual({ ok: true, recorded: false, note: 'already recorded' })
+    await engine.close()
+    expect(await client.coachFeedback('d_9', 'followed')).toEqual({ ok: false, recorded: null, note: null })
   })
 })
 

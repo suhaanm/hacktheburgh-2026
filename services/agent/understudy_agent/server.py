@@ -23,9 +23,10 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from . import golden
-from .compile import load_bundles
-from .handoff_io import ENGINE_URL, EngineClient, consent_allows, read_consent
+from .compile import bundles_by_site
+from .handoff_io import EngineClient, consent_allows, engine_url, read_consent
 from .offhours import morning_report
+from .sandbox_sites.lock import SandboxBusy, acquire as lock_acquire, read_owner, release as lock_release
 from .shadow import BackgroundRunner, ConsentRefused, ShadowRunner
 from .audit import AuditLog
 from .models import get_model_port, mock_enabled
@@ -39,6 +40,7 @@ from .supervisor import HumanInputSignal, KillSwitchActive, Supervisor, TaskCont
 from .tiers.heuristic import HeuristicModelPort
 
 PORT = 7710
+LOCK_PREFIX = "agent-service:"
 TERMINAL_STATES = {"done", "failed", "stopped", "paused"}
 
 
@@ -79,10 +81,56 @@ def _model_for(mode: str):
     return HeuristicModelPort(port) if getattr(port, "name", "") == "mock" else port
 
 
+class ApiError(Exception):
+    def __init__(self, status: int, code: str, message: str) -> None:
+        super().__init__(message)
+        self.status, self.code, self.message = status, code, message
+
+
+class Lease:
+    """The shared sandbox lock, held for one run and released exactly once, when the worker is done."""
+
+    def __init__(self, owner: str) -> None:
+        self.owner = owner
+        self.started = threading.Event()
+        self._released = threading.Event()
+
+    def release(self) -> None:
+        if not self._released.is_set():
+            self._released.set()
+            try:
+                lock_release(self.owner)
+            except RuntimeError:
+                pass
+
+    @property
+    def released(self) -> bool:
+        return self._released.is_set()
+
+
+def watch_lease(handle: Any, lease: Lease) -> None:
+    """Frees the lock if the worker never started (superseded before its turn) or was abandoned after a stop."""
+
+    def run() -> None:
+        handle.wait()
+        t0 = time.time()
+        while not lease.released:
+            if not lease.started.is_set() and time.time() - t0 > 0.5:
+                lease.release()
+                return
+            if time.time() - t0 > 15.0:
+                lease.release()
+                return
+            time.sleep(0.05)
+
+    threading.Thread(target=run, daemon=True, name="lease-watch").start()
+
+
 def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bool | None = None,
                supervisor: Supervisor | None = None, queue: ApprovalQueue | None = None,
-               audit: AuditLog | None = None) -> FastAPI:
+               audit: AuditLog | None = None, shared_sites: bool | None = None) -> FastAPI:
     urls = base_urls or site_base_urls()
+    shared = (base_urls is None) if shared_sites is None else shared_sites   # the sites on 7801-7803, used by others too
     human = (supervisor.human_input if supervisor is not None and supervisor.human_input else HumanInputSignal())
     sup = supervisor or Supervisor(human_input=human)
     if sup.human_input is None:
@@ -124,6 +172,33 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
 
     def err(status: int, code: str, message: str) -> JSONResponse:
         return JSONResponse({"error": {"code": code, "message": message}}, status_code=status)
+
+    @app.exception_handler(ApiError)
+    async def _api_err(_, exc: ApiError) -> JSONResponse:
+        return err(exc.status, exc.code, exc.message)
+
+    def busy_message(owner_fallback: str = "another process") -> str:
+        cur = read_owner()
+        who = f"'{cur['owner']}' (pid {cur['pid']})" if cur else owner_fallback
+        return f"The calculator sites are in use by {who}. Try again when it finishes."
+
+    def lease_for(owner: str) -> Lease | None:
+        """Take the shared sandbox lock for a run (no waiting). A newer run of this service replaces the older one."""
+        if not shared:
+            return None
+        try:
+            lock_acquire(owner, timeout_s=0)
+        except SandboxBusy:
+            cur = read_owner()
+            if cur and str(cur.get("owner", "")).startswith(LOCK_PREFIX) and cur.get("pid") == os.getpid():
+                sup.stop("replaced by a newer run")          # the supervisor replaces the running run; let it let go
+                try:
+                    lock_acquire(owner, timeout_s=3.0)
+                except SandboxBusy:
+                    raise ApiError(409, "sandbox_busy", busy_message()) from None
+            else:
+                raise ApiError(409, "sandbox_busy", busy_message())
+        return Lease(owner)
 
     @app.exception_handler(HTTPException)
     async def _http_err(_, exc: HTTPException) -> JSONResponse:  # contract: plain {"error": {code, message}}
@@ -198,18 +273,33 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
         run = BenefitsRun(rec.run_id, h, model=model, base_urls=urls, queue=queue, audit=audit, options=opts,
                           on_event=rec.events.append)
         rec.run = run
+        try:
+            lease = lease_for(LOCK_PREFIX + rec.run_id)
+        except ApiError:
+            runs.pop(rec.run_id, None)
+            raise
 
         def work(ctx: TaskContext) -> None:
-            run.is_current = ctx.is_current
-            res = run_async(run.execute())
-            if ctx.is_current() or res.state == "stopped":
-                finish(rec, res.as_dict())
+            if lease:
+                lease.started.set()
+            try:
+                run.is_current = ctx.is_current
+                res = run_async(run.execute())
+                if ctx.is_current() or res.state == "stopped":
+                    finish(rec, res.as_dict())
+            finally:
+                if lease:
+                    lease.release()
 
         try:
             rec.handle = sup.submit(work, name="benefits", run_id=rec.run_id, deadline_s=opts.deadline_s)
         except KillSwitchActive:
+            if lease:
+                lease.release()
             runs.pop(rec.run_id, None)
             raise HTTPException(423, "the kill switch is set; clear it first") from None
+        if lease:
+            watch_lease(rec.handle, lease)
         rec.generation = rec.handle.generation
         return {"run_id": rec.run_id}
 
@@ -295,9 +385,13 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
             raise HTTPException(409, "this run has no note waiting for approval")
         if rec.cached:
             raise HTTPException(409, "a cached run has no live case note to submit")
-        out = await finalize(run_id, res["note_id"], res["queue_id"], model=_model_for(rec.mode), base_url_a=urls["a"],
-                             queue=queue, audit=audit)
-        return out
+        lease = lease_for(f"{LOCK_PREFIX}finalize:{run_id}")
+        try:
+            return await finalize(run_id, res["note_id"], res["queue_id"], model=_model_for(rec.mode),
+                                  base_url_a=urls["a"], queue=queue, audit=audit)
+        finally:
+            if lease:
+                lease.release()
 
     # ------------------------------------------------------------------ kill
     @app.post("/kill")
@@ -327,19 +421,29 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
         ok, why = consent_allows(read_consent(routine_id), kind)
         if not ok:
             raise HTTPException(409, f"not started: {why}")
-        bundles = load_bundles(routine_id)
-        if not bundles:
-            raise HTTPException(404, f"no compiled routine {routine_id!r} on this machine (data/routines/{routine_id}/steps.json)")
-        by_site = {k: v for k, v in bundles.items() if k != "primary"} or {"a": bundles["primary"]}
+        by_site = bundles_by_site(routine_id)
+        if not by_site:
+            raise HTTPException(404, f"no compiled routine {routine_id!r} on this machine (data/routines/{routine_id}/steps.json); "
+                                     "install the demo bundle: uv run python -m understudy_agent.demo_bundle install")
         h = pick_household(RunIn(household_id=body.household_id))
         rec = RunRecord(run_id="r_" + os.urandom(4).hex(), mode=body.mode, household_id=h.id)
+        lease = lease_for(LOCK_PREFIX + rec.run_id)    # 409 sandbox_busy before anything is registered
         runs[rec.run_id] = rec
         model = _model_for("mock" if mock_enabled() else "live")
-        engine = EngineClient(ENGINE_URL)
+        engine = EngineClient(engine_url())
         if body.mode == "shadow":
             from .tiers.browser import BrowserHost
 
             def work_shadow(ctx: TaskContext) -> None:
+                if lease:
+                    lease.started.set()
+                try:
+                    _shadow_body(ctx)
+                finally:
+                    if lease:
+                        lease.release()
+
+            def _shadow_body(ctx: TaskContext) -> None:
                 async def go() -> dict[str, Any]:
                     async with BrowserHost() as host:
                         sr = ShadowRunner(routine_id, by_site, model=model, engine=engine, audit=audit, queue=queue,
@@ -352,14 +456,26 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
                 finish(rec, run_async(go()))
 
             rec.handle = sup.submit(work_shadow, name="shadow", run_id=rec.run_id, deadline_s=120.0)
+            if lease:
+                watch_lease(rec.handle, lease)
         else:
             br = BackgroundRunner(routine_id, supervisor=sup, human_input=human, model=model, bundles=by_site,
                                   base_urls=urls, audit=audit, queue=queue, engine=engine)
             try:
-                rec.handle = br.start(h, run_id=rec.run_id)
+                rec.handle = br.start(h, run_id=rec.run_id, on_start=lease.started.set if lease else None,
+                                      on_finish=lease.release if lease else None)
             except ConsentRefused as exc:
+                if lease:
+                    lease.release()
                 runs.pop(rec.run_id, None)
                 raise HTTPException(409, str(exc)) from None
+            except Exception:
+                if lease:
+                    lease.release()
+                runs.pop(rec.run_id, None)
+                raise
+            if lease:
+                watch_lease(rec.handle, lease)
             rec.run = None
 
             def after(handle: Any = rec.handle) -> None:

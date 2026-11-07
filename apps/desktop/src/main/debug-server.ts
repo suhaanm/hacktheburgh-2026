@@ -16,13 +16,13 @@ export interface DebugDeps {
   dispatch: Dispatch
   session: SessionController
   // Optional window capture helpers (Electron only); absent in unit tests.
-  capture?: { overlayPng(): Promise<Buffer | null>; dockPng(): Promise<Buffer | null>; hudPng?(): Promise<Buffer | null> }
+  capture?: { overlayPng(): Promise<Buffer | null>; overlayText?(): Promise<string | null>; dockPng(): Promise<Buffer | null>; hudPng?(): Promise<Buffer | null> }
   // Understudy: kill switch, HUD and model port inspection (dev only, like the rest of this surface).
   understudy?: {
     kill: Pick<import('./kill-switch').KillSwitch, 'trigger' | 'clear' | 'state'>
     hud?: Pick<import('./hud-model').HudModel, 'state' | 'setProposal' | 'setQueuePending'>
     // DOM-first grounding and the coach chip, for looking at them while the app runs.
-    dom?: { status(): { port: number | null; pending: number; extensionSeenMs: number | null; ring: unknown; chip: unknown; capture: string } }
+    dom?: { status(): { port: number | null; pending: number; extensionSeenMs: number | null; ring: unknown; chip: unknown; capture: string; coach?: unknown } }
   }
   // SHELL: the menu-bar item (absent when headless).
   tray?: Pick<ShellTray, 'info' | 'activate' | 'primaryClick'>
@@ -155,6 +155,13 @@ export function startDebugServer(deps: DebugDeps): http.Server {
           if (!deps.understudy?.hud) return send(404, { error: 'no HUD' })
           return send(200, deps.understudy.hud.state())
         }
+        case 'POST /theme': {
+          // Dev only: make every window follow light or dark, to look at the HUD and the chip in both.
+          const body = z.object({ mode: z.enum(['light', 'dark', 'system']) }).parse(await readJson(req))
+          const { nativeTheme } = await import('electron')
+          nativeTheme.themeSource = body.mode
+          return send(200, { themeSource: nativeTheme.themeSource, dark: nativeTheme.shouldUseDarkColors })
+        }
         case 'GET /dom': {
           if (!deps.understudy?.dom) return send(404, { error: 'no DOM grounding' })
           return send(200, deps.understudy.dom.status())
@@ -174,6 +181,10 @@ export function startDebugServer(deps: DebugDeps): http.Server {
         case 'GET /model': {
           const { lastBootReport } = await import('./model-port')
           return send(200, { provider: ctx.modelPort?.provider ?? null, models: ctx.modelPort?.models() ?? null, boot: lastBootReport() })
+        }
+        case 'GET /overlay/text': {
+          const text = await deps.capture?.overlayText?.()
+          return text === null || text === undefined ? send(404, { error: 'window not available' }) : send(200, { text })
         }
         case 'GET /overlay.png':
         case 'GET /hud.png':

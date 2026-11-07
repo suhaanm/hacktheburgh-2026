@@ -23,7 +23,7 @@ from understudy_engine.eval.adapters import NotLanded, SectionSpec, owner_attr
 from understudy_engine.eval.meta import make_meta
 
 REPO = Path(__file__).resolve().parents[4]
-FAST_CORE = ["deficit_recovery", "null_placebo", "routing", "ski_rental", "agent_claims", "agent_runs", "redteam", "study"]
+FAST_CORE = ["deficit_recovery", "null_placebo", "routing", "ski_rental", "agent_claims", "agent_runs", "redteam", "redteam_live", "study_power", "study"]
 NOW = "2026-11-07T15:00:00Z"
 
 
@@ -92,12 +92,6 @@ def test_a_section_that_raises_is_failed_loudly_and_the_others_still_run(monkeyp
 def test_unknown_section_name_is_an_error():
     with pytest.raises(ValueError, match="unknown section"):
         build_report(sections=["nope"], regenerate=False)
-
-
-def test_live_redteam_stays_pending_offline(synthetic_data):
-    rep = build_report(sections=["redteam_live"], now=NOW, regenerate=False, log=lambda m: None)
-    s = rep["sections"]["redteam_live"]
-    assert s["status"] == "pending" and ("real model" in s["reason"] or "agent-safety not landed" in s["reason"])
 
 
 # ---------------------------------------------------------------------------------------------------------- the study
@@ -333,7 +327,7 @@ def test_two_processes_with_different_hash_seeds_give_identical_numbers(syntheti
         out = tmp_path / f"r{k}.json"
         env = dict(os.environ, PYTHONHASHSEED=hs, UNDERSTUDY_MOCK="1")
         p = subprocess.run([sys.executable, "-m", "understudy_engine.eval", "--fast", "--no-generate", "--no-md", "--sections",
-                            "deficit_recovery,null_placebo,ski_rental,routing,agent_claims,agent_runs,redteam,study", "--out", str(out)],
+                            "deficit_recovery,null_placebo,ski_rental,routing,agent_claims,agent_runs,redteam,redteam_live,study_power,study", "--out", str(out)],
                            capture_output=True, text=True, env=env, cwd=str(REPO), timeout=300)
         assert p.returncode == 0, p.stderr[-2000:]
         outs.append(deterministic_view(json.loads(out.read_text())))

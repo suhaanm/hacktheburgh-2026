@@ -13,14 +13,31 @@ write the owner's real ``~/.understudy``. Everything goes through the same code 
   the first case range where the learner's own ENTER_HOUSEHOLD level is L4, so the skill gate agrees with the memory file;
 * three consistent corrections already recorded, so one rule proposal is waiting for the worker's approval.
 
-``--reset`` wipes only the files this seed made in that home (and only if the home carries the demo marker or is empty).
-Re-running without ``--reset`` changes nothing.
+The shared data directory is isolated too. ``make demo`` must set::
+
+    UNDERSTUDY_HOME=$(CURDIR)/data/demo-home
+    UNDERSTUDY_DATA_DIR=$(CURDIR)/data/demo-data
+    UNDERSTUDY_MOCK=1
+
+``data/demo-data`` holds read-only symlinks to ``../synthetic``, ``../golden``, ``../voice_cache`` and ``../eval`` and its own
+fresh ``queue/``, ``runs/``, ``routines/`` and ``audit.jsonl``, seeded with a morning story built through the agent's public
+classes: two pending approvals from last night's background run (an irreversible "Submit case note" with evidence and a shadow
+mismatch), a few audit lines, one earlier run folder with four screenshots, and one run that yielded when the worker came back.
+The seed then calls ``understudy_agent.demo_bundle.install()`` (skipped with a note if absent) so the compiled bundle
+``routines/calc-entry-3x/steps.json`` exists. A data directory that is not the demo one (named ``demo-data`` or carrying the
+demo marker) is never written: the seed says so and skips that part.
+
+``--reset`` wipes only what this seed made (in the home: only if it carries the demo marker or is empty; in the data directory:
+queue, runs, routines, audit log and kill flag of the demo directory). Re-running without ``--reset`` changes nothing.
 """
 from __future__ import annotations
 
 import argparse
 import os
+import shutil
+import struct
 import sys
+import zlib
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -37,16 +54,20 @@ DEMO_ROLE = "benefits-processor"
 DEMO_ROUTINE = "calc-entry-3x"
 ROUTINE_SOURCE = "p_ninetofive"
 MARKER = ".understudy-demo-home"
+DATA_MARKER = ".understudy-demo-data"
+STORY_MARKER = ".demo-story"
 STATE_FILES = ("memory.md", "memory_state.json", "routines_state.json", ".memory.lock")
-ROUTINE_FILES = ("consent.json", "shadow_log.jsonl", "recording.json")
+LINKS = ("synthetic", "golden", "voice_cache", "eval")
+EARLIER_RUNS = ("r_demo_0001", "r_demo_0002")
 
 
 class DemoError(RuntimeError):
     pass
 
 
-def _routine_dirs() -> Path:
-    return data_dir() / "routines" / DEMO_ROUTINE
+def is_demo_data_dir(p: Path) -> bool:
+    """Only a directory called demo-data, or one carrying the demo marker, may be written."""
+    return p.name == "demo-data" or (p / DATA_MARKER).exists()
 
 
 def reset_home(home: Path, out: Callable[[str], None]) -> None:
@@ -58,20 +79,157 @@ def reset_home(home: Path, out: Callable[[str], None]) -> None:
         if f.exists():
             f.unlink()
             removed.append(name)
-    for name in ROUTINE_FILES:  # side files the consent flow wrote for the demo routine; compiled bundles (steps.json) are never touched
-        f = _routine_dirs() / name
-        if f.exists():
+    out(f"reset home: removed {', '.join(removed) if removed else 'nothing (already empty)'}")
+
+
+def reset_data(dd: Path, out: Callable[[str], None]) -> None:
+    """Empty the demo data directory's own folders. Symlinks to the shared data are unlinked, never followed."""
+    removed = []
+    for name in ("queue", "runs", "routines"):
+        d = dd / name
+        if d.is_symlink():
+            d.unlink()
+        elif d.exists():
+            shutil.rmtree(d)
+        else:
+            continue
+        removed.append(name + "/")
+    for name in ("audit.jsonl", "KILL", STORY_MARKER):
+        f = dd / name
+        if f.exists() or f.is_symlink():
             f.unlink()
-            removed.append(f"routines/{DEMO_ROUTINE}/{name}")
-    out(f"reset: removed {', '.join(removed) if removed else 'nothing (already empty)'}")
+            removed.append(name)
+    out(f"reset data: removed {', '.join(removed) if removed else 'nothing (already empty)'}")
 
 
-def seed(*, reset: bool = False, now: datetime | None = None, out: Callable[[str], None] = print) -> dict[str, Any]:
+def prepare_data_dir(dd: Path, out: Callable[[str], None]) -> list[str]:
+    """Create the demo data directory: marker, relative symlinks to the shared folders that exist, empty working folders."""
+    dd.mkdir(parents=True, exist_ok=True)
+    (dd / DATA_MARKER).write_text("created by understudy_engine.demo seed; holds demo data only\n")
+    linked = []
+    for name in LINKS:
+        target = dd.parent / name
+        link = dd / name
+        if not target.exists():
+            continue
+        if link.is_symlink() or link.exists():
+            if link.is_symlink() and os.readlink(link) == f"../{name}":
+                linked.append(name)
+                continue
+            if link.is_symlink():
+                link.unlink()
+            else:
+                continue  # a real folder someone put there: leave it alone
+        link.symlink_to(f"../{name}")
+        linked.append(name)
+    for sub in ("queue", "runs", "routines"):
+        (dd / sub).mkdir(exist_ok=True)
+    (dd / "audit.jsonl").touch(exist_ok=True)
+    out(f"data dir: {dd} (demo data dir); linked {', '.join(linked) or 'nothing'} from {dd.parent}")
+    return linked
+
+
+def placeholder_png(width: int, height: int, rgb: tuple[int, int, int], label_bar: tuple[int, int, int] | None = None) -> bytes:
+    """A small valid PNG (solid colour with a darker top bar) for a screenshot stand-in. No imaging library needed."""
+    rows = []
+    for y in range(height):
+        c = label_bar if (label_bar and y < height // 9) else rgb
+        rows.append(b"\x00" + bytes(c) * width)
+
+    def chunk(tag: bytes, data: bytes) -> bytes:
+        return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
+
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)) +
+            chunk(b"IDAT", zlib.compress(b"".join(rows), 6)) + chunk(b"IEND", b""))
+
+
+def seed_story(dd: Path, now: datetime, out: Callable[[str], None]) -> dict[str, Any]:
+    """Last night's background run, as the morning queue and report show it. Built only through the agent's public classes."""
+    try:
+        from understudy_agent.audit import AuditLog
+        from understudy_agent.queue import ApprovalQueue, save_screenshot
+    except ImportError as e:
+        out(f"morning story skipped: the agent package is not importable ({e})")
+        return {"story": False}
+    if os.environ.get("UNDERSTUDY_DATA_DIR") and Path(os.environ["UNDERSTUDY_DATA_DIR"]).expanduser().resolve() != dd.resolve():
+        raise DemoError("UNDERSTUDY_DATA_DIR changed while seeding; refusing to write the story.")
+    clock = {"t": now - timedelta(hours=8)}
+    audit = AuditLog(dd / "audit.jsonl", clock=lambda: clock["t"], fsync=False)
+    queue = ApprovalQueue(dd / "queue", audit=audit, clock=lambda: clock["t"].timestamp())
+    gold = dd / "golden" / "screenshots"
+    shots = []
+    for i in range(1, 5):
+        src = gold / f"s{i}.png"
+        png = src.read_bytes() if src.exists() else placeholder_png(640, 360, (236 - 18 * i, 240 - 14 * i, 246 - 10 * i), (60, 80, 110))
+        shots.append(save_screenshot(EARLIER_RUNS[0], i, png))
+    base = clock["t"]
+
+    def at(minutes: float) -> None:
+        clock["t"] = base + timedelta(minutes=minutes)
+
+    r1, r2, routine = EARLIER_RUNS[0], EARLIER_RUNS[1], "benefits-workflow"
+    at(0)
+    audit.append("agent", "run_start", routine=routine, run_id=r1, tier=1, outcome="started", note_code="household:hh_0004")
+    at(1)
+    audit.append("agent", "step", routine=routine, run_id=r1, tier=1, outcome="ok", note_code="step:enter_household")
+    at(4)
+    audit.append("agent", "tier_escalation", routine=routine, run_id=r1, tier=2, outcome="ok", note_code="precondition:calculator_layout")
+    at(8)
+    audit.append("agent", "gate", routine=routine, run_id=r1, tier=1, outcome="pending", note_code="gate:irreversible:submit")
+    submit = queue.enqueue(
+        kind="irreversible_step", title="Submit case note CN-2041", summary="The three calculators agree. The note is written and waiting for your click.",
+        risk_class="irreversible", routine_id=None, run_id=r1,
+        evidence={"screenshots": shots[2:4], "extracted": {"case_ref": "CN-2041", "calculators_agree": True, "note_fields": 6},
+                  "expected": {"case_ref": "CN-2041", "calculators_agree": True}, "diff": [],
+                  "tier_log": [{"step": 1, "tier": 1}, {"step": 3, "tier": 2}, {"step": 5, "tier": 1}]},
+        signature="submit_case_note:CN-2041")
+    at(9)
+    mismatch = queue.enqueue(
+        kind="shadow_mismatch", title="Shadow run differed from yours", summary="Calculator B gave 214 where your entry gave 241. Nothing was saved.",
+        risk_class="normal", routine_id="result-to-note", run_id=r1,
+        evidence={"screenshots": shots[1:2], "extracted": {"calculator_b_total": 214}, "expected": {"calculator_b_total": 241},
+                  "diff": [{"field": "calculator_b_total", "expected": 241, "got": 214}], "tier_log": [{"step": 2, "tier": 1}]})
+    at(11)
+    audit.append("system", "completion_check", routine=routine, run_id=r1, outcome="ok", note_code="goal_tokens:all_present")
+    at(12)
+    audit.append("agent", "run_end", routine=routine, run_id=r1, tier=2, outcome="ok", note_code="stopped_before_submit")
+    at(180)
+    audit.append("agent", "run_start", routine=routine, run_id=r2, tier=1, outcome="started", note_code="household:hh_0007")
+    at(182)
+    audit.append("agent", "yield", routine=routine, run_id=r2, tier=1, outcome="yielded", note_code="human_input")
+    (dd / STORY_MARKER).write_text(now.isoformat() + "\n")
+    out(f"morning story: 2 pending approvals ({submit['kind']}, {mismatch['kind']}), {len(audit.read(limit=0))} audit lines, "
+        f"earlier run {r1} with {len(shots)} screenshots, run {r2} that yielded when the worker came back")
+    return {"story": True, "queue": [submit["id"], mismatch["id"]], "audit_lines": len(audit.read(limit=0)), "run": r1, "screenshots": shots}
+
+
+def install_demo_bundle(dd: Path, out: Callable[[str], None]) -> str | None:
+    """Agent-core's compiled bundle for calc-entry-3x. Lazy: skipped with a note when their module is absent."""
+    try:
+        from understudy_agent import demo_bundle
+    except ImportError:
+        out("demo bundle skipped: understudy_agent.demo_bundle is not available yet (steps.json not installed)")
+        return None
+    try:
+        res = demo_bundle.install()
+    except Exception as e:  # their installer failing must not undo the rest of the seed
+        out(f"demo bundle FAILED: {type(e).__name__}: {str(e)[:160]}")
+        return None
+    steps = dd / "routines" / DEMO_ROUTINE / "steps.json"
+    out(f"demo bundle installed: {steps} {'exists' if steps.exists() else 'is MISSING'}" + (f" ({res})" if isinstance(res, (str, int)) else ""))
+    return str(steps) if steps.exists() else None
+
+
+def seed(*, reset: bool = False, now: datetime | None = None, out: Callable[[str], None] = print, bundle: bool = True) -> dict[str, Any]:
     if not os.environ.get("UNDERSTUDY_HOME"):
         raise DemoError("UNDERSTUDY_HOME is not set. I will not touch the default ~/.understudy; set UNDERSTUDY_HOME (make demo uses data/demo-home).")
     home = home_dir()
+    dd = data_dir().resolve()
+    demo_data = is_demo_data_dir(dd)
+    if demo_data:
+        prepare_data_dir(dd, lambda m: None)
     for slug in ("learners", "nine-to-five"):
-        if not (data_dir() / "synthetic" / slug / "events.jsonl").exists():
+        if not (dd / "synthetic" / slug / "events.jsonl").exists():
             raise DemoError(f"synthetic data is missing ({slug}). Run `uv run understudy synth --all` first.")
     home.mkdir(parents=True, exist_ok=True)
     out(f"state home: {home}")
@@ -80,11 +238,36 @@ def seed(*, reset: bool = False, now: datetime | None = None, out: Callable[[str
     store = MemoryStore(home)
     if (home / "memory.md").exists() and not (home / MARKER).exists():
         raise DemoError(f"{home} already holds a memory file that is not a demo seed. Use an empty directory (or a demo home with --reset).")
+    if demo_data:
+        if reset:
+            reset_data(dd, out)
+        prepare_data_dir(dd, out)
+    else:
+        out(f"data dir {dd} is not a demo data dir (call it demo-data, e.g. UNDERSTUDY_DATA_DIR=data/demo-data): I will not write the morning "
+            "queue, audit log or routine bundle there.")
+    result = _seed_home(store, home, reset, now, out)
+    if demo_data:
+        t = now or datetime.now(timezone.utc)
+        if (dd / STORY_MARKER).exists():
+            out("morning story: already seeded; nothing changed.")
+        else:
+            result.update(seed_story(dd, t, out))
+        if bundle:
+            result["bundle"] = install_demo_bundle(dd, out)
+        else:
+            result["bundle"] = None
+            out("demo bundle: not requested (--no-bundle); steps.json not installed")
+        out("done. Start the engine and the agent with the same UNDERSTUDY_HOME, UNDERSTUDY_DATA_DIR and UNDERSTUDY_MOCK=1 to run the demo.")
+    elif result.get("seeded"):
+        out("done (home only). Start the engine with this UNDERSTUDY_HOME to run the demo.")
+    return result
+
+
+def _seed_home(store: MemoryStore, home: Path, reset: bool, now: datetime | None, out: Callable[[str], None]) -> dict[str, Any]:
     st = store.load_state()
     if (st.get("demo") or {}).get("seeded"):
-        out(f"already seeded (memory revision {store.revision()}); nothing changed. Use --reset to start over.")
+        out(f"already seeded (memory revision {store.revision()}); nothing changed in the home. Use --reset to start over.")
         return {"seeded": False, "revision": store.revision(), "person": (st.get("profile") or {}).get("person")}
-
     t = now or datetime.now(timezone.utc)
     (home / MARKER).write_text("created by understudy_engine.demo seed; safe to reset\n")
 
@@ -143,7 +326,6 @@ def seed(*, reset: bool = False, now: datetime | None = None, out: Callable[[str
         problems.append("no rule proposal")
     if problems:
         raise DemoError("seeded, but the state is not what the demo needs: " + "; ".join(problems))
-    out("done. Start the engine with this UNDERSTUDY_HOME to run the demo.")
     return {"seeded": True, "revision": store.revision(), "person": DEMO_PERSON, "routine": routine["id"], "proposal": prop["id"],
             "coach": {"level": coach["level"], "chip": coach["chip"], "case": coach.get("case")}}
 
@@ -162,13 +344,14 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m understudy_engine.demo", description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     sp = sub.add_parser("seed", help="populate the isolated demo state home named by UNDERSTUDY_HOME")
-    sp.add_argument("--reset", action="store_true", help="wipe the demo files in that home first")
+    sp.add_argument("--reset", action="store_true", help="wipe the demo files in the home and the demo data dir first")
+    sp.add_argument("--no-bundle", action="store_true", help="do not call understudy_agent.demo_bundle.install() (tests, or no browsers installed)")
     sub.add_parser("status", help="show what the home holds")
     args = ap.parse_args(argv)
     try:
         if args.cmd == "status":
             return status()
-        seed(reset=args.reset)
+        seed(reset=args.reset, bundle=not args.no_bundle)
         return 0
     except DemoError as e:
         print(f"error: {e}", file=sys.stderr)

@@ -39,6 +39,8 @@ import type { AxResolve } from './ax-resolver'
 import { proposeNext, type Proposal, type ProposeRequest, type ProposedStep } from './computer-use'
 import { ActionLimiter, evaluateAction, evaluateGoal, goalAcceptsCookies, MAX_ACTIONS_PER_TASK, normaliseKeys, riskWords, stripNegatedClauses, type ProposedAction, type ReturnFacts } from './policy'
 import type { DoneForMeSink } from './open-for-me'
+import type { ActTarget } from '../actuator'
+import { aspectMatches } from '../actuator/mapping'
 import { checkScope, isBrowser, isOwnApp, scopeFromGoal, type FrontApp, type ReadFocus, type ScopeState } from './scope'
 
 export const MAX_TASK_MS = 120_000
@@ -469,6 +471,15 @@ export function createActForMe(deps: AgencyDeps, sit: Situation, doneForMe: Done
         if (stopped()) return stopResult(done)
       }
 
+      // A click or scroll computed from a screenshot of the wrong shape (another display, a crop) would land somewhere else: refuse.
+      if ((step.tool === 'click' || step.tool === 'double_click' || step.tool === 'scroll') && !actuator.status().dryRun) {
+        const d = actuator.displayInfo?.()
+        if (d && !aspectMatches(fresh, d)) {
+          clearScreen()
+          await audit({ decision: 'blocked', ok: false, code: 'blocked', label: 'display shape', step: done })
+          return result('blocked', false, false, `The screenshot does not have the shape of the display, so I stopped instead of guessing where to ${step.tool === 'scroll' ? 'scroll' : 'click'}. Steps done so far: ${done}.`, { steps: done })
+        }
+      }
       const r = await perform(target)
       prevWasClick = step.tool === 'click' || step.tool === 'double_click'
       if (!r.ok) {
@@ -500,7 +511,7 @@ export function createActForMe(deps: AgencyDeps, sit: Situation, doneForMe: Done
       let how = ''
       // Typed text that did not show up: the keystrokes may have gone elsewhere. Retry ONCE by pasting (clipboard restored), and say so.
       if (!changed && step.tool === 'type' && actuator.pasteText && !stopped()) {
-        const pr = await actuator.pasteText(step.text ?? '')
+        const pr = await actuator.pasteText(step.text ?? '', { target: actTarget() })
         how = pr.ok ? ' (typing did not show, so I pasted the text once)' : ' (typing did not show and pasting failed)'
         await audit({ decision: 'allowed', ok: pr.ok, code: pr.ok ? 'step' : 'failed', label: 'type: paste fallback', step: done })
         if (pr.ok) {
@@ -533,18 +544,26 @@ export function createActForMe(deps: AgencyDeps, sit: Situation, doneForMe: Done
     }
     return result('gave_up', true, false, 'I stopped without finishing. Show the learner the rest.', { steps: done })
 
+    // The app this task is about, for the actuator's target guard: any browser for a web task, else the one named or first-seen app.
+    function actTarget(): ActTarget | undefined {
+      if (scopeState.scope.kind === 'browser') return { browser: true }
+      const app = scopeState.target ?? scopeState.scope.app
+      return app ? { app } : undefined
+    }
+
     async function perform(step: ProposedStep): Promise<ActResult> {
+      const target = actTarget()
       switch (step.tool) {
         case 'click':
-          return actuator.clickAt(step.point as NormPoint)
+          return actuator.clickAt(step.point as NormPoint, { target })
         case 'double_click':
-          return actuator.clickAt(step.point as NormPoint, { double: true })
+          return actuator.clickAt(step.point as NormPoint, { double: true, target })
         case 'type':
-          return actuator.typeText(step.text ?? '')
+          return actuator.typeText(step.text ?? '', { target })
         case 'keys':
-          return actuator.pressKeys(step.keys ?? '')
+          return actuator.pressKeys(step.keys ?? '', { target })
         case 'scroll':
-          return actuator.scroll(step.point as NormPoint, step.dy ?? 0)
+          return actuator.scroll(step.point as NormPoint, step.dy ?? 0, { target })
         case 'wait':
           return { ok: true }
       }

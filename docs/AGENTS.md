@@ -45,3 +45,10 @@ Engine 7700, agent 7710, dashboard 5173, sandbox sites 7801 to 7803. Tests must 
 ## Timeline (Sat 7 Nov 2026, GMT)
 
 Feature freeze **Sun 08:00**. Submission **Sun 12:00**, judging 12:30. Checkpoints: T+6 (about 20:30 Sat) ribbon and heatmap render from synthetic data; T+8 one household end to end; T+12 a planted routine goes from proposal to approved background run; freeze at 08:00.
+
+## Handling owner requests and new tracks (added 7 Nov)
+
+1. The lead logs every owner request in the requests log (`IDEA_BOARD.md`) with an analysis, adds or updates IDs in `SPEC_LIST.md` (status PROPOSED, ACCEPTED, BUILDING, BUILT or CUT) and writes the decision in `DECISIONS.md`, before any agent starts. Questions to the owner are asked first when a decision has legal, privacy or scope consequences.
+2. New work gets a named track with ownership (one writer per path), a brief that cites the spec IDs, tests, an honest evaluation, and an entry in this roster. Planned tracks for REQ-2 (not yet started, pending D24 to D27): `privacy-egress` (`services/engine/understudy_engine/privacy/**`), `local-model` (`.../localmodel/**`), `calendar-routine` (`.../calendar/**`, `.../plugins/**`), `proactive` (`.../proactive/**`), `agent-runtime` (`services/agent/understudy_agent/runtime/**`), `clicky-reuse` (`vendor/clicky/**`, notes), plus dashboard screens (Week, Briefing, Agents, Privacy) by the dashboard track.
+3. Clean-room rule for copyleft sources: if D24 is design-only, the agent that reads a copyleft source writes only a prose design note (no code, no prompt text), and implementers read that note, never the source.
+4. All new layers are flagged off by default (`UNDERSTUDY_X_*`) and must leave `make demo`, `make eval` and the P0 tests unchanged when off.

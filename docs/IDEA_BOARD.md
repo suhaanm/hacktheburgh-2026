@@ -96,3 +96,28 @@ Role packs accept `plugin_refs`: skills from Apache-2.0 plugins as expert proced
 - Can the build laptop stay awake and unlocked for the off-hours demo, and is a second machine available?
 - Which sites, if any, should be on the starter denylist?
 - Does the owner want to ask an organiser about reusing Alongside, or just disclose it in the README?
+
+## Owner requests log
+
+Every request or tweak is logged here first (see SPEC_LIST section 15). Status: PROPOSED, ACCEPTED, BUILDING, BUILT, CUT.
+
+| REQ | Date | Request (short) | Analysis and decision | Spec IDs | Status |
+|---|---|---|---|---|---|
+| REQ-1 | Sat 7 Nov | Simulate the study instead of running it with teammates | D23: Monte Carlo of the design plus simulated participants (language model), never presented as people | EVL-2 variants | BUILDING |
+| REQ-2 | Sat 7 Nov | Study Clicky and Sentient OS (local copies) and lift modules; background agents (parent and child, during requests and overnight, programming, data analysis, creative, via plugins, learned from observation); proactive intelligence; Outlook and Teams plugins and a calendar routine layer with generic suggestions and no data leaks; git analysis and a local model for pre-processing | Analysis in `DECISIONS.md` (REQ-2). Clicky is MIT (lift with notices). Sentient OS is AGPL-3.0 Swift: design-only reimplementation recommended; literal port would make the whole repo AGPL-3.0. Local model feasible (llama.cpp installed, 32 GB). Pending D24 to D27. | PRV, LOC, PLG, CAL, PRO, BGA, GIT, CLK, SOS | ACCEPTED, BUILDING (D24 to D27) |
+| REQ-3 | Sat 7 Nov | Update the spec, feature list and idea board for these and any future requests | Done: SPEC_LIST sections 14 and 15, IMPLEMENTATION_SPEC section 14, this log, `AGENTS.md` process | n/a | BUILT |
+
+## Extensions (REQ-2) cards
+
+| Idea | Tracks | Notes | Status |
+|---|---|---|---|
+| **Egress guard and ledger** | H G | One choke point for anything sent to a remote model; typed payloads only; a Privacy screen that shows exactly what left; canary tests | BUILDING |
+| **Local digest model** (llama.cpp, Qwen2.5-7B Q4_K_M) | H G | Turns raw commits and calendar entries into enum and number digests on this Mac; the frontier model sees digests only; rules fallback; no fine-tuning | BUILDING |
+| **Calendar routine layer and week ribbon** | G H | Expert against learner at the week level; generic suggestions from a fixed catalogue (focus blocks, batching, review slots, auto-hold, off-computer breaks) | BUILDING |
+| **Outlook and Teams adapters** | G | Microsoft Graph, off by default, aggregate-only, fake responses in tests, never run on a real account without the owner's say | BUILDING |
+| **Proactive intelligence** (judge, verify, prepare, press to fire; at most 3 cards) | H W | Design from Sentient OS reimplemented; morning briefing; nothing fires unprompted | BUILDING |
+| **Parent and child background agents** | W | Typed specs, budgets, isolated workspaces, supervisor and safety pipeline; foreground and nightly modes; programming, data and creative exemplars | BUILDING |
+| **Git analysis for the programmer role** | G H | Commit habits, expert against learner on synthetic repos, suggestions through the guard | BUILDING |
+| **Clicky reuse** | W | MIT: plugin manifest, scoped autopilot session policy, post-action verification, confirmation state | BUILDING |
+| Knowledge-work plugin skills as child playbooks | W | Apache-2.0; two skills (data, engineering) | BUILDING |
+| Optional LoRA fine-tune of the local model | H | Not planned: cannot be validated in the time | CUT |

@@ -35,7 +35,11 @@ from .sanitize import safe_label
 from .settings import SettingsGuard
 
 Verdict = Literal["allow", "pause", "needs_human", "block"]
-_BENIGN_FOR_DRIFT = {"screenshot", "wait", "scroll", "move", "scroll_page", "wait_for", "back"}
+# Steps the goal-drift model check is NOT spent on. Reading, waiting and scrolling change nothing. Plain typing or filling a field on the
+# page the run is already on moves nothing outward by itself: layer 5 stops typed data that is tainted or personal from reaching a site
+# the routine did not record, and layer 4 gates the controls that send, submit or delete. Asking a model about every typing step
+# produced false pauses on clean pages (measured: 5 of 93 live runs) and added no protection the other layers lack.
+_BENIGN_FOR_DRIFT = {"screenshot", "wait", "scroll", "move", "scroll_page", "wait_for", "back", "type", "fill", "select_option", "extract"}
 
 
 @dataclass

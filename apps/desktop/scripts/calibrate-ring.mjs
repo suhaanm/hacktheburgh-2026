@@ -33,7 +33,7 @@ const until = async (cond, ms, label) => {
 
 const PAGE = `<!doctype html><meta charset="utf-8"><title>calibration</title>
 <body style="margin:0;height:4000px;background:#ffffff;font:16px system-ui">
-<button id="target" style="position:absolute;left:260px;top:300px;width:300px;height:110px;background:#ff00ff;border:0;border-radius:0;color:#fff;font-size:20px">Calibrate</button>
+<button id="target" data-understudy-zone="cliff_button" style="position:absolute;left:200px;top:160px;width:300px;height:110px;background:#ff00ff;border:0;border-radius:0;color:#fff;font-size:20px">Calibrate</button>
 <button id="below" style="position:absolute;left:260px;top:1900px;width:300px;height:110px;background:#ff00ff;border:0;border-radius:0;color:#fff;font-size:20px">Far below</button>
 </body>`
 const pageServer = createServer((_req, res) => res.writeHead(200, { 'content-type': 'text/html' }).end(PAGE))
@@ -122,7 +122,7 @@ try {
         const scale = width / displayW // image px per point
         const magenta = box((r, g, b) => r > 215 && g < 70 && b > 215)
         // Only look for the ring close to the element: the rest of the screen has plenty of blue.
-        const pad = 45 * scale
+        const pad = 32 * scale
         const near = magenta ? [magenta.x0 - pad, magenta.y0 - pad, magenta.x1 + pad, magenta.y1 + pad] : null
         // The ring (dark casing and blue core) is the only thing near the test button that is neither white page nor the magenta element.
         const ring = near ? box((r, g, b) => 0.299 * r + 0.587 * g + 0.114 * b < 200 && !(r > 150 && b > 150 && g < 120), near) : null
@@ -142,20 +142,46 @@ try {
       { dataUrl, displayW },
     )
   }
-  const predicted = (name) =>
-    page.evaluate((name) => {
-      const el = [...document.querySelectorAll('button')].find((b) => b.textContent === name)
-      const r = el.getBoundingClientRect()
-      // The extension's own recipe for where the viewport sits on the screen: screenX/Y plus the browser chrome above the page.
-      return { x: screenX + r.left, y: screenY + (outerHeight - innerHeight) + r.top, w: r.width, h: r.height }
-    }, name)
+  // Where the element is on the screen by the zoom-aware recipe (points): zoom = dpr / backing scale (2 on this Retina display).
+  const predicted = (name, backing = 2) =>
+    page.evaluate(
+      ({ name, backing }) => {
+        const el = [...document.querySelectorAll('button')].find((b) => b.textContent === name)
+        const r = el.getBoundingClientRect()
+        const z = devicePixelRatio / backing
+        const side = Math.max(0, (outerWidth - innerWidth * z) / 2)
+        const chrome = Math.max(0, outerHeight - innerHeight * z - side)
+        return { x: screenX + side + r.left * z, y: screenY + chrome + r.top * z, w: r.width * z, h: r.height * z, zoom: z }
+      },
+      { name, backing },
+    )
+  // Read-only: which app owns the topmost window at the element's centre (owner name only), to say WHY the element is not in the frame.
+  const ownerAt = async (name) => {
+    const want = await predicted(name)
+    const px = Math.round(want.x + want.w / 2)
+    const py = Math.round(want.y + want.h / 2)
+    return new Promise((resolve) => {
+      const jxa = `ObjC.import('CoreGraphics'); function run(a){var x=+a[0],y=+a[1];var l=ObjC.deepUnwrap(ObjC.castRefToObject($.CGWindowListCopyWindowInfo($.kCGWindowListOptionOnScreenOnly|$.kCGWindowListExcludeDesktopElements,$.kCGNullWindowID)));for(var i=0;i<l.length;i++){var w=l[i],b=w.kCGWindowBounds;if(!b||x<b.X||x>=b.X+b.Width||y<b.Y||y>=b.Y+b.Height)continue;var n=String(w.kCGWindowOwnerName);if(n==='Dock'||n==='Window Server'||w.kCGWindowLayer>0&&b.Width>=1700)continue;return n+' (layer '+w.kCGWindowLayer+')'}return 'none'}`
+      const p = spawn('osascript', ['-l', 'JavaScript', '-e', jxa, '--', String(px), String(py)])
+      let o = ''
+      p.stdout.on('data', (d) => (o += d))
+      p.on('close', () => resolve(o.trim() || 'unknown'))
+    })
+  }
   const measure = async (label, name) => {
+    // Another app's window may have come over the test window (the person is working): ask the browser to raise it, a few times.
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const owner = await ownerAt(name)
+      if (/chrom/i.test(owner)) break
+      await page.bringToFront().catch(() => undefined)
+      await sleep(1200)
+    }
     const jpeg = await (await fetch(`http://127.0.0.1:${DEBUG_PORT}/shot?purpose=live`)).arrayBuffer()
     const display = 1728
     await page.evaluate((v) => (globalThis.__wantCrop = v), Boolean(process.env.CALIB_CROP_DIR))
     const r = await analyse(Buffer.from(jpeg).toString('base64'), display)
     if (r.crop && process.env.CALIB_CROP_DIR) writeFileSync(join(process.env.CALIB_CROP_DIR, `crop-${label.replace(/\W+/g, '-')}.png`), Buffer.from(r.crop.split(',')[1], 'base64'))
-    if (!r.magenta) return { label, error: 'the magenta element was not found in the frame (is the window visible and unobstructed?)' }
+    if (!r.magenta) return { label, error: 'the magenta element was not found in the frame', topmostWindowThere: await ownerAt(name) }
     if (!r.ring) return { label, error: 'no ring pixels found in the frame', magenta: r.magenta }
     const s = r.scale
     const m = r.magenta
@@ -179,6 +205,10 @@ try {
     const r = await fetch(`http://127.0.0.1:${EXT_PORT}/coach/ring`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ role: 'button', name }) })
     if (!r.ok) throw new Error(`ring request refused (${r.status})`)
   }
+  const ringZone = async (zone) => {
+    const r = await fetch(`http://127.0.0.1:${EXT_PORT}/coach/ring`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ zone }) })
+    if (!r.ok) throw new Error(`zone ring request refused (${r.status})`)
+  }
   const dom = async () => (await fetch(`http://127.0.0.1:${DEBUG_PORT}/dom`).then((r) => r.json()))
 
   await ring('Calibrate')
@@ -186,6 +216,13 @@ try {
   await sleep(1500) // let the ring finish easing in
   out.top = await measure('element at the top of the page', 'Calibrate')
   out.dom = await dom()
+
+  // The same element addressed by capture ZONE (the coach brain's way): data-understudy-zone on the page, resolved by the extension.
+  await page.evaluate(() => window.scrollTo(0, 0))
+  await ringZone('cliff_button')
+  await until(async () => ((await dom()).ring?.target?.zone === 'cliff_button') && (await dom()).ring?.visible === true, 15000, 'the ring by zone')
+  await sleep(1500)
+  out.byZone = await measure('by zone', 'Calibrate')
 
   await page.evaluate(() => window.scrollTo(0, 1700))
   await ring('Far below')
@@ -197,9 +234,35 @@ try {
   await page.evaluate(() => window.scrollTo(0, 0))
   await until(async () => (await dom()).ring?.visible === false, 10000, 'the ring to hide when its element left the view')
   out.hid_when_scrolled_out = (await dom()).ring?.hiddenFor ?? null
-  out.ok = !out.top.error && !out.scrolled.error
+
+  // Page zoom: browser zoom through the extension (chrome.tabs.setZoom, no OS input). The ring must still surround the element.
+  out.zoom = {}
+  const zooms = (process.env.CALIB_ZOOMS ?? '1.25,1.5,0.75').split(',').map(Number).filter((z) => z > 0)
+  for (const z of zooms) {
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await sw.evaluate(async (zoom) => {
+      const tabs = await chrome.tabs.query({})
+      const t = tabs.find((x) => (x.url ?? '').startsWith('http://127.0.0.1')) ?? tabs[0]
+      await chrome.tabs.setZoom(t.id, zoom)
+    }, z)
+    await sleep(1200)
+    await ring('Calibrate')
+    await until(async () => (await dom()).ring?.visible === true, 15000, `the ring at zoom ${z}`)
+    await sleep(1500)
+    const m = await measure(`zoom ${z}`, 'Calibrate')
+    out.zoom[z] = m.error ? m : { predictedZoom: await page.evaluate(() => devicePixelRatio / 2), elementCentreErrorPoints: m.elementCentreErrorPoints, gapsPoints: m.gapsPoints, dxPoints: m.dxPoints, dyPoints: m.dyPoints }
+  }
+  await sw.evaluate(async () => {
+    const tabs = await chrome.tabs.query({})
+    for (const t of tabs) await chrome.tabs.setZoom(t.id, 1).catch(() => undefined)
+  })
+  await sleep(800)
+
+  out.ok = !out.top.error && !out.byZone.error && !out.scrolled.error && Object.values(out.zoom).every((m) => !m.error)
 } catch (e) {
   out.error = String(e?.stack ?? e)
+  out.domAtError = await fetch(`http://127.0.0.1:${DEBUG_PORT}/dom`).then((r) => r.json()).catch(() => null)
+  out.extStatus = await fetch(`http://127.0.0.1:${EXT_PORT}/ext/status`).then((r) => r.json()).catch(() => null)
   out.electronLogTail = electronLog.split('\n').slice(-12).join('\n')
 } finally {
   await context?.close().catch(() => {})

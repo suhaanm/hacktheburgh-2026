@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import pathlib
 import re
 
@@ -47,7 +48,7 @@ def test_sandbox_sites_and_the_open_web_are_not_blocked_here():
 
 def test_file_urls_to_protected_paths_blocked():
     assert not G.check_navigation(f"file://{kill_path()}").allowed
-    assert not G.check_navigation("file://" + str(pathlib.Path.home() / ".understudy" / "memory.md")).allowed
+    assert not G.check_navigation("file://" + str(pathlib.Path(os.environ["UNDERSTUDY_HOME"]) / "memory.md")).allowed
 
 
 def test_clicks_on_own_settings_blocked_but_same_words_on_other_sites_are_fine():
@@ -64,7 +65,8 @@ def test_protected_paths():
     assert not G.check_path(kill_path()).allowed
     assert not G.check_path(data_dir() / "denylist.json").allowed
     assert not G.check_path(data_dir() / "queue" / "q_1.json").allowed
-    assert not G.check_path(pathlib.Path.home() / ".understudy" / "memory.md").allowed
+    assert not G.check_path(pathlib.Path(os.environ["UNDERSTUDY_HOME"]) / "memory.md").allowed
+    assert not G.check_path(pathlib.Path.home() / ".understudy" / "memory.md").allowed  # the default home is protected too
     assert G.check_path(data_dir() / "runs" / "r1" / "s1.png").allowed
     assert G.check_path("/tmp/some-note.txt").allowed
 

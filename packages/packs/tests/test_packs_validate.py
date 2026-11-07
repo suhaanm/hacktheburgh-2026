@@ -470,11 +470,18 @@ def test_memory_frontmatter_schema():
 def test_ext_rect_protocol():
     v = validator("ext_rect.schema.json")
     ex = SCHEMA / "examples"
-    for name in ("ext_rect.want.example.json", "ext_rect.want_by_role.example.json",
-                 "ext_rect.answer.example.json", "ext_rect.answer_not_found.example.json"):
+    for name in ("ext_rect.want.example.json", "ext_rect.want_by_role.example.json", "ext_rect.want_by_zone.example.json",
+                 "ext_rect.answer.example.json", "ext_rect.answer_full.example.json", "ext_rect.answer_not_found.example.json"):
         assert not list(v.iter_errors(json.loads((ex / name).read_text()))), name
     want = json.loads((ex / "ext_rect.want.example.json").read_text())
     assert list(v.iter_errors({**want, "role": "button", "name": "Go"}))        # label_hash and role together
+    assert list(v.iter_errors({**want, "zone": "cliff_button"}))                # label_hash and zone together
+    zone = json.loads((ex / "ext_rect.want_by_zone.example.json").read_text())
+    assert list(v.iter_errors({**zone, "role": "button", "name": "Go"}))        # zone and role+name together
+    assert list(v.iter_errors({**zone, "zone": "Cliff Button"}))
+    full = json.loads((ex / "ext_rect.answer_full.example.json").read_text())
+    assert list(v.iter_errors({**full, "viewport": {"w": 1280}}))               # w and h both required
+    assert list(v.iter_errors({**full, "screen": {"x": 0, "y": 0, "z": 1}}))
     ans = json.loads((ex / "ext_rect.answer.example.json").read_text())
     no_rect = {k: x for k, x in ans.items() if k != "rect"}
     assert list(v.iter_errors(no_rect))                                         # found defaults to true: rect required

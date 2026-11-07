@@ -208,6 +208,34 @@
       "$ref": "#/$defs/study"
      }
     },
+    "study_sim": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/study_sim"
+     }
+    },
+    "study_power": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/study_power"
+     }
+    },
     "policy_gate": {
      "if": {
       "type": "object",
@@ -1725,11 +1753,27 @@
       ],
       "additionalProperties": true
      }
+    },
+    "label": {
+     "type": "string"
+    },
+    "reading": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "intervals_overlap": {
+     "type": [
+      "boolean",
+      "null"
+     ]
     }
    },
    "required": [
     "meta",
-    "rows"
+    "rows",
+    "label"
    ],
    "additionalProperties": true
   },
@@ -1737,7 +1781,18 @@
    "type": "object",
    "properties": {
     "meta": {
-     "$ref": "#/$defs/meta"
+     "allOf": [
+      {
+       "$ref": "#/$defs/meta"
+      },
+      {
+       "properties": {
+        "origin": {
+         "const": "real"
+        }
+       }
+      }
+     ]
     },
     "rows": {
      "type": "array",
@@ -1842,6 +1897,131 @@
     "mean_change_s",
     "mean_change_ci",
     "n"
+   ],
+   "additionalProperties": true
+  },
+  "study_sim": {
+   "type": "object",
+   "properties": {
+    "meta": {
+     "allOf": [
+      {
+       "$ref": "#/$defs/meta"
+      },
+      {
+       "properties": {
+        "origin": {
+         "const": "synthetic"
+        }
+       }
+      }
+     ]
+    },
+    "label": {
+     "const": "simulated participants (language model), not people"
+    },
+    "limitations": {
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/limitation"
+     }
+    }
+   },
+   "required": [
+    "meta",
+    "label"
+   ],
+   "additionalProperties": true
+  },
+  "study_power": {
+   "type": "object",
+   "properties": {
+    "meta": {
+     "$ref": "#/$defs/meta"
+    },
+    "rows": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "n": {
+        "type": "integer",
+        "minimum": 1
+       },
+       "true_effect_pp": {
+        "type": [
+         "number",
+         "null"
+        ]
+       },
+       "carryover": {
+        "type": [
+         "number",
+         "null"
+        ]
+       },
+       "order_effect": {
+        "type": [
+         "number",
+         "null"
+        ]
+       },
+       "power_p05": {
+        "type": [
+         "number",
+         "null"
+        ]
+       },
+       "bias": {
+        "type": [
+         "number",
+         "null"
+        ]
+       },
+       "coverage": {
+        "type": [
+         "number",
+         "null"
+        ]
+       },
+       "false_positive": {
+        "type": [
+         "number",
+         "null"
+        ]
+       }
+      },
+      "required": [
+       "n"
+      ],
+      "additionalProperties": true
+     }
+    },
+    "min_p_by_n": {
+     "type": [
+      "object",
+      "array",
+      "null"
+     ]
+    },
+    "headline_power": {
+     "type": "object"
+    },
+    "note": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "limitations": {
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/limitation"
+     }
+    }
+   },
+   "required": [
+    "meta"
    ],
    "additionalProperties": true
   },

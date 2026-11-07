@@ -43,7 +43,7 @@ describe.skipIf(!fs.existsSync(SCHEMA_FILE))('protocol against packages/schema/e
   // The zone field is a proposed addition to RectWant; this checks it as soon as the schema has it.
   const zoneInSchema = Boolean((schema.$defs.RectWant as { properties?: Record<string, unknown> }).properties?.zone)
   it.skipIf(!zoneInSchema)('a zone want validates once the schema has the zone field', () => {
-    expect(validWant(wantFor({ zone: 'calc.result' }, 'rq_z'))).toBe(true)
+    expect(validWant(wantFor({ zone: 'calc_result' }, 'rq_z'))).toBe(true)
   })
 
   it('parseAnswer accepts what the schema accepts and rejects what it rejects', () => {
@@ -77,14 +77,14 @@ describe('protocol helpers', () => {
   })
 
   it('zone targets: a zone with optional hints, exactly one kind of target, and only the zone goes into the want', () => {
-    expect(targetProblem({ zone: 'calc.result' })).toBeNull()
-    expect(targetProblem({ zone: 'calc.result', label_hint: 'Result', role_hint: 'status' })).toBeNull()
+    expect(targetProblem({ zone: 'calc_result' })).toBeNull()
+    expect(targetProblem({ zone: 'calc_result', label_hint: 'Result', role_hint: 'status' })).toBeNull()
     expect(targetProblem({ zone: 'Calc Result' })).not.toBeNull()
-    expect(targetProblem({ zone: 'calc.result', label_hash: 'h:abcd1234' })).not.toBeNull()
-    expect(targetProblem({ zone: 'calc.result', role_hint: 'Not A Role' })).not.toBeNull()
-    expect(targetProblem({ zone: 'calc.result', label_hint: 'x'.repeat(81) })).not.toBeNull()
-    expect(toTarget({ zone: 'calc.result', label_hint: 'Result' })).toEqual({ zone: 'calc.result', label_hint: 'Result' })
-    expect(wantFor({ zone: 'calc.result', label_hint: 'Result', role_hint: 'status' }, 'rq_1')).toEqual({ request_id: 'rq_1', frame_id: 'top', zone: 'calc.result' })
+    expect(targetProblem({ zone: 'calc_result', label_hash: 'h:abcd1234' })).not.toBeNull()
+    expect(targetProblem({ zone: 'calc_result', role_hint: 'Not A Role' })).not.toBeNull()
+    expect(targetProblem({ zone: 'calc_result', label_hint: 'x'.repeat(81) })).not.toBeNull()
+    expect(toTarget({ zone: 'calc_result', label_hint: 'Result' })).toEqual({ zone: 'calc_result', label_hint: 'Result' })
+    expect(wantFor({ zone: 'calc_result', label_hint: 'Result', role_hint: 'status' }, 'rq_1')).toEqual({ request_id: 'rq_1', frame_id: 'top', zone: 'calc_result' })
   })
 
   it('keeps the optional geometry the extension may add, and drops unknown keys', () => {
@@ -364,8 +364,8 @@ describe('extension server', () => {
 
   it('a zone ring request is accepted with its hints', async () => {
     const { port, rings } = await serve()
-    expect((await call(port, 'POST', '/coach/ring', { zone: 'calc.result', label_hint: 'Result', role_hint: 'status', label: 'Look' })).status).toBe(200)
-    expect(rings).toEqual([{ target: { zone: 'calc.result', label_hint: 'Result', role_hint: 'status' }, label: 'Look' }])
+    expect((await call(port, 'POST', '/coach/ring', { zone: 'calc_result', label_hint: 'Result', role_hint: 'status', label: 'Look' })).status).toBe(200)
+    expect(rings).toEqual([{ target: { zone: 'calc_result', label_hint: 'Result', role_hint: 'status' }, label: 'Look' }])
     expect((await call(port, 'POST', '/coach/ring', { zone: 'Bad Zone' })).status).toBe(400)
   })
 
@@ -437,21 +437,21 @@ describe('dom coach: the ring on a real element', () => {
     const tracker = createCoachTracker({ emit: (e) => void events.push(e), now: c.now, setTimer: c.setTimer, clearTimer: c.clearTimer })
     const grounder = { request: async (): Promise<RequestOutcome> => ({ kind: 'answer', answer: answer(), receivedAt: c.now() }) }
     const coach = createDomCoach({ grounder, overlay: { show: (a) => void shown.push(a), clear: (ids) => void cleared.push(ids ?? []) }, display: () => DISPLAY, tracker, onEnd: (e) => void ends.push(e), now: c.now, setTimer: c.setTimer, clearTimer: c.clearTimer })
-    coach.point({ zone: 'calc.result' }, { message: '  Check the   cliff edge first. ', ref: 'd_1', step: 2 })
+    coach.point({ zone: 'calc_result' }, { message: '  Check the   cliff edge first. ', ref: 'd_1', step: 2 })
     await c.advance(10)
     const marks = shown[0]
     expect(marks.map((m) => m.id)).toEqual([DOM_RING_ID, 'dom-bubble'])
     expect(marks[1]).toMatchObject({ kind: 'bubble', text: 'Check the cliff edge first.' })
     expect(marks[0]).toMatchObject({ step: 2 })
-    expect(events[0]).toMatchObject({ type: 'coach_shown', meta: { zone: 'calc.result' } })
+    expect(events[0]).toMatchObject({ type: 'coach_shown', meta: { zone: 'calc_result' } })
     expect(coach.current()).toMatchObject({ ref: 'd_1', message: 'Check the cliff edge first.' })
     coach.clear('stop')
     expect(cleared.at(-1)).toEqual([DOM_RING_ID, 'dom-bubble'])
     expect(ends).toEqual([{ ref: 'd_1', how: 'stop', shown: true }])
-    expect(events.at(-1)).toMatchObject({ type: 'coach_dismissed', meta: { how: 'stop', zone: 'calc.result' } })
+    expect(events.at(-1)).toMatchObject({ type: 'coach_dismissed', meta: { how: 'stop', zone: 'calc_result' } })
     // a prompt that never got drawn reports shown:false
     const never = createDomCoach({ grounder: { request: async () => ({ kind: 'timeout' }) }, overlay: { show: () => undefined, clear: () => undefined }, display: () => DISPLAY, onEnd: (e) => void ends.push(e), now: c.now, setTimer: c.setTimer, clearTimer: c.clearTimer })
-    never.point({ zone: 'x.y' }, { ref: 'd_2' })
+    never.point({ zone: 'x_y' }, { ref: 'd_2' })
     await c.advance(10)
     never.clear('user')
     expect(ends.at(-1)).toEqual({ ref: 'd_2', how: 'user', shown: false })

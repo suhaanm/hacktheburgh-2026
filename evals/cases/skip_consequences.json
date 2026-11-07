@@ -1,0 +1,554 @@
+{
+ "schema": 1,
+ "meta": {
+  "origin": "synthetic",
+  "n_unit": "households",
+  "tolerance_gbp": 1.0,
+  "interval_level": 0.95,
+  "interval_method": "Wilson score interval on the share of households; households cycle through 12 archetypes, so it describes this mix only",
+  "oracle": "understudy_agent.sandbox_sites.oracle:score",
+  "oracle_label": "simplified internal rule set, illustrative, not law",
+  "source": [
+   "evals/cases/households_20.json",
+   "evals/cases/households_200.json"
+  ],
+  "note": "Prices a skipped step in answers, not seconds: the genome's seconds make skipping look free."
+ },
+ "sets": {
+  "households_20": {
+   "n": 20,
+   "n_unit": "households",
+   "RECONCILE": {
+    "skipped_means": "the worker writes one calculator's figure into the note without comparing; which one is down to habit, so each of the three is equally likely",
+    "main_policy": "uniform_single_site",
+    "n": 20,
+    "expected_wrong_n": 2.7,
+    "expected_wrong_share": 0.133,
+    "expected_wrong_share_ci95_bootstrap_by_household": [
+     0.05,
+     0.217
+    ],
+    "sentence": "gives a wrong answer on about 2.7 of 20 households (expected over which calculator is trusted)",
+    "error_gbp_pooled_over_the_three_choices": {
+     "mean_all": 33.17,
+     "median_all": 0.0,
+     "mean_when_wrong": 248.12,
+     "median_when_wrong": 233.4,
+     "max": 627.14
+    },
+    "by_calculator": {
+     "site_a": {
+      "n": 20,
+      "wrong_n": 0,
+      "wrong_share": 0.0,
+      "wrong_share_ci95": [
+       0.0,
+       0.161
+      ],
+      "sentence": "gives a wrong answer on 0 of 20 households",
+      "error_gbp": {
+       "mean_all": 0.26,
+       "median_all": 0.24,
+       "mean_when_wrong": 0.0,
+       "median_when_wrong": 0.0,
+       "max": 0.5
+      },
+      "wrong_cases": []
+     },
+     "site_b": {
+      "n": 20,
+      "wrong_n": 5,
+      "wrong_share": 0.25,
+      "wrong_share_ci95": [
+       0.112,
+       0.469
+      ],
+      "sentence": "gives a wrong answer on 5 of 20 households",
+      "error_gbp": {
+       "mean_all": 38.61,
+       "median_all": 0.0,
+       "mean_when_wrong": 154.44,
+       "median_when_wrong": 174.0,
+       "max": 311.12
+      },
+      "wrong_cases": [
+       "hh_0004",
+       "hh_0005",
+       "hh_0015",
+       "hh_0016",
+       "hh_0017"
+      ]
+     },
+     "site_c": {
+      "n": 20,
+      "wrong_n": 3,
+      "wrong_share": 0.15,
+      "wrong_share_ci95": [
+       0.052,
+       0.36
+      ],
+      "sentence": "gives a wrong answer on 3 of 20 households",
+      "error_gbp": {
+       "mean_all": 60.64,
+       "median_all": 0.0,
+       "mean_when_wrong": 404.25,
+       "median_when_wrong": 292.81,
+       "max": 627.14
+      },
+      "wrong_cases": [
+       "hh_0004",
+       "hh_0006",
+       "hh_0018"
+      ]
+     }
+    }
+   },
+   "CHECK_CLIFF": {
+    "skipped_means": "no warning that a small change would move the award; today's figure is unaffected",
+    "main_policy": "missed_warning_with_documented_nudges",
+    "nudges": {
+     "capital_limit_16000": {
+      "field": "savings",
+      "delta": 500.0
+     },
+     "capital_tariff_band": {
+      "field": "savings",
+      "delta": 1000.0
+     },
+     "childcare_cap_binding": {
+      "field": "childcare_monthly",
+      "delta": 100.0
+     },
+     "housing_cap_binding": {
+      "field": "rent_monthly",
+      "delta": 100.0
+     },
+     "work_allowance_edge": {
+      "field": "adult1_earnings_monthly",
+      "delta": 100.0
+     },
+     "third_child": {
+      "field": "site_gap_c",
+      "delta": 0.0
+     }
+    },
+    "households_near_an_edge": 10,
+    "of": 20,
+    "share_near": 0.5,
+    "share_near_ci95_wilson": [
+     0.299,
+     0.701
+    ],
+    "of_those_sites_disagree": 7,
+    "material_threshold_gbp_per_month": 50.0,
+    "material_n": 5,
+    "material_share_of_near": 0.5,
+    "sentence": "leaves a nearby cliff edge unwarned on 10 of 20 households; a small change moves the award by more than 50 pounds a month on 5 of them",
+    "impact_gbp_per_month_among_near": {
+     "mean": 195.66,
+     "median": 55.98,
+     "max": 627.14
+    },
+    "material_cases": [
+     "hh_0004",
+     "hh_0006",
+     "hh_0015",
+     "hh_0016",
+     "hh_0018"
+    ],
+    "reconcile_by_median_is_wrong_on": {
+     "n": 0,
+     "of": 20,
+     "note": "with these three calculators the middle figure is always right, so the panel's value is the warning and the explanation, not today's number"
+    }
+   },
+   "by_archetype": {
+    "single_worker": {
+     "n": 2,
+     "reconcile_skipped_expected_wrong": 0.0,
+     "near_cliff": 0,
+     "cliff_skipped_material": 0
+    },
+    "couple_two_kids": {
+     "n": 2,
+     "reconcile_skipped_expected_wrong": 0.0,
+     "near_cliff": 0,
+     "cliff_skipped_material": 0
+    },
+    "lone_parent_childcare": {
+     "n": 2,
+     "reconcile_skipped_expected_wrong": 0.33,
+     "near_cliff": 1,
+     "cliff_skipped_material": 1
+    },
+    "savings_cliff_16k": {
+     "n": 2,
+     "reconcile_skipped_expected_wrong": 1.0,
+     "near_cliff": 2,
+     "cliff_skipped_material": 2
+    },
+    "savings_tariff_band": {
+     "n": 2,
+     "reconcile_skipped_expected_wrong": 0.67,
+     "near_cliff": 2,
+     "cliff_skipped_material": 0
+    },
+    "third_child": {
+     "n": 2,
+     "reconcile_skipped_expected_wrong": 0.67,
+     "near_cliff": 2,
+     "cliff_skipped_material": 2
+    },
+    "childless_earner": {
+     "n": 2,
+     "reconcile_skipped_expected_wrong": 0.0,
+     "near_cliff": 0,
+     "cliff_skipped_material": 0
+    },
+    "owner_no_housing": {
+     "n": 2,
+     "reconcile_skipped_expected_wrong": 0.0,
+     "near_cliff": 0,
+     "cliff_skipped_material": 0
+    },
+    "high_rent_cap": {
+     "n": 1,
+     "reconcile_skipped_expected_wrong": 0.0,
+     "near_cliff": 1,
+     "cliff_skipped_material": 0
+    },
+    "high_income": {
+     "n": 1,
+     "reconcile_skipped_expected_wrong": 0.0,
+     "near_cliff": 1,
+     "cliff_skipped_material": 0
+    },
+    "carer_limited_capability": {
+     "n": 1,
+     "reconcile_skipped_expected_wrong": 0.0,
+     "near_cliff": 1,
+     "cliff_skipped_material": 0
+    },
+    "young_couple": {
+     "n": 1,
+     "reconcile_skipped_expected_wrong": 0.0,
+     "near_cliff": 0,
+     "cliff_skipped_material": 0
+    }
+   }
+  },
+  "households_200": {
+   "n": 200,
+   "n_unit": "households",
+   "RECONCILE": {
+    "skipped_means": "the worker writes one calculator's figure into the note without comparing; which one is down to habit, so each of the three is equally likely",
+    "main_policy": "uniform_single_site",
+    "n": 200,
+    "expected_wrong_n": 20.7,
+    "expected_wrong_share": 0.103,
+    "expected_wrong_share_ci95_bootstrap_by_household": [
+     0.078,
+     0.13
+    ],
+    "sentence": "gives a wrong answer on about 20.7 of 200 households (expected over which calculator is trusted)",
+    "error_gbp_pooled_over_the_three_choices": {
+     "mean_all": 30.23,
+     "median_all": 0.0,
+     "mean_when_wrong": 291.89,
+     "median_when_wrong": 187.31,
+     "max": 801.14
+    },
+    "by_calculator": {
+     "site_a": {
+      "n": 200,
+      "wrong_n": 0,
+      "wrong_share": 0.0,
+      "wrong_share_ci95": [
+       0.0,
+       0.019
+      ],
+      "sentence": "gives a wrong answer on 0 of 200 households",
+      "error_gbp": {
+       "mean_all": 0.2,
+       "median_all": 0.14,
+       "mean_when_wrong": 0.0,
+       "median_when_wrong": 0.0,
+       "max": 0.5
+      },
+      "wrong_cases": []
+     },
+     "site_b": {
+      "n": 200,
+      "wrong_n": 36,
+      "wrong_share": 0.18,
+      "wrong_share_ci95": [
+       0.133,
+       0.239
+      ],
+      "sentence": "gives a wrong answer on 36 of 200 households",
+      "error_gbp": {
+       "mean_all": 26.75,
+       "median_all": 0.0,
+       "mean_when_wrong": 148.59,
+       "median_when_wrong": 167.47,
+       "max": 387.62
+      },
+      "wrong_cases": [
+       "hh_0004",
+       "hh_0005",
+       "hh_0015",
+       "hh_0016",
+       "hh_0017",
+       "hh_0028",
+       "hh_0029",
+       "hh_0041",
+       "hh_0052",
+       "hh_0053",
+       "hh_0063",
+       "hh_0064",
+       "hh_0065",
+       "hh_0076",
+       "hh_0077",
+       "hh_0089",
+       "hh_0100",
+       "hh_0101",
+       "hh_0112",
+       "hh_0113",
+       "hh_0124",
+       "hh_0125",
+       "hh_0135",
+       "hh_0137",
+       "hh_0148",
+       "hh_0149",
+       "hh_0159",
+       "hh_0160",
+       "hh_0161",
+       "hh_0172",
+       "hh_0173",
+       "hh_0183",
+       "hh_0185",
+       "hh_0195",
+       "hh_0196",
+       "hh_0197"
+      ]
+     },
+     "site_c": {
+      "n": 200,
+      "wrong_n": 26,
+      "wrong_share": 0.13,
+      "wrong_share_ci95": [
+       0.09,
+       0.184
+      ],
+      "sentence": "gives a wrong answer on 26 of 200 households",
+      "error_gbp": {
+       "mean_all": 63.74,
+       "median_all": 0.0,
+       "mean_when_wrong": 490.3,
+       "median_when_wrong": 576.38,
+       "max": 801.14
+      },
+      "wrong_cases": [
+       "hh_0004",
+       "hh_0006",
+       "hh_0018",
+       "hh_0028",
+       "hh_0030",
+       "hh_0042",
+       "hh_0052",
+       "hh_0054",
+       "hh_0066",
+       "hh_0076",
+       "hh_0078",
+       "hh_0090",
+       "hh_0100",
+       "hh_0102",
+       "hh_0114",
+       "hh_0124",
+       "hh_0126",
+       "hh_0138",
+       "hh_0148",
+       "hh_0150",
+       "hh_0162",
+       "hh_0172",
+       "hh_0174",
+       "hh_0186",
+       "hh_0196",
+       "hh_0198"
+      ]
+     }
+    }
+   },
+   "CHECK_CLIFF": {
+    "skipped_means": "no warning that a small change would move the award; today's figure is unaffected",
+    "main_policy": "missed_warning_with_documented_nudges",
+    "nudges": {
+     "capital_limit_16000": {
+      "field": "savings",
+      "delta": 500.0
+     },
+     "capital_tariff_band": {
+      "field": "savings",
+      "delta": 1000.0
+     },
+     "childcare_cap_binding": {
+      "field": "childcare_monthly",
+      "delta": 100.0
+     },
+     "housing_cap_binding": {
+      "field": "rent_monthly",
+      "delta": 100.0
+     },
+     "work_allowance_edge": {
+      "field": "adult1_earnings_monthly",
+      "delta": 100.0
+     },
+     "third_child": {
+      "field": "site_gap_c",
+      "delta": 0.0
+     }
+    },
+    "households_near_an_edge": 107,
+    "of": 200,
+    "share_near": 0.535,
+    "share_near_ci95_wilson": [
+     0.466,
+     0.603
+    ],
+    "of_those_sites_disagree": 53,
+    "material_threshold_gbp_per_month": 50.0,
+    "material_n": 42,
+    "material_share_of_near": 0.393,
+    "sentence": "leaves a nearby cliff edge unwarned on 107 of 200 households; a small change moves the award by more than 50 pounds a month on 42 of them",
+    "impact_gbp_per_month_among_near": {
+     "mean": 159.64,
+     "median": 17.4,
+     "max": 801.14
+    },
+    "material_cases": [
+     "hh_0004",
+     "hh_0006",
+     "hh_0015",
+     "hh_0016",
+     "hh_0018",
+     "hh_0028",
+     "hh_0030",
+     "hh_0042",
+     "hh_0052",
+     "hh_0054",
+     "hh_0059",
+     "hh_0063",
+     "hh_0064",
+     "hh_0066",
+     "hh_0071",
+     "hh_0076",
+     "hh_0078",
+     "hh_0090",
+     "hh_0100",
+     "hh_0102",
+     "hh_0104",
+     "hh_0112",
+     "hh_0114",
+     "hh_0124",
+     "hh_0126",
+     "hh_0135",
+     "hh_0138",
+     "hh_0140",
+     "hh_0148",
+     "hh_0150",
+     "hh_0159",
+     "hh_0160",
+     "hh_0162",
+     "hh_0172",
+     "hh_0173",
+     "hh_0174",
+     "hh_0183",
+     "hh_0186",
+     "hh_0188",
+     "hh_0195",
+     "hh_0196",
+     "hh_0198"
+    ],
+    "reconcile_by_median_is_wrong_on": {
+     "n": 0,
+     "of": 200,
+     "note": "with these three calculators the middle figure is always right, so the panel's value is the warning and the explanation, not today's number"
+    }
+   },
+   "by_archetype": {
+    "single_worker": {
+     "n": 17,
+     "reconcile_skipped_expected_wrong": 0.0,
+     "near_cliff": 7,
+     "cliff_skipped_material": 0
+    },
+    "couple_two_kids": {
+     "n": 17,
+     "reconcile_skipped_expected_wrong": 0.0,
+     "near_cliff": 0,
+     "cliff_skipped_material": 0
+    },
+    "lone_parent_childcare": {
+     "n": 17,
+     "reconcile_skipped_expected_wrong": 2.0,
+     "near_cliff": 6,
+     "cliff_skipped_material": 6
+    },
+    "savings_cliff_16k": {
+     "n": 17,
+     "reconcile_skipped_expected_wrong": 7.33,
+     "near_cliff": 17,
+     "cliff_skipped_material": 13
+    },
+    "savings_tariff_band": {
+     "n": 17,
+     "reconcile_skipped_expected_wrong": 5.67,
+     "near_cliff": 17,
+     "cliff_skipped_material": 1
+    },
+    "third_child": {
+     "n": 17,
+     "reconcile_skipped_expected_wrong": 5.67,
+     "near_cliff": 17,
+     "cliff_skipped_material": 17
+    },
+    "childless_earner": {
+     "n": 17,
+     "reconcile_skipped_expected_wrong": 0.0,
+     "near_cliff": 0,
+     "cliff_skipped_material": 0
+    },
+    "owner_no_housing": {
+     "n": 17,
+     "reconcile_skipped_expected_wrong": 0.0,
+     "near_cliff": 5,
+     "cliff_skipped_material": 3
+    },
+    "high_rent_cap": {
+     "n": 16,
+     "reconcile_skipped_expected_wrong": 0.0,
+     "near_cliff": 16,
+     "cliff_skipped_material": 0
+    },
+    "high_income": {
+     "n": 16,
+     "reconcile_skipped_expected_wrong": 0.0,
+     "near_cliff": 8,
+     "cliff_skipped_material": 0
+    },
+    "carer_limited_capability": {
+     "n": 16,
+     "reconcile_skipped_expected_wrong": 0.0,
+     "near_cliff": 14,
+     "cliff_skipped_material": 2
+    },
+    "young_couple": {
+     "n": 16,
+     "reconcile_skipped_expected_wrong": 0.0,
+     "near_cliff": 0,
+     "cliff_skipped_material": 0
+    }
+   }
+  }
+ }
+}

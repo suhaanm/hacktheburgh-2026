@@ -294,8 +294,15 @@ def compile_draft(rec: dict[str, Any], *, base_urls: dict[str, str] | None = Non
 async def dry_run(bundle: dict[str, Any], *, household: Household, site: str | None, host: Any, model: ModelPort,
                   base_url: str = "", audit: Any = None, queue: Any = None) -> dict[str, Any]:
     """Run the bundle on the sandbox. Irreversible steps are never executed."""
+    import tempfile
+
+    from .audit import AuditLog
+    from .queue import ApprovalQueue
     from .tiers.safety import Guard
 
+    if audit is None:  # a dry run is not a production action: keep it out of the real audit log and morning report
+        scratch = Path(tempfile.mkdtemp(prefix="understudy-dry-"))
+        audit, queue = AuditLog(scratch / "audit.jsonl"), ApprovalQueue(scratch / "queue")
     ctx = await host.new_context()
     try:
         page = await ctx.new_page()
@@ -371,3 +378,13 @@ def load_bundles(routine_id: str, root: Path | None = None) -> dict[str, dict[st
 def load_recording(routine_id: str, root: Path | None = None) -> dict[str, Any] | None:
     p = routine_dir(routine_id, root) / "recording.json"
     return json.loads(p.read_text()) if p.exists() else None
+
+
+def bundles_by_site(routine_id: str, root: Path | None = None) -> dict[str, dict[str, Any]]:
+    """The routine's bundles keyed by site. `steps.json` is the first calculator (site a) unless a `steps.a.json`
+    exists; `steps.<site>.json` are the others."""
+    got = load_bundles(routine_id, root)
+    primary = got.pop("primary", None)
+    if primary is not None and "a" not in got:
+        got = {"a": primary, **got}
+    return dict(sorted(got.items()))

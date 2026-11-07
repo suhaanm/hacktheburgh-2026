@@ -4,7 +4,8 @@
 //   L4 On my own                   dot
 //   L4 and two clean runs in a row gone   (the help has faded away)
 // Help comes back the same way it left: the level engine's decay lowers the level after an absence (L4 after 14 days, L3 after
-// 7, L2 after 3), so a returning worker sees the chip grow again. The engine's own `chip` (GET /coach/state) wins while it answers.
+// 7, L2 after 3), so a returning worker sees the chip grow again. What the engine says wins while it answers: first the coach brain's
+// own decision (GET /coach/next: its level and chip are what the coach is really using, study mode included), then GET /coach/state.
 import type { OverlayController } from '../shared/contracts'
 import { CHIP_FADES, HELP_LEVEL_LABELS, type ChipFade, type HelpLevel } from '../shared/protocol'
 
@@ -42,6 +43,8 @@ export interface ChipDriverDeps {
 export interface ChipDriver {
   // The engine answered GET /coach/state (null: it did not).
   setEngineHint(hint: { fade: ChipFade | null; level: HelpLevel | null } | null): void
+  // The engine answered GET /coach/next with the level and chip it is acting at (null: it did not). Wins over the state hint while fresh.
+  setDecisionHint(hint: { fade: ChipFade | null; level: HelpLevel | null } | null): void
   // Recompute and send. Called on level changes, lesson ends and a timer.
   // `force` sends the chip again even if nothing changed (the overlay page just (re)loaded).
   refresh(force?: boolean): ChipFade
@@ -53,15 +56,20 @@ export function createChipDriver(deps: ChipDriverDeps): ChipDriver {
   const freshMs = deps.engineFreshMs ?? 10_000
   const keepMs = deps.keepAliveMs ?? 60_000
   let hint: { fade: ChipFade | null; level: HelpLevel | null; at: number } | null = null
+  let decisionHint: { fade: ChipFade | null; level: HelpLevel | null; at: number } | null = null
   let sent: { fade: ChipFade; level: HelpLevel; at: number } | null = null
 
   return {
     setEngineHint(h) {
       hint = h ? { ...h, at: now() } : null
     },
+    setDecisionHint(h) {
+      decisionHint = h ? { ...h, at: now() } : null
+    },
     refresh(force = false) {
       const local = deps.local()
-      const usable = hint && now() - hint.at <= freshMs ? hint : null
+      const fresh = (h: typeof hint) => (h && now() - h.at <= freshMs && (h.fade !== null || h.level !== null) ? h : null)
+      const usable = fresh(decisionHint) ?? fresh(hint)
       const level = usable?.level ?? local.level
       let fade: ChipFade = usable?.fade ?? fadeForLevel(level, usable?.level ? 0 : local.streakClean)
       if (deps.killed?.()) fade = 'gone' // everything is stopped: the help indicator goes too

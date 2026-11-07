@@ -195,3 +195,81 @@ def test_human_input_yields_a_background_routine_run_through_the_api(api, cluste
     assert time.time() - t0 < 1.5 and st["state"] == "stopped", st
     rep = api.get("/offhours/report").json()
     assert set(rep) >= {"ran", "queued", "failed", "yielded", "refused"}
+
+
+# ------------------------------------------------------------------ the shared sandbox lock (runs on the SHARED sites)
+@pytest.fixture
+def api_shared(cluster, tmp_path, monkeypatch):
+    monkeypatch.setenv("UNDERSTUDY_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("UNDERSTUDY_MOCK", "1")
+    audit = AuditLog(tmp_path / "data" / "audit.jsonl")
+    queue = ApprovalQueue(tmp_path / "data" / "queue", audit=audit)
+    # ephemeral sites standing in for 7801-7803, but the service treats them as the SHARED ones
+    app = create_app(base_urls=cluster.urls, autostart_sandbox=False, supervisor=Supervisor(), queue=queue, audit=audit,
+                     shared_sites=True)
+    with TestClient(app) as c:
+        c.queue, c.tmp = queue, tmp_path
+        yield c
+
+
+def test_a_run_on_shared_sites_is_refused_while_someone_else_holds_the_lock(api_shared, cluster):
+    from understudy_agent.sandbox_sites.lock import read_owner, sandbox_lock
+
+    with sandbox_lock("study-sim", timeout_s=1):
+        r = api_shared.post("/run/benefits", json={"household_id": "hh_0002", "mode": "mock"})
+        assert r.status_code == 409
+        err = r.json()["error"]
+        assert err["code"] == "sandbox_busy" and "'study-sim'" in err["message"] and "pid" in err["message"]
+        assert "Try again when it finishes" in err["message"]
+        assert api_shared.post("/routines/calc-entry-3x/run", json={"mode": "background"}).status_code in (404, 409)
+    assert cluster.state.calculations == [] and api_shared.app.state.runs == {}   # nothing started, nothing registered
+    assert read_owner() is None
+
+
+def test_the_service_holds_the_lock_for_the_run_and_releases_it_when_done(api_shared, cluster):
+    from understudy_agent.sandbox_sites.lock import read_owner
+
+    rid = api_shared.post("/run/benefits", json={"household_id": "hh_0002", "mode": "mock", "switches": SLOW}).json()["run_id"]
+    time.sleep(0.8)
+    assert read_owner()["owner"] == f"agent-service:{rid}"          # held while the browser is acting
+    wait_state(api_shared, rid, {"done", "failed", "paused"})
+    deadline = time.time() + 5
+    while time.time() < deadline and read_owner() is not None:
+        time.sleep(0.05)
+    assert read_owner() is None                                      # released when the run ended
+
+
+def test_stop_releases_the_lock_and_a_newer_run_replaces_an_older_one(api_shared, cluster):
+    from understudy_agent.sandbox_sites.lock import read_owner
+
+    first = api_shared.post("/run/benefits", json={"household_id": "hh_0001", "mode": "mock", "switches": SLOW}).json()["run_id"]
+    time.sleep(0.8)
+    second = api_shared.post("/run/benefits", json={"household_id": "hh_0002", "mode": "mock"})
+    assert second.status_code == 200                                 # the service's own older run is replaced, not a 409
+    sid = second.json()["run_id"]
+    assert wait_state(api_shared, first, {"stopped", "failed", "done"}, timeout=5)["state"] == "stopped"
+    assert wait_state(api_shared, sid, {"done", "failed", "paused"})["state"] == "done"
+    api_shared.post("/run/benefits", json={"household_id": "hh_0003", "mode": "mock", "switches": SLOW})
+    time.sleep(0.8)
+    t0 = time.time()
+    api_shared.post("/kill/clear")
+    api_shared.post(f"/run/{sid}/stop")
+    deadline = time.time() + 5
+    while time.time() < deadline and read_owner() is not None:
+        time.sleep(0.05)
+    assert read_owner() is None and time.time() - t0 < 5
+
+
+def test_finalize_and_routine_runs_take_the_lock_too(api_shared, cluster):
+    from understudy_agent.sandbox_sites.lock import read_owner, sandbox_lock
+    from understudy_agent.security.settings import Origin
+
+    rid = api_shared.post("/run/benefits", json={"household_id": "hh_0002", "mode": "mock"}).json()["run_id"]
+    st = wait_state(api_shared, rid, {"done", "failed", "paused"})
+    api_shared.queue.approve(st["queue_id"], origin=Origin.HUMAN_UI)
+    with sandbox_lock("study-sim", timeout_s=1):
+        busy = api_shared.post(f"/run/{rid}/finalize")
+        assert busy.status_code == 409 and busy.json()["error"]["code"] == "sandbox_busy"
+        assert cluster.state.submissions == []
+    assert api_shared.post(f"/run/{rid}/finalize").json()["submitted"] is True
+    assert read_owner() is None

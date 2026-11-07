@@ -34,7 +34,8 @@ from .orchestrator import BenefitsRun, RunOptions
 from .queue import ApprovalQueue
 from .sandbox_sites.households import Household, generate_households
 from .sandbox_sites.oracle import TOLERANCE_GBP, cliff_flags, disagreements, score, site_expected
-from .sandbox_sites.runner import SandboxCluster
+from .sandbox_sites.lock import sandbox_lock
+from .sandbox_sites.runner import SandboxCluster, SharedSites
 from .security.denylist import Denylist
 from .supervisor import data_dir
 from .tiers.heuristic import HeuristicModelPort
@@ -76,7 +77,7 @@ def judge(h: Household, res: dict[str, Any], submissions: int) -> dict[str, Any]
 
 
 async def evaluate(n: int = 20, seed: int = 2026, *, switches_for: dict[str, dict[str, str]] | None = None,
-                   root: Path | None = None, label: str = "clean") -> dict[str, Any]:
+                   root: Path | None = None, label: str = "clean", shared_sites: bool = False) -> dict[str, Any]:
     root = root or (data_dir() / "eval" / "scratch")
     root.mkdir(parents=True, exist_ok=True)
     old_env = os.environ.get("UNDERSTUDY_DATA_DIR")
@@ -86,7 +87,14 @@ async def evaluate(n: int = 20, seed: int = 2026, *, switches_for: dict[str, dic
     try:
         audit = AuditLog(root / "audit.jsonl")
         queue = ApprovalQueue(root / "queue", audit=audit)
-        with SandboxCluster(ephemeral=True) as cluster:
+        import contextlib
+
+        with contextlib.ExitStack() as stack:
+            if shared_sites:  # the shared 7801-7803 sites: one batch at a time across agents
+                stack.enter_context(sandbox_lock("agent-core:benefits-eval", timeout_s=900))
+                cluster = stack.enter_context(SharedSites())
+            else:
+                cluster = stack.enter_context(SandboxCluster(ephemeral=True))
             for h in generate_households(n, seed):
                 cluster.state.reset()
                 model = HeuristicModelPort(get_model_port(mock=True, fresh=True))
@@ -94,8 +102,9 @@ async def evaluate(n: int = 20, seed: int = 2026, *, switches_for: dict[str, dic
                 run = BenefitsRun(f"r_eval_{h.id}", h, model=model, base_urls=cluster.urls, queue=queue, audit=audit,
                                   options=opts)
                 res = (await run.execute()).as_dict()
-                row = judge(h, res, len(cluster.state.submissions))
-                row["cliff_opens_recorded"] = len(cluster.state.cliff_opens)
+                snap = cluster.state.snapshot()
+                row = judge(h, res, len(snap["submissions"]))
+                row["cliff_opens_recorded"] = len(snap["cliff_opens"])
                 rows.append(row)
     finally:
         if old_env is None:
@@ -165,13 +174,14 @@ def main() -> None:  # pragma: no cover - manual
     ap.add_argument("--seed", type=int, default=2026)
     ap.add_argument("--golden", action="store_true")
     ap.add_argument("--robust", action="store_true", help="inject layout changes and one-off 503s (AGT-7)")
+    ap.add_argument("--shared", action="store_true", help="use the sandbox sites already running on 7801-7803 (takes the lock)")
     a = ap.parse_args()
     os.environ.setdefault("UNDERSTUDY_MOCK", "1")
     if a.golden:
         print("golden run saved to", asyncio.run(record_golden()))
         return
     sw = robust_switches(a.n, a.seed) if a.robust else None
-    out = asyncio.run(evaluate(a.n, a.seed, switches_for=sw, label="robust" if a.robust else "clean",
+    out = asyncio.run(evaluate(a.n, a.seed, switches_for=sw, label="robust" if a.robust else "clean", shared_sites=a.shared,
                                root=data_dir() / "eval" / ("scratch_robust" if a.robust else "scratch")))
     p = data_dir() / "eval" / f"agent_benefits_{a.n}{'_robust' if a.robust else ''}.json"
     p.parent.mkdir(parents=True, exist_ok=True)

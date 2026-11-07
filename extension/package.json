@@ -7,9 +7,10 @@
   "scripts": {
     "gen": "node scripts/gen.mjs",
     "typecheck": "tsc --noEmit",
-    "build": "node scripts/gen.mjs && tsc --noEmit && node scripts/build.mjs",
-    "test": "node scripts/gen.mjs && vitest run",
-    "spike:s3": "node spikes/s3.mjs"
+    "build": "tsc --noEmit && node scripts/build.mjs",
+    "test": "node scripts/gen.mjs --defaults && vitest run",
+    "spike:s3": "node spikes/s3.mjs",
+    "spike:ports": "node spikes/ports_sim.mjs"
   },
   "devDependencies": {
     "@types/chrome": "^0.3.7",

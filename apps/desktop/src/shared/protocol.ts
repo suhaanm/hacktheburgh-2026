@@ -225,7 +225,8 @@ const AnnotationBaseSchema = z.object({
 })
 
 export const AnnotationSchema = z.discriminatedUnion('kind', [
-  AnnotationBaseSchema.extend({ kind: z.literal('ring'), box: NormBoxSchema, label: z.string().optional(), step: z.number().int().optional() }),
+  // `exact`: draw around exactly this box (a measured browser element); without it a ring is capped to a target-sized circle about the centre.
+  AnnotationBaseSchema.extend({ kind: z.literal('ring'), box: NormBoxSchema, label: z.string().optional(), step: z.number().int().optional(), exact: z.boolean().optional() }),
   AnnotationBaseSchema.extend({
     kind: z.literal('arrow'),
     to: z.union([NormPointSchema, NormBoxSchema]),

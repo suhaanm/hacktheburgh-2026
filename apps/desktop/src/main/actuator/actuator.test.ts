@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { clickScript, createActuator, scrollScript, typeScript } from './index'
+import { clickScript, createActuator, scrollScript, typeScript, type Actuator, type DesktopProbe } from './index'
 import { isValidNormPoint, normToPoints } from './mapping'
 import { denylistMatch } from './policy'
 import { checkAppName, checkKeyCombo, checkTypedText, checkUrl, SETTINGS_PANES } from './validate'
@@ -35,14 +35,27 @@ describe('denylist', () => {
   })
 })
 
+// Real-mode actions must name the app they are about and prove where they land (see actuator-guard.test.ts). These older tests are about
+// scripts and validation, so their actuator names TextEdit and a probe that agrees. `raw` is the one without those defaults.
+const TEXTEDIT = { app: 'TextEdit' } as const
+const okProbe = (over: Partial<DesktopProbe> = {}): DesktopProbe => ({ frontmostApp: async () => 'TextEdit', topWindowAt: async () => ({ owner: 'TextEdit', layer: 0 }), ...over })
+const withDefaultTarget = (a: Actuator): Actuator => ({
+  ...a,
+  clickAt: (p, o) => a.clickAt(p, { target: TEXTEDIT, ...o }),
+  typeText: (t, o) => a.typeText(t, { target: TEXTEDIT, ...o }),
+  pressKeys: (k, o) => a.pressKeys(k, { target: TEXTEDIT, ...o }),
+  pasteText: a.pasteText ? (t, o) => a.pasteText!(t, { target: TEXTEDIT, ...o }) : undefined,
+  scroll: (p, dy, o) => a.scroll(p, dy, { target: TEXTEDIT, ...o }),
+})
+
 function make(over: Parameters<typeof createActuator>[0] = {}) {
   const osascript = vi.fn(async (_args: string[]) => undefined)
   const openExternal = vi.fn(async (_url: string) => undefined)
   const openAppProcess = vi.fn(async (_name: string) => undefined)
   const showItemInFolder = vi.fn((_p: string) => undefined)
   const log = vi.fn()
-  const actuator = createActuator({ platform: 'darwin', displayBounds: () => bounds, isTrusted: () => true, dryRun: false, osascript, openExternal, openAppProcess, showItemInFolder, exists: () => true, homedir: '/Users/me', log, ...over })
-  return { actuator, osascript, openExternal, openAppProcess, showItemInFolder, log }
+  const raw = createActuator({ platform: 'darwin', displayBounds: () => bounds, scaleFactor: () => 2, probe: okProbe(), isTrusted: () => true, dryRun: false, osascript, openExternal, openAppProcess, showItemInFolder, exists: () => true, homedir: '/Users/me', log, ...over })
+  return { actuator: withDefaultTarget(raw), raw, osascript, openExternal, openAppProcess, showItemInFolder, log }
 }
 
 describe('status / canClick', () => {

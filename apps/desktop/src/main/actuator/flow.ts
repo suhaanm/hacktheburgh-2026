@@ -6,6 +6,7 @@ import type { Services } from '../../shared/contracts'
 import type { Annotation, DoItForMeCode, DoItForMeResult, LessonStep, NormBox } from '../../shared/protocol'
 import type { ConfirmBroker } from '../confirm'
 import type { ServiceContext } from '../context'
+import { isOwnApp, readFrontApp, type FrontApp } from '../agency/scope'
 import { appendAudit } from './audit'
 import type { Actuator } from './index'
 import { denylistMatch } from './policy'
@@ -22,11 +23,13 @@ export interface DoItForMeDeps {
   actuator: Actuator
   // How long the UI gets to react before the Verifier looks (ms).
   settleMs?: number
+  // Which app the learner is looking at, read before the screenshot (default: lsappinfo; none under unit tests). The click must land in it.
+  frontApp?: FrontApp
 }
 
 const centre = (b: NormBox) => ({ x: (b.xmin + b.xmax) / 2, y: (b.ymin + b.ymax) / 2 })
 
-export function createDoItForMe({ ctx, s, confirm, actuator, settleMs = 700 }: DoItForMeDeps): (args: { target: string }) => Promise<DoItForMeResult> {
+export function createDoItForMe({ ctx, s, confirm, actuator, settleMs = 700, frontApp = process.env.VITEST ? undefined : readFrontApp }: DoItForMeDeps): (args: { target: string }) => Promise<DoItForMeResult> {
   let currentStep: LessonStep | null = null
   ctx.bus.on('lesson:step', (e) => {
     currentStep = e.phase === 'done' || e.phase === 'aborted' ? null : (e.step ?? currentStep)
@@ -49,6 +52,13 @@ export function createDoItForMe({ ctx, s, confirm, actuator, settleMs = 700 }: D
       return result('setting_off', false, false, '"Let me do things for you" is switched off. Teach the learner to do it instead, and tell them they can switch it on in settings.')
     }
 
+    // The app the learner is looking at BEFORE anything of ours takes the focus: the click is only allowed to land in it.
+    let lookingAt: string | null = null
+    try {
+      lookingAt = (await frontApp?.()) ?? null
+    } catch {
+      lookingAt = null
+    }
     const shot = await s.capture.grab('ground')
     const res = await s.grounder.ground({ target, shot, precise: true })
     s.overlay.clear(IDS)
@@ -112,7 +122,7 @@ export function createDoItForMe({ ctx, s, confirm, actuator, settleMs = 700 }: D
         return r
       }
 
-      const click = await actuator.clickAt(spot)
+      const click = await actuator.clickAt(spot, { target: lookingAt && !isOwnApp(lookingAt) ? { app: lookingAt } : undefined })
       s.overlay.clear(['dfm-ghost'])
       if (!click.ok) {
         const code: DoItForMeCode = click.reason === 'accessibility' ? 'accessibility' : 'click_failed'

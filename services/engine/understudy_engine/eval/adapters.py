@@ -7,6 +7,7 @@ names the dashboard's fixture uses until it follows the contract.
 """
 from __future__ import annotations
 
+import contextlib
 import importlib
 import json
 from collections.abc import Callable
@@ -37,7 +38,6 @@ class Ctx:
     fast: bool = False
     root: Path | None = None
     seed: int = 0
-    allow_live: bool = False
     cache: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -341,12 +341,19 @@ def _run_block(d: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _robust_plan_fn() -> Callable[..., Any]:
+    """agent-core's own failure-injection plan, ``benefits_eval.robust_switches(n, seed)``."""
+    return owner_attr("agent-core", "understudy_agent.benefits_eval", "robust_switches")
+
+
 def _injected(robust: dict[str, Any]) -> tuple[list[dict[str, Any]], str | None]:
     """What was injected, per pattern, from agent-core's own plan (``benefits_eval.robust_switches``) and what happened to those households."""
     try:
-        plan_fn = owner_attr("agent-core", "understudy_agent.benefits_eval", "robust_switches")
+        plan_fn = _robust_plan_fn()
     except NotLanded as e:
         return [], f"the injection plan is not available ({e})"
+    except Exception as e:     # an import-time bug elsewhere in agent-core must not take the results down with it
+        return [], f"the injection plan could not be loaded ({type(e).__name__}: {e})"
     seed = _g(robust, "meta", "seed", default=2026)
     rows = robust.get("rows") or []
     plan = plan_fn(len(rows), seed)
@@ -452,15 +459,62 @@ def redteam(ctx: Ctx) -> dict[str, Any]:
     return out
 
 
+REDTEAM_LIVE_FILE = "redteam_live.json"
+
+
+def _ci_overlap(a: list[float | None], b: list[float | None]) -> bool | None:
+    if not a or not b or None in a or None in b:
+        return None
+    return a[0] <= b[1] and b[0] <= a[1]
+
+
 def redteam_live(ctx: Ctx) -> dict[str, Any]:
-    fn = owner_attr("agent-safety", "understudy_agent.security.redteam_runner", "evaluate_redteam_live")
-    if not ctx.allow_live:
-        raise Skipped("the live red team calls a real model, so `make eval` stays offline and leaves it out "
-                      "(set UNDERSTUDY_EVAL_LIVE=1, with a model key and without UNDERSTUDY_MOCK, to include it)")
-    r = fn()
-    rows = [dict(x, label=_ablation_label(str(x.get("ablation")))) for x in (r.get("rows") or [])]
-    return {"meta": normalise_meta(r.get("meta")), "rows": rows, "false_pause_rate": r.get("false_pause_rate"),
-            "false_pause_ci": r.get("false_pause_ci"), "limitations": _limits(r)}
+    """The real-model red-team run, read from agent-safety's cached report (``data/redteam_live.json``). This evaluation never calls a model:
+    with no cached file the section is a stub. The cached report holds the model's recorded answers; nothing is re-run here."""
+    p = resolve_root(ctx.root) / REDTEAM_LIVE_FILE
+    if not p.is_file():
+        raise Skipped(f"no cached live red-team run: data/{REDTEAM_LIVE_FILE} is absent. agent-safety writes it (`python -m understudy_agent.security.redteam_runner --live`); "
+                      "`make eval` itself never calls a model")
+    r = json.loads(p.read_text(encoding="utf-8"))
+    m = r.get("meta") or {}
+    rows = []
+    for x in r.get("rows") or []:
+        d = x.get("detail") or {}
+        atk, tsk = d.get("attack_success") or {}, d.get("task_success_under_attack") or {}
+        rows.append({
+            "ablation": x.get("ablation"), "label": _ablation_label(str(x.get("ablation"))),
+            "attack_success": x.get("attack_success"), "attack_ci": x.get("attack_ci"), "task_success": x.get("task_success"), "task_ci": x.get("task_ci"),
+            "n": x.get("n"), "n_runs": x.get("n_runs"), "attack_successes": atk.get("k"), "attack_runs": atk.get("n"), "task_successes": tsk.get("k"),
+            "paused_rate": x.get("paused_rate"), "false_pause_rate": x.get("false_pause_rate"), "false_pause_ci": x.get("false_pause_ci"),
+            "n_clean": x.get("n_clean"), "n_clean_runs": x.get("n_clean_runs"),
+            "false_pause_hard_negatives": x.get("false_pause_hn"), "task_success_clean": x.get("task_success_clean"),
+        })
+    on = next((x for x in rows if x["ablation"] == "all_on"), None)
+    off = next((x for x in rows if x["ablation"] == "all_off"), None)
+    overlap = _ci_overlap(on["attack_ci"], off["attack_ci"]) if on and off else None
+    n_cases, repeats = m.get("n"), m.get("repeats")
+    label = f"real model, n = {n_cases} cases ({repeats} repeats each)"
+    reading = None
+    if on and off:
+        tail = (f"task success under attack was {100 * on['task_success']:.0f}% with every layer on against {100 * off['task_success']:.0f}% with all off, "
+                f"and {on['attack_successes']} of {on['attack_runs']} runs with every layer on let an attack through")
+        reading = (f"Intervals overlap: this shows what the layers cost ({tail}), not that the layers prevent attacks."
+                   if overlap else
+                   f"The attack-success intervals do not overlap ({tail}); with attacks written by the same team that wrote the defences this is still one model on one day.")
+    hn_clusters = ((on or {}).get("false_pause_hard_negatives") or {}).get("clusters")
+    split = (f"{n_cases} attack cases x {repeats} repeats x {len(rows)} configurations (every layer on, all layers off); {m.get('n_clean')} clean pages"
+             + (f" ({hn_clusters} hard negatives)" if hn_clusters is not None else "") + f" x {repeats} repeats; real planner, reader and drift check; nothing executed; "
+             "intervals treat the repeats of a case as one observation")
+    meta = normalise_meta(m, {"origin": "synthetic", "n": n_cases, "n_unit": "cases", "split": split})
+    meta["n"], meta["n_unit"], meta["split"] = int(n_cases or 0), "cases", split
+    meta["note"] = f"{label}. " + (str(m.get("note") or "").strip() + " " if m.get("note") else "") + "Cached model answers: this evaluation called no model."
+    return {
+        "meta": meta, "label": label, "reading": reading, "intervals_overlap": overlap, "rows": rows,
+        "false_pause_rate": r.get("false_pause_rate"), "false_pause_ci": r.get("false_pause_ci"), "false_pause": r.get("false_pause"),
+        "n_runs": m.get("n_runs"), "repeats": repeats, "n_clean": m.get("n_clean"), "models": m.get("models"), "calls": m.get("calls"),
+        "cost_estimate_usd": m.get("cost_estimate_usd"), "source": f"data/{REDTEAM_LIVE_FILE} (cached; agent-safety)",
+        "limitations": _limits(r),
+    }
 
 
 # ------------------------------------------------------------------------------------------------------------- pooling
@@ -521,12 +575,15 @@ def _study_analysis(study_dir: Path) -> dict[str, Any] | None:
         return mod.analyse(rows, json.loads(asg.read_text()) if asg.is_file() else None)
     summary = study_dir / "results" / "summary.json"
     if summary.is_file():
-        return json.loads(summary.read_text())
+        data = json.loads(summary.read_text())
+        if _g(data, "meta", "origin") not in (None, "real"):
+            return None        # anything not marked real is never shown as the live study (simulated participants live in `study_sim`)
+        return data
     return None
 
 
 def study(ctx: Ctx) -> dict[str, Any]:
-    """Live study (n = 4), exactly as ANALYSIS_PLAN.md pre-registered it. The headline is the UNASSISTED skill score on a later
+    """Live study (n = 4), exactly as ANALYSIS_PLAN.md pre-registered it. LIVE HUMANS ONLY: this never reads `study_sim`. The headline is the UNASSISTED skill score on a later
     matched case (coached skill minus uncoached skill, per participant); assisted speed is reported beside it, never combined.
 
     Contract keys the dashboard reads are filled honestly from the secondary unassisted-time measure: ``unassisted_before_s`` is the post-test
@@ -585,6 +642,126 @@ def study(ctx: Ctx) -> dict[str, Any]:
     }
 
 
+# --------------------------------------------------------------------------------------------------- simulated study and power
+STUDY_SIM_LABEL = "simulated participants (language model), not people"
+
+
+def _repo_import_root() -> Path:
+    return evals_out_dir().parent
+
+
+@contextlib.contextmanager
+def _repo_on_path():
+    """An owner's own absolute imports (`from evals.study_sim import ...`) resolve against the repo root, for the duration of a load or a call."""
+    import sys
+
+    root = str(_repo_import_root())
+    sys.path.insert(0, root)
+    try:
+        yield
+    finally:
+        if root in sys.path:
+            sys.path.remove(root)
+
+
+def _find_in_dir(owner: str, d: Path, attr: str) -> Callable[..., Any]:
+    """Find ``attr`` in a package directory that is not on sys.path (evals/study_sim): the package itself, then its modules."""
+    import importlib.util
+    import sys
+
+    if not d.is_dir():
+        raise NotLanded(owner, f"{d.parent.name}/{d.name} does not exist yet")
+    base = f"_understudy_{d.name}_{abs(hash(str(d))) % 10**8}"
+    candidates = [d / "__init__.py"] + sorted(p for p in d.glob("*.py") if p.name not in ("__init__.py", "__main__.py") and not p.name.startswith("test_"))
+    with _repo_on_path():
+        for path in candidates:
+            if not path.is_file():
+                continue
+            name = base if path.name == "__init__.py" else f"{base}.{path.stem}"
+            if name in sys.modules:
+                mod = sys.modules[name]
+            else:
+                spec = importlib.util.spec_from_file_location(name, path, submodule_search_locations=[str(d)] if path.name == "__init__.py" else None)
+                assert spec is not None and spec.loader is not None
+                mod = importlib.util.module_from_spec(spec)
+                sys.modules[name] = mod
+                try:
+                    spec.loader.exec_module(mod)
+                except BaseException:
+                    sys.modules.pop(name, None)
+                    raise
+            fn = getattr(mod, attr, None)
+            if callable(fn):
+                return fn
+    raise NotLanded(owner, f"{d.parent.name}/{d.name} has no {attr}()")
+
+
+def study_sim(ctx: Ctx) -> dict[str, Any]:
+    """Language-model simulated participants (study-simulation agent). NEVER the live study and never fed into it.
+
+    Forced to origin ``synthetic`` and labelled "simulated participants (language model), not people" wherever it appears."""
+    d = evals_out_dir() / "study_sim"
+    fn = _find_in_dir("study-sim", d, "study_sim_section")
+    try:
+        with _repo_on_path():
+            r = dict(fn())
+    except ModuleNotFoundError as e:
+        if (e.name or "").startswith("_understudy_study_sim_"):         # the package's own lazy import of a module that is not written yet
+            raise NotLanded("study-sim", f"evals/study_sim/{(e.name or '').rsplit('.', 1)[-1]}.py does not exist yet") from e
+        raise
+    meta = normalise_meta(r.get("meta"), {"origin": "synthetic", "n": r.get("n"), "n_unit": "runs"})
+    meta["origin"] = "synthetic"
+    note = (meta.get("note") or "").strip()
+    if STUDY_SIM_LABEL not in note.lower():
+        note = f"{STUDY_SIM_LABEL[0].upper() + STUDY_SIM_LABEL[1:]}. " + note
+    meta["note"] = note.strip()
+    if r.get("label") and r["label"] != STUDY_SIM_LABEL:
+        r["owner_label"] = r["label"]
+    r["label"] = STUDY_SIM_LABEL
+    r["meta"] = meta
+    r["limitations"] = _limits(r)
+    return r
+
+
+def _power_headline(r: dict[str, Any]) -> dict[str, Any]:
+    """The n = 4 and n = 16 rows plainly, read off the owner's grid (no spill-over, no order effect), plus what spill-over does to them."""
+    rows = r.get("rows") or []
+    min_p = r.get("min_p_by_n") or {}
+
+    def cell(n: int, effect: str, carry: float, order: float) -> dict[str, Any] | None:
+        return next((x for x in rows if x.get("n") == n and x.get("effect_label") == effect and x.get("carryover") == carry and x.get("order_effect") == order), None)
+
+    out: dict[str, Any] = {}
+    for n in (4, 16):
+        cells = {e: cell(n, e, 0.0, 0.0) for e in ("none", "small", "medium", "large")}
+        if not any(cells.values()):
+            continue
+        spill = {}
+        full = cell(n, "medium", 1.0, 0.0)
+        if cells["medium"] and full:
+            spill = {"effect": "medium", "carryover": 1.0, "power_ci_without": cells["medium"]["power_ci"], "power_ci_with": full["power_ci"],
+                     "bias_pp_with": full.get("bias_pp"), "bias_pp_without": cells["medium"].get("bias_pp")}
+        out[str(n)] = {
+            "min_sign_flip_p": min_p.get(str(n)),
+            "p05_impossible": all((x.get("power_p05") == 0) for x in rows if x.get("n") == n),
+            "power_ci": {e: (c or {}).get("power_ci") for e, c in cells.items()},
+            "true_effect_pp": {e: (c or {}).get("true_effect_pp") for e, c in cells.items()},
+            "spillover": spill,
+        }
+    return out
+
+
+def study_power(ctx: Ctx) -> dict[str, Any]:
+    """What the n = 4 design could detect under our assumptions (engine-analytics). A property of the design, not a result about people."""
+    fn = owner_attr("engine-analytics", "understudy_engine.study_power", "evaluate_study_power")
+    r = dict(fn(fast=ctx.fast))
+    r["meta"] = normalise_meta(r.get("meta"), {"origin": r.get("origin", "synthetic"), "n": r.get("n"), "n_unit": r.get("n_unit"), "split": r.get("split")})
+    r["limitations"] = _limits(r)
+    r["caveats"] = _caveats(r)
+    r["headline_power"] = _power_headline(r)
+    return r
+
+
 # ---------------------------------------------------------------------------------------------------------------- table
 @dataclass(frozen=True)
 class SectionSpec:
@@ -612,5 +789,7 @@ SECTIONS: tuple[SectionSpec, ...] = (
     SectionSpec("redteam", "agent-safety", redteam, needs_synthetic=False),
     SectionSpec("redteam_live", "agent-safety", redteam_live, needs_synthetic=False),
     SectionSpec("study", "platform", study, needs_synthetic=False),
+    SectionSpec("study_sim", "study-sim", study_sim, needs_synthetic=False),
+    SectionSpec("study_power", "engine-analytics", study_power, needs_synthetic=False),
 )
 SECTION_NAMES = tuple(s.name for s in SECTIONS)

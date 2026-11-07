@@ -288,6 +288,8 @@ export interface OnboardingResult {
 }
 
 export interface CoachState {
+  /** additive: the engine's id for the worker, used for GET /coach/next */
+  person?: string;
   task: { id: string; name: string; step: number; steps_total: number };
   level: "L1" | "L2" | "L3" | "L4";
   chip: "full" | "small" | "dot" | "gone";
@@ -344,3 +346,46 @@ export interface EvalSection<T> {
   [k: string]: unknown;
   data?: T;
 }
+
+/** GET /coach/next: the live coach brain. Rule-based: the dignity gate and the level engine decide. */
+export type CoachAction = "silent" | "nudge" | "annotate" | "takeover_offer";
+export interface CoachCandidate {
+  action: CoachAction;
+  message: string;
+  why: string;
+  target: CoachTarget | null;
+  missed?: unknown[];
+  trigger?: string | null;
+  step?: number | null;
+}
+export interface CoachTarget {
+  zone?: string;
+  label_hint?: string;
+  role_hint?: string;
+  site?: string;
+}
+export interface CoachDecision {
+  person?: string;
+  t?: string;
+  action: CoachAction;
+  /** Empty when silent. At L3 it is the text behind the dot. */
+  message: string;
+  why: string;
+  target: CoachTarget | null;
+  missed: unknown[];
+  confidence: number;
+  level: "L1" | "L2" | "L3" | "L4";
+  chip: "full" | "small" | "dot" | "gone";
+  decision_id: string | null;
+  task_id: string | null;
+  step: number | null;
+  trigger: string | null;
+  reason_codes: string[];
+  gate: { consecutive?: number; reason?: string };
+  p_stuck: number | null;
+  p_source: string | null;
+  /** What the coach would say if the gate let it speak. */
+  candidate: CoachCandidate | null;
+  mastery: Record<string, number>;
+}
+export type CoachOutcome = "followed" | "dismissed" | "repeated" | "undone";

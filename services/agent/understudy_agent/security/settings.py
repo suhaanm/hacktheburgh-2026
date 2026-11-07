@@ -140,7 +140,9 @@ class SettingsGuard:
         protected = [kill_path(), data_dir() / "denylist.json", data_dir() / "queue", data_dir() / "routines",
                      data_dir() / "audit.jsonl"]
         home = os.environ.get("UNDERSTUDY_HOME", "").strip()
-        protected.append(Path(home).expanduser() if home else Path.home() / ".understudy")
+        protected.append(Path.home() / ".understudy")  # the default location is protected even when another home is configured
+        if home:
+            protected.append(Path(home).expanduser())
         for q in protected:
             try:
                 q = q.resolve()

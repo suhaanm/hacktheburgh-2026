@@ -168,3 +168,30 @@ async def test_the_platforms_example_bundles_run_on_the_sandbox(cluster, host, m
         res = await run_bundle(bundle, DslRuntime(page=page, params=params, base_url="", guard=guard, navigator="ex",
                                                    stop_before_irreversible=True))
         assert res.steps_run >= 15
+
+
+def test_demo_bundle_installs_idempotently_with_private_sites_and_targets_the_real_ports(cluster, tmp_path):
+    from understudy_agent import demo_bundle
+    from understudy_agent.compile import bundles_by_site, validate_platform_bundle
+    from understudy_agent.sandbox_sites import lock as sandbox_lock_mod
+
+    root = tmp_path / "demo-data"
+    # another agent holds the shared sandbox lock: seeding must neither wait for it nor touch the shared sites
+    with sandbox_lock_mod.sandbox_lock("someone-else"):
+        first = demo_bundle.install_report(data_dir=root, log=lambda *_: None)
+    assert first["actions"] == {"a": "written", "b": "written", "c": "written"}
+    names = sorted(p.name for p in first["paths"])
+    assert names == ["steps.b.json", "steps.c.json", "steps.json"]
+    got = bundles_by_site("calc-entry-3x", root)
+    assert sorted(got) == ["a", "b", "c"] and all(validate_platform_bundle(b) == [] for b in got.values())
+    assert all(r["dry_run"]["matches_expected"] for r in first["reports"].values())
+    gotos = {s: [st["url"] for st in b["steps"] if st["op"] == "goto"][0] for s, b in got.items()}
+    from understudy_agent.sandbox_sites.specs import site_base_urls
+
+    target = site_base_urls()                 # 7801-7803 in production; the test environment points them at port 9
+    assert gotos == {"a": target["a"] + "/step/1", "b": target["b"] + "/", "c": target["c"] + "/"}
+    assert not any(str(port) in u for u in gotos.values() for port in cluster.ports.values())  # not the private dry-run ports
+    assert cluster.state.calculations == []        # the session's sandbox (another agent's, as far as this test knows) untouched
+    second = demo_bundle.install_report(data_dir=root, log=lambda *_: None)
+    assert second["actions"] == {"a": "unchanged", "b": "unchanged", "c": "unchanged"}
+    assert demo_bundle.status(data_dir=root)["bundles"] == {"a": True, "b": True, "c": True}

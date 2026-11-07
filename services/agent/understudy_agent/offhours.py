@@ -291,6 +291,19 @@ def morning_report(audit: AuditLog, queue: ApprovalQueue | None = None, since: s
         if ln["kind"] == "offhours" and ln.get("note") == "ended" and rid:
             ended[rid] = ln
     ran, failed, yielded, refused = [], [], [], []
+    starts = {ln["run_id"]: when(ln) for ln in lines if ln["kind"] in ("run_start", "offhours") and ln.get("run_id")}
+    # routine runs that were not off-hours runs (an approved background run) are listed from their `run_end` line
+    plain_end = {ln["run_id"]: ln for ln in lines
+                 if ln["kind"] == "run_end" and ln.get("routine") and ln.get("run_id") and ln["run_id"] not in ended}
+    for rid, ln in plain_end.items():
+        t_start = starts.get(rid)
+        ran.append({"routine": ln["routine"], "run_id": rid, "outcome": ln["outcome"],
+                    "minutes": round((when(ln) - t_start).total_seconds() / 60, 3) if t_start else None,
+                    "tier": tiers.get(rid)})
+        if ln["outcome"] == "failed":
+            failed.append({"routine": ln["routine"], "reason": "failed"})
+        elif ln["outcome"] == "paused":
+            failed.append({"routine": ln["routine"], "reason": "paused: the detector or the gate stopped the run"})
     for rid, ln in ended.items():
         meta = ln.get("meta") or {}
         outcome = ln["outcome"]
@@ -309,7 +322,7 @@ def morning_report(audit: AuditLog, queue: ApprovalQueue | None = None, since: s
             failed.append({"routine": ln.get("routine"), "reason": "a page tried to instruct the agent; the run was paused"})
     queued = []
     if queue is not None:
-        run_ids = set(ended)
+        run_ids = set(ended) | set(plain_end)
         for it in queue.list("all"):
             if it.get("run_id") in run_ids and datetime.fromisoformat(it["created_at"].replace("Z", "+00:00")) >= t0:
                 queued.append(it["id"])

@@ -121,7 +121,8 @@ def pick_default_voice(voices: list[dict[str, Any]]) -> dict[str, Any] | None:
 
 
 def _choice_path() -> Path:
-    return cache_dir() / "voice_choice.json"
+    """Path only: reading the choice must not create directories (status() is called on every health check)."""
+    return data_dir() / "voice_cache" / "voice_choice.json"
 
 
 def voice_choice() -> dict[str, str] | None:
@@ -170,6 +171,7 @@ def _ensure_voice(client: httpx.Client) -> str | None:
     best = pick_default_voice(r.json().get("voices", []))
     if not best:
         return None
+    cache_dir()  # create the directory on first write only
     _choice_path().write_text(json.dumps({"id": best["voice_id"], "name": best.get("name", "")}))
     return best["voice_id"]
 

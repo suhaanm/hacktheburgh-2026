@@ -67,7 +67,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (sender.id !== chrome.runtime.id || !cfg?.capturing || !salt || !zoner) return false;
   if (msg?.kind === "rect") {
     const want = msg.want as RectWant;
-    sendResponse(resolveRect(window, want, { salt, matcher }));
+    sendResponse(resolveRect(window, want, { salt, matcher, zoner }));
     return false;
   }
   if (msg?.kind === "page_info" && isTop) {

@@ -4,7 +4,7 @@
 import { buildEvent, eventProblem, isPerson, isRole, type EventInput, type Identity, type UnderstudyEvent } from './event'
 import { DEFAULT_ENDPOINTS, isLoopbackUrl, type Endpoints } from './endpoints'
 import { captureFromMemory, roleFromMemory } from './capture-consent'
-import { parseCoachNext, type CoachDecision, type FeedbackOutcome } from './coach-next'
+import { parseCoachNext, type CoachDecision, type FeedbackOutcome, type FeedbackResult } from './coach-next'
 import { parseCoachState, type CoachStateInfo } from './coach-state'
 
 export type Log = (scope: string, ...args: unknown[]) => void
@@ -80,7 +80,7 @@ export interface EngineClient {
   coachNext(): Promise<CoachDecision | null>
   // POST /coach/feedback: the worker's own response to a prompt (followed or dismissed). It updates their skill state; it is not
   // telemetry, so it is sent whatever the capture preference says.
-  coachFeedback(decisionId: string, outcome: FeedbackOutcome): Promise<boolean>
+  coachFeedback(decisionId: string, outcome: FeedbackOutcome): Promise<FeedbackResult>
   // GET /queue?status=pending -> how many approvals wait in the morning queue. Null when the engine is unreachable.
   pendingQueue(): Promise<number | null>
   // GET /identity (when the engine answers 200) and GET /memory: person, role and the capture preference. Null when the engine is unreachable or GET /memory is not usable.
@@ -262,7 +262,9 @@ export function createEngineClient(opts: EngineClientOptions): EngineClient {
     },
     async coachFeedback(decisionId, outcome) {
       const res = await http('POST', `${endpoints.engine}/coach/feedback`, { decision_id: decisionId, outcome })
-      return !!res && res.status < 300
+      if (!res || res.status >= 300) return { ok: false, recorded: null, note: null }
+      const body = isObj(res.json) ? res.json : {}
+      return { ok: true, recorded: typeof body.recorded === 'boolean' ? body.recorded : null, note: typeof body.note === 'string' ? body.note.slice(0, 80) : null }
     },
     async pendingQueue() {
       const res = await http('GET', `${endpoints.engine}/queue?status=pending`)

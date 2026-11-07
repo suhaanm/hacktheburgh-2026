@@ -32,6 +32,15 @@ describe("parseWant", () => {
       expect(parseWant(w)).toEqual(w);
     }
   });
+  it("accepts the zone form and nothing mixed with it", () => {
+    const w = { request_id: "rq3", zone: "cliff_button", frame_id: "top" };
+    expect(validate(w)).toBe(true);
+    expect(parseWant(w)).toEqual(w);
+    for (const bad of [{ ...w, label_hash: "h:9f2c" }, { ...w, role: "button", name: "x" }, { ...w, zone: "Cliff Button" }, { ...w, zone: "x" }, { ...w, zone: "https://evil.example" }]) {
+      expect(parseWant(bad), JSON.stringify(bad)).toBeNull();
+    }
+    expect(validate({ ...w, label_hash: "h:9f2c" })).toBe(false);
+  });
   it("rejects malformed, mixed and oversized requests", () => {
     for (const w of [null, "x", {}, { request_id: "rq", frame_id: "top" }, { request_id: "rq", frame_id: "bottom", label_hash: "h:9f2c" },
       { request_id: "rq", frame_id: "top", label_hash: "h:9f2c", role: "button", name: "x" }, { request_id: "rq", frame_id: "top", role: "button", name: "x".repeat(81) },
@@ -55,6 +64,15 @@ describe("RectPoller", () => {
     const { p, posts } = make([new Response(null, { status: 204 })]);
     expect(await p.tick()).toEqual({ delay: 400, reachable: true, answered: false });
     expect(posts).toHaveLength(0);
+  });
+  it("carries viewport, outer and screen from the resolved rect into the answer", async () => {
+    const validate = ajvFor("ext_rect.schema.json");
+    const full = { ...found, viewport: { w: 1280, h: 713 }, outer: { w: 1280, h: 800 }, screen: { x: 0, y: 38 } };
+    const { p, posts } = make([new Response(JSON.stringify({ request_id: "rq5", zone: "cliff_button", frame_id: "top" }), { status: 200 })], vi.fn(async () => full as never));
+    await p.tick();
+    const body = (posts[0] as { body: Record<string, unknown> }).body;
+    expect(body).toMatchObject({ viewport: { w: 1280, h: 713 }, outer: { w: 1280, h: 800 }, screen: { x: 0, y: 38 } });
+    expect(validate(body), JSON.stringify(validate.errors)).toBe(true);
   });
   it("answers a want with a schema-valid body and an age", async () => {
     const validate = ajvFor("ext_rect.schema.json");
