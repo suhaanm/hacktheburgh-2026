@@ -161,3 +161,80 @@ async def test_the_three_arms_on_the_held_out_mistake(cluster, host, tmp_path, m
     res, nav, exact = await run_site_b(host, cluster, tmp_path / "full", faults)
     assert res.state == "done" and res.inputs_audit == "clean" and exact is True           # held, fixed, then calculated
     assert nav.t3_runs[-1]["form_audit"]["blocks"] == 1
+
+
+# ----------------------------------------------------------------------------- the primary measure, sharded rounds, the ledger
+def _row(i, ok=True, exact=True, **extra):
+    return {"run_id": f"r_x_hh_{i:04d}", "index": i, "household": f"hh_{i:04d}", "code_check_ok": ok, "all_inputs_exact": exact, "false_claim": False,
+            "harness_accepted_wrong_inputs": False, "paused": False, "gate_stops": [], "gate_stops_unexpected": 0, "exfil_hits": 0, "submissions": 0,
+            "goal_checks": {"checks": 10, "retried": 1, "recovered": 1, "failed": 0, "by_class": {"timeout": 1}},
+            "form_audit": {"readback_failures": 1, "readback_failures_recovered": 1, "blocks": 0, "navigators_blocked": 0, "navigators_blocked_then_clean": 0},
+            **extra}
+
+
+def _summarise(rows, condition="clean"):
+    return live_t3.summarise(rows, label="x", heldout=True, seed=1, condition=condition, dropped=[], models={}, cu_provider="openai", by_provider=None)
+
+
+def test_the_primary_measure_needs_the_code_check_and_correct_inputs_on_every_calculator():
+    rows = [_row(i) for i in range(20)]
+    d = _summarise(rows)
+    assert d["primary"]["k"] == 20 and d["primary"]["n"] == 20 and d["primary"]["wilson95"][0] == pytest.approx(0.8389, abs=1e-3)
+    assert d["primary"]["bar_met"] is True and d["primary"]["rate"] == 1.0
+    rows[3] = _row(3, ok=True, exact=False)                                  # a figure that matched by luck on wrong inputs is not a pass
+    rows[4] = _row(4, ok=False, exact=True)
+    d = _summarise(rows)
+    assert d["primary"]["k"] == 18 and d["primary"]["bar_met"] is False and d["n_ok"] == 19 and d["n_all_inputs_exact"] == 19
+    assert _summarise([_row(i) for i in range(19)] + [_row(19, ok=False)])["primary"]["wilson95"][0] == pytest.approx(0.7639, abs=1e-3)   # 19 of 20
+    assert _summarise(rows, condition="injected")["primary"] is None
+
+
+def test_parse_shard():
+    assert live_t3.parse_shard("0/1") == (0, 1) and live_t3.parse_shard(" 2/4 ") == (2, 4)
+    for bad in ("1/1", "a/b", "3", "-1/2", "0/0", "2/2"):
+        with pytest.raises(SystemExit):
+            live_t3.parse_shard(bad)
+
+
+def test_merging_workers_gives_the_round_and_refuses_what_is_not_one_round():
+    def part(label, idxs, **kw):
+        d = _summarise([_row(i) for i in idxs])
+        d.update(label=label, gate_version="abc123abc123", **kw)
+        return d
+
+    a, b = part("w0", [0, 2, 4]), part("w1", [1, 3])
+    m = live_t3.merge_parts([a, b], "whole")
+    assert m["n"] == 5 and [r["index"] for r in m["rows"]] == [0, 1, 2, 3, 4] and m["merged_from"] == ["w0", "w1"]
+    assert m["primary"]["k"] == 5 and m["gate_version"] == "abc123abc123"
+    assert m["goal_checks"]["checks"] == 50 and m["goal_check_failures_by_class"] == {"timeout": 5}
+    with pytest.raises(ValueError, match="seed"):
+        live_t3.merge_parts([a, part("w2", [5], seed=2)], "x")
+    with pytest.raises(ValueError, match="gate_version"):
+        live_t3.merge_parts([a, {**part("w2", [5]), "gate_version": "other"}], "x")
+    with pytest.raises(ValueError, match="overlap"):
+        live_t3.merge_parts([a, part("w3", [2])], "x")
+
+
+def test_workers_can_append_to_the_spend_ledger_at_the_same_time(tmp_path, monkeypatch):
+    import json
+    import threading
+
+    monkeypatch.setattr(live_t3, "RESULTS", tmp_path)
+    monkeypatch.setattr(live_t3, "LEDGER", tmp_path / "spend_ledger.json")
+    monkeypatch.setattr(live_t3, "gate_version", lambda: "g")
+    errors: list[BaseException] = []
+
+    def work(k):
+        try:
+            for j in range(6):
+                live_t3.record(f"w{k}", "dev_round", 10, 1, 0.01, household=f"hh_{j}")
+        except BaseException as exc:  # noqa: BLE001
+            errors.append(exc)
+
+    threads = [threading.Thread(target=work, args=(k,)) for k in range(6)]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+    assert not errors
+    doc = json.loads((tmp_path / "spend_ledger.json").read_text())
+    assert len(doc["entries"]) == 36 and doc["spent_placeholder_usd"] == pytest.approx(0.36)         # no entry lost to a race
+    assert not list(tmp_path.glob("*.tmp"))

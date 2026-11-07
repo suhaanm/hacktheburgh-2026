@@ -170,7 +170,9 @@ _ELEMS_JS = r"""
               x: r.x + r.width / 2, y: r.y + r.height / 2, value: el.value || '',
               dialog: !!el.closest('[role=dialog],[aria-modal=true]')});
   }
-  return {url: location.href, text: document.body.innerText || '', els, vh: window.innerHeight, vw: window.innerWidth};
+  const a = document.activeElement;
+  return {url: location.href, text: document.body.innerText || '', els, vh: window.innerHeight, vw: window.innerWidth,
+          active: (a && a !== document.body && a !== document.documentElement) ? label(a).trim() : ''};
 }
 """
 
@@ -259,7 +261,13 @@ class DomOracleComputerModel:
             st["enter"] = is_select
             return Action("type", {"text": "{" + handle + "}"})
         if st["pending"]:
-            handle, is_select = st["pending"]
+            handle, is_select, want = st["pending"]
+            if want and info.get("active", want) != want:
+                # Focus is not on the control the last click went to: that click never took effect (a step discarded as stale while the run was
+                # paused, or the page moved). A grounded model looks before it types, so click the control again.
+                for e in els:
+                    if e["label"] == want and e["tag"] in ("input", "select", "textarea"):
+                        return Action("click", {"x": int(e["x"]), "y": int(e["y"])})
             st["pending"] = None
             st["last"] = (handle, is_select)
             st["enter"] = is_select
@@ -309,7 +317,7 @@ class DomOracleComputerModel:
                     if handle in self.faults["skip"]:
                         self.faults["skip"].discard(handle)      # walks past it: the drop-down keeps its default
                         continue
-                    st["pending"] = (handle, e["tag"] == "select")
+                    st["pending"] = (handle, e["tag"] == "select", e["label"])
                     if handle in self.faults["no_focus"]:
                         self.faults["no_focus"].discard(handle)
                         st["pending"], st["last"], st["enter"] = None, (handle, e["tag"] == "select"), e["tag"] == "select"
@@ -319,6 +327,7 @@ class DomOracleComputerModel:
                         for e2 in els:                           # clicks the control of ANOTHER handle, then types this handle's text
                             c2, _u = param_for(e2["label"], "combobox" if e2["tag"] == "select" else "textbox")
                             if _HANDLE_OF.get(c2 or "") == other:
+                                st["pending"] = (handle, e["tag"] == "select", e2["label"])      # it believes this is the control it clicked
                                 return Action("click", {"x": int(e2["x"]), "y": int(e2["y"])})
                     return Action("click", {"x": int(e["x"]), "y": int(e["y"])})
         fwd = [e for e in els if e["tag"] == "button" and any(w in e["label"].lower() for w in _FORWARD if w != "cliff")]
