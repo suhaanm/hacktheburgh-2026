@@ -72,7 +72,7 @@ Annotations:
 - (h) One primary action, at most four words, a verb phrase. "Why this?" is the existing Details disclosure and holds: how it was chosen (fixed rules, not a model), the interval, n, the origin sentence.
 - (i) Needs-you row appears only when something needs the worker; it is the Inbox's count, one line, and the whole row is the target.
 - (j) At most two secondary rows, in this order of claim: the needs-you count (when any), the second pointer (when any), then the best of Repeats and Growth. A hairline, an icon, one sentence of at most 12 words, a chevron. No cards, no hints. The third pointer is not drawn on Home; it is in the palette under "This week".
-- Never on Home: a chart, a table, an interval, an n, the Monday note, "What your admin can see", the example-week selector, the data-mode line, the quote of the method. They move: Monday note to the palette ("Copy my Monday note"); admin visibility to Your data; the example-week selector to Settings under Demo; method to "Why this?".
+- Never on Home: a chart, a table, an interval, an n, the Monday note, "What your admin can see", the example-week selector, the data-mode line, the quote of the method. They move: Monday note to the palette ("Copy my Monday note"); admin visibility to Your data; the example-week selector to Settings under Views; the data-mode line to the sidebar's status line; method to "Why this?".
 
 Words above the fold: content 47 plus sidebar 17 = 64 (before: 173 plus 51 = 224). Controls: 1 primary, 2 rows, 1 disclosure, 5 nav, 1 More, 2 footer = 12 (before: 10 plus 18 = 28).
 
