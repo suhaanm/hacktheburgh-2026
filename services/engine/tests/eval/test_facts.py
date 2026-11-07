@@ -151,3 +151,19 @@ def test_the_cli_writes_the_fixture_only_when_asked(synthetic_data, tmp_path):
     assert main(["--fast", "--no-generate", "--no-md", "--sections", "ski_rental,study", "--out", str(out)]) == 0 and not fx.exists()
     assert main(["--fast", "--no-generate", "--no-md", "--sections", "ski_rental,study", "--out", str(out), "--fixture", str(fx)]) == 0
     assert json.loads(fx.read_text())["sections"]["study"]["status"] == "not_run"
+
+
+def test_the_privacy_block_keeps_the_keys_the_evidence_page_reads_in_the_report_and_in_the_fixture_copy():
+    """The Evidence page's per-layer table reads ``layers`` (at least 5 rows) and its privacy block reads coverage, image, the two scan rates and the vocabulary check."""
+    from understudy_engine.eval import schema_errors
+    from understudy_engine.eval.fixture import PRIVACY_FIXTURE_KEYS, trim
+
+    rep = build_report(sections=["privacy"], fast=True, now=NOW, regenerate=False, log=lambda m: None)
+    p = rep["sections"]["privacy"]
+    assert "status" not in p, p
+    six = ("layers", "coverage", "image", "scan_sensitivity", "scan_specificity", "vocabulary_problems")
+    assert all(k in p for k in six) and len(p["layers"]) >= 5
+    t = trim(rep)["sections"]["privacy"]
+    assert schema_errors(trim(rep)) == [] and set(PRIVACY_FIXTURE_KEYS) <= set(t) and all(k in t for k in six) and len(t["layers"]) == len(p["layers"])
+    assert t["headline"] == p["headline"] and t["by_kind"] == p["by_kind"]
+    assert not {"flows", "bucketing", "backstop", "static_guard", "ledger", "negative_controls"} & set(t)         # the bulk stays out of the bundle

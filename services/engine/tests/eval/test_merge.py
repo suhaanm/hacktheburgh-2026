@@ -212,7 +212,7 @@ def test_the_cli_merges_and_rewrites_json_markdown_facts_and_fixture(evals, tmp_
     assert code in (0, 2), capsys.readouterr().err
     r = json.loads(out.read_text())
     assert r["sections"]["agentic"]["heldout"]["clean"]["status"] == "recorded" and r["run"]["merged"][0]["sections"][0] == "agentic" and "agent_claims" in r["run"]["merged"][0]["sections"]
-    assert "**Clean (held-out).**" in out.with_suffix(".md").read_text() and json.loads(out.with_suffix(".facts.json").read_text())["findings"]["total"] == 5
+    assert "**Clean (held-out).**" in out.with_suffix(".md").read_text() and json.loads(out.with_suffix(".facts.json").read_text())["findings"]["total"] == 7
     assert json.loads(fx.read_text())["sections"]["agentic"]["meta"]["n"] == 24
     assert "merged agentic" in capsys.readouterr().out
 

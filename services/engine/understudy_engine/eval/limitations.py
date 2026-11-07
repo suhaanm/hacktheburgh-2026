@@ -334,7 +334,8 @@ def _recorded_result_entries(sections: dict[str, Any], ok) -> list[dict[str, str
     # the findings the Evidence page leads with are also register entries (high), generated from the same numbers
     from .findings import build_findings
 
-    srcs = {"study-sim-floor-null": "engine-eval:study_sim", "mlv2-m5-transfer-failure": "engine-eval:mlv2"}
+    srcs = {"study-sim-floor-null": "engine-eval:study_sim", "mlv2-m5-transfer-failure": "engine-eval:mlv2", "mlv2-e4-q1-rejected": "engine-eval:mlv2",
+            "mlv2-tsp-beats-v1-under-mismatch": "engine-eval:mlv2"}
     for f in build_findings(sections):
         if f["status"] == "ok":
             out.append(_entry(f"eval-{f['id']}", f["text"], "high", srcs.get(f["id"], "engine-eval:realism")))

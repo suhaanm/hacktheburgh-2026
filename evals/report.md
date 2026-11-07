@@ -1,6 +1,6 @@
 # Understudy evaluation report
 
-Generated 2026-11-07T21:21:04Z · mock mode: yes · git 909788b · fast run: no
+Generated 2026-11-07T21:40:27Z · mock mode: yes · git 1ce70be · fast run: no
 
 Written by `python -m understudy_engine.eval` from the owning tracks' code; no number here is typed in by hand. Synthetic results are labelled synthetic. A section without numbers says why instead of showing a made-up value.
 
@@ -79,6 +79,18 @@ Genome (deficit detection), benefits-processor, synthetic generators we wrote (1
 *origin: **synthetic** · synthetic (generators we wrote) · from: realism · severity: high*
 
 Routines (repeat finder, then the proposal gate), benefits-processor, synthetic generators we wrote (4 personas on the v1 generator, 120 synthetic people per v2 cell; shipped thresholds, which do not depend on the fit family): raw cluster precision is 22% on the v1 generator (the published figure) and 44 to 97% on the three v2 families, with recall 45 to 92% (100% on v1). Proposal precision after the gate is 74 to 100% (100% on v1). Thresholds fitted per family transfer unevenly: across the fitted off-diagonal cells raw precision ranges from 4 to 100% and recall from 16 to 100%. The two thin roles (data-analyst, programmer; v2 families only, shipped thresholds) give raw precision 88 to 98%, recall 60 to 92% and proposal precision 100%, so the figures differ by role as well as by family. These numbers say how many of the clusters found are real routines in a generator we wrote, not in real workers.
+
+### ML v2 expert-envelope and counterfactual candidates (E4, Q1) are rejected
+
+*origin: **synthetic** · synthetic (generators we wrote) · from: mlv2 · severity: high*
+
+ML v2 genome families on the held-out apprentice cohort (6 cohorts, 96 novices; synthetic): the pre-registered primary candidates E4 (expert envelope) and Q1 (counterfactual price) are both harmful and so rejected. The primary metric is the mean absolute error, in seconds, of the recovered price of a deficit, paired against v1's attribution, so a positive difference is worse: E4 +3.81 [+2.30, +5.19] s, Q1 +1.17 [+0.44, +1.87] s. Other E variants: E1 accepted (-0.92 [-1.85, -0.21] s), E2 null (+0.00 [+0.00, +0.00] s), E3 harmful (+4.57 [+3.14, +6.01] s). v1's attribution stays the default for these families. Reported as is: the candidates were frozen before the held-out run.
+
+### Under generator mismatch the time-since-progress baseline beats v1
+
+*origin: **synthetic** · synthetic (generators we wrote) · from: mlv2 · severity: high*
+
+ML v2 under generator mismatch (fit on one synthetic generator family, test on another; pooled off-diagonal cells; synthetic): the plain time-since-progress baseline beats v1 on log loss, paired against v1 (negative is better; adjusted intervals as recorded): benefits-processor -0.021 [-0.034, -0.010]; data-analyst -0.024 [-0.034, -0.014]; programmer -0.030 [-0.041, -0.019]. The accepted v2 (A4) improves on v1 by -0.014 [-0.019, -0.009] for benefits-processor under the same test, a smaller improvement than the baseline's, so on this test a rule that only counts time since progress does better than the accepted v2 when the generator changes. The held-out result is reported as is; it is about our generators, not about workers.
 
 ## Deficit recovery (EVL-1)
 
@@ -588,7 +600,7 @@ Dev-labelled numbers are never acceptance evidence. Held-out replicates share ou
 Figures (synthetic):
 - label: Models v2 (REQ-6): pre-registered improvements to detection, comparison and analysis, with honest nulls
 - plan: evals/mlv2/PLAN.md
-- mode: fast
+- mode: full
 
 - variants_tried (synthetic): A: 7, C: 2, E: 4, Q: 2, total: 15
 
@@ -596,18 +608,13 @@ Figures (synthetic):
 
 dev (synthetic):
 
-| key | pool | n_people | n_bins | inner | primary_a | family_a | family_c_on_A0 | tte |
+| key | pool | n_people | n_bins | inner | primary_a | family_a | family_c_on_A0 | family_c_on_primary_a |
 |---|---|---|---|---|---|---|---|---|
 | hazard_d0 | D0 | 4 | 7376 | leave-one-person-out within training people | n/a | (see report.json) | (see report.json) | (see report.json) |
 | genome_apprentice_d0 | APP-D0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| hazard_dev16 | DEV | 16 | 31791 | grouped 5-fold within training people | n/a | (see report.json) | (see report.json) | (see report.json) |
 
-- scorecard (synthetic): meta: (see report.json), accepted: False, verdict: not_run, model_version_shown_as_default: v1, primary_id: A7_A4, primary_label: A4 + personal prior shift, model: (see report.json), baselines: (see report.json), calibration: (see report.json), calibration_source: not computed in fast mode, false_alarms_per_hour: (see report.json), budget_per_hour: 1.000
-
-recorded (synthetic):
-
-| key | heldout_hazard.json | heldout_genome.json | heldout_mismatch.json | transfer_sim.json |
-|---|---|---|---|---|
-| files | True | True | True | True |
+- transfer_simulated_participants (synthetic): badge: simulated participants (language model), not people, origin: simulated_participants, test_only: True, n_participants_finished: 24, participants_skipped: (see report.json), n_events: 7334, n_progress_events: 152, n_coach_events: 24, timing: measured (engine event timestamps), arms: (see report.json), genome_comparison: not applicable: the simulated participants are all novices; there is no expert reference in these data, train: (see report.json)
 
 heldout (synthetic):
 
@@ -616,6 +623,10 @@ heldout (synthetic):
 | hazard | (see report.json) | (see report.json) |
 | genome | (see report.json) | (see report.json) |
 | mismatch | (see report.json) | (see report.json) |
+
+- final_decisions (synthetic): deep_role: benefits-processor, family_a: (see report.json), family_c: (see report.json), default_v2: (see report.json), v1_stays_for: (see report.json), status: complete
+
+- scorecard (synthetic): meta: (see report.json), accepted: True, verdict: accepted_by_both_tests, model_version_shown_as_default: v2, primary_id: A4, primary_label: gradient boosting + Platt, model: (see report.json), baselines: (see report.json), calibration: (see report.json), calibration_source: D0: the four v1 personas, leave one person out (dev), false_alarms_per_hour: (see report.json), budget_per_hour: 1.000
 
 verdicts (synthetic):
 
@@ -644,11 +655,22 @@ verdicts (synthetic):
 
 (16 more rows in report.json)
 
-- transfer_simulated_participants (synthetic): badge: simulated participants (language model), not people, origin: simulated_participants, test_only: True, n_participants_finished: 24, participants_skipped: (see report.json), n_events: 7334, n_progress_events: 152, n_coach_events: 24, timing: measured (engine event timestamps), arms: (see report.json), genome_comparison: not applicable: the simulated participants are all novices; there is no expert reference in these data, train: (see report.json)
+recorded (synthetic):
+
+| key | heldout_hazard.json | heldout_genome.json | heldout_mismatch.json | transfer_sim.json |
+|---|---|---|---|---|
+| files | True | True | True | True |
 
 - frozen (synthetic): primary_c: C1, primary_e: E4, primary_q: Q1, plan_stage_frozen_at: 2026-11-07T18:18:37Z, hazard_frozen: True, note: Chosen by the DEV rule in PLAN.md section 6.2 before any held-out hazard run. primary_a None means no candidate qualified on DEV., frozen_at: 2026-11-07T18:40:44Z, a7_base: A7_A4, primary_a_dev_rule: A7_A4, primary_a: A7
 
 - finding (synthetic): id: mlv2-m5-transfer-failure, title: ML v2 does not transfer to the simulated participants, text: M5, out-of-generator transfer (simulated participants (language model), not people; test only, no decision rule; n = 24 participants, 419 scored 30 s bins): neither v1 nor v2 transfers to the floor-bound behaviour of those traces. Log loss is 1.43 [1.25 to 1.60] for v1 and 1.46 [1.31 to 1.61] for v2 against 1.08 [1.00 to 1.15] for the base rate, and calibration is destroyed (expected calibration error 0.51 [0.45 to 0.57] and 0.53 [0.47 to 0.58]). The label shifts: 65% of the test bins are 'stuck' against 22% in training, because progress is sparse in these traces. v2 minus v1 log loss is +0.030 with an interval of -0.030 to 0.085: no improvement. Reported as is; the models and alarm rules were fixed before these traces existed., status: ok
+
+more_findings (synthetic):
+
+| id | title | text | status |
+|---|---|---|---|
+| mlv2-e4-q1-rejected | ML v2 expert-envelope and counterfactual candidates (E4, Q1) are rejected | ML v2 genome families on the held-out apprentice cohort (6 cohorts, 96 novices; synthetic): the pre-registered primary candidates E4 (expert envelope) and Q1 (counterfactual price) are both harmful and so rejected. The primary metric is the mean absolute error, in seconds, of the recovered price of a deficit, paired against v1's attribution, so a positive difference is worse: E4 +3.81 [+2.30, +5.19] s, Q1 +1.17 [+0.44, +1.87] s. Other E variants: E1 accepted (-0.92 [-1.85, -0.21] s), E2 null (+0.00 [+0.00, +0.00] s), E3 harmful (+4.57 [+3.14, +6.01] s). v1's attribution stays the default for these families. Reported as is: the candidates were frozen before the held-out run. | ok |
+| mlv2-tsp-beats-v1-under-mismatch | Under generator mismatch the time-since-progress baseline beats v1 | ML v2 under generator mismatch (fit on one synthetic generator family, test on another; pooled off-diagonal cells; synthetic): the plain time-since-progress baseline beats v1 on log loss, paired against v1 (negative is better; adjusted intervals as recorded): benefits-processor -0.021 [-0.034, -0.010]; data-analyst -0.024 [-0.034, -0.014]; programmer -0.030 [-0.041, -0.019]. The accepted v2 (A4) improves on v1 by -0.014 [-0.019, -0.009] for benefits-processor under the same test, a smaller improvement than the baseline's, so on this test a rule that only counts time since progress does better than the accepted v2 when the generator changes. The held-out result is reported as is; it is about our generators, not about workers. | ok |
 
 Caveats:
 
@@ -1147,7 +1169,7 @@ Caveats:
 
 ## Limitations register
 
-204 entries, most serious first. Kept in the product on purpose.
+206 entries, most serious first. Kept in the product on purpose.
 
 | Id | Severity | What it means | Source |
 |---|---|---|---|
@@ -1212,6 +1234,8 @@ Caveats:
 | eval-mlv2-m5-transfer-failure | high | M5, out-of-generator transfer (simulated participants (language model), not people; test only, no decision rule; n = 24 participants, 419 scored 30 s bins): neither v1 nor v2 transfers to the floor-bound behaviour of those traces. Log loss is 1.43 [1.25 to 1.60] for v1 and 1.46 [1.31 to 1.61] for v2 against 1.08 [1.00 to 1.15] for the base rate, and calibration is destroyed (expected calibration error 0.51 [0.45 to 0.57] and 0.53 [0.47 to 0.58]). The label shifts: 65% of the test bins are 'stuck' against 22% in training, because progress is sparse in these traces. v2 minus v1 log loss is +0.030 with an interval of -0.030 to 0.085: no improvement. Reported as is; the models and alarm rules were fixed before these traces existed. | engine-eval:mlv2 |
 | eval-realism-genome-generator-dependence | high | Genome (deficit detection), benefits-processor, synthetic generators we wrote (16 personas on the v1 generator, 87 to 92 synthetic people per v2 cell): precision 92% and recall 95% on the v1 generator fall to 48 to 71% precision and 49 to 68% recall on three harder generator families (thresholds fitted and tested on the same family). Thresholds fitted on v1 keep recall (87 to 95%) but lose precision (33 to 56%); thresholds fitted on a v2 family give v1 high precision (79 to 100%) but recall of only 10 to 42%. False attribution to deficits that are absent is 46 to 59 s on the v2 families against 1.1 s on v1. The v1 figures describe the v1 generator, not workers. | engine-eval:realism |
 | eval-realism-routines-generator-dependence | high | Routines (repeat finder, then the proposal gate), benefits-processor, synthetic generators we wrote (4 personas on the v1 generator, 120 synthetic people per v2 cell; shipped thresholds, which do not depend on the fit family): raw cluster precision is 22% on the v1 generator (the published figure) and 44 to 97% on the three v2 families, with recall 45 to 92% (100% on v1). Proposal precision after the gate is 74 to 100% (100% on v1). Thresholds fitted per family transfer unevenly: across the fitted off-diagonal cells raw precision ranges from 4 to 100% and recall from 16 to 100%. The two thin roles (data-analyst, programmer; v2 families only, shipped thresholds) give raw precision 88 to 98%, recall 60 to 92% and proposal precision 100%, so the figures differ by role as well as by family. These numbers say how many of the clusters found are real routines in a generator we wrote, not in real workers. | engine-eval:realism |
+| eval-mlv2-e4-q1-rejected | high | ML v2 genome families on the held-out apprentice cohort (6 cohorts, 96 novices; synthetic): the pre-registered primary candidates E4 (expert envelope) and Q1 (counterfactual price) are both harmful and so rejected. The primary metric is the mean absolute error, in seconds, of the recovered price of a deficit, paired against v1's attribution, so a positive difference is worse: E4 +3.81 [+2.30, +5.19] s, Q1 +1.17 [+0.44, +1.87] s. Other E variants: E1 accepted (-0.92 [-1.85, -0.21] s), E2 null (+0.00 [+0.00, +0.00] s), E3 harmful (+4.57 [+3.14, +6.01] s). v1's attribution stays the default for these families. Reported as is: the candidates were frozen before the held-out run. | engine-eval:mlv2 |
+| eval-mlv2-tsp-beats-v1-under-mismatch | high | ML v2 under generator mismatch (fit on one synthetic generator family, test on another; pooled off-diagonal cells; synthetic): the plain time-since-progress baseline beats v1 on log loss, paired against v1 (negative is better; adjusted intervals as recorded): benefits-processor -0.021 [-0.034, -0.010]; data-analyst -0.024 [-0.034, -0.014]; programmer -0.030 [-0.041, -0.019]. The accepted v2 (A4) improves on v1 by -0.014 [-0.019, -0.009] for benefits-processor under the same test, a smaller improvement than the baseline's, so on this test a rule that only counts time since progress does better than the accepted v2 when the generator changes. The held-out result is reported as is; it is about our generators, not about workers. | engine-eval:mlv2 |
 | eval-evidence-traceability-not-truth | high | The model check proves traceability, not truth: a sentence passes when every number in it traces to the evidence packet and it makes no causal or expert claim. A sentence can still mislead with numbers that all trace, and the packets are from synthetic apprentices. | engine-eval:evidence |
 | eval-evidence-local-model-first-run | high | The local model's reword pass rate on the number check was 40% (12 of 30) on its first n = 30 run, and 80% (24 of 30, interval 0.63 to 0.91) after the hedge handling and the consequence wording were fixed. The second figure is on the same kind of packets after fixing what the first run showed, so it is in-sample. Small n, one model, synthetic packets, recorded 7 Nov and not re-run by make eval. | engine-eval:evidence |
 | eval-agent-live-injected-text-only | high | The injected condition in the real-model runs is text-only (hidden and visible words aimed at an AI; the detector paused 20 of 20 runs). It tests the detector and the pause, not the action gate against a hostile page, and does not show that the gate resists hostile pages. | engine-eval:agent_runs |
