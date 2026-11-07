@@ -1,0 +1,68 @@
+/* Track C (Needs you, Routines, Your data, Settings): the shared pieces. Own classes (kc-), design tokens only, no hex values.
+   Direction: docs/KNACK_UX.md sections 5 and 6. One left-aligned column, hairlines not cards, one hero per screen, no eyebrow, no lede. */
+
+.kc-page { display: grid; gap: var(--space-6); align-content: start; }
+.kc-page > * { min-width: 0; }
+
+/* Title row: the title (22 px) and, where it is a real fact, the one origin badge. */
+.kc-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4); }
+.kc-title { margin: 0; font: 600 var(--text-xl)/1.25 var(--font-display); letter-spacing: var(--tracking-display); }
+.kc-badges { display: inline-flex; align-items: center; gap: var(--space-2); }
+
+/* A hairline list: rows, not cards. */
+.kc-list { list-style: none; margin: 0; padding: 0; border-top: var(--hair) solid var(--line); }
+.kc-list > li { border-bottom: var(--hair) solid var(--line); }
+.kc-list > li:focus-visible { outline: var(--ring-w) solid var(--focus); outline-offset: calc(var(--ring-offset) * -1); }
+
+/* One row: a title line, up to two lines of body, its own buttons. 44 px at least. */
+.kc-row { display: grid; gap: var(--space-2); padding: var(--space-4) var(--space-1); min-width: 0; }
+.kc-row__title { display: flex; align-items: center; gap: var(--space-3); margin: 0; font: 600 var(--text-md)/1.3 var(--font-body); min-width: 0; }
+.kc-row__title > span:first-of-type { min-width: 0; overflow-wrap: anywhere; }
+.kc-row__when { margin-left: auto; flex: none; font: 400 var(--text-xs)/1 var(--font-mono); color: var(--muted); white-space: nowrap; }
+.kc-row__body { margin: 0; max-width: 62ch; font-size: var(--text-md); line-height: 1.5; overflow-wrap: anywhere; }
+.kc-row__meta { margin: 0; max-width: 62ch; color: var(--muted); font-size: var(--text-sm); line-height: 1.4; overflow-wrap: anywhere; }
+/* The consequence of a step: plain text in the foreground colour, never a pill and never behind a Hint. */
+.kc-row__cons { margin: 0; color: var(--fg); font-size: var(--text-sm); font-weight: 600; line-height: 1.4; }
+.kc-row__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-top: var(--space-1); }
+.kc-row__actions .kc-link { margin-left: auto; }
+.kc-glyph { width: 16px; height: 16px; flex: none; color: var(--muted); }
+.kc-row[data-cls="0"] .kc-glyph { color: var(--bad); }
+.kc-row .btn { min-height: var(--control-h, 32px); }
+
+/* A quiet link-button: "Evidence", "More ways to say yes", "Details". A real button, with its state in aria-expanded. */
+.kc-link { display: inline-flex; align-items: center; gap: var(--space-1); min-height: var(--control-h, 32px); padding: 0 var(--space-2); border: 0; background: none; color: var(--muted); font: 400 var(--text-sm)/1 var(--font-body); cursor: pointer; text-decoration: none; border-radius: var(--radius-2); }
+.kc-link:hover { color: var(--fg); background: var(--sunk); }
+.kc-link:focus-visible { outline: var(--ring-w) solid var(--focus); outline-offset: var(--ring-offset); }
+.kc-link .kc-glyph { width: 12px; height: 12px; transition: transform var(--dur-fast) var(--ease-out); }
+.kc-link[aria-expanded="true"] .kc-glyph { transform: rotate(90deg); }
+a.kc-link { text-decoration: none; }
+
+/* An inline panel that opens under a row. Hairline above, sunk well for evidence. */
+.kc-panel { display: grid; gap: var(--space-3); padding: var(--space-3) var(--space-4); margin: 0 0 var(--space-4); background: var(--sunk); border-radius: var(--radius-2); font-size: var(--text-sm); }
+.kc-panel p { margin: 0; }
+.kc-sub { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+.kc-label { margin: 0; font: 600 var(--text-xs)/1.2 var(--font-body); color: var(--muted); }
+
+/* The inline confirm: a sentence that says exactly what is cleared, then two equal buttons. */
+.kc-confirm { display: grid; gap: var(--space-3); padding: var(--space-3) var(--space-4); border: var(--hair) solid var(--control-line); border-radius: var(--radius-2); background: var(--panel); }
+.kc-confirm p { margin: 0; font-size: var(--text-sm); max-width: 62ch; }
+.kc-confirm[data-tone="danger"] { border-color: var(--bad); }
+
+.kc-error { margin: 0; color: var(--bad); font-size: var(--text-sm); }
+.kc-empty { display: grid; gap: var(--space-1); padding: var(--space-6) var(--space-1); border-top: var(--hair) solid var(--line); border-bottom: var(--hair) solid var(--line); }
+.kc-empty h2 { margin: 0; font: 600 var(--text-md)/1.3 var(--font-body); }
+.kc-empty p { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+.kc-foot { color: var(--muted); font-size: var(--text-sm); }
+
+/* Tabs: two words each, an underline for the current one (the accent bar is the current-item mark in the shell too). */
+.kc-tabs { display: flex; gap: var(--space-5); border-bottom: var(--hair) solid var(--line); }
+.kc-tabs > button { padding: var(--space-2) 0; margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted); font: 600 var(--text-sm)/1.2 var(--font-body); cursor: pointer; }
+.kc-tabs > button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+.kc-tabs > button:hover { color: var(--fg); }
+.kc-tabs > button:focus-visible { outline: var(--ring-w) solid var(--focus); outline-offset: var(--ring-offset); border-radius: var(--radius-2); }
+.kc-tabs .kc-count { margin-left: var(--space-1); font-family: var(--font-mono); font-weight: 400; font-size: var(--text-xs); color: var(--muted); }
+
+@media (max-width: 560px) {
+  .kc-row__actions .kc-link { margin-left: 0; }
+  .kc-row__actions .btn { flex: 1 1 auto; justify-content: center; }
+}

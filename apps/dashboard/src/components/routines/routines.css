@@ -1,0 +1,22 @@
+/* Routines: the Running rows. The hit list rows (Could automate) keep their own styles in components/repeats/repeats.css. */
+.rt-row { min-width: 0; }
+.rt-row__open { display: flex; align-items: center; gap: var(--space-3); width: 100%; min-height: var(--row-h, 44px); padding: var(--space-3) var(--space-1); border: 0; background: none; color: var(--fg); text-align: left; cursor: pointer; font: inherit; }
+.rt-row__open:hover { background: var(--sunk); }
+.rt-row__open:focus-visible { outline: var(--ring-w) solid var(--focus); outline-offset: calc(var(--ring-offset) * -1); }
+.rt-row__text { display: grid; gap: 2px; min-width: 0; flex: 1 1 auto; }
+.rt-row__title { font: 600 var(--text-md)/1.3 var(--font-body); overflow-wrap: anywhere; }
+.rt-row__state { color: var(--muted); font-size: var(--text-sm); line-height: 1.4; }
+.rt-row__trust { flex: none; color: var(--muted); font-size: var(--text-sm); white-space: nowrap; }
+.rt-row__chev { flex: none; width: 12px; height: 12px; transition: transform var(--dur-fast) var(--ease-out); }
+.rt-row__open[aria-expanded="true"] .rt-row__chev { transform: rotate(90deg); }
+.rt-panel { margin: 0 var(--space-1) var(--space-4); }
+.rt-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4); }
+.rt-bar .segmented { margin-left: auto; }
+.rt-panel .segmented { justify-self: start; }
+.rt-panel .segmented > button:disabled { opacity: 0.5; cursor: not-allowed; }
+.rt-more-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4); padding: var(--space-2) 0; }
+.rt-more-row + .rt-more-row { border-top: var(--hair) solid var(--line); }
+
+@media (max-width: 560px) {
+  .rt-row__trust { display: none; }
+}
