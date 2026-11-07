@@ -248,7 +248,10 @@ READ_TARGET_JS = r"""
   const isField = ['input', 'textarea', 'select'].includes(tag);
   const textField = isField && !(tag === 'input' && (BTN.includes(ty) || ty === 'checkbox' || ty === 'radio'));
   let names = textField ? [] : own.names.slice(), st = textField ? [] : own.st.slice();
-  if (focus && textField && tag !== 'textarea') {                                // Enter here submits the form's default button
+  // Implicit submission (Enter presses the form's default button) exists for text-like <input> elements only. A <select> or a
+  // <textarea> does not submit on Enter, so the default button's name and structure are not the focused control's: reading them
+  // here put the label 'Show my results' (and submit_control, path:results) on a drop-down and sent a benign key press to the drift check.
+  if (focus && textField && tag === 'input') {                                   // Enter here submits the form's default button
     const f = t.form || t.closest('form');
     const b = f && f.querySelector('input[type=submit],button[type=submit],button:not([type]),input[type=image]');
     if (b) { const a2 = analyse(b); names = names.concat(a2.names); st = st.concat(a2.st); }

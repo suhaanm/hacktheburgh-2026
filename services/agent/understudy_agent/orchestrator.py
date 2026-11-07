@@ -222,7 +222,9 @@ def instrument_guard(g: Guard, nav_id: str, records: list[dict[str, Any]], hosts
                 "nav": nav_id, "step": step_of() if step_of else None, "kind": str(kind), "verdict": dec.verdict,
                 "layer": dec.layer, "codes": [_typed_text(c, 80) for c in dec.codes[:3]], "role": _typed_text(kw.get("role"), 24),
                 "structure": [_typed_text(t, 60, digits=False) for t in structure[:8]], "classes": classes, "label": _typed_text(kw.get("label"), 60),
-                "designed": kw.get("label") == SUBMIT_LABEL and nav_id == "scribe"})   # the real Submit's stop is the design
+                "designed": kw.get("label") == SUBMIT_LABEL and nav_id == "scribe",   # the real Submit's stop is the design
+                # layer 7 only: why the goal check did not run (an enum from drift.CHECK_ERROR_CLASSES) and how many times it was tried; None otherwise
+                "check_error": getattr(dec, "check_error", None), "check_attempts": getattr(dec, "check_attempts", 0)})
         return dec
 
     g.authorise = authorise  # type: ignore[method-assign]
@@ -300,6 +302,7 @@ class RunResult:
     navigators: list[dict[str, Any]] = field(default_factory=list)
     gate_stops: list[dict[str, Any]] = field(default_factory=list)   # every gate verdict that was not "allow" (typed fields, no label)
     action_rejections: int = 0                                         # layer-3 rejections of a malformed or stale action: a model failure, not a gate stop
+    goal_checks: dict[str, Any] = field(default_factory=dict)          # layer 7 counts over this run's guards: checks, retried, recovered, failed, failures by class
     resumed: int = 0                                                   # how many times this run continued from its checkpoint
     restored: list[str] = field(default_factory=list)                  # calculators NOT run again because their verified result was in the checkpoint
 
@@ -375,6 +378,18 @@ class BenefitsRun:
 
     def _count_rejection(self) -> None:
         self.action_rejections += 1
+
+    def goal_check_stats(self) -> dict[str, Any]:
+        """Layer 7 counts summed over every guard of this run (counts and enum classes only): how many goal checks ran, how many needed a
+        retry, how many recovered, how many failed closed, and the failures by class. Never text."""
+        total: dict[str, Any] = {"checks": 0, "retried": 0, "recovered": 0, "failed": 0, "by_class": {}}
+        for g in self._guards:
+            st = g.pipe.drift.stats()
+            for k in ("checks", "retried", "recovered", "failed"):
+                total[k] += st[k]
+            for c, n in st["by_class"].items():
+                total["by_class"][c] = total["by_class"].get(c, 0) + n
+        return total
 
     # ------------------------------------------------------------------ checkpoint (LH-2)
     def _ckpt_open(self) -> None:
@@ -485,6 +500,7 @@ class BenefitsRun:
             res.navigators = [dict(v) for v in self.nav_state.values()]
             res.gate_stops = [{k: v for k, v in r.items() if k != "label"} for r in self.gate_stops]
             res.action_rejections = self.action_rejections
+            res.goal_checks = self.goal_check_stats()
             res.expert_done = dict(self.done)
             self.audit.append("agent", "run_end", routine=self.opt.routine_id, run_id=self.run_id, outcome=res.state)
             self.stage("done", state=res.state, reason=res.reason)
