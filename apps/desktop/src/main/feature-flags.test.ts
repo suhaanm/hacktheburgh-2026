@@ -29,6 +29,14 @@ describe('experiments (UNDERSTUDY_X_<NAME>)', () => {
     expect(experimentOn('cue', { UNDERSTUDY_X_CUE: '0' })).toBe(false)
     expect(experimentOn('cue', { VITEST: 'true', UNDERSTUDY_X_CUE: '0' })).toBe(false)
   })
+  it('include the Hey Knack listener, separate from the old cloud wake feature flag', async () => {
+    const { experimentOn, experimentVar, featureOn } = await import('./feature-flags')
+    expect(experimentVar('wake')).toBe('UNDERSTUDY_X_WAKE')
+    expect(experimentOn('wake', {})).toBe(true)
+    expect(experimentOn('wake', { UNDERSTUDY_X_WAKE: '0' })).toBe(false)
+    // The old cloud wake word stays off whatever the new flag says.
+    expect(featureOn('wake', { UNDERSTUDY_X_WAKE: '1' })).toBe(false)
+  })
 })
 
 describe('forced settings', () => {

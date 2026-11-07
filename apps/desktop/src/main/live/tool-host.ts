@@ -5,7 +5,7 @@
 // entries: the description under a code-made id, then decoys from the pack's own step labels and a fixed "something else" entry), asks the
 // grounder (the page's DOM first, a vision model elsewhere; both answer in the same shape), and accepts the answer only when it chose the
 // description's id with enough confidence and a sane box. The model hears only {found: true|false}; it never sees a coordinate.
-import type { GroundMenuItem, GroundPort, LiveCuePort, RingPort, ToolHost } from './ports'
+import type { DoItAnswer, DoItRequest, GroundMenuItem, GroundPort, LiveCuePort, RingPort, ToolHost } from './ports'
 import type { CandidateList } from './tools'
 
 export const POINT_ID = 't0'
@@ -50,6 +50,8 @@ export interface ToolHostDeps {
   setTimer?: (fn: () => void, ms: number) => unknown
   clearTimer?: (h: unknown) => void
   ringMs?: number
+  // Wake sessions: the ghost cursor glides to the ring, and `clear` and `do_it_for_me` exist. `doIt` is the wake controller's decision (it never clicks here).
+  wake?: { doIt: (req: DoItRequest) => Promise<DoItAnswer> }
 }
 
 export function createToolHost(d: ToolHostDeps): ToolHost & { dispose(): void } {
@@ -62,25 +64,42 @@ export function createToolHost(d: ToolHostDeps): ToolHost & { dispose(): void } 
     d.ring.clear()
   }
   const candidateList = (): CandidateList => ({ items: d.cue.candidates().slice(0, 6) })
+  // Ground the description and draw the ring (and, in a wake session, the ghost cursor). The box is returned so `do_it_for_me` can reuse it.
+  const locate = async (description: string): Promise<[number, number, number, number] | null> => {
+    if (!d.ground) return null
+    const menu = buildMenu(description, d.cue.candidates())
+    let answer
+    try {
+      answer = await d.ground.ground({ menu, ...(d.appKind?.() ? { app_kind: d.appKind() } : {}) })
+    } catch {
+      return null
+    }
+    if (!answer || answer.chosen !== POINT_ID || !(answer.confidence >= MIN_POINT_CONFIDENCE)) return null
+    const box = sanePointBox(answer.box_2d)
+    if (!box) return null
+    d.ring.show(box, d.wake ? { ghost: true } : undefined)
+    if (ringTimer !== null) clearT(ringTimer)
+    ringTimer = setT(clearRing, d.ringMs ?? RING_VISIBLE_MS)
+    return box
+  }
   return {
     candidates: candidateList,
     async point(description) {
-      if (!d.ground) return { found: false }
-      const menu = buildMenu(description, d.cue.candidates())
-      let answer
-      try {
-        answer = await d.ground.ground({ menu, ...(d.appKind?.() ? { app_kind: d.appKind() } : {}) })
-      } catch {
-        return { found: false }
-      }
-      if (!answer || answer.chosen !== POINT_ID || !(answer.confidence >= MIN_POINT_CONFIDENCE)) return { found: false }
-      const box = sanePointBox(answer.box_2d)
-      if (!box) return { found: false }
-      d.ring.show(box)
-      if (ringTimer !== null) clearT(ringTimer)
-      ringTimer = setT(clearRing, d.ringMs ?? RING_VISIBLE_MS)
-      return { found: true }
+      return { found: (await locate(description)) !== null }
     },
+    ...(d.wake
+      ? {
+          clear: () => clearRing(),
+          async doItForMe(description: string): Promise<DoItAnswer> {
+            const box = await locate(description)
+            try {
+              return await (d.wake as NonNullable<ToolHostDeps['wake']>).doIt({ description, box })
+            } catch {
+              return { ok: false, reason: 'failed' }
+            }
+          },
+        }
+      : {}),
     showStep(stepId) {
       return d.cue.showStep(stepId)
     },

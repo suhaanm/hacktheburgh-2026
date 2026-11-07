@@ -19,7 +19,7 @@ import type { Windows } from './windows'
 //   idle    the mark alone        acting  a 3 px dot: an agent is acting for the person     glance  a 3 px ring: a glance is in flight
 //   paused  the disc and two bars: the person paused Understudy from this menu
 export type TrayIconKind = 'idle' | 'acting' | 'glance' | 'paused'
-export type TrayAction = 'cue_quiet' | 'cue_resume' | 'talk' | 'type' | 'mute' | 'stop' | 'kill' | 'resume' | 'queue' | 'panel' | 'demo' | 'setup' | 'permissions' | 'quit' | 'pause' | 'unpause' | 'awareness' | 'glance_trigger' | 'glance_periodic' | 'dashboard'
+export type TrayAction = 'cue_quiet' | 'cue_resume' | 'talk' | 'type' | 'mute' | 'stop' | 'kill' | 'resume' | 'queue' | 'panel' | 'demo' | 'setup' | 'permissions' | 'quit' | 'pause' | 'unpause' | 'awareness' | 'glance_trigger' | 'glance_periodic' | 'dashboard' | 'wake_listen'
 
 export interface MenuEntry {
   id: string // 'status', 'talk:<personaId>', or a TrayAction
@@ -56,6 +56,8 @@ export interface TrayModel {
   pausedUntil?: number | null
   // The awareness module's switches (its own awareness.json store), shown as checkboxes, with the glance count today and the last skip.
   awareness?: { enabled: boolean; onTrigger: boolean; periodic: boolean; calls?: number; lastSkip?: string | null }
+  // Hey Knack (src/main/wake): the one plain status line and the switch. Absent: no wake rows in the menu.
+  wake?: { on: boolean; line: string }
   // Cue (the proactive cards; only offered when the cue experiment is on): quiet until this time, else null.
   cue?: { quietUntil: number | null }
   // The attention layer's counts: one menu line when something needs the worker ("2 things need you"), and a small dot beside the icon.
@@ -180,6 +182,12 @@ export function buildMenuEntries(model: TrayModel, now: number = Date.now()): Me
       ...(model.talkAccelerator ? { accelerator: model.talkAccelerator } : p.id === hotkeyPersona && model.startAccelerator ? { accelerator: model.startAccelerator } : {}),
     })),
     paused ? { id: 'unpause', label: 'Resume now', enabled: true } : { id: 'pause', label: 'Pause for 1 hour', enabled: true },
+    ...(model.wake
+      ? [
+          { id: 'wake_status', label: model.wake.line, enabled: false } as MenuEntry,
+          { id: 'wake_listen', label: 'Listen for Hey Knack', enabled: true, checked: model.wake.on } as MenuEntry,
+        ]
+      : []),
     ...(model.cue
       ? cueQuiet(model.cue.quietUntil, now)
         ? [
@@ -253,6 +261,8 @@ export interface TrayDeps {
   glanceInFlight?: () => boolean
   // The awareness module's view and switches (its own awareness.json store). Absent: no awareness items in the menu.
   awareness?: TrayAwareness
+  // Hey Knack's status line and switch (src/main/wake). `view` null: the listener does not exist (flag off, headless). Absent: no wake rows.
+  wake?: { view(): { on: boolean; line: string } | null; setListen(on: boolean): void }
   // The old Live-voice menu items are shown only when this says so (default: hidden).
   voiceMenu?: () => boolean
   // Approvals waiting in the morning queue (null when the engine is unreachable).
@@ -339,6 +349,7 @@ export function registerTray(deps: TrayDeps): ShellTray {
       coach: deps.coachLine?.() ?? undefined,
       pausedUntil: st0.pausedUntil,
       awareness: deps.awareness ? deps.awareness.view() : undefined,
+      wake: deps.wake?.view() ?? undefined,
       glanceInFlight: deps.glanceInFlight?.() ?? false,
       talkAccelerator: firstRegistered([st0.talkHotkey, ...TALK_FALLBACKS]),
       voiceMenu: deps.voiceMenu?.() ?? false,
@@ -453,6 +464,13 @@ export function registerTray(deps: TrayDeps): ShellTray {
         const on = !(name === 'enabled' ? v.enabled : name === 'trigger' ? v.onTrigger : v.periodic)
         // Turning glances up goes through the awareness module, which wants the consent card first; the tray then opens it.
         if (aw.setSwitch(name, on).needsConsent) showDockWith({ type: 'view', view: 'settings' })
+        refresh()
+        return true
+      }
+      case 'wake_listen': {
+        const v = deps.wake?.view()
+        if (!deps.wake || !v) return false
+        deps.wake.setListen(!v.on)
         refresh()
         return true
       }

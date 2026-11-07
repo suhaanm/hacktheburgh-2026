@@ -7,6 +7,16 @@ describe('desktop default flags (D48)', () => {
     expect(applyDesktopDefaultFlags(env).sort()).toEqual([...DESKTOP_DEFAULT_ON].sort())
     for (const n of DESKTOP_DEFAULT_ON) expect(env[n]).toBe('1')
   })
+  it('turns the Hey Knack listener on by default (D52), keeps an explicit 0, and never turns the old cloud wake flag on', () => {
+    expect(DESKTOP_DEFAULT_ON).toContain('UNDERSTUDY_X_WAKE')
+    const env: Record<string, string | undefined> = {}
+    applyDesktopDefaultFlags(env)
+    expect(env.UNDERSTUDY_X_WAKE).toBe('1')
+    expect(env.UNDERSTUDY_FLAG_WAKE).toBeUndefined()
+    const off: Record<string, string | undefined> = { UNDERSTUDY_X_WAKE: '0' }
+    applyDesktopDefaultFlags(off)
+    expect(off.UNDERSTUDY_X_WAKE).toBe('0')
+  })
   it('keeps an explicit 0 and an explicit 1, and fills an empty value', () => {
     const env: Record<string, string | undefined> = { UNDERSTUDY_VOICE: '0', UNDERSTUDY_X_CUE: '1', UNDERSTUDY_X_LIVE: '' }
     applyDesktopDefaultFlags(env)
