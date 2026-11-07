@@ -8,7 +8,7 @@ import { ONBOARDING_EVENT, type OnboardingRequest } from './request'
 import { finishOnboarding, saveProfileLines, type PersistApi } from './persist'
 import { readResumeStep, saveResumeStep, stepIndex } from './resume'
 import type { PermissionsApi } from './permissions'
-import { AboutStep, ComfortStep, HandsStep, HelloStep, HelperStep, LookStep, PermissionsScreen, ReadyStep, StyleStep, titleFor, type StepProps } from './steps'
+import { AboutStep, ComfortStep, HandsStep, HelloStep, LookStep, PermissionsScreen, ReadyStep, StyleStep, titleFor, type StepProps } from './steps'
 import './onboarding.css'
 
 export interface OnboardingFlowProps {
@@ -103,9 +103,6 @@ export function OnboardingFlow({ settings, onPatch, onDone, api, permissionsApi,
       break
     case 'look':
       body = <LookStep {...props} />
-      break
-    case 'helper':
-      body = <HelperStep {...props} />
       break
     case 'permissions':
       body = <PermissionsScreen api={permissionsApi} />

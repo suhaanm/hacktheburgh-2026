@@ -124,7 +124,7 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
     port: core.endpoints.extension.port,
     onRing: (req) => {
       if (isKilled()) return // stopped: nothing is drawn until Resume
-      ring.point(req.target, { label: req.label, step: req.step })
+      ring.point(req.target, { label: req.label, message: req.message, step: req.step })
     },
     onClear: () => ring.clear('user'),
     log: ctx.log,
@@ -202,7 +202,7 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
   // The coach brain: while a task is in progress, GET /coach/next about every 2 s; annotate and nudge become a ring on the named zone.
   // A nudge with nothing to point at (lighter help) is just the text, as a caption for a few seconds.
   const say = (text: string): void => {
-    if (!isKilled()) services.overlay.caption('assistant', text, true)
+    if (!isKilled()) services.overlay.caption('system', text, true)
   }
   brain = createCoachBrain({ engine: core.engine, state: () => coachPoller.lastState(), ring, chip, say, killed: isKilled, log: ctx.log })
   const coachBrain = brain

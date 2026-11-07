@@ -43,6 +43,10 @@ def _series_key(s: str) -> str:
     return hashlib.blake2b(s.encode("utf-8"), digest_size=8, key=_SALT).hexdigest()
 
 
+def _explicit_focus(title: str) -> bool:
+    return bool(_FOCUS.search(title) or _BATCH.search(title) or _REVIEW.search(title))
+
+
 def classify(title: str, n_attendees: int, show_as: str, online: bool, minutes: float) -> tuple[str, str]:
     """(kind, tag) from the title and shape of an event. Pure; the title is read, never returned."""
     if show_as == "oof":
@@ -131,8 +135,8 @@ def to_blocks(items: Iterable[RawItem], cfg: WorkConfig | None = None, *, intern
         n = int(f.get("n_attendees", 1) or 1)
         online = bool(f.get("online"))
         kind, tag = classify(str(f.get("title", "")), n, str(f.get("show_as", "busy")), online, minutes)
-        if f.get("show_as") == "free" and kind == "meeting":
-            stats.free_skipped += 1
+        if f.get("show_as") == "free" and (kind == "meeting" or (kind == "focus" and not _explicit_focus(str(f.get("title", ""))))):
+            stats.free_skipped += 1                     # free time does not commit anyone: a placeholder or an unrecognised solo hold
             continue
         people = [a for a in [f.get("organizer", ""), *f.get("attendees", [])] if a]
         external = bool(internal) and any(_domain(a) and _domain(a) not in internal for a in people)

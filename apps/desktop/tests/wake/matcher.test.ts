@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { PERSONA_LIST } from '../../src/shared/personas'
+import { ALL_PERSONA_LIST } from '../../src/shared/personas'
 import { createWakeMatcher, editDistance, normalize, phoneticKey, similarity } from '../../src/renderer/wake/matcher'
 import fixtures from './fixtures/asr-transcripts.json'
 
-const matcher = createWakeMatcher(PERSONA_LIST)
+const matcher = createWakeMatcher(ALL_PERSONA_LIST)
 const who = (text: string, final = false): string | null => matcher.match(text, { final })?.personaId ?? null
 
 describe('helpers', () => {
@@ -124,23 +124,23 @@ describe('bare name on a final transcript (ASR dropped "hey")', () => {
     expect(who('Amelia, how do I join a video call?', false)).toBeNull()
   })
   it('can be switched off', () => {
-    const strict = createWakeMatcher(PERSONA_LIST, { bareNameOnFinal: false })
+    const strict = createWakeMatcher(ALL_PERSONA_LIST, { bareNameOnFinal: false })
     expect(strict.match('Amelia.', { final: true })).toBeNull()
   })
 })
 
 describe('tunable threshold', () => {
   it('a stricter threshold rejects fuzzy hits but keeps exact ones', () => {
-    const strict = createWakeMatcher(PERSONA_LIST, { threshold: 0.94, rejectWords: [] })
+    const strict = createWakeMatcher(ALL_PERSONA_LIST, { threshold: 0.94, rejectWords: [] })
     expect(strict.match('hey maracas')?.personaId).toBe('marcus') // phonetic route is capped at 0.95
     expect(strict.match('hey marlus')).toBeNull()
-    const stricter = createWakeMatcher(PERSONA_LIST, { threshold: 0.99, rejectWords: [] })
+    const stricter = createWakeMatcher(ALL_PERSONA_LIST, { threshold: 0.99, rejectWords: [] })
     expect(stricter.match('hey maracas')).toBeNull()
     expect(stricter.match('hey marcus')?.personaId).toBe('marcus')
     expect(stricter.match('hey marcos')?.personaId).toBe('marcus') // explicit alias
   })
   it('a looser threshold catches more, at the cost of false positives', () => {
-    const loose = createWakeMatcher(PERSONA_LIST, { threshold: 0.6, rejectWords: [] })
+    const loose = createWakeMatcher(ALL_PERSONA_LIST, { threshold: 0.6, rejectWords: [] })
     expect(loose.match('hey marlus')?.personaId).toBe('marcus')
   })
 })

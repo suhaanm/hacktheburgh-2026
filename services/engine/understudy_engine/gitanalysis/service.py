@@ -22,7 +22,7 @@ import re
 import threading
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 from typing import Any
 
@@ -236,10 +236,16 @@ _result_cache: dict[tuple, tuple[float, dict]] = {}
 _result_lock = threading.Lock()
 
 
+def habits_for_repo(path: str | os.PathLike, label: str = "p_self", repo_id: str = "r_local", **kw: Any) -> dict:
+    """Analyse one local repository by path (library use: tests, canary flows). Treated as a registered repo (mixed origin).
+    The HTTP route never calls this: a request cannot name a path."""
+    return habits(target=Target(label, repo_id, Path(path), "registered"), **kw)
+
+
 def habits(person: str | None = None, repo: str | None = None, *, author: str | None = None, backend: str = "auto",
-           reword: bool | None = None, port: Any = None, with_placebo: bool = False) -> dict:
+           reword: bool | None = None, port: Any = None, with_placebo: bool = False, target: Target | None = None) -> dict:
     """The ``GET /git/habits`` payload: ``{meta, data}``. Raises ``GitServiceError`` for an unknown person or repo."""
-    t = resolve(person, repo)
+    t = target or resolve(person, repo)
     c = cohort()
     key = (t.person, t.repo_id, author, backend, bool(reword), with_placebo, str(cohort_dir()))
     ttl = 3600.0 if t.kind == "synthetic" else 20.0
@@ -276,7 +282,7 @@ def habits(person: str | None = None, repo: str | None = None, *, author: str | 
             "shows how far the history is from a scripted baseline, not from real experts. ")
     meta = {"origin": origin, "n": ltable.n, "n_unit": "commits", "split": split, "interval_level": 0.95,
             "note": note + "Habits are commit-level shares; a flagged habit differs from the reference by at least its floor with an interval that excludes zero.",
-            "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+            "generated_at": datetime.now(UTC).isoformat(timespec="seconds")}
     out = {"meta": meta, "data": data}
     if port is None:
         with _result_lock:
@@ -289,4 +295,4 @@ def clear_caches() -> None:
         _result_cache.clear()
 
 
-__all__ = ["GitServiceError", "habits", "people", "resolve", "records_for", "flag_on", "HABITS"]
+__all__ = ["GitServiceError", "habits", "habits_for_repo", "people", "resolve", "records_for", "flag_on", "HABITS"]

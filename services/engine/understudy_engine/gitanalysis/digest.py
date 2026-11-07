@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import importlib
 import logging
-import os
 import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass

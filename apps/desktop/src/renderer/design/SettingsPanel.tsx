@@ -72,9 +72,11 @@ export function SettingsPanel({ settings, onChange, personas, more }: SettingsPa
   return (
     <div className="al-settings">
       <Group title="Basics">
-        <Field label="Companion">
-          <Segmented label="Companion" value={settings.persona ?? personas[0]?.id ?? 'marcus'} onChange={(persona) => onChange({ persona })} options={personas.map((p) => ({ value: p.id, label: p.name }))} />
-        </Field>
+        {personas.length > 1 ? (
+          <Field label="Companion">
+            <Segmented label="Companion" value={settings.persona ?? personas[0]?.id ?? 'understudy'} onChange={(persona) => onChange({ persona })} options={personas.map((p) => ({ value: p.id, label: p.name }))} />
+          </Field>
+        ) : null}
         <Field label="Text size">
           <div className="al-rangewrap">
             <span aria-hidden="true">Smaller</span>
@@ -160,7 +162,12 @@ export function SettingsPanel({ settings, onChange, personas, more }: SettingsPa
           </Group>
 
           <Group title="Listening">
-            <Switch label="Listen for my name" checked={settings.wakeEnabled} onChange={toggle('wakeEnabled')} />
+            <Switch
+              label="Listen for my name"
+              hint="Off by default. Turning it on streams your microphone to a cloud model so it can hear the name. The talk key and the menu bar need no microphone."
+              checked={settings.wakeEnabled}
+              onChange={toggle('wakeEnabled')}
+            />
             <Switch label="Only when I press a key" checked={settings.pushToTalkOnly} onChange={toggle('pushToTalkOnly')} />
             <Switch label="Show the listening light" checked={settings.listeningLight} onChange={toggle('listeningLight')} />
           </Group>

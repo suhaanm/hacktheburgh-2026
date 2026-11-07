@@ -293,9 +293,8 @@ def test_agents_extension_is_off_by_default_and_never_breaks_the_server(cluster,
         assert c.get("/agents/runs").status_code == 404
         assert "disabled" in c.app.state.extension_status["agents"]
     monkeypatch.setenv("UNDERSTUDY_X_AGENTS", "1")
-    monkeypatch.delitem(sys.modules, "understudy_agent.runtime.routes", raising=False)
-    monkeypatch.delitem(sys.modules, "understudy_agent.runtime", raising=False)
-    with TestClient(app_()) as c:                                   # asked for, but the module is missing or broken
+    monkeypatch.setitem(sys.modules, "understudy_agent.runtime.routes", None)   # None makes the import raise ImportError
+    with TestClient(app_()) as c:                                   # asked for, but the module cannot be imported
         h = c.get("/health").json()
         assert h["ok"] and h["extensions"] == {"agents": False}
         status = c.app.state.extension_status["agents"]

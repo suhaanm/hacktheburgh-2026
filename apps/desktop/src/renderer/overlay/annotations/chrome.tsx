@@ -38,7 +38,7 @@ export function CaptionBand({
   // At most ~60% of the screen. Once the line needs more than one row the band takes its full width, so streaming
   // words never make it jump sideways; the text is clamped to two rows.
   const maxW = Math.min(c.maxWidth, viewport.width * 0.6)
-  const wide = text.length > 56 * (c.fontSize > 20 ? 0.6 : 1)
+  const wide = text.length > 80 * (c.fontSize > 20 ? 0.6 : 1)
   return (
     <div className="ov-html" style={{ left: 0, width: '100%', ...(topY === null ? { bottom: c.bottomInset } : { top: topY }), display: 'flex', justifyContent: 'center' }}>
       <Measured
@@ -48,8 +48,8 @@ export function CaptionBand({
         style={{
           width: wide ? maxW : 'max-content',
           maxWidth: maxW,
-          backdropFilter: style.highContrast ? undefined : 'blur(14px) saturate(1.4)',
-          WebkitBackdropFilter: style.highContrast ? undefined : 'blur(14px) saturate(1.4)',
+          backdropFilter: style.highContrast ? undefined : 'blur(10px) saturate(1.2)',
+          WebkitBackdropFilter: style.highContrast ? undefined : 'blur(10px) saturate(1.2)',
           maxHeight: viewport.height * c.maxHeightFraction,
           overflow: 'hidden',
           background: c.background,
@@ -60,12 +60,12 @@ export function CaptionBand({
           fontFamily: c.fontFamily,
           fontSize: c.fontSize,
           lineHeight: c.lineHeight,
-          fontWeight: 600,
-          boxShadow: '0 4px 16px rgba(5, 7, 13, 0.28)',
+          fontWeight: 500,
+          boxShadow: '0 1px 2px rgba(5, 7, 13, 0.22)',
         }}
       >
         <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-          {speakerName ? <span style={{ fontSize: c.speakerFontSize, color: c.speakerColor, fontWeight: 700, marginRight: 8, letterSpacing: 0.2 }}>{speakerName}</span> : null}
+          {speakerName ? <span style={{ fontSize: c.speakerFontSize, color: c.speakerColor, fontWeight: 500, marginRight: 8, letterSpacing: 0.2 }}>{speakerName}</span> : null}
           <span>{text}</span>
         </div>
       </Measured>
@@ -180,63 +180,45 @@ export function LevelChipEcho({
   )
 }
 
-// The persistent coach chip, top-right under the menu bar. One element that changes shape with the fade state instead of
-// swapping elements, so "full -> small -> dot -> gone" reads as the help receding:
-//   full  four bars and the level name        small  the bars only        dot  one small dot        gone  faded out
-// It is a picture; the real controls are in the dock and the HUD. Reduced motion: the states switch without animation.
-export const COACH_CHIP_TOP = 44
-export const COACH_CHIP_RIGHT = 20
+// The coach's presence on the screen is at most one small dot (7 px), and only when the person turned it on (`coachDot`, off by default).
+// The coach's state itself lives in the tray menu and the dashboard Today screen. Reduced motion: it appears and goes without fading.
+export const COACH_DOT_TOP = 44
+export const COACH_DOT_RIGHT = 20
+export const COACH_DOT_SIZE = 7
 
-export function coachChipLook(fade: CoachChipState['fade'], fontSize: number): { labelMax: number; barsMax: number; padX: number; padY: number; opacity: number; dotOpacity: number; dotBox: number | null } {
+/** How present the dot is for each fade state: it dims as the help recedes, and is gone with `gone`. */
+export function coachDotLook(fade: CoachChipState['fade']): { opacity: number } {
   switch (fade) {
     case 'full':
-      return { labelMax: fontSize * 14, barsMax: fontSize * 2, padX: fontSize * 0.9, padY: fontSize * 0.45, opacity: 1, dotOpacity: 0, dotBox: null }
+      return { opacity: 1 }
     case 'small':
-      return { labelMax: 0, barsMax: fontSize * 2, padX: fontSize * 0.6, padY: fontSize * 0.35, opacity: 0.9, dotOpacity: 0, dotBox: null }
+      return { opacity: 0.8 }
     case 'dot':
-      return { labelMax: 0, barsMax: 0, padX: 0, padY: 0, opacity: 0.75, dotOpacity: 1, dotBox: fontSize * 1.1 }
+      return { opacity: 0.55 }
     case 'gone':
-      return { labelMax: 0, barsMax: 0, padX: 0, padY: 0, opacity: 0, dotOpacity: 0, dotBox: null }
+      return { opacity: 0 }
   }
 }
 
 export function CoachChipView({ chip, style }: { chip: CoachChipState; style: AnnotationStyle }): ReactElement {
-  const l = style.levelChip
-  const look = coachChipLook(chip.exitingAt !== null ? 'gone' : chip.fade, l.fontSize)
-  const ms = style.reducedMotion ? 0 : 520
-  const t = (props: string): string => (ms === 0 ? 'none' : props.split(',').map((p) => `${p.trim()} ${ms}ms ease`).join(', '))
-  const on = LEVEL_SUPPORT[chip.level]
+  const t = style.tones.guide
+  const look = coachDotLook(chip.exitingAt !== null ? 'gone' : chip.fade)
+  const size = COACH_DOT_SIZE * style.scale
   return (
-    <div className="ov-html" style={{ right: COACH_CHIP_RIGHT, top: COACH_CHIP_TOP, display: 'flex', justifyContent: 'flex-end' }} data-coach-fade={chip.fade} data-testid="coach-chip">
-      <div
+    <div className="ov-html" style={{ right: COACH_DOT_RIGHT, top: COACH_DOT_TOP }} data-coach-fade={chip.fade} data-testid="coach-dot">
+      <span
         aria-hidden
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          background: l.background,
-          color: l.color,
-          border: l.border,
-          borderRadius: 999,
-          padding: `${look.padY}px ${look.padX}px`,
-          // The dot is a true circle: a fixed box, everything else hidden inside it.
-          ...(look.dotBox !== null ? { width: look.dotBox, height: look.dotBox, justifyContent: 'center', boxSizing: 'border-box' as const } : {}),
+          display: 'block',
+          width: size,
+          height: size,
+          borderRadius: '50%',
+          background: t.core,
+          boxShadow: `0 0 0 1px ${t.casing}, 0 0 0 2px ${t.halo}`,
           opacity: look.opacity,
-          fontFamily: style.bubble.fontFamily,
-          fontSize: l.fontSize,
-          fontWeight: 700,
-          boxShadow: look.opacity > 0 ? '0 3px 10px rgba(5, 7, 13, 0.28)' : 'none',
-          overflow: 'hidden',
-          transition: t('padding, opacity'),
+          transition: style.reducedMotion ? 'none' : 'opacity 520ms ease',
         }}
-      >
-        <span style={{ display: 'inline-flex', alignItems: 'flex-end', gap: l.fontSize * 0.15, height: look.barsMax > 0 ? l.fontSize : 0, maxWidth: look.barsMax, opacity: look.barsMax > 0 ? 1 : 0, overflow: 'hidden', transition: t('max-width, opacity') }}>
-          {[1, 2, 3, 4].map((i) => (
-            <span key={i} style={{ width: l.fontSize * 0.2, height: l.fontSize * (0.35 + i * 0.16), borderRadius: 2, background: i <= on ? '#fff' : 'rgba(255,255,255,0.28)', flex: 'none' }} />
-          ))}
-        </span>
-        <span style={{ display: 'inline-block', whiteSpace: 'nowrap', height: look.labelMax > 0 ? 'auto' : 0, maxWidth: look.labelMax, opacity: look.labelMax > 0 ? 1 : 0, marginLeft: look.labelMax > 0 ? l.fontSize * 0.5 : 0, overflow: 'hidden', transition: t('max-width, opacity, margin-left') }}>{chip.label}</span>
-        <span style={{ display: 'inline-block', width: look.dotOpacity > 0 ? l.fontSize * 0.45 : 0, height: l.fontSize * 0.45, borderRadius: '50%', background: '#fff', opacity: look.dotOpacity, flex: 'none', transition: t('width, opacity') }} />
-      </div>
+      />
     </div>
   )
 }

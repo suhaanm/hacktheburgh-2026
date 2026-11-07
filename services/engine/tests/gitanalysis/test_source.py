@@ -51,13 +51,13 @@ def test_is_a_framework_source(learner_repo):
     assert "withheld" in repr(items[0]) and "@" not in repr(items[0])           # the framework's repr hides fields
     from understudy_engine.plugins.schemas import check_item, get_schema
     problems = check_item(get_schema("commit.v1"), "commit", dict(items[0].fields))
-    assert problems == ["unknown field tz_min"]                                   # NEED: commit.v1 gains tz_min
+    assert problems == []                                                         # every field is in the commit.v1 schema
     with pytest.raises(SourceError):
         list(GitSource(learner_repo / "nope").read())
 
 
 def test_since_until_filter(learner_repo):
-    from datetime import datetime, timedelta
+    from datetime import timedelta
     items = list(GitSource(learner_repo).read())
     cut = items[len(items) // 2].t0
     later = list(GitSource(learner_repo).read(since=cut))

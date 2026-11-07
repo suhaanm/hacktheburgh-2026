@@ -514,6 +514,19 @@ try {
   }
 
   const ms = (a, b) => (a && b ? Math.round(b - a) : null)
+  // What the overlay keeps of a message on the ring (the same rule as src/renderer/overlay/note-text.ts): one short line, 40 characters.
+  const compactNote = (text, max = 40) => {
+    const plain = (x) => x.replace(/[\s.,;:]+$/, '')
+    const t = text.replace(/\s+/g, ' ').trim()
+    if (plain(t).length <= max) return plain(t)
+    const head = plain(t.split(/\s+(?:before|after|because|so that|while|when|until|and then)\s+/i)[0] ?? t)
+    if (head.length >= 6 && head.length <= max) return head
+    const sentence = plain(t.split(/(?<=[.?!])\s/)[0] ?? t)
+    if (sentence.length <= max) return sentence
+    const room = t.slice(0, max - 1)
+    const sp = room.lastIndexOf(' ')
+    return `${plain(sp >= 12 ? room.slice(0, sp) : room)}…`
+  }
 
   // =========================================================================================== case 0: the learner is already at L4
   {
@@ -546,22 +559,22 @@ try {
     const hit = await watchForRing(30_000)
     const dec = first('desktop:decision', tMiss, (e) => e.action === 'annotate')
     const ringState = first('desktop:ring', tMiss, (e) => e.visible === true)
+    const wantNote = dec?.message ? compactNote(dec.message) : null
     const bubbleStart = first('overlay:text', tMiss, (e) => /cliff/i.test(e.text))
-    const bubble = await until(() => (dec?.message ? first('overlay:text', tMiss, (e) => e.text.includes(dec.message)) : null), 8000, 'the full bubble text').catch(() => null)
+    const bubble = await until(() => (wantNote ? first('overlay:text', tMiss, (e) => e.text.includes(wantNote)) : null), 8000, 'the note on the ring').catch(() => null)
     c.timingMs = {
       missToDecisionArrivedAtApp: ms(tMiss, dec?.t),
       decisionToRingVisibleInApp: ms(dec?.t, ringState?.t),
       decisionToRingOnScreenFrame: ms(dec?.t, hit?.t),
       missToRingOnScreenFrame: ms(tMiss, hit?.t),
-      decisionToBubbleFullyTyped: ms(dec?.t, bubble?.t),
-      decisionToBubbleFirstLetters: ms(dec?.t, bubbleStart?.t),
+      decisionToNoteOnOverlay: ms(dec?.t, bubble?.t),
       frameGrabsUsed: hit?.frames ?? null,
       note: 'ring-on-screen is the end of the first frame grab that shows it (about 0.3 to 0.5 s per grab), so it is an upper bound',
     }
     c.decision = dec ? { action: dec.action, zone: dec.zone, level: dec.level, message: dec.message, reasons: dec.reasons } : null
     c.bubbleOnOverlay = bubble?.text ?? bubbleStart?.text ?? null
     check('/coach/next annotate with zone cliff_button reached the app', dec?.action === 'annotate' && dec?.zone === 'cliff_button', c.decision)
-    check('the bubble reads as the coach message (typed out in full)', dec?.message && bubble?.text?.includes(dec.message), { message: dec?.message, overlay: c.bubbleOnOverlay })
+    check('the ring carries the coach message as one short note (about 40 characters, the full sentence is not on the screen)', wantNote && bubble?.text?.includes(wantNote) && !bubble.text.includes(dec.message) && wantNote.length <= 40, { message: dec?.message, shownOnScreen: wantNote, overlay: c.bubbleOnOverlay })
     check('the ring is on screen', Boolean(hit), c.timingMs)
     if (hit) {
       await sleep(1800) // let the ring finish easing in
@@ -577,16 +590,15 @@ try {
     await tab2.bringToFront()
     const hid = await until(() => first('desktop:ring', tAway, (e) => e.visible === false), 6000, 'the ring to hide when the button leaves the screen').catch(() => null)
     await sleep(500)
-    const fAway = await grab('cur')
-    const mAway = await measure('cur', 'base', fAway)
+    const paintAway = await overlayPaintNear() // the overlay's own picture: nothing may be drawn where the button was
     const tBack = mark('worker:return', { what: 'returns to the result page' })
     await tab1.bringToFront()
     const back = await until(() => first('desktop:ring', tBack, (e) => e.visible === true), 8000, 'the ring to return').catch(() => null)
     await sleep(1800)
     const fBack = await grab('cur')
     const mBack = await measure('cur', 'base', fBack)
-    c.tabAway = { hiddenAfterMs: ms(tAway, hid?.t), hiddenReason: hid?.hiddenFor ?? null, ringPixelsWhileAway: Boolean(mAway.ring), returnedAfterMs: ms(tBack, back?.t), ringBackOnScreen: Boolean(mBack.ring), accuracyAfterReturn: mBack.centreErrorPts ?? null }
-    check('the ring is hidden while the button is on another tab, and back when the worker returns', Boolean(hid) && !mAway.ring && Boolean(back) && Boolean(mBack.ring), c.tabAway)
+    c.tabAway = { hiddenAfterMs: ms(tAway, hid?.t), hiddenReason: hid?.hiddenFor ?? null, overlayPaintedPixelsWhileAway: paintAway, returnedAfterMs: ms(tBack, back?.t), ringBackOnScreen: Boolean(mBack.ring), accuracyAfterReturn: mBack.centreErrorPts ?? null }
+    check('the ring is hidden while the button is on another tab (state and pixels), and back when the worker returns', Boolean(hid) && paintAway === 0 && Boolean(back) && Boolean(mBack.ring), c.tabAway)
     // Reads the message for a while, then presses the button (33 s after the ring first showed, past the engine's own 30 s follow window).
     await sleep(Math.max(0, ringShownAt + 33_000 - Date.now()))
     await raise(tab1, '#cliff-btn')
@@ -693,6 +705,8 @@ try {
     byType[k] = (byType[k] ?? 0) + 1
   }
   out.engineStore = byType
+  const chipWords = timeline.filter((e) => e.kind === 'overlay:text' && /Watch me|Walk with me|Nudge me|On my own/i.test(e.text))
+  check('no persistent coach chip: nothing on the overlay ever said "Watch me" or any other help-level name', chipWords.length === 0, chipWords.slice(0, 2).map((e) => e.text))
   out.ok = Object.values(out.checks).every((x) => x.pass)
 } catch (e) {
   out.error = String(e?.stack ?? e)

@@ -272,6 +272,45 @@ These come from the project owner. Do not reopen them. If one looks wrong, build
 | NFR-10 | P0 | All section 14 features are off by default behind flags; the three-minute demo path and `make demo` are unaffected when they are off. |
 | NFR-11 | P0 | Each feature ships with tests and an honest evaluation (n, split, interval, origin) and enters the limitations register. |
 
+## 14b. REQ-5, REQ-6, REQ-7 additions (7 Nov 2026; status BUILDING unless noted)
+
+Plans: `docs/REQ5_PLAN.md`, `docs/REQ7_PLAN.md`; ML v2 and the evidence layer are described in the REQ-6 row of `docs/IDEA_BOARD.md`. Presentation list: `docs/FEATURE_CATALOGUE.md`.
+
+| ID | Prio | Statement | Acceptance |
+|---|---|---|---|
+| AWR-1 | P1 | On-device awareness: cursor dwell and wander, app kind, input rhythm; nothing leaves the Mac. | Features unit-tested; no network; flag off sends nothing. |
+| AWR-2 | P1 | Triggered glance: one downscaled frame to a closed-enum model on a trigger; denylist, secure-input skip, caps, consent. | Trigger rules deterministic; no frame on disk or in logs (test). |
+| AWR-3 | P2 | Periodic glance about every 30 s when the worker opted in; hourly and daily caps. | Caps enforced; visible count. |
+| AWR-4 | P1 | Image egress through the ledger only; unattended real-screen images always blocked. | Canary and gate tests; evaluate_privacy image block. |
+| MDL-1 | P1 | Gemini provider next to OpenAI behind the model port; role routing, fallbacks, breaker, cost and latency meter. | Boot check against `models.list`; no key in any log. |
+| MDL-2 | P1 | Bake-off on our own sandbox cases decides pointing, glance and verifier roles. | n at least 60, intervals, origin label. |
+| ACT-1 | P1 | One identity, hold-to-talk hotkey, menu-bar icon with state, no always-listening mic, no permanent chip. | Seen rendered; nothing streams the mic by default. |
+| VIS-10 | P1 | New logo and whole-shell restyle on tokens. | Seen in light and dark at 1440x900 and 390x844. |
+| ANA-14 | P1 | Signal ablation: do cursor and glance features improve the stuck model? | Paired interval; null reported. |
+| ANA-15 | P1 | Calibrated stuck model v2 with conformal alarm control. | Held-out false alarms per hour within budget, interval. |
+| ANA-16 | P1 | Expert envelope alignment with learned costs and per-second intervals. | Bias and recall on the two weakest deficits improve without harming others. |
+| ANA-17 | P2 | Counterfactual seconds recovered and Shapley attribution. | Validated on planted deficits. |
+| ANA-18 | P1 | Evidence packets and an LLM explainer whose every number must trace to a packet field. | Adversarial replies rejected; deterministic fallback always available. |
+| AGT-LH-1 | P0 | Fact handles: the model never sees values; code types them. | Tier-3 benefits task passes the pre-registered criteria. |
+| AGT-LH-2 | P1 | Long-horizon suite LH-1..5 with step-level checkpoint and resume. | Completion, zero false claims, recoveries, cost reported. |
+| AGT-LH-3 | P2 | Gemini computer-use as an alternative actuator behind the same safety layers. | Same suite, both reported. |
+| AGT-LH-4 | P1 | Real desktop clicks ladder R0 to R4, owner present, kill hotkey. | Each rung reported before the next. |
+| DAT-1 | P1 | Persona generator v2 with person effects, heavy tails, practice, fatigue, interruptions, strategy mixtures, capture noise. | Marginals within published ranges (not "matches real users"). |
+| DAT-2 | P1 | Several structurally different generators and a generator-mismatch evaluation. | Degradation reported per analytic. |
+| STU-2 | P1 | Programmer sandbox and simulated study with at least 6 tasks over 3 skills. | Pre-registered, labelled simulated. |
+| STU-3 | P1 | Data-analyst sandbox and simulated study, same depth. | Same. |
+| STU-4 | P2 | Cue versus no-Cue arm over several simulated sessions. | Stuck time saved and independence trajectory with intervals. |
+| CUE-1 | P0 | Next-step candidates from the expert transition graph and pack order rules. | Top-3 accuracy vs held-out expert paths with interval. |
+| CUE-2 | P1 | Grounding: DOM first in browsers, Gemini with a closed candidate menu elsewhere. | Box sanity checks; hit rate on sandbox. |
+| CUE-3 | P0 | Decision gate in code: none, confirm, cue tiers, ask, offer; hard anti-spam caps. | False nudges per hour at or below 1 (design target) on simulated users. |
+| CUE-4 | P0 | One multiple-choice question when the top two candidates are close; answer by click, key or voice. | One per episode; answer feeds mastery. |
+| CUE-5 | P1 | Guided walk-through with per-step verification and expert ghost run. | Stops when the worker moves on alone. |
+| CUE-6 | P0 | Assist ledger: append-only, local, enums and numbers only, view, export, delete. | No text or images (test). |
+| CUE-7 | P0 | Independence score with components and intervals; assist, delegated and automation streams separate. | Validated on planted learning curves. |
+| CUE-8 | P1 | Teach then fade: one-line reason, retrieval practice scheduled by mastery. | Withholding and confirm-after tested. |
+| CUE-9 | P1 | Tier policy as a bandit with logged propensities; change only after off-policy evaluation. | Evaluation report. |
+| GRO-1 | P1 | Growth screen (Curtain): independence curves with intervals, help level over time, offloaded work, export and delete. | Rendered at both sizes, light and dark. |
+
 ## 15. How owner requests are handled
 
 Every new owner request or tweak gets a row in the **requests log** in `IDEA_BOARD.md` (`REQ-n`, date, request, analysis, status), new IDs in this file with a status (`PROPOSED`, `ACCEPTED`, `BUILDING`, `BUILT`, `CUT`), a decision number in `DECISIONS.md` where the owner chose something, and, if it changes ownership, an update to the roster in `AGENTS.md`. The lead does this before starting the work; locked decisions (section 0) are never reopened without an explicit owner instruction, and a conflict is recorded as a concern.

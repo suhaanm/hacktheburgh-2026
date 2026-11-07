@@ -19,7 +19,6 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
@@ -87,7 +86,9 @@ def read_routines(ctx: Ctx) -> Reading:
 
 # --------------------------------------------------------------------------------------------- skills
 def skill_rows_from_tracker(learner: Any, pack: Any, now_ts: float) -> list[dict[str, Any]]:
-    """One row per curriculum skill from a learner's ``SkillTracker`` (levels with decay applied at ``now_ts``)."""
+    """One row per curriculum skill from a learner's ``SkillTracker`` (levels with decay applied at ``now_ts``). Also carries the
+    evidence behind the level: how many counted attempts there have been and how many errors sit in the recent window, so a skill
+    nobody has seen yet is not mistaken for a skill the learner keeps getting wrong."""
     t = max(now_ts, learner.t_ref)
     snap = learner.tracker.snapshot(t)
     items = []
@@ -100,8 +101,13 @@ def skill_rows_from_tracker(learner: Any, pack: Any, now_ts: float) -> list[dict
             last = max((s["last_seen"] for s in seen if s.get("last_seen")), default=None)
         else:
             level, mastery, drops, last = 1, learner.tracker.params.p_init, [], None
+        cogs = [learner.tracker.cogs[c] for c in sk.get("cogs", []) if c in learner.tracker.cogs]
+        errors = sum(cs.level.recent.count("e") for cs in cogs)
+        attempts = sum(cs.level.attempts for cs in cogs)
         lts = _date_ts(last)
-        items.append(_skill_row(sk, level, mastery, None if lts is None else max(0.0, (t - lts) / 86400.0), min(drops) if drops else None))
+        row = _skill_row(sk, level, mastery, None if lts is None else max(0.0, (t - lts) / 86400.0), min(drops) if drops else None)
+        row.update({"recent_errors": int(errors), "attempts": int(attempts)})
+        items.append(row)
     return items
 
 
@@ -160,31 +166,54 @@ def digest_mode() -> str | None:
 
 
 # --------------------------------------------------------------------------------------------- calendar
+def calendar_items(rep: dict[str, Any]) -> list[dict[str, Any]]:
+    """Normalise the calendar track's suggestions to the rows the collectors read. The track's sentence and title are dropped."""
+    items = []
+    for s in list(rep.get("suggestions") or []):
+        d = _as_dict(s)
+        items.append({"id": str(d.get("template") or d.get("id") or ""), "template": d.get("template") or d.get("id"),
+                      "numbers": d.get("numbers") or {}, "expert_ref": d.get("expert_ref") or {}, "risk": d.get("risk"),
+                      "can_draft": bool(d.get("can_draft")), "priority": d.get("priority")})
+    return items
+
+
 def read_calendar(ctx: Ctx) -> Reading:
-    """Calendar suggestions (CAL-3): ``[{id, template, numbers, expert_ref, risk, can_draft}]``. Free text is not kept.
-    Read only when the calendar layer is on (it may build synthetic calendars on first use)."""
+    """Calendar suggestions (CAL-3) from the calendar track's service, for the person's latest week. Read only when the calendar
+    layer is on (it may build synthetic calendars on first use). A person without a calendar is an honest empty reading, except the
+    demo person, who borrows a synthetic stand-in (``DEMO_CALENDAR_SOURCE``) and says so."""
     if not layer_on("calendar"):
         return Reading([], False, "calendar layer is off")
     try:
+        from understudy_engine.calendar import service as csvc
         from understudy_engine.calendar import suggest as cal
+        from understudy_engine.calendar.store import default_store
     except Exception:
         return Reading([], False, "calendar track not available")
-    fn = getattr(cal, "suggestions", None)
-    if not callable(fn):
-        return Reading([], False, "calendar track has no suggestions yet")
+    from .candidates import DEMO_CALENDAR_SOURCE
+
     try:
-        raw = fn(ctx.person)
+        fn = getattr(cal, "suggestions", None)
+        if callable(fn):
+            raw = fn(ctx.person)
+            rep = raw.get("data", raw) if isinstance(raw, dict) else {"suggestions": list(raw or [])}
+            meta: dict[str, Any] = {}
+        else:
+            store = default_store()
+            meta = {}
+            try:
+                rep = csvc.suggestions_report(store, ctx.person)
+            except csvc.CalendarError as exc:
+                alias = DEMO_CALENDAR_SOURCE.get(ctx.person)
+                if exc.code == "unknown_person" and alias:
+                    rep, meta = csvc.suggestions_report(store, alias), {"stand_in": alias}
+                else:
+                    raise
     except Exception as exc:
+        code = getattr(exc, "code", "")
+        if code in ("unknown_person", "no_data", "no_such_week"):
+            return Reading([], True, "no calendar for this person")
         return Reading([], False, f"{type(exc).__name__} from the calendar track")
-    if isinstance(raw, dict) and "data" in raw:
-        raw = raw["data"]
-    items = []
-    for s in list(raw or []):
-        d = _as_dict(s)
-        items.append({"id": str(d.get("id") or d.get("template") or ""), "template": d.get("template") or d.get("id"),
-                      "numbers": d.get("numbers") or {}, "expert_ref": d.get("expert_ref") or {},
-                      "risk": d.get("risk"), "can_draft": bool(d.get("can_draft"))})
-    return Reading(items, True, None, {"digest": digest_mode()})
+    return Reading(calendar_items(rep), True, None, {**meta, "digest": digest_mode()})
 
 
 # --------------------------------------------------------------------------------------------- git
@@ -201,12 +230,12 @@ def git_items(data: dict[str, Any]) -> list[dict[str, Any]]:
         row = rows.get(prim) or {}
         items.append({"id": str(d.get("template") or d.get("id") or ""), "habit": prim, "learner": nums.get("learner", row.get("learner")),
                       "expert": nums.get("expert", row.get("expert")), "delta": nums.get("delta", row.get("delta")),
-                      "ci": nums.get("ci", row.get("ci")), "n_commits": n_commits, "flagged": True})
+                      "ci": nums.get("ci", row.get("ci")), "n_commits": n_commits, "flagged": True, "repo_id": data.get("repo")})
     if not items:      # no suggestions block: fall back to the flagged habit rows
         for h in data.get("habits") or []:
             if isinstance(h, dict) and h.get("flagged"):
                 items.append({"id": str(h.get("id")), "habit": h.get("id"), "learner": h.get("learner"), "expert": h.get("expert"),
-                              "delta": h.get("delta"), "ci": h.get("ci"), "n_commits": n_commits, "flagged": True})
+                              "delta": h.get("delta"), "ci": h.get("ci"), "n_commits": n_commits, "flagged": True, "repo_id": data.get("repo")})
     return items
 
 
@@ -239,8 +268,9 @@ def read_git(ctx: Ctx) -> Reading:
 
 # --------------------------------------------------------------------------------------------- finished agent runs
 _RUN_ID = re.compile(r"^[A-Za-z0-9_.\-]{1,64}$")
-_DONE = ("done", "succeeded", "complete", "completed")
+_DONE = ("done", "partial", "succeeded", "complete", "completed")
 MAX_RUN_AGE_H = 72
+RUN_FILES = ("agent_run.json", "result.json", "evidence.json")
 
 
 def _viewed_marker(d: Path) -> bool:
@@ -248,14 +278,14 @@ def _viewed_marker(d: Path) -> bool:
 
 
 def read_runs(ctx: Ctx) -> Reading:
-    """Finished runs that belong to this person and have not been looked at. Files: ``data/runs/<id>/result.json`` or
-    ``evidence.json`` carrying ``person``, ``state`` and (optionally) ``finished_at``. Runs without a person are not anyone's
-    morning (the shared folder also holds evaluation runs)."""
+    """Finished runs that belong to this person and have not been looked at. Files: the agent runtime's
+    ``data/runs/<id>/agent_run.json`` (or ``result.json`` / ``evidence.json``) carrying ``person`` and ``state``. Runs without a person
+    are not anyone's morning (the shared folder also holds evaluation runs and runs started without one)."""
     items: list[dict[str, Any]] = []
     runs = data_dir() / "runs"
     if runs.exists():
         for d in sorted(p for p in runs.iterdir() if p.is_dir() and _RUN_ID.match(p.name)):
-            for name in ("result.json", "evidence.json"):
+            for name in RUN_FILES:
                 f = d / name
                 if not f.exists():
                     continue
@@ -265,15 +295,14 @@ def read_runs(ctx: Ctx) -> Reading:
                     continue
                 if not isinstance(j, dict) or j.get("person") != ctx.person:
                     continue
-                fin = _date_ts(j.get("finished_at")) if isinstance(j.get("finished_at"), str) else j.get("finished_at")
-                fin = fin if isinstance(fin, (int, float)) else f.stat().st_mtime
+                fin = _date_ts(j.get("finished_at")) or f.stat().st_mtime
                 if (ctx.now_ts - fin) / 3600.0 > MAX_RUN_AGE_H:
                     continue
                 items.append({"run_id": d.name, "kind": j.get("kind") or "", "state": str(j.get("state")), "finished_at": fin,
                               "children": len(j.get("children") or []), "viewed": bool(j.get("viewed")) or _viewed_marker(d) or d.name in ctx.viewed_runs})
                 break
     note = "from run files"
-    if ctx.allow_http:
+    if ctx.allow_http and layer_on("agents"):
         try:
             import httpx
 
@@ -282,7 +311,7 @@ def read_runs(ctx: Ctx) -> Reading:
                 have = {i["run_id"] for i in items}
                 for j in r.json() or []:
                     rid = str(j.get("run_id") or "")
-                    if not _RUN_ID.match(rid) or rid in have:
+                    if not _RUN_ID.match(rid) or rid in have or j.get("person") != ctx.person:
                         continue
                     fin = _date_ts(j.get("finished") or j.get("ended") or j.get("started")) or ctx.now_ts
                     if (ctx.now_ts - fin) / 3600.0 > MAX_RUN_AGE_H:

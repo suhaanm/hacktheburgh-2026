@@ -20,14 +20,26 @@ function useReducedMotion(): boolean {
   return reduced
 }
 
+function useDarkScheme(): boolean {
+  const [dark, setDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches)
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const on = (): void => setDark(mq.matches)
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [])
+  return dark
+}
+
 export function Overlay(): ReactElement {
   const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight })
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
   const [state, setState] = useState<OverlayState>(EMPTY_OVERLAY_STATE)
   const reducedMotion = useReducedMotion()
+  const dark = useDarkScheme()
   const style = useMemo(
-    () => annotationStyle({ bigAnnotations: settings.bigAnnotations, highContrast: settings.highContrast, dyslexiaFont: settings.dyslexiaFont }, { reducedMotion }),
-    [settings.bigAnnotations, settings.highContrast, settings.dyslexiaFont, reducedMotion],
+    () => annotationStyle({ bigAnnotations: settings.bigAnnotations, highContrast: settings.highContrast, dyslexiaFont: settings.dyslexiaFont }, { reducedMotion, dark }),
+    [settings.bigAnnotations, settings.highContrast, settings.dyslexiaFont, reducedMotion, dark],
   )
   const live = useRef({ viewport, style })
   live.current = { viewport, style }
@@ -68,6 +80,7 @@ export function Overlay(): ReactElement {
         viewport={viewport}
         style={style}
         captionsEnabled={settings.captions}
+        coachDot={settings.coachDot}
         speakerNames={{ user: 'You', assistant: persona?.displayName ?? 'Assistant' }}
       />
       <Roadmap reducedMotion={reducedMotion} />

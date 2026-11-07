@@ -14,6 +14,7 @@ and monotone: a bigger input never gives a smaller output.
 from __future__ import annotations
 
 import math
+import numbers
 import threading
 from datetime import datetime, time, timedelta
 from typing import Annotated, Any, Literal
@@ -32,11 +33,13 @@ _EPS = 1e-9
 
 
 def _real(x: Any, what: str) -> float:
-    if isinstance(x, bool) or not isinstance(x, (int, float)):
+    """A finite real number as a float. Accepts numpy scalars (they register with ``numbers``); refuses bools and text."""
+    if isinstance(x, bool) or type(x).__name__ == "bool_" or not isinstance(x, numbers.Real):
         raise ValueError(f"{what} must be a number")
-    if isinstance(x, float) and not math.isfinite(x):
+    f = float(x)
+    if not math.isfinite(f):
         raise ValueError(f"{what} must be finite")
-    return float(x)
+    return f
 
 
 def _half_up(x: float) -> int:
@@ -135,7 +138,8 @@ FEATURE_RULES: dict[str, Any] = {
     "hours": bucket_hours,
     "ratio": bucket_ratio,
     "time15": round_time_minutes,
-    "raw": lambda v: round(float(v), 2) if isinstance(v, float) else v,
+    "raw": lambda v: (int(v) if isinstance(v, numbers.Integral) and not isinstance(v, bool) else
+                      round(float(v), 2) if isinstance(v, numbers.Real) and not isinstance(v, bool) else v),
 }
 _features_lock = threading.RLock()
 _FEATURE_KIND: dict[str, str] = {}

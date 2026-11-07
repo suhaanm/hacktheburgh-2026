@@ -20,6 +20,7 @@ from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 
 from .privacy import flags, ledger
+from .privacy.image import image_purposes
 from .privacy.payload import purposes as registered_purposes
 
 router = APIRouter(tags=["privacy"])
@@ -113,5 +114,5 @@ def get_summary():
 def get_purposes():
     if (r := _off()) is not None:
         return r
-    rows = [p.public() for p in registered_purposes().values()]
+    rows = [p.public() for p in registered_purposes().values()] + [p.public() for p in image_purposes().values()]
     return {"meta": _meta([], "What each purpose is allowed to send. Free text is not possible in any of them."), "data": rows}

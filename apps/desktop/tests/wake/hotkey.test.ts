@@ -20,7 +20,7 @@ import { registerSession } from '../../src/main/session'
 import { IPC } from '../../src/shared/ipc'
 import { DEFAULT_SETTINGS } from '../../src/shared/settings'
 
-const settingsStub = (persona: 'marcus' | 'amelia' | null) => ({ get: () => ({ ...DEFAULT_SETTINGS, persona }) }) as never
+const settingsStub = (persona: import('../../src/shared/protocol').PersonaId | null) => ({ get: () => ({ ...DEFAULT_SETTINGS, persona }) }) as never
 
 beforeEach(() => {
   handlers.clear()
@@ -45,7 +45,7 @@ describe('global hotkeys', () => {
     handlers.get(START_ACCELERATORS[0])!()
     expect(seen).toEqual([
       { personaId: 'amelia', source: 'hotkey' },
-      { personaId: 'marcus', source: 'hotkey' },
+      { personaId: 'understudy', source: 'hotkey' },
     ])
   })
 
@@ -97,22 +97,32 @@ describe('global hotkeys', () => {
 describe('Stop hotkey against the real session controller', () => {
   it('tells the dock to close Live and returns the state to its resting phase', () => {
     const bus = new Bus()
-    const state = new StateStore(DEFAULT_SETTINGS)
+    const state = new StateStore({ ...DEFAULT_SETTINGS, wakeEnabled: true })
     const sendDock = vi.fn()
-    const settings = { get: () => ({ ...DEFAULT_SETTINGS }), patch: vi.fn(), onChange: vi.fn() }
+    const settings = { get: () => ({ ...DEFAULT_SETTINGS, wakeEnabled: true }), patch: vi.fn(), onChange: vi.fn() }
     const ctx = { bus, state, settings, sendDock, sendOverlay: vi.fn(), userDataDir: '', log: vi.fn() }
     const services = { runner: { abort: vi.fn() }, overlay: { clear: vi.fn(), chip: vi.fn() } }
     const session = registerSession(ctx as never, services as never, { cancel: vi.fn() } as never)
     registerHotkeys(bus, settings as never, { state, stop: (r) => session.stop(r) })
 
     handlers.get(START_ACCELERATORS[0])!() // Start: dock is told to open the session
-    expect(sendDock).toHaveBeenCalledWith(IPC.sessionStart, { personaId: 'marcus', source: 'hotkey' })
+    expect(sendDock).toHaveBeenCalledWith(IPC.sessionStart, { personaId: 'understudy', source: 'hotkey' })
     expect(state.get().phase).toBe('connecting')
 
     handlers.get(STOP_ACCELERATORS[0])!() // Stop
     expect(sendDock).toHaveBeenCalledWith(IPC.sessionStop, 'stop')
-    expect(state.get().phase).toBe('listening_for_name')
+    expect(state.get().phase).toBe('listening_for_name') // the name listener is on only because this test turned it on
     expect(services.runner.abort).toHaveBeenCalled()
+  })
+
+  it('the microphone is not listening by default: the name listener is off, so the resting phase is asleep', () => {
+    expect(DEFAULT_SETTINGS.wakeEnabled).toBe(false)
+    const state = new StateStore(DEFAULT_SETTINGS)
+    const settings = { get: () => ({ ...DEFAULT_SETTINGS }), patch: vi.fn(), onChange: vi.fn() }
+    const ctx = { bus: new Bus(), state, settings, sendDock: vi.fn(), sendOverlay: vi.fn(), userDataDir: '', log: vi.fn() }
+    const session = registerSession(ctx as never, { runner: { abort: vi.fn() }, overlay: { clear: vi.fn(), chip: vi.fn() } } as never, { cancel: vi.fn() } as never)
+    session.stop('stop')
+    expect(state.get().phase).toBe('asleep')
   })
 
   it('registers the panel shortcut only when a toggle is supplied, and it calls it', () => {
@@ -133,5 +143,61 @@ describe('Stop hotkey against the real session controller', () => {
     expect(state.get().lastError).toBeUndefined()
     expect(handlers.has(START_ACCELERATORS[0])).toBe(true)
     off()
+  })
+})
+
+describe('the talk key (hold to talk; the panel comes up, `talk` is emitted)', () => {
+  const timers: Array<{ fn: () => void; ms: number; live: boolean }> = []
+  const fake = { setTimer: (fn: () => void, ms: number) => (timers.push({ fn, ms, live: true }), timers.length - 1), clearTimer: (h: unknown) => void (timers[h as number]!.live = false) }
+  const fire = (): void => {
+    const t = [...timers].reverse().find((x) => x.live)
+    if (t) {
+      t.live = false
+      t.fn()
+    }
+  }
+  beforeEach(() => (timers.length = 0))
+
+  it('is Option+Space by default and registers it', () => {
+    registerHotkeys(new Bus(), settingsStub(null), fake)
+    expect(DEFAULT_SETTINGS.talkHotkey).toBe('Alt+Space')
+    expect(handlers.has('Alt+Space')).toBe(true)
+  })
+
+  it('press raises the panel and emits talk once however often the keyboard repeats; it releases when the repeats stop', () => {
+    const bus = new Bus()
+    const seen: string[] = []
+    bus.on('talk', (e) => seen.push(`${e.source}:${e.phase}`))
+    const raised: number[] = []
+    registerHotkeys(bus, settingsStub(null), { ...fake, raisePanel: () => void raised.push(1) })
+    const press = handlers.get('Alt+Space')!
+    press()
+    press()
+    press()
+    expect(seen).toEqual(['hotkey:press'])
+    expect(raised).toHaveLength(1)
+    fire() // no repeat for the release time: the key is up
+    expect(seen).toEqual(['hotkey:press', 'hotkey:release'])
+    press() // a later press is a new press
+    expect(seen.at(-1)).toBe('hotkey:press')
+    expect(raised).toHaveLength(2)
+  })
+
+  it('falls back when another app owns the chosen combo, and follows a changed setting', () => {
+    taken = new Set(['Alt+Space'])
+    registerHotkeys(new Bus(), settingsStub(null), fake)
+    expect(handlers.has('Alt+Space')).toBe(false)
+    expect(handlers.has('Alt+Shift+Space')).toBe(true)
+    handlers.clear()
+    taken = new Set()
+    let listener: ((s: unknown, p: Record<string, unknown>) => void) | null = null
+    let hot = 'Alt+Space'
+    const store = { get: () => ({ ...DEFAULT_SETTINGS, talkHotkey: hot }), onChange: (l: typeof listener) => ((listener = l), () => undefined) } as never
+    registerHotkeys(new Bus(), store, fake)
+    expect(handlers.has('Alt+Space')).toBe(true)
+    hot = 'Control+Alt+T'
+    listener!({}, { talkHotkey: hot })
+    expect(handlers.has('Control+Alt+T')).toBe(true)
+    expect(handlers.has('Alt+Space')).toBe(false)
   })
 })

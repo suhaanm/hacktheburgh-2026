@@ -298,6 +298,11 @@ class SafePayload(BaseModel):
     @classmethod
     def __pydantic_init_subclass__(cls, **kwargs: Any) -> None:
         super().__pydantic_init_subclass__(**kwargs)
+        cfg = cls.model_config
+        if cfg.get("extra") != "forbid" or cfg.get("strict") is not True or cfg.get("arbitrary_types_allowed"):
+            raise UnsafeFieldError(
+                f"{cls.__name__}: a SafePayload must keep extra='forbid' and strict=True and must not allow arbitrary types "
+                "(overriding them would let free text in)")
         for name, info in cls.model_fields.items():
             if name == "model_config":
                 continue

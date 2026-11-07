@@ -152,3 +152,36 @@ def test_egress_is_the_one_module_with_a_model_port_import_and_it_is_lazy():
     top_level = [ln for ln in src.splitlines() if ln.startswith(("import ", "from ")) and "understudy_agent" in ln]
     assert top_level == [], "egress must import the model port lazily, inside the function that needs it"
     assert "understudy_agent.models" in src
+
+
+# --------------------------------------------------------------------------- the agent runtime (plans through ModelPort by design)
+def rv(src: str):
+    return {x.rule for x in guard.scan_runtime_source(textwrap.dedent(src), "runtime/x.py")}
+
+
+def test_runtime_rule_flags_a_direct_call_without_a_ledger_record():
+    assert rv("def f(self):\n    return self.port.plan([], None)\n") == {"unrecorded_model_call"}
+    assert rv("def f(port):\n    return port.read('x', {})\n") == {"unrecorded_model_call"}
+    assert rv("def f(self):\n    return self.port.computer_step('g', b'', [])\n") == {"unrecorded_model_call"}
+
+
+def test_runtime_rule_accepts_a_direct_call_that_records_and_calls_that_go_through_egress():
+    ok = "def f(self):\n    rtprivacy.record_raw_call('plan', 'm', 10, 'note')\n    return self.port.plan([], None)\n"
+    assert rv(ok) == set()
+    assert rv("def f(self):\n    ledger.record_direct(method='plan', model='m', bytes_sent=1)\n    return self.port.plan([], None)\n") == set()
+    assert rv("def f(self, port):\n    return egress.send('agents.parent_plan', {}, port=port).output\n") == set()
+    assert rv("def f(self):\n    return self.items.read()\n") == set()                 # not a port-like receiver
+
+
+def test_runtime_rule_still_bans_provider_sdks_and_network_clients():
+    assert "model_client_import" in rv("import openai\n")
+    assert "model_client_import" in rv("from anthropic import Anthropic\n")
+    assert "model_client_import" in rv("import httpx\n")
+    assert "model_client_import" in rv("import urllib.request\n")
+
+
+def test_the_real_runtime_has_no_unrecorded_direct_model_call_and_no_provider_import():
+    rep = guard.scan_runtime()
+    if not rep.files:
+        pytest.skip("the agent runtime is not present")
+    assert rep.ok, "the agent runtime must send payloads through egress.send and record every direct call:\n" + "\n".join(map(str, rep.violations))

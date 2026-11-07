@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import json
-from typing import Annotated, Literal
+from typing import Annotated
 
 import pytest
 
 from understudy_engine.privacy import egress, ledger
-from understudy_engine.privacy.bucket import Count, Ratio
+from understudy_engine.privacy.bucket import Count
 from understudy_engine.privacy.egress import (
     EgressBlocked, EgressUnavailable, ModelCallFailed, ModelOutputRejected, PayloadRejected, UnknownPurpose,
 )
@@ -337,3 +337,33 @@ def test_the_real_openai_provider_class_accepts_what_egress_sends_and_the_exact_
     from understudy_engine.privacy.patterns import scan_text
     assert scan_text(wire, names=False) == [], scan_text(wire, names=False)        # the exact kwargs sent to the SDK carry no PII shape
     assert ledger.read_all()[0]["model"] == "openai:planner-from-env"
+
+
+# --------------------------------------------------------------------------- concurrency
+def test_concurrent_sends_each_get_exactly_one_complete_ledger_line():
+    import threading
+
+    port = CapturingPort()
+    errors = []
+
+    def go(k):
+        try:
+            for i in range(25):
+                egress.send("git.habit_wording", GitHabitWording(habit="no_tests", learner_ratio=(k % 10) / 10, expert_ratio=0.1, n_commits=20 + i), port=port)
+        except Exception as exc:  # pragma: no cover
+            errors.append(exc)
+
+    ts = [threading.Thread(target=go, args=(k,)) for k in range(8)]
+    [t.start() for t in ts]
+    [t.join() for t in ts]
+    rows = ledger.read_all()
+    assert not errors and len(rows) == len(port) == 200 and len({r["id"] for r in rows}) == 200
+    assert all(r["schema"] == GitHabitWording.schema_id() for r in rows)
+
+
+def test_mock_mode_evaluation_runs_exactly_as_make_eval_would(monkeypatch):
+    from understudy_engine.privacy.evaluate import evaluate_privacy
+
+    monkeypatch.setenv("UNDERSTUDY_MOCK", "1")
+    r = evaluate_privacy(seeds=[0], record=False, discover=False)
+    assert r["headline"]["leaked"] == 0 and r["headline"]["controls_passed"] == r["headline"]["controls_total"]

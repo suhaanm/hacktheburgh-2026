@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from .acceptance import AcceptanceModel, role_prior
-from .candidates import Candidate, Ctx, Reading, automate_candidates, calendar_candidates, collect, practice_candidates
+from .candidates import Candidate, Ctx, Reading, automate_candidates, calendar_candidates, calendar_family, collect, practice_candidates
 from .cards import iso, new_card
 from .judge import rank
 from .prepare import prepare
@@ -84,6 +84,9 @@ def seed_demo(home: Path | str, data_dir: Path | str, *, person: str = DEMO_PERS
             """The live candidate if there is one; a stated stand-in only when the source cannot be read at all (otherwise the first
             re-check would drop it as stale, and an honest empty source means there is nothing to show)."""
             got = _first(now_c.candidates, kind)
+            if kind == "focus_block":            # the demo's calendar card is about protecting time: prefer that family if the calendar has it
+                focus = [c for c in now_c.candidates if c.kind == kind and calendar_family(c.prepared_template["params"].get("template_id")) in ("focus", "hold")]
+                got = max(focus, key=lambda c: c.value) if focus else got
             if got is not None:
                 return got
             rd = now_c.readings.get(source)

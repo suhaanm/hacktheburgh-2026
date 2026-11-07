@@ -39,7 +39,7 @@ export function applyDesignSettings(settings: DesignSettings, persona: PersonaId
   root.style.setProperty('--glass-card', `${(card * 100).toFixed(1)}%`)
   root.style.setProperty('--ui-scale', String(Math.min(1.5, Math.max(0.9, settings.textScale ?? 1))))
 
-  if (persona) {
+  if (persona && PERSONAS[persona].accentToken !== 'accent') {
     const token = PERSONAS[persona].accentToken
     root.dataset.persona = persona
     root.style.setProperty('--accent', `var(--${token})`)

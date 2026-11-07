@@ -52,6 +52,7 @@ class ToolCtx:
     spec: AgentSpec
     output_schema: dict[str, Any]
     is_cancelled: Callable[[], bool] = lambda: False
+    remaining: Callable[[], float] = lambda: policy.PY_TIMEOUT_S      # seconds of the child's time budget left
     emitted: dict[str, Any] | None = None
 
 
@@ -214,7 +215,8 @@ def _git_log(ctx: ToolCtx, a: dict[str, Any]) -> ToolOutcome:
 
 def _run_python(ctx: ToolCtx, a: dict[str, Any]) -> ToolOutcome:
     try:
-        res = run_python(ctx.ws, a["path"], is_cancelled=ctx.is_cancelled)
+        res = run_python(ctx.ws, a["path"], is_cancelled=ctx.is_cancelled,
+                         timeout_s=max(1.0, min(policy.PY_TIMEOUT_S, ctx.remaining())))
     except WorkspaceError as e:
         return _refused(e, exit_zero=False)
     integ = res.integrity or {}
@@ -351,7 +353,7 @@ def menu_step_schema(role: str, tools: list[str], files: list[str], templates: l
     return {
         "title": f"child_step_{role}",
         "type": "object",
-        "required": ["tool", "file"],
+        "required": ["tool", "file", "template"],
         "properties": {
             "tool": {"type": "string", "enum": sorted(tools)},
             "file": {"type": "string", "enum": [*files, "none"]},

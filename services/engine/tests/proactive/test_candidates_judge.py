@@ -188,3 +188,24 @@ def test_learned_acceptance_moves_the_ranking():
     for _ in range(5):
         m.observe("practice", False)
     assert J.score_candidate(lo, m.p("practice"))[0] < before
+
+
+# ----------------------------------------------------------------------------------------------- practice evidence
+def test_a_skill_the_worker_keeps_getting_wrong_beats_one_nobody_has_seen():
+    erring = skill_row(id="a", order=2, level=1, mastery=0.5, recent_errors=2, attempts=5, prerequisites=[])
+    unseen = skill_row(id="b", order=1, level=1, mastery=0.2, recent_errors=0, attempts=0, prerequisites=[])
+    got = {c.subject: c for c in practice_candidates(CTX, Reading([erring, unseen]))}
+    assert got["skill:a"].value > got["skill:b"].value and got["skill:b"].value <= 0.5 * (0.6 * 0.8 + 0.4) + 1e-9
+
+
+def test_visible_errors_override_the_teaching_order_prerequisite():
+    first = skill_row(id="a", order=1, level=1, recent_errors=0, attempts=3)
+    second_quiet = skill_row(id="b", order=2, level=1, prerequisites=["a"], recent_errors=0, attempts=3)
+    second_erring = skill_row(id="b", order=2, level=1, prerequisites=["a"], recent_errors=1, attempts=3)
+    assert {c.subject for c in practice_candidates(CTX, Reading([first, second_quiet]))} == {"skill:a"}
+    assert {c.subject for c in practice_candidates(CTX, Reading([first, second_erring]))} == {"skill:a", "skill:b"}
+
+
+def test_memory_file_levels_without_evidence_keep_the_level_based_value():
+    [c] = practice_candidates(CTX, Reading([skill_row(level=1, mastery=0.2)]))        # no recent_errors key: only a level is known
+    assert c.value == pytest.approx(0.6 * 0.8 + 0.4)

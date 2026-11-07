@@ -4,6 +4,9 @@ import type { AgentChip, LessonStepEvent, LevelChangedEvent, PersonaId, SessionE
 export interface BusEvents {
   wake: { personaId: PersonaId; source: SessionSource }
   'session:request': SessionRequest
+  // The hold-to-talk key (default Option+Space). `press` when it goes down, `release` when it comes up. The Live session that listens is
+  // phase D; until then main only raises the panel.
+  talk: { source: 'hotkey' | 'tray'; phase: 'press' | 'release' }
   'session:ended': { reason: SessionEndReason }
   'tool:called': { name: string; args: unknown; ms: number; ok: boolean }
   'screen:changed': { score: number }

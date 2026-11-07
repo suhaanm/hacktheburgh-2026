@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { PERSONA_LIST } from '../../src/shared/personas'
+import { ALL_PERSONA_LIST } from '../../src/shared/personas'
 import { createWakeSpotter, type WakeAudioSource, type WakeEngine, type WakeEngineHandlers, type WakeEvent, type WakeStatus } from '../../src/renderer/wake'
 
 class FakeAudio implements WakeAudioSource {
@@ -52,7 +52,7 @@ function rig(opts: Partial<Parameters<typeof createWakeSpotter>[0]> & { failStar
   const statuses: WakeStatus[] = []
   let failStarts = opts.failStarts ?? 0
   const spotter = createWakeSpotter({
-    personas: PERSONA_LIST,
+    personas: ALL_PERSONA_LIST,
     createAudioSource: () => audio,
     createEngine: (h) => {
       const fail = failStarts-- > 0 ? new Error('boom') : null
@@ -260,7 +260,7 @@ describe('wake spotter', () => {
     const raw = `Error invoking remote method 'wake:token': ApiError: {"error":{"code":500,"status":"INTERNAL"}}`
     const audio = new FakeAudio()
     const spotter = createWakeSpotter({
-      personas: PERSONA_LIST,
+      personas: ALL_PERSONA_LIST,
       createAudioSource: () => audio,
       createEngine: (h) => {
         const e = new FakeEngine(h, new Error(raw), false)
@@ -271,7 +271,7 @@ describe('wake spotter', () => {
     const seen: WakeStatus[] = []
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     const s2 = createWakeSpotter({
-      personas: PERSONA_LIST,
+      personas: ALL_PERSONA_LIST,
       createAudioSource: () => new FakeAudio(),
       createEngine: (h) => new FakeEngine(h, new Error(raw), false),
       onStatus: (st) => seen.push(st),
@@ -297,7 +297,7 @@ describe('wake spotter', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     const engines: FakeEngine[] = []
     const spotter = createWakeSpotter({
-      personas: PERSONA_LIST,
+      personas: ALL_PERSONA_LIST,
       createAudioSource: () => audio,
       getToken: async () => {
         if (!net) throw new Error('fetch failed')
@@ -353,7 +353,7 @@ describe('wake spotter', () => {
     const audio = new FakeAudio()
     const engines: FakeEngine[] = []
     const spotter = createWakeSpotter({
-      personas: PERSONA_LIST,
+      personas: ALL_PERSONA_LIST,
       createAudioSource: () => audio,
       maxSessionMs: 10_000,
       createEngine: (h) => {
@@ -396,7 +396,7 @@ describe('wake spotter', () => {
   })
 
   it('works without a token source only if an engine is injected (fails closed otherwise)', async () => {
-    const s = createWakeSpotter({ personas: PERSONA_LIST, createAudioSource: () => new FakeAudio(), onWake: () => undefined })
+    const s = createWakeSpotter({ personas: ALL_PERSONA_LIST, createAudioSource: () => new FakeAudio(), onWake: () => undefined })
     await s.start()
     expect(s.getStatus().state).toBe('unavailable')
     s.dispose()

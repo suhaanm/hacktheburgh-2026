@@ -31,8 +31,9 @@ from pathlib import Path
 from typing import Iterable
 
 ENGINE_PKG = Path(__file__).resolve().parents[1]
-GUARDED_DIRS = ("calendar", "gitanalysis", "proactive", "localmodel", "plugins")
-GUARDED_FILES = ("routes_calendar.py", "routes_git.py", "routes_localmodel.py", "routes_proactive.py", "routes_plugins.py")
+GUARDED_DIRS = ("calendar", "gitanalysis", "proactive", "localmodel", "plugins", "awareness")
+GUARDED_FILES = ("routes_calendar.py", "routes_git.py", "routes_localmodel.py", "routes_proactive.py", "routes_plugins.py",
+                 "routes_awareness.py")
 
 MODEL_ROOTS = {
     "openai", "anthropic", "google", "cohere", "mistralai", "groq", "litellm", "langchain", "langchain_openai", "ollama",
@@ -258,3 +259,202 @@ def scan_tree(root: Path | None = None, files: Iterable[Path] | None = None) -> 
         rep.violations.extend(viol)
         rep.allowed_uses.extend(used)
     return rep
+
+
+# ----------------------------------------------------------------------------------------------------- the agent runtime
+RUNTIME_DIR = ENGINE_PKG.parents[1] / "agent" / "understudy_agent" / "runtime"
+RECORDERS = {"record_raw_call", "record_direct", "LedgeredPort"}
+
+
+def scan_runtime_source(src: str, relpath: str) -> list[Violation]:
+    """The agent runtime plans through ``ModelPort`` by design (parent and child steps), so it is checked by a different rule: it
+    imports no provider SDK or network client, and any visible direct call to a port (``.plan``, ``.read``, ``.check``, ``.vision``,
+    ``.computer_step`` on a port-like receiver) must sit in a function that also records a metadata-only ledger line
+    (``record_raw_call``, ``ledger.record_direct`` or a ``LedgeredPort``). Calls that carry a SafePayload go through ``egress.send``
+    and are not direct. A call hidden inside another object (for example a safety pipeline's reader) is not visible to this check."""
+    out: list[Violation] = []
+    try:
+        tree = ast.parse(src)
+    except SyntaxError as exc:
+        return [Violation(relpath, exc.lineno or 0, "unparseable", "the file does not parse, so it cannot be checked")]
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for a in node.names:
+                if _root(a.name) in MODEL_ROOTS or any(a.name == n or a.name.startswith(n + ".") for n in NETWORK_MODULES):
+                    out.append(Violation(relpath, node.lineno, "model_client_import", f"imports {a.name}"))
+        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+            if _root(node.module) in MODEL_ROOTS or any(node.module == n or node.module.startswith(n + ".") for n in NETWORK_MODULES):
+                out.append(Violation(relpath, node.lineno, "model_client_import", f"imports {node.module}"))
+    for fn in [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]:
+        direct: list[ast.Call] = []
+        recorded = False
+        for c in ast.walk(fn):
+            if not isinstance(c, ast.Call):
+                continue
+            f = c.func
+            name = f.attr if isinstance(f, ast.Attribute) else f.id if isinstance(f, ast.Name) else ""
+            if name in RECORDERS:
+                recorded = True
+            if isinstance(f, ast.Attribute):
+                recv = _dotted(f.value)
+                last = recv.split(".")[-1] if recv else ""
+                if f.attr in ALWAYS_CALLS or (f.attr in PORTISH_CALLS and PORTISH_RECEIVER.search(last)):
+                    direct.append(c)
+        if direct and not recorded:
+            for c in direct:
+                out.append(Violation(relpath, c.lineno, "unrecorded_model_call",
+                                     f"{fn.name}() calls a model port directly without writing a ledger line "
+                                     f"(use egress.send for payloads, or record_raw_call for the worker-requested raw path)"))
+    seen = set()
+    uniq = []
+    for v in out:
+        k = (v.file, v.line, v.rule)
+        if k not in seen:
+            seen.add(k)
+            uniq.append(v)
+    return uniq
+
+
+def scan_runtime(root: Path | None = None) -> GuardReport:
+    """Scan ``services/agent/understudy_agent/runtime`` (skipped, with an empty report, when it does not exist)."""
+    root = root or RUNTIME_DIR
+    rep = GuardReport()
+    if not root.is_dir():
+        return rep
+    for p in sorted(root.rglob("*.py")):
+        rel = "runtime/" + p.relative_to(root).as_posix()
+        rep.files.append(rel)
+        rep.violations.extend(scan_runtime_source(p.read_text(encoding="utf-8"), rel))
+    return rep
+
+
+# ----------------------------------------------------------------------------------------------------- image endpoints (REQ-5)
+REPO_ROOT = ENGINE_PKG.parents[2]
+AGENT_PKG = REPO_ROOT / "services" / "agent" / "understudy_agent"
+PROVIDER_HOSTS = ("generativelanguage.googleapis.com", "aiplatform.googleapis.com", "api.openai.com", "openai.azure.com", "api.openai")
+PROVIDER_IMPORT_ROOTS = {"openai", "vertexai"}
+PROVIDER_IMPORT_PREFIXES = ("google.genai", "google.generativeai", "google.cloud.aiplatform", "google.ai")
+#: the only Python files that may import a Gemini or OpenAI client or name their API hosts: the provider modules, the egress
+#: module, and this guard (which holds the host names it searches for)
+PROVIDER_ALLOWED = ("understudy_agent/models/*", "understudy_agent/models/**/*", "understudy_engine/privacy/egress.py", "understudy_engine/privacy/guard.py")
+
+
+def _provider_allowed(rel: str) -> bool:
+    return any(fnmatch.fnmatch(rel, pat) for pat in PROVIDER_ALLOWED)
+
+
+def provider_endpoint_violations(src: str, relpath: str) -> list[Violation]:
+    """In one Python file outside the allowed modules: any import of a Gemini or OpenAI client, and any string (including the literal
+    parts of an f-string) that names their API hosts."""
+    out: list[Violation] = []
+    try:
+        tree = ast.parse(src)
+    except SyntaxError as exc:
+        return [Violation(relpath, exc.lineno or 0, "unparseable", "the file does not parse, so it cannot be checked")]
+    for node in ast.walk(tree):
+        mods: list[str] = []
+        if isinstance(node, ast.Import):
+            mods = [a.name for a in node.names]
+        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+            mods = [node.module] + [f"{node.module}.{a.name}" for a in node.names]
+        for m in mods:
+            if _root(m) in PROVIDER_IMPORT_ROOTS or m.startswith(PROVIDER_IMPORT_PREFIXES):
+                out.append(Violation(relpath, node.lineno, "provider_client_import",
+                                     f"imports {m}: only the models package and privacy.egress may open a Gemini or OpenAI client"))
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            low = node.value.lower()
+            for h in PROVIDER_HOSTS:
+                if h in low:
+                    out.append(Violation(relpath, node.lineno, "provider_host", f"names the API host {h}"))
+                    break
+    seen: set[tuple[str, int, str]] = set()
+    uniq = []
+    for v in out:
+        k = (v.file, v.line, v.rule)
+        if k not in seen:
+            seen.add(k)
+            uniq.append(v)
+    return uniq
+
+
+def scan_provider_endpoints(roots: Iterable[Path] | None = None) -> GuardReport:
+    """Every production Python module of the engine and the agent service (tests excluded) except the allowed ones."""
+    rep = GuardReport()
+    for root in (list(roots) if roots is not None else [ENGINE_PKG, AGENT_PKG]):
+        if not root.is_dir():
+            continue
+        for p in sorted(root.rglob("*.py")):
+            rel = f"{root.name}/{p.relative_to(root).as_posix()}"
+            if "__pycache__" in rel or _provider_allowed(rel):
+                continue
+            rep.files.append(rel)
+            rep.violations.extend(provider_endpoint_violations(p.read_text(encoding="utf-8"), rel))
+    return rep
+
+
+# ----------------------------------------------------------------------------------------------------- who may claim "sandbox"
+import re as _re  # noqa: E402
+
+_SANDBOX_LITERAL = _re.compile(r"""['"`]sandbox['"`]""")
+#: code that sends real screen frames: it must never construct a frame or gate whose source is "sandbox" (D30)
+REAL_SCREEN_PY_DIRS = ("awareness",)
+REAL_SCREEN_TS_GLOBS = ("apps/desktop/src/main/awareness/**/*.ts", "apps/desktop/src/main/live-*.ts", "apps/desktop/src/main/live/**/*.ts",
+                        "apps/desktop/src/renderer/live/**/*.ts", "apps/desktop/src/renderer/live/**/*.tsx")
+
+
+def sandbox_claim_violations_py(src: str, relpath: str) -> list[Violation]:
+    out: list[Violation] = []
+    try:
+        tree = ast.parse(src)
+    except SyntaxError as exc:
+        return [Violation(relpath, exc.lineno or 0, "unparseable", "the file does not parse, so it cannot be checked")]
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Constant) and node.value == "sandbox":
+            out.append(Violation(relpath, node.lineno, "sandbox_claim", 'real-screen code may not use the string "sandbox" (image source)'))
+    return out
+
+
+def scan_sandbox_claims(repo: Path | None = None) -> GuardReport:
+    """Nothing that sends real screen frames may construct ``sandbox``: the Python awareness code and the awareness, Live and hotkey
+    TypeScript (test files are skipped, so a test may check that a sandbox claim is refused). ENFORCED by this static scan; the HTTP
+    route cannot tell a local caller's claim from the truth (see ``image.frame_request_problem``), so for a local process that
+    scan is the control and the ledger's ``source`` column is the audit."""
+    repo = repo or REPO_ROOT
+    rep = GuardReport()
+    for d in REAL_SCREEN_PY_DIRS:
+        base = repo / "services" / "engine" / "understudy_engine" / d
+        for p in sorted(base.rglob("*.py")) if base.is_dir() else []:
+            rel = p.relative_to(repo).as_posix()
+            rep.files.append(rel)
+            rep.violations.extend(sandbox_claim_violations_py(p.read_text(encoding="utf-8"), rel))
+    seen: set[Path] = set()
+    for pat in REAL_SCREEN_TS_GLOBS:
+        for p in sorted(repo.glob(pat)):
+            if p in seen or p.name.endswith((".test.ts", ".spec.ts", ".test.tsx", ".spec.tsx")):
+                continue
+            seen.add(p)
+            rel = p.relative_to(repo).as_posix()
+            rep.files.append(rel)
+            for i, line in enumerate(p.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+                if _SANDBOX_LITERAL.search(line):
+                    rep.violations.append(Violation(rel, i, "sandbox_claim", 'real-screen code may not use the string "sandbox" (image source)'))
+    return rep
+
+
+def ts_provider_references(repo: Path | None = None) -> list[str]:
+    """REPORT ONLY: TypeScript files under apps/desktop/src that name a Gemini or OpenAI API host or client package. The old project's
+    code is still there behind flags; the rule is that frames reach a provider through the engine's egress guard, not from these."""
+    repo = repo or REPO_ROOT
+    base = repo / "apps" / "desktop" / "src"
+    pats = ("generativelanguage.googleapis.com", "@google/genai", "api.openai.com", "aiplatform.googleapis.com")
+    out = []
+    for p in sorted(base.rglob("*.ts")) if base.is_dir() else []:
+        if p.name.endswith((".test.ts", ".spec.ts")):
+            continue
+        try:
+            text = p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if any(x in text for x in pats):
+            out.append(p.relative_to(repo).as_posix())
+    return out

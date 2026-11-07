@@ -136,14 +136,27 @@ try {
     }
   }
   await post('/overlay', { cmd: { type: 'clear' } })
-  // The coach chip and the HUD, for the same two themes.
+  // The overlay's top-right corner (where the coach chip used to be) and the HUD (idle, hovered, stopped), for both themes.
   const extras = []
   for (const os of ['light', 'dark']) {
     await post('/theme', { mode: os })
     await sleep(1200)
     const overlay = Buffer.from(await (await api('/overlay.png')).arrayBuffer())
-    const hud = await api('/hud.png')
-    extras.push({ os, overlay: overlay.toString('base64'), hud: hud.ok ? Buffer.from(await hud.arrayBuffer()).toString('base64') : null })
+    const huds = {}
+    await post('/hud/preview', { mode: 'none' })
+    await sleep(500)
+    huds.idle = Buffer.from(await (await api('/hud.png')).arrayBuffer()).toString('base64')
+    await post('/hud/preview', { mode: 'hover' })
+    await sleep(600)
+    huds.hover = Buffer.from(await (await api('/hud.png')).arrayBuffer()).toString('base64')
+    await post('/hud/preview', { mode: 'none' })
+    await post('/hud/proposal', { proposal: null })
+    await post('/kill', {})
+    await sleep(1500)
+    huds.stopped = Buffer.from(await (await api('/hud.png')).arrayBuffer()).toString('base64')
+    await post('/kill/clear', {})
+    await sleep(800)
+    extras.push({ os, overlay: overlay.toString('base64'), huds })
   }
   await post('/theme', { mode: 'system' })
 
@@ -155,8 +168,8 @@ try {
       for (const t of tiles) {
         const [ov, sh] = await Promise.all([load(t.overlay), load(t.shot)])
         const k = ov.naturalWidth / t.screenW // overlay px per point (= the screen's backing scale)
-        const w = Math.round(520 * k), h = Math.round(190 * k)
-        const cx = t.box.x - 120, cy = t.box.y - 100 // crop origin in points
+        const w = Math.round(480 * k), h = Math.round(170 * k)
+        const cx = t.box.x - 90, cy = t.box.y - 70 // crop origin in points
         const c = document.createElement('canvas'); c.width = w; c.height = h
         const g = c.getContext('2d')
         g.fillStyle = '#888'; g.fillRect(0, 0, w, h)
@@ -191,24 +204,25 @@ try {
         void k
       }
       out.chips = montage(chips, 2)
-      // the HUD window captures (its own pixels; transparent corners shown on light and dark)
-      const huds = []
-      for (const e of extras) {
-        if (!e.hud) continue
-        const hi = await load(e.hud)
-        for (const bg of ['#ffffff', '#0e1319']) {
-          const c = document.createElement('canvas'); c.width = hi.naturalWidth; c.height = hi.naturalHeight
-          const g = c.getContext('2d'); g.fillStyle = bg; g.fillRect(0, 0, c.width, c.height); g.drawImage(hi, 0, 0)
-          huds.push(c)
+      // the HUD window captures (its own pixels, on a light and on a dark page behind it): rows idle, hover, stopped
+      const cells = []
+      for (const state of ['idle', 'hover', 'stopped']) {
+        for (const e of extras) {
+          const hi = await load(e.huds[state])
+          for (const bg of ['#ffffff', '#0e1319']) {
+            const c = document.createElement('canvas'); c.width = hi.naturalWidth + 24; c.height = hi.naturalHeight + 24
+            const g = c.getContext('2d'); g.fillStyle = bg; g.fillRect(0, 0, c.width, c.height); g.drawImage(hi, 12, 12)
+            g.font = '18px system-ui'; g.fillStyle = '#c0392b'; g.fillText(`${state}, os ${e.os}`, 8, 20)
+            cells.push(c)
+          }
         }
       }
-      if (huds.length) {
-        const w = Math.max(...huds.map((c) => c.width)), h = Math.max(...huds.map((c) => c.height))
-        const m = document.createElement('canvas'); m.width = w * 2 + 6; m.height = h * 2 + 6
-        const g = m.getContext('2d'); g.fillStyle = '#444'; g.fillRect(0, 0, m.width, m.height)
-        huds.forEach((c, i) => g.drawImage(c, (i % 2) * (w + 6), Math.floor(i / 2) * (h + 6)))
-        out.hud = m.toDataURL('image/png')
-      }
+      const w = Math.max(...cells.map((c) => c.width)), h = Math.max(...cells.map((c) => c.height))
+      const cols = 4, rows = Math.ceil(cells.length / cols)
+      const m = document.createElement('canvas'); m.width = w * cols + (cols - 1) * 6; m.height = h * rows + (rows - 1) * 6
+      const g = m.getContext('2d'); g.fillStyle = '#444'; g.fillRect(0, 0, m.width, m.height)
+      cells.forEach((c, i) => g.drawImage(c, (i % cols) * (w + 6), Math.floor(i / cols) * (h + 6)))
+      out.hud = m.toDataURL('image/png')
       return out
     },
     { tiles, extras },

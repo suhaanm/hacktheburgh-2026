@@ -27,6 +27,55 @@ SHARED_PORTS = {"a": 7801, "b": 7802, "c": 7803}
 BATCH_FLUSH_S = 4.5          # the extension batches events every 2 s
 
 
+SNAPSHOT: dict = {"path": None}
+
+
+def snapshot_pipeline() -> dict:
+    """Freeze the code under test for the whole run: copy services/engine, services/agent and packages (packs, schema) to a temp folder and run every engine
+    and sandbox process from that copy (PYTHONPATH first, cwd there), so commits and edits made by others while the run is going cannot change the coach, the
+    sandbox sites or the packs mid-run. Returns {path, git_head, dirty_files, fingerprint}; the extension is frozen by its one build per world."""
+    import hashlib
+
+    snap = Path(tempfile.mkdtemp(prefix="study-sim-snapshot-"))
+    ignore = shutil.ignore_patterns("node_modules", "__pycache__", ".pytest_cache", "tests", "*.log", "dist", "*.pyc")
+    h = hashlib.sha256()
+    for rel in ("services/engine", "services/agent", "packages"):
+        shutil.copytree(REPO / rel, snap / rel, ignore=ignore)
+    for f in sorted(p for p in snap.rglob("*") if p.is_file()):
+        h.update(str(f.relative_to(snap)).encode())
+        h.update(f.read_bytes())
+
+    def git(*a: str) -> str:
+        try:
+            return subprocess.run(["git", *a], cwd=str(REPO), capture_output=True, text=True, timeout=20).stdout.strip()
+        except Exception:  # noqa: BLE001
+            return ""
+
+    dirty = [ln[3:] for ln in git("status", "--porcelain").splitlines() if ln[3:].startswith(("services/", "packages/"))]
+    info = {"path": str(snap), "git_head": git("rev-parse", "HEAD"), "uncommitted_files_in_snapshot_dirs": len(dirty), "fingerprint": h.hexdigest()[:16],
+            "taken_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    SNAPSHOT.update(info)
+    (snap / "SNAPSHOT.json").write_text(json.dumps(info, indent=1))
+    return info
+
+
+def snapshot_env(env: dict) -> tuple[dict, str]:
+    """env and cwd for a child process: the frozen copy if a snapshot was taken, else the live repo."""
+    p = SNAPSHOT.get("path")
+    if not p:
+        return env, str(REPO)
+    env = dict(env)
+    env["PYTHONPATH"] = os.pathsep.join([f"{p}/services/engine", f"{p}/services/agent"] + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else []))
+    return env, p
+
+
+def drop_snapshot() -> None:
+    p = SNAPSHOT.get("path")
+    if p:
+        shutil.rmtree(p, ignore_errors=True)
+        SNAPSHOT["path"] = None
+
+
 def free_port() -> int:
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
@@ -58,7 +107,7 @@ class EngineProc:
     def start(self, timeout: float = 150.0) -> None:
         self.home.mkdir(parents=True, exist_ok=True)
         self.data.mkdir(parents=True, exist_ok=True)
-        src = REPO / "data" / "synthetic"
+        src = REPO / "data" / "synthetic"                       # data, not code: read once per participant
         if src.is_dir() and not (self.data / "synthetic").exists():
             r = subprocess.run(["cp", "-cR", str(src), str(self.data / "synthetic")], capture_output=True)   # APFS clone, instant
             if r.returncode != 0:
@@ -68,7 +117,8 @@ class EngineProc:
                          "AGENT_PORT": "1", "PYTHONUNBUFFERED": "1"})
         code = f"from understudy_engine.cli import main; raise SystemExit(main(['serve', '--port', '{self.port}']))"
         log = open(self.log_path, "ab")
-        self.proc = subprocess.Popen([sys.executable, "-c", code], cwd=str(REPO), env=env, stdout=log, stderr=log, start_new_session=True)
+        env, cwd = snapshot_env(env)
+        self.proc = subprocess.Popen([sys.executable, "-c", code], cwd=cwd, env=env, stdout=log, stderr=log, start_new_session=True)
         t0 = time.time()
         while time.time() - t0 < timeout:
             if self.proc.poll() is not None:
@@ -232,7 +282,8 @@ class World:
         code = ("import time\nfrom understudy_agent.sandbox_sites.runner import SandboxCluster\n"
                 f"c = SandboxCluster(ports={self.ports!r}).start()\nprint('up', flush=True)\ntime.sleep(10**7)\n")
         log = open(self.log_path, "ab")
-        self.proc = subprocess.Popen([sys.executable, "-c", code], cwd=str(REPO), env=clean_env({}), stdout=log, stderr=log, start_new_session=True)
+        env, cwd = snapshot_env(clean_env({}))
+        self.proc = subprocess.Popen([sys.executable, "-c", code], cwd=cwd, env=env, stdout=log, stderr=log, start_new_session=True)
         t0 = time.time()
         while time.time() - t0 < timeout:
             if self.proc.poll() is not None:
@@ -282,7 +333,8 @@ def load_events_json(path: Path) -> list[dict]:
 
 def build_extension(name: str, ports: dict[str, int]) -> Path:
     """The real extension, built so its capture config is bound to this world's ports: ``node scripts/build.mjs --out dist-<name>`` with
-    SANDBOX_PORT_A/B/C set. The output stays inside the extension folder (the build refuses anything else) and is removed at the end."""
+    SANDBOX_PORT_A/B/C set (the build refuses any output outside the extension folder). The result is copied to a private temp folder and the
+    in-tree build is removed at once, so nothing else working in ``extension/`` can delete or change what the browser loads."""
     ext = REPO / "extension"
     out = f"dist-{name}"
     env = clean_env({"SANDBOX_PORT_A": str(ports["a"]), "SANDBOX_PORT_B": str(ports["b"]), "SANDBOX_PORT_C": str(ports["c"])})
@@ -290,9 +342,14 @@ def build_extension(name: str, ports: dict[str, int]) -> Path:
     r = subprocess.run(["node", "scripts/build.mjs", "--out", out], cwd=str(ext), env=env, capture_output=True, text=True, timeout=120)
     if r.returncode != 0:
         raise RuntimeError(f"extension build failed for {name}: {r.stderr[-300:]}")
-    return ext / out
+    dest = Path(tempfile.mkdtemp(prefix=f"study-sim-ext-{name}-")) / "ext"
+    shutil.copytree(ext / out, dest)
+    shutil.rmtree(ext / out, ignore_errors=True)
+    return dest
 
 
-def remove_extension_builds(names: list[str]) -> None:
-    for n in names:
-        shutil.rmtree(REPO / "extension" / f"dist-{n}", ignore_errors=True)
+def remove_extension_builds(paths: list) -> None:
+    for p in paths:
+        shutil.rmtree(Path(p).parent, ignore_errors=True)
+    for q in (REPO / "extension").glob("dist-ssim*"):
+        shutil.rmtree(q, ignore_errors=True)

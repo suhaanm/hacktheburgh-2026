@@ -21,6 +21,7 @@ The model's answer is untrusted text: show it to the worker, never execute it or
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -32,6 +33,7 @@ from . import ledger
 from ._paths import is_mock
 from ._stub import BuiltinMockPort
 from .patterns import Hit, clean_rules, scan_text, scan_value
+from .image import ImageGate, ImageRejectedError, ImageUsage, SafeImage, get_image_purpose
 from .payload import (
     MAX_PAYLOAD_BYTES, PurposeError, SafePayload, explain_validation_error, get_purpose,
 )
@@ -73,6 +75,23 @@ class ModelCallFailed(EgressError):
 
 class ModelOutputRejected(EgressError):
     code = "model_output_rejected"
+
+
+class ImageBlocked(EgressError):
+    """The gate refused the frame (``reason``: unattended, secure_input, denylisted_app or no_consent). Nothing was sent; one
+    ``blocked`` row is on the ledger."""
+
+    code = "image_blocked"
+
+    def __init__(self, message: str, *, reason: str, **kw: Any) -> None:
+        super().__init__(message, **kw)
+        self.reason = reason
+
+
+class ImageRejected(EgressError):
+    """The image or its purpose is not acceptable (size, format, kind, source mismatch, already used). Nothing was sent."""
+
+    code = "image_rejected"
 
 
 @dataclass
@@ -120,6 +139,9 @@ def _coerce(model: type[SafePayload], payload: Any, purpose: str) -> SafePayload
 def _bucket_check(model: type[SafePayload], p: SafePayload, purpose: str) -> dict[str, Any]:
     """The wire form, after verifying that bucketing is stable (re-validating gives the same bytes)."""
     wire = p.to_wire()
+    if set(wire) != set(model.model_fields):
+        raise EgressBlocked(f"the payload for {purpose!r} carries fields its schema does not declare, so nothing was sent.",
+                            purpose=purpose, rules=["undeclared_fields"])
     again = model.model_validate_json(json.dumps(wire)).to_wire()
     if again != wire:
         raise EgressBlocked(f"the bucketing for {purpose!r} is not stable, so nothing was sent.", purpose=purpose, rules=["unstable_bucketing"])
@@ -263,3 +285,162 @@ def send(purpose: str, payload: Any, *, port: Any = None, **kw: Any) -> EgressRe
             f"({', '.join(clean_rules(ohits))}) and was discarded.", purpose=purpose, rules=clean_rules(ohits), ledger_id=written["id"])
     return EgressResult(output=out, ledger_id=written["id"], purpose=purpose, schema=pur.schema, model=model, method=pur.method,
                         bytes=n_bytes, mock=is_mock_call, payload=wire, bucketed=info["bucketed"])
+
+
+# --------------------------------------------------------------------------------------------------------- images
+@dataclass
+class ImageResult:
+    """What an image send returned. ``output`` is the model's answer (a closed schema: enums and numbers). No image bytes."""
+
+    output: Any
+    ledger_id: str
+    purpose: str
+    schema: str
+    provider: str
+    model: str
+    mock: bool
+    source: str
+    image: dict[str, Any]
+    latency_ms: int
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    cost_estimate_usd: float | None = None
+    payload: dict[str, Any] = field(default_factory=dict)
+
+
+_IMAGE_KW = frozenset({"now", "mock", "release"})
+
+
+def _vision_model_id(port: Any) -> str:
+    name = str(getattr(port, "name", type(port).__name__))
+    fn = getattr(port, "model_for", None)
+    mid = None
+    if callable(fn):
+        try:
+            mid = fn("vision")
+        except Exception:
+            mid = None
+    if mid is None:
+        models = getattr(port, "models", None)
+        mid = getattr(models, "fast", None) if models is not None else None
+    return f"{name}:{mid}" if isinstance(mid, str) and mid else name
+
+
+def send_image(purpose: str, image: SafeImage | None, payload: Any = None, *, gate: ImageGate, port: Any = None, **kw: Any) -> ImageResult:
+    """Send one frame, with a small ``SafePayload``, to a vision model for ``purpose``. The only function that sends a frame.
+
+    ``gate``: required, never defaulted (see ``ImageGate``); a closed gate writes ONE ``blocked`` ledger row and raises ``ImageBlocked``
+    without sending (``image`` may be None then: no frame is needed to record a refusal). ``image.source`` must equal ``gate.source``.
+    ``port``: a ``ModelPort`` with ``vision(image_bytes, prompt, schema)``; tests pass a ``CapturingPort``. ``release=False`` keeps the
+    frame after the call (default: it is wiped). ``now``, ``mock`` as in ``send``.
+
+    Order: purpose registered, gate, payload validated and scanned, port resolved, ``image`` ledger row written, the call (timed),
+    ``image_result`` line written, the answer validated against the closed response schema and scanned. The bytes are never written
+    anywhere and never appear in an error message. A failing call leaves nothing behind but the ledger row and its result line.
+    """
+    extra = set(kw) - _IMAGE_KW
+    if extra:
+        raise TypeError(f"send_image() got unexpected keyword arguments {sorted(extra)}; allowed: {sorted(_IMAGE_KW)}")
+    if not isinstance(gate, ImageGate):
+        raise TypeError("send_image() needs gate=ImageGate(...); there is no default, so a frame cannot leave by accident")
+    release = bool(kw.get("release", True))
+    now: datetime | None = kw.get("now")
+    mock_mode = bool(kw["mock"]) if kw.get("mock") is not None else is_mock()
+
+    def done_with_image() -> None:
+        if image is not None and release:
+            image.release()
+
+    try:
+        pur = get_image_purpose(purpose)
+    except PurposeError as exc:
+        done_with_image()
+        raise UnknownPurpose(str(exc), purpose=purpose) from None
+    if image is not None and not isinstance(image, SafeImage):
+        raise ImageRejected("the image must be a SafeImage.", purpose=purpose)
+
+    reason = gate.reason()
+    if reason is not None:
+        row = ledger.record_image_blocked(purpose=purpose, reason=reason, source=gate.source,
+                                          image_meta=image.meta() if image is not None else None, mock=mock_mode)
+        done_with_image()
+        raise ImageBlocked(f"The frame for {purpose!r} was not sent: {reason}.", reason=reason, purpose=purpose, ledger_id=row["id"])
+
+    if image is None:
+        raise ImageRejected(f"{purpose!r} needs an image.", purpose=purpose)
+    try:
+        if image.source != gate.source:
+            raise ImageRejected("the image's declared source differs from the gate's.", purpose=purpose)
+        if image.kind not in pur.kinds:
+            raise ImageRejected(f"{purpose!r} takes images of kind {', '.join(sorted(pur.kinds))}, not {image.kind}.", purpose=purpose)
+        if image.released:
+            raise ImageRejected("the image was already used; a frame is sent for one call only.", purpose=purpose)
+
+        p = _coerce(pur.model, payload if payload is not None else {}, purpose)
+        wire = _bucket_check(pur.model, p, purpose)
+        user_text = _canonical({"purpose": purpose, "schema": pur.schema, "payload": wire})
+        if len(user_text.encode()) > MAX_PAYLOAD_BYTES:
+            raise PayloadRejected(f"the payload for {purpose!r} is larger than {MAX_PAYLOAD_BYTES} bytes.", purpose=purpose)
+        hits = scan_value(wire)
+        if hits:
+            raise _block(purpose, hits, "backstop")
+        ihits = scan_text(pur.instructions)
+        if ihits:
+            raise _block(purpose, [Hit("instructions", r) for r in ihits], "backstop_instructions")
+        port, is_mock_call = _resolve_port(port, mock_mode, purpose)
+        prompt = pur.instructions + "\n\n" + user_text
+        model = _vision_model_id(port)
+        provider = str(getattr(port, "name", type(port).__name__))
+        total_bytes = len(prompt.encode()) + image.size
+        entry = {
+            "purpose": purpose, "schema": pur.schema, "method": "vision", "fields": list(wire), "payload": wire,
+            "image": image.meta(), "source": image.source, "provider": provider, "model": model, "bytes": total_bytes,
+            "mock": is_mock_call,
+        }
+        if now is not None:
+            entry["t"] = ledger.now_iso(now)
+        try:
+            written = ledger.begin_image(entry)  # BEFORE the call: if this fails, nothing is sent
+        except OSError:
+            raise EgressUnavailable("The privacy ledger could not be written, so the frame was not sent.", purpose=purpose) from None
+    except BaseException:
+        done_with_image()
+        raise
+
+    failure: tuple[str, Any] | None = None
+    out: Any = None
+    t0 = time.monotonic()
+    try:
+        out = port.vision(image.reveal(), prompt, pur.response_schema)
+    except Exception as exc:                                    # noqa: BLE001 - recorded by type name only
+        failure = (type(exc).__name__, getattr(exc, "status_code", None))
+        exc.__traceback__ = None                                 # drop the frames: they may hold the image bytes
+    latency_ms = int((time.monotonic() - t0) * 1000)
+    done_with_image()
+    usage = ImageUsage.from_port(port)
+    if failure is not None:                                      # raised outside the except block: no chained context
+        ledger.finish_image(written["id"], status="failed", ok=False, latency_ms=latency_ms, error=failure[0])
+        raise ModelCallFailed(
+            f"The vision call for {purpose!r} failed ({failure[0]}{f', status {failure[1]}' if failure[1] else ''}). "
+            f"The ledger keeps row {written['id']}: the frame may have been sent.", purpose=purpose, ledger_id=written["id"])
+
+    problem = None
+    try:
+        jsonschema.validate(out, pur.response_schema)
+    except jsonschema.ValidationError:
+        problem = "did not match the expected closed shape"
+    if problem is None:
+        ohits = scan_value(out, names=False)
+        if ohits:
+            problem = f"contained something that looks like personal data ({', '.join(clean_rules(ohits))})"
+    if problem is not None:
+        ledger.finish_image(written["id"], status="output_rejected", ok=False, latency_ms=latency_ms, input_tokens=usage.input_tokens,
+                            output_tokens=usage.output_tokens, cost_estimate_usd=usage.cost_estimate_usd)
+        raise ModelOutputRejected(f"The model's answer for {purpose!r} {problem} and was discarded.", purpose=purpose,
+                                  ledger_id=written["id"])
+    ledger.finish_image(written["id"], status="ok", ok=True, latency_ms=latency_ms, input_tokens=usage.input_tokens,
+                        output_tokens=usage.output_tokens, cost_estimate_usd=usage.cost_estimate_usd)
+    return ImageResult(output=out, ledger_id=written["id"], purpose=purpose, schema=pur.schema, provider=provider, model=model,
+                       mock=is_mock_call, source=entry["source"], image=entry["image"], latency_ms=latency_ms,
+                       input_tokens=usage.input_tokens, output_tokens=usage.output_tokens, cost_estimate_usd=usage.cost_estimate_usd,
+                       payload=wire)

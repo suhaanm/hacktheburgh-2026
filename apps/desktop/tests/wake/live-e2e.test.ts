@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import dotenv from 'dotenv'
 import { describe, expect, it } from 'vitest'
-import { PERSONA_LIST } from '../../src/shared/personas'
+import { ALL_PERSONA_LIST } from '../../src/shared/personas'
 import { mintWakeToken } from '../../src/main/live-auth'
 import { createWakeSpotter, type WakeAudioSource, type WakeEvent } from '../../src/renderer/wake'
 
@@ -47,7 +47,7 @@ async function run(id: string, listenMs: number): Promise<{ wakes: WakeEvent[]; 
   let wokeAt = 0
   const heard: string[] = []
   const spotter = createWakeSpotter({
-    personas: PERSONA_LIST,
+    personas: ALL_PERSONA_LIST,
     getToken: () => mintWakeToken(),
     createAudioSource: () => mic,
     onDebug: (text, final) => heard.push(`${final ? 'F' : 'i'}:${text}`),

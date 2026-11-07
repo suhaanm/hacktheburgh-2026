@@ -14,6 +14,12 @@ Other files beside it, all under the data dir:
 
 Lines for calls the worker asked for through other paths (an agent run) may be added with ``record_direct``: metadata only
 (model, method, byte count), never the content, because the content there is raw.
+
+Image calls (``egress.send_image``) write ``kind: "image"`` rows. The file stays append-only, so an image call is one ``image`` line
+written before the call and one small ``image_result`` line written after (latency, tokens, cost, ok); ``read_all()`` merges the
+pair, so every consumer sees exactly ONE row per call. A call refused by the gate is one row with ``status: "blocked"`` and a reason.
+An image row may hold only: sha8 (the first 8 bytes of the SHA-256), bytes, width, height, kind, source, provider, model,
+latency_ms, input and output tokens, a cost estimate and ok. Never the image.
 """
 from __future__ import annotations
 
@@ -104,13 +110,41 @@ def log_blocked(purpose: str, reason: str, rules: list[str], fields: list[str]) 
 
 
 def record_direct(*, method: str, model: str, bytes_sent: int, purpose: str = "worker_requested", note: str = "",
-                  mock: bool = False) -> dict[str, Any]:
+                  mock: bool | None = None) -> dict[str, Any]:
     """A call the worker asked for through another path (for example an agent step). Metadata only: the content is raw
-    and is deliberately not stored here."""
+    and is deliberately not stored here. ``mock`` defaults to true in mock mode or when the model id names the mock or a test port."""
+    if mock is None:
+        from ._paths import is_mock
+
+        mock = is_mock() or model.split(":", 1)[0] in ("mock", "capturing")
     return append({
         "kind": "direct", "purpose": purpose, "schema": None, "fields": [], "payload": None, "content_logged": False,
         "model": model, "bytes": int(bytes_sent), "method": method, "mock": bool(mock), "note": note[:120],
     })
+
+
+def begin_image(entry: dict[str, Any]) -> dict[str, Any]:
+    """The ``image`` line, written BEFORE the call (status ``sending``). Raises OSError if it cannot be written."""
+    return append({**entry, "kind": "image", "status": "sending"})
+
+
+def finish_image(ref: str, *, status: str, ok: bool, latency_ms: int | None, input_tokens: int | None = None,
+                 output_tokens: int | None = None, cost_estimate_usd: float | None = None, error: str | None = None) -> None:
+    """The ``image_result`` line written AFTER the call: numbers and an error type name only. Never raises (the call already
+    happened; a missing result line leaves the row at status ``sending``, which is honest)."""
+    try:
+        _append_line(ledger_path(), {"id": new_id(), "t": now_iso(), "kind": "image_result", "ref": ref, "status": status, "ok": bool(ok),
+                                     "latency_ms": latency_ms, "input_tokens": input_tokens, "output_tokens": output_tokens,
+                                     "cost_estimate_usd": cost_estimate_usd, "error": (error or None) and str(error)[:60]})
+    except OSError:
+        pass
+
+
+def record_image_blocked(*, purpose: str, reason: str, source: str, image_meta: dict[str, Any] | None = None, mock: bool = False) -> dict[str, Any]:
+    """One row for a frame the gate refused. Needs no image: ``image_meta`` may be None. Nothing was sent."""
+    return append({"kind": "image", "status": "blocked", "reason": reason, "purpose": purpose, "source": source, "schema": None,
+                   "fields": [], "payload": None, "image": image_meta, "provider": None, "model": None, "bytes": 0, "mock": bool(mock),
+                   "ok": False})
 
 
 def _iter_lines(path: Path) -> Iterator[tuple[dict[str, Any] | None, str]]:
@@ -131,10 +165,30 @@ def _iter_lines(path: Path) -> Iterator[tuple[dict[str, Any] | None, str]]:
             yield (obj if isinstance(obj, dict) else None), raw
 
 
+IMAGE_RESULT_FIELDS = ("status", "ok", "latency_ms", "input_tokens", "output_tokens", "cost_estimate_usd", "error")
+
+
+def _merge_image_results(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """One row per image call: fold each ``image_result`` line into the ``image`` line it refers to (and drop it)."""
+    by_id = {r["id"]: r for r in rows if r.get("kind") == "image" and isinstance(r.get("id"), str)}
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        if r.get("kind") == "image_result":
+            parent = by_id.get(r.get("ref"))
+            if parent is not None:
+                for k in IMAGE_RESULT_FIELDS:
+                    if k in r:
+                        parent[k] = r[k]
+            continue
+        out.append(r)
+    return out
+
+
 def read_all() -> list[dict[str, Any]]:
-    """Every readable line, oldest first."""
+    """Every readable row, oldest first. An image call's two physical lines are merged into one row."""
     with _lock:
-        return [o for o, _ in _iter_lines(ledger_path()) if o is not None]
+        rows = [o for o, _ in _iter_lines(ledger_path()) if o is not None]
+    return _merge_image_results(rows)
 
 
 def read(limit: int | None = 100) -> list[dict[str, Any]]:
@@ -184,6 +238,17 @@ def clear() -> dict[str, Any]:
     return {"cleared": len(rows), "blocked_cleared": len(brows), "at": at}
 
 
+def reset_all() -> None:
+    """Delete the ledger, refusal lines, clear-notes and canary record WITHOUT leaving a trace (``make demo`` reseeding). The worker's
+    own action is ``clear()``, which keeps a note that it happened; do not use this one for that."""
+    with _lock:
+        for p in (ledger_path(), blocked_path(), meta_path(), canary_path()):
+            try:
+                p.unlink()
+            except FileNotFoundError:
+                pass
+
+
 def export_jsonl() -> str:
     """The ledger as the JSONL text on disk (oldest first), for the worker to save."""
     with _lock:
@@ -206,24 +271,39 @@ def canary_summary() -> dict[str, Any]:
 
 
 def summary() -> dict[str, Any]:
-    """Counts by purpose, the last call, how many were mock, how many were direct, refusals, clears, and the honest note."""
+    """Counts by purpose, the last call, how many were mock, how many were direct, images sent and blocked, refusals, clears, and
+    the honest note. Rows the gate refused (``status: "blocked"``) are not calls: nothing was sent."""
     rows = read_all()
     by_purpose: dict[str, int] = {}
     mock = direct = 0
-    for r in rows:
+    sent = [r for r in rows if r.get("status") != "blocked"]
+    images = [r for r in rows if r.get("kind") == "image"]
+    blocked_images = [r for r in images if r.get("status") == "blocked"]
+    for r in sent:
         p = str(r.get("purpose", "?"))
         by_purpose[p] = by_purpose.get(p, 0) + 1
         mock += 1 if r.get("mock") else 0
         direct += 1 if r.get("kind") == "direct" else 0
-    last = rows[-1] if rows else None
+    last = sent[-1] if sent else None
     meta = _read_meta()
+    by_reason: dict[str, int] = {}
+    for r in blocked_images:
+        by_reason[str(r.get("reason"))] = by_reason.get(str(r.get("reason")), 0) + 1
+    sent_images = [r for r in images if r.get("status") != "blocked"]
+    by_source: dict[str, int] = {}
+    for r in sent_images:
+        by_source[str(r.get("source"))] = by_source.get(str(r.get("source")), 0) + 1
     return {
-        "calls": len(rows),
+        "calls": len(sent),
         "by_purpose": dict(sorted(by_purpose.items())),
         "last_call": ({"t": last.get("t"), "purpose": last.get("purpose"), "model": last.get("model"), "bytes": last.get("bytes"),
                        "mock": bool(last.get("mock"))} if last else None),
         "mock_calls": mock,
         "worker_requested_calls": direct,
+        "images": {"sent": len(sent_images), "blocked": len(blocked_images), "blocked_by_reason": dict(sorted(by_reason.items())),
+                   "sent_by_source": dict(sorted(by_source.items())),
+                   "bytes_sent": sum(int((r.get("image") or {}).get("bytes", 0)) for r in sent_images),
+                   "note": "Frames are held in memory for one call and never stored; a row records size, a short hash, model and latency only."},
         "blocked_attempts": len([1 for o, _ in _iter_lines(blocked_path()) if o is not None]),
         "cleared": {"times": int(meta.get("clear_count", 0)), "calls_removed": int(meta.get("calls_removed_total", 0)),
                     "last_cleared_at": meta.get("last_cleared_at")},

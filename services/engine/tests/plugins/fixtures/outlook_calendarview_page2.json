@@ -1,0 +1,165 @@
+{
+ "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#Collection(microsoft.graph.event)",
+ "value": [
+  {
+   "@odata.etag": "W/\"etag7\"",
+   "id": "AAMkAGI2Id007=",
+   "iCalUId": "040000008200E00074C5B7101A82E0080000000007",
+   "subject": "Possible catch-up",
+   "isAllDay": false,
+   "isCancelled": false,
+   "isOnlineMeeting": false,
+   "onlineMeetingProvider": "unknown",
+   "showAs": "free",
+   "type": "singleInstance",
+   "sensitivity": "normal",
+   "seriesMasterId": null,
+   "responseStatus": {
+    "response": "accepted",
+    "time": "2026-10-28T10:15:00Z"
+   },
+   "start": {
+    "dateTime": "2026-11-05T10:00:00.0000000",
+    "timeZone": "GMT Standard Time"
+   },
+   "end": {
+    "dateTime": "2026-11-05T10:30:00.0000000",
+    "timeZone": "GMT Standard Time"
+   },
+   "location": {
+    "displayName": "",
+    "locationType": "default"
+   },
+   "organizer": {
+    "emailAddress": {
+     "name": "Priya Raman",
+     "address": "priya.raman@fenwick.example"
+    }
+   },
+   "attendees": []
+  },
+  {
+   "@odata.etag": "W/\"etag8\"",
+   "id": "AAMkAGI2Id008=",
+   "iCalUId": "040000008200E00074C5B7101A82E0080000000008",
+   "subject": "Hold: training",
+   "isAllDay": false,
+   "isCancelled": false,
+   "isOnlineMeeting": false,
+   "onlineMeetingProvider": "unknown",
+   "showAs": "tentative",
+   "type": "singleInstance",
+   "sensitivity": "normal",
+   "seriesMasterId": null,
+   "responseStatus": {
+    "response": "tentativelyAccepted",
+    "time": "2026-10-28T10:15:00Z"
+   },
+   "start": {
+    "dateTime": "2026-11-05T14:00:00.0000000",
+    "timeZone": "GMT Standard Time"
+   },
+   "end": {
+    "dateTime": "2026-11-05T15:00:00.0000000",
+    "timeZone": "GMT Standard Time"
+   },
+   "location": {
+    "displayName": "",
+    "locationType": "default"
+   },
+   "organizer": {
+    "emailAddress": {
+     "name": "Priya Raman",
+     "address": "priya.raman@fenwick.example"
+    }
+   },
+   "attendees": []
+  },
+  {
+   "@odata.etag": "W/\"etag9\"",
+   "id": "AAMkAGI2Id009=",
+   "iCalUId": "040000008200E00074C5B7101A82E0080000000009",
+   "subject": "Quarter planning workshop",
+   "isAllDay": false,
+   "isCancelled": false,
+   "isOnlineMeeting": false,
+   "onlineMeetingProvider": "unknown",
+   "showAs": "busy",
+   "type": "singleInstance",
+   "sensitivity": "normal",
+   "seriesMasterId": null,
+   "responseStatus": {
+    "response": "declined",
+    "time": "2026-10-28T10:15:00Z"
+   },
+   "start": {
+    "dateTime": "2026-11-06T13:00:00.0000000",
+    "timeZone": "GMT Standard Time"
+   },
+   "end": {
+    "dateTime": "2026-11-06T14:30:00.0000000",
+    "timeZone": "GMT Standard Time"
+   },
+   "location": {
+    "displayName": "",
+    "locationType": "default"
+   },
+   "organizer": {
+    "emailAddress": {
+     "name": "Priya Raman",
+     "address": "priya.raman@fenwick.example"
+    }
+   },
+   "attendees": [
+    {
+     "type": "required",
+     "status": {
+      "response": "declined",
+      "time": "2026-10-28T10:15:00Z"
+     },
+     "emailAddress": {
+      "name": "Me Myself",
+      "address": "me@fenwick.example"
+     }
+    }
+   ]
+  },
+  {
+   "@odata.etag": "W/\"etag10\"",
+   "id": "AAMkAGI2Id010=",
+   "iCalUId": "040000008200E00074C5B7101A82E0080000000010",
+   "subject": "Lunch",
+   "isAllDay": false,
+   "isCancelled": false,
+   "isOnlineMeeting": false,
+   "onlineMeetingProvider": "unknown",
+   "showAs": "busy",
+   "type": "singleInstance",
+   "sensitivity": "normal",
+   "seriesMasterId": null,
+   "responseStatus": {
+    "response": "organizer",
+    "time": "0001-01-01T00:00:00Z"
+   },
+   "start": {
+    "dateTime": "2026-11-06T12:00:00.0000000",
+    "timeZone": "GMT Standard Time"
+   },
+   "end": {
+    "dateTime": "2026-11-06T12:45:00.0000000",
+    "timeZone": "GMT Standard Time"
+   },
+   "location": {
+    "displayName": "",
+    "locationType": "default"
+   },
+   "organizer": {
+    "emailAddress": {
+     "name": "Me Myself",
+     "address": "me@fenwick.example"
+    }
+   },
+   "attendees": []
+  }
+ ]
+}

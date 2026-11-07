@@ -146,6 +146,10 @@ class CommitItem:
     has_stat: bool = False
 
     @property
+    def clean(self) -> str:
+        return clean_message(self.message)
+
+    @property
     def lines_changed(self) -> int | None:
         if self.additions is None and self.deletions is None:
             return None
@@ -160,6 +164,32 @@ class CommitItem:
     def facts(self) -> dict[str, Any]:
         """The two output fields code computes itself."""
         return {"size_bucket": size_bucket(self.lines_changed), "touches_tests": self.touches_tests}
+
+
+_TRAILER = re.compile(r"^\s*(co-authored-by|signed-off-by|reviewed-by|reported-by|acked-by|tested-by|suggested-by|cc|change-id)\s*:.*$", re.I | re.M)
+_THANKS = re.compile(r"^\s*(thanks|thank you|h/t|hat tip|credit)\b.*$", re.I | re.M)
+_URL = re.compile(r"\b(https?|ftp)://\S+|\bwww\.\S+", re.I)
+_EMAILISH = re.compile(r"<?[\w.+-]+@[\w-]+(\.[\w-]+)+>?")
+_TICKET_PREFIX = re.compile(r"^\s*\[?[A-Z][A-Z0-9]{1,9}-\d{1,6}\]?\s*[:\-]?\s*")
+_REPORTED_BY = re.compile(r"\s*\((reported|requested|suggested|asked) (by|for)[^)]*\)", re.I)
+_PATHISH = re.compile(r"\s*\((/[^)\s]+|[A-Za-z]:\\[^)]+|~/[^)]+)\)")
+
+
+def clean_message(msg: str) -> str:
+    """The message minus boilerplate that says nothing about the change: trailers (Co-authored-by, Signed-off-by ...), thanks
+    lines, links, e-mail addresses, a leading ticket id, "(reported by ...)" and a parenthesised path. The same text goes to the
+    rules and to the model, which also means the model never sees the names and addresses in trailers."""
+    t = _TRAILER.sub("", msg)
+    t = _THANKS.sub("", t)
+    t = _URL.sub("", t)
+    t = re.sub(r"^\s*(see|link|ref|refs|via|details)\s*:?\s*$", "", t, flags=re.I | re.M)
+    t = _EMAILISH.sub("", t)
+    t = _REPORTED_BY.sub("", t)
+    t = _PATHISH.sub("", t)
+    lines = [ln.rstrip() for ln in t.splitlines()]
+    t = "\n".join(lines).strip()
+    t = _TICKET_PREFIX.sub("", t, count=1).strip() if _TICKET_PREFIX.match(t) and len(_TICKET_PREFIX.sub("", t, count=1).strip()) >= 3 else t
+    return re.sub(r"\n{3,}", "\n\n", t)
 
 
 def _int(v: Any) -> int | None:

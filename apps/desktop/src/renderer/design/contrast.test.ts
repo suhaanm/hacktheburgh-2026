@@ -113,15 +113,23 @@ describe('annotation style', () => {
       const style = annotationStyle({ bigAnnotations, highContrast })
       const label = `${highContrast ? 'high contrast' : 'normal'}, ${bigAnnotations ? 'big' : 'standard'}`
 
-      it(`${label}: each tone clears 3:1 on light and dark screens through its casing and halo`, () => {
-        for (const tone of ANNOTATION_TONES) {
-          const t = style.tones[tone]
-          expect(contrastRatio(t.core, t.casing)).toBeGreaterThanOrEqual(3)
-          expect(contrastRatio(t.onCore, t.core)).toBeGreaterThanOrEqual(4.5)
-          for (const bg of lightScreens) expect(contrastRatio(t.casing, bg)).toBeGreaterThanOrEqual(3)
-          for (const bg of darkScreens) expect(contrastRatio(t.halo, bg)).toBeGreaterThanOrEqual(3)
-        }
-      })
+      for (const dark of [false, true]) {
+        const themed = annotationStyle({ bigAnnotations, highContrast }, { dark })
+        it(`${label}, ${dark ? 'dark' : 'light'} theme: each tone clears 3:1 on light and dark pages through its two keylines`, () => {
+          for (const tone of ANNOTATION_TONES) {
+            const t = themed.tones[tone]
+            // the line next to the colour contrasts with it, and on any page one of the two keylines stands out
+            expect(contrastRatio(t.core, t.keyInner), tone).toBeGreaterThanOrEqual(3)
+            expect(contrastRatio(t.onCore, t.core), tone).toBeGreaterThanOrEqual(4.5)
+            for (const bg of [...lightScreens, ...darkScreens]) {
+              expect(Math.max(contrastRatio(t.keyInner, bg), contrastRatio(t.keyOuter, bg)), `${tone} on ${bg}`).toBeGreaterThanOrEqual(3)
+            }
+            // ink and white keep their roles for fills and outlines (ghost cursor tag, chips)
+            for (const bg of lightScreens) expect(contrastRatio(t.casing, bg)).toBeGreaterThanOrEqual(3)
+            for (const bg of darkScreens) expect(contrastRatio(t.halo, bg)).toBeGreaterThanOrEqual(3)
+          }
+        })
+      }
 
       it(`${label}: tones stay apart for colour-blind viewers, and never rely on colour alone`, () => {
         const failures: string[] = []
@@ -151,10 +159,39 @@ describe('annotation style', () => {
     expect(b.stroke.core / a.stroke.core).toBeCloseTo(1.6, 1)
   })
 
-  it('reduced motion stops the pulse', () => {
-    const s = annotationStyle({ bigAnnotations: false, highContrast: false }, { reducedMotion: true })
+  it('nothing loops, nothing glows, and under reduced motion the mark just appears', () => {
+    const s = annotationStyle({ bigAnnotations: false, highContrast: false })
     expect(s.pulse.enabled).toBe(false)
-    expect(s.ghostCursor.press.durationMs).toBe(0)
+    expect(s.glow.opacity).toBe(0)
+    expect(s.transition.enterMs).toBeGreaterThanOrEqual(160)
+    expect(s.transition.enterMs).toBeLessThanOrEqual(240)
+    const r = annotationStyle({ bigAnnotations: false, highContrast: false }, { reducedMotion: true })
+    expect(r.transition.enterMs).toBeLessThanOrEqual(1)
+    expect(r.transition.enterFromScale).toBe(1)
+    expect(r.ghostCursor.press.durationMs).toBe(0)
+  })
+
+  it('the look is thin and quiet: a 2 px line with 1 px keylines, notes of about 11.5 px, mono numerals, 40 characters', () => {
+    const s = annotationStyle({ bigAnnotations: false, highContrast: false })
+    expect(s.stroke.core).toBe(2)
+    expect((s.stroke.casing - s.stroke.core) / 2).toBe(1)
+    expect((s.stroke.halo - s.stroke.casing) / 2).toBe(1)
+    expect(s.bubble.fontSize).toBeGreaterThanOrEqual(11)
+    expect(s.bubble.fontSize).toBeLessThanOrEqual(12)
+    expect(s.bubble.maxChars).toBeLessThanOrEqual(40)
+    expect(s.bubble.fontFamily).toMatch(/Source Sans 3/)
+    expect(s.badge.fontFamily).toMatch(/JetBrains Mono/)
+    expect(s.bubble.tail).toBe(0)
+    const big = annotationStyle({ bigAnnotations: true, highContrast: false })
+    expect(big.bubble.fontSize).toBeCloseTo(18.4, 1) // the accessibility setting still scales everything
+  })
+
+  it('the colours are the design tokens (packages/design/tokens.css), light and dark', () => {
+    const tokens = readFileSync(join(__dirname, '../../../../../packages/design/tokens.css'), 'utf8').toLowerCase()
+    for (const dark of [false, true]) {
+      const t = annotationStyle({ bigAnnotations: false, highContrast: false }, { dark }).tones
+      for (const tone of ANNOTATION_TONES) expect(tokens, `${tone} ${dark ? 'dark' : 'light'} ${t[tone].core}`).toContain(t[tone].core.toLowerCase())
+    }
   })
 })
 

@@ -2,10 +2,8 @@
 on the continuous ones (no hypothesis dependency)."""
 from __future__ import annotations
 
-import math
 import random
 from datetime import datetime, time
-from typing import Literal
 
 import pytest
 from pydantic import ValidationError
@@ -180,3 +178,35 @@ def test_numbers_generalise_each_value_by_its_feature_and_reject_unknown_feature
         register_feature("t_blocks", "ratio")
     with pytest.raises(ValueError):
         register_feature("t_x", "no_such_kind")
+
+
+# --------------------------------------------------------------------------- numpy and pandas scalars from the analytics code
+def test_numpy_scalars_are_accepted_and_come_out_as_plain_python_numbers():
+    np = pytest.importorskip("numpy")
+    assert B.bucket_count(np.int64(3)) == "lt5" and B.bucket_count(np.int64(12)) == 12 and type(B.bucket_count(np.int64(12))) is int
+    assert B.bucket_count(np.float64(7.0)) == 7
+    assert B.round_time_minutes(np.float64(547.9)) == 555 and type(B.round_time_minutes(np.float64(547.9))) is int
+    assert B.round_duration_minutes(np.int32(47)) == 45 and B.bucket_ratio(np.float32(0.34)) == 0.3
+    assert type(B.bucket_ratio(np.float64(0.34))) is float
+    for bad in (np.bool_(True), np.float64("nan")):
+        with pytest.raises(ValueError):
+            B.bucket_count(bad)
+
+    register_feature("t_np_raw", "raw")
+
+    class M(SafePayload):
+        nums: Numbers
+        c: Count
+        r: Ratio
+
+    w = M(nums={"t_np_raw": np.int64(9)}, c=np.int64(2), r=np.float64(0.51)).to_wire()
+    assert w == {"nums": {"t_np_raw": 9}, "c": "lt5", "r": 0.5}
+
+
+
+def test_the_calendar_layer_uses_these_exact_functions():
+    from understudy_engine.calendar import bucket as cb
+
+    assert cb.FROM_PRIVACY is True
+    assert cb.bucket_count is B.bucket_count and cb.round_minutes is B.round_duration_minutes
+    assert cb.round_ratio is B.bucket_ratio and cb.round_hours is B.bucket_hours and cb.round_time_of_day is B.round_time_minutes

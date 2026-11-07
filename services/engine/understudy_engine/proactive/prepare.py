@@ -88,6 +88,10 @@ _HOLD_TEXT = {
     "hold": "Hold. Time kept free so the schedule does not fill it. Release it if it is not needed.",
     "break": "Break away from the screen. A scheduled pause or handoff; step away from the desk.",
     "back": "Buffer. A gap kept between meetings so each one can start fresh.",
+    "move": "Move. Recurring meetings shifted out of the hours you do your deepest work.",
+    "buffer": "Buffer. A short gap left before calls with people outside, so you arrive ready.",
+    "trim": "Trim. A few meetings declined, shortened or turned into a note, to give time back.",
+    "edges": "Edges. Meetings kept inside your usual working hours.",
 }
 
 
@@ -100,8 +104,12 @@ def calendar_hold(p: dict[str, Any]) -> dict[str, Any]:
         if isinstance(nums.get(k), (int, float)) and not isinstance(nums.get(k), bool):
             extra.append(f"{k.replace('_', ' ')}: {nums[k]:g}")
     text = body + (" " + "; ".join(extra) + "." if extra else "")
-    steps = ["Press go: a draft hold is saved on this computer and queued for your approval.",
-             "Nothing is written to your calendar until you approve it, and you can edit the wording above first."]
+    if p.get("can_draft", True):
+        steps = ["Press go: a draft hold is saved on this computer and queued for your approval.",
+                 "Nothing is written to your calendar until you approve it, and you can edit the wording above first."]
+    else:
+        steps = ["Press go: this note goes to your approval queue. It is advice, so nothing is written to any calendar.",
+                 "Change what you do with your week yourself; the note is there to remind you."]
     return {"text": text, "steps": steps}
 
 
@@ -125,7 +133,7 @@ def git_habit_note(p: dict[str, Any]) -> dict[str, Any]:
 
 def agent_result_review(p: dict[str, Any]) -> dict[str, Any]:
     n = int(p.get("children") or 0)
-    text = (f"A background run finished" + (f" with {n} helper{'s' if n != 1 else ''}" if n else "") +
+    text = ("A background run finished" + (f" with {n} helper{'s' if n != 1 else ''}" if n else "") +
             ". Its result is waiting and nothing was changed outside its own workspace. Press go to put it in your queue and read it there.")
     return {"text": text}
 

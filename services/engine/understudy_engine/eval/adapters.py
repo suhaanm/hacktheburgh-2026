@@ -418,7 +418,8 @@ def _live_block(raw: dict[str, Any]) -> dict[str, Any]:
     if fixes.get("glitch"):
         glitch_fix = {**fixes["glitch"], "variant": next((n for n in by_variant if n != next(iter(by_variant))), None), "in_sample": True,
                       "description": FIX_DESCRIPTION, "same_condition_before": {k: v1["glitch"][k] for k in ("n", "pass", "wilson", "false_claims")} if v1.get("glitch") else None,
-                      "dropped_after_budget_stop": dropped, "dropped_note": "the file lists rows dropped when the run budget stopped; see meta.dropped_after_budget_stop in data/eval/agent_live_runs.json"}
+                      "dropped_after_budget_stop": dropped,
+                      "dropped_note": meta.get("dropped_note") or "the file lists rows dropped when the run budget stopped (meta.dropped_after_budget_stop in data/eval/agent_live_runs.json)"}
     return {
         "label": "real model", "headline_condition": "clean",
         "n": clean["n"], "pass": clean["pass"], "wilson": clean["wilson"], "tiers": sorted({t for c in v1.values() for t in c["tiers"]}),
@@ -474,6 +475,10 @@ def agent_runs(ctx: Ctx) -> dict[str, Any]:
     }
     if live_error:
         out["live_error"] = live_error
+    if live_raw is not None and live is not None:
+        lims = live_raw.get("limitations") or []
+        out["caveats"] = [x for x in lims if isinstance(x, str)]                       # agent-core writes its own limits as plain sentences
+        out["limitations"] = [dict(x) for x in lims if isinstance(x, dict) and "id" in x and "text" in x]
     return out
 
 
@@ -575,6 +580,18 @@ def redteam_live(ctx: Ctx) -> dict[str, Any]:
         "cost_estimate_usd": m.get("cost_estimate_usd"), "source": f"data/{REDTEAM_LIVE_FILE} (cached; agent-safety)",
         "limitations": _limits(r),
     }
+
+
+# ------------------------------------------------------------------------------------------------------------ privacy
+def privacy(ctx: Ctx) -> dict[str, Any]:
+    """The privacy layer's own offline evaluation (canary leaks, ledger completeness, negative controls, bucketing). Needs no model.
+    ``record=False``: the harness writes only its two report files, never the layer's summary file."""
+    fn = owner_attr("privacy-layer", "understudy_engine.privacy.evaluate", "evaluate_privacy")
+    r = dict(fn(record=False, seeds=tuple(range(3 if ctx.fast else 8))))          # fewer seeds per flow in --fast; the structure is the same
+    r["meta"] = normalise_meta(r.get("meta"), {"origin": r.get("origin", "synthetic"), "n": r.get("n"), "n_unit": r.get("n_unit"), "split": r.get("split")})
+    r.pop("purposes", None)                       # the purpose schemas are code documentation, not a result
+    r["limitations"] = _limits(r)
+    return r
 
 
 # ------------------------------------------------------------------------------------------------------------- pooling
@@ -779,7 +796,8 @@ def study_sim(ctx: Ctx) -> dict[str, Any]:
         r["owner_label"] = r["label"]
     r["label"] = STUDY_SIM_LABEL
     r["meta"] = meta
-    r["limitations"] = _limits(r)
+    cap = STUDY_SIM_LABEL[0].upper() + STUDY_SIM_LABEL[1:]
+    r["limitations"] = [dict(x, text=x["text"] if STUDY_SIM_LABEL in x["text"].lower() else f"{cap}: {x['text']}") for x in _limits(r)]     # the phrase travels with every text
     if r.get("status") in ("pending", "not_run", "failed") and not r.get("reason"):
         r["reason"] = (meta.get("note") or "the simulated study has not been run").strip()      # a stub needs a reason; the owner's note says why
     return r
@@ -850,6 +868,7 @@ SECTIONS: tuple[SectionSpec, ...] = (
     SectionSpec("pooling", "engine-analytics", pooling),
     SectionSpec("redteam", "agent-safety", redteam, needs_synthetic=False),
     SectionSpec("redteam_live", "agent-safety", redteam_live, needs_synthetic=False),
+    SectionSpec("privacy", "privacy-layer", privacy, needs_synthetic=False),
     SectionSpec("study", "platform", study, needs_synthetic=False),
     SectionSpec("study_sim", "study-sim", study_sim, needs_synthetic=False),
     SectionSpec("study_power", "engine-analytics", study_power, needs_synthetic=False),

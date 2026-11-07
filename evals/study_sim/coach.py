@@ -16,6 +16,9 @@ POLL_S = 3.0
 LAG_S = 6.0                       # a step done this long before the prompt arrived counts as a lagged prompt, not a false one
 SHOWN_ACTIONS = ("annotate", "nudge", "takeover_offer")
 CLIFF_STEPS = {"cliff_a": 1, "cliff_b": 2, "cliff_c": 3}
+# the zones of the control a prompt may point at for each skill. The engine's reconcile target was results_tabs (no page element) when the plan was
+# written and became reconcile_control (the case note's reconciliation dropdown) while the build was going on; both are the reconcile control.
+EXPECTED_ZONES = {"cliff": {"cliff_button"}, "reconcile": {"results_tabs", "reconcile_control"}}
 RECONCILE_IDS = {"reconciliation", "cn-recon"}
 
 
@@ -237,7 +240,7 @@ class NudgeCounts:
     @classmethod
     def of(cls, shown: list[Shown]) -> "NudgeCounts":
         c = cls()
-        expected = {"cliff": "cliff_button", "reconcile": "results_tabs"}
+        expected = EXPECTED_ZONES
         for s in shown:
             c.shown += 1
             c.followed += s.outcome == "followed"
@@ -253,6 +256,6 @@ class NudgeCounts:
             if s.delay_s is not None:
                 c.delays_s.append(s.delay_s)
             if s.action in ("annotate", "takeover_offer"):
-                c.zones.append((s.zone, expected.get(s.skill or "")))
+                c.zones.append((s.zone, s.zone if s.zone in expected.get(s.skill or "", set()) else None))
         c.dismissed = c.explicit_dismissed + c.ignored
         return c

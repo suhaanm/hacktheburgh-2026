@@ -10,7 +10,7 @@ from . import LABEL, analysis
 from .analysis_io import RESULTS
 from .design import N_AA, N_COACHED
 
-EXPECTED_ZONE = {"cliff": "cliff_button", "reconcile": "results_tabs"}
+from .coach import EXPECTED_ZONES
 
 LIMITATIONS = [
     {"id": "sim-not-people", "severity": "high",
@@ -28,7 +28,7 @@ LIMITATIONS = [
     {"id": "sim-timing", "severity": "medium",
      "text": "Timing is not human. Each action is followed by a fixed 2 s pause and the model's own latency varies, so effort is reported as ACTION COUNTS and the coach's poll-to-prompt delay is a property of the pipeline, not of people. A fast participant can finish the note page before a prompt arrives."},
     {"id": "sim-renderer", "severity": "medium",
-     "text": "The coach is real but the overlay renderer is simulated: a ring is drawn only when an element carrying the target zone exists on the page the participant is on (the cliff button on a result page). The reconcile target zone (results_tabs) has no page element, so that prompt is a message line only."},
+     "text": "The coach is real but the overlay renderer is simulated: a ring is drawn only when an element carrying the target zone exists on the page the participant is on. The cliff button exists only on a calculator result tab, not on the case note page where the prompt usually arrives. The reconcile target was `results_tabs` (no page element) when the plan was written; the pipeline snapshot used targets `reconcile_control` (the case note's dropdown), which exists. The by-zone table shows which was served."},
     {"id": "sim-model-frame", "severity": "medium",
      "text": "Participants are reached through the shared model port's fast-tier check call, whose fixed instructions tell the model to treat quoted material as data. That may make it less responsive to on-page text in both arms."},
     {"id": "sim-one-model", "severity": "medium",
@@ -112,7 +112,7 @@ def aggregate_checks(checks_dir: Path) -> dict:
             if case.get("capped"):
                 capped[case["phase"]] += 1
     annotate = [r for r in coach_rows if r.get("action") in ("annotate", "takeover_offer")]
-    zone_ok = sum(1 for r in annotate if r.get("zone") == EXPECTED_ZONE.get(r.get("skill") or ""))
+    zone_ok = sum(1 for r in annotate if r.get("zone") in EXPECTED_ZONES.get(r.get("skill") or "", set()))
     delays = [r["delay_s"] for r in coach_rows if r.get("delay_s") is not None]
     outcome = {o: sum(1 for r in coach_rows if r.get("outcome") == o) for o in ("followed", "dismissed", "ignored")}
     return {
@@ -139,6 +139,22 @@ def aggregate_checks(checks_dir: Path) -> dict:
         "typed_values_cleaned": {**typed, "share": round(typed["cleaned"] / typed["fills_and_selects"], 4) if typed["fills_and_selects"] else None,
                                  "note": "values the participant typed with JSON artifacts from its structured reply removed before typing (PLAN amendment 1); identical for every arm"},
     }
+
+
+def findings(pc: dict) -> list[dict]:
+    """Pipeline findings (facts about the system under test, not study results), with the numbers from this run."""
+    dl = pc["delay_from_first_note_page_action_to_prompt_s"]
+    rt = pc["ring_target"]
+    ev = pc["events"]["by_type"]
+    return [
+        {"id": "latency", "text": f"A prompt arrives about {dl.get('median', 'n/a')} s (median of n = {dl.get('n', 0)}; min {dl.get('min', 'n/a')}, max {dl.get('max', 'n/a')}) after the participant's first action on the case note page: "
+                                  "the extension batches events every 2 s and the coach needs two consecutive signals at 3 s polls. A participant who finishes the note page faster never sees it."},
+        {"id": "zones", "text": f"Prompt targets served, by zone: {rt['by_zone']}. The cliff ring can only be drawn on a calculator result tab (the Check cliff edges button lives there), not on the case note page where the "
+                                  f"prompt usually arrives (ring drawn on arrival {rt['ring_drawn_on_arrival']} of {rt['annotate_decisions']}, at some point {rt['ring_drawn_at_some_point']}). The reconcile target was results_tabs (no page element) when "
+                                  "the plan was written; the frozen pipeline serves reconcile_control, the case note's dropdown, which exists."},
+        {"id": "reconcile-signal", "text": f"The engine's RECONCILE signal was a browser tab switch (results_tabs) and is now also a click or focus on the dropdown (reconcile_control); tab events recorded in this run: {ev.get('tab', 0)}. "
+                                            "Comparing calculators within one tab never satisfied the older signal."},
+    ]
 
 
 def build_section(results_dir: Path = RESULTS) -> dict:
@@ -188,6 +204,10 @@ def build_section(results_dir: Path = RESULTS) -> dict:
                  "note": "Simulated participants (language model), not people. Never the live study. n counts silicon participants."},
     }
     section["analyze_py"] = a["analyze_py"]
+    section["findings"] = findings(section["pipeline_checks"])
+    snap = results_dir / "snapshot.json"
+    if snap.exists():
+        section["meta"]["pipeline_snapshot"] = json.loads(snap.read_text())
     return section
 
 
@@ -216,7 +236,7 @@ def render_md(s: dict) -> str:
         w(f"> **Status {s['status']}: fewer participants than planned ({N_COACHED} coached, {N_AA} sham). Read the numbers below as a harness or partial-run report; no headline claim is made.**")
         w("")
     for ab in s["meta"].get("aborted_runs", []):
-        w(f"> **An earlier run ({ab['id']}) was aborted after GO and is not analysed:** {ab['reason']}. Its spend (US${ab.get('usd_est')}, {ab.get('calls')} calls) counts against the cap. See the amendment log in PLAN.md.")
+        w(f"> **An earlier run ({ab['id']}) was aborted after GO and is not analysed:** {ab['reason']}. Its spend (US${ab.get('usd_est')}, {ab.get('calls')} calls) counts against the cap. See the amendment log in PLAN.md. In the interest of honesty: the lead and I saw two post-test scores (p_sim01 and p_sim03) in the progress log before the repair; the repair was judged on a defect of the reply interface (typed values with JSON artifacts), not on outcomes, and nothing was analysed by arm.")
         w("")
     w("## 1. Headline: unassisted skill score, coached skill minus uncoached skill")
     w("")
@@ -284,10 +304,18 @@ def render_md(s: dict) -> str:
     w(f"- Errors: engine {er['engine']}, extension web errors {er['extension_weberrors']}, coach poll errors {er['coach_poll_errors']}, harness tracebacks {er['harness_tracebacks']}, contaminated attempts retried {er['contaminated_attempts_retried']}; exclusions {er['exclusions'] or 'none'}.")
     tv = pc["typed_values_cleaned"]
     w(f"- Typed values cleaned of structured-reply artifacts (PLAN amendment 1, same for every arm): {tv['cleaned']} of {tv['fills_and_selects']} fills and selects ({tv['share']}).")
+    sn = s["meta"].get("pipeline_snapshot")
+    if sn:
+        w(f"- Code under test: a frozen snapshot of git {str(sn.get('git_head', ''))[:8]} plus {sn.get('uncommitted_files_in_snapshot_dirs')} uncommitted files in services/ and packages/ (fingerprint {sn.get('fingerprint')}, taken {sn.get('taken_at')}); engines and sandbox sites ran from that copy for the whole run, the extension from one build per worker.")
     co = pc["consent"]
     w(f"- Consent toggle respected: {co['respected']} (events while off at start {co['events_while_capture_off_at_start']}, after switching off {co['events_after_capture_switched_off']}).")
     k = pc["kill_flag"]
     w(f"- Kill flag: engine reported it in {k['engine_reports_killed']} of {k['n']} participants, coach silent after it in {k['coach_silent_after_kill']}. {k['note']}")
+    w("")
+    w("### Pipeline findings (about the system, not results)")
+    w("")
+    for f in s.get("findings", []):
+        w(f"- {f['text']}")
     w("")
     w("## 6. Cost")
     w("")

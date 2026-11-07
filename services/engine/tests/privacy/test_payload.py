@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import enum
+import json
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
@@ -272,3 +273,28 @@ def test_assert_vocabularies_clean_would_notice_a_bad_one():
             assert_vocabularies_clean()
     finally:
         unregister_purpose("t.badnames")
+
+
+def test_a_subclass_cannot_loosen_the_config_to_let_free_text_in():
+    from pydantic import ConfigDict
+
+    for cfg in (ConfigDict(extra="allow"), ConfigDict(extra="ignore"), ConfigDict(strict=False), ConfigDict(arbitrary_types_allowed=True)):
+        with pytest.raises(UnsafeFieldError, match="extra='forbid' and strict=True"):
+            type("Loose", (SafePayload,), {"__annotations__": {"n": int}, "model_config": cfg})
+
+
+def test_extra_fields_added_after_construction_cannot_reach_the_wire():
+    class M(SafePayload):
+        n: int
+
+    m = M(n=1)
+    object.__setattr__(m, "__pydantic_extra__", {"title": "Ada's review"})      # an attempt to smuggle an extra field in
+    from understudy_engine.privacy import egress
+
+    unregister_purpose("t.extra")
+    register_payload("t.extra", M)
+    try:
+        res = egress.preview("t.extra", m)
+        assert "title" not in res["payload"] and "review" not in json.dumps(res["payload"])
+    finally:
+        unregister_purpose("t.extra")

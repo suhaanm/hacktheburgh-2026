@@ -229,3 +229,51 @@ def test_event_timestamps_for_the_gate_are_as_safe_as_poll_counts_on_the_replay_
     n_polls = sum(len(a) for a in res["events"].values())
     print(f"\n[coach gate clock, 3 s polls, 2 s batching, apprentices n = 48 cases] polls vs events: identical prompts ({n_polls} acting decisions, "
           f"0 on experts, 14 of 14 planted cases ringed, no ring on a clean case)")
+
+
+def live_style(events):
+    """The same traces as the live extension emits them (7 Nov mapping rules): arriving on a result page is a `nav` in zone calc_result
+    (no scrolls: the pages are short), and the reconcile step is a click or focus on the case note's reconciliation control."""
+    out = []
+    for e in events:
+        z = e.meta.get("zone")
+        if z == "calc_result" and e.type in ("focus", "scroll"):
+            if e.type == "focus":                                         # keep one nav per read: the focus that starts it
+                out.append(e.model_copy(update={"type": "nav"}))
+            continue
+        if z == "results_tabs" and e.type in ("tab", "click"):
+            out.append(e.model_copy(update={"type": "focus" if e.type == "tab" else "click", "meta": {**e.meta, "zone": "reconcile_control"}}))
+            continue
+        out.append(e)
+    return out
+
+
+def test_replay_with_the_live_extension_event_shapes(synth_root, scorer, tmp_path, monkeypatch):
+    """Precision and recall re-measured with nav-on-result and reconcile_control events and the engine's current default mapping."""
+    from understudy_engine.cogs import load_mapping
+    from understudy_engine.packs.loader import Pack
+
+    monkeypatch.setattr(Pack, "cog_mapping", lambda self: load_mapping(None))
+    truth = json.loads((synth_root / "synthetic" / "apprentices" / "truth.json").read_text())
+    skip = {t["task_id"] for t in truth["traces"] if any(d["type"] == "skipped_check_cliff" and d["instances"] for d in t["deficits"])}
+    by_person = defaultdict(list)
+    for e in EventStore(synth_root).read("synthetic"):
+        if e.person.startswith(("p_exp", "p_nov")):
+            by_person[e.person].append(e)
+    rings, expert_acts, polls, zones = set(), 0, 0, Counter()
+    for person, evs in sorted(by_person.items()):
+        live = live_style(evs)
+        brain = CoachBrain(EventStore(tmp_path / person), scorer=scorer, tone="short")
+        for i, e in enumerate(live):
+            d = brain.next_step(person, e.t, events=live[: i + 1])
+            polls += 1
+            if d.action != "silent":
+                if person.startswith("p_exp"):
+                    expert_acts += 1
+                elif d.trigger == "expert_policy":
+                    rings.add(d.task_id)
+                    zones[d.target["zone"]] += 1
+    assert expert_acts == 0 and rings <= skip and len(rings) >= int(0.9 * len(skip))
+    precision = len(rings & skip) / max(1, len(rings))
+    print(f"\n[coach replay, live extension event shapes, default mapping] rings on {len(rings)} of {len(skip)} planted skipped-cliff cases "
+          f"(precision {precision:.2f}, recall {len(rings & skip) / len(skip):.2f}); experts: {expert_acts} acting decisions over {polls} polls; ring zones {dict(zones)}")

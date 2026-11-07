@@ -11,12 +11,32 @@ const entry = (annotation: Annotation): ActiveAnnotation => ({ annotation, shown
 const box = { xmin: 400, ymin: 600, xmax: 480, ymax: 680 }
 
 describe('planScene', () => {
-  it('ring rect surrounds its box with padding, and a step badge sits on its top-left corner', () => {
-    const plan = planScene([entry({ id: 'r', kind: 'ring', tone: 'guide', box, step: 2 })], vp, style, {})
+  it('ring rect surrounds its box with padding; the step number rides in the note chip, flush with the ring\'s top-left edge', () => {
+    const plan = planScene([entry({ id: 'r', kind: 'ring', tone: 'guide', box, step: 2, note: 'Check cliff edges before you reconcile the results.' })], vp, style, {})
     const ring = plan.rings.get('r')!
     expect(ring.rect.x).toBeLessThan((400 / 1000) * vp.width)
     expect(ring.rect.w).toBeGreaterThan(((480 - 400) / 1000) * vp.width)
-    expect(ring.step!.x).toBeLessThan(ring.rect.x + style.badge.diameter)
+    expect(ring.step).toBeNull()
+    const chip = plan.labels.get(labelKey('r', 'label'))!
+    expect(chip.side).toBe('above')
+    expect(chip.rect.x).toBeCloseTo(ring.rect.x, 5) // starts at the ring's left edge
+    expect(chip.rect.y + chip.rect.h).toBeLessThanOrEqual(ring.rect.y - style.ring.halo.offset) // clear of the halo and the corner ticks
+    expect(overlapArea(chip.rect, ring.rect)).toBe(0)
+  })
+
+  it('a ring with no words and no step has no chip; a note is cut to about 40 characters', () => {
+    expect(planScene([entry({ id: 'r', kind: 'ring', tone: 'guide', box })], vp, style, {}).labels.size).toBe(0)
+    const long = 'Read every line of the result carefully and compare each figure with the household record in front of you'
+    const est = planScene([entry({ id: 'r', kind: 'ring', tone: 'guide', box, note: long })], vp, style, {}).labels.get(labelKey('r', 'label'))!
+    expect(est.rect.w).toBeLessThan(style.bubble.maxChars * style.bubble.fontSize * 0.6 + 2 * style.bubble.padding.x)
+  })
+
+  it('with no room above, the chip goes below (or to the side) and still starts at the ring\'s edge', () => {
+    const top = { xmin: 400, ymin: 4, xmax: 480, ymax: 40 }
+    const plan = planScene([entry({ id: 'r', kind: 'ring', tone: 'guide', box: top, note: 'Check cliff edges' })], vp, style, {})
+    const chip = plan.labels.get(labelKey('r', 'label'))!
+    expect(chip.side).not.toBe('above')
+    expect(chip.rect.y).toBeGreaterThanOrEqual(0)
   })
   it('a normal ring is capped to a target-sized circle about the centre, but an exact ring (a measured browser element) surrounds the whole thing', () => {
     const wide = { xmin: 200, ymin: 300, xmax: 700, ymax: 420 } // 864 x 134 points on this viewport: far larger than a button

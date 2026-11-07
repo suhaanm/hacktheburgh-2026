@@ -6,7 +6,7 @@ import type { AnnotationTone } from '../../../shared/protocol'
 import type { AnnotationStyle } from '../../design/annotation-style'
 import { arrowHeadPoints, arrowShaftPath, type ArrowPlan } from '../arrow'
 import type { Pt, Rect, Size } from '../geometry'
-import { Disc, Glyph, glowStack, iterations, lifeClass, slimLayers, stacked } from './common'
+import { Disc, Glyph, lifeClass, slimLayers, stacked } from './common'
 
 interface Base {
   style: AnnotationStyle
@@ -16,17 +16,35 @@ interface Base {
 export function RingMark({ rect, tone, style, exiting }: Base & { rect: Rect; tone: AnnotationTone }): ReactElement {
   const t = style.tones[tone]
   const rx = Math.min(style.ring.radius, Math.min(rect.w, rect.h) / 2)
+  const core = style.stroke.core
+  const key = (style.stroke.casing - style.stroke.core) / 2 // each keyline's width
+  // A very subtle second outline a little outside the ring, with viewfinder corner ticks sitting on it.
+  const o = style.ring.halo.offset
+  const bracket = (grow: number): string => {
+    const x0 = rect.x - o - grow
+    const y0 = rect.y - o - grow
+    const x1 = rect.x + rect.w + o + grow
+    const y1 = rect.y + rect.h + o + grow
+    const arm = Math.min(style.ring.ticks.arm, (x1 - x0) / 3, (y1 - y0) / 3)
+    return [`M ${x0} ${y0 + arm} V ${y0} H ${x0 + arm}`, `M ${x1 - arm} ${y0} H ${x1} V ${y0 + arm}`, `M ${x1} ${y1 - arm} V ${y1} H ${x1 - arm}`, `M ${x0 + arm} ${y1} H ${x0} V ${y1 - arm}`].join(' ')
+  }
+  // The coloured 2 px line hugs the target; the white keyline and then the ink keyline sit outside it (1 px each), so the whole mark is a
+  // 4 px band that reads on a white page (ink edge) and on a dark one (white edge).
+  const rings = [
+    { grow: core / 2 + key * 1.5, w: key, color: t.keyOuter },
+    { grow: core / 2 + key * 0.5, w: key, color: t.keyInner },
+    { grow: 0, w: core, color: t.core },
+  ]
+  const lineProps = { fill: 'none', strokeLinejoin: 'miter' as const }
   return (
-    <g className={`ov-mark ${lifeClass(exiting)}`}>
-      {glowStack(style, tone, (p, k) => (
-        <rect key={`g${k}`} x={rect.x} y={rect.y} width={rect.w} height={rect.h} rx={rx} {...p} />
+    <g className={`ov-mark ${lifeClass(exiting)}`} data-mark="ring">
+      <rect x={rect.x - o} y={rect.y - o} width={rect.w + o * 2} height={rect.h + o * 2} rx={rx + o} fill="none" stroke={t.core} strokeWidth={style.ring.halo.width} strokeOpacity={style.ring.halo.opacity} />
+      {rings.map((r, i) => (
+        <g key={i} stroke={r.color} strokeWidth={r.w} {...lineProps}>
+          <path d={bracket(r.grow)} strokeLinecap="square" />
+          <rect x={rect.x - r.grow} y={rect.y - r.grow} width={rect.w + r.grow * 2} height={rect.h + r.grow * 2} rx={rx + r.grow} strokeDasharray={r.color === t.core ? (t.dash ?? undefined) : undefined} />
+        </g>
       ))}
-      {stacked(style, tone, (p, k) => (
-        <rect key={k} x={rect.x} y={rect.y} width={rect.w} height={rect.h} rx={rx} {...p} />
-      ))}
-      {style.pulse.enabled ? (
-        <rect className="ov-pulse" style={iterations(style, tone)} x={rect.x} y={rect.y} width={rect.w} height={rect.h} rx={rx} fill="none" stroke={t.core} strokeWidth={style.stroke.core} />
-      ) : null}
     </g>
   )
 }
@@ -37,12 +55,6 @@ export function ArrowMark({ plan, tone, style, exiting }: Base & { plan: ArrowPl
   const head = arrowHeadPoints(plan)
   return (
     <g className={`ov-mark ${lifeClass(exiting)}`}>
-      {glowStack(style, tone, (p, k) => (
-        <g key={`g${k}`}>
-          <path d={shaft} {...p} />
-          <polygon points={head} {...p} />
-        </g>
-      ))}
       {stacked(style, tone, (p, k) => (
         <g key={k}>
           <path d={shaft} {...p} />
@@ -56,9 +68,13 @@ export function ArrowMark({ plan, tone, style, exiting }: Base & { plan: ArrowPl
 
 export function BadgeMark({ at, n, tone, style, exiting }: Base & { at: Pt; n: number; tone: AnnotationTone }): ReactElement {
   const t = style.tones[tone]
+  const w = stepPillWidth(style, n)
+  const h = style.badge.diameter
   return (
     <g className={`ov-mark ${lifeClass(exiting)}`}>
-      <Disc cx={at.x} cy={at.y} diameter={style.badge.diameter} tone={tone} style={style} />
+      <rect x={at.x - w / 2 - 2} y={at.y - h / 2 - 2} width={w + 4} height={h + 4} rx={(h + 4) / 2} fill={t.keyOuter} />
+      <rect x={at.x - w / 2 - 1} y={at.y - h / 2 - 1} width={w + 2} height={h + 2} rx={(h + 2) / 2} fill={t.keyInner} />
+      <rect x={at.x - w / 2} y={at.y - h / 2} width={w} height={h} rx={h / 2} fill={t.core} />
       <text
         x={at.x}
         y={at.y}
@@ -74,6 +90,12 @@ export function BadgeMark({ at, n, tone, style, exiting }: Base & { at: Pt; n: n
       </text>
     </g>
   )
+}
+
+/** Width of the step pill: round for one digit, a little wider for more (mono digits are about 0.6 em). */
+export function stepPillWidth(style: AnnotationStyle, n: number): number {
+  const digits = String(Math.abs(Math.trunc(n))).length
+  return Math.max(style.badge.diameter, Math.round(digits * style.badge.fontSize * 0.62 + style.badge.padX * 2))
 }
 
 // A dim layer over the whole display with a soft-edged cut-out around the target. Pure picture: it never blocks input.

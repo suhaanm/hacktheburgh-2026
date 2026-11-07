@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import base64
-import copy
 import json
 import urllib.parse
 
@@ -223,3 +222,70 @@ def test_git_flow_through_the_guard_is_clean():
         egress.send("git.habit_wording", GitHabitWording(habit="no_tests", learner_ratio=len(c) / 3, expert_ratio=0.1, n_commits=len(c) + 10), port=port)
 
     assert canary_flow("git.habits", git_fixture, flow, seed=14).ok
+
+
+# --------------------------------------------------------------------------- PRV-4: logs, audit, queue
+def _fx():
+    return {"events": [{"title": "Quarterly planning", "attendees": ["Bob Smith"]}]}
+
+
+def _clean(fx, port):
+    egress.send("calendar.suggestion_wording", dict(template="protect_focus_block", role="programmer", risk="low", learner={"n_meetings": 1}, expert={}), port=port)
+
+
+def test_a_planted_token_in_the_audit_log_the_queue_or_a_log_file_is_found(data_dir):
+    p = Planted(21)
+    title = p.meeting_title()
+    (data_dir / "queue").mkdir()
+    (data_dir / "queue" / "q_01.json").write_text(json.dumps({"title": "Prepare " + title}))
+    (data_dir / "audit.jsonl").write_text(json.dumps({"note": "clean"}) + "\n")
+    (data_dir / "logs").mkdir()
+    (data_dir / "logs" / "engine.log").write_text("started\n")
+    r = canary.scan_artifacts(p, data_dir)
+    assert r.leaked == 1 and r.requests == 3
+    (data_dir / "queue" / "q_01.json").write_text(json.dumps({"title": "Prepare the weekly summary"}))
+    assert canary.scan_artifacts(p, data_dir).ok
+
+
+def test_missing_artifact_paths_are_skipped():
+    assert canary.scan_artifacts(Planted(1), None).requests == 0
+
+
+def test_log_capture_sees_every_logger_and_exception_text():
+    import logging
+
+    from understudy_engine.privacy.testing import LogCapture
+
+    p, tok = one_token("file_path")
+    with LogCapture() as logs:
+        logging.getLogger("some.module").warning("opened %s", tok)
+        try:
+            raise ValueError("bad " + tok)
+        except ValueError:
+            logging.getLogger("other").exception("failed")
+    assert scan(logs.texts, p).leaked == 1 and len(logs.records) == 2
+
+
+def test_canary_flow_fails_when_a_flow_logs_a_planted_title():
+    import logging
+
+    def flow(fx, port):
+        _clean(fx, port)
+        logging.getLogger("calendar").info("handling %s", fx["events"][0]["title"])
+
+    with pytest.raises(AssertionError, match="log records"):
+        canary_flow("calendar.logs_title", _fx, flow)
+
+
+def test_canary_flow_fails_when_a_flow_writes_a_title_into_the_audit_log_or_queue(data_dir):
+    def flow(fx, port):
+        _clean(fx, port)
+        (data_dir / "queue").mkdir(exist_ok=True)
+        (data_dir / "queue" / "q_x.json").write_text(json.dumps({"summary": fx["events"][0]["title"]}))
+
+    with pytest.raises(AssertionError, match="PRV-4"):
+        canary_flow("calendar.queue_title", _fx, flow)
+
+
+def test_a_clean_flow_passes_the_artifact_checks_too():
+    assert canary_flow("calendar.clean_artifacts", _fx, _clean).ok

@@ -95,16 +95,21 @@ def _exe_chain(exe: Path) -> list[Path]:
 
 
 def python_paths() -> tuple[list[Path], list[Path]]:
-    """(every path the interpreter may be exec'd as, directories the interpreter must be able to read)."""
+    """(every path the interpreter may be exec'd as, directories the interpreter must be able to read). Project source
+    directories that an editable install adds to sys.path are NOT included: the child cannot read the owner's code."""
     chain = _exe_chain(Path(sys.executable))
+    roots = [Path(os.path.realpath(p)) for p in (sys.prefix, sys.base_prefix)]
     reads: set[Path] = set()
     cands = [sys.prefix, sys.base_prefix, *site.getsitepackages(), sysconfig.get_path("stdlib"),
              sysconfig.get_path("platstdlib"), sysconfig.get_path("purelib"), sysconfig.get_path("platlib"),
              *[p for p in sys.path if p and os.path.isdir(p)], *[str(h.parent.parent) for h in chain]]
     for c in cands:
-        if c:
-            reads.add(Path(c))
-            reads.add(Path(os.path.realpath(c)))
+        if not c:
+            continue
+        for q in (Path(c), Path(os.path.realpath(c))):
+            # keep only the Python installation itself and its site-packages (aliases such as uv's cpython-3.12 link too)
+            if any(r == q or r in q.parents for r in roots) or "python" in q.name.lower() or "cpython" in str(q):
+                reads.add(q)
     return chain, sorted(reads)
 
 

@@ -16,7 +16,7 @@ export interface DebugDeps {
   dispatch: Dispatch
   session: SessionController
   // Optional window capture helpers (Electron only); absent in unit tests.
-  capture?: { overlayPng(): Promise<Buffer | null>; overlayText?(): Promise<string | null>; dockPng(): Promise<Buffer | null>; hudPng?(): Promise<Buffer | null> }
+  capture?: { overlayPng(): Promise<Buffer | null>; overlayText?(): Promise<string | null>; dockPng(): Promise<Buffer | null>; hudPng?(): Promise<Buffer | null>; hudPreview?(mode: 'hover' | 'none'): Promise<void> }
   // Understudy: kill switch, HUD and model port inspection (dev only, like the rest of this surface).
   understudy?: {
     kill: Pick<import('./kill-switch').KillSwitch, 'trigger' | 'clear' | 'state'>
@@ -181,6 +181,11 @@ export function startDebugServer(deps: DebugDeps): http.Server {
         case 'GET /model': {
           const { lastBootReport } = await import('./model-port')
           return send(200, { provider: ctx.modelPort?.provider ?? null, models: ctx.modelPort?.models() ?? null, boot: lastBootReport() })
+        }
+        case 'POST /hud/preview': {
+          const body = z.object({ mode: z.enum(['hover', 'none']) }).parse(await readJson(req))
+          await deps.capture?.hudPreview?.(body.mode)
+          return send(200, { ok: true })
         }
         case 'GET /overlay/text': {
           const text = await deps.capture?.overlayText?.()

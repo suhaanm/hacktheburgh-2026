@@ -124,20 +124,13 @@ describe('persistent coach chip (Understudy)', () => {
     expect(advance(s, ctx(COACH_CHIP_GUARD_MS)).coach?.exitingAt).toBe(COACH_CHIP_GUARD_MS)
   })
 
-  it('the view shrinks step by step: label, then bars, then a dot, then nothing', async () => {
-    const { coachChipLook } = await import('./annotations/chrome')
-    const f = 16
-    const full = coachChipLook('full', f)
-    const small = coachChipLook('small', f)
-    const dot = coachChipLook('dot', f)
-    const gone = coachChipLook('gone', f)
-    expect([full.labelMax > 0, small.labelMax > 0, dot.labelMax > 0]).toEqual([true, false, false])
-    expect([full.barsMax > 0, small.barsMax > 0, dot.barsMax > 0]).toEqual([true, true, false])
-    expect([full.dotOpacity, small.dotOpacity, dot.dotOpacity]).toEqual([0, 0, 1])
-    expect(full.opacity).toBeGreaterThan(small.opacity)
-    expect(small.opacity).toBeGreaterThan(dot.opacity)
-    expect(gone.opacity).toBe(0)
-    expect([full.dotBox, small.dotBox, gone.dotBox]).toEqual([null, null, null])
-    expect(dot.dotBox).toBeGreaterThan(0) // a true circle, not a capsule
+  it('on screen the coach is at most one small dot that dims as the help recedes, and is nothing when gone', async () => {
+    const { coachDotLook, COACH_DOT_SIZE } = await import('./annotations/chrome')
+    const o = (['full', 'small', 'dot', 'gone'] as const).map((f) => coachDotLook(f).opacity)
+    expect(o[0]).toBeGreaterThan(o[1]!)
+    expect(o[1]).toBeGreaterThan(o[2]!)
+    expect(o[3]).toBe(0)
+    expect(COACH_DOT_SIZE).toBeGreaterThanOrEqual(6)
+    expect(COACH_DOT_SIZE).toBeLessThanOrEqual(8)
   })
 })

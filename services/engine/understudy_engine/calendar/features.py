@@ -10,7 +10,7 @@ Definitions (all in the person's local zone, within their usual window unless st
 * free time: the window minus meetings, off-screen and break blocks. Explicit focus, batch and review blocks are free
   time (protected, not busy).
 * a focus block of N minutes is a maximal run of free time of at least N minutes (60 and 90 are counted separately);
-  gaps under 5 minutes are transitions and are ignored; gaps of 5 to 59 minutes are "slivers".
+  gaps of 5 minutes or less are transitions and are ignored; gaps of 6 to 59 minutes are "slivers".
 * fragmentation (per day, then the mean over working days): ``1 - sum(g^2) / (sum g)^2`` over that day's free gaps
   (0 when all free time is one block; towards 1 when it is many small pieces); a day with under 15 free minutes scores 1.
 * a fragmented day has at least 4 meetings and no free gap of 60 minutes.
@@ -50,7 +50,7 @@ SAFE_KIND = {"meeting_h": "hours", "focus_blocks_60": "count", "focus_blocks_90"
              "recurring_in_peak_h": "hours", "external_unbuffered_n": "count", "review_slots": "count", "batch_windows": "count",
              "outside_hours_h": "hours", "days_worked": "count", "short_meetings_n": "count", "longest_b2b_min": "minutes"}
 
-MIN_GAP = 5          # minutes: shorter gaps are transitions
+MIN_GAP = 6          # minutes: gaps of 5 minutes or less are transitions (the same limit as back to back), not free time
 FOCUS_60, FOCUS_90 = 60, 90
 FRAGMENTED_MIN_MEETINGS = 4
 
@@ -62,6 +62,7 @@ class DayAnalysis:
     window: tuple[int, int] | None
     off: bool
     segments: list[tuple[str, int, int]] = field(default_factory=list)       # (kind, start_min, end_min) within the window
+    seg_meta: list[dict[str, Any]] = field(default_factory=list)            # parallel to segments: {"out": contract kind, "n_att": int | None}
     free_runs: list[tuple[int, int]] = field(default_factory=list)
     meetings: list[tuple[int, int, Block]] = field(default_factory=list)
     commitments: list[tuple[int, int]] = field(default_factory=list)
@@ -157,7 +158,7 @@ def analyse_day(day: date, blocks: list[Block], cfg: WorkConfig, off_dates: froz
     for idx, (s, e, b) in enumerate(items):
         key = b.tag if (b.kind == "focus" and b.tag) else b.kind
         lv = prec[key]
-        ch = {"meeting": "M", "offscreen": "O", "break": "O", "batch": "B", "review": "R", "focus": "F"}[key]
+        ch = {"meeting": "M", "offscreen": "O", "break": "K", "batch": "B", "review": "R", "focus": "F"}[key]
         for m in range(s, e):
             if lv >= level[m]:
                 level[m], label[m], ident[m] = lv, ch, idx
@@ -237,24 +238,30 @@ def analyse_day(day: date, blocks: list[Block], cfg: WorkConfig, off_dates: froz
         m["window_min"] = we - ws
         # segment sequence for the ribbon
         segs: list[tuple[str, int, int]] = []
+        meta: list[dict[str, Any]] = []
         mm = ws
         while mm < we:
             ch, idn = label[mm], ident[mm]
             end = mm + 1
-            if ch in ("M", "B", "R", "O"):
+            if ch in ("M", "B", "R", "O", "K"):
                 while end < we and label[end] == ch and (ch != "M" or ident[end] == idn):
                     end += 1
-                segs.append(({"M": MEETING, "B": BATCH, "R": REVIEW, "O": OFFSCREEN}[ch], mm, end))
+                segs.append(({"M": MEETING, "B": BATCH, "R": REVIEW, "O": OFFSCREEN, "K": OFFSCREEN}[ch], mm, end))
+                meta.append({"out": {"M": "meeting", "B": "focus", "R": "focus", "O": "offscreen", "K": "break"}[ch],
+                             "n_att": items[idn][2].n_attendees if ch == "M" and idn >= 0 else None})
             else:                                   # free or explicit focus: merge into one run
                 while end < we and label[end] in (".", "F"):
                     end += 1
                 length = end - mm
                 if length >= FOCUS_60:
                     segs.append((FOCUS, mm, end))
+                    meta.append({"out": "free", "n_att": None})
                 elif length >= MIN_GAP:
                     segs.append((SLIVER, mm, end))
+                    meta.append({"out": "free", "n_att": None})
             mm = end
         d.segments = segs
+        d.seg_meta = meta
     else:
         for k in ("free_min", "longest_gap", "focus_60", "focus_90", "focus_min", "slivers", "window_min"):
             m[k] = 0
@@ -313,16 +320,19 @@ def b2b_day_indexes(wa: WeekAnalysis) -> list[int]:
 
 
 def week_blocks_json(wa: WeekAnalysis) -> list[dict[str, Any]]:
-    """The week as the API returns it: per day, blocks of kind meeting | focus | break | offscreen | free with no text.
-    Free time inside the window is filled in as ``free``. ``start``/``end`` are ISO local times without offset plus
-    ``start_min``/``end_min`` after local midnight."""
+    """The week as the API returns it: per day, blocks of kind meeting | focus | break | offscreen | free, no text.
+    Free time inside the usual window is filled in as ``free``. ``start``/``end`` are ``"HH:MM"`` local wall-clock strings;
+    ``start_min``/``end_min`` are the same as minutes after local midnight (additive). Meetings carry
+    ``n_attendees_bucket`` (``lt5``, ``5to9``, ``10plus``); ``usable`` marks free time of 60 minutes or more."""
     out = []
     for d in wa.days:
         blocks: list[dict[str, Any]] = []
         if d.working:
-            for kind, s, e in d.segments:
-                k = {MEETING: "meeting", FOCUS: "free", SLIVER: "free", BATCH: "focus", REVIEW: "focus", OFFSCREEN: "offscreen"}[kind]
-                blocks.append({"start_min": s, "end_min": e, "kind": k, "usable": kind == FOCUS})
+            for (kind, s, e), m in zip(d.segments, d.seg_meta):
+                b: dict[str, Any] = {"start": fmt_hm(s), "end": fmt_hm(e), "start_min": s, "end_min": e, "kind": m["out"], "usable": kind == FOCUS}
+                if m["n_att"] is not None:
+                    b["n_attendees_bucket"] = attendee_bucket(int(m["n_att"]))
+                blocks.append(b)
         out.append({"dow": d.dow, "date": d.day.isoformat(), "working": d.working, "blocks": blocks})
     return out
 
@@ -337,14 +347,14 @@ def safe_features(features: dict[str, Any], keys: Iterable[str] = CONTRACT_KEYS)
             continue
         kind = SAFE_KIND.get(k, "count")
         if kind == "count":
-            out[k] = bucket_count(v)
+            out[k] = bucket_count(int(round(float(v))))        # an expert reference is a mean: round it to a whole count first
         elif kind == "hours":
             out[k] = round_hours(v)
         elif kind == "minutes":
             from .bucket import round_minutes
             out[k] = round_minutes(v)
         elif kind == "ratio":
-            out[k] = round_ratio(v)
+            out[k] = round_ratio(min(1.0, max(0.0, float(v))))
         else:
             out[k] = round(v, 1)
     return out

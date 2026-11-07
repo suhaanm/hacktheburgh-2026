@@ -1,8 +1,6 @@
 // The nine screens. Each is presentational: it reads `answers`, calls `set` with the change, and says one thing.
 import { useState, type ReactElement } from 'react'
 import type { AlongsideApi } from '../../../shared/ipc'
-import { PERSONA_LIST } from '../../../shared/personas'
-import type { PersonaId } from '../../../shared/protocol'
 import { PresenceOrb, Switch } from '../../design'
 import { ChipGroup, Choice, Slider, TextField } from './controls'
 import {
@@ -112,20 +110,6 @@ export function LookStep({ answers, set, personaName }: StepProps): ReactElement
   )
 }
 
-export function HelperStep({ answers, set }: StepProps): ReactElement {
-  return (
-    <>
-      <p className="ob-lede">You can change this any time in Settings.</p>
-      <Choice<PersonaId>
-        legend="Who would you like?"
-        value={answers.persona}
-        options={PERSONA_LIST.map((p) => ({ value: p.id, title: p.displayName, line: p.styleBlurb, swatch: p.accentToken }))}
-        onChange={(persona) => set({ persona })}
-      />
-    </>
-  )
-}
-
 export function PermissionsScreen(props: PermissionsStepProps): ReactElement {
   return (
     <>
@@ -217,8 +201,6 @@ export function titleFor(id: string, answers: Answers, personaName: string): str
       return 'Make it comfortable'
     case 'look':
       return 'Look and feel'
-    case 'helper':
-      return 'Choose your helper'
     case 'permissions':
       return 'Let me hear and see'
     case 'hands':

@@ -38,6 +38,9 @@ export interface TrayModel {
   killAccelerator?: string
   // Understudy: whether desk capture (times only) is on. Shown as a plain line under the status; omitted when unknown.
   capture?: CaptureMode
+  // Understudy: how much help the coach is giving now ("Coach: Watch me (help level 1)"). The coach is not drawn on the screen; this
+  // line and the dashboard's Today screen are where its state lives. Omitted when unknown.
+  coach?: string
   agents?: readonly { status: string }[]
   startAccelerator?: string
   stopAccelerator?: string
@@ -84,6 +87,7 @@ export function buildMenuEntries(model: TrayModel): MenuEntry[] {
   return [
     { id: 'status', label: describeStatus(model), enabled: false },
     ...(model.capture ? [{ id: 'capture', label: captureLabel(model.capture), enabled: false } as MenuEntry] : []),
+    ...(model.coach ? [{ id: 'coach', label: model.coach, enabled: false } as MenuEntry] : []),
     sep('sep1'),
     { id: 'panel', label: 'Show panel', enabled: true, checked: model.dockVisible, ...(model.panelAccelerator ? { accelerator: model.panelAccelerator } : {}) },
     ...PERSONA_LIST.map((p): MenuEntry => ({ id: `talk:${p.id}`, label: `Talk to ${p.displayName}`, enabled: true, ...(p.id === hotkeyPersona && model.startAccelerator ? { accelerator: model.startAccelerator } : {}) })),
@@ -120,6 +124,8 @@ export interface TrayDeps {
   openQueue?: () => void
   // Understudy: the current desk capture mode (the menu says plainly when it is off).
   captureMode?: () => CaptureMode
+  // Understudy: the coach's current help level as one plain line (null when unknown).
+  coachLine?: () => string | null
   // Test seams.
   isRegistered?: (accelerator: string) => boolean
   iconDir?: string
@@ -185,6 +191,7 @@ export function registerTray(deps: TrayDeps): ShellTray {
       showtimeRunning: deps.showtimeRunning?.() ?? false,
       killed: deps.kill?.isKilled() ?? false,
       capture: deps.captureMode?.(),
+      coach: deps.coachLine?.() ?? undefined,
       killAccelerator: firstRegistered(KILL_ACCELERATORS),
       agents: st.agents,
       startAccelerator: firstRegistered(START_ACCELERATORS),

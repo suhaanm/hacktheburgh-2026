@@ -236,6 +236,20 @@
       "$ref": "#/$defs/study_power"
      }
     },
+    "privacy": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/privacy"
+     }
+    },
     "policy_gate": {
      "if": {
       "type": "object",
@@ -2018,6 +2032,56 @@
       "string",
       "null"
      ]
+    },
+    "limitations": {
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/limitation"
+     }
+    }
+   },
+   "required": [
+    "meta"
+   ],
+   "additionalProperties": true
+  },
+  "privacy": {
+   "type": "object",
+   "properties": {
+    "meta": {
+     "$ref": "#/$defs/meta"
+    },
+    "headline": {
+     "type": "object",
+     "properties": {
+      "leaked": {
+       "type": "integer"
+      },
+      "planted": {
+       "type": "integer"
+      },
+      "leak_rate_upper_95": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "runs": {
+       "type": "integer"
+      },
+      "flows": {
+       "type": "integer"
+      },
+      "ledger_complete": {
+       "type": "boolean"
+      }
+     },
+     "required": [
+      "leaked",
+      "planted",
+      "leak_rate_upper_95"
+     ],
+     "additionalProperties": true
     },
     "limitations": {
      "type": "array",

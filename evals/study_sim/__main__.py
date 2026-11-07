@@ -97,32 +97,40 @@ async def _run_many(specs, make_policy_factory, outdir: Path, model_id: str, bud
     return done
 
 
-def make_worlds(n: int, shared: bool):
-    from evals.study_sim.infra import World, build_extension, shared_world
+def make_worlds(n: int, shared: bool, outdir: Path | None = None):
+    from evals.study_sim.infra import World, build_extension, shared_world, snapshot_pipeline
+
+    info = snapshot_pipeline()
+    if outdir is not None:
+        outdir.mkdir(parents=True, exist_ok=True)
+        (outdir / "snapshot.json").write_text(json.dumps({k: v for k, v in info.items() if k != "path"}, indent=1))
+    print(f"pipeline snapshot {info['fingerprint']} of git {info['git_head'][:8]} (+{info['uncommitted_files_in_snapshot_dirs']} uncommitted files)", flush=True)
 
     if shared:
         w = shared_world()
         if not w.up():
             raise SystemExit("the shared sandbox sites on 7801-7803 are not running (uv run python -m understudy_agent.sandbox_sites)")
         return [w], []
-    worlds, names = [], []
+    worlds, built = [], []
     for k in range(n):
         name = f"ssim{k}"
         base = 7911 + 10 * k
         ports = {"a": base, "b": base + 1, "c": base + 2}
-        w = World(name, ports, build_extension(name, ports))
+        dist = build_extension(name, ports)
+        built.append(dist)
+        w = World(name, ports, dist)
         w.start_sites()
         worlds.append(w)
-        names.append(name)
-    return worlds, names
+    return worlds, built
 
 
-def close_worlds(worlds, names) -> None:
-    from evals.study_sim.infra import remove_extension_builds
+def close_worlds(worlds, built) -> None:
+    from evals.study_sim.infra import drop_snapshot, remove_extension_builds
 
     for w in worlds:
         w.stop()
-    remove_extension_builds(names)
+    remove_extension_builds(built)
+    drop_snapshot()
 
 
 def cmd_fake(a) -> int:
@@ -146,7 +154,7 @@ def cmd_fake(a) -> int:
                                    dismisses=o["dismisses"], submits=o["submits"] and phase == "post")
         return make
 
-    worlds, names = make_worlds(a.workers, a.shared)
+    worlds, names = make_worlds(a.workers, a.shared, out)
     try:
         n = asyncio.run(_run_many(specs, factory, out, "fake", None, worlds=worlds, pace=a.pace, cap=a.cap, poll_s=a.poll, skip_done=set()))
     finally:
@@ -184,7 +192,7 @@ def cmd_run(a) -> int:
     def factory(spec):
         return lambda spec_, case, phase, world: ModelParticipant(port, spec_, budget, model_id)
 
-    worlds, names = make_worlds(a.workers, a.shared)
+    worlds, names = make_worlds(a.workers, a.shared, RESULTS)
     try:
         n = asyncio.run(_run_many(specs, factory, RESULTS, model_id, budget, worlds=worlds, pace=a.pace, cap=a.cap, poll_s=a.poll, skip_done=done_ids))
     finally:

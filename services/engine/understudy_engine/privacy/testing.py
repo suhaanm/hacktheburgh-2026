@@ -64,6 +64,9 @@ class CapturingPort:
 
     def __init__(self, *, stub_text: str = "stub wording") -> None:
         self.requests: list[CapturedRequest] = []
+        self.image_calls: list[dict[str, Any]] = []        # {sha256, bytes} per vision call; never the bytes
+        self.last_call: dict[str, Any] | None = None       # per-call usage a provider may expose (see image.ImageUsage)
+        self._usage: dict[str, Any] | None = None
         self.stub_text = stub_text
         self._scripted: dict[str, list[Any]] = {}
         self._fail: Exception | None = None
@@ -73,6 +76,12 @@ class CapturingPort:
     def script(self, key: str, *outputs: Any) -> "CapturingPort":
         """Queue answers for calls whose schema ``title`` (or method name) is ``key``."""
         self._scripted.setdefault(key, []).extend(outputs)
+        return self
+
+    def with_usage(self, *, input_tokens: int | None = None, output_tokens: int | None = None,
+                   cost_estimate_usd: float | None = None) -> "CapturingPort":
+        """Make each vision call report this usage as ``last_call`` (what the MODELS providers will expose)."""
+        self._usage = {"input_tokens": input_tokens, "output_tokens": output_tokens, "cost_estimate_usd": cost_estimate_usd}
         return self
 
     def fail_with(self, exc: Exception | None) -> "CapturingPort":
@@ -120,8 +129,13 @@ class CapturingPort:
         return self._answer("check", schema)
 
     def vision(self, image: bytes, prompt: str, schema: dict[str, Any] | None = None) -> Any:
-        self._record("vision", {"image_sha256": hashlib.sha256(image).hexdigest(), "image_bytes": len(image), "prompt": prompt,
-                                "schema": schema})
+        """Records the prompt, the image's length and a short hash, NEVER the bytes (``image_calls`` keeps the full SHA-256 and the
+        length so a test can check the provider received exactly the frame that was sent)."""
+        digest = hashlib.sha256(image).hexdigest()
+        self.image_calls.append({"sha256": digest, "bytes": len(image)})
+        self._record("vision", {"image_sha8": digest[:16], "image_bytes": len(image), "prompt": prompt, "schema": schema})
+        if self._usage is not None:
+            self.last_call = dict(self._usage)
         return self._answer("vision", schema)
 
     def computer_step(self, goal: str, screenshot: bytes, history: list[dict[str, Any]]) -> Any:
@@ -246,8 +260,11 @@ def canary_flow(
     planted = canary.plant(fixtures, seed=seed, mode=mode)
     port = CapturingPort()
     before = len(ledger_extension_rows())
-    run(fixtures, port)
+    with LogCapture() as logs:
+        run(fixtures, port)
     report = canary.scan(port, planted)
+    art = canary.scan_artifacts(planted)
+    log_report = canary.scan(logs.texts, planted)
     if record:
         canary.record_run(name, report)
     if strict:
@@ -255,6 +272,10 @@ def canary_flow(
         assert_ledger_complete(port, ledger_extension_rows()[before:])
         if report.leaks:
             raise AssertionError(f"{name}: planted canary token(s) reached the model port: {report.summary()}")
+        if art.leaks:
+            raise AssertionError(f"{name}: planted token(s) found in the ledger, audit log, queue or log files (PRV-4): {art.summary()}")
+        if log_report.leaks:
+            raise AssertionError(f"{name}: planted token(s) found in log records (PRV-4): {log_report.summary()}")
     return report
 
 
@@ -333,10 +354,11 @@ def run_flow(flow: CanaryFlow, seed: int = 0) -> FlowResult:
                       artifact_files=art.requests, artifact_log_records=log_report.requests, artifact_leaked=art_leaked)
 
 
-def assert_vocabularies_clean() -> None:
-    """Every registered vocabulary value and every registered purpose's instructions must pass the full backstop, so no id can be
-    refused at send time for a reason that could have been caught in a unit test. A track calls this at the end of its own suite."""
+def vocabulary_problems() -> list[str]:
+    """Every registered vocabulary value, purpose instruction and payload field name that the backstop would refuse at send time
+    (empty list when all are clean)."""
     from . import patterns
+    from .image import image_purposes
     from .payload import purposes, vocabularies
 
     bad: list[str] = []
@@ -353,4 +375,19 @@ def assert_vocabularies_clean() -> None:
             rules = patterns.scan_text(fname, pii=False)
             if rules:
                 bad.append(f"purpose {pname!r}: field name {fname!r} trips the sensitive-field patterns {sorted(set(rules))}")
+    for pname, ip in image_purposes().items():
+        rules = patterns.scan_text(ip.instructions)
+        if rules:
+            bad.append(f"image purpose {pname!r}: instructions trip {sorted(set(rules))}")
+        for fname in ip.model.field_names():
+            rules = patterns.scan_text(fname, pii=False)
+            if rules:
+                bad.append(f"image purpose {pname!r}: field name {fname!r} trips the sensitive-field patterns {sorted(set(rules))}")
+    return bad
+
+
+def assert_vocabularies_clean() -> None:
+    """Fail if any registered id, instruction or field name would be refused by the backstop at send time, so no id can be refused
+    in production for a reason a unit test could have caught. A track calls this at the end of its own suite."""
+    bad = vocabulary_problems()
     assert not bad, "the privacy backstop would refuse these at send time:\n" + "\n".join(bad)

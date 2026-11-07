@@ -109,3 +109,75 @@ register_payload("briefing.card_wording", BriefingCardWording, instructions=_WOR
 register_payload("digest.meta", DigestMeta, instructions=_WORDING, response_schema=WORDING_RESPONSE)
 
 BUILTIN_PURPOSES = ("calendar.suggestion_wording", "git.habit_wording", "briefing.card_wording", "digest.meta")
+
+
+# --------------------------------------------------------------------------------------------------------- image purposes (REQ-5)
+# Defaults so the MODELS and AWARENESS tracks can integrate at once. A track whose glance schema differs registers its own purpose
+# name, or ``replace=True`` on one of these. The answer schemas are CLOSED: every string is an enum, so nothing read off the screen
+# can come back as text (``image.closed_schema_problem`` enforces that at registration).
+from .image import register_image_purpose  # noqa: E402
+
+register_vocabulary("point.step", ["submit", "next", "back", "search", "save", "open_menu", "close_dialog", "confirm", "cancel"], extend=True)
+register_vocabulary("verify.check", ["page_shows_result", "form_saved", "error_visible", "dialog_open", "signed_in", "result_matches"],
+                    extend=True)
+
+_BOX = {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 1000}, "minItems": 4, "maxItems": 4}
+GLANCE_RESPONSE = {
+    "type": "object", "additionalProperties": False,
+    "properties": {
+        "app_kind": {"enum": ["browser", "spreadsheet", "document", "email", "code_editor", "terminal", "chat", "calculator_site", "other", "unknown"]},
+        "task_phase": {"enum": ["start", "entering", "reviewing", "blocked", "done", "idle", "unknown"]},
+        "blocker": {"enum": ["none", "error_message", "unfamiliar_screen", "slow_page", "missing_info", "dialog_open", "unknown"]},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "box_2d": _BOX,
+    },
+    "required": ["app_kind", "task_phase", "blocker", "confidence"],
+}
+POINT_RESPONSE = {
+    "type": "object", "additionalProperties": False,
+    "properties": {"found": {"type": "boolean"}, "confidence": {"type": "number", "minimum": 0, "maximum": 1}, "box_2d": _BOX},
+    "required": ["found", "confidence"],
+}
+VERIFY_RESPONSE = {
+    "type": "object", "additionalProperties": False,
+    "properties": {"verdict": {"enum": ["yes", "no", "unsure"]}, "confidence": {"type": "number", "minimum": 0, "maximum": 1}},
+    "required": ["verdict", "confidence"],
+}
+
+
+class GlancePayload(SafePayload):
+    """What travels beside a screen glance: why it was taken and whether the worker chose strict mode."""
+
+    description = "A screen glance: the reason it was taken (stuck, loop, hotkey, periodic) and the mode."
+    mode: Literal["triggered", "periodic", "hotkey"]
+    trigger: Literal["stuck", "loop", "hotkey", "periodic"]
+    strict: bool
+
+
+class PointPayload(SafePayload):
+    """Which step's target to point at, as a fixed id (never the label text)."""
+
+    description = "Point at the target of a step named by a fixed id."
+    step: Annotated[str, Vocab("point.step")]
+
+
+class VerifyPayload(SafePayload):
+    """Which check to make on a screenshot, as a fixed id."""
+
+    description = "Check one fixed condition on a screenshot (for example that a result page is showing)."
+    check: Annotated[str, Vocab("verify.check")]
+
+
+class LiveFramePayload(SafePayload):
+    """A low-rate live frame's sequence number."""
+
+    description = "One frame of an opted-in live session."
+    seq: Annotated[int, Field(ge=0, le=100000)]
+
+
+register_image_purpose("glance.screen_state", GlancePayload, response_schema=GLANCE_RESPONSE, kinds=("glance",))
+register_image_purpose("point.element", PointPayload, response_schema=POINT_RESPONSE, kinds=("point",))
+register_image_purpose("verify.agent_run", VerifyPayload, response_schema=VERIFY_RESPONSE, kinds=("verify",))
+register_image_purpose("live.frame", LiveFramePayload, response_schema=GLANCE_RESPONSE, kinds=("live_frame",))
+
+BUILTIN_IMAGE_PURPOSES = ("glance.screen_state", "point.element", "verify.agent_run", "live.frame")

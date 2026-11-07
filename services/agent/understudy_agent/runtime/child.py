@@ -126,7 +126,9 @@ class ChildAgent:
             routine=RoutineContext(routine_id=routine_id, mode="model_driven", unattended=unattended, rung="A0",
                                    run_id=self.child_run_id))
         self.schema = child_step_schema(spec.id, spec.tools)         # raw mode only
-        self.tctx = ToolCtx(ws, spec, output_schema)
+        self.tctx = ToolCtx(ws, spec, output_schema, remaining=lambda: max(0.0, spec.budget.seconds - self.clock()))
+        self.t_start: float | None = None
+        self.t_end: float | None = None
         self.steps: list[StepRecord] = []
         self.tokens = 0
         self.status: ChildStatus | None = None
@@ -199,13 +201,17 @@ class ChildAgent:
                     "state": "not_started", "stop_reason": None}
         s = self.lease.snapshot()
         return {"ttl_s": s["ttl_s"], "remaining_s": s["remaining_s"], "steps_left": max(0, s["max_steps"] - s["steps_used"]),
-                "tools": s["tools"], "revoked": s["state"] == "revoked", "state": s["state"], "stop_reason": s["stop_reason"]}
+                "tools": s["tools"], "revoked": s["state"] == "revoked" and s["stop_reason"] not in ("run_finished", "resumed"),
+                "state": s["state"], "stop_reason": s["stop_reason"]}
 
     # ------------------------------------------------------------------------------------------------ the loop
     def run(self, ctx: TaskContext) -> None:
         """Runs (or resumes) until the child finishes or the task is cancelled (stop, kill, yield, timeout)."""
         self.tctx.is_cancelled = lambda: not ctx.is_current()
         self.clock.start()
+        if self.t_start is None:
+            self.t_start = time.monotonic()
+        self._obs = None                 # a resume never reuses an observation the interrupted turn may have spent
         self._issue_lease()
         if not self._started:
             self._started = True
@@ -216,6 +222,7 @@ class ChildAgent:
                 self._turn(ctx)
         finally:
             self.clock.pause()
+            self.t_end = time.monotonic()
 
     def _turn(self, ctx: TaskContext) -> None:
         state = self.lease.poll()
@@ -258,7 +265,7 @@ class ChildAgent:
         if self.pipe.paused:
             blockers.add("injection_hit")
         post = post_verify(POSTCONDITIONS[tool], PostObservation(outcome.fields, blockers=frozenset(blockers)))
-        still_active = self.lease.record(post)                           # failed, uncertain, blocked stop the lease
+        self.lease.record(post)                                          # failed, uncertain, blocked stop the lease
         check = _CHECK.get(post.verdict, "uncertain")
         self._n += 1
         self.steps.append(StepRecord(n=self._n, tool=tool, ok=outcome.ok, check=check,
@@ -274,8 +281,11 @@ class ChildAgent:
             return
         if outcome.terminal and post.ok:
             self._finish("done", "emitted")
-        elif not post.ok or not still_active:
-            self._finish("failed", f"postcheck_{post.verdict}")
+        elif not post.ok:
+            if self.clock() >= self.spec.budget.seconds - 0.05:      # the step failed because the time budget ran out
+                self._finish("timeout", "budget_seconds")
+            else:
+                self._finish("failed", f"postcheck_{post.verdict}")
 
     # ------------------------------------------------------------------------------------------------ planning
     def _plan_step(self, ctx: TaskContext, obs: Observation) -> tuple[str, dict[str, Any]]:
@@ -290,8 +300,8 @@ class ChildAgent:
             raw = rtprivacy.child_step(self.spec.role, self.kind, self._steps_left(), self._last, list(self._typed), self.port)
         except rtprivacy.EgressError as e:
             self._audit("agent_child", "egress_error", e.code if re.fullmatch(r"[a-z_]{1,40}", e.code) else None)
-            if e.code == "model_call_failed":
-                raise ProviderError("model call failed") from None
+            if e.code in ("model_call_failed", "model_output_rejected"):   # a bad reply is a bad step, not a privacy breach
+                raise ProviderError(e.code) from None
             self._finish("failed", f"privacy_{e.code}"[:60])
             raise StepRejected("privacy") from None
         self.model_calls += 1

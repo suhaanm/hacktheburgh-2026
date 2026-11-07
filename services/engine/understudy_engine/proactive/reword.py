@@ -27,7 +27,7 @@ SOURCE_MAP = {"routines": "routine", "skills": "skill", "agents": "agent", "cale
 #: named numbers this layer sends, and how the privacy layer generalises each (registered on first use)
 FEATURES = {"episodes": "count", "minutes_per_week": "duration_min", "hours_saved_lo": "hours", "hours_saved_hi": "hours",
             "confidence": "ratio", "horizon_weeks": "raw", "level": "raw", "mastery": "ratio", "days_idle": "raw",
-            "days_until_drop": "raw", "learner": "raw", "expert": "raw", "delta": "raw", "n_commits": "count", "age_h": "hours",
+            "days_until_drop": "raw", "recent_errors": "count", "learner": "raw", "expert": "raw", "delta": "raw", "n_commits": "count", "age_h": "hours",
             "children": "count"}
 PURPOSE = "briefing.card_wording"
 _NUM = re.compile(r"\d+(?:\.\d+)?")

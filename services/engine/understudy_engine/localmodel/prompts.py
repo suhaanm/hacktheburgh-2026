@@ -23,20 +23,22 @@ category (what the change is; decide from the message and the paths together):
 - docs: changes only documentation, comments, README, changelog, or fixes a typo in docs
 - chore: dependencies, build, CI, configuration, formatting, version bumps, merges, releases, housekeeping
 - revert: undoes an earlier commit
-- other: performance work, experiments and spikes, and messages with no verb at all ("wip", "asdf", "stuff", "misc")
+- other: performance work, experiments and spikes, turning things off or skipping checks (disable, turn off, skip, drop), and messages with no verb at all ("wip", "asdf", "stuff", "misc")
 A vague message still carries its verb: "add stuff" is a feature, "fix stuff" a fix, "cleanup" a refactor, "update docs" docs.
 
-risk (how risky the change is to ship; the paths and the component named in the message both count):
-- high: ANY change to a sensitive area, whatever its size: authentication, login, sessions, tokens, passwords, credentials, \
-permissions or access checks, payments, refunds, ledgers, signature or certificate verification, database migrations, \
-infrastructure or terraform, deployment or release pipelines. Also any revert, any change over 1000 lines, and any message that \
-turns off a safety check (rate limit, TLS, signature, permission) or deletes data.
+risk (how risky the change is to ship; the paths AND the component named in the message both count, even when the path looks harmless):
+- high: ANY change to a sensitive area, whatever its size and even a refactor or a small fix: authentication, login, sessions, tokens \
+(token service), passwords, credentials (credential storage), permissions or access checks (permission checks), payments, refunds \
+(refund flow), ledgers, signature or certificate verification, database migrations, infrastructure or terraform, deployment \
+(deploy pipeline) or release pipelines. Also any revert, any change over 1000 lines, and any message that turns off a safety check \
+(rate limit, TLS, signature, permission) or deletes data.
 - medium: an ordinary behaviour change to application code outside those areas: a feature, a bug fix, or a refactor of more than a few lines.
 - low: docs, tests, comments, formatting, dependency or config chores outside those areas, tiny changes (under about 10 lines), and unclear small experiments.
 
 message_quality (the commit message only, not the diff):
 - vague: says almost nothing, such as "wip", "fixes", "update stuff", "misc", "oops"
-- ok: says what changed in one specific line; a Co-authored-by trailer, a thanks line, a link or a ticket number does not make it clear
+- ok: says what changed in one specific line. Mechanical messages are ok too: merges, version bumps, pins, "run the formatter". \
+A ticket prefix (ACME-1234:), "(reported by ...)", a Co-authored-by trailer, a thanks line or a link never makes a message clear
 - clear: says what changed AND why or what it fixes, in a body or a rationale clause
 
 The facts size, files_changed and touches_tests are computed by code and are correct."""
@@ -51,13 +53,14 @@ category:
 - focus: time reserved for solo work: focus blocks, deep work, writing, "do not book"
 - social: lunch, coffee, drinks, celebrations, team-building
 - admin: expenses, timesheets, training, compliance, HR tasks, inbox time, planning one's own week
-- external: with people outside the organisation: customers, clients, vendors, partners, interview candidates
+- external: with people outside the organisation: customers, clients, vendors, partners, interview candidates (the title names them)
 - travel: commutes, flights, trains, transfers
-- unknown: the title says too little to tell, such as "Meeting", "Hold", "Busy"
+- unknown: the title says too little to tell, such as "Meeting", "Call", "Hold", "Busy", "Sync", "Discuss", however many people attend
+A first name alone with two attendees is a one_to_one.
 
-needs_prep: true when attendees would normally prepare beforehand (presenting or demoing, reviewing material, interviews, \
-customer-facing sessions, planning sessions with deliverables); false for standups, social events, focus time, travel, routine \
-1:1s and admin.
+needs_prep: true when attendees would normally prepare beforehand (presenting or demoing, reading material, interviews, \
+customer-facing sessions, planning, refinement, kickoff or readiness sessions, post-incident reviews); false for standups, handovers, \
+partner catch-ups, social events, focus time, travel, routine 1:1s and routine admin (expenses, timesheets, paperwork).
 
 The facts attendees, duration_minutes and recurring are computed by code and are correct."""
 
@@ -79,7 +82,7 @@ COMMIT_SHOTS: list[tuple[str, dict[str, Any]]] = [
         "marked done, so a slow SMTP reply produced two sends. Mark the job in-flight first.", 1, 9, 3, "small", False,
         ["mailer/worker.py"]),
      _a(category="fix", risk="medium", message_quality="clear")),
-    (_c("wip", 2, 31, 4, "small", False, ["src/app.py", "src/views.py"]),
+    (_c("stuff and things", 2, 31, 4, "small", False, ["src/app.py", "src/views.py"]),
      _a(category="other", risk="low", message_quality="vague")),
     (_c("Rename OrderRow to LineItem across the cart module", 9, 62, 62, "medium", False, ["cart/models.py", "cart/views.py"]),
      _a(category="refactor", risk="medium", message_quality="ok")),
@@ -87,7 +90,7 @@ COMMIT_SHOTS: list[tuple[str, dict[str, Any]]] = [
      _a(category="feature", risk="high", message_quality="ok")),
     (_c("Bump lodash from 4.17.20 to 4.17.21", 2, 14, 14, "small", False, ["package.json", "package-lock.json"]),
      _a(category="chore", risk="low", message_quality="ok")),
-    (_c("Revert \"Switch checkout to async payments\"", 3, 40, 211, "medium", False, ["payments/checkout.py"]),
+    (_c("Revert \"Add retries to the nightly sync\"", 3, 40, 211, "medium", False, ["payments/checkout.py"]),
      _a(category="revert", risk="high", message_quality="ok")),
     (_c("Explain how to run the integration suite locally", 1, 22, 0, "small", False, ["README.md"]),
      _a(category="docs", risk="low", message_quality="ok")),
@@ -99,7 +102,7 @@ COMMIT_SHOTS: list[tuple[str, dict[str, Any]]] = [
      _a(category="fix", risk="high", message_quality="ok")),
     (_c("Tidy up the label spacing", 1, 4, 3, "tiny", False, ["ui/Label.tsx"]),
      _a(category="refactor", risk="low", message_quality="ok")),
-    (_c("Update the Dockerfile base image", 1, 2, 2, "tiny", False, ["deploy/Dockerfile"]),
+    (_c("Move the base image to the slim variant", 1, 2, 2, "tiny", False, ["deploy/Dockerfile"]),
      _a(category="chore", risk="high", message_quality="ok")),
     (_c("Extract a retry helper from the sync worker", 3, 70, 55, "medium", False, ["sync/worker.py", "sync/retry.py", "sync/__init__.py"]),
      _a(category="refactor", risk="medium", message_quality="ok")),
@@ -121,12 +124,15 @@ EVENT_SHOTS: list[tuple[str, dict[str, Any]]] = [
     (_e("1:1 Sam / Jo", 2, 30, True), _a(category="one_to_one", needs_prep=False)),
     (_e("Platform team standup", 8, 15, True, online=True), _a(category="team_meeting", needs_prep=False)),
     (_e("Design review: onboarding flow", 6, 60, False, "Please read the Figma file before we meet."), _a(category="review", needs_prep=True)),
-    (_e("Focus time", 1, 120, True), _a(category="focus", needs_prep=False)),
+    (_e("Quiet block for writing", 1, 120, True), _a(category="focus", needs_prep=False)),
     (_e("Team lunch at the canteen", 12, 60, False), _a(category="social", needs_prep=False)),
     (_e("Submit expenses", 0, 30, False), _a(category="admin", needs_prep=False)),
     (_e("Discovery call - Brightwell Logistics", 4, 45, False, online=True), _a(category="external", needs_prep=True)),
-    (_e("Train to Glasgow", 0, 180, False), _a(category="travel", needs_prep=False)),
-    (_e("Hold", 1, 60, False), _a(category="unknown", needs_prep=False)),
+    (_e("Sleeper to Inverness", 0, 180, False), _a(category="travel", needs_prep=False)),
+    (_e("Reserved", 1, 60, False), _a(category="unknown", needs_prep=False)),
+    (_e("Shift handover", 5, 30, True), _a(category="team_meeting", needs_prep=False)),
+    (_e("Release planning for v2", 9, 90, False), _a(category="team_meeting", needs_prep=True)),
+    (_e("Pay run checks", 0, 30, True), _a(category="admin", needs_prep=False)),
     (_e("Quarterly planning workshop", 14, 180, False, "Bring your team's draft priorities."), _a(category="team_meeting", needs_prep=True)),
 ]
 
@@ -140,7 +146,7 @@ def commit_payload(c: CommitItem) -> str:
     L = config.LIMITS
     facts = c.facts()
     return json.dumps({
-        "message": _trunc(c.message, L.max_message_chars),
+        "message": _trunc(c.clean, L.max_message_chars),
         "files_changed": c.files_changed if c.files_changed is not None else len(c.paths),
         "lines_added": c.additions if c.additions is not None else 0,
         "lines_deleted": c.deletions if c.deletions is not None else 0,

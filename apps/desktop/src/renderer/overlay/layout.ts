@@ -12,6 +12,9 @@ export interface LabelRequest {
   // Gap between anchor and label (include the tail length for bubbles).
   gap: number
   prefer?: Side[]
+  // 'start': a label above or below sits flush with the anchor's left edge, and one at the side is flush with its top edge
+  // (a note on a ring reads from the ring's corner). Default: centred on the anchor.
+  align?: 'center' | 'start'
 }
 
 export interface PlacedLabel {
@@ -28,8 +31,9 @@ const DEFAULT_ORDER: Side[] = ['below', 'above', 'right', 'left']
 
 function candidate(req: LabelRequest, side: Side): Rect {
   const { anchor, size, gap } = req
-  const cx = anchor.x + anchor.w / 2
-  const cy = anchor.y + anchor.h / 2
+  const start = req.align === 'start'
+  const cx = start ? anchor.x + size.width / 2 : anchor.x + anchor.w / 2
+  const cy = start ? anchor.y + size.height / 2 : anchor.y + anchor.h / 2
   switch (side) {
     case 'below':
       return { x: cx - size.width / 2, y: anchor.y + anchor.h + gap, w: size.width, h: size.height }

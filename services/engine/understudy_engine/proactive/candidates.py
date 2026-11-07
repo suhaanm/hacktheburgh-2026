@@ -164,7 +164,9 @@ def _age_days(ctx: Ctx, ts: float | None) -> float | None:
 
 
 def _date_ts(s: Any) -> float | None:
-    """'2026-11-07' or an ISO time to unix seconds (UTC); None when unknown."""
+    """'2026-11-07', an ISO time or unix seconds to unix seconds (UTC); None when unknown."""
+    if isinstance(s, (int, float)) and not isinstance(s, bool):
+        return float(s) if s == s and s > 0 else None
     if not s or not isinstance(s, str):
         return None
     try:
@@ -242,8 +244,11 @@ def practice_candidates(ctx: Ctx, rd: Reading, routines: Reading | None = None) 
         lv = int(s.get("level", 1))
         if lv >= 4:
             continue
-        if any(level.get(p, 1) < 2 for p in s.get("prerequisites", [])):
-            continue        # teach in order: a skill whose prerequisite is still at level 1 waits
+        errs = s.get("recent_errors")           # None when only a level is known (the memory file)
+        attempts = s.get("attempts")
+        erring = errs is not None and int(errs) > 0
+        if not erring and any(level.get(p, 1) < 2 for p in s.get("prerequisites", [])):
+            continue        # teach in order, unless the worker is visibly getting this one wrong
         mastery = clamp01(_f(s.get("mastery"), 0.2))
         idle = s.get("days_idle")
         idle = None if idle is None else max(0.0, _f(idle))
@@ -251,16 +256,26 @@ def practice_candidates(ctx: Ctx, rd: Reading, routines: Reading | None = None) 
         drop_urg = 0.0 if drop is None else clamp01(1.0 - _f(drop) / 3.0)
         idle_urg = 0.0 if idle is None else 0.4 * clamp01(idle / 7.0)
         unlocks = next((blocking[c] for c in s.get("cogs", []) if c in blocking), None)
-        value = clamp01(0.6 * (1.0 - mastery) + 0.4 * ((4 - lv) / 3.0) + (0.2 if unlocks else 0.0))
+        base = 0.6 * (1.0 - mastery) + 0.4 * ((4 - lv) / 3.0)
+        if errs is None:
+            value = base
+        elif attempts == 0:
+            value = 0.5 * base                   # never seen: unknown, not a known gap
+        else:
+            value = 0.5 * base + 0.5 * (min(int(errs), 2) / 2.0)
+        value = clamp01(value + (0.2 if unlocks else 0.0))
         label = clean_line(s.get("label") or s["id"])
         bits = [f"It is at level {lv} of 4 and your mastery is about {mastery:.0%}."]
+        if erring:
+            bits.append(f"It has gone wrong {int(errs)} time{'s' if int(errs) != 1 else ''} in your recent cases.")
         if idle is not None:
             bits.append(f"You last practised it {idle:.0f} day{'s' if round(idle) != 1 else ''} ago.")
         if unlocks:
             bits.append("Getting it to level 4 is what lets an automation be offered.")
         out.append(Candidate(
             kind="practice", title=f"Practice: {label}", why=" ".join(bits),
-            numbers={"level": lv, "mastery": round(mastery, 2), **({"days_idle": round(idle, 1)} if idle is not None else {}),
+            numbers={"level": lv, "mastery": round(mastery, 2), **({"recent_errors": int(errs)} if errs is not None else {}),
+                     **({"days_idle": round(idle, 1)} if idle is not None else {}),
                      **({"days_until_drop": round(_f(drop), 1)} if drop is not None else {}), "unlocks_automation": bool(unlocks)},
             source_tags=["skills", "pack"] + (["routines"] if unlocks else []), risk_class="normal",
             value=value, urgency=max(drop_urg, idle_urg, 0.15), freshness=half_life(idle, 14.0),
@@ -289,14 +304,25 @@ CAL_TEMPLATES: dict[str, dict[str, Any]] = {
               "why": "Long unbroken screen stretches show up in your week. A scheduled break or handoff gives you a rest."},
     "back": {"title": "Reduce back-to-back meetings", "risk": "normal", "draft": False,
              "why": "Meetings run into each other with no gap. A buffer between them helps."},
+    "move": {"title": "Move recurring meetings out of your best hours", "risk": "normal", "draft": False,
+             "why": "Recurring meetings sit in the part of the day you do your deepest work. Moving them frees it."},
+    "buffer": {"title": "Leave a gap before external calls", "risk": "outward", "draft": True,
+               "why": "Calls with people outside start right after other meetings. A short buffer helps you arrive ready."},
+    "trim": {"title": "Trim the meeting load", "risk": "normal", "draft": False,
+             "why": "Meetings take more of your week than the expert reference. Declining or shortening a few would give time back."},
+    "edges": {"title": "Keep meetings inside working hours", "risk": "normal", "draft": False,
+              "why": "Meetings are running past your usual finish. Holding the edges of the day protects your evenings."},
 }
-_CAL_ORDER = ("focus", "batch", "review", "hold", "break", "back")
+_CAL_HINTS = (("focus", ("focus",)), ("batch", ("batch",)), ("review", ("review",)), ("hold", ("hold", "automate", "auto_")),
+              ("break", ("break", "offscreen", "off_screen", "off-screen", "handoff", "away")), ("back", ("back", "b2b")),
+              ("move", ("move", "recurring")), ("buffer", ("buffer",)), ("trim", ("trim",)), ("edges", ("edges", "working_hours")))
+#: demo stand-in: the demo person has no calendar of their own, so the demo borrows the synthetic persona whose routines it already shows
+DEMO_CALENDAR_SOURCE = {"p_learn01": "p_ninetofive"}
 
 
 def calendar_family(template: Any) -> str | None:
     t = str(template or "").lower()
-    for key, hints in (("focus", ("focus",)), ("batch", ("batch",)), ("review", ("review",)), ("hold", ("hold", "automate", "auto_")),
-                       ("break", ("break", "offscreen", "off_screen", "off-screen", "handoff", "away")), ("back", ("back", "b2b"))):
+    for key, hints in _CAL_HINTS:
         if any(h in t for h in hints):
             return key
     return None
@@ -325,25 +351,35 @@ def calendar_candidates(ctx: Ctx, rd: Reading) -> list[Candidate]:
                                             "why": "Your week's shape suggests a change."})
         nums = safe_numbers(s.get("numbers"))
         gain_h = _hours_from(nums)
-        value = sat(gain_h, 3.0) if gain_h is not None else 0.45
+        prio = s.get("priority")
+        if gain_h is not None:
+            value, vsrc = sat(gain_h, 3.0), "calendar numbers"
+        elif isinstance(prio, (int, float)) and not isinstance(prio, bool):
+            value, vsrc = 0.3 + 0.6 * clamp01(float(prio)), "calendar priority"    # how far past its target the week is, from the calendar layer
+        else:
+            value, vsrc = 0.45, "default"
         bits = [cat["why"]]
-        shown = [f"{k.replace('_', ' ')} {v}" for k, v in nums.items() if isinstance(v, (int, float)) and not isinstance(v, bool)][:3]
+        shown = [f"{k.replace('_', ' ')} {v:g}" for k, v in nums.items() if isinstance(v, (int, float)) and not isinstance(v, bool)][:3]
         if shown:
             bits.append("The numbers: " + ", ".join(shown) + ".")
         ref = safe_numbers(s.get("expert_ref"))
         if ref:
             bits.append("The expert reference is on the card.")
-        risk = "outward" if (cat["risk"] == "outward" or s.get("can_draft")) and fam in ("focus", "review", "hold", "break") else "normal"
+        if rd.meta.get("stand_in"):
+            bits.append("This is a stand-in synthetic calendar, because the demo person has none.")
+        can_draft = bool(s.get("can_draft")) and bool(cat["draft"])
+        risk = "outward" if can_draft else "normal"
+        fire = (FireSpec("draft", {"queue_kind": "outward_step", "action": "calendar_draft", "template": tid}) if can_draft
+                else FireSpec("queue", {"queue_kind": "batch_result", "action": "calendar_advice", "template": tid}))
         out.append(Candidate(
             kind="focus_block", title=cat["title"], why=" ".join(bits),
             numbers={**nums, **{f"expert_{k}": v for k, v in ref.items()}},
             source_tags=["calendar"] + (["local_model"] if rd.meta.get("digest") == "model" else []), risk_class=risk, value=value,
             urgency=0.5, freshness=0.9,
-            prepared_template={"template": "calendar_hold", "params": {"family": fam or "other", "template_id": tid, "numbers": nums}},
-            fire=FireSpec("draft", {"queue_kind": "outward_step" if risk == "outward" else "batch_result", "action": "calendar_draft",
-                                    "template": tid}),
-            subject=f"cal:{tid}", person=ctx.person, effort=0.2, observed_at=ctx.now_ts,
-            meta={"value_source": "calendar numbers" if gain_h is not None else "default"}))
+            prepared_template={"template": "calendar_hold", "params": {"family": fam or "other", "template_id": tid, "numbers": nums,
+                                                                       "can_draft": can_draft}},
+            fire=fire, subject=f"cal:{tid}", person=ctx.person, effort=0.2, observed_at=ctx.now_ts,
+            meta={"value_source": vsrc, **({"stand_in": True} if rd.meta.get("stand_in") else {})}))
     return out
 
 
@@ -400,7 +436,8 @@ def git_candidates(ctx: Ctx, rd: Reading) -> list[Candidate]:
             value=value, urgency=0.35, freshness=0.8,
             prepared_template={"template": "git_habit_note", "params": {"family": fam or "other", "habit_id": hid, "numbers": nums,
                                                                          "agent_kind": cat["agent"]}},
-            fire=FireSpec("agent", {"agent_kind": cat["agent"], "mode": "foreground", "habit": hid}),
+            fire=FireSpec("agent", {"agent_kind": cat["agent"], "mode": "foreground", "habit": hid,
+                                    **({"repo_id": h["repo_id"]} if isinstance(h.get("repo_id"), str) else {})}),
             subject=f"git:{hid}", person=ctx.person, effort=0.25, observed_at=ctx.now_ts,
             meta={"significant": bool(sig)}))
     return out
@@ -410,7 +447,7 @@ def git_candidates(ctx: Ctx, rd: Reading) -> list[Candidate]:
 def agent_candidates(ctx: Ctx, rd: Reading) -> list[Candidate]:
     out: list[Candidate] = []
     for r in rd.items:
-        if r.get("viewed") or str(r.get("state")) not in ("done", "succeeded", "complete", "completed"):
+        if r.get("viewed") or str(r.get("state")) not in ("done", "partial", "succeeded", "complete", "completed"):
             continue
         rid = re.sub(r"[^A-Za-z0-9_.\-]", "", str(r.get("run_id") or ""))[:64]
         if not rid:

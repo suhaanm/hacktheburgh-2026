@@ -1,0 +1,33 @@
+# Commit digest -> programmer cogs (GIT-1, IMPLEMENTATION_SPEC 14.8). Owned by the git-analysis track.
+#
+# Not an event-to-cog mapping (that is mapping.yaml): this one maps a commit DIGEST (category, size bucket, test touch; never a
+# message or a path) to a short sequence of cogs, so the genome alignment (ANA-2) can run on commit sessions. Code reads it in
+# understudy_engine/gitanalysis/cogseq.py; nothing here is a model prompt.
+#
+# Time model (a deliberately coarse stand-in for time spent, because git records only when a commit landed):
+#   a session is a run of commits less than session_gap_min apart;
+#   the work before a commit lasts from the previous commit in the session (capped at max_work_s), or lead_in_s for the first
+#   commit of a session (by size bucket); the COMMIT cog takes commit_s; the work before it is split between the cogs the rule
+#   lists, in proportion to `weights` (default equal).
+version: 1
+kind: commit_digest_cog_mapping
+cogs: [CODE, TEST, REFACTOR, COMMIT, REVERT]
+params:
+  session_gap_min: 90
+  commit_s: 30
+  max_work_s: 7200
+  revert_s: 60
+  lead_in_s: { tiny: 300, small: 900, medium: 1800, large: 3600, huge: 5400 }
+  max_episodes_per_person: 12
+  families: [[CODE, REFACTOR]]          # treated as related by the alignment (mismatch costs 0.5, not 2.5)
+rules:
+  - { match: { category: revert }, cogs: [REVERT] }
+  - { match: { category: test }, cogs: [TEST, COMMIT] }
+  - { match: { category: refactor }, cogs: [REFACTOR, COMMIT] }
+  - { match: { category: [feature, fix, other], touches_tests: true }, cogs: [CODE, TEST, COMMIT], weights: [0.7, 0.3, 0] }
+  - { match: { category: [feature, fix, other] }, cogs: [CODE, COMMIT] }
+  - { match: { category: [docs, chore] }, cogs: [COMMIT] }
+examples:
+  - { digest: { category: feature, size_bucket: small, touches_tests: true }, expect: [CODE, TEST, COMMIT] }
+  - { digest: { category: fix, size_bucket: tiny, touches_tests: false }, expect: [CODE, COMMIT] }
+  - { digest: { category: revert, size_bucket: tiny, touches_tests: false }, expect: [REVERT] }

@@ -6,6 +6,8 @@ What it measures, and what it does not claim
   (person names, emails, meeting titles, file paths, commit messages, customer names), against a ``CapturingPort`` that records
   every request body. The measurement is: how many planted tokens appear in any captured request. A one-sided exact
   (Clopper-Pearson) 95% upper bound on the leak rate is reported with the count.
+* **Logs, audit, queue (PRV-4).** After each run the ledger files, ``audit.jsonl``, the ``queue/`` items and ``logs/`` under the
+  data dir, and every ``logging`` record emitted while the flow ran, are searched for the planted tokens.
 * **Ledger completeness.** For every flow run: one ledger line per captured request, no request that bypassed the guard, and
   each line's payload equal to the payload the request carried.
 * **Flows covered.** Flows come from two places and are reported separately. ``reference`` flows are this layer's own stand-in
@@ -16,8 +18,11 @@ What it measures, and what it does not claim
   refused, an unknown purpose refused, a PII-shaped id blocked, a PII-bearing model answer discarded, and a ledger that cannot
   be written must stop the call.
 * **Bucketing properties.** Exhaustive and seeded-random sweeps of the five generalisation rules.
+* **The canary scan itself.** Its detection rate on tokens rewritten in nine known ways, and its false positives on thousands of clean
+  bodies, so "zero leaks" is read together with how able the scan is to see one.
 * **Backstop corpus.** Shapes it must catch (by rule) and ordinary vocabulary it must not flag.
-* **Static guard.** Modules scanned and violations, from ``guard.scan_tree``.
+* **Static guard.** Modules scanned and violations, from ``guard.scan_tree`` (the extension layers) and ``guard.scan_runtime``
+  (the agent runtime, which plans through the model port by design: it must record every visible direct call).
 
 Everything runs offline on synthetic fixtures in a temporary data directory (the real ledger is not touched); the aggregate is
 recorded for ``GET /privacy/summary`` only when ``record=True``. Nothing here validates behaviour on real data, and
@@ -38,9 +43,10 @@ from typing import Any, Iterable
 from . import bucket as B
 from . import canary, egress, guard, ledger, patterns
 from .egress import EgressError
-from .payload import PurposeError, UnsafeFieldError, get_purpose
+from .payload import UnsafeFieldError
 from .purposes import BriefingCardWording, CalendarSuggestionWording, DigestMeta, GitHabitWording
-from .testing import CanaryFlow, CapturingPort, FlowResult, run_flow
+from .payload import purposes as all_purposes
+from .testing import CanaryFlow, CapturingPort, FlowResult, run_flow, vocabulary_problems
 
 _env_lock = threading.RLock()
 LAYERS = ("calendar", "gitanalysis", "proactive", "localmodel", "plugins")
@@ -150,7 +156,14 @@ def discover_flows() -> tuple[list[CanaryFlow], dict[str, dict[str, Any]]]:
             mod = importlib.import_module(name)
             got = list(getattr(mod, "FLOWS", []))
             flows.extend(got)
-            layers[layer] = {"status": "registered" if got else "none_registered", "flows": [f.name for f in got]}
+            na = getattr(mod, "NOT_APPLICABLE", None)
+            if got:
+                layers[layer] = {"status": "registered", "flows": [f.name for f in got]}
+            elif isinstance(na, str) and na.strip():
+                # the layer says it has no model path (for example sources only); the static guard is what covers it
+                layers[layer] = {"status": "not_applicable", "flows": [], "note": na.strip()[:240]}
+            else:
+                layers[layer] = {"status": "none_registered", "flows": []}
         except ModuleNotFoundError as exc:
             layers[layer] = {"status": "none_registered", "flows": [], "note": "no canary_flows module"} if exc.name == name else \
                 {"status": "error", "flows": [], "note": f"import failed: {exc.name}"}
@@ -209,6 +222,32 @@ def negative_controls() -> list[dict[str, Any]]:
         return (f"leaked={r.leaked}", r.leaked >= 1)
 
     out.append(_control("a leaked name that was upper-cased and underscored is still caught", "leak detected", rewritten))
+
+    def logs_title() -> tuple[str, bool]:
+        import logging
+
+        def run(fx, port):
+            _cal_run(fx, port)
+            logging.getLogger("control.calendar").info("handling %s", fx["events"][0]["title"])
+
+        r = run_flow(CanaryFlow("control.logs_title", _cal_fixture, run), seed=3)
+        return (f"artifact_leaked={r.artifact_leaked}, model_leaked={r.leaked}", r.artifact_leaked >= 1 and r.leaked == 0)
+
+    out.append(_control("a flow that writes a planted meeting title into a log record is caught (PRV-4)", "log leak detected, none at the model", logs_title))
+
+    def queue_title() -> tuple[str, bool]:
+        from ._paths import data_dir
+
+        def run(fx, port):
+            _cal_run(fx, port)
+            q = data_dir() / "queue"
+            q.mkdir(parents=True, exist_ok=True)
+            (q / "q_control.json").write_text(json.dumps({"summary": fx["events"][0]["title"]}))
+
+        r = run_flow(CanaryFlow("control.queue_title", _cal_fixture, run), seed=4)
+        return (f"artifact_leaked={r.artifact_leaked}, model_leaked={r.leaked}", r.artifact_leaked >= 1 and r.leaked == 0)
+
+    out.append(_control("a flow that writes a planted title into an approval-queue item is caught (PRV-4)", "queue leak detected, none at the model", queue_title))
 
     def free_text() -> tuple[str, bool]:
         port = CapturingPort()
@@ -361,6 +400,63 @@ def bucketing_properties(seed: int = 20261107) -> list[dict[str, Any]]:
     return rows
 
 
+# ----------------------------------------------------------------------------------------------------- the canary scan itself
+def _transforms() -> dict[str, Any]:
+    import base64
+    import urllib.parse
+
+    return {
+        "verbatim": lambda s: s, "upper": lambda s: s.upper(), "lower": lambda s: s.lower(),
+        "separators_to_underscore": lambda s: "".join(c if c.isalnum() else "_" for c in s),
+        "separators_removed": lambda s: "".join(c for c in s if c.isalnum()),
+        "url_encoded": lambda s: urllib.parse.quote(s), "base64": lambda s: base64.b64encode(s.encode()).decode(),
+        "hex": lambda s: s.encode().hex(), "truncated_to_half_plus_6": lambda s: s[: len(s) // 2 + 6],
+    }
+
+
+def scan_sensitivity(seeds: int = 20) -> dict[str, Any]:
+    """How often the canary scan finds a planted token that was rewritten in a known way, per rewrite. Not detected by design:
+    a paraphrase, a translation, a hash, a character-code encoding (listed in ``not_tested``)."""
+    tf = _transforms()
+    by: dict[str, dict[str, int]] = {name: {"cases": 0, "detected": 0} for name in tf}
+    for seed in range(seeds):
+        p = canary.Planted(seed)
+        for kind in canary.KINDS:
+            tok = p.make(kind)
+            for name, fn in tf.items():
+                single = canary.Planted(seed)
+                single.tokens.append(next(t for t in p.tokens if t.value == tok))
+                port = CapturingPort()
+                port.plan([{"role": "user", "content": "context " + fn(tok) + " end"}], None)
+                by[name]["cases"] += 1
+                by[name]["detected"] += 1 if canary.scan(port, single).leaked == 1 else 0
+    cases = sum(v["cases"] for v in by.values())
+    detected = sum(v["detected"] for v in by.values())
+    return {"cases": cases, "detected": detected, "by_rewrite": by, "kinds": list(canary.KINDS),
+            "not_tested": ["paraphrase", "translation", "hashing", "character-code encoding", "image or audio content"]}
+
+
+def scan_specificity(n: int = 3000, seed: int = 11) -> dict[str, Any]:
+    """How often the scan flags a token that is NOT in a clean body (ordinary wording, vocabulary ids, numbers, hashed ids)."""
+    rng = random.Random(seed)
+    words = ("try protect one longer focus block before lunch meetings back to back review slot batch similar work hours "
+             "share ratio commits tests habit expert learner reference week day morning afternoon calendar suggestion "
+             "automate break handoff fewer than five percent about").split()
+    vocab = ["protect_focus_block", "batch_similar_work", "add_review_slot", "no_tests", "huge_commits", "meeting_h", "lt5", "5to9", "10plus"]
+    planted = canary.Planted(3)
+    for _ in range(20):
+        for k in canary.KINDS:
+            planted.make(k)
+    false_pos = 0
+    for _ in range(n):
+        body = " ".join(rng.choice(words) for _ in range(rng.randint(5, 30))) + " " + " ".join(rng.sample(vocab, 3)) \
+            + f" {rng.uniform(0, 100):.2f} h:{''.join(rng.choice('0123456789abcdef') for _ in range(12))}"
+        port = CapturingPort()
+        port.plan([{"role": "user", "content": body}], None)
+        false_pos += canary.scan(port, planted).leaked
+    return {"clean_bodies": n, "planted_tokens_searched": len(planted), "false_positives": false_pos}
+
+
 # ----------------------------------------------------------------------------------------------------- backstop corpus
 _MUST_CATCH: dict[str, list[str]] = {
     "email": ["ada.lovelace@example.com", "mail ADA@Corp.CO.UK now", "x_y+tag@sub.domain.org"],
@@ -473,6 +569,8 @@ def evaluate_privacy(*, seeds: Iterable[int] = tuple(range(8)), record: bool = T
             "ledger_lines": sum(r.ledger_lines for r in rs), "ledger_expected": sum(r.ledger_expected for r in rs),
             "ledger_complete": all(r.ledger_complete for r in rs), "flow_errors": sorted({r.error for r in rs if r.error}),
             "meets_min_requests": all(r.requests >= fl.min_requests for r in rs),
+            "artifact_files_scanned": sum(r.artifact_files for r in rs), "artifact_log_records_scanned": sum(r.artifact_log_records for r in rs),
+            "artifact_leaked": sum(r.artifact_leaked for r in rs),
             "planted_by_kind": _sum_dicts([r.by_kind for r in rs]), "leaked_kinds": sorted({k for r in rs for k in r.leaked_kinds}),
             "notes": sorted({r.note for r in rs if r.note})[:3],
         })
@@ -483,10 +581,14 @@ def evaluate_privacy(*, seeds: Iterable[int] = tuple(range(8)), record: bool = T
         return {"flows": len(sel), "runs": sum(r["seeds"] for r in sel), "requests": sum(r["requests"] for r in sel), "planted": planted,
                 "leaked": leaked, "leak_rate_upper_95": round(upper_bound_95(leaked, planted), 4) if planted else None,
                 "ledger_complete": all(r["ledger_complete"] for r in sel) if sel else None,
-                "all_meet_min_requests": all(r["meets_min_requests"] for r in sel) if sel else None}
+                "all_meet_min_requests": all(r["meets_min_requests"] for r in sel) if sel else None,
+                "artifact_files_scanned": sum(r["artifact_files_scanned"] for r in sel), "artifact_leaked": sum(r["artifact_leaked"] for r in sel)}
 
     guard_rep = guard.scan_tree()
+    runtime_rep = guard.scan_runtime()
     props = bucketing_properties()
+    sensitivity = scan_sensitivity()
+    specificity = scan_specificity()
     corpus = backstop_corpus()
     total = agg(None)
     not_covered = [layer for layer, v in layers.items() if v["status"] in ("none_registered", "error")]
@@ -497,9 +599,15 @@ def evaluate_privacy(*, seeds: Iterable[int] = tuple(range(8)), record: bool = T
                  "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")},
         "headline": {**total, "controls_passed": sum(1 for c in controls if c["passed"]), "controls_total": len(controls),
                      "layers_without_integration_flows": not_covered,
+                     "artifact_files_scanned": total["artifact_files_scanned"], "artifact_leaked": total["artifact_leaked"],
                      "bucketing_failures": sum(r["failures"] for r in props), "bucketing_cases": sum(r["cases"] for r in props),
-                     "static_guard_violations": len(guard_rep.violations), "static_guard_files": len(guard_rep.files),
+                     "static_guard_violations": len(guard_rep.violations) + len(runtime_rep.violations),
+                     "static_guard_files": len(guard_rep.files) + len(runtime_rep.files),
+                     "vocabulary_problems": len(vocabulary_problems()),
+                     "purposes_registered": len([p for p in all_purposes() if not p.startswith("control.")]),
                      "backstop_must_catch": f"{corpus['must_catch_caught']}/{corpus['must_catch_total']}",
+                     "scan_detects_known_rewrites": f"{sensitivity['detected']}/{sensitivity['cases']}",
+                     "scan_false_positives": specificity["false_positives"],
                      "backstop_false_positives": corpus["ordinary_false_positives"] + corpus["hashed_id_false_positives"]},
         "by_kind": {"reference": agg("reference"), "integration": agg("integration")},
         "flows": rows,
@@ -507,10 +615,14 @@ def evaluate_privacy(*, seeds: Iterable[int] = tuple(range(8)), record: bool = T
         "negative_controls": controls,
         "bucketing": props,
         "backstop": corpus,
+        "scan_sensitivity": sensitivity, "scan_specificity": specificity,
         "static_guard": {"files": len(guard_rep.files), "violations": [str(v) for v in guard_rep.violations],
-                         "allowed_uses": sorted(set(guard_rep.allowed_uses)), "scanned_dirs": list(guard.GUARDED_DIRS)},
+                         "allowed_uses": sorted(set(guard_rep.allowed_uses)), "scanned_dirs": list(guard.GUARDED_DIRS),
+                         "runtime": {"files": len(runtime_rep.files), "violations": [str(v) for v in runtime_rep.violations],
+                                     "rule": "no provider SDK or network client; every visible direct model call records a metadata-only ledger line"}},
         "ledger": {"lines_written_during_evaluation": ledger_lines_total},
-        "purposes": [get_purpose(p).public() for p in ("calendar.suggestion_wording", "git.habit_wording", "briefing.card_wording", "digest.meta")],
+        "purposes": [p.public() for p in all_purposes().values() if not p.name.startswith("control.")],
+        "vocabulary_problems": vocabulary_problems(),
         "limitations": LIMITATIONS,
     }
     if record:

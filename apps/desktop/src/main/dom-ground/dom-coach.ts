@@ -2,7 +2,8 @@
 // local process (POST /coach/ring). The ring is drawn from what the extension measured, follows scrolling (re-resolved every few
 // hundred ms) and is hidden at once when the element is gone, scrolled out of view, in a frame this app cannot place, or the
 // answers stop (COA-6). Hiding is not a dismissal: the ring comes back when the element is found again. The nudge text, when there
-// is one, sits in a bubble above the ring. Coach telemetry (shown, followed, dismissed) is reported here, and `onEnd` tells the
+// is one, rides on the ring as one short note chip at its top-left edge (the overlay keeps about 40 characters; the full sentence
+// stays with the decision). Coach telemetry (shown, followed, dismissed) is reported here, and `onEnd` tells the
 // caller how a prompt ended so the worker's response can be posted to /coach/feedback.
 import type { OverlayController } from '../../shared/contracts'
 import type { Annotation } from '../../shared/protocol'
@@ -13,8 +14,7 @@ import type { DisplayInfo } from './rect-map'
 import type { XY } from './protocol'
 
 export const DOM_RING_ID = 'dom-ring'
-export const DOM_BUBBLE_ID = 'dom-bubble'
-const MESSAGE_MAX = 160
+const MESSAGE_MAX = 200
 
 export interface DomPromptEnd {
   // What the caller tagged the prompt with (the coach brain's decision id).
@@ -90,7 +90,7 @@ export function createDomCoach(deps: DomCoachDeps): DomCoach {
     active = null
     a.tracker.stop()
     clearT(a.ttl)
-    deps.overlay.clear([DOM_RING_ID, DOM_BUBBLE_ID])
+    deps.overlay.clear([DOM_RING_ID])
     if (a.reported) {
       if (how === 'followed') deps.tracker?.followed(DOM_RING_ID)
       else deps.tracker?.dismissed(DOM_RING_ID, how)
@@ -124,8 +124,7 @@ export function createDomCoach(deps: DomCoachDeps): DomCoach {
             if (active !== state) return
             state.visible = true
             state.hiddenFor = undefined
-            const marks: Annotation[] = [{ id: DOM_RING_ID, kind: 'ring', tone: 'guide', box, exact: true, ...(state.label ? { label: state.label } : {}), ...(state.step ? { step: state.step } : {}) }]
-            if (state.message) marks.push({ id: DOM_BUBBLE_ID, kind: 'bubble', tone: 'guide', at: { x: (box.xmin + box.xmax) / 2, y: box.ymin }, text: state.message })
+            const marks: Annotation[] = [{ id: DOM_RING_ID, kind: 'ring', tone: 'guide', box, exact: true, ...(state.label ? { label: state.label } : {}), ...(state.message ? { note: state.message } : {}), ...(state.step ? { step: state.step } : {}) }]
             deps.overlay.show(marks)
             if (!state.reported) {
               state.reported = true
@@ -136,7 +135,7 @@ export function createDomCoach(deps: DomCoachDeps): DomCoach {
             if (active !== state) return
             state.visible = false
             state.hiddenFor = reason
-            deps.overlay.clear([DOM_RING_ID, DOM_BUBBLE_ID])
+            deps.overlay.clear([DOM_RING_ID])
             log('dom-coach', `ring hidden (${reason})`)
           },
         },

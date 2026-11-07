@@ -575,8 +575,8 @@ def build_events(seed: int = SEED + 1) -> list[EventFix]:
                 for tok in (em, full):
                     if tok in desc:
                         canaries.append(tok)
-                if "example.test" in desc:
-                    canaries.append(desc[desc.index("https://"):].split()[0] if "https://" in desc else "meet.example.test")
+                if "https://" in desc:
+                    canaries.append(desc[desc.index("https://"):].split()[0])
                 if "+44" in desc:
                     canaries.append("+44 7700 90" + desc.split("+44 7700 90")[1][:3])
                 tags.append("description")

@@ -17,6 +17,10 @@ export function hoursText(range: [number, number] | null, horizonWeeks: number |
   return `about ${f(lo)} to ${f(hi)} hours${period}`
 }
 
+// The kill switch's keyboard shortcut (src/main/hotkey.ts KILL_ACCELERATORS), as it is written on this platform.
+// Shown on hover only, through a data attribute so the pill's accessible name stays "Stop all".
+export const KILL_HINT = typeof navigator !== 'undefined' && !/Mac/i.test(navigator.platform || navigator.userAgent) ? 'Ctrl+Alt+Shift+K' : '⌥⇧⌘K'
+
 export function killDetail(kill: HudState['kill']): string {
   if (kill.engine === null && kill.agent === null) return 'Telling the engine and the agent to stop…'
   if (kill.engine && kill.agent) return 'The engine and the agent were told to stop.'
@@ -77,7 +81,10 @@ export function ProposalCard({ proposal, onAction }: { proposal: HudProposal; on
 export function StoppedCard({ kill, onAction }: { kill: HudState['kill']; onAction(a: HudAction): void }): ReactElement {
   return (
     <section className="card stopped" role="alert" aria-live="assertive">
-      <h2>Stopped</h2>
+      <h2>
+        <span className="glyph" aria-hidden="true" />
+        Stopped
+      </h2>
       <p className="what">Everything is paused. Nothing will run until you resume.</p>
       <p className="note">{killDetail(kill)}</p>
       <div className="row">
@@ -99,7 +106,7 @@ export function HudView({ state, onAction }: HudViewProps): ReactElement {
       {kill.killed ? <StoppedCard kill={kill} onAction={onAction} /> : proposal ? <ProposalCard proposal={proposal} onAction={onAction} /> : null}
       {kill.killed ? null : (
         <div className="pill-row">
-          <button type="button" className="pill stop" onClick={() => onAction({ type: 'kill' })} aria-label="Stop everything. This is the kill switch.">
+          <button type="button" className="pill stop" data-hint={KILL_HINT} onClick={() => onAction({ type: 'kill' })} aria-label="Stop everything. This is the kill switch.">
             <span className="glyph" aria-hidden="true" />
             Stop all
           </button>

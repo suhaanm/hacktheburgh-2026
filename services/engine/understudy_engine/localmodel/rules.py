@@ -57,7 +57,7 @@ _RISKY_WORDS = re.compile(
 _VAGUE_EXACT = {
     "wip", "update", "updates", "fix", "fixes", "fixed", "stuff", "changes", "misc", "tmp", "test", "tests", "asdf", ".", "..",
     "more", "minor", "minor changes", "small changes", "cleanup", "oops", "typo", "ok", "done", "work", "commit", "save",
-    "update stuff", "misc fixes", "fix stuff", "more work", "wip commit", "changes", "final", "final fix", "address comments",
+    "update stuff", "misc fixes", "fix stuff", "more work", "wip commit", "final", "final fix", "address comments",
     "address review comments", "review comments", "pr feedback", "various fixes", "fix things", "some changes", "tweaks",
 }
 _RATIONALE = re.compile(r"\b(because|so that|so we|in order to|to avoid|to prevent|to ensure|instead of|rather than|since|otherwise|"
@@ -69,8 +69,13 @@ def _subject(message: str) -> str:
     return next((ln.strip() for ln in message.splitlines() if ln.strip()), "")
 
 
+def is_revert_like(c: CommitItem) -> bool:
+    """True when the message itself says it undoes something (git's own wording or a plain "back out")."""
+    return bool(_REVERT.match(_subject(c.clean))) or "this reverts commit" in c.message.lower()
+
+
 def commit_category(c: CommitItem) -> str:
-    subject = _subject(c.message)
+    subject = _subject(c.clean)
     if _REVERT.match(subject):
         return "revert"
     m = _CONVENTIONAL.match(subject)
@@ -88,7 +93,7 @@ def commit_category(c: CommitItem) -> str:
         if rx.search(subject):
             return name
     for name, rx in _KW:                                   # body text, weaker evidence
-        if rx.search(c.message):
+        if rx.search(c.clean):
             return name
     return "other"
 
@@ -97,7 +102,7 @@ def commit_risk(c: CommitItem, category: str) -> str:
     size = c.facts()["size_bucket"]
     if category == "revert" or size == "huge":
         return "high"
-    if any(_SENSITIVE_PATH.search(p) for p in c.paths) or _RISKY_WORDS.search(c.message):
+    if any(_SENSITIVE_PATH.search(p) for p in c.paths) or _RISKY_WORDS.search(c.clean):
         return "high"
     if category in ("docs", "test", "chore") and size in ("tiny", "small"):
         return "low"
@@ -109,26 +114,28 @@ def commit_risk(c: CommitItem, category: str) -> str:
 
 
 def commit_message_quality(c: CommitItem) -> str:
-    subject = _subject(c.message)
+    msg = c.clean
+    subject = _subject(msg)
     low = re.sub(r"[^a-z0-9 ]+", "", subject.lower()).strip()
     words = low.split()
     if _REVERT.match(subject) and len(words) >= 2:          # git writes these itself: fine, but says nothing of why
-        return "clear" if _RATIONALE.search(c.message) else "ok"
+        return "clear" if _RATIONALE.search(msg) else "ok"
     if not words or low in _VAGUE_EXACT or len(words) <= 2 and not _CONVENTIONAL.match(subject):
         return "vague"
     if len(subject) < 12:
         return "vague"
-    body = c.message[len(subject):].strip()
-    if len(body) >= 40 or _RATIONALE.search(c.message) or len(words) >= 12:
+    body = msg[len(subject):].strip()
+    if len(body) >= 40 or _RATIONALE.search(msg) or len(words) >= 12:
         return "clear"
     return "ok"
 
 
-def digest_commit(item: Any) -> dict[str, Any]:
+def digest_commit(item: Any, category: str | None = None) -> dict[str, Any]:
+    """``category`` lets a caller whose category came from elsewhere (the model) get risk computed from that category."""
     c = normalise_commit(item)
-    cat = commit_category(c)
+    cat = category or commit_category(c)
     facts = c.facts()
-    if not c.paths and re.search(r"\b(tests?|spec)\b", c.message, re.I):
+    if not c.paths and re.search(r"\b(tests?|spec)\b", c.clean, re.I):
         facts["touches_tests"] = True
     return {
         "category": cat,
@@ -203,9 +210,9 @@ def event_needs_prep(e: EventItem, category: str) -> bool:
     return bool(_E_PREP.search(e.title))
 
 
-def digest_event(item: Any) -> dict[str, Any]:
+def digest_event(item: Any, category: str | None = None) -> dict[str, Any]:
     e = normalise_event(item)
-    cat = event_category(e)
+    cat = category or event_category(e)
     facts = e.facts()
     return {
         "category": cat,

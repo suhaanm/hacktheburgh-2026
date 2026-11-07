@@ -18,7 +18,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
-from . import config, policy, prompts, rules
+from . import policy, prompts, rules
 from .client import ClientError, LocalClient
 from .guards import GuardError, guard_digest, guard_model_reply
 from .schemas import (
@@ -100,18 +100,35 @@ def _source_text_event(e: EventItem) -> str:
     return e.title + "\n" + e.description + "\n" + e.location
 
 
+def consistent_commit(c: CommitItem, reply: dict[str, Any]) -> str | None:
+    """Code vetoes the model's most consequential claims when the input cannot support them (the model proposes, code decides):
+    a revert needs a message that says it undoes something."""
+    if reply.get("category") == "revert" and not rules.is_revert_like(c):
+        return "revert_without_a_revert_message"
+    return None
+
+
+def consistent_event(e: EventItem, reply: dict[str, Any]) -> str | None:
+    """Focus time is solo time: an entry with several attendees is not."""
+    if reply.get("category") == "focus" and e.attendee_count > 1:
+        return "focus_with_attendees"
+    return None
+
+
 @dataclass(frozen=True)
 class _Task:
     name: str
     keys: tuple[str, ...]
     normalise: Callable[[Any], Any]
-    rules: Callable[[Any], dict[str, Any]]
+    rules: Callable[..., dict[str, Any]]
     messages: Callable[[Any, tuple[str, ...]], list[dict[str, str]]]
     source_text: Callable[[Any], str]
+    consistent: Callable[[Any, dict[str, Any]], str | None]
 
 
-_COMMIT = _Task("commit_digest", COMMIT_KEYS, normalise_commit, rules.digest_commit, prompts.commit_messages, _source_text_commit)
-_EVENT = _Task("event_digest", EVENT_KEYS, normalise_event, rules.digest_event, prompts.event_messages, _source_text_event)
+_COMMIT = _Task("commit_digest", COMMIT_KEYS, normalise_commit, rules.digest_commit, prompts.commit_messages, _source_text_commit,
+                consistent_commit)
+_EVENT = _Task("event_digest", EVENT_KEYS, normalise_event, rules.digest_event, prompts.event_messages, _source_text_event, consistent_event)
 
 
 def _run(task: _Task, items: Sequence[Any], *, force_rules: bool = False, client: LocalClient | None = None,
@@ -143,7 +160,12 @@ def _run(task: _Task, items: Sequence[Any], *, force_rules: bool = False, client
                     res = cl.chat_json(task.messages(item, fields), schema, name=task.name)
                 src = task.source_text(item)
                 reply = guard_model_reply(task.name, res.obj, src, fields)
-                merged = {k: (reply[k] if k in fields else ans[k]) for k in task.keys}
+                why = task.consistent(item, reply)
+                if why:
+                    raise GuardError("inconsistent", why)
+                # fields the rules keep are recomputed from the model's category, so the digest stays coherent
+                ans2 = task.rules(item, reply["category"]) if "category" in reply else ans
+                merged = {k: (reply[k] if k in fields else ans2[k]) for k in task.keys}
                 digests.append(guard_digest(task.name, merged, src))
                 sources.append("model")
                 model_ok += 1

@@ -231,3 +231,34 @@ def test_no_process_left_behind(stub):
 
         time.sleep(0.1)
     pytest.fail("server process still alive after stop()")
+
+
+# ------------------------------------------------------------------------------------- code vetoes the model's big claims
+class _Says:
+    def __init__(self, **fields):
+        self.fields = fields
+
+    def chat_json(self, messages, schema, **kw):
+        from understudy_engine.localmodel.client import ChatResult
+
+        return ChatResult(obj={k: self.fields.get(k, v["enum"][0] if "enum" in v else False) for k, v in schema["properties"].items()},
+                          seconds=0.0, prompt_tokens=0, completion_tokens=0, tokens_per_s=None)
+
+
+def test_a_revert_claim_needs_a_revert_message():
+    from understudy_engine.localmodel.digest import commit_digest_ex
+
+    fake = _Says(category="revert")
+    b = commit_digest_ex(["Add retry to the uploader", 'Revert "Add retry to the uploader"', "Back out the cache rewrite\n\nIt doubled latency."],
+                         client=fake)
+    assert b.per_item_source == ["rules", "model", "model"]
+    assert b.fallbacks == {"guard:inconsistent": 1}
+    assert b.digests[0]["category"] == "feature"                       # the rules answer, not the model's claim
+
+
+def test_a_focus_claim_needs_a_solo_entry():
+    from understudy_engine.localmodel.digest import event_digest_ex
+
+    fake = _Says(category="focus")
+    b = event_digest_ex([{"title": "Roadmap chat", "attendees": 6}, {"title": "Quiet time", "attendees": 1}], client=fake)
+    assert b.per_item_source == ["rules", "model"] and b.fallbacks == {"guard:inconsistent": 1}

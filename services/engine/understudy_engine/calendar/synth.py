@@ -95,17 +95,16 @@ def person_specs() -> list[PersonSpec]:
         specs.append(PersonSpec(p.person, "persona", p.label, "UTC", PERSONA_PROBLEMS[p.person], SEED + p.seed, f"persona:{p.slug}"))
     for i in range(1, 9):
         specs.append(PersonSpec(f"p_exp{i:02d}", "expert", f"Expert {i}", "Europe/London", (), SEED + 100 + i, "template", i % 2))
+    core = {1: (), 2: ("fragmented_days",), 3: ("no_focus_blocks",), 4: ("back_to_back_runs",), 5: ("recurring_in_peak",),
+            6: ("fragmented_days", "back_to_back_runs"), 7: ("back_to_back_runs", "recurring_in_peak"), 8: ("no_focus_blocks",),
+            9: ("fragmented_days",), 10: ("recurring_in_peak",), 11: ("fragmented_days", "back_to_back_runs"), 12: ("back_to_back_runs",),
+            13: ("no_focus_blocks",), 14: ("recurring_in_peak", "back_to_back_runs"), 15: ("fragmented_days",), 16: ("no_focus_blocks",)}
     for i in range(1, 17):
-        bits = [(i - 1) >> k & 1 for k in range(4)]
-        probs = [PROBLEMS[k] for k in range(4) if bits[k]]
-        for e, name in enumerate(PROBLEMS[4:]):
-            if ((i * (3 + 2 * e) + e) % 16) < 8:
-                probs.append(name)
-        # conflicts resolved by priority, recorded in the problem list itself
-        if "recurring_in_peak" in probs:
-            probs = [p for p in probs if p not in ("fragmented_days", "no_focus_blocks")]
-        if "no_focus_blocks" in probs:
-            probs = [p for p in probs if p != "fragmented_days"]
+        probs = list(core[i])
+        if i > 1:                                       # novice 1 is the clean control; the others get extras by a fixed rule
+            for e, name in enumerate(PROBLEMS[4:]):
+                if ((i * (3 + 2 * e) + e) % 16) < 8:
+                    probs.append(name)
         specs.append(PersonSpec(f"p_nov{i:02d}", "novice", f"Novice {i}", "Europe/London", tuple(probs), SEED + 200 + i, "template", i % 2))
     return specs
 
@@ -266,10 +265,10 @@ def construction_week(occs: list[Occ], wins: dict[date, tuple[int, int] | None],
         busy = _merge([(max(o.s, ws), min(o.e, we)) for o in day if o.kind in ("meeting", "offscreen", "break") and min(o.e, we) > max(o.s, ws)])
         gaps, cur = [], ws
         for a, b in busy:
-            if a - cur >= 5:
+            if a - cur > 5:
                 gaps.append(a - cur)
             cur = max(cur, b)
-        if we - cur >= 5:
+        if we - cur > 5:
             gaps.append(we - cur)
         f60 = sum(1 for g in gaps if g >= 60)
         tot["focus_60"] += f60
@@ -335,6 +334,7 @@ def plan_person(spec: PersonSpec) -> tuple[list[Occ], dict[str, SeriesInfo], dic
             cand = [d for d in dows if d not in frag and d in (0, 1, 2, 3, 4)]
             late = sorted(rng.sample(cand, min(len(cand), rng.choice([1, 2]))))
         peak_hours = 0.0
+        tolerated: list[int] = []
         busy_ok_day = rng.choice(dows) if (dows and rng.random() < 0.35 and spec.group != "persona") else None
 
         for dow in dows:
@@ -382,10 +382,10 @@ def plan_person(spec: PersonSpec) -> tuple[list[Occ], dict[str, SeriesInfo], dic
                 lunch = (lunch_slot.start, lunch_slot.end) if lunch_ok else None
                 lunch_target = (lunch_slot.start + shift) if lunch_ok else 9999
                 if is_frag:
-                    seq = _sequence(rng, ws, we, start, (20, 40), (10, 45), 55, lunch, lunch_target, first_gap=(5, 40))
+                    seq = _sequence(rng, ws, we, start, (20, 40), (10, 45), 55, lunch, lunch_target, first_gap=(10, 40))
                     pl = "fragmented_days"
                 else:
-                    seq = _sequence(rng, ws, we, start, (45, 60), (62, 80), 90, lunch, lunch_target, first_gap=(0, 40))
+                    seq = _sequence(rng, ws, we, start, (45, 60), (62, 80), 90, lunch, lunch_target, first_gap=(10, 40))
                     pl = "no_focus_blocks"
                 for kind, s, e in seq:
                     if kind == "lunch":
@@ -396,7 +396,7 @@ def plan_person(spec: PersonSpec) -> tuple[list[Occ], dict[str, SeriesInfo], dic
             else:
                 # chains, external pairs and recurring peak series first (they take priority over template items)
                 if dow in b2b:
-                    cs = _round5(ws + (13 * 60 + 15 - tpl.work.start_min))
+                    cs = _round5(ws + (13 * 60 + 40 - tpl.work.start_min))
                     for k in range(rng.choice([3, 4, 5])):
                         du = rng.choice([30, 45, 60])
                         if cs + du > we - 30:
@@ -416,8 +416,8 @@ def plan_person(spec: PersonSpec) -> tuple[list[Occ], dict[str, SeriesInfo], dic
                         add(Occ(d, ls, ls + 60, "late", "meeting", 3, 1, True, None, None, planted="late_meetings", title_key="late"))
                 if busy_ok_day == dow and not fixed and "recurring_in_peak" not in probs:
                     # a busy but unfragmented day: four short meetings and one 70-minute gap
-                    base = ws + 15
-                    for i, (off, du) in enumerate(((0, 30), (45, 30), (200, 30), (320, 30))):
+                    base = ws
+                    for i, (off, du) in enumerate(((45, 30), (90, 30), (270, 30), (330, 30))):
                         st = _round5(base + off)
                         if st + du <= we:
                             add(Occ(d, st, st + du, "adhoc", "meeting", 3, 0, False, None, None, planted=None, title_key="adhoc"))
@@ -439,15 +439,18 @@ def plan_person(spec: PersonSpec) -> tuple[list[Occ], dict[str, SeriesInfo], dic
                         continue
                     if s.kind == "meeting" and s.id != "standup" and rng.random() < skip_p and not s.optional:
                         continue
+                    if busy_ok_day == dow and s.kind == "meeting" and s.id != "standup":
+                        continue                          # the busy day's own meetings replace the template ones
                     o = slot_occ(s)
                     if o is None:
                         continue
-                    if any(o.s < fe and o.e > fs for fs, fe in fixed):
-                        continue
+                    if any(o.s < fe + 12 and o.e > fs - 12 for fs, fe in fixed):      # keep template items clear of planted ones, with a margin,
+                        continue                                                      # so planted adjacency is the only adjacency
                     add(o)
                 if variant_b and dow == 2:
                     st = _round5(ws + 15 * 60 - tpl.work.start_min)
                     add(Occ(d, st, st + 30, "briefing_qa", "meeting", 12, 0, True, f"briefing_qa@{epoch}", (st, st + 30), title_key="briefing_qa"))
+                    tolerated.append(dow)           # a deliberate near miss: one back-to-back pair, inside the expert tolerance
             occs.extend(day_occs)
 
         # decoys in free time of this week: cancelled, declined, free placeholder, tentative
@@ -466,7 +469,7 @@ def plan_person(spec: PersonSpec) -> tuple[list[Occ], dict[str, SeriesInfo], dic
         if off_day and monday <= off_day < monday + timedelta(days=7):
             occs.append(Occ(off_day, 0, 1440, "ooo", "offscreen", all_day="oof", title_key="ooo"))
         truth_weeks[wk] = {
-            "fragmented_days": frag, "back_to_back_days": b2b, "unbuffered_external_days": unbuf, "late_days": late,
+            "fragmented_days": frag, "back_to_back_days": b2b, "tolerated_back_to_back_days": tolerated, "unbuffered_external_days": unbuf, "late_days": late,
             "no_focus_blocks": "no_focus_blocks" in probs, "no_review_slot": "no_review_slot" in probs, "no_breaks": "no_breaks" in probs,
             "recurring_in_peak_h_planted": round(peak_hours, 2),
             "busy_not_fragmented_day": busy_ok_day,
@@ -518,7 +521,11 @@ class Namer:
         self._cache: dict[str, tuple[str, str, str]] = {}
 
     def _word(self, n: int) -> str:
+        tries = 0
         while True:
+            tries += 1
+            if tries > 200:                 # a small pool ran dry: lengthen the word rather than loop
+                n, tries = n + 1, 0
             w = "".join(self.rng.choice(self.SYL) for _ in range(n))
             if w not in self._used:
                 self._used.add(w)
@@ -527,7 +534,7 @@ class Namer:
     def _person(self, internal: bool) -> tuple[str, str]:
         if self.canary:
             first, last = self._word(2).capitalize(), self._word(3).capitalize()
-            dom = "canarycorp.example" if internal else f"{self._word(2)}corp.example"
+            dom = "canarycorp.example" if internal else f"{self._word(3)}corp.example"
             name, local = f"{first} {last}", f"{first.lower()}.{last.lower()}"
             addr = f"{local}@{dom}"
             self.tokens += [name, first, last, addr, local, dom]
@@ -570,7 +577,7 @@ class Namer:
             base = f"1:1 with {self.pool[0][0].split()[0]}"
         if self.canary:
             code = rng.choice(self.codes)
-            client = f"{self._word(2).capitalize()}-{self._word(2).capitalize()}"
+            client = f"{self._word(3).capitalize()}-{self._word(3).capitalize()}"
             self.tokens.append(client)
             if o.kind == "meeting" and o.slot != "standup":
                 title = f"{code} {rng.choice(['contract renewal', 'appeal review', 'escalation', 'handover'])} - {client} ({base})"
@@ -583,7 +590,7 @@ class Namer:
             if o.online:
                 loc = "Microsoft Teams Meeting"
             elif self.canary:
-                loc = f"{self._word(2).capitalize()} Annexe Room {rng.randint(1, 99)}"
+                loc = f"{self._word(3).capitalize()} Annexe Room {rng.randint(1, 99)}"
                 self.tokens.append(loc)
             else:
                 loc = f"Room {rng.randint(1, 5)}.{rng.randint(1, 20):02d}, Fenwick House"
@@ -594,7 +601,7 @@ class Namer:
             if self.canary:
                 ref = f"CNRY-{rng.randint(10000, 99999)}"
                 who = self._person(True)
-                house = self._word(2).capitalize()
+                house = self._word(3).capitalize()
                 self.tokens += [ref, house]
                 bits.append(f"Agenda: discuss {who[0]}'s appeal (ref {ref}); bring the claimant letter for {house} House.")
             else:

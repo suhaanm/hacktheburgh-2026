@@ -10,7 +10,7 @@ export type Lifecycle = 'enter' | 'exit'
 export const lifeClass = (exiting: boolean): string => (exiting ? 'ov-exit' : 'ov-enter')
 
 export function overlayCss(style: AnnotationStyle): string {
-  const { transition: t, pulse: p } = style
+  const { transition: t } = style
   return `
 .ov-root{position:absolute;left:0;top:0;overflow:hidden;pointer-events:none;user-select:none;-webkit-user-select:none;font-family:${style.bubble.fontFamily}}
 .ov-svg{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
@@ -19,19 +19,12 @@ export function overlayCss(style: AnnotationStyle): string {
 .ov-enter{animation:ov-in ${t.enterMs}ms ${t.easing} both}
 .ov-exit{animation:ov-out ${t.exitMs}ms ${t.easing} forwards}
 .ov-fade-enter{animation:ov-fade-in ${t.enterMs}ms ${t.easing} both}
-.ov-pulse{transform-box:fill-box;transform-origin:center;animation:ov-pulse ${p.periodMs}ms ${p.easing} var(--ov-iter,infinite) both}
 @keyframes ov-in{from{opacity:0;transform:scale(${t.enterFromScale})}to{opacity:1;transform:scale(1)}}
 @keyframes ov-out{from{opacity:1}to{opacity:0}}
 @keyframes ov-fade-in{from{opacity:0}to{opacity:1}}
-@keyframes ov-pulse{from{opacity:${p.opacityFrom};transform:scale(${p.scaleFrom})}to{opacity:${p.opacityTo};transform:scale(${p.scaleTo})}}
 @keyframes ov-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
 @keyframes ov-press{from{opacity:.85}to{opacity:0}}
 `
-}
-
-export function iterations(style: AnnotationStyle, tone: AnnotationTone): CSSProperties {
-  const n = style.tones[tone].pulseIterations
-  return { ['--ov-iter' as string]: String(n) }
 }
 
 type StrokeProps = Pick<
@@ -69,27 +62,10 @@ export function slimLayers(style: AnnotationStyle, tone: AnnotationTone, coreWid
   const t = style.tones[tone]
   const fringe = Math.max(1.2, 1.2 * style.scale)
   return [
-    { color: t.halo, width: coreWidth + fringe * 4, opacity: 0.92 },
-    { color: t.casing, width: coreWidth + fringe * 2, opacity: 1 },
+    { color: t.keyOuter, width: coreWidth + fringe * 4, opacity: 1 },
+    { color: t.keyInner, width: coreWidth + fringe * 2, opacity: 1 },
     { color: t.core, width: coreWidth, opacity: 1 },
   ]
-}
-
-// Soft glow without SVG filters (a full-screen blur per mark would repaint every pulse frame): three wide,
-// translucent strokes of the tone colour approximate it. Decorative only; the stack underneath carries legibility.
-export function glowStack(style: AnnotationStyle, tone: AnnotationTone, draw: (props: StrokeProps, key: number) => ReactElement): ReactElement[] {
-  const core = style.tones[tone].core
-  const strength = style.glow.opacity / 0.55
-  return [
-    [1.0, 0.09],
-    [0.62, 0.15],
-    [0.3, 0.22],
-  ].map(([k, o], i) =>
-    draw(
-      { stroke: core, strokeWidth: style.stroke.halo + style.glow.blur * k, strokeOpacity: o * strength, fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' },
-      i,
-    ),
-  )
 }
 
 export function Defs({ style }: { style: AnnotationStyle }): ReactElement {
@@ -115,8 +91,8 @@ export function Disc({ cx, cy, diameter, tone, style }: { cx: number; cy: number
   const t = style.tones[tone]
   return (
     <g>
-      <circle cx={cx} cy={cy} r={r.halo} fill={t.halo} fillOpacity={0.92} />
-      <circle cx={cx} cy={cy} r={r.casing} fill={t.casing} />
+      <circle cx={cx} cy={cy} r={r.halo} fill={t.keyOuter} />
+      <circle cx={cx} cy={cy} r={r.casing} fill={t.keyInner} />
       <circle cx={cx} cy={cy} r={r.core} fill={t.core} />
     </g>
   )

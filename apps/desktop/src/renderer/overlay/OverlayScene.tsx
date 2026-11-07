@@ -5,11 +5,11 @@ import type { CaptionSpeaker } from '../../shared/protocol'
 import type { AnnotationStyle } from '../design/annotation-style'
 import { ArrowMark, BadgeMark, HighlightMarks, RingMark, SpotlightMark, TickMark } from './annotations/shapes'
 import { BubbleView, LabelPill } from './annotations/labels'
-import { CaptionBand, CoachChipView, LevelChipEcho, speakerLabel } from './annotations/chrome'
+import { CaptionBand, CoachChipView, speakerLabel } from './annotations/chrome'
 import { Defs, overlayCss } from './annotations/common'
 import { GhostCursor } from './annotations/GhostCursor'
 import { normToPx, type Size } from './geometry'
-import { CHIP_TOP, LABEL_SCALE, chipRect, chooseCaptionRect, labelKey, planScene, shortLabel } from './scene-plan'
+import { LABEL_SCALE, chooseCaptionRect, labelKey, planScene, ringChipText } from './scene-plan'
 import type { OverlayState } from './store'
 
 export interface SceneProps {
@@ -22,13 +22,16 @@ export interface SceneProps {
   freezeGhostMs?: number | null
   // Harness stills render bubbles fully typed.
   typeBubbles?: boolean
-  // Harness only: freeze the level-chip echo at this point of its change animation (0 = before, 1 = after).
+  // Harness only; ignored now: the level-change echo is no longer drawn on the screen.
   chipProgress?: number
+  // The coach's state is not drawn on the screen (it lives in the tray menu and the dashboard Today screen). Off by default; with this
+  // on, one 7 px dot shows the coach is there. No words, no level-change echo.
+  coachDot?: boolean
 }
 
 const RANK: Record<string, number> = { spotlight: 0, highlightText: 1, ring: 2, arrow: 3, tick: 4, badge: 5, ghostCursor: 6, bubble: 7 }
 
-export function OverlayScene({ state, viewport, style, captionsEnabled, speakerNames = {}, freezeGhostMs = null, typeBubbles = true, chipProgress }: SceneProps): ReactElement {
+export function OverlayScene({ state, viewport, style, captionsEnabled, speakerNames = {}, freezeGhostMs = null, typeBubbles = true, chipProgress, coachDot = false }: SceneProps): ReactElement {
   const [sizes, setSizes] = useState<Record<string, Size>>({})
   const onSize = useCallback((id: string, size: Size) => {
     setSizes((prev) => {
@@ -40,11 +43,10 @@ export function OverlayScene({ state, viewport, style, captionsEnabled, speakerN
 
   const showCaption = captionsEnabled && state.caption !== null
   const captionSize = sizes.caption ?? { width: Math.min(style.caption.maxWidth, viewport.width * 0.6) * 0.7, height: style.caption.fontSize * style.caption.lineHeight + style.caption.padding.y * 2 }
-  const chip = useMemo(() => (state.chip ? chipRect(sizes.chip ?? { width: 260 * style.scale, height: style.levelChip.fontSize * 2 }, viewport, CHIP_TOP) : undefined), [state.chip, sizes.chip, viewport, style])
   // Two passes: first the marks (without captions), then the caption goes where it covers none of them.
-  const marks = useMemo(() => planScene(state.annotations, viewport, style, sizes, { chip }).marks, [state.annotations, viewport, style, sizes, chip])
-  const captionPlace = useMemo(() => (showCaption ? chooseCaptionRect(marks, captionSize, viewport, style, chip) : null), [showCaption, marks, captionSize, viewport, style, chip])
-  const chrome = useMemo(() => ({ caption: captionPlace?.rect, chip }), [captionPlace, chip])
+  const marks = useMemo(() => planScene(state.annotations, viewport, style, sizes, {}).marks, [state.annotations, viewport, style, sizes])
+  const captionPlace = useMemo(() => (showCaption ? chooseCaptionRect(marks, captionSize, viewport, style) : null), [showCaption, marks, captionSize, viewport, style])
+  const chrome = useMemo(() => ({ caption: captionPlace?.rect }), [captionPlace])
   const plan = useMemo(() => planScene(state.annotations, viewport, style, sizes, chrome), [state.annotations, viewport, style, sizes, chrome])
   const css = useMemo(() => overlayCss(style), [style])
   const entries = useMemo(() => [...state.annotations].sort((a, b) => (RANK[a.annotation.kind] ?? 9) - (RANK[b.annotation.kind] ?? 9)), [state.annotations])
@@ -69,12 +71,7 @@ export function OverlayScene({ state, viewport, style, captionsEnabled, speakerN
             case 'ring': {
               const ring = plan.rings.get(a.id)
               if (!ring) return null
-              return (
-                <g key={a.id}>
-                  <RingMark rect={ring.rect} tone={a.tone} style={style} exiting={exiting} />
-                  {ring.step && a.step !== undefined ? <BadgeMark at={ring.step} n={a.step} tone={a.tone} style={style} exiting={exiting} /> : null}
-                </g>
-              )
+              return <RingMark key={a.id} rect={ring.rect} tone={a.tone} style={style} exiting={exiting} />
             }
             case 'arrow': {
               const arrow = plan.arrows.get(a.id)
@@ -100,15 +97,17 @@ export function OverlayScene({ state, viewport, style, captionsEnabled, speakerN
       {entries.map((e) => {
         const a = e.annotation
         const exiting = e.exitingAt !== null
-        if (a.kind === 'ring' && a.label) {
+        if (a.kind === 'ring') {
+          const text = ringChipText(a, style.bubble.maxChars)
+          if (text === '' && a.step === undefined) return null
           const key = labelKey(a.id, 'label')
           const placed = plan.labels.get(key)
-          return placed ? <LabelPill key={key} id={key} compact text={shortLabel(a.label)} tone={a.tone} scale={LABEL_SCALE} maxWidth={style.bubble.maxWidth} style={style} placed={placed} exiting={exiting} onSize={onSize} /> : null
+          return placed ? <LabelPill key={key} id={key} text={text} step={a.step} tone={a.tone} scale={LABEL_SCALE} maxWidth={style.bubble.maxWidth} style={style} placed={placed} exiting={exiting} onSize={onSize} /> : null
         }
         if (a.kind === 'highlightText' && a.note) {
           const key = labelKey(a.id, 'note')
           const placed = plan.labels.get(key)
-          return placed ? <LabelPill key={key} id={key} text={a.note} tone={a.tone} scale={0.85} maxWidth={style.highlightText.noteMaxWidth} style={style} placed={placed} exiting={exiting} onSize={onSize} /> : null
+          return placed ? <LabelPill key={key} id={key} text={a.note} tone={a.tone} maxWidth={style.highlightText.noteMaxWidth} style={style} placed={placed} exiting={exiting} onSize={onSize} /> : null
         }
         if (a.kind === 'bubble') {
           const key = labelKey(a.id, 'bubble')
@@ -118,8 +117,7 @@ export function OverlayScene({ state, viewport, style, captionsEnabled, speakerN
         return null
       })}
       {showCaption && state.caption ? <CaptionBand caption={state.caption} topY={captionPlace?.atTop ? captionPlace.rect.y : null} speakerName={speakerLabel(state.caption.speaker, speakerNames)} style={style} viewport={viewport} onSize={onSize} /> : null}
-      {state.chip ? <LevelChipEcho chip={state.chip} style={style} top={CHIP_TOP} onSize={onSize} progress={chipProgress} /> : null}
-      {state.coach ? <CoachChipView chip={state.coach} style={style} /> : null}
+      {coachDot && state.coach ? <CoachChipView chip={state.coach} style={style} /> : null}
     </div>
   )
 }

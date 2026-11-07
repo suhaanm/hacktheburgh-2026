@@ -276,3 +276,24 @@ for any decision; its spend counts against the US$8 cap (the new run's budget gu
 fixed run order, ids and personas, so p_sim01 to p_sim24 are run again from scratch.
 Pricing note (not a method change): the token prices in the report (US$0.75 in and 4.50 out per million tokens for the fast model) were supplied by the lead from a
 web search of OpenAI's model page and are an assumption that may have changed.
+
+**Amendment 2 (2026-11-07, about 17:05 GMT, before run 2 starts; harness robustness only, found on the FAKE check of Amendment 1).**
+The FAKE check showed two things that would also have corrupted a model run. (1) The in-tree extension build `extension/dist-ssim0` vanished between two cases of one
+participant (something working in `extension/` removed it), which excluded the participant. Fix: each world's extension build is copied into a private temp folder and
+the in-tree copy removed at once; the browser loads the private copy. (2) A case was flagged contaminated at its very first look (a calculation the participant had not
+made) and, in the retried attempt, one of two "Check cliff edges" presses was missing from the sandbox state (a reset by someone else mid-case, which the old check, which
+only looked for EXCESS activity, could not see). The sandbox state of a private world was watched for 45 s afterwards and nothing touched it, so the source remains unknown.
+Fix: the per-case check now also fails a case when the state SHRANK since the previous look, when the sandbox has logged fewer cliff panels than the participant
+successfully opened, or when a saved draft leaves no note; such a case is restarted like any contaminated case (up to 3 attempts). The check never looks at scores.
+No prompt, persona, cap, pace, case, scoring, analysis or budget changed. Tests for both are in `tests/`.
+
+**Amendment 3 (2026-11-07, about 17:12 GMT; harness and reporting only; no participant data existed).** Run 2 was started at 17:01 and aborted at 17:04, three minutes in and before
+any participant had finished, once the FAKE check showed that the pipeline under test had changed while the harness was being built: other tracks moved the engine's
+reconcile target from zone `results_tabs` (no page element) to `reconcile_control` (the case note's reconciliation dropdown, now carrying that zone in the sandbox page, the
+extension's capture config and the engine's mapping). Because the engine is started fresh for every participant from the live working tree, participants run hours apart
+would have met different coaches. Fixes: (1) **the code under test is frozen for the whole run**: `services/engine`, `services/agent` and `packages` are copied once at the start
+into a temp folder, every engine and sandbox process runs from that copy (git head, number of uncommitted files and a content fingerprint are written to `results/snapshot.json` and
+printed in REPORT.md); the extension is frozen by its single build per world; (2) the pre-registered check "ring target correct" counts the reconcile control zone as either
+`results_tabs` (the plan's original) or `reconcile_control` (the engine's current), and the report lists the zones actually served; (3) a dropdown choice is matched to an option
+the way a person would pick it (exact text or value, else a case-insensitive prefix or substring) instead of failing on an inexact string. No prompt, persona, cap, pace, case,
+scoring, analysis or budget changed. Run 2's six model calls (US$0.006) are in `evals/study_sim/aborted_run2/` and count against the cap; the study run proper is run 3.

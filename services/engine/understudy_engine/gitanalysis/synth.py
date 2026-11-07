@@ -36,7 +36,7 @@ import os
 import random
 import shutil
 import subprocess
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -91,6 +91,7 @@ class RepoSpec:
     canary: bool = False
     tz_min: int = 0                       # the author's UTC offset in minutes
     commits_per_day: float = 3.4
+    jitter: float = 1.0                   # scales the between-person spread of the baseline rates (stress experiments use 2.0)
     author_name: str | None = None
     author_email: str | None = None
 
@@ -110,16 +111,16 @@ LEARNER_PLAN = (
 EXPERT_TZ = (0, 0, 60, 60, -300, -480, 120, 330)
 
 
-def learner_specs(replicate: int = 0, *, canary: bool = False, strength: float = 1.0, days: int = 42) -> list[RepoSpec]:
+def learner_specs(replicate: int = 0, *, canary: bool = False, strength: float = 1.0, days: int = 42, jitter: float = 1.0) -> list[RepoSpec]:
     return [RepoSpec(person=f"{p}" if replicate == 0 else f"{p}_r{replicate}", level="learner", seed=1000 * replicate + i + 1, days=days,
-                     planted=planted, strength=strength, canary=canary, tz_min=tz)
+                     planted=planted, strength=strength, canary=canary, tz_min=tz, jitter=jitter)
             for i, (p, planted, tz) in enumerate(LEARNER_PLAN)]
 
 
-def expert_specs(replicate: int = 0, *, canary: bool = False, days: int = 42) -> list[RepoSpec]:
+def expert_specs(replicate: int = 0, *, canary: bool = False, days: int = 42, jitter: float = 1.0) -> list[RepoSpec]:
     return [RepoSpec(person=f"p_git_expert_{i + 1}" if replicate == 0 else f"p_git_expert_{i + 1}_r{replicate}", level="expert",
                      seed=1000 * replicate + 100 + i + 1, days=days, planted=(), canary=canary, tz_min=EXPERT_TZ[i % len(EXPERT_TZ)],
-                     commits_per_day=2.8 + 0.25 * (i % 5))
+                     commits_per_day=2.8 + 0.25 * (i % 5), jitter=jitter)
             for i in range(8)]
 
 
@@ -207,9 +208,9 @@ class _Sim:
             if h in self.spec.planted:
                 v = _lerp(BASELINE[h], PLANTED[h], self.spec.strength) * rr.uniform(0.9, 1.1)
             elif h == "tests_with_changes":
-                v = BASELINE[h] + rr.gauss(0, 0.07)              # a high rate: additive jitter (a multiplicative one runs past 1)
+                v = BASELINE[h] + rr.gauss(0, 0.07 * self.spec.jitter)       # a high rate: additive jitter (a multiplicative one runs past 1)
             else:
-                v = BASELINE[h] * rr.lognormvariate(0, 0.25)
+                v = BASELINE[h] * rr.lognormvariate(0, 0.25 * self.spec.jitter)
             out[h] = min(0.97, max(0.0, v))
         return out
 
@@ -366,7 +367,6 @@ class _Sim:
             ts = int(epoch0 + ev.local_min * 60 - spec.tz_min * 60)
             changes: dict[str, list[str]] = {}
             added = deleted = 0
-            kinds_touched: list[str] = []
             if ev.kind == "revert":
                 tgt_log = self.changelog.get(ev.target, {})
                 for path, (adds, dels) in tgt_log.items():
@@ -466,7 +466,7 @@ def _stream(commits: list[_Commit], tz_min: int, author: str, email: str) -> byt
     out = bytearray()
     for c in commits:
         msg = c.message.encode("utf-8")
-        ident = f"{c.author or author} <{c.email or email}> {c.ts} {tz}".encode("utf-8")
+        ident = f"{c.author or author} <{c.email or email}> {c.ts} {tz}".encode()
         out += b"commit refs/heads/main\nmark :%d\nauthor %s\ncommitter %s\ndata %d\n" % (c.mark, ident, ident, len(msg))
         out += msg + b"\n"
         for path, content in c.files.items():
@@ -526,7 +526,7 @@ def make_repo(spec: RepoSpec, dest: str | os.PathLike) -> Path:
     }
     truth = {
         "generator": GENERATOR, "person": spec.person, "level": spec.level, "seed": spec.seed, "days": spec.days,
-        "start": spec.start, "tz_min": spec.tz_min, "planted": list(spec.planted), "strength": spec.strength,
+        "start": spec.start, "tz_min": spec.tz_min, "planted": list(spec.planted), "strength": spec.strength, "jitter": spec.jitter,
         "rates": {h: round(v, 4) for h, v in sim.rates.items()}, "baseline": BASELINE, "planted_full": PLANTED,
         "canary": bool(tok), "canaries": canary_list(tok) if tok else [], "realised": realised,
         "note": "scripted synthetic developer; nobody is real; file contents are filler",
@@ -579,13 +579,14 @@ def load_truth(repo_or_dest: str | os.PathLike) -> dict:
     raise FileNotFoundError("truth.json not found beside the repository")
 
 
-def make_cohort(dest: str | os.PathLike, replicate: int = 0, *, canary: bool = False, strength: float = 1.0, days: int = 42) -> dict:
+def make_cohort(dest: str | os.PathLike, replicate: int = 0, *, canary: bool = False, strength: float = 1.0, days: int = 42,
+                jitter: float = 1.0) -> dict:
     """Four learner repos and eight expert repos under ``dest/<person>/``. Returns
     ``{"learners": {person: repo}, "experts": {person: repo}, "replicate": n, "canary": bool, "strength": s}``."""
     dest = Path(dest)
     out: dict = {"learners": {}, "experts": {}, "replicate": replicate, "canary": canary, "strength": strength, "generator": GENERATOR}
-    for key, specs in (("learners", learner_specs(replicate, canary=canary, strength=strength, days=days)),
-                       ("experts", expert_specs(replicate, canary=canary, days=days))):
+    for key, specs in (("learners", learner_specs(replicate, canary=canary, strength=strength, days=days, jitter=jitter)),
+                       ("experts", expert_specs(replicate, canary=canary, days=days, jitter=jitter))):
         for s in specs:
             out[key][s.person] = make_repo(s, dest / s.person)
     return out

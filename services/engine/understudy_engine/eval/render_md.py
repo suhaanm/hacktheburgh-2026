@@ -24,6 +24,7 @@ TITLES = {
     "redteam": "Red team with ablations",
     "redteam_live": "Red team with a real model (secondary, cached)",
     "study": "Live study (n = 4)",
+    "privacy": "Privacy layer (canary leaks, offline)",
     "study_sim": "Simulated participants (language model), not people",
     "study_power": "Study power: what the design could detect",
 }
@@ -355,6 +356,27 @@ def _study_power(s: dict[str, Any]) -> str:
     return "\n\n".join(out)
 
 
+def _privacy(s: dict[str, Any]) -> str:
+    h = s.get("headline") or {}
+    out = [f"**{h.get('leaked')} of {h.get('planted')} planted canary tokens reached the model port** across {h.get('runs')} runs of {h.get('flows')} flows "
+           f"({h.get('requests')} requests); one-sided 95% upper bound on the leak rate {pc(h.get('leak_rate_upper_95'), 2)}. Logs, audit and queue files: "
+           f"{h.get('artifact_leaked')} leaks in {h.get('artifact_files_scanned')} files. Ledger complete for every flow: {h.get('ledger_complete')}."]
+    rows = [[k, str(v.get("flows")), str(v.get("runs")), str(v.get("requests")), f"{v.get('leaked')} of {v.get('planted')}", pc(v.get("leak_rate_upper_95"), 2)] for k, v in (s.get("by_kind") or {}).items()]
+    if rows:
+        out.append(table(["Flows (synthetic fixtures)", "Flows", "Runs", "Requests", "Planted tokens leaked", "Upper 95% bound on the leak rate"], rows))
+    lay = s.get("layers") or {}
+    if lay:
+        out.append("Layers: " + "; ".join(f"{k} {v.get('status')}" for k, v in lay.items()) + ". A layer with no registered flow is never counted as passed.")
+    nc = s.get("negative_controls") or []
+    if nc:
+        out.append(f"Negative controls (the instrument can fail): {sum(1 for x in nc if x.get('passed'))} of {len(nc)} behaved as required.")
+    bk = s.get("backstop") or {}
+    out.append(f"Bucketing: {h.get('bucketing_failures')} failures over {h.get('bucketing_cases')} cases. Backstop: {h.get('backstop_must_catch')} must-catch shapes caught, "
+               f"{h.get('backstop_false_positives')} false positives on {bk.get('ordinary_values')} ordinary values. Static guard: {h.get('static_guard_violations')} violations in {h.get('static_guard_files')} files.")
+    out.append("Everything ran offline on synthetic fixtures with planted tokens; nothing here validates behaviour on real data and the real provider was never called.")
+    return "\n\n".join(out)
+
+
 def _redteam_live(s: dict[str, Any]) -> str:
     rows = s.get("rows") or []
 
@@ -374,7 +396,7 @@ def _redteam_live(s: dict[str, Any]) -> str:
 
 
 RENDER = {"deficit_recovery": _deficit, "null_placebo": _null, "hazard": _hazard, "ope": _ope, "routing": _routing, "ski_rental": _ski,
-          "presence": _presence, "routines": _routines, "policy_gate": _gate, "skills": _skills, "forecast": _forecast, "pooling": _pooling, "agent_claims": _claims, "agent_runs": _agent_runs, "study_sim": _study_sim, "study_power": _study_power, "redteam_live": _redteam_live, "redteam": _redteam, "study": _study}
+          "presence": _presence, "routines": _routines, "policy_gate": _gate, "skills": _skills, "forecast": _forecast, "pooling": _pooling, "agent_claims": _claims, "agent_runs": _agent_runs, "study_sim": _study_sim, "study_power": _study_power, "redteam_live": _redteam_live, "privacy": _privacy, "redteam": _redteam, "study": _study}
 
 
 def _generic(s: dict[str, Any]) -> str:

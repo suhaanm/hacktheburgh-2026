@@ -109,7 +109,10 @@ def default_spawner(*, url: str | None = None, timeout: float = 5.0, transport: 
 
         try:
             with httpx.Client(timeout=timeout, transport=transport) as c:
-                r = c.post(f"{url or agent_url()}/agents/spawn", json={"kind": kind, "params": params, "mode": mode})
+                body = {"kind": kind, "params": params, "mode": mode}
+                if isinstance(params.get("person"), str):
+                    body["person"] = params["person"]            # attributes the run to the worker, so its result becomes their card
+                r = c.post(f"{url or agent_url()}/agents/spawn", json=body, headers={"X-Understudy-Actor": "worker"})
         except httpx.HTTPError as exc:
             raise Unavailable("The agent service is not running, so the analysis could not start. Nothing was done.") from exc
         if r.status_code != 200:
@@ -232,6 +235,9 @@ def fire(card_id: str, *, actor: str, store: BriefingStore, readers: Readers, no
         sp = spawn or default_spawner()
         params = {"card_id": card.id, "person": card.person, "prepared": {k: card.prepared[k] for k in ("text", "steps") if k in card.prepared},
                   "prepared_hash": card.prepared_hash, **({"habit": ref["habit"]} if "habit" in ref else {})}
+        repo = _repo_path(card.person, ref.get("repo_id"))
+        if repo:
+            params["repo_path"] = repo          # local only: handed to the agent service on this machine, never stored on the card
         out = sp(kind, params, ref.get("mode", "foreground"))
         result["run_id"] = out["run_id"]
     else:  # FireSpec validates the type; this is belt and braces
@@ -255,6 +261,19 @@ def fire(card_id: str, *, actor: str, store: BriefingStore, readers: Readers, no
     store.mutate(card.person, labels)
     _audit("briefing_fired", card, "ok")
     return {**result, "status": "fired", "card": contract}
+
+
+def _repo_path(person: str, repo_id: Any) -> str | None:
+    """The local path of the repository a git card is about, resolved at press time through the git track (a reference is stored on the
+    card, never the path). None when the git track cannot say; the run then uses its own fixture repository."""
+    if not isinstance(repo_id, str) or not repo_id:
+        return None
+    try:
+        from understudy_engine.gitanalysis import service as gsvc
+
+        return str(gsvc.resolve(person, repo_id).path)
+    except Exception:
+        return None
 
 
 def _mark(c: Card, status: str, note: str, now: datetime) -> Card:

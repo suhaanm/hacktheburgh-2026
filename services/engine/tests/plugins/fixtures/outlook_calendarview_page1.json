@@ -1,0 +1,297 @@
+{
+ "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#Collection(microsoft.graph.event)",
+ "value": [
+  {
+   "@odata.etag": "W/\"etag1\"",
+   "id": "AAMkAGI2Id001=",
+   "iCalUId": "040000008200E00074C5B7101A82E0080000000001",
+   "subject": "Casework huddle",
+   "isAllDay": false,
+   "isCancelled": false,
+   "isOnlineMeeting": true,
+   "onlineMeetingProvider": "teamsForBusiness",
+   "showAs": "busy",
+   "type": "singleInstance",
+   "sensitivity": "normal",
+   "seriesMasterId": null,
+   "responseStatus": {
+    "response": "accepted",
+    "time": "2026-10-28T10:15:00Z"
+   },
+   "start": {
+    "dateTime": "2026-11-02T09:00:00.0000000",
+    "timeZone": "GMT Standard Time"
+   },
+   "end": {
+    "dateTime": "2026-11-02T09:30:00.0000000",
+    "timeZone": "GMT Standard Time"
+   },
+   "location": {
+    "displayName": "Microsoft Teams Meeting",
+    "locationType": "default"
+   },
+   "organizer": {
+    "emailAddress": {
+     "name": "Priya Raman",
+     "address": "priya.raman@fenwick.example"
+    }
+   },
+   "attendees": [
+    {
+     "type": "required",
+     "status": {
+      "response": "accepted",
+      "time": "2026-10-28T10:15:00Z"
+     },
+     "emailAddress": {
+      "name": "Me Myself",
+      "address": "me@fenwick.example"
+     }
+    },
+    {
+     "type": "required",
+     "status": {
+      "response": "accepted",
+      "time": "2026-10-28T10:15:00Z"
+     },
+     "emailAddress": {
+      "name": "Tom Gallacher",
+      "address": "tom.gallacher@fenwick.example"
+     }
+    },
+    {
+     "type": "required",
+     "status": {
+      "response": "tentativelyAccepted",
+      "time": "2026-10-28T10:15:00Z"
+     },
+     "emailAddress": {
+      "name": "Ada Okafor",
+      "address": "ada@kestrelcharity.example"
+     }
+    }
+   ]
+  },
+  {
+   "@odata.etag": "W/\"etag2\"",
+   "id": "AAMkAGI2Id002=",
+   "iCalUId": "040000008200E00074C5B7101A82E0080000000002",
+   "subject": "Weekly planning (series)",
+   "isAllDay": false,
+   "isCancelled": false,
+   "isOnlineMeeting": false,
+   "onlineMeetingProvider": "unknown",
+   "showAs": "busy",
+   "type": "occurrence",
+   "sensitivity": "normal",
+   "seriesMasterId": "AAMkAGI2Master01=",
+   "responseStatus": {
+    "response": "accepted",
+    "time": "2026-10-28T10:15:00Z"
+   },
+   "start": {
+    "dateTime": "2026-11-02T14:00:00.0000000",
+    "timeZone": "GMT Standard Time"
+   },
+   "end": {
+    "dateTime": "2026-11-02T14:45:00.0000000",
+    "timeZone": "GMT Standard Time"
+   },
+   "location": {
+    "displayName": "",
+    "locationType": "default"
+   },
+   "organizer": {
+    "emailAddress": {
+     "name": "Priya Raman",
+     "address": "priya.raman@fenwick.example"
+    }
+   },
+   "attendees": [
+    {
+     "type": "required",
+     "status": {
+      "response": "accepted",
+      "time": "2026-10-28T10:15:00Z"
+     },
+     "emailAddress": {
+      "name": "Me Myself",
+      "address": "me@fenwick.example"
+     }
+    }
+   ]
+  },
+  {
+   "@odata.etag": "W/\"etag3\"",
+   "id": "AAMkAGI2Id003=",
+   "iCalUId": "040000008200E00074C5B7101A82E0080000000003",
+   "subject": "Supplier call: housing association",
+   "isAllDay": false,
+   "isCancelled": true,
+   "isOnlineMeeting": false,
+   "onlineMeetingProvider": "unknown",
+   "showAs": "busy",
+   "type": "singleInstance",
+   "sensitivity": "normal",
+   "seriesMasterId": null,
+   "responseStatus": {
+    "response": "accepted",
+    "time": "2026-10-28T10:15:00Z"
+   },
+   "start": {
+    "dateTime": "2026-11-03T11:00:00.0000000",
+    "timeZone": "GMT Standard Time"
+   },
+   "end": {
+    "dateTime": "2026-11-03T12:00:00.0000000",
+    "timeZone": "GMT Standard Time"
+   },
+   "location": {
+    "displayName": "",
+    "locationType": "default"
+   },
+   "organizer": {
+    "emailAddress": {
+     "name": "Priya Raman",
+     "address": "priya.raman@fenwick.example"
+    }
+   },
+   "attendees": []
+  },
+  {
+   "@odata.etag": "W/\"etag4\"",
+   "id": "AAMkAGI2Id004=",
+   "iCalUId": "040000008200E00074C5B7101A82E0080000000004",
+   "subject": "Annual leave",
+   "isAllDay": true,
+   "isCancelled": false,
+   "isOnlineMeeting": false,
+   "onlineMeetingProvider": "unknown",
+   "showAs": "oof",
+   "type": "singleInstance",
+   "sensitivity": "normal",
+   "seriesMasterId": null,
+   "responseStatus": {
+    "response": "accepted",
+    "time": "2026-10-28T10:15:00Z"
+   },
+   "start": {
+    "dateTime": "2026-11-04T00:00:00.0000000",
+    "timeZone": "UTC"
+   },
+   "end": {
+    "dateTime": "2026-11-05T00:00:00.0000000",
+    "timeZone": "UTC"
+   },
+   "location": {
+    "displayName": "",
+    "locationType": "default"
+   },
+   "organizer": {
+    "emailAddress": {
+     "name": "Me Myself",
+     "address": "me@fenwick.example"
+    }
+   },
+   "attendees": []
+  },
+  {
+   "@odata.etag": "W/\"etag5\"",
+   "id": "AAMkAGI2Id005=",
+   "iCalUId": "040000008200E00074C5B7101A82E0080000000005",
+   "subject": "Client workshop",
+   "isAllDay": false,
+   "isCancelled": false,
+   "isOnlineMeeting": false,
+   "onlineMeetingProvider": "unknown",
+   "showAs": "busy",
+   "type": "singleInstance",
+   "sensitivity": "normal",
+   "seriesMasterId": null,
+   "responseStatus": {
+    "response": "accepted",
+    "time": "2026-10-28T10:15:00Z"
+   },
+   "start": {
+    "dateTime": "2026-11-03T09:00:00.0000000",
+    "timeZone": "Pacific Standard Time"
+   },
+   "end": {
+    "dateTime": "2026-11-03T10:00:00.0000000",
+    "timeZone": "Pacific Standard Time"
+   },
+   "location": {
+    "displayName": "",
+    "locationType": "default"
+   },
+   "organizer": {
+    "emailAddress": {
+     "name": "Priya Raman",
+     "address": "priya.raman@fenwick.example"
+    }
+   },
+   "attendees": [
+    {
+     "type": "required",
+     "status": {
+      "response": "accepted",
+      "time": "2026-10-28T10:15:00Z"
+     },
+     "emailAddress": {
+      "name": "Me Myself",
+      "address": "me@fenwick.example"
+     }
+    },
+    {
+     "type": "required",
+     "status": {
+      "response": "accepted",
+      "time": "2026-10-28T10:15:00Z"
+     },
+     "emailAddress": {
+      "name": "Noor Haddad",
+      "address": "noor@alderandfinch.example"
+     }
+    }
+   ]
+  },
+  {
+   "@odata.etag": "W/\"etag6\"",
+   "id": "AAMkAGI2Id006=",
+   "iCalUId": "040000008200E00074C5B7101A82E0080000000006",
+   "subject": "Odd zone meeting",
+   "isAllDay": false,
+   "isCancelled": false,
+   "isOnlineMeeting": false,
+   "onlineMeetingProvider": "unknown",
+   "showAs": "busy",
+   "type": "singleInstance",
+   "sensitivity": "normal",
+   "seriesMasterId": null,
+   "responseStatus": {
+    "response": "accepted",
+    "time": "2026-10-28T10:15:00Z"
+   },
+   "start": {
+    "dateTime": "2026-11-03T13:00:00.0000000",
+    "timeZone": "Customized Time Zone"
+   },
+   "end": {
+    "dateTime": "2026-11-03T13:30:00.0000000",
+    "timeZone": "Customized Time Zone"
+   },
+   "location": {
+    "displayName": "",
+    "locationType": "default"
+   },
+   "organizer": {
+    "emailAddress": {
+     "name": "Priya Raman",
+     "address": "priya.raman@fenwick.example"
+    }
+   },
+   "attendees": []
+  }
+ ],
+ "@odata.nextLink": "https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=2026-11-02T00%3A00%3A00Z&endDateTime=2026-11-09T00%3A00%3A00Z&$top=6&$skip=6"
+}

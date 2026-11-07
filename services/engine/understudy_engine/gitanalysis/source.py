@@ -22,7 +22,7 @@ import hashlib
 import os
 import subprocess
 from collections.abc import Iterator
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 from ..plugins.base import RawItem, Source, SourceError, overlaps
@@ -137,7 +137,7 @@ def _parse_commit(chunk: str) -> RawItem | None:
         return None
     paths, n_files, added, deleted = _parse_numstat(tail)
     n_parents = len(parents.split())
-    t = datetime.fromtimestamp(ts, timezone.utc)
+    t = datetime.fromtimestamp(ts, UTC)
     body = body.strip()
     return RawItem("commit", t, t, {
         "sha": sha.strip(),
@@ -196,7 +196,7 @@ class GitSource(Source):
             raise GitSourceError(f"git log failed (exit {proc.returncode})")
         text = proc.stdout.decode("utf-8", "replace")
         del proc
-        since_dt = since if isinstance(since, datetime) else (datetime.fromtimestamp(t_since, timezone.utc) if t_since is not None else None)
+        since_dt = since if isinstance(since, datetime) else (datetime.fromtimestamp(t_since, UTC) if t_since is not None else None)
         n = 0
         for chunk in text.split(SEP_REC):
             if not chunk.strip():

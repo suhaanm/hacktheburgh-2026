@@ -300,3 +300,17 @@ def test_the_real_study_power_matches_the_plain_numbers_in_the_markdown():
     for row in s["rows"]:                                     # the headline cells are the grid's own cells, not retyped numbers
         if row["n"] == 4 and row["carryover"] == 0 and row["order_effect"] == 0:
             assert h["4"]["power_ci"][row["effect_label"]] == row["power_ci"]
+
+
+def test_every_limitation_text_inside_the_study_sim_section_itself_also_says_what_it_is(sim_report):
+    s = sim_report["sections"]["study_sim"]
+    assert s["limitations"] and all(PHRASE in e["text"].lower() for e in s["limitations"])
+
+
+def test_an_owner_stub_without_a_reason_gets_one_and_validates(evals):
+    put_sim(evals, "def study_sim_section():\n    return {'status': 'not_run', 'label': 'x', 'meta': {'origin': 'synthetic', 'n': 0, 'n_unit': 'silicon participants', "
+                   "'split': None, 'interval_level': 0.95, 'note': 'Simulated participants (language model), not people. Not run.', 'generated_at': None}, 'limitations': [{'id': 'a', 'text': 'b', 'severity': 'high'}]}\n")
+    rep = build(["study_sim"])
+    s = rep["sections"]["study_sim"]
+    assert s["status"] == "not_run" and "Not run" in s["reason"] and schema_errors(rep) == []
+    assert not [e for e in rep["sections"]["limitations"] if "study-sim" in e["id"]]          # a stub adds no register entries about results it does not have

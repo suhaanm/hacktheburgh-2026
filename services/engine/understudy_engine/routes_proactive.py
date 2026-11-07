@@ -28,7 +28,7 @@ from .proactive import briefing as B
 from .proactive import fire as F
 from .proactive.briefing import briefing_text, summary_text  # noqa: F401  (briefing_text is part of this module's surface)
 from .proactive.cards import iso
-from .proactive.paths import data_dir, enabled, is_mock
+from .proactive.paths import data_dir, enabled
 from .proactive.reword import default_reword_why
 from .proactive.sources import Readers
 from .proactive.store import BriefingStore

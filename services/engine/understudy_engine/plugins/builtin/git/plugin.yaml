@@ -1,0 +1,12 @@
+id: git
+version: 0.1.0
+kind: source
+description: Local git repositories through git log with numstat; commit times, sizes and test-touch (read only, no network).
+permissions: [read]
+egress: local_only
+schema: commit.v1
+entry: understudy_engine.gitanalysis.source:GitSource
+default_enabled: true
+limitations:
+  - Reads local repositories only; messages, paths and author addresses stay in memory and are never logged.
+  - Owned by the git-analysis track; this manifest is registered against the plugin schema.

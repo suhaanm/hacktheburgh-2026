@@ -1,15 +1,20 @@
 import { z } from 'zod'
 import { HelpLevelSchema, PersonaIdSchema } from './protocol'
+import { currentPersona } from './personas'
 
 export const SettingsSchema = z.object({
-  persona: PersonaIdSchema.nullable().default(null),
+  // One identity ("Understudy"). An older saved Marcus or Amelia becomes Understudy on load.
+  persona: PersonaIdSchema.nullable().default(null).transform((p) => currentPersona(p)),
   helpLevelMode: z.enum(['auto', 'locked']).default('auto'),
   lockedLevel: HelpLevelSchema.default(2),
   pacing: z.enum(['gentle', 'fast']).default('gentle'),
   voiceSpeed: z.number().min(0.75).max(1.25).default(1),
   captions: z.boolean().default(true),
   textOnly: z.boolean().default(false),
-  bigAnnotations: z.boolean().default(true),
+  // Marks on the screen are compact by default (about 11.5 px notes); the accessibility setting scales them by 1.6.
+  bigAnnotations: z.boolean().default(false),
+  // The coach's presence on the screen: off. When on, one 7 px dot (the state itself lives in the tray menu and on the dashboard).
+  coachDot: z.boolean().default(false),
   highContrast: z.boolean().default(false),
   dyslexiaFont: z.boolean().default(false),
   explainJargon: z.boolean().default(true),
@@ -31,7 +36,17 @@ export const SettingsSchema = z.object({
   listeningLight: z.boolean().default(true),
   // One clean attempt is enough to step up a level. Default ON for the hackathon demo; say so honestly on stage.
   demoMode: z.boolean().default(true),
-  wakeEnabled: z.boolean().default(true),
+  // The microphone is never on by default: listening for a name streams audio to a cloud model, so it is OFF until the person turns it
+  // on (and the wake feature flag allows it). The default ways to reach Understudy need no microphone: the talk key, the menu bar, cards.
+  wakeEnabled: z.boolean().default(false),
+  // Hold-to-talk global shortcut (Electron accelerator syntax; Alt is Option on a Mac). Phase A only raises the panel and emits `talk`.
+  talkHotkey: z.string().min(1).max(60).default('Alt+Space'),
+  // Always-on awareness (the AWARENESS track reads these): off until the person turns each one on.
+  awarenessEnabled: z.boolean().default(false),
+  glanceOnTrigger: z.boolean().default(false),
+  glancePeriodic: z.boolean().default(false),
+  // Quiet for a while from the menu bar ("Pause for 1 hour"): the time it ends, as milliseconds since the epoch, or null.
+  pausedUntil: z.number().int().nullable().default(null),
   // Look and feel (DESIGN). `glass` makes the dock translucent; opacity is clamped so text stays readable.
   theme: z.enum(['system', 'light', 'dark']).default('system'),
   glass: z.boolean().default(true),

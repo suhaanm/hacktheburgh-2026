@@ -274,6 +274,18 @@ def computed_entries(sections: dict[str, Any]) -> list[dict[str, str]]:
         out.append(_entry("eval-study-power-assumptions", "The power analysis only shows what the n = 4 design could detect under our own assumptions (effect size, "
                           "carryover, order effect, how noisy the measure is). It is a property of the design, not a result about people, and not evidence that an effect exists.",
                           "high", "engine-eval:study_power"))
+    pv = ok("privacy")
+    if pv:
+        h = pv.get("headline") or {}
+        if (h.get("leaked") or 0) > 0:
+            out.append(_entry("eval-privacy-leak", f"{h['leaked']} of {h.get('planted')} planted canary tokens reached the model port in the privacy evaluation.", "high", "engine-eval:privacy"))
+        missing = h.get("layers_without_integration_flows") or []
+        integ = (pv.get("by_kind") or {}).get("integration") or {}
+        if missing:
+            out.append(_entry("eval-privacy-coverage",
+                              f"The privacy result covers the guard through its own reference flows and {integ.get('flows', 0)} integration flow(s) from a layer's real code "
+                              f"(upper bound on the leak rate {_pct(integ.get('leak_rate_upper_95'), 1)} over {integ.get('planted')} planted tokens). "
+                              f"These layers supplied no real-code flows and are not counted as passed: {', '.join(missing)}.", "medium", "engine-eval:privacy"))
     rd = ok("redteam")
     if rd:
         on = next((r for r in rd.get("rows", []) if r.get("ablation") == "all_on"), None)

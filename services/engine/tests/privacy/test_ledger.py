@@ -109,3 +109,12 @@ def test_export_is_the_jsonl_text():
 def test_canary_summary_defaults_to_zero():
     assert ledger.canary_summary()["runs"] == 0
     assert ledger.summary()["canary"] == {"runs": 0, "planted": 0, "leaked": 0, "last_run": None}
+
+
+def test_direct_lines_are_marked_mock_in_mock_mode_or_for_test_ports(monkeypatch):
+    assert ledger.record_direct(method="plan", model="mock", bytes_sent=1)["mock"] is True
+    assert ledger.record_direct(method="plan", model="capturing", bytes_sent=1)["mock"] is True
+    assert ledger.record_direct(method="plan", model="openai:x", bytes_sent=1)["mock"] is False
+    assert ledger.record_direct(method="plan", model="openai:x", bytes_sent=1, mock=True)["mock"] is True
+    monkeypatch.setenv("UNDERSTUDY_MOCK", "1")
+    assert ledger.record_direct(method="plan", model="openai:x", bytes_sent=1)["mock"] is True

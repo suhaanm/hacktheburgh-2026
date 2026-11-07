@@ -184,7 +184,7 @@ def parse_plan(raw: Any, goals: dict[str, str] | None = None) -> tuple[list[Agen
             continue
         known = {"id", "role", "goal", "tools", "max_steps", "max_seconds", "max_tokens", "workspace", "output_schema",
                  "playbook"}
-        goal = (goals or {}).get(str(c.get("role"))) or c.get("goal", "")
+        goal = (goals or {}).get(str(c.get("role"))) or c.get("goal") or "unspecified"
         if set(c) - known:
             errors.append(f"child[{i}]:unknown_keys")
             continue

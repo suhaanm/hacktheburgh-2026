@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import pytest
 
-from understudy_engine.privacy import flags, ledger
+from understudy_engine.privacy import ledger
 from understudy_engine.privacy.direct import LedgeredPort, wrap_if_enabled
 from understudy_engine.privacy.testing import CapturingPort
 
 
 def test_every_forwarded_call_gets_one_metadata_only_line_before_it_is_made():
-    inner = CapturingPort()
     seen = []
 
     class Spy(CapturingPort):

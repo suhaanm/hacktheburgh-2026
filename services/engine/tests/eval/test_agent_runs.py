@@ -128,6 +128,7 @@ def live_raw(with_fix=True, dropped_meta=None):
             "models": {"planner": "p", "fast": "f"}, "price_assumption_usd_per_million": {"input": 5.0, "output": 30.0}}
     if dropped_meta is not None:
         meta["dropped_after_budget_stop"] = dropped_meta
+        meta["dropped_note"] = "v2 glitch rows for households 11 to 19 were produced after the cost budget was reached and are excluded."
     by = {"v1_no_page_state": {"clean": cond(ok=18, reasons=["not every calculator produced a verified result"]), "layout_v2": cond(),
                                "glitch": cond(ok=0, claimed=20, false=20), "injected": cond(ok=0, claimed=0, paused=20, injected_runs=20, detected=20, steps=0.0, tiers=())}}
     if with_fix:
@@ -136,7 +137,9 @@ def live_raw(with_fix=True, dropped_meta=None):
                 "tokens_in": 497099, "tokens_out": 69296, "usd_at_assumed_rates": 4.56, "note": "nine v2 rows dropped after the budget stop (they made no live calls)."}},
             "summary": by["v1_no_page_state"], "summary_by_variant": by,
             "runs": [{"run_id": f"r{i}", "live_calls": 2, "cache_hits": 10} for i in range(90)],
-            "tier3_simulated": {"runs": [{"outcome": "claimed_not_verified"}] * 3, "pointer_actions": 0, "landed_on_interactive": 0, "note": "simulated actuator"}}
+            "tier3_simulated": {"runs": [{"outcome": "claimed_not_verified"}] * 3, "pointer_actions": 0, "landed_on_interactive": 0, "note": "simulated actuator"},
+            "limitations": ["Identical prompts are cached, so repeated page situations are one live sample each.", "Cost figures are estimates at placeholder rates."],
+            "glitch_before_after": {"before_v1_no_page_state": {"n": 20}, "after_v2_page_state": {"n": 10}}}
 
 
 def with_live(root, **kw):
@@ -165,7 +168,23 @@ def test_live_block_reads_the_four_conditions_the_in_sample_fix_tier3_and_cost_f
 
 def test_dropped_rows_come_from_the_meta_key_when_the_file_has_it(root):
     s = with_live(root, dropped_meta=["a", "b", "c"])["sections"]["agent_runs"]
-    assert s["live"]["glitch_fix"]["dropped_after_budget_stop"] == 3
+    assert s["live"]["glitch_fix"]["dropped_after_budget_stop"] == 3 and "households 11 to 19" in s["live"]["glitch_fix"]["dropped_note"]
+
+
+def test_the_files_own_limitations_ride_along_as_caveats_and_unknown_new_fields_are_ignored(root):
+    s = with_live(root)["sections"]["agent_runs"]
+    assert s["caveats"] == ["Identical prompts are cached, so repeated page situations are one live sample each.", "Cost figures are estimates at placeholder rates."]
+    raw = live_raw()
+    raw["brand_new_field"] = {"anything": [1, 2, 3]}
+    raw["meta"]["another_new_field"] = "x"
+    (root / "eval" / AGENT_LIVE).write_text(json.dumps(raw))
+    assert validates(rep_for(root)) and "status" not in rep_for(root)["sections"]["agent_runs"]
+
+
+def test_a_live_file_with_the_older_pass_rate_shape_does_not_take_the_section_down(root):
+    (root / "eval" / AGENT_LIVE).write_text(json.dumps(eval_file("live", household_rows(n=3))))
+    rep = rep_for(root)
+    assert rep["sections"]["agent_runs"]["live"] is None and "could not be read" in rep["sections"]["agent_runs"]["live_error"] and validates(rep)
 
 
 def test_no_fix_variant_means_no_in_sample_claim(root):

@@ -89,7 +89,7 @@ def _within(child: Path, parent: Path) -> bool:
 def assert_not_real_working_copy(path: Path) -> None:
     """Refuse to operate in the owner's real working copy (or their home directory, or the filesystem root).
     Workspaces are always fresh copies; this guards the places a copy is made FROM and made IN."""
-    p = path.resolve()
+    p = Path(path).resolve()
     root = repo_root().resolve()
     home = Path.home().resolve()
     if p == Path("/") or p == home:
@@ -123,7 +123,8 @@ class Workspace:
     # ------------------------------------------------------------------------------------------------ creation
     @classmethod
     def create(cls, kind: str, *, run_id: str, child_id: str, base: Path | None = None,
-               inputs: list[tuple[Path, str]] | None = None, repo_source: Path | None = None) -> "Workspace":
+               inputs: list[tuple[Path, str]] | None = None, repo_source: Path | None = None,
+               scratch: tuple[str, ...] | list[str] = ()) -> "Workspace":
         if kind not in policy.WORKSPACE_KINDS:
             raise WorkspaceError("bad_kind")
         ws_id = uuid.uuid4().hex[:10]
@@ -149,6 +150,10 @@ class Workspace:
                 excl.parent.mkdir(parents=True, exist_ok=True)
                 with open(excl, "a") as f:
                     f.write("\n/input/\n/out/\n/.run/\n/.tmp/\n")
+                    # the child's own scratch files (its script, its result file, the saved history) are not part of a patch
+                    for name in scratch:
+                        if re.fullmatch(r"[A-Za-z0-9._/\-]{1,100}", name) and ".." not in name:
+                            f.write("/" + name + "\n")
             for src, name in inputs or []:
                 ws.copy_input(Path(src), name)
         except BaseException:
@@ -218,7 +223,7 @@ class Workspace:
             cur = cur / x
             try:
                 st = os.lstat(cur)
-            except FileNotFoundError:
+            except (FileNotFoundError, NotADirectoryError):
                 continue
             if stat.S_ISLNK(st.st_mode):
                 raise WorkspaceError("symlink")

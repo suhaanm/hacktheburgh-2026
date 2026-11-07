@@ -28,7 +28,7 @@ from ..models.port import ModelPort
 from ..queue import ApprovalQueue
 from ..security.killflag import is_killed
 from ..security.paths import data_dir, repo_root, runs_dir
-from ..supervisor import HumanInputSignal, Supervisor, TaskContext
+from ..supervisor import HumanInputSignal, KillSwitchActive, Supervisor, TaskContext
 from . import policy
 from .child import ChildAgent
 from .parent import ParentAgent, PlanRejected
@@ -163,8 +163,8 @@ class AgentRun:
         for r in recs:
             r.sup.stop(reason)
         self._resume_evt.set()
-        self.audit.append("human", "kill" if False else "run_end", routine=self.routine_id, run_id=self.run_id,
-                          outcome="stop_requested", note_code="stop") if False else None
+        self.audit.append("human", "agent_stop", routine=self.routine_id, run_id=self.run_id, outcome="requested",
+                          note_code="stop")
         return {"stopped": True, "ms": round((time.monotonic() - t0) * 1000, 1)}
 
     def revoke_child(self, child_id: str) -> bool:
@@ -208,7 +208,7 @@ class AgentRun:
         self.run_dir.mkdir(parents=True, exist_ok=True)
         self.parent_lease = self.book.issue(holder=f"{self.run_id}.parent", tools=set(_all_tools()),
                                             ttl_s=self.run_seconds, max_steps=500)
-        port = self.port or _default_port()
+        port = self.port if self.port is not None else _default_port()
         self.port = port
         # 1. plan (the parent's task, on its own supervisor)
         self._psup = self._new_supervisor()
@@ -231,7 +231,10 @@ class AgentRun:
             except PlanRejected as e:
                 holder["errors"] = e.errors
 
-        h = self._psup.submit(plan_task, name="plan", run_id=self.run_id, deadline_s=120.0)
+        try:
+            h = self._psup.submit(plan_task, name="plan", run_id=self.run_id, deadline_s=120.0)
+        except KillSwitchActive:
+            return self._finish_run("killed")
         while not h.wait(0.05):
             pass
         if self._stopped() or h.state in ("stopped", "killed", "timeout", "superseded"):
@@ -253,8 +256,11 @@ class AgentRun:
         self._build_children()
         if self._stopped():
             return self._finish_run("stopped")
-        for rec in self.children.values():
-            self._submit_child(rec)
+        try:
+            for rec in self.children.values():
+                self._submit_child(rec)
+        except KillSwitchActive:
+            self.stop("kill flag present")
         status = self._supervise()
         self._finish_run(status)
 
@@ -265,7 +271,8 @@ class AgentRun:
         for spec in self.specs:
             needs = self.ex.needs(spec.role, self.params)
             ws = Workspace.create(spec.workspace, run_id=self.run_id, child_id=spec.id, base=self.workspace_base,
-                                  inputs=list(needs.inputs), repo_source=needs.repo_source)
+                                  inputs=list(needs.inputs), repo_source=needs.repo_source,
+                                  scratch=tuple(MENUS[spec.role].files.values()))
             agent = ChildAgent(spec, run_id=self.run_id, kind=self.kind, port=self.port, audit=self.audit,  # type: ignore[arg-type]
                                queue=self.queue, ws=ws, params=self.params, output_schema=schemas[spec.output_schema],
                                playbook=load_playbook(spec.playbook), menu=MENUS[spec.role], book=self.book,
@@ -278,7 +285,7 @@ class AgentRun:
         left = max(1.0, rec.spec.budget.seconds - rec.agent.clock())
         rec.status = "running"
         rec.handle = rec.sup.submit(rec.agent.run, name=f"child-{rec.spec.id}", run_id=rec.agent.child_run_id,
-                                    deadline_s=left + 20.0, yield_on_human=True)
+                                    deadline_s=left + 5.0, yield_on_human=True)
 
     def _supervise(self) -> str:
         t_end = time.monotonic() + self.run_seconds
@@ -291,6 +298,8 @@ class AgentRun:
                 if not yielded:
                     break
                 self._set_state("yielded")
+                self.audit.append("agent", "yielded", routine=self.routine_id, run_id=self.run_id, outcome="yielded",
+                                  note_code="human_input", meta={"children": len(yielded)})
                 self._event("yielded", children=[r.spec.id for r in yielded])
                 while not self._resume_evt.is_set() and not self._stopped():
                     if self.resume_quiet_s is not None and self.human.quiet_for(self.resume_quiet_s) and not is_killed():
@@ -300,10 +309,13 @@ class AgentRun:
                 if self._stopped():
                     break
                 self._set_state("running")
-                for r in yielded:
-                    r.sup.close()
-                    r.sup = self._new_supervisor()
-                    self._submit_child(r)
+                try:
+                    for r in yielded:
+                        r.sup.close()
+                        r.sup = self._new_supervisor()
+                        self._submit_child(r)
+                except KillSwitchActive:
+                    self.stop("kill flag present")
                 continue
             if time.monotonic() > t_end:
                 self.stop("run deadline")

@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://understudy.local/schema/awareness.schema.json",
+  "title": "Understudy awareness event v1 (REQ-5, AWR-1 to AWR-2)",
+  "description": "What the always-on awareness layer sends to the engine (POST /awareness/events). Numbers and closed enums only: no free text, no coordinates, no window titles, no URLs, no field values, no pixels. A 'window' event is one two-second window of on-device features (cursor dwell, wander, back-and-forth, speed bursts, stationary gap, the coarse app kind). A 'glance' event is the closed-schema answer of the glance model for one downscaled frame (the frame itself is never stored and never in this event). Enum values the model returns that are not listed here are dropped before the event is built. The GlanceHttp* definitions describe the desktop-to-agent-service call that carries the frame; they are documentation of the wire shape, not part of the stored event.",
+  "$ref": "#/$defs/AwarenessEvent",
+  "$defs": {
+    "AppKind": {
+      "description": "Coarse kind of the frontmost app, from a small bundle-id table. 'other' is a known app we do not classify.",
+      "enum": ["browser", "spreadsheet", "email", "code_editor", "terminal", "chat", "other"]
+    },
+    "AppKindOrUnknown": {
+      "description": "AppKind, or 'unknown' when the frontmost app could not be read (never guessed).",
+      "enum": ["browser", "spreadsheet", "email", "code_editor", "terminal", "chat", "other", "unknown"]
+    },
+    "TaskPhase": {
+      "description": "What the worker seems to be doing, as the glance model sees it. A closed list; anything else is dropped.",
+      "enum": ["idle", "reading", "searching", "entering", "comparing", "reviewing", "submitting", "waiting"]
+    },
+    "Blocker": {
+      "description": "What seems to be in the way, as the glance model sees it. 'none' means nothing visible. A closed list; anything else is dropped.",
+      "enum": ["none", "unclear_next_step", "cannot_find_control", "error_message", "unexpected_state", "waiting_for_load", "needs_information", "permission_prompt"]
+    },
+    "TriggerReason": {
+      "description": "Why a glance was allowed: stuck probability over its threshold twice running, a loop signature, the worker's hotkey, or the opt-in periodic timer.",
+      "enum": ["stuck", "loop", "hotkey", "periodic"]
+    },
+    "ZoneId": {
+      "description": "A capture zone from a pack's zone vocabulary (the same pattern as ext_rect.schema.json). Never a coordinate.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,30}$"
+    },
+    "CursorFeatures": {
+      "description": "Features of one window of cursor samples, derived on this Mac. The samples and their coordinates are dropped when the window closes.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dwell_s", "dwell_zone", "wander", "back_forth", "zone_a", "zone_b", "speed_bursts", "idle_gap_s", "clicks"],
+      "properties": {
+        "dwell_s": { "type": "number", "minimum": 0, "maximum": 30, "description": "Longest time the cursor stayed within a 24 px square without a click; 0 unless it lasted at least 1.2 s." },
+        "dwell_zone": { "type": ["string", "null"], "pattern": "^[a-z][a-z0-9_]{1,30}$", "description": "Zone the dwell was in, when a zone resolver is available." },
+        "wander": { "type": "number", "minimum": 1, "maximum": 20, "description": "Path length over displacement, with displacement floored at 24 px; 1 when the cursor barely moved." },
+        "back_forth": { "type": "integer", "minimum": 0, "maximum": 30, "description": "Number of reversals between two far-apart places in the window." },
+        "zone_a": { "type": ["string", "null"], "pattern": "^[a-z][a-z0-9_]{1,30}$" },
+        "zone_b": { "type": ["string", "null"], "pattern": "^[a-z][a-z0-9_]{1,30}$", "description": "The two zones the cursor alternated between (A, B, A), when zones are known." },
+        "speed_bursts": { "type": "integer", "minimum": 0, "maximum": 30, "description": "Number of fast flicks (cursor speed over 1800 px/s)." },
+        "idle_gap_s": { "type": "number", "minimum": 0, "maximum": 30, "description": "Longest stretch in the window where the cursor did not move." },
+        "clicks": { "type": ["integer", "null"], "minimum": 0, "maximum": 200, "description": "Clicks in the window, or null when no permission-free click source exists (it needs Accessibility, which is not requested)." }
+      }
+    },
+    "GlanceResult": {
+      "description": "The glance model's answer after strict parsing. Unknown enum values become null; confidence is clamped to 0..1; box_2d is [ymin, xmin, ymax, xmax] normalised to 0..1000 and is dropped unless well formed. No other key is kept.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["app_kind", "task_phase", "blocker", "confidence"],
+      "properties": {
+        "app_kind": { "oneOf": [{ "$ref": "#/$defs/AppKind" }, { "type": "null" }] },
+        "task_phase": { "oneOf": [{ "$ref": "#/$defs/TaskPhase" }, { "type": "null" }] },
+        "blocker": { "oneOf": [{ "$ref": "#/$defs/Blocker" }, { "type": "null" }] },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "box_2d": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": { "type": "integer", "minimum": 0, "maximum": 1000 }
+        }
+      }
+    },
+    "AwarenessEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "id", "t", "origin", "person", "role", "type"],
+      "properties": {
+        "schema": { "const": 1 },
+        "id": { "type": "string", "minLength": 8, "maxLength": 64 },
+        "t": { "type": "string", "format": "date-time" },
+        "origin": { "enum": ["real", "synthetic"] },
+        "person": { "type": "string", "pattern": "^p_[a-z0-9]{2,16}$" },
+        "role": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,40}$" },
+        "type": { "enum": ["window", "glance"] },
+        "window_s": { "type": "number", "minimum": 0.5, "maximum": 30, "description": "Window length; the window starts at t." },
+        "app_kind": { "$ref": "#/$defs/AppKindOrUnknown" },
+        "sys_idle_s": { "type": "number", "minimum": 0, "maximum": 86400, "description": "Seconds since the last keyboard or pointer input at the end of the window (Electron powerMonitor). Low while the cursor is still means keys or a click, which is the permission-free input-rhythm signal." },
+        "cursor": { "$ref": "#/$defs/CursorFeatures" },
+        "trigger": { "$ref": "#/$defs/TriggerReason" },
+        "glance": { "$ref": "#/$defs/GlanceResult" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "window" } }, "required": ["type"] },
+          "then": {
+            "required": ["window_s", "app_kind", "cursor"],
+            "not": { "anyOf": [{ "required": ["glance"] }, { "required": ["trigger"] }] }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "glance" } }, "required": ["type"] },
+          "then": {
+            "required": ["trigger", "glance"],
+            "not": { "anyOf": [{ "required": ["cursor"] }, { "required": ["window_s"] }] }
+          }
+        }
+      ]
+    },
+    "GlanceHttpRequest": {
+      "description": "Desktop main process -> agent service POST /glance. The frame is a downscaled JPEG held in memory; it is never written to disk or to a log, on either side. The agent service builds the SafeImage and the ImageGate from these flags; source is always real_screen from this caller.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frame_b64", "gates", "trigger"],
+      "properties": {
+        "frame_b64": { "type": "string", "minLength": 1, "description": "Base64 of the JPEG (long edge at most 1280, quality 70)." },
+        "gates": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["consent", "denylisted_app", "secure_input", "unattended"],
+          "properties": {
+            "consent": { "type": "boolean" },
+            "denylisted_app": { "type": "boolean" },
+            "secure_input": { "type": "boolean", "description": "True when secure input is on, or when it is unknown and the worker chose strict mode." },
+            "unattended": { "type": "boolean", "description": "Always false from the desktop glance path; unattended runs never use real-screen glances." }
+          }
+        },
+        "trigger": { "$ref": "#/$defs/TriggerReason" },
+        "width": { "type": "integer", "minimum": 1, "maximum": 1280 },
+        "height": { "type": "integer", "minimum": 1, "maximum": 1280 }
+      }
+    },
+    "GlanceHttpResponse": {
+      "description": "Agent service -> desktop. result is the model's raw closed-schema object (the desktop parses it again with the strict parser and never trusts it); blocked_reason is a short code from the gate.",
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["ok"],
+      "properties": {
+        "ok": { "type": "boolean" },
+        "blocked_reason": { "type": "string", "pattern": "^[a-z0-9_]{1,40}$" },
+        "result": { "type": "object" },
+        "model": { "type": "string", "maxLength": 80 },
+        "latency_ms": { "type": "number", "minimum": 0 },
+        "cost_usd_est": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}

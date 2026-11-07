@@ -428,7 +428,7 @@ describe('dom coach: the ring on a real element', () => {
     expect(JSON.stringify(events)).not.toContain('Check this')
   })
 
-  it('shows the nudge text in a bubble above the ring, reports the zone, and hands the decision tag back when the prompt ends', async () => {
+  it('puts the nudge text on the ring as its note (one annotation, no separate bubble), reports the zone, and hands the decision tag back when the prompt ends', async () => {
     const c = clock()
     const shown: Annotation[][] = []
     const cleared: string[][] = []
@@ -440,13 +440,12 @@ describe('dom coach: the ring on a real element', () => {
     coach.point({ zone: 'calc_result' }, { message: '  Check the   cliff edge first. ', ref: 'd_1', step: 2 })
     await c.advance(10)
     const marks = shown[0]
-    expect(marks.map((m) => m.id)).toEqual([DOM_RING_ID, 'dom-bubble'])
-    expect(marks[1]).toMatchObject({ kind: 'bubble', text: 'Check the cliff edge first.' })
-    expect(marks[0]).toMatchObject({ step: 2 })
+    expect(marks.map((m) => m.id)).toEqual([DOM_RING_ID])
+    expect(marks[0]).toMatchObject({ kind: 'ring', exact: true, note: 'Check the cliff edge first.', step: 2 })
     expect(events[0]).toMatchObject({ type: 'coach_shown', meta: { zone: 'calc_result' } })
     expect(coach.current()).toMatchObject({ ref: 'd_1', message: 'Check the cliff edge first.' })
     coach.clear('stop')
-    expect(cleared.at(-1)).toEqual([DOM_RING_ID, 'dom-bubble'])
+    expect(cleared.at(-1)).toEqual([DOM_RING_ID])
     expect(ends).toEqual([{ ref: 'd_1', how: 'stop', shown: true }])
     expect(events.at(-1)).toMatchObject({ type: 'coach_dismissed', meta: { how: 'stop', zone: 'calc_result' } })
     // a prompt that never got drawn reports shown:false
@@ -462,7 +461,7 @@ describe('dom coach: the ring on a real element', () => {
     coach.point({ role: 'button', name: 'Calculate' })
     await c.advance(10)
     await c.advance(2000)
-    expect(drawn).toContain('clear:dom-ring,dom-bubble')
+    expect(drawn).toContain('clear:dom-ring')
     expect(events.map((e) => e.type)).toEqual(['coach_shown']) // hiding is not dismissing
     expect(coach.current()).toMatchObject({ visible: false, hiddenFor: 'stale' })
     coach.followed()

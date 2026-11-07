@@ -73,6 +73,8 @@ def test_nudge_counts():
     assert (c.shown, c.followed, c.explicit_dismissed, c.ignored, c.dismissed) == (5, 2, 1, 2, 3)
     assert (c.false_nudges, c.lag_prompts, c.rings_drawn, c.banners_only) == (1, 1, 4, 1)
     assert ("cliff_button", "cliff_button") in c.zones and ("results_tabs", "results_tabs") in c.zones
+    c2 = NudgeCounts.of([sh("followed", zone="reconcile_control", skill="reconcile"), sh("followed", zone="cliff_button", skill="reconcile")])
+    assert ("reconcile_control", "reconcile_control") in c2.zones and ("cliff_button", None) in c2.zones      # the wrong zone for the skill is not "expected"
 
 
 def test_contamination():
@@ -86,3 +88,15 @@ def test_contamination():
     assert contamination({**clean, "exfil_hits": [{"site": "a"}]}, own)
     assert contamination({"calculations": [{"site": "c"}], "cliff_opens": [], "notes": {}}, [ex(1, "click", "calculate", "a")])   # site c never visited
     assert contamination({"calculations": [], "cliff_opens": [], "notes": {}}, []) == ""
+
+
+def test_contamination_detects_a_reset_during_the_case():
+    from evals.study_sim.checks import contamination, counts_of
+    own = [ex(1, "click", "calculate", "a"), ex(2, "click", "cliff-btn", "a"), ex(3, "click", "calculate", "b"), ex(4, "click", "cliff-btn", "b")]
+    full = {"calculations": [{"site": "a"}, {"site": "b"}], "cliff_opens": [{"site": "a"}, {"site": "b"}], "notes": {}, "submissions": [], "exfil_hits": []}
+    assert contamination(full, own, counts_of(full)) == ""
+    wiped = {**full, "cliff_opens": [{"site": "b"}]}                                # site a's panel opened, then someone reset, then b's was logged
+    assert "reset" in contamination(wiped, own)
+    assert "shrank" in contamination({**full, "calculations": [{"site": "a"}], "cliff_opens": [{"site": "a"}]}, [ex(1, "click", "calculate", "a"), ex(2, "click", "cliff-btn", "a"), ex(3, "click", "calculate", "b")], counts_of(full))
+    assert "no note" in contamination({**full}, own, None, saved=True)
+    assert contamination({**full, "notes": {"CN-1": {}}}, own + [ex(5, "click", "save-draft", "a")], None, saved=True) == ""

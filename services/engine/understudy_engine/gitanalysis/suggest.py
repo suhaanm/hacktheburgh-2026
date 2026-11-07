@@ -147,12 +147,15 @@ def _payload(row: dict) -> dict[str, Any]:
 def reword(suggestions: Sequence[dict], rows: Sequence[dict], *, port: Any = None, enabled: bool | None = None) -> list[dict]:
     """Optionally reword each suggestion through the privacy spine (``git.habit_wording``). Returns new dicts.
 
-    Off unless ``enabled`` (default: ``UNDERSTUDY_GIT_REWORD=1`` and not mock mode; a test passes ``port``). Any failure keeps
+    Off unless ``enabled`` (default: ``UNDERSTUDY_GIT_REWORD=1`` and not mock mode; a test passes ``port``). In mock mode it
+    never calls the default port, even when asked. Any failure keeps
     the templated sentence. The model sees one habit id from a fixed vocabulary, two ratios in 10% steps and a commit count:
     no message, path, name or date. Its answer is one short plain sentence, shown as text and never executed."""
+    mock = os.environ.get("UNDERSTUDY_MOCK", "").strip().lower() in ("1", "true", "yes")
     if enabled is None:
-        enabled = port is not None or (os.environ.get("UNDERSTUDY_GIT_REWORD", "") == "1"
-                                       and os.environ.get("UNDERSTUDY_MOCK", "").strip().lower() not in ("1", "true", "yes"))
+        enabled = port is not None or (os.environ.get("UNDERSTUDY_GIT_REWORD", "") == "1" and not mock)
+    if port is None and mock:
+        enabled = False                     # mock mode never words through the default port; a test passes its own port
     if not enabled:
         return [dict(s) for s in suggestions]
     try:

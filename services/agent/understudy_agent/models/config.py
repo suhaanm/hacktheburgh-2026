@@ -23,6 +23,61 @@ ENV_EFFORT = {
 DEFAULT_EFFORT = {"planner": "low", "fast": "none", "reader": "low", "vision": "low", "computer": "low"}
 
 
+# --- Gemini (REQ-5 phase C). Ids come only from the environment, never from code. GEMINI_API_KEY is read by the
+# HTTP client alone and never appears in a log, an error, a fixture or a URL.
+ENV_GEMINI_KEY = "GEMINI_API_KEY"
+ENV_GEMINI_FAST = "GEMINI_MODEL_FAST"          # flash-lite class: pointing and glances, first try
+ENV_GEMINI_ACCURATE = "GEMINI_MODEL_ACCURATE"  # flash class: escalation, verifier fallback
+ENV_GEMINI_LIVE = "GEMINI_MODEL_LIVE"          # live voice (phase D); only checked at boot, not called here
+
+_TRUE = ("1", "true", "yes", "on")
+
+
+def gemini_flag_enabled() -> bool:
+    """`UNDERSTUDY_X_GEMINI=1` (or the master `UNDERSTUDY_X=1`). Off by default; the P0 path never depends on it."""
+    e = os.environ
+    return any(e.get(k, "").strip().lower() in _TRUE for k in ("UNDERSTUDY_X", "UNDERSTUDY_X_GEMINI"))
+
+
+@dataclass(frozen=True)
+class GeminiModelIds:
+    fast: str
+    accurate: str
+    live: str | None = None
+
+    @classmethod
+    def from_env(cls) -> "GeminiModelIds":
+        missing = [k for k in (ENV_GEMINI_FAST, ENV_GEMINI_ACCURATE) if not os.environ.get(k, "").strip()]
+        if missing:
+            raise ConfigError(
+                "Gemini model ids are not configured: set " + ", ".join(missing) + " in .env. "
+                "Run `uv run --env-file .env python -m understudy_agent.models.boot` to list the models "
+                "your key can use, then pick from that list. Model ids are never guessed."
+            )
+        live = os.environ.get(ENV_GEMINI_LIVE, "").strip() or None
+        return cls(fast=os.environ[ENV_GEMINI_FAST].strip(), accurate=os.environ[ENV_GEMINI_ACCURATE].strip(), live=live)
+
+    def as_dict(self) -> dict[str, str]:
+        d = {"fast": self.fast, "accurate": self.accurate}
+        if self.live:
+            d["live"] = self.live
+        return d
+
+    def env_name(self, role: str) -> str:
+        return {"fast": ENV_GEMINI_FAST, "accurate": ENV_GEMINI_ACCURATE, "live": ENV_GEMINI_LIVE}[role]
+
+
+def gemini_ids_from_env_or_none() -> GeminiModelIds | None:
+    try:
+        return GeminiModelIds.from_env()
+    except ConfigError:
+        return None
+
+
+def gemini_key_present() -> bool:
+    return bool(os.environ.get(ENV_GEMINI_KEY, "").strip())
+
+
 @dataclass(frozen=True)
 class ModelIds:
     planner: str

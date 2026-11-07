@@ -24,7 +24,7 @@ export type OnboardingSettingsView = Partial<{
   filesEnabled: boolean
 }>
 
-export const STEP_IDS = ['hello', 'about', 'style', 'comfort', 'look', 'helper', 'permissions', 'hands', 'ready'] as const
+export const STEP_IDS = ['hello', 'about', 'style', 'comfort', 'look', 'permissions', 'hands', 'ready'] as const
 export type StepId = (typeof STEP_IDS)[number]
 
 export const STEP_TITLES: Readonly<Record<StepId, string>> = {
@@ -33,7 +33,6 @@ export const STEP_TITLES: Readonly<Record<StepId, string>> = {
   style: 'How you like to learn',
   comfort: 'Make it comfortable',
   look: 'Look and feel',
-  helper: 'Choose your helper',
   permissions: 'Allow what I need',
   hands: 'Helping hands',
   ready: 'All set',

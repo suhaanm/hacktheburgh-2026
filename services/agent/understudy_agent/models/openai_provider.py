@@ -24,6 +24,7 @@ from .config import ModelIds, effort_for
 from .errors import ConfigError, ModelRefusal, ProviderError, SchemaViolation
 from .imaging import DEFAULT_MAX_H, DEFAULT_MAX_W, ScaledImage, data_url, downscale_png
 from .port import Action, Done, SafetyStop
+from .prices import cost_estimate
 from .strict import schema_name, to_strict_schema, validate_output
 
 _READER_INSTRUCTIONS = (
@@ -130,32 +131,46 @@ class OpenAIProvider:
                 ) from e
         self.client = client
         self._lock = threading.Lock()
+        self._tls = threading.local()
         self._cu: dict[str, _CUState] = {}
         self._no_reasoning: set[str] = set()
         self.stats: dict[str, Any] = {"calls": 0, "input_tokens": 0, "output_tokens": 0, "by_role": {}}
         self.last_step: dict[str, Any] = {}
 
     # ------------------------------------------------------------------ plumbing
+    @property
+    def last_call(self) -> dict[str, Any] | None:
+        """`{input_tokens, output_tokens, cost_estimate_usd}` of this thread's latest call (None before the first). Output tokens
+        include reasoning tokens (they are billed as output); the cost is an estimate at assumed prices (prices.py)."""
+        return getattr(self._tls, "last", None)
+
     def _create(self, role: str, model: str, **kw: Any) -> Any:
         import openai
 
+        timeout_s = kw.pop("_timeout_s", None)
+        client = self.client
+        if timeout_s is not None and hasattr(client, "with_options"):
+            client = client.with_options(timeout=timeout_s, max_retries=0)  # a per-call hard cap (the router's budget)
+        self._tls.last = None
         effort = effort_for(role)
         if effort is not None and model not in self._no_reasoning and "reasoning" not in kw:
             kw["reasoning"] = {"effort": effort}
         kw.setdefault("max_output_tokens", self.max_output_tokens)
         try:
             try:
-                resp = self.client.responses.create(model=model, **kw)
+                resp = client.responses.create(model=model, **kw)
             except openai.BadRequestError as e:
                 if "reasoning" in str(e).lower() and "reasoning" in kw:
                     self._no_reasoning.add(model)
                     kw.pop("reasoning", None)
-                    resp = self.client.responses.create(model=model, **kw)
+                    resp = client.responses.create(model=model, **kw)
                 else:
                     raise
         except openai.OpenAIError as e:
             raise ProviderError(f"{type(e).__name__}: {str(e)[:300]}") from e
         i, o = _usage_tokens(resp)
+        tier = {"planner": "planner", "computer": "computer"}.get(role, "fast")
+        self._tls.last = {"input_tokens": i, "output_tokens": o, "cost_estimate_usd": cost_estimate("openai", tier, i, o)}
         with self._lock:
             self.stats["calls"] += 1
             self.stats["input_tokens"] += i
@@ -178,8 +193,11 @@ class OpenAIProvider:
         return resp.output_text
 
     def _structured(self, role: str, model: str, input_: list[dict[str, Any]], schema: dict[str, Any] | None,
-                    instructions: str | None = None, name: str | None = None) -> dict[str, Any]:
+                    instructions: str | None = None, name: str | None = None,
+                    timeout_s: float | None = None) -> dict[str, Any]:
         kw: dict[str, Any] = {"input": input_, "store": False}
+        if timeout_s is not None:
+            kw["_timeout_s"] = timeout_s
         if instructions:
             kw["instructions"] = instructions
         if schema is not None:
@@ -216,13 +234,15 @@ class OpenAIProvider:
         return self._structured("fast", self.models.fast, [{"role": "user", "content": safe_prompt}], schema,
                                 instructions=_CHECK_INSTRUCTIONS)
 
-    def vision(self, image: bytes, prompt: str, schema: dict[str, Any] | None = None) -> dict[str, Any]:
+    def vision(self, image: bytes, prompt: str, schema: dict[str, Any] | None = None, *,
+               timeout_s: float | None = None) -> dict[str, Any]:
         scaled = downscale_png(image, *self.max_screen)
         input_ = [{"role": "user", "content": [
             {"type": "input_text", "text": prompt},
             {"type": "input_image", "image_url": data_url(scaled.png), "detail": "auto"},
         ]}]
-        return self._structured("vision", self.models.fast, input_, schema, instructions=_VISION_INSTRUCTIONS)
+        return self._structured("vision", self.models.fast, input_, schema, instructions=_VISION_INSTRUCTIONS,
+                                timeout_s=timeout_s)
 
     # ------------------------------------------------------------------ computer use
     def computer_step(self, goal: str, screenshot: bytes, history: list[dict[str, Any]],

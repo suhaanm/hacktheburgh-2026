@@ -6,6 +6,7 @@ import type { AnnotationStyle } from '../design/annotation-style'
 import { planArrow, type ArrowPlan } from './arrow'
 import { atLeast, clampPoint, inflate, normBoxToRect, normToPx, overlapArea, pointRect, rectRight, targetRect, unionRect, type Pt, type Rect, type Size } from './geometry'
 import { estimateTextBox, placeLabels, type LabelRequest, type PlacedLabel } from './layout'
+import { compactNote } from './note-text'
 import type { ActiveAnnotation } from './store'
 
 export interface ScenePlan {
@@ -58,8 +59,14 @@ export function chipRect(size: Size, vp: Size, top: number): Rect {
 }
 
 export const CHIP_TOP = 56
-// Ring label chips are set at this fraction of the bubble font (about 13 px normally).
-export const LABEL_SCALE = 0.6
+// Note chips are set in the compact note font itself (about 11.5 px).
+export const LABEL_SCALE = 1
+
+/** The words on a ring's note chip: the coach's note kept to one short line, else the element's short name. */
+export function ringChipText(a: { label?: string; note?: string }, maxChars: number): string {
+  if (a.note) return compactNote(a.note, maxChars)
+  return a.label ? shortLabel(a.label) : ''
+}
 
 // Captions live at the bottom, but the learner's targets often do too (call controls, Dock). When a mark would be
 // covered, the band moves to the top, below the level chip, unless that covers more.
@@ -94,13 +101,9 @@ export function planScene(entries: ActiveAnnotation[], vp: Size, style: Annotati
     switch (a.kind) {
       case 'ring': {
         const rect = fitRect(boxRect(a.box), style, style.ring.pad, a.exact === true)
-        const step =
-          a.step !== undefined
-            ? clampPoint({ x: rect.x + style.badge.offset, y: rect.y + style.badge.offset }, vp, style.badge.diameter * 0.75)
-            : null
-        plan.rings.set(a.id, { rect, step })
-        note(a.id, rect)
-        if (step) note(a.id, pointRect(step, style.badge.diameter / 2 + 6))
+        // The step number (if any) rides in the note chip, not on the ring.
+        plan.rings.set(a.id, { rect, step: null })
+        note(a.id, inflate(rect, style.ring.halo.offset + style.stroke.halo / 2))
         break
       }
       case 'badge': {
@@ -171,16 +174,17 @@ export function planScene(entries: ActiveAnnotation[], vp: Size, style: Annotati
     sizes[key] ??
     estimateTextBox(text, b.fontSize * scale, b.lineHeight, b.padding.x + (withGlyph ? b.fontSize * scale : 0), b.padding.y, maxWidth)
   for (const { annotation: a } of entries) {
-    if (a.kind === 'ring' && a.label) {
+    const chipText = a.kind === 'ring' ? ringChipText(a, b.maxChars) : ''
+    if (a.kind === 'ring' && (chipText !== '' || a.step !== undefined)) {
       const key = labelKey(a.id, 'label')
-      const short = shortLabel(a.label)
       const fs = b.fontSize * LABEL_SCALE
-      const est: Size = { width: Math.ceil(short.length * fs * 0.55 + fs * 3), height: Math.ceil(fs * 1.3 + fs * 0.7) }
-      requests.push({ id: key, size: sizes[key] ?? est, anchor: plan.rings.get(a.id)!.rect, gap: 4 * style.scale })
+      const pill = a.step !== undefined ? style.badge.diameter + fs * 0.4 : 0
+      const est: Size = { width: Math.ceil(chipText.length * fs * 0.5 + b.padding.x * 2 + pill), height: Math.ceil(Math.max(fs * b.lineHeight, style.badge.diameter * (a.step !== undefined ? 1 : 0)) + b.padding.y * 2) }
+      requests.push({ id: key, size: sizes[key] ?? est, anchor: plan.rings.get(a.id)!.rect, gap: style.ring.noteGap, prefer: ['above', 'below', 'right', 'left'], align: 'start' })
     } else if (a.kind === 'bubble') {
       const key = labelKey(a.id, 'bubble')
       const at = normToPx(a.at, vp)
-      requests.push({ id: key, size: sizeOf(key, a.text, 1, b.maxWidth, false), anchor: pointRect(at, 6), gap: b.tail + 6, prefer: ['above', 'right', 'below', 'left'] })
+      requests.push({ id: key, size: sizeOf(key, compactNote(a.text, b.maxChars), 1, b.maxWidth, false), anchor: pointRect(at, 6), gap: style.ring.noteGap, prefer: ['above', 'below', 'right', 'left'], align: 'start' })
     } else if (a.kind === 'highlightText' && a.note) {
       const key = labelKey(a.id, 'note')
       const first = plan.highlights.get(a.id)?.[0]

@@ -19,6 +19,8 @@ export interface HudHandle {
   push(): void
   window(): BrowserWindow | null
   png(): Promise<Buffer | null>
+  // Dev surface only: show the hovered look of the Stop pill without a pointer (for looking at it).
+  preview(mode: 'hover' | 'none'): Promise<void>
   dispose(): void
 }
 
@@ -28,7 +30,7 @@ const MAX_HEIGHT = 520
 export function registerHud(deps: HudDeps): HudHandle {
   const env = process.env
   const disabled = deps.disabled ?? (env.ALONGSIDE_HEADLESS === '1' || env.ALONGSIDE_NO_OVERLAY === '1')
-  if (disabled) return { push: () => undefined, window: () => null, png: async () => null, dispose: () => undefined }
+  if (disabled) return { push: () => undefined, window: () => null, png: async () => null, preview: async () => undefined, dispose: () => undefined }
   const capturable = deps.capturable ?? env.ALONGSIDE_OVERLAY_CAPTURABLE === '1'
 
   const wa = () => screen.getPrimaryDisplay().workArea
@@ -101,6 +103,9 @@ export function registerHud(deps: HudDeps): HudHandle {
     push,
     window: () => (alive() ? win : null),
     png: async () => (alive() ? (await win.webContents.capturePage()).toPNG() : null),
+    preview: async (mode) => {
+      if (alive()) await win.webContents.executeJavaScript(`document.documentElement.dataset.preview = ${JSON.stringify(mode)}`, true)
+    },
     dispose() {
       ipcMain.removeHandler(HUD_IPC.get)
       ipcMain.removeAllListeners(HUD_IPC.action)

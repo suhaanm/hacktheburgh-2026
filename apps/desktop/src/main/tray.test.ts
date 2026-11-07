@@ -470,3 +470,11 @@ describe('desk capture line in the menu', () => {
     expect(byId({ capture: 'off' }, 'capture')?.enabled).toBe(false)
   })
 })
+
+describe('coach line in the menu (the coach is not drawn on the screen)', () => {
+  it('names the help level plainly, as a disabled line under the capture line, and is omitted when unknown', () => {
+    expect(labels({})).not.toContain('Coach: Watch me (help level 1)')
+    expect(labels({ capture: 'times_only', coach: 'Coach: Watch me (help level 1)' })[2]).toBe('Coach: Watch me (help level 1)')
+    expect(byId({ coach: 'Coach: Watch me (help level 1)' }, 'coach')?.enabled).toBe(false)
+  })
+})

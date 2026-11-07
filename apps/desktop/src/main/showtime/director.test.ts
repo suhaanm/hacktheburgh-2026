@@ -19,7 +19,7 @@ function snapshot(level: 1 | 2 | 3 | 4 = 2): LearnerSnapshot {
 function setup(opts: { rects?: ScamRects | null; needsOpen?: boolean } = {}) {
   const opened = { value: false, calls: 0 }
   const bus = new Bus()
-  const st = { phase: 'asleep', persona: null as 'marcus' | 'amelia' | null }
+  const st = { phase: 'asleep', persona: null as import('../../shared/protocol').PersonaId | null }
   const requests: unknown[] = []
   bus.on('session:request', (r) => {
     requests.push(r)

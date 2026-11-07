@@ -30,8 +30,8 @@ describe('flow state machine', () => {
     expect(progressLabel(s)).toBe(`Step ${LAST_STEP} of ${STEP_IDS.length}`)
   })
 
-  it('orders the screens as designed: permissions and helping hands come after the helper, ready is last', () => {
-    expect([...STEP_IDS]).toEqual(['hello', 'about', 'style', 'comfort', 'look', 'helper', 'permissions', 'hands', 'ready'])
+  it('orders the screens as designed: permissions and helping hands come after look and feel (there is one identity, so no helper to choose), ready is last', () => {
+    expect([...STEP_IDS]).toEqual(['hello', 'about', 'style', 'comfort', 'look', 'permissions', 'hands', 'ready'])
     expect(nextLabel('hello')).toBe('Begin')
     expect(nextLabel('permissions')).toBe('Next')
     expect(nextLabel('ready')).toBe('Start')

@@ -6,7 +6,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import dotenv from 'dotenv'
 import { describe, expect, it } from 'vitest'
-import { PERSONA_LIST } from '../../src/shared/personas'
+import { ALL_PERSONA_LIST } from '../../src/shared/personas'
 import { mintWakeToken } from '../../src/main/live-auth'
 import { createWakeSpotter, type WakeAudioSource, type WakeStatus } from '../../src/renderer/wake'
 
@@ -64,7 +64,7 @@ describe.skipIf(!enabled || !existsSync(clip))('spotter across the 10-minute con
     const states: string[] = []
     let spotter!: ReturnType<typeof createWakeSpotter>
     spotter = createWakeSpotter({
-      personas: PERSONA_LIST,
+      personas: ALL_PERSONA_LIST,
       getToken: async () => {
         tokens.push(sec())
         return mintWakeToken()

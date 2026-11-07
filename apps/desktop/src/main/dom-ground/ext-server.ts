@@ -2,7 +2,7 @@
 // processes to ask for a ring.
 //   GET  /ext/want    the next RectWant (200) or 204.            extension -> desktop
 //   POST /ext/rect    a RectAnswer; 200 when it matched a pending want, 410 when it was late or unknown.
-//   POST /coach/ring  { zone | label_hash | role+name, label?, step? }  draw a ring on that element.   local processes only
+//   POST /coach/ring  { zone | label_hash | role+name, label?, message?, step? }  draw a ring on that element.   local processes only
 //   POST /coach/clear remove the ring.                                                         local processes only
 //   GET  /ext/status  { pending, extension_seen_ms }
 // Hardening: bound to loopback; the Host header must be 127.0.0.1 or localhost on this port (DNS rebinding); a request that
@@ -16,6 +16,8 @@ import type { DomGrounder } from './dom-grounder'
 export interface RingRequest {
   target: DomTarget
   label?: string
+  // The coach's words for the ring (shown as one short note).
+  message?: string
   step?: number
 }
 
@@ -120,8 +122,9 @@ export function startExtServer(opts: ExtServerOptions): Promise<ExtServer | null
           const target = toTarget(candidate)
           if (problem || !target) return send(400, { error: problem ?? 'bad target' })
           const label = typeof o.label === 'string' ? o.label.replace(/\s+/g, ' ').trim().slice(0, 40) : undefined
+          const message = typeof o.message === 'string' ? o.message.replace(/\s+/g, ' ').trim().slice(0, 200) : undefined
           const step = typeof o.step === 'number' && Number.isInteger(o.step) && o.step >= 1 && o.step <= 99 ? o.step : undefined
-          opts.onRing({ target, ...(label ? { label } : {}), ...(step ? { step } : {}) })
+          opts.onRing({ target, ...(label ? { label } : {}), ...(message ? { message } : {}), ...(step ? { step } : {}) })
           return send(200, {})
         }
         return send(404, { error: 'not found' })

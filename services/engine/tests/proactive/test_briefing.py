@@ -173,3 +173,12 @@ def test_edit_validation(env):
     with pytest.raises(B.EditError) as e:
         B.edit_prepared("c_nonexistent", {"text": "x"}, actor="worker", store=env.store)
     assert e.value.status == 404
+
+
+def test_the_spoken_text_passes_the_voice_modules_personal_data_check(env):
+    dataflow = pytest.importorskip("understudy_agent.security.dataflow")
+    tts = pytest.importorskip("understudy_agent.voice.tts")
+    for person, kw in (("p_a", _all()), ("p_b", dict(skills=[skill_row()])), ("p_c", {})):
+        text = B.briefing_text(person, store=env.store, readers=make_readers(**kw), now=NOW)
+        assert not dataflow.personal_kinds(text)
+        assert tts._clean(text, "briefing") == text and len(text) < tts.MAX_CHARS["briefing"]

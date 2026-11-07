@@ -87,6 +87,7 @@ COMMIT_V1 = _schema(
     FieldSpec("test_files", "int"),
     FieldSpec("is_revert", "bool"),
     FieldSpec("is_merge", "bool"),
+    FieldSpec("tz_min", "int"),          # the author's UTC offset in minutes: "late night" is the author's own night
 )
 
 _REGISTRY: dict[str, ItemSchema] = {s.id: s for s in (CALENDAR_EVENT_V1, SHELL_TIME_V1, COMMIT_V1)}

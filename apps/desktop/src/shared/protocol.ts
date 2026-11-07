@@ -6,7 +6,9 @@ import type { FilesSearchResult, FilesStatus } from './files'
 import type { Settings } from './settings'
 
 // ---------- ids ----------
-export const PERSONA_IDS = ['marcus', 'amelia'] as const
+// One identity, "Understudy". `marcus` and `amelia` are legacy ids kept only so older saved settings and the dormant wake/demo code
+// still parse; they are not offered anywhere and a saved one is migrated to `understudy` (see shared/settings.ts).
+export const PERSONA_IDS = ['understudy', 'marcus', 'amelia'] as const
 export const PersonaIdSchema = z.enum(PERSONA_IDS)
 export type PersonaId = z.infer<typeof PersonaIdSchema>
 
@@ -226,7 +228,8 @@ const AnnotationBaseSchema = z.object({
 
 export const AnnotationSchema = z.discriminatedUnion('kind', [
   // `exact`: draw around exactly this box (a measured browser element); without it a ring is capped to a target-sized circle about the centre.
-  AnnotationBaseSchema.extend({ kind: z.literal('ring'), box: NormBoxSchema, label: z.string().optional(), step: z.number().int().optional(), exact: z.boolean().optional() }),
+  // `note`: the coach's words for this ring, shown as one short line (the overlay keeps about 40 characters). `label` names the element.
+  AnnotationBaseSchema.extend({ kind: z.literal('ring'), box: NormBoxSchema, label: z.string().optional(), note: z.string().max(200).optional(), step: z.number().int().optional(), exact: z.boolean().optional() }),
   AnnotationBaseSchema.extend({
     kind: z.literal('arrow'),
     to: z.union([NormPointSchema, NormBoxSchema]),

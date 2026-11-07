@@ -354,6 +354,14 @@ class ICSSource(Source):
     # ------------------------------------------------------------------ read
     def read(self, since: datetime | None = None, until: datetime | None = None) -> Iterator[RawItem]:
         cal = parse_calendar(self._text)
+        tcache: dict[int, tuple | None] = {}
+
+        def T(ev: _Ev):
+            k = id(ev)
+            if k not in tcache:
+                tcache[k] = self._times(ev, cal)
+            return tcache[k]
+
         masters: dict[str, _Ev] = {}
         overrides: dict[str, dict[datetime, _Ev]] = {}
         singles: list[_Ev] = []
@@ -371,7 +379,7 @@ class ICSSource(Source):
         # horizon for open-ended rules: the latest end among bounded events, else the earliest start + horizon_days
         starts, ends = [], []
         for ev in cal.events:
-            t = self._times(ev, cal)
+            t = T(ev)
             if t:
                 starts.append(t[0])
                 ends.append(t[1])
@@ -392,12 +400,12 @@ class ICSSource(Source):
                 out.append(RawItem("calendar_event", t0, t1, f))
 
         for ev in singles:
-            t = self._times(ev, cal)
+            t = T(ev)
             if t:
                 emit(t[0], t[1], ev, t[3], False)
 
         for uid, ev in masters.items():
-            t = self._times(ev, cal)
+            t = T(ev)
             if not t:
                 continue
             utc0, utc1, local0, all_day, tz = t
@@ -439,11 +447,11 @@ class ICSSource(Source):
                 seen.add(s)
                 ov = overrides.get(uid, {}).get(s)
                 if ov is not None:
-                    ot = self._times(ov, cal)
+                    ot = T(ov)
                     if ot is None:
                         continue
                     f = self._fields(ov, all_day=ot[3], recurring=True)
-                    if f and f["status"] != "cancelled" and overlaps(ot[0], ot[1], since, until):
+                    if f and overlaps(ot[0], ot[1], since, until):
                         out.append(RawItem("calendar_event", ot[0], ot[1], f))
                     continue
                 emit(s, s + dur, ev, all_day, True)
@@ -453,7 +461,7 @@ class ICSSource(Source):
             if uid in masters:
                 continue
             for ov in per.values():
-                ot = self._times(ov, cal)
+                ot = T(ov)
                 if ot:
                     emit(ot[0], ot[1], ov, ot[3], True)
 

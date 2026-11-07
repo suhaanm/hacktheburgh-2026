@@ -36,6 +36,14 @@ _FIRST = ["Zephyr", "Quill", "Brann", "Velth", "Orsin", "Tamsel", "Marl", "Ixion
 _MID = ["a", "o", "e", "in", "an", "or", "el", "ith", "und", "yr"]
 _END = ["ine", "ock", "moor", "thorpe", "wick", "ley", "stone", "vane", "crest", "fell", "gate", "mere"]
 _SECRET = ["ledger", "payroll", "merger", "redundancy", "acquisition", "salary", "appeal", "audit"]
+#: ordinary words a registered string may contain; never used as needles on their own (they appear in honest output)
+GENERIC_WORDS = frozenset(w.lower() for w in (
+    *_SECRET, "users", "user", "projects", "project", "home", "src", "lib", "tests", "test", "docs", "customer", "customers", "client",
+    "holdings", "review", "renewal", "restructure", "pricing", "handover", "offsite", "roadmap", "planning", "meeting", "weekly", "monthly",
+    "quarterly", "standup", "update", "updates", "rounding", "report", "summary", "release", "feature", "bugfix", "refactor", "commit",
+    "message", "series", "email", "address", "person", "people", "title", "query", "build", "module", "package", "version", "number",
+    "account", "balance", "invoice", "contract", "budget", "status", "export", "import", "config", "default", "result", "results",
+))
 _ALPHA = "abcdefghjkmnpqrstuvwxyz"
 _DIGIT = "23456789"
 
@@ -117,9 +125,14 @@ class Planted:
 
     def add_text(self, text: str, kind: str = "person_name") -> str:
         """Register an existing sensitive string from a hand-written fixture (for example a real-looking name already in it).
-        Words of 4 or more letters are searched for, case-insensitively."""
-        words = [w for w in re.split(r"[^A-Za-z0-9]+", text) if len(w) >= 4]
-        self.tokens.append(Token(kind, text, tuple(dict.fromkeys(w.lower() for w in words + ([text] if len(text) >= 5 else [])))))
+
+        The whole string is searched for, and so is each word of 5 or more letters that is not an ordinary word
+        (``GENERIC_WORDS``: path segments, common work vocabulary and the generic words this kit's own tokens contain), so
+        registering ``/Users/x/Projects/y/ledger_k7.py`` does not make every response containing ``ledger_id`` a leak.
+        Searching is case-insensitive and ignores separators."""
+        words = [w for w in re.split(r"[^A-Za-z0-9]+", text) if len(w) >= 5 and w.lower() not in GENERIC_WORDS and not w.isdigit()]
+        needles = words + ([text] if len(text) >= 5 else [])
+        self.tokens.append(Token(kind, text, tuple(dict.fromkeys(n.lower() for n in needles))))
         return text
 
     # ---- views
@@ -371,6 +384,112 @@ def scan_artifacts(planted: Planted, data_dir: Any | None = None) -> CanaryRepor
     from pathlib import Path
 
     return scan_paths([Path(root) / name for name in PRV4_ARTIFACTS], planted)
+
+
+# --------------------------------------------------------------------------------------------------------- images (REQ-5)
+@dataclass
+class PlantedImage:
+    """A PNG fixture with a planted token, for the "no image residue" checks.
+
+    The token is drawn into the pixels when Pillow is installed (realism: it is what a screenshot of a page showing a customer name
+    looks like) AND written verbatim into the PNG's ``tEXt`` metadata, so that any dump of the bytes contains it as plain text. Pixels
+    cannot be searched; the metadata can. Besides the token the needles are the full SHA-256 (64 hex characters; the 16-character
+    ``sha8`` prefix is allowed in a ledger and is NOT a needle), base64 and hex renderings of the whole file, a ``repr`` of a byte
+    slice (what logging ``%s`` of bytes prints), and a raw 24-byte slice searched for in binary files."""
+
+    data: bytes
+    token: str
+    seed: int
+    text_needles: tuple[str, ...]
+    raw_chunks: tuple[bytes, ...]
+
+    def safe_image(self, kind: str = "glance", source: str = "real_screen") -> Any:
+        from .image import SafeImage
+
+        return SafeImage(self.data, kind, source=source)
+
+
+def _png_chunk(tag: bytes, body: bytes) -> bytes:
+    import struct
+    import zlib
+
+    return struct.pack(">I", len(body)) + tag + body + struct.pack(">I", zlib.crc32(tag + body) & 0xFFFFFFFF)
+
+
+def plant_image(seed: int = 0, *, width: int = 96, height: int = 64, planted: Planted | None = None, kind: str = "customer_name") -> PlantedImage:
+    """Build a PNG with a planted token (a customer name by default) in its pixels (if Pillow is present) and metadata."""
+    import struct
+    import zlib
+
+    p = planted or Planted(seed)
+    token = p.make(kind)
+    rng = random.Random(seed ^ 0x5EED)
+    raw = b"".join(b"\x00" + bytes(rng.randrange(256) for _ in range(width * 3)) for _ in range(height))
+    data: bytes | None = None
+    try:  # draw the token into the pixels when Pillow is available
+        import io
+
+        from PIL import Image, ImageDraw
+        from PIL.PngImagePlugin import PngInfo
+
+        im = Image.frombytes("RGB", (width, height), b"".join(raw[i * (width * 3 + 1) + 1:(i + 1) * (width * 3 + 1)] for i in range(height)))
+        ImageDraw.Draw(im).text((2, 2), token[:14], fill=(255, 255, 255))
+        info = PngInfo()
+        info.add_text("Comment", token)
+        buf = io.BytesIO()
+        im.save(buf, format="PNG", pnginfo=info)
+        data = buf.getvalue()
+    except Exception:  # Pillow absent or unhappy: hand-built PNG, metadata only
+        data = None
+    if data is None:
+        data = (b"\x89PNG\r\n\x1a\n" + _png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+                + _png_chunk(b"tEXt", b"Comment\x00" + token.encode()) + _png_chunk(b"IDAT", zlib.compress(raw)) + _png_chunk(b"IEND", b""))
+    n = len(data)
+    b64 = base64.b64encode(data).decode()
+    b64u = base64.urlsafe_b64encode(data).decode()
+    hx = data.hex()
+    mid = n // 2
+    chunks = tuple(data[o:o + 24] for o in (n // 4, mid, (3 * n) // 4))
+    needles = [token, hashlib.sha256(data).hexdigest(), b64[:96], b64[len(b64) // 2:len(b64) // 2 + 96], b64u[len(b64u) // 3:len(b64u) // 3 + 96],
+               hx[:64], hx[len(hx) // 2:len(hx) // 2 + 64]] + [repr(c)[2:-1] for c in chunks]
+    needles += list(p.tokens[-1].needles)
+    return PlantedImage(data, token, seed, tuple(n for n in dict.fromkeys(needles) if len(n) >= 5), chunks)
+
+
+def scan_image_residue(planted: PlantedImage, *, paths: Iterable[Any] = (), texts: Iterable[str] = (), blobs: Iterable[bytes] = ()) -> list[str]:
+    """Where, if anywhere, the planted image shows up: ``paths`` (files; directories are walked) are searched as bytes and as text,
+    ``texts`` (log records, error messages, tracebacks) as text, ``blobs`` as bytes. Returns a list of ``"<where>: <what>"`` labels,
+    empty when clean. A file named by its content hash would also be caught (the full hash is a needle)."""
+    from pathlib import Path
+
+    found: list[str] = []
+
+    def check_bytes(label: str, body: bytes) -> None:
+        low = body.lower()
+        for c in planted.raw_chunks:
+            if c in body:
+                found.append(f"{label}: raw image bytes")
+                break
+        for n in planted.text_needles:
+            if n.lower().encode() in low:
+                found.append(f"{label}: {n[:12]}…")
+                break
+
+    for raw in paths:
+        pth = Path(raw)
+        files = [pth] if pth.is_file() else sorted(q for q in pth.rglob("*") if q.is_file()) if pth.is_dir() else []
+        for f in files:
+            try:
+                check_bytes(f"file {f.name}", f.read_bytes())
+            except OSError:
+                continue
+            if planted.text_needles and any(n.lower() in f.name.lower() for n in planted.text_needles[1:2]):
+                found.append(f"file name {f.name[:20]}: full hash in a file name")
+    for i, t in enumerate(texts):
+        check_bytes(f"text {i}", t.encode("utf-8", "replace"))
+    for i, b in enumerate(blobs):
+        check_bytes(f"blob {i}", b)
+    return found
 
 
 # --------------------------------------------------------------------------------------------------------- recording

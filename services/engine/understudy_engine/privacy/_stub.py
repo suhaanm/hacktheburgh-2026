@@ -58,3 +58,6 @@ class BuiltinMockPort:
 
     def check(self, prompt: str, schema: dict[str, Any]) -> dict[str, Any]:
         return stub_from_schema(schema)
+
+    def vision(self, image: bytes, prompt: str, schema: dict[str, Any] | None = None) -> dict[str, Any]:
+        return stub_from_schema(schema)

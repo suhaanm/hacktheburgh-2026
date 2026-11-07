@@ -19,7 +19,7 @@ from pathlib import Path
 import httpx
 
 from . import analysis_io
-from .checks import contamination
+from .checks import contamination, counts_of
 from .coach import CoachPoller, Mode, NudgeCounts, Shown, followed_by
 from .design import BlockPlan, ParticipantSpec, household_card, load_cases
 from .infra import BATCH_FLUSH_S, EngineProc, ExtBrowser, World, onboard, read_events, set_study_mode
@@ -78,6 +78,7 @@ class CaseRunner:
         self.http = httpx.AsyncClient(base_url=engine.url)
         self.poller = CoachPoller(self.http, spec.person, self.executed, interval=poll_s)
         self.res = CaseResult(phase=phase, block=block.block)
+        self._prev_counts: dict | None = None
         self.poll_s = poll_s
 
     # ------------------------------------------------------------------ pages
@@ -197,10 +198,13 @@ class CaseRunner:
                     raise RuntimeError("no such control (the page changed)")
                 chosen = clean_typed(a.text or "")
                 rec.extra["cleaned"] = chosen != (a.text or "")
-                try:
-                    await el.select_option(label=chosen, timeout=4000)
-                except Exception:  # noqa: BLE001
-                    await el.select_option(value=chosen, timeout=4000)
+                val = await el.evaluate(
+                    "(e, w) => { const o = Array.from(e.options); const n = s => s.trim().toLowerCase(); w = n(w);"
+                    " const m = o.find(x => n(x.text) === w || n(x.value) === w) || o.find(x => n(x.text).startsWith(w) || n(x.value).startsWith(w))"
+                    " || o.find(x => n(x.text).includes(w)); return m ? m.value : null; }", chosen)
+                if val is None:
+                    raise RuntimeError("no such option")
+                await el.select_option(value=val, timeout=4000)
                 rec.ok = True
             elif a.kind == "goto":
                 if not url_allowed(a.url or "", self.world.allowed_ports()):
@@ -291,7 +295,9 @@ class CaseRunner:
                 if time.monotonic() - t0 > self.wall_cap_s:
                     self.res.reason, self.res.capped = "wall_cap", True
                     break
-                why = contamination(await asyncio.to_thread(self.world.state), self.executed)
+                st = await asyncio.to_thread(self.world.state)
+                why = contamination(st, self.executed, self._prev_counts)
+                self._prev_counts = counts_of(st)
                 if why:
                     self.res.harness_error = "sandbox_contaminated: " + why
                     break
@@ -451,7 +457,7 @@ async def run_participant(spec: ParticipantSpec, *, world: World, pw, make_polic
                         runner.poller.mode = mode
                         res = await runner.run()
                         state = await asyncio.to_thread(world.state)
-                        why = contamination(state, res.executed)
+                        why = contamination(state, res.executed, runner._prev_counts, saved=(res.reason == "saved"))
                         if why and not res.harness_error:
                             res.harness_error = "sandbox_contaminated: " + why
                         if phase == "post" and not res.harness_error:

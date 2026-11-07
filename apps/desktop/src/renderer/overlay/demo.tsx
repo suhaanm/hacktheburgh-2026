@@ -33,13 +33,13 @@ function Demo(): ReactElement {
   const viewport = { width: window.innerWidth, height: window.innerHeight }
   const bigParam = q.get('big')
   const settings = {
-    bigAnnotations: bigParam !== null ? bigParam === '1' : fixture.settings?.bigAnnotations ?? true,
+    bigAnnotations: bigParam !== null ? bigParam === '1' : fixture.settings?.bigAnnotations ?? false,
     highContrast: q.get('hc') === '1' || fixture.settings?.highContrast === true,
     dyslexiaFont: fixture.settings?.dyslexiaFont === true,
   }
   const reducedMotion = q.get('reduced') === '1'
   const still = q.get('still') !== '0'
-  const style = useMemo(() => annotationStyle(settings, { reducedMotion }), [settings.bigAnnotations, settings.highContrast, settings.dyslexiaFont, reducedMotion])
+  const style = useMemo(() => annotationStyle(settings, { reducedMotion, dark: backdrop === 'dark' }), [settings.bigAnnotations, settings.highContrast, settings.dyslexiaFont, reducedMotion, backdrop])
   const [state] = useState(() => fixture.commands.reduce((s, cmd) => reduceOverlay(s, cmd, { now: 0, viewport, style }), EMPTY_OVERLAY_STATE))
 
   const freeze = useMemo(() => {

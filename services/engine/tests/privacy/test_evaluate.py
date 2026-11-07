@@ -4,9 +4,8 @@ import json
 
 import pytest
 
-from understudy_engine.privacy import canary, egress, evaluate, ledger
-from understudy_engine.privacy.purposes import CalendarSuggestionWording
-from understudy_engine.privacy.testing import CanaryFlow, CapturingPort, run_flow
+from understudy_engine.privacy import egress, evaluate, ledger
+from understudy_engine.privacy.testing import CanaryFlow, run_flow
 
 
 @pytest.fixture(scope="module")
@@ -53,14 +52,22 @@ def test_reference_and_integration_flows_are_reported_separately(report):
 
 def test_layers_without_integration_flows_are_listed_not_counted_as_passed(report):
     for layer, v in report["layers"].items():
-        assert v["status"] in ("registered", "none_registered", "adapter", "error")
+        assert v["status"] in ("registered", "none_registered", "adapter", "error", "not_applicable")
     uncovered = set(report["headline"]["layers_without_integration_flows"])
     assert uncovered == {l for l, v in report["layers"].items() if v["status"] in ("none_registered", "error")}
     assert any("none_registered" in l["text"] for l in report["limitations"])
 
 
+def test_logs_audit_and_queue_were_scanned_and_clean_for_every_flow(report):
+    h = report["headline"]
+    assert h["artifact_leaked"] == 0 and h["artifact_files_scanned"] >= h["flows"]       # at least the ledger file each run
+    assert all(f["artifact_leaked"] == 0 and f["artifact_files_scanned"] > 0 for f in report["flows"])
+
+
 def test_every_negative_control_passed_so_the_instrument_can_fail(report):
-    assert report["headline"]["controls_total"] >= 8 and report["headline"]["controls_passed"] == report["headline"]["controls_total"]
+    names = " ".join(c["name"] for c in report["negative_controls"])
+    assert "log record" in names and "approval-queue item" in names
+    assert report["headline"]["controls_total"] >= 10 and report["headline"]["controls_passed"] == report["headline"]["controls_total"]
     assert all(c["passed"] for c in report["negative_controls"]), [c for c in report["negative_controls"] if not c["passed"]]
 
 
@@ -79,6 +86,8 @@ def test_backstop_corpus_catches_every_must_catch_shape_with_no_false_positives(
 def test_static_guard_result_is_included(report):
     g = report["static_guard"]
     assert g["files"] > 0 and g["violations"] == [] and "calendar" in g["scanned_dirs"]
+    assert g["runtime"]["violations"] == [] and g["runtime"]["files"] >= 0
+    assert report["headline"]["static_guard_violations"] == 0
 
 
 def test_evaluation_does_not_touch_the_callers_ledger_and_restores_the_environment(tmp_path):
@@ -86,13 +95,13 @@ def test_evaluation_does_not_touch_the_callers_ledger_and_restores_the_environme
 
     before = os.environ["UNDERSTUDY_DATA_DIR"]
     ledger.append({"purpose": "t.keep", "payload": {}})
-    evaluate.evaluate_privacy(seeds=[0], record=False)
+    evaluate.evaluate_privacy(seeds=[0], record=False, discover=False)
     assert os.environ["UNDERSTUDY_DATA_DIR"] == before
     assert [r["purpose"] for r in ledger.read_all()] == ["t.keep"]
 
 
 def test_record_true_writes_the_aggregate_the_summary_route_shows():
-    r = evaluate.evaluate_privacy(seeds=[0, 1], record=True)
+    r = evaluate.evaluate_privacy(seeds=[0, 1], record=True, discover=False)
     c = ledger.canary_summary()
     assert c["runs"] == r["headline"]["flows"] and c["planted"] == r["headline"]["planted"] and c["leaked"] == 0
     assert ledger.summary()["canary"]["planted"] == r["headline"]["planted"]
@@ -139,3 +148,25 @@ def test_upper_bound_matches_the_rule_of_three_and_handles_edges():
     assert evaluate.upper_bound_95(0, 100) == pytest.approx(0.0295, abs=0.001)
     assert evaluate.upper_bound_95(0, 752) == pytest.approx(0.00398, abs=0.0002)
     assert evaluate.upper_bound_95(5, 100) > 0.05 and evaluate.upper_bound_95(0, 0) == 1.0 and evaluate.upper_bound_95(3, 3) == 1.0
+
+
+def test_a_layer_may_declare_it_has_no_model_path_and_is_then_not_counted_as_uncovered(monkeypatch):
+    import sys
+    import types
+
+    mod = types.ModuleType("understudy_engine.plugins.canary_flows")
+    mod.FLOWS = []
+    mod.NOT_APPLICABLE = "source plugins only read; nothing is sent to a model"
+    monkeypatch.setitem(sys.modules, "understudy_engine.plugins.canary_flows", mod)
+    flows, layers = evaluate.discover_flows()
+    assert layers["plugins"]["status"] == "not_applicable" and "nothing is sent" in layers["plugins"]["note"]
+    r = evaluate.evaluate_privacy(seeds=[0], record=False)
+    assert "plugins" not in r["headline"]["layers_without_integration_flows"] and r["layers"]["plugins"]["status"] == "not_applicable"
+
+
+def test_the_scan_is_shown_to_be_able_to_see_rewrites_and_not_to_cry_wolf(report):
+    sens, spec = report["scan_sensitivity"], report["scan_specificity"]
+    assert sens["cases"] >= 1000 and sens["detected"] == sens["cases"]
+    assert all(v["detected"] == v["cases"] for v in sens["by_rewrite"].values()) and "paraphrase" in sens["not_tested"]
+    assert spec["clean_bodies"] >= 3000 and spec["false_positives"] == 0
+    assert report["headline"]["scan_detects_known_rewrites"] == f"{sens['detected']}/{sens['cases']}" and report["headline"]["scan_false_positives"] == 0
