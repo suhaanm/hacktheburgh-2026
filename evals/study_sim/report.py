@@ -166,22 +166,24 @@ def findings(pc: dict) -> list[dict]:
     ]
 
 
-def build_section(results_dir: Path = RESULTS) -> dict:
+def build_section(results_dir: Path = RESULTS, expected: tuple[int, int] = (N_COACHED, N_AA), specs=None, run_label: str = "",
+                  extra_limitations: list | None = None) -> dict:
     results_dir = Path(results_dir)
+    limitations = LIMITATIONS + (extra_limitations or [])
     csv_path = results_dir / "participants.csv"
-    meta = {"origin": "simulated_llm", "n_unit": "silicon participants", "label": LABEL, "interval_level": 0.95,
+    meta = {"origin": "simulated_llm", "n_unit": "silicon participants", "label": LABEL, "interval_level": 0.95, "run_label": run_label,
             "split": "within-participant, counterbalanced S1-S4, plus an A/A sham arm in which the coach is silent in every block",
             "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
     if not csv_path.exists():
-        return {"status": "not_run", "label": LABEL, "n": 0, "n_aa": 0, "limitations": LIMITATIONS, "meta": {**meta, "n": 0,
+        return {"status": "not_run", "label": LABEL, "n": 0, "n_aa": 0, "limitations": limitations, "meta": {**meta, "n": 0,
                 "note": "The simulated study has not been run. It never stands in for the live study with people."}}
     rows = analysis.load_rows(csv_path)
-    a = analysis.analyse_all(rows)
+    a = analysis.analyse_all(rows, specs)
     coached, aa = analysis.split_arms(rows)
     ex = set(a["excluded_participants"])
     n = len({r["participant"] for r in coached} - ex)
     n_aa = len({r["participant"] for r in aa} - ex)
-    status = "complete" if (n >= N_COACHED and n_aa >= N_AA) else ("harness_failure" if n < 8 else "partial")
+    status = "complete" if (n >= expected[0] and n_aa >= expected[1]) else ("harness_failure" if n < min(8, expected[0]) else "partial")
     cost = {}
     if (results_dir / "cost.json").exists():
         c = json.loads((results_dir / "cost.json").read_text())
@@ -208,8 +210,8 @@ def build_section(results_dir: Path = RESULTS) -> dict:
         "nudges": {"shown": a["nudges"]["shown"], "followed": a["nudges"]["followed"], "dismissed": a["nudges"]["dismissed"], "detail": a["nudges"]},
         "pipeline_checks": aggregate_checks(results_dir / "checks"),
         "cost": cost,
-        "limitations": LIMITATIONS,
-        "meta": {**meta, "n": n, "models": models, "excluded_participants": a["excluded_participants"], "design_problems": a["design_problems"], "aborted_runs": aborted,
+        "limitations": limitations,
+        "meta": {**meta, "expected_n": {"coached": expected[0], "aa": expected[1]}, "n": n, "models": models, "excluded_participants": a["excluded_participants"], "design_problems": a["design_problems"], "aborted_runs": aborted,
                  "note": "Simulated participants (language model), not people. Never the live study. n counts silicon participants."},
     }
     section["analyze_py"] = a["analyze_py"]
@@ -227,7 +229,7 @@ def _fmt(x, nd=3):
 def render_md(s: dict) -> str:
     L: list[str] = []
     w = L.append
-    w("# Simulated study: language-model participants, not people")
+    w("# Simulated study: language-model participants, not people" + (f" ({s['meta']['run_label']})" if s.get("meta", {}).get("run_label") else ""))
     w("")
     w(f"**{LABEL}.** This is an end-to-end test of the pipeline under realistic use, a probe of whether the coach's prompts change a language-model "
       "novice's later unassisted behaviour, and an A/A control of the measurement chain. It is **not** the live study, it never fills the `study` "
@@ -237,12 +239,12 @@ def render_md(s: dict) -> str:
         w("**Status: not run.** There is no data.")
         return "\n".join(L) + "\n"
     h, aa = s["headline"], s["aa"]
-    w(f"**Status: {s['status']}.** n = {s['n']} coached-arm silicon participants and n = {s['n_aa']} in the A/A sham arm. Models: {', '.join(s['meta'].get('models', [])) or 'n/a'}.")
+    w(f"**Status: {s['status']}.** n = {s['n']} coached-arm silicon participants and n = {s['n_aa']} in the A/A sham arm (planned {s['meta'].get('expected_n', {}).get('coached', N_COACHED)} and {s['meta'].get('expected_n', {}).get('aa', N_AA)}). Models: {', '.join(s['meta'].get('models', [])) or 'n/a'}.")
     if s["meta"]["excluded_participants"]:
         w(f"Excluded (harness errors, decided before looking at scores): {', '.join(s['meta']['excluded_participants'])}.")
     w("")
     if s["status"] != "complete":
-        w(f"> **Status {s['status']}: fewer participants than planned ({N_COACHED} coached, {N_AA} sham). Read the numbers below as a harness or partial-run report; no headline claim is made.**")
+        w(f"> **Status {s['status']}: fewer participants than planned ({s['meta'].get('expected_n', {}).get('coached', N_COACHED)} coached, {s['meta'].get('expected_n', {}).get('aa', N_AA)} sham). Read the numbers below as a harness or partial-run report; no headline claim is made.**")
         w("")
     for ab in s["meta"].get("aborted_runs", []):
         w(f"> **An earlier run ({ab['id']}) was aborted after GO and is not analysed:** {ab['reason']}. Its spend (US${ab.get('usd_est')}, {ab.get('calls')} calls) counts against the cap. See the amendment log in PLAN.md. In the interest of honesty: the lead and I saw two post-test scores (p_sim01 and p_sim03) in the progress log before the repair; the repair was judged on a defect of the reply interface (typed values with JSON artifacts), not on outcomes, and nothing was analysed by arm.")
@@ -345,10 +347,15 @@ def render_md(s: dict) -> str:
     return "\n".join(L) + "\n"
 
 
-def write_all(results_dir: Path = RESULTS) -> dict:
-    results_dir = Path(results_dir)
-    s = build_section(results_dir)
+def write_all(results_dir: Path = RESULTS, expected: tuple[int, int] = (N_COACHED, N_AA), specs=None, run_label: str = "", extra_limitations: list | None = None,
+              report_path: Path | None = None) -> dict:
+    from .analysis_io import check_output_dir, write_provenance_tree
+
+    results_dir = check_output_dir(Path(results_dir))
+    report_path = check_output_dir(Path(report_path)) if report_path else check_output_dir(results_dir.parent / "REPORT.md")
+    s = build_section(results_dir, expected, specs, run_label, extra_limitations)
     (results_dir / "summary.json").write_text(json.dumps(s, indent=2, default=str) + "\n")
-    (results_dir.parent / "REPORT.md").write_text(render_md(s))
-    print(f"wrote {results_dir / 'summary.json'} and {results_dir.parent / 'REPORT.md'} (status {s['status']})")
+    report_path.write_text(render_md(s))
+    write_provenance_tree(results_dir)
+    print(f"wrote {results_dir / 'summary.json'} and {report_path} (status {s['status']})")
     return s

@@ -158,8 +158,9 @@ def cache_key(model: str, prompt: str, schema: dict) -> str:
 class ModelParticipant:
     """Calls the model port. Cached by prompt hash; the participant code is in every prompt so two participants never share a hash."""
 
-    def __init__(self, port, spec: ParticipantSpec, budget: Budget, model_id: str, cache_dir: Path = CACHE_DIR) -> None:
-        self.port, self.spec, self.budget, self.model_id, self.cache_dir = port, spec, budget, model_id, cache_dir
+    def __init__(self, port, spec: ParticipantSpec, budget: Budget, model_id: str, cache_dir: Path = CACHE_DIR, tier: str = "fast") -> None:
+        """``tier``: "fast" (the port's check call, run 4) or "planner" (the port's plan call at the port's configured planner effort, run 5)."""
+        self.port, self.spec, self.budget, self.model_id, self.cache_dir, self.tier = port, spec, budget, model_id, cache_dir, tier
         self.calls = 0
         self.errors = 0
 
@@ -170,6 +171,8 @@ class ModelParticipant:
         retried and counts as the participant doing nothing. Anything else after the last retry is a harness error."""
         for i in range(len(self.retry_sleeps) + 1):
             try:
+                if self.tier == "planner":
+                    return self.port.plan([{"role": "user", "content": prompt}], schema)
                 return self.port.check(prompt, schema)
             except Exception as exc:  # noqa: BLE001
                 name = type(exc).__name__
@@ -182,7 +185,7 @@ class ModelParticipant:
         raise RuntimeError("unreachable")
 
     def _call_sync(self, prompt: str, schema: dict, role: str) -> dict:
-        key = cache_key(self.model_id, prompt, schema)
+        key = cache_key(self.model_id if self.tier == "fast" else f"{self.tier}:{self.model_id}", prompt, schema)
         f = self.cache_dir / f"{key}.json"
         if f.exists():
             self.budget.hit(self.spec.pid)

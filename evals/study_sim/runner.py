@@ -420,8 +420,7 @@ async def run_participant(spec: ParticipantSpec, *, world: World, pw, make_polic
     try:
         await asyncio.to_thread(engine.start)
         await asyncio.to_thread(onboard, engine.url, spec.person)
-        raw_dir = outdir / "raw"
-        raw_dir.mkdir(parents=True, exist_ok=True)
+        raw_dir = analysis_io.write_provenance(outdir / "raw")
         first_case = True
         contaminated_attempts: list[str] = []
         for blk in spec.blocks:

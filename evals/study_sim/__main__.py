@@ -41,6 +41,10 @@ async def _run_many(specs, make_policy_factory, outdir: Path, model_id: str, bud
     from playwright.async_api import async_playwright
     from evals.study_sim.runner import run_participant
 
+    analysis_io.write_provenance(outdir)                          # refuses anything under evals/study/ or through a symlink
+    analysis_io.write_provenance(outdir / "raw")
+    analysis_io.write_provenance(outdir / "checks")
+
     queue: asyncio.Queue = asyncio.Queue()
     for s in specs:
         if s.pid in skip_done:
@@ -97,12 +101,20 @@ async def _run_many(specs, make_policy_factory, outdir: Path, model_id: str, bud
     return done
 
 
-def make_worlds(n: int, shared: bool, outdir: Path | None = None):
-    from evals.study_sim.infra import World, build_extension, shared_world, snapshot_pipeline
+def make_worlds(n: int, shared: bool, outdir: Path | None = None, freeze_from: Path | None = None):
+    """``freeze_from``: reuse an earlier run's frozen code snapshot and extension builds (``frozen_run4/``) instead of taking new ones, so a later run
+    meets exactly the same coach, sites and extension (run 5)."""
+    from evals.study_sim.infra import SNAPSHOT, World, build_extension, shared_world, snapshot_pipeline
 
-    info = snapshot_pipeline()
+    if freeze_from is not None:
+        info = json.loads((Path(freeze_from) / "snapshot" / "SNAPSHOT.json").read_text())
+        info = {**info, "path": str(Path(freeze_from) / "snapshot"), "frozen_from": str(freeze_from)}
+        SNAPSHOT.update(info)
+        SNAPSHOT["frozen"] = True
+    else:
+        info = snapshot_pipeline()
     if outdir is not None:
-        outdir.mkdir(parents=True, exist_ok=True)
+        analysis_io.write_provenance(outdir)
         (outdir / "snapshot.json").write_text(json.dumps({k: v for k, v in info.items() if k != "path"}, indent=1))
     print(f"pipeline snapshot {info['fingerprint']} of git {info['git_head'][:8]} (+{info['uncommitted_files_in_snapshot_dirs']} uncommitted files)", flush=True)
 
@@ -116,8 +128,11 @@ def make_worlds(n: int, shared: bool, outdir: Path | None = None):
         name = f"ssim{k}"
         base = 7911 + 10 * k
         ports = {"a": base, "b": base + 1, "c": base + 2}
-        dist = build_extension(name, ports)
-        built.append(dist)
+        if freeze_from is not None:
+            dist = Path(freeze_from) / f"ext-{name}"
+        else:
+            dist = build_extension(name, ports)
+            built.append(dist)
         w = World(name, ports, dist)
         w.start_sites()
         worlds.append(w)
@@ -202,6 +217,106 @@ def cmd_run(a) -> int:
     return 0
 
 
+RESULTS5 = HERE / "results_run5"
+GO5_FILE = HERE / "GO5"
+FROZEN4 = HERE / "frozen_run4"
+# declared in PLAN_RUN5.md: the frozen pipeline of run 4 that run 5 must meet, unchanged
+RUN5_PIPELINE_FINGERPRINT = "5630b3c99e9f734a"
+RUN5_EXT_FINGERPRINTS = {"ext-ssim0": "456cdba315422688", "ext-ssim1": "8aca835fb01cd573", "ext-ssim2": "c32fc1e85d21f4df"}
+RUN5_LABEL = "run 5, EXPLORATORY: planner-tier participant, same sites and coach as run 4"
+
+
+def _run5_limitations() -> list:
+    return [{"id": "run5-exploratory", "severity": "high",
+             "text": "Run 5 is exploratory. It was designed after run 4 hit the floor, uses a stronger model tier chosen from options declared in PLAN_RUN5.md before any call, and has far fewer participants than run 4. Its pilot of three participants was only used to decide whether to proceed and is in no analysis."},
+            {"id": "run5-power", "severity": "high",
+             "text": "With 8 coached participants the interval excludes zero with probability about 6% under no effect, 10%, 16% and 49% for a small, medium and large true effect (engine-analytics Monte Carlo); sign-flip p below 0.05 is 1%, 2%, 6% and 22%. A null says almost nothing."}]
+
+
+def cmd_run5(a) -> int:
+    from understudy_agent.models import get_model_port
+    from evals.study_sim import pilot as pilot_mod
+    from evals.study_sim.design import build_pilot_participants, build_run5_participants
+    from evals.study_sim.participant import ModelParticipant
+
+    if not GO5_FILE.exists():
+        print("REFUSED: no GO5. PLAN_RUN5.md must be committed by the lead and GO received before any model call of run 5.")
+        return 2
+    if os.environ.get("UNDERSTUDY_MOCK", "").strip().lower() in ("1", "true", "yes", "on"):
+        print("REFUSED: UNDERSTUDY_MOCK is set.")
+        return 2
+    if not (os.environ.get("STUDY_SIM_PRICE_IN") and os.environ.get("STUDY_SIM_PRICE_OUT")):
+        print("REFUSED: run 5 needs STUDY_SIM_PRICE_IN and STUDY_SIM_PRICE_OUT (US$ per million tokens of the planner model) so the US$7 guard is real.")
+        return 2
+    from evals.study_sim.infra import fingerprint_dir
+
+    if fingerprint_dir(FROZEN4 / "snapshot") != RUN5_PIPELINE_FINGERPRINT or any(
+            fingerprint_dir(FROZEN4 / k, ()) != v for k, v in RUN5_EXT_FINGERPRINTS.items() if k in {f"ext-ssim{i}" for i in range(a.workers)}):
+        print("REFUSED: frozen_run4/ no longer matches the pipeline and extension fingerprints declared in PLAN_RUN5.md: run 5 must meet exactly run 4's coach, sites and extension.")
+        return 2
+    stage = a.stage
+    out = RESULTS5 / stage
+    analysis_io.write_provenance(RESULTS5)
+    analysis_io.write_provenance(out)
+    specs = build_pilot_participants() if stage == "pilot" else build_run5_participants()
+    if stage == "main":
+        dec_file = RESULTS5 / "pilot" / "PILOT_DECISION.json"
+        if not dec_file.exists() or not json.loads(dec_file.read_text()).get("pass"):
+            print("REFUSED: the pilot has not passed its declared criterion (run `pilot-decide` first); run 5 proper does not start.")
+            return 2
+        specs = specs[:int(json.loads(dec_file.read_text())["n_planned"])]
+    port = get_model_port()
+    model_id = getattr(getattr(port, "models", None), "planner", "unknown")
+    budget = pilot_mod_budget(RESULTS5 / "cost_ledger.jsonl")
+    if stage == "main":
+        budget.carry(RESULTS5 / "pilot" / "cost.json")
+    csv_path = out / "participants.csv"
+    done_ids: set[str] = set()
+    if csv_path.exists():
+        import csv
+        with csv_path.open() as fh:
+            done_ids = {r["participant"] for r in csv.DictReader(fh)}
+
+    def factory(spec):
+        return lambda spec_, case, phase, world: ModelParticipant(port, spec_, budget, model_id, tier="planner")
+
+    worlds, built = make_worlds(a.workers, False, out, freeze_from=FROZEN4)
+    try:
+        n = asyncio.run(_run_many(specs, factory, out, model_id, budget, worlds=worlds, pace=a.pace, cap=a.cap, poll_s=a.poll, skip_done=done_ids))
+    finally:
+        close_worlds(worlds, built)
+        (out / "cost.json").write_text(json.dumps(budget.summary(), indent=1))
+    print(f"run5 {stage}: {n} participant(s); spend estimate ${budget.usd:.3f} of the US${budget.cap_usd:.0f} cap (pilot included)")
+    return 0
+
+
+def pilot_mod_budget(ledger: Path) -> Budget:
+    from evals.study_sim import pilot as pilot_mod
+
+    return Budget(cap_usd=pilot_mod.BUDGET_USD, ledger_path=ledger)
+
+
+def cmd_pilot_decide(a) -> int:
+    from evals.study_sim import pilot as pilot_mod
+
+    d = pilot_mod.decide_from_dir(RESULTS5 / "pilot")
+    print(json.dumps(d, indent=1))
+    return 0 if d["pass"] else 3
+
+
+def cmd_analyze5(a) -> int:
+    from evals.study_sim import report
+    from evals.study_sim.design import build_run5_participants
+
+    dec = RESULTS5 / "pilot" / "PILOT_DECISION.json"
+    n_planned = json.loads(dec.read_text()).get("n_planned", 12) if dec.exists() else 12
+    expected = (8, 4) if n_planned >= 12 else (8, 0)
+    report.write_all(RESULTS5 / "main", expected=expected, specs=build_run5_participants(), run_label=RUN5_LABEL, extra_limitations=_run5_limitations(),
+                     report_path=RESULTS5 / "REPORT_RUN5.md")
+    analysis_io.write_provenance_tree(RESULTS5)
+    return 0
+
+
 def cmd_analyze(a) -> int:
     from evals.study_sim import report
     report.write_all(RESULTS if not a.dir else Path(a.dir))
@@ -233,6 +348,17 @@ def main(argv=None) -> int:
     r.add_argument("--workers", type=int, default=3)
     r.add_argument("--shared", action="store_true")
     r.set_defaults(fn=cmd_run)
+    r5 = sub.add_parser("run5")
+    r5.add_argument("--stage", choices=["pilot", "main"], required=True)
+    r5.add_argument("--pace", type=float, default=2.0)
+    r5.add_argument("--cap", type=int, default=60)
+    r5.add_argument("--poll", type=float, default=3.0)
+    r5.add_argument("--workers", type=int, default=3)
+    r5.set_defaults(fn=cmd_run5)
+    pd = sub.add_parser("pilot-decide")
+    pd.set_defaults(fn=cmd_pilot_decide)
+    a5 = sub.add_parser("analyze5")
+    a5.set_defaults(fn=cmd_analyze5)
     an = sub.add_parser("analyze")
     an.add_argument("--dir", default="")
     an.set_defaults(fn=cmd_analyze)

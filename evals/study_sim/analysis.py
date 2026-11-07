@@ -153,8 +153,8 @@ def nudges(rows: list[dict]) -> dict:
             "false_nudges": f("false_nudges"), "lag_prompts": f("lag_prompts"), "rings_drawn": f("rings_drawn"), "coached_blocks": len(inc)}
 
 
-def analyse_all(rows: list[dict]) -> dict:
-    specs = build_participants()
+def analyse_all(rows: list[dict], specs=None) -> dict:
+    specs = specs or build_participants()
     design = assignments_for_design_check(specs)
     coached, aa = split_arms(rows)
     ha = A.analyse(coached, design) if coached else None

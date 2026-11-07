@@ -71,7 +71,7 @@ def snapshot_env(env: dict) -> tuple[dict, str]:
 
 def drop_snapshot() -> None:
     p = SNAPSHOT.get("path")
-    if p:
+    if p and not SNAPSHOT.get("frozen"):
         shutil.rmtree(p, ignore_errors=True)
         SNAPSHOT["path"] = None
 
@@ -353,3 +353,16 @@ def remove_extension_builds(paths: list) -> None:
         shutil.rmtree(Path(p).parent, ignore_errors=True)
     for q in (REPO / "extension").glob("dist-ssim*"):
         shutil.rmtree(q, ignore_errors=True)
+
+
+def fingerprint_dir(root: Path, skip_names: tuple[str, ...] = ("SNAPSHOT.json",)) -> str:
+    """Content fingerprint of a folder (relative paths and bytes, ignoring __pycache__, .pyc and the named files): the same algorithm snapshot_pipeline uses,
+    so a frozen copy can be re-checked before it is reused."""
+    import hashlib
+
+    root = Path(root)
+    h = hashlib.sha256()
+    for f in sorted(p for p in root.rglob("*") if p.is_file() and "__pycache__" not in p.parts and p.suffix != ".pyc" and p.name not in skip_names):
+        h.update(str(f.relative_to(root)).encode())
+        h.update(f.read_bytes())
+    return h.hexdigest()[:16]

@@ -114,12 +114,14 @@ def persona_table(seed: int = SEED) -> dict[tuple[str, int], Persona]:
     return table
 
 
-def build_participants(seed: int = SEED, assignments: dict | None = None) -> list[ParticipantSpec]:
+def build_participants(seed: int = SEED, assignments: dict | None = None, order: list[tuple[str, str, int]] | None = None,
+                       id_prefix: str = "p_sim") -> list[ParticipantSpec]:
+    """The participants of a run: ``order`` is a list of (arm, sequence, within); the default is run 4's 24. Ids are ``<id_prefix><nn>``."""
     assignments = assignments or load_assignments()
     base = _base_rows(assignments)
     personas = persona_table(seed)
     specs: list[ParticipantSpec] = []
-    for i, (arm, seq, within) in enumerate(run_order(), start=1):
+    for i, (arm, seq, within) in enumerate(order if order is not None else run_order(), start=1):
         variant = "base" if within % 2 == 0 else "swapped"
         blocks: list[BlockPlan] = []
         for row in base[seq]:
@@ -130,9 +132,34 @@ def build_participants(seed: int = SEED, assignments: dict | None = None) -> lis
             actual = nominal if arm == "coached" else "uncoached"
             blocks.append(BlockPlan(block=int(row["block"]), skill=row["skill"], skill_id=row["skill_id"], nominal_condition=nominal,
                                     actual_condition=actual, practice_case=practice, post_case=post, coach_on=actual == "coached"))
-        specs.append(ParticipantSpec(pid=f"p_sim{i:02d}", index=i, arm=arm, sequence=seq, within=within, variant=variant,
+        specs.append(ParticipantSpec(pid=f"{id_prefix}{i:02d}", index=i, arm=arm, sequence=seq, within=within, variant=variant,
                                      persona=personas[(seq, within)], blocks=blocks))
     return specs
+
+
+# ---- exploratory run 5 (PLAN_RUN5.md): a stronger participant, same sites and coach, a smaller balanced design
+RUN5_N_COACHED = 8        # 2 per sequence
+RUN5_N_AA = 4             # 1 per sequence
+PILOT_N = 3
+
+
+def run5_order() -> list[tuple[str, str, int]]:
+    """8 coached (two rounds over S1..S4) then 4 A/A. Every prefix of 4 or 8 is balanced over sequences; if the budget stops the run early the
+    coached participants come first and the A/A control is what is lost."""
+    return [("coached", s, w) for w in (0, 1) for s in SEQUENCES] + [("aa", s, 0) for s in SEQUENCES]
+
+
+def pilot_order() -> list[tuple[str, str, int]]:
+    """Three A/A participants (the coach silent), sequences S1 to S3. Used only to decide whether the stronger participant is off the floor."""
+    return [("aa", s, 0) for s in ("S1", "S2", "S3")]
+
+
+def build_run5_participants() -> list[ParticipantSpec]:
+    return build_participants(order=run5_order(), id_prefix="p_ex")
+
+
+def build_pilot_participants() -> list[ParticipantSpec]:
+    return build_participants(order=pilot_order(), id_prefix="p_pil")
 
 
 def assignments_for_design_check(specs: list[ParticipantSpec]) -> dict:

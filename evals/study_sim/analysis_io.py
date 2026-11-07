@@ -156,6 +156,52 @@ def export_engine_events(data_dir: Path, person: str, dest: Path) -> dict:
             if k in r:
                 r[k] = scrub(r[k])
         out.append(r)
-    dest.parent.mkdir(parents=True, exist_ok=True)
+    write_provenance(dest.parent)
     dest.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in out))
     return {"events": len(out), "stripped_values": stripped}
+
+
+# ----------------------------------------------------------------------------------------------- output safety and provenance
+PROVENANCE = {"origin": "simulated_participants_llm", "label": "simulated participants (language model), not people"}
+LIVE_STUDY_DIR = STUDY      # evals/study: the live study with people. Nothing simulated may ever be written there.
+
+
+class UnsafeOutputDir(RuntimeError):
+    pass
+
+
+def check_output_dir(path: Path) -> Path:
+    """Refuse to write anywhere under evals/study/ (real paths compared) and refuse any symlink in the path, so a simulated results file can
+    never land in the live study's folder by accident, by a relative path or through a link. Returns the resolved path."""
+    p = Path(path).expanduser()
+    probe = p if p.is_absolute() else Path.cwd() / p
+    cur = Path(probe.anchor)
+    for part in probe.parts[1:]:
+        cur = cur / part
+        if cur.is_symlink():
+            raise UnsafeOutputDir(f"refusing to write through the symlink {cur}")
+    real = probe.resolve()
+    live = LIVE_STUDY_DIR.resolve()
+    if real == live or live in real.parents:
+        raise UnsafeOutputDir(f"refusing to write simulated results under the live study folder {live}")
+    return real
+
+
+def write_provenance(path: Path) -> Path:
+    """Create the folder (after the safety check) and put PROVENANCE.json in it."""
+    real = check_output_dir(path)
+    real.mkdir(parents=True, exist_ok=True)
+    f = real / "PROVENANCE.json"
+    if not f.exists():
+        f.write_text(json.dumps(PROVENANCE, indent=1) + "\n")
+    return real
+
+
+def write_provenance_tree(root: Path) -> int:
+    """Put PROVENANCE.json in the folder and every sub-folder of a results tree (used after a run, so folders the run created get one too)."""
+    root = write_provenance(root)
+    n = 1
+    for d in sorted(p for p in root.rglob("*") if p.is_dir()):
+        write_provenance(d)
+        n += 1
+    return n

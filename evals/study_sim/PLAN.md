@@ -305,3 +305,9 @@ The schema forbids free text; as a belt-and-braces check any string in `meta` or
 is replaced by `[removed]` and counted (`stripped_values`, expected 0); REPORT.md states that these files contain no participant text. Run 3 was stopped about 8 minutes in, before any
 participant finished (293 model calls, US$0.35, archived in `aborted_run3/`, gitignored, counted against the cap), and the study run proper is now **run 4**, from scratch (empty cache),
 with the frozen-snapshot rule unchanged. Spend carried so far: US$0.75 (runs 1 to 3). Nothing else changed.
+
+**Amendment 5 (2026-11-07, about 18:00 GMT; harness only, no participant data involved, does not touch run 4's frozen snapshot or its running process).** Reviewer finding H5: nothing stopped a simulated
+results file from being copied into the live `study` folder. The harness now (1) refuses to write results, summaries or reports anywhere under `evals/study/` (real paths compared, `..` and relative paths
+resolved) and refuses any symlink in an output path (`analysis_io.check_output_dir`), at the start of every run, fake run and analysis; (2) writes `PROVENANCE.json`
+`{origin: "simulated_participants_llm", label: "simulated participants (language model), not people"}` into the results folder and every sub-folder (at start for the folders the harness creates, and once more
+over the whole tree by `analyze`). Unit-tested (`tests/test_output_safety.py`). Run 4 was already running when this landed, so its folders get their `PROVENANCE.json` files from `analyze` after it finishes.
