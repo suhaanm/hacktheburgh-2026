@@ -228,7 +228,7 @@ export class LiveSession {
             model: this.c.model,
             voiceName: this.c.voiceName,
             systemInstruction: this.c.systemInstruction,
-            tools: this.c.mode === 'converse' ? buildToolDeclarations(this.d.tools.candidates(), { wake: this.c.wake === true }) : [],
+            tools: this.c.mode === 'converse' ? buildToolDeclarations(this.d.tools.candidates(), { wake: this.c.wake === true, doIt: typeof this.d.tools.doItForMe === 'function' }) : [],
             resumptionHandle: handle,
             turnMode: this.c.turnMode,
             transcribeOnly: this.c.mode === 'transcribe',
@@ -574,7 +574,7 @@ export class LiveSession {
   }
 
   private async execute(call: FunctionCall): Promise<Record<string, unknown>> {
-    const parsed = parseToolCall(call.name, call.args, this.d.tools.candidates(), { wake: this.c.wake === true })
+    const parsed = parseToolCall(call.name, call.args, this.d.tools.candidates(), { wake: this.c.wake === true, doIt: typeof this.d.tools.doItForMe === 'function' })
     // The log keeps the name the model used (cleaned and cut short) and the outcome, never an argument.
     const logName = typeof call.name === 'string' ? call.name.replace(/[^A-Za-z0-9_]/g, '').slice(0, 30) : 'unknown'
     if (!parsed.ok) {

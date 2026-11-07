@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { KNACK_IPC } from '../../shared/knack'
-import { STARTING_URL, createMainWindowController, type MainWindowEvent, type WindowPort } from './mainwindow'
+import { STARTING_URL, createMainWindowController, showsAtStart, type MainWindowEvent, type WindowPort } from './mainwindow'
 import { createQuitGuard, sheetFor, type QuitChoice } from './quit-guard'
 import { createWindowStateStore } from './window-state'
 import type { Rect } from './window-bounds'
@@ -211,5 +211,18 @@ describe('quit', () => {
     broken.onBeforeQuit(ev)
     await settle()
     expect(ev.prevented).toBe(true)
+  })
+})
+
+describe('launch at login', () => {
+  it('shows no window: only the menu bar item and the Dock icon (a normal launch shows it; a hidden check never does)', () => {
+    expect(showsAtStart({ hidden: false, openedAtLogin: true })).toBe(false)
+    expect(showsAtStart({ hidden: false, openedAtLogin: false })).toBe(true)
+    expect(showsAtStart({ hidden: true, openedAtLogin: false })).toBe(false)
+  })
+  it('and the Dock icon opens it afterwards, from closed', () => {
+    const r = rig({ visible: false, focused: false })
+    r.main.show()
+    expect(r.main.state()).toMatchObject({ visible: true, focused: true })
   })
 })

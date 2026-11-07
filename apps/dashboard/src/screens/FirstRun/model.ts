@@ -53,6 +53,8 @@ export function reduce(s: FirstRunState, a: FirstRunAction): FirstRunState {
 
 /** Clicks from the first screen to Home: the role, the one consent, "Show my week". */
 export const CLICKS_TO_HOME = 3;
+/** With the connections slot filled, choosing a role opens its chips and needs one more click (Continue). */
+export const CLICKS_WITH_CONNECTIONS = CLICKS_TO_HOME + 1;
 
 /** The pack's safe defaults: its pre-selected tools, risky actions set to "never without me", the pack's tone, a gradual pace, the pack's hours. Capture only when the worker said yes. */
 export function defaultAnswers(data: OnboardingQuestions, capture: boolean): OnboardingAnswers {

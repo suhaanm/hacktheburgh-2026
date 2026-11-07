@@ -61,10 +61,22 @@ export function buildAppMenuTemplate(i: AppMenuInput): MenuItemConstructorOption
   return [...(mac ? [appMenu] : []), file, edit, view, windowMenu]
 }
 
-/** The menu on the Dock icon (right-click): open Knack, and the one safety control. */
-export function buildDockMenuTemplate(i: Pick<AppMenuInput, 'appName' | 'handlers'>): MenuItemConstructorOptions[] {
+export interface DockMenuInput {
+  handlers: MenuHandlers & { openNeedsYou(): void; pause(): void; resume(): void }
+  /** Things waiting for the worker. */
+  needsYou: number
+  paused: boolean
+  stopped: boolean
+}
+
+/**
+ * The menu on the Dock icon (right-click), exactly three rows: Needs you (n) when n is above 0, Pause for 1 hour (Resume now), and Stop everything (Resume after stopping).
+ * Nothing else: a click on the icon opens the window, and the Dock icon never bounces.
+ */
+export function buildDockMenuTemplate(i: DockMenuInput): MenuItemConstructorOptions[] {
   return [
-    { label: `Open ${i.appName}`, click: () => i.handlers.showWindow() },
-    { label: 'Stop Everything', click: () => i.handlers.stopEverything() },
+    ...(i.needsYou > 0 ? [{ label: `Needs you (${i.needsYou})`, click: () => i.handlers.openNeedsYou() }] : []),
+    i.paused ? { label: 'Resume now', click: () => i.handlers.resume() } : { label: 'Pause for 1 hour', click: () => i.handlers.pause() },
+    i.stopped ? { label: 'Resume after stopping', click: () => i.handlers.resume() } : { label: 'Stop everything', click: () => i.handlers.stopEverything() },
   ]
 }

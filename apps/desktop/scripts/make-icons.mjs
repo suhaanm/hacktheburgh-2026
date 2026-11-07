@@ -6,6 +6,7 @@
 //   resources/tray/trayTemplate.png (+@2x)          from the brand tray template (knack-tray-template.svg): pure black on transparent (a macOS template image)
 //   resources/tray/trayActingTemplate.png (+@2x)    the same with a 3 px filled dot: an agent is acting
 //   resources/tray/trayGlanceTemplate.png (+@2x)    the same with a 3 px ring: a glance is in flight
+//   resources/tray/trayStoppedTemplate.png (+@2x)   the same with a 3 px filled square: everything is stopped (the kill switch)
 //   resources/tray/trayPausedTemplate.png (+@2x)    the same with the shadow ring left out and a small bar: paused
 // Run: node scripts/make-icons.mjs [--preview <dir>]   (preview writes an enlarged contact sheet of the small sizes, for looking)
 import { execFileSync } from 'node:child_process'
@@ -34,6 +35,7 @@ const tray = {
   idle: trayInner,
   acting: `${trayInner}<circle cx="15.6" cy="2.6" r="1.5" fill="#000"/>`,
   glance: `${trayInner}<circle cx="15.6" cy="2.6" r="1.1" fill="none" stroke="#000" stroke-width="0.9"/>`,
+  stopped: `${trayInner}<rect x="14.1" y="1.1" width="3" height="3" rx="0.5" fill="#000"/>`,
   paused: `<circle cx="7.4" cy="7.6" r="4.4" fill="#000"/><rect x="11.2" y="8.6" width="1.5" height="5.6" rx="0.4" fill="#000"/><rect x="14" y="8.6" width="1.5" height="5.6" rx="0.4" fill="#000"/>`,
 }
 const traySvg = (inner) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18" width="18" height="18">${inner}</svg>`

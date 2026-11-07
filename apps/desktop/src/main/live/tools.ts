@@ -19,6 +19,8 @@ export const WAKE_TOOL_NAMES = ['clear', 'do_it_for_me'] as const
 export type WakeToolName = (typeof WAKE_TOOL_NAMES)[number]
 export interface ToolOptions {
   wake?: boolean
+  // `do_it_for_me` is offered only when code can answer it (a port exists). Default true in a wake session.
+  doIt?: boolean
 }
 
 export const DESCRIPTION_MAX_CHARS = 60
@@ -82,7 +84,7 @@ function onlyKeys(o: Record<string, unknown>, allowed: readonly string[]): strin
 const refuse = (code: ToolRefusal, message: string): ParsedToolCall => ({ ok: false, code, message })
 
 export function parseToolCall(name: unknown, args: unknown, candidates: CandidateList, opts: ToolOptions = {}): ParsedToolCall {
-  const wakeTool = opts.wake === true && typeof name === 'string' && (WAKE_TOOL_NAMES as readonly string[]).includes(name)
+  const wakeTool = opts.wake === true && typeof name === 'string' && (WAKE_TOOL_NAMES as readonly string[]).includes(name) && !(name === 'do_it_for_me' && opts.doIt === false)
   if (typeof name !== 'string' || (!(TOOL_NAMES as readonly string[]).includes(name) && !wakeTool)) {
     return refuse('unknown_tool', 'That tool does not exist. The only tools are point_at, show_step, ask_choice and end_session.')
   }
@@ -189,7 +191,7 @@ export function buildToolDeclarations(candidates: CandidateList, opts: ToolOptio
         behavior: NB,
         description: 'Takes the ring and the pointer off the screen. Use it when the worker says it is in the way, or when you are done pointing.',
       },
-      {
+      ...(opts.doIt === false ? [] : [{
         name: 'do_it_for_me',
         behavior: NB,
         description:
@@ -200,7 +202,7 @@ export function buildToolDeclarations(candidates: CandidateList, opts: ToolOptio
           properties: { description: { type: 'string', maxLength: DESCRIPTION_MAX_CHARS, description: `A short plain description of the one thing to click, for example "the green Submit button". At most ${DESCRIPTION_MAX_CHARS} characters; no web addresses, emails or numbers.` } },
           required: ['description'],
         },
-      },
+      }]),
     )
   }
   tools.push({

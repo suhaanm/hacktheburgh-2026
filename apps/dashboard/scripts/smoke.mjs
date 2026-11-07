@@ -345,8 +345,11 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
     return json(route, { error: { code: "not_found", message: "not mocked" } }, 404);
   });
   await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(600);
-  const nav = await page.locator("nav#nav").textContent();
-  check("layers off: nothing is hidden from the menu", /Week/.test(nav ?? "") && /Privacy/.test(nav ?? "") && /Agents/.test(nav ?? "") && /Briefing/.test(nav ?? "") && /Git habits/.test(nav ?? "") && /Models/.test(nav ?? ""));
+  // Knack: five destinations in the sidebar and the rest in the More sheet (the old fold lists became the sheet; Briefing and Privacy became Needs you and Your data).
+  await page.locator("nav#nav").getByRole("button", { name: "More" }).click();
+  const nav = `${await page.locator("nav#nav").textContent()} ${await page.getByRole("menu", { name: "More" }).textContent()}`;
+  await page.keyboard.press("Escape");
+  check("layers off: nothing is hidden from the menu", /Calendar/.test(nav) && /Your data/.test(nav) && /Background runs/.test(nav) && /Needs you/.test(nav) && /Git habits/.test(nav) && /Models and cost/.test(nav));
   await page.goto(`${base}/#/your-data?section=sent`); await page.waitForTimeout(700);
   const off = await page.locator("main").innerText();
   // One plain line is on the page; the engine's sentence with the flag name sits in a closed "Details" disclosure under it (D45). Open it, then assert the text.

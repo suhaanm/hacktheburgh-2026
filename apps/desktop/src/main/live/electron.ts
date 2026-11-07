@@ -52,6 +52,8 @@ export interface RegisterLiveOptions {
   cue: LiveCuePort
   // Hey Knack's `do_it_for_me` (wake sessions only). Late-bound by the caller; absent: the tool answers "not available".
   doIt?: (req: DoItRequest) => Promise<DoItAnswer>
+  // The code-built context packet for a conversation (wake/context-packet.ts); late-bound by the caller.
+  context?: (o: { tools: import('./wire').FunctionDeclaration[]; trigger: 'key' | 'wake' }) => string
   killed: () => boolean
   agentActing: () => boolean
   cueVoiceOn?: () => boolean
@@ -109,6 +111,7 @@ export function registerLive(o: RegisterLiveOptions): LiveRegistration {
     ground: createCompositeGround(o.domGround ?? null, vision),
     ring: createRingPort(o.overlay),
     doIt: o.doIt,
+    context: o.context,
     usage: createUsageLog(dir),
     // Reads the status only. The prompt is the owner's to accept in System Settings; this code never calls askForMediaAccess.
     micStatus: () => (process.platform === 'darwin' ? systemPreferences.getMediaAccessStatus('microphone') : 'granted'),

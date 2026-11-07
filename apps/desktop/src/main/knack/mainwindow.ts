@@ -151,9 +151,14 @@ export function createMainWindowController(win: WindowPort, deps: MainWindowDeps
   return api
 }
 
+/** A launch at login shows no window, only the menu bar item and the Dock icon (the worker opens Knack when they want it); a hidden check never shows one either. */
+export const showsAtStart = (o: { hidden: boolean; openedAtLogin: boolean }): boolean => !o.hidden && !o.openedAtLogin
+
 export interface ElectronMainWindowDeps {
   store: WindowStateStore
   hidden: boolean
+  /** The app was opened by the login item (app.getLoginItemSettings().wasOpenedAtLogin). */
+  openedAtLogin?: boolean
   /** The dev server's origin, allowed for navigation in development; null in production. */
   devOrigin: string | null
 }
@@ -180,7 +185,7 @@ export function createMainWindow(deps: ElectronMainWindowDeps): MainWindow {
     ...(mac ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 16, y: 16 } } : {}),
     webPreferences: { preload: path.join(__dirname, '../preload/knack.js'), contextIsolation: true, sandbox: true, nodeIntegration: false, spellcheck: false },
   })
-  if (!deps.hidden) win.once('ready-to-show', () => win.show())
+  if (showsAtStart({ hidden: deps.hidden, openedAtLogin: deps.openedAtLogin === true })) win.once('ready-to-show', () => win.show())
 
   // The page may only be the dashboard (or our own starting page): any other address opens in the worker's browser, never in this window.
   const allowed = (url: string): boolean => {

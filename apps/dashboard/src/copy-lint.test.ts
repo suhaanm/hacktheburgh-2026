@@ -89,8 +89,6 @@ describe("the linter itself", () => {
  * (STRICT below) once the tracks are merged; nothing here is ever a reason to ship a finding.
  */
 const PENDING: Record<string, string> = {
-  "apps/dashboard/src/screens/Memory.tsx": "Track C: Memory becomes Your data",
-  "apps/dashboard/src/screens/Notices.tsx": "Track C: Notices move into Settings",
   "apps/dashboard/src/fixtures/attention-why.json": "the example data of the attention layer: the old name is in the engine's sentence",
   "apps/dashboard/src/fixtures/briefing.json": "the example data of Briefing, which Track C moves into Needs you",
   "apps/dashboard/src/fixtures/eval-report.json": "written by the eval track (evals/report.json): the old name is in its limitations text",
