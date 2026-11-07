@@ -1,0 +1,162 @@
+{
+ "data": {
+  "columns": [
+   {
+    "key": "early",
+    "label": "Six weeks ago",
+    "unit": "share"
+   },
+   {
+    "key": "late",
+    "label": "Last three weeks",
+    "unit": "share"
+   },
+   {
+    "key": "change",
+    "label": "Change",
+    "unit": "share"
+   }
+  ],
+  "headline": "Programmer: juniors need less help than six weeks ago.",
+  "id": "i_817adda45c27",
+  "kind": "cohort_trend",
+  "method": "300 person-level bootstrap draws where an interval is a bootstrap; 3-week windows; seeds come from ids.",
+  "notes": [
+   "Two windows of 3 weeks, 6 weeks apart (3-week smoothing). Only people with enough occurrences in both windows are included, so joiners do not distort it.",
+   "The standardised row holds the skill mix fixed at the first window's; the raw pooled row can fall or rise only because the mix changed.",
+   "Data: synthetic firm. For coaching and onboarding, not for evaluating individuals."
+  ],
+  "reason_code": "selected_top_score",
+  "reason_text": "Selected: it passed every check and scored among the highest.",
+  "rows": [
+   {
+    "label": "Standardised, within each person",
+    "n": 8,
+    "values": {
+     "change": 0.1587,
+     "early": 0.6745,
+     "late": 0.8332
+    }
+   },
+   {
+    "label": "Raw pooled, for comparison only",
+    "n": 8,
+    "values": {
+     "change": 0.1476,
+     "early": 0.6897,
+     "late": 0.8373
+    }
+   }
+  ],
+  "series": [
+   {
+    "label": "Juniors, standardised independence by week",
+    "points": [
+     {
+      "hi": 0.6922,
+      "lo": 0.4562,
+      "n": 65,
+      "people": 6,
+      "x": -10,
+      "y": 0.5742
+     },
+     {
+      "hi": 0.6025,
+      "lo": 0.3819,
+      "n": 86,
+      "people": 8,
+      "x": -9,
+      "y": 0.4922
+     },
+     {
+      "hi": 0.7663,
+      "lo": 0.5561,
+      "n": 75,
+      "people": 7,
+      "x": -8,
+      "y": 0.6612
+     },
+     {
+      "hi": 0.7905,
+      "lo": 0.6126,
+      "n": 103,
+      "people": 8,
+      "x": -7,
+      "y": 0.7016
+     },
+     {
+      "hi": 0.7824,
+      "lo": 0.6135,
+      "n": 110,
+      "people": 8,
+      "x": -6,
+      "y": 0.698
+     },
+     {
+      "hi": 0.9189,
+      "lo": 0.7623,
+      "n": 93,
+      "people": 8,
+      "x": -5,
+      "y": 0.8406
+     },
+     {
+      "hi": 0.8846,
+      "lo": 0.7259,
+      "n": 99,
+      "people": 8,
+      "x": -4,
+      "y": 0.8053
+     },
+     {
+      "hi": 0.916,
+      "lo": 0.7709,
+      "n": 102,
+      "people": 8,
+      "x": -3,
+      "y": 0.8434
+     },
+     {
+      "hi": 0.8934,
+      "lo": 0.7415,
+      "n": 87,
+      "people": 9,
+      "x": -2,
+      "y": 0.8174
+     },
+     {
+      "hi": 0.8897,
+      "lo": 0.7488,
+      "n": 117,
+      "people": 9,
+      "x": -1,
+      "y": 0.8193
+     },
+     {
+      "hi": 0.8813,
+      "lo": 0.7411,
+      "n": 114,
+      "people": 9,
+      "x": 0,
+      "y": 0.8112
+     }
+    ]
+   }
+  ],
+  "state": "selected",
+  "statement": "For coaching and onboarding, not for evaluating individuals.",
+  "tables": []
+ },
+ "meta": {
+  "as_of": "2026-11-09T09:00:00Z",
+  "audience": "admin",
+  "badge": "synthetic firm",
+  "generated_at": "2026-11-09T09:00:00Z",
+  "interval_level": 0.95,
+  "n": 0,
+  "n_unit": "people",
+  "note": "For coaching and onboarding, not for evaluating individuals. Groups under 5 people are not compared.",
+  "origin": "synthetic",
+  "source": "firm"
+ }
+}

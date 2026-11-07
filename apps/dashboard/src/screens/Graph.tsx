@@ -3,6 +3,7 @@ import { ApiError, api } from "../api";
 import { prefersReducedMotion, useLoad, useWidth } from "../hooks";
 import { ChartFoot, EmptyState, ErrorState, Loading, OriginBadge, PageHead } from "../components/common";
 import { useToast } from "../components/Toasts";
+import { Hint } from "../components/Hint";
 import { NODE_COLOUR, NODE_LABEL, layoutGraph, nodeOpacity, placeLabels, radiusFn, type Placed } from "../lib/graph";
 import { findLine, replaceLineText } from "../lib/memory";
 import { fmtDate } from "../lib/format";
@@ -88,7 +89,7 @@ export default function Graph() {
       <PageHead
         eyebrow="Graph"
         title="How your work connects"
-        lede={`${graph.nodes.length} things Understudy knows about your work. Related ones are linked, routines that always run together join up, and anything you stop using fades${faded ? ` (${faded} fading now)` : ""}.`}
+        lede={`${graph.nodes.length} things Understudy knows about your work${faded ? `, ${faded} fading now` : ""}.`}
         aside={<OriginBadge meta={g.meta} />}
       />
 
@@ -135,7 +136,7 @@ export default function Graph() {
             )}
           </div>
           <Legend />
-          <ChartFoot meta={g.meta} extra={<span>click a node for why it exists · layout is for reading only</span>} />
+          <ChartFoot variant="about" meta={g.meta} extra={<span>click a node for why it exists; the layout is for reading only</span>} />
         </div>
       )}
     </div>
@@ -149,7 +150,7 @@ function Legend() {
   return (
     <ul className="legend" aria-label="How to read the graph">
       {(["routine", "skill", "memory", "automation"] as WorkNodeType[]).map((t) => <li key={t} className="legend__item">{glyph(t)}{NODE_LABEL[t]}</li>)}
-      <li className="legend__item"><span className="sw sw--muted" style={{ width: 10, height: 10, borderRadius: "50%" }} />Size: minutes a week (routines, automations) or mastery (skills)</li>
+      <li className="legend__item"><span className="sw sw--muted" style={{ width: 10, height: 10, borderRadius: "50%" }} />Size: minutes a week, or mastery for skills</li>
       <li className="legend__item"><span className="sw" style={{ background: "linear-gradient(90deg, var(--muted), transparent)" }} />Fainter: weaker, fades with disuse</li>
       <li className="legend__item"><span className="sw sw--line sw--muted" />Linked</li>
       <li className="legend__item"><span className="sw sw--dashed sw--accent" />Capsule: always run together</li>
@@ -206,7 +207,7 @@ function NodePanel({ node: n, graph, onClose, onChanged }: { node: WorkNode; gra
         <div className="stack" style={{ gap: "var(--space-1)" }}>
           <span className="t-label">Strength</span>
           <div className="mastery__track" aria-hidden="true"><i style={{ width: `${n.strength * 100}%`, background: NODE_COLOUR[n.type] }} /></div>
-          <p className="note">{Math.round(n.strength * 100)}%. Last seen {fmtDate(n.last_seen)}{days > 0 ? `, ${days} ${days === 1 ? "day" : "days"} ago` : ""}. Strength fades with disuse and returns when you use it.</p>
+          <p className="note">{Math.round(n.strength * 100)}%. Last seen {fmtDate(n.last_seen)}{days > 0 ? `, ${days} ${days === 1 ? "day" : "days"} ago` : ""}.<Hint label="About strength">Strength fades with disuse and returns when you use it.</Hint></p>
         </div>
         {linked.length > 0 && <div className="stack" style={{ gap: "var(--space-1)" }}><span className="t-label">Linked to</span><p className="note">{linked.join(", ")}</p></div>}
         {n.editable && line && (

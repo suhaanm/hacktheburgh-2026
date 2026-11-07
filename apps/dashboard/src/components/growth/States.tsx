@@ -37,12 +37,12 @@ export function EarlyHero({ total, needed, marks, unaided, baseline }: { total: 
   return (
     <section className="gr-early" aria-labelledby="early-h">
       <h2 id="early-h" className="section__title">{plural(total, "occurrence")} so far</h2>
-      <p className="t-prose">The curve starts at {needed}, so it needs {plural(left, "more occurrence")}. Until then there is nothing to estimate, so nothing is drawn. Here is each one.</p>
+      <p className="t-prose">The curve starts at {needed}, so it needs {plural(left, "more occurrence")}. Until then nothing is estimated.</p>
       <ol className="gr-marks" aria-label={`${total} occurrences so far, ${unaided} finished with no cue accepted`}>
         {Array.from({ length: slots }, (_, i) => {
           const m = shown?.[i];
           const kind = i >= total ? "empty" : m ? (m.unaided ? "unaided" : "helped") : i < unaided ? "unaided" : "helped";
-          return <li key={i} className="gr-mark" data-kind={kind} title={kind === "empty" ? "Not yet" : kind === "unaided" ? "Finished with no cue accepted" : "Needed a cue"} />;
+          return <li key={i} className="gr-mark" data-kind={kind} />;
         })}
       </ol>
       <ul className="legend gr-legend" aria-label="How to read the marks">

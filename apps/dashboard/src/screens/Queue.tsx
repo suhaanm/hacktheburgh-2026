@@ -5,6 +5,7 @@ import { authForApproval, needsStepUp, stepUpNotice, useAuth } from "../auth";
 import { useLoad } from "../hooks";
 import { EmptyState, ErrorState, Loading, OriginBadge, PageHead, TierPill } from "../components/common";
 import { useToast } from "../components/Toasts";
+import { Details } from "../components/ui";
 import { fmtDateTime, fmtTime, plural } from "../lib/format";
 import type { AuditLine, OffhoursReport, QueueItem } from "../types";
 
@@ -42,7 +43,7 @@ export default function Queue() {
       <PageHead
         eyebrow="Queue"
         title={pending.length === 0 ? "Nothing is waiting for you" : pending.length === 1 ? "One thing needs your approval" : `${pending.length} things need your approval`}
-        lede="Routines ran inside their limits while you were away. Anything that cannot be undone, or that reaches outside, waits here for one click from you."
+        lede="Anything that cannot be undone, or reaches outside, waits here for one click."
         aside={<OriginBadge meta={q.meta} />}
       />
 
@@ -102,17 +103,18 @@ function Card({ item: it, onDone }: { item: QueueItem; onDone: () => void }) {
     <article className="queue-item" data-status={it.status} aria-labelledby={`q-${it.id}`}>
       <div className="queue-item__head">
         <h3 className="queue-item__title" id={`q-${it.id}`}>{it.title}</h3>
-        <span className="queue-item__when">{fmtDateTime(it.created_at)} · run {it.run_id}</span>
+        <span className="queue-item__when">{KIND[it.kind]} · {fmtDateTime(it.created_at)}</span>
       </div>
-      <div className="row">
-        <span className="pill" style={it.risk_class === "irreversible" ? { borderColor: "var(--bad)" } : undefined}>{RISK[it.risk_class]}</span>
-        <span className="pill">{KIND[it.kind]}</span>
-        {it.routine_id && <span className="pill">{it.routine_id}</span>}
-      </div>
+      {it.risk_class !== "normal" && (
+        <div className="row">
+          <span className="pill" style={it.risk_class === "irreversible" ? { borderColor: "var(--bad)" } : undefined}>{RISK[it.risk_class]}</span>
+        </div>
+      )}
       <div className="queue-item__ask"><span>{it.summary}</span></div>
       <details className="evidence">
         <summary>Evidence</summary>
         <div className="evidence__body qi-evidence">
+          <p className="note">Run {it.run_id}{it.routine_id ? ` · ${it.routine_id}` : ""}</p>
           {it.evidence.screenshots.length > 0 && (
             <div className="shots" aria-label="Screenshots">
               {it.evidence.screenshots.map((s, i) => <Shot key={`${s}-${i}`} runId={it.run_id} path={s} />)}
@@ -185,13 +187,12 @@ function Report({ rep, audit, loading }: { rep: OffhoursReport | null; audit: Au
           <ul>{rep.yielded.map((r, i) => <li key={i}><b>{r.routine}</b><span>paused when you came back at {fmtTime(r.at)}</span></li>)}</ul></div>
       )}
       {audit && audit.length > 0 && (
-        <details className="details-lite">
-          <summary>Audit log (redacted, no page text)</summary>
+        <Details summary="Audit log (redacted, no page text)" wide>
           <div className="table-wrap"><table className="table">
             <thead><tr><th>Time</th><th>Who</th><th>What</th><th>Outcome</th><th>Note</th></tr></thead>
             <tbody>{audit.map((a, i) => <tr key={i}><td className="t-data">{fmtTime(a.t)}</td><td>{a.actor}</td><td>{a.kind.replace(/_/g, " ")}{a.routine ? ` · ${a.routine}` : ""}</td><td>{a.outcome}</td><td>{a.note}</td></tr>)}</tbody>
           </table></div>
-        </details>
+        </Details>
       )}
     </section>
   );

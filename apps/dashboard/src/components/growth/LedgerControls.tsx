@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiError } from "../../api";
 import { useToast } from "../Toasts";
+import { Details } from "../ui";
 import { deleteCopy, plural, totalRows, type LedgerCounts } from "./model";
 
 /** Export and delete the ledger. Delete asks once, says what goes and what stays, then works. */
@@ -40,12 +41,12 @@ export function LedgerControls({ counts, fields, example, onExport, onDelete }: 
   return (
     <section className="section gr-ledger" aria-labelledby="led-h">
       <h2 id="led-h" className="section__title">Your ledger</h2>
-      <p className="section__sub">One row each time a step came up in your work: what happened, as codes and numbers. No text, no screenshots, no page content. It stays on this computer and you own it.</p>
+      <p className="section__sub">One row per step, as codes and numbers only. It stays on this computer and you own it.</p>
       {fields.length > 0 && (
-        <details className="details-lite">
-          <summary>What is stored in a row</summary>
+        <Details summary="What is stored in a row">
           <p className="gr-fields num">{fields.map((f) => <code key={f}>{f}</code>)}</p>
-        </details>
+          <p className="note">No text, no screenshots, no page content.</p>
+        </Details>
       )}
       <div className="row">
         <button type="button" className="btn btn--secondary" onClick={doExport} disabled={busy != null || total === 0}>{busy === "export" ? "Exporting" : "Export the ledger as JSON"}</button>

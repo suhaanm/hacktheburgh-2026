@@ -1,6 +1,7 @@
 import { fmtInterval } from "../lib/format";
 import { liveFixSentence, liveRuns, liveSentence } from "../lib/evidence";
 import { ChartFoot, OriginBadge } from "./common";
+import { Details } from "./ui";
 import type { AnalyticMeta } from "../types";
 
 /**
@@ -37,17 +38,19 @@ export function LiveRuns({ live, meta }: { live: unknown; meta: AnalyticMeta | n
       {v.fix && (
         <div className="live__fix" data-testid="live-fix">
           <div className="row" style={{ gap: "var(--space-2)" }}>
-            {v.fix.inSample && <span className="pill pill--insample" title="The fix was made after this result was seen, on the same kind of case">in-sample</span>}
+            {v.fix.inSample && <span className="pill pill--insample">in-sample</span>}
             <b>The fix for the 503 error</b>
           </div>
           <p className="live__text">{liveFixSentence(v.fix)}</p>
-          <p className="ev-note">{v.fix.description}.{v.fix.inSample ? " It was made after the result above was seen, so this row is not a fresh test and should not be read as one." : ""}</p>
-          {v.fix.droppedNote && <details className="details-lite"><summary>Rows left out of every number</summary><p className="ev-note">{v.fix.droppedNote}</p></details>}
+          {v.fix.inSample && <p className="ev-note">Made after the result above was seen, so this row is not a fresh test.</p>}
+          <Details summary="What the fix changed">
+            <p className="ev-note">{v.fix.description}.</p>
+            {v.fix.droppedNote && <p className="ev-note">{v.fix.droppedNote}</p>}
+          </Details>
         </div>
       )}
 
-      <details className="details-lite">
-        <summary>See the conditions as a table</summary>
+      <Details summary="See the conditions as a table" wide>
         <div className="table-wrap"><table className="table">
           <thead><tr><th>Condition</th><th className="num">Households</th><th className="num">Passed</th><th>95% interval</th><th className="num">False claims</th><th className="num">Paused</th></tr></thead>
           <tbody>
@@ -69,11 +72,17 @@ export function LiveRuns({ live, meta }: { live: unknown; meta: AnalyticMeta | n
             )}
           </tbody>
         </table></div>
-      </details>
+      </Details>
 
-      {v.tier3 && <p className="ev-note">Computer use (tier 3): {v.tier3}</p>}
-      <p className="ev-note">This is evidence from a small run, not proof. {v.households ?? "A few"} households per condition shows how the agent fails and what catches it, not how often it would on other pages.{v.costUsd != null ? ` Estimated cost of this run: $${v.costUsd.toFixed(3)}, at assumed prices.` : ""}</p>
-      <ChartFoot brief meta={meta} />
+      <p className="ev-note">This is evidence from a small run, not proof.</p>
+      <Details summary="About this run">
+        <div className="stack" style={{ gap: "var(--space-2)" }}>
+          <p className="ev-note">{v.households ?? "A few"} households per condition shows how the agent fails and what catches it, not how often it would on other pages.</p>
+          {v.tier3 && <p className="ev-note">Computer use (tier 3): {v.tier3}</p>}
+          {v.costUsd != null && <p className="ev-note">Estimated cost of this run: ${v.costUsd.toFixed(3)}, at assumed prices.</p>}
+        </div>
+      </Details>
+      <ChartFoot variant="about" meta={meta} />
     </div>
   );
 }

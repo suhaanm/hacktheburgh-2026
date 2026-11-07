@@ -1,0 +1,54 @@
+/* ==========================================================================
+   Shell pieces for the demo view (REQ-9) and the worker home. Tokens only.
+   ========================================================================== */
+
+/* -- The "view as" control in the sidebar footer ------------------------------------------------ */
+.viewas { display: grid; gap: var(--space-2); }
+.viewas__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.viewas__label { font: 500 var(--text-xs)/1.3 var(--font-mono); color: var(--muted); }
+.viewas__marker { margin: 0; padding: var(--space-1) var(--space-2); font: 500 var(--text-xs)/1.4 var(--font-mono); color: var(--fg); border: var(--hair) dashed var(--line-strong); border-radius: var(--radius-2); }
+.viewas__help { margin: 0; display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); font-size: var(--text-xs); }
+.viewas__help kbd { margin-left: var(--space-1); padding: 0 4px; font: 500 10.5px/1.5 var(--font-mono); color: var(--muted); border: var(--hair) solid var(--line-strong); border-radius: var(--radius-1); }
+
+/* -- One line above the Details and Evidence screens ----------------------------------------------- */
+.framenote { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-1) var(--space-4); padding: var(--space-2) var(--gutter-wide); font-size: var(--text-sm); color: var(--muted); background: var(--sunk); border-bottom: var(--hair) solid var(--line); }
+.framenote a { font-weight: 600; white-space: nowrap; }
+
+/* -- Your week -------------------------------------------------------------------------------------- */
+.home { gap: var(--space-7); }
+.home__cards { display: grid; gap: var(--space-3); }
+.home__card { grid-template-columns: 32px minmax(0, 1fr) auto; }
+.home__card-why { grid-column: 2 / -1; margin-top: var(--space-2); }
+.home__why { display: grid; gap: var(--space-2); max-width: var(--measure); }
+.home__why p, .home__why ul { margin: 0; }
+.home__why ul { padding-left: var(--space-5); display: grid; gap: var(--space-1); }
+.home__limits { color: var(--muted); }
+.home__source { font: var(--text-xs)/1.5 var(--font-mono); color: var(--muted); }
+.home__tell { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; padding-top: var(--space-2); }
+.home__said { margin: 0; font-size: var(--text-sm); color: var(--muted); }
+.home__quiet { max-width: 46rem; }
+.home__story { display: inline-flex; }
+.home__monday { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--space-2) var(--space-4); }
+.home__monday > .details { flex: 0 1 auto; max-width: 100%; }
+.home__monday > .btn { margin-top: calc(-1 * var(--space-1)); }
+.home__note { margin: 0; padding-left: var(--space-5); display: grid; gap: var(--space-1); color: var(--fg); }
+.home__go { display: grid; }
+.home__links { list-style: none; margin: 0; padding: 0; border-top: var(--hair) solid var(--line); }
+.home__links > li { display: flex; align-items: center; justify-content: flex-start; gap: var(--space-2); border-bottom: var(--hair) solid var(--line); }
+.home__link { flex: 0 1 auto; display: grid; gap: 2px; padding: var(--space-3) 0; color: var(--fg); text-decoration: none; }
+.home__link:hover { text-decoration: none; }
+.home__link:hover .home__link-title { text-decoration: underline; text-underline-offset: 0.2em; }
+.home__link-title { font: 600 var(--text-md)/1.3 var(--font-display); letter-spacing: -0.01em; }
+.home__link-hint { font-size: var(--text-sm); color: var(--muted); }
+.home__share { display: grid; gap: var(--space-3); max-width: var(--measure); }
+.home__share p, .home__share h4 { margin: 0; }
+.home__list { margin: 0; padding-left: var(--space-5); display: grid; gap: var(--space-1); color: var(--fg); }
+.home__kind { color: var(--muted); }
+@media (max-width: 560px) {
+  .home__card { grid-template-columns: 32px minmax(0, 1fr); }
+  .home__card .insight__action { grid-column: 2; grid-row: auto; margin-top: var(--space-2); }
+}
+
+/* -- "Your notices data" row on the Privacy screen ------------------------------------------------------------ */
+.noticesdata { display: grid; gap: var(--space-3); max-width: 46rem; }
+.noticesdata .note { margin-top: var(--space-1); }

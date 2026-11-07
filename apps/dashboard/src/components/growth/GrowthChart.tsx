@@ -1,3 +1,4 @@
+import { Hint } from "../Hint";
 import { useId, useRef, useState, type KeyboardEvent } from "react";
 import { area, curveLinear, curveStepAfter, line } from "d3-shape";
 import { useWidth } from "../../hooks";
@@ -49,6 +50,10 @@ export function GrowthChart({ view }: { view: GrowthView }) {
   const b = view.baseline;
   const shown = cursor ?? last;
   const readout = pts[shown] ? pointReadout(pts[shown], view.window, view.levelPct, view.smoothLevel) : "";
+  // The short line says the point; the interval, n, help level and cue sit behind a Hint (the whole sentence stays in the live region).
+  const cut = readout.indexOf(`, ${view.levelPct}% interval`);
+  const readoutHead = cut > 0 ? readout.slice(0, cut) : readout;
+  const readoutRest = cut > 0 ? `${view.levelPct}% interval${readout.slice(cut + `, ${view.levelPct}% interval`.length)}` : "";
 
   const move = (to: number) => setCursor(Math.max(0, Math.min(last, to)));
   const onKey = (e: KeyboardEvent<SVGSVGElement>) => {
@@ -166,14 +171,16 @@ export function GrowthChart({ view }: { view: GrowthView }) {
           </svg>
         )}
       </div>
-      <p className="gr-readout" aria-live="polite">
-        {cursor == null ? "Latest. " : ""}{readout}
-        {cursor == null && <span className="gr-readout__hint"> Hover the chart, or focus it and use the arrow keys, to read other points.</span>}
+      <p className="gr-readout">
+        <span aria-hidden="true">{cursor == null ? "Latest. " : ""}{readoutHead}</span>
+        {readoutRest && <Hint label="More about this point">{readoutRest}</Hint>}
+        {cursor == null && <span className="gr-readout__hint" aria-hidden="true"> Hover the chart to read any point.</span>}
+        <span className="u-sr-only" aria-live="polite">{cursor == null ? "Latest. " : ""}{readout}</span>
       </p>
       <details className="details-lite gr-key" open={keyOpen ?? !f.compact} onToggle={(e) => setKeyOpen((e.currentTarget as HTMLDetailsElement).open)}>
       <summary>Key to the curve and the fade</summary>
       <ul className="legend gr-legend" aria-label="How to read the curve">
-        <li className="legend__item"><svg width="22" height="10" aria-hidden="true"><line className="gr-line" x1="0" x2="22" y1="5" y2="5" /></svg>Share finished with no cue accepted, over the {view.window} occurrences ending at each point</li>
+        <li className="legend__item"><svg width="22" height="10" aria-hidden="true"><line className="gr-line" x1="0" x2="22" y1="5" y2="5" /></svg>Share finished with no cue accepted, over a {view.window}-occurrence window</li>
         <li className="legend__item"><svg width="22" height="10" aria-hidden="true"><rect className="gr-band" x="0" y="1" width="22" height="8" /></svg>{view.levelPct}% interval</li>
         <li className="legend__item"><svg width="12" height="12" aria-hidden="true"><circle className="gr-dot gr-dot--part" cx="6" cy="6" r="3.5" /></svg>Hollow: fewer than {view.window} occurrences so far</li>
         {b && <li className="legend__item"><svg width="22" height="12" aria-hidden="true"><line className="gr-base__line" x1="0" x2="22" y1="6" y2="6" /></svg>Your first {b.n} occurrences, {pctBracket(b.wilson)}</li>}
@@ -183,7 +190,7 @@ export function GrowthChart({ view }: { view: GrowthView }) {
         <li className="legend__item"><svg width="22" height="12" aria-hidden="true"><line className="gr-level" x1="0" x2="22" y1="6" y2="6" /></svg>Help level: {LEVEL_WORD.slice(1).map((w, i) => `L${i + 1} ${w}`).join(", ")}{view.smoothLevel ? ", averaged over each window" : ""}</li>
         <li className="legend__item">
           <svg width="40" height="16" aria-hidden="true"><circle className="gr-cue__ring" cx="8" cy="8" r="6" strokeWidth="3" /><circle className="gr-cue__ring" cx="30" cy="8" r="6" strokeWidth="0.8" opacity="0.4" /></svg>
-          Ring: thicker is a heavier cue, fainter means fewer occurrences were cued
+          Ring: thicker is a heavier cue, fainter is fewer cued
         </li>
         <li className="legend__item"><svg width="16" height="16" aria-hidden="true"><circle className="gr-cue__ring" cx="8" cy="6" r="4.5" strokeWidth="1.5" /><rect className="gr-cue__chip" x="3" y="12" width="10" height="3" rx="1" /></svg>Bar: a text chip came with it</li>
         <li className="legend__item"><svg width="12" height="12" aria-hidden="true"><circle className="gr-nocue" cx="6" cy="6" r="2" /></svg>Dot: no cue at all</li>

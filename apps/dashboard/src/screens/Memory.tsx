@@ -3,6 +3,8 @@ import { ApiError, api } from "../api";
 import { useLoad } from "../hooks";
 import { EmptyState, ErrorState, Loading, PageHead } from "../components/common";
 import { useToast } from "../components/Toasts";
+import { Details } from "../components/ui";
+import { Hint } from "../components/Hint";
 import { captureOn, removeLineText, replaceLineText, setCapture } from "../lib/memory";
 import type { Memory as MemoryT, RuleProposal } from "../types";
 
@@ -111,8 +113,8 @@ export default function Memory() {
       <PageHead
         eyebrow="Memory"
         title="What Understudy knows about you"
-        lede="One Markdown file on this device, owned by you. Only your own actions and approvals can change it. Text from a web page or a tool never can."
-        aside={<span className="pill pill--path" title={m.path}><b>rev {m.revision}</b>{shortPath(m.path)}</span>}
+        lede={<>One Markdown file on this device, owned by you. Only your own actions and approvals can change it.<Hint label="About who can change it">Text from a web page or a tool never can.</Hint></>}
+        aside={<span className="pill pill--path"><b>rev {m.revision}</b>{shortPath(m.path)}</span>}
       />
 
       <div className="row capture" role="group" aria-label="Capture">
@@ -142,7 +144,7 @@ export default function Memory() {
 
         {mode === "read" ? (
           <div className="memfile">
-            <div className="memfile__bar"><span title={m.path}>{shortPath(m.path)}</span><span>revision {m.revision} · {rows.filter((r) => r.kind === "item").length} lines</span></div>
+            <div className="memfile__bar"><span>{shortPath(m.path)}<Hint label="Full path of the file"><code>{m.path}</code></Hint></span><span>revision {m.revision} · {rows.filter((r) => r.kind === "item").length} lines</span></div>
             <div className="memfile__body">
               {rows.map((r) => {
                 if (edit && edit.no === r.no) {
@@ -200,7 +202,7 @@ export default function Memory() {
       <section className="section" aria-labelledby="rules-h">
         <div className="section__head">
           <h2 className="section__title" id="rules-h">Rules Understudy would like to add</h2>
-          <p className="section__sub">After three matching corrections it proposes a rule. Nothing turns on until you approve it, and a working-method rule must first match expert results in shadow runs.</p>
+          <p className="section__sub">After three matching corrections it proposes a rule. Nothing turns on until you approve it.<Hint label="About working-method rules">A working-method rule must first match expert results in shadow runs.</Hint></p>
         </div>
         {props.status === "loading" && !props.data ? <Loading label="Loading rule proposals" /> : props.status === "error" && !props.data ? <ErrorState error={props.error} retry={props.reload} what="rule proposals" /> : (
           <>
@@ -208,10 +210,9 @@ export default function Memory() {
               <div className="rules">{pending.map((p) => <RuleRow key={p.id} p={p} onDone={() => { props.reload(); mem.reload(); }} />)}</div>
             )}
             {past.length > 0 && (
-              <details className="details-lite">
-                <summary>Rule history ({past.length})</summary>
+              <Details summary={`Rule history (${past.length})`} wide>
                 <div className="rules">{past.map((p) => <RuleRow key={p.id} p={p} onDone={() => undefined} />)}</div>
-              </details>
+              </Details>
             )}
           </>
         )}
@@ -235,7 +236,7 @@ function RuleRow({ p, onDone }: { p: RuleProposal; onDone: () => void }) {
       <div className="rule-row__head">
         <span className="rule-row__text">{p.rule}</span>
         <span className="pill">{p.kind === "procedure" ? "Working method" : "Preference"}</span>
-        <span className="pill"><b>v{p.version}</b>{p.status}</span>
+        {p.status !== "proposed" && <span className="pill"><b>v{p.version}</b>{p.status}</span>}
       </div>
       <p className="note">Seen in {p.evidence_count} of your corrections.{p.kind === "procedure" ? (p.shadow_match == null ? " Not yet tested against expert results." : ` ${Math.round(p.shadow_match * 100)}% of shadow runs matched expert results.`) : ""}</p>
       {err && <p className="field__error" role="alert">{err}</p>}

@@ -67,5 +67,16 @@ export const FALLBACK_LABEL: Record<FallbackKind, string> = {
   error: "the service reported a problem",
 };
 
+/**
+ * The one plain line a screen prints when it shows example data. The engine's own sentence (a status, an error, a flag name) is never printed
+ * in the page: it waits behind a Hint beside this line, for whoever wants it. Agents and HIT's Repeats screen use the same wording.
+ */
+export const EXAMPLE_LINE: Record<FallbackKind, string> = {
+  offline: "Showing example data: the engine is not answering yet.",
+  extension_off: "Showing example data: this feature is switched off in the engine.",
+  missing: "Showing example data: the engine does not have this yet.",
+  error: "Showing example data: the engine could not answer yet.",
+};
+
 /** Should the screen add a visible line under the badge? Offline and off are common and calm; an error must be read. */
 export const needsNote = (f: Fallback | null | undefined): boolean => !!f;

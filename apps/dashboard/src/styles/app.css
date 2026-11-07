@@ -226,7 +226,7 @@ button { cursor: pointer; }
 .ob { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 420px); gap: var(--space-9); align-items: start; min-height: calc(100vh - 160px); }
 .ob__main { display: grid; gap: var(--space-7); align-content: start; max-width: 640px; }
 .ob__top { display: grid; gap: var(--space-3); }
-.ob__step { font: 500 var(--text-xs)/1 var(--font-mono); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--muted); }
+.ob__step { font: 600 var(--text-sm)/1 var(--font-display); color: var(--muted); }
 .ob__q { animation: u-arrive var(--dur-arrive) var(--ease-out) both; display: grid; gap: var(--space-6); }
 .ob__q .question { font-size: clamp(2rem, 1.3rem + 2.8vw, 3.25rem); }
 .ob__options { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
@@ -376,7 +376,7 @@ button { cursor: pointer; }
 
 /* -- Evidence: sticky list of sections ------------------------------------------------------ */
 .ev-jump { position: sticky; top: 0; z-index: 15; display: flex; gap: var(--space-5); margin: 0 calc(-1 * var(--gutter-wide)); padding: var(--space-3) var(--gutter-wide); overflow-x: auto; white-space: nowrap; background: var(--bg); border-bottom: var(--hair) solid var(--line); }
-.ev-jump a { font: 600 var(--text-xs)/1.2 var(--font-mono); letter-spacing: 0.04em; color: var(--muted); text-decoration: none; padding: var(--space-1) 0; border-bottom: 2px solid transparent; }
+.ev-jump a { font: 600 var(--text-sm)/1.2 var(--font-display); letter-spacing: 0; text-transform: none; color: var(--muted); text-decoration: none; padding: var(--space-1) 0; border-bottom: 2px solid transparent; }
 .ev-jump a:hover { color: var(--fg); text-decoration: none; }
 .ev-jump a[aria-current="true"] { color: var(--fg); border-bottom-color: var(--accent); }
 .limits-fold > summary { display: flex; gap: var(--space-3); align-items: baseline; }
@@ -546,7 +546,7 @@ tr[data-gap="true"] td { color: var(--fg); }
 .chain__step[data-when="escalate"] { border-style: dashed; }
 .chain__step[data-when="fallback"] { border-style: dotted; }
 .chain__step + .chain__step::before { content: "\2192"; position: absolute; left: calc(-1 * var(--space-6)); top: 50%; width: var(--space-5); transform: translateY(-50%); text-align: center; color: var(--muted); font-size: var(--text-lg); }
-.chain__when { font: 500 var(--text-xs)/1.2 var(--font-mono); letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--muted); }
+.chain__when { font: 600 var(--text-xs)/1.2 var(--font-display); letter-spacing: 0; text-transform: none; color: var(--muted); }
 .chain__step b { font-weight: 600; }
 .chain__step code { overflow-wrap: anywhere; }
 .chain__sw { display: inline-block; width: 18px; height: 11px; border: 1.5px solid var(--fg); border-radius: 2px; vertical-align: -1px; margin-right: 6px; background: var(--panel); }
@@ -635,3 +635,15 @@ tr[data-gap="true"] td { color: var(--fg); }
 .notices__value { min-width: 2ch; text-align: right; font: 600 var(--text-lg)/1 var(--font-display); }
 .noticebar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); padding: var(--space-2) var(--gutter-wide); font-size: var(--text-sm); color: var(--fg); background: var(--sunk); border-bottom: var(--hair) solid var(--line); }
 .noticebar a { font-weight: 600; }
+.notices__group { display: grid; gap: var(--space-3); padding-top: var(--space-4); border-top: var(--hair) solid var(--line); }
+.notices__group > summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-4); }
+.notices__group[open] > summary { margin-bottom: var(--space-2); }
+.notices__count { font: 500 var(--text-xs)/1.4 var(--font-mono); }
+
+/* Ledger rows: the purpose as words, one muted line for where it came from and how big it was. */
+.ledger__purpose { font: 600 var(--text-sm)/1.35 var(--font-body); }
+.ledger__meta { margin: 0; font: 500 var(--text-xs)/1.5 var(--font-mono); overflow-wrap: anywhere; }
+
+/* The example-data line and, under it, the closed "Details" with the engine's own sentence. */
+.sourcenote { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-1); }
+.sourcenote .note { max-width: 70ch; }

@@ -1,14 +1,17 @@
+import { useState } from "react";
 import { plural, type OffloadItem } from "./model";
 
 /** Work done for the person. Counted and listed apart from the score, and said to be outside it. */
 export function Offloaded({ delegated, automation, minutes, items }: { delegated: number; automation: number; minutes: { delegated: number; automation: number }; items: OffloadItem[] }) {
   const none = delegated + automation === 0;
+  const [all, setAll] = useState(false);
+  const shown = all ? items : items.slice(0, 5);
   return (
     <section className="section gr-off" aria-labelledby="off-h">
       <div className="section__head">
         <h2 id="off-h" className="section__title">Work done for you</h2>
       </div>
-      <p className="section__sub">Runs you asked the agent to do, and automations that ran in the background or overnight. These never change your independence score, so handing work off cannot raise it or lower it.</p>
+      <p className="section__sub">Runs you asked for and overnight automations. They never change your independence score.</p>
       {none ? (
         <p className="note">Nothing has run for you yet.</p>
       ) : (
@@ -19,7 +22,7 @@ export function Offloaded({ delegated, automation, minutes, items }: { delegated
           </p>
           {items.length > 0 && (
             <ol className="gr-off__list">
-              {items.map((i) => (
+              {shown.map((i) => (
                 <li key={i.id} className="gr-off__item">
                   <span className="gr-off__when num">{i.when}</span>
                   <span className="gr-off__what">{i.streamWord}: {i.what}</span>
@@ -28,6 +31,7 @@ export function Offloaded({ delegated, automation, minutes, items }: { delegated
               ))}
             </ol>
           )}
+          {items.length > 5 && <button type="button" className="btn btn--quiet btn--sm" aria-expanded={all} onClick={() => setAll(!all)}>{all ? "Show fewer" : `Show all ${items.length}`}</button>}
           {items.length > 0 && items.length < delegated + automation && <p className="note">Showing the latest {plural(items.length, "run")}.</p>}
         </>
       )}

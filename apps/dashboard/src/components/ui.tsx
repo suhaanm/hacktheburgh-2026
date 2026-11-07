@@ -4,11 +4,11 @@ import { useId, useState, type ReactNode } from "react";
 import { Hint } from "./Hint";
 
 /** The one disclosure: "Why this?", "Details". Opens in place. */
-export function Details({ summary, children, defaultOpen = false, onToggle, className }: { summary: ReactNode; children: ReactNode; defaultOpen?: boolean; onToggle?: (open: boolean) => void; className?: string }) {
+export function Details({ summary, children, defaultOpen = false, onToggle, className, wide = false }: { summary: ReactNode; children: ReactNode; defaultOpen?: boolean; onToggle?: (open: boolean) => void; className?: string; wide?: boolean }) {
   return (
     <details className={className ? `details ${className}` : "details"} open={defaultOpen || undefined} onToggle={onToggle ? (e) => onToggle((e.currentTarget as HTMLDetailsElement).open) : undefined}>
       <summary>{summary}</summary>
-      <div className="details__body">{children}</div>
+      <div className={wide ? "details__body details__body--wide" : "details__body"}>{children}</div>
     </details>
   );
 }

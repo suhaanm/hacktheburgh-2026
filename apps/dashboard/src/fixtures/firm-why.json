@@ -1,0 +1,54 @@
+{
+ "data": {
+  "because": [
+   "Kind: risk signal.",
+   "A count or state with a fixed threshold."
+  ],
+  "family": {
+   "m": 22,
+   "method": "benjamini_hochberg",
+   "n_pass": 14,
+   "q": 0.1
+  },
+  "headline": "An approval has waited 72 hours.",
+  "id": "i_1adf226dca1a",
+  "limits": [
+   "These figures are for coaching and onboarding, not for evaluating individuals.",
+   "Comparisons are within the same tasks and need at least 5 people per group.",
+   "The data is synthetic until a real deployment says otherwise.",
+   "Insights are chosen by fixed rules, and worded from a fixed list of sentences."
+  ],
+  "parts": {
+   "actionability": 1.0,
+   "impact": 0.77687,
+   "novelty": 1.0,
+   "recency": 1.0,
+   "repeats": 0.0,
+   "score": 0.77686984
+  },
+  "position": 1,
+  "reason_code": "selected_top_score",
+  "reason_text": "Selected: it passed every check and scored among the highest.",
+  "sources": [
+   {
+    "label": "Firm risk feeds",
+    "n": 3,
+    "n_unit": "approvals",
+    "origin": "synthetic"
+   }
+  ],
+  "state": "selected"
+ },
+ "meta": {
+  "as_of": "2026-11-09T09:00:00Z",
+  "audience": "admin",
+  "badge": "synthetic firm",
+  "generated_at": "2026-11-09T09:00:00Z",
+  "interval_level": null,
+  "n": 0,
+  "n_unit": "people",
+  "note": "The reason is a fixed sentence, not model text.",
+  "origin": "synthetic",
+  "source": "firm"
+ }
+}

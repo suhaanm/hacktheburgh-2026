@@ -1,0 +1,178 @@
+/* ==========================================================================
+   Firm screens (Admin view) and the firm brief. Tokens only; no hex.
+   ========================================================================== */
+
+.firm { gap: var(--space-6); }
+.firm-admin { border-style: dashed; border-color: var(--line-strong); color: var(--fg); }
+
+/* -- The tab strip: links, because each view is its own address -------------------------------------- */
+.firm-tabs { gap: var(--space-5); margin-top: calc(-1 * var(--space-2)); }
+.firm-tabs .tab { display: inline-block; text-decoration: none; }
+.firm-tabs .tab:hover { text-decoration: none; }
+.firm-tabs .tab[aria-current="page"] { color: var(--fg); border-bottom-color: var(--accent); }
+.firm-tabs .tab:focus-visible { outline: var(--ring-w) solid var(--focus); outline-offset: var(--ring-offset); border-radius: var(--radius-1); }
+
+.firm-panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-5); }
+.firm-panel__head { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--space-2) var(--space-3); }
+.firm-summary { margin: 0; font-size: var(--text-md); color: var(--fg); max-width: var(--measure); }
+.firm .table-wrap { overflow-x: auto; max-width: 100%; }
+
+/* -- Overview: the insights ------------------------------------------------------------------------------ */
+.firm-insights { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.firm-insight .insight__stats { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); align-items: center; }
+.firm-insight__drill { grid-column: 1 / -1; display: grid; gap: var(--space-4); margin-top: var(--space-3); padding-top: var(--space-4); border-top: var(--hair) solid var(--line); }
+.drill { display: grid; gap: var(--space-4); min-width: 0; }
+.firm-insight__drill > .btn { justify-self: start; }
+.drill__table th[scope="row"] { font-weight: 500; max-width: 26ch; }
+.drill__more { display: grid; gap: var(--space-2); }
+.drill__chart { max-width: 640px; }
+.drill__state { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+.firm .table td, .firm .table th { padding-right: var(--space-4); }
+
+/* -- Roles: small multiples that share one scale ---------------------------------------------------------- */
+.rolegrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: var(--space-4); align-items: start; }
+.rolecard { display: grid; gap: var(--space-3); padding: var(--space-5); background: var(--panel); border: var(--hair) solid var(--line); border-radius: var(--radius-3); min-width: 0; }
+.rolecard__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.rolecard__name { font: 600 var(--text-xl)/1.2 var(--font-display); letter-spacing: var(--tracking-display); }
+.rolecard__lede { margin: 0; font-size: var(--text-sm); color: var(--muted); }
+.rolecard__gap { margin: 0; font-size: var(--text-sm); max-width: var(--measure-short); }
+.rolecard__verdict { display: inline-block; padding: 0 var(--space-2); font: 500 var(--text-xs)/1.7 var(--font-mono); border: var(--hair) solid var(--line-strong); border-radius: var(--radius-pill); color: var(--fg); white-space: nowrap; }
+.rolecard__verdict[data-verdict="cannot_tell"] { border-style: dashed; color: var(--muted); }
+.rolecard__habits { display: grid; gap: var(--space-2); padding-top: var(--space-3); border-top: var(--hair) solid var(--line); }
+.rolecard__habits h4 { margin: 0; display: flex; align-items: center; gap: var(--space-1); }
+.rolecard__habitlist { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); font-size: var(--text-sm); }
+.rolecard__habitlist li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-1) var(--space-2); align-items: baseline; padding-bottom: var(--space-2); border-bottom: var(--hair) solid var(--line); }
+.rolecard__habitlist li:last-child { border-bottom: 0; }
+.rolecard__habit { font-weight: 600; }
+.rolecard__habitlist .range { grid-column: 1 / -1; max-width: 260px; }
+.rolecard__noint { grid-column: 1 / -1; font: var(--text-xs)/1.3 var(--font-mono); color: var(--muted); }
+.rolecard__rates { grid-column: 1 / -1; color: var(--muted); font-size: var(--text-xs); }
+.rolecard__scale { margin: 0; font: var(--text-xs)/1.4 var(--font-mono); color: var(--muted); }
+.rolewrap { display: grid; gap: var(--space-4); }
+
+/* -- Chart shapes: interval plots and line-with-band ----------------------------------------------------- */
+.ip, .lb { min-width: 0; width: 100%; }
+.ip svg, .lb svg { display: block; overflow: visible; max-width: 100%; }
+.ip-label { font: 600 12px var(--font-body); fill: var(--fg); }
+.ip-value { fill: var(--muted); }
+.ip-row { --_c: var(--fg); }
+.ip-row[data-tone="expert"] { --_c: var(--expert); }
+.ip-row[data-tone="novice"] { --_c: var(--novice); }
+.ip-whisker { stroke: var(--_c); stroke-width: var(--hair-strong); }
+.ip-cap { stroke: var(--_c); stroke-width: var(--hair-strong); }
+.ip-mark { fill: var(--_c); stroke: var(--_c); stroke-width: 2; }
+.ip-mark[data-hollow="true"] { fill: var(--panel); }
+.ip-ref line { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 3; }
+.lb-band { fill: var(--novice-soft); stroke: var(--novice); stroke-width: 1; stroke-dasharray: 3 3; stroke-opacity: 0.7; }
+.lb-line { fill: none; stroke: var(--novice); stroke-width: 2; stroke-linejoin: round; }
+.lb-end { fill: var(--novice); stroke: var(--panel); stroke-width: 1.5; }
+.lb-target line { stroke: var(--muted); stroke-width: 1.25; stroke-dasharray: 6 4; }
+.lb-mark line { stroke: var(--accent); stroke-width: 1.5; }
+.lb-mark__ci { fill: var(--accent-soft); opacity: 0.7; }
+
+/* -- Onboarding curves --------------------------------------------------------------------------------------- */
+.onb-wrap { display: grid; gap: var(--space-4); }
+.onb__legend { align-items: center; }
+.onb-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: var(--space-4); align-items: start; }
+.onb { display: grid; gap: var(--space-3); padding: var(--space-4); background: var(--panel); border: var(--hair) solid var(--line); border-radius: var(--radius-3); min-width: 0; }
+.onb__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.onb__name { font: 600 var(--text-lg)/1.2 var(--font-display); letter-spacing: var(--tracking-display); }
+.onb__nums { margin: 0; display: grid; gap: var(--space-1); font-size: var(--text-sm); }
+.onb__nums > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 var(--space-3); }
+.onb__nums dt { color: var(--muted); }
+.onb__nums dd { margin: 0; font-variant-numeric: tabular-nums; text-align: right; }
+
+/* -- People ------------------------------------------------------------------------------------------------------- */
+.firm-people { display: grid; gap: var(--space-6); }
+.firm-people__bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-5); }
+.firm-people__sort, .firm-people__filter { display: inline-flex; align-items: center; gap: var(--space-2); }
+.firm-people__label { font: 500 var(--text-xs)/1.3 var(--font-mono); color: var(--muted); }
+.firm-people__filter .select { min-width: 14rem; }
+.firm-role { display: grid; gap: var(--space-3); }
+.firm-role__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+.firm-role__name { font: 600 var(--text-xl)/1.2 var(--font-display); letter-spacing: var(--tracking-display); }
+.firm-role__count { font: var(--text-xs)/1 var(--font-mono); color: var(--muted); }
+.firm-role__head .pill { margin-left: auto; }
+.firm-role__empty { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+.firm-band { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--space-3) var(--space-5); padding: var(--space-3) 0; border-top: var(--hair) solid var(--line); border-bottom: var(--hair) solid var(--line); }
+.firm-band > div { display: grid; gap: 2px; min-width: 0; }
+.firm-band dt { font: 600 var(--text-sm)/1.3 var(--font-display); color: var(--muted); }
+.firm-band dd { margin: 0; font: 500 var(--text-sm)/1.4 var(--font-mono); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.firm-band--none { margin: 0; font-size: var(--text-sm); color: var(--muted); padding: var(--space-3) 0; border-top: var(--hair) dashed var(--line-strong); border-bottom: var(--hair) dashed var(--line-strong); }
+.firm-band__slope { color: var(--muted); }
+.firm-table { min-width: 560px; }
+.firm-person { font-weight: 600; white-space: nowrap; }
+.firm-person__btn { display: inline-flex; align-items: center; gap: var(--space-2); padding: 2px 0; background: none; border: 0; color: var(--fg); font: inherit; font-weight: 600; cursor: pointer; }
+.firm-person__btn:focus-visible { outline: var(--ring-w) solid var(--focus); outline-offset: var(--ring-offset); border-radius: var(--radius-1); }
+.firm-person__chev { width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform var(--dur-fast) var(--ease-out); }
+.firm-person__chev[data-open="true"] { transform: rotate(45deg); }
+.firm-person__status { display: block; margin-left: calc(6px + var(--space-2)); font: 400 var(--text-xs)/1.3 var(--font-mono); color: var(--muted); }
+.firm-trend { display: inline-flex; align-items: center; gap: var(--space-1); white-space: nowrap; }
+.firm-trend.pill { border-color: var(--warn); color: var(--fg); }
+.firm-trend__glyph { display: inline-grid; place-items: center; width: 1.2em; font-weight: 700; }
+.firm-trend[data-trend="not_enough_data"], .firm-trend[data-trend="cannot_tell_yet"] { color: var(--muted); }
+.firm-ind { min-width: 8.5rem; }
+.firm-ind .range { margin-left: auto; width: 100%; max-width: 140px; }
+.firm-ind__ci { display: block; font: var(--text-xs)/1.3 var(--font-mono); color: var(--muted); }
+.firm-expand td { background: var(--sunk); padding: var(--space-3) var(--space-4); }
+.firm-skills { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); font-size: var(--text-sm); }
+.firm-skills li { display: grid; gap: 2px; }
+.firm-skills__label { font-weight: 600; }
+.firm-skills__nums { color: var(--muted); font-variant-numeric: tabular-nums; }
+.firm-skills__none { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+.firm-person__tenure { display: none; margin-left: calc(6px + var(--space-2)); font: 400 var(--text-xs)/1.3 var(--font-mono); color: var(--muted); }
+@media (max-width: 720px) {
+  .col-opt, .col-wide { display: none; }
+  .firm-person__tenure { display: block; }
+  .firm-table { min-width: 0; }
+  .firm-person { white-space: normal; }
+}
+
+/* -- Automation and risk --------------------------------------------------------------------------------------- */
+.firm-auto__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3) var(--space-5); }
+.risk { display: grid; gap: var(--space-4); max-width: 46rem; }
+.risk__none, .risk__status { margin: 0; font-size: var(--text-sm); color: var(--muted); }
+.risk__table { max-width: 32rem; }
+
+/* -- The firm brief: a preview on screen, one A4 page in print ------------------------------------------------- */
+.brief-doc { display: grid; gap: var(--space-4); }
+.brief-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-4); }
+.brief-bar__text { margin: 0; font-size: var(--text-sm); color: var(--muted); margin-right: auto; }
+.brief-page { display: grid; gap: var(--space-6); max-width: 794px; padding: var(--space-8); background: var(--panel); border: var(--hair) solid var(--line); border-radius: var(--radius-3); }
+.brief-page__head { display: grid; gap: var(--space-2); }
+.brief-page__title { font: 600 var(--text-3xl)/var(--lh-tight) var(--font-display); letter-spacing: var(--tracking-display); }
+.brief-page__sub, .brief-page__statement, .brief-sec__sub { margin: 0; font-size: var(--text-sm); color: var(--muted); }
+.brief-page__statement { color: var(--fg); font-weight: 600; }
+.brief-sec { display: grid; gap: var(--space-3); }
+.brief-sec__title { font: 600 var(--text-lg)/1.25 var(--font-display); letter-spacing: var(--tracking-display); padding-bottom: var(--space-1); border-bottom: var(--hair) solid var(--line-strong); }
+.brief-list { margin: 0; padding-left: var(--space-5); display: grid; gap: var(--space-2); }
+.brief-list__head { display: block; font-weight: 600; }
+.brief-list__meta { display: block; font: var(--text-xs)/1.4 var(--font-mono); color: var(--muted); }
+.brief-table th, .brief-table td { font-size: var(--text-sm); }
+.brief-limits { margin: 0; padding-left: var(--space-5); display: grid; gap: var(--space-1); font-size: var(--text-sm); }
+.brief-page__foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--muted); }
+.brief-page .onb { border-style: dashed; }
+@media (max-width: 640px) { .brief-page { padding: var(--space-5); } }
+
+@page { size: A4; margin: 14mm; }
+@media print {
+  /* A printed page is always light, whatever the screen theme: the tokens are reset here with named colours. */
+  :root:root:root {
+    --bg: white; --panel: white; --sunk: white; --fg: black; --muted: dimgray; --line: lightgray; --line-strong: gray; --control-line: gray;
+    --accent: black; --accent-soft: white; --expert: black; --novice: black; --novice-soft: whitesmoke; --good: black; --warn: black; --bad: black;
+  }
+  html, body { background: white !important; color: black !important; }
+  .app { display: block !important; }
+  .side, .topbar, .kill, .killbar, .noticebar, .toasts, .skip, .framenote, .firm-tabs, [data-noprint="true"] { display: none !important; }
+  .page { padding: 0 !important; max-width: none !important; gap: 0 !important; }
+  .page__head { display: none !important; }
+  .brief-page { max-width: none; padding: 0; border: 0; border-radius: 0; background: transparent; gap: 10mm; }
+  .brief-sec, .onb, .brief-table tr { break-inside: avoid; }
+  .onb-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4mm; }
+  .onb { padding: 2mm; border: 0.3mm solid gray; }
+  .details:not([open]) { display: none; }
+  .pill--origin { border-color: black; color: black; }
+  .lb-line, .lb-end { stroke: black; fill: none; }
+  .lb-end { fill: black; }
+  .lb-band { fill: whitesmoke; stroke: gray; }
+}

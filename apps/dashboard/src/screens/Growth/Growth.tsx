@@ -9,6 +9,8 @@ import { SkillRows } from "../../components/growth/SkillRows";
 import { Offloaded } from "../../components/growth/Offloaded";
 import { LedgerControls } from "../../components/growth/LedgerControls";
 import { About } from "../../components/growth/About";
+import { AboutData, Details } from "../../components/ui";
+import { Hint } from "../../components/Hint";
 import { EarlyHero, EmptyHero } from "../../components/growth/States";
 import { buildView, countsOf, ledgerFields, marksOf, normalizeGrowth, offloadItems, originSentence, type LedgerCounts } from "../../components/growth/model";
 import "../../components/growth/growth.css";
@@ -77,7 +79,7 @@ export default function Growth() {
               <span>Example learner</span>
               <span className="segmented">
                 {STORIES.map((s) => (
-                  <button key={s.id} type="button" aria-pressed={story === s.id} title={s.hint} onClick={() => { setStory(s.id); setSkill(null); }}>{s.label}</button>
+                  <button key={s.id} type="button" aria-pressed={story === s.id} onClick={() => { setStory(s.id); setSkill(null); }}>{s.label}</button>
                 ))}
               </span>
             </span>
@@ -100,15 +102,17 @@ export default function Growth() {
               </div>
               {view.focusName && <button type="button" className="btn btn--secondary btn--sm" onClick={() => focusSkill(null)}>Show all skills</button>}
             </div>
-            {view.recentLine && <p className="t-prose">{view.recentLine}</p>}
+            {view.recentLine && <Details summary="Read the latest point in words">{view.recentLine}</Details>}
             <figure className="chart chart--wide">
               <GrowthChart view={view} />
-              <figcaption className="chart__foot">
-                <span>n = <b>{n.toLocaleString("en-GB")} {n === 1 ? "occurrence" : "occurrences"}</b></span>
-                {g.meta?.split && <span>window: <b>{g.meta.split}</b></span>}
-                <span>intervals: <b>{levelPct}%</b></span>
+              <figcaption className="chart__foot chart__foot--about">
                 <OriginBadge meta={g.meta} always />
-                <span className="chart__note">{originSentence(view.originDetail, g.meta?.origin)}{g.meta?.note ? ` ${g.meta.note}` : ""}</span>
+                <AboutData rows={[
+                  ["n", `${n.toLocaleString("en-GB")} ${n === 1 ? "occurrence" : "occurrences"}`],
+                  ...(g.meta?.split ? ([["window", g.meta.split]] as [string, string][]) : []),
+                  ["intervals", `${levelPct}%`],
+                  ["origin", `${originSentence(view.originDetail, g.meta?.origin)}${g.meta?.note ? ` ${g.meta.note}` : ""}`],
+                ]} />
               </figcaption>
             </figure>
             <Summary view={view} n={n} />
@@ -121,7 +125,7 @@ export default function Growth() {
         <section className="section" aria-labelledby="comp-h">
           <div className="section__head">
             <h2 id="comp-h" className="section__title">What has changed</h2>
-            <p className="section__sub">Three plain measures, each with its own interval. Read these before any single number.</p>
+            <p className="section__sub">Three plain measures. Read these before any single number.</p>
           </div>
           <Cards cards={view.cards} levelPct={levelPct} />
         </section>
@@ -130,8 +134,8 @@ export default function Growth() {
       {view.skills.length > 0 && (
         <section className="section" aria-labelledby="skills-h">
           <div className="section__head">
-            <h2 id="skills-h" className="section__title">By skill</h2>
-            <p className="section__sub">{view.claim} Press a row to show that skill on the curve.</p>
+            <h2 id="skills-h" className="section__title">By skill<Hint label="About this list">Press a row to show that skill on the curve.</Hint></h2>
+            <p className="section__sub">{view.claim}</p>
           </div>
           <SkillRows rows={view.skills} focusId={view.focusId} onFocus={focusSkill} levelPct={levelPct} needed={view.needed} />
         </section>

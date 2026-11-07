@@ -88,3 +88,15 @@ export function wrapLabel(label: string, max = 34): string[] {
   }
   return best[1] ? best : [label.slice(0, max - 1) + "…"];
 }
+
+/**
+ * A suggestion sentence with its counts taken out, so the counts can sit behind a Hint: "22% of your commits changed more than 250 lines
+ * (28 of 127); the reference experts' share is 3%." becomes the sentence without "(28 of 127)", and the counts with what they refer to.
+ */
+export function splitCounts(sentence: string): { text: string; counts: string | null } {
+  const m = /\s*\((\d[\d,]* of \d[\d,]*)\)/.exec(sentence);
+  if (!m) return { text: sentence, counts: null };
+  const text = sentence.replace(m[0], "").replace(/;\s*the reference experts' share is (\d+%)\.?$/, ".").trim();
+  const expert = /the reference experts' share is (\d+%)/.exec(sentence);
+  return { text, counts: `${m[1]} commits${expert ? `; the reference experts' share is ${expert[1]}` : ""}.` };
+}

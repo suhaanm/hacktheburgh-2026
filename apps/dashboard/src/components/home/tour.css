@@ -1,0 +1,30 @@
+/* Guided tour: one small card and one thin ring. No dimming, no blur, nothing loops. Durations come from the motion tokens, which reduced motion zeroes.
+   The card sits above the stop button on desktop (the button is 40 px tall, 16 px from the corner), and is a bottom sheet on phones. */
+.tour {
+  position: fixed; z-index: var(--z-toast); right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + 40px + 12px + env(safe-area-inset-bottom, 0px));
+  width: min(360px, calc(100vw - 32px)); display: grid; gap: var(--space-3); padding: var(--space-5);
+  background: var(--panel); border: var(--hair) solid var(--line-strong); border-radius: var(--radius-3); box-shadow: var(--elev-2);
+  animation: u-arrive var(--dur-arrive) var(--ease-out) both;
+}
+.tour .progress-line { margin: calc(-1 * var(--space-5)) calc(-1 * var(--space-5)) var(--space-1); border-radius: var(--radius-3) var(--radius-3) 0 0; height: 3px; }
+.tour .progress-line > i { background: var(--accent); }
+.tour__title { margin: 0; font: 600 var(--text-xl)/1.2 var(--font-display); letter-spacing: var(--tracking-display); text-wrap: balance; }
+.tour__text { margin: 0; font-size: var(--text-md); line-height: 1.45; color: var(--fg); max-width: 38ch; }
+.tour__actions { display: flex; align-items: center; gap: var(--space-2); padding-top: var(--space-2); }
+.tour__push { flex: 1; }
+
+/* The ring around the thing being shown: a thin accent line with a hair of background around it so it reads on both themes. */
+.tour__ring {
+  position: fixed; z-index: var(--z-overlay); pointer-events: none; box-sizing: border-box;
+  border: var(--ring-w) solid var(--accent); border-radius: var(--radius-3); box-shadow: 0 0 0 2px var(--bg);
+  transition: left var(--dur-land) var(--ease-land), top var(--dur-land) var(--ease-land), width var(--dur-land) var(--ease-land), height var(--dur-land) var(--ease-land);
+}
+
+@media (max-width: 880px) {
+  .tour {
+    left: 0; right: 0; bottom: 0; width: auto; padding: var(--space-5) var(--gutter-wide) calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+    border-radius: var(--radius-3) var(--radius-3) 0 0; border-bottom: 0;
+  }
+  .tour .progress-line { margin-left: calc(-1 * var(--gutter-wide)); margin-right: calc(-1 * var(--gutter-wide)); }
+  .tour__text { max-width: none; }
+}

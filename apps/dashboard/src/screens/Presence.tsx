@@ -3,6 +3,7 @@ import { ApiError, api } from "../api";
 import { useLoad } from "../hooks";
 import { ChartFoot, ErrorState, Loading, OriginBadge, PageHead, Range } from "../components/common";
 import { useToast } from "../components/Toasts";
+import { Hint } from "../components/Hint";
 import { Heatmap, HeatLegend, cellReadout, type Cursor } from "../components/Heatmap";
 import { DayBand } from "../components/DayBand";
 import { Forecast } from "../components/Forecast";
@@ -28,7 +29,7 @@ export default function Presence() {
       <PageHead
         eyebrow="Presence"
         title={title}
-        lede="Each cell is a quarter hour. Darker means you are more likely to be there. The gaps are the free hours the agent could use, if you let it."
+        lede="Each cell is a quarter hour. Darker means you are more likely to be there."
         aside={<OriginBadge meta={p.meta} />}
       />
 
@@ -38,14 +39,14 @@ export default function Presence() {
           <Heatmap data={data} cursor={cursor} onCursor={setCursor} day={day} onDay={setDay} />
           <p className="note" aria-live="polite" style={{ minHeight: "3em" }}>{cellReadout(data, cursor)}</p>
           <HeatLegend />
-          <ChartFoot meta={p.meta} />
+          <ChartFoot variant="about" meta={p.meta} />
         </div>
       </section>
 
       <section className="section" aria-labelledby="day-h">
         <div className="section__head">
           <h2 id="day-h" className="section__title">{dowName(day)}, with its interval</h2>
-          <p className="section__sub">The line is the estimate. The band is the 95% interval. Pick another day with the labels on the map.</p>
+          <p className="section__sub">Line: estimate. Band: 95% interval.</p>
         </div>
         <DayBand data={data} day={day} />
       </section>
@@ -69,11 +70,9 @@ function IdleStat({ data }: { data: PresenceData }) {
     <section className="section" aria-labelledby="idle-h">
       <h2 id="idle-h" className="section__title">Free hours</h2>
       <div className="stat">
-        <span className="stat__label">Idle capacity</span>
+        <span className="stat__label">Idle capacity<Hint label="About idle capacity">Hours a week the machine is likely free, outside your quiet hours. 95% interval {i.lo.toFixed(1)} to {i.hi.toFixed(1)} h; the bar runs 0 to {Math.ceil(i.hi * 1.15)} h.</Hint></span>
         <span className="stat__value tabular">{i.mean.toFixed(1)}<span className="stat__unit">hours a week</span></span>
-        <span className="stat__interval">95% interval [{i.lo.toFixed(1)}, {i.hi.toFixed(1)}] h</span>
         <Range lo={i.lo} hi={i.hi} pt={i.mean} min={0} max={Math.ceil(i.hi * 1.15)} />
-        <span className="stat__meta">Hours a week the machine is likely free, outside your quiet hours. The bar runs from 0 to {Math.ceil(i.hi * 1.15)} h.</span>
       </div>
     </section>
   );
@@ -89,7 +88,7 @@ function ForecastSection({ data, meta }: { data: PresenceData; meta: ReturnType<
       <div className="section__head">
         <h2 id="fc-h" className="section__title">Will the window last?</h2>
       </div>
-      <p className="section__sub">A background run starts only when the chance that you stay away for its whole length is above {Math.round(thr * 100)}%. Today that allows runs up to about {best} minutes.</p>
+      <p className="section__sub">A run starts only if the chance you stay away beats {Math.round(thr * 100)}%. Today: up to about {best} min.</p>
       <div className="chart">
         <Forecast data={data} d={d} />
         <div className="scrub">
@@ -101,7 +100,7 @@ function ForecastSection({ data, meta }: { data: PresenceData; meta: ReturnType<
             <b>{res.go ? "Go." : "Wait."}</b> A {d}-minute run has a {Math.round(res.survival * 100)}% chance of finishing before you are back. The threshold is {Math.round(thr * 100)}%.
           </p>
         </div>
-        <ChartFoot meta={meta} extra={<span>band: 95% interval</span>} />
+        <ChartFoot variant="about" meta={meta} extra={<span>band: 95% interval</span>} />
       </div>
     </section>
   );
@@ -136,7 +135,7 @@ function QuietEditor({ quiet, onSaved }: { quiet: QuietHours; onSaved: () => voi
   return (
     <section className="section" aria-labelledby="qh-h">
       <h2 id="qh-h" className="section__title">Quiet hours</h2>
-      <p className="section__sub">Inside these hours nothing starts in the background, even if you are away. Running while you are away is a separate choice for each routine, and it is off until you turn it on.</p>
+      <p className="section__sub">Nothing starts in the background inside these hours.<Hint label="About running while away">Running while you are away is a separate choice for each routine, and it is off until you turn it on.</Hint></p>
       <div className="stack">
         <div className="time-pair">
           <div className="field">

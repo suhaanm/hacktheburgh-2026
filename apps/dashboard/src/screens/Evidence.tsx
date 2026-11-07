@@ -8,6 +8,7 @@ import { Facts } from "../components/Facts";
 import { Reliability, RiskCoverage, type RcPoint, type RelPoint } from "../components/EvidenceCharts";
 import { EvidenceMap, OtherSections, PrivacyEvidence, useHashOpen } from "../components/EvidenceMap";
 import { LiveRuns } from "../components/LiveRuns";
+import { Details } from "../components/ui";
 import { mapRows, otherSections } from "../lib/evidence";
 import { fmtInterval, fmtPct, fmtPctInterval, signed } from "../lib/format";
 import type { AnalyticMeta, EvalReport, Interval, Limitation } from "../types";
@@ -39,10 +40,9 @@ function Caveats({ s }: { s: Sec }) {
   const list = arr<unknown>(s.caveats).filter((c): c is string => typeof c === "string");
   if (!list.length) return null;
   return (
-    <details className="details-lite">
-      <summary>Caveats from the engine ({list.length})</summary>
+    <Details summary={`Caveats from the engine (${list.length})`}>
       <ul className="plain-list">{list.map((c) => <li key={c} className="ev-note">{c}</li>)}</ul>
-    </details>
+    </Details>
   );
 }
 
@@ -106,7 +106,7 @@ export default function Evidence() {
       <PageHead
         eyebrow={`Evidence · generated ${new Date(rep.generated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}${rep.mock ? " · mock mode" : ""}`}
         title="What we can show, and what we cannot"
-        lede={<>{anySynthetic ? "Most numbers here come from synthetic apprentices and personas, and each one says so. " : ""}{studyRan ? `The live study has n = ${study!.meta!.n}. ` : "The live study has not run yet, so no human results are shown. "}Every chart prints its n, its split and its 95% interval. <a href="#limits" onClick={go("limits")}>{limits.length} limits are listed at the end.</a></>}
+        lede={<>{anySynthetic ? "Most numbers come from synthetic apprentices and personas, and each says so. " : ""}{studyRan ? `The live study has n = ${study!.meta!.n}. ` : "The live study has not run yet. "}<a href="#limits" onClick={go("limits")}>{limits.length} limits are listed at the end.</a></>}
       />
       <EvidenceMap rows={rows} onGo={go} />
       <JumpBar onGo={go} />
@@ -610,7 +610,7 @@ function Limits({ items }: { items: Limitation[] }) {
       {rows.map((l) => (
         <li key={l.id} className="limit">
           <span className="limit__id">{l.id.length > 6 ? "·" : l.id}</span>
-          <span className="limit__text">{l.text}{srcOf(l.source) && <span className="limit__src" title={l.source}> From: {srcOf(l.source)}</span>}</span>
+          <span className="limit__text">{l.text}{srcOf(l.source) && <span className="limit__src"> From: {srcOf(l.source)}</span>}</span>
           <span className="sev" data-sev={l.severity}>{l.severity}</span>
         </li>
       ))}
@@ -621,7 +621,7 @@ function Limits({ items }: { items: Limitation[] }) {
       <div className="stack" style={{ gap: "var(--space-2)" }}>
         <p className="t-label">Limitations register · {items.length}</p>
         <h2 className="ev-claim" id="limits-h">What this does not show</h2>
-        <p className="ev-note">Kept here, in the product, on purpose. Every limit the build agents raised is listed. The serious ones are open; the medium and low ones are one click away.</p>
+        <p className="ev-note">Every limit the build raised is listed. The serious ones are open; the rest are one click away.</p>
       </div>
       {items.length === 0 ? <EmptyState title="No limitations listed" body="The report has no limitations register. That is itself a problem: every report must list its limits." /> : (
         <div className="stack" style={{ gap: "var(--space-6)" }}>
@@ -634,10 +634,9 @@ function Limits({ items }: { items: Limitation[] }) {
                 {list(rows)}
               </div>
             ) : (
-              <details key={sev} className="details-lite limits-fold">
-                <summary><span className="t-label">{name} ({rows.length})</span> <span className="u-muted">show</span></summary>
+              <Details key={sev} className="limits-fold" summary={<><span className="t-label">{name} ({rows.length})</span> <span className="u-muted">show</span></>}>
                 {list(rows)}
-              </details>
+              </Details>
             );
           })}
         </div>

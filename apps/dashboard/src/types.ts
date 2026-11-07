@@ -652,14 +652,25 @@ export interface AttentionSettings {
 export interface AttentionDigest {
   kind: string;
   needs_you?: number;
-  needs_you_items?: { type: string; count: number }[];
+  /** `id` is the first item's id and `ids` up to five: GET /attention/why?item=<id> explains each. */
+  needs_you_items?: { type: string; count: number; id?: string; ids?: string[] }[];
   ran?: number;
   can_ignore?: number;
   /** Fixed sentences, at most seven. */
   lines: string[];
   counts?: Record<string, number>;
-  /** Counts keyed "shown:toast", "held:held_typing", "dropped:dropped_flow". */
+  /** Counters keyed "shown:toast", "held:held_typing", "dropped:dropped_flow". Older engines send only these. */
   today?: Record<string, number>;
+  /** Each count with the engine's own fixed sentence saying why. */
+  today_detail?: { state: "shown" | "passive" | "dropped" | "held" | string; code: string; n: number; reason_text: string }[];
+  budget?: { used: number; per_day: number };
+}
+export interface AttentionWhy {
+  id: string; type: string; state: string; channel?: string; deliver_at?: string; reason_code?: string;
+  /** A fixed line such as "Held because you were typing. Shown at your next pause." */
+  reason_text: string;
+  mode?: string; learned_drop?: number; count?: number;
+  transitions: { t: number; state: string; reason_code: string; reason_text: string }[];
   budget?: { used: number; per_day: number };
 }
 export interface AttentionBadges { needs_you: number; waiting: number; marker: "none" | "needs_you" | "stopped" | string; stopped: boolean }

@@ -1,0 +1,405 @@
+{
+ "data": {
+  "as_of": "2026-11-09",
+  "badge": "synthetic firm",
+  "coverage": {
+   "by_status": {
+    "no_data": 1,
+    "ok": 57,
+    "onboarding": 1,
+    "stale": 1
+   },
+   "enough_data": 57,
+   "min_occurrences": 20,
+   "roles": [
+    {
+     "enough_data": 29,
+     "name": "Benefits processor",
+     "role": "benefits-processor",
+     "users": 30
+    },
+    {
+     "enough_data": 16,
+     "name": "Data analyst",
+     "role": "data-analyst",
+     "users": 18
+    },
+    {
+     "enough_data": 12,
+     "name": "Programmer",
+     "role": "programmer",
+     "users": 12
+    }
+   ],
+   "share_enough": 0.95,
+   "users": 60
+  },
+  "family": {
+   "m": 22,
+   "method": "benjamini_hochberg",
+   "n_pass": 14,
+   "q": 0.1
+  },
+  "firm": {
+   "label": "synthetic firm",
+   "roles": 3,
+   "users": 60
+  },
+  "nothing_stands_out": false,
+  "risk": {
+   "approval_backlog_age_h": {
+    "max": 72.0,
+    "median": 30.0
+   },
+   "injection_pauses_30d": 2,
+   "kill_events_30d": 1,
+   "open_approvals": 3
+  },
+  "role_comparison": [
+   {
+    "enough": true,
+    "gap": {
+     "ci": [
+      13.2,
+      17.52
+     ],
+     "unit": "seconds",
+     "value": 15.27
+    },
+    "n_expert": 7,
+    "n_junior": 22,
+    "name": "Benefits processor",
+    "people": 30,
+    "reason": null,
+    "role": "benefits-processor",
+    "trend": {
+     "class": "improving",
+     "label": "Improving"
+    }
+   },
+   {
+    "enough": true,
+    "gap": {
+     "ci": [
+      18.27,
+      20.18
+     ],
+     "unit": "seconds",
+     "value": 19.27
+    },
+    "n_expert": 5,
+    "n_junior": 11,
+    "name": "Data analyst",
+    "people": 18,
+    "reason": null,
+    "role": "data-analyst",
+    "trend": {
+     "class": "improving",
+     "label": "Improving"
+    }
+   },
+   {
+    "enough": false,
+    "gap": null,
+    "n_expert": 3,
+    "n_junior": 9,
+    "name": "Programmer",
+    "people": 12,
+    "reason": "no_expert_reference",
+    "role": "programmer",
+    "trend": {
+     "class": "improving",
+     "label": "Improving"
+    }
+   }
+  ],
+  "statement": "For coaching and onboarding, not for evaluating individuals.",
+  "suppressed": {
+   "by_reason": {
+    "below_effect_floor": 12,
+    "group_too_small": 3,
+    "interval_spans_zero": 1,
+    "no_expert_reference": 1,
+    "over_cap": 5,
+    "same_kind_lower_score": 1
+   },
+   "count": 23
+  },
+  "top": [
+   {
+    "a11y_label": "Worth a look: An approval has waited 72 hours.",
+    "action": {
+     "id": "open_queue",
+     "label": "Open the queue",
+     "to": "queue"
+    },
+    "badge": "synthetic firm",
+    "drill": "i_1adf226dca1a",
+    "effect": {
+     "ci": null,
+     "label": "Count or hours",
+     "unit": "hours",
+     "value": 72.0
+    },
+    "glyph": "alert",
+    "headline": "An approval has waited 72 hours.",
+    "id": "i_1adf226dca1a",
+    "kind": "risk_signal",
+    "n": 3,
+    "n_unit": "approvals",
+    "origin": "synthetic",
+    "polarity": "attention",
+    "polarity_label": "Worth a look",
+    "position": 1,
+    "role": "all",
+    "source": "Firm risk feeds",
+    "split": {},
+    "statement": "For coaching and onboarding, not for evaluating individuals.",
+    "text": "An approval has waited 72 hours. 3 approvals are open. Source: Firm risk feeds, synthetic firm data. For coaching and onboarding, not for evaluating individuals."
+   },
+   {
+    "a11y_label": "Going well: Approved routines handled about 10 hours of work in four weeks.",
+    "action": {
+     "id": "open_routines",
+     "label": "Open Routines",
+     "to": "routines"
+    },
+    "badge": "synthetic firm",
+    "drill": "i_afa43090701c",
+    "effect": {
+     "ci": null,
+     "label": "Hours of work handled",
+     "unit": "hours",
+     "value": 10.45
+    },
+    "glyph": "bolt",
+    "headline": "Approved routines handled about 10 hours of work in four weeks.",
+    "id": "i_afa43090701c",
+    "kind": "automation_value",
+    "n": 61,
+    "n_unit": "runs",
+    "origin": "synthetic",
+    "polarity": "positive",
+    "polarity_label": "Going well",
+    "position": 2,
+    "role": "all",
+    "source": "Firm routines",
+    "split": {
+     "approved_routines": 6,
+     "people": 6,
+     "shadow_lower": 0.9581,
+     "shadow_matches": 203,
+     "shadow_runs": 206
+    },
+    "statement": "For coaching and onboarding, not for evaluating individuals.",
+    "text": "Approved routines handled about 10 hours of work in four weeks. That is 6 routines and 61 runs; shadow mode matched 203 of 206. Source: Firm routines, synthetic firm data. For coaching and onboarding, not for evaluating individuals."
+   },
+   {
+    "a11y_label": "Worth a look: Runs paused after a page tried to instruct them: 1.",
+    "action": {
+     "id": "open_queue",
+     "label": "Open the queue",
+     "to": "queue"
+    },
+    "badge": "synthetic firm",
+    "drill": "i_4edfcbf0c8bc",
+    "effect": {
+     "ci": null,
+     "label": "Count or hours",
+     "unit": "count",
+     "value": 1.0
+    },
+    "glyph": "alert",
+    "headline": "Runs paused after a page tried to instruct them: 1.",
+    "id": "i_4edfcbf0c8bc",
+    "kind": "risk_signal",
+    "n": 1,
+    "n_unit": "events",
+    "origin": "synthetic",
+    "polarity": "attention",
+    "polarity_label": "Worth a look",
+    "position": 3,
+    "role": "all",
+    "source": "Firm risk feeds",
+    "split": {},
+    "statement": "For coaching and onboarding, not for evaluating individuals.",
+    "text": "Runs paused after a page tried to instruct them: 1. That was in the last 7 days. Nothing was changed. Source: Firm risk feeds, synthetic firm data. For coaching and onboarding, not for evaluating individuals."
+   },
+   {
+    "a11y_label": "Worth a look: Benefits processor: juniors take about 15 seconds longer per case than experts.",
+    "action": {
+     "id": "open_roles",
+     "label": "Open role comparison",
+     "query": "roles",
+     "to": "firm"
+    },
+    "badge": "synthetic firm",
+    "drill": "i_0aa24caf8d91",
+    "effect": {
+     "ci": [
+      13.2,
+      17.52
+     ],
+     "label": "Seconds per case beyond the experts",
+     "unit": "seconds",
+     "value": 15.27
+    },
+    "glyph": "layers",
+    "headline": "Benefits processor: juniors take about 15 seconds longer per case than experts.",
+    "id": "i_0aa24caf8d91",
+    "kind": "role_gap",
+    "n": 29,
+    "n_unit": "people",
+    "origin": "synthetic",
+    "polarity": "attention",
+    "polarity_label": "Worth a look",
+    "position": 4,
+    "role": "benefits-processor",
+    "source": "Firm assist ledgers",
+    "split": {
+     "experts": 7,
+     "juniors": 22,
+     "standard": "expert skill mix, within skill",
+     "top_habits": [
+      "check-the-cliff",
+      "reconcile-before-noting"
+     ]
+    },
+    "statement": "For coaching and onboarding, not for evaluating individuals.",
+    "text": "Benefits processor: juniors take about 15 seconds longer per case than experts. That is within the same tasks. The cliff check and reconciling before the note explain most of it. Source: Firm assist ledgers, synthetic firm data. For coaching and onboarding, not for evaluating individuals."
+   },
+   {
+    "a11y_label": "Worth a look: Data analyst: juniors take about 20 seconds longer per case than experts.",
+    "action": {
+     "id": "open_roles",
+     "label": "Open role comparison",
+     "query": "roles",
+     "to": "firm"
+    },
+    "badge": "synthetic firm",
+    "drill": "i_eaf2d8ab87bc",
+    "effect": {
+     "ci": [
+      18.27,
+      20.18
+     ],
+     "label": "Seconds per case beyond the experts",
+     "unit": "seconds",
+     "value": 19.27
+    },
+    "glyph": "layers",
+    "headline": "Data analyst: juniors take about 20 seconds longer per case than experts.",
+    "id": "i_eaf2d8ab87bc",
+    "kind": "role_gap",
+    "n": 16,
+    "n_unit": "people",
+    "origin": "synthetic",
+    "polarity": "attention",
+    "polarity_label": "Worth a look",
+    "position": 5,
+    "role": "data-analyst",
+    "source": "Firm assist ledgers",
+    "split": {
+     "experts": 5,
+     "juniors": 11,
+     "standard": "expert skill mix, within skill",
+     "top_habits": [
+      "reconcile-to-control",
+      "compare-to-last-period"
+     ]
+    },
+    "statement": "For coaching and onboarding, not for evaluating individuals.",
+    "text": "Data analyst: juniors take about 20 seconds longer per case than experts. That is within the same tasks. Reconciling with the control figure and comparing with last period explain most of it. Source: Firm assist ledgers, synthetic firm data. For coaching and onboarding, not for evaluating individuals."
+   },
+   {
+    "a11y_label": "Going well: Benefits processor: juniors need less help than six weeks ago.",
+    "action": {
+     "id": "open_firm",
+     "label": "Open the firm view",
+     "to": "firm"
+    },
+    "badge": "synthetic firm",
+    "drill": "i_5c0e723ef8f7",
+    "effect": {
+     "ci": [
+      0.0686,
+      0.2115
+     ],
+     "label": "Change in independence",
+     "unit": "share",
+     "value": 0.14
+    },
+    "glyph": "trend_up",
+    "headline": "Benefits processor: juniors need less help than six weeks ago.",
+    "id": "i_5c0e723ef8f7",
+    "kind": "cohort_trend",
+    "n": 21,
+    "n_unit": "people",
+    "origin": "synthetic",
+    "polarity": "positive",
+    "polarity_label": "Going well",
+    "position": 6,
+    "role": "benefits-processor",
+    "source": "Firm assist ledgers",
+    "split": {
+     "raw_pooled_change": 0.1109,
+     "standard": "within person, first-window skill mix",
+     "windows": "3 weeks, 6 weeks apart"
+    },
+    "statement": "For coaching and onboarding, not for evaluating individuals.",
+    "text": "Benefits processor: juniors need less help than six weeks ago. Independence is up about 14 points, compared within each person on the same tasks. Source: Firm assist ledgers, synthetic firm data. For coaching and onboarding, not for evaluating individuals."
+   },
+   {
+    "a11y_label": "Going well: Programmer: juniors need less help than six weeks ago.",
+    "action": {
+     "id": "open_firm",
+     "label": "Open the firm view",
+     "to": "firm"
+    },
+    "badge": "synthetic firm",
+    "drill": "i_817adda45c27",
+    "effect": {
+     "ci": [
+      0.0628,
+      0.2546
+     ],
+     "label": "Change in independence",
+     "unit": "share",
+     "value": 0.1587
+    },
+    "glyph": "trend_up",
+    "headline": "Programmer: juniors need less help than six weeks ago.",
+    "id": "i_817adda45c27",
+    "kind": "cohort_trend",
+    "n": 8,
+    "n_unit": "people",
+    "origin": "synthetic",
+    "polarity": "positive",
+    "polarity_label": "Going well",
+    "position": 7,
+    "role": "programmer",
+    "source": "Firm assist ledgers",
+    "split": {
+     "raw_pooled_change": 0.1476,
+     "standard": "within person, first-window skill mix",
+     "windows": "3 weeks, 6 weeks apart"
+    },
+    "statement": "For coaching and onboarding, not for evaluating individuals.",
+    "text": "Programmer: juniors need less help than six weeks ago. Independence is up about 16 points, compared within each person on the same tasks. Source: Firm assist ledgers, synthetic firm data. For coaching and onboarding, not for evaluating individuals."
+   }
+  ],
+  "week": "2026-W46"
+ },
+ "meta": {
+  "as_of": "2026-11-09T09:00:00Z",
+  "audience": "admin",
+  "badge": "synthetic firm",
+  "generated_at": "2026-11-09T09:00:00Z",
+  "interval_level": 0.95,
+  "n": 60,
+  "n_unit": "people",
+  "note": "For coaching and onboarding, not for evaluating individuals. Groups under 5 people are not compared.",
+  "origin": "synthetic",
+  "source": "firm"
+ }
+}

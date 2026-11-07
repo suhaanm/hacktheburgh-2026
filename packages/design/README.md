@@ -19,6 +19,22 @@ Every new component follows these ten. Break one only with a reason written in `
 
 Empty, loading and error wording: say what happened, then what the person can do, then what was not touched ("Nothing leaves this laptop", "Your memory file is untouched"). No blame, no "invalid", no "oops". Errors say how to fix it. Loading says what is being read and roughly how long.
 
+## Word budgets (what the audit measured against)
+
+| Thing | Budget |
+|---|---|
+| Page title | at most 10 words, two lines at 1440 |
+| Helper line under a title (lede) | one line, about 90 characters; none on a worker screen if the title says it |
+| Section subtitle | one line, about 90 characters |
+| Card or row sentence | two lines at 65 characters (about 130 characters) |
+| Hint | one or two sentences, under about 160 characters |
+| Disclosure body | five lines of prose, or a list of at most 7 items |
+| Button label | four words; a pill three |
+| Tab or segmented label | two words |
+| Default view of a worker screen | about 400 words of text, not counting figures; admin screens about 700; Evidence is exempt and keeps everything printed |
+
+Measured on the demo fixtures at 1440 after the 7 Nov audit: Today 62 words, Presence 232, Memory 308, Routines 464, Growth 812, Genome 642 (Explain panel included). Anything over its budget goes into a Details or a Hint, or it is cut.
+
 ## Which pattern for detail?
 
 | Detail is | Use | Why |

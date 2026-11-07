@@ -14,9 +14,9 @@ export function SkillRows({ rows, focusId, onFocus, levelPct, needed }: { rows: 
               <button type="button" className="gr-skill" aria-pressed={on} onClick={() => onFocus(on ? null : r.id)} aria-label={`${r.label}. ${on ? "Showing on the curve. Press to show everything." : "Press to show this skill on the curve."}`}>
                 <span className="gr-skill__name">{r.label}</span>
                 <span className="gr-skill__tags">
-                  {r.level != null && <span className="pill gr-lvl" title={`Help level L${r.level}: ${LEVEL_NAME[r.level]}`}>help L{r.level} {LEVEL_NAME[r.level]}</span>}
+                  {r.level != null && <span className="pill gr-lvl">help L{r.level} {LEVEL_NAME[r.level]}</span>}
                   {r.retrievalDue && (
-                    <span className="pill gr-due" title="Practice due: next time this comes up, no cue is shown first. It only checks afterwards.">
+                    <span className="pill gr-due">
                       <span className="gr-due__ring" aria-hidden="true" />practice due
                     </span>
                   )}
@@ -47,7 +47,8 @@ export function SkillRows({ rows, focusId, onFocus, levelPct, needed }: { rows: 
         <li className="legend__item"><i className="gr-seg gr-seg--unaided gr-sw" />Finished with no cue accepted</li>
         <li className="legend__item"><i className="gr-seg gr-seg--assisted gr-sw" />Needed a cue</li>
         <li className="legend__item"><i className="gr-seg gr-seg--other gr-sw" />Error or stopped</li>
-        <li className="legend__item">Time after a cue is the median seconds until progress, with its {levelPct}% interval.</li>
+        <li className="legend__item">Practice due: the next cue is held back and only checks afterwards.</li>
+        <li className="legend__item">After a cue: median seconds until progress, {levelPct}% interval.</li>
       </ul>
     </>
   );

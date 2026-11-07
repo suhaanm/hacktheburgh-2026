@@ -3,10 +3,10 @@ import { scaleSqrt } from "d3-scale";
 import type { WorkGraph, WorkNode, WorkNodeType } from "../types";
 
 export const NODE_COLOUR: Record<WorkNodeType, string> = {
-  routine: "var(--accent)",
-  skill: "var(--novice)",
-  memory: "var(--expert)",
-  automation: "var(--good)",
+  routine: "var(--node-routine)",
+  skill: "var(--node-skill)",
+  memory: "var(--node-memory)",
+  automation: "var(--fg)",
 };
 
 export const NODE_LABEL: Record<WorkNodeType, string> = {

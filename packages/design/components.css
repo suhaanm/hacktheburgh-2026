@@ -408,11 +408,13 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
 .details { font-size: var(--text-sm); }
 .details__body { max-width: var(--measure-short); color: var(--muted); animation: u-fade-in var(--dur-base) var(--ease-out) both; }
 .details__body > * + * { margin-top: var(--space-2); }
+.details__body--wide { max-width: none; }
 /* About this data: the single footnote under a worker chart. n, split, interval and method in a short key list. */
 .about__list { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-4); margin: 0; font: var(--text-xs)/1.5 var(--font-mono); }
 .about__list dt { color: var(--muted); }
 .about__list dd { margin: 0; color: var(--fg); overflow-wrap: anywhere; }
 .about .details__body { max-width: 62ch; }
+.chart__foot--about { align-items: center; gap: var(--space-2) var(--space-4); font: var(--text-sm)/1.4 var(--font-body); }
 
 /* -- Section header: a label over a clear title, one short helper line. ------ */
 .part { display: grid; gap: 2px; margin: 0; min-width: 0; }
@@ -454,7 +456,7 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
 .insight[data-polarity="positive"] .insight__glyph { background: var(--good-soft); color: var(--good); }
 .insight[data-polarity="negative"] .insight__glyph { background: var(--warn-soft); color: var(--warn); }
 .insight__head { display: grid; gap: 2px; min-width: 0; }
-.insight__label { font: 500 var(--text-xs)/1.2 var(--font-mono); color: var(--muted); }
+.insight__label { font: 600 var(--text-xs)/1.2 var(--font-display); color: var(--muted); }
 .insight__title { font: 600 var(--text-md)/1.3 var(--font-display); letter-spacing: -0.01em; }
 .insight__text { grid-column: 2; max-width: var(--measure-short); font-size: var(--text-sm); color: var(--muted); }
 .insight__action { grid-column: 3; grid-row: 1 / span 2; align-self: center; }
@@ -519,29 +521,33 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
 /* -- Hit list: repeated, automatable actions. One thin frame, hairline rows, 40px
       at wide widths. Actions show on hover or focus-within, always on touch. ------ */
 .hitlist { container-type: inline-size; margin: 0; padding: 0; list-style: none; background: var(--panel); border: var(--hair) solid var(--line); border-radius: var(--radius-3); overflow: hidden; }
-.hitrow { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto auto auto; align-items: center; column-gap: var(--space-3); min-height: 40px; padding: var(--space-2) var(--space-4); border-top: var(--hair) solid var(--line); transition: background-color var(--dur-fast) var(--ease-out); }
+/* Reading order is also tab order: glyph, label, actions, then the figures flush right. */
+.hitrow { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto auto auto; grid-template-areas: "glyph main actions count value"; align-items: center; column-gap: var(--space-3); min-height: 40px; padding: var(--space-2) var(--space-4); border-top: var(--hair) solid var(--line); transition: background-color var(--dur-fast) var(--ease-out); }
 .hitrow:first-child { border-top: 0; }
-.hitrow:hover, .hitrow[aria-selected="true"], .hitrow[data-open="true"] { background: var(--sunk); }
+.hitrow:hover, .hitrow[aria-selected="true"], .hitrow[data-open="true"], .hitrow[data-picked="true"] { background: var(--sunk); }
 .hitrow:focus-visible { outline-offset: -2px; border-radius: 0; }
-.hitrow__glyph { display: grid; place-items: center; width: 20px; height: 20px; color: var(--muted); }
+.hitrow__glyph { grid-area: glyph; display: grid; place-items: center; width: 20px; height: 20px; color: var(--muted); }
 .hitrow__glyph svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-.hitrow__main { display: grid; gap: 1px; min-width: 0; }
+.hitrow__main { grid-area: main; display: grid; gap: 1px; min-width: 0; }
 .hitrow__line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); }
 .hitrow__label { font-size: var(--text-sm); line-height: 1.35; }
 .hitrow__label b { font-weight: 600; }
 .hitrow__sub { font-size: var(--text-xs); color: var(--muted); }
-.hitrow__count { font: var(--text-xs)/1 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.hitrow__value { font: 500 var(--text-sm)/1 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; min-width: 6ch; }
-.hitrow__actions { display: inline-flex; gap: var(--space-1); opacity: 0; transition: opacity var(--dur-fast) var(--ease-out); }
-.hitrow:hover .hitrow__actions, .hitrow:focus-within .hitrow__actions, .hitrow[data-open="true"] .hitrow__actions { opacity: 1; }
-@media (hover: none) { .hitrow__actions { opacity: 1; } }
+.hitrow__count { grid-area: count; min-width: 12ch; text-align: right; font: var(--text-xs)/1 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hitrow__value { grid-area: value; min-width: 7ch; text-align: right; font: 500 var(--text-sm)/1 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hitrow__actions { grid-area: actions; display: inline-flex; gap: var(--space-1); opacity: 0; transition: opacity var(--dur-fast) var(--ease-out); }
+.hitrow:hover .hitrow__actions, .hitrow:focus-within .hitrow__actions, .hitrow[data-open="true"] .hitrow__actions, .hitrow[data-picked="true"] .hitrow__actions { opacity: 1; }
+/* The "i" is quiet until the row is hovered, focused or picked (a column of ten icons was the noisiest thing on the page). It stays focusable. */
+.hitrow__value .hint__btn { opacity: 0; transition: opacity var(--dur-fast) var(--ease-out); }
+.hitrow:hover .hint__btn, .hitrow:focus-within .hint__btn, .hitrow[data-open="true"] .hint__btn, .hitrow[data-picked="true"] .hint__btn, .hitrow .hint__btn[aria-expanded="true"] { opacity: 1; }
 @container (max-width: 640px) {
-  .hitrow { grid-template-columns: 20px minmax(0, 1fr) auto; grid-template-areas: "glyph main value" ". count actions"; row-gap: var(--space-1); min-height: 56px; }
-  .hitrow__glyph { grid-area: glyph; align-self: start; margin-top: 2px; }
-  .hitrow__main { grid-area: main; }
-  .hitrow__value { grid-area: value; }
-  .hitrow__count { grid-area: count; }
-  .hitrow__actions { grid-area: actions; justify-self: end; opacity: 1; }
+  .hitrow { grid-template-columns: 20px minmax(0, 1fr) auto; grid-template-areas: "glyph main value" ". count count" ". actions actions"; row-gap: var(--space-1); min-height: 56px; }
+  .hitrow__glyph { align-self: start; margin-top: 2px; }
+  .hitrow__count { min-width: 0; text-align: left; }
+  /* On a narrow or touch screen the actions wait until the row is tapped (data-picked) or focused, so a row stays one or two lines. */
+  .hitrow__actions { display: none; justify-self: start; opacity: 1; }
+  .hitrow:focus-within .hitrow__actions, .hitrow[data-picked="true"] .hitrow__actions, .hitrow[data-open="true"] .hitrow__actions { display: inline-flex; }
+  .hitrow__value .hint__btn { opacity: 1; }
 }
 
 /* -- Question card: Cue's one multiple-choice question. Keys are shown as caps,

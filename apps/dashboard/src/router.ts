@@ -5,11 +5,14 @@ export interface Route {
   query: URLSearchParams;
 }
 
-export const SCREENS = ["genome", "presence", "week", "routines", "briefing", "queue", "agents", "graph", "today", "memory", "privacy", "evidence", "onboarding", "growth", "models", "git", "notices"] as const;
+export const SCREENS = ["genome", "presence", "week", "routines", "briefing", "queue", "agents", "graph", "today", "memory", "privacy", "evidence", "onboarding", "growth", "models", "git", "notices", "home", "firm", "predictions", "repeats"] as const;
 export type Screen = (typeof SCREENS)[number];
 
+/** Where the address lands when it names no screen. The lead can flip this to "genome" for a demo script that opens on the work ribbon. */
+export const DEFAULT_SCREEN: Screen = "home";
+
 function read(): Route {
-  const raw = window.location.hash.replace(/^#/, "") || "/genome";
+  const raw = window.location.hash.replace(/^#/, "") || `/${DEFAULT_SCREEN}`;
   const [p, q = ""] = raw.split("?");
   const path = p.startsWith("/") ? p : `/${p}`;
   return { path, query: new URLSearchParams(q) };

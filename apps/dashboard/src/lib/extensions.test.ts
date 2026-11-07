@@ -186,3 +186,13 @@ describe("briefing helpers", () => {
     expect(firedText({})).toMatch(/did not say/);
   });
 });
+
+import { splitSentence } from "./week";
+describe("one sentence per suggestion card", () => {
+  it("splits at the first sentence end and keeps numbers whole", () => {
+    expect(splitSentence("Trim the meeting load. Meeting hours this week: 12.4, 30% of working time (expert pattern: at most 8 hours).")).toEqual(["Trim the meeting load.", "Meeting hours this week: 12.4, 30% of working time (expert pattern: at most 8 hours)."]);
+    expect(splitSentence("Group similar work into one batch window. Batch windows this week: 2 (expert pattern: at least 3); fragmented days: 3.")[0]).toBe("Group similar work into one batch window.");
+    expect(splitSentence("A single sentence with 12.4 hours in it")).toEqual(["A single sentence with 12.4 hours in it", ""]);
+    expect(splitSentence("  ")).toEqual(["", ""]);
+  });
+});

@@ -111,6 +111,21 @@ export interface AdminInsight {
   badge: string | null;
   split: string | null;
   statement: string | null;
+  /** One action to open the place the insight points at: `to` is a screen id, `query` may carry `roles` or `onboarding` for the Firm screen. */
+  action: { id: string; label: string; to: string; query: string | null } | null;
+}
+
+export interface RoleSummary {
+  role: string;
+  name: string;
+  people: number;
+  enough: boolean;
+  n_expert: number;
+  n_junior: number;
+  reason: string | null;
+  /** Seconds per case that juniors take beyond experts, with an interval. */
+  gap: Est | null;
+  trend: { cls: Trend; label: string | null } | null;
 }
 
 export interface WireRisk {
@@ -123,8 +138,12 @@ export interface WireRisk {
 export interface WireOverview {
   firm: { users: number; roles: number; label: string };
   top: AdminInsight[];
-  coverage: { users: number; enough_data: number; min_occurrences: number };
+  coverage: { users: number; enough_data: number; min_occurrences: number; roles: { role: string; name: string; users: number; enough_data: number }[]; by_status: Record<string, number> };
   risk: WireRisk | null;
+  role_comparison: RoleSummary[];
+  /** How many candidate insights were left out and why (a count and fixed reasons), so a short list is never a hidden one. */
+  suppressed: { count: number; by_reason: Record<string, number> } | null;
+  statement: string | null;
 }
 
 export interface DrillColumn { key: string; label: string; unit: string | null }
@@ -192,7 +211,9 @@ export interface UserRow {
   assisted_share: Est | null;
   time_to_independence: { reached: boolean; value: number | null; unit: string };
   automations_running: number;
+  automation: { minutes: number; routines_approved: number; runs_done: number } | null;
   n: number;
+  n_recent: number | null;
 }
 
 export interface FirmAggregate {
@@ -202,10 +223,18 @@ export interface FirmAggregate {
   time_to_independence: { median: number | null; ci: Interval | null; unit: string; reached_share: Est | null };
 }
 
-export interface FirmRole { role: string; name: string; merged: boolean; users: UserRow[]; aggregate: FirmAggregate }
+export interface FirmRole {
+  role: string;
+  name: string;
+  merged: boolean;
+  users: UserRow[];
+  aggregate: FirmAggregate;
+  /** The role's own trend class, with the change in independence per four weeks and its interval. */
+  trend: { cls: Trend; label: string | null; n_people: number | null; slope_per_4w: Est | null } | null;
+}
 export interface WireFirm {
   roles: FirmRole[];
-  privacy: { min_group: number; merged_roles: string[] };
+  privacy: { min_group: number; merged_roles: string[]; note: string | null };
   totals: { users: number; enough_data: number };
 }
 
@@ -223,9 +252,11 @@ export interface OnboardingRole {
   reached_share: Est | null;
   /** Why a role is merged or left out (fewer than 5 people followed). */
   reason: string | null;
+  at_risk_at_target: number | null;
 }
 export interface WireOnboarding {
-  target: { value: number; label: string; rule: string | null };
+  target: { value: number; label: string; rule: string | null; note: string | null; occurrences: number | null };
+  method: string | null;
   x_unit: string;
   roles: OnboardingRole[];
 }

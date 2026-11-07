@@ -66,3 +66,14 @@ describe("git habits", () => {
     expect(Math.max(...w.map((l) => l.length))).toBeLessThanOrEqual(40);
   });
 });
+
+import { splitCounts } from "./git";
+describe("suggestion counts behind a hint", () => {
+  it("takes the counts out of the sentence and keeps what they refer to", () => {
+    const r = splitCounts("22% of your commits changed more than 250 lines (28 of 127); the reference experts' share is 3%.");
+    expect(r.text).toBe("22% of your commits changed more than 250 lines.");
+    expect(r.counts).toBe("28 of 127 commits; the reference experts' share is 3%.");
+    expect(splitCounts("Only 14% of your feature and fix commits touched a test file (13 of 90); the reference experts' share is 74%.").text).toBe("Only 14% of your feature and fix commits touched a test file.");
+    expect(splitCounts("No counts here.")).toEqual({ text: "No counts here.", counts: null });
+  });
+});

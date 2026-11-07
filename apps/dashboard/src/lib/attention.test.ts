@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import settingsFx from "../fixtures/attention-settings.json";
 import digestFx from "../fixtures/attention-digest.json";
-import type { AttentionDigest, AttentionSettings } from "../types";
-import { BUDGET_FLOOR, MODES, bannerReading, budgetWords, clampBudget, groupTypes, learnedLines, modeLine, reasonText, todayHeadline, todaySummary, typeLabel, withMode } from "./attention";
+import whyFx from "../fixtures/attention-why.json";
+import type { AttentionDigest, AttentionSettings, AttentionWhy } from "../types";
+import { BUDGET_FLOOR, MODES, bannerReading, budgetWords, clampBudget, groupTypes, learnedLines, modeLine, needsYouLine, todayHeadline, todaySummary, typeLabel, whyLines, withMode } from "./attention";
 
 const settings = (settingsFx as unknown as { data: AttentionSettings }).data;
 const digest = (digestFx as unknown as { data: AttentionDigest }).data;
+const why = (whyFx as unknown as { data: AttentionWhy }).data;
 
 describe("notice settings", () => {
   it("groups the engine's five classes into four plain groups, in the engine's order, with safety inside 'Needs you'", () => {
@@ -53,23 +55,36 @@ describe("notice settings", () => {
 });
 
 describe("today strip", () => {
-  it("counts shown, held and dropped from the engine's keys and says why in the engine's words", () => {
+  it("counts from the engine's detail rows and shows its own reason sentences, never a copy kept on the page", () => {
+    const t = todaySummary(digest.today, digest.today_detail);
+    expect(t).toMatchObject({ shown: 2, held: 2, dropped: 4, passive: 2 });
+    expect(t.lines.find((l) => l.code === "held_typing")?.text).toBe("Held because you were typing. Shown at your next pause.");
+    expect(t.lines.map((l) => l.state)).toEqual(["shown", "passive", "held", "dropped", "dropped"]);
+    expect(todayHeadline(t, { used: 2, per_day: 10 })).toBe("Today: 2 shown, 2 held, 4 dropped, 2 left as quiet notes. 2 of 10 interrupting notices used.");
+    // Whatever words the engine sends are the words shown.
+    const reworded = todaySummary({}, [{ state: "held", code: "held_x", n: 1, reason_text: "Held, in new words." }]);
+    expect(reworded.lines[0].text).toBe("Held, in new words.");
+  });
+  it("falls back to counts with no reason when an older engine sends only the counters", () => {
     const t = todaySummary(digest.today);
-    expect(t).toMatchObject({ shown: 2, held: 2, dropped: 4 });
-    const typing = t.lines.find((l) => l.code === "held_typing")!;
-    expect(typing.text).toBe("Held because you were typing. Shown at your next pause.");
-    expect(t.lines[0].state).toBe("shown");
-    expect(t.lines.map((l) => l.state)).toEqual(["shown", "held", "dropped", "dropped"]);
-    expect(todayHeadline(t, { used: 2, per_day: 10 })).toBe("Today: 2 shown, 2 held, 4 dropped. 2 of 10 interrupting notices used.");
+    expect(t).toMatchObject({ shown: 2, held: 2, dropped: 4, passive: 0 });
+    expect(t.lines.every((l) => l.text === null)).toBe(true);
   });
   it("is empty and calm when nothing happened, and ignores junk", () => {
-    expect(todaySummary({})).toEqual({ shown: 0, held: 0, dropped: 0, lines: [] });
+    expect(todaySummary({})).toEqual({ shown: 0, held: 0, dropped: 0, passive: 0, lines: [] });
     expect(todaySummary(undefined).lines).toEqual([]);
     expect(todaySummary({ "dropped:dropped_flow": 0, "held:held_dnd": Number.NaN }).lines).toEqual([]);
+    expect(todayHeadline(todaySummary({}), { used: 0, per_day: 10 })).toBe("Today: 0 shown, 0 held, 0 dropped. 0 of 10 interrupting notices used.");
   });
-  it("gives an unknown reason a plain fallback instead of a code", () => {
-    expect(reasonText("dropped_something_new")).toBe("No reason was recorded.");
-    expect(todaySummary({ "held:held_something_new": 1 }).lines[0].text).toBe("No reason was recorded.");
+  it("names what needs you and reads a why with its steps, leaving out a step that has no recorded reason", () => {
+    expect(needsYouLine({ type: "approval_blocking", count: 1 })).toBe("An approval is holding up a job");
+    expect(needsYouLine({ type: "approval_blocking", count: 3 })).toBe("An approval is holding up a job (3)");
+    expect(digest.needs_you_items?.[0].id).toBeTruthy();
+    const w = whyLines(why);
+    expect(w.reason).toMatch(/^Held because/);
+    expect(w.steps.every((s) => s.text !== "No reason was recorded.")).toBe(true);
+    expect(w.steps.length).toBeGreaterThan(0);
+    expect(whyLines(null)).toEqual({ reason: "", steps: [] });
   });
 });
 

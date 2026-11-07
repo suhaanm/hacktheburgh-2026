@@ -6,6 +6,8 @@ import { ChartFoot, ErrorState, LegendItem, Loading, OriginBadge, PageHead } fro
 import { Ribbon } from "../components/Ribbon";
 import { Waterfall } from "../components/Waterfall";
 import { Explain } from "../components/Explain";
+import { Details } from "../components/ui";
+import { Hint } from "../components/Hint";
 import { DotWhisker } from "../components/DotWhisker";
 import { TransitionGraph } from "../components/TransitionGraph";
 import { describeColumn, layoutRibbon } from "../lib/ribbon";
@@ -32,7 +34,7 @@ export default function Genome() {
       <PageHead
         eyebrow="Genome · benefits entitlement check"
         title={`Novices lose about ${fmtDuration(total)} per case`}
-        lede={<>That is the average over all novices, with a 95% interval of {fmtDuration(data.total_gap_ci[0])} to {fmtDuration(data.total_gap_ci[1])}. The ribbon shows one case{data.person_gap_s != null ? <> ({data.person}, {fmtDuration(data.person_gap_s)} lost)</> : null} against the nearest expert: hatched is a step only one of them did, red is seconds lost.</>}
+        lede={<>Average over all novices<Hint label="About this average">95% interval {fmtDuration(data.total_gap_ci[0])} to {fmtDuration(data.total_gap_ci[1])}.</Hint>. One case below{data.person_gap_s != null ? <>: {data.person}, {fmtDuration(data.person_gap_s)} lost</> : null}.</>}
         aside={<OriginBadge meta={g.meta} />}
       />
 
@@ -43,25 +45,24 @@ export default function Genome() {
             <button type="button" aria-pressed={view === "ribbon"} onClick={() => setView("ribbon")}>Work ribbon</button>
             <button type="button" aria-pressed={view === "graph"} onClick={() => setView("graph")}>Transition graph</button>
           </div>
-          <details className="details-lite">
-            <summary>Change the comparison</summary>
+          <Details summary="Change the comparison">
             <div className="stack">
-              <p className="note">The novice is compared with a reference. The nearest expert is the single closest expert trace. The consensus blends all experts.</p>
+              <p className="note">Nearest expert is the closest single trace; consensus blends all experts.</p>
               <div className="segmented" role="group" aria-label="Reference">
                 <button type="button" aria-pressed={reference === "nearest_expert"} onClick={() => setReference("nearest_expert")}>Nearest expert</button>
                 <button type="button" aria-pressed={reference === "consensus"} onClick={() => setReference("consensus")}>Consensus</button>
               </div>
             </div>
-          </details>
+          </Details>
         </div>
 
         {view === "ribbon" ? <RibbonView data={data} /> : (
           <div className="stack">
             {t.data ? <TransitionGraph data={t.data} /> : t.status === "error" ? <ErrorState error={t.error} retry={t.reload} what="the transition graph" /> : <Loading label="Loading the transition graph" />}
-            <ChartFoot meta={t.meta} />
+            <ChartFoot variant="about" meta={t.meta} />
           </div>
         )}
-        {view === "ribbon" && <ChartFoot meta={g.meta} />}
+        {view === "ribbon" && <ChartFoot variant="about" meta={g.meta} />}
       </section>
 
       <hr className="rule" />
@@ -73,11 +74,11 @@ export default function Genome() {
       <section className="section" aria-labelledby="wf-h">
         <div className="section__head">
           <h2 id="wf-h" className="section__title">What the time was spent on</h2>
-          <p className="section__sub">Average per case, biggest first. Each bar starts where the one above ended. Whiskers are 95% intervals from a bootstrap over people.</p>
+          <p className="section__sub">Average per case, biggest first. Whiskers are 95% intervals.</p>
         </div>
         <div className="chart chart--wide">
           <Waterfall steps={data.waterfall} totalCi={data.total_gap_ci} />
-          <ChartFoot meta={g.meta} />
+          <ChartFoot variant="about" meta={g.meta} extra={<>each bar starts where the one above ended; whiskers are a bootstrap over people</>} />
         </div>
       </section>
 
@@ -116,7 +117,7 @@ function RibbonView({ data }: { data: GenomeData }) {
   const activeCol = active != null ? cols[active] : null;
   const caption = activeCol
     ? `${describeColumn(activeCol, active as number, cols.length)}${activeCol.missing === "novice" && consequenceFor(activeCol.expert?.cog) ? ` ${sentence(consequenceFor(activeCol.expert?.cog)!)}` : ""}`
-    : "Drag the slider, press Play, or hover a step to compare the two traces one step at a time.";
+    : "Drag the slider or press Play.";
 
   return (
     <div className="stack">
@@ -135,19 +136,18 @@ function RibbonView({ data }: { data: GenomeData }) {
         </div>
         <p className="scrub__caption" aria-live="polite">{caption}</p>
       </div>
-      <div className="stack" style={{ gap: "var(--space-2)" }}>
+      <Details summary="What skipping a step costs">
         <p className="note">Skipping a step shows as time saved here. It often costs more later, and the waterfall counts that rework separately when it happened.</p>
         {consequences.length > 0 && <ul className="plain-list">{consequences.map((c) => <li key={c.step} className="note"><b>{cogLabel(c.step)}:</b> {sentence(c)}</li>)}</ul>}
-      </div>
+      </Details>
       <ul className="legend" aria-label="How to read the ribbon">
         <LegendItem swatch={<span className="sw sw--expert" />}>Expert step</LegendItem>
         <LegendItem swatch={<span className="sw sw--novice" />}>Novice step</LegendItem>
-        <LegendItem swatch={<span className="sw sw--hatch sw--muted" />}>Hatched: this person did not do the step</LegendItem>
-        <LegendItem swatch={<span className="sw sw--bad" />}>Red: seconds lost in that column (a skipped step is not red: it counts as time saved)</LegendItem>
+        <LegendItem swatch={<span className="sw sw--hatch sw--muted" />}>Hatched: a step only one of them did (a skipped step counts as time saved)</LegendItem>
+        <LegendItem swatch={<span className="sw sw--bad" />}>Red: seconds lost in that column</LegendItem>
         <LegendItem swatch={<span className="sw sw--muted" />}>Column width: the longer of the two durations</LegendItem>
       </ul>
-      <details className="details-lite">
-        <summary>See the same ribbon as a table</summary>
+      <Details summary="See the same ribbon as a table" wide>
         <div className="table-wrap">
           <table className="table">
             <thead><tr><th>Step</th><th>Expert</th><th>Novice</th><th className="num">Lost</th></tr></thead>
@@ -163,7 +163,7 @@ function RibbonView({ data }: { data: GenomeData }) {
             </tbody>
           </table>
         </div>
-      </details>
+      </Details>
     </div>
   );
 }
@@ -180,7 +180,7 @@ function Controls({ data, meta }: { data: GenomeData; meta: ReturnType<typeof us
         <h2 id="ctl-h" className="section__title">Does the method invent gaps?</h2>
         <p className="section__sub controls__lede">
           {ok
-            ? <>Expert against expert shows {signed(placebo.gap_s)} s and shuffled labels show {signed(nul.gap_s)} s. Both intervals include 0.{wide ? " The shuffled-label interval is wide, so read the real gap with that in mind." : " The ribbon is not inventing the gap."}</>
+            ? <>Expert against expert {signed(placebo.gap_s)} s, shuffled labels {signed(nul.gap_s)} s: both include 0.{wide ? " The shuffled-label interval is wide, so read the real gap with that in mind." : " The ribbon is not inventing the gap."}</>
             : <>A control is off zero: expert against expert {signed(placebo.gap_s)} s, shuffled labels {signed(nul.gap_s)} s. Do not trust the ribbon until this is explained.</>}
         </p>
       </div>
@@ -197,7 +197,7 @@ function Controls({ data, meta }: { data: GenomeData; meta: ReturnType<typeof us
             { label: "Shuffled labels (null)", value: nul.gap_s, ci: nul.ci },
           ]}
         />
-        <ChartFoot meta={meta} />
+        <ChartFoot variant="about" meta={meta} />
       </div>
     </section>
   );

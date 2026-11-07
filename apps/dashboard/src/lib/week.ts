@@ -76,14 +76,18 @@ export function fmtFeature(k: string, v: number, signed = false): string {
   return `${signed ? sign : v < 0 ? "−" : ""}${n}${u === "h" ? " h" : u === "min" ? " min" : ""}`;
 }
 
-/** The headline: how the learner's meeting load compares with the expert's, in words. */
-export function weekHeadline(f: WeekFeatures, e: WeekFeatures): string {
+/**
+ * The headline: how a meeting load compares with the expert's, in words. `subject` names whose calendar it is: null or omitted means the worker's own
+ * ("You spend"), a name means someone else's ("BP-07 spends"), so picking another calendar never leaves a headline that says "you".
+ */
+export function weekHeadline(f: WeekFeatures, e: WeekFeatures, subject?: string | null): string {
+  const who = subject ? null : "you";
   const m = f.meeting_h, em = e.meeting_h;
-  if (typeof m !== "number" || typeof em !== "number") return "Your week against the expert's";
+  if (typeof m !== "number" || typeof em !== "number") return who ? "Your week against the expert's" : `${subject}'s week against the expert's`;
   const d = Math.round((m - em) * 10) / 10;
   const mr = Math.round(m * 10) / 10;
-  if (Math.abs(d) < 0.5) return `Your meeting load is about the same as the expert's, ${mr} hours a week`;
-  return `You spend ${mr} hours a week in meetings, ${Math.abs(d)} ${d > 0 ? "more" : "fewer"} than the expert`;
+  if (Math.abs(d) < 0.5) return who ? `Your meeting load is about the same as the expert's, ${mr} hours a week` : `${subject}'s meeting load is about the same as the expert's, ${mr} hours a week`;
+  return `${who ? "You spend" : `${subject} spends`} ${mr} hours a week in meetings, ${Math.abs(d)} ${d > 0 ? "more" : "fewer"} than the expert`;
 }
 
 /** Does the interval exclude zero? Then the difference is not just noise at this sample size. The engine's own verdict, when it sends one, wins. */
@@ -143,3 +147,12 @@ export const OP_LABEL: Record<string, string> = {
 const ENUM_LABEL: Record<string, string> = { MEETING: "meeting", FOCUS: "focus", SLIVER: "short gap", REVIEW: "review", OFFSCREEN: "off screen", BREAK: "break", FREE: "free" };
 /** The engine's block-kind enums in plain words. */
 export const enumLabel = (e: string | null): string => (e == null ? "nothing" : ENUM_LABEL[e] ?? e.toLowerCase().replace(/_/g, " "));
+
+/**
+ * The first sentence of a text and the rest, so a card shows one sentence and keeps the others one click away. A full stop inside a number
+ * ("12.4 hours") or after a short abbreviation does not end a sentence; the split is at the first ". " followed by a capital letter or digit.
+ */
+export function splitSentence(text: string): [string, string] {
+  const m = /^(.+?[.!?])(?=\s+[A-Z0-9])\s+([\s\S]*)$/.exec(text.trim());
+  return m ? [m[1], m[2]] : [text.trim(), ""];
+}

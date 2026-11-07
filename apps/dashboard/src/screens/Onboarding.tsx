@@ -97,7 +97,6 @@ export default function Onboarding() {
                 <a className="btn btn--secondary" href="#/today">Go to Today</a>
                 <button type="button" className="btn btn--quiet" onClick={restart}>Try another role</button>
               </div>
-              <p className="note">Pick a different role and compare: the tools, the never-list and the tone all change.</p>
             </div>
           ) : step === 0 ? (
             <div className="ob__q" key="role">
@@ -105,7 +104,7 @@ export default function Onboarding() {
               <div className="ob__options" role="radiogroup" aria-label="Role">
                 {packs.data.map((p) => <RoleCard key={p.id} pack={p} checked={role === p.id} onChoose={() => choose(p.id)} />)}
               </div>
-              <p className="note">This gives Understudy a starting point. Your own work takes over from here.</p>
+              <p className="note">A starting point. Your own work takes over from here.</p>
               {role && qs.status === "error" && <ErrorState error={qs.error} retry={qs.reload} what="the questions" />}
             </div>
           ) : q ? (

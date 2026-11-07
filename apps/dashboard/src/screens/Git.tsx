@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { idle, useLoad } from "../hooks";
-import { ChartFoot, EmptyState, ErrorState, ExampleBadge, LegendItem, Loading, Note, OriginBadge, PageHead, SourceNote } from "../components/common";
+import { ChartFoot, EmptyState, ErrorState, ExampleBadge, LegendItem, Loading, OriginBadge, PageHead, SourceNote } from "../components/common";
 import { HabitDeltas } from "../components/HabitDeltas";
-import { DIGEST_LABEL, fmtPoints, fmtPointsInterval, fmtShare, gitHeadline, learnerLabel, readHabit, sortHabits } from "../lib/git";
+import { Hint } from "../components/Hint";
+import { Details } from "../components/ui";
+import { splitSentence } from "../lib/week";
+import { DIGEST_LABEL, fmtPoints, fmtPointsInterval, fmtShare, gitHeadline, learnerLabel, readHabit, sortHabits, splitCounts } from "../lib/git";
 import type { GitHabit, GitHabits } from "../types";
 
 export default function Git() {
@@ -30,7 +33,7 @@ export default function Git() {
       <PageHead
         eyebrow="Git habits"
         title={gitHeadline(d.habits)}
-        lede={`How ${learnerLabel(d.person)} commits, set against ${d.reference?.n_experts ?? "the"} reference experts. Only counts and shares are used: no commit message, file name or author exists in this data.`}
+        lede={`${learnerLabel(d.person)}'s commits against ${d.reference?.n_experts ?? "the"} experts'. No commit message, file name or author is in this data.`}
         aside={<><OriginBadge meta={h.meta} /><ExampleBadge why={h.why} /></>}
       />
       <SourceNote why={h.why} />
@@ -47,7 +50,7 @@ export default function Git() {
       <section className="hero" aria-labelledby="gh-h">
         <div className="section__head">
           <h2 className="section__title" id="gh-h">Where the habits differ</h2>
-          <p className="section__sub">Each row is a share of commits. A habit is flagged only when it is past its floor and its interval stays clear of zero.</p>
+          <p className="section__sub">Each row is a share of commits. Flagged means past its floor and clear of zero.</p>
         </div>
         {habits.length === 0 ? (
           <EmptyState title="No commits to read yet" body="When a repository is registered, its commit habits appear here. Nothing is read until you register one." />
@@ -60,7 +63,7 @@ export default function Git() {
               <LegendItem swatch={<span className="sw sw--hatch sw--muted" />}>Floor: a smaller difference is never flagged</LegendItem>
               <LegendItem swatch={<span className="sw" style={{ height: 2, alignSelf: "center", background: "var(--fg)" }} />}>95% interval</LegendItem>
             </ul>
-            <ChartFoot meta={h.meta} extra={<span>reference: <b>{d.reference?.n_experts ?? "?"} experts</b></span>} />
+            <ChartFoot variant="about" meta={h.meta} extra={<span>Reference: <b>{d.reference?.n_experts ?? "?"} experts</b>.{d.reference?.note ? ` ${d.reference.note}.` : ""}</span>} />
           </div>
         )}
       </section>
@@ -71,15 +74,13 @@ export default function Git() {
       <hr className="rule" />
       <section className="section" aria-labelledby="gh-how">
         <h2 className="section__title" id="gh-how">How this was counted</h2>
-        <ul className="plain-list">
-          <li className="note"><b className="tabular">{d.n_commits.toLocaleString("en-GB")}</b> commits were counted.</li>
-          <li className="note">{DIGEST_LABEL[d.digest_source] ?? d.digest_source}. {d.digest_source === "rules" ? "No model was involved." : "It ran on this laptop and saw digests, not commit text."}{d.digest_warming ? " The model is still warming up, so rules answered for now." : ""}</li>
-          {d.reference?.note && <li className="note">Reference: {d.reference.note}.</li>}
-        </ul>
-        <details className="details-lite">
-          <summary>See the habits as a table</summary>
-          <HabitTable habits={habits} />
-        </details>
+        <p className="note"><b className="tabular">{d.n_commits.toLocaleString("en-GB")}</b> commits were counted.</p>
+        <Details summary="Method and the habits as a table" wide>
+          <div className="stack">
+            <p className="note">{DIGEST_LABEL[d.digest_source] ?? d.digest_source}. {d.digest_source === "rules" ? "No model was involved." : "It ran on this laptop and saw digests, not commit text."}{d.digest_warming ? " The model is still warming up, so rules answered for now." : ""}</p>
+            <HabitTable habits={habits} />
+          </div>
+        </Details>
       </section>
     </div>
   );
@@ -91,26 +92,25 @@ function Suggestions({ d, flagged }: { d: GitHabits; flagged: GitHabit[] }) {
     <section className="section" aria-labelledby="gs-h">
       <div className="section__head">
         <h2 className="section__title" id="gs-h">Habits worth a look</h2>
-        <p className="section__sub">General advice from a fixed list, filled in with your numbers and the experts'. None of it is applied for you.</p>
+        <p className="section__sub">General advice from a fixed list, with your numbers. Nothing is applied for you.</p>
       </div>
       {list.length === 0 ? (
         <EmptyState title="Nothing to suggest" body="No habit is far enough from the experts to be worth a change right now." />
       ) : (
         <div className="sug-grid">
-          {list.map((s) => (
-            <article key={s.id} className="card card__pad sug" aria-label={s.text}>
-              <p className="sug__text">{s.text}</p>
-              <div className="row">
-                <span className="pill">{s.risk === "low" || !s.risk ? "Low risk" : s.risk}</span>
-                {s.template && <span className="pill">{s.template.replace(/_/g, " ")}</span>}
-                <span className="pill">{s.wording === "model" ? "reworded by a model" : "fixed wording"}</span>
-              </div>
-              <p className="note">{s.can_draft ? "A draft can be prepared. Nothing is committed or pushed." : "Advice only. Nothing is committed or pushed."}</p>
-            </article>
-          ))}
+          {list.map((s) => {
+            const [fact, advice] = splitSentence(s.text);
+            const { text, counts } = splitCounts(fact);
+            return (
+              <article key={s.id} className="card card__pad sug" aria-label={s.text}>
+                <p className="sug__text">{text}{counts && <> <Hint label="The counts behind this">{counts}</Hint></>}</p>
+                {advice && <p className="note">{advice}</p>}
+                <p className="note">{s.can_draft ? "A draft can be prepared. " : ""}Nothing is committed or pushed.</p>
+              </article>
+            );
+          })}
         </div>
       )}
-      <Note>Suggestions come from the same numbers as the chart. They say nothing about any particular commit.</Note>
     </section>
   );
 }

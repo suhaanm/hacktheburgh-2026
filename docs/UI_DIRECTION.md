@@ -89,3 +89,8 @@ Design both themes with equal care. Contrast must pass WCAG AA.
 5. Keyboard focus is visible. Contrast passes. Reduced motion is respected.
 6. Empty, loading and error states are designed, not blank.
 7. Synthetic data is badged and every chart shows n and its interval.
+
+## Update, 7 Nov 2026 (design sync, decision D45)
+
+The shared system now follows the quieter, merged version (`packages/design/README.md`, "Rules for new components" and "Word budgets"; the diff is `docs/DESIGN_DIFF.md`, the per-screen audit `docs/DESIGN_AUDIT.md`). What changes for this document: (1) principle 2 is stricter: one hero per screen, at most one short helper line under a title, details behind a "Details" disclosure or a small accessible Hint, at most 7 rows in a default list. (2) "Every chart shows its n and its interval" now reads: on worker screens they are one hover, focus or tap away (a Hint beside the figure, or one "About this data" disclosure; the origin badge stays visible); on admin screens, the Evidence page and the limitations register they stay printed. (3) A Hint is an info button with a one or two sentence note, never the only copy of a limit, a consent, an error or an origin; the `title` attribute is not used to explain anything. (4) Labels are sentence case in the display face; the mono capitals stay only for chart axes and the work ribbon.
+

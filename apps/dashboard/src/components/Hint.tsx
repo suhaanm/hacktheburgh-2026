@@ -9,8 +9,9 @@ let closeActive: (() => void) | null = null;
  * One or two plain sentences. It is never the only place a fact lives, and it holds no links or buttons.
  * Opens on hover, focus, tap, Enter or Space; Escape closes it and focus stays on the button; a tap elsewhere closes it.
  * The note is the button's description, so a screen reader reads it on focus. Do not put a Hint inside another button, link or summary.
+ * `tabIndex={-1}` is for a roving-tabindex list (one tab stop for the whole list): the button stays focusable by script and by tap.
  */
-export function Hint({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
+export function Hint({ label, children, className, tabIndex }: { label: string; children: ReactNode; className?: string; tabIndex?: 0 | -1 }) {
   const noteId = useId();
   const [state, dispatch] = useReducer(hintReduce, HINT_CLOSED);
   const open = isHintOpen(state);
@@ -78,6 +79,7 @@ export function Hint({ label, children, className }: { label: string; children: 
         aria-label={label}
         aria-expanded={open}
         aria-describedby={noteId}
+        tabIndex={tabIndex}
         onFocus={() => dispatch("focus")}
         onBlur={() => dispatch("blur")}
         onClick={() => dispatch("click")}

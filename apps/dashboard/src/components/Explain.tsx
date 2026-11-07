@@ -3,6 +3,8 @@ import { ApiError, api, type Loaded } from "../api";
 import { useLoad } from "../hooks";
 import { useAppState } from "../store";
 import { Note, OriginBadge, SourceNote } from "./common";
+import { Hint } from "./Hint";
+import { Details } from "./ui";
 import { CHIPS, MAX_QUESTION, actionsOf, askedTimeNote, badgeText, bodySentences, checkReading, cleanQuestion, fallbackReading, fmtFact, isAnswer, limitsOf, pathWords, sourceReading, usesWithFacts } from "../lib/explain";
 import type { ExplainResult, PacketFact } from "../types";
 
@@ -55,10 +57,9 @@ export function Explain({ person }: { person?: string }) {
     <section className="explain" id="explain" aria-labelledby="ex-h">
       <div className="section__head">
         <h2 id="ex-h" className="section__title">Where did my time go?</h2>
-        <p className="section__sub">Reads the numbers behind this case and says what they show, in a few plain sentences. Code checks every number in the words against the data.</p>
+        <p className="section__sub">Reads the numbers behind this case. Code checks each number in the words against the data.</p>
       </div>
-      <SourceNote why={res?.why ?? (phase === "idle" ? packet.why : null)} />
-      {example && <Note>These are example answers. They do not change with what you ask.</Note>}
+      <SourceNote why={res?.why ?? (phase === "idle" ? packet.why : null)} also={example ? "These are example answers. They do not change with what you ask." : undefined} alsoInline />
 
       <p className="u-sr-only" role="status" aria-live="polite">{phase === "loading" ? "Writing the answer." : phase === "ready" ? "The answer is ready." : phase === "error" ? "The answer could not be made." : ""}</p>
 
@@ -110,12 +111,14 @@ function Answer({ r, facts, example }: { r: ExplainResult; facts: PacketFact[]; 
     <div className="explain__answer stack" data-testid="explain-answer" data-source={r.source}>
       <div className="stack" style={{ gap: "var(--space-3)" }}>
         <p className="t-label">{isAnswer(r) ? "The answer" : "What the numbers show"}</p>
-        {body.map((s, i) => (
-          <div key={i} className="explain__sentence">
-            <p className="explain__text">{s.text}</p>
-            <Uses uses={s.uses} facts={facts} />
-          </div>
+        {body.slice(0, 3).map((s, i) => (
+          <p key={i} className="explain__text">{s.text}<Uses uses={s.uses} facts={facts} /></p>
         ))}
+        {body.length > 3 && (
+          <Details summary={`${body.length - 3} more ${body.length - 3 === 1 ? "sentence" : "sentences"}`}>
+            <div className="stack" style={{ gap: "var(--space-3)" }}>{body.slice(3).map((s, i) => <p key={i} className="explain__text">{s.text}<Uses uses={s.uses} facts={facts} /></p>)}</div>
+          </Details>
+        )}
         {asked && <p className="note">{asked}</p>}
       </div>
 
@@ -123,8 +126,9 @@ function Answer({ r, facts, example }: { r: ExplainResult; facts: PacketFact[]; 
         <div className="row" style={{ gap: "var(--space-2)" }}>
           <span className="pill pill--source" data-source={r.source}>{src.label}</span>
           <span className="pill pill--check-run" data-ok={chk.ok}><span className="pill__glyph-char" aria-hidden="true">{chk.ok ? "✓" : "✕"}</span>{chk.ok ? "Checked against the data" : "Did not pass the check"}</span>
+          <Hint label="About this answer">{src.detail} {chk.text}</Hint>
         </div>
-        <p className="note">{src.detail} {chk.text}</p>
+        {chk.ok && <p className="note">Checked by code against the data. That shows the words come from the data, not that the data is right.</p>}
         {fb && <Note tone="warn">{fb}</Note>}
         {!chk.ok && <Note tone="warn">{chk.text}</Note>}
       </div>
@@ -135,9 +139,8 @@ function Answer({ r, facts, example }: { r: ExplainResult; facts: PacketFact[]; 
           <ul className="explain__actions">
             {actions.map((a) => (
               <li key={a.id}>
-                <p className="explain__text">{a.text}</p>
-                <Uses uses={a.uses} facts={facts} />
-                <p className="note">{a.chosen_by === "code" ? "Picked by code from a fixed list. The wording is fixed too." : "Picked by the model from a fixed list; code checked that the pick is on the list."}</p>
+                <p className="explain__text">{a.text}<Uses uses={a.uses} facts={facts} /></p>
+                <p className="note">{a.chosen_by === "code" ? "Picked by code from a fixed list." : "Picked by the model from a fixed list; code checked it."}</p>
               </li>
             ))}
           </ul>
@@ -148,20 +151,24 @@ function Answer({ r, facts, example }: { r: ExplainResult; facts: PacketFact[]; 
   );
 }
 
-/** "Where these numbers come from": the packet fact behind each cited path. Closed until asked. */
+/**
+ * "Where these numbers come from": a Hint on the sentence, listing the packet fact behind each cited path. The same numbers are in the
+ * sentence itself and in the table of all the numbers under the answer, so the Hint is never the only copy.
+ */
 function Uses({ uses, facts }: { uses: string[]; facts: PacketFact[] }) {
   if (uses.length === 0) return null;
   const rows = usesWithFacts(uses, facts);
   return (
-    <details className="explain__uses">
-      <summary>Where {uses.length === 1 ? "this number comes" : "these numbers come"} from</summary>
-      <ul className="plain-list">
-        {rows.map(({ path, fact }) => (
-          <li key={path} className="ev-note"><code>{pathWords(path)}</code> {fact ? <b className="tabular">{fmtFact(fact)}</b> : <span className="u-muted">not found in the packet</span>}</li>
+    <>
+      {" "}
+      <Hint label={uses.length === 1 ? "Where this number comes from" : "Where these numbers come from"}>
+        Read from the packet the engine built, not supplied by the model:{" "}
+        {rows.map(({ path, fact }, i) => (
+          <span key={path}>{i > 0 ? "; " : ""}<code>{pathWords(path)}</code> {fact ? <b className="tabular">{fmtFact(fact)}</b> : <span>not found in the packet</span>}</span>
         ))}
-      </ul>
-      <p className="note">Read straight from the packet the engine built. The model does not supply these values.</p>
-    </details>
+        .
+      </Hint>
+    </>
   );
 }
 
@@ -190,10 +197,11 @@ function Backing({ r, facts }: { r: ExplainResult; facts: PacketFact[] }) {
   const meta = { origin: r.badge.origin as "real" | "synthetic" | "mixed", n: r.badge.n, n_unit: r.badge.n_unit, split: r.badge.split, interval_level: 0.95, note: null, generated_at: "" };
   return (
     <div className="stack explain__backing">
-      <div className="stack" style={{ gap: "var(--space-2)" }} data-testid="explain-limits">
-        <p className="t-label">What this does not show</p>
+      <div data-testid="explain-limits">
         {limits.length === 0 ? <p className="note">The engine listed no limits for this answer. That is itself a problem: every answer must list its limits.</p> : (
-          <ul className="plain-list explain__limits">{limits.map((l) => <li key={l.id} className="ev-note">{l.text}</li>)}</ul>
+          <Details summary={`What this does not show (${limits.length})`}>
+            <ul className="plain-list explain__limits">{limits.map((l) => <li key={l.id} className="ev-note">{l.text}</li>)}</ul>
+          </Details>
         )}
       </div>
       <p className="explain__footer" data-testid="explain-footer">
@@ -202,13 +210,12 @@ function Backing({ r, facts }: { r: ExplainResult; facts: PacketFact[] }) {
         <span className="u-muted">{badgeText(r.badge)}{r.badge.split ? `, ${r.badge.split.replace(/_/g, " ")}` : ""}</span>
       </p>
       {facts.length > 0 && (
-        <details className="details-lite">
-          <summary>All the numbers an explanation can use ({facts.length})</summary>
+        <Details summary={`All the numbers an explanation can use (${facts.length})`} wide>
           <div className="table-wrap"><table className="table">
             <thead><tr><th>Where in the packet</th><th className="num">Value</th></tr></thead>
             <tbody>{facts.map((f) => <tr key={f.path}><td><code>{f.path}</code></td><td className="num">{fmtFact(f)}</td></tr>)}</tbody>
           </table></div>
-        </details>
+        </Details>
       )}
     </div>
   );

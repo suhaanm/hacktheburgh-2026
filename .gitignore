@@ -48,3 +48,5 @@ apps/dashboard/qa/design-sync/before/
 apps/dashboard/qa/design-sync/*/*-dark-1440.png
 apps/dashboard/qa/design-sync/*/*-light-390.png
 evals/review/.vite-cache/
+apps/dashboard/qa/dl/
+apps/dashboard/qa/dl2/

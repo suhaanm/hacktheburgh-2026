@@ -2,7 +2,7 @@ import type { HTMLAttributes, ReactNode, Ref } from "react";
 import { Hint } from "./Hint";
 
 /** The cog families a repeated action can belong to. One shape each, never colour. */
-export type HitGlyph = "open" | "read" | "enter" | "copy" | "check" | "run" | "search";
+export type HitGlyph = "open" | "read" | "enter" | "copy" | "check" | "run" | "search" | "step";
 
 const GLYPH_PATH: Record<HitGlyph, string> = {
   open: "M8 4H4v12h12v-4 M11 4h5v5 M16 4l-7 7",
@@ -12,6 +12,7 @@ const GLYPH_PATH: Record<HitGlyph, string> = {
   check: "M4 10l4 4 8-8",
   run: "M6 4l10 6-10 6z",
   search: "M9 15a6 6 0 1 0 0-12 6 6 0 0 0 0 12z M14 14l4 4",
+  step: "M10 16a6 6 0 1 0 0-12 6 6 0 0 0 0 12z M10 11.2a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4z",
 };
 
 export function HitGlyphIcon({ glyph }: { glyph: HitGlyph }) {
@@ -37,16 +38,20 @@ export interface HitListRowProps extends Omit<HTMLAttributes<HTMLLIElement>, "ch
   /** Quiet actions. They show on hover or focus-within and always on touch. */
   actions?: ReactNode;
   open?: boolean;
+  /** Set when the row was tapped or picked: its actions and "i" show (narrow screens and touch). */
+  picked?: boolean;
+  /** -1 in a roving-tabindex list, so the Hint is not a second tab stop in each row. */
+  hintTab?: 0 | -1;
   liRef?: Ref<HTMLLIElement>;
 }
 
-const KNOWN: HitGlyph[] = ["open", "read", "enter", "copy", "check", "run", "search"];
+const KNOWN: HitGlyph[] = ["open", "read", "enter", "copy", "check", "run", "search", "step"];
 
 /** One row of the Repeats list. Presentational: roving tabindex, Enter and Escape belong to the list that renders it. Wrap rows in <ul className="hitlist">. */
-export function HitListRow({ glyph, label, sub, count, value, valueHint, chip, actions, open, liRef, className, ...rest }: HitListRowProps) {
+export function HitListRow({ glyph, label, sub, count, value, valueHint, chip, actions, open, picked, hintTab, liRef, className, ...rest }: HitListRowProps) {
   const g = typeof glyph === "string" && (KNOWN as string[]).includes(glyph) ? <HitGlyphIcon glyph={glyph as HitGlyph} /> : glyph;
   return (
-    <li ref={liRef} className={className ? `hitrow ${className}` : "hitrow"} data-open={open || undefined} {...rest}>
+    <li ref={liRef} className={className ? `hitrow ${className}` : "hitrow"} data-open={open || undefined} data-picked={picked || undefined} {...rest}>
       <span className="hitrow__glyph">{g}</span>
       <span className="hitrow__main">
         <span className="hitrow__line">
@@ -55,12 +60,12 @@ export function HitListRow({ glyph, label, sub, count, value, valueHint, chip, a
         </span>
         {sub && <span className="hitrow__sub">{sub}</span>}
       </span>
+      <span className="hitrow__actions">{actions}</span>
       <span className="hitrow__count">{count != null && <>({count})</>}</span>
       <span className="hitrow__value">
         {value}
-        {valueHint && <Hint label="About this figure">{valueHint}</Hint>}
+        {valueHint && <Hint label="About this figure" tabIndex={hintTab}>{valueHint}</Hint>}
       </span>
-      <span className="hitrow__actions">{actions}</span>
     </li>
   );
 }

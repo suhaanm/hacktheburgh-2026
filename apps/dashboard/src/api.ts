@@ -2,7 +2,7 @@ import { getState, noteSource, setState, whenExtReady } from "./store";
 import type { ApprovalAuth } from "./auth/types";
 import type {
   Analytic, AnalyticMeta, AuditLine, CoachState, EvalReport, Genome, Hazard, Health, KillState, Memory,
-  AgentHealth, AgentKind, AgentRun, AgentRunDetail, AttentionDigest, AttentionPatch, AttentionPeek, AttentionSettings, Briefing, CalPerson, CalSuggestion, CalendarWeek, CoachDecision, CoachOutcome, ExtensionName, EvidencePacket, ExplainResult, GitHabits, GitPeople, LedgerEntry, LocalModelStatus, ModelsStatus, OffhoursReport, OnboardingAnswers, OnboardingQuestions, OnboardingResult, Pack, Presence, QueueItem, QuietHours,
+  AgentHealth, AgentKind, AgentRun, AgentRunDetail, AttentionDigest, AttentionPatch, AttentionPeek, AttentionSettings, AttentionWhy, Briefing, CalPerson, CalSuggestion, CalendarWeek, CoachDecision, CoachOutcome, ExtensionName, EvidencePacket, ExplainResult, GitHabits, GitPeople, LedgerEntry, LocalModelStatus, ModelsStatus, OffhoursReport, OnboardingAnswers, OnboardingQuestions, OnboardingResult, Pack, Presence, QueueItem, QuietHours,
   PrivacySummary, Prepared, Replay, Routine, RuleProposal, SpawnKind, Transitions, WorkGraph,
 } from "./types";
 import { classify, type Fallback } from "./lib/fallback";
@@ -35,6 +35,7 @@ import localModelFx from "./fixtures/localmodel-status.json";
 import attentionSettingsFx from "./fixtures/attention-settings.json";
 import attentionDigestFx from "./fixtures/attention-digest.json";
 import attentionNextFx from "./fixtures/attention-next.json";
+import attentionWhyFx from "./fixtures/attention-why.json";
 import evidencePacketFx from "./fixtures/evidence-packet.json";
 import evidenceExplainFx from "./fixtures/evidence-explain.json";
 import calPeopleFx from "./fixtures/calendar-people.json";
@@ -504,6 +505,10 @@ export const api = {
   /** The "Today" strip, from fixed lines and counts. `kind` is now, morning or return. */
   attentionDigest: (person?: string, kind: "now" | "morning" | "return" = "now") =>
     read<AttentionDigest>(`/attention/digest${qs({ person, kind })}`, () => ({ data: dataOf<AttentionDigest>(attentionDigestFx), meta: metaOf(attentionDigestFx) }), ENGINE_URL, { layer: "attention", soft: true }),
+
+  /** Why one item was shown, held or dropped: a fixed line and the steps. Metadata only. */
+  attentionWhy: (item: string) =>
+    read<AttentionWhy>(`/attention/why${qs({ item })}`, () => ({ data: dataOf<AttentionWhy>(attentionWhyFx), meta: metaOf(attentionWhyFx) }), ENGINE_URL, { layer: "attention", soft: true }),
 
   /** Passive counts for the banner. A peek delivers nothing; the desktop owns what is drawn on screen. */
   attentionPeek: (person?: string) =>

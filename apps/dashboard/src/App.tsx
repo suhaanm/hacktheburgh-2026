@@ -1,12 +1,18 @@
 import { Component, Suspense, lazy, useCallback, useEffect, useState, type ReactNode } from "react";
 import { api, ENGINE_LABEL, forgetBackoff, refreshQueueBadge } from "./api";
-import { navigate, screenOf, useRoute, type Screen } from "./router";
+import { DEFAULT_SCREEN, navigate, screenOf, useRoute, type Screen } from "./router";
 import { dataMode, getState, resetSources, setState, useAppState } from "./store";
 import { Loading } from "./components/common";
 import { ToastHost, useToast } from "./components/Toasts";
 import { AttentionBanner } from "./components/AttentionBanner";
 import { AuthContextProvider, createAuth, useAuth } from "./auth";
 import { extensionsFrom } from "./lib/ext";
+import { RoleNav } from "./components/home/RoleNav";
+import { ViewAsSwitch } from "./components/home/ViewAsSwitch";
+import { ScreenFrame } from "./components/home/ScreenFrame";
+import { Overlays } from "./components/home/Overlays";
+import { labelOf } from "./components/home/navModel";
+import "./components/home/home.css";
 
 const screens: Record<Screen, ReturnType<typeof lazy>> = {
   genome: lazy(() => import("./screens/Genome")),
@@ -26,36 +32,13 @@ const screens: Record<Screen, ReturnType<typeof lazy>> = {
   models: lazy(() => import("./screens/Models")),
   git: lazy(() => import("./screens/Git")),
   notices: lazy(() => import("./screens/Notices")),
+  home: lazy(() => import("./screens/Home")),
+  firm: lazy(() => import("./screens/Firm")),
+  predictions: lazy(() => import("./screens/Predictions")),
+  repeats: lazy(() => import("./screens/Repeats")),
 };
 
-interface NavItem { id: Screen; label: string; hint: string }
-
-/** The seven screens a first visit needs. The work ribbon, presence and work graph come first because they are the product. */
-const MAIN: NavItem[] = [
-  { id: "genome", label: "Genome", hint: "Where time is lost" },
-  { id: "presence", label: "Presence", hint: "Your working week" },
-  { id: "graph", label: "Graph", hint: "How your work connects" },
-  { id: "growth", label: "Growth", hint: "How much less help you need" },
-  { id: "routines", label: "Routines", hint: "What could run for you" },
-  { id: "queue", label: "Queue", hint: "Waiting for approval" },
-  { id: "evidence", label: "Evidence", hint: "What we can prove" },
-];
-/** Everything else, one click away. Each of the second group is an optional layer: with it off the screen shows example data and says so. */
-const MORE: NavItem[] = [
-  { id: "today", label: "Today", hint: "The current task" },
-  { id: "memory", label: "Memory", hint: "What it knows about you" },
-  { id: "notices", label: "Notices", hint: "How loudly it speaks" },
-  { id: "onboarding", label: "Set up", hint: "Choose a role" },
-];
-const BEYOND: NavItem[] = [
-  { id: "week", label: "Week", hint: "Your calendar, against an expert's" },
-  { id: "briefing", label: "Briefing", hint: "Up to three things for today" },
-  { id: "git", label: "Git habits", hint: "How you commit, against experts" },
-  { id: "agents", label: "Agents", hint: "Background helpers" },
-  { id: "models", label: "Models", hint: "Which model, how fast, what it costs" },
-  { id: "privacy", label: "Privacy", hint: "What was sent to a model" },
-];
-const NAV: NavItem[] = [...MAIN, ...MORE, ...BEYOND];
+/** The menu lives in components/home/navModel.ts (one data file for the menu, palette, tour and the Admin route gate). */
 
 type Theme = "auto" | "light" | "dark";
 function loadTheme(): Theme {
@@ -90,41 +73,9 @@ class Boundary extends Component<{ children: ReactNode; screen: string }, { erro
   }
 }
 
-function NavLink({ n, current, pending }: { n: NavItem; current: string; pending: number }) {
-  return (
-    <a href={`#/${n.id}`} className="nav__link" aria-current={current === n.id ? "page" : undefined}>
-      <span className="nav__label">{n.label}</span>
-      {n.id === "queue" && pending > 0 && <span className="nav__count" aria-label={`${pending} waiting`}>{pending}</span>}
-      <span className="nav__hint">{n.hint}</span>
-    </a>
-  );
-}
-
-/** The quieter screens, folded away until asked for. It opens by itself when you are on one of them. */
-function NavMore({ current, pending }: { current: string; pending: number }) {
-  const inside = [...MORE, ...BEYOND].some((n) => n.id === current);
-  const [open, setOpen] = useState<boolean>(() => { try { return window.localStorage.getItem("understudy-nav-more") === "1"; } catch { return false; } });
-  useEffect(() => { if (inside) setOpen(true); }, [inside]);
-  const toggle = () => { const v = !open; setOpen(v); try { window.localStorage.setItem("understudy-nav-more", v ? "1" : "0"); } catch { /* storage can be blocked */ } };
-  return (
-    <div className="nav__more">
-      <button type="button" className="nav__morebtn" aria-expanded={open} aria-controls="nav-more" onClick={toggle}>
-        <span className="nav__label">More</span>
-        <span className="nav__chev" aria-hidden="true" data-open={open} />
-        {!open && <span className="nav__hint">Today, Memory, Week, Briefing, Agents and more</span>}
-      </button>
-      <div id="nav-more" className="nav__morelist" hidden={!open}>
-        {MORE.map((n) => <NavLink key={n.id} n={n} current={current} pending={pending} />)}
-        <p className="nav__group t-label">Beyond the screen</p>
-        {BEYOND.map((n) => <NavLink key={n.id} n={n} current={current} pending={pending} />)}
-      </div>
-    </div>
-  );
-}
-
 function Wordmark() {
   return (
-    <a className="wordmark" href="#/genome" aria-label="Understudy home">
+    <a className="wordmark" href={`#/${DEFAULT_SCREEN}`} aria-label="Understudy home">
       <svg width="22" height="16" viewBox="0 0 22 16" aria-hidden="true">
         <rect x="0" y="2" width="14" height="4.5" rx="1" fill="var(--expert)" />
         <rect x="4" y="9.5" width="18" height="4.5" rx="1" fill="var(--novice)" />
@@ -286,10 +237,10 @@ function Shell() {
   }, []);
   // The data note describes the screen you are on, so count sources afresh for each screen.
   useEffect(() => { resetSources(); }, [current]);
-  useEffect(() => { setMenu(false); window.scrollTo(0, 0); document.title = `${NAV.find((n) => n.id === current)?.label ?? "Understudy"} · Understudy`; }, [current]);
-  useEffect(() => { if (current === "unknown") navigate("/genome"); }, [current]);
+  useEffect(() => { setMenu(false); window.scrollTo(0, 0); document.title = `${labelOf(current)} · Understudy`; }, [current]);
+  useEffect(() => { if (current === "unknown") navigate(`/${DEFAULT_SCREEN}`); }, [current]);
 
-  const Screen = current === "unknown" ? screens.genome : screens[current];
+  const Screen = current === "unknown" ? screens[DEFAULT_SCREEN] : screens[current];
   return (
     <div className="app">
       <a className="skip" href="#main">Skip to the screen</a>
@@ -303,23 +254,26 @@ function Shell() {
       <aside className="side" data-open={menu}>
         <div className="side__brand"><Wordmark /></div>
         <nav id="nav" aria-label="Screens" className="nav">
-          {MAIN.map((n) => <NavLink key={n.id} n={n} current={current} pending={s.pendingQueue} />)}
-          <NavMore current={current} pending={s.pendingQueue} />
+          <RoleNav current={current} pending={s.pendingQueue} />
         </nav>
         <div className="side__foot">
           <AuthControl />
           <DataNote />
+          <ViewAsSwitch />
           <ThemeSwitch />
         </div>
       </aside>
       <main id="main" className="main" tabIndex={-1}>
         <AttentionBanner />
-        <Boundary screen={current}>
-          <Suspense fallback={<div className="page"><Loading label="Loading screen" /></div>}>
-            <Screen key={`${current}-${nonce}`} />
-          </Suspense>
-        </Boundary>
+        <ScreenFrame current={current}>
+          <Boundary screen={current}>
+            <Suspense fallback={<div className="page"><Loading label="Loading screen" /></div>}>
+              <Screen key={`${current}-${nonce}`} />
+            </Suspense>
+          </Boundary>
+        </ScreenFrame>
       </main>
+      <Overlays />
     </div>
   );
 }

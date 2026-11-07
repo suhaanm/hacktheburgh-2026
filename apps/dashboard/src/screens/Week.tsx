@@ -5,7 +5,9 @@ import { useAppState } from "../store";
 import { ChartFoot, EmptyState, ErrorState, ExampleBadge, Loading, OriginBadge, PageHead, SourceNote } from "../components/common";
 import { WeekLegend, WeekRibbon } from "../components/WeekRibbon";
 import { AlignLegend, CalAlignment } from "../components/CalAlignment";
-import { DAY_NAMES, KIND_LABEL, alignmentTotals, featureLabel, featureUnit, fmtFeature, gapClear, peopleByGroup, sortGaps, spans, toMinutes, weekHeadline, weekLabel, weekWindow } from "../lib/week";
+import { Hint } from "../components/Hint";
+import { Details } from "../components/ui";
+import { DAY_NAMES, KIND_LABEL, alignmentTotals, featureLabel, featureUnit, fmtFeature, gapClear, peopleByGroup, sortGaps, spans, splitSentence, toMinutes, weekHeadline, weekLabel, weekWindow } from "../lib/week";
 import { fmtInterval } from "../lib/format";
 import type { CalPerson, CalSuggestion, CalendarWeek, GapRow } from "../types";
 
@@ -43,8 +45,8 @@ export default function Week() {
     <div className="page page--wide">
       <PageHead
         eyebrow="Week"
-        title={weekHeadline(d.features, d.expert)}
-        lede="Your week of calendar blocks next to the expert's. Only the kind of block, its time and how many people were in it are used. No titles or names exist in this data."
+        title={weekHeadline(d.features, d.expert, me && d.person === me ? null : entry?.label ?? "This person")}
+        lede="Your calendar blocks next to the expert's. No titles or names exist in this data."
         aside={<><OriginBadge meta={w.meta} /><ExampleBadge why={w.why} /></>}
       />
       <SourceNote why={w.why} />
@@ -63,7 +65,7 @@ export default function Week() {
               {d.expert.days && d.expert.days.length > 0 && <WeekRibbon title={`The expert's week${typeof d.expert.person === "string" ? ` (${d.expert.person})` : ""}`} days={d.expert.days} window={win} />}
             </div>
             <WeekLegend />
-            <ChartFoot meta={w.meta} extra={d.timezone ? <span>times in <b>{d.timezone}</b></span> : undefined} />
+            <ChartFoot variant="about" meta={w.meta} extra={<span>Only the kind of block, its time and how many people were in it are used.{d.timezone ? <> Times are in <b>{d.timezone}</b>.</> : null}</span>} />
             <WeekTable days={d.days} />
           </div>
         )}
@@ -117,19 +119,18 @@ function Distance({ d, meta }: { d: CalendarWeek; meta: ReturnType<typeof useLoa
     <section className="section" aria-labelledby="dist-h">
       <div className="section__head">
         <h2 className="section__title" id="dist-h">How far this week is from the nearest expert's</h2>
-        <p className="section__sub">The two weeks are lined up block by block, the way the work ribbon lines up two sequences of steps.</p>
+        <p className="section__sub">The two weeks lined up block by block.</p>
       </div>
       <div className="stats">
-        <div className="stat"><span className="stat__label">Distance</span><span className="stat__value tabular">{r.distance.toFixed(2)}</span><span className="stat__meta">0 is identical, 1 is entirely different</span></div>
-        {r.placebo && <div className="stat"><span className="stat__label">Placebo</span><span className="stat__value tabular">{r.placebo.distance.toFixed(2)}</span><span className="stat__meta">expert weeks against each other {fmtInterval(r.placebo.ci, 2)}{r.placebo.n_experts ? `, ${r.placebo.n_experts} experts` : ""}</span></div>}
+        <div className="stat"><span className="stat__label">Distance<Hint label="About the distance">0 is identical, 1 is entirely different.</Hint></span><span className="stat__value tabular">{r.distance.toFixed(2)}</span></div>
+        {r.placebo && <div className="stat"><span className="stat__label">Placebo<Hint label="About the placebo">Expert weeks against each other, interval {fmtInterval(r.placebo.ci, 2)}{r.placebo.n_experts ? `, ${r.placebo.n_experts} experts` : ""}. Even two experts' weeks differ by about this much, so a distance near it is normal.</Hint></span><span className="stat__value tabular">{r.placebo.distance.toFixed(2)}</span></div>}
         <div className="stat"><span className="stat__label">Out of step</span><span className="stat__value tabular">{pct(t.outOfStep)}</span><span className="stat__meta">{Math.round(t.outOfStep)} of {Math.round(t.total)} minutes</span></div>
       </div>
       <div className="chart chart--wide stack">
         <CalAlignment alignment={r.alignment ?? []} />
         <AlignLegend />
-        <ChartFoot brief meta={meta} extra={r.nearest_expert ? <span>nearest expert: <b>{r.nearest_expert}</b></span> : undefined} />
+        <ChartFoot variant="about" meta={meta} brief extra={r.nearest_expert ? <span>Nearest expert: <b>{r.nearest_expert}</b>.</span> : undefined} />
       </div>
-      <p className="note">Read the placebo as the floor: even two experts' weeks differ by about that much, so a distance near it is normal.</p>
     </section>
   );
 }
@@ -137,15 +138,14 @@ function Distance({ d, meta }: { d: CalendarWeek; meta: ReturnType<typeof useLoa
 function WeekTable({ days }: { days: CalendarWeek["days"] }) {
   const fmt = (v: string | number) => { const m = toMinutes(v); return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; };
   return (
-    <details className="details-lite">
-      <summary>See your week as a table</summary>
+    <Details summary="See your week as a table" wide>
       <div className="table-wrap"><table className="table">
         <thead><tr><th>Day</th><th>Block</th><th>From</th><th>To</th><th>People</th></tr></thead>
         <tbody>{days.flatMap((day) => spans(day.blocks).map((s, i) => (
           <tr key={`${day.dow}-${i}`}><td>{DAY_NAMES[day.dow] ?? day.dow}</td><td>{KIND_LABEL[s.kind]}</td><td className="num">{fmt(s.from)}</td><td className="num">{fmt(s.to)}</td><td>{s.attendees ? BUCKET[s.attendees] : ""}</td></tr>
         )))}</tbody>
       </table></div>
-    </details>
+    </Details>
   );
 }
 
@@ -174,7 +174,7 @@ function GapTable({ rows, meta, note }: { rows: GapRow[]; meta: ReturnType<typeo
     <section className="section" aria-labelledby="gap-h">
       <div className="section__head">
         <h2 className="section__title" id="gap-h">Where your week differs</h2>
-        <p className="section__sub">Your number, the expert's, and the difference with its 95% interval. {clear} of {rows.length} differences are clear: their interval stays on one side of zero. The interval covers the spread among the expert references only{note ? ` (${note})` : ""}.</p>
+        <p className="section__sub">Your number, the expert's, and the gap.</p>
       </div>
       <div className="table-wrap"><table className="table">
         <thead><tr><th>What</th><th className="num">You</th><th className="num">Expert</th><th className="num">Difference</th><th>95% interval</th><th className="hide-narrow" aria-hidden="true" /><th className="hide-narrow">Experts range from</th><th className="hide-narrow">Read</th></tr></thead>
@@ -191,7 +191,7 @@ function GapTable({ rows, meta, note }: { rows: GapRow[]; meta: ReturnType<typeo
           </tr>))}</tbody>
       </table></div>
       {rows.length > SHOWN && <div><button type="button" className="btn btn--quiet btn--sm" aria-expanded={all} onClick={() => setAll((v) => !v)}>{all ? "Show fewer" : `Show all ${rows.length}`}</button></div>}
-      <ChartFoot brief meta={meta} />
+      <ChartFoot variant="about" brief meta={meta} extra={<span>{clear} of {rows.length} differences are clear: their 95% interval stays on one side of zero. The interval covers the spread among the expert references only{note ? ` (${note})` : ""}.</span>} />
     </section>
   );
 }
@@ -204,30 +204,35 @@ function Suggestions({ state }: { state: ReturnType<typeof useLoad<CalSuggestion
     <section className="section" aria-labelledby="sug-h">
       <div className="section__head">
         <h2 className="section__title" id="sug-h">Ideas for a calmer week</h2>
-        <p className="section__sub">Chosen by code from a fixed list, then worded from the numbers above. They cite your numbers and the expert's. None of them is acted on.</p>
+        <p className="section__sub">Chosen by code from a fixed list and worded from your numbers. None is acted on.</p>
       </div>
       {list.length === 0 ? <EmptyState title="Nothing to suggest" body="Your week is close to the expert's, so there is nothing worth changing right now." /> : (
         <div className="sug-grid">
-          {list.map((s) => (
-            <article key={s.id} className="card card__pad sug" aria-label={s.title ?? s.text}>
-              {s.title && <h3 className="sug__title">{s.title}</h3>}
-              <p className="sug__text">{s.text}</p>
-              <dl className="sug__nums">
-                {Object.keys(s.numbers).map((k) => (
-                  <div key={k}><dt>{featureLabel(k)}</dt><dd><b className="tabular">{val(k, s.numbers[k])}</b><span className="u-muted"> you</span> · <span className="tabular">{s.expert_ref[`${k}_reference`] != null ? val(k, s.expert_ref[`${k}_reference`]) : s.expert_ref[k] != null ? val(k, s.expert_ref[k]) : "not given"}</span><span className="u-muted"> expert</span></dd></div>
-                ))}
-              </dl>
-              <div className="row">
-                <span className="pill">{s.risk === "low" ? "Low risk" : s.risk}</span>
-                <span className="pill">{s.template.replace(/_/g, " ")}</span>
-                {s.evidence_weeks ? <span className="pill">seen over {s.evidence_weeks} weeks</span> : null}
-              </div>
-              <p className="note">{s.can_draft ? "Draft only. Nothing is sent, booked or changed." : "No draft is available for this one. Nothing is sent, booked or changed."}</p>
-            </article>
-          ))}
+          {list.map((s) => {
+            const [first, rest] = splitSentence(s.text);
+            return (
+              <article key={s.id} className="card card__pad sug" aria-label={s.title ?? s.text}>
+                {s.title && <h3 className="sug__title">{s.title}</h3>}
+                <p className="sug__text">{first}</p>
+                <Details summary="How this was worked out">
+                  <div className="stack" style={{ gap: "var(--space-2)" }}>
+                    {rest && <p className="note">{rest}</p>}
+                    <dl className="sug__nums">
+                      {Object.keys(s.numbers).map((k) => (
+                        <div key={k}><dt>{featureLabel(k)}</dt><dd><b className="tabular">{val(k, s.numbers[k])}</b><span className="u-muted"> you</span> · <span className="tabular">{s.expert_ref[`${k}_reference`] != null ? val(k, s.expert_ref[`${k}_reference`]) : s.expert_ref[k] != null ? val(k, s.expert_ref[k]) : "not given"}</span><span className="u-muted"> expert</span></dd></div>
+                      ))}
+                    </dl>
+                    <p className="note">{s.can_draft ? "A draft can be prepared." : "No draft is available for this one."}{s.evidence_weeks ? ` Seen over ${s.evidence_weeks} weeks.` : ""}</p>
+                  </div>
+                </Details>
+                {s.risk !== "low" && <div className="row"><span className="pill">{s.risk}</span></div>}
+                <p className="note">Nothing is sent, booked or changed.</p>
+              </article>
+            );
+          })}
         </div>
       )}
-      <ChartFoot brief meta={state.meta} />
+      <ChartFoot variant="about" brief meta={state.meta} />
     </section>
   );
 }

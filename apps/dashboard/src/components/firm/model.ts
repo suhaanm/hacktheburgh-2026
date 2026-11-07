@@ -3,7 +3,7 @@
 // it is tested without a browser.
 import type {
   AdminInsight, CurvePoint, DrillColumn, DrillRow, Est, FirmAggregate, FirmRole, Interval, Origin, OnboardingRole, RoleCompare, RoleHabit,
-  RoleMeasure, TenureBand, Trend, UserRow, Verdict, WireDrill, WireFirm, WireOnboarding, WireOverview, WirePointer, WireRisk, WireRoles,
+  RoleMeasure, RoleSummary, TenureBand, Trend, UserRow, Verdict, WireDrill, WireFirm, WireOnboarding, WireOverview, WirePointer, WireRisk, WireRoles,
   WireSharing, WireWhy, WireWorker, PointerTarget,
 } from "./wire";
 import { TENURE_BANDS, TRENDS } from "./wire";
@@ -105,6 +105,7 @@ export function insight(v: unknown): AdminInsight | null {
     id, headline, role: str(v.role) ?? "all", effect: e, n: num(v.n), n_unit: str(v.n_unit) ?? "people", origin: origin(v.origin), drill: str(v.drill) ?? id,
     kind: str(v.kind), polarity: polarity(v.polarity), polarity_label: str(v.polarity_label), glyph: str(v.glyph), a11y_label: str(v.a11y_label),
     position: isNum(v.position) ? v.position : null, text: str(v.text), badge: str(v.badge), split: str(v.split), statement: str(v.statement),
+    action: isObj(v.action) && str(v.action.to) ? { id: str(v.action.id) ?? "open", label: str(v.action.label) ?? "Open", to: str(v.action.to) as string, query: str(v.action.query) } : null,
   };
 }
 
@@ -114,15 +115,32 @@ export function normaliseRisk(v: unknown): WireRisk | null {
   return { approval_backlog_age_h: a, injection_pauses_30d: num(v.injection_pauses_30d), kill_events_30d: num(v.kill_events_30d), open_approvals: num(v.open_approvals) };
 }
 
+function roleSummary(v: unknown): RoleSummary | null {
+  if (!isObj(v) || !str(v.role)) return null;
+  const t = isObj(v.trend) ? v.trend : null;
+  return {
+    role: str(v.role) as string, name: str(v.name) ?? (str(v.role) as string), people: num(v.people), enough: v.enough !== false, n_expert: num(v.n_expert), n_junior: num(v.n_junior),
+    reason: str(v.reason), gap: est(v.gap), trend: t ? { cls: trend(t.class), label: str(t.label) } : null,
+  };
+}
+
 export function normaliseOverview(body: unknown): WireOverview {
   const o = (isObj(dataOf(body)) ? dataOf(body) : {}) as Obj;
   const f = isObj(o.firm) ? o.firm : {};
   const c = isObj(o.coverage) ? o.coverage : {};
+  const sup = isObj(o.suppressed) ? o.suppressed : null;
+  const counts = (v: unknown): Record<string, number> => { const out: Record<string, number> = {}; if (isObj(v)) for (const [k, x] of Object.entries(v)) if (isNum(x)) out[k] = x; return out; };
   return {
     firm: { users: num(f.users), roles: num(f.roles), label: str(f.label) ?? "synthetic firm" },
     top: arr(o.top).map(insight).filter((i): i is AdminInsight => !!i).slice(0, 7),
-    coverage: { users: num(c.users), enough_data: num(c.enough_data), min_occurrences: num(c.min_occurrences, 20) },
+    coverage: {
+      users: num(c.users), enough_data: num(c.enough_data), min_occurrences: num(c.min_occurrences, 20), by_status: counts(c.by_status),
+      roles: arr(c.roles).filter(isObj).filter((r) => str(r.role)).map((r) => ({ role: str(r.role) as string, name: str(r.name) ?? (str(r.role) as string), users: num(r.users), enough_data: num(r.enough_data) })),
+    },
     risk: normaliseRisk(o.risk),
+    role_comparison: arr(o.role_comparison).map(roleSummary).filter((r): r is RoleSummary => !!r),
+    suppressed: sup ? { count: num(sup.count), by_reason: counts(sup.by_reason) } : null,
+    statement: str(o.statement),
   };
 }
 
@@ -173,7 +191,7 @@ export function normaliseRoles(body: unknown): WireRoles {
   return { roles, same_scale: { min: num(s.min, 0), max: num(s.max, 1) } };
 }
 
-function userRow(v: unknown): UserRow | null {
+export function userRow(v: unknown): UserRow | null {
   if (!isObj(v) || !str(v.id)) return null;
   const t = isObj(v.time_to_independence) ? v.time_to_independence : {};
   const skills = arr(v.skills).filter(isObj).filter((k) => str(k.skill) || str(k.label)).map((k) => ({
@@ -184,7 +202,8 @@ function userRow(v: unknown): UserRow | null {
     last_seen_days: isNum(v.last_seen_days) ? v.last_seen_days : null, skills, tenure_band: tenure(v.tenure_band), tenure_weeks: isNum(v.tenure_weeks) ? v.tenure_weeks : null,
     trend: trend(v.trend), independence: est(v.independence), assisted_share: est(v.assisted_share),
     time_to_independence: { reached: t.reached === true, value: isNum(t.value) ? t.value : null, unit: str(t.unit) ?? "occurrences" },
-    automations_running: num(v.automations_running), n: num(v.n),
+    automations_running: num(v.automations_running), n: num(v.n), n_recent: isNum(v.n_recent) ? v.n_recent : null,
+    automation: isObj(v.automation) ? { minutes: num(v.automation.minutes), routines_approved: num(v.automation.routines_approved), runs_done: num(v.automation.runs_done) } : null,
   };
 }
 function aggregate(v: unknown, users: number): FirmAggregate {
@@ -200,13 +219,17 @@ export function normaliseFirm(body: unknown): WireFirm {
   const o = (isObj(dataOf(body)) ? dataOf(body) : {}) as Obj;
   const roles: FirmRole[] = arr(o.roles).filter(isObj).filter((r) => str(r.role)).map((r) => {
     const users = arr(r.users).map(userRow).filter((u): u is UserRow => !!u);
-    return { role: str(r.role) as string, name: str(r.name) ?? (str(r.role) as string), merged: r.merged === true, users, aggregate: aggregate(r.aggregate, users.length) };
+    const t = isObj(r.trend) ? r.trend : null;
+    return {
+      role: str(r.role) as string, name: str(r.name) ?? (str(r.role) as string), merged: r.merged === true, users, aggregate: aggregate(r.aggregate, users.length),
+      trend: t ? { cls: trend(t.class), label: str(t.label), n_people: isNum(t.n_people) ? t.n_people : null, slope_per_4w: est(t.slope_per_4w) } : null,
+    };
   });
   const p = isObj(o.privacy) ? o.privacy : {};
   const t = isObj(o.totals) ? o.totals : {};
   const all = roles.reduce((a, r) => a + r.users.length, 0);
   return {
-    roles, privacy: { min_group: num(p.min_group, 5), merged_roles: arr(p.merged_roles).filter((x): x is string => typeof x === "string") },
+    roles, privacy: { min_group: num(p.min_group, 5), merged_roles: arr(p.merged_roles).filter((x): x is string => typeof x === "string"), note: str(p.note) },
     totals: { users: num(t.users, all), enough_data: num(t.enough_data, roles.reduce((a, r) => a + r.users.filter((u) => u.trend !== "not_enough_data").length, 0)) },
   };
 }
@@ -217,13 +240,19 @@ export function normaliseOnboarding(body: unknown): WireOnboarding {
   const points = (v: unknown): CurvePoint[] => arr(v).filter(isObj).filter((p) => isNum(p.x) && isNum(p.y)).map((p): CurvePoint => ({ x: p.x as number, y: p.y as number, lo: num(p.lo, p.y as number), hi: num(p.hi, p.y as number), n: isNum(p.n) ? p.n : isNum(p.n_at_risk) ? p.n_at_risk : null }));
   const roles: OnboardingRole[] = arr(o.roles).filter(isObj).filter((r) => str(r.role)).map((r) => ({
     role: str(r.role) as string, name: str(r.name) ?? (str(r.role) as string), n: num(r.n),
-    curve: points(r.curve), km: points(r.km), censored: isNum(r.censored) ? r.censored : null, reason: str(r.reason),
+    curve: points(r.curve), km: points(r.km), censored: isNum(r.censored) ? r.censored : null, reason: str(r.reason), at_risk_at_target: isNum(r.at_risk_at_target) ? r.at_risk_at_target : null,
     median_to_target: est(r.median_to_target), reached_share: est(r.reached_share),
   }));
-  return { target: { value: num(t.value, 0.6), label: str(t.label) ?? "design target", rule: str(t.rule) }, x_unit: str(o.x_unit) ?? "occurrences", roles };
+  return {
+    target: { value: num(t.value, 0.8), label: str(t.label) ?? "design target", rule: str(t.rule), note: str(t.note), occurrences: isNum(t.occurrences) ? t.occurrences : null },
+    method: str(o.method), x_unit: str(o.x_unit) ?? "occurrences", roles,
+  };
 }
 
 /* -- Formatting -------------------------------------------------------------------------------- */
+
+/** The wire says "occurrences"; the Firm screens say "steps", as everywhere else people read them. */
+export const unitWord = (u: string): string => (u === "occurrences" ? "steps" : u);
 
 /** 0.624 -> "62%". */
 export const pct = (x: number): string => `${Math.round(x * 100)}%`;
@@ -318,9 +347,12 @@ export function crossing(points: CurvePoint[], target: number): number | null {
 
 export function effectText(e: AdminInsight["effect"]): string | null {
   if (!e) return null;
+  // An exact count has no interval to give, and its headline already says it: show nothing rather than "(no interval yet)".
+  if (!e.ci && e.unit === "count") return null;
   const u = e.unit === "share" ? "" : e.unit === "points" ? " points" : e.unit ? ` ${e.unit}` : "";
   const f = (x: number) => (e.unit === "share" ? pct(x) : trim(x));
-  return e.ci ? `${f(e.value)}${u} (${f(e.ci[0])} to ${f(e.ci[1])})` : `${f(e.value)}${u} (no interval yet)`;
+  if (!e.ci) return e.unit === "hours" || e.unit === "minutes" ? `${f(e.value)}${u}` : `${f(e.value)}${u} (no interval yet)`;
+  return `${f(e.value)}${u} (${f(e.ci[0])} to ${f(e.ci[1])})`;
 }
 
 export const coverageShare = (c: WireOverview["coverage"]): number => (c.users > 0 ? c.enough_data / c.users : 0);
@@ -330,3 +362,93 @@ export const verdictText = (v: Verdict): string => (v === "gap" ? "A gap we can 
 
 /** Origin badge words. */
 export const originWord = (o: Origin): string => (o === "real" ? "real" : o);
+
+/* -- The worker's own transparency view ---------------------------------------------------------------------------------------- */
+
+const LEVEL_WORD: Record<string, string> = { expert: "expert", junior: "junior" };
+const ROLE_WORD: Record<string, string> = { "benefits-processor": "Benefits processor", "data-analyst": "Data analyst", programmer: "Programmer" };
+export const roleWord = (role: string | null | undefined): string => (role ? ROLE_WORD[role] ?? role : "");
+
+/**
+ * The exact summary an admin sees about a worker, as label and value lines. Numbers carry their intervals (the admin's view prints them) and
+ * nothing here is a score or a rank. Returns [] for a preview the page cannot read.
+ */
+export function previewLines(preview: Record<string, unknown> | null): [string, string][] {
+  const u = preview ? userRow(preview) : null;
+  if (!u) return [];
+  const lines: [string, string][] = [];
+  lines.push(["Shown as", u.label]);
+  if (u.role) lines.push(["Role", `${roleWord(u.role)}${u.level ? `, ${LEVEL_WORD[u.level]}` : ""}`]);
+  lines.push(["Time in role", TENURE_LABEL[u.tenure_band]]);
+  lines.push(["Help needed over time", TREND_LABEL[u.trend]]);
+  lines.push(["Finished without help, recent steps", fmtShare(u.independence)]);
+  lines.push(["Needed help, all steps", fmtShare(u.assisted_share)]);
+  const t = u.time_to_independence;
+  lines.push(["Steps until you stopped needing help", t.reached && t.value !== null ? `${trim(t.value)} ${t.unit}` : "not reached yet"]);
+  lines.push(["Routines running", String(u.automations_running)]);
+  lines.push(["Steps counted", String(u.n)]);
+  if (u.last_seen_days !== null) lines.push(["Last seen", u.last_seen_days === 0 ? "today" : `${u.last_seen_days} ${u.last_seen_days === 1 ? "day" : "days"} ago`]);
+  return lines;
+}
+
+/* -- Drill-down tables ------------------------------------------------------------------------------------------------------- */
+
+const isCiKey = (k: string): boolean => /(^|_)ci$/.test(k);
+
+/** One cell: the number in its unit, with the interval beside it when there is one. A share is shown as a percentage. */
+export function fmtCell(value: unknown, unit: string | null, ci: Interval | null = null): string {
+  const one = (x: number): string => (unit === "share" ? pct(x) : unit === "seconds" ? `${trim(x)} s` : unit === "hours" ? `${trim(x)} h` : trim(x));
+  if (value === null || value === undefined) return "not enough data";
+  if (typeof value === "string") return value;
+  if (Array.isArray(value) && value.length === 2 && isNum(value[0]) && isNum(value[1])) return `${one(value[0])} to ${one(value[1])}`;
+  if (!isNum(value)) return "not enough data";
+  return ci ? `${one(value)} (${one(ci[0])} to ${one(ci[1])})` : one(value);
+}
+
+export interface DrillView { heads: { key: string; label: string }[]; rows: { label: string; n: number | null; group: string | null; cells: string[] }[] }
+
+/**
+ * A drill-down table ready to print. An interval column ("gap_ci", or plain "ci" for the first value column) is folded into the figure it belongs to,
+ * so the reader sees "38.3 s (35.5 to 41.1)" in one cell instead of a separate column of pairs.
+ */
+export function drillTable(columns: DrillColumn[], rows: DrillRow[]): DrillView {
+  const values = columns.filter((c) => !isCiKey(c.key));
+  const owner = (ci: DrillColumn): string | null => (ci.key === "ci" ? values[0]?.key ?? null : ci.key.replace(/_ci$/, ""));
+  const ciFor = new Map<string, DrillColumn>();
+  for (const c of columns) if (isCiKey(c.key)) { const o = owner(c); if (o && values.some((v) => v.key === o)) ciFor.set(o, c); }
+  const shown = columns.filter((c) => !isCiKey(c.key) || ![...ciFor.values()].includes(c));
+  return {
+    heads: shown.map((c) => ({ key: c.key, label: c.label })),
+    rows: rows.map((r) => ({
+      label: r.label, n: r.n, group: r.group,
+      cells: shown.map((c) => {
+        const iv = ciFor.get(c.key);
+        const ci = iv ? interval(r.values[iv.key]) : null;
+        return fmtCell(r.values[c.key], c.unit, ci);
+      }),
+    })),
+  };
+}
+
+/* -- Role comparison words --------------------------------------------------------------------------------------------------- */
+
+const points = (v: number): string => `${v > 0 ? "+" : v < 0 ? "-" : ""}${Math.abs(Math.round(v * 100))}`;
+
+/**
+ * The gap between juniors and experts in one or two plain sentences. A gap whose interval spans zero is said to be unreadable, not small.
+ * `independence` is a share (the gap is in share units); `time` is seconds per case beyond the experts.
+ */
+export function roleGapLine(independence: RoleMeasure | undefined, time: RoleMeasure | undefined): string {
+  const parts: string[] = [];
+  const g = independence?.gap;
+  if (g) {
+    const dir = g.value < 0 ? "fewer" : "more";
+    const iv = g.ci ? ` (${points(g.ci[0])} to ${points(g.ci[1])} points)` : " (no interval yet)";
+    parts.push(`Juniors finish ${Math.abs(Math.round(g.value * 100))} points ${dir} of their steps without help${iv}.`);
+  }
+  const t = time?.gap;
+  if (t) parts.push(`They take ${fmtNum(t, "s")} ${t.value >= 0 ? "more" : "less"} per case.`);
+  if (parts.length === 0) return "";
+  if (independence && independence.verdict !== "gap") parts.push("We cannot tell yet whether this is a real gap.");
+  return parts.join(" ");
+}

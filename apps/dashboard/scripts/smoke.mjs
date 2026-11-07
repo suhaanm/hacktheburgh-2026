@@ -19,6 +19,16 @@ page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
 page.on("console", (m) => { if (m.type() === "error" && !/ERR_CONNECTION_REFUSED|Failed to load resource/.test(m.text())) errors.push(`console: ${m.text()}`); });
 let failed = 0;
 const check = (name, ok, extra = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${name}${extra ? "  " + extra : ""}`); if (!ok) failed++; };
+// A Hint opens on click and its note is the button's description: read it from there, then close it. A closed Details is opened before its text is read.
+const hintText = async (scope, name) => {
+  const b = scope.getByRole("button", { name }).first();
+  await b.click();
+  const id = await b.getAttribute("aria-describedby");
+  const t = id ? await page.locator(`[id="${id}"]`).innerText() : "";
+  await page.keyboard.press("Escape");
+  return t;
+};
+const openAll = (scope) => scope.locator("details").evaluateAll((els) => els.forEach((e) => { e.open = true; }));
 const go = async (hash, wait = 700) => {
   // Same-hash navigations do not remount, so hop through another route first.
   if (page.url().endsWith(`#${hash}`)) { await page.goto(`${base}/#/today`); await page.waitForTimeout(150); }
@@ -268,9 +278,11 @@ await page.locator("article.run").first().getByRole("button", { name: "Stop" }).
 await page.waitForTimeout(700);
 check("agents: Stop ends the run and its helpers", (await page.locator("article.run").first().innerText()).toLowerCase().includes("stopped"));
 const live = page.locator("article.run", { hasText: "Commit analyst" });
+await openAll(live); // budget, lease and tools sit in a closed "Budget, lease and tools" disclosure; the check below is unchanged
 check("agents: each helper shows budgets spent against allowed and its lease", /7 of 20 steps/.test(await live.innerText()) && /LEASE/i.test(await live.innerText()) && /git_log/.test(await live.innerText()));
 await live.getByRole("button", { name: "Revoke the lease of habit counter" }).click();
 await page.waitForTimeout(700);
+await openAll(live);
 check("agents: revoking a lease ends that helper and says so", /revoked, no tools in scope/.test(await live.innerText()));
 await page.locator("article.run", { hasText: "Data profile" }).locator("summary", { hasText: "Artifacts and result" }).click();
 await page.waitForTimeout(500);
@@ -302,7 +314,11 @@ check("privacy: clearing empties the list and says so", (await page.locator(".le
   check("layers off: nothing is hidden from the menu", /Week/.test(nav ?? "") && /Privacy/.test(nav ?? "") && /Agents/.test(nav ?? "") && /Briefing/.test(nav ?? "") && /Git habits/.test(nav ?? "") && /Models/.test(nav ?? ""));
   await page.goto(`${base}/#/privacy`); await page.waitForTimeout(700);
   const off = await page.locator("main").innerText();
-  check("layers off: the screen shows example data, says it is switched off and how to switch it on, and asks the engine for nothing", /example data/i.test(off) && /switched off/.test(off) && /UNDERSTUDY_X_PRIVACY=1/.test(off) && privacyAsked === 0, `asked ${privacyAsked} times`);
+  // One plain line is on the page; the engine's sentence with the flag name sits in a closed "Details" disclosure under it (D45). Open it, then assert the text.
+  check("layers off: one plain line says example data and that the feature is switched off", /Showing example data: this feature is switched off in the engine\./.test(off) && /example data/i.test(off));
+  await page.locator("main .sourcenote summary", { hasText: "Details" }).first().click();
+  const offDetail = await page.locator("main [data-testid=source-detail]").first().innerText();
+  check("layers off: its Details says how to switch the layer on, and the engine is asked for nothing", /switched off/.test(offDetail) && /UNDERSTUDY_X_PRIVACY=1/.test(offDetail) && privacyAsked === 0, `asked ${privacyAsked} times`);
   await page.unroute(ENGINE);
 }
 
@@ -315,8 +331,8 @@ check("privacy: clearing empties the list and says so", (await page.locator(".le
   check("explain: example data is badged and says the answers do not change with the question", /example data/i.test(exText) && /do not change with what you ask/i.test(exText));
   check("explain: the answer comes first, then where the words came from and the check", (await ex.locator("[data-testid=explain-answer]").count()) === 1 && /Written from a fixed template/.test(exText) && /Checked against the data/.test(exText) && /not that the data is right/.test(exText));
   check("explain: the limits and the footer are always shown with the badge", (await ex.locator("[data-testid=explain-limits] li").count()) >= 3 && /Based on n = 24 people; synthetic data\./.test(await ex.locator("[data-testid=explain-footer]").innerText()) && /SYNTHETIC/i.test(await ex.locator("[data-testid=explain-footer]").innerText()));
-  await ex.locator("details.explain__uses summary").first().click();
-  check("explain: each sentence shows the packet facts its numbers come from", /gap · case s/.test(await ex.locator("details.explain__uses").first().innerText()) && /9 min 45 s/.test(await ex.locator("details.explain__uses").first().innerText()));
+  const usesNote = await hintText(ex, /Where (this number comes|these numbers come) from/);
+  check("explain: each sentence has a hint with the packet facts its numbers come from", /gap · case s/.test(usesNote) && /9 min 45 s/.test(usesNote) && /not supplied by the model/.test(usesNote));
   check("explain: five example questions are offered", (await ex.locator("[aria-label='Example questions'] button").count()) === 5);
   await ex.getByRole("button", { name: "How sure are you?" }).click();
   await page.waitForTimeout(500);
@@ -370,16 +386,24 @@ check("privacy: clearing empties the list and says so", (await page.locator(".le
 // 8g. Notices: one row per kind of notice, locked safety rows, a Today strip, a passive banner
 {
   await go("/notices", 1500);
+  const openGroups = () => page.evaluate(() => document.querySelectorAll("details.notices__group").forEach((d) => { d.open = true; }));
+  check("notices: only the first group is open by default, the others are one click away", (await page.locator("details.notices__group[open]").count()) === 1 && (await page.locator("details.notices__group").count()) === 4);
+  await openGroups();
   const nt = await page.locator("main").innerText();
   check("notices: example data is badged and the groups and the floor are in plain words", /example data/i.test(nt) && /Needs you/.test(nt) && /Helps in the moment/.test(nt) && /Can wait/.test(nt) && /Information/.test(nt) && /Safety stops and approvals that block a job always stay visible/.test(nt));
   const kill = page.locator("[data-testid=notice-kill_engaged]");
+  await page.getByText("What always shows", { exact: true }).click();
   check("notices: a safety kind is locked, not a choice", (await kill.locator(".segmented").count()) === 0 && /Always shown/.test(await kill.innerText()));
   const rp = page.locator("[data-testid=notice-routine_proposal]");
   await rp.getByRole("button", { name: "Quiet" }).click();
   await page.waitForTimeout(400);
-  check("notices: choosing a mode takes effect and the row says what it does", (await rp.locator("button[aria-pressed=true]").innerText()) === "Quiet" && /A summary and a note on the dashboard only/.test(await rp.innerText()));
+  check("notices: choosing a mode takes effect and the row says what it does", (await rp.locator("button[aria-pressed=true]").innerText()) === "Quiet" && /A summary and a note on the dashboard only/.test(await hintText(rp, /does at this setting/)));
+  await page.locator("[data-testid=today-detail] summary").click();
   const strip = await page.locator("[data-testid=today-strip]").innerText();
-  check("notices: the Today strip counts shown, held and dropped, and says why in the engine's words", /Today: 2 shown, 2 held, 4 dropped/.test(strip) && /Held because you were typing\. Shown at your next pause\./.test(strip));
+  check("notices: the Today strip counts shown, held and dropped, and says why in the engine's words", /Today: 2 shown, 2 held, 4 dropped, 2 left as quiet notes/.test(strip) && /Held because you were typing\. Shown at your next pause\./.test(strip));
+  await page.locator("[data-testid=needs-you] summary", { hasText: "Why?" }).first().click();
+  await page.waitForTimeout(500);
+  check("notices: a Why? on an item that needs you gives the engine's fixed reason", /Held because Understudy could not tell whether you were busy\./.test(await page.locator("[data-testid=needs-you]").innerText()));
   await page.getByRole("button", { name: "Reset what Understudy learned" }).click();
   check("notices: reset asks once, inline", (await page.getByRole("button", { name: "Yes, reset what it learned" }).count()) === 1);
   await page.getByRole("button", { name: "Yes, reset what it learned" }).click();
@@ -404,6 +428,7 @@ check("privacy: clearing empties the list and says so", (await page.locator(".le
     return json(route, { error: { code: "not_found", message: "not mocked" } }, 404);
   });
   await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(6800); await page.goto(`${base}/#/notices`); await page.waitForTimeout(1500);
+  await openGroups();
   const banner = await page.locator("[data-testid=notice-banner]").innerText();
   check("notices: the passive banner shows counts and a summary link, and nothing about the stopped state", /1 needs you, 2 are waiting/.test(banner) && /Summary ready/.test(banner) && !/stopped/i.test(banner));
   check("notices: with a real engine the screen is not badged as an example", !/example data/i.test(await page.locator("main").innerText()));

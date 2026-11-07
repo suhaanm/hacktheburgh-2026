@@ -89,10 +89,16 @@ export function exportLedger(entries: LedgerEntry[]): string {
   return JSON.stringify({ exported_at: new Date().toISOString(), note: "Egress ledger from this laptop. Payloads are exactly as sent.", entries }, null, 2);
 }
 
-export interface CanaryReading { tone: "clear" | "leak" | "none"; text: string }
+/** `short` is the one sentence shown by default; `text` is the full reading, which the page keeps one click away. */
+export interface CanaryReading { tone: "clear" | "leak" | "none"; text: string; short: string }
 /** The canary result in plain words. It is a test with planted strings: evidence, not proof. */
 export function canaryReading(c: PrivacySummary["canary"]): CanaryReading {
-  if (!c || !c.runs) return { tone: "none", text: "The canary check has not run yet." };
-  if (c.leaked > 0) return { tone: "leak", text: `${c.leaked} of ${c.planted} planted test strings appeared in an outbound request across ${c.runs} runs. This is a leak and must be fixed.` };
-  return { tone: "clear", text: `None of the ${c.planted} planted test strings (names, emails, titles, paths, commit messages) appeared in an outbound request across ${c.runs} runs. That is evidence from a test, not a proof.` };
+  if (!c || !c.runs) { const t = "The canary check has not run yet."; return { tone: "none", text: t, short: t }; }
+  if (c.leaked > 0) {
+    return { tone: "leak", short: `${c.leaked} of ${c.planted} planted test strings appeared in an outbound request. This is a leak and must be fixed.`, text: `${c.leaked} of ${c.planted} planted test strings appeared in an outbound request across ${c.runs} runs. This is a leak and must be fixed.` };
+  }
+  return {
+    tone: "clear", short: `None of the ${c.planted.toLocaleString("en-GB")} planted test strings appeared in an outbound request. That is evidence from a test, not a proof.`,
+    text: `None of the ${c.planted} planted test strings (names, emails, titles, paths, commit messages) appeared in an outbound request across ${c.runs} runs. That is evidence from a test, not a proof.`,
+  };
 }

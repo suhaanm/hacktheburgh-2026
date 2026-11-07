@@ -3,6 +3,8 @@ import { ApiError, api, refreshQueueBadge } from "../api";
 import { useLoad } from "../hooks";
 import { ConsentPill, EmptyState, ErrorState, Loading, OriginBadge, PageHead, Range, RungPill } from "../components/common";
 import { Ladder } from "../components/Ladder";
+import { Hint } from "../components/Hint";
+import { Brief, Details } from "../components/ui";
 import { useToast } from "../components/Toasts";
 import { fmtNum } from "../lib/format";
 import type { Routine } from "../types";
@@ -30,7 +32,7 @@ export default function Routines() {
       <PageHead
         eyebrow="Routines"
         title={proposals.length ? (proposals.length === 1 ? "One routine is waiting for your decision" : `${proposals.length} routines are waiting for your decision`) : "Nothing is waiting for your decision"}
-        lede="Understudy only suggests a routine after seeing the same steps several times, and only between tasks. Nothing runs until you say so."
+        lede="Suggested between tasks. Nothing runs until you say so."
         aside={<OriginBadge meta={r.meta} />}
       />
 
@@ -111,36 +113,39 @@ function Proposal({ routine: p, leaving, onDecide }: { routine: Routine; leaving
     } finally { setBusy(null); }
   };
   const [lo, hi] = p.value.hours_saved;
+  const sentences = p.proposal.what.split(/(?<=[.!?])\s+/);
+  const whatFirst = sentences[0] ?? p.proposal.what;
+  const whatRest = sentences.slice(1).join(" ");
   const horizon = p.value.horizon_weeks ? ` over ${p.value.horizon_weeks} weeks` : "";
   return (
     <article className={`proposal ${leaving ? "proposal--leaving" : "proposal--arriving"}`} aria-labelledby={`pt-${p.id}`}>
       <div className="proposal__head">
         <h2 className="proposal__title" id={`pt-${p.id}`}>{p.title}</h2>
-        <ConsentPill mode="none" />
-        <RungPill rung={p.rung} />
+        {p.rung !== "A0" && <RungPill rung={p.rung} />}
       </div>
-      <div className="stack">
-        <p className="t-label">What I saw</p>
-        <p className="proposal__what">{p.proposal.what}</p>
-      </div>
+      <p className="proposal__what">{whatFirst}</p>
       <dl className="proposal__facts">
-        <div><dt>How often</dt><dd>{p.proposal.how_often}</dd><dd className="u-muted">about {p.minutes_per_week} minutes a week</dd></div>
+        <div><dt>How often<Hint label="About how often">About {p.minutes_per_week} minutes a week.</Hint></dt><dd>{p.proposal.how_often}</dd></div>
         <div>
           <dt>Hours saved</dt>
-          <dd><span className="stat__value tabular" style={{ fontSize: "var(--text-2xl)" }}>{fmtNum(lo, 1)} to {fmtNum(hi, 1)}</span> <span className="u-muted">h{horizon}</span></dd>
+          <dd><span className="stat__value tabular" style={{ fontSize: "var(--text-2xl)" }}>{fmtNum(lo, 1)} to {fmtNum(hi, 1)}</span> <span className="u-muted">h{horizon}</span><Hint label="About the hours saved">95% interval. About £{p.value.net_gbp[0]} to £{p.value.net_gbp[1]} net of set-up.</Hint></dd>
           <dd><Range lo={lo} hi={hi} pt={(lo + hi) / 2} min={0} max={Math.ceil(hi * 1.3)} /></dd>
-          <dd className="u-muted">95% interval. About £{p.value.net_gbp[0]} to £{p.value.net_gbp[1]} net of set-up.</dd>
         </div>
-        <div><dt>It touches</dt><dd><ul className="plain-list">{p.proposal.touches.map((t) => <li key={t}>{t}</li>)}</ul></dd></div>
-        <div><dt>It will never</dt><dd><ul className="plain-list">{p.proposal.never.map((t) => <li key={t}>{t}</li>)}</ul></dd></div>
       </dl>
-      <div className="choices" role="group" aria-label="Your choice">
-        <div className="choice"><button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => go("not_now", "Okay, not now.")}>Not now</button><p>Ask me again later. Nothing changes.</p></div>
-        <div className="choice"><button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => go("never", "Okay. This will not be suggested again.")}>Never for this</button><p>Stop suggesting this routine.</p></div>
-        <div className="choice"><button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => go("shadow", "Watching first.")}>Watch first</button><p>It practises on your next cases and compares with you. Nothing is saved or sent.</p></div>
-        <div className="choice"><button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => go("approval", "Set to run with your approval.")}>Run with my approval</button><p>It does the work in the background and asks before anything outward.</p></div>
+      <div className="stack" style={{ gap: "var(--space-1)" }}>
+        <Brief lead="It touches" items={p.proposal.touches} show={2} />
+        <Brief lead="It will never" items={p.proposal.never} show={p.proposal.never.length} />
       </div>
-      <p className="note">Whatever you choose, it starts at {p.rung} and moves up only as its record earns it. Rung A2 needs 20 shadow runs and a lower bound of 0.80.</p>
+      <div className="choices" role="group" aria-label="Your choice">
+        <div className="choice"><button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => go("not_now", "Okay, not now.")}>Not now</button><p>Ask me again later.</p></div>
+        <div className="choice"><button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => go("never", "Okay. This will not be suggested again.")}>Never for this</button><p>Stop suggesting this.</p></div>
+        <div className="choice"><button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => go("shadow", "Watching first.")}>Watch first</button><p>It practises beside you. Nothing is saved or sent.</p></div>
+        <div className="choice"><button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => go("approval", "Set to run with your approval.")}>Run with my approval</button><p>It works in the background and asks before anything outward.</p></div>
+      </div>
+      <Details summary="Why this?">
+        {whatRest && <p>{whatRest}</p>}
+        <p>Whatever you choose, it starts at {p.rung} and moves up only as its record earns it. Rung A2 needs 20 shadow runs and a lower bound of 0.80.</p>
+      </Details>
       {gate && <SkillGate gate={gate} busy={!!busy} onOverride={() => go(gate.mode, gate.done, true)} onDismiss={() => setGate(null)} />}
       {err && <p className="field__error" role="alert">{err}</p>}
       <Away routine={p} onDecide={onDecide} />
@@ -177,7 +182,7 @@ function Away({ routine: p, onDecide }: { routine: Routine; onDecide: Decide }) 
     <details className="away">
       <summary className="why" style={{ cursor: "pointer" }}><span className="t-label">Separate choice</span> <b>Run while I'm away</b> <span className="u-muted">(off)</span></summary>
       <div className="stack" style={{ marginTop: "var(--space-4)" }}>
-        <p className="note">Off by default. When on, the routine may start inside windows when you are away, never inside your quiet hours, and it stops within a second of you touching the keyboard.</p>
+        <p className="note">Off by default. It runs only in away windows, never in quiet hours, and stops within a second of you touching the keyboard.</p>
         <label className="toggle">
           <input type="checkbox" role="switch" checked={on} onChange={(e) => setOn(e.target.checked)} />
           <span className="toggle__track" />
@@ -228,11 +233,10 @@ function RoutineRow({ routine: x, onRevoke, onChange }: { routine: Routine; onRe
         <span className="routine-row__meta"><ConsentPill mode={x.status} /><RungPill rung={x.rung} /></span>
       </div>
       <p className="note">{x.proposal.how_often}. It touches {x.touches.join(", ")}. It will never {x.never.join(" or ")}.</p>
-      <details className="details-lite" open={x.status === "shadow"}>
-        <summary>Autonomy and record</summary>
+      <Details summary="Autonomy and record" defaultOpen={x.status === "shadow"} wide>
         <Ladder routine={x} />
         <div style={{ marginTop: "var(--space-5)" }}><Away routine={x} onDecide={onChange} /></div>
-      </details>
+      </Details>
       <div className="row">
         <button type="button" className="btn btn--danger btn--sm" disabled={busy} onClick={async () => { setBusy(true); try { await onRevoke(); } finally { setBusy(false); } }}>Revoke</button>
       </div>

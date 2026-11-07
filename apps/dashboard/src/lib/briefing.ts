@@ -39,9 +39,15 @@ export function firedText(f: { queue_id?: string; run_id?: string } | undefined)
   return "Fired. The engine did not say what it created.";
 }
 
+/** The consequence of a card that is not routine, in words. It is printed on the card, never left in a Hint. Empty for a normal card. */
+export function fireRisk(riskClass?: string): string {
+  if (!riskClass || riskClass === "normal") return "";
+  return `This one ${riskClass === "irreversible" ? "cannot be undone, so it always stops for your own click in the Queue" : "reaches outside this laptop, so it always stops for your own click in the Queue"}.`;
+}
+
 /** What pressing "Approve and run" does, by the card's fire type. Stated before the press, so there is no surprise. */
 export function fireWhat(fireType: string | undefined, riskClass?: string): string {
-  const risk = riskClass && riskClass !== "normal" ? ` This one ${riskClass === "irreversible" ? "cannot be undone, so it always stops for your own click in the Queue" : "reaches outside this laptop, so it always stops for your own click in the Queue"}.` : "";
+  const risk = fireRisk(riskClass) ? ` ${fireRisk(riskClass)}` : "";
   switch (fireType) {
     case "queue": return `Creates an approval item in the Queue. Nothing runs until you approve it there.${risk}`;
     case "draft": return `Saves a local draft and creates an approval item in the Queue. Nothing is written anywhere else.${risk}`;

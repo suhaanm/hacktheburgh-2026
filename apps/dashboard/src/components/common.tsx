@@ -1,7 +1,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { AnalyticMeta, Rung } from "../types";
 import { ApiError } from "../api";
-import { FALLBACK_LABEL, type Fallback } from "../lib/fallback";
+import { EXAMPLE_LINE, FALLBACK_LABEL, type Fallback } from "../lib/fallback";
+import { AboutData, Details } from "./ui";
+import { Hint } from "./Hint";
 
 const UNIT: Record<string, [string, string]> = {
   people: ["person", "people"],
@@ -21,8 +23,9 @@ export function OriginBadge({ meta, always = false }: { meta: AnalyticMeta | nul
   if (!meta) return null;
   if (meta.origin === "real" && !always) return null;
   return (
-    <span className="pill pill--origin" data-origin={meta.origin} title={meta.origin === "real" ? "Measured from real people" : "Not measured from real people"}>
+    <span className="pill pill--origin" data-origin={meta.origin}>
       {meta.origin}
+      <span className="u-sr-only">{meta.origin === "real" ? ", measured from real people" : ", not measured from real people"}</span>
     </span>
   );
 }
@@ -31,21 +34,51 @@ export function OriginBadge({ meta, always = false }: { meta: AnalyticMeta | nul
 export function ExampleBadge({ why }: { why: Fallback | null | undefined }) {
   if (!why) return null;
   return (
-    <span className="pill pill--origin" data-origin="example" title={`${FALLBACK_LABEL[why.kind]}. ${why.message}`}>
+    <span className="pill pill--origin" data-origin="example">
       example data
+      <span className="u-sr-only">{`. ${FALLBACK_LABEL[why.kind]}`}</span>
     </span>
   );
 }
 
-/** One plain line saying why the screen shows example data. An engine error is printed in full, as a warning. */
-export function SourceNote({ why }: { why: Fallback | null | undefined }) {
+/**
+ * One plain line saying the screen shows example data (the shared EXAMPLE_LINE). The engine's own sentence, with the flag name that starts a layer or the
+ * error text, sits in a closed "Details" disclosure under it: on the page and one tap away (D45, a Hint never holds the only copy of an instruction or an
+ * error), but not the first thing a worker reads. An engine error keeps the warning look so it is still seen.
+ */
+export function SourceNote({ why, also, alsoInline = false }: { why: Fallback | null | undefined; also?: ReactNode; alsoInline?: boolean }) {
   if (!why) return null;
-  return <Note tone={why.kind === "error" ? "warn" : "plain"}>{why.message}</Note>;
+  // `also` is the screen's second sentence about example data ("A button here only changes this screen"): behind a Hint of its own, or printed in the
+  // same line with `alsoInline` for a sentence that must always be readable (an honesty statement about what example data is).
+  return (
+    <div className="sourcenote" data-kind={why.kind}>
+      <Note tone={why.kind === "error" ? "warn" : "plain"}>
+        {EXAMPLE_LINE[why.kind]}
+        {also && (alsoInline ? <> {also}</> : <Hint label="About example data">{also}</Hint>)}
+      </Note>
+      <Details summary="Details"><p className="note" data-testid="source-detail">{why.message}</p></Details>
+    </div>
+  );
 }
 
 /** Footer printed under every chart: n, unit, split, interval level, origin. */
 /** `brief` leaves out the long note, for a second and third chart on a page that already printed it once. */
-export function ChartFoot({ meta, extra, brief = false }: { meta: AnalyticMeta | null; extra?: ReactNode; brief?: boolean }) {
+/**
+ * `variant="about"` is the worker view (D45): the origin badge stays visible and everything else (n, split, interval level, the note) sits in one
+ * "About this data" disclosure. The default prints it all, which admin screens, the Evidence page and reviewers keep.
+ */
+export function ChartFoot({ meta, extra, brief = false, variant = "full" }: { meta: AnalyticMeta | null; extra?: ReactNode; brief?: boolean; variant?: "full" | "about" }) {
+  if (variant === "about") {
+    const rows: [string, ReactNode][] = meta
+      ? [["n", nUnit(meta)], ...(meta.split ? ([["split", meta.split]] as [string, ReactNode][]) : []), ["intervals", `${Math.round(meta.interval_level * 100)}%`], ["origin", meta.origin], ...(extra ? ([["also", extra]] as [string, ReactNode][]) : []), ...(meta.note && !brief ? ([["note", meta.note]] as [string, ReactNode][]) : [])]
+      : [["n", "not reported by the service"]];
+    return (
+      <div className="chart__foot chart__foot--about">
+        <OriginBadge meta={meta} always />
+        <AboutData rows={rows} />
+      </div>
+    );
+  }
   if (!meta) {
     return (
       <div className="chart__foot">
@@ -133,11 +166,12 @@ export function EmptyState({ title, body, action }: { title: string; body: React
 
 export function RungPill({ rung }: { rung: Rung }) {
   return (
-    <span className="pill pill--rung" data-rung={rung} title={`Autonomy rung ${rung}`}>
+    <span className="pill pill--rung" data-rung={rung}>
       <span className="pill__ticks" aria-hidden="true">
         <i /><i /><i />
       </span>
       <b>{rung}</b>
+      <span className="u-sr-only">, autonomy rung</span>
     </span>
   );
 }
@@ -163,9 +197,10 @@ export function ConsentPill({ mode }: { mode: string }) {
 
 export function TierPill({ tier, step }: { tier: number; step?: number }) {
   return (
-    <span className="pill pill--tier" title={tier === 1 ? "Compiled script" : tier === 2 ? "Browser agent" : "Computer use"}>
+    <span className="pill pill--tier">
       {step != null && <b>step {step}</b>}
       tier {tier}
+      <span className="u-sr-only">{tier === 1 ? ", compiled script" : tier === 2 ? ", browser agent" : ", computer use"}</span>
     </span>
   );
 }
@@ -203,8 +238,9 @@ export function Range({ lo, hi, pt, min, max }: { lo: number; hi: number; pt: nu
 export function CheckChip({ check }: { check: "verified" | "uncertain" | "failed" }) {
   const g = { verified: ["\u2713", "verified"], uncertain: ["?", "uncertain"], failed: ["\u2715", "failed"] }[check];
   return (
-    <span className="pill pill--check" data-check={check} title={check === "verified" ? "Code confirmed the result of this step" : check === "uncertain" ? "Code could not read the result of this step" : "Code found this step did not do what it should"}>
+    <span className="pill pill--check" data-check={check}>
       <span className="pill__glyph-char" aria-hidden="true">{g[0]}</span>{g[1]}
+      <span className="u-sr-only">{check === "verified" ? ": code confirmed the result of this step" : check === "uncertain" ? ": code could not read the result of this step" : ": code found this step did not do what it should"}</span>
     </span>
   );
 }

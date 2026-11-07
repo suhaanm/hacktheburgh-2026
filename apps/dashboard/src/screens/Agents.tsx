@@ -1,7 +1,8 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { ApiError, api } from "../api";
 import { useLoad } from "../hooks";
-import { CheckChip, EmptyState, ErrorState, ExampleBadge, Loading, Note, OriginBadge, PageHead, SourceNote, StatePill } from "../components/common";
+import { CheckChip, EmptyState, ErrorState, ExampleBadge, Loading, OriginBadge, PageHead, SourceNote, StatePill } from "../components/common";
+import { Details } from "../components/ui";
 import { Facts } from "../components/Facts";
 import { useToast } from "../components/Toasts";
 import { KIND_DOES, budgetBars, childResults, countStates, falseClaim, fmtClock, isActive, kindLabel, leaseLeft, resultWithoutSteps, runActive, stateTone, stepsOf, stopReason, verifiedTally } from "../lib/agents";
@@ -14,6 +15,7 @@ export default function Agents() {
   const runs = useLoad(() => api.agentsRuns(), []);
   const loadedAt = useRef(Date.now());
   const [, tick] = useReducer((n: number) => n + 1, 0);
+  const [allRuns, setAllRuns] = useState(false);
 
   useEffect(() => { loadedAt.current = Date.now(); }, [runs.data]);
   const anyActive = !!runs.data?.some(runActive);
@@ -37,17 +39,17 @@ export default function Agents() {
       <PageHead
         eyebrow="Agents"
         title={n.active > 0 ? `${n.active} background ${n.active === 1 ? "run is" : "runs are"} working` : "No background run is working"}
-        lede="A planner splits a job into a few small helpers. Each helper has a budget, a short lease on a few tools, and a workspace of its own. You can stop any run, or end one helper, at once."
+        lede="A planner splits a job into small helpers. Stop any run, or one helper, at once."
         aside={<><OriginBadge meta={runs.meta} /><ExampleBadge why={runs.why} /></>}
       />
-      <SourceNote why={runs.why} />
-      {runs.why && <Note>These are example runs. Stop, Revoke and Run in background here only change this screen: nothing is started or stopped for real.</Note>}
+      <SourceNote why={runs.why} also={runs.why ? "These are example runs. Stop, Revoke and Run in background here only change this screen: nothing is started or stopped for real." : undefined} />
 
       {list.length === 0 ? (
-        <EmptyState title="No background runs yet" body="Start one below. It works in an isolated copy, reports what it found, and never applies a change without your approval." />
+        <EmptyState title="No background runs yet" body="Start one below. It works in an isolated copy and never applies a change without your approval." />
       ) : (
         <section className="stack" aria-label="Runs" style={{ gap: "var(--space-5)" }}>
-          {list.map((r) => <Run key={r.run_id} run={r} elapsed={elapsed} onChanged={runs.reload} />)}
+          {(allRuns ? list : list.slice(0, 7)).map((r) => <Run key={r.run_id} run={r} elapsed={elapsed} onChanged={runs.reload} />)}
+          {list.length > 7 && !allRuns && <div><button type="button" className="btn btn--quiet btn--sm" onClick={() => setAllRuns(true)}>Show all {list.length} runs</button></div>}
         </section>
       )}
 
@@ -58,11 +60,11 @@ export default function Agents() {
 }
 
 /** A budget bar turns red only when a run that is still going, or that failed, has used it all: a run that finished within budget is not in trouble. */
-function Bars({ b, s, state }: { b: AgentNode["budget"]; s: AgentNode["spent"]; state: string }) {
+function Bars({ b, s, state, only }: { b: AgentNode["budget"]; s: AgentNode["spent"]; state: string; only?: string }) {
   const finishedWell = state === "done" || state === "completed";
   return (
     <div className="budgets">
-      {budgetBars(b, s).map((x) => (
+      {budgetBars(b, s).filter((x) => !only || x.key === only).map((x) => (
         <div key={x.key} className="budget" data-over={x.over && !finishedWell}>
           <span className="budget__label">{x.label}</span>
           <span className="budget__track" role="img" aria-label={`${x.label}: ${x.text}${x.over && !finishedWell ? ", all spent" : ""}`}><i style={{ width: `${x.frac * 100}%` }} /></span>
@@ -73,11 +75,29 @@ function Bars({ b, s, state }: { b: AgentNode["budget"]; s: AgentNode["spent"]; 
   );
 }
 
+/** By default the one budget nearest its limit; the others, and anything else about the node (its lease, its tools), are one click away. */
+function Budgets({ b, s, state, summary, extra }: { b: AgentNode["budget"]; s: AgentNode["spent"]; state: string; summary: string; extra?: React.ReactNode }) {
+  const bars = budgetBars(b, s);
+  const nearest = bars.reduce<string | undefined>((best, x) => (best === undefined || x.frac > (bars.find((y) => y.key === best)?.frac ?? -1) ? x.key : best), undefined);
+  return (
+    <>
+      <Bars b={b} s={s} state={state} only={nearest} />
+      <Details summary={summary}>
+        <div className="stack" style={{ gap: "var(--space-2)" }}>
+          <Bars b={b} s={s} state={state} />
+          {extra}
+        </div>
+      </Details>
+    </>
+  );
+}
+
 function Run({ run: r, elapsed, onChanged }: { run: AgentRun; elapsed: number; onChanged: () => void }) {
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [allKids, setAllKids] = useState(false);
   const active = runActive(r);
 
   const act = async (what: string, fn: () => Promise<unknown>, done: string) => {
@@ -107,18 +127,18 @@ function Run({ run: r, elapsed, onChanged }: { run: AgentRun; elapsed: number; o
             <span className="tree__role">{r.parent.role}</span>
             <StatePill state={r.parent.state} tone={stateTone(r.parent.state)} />
           </div>
-          <Bars b={r.parent.budget} s={r.parent.spent} state={r.parent.state} />
+          <Budgets b={r.parent.budget} s={r.parent.spent} state={r.parent.state} summary="Budget" />
           <ul className="tree__children">
-            {r.children.map((c) => <Child key={c.id} runId={r.run_id} c={c} elapsed={elapsed} onChanged={onChanged} />)}
+            {(allKids ? r.children : r.children.slice(0, 5)).map((c) => <Child key={c.id} runId={r.run_id} c={c} elapsed={elapsed} onChanged={onChanged} />)}
           </ul>
+          {r.children.length > 5 && !allKids && <div><button type="button" className="btn btn--quiet btn--sm" onClick={() => setAllKids(true)}>Show all {r.children.length} helpers</button></div>}
         </li>
       </ul>
 
       {err && <p className="field__error" role="alert">{err}</p>}
-      <details className="details-lite" onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}>
-        <summary>Artifacts and result</summary>
+      <Details summary="Artifacts and result" onToggle={setOpen}>
         {open && <Detail id={r.run_id} />}
-      </details>
+      </Details>
     </article>
   );
 }
@@ -143,15 +163,15 @@ function Child({ runId, c, elapsed, onChanged }: { runId: string; c: AgentNode; 
           </button>
         )}
       </div>
-      <Bars b={c.budget} s={c.spent} state={c.state} />
-      {l && (
+      <Budgets b={c.budget} s={c.spent} state={c.state} summary="Budget, lease and tools" extra={l ? (
         <p className="lease" data-revoked={revoked}>
           <span className="t-label">Lease</span>{" "}
           {revoked ? <b>revoked, no tools in scope</b> : <>
             <b className="tabular">{live ? `${fmtClock(left)} left` : stopReason(l.stop_reason) ? `ended: ${stopReason(l.stop_reason)}` : "ended"}</b> · <span className="tabular">{l.steps_left} {l.steps_left === 1 ? "step" : "steps"} left</span> · tools: {l.tools.length ? l.tools.map((t) => <code key={t}>{t}</code>) : "none"}
           </>}
         </p>
-      )}
+      ) : undefined} />
+      {revoked && <p className="note" data-testid="revoked-note">Revoked: this helper has no tools in scope.</p>}
       {err && <p className="field__error" role="alert">{err}</p>}
     </li>
   );
@@ -187,9 +207,9 @@ function Detail({ id }: { id: string }) {
             <ul className="plain-list">{k.checks.map((c) => <li key={c.name} className="note"><span aria-hidden="true">{c.ok ? "✓" : "✕"}</span> {c.name}{c.ok ? "" : " failed"}{c.detail ? <span className="u-muted"> ({c.detail})</span> : null}</li>)}</ul>
           )}
           {k.steps.length > 0 && (
-            <details className="details-lite"><summary>{k.steps.length} steps, each checked by code afterwards</summary>
+            <Details summary={`${k.steps.length} steps, each checked by code afterwards`}>
               <ol className="steps">{k.steps.map((s, i) => <li key={i}><span>{s.label}</span>{s.check ? <CheckChip check={s.check} /> : <span className="pill">not checked</span>}</li>)}</ol>
-            </details>
+            </Details>
           )}
           {k.output != null && <Facts title="What it found" v={k.output} />}
         </div>
@@ -225,7 +245,7 @@ function Spawn({ onStarted, example }: { onStarted: () => void; example: boolean
     <section className="section" aria-labelledby="spawn-h">
       <div className="section__head">
         <h2 className="section__title" id="spawn-h">Run in background</h2>
-        <p className="section__sub">Pick a job. It runs in an isolated workspace on sample data, within its budgets.</p>
+        <p className="section__sub">Pick a job. It runs in an isolated workspace on sample data.</p>
       </div>
       <div className="spawn">
         <div className="field">

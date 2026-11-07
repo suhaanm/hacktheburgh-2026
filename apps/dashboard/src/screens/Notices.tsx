@@ -1,10 +1,34 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiError, api } from "../api";
+import { Hint } from "../components/Hint";
 import { useLoad } from "../hooks";
 import { useAppState } from "../store";
-import { ErrorState, ExampleBadge, Loading, Note, OriginBadge, PageHead, SourceNote } from "../components/common";
-import { BUDGET_FLOOR, BUDGET_MAX, BUDGET_MIN, MODES, MODE_LABEL, budgetWords, clampBudget, groupTypes, hasLines, learnedLines, modeLine, todayHeadline, todaySummary, withMode, type Mode } from "../lib/attention";
+import { ErrorState, ExampleBadge, Loading, OriginBadge, PageHead, SourceNote } from "../components/common";
+import { Details } from "../components/ui";
+import { BUDGET_FLOOR, SAFETY_LINE, BUDGET_MAX, BUDGET_MIN, MODES, MODE_LABEL, STATE_WORD, budgetWords, clampBudget, groupTypes, hasLines, learnedLines, modeLine, needsYouLine, todayHeadline, todaySummary, whyLines, withMode, type Mode } from "../lib/attention";
 import type { AttentionPatch, AttentionSettings } from "../types";
+
+/** "Why?" for one item that needs you: loaded the first time it is opened, in the engine's own fixed words. */
+function WhyItem({ id }: { id: string }) {
+  const [open, setOpen] = useState(false);
+  const [w, setW] = useState<{ reason: string; steps: { state: string; text: string }[] } | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    if (!open || w || err) return;
+    api.attentionWhy(id).then((r) => setW(whyLines(r.data)), (e: unknown) => setErr(e instanceof ApiError ? e.message : "The reason could not be read."));
+  }, [open, w, err, id]);
+  return (
+    <details className="notices__why" onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}>
+      <summary>Why?</summary>
+      {err ? <p className="note">{err}</p> : !w ? <p className="note">Reading the reason.</p> : (
+        <div className="stack" style={{ gap: "var(--space-1)" }}>
+          <p className="note">{w.reason || "No reason was recorded."}</p>
+          {w.steps.length > 0 && <ol className="plain-list">{w.steps.map((s, i) => <li key={i} className="note"><b>{s.state}</b>: {s.text}</li>)}</ol>}
+        </div>
+      )}
+    </details>
+  );
+}
 
 /** One idea: how loudly each kind of notice speaks. Today's counts and the summary sit under it; the floors are said plainly. */
 export default function Notices() {
@@ -45,18 +69,17 @@ export default function Notices() {
   const groups = groupTypes(s.types);
   const learned = learnedLines(s.learned);
   const floors = [...new Set(s.floors.map((f) => f.why))];
-  const t = todaySummary(today.data?.today);
+  const t = todaySummary(today.data?.today, today.data?.today_detail);
 
   return (
     <div className="page page--read">
       <PageHead
         eyebrow="Notices"
         title="How loudly each kind of notice speaks"
-        lede="Understudy shows less than it could. For each kind of notice, choose how much of it you want. Safety stops and approvals that block a job always stay visible."
+        lede="Choose how loudly each kind of notice speaks. Safety stops and blocking approvals always show."
         aside={<><OriginBadge meta={settings.meta} /><ExampleBadge why={settings.why} /></>}
       />
-      <SourceNote why={settings.why} />
-      {example && <Note>These are example settings. A change here only changes this screen.</Note>}
+      <SourceNote why={settings.why} also={example ? "These are example settings. A change here only changes this screen." : undefined} />
       <p className="u-sr-only" role="status" aria-live="polite">{saved ?? ""}</p>
       {err && <div className="state state--error" role="alert"><span className="state__mark" aria-hidden="true" /><p className="state__body">{err}</p></div>}
 
@@ -66,12 +89,23 @@ export default function Notices() {
           <>
             <p className="notices__headline">{todayHeadline(t, today.data.budget ?? { used: 0, per_day: s.budget_per_day })}</p>
             {t.lines.length === 0 ? <p className="note">Nothing has been shown, held or dropped yet today.</p> : (
-              <ul className="plain-list notices__lines">
-                {t.lines.map((l) => (
-                  <li key={`${l.state}:${l.code}`} className="note" data-state={l.state}>
-                    <b className="tabular">{l.n} {l.state === "other" ? "" : l.state}</b> {l.text}
-                    {(l.state === "held" || l.state === "dropped") && <details className="notices__why"><summary>Why?</summary><p className="note">{l.text} Nothing was lost: held items stay counted, and a dropped one had stopped being useful. You can change how loud this kind of notice is above.</p></details>}
-                  </li>
+              <details className="details" data-testid="today-detail">
+                <summary>Why each count</summary>
+                <div className="details__body details__body--wide">
+                <ul className="plain-list notices__lines">
+                  {t.lines.map((l) => (
+                    <li key={`${l.state}:${l.code}`} className="note" data-state={l.state}>
+                      <b className="tabular">{l.n} {STATE_WORD[l.state]}</b> {l.text ?? "The engine sent only this count."}
+                    </li>
+                  ))}
+                </ul>
+                </div>
+              </details>
+            )}
+            {(today.data.needs_you_items ?? []).length > 0 && (
+              <ul className="plain-list notices__lines" aria-label="Needs you" data-testid="needs-you">
+                {(today.data.needs_you_items ?? []).map((i) => (
+                  <li key={`${i.type}:${i.id ?? ""}`} className="note"><b>{needsYouLine(i)}</b>{i.id ? <WhyItem id={i.id} /> : null}</li>
                 ))}
               </ul>
             )}
@@ -82,33 +116,46 @@ export default function Notices() {
         )}
       </section>
 
-      {groups.map((g) => (
-        <section key={g.id} className="notices__group" aria-labelledby={`g-${g.id}`}>
-          <div className="section__head">
-            <h2 className="section__title" id={`g-${g.id}`}>{g.title}</h2>
+      {groups.map((g, gi) => {
+        const fixed = g.rows.filter((r) => r.fixed);
+        const rows = g.rows.filter((r) => !r.fixed);
+        const changed = rows.filter((r) => r.mode !== "normal").length;
+        return (
+          <details key={g.id} className="notices__group" open={gi === 0} data-testid={`group-${g.id}`}>
+            <summary>
+              <span className="section__title">{g.title}</span>
+              <span className="notices__count u-muted">{rows.length + fixed.length} kinds{changed > 0 ? `, ${changed} changed` : ""}</span>
+            </summary>
             <p className="section__sub">{g.blurb}</p>
-          </div>
-          <div className="notices__rows">
-            {g.rows.map((r) => (
-              <div key={r.type} className="notice" data-fixed={r.fixed} data-testid={`notice-${r.type}`}>
-                <div className="notice__head">
-                  <span className="notice__name">{r.label}</span>
-                  {r.fixed ? (
+            <div className="notices__rows">
+              {fixed.length > 0 && (
+                <div className="notice" data-fixed="true">
+                  <div className="notice__head">
+                    <span className="notice__name">Safety stops are always shown.</span>
                     <span className="pill notice__lock"><span className="pill__glyph-char" aria-hidden="true">&#9679;</span>Always shown</span>
-                  ) : (
+                  </div>
+                  <Details summary="What always shows">
+                    <p className="note">{SAFETY_LINE}</p>
+                    <ul className="plain-list">{fixed.map((r) => <li key={r.type} className="note" data-testid={`notice-${r.type}`}>{r.label}. <span className="u-muted">Always shown.</span></li>)}</ul>
+                  </Details>
+                </div>
+              )}
+              {rows.map((r) => (
+                <div key={r.type} className="notice" data-fixed="false" data-testid={`notice-${r.type}`}>
+                  <div className="notice__head">
+                    <span className="notice__name">{r.label}<Hint label={`What ${r.label} does at this setting`}>{modeLine(r.cls, r.mode)}</Hint></span>
                     <div className="segmented" role="group" aria-label={`How loud: ${r.label}`}>
                       {MODES.map((m: Mode) => (
                         <button key={m} type="button" aria-pressed={r.mode === m} onClick={() => { if (r.mode !== m) void apply({ modes: { [r.type]: m } }, (x) => withMode(x, r.type, m), `${r.label}: ${MODE_LABEL[m]}.`); }}>{MODE_LABEL[m]}</button>
                       ))}
                     </div>
-                  )}
+                  </div>
                 </div>
-                <p className="note">{modeLine(r.cls, r.mode)}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      ))}
+              ))}
+            </div>
+          </details>
+        );
+      })}
 
       <section className="section" aria-labelledby="budget-h">
         <div className="section__head">
@@ -139,7 +186,7 @@ export default function Notices() {
       <section className="section" aria-labelledby="learn-h">
         <div className="section__head">
           <h2 className="section__title" id="learn-h">What Understudy learned</h2>
-          <p className="section__sub">It watches how you react to notices and can make a low-value kind quieter. It can never make one louder, and never quieter than the floors below.</p>
+          <p className="section__sub">It can make a low-value kind quieter, never louder, and never quieter than the floors below.<Hint label="About learning">It watches how you react to notices.</Hint></p>
         </div>
         {learned.length === 0 ? <p className="note">Nothing yet. Every kind of notice is as loud as you set it.</p> : (
           <ul className="plain-list">{learned.map((l) => <li key={l.type} className="note">{l.text}</li>)}</ul>

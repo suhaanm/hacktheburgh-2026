@@ -3,6 +3,8 @@ import { api } from "../api";
 import { useLoad } from "../hooks";
 import { ErrorState, Loading, OriginBadge } from "../components/common";
 import { cogLabel } from "../lib/format";
+import { Details } from "../components/ui";
+import { Hint } from "../components/Hint";
 import type { AnalyticMeta, CoachDecision, CoachOutcome, CoachState } from "../types";
 
 type Chip = CoachDecision["chip"];
@@ -146,19 +148,16 @@ export default function Today() {
                     <div className="stack" style={{ gap: "var(--space-1)" }} data-testid="candidate">
                       <span className="t-label">What I would say</span>
                       <p className="note">{cand.message}</p>
-                      {cand.why && <details className="why"><summary>Why this</summary><div className="why__body">{cand.why}</div></details>}
+                      {cand.why && <Details summary="Why this">{cand.why}</Details>}
                     </div>
                   )}
                   <div className="today__meta">
-                    <span className="level" data-help={lv.help} title={`Level ${d.level}: ${lv.name}`}>
+                    <span className="level" data-help={lv.help}>
                       <span className="level__ticks" aria-hidden="true"><i /><i /><i /><i /></span>
                       {d.level}<span className="level__name">{lv.name}</span>
                     </span>
                     {hasMessage && d.why && (
-                      <details className="why">
-                        <summary>Why this</summary>
-                        <div className="why__body">{d.why}{missed.length > 0 && <> Steps skipped so far: {missed.join(", ")}.</>}</div>
-                      </details>
+                      <Details summary="Why this">{d.why}{missed.length > 0 && <> Steps skipped so far: {missed.join(", ")}.</>}</Details>
                     )}
                     <button type="button" className="btn btn--secondary btn--sm" onClick={() => setStopped(true)}>Stop coaching</button>
                   </div>
@@ -168,18 +167,16 @@ export default function Today() {
 
             <div className="stack">
               <div className="row" role="group" aria-label="Preview how help fades">
-                <span className="t-label">Preview how help fades</span>
+                <span className="t-label">Preview how help fades<Hint label="About fading help">As you master a step, help gets smaller, then a dot, then gone. After a long break it returns.</Hint></span>
                 <div className="segmented">
                   {(["full", "small", "dot", "gone"] as Chip[]).map((c) => (
                     <button key={c} type="button" aria-pressed={(preview ?? baseChip) === c} onClick={() => { setRevived(false); setStopped(false); setPreview(c); }}>{c === "full" ? "Full" : c === "small" ? "Small" : c === "dot" ? "Dot" : "Gone"}</button>
                   ))}
                 </div>
               </div>
-              <p className="note">As you master a step, help gets smaller, then a dot, then gone. After a long break it returns.</p>
             </div>
 
-            <details className="details-lite">
-              <summary>How the coach decided</summary>
+            <Details summary="How the coach decided" wide>
               <div className="stack">
                 <ul className="plain-list">
                   {d.trigger && <li className="note">Trigger: {d.trigger.replace(/_/g, " ")}</li>}
@@ -189,16 +186,15 @@ export default function Today() {
                   <li className="note">Rule-based: no model call decides this. The expert policy, the dignity gate and your level do.</li>
                 </ul>
               </div>
-            </details>
+            </Details>
 
-            <details className="details-lite">
-              <summary>What you have mastered</summary>
+            <Details summary="What you have mastered" wide>
               <div className="mastery">
                 {mastery.map(([cog, m]) => (
                   <div key={cog} className="mastery__row"><span>{cogLabel(cog)}</span><span className="mastery__track"><i style={{ width: `${m * 100}%` }} /></span><span className="tabular">{Math.round(m * 100)}</span></div>
                 ))}
               </div>
-            </details>
+            </Details>
           </>
         )}
       </section>
