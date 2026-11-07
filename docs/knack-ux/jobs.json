@@ -1,0 +1,79 @@
+{
+  "_about": "The ten jobs, measured 7 Nov 2026 22:10 to 22:20 UTC against the running dashboard (127.0.0.1:5173, live mock engine, Worker view, 1440x900) by docs/knack-ux/scripts/measure-jobs.mjs. 'current_clicks' counts clicks from the app being open and showing its landing screen. A click on a destructive control is counted and NOT executed. 'from_menu_bar' counts the desktop path today (the dashboard is a browser tab opened by the menu bar, and the menu bar only opens it at the Today screen). 'target_clicks' is the budget the build must meet; scripts/check-clicks.mjs (to be written by SHELL-WEB) replays 'target_path' and fails above budget. Depth = clicks from Home.",
+  "budget": { "top5_max_from_home": 2, "anything_max_from_home": 3 },
+  "jobs": [
+    {
+      "id": "J1", "who": "worker", "name": "See what matters this week",
+      "current_clicks": 0, "current_path": ["(Home is the landing screen)"],
+      "from_menu_bar": 3, "from_menu_bar_path": ["right-click menu-bar icon", "Open dashboard (browser opens at Today, not Home)", "sidebar: Your week"],
+      "current_load": "173 words and 10 controls above the fold, plus 51 words and 18 controls in the sidebar",
+      "target_clicks": 0, "target_path": ["open Knack: Home"], "target_load": "at most 50 words of content above the fold (about 65 with the sidebar)"
+    },
+    {
+      "id": "J2", "who": "worker", "name": "Approve or reject a queued item",
+      "current_clicks": 2, "current_path": ["sidebar: Queue", "Approve and submit (or Reject)"],
+      "from_menu_bar": 2, "from_menu_bar_path": ["right-click menu-bar icon", "Open morning queue (n)", "then 'Approve and submit' = 3"],
+      "note": "plus a sign-in step-up for an irreversible item when Auth0 is configured",
+      "target_clicks": 1, "target_path": ["Home hero is the pending item: Approve and submit (or Reject)"],
+      "target_when_several": 2, "target_path_several": ["sidebar: Needs you", "Approve and submit (or Reject) on a row"]
+    },
+    {
+      "id": "J3", "who": "worker", "name": "Opt into an automation or decline it",
+      "current_clicks": 2, "current_path": ["sidebar: Routines", "Run with my approval | Watch first | Not now | Never for this"],
+      "variant_away": { "current_clicks": 4, "path": ["sidebar: Routines", "open 'Run while I'm away'", "switch on", "Allow while I'm away"] },
+      "target_clicks": 2, "target_path": ["sidebar: Needs you (or the Home hero when a routine is the hero)", "Watch first | Not now | Never"],
+      "target_variant_away": 3, "target_path_variant_away": ["Needs you", "More ways to say yes", "Run while I'm away (switch and confirm on the card)"]
+    },
+    {
+      "id": "J4", "who": "worker", "name": "See whether I need less help over time",
+      "current_clicks": 1, "current_path": ["sidebar: Growth"],
+      "current_load": "152 words above the fold on an empty curve, 7 paragraphs over two lines",
+      "target_clicks": 1, "target_path": ["sidebar: Growth"], "target_load": "one sentence and one chart above the fold; at most 60 words"
+    },
+    {
+      "id": "J5", "who": "worker", "name": "See what Knack has seen of me, and delete it",
+      "current_clicks": 4, "current_path": ["sidebar: More (fold)", "Memory", "Forget (a line)", "Forget it (confirm)"],
+      "variant_ledger": { "current_clicks": 3, "path": ["sidebar: Privacy", "Clear the ledger", "Yes, clear the list"] },
+      "note": "five places hold 'my data' (Memory, Privacy ledger, Presence, Growth ledger, Graph nodes), each with its own delete control and wording",
+      "target_clicks": 3, "target_path": ["sidebar: Your data", "Forget (a line, a ledger, or 'Everything')", "Forget it (inline confirm)"],
+      "target_see": 1
+    },
+    {
+      "id": "J6", "who": "worker", "name": "Stop everything, or pause",
+      "current_clicks": 1, "current_path": ["fixed 'Stop everything' pill (Shift+Esc = 0 clicks)"],
+      "from_menu_bar": 2, "from_menu_bar_path": ["right-click menu-bar icon", "Stop everything (or 'Pause for 1 hour')"],
+      "target_clicks": 0, "target_path": ["Option+Shift+Command+K (anywhere)"],
+      "target_clicks_pointer": 1, "target_path_pointer": ["corner pill: Stop (while working)", "or menu bar: Stop everything = 2 when idle"]
+    },
+    {
+      "id": "J7", "who": "worker", "name": "Start work and get the overlay out of my way",
+      "current_clicks": 4, "current_path": ["sidebar: More (fold)", "Agents", "(choose a job)", "Run in background"],
+      "from_menu_bar": 2, "from_menu_bar_path": ["right-click menu-bar icon", "Talk to Understudy"],
+      "note": "Agents runs a sandbox job on sample data; the real-screen ways to start work are voice and the menu bar. The window never moves aside by itself today (the dock panel stays open).",
+      "target_clicks": 0, "target_path": ["Option+Space: Ask Knack (tap to type, hold to talk), Enter"],
+      "target_clicks_pointer": 2, "target_path_pointer": ["Needs you or Routines: Run now", "(window moves aside, pill shows)"]
+    },
+    {
+      "id": "A1", "who": "admin", "name": "Find where the firm loses time",
+      "current_clicks": 2, "current_path": ["View as: Admin", "sidebar: Firm"],
+      "current_load": "206 words above the fold; seven cards, each with 'Worth a look' or 'Going well' and an 'Open the numbers' button",
+      "target_clicks": 0, "target_path": ["Admin's landing is Firm (identity-provided role)"],
+      "target_clicks_role_switch": 1, "target_path_role_switch": ["account menu: View as Admin (remembered)"],
+      "target_load": "three rows above the fold; 'Show all 7'"
+    },
+    {
+      "id": "A2", "who": "admin", "name": "Compare a role (expert and junior)",
+      "current_clicks": 3, "current_path": ["View as: Admin", "sidebar: Firm", "tab: Roles"],
+      "target_clicks": 1, "target_path": ["sidebar: Roles"], "target_clicks_role_switch": 2
+    },
+    {
+      "id": "A3", "who": "admin", "name": "See onboarding speed",
+      "current_clicks": 3, "current_path": ["View as: Admin", "sidebar: Firm", "tab: Onboarding"],
+      "target_clicks": 1, "target_path": ["sidebar: Onboarding"], "target_clicks_role_switch": 2
+    }
+  ],
+  "first_run": {
+    "current": "Two separate set-ups: the desktop panel has 8 steps (Hello, About you, How you like to learn, Make it comfortable, Look and feel, Allow what I need, Helping hands, All set) and the dashboard has 7 questions (role, tools, risky actions, tone, pace, hours, capture). At least 15 screens and about 20 clicks, plus the macOS permission prompts.",
+    "target_clicks": 3, "target_path": ["role card", "consent choice (Yes, learn my times | Not now | Never)", "Show my week"]
+  }
+}

@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" width="960" height="560" role="img" aria-label="Knack brand lockup, clear space, sizes, app icon and menu-bar states">
+  <title>Knack brand sheet</title>
+  <desc>Glyph plus the word Knack. The disc is as tall as the capital K. Clear space is one K on every side. Colours are tokens: ink 0e1319, bone e7ebf1, accent 0a7c78 light, 4fd1c5 dark.</desc>
+  <style>
+    .t { font-family: "Source Sans 3", "Avenir Next", system-ui, sans-serif; fill: #566074; font-size: 12px }
+    .h { font-family: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif; font-weight: 600; letter-spacing: -0.01em }
+    .m { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; font-size: 11px; fill: #566074 }
+  </style>
+  <defs>
+    <!-- glyph, cropped to its own box: viewBox 28 30 78 72 (disc r22 at 54,56; ring r22 at 76,72, stroke 7) -->
+    <symbol id="glyph-ui" viewBox="28 30 78 72">
+      <circle cx="76" cy="72" r="22" fill="none" stroke="var(--ring, #0a7c78)" stroke-width="7"/>
+      <circle cx="54" cy="56" r="22" fill="var(--disc, #141922)"/>
+    </symbol>
+    <symbol id="glyph-mono" viewBox="28 30 78 72">
+      <circle cx="76" cy="72" r="22" fill="none" stroke="currentColor" stroke-width="7" opacity="0.62"/>
+      <circle cx="54" cy="56" r="22" fill="currentColor"/>
+    </symbol>
+  </defs>
+
+  <rect width="960" height="560" fill="#f4f6f9"/>
+
+  <!-- A. primary lockup, light -->
+  <text class="t" x="32" y="36">Primary lockup (light). Disc is --fg, ring is --accent.</text>
+  <g transform="translate(32 56)">
+    <rect x="0" y="0" width="300" height="96" fill="#ffffff" stroke="#d8dee8"/>
+    <use href="#glyph-ui" x="40" y="26" width="44" height="40.6" style="--ring:#0a7c78;--disc:#141922"/>
+    <text class="h" x="98" y="62" font-size="38" fill="#141922">Knack</text>
+  </g>
+
+  <!-- B. reversed lockup, dark -->
+  <text class="t" x="352" y="36">Reversed (dark). Disc is --fg dark, ring is --accent dark.</text>
+  <g transform="translate(352 56)">
+    <rect x="0" y="0" width="300" height="96" fill="#0e1319" stroke="#283341"/>
+    <use href="#glyph-ui" x="40" y="26" width="44" height="40.6" style="--ring:#4fd1c5;--disc:#e7ebf1"/>
+    <text class="h" x="98" y="62" font-size="38" fill="#e7ebf1">Knack</text>
+  </g>
+
+  <!-- C. clear space -->
+  <text class="t" x="672" y="36">Clear space: one K on every side.</text>
+  <g transform="translate(672 56)">
+    <rect x="0" y="0" width="256" height="96" fill="#ffffff" stroke="#d8dee8"/>
+    <rect x="22" y="22" width="212" height="52" fill="none" stroke="#a86a00" stroke-dasharray="3 3"/>
+    <use href="#glyph-ui" x="34" y="30" width="36" height="33.2" style="--ring:#0a7c78;--disc:#141922"/>
+    <text class="h" x="80" y="60" font-size="31" fill="#141922">Knack</text>
+    <text class="m" x="4" y="14">K</text><text class="m" x="236" y="14">K</text>
+  </g>
+
+  <!-- D. sizes where the mark appears -->
+  <text class="t" x="32" y="196">Where it appears, and at what size</text>
+  <g transform="translate(32 208)">
+    <rect x="0" y="0" width="896" height="150" fill="#ffffff" stroke="#d8dee8"/>
+    <!-- sidebar -->
+    <g transform="translate(24 20)">
+      <use href="#glyph-ui" x="0" y="0" width="20" height="18.5" style="--ring:#0a7c78;--disc:#141922"/>
+      <text class="h" x="28" y="15" font-size="17.5" fill="#141922">Knack</text>
+      <text class="m" x="0" y="46">sidebar</text><text class="m" x="0" y="60">glyph 20 px, word 17.5 px/600</text>
+    </g>
+    <!-- first run -->
+    <g transform="translate(250 14)">
+      <use href="#glyph-ui" x="0" y="0" width="56" height="51.7" style="--ring:#0a7c78;--disc:#141922"/>
+      <text class="m" x="0" y="86">first run</text><text class="m" x="0" y="100">glyph 56 px, no word</text>
+    </g>
+    <!-- favicon -->
+    <g transform="translate(430 24)">
+      <use href="#glyph-mono" x="0" y="0" width="16" height="14.8" style="color:#141922"/>
+      <text class="m" x="0" y="46">favicon, 16 px</text><text class="m" x="0" y="60">currentColor glyph</text>
+    </g>
+    <!-- corner pill -->
+    <g transform="translate(580 18)">
+      <use href="#glyph-ui" x="0" y="0" width="14" height="12.9" style="--ring:#0a7c78;--disc:#141922"/>
+      <text class="m" x="0" y="46">corner pill</text><text class="m" x="0" y="60">glyph 14 px, no word</text>
+    </g>
+    <!-- window title -->
+    <g transform="translate(730 18)">
+      <text class="h" x="0" y="13" font-size="13" fill="#566074">Knack</text>
+      <text class="m" x="0" y="46">window title</text><text class="m" x="0" y="60">native title text only</text>
+    </g>
+    <text class="m" x="24" y="118">Minimums: glyph 12 px, lockup word 14 px.</text>
+    <text class="m" x="24" y="134">Never recolour the ring for status; status is the pill text and the menu-bar badge.</text>
+  </g>
+
+  <!-- E. app icon + menu bar -->
+  <text class="t" x="32" y="394">Dock icon (ink tile, existing understudy-mark.svg geometry) and menu-bar states (template images, black on transparent)</text>
+  <g transform="translate(32 406)">
+    <rect x="0" y="0" width="896" height="136" fill="#ffffff" stroke="#d8dee8"/>
+    <g transform="translate(24 20)">
+      <rect width="96" height="96" rx="22" fill="#0e1319"/>
+      <circle cx="58" cy="54" r="16.5" fill="none" stroke="#4fd1c5" stroke-width="5.2"/>
+      <circle cx="41" cy="42" r="16.5" fill="#e7ebf1"/>
+    </g>
+    <text class="m" x="24" y="132">1024 canvas, 824 tile</text>
+    <!-- menu bar mock, light -->
+    <g transform="translate(160 18)">
+      <rect width="720" height="24" fill="#e8ebf0"/>
+      <g transform="translate(16 3)">
+        <!-- idle -->
+        <use href="#glyph-mono" x="0" y="0" width="18" height="16.6" style="color:#000"/>
+        <text class="m" x="0" y="34">idle</text>
+      </g>
+      <g transform="translate(120 3)">
+        <use href="#glyph-mono" x="0" y="0" width="18" height="16.6" style="color:#000"/>
+        <circle cx="21" cy="14" r="2.2" fill="#000"/>
+        <text class="m" x="0" y="34">working: dot</text>
+      </g>
+      <g transform="translate(260 3)">
+        <use href="#glyph-mono" x="0" y="0" width="18" height="16.6" style="color:#000"/>
+        <text x="24" y="13" font-family="-apple-system, system-ui, sans-serif" font-size="12" font-weight="600" fill="#000">2</text>
+        <text class="m" x="0" y="34">needs you: count</text>
+      </g>
+      <g transform="translate(410 3)">
+        <circle cx="7" cy="8" r="5.5" fill="#000"/><circle cx="14" cy="13" r="4.4" fill="none" stroke="#000" stroke-width="1.4"/>
+        <text class="m" x="0" y="34">glance: ring</text>
+      </g>
+      <g transform="translate(560 3)">
+        <circle cx="8" cy="8" r="6.5" fill="#000"/><rect x="5.5" y="5.5" width="5" height="5" fill="#e8ebf0"/>
+        <text class="m" x="0" y="34">stopped: square</text>
+      </g>
+    </g>
+    <text class="m" x="160" y="86">Priority: stopped, needs you, glance, working, paused, idle.</text>
+    <text class="m" x="160" y="104">Export 18 and 36 px as trayTemplate.png and trayTemplate@2x.png. Paused keeps the disc with two bars.</text>
+  </g>
+</svg>
