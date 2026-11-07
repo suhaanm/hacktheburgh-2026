@@ -1,10 +1,10 @@
-import { useEffect, type ReactNode } from "react";
-import { MODES, MODE_LABEL, groupTypes, modeLine, type Mode } from "../../lib/attention";
+import { useEffect, useState, type ReactNode } from "react";
+import { MODES, MODE_LABEL, groupTypes, learnedLines, modeLine, type Mode } from "../../lib/attention";
 import type { AttentionSettings } from "../../types";
 import { HELP_LOCKS, PRESETS, STOPS_LINE, THEMES, APP_ONLY, lockOf, lockPatch, presetOf, sectionOf, type HelpLock, type LiveView, type Preset, type Theme } from "../../screens/Settings/model";
 import type { DesktopSettings } from "../../screens/Settings/bridge";
 import { Hint } from "../Hint";
-import { Details } from "../ui";
+import { ConfirmRow, Details } from "../ui";
 import "../kc.css";
 import "./settings.css";
 
@@ -18,6 +18,10 @@ export interface SettingsViewProps {
   attentionError: string | null;
   onPreset: (p: Preset) => void;
   onMode: (type: string, mode: Mode) => void;
+  /** Put every kind back to the loudness the worker set (what Knack learned can only ever make a kind quieter). */
+  onResetLearned: () => void;
+  /** The two-second help level glance (an attention setting, so it works without the app). */
+  onLevelGlance: (on: boolean) => void;
   /** The desktop app's own settings, or null in a browser tab. */
   desktop: DesktopSettings | null;
   onDesktop: (patch: Partial<DesktopSettings>) => void;
@@ -71,6 +75,7 @@ function Segmented<T extends string | number>({ label, value, options, onChange,
  */
 export function SettingsView(p: SettingsViewProps) {
   const target = sectionOf(p.section);
+  const [confirmReset, setConfirmReset] = useState(false);
   useEffect(() => {
     if (!target || typeof document === "undefined") return;
     document.getElementById(`set-${target}`)?.scrollIntoView?.({ block: "start" });
@@ -80,6 +85,7 @@ export function SettingsView(p: SettingsViewProps) {
   const preset = p.attention ? presetOf(p.attention) : null;
   const lock = lockOf(d);
   const groups = p.attention ? groupTypes(p.attention.types) : [];
+  const learned = p.attention ? learnedLines(p.attention.learned) : [];
 
   return (
     <div className="st" data-testid="settings">
@@ -112,6 +118,18 @@ export function SettingsView(p: SettingsViewProps) {
                   </div>
                 );
               })}
+              {learned.length > 0 && (
+                <div className="st-group" data-testid="learned">
+                  <p className="kc-label">What Knack learned</p>
+                  <ul className="yd-plain">{learned.map((l) => <li key={l.type}>{l.text}</li>)}</ul>
+                  <p className="st-kind-note">It can make a kind quieter, never louder.</p>
+                  {confirmReset ? (
+                    <ul className="kc-list"><ConfirmRow question="Reset what Knack learned?" consequence="Every kind goes back to the loudness you set. Nothing else changes." confirmLabel="Reset it" onConfirm={() => { setConfirmReset(false); p.onResetLearned(); }} onCancel={() => setConfirmReset(false)} /></ul>
+                  ) : (
+                    <div><button type="button" className="btn btn--secondary btn--sm" onClick={() => setConfirmReset(true)}>Reset what Knack learned</button></div>
+                  )}
+                </div>
+              )}
             </div>
           </Details>
         </div>
@@ -120,6 +138,13 @@ export function SettingsView(p: SettingsViewProps) {
       <Row id="coaching" title="Coaching"
         line={d ? (d.cueEnabled ? "Knack can offer hints while you work." : "No hints while you work.") : APP_ONLY}
         control={d ? <Switch label="Coaching" checked={!!d.cueEnabled} onChange={(on) => p.onDesktop({ cueEnabled: on })} /> : null} />
+      {p.attention && (
+        <div className="st-sub">
+          <div className="st-kind"><span className="st-kind__name">Show the help level for two seconds when it changes<span className="st-kind__line">Only when nothing else is on screen and you have been still for a moment.</span></span>
+            <Switch label="Show the help level for two seconds when it changes" checked={p.attention.level_glance} onChange={p.onLevelGlance} />
+          </div>
+        </div>
+      )}
       {d && (
         <div className="st-sub">
           <div className="st-kind"><span className="st-kind__name" id="set-lock-h">Help level</span>

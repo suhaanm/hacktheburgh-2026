@@ -3,7 +3,7 @@ import { ApiError, api } from "../../api";
 import { ErrorState, Loading } from "../../components/common";
 import { AdminSees } from "../../components/yourdata/AdminSees";
 import { Measured } from "../../components/yourdata/Measured";
-import { OriginBadge, OriginDetails, OriginError } from "../../components/needsyou/Origin";
+import { OriginBadge, OriginDetails } from "../../components/needsyou/Origin";
 import { Remembers } from "../../components/yourdata/Remembers";
 import { Sent } from "../../components/yourdata/Sent";
 import { Switches } from "../../components/yourdata/Switches";
@@ -105,7 +105,8 @@ export default function YourData() {
   };
 
   const f = { lines: items.length, rules: (rules.data ?? []).filter((p) => p.status === "proposed").length, capture, entries, steps: stepTotal, shared: sharing.data ? sharing.data.items.length : null };
-  const sources = [mem, ledger, steps];
+  // The section the address names speaks first: its own source explains why the screen shows example data.
+  const sources = want === "sent" ? [ledger, mem, steps] : [mem, ledger, steps];
   const body: Record<Id, ReactNode> = {
     remembers: <Remembers memory={m} proposals={rules.data ?? []} onChanged={() => { mem.reload(); rules.reload(); }} />,
     measured: <Measured capture={capture} view={steps.data} example={exampleSteps} onExport={async () => { const x = await exportLedger("going", exampleSteps); downloadText(x.filename.replace("understudy", "knack"), x.text); }} onDelete={async () => { const n = await deleteLedger("going", exampleSteps); steps.reload(); return n; }} />,
@@ -120,7 +121,6 @@ export default function YourData() {
         <h1 className="kc-title">Your data</h1>
         <OriginBadge sources={sources} />
       </div>
-      <OriginError sources={sources} />
       <OriginDetails sources={sources} />
 
       <div className="yd">

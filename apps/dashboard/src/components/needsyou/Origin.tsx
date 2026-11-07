@@ -1,8 +1,8 @@
 // The one origin badge a Track C screen shows (docs/KNACK_UX.md section 5: one badge per screen, sentence case; the sentence behind it is in a Hint,
 // the badge itself is the printed fact, and an engine error is printed as a line because an error is never only in a Hint).
-import { EXAMPLE_LINE, type Fallback } from "../../lib/fallback";
+import type { Fallback } from "../../lib/fallback";
 import type { AnalyticMeta } from "../../types";
-import { Details } from "../ui";
+import { SourceNote } from "../common";
 
 export interface Source { meta?: AnalyticMeta | null; why?: Fallback | null }
 export interface OriginInfo { text: string; data: "example" | "synthetic" | "mixed"; why: Fallback | null }
@@ -24,23 +24,12 @@ export function OriginBadge({ sources }: { sources: Source[] }) {
 }
 
 /**
- * Why a screen shows example data: the plain line, and under it the engine's own sentence (the flag that switches the layer on, or the error), in a closed
- * Details. The instruction is one tap away and printed once opened; it is never only in a Hint (D45). Nothing when the data is the engine's own.
+ * Why a screen shows example data: the shared one plain line, and under it the engine's own sentence (the flag that switches the layer on, or the
+ * error) in a closed "Details". The instruction is one tap away and printed once opened; it is never only in a Hint (D45). An engine error keeps the
+ * warning look so it is read. Nothing when the data is the engine's own.
  */
 export function OriginDetails({ sources }: { sources: Source[] }) {
   const why = sources.find((s) => s.why)?.why;
-  if (!why) return null;
-  return (
-    <Details summary="Why example data">
-      <p className="note">{EXAMPLE_LINE[why.kind]}</p>
-      <p className="note" data-testid="source-detail">{why.message}</p>
-    </Details>
-  );
+  return why ? <SourceNote why={why} /> : null;
 }
 
-/** An engine error is printed, not tucked away: the screen shows example data and says the engine could not answer. */
-export function OriginError({ sources }: { sources: Source[] }) {
-  const why = sources.find((s) => s.why?.kind === "error")?.why;
-  if (!why) return null;
-  return <p className="note note--warn" role="status">{EXAMPLE_LINE.error} Nothing was changed.</p>;
-}

@@ -11,7 +11,7 @@ const attn = (attentionFx as unknown as { data: AttentionSettings }).data;
 const noop = () => undefined;
 const props = (over: Partial<SettingsViewProps> = {}): SettingsViewProps => ({
   live: liveModels({ health: { mock: true, key_present: true }, canSwitch: true, running: false, changing: false }), onLive: noop,
-  attention: attn, attentionExample: false, attentionError: null, onPreset: noop, onMode: noop,
+  attention: attn, attentionExample: false, attentionError: null, onPreset: noop, onMode: noop, onResetLearned: noop, onLevelGlance: noop,
   desktop: null, onDesktop: noop, theme: "auto", onTheme: noop, view: "worker", onView: noop, pinned: false, onPinned: noop, version: "0.1.0", ...over,
 });
 const html = (over?: Partial<SettingsViewProps>) => renderToStaticMarkup(createElement(SettingsView, props(over)));

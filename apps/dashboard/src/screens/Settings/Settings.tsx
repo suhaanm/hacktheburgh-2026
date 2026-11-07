@@ -99,6 +99,8 @@ export default function Settings({ section }: { section?: string }) {
     void apply(patch, (x) => ({ ...x, budget_per_day: patch.budget_per_day, modes: p === "balanced" ? {} : { ...x.modes, ...patch.modes }, types: x.types.map((t) => (t.fixed ? t : { ...t, mode: patch.modes[t.type] ?? t.mode })) }));
   };
   const onMode = (type: string, mode: Mode) => void apply({ modes: { [type]: mode } }, (x) => withMode(x, type, mode));
+  const onResetLearned = () => void apply({ reset_learned: true }, (x) => ({ ...x, learned: {} }));
+  const onLevelGlance = (on: boolean) => void apply({ level_glance: on }, (x) => ({ ...x, level_glance: on }));
   const onDesktop = (patch: Partial<DesktopSettings>) => {
     if (!bridge) return;
     const before = desktop;
@@ -112,7 +114,7 @@ export default function Settings({ section }: { section?: string }) {
 
   return (
     <SettingsView section={section} live={liveView} onLive={(on) => void onLive(on)}
-      attention={attention} attentionExample={!!attn.why} attentionError={attentionError} onPreset={onPreset} onMode={onMode}
+      attention={attention} attentionExample={!!attn.why} attentionError={attentionError} onPreset={onPreset} onMode={onMode} onResetLearned={onResetLearned} onLevelGlance={onLevelGlance}
       desktop={bridge ? desktop : null} onDesktop={onDesktop}
       theme={theme} onTheme={setTheme}
       view={view} onView={setViewRole}

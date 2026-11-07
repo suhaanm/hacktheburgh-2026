@@ -4,7 +4,7 @@ import { ErrorState, Loading } from "../../components/common";
 import { HitList } from "../../components/repeats/HitList";
 import { heldText } from "../../components/repeats/model";
 import type { HitRow, HitState } from "../../components/repeats/types";
-import { OriginBadge, OriginDetails, OriginError } from "../../components/needsyou/Origin";
+import { OriginBadge, OriginDetails } from "../../components/needsyou/Origin";
 import { RunningRow } from "../../components/routines/RunningRow";
 import type { Decide } from "../../components/routines/types";
 import { useToast } from "../../components/Toasts";
@@ -84,7 +84,6 @@ export default function Routines() {
         <h1 className="kc-title">Routines</h1>
         <OriginBadge sources={sources} />
       </div>
-      <OriginError sources={sources} />
       <OriginDetails sources={sources} />
 
       <div className="rt-bar">

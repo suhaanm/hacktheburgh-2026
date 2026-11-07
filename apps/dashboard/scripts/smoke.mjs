@@ -78,66 +78,85 @@ await page.getByRole("button", { name: "Forget this line" }).click();
 await page.getByRole("button", { name: "Yes, remove" }).click();
 await page.waitForTimeout(900);
 check("graph: forgetting a memory node removes it", (await page.locator(".gnode[aria-label^='Memory: Short summaries']").count()) === 0);
-await go("/memory");
-check("memory: the forgotten line is gone from the file", !(await page.locator(".memfile").innerText()).includes("Summaries: short"));
+// Your data: what Knack remembers is the first section and is open by default; every edit and delete here is a line in the file.
+const showAll = async (scope = page) => { const all = scope.getByRole("button", { name: /^Show all \d+$/ }); if (await all.count()) await all.first().click(); };
+const remembered = async () => { await showAll(page.locator("[data-testid=remembers]")); return page.locator("[data-testid=remembers]").innerText(); };
+await go("/your-data");
+check("your data: the forgotten line is gone from the file", !(await remembered()).includes("Summaries: short"));
+const yd = await page.locator("main").innerText();
+check("your data: no file path and none of the old name is on the screen by default", !/(\.understudy|\/Users\/|\/home\/|demo-home|\.md\b)/i.test(yd) && !/\bunderstudy\b/i.test(yd));
 
-// 3b. Memory: capture toggle is just a line in the file
-await go("/memory");
-const wasOn = (await page.locator(".capture").innerText()).includes("Capture is on");
-await page.getByRole("button", { name: wasOn ? "Turn off" : "Turn on" }).click();
+// 3b. Capture and screen glances: capture is just a line in the file
+await go("/your-data?section=switches");
+const capSw = page.getByRole("switch", { name: "Learn from when I am active" });
+const wasOn = await capSw.isChecked();
+check("your data: the capture consent is printed whole beside its switch", /never what you read: no page text, no URLs, no field values/.test(await page.locator("[data-testid=switch-capture]").innerText()));
+await capSw.click();
 await page.waitForTimeout(600);
-const nowState = await page.locator(".capture").innerText();
-check("memory: capture toggle flips and edits the file", wasOn ? nowState.includes("Capture is off") : nowState.includes("Capture is on") && (await page.locator(".memfile").innerText()).includes("Capture: times only"));
+check("your data: the capture switch flips", (await capSw.isChecked()) === !wasOn);
+await go("/your-data");
+check("your data: the file holds the capture line only when capture is on", wasOn ? !/Capture: times only/.test(await remembered()) : /Capture: times only/.test(await remembered()));
 
-// 4. Memory: edit a line, then edit as text
-await page.locator(".memfile__line", { hasText: "Working hours" }).hover();
-await page.getByRole("button", { name: /Edit line/ }).first().click({ force: true });
+// 4. Your data: edit a line, then edit as text
+await remembered();
+await page.locator(".yd-line", { hasText: "Working hours" }).hover();
+await page.getByRole("button", { name: /^Edit: Working hours/ }).click({ force: true });
 await page.waitForTimeout(200);
-const input = page.locator(".memline-edit input");
-await input.fill("Working hours: Tue to Sat, 10:00 to 18:00.");
+await page.locator(".yd-line--edit input").fill("Working hours: Tue to Sat, 10:00 to 18:00.");
 await page.getByRole("button", { name: "Save line" }).click();
 await page.waitForTimeout(700);
-check("memory: line edit saved", (await page.locator(".memfile").innerText()).includes("Tue to Sat, 10:00"));
+check("your data: line edit saved", (await remembered()).includes("Tue to Sat, 10:00"));
+await page.locator("[data-testid=remembers] summary", { hasText: /^More/ }).first().click();
 await page.getByRole("button", { name: "Edit as text" }).click();
 const ta = page.locator("#memtext");
 const cur = await ta.inputValue();
 await ta.fill(cur + "\n");
-check("memory: revision bumped after edits", /revision: 1[3-9]/.test(cur));
+check("your data: revision bumped after edits", /revision: 1[3-9]/.test(cur));
 await page.screenshot({ path: join(qa, "memory-edit-1440.png") });
 
-// 5. Routines: Watch first moves the card into the list
-await go("/routines");
-await page.locator(".proposal", { hasText: "Enter the household into three calculators" }).getByRole("button", { name: "Watch first" }).click();
+// 5. Needs you: Watch first moves a proposal into Routines, Running
+await go("/needs-you");
+const proposalRow = (title) => page.locator("article[data-kind=proposal]", { hasText: title });
+await showAll();
+await proposalRow("Enter the household into three calculators").getByRole("button", { name: "Watch first" }).click();
 await page.waitForTimeout(900);
-check("routines: proposal leaves after a choice", (await page.locator(".proposal", { hasText: "Enter the household into three calculators" }).count()) === 0);
-check("routines: it now lists as watching first", await page.getByText("Enter the household into three calculators").first().isVisible());
-
-// 5b. Routines: the skill gate refuses, and "I already know this one" re-sends with the override
+check("needs you: a proposal leaves the list after a choice", (await proposalRow("Enter the household into three calculators").count()) === 0);
 await go("/routines");
-await page.locator(".proposal", { hasText: "Reconcile the three results" }).getByRole("button", { name: "Watch first" }).click();
+check("routines: it now lists as running, watching first", await page.getByText("Enter the household into three calculators").first().isVisible());
+
+// 5b. Needs you: the skill gate refuses, and "I already know this one" re-sends with the override
+await go("/needs-you");
+await showAll();
+await proposalRow("Reconcile the three results").getByRole("button", { name: "Watch first" }).click();
 await page.waitForTimeout(400);
-check("routines: skill gate explains itself in plain words", await page.getByText("would rather coach you on this one first").isVisible());
+check("needs you: skill gate explains itself in plain words", await page.getByText("would rather coach you on this one first").isVisible());
 await page.getByRole("button", { name: "I already know this one" }).click();
 await page.waitForTimeout(900);
-check("routines: the override goes through and the card leaves", (await page.locator(".proposal", { hasText: "Reconcile the three results" }).count()) === 0);
+check("needs you: the override goes through and the proposal leaves", (await proposalRow("Reconcile the three results").count()) === 0);
 
 // 6. Routines: typed confirmation required for model-driven irreversible opt-in
-await page.locator(".routine-row", { hasText: "Re-check benefit cliffs" }).locator("summary", { hasText: "Autonomy and record" }).click();
-await page.locator(".routine-row", { hasText: "Re-check benefit cliffs" }).locator(".away summary").click();
-await page.locator(".routine-row", { hasText: "Re-check benefit cliffs" }).getByText("Let this routine run while I'm away").click();
-await page.locator(".routine-row", { hasText: "Re-check benefit cliffs" }).getByText("Allow “submit” without asking me").click();
-const away = page.locator(".routine-row", { hasText: "Re-check benefit cliffs" }).getByRole("button", { name: "Allow while I'm away" });
+await go("/routines");
+const cliffs = page.locator("article.rt-row", { hasText: "Re-check benefit cliffs" });
+await cliffs.locator(".rt-row__open").click();
+await cliffs.getByText("Allow “submit” without asking me").click();
+const away = cliffs.getByRole("button", { name: "Allow while I'm away" });
 check("routines: irreversible away opt-in blocked without typed confirmation", await away.isDisabled());
-await page.locator(".routine-row", { hasText: "Re-check benefit cliffs" }).locator("input.input").fill("monday-cliff-check");
+await cliffs.locator("input.input").fill("monday-cliff-check");
 check("routines: allowed once the id is typed", await away.isEnabled());
-await page.locator(".routine-row", { hasText: "Re-check benefit cliffs" }).scrollIntoViewIfNeeded(); await page.screenshot({ path: join(qa, "routines-away-1440.png") });
+await cliffs.scrollIntoViewIfNeeded(); await page.screenshot({ path: join(qa, "routines-away-1440.png") });
 
-// 7. Queue: approve one item
-await go("/queue");
-const before = await page.locator(".queue-item").count();
+// 7. Needs you: a key never approves, then a real click does
+await go("/needs-you");
+const submitHead = page.getByRole("heading", { name: "Submit case note CN-2041" });
+const submitRow = page.locator("li", { has: submitHead }).first();
+await submitRow.focus();
+await page.keyboard.press("Space"); await page.keyboard.press("Enter"); await page.keyboard.press("ArrowDown");
+await page.waitForTimeout(300);
+check("needs you: no key approves or rejects (the item is still waiting)", (await submitHead.count()) === 1);
+check("needs you: the consequence is printed as plain text next to the buttons", /Cannot be undone\./.test(await page.locator("article[data-kind=approval][data-risk=irreversible]").first().innerText()));
 await page.getByRole("button", { name: "Approve and submit" }).click();
 await page.waitForTimeout(700);
-check("queue: approving decides the card", (await page.locator(".queue-item[data-status='approved']").count()) === 1 && before === 4);
+check("needs you: approving decides the item", (await submitHead.count()) === 0);
 
 // 8. Presence: quiet hours save changes idle capacity
 await go("/presence");
@@ -247,25 +266,30 @@ check("week: the ribbon, the gap table with intervals and 3 to 5 suggestion card
 check("week: every suggestion says that nothing is sent, booked or changed", (await page.locator(".sug", { hasText: /Nothing is sent, booked or changed\./ }).count()) === (await page.locator(".sug").count()));
 check("week: no titles or names anywhere on the screen", !/(standup|1:1|review with|@[a-z]+\.)/i.test(weekText));
 
-await go("/briefing", 900);
-const cardsBefore = await page.locator("article.proposal").count();
-check("briefing: at most three cards", cardsBefore > 0 && cardsBefore <= 3);
-const first = page.locator("article.proposal").first();
-check("briefing: editing is one click away, not in the way", (await first.locator("textarea").count()) === 0);
+await go("/needs-you", 900);
+await showAll();
+const cardRows = page.locator("article[data-kind=prepared]");
+const cardsBefore = await cardRows.count();
+check("needs you: at most three prepared actions", cardsBefore > 0 && cardsBefore <= 3);
+const first = cardRows.first();
+check("needs you: editing is one click away, not in the way", (await first.locator("textarea").count()) === 0);
+await first.getByRole("button", { name: "What will happen" }).click();
 await first.getByRole("button", { name: "Edit what will happen" }).click();
 await first.locator("textarea").first().fill("Hold Wednesday 10:00 to 12:00 for focus. Edited by me.");
 await first.getByRole("button", { name: "Save my edit" }).click();
 await page.waitForTimeout(500);
-await go("/briefing", 700);
-check("briefing: the edit to the prepared block is kept", (await page.locator("article.proposal").first().innerText()).includes("Edited by me."));
-await page.locator("article.proposal").first().getByRole("button", { name: "Approve and run" }).click();
+await go("/needs-you", 700);
+await showAll();
+await page.locator("article[data-kind=prepared]").first().getByRole("button", { name: "What will happen" }).click();
+check("needs you: the edit to the prepared block is kept", (await page.locator("article[data-kind=prepared]").first().innerText()).includes("Edited by me."));
+await page.locator("article[data-kind=prepared]").first().getByRole("button", { name: "Approve and run" }).click();
 await page.waitForTimeout(600);
-check("briefing: pressing Approve and run says which thing it created", /Created approval item q_demo_b_01/.test(await page.locator("[data-testid=fired]").first().innerText()));
-await page.locator("article.proposal").first().getByRole("button", { name: "Not now" }).click();
+check("needs you: pressing Approve and run says which thing it created", /Created an item here for your approval/.test(await page.locator("[data-testid=fired]").first().innerText()));
+await page.locator("article[data-kind=prepared]").first().getByRole("button", { name: "Not now" }).click();
 await page.waitForTimeout(500);
-await page.locator("article.proposal").first().getByRole("button", { name: "Never for this" }).click();
+await page.locator("article[data-kind=prepared]").first().getByRole("button", { name: "Never" }).click();
 await page.waitForTimeout(500);
-check("briefing: with nothing left it says nothing is worth your time", (await page.getByText("Nothing worth your time today").count()) >= 1 && (await page.locator("article.proposal").count()) === 0);
+check("needs you: with nothing prepared left, none is shown", (await page.locator("article[data-kind=prepared]").count()) === 0);
 
 await go("/agents", 900);
 const runsBefore = await page.locator("article.run").count();
@@ -289,14 +313,25 @@ await page.waitForTimeout(500);
 const detail = await page.locator("article.run", { hasText: "Data profile" }).innerText();
 check("agents: result steps carry a check with a glyph and a word", /verified/.test(detail) && /uncertain/.test(detail) && (await page.locator(".pill--check .pill__glyph-char").count()) >= 3);
 
-await go("/privacy", 900);
-check("privacy: the ledger lists each call with its fields and the payload as sent", (await page.locator(".ledger__row").count()) >= 6 && /Payload, exactly as sent/.test(await page.locator("main").innerText()) && (await page.locator("pre.payload").first().innerText()).includes("card_kind"));
+await go("/your-data?section=sent", 900);
+await showAll(page.locator("[data-testid=sent]"));
+check("your data: the model-call list shows each call with its fields and the payload as sent", (await page.locator("[data-testid=sent] .ledger__row").count()) >= 6 && /Payload, exactly as sent/.test(await page.locator("main").innerText()) && (await page.locator("[data-testid=sent] pre.payload").first().innerText()).includes("card_kind"));
+await page.locator("[data-testid=sent] summary", { hasText: "How this is checked" }).click();
 const priv = await page.locator("main").innerText();
-check("privacy: it never claims that nothing leaves the laptop, and the canary reads as evidence not proof", !/nothing (ever )?leaves/i.test(priv) && /evidence from a test, not a proof/i.test(priv) && /Calls for steps you asked for are listed too/i.test(priv));
-await page.getByRole("button", { name: "Clear the ledger" }).click();
-await page.getByRole("button", { name: "Yes, clear the list" }).click();
+check("your data: it never claims that nothing leaves the laptop, prints the limit, and the canary reads as evidence not proof", !/nothing (ever )?leaves/i.test(priv) && /cannot show what other software on this computer does/i.test(priv) && /evidence from a test, not a proof/i.test(priv) && /Calls for steps you asked for are listed too/i.test(priv));
+await page.locator("[data-testid=sent]").getByRole("button", { name: "Forget", exact: true }).click();
+check("your data: forgetting asks once, inline, and says what it does not do", /does not recall anything already sent/.test(await page.locator("[data-testid=sent]").innerText()));
+await page.getByRole("button", { name: "Forget it" }).click();
 await page.waitForTimeout(600);
-check("privacy: clearing empties the list and says so", (await page.locator(".ledger__row").count()) === 0 && (await page.getByText("The ledger is empty").count()) >= 1);
+check("your data: forgetting empties the list and says so", (await page.locator(".ledger__row").count()) === 0 && (await page.getByText("Nothing has been sent to a model.").count()) >= 1);
+
+// 8d2. Your data: Delete everything is on the screen, and its confirm names exactly what it clears
+await go("/your-data");
+await page.getByRole("button", { name: "Delete everything", exact: true }).click();
+const delText = await page.locator(".yd-delete").innerText();
+check("your data: Delete everything names every part it clears and what stays", /Delete everything Knack holds about you\?/.test(delText) && /lines of your memory file|line of your memory file/.test(delText) && /step count/.test(delText) && /records? of model calls/.test(delText) && /what Knack learned about how loud to speak/.test(delText) && /does not recall anything already sent/.test(delText) && /Your role, settings and routines stay\./.test(delText));
+await page.getByRole("button", { name: "Keep", exact: true }).click();
+check("your data: Keep leaves everything as it was", (await page.getByRole("button", { name: "Delete everything", exact: true }).count()) === 1);
 
 // 8e. A layer that /health lists as off: the screen is still there, shows example data and says how to switch the layer on, and asks for nothing
 {
@@ -312,7 +347,7 @@ check("privacy: clearing empties the list and says so", (await page.locator(".le
   await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(600);
   const nav = await page.locator("nav#nav").textContent();
   check("layers off: nothing is hidden from the menu", /Week/.test(nav ?? "") && /Privacy/.test(nav ?? "") && /Agents/.test(nav ?? "") && /Briefing/.test(nav ?? "") && /Git habits/.test(nav ?? "") && /Models/.test(nav ?? ""));
-  await page.goto(`${base}/#/privacy`); await page.waitForTimeout(700);
+  await page.goto(`${base}/#/your-data?section=sent`); await page.waitForTimeout(700);
   const off = await page.locator("main").innerText();
   // One plain line is on the page; the engine's sentence with the flag name sits in a closed "Details" disclosure under it (D45). Open it, then assert the text.
   check("layers off: one plain line says example data and that the feature is switched off", /Showing example data: this feature is switched off in the engine\./.test(off) && /example data/i.test(off));
@@ -383,34 +418,28 @@ check("privacy: clearing empties the list and says so", (await page.locator(".le
   await page.unroute(ENGINE);
 }
 
-// 8g. Notices: one row per kind of notice, locked safety rows, a Today strip, a passive banner
+// 8g. Settings, Interruptions: three words, the kinds behind "Per kind", locked safety kinds, learned quieting and a refused change
 {
-  await go("/notices", 1500);
-  const openGroups = () => page.evaluate(() => document.querySelectorAll("details.notices__group").forEach((d) => { d.open = true; }));
-  check("notices: only the first group is open by default, the others are one click away", (await page.locator("details.notices__group[open]").count()) === 1 && (await page.locator("details.notices__group").count()) === 4);
-  await openGroups();
-  const nt = await page.locator("main").innerText();
-  check("notices: example data is badged and the groups and the floor are in plain words", /example data/i.test(nt) && /Needs you/.test(nt) && /Helps in the moment/.test(nt) && /Can wait/.test(nt) && /Information/.test(nt) && /Safety stops and approvals that block a job always stay visible/.test(nt));
-  const kill = page.locator("[data-testid=notice-kill_engaged]");
-  await page.getByText("What always shows", { exact: true }).click();
-  check("notices: a safety kind is locked, not a choice", (await kill.locator(".segmented").count()) === 0 && /Always shown/.test(await kill.innerText()));
+  await go("/home?settings=interruptions", 1500);
+  const st = page.locator("[data-testid=settings]");
+  const stText = await st.innerText();
+  check("settings: Interruptions has three words and prints that stops and blocking approvals always show", /Rarely/.test(stText) && /Balanced/.test(stText) && /Often/.test(stText) && /Stops and blocking approvals always show\./.test(stText));
+  check("settings: Use live models comes first", stText.indexOf("Use live models") >= 0 && stText.indexOf("Use live models") < stText.indexOf("Interruptions"));
+  await st.locator("summary", { hasText: "Per kind" }).click();
+  const nt = await st.innerText();
+  check("settings: the kinds are grouped in plain words behind Per kind", /Needs you/.test(nt) && /Helps in the moment/.test(nt) && /Can wait/.test(nt) && /Information/.test(nt));
+  check("settings: a safety kind is printed as always shown, not offered as a choice", /Always shown:/.test(await page.locator("[data-testid=fixed-needs]").innerText()) && (await page.locator("[data-testid=notice-kill_engaged]").count()) === 0);
   const rp = page.locator("[data-testid=notice-routine_proposal]");
   await rp.getByRole("button", { name: "Quiet" }).click();
   await page.waitForTimeout(400);
-  check("notices: choosing a mode takes effect and the row says what it does", (await rp.locator("button[aria-pressed=true]").innerText()) === "Quiet" && /A summary and a note on the dashboard only/.test(await hintText(rp, /does at this setting/)));
-  await page.locator("[data-testid=today-detail] summary").click();
-  const strip = await page.locator("[data-testid=today-strip]").innerText();
-  check("notices: the Today strip counts shown, held and dropped, and says why in the engine's words", /Today: 2 shown, 2 held, 4 dropped, 2 left as quiet notes/.test(strip) && /Held because you were typing\. Shown at your next pause\./.test(strip));
-  await page.locator("[data-testid=needs-you] summary", { hasText: "Why?" }).first().click();
-  await page.waitForTimeout(500);
-  check("notices: a Why? on an item that needs you gives the engine's fixed reason", /Held because Understudy could not tell whether you were busy\./.test(await page.locator("[data-testid=needs-you]").innerText()));
-  await page.getByRole("button", { name: "Reset what Understudy learned" }).click();
-  check("notices: reset asks once, inline", (await page.getByRole("button", { name: "Yes, reset what it learned" }).count()) === 1);
-  await page.getByRole("button", { name: "Yes, reset what it learned" }).click();
+  check("settings: choosing a mode takes effect and the row says what it does", (await rp.locator("button[aria-pressed=true]").innerText()) === "Quiet" && /A summary and a note on the dashboard only/.test(await hintText(rp, /does at this setting/)));
+  await page.getByRole("button", { name: "Reset what Knack learned" }).click();
+  check("settings: reset asks once, inline", (await page.getByRole("button", { name: "Reset it", exact: true }).count()) === 1);
+  await page.getByRole("button", { name: "Reset it", exact: true }).click();
   await page.waitForTimeout(400);
-  check("notices: after a reset it says nothing is learned", /Nothing yet\. Every kind of notice is as loud as you set it\./.test(await page.locator("main").innerText()));
+  check("settings: after a reset nothing learned is listed", (await page.locator("[data-testid=learned]").count()) === 0);
 
-  // A real-engine scenario, mocked: a refused change reverts and shows the engine's own words; the banner shows counts and the summary link.
+  // A real-engine scenario, mocked: a refused change reverts and shows the engine's own words.
   const json = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" }, body: JSON.stringify(body) });
   const meta = { origin: "real", n: 0, n_unit: "items", split: null, interval_level: 0.95, note: null, generated_at: "" };
   const settings = { modes: {}, budget_per_day: 10, level_glance: true, learned: {}, floors: [{ type: "kill_engaged", floor: "toast", why: "Safety stops are always shown once and stay visible." }],
@@ -423,20 +452,16 @@ check("privacy: clearing empties the list and says so", (await page.locator(".le
     if (u.pathname === "/health") return json(route, { ok: true, version: "x", mock: false, extensions: { attention: true } });
     if (u.pathname === "/attention/settings" && req.method() === "GET") return json(route, { meta, data: settings });
     if (u.pathname === "/attention/settings") { posted = { body: JSON.parse(req.postData() ?? "{}"), actor: req.headers()["x-understudy-actor"], type: req.headers()["content-type"] }; return json(route, { error: { code: "unknown_key", message: "That setting is not one the engine knows." } }, 422); }
-    if (u.pathname === "/attention/digest") return json(route, { meta, data: { kind: u.searchParams.get("kind"), lines: [], today: {}, budget: { used: 0, per_day: 10 } } });
-    if (u.pathname === "/attention/next") return json(route, { meta, data: { item: null, active: null, badges: { needs_you: 1, waiting: 3, marker: "needs_you", stopped: false }, digest_ready: true, poll_after_s: 2 } });
     return json(route, { error: { code: "not_found", message: "not mocked" } }, 404);
   });
-  await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(6800); await page.goto(`${base}/#/notices`); await page.waitForTimeout(1500);
-  await openGroups();
-  const banner = await page.locator("[data-testid=notice-banner]").innerText();
-  check("notices: the passive banner shows counts and a summary link, and nothing about the stopped state", /1 needs you, 2 are waiting/.test(banner) && /Summary ready/.test(banner) && !/stopped/i.test(banner));
-  check("notices: with a real engine the screen is not badged as an example", !/example data/i.test(await page.locator("main").innerText()));
+  await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(1500); await page.goto(`${base}/#/home?settings=interruptions`); await page.waitForTimeout(1500);
+  await page.locator("[data-testid=settings] summary", { hasText: "Per kind" }).click();
+  check("settings: with a real engine the interruption settings are not badged as an example", !/Example settings/i.test(await page.locator("[data-testid=settings]").innerText()));
   const row = page.locator("[data-testid=notice-routine_proposal]");
   await row.getByRole("button", { name: "Digest only" }).click();
   await page.waitForTimeout(500);
-  check("notices: a refused change goes back and shows the engine's own words", (await row.locator("button[aria-pressed=true]").innerText()) === "Normal" && /That setting is not one the engine knows\. \(unknown_key\)/.test(await page.locator("main").innerText()));
-  check("notices: the change was sent as JSON from the worker", posted?.actor === "worker" && /application\/json/.test(posted?.type ?? "") && posted.body.modes?.routine_proposal === "digest", JSON.stringify(posted));
+  check("settings: a refused change goes back and shows the engine's own words", (await row.locator("button[aria-pressed=true]").innerText()) === "Normal" && /That setting is not one the engine knows\. \(unknown_key\)/.test(await page.locator("[data-testid=settings]").innerText()));
+  check("settings: the change was sent as JSON from the worker", posted?.actor === "worker" && /application\/json/.test(posted?.type ?? "") && posted.body.modes?.routine_proposal === "digest", JSON.stringify(posted));
   await page.unroute(ENGINE);
 }
 
