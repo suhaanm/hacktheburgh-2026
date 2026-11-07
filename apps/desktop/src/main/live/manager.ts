@@ -13,14 +13,14 @@ import { dayKey } from '../awareness/usage'
 import { LiveSession, type EndReason, type FrameProvider, type SessionConfig, type SessionMode, type SessionSummary } from './session'
 import { CircuitBreaker, SessionMeter, createUsageLog, pricesFromEnv, type LivePrices, type UsageLog } from './meter'
 import { GateMonitor, createGateReader, type GateReader, type GateSources, type Timers as GateTimers } from './gates'
-import { LIVE_SYSTEM_INSTRUCTION, TRANSCRIBE_ONLY_INSTRUCTION } from './prompt'
+import { LIVE_SYSTEM_INSTRUCTION, TRANSCRIBE_ONLY_INSTRUCTION, WAKE_SYSTEM_INSTRUCTION } from './prompt'
 import { liveFlagOn, liveModelId, transcribeModelId, type Env } from './flags'
 import { frameConsent, voiceConsent, type LiveSettingsStore } from './settings'
 import { createToolHost } from './tool-host'
 import { realTimers, type Timers } from './clock'
 import type { SocketFactory } from './connection'
 import type { LiveLedgerPort } from './ledger'
-import type { AudioBridge, GroundPort, LiveCuePort, RingPort } from './ports'
+import type { AudioBridge, DoItAnswer, DoItRequest, GroundPort, LiveCuePort, RingPort } from './ports'
 import type { ModelCheck, TokenMinter } from './token'
 import type { TurnMode } from './wire'
 
@@ -54,6 +54,8 @@ export interface LiveStatus {
   elapsedMs: number
   maxMs: number
   mode: SessionMode | null
+  // What started the open conversation: the talk key, or the words "Hey Knack" (hands-free). Null when none is open.
+  trigger: 'key' | 'wake' | null
   todayUsd: number
   dailyUsd: number
   sessionsToday: number
@@ -79,6 +81,8 @@ export interface ManagerDeps {
   cue: LiveCuePort
   ground?: GroundPort | null
   ring: RingPort
+  // Wake sessions only: what `do_it_for_me` asks. Absent: the tool answers "not available" and the model shows instead.
+  doIt?: (req: DoItRequest) => Promise<DoItAnswer>
   usage?: UsageLog
   breaker?: CircuitBreaker
   prices?: LivePrices
@@ -108,6 +112,8 @@ export interface LiveManager {
   noteAnswer(id: string): void
   hasSession(): boolean
   voiceAllowed(): boolean
+  /** The words "Hey Knack" were heard: open a hands-free conversation through the same gates as the key. False (with `status().refused` set) when it may not start. */
+  startFromWake(): boolean
 }
 
 export function createLiveManager(d: ManagerDeps): LiveManager {
@@ -122,6 +128,7 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
 
   let session: LiveSession | null = null
   let sessionMode: SessionMode | null = null
+  let sessionTrigger: 'key' | 'wake' | null = null
   let toolHostDispose: (() => void) | null = null
   let offAnswer: (() => void) | null = null
   let usedVoice = false
@@ -149,6 +156,7 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
       elapsedMs: session && !session.isEnded ? session.elapsedMs : 0,
       maxMs: s.liveMaxMs,
       mode: session && !session.isEnded ? sessionMode : null,
+      trigger: session && !session.isEnded ? sessionTrigger : null,
       todayUsd: Math.round(usage.todayUsd(now()) * 1e6) / 1e6,
       dailyUsd: s.liveDailyUsd,
       sessionsToday: usage.todaySessions(now()),
@@ -191,7 +199,7 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
     return null
   }
 
-  function configFor(mode: SessionMode): SessionConfig {
+  function configFor(mode: SessionMode, wake = false): SessionConfig {
     const s = d.settings.get()
     const live = liveModelId(env) as string
     const tm = transcribeModelId(env)
@@ -199,10 +207,14 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
     if (mode === 'transcribe') {
       return { ...base, mode, model: tm ?? live, textOnlyModel: tm !== null, voiceName: s.liveVoiceName, systemInstruction: TRANSCRIBE_ONLY_INSTRUCTION, idleMs: 15_000, graceMs: 3000, maxMs: 25_000, sessionUsd: Math.min(0.05, s.liveSessionUsd), framesEnabled: false, frameIntervalMs: 60_000, transcriptWaitMs: 3000 }
     }
+    if (wake) {
+      // Hands-free: server-side turn detection, the microphone stays open, a quiet half minute ends it (the key's 60 s is for a held key).
+      return { ...base, turnMode: 'vad', mode, wake: true, model: live, voiceName: s.liveVoiceName, systemInstruction: WAKE_SYSTEM_INSTRUCTION, idleMs: Math.min(s.liveIdleMs, 30_000), graceMs: s.liveGraceMs, maxMs: s.liveMaxMs, sessionUsd: s.liveSessionUsd, framesEnabled: frameConsent(s), frameIntervalMs: s.liveFrameIntervalMs, transcriptWaitMs: 3000 }
+    }
     return { ...base, mode, model: live, voiceName: s.liveVoiceName, systemInstruction: LIVE_SYSTEM_INSTRUCTION, idleMs: s.liveIdleMs, graceMs: s.liveGraceMs, maxMs: s.liveMaxMs, sessionUsd: s.liveSessionUsd, framesEnabled: frameConsent(s), frameIntervalMs: s.liveFrameIntervalMs, transcriptWaitMs: 3000 }
   }
 
-  function open(mode: SessionMode, onSummary?: (s: SessionSummary) => void): boolean {
+  function open(mode: SessionMode, onSummary?: (s: SessionSummary) => void, wake = false): boolean {
     refused = startRefusal()
     if (refused) {
       log('live', `not started: ${refused}`)
@@ -211,10 +223,10 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
       return false
     }
     const meter = new SessionMeter(d.prices ?? pricesFromEnv(env))
-    const host = createToolHost({ cue: d.cue, ground: d.ground ?? null, ring: d.ring, appKind: d.appKind })
+    const host = createToolHost({ cue: d.cue, ground: d.ground ?? null, ring: d.ring, appKind: d.appKind, ...(wake && d.doIt ? { wake: { doIt: d.doIt } } : {}) })
     const gates = new GateMonitor(reader, d.gateTimers, now)
     const s = new LiveSession({
-      config: configFor(mode),
+      config: configFor(mode, wake),
       tokens: d.tokens,
       socketFactory: d.socketFactory,
       url: d.url,
@@ -232,6 +244,7 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
     })
     session = s
     sessionMode = mode
+    sessionTrigger = wake ? 'wake' : 'key'
     toolHostDispose = host.dispose
     offAnswer = mode === 'converse' ? d.cue.onAnswer((id) => s.noteAnswer(id)) : null
     s.onPhase(() => emit())
@@ -243,6 +256,7 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
       if (session === s) {
         session = null
         sessionMode = null
+        sessionTrigger = null
       }
       offAnswer?.()
       offAnswer = null
@@ -362,6 +376,11 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
     workerUsedVoice: () => usedVoice,
     hasSession: () => session !== null && !session.isEnded,
     voiceAllowed: () => startRefusal() === null,
+    startFromWake() {
+      if (!liveFlagOn(env) || (session && !session.isEnded) || waiter) return false
+      usedVoice = true
+      return open('converse', undefined, true)
+    },
     noteAnswer(id) {
       session?.noteAnswer(id)
     },

@@ -13,6 +13,13 @@ import type { FunctionDeclaration, Scheduling } from './wire'
 
 export const TOOL_NAMES = ['point_at', 'show_step', 'ask_choice', 'end_session'] as const
 export type ToolName = (typeof TOOL_NAMES)[number]
+// Offered ONLY in a session that began with the words "Hey Knack" (the wake session). `clear` takes the ring and ghost cursor away. `do_it_for_me`
+// asks to click ONE thing the worker named: it never clicks by itself, it asks code, and code asks the worker (a real mouse click on a card).
+export const WAKE_TOOL_NAMES = ['clear', 'do_it_for_me'] as const
+export type WakeToolName = (typeof WAKE_TOOL_NAMES)[number]
+export interface ToolOptions {
+  wake?: boolean
+}
 
 export const DESCRIPTION_MAX_CHARS = 60
 export const DESCRIPTION_MIN_CHARS = 2
@@ -32,6 +39,8 @@ export type ParsedToolCall =
   | { ok: true; name: 'show_step'; args: { step_id: string } }
   | { ok: true; name: 'ask_choice'; args: { options: string[] } }
   | { ok: true; name: 'end_session'; args: Record<string, never> }
+  | { ok: true; name: 'clear'; args: Record<string, never> }
+  | { ok: true; name: 'do_it_for_me'; args: { description: string } }
   | { ok: false; code: ToolRefusal; message: string }
 
 export type ToolRefusal =
@@ -72,13 +81,26 @@ function onlyKeys(o: Record<string, unknown>, allowed: readonly string[]): strin
 
 const refuse = (code: ToolRefusal, message: string): ParsedToolCall => ({ ok: false, code, message })
 
-export function parseToolCall(name: unknown, args: unknown, candidates: CandidateList): ParsedToolCall {
-  if (typeof name !== 'string' || !(TOOL_NAMES as readonly string[]).includes(name)) {
+export function parseToolCall(name: unknown, args: unknown, candidates: CandidateList, opts: ToolOptions = {}): ParsedToolCall {
+  const wakeTool = opts.wake === true && typeof name === 'string' && (WAKE_TOOL_NAMES as readonly string[]).includes(name)
+  if (typeof name !== 'string' || (!(TOOL_NAMES as readonly string[]).includes(name) && !wakeTool)) {
     return refuse('unknown_tool', 'That tool does not exist. The only tools are point_at, show_step, ask_choice and end_session.')
   }
   const a = args === undefined || args === null ? {} : args
   if (!isObj(a)) return refuse('bad_arguments', 'The arguments must be an object.')
   const known = new Set(candidates.items.map((c) => c.id))
+  if (wakeTool) {
+    if (name === 'clear') {
+      const extra = onlyKeys(a, [])
+      if (extra) return refuse('unknown_argument', 'clear takes no arguments.')
+      return { ok: true, name: 'clear', args: {} }
+    }
+    const extra = onlyKeys(a, ['description'])
+    if (extra) return refuse('unknown_argument', `do_it_for_me takes only "description"; "${cleanLine(extra).slice(0, 20)}" is not allowed.`)
+    const description = parseDescription(a.description)
+    if (!description) return refuse('bad_description', `description must be a short plain description of the one thing to click, ${DESCRIPTION_MAX_CHARS} characters or fewer, with no web addresses, emails or numbers.`)
+    return { ok: true, name: 'do_it_for_me', args: { description } }
+  }
 
   switch (name as ToolName) {
     case 'point_at': {
@@ -116,13 +138,14 @@ export function parseToolCall(name: unknown, args: unknown, candidates: Candidat
       return { ok: true, name: 'end_session', args: {} }
     }
   }
+  return refuse('unknown_tool', 'That tool does not exist.')
 }
 
 // ---------------------------------------------------------------------------------------------------- declarations
 const NB = 'NON_BLOCKING' as const
 
 /** The declarations sent in the session setup. The id lists are the closed candidate list at the moment the session opens. */
-export function buildToolDeclarations(candidates: CandidateList): FunctionDeclaration[] {
+export function buildToolDeclarations(candidates: CandidateList, opts: ToolOptions = {}): FunctionDeclaration[] {
   const listed = candidates.items.slice(0, MAX_CANDIDATES)
   const ids = listed.map((c) => c.id)
   // The closed menu, in the pack's own words (never anything the worker typed, said or has on screen): the model needs the labels to pick the right id.
@@ -159,6 +182,27 @@ export function buildToolDeclarations(candidates: CandidateList): FunctionDeclar
       },
     )
   }
+  if (opts.wake === true) {
+    tools.push(
+      {
+        name: 'clear',
+        behavior: NB,
+        description: 'Takes the ring and the pointer off the screen. Use it when the worker says it is in the way, or when you are done pointing.',
+      },
+      {
+        name: 'do_it_for_me',
+        behavior: NB,
+        description:
+          'Asks to click ONE thing on the worker\'s screen for them, once. Use it ONLY when the worker clearly asks you to click or press something. It does not click by itself: it finds the thing, rings it, ' +
+          'and the worker must click Allow on a card. It can refuse (for example "first_supervised_test_pending"); then say you will show them instead and use point_at. Never offer to click unprompted.',
+        parameters: {
+          type: 'object',
+          properties: { description: { type: 'string', maxLength: DESCRIPTION_MAX_CHARS, description: `A short plain description of the one thing to click, for example "the green Submit button". At most ${DESCRIPTION_MAX_CHARS} characters; no web addresses, emails or numbers.` } },
+          required: ['description'],
+        },
+      },
+    )
+  }
   tools.push({
     name: 'end_session',
     behavior: NB,
@@ -174,6 +218,6 @@ export function buildToolDeclarations(candidates: CandidateList): FunctionDeclar
 export function schedulingFor(name: string, result: unknown): Scheduling {
   const r = isObj(result) ? result : {}
   if (r.ok === false) return 'WHEN_IDLE'
-  if (name === 'point_at' || name === 'show_step') return 'WHEN_IDLE'
+  if (name === 'point_at' || name === 'show_step' || name === 'do_it_for_me') return 'WHEN_IDLE'
   return 'SILENT'
 }
