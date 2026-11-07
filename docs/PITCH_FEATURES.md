@@ -4,7 +4,7 @@ Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for th
 
 This is the master document. It lists 61 entries (57 features and 4 write-ups of results that did not hold up) on 33 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
-**How to read an entry.** Name and status; what it does; how it works; where to see it; the demo moment; the evidence with its label; the honest limit; the hackathon target. **Status words:** `verified` (the lead saw it work end to end), `built` (built and tested by its track, on main, not yet seen end to end by the lead), `landing` (not on main yet), `not run`. **Evidence labels:** `synthetic` (data we generated), `simulated` (language-model participants, not people), `real model, small n` (a language model on our sandbox sites), `offline tests`, `owner-present`, `not run`. Nothing in this document is evidence about real workers.
+**How to read an entry.** Name and status; what it does; how it works; where to see it; the demo moment; the evidence with its label; the honest limit; the hackathon target. **Status words:** `verified` (the lead saw it work end to end), `built` (built and tested by its track, on main, not yet seen end to end by the lead), `landing` (not on main yet), `not run`. **Evidence labels:** `synthetic` (data we generated), `simulated` (language-model participants, not people), `real model, small n` (a language model on our sandbox sites), `offline tests`, `owner-present`, `not run`. Nothing in this document is evidence about real workers. **Badge wording on screen:** an engine answer computed from synthetic people reads 'Synthetic data' (or 'Synthetic firm' in the Admin view); 'Example data' appears only when a fixture was drawn (docs/FIRST_LAUNCH.md, state at 23:50 GMT).
 
 ## Contents
 
@@ -1418,11 +1418,11 @@ Turn wifi off, run the demo command, and walk the dashboard: every screen loads 
 
 | What | Label | Source |
 |---|---|---|
-| In the lead's sweep all 28 screens and views loaded against the live stack with no page errors; a benefits-agent run in mock mode ended with an item in the approval queue and 0 false claims | mock mode, example data; seen by the lead on 7 Nov about 21:20 UTC | `docs/MVP_STATUS.md` |
+| In the lead's sweep all 28 screens and views loaded against the live stack with no page errors (30 screens, 0 page errors at 23:50 after the Knack shell merged); a benefits-agent run in mock mode ended with an item in the approval queue and 0 false claims | mock mode and live stack, example and synthetic data; seen by the lead on 7 Nov | `docs/MVP_STATUS.md; docs/FIRST_LAUNCH.md` |
 
 #### Honest limit
 
-Mock results are scripted: they show the product runs end to end, not that a model does the work. The sweep was before the Knack shell merged; re-run it at the freeze.
+Mock results are scripted: they show the product runs end to end, not that a model does the work. Re-run the sweep at the freeze.
 
 #### Hackathon target
 
@@ -1450,7 +1450,7 @@ Home, the first item in the sidebar and the page Knack opens on.
 
 #### Demo moment
 
-Open Knack: the date, one sentence with an 'Example data' badge, the button 'See where the time goes' and, if anything waits, one row '1 thing needs you'.
+Open Knack: the date, one sentence with its origin badge ('Synthetic data' for an engine answer from synthetic people, 'Example data' for a fixture), the button 'See where the time goes' and, if anything waits, one row '1 thing needs you'.
 
 #### Evidence and its label
 
@@ -1460,7 +1460,7 @@ Open Knack: the date, one sentence with an 'Example data' badge, the button 'See
 
 #### Honest limit
 
-The 47 words are the prototype's headline content; real screens land a little above it. The example sentence comes from the synthetic firm and is badged Example data. These are measurements of the interface, not of people.
+The 47 words are the prototype's headline content; real screens land a little above it. The example sentence comes from the synthetic firm and carries its origin badge (Example data or Synthetic data). These are measurements of the interface, not of people.
 
 #### Hackathon target
 
@@ -2350,8 +2350,8 @@ Found while writing. Each row names both files; the third column says which one 
 |---|---|---|---|
 | Privacy canary count | evals/report.md and evals/report.facts.json (generated 7 Nov 21:40 UTC): 0 of 11,456 planted tokens, 88 runs of 11 flows, one-sided bound 3.35% per run | README.md and docs/drafts/CLAIMS.md (C40): 0 of 11,336, 80 runs of 10 flows, 3.7% | the generated report |
 | Size of the report and register | evals/report.md: 35 sections (33 with numbers, 2 not run), 206 limitations (67 high, 111 medium, 28 low) | docs/FEATURE_CATALOGUE.md and docs/drafts/DEVPOST.md: 32 sections, a register of 124 (34 high, 69 medium, 21 low); docs/MVP_STATUS.md: 32 sections ok, 1 pending, 2 not run | the generated report |
-| Test counts | docs/MVP_STATUS.md (run at the final code, about 21:20): 3,889 + 1,726 + 541 + 2,684 passed across engine and packs, agent, dashboard and desktop | evals/report.facts.json: 6,156 test functions, a static count with parametrised cases not expanded | quote neither as a pass count without saying how it was counted; re-run `make test` at the freeze |
-| Reviewer reproducers | docs/MVP_STATUS.md and evals/agentic/ITERATIONS_8.md (branch): 183 of 183 | README.md and docs/FIX_LEDGER.md: 172 of 172 | 183 of 183 (later) |
+| Test counts | docs/MVP_STATUS.md (about 21:20): 3,889 + 1,726 + 541 + 2,684 passed across engine and packs, agent, dashboard and desktop; docs/FIRST_LAUNCH.md (23:50): dashboard 741, desktop 3,079 | evals/report.facts.json: 6,156 test functions, a static count with parametrised cases not expanded | quote none as a pass count without saying how and when it was counted; re-run `make test` at the freeze |
+| Reviewer reproducers | docs/FIRST_LAUNCH.md (23:50): 185 on the agent branch, not yet merged; docs/MVP_STATUS.md and evals/agentic/ITERATIONS_8.md (branch): 183 of 183 | README.md and docs/FIX_LEDGER.md: 172 of 172 | 183 of 183, the last figure on a merged tree |
 | Simulated-study power at n = 16 | evals/report.md (Study power): false positives 4.9%; power 10.2%, 27.3%, 74.8% for small, medium, large | evals/study_sim/REPORT.md and the register entry sim-power: about 6% false positives and 12%, 29%, 76% | the Study power table |
 | Always-listening microphone | docs/DECISIONS.md D52 and docs/knack-ux/09-wake-voice.md (branch): 'hey knack' listening is on by default, on-device | docs/FLAGS.md and docs/FEATURE_CATALOGUE.md: hold to talk only, no always-listening microphone | D52 (later); the other two are stale |
 | Cloud wording for 'explain this' | docs/FLAGS.md: the cloud attempt is on by default (D48), routed to Gemini, always behind the number check with a template fallback | README.md and docs/FEATURE_CATALOGUE.md: cloud wording off by default | docs/FLAGS.md (later) |

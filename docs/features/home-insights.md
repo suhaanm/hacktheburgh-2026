@@ -24,7 +24,7 @@ Home, the first item in the sidebar and the page Knack opens on.
 
 ### Demo moment
 
-Open Knack: the date, one sentence with an 'Example data' badge, the button 'See where the time goes' and, if anything waits, one row '1 thing needs you'.
+Open Knack: the date, one sentence with its origin badge ('Synthetic data' for an engine answer from synthetic people, 'Example data' for a fixture), the button 'See where the time goes' and, if anything waits, one row '1 thing needs you'.
 
 ### Evidence and its label
 
@@ -34,7 +34,7 @@ Open Knack: the date, one sentence with an 'Example data' badge, the button 'See
 
 ### Honest limit
 
-The 47 words are the prototype's headline content; real screens land a little above it. The example sentence comes from the synthetic firm and is badged Example data. These are measurements of the interface, not of people.
+The 47 words are the prototype's headline content; real screens land a little above it. The example sentence comes from the synthetic firm and carries its origin badge (Example data or Synthetic data). These are measurements of the interface, not of people.
 
 ### Hackathon target
 

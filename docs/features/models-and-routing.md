@@ -138,11 +138,11 @@ Turn wifi off, run the demo command, and walk the dashboard: every screen loads 
 
 | What | Label | Source |
 |---|---|---|
-| In the lead's sweep all 28 screens and views loaded against the live stack with no page errors; a benefits-agent run in mock mode ended with an item in the approval queue and 0 false claims | mock mode, example data; seen by the lead on 7 Nov about 21:20 UTC | `docs/MVP_STATUS.md` |
+| In the lead's sweep all 28 screens and views loaded against the live stack with no page errors (30 screens, 0 page errors at 23:50 after the Knack shell merged); a benefits-agent run in mock mode ended with an item in the approval queue and 0 false claims | mock mode and live stack, example and synthetic data; seen by the lead on 7 Nov | `docs/MVP_STATUS.md; docs/FIRST_LAUNCH.md` |
 
 ### Honest limit
 
-Mock results are scripted: they show the product runs end to end, not that a model does the work. The sweep was before the Knack shell merged; re-run it at the freeze.
+Mock results are scripted: they show the product runs end to end, not that a model does the work. Re-run the sweep at the freeze.
 
 ### Hackathon target
 
