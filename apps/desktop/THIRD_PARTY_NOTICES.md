@@ -69,6 +69,11 @@ All under `gemini-live-ephemeral-tokens-websocket/frontend/`.
 | `src/renderer/live/LiveSession.ts` | `script.js`, `geminilive.js`, `mediaUtils.js` | Message handling, tool fan-out and session wiring, extended (compression, async tool dispatch, interruption flush, idle and goodbye endings) |
 | `src/renderer/live/audio.ts` | `mediaUtils.js` (`AudioStreamer`, `AudioPlayer`); `audio-processors/capture.worklet.js`, `playback.worklet.js` | Browser audio in and out; worklets inlined as Blob URLs |
 | `src/renderer/live/frames.ts` | `mediaUtils.js` (`BaseVideoCapture` 1 fps interval) | 1 fps frame sender, with change gating added |
+| `src/main/live/wire.ts` | `geminilive.js` | The same protocol layer, moved to the main process for REQ-5 (the renderer copy was removed) |
+| `src/main/live/connection.ts` | `geminilive.js` | The same socket setup and receive, moved to the main process |
+| `src/main/live/session.ts` | `script.js`, `geminilive.js`, `mediaUtils.js` (through this project's earlier renderer `LiveSession`) | Session wiring reshaped for hold-to-talk; voice stays flagged off |
+
+As of 7 Nov 2026 (REQ-5) only `src/renderer/live/audio.ts` of the renderer files above still exists with its header; `wire`, `connection`, `LiveSession` and `frames` were moved into `src/main/live/` (rows above) or removed. `src/renderer/overlay/annotations/labels.tsx` was restyled and no longer carries a header.
 
 Original, not adapted: `src/renderer/live/tools.ts`, `types.ts`, `index.ts`, `src/renderer/dock/controller.ts`, `tests/live/*`, `spikes/live/*`.
 
