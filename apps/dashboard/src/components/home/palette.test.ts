@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { AdminInsight, WirePointer } from "../firm/wire";
 import { FIRM_TABS, NAV_ENTRIES } from "./navModel";
 import {
-  DEFAULT_CAP, buildItems, groupRows, insightPath, isNavKey, matchToken, moveIndex, pointerPath, resultsText, rowsFor, scoreItem, searchItems,
+  DEFAULT_CAP, NO_CAPS, askItem, buildItems, groupRows, insightPath, isNavKey, matchToken, moveIndex, pointerPath, resultsText, rowsFor, scoreItem, searchItems,
   segments, tokensOf, wrapIndex, type PaletteItem,
 } from "./palette";
 
@@ -224,5 +224,48 @@ describe("display helpers", () => {
     expect(resultsText(0)).toBe("No results");
     expect(resultsText(1)).toBe("1 result");
     expect(resultsText(9)).toBe("9 results");
+  });
+});
+
+describe("the verbs (docs/KNACK_UX.md section 9)", () => {
+  const ids = (v: "worker" | "admin", caps = NO_CAPS) => buildItems(v, {}, caps).map((i) => i.id);
+  it("lists the verbs the dashboard can do by itself, in both views", () => {
+    for (const v of ["worker", "admin"] as const) for (const id of ["action:settings", "action:stop", "action:about", "action:delete", "action:tour"]) expect(ids(v), `${v} ${id}`).toContain(id);
+  });
+  it("lists the Monday note for a worker only", () => {
+    expect(ids("worker")).toContain("action:monday");
+    expect(ids("admin")).not.toContain("action:monday");
+  });
+  it("offers a desktop-only command only when the desktop app can do it, so no row is dead", () => {
+    expect(ids("worker")).not.toEqual(expect.arrayContaining(["action:pause"]));
+    expect(ids("worker")).not.toContain("action:ask");
+    expect(ids("worker")).not.toContain("action:accessibility");
+    const on = ids("worker", { ask: true, pause: true, accessibility: true });
+    expect(on).toEqual(expect.arrayContaining(["action:pause", "action:ask", "action:accessibility"]));
+  });
+  it("groups them Go to, Do and Ask", () => {
+    const items = buildItems("worker", {}, { ask: true, pause: true, accessibility: true });
+    const group = (id: string) => items.find((i) => i.id === id)?.group;
+    expect(group("action:settings")).toBe("Go to");
+    expect(group("action:stop")).toBe("Do");
+    expect(group("action:pause")).toBe("Do");
+    expect(group("action:ask")).toBe("Ask");
+  });
+  it("gives Delete my data no shortcut by design: it opens Your data and nothing is deleted from the palette", () => {
+    const d = buildItems("worker").find((i) => i.id === "action:delete")!;
+    expect(d.target).toEqual({ type: "route", path: "/your-data" });
+  });
+  it("finds a verb by the words people use", () => {
+    const items = buildItems("worker");
+    expect(searchItems(items, "stop")[0].item.id).toBe("action:stop");
+    expect(searchItems(items, "monday").map((s) => s.item.id)).toContain("action:monday");
+    expect(searchItems(items, "forget").map((s) => s.item.id)).toContain("action:delete");
+    expect(searchItems(items, "explain").map((s) => s.item.id)).toContain("action:about");
+  });
+  it("makes the last row 'Ask Knack: <phrase>' with the phrase carried to the Ask bar", () => {
+    const a = askItem("  why was Tuesday slow ");
+    expect(a.label).toBe("Ask Knack: why was Tuesday slow");
+    expect(a.target).toEqual({ type: "action", action: "ask", phrase: "why was Tuesday slow" });
+    expect(a.group).toBe("Ask");
   });
 });

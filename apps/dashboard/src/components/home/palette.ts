@@ -5,8 +5,12 @@ import { FIRM_TABS, entriesFor, type NavGroup } from "./navModel";
 import type { ViewRole } from "./viewAs";
 
 export type ItemKind = "screen" | "firm_tab" | "pointer" | "insight" | "action";
-export type ActionId = "tour" | "view_admin" | "view_worker";
-export type PaletteTarget = { type: "route"; path: string } | { type: "action"; action: ActionId };
+export type ActionId = "tour" | "view_admin" | "view_worker" | "stop" | "monday" | "about" | "settings" | "ask" | "pause" | "accessibility";
+export type PaletteTarget = { type: "route"; path: string } | { type: "action"; action: ActionId; phrase?: string };
+
+/** The desktop-only commands that exist right now (the page offers a command only when the desktop app can do it: no dead rows). */
+export interface PaletteCaps { ask: boolean; pause: boolean; accessibility: boolean }
+export const NO_CAPS: PaletteCaps = { ask: false, pause: false, accessibility: false };
 
 export interface PaletteItem {
   id: string;
@@ -25,7 +29,8 @@ export const GROUP_LABEL: Record<NavGroup, string> = { primary: "Go to", admin: 
 export const GROUP_POINTERS = "This week";
 export const GROUP_INSIGHTS = "Firm insights";
 export const GROUP_FIRM = "Firm";
-export const GROUP_ACTIONS = "Actions";
+export const GROUP_ACTIONS = "Do";
+export const GROUP_ASK = "Ask";
 
 /** The most rows any default list shows. "Show all" reveals the rest. */
 export const DEFAULT_CAP = 7;
@@ -44,7 +49,7 @@ export interface ExtraItems { pointers?: WirePointer[]; insights?: AdminInsight[
  * Everything the palette can go to, in the order it is listed: screens, the Firm views, the insights, then the actions.
  * Role-aware: the Worker view never gets an admin screen, a Firm view, an admin insight or the brief.
  */
-export function buildItems(view: ViewRole, extra: ExtraItems = {}): PaletteItem[] {
+export function buildItems(view: ViewRole, extra: ExtraItems = {}, caps: PaletteCaps = NO_CAPS): PaletteItem[] {
   const items: PaletteItem[] = [];
   for (const e of entriesFor(view)) {
     items.push({ id: `screen:${e.id}`, kind: "screen", label: e.label, hint: e.hint, also: e.also ?? "", group: GROUP_LABEL[e.group], target: { type: "route", path: `/${e.id}` } });
@@ -63,7 +68,16 @@ export function buildItems(view: ViewRole, extra: ExtraItems = {}): PaletteItem[
       items.push({ id: `pointer:${p.id}`, kind: "pointer", label: p.headline, hint: p.polarity_label ?? p.action?.label ?? "Pointer", also: p.kind, group: GROUP_POINTERS, target: { type: "route", path: pointerPath(p) } });
     }
   }
-  items.push({ id: "action:tour", kind: "action", label: "Take the tour", hint: "A short walk through the main screens", also: "help guide walkthrough", group: GROUP_ACTIONS, target: { type: "action", action: "tour" } });
+  const act = (id: string, label: string, hint: string, also: string, action: ActionId, group = GROUP_ACTIONS): PaletteItem => ({ id: `action:${id}`, kind: "action", label, hint, also, group, target: { type: "action", action } });
+  items.push(act("settings", "Settings", "Live models, interruptions, coaching, appearance", "preferences options live models notices", "settings", "Go to"));
+  items.push(act("stop", "Stop everything", "Stops every agent and routine now", "kill halt emergency", "stop"));
+  if (caps.pause) items.push(act("pause", "Pause for 1 hour", "Nothing starts for an hour", "snooze quiet break", "pause"));
+  if (view === "worker") items.push(act("monday", "Copy my Monday note", "Your week as a short note you can paste", "share summary pointers", "monday"));
+  items.push(act("about", "Explain this screen", "What it is and where the numbers come from", "about help what is this", "about"));
+  items.push({ id: "action:delete", kind: "action", label: "Delete my data", hint: "Opens Your data, where each part has a Forget", also: "forget erase remove privacy memory", group: GROUP_ACTIONS, target: { type: "route", path: "/your-data" } });
+  items.push(act("tour", "Take the tour", "A short walk through the main screens", "help guide walkthrough", "tour"));
+  if (caps.accessibility) items.push(act("accessibility", "Open System Settings for Accessibility", "Where you allow Knack to point at the screen", "permission macos screen recording", "accessibility"));
+  if (caps.ask) items.push(act("ask", "Ask Knack", "Tap to type, hold Option-Space to talk", "chat voice question", "ask", GROUP_ASK));
   if (view === "worker") {
     items.push({ id: "action:view_admin", kind: "action", label: "Switch to the Admin view", hint: "Shows the Firm screen. A view switch, not a permission", also: "role admin firm", group: GROUP_ACTIONS, target: { type: "action", action: "view_admin" } });
   } else {
@@ -71,6 +85,12 @@ export function buildItems(view: ViewRole, extra: ExtraItems = {}): PaletteItem[
     items.push({ id: "action:view_worker", kind: "action", label: "Switch to Worker view", hint: "Leaves the Firm screens", also: "role worker", group: GROUP_ACTIONS, target: { type: "action", action: "view_worker" } });
   }
   return items;
+}
+
+/** The last row when what was typed matches nothing and the desktop app can take a question: it opens the Ask bar with the phrase filled in. */
+export function askItem(phrase: string): PaletteItem {
+  const p = phrase.trim();
+  return { id: "ask:phrase", kind: "action", label: `Ask Knack: ${p}`, hint: "Opens the Ask bar with this question", also: "", group: GROUP_ASK, target: { type: "action", action: "ask", phrase: p } };
 }
 
 /* -- Fuzzy matching ----------------------------------------------------------------------------------------------------------- */

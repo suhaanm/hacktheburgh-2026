@@ -2,9 +2,13 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type Keyboard
 import { navigate, screenOf, useRoute } from "../../router";
 import type { WireOverview, WireWorker } from "../firm/wire";
 import { DEFAULT_SCREEN, canView } from "./navModel";
-import { closePalette, getOverlay, startTour, useOverlay } from "./overlayStore";
+import { closePalette, getOverlay, openAbout, openSettings, startTour, useOverlay } from "./overlayStore";
+import { capsOf, getBridge } from "../shell/bridge";
+import { useStop } from "../shell/StopControl";
+import { useToast } from "../Toasts";
+import { copyText, mondayNote } from "./monday";
 import {
-  KIND_LABEL, NO_RESULTS_HELP, buildItems, groupRows, isNavKey, moveIndex, resultsText, rowsFor, segments, type ExtraItems, type PaletteItem, type Row,
+  KIND_LABEL, NO_RESULTS_HELP, askItem, buildItems, groupRows, isNavKey, moveIndex, resultsText, rowsFor, segments, type ExtraItems, type PaletteItem, type Row,
 } from "./palette";
 import { setViewRole, useViewRole, type ViewRole } from "./viewAs";
 import "./palette.css";
@@ -52,9 +56,15 @@ function PaletteDialog({ loaders }: { loaders?: PaletteLoaders }) {
     return () => { alive = false; };
   }, [loaders, view]);
 
-  const items = useMemo(() => buildItems(view, extra), [view, extra]);
+  const caps = useMemo(() => capsOf(), []);
+  const items = useMemo(() => buildItems(view, extra, caps), [view, extra, caps]);
   const result = useMemo(() => rowsFor(items, query, expanded), [items, query, expanded]);
-  const { rows, total } = result;
+  // What was typed matches nothing and the desktop app can take a question: the one row is "Ask Knack: <phrase>".
+  const asking = result.rows.length === 0 && query.trim() !== "" && caps.ask;
+  const rows: Row[] = asking ? [{ type: "item", item: askItem(query), positions: [] }] : result.rows;
+  const total = asking ? 1 : result.total;
+  const stop = useStop();
+  const toast = useToast();
   // Headings only for the plain list. Search results are in order of relevance, not by group, and the kind label on each row says what it is.
   const groups = useMemo(() => groupRows(rows, query.trim() === ""), [rows, query]);
   const activeId = rows.length > 0 && active >= 0 && active < rows.length ? optId(active) : undefined;
@@ -95,13 +105,29 @@ function PaletteDialog({ loaders }: { loaders?: PaletteLoaders }) {
     }
     done.current = "opener";
     closePalette();
-    if (t.action === "view_admin") setViewRole("admin");
+    if (t.action === "stop") { void stop.stop(); return; }
+    if (t.action === "settings") { done.current = "none"; openSettings(); return; }
+    if (t.action === "about") { done.current = "none"; openAbout(); return; }
+    if (t.action === "monday") {
+      void (async () => {
+        const w = await loaders?.worker().catch(() => null);
+        const note = w ? mondayNote(w) : null;
+        if (!note) { toast({ tone: "plain", text: "Nothing to copy yet.", detail: "A week with no pointers has no note." }); return; }
+        toast((await copyText(note)) ? { tone: "success", text: "Copied your Monday note." } : { tone: "error", text: "Your browser blocked copying.", detail: "Nothing was copied." });
+      })();
+      return;
+    }
+    const bridge = getBridge();
+    if (t.action === "ask") { bridge.ask?.(t.phrase); return; }
+    if (t.action === "pause") { bridge.pause?.(60); toast({ tone: "plain", text: "Paused for 1 hour." }); return; }
+    if (t.action === "accessibility") { bridge.openSystemSettings?.("accessibility"); return; }
+    if (t.action === "view_admin") { setViewRole("admin"); navigate("/firm"); } // an admin lands on Firm
     else {
       setViewRole("worker");
       // Leaving the Admin view on an admin screen goes to the home screen, never to a blank gate.
       if (!canView(screenOf(route), "worker")) navigate(`/${DEFAULT_SCREEN}`);
     }
-  }, [opener, route]);
+  }, [opener, route, stop, toast, loaders]);
 
   const activate = useCallback((row: Row | undefined, index: number) => {
     if (!row) return;
