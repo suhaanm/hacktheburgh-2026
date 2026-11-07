@@ -251,6 +251,9 @@ export function wireAttention(deps: AttentionWiringDeps): AttentionWiring | null
     signals,
     ports,
     killed: () => safe(() => deps.kill.isKilled(), false),
+    // KNACK: Cue's unasked cards are dropped while an agent acts for the worker and while a corner card is up (docs/knack-ux/08-window-states.md).
+    agentActing: () => safe(() => deps.hudModel.state().agentActing || deps.hudModel.state().activity?.phase === 'working', false),
+    cornerCardUp: () => safe(() => { const h = deps.hudModel.state(); return h.corner && (h.kill.killed || h.approval !== null || h.notice !== null) }, false),
     sources,
     log,
     env: deps.env,

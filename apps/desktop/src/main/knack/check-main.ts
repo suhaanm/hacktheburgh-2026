@@ -102,7 +102,6 @@ async function run(): Promise<void> {
     glyphSvg: glyphFile ? fs.readFileSync(glyphFile, 'utf8') : '',
     bootCheck: async () => true,
     killAccelerator: () => 'CommandOrControl+Alt+Shift+K',
-    openSettings: () => void (calls.settings += 1),
     stopEverything: () => void (calls.stop += 1),
     relaunch: () => void (calls.relaunch += 1),
     showSheet: async () => 'keep_working',
@@ -204,7 +203,7 @@ async function run(): Promise<void> {
   const model = createHudModel({ kill: killSwitch, endpoints: { dashboard: `http://127.0.0.1:${config.ports.dashboard}` }, openExternal: () => undefined, onProposalChoice: () => undefined, push: () => hud.push(), corner: true })
   const hud = registerHud({ model, log: () => undefined, corner: true, hidden: true })
   shell.attach({
-    kill: { trigger: () => killSwitch.trigger(), isKilled: () => killed, subscribe: (cb) => killSwitch.subscribe(() => cb()) },
+    kill: { trigger: () => killSwitch.trigger(), clear: () => killSwitch.clear(), isKilled: () => killed, subscribe: (cb) => killSwitch.subscribe(() => cb()) },
     hud: model,
     probe: async () => ({ suppressed, presenting: false }),
     pendingQueue: async () => pending,
