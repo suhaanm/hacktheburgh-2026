@@ -7,14 +7,21 @@ import { SourceNote } from "../common";
 export interface Source { meta?: AnalyticMeta | null; why?: Fallback | null }
 export interface OriginInfo { text: string; data: "example" | "synthetic" | "mixed"; why: Fallback | null }
 
-/** Example data when any source fell back to the built-in sample; the data's own origin when it is not real; nothing when everything is real. */
+/**
+ * What the one badge says. Two different facts, kept apart:
+ *   - a source that FELL BACK to the built-in sample (the engine did not answer, or the layer is off) is "Example data";
+ *   - a source the engine DID answer, whose own meta says the numbers are synthetic (a sandbox firm), is "Synthetic firm".
+ * Every source one way is the plain word; a mix is "Some example data" or "Some synthetic data". Real data from a live engine carries no badge.
+ * A source with no meta of its own (the memory file) says nothing either way.
+ */
 export function originOf(sources: Source[]): OriginInfo | null {
-  const why = sources.find((s) => s.why)?.why ?? null;
-  if (why) return { text: "Example data", data: "example", why };
-  const meta = sources.map((s) => s.meta).find((m) => m && m.origin !== "real");
-  if (!meta) return null;
-  if (meta.origin === "mixed") return { text: "Some example data", data: "mixed", why: null };
-  return { text: "Example data", data: "synthetic", why: null };
+  const fell = sources.filter((s) => s.why);
+  const why = fell[0]?.why ?? null;
+  if (fell.length > 0) return fell.length === sources.length ? { text: "Example data", data: "example", why } : { text: "Some example data", data: "mixed", why };
+  const metas = sources.map((s) => s.meta).filter((m): m is AnalyticMeta => !!m);
+  const off = metas.filter((m) => m.origin !== "real");
+  if (off.length === 0) return null;
+  return off.length === metas.length ? { text: "Synthetic firm", data: "synthetic", why: null } : { text: "Some synthetic data", data: "mixed", why: null };
 }
 
 export function OriginBadge({ sources }: { sources: Source[] }) {

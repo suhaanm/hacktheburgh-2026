@@ -1,6 +1,7 @@
 import { api } from "../api";
 import { useLoad } from "../hooks";
 import { EmptyState, ErrorState, ExampleBadge, Loading, Note, OriginBadge, PageHead, SourceNote } from "../components/common";
+import "../components/kc.css";
 import { Hint } from "../components/Hint";
 import { Details } from "../components/ui";
 import { directRoles, fmtMs, fmtUsd, healthReading, latencyText, providerName, roleLabel, scalarRows, totalCalls, totalCost, WHEN_LABEL } from "../lib/models";
@@ -10,74 +11,60 @@ import type { ModelProvider, ModelRole, ModelsStatus } from "../types";
 export default function Models() {
   const m = useLoad(() => api.modelsStatus(), []);
   const rep = useLoad(() => api.evalReport(), []);
-  if (m.status === "error" && !m.data) return <div className="page"><ErrorState error={m.error} retry={m.reload} what="the model status" /></div>;
-  if (!m.data) return <div className="page"><Loading label="Loading the model status" /></div>;
+  if (m.status === "error" && !m.data) return <div className="page page--read kc-page"><ErrorState error={m.error} retry={m.reload} what="the model status" /></div>;
+  if (!m.data) return <div className="page page--read kc-page"><Loading label="Loading the model status" /></div>;
   const s = m.data;
   const calls = totalCalls(s.meter);
   const cost = totalCost(s.meter);
   const direct = directRoles(s.providers);
 
   return (
-    <div className="page page--wide">
+    <div className="page page--read kc-page">
       <PageHead
-        eyebrow="Models"
-        title={s.roles.length === 0 && s.providers.length === 0 ? "No model layer to show yet" : "Which model does each job, and what it costs"}
-        lede="Code picks the model for every job. A model never picks itself."
+        title="Models and cost"
+        lede="Costs are estimates from assumed prices, not a bill."
         aside={<><OriginBadge meta={m.meta} /><ExampleBadge why={m.why} /></>}
       />
       <SourceNote why={m.why} />
-      <Details summary="How fallback works">
-        <p className="note">Each job has a first choice, a stronger one for when the first cannot tell, and a different provider for when the first fails. Code decides when to try the next one.</p>
-      </Details>
       {s.config_error && <Note tone="warn">The model settings could not be read: {s.config_error}</Note>}
       {s.mock && !m.why && <Note>Mock mode is on, so no real model is called.</Note>}
+      <p className="note" data-testid="spend-line"><b className="tabular">{fmtUsd(cost)}</b> estimated so far, <b className="tabular">{calls.n}</b> {calls.n === 1 ? "call" : "calls"}{calls.n > 0 ? `, ${calls.failed} failed` : ""}.</p>
 
-      <section className="hero" aria-labelledby="route-h">
-        <div className="section__head">
-          <h2 className="section__title" id="route-h">Who does what</h2>
-          <p className="section__sub">Read each row left to right: first choice, then the fallbacks.</p>
-        </div>
+      <Details summary="Who does what" defaultOpen>
         {s.roles.length === 0 && direct.length === 0 ? (
-          <EmptyState title="No jobs are routed yet" body="The agent service has not reported any model roles. Once it does, each job and the models behind it appear here." />
+          <p className="note">No jobs are routed yet. The agent service has not reported any model roles.</p>
         ) : (
-          <div className="chains" role="list" aria-label="Model routing by job">
-            {s.roles.map((r) => <Chain key={r.role} r={r} />)}
-            {direct.map((d) => (
-              <div key={d.role} className="chain" role="listitem">
-                <div className="chain__head"><span className="chain__role">{roleLabel(d.role)}</span><span className="t-data u-muted">one model, no fallback</span></div>
-                <div className="chain__steps"><span className="chain__step" data-when="primary"><b>{providerName(d.provider)}</b><code>{d.model}</code></span></div>
-              </div>
-            ))}
+          <div className="stack">
+            <div className="chains" role="list" aria-label="Model routing by job">
+              {s.roles.map((r) => <Chain key={r.role} r={r} />)}
+              {direct.map((d) => (
+                <div key={d.role} className="chain" role="listitem">
+                  <div className="chain__head"><span className="chain__role">{roleLabel(d.role)}</span><span className="t-data u-muted">one model, no fallback</span></div>
+                  <div className="chain__steps"><span className="chain__step" data-when="primary"><b>{providerName(d.provider)}</b><code>{d.model}</code></span></div>
+                </div>
+              ))}
+            </div>
+            <p className="legend-inline"><span className="chain__sw" data-when="primary" />first choice <span className="chain__sw" data-when="escalate" />stronger, when unsure <span className="chain__sw" data-when="fallback" />other provider, on failure</p>
+            <p className="note">Code, not a model, decides when to try the next.</p>
           </div>
         )}
-        <p className="legend-inline"><span className="chain__sw" data-when="primary" />first choice <span className="chain__sw" data-when="escalate" />stronger, when unsure <span className="chain__sw" data-when="fallback" />other provider, on failure</p>
-      </section>
-
-      <hr className="rule" />
-      <div className="cols-2">
-        <Providers providers={s.providers} boot={s.boot} />
-        <Spend s={s} cost={cost} calls={calls} />
-      </div>
-
-      <hr className="rule" />
-      <Meter s={s} />
-
-      <hr className="rule" />
-      <Prices s={s} />
-
-      <hr className="rule" />
-      <Bakeoff status={s.bakeoff} report={rep.data} />
-      <p className="note">Generated {s.generated_at ? fmtDateTime(s.generated_at) : "just now"}. No key, token or password is ever shown on this page: anything that looks like one is removed before it is drawn.</p>
+      </Details>
+      <Details summary="Providers" wide><Providers providers={s.providers} boot={s.boot} /></Details>
+      <Details summary="Speed and cost" wide><Spend s={s} cost={cost} calls={calls} /><Meter s={s} /></Details>
+      <Details summary="Assumed prices" wide><Prices s={s} /></Details>
+      <Details summary="Model bake-off" wide><Bakeoff status={s.bakeoff} report={rep.data} /></Details>
+      <p className="note">Generated {s.generated_at ? fmtDateTime(s.generated_at) : "just now"}. No key or password is ever shown here.</p>
     </div>
   );
 }
 
 function Chain({ r }: { r: ModelRole }) {
+  const esc = r.escalate && Object.keys(r.escalate).length > 0 ? `Tries the stronger model when ${escalateWords(r.escalate)}.` : "";
+  const dl = typeof r.deadline_s === "number" ? `Gives up after ${r.deadline_s} s.` : "";
   return (
     <div className="chain" role="listitem">
       <div className="chain__head">
-        <span className="chain__role">{roleLabel(r.role)}{r.escalate && Object.keys(r.escalate).length > 0 && <Hint label="When the stronger model is tried">Tries the stronger model when {escalateWords(r.escalate)}.</Hint>}</span>
-        {typeof r.deadline_s === "number" && <span className="t-data u-muted">gives up after {r.deadline_s} s</span>}
+        <span className="chain__role">{roleLabel(r.role)}{(esc || dl) && <Hint label="About this job's models">{[esc, dl].filter(Boolean).join(" ")}</Hint>}</span>
       </div>
       <ol className="chain__steps">
         {r.steps.map((st, i) => (
@@ -103,8 +90,7 @@ function escalateWords(e: Record<string, unknown>): string {
 
 function Providers({ providers, boot }: { providers: ModelProvider[]; boot: ModelsStatus["boot"] }) {
   return (
-    <section className="section" aria-labelledby="prov-h">
-      <h2 className="section__title" id="prov-h">Providers</h2>
+    <section className="section" aria-label="Providers">
       {providers.length === 0 ? <p className="note">No provider reported.</p> : (
         <div className="stack">
           {providers.map((p) => {
@@ -134,8 +120,7 @@ function Providers({ providers, boot }: { providers: ModelProvider[]; boot: Mode
 function Spend({ s, cost, calls }: { s: ModelsStatus; cost: number | null; calls: { n: number; ok: number; failed: number } }) {
   const lat = Object.entries(s.latencies);
   return (
-    <section className="section" aria-labelledby="cost-h">
-      <h2 className="section__title" id="cost-h">Cost and speed so far</h2>
+    <section className="section" aria-label="Cost and speed so far">
       <div className="stats">
         <div className="stat"><span className="stat__label">Estimated spend</span><span className="stat__value tabular">{fmtUsd(cost)}</span><span className="stat__meta">an estimate from assumed prices, not a bill</span></div>
         <div className="stat"><span className="stat__label">Calls</span><span className="stat__value tabular">{calls.n}</span><span className="stat__meta">{calls.n === 0 ? "none yet this session" : `${calls.ok} worked, ${calls.failed} failed`}</span></div>
@@ -152,11 +137,8 @@ function Spend({ s, cost, calls }: { s: ModelsStatus; cost: number | null; calls
 
 function Meter({ s }: { s: ModelsStatus }) {
   return (
-    <section className="section" aria-labelledby="meter-h">
-      <div className="section__head">
-        <h2 className="section__title" id="meter-h">Every job, as the meter saw it</h2>
-        <p className="section__sub">Response times count successful calls only.</p>
-      </div>
+    <section className="section" aria-label="Every job, as the meter saw it">
+      <p className="note">Response times count successful calls only.</p>
       {s.meter.length === 0 ? (
         <EmptyState title="No model call has been metered yet" body={s.mock ? "Mock mode makes no real call, so there is nothing to meter." : "When a job calls a model, one row appears here with its counts, times and estimated cost."} />
       ) : (
@@ -180,12 +162,8 @@ function Meter({ s }: { s: ModelsStatus }) {
 function Prices({ s }: { s: ModelsStatus }) {
   const rows = Object.entries(s.prices_assumed);
   return (
-    <section className="section" aria-labelledby="price-h">
-      <div className="section__head">
-        <h2 className="section__title" id="price-h">Prices these estimates assume</h2>
-        <p className="section__sub">Our own assumptions, not a price list or a bill.</p>
-      </div>
-      <Note tone="warn">Every cost on this page is calls multiplied by these assumed prices.</Note>
+    <section className="section" aria-label="Prices these estimates assume">
+      <Note tone="warn">Every cost here is calls multiplied by these assumed prices. They are our own assumptions, not a price list or a bill.</Note>
       {rows.length === 0 ? <p className="note">No prices were reported.</p> : (
         <Details summary={`See the ${rows.length} assumed prices`} wide>
           <div className="table-wrap"><table className="table">
@@ -205,13 +183,10 @@ function Bakeoff({ status, report }: { status: unknown; report: { sections: Reco
   const stub = src && typeof src.status === "string" && src.status !== "ok";
   const t = src ? scalarRows(src.rows ?? src.models ?? src.results) : { cols: [], rows: [] };
   return (
-    <section className="section" aria-labelledby="bake-h">
-      <div className="section__head">
-        <h2 className="section__title" id="bake-h">Model bake-off</h2>
-        <p className="section__sub">Candidate models on our own sandbox cases. Speed and accuracy claims come only from here.</p>
-      </div>
+    <section className="section" aria-label="Model bake-off">
+      <p className="note">Candidate models on our own sandbox cases. Speed and accuracy claims come only from here.</p>
       {!src || stub || t.rows.length === 0 ? (
-        <EmptyState title="The bake-off has not produced results" body={<>No model is called faster or better until it has.{src && typeof src.reason === "string" && src.reason ? <Hint label="Why it has not run">{src.reason}</Hint> : null}</>} action={<a className="btn btn--secondary" href="#/evidence">See the evidence map</a>} />
+        <EmptyState title="The bake-off has not produced results" body={<>No model is called faster or better until it has.{src && typeof src.reason === "string" && src.reason ? <Hint label="Why it has not run">{src.reason}</Hint> : null}</>} action={<a className="btn btn--secondary" href="#/evidence">Evidence map</a>} />
       ) : (
         <div className="table-wrap"><table className="table">
           <thead><tr>{t.cols.map((c) => <th key={c}>{c.replace(/_/g, " ")}</th>)}</tr></thead>

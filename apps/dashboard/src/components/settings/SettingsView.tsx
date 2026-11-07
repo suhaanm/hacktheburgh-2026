@@ -1,8 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { MODES, MODE_LABEL, groupTypes, learnedLines, modeLine, type Mode } from "../../lib/attention";
 import type { AttentionSettings } from "../../types";
-import { HELP_LOCKS, PRESETS, STOPS_LINE, THEMES, APP_ONLY, lockOf, lockPatch, presetOf, sectionOf, type HelpLock, type LiveView, type Preset, type Theme } from "../../screens/Settings/model";
-import type { DesktopSettings } from "../../screens/Settings/bridge";
+import { HELP_LOCKS, PRESETS, STOPS_LINE, THEMES, APP_ONLY, lockOf, lockPatch, presetOf, sectionOf, wakeLine, type HelpLock, type LiveView, type Preset, type Theme } from "../../screens/Settings/model";
+import type { DesktopSettings, WakeStatus } from "../../screens/Settings/bridge";
 import { Hint } from "../Hint";
 import { ConfirmRow, Details } from "../ui";
 import "../kc.css";
@@ -22,6 +22,9 @@ export interface SettingsViewProps {
   onResetLearned: () => void;
   /** The two-second help level glance (an attention setting, so it works without the app). */
   onLevelGlance: (on: boolean) => void;
+  /** Hey Knack's switch and status from the app, or null (a browser tab, or a build without the listener). */
+  wake: WakeStatus | null;
+  onWake: (on: boolean) => void;
   /** The desktop app's own settings, or null in a browser tab. */
   desktop: DesktopSettings | null;
   onDesktop: (patch: Partial<DesktopSettings>) => void;
@@ -154,6 +157,9 @@ export function SettingsView(p: SettingsViewProps) {
           </div>
         </div>
       )}
+
+      <Row id="hey-knack" title="Listen for Hey Knack" line={p.wake ? wakeLine(p.wake) : APP_ONLY}
+        control={p.wake ? <Switch label="Listen for Hey Knack" checked={p.wake.switchOn} onChange={p.onWake} /> : null} />
 
       <Row id="move-aside" title="Move aside while Knack works"
         line={d ? (d.minimiseWhileWorking === false ? "The window stays where it is while an agent works." : "The window minimises while an agent works. The pill shows what it is doing.") : APP_ONLY}

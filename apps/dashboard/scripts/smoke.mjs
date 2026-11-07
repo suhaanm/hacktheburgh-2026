@@ -423,6 +423,8 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
 
 // 8g. Settings, Interruptions: three words, the kinds behind "Per kind", locked safety kinds, learned quieting and a refused change
 {
+  // The block before mocked a live engine with nobody set up, which sends the app to the first run: start this one from a clean page.
+  await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(600);
   await go("/home?settings=interruptions", 1500);
   const st = page.locator("[data-testid=settings]");
   const stText = await st.innerText();
@@ -453,6 +455,7 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
     u.pathname = u.pathname.replace(/^\/engine/, "");
     if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" } });
     if (u.pathname === "/health") return json(route, { ok: true, version: "x", mock: false, extensions: { attention: true } });
+    if (u.pathname === "/identity") return json(route, { person: "p_demo01", role: "benefits-processor" });          // somebody is set up, so the app opens on Home and not on the first run
     if (u.pathname === "/attention/settings" && req.method() === "GET") return json(route, { meta, data: settings });
     if (u.pathname === "/attention/settings") { posted = { body: JSON.parse(req.postData() ?? "{}"), actor: req.headers()["x-understudy-actor"], type: req.headers()["content-type"] }; return json(route, { error: { code: "unknown_key", message: "That setting is not one the engine knows." } }, 422); }
     return json(route, { error: { code: "not_found", message: "not mocked" } }, 404);
