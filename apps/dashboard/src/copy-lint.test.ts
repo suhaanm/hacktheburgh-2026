@@ -83,27 +83,14 @@ describe("the linter itself", () => {
 });
 
 /**
- * Files of other tracks that still carry the old name or a banned phrase, listed on 7 Nov at about 23:15 UTC so this test is green on a track branch.
+ * Files of other tracks that still carry the old name or a banned phrase, listed on 7 Nov at about 23:15 UTC so this test is green on a track branch (trimmed at 23:25 after Tracks B and C landed).
  * It is a ratchet, not an allow-list: a file that is not listed may have no finding at all; a listed file must still have one (so the entry is deleted the
  * moment its track lands); and the list can only get shorter. Run with KNACK_LINT_STRICT=1 to ignore it and see every finding. The lead flips the default
  * (STRICT below) once the tracks are merged; nothing here is ever a reason to ship a finding.
  */
 const PENDING: Record<string, string> = {
-  "apps/dashboard/src/App.tsx": "Track B: the shell rename (sidebar brand, title, aria label)",
-  "apps/dashboard/index.html": "Track B: the page title",
-  "apps/dashboard/src/screens/Home/Home.tsx": "Track B: Home rebuild",
-  "apps/dashboard/src/screens/Home/data.ts": "Track B: Home rebuild",
-  "apps/dashboard/src/screens/Home/model.ts": "Track B: Home rebuild",
-  "apps/dashboard/src/components/home/NoticesDataRow.tsx": "Track C: Notices move into Settings",
-  "apps/dashboard/src/components/home/PointerCard.tsx": "Track B: the pointer card becomes the hero",
-  "apps/dashboard/src/components/home/monday.ts": "Track B: the Monday note",
-  "apps/dashboard/src/screens/Briefing.tsx": "Track C: Briefing becomes Needs you",
   "apps/dashboard/src/screens/Memory.tsx": "Track C: Memory becomes Your data",
   "apps/dashboard/src/screens/Notices.tsx": "Track C: Notices move into Settings",
-  "apps/dashboard/src/screens/Onboarding.tsx": "Track B: Onboarding becomes first run and Set up again",
-  "apps/dashboard/src/screens/Repeats/Peek.tsx": "Track C: Repeats joins Routines",
-  "apps/dashboard/src/screens/Repeats/data.ts": "Track C: Repeats joins Routines",
-  "apps/dashboard/src/screens/Routines.tsx": "Track C: Routines rebuild",
   "apps/dashboard/src/fixtures/attention-why.json": "the example data of the attention layer: the old name is in the engine's sentence",
   "apps/dashboard/src/fixtures/briefing.json": "the example data of Briefing, which Track C moves into Needs you",
   "apps/dashboard/src/fixtures/eval-report.json": "written by the eval track (evals/report.json): the old name is in its limitations text",
@@ -111,7 +98,7 @@ const PENDING: Record<string, string> = {
   "apps/dashboard/src/fixtures/home-worker.json": "the example data of Home (the Monday note), Track B",
 };
 const STRICT = process.env.KNACK_LINT_STRICT === "1";
-const PENDING_MAX = 20;
+const PENDING_MAX = 8;
 
 /** Findings by repo-relative file, then split into the ones a pending entry covers and the ones nothing covers. */
 function judge(byFile: Map<string, string[]>, inScope: (file: string) => boolean): { unexpected: string[]; stale: string[] } {
@@ -146,8 +133,7 @@ describe("no banned copy in the dashboard", () => {
   it("in the source strings and JSX text of every screen and component", () => {
     const by = hitsFor(sources, (f) => visibleIn(readFileSync(f, "utf8")).map((h) => ({ text: h.text, at: `:${h.line}` })));
     const { unexpected, stale } = judge(by, isSource);
-    expect(unexpected).toEqual([]);
-    expect(stale).toEqual([]);
+    expect({ unexpected, stale }).toEqual({ unexpected: [], stale: [] });
   });
 
   it("in the fixtures: what the example data says on screen", () => {
@@ -157,8 +143,7 @@ describe("no banned copy in the dashboard", () => {
       return stringsIn(v).filter((s) => !looksLikePath(s.text)).map((s) => ({ text: s.text, at: ` ${s.path}` }));
     });
     const { unexpected, stale } = judge(by, isFixture);
-    expect(unexpected).toEqual([]);
-    expect(stale).toEqual([]);
+    expect({ unexpected, stale }).toEqual({ unexpected: [], stale: [] });
   });
 
   it("in the page itself", () => {
@@ -168,8 +153,7 @@ describe("no banned copy in the dashboard", () => {
     const found = findBanned(`${title} ${text}`, cfg).map((x) => `apps/dashboard/index.html [${x.kind}: ${x.match}]`);
     const by = new Map<string, string[]>(found.length ? [["apps/dashboard/index.html", found]] : []);
     const { unexpected, stale } = judge(by, isPage);
-    expect(unexpected).toEqual([]);
-    expect(stale).toEqual([]);
+    expect({ unexpected, stale }).toEqual({ unexpected: [], stale: [] });
   });
 });
 
