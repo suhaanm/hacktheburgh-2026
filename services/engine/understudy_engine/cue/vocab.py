@@ -27,12 +27,16 @@ SHORT_LABELS: dict[str, dict[str, str]] = {
         "write_note": "Copy figures to the note", "verify_note": "Read the note back",
     },
     "programmer": {
-        "read_trace_first": "Read the failing trace", "edit_and_commit": "Make the smallest change",
-        "rerun_and_confirm": "Re-run the tests",
+        "read_trace_first": "Read the failing trace", "inspect_inputs": "Look at the sample inputs",
+        "write_failing_test": "Write a failing test", "edit_and_commit": "Make the smallest change",
+        "rerun_and_confirm": "Re-run the tests", "probe_edges": "Try the edges in the console",
+        "review_diff": "Review the diff", "commit_fix": "Commit the fix",
     },
     "data-analyst": {
-        "profile_inputs": "Profile the inputs", "run_and_inspect": "Run it, inspect the rows",
-        "sanity_check": "Sanity-check the number",
+        "profile_inputs": "Profile the inputs", "clean_data": "Fix what the profile showed",
+        "run_and_inspect": "Run it, inspect the rows", "reconcile_to_control": "Reconcile with the control",
+        "segment_breakdown": "Cut the data by segment", "sanity_check": "Sanity-check the number",
+        "report_answer": "Report the answer",
     },
 }
 

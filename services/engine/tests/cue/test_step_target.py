@@ -109,6 +109,28 @@ def test_every_candidate_step_of_a_shipped_pack_has_a_reason_text_and_a_closed_t
         assert problems(validator, d) == [], (role, sid, d)
 
 
+DANGLING = {"a", "an", "the", "of", "to", "and", "or", "with", "you", "your", "on", "in", "for", "by", "than", "that", "before", "after", "when", "if", "at", "from"}
+
+
+@pytest.mark.parametrize("role", ROLES)
+def test_every_short_label_is_written_by_hand_fits_and_is_not_a_clipped_long_label(role):
+    """The chip and the ask options show the short label. It must be a whole phrase in the pack's words, never the long label cut at 32 characters:
+    not cut inside a word and not ending on a dangling word ("before", "the", "a"). (``short()`` can still coincide with a hand-written label that is a
+    whole phrase, such as "Reconcile the three results", so equality with it is not the test.)"""
+    v = V.get_vocab(role)
+    assert v is not None
+    assert set(V.SHORT_LABELS[role]) == set(v.policy.steps)              # no step falls back to clipping the pack's long label
+    for sid, step in v.policy.steps.items():
+        label, long = v.label(sid), " ".join(step.label.split())
+        assert 0 < len(label) <= V.LABEL_MAX, (role, sid, label)
+        assert len(V.chip_text(label)) <= V.CHIP_MAX and len(V.whisper_text(label).split()) <= V.WHISPER_WORDS, (role, sid, label)
+        if long.startswith(label) and len(long) > len(label):              # a prefix of the long label is fine only as a whole phrase:
+            assert not long[len(label)].isalnum(), (role, sid, label)      # not cut inside a word
+        last = label.split()[-1]
+        assert last.strip(",.") not in DANGLING, (role, sid, label)        # never ends on "before", "the", "a" (case-sensitive: "calculator A" is a name)
+        assert label == label.strip() and "  " not in label and label[0].isupper(), (role, sid, label)
+
+
 def test_a_step_dict_without_a_reason_table_or_a_target_source_still_has_every_key():
     c = Candidate(id="cliff_a", group="cliff_a", label="Check cliff edges (A)", p=0.9, skill="check-the-cliff", reason_id="why.cliff")
     assert _step_dict(c, None) == {"id": "cliff_a", "label": "Check cliff edges (A)", "reason_id": "why.cliff", "reason_text": None, "target": None}
