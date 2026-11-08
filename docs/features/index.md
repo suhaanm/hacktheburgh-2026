@@ -66,7 +66,7 @@
 
 | Feature | Page | Status | Targets |
 |---|---|---|---|
-| Connections: curated MCP plugins with role presets | [connections](connections.md) | **landing** (owner decision D55; the engine side and the agent side are committed on the CONNECTIONS branch (worktree-agent-a2c1788e3e4c0c876, 00:14 UTC); docs/CONNECTIONS.md has not been seen on any branch) | Wordsmith |
+| Connections: curated MCP plugins with role presets | [connections](connections.md) | **landing** (owner decision D55; built and documented on the CONNECTIONS branch (worktree-agent-a2c1788e3e4c0c876, docs/CONNECTIONS.md at 00:38 UTC); not on main yet; nothing real has been connected) | Wordsmith |
 
 ## Voice and Hey Knack
 

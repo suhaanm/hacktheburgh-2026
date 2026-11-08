@@ -1,38 +1,39 @@
-# Connections: curated plugins
+# Connections: curated plugins and MCP servers
 
-> Apps, sites and MCP servers the worker can connect, chosen from a short curated list shown for their role, off until clicked and read-only by default.
+> Knack can be connected to the apps a worker already uses, from a short curated list for their role. Every connection starts off and read-only; reads are allowed, every change waits for a click.
 
 **Capability:** Connections and MCP plugins · **Status:** landing · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-**Status:** landing (owner decision D55; the engine side and the agent side are committed on the CONNECTIONS branch (worktree-agent-a2c1788e3e4c0c876, 00:14 UTC); docs/CONNECTIONS.md has not been seen on any branch) · **Page:** `docs/features/connections.md` · **Targets:** Wordsmith
+**Status:** landing (owner decision D55; built and documented on the CONNECTIONS branch (worktree-agent-a2c1788e3e4c0c876, docs/CONNECTIONS.md at 00:38 UTC); not on main yet; nothing real has been connected) · **Page:** `docs/features/connections.md` · **Targets:** Wordsmith
 
 ## What it does
 
-A worker can connect a few tools Knack may read from, from a short curated list that depends on their role. Every connection starts off and read-only, one click turns it on, and one click forgets the token and stops it.
+Knack can read from the apps a worker already uses through servers that speak the Model Context Protocol (MCP), the open standard for letting an assistant use an app's tools. There are 15 chips in three sets (Dev, Data, Benefits). Every chip starts off, reading is allowed, every change waits for the worker's own click, and deleting or running code is always a person's call.
 
 ## How it works
 
-Each preset is a validated manifest (kind mcp) with two modes. Example uses a stand-in server of ours (a local folder, a SQLite file holding the synthetic dataset, a fake GitHub and a fake Slack, plus fixtures); Real names a verified publisher, package, pinned version, hosts and the credential names. Nothing is on until the worker confirms; there is no default, and no auto-connect in mock mode, tests, demos or first run. The consent is pinned to a hash of what would run (launcher, arguments, pinned version, hosts, credential names, or the stand-in script); if the manifest changes, the connection says it needs reconfirming and nothing starts until the worker confirms again. Our own table classes every known tool as read, write, send, destructive or execute and decides every call; a vendor's read-only switch is used as well where the server has one, and any write needs a click. A routine may use a connection unattended only if the worker opted that routine in for that connection, reads only. A token is entered by the worker once, goes to the macOS Keychain (through standard input, never an argument) or a mode-600 file, and is never in the repository, a log, a prompt, the dashboard or the ledger. The ledger rows hold counts only (calls, reads, changes asked, refused, bytes returned, tools used). There is no route that adds a server. Knack uses the official MCP Python SDK (MIT) as the client and does not use hosted aggregators, because data would leave the device. On the agent side, a tool's class comes from our table and verb rules and a server's own hints never lower it: an unlisted tool is refused or treated by its verb, a name nothing recognises is treated as a write, SQL counts as a read only when code reads one read-only statement, everything but a read needs a person's real click, and destructive and execute tools can never be opted in. A server process starts only for a switched-on connection after the hash check, at the pinned version with no shell, install scripts off and a minimal environment (the path, the home folder, fixed variables, the worker's own values and the one token). The client answers none of a server's own requests (no sampling, no questions to the worker), caps a result at 64 KB and hands it back as untrusted text, bounds every connect, call and stop with a timeout, and restarts a crashed server at most three times in ten minutes. The ledger row is written before the call and never holds arguments or results.
+Knack writes no connectors. It reuses the official MCP Python SDK (version 2.3.0, pinned exactly, MIT) and the servers that GitHub, Google, Sentry and the community already publish, each pinned to one verified version; the repository's own plugin framework carries them. Hosted aggregators are not used, because the worker's data would leave the device through a third party. The consent line names who publishes the server, the package and version, the hosts it talks to and 'with your token' or 'It stays on this Mac'; a hash of what would run is stored with the consent, so a changed manifest disables the connection until the worker confirms again. Versions are exact (never 'latest'), launched with no shell, install scripts off and a minimal environment. Our own per-tool table decides what a call is; a server's own read-only hints never lower a class; SQL counts as a read only when code reads one read-only statement. A write or a send becomes an outward approval and a delete or code run an irreversible one, each bound to a digest of the arguments, used once, and expiring; inside a child agent nothing is ever opted in. An unattended run may read, and only for a connection the worker opted that very routine into. A tool result is data: it passes the injection detector, and in menu mode no model sees the text. Tokens go into the macOS Keychain on standard input, never in the repository, a log, a prompt, the dashboard or the ledger. Every call leaves a row written before the call (no row, no call) with sizes and outcome, never arguments or results. The worker's denylist and the kill flag apply. No screen or file lets the worker add an arbitrary server.
 
 **What is different.** The list is curated and read-only by default, starts off, and avoids hosted aggregators so data does not leave the device.
 
 ## Where to see it
 
-Settings has a Connections panel and first run has a presets slot under the role card (both are slots on main; the panel is landing). Presets by role, from the pack files on the branch: Programmer (GitHub, local Git, Jira, Slack, Sentry, filesystem); Data analyst (SQLite, Postgres, BigQuery, Google Workspace, Jupyter, Notion, Slack); Benefits processor (Outlook, Teams, SharePoint). Linear, named in D55, is not among the 13 preset files seen.
+First run, inside the role card: 'Connect your tools' chips for the chosen role, all off; a click shows the consent lines and only Connect connects, and the chips connect the Example version only, no account. Settings, Connections: the full list in three sets with Connect, Revoke, a Real choice that asks for a folder or address and a token, and counts of what each has read. Dev: GitHub, Git, Jira, Slack, Sentry, Files. Data: SQLite, Postgres, BigQuery, Sheets and Drive, Jupyter, Notion, Slack. Benefits: Outlook calendar, Teams meetings (meeting times and counts only), SharePoint. Chips carry printed flags: Notion 'Vendor says unmaintained', Sentry 'Source-available licence', and 'Community server' on Slack, Jira, Jupyter, Sheets and Drive and SharePoint.
 
 ## Demo moment
 
-In first run choose Programmer; the Dev preset appears with everything off. Connect the Example GitHub: it reads the stand-in only, the screen says read-only, and the record of what was read shows counts and no content. Revoke it.
+In first run choose Programmer and connect the Example GitHub (an invented repository). Ask what is waiting: it reads three open issues; a comment it drafts waits for a click and a merge is a person's call. Or connect Example SQLite: one SELECT runs, a DELETE stops at the queue marked irreversible. Open Settings, Connections to show the counts and Revoke.
 
 ## Evidence and its label
 
 | What | Label | Source |
 |---|---|---|
-| The engine side is covered by 53 test functions on the branch (18 manifest, 14 routes, 21 state); the agent side and the panel are not verified here | offline tests, on a branch, not on main | `services/engine/tests/connections/ (branch worktree-agent-a2c1788e3e4c0c876)` |
+| Engine: manifests validate and are verified with sources; floating versions, shells, mounted volumes, tools in two classes and secret-looking variables are refused; the command hash changes with anything that would run; consent, reconfirm, revoke, routine opt-in; the token store; metadata-only ledger rows; the routes | offline tests (53 test functions on the engine side) | `docs/CONNECTIONS.md (section 9); services/engine/tests/connections/ (branch)` |
+| Agent: through the real SDK client against our stand-ins and a hostile test server that lies about its tools, hangs, crashes, floods and shows its environment: classification, minimal environment, restarts, timeouts, the size cap, no sampling or questions to the worker, refusal for destructive and execute without a click and in an unattended run; a poisoned tool result pauses the child | offline tests with stand-ins; no real server started | `docs/CONNECTIONS.md (section 9)` |
 
 ## Honest limit
 
-Not on main, so not verified. Written from owner decision D55, the preset files and the engine code on the branch; check docs/CONNECTIONS.md when it lands. Real mode has not been exercised and no real account is used in the build or the demo; real Outlook, Teams or SharePoint access needs the owner's approval at run time (D26). Some real presets need Docker or npx. Custom servers are out of scope by decision.
+Not on main, so not verified by the lead. Nothing real was connected: the real launches (npx, uvx, docker at the pinned versions) are verified from their sources and unit-tested as command lines only. A connected server's own traffic goes from its process to its own hosts and is outside the frame egress guard (the panel and the ledger say so); Knack never sends a screen frame or page text through a connection. Linear, named in D55, is not shipped: Linear's official server is hosted only with no package or licence file to read, so Jira is shipped instead; Slack's, Atlassian's and Google's own hosted servers are also listed as not shipped. The curated list is chosen by a person in the repository; a new preset needs its source verified first.
 
 ## Hackathon target
 
@@ -40,22 +41,21 @@ Not on main, so not verified. Written from owner decision D55, the preset files 
 
 ## 30-second spoken script
 
-> Knack can connect to a short, curated list of tools, and everything starts off and read-only. Pick a role and you see the set for that job: developers get GitHub, Git, Jira, Slack; analysts get databases and sheets; benefits processors get Outlook, Teams and SharePoint. In the demo each one points at a stand-in we wrote, so no real account is touched. A change to what would run needs your confirmation again. This is landing now and is not yet verified.
+> Knack can connect to the apps you already use, from a short curated list for your job, using the open MCP standard. Everything starts off and read-only. Reading is allowed; every change, like a comment or a deleted row, waits for your click, and deleting and running code are always your call. In the demo each one points at a stand-in with invented data, so no real account is touched. If what would run changes, Knack asks you again. This is landing now and not yet verified by us on the main build.
 
 ## Slide bullets
 
-- Curated list per role; no arbitrary servers; each connection starts off and read-only.
-- Example mode uses stand-ins we wrote; Real mode is the worker's own token, in the Keychain.
-- Consent is pinned to a hash of what would run; a change asks again.
-- Our table classes every tool and decides every call; any write needs a click.
-- Landing: engine side on a branch; not yet on main.
+- 15 chips in three sets for Dev, Data and Benefits; all start off and read-only.
+- MCP servers reused at one verified version each; no connectors written; no hosted aggregators.
+- Our table decides every call; a server's hints never lower a class; changes wait for a click.
+- Tokens in the Keychain; a row in the ledger before every call, never the content.
+- Landing: nothing real connected; Linear and several hosted servers not shipped.
 
 ## Sources
 
+- `docs/CONNECTIONS.md (branch worktree-agent-a2c1788e3e4c0c876)`
 - `docs/DECISIONS.md (D55)`
 - `docs/IMPLEMENTATION_SPEC.md (14.4)`
-- `docs/REFERENCES.md (Marketplace plugin mapping)`
-- `docs/CONNECTIONS.md (landing)`
 - `services/engine/understudy_engine/connections/ and services/agent/understudy_agent/connections/ (branch worktree-agent-a2c1788e3e4c0c876)`
 - `packages/connections/presets/ (branch worktree-agent-a2c1788e3e4c0c876)`
 
