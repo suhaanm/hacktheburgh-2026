@@ -26,7 +26,7 @@ More, then Where time goes (address #/genome). The Home hero's action, See where
 
 ### Demo moment
 
-Open Where time goes. Point at the Synthetic badge, the ribbon (expert above, novice below, gaps hatched), and the waterfall that splits the seconds by habit. Say: the interval on the real gap does not include zero, and the badge says synthetic.
+Open Where time goes. Point at the provenance line (what the data are), the ribbon (expert above, novice below, gaps hatched), and the waterfall that splits the seconds by habit. Say: the interval on the real gap does not include zero, and say aloud that the data are synthetic.
 
 ### Evidence and its label
 

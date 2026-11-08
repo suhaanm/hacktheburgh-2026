@@ -37,7 +37,7 @@ Open Evidence: the map of sections with their origin badges, the findings, then 
 
 ### Honest limit
 
-Almost everything in the report is synthetic or simulated. The register is long on purpose. The report is regenerated at the freeze; quote the last full run, not a fast run.
+Almost everything in the report is synthetic or simulated. The register is long on purpose. The report is regenerated at the freeze; quote the last full run, not a fast run. Under decision D57 the app's own wording avoids the word 'synthetic'; how the Evidence page words the report's origin labels after the wording track is not verified here.
 
 ### Hackathon target
 

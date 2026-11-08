@@ -1,6 +1,6 @@
 # Knack feature index
 
-33 pages and 62 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
+34 pages and 65 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
 
 **Status words.** `verified`: the lead saw it work end to end (`docs/FEATURE_CATALOGUE.md`). `built`: built and tested by its track, on main, not yet seen end to end by the lead. `landing`: not on main yet (another agent's branch, or its document has not landed). `not run`: designed or built but never run. The status is taken from the sources at the time of writing (see the time stamp in `docs/PITCH_FEATURES.md`); nothing here was run by the author.
 
@@ -106,7 +106,7 @@
 | One attention layer: a router, a digest, quiet states | [attention-router](attention-router.md) | **built** (engine built; desktop wiring built; held-out simulated evaluation met 11 of 12 criteria) | HRT |
 | Context engineering: typed, bounded, fresh | [context-engineering](context-engineering.md) | **built** | Wordsmith |
 | One app, one window, one corner pill | [knack-shell](knack-shell.md) | **built** (merged to main; hidden end-to-end run passes; first visible launch with the owner pending) | Wordsmith |
-| First run in three clicks | [knack-shell](knack-shell.md) | **built** | G-Research |
+| First run: role, consent and a first look | [knack-shell](knack-shell.md) | **built** (the spec is three clicks; decision D58 (00:45 UTC) adds a permissions step and a Try it step, still landing) | G-Research |
 | Command palette and keyboard | [knack-shell](knack-shell.md) | **built** (shortcuts and the palette are on main; some of the spec's palette verbs are not) | Wordsmith |
 | Design system with budgets as tests | [design-system](design-system.md) | **built** (tokens, components and check scripts merged to main; screens still being brought to budget by their tracks) | G-Research |
 | The Knack mark and brand | [design-system](design-system.md) | **built** | G-Research |
@@ -129,6 +129,9 @@
 | ML v2, held-out: mostly negative | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | HRT |
 | The simulated study sat at the floor | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | HRT, G-Research |
 | Other results that went the wrong way | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | G-Research |
+| Prospective prediction ledger and forward scoring | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (decision D59; the plan was committed at 00:35 UTC before any held-out run and the pure modules (ledger, scoring, guard, worlds) are tested, on branch worktree-agent-a02c9cf8855c9f4ff; no dev or held-out number exists yet; docs/HRT_BRIEF.md has not been seen) | HRT |
+| Drift guard: noticing when the model stops beating the baseline | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (as above: planned and built as pure modules on the HRT branch; no result yet) | HRT |
+| Decisions scoreboard: realised cost against a naive policy and an oracle | [hrt-prospective-ledger](hrt-prospective-ledger.md) | **landing** (as above; no result yet) | HRT |
 
 ## Roles
 

@@ -1,10 +1,10 @@
-# One app, one window, one pill, three clicks
+# One app, one window, one pill, a short first run
 
 > Knack is one app: a calm window, a menu-bar item, and a small corner pill that says what is happening in five words and offers Stop.
 
 **Capability:** A calm product: window, attention, context · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-This page covers One app, one window, one corner pill, First run in three clicks, Command palette and keyboard.
+This page covers One app, one window, one corner pill, First run: role, consent and a first look, Command palette and keyboard.
 
 ## One app, one window, one corner pill
 
@@ -43,13 +43,13 @@ Not yet seen by the owner on a real desktop with real windows behind it; the cor
 
 - **Wordsmith (most complicated end-to-end browser-use workflow)**: an agent that works in the background and tells the worker in five words
 
-## First run in three clicks
+## First run: role, consent and a first look
 
-**Status:** built · **Page:** `docs/features/knack-shell.md` · **Targets:** G-Research
+**Status:** built (the spec is three clicks; decision D58 (00:45 UTC) adds a permissions step and a Try it step, still landing) · **Page:** `docs/features/knack-shell.md` · **Targets:** G-Research
 
 ### What it does
 
-First launch asks two questions and shows one summary: a role card, one capture consent, and 'Show my week'. Everything else takes the role pack's safe defaults and is editable in Your data.
+First launch asks two questions and shows one summary: a role card, one capture consent, and 'Show my week'. Everything else takes the role pack's safe defaults and is editable in Your data. Decision D58 (owner, after the first launch showed the old eight-step wizard) makes this the only onboarding: it opens on the first launch whatever the engine knows, adds three equal consent cards, a permissions step (microphone, speech, screen) and a Try it step, and the legacy wizard never renders in the Knack shell.
 
 ### How it works
 
@@ -69,11 +69,11 @@ Launch fresh: role card, the consent with three equal buttons, 'Here is what Kna
 
 | What | Label | Source |
 |---|---|---|
-| About 20 clicks over 15 screens before; 3 clicks after. Words on the first screen 159 to 20 | design measurement of a prototype | `docs/knack-ux/07-first-run.md; docs/knack-ux/after/after-measurements.json` |
+| In the spec: about 20 clicks over 15 screens before; 3 clicks after. Words on the first screen 159 to 20. D58 adds steps, so the shipped count is higher and has not been re-measured | design measurement of a prototype | `docs/knack-ux/07-first-run.md; docs/knack-ux/after/after-measurements.json` |
 
 ### Honest limit
 
-Measured on a prototype and by the reducer's tests; no person has done it. Permission dialogs (Accessibility, Screen Recording, Microphone) can only be granted by the owner in System Settings.
+Measured on a prototype and by the reducer's tests; no person has done it, and the D58 steps are not in the measurement. Permission dialogs (Accessibility, Screen Recording, Microphone) can only be granted by the owner in System Settings.
 
 ### Hackathon target
 
@@ -117,14 +117,14 @@ The tap-to-type Ask bar is a lower-priority item in the build plan and may not b
 
 ## 30-second spoken script
 
-> Knack is one app. A calm window with five destinations, a menu-bar item, and when an agent starts working on your real screen, the window gets out of the way and a small pill in the corner says what is happening in five words and offers Stop. It does not pop back on its own. First launch is three clicks: your role, one consent with three equal buttons, and show my week.
+> Knack is one app. A calm window with five destinations, a menu-bar item, and when an agent starts working on your real screen, the window gets out of the way and a small pill in the corner says what is happening in five words and offers Stop. It does not pop back on its own. First launch is a short first run: your role, a consent with three equal buttons, the permissions Knack needs, and a first look at your week.
 
 ## Slide bullets
 
 - One app: window, Dock, menu bar, corner pill; five destinations.
 - Window minimises when an agent works; the pill says it in five words and offers Stop.
 - One interrupting surface at a time; never over a password field.
-- First run: 20 clicks over 15 screens became 3.
+- First run: the spec cut about 20 clicks over 15 screens to 3; D58 adds a permissions step and a Try it step.
 - No keystroke ever approves anything.
 
 ## Sources

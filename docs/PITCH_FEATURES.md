@@ -1,10 +1,10 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 00:40 UTC, checked against main at 08bab0a. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 00:42 UTC, checked against main at 65b2a80. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
-This is the master document. It lists 62 entries (58 features and 4 write-ups of results that did not hold up) on 33 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
+This is the master document. It lists 65 entries (61 features and 4 write-ups of results that did not hold up) on 34 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
-**How to read an entry.** Name and status; what it does; how it works (ending in one 'What is different' sentence, which compares with the approaches in our own reference notes and is not a claim of priority over the whole field); where to see it; the demo moment; the evidence with its label; the honest limit; the hackathon target. **Status words:** `verified` (the lead saw it work end to end), `built` (built and tested by its track, on main, not yet seen end to end by the lead), `landing` (not on main yet), `not run`. **Evidence labels:** `synthetic` (data we generated), `simulated` (language-model participants, not people), `real model, small n` (a language model on our sandbox sites), `offline tests`, `owner-present`, `not run`. Nothing in this document is evidence about real workers. **Badge wording on screen:** an engine answer computed from synthetic people reads 'Synthetic data' (or 'Synthetic firm' in the Admin view); 'Example data' appears only when a fixture was drawn (docs/FIRST_LAUNCH.md, state at 23:50 GMT).
+**How to read an entry.** Name and status; what it does; how it works (ending in one 'What is different' sentence, which compares with the approaches in our own reference notes and is not a claim of priority over the whole field); where to see it; the demo moment; the evidence with its label; the honest limit; the hackathon target. **Status words:** `verified` (the lead saw it work end to end), `built` (built and tested by its track, on main, not yet seen end to end by the lead), `landing` (not on main yet), `not run`. **Evidence labels:** `synthetic` (data we generated), `simulated` (language-model participants, not people), `real model, small n` (a language model on our sandbox sites), `offline tests`, `owner-present`, `not run`. Nothing in this document is evidence about real workers. **Wording on screen:** Per decision D57 (owner, 8 Nov about 00:30 UTC) the app no longer uses the word 'synthetic' or 'simulated' on any screen, card, spoken line or desktop string; what a result was measured on is said in concrete words ('generators we wrote', 'planted example learners', 'language-model participants', 'example people made for this build'). This document is not the app and keeps its labels. Because the screens will not say it, say aloud in any video that the data are made up (synthetic); the README, Devpost and CLAIMS keep their wording, and CLAUDE.md's rule that synthetic results carry a badge is in tension with D57 (the lead keeps the constraint through concrete wording).
 
 ## Contents
 
@@ -18,9 +18,9 @@ This is the master document. It lists 62 entries (58 features and 4 write-ups of
 8. **Models and modes**: Model routing: Gemini by default, checked at boot; Local model digests (a 7B model on this Mac); Spoken lines (ElevenLabs, fixed vocabulary); Mock mode: the whole product offline.
 9. **Insights and admin**: Home: one sentence, one action; Top insights engine: a few pointers, chosen by code; Admin views: Firm, Roles, Onboarding; Monday note, firm brief and prediction scorecard.
 10. **Growth and independence**: Growth and the independence score.
-11. **A calm product: window, attention, context**: One attention layer: a router, a digest, quiet states; Context engineering: typed, bounded, fresh; One app, one window, one corner pill; First run in three clicks; Command palette and keyboard; Design system with budgets as tests; The Knack mark and brand.
+11. **A calm product: window, attention, context**: One attention layer: a router, a digest, quiet states; Context engineering: typed, bounded, fresh; One app, one window, one corner pill; First run: role, consent and a first look; Command palette and keyboard; Design system with budgets as tests; The Knack mark and brand.
 12. **Privacy and safety**: Egress guard, ledger and canary tests; Your data: see and delete; Memory file the worker owns.
-13. **Evidence and honesty**: Evidence page, make eval and the limitations register; Plain-English explainer with a number check; Generator-mismatch test (the realism matrix); ML v2, held-out: mostly negative; The simulated study sat at the floor; Other results that went the wrong way.
+13. **Evidence and honesty**: Evidence page, make eval and the limitations register; Plain-English explainer with a number check; Generator-mismatch test (the realism matrix); ML v2, held-out: mostly negative; The simulated study sat at the floor; Other results that went the wrong way; Prospective prediction ledger and forward scoring; Drift guard: noticing when the model stops beating the baseline; Decisions scoreboard: realised cost against a naive policy and an oracle.
 14. **Roles**: Role packs: benefits processor deep, analyst and programmer thin; Programmer pack at standard depth; Data analyst pack at standard depth.
 
 Then: what exists elsewhere, numbers you may quote, things we do not claim, what is landing, sources read.
@@ -61,7 +61,7 @@ Plain sentences a narrator can read as written. Each says the data are synthetic
 
 | Target | What it asks | Lead with | Every page that serves it |
 |---|---|---|---|
-| HRT | Best use of data for predictions and decisions | [stuck-model](features/stuck-model.md), [hrt-decisions](features/hrt-decisions.md), [live-coach](features/live-coach.md), [cue](features/cue.md), [work-graph-and-hours](features/work-graph-and-hours.md), [what-did-not-hold-up](features/what-did-not-hold-up.md) | [work-genome](features/work-genome.md), [calendar-and-git](features/calendar-and-git.md), [growth-independence](features/growth-independence.md), [background-agents](features/background-agents.md), [routines](features/routines.md), [proactive-briefing](features/proactive-briefing.md), [models-and-routing](features/models-and-routing.md), [home-insights](features/home-insights.md), [firm-admin](features/firm-admin.md), [attention-router](features/attention-router.md), [evidence-and-explain](features/evidence-and-explain.md) |
+| HRT | Best use of data for predictions and decisions | [stuck-model](features/stuck-model.md), [hrt-decisions](features/hrt-decisions.md), [hrt-prospective-ledger](features/hrt-prospective-ledger.md), [live-coach](features/live-coach.md), [cue](features/cue.md), [work-graph-and-hours](features/work-graph-and-hours.md), [what-did-not-hold-up](features/what-did-not-hold-up.md) | [work-genome](features/work-genome.md), [calendar-and-git](features/calendar-and-git.md), [growth-independence](features/growth-independence.md), [background-agents](features/background-agents.md), [routines](features/routines.md), [proactive-briefing](features/proactive-briefing.md), [models-and-routing](features/models-and-routing.md), [home-insights](features/home-insights.md), [firm-admin](features/firm-admin.md), [attention-router](features/attention-router.md), [evidence-and-explain](features/evidence-and-explain.md) |
 | G-Research | Make the invisible visible | [work-genome](features/work-genome.md), [screen-annotations](features/screen-annotations.md), [growth-independence](features/growth-independence.md), [work-graph-and-hours](features/work-graph-and-hours.md), [evidence-and-explain](features/evidence-and-explain.md), [what-did-not-hold-up](features/what-did-not-hold-up.md) | [capture](features/capture.md), [calendar-and-git](features/calendar-and-git.md), [awareness-glances](features/awareness-glances.md), [cue](features/cue.md), [routines](features/routines.md), [hey-knack](features/hey-knack.md), [models-and-routing](features/models-and-routing.md), [home-insights](features/home-insights.md), [firm-admin](features/firm-admin.md), [knack-shell](features/knack-shell.md), [design-system](features/design-system.md), [privacy-ledger](features/privacy-ledger.md), [your-data](features/your-data.md), [role-packs](features/role-packs.md) |
 | Wordsmith | Most complicated end-to-end browser-use workflow | [benefits-agent](features/benefits-agent.md), [security-layers](features/security-layers.md), [computer-use](features/computer-use.md), [background-agents](features/background-agents.md), [routines](features/routines.md), [stop-everything](features/stop-everything.md) | [capture](features/capture.md), [needs-you](features/needs-you.md), [proactive-briefing](features/proactive-briefing.md), [connections](features/connections.md), [hey-knack](features/hey-knack.md), [models-and-routing](features/models-and-routing.md), [context-engineering](features/context-engineering.md), [knack-shell](features/knack-shell.md), [privacy-ledger](features/privacy-ledger.md), [role-packs](features/role-packs.md) |
 
@@ -143,7 +143,7 @@ More, then Where time goes (address #/genome). The Home hero's action, See where
 
 #### Demo moment
 
-Open Where time goes. Point at the Synthetic badge, the ribbon (expert above, novice below, gaps hatched), and the waterfall that splits the seconds by habit. Say: the interval on the real gap does not include zero, and the badge says synthetic.
+Open Where time goes. Point at the provenance line (what the data are), the ribbon (expert above, novice below, gaps hatched), and the waterfall that splits the seconds by habit. Say: the interval on the real gap does not include zero, and say aloud that the data are synthetic.
 
 #### Evidence and its label
 
@@ -645,7 +645,7 @@ Routines, then Run now (the window minimises and the corner pill shows what is h
 
 #### Demo moment
 
-Start the benefits routine from Routines. The pill says what it is doing in about five words (a run in the agent's own browser shows the pill and does not minimise the window by itself: press Command-M right after Run now if the window should get out of the way, which is gap G3 in docs/KNACK_DEMO.md; the agent's three browser windows appear on screen only if the stack was started headed), and the finished case note arrives in Needs you with its evidence and one irreversible step waiting for a click. Do not press Approve in front of an audience; it saves a sandbox note and nothing real. At the time of the demo run, approving only marked the item approved and the sandbox note stayed Draft until the run's finalize route was called (gap G11, docs/KNACK_DEMO.md): end on the approved item, or have the lead call finalize.
+Start the benefits routine from Routines. The pill says what it is doing in about five words (a run in the agent's own browser shows the pill and does not minimise the window by itself: press Command-M right after Run now if the window should get out of the way, which is gap G3 in docs/KNACK_DEMO.md; the agent's three browser windows appear on screen only if the stack was started headed), and the finished case note arrives in Needs you with its evidence and one irreversible step waiting for a click. Do not press Approve in front of an audience; it saves a sandbox note and nothing real. Approving a live agent item now submits the sandbox note through the run's finalize route and reports submitted, none (a seeded item, a cached run, the agent down) or failed, with an error toast and never 'done' when the submit did not finish (decision D61); a seeded item such as CN-2041 only marks approved.
 
 #### Evidence and its label
 
@@ -841,11 +841,11 @@ Not a demo moment: say plainly that the computer-use tier is in development and 
 | Development households: after fact handles, 3 of 3 completed through the real gate with 0 false claims (Wilson [0.44, 1.00]) | real model (OpenAI), IN-SAMPLE, 3 households | `evals/agentic/ITERATIONS.md` |
 | Held-out clean, n = 4: 1 completed (Wilson about [0.05, 0.70]); in 2 runs the harness accepted calculator B with a drop-down left at its default and only the evaluation's independent recomputation caught it; 1 run paused because the goal-check call could not complete (it fails closed); Submit waited for a human in all 4 | real model (OpenAI), our sandbox, headless browser; gate 35e964049fd0 | `evals/report.md (Agentic evaluation); evals/agentic/ITERATIONS.md` |
 | Held-out injected, n = 20: 20 of 20 paused at step 0; 0 attacks executed | real model (OpenAI); pages carry text only | `evals/report.md (Agentic evaluation)` |
-| Gemini configuration, development households only: 0 of 3 end to end (two rounds of the same three households), 7 of 9 calculators finished with a clean audit; 1 of 3 on the four-page wizard site, 3 of 3 on the two simpler sites | real model (Gemini), IN-SAMPLE; on branch worktree-agent-acf889b730112335b, not on main | `evals/agentic/ITERATIONS_8.md (branch)` |
+| Gemini configuration, development households only, round 7 on the final code: 8 of 8 households end to end with the calculators by computer use and the case note by tier 2 (Wilson 0.68 to 1.00); 4 of the 8 were never used in development; about US$0.18 to 0.20 each; stuck-repeat pauses on drop-downs recur in 4 of 12 runs. An earlier dev round on the same code line gave 0 of 3 end to end | real model (Gemini), IN-SAMPLE, not a held-out rate; the case-note step used the tier-2 scribe option, which is off by default | `docs/DECISIONS.md (D62); evals/agentic/ITERATIONS_8.md (branch)` |
 
 #### Honest limit
 
-Seven households in total across development and held-out, so no rate should be quoted. The injected pages test the detector, not the gate against a hostile page. Every number above, except the Gemini row, is about the OpenAI configuration. A fresh pre-registered round on new seeds is planned after the fixes land. A harness option (off by default) lets the case-note step start at tier 2; any result that uses it is reported as 'calculators by computer use, note by tier 2', never as an all-computer-use result, and it is not a way round Gemini's own safety confirmation (decision D56).
+Seven households in total across development and held-out, so no rate should be quoted. The injected pages test the detector, not the gate against a hostile page. Every number above, except the Gemini row, is about the OpenAI configuration. The pre-registered Gemini round (20 clean households on seed 9139, 20 injected on seed 9140) launches only from the commit that holds the plan, after the owner confirms in chat (D62). Gemini's own safety check on Save draft is never acknowledged automatically. A harness option (off by default) lets the case-note step start at tier 2; any result that uses it is reported as 'calculators by computer use, note by tier 2', never as an all-computer-use result, and it is not a way round Gemini's own safety confirmation (decision D56).
 
 #### Hackathon target
 
@@ -1143,7 +1143,7 @@ Needs you in the sidebar (second item); a blocking approval also appears as a co
 
 #### Demo moment
 
-Open Needs you with one approval and one routine proposal: 'Submit case note CN-2041. Cannot be undone.' Open its Evidence. Press Approve and submit (sandbox only; until the finalize call is wired the item is marked approved and the sandbox note stays Draft, gap G11), then the proposal's Watch first.
+Open Needs you with one approval and one routine proposal: 'Submit case note CN-2041. Cannot be undone.' Open its Evidence. Press Approve and submit (sandbox only; a live agent item submits the sandbox note, a seeded item such as CN-2041 only marks approved, decision D61), then the proposal's Watch first.
 
 #### Evidence and its label
 
@@ -1153,7 +1153,7 @@ Open Needs you with one approval and one routine proposal: 'Submit case note CN-
 
 #### Honest limit
 
-Measured as a prototype and checked in hidden runs, not by a person. Approvals in the demo are sandbox only. The default row count was cut to three after the first draft. Two gaps found by the demo run (docs/KNACK_DEMO.md, G11 and G6): approving marks the queue item approved but nothing in the dashboard or the desktop calls the route that presses the real submit button, so the sandbox note stays Draft until it is called; and the corner approval card names no item, so Review opens Needs you with the newest item on top.
+Measured as a prototype and checked in hidden runs, not by a person. Approvals in the demo are sandbox only. The default row count was cut to three after the first draft. One gap from the demo run remains (docs/KNACK_DEMO.md, G6): the corner approval card names no item, so Review opens Needs you with the newest item on top. The other, that approving did not press the real submit button (G11), was fixed by decision D61.
 
 #### Hackathon target
 
@@ -1567,7 +1567,7 @@ Home, the first item in the sidebar and the page Knack opens on.
 
 #### Demo moment
 
-Open Knack: the date, one sentence with its origin badge ('Synthetic data' for an engine answer from synthetic people, 'Example data' for a fixture), the button 'See where the time goes' and, if anything waits, one row '1 thing needs you'.
+Open Knack: the date, one sentence with its provenance badge (the wording is being changed by decision D57: no 'synthetic' on screen; a fixture still reads 'Example data'), the button 'See where the time goes' and, if anything waits, one row '1 thing needs you'.
 
 #### Evidence and its label
 
@@ -1577,7 +1577,7 @@ Open Knack: the date, one sentence with its origin badge ('Synthetic data' for a
 
 #### Honest limit
 
-The 47 words are the prototype's headline content; real screens land a little above it. Only three of the engine's pointer shapes match the hero template, so another pointer kind would show its raw headline (gap G4 in docs/KNACK_DEMO.md); the seeded kind is fine. The example sentence comes from the synthetic firm and carries its origin badge (Example data or Synthetic data). These are measurements of the interface, not of people.
+The 47 words are the prototype's headline content; real screens land a little above it. Only three of the engine's pointer shapes match the hero template, so another pointer kind would show its raw headline (gap G4 in docs/KNACK_DEMO.md); the seeded kind is fine. The example sentence comes from the synthetic firm and carries its provenance badge (Example data, or the wording the D57 track settles on). These are measurements of the interface, not of people.
 
 #### Hackathon target
 
@@ -1643,7 +1643,7 @@ Account menu, View as Admin; sidebar Firm, Roles, Onboarding; More, Firm rows (P
 
 #### Demo moment
 
-Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); show the Synthetic firm badge and say names are made up.
+Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); show the provenance badge (its Admin wording is being changed by D57) and say the names are made up and the firm is made for this build.
 
 #### Evidence and its label
 
@@ -1859,13 +1859,13 @@ Not yet seen by the owner on a real desktop with real windows behind it; the cor
 
 - **Wordsmith (most complicated end-to-end browser-use workflow)**: an agent that works in the background and tells the worker in five words
 
-### First run in three clicks
+### First run: role, consent and a first look
 
-**Status:** built · **Page:** `docs/features/knack-shell.md` · **Targets:** G-Research
+**Status:** built (the spec is three clicks; decision D58 (00:45 UTC) adds a permissions step and a Try it step, still landing) · **Page:** `docs/features/knack-shell.md` · **Targets:** G-Research
 
 #### What it does
 
-First launch asks two questions and shows one summary: a role card, one capture consent, and 'Show my week'. Everything else takes the role pack's safe defaults and is editable in Your data.
+First launch asks two questions and shows one summary: a role card, one capture consent, and 'Show my week'. Everything else takes the role pack's safe defaults and is editable in Your data. Decision D58 (owner, after the first launch showed the old eight-step wizard) makes this the only onboarding: it opens on the first launch whatever the engine knows, adds three equal consent cards, a permissions step (microphone, speech, screen) and a Try it step, and the legacy wizard never renders in the Knack shell.
 
 #### How it works
 
@@ -1885,11 +1885,11 @@ Launch fresh: role card, the consent with three equal buttons, 'Here is what Kna
 
 | What | Label | Source |
 |---|---|---|
-| About 20 clicks over 15 screens before; 3 clicks after. Words on the first screen 159 to 20 | design measurement of a prototype | `docs/knack-ux/07-first-run.md; docs/knack-ux/after/after-measurements.json` |
+| In the spec: about 20 clicks over 15 screens before; 3 clicks after. Words on the first screen 159 to 20. D58 adds steps, so the shipped count is higher and has not been re-measured | design measurement of a prototype | `docs/knack-ux/07-first-run.md; docs/knack-ux/after/after-measurements.json` |
 
 #### Honest limit
 
-Measured on a prototype and by the reducer's tests; no person has done it. Permission dialogs (Accessibility, Screen Recording, Microphone) can only be granted by the owner in System Settings.
+Measured on a prototype and by the reducer's tests; no person has done it, and the D58 steps are not in the measurement. Permission dialogs (Accessibility, Screen Recording, Microphone) can only be granted by the owner in System Settings.
 
 #### Hackathon target
 
@@ -2155,7 +2155,7 @@ Open Evidence: the map of sections with their origin badges, the findings, then 
 
 #### Honest limit
 
-Almost everything in the report is synthetic or simulated. The register is long on purpose. The report is regenerated at the freeze; quote the last full run, not a fast run.
+Almost everything in the report is synthetic or simulated. The register is long on purpose. The report is regenerated at the freeze; quote the last full run, not a fast run. Under decision D57 the app's own wording avoids the word 'synthetic'; how the Evidence page words the report's origin labels after the wording track is not verified here.
 
 #### Hackathon target
 
@@ -2356,6 +2356,114 @@ These are all simulated or sandbox results; none is about real workers.
 
 - **G-Research (make the invisible visible)**: our own failures made visible
 
+### Prospective prediction ledger and forward scoring
+
+**Status:** landing (decision D59; the plan was committed at 00:35 UTC before any held-out run and the pure modules (ledger, scoring, guard, worlds) are tested, on branch worktree-agent-a02c9cf8855c9f4ff; no dev or held-out number exists yet; docs/HRT_BRIEF.md has not been seen) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
+
+#### What it does
+
+Every prediction is written to an append-only record before its outcome exists, and the model is scored only from that record, forward in time, against the simplest competent predictor.
+
+#### How it works
+
+The ledger is a hash chain: each entry carries the hash of the one before, and a verify step recomputes it. A prediction records when it was made, the probability, the name and version of the model and of every baseline that predicted the same thing at that moment, and a horizon. An outcome can be added once, and only after the horizon. A baseline that learns online may use only outcomes already resolved by then. Scoring reads only resolved predictions, reports how many are still pending, and refuses to score below 200 resolved predictions or when a stream has a gap. Nothing in the record holds page text, URLs, names or field values. Scores are log loss, Brier, expected calibration error with its reliability table, and the calibration slope and intercept, with probabilities clipped to 0.01 to 0.99. Intervals are 95% cluster bootstraps over people, paired across models. The deployed stuck model is fitted once on a deployment history and frozen; the baselines are the running base rate, time since progress and the frozen base rate.
+
+**What is different.** Predictions are written to a hash-chained record before their outcomes exist and scored only from it, forward in time, instead of by leave-one-person-out on a pooled table.
+
+#### Where to see it
+
+Not on a screen yet. Code is under understudy_engine/hrt on the HRT branch; the plan is evals/hrt/PLAN.md; a judge-facing brief, docs/HRT_BRIEF.md, is planned under D59.
+
+#### Demo moment
+
+None yet. When the held-out run exists, read the pre-registered claims (the model beats both baselines in the first world; it is calibrated; it is worse than the better baseline in at least two of three shifted worlds) and say which passed and which did not.
+
+#### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| Pre-registered, with no result yet: every seed is new and a test asserts they are disjoint from all earlier pools; every parameter is fixed by the plan, not by dev data; claims P1 to P6 and their pass rules are stated before any held-out number exists; a failed claim is printed as a finding | pre-registration; no data | `evals/hrt/PLAN.md (branch worktree-agent-a02c9cf8855c9f4ff)` |
+
+#### Honest limit
+
+Everything is generated by us; a held-out replicate catches overfitting to one noise draw, never 'the model learned our generators'. The ledger is built and tested, but no live predictions have been recorded by the running product yet, so a real prospective result does not exist. Nothing here was measured on real people, agents or reviewers, and the live study (n = 4) has not been run.
+
+#### Hackathon target
+
+- **HRT (best use of data for predictions and decisions)**: predictions scored the way they are used (written first, scored later), against plain baselines
+
+### Drift guard: noticing when the model stops beating the baseline
+
+**Status:** landing (as above: planned and built as pure modules on the HRT branch; no result yet) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
+
+#### What it does
+
+A guard compares the model's recent errors with the plainest competent predictor and falls back to that predictor when the evidence says the model has gone wrong.
+
+#### How it works
+
+For each episode (each case, for error-risk routing) the bounded difference between the model's and the fallback's log loss feeds a betting-style e-process with a fixed bet size of 0.8. A flag is raised the first time the capital reaches 20, which, if the model is no worse than the fallback, happens with probability at most 5% (Ville's inequality; the plan states the condition under which that holds). After a flag the system uses the fallback for the rest of the stream. The guard's decision is scored as a premium (what it costs when nothing is wrong) and a payout (what it saves when the model is wrong) against always trusting the model, always using the fallback, and an oracle that knew in hindsight.
+
+**What is different.** The system notices, with a statistical bound on false alarms, when its own model stops beating a plain baseline, and falls back, and that decision is scored for what it costs and saves.
+
+#### Where to see it
+
+Not on a screen yet.
+
+#### Demo moment
+
+None yet. When results exist: show the premium and the payout in one sentence each, with their intervals.
+
+#### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| Pre-registered claims: the guard flags in at most 1 of 8 no-drift deployments, flags in at least 6 of 8 in every shifted family where the model is worse, and costs at most 0.01 nats when nothing is wrong; no result yet | pre-registration; no data | `evals/hrt/PLAN.md (section 4)` |
+
+#### Honest limit
+
+The false-flag guarantee needs each episode's loss difference to have conditional mean at most zero given the past; episodes of one person are not independent, so it is a design target checked on eight deployments, not a proof. Eight deployments per world give wide intervals. After a flag there is no return rule yet. Synthetic worlds only.
+
+#### Hackathon target
+
+- **HRT (best use of data for predictions and decisions)**: a decision rule that notices its own model failing, scored on premium and payout
+
+### Decisions scoreboard: realised cost against a naive policy and an oracle
+
+**Status:** landing (as above; no result yet) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
+
+#### What it does
+
+For each decision rule Knack ships, the realised cost against a naive policy and an oracle policy, with paired intervals and a stated correction for the number of comparisons.
+
+#### How it works
+
+One row per rule: when to build an automation (ski rental with a learned trust parameter, against break-even, build at once and never build; oracle: the hindsight best), which cases an expert reviews under a 30% review budget (the routing model against random, confidence only and disagreement only; oracle: the true error probability), when to start a background run (the presence rule against running whenever idle for five minutes and a fixed overnight window; oracle: knows each spell's length), and whether to speak, annotate, take over or stay silent (the bandit snapshot against the rule baseline, always nudge and never speak; oracle: the exact optimum). Cue's recorded held-out run is read, not re-run, and the help-level ladder is not scored because it is a rule with no outcome until the live study. Four primary contrasts are judged at the Bonferroni-adjusted 98.75% level; every other cell is exploratory and never used to say a rule works. Each row carries a sweep over the cost the data cannot supply (the build cost, the loss ratio, the cost of an escaped error).
+
+**What is different.** Every shipped decision rule is scored against a naive policy and an oracle with a stated correction for the number of comparisons; the primary contrasts are chosen before any data.
+
+#### Where to see it
+
+Not on a screen yet; the plan is evals/hrt/PLAN.md, and the result will be a report section and the HRT brief.
+
+#### Demo moment
+
+None yet. When results exist: one row, three numbers (naive, shipped, oracle) and the share of the gap the shipped rule closes, only where that is clearly above zero.
+
+#### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| Pre-registered: four primary contrasts, the unit of analysis is the replicate world, the held-out run happens once and refuses without a frozen code hash; no result yet | pre-registration; no data | `evals/hrt/PLAN.md (sections 5 to 7)` |
+
+#### Honest limit
+
+The loss ratio, the review minutes, the build cost and the reward weights are assumptions, which is why each has a sweep. The oracle policies are not implementable; they bound what is possible. Everything is generated by us.
+
+#### Hackathon target
+
+- **HRT (best use of data for predictions and decisions)**: decision regret and realised cost, with baselines, an oracle and a multiplicity correction
+
 ## 14. Roles
 
 *One deep role pack and two thin ones.*
@@ -2523,6 +2631,7 @@ Only with the n, the split, the interval and the origin printed beside them. Num
 
 ## Things we do not claim
 
+- That the app labels its data as synthetic. Since D57 it does not use the word; the narration of any video, the README and the Devpost must carry that disclosure.
 - That novices become experts. We claim only that the system lifts novices and shows its limits; Growth measures help needed, not expertise.
 - That coaching helps a person, or that anything is validated, proven or works on real users. The live study with four teammates has not been run and the simulated study sat at the floor.
 - That the stuck model or the work genome hold up on harder synthetic data. They mostly do not; say so beside any number from the first generator.
@@ -2552,6 +2661,7 @@ Found while writing. Each row names both files; the third column says which one 
 | Always-listening microphone | docs/DECISIONS.md D52 and docs/knack-ux/09-wake-voice.md (branch): 'hey knack' listening is on by default, on-device | docs/FLAGS.md and docs/FEATURE_CATALOGUE.md: hold to talk only, no always-listening microphone | D52 (later); the other two are stale |
 | Connection preset ids | docs/CONNECTIONS.md and packages/connections/presets/ on the CONNECTIONS branch: 13 presets, Linear listed as unverified and not shipped (hosted only), Jira shipped | docs/roles/programmer.md and docs/roles/data-analyst.md suggest the ids linear and sheets; docs/DECISIONS.md D55 names Linear | docs/CONNECTIONS.md |
 | Reader memo and meter manifest | docs/KNACK_DEMO.md section 6 (on its branch): both are built now; the documents lag the code | docs/CONTEXT_ENGINEERING.md: the reader memo is not built | docs/KNACK_DEMO.md (later); not verified in code by the author |
+| Provenance wording on screen | docs/DECISIONS.md D57 (owner, 00:30 UTC): no 'synthetic' or 'simulated' word, badge or chip anywhere in the app; concrete wording instead | CLAUDE.md (Honesty: synthetic results carry a badge), docs/UI_DIRECTION.md and docs/KNACK_UX.md (an origin badge such as 'Synthetic firm' stays) | D57 for the app; this document, the README and the Devpost keep the labels, and a video should say it aloud |
 | Whether a routine run minimises the window | docs/KNACK_DEMO.md (M7, gap G3): a run in the agent's browser shows the pill and does not move the window | docs/knack-ux/03-routines.md and docs/FIRST_LAUNCH.md (step 6): Run now minimises the window | docs/KNACK_DEMO.md, the later and tested reading |
 | Gemini numbers in the report | evals/modelbench/REPORT.md (18:10 UTC) and evals/report.json (modelbench section): the bake-off figures exist | docs/drafts/DEMO_SCRIPT.md and docs/KNACK_DEMO.md section 8: 'any Gemini speed or accuracy number (not in the report)' | quoted here with the label 'synthetic sandbox screenshots'; the shot-list rule is more cautious and the lead may keep it |
 | Rung definitions | evals/agentic/REAL_CLICKS.md: R2 a model proposes one step in TextEdit; R3 and R4 are attended sandbox rungs; unattended real-desktop runs are not on the ladder | docs/FLAGS.md and docs/DECISIONS.md D48: the reviewer's no-go for 'model-driven (R2) and unattended (R3, R4)' runs; docs/REQ7_PLAN.md: R2 a click and a typed field on a sandbox page, R3 a full household, R4 a long-horizon run | evals/agentic/REAL_CLICKS.md |
@@ -2570,6 +2680,7 @@ Found while writing. Each row names both files; the third column says which one 
 | Deeper programmer and data-analyst roles (ROLE-DEPTH, Track F) | `docs/roles/programmer.md, docs/roles/data-analyst.md` | written, on branch worktree-agent-aef8c35334df68596; not on main |
 | Demo shot list and spoken lines (DEMO-DIRECTOR) | `docs/KNACK_DEMO.md` | not on main |
 | Demo shot list, spoken lines, the context audit and the headless checks (DEMO-DIRECTOR) | `docs/KNACK_DEMO.md, docs/knack-demo/context-audit.md` | written, on branch worktree-agent-ab26657c3d23ea392; not on main yet |
+| Prospective ledger, drift guard and decisions scoreboard; docs/HRT_BRIEF.md (HRT, D59) | `evals/hrt/PLAN.md, docs/HRT_BRIEF.md` | plan committed 00:35 UTC and pure modules tested on branch worktree-agent-a02c9cf8855c9f4ff; no result; the brief has not been seen |
 | Computer use on Gemini, development results (AGENTIC-3) | `evals/agentic/ITERATIONS_8.md` | on branch worktree-agent-acf889b730112335b; merges after its full suite is green (docs/FIRST_LAUNCH.md) |
 
 When one of these lands, update its page in `docs/features/` and the status in `docs/features/index.md`.

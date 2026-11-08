@@ -26,7 +26,7 @@ Account menu, View as Admin; sidebar Firm, Roles, Onboarding; More, Firm rows (P
 
 ### Demo moment
 
-Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); show the Synthetic firm badge and say names are made up.
+Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); show the provenance badge (its Admin wording is being changed by D57) and say the names are made up and the firm is made for this build.
 
 ### Evidence and its label
 
