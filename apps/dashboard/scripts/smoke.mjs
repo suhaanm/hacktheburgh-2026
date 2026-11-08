@@ -191,7 +191,8 @@ const pres = await page.locator("#presence").innerText();
 check("evidence: presence baselines show interruption and idle time, never a 0.000 Brier", /Fixed overnight window/.test(pres) && !/0\.000/.test(pres));
 check("evidence: ski rental and off-policy show the engine's labels", /Ski rental with predictions/.test(ev) && /Doubly robust/.test(ev));
 check("evidence: pooling appears", /Partial pooling/.test(ev));
-check("evidence: the map lists every section with origin, n and status, and names language-model participants as not people", (await page.locator(".ev-map__table tbody tr").count()) >= 20 && /Every part of the report/.test(ev) && /generators we wrote/.test(ev) && !/synthetic|simulated/i.test(ev) && (/Language-model participants are language models playing workers\. They are not people/.test(ev) || (await page.locator(".ev-map__table", { hasText: /language-model participants/i }).count()) === 0));
+const mapText = await page.locator(".ev-map").innerText();
+check("evidence: the map lists every section with its Measured on words, n and status, and names language-model participants as not people", (await page.locator(".ev-map__table tbody tr").count()) >= 20 && /Every part of the report/.test(ev) && /Measured on/.test(mapText) && /generators we wrote/.test(mapText) && !/synthetic|simulated/i.test(mapText) && (/Language-model participants are language models playing workers\. They are not people/.test(mapText) || (await page.locator(".ev-map__table", { hasText: /language-model participants/i }).count()) === 0));
 check("evidence: the privacy block states planted strings, leaks and which layers have a real-code check", /planted test strings/.test(ev) && (await page.locator("[data-testid=ev-layers] tbody tr").count()) >= 5 && /evidence from planted strings, not a proof/i.test(ev));
 check("evidence: limitations carry their source", /From: engine-eval · null placebo/.test(ev));
 {
@@ -204,7 +205,7 @@ check("evidence: limitations carry their source", /From: engine-eval · null pla
   check("evidence: real-model block prints each count with its condition (clean 18 of 20, a 503 error 0 of 20 with 20 false claims)", /Clean pages: 18 of 20 passed/.test(clean) && /A 503 error mid-run: 0 of 20 passed, and 20 false claims/.test(glitch) && /Layout change: 20 of 20 passed/.test(lv));
   check("evidence: an injected-instruction row counts the pause, not a pass", /paused on 20 of 20 runs/.test(injected) && /not a pass/.test(injected));
   check("evidence: the fix is labelled in-sample and shows the result it replaces", /in-sample/i.test(await liveBlock.locator("[data-testid=live-fix]").innerText()) && /Before the fix, the same condition: 0 of 20 passed, 20 false claims/.test(lv));
-  check("evidence: the real-model block keeps its origin badge and says evidence, not proof", (await liveBlock.locator(".pill--origin").count()) >= 1 && /evidence from a small run, not proof/.test(lv));
+  check("evidence: the real-model block says what it was run on (a real model, generated households, sandbox calculators; no origin tag for generated data) and says evidence, not proof", /real model/i.test(lv) && /generated households/.test(lv) && !/synthetic|simulated/i.test(lv) && (await liveBlock.locator(".pill--origin[data-origin=synthetic]").count()) === 0 && /evidence from a small run, not proof/.test(lv));
 }
 await page.screenshot({ path: join(qa, "evidence-1440.png") });
 // A report full of stubs: reasons, not empty charts.
