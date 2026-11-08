@@ -87,7 +87,7 @@ def test_the_planning_row_validates(make_manager):
 
 def _good():
     return {"task_id": "tk_8f3a1c2e", "title": "Summarise the csv", "route": "claude_agent", "source": "typed", "state": "done", "attended": True,
-            "latest": None, "steps_done": 3, "result": "Wrote summary.md.", "reason": None, "started": "2026-11-08T01:00:00.000Z",
+            "latest": None, "steps_done": 3, "result": "Wrote summary.md.", "reason": None, "cost_usd": 0.06, "started": "2026-11-08T01:00:00.000Z",
             "finished": "2026-11-08T01:01:00.000Z", "open": {"kind": "folder", "path": "/Users/x/Knack/work/a"}, "needs_consent": None, "question": None}
 
 
@@ -102,6 +102,9 @@ def test_the_schema_refuses_shapes_that_would_leak_or_break_consumers():
 
     mutate(lambda r: r.update(text="the whole prompt"))                                  # a prompt body can never ride in a row
     mutate(lambda r: r.update(output="full agent output"))
+    mutate(lambda r: r.update(cost_usd=-0.01))                                           # a cost is a number of dollars, never negative
+    mutate(lambda r: r.update(cost_usd="0.06"))
+    mutate(lambda r: r.pop("cost_usd"))
     mutate(lambda r: r.update(title="x" * 61))
     mutate(lambda r: r.update(result="x" * 141))
     mutate(lambda r: r.update(state="paused"))
@@ -116,10 +119,10 @@ def test_the_schema_refuses_shapes_that_would_leak_or_break_consumers():
     for row in bad:
         assert not ROW.is_valid(row), row
     card = {"kind": "claude_agent", "scope_text": "s", "can": [], "cannot": [], "folder": None, "command_hash": "0123456789ab", "cost_note": None,
-            "max_minutes": 30, "buttons": {"allow": "Allow for this task", "decline": "Not now", "more": []}}
+            "max_minutes": 30, "max_budget_usd": 2.0, "buttons": {"allow": "Allow for this task", "decline": "Not now", "more": []}}
     ok = {**_good(), "state": "waiting_consent", "finished": None, "needs_consent": card}
     check_row(ok)
-    for tweak in ({"command_hash": "XYZ"}, {"max_minutes": 0}, {"kind": "shell"}, {"extra": 1},
+    for tweak in ({"command_hash": "XYZ"}, {"max_minutes": 0}, {"max_budget_usd": 0.1}, {"max_budget_usd": 21}, {"max_budget_usd": "2"}, {"kind": "shell"}, {"extra": 1},
                   {"buttons": {"allow": "Yes", "decline": "Not now", "more": []}},
                   {"buttons": {"allow": "Allow for this task", "decline": "Not now", "more": [{"id": "x", "label": "y"}]}}):
         assert not ROW.is_valid({**ok, "needs_consent": {**card, **tweak}}), tweak
