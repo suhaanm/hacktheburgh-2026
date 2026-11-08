@@ -198,4 +198,18 @@ after the case arrives (the review lag). The online base rate sees outcomes only
 
 ## Amendment log
 
-(empty)
+**A1, Sun 8 Nov 2026 about 00:55 GMT, before any dev or held-out number exists** (code and tests only had been written; the pure modules
+`ledger`, `scoring`, `guard` and `worlds` are tested on made-up data). Three clarifications, none of which uses data:
+
+1. **P6 stream key.** Cases have no person. For the error-risk world the ledger's stream key is a block of 100 consecutive arrivals (hashed with
+   the deployment id) and the bootstrap cluster is that block. The unit of the guard's e-process is one case.
+2. **P4b and P6b are two-sided.** A guard that flags a model which is still better than the fallback is wrong, as is one that stays silent
+   about a model that is worse. So: in every shifted family where P3's condition holds the guard must flag in at least 6 of 8 deployments, **and**
+   in every family where the model is clearly better than the better naive baseline (upper end of the paired interval below 0) it must flag in at
+   most 1 of 8. A family with no clear difference either way is reported with its counts and is not counted for or against the guard. For P6b the pre-change half of every drift deployment and the no-drift deployments
+   count as "model better" cases; the post-change half counts as "model worse" only if the paired interval (model minus online base, pooled over
+   the post-change cases of the 8 drift deployments) has its lower end above 0, otherwise the post-change model is still better than the fallback
+   and a flag there is a false flag. Each outcome is reported with its counts either way.
+3. **Replay order.** Predictions and outcomes are written to the ledger in time order (an outcome at the same instant as a prediction is written
+   first, because it is then known), the online base rate is read through `Ledger.resolved_before`, and `verify()` is run before scoring. A test
+   checks that the online base rate each prediction recorded equals the running mean of the outcomes resolved by its `made_at`.
