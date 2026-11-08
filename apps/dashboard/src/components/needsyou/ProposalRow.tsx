@@ -2,7 +2,6 @@ import { useState } from "react";
 import { ApiError } from "../../api";
 import { neverLine, proposalFacts } from "../../screens/NeedsYou/model";
 import type { Routine } from "../../types";
-import { Hint } from "../Hint";
 import { APPROVAL_TEXT, AWAY_TEXT, WATCH_TEXT } from "../routines/consent";
 import { AwayButton, AwayConfirm, useAway } from "../routines/AwayChoice";
 import { SkillGate, type Gate } from "../routines/SkillGate";
@@ -15,11 +14,11 @@ import { KV } from "./KV";
  * yes does (the consent, printed whole), and ONE row of actions: Run with my approval, Run while I'm away and Never. A routine with steps that cannot be
  * undone asks once more, in place, under the row.
  */
-export function ProposalDetails({ routine: p, touches, busy, onApproval, onNever, onDecide }: { routine: Routine; touches: string; busy: boolean; onApproval: () => void; onNever: () => void; onDecide: Decide }) {
+export function ProposalDetails({ routine: p, touches, interval, busy, onApproval, onNever, onDecide }: { routine: Routine; touches: string; /** What is behind the hours: the 95% interval and the money, never the only copy of the range (which is printed on the row). */ interval?: string; busy: boolean; onApproval: () => void; onNever: () => void; onDecide: Decide }) {
   const away = useAway(p, onDecide);
   return (
     <div className="kc-panel" id={`more-${p.id}`} data-testid="proposal-details">
-      <KV rows={[["Touches", touches]]} label="About this routine" />
+      <KV rows={[["Touches", touches], ["The hours", interval]]} label="About this routine" />
       <p className="kc-sub" data-testid="watch-consent">{WATCH_TEXT} {APPROVAL_TEXT} Run while I'm away: {AWAY_TEXT.charAt(0).toLowerCase()}{AWAY_TEXT.slice(1)}</p>
       <div className="kc-row__actions">
         <button type="button" className="btn btn--secondary btn--sm" disabled={busy} onClick={onApproval}>Run with my approval</button>
@@ -61,7 +60,7 @@ export function ProposalRow({ routine: p, onDecide }: { routine: Routine; onDeci
         <Glyph name="routine" />
         <span>{f.title}</span>
       </h3>
-      {(f.seen || f.save) && <p className="kc-row__body">{f.seen}{f.seen && f.save ? " " : ""}{f.save}{f.save && <Hint label="About the hours saved">{f.hint}</Hint>}</p>}
+      {(f.seen || f.save) && <p className="kc-row__body">{f.seen}{f.seen && f.save ? " " : ""}{f.save}</p>}
       {neverItems.length > 1 ? (
         <div className="kc-row__meta" data-testid="never">
           <p style={{ margin: 0 }}>It will never</p>
@@ -75,7 +74,7 @@ export function ProposalRow({ routine: p, onDecide }: { routine: Routine; onDeci
         <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => void go("not_now", "Okay, not now.")}>Not now</button>
         <button type="button" className="kc-link" aria-expanded={more} aria-controls={`more-${p.id}`} onClick={() => setMore((v) => !v)}>Details<Glyph name="chevron" /></button>
       </div>
-      {more && <ProposalDetails routine={p} touches={touchList.length > 1 ? `${touchList.slice(0, -1).join(", ")} and ${touchList[touchList.length - 1]}` : touchList.join("")} busy={!!busy}
+      {more && <ProposalDetails routine={p} interval={f.save ? f.hint : undefined} touches={touchList.length > 1 ? `${touchList.slice(0, -1).join(", ")} and ${touchList[touchList.length - 1]}` : touchList.join("")} busy={!!busy}
         onApproval={() => void go("approval", "Set to run with your approval.")} onNever={() => void go("never", "Okay. This will not be suggested again.")} onDecide={onDecide} />}
       {gate && <SkillGate gate={gate} busy={!!busy} onOverride={() => void go(gate.mode, gate.done, true)} onDismiss={() => setGate(null)} />}
       {err && <p className="kc-error" role="alert">{err}</p>}

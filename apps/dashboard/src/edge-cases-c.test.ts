@@ -86,7 +86,7 @@ describe("edge cases: Needs you", () => {
     expect(needsCount([])).toBe(0);
   });
   T("NY-02", "one item: the headline is singular", () => {
-    expect(needsHeadline(buildItems({ queue: [pending()] }))).toMatch(/^1 thing needs you/);
+    expect(needsHeadline(buildItems({ queue: [pending()] }))).toBe("1 thing needs you.");
   });
   T("NY-03", "hundreds of items: at most 60 are drawn, safety first, every further page is 50, and the count still says all of them", () => {
     const many = Array.from({ length: 300 }, (_, i) => pending({ id: `q${i}`, risk_class: i % 3 === 0 ? "irreversible" : "normal", kind: i % 3 === 0 ? "irreversible_step" : "approval" as QueueItem["kind"] }));
@@ -97,7 +97,7 @@ describe("edge cases: Needs you", () => {
     expect(shown.slice(0, 10).every((i) => i.cls === 0)).toBe(true);
     expect(visibleItems(items, true, PAGE_ROWS)).toHaveLength(PAGE_ROWS);
     expect(visibleItems(items, true, PAGE_ROWS * 2)).toHaveLength(PAGE_ROWS * 2);
-    expect(needsHeadline(items)).toMatch(/^300 things need you, including 100 safety stops\.$/);
+    expect(needsHeadline(items)).toBe("300 things need you.");
   });
   T("NY-04", "a duplicate id is one item, and no two keys are the same", () => {
     const items = buildItems({ queue: [pending({ id: "dup" }), pending({ id: "dup", title: "Second" })], routines: [proposed, proposed], runs: [] });
@@ -289,7 +289,7 @@ describe("edge cases: Settings", () => {
   const base = (over: Partial<SettingsViewProps> = {}): SettingsViewProps => ({
     live: liveModels({ health: { mock: true, key_present: true }, canSwitch: true, running: false, changing: false }), onLive: noop,
     attention: attn, attentionExample: false, attentionError: null, onPreset: noop, onMode: noop, onGroup: noop, onResetLearned: noop, onLevelGlance: noop, wake: null, onWake: noop,
-    desktop: null, onDesktop: noop, theme: "auto", onTheme: noop, view: "worker", onView: noop, pinned: false, onPinned: noop, version: null, ...over,
+    desktop: null, onDesktop: noop, theme: "auto", onTheme: noop, view: "worker", onView: noop, version: null, ...over,
   });
   const html = (over?: Partial<SettingsViewProps>) => renderToStaticMarkup(createElement(SettingsView, base(over)));
   T("ST-01", "an interruptions answer with no list of kinds draws the three words with none pressed and no groups", () => {

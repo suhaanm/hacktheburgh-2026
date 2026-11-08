@@ -50,14 +50,17 @@ export function TaskRow({ task: t, open, onToggle, onStop, onOpenResult }: { tas
   };
   return (
     <li className="bt-task" data-state={t.state}>
-      <button type="button" className="bt-line" aria-expanded={open} aria-controls={`bt-${t.id}`} onClick={onToggle}>
+      <div className="bt-line">
         <TaskIcon state={t.state} />
         <span className="bt-title">{t.title}<span className="u-sr-only">: {WORD[t.state]}.</span></span>
         <span className="bt-note">{t.note}</span>
-      </button>
+        {/* The press target is a wordless button stretched over the line, so the line's words are not a button label. */}
+        <button type="button" className="bt-open" aria-expanded={open} aria-controls={`bt-${t.id}`} aria-label={`${t.title}: ${WORD[t.state]}. ${open ? "Hide" : "Show"} the steps`} onClick={onToggle} />
+      </div>
       {open && (
         <div className="bt-panel" id={`bt-${t.id}`}>
-          <Steps steps={t.steps} />
+          {t.answer && <p className="bt-answer" data-testid="task-answer">{t.answer}</p>}
+          {(t.steps.length > 0 || !t.answer) && <Steps steps={t.steps} />}
           {err && <p className="kc-error" role="alert">{err}</p>}
           {(t.state === "waiting" || (t.isTask && (t.state === "running" || (t.state === "done" && t.open)))) && (
             <div className="bt-actions">
@@ -89,7 +92,7 @@ function OwnTasks({ limit, alsoReload }: { limit: number; alsoReload?: () => voi
 
 export function TaskSection({ v, limit = 4 }: { v: TasksView; limit?: number }) {
   const [openId, setOpenId] = useState<string | null>(null);
-  const toggle = (t: Task) => { setOpenId((cur) => (cur === t.id ? null : t.id)); if (t.state !== "running" && t.state !== "waiting") v.want(t.id); };
+  const toggle = (t: Task) => { setOpenId((cur) => (cur === t.id ? null : t.id)); if (t.isTask || (t.state !== "running" && t.state !== "waiting")) v.want(t.id); };
 
   if (v.failed) return <p className="kc-sub" data-testid="tasks-error">Background tasks could not be read. <button type="button" className="kc-link" onClick={v.reload}>Try again</button></p>;
   const { active, recent, today } = v.grouped;

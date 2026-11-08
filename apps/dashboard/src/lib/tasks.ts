@@ -17,6 +17,8 @@ export interface Task {
   /** True for a task from the tasks service: it can be stopped and, when done, opened. */
   isTask: boolean;
   open: { kind: "folder" | "file" } | null;
+  /** The full answer of a task that answered a question (a detail read; at most 1500 characters), else null. */
+  answer: string | null;
 }
 
 const WAITING = new Set(["paused", "needs_human", "blocked"]);
@@ -71,7 +73,7 @@ export function taskNote(run: AgentRun, state: TaskState, result?: unknown): str
 
 export function taskOf(run: AgentRun, result?: unknown): Task {
   const state = taskState(run);
-  return { id: typeof run?.run_id === "string" ? run.run_id : "", title: taskTitle(run), state, note: taskNote(run, state, result), steps: taskSteps(run, result), started: typeof run?.started === "string" ? run.started : null, finished: null, isTask: false, open: null };
+  return { id: typeof run?.run_id === "string" ? run.run_id : "", title: taskTitle(run), state, note: taskNote(run, state, result), steps: taskSteps(run, result), started: typeof run?.started === "string" ? run.started : null, finished: null, isTask: false, open: null, answer: null };
 }
 
 /** The tasks of a list of runs: real runs only, each id once, newest first. */
@@ -124,7 +126,7 @@ export function announcement(done: Task[]): string {
 const ROW_STATE: Record<string, TaskState> = { planning: "running", running: "running", waiting_consent: "waiting", done: "done", stopped: "stopped", failed: "failed" };
 
 /** One row as the list shows it. A question makes a running task wait for the worker. The note is the current step while it runs, the one result line when done. */
-export function taskFromRow(row: TaskRow, steps?: string[]): Task {
+export function taskFromRow(row: TaskRow, steps?: string[], answer?: string | null): Task {
   const asked = !!row?.question && typeof row.question.text === "string";
   let state: TaskState = ROW_STATE[row?.state as string] ?? "done";
   if (asked && state === "running") state = "waiting";
@@ -141,11 +143,12 @@ export function taskFromRow(row: TaskRow, steps?: string[]): Task {
   return {
     id: typeof row?.task_id === "string" ? row.task_id : "", title: clip(row?.title, 60) || "A task", state, note, steps: listed,
     started: typeof row?.started === "string" ? row.started : null, finished: typeof row?.finished === "string" ? row.finished : null, isTask: true, open,
+    answer: typeof answer === "string" && answer.trim() ? clip(answer, 1500) : null,
   };
 }
 
 /** The tasks of a list of rows: real rows only, each id once, newest first. `steps` are the plain step lines read for the rows the worker opened. */
-export function tasksOfRows(rows: unknown, steps: Record<string, string[]> = {}): Task[] {
+export function tasksOfRows(rows: unknown, steps: Record<string, string[]> = {}, answers: Record<string, string | null> = {}): Task[] {
   const list = uniqueBy<TaskRow>(rows, (r, i) => (typeof r?.task_id === "string" && r.task_id ? r.task_id : `#${i}`));
-  return list.map((r, i) => ({ r, i })).sort((a, b) => (validTime(b.r.started) ?? -Infinity) - (validTime(a.r.started) ?? -Infinity) || a.i - b.i).map(({ r }) => taskFromRow(r, steps[r.task_id]));
+  return list.map((r, i) => ({ r, i })).sort((a, b) => (validTime(b.r.started) ?? -Infinity) - (validTime(a.r.started) ?? -Infinity) || a.i - b.i).map(({ r }) => taskFromRow(r, steps[r.task_id], answers[r.task_id]));
 }

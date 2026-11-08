@@ -23,9 +23,9 @@ Where a default lives in another track's file, the exact one-line change is give
 | Move aside while Knack works | On | **On** (unchanged) | The window gets out of the way while an agent works; the pill shows what it is doing | The window comes back when something needs the worker, and the pill and the Dock icon always bring it back |
 | Open at login | Off (`launchAtLogin: false`) | **On** | Routines only run while Knack is open, so a worker who wants routines wants it open | Applies to the packaged macOS app only. Opening Knack starts no run. Every routine still waits for the worker's approval and irreversible steps still need their own opt-in |
 | Use my skills | On, nothing turned off (the tasks service's own default) | **On** (unchanged); the row appears once the tasks service answers, with each skill's name and description behind More and its own switch | The skill files already on this Mac are the worker's own; using them costs nothing and makes a task better | Names and descriptions only: a skill's contents are never shown or sent from this screen. A skill can be turned off one by one. A skill never grants a permission: the consent card and the per-run permit decide that |
+| Longest a task runs | 30 minutes (the tasks service's own default; shown once the service says it) | **30 minutes** (unchanged), choices 5 to 120 | A task that has not finished in half an hour is usually stuck; the worker can raise it for one that needs longer | A hard cap the service enforces: a task is stopped by code at that time, whatever the model says |
 | Appearance | Auto | **Auto** (unchanged) | Follows the system | None |
 | View as | Worker | **Worker** (unchanged) | The worker's own view is the default; Admin is a preview | Admin sees numbers only (Your data > What your admin can see) |
-| Pinned views | Off | **Off** (unchanged) | A sidebar choice, not an automation. Three extra items would cost the calm | None |
 
 ## Your data
 

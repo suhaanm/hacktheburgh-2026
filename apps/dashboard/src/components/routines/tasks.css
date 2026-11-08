@@ -1,11 +1,12 @@
 /* Background tasks: one line each, an icon that carries the state, steps on a click. Own classes (bt-), tokens only. */
 .bt { display: grid; gap: var(--space-2); min-width: 0; }
 .bt-list { list-style: none; margin: 0; padding: 0; display: grid; }
-.bt-task { border-bottom: var(--hair) solid var(--line); min-width: 0; }
+.bt-task { position: relative; border-bottom: var(--hair) solid var(--line); min-width: 0; }
 .bt-task:first-child { border-top: var(--hair) solid var(--line); }
-.bt-line { display: grid; grid-template-columns: 16px minmax(0, auto) minmax(0, 1fr); align-items: center; gap: var(--space-3); width: 100%; min-height: var(--row-h, 44px); padding: var(--space-2) var(--space-2); border: 0; background: none; color: var(--fg); font: 400 var(--text-md)/1.3 var(--font-body); text-align: left; cursor: pointer; border-radius: var(--radius-2); }
+.bt-line { position: relative; display: grid; grid-template-columns: 16px minmax(0, auto) minmax(0, 1fr); align-items: center; gap: var(--space-3); min-height: var(--row-h, 44px); padding: var(--space-2) var(--space-2); color: var(--fg); font: 400 var(--text-md)/1.3 var(--font-body); border-radius: var(--radius-2); }
 .bt-line:hover { background: var(--sunk); }
-.bt-line:focus-visible { outline: var(--ring-w) solid var(--focus); outline-offset: var(--ring-offset); }
+.bt-open { position: absolute; inset: 0; width: 100%; border: 0; background: none; cursor: pointer; border-radius: var(--radius-2); }
+.bt-open:focus-visible { outline: var(--ring-w) solid var(--focus); outline-offset: var(--ring-offset); }
 .bt-title { font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
 .bt-note { color: var(--muted); font-size: var(--text-sm); overflow-wrap: anywhere; min-width: 0; }
 .bt-icon { display: inline-flex; width: 16px; height: 16px; align-items: center; justify-content: center; color: var(--muted); }
@@ -14,6 +15,7 @@
 .bt-icon--waiting { color: var(--fg); }
 .bt-spin { width: 14px; height: 14px; border-radius: 50%; border: 1.6px solid var(--line); border-top-color: var(--fg); animation: bt-turn 900ms linear infinite; box-sizing: border-box; }
 .bt-panel { display: grid; gap: var(--space-2); padding: var(--space-1) var(--space-2) var(--space-3) calc(16px + var(--space-3) + var(--space-2)); }
+.bt-answer { margin: 0; max-width: 62ch; font-size: var(--text-sm); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .bt-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); font-size: var(--text-sm); }
 .bt-steps li { display: flex; gap: var(--space-2); align-items: baseline; min-width: 0; overflow-wrap: anywhere; }
 .bt-steps__mark { width: 1em; flex: none; text-align: center; color: var(--muted); }

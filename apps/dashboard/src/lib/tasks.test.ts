@@ -11,7 +11,7 @@ const run = (over: Partial<AgentRun> & { state: string }, kids: [string, string]
   state: over.state, parent: node(over.state, "planner"), children: kids.map(([role, state]) => node(state, role)),
 });
 const NOW = Date.parse("2026-11-08T10:00:00Z");
-const task = (id: string, state: TaskState, started = "2026-11-08T09:00:00Z"): Task => ({ id, title: id, state, note: "", steps: [], started, finished: null, isTask: false, open: null });
+const task = (id: string, state: TaskState, started = "2026-11-08T09:00:00Z"): Task => ({ id, title: id, state, note: "", steps: [], started, finished: null, isTask: false, open: null, answer: null });
 
 describe("a task's state", () => {
   it("maps the engine's states to five words", () => {
@@ -161,5 +161,11 @@ describe("rows from the tasks service", () => {
     expect(list.find((x) => x.id === "c")!.title.length).toBeLessThanOrEqual(60);
     expect(tasksOfRows(undefined)).toEqual([]);
     expect(taskFromRow({} as TaskRow).title).toBe("A task");
+  });
+  it("keeps the full answer a detail read returned, cut at 1500 characters, and none for a task that gave none", () => {
+    expect(taskFromRow(row({ state: "done", route: "answer" }), [], "Paris.").answer).toBe("Paris.");
+    expect(Array.from(taskFromRow(row({ state: "done" }), [], "x".repeat(4000)).answer ?? "").length).toBeLessThanOrEqual(1500);
+    expect(taskFromRow(row({ state: "done" }), [], "  ").answer).toBeNull();
+    expect(taskFromRow(row({ state: "done" })).answer).toBeNull();
   });
 });

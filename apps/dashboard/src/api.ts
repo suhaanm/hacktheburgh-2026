@@ -440,7 +440,7 @@ export const api = {
   taskAnswer: (id: string, option_id: string) => write<unknown>(`/tasks/${encodeURIComponent(id)}/answer`, "POST", { option_id }, () => ({}), "worker", AGENT_URL),
   taskOpen: (id: string) => write<unknown>(`/tasks/${encodeURIComponent(id)}/open`, "POST", {}, () => ({}), "worker", AGENT_URL),
   skills: () => read<SkillsAnswer | null>("/skills", () => ({ data: null }), AGENT_URL, { soft: true }),
-  skillsSet: (patch: { use_claude_skills?: boolean; off?: string[] }) => write<SkillsAnswer | null>("/skills/settings", "POST", patch, () => null, "worker", AGENT_URL),
+  skillsSet: (patch: { use_claude_skills?: boolean; off?: string[]; max_minutes?: number }) => write<SkillsAnswer | null>("/skills/settings", "POST", patch, () => null, "worker", AGENT_URL),
 
   agentsRunDetail: (id: string) =>
     read<AgentRunDetail>(`/agents/runs/${encodeURIComponent(id)}`, () => ({ data: agentDetails[id] ?? { artifacts: [], result: null } }), AGENT_URL, { layer: "agents", soft: true }),

@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { MODES, MODE_LABEL, groupTypes, isMode, learnedLines, modeLine, type Mode } from "../../lib/attention";
 import type { AttentionSettings, SkillsAnswer } from "../../types";
-import { HELP_LOCKS, PRESETS, STOPS_LINE, THEMES, APP_ONLY, defaultNote, groupModeOf, lockOf, lockPatch, presetOf, sectionOf, settingsHeadline, skillRows, wakeLine, withSkill, type DefaultId, type HelpLock, type LiveView, type Preset, type Theme } from "../../screens/Settings/model";
+import { HELP_LOCKS, PRESETS, STOPS_LINE, THEMES, APP_ONLY, defaultNote, groupModeOf, lockOf, lockPatch, presetOf, sectionOf, settingsHeadline, skillRows, maxMinutesChoices, wakeLine, withSkill, type DefaultId, type HelpLock, type LiveView, type Preset, type Theme } from "../../screens/Settings/model";
 import type { DesktopSettings, WakeStatus } from "../../screens/Settings/bridge";
 import { Hint } from "../Hint";
 import { ConfirmRow, Details } from "../ui";
@@ -39,8 +39,6 @@ export interface SettingsViewProps {
   /** Example weeks, only while the data is example data. */
   stories?: { id: string; label: string; selected: boolean }[];
   onStory?: (id: string) => void;
-  pinned: boolean;
-  onPinned: (on: boolean) => void;
   version?: string | null;
   /** The Connections panel (plugins and MCP apps), when that track has built it. Null or absent: no row. */
   connections?: ReactNode;
@@ -48,7 +46,7 @@ export interface SettingsViewProps {
   advanced?: ReactNode;
   /** The skill files on this Mac and which are off, from the tasks service. Null or absent (it did not answer): no row. */
   skills?: SkillsAnswer | null;
-  onSkills?: (patch: { use_claude_skills?: boolean; off?: string[] }) => void;
+  onSkills?: (patch: { use_claude_skills?: boolean; off?: string[]; max_minutes?: number }) => void;
 }
 
 function Row({ id, title, line, control, error, def }: { id: string; title: string; line?: ReactNode; control: ReactNode; error?: string | null; def?: DefaultId }) {
@@ -207,6 +205,14 @@ export function SettingsView(p: SettingsViewProps) {
           <Row id="skills" title="Use my skills" def="skills"
             line="Knack can use the skill files already on this Mac."
             control={<Switch label="Use my skills" checked={p.skills.use_claude_skills !== false} onChange={(on) => p.onSkills?.({ use_claude_skills: on })} />} />
+          {typeof p.skills.max_minutes === "number" && (
+            <Row id="max-minutes" title="Longest a task runs" def="max-minutes" line="A background task stops by itself after this long."
+              control={
+                <select className="select" aria-label="Longest a task runs" value={p.skills.max_minutes} onChange={(e) => p.onSkills?.({ max_minutes: Number(e.target.value) })}>
+                  {maxMinutesChoices(p.skills.max_minutes).map((n) => <option key={n} value={n}>{n} minutes</option>)}
+                </select>
+              } />
+          )}
           {skillRows(p.skills).length > 0 && (
             <div className="st-sub">
               <Details summary="More" wide>
@@ -228,22 +234,15 @@ export function SettingsView(p: SettingsViewProps) {
 
       <Row id="views" title="Views"
         control={<Segmented<"worker" | "admin"> label="View as" value={p.view} options={[{ id: "worker", label: "Worker" }, { id: "admin", label: "Admin" }]} onChange={p.onView} />} />
-      <div className="st-sub">
-        <Details summary="More">
-          <div className="st-kinds">
-            {p.stories && p.stories.length > 0 && (
-              <label className="st-kind"><span className="st-kind__name">Example week</span>
-                <select className="select" value={p.stories.find((s) => s.selected)?.id ?? ""} onChange={(e) => p.onStory?.(e.target.value)}>
-                  {p.stories.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                </select>
-              </label>
-            )}
-            <label className="st-kind"><span className="st-kind__name">Pinned views<span className="st-kind__line">Show Genome, Graph and Presence in the sidebar.</span></span>
-              <Switch label="Pinned views" checked={p.pinned} onChange={p.onPinned} />
-            </label>
-          </div>
-        </Details>
-      </div>
+      {p.stories && p.stories.length > 0 && (
+        <div className="st-sub">
+          <label className="st-kind"><span className="st-kind__name">Example week</span>
+            <select className="select" value={p.stories.find((x) => x.selected)?.id ?? ""} onChange={(e) => p.onStory?.(e.target.value)}>
+              {p.stories.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
+            </select>
+          </label>
+        </div>
+      )}
 
       {p.connections && <section className="st-row st-row--block" id="set-connections" aria-labelledby="set-connections-h"><div className="st-text"><h3 className="st-name" id="set-connections-h">Connections</h3>{p.connections}</div></section>}
 

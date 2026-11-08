@@ -14,7 +14,7 @@ const noop = () => undefined;
 const props = (over: Partial<SettingsViewProps> = {}): SettingsViewProps => ({
   live: liveModels({ health: { mock: true, key_present: true }, canSwitch: true, running: false, changing: false }), onLive: noop,
   attention: attn, attentionExample: false, attentionError: null, onPreset: noop, onMode: noop, onGroup: noop, onResetLearned: noop, onLevelGlance: noop, wake: null, onWake: noop,
-  desktop: null, onDesktop: noop, theme: "auto", onTheme: noop, view: "worker", onView: noop, pinned: false, onPinned: noop, version: "0.1.0", ...over,
+  desktop: null, onDesktop: noop, theme: "auto", onTheme: noop, view: "worker", onView: noop, version: "0.1.0", ...over,
 });
 const html = (over?: Partial<SettingsViewProps>) => renderToStaticMarkup(createElement(SettingsView, props(over)));
 const text = (h: string) => h.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
@@ -68,14 +68,14 @@ describe("Settings", () => {
     expect(waitMixed).not.toMatch(/aria-pressed="true"/);
   });
   it("every setting that has a default prints it, and the doc lists the same ones", () => {
-    const h = html({ desktop: { cueEnabled: true, minimiseWhileWorking: true, launchAtLogin: true }, wake: { switchOn: true, listening: true, line: "" }, skills: { use_claude_skills: true, off: [], skills: [] } });
+    const h = html({ desktop: { cueEnabled: true, minimiseWhileWorking: true, launchAtLogin: true }, wake: { switchOn: true, listening: true, line: "" }, skills: { use_claude_skills: true, off: [], max_minutes: 30, skills: [] } });
     const doc = readFileSync(resolve(__dirname, "../../../../../docs/knack-ux/defaults.md"), "utf8");
     for (const [id, d] of Object.entries(DEFAULTS)) {
       if (id === "help-level") { expect(text(h)).toContain(`Default: ${d.shown}.`); continue; }
       expect(h).toContain(`data-testid="default-${id}"`);
       expect(text(h)).toContain(`Default: ${d.shown}.`);
     }
-    for (const w of ["Use live models", "Interruptions", "Coaching", "Help level", "Hey Knack", "Move aside while Knack works", "Open at login", "Use my skills"]) expect(doc).toContain(w);
+    for (const w of ["Use live models", "Interruptions", "Coaching", "Help level", "Hey Knack", "Move aside while Knack works", "Open at login", "Use my skills", "Longest a task runs"]) expect(doc).toContain(w);
     expect(DEFAULTS.interruptions.value).toBe("rarely");
   });
   it("the defaults never switch on a consent, an approval or an unattended run", () => {
@@ -104,12 +104,17 @@ describe("Settings", () => {
     expect(t).toContain("Routines only run while Knack is open.");
     expect(t).not.toContain("Available in the Knack app.");
   });
-  it("Views holds Pinned views, off by default, and an example week only with example data", () => {
+  it("Views is the one switch between Worker and Admin; an example week only with example data; and no pinned views", () => {
     const t = text(html());
-    expect(t).toContain("Pinned views");
-    expect(t).toContain("Show Genome, Graph and Presence in the sidebar.");
+    expect(t).toContain("Views");
+    expect(t).not.toContain("Pinned views");
     expect(t).not.toContain("Example week");
     expect(text(html({ stories: [{ id: "pointers", label: "Worth a look", selected: true }] }))).toContain("Example week");
+  });
+  it("has no link to Models and cost: that page is the admin's", () => {
+    const h = html();
+    expect(h).not.toMatch(/href="#\/models"/);
+    expect(text(h)).not.toMatch(/Models and cost/);
   });
   it("prints an error from the engine and says nothing changed", () => {
     expect(text(html({ attentionError: "That setting is not one the engine knows. Nothing changed." }))).toContain("Nothing changed.");
@@ -138,5 +143,13 @@ describe("Settings", () => {
   });
   it("names no model or provider anywhere in a worker's Settings", () => {
     expect(text(html({ desktop: { cueEnabled: true }, wake: { switchOn: true, listening: true, line: "" } }))).not.toMatch(/Gemini|Claude|OpenAI|Anthropic|\bmodels? and cost\b/i);
+  });
+  it("offers the longest a task may run once the service says it, with the current value chosen and a value off the list still listed", () => {
+    expect(text(html({ skills: { use_claude_skills: true, off: [], skills: [] } }))).not.toContain("Longest a task runs");
+    const h = html({ skills: { use_claude_skills: true, off: [], max_minutes: 45, skills: [] } });
+    expect(text(h)).toContain("Longest a task runs");
+    expect(h).toMatch(/<option value="45" selected="">45 minutes<\/option>/);
+    expect(h).toMatch(/<option value="30">30 minutes<\/option>/);
+    expect(text(h)).toContain("Default: 30 minutes.");
   });
 });

@@ -16,13 +16,13 @@ const SHOWN = 3;
 export function Remembers({ memory: m, proposals, onChanged }: { memory: Memory; proposals: RuleProposal[]; onChanged: () => void }) {
   const toast = useToast();
   const items = memoryItems(m);
-  const [all, setAll] = useState(false);
   const [edit, setEdit] = useState<{ id: string; old: string; value: string } | null>(null);
   const [forget, setForget] = useState<string | null>(null);
   const [whole, setWhole] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const shown = all ? items.slice(0, 200) : items.slice(0, SHOWN);
+  const shown = items.slice(0, SHOWN);
+  const rest = items.slice(SHOWN, 200);
   const waiting = (Array.isArray(proposals) ? proposals : []).filter((p) => p && p.status === "proposed");
   const fail = (e: unknown, fallback: string) => setErr(e instanceof ApiError ? e.message : fallback);
 
@@ -55,14 +55,9 @@ export function Remembers({ memory: m, proposals, onChanged }: { memory: Memory;
     catch { toast({ tone: "error", text: "Could not copy.", detail: "Nothing was changed." }); }
   };
 
-  return (
-    <div className="yd-body" data-testid="remembers">
-      <p className="kc-sub" data-testid="only-you">Stored on this Mac. Only you can change it.</p>
-      {items.length === 0 ? (
-        <div className="kc-empty"><h2>Nothing remembered yet.</h2><p>Set up again to write the first lines.</p></div>
-      ) : (
-        <ul className="kc-list" aria-label="What Knack remembers">
-          {shown.map((it) => forget === it.id ? (
+  const parts = [items.length > SHOWN ? `${items.length - SHOWN} more ${items.length - SHOWN === 1 ? "line" : "lines"}` : "", waiting.length > 0 ? `${waiting.length} ${waiting.length === 1 ? "rule" : "rules"} waiting` : ""].filter(Boolean);
+  const moreLabel = parts.length > 0 ? `More (${parts.join(", ")})` : "More";
+  const renderLine = (it: (typeof items)[number]) => forget === it.id ? (
             <ConfirmRow key={it.id} question="Forget this line?" consequence={it.text} confirmLabel={busy ? "Forgetting" : "Forget it"} busy={busy} onConfirm={() => void doForget(it)} onCancel={() => setForget(null)} />
           ) : edit?.id === it.id ? (
             <li key={it.id} className="yd-line yd-line--edit">
@@ -79,15 +74,28 @@ export function Remembers({ memory: m, proposals, onChanged }: { memory: Memory;
                 <button type="button" className="btn btn--quiet btn--sm" aria-label={`Forget: ${it.text}`} onClick={() => { setEdit(null); setForget(it.id); }}>Forget</button>
               </span>
             </li>
-          ))}
+          );
+
+  return (
+    <div className="yd-body" data-testid="remembers">
+      <p className="kc-sub" data-testid="only-you">Stored on this Mac. Only you can change it.</p>
+      {items.length === 0 ? (
+        <div className="kc-empty"><h2>Nothing remembered yet.</h2><p>Set up again to write the first lines.</p></div>
+      ) : (
+        <ul className="kc-list" aria-label="What Knack remembers">
+          {shown.map(renderLine)}
         </ul>
       )}
-      {items.length > SHOWN && <div><button type="button" className="btn btn--secondary btn--sm" aria-expanded={all} onClick={() => setAll((v) => !v)}>{all ? "Show fewer" : `Show all ${items.length}`}</button></div>}
-      {all && items.length > 200 && <p className="kc-sub">The first 200 of {items.length} lines are shown. Edit as text has them all.</p>}
       {err && <p className="kc-error" role="alert">{err}</p>}
 
-      <Details summary={waiting.length > 0 ? `More (${waiting.length} ${waiting.length === 1 ? "rule" : "rules"} waiting)` : "More"} defaultOpen={whole !== null}>
+      <Details summary={moreLabel} defaultOpen={whole !== null}>
         <div style={{ display: "grid", gap: "var(--space-4)" }}>
+          {rest.length > 0 && (
+            <div style={{ display: "grid", gap: "var(--space-2)" }}>
+              <ul className="kc-list" aria-label="More of what Knack remembers">{rest.map(renderLine)}</ul>
+              {items.length > 200 && <p className="kc-sub">The first 200 of {items.length} lines are shown. Edit as text has them all.</p>}
+            </div>
+          )}
           {waiting.length > 0 && (
             <div className="yd-rules" data-testid="rules">
               <p className="kc-label">Rules Knack would like to add</p>

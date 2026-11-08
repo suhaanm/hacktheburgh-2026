@@ -9,7 +9,6 @@ import { useLoad } from "../../hooks";
 import { setState, useAppState } from "../../store";
 import type { AttentionPatch, AttentionSettings, Health, SkillsAnswer } from "../../types";
 import { useTheme } from "../../components/shell/theme";
-import { usePinnedViews } from "../../components/shell/pinned";
 import { STORY_LABEL, WORKER_STORIES, parseStory } from "../Home/data";
 import { setExampleWeek, useExampleWeek } from "../Home/story";
 import { desktopBridge, liveModelsBridge, wakeBridge, type DesktopSettings, type LiveModelsState, type WakeStatus } from "./bridge";
@@ -61,7 +60,6 @@ export default function Settings({ section }: { section?: string }) {
   const [attentionError, setAttentionError] = useState<string | null>(null);
   const [theme, setTheme] = useTheme();
   const view = useViewRole();
-  const [pinned, setPinned] = usePinnedViews();
   const seq = useRef(0);
   const story = useExampleWeek();
 
@@ -116,9 +114,9 @@ export default function Settings({ section }: { section?: string }) {
     if (types.length === 0) return;
     void apply({ modes: Object.fromEntries(types.map((t) => [t, mode])) }, (x) => types.reduce((acc, t) => withMode(acc, t, mode), x));
   };
-  const onSkills = (patch: { use_claude_skills?: boolean; off?: string[] }) => {
+  const onSkills = (patch: { use_claude_skills?: boolean; off?: string[]; max_minutes?: number }) => {
     const before = skills;
-    setSkills((s) => (s ? { ...s, ...(patch.use_claude_skills !== undefined ? { use_claude_skills: patch.use_claude_skills } : {}), ...(patch.off ? { off: patch.off } : {}) } : s));
+    setSkills((s) => (s ? { ...s, ...(patch.use_claude_skills !== undefined ? { use_claude_skills: patch.use_claude_skills } : {}), ...(patch.off ? { off: patch.off } : {}), ...(patch.max_minutes !== undefined ? { max_minutes: patch.max_minutes } : {}) } : s));
     api.skillsSet(patch).then((r) => { if (r.data && Array.isArray(r.data.skills)) setSkills(r.data); }, () => setSkills(before));
   };
   const onWake = (on: boolean) => {
@@ -148,7 +146,6 @@ export default function Settings({ section }: { section?: string }) {
       theme={theme} onTheme={setTheme}
       view={view} onView={setViewRole}
       stories={stories} onStory={onStory}
-      pinned={pinned} onPinned={setPinned}
       version={h?.version ?? null}
       skills={skills} onSkills={onSkills}
       advanced={<Suspense fallback={null}><AdvancedCalls /></Suspense>}

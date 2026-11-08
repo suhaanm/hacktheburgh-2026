@@ -694,5 +694,6 @@ export interface TaskRow {
   needs_consent?: TaskConsent | null;
   question?: { text: string; options: { id: string; label: string }[] } | null;
 }
-export interface TaskDetail extends TaskRow { steps?: string[] }
-export interface SkillsAnswer { use_claude_skills: boolean; off: string[]; skills: { name: string; description?: string; source?: "claude" | "plugin" | "knack"; enabled?: boolean }[] }
+/** The detail of one task: its plain step lines and, for a task that answered a question, the answer in full (up to 1500 characters). */
+export interface TaskDetail extends TaskRow { steps?: string[]; answer?: string | null }
+export interface SkillsAnswer { use_claude_skills: boolean; off: string[]; /** The time cap a background task starts with, in minutes (1 to 120; the service's default is 30). Absent from an older service. */ max_minutes?: number; skills: { name: string; description?: string; source?: "claude" | "plugin" | "knack"; enabled?: boolean }[] }

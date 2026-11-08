@@ -66,6 +66,7 @@ export const DEFAULTS = {
   "move-aside": { shown: "on", value: "on" },
   "open-at-login": { shown: "on", value: "on" },
   skills: { shown: "on", value: "on" },
+  "max-minutes": { shown: "30 minutes", value: 30 },
 } as const;
 export type DefaultId = keyof typeof DEFAULTS;
 export const defaultNote = (id: DefaultId): string => `Default: ${DEFAULTS[id].shown}.`;
@@ -149,4 +150,11 @@ export function skillRows(a: { off?: unknown; skills?: unknown } | null | undefi
 export function withSkill(off: string[] | undefined, name: string, on: boolean): string[] {
   const rest = (Array.isArray(off) ? off : []).filter((x) => typeof x === "string" && x !== name);
   return on ? rest : [...rest, name];
+}
+
+/** The longest a background task may run, in the choices the row offers (the service accepts 1 to 120). The current value is always one of them. */
+export const MAX_MINUTES_CHOICES = [5, 10, 15, 30, 60, 90, 120] as const;
+export function maxMinutesChoices(current: unknown): number[] {
+  const n = typeof current === "number" && Number.isInteger(current) && current >= 1 && current <= 120 ? current : null;
+  return n === null || (MAX_MINUTES_CHOICES as readonly number[]).includes(n) ? [...MAX_MINUTES_CHOICES] : [...MAX_MINUTES_CHOICES, n].sort((x, y) => x - y);
 }

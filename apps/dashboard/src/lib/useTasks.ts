@@ -51,6 +51,7 @@ export function useTasks(opts: { alsoReload?: () => void } = {}): TasksView {
   const runs = useLoad(() => (tl.source === "live" ? idle<AgentRun[]>() : api.agentsRuns(me)), [me, tl.source]);
   const [results, setResults] = useState<Record<string, unknown>>({});
   const [stepsBy, setStepsBy] = useState<Record<string, string[]>>({});
+  const [answerBy, setAnswerBy] = useState<Record<string, string | null>>({});
   const [wanted, setWanted] = useState<string[]>([]);
   const asked = useRef(new Set<string>());
   const seen = useRef(new Map<string, TaskState>());
@@ -61,7 +62,7 @@ export function useTasks(opts: { alsoReload?: () => void } = {}): TasksView {
   alsoRef.current = opts.alsoReload;
 
   const list = fromTasks ? (tl.data as TaskRow[]) : Array.isArray(runs.data) ? (runs.data as AgentRun[]) : null;
-  const tasks = useMemo(() => (fromTasks ? tasksOfRows(list, stepsBy) : tasksOf(list, results)), [fromTasks, list, results, stepsBy]);
+  const tasks = useMemo(() => (fromTasks ? tasksOfRows(list, stepsBy, answerBy) : tasksOf(list, results)), [fromTasks, list, results, stepsBy, answerBy]);
   const active = tasks.some((t) => t.state === "running" || t.state === "waiting") || (!fromTasks && !!(list as AgentRun[] | null)?.some((r) => { try { return runActive(r); } catch { return false; } }));
   const streams = useRegisteredStreams();
   const reload = useCallback(() => { tl.reload(); if (tl.source !== "live") runs.reload(); alsoRef.current?.(); }, [tl.reload, tl.source, runs.reload]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -100,7 +101,7 @@ export function useTasks(opts: { alsoReload?: () => void } = {}): TasksView {
       const t = tasks.find((x) => x.id === id);
       if (!t || (asked.current.has(`s:${id}`) && t.state !== "running" && t.state !== "waiting")) continue;
       asked.current.add(`s:${id}`);
-      api.taskDetail(id).then((r) => { const s = r.data?.steps; if (Array.isArray(s)) setStepsBy((p) => ({ ...p, [id]: s.filter((x): x is string => typeof x === "string") })); }, () => asked.current.delete(`s:${id}`));
+      api.taskDetail(id).then((r) => { const s = r.data?.steps; if (Array.isArray(s)) setStepsBy((p) => ({ ...p, [id]: s.filter((x): x is string => typeof x === "string") })); if (typeof r.data?.answer === "string") setAnswerBy((p) => ({ ...p, [id]: r.data?.answer ?? null })); }, () => asked.current.delete(`s:${id}`));
     }
   }, [fromTasks, wanted, list]);   // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -238,11 +238,9 @@ export function madeLine(f: { queue_id?: string; run_id?: string }): string {
 }
 
 
-/** The headline of Needs you: how many things wait, and how many of them are safety stops. Empty when nothing waits (the empty state says it). */
+/** The headline of Needs you: how many things wait. The safety stops are marked on their own rows (and counted by the badge); the headline does not repeat them. Empty when nothing waits. */
 export function needsHeadline(items: NeedsItem[]): string {
   const n = items.length;
   if (n === 0) return "";
-  const stops = items.filter((i) => i.cls === 0).length;
-  const head = n === 1 ? "1 thing needs you" : `${n} things need you`;
-  return stops > 0 ? `${head}, including ${stops} safety ${stops === 1 ? "stop" : "stops"}.` : `${head}.`;
+  return n === 1 ? "1 thing needs you." : `${n} things need you.`;
 }

@@ -80,7 +80,7 @@ await page.waitForTimeout(900);
 check("graph: forgetting a memory node removes it", (await page.locator(".gnode[aria-label^='Memory: Short summaries']").count()) === 0);
 // Your data: what Knack remembers is the first section and is open by default; every edit and delete here is a line in the file.
 const showAll = async (scope = page) => { const all = scope.getByRole("button", { name: /^Show all \d+$/ }); if (await all.count()) await all.first().click(); };
-const remembered = async () => { await showAll(page.locator("[data-testid=remembers]")); return page.locator("[data-testid=remembers]").innerText(); };
+const remembered = async () => { await openAll(page.locator("[data-testid=remembers]")); return page.locator("[data-testid=remembers]").innerText(); };   // the lines past the first three sit behind More
 await go("/your-data");
 check("your data: the forgotten line is gone from the file", !(await remembered()).includes("Summaries: short"));
 const yd = await page.locator("main").innerText();
@@ -106,7 +106,7 @@ await page.locator(".yd-line--edit input").fill("Working hours: Tue to Sat, 10:0
 await page.getByRole("button", { name: "Save line" }).click();
 await page.waitForTimeout(700);
 check("your data: line edit saved", (await remembered()).includes("Tue to Sat, 10:00"));
-await page.locator("[data-testid=remembers] summary", { hasText: /^More/ }).first().click();
+await openAll(page.locator("[data-testid=remembers]"));
 await page.getByRole("button", { name: "Edit as text" }).click();
 const ta = page.locator("#memtext");
 const cur = await ta.inputValue();
@@ -301,7 +301,7 @@ await page.waitForTimeout(500);
 check("needs you: with nothing prepared left, none is shown", (await page.locator("article[data-kind=prepared]").count()) === 0);
 
 await go("/agents", 900);
-check("agents: a worker who arrives by the address sees only the Admin gate sentence", /Switch to Admin to see this\./.test(await page.locator("main").innerText()) && (await page.locator("article.run").count()) === 0);
+check("agents: a worker who arrives by the address does not see the runs (the gate sentence, or Routines)", (/Switch to Admin to see this\./.test(await page.locator("main").innerText()) || /\/routines/.test(page.url())) && (await page.locator("article.run").count()) === 0);
 await go("/home?settings=views", 1200);
 await page.locator("[data-testid=settings]").getByRole("button", { name: "Admin", exact: true }).click();
 await go("/agents", 900);
@@ -526,9 +526,11 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
     return reply(route, { error: { code: "not_found", message: "not mocked" } }, 404);
   });
   await go("/routines", 1500);
+  // The app skips a service for a few seconds after a refused connection (the blocks before made some), then asks again by itself: wait for the first live answer.
+  await page.waitForFunction(() => /Reading invoices\.pdf/.test(document.body.innerText), null, { timeout: 15000 }).catch(() => undefined);
   const bt = page.locator("[data-testid=background-tasks]");
   check("routines: a running task is one line with the current step, and no id", /Tidy the invoices folder/.test(await bt.innerText()) && /Reading invoices\.pdf/.test(await bt.innerText()) && !/tk_live1/.test(await bt.innerText()));
-  await bt.locator("button.bt-line").first().click();
+  await bt.locator("button.bt-open").first().click();
   await page.waitForTimeout(500);
   check("routines: a click on the line shows the steps as a plain list", (await bt.locator(".bt-steps li").count()) >= 2);
   const scrollBefore = await page.evaluate(() => window.scrollY);
@@ -536,7 +538,7 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   await page.waitForTimeout(3500);                                           // the page polls every 2 s while a task runs
   const after = await bt.innerText();
   check("routines: the task finished and the page says so without leaving it", /Moved 12 files into Paid and Unpaid\./.test(after));
-  check("routines: the open row stayed open and the scroll did not move", (await bt.locator("button.bt-line[aria-expanded=true]").count()) === 1 && (await page.evaluate(() => window.scrollY)) === scrollBefore);
+  check("routines: the open row stayed open and the scroll did not move", (await bt.locator("button.bt-open[aria-expanded=true]").count()) === 1 && (await page.evaluate(() => window.scrollY)) === scrollBefore);
   check("routines: the finish is one quiet sentence for a screen reader, not a toast", /Tidy the invoices folder finished\./.test(await page.locator("[data-testid=tasks-live]").first().innerText()) && (await page.locator("[role=alert]").count()) === 0);
   await page.unroute(AGENT);
 }
