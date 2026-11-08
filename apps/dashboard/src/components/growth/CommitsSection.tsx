@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { api } from "../../api";
-import { useLoad } from "../../hooks";
-import { useAppState } from "../../store";
+import { idle, useLoad } from "../../hooks";
 import { ChartFoot, EmptyState, LegendItem, Loading, SourceNote } from "../common";
 import { HabitDeltas } from "../HabitDeltas";
 import { Hint } from "../Hint";
 import { Details, fitItems } from "../ui";
 import { GrowthSection, SectionError, useReportSource } from "./GrowthSection";
+import { notKnown, useOwnPerson } from "./own";
 import { splitSentence } from "../../lib/week";
 import { DIGEST_LABEL, fmtPoints, fmtPointsInterval, fmtShare, readHabit, sortHabits, splitCounts } from "../../lib/git";
 import { oneExpert, safeWhy } from "../../lib/voice";
 import { ownMeta } from "../../lib/ownMeta";
 import type { GitHabit, GitHabits } from "../../types";
+import type { Loaded } from "../../api";
 
 /** The headline sentence: how many of the worker's commit habits differ clearly from an experienced worker's. */
 export function commitsHeadline(habits: GitHabit[]): string {
@@ -26,8 +27,9 @@ export function commitsHeadline(habits: GitHabit[]): string {
  * Nobody else's repository is listed and no count of other people is drawn.
  */
 export function CommitsSection({ open }: { open: boolean }) {
-  const me = useAppState().person ?? undefined;
-  const h = useLoad(() => api.gitHabits(me, undefined), [me]);
+  const own = useOwnPerson();
+  const me = own.person;
+  const h = useLoad(() => (own.ready ? (own.blocked ? notKnown<Loaded<GitHabits>>() : api.gitHabits(me, undefined)) : idle<GitHabits>()), [own.ready, own.blocked, me]);
   const [allHabits, setAllHabits] = useState(false);
   useReportSource("commits", h.why ?? null);
 
@@ -36,7 +38,7 @@ export function CommitsSection({ open }: { open: boolean }) {
   const d = h.data;
   const habits = sortHabits(d.habits);
   const flagged = habits.filter((x) => x.flagged);
-  const shownHabits = allHabits ? habits : habits.slice(0, 5);
+  const shownHabits = allHabits ? habits : habits.slice(0, 4);
   const meta = ownMeta(h.meta, { n: d.n_commits, unit: "commit" });
 
   return (
@@ -47,7 +49,7 @@ export function CommitsSection({ open }: { open: boolean }) {
         <div className="stack">
           <div className="chart stack" style={{ gap: "var(--space-4)" }}>
             <HabitDeltas habits={shownHabits} />
-            {habits.length > 5 && <div><button type="button" className="btn btn--quiet btn--sm" aria-expanded={allHabits} onClick={() => setAllHabits((v) => !v)}>{allHabits ? "Show fewer" : `Show all ${habits.length}`}</button></div>}
+            {habits.length > 4 && <div><button type="button" className="btn btn--quiet btn--sm" aria-expanded={allHabits} onClick={() => setAllHabits((v) => !v)}>{allHabits ? "Show fewer" : `Show all ${habits.length}`}</button></div>}
           </div>
           <Details summary="Key" wide>
             <p className="note">Each row is a share of your commits, against an experienced worker&apos;s. Flagged means past its floor and clear of zero.</p>

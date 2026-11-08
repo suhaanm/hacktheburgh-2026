@@ -6,6 +6,7 @@
 //      which draws the annotation ring on a sample. Then "Show my week".
 // The role pack's safe defaults are written to the memory file when the second screen is done. Nothing is ever consented to by this file: a consent is a real
 // click on a card, recorded by the code that handles the click.
+import { depthLabel } from "../../lib/profile";
 import { daysText } from "../../lib/memoryPreview";
 import { normDays } from "../../lib/days";
 import type { OnboardingAnswers, OnboardingQuestions, Pack } from "../../types";
@@ -123,10 +124,10 @@ export function cardLine(summary: string): string {
   return cut.split(/\s+/).filter(Boolean).slice(0, 4).join(" ");
 }
 
-export interface RoleCard { id: string; name: string; line: string }
+export interface RoleCard { id: string; name: string; line: string; /** How far the pack is built (depthLabel); empty for Not sure yet. */ tag: string }
 /** The role cards: at most four packs, then "Not sure yet" (which picks nothing). */
 export function roleCards(packs: Pack[]): RoleCard[] {
-  return [...packs.slice(0, 4).map((p) => ({ id: p.id, name: p.name, line: cardLine(p.summary) })), { id: NO_ROLE, name: "Not sure yet", line: "Choose later" }];
+  return [...packs.slice(0, 4).map((p) => ({ id: p.id, name: p.name, line: cardLine(p.summary), tag: depthLabel(p.depth) })), { id: NO_ROLE, name: "Not sure yet", line: "Choose later", tag: "" }];
 }
 
 /** What to remember about a consent, as one string for localStorage. */
@@ -144,10 +145,10 @@ export function mayAskAgain(stored: string | null, now = new Date()): boolean {
 /* -- The consent cards' words (fixed, printed whole beside the three choices) ------------------------------------------------------ */
 
 export interface ConsentCard { kind: ConsentKind; title: string; text: string }
-export const CAPTURE_CARD: ConsentCard = { kind: "capture", title: "Learn from when I am active", text: "It records when you are active, never what you read: no page text, no URLs, no field values. The record stays on this laptop." };
-export const VOICE_CARD: ConsentCard = { kind: "voice", title: "Listen for Hey Knack", text: "It listens on this Mac for those words only and keeps nothing. Talking to Knack sends your voice to a model; Knack asks once, the first time you talk." };
-/** The glance card's words come from the desktop app, whole (the consent the app itself shows); this is only the title and the fallback. */
-export const GLANCE_TITLE = "Look at my screen when I seem stuck";
+export const CAPTURE_CARD: ConsentCard = { kind: "capture", title: "Learn from my working times", text: "Records when each step starts and ends, never what you read. Stays on this laptop." };
+export const VOICE_CARD: ConsentCard = { kind: "voice", title: "Listen for Hey Knack", text: "Listens on this Mac for those words only and keeps nothing. Talking sends your voice to a model." };
+/** One plain sentence, the one that says what leaves the Mac. The desktop app's full consent text is printed under Your data, next to the switch it belongs to. */
+export const GLANCE_CARD: ConsentCard = { kind: "glance", title: "Look at my screen when stuck", text: "Sends a small picture of your screen to a model, only then. Never saved." };
 
 /* -- The check screen ---------------------------------------------------------------------------------------------------------------- */
 
@@ -182,6 +183,10 @@ export function heyKnackRow(status: { switchOn: boolean; listening: boolean; lin
  * the check screen arms it once on return and reads the state again a moment later. Only for the two permissions that System Settings can fix.
  */
 export const shouldRearm = (wake: { fix?: string | null } | null): boolean => wake?.fix === "microphone" || wake?.fix === "speech";
+
+/** In a browser tab there is no desktop app to ask macOS or to draw the ring: those rows say so, in these words, and have no button. */
+export const NEEDS_APP = "Available in the Knack app.";
+export const BROWSER_ROWS: { key: string; title: string }[] = [{ key: "permissions", title: "Permissions" }, { key: "tryit", title: "Show me where Knack points" }];
 
 export const RING_SENTENCE = "Knack points; it never clicks unless you allow it.";
 

@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import onboardingFx from "../../fixtures/onboarding.json";
 import packsFx from "../../fixtures/packs.json";
+import { depthLabel } from "../../lib/profile";
 import type { OnboardingQuestions, Pack } from "../../types";
 import {
-  ASK_AGAIN_AFTER_DAYS, CHOICES, NO_ROLE, START, STEPS, captureRecord, cardLine, clicksToHome, defaultAnswers, heyKnackRow, kindsFor, mayAskAgain, nextUnanswered, parseProgress, permsToShow,
+  ASK_AGAIN_AFTER_DAYS, BROWSER_ROWS, CAPTURE_CARD, CHOICES, GLANCE_CARD, NEEDS_APP, NO_ROLE, VOICE_CARD, START, STEPS, captureRecord, cardLine, clicksToHome, defaultAnswers, heyKnackRow, kindsFor, mayAskAgain, nextUnanswered, parseProgress, permsToShow,
   progressRecord, readyLines, reduce, roleCards, shouldRearm, shouldStartFirstRun, type FirstRunAction, type FirstRunState,
 } from "./model";
 
@@ -90,12 +91,40 @@ describe("clicks to Home, nothing skipped", () => {
   });
 });
 
+describe("the last screen in a browser tab", () => {
+  it("says Available in the Knack app for the two things only the app can do, and offers no button for them", () => {
+    expect(NEEDS_APP).toBe("Available in the Knack app.");
+    expect(BROWSER_ROWS.map((r) => r.title)).toEqual(["Permissions", "Show me where Knack points"]);
+    for (const r of BROWSER_ROWS) expect(r.title).not.toMatch(/allow|open system settings/i);
+  });
+});
+
 describe("the role cards", () => {
   it("shows at most four packs and then Not sure yet, which is never a pack", () => {
     const cards = roleCards([...packs, ...packs, ...packs]);
     expect(cards).toHaveLength(5);
-    expect(cards[cards.length - 1]).toEqual({ id: NO_ROLE, name: "Not sure yet", line: "Choose later" });
+    expect(cards[cards.length - 1]).toEqual({ id: NO_ROLE, name: "Not sure yet", line: "Choose later", tag: "" });
     for (const c of cards) expect(c.line.split(/\s+/).filter(Boolean).length).toBeLessThanOrEqual(4);
+  });
+  it("offers all three roles, and says how far each pack is built: validated only for deep, a full pack for standard, a starter for thin", () => {
+    const cards = roleCards(packs);
+    expect(cards.map((c) => c.id)).toEqual(["benefits-processor", "data-analyst", "programmer", NO_ROLE]);
+    expect(cards.map((c) => c.tag)).toEqual(["Fully built and validated", "Full pack", "Full pack", ""]);
+    expect(roleCards([{ id: "x", name: "X", summary: "Does a thing.", depth: "thin" }])[0].tag).toBe("Starter");
+    expect(depthLabel("deep")).toBe("Fully built and validated");
+    expect(depthLabel("standard")).toBe("Full pack");
+    for (const odd of ["thin", "", undefined, null, 3, "deeper"]) expect(depthLabel(odd), String(odd)).toBe("Starter");
+  });
+  it("keeps the consent sentences to one plain sentence each, and every Yes means one thing", () => {
+    for (const c of [CAPTURE_CARD, GLANCE_CARD, VOICE_CARD]) {
+      expect(c.text.split(/\s+/).length, c.kind).toBeLessThanOrEqual(20);
+      expect(c.title.split(/\s+/).length, c.kind).toBeLessThanOrEqual(6);
+    }
+    // The glance card says what leaves the Mac, and that it is not kept, in the sentence itself.
+    expect(GLANCE_CARD.text).toMatch(/picture of your screen to a model/);
+    expect(GLANCE_CARD.text).toMatch(/Never saved/);
+    expect(VOICE_CARD.text).toMatch(/sends your voice to a model/i);
+    expect(CAPTURE_CARD.text).toMatch(/never what you read/i);
   });
   it("with no packs there is still Not sure yet, so the worker is never stuck", () => { expect(roleCards([]).map((c) => c.id)).toEqual([NO_ROLE]); });
   it("cuts a pack summary to a short noun phrase of at most four words, never ending in a comma", () => {
