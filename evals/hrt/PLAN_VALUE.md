@@ -85,4 +85,6 @@ All of `PLAN.md` section 9 applies. In addition:
 
 ## Amendment log
 
-(none yet)
+**A1, Sun 8 Nov 2026 about 02:12 GMT, a clarification written before any run of this part on any pool.** In V2, "the best naive predictor" is defined as in `PLAN.md` section 4,
+but **on this part's own pooled held-out world**: the one of `online_base` and `frozen_tsp` with the lower pooled log loss in this run's record (on `PLAN.md`'s seeds it was the online
+base rate in all three shifted worlds; here the code picks it from the run, so a different answer is possible and is printed). Its value counterpart is that same predictor's net value.

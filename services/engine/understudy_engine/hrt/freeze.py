@@ -17,13 +17,14 @@ from understudy_engine.store.paths import evals_dir
 from .worlds import HELDOUT_ENV
 
 PARTS = ("ledger", "decisions")                     # what `run.py dev|freeze` mean by "all"
-FOLLOW_UPS = ("recal", "conformal")                 # each has its own plan (PLAN_<PART>.md), its own freeze and its own CLI (run_<part>.py)
+FOLLOW_UPS = ("recal", "conformal", "value")        # each has its own plan (PLAN_<PART>.md), its own freeze and its own CLI (run_<part>.py)
 ALL_PARTS = PARTS + FOLLOW_UPS
 PART_FILES = {
     "ledger": ("__init__", "ledger", "scoring", "guard", "worlds", "prospective", "run"),
     "decisions": ("__init__", "scoreboard", "worlds", "run"),
     "recal": ("__init__", "ledger", "scoring", "worlds", "prospective", "recal", "run_recal"),     # the follow-up of PLAN_RECAL.md: its own plan, its own freeze
     "conformal": ("__init__", "ledger", "scoring", "guard", "worlds", "prospective", "conformal", "run_conformal"),     # PLAN_CONFORMAL.md
+    "value": ("__init__", "ledger", "scoring", "guard", "worlds", "prospective", "value", "run_value"),                  # PLAN_VALUE.md
 }
 
 

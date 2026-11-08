@@ -4,8 +4,9 @@
 No number in the brief is typed by hand. A placeholder is ``{{src:path/to/value|fmt}}``:
 
   src   one of  r (evals/report.json, from its ``sections``)  rt (evals/report.json, top level)  hl (evals/hrt/results/heldout_ledger.json)
-        hd (evals/hrt/results/heldout_decisions.json)  hr (evals/hrt/results/heldout_recal.json)  mh (evals/mlv2/results/heldout_hazard.json)  mm (evals/mlv2/results/heldout_mismatch.json)
-        cue (evals/cue/held_out.json)
+        hd (evals/hrt/results/heldout_decisions.json)  hr (evals/hrt/results/heldout_recal.json)  hc (evals/hrt/results/heldout_conformal.json)
+        mh (evals/mlv2/results/heldout_hazard.json)  mm (evals/mlv2/results/heldout_mismatch.json)  cue (evals/cue/held_out.json)
+        hm (computed here, not read: the Holm family over the reported intervals; ``hm:m``, ``hm:survivors``, ``hm:table``, ``hm:note``)
   path  keys and list indexes separated by "/"; ``id=P1`` picks the list item whose ``id`` is P1; ``1:3`` is not supported (name the index)
   assert  ``<!-- assert src:path < src:path -->`` (or > , or a number on either side) is checked at render time: a sentence in the template that says "beats" or
         "loses" carries the inequality that makes it true, and the render fails if a report ever contradicts it
@@ -33,6 +34,7 @@ SOURCES = {
     "hl": (ROOT / "evals" / "hrt" / "results" / "heldout_ledger.json", None),
     "hd": (ROOT / "evals" / "hrt" / "results" / "heldout_decisions.json", None),
     "hr": (ROOT / "evals" / "hrt" / "results" / "heldout_recal.json", None),
+    "hc": (ROOT / "evals" / "hrt" / "results" / "heldout_conformal.json", None),
     "mh": (ROOT / "evals" / "mlv2" / "results" / "heldout_hazard.json", None),
     "mm": (ROOT / "evals" / "mlv2" / "results" / "heldout_mismatch.json", None),
     "cue": (ROOT / "evals" / "cue" / "held_out.json", None),
@@ -46,7 +48,89 @@ class Unresolved(KeyError):
     pass
 
 
+# ----------------------------------------------------------------------------------------- family size and Holm-adjusted p-values
+Z95 = 1.959963984540054
+# the family: every registered directional paired contrast that has a reported 95% interval (est path, interval path); claims that are "an interval contains the
+# nominal level" or "at least 2 of 3" rules are not hypothesis tests and are counted in the registered-claims total but not here
+HOLM_ROWS = (
+    ("P1a", "v1 world: stuck model minus online base rate (log loss)", "hl", "claims/id=P1/evidence/online_base/est", "claims/id=P1/evidence/online_base/ci"),
+    ("P1b", "v1 world: stuck model minus frozen time since progress (log loss)", "hl", "claims/id=P1/evidence/frozen_tsp/est", "claims/id=P1/evidence/frozen_tsp/ci"),
+    ("P3-markov", "markov world: stuck model minus best naive predictor", "hl", "claims/id=P3/evidence/markov/est", "claims/id=P3/evidence/markov/ci"),
+    ("P3-latent", "latent-skill world: stuck model minus best naive predictor", "hl", "claims/id=P3/evidence/latent_skill/est", "claims/id=P3/evidence/latent_skill/ci"),
+    ("P3-process", "process-trace world: stuck model minus best naive predictor", "hl", "claims/id=P3/evidence/process_trace/est", "claims/id=P3/evidence/process_trace/ci"),
+    ("P5", "v1 world: time-to-progress head minus Kaplan-Meier (truncated CRPS, s)", "hl", "claims/id=P5/evidence/est", "claims/id=P5/evidence/ci"),
+    ("P6a", "error risk, no change: model minus online base rate (log loss)", "hl", "claims/id=P6a/evidence/vs_online/est", "claims/id=P6a/evidence/vs_online/ci"),
+    ("R1", "error risk after the rule change: recalibrated minus frozen model", "hr", "claims/id=R1/evidence/est", "claims/id=R1/evidence/ci"),
+    ("R3-markov", "markov world: recalibrated minus frozen model", "hr", "claims/id=R3/evidence/markov/est", "claims/id=R3/evidence/markov/ci"),
+    ("R3-latent", "latent-skill world: recalibrated minus frozen model", "hr", "claims/id=R3/evidence/latent_skill/est", "claims/id=R3/evidence/latent_skill/ci"),
+    ("R3-process", "process-trace world: recalibrated minus frozen model", "hr", "claims/id=R3/evidence/process_trace/est", "claims/id=R3/evidence/process_trace/ci"),
+    ("R5a", "error risk after the change: windowed recalibration minus frozen model", "hr", "claims/id=R5/evidence/vs_model/est", "claims/id=R5/evidence/vs_model/ci"),
+    ("R5b", "error risk after the change: windowed recalibration minus growing-window recalibration", "hr", "claims/id=R5/evidence/vs_recal/est", "claims/id=R5/evidence/vs_recal/ci"),
+    ("D1", "build timing: shipped rule minus break-even (manual runs per routine)", "hd", "rows/0/primary/est", "rows/0/primary/ci95"),
+    ("D2", "review routing at a 30% budget: model minus random (escaped errors per 100)", "hd", "rows/1/primary/est", "rows/1/primary/ci95"),
+    ("D3", "background start rule minus run whenever idle (value per day)", "hd", "rows/2/primary/est", "rows/2/primary/ci95"),
+    ("D4", "coaching action policy minus rule baseline (reward per decision)", "hd", "rows/3/primary/est", "rows/3/primary/ci95"),
+    ("K3", "v1 world: time-to-progress range length, model minus Kaplan-Meier baseline (steps)", "hc", "claims/id=K3/evidence/t1_length_difference", "claims/id=K3/evidence/t1_ci"),
+)
+
+
+def p_from_interval(est: float, lo: float, hi: float, level_z: float = Z95) -> float:
+    """Two-sided p-value of "the difference is zero" from a 95% interval, by a normal approximation: standard error = width / (2 x 1.96), z = estimate / standard error.
+    An approximation of a person-cluster bootstrap, for reading the order of magnitude only."""
+    import math
+
+    se = (hi - lo) / (2.0 * level_z)
+    if se <= 0.0:
+        return 0.0 if est != 0.0 else 1.0
+    return float(math.erfc(abs(est) / se / math.sqrt(2.0)))
+
+
+def holm(ps: list[float]) -> list[float]:
+    """Holm's step-down adjusted p-values (valid under any dependence), returned in the input order."""
+    m = len(ps)
+    order = sorted(range(m), key=lambda i: ps[i])
+    out = [0.0] * m
+    running = 0.0
+    for rank, i in enumerate(order):
+        running = max(running, min(1.0, (m - rank) * ps[i]))
+        out[i] = running
+    return out
+
+
+def _fmt_p(p: float) -> str:
+    return "<0.0001" if p < 1e-4 else f"{p:.4f}" if p < 0.01 else f"{p:.3f}"
+
+
+def _fmt_est(x: float) -> str:
+    return f"{x:+.2f}" if abs(x) >= 10 else f"{x:+.3f}"
+
+
+def holm_family() -> dict[str, Any]:
+    """The Holm table over HOLM_ROWS (rows whose part has not run are left out and the family size says so), with the family size and the note on what it is."""
+    rows = []
+    for rid, label, src, p_est, p_ci in HOLM_ROWS:
+        try:
+            est, ci = float(resolve(src, p_est)), [float(x) for x in resolve(src, p_ci)]
+        except Unresolved:
+            continue
+        rows.append({"id": rid, "label": label, "est": est, "ci": ci, "p": p_from_interval(est, ci[0], ci[1])})
+    adj = holm([r["p"] for r in rows])
+    for r, a in zip(rows, adj):
+        r["p_holm"] = a
+        r["survives"] = bool(a < 0.05)
+    lines = ["| Id | Contrast (paired, same resamples) | Estimate [95% interval] | Raw p | Holm-adjusted p | Holds at 5% after Holm |", "|---|---|---|---|---|---|"]
+    for r in rows:
+        lines.append(f"| {r['id']} | {r['label']} | {_fmt_est(r['est'])} [{_fmt_est(r['ci'][0])}, {_fmt_est(r['ci'][1])}] | {_fmt_p(r['p'])} | {_fmt_p(r['p_holm'])} | {'yes' if r['survives'] else '**no**'} |")
+    note = ("Raw p is a normal approximation to the reported 95% interval (standard error = width / 3.92), so it is for reading the order of magnitude, not a registered computation: "
+            "the registered claims are pass rules on intervals. Holm's step-down is valid under any dependence between the contrasts, which these have (they share worlds and resamples).")
+    return {"m": len(rows), "rows": rows, "survivors": sum(r["survives"] for r in rows), "table": "\n".join(lines), "note": note}
+
+
 def load(src: str) -> Any:
+    if src == "hm":
+        if "hm" not in _cache:
+            _cache["hm"] = holm_family()
+        return _cache["hm"]
     if src not in SOURCES:
         raise Unresolved(f"unknown source {src!r}")
     if src not in _cache:
