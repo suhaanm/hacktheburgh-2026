@@ -158,11 +158,123 @@ def _shape_recal(rec: dict[str, Any]) -> dict[str, Any]:
             "design": rec.get("design"), "split_label": rec.get("split_label")}
 
 
-def shape_ledger(res: dict[str, Any], rec: dict[str, Any] | None = None) -> dict[str, Any]:
-    return app_words(_shape_ledger(res, rec))
+NOMINAL = 0.90
 
 
-def _shape_ledger(res: dict[str, Any], rec: dict[str, Any] | None = None) -> dict[str, Any]:
+def _cover_status(ci: Any) -> str:
+    """How a coverage interval stands against the nominal 90%: under (the whole interval below), over (the whole interval above) or consistent."""
+    return "under" if ci[1] < NOMINAL else "over" if ci[0] > NOMINAL else "consistent"
+
+
+def _conf_text(c: dict[str, Any]) -> str:
+    ev = c.get("evidence")
+    if not isinstance(ev, dict):
+        return str(ev)
+    if c["id"].startswith("K1"):
+        return f"coverage {ev['coverage']:.3f} {_ci(ev['ci'], 3)} against a nominal {ev['nominal']:.2f}"
+    if c["id"].startswith("K2") or c["id"].startswith("K5"):
+        key = "worlds_under" if c["id"].startswith("K2") else "worlds_restored"
+        parts = [f"{f.replace('_', ' ')} {v['coverage']:.3f} {_ci(v['ci'], 3)}" for f, v in ev.items() if isinstance(v, dict) and "coverage" in v]
+        return f"{ev[key]} of 3 worlds; " + "; ".join(parts)
+    if c["id"] == "K3":
+        return f"two-minute range length, model minus Kaplan-Meier {ev['t1_length_difference']:+.3f} steps {_ci(ev['t1_ci'], 3)}; finish-time half-width {ev['t2_q_model']:.3f} against {ev['t2_q_baseline']:.3f} (log seconds)"
+    if c["id"] == "K4":
+        if not ev["testable"]:
+            return f"not testable: only {ev['low_coverage_deployments']} shifted deployments fell below 0.85 stuck-set coverage (the rule needs at least 3)"
+        return f"{ev['low_coverage_deployments']} shifted deployments fell below 0.85 coverage and {ev['low_not_flagged']} of them were not flagged; the guard flagged {ev['v1_flags']} of {ev['v1_of']} v1 deployments"
+    return json.dumps(ev, default=float)[:200]
+
+
+def _conf_arm(a: dict[str, Any]) -> dict[str, Any]:
+    t0, t1, t2 = a["t0"], a.get("t1") or {}, a["t2"]
+    row = {"people": a["n_people"], "origins": a["n_origins"],
+           "stuck_set": {"coverage": _r(t0["coverage"]["est"], 3), "ci": _ci(t0["coverage"]["ci"], 3), "status": _cover_status(t0["coverage"]["ci"]), "single_label_share": _r(t0["sizes"]["single"], 3), "both_label_share": _r(t0["sizes"]["both"], 3),
+                         "baseline_single_label_share": _r(t0["baseline"]["sizes"]["single"], 3)},
+           "finish": {"coverage": _r(t2["coverage"]["est"], 3), "ci": _ci(t2["coverage"]["ci"], 3), "status": _cover_status(t2["coverage"]["ci"]), "factor": _r(t2["factor_model"], 2), "baseline_factor": _r(t2["factor_baseline"], 2),
+                      "baseline_coverage": _r(t2["baseline"]["coverage"]["est"], 3), "recentred_coverage": _r(t2["recentred"]["coverage"]["est"], 3), "recentred_ci": _ci(t2["recentred"]["coverage"]["ci"], 3), "recentred_factor": _r(t2["recentred"]["factor"], 2)}}
+    if t1.get("coverage"):
+        row["next_progress"] = {"coverage": _r(t1["coverage"]["est"], 3), "ci": _ci(t1["coverage"]["ci"], 3), "status": _cover_status(t1["coverage"]["ci"]), "mean_length_steps": _r(t1["length"]["est"], 2), "baseline_length_steps": _r(t1["baseline"]["length"]["est"], 2),
+                                "baseline_coverage": _r(t1["baseline"]["coverage"]["est"], 3), "origins": t1["n"], "share_excluded": _r(t1["share_excluded"], 3)}
+    return row
+
+
+def _shape_conformal(conf: dict[str, Any]) -> dict[str, Any]:
+    """The conformal follow-up (evals/hrt/PLAN_CONFORMAL.md): its claims as run, coverage with width for each world, and the guard beside the coverage."""
+    worlds = conf["worlds"]
+    std, rcal, link = [], [], []
+    for key in WORLD_ORDER:
+        w = worlds.get(key)
+        if not w:
+            continue
+        std.append({"world": WORLD_LABEL[key], **_conf_arm(w["standard"])})
+        if "recalibrated" in w:
+            rcal.append({"world": WORLD_LABEL[key], **_conf_arm(w["recalibrated"])})
+        g = w["guard"]
+        two = g["low_vs_flag"]
+        link.append({"world": WORLD_LABEL[key], "deployments": w["n_deployments"], "below_line": two["low_flagged"] + two["low_not_flagged"], "below_line_and_flagged": two["low_flagged"], "flags": g["flags"], "of": g["of"], "line": two["line"]})
+    claims = [{"id": c["id"], "claim": c["claim"], "result": "passed" if c["pass"] is True else "not passed" if c["pass"] is False else "not testable", "evidence": _conf_text(c)} for c in conf["claims"]]
+    n_pass = sum(c["result"] == "passed" for c in claims)
+    n_fail = [c["id"] for c in claims if c["result"] == "not passed"]
+    v1 = std[0]
+    shifted = std[1:]
+    lo, hi = min(w["stuck_set"]["coverage"] for w in shifted), max(w["stuck_set"]["coverage"] for w in shifted)
+    stmt = (f"Ranges and sets were calibrated once, at deployment, to cover 90%. For new people in the world they were calibrated for, the stuck set covered {v1['stuck_set']['coverage']:.1%}, and for the worlds that changed "
+            f"{lo:.1%} to {hi:.1%}; the guard flagged {sum(x['below_line_and_flagged'] for x in link[1:])} of the {sum(x['below_line'] for x in link[1:])} shifted deployments whose stuck-set coverage fell below 85%. "
+            f"{n_pass} of {len(claims)} registered claims passed{(' (' + ', '.join(n_fail) + ' did not)') if n_fail else ''}.")
+    return {"claims": claims, "standard": std, "recalibrated": rcal, "guard_link": link, "statement": stmt, "design": conf.get("design"), "split_label": conf.get("split_label")}
+
+
+def _value_text(c: dict[str, Any]) -> str:
+    ev = c.get("evidence")
+    if not isinstance(ev, dict):
+        return str(ev)
+    if c["id"] == "V1":
+        return f"model minus online base rate {ev['vs_online_base']['est']:+.3f} {_ci(ev['vs_online_base']['ci'], 3)} minutes per origin; minus frozen time since progress {ev['vs_frozen_tsp']['est']:+.3f} {_ci(ev['vs_frozen_tsp']['ci'], 3)}"
+    if c["id"] == "V2":
+        parts = [f"{f.replace('_', ' ')} {v['est']:+.3f} {_ci(v['ci'], 3)} against {str(v['baseline']).replace('_', ' ')}" for f, v in ev.items() if isinstance(v, dict) and "baseline" in v]
+        return f"{ev['worlds_worse']} of 3 worlds clearly worse in decision value; " + "; ".join(parts)
+    if c["id"] == "V3a":
+        return f"guarded minus always-model {ev['est']:+.4f} {_ci(ev['ci'], 4)} minutes per origin; flagged {ev['flags']} of {ev['of']}"
+    if c["id"] == "V3b":
+        parts = [f"{f.replace('_', ' ')} {v['est']:+.3f} {_ci(v['ci'], 3)}" for f, v in ev.items() if isinstance(v, dict) and "est" in v]
+        return f"{ev['worlds_paid']} of 3 worlds where the guard clearly paid; " + "; ".join(parts)
+    return json.dumps(ev, default=float)[:200]
+
+
+def _shape_value(val: dict[str, Any]) -> dict[str, Any]:
+    """The decision-value follow-up (evals/hrt/PLAN_VALUE.md): per world, each forecast's log loss and net minutes beside each other, the model against the best naive predictor, and the claims."""
+    rows = []
+    for key in WORLD_ORDER:
+        w = val["worlds"].get(key)
+        if not w:
+            continue
+        pol = w["policies"]
+        rows.append({"world": WORLD_LABEL[key], "people": w["n_people"], "origins": w["n_origins"], "best_naive": w["best_naive"],
+                     "forecasts": [{"name": k, "log_loss": _r(w["log_loss"][k]["est"], 3), "net_minutes_per_hour": _r(pol[k]["per_hour"]["est"], 2), "net_minutes_per_hour_ci": _ci(pol[k]["per_hour"]["ci"], 2),
+                                    "interruptions_per_hour": _r(pol[k]["interruptions_per_hour"]["est"], 1),
+                                    "net_minutes_per_interruption": _r(pol[k]["net_per_interruption"]["est"], 3) if pol[k]["net_per_interruption"] else None} for k in ("model", "online_base", "frozen_tsp", "frozen_base")],
+                     "reference": {k: {"net_minutes_per_hour": _r(pol[k]["per_hour"]["est"], 2), "share_of_gap_closed": _r(pol[k]["gap_closed"]["est"], 3)} for k in ("guarded", "always", "never", "oracle")},
+                     "model_minus_best_naive": _r(w["paired"]["model_vs_best_naive"]["est"], 4), "model_minus_best_naive_ci": _ci(w["paired"]["model_vs_best_naive"]["ci"], 4), "verdict": w["paired"]["model_vs_best_naive"]["verdict"],
+                     "log_loss_model_minus_best_naive": _r(w["log_loss"]["model"]["est"] - w["log_loss"][w["best_naive"]]["est"], 3),
+                     "rank_agreement": _r(w["rank_agreement"]["spearman"], 2),
+                     "guard": {"flags": w["guard"]["flags"], "of": w["guard"]["of"], "guarded_minus_always_model": _r(w["guard"]["guarded_minus_always_model"]["est"], 4), "ci": _ci(w["guard"]["guarded_minus_always_model"]["ci"], 4)},
+                     "sensitivity": [{"a_minutes": float(a), "threshold": _r(v["threshold"], 3), "model_minus_best_naive": _r(v["model_vs_best_naive"]["est"], 4), "ci": _ci(v["model_vs_best_naive"]["ci"], 4), "verdict": v["model_vs_best_naive"]["verdict"]}
+                                     for a, v in w["sensitivity"].items()]})
+    claims = [{"id": c["id"], "claim": c["claim"], "result": "passed" if c["pass"] is True else "not passed", "evidence": _value_text(c)} for c in val["claims"]]
+    n_pass = sum(c["result"] == "passed" for c in claims)
+    agree = [r for r in rows[1:] if r["verdict"] == "model worse" and r["log_loss_model_minus_best_naive"] is not None and r["log_loss_model_minus_best_naive"] > 0]
+    d = val.get("design") or {}
+    stmt = (f"The same forecasts, turned into interrupt-or-stay-quiet decisions at the break-even point ({d.get('threshold', 0.25):.2f}), with an interruption worth {d.get('s_minutes', 3):g} minutes when the person really makes no progress and costing "
+            f"{d.get('a_minutes', 1):g} minute when they would have. In {len(agree)} of {len(rows) - 1} shifted worlds the model that was worse on log loss was also clearly worse in net minutes. {n_pass} of {len(claims)} registered claims passed. "
+            f"The costs are our assumptions; the ordering is the claim, the minutes are not.")
+    return {"claims": claims, "worlds": rows, "statement": stmt, "design": d, "split_label": val.get("split_label")}
+
+
+def shape_ledger(res: dict[str, Any], rec: dict[str, Any] | None = None, conf: dict[str, Any] | None = None) -> dict[str, Any]:
+    return app_words(_shape_ledger(res, rec, conf))
+
+
+def _shape_ledger(res: dict[str, Any], rec: dict[str, Any] | None = None, conf: dict[str, Any] | None = None) -> dict[str, Any]:
     worlds = res["worlds"]
     rows, guard_rows = [], []
     n_preds = 0
@@ -204,7 +316,7 @@ def _shape_ledger(res: dict[str, Any], rec: dict[str, Any] | None = None) -> dic
                  "interval_level": 0.95, "note": "Cluster bootstrap resampling people (error risk: blocks of 100 cases), B = 2000, paired across predictors. Pre-registered in evals/hrt/PLAN.md; run once on held-out seeds.", "generated_at": res.get("generated_at") or "1970-01-01T00:00:00Z"},
         "statement": " ".join(bits),
         "label": "generated worlds, held-out seeds, single frozen run; the ledger has recorded no live forecasts yet",
-        "rows": claims, "worlds": rows, "guard": guard_rows, "guard_sensitivity": sens, "recalibration": (_shape_recal(rec) if rec else None),
+        "rows": claims, "worlds": rows, "guard": guard_rows, "guard_sensitivity": sens, "recalibration": (_shape_recal(rec) if rec else None), "conformal": (_shape_conformal(conf) if conf else None),
         "reliability_v1": [{k: b[k] for k in ("p_mean", "freq", "n", "freq_lo", "freq_hi", "lo", "hi")} for b in v1["scores"]["predictors"]["model"]["reliability"]],
         "reliability_v1_online_base": [{k: b[k] for k in ("p_mean", "freq", "n", "lo", "hi")} for b in v1["scores"]["predictors"]["online_base"]["reliability"]],
         "design": res.get("design"), "split_label": res.get("split_label"), "code_fingerprint": res.get("code_fingerprint"),
@@ -228,11 +340,11 @@ def _row_values(row: dict[str, Any]) -> dict[str, Any]:
             "share_of_naive_to_oracle_gap_closed": _r(g.get("share"), 3), "share_ci": _ci(g.get("ci"), 3), "replicates": row["replicates"]}
 
 
-def shape_decisions(res: dict[str, Any]) -> dict[str, Any]:
-    return app_words(_shape_decisions(res))
+def shape_decisions(res: dict[str, Any], val: dict[str, Any] | None = None) -> dict[str, Any]:
+    return app_words(_shape_decisions(res, val))
 
 
-def _shape_decisions(res: dict[str, Any]) -> dict[str, Any]:
+def _shape_decisions(res: dict[str, Any], val: dict[str, Any] | None = None) -> dict[str, Any]:
     rows = [_row_values(r) for r in res["rows"]]
     n = sum(res["replicates"].values())
     fam = res["primary_family"]
@@ -244,7 +356,7 @@ def _shape_decisions(res: dict[str, Any]) -> dict[str, Any]:
         "meta": {"origin": GEN, "n": n, "n_unit": "generated worlds", "split": "fresh replicate worlds on new seeds; shipped, naive and oracle policies scored on the same world; paired bootstrap over worlds",
                  "interval_level": 0.95, "note": "Primary family of 4 at the Bonferroni-adjusted level; every other cell is exploratory. Pre-registered in evals/hrt/PLAN.md; run once on held-out seeds.", "generated_at": res.get("generated_at") or "1970-01-01T00:00:00Z"},
         "statement": stmt, "label": "generated worlds, held-out seeds, single frozen run",
-        "rows": rows, "primary_family": fam, "scoreboard": res["rows"], "recorded": res.get("recorded"), "not_scored": res.get("not_scored"),
+        "rows": rows, "primary_family": fam, "scoreboard": res["rows"], "recorded": res.get("recorded"), "not_scored": res.get("not_scored"), "value_vs_accuracy": (_shape_value(val) if val else None),
         "replicates": res["replicates"], "split_label": res.get("split_label"), "code_fingerprint": res.get("code_fingerprint"),
         "limitations": [{"id": i, "severity": s, "text": t} for i, s, t in DECISION_LIMITS],
     }
@@ -255,4 +367,5 @@ def recorded_section(part: str) -> dict[str, Any]:
     res = recorded(part)
     if res is None:
         raise FileNotFoundError(f"hrt {part}: the single frozen held-out run (python -m understudy_engine.hrt.run heldout --part {part}) has not been made; a dev result is never shown as evidence")
-    return shape_ledger(res, recorded("recal")) if part == "ledger" else shape_decisions(res)         # the recalibration follow-up rides in the ledger section when it has run
+    # the follow-ups ride in the section of the thing they extend when they have run: recalibration and conformal ranges in the ledger section, decision value in the decisions section
+    return shape_ledger(res, recorded("recal"), recorded("conformal")) if part == "ledger" else shape_decisions(res, recorded("value"))

@@ -92,6 +92,48 @@ def test_the_recalibration_follow_up_rides_in_the_ledger_section_and_follows_the
     assert ev.shape_ledger(_dev("ledger"))["recalibration"] is None            # without the follow-up the section is the ledger section as before
 
 
+def _banned_hits(section, name):
+    import re
+
+    cfg = json.loads((repo_root() / "docs" / "knack-ux" / "banned-phrases.json").read_text(encoding="utf-8"))
+    hits = []
+    for text in _strings(section):
+        if re.search(r"\b(synthetic|simulat\w*)\b", text, re.I):
+            hits.append(f"{name}: wording {text[:100]}")
+        for p in cfg["phrases"] + cfg["visible_words"]:
+            pat = r"(?:^|[.!?]\s+)" + re.escape(p) if p.endswith(":") else r"\b" + re.escape(p) + r"\b"
+            if re.search(pat, text, re.I):
+                hits.append(f"{name}: banned phrase {p!r} in {text[:100]}")
+    return hits
+
+
+def test_a_coverage_interval_is_called_under_over_or_consistent_against_the_nominal_ninety():
+    assert ev._cover_status([0.70, 0.89]) == "under" and ev._cover_status([0.91, 0.95]) == "over" and ev._cover_status([0.89, 0.91]) == "consistent"
+    assert ev._cover_status([0.88, 0.90]) == "consistent" and ev._cover_status([0.90, 0.92]) == "consistent"           # touching the nominal is consistent with it
+
+
+def test_the_conformal_follow_up_rides_in_the_ledger_section_with_width_beside_coverage():
+    p = RESULTS / "dev_conformal.json"
+    if not p.exists():
+        pytest.skip("dev_conformal.json has been written by the dev run")
+    conf = json.loads(p.read_text(encoding="utf-8"))
+    s = ev.shape_ledger(_dev("ledger"), None, conf)
+    c = s["conformal"]
+    assert _valid("hrt_ledger", s) == []
+    assert [x["id"] for x in c["claims"]] == ["K1a", "K1b", "K1c", "K2a", "K2b", "K2c", "K3", "K4", "K5a", "K5b", "K5c"]
+    assert all(x["result"] in ("passed", "not passed", "not testable") for x in c["claims"])
+    assert len(c["standard"]) == 4 and len(c["recalibrated"]) == 3 and len(c["guard_link"]) == 4
+    for r in c["standard"] + c["recalibrated"]:
+        assert r["stuck_set"]["status"] in ("under", "consistent", "over") and "single_label_share" in r["stuck_set"] and r["stuck_set"]["both_label_share"] is not None
+        assert r["finish"]["factor"] >= 1.0 and r["finish"]["recentred_factor"] >= 1.0 and r["finish"]["status"] in ("under", "consistent", "over")
+        assert 0 < r["next_progress"]["mean_length_steps"] <= 5 and r["next_progress"]["baseline_length_steps"] <= 5          # width is printed beside every coverage figure
+    assert "guard flagged" in c["statement"] and "registered claims passed" in c["statement"]
+    assert _banned_hits(s, "conformal") == []
+    assert ev.shape_ledger(_dev("ledger"))["conformal"] is None                  # without the follow-up the section is the ledger section as before
+    txt = render_md._hrt_ledger(s)
+    assert "end-to-end factor" in txt and "K1a" in txt and "The guard beside the stuck-set coverage" in txt
+
+
 def test_no_text_the_app_can_show_says_synthetic_or_simulated_and_none_is_a_banned_phrase():
     """Owner decision D57: the app says 'generators we wrote', 'generated worlds'. The data's origin enum keeps its value; every other string is in plain words
     and passes the banned-phrase list of docs/knack-ux/banned-phrases.json."""
