@@ -2,7 +2,9 @@
 // A blocking approval or a safety pause takes the hero slot. Everything the old Your week showed beyond this moved: the Monday note to the
 // palette, "What your admin can see" to Your data, the example-week selector to Settings, the data mode to the sidebar's status line.
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { api, forgetBackoff, refreshQueueBadge } from "../../api";
+import { api, forgetBackoff } from "../../api";
+import { reportInsight } from "../../lib/wakeContext";
+import { refreshNeedsBadge } from "../NeedsYou/count";
 import { useRoute } from "../../router";
 import { useAppState } from "../../store";
 import { useLoad } from "../../hooks";
@@ -74,12 +76,16 @@ export default function Home() {
 
   const onGone = useCallback((id: string) => setGone((g) => new Set([...g, id])), []);
   const retry = useCallback(() => { forgetBackoff(); window.dispatchEvent(new Event("understudy:retry")); w.reload(); }, [w]);
-  const decided = useCallback(() => { queue.reload(); void refreshQueueBadge(); }, [queue]);
+  const decided = useCallback(() => { queue.reload(); void refreshNeedsBadge(); }, [queue]);
 
   const data = w.data;
   const pointers = useMemo(() => (data ? data.pointers.filter((p) => !gone.has(p.id)) : []), [data, gone]);
   const pending = (queue.data ?? []).filter((x) => x.status === "pending");
   const blocking = blockingItem(pending);
+
+  // Tell the voice conversation which insight is the hero (an id and the template it was built from, nothing else). An approval, a quiet week or a loading screen has none.
+  const heroPointer = !blocking && pointers.length > 0 ? pointers[0] : null;
+  useEffect(() => { reportInsight(heroPointer?.id ?? null, heroPointer?.kind ?? null); }, [heroPointer?.id, heroPointer?.kind]);
 
   if (w.status === "error" && !data) return <div className="page page--read home"><QuietState q={COULD_NOT_LOAD} onRetry={w.reload} /></div>;
   if (!data) return <Reading />;

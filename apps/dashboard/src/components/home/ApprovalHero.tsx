@@ -1,25 +1,31 @@
 import { useState } from "react";
 import { ApiError, api } from "../../api";
-import { authForApproval, needsStepUp, useAuth } from "../../auth";
+import { authForApproval, needsStepUp, stepUpNotice, useAuth } from "../../auth";
 import { Details } from "../ui";
 import { useToast } from "../Toasts";
-import { consequence, decisionLabels, firstSentence } from "../../screens/Home/approval";
+import { approvalLabels, consequence, leadAndRest, plainWords } from "../../screens/NeedsYou/model";
+import { refreshNeedsBadge } from "../../screens/NeedsYou/count";
+import { finalizeOf, isSafetyPause } from "../../screens/Home/approval";
 import type { QueueItem } from "../../types";
 
 /**
- * An approval that blocks a running job, or a safety pause, takes Home's hero slot: its title, one line, what it would do that cannot be undone,
- * its own two buttons, and the evidence opening in place. A decision is always a real click (never a key), and an irreversible or outward step
- * still asks for a fresh sign-in when the identity provider is on; without it, nothing is approved.
+ * An approval that blocks a running job, or a safety pause, takes Home's hero slot: its title, what it says in a line or two, what it would do that cannot
+ * be undone, its own two buttons, and the evidence opening in place. A decision is always a real click (never a key), and an irreversible or outward step
+ * still asks for a fresh sign-in when the identity provider is on; without it, nothing is approved. The words and labels are the same ones Needs you uses
+ * (screens/NeedsYou/model.ts). A pause for safety is a choice of equal weight: it gets no primary button.
  */
 export function ApprovalHero({ item: it, onDone }: { item: QueueItem; onDone: () => void }) {
   const toast = useToast();
   const auth = useAuth();
   const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const L = decisionLabels(it.kind);
-  const cost = consequence(it);
-  const keys = Array.from(new Set([...Object.keys(it.evidence.extracted ?? {}), ...Object.keys(it.evidence.expected ?? {})]));
-  const diff = (it.evidence.diff ?? []) as { field: string; expected: string; got: string }[];
+  const L = approvalLabels(it.kind);
+  const cost = isSafetyPause(it) ? "Paused for safety." : consequence(it.risk_class);
+  const stepUp = auth.enabled && needsStepUp(it.risk_class);
+  const title = plainWords(it.title || "Something needs you");
+  const { lead, rest } = leadAndRest(it.summary ?? "", isSafetyPause(it) ? 30 : 16);
+  const keys = Array.from(new Set([...Object.keys(it.evidence?.extracted ?? {}), ...Object.keys(it.evidence?.expected ?? {})]));
+  const diff = (Array.isArray(it.evidence?.diff) ? it.evidence.diff : []) as { field: string; expected: string; got: string }[];
 
   const decide = async (a: "approve" | "reject") => {
     setBusy(a); setErr(null);
@@ -30,25 +36,30 @@ export function ApprovalHero({ item: it, onDone }: { item: QueueItem; onDone: ()
         if (!gate.allowed) { setErr(gate.message); return; }
         proof = gate.auth;
       }
-      await api.setQueue(it.id, a, proof);
-      toast({ tone: "success", text: a === "approve" ? `${L.yes}: done.` : `${L.no}: done.`, detail: it.title });
+      const r = await api.setQueue(it.id, a, proof);
+      if (a === "approve" && finalizeOf(r) === "failed") {
+        // The approval was recorded, but the step it released did not finish: say so, never "done".
+        toast({ tone: "error", text: "Approved, but the step did not finish.", detail: "Nothing was submitted. Open Needs you to see it." });
+      } else toast({ tone: "success", text: a === "approve" ? `${L.yes}: done.` : `${L.no}: done.`, detail: title });
+      void refreshNeedsBadge();
       onDone();
-    } catch (e) { setErr(e instanceof ApiError ? e.message : "That did not go through. Try again."); }
+    } catch (e) { setErr(e instanceof ApiError ? e.message : "That did not go through. Nothing was changed. Try again."); }
     finally { setBusy(null); }
   };
 
   return (
     <section className="home__hero home__hero--approval" aria-labelledby="home-hero" data-testid="home-approval">
-      <h1 id="home-hero" className="home__hero-text hero-insight">{it.title}</h1>
-      <p className="home__why">{firstSentence(it.summary)}</p>
-      {cost && <p className="home__cost" data-risk={it.risk_class}>{cost}{auth.enabled && needsStepUp(it.risk_class) ? " Asks you to sign in again." : ""}</p>}
+      <h1 id="home-hero" className="home__hero-text hero-insight">{title}</h1>
+      {lead && lead.split(/(?<=[.!?])\s+/).map((sentence, i) => <p key={i} className="home__why">{sentence}</p>)}
+      {cost && <p className="home__cost" data-risk={it.risk_class}>{cost}</p>}
+      {stepUp && <p className="home__why home__why--small">{stepUpNotice(it.risk_class)}</p>}
       {err && <p className="field__error" role="alert">{err}</p>}
       <div className="home__actions">
-        <button type="button" className="btn btn--primary" disabled={busy !== null} onClick={() => decide("approve")}>{busy === "approve" ? "Working" : L.yes}</button>
-        <button type="button" className="btn btn--secondary" disabled={busy !== null} onClick={() => decide("reject")}>{L.no}</button>
+        <button type="button" className={`btn ${isSafetyPause(it) ? "btn--secondary" : "btn--primary"}`} disabled={busy !== null} onClick={() => decide("approve")}>{busy === "approve" ? "Working" : L.yes}</button>
+        <button type="button" className="btn btn--secondary" disabled={busy !== null} onClick={() => decide("reject")}>{busy === "reject" ? "Working" : L.no}</button>
         <Details summary="Evidence">
           <div className="home__evidence">
-            {it.summary && firstSentence(it.summary) !== it.summary && <p className="note">{it.summary}</p>}
+            {rest && <p className="note">{rest}</p>}
             <p className="note">Run {it.run_id}{it.routine_id ? ` · ${it.routine_id}` : ""}</p>
             {keys.length > 0 && (
               <div className="kv" role="table" aria-label="What the run found against what was expected">

@@ -1,11 +1,12 @@
 import { Component, Suspense, useEffect, useState, type ReactNode } from "react";
-import { api, refreshQueueBadge } from "./api";
+import { api } from "./api";
 import { DEFAULT_SCREEN, navigate, screenOf, useRoute } from "./router";
 import { resetSources, setState, useAppState } from "./store";
 import { Loading } from "./components/common";
 import { ToastHost } from "./components/Toasts";
 import { AuthContextProvider, createAuth } from "./auth";
 import { extensionsFrom } from "./lib/ext";
+import { refreshNeedsBadge } from "./screens/NeedsYou/count";
 import { ScreenFrame } from "./components/home/ScreenFrame";
 import { Overlays } from "./components/home/Overlays";
 import { BARE_SCREENS, labelOf } from "./components/home/navModel";
@@ -67,8 +68,8 @@ function Shell() {
       .then(([r, agent, who]) => setState({ mock: r.data?.mock ?? null, engineUp: r.source === "live", ext: extensionsFrom(r.data, r.source, agent), agentUp: agent !== null, person: who?.person ?? null, role: who?.role ?? null, extReady: true }))
       .catch(() => setState({ engineUp: false, ext: extensionsFrom(null, "demo"), extReady: true }));
     void health();
-    void refreshQueueBadge();
-    const on = () => { setNonce((n) => n + 1); void refreshQueueBadge(); void health(); };
+    void refreshNeedsBadge();
+    const on = () => { setNonce((n) => n + 1); void refreshNeedsBadge(); void health(); };
     window.addEventListener("understudy:retry", on);
     return () => window.removeEventListener("understudy:retry", on);
   }, []);
