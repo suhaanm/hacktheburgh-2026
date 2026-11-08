@@ -103,7 +103,7 @@ def test_consent_route_runs_the_task_and_reports(app_client):
     assert r.status_code == 200 and r.json()["state"] == "running" and set(r.json()) == ROW_KEYS
     assert wait_for(lambda: app_client.get(f"/tasks/{tid}").json()["state"] == "done", 15)
     d = app_client.get(f"/tasks/{tid}").json()
-    assert d["result"] == "Wrote summary.md with three rows. (cost US$0.01)" and d["cost_usd"] == 0.0123 and d["open"]["kind"] == "file" and d["steps"][0] == "Started"
+    assert d["result"] == "Wrote summary.md with three rows." and d["cost_usd"] == 0.0123 and d["open"]["kind"] == "file" and d["steps"][0] == "Started"
     r = app_client.post(f"/tasks/{tid}/consent", json={"choice": "allow"}, headers=worker(actor="worker_approval"))
     assert r.status_code == 409 and r.json()["error"]["code"] == "not_waiting"
 
