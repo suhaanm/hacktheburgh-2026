@@ -22,7 +22,7 @@ Needs you: a prepared action is a row. After a press the screen says what was ma
 
 ## Demo moment
 
-Press a prepared card in Needs you; the line says what it made and that nothing runs until you approve. Then open Background runs to show a read-only run that was started.
+Press a prepared card in Needs you; the line says what it made and that nothing runs until you approve. Then open Routines to show a read-only run that was started.
 
 ## Evidence and its label
 

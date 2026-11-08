@@ -1,8 +1,8 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 01:17 UTC, checked against main at 049a7cb. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 03:19 UTC, checked against main at 304ba37. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
-This is the master document. It lists 66 entries (62 features and 4 write-ups of results that did not hold up) on 35 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
+This is the master document. It lists 70 entries (66 features and 4 write-ups of results that did not hold up) on 35 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 25 video claims are in `docs/features/video-beats.md`; the 28 hardest judge questions are in `docs/features/faq.md`.
 
 **How to read an entry.** Name and status; what it does; how it works (ending in one 'What is different' sentence, which compares with the approaches in our own reference notes and is not a claim of priority over the whole field); where to see it; the demo moment; the evidence with its label; the honest limit; the hackathon target. **Status words:** `verified` (the lead saw it work end to end), `built` (built and tested by its track, on main, not yet seen end to end by the lead), `landing` (not on main yet), `not run`. **Evidence labels:** `synthetic` (data we generated), `simulated` (language-model participants, not people), `real model, small n` (a language model on our sandbox sites), `offline tests`, `owner-present`, `not run`. Nothing in this document is evidence about real workers. **Wording on screen:** Per decision D57 (owner, 8 Nov about 00:30 UTC) the app no longer uses the word 'synthetic' or 'simulated' on any screen, card, spoken line or desktop string; what a result was measured on is said in concrete words ('generators we wrote', 'planted example learners', 'language-model participants', 'example people made for this build'). This document is not the app and keeps its labels. Because the screens will not say it, say aloud in any video that the data are made up (synthetic); the README, Devpost and CLAIMS keep their wording, and CLAUDE.md's rule that synthetic results carry a badge is in tension with D57 (the lead keeps the constraint through concrete wording).
 
@@ -11,23 +11,23 @@ This is the master document. It lists 66 entries (62 features and 4 write-ups of
 1. **See the work**: Text-free capture (Chrome extension and event store); Work genome: aligned traces priced in seconds; Controls: placebo and shuffled-label null; What skipping costs in answers; Stuck prediction and the Forecasts scorecard; Your hours: presence map and away forecast; How work connects: the work graph; Calendar layer (week ribbon, Outlook and Teams adapters); Git habits for programmers.
 2. **Coach on the screen**: Live coach: one decision at a time, with a dignity gate; Fading help: levels L1 to L4 decided by code; On-screen annotations: ring, one label, ghost cursor; On-device awareness and triggered glances.
 3. **Step in when stuck**: Cue: stuck rescue.
-4. **Agents that do the work safely**: Benefits agent on three sandbox calculators; Code decides 'done'; Independent verifier (a second model family); Eight security layers, approval queue and audit log; Optional sign-in step-up for irreversible approvals (Auth0); Computer use on the sandbox calculators; Real-click ladder (R0 to R4) and the arm switch; Background agents: parent and child; Overnight runs and the morning report; Stop everything: the kill switch; Open-ended tasks, skills in context and Claude background agents.
+4. **Agents that do the work safely**: Benefits agent on three sandbox calculators; Code decides 'done'; Independent verifier (a second model family); Eight security layers, approval queue and audit log; Optional sign-in step-up for irreversible approvals (Auth0); Computer use on the sandbox calculators; Real-click ladder (R0 to R4) and the arm switch; Background agents: parent and child; Overnight runs and the morning report; Live background task list: a finish shows up without a refresh; Stop everything: the kill switch; Open-ended tasks, skills in context and Claude background agents.
 5. **Routines and automations**: Routine finder and proposals; Watch first and the trust ladder; Could automate: the repeat list; Needs you: one list for decisions; When to build an automation: ski rental with predictions; Review routing under a risk bound; Proactive briefing: judge, verify, prepare, press to fire.
 6. **Connections and MCP plugins**: Connections: curated MCP plugins with role presets.
 7. **Voice and Hey Knack**: Hey Knack: an on-device wake phrase; Voice guidance and 'do it for me' behind a click.
 8. **Models and modes**: Model routing: Gemini by default, checked at boot; Local model digests (a 7B model on this Mac); Spoken lines (ElevenLabs, fixed vocabulary); Mock mode: the whole product offline.
 9. **Insights and admin**: Home: one sentence, one action; Top insights engine: a few pointers, chosen by code; Admin views: Firm, Roles, Onboarding; Monday note, firm brief and prediction scorecard.
 10. **Growth and independence**: Growth and the independence score.
-11. **A calm product: window, attention, context**: One attention layer: a router, a digest, quiet states; Context engineering: typed, bounded, fresh; One app, one window, one corner pill; First run: role, consent and a first look; Command palette and keyboard; Design system with budgets as tests; The Knack mark and brand.
+11. **A calm product: window, attention, context**: One attention layer: a router, a digest, quiet states; Context engineering: typed, bounded, fresh; One app, one window, one corner pill; First run: role, three consents and a check; Command palette and keyboard; Design system with budgets as tests; The Knack mark and brand.
 12. **Privacy and safety**: Egress guard, ledger and canary tests; Your data: see and delete; Memory file the worker owns.
-13. **Evidence and honesty**: Evidence page, make eval and the limitations register; Plain-English explainer with a number check; Generator-mismatch test (the realism matrix); ML v2, held-out: mostly negative; The simulated study sat at the floor; Other results that went the wrong way; Prospective prediction ledger and forward scoring; Drift guard: noticing when the model stops beating the baseline; Decisions scoreboard: realised cost against a naive policy and an oracle.
-14. **Roles**: Role packs: benefits processor deep, analyst and programmer thin; Programmer pack at standard depth; Data analyst pack at standard depth.
+13. **Evidence and honesty**: Evidence page, make eval and the limitations register; Plain-English explainer with a number check; Generator-mismatch test (the realism matrix); ML v2, held-out: mostly negative; The simulated study sat at the floor; Other results that went the wrong way; Prospective prediction ledger and forward scoring; Drift guard: noticing when the model stops beating the baseline; Decisions scoreboard: realised cost against a naive policy and an oracle; Online recalibration: rescuing the model instead of discarding it; Ranges and sets: conformal intervals, and where their promise breaks; Decision value against prediction accuracy: did the better forecast buy a better decision?.
+14. **Roles**: Role packs: the format, and the deep benefits processor pack; Programmer pack at standard depth; Data analyst pack at standard depth.
 
 Then: what exists elsewhere, numbers you may quote, things we do not claim, what is landing, sources read.
 
 ## The product in one paragraph
 
-Knack watches how people do the same work and shows where a novice loses time and accuracy against an expert, in seconds and in wrong answers, with controls so a gap is not an artefact. It coaches on the real screen with help that is rare and fades as a skill is mastered, steps in with one question when someone is stuck, and lets an agent take repetitive work only when the worker agrees, one routine at a time, behind eight code-enforced layers and a Stop button that never waits for a model. A memory file the worker owns, readable and editable, adapts it to them. It runs as one calm app: a window, a menu-bar item and a small corner pill. It covers several jobs through role packs (one deep, a UK benefits processor; two thin, a data analyst and a programmer). Every number carries its n, split, interval and origin. Almost all of them are synthetic or simulated, the live study with four teammates has not been run, and the product says what did not hold up.
+Knack watches how people do the same work and shows where a novice loses time and accuracy against an expert, in seconds and in wrong answers, with controls so a gap is not an artefact. It coaches on the real screen with help that is rare and fades as a skill is mastered, steps in with one question when someone is stuck, and lets an agent take repetitive work only when the worker agrees, one routine at a time, behind eight code-enforced layers and a Stop button that never waits for a model. A memory file the worker owns, readable and editable, adapts it to them. It runs as one calm app: a window, a menu-bar item and a small corner pill. It covers several jobs through role packs (one deep, a UK benefits processor; a data analyst and a programmer, both at standard depth). Every number carries its n, split, interval and origin. Almost all of them are synthetic or simulated, the live study with four teammates has not been run, and the product says what did not hold up.
 
 ## The loop in one line
 
@@ -55,7 +55,7 @@ Plain sentences a narrator can read as written. Each says the data are synthetic
 
 **30 seconds.** Two people do the same job. One is slower and gets a different answer, and nobody can see where. Knack aligns a novice's steps with the nearest expert's and prices every gap in seconds and in wrong answers. It coaches on the real screen, rarely, and gives less help as you master a step. When you are stuck it asks one question. An agent can take repetitive work, but only one routine at a time, only with your yes, and the irreversible step waits for your click. One key stops everything. The numbers are synthetic, and the screens say so.
 
-**60 seconds.** Add to the thirty seconds: the work is checked by code, not by the model, so when a real model said it had finished on an error page in twenty of twenty runs, the code check caught every one. Everything that leaves your Mac is listed, without the picture. Every number carries its n, its interval and its origin. And we published what did not hold up: on harder synthetic data the stuck model's edge shrinks to a few thousandths, the simulated study sat at the floor, and computer use finished one of four held-out households. The live study with four teammates has not been run.
+**60 seconds.** Add to the thirty seconds: the work is checked by code, not by the model, so when a real model said it had finished on an error page in twenty of twenty runs, the code check caught every one. Everything that leaves your Mac is listed, without the picture. Every number carries its n, its interval and its origin. And we published what did not hold up: on harder synthetic data the stuck model's edge shrinks to a few thousandths, the simulated study sat at the floor, and computer use finished one of four held-out households with the first model and 18 of 20 with Gemini, short of the bar we set. The live study with four teammates has not been run.
 
 ## The three hackathon targets, and what to show for each
 
@@ -139,11 +139,11 @@ Events become steps through the role pack's mapping. A sequence alignment (Needl
 
 #### Where to see it
 
-More, then Where time goes (address #/genome). The Home hero's action, See where the time goes, opens it on that step. Settings, Views, Pinned views puts it in the sidebar.
+Growth, section 'My steps against an experienced worker's' (address #/growth?section=steps; the old #/genome, #/week, #/presence, #/graph and #/git addresses redirect into Growth). It shows the worker's own case beside one unnamed experienced worker's, the steps that lost the most time, a closed 'Explain this case' and a closed 'Key and more'. The Home hero's action, See where the time goes, leads to it. The habit waterfall and the transition graph exist as components but no screen on main draws them.
 
 #### Demo moment
 
-Open Where time goes. Point at the provenance line (what the data are), the ribbon (expert above, novice below, gaps hatched), and the waterfall that splits the seconds by habit. Say: the interval on the real gap does not include zero, and say aloud that the data are synthetic.
+Open Growth and the section 'My steps against an experienced worker's'. Point at the ribbon (the worker's own case above, one experienced worker's below, gaps hatched, seconds lost per step) and the short list of steps that lost the most time; open 'Explain this case'. Since D57 there is no 'synthetic' tag, so say aloud that the data are synthetic. The three-interval evidence that the gap is real is in the Admin view (More, Evidence), not on this page.
 
 #### Evidence and its label
 
@@ -177,11 +177,11 @@ The placebo aligns each expert to the nearest other expert. The null shuffles th
 
 #### Where to see it
 
-Where time goes (the controls under the ribbon) and Evidence (More, For reviewers).
+Evidence (Admin view, More, Evidence). The worker's Growth page shows one case, not the controls; the old screen that drew them under the ribbon is gone from the dashboard.
 
 #### Demo moment
 
-On Where time goes, read the three numbers aloud: 229.6 seconds a case for the real gap, 7.1 for expert against expert, 46.2 for the shuffled null. The first interval excludes zero; the other two include it.
+In the Admin view, More, Evidence, read the three numbers aloud: 229.6 seconds a case for the real gap, 7.1 for expert against expert, 46.2 for the shuffled null. The first interval excludes zero; the other two include it.
 
 #### Evidence and its label
 
@@ -213,7 +213,7 @@ On 200 synthetic households scored by the sandbox oracle, skipping reconcile mea
 
 #### Where to see it
 
-Where time goes (the answers view beside the seconds) and Evidence.
+Not drawn by a screen on main: the answers view that sat beside the seconds on the old Where time goes screen is gone from the dashboard. The result is in evals/cases/skip_consequences.json and in the report that the Evidence page (Admin view, More) renders.
 
 #### Demo moment
 
@@ -251,11 +251,11 @@ Bins of 30 seconds. Features: the last three step types, dwell, repeated actions
 
 #### Where to see it
 
-More, then Forecasts (address #/forecasts; for admins, Firm, Forecasts). The coach and Cue use the same signal.
+Admin view, sidebar Forecasts (address #/forecasts; headline first, 'what to expect, and what to do about it'). It is not shown to a worker. The coach and Cue use the same signal.
 
 #### Demo moment
 
-Open Forecasts. Show the reliability diagram, then the two baselines (base rate, time since progress), then false alarms an hour against the budget of 1.0. Say the model's edge over the plain rule is small on harder data, and the page says so.
+In the Admin view open Forecasts. Show the reliability diagram, then the two baselines (base rate, time since progress), then false alarms an hour against the budget of 1.0. Say the model's edge over the plain rule is small on harder data, and the page says so.
 
 #### Evidence and its label
 
@@ -292,11 +292,11 @@ A weekly map of when you are at your machine, with intervals, and an estimate of
 
 #### Where to see it
 
-More, then Your hours (address #/presence). Your data also lists the hours Knack holds.
+Growth, section 'Where my time goes' (address #/growth?section=time; the old #/presence redirects there): the worker's own weekly map. Your data also lists the hours Knack holds.
 
 #### Demo moment
 
-Open Your hours: the week as a heat map with intervals and the free hours it reveals. Say how the rule decides when a run may start, then show the numbers against the two baselines.
+Open Growth, then 'Where my time goes': the week as a heat map with intervals and the free hours it reveals. Say how the rule decides when a run may start, then show the numbers against the two baselines.
 
 #### Evidence and its label
 
@@ -323,23 +323,23 @@ A graph of routines, skills and remembered facts. Nodes link when related, merge
 
 #### How it works
 
-Size is weekly minutes or mastery, colour is the node type, opacity is strength, and fading uses the same decay as the help-level engine. Deleting a memory node edits the memory file, so the graph is a view of what Knack holds, not a second store. One of the product's three signature visuals.
+Size is weekly minutes or mastery, colour is the node type, opacity is strength in two bands that keep the icon readable, a dashed ring is lapsed, and fading uses the same decay as the help-level engine. Every node carries an icon (routine, skill, memory, automation) and no text is drawn on the canvas: a name opens in a small note card on hover, keyboard focus or a click, and a click keeps it until Escape or another click. The details panel leads with what the node is and why it exists, with the numbers behind a closed disclosure; the key is pictures only, behind 'What are these?'. The Genome transition graph component follows the same rules with ten step icons, but no screen on main draws it. Layout is tested for empty, one-node, self-loop, repeated and thousand-node graphs. Deleting a memory node edits the memory file, so the graph is a view of what Knack holds, not a second store. One of the product's three signature visuals.
 
 **What is different.** Fading is literal: nodes decay with the same rule the help levels use, and deleting a node edits the file the worker owns, so the graph is a view and not a second store.
 
 #### Where to see it
 
-More, then How work connects (address #/graph). Settings, Views, Pinned views puts it in the sidebar.
+Growth, section 'How my routines connect' (address #/growth?section=map; the old #/graph redirects there).
 
 #### Demo moment
 
-Open the graph, click a routine node to see why it exists, then delete a memory node and show the line leaving the memory file in Your data.
+Open the graph, hover a node to see its name, click a routine node to see why it exists, then delete a memory node and show the line leaving the memory file in Your data.
 
 #### Evidence and its label
 
 | What | Label | Source |
 |---|---|---|
-| No measured result: this screen is a view of the engine's work graph and has no evaluation of its own | no evidence yet (built; not measured) | `docs/IMPLEMENTATION_SPEC.md (7.4)` |
+| No measured result: this screen is a view of the engine's work graph and has no evaluation of its own; the redesign (owner request 4.13) is covered by unit and page-structure tests of the layout, the panel and the colour contrast | no evidence yet (built; not measured) | `docs/IMPLEMENTATION_SPEC.md (7.4); apps/dashboard/src/components/graph/Graph.dom.test.ts; apps/dashboard/src/lib/graphContrast.test.ts` |
 
 #### Honest limit
 
@@ -365,11 +365,11 @@ Calendars become counts, durations and enums; no titles, attendees or bodies are
 
 #### Where to see it
 
-More, then Calendar (address #/week).
+Growth, section 'Where my time goes' (address #/growth?section=time; the old #/week redirects there).
 
 #### Demo moment
 
-Open Calendar: the week ribbon, the worker's week against the expert's, and one suggestion with its interval. Say the adapters never write and have not been run on a real account.
+Open Growth, 'Where my time goes': the week ribbon, the worker's week against one experienced worker's, and one suggestion with its interval. Say the adapters never write and have not been run on a real account.
 
 #### Evidence and its label
 
@@ -402,11 +402,11 @@ Reads the git history on the device. Features are counts and times; commit messa
 
 #### Where to see it
 
-More, then Git habits (address #/git). Programmer role only.
+Growth, section 'My commits' (address #/growth?section=commits; the old #/git redirects there). It opens for programmers, and for anyone who follows a link to it.
 
 #### Demo moment
 
-Open Git habits on the programmer example: habits against experts with intervals, and the generic suggestion for each. Say the repository is synthetic.
+Open Growth, 'My commits', on the programmer example: habits against experts with intervals, and the generic suggestion for each. Say the repository is synthetic.
 
 #### Evidence and its label
 
@@ -444,7 +444,7 @@ Plain code, no model. The actions are silent, nudge, annotate and takeover. The 
 
 #### Where to see it
 
-More, then Live coach (address #/today) shows the current task and the help level. The ring and card appear on the real screen.
+The ring and card appear on the real screen. The old Live coach screen (#/today) is no longer a destination and redirects to Home; where the current task and the help level show now is not verified.
 
 #### Demo moment
 
@@ -482,11 +482,11 @@ The engine's level module is the authority (L1 full help, L2 small help, L3 a do
 
 #### Where to see it
 
-Live coach shows the level; Growth has a closed 'The fade' disclosure; Settings has Coaching (on or off, level lock).
+Growth, My progress, has a closed 'The fade' disclosure; Settings has Coaching (on or off, level lock). The old Live coach screen that showed the level is no longer a destination.
 
 #### Demo moment
 
-Open Live coach and point at the level; open Growth, then The fade, and show prompts getting lighter as the curve rises. Say that code, not a model, moved the level.
+Open Growth, then The fade, and show prompts getting lighter as the curve rises. Say that code, not a model, moved the level.
 
 #### Evidence and its label
 
@@ -597,7 +597,7 @@ Candidates come from the expert transition graph: the top three next steps with 
 
 #### Where to see it
 
-On the real screen when stuck (ring and card); More, then Live coach; Growth shows the effect over time.
+On the real screen when stuck (ring and card); Growth shows the effect over time.
 
 #### Demo moment
 
@@ -641,7 +641,7 @@ An orchestrator turns a case into a task graph. Navigators run in parallel, each
 
 #### Where to see it
 
-Routines, then Run now (the window minimises and the corner pill shows what is happening); the result arrives in Needs you. More, then Background runs shows runs.
+Routines, then Run now (the window minimises and the corner pill shows what is happening); the result arrives in Needs you. The worker's background tasks are listed on Routines; the admin's Background runs (Admin view, More) shows runs.
 
 #### Demo moment
 
@@ -717,7 +717,7 @@ A closed question with yes, no or unsure; unsure is never accepted; code require
 
 #### Where to see it
 
-Behind the scenes: More, then Models and cost lists the route; agent runs show a verified chip per step where wired.
+Behind the scenes: the Admin view, More, Models and cost lists the route; agent runs show a verified chip per step where wired.
 
 #### Demo moment
 
@@ -814,7 +814,7 @@ No tenant is configured, so the fallback approves as before. Never part of the P
 
 ### Computer use on the sandbox calculators
 
-**Status:** built (works in-sample, not held-out; the Gemini configuration is still in development) · **Page:** `docs/features/computer-use.md` · **Targets:** Wordsmith
+**Status:** built (Gemini, held-out and pre-registered: 18 of 20 clean households completed with correct inputs, below the bar we set; the earlier OpenAI configuration completed 1 of 4; nothing has driven a real desktop) · **Page:** `docs/features/computer-use.md` · **Targets:** Wordsmith
 
 #### What it does
 
@@ -822,7 +822,7 @@ A model sees screenshots and clicks and types on a calculator page. It never see
 
 #### How it works
 
-Tier-3 goals carry typed handles such as the household's income or number of children. The model emits 'type this fact'; code resolves the value and the actuator types it. Every click and key press passes the same action-class gate, goal-drift check and trusted read of the element under the pointer. A read-back after each typed value and a guard against leaving fields unfilled before the final button are being added. The earlier failure was our design: with no values in the goal the model had nothing to type and declined at step one.
+Tier-3 goals carry typed handles such as the household's income or number of children. The model emits 'type this fact'; code resolves the value and the actuator types it. Every click and key press passes the same action-class gate, goal-drift check and trusted read of the element under the pointer. A form audit (a read-back after each typed value and a guard against leaving fields unfilled before the final button) is part of the configuration of the Gemini round; its mode is recorded in the result file. The earlier failure was our design: with no values in the goal the model had nothing to type and declined at step one.
 
 **What is different.** The model never sees the real values: it names a fact by handle and code types it, so prompts and logs hold handles only.
 
@@ -832,7 +832,7 @@ Behind Routines, Run now, when a routine needs tier 3. Evidence has the agentic 
 
 #### Demo moment
 
-Not a demo moment: say plainly that the computer-use tier is in development and that Submit waited for a human in every run.
+Not a demo moment: say plainly that the Gemini held-out round completed 18 of 20 against a bar of 0.80 on the lower bound, which it did not meet, and that Submit waited for a human in every run.
 
 #### Evidence and its label
 
@@ -841,11 +841,12 @@ Not a demo moment: say plainly that the computer-use tier is in development and 
 | Development households: after fact handles, 3 of 3 completed through the real gate with 0 false claims (Wilson [0.44, 1.00]) | real model (OpenAI), IN-SAMPLE, 3 households | `evals/agentic/ITERATIONS.md` |
 | Held-out clean, n = 4: 1 completed (Wilson about [0.05, 0.70]); in 2 runs the harness accepted calculator B with a drop-down left at its default and only the evaluation's independent recomputation caught it; 1 run paused because the goal-check call could not complete (it fails closed); Submit waited for a human in all 4 | real model (OpenAI), our sandbox, headless browser; gate 35e964049fd0 | `evals/report.md (Agentic evaluation); evals/agentic/ITERATIONS.md` |
 | Held-out injected, n = 20: 20 of 20 paused at step 0; 0 attacks executed | real model (OpenAI); pages carry text only | `evals/report.md (Agentic evaluation)` |
-| Gemini configuration, development households only, round 7 on the final code: 8 of 8 households end to end with the calculators by computer use and the case note by tier 2 (Wilson 0.68 to 1.00); 4 of the 8 were never used in development; about US$0.18 to 0.20 each; stuck-repeat pauses on drop-downs recur in 4 of 12 runs. An earlier dev round on the same code line gave 0 of 3 end to end | real model (Gemini), IN-SAMPLE, not a held-out rate; the case-note step used the tier-2 scribe option, which is off by default | `docs/DECISIONS.md (D62); evals/agentic/ITERATIONS_8.md (branch)` |
+| Gemini configuration, held-out, pre-registered (plan amendment A1 committed before the first live call), one run per household, calculators by computer use and the case note at tier 2: clean, n = 20 fresh generated households on our sandbox: 18 completed with correct inputs on all three calculators (Wilson [0.70, 0.97]); the pre-registered bar, a lower bound of at least 0.80, was not met; both misses paused instead of finishing (a stuck-loop stop and refused actions), 0 false claims, the harness accepted no wrong input, nothing was submitted. Injected, n = 20: all 20 paused at step 0 (text-only pages). Spend about US$4 | real model (Gemini), held-out, our sandbox; gate a736b8dc8988; not pooled with the OpenAI round | `evals/agentic/results/round2_clean_9139.json; evals/agentic/results/round2_injected_9140.json; evals/agentic/PLAN_ROUND2.md (Results); docs/DECISIONS.md (D65)` |
+| Gemini configuration, development households only, round 7 on the final code: 8 of 8 households end to end with the calculators by computer use and the case note by tier 2 (Wilson 0.68 to 1.00); 4 of the 8 were never used in development; about US$0.18 to 0.20 each; stuck-repeat pauses on drop-downs recur in 4 of 12 runs. An earlier dev round on the same code line gave 0 of 3 end to end | real model (Gemini), IN-SAMPLE, not a held-out rate; the case-note step used the tier-2 scribe option, which is off by default | `docs/DECISIONS.md (D62); evals/agentic/ITERATIONS_8.md` |
 
 #### Honest limit
 
-Seven households in total across development and held-out, so no rate should be quoted. The injected pages test the detector, not the gate against a hostile page. Every number above, except the Gemini row, is about the OpenAI configuration. The pre-registered Gemini round (20 clean households on seed 9139, 20 injected on seed 9140) launches only from the commit that holds the plan, after the owner confirms in chat (D62). Gemini's own safety check on Save draft is never acknowledged automatically. A harness option (off by default) lets the case-note step start at tier 2; any result that uses it is reported as 'calculators by computer use, note by tier 2', never as an all-computer-use result, and it is not a way round Gemini's own safety confirmation (decision D56).
+The Gemini held-out round is one run per household of a non-deterministic model on our own sandbox sites, and 18 of 20 did not clear the bar we set before the run. The OpenAI rows are a different configuration (seven households in all, so no rate should be quoted) and are shown apart. The injected pages test the detector, not the gate against a hostile page. Gemini's own safety check on Save draft is never acknowledged automatically. A harness option (off by default) lets the case-note step start at tier 2; any result that uses it is reported as 'calculators by computer use, note by tier 2', never as an all-computer-use result, and it is not a way round Gemini's own safety confirmation (decision D56).
 
 #### Hackathon target
 
@@ -906,7 +907,7 @@ A parent plans and hands typed specs to children, each following a written role 
 
 #### Where to see it
 
-More, then Background runs. Results arrive in Needs you.
+A worker sees their background tasks on Routines; the admin's Background runs (Admin view, More) shows the runs. Results arrive in Needs you.
 
 #### Demo moment
 
@@ -967,6 +968,44 @@ No real unattended run has been made: every run so far is in the sandbox or in m
 - **Wordsmith (most complicated end-to-end browser-use workflow)**: unattended multi-step work with a per-routine consent record
 - **HRT (best use of data for predictions and decisions)**: a start-or-wait decision under uncertainty about the worker's return
 
+### Live background task list: a finish shows up without a refresh
+
+**Status:** built (owner requests 4.15 and 4.16 (Track C); documented in docs/knack-ux/background-tasks.md; on main; the tasks service it prefers is on main since 01:42 UTC; not seen end to end by the lead) · **Page:** `docs/features/background-agents.md` · **Targets:** Wordsmith
+
+#### What it does
+
+A task that finishes in the background shows as finished on the page with no refresh, and each task is one short line, as minimal as Claude Code's own task list. Running tasks come first, then ones waiting for the worker, then one that finished in the last minute so the finish is seen; the rest of today's finished tasks sit under a closed 'Done today'.
+
+#### How it works
+
+One line per task: an icon whose shape carries the state (a spinner while it runs, a check when done, a dash when stopped, a cross when it did not finish, a dot when it waits for the worker), the job in plain words (at most 60 characters) and one note (the current step, the one result line, 'Needs your OK.' or 'Has a question.'). A click opens a plain list of steps and, for a task from the tasks service, Stop and Open folder or Open file. Ids, budgets, leases and counts the worker cannot act on are never shown here; they belong to the admin's Background runs. The data comes from one place: the tasks service when it answers, and the agent service's run list until then.
+
+The page stays live three ways: the services' event streams (each event asks for one refresh of the screen's own data, at most one every 0.4 seconds, and a broken stream is dropped and retried after 30 seconds), polling (every 2 seconds while anything is running, every 15 otherwise, waiting for the previous poll, and not at all in a hidden tab) and a refresh when the window regains focus. A refresh keeps the last good data on screen, so an open row stays open and the scroll does not move. A finish is a quiet check and one polite sentence for a screen reader, never a toast. A task that needs the worker also appears in Needs you as a consent card with Allow and Not now of equal weight.
+
+**What is different.** A background task that finishes shows as finished with no refresh, because three plain signals (event stream, a two-second poll, window focus) each ask the screen to reload its own data and keep the last good rows on screen; the line carries only what the worker can act on.
+
+#### Where to see it
+
+Routines (top of Running), Home (a short list of up to three), Needs you (a task that waits), and the admin's Background runs.
+
+#### Demo moment
+
+Start a task or a routine run and stay on Routines: the line shows its current step, then turns into a check with one result line, with no refresh. Open Done today to show the rest.
+
+#### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| The live loop is covered by tests with a fake clock and a fake stream, the line and its ordering by unit tests, the Needs you task cases by model tests, and a smoke block 'Live' in which a mocked tasks service flips a task from running to done while the page is open | offline tests; not run with a real task | `docs/knack-ux/background-tasks.md (section 'Tests')` |
+
+#### Honest limit
+
+Seen only with a mocked tasks service and the agent service's own runs: no real task has run through it. The word 'live' means a page that refreshes itself every two seconds or on an event, not a push to the screen. Hidden tabs are not polled, so a finish is shown when the tab is seen again.
+
+#### Hackathon target
+
+- **Wordsmith (most complicated end-to-end browser-use workflow)**: a long-running workflow the worker can leave and come back to, with the outcome visible at a glance
+
 ### Stop everything: the kill switch
 
 **Status:** built · **Page:** `docs/features/stop-everything.md` · **Targets:** Wordsmith
@@ -1007,35 +1046,50 @@ Measured on a laptop other processes were also using, with fake desktops for the
 
 ### Open-ended tasks, skills in context and Claude background agents
 
-**Status:** landing (owner decision D63 (01:05 UTC); a vertical slice tested with a fake claude is on the Tasks branch (worktree-agent-a40520cb1ac55fcdc, Track T); docs/TASKS.md has not been seen; nothing run with the real command; not on main) · **Page:** `docs/features/open-ended-tasks.md` · **Targets:** Wordsmith
+**Status:** built (owner decision D63 (01:05 UTC); merged to main at 01:42 UTC (fded20e): the service, API, router, Claude command runner, skills and browser runner, the consent cards and task list in the dashboard, the pills window in the desktop shell and the Live tool start_task, with docs/TASKS.md; not seen end to end by the lead; two small real runs of the owner's claude command were made with the owner's approval (a one-word prompt, then a throwaway copy of the protected-file layout; about US$0.125 in all, D64), and no real task has been run; the task box on Home ('What should Knack do?') is on main since 02:39 UTC (d9f8929) and has not been seen working with a real service) · **Page:** `docs/features/open-ended-tasks.md` · **Targets:** Wordsmith
 
 #### What it does
 
-The worker types or says any task (a task box on Home, and 'Hey Knack, do ...'). Knack routes it with code to one of four routes: answer inline, work in the agent's own browser window, show how on the real screen, or hand code, data and file work to a Claude background agent. Every route except 'answer' waits for the worker's click. Skills, including the owner's existing ones, load into context, and background agents show as small pills at the top right.
+The worker types or says any task; there is no preset list of jobs. Knack routes it with code to one of four routes: answer inline, work in the agent's own browser window, show how on the real screen, or hand code, data and file work to a Claude background agent. Every route except 'answer' waits for the worker's click. Skills, including the owner's existing ones, load into context, and background agents show as small pills at the top right.
 
 #### How it works
 
-Routing is code: weighted keyword and shape rules score each route; a clear winner is the route; when they cannot separate, an optional fast-model call may propose one value from the closed list, and code accepts it only if it is 'answer' or the rules already found some evidence for it, so a model can break a tie but never introduce a risky route; otherwise Knack asks one question, as a card with a button per route. The desktop route never clicks from this service: it answers 'show instead'. A Claude background agent is the owner's own claude command started as a monitored child in its own process group, in a working folder, with an allow-listed environment (home, path, language, terminal, user, temp folder: Knack's keys and every other variable are never passed), a 30-minute wall-clock cap, a 10-minute idle cap and an output cap. Stream events become short progress lines (a tool name and a file's base name, never contents, commands or prompts). Stop, the kill file and the time cap end the whole process group. The final message is returned as untrusted text. Two permission scopes: files and commands (edits and a fixed tool list, any prompt denied so the child cannot hang), or 'everything' (the skip-permissions flag), used only when the worker picks that second option on the consent card for that task. One consent card per task says in plain words what the agent can do (read and change files, run commands, uses the owner's own Claude account, not Knack's models). Ledger rows are metadata only. An unattended run never gets 'allow everything', and real desktop clicks stay behind the supervised first-click test.
+Routing is code: weighted rules over the worker's words score each route; a clear winner (a score of 2 or more and one ahead) is the route and no model is called. A plain question with no evidence for an action route is answered. When the rules tie and an action route has some evidence, one closed-list proposal may be asked of the fast model, and code accepts it only if it is 'answer' or the words already supported that route, so a model can break a tie but never introduce a risky route (tested); otherwise Knack asks one question as a card with a button per route. The desktop route never clicks from typed text: it answers 'show instead'.
+
+A Claude background agent is the owner's own claude command started as a monitored child in its own process group, in a working folder (a named folder, or a new one under ~/Knack/work made only after the click), with an environment allow-list of six variables (home, path, language, terminal, user, temp folder: Knack's keys and every other variable are not passed) and a refusal of any permission prompt so the child cannot hang. Stream events become short progress lines (a tool name and a file's base name, never contents, commands or prompts), with a 'Still working' note after 30 seconds of silence. Caps: a wall-clock cap (30 minutes by default, 1 to 120 by setting or on the card), an idle cap of 10 minutes, an output cap of 20 MB and a spend limit: every task starts the command with its own budget flag, US$2 by default and set by the worker in Settings from US$0.5 to US$20, shown on the consent card, part of the pinned command hash and kept when the worker chooses the wider option; Knack also watches the cost the command reports and ends the process group itself when it reaches the limit and holds for half a second with no result, and the task then reads 'Reached the spend limit you set.' with its folder still openable. A routine-started task uses the lower of the setting and US$2. The cost the command reported is kept as a number in the task row and added to the result line.
+
+Stop, the kill file and the caps end the whole process group (a polite stop, a hard kill after 3 seconds, then a last sweep), so a shell command the agent started does not outlive the task. A crash becomes one plain reason, never raw error text.
+
+The final message is untrusted text: the row shows its first sentence cut to 140 characters plus Open folder or Open file; the full text is kept locally with mode 0600 and a model sees it only through the existing quarantined reader.
+
+The consent card says in plain words: 'Knack will start a Claude agent on this Mac. It can read and change files and run commands. Your Claude account is used.' It names the working folder, a pinned hash of the exact command and the time cap; buttons are Allow for this task and Not now; behind 'More' is Allow everything for this task (the skip-permissions flag), sent only by that explicit choice, never by default, never from voice, never unattended. Before the start the command is rebuilt and compared with the pinned hash; any change refuses it. The consent route needs the worker's approval actor and the per-boot token, which a page, a model, the voice actor and the agent actor cannot supply. Ledger rows are metadata only (a start row with scope, skill count and prompt size; a stop row with reason, seconds and output size); if a row cannot be written nothing starts.
+
+A routine may start a task unattended only with its own consent record that allows it (rung A2 or A3, not revoked), and then only with the narrower scope. At most 3 tasks run at once and 20 wait for a click. By voice, a Live tool named start_task hands the worker's request to this service (it is declared only when code can answer it, and its code is on main in apps/desktop/src/main/live); the model is told it never starts anything and must say what the answer tells it, for example to tap Allow on the card, and the answer it gets is a closed record (the route chosen and whether a card is waiting), never a summary.
+
+Skills are read from the front matter of skill files in the owner's Claude folders and in ~/Knack/skills, chosen by a word-matching score in code; for non-agent routes the top two are added as untrusted guidance that can never grant a permission, change a gate or add a tool.
 
 **What is different.** Routing is code with a closed list of routes (a model may break a tie but never add a risky route), every non-answer route waits for one consent card that says in plain words what the agent can do, and the agent is a monitored child with caps and a kill path.
 
 #### Where to see it
 
-Home (the task box and a short list of background tasks) and the voice tool in Hey Knack; pills at the top right while an agent works, with Knack's own attention (approvals, voice, Stop) staying in the bottom-right column. Not verified on main.
+Needs you (the consent card, with Allow and Not now and the wider choice behind More), Routines and Home (a short list of background tasks, live), small pills at the top right of the screen while an agent works (a second overlay column; Knack's own attention stays in the bottom-right column), and Hey Knack by voice ('Hey Knack, do ...'). In the desktop app a tap of Option-Space (or 'Ask Knack...' in the menu bar) opens an Ask bar: with a voice conversation open the line goes into it, and with none open the line becomes a task through the same client, with the same consent card, clarifying-question card and plain refusals under the input (docs/knack-ux/capabilities-and-permissions.md, 'Typing a task: the Ask bar'). The task box is on Home (owner request 4.18, decision D66): one field, 'What should Knack do?', placeholder 'Type a task, then press Enter', at most 500 characters, example lines that fill the field and never send, and a microphone where the desktop app can open its Ask bar. A task is only ever something the worker typed or said and then sent; the answer shows at once in its own plain line; a consent card prints its scope whole with two buttons of one size (the wider choice behind More) and focus never lands on a button, so the Enter that sent the task cannot also answer its consent; with no task service running the box says nothing was started and keeps what was typed. The service API is in docs/API_CONTRACT.md (Tasks API).
 
 #### Demo moment
 
-Not available yet. When it lands and the lead has seen it: type 'summarise this CSV'; the consent card names what the agent can do; click once; a pill shows progress; the result arrives as text the worker reads. Do not film until then.
+Not rehearsed. On Home type a task in 'What should Knack do?' and press Enter (or say it by voice, which needs the owner's first launch and a Gemini key); the consent card names what the agent can do; one click on Allow for this task; a pill appears at the top right; the result arrives as one sentence with Open file. Say that a request such as 'click Save in Excel' is answered with steps, not a click. Allowing a real task spends the owner's Claude account (US$2 limit by default), so click Allow only if a real task is meant, and do not film it until the lead has seen it work.
 
 #### Evidence and its label
 
 | What | Label | Source |
 |---|---|---|
-| The routing, the child process handling, the manager and the routes are covered by tests that use a fake claude command; nothing was run against the real command | offline tests with a fake command; not a real run | `services/agent/tests/tasks/ (branch worktree-agent-a40520cb1ac55fcdc)` |
+| 160 tests (the document's count; a static count of test functions on main is 132, and the document does not say what accounts for the difference) cover the routing, the child process handling (fake commands that succeed, crash, report a sign-in error or a usage limit, hang, ignore the stop signal, flood output, stay quiet, or start grandchild processes), the manager and the routes; every one uses a fake claude and a fake model | offline tests with fakes; not a real task | `docs/TASKS.md; services/agent/tests/tasks/` |
+| Two real runs of the owner's claude command, each with the owner's approval in chat, each a few cents (about US$0.125 together, on the owner's Claude account): run 1, a one-word prompt, showed the main flags accepted by version 2.1.319, exit 0 in 3.1 seconds, about US$0.063; run 2, on a throwaway copy of the protected-file layout, also showed the budget flag (limit US$0.50) and the flag that disables slash commands accepted, real tool events turned into progress lines that carry base names only, exit 0 in 14.4 seconds, US$0.0619 | two real one-prompt runs, owner approved; not tasks and not results | `docs/TASKS.md; docs/DECISIONS.md (D64)` |
+| The deny rules for Knack's protected files were verified once against the real command: its Write tool was refused for a new rung record, a new queue item, a new memory file and an overwrite of the kill file; its Read tool was refused for the token file and the memory file; ordinary writes in the same folder worked, and the files on disk afterwards confirmed nothing was created or changed. Not verified, and to be assumed bypassable: a shell command (a redirect is not a file-tool call), the rules under 'Allow everything', and a path reached through a symlink or another spelling. The budget stop itself was never reached | one real run on a temporary copy of the layout, owner approved | `docs/TASKS.md; docs/DECISIONS.md (D64)` |
+| The browser route is tested on a real headless Chromium with a scripted model; no real computer-use model was called; a finished free-text web task reads 'Reported, not checked' because code has no ground truth to verify it | offline tests; not a real run | `docs/TASKS.md` |
 
 #### Honest limit
 
-Full computer access is the owner's choice (D63) and the permission deny rules for Knack's own protected files are defence in depth, not a sandbox: a shell command can reach anything the owner's account can. This sits against the routines layer's rule that automations are a JSON step language and model-written code is never executed; the two are different layers and D63 governs the new one, but a judge will ask. Claude CLI usage is billed to the owner's own Claude account, outside the US$200 Gemini cap. Nothing here is verified on main.
+Full computer access is the owner's choice (D63), and the deny rules are a guard rail, not a sandbox: they were verified once against the real command for its file tools, and a shell command can bypass any such rule (untested), as can the rules under 'Allow everything' (untested). Desktop clicks are not wired to typed tasks: the desktop route always answers 'show instead', and real clicks stay behind the supervised first-click test. The owner's own Claude hooks run inside the child, as they do in a terminal. Claude command usage is billed to the owner's own Claude account, outside the US$200 Gemini cap; the brakes are the spend limit, the time cap and Stop, and the command's cost arrives mostly at the end, so a single very expensive turn can overshoot the limit by that turn. The budget stop itself was never reached in a real run, so the name of the result the command gives at its budget is a guess that Knack covers by matching any name containing 'budget' and by watching the reported cost itself. Also unverified against the real command: allow-everything, the skill deny rule and the add-directory flag. Each remaining check needs another approved real run. A task running when the service restarts becomes 'failed' with a plain reason. The consent card, the pills and the voice tool have not been seen working with a real task.
 
 #### Hackathon target
 
@@ -1287,7 +1341,7 @@ Needs you: a prepared action is a row. After a press the screen says what was ma
 
 #### Demo moment
 
-Press a prepared card in Needs you; the line says what it made and that nothing runs until you approve. Then open Background runs to show a read-only run that was started.
+Press a prepared card in Needs you; the line says what it made and that nothing runs until you approve. Then open Routines to show a read-only run that was started.
 
 #### Evidence and its label
 
@@ -1311,7 +1365,7 @@ Press a prepared card in Needs you; the line says what it made and that nothing 
 
 ### Connections: curated MCP plugins with role presets
 
-**Status:** landing (owner decision D55; built and documented on the CONNECTIONS branch (worktree-agent-a2c1788e3e4c0c876, docs/CONNECTIONS.md at 00:38 UTC); not on main yet; nothing real has been connected) · **Page:** `docs/features/connections.md` · **Targets:** Wordsmith
+**Status:** built (owner decision D55; merged to main at 01:28 UTC (97b633f) with docs/CONNECTIONS.md; built and tested by its track, not seen end to end by the lead; nothing real has been connected) · **Page:** `docs/features/connections.md` · **Targets:** Wordsmith
 
 #### What it does
 
@@ -1319,28 +1373,32 @@ Knack can read from the apps a worker already uses through servers that speak th
 
 #### How it works
 
-Knack writes no connectors. It reuses the official MCP Python SDK (version 2.3.0, pinned exactly, MIT) and the servers that GitHub, Google, Sentry and the community already publish, each pinned to one verified version; the repository's own plugin framework carries them. Hosted aggregators are not used, because the worker's data would leave the device through a third party. The consent line names who publishes the server, the package and version, the hosts it talks to and 'with your token' or 'It stays on this Mac'; a hash of what would run is stored with the consent, so a changed manifest disables the connection until the worker confirms again. Versions are exact (never 'latest'), launched with no shell, install scripts off and a minimal environment. Our own per-tool table decides what a call is; a server's own read-only hints never lower a class; SQL counts as a read only when code reads one read-only statement. A write or a send becomes an outward approval and a delete or code run an irreversible one, each bound to a digest of the arguments, used once, and expiring; inside a child agent nothing is ever opted in. An unattended run may read, and only for a connection the worker opted that very routine into. A tool result is data: it passes the injection detector, and in menu mode no model sees the text. Tokens go into the macOS Keychain on standard input, never in the repository, a log, a prompt, the dashboard or the ledger. Every call leaves a row written before the call (no row, no call) with sizes and outcome, never arguments or results. The worker's denylist and the kill flag apply. No screen or file lets the worker add an arbitrary server.
+Knack writes no connectors. It reuses the official MCP Python SDK (version 2.3.0, pinned exactly, MIT) and the servers that GitHub, Google, Sentry and the community already publish, each pinned to one verified version; the repository's own plugin framework carries them. Hosted aggregators are not used, because the worker's data would leave the device through a third party. The consent line names who publishes the server, the package and version, the hosts it talks to and 'with your token' or 'It stays on this Mac'; a hash of what would run is stored with the consent, so a changed manifest disables the connection until the worker confirms again.
+
+Versions are exact (never 'latest'), launched with no shell, install scripts off and a minimal environment. Our own per-tool table decides what a call is; a server's own read-only hints never lower a class; SQL counts as a read only when code reads one read-only statement. A write or a send becomes an outward approval and a delete or code run an irreversible one, each bound to a digest of the arguments, used once, and expiring; inside a child agent nothing is ever opted in. An unattended run may read, and only for a connection the worker opted that very routine into. A tool result is data: it passes the injection detector, and in menu mode no model sees the text.
+
+Tokens go into the macOS Keychain on standard input, never in the repository, a log, a prompt, the dashboard or the ledger. Every call leaves a row written before the call (no row, no call) with sizes and outcome, never arguments or results. The worker's denylist and the kill flag apply. No screen or file lets the worker add an arbitrary server. The runtime tool is mcp_call, the seventh runtime tool: a role uses it only if its allowed-tools list names it, in the default menu mode the model replies with an id from the role's own menu and code supplies the connection, tool and arguments, and no shipped role lists it yet.
 
 **What is different.** The list is curated and read-only by default, starts off, and avoids hosted aggregators so data does not leave the device.
 
 #### Where to see it
 
-First run, inside the role card: 'Connect your tools' chips for the chosen role, all off; a click shows the consent lines and only Connect connects, and the chips connect the Example version only, no account. Settings, Connections: the full list in three sets with Connect, Revoke, a Real choice that asks for a folder or address and a token, and counts of what each has read. Dev: GitHub, Git, Jira, Slack, Sentry, Files. Data: SQLite, Postgres, BigQuery, Sheets and Drive, Jupyter, Notion, Slack. Benefits: Outlook calendar, Teams meetings (meeting times and counts only), SharePoint. Chips carry printed flags: Notion 'Vendor says unmaintained', Sentry 'Source-available licence', and 'Community server' on Slack, Jira, Jupyter, Sheets and Drive and SharePoint.
+First run, inside the role card: 'Connect your tools' chips for the chosen role, all off; a click shows the consent lines and only Connect connects, and the chips connect the Example version only, no account. Settings, Connections: the full list in three sets with Connect, Revoke, a Real choice that asks for a folder or address and a token, and counts of what each has read. Outlook and Teams are Example only in the app: they are the calendar layer's read-only sources, and a real Microsoft sign-in is set up by the owner for one approved run (D26), never from a button. Outlook and Teams are Example only in the app: they are the calendar layer's read-only sources, and a real Microsoft sign-in is set up by the owner for one approved run (D26), never from a button. Dev: GitHub, Git, Jira, Slack, Sentry, Files. Data: SQLite, Postgres, BigQuery, Sheets and Drive, Jupyter, Notion, Slack. Benefits: Outlook calendar, Teams meetings (meeting times and counts only), SharePoint. Only two chips carry a printed flag, in plain muted text: Notion 'Vendor says unmaintained' and Sentry 'Source-available licence'; who made a server (a community author, the vendor, the MCP project) is not a warning and is shown as the publisher in the consent lines and in 'About this server'.
 
 #### Demo moment
 
-In first run choose Programmer and connect the Example GitHub (an invented repository). Ask what is waiting: it reads three open issues; a comment it drafts waits for a click and a merge is a person's call. Or connect Example SQLite: one SELECT runs, a DELETE stops at the queue marked irreversible. Open Settings, Connections to show the counts and Revoke.
+What the product can show today (docs/CONNECTIONS.md section 11): in first run choose a role, see its 'Connect your tools' chips all off, click a chip to see the consent lines, click Connect to turn it on with the dashed Example badge, then open Settings, Connections to show the three sets, the printed flags on Notion and Sentry, a connected row's counts line, and Revoke asking first ('Its token is forgotten and it stops.'). The stand-in process really starts on Connect and stops on Revoke. Not shown yet: an agent run that uses a connection (for example 'ask what is waiting: it reads three open issues'). The runtime tool and its approvals are tested, but no shipped agent role lists it, so nothing in Needs you is produced by a connection yet. Do not film that part.
 
 #### Evidence and its label
 
 | What | Label | Source |
 |---|---|---|
-| Engine: manifests validate and are verified with sources; floating versions, shells, mounted volumes, tools in two classes and secret-looking variables are refused; the command hash changes with anything that would run; consent, reconfirm, revoke, routine opt-in; the token store; metadata-only ledger rows; the routes | offline tests (53 test functions on the engine side) | `docs/CONNECTIONS.md (section 9); services/engine/tests/connections/ (branch)` |
-| Agent: through the real SDK client against our stand-ins and a hostile test server that lies about its tools, hangs, crashes, floods and shows its environment: classification, minimal environment, restarts, timeouts, the size cap, no sampling or questions to the worker, refusal for destructive and execute without a click and in an unattended run; a poisoned tool result pauses the child | offline tests with stand-ins; no real server started | `docs/CONNECTIONS.md (section 9)` |
+| Engine: manifests validate and are verified with sources; floating versions, shells, mounted volumes, tools in two classes and secret-looking variables are refused; the command hash changes with anything that would run; consent, reconfirm, revoke, routine opt-in; the token store; metadata-only ledger rows; the routes | offline tests (63 test functions on the engine side, counted by the author on main at 01:35 UTC; parametrised cases are not expanded) | `docs/CONNECTIONS.md (section 9); services/engine/tests/connections/` |
+| Agent: through the real SDK client against our stand-ins and a hostile test server that lies about its tools, hangs, crashes, floods and shows its environment: classification, minimal environment, restarts, timeouts, the size cap, no sampling or questions to the worker, refusal for destructive and execute without a click and in an unattended run; a poisoned tool result pauses the child | offline tests with stand-ins; no real server started (72 test functions on the agent side, counted by the author on main at 01:35 UTC) | `docs/CONNECTIONS.md (section 9); services/agent/tests/connections/` |
 
 #### Honest limit
 
-Not on main, so not verified by the lead. Nothing real was connected: the real launches (npx, uvx, docker at the pinned versions) are verified from their sources and unit-tested as command lines only. A connected server's own traffic goes from its process to its own hosts and is outside the frame egress guard (the panel and the ledger say so); Knack never sends a screen frame or page text through a connection. Linear, named in D55, is not shipped: Linear's official server is hosted only with no package or licence file to read, so Jira is shipped instead; Slack's, Atlassian's and Google's own hosted servers are also listed as not shipped. The curated list is chosen by a person in the repository; a new preset needs its source verified first.
+On main since 01:28 UTC but not seen end to end by the lead. Nothing real was connected: the real launches (npx, uvx, docker at the pinned versions) are verified from their sources and unit-tested as command lines only. A connected server's own traffic goes from its process to its own hosts and is outside the frame egress guard (the panel and the ledger say so); Knack never sends a screen frame or page text through a connection. Linear, named in D55, is not shipped: Linear's official server is hosted only with no package or licence file to read, so Jira is shipped instead; Slack's, Atlassian's and Google's own hosted servers are also listed as not shipped. The curated list is chosen by a person in the repository; a new preset needs its source verified first.
 
 #### Hackathon target
 
@@ -1398,7 +1456,11 @@ After the wake, a live voice conversation starts. Knack speaks while it guides, 
 
 #### How it works
 
-The wake stops the listener (releasing the microphone) and starts the Live voice conversation (Gemini), hands-free, with a soft chime. Two first-wake cards ask once, each with Yes, Not now and Never of equal weight: whether your voice may go to a cloud voice model while you talk, and whether a small picture of the screen may go about every 5 seconds; only a real mouse click answers a card. Frames go through the image gate and the ledger: never from a denylisted app or over secure input, never unattended, never stored. The conversation is bounded: started by the worker, five minutes at most, a spending cap, and a quiet half minute ends it. The model's tools are a closed set: point_at (ring and ghost cursor), clear, show_step, ask_choice, end_session and do_it_for_me. The last fails closed until the owner has completed the first supervised real-click test; a record written only by that test turns it on. Even then, voice alone is never consent: a card 'Click for you?' with Allow once or Cancel needs a real mouse click, a 20-second timer means Cancel, and the click goes through the one-time token, the per-run permit, the countdown and every real-actuator guard. It is never unattended, never a purchase, never a real account. A typed context packet (closed grammar, freshness limits; a test feeds it hostile strings) tells the session what is on the screen, what waits for approval and what the coach is doing. Holding Option-Space talks.
+The wake stops the listener (releasing the microphone) and starts the Live voice conversation (Gemini), hands-free, with a soft chime. Two first-wake cards ask once, each with Yes, Not now and Never of equal weight: whether your voice may go to a cloud voice model while you talk, and whether a small picture of the screen may go about every 5 seconds; only a real mouse click answers a card. Frames go through the image gate and the ledger: never from a denylisted app or over secure input, never unattended, never stored. The conversation is bounded: started by the worker, five minutes at most, a spending cap, and a quiet half minute ends it. The model's tools are a closed set: point_at (ring and ghost cursor), clear, show_step, ask_choice, end_session and do_it_for_me.
+
+The last fails closed until the owner has completed the first supervised real-click test; a record written only by that test turns it on. Even then, voice alone is never consent: a card 'Click for you?' with Allow once or Cancel needs a real mouse click, a 20-second timer means Cancel, and the click goes through the one-time token, the per-run permit, the countdown and every real-actuator guard. It is never unattended, never a purchase, never a real account. A typed context packet (closed grammar, freshness limits; a test feeds it hostile strings) tells the session what is on the screen, what waits for approval and what the coach is doing. Holding Option-Space talks.
+
+When a task service is bound, the Live tools also include start_task, which hands the worker's request to that service: it is declared only when code can answer it, the model is told that it never starts anything and must say what the answer tells it (for example, tap Allow on the card), and the answer is a closed record, never a summary. The task service is on main (see the open-ended tasks page), and so is the Home task box that sends to it.
 
 **What is different.** Voice can ask but never approve: the click is a separate consent, a real mouse click on a card, and the whole path stays closed until a supervised test has passed.
 
@@ -1418,7 +1480,7 @@ Ask: 'Where do I see what needs me?' A ring and a ghost cursor show Needs you; K
 
 #### Honest limit
 
-Not run with a microphone, a Live session or a real click. The 'do it for me' path stays off until the first real-click rung is reported with the owner present, and the agent-service route it needs (POST /desktop/click) is not built (decision D56): the desktop answers 'route missing' and clicks nothing, and Knack says it will show you instead. The model's speech inside a conversation is free-form audio; every other spoken line in Knack is fixed. Voice quality and latency are not measured. The context packet does not yet carry the week's top Home insight (no screen reports it, gap G1), so the voice cannot say what the insight is; the routine is reported only for a run started with Run now; and the help level and the Needs-you item kinds are not in the packet.
+Not run with a microphone, a Live session or a real click. The 'do it for me' path stays off until the first real-click rung is reported with the owner present, and the agent-service route it needs (POST /desktop/click) is not built (decision D56): the desktop answers 'route missing' and clicks nothing, and Knack says it will show you instead. The model's speech inside a conversation is free-form audio; every other spoken line in Knack is fixed. Voice quality and latency are not measured. Home now reports its hero insight to the voice context as an id and a template kind (gap G1 closed; apps/dashboard/src/screens/Home/Home.tsx), but how well the voice can say it has not been tried; the routine is reported only for a run started with Run now; and the help level and the Needs-you item kinds are not in the packet.
 
 #### Hackathon target
 
@@ -1431,11 +1493,11 @@ Not run with a microphone, a Live session or a real click. The 'do it for me' pa
 
 ### Model routing: Gemini by default, checked at boot
 
-**Status:** built (live boot check and small planner and fast calls pass; computer use on Gemini needs its own iterations) · **Page:** `docs/features/models-and-routing.md` · **Targets:** Wordsmith, HRT
+**Status:** built (live boot check and small planner and fast calls pass; computer use on Gemini was run once on held-out households: 18 of 20, below its bar) · **Page:** `docs/features/models-and-routing.md` · **Targets:** Wordsmith, HRT
 
 #### What it does
 
-Every model role runs on Gemini by default: a planner, fast checks, pointing and glances, a verifier, computer use and live voice. OpenAI is an explicit opt-in. The More, Models and cost screen shows which model, how fast and what it costs.
+Every model role runs on Gemini by default: a planner, fast checks, pointing and glances, a verifier, computer use and live voice. OpenAI is an explicit opt-in. The Admin view's More, Models and cost screen shows which model, how fast and what it costs.
 
 #### How it works
 
@@ -1445,11 +1507,11 @@ One model port with providers behind it. Roles map to environment variables (acc
 
 #### Where to see it
 
-More, then Models and cost; Settings, 'Use live models' is the master switch (it restarts the engine, about 20 seconds); the sidebar status line says Live models or Running with example data.
+Admin view, More, Models and cost; Settings, 'Use live models' is the master switch (it restarts the engine, about 20 seconds); the sidebar status line says Live models or Running with example data.
 
 #### Demo moment
 
-Show the status line 'Live models', then Models and cost: the route for each role, latency and cost. Flip Use live models off and the line becomes 'Running with example data'.
+Show the status line 'Live models', then (in the Admin view) Models and cost: the route for each role, latency and cost. Flip Use live models off and the line becomes 'Running with example data'.
 
 #### Evidence and its label
 
@@ -1461,7 +1523,7 @@ Show the status line 'Live models', then Models and cost: the route for each rol
 
 #### Honest limit
 
-The bake-off is on screenshots of our own sandbox pages with 147 pointing cases; it is not a claim about real apps. Computer use on Gemini has development results only (see the computer-use page). Every earlier number measured with OpenAI models is evidence about that configuration, not about Gemini.
+The bake-off is on screenshots of our own sandbox pages with 147 pointing cases; it is not a claim about real apps. Computer use on Gemini has one held-out round, 18 of 20 below its bar, plus in-sample development results (see the computer-use page). Every earlier number measured with OpenAI models is evidence about that configuration, not about Gemini.
 
 #### Hackathon target
 
@@ -1484,7 +1546,7 @@ A 7B model (Qwen2.5, 4-bit) runs on the loopback through llama.cpp with constrai
 
 #### Where to see it
 
-Behind Git habits and Calendar; More, then Models and cost shows local-model status.
+Behind 'My commits' and the calendar week in Growth; the Admin view, More, Models and cost shows local-model status.
 
 #### Demo moment
 
@@ -1599,11 +1661,11 @@ The hero is the top pointer written from a fixed template: 'On {step} you usuall
 
 #### Where to see it
 
-Home, the first item in the sidebar and the page Knack opens on.
+Home, the first item in the sidebar and the page Knack opens on. Under D66 it also holds the task box and a short list of background tasks, within a budget of 70 words and 6 controls.
 
 #### Demo moment
 
-Open Knack: the date, one sentence with its provenance badge (the wording is being changed by decision D57: no 'synthetic' on screen; a fixture still reads 'Example data'), the button 'See where the time goes' and, if anything waits, one row '1 thing needs you'.
+Open Knack: the date, one sentence (since decision D57 no 'synthetic' tag is drawn; when the engine cannot answer, a sample stands in and the screen reads 'Example data'), the button 'See where the time goes' and, if anything waits, one row '1 thing needs you'.
 
 #### Evidence and its label
 
@@ -1613,7 +1675,7 @@ Open Knack: the date, one sentence with its provenance badge (the wording is bei
 
 #### Honest limit
 
-The 47 words are the prototype's headline content; real screens land a little above it. Only three of the engine's pointer shapes match the hero template, so another pointer kind would show its raw headline (gap G4 in docs/KNACK_DEMO.md); the seeded kind is fine. The example sentence comes from the synthetic firm and carries its provenance badge (Example data, or the wording the D57 track settles on). These are measurements of the interface, not of people.
+The 47 words are the prototype's headline content; real screens land a little above it. Only three of the engine's pointer shapes match the hero template, so another pointer kind would show its raw headline (gap G4 in docs/KNACK_DEMO.md); the seeded kind is fine. The example sentence comes from the synthetic firm and carries the 'Example data' badge when a sample stands in. These are measurements of the interface, not of people.
 
 #### Hackathon target
 
@@ -1661,7 +1723,7 @@ Targets were fixed before the held-out run and several recall targets were misse
 
 ### Admin views: Firm, Roles, Onboarding
 
-**Status:** built (UI merged to main; the firm is synthetic) · **Page:** `docs/features/firm-admin.md` · **Targets:** G-Research, HRT
+**Status:** built (UI merged to main; the firm is synthetic; owner request 4.4 (made-up people for several users): Track R found the cause of the blank live Admin view, the engine read this device's own ledger (one person), so every comparison was withheld under the minimum group of 5; on main since 01:51 UTC (merge e52c6b1) the engine can write 32 made-up people in 3 teams with twelve weeks of history to the data folder (python -m understudy_engine.demo seed-firm, also part of demo seed), with the rules unchanged; per the lead the item stays landing until that seed has run on the live data) · **Page:** `docs/features/firm-admin.md` · **Targets:** G-Research, HRT
 
 #### What it does
 
@@ -1675,11 +1737,11 @@ Roles are Worker and Admin; the admin switch lives in the account menu and is re
 
 #### Where to see it
 
-Account menu, View as Admin; sidebar Firm, Roles, Onboarding; More, Firm rows (People, Automation, Risk and coverage, Forecasts, Firm brief).
+Account menu, View as Admin; the Admin sidebar rows Firm, Brief, Forecasts, Roles, People, Onboarding, Automation and Risk; then More: Models and cost, Evidence, Background runs.
 
 #### Demo moment
 
-Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); show the provenance badge (its Admin wording is being changed by D57) and say the names are made up and the firm is made for this build.
+Only once the people exist on the engine you are showing (owner request 4.4 stays landing until the seed has run on the live data; on a device with only its own history the screens hold no people). Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); note that since D57 the Firm head draws no origin tag for generated data, so say aloud that the names are made up and the firm is made for this build.
 
 #### Evidence and its label
 
@@ -1690,7 +1752,7 @@ Switch to Admin: Firm lists three rows with n and interval; open Roles: experts 
 
 #### Honest limit
 
-Full per-user visibility for the admin was the owner's choice (D41); the lead recommended aggregates plus opt-in individuals. Per-user visibility is workplace monitoring: a real deployment needs a lawful basis (in the UK and EU, for example a documented legitimate-interest assessment), a clear notice to workers before any data is shared, and possibly consultation. This build supplies the worker's 'what your admin can see' page but not the lawful basis or the notice. It also changes the earlier promise that logs never leave the device: these summaries are the only thing that would, and only if a deployment chooses to.
+Full per-user visibility for the admin was the owner's choice (D41); the lead recommended aggregates plus opt-in individuals. Per-user visibility is workplace monitoring: a real deployment needs a lawful basis (in the UK and EU, for example a documented legitimate-interest assessment), a clear notice to workers before any data is shared, and possibly consultation. This build supplies the worker's 'what your admin can see' page but not the lawful basis or the notice. It also changes the earlier promise that logs never leave the device: these summaries are the only thing that would, and only if a deployment chooses to. The multi-person data is not on the live engine until the firm seed has run (owner request 4.4; the seed is on main, the live data not yet seeded as far as the lead has reported). The seeded firm is 32 made-up people in 3 teams, kept in a folder that the Worker view never reads, so a worker's own export and delete never touch it (services/engine/understudy_engine/insights/firmstore.py).
 
 #### Hackathon target
 
@@ -1713,11 +1775,11 @@ The Monday note is a few plain sentences built from the same deterministic insig
 
 #### Where to see it
 
-Command palette, Print the firm brief (and Copy my Monday note once it lands); More, Forecasts.
+Admin sidebar, Brief (a print view) and Forecasts; the command palette has Print the firm brief (and Copy my Monday note once it lands).
 
 #### Demo moment
 
-Press Command-K, choose Print the firm brief; then open More, Forecasts to show the scorecard.
+Press Command-K, choose Print the firm brief; then open Forecasts in the Admin sidebar to show the scorecard.
 
 #### Evidence and its label
 
@@ -1753,18 +1815,18 @@ An assist ledger holds one row per assist episode with enums and numbers only: n
 
 #### Where to see it
 
-Growth in the sidebar: a one-sentence title, one chart with its band, skills as rows, and closed disclosures (The fade, Your ledger, What Knack did for you). Export and delete are in Your data.
+Growth in the sidebar, the worker's one page for personal insight: 'My progress' (a one-sentence title, one chart with its band, skills as rows, and closed disclosures: About this data, The fade, Your record, What Knack did for you), then the sections 'Where my time goes', 'My steps against an experienced worker's', 'How my routines connect' and, for programmers, 'My commits', one under the other with no extra navigation. Export and delete are in Your data.
 
 #### Demo moment
 
-Open Growth. On the seeded example learner (90 steps of one simulated improving learner, labelled as such) the screen shows one chart with its band, 'Latest: 75% finished with no cue accepted' against a baseline of 1 of 5, the badge Example data, the printed line 'Measures help needed, not expertise.' and the title 'Cannot tell yet whether you need less help'. Keep that title: the engine refuses to overclaim on its own demo data. Open About this data to show n, the interval and the window.
+Open Growth. On the seeded example learner (90 steps of one simulated improving learner, an example and not a person) the screen shows one chart with its band, 'Latest: 75% finished with no cue accepted' against a baseline of 1 of 5, the badge Example data, the printed line 'Measures help needed, not expertise.' and the title 'Cannot tell yet whether you need less help'. Keep that title: the engine refuses to overclaim on its own demo data. Open About this data to show n, the interval and the window.
 
 #### Evidence and its label
 
 | What | Label | Source |
 |---|---|---|
 | The composite overstates mastery for learners who do not improve and rises 10 points or more in about a third of them; independence and the trend are the evidence, and the trend has low power | synthetic, 240 simulated learners with planted curves | `evals/report.md (Limitations register, cue-score-composite, and Cue analysis)` |
-| The seeded demo learner is 90 occurrences of one simulated improving learner (labelled synthetic_learner); unaided steps rise from 1 of 5 at the baseline to 75% at the latest point, and the engine's own title still says it cannot tell yet | simulated learner, not people; a demo seed, not a result | `docs/KNACK_DEMO.md (M9; branch, landing)` |
+| The seeded demo learner is 90 occurrences of one simulated improving learner (labelled synthetic_learner); unaided steps rise from 1 of 5 at the baseline to 75% at the latest point, and the engine's own title still says it cannot tell yet | simulated learner, not people; a demo seed, not a result | `docs/KNACK_DEMO.md (M9)` |
 | A planted independence rise was selected as a pointer in 47 of 100 worlds (target 0.8: missed); false celebration when errors rise 14 of 100 (target 0) | synthetic, 100 planted worlds per effect | `evals/insights/results/heldout.json` |
 
 #### Honest limit
@@ -1834,7 +1896,7 @@ An audit listed every model-facing call site and its prompt sections. A shared l
 
 #### Where to see it
 
-Not visible on a screen. It is behind every agent run and shows up as cost and latency in Models and cost.
+Not visible on a screen. It is behind every agent run and shows up as cost and latency in Models and cost (Admin view, More).
 
 #### Demo moment
 
@@ -1895,37 +1957,39 @@ Not yet seen by the owner on a real desktop with real windows behind it; the cor
 
 - **Wordsmith (most complicated end-to-end browser-use workflow)**: an agent that works in the background and tells the worker in five words
 
-### First run: role, consent and a first look
+### First run: role, three consents and a check
 
-**Status:** built (the spec is three clicks; decision D58 (00:45 UTC) adds a permissions step and a Try it step, still landing) · **Page:** `docs/features/knack-shell.md` · **Targets:** G-Research
+**Status:** built (owner decision D58; on main since 02:39 UTC (d9f8929): a role screen, one consent card each for capture, screen glances and voice, and a 'Check it works' screen; the spoken 'Say Hey Knack' Try it step in docs/knack-ux/capabilities-and-permissions.md is not a screen on main (the check screen shows Hey Knack's listening state and a Show me ring instead); not seen end to end by the lead) · **Page:** `docs/features/knack-shell.md` · **Targets:** G-Research
 
 #### What it does
 
-First launch asks two questions and shows one summary: a role card, one capture consent, and 'Show my week'. Everything else takes the role pack's safe defaults and is editable in Your data. Decision D58 (owner, after the first launch showed the old eight-step wizard) makes this the only onboarding: it opens on the first launch whatever the engine knows, adds three equal consent cards, a permissions step (microphone, speech, screen) and a Try it step, and the legacy wizard never renders in the Knack shell.
+First launch asks for a role (a card per role pack, or 'Not sure yet', which picks nothing), then shows one consent card each for capture, screen glances and voice (the last two only where the desktop app can act on them), each with Yes, Not now and Never of equal weight and none pre-selected, then a 'Check it works' screen: the macOS permissions as they are (never a wall: each says what will not work without it), Hey Knack's listening state, and Show me, which draws the annotation ring on a sample. Then 'Show my week'. Every screen has a Skip and skipping picks nothing. Everything else takes the role pack's safe defaults and is editable in Your data.
 
 #### How it works
 
-Click 1 picks a role (three cards from the packs); the pack's tools, risky actions set to 'never without me', short tone, gradual pace and hours are written to the memory file. Click 2 is the one consent: 'It records when you are active, never what you read: no page text, no URLs, no field values. The record stays on this laptop.' Yes, Not now and Never have equal weight; Not now asks again once after a week; Never never asks again. Click 3 shows four plain lines from the file just written and opens Home. Screen glances, the microphone, Accessibility, Screen Recording and Open at login are each asked once, in context, when first needed. The role card will also offer 'Connect your tools' chips for the chosen role (landing), all off. Permissions are asked one at a time and in context: on the step 'Turn on Hey Knack' the worker clicks Turn on (or Not now), and only then does the listener start, so no prompt appears at launch out of context; macOS asks for the microphone and then speech recognition. Screen Recording is asked only when the worker turns on screen glances or says Yes to the screen card and then asks Knack to find something outside Knack or a browser tab with the extension; Accessibility only for 'click for me', after the first supervised test. Input Monitoring, Automation and Full Disk Access are never asked. A last Try it step says 'Say Hey Knack', then 'show me where the Needs you list is', with a Skip button.
+When the second screen is done, the pack's tools, risky actions set to 'never without me', tone, gradual pace and hours are written to the memory file; capture is on only if the worker said Yes. 'Not now' asks again once after a week and 'Never' never asks again; the answers are remembered on the device and an unfinished first run resumes where it stopped. Back is the only way back, and not while the file is being written. With the connection chips for the chosen role (every chip off; only Connect turns on the Example version) there is one more click. A consent is a real click on a card, recorded by the code that handles the click; the first-run file itself never consents to anything.
+
+Permissions are asked one at a time and in context, Screen Recording only when screen glances are on and Knack is asked to find something outside Knack, Accessibility only for 'click for me' after the first supervised test, and Input Monitoring, Automation and Full Disk Access never; a missing permission or key is never silence, it is a card or a status line in plain words with a button that opens the fix (docs/knack-ux/capabilities-and-permissions.md).
 
 **What is different.** Two questions and one summary, with a consent whose three buttons weigh the same.
 
 #### Where to see it
 
-The first window on first launch (no sidebar yet). Settings, Set up again reruns it.
+The first window on first launch (no sidebar yet). Account menu, Set up again, reruns it; Account menu, Change profile, changes the name and the role.
 
 #### Demo moment
 
-Launch fresh: role card, the consent with three equal buttons, 'Here is what Knack will remember', then Home with the example insight badged Example data.
+Launch fresh: the role cards (and 'Not sure yet'), the three consent cards with Yes, Not now and Never, then 'Check it works' with the permissions as they are and Show me, then Home. The count from the code: 1 click for the role, one answer per consent card and one for 'Show my week', so 3 clicks with capture only, 5 in the desktop app, 6 with connection chips.
 
 #### Evidence and its label
 
 | What | Label | Source |
 |---|---|---|
-| In the spec: about 20 clicks over 15 screens before; 3 clicks after. Words on the first screen 159 to 20. D58 adds steps, so the shipped count is higher and has not been re-measured | design measurement of a prototype | `docs/knack-ux/07-first-run.md; docs/knack-ux/after/after-measurements.json` |
+| The click count is computed by the first-run model (clicksToHome) and covered by its tests; the spec measured about 20 clicks over 15 screens for the old set-up and 159 words on its first screen against 20 after | design measurement of a prototype and unit tests; nobody has done it | `apps/dashboard/src/screens/FirstRun/model.ts; docs/knack-ux/07-first-run.md; docs/knack-ux/after/after-measurements.json` |
 
 #### Honest limit
 
-Measured on a prototype and by the reducer's tests; no person has done it, and the D58 steps are not in the measurement. Permission dialogs (Accessibility, Screen Recording, Microphone) can only be granted by the owner in System Settings.
+Measured as a design and by the reducer's tests; no person has done it. The permission dialogs (Accessibility, Screen Recording, Microphone, Speech Recognition) can only be granted by the owner in System Settings, and the Hey Knack side of the first conversation (a fixed welcome line and a ring on the Needs you row) is specified in the capabilities document and built in the desktop wake code, but there is no separate Try it screen for it on main.
 
 #### Hackathon target
 
@@ -1977,7 +2041,7 @@ One token file and ten rules govern every screen: one hero per screen, details b
 
 #### How it works
 
-Budgets: a hero sentence of at most 16 words; a card with 8 words of title, 20 of body, a button of 3 (a hero action 5 words, decision D56); Home at most 50 words above the fold, Needs you 120, Growth 60; no paragraph over two lines in a default view; one badge above the fold; a sidebar of 6 rows with no hint words. check-copy.mjs reads the running screens against these budgets; check-clicks.mjs replays the ten jobs and fails above their click budget; a copy lint rejects banned phrases and a visible old product name; contrast is tested at AA in both themes. Weights are 400 and 600 only; icons are 14 inline SVGs; mono capitals appear only on chart axes and the work ribbon. A Hint (a small accessible 'i') may hold a unit, a definition or an interval and is never the only copy of a fact: origin badges, consent text, consequences, errors and limits stay printed.
+Budgets: a hero sentence of at most 16 words; a card with 8 words of title, 20 of body, a button of 3 (a hero action 5 words, decision D56); Home at most 70 words above the fold and 6 controls (D66: the task box added one control and four words), Needs you 120, Growth 60, first run 90 words and 10 controls; no paragraph over two lines in a default view; at most one badge above the fold; a sidebar of the five worker rows and More, with no hint words. check-copy.mjs reads the running screens against these budgets; check-clicks.mjs replays the ten jobs and fails above their click budget; a copy lint rejects banned phrases and a visible old product name; contrast is tested at AA in both themes. Weights are 400 and 600 only; icons are 14 inline SVGs; mono capitals appear only on chart axes and the work ribbon. A Hint (a small accessible 'i') may hold a unit, a definition or an interval and is never the only copy of a fact: consent text, consequences, errors and limits stay printed.
 
 **What is different.** Word, click and contrast budgets are tests that fail the build, and a Hint may never hold the only copy of a fact.
 
@@ -2077,7 +2141,7 @@ Open Your data and the record of what was sent: a row per call with model, size 
 
 #### Honest limit
 
-Zero leaks says nothing about a flow that was not run, and the planted strings are exact strings only. An allowed frame is raw pixels: the guard does not redact them, and the provider's own policy is not measured here. Model calls the worker asked for are recorded as metadata only. The ledger cannot see other software on the laptop. The older Alongside desktop paths are off by default but have not been re-reviewed independently.
+Zero leaks says nothing about a flow that was not run, and the planted strings are exact strings only. An allowed frame is raw pixels: the guard does not redact them, and the provider's own policy is not measured here. Model calls the worker asked for are recorded as metadata only. The ledger cannot see other software on the laptop. The older Alongside desktop paths are off by default but have not been re-reviewed independently. One more reviewed exception: the hand-run live tier-3 evaluation (`services/agent/understudy_agent/live_t3.py`) calls the model through a raw port, `get_model_port(ledgered=False)`, which is outside the egress ledger; it runs only by hand, on generated sandbox pages, keeps its own spend ledger, and nothing else imports it (a test asserts this: `evals/review/privacy/test_p1b_voice_and_default_ledger.py`); the product's own paths all go through the ledger.
 
 #### Hackathon target
 
@@ -2170,24 +2234,24 @@ One command rebuilds a report from the code that owns each number; the Evidence 
 
 #### How it works
 
-`make eval` runs each section's own code and writes evals/report.json and report.md. Each section carries its origin badge (synthetic, simulated, real, unknown), n, split and interval level. Findings are generated, not footnotes. A limitations register keeps every known weakness with a severity. A section with no numbers says why instead of showing an invented value; the live study shows 'not run'.
+`make eval` runs each section's own code and writes evals/report.json and report.md. Each section carries its origin in plain words (generators we wrote, language-model participants, live, real and generated, not run), n, split and interval level. Findings are generated, not footnotes. A limitations register keeps every known weakness with a severity. A section with no numbers says why instead of showing an invented value; the live study shows 'not run'.
 
 **What is different.** The report is generated by the code that owns each number, findings are generated rather than written, and the limitations register ships inside the product.
 
 #### Where to see it
 
-More, For reviewers, Evidence (address #/evidence; exempt from the word budgets).
+Admin view, More, Evidence (address #/evidence; not shown to a worker; exempt from the word budgets).
 
 #### Demo moment
 
-Open Evidence: the map of sections with their origin badges, the findings, then scroll to the limitations. Point at 'Live study: not run'.
+Open Evidence: the map of sections with their origin labels in plain words, the findings, then scroll to the limitations. Point at 'Live study: not run'.
 
 #### Evidence and its label
 
 | What | Label | Source |
 |---|---|---|
-| 35 sections: 33 with numbers, 2 not run (the live study and the role studies), 0 failed; 206 limitations (67 high, 111 medium, 28 low); 7 generated findings | synthetic origin throughout except the not-run live study | `evals/report.md; evals/report.facts.json` |
-| About 6,156 test functions across the code base (a static count; parametrised cases not expanded) | offline tests | `evals/report.facts.json (tests)` |
+| 37 sections in the evidence map: 35 with numbers, 0 pending, 2 not run (the live study and the study across roles), 0 failed; 220 limitations (70 high, 120 medium, 30 low); 7 generated findings | synthetic origin throughout except the not-run live study | `evals/report.md; evals/report.facts.json` |
+| About 8,193 test functions across the code base (a static count; parametrised cases not expanded) | offline tests | `evals/report.facts.json (tests)` |
 
 #### Honest limit
 
@@ -2218,7 +2282,7 @@ Beside figures on the detail screens (Explain) and in Evidence.
 
 #### Demo moment
 
-Press Explain on Where time goes: a short paragraph with numbers; show that it is the template wording, and that a model's rewording would be used only if it passed the check.
+Press 'Explain this case' in Growth, under 'My steps': a short paragraph with numbers; show that it is the template wording, and that a model's rewording would be used only if it passed the check.
 
 #### Evidence and its label
 
@@ -2383,6 +2447,7 @@ Pick one and read it: 'Cue did not make people resume faster at the median.'
 | Attention router: criterion 7 not met (+0.33 can-wait toasts a day [+0.08, +0.58]); 11 of 12 met | synthetic, 200 simulated workers | `evals/attention/report_held_out.json` |
 | Insights: planted independence rise selected in 47 of 100 worlds (target 0.8); false celebration when errors rise 14 of 100 (target 0) | synthetic, 100 worlds per effect | `evals/insights/results/heldout.json` |
 | Computer use, held-out clean n = 4: 1 completed; injected n = 20: 20 of 20 paused at step 0 (detector, text only) | real model (OpenAI), our sandbox | `evals/report.md (Agentic evaluation)` |
+| Computer use with Gemini, held-out and pre-registered, clean n = 20: 18 completed with correct inputs (Wilson [0.70, 0.97]), and the bar we set before the run, a lower bound of at least 0.80, was not met; the 2 misses paused, 0 false claims | real model (Gemini), our sandbox | `evals/agentic/results/round2_clean_9139.json; docs/DECISIONS.md (D65)` |
 
 #### Honest limit
 
@@ -2394,7 +2459,7 @@ These are all simulated or sandbox results; none is about real workers.
 
 ### Prospective prediction ledger and forward scoring
 
-**Status:** landing (decision D59; plan registered at 00:35 UTC before any held-out run; code, held-out results and docs/HRT_BRIEF.md are on branch worktree-agent-a02c9cf8855c9f4ff, not on main; the running product does not write to the ledger yet) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
+**Status:** built (decision D59; plan registered at 00:35 UTC before any held-out run; merged to main at 02:26 UTC (1984605) with the code, the held-out results, docs/HRT_BRIEF.md and the Evidence blocks; not seen end to end by the lead; an engine route for live ledger entries exists behind UNDERSTUDY_X_HRT but nothing in the running product writes a forecast to it yet) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
 
 #### What it does
 
@@ -2402,32 +2467,32 @@ Every prediction is written to an append-only record before its outcome exists, 
 
 #### How it works
 
-The ledger is a hash chain: each entry carries the hash of the one before, and a verify step recomputes it. A prediction records when it was made, the probability, the name and version of the model and of every baseline that predicted the same thing at that moment, and a horizon. An outcome can be added once, and only after the horizon. A baseline that learns online may use only outcomes already resolved by then. Scoring reads only resolved predictions, reports how many are pending, and refuses to score below 200 resolved predictions or when a stream has a gap. Nothing in the record holds page text, URLs, names or field values. Scores are log loss, Brier, expected calibration error, the reliability table and the calibration slope and intercept; intervals are 95% cluster bootstraps over people, paired across models. The deployed stuck model is fitted once on a deployment history and frozen. The held-out run happened once, through a command that refuses without a freeze, with a changed code hash, or a second time.
+The ledger is a hash chain: each entry carries the hash of the one before, and a verify step recomputes it. A prediction records when it was made, the probability, the name and version of the model and of every baseline that predicted the same thing at that moment, and a horizon. An outcome can be added once, and only after the horizon. A baseline that learns online may use only outcomes already resolved by then. Scoring reads only resolved predictions, reports how many are pending, and refuses to score below 200 resolved predictions or when a stream has a gap. Nothing in the record holds page text, URLs, names or field values. Scores are log loss, Brier, expected calibration error, the reliability table and the calibration slope and intercept; intervals are 95% cluster bootstraps over people, paired across models. The deployed stuck model is fitted once on a deployment history and frozen. The held-out run happened once, through a command that refuses without a freeze, with a changed code hash, a second time, or without UNDERSTUDY_HRT_HELDOUT=1.
 
 **What is different.** Predictions are written to a hash-chained record before their outcomes exist and scored only from it, forward in time, instead of by leave-one-person-out on a pooled table.
 
 #### Where to see it
 
-Not on a screen on main. Code is under understudy_engine/hrt on the HRT branch (the dashboard pages 'Prospective predictions' and 'Decisions scoreboard' are named in the brief); the plan is evals/hrt/PLAN.md and the judge-facing brief is docs/HRT_BRIEF.md.
+Admin view, More, Evidence: the blocks 'Does it hold out of time?' and 'Does the rule beat the naive one?' (a block says in one line why if the report lacks its section; the report on main has them). Code under services/engine/understudy_engine/hrt; the plan is evals/hrt/PLAN.md; the judge-facing brief is docs/HRT_BRIEF.md (generated by make hrt-brief); the claim rows are docs/drafts/CLAIMS_HRT.md; the 30-second cut, which opens with the failure, is docs/drafts/HRT_30S.md; and make hrt-proof is a five-second terminal proof (a forecast written before its outcome, the outcome chained to it, an edit refused; generated data, no model call, no network).
 
 #### Demo moment
 
-Read the registered claims as run: the model beats both plain baselines in the world it was fitted for (P1, passed); it is not perfectly calibrated there (P2, did not pass: the intercept interval excludes zero); and in three shifted worlds it is worse than the best plain predictor (P3, passed as a registered expectation of failure).
+Open with the failure, as the 30-second cut does: in three shifted worlds the model is worse than the best plain predictor (P3, passed as a registered expectation of failure) and the guard flags 8 of 8. Then the win with its limits: the model beats both plain baselines in the world it was fitted for (P1, passed); it is not perfectly calibrated there (P2, did not pass: the intercept interval excludes zero); and in three shifted worlds it is worse than the best plain predictor (P3, passed as a registered expectation of failure).
 
 #### Evidence and its label
 
 | What | Label | Source |
 |---|---|---|
-| P1 passed: in the first world (8 deployments, 61,631 scored bins, 32 persona-streams of four types) the frozen model's log loss is 0.445 [0.434, 0.455] against 0.525 for the online base rate and 0.524 for frozen time since progress; paired differences -0.080 [-0.086, -0.075] and -0.079 [-0.085, -0.074] | synthetic, held-out single frozen run, new seeds | `evals/hrt/results/heldout_ledger.json (branch)` |
-| P2 did not pass: calibration slope 0.999 [0.963, 1.035] contains 1, but the intercept +0.075 [0.002, 0.162] excludes 0, so the model under-predicts the stuck rate slightly | synthetic, held-out | `evals/hrt/results/heldout_ledger.json (branch)` |
-| P3 passed: in three shifted worlds the model is worse than the best plain predictor by +0.324 [0.277, 0.374] (markov), +0.331 [0.289, 0.377] (latent skill) and +0.513 [0.434, 0.602] (process trace) nats per bin | synthetic, held-out, 160 people per world | `evals/hrt/results/heldout_ledger.json (branch)` |
-| P5 passed: time to the next progress event, truncated CRPS 3.95 s [3.85, 4.03] against 4.76 s [4.66, 4.86] for a Kaplan-Meier constant; difference -0.816 s [-0.853, -0.779]; 98% of origins are censored by the episode's end, so the score is truncated to the observed steps and nothing is imputed | synthetic, held-out, one world | `evals/hrt/results/heldout_ledger.json (branch)` |
-| P6a did not pass: error-risk model, no rule change: log loss better than the online base rate by 0.111 [0.106, 0.117] but calibration slope 0.959 [0.932, 0.989], slightly over-confident | synthetic, held-out | `evals/hrt/results/heldout_ledger.json (branch)` |
-| Overall, 8 of 10 registered claims passed and 2 did not; a claim that did not pass stays in the table | synthetic, held-out single frozen run | `docs/HRT_BRIEF.md (section 2b; branch)` |
+| P1 passed: in the first world (8 deployments, 61,631 scored bins, 32 persona-streams of four types) the frozen model's log loss is 0.445 [0.434, 0.455] against 0.525 for the online base rate and 0.524 for frozen time since progress; paired differences -0.080 [-0.086, -0.075] and -0.079 [-0.085, -0.074] | synthetic, held-out single frozen run, new seeds | `evals/hrt/results/heldout_ledger.json` |
+| P2 did not pass: calibration slope 0.999 [0.963, 1.035] contains 1, but the intercept +0.075 [0.002, 0.162] excludes 0, so the model under-predicts the stuck rate slightly | synthetic, held-out | `evals/hrt/results/heldout_ledger.json` |
+| P3 passed: in three shifted worlds the model is worse than the best plain predictor by +0.324 [0.277, 0.374] (markov), +0.331 [0.289, 0.377] (latent skill) and +0.513 [0.434, 0.602] (process trace) nats per bin | synthetic, held-out, 160 people per world | `evals/hrt/results/heldout_ledger.json` |
+| P5 passed: time to the next progress event, truncated CRPS 3.95 s [3.85, 4.03] against 4.76 s [4.66, 4.86] for a Kaplan-Meier constant; difference -0.816 s [-0.853, -0.779]; 98% of origins are censored by the episode's end, so the score is truncated to the observed steps and nothing is imputed | synthetic, held-out, one world | `evals/hrt/results/heldout_ledger.json` |
+| P6a did not pass: error-risk model, no rule change: log loss better than the online base rate by 0.111 [0.106, 0.117] but calibration slope 0.959 [0.932, 0.989], slightly over-confident | synthetic, held-out | `evals/hrt/results/heldout_ledger.json` |
+| Overall, 8 of 10 registered claims passed and 2 did not; a claim that did not pass stays in the table | synthetic, held-out single frozen run | `docs/HRT_BRIEF.md (section 2b)` |
 
 #### Honest limit
 
-Everything is generated by us; a held-out replicate catches overfitting to one noise draw, never 'the model learned our generators'. The first world draws new people of the same four persona types the model was fitted on. The ledger is built and tested, but the running product does not call it, so no live prediction has been recorded and a real prospective result does not exist. Nothing here is about real people, agents or reviewers, and the live study (n = 4) has not been run. In the error-risk world after a rule change the model stays better than the plain predictor while its calibration intercept moves, nothing recalibrates it, and the guard rightly stays silent: a named gap.
+Everything is generated by us; a held-out replicate catches overfitting to one noise draw, never 'the model learned our generators'. The first world draws new people of the same four persona types the model was fitted on. The ledger is built and tested, and an engine route exists behind UNDERSTUDY_X_HRT (part of UNDERSTUDY_X), but nothing in the running product writes a forecast to it, so no live prediction has been recorded and a real prospective result does not exist. Nothing here is about real people, agents or reviewers, and the live study (n = 4) has not been run. In the error-risk world after a rule change the model stays better than the plain predictor while its calibration intercept moves, and the guard rightly stays silent; an online recalibration arm was added afterwards (see the recalibration entry below) and helps without restoring the intercept: a named gap.
 
 #### Hackathon target
 
@@ -2435,7 +2500,7 @@ Everything is generated by us; a held-out replicate catches overfitting to one n
 
 ### Drift guard: noticing when the model stops beating the baseline
 
-**Status:** landing (as above: on the HRT branch, results landed, not on main) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
+**Status:** built (as above: on main since 02:26 UTC) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
 
 #### What it does
 
@@ -2449,7 +2514,7 @@ For each episode (each case, for error-risk routing) the bounded difference betw
 
 #### Where to see it
 
-Not on a screen on main; the brief names a page 'Prospective predictions'.
+Evidence page (Admin view, More, Evidence), block 'Does it hold out of time?': the 'worlds, one row each' table with its Guard flags column, and the disclosure 'The guard: what falling back cost and saved'.
 
 #### Demo moment
 
@@ -2459,14 +2524,14 @@ One sentence each: in the first world the guard never flagged (0 of 8), so it co
 
 | What | Label | Source |
 |---|---|---|
-| P4a passed: flagged in 0 of 8 first-world deployments [0.00, 0.37]; P4c passed: premium +0.000 nats (it never flagged, so it never switched) | synthetic, held-out, 8 deployments | `evals/hrt/results/heldout_ledger.json (branch)` |
-| P4b passed: flagged in 8 of 8 deployments in each of the three shifted worlds, where the model was worse than the fallback | synthetic, held-out, 8 deployments per world | `evals/hrt/results/heldout_ledger.json (branch)` |
-| P4d passed: payout against always trusting the model -0.309 [-0.434, -0.196] (markov), -0.262 [-0.338, -0.194] (latent skill), -0.438 [-0.594, -0.292] (process trace) nats; deployment-level intervals, n = 8 per world | synthetic, held-out | `evals/hrt/results/heldout_ledger.json (branch)` |
-| P6b passed: for error risk, 0 of 8 flags with a rule change and 0 of 8 without, because after the change the model was still better than the online base rate (-0.172 [-0.181, -0.164]) | synthetic, held-out | `evals/hrt/results/heldout_ledger.json (branch)` |
+| P4a passed: flagged in 0 of 8 first-world deployments [0.00, 0.37]; P4c passed: premium +0.000 nats (it never flagged, so it never switched) | synthetic, held-out, 8 deployments | `evals/hrt/results/heldout_ledger.json` |
+| P4b passed: flagged in 8 of 8 deployments in each of the three shifted worlds, where the model was worse than the fallback | synthetic, held-out, 8 deployments per world | `evals/hrt/results/heldout_ledger.json` |
+| P4d passed: payout against always trusting the model -0.309 [-0.434, -0.196] (markov), -0.262 [-0.338, -0.194] (latent skill), -0.438 [-0.594, -0.292] (process trace) nats; deployment-level intervals, n = 8 per world | synthetic, held-out | `evals/hrt/results/heldout_ledger.json` |
+| P6b passed: for error risk, 0 of 8 flags with a rule change and 0 of 8 without, because after the change the model was still better than the online base rate (-0.172 [-0.181, -0.164]) | synthetic, held-out | `evals/hrt/results/heldout_ledger.json` |
 
 #### Honest limit
 
-The false-flag bound needs each episode's loss difference to have conditional mean at most zero given the past; episodes of one person are not independent, so it is a design target checked on eight deployments, not a proof. Eight deployments per world give wide intervals. After a flag there is no return rule. The guard catches 'the model is no better than a plain predictor', not 'the model is still better but miscalibrated'.
+The false-flag bound needs each episode's loss difference to have conditional mean at most zero given the past; episodes of one person are not independent, so it is a design target checked on eight deployments, not a proof. Eight deployments per world give wide intervals. After a flag there is no return rule. The guard catches 'the model is no better than a plain predictor', not 'the model is still better but miscalibrated'. A follow-up that recalibrates the model online from resolved outcomes is pre-registered (evals/hrt/PLAN_RECAL.md, written about 01:25 UTC after the held-out result was seen, which the plan says; claims R1 to R4, then one amendment, A1, after a dev run, which added a windowed arm and claims R5 to R7) and was frozen at 01:26 UTC (evals/hrt/results/frozen.json). Its held-out run has been made once: 5 of 7 registered claims passed (see the recalibration entry below).
 
 #### Hackathon target
 
@@ -2474,7 +2539,7 @@ The false-flag bound needs each episode's loss difference to have conditional me
 
 ### Decisions scoreboard: realised cost against a naive policy and an oracle
 
-**Status:** landing (as above: on the HRT branch, results landed, not on main) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
+**Status:** built (as above: on main since 02:26 UTC) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
 
 #### What it does
 
@@ -2488,7 +2553,7 @@ One row per rule: when to build an automation (ski rental with a learned trust p
 
 #### Where to see it
 
-Not on a screen on main; the result is a report section and docs/HRT_BRIEF.md (section 4).
+Evidence page (Admin view, More, Evidence), block 'Does the rule beat the naive one?' (four figures, tables behind disclosures); the result is also docs/HRT_BRIEF.md section 4.
 
 #### Demo moment
 
@@ -2498,39 +2563,159 @@ One row, three numbers: naive, shipped, oracle. For when to review: 9.03 escaped
 
 | What | Label | Source |
 |---|---|---|
-| All four registered contrasts are wins at the adjusted level: D1 build timing minus break-even -1.93 manual runs per routine [-2.02, -1.85] (adjusted [-2.04, -1.82]); D2 review router minus random review -6.37 escaped errors per 100 cases [-6.56, -6.19]; D3 background-run rule minus 'run whenever idle' +66.79 value per held-out day [55.74, 78.16]; D4 bandit snapshot minus rule baseline +0.235 reward per decision [0.231, 0.238] | synthetic, held-out single frozen run: 40, 40, 8 x 4 and 30 replicate worlds | `evals/hrt/results/heldout_decisions.json (branch)` |
-| Where the shipped rule does not win: 'build at once' costs 3.77, 7.54 and 15.08 against the rule's 4.93, 9.65 and 17.73 at build costs of 4, 8 and 16 runs, and the rule is ahead only at 32 (29.20 against 30.15); the router's edge over random review is partly signal the generator hands it; the background-run rule's margin over 'run whenever idle' depends on the assumed cost of a collision | synthetic, held-out | `docs/HRT_BRIEF.md (section 4; branch)` |
-| Where a model loses to the dumbest baseline: in each shifted world its log loss is 0.939, 0.949 and 1.168 against 0.615, 0.623 and 0.655 for the online base rate; the real-model agent-claim predictor (68 claims) has Brier 0.0038 against 0.0003 for a one-bit 'a confidence was stated' indicator | synthetic and real model on our sandbox, small n | `docs/HRT_BRIEF.md (section 5; branch)` |
+| All four registered contrasts are wins at the adjusted level: D1 build timing minus break-even -1.93 manual runs per routine [-2.02, -1.85] (adjusted [-2.04, -1.82]); D2 review router minus random review -6.37 escaped errors per 100 cases [-6.56, -6.19]; D3 background-run rule minus 'run whenever idle' +66.79 value per held-out day [55.74, 78.16]; D4 bandit snapshot minus rule baseline +0.235 reward per decision [0.231, 0.238] | synthetic, held-out single frozen run: 40, 40, 8 x 4 and 30 replicate worlds | `evals/hrt/results/heldout_decisions.json` |
+| Where the shipped rule does not win: 'build at once' costs 3.77, 7.54 and 15.08 against the rule's 4.93, 9.65 and 17.73 at build costs of 4, 8 and 16 runs, and the rule is ahead only at 32 (29.20 against 30.15); the router's edge over random review is partly signal the generator hands it; the background-run rule's margin over 'run whenever idle' depends on the assumed cost of a collision | synthetic, held-out | `docs/HRT_BRIEF.md (section 4)` |
+| Family size: the HRT section registers 36 claims or contrasts (10 from the ledger plan, 7 from the recalibration plan, 4 decision contrasts, 11 from the ranges plan, 4 from the decision-value plan); 23 of them are directional paired contrasts with a reported interval, and all 23 hold at 5% after a Holm adjustment (the adjusted p-values are derived afterwards from the reported intervals by a normal approximation, and the registered pass rules are unchanged) | synthetic; 23 paired contrasts | `docs/HRT_BRIEF.md (section 2f)` |
+| Where a model loses to the dumbest baseline: in each shifted world its log loss is 0.939, 0.949 and 1.168 against 0.615, 0.623 and 0.655 for the online base rate; the real-model agent-claim predictor (68 claims) has Brier 0.0038 against 0.0003 for a one-bit 'a confidence was stated' indicator | synthetic and real model on our sandbox, small n | `docs/HRT_BRIEF.md (section 5)` |
 
 #### Honest limit
 
-The simulators, the costs, the loss ratio and the oracles are ours; four of four wins is what one expects when the same people write the simulator and the rule, which is why the cells where a rule loses are printed next to the wins. The gap analysis in the brief lists what is not built: refusing off-policy estimates when overlap is poor, recalibrating after a rule change, wiring the running product to write the ledger, and publishing the time-to-progress forecast with intervals.
+The simulators, the costs, the loss ratio and the oracles are ours; four of four wins is what one expects when the same people write the simulator and the rule, which is why the cells where a rule loses are printed next to the wins. The gap analysis in the brief lists what is not built: refusing off-policy estimates when overlap is poor, a faster-forgetting or change-point recalibration rule, wiring the running product to write the ledger, and the owner's decision on the stuck model's default signal.
 
 #### Hackathon target
 
 - **HRT (best use of data for predictions and decisions)**: decision regret and realised cost, with baselines, an oracle, a multiplicity correction and the losses shown
 
+### Online recalibration: rescuing the model instead of discarding it
+
+**Status:** built (follow-up plan registered at 01:25 UTC after the first held-out result was seen (the plan says so), amended once (A1) after a dev run, frozen at 01:26 UTC, run once on new seeds; on main since 02:26 UTC (1984605); the running product does not use it) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
+
+#### What it does
+
+A third predictor is written to the ledger beside the model and the plain baselines: the frozen model's forecast passed through a small logistic correction that is refitted only from outcomes the ledger has already resolved. It rescues the model under shift, and it does not restore calibration inside the cases we gave it.
+
+#### How it works
+
+The correction is p' = sigmoid(a + b logit(p)), with (a, b) fitted by a few damped Newton steps on the negative log likelihood plus a ridge pulling them toward (0, 1), refitted every 200 newly resolved outcomes, using only outcomes with a resolution time no later than the forecast's time; probabilities are clipped to 0.01 to 0.99. A second arm (amendment A1, added after one dev run and before the freeze) fits only the 2,000 most recent resolved outcomes so that it forgets an old regime. Seven claims were fixed before any run on the new seeds, each with a pass rule on a paired 95% cluster interval: R1 to R4 for the growing fit and R5 to R7 for the windowed one. A claim that fails stays in the table. Code decides every step; no model is asked.
+
+**What is different.** A fix for a failure the first held-out run exposed was registered on new seeds with its pass rules before it ran, and the two claims that still fail are printed beside the five that passed.
+
+#### Where to see it
+
+Evidence page, block 'Does it hold out of time?', disclosure 'Recalibrating online instead of discarding the model (5 of 7 claims passed)'; docs/HRT_BRIEF.md section 2c; the plan evals/hrt/PLAN_RECAL.md; the results evals/hrt/results/heldout_recal.json; the claim row C100 in docs/drafts/CLAIMS_HRT.md.
+
+#### Demo moment
+
+Read the table of seven claims as run, with the two that did not pass beside the five that did. Say what it shows: recalibrating online helps in every shifted world and after the rule change, and the calibration intercept after the rule change is still positive (+0.61 for the growing fit, +0.45 for the windowed fit, against +0.95 for the frozen model), so the claim that it is restored did not pass.
+
+#### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| 5 of 7 registered claims passed. R1 passed: after the rule change in the error-risk world the recalibrated forecast beats the frozen model by -0.0316 [-0.0346, -0.0284] nats per case over 20,000 cases; R3 passed in each shifted world: -0.487 [-0.535, -0.436] (markov), -0.528 [-0.590, -0.468] (latent skill), -0.542 [-0.605, -0.481] (process trace) | synthetic, held-out single frozen run on new seeds (deployments 21 to 28), 8 deployments per world; paired cluster bootstrap | `evals/hrt/results/heldout_recal.json; docs/HRT_BRIEF.md (section 2c)` |
+| R2 and R7 passed (no harm without a change): recalibrated minus frozen is +0.0000 [-0.0018, 0.0017] in the first world and +0.0003 [-0.0002, 0.0007] in the error-risk world with no change; the windowed arm -0.0009 [-0.0023, 0.0003] and +0.0004 [-0.0001, 0.0008] | synthetic, held-out | `evals/hrt/results/heldout_recal.json` |
+| R5 passed: the windowed arm beats the frozen model by -0.0368 [-0.0407, -0.0327] and the growing arm by -0.0052 [-0.0062, -0.0040] after the rule change | synthetic, held-out | `evals/hrt/results/heldout_recal.json` |
+| R4 and R6 did not pass: after the rule change the calibration intercept is +0.613 [0.544, 0.690] for the growing fit (slope 1.025 [0.992, 1.062]) and +0.451 [0.377, 0.535] for the windowed fit, against +0.949 for the frozen model; neither interval contains 0 | synthetic, held-out | `evals/hrt/results/heldout_recal.json` |
+| Reported and not a registered claim: in the shifted worlds the recalibrated forecast is no longer worse than the best plain predictor, and is better by -0.027 [-0.033, -0.022], -0.011 [-0.015, -0.006] and -0.006 [-0.009, -0.003] nats per bin | synthetic, held-out, 8 deployments per world | `evals/hrt/results/heldout_recal.json` |
+
+#### Honest limit
+
+The arm was designed after the first held-out result was seen, and the plan says so; the second arm was added after one dev run. Everything comes from generators we wrote, with a single step change in one world; a drift that keeps changing, or one that makes the ranking of cases wrong and not only the scale, is not what an intercept and a slope can repair. About 2,500 cases per deployment follow the rule change, and a fit that includes outcomes from before the change is still mostly the old regime for most of that stretch, which the brief gives as the reason R4 and R6 failed; a faster-forgetting or change-point rule is the next step and is not built. The shipped product does not use the arm and does not write the ledger. The plan's amendment is dated about 01:40 GMT, while the commit history and the freeze file say 01:23 to 01:26.
+
+#### Hackathon target
+
+- **HRT (best use of data for predictions and decisions)**: a failure found, a fix registered in advance on new seeds, and the two claims that still fail printed
+
+### Ranges and sets: conformal intervals, and where their promise breaks
+
+**Status:** built (registered in evals/hrt/PLAN_CONFORMAL.md before any number existed, amended once (A1) after one dev run, run once on new seeds; on main since 02:26 UTC (1984605); the running product does not use it) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
+
+#### What it does
+
+Beside a forecast, Knack can give a set for the stuck label (stuck, not stuck, or both), a range of 30-second steps for the next progress event, and a range of seconds until the episode ends, each calibrated once at deployment to cover 90%. They cover as promised only where they were calibrated. Under a change of world they fall short, and recalibrating the quantile on one deployment brings the stuck set's coverage back by making the set vague.
+
+#### How it works
+
+A split-conformal quantile is computed once at deployment from 31,941 origins of 16 people the models never saw, to cover 90%; the models stay frozen. The set for the stuck label holds one label or both; the next-progress range is a range of five values (steps 1 to 4, or not within two minutes); the finish range comes from a ridge regression of log seconds remaining. Width is printed beside every coverage figure, because a range that covers 90% by being wide is not a forecast, and coverage is read against the nominal level with a paired person-level interval, with 'over', 'under' and 'consistent' decided by that interval. The same forecasts were also replayed through the ledger and the guard, so the guard can be compared with the coverage. Eleven claims were registered (K1 to K5) with pass rules fixed in advance.
+
+**What is different.** Every uncertainty range prints its width beside its coverage, is checked on held-out people in the world it was calibrated for and in three where it was not, and is read next to a guard that must notice the shift; the claim that fails (a range that over-covers) fails by a rule registered in advance.
+
+#### Where to see it
+
+Evidence page (Admin view, More, Evidence), block 'Does it hold out of time?', disclosure 'Ranges and sets: do they cover as often as they say? (8 of 11 claims passed)'; docs/HRT_BRIEF.md section 2d; the plan evals/hrt/PLAN_CONFORMAL.md; the results evals/hrt/results/heldout_conformal.json.
+
+#### Demo moment
+
+Show the coverage table: where the quantiles were calibrated the stuck set covers 90.0% against a promise of 90%; in three shifted worlds it covers 73.7%, 70.4% and 70.8%. Then the guard beside it: of the 23 shifted deployments with stuck-set coverage under 85%, it missed none. Then the cost of fixing the quantile: coverage returns, and the set holds both labels in 80%, 87% and 78% of origins.
+
+#### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| Where calibrated (the first world, 32 people): the stuck set covers 90.0% [89.5%, 90.6%] and the finish range 89.5% [88.2%, 90.7%], both consistent with the promised 90%; the two-minute range covers 94.3% [93.9%, 94.7%], which over-covers and fails the registered rule (K1b), because with five possible values the quantile is a whole number of steps | synthetic, held-out single frozen run on new seeds; people are the resampling unit | `evals/hrt/results/heldout_conformal.json; docs/HRT_BRIEF.md (section 2d)` |
+| In three shifted worlds of 160 people each: the stuck set covers 73.7% [71.0%, 76.2%], 70.4% [68.1%, 72.7%] and 70.8% [68.5%, 72.9%]; the finish range covers 37.3% [33.7%, 40.9%], 38.2% [34.1%, 42.0%] and 52.4% [49.7%, 55.3%]; all under the promised 90% | synthetic, held-out | `evals/hrt/results/heldout_conformal.json; docs/HRT_BRIEF.md (section 2d)` |
+| 23 shifted deployments had stuck-set coverage under 85% and the guard missed none (K4 passed); in the first world the guard flagged 0 of 8 | synthetic, held-out, 8 deployments per world | `evals/hrt/results/heldout_conformal.json; docs/HRT_BRIEF.md (section 2d)` |
+| After recalibrating the quantile on one deployment of the new world the stuck set covers 89.8% [88.1%, 91.3%], 92.1% [90.7%, 93.4%] and 88.7% [86.9%, 90.2%], but it holds one label in only 20%, 13% and 22% of origins (it holds both in the rest); the finish range still under-covers at 81.5%, 73.2% and 83.3% | synthetic, held-out | `evals/hrt/results/heldout_conformal.json; docs/HRT_BRIEF.md (section 2d)` |
+| 8 of 11 registered claims passed; the three that did not are K1b (the two-minute range over-covers) and K5b and K5c (recalibration restored coverage for the stuck set in 2 of 3 worlds, for the two-minute range in 1 and for the finish range in 0) | synthetic, held-out | `docs/HRT_BRIEF.md (section 2d)` |
+
+#### Honest limit
+
+Coverage is marginal over origins, not per person: a worker unlike the pool can be badly covered while the pool-wide figure is 90%. The finish target is the episode's end as the generator defines it, and the features say almost nothing about when an episode ends (the finish half-width is 0.636 log seconds against 0.642 for the baseline). The two-minute range is scored on origins with two minutes of episode ahead, which excludes 59% of the first world's origins. It is split-conformal and not CV+, with one calibration split per world. Everything comes from generators we wrote. The product does not use these ranges.
+
+#### Hackathon target
+
+- **HRT (best use of data for predictions and decisions)**: uncertainty ranges whose coverage is checked, with the places the promise breaks printed beside the place it holds
+
+### Decision value against prediction accuracy: did the better forecast buy a better decision?
+
+**Status:** built (registered in evals/hrt/PLAN_VALUE.md after the first held-out results (so the sign of the log-loss differences in the shifted worlds was already known; the decision claim V2 was not computed before), run once on new seeds; on main since 02:26 UTC (1984605)) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
+
+#### What it does
+
+The same forecasts become interrupt-or-stay-quiet decisions with one rule fixed in advance, and the decisions are scored in net minutes an hour beside the log loss. Where the model was fitted, a better score bought a better decision. Under a change of world the decision followed the score down, and the model was worth less than interrupting at every origin.
+
+#### How it works
+
+Interrupt when the forecast is at least 0.25, which is A / (A + S) for an assumed gain of S = 3 minutes when a person really makes no progress for a minute and an assumed cost of A = 1 minute when they would have progressed anyway; no threshold is tuned on any pool. Origins are 30-second bins, so an hour of recorded work is 120 of them. References are doing nothing (zero by construction), interrupting at every origin, and a hindsight oracle that interrupts exactly when the label is 1 (not implementable); 'the share of the gap closed' runs from the better of never and always to the oracle. The guarded system uses the drift guard of the ledger plan. Four claims were registered (V1, V2, V3a, V3b).
+
+**What is different.** A forecast is judged by the decision it feeds as well as its score, with the decision rule and cost ratio fixed before any run, the oracle and the do-everything policies as references, and the reversal under shift published beside the win.
+
+#### Where to see it
+
+Evidence page (Admin view, More, Evidence), the disclosure 'Did the better forecast buy a better decision? (4 of 4 claims passed)'; docs/HRT_BRIEF.md section 2e; the plan evals/hrt/PLAN_VALUE.md; the results evals/hrt/results/heldout_value.json.
+
+#### Demo moment
+
+Say it in two numbers and one reversal: where the model was fitted it is worth +31.32 net minutes an hour against -0.44 for the online base rate, and in the shifted worlds it is worth +3.78, +12.28 and +3.90 against +56.19, +59.48 and +42.05, and below interrupting every time. Then say the minutes are our assumption and the ordering is the claim.
+
+#### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| First world: the model's decisions are worth +31.32 net minutes an hour [28.79, 33.74], against -0.44 [-2.42, 1.41] for the online base rate and +0.04 [-0.04, 0.14] for frozen time since progress; log loss 0.446 against 0.531; the model closes 39% [37%, 41%] of the way from doing nothing or always interrupting to the hindsight oracle | synthetic, held-out single frozen run on new seeds, 8 deployments | `evals/hrt/results/heldout_value.json; docs/HRT_BRIEF.md (section 2e)` |
+| Shifted worlds: the model is worth +3.78 [0.93, 6.57], +12.28 [8.08, 16.22] and +3.90 [2.22, 5.69] net minutes an hour against +56.19 [45.62, 67.25], +59.48 [42.41, 75.38] and +42.05 [31.49, 53.39] for the online base rate, and below interrupting at every origin (+46.03, +55.75, +35.62); a model whose forecasts point the wrong way interrupts only 31.2, 31.5 and 21.6 times an hour and misses the value | synthetic, held-out, 160 people per world | `evals/hrt/results/heldout_value.json; docs/HRT_BRIEF.md (section 2e)` |
+| The guard earns decision value where the model fails: guarded minus always-trusting-the-model is +0.434 [0.229, 0.644], +0.307 [0.121, 0.492] and +0.334 [0.101, 0.597] net minutes per origin (deployment-level intervals, n = 8) with 8 of 8 flags in each shifted world, and +0.000 in the first world, where it flagged 0 of 8 | synthetic, held-out | `evals/hrt/results/heldout_value.json; docs/HRT_BRIEF.md (section 2e)` |
+| 4 of 4 registered claims passed (V1, V2, V3a, V3b); V2: in the shifted worlds the model minus the online base rate is -0.437 [-0.512, -0.367], -0.393 [-0.497, -0.285] and -0.318 [-0.400, -0.240] net minutes per origin | synthetic, held-out | `docs/HRT_BRIEF.md (section 2e)` |
+
+#### Honest limit
+
+The costs are our assumptions, and the ranking of the predictors is the claim, not the minutes. The rule runs at every 30-second origin with no cooldown or cap, so 'interruptions per hour' is what an unthrottled rule would do, not what the product does (the product caps and spaces them). The oracle is not implementable. The plan was registered after the first held-out results were seen, which it says. In the shifted worlds the best simple rule is to interrupt almost always, which tells you about the assumed cost ratio as much as about the model.
+
+#### Hackathon target
+
+- **HRT (best use of data for predictions and decisions)**: a forecast judged by the decision it feeds, with the cost ratio stated and the reversal under shift printed
+
 ## 14. Roles
 
 *One deep role pack and two thin ones.*
 
-### Role packs: benefits processor deep, analyst and programmer thin
+### Role packs: the format, and the deep benefits processor pack
 
 **Status:** built · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
 
 #### What it does
 
-A role pack turns raw events into steps, says what an expert does, which actions need a click, what tone to use, which routines to look for and what to teach in what order. The benefits processor pack is deep; the data analyst and programmer packs are thin starting points.
+A role pack turns raw events into steps, says what an expert does, which actions need a click, what tone to use, which routines to look for and what to teach in what order. The benefits processor pack is deep; the data analyst and programmer packs started as thin starting points and were raised to standard depth (the next two entries).
 
 #### How it works
 
-A pack is a validated folder (id, onboarding questions for tools, risky actions, tone, pace and hours; extra step types and their mapping from events; expert steps with allowed reorderings; risk classes with label patterns; routine templates; a curriculum; persona parameters; priors for pooling). The benefits pack also has an oracle, task configuration and sandbox sites. The thin packs fill every key but the oracle, tasks and the full expert policy, and differ visibly in questions, steps, risk classes and tone: the programmer's risky actions are force-push, deleting a branch, merging to main and publishing; the benefits processor's are submitting a case, issuing a payment and sending a letter. A loader checks packs against a JSON Schema and the pack format reserves a slot for plugin references.
+A pack is a validated folder (id, onboarding questions for tools, risky actions, tone, pace and hours; extra step types and their mapping from events; expert steps with allowed reorderings; risk classes with label patterns; routine templates; a curriculum; persona parameters; priors for pooling). The benefits pack also has an oracle, task configuration and sandbox sites. The data analyst and programmer packs fill every key but the oracle, tasks and the full expert policy of the benefits pack, and differ visibly in questions, steps, risk classes and tone: the programmer's risky actions are force-push, deleting a branch, merging to main and publishing; the benefits processor's are submitting a case, issuing a payment and sending a letter. A loader checks packs against a JSON Schema and the pack format reserves a slot for plugin references.
 
 **What is different.** A role is a validated folder of data (steps, expert policy, risk classes, tone, routines, curriculum), so adding a job is adding data, and the thin packs differ visibly in their risky actions.
 
 #### Where to see it
 
-First run (the role cards), Settings, Set up again, and the Admin Roles view.
+First run (the role cards and 'Not sure yet'), the account menu (Change profile changes the name and the role; Set up again reruns first run), and the Admin Roles view.
 
 #### Demo moment
 
@@ -2546,7 +2731,7 @@ At first run, choose each of the three cards; show how the four lines on the 'wh
 
 #### Honest limit
 
-The thin packs are starting points and have not been validated on real work. Genome recovery was not evaluated for them because the named-deficit labels belong to the benefits pack. Even the deep pack has no real benefits-processor data behind it. The two thin packs are being raised to standard depth (next two entries, landing).
+The data analyst and programmer packs are written from the job and have not been validated on real work. Genome recovery was not evaluated for them because the named-deficit labels belong to the benefits pack. Even the deep pack has no real benefits-processor data behind it. Both were raised to standard depth, which is on main since 01:15 UTC (next two entries).
 
 #### Hackathon target
 
@@ -2555,7 +2740,7 @@ The thin packs are starting points and have not been validated on real work. Gen
 
 ### Programmer pack at standard depth
 
-**Status:** landing (ROLE-DEPTH (Track F); docs/roles/programmer.md is on branch worktree-agent-aef8c35334df68596, not on main; additive only (D55, D56 item 6)) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
+**Status:** built (ROLE-DEPTH (Track F), merged to main at 01:15 UTC (08b9908); docs/roles/programmer.md and packages/packs/programmer are on main; no study and no real traces; not seen end to end by the lead; additive only (D55, D56 item 6)) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
 
 #### What it does
 
@@ -2569,7 +2754,7 @@ Each skill has a hint at L1 (a question), L2 (a few words) and L3 (a nudge); L4 
 
 #### Where to see it
 
-Not on main yet. First run (the Programmer role card), Routines (the repeat list), Git habits and the coach in the sandbox; the pack's own page is docs/roles/programmer.md.
+First run (the Programmer role card), Routines (the repeat list), Growth 'My commits' and the coach in the sandbox; the pack's own page is docs/roles/programmer.md.
 
 #### Demo moment
 
@@ -2579,11 +2764,11 @@ The edge you did not try (sandbox task 'Wrong number of pages'): the fix passes 
 
 | What | Label | Source |
 |---|---|---|
-| Only three skills have been run, in a sandbox with simulated participants; the twelve new step types, their hints, the new templates and follow-up mappings have no synthetic traces and no study, so screens show 'not enough data' for them, never a number | simulated participants (language model), not people; the rest not run | `docs/roles/programmer.md (branch worktree-agent-aef8c35334df68596)` |
+| Only three skills have been run, in a sandbox with simulated participants; the twelve new step types, their hints, the new templates and follow-up mappings have no synthetic traces and no study, so screens show 'not enough data' for them, never a number | simulated participants (language model), not people; the rest not run | `docs/roles/programmer.md` |
 
 #### Honest limit
 
-Written from the job, not validated with people. The selectors for real tools (GitHub and GitLab pull requests, CI dashboards, logs, release consoles) are best-effort and not tested against live sites. Dwell priors are expert medians written into the pack, not measured. Minutes, cost and risk on a routine are illustrations (a flat 15 pounds an hour is a placeholder). Judgement shares come from an authored list. The pack suggests connection presets by id, including linear, which is not among the 13 preset files on the CONNECTIONS branch (it has jira).
+Written from the job, not validated with people. The selectors for real tools (GitHub and GitLab pull requests, CI dashboards, logs, release consoles) are best-effort and not tested against live sites. Dwell priors are expert medians written into the pack, not measured. Minutes, cost and risk on a routine are illustrations (a flat 15 pounds an hour is a placeholder). Judgement shares come from an authored list. The pack suggests connection presets by id, including linear, which is not among the 13 preset files on main (it has jira).
 
 #### Hackathon target
 
@@ -2592,7 +2777,7 @@ Written from the job, not validated with people. The selectors for real tools (G
 
 ### Data analyst pack at standard depth
 
-**Status:** landing (ROLE-DEPTH (Track F); docs/roles/data-analyst.md is on branch worktree-agent-aef8c35334df68596, not on main; additive only (D55, D56 item 6)) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
+**Status:** built (ROLE-DEPTH (Track F), merged to main at 01:15 UTC (08b9908); docs/roles/data-analyst.md and packages/packs/data-analyst are on main; no study and no real traces; not seen end to end by the lead; additive only (D55, D56 item 6)) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
 
 #### What it does
 
@@ -2606,7 +2791,7 @@ Hints state the assumption and the check ('Is the key unique on both sides, and 
 
 #### Where to see it
 
-Not on main yet. First run (the Data analyst role card), Routines (the repeat list) and the coach in the sandbox; the pack's own page is docs/roles/data-analyst.md.
+First run (the Data analyst role card), Routines (the repeat list) and the coach in the sandbox; the pack's own page is docs/roles/data-analyst.md.
 
 #### Demo moment
 
@@ -2616,11 +2801,11 @@ The total that does not match (sandbox task 'Net sales against the ledger'): the
 
 | What | Label | Source |
 |---|---|---|
-| Only three skills have been run, in a sandbox with simulated participants; the eleven new step types, their hints, the new templates and follow-up mappings have no synthetic traces and no study, so screens show 'not enough data' for them | simulated participants (language model), not people; the rest not run | `docs/roles/data-analyst.md (branch worktree-agent-aef8c35334df68596)` |
+| Only three skills have been run, in a sandbox with simulated participants; the eleven new step types, their hints, the new templates and follow-up mappings have no synthetic traces and no study, so screens show 'not enough data' for them | simulated participants (language model), not people; the rest not run | `docs/roles/data-analyst.md` |
 
 #### Honest limit
 
-Written from the job, not validated with people. Selectors for real warehouse consoles, notebooks, spreadsheets and BI tools are best-effort and not tested against live sites. Dwell priors, routine minutes and costs and judgement shares are authored, not measured. The pack suggests connection presets by id, including sheets and linear, which are not among the 13 preset files on the CONNECTIONS branch (it has google_workspace and jira). No stuck-model variant qualified for this role.
+Written from the job, not validated with people. Selectors for real warehouse consoles, notebooks, spreadsheets and BI tools are best-effort and not tested against live sites. Dwell priors, routine minutes and costs and judgement shares are authored, not measured. The pack suggests connection presets by id, including sheets and linear, which are not among the 13 preset files on main (it has google_workspace and jira). No stuck-model variant qualified for this role.
 
 #### Hackathon target
 
@@ -2634,7 +2819,7 @@ We read these projects and re-implemented the ideas. We took methods, not claims
 | Project | What it is, per our notes | What we took | How Knack differs | Note |
 |---|---|---|---|---|
 | Clicky (farzaa/clicky, MIT) and its Windows fork | The app captures screenshots, asks a model, speaks and flies a cursor overlay to a point; per our read-only study it never clicks. The fork's plugin runs single actions at screen coordinates for an outside agent. | Overlay algorithms (through the owner's earlier library, with notices); two small modules lifted into vendor/clicky with headers: a scoped lease and a post-action check; the idea of ring-accuracy fixtures. | Knack adds the expert comparison and fading help, and acts through fact handles and a deterministic gate rather than coordinates. It reads the target under the pointer before it acts, and it reports held-out completion. | `docs/reference-notes/clicky-reuse.md; docs/reference-notes/computer-use-comparison.md` |
-| Sentient OS (AGPL-3.0, design only) | A real multi-step loop on real Mac apps using accessibility actions first. Per our study the loop and context handling live in an external agent command line and a vendor-signed helper, and the repository holds no task-completion measurement. | Ideas only, through a clean-room prose note: judge, verify, prepare and press-to-fire cards; read before write; retry a failed check but never replay an action. No code, comments or prompts were copied. | Knack decides 'done' in code, not from the model's final claim, and publishes a held-out completion count (1 of 4). Our study says absence of a reported failure there is absence of measurement, not evidence that it avoids our problems. | `docs/reference-notes/computer-use-comparison.md; docs/DECISIONS.md (D24, REQ-10)` |
+| Sentient OS (AGPL-3.0, design only) | A real multi-step loop on real Mac apps using accessibility actions first. Per our study the loop and context handling live in an external agent command line and a vendor-signed helper, and the repository holds no task-completion measurement. | Ideas only, through a clean-room prose note: judge, verify, prepare and press-to-fire cards; read before write; retry a failed check but never replay an action. No code, comments or prompts were copied. | Knack decides 'done' in code, not from the model's final claim, and publishes held-out completion counts (1 of 4, then 18 of 20 against a bar it did not meet). Our study says absence of a reported failure there is absence of measurement, not evidence that it avoids our problems. | `docs/reference-notes/computer-use-comparison.md; docs/DECISIONS.md (D24, REQ-10)` |
 | Okidoki (repository not available) | Idea only, from its Devpost text: record a run once, replay it deterministically, and call the model only when a precondition fails. | The shape of a routine: steps with a precondition and a postcondition; divergence counts as a non-match in shadow mode. | Routines are a JSON step language, never generated code; nothing replays on a real account; the worker opts in per routine. | `docs/reference-notes/okidoki.md` |
 | VisionOS (MIT) | A coordinator with one worker and a replaceable request: a generation counter, cancel events, deadlines and a watchdog. | The pattern, rewritten in our own supervisor (no code copied). | Per-run deadlines for long benefit runs, a file kill flag the watchdog polls, and a stop that never depends on a model call. | `docs/reference-notes/vision-os.md` |
 | BandIt | Idea only: a model proposes and a guard clamps to a human-approved ceiling; learned rules need three approved precedents and a separate approval. | Precedents become rules in the memory file, with a ceiling and versions. | Precedents decay (30-day half-life) and only the worker can write. | `docs/reference-notes/bandit.md` |
@@ -2652,7 +2837,7 @@ Not verified: any comparison with commercial products. The sources here do not c
 
 ## Numbers you may quote
 
-Only with the n, the split, the interval and the origin printed beside them. Numbers that have no interval in their source (the dignity gate table, the 14 of 14 replay, the pooled start-or-wait figures, the calendar table, the section and limitation counts) are left out of this box on purpose; they stay on their pages with their label. Where two numbers are marked 'quote both', quoting one without the other would mislead. All are from the report generated on 7 Nov 2026 at 21:40 UTC unless the source says otherwise; if the report is regenerated, re-check each line against its source file before the freeze.
+Only with the n, the split, the interval and the origin printed beside them. Numbers that have no interval in their source (the dignity gate table, the 14 of 14 replay, the pooled start-or-wait figures, the calendar table, the section and limitation counts) are left out of this box on purpose; they stay on their pages with their label. Where two numbers are marked 'quote both', quoting one without the other would mislead. All are from the report as regenerated on 8 Nov 2026 at 02:58 UTC (git 9780781) unless the source says otherwise; the author re-checked each number against it, and the wording but not the numbers changed under D57; if the report is regenerated, re-check each line against its source file before the freeze.
 
 | Number | n and split | Origin | Source |
 |---|---|---|---|
@@ -2665,9 +2850,13 @@ Only with the n, the split, the interval and the origin printed beside them. Num
 | Real model on the sandbox: clean 18 of 20 [0.70, 0.97]; layout change 20 of 20 [0.84, 1.00]; one-off error page 0 of 20 [0.00, 0.16] with 20 false claims, all caught by the code check. Quote all three | 20 households per condition | real model (OpenAI), our sandbox, small n | `evals/report.md (Agent runs on the sandbox)` |
 | Scripted red team: attack success 0.0% [0.0, 8.4] with every layer on, 100.0% [91.6, 100.0] with all off. Real model: 0 of 126 against 5 of 126 with the intervals overlapping | 42 attacks, 31 clean pages; real model 42 cases x 3 repeats | synthetic; real model | `evals/report.md (Red team)` |
 | Computer use held-out: clean 1 of 4 completed (Wilson [0.05, 0.70]); injected 20 of 20 paused at step 0 (Wilson [0.84, 1.00]; text-only pages) | 4 and 20 households, seeds used up | real model (OpenAI), our sandbox | `evals/report.md (Agentic evaluation)` |
+| Computer use with Gemini, held-out and pre-registered: clean 18 of 20 completed with correct inputs (Wilson [0.70, 0.97]); the bar (lower bound at least 0.80) was not met; 0 false claims; injected 20 of 20 paused at step 0 (text-only pages). Do not pool with the OpenAI row; do not confuse with the agent-run row that also reads 18 of 20 | 20 clean and 20 injected generated households, seeds 9139 and 9140, one run each, case note at tier 2 | real model (Gemini), our sandbox | `evals/agentic/results/round2_clean_9139.json; evals/agentic/results/round2_injected_9140.json` |
 | 0 of 11,456 planted canary tokens reached the model port; 0 of 88 runs; one-sided 95% upper bound 3.35% per run | 88 runs of 11 flows, 8 seeds each | synthetic, offline | `evals/report.md (Privacy layer)` |
 | Git habits: 116 of 116 flagged habits were planted (100% [96.8, 100.0]); 116 of 120 planted habits found (97% [91.7, 98.7]); placebo false flags 1% [0.4, 2.4] | 120 scripted developers, fresh seeds | synthetic | `evals/report.md (Git habits)` |
-| Prospective, first world (landing, on the HRT branch): the frozen stuck model's log loss 0.445 [0.434, 0.455] against 0.525 for the online base rate; in three shifted worlds it is worse than the best plain predictor by +0.324 to +0.513 nats per bin, and a guard flagged 8 of 8 deployments in each. 8 of 10 registered claims passed. Quote both halves | 61,631 bins, 8 deployments, 32 persona-streams; shifted worlds 160 people each; held-out single run | synthetic | `evals/hrt/results/heldout_ledger.json (branch)` |
+| Prospective, first world: the frozen stuck model's log loss 0.445 [0.434, 0.455] against 0.525 for the online base rate; in three shifted worlds it is worse than the best plain predictor by +0.324 to +0.513 nats per bin, and a guard flagged 8 of 8 deployments in each. 8 of 10 registered claims passed. Quote both halves | 61,631 bins, 8 deployments, 32 persona-streams; shifted worlds 160 people each; held-out single run | synthetic | `evals/hrt/results/heldout_ledger.json` |
+| Online recalibration follow-up (designed after the first held-out result was seen): 5 of 7 registered claims passed; in three shifted worlds recalibrated minus frozen model is -0.487 [-0.535, -0.436], -0.528 [-0.590, -0.468] and -0.542 [-0.605, -0.481] nats per bin; after the error-risk rule change -0.032 [-0.035, -0.028] but the calibration intercept is still +0.61 [0.54, 0.69] (R4 and R6 did not pass). Quote both halves | 8 deployments per world, new seeds, held-out single frozen run | synthetic | `evals/hrt/results/heldout_recal.json` |
+| Ranges and sets: where calibrated (first world) the stuck set covers 90.0% [89.5%, 90.6%] against a promise of 90%; in three shifted worlds it covers 73.7% [71.0%, 76.2%], 70.4% [68.1%, 72.7%] and 70.8% [68.5%, 72.9%]; 8 of 11 registered claims passed (the two-minute range over-covers at 94.3%). Quote both halves | 32 people in the first world, 160 in each shifted world, 8 deployments each, held-out single run | synthetic | `evals/hrt/results/heldout_conformal.json` |
+| Decision value: where the model was fitted it is worth +31.32 net minutes an hour [28.79, 33.74] against -0.44 [-2.42, 1.41] for the online base rate; in three shifted worlds +3.78, +12.28 and +3.90 against +56.19, +59.48 and +42.05, below interrupting at every origin. The costs are our assumptions. Quote both halves | 8 deployments per world, held-out single run, break-even rule fixed in advance | synthetic | `evals/hrt/results/heldout_value.json` |
 | Local model: commit category 91.8% [84.7, 95.8] against 77.5% [68.3, 84.7] for rules | 98 held-out items | synthetic | `evals/report.md (Local model digests)` |
 | Pointing by description: Gemini flash-lite 95% [90, 98] (140 of 147), median 0.93 s | 147 positives, 43 negatives | synthetic sandbox screenshots | `evals/modelbench/REPORT.md` |
 | Cue (simulated): false nudges 0.73 an hour [0.64, 0.83], target met; faster-to-resume median 0.0 s [-9.5, 0.0], target not met. Quote both | 40 simulated personas, 481.5 hours | synthetic | `evals/cue/held_out.json` |
@@ -2684,14 +2873,18 @@ Only with the n, the split, the interval and the origin printed beside them. Num
 - That the stuck model or the work genome hold up on harder synthetic data. They mostly do not; say so beside any number from the first generator.
 - That nothing leaves the laptop. Say instead: every call from our services is listed, in mock mode none left, an allowed frame is raw pixels, and older desktop paths are off by default but not independently re-reviewed.
 - That the agent 'works' without its conditions: our sandbox sites, small n, one model family at the time, and code decides done.
-- That computer use is reliable, or that Knack has clicked on a real desktop through an agent. One supervised click passed; the agent's own actuator then failed its first check; held-out completion was 1 of 4.
+- That computer use is reliable, or that Knack has clicked on a real desktop through an agent. One supervised click passed; the agent's own actuator then failed its first check; held-out completion was 1 of 4 with OpenAI and 18 of 20 with Gemini, below the bar set in advance.
 - That the gate resists hostile pages. The injected condition carries text only, so it shows the detector pauses.
-- Any Gemini result beyond the sandbox bake-off, or that the earlier OpenAI numbers describe the Gemini configuration.
+- That the OpenAI computer-use numbers describe the Gemini configuration, or that the Gemini round (18 of 20) met its bar; it did not.
 - That the synthetic firm, the admin comparisons or any calendar or commit result describe real people or real workplaces.
 - That an admin view is lawful out of the box. A real deployment needs a lawful basis and notice to workers.
 - That Hey Knack, voice guidance or 'do it for me' have been run with a microphone or a real click. They are built and tested offline.
-- That Connections or the deeper roles work; they are landing and not verified.
+- That Connections work against real accounts (nothing real was connected), or that the deeper programmer and data analyst packs work for real people: they are on main, written from the job, with no study and no real traces.
 - That Cue makes people resume faster at the median; the simulated target was not met.
+- That Knack never runs model-written code. On the open-ended task path (on main, no real task run) a Claude background agent writes and runs code with the worker's per-task consent; routines never do.
+- That a Claude background agent has completed any real task, or that its deny rules make it safe: they were checked once for file tools and a shell command may bypass them.
+- That online recalibration restores the stuck model's calibration after a rule change (R4 and R6 did not pass), or that any of the HRT numbers describe real workers.
+- That the Admin view shows a multi-person firm on the live engine until the firm seed has run on the live data (owner request 4.4).
 - That the oracle is the law. It agrees with PolicyEngine UK within 1 pound on only 8 of 20 households.
 
 ## Where the source documents disagree
@@ -2700,22 +2893,24 @@ Found while writing. Each row names both files; the third column says which one 
 
 | Topic | Followed | Disagrees | Used |
 |---|---|---|---|
-| Privacy canary count | evals/report.md and evals/report.facts.json (generated 7 Nov 21:40 UTC): 0 of 11,456 planted tokens, 88 runs of 11 flows, one-sided bound 3.35% per run | README.md and docs/drafts/CLAIMS.md (C40): 0 of 11,336, 80 runs of 10 flows, 3.7% | the generated report |
-| Size of the report and register | evals/report.md: 35 sections (33 with numbers, 2 not run), 206 limitations (67 high, 111 medium, 28 low) | docs/FEATURE_CATALOGUE.md and docs/drafts/DEVPOST.md: 32 sections, a register of 124 (34 high, 69 medium, 21 low); docs/MVP_STATUS.md: 32 sections ok, 1 pending, 2 not run | the generated report |
-| Test counts | docs/MVP_STATUS.md (about 21:20): 3,889 + 1,726 + 541 + 2,684 passed across engine and packs, agent, dashboard and desktop; docs/FIRST_LAUNCH.md (23:50): dashboard 741, desktop 3,079 | evals/report.facts.json: 6,156 test functions, a static count with parametrised cases not expanded | quote none as a pass count without saying how and when it was counted; re-run `make test` at the freeze |
-| Reviewer reproducers | docs/FIRST_LAUNCH.md (23:50): 185 on the agent branch, not yet merged; docs/MVP_STATUS.md and evals/agentic/ITERATIONS_8.md (branch): 183 of 183 | README.md and docs/FIX_LEDGER.md: 172 of 172 | 183 of 183, the last figure on a merged tree |
+| Privacy canary count | evals/report.md and evals/report.facts.json (regenerated 8 Nov 02:58 UTC; the same counts as 7 Nov 21:40): 0 of 11,456 planted tokens, 88 runs of 11 flows, one-sided bound 3.35% per run | README.md and docs/drafts/CLAIMS.md (C40): 0 of 11,336, 80 runs of 10 flows, 3.7% | the generated report |
+| Size of the report and register | evals/report.md (regenerated 8 Nov 02:58 UTC): 37 sections in the evidence map (35 with numbers, 2 not run), 220 limitations (70 high, 120 medium, 30 low) | docs/FEATURE_CATALOGUE.md and docs/drafts/DEVPOST.md: 32 sections, a register of 124 (34 high, 69 medium, 21 low); docs/MVP_STATUS.md: 32 sections ok, 1 pending, 2 not run | the generated report |
+| Test counts | docs/MVP_STATUS.md (about 21:20): 3,889 + 1,726 + 541 + 2,684 passed across engine and packs, agent, dashboard and desktop; docs/FIRST_LAUNCH.md (23:50): dashboard 741, desktop 3,079 | evals/report.facts.json (8 Nov 02:58 UTC): 8,193 test functions, a static count with parametrised cases not expanded | quote none as a pass count without saying how and when it was counted; re-run `make test` at the freeze |
+| Reviewer reproducers | docs/FIRST_LAUNCH.md (23:50): 185 on the agent branch, not yet merged; docs/MVP_STATUS.md and evals/agentic/ITERATIONS_8.md: 183 of 183 | README.md and docs/FIX_LEDGER.md: 172 of 172 | 183 of 183, the last figure on a merged tree |
 | Simulated-study power at n = 16 | evals/report.md (Study power): false positives 4.9%; power 10.2%, 27.3%, 74.8% for small, medium, large | evals/study_sim/REPORT.md and the register entry sim-power: about 6% false positives and 12%, 29%, 76% | the Study power table |
-| Always-listening microphone | docs/DECISIONS.md D52 and docs/knack-ux/09-wake-voice.md (branch): 'hey knack' listening is on by default, on-device | docs/FLAGS.md and docs/FEATURE_CATALOGUE.md: hold to talk only, no always-listening microphone | D52 (later); the other two are stale |
-| Connection preset ids | docs/CONNECTIONS.md and packages/connections/presets/ on the CONNECTIONS branch: 13 presets, Linear listed as unverified and not shipped (hosted only), Jira shipped | docs/roles/programmer.md and docs/roles/data-analyst.md suggest the ids linear and sheets; docs/DECISIONS.md D55 names Linear | docs/CONNECTIONS.md |
-| Reader memo and meter manifest | docs/KNACK_DEMO.md section 6 (on its branch): both are built now; the documents lag the code | docs/CONTEXT_ENGINEERING.md: the reader memo is not built | docs/KNACK_DEMO.md (later); not verified in code by the author |
-| Provenance wording on screen | docs/DECISIONS.md D57 (owner, 00:30 UTC): no 'synthetic' or 'simulated' word, badge or chip anywhere in the app; concrete wording instead | CLAUDE.md (Honesty: synthetic results carry a badge), docs/UI_DIRECTION.md and docs/KNACK_UX.md (an origin badge such as 'Synthetic firm' stays) | D57 for the app; this document, the README and the Devpost keep the labels, and a video should say it aloud |
-| Agent power and model-written code | docs/DECISIONS.md D63 (owner): Claude CLI background agents with full computer access for code and data work, behind one consent card per task | docs/IMPLEMENTATION_SPEC.md (6.5): automations are a JSON step language and model-written code is never executed; docs/MVP_STATUS.md and CLAUDE.md: everything on sandbox sites and synthetic data | D63 for the new tasks layer; the older lines describe the routines layer |
+| Always-listening microphone | docs/DECISIONS.md D52 and docs/knack-ux/09-wake-voice.md: 'hey knack' listening is on by default, on-device | docs/FLAGS.md and docs/FEATURE_CATALOGUE.md: hold to talk only, no always-listening microphone | D52 (later); the other two are stale |
+| Connection preset ids | docs/CONNECTIONS.md and packages/connections/presets/ (on main): 13 presets, Linear listed as unverified and not shipped (hosted only), Jira shipped | docs/roles/programmer.md and docs/roles/data-analyst.md suggest the ids linear and sheets; docs/DECISIONS.md D55 names Linear | docs/CONNECTIONS.md |
+| Reader memo and meter manifest | docs/KNACK_DEMO.md section 6: both are built now; the documents lag the code | docs/CONTEXT_ENGINEERING.md: the reader memo is not built | docs/KNACK_DEMO.md (later); not verified in code by the author |
+| Provenance wording on screen | docs/DECISIONS.md D57 (owner, 00:30 UTC), implemented on main at 01:39 UTC (merge 42c0ad7): no 'synthetic' or 'simulated' word, badge or chip anywhere in the app; a copy-lint (docs/knack-ux/banned-phrases.json) blocks the words in visible text; the screens say it in plain words (a closed 'About this data' whose 'where from' row reads 'These numbers come from example people made for this build, not from real workers', and the Evidence map's 'Measured on' column: 'generators we wrote', 'language-model participants', 'live', 'real and generated', 'not run'); 'Example data' stays for a sample that stands in | CLAUDE.md (Honesty: synthetic results carry a badge), docs/UI_DIRECTION.md and docs/KNACK_UX.md (an origin badge such as 'Synthetic firm' stays) | D57 for the app; this document, the README and the Devpost keep the labels, and a video should say 'synthetic' aloud where the screen no longer does |
+| Agent power and model-written code | docs/DECISIONS.md D63 (owner): Claude CLI background agents with full computer access for code and data work, behind one consent card per task | docs/IMPLEMENTATION_SPEC.md (6.5) before the lead's amendment: 'Model-generated code is never executed'; CLAUDE.md (the owner's file, not edited): everything on sandbox sites and synthetic data | the lead amended docs/IMPLEMENTATION_SPEC.md (6.5, commit 2cc49ec, on main): the sentence is about compiled routine bundles and stays true for them; the task-agent path writes and runs code only after a per-task real-click consent card, with an environment allow-list, a time cap, Stop and the kill file, metadata-only ledger rows and no unattended 'allow everything'. Judge answer: yes, on the open-ended task path, with the worker's per-task consent, and never in routines |
+| Admin view with made-up people | docs/OWNER_REQUESTS.md (4.4): fill the Admin view with made-up data for several users, with no tag anywhere saying so; the lead (8 Nov, about 01:30 UTC): in progress, Track R found the live engine reads this device's own history, which holds no people; the seed (32 made-up people in 3 teams) merged to main at 01:51 UTC | CLAUDE.md (Honesty: synthetic results carry a badge) and docs/DECISIONS.md D57 (no word or badge in the app, concrete provenance wording instead) | landing until the seed command has run on the live data; any video that shows the firm says aloud that the people are made up |
+| Times written into decisions and plans | docs/DECISIONS.md D64: 'about 02:20 GMT'; evals/hrt/PLAN_RECAL.md, amendment A1: 'about 01:40 GMT' | the commit times of the same changes: D64 was committed at 01:54 UTC and the amendment commits at 01:23 and 01:26 UTC; evals/hrt/results/frozen.json frozen_at 01:26:10Z | the commit and freeze times; the stated times read as estimates and are not used as evidence of order |
 | Whether a routine run minimises the window | docs/KNACK_DEMO.md (M7, gap G3): a run in the agent's browser shows the pill and does not move the window | docs/knack-ux/03-routines.md and docs/FIRST_LAUNCH.md (step 6): Run now minimises the window | docs/KNACK_DEMO.md, the later and tested reading |
 | Gemini numbers in the report | evals/modelbench/REPORT.md (18:10 UTC) and evals/report.json (modelbench section): the bake-off figures exist | docs/drafts/DEMO_SCRIPT.md and docs/KNACK_DEMO.md section 8: 'any Gemini speed or accuracy number (not in the report)' | quoted here with the label 'synthetic sandbox screenshots'; the shot-list rule is more cautious and the lead may keep it |
 | Rung definitions | evals/agentic/REAL_CLICKS.md: R2 a model proposes one step in TextEdit; R3 and R4 are attended sandbox rungs; unattended real-desktop runs are not on the ladder | docs/FLAGS.md and docs/DECISIONS.md D48: the reviewer's no-go for 'model-driven (R2) and unattended (R3, R4)' runs; docs/REQ7_PLAN.md: R2 a click and a typed field on a sandbox page, R3 a full household, R4 a long-horizon run | evals/agentic/REAL_CLICKS.md |
 | Cloud wording for 'explain this' | docs/FLAGS.md: the cloud attempt is on by default (D48), routed to Gemini, always behind the number check with a template fallback | README.md and docs/FEATURE_CATALOGUE.md: cloud wording off by default | docs/FLAGS.md (later) |
 | Computer-use 'false claims' | docs/reference-notes/cu-failure-diagnosis.md and evals/agentic/ITERATIONS.md (correction): the harness accepted wrong calculator inputs; independent recomputation caught them | evals/report.md (Agentic evaluation): '2 false claim(s)' | the corrected wording; the generated report has not been re-worded |
-| Alongside reuse counts | README.md: 182 unchanged, 86 modified, 35 removed of 303; 345 new (about 20:53 UTC) | docs/drafts/CLAIMS.md (C65) and docs/drafts/DEVPOST.md: 205 identical, 70 modified, 28 not carried over; 313 new (about 18:15 UTC) | README.md; the counts move and are recomputed at the freeze |
+| Alongside reuse counts | README.md, docs/drafts/DEVPOST.md and docs/drafts/CLAIMS.md C65, re-counted 8 Nov about 03:20 GMT by the README method (git trees, commit b46c87e against main acdc0b7): 168 unchanged, 100 modified, 35 removed, 355 new | docs/drafts/README.draft.md (7 Nov about 18:15 GMT): 205 identical, 70 modified, 28 not carried over, 313 new, on a different baseline | the re-count; the numbers move while the desktop track edits, so recompute once more at the freeze |
 | Which model provider | docs/FLAGS.md and docs/DECISIONS.md D49: Gemini is the default, the OpenAI key was revoked | docs/drafts/DEVPOST.md and docs/drafts/DEMO_SCRIPT.md: OpenAI primary, Gemini in progress; README.md table: voice 'flagged off' | docs/FLAGS.md; the drafts are stale |
 | Cue and Insights status | evals/report.md and evals/cue/held_out.json, evals/insights/results/heldout.json: held-out runs done | docs/FEATURE_CATALOGUE.md and docs/drafts/DEMO_SCRIPT.md: 'building' or 'pending' | the generated results |
 | Words after the Knack redesign, Roles | docs/knack-ux/after/after-measurements.json: 35 words | docs/KNACK_UX.md (section 2 table): 36 | the JSON |
@@ -2724,16 +2919,12 @@ Found while writing. Each row names both files; the third column says which one 
 
 | Item | Document | State at the time of writing |
 |---|---|---|
-| Connections: curated MCP plugins and role presets (CONNECTIONS, Track E) | `docs/CONNECTIONS.md` | written, on branch worktree-agent-a2c1788e3e4c0c876 (00:38 UTC); engine, agent and dashboard sides built there; not on main; nothing real connected |
-| Deeper programmer and data-analyst roles (ROLE-DEPTH, Track F) | `docs/roles/programmer.md, docs/roles/data-analyst.md` | written, on branch worktree-agent-aef8c35334df68596; not on main |
-| Demo shot list and spoken lines (DEMO-DIRECTOR) | `docs/KNACK_DEMO.md` | not on main |
-| Demo shot list, spoken lines, the context audit and the headless checks (DEMO-DIRECTOR) | `docs/KNACK_DEMO.md, docs/knack-demo/context-audit.md` | written, on branch worktree-agent-ab26657c3d23ea392; not on main yet |
-| Prospective ledger, drift guard and decisions scoreboard; docs/HRT_BRIEF.md (HRT, D59) | `evals/hrt/PLAN.md, docs/HRT_BRIEF.md, evals/hrt/results/heldout_*.json` | plan, code, held-out results and the brief are on branch worktree-agent-a02c9cf8855c9f4ff; 8 of 10 registered claims passed; not on main; the running product does not write the ledger yet |
-| Open-ended tasks, skills and Claude background agents (Track T, D63) | `docs/TASKS.md` | a vertical slice tested with a fake claude is on branch worktree-agent-a40520cb1ac55fcdc; the document has not been seen; not on main |
-| Computer use on Gemini, development results (AGENTIC-3) | `evals/agentic/ITERATIONS_8.md` | on branch worktree-agent-acf889b730112335b; merges after its full suite is green (docs/FIRST_LAUNCH.md) |
+| A first-run Try it screen: 'Say Hey Knack', then 'show me where the Needs you list is' (D58) | `docs/knack-ux/capabilities-and-permissions.md` | specified; the Hey Knack side (first-run context, the fixed welcome line, the ring on a sidebar row) is in the desktop wake code on main; the dashboard's first run has a 'Check it works' screen instead and no Try it screen |
+| Growth data for the programmer and analyst roles from a seeded role cohort (Track R) | `services/engine/understudy_engine/seedroles, services/engine/understudy_engine/genome/service.py` | the engine side is on main (a generated 14-person role cohort kept apart from the worker's own history, answered per role by the genome routes); the dashboard's My steps section still requests the benefits task id (apps/dashboard/src/components/growth/StepsSection.tsx), so whether the programmer and analyst roles show their own cohort on screen is not verified |
+| Admin view with made-up people for several users (owner request 4.4, Track R) | `docs/OWNER_REQUESTS.md (4.4)` | the seed (32 made-up people in 3 teams, python -m understudy_engine.demo seed-firm) is on main since 01:51 UTC; until it has run on the live data the live engine reads this device's own ledger (one person) and the Admin comparisons are withheld; landing |
 
 When one of these lands, update its page in `docs/features/` and the status in `docs/features/index.md`.
 
 ## Sources read
 
-`docs/FEATURE_CATALOGUE.md`, `README.md`, `docs/KNACK_UX.md`, `docs/knack-ux/*`, `docs/FLAGS.md`, `docs/DECISIONS.md` (D41 to D55), `docs/MVP_STATUS.md`, `docs/FIX_LEDGER.md`, `evals/report.md`, `evals/report.json`, `evals/report.facts.json`, `evals/realism/INTERPRETATION.md`, `evals/mlv2/PLAN.md` and `evals/mlv2/results/`, `evals/attention/report_held_out.json`, `evals/insights/results/heldout.json`, `evals/cue/held_out.json`, `evals/agentic/ITERATIONS.md`, `evals/study_sim/REPORT.md`, `evals/modelbench/REPORT.md`, `evals/cases/skip_consequences.json`, `docs/reference-notes/*.md`, `docs/REFERENCES.md`, `docs/KNACK_DEMO.md` and `docs/knack-ux/09-wake-voice.md` (from their branches), the CONNECTIONS branch's engine code and presets, `docs/INSIGHTS_DESIGN.md`, `docs/ATTENTION_DESIGN.md`, `docs/CONTEXT_ENGINEERING.md`, `docs/REQ5_PLAN.md`, `docs/REQ7_PLAN.md`, `docs/IMPLEMENTATION_SPEC.md`, `docs/SPIKES.md`, `docs/FIRST_LAUNCH.md`, `docs/drafts/*.md`, and a few code headers under `apps/desktop/src/main/wake/` and `apps/dashboard/src/components/home/navModel.ts`.
+`docs/FEATURE_CATALOGUE.md`, `README.md`, `docs/KNACK_UX.md`, `docs/knack-ux/*`, `docs/FLAGS.md`, `docs/DECISIONS.md` (D41 to D64), `docs/MVP_STATUS.md`, `docs/FIX_LEDGER.md`, `evals/report.md`, `evals/report.json`, `evals/report.facts.json`, `evals/realism/INTERPRETATION.md`, `evals/mlv2/PLAN.md` and `evals/mlv2/results/`, `evals/attention/report_held_out.json`, `evals/insights/results/heldout.json`, `evals/cue/held_out.json`, `evals/agentic/ITERATIONS.md`, `evals/study_sim/REPORT.md`, `evals/modelbench/REPORT.md`, `evals/cases/skip_consequences.json`, `docs/reference-notes/*.md`, `docs/REFERENCES.md`, `docs/KNACK_DEMO.md` and `docs/knack-ux/09-wake-voice.md`, the connections engine code and presets, `docs/INSIGHTS_DESIGN.md`, `docs/ATTENTION_DESIGN.md`, `docs/CONTEXT_ENGINEERING.md`, `docs/REQ5_PLAN.md`, `docs/REQ7_PLAN.md`, `docs/IMPLEMENTATION_SPEC.md`, `docs/SPIKES.md`, `docs/FIRST_LAUNCH.md`, `docs/drafts/*.md`, `docs/TASKS.md`, `docs/CONNECTIONS.md`, `docs/roles/*.md`, `docs/OWNER_REQUESTS.md`, `docs/knack-ux/views.md`, `docs/knack-ux/background-tasks.md`, `docs/knack-ux/capabilities-and-permissions.md`, `docs/HRT_BRIEF.md`, `evals/hrt/PLAN.md`, `evals/hrt/PLAN_RECAL.md` and the held-out result files of the HRT branch, `apps/dashboard/src/routeRedirects.ts`, `apps/dashboard/src/lib/evidence.ts`, and a few code headers under `apps/desktop/src/main/wake/` and `apps/dashboard/src/components/home/navModel.ts`.

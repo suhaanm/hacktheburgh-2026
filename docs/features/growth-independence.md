@@ -18,18 +18,18 @@ An assist ledger holds one row per assist episode with enums and numbers only: n
 
 ## Where to see it
 
-Growth in the sidebar: a one-sentence title, one chart with its band, skills as rows, and closed disclosures (The fade, Your ledger, What Knack did for you). Export and delete are in Your data.
+Growth in the sidebar, the worker's one page for personal insight: 'My progress' (a one-sentence title, one chart with its band, skills as rows, and closed disclosures: About this data, The fade, Your record, What Knack did for you), then the sections 'Where my time goes', 'My steps against an experienced worker's', 'How my routines connect' and, for programmers, 'My commits', one under the other with no extra navigation. Export and delete are in Your data.
 
 ## Demo moment
 
-Open Growth. On the seeded example learner (90 steps of one simulated improving learner, labelled as such) the screen shows one chart with its band, 'Latest: 75% finished with no cue accepted' against a baseline of 1 of 5, the badge Example data, the printed line 'Measures help needed, not expertise.' and the title 'Cannot tell yet whether you need less help'. Keep that title: the engine refuses to overclaim on its own demo data. Open About this data to show n, the interval and the window.
+Open Growth. On the seeded example learner (90 steps of one simulated improving learner, an example and not a person) the screen shows one chart with its band, 'Latest: 75% finished with no cue accepted' against a baseline of 1 of 5, the badge Example data, the printed line 'Measures help needed, not expertise.' and the title 'Cannot tell yet whether you need less help'. Keep that title: the engine refuses to overclaim on its own demo data. Open About this data to show n, the interval and the window.
 
 ## Evidence and its label
 
 | What | Label | Source |
 |---|---|---|
 | The composite overstates mastery for learners who do not improve and rises 10 points or more in about a third of them; independence and the trend are the evidence, and the trend has low power | synthetic, 240 simulated learners with planted curves | `evals/report.md (Limitations register, cue-score-composite, and Cue analysis)` |
-| The seeded demo learner is 90 occurrences of one simulated improving learner (labelled synthetic_learner); unaided steps rise from 1 of 5 at the baseline to 75% at the latest point, and the engine's own title still says it cannot tell yet | simulated learner, not people; a demo seed, not a result | `docs/KNACK_DEMO.md (M9; branch, landing)` |
+| The seeded demo learner is 90 occurrences of one simulated improving learner (labelled synthetic_learner); unaided steps rise from 1 of 5 at the baseline to 75% at the latest point, and the engine's own title still says it cannot tell yet | simulated learner, not people; a demo seed, not a result | `docs/KNACK_DEMO.md (M9)` |
 | A planted independence rise was selected as a pointer in 47 of 100 worlds (target 0.8: missed); false celebration when errors rise 14 of 100 (target 0) | synthetic, 100 planted worlds per effect | `evals/insights/results/heldout.json` |
 
 ## Honest limit

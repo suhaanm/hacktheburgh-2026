@@ -4,7 +4,7 @@
 
 **Capability:** See the work · **Status:** verified · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. Forecasts is an Admin page under the rule (headline first: what to expect and what to do about it; the numbers behind a disclosure) and is not shown to a worker.
+**Navigation note (on main since 02:05 UTC).** The lead's views rule (`docs/knack-ux/views.md`) is implemented: a worker has five sidebar rows (Home, Needs you, Routines, Growth, Your data); Growth is one page with the sections My progress, Where my time goes, My steps, How my routines connect and My commits; the Admin view has Firm, Brief, Forecasts, Roles, People, Onboarding, Automation and Risk, then More: Models and cost, Evidence, Background runs. Old addresses redirect (`apps/dashboard/src/routeRedirects.ts`). The final list is `apps/dashboard/src/components/home/navModel.ts`. Forecasts is an Admin sidebar row (headline first: what to expect and what to do about it; the numbers behind a disclosure) and is not shown to a worker.
 
 **Status:** verified (verified on its own generator; does not transfer to harder synthetic data) · **Page:** `docs/features/stuck-model.md` · **Targets:** HRT
 
@@ -20,11 +20,11 @@ Bins of 30 seconds. Features: the last three step types, dwell, repeated actions
 
 ## Where to see it
 
-More, then Forecasts (address #/forecasts; for admins, Firm, Forecasts). The coach and Cue use the same signal.
+Admin view, sidebar Forecasts (address #/forecasts; headline first, 'what to expect, and what to do about it'). It is not shown to a worker. The coach and Cue use the same signal.
 
 ## Demo moment
 
-Open Forecasts. Show the reliability diagram, then the two baselines (base rate, time since progress), then false alarms an hour against the budget of 1.0. Say the model's edge over the plain rule is small on harder data, and the page says so.
+In the Admin view open Forecasts. Show the reliability diagram, then the two baselines (base rate, time since progress), then false alarms an hour against the budget of 1.0. Say the model's edge over the plain rule is small on harder data, and the page says so.
 
 ## Evidence and its label
 
