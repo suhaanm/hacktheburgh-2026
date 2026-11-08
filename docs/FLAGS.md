@@ -10,7 +10,7 @@ A running service applies `DEFAULT_ON` once at startup (`understudy_engine/api/f
 
 | Flag | What it turns on | Notes |
 |---|---|---|
-| `UNDERSTUDY_X` | Every engine and agent extension layer: privacy, local model, calendar, git, proactive, Cue, awareness, evidence, attention, repeat list, insights, background agents, model routes | Awareness still sends no frame until the worker records consent (below) |
+| `UNDERSTUDY_X` | Every engine and agent extension layer: privacy, local model, calendar, git, proactive, Cue, awareness, evidence, attention, repeat list, insights, the HRT live prediction ledger (`UNDERSTUDY_X_HRT`), background agents, model routes | Awareness still sends no frame until the worker records consent (below) |
 | `UNDERSTUDY_X_GEMINI` | Gemini routes for glance, pointing, verifier, and now every role | Through the egress guard and the ledger |
 | `UNDERSTUDY_X_LIVE`, `UNDERSTUDY_FLAG_VOICE` | Live voice in the desktop build | Hold to talk only; no always-listening microphone. The agent service's `live` router does not exist (agent health shows `live: false`): Live voice is a desktop feature |
 | `UNDERSTUDY_VOICE` | ElevenLabs spoken lines | Fixed vocabulary. Cue still speaks only on request (D36) |
@@ -30,6 +30,7 @@ A running service applies `DEFAULT_ON` once at startup (`understudy_engine/api/f
 | `UNDERSTUDY_VOICE_DEBUG_TEXT` | A developer escape hatch that disables the fixed-lines rule for speech |
 | `UNDERSTUDY_CU_FRAME_HINT` | A frame hint for the computer-use model. The pre-flight run where it was on got stuck loops; the confirmed configuration has it off |
 | `UNDERSTUDY_INSIGHTS_HELDOUT` | A run-once guard so the held-out evaluation cannot run by accident |
+| `UNDERSTUDY_HRT_HELDOUT` | The same kind of guard for the HRT prospective and scoreboard runs (`evals/hrt/PLAN.md` section 7): without it, with a changed code hash, or on a second run, the held-out command refuses |
 | Periodic awareness glances (about every 30 s) | Frames leave the device only with the worker's recorded consent (owner decision D30) and macOS Screen Recording, which only the owner can grant. The consent card is one click |
 
 ## Provider (D49)
