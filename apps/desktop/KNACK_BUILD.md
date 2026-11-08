@@ -45,7 +45,16 @@ Builds the app and the dashboard into `out/knack-check`, then runs `src/main/kna
 3. Privacy usage strings (microphone, speech recognition, Apple Events) are already in the Info.plist from `mac.extendInfo`; Accessibility and Screen Recording are granted by the owner in System Settings the first time Knack must point at or act on the screen (a human-only step).
 4. The app must find the engine and the agent on another Mac: set `KNACK_REPO`, or bundle the services (not done: this build is for the machine the repository is on).
 
+## What the packaging step does to the bundle (`scripts/after-pack.cjs`, run by electron-builder before the dmg)
+
+1. It deletes Electron's generic camera, Bluetooth and system-audio usage strings from the bundle's Info.plist (Knack asks for none of them). The microphone, speech recognition and Apple Events strings Knack uses stay (`tests/after-pack.test.ts` pins both).
+2. It seals the bundle again with an ad-hoc signature (`codesign --sign -`: no identity, no Apple account). The stock Electron signature names the app `Electron` and binds no Info.plist, so `codesign --verify` fails; sealed again it is `app.knack.desktop` with its Info.plist bound, which is what macOS reads for the microphone and speech prompts and for the permission list.
+
+Neither step is fatal: if one fails the build says so and the app is as it was. Check a build with `codesign --verify --deep --strict dist-app/mac-arm64/Knack.app` (exit 0) and `plutil -p dist-app/mac-arm64/Knack.app/Contents/Info.plist | grep UsageDescription`.
+
 ## Known limits
+
+- Build from a normal checkout (a real `node_modules` in `apps/desktop`). A worktree whose `node_modules` is a **symlink** to another checkout's makes electron-builder miss the transitive dependencies of `@google/genai` (`google-auth-library`, `ws`, `protobufjs`, `p-retry`) and of React: the asar then has about 980 entries instead of 1492 and the live models fail at run time. `asar list dist-app/mac-arm64/Knack.app/Contents/Resources/app.asar | wc -l` should say about 1490.
 
 - In development (`npm run dev`) the Dock label and the macOS permission lists show Electron: only a packaged build carries the Knack name there.
 - `build/knack-config.json` records the repository path at build time; a build made inside a git worktree points at that worktree unless `KNACK_BAKE_REPO=/path/to/the/main/checkout` is set when packaging.

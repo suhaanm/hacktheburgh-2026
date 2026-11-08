@@ -6,7 +6,7 @@
 import path from 'node:path'
 import { BrowserWindow, ipcMain, screen } from 'electron'
 import type { CardAnswer, CardPort, CardSpec } from './controller'
-import { MISTAP_GUARD_MS, WAKE_CARD_IPC, cardBounds, type WakeCardAnswer, type WakeCardView } from './card-ipc'
+import { MISTAP_GUARD_MS, WAKE_CARD_IPC, cardBounds, cardWorkArea, type WakeCardAnswer, type WakeCardView } from './card-ipc'
 
 const FOLLOW_MS = 500
 
@@ -17,6 +17,8 @@ export interface CardWindowOptions {
    */
   above?: () => { x: number; y: number; width: number; height: number } | null
   disabled?: boolean
+  /** The window is built and works but is never shown (the hidden checks, as the HUD, the Ask bar and the pills have it). */
+  hidden?: boolean
   capturable?: boolean
   now?: () => number
   log?: (scope: string, ...args: unknown[]) => void
@@ -45,14 +47,22 @@ export function createCardWindow(o: CardWindowOptions = {}): CardWindow {
 
   const place = (): void => {
     if (!alive()) return
-    // The display that holds the pointer (where the worker is looking), not always the primary one.
-    let wa = screen.getPrimaryDisplay().workArea
+    // The display that holds the column this card stacks above (one place for each thing, on one display); with no column, the display that holds the pointer (where the worker
+    // is looking), not always the primary one.
+    const column = o.above?.() ?? null
+    let pointerWa = screen.getPrimaryDisplay().workArea
     try {
-      wa = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea
+      pointerWa = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea
     } catch {
       /* no pointer position: the primary display */
     }
-    ;(win as BrowserWindow).setBounds(cardBounds(wa, size, undefined, o.above?.() ?? null))
+    let wa = pointerWa
+    try {
+      wa = cardWorkArea(screen.getAllDisplays(), column, pointerWa)
+    } catch {
+      /* the display list could not be read: the pointer's display */
+    }
+    ;(win as BrowserWindow).setBounds(cardBounds(wa, size, undefined, column))
   }
 
   const settle = (answer: CardAnswer | null): void => {
@@ -124,7 +134,7 @@ export function createCardWindow(o: CardWindowOptions = {}): CardWindow {
       if (typeof r.w !== 'number' || typeof r.h !== 'number' || !(r.w > 0 && r.w <= 600) || !(r.h > 0 && r.h <= 400)) return
       size = { w: Math.ceil(r.w), h: Math.ceil(r.h) }
       place()
-      if (pending && alive() && !(win as BrowserWindow).isVisible()) (win as BrowserWindow).showInactive()
+      if (pending && alive() && !o.hidden && !(win as BrowserWindow).isVisible()) (win as BrowserWindow).showInactive()
     })
     ipcMain.on(WAKE_CARD_IPC.answer, (e, raw: unknown) => {
       if (!fromCard(e) || !pending) return log('wake', 'ignored a card answer from an unknown sender or with no card')
