@@ -11,9 +11,13 @@ export const ACTION_MAX_WORDS = 5;
 export const wordCount = (s: string): number => s.trim().split(/\s+/).filter(Boolean).length;
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+/** [day, month index] read from the date part of an ISO string, as written (no time zone shifts the day). A date that is not a real calendar date is null. */
 const parts = (iso: string): [number, number] | null => {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
-  return m ? [Number(m[3]), Number(m[2]) - 1] : null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(typeof iso === "string" ? iso : "");
+  if (!m) return null;
+  const month = Number(m[2]), day = Number(m[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  return [day, month - 1];
 };
 
 /** "Week of 9 November", from the first day of the week. Null when the date cannot be read. */
@@ -28,6 +32,26 @@ export function weekLabel(week: WireWorker["week"]): string | null {
   const a = parts(week.from), b = parts(week.to);
   if (!a || !b) return null;
   return a[1] === b[1] ? `${a[0]} to ${b[0]} ${MONTHS[b[1]]}` : `${a[0]} ${MONTHS[a[1]]} to ${b[0]} ${MONTHS[b[1]]}`;
+}
+
+/* -- Numbers and their units ------------------------------------------------------------------------------------------------ */
+
+const SINGULAR: Record<string, string> = { seconds: "second", minutes: "minute", hours: "hour", days: "day", steps: "step", cases: "case", times: "time" };
+const fmtInt = (n: number): string => Math.round(n).toLocaleString("en-GB");
+
+/**
+ * A measure as the worker reads it: "35 seconds", "1 second", "20 minutes" (120 seconds or more is said in minutes, 120 minutes or more in hours), thousands with a
+ * separator. The engine's unit word is kept; only its number and plural change. A value that is not a number is null (the sentence is then used as the engine wrote it).
+ */
+export function measure(n: number | string, unit: string): { n: string; unit: string } | null {
+  const v = typeof n === "string" ? (n.trim() === "" ? Number.NaN : Number(n)) : n;
+  if (typeof v !== "number" || !Number.isFinite(v)) return null;
+  let value = v, u = unit.toLowerCase();
+  if (u === "seconds" && value >= 120) { value /= 60; u = "minutes"; }
+  if (u === "minutes" && value >= 120) { value /= 60; u = "hours"; }
+  const shown = u === "hours" && value < 100 ? String(Math.round(value * 10) / 10) : fmtInt(value);
+  const one = shown === "1";
+  return { n: shown, unit: one ? (SINGULAR[u] ?? u) : (Object.entries(SINGULAR).find(([, sg]) => sg === u)?.[0] ?? u) };
 }
 
 /* -- The hero sentence ------------------------------------------------------------------------------------------------------ */
@@ -51,25 +75,57 @@ export function shapeOf(headline: string): Shape | null {
   return null;
 }
 
+const clip = (step: string, max: number): string => {
+  const w = step.trim().split(/\s+/);
+  return w.length <= max ? step.trim() : `${w.slice(0, max).join(" ")}\u2026`;
+};
+
+function heroText(s: Shape, step: string, usually: boolean): string {
+  if (s.kind === "gap") {
+    const m = measure(s.n, s.unit);
+    if (!m) return "";
+    if (Number(s.n) === 0) return `On ${step} you take about as long as ${s.who}.`;
+    return `On ${step} you ${usually ? "usually " : ""}take about ${m.n} ${m.unit} ${s.dir} than ${s.who}.`;
+  }
+  if (s.kind === "better") {
+    const m = measure(s.n, s.unit);
+    return m ? `On ${step} you now take about ${m.n} ${m.unit} less than a month ago.` : "";
+  }
+  return `On ${step} you finished ${s.k} of your last ${s.of} cases without help.`;
+}
+
 /**
  * The hero: "On {step} you usually take about {n} {unit} {longer|less} than {the expert|your peers}." The comma after the step goes, and "the expert's
- * median" becomes "the expert" (the median is behind "Why this?"). A headline of an unknown shape is used as it is, without commas.
+ * median" becomes "the expert" (the median is behind "Why this?"). It stays within 16 words: "usually" goes first, then a long step is cut to its
+ * first words. A headline of an unknown shape is used as it is, without commas.
  */
 export function heroSentence(headline: string): string {
   const s = shapeOf(headline);
   if (!s) return headline.trim().replace(/,/g, "");
-  if (s.kind === "gap") return `On ${s.step} you usually take about ${s.n} ${s.unit} ${s.dir} than ${s.who}.`;
-  if (s.kind === "better") return `On ${s.step} you now take about ${s.n} ${s.unit} less than a month ago.`;
-  return `On ${s.step} you finished ${s.k} of your last ${s.of} cases without help.`;
+  for (const [usually, max] of [[true, 99], [false, 99], [false, 8], [false, 5]] as const) {
+    const t = heroText(s, clip(s.step, max), usually);
+    if (!t) return headline.trim().replace(/,/g, "");
+    if (wordCount(t) <= HERO_MAX_WORDS) return t;
+  }
+  return heroText(s, clip(s.step, 3), false);
 }
 
 /** The same pointer as a quiet row, at most 12 words: "Reconciling before the note: about 15 seconds longer than the expert." */
 export function rowSentence(headline: string): string {
   const s = shapeOf(headline);
   if (!s) return headline.trim().replace(/,/g, "");
-  if (s.kind === "gap") return `${upper(s.step)}: about ${s.n} ${s.unit} ${s.dir} than ${s.who}.`;
-  if (s.kind === "better") return `${upper(s.step)}: about ${s.n} ${s.unit} less than a month ago.`;
-  return `${upper(s.step)}: ${s.k} of ${s.of} cases without help.`;
+  for (const max of [99, 6, 4]) {
+    const step = upper(clip(s.step, max));
+    let t: string;
+    if (s.kind === "milestone") t = `${step}: ${s.k} of ${s.of} cases without help.`;
+    else {
+      const m = measure(s.n, s.unit);
+      if (!m) return headline.trim().replace(/,/g, "");
+      t = s.kind === "gap" && Number(s.n) === 0 ? `${step}: about as long as ${s.who}.` : s.kind === "gap" ? `${step}: about ${m.n} ${m.unit} ${s.dir} than ${s.who}.` : `${step}: about ${m.n} ${m.unit} less than a month ago.`;
+    }
+    if (wordCount(t) <= ROW_MAX_WORDS || max === 4) return t;
+  }
+  return headline.trim().replace(/,/g, "");
 }
 
 /** The hero's one action, a verb phrase of at most five words, and where it goes. A habit that costs time opens "Where time goes" (Genome). */
@@ -88,6 +144,7 @@ export function heroAction(p: Pick<WirePointer, "kind" | "action">): { label: st
 export function tryLine(t: WireWorker["try"] | undefined): string | null {
   if (!t?.label) return null;
   const label = t.label.trim().replace(/\.$/, "");
+  if (!/[\p{L}\p{N}]/u.test(label)) return null;
   const line = `Try ${label.charAt(0).toLowerCase()}${label.slice(1)}.`;
   return wordCount(line) <= TRY_MAX_WORDS ? line : null;
 }
@@ -98,27 +155,32 @@ export const EXAMPLE_LINE = "This is an example. Knack starts counting now.";
 
 /** "1 thing needs you", "3 things need you". Null at zero: the row is not drawn. */
 export function needsLine(n: number): string | null {
-  if (n <= 0) return null;
-  return n === 1 ? "1 thing needs you" : `${n} things need you`;
+  const v = Math.floor(n);
+  if (!Number.isFinite(v) || v <= 0) return null;
+  return v === 1 ? "1 thing needs you" : `${v.toLocaleString("en-GB")} things need you`;
 }
 
 export interface RepeatsTotal { actions: number; hours_per_week: { point: number; lo: number; hi: number } }
 
-/** "About 1 hour a week could run for you." One rate, no count of repeats. Under an hour it speaks in minutes. Null when nothing repeats. */
+const okTotal = (t: RepeatsTotal | null | undefined): t is RepeatsTotal => !!t && Number.isFinite(t.actions) && t.actions > 0 && !!t.hours_per_week && Number.isFinite(t.hours_per_week.point) && t.hours_per_week.point > 0;
+
+/** "About 1 hour a week could run for you." One rate, no count of repeats. Under an hour it speaks in minutes. Null when nothing repeats or the rate is not a positive number. */
 export function repeatsRow(t: RepeatsTotal | null | undefined): string | null {
-  if (!t || t.actions <= 0) return null;
+  if (!okTotal(t)) return null;
   const hrs = t.hours_per_week.point;
   if (hrs < 1) return `About ${Math.max(1, Math.round(hrs * 60))} minutes a week could run for you.`;
-  const f = String(Math.round(hrs * 10) / 10);
+  const f = hrs >= 100 ? Math.round(hrs).toLocaleString("en-GB") : String(Math.round(hrs * 10) / 10);
   return `About ${f} ${f === "1" ? "hour" : "hours"} a week could run for you.`;
 }
 
-/** The interval behind the row, for its Hint: a 95% interval in hours or minutes a week. */
+/** The interval behind the row, for its Hint: a 95% interval in hours or minutes a week. Null when the interval is missing or not numbers. */
 export function repeatsHint(t: RepeatsTotal | null | undefined): string | null {
-  if (!t || t.actions <= 0) return null;
+  if (!okTotal(t)) return null;
+  const { lo, hi } = t.hours_per_week;
+  if (!Number.isFinite(lo) || !Number.isFinite(hi)) return null;
   const minutes = t.hours_per_week.point < 1;
-  const f = (h: number): string => (minutes ? String(Math.max(1, Math.round(h * 60))) : String(Math.round(h * 10) / 10));
-  return `A 95% interval: ${f(t.hours_per_week.lo)} to ${f(t.hours_per_week.hi)} ${minutes ? "minutes" : "hours"} a week, counted from ${t.actions} of your own repeated steps.`;
+  const f = (h: number): string => (minutes ? String(Math.max(1, Math.round(h * 60))) : String(Math.round(Math.max(0, h) * 10) / 10));
+  return `A 95% interval: ${f(Math.min(lo, hi))} to ${f(Math.max(lo, hi))} ${minutes ? "minutes" : "hours"} a week, counted from ${Math.round(t.actions).toLocaleString("en-GB")} of your own repeated steps.`;
 }
 
 export const GROWTH_ROW = "See how much less help you need.";
@@ -147,8 +209,9 @@ export const COULD_NOT_LOAD: Quiet = { kind: "error", title: "Could not read you
 export function originBadge(opts: { example: boolean; origin: string | null | undefined; badge: string | null | undefined }): string | null {
   if (opts.example) return "Example data";
   if (!opts.origin || opts.origin === "real") return null;
+  if (opts.origin === "mixed") return "Some example data";
   const b = (opts.badge ?? opts.origin).trim();
-  return upper(b.toLowerCase());
+  return b ? upper(b.toLowerCase()) : null;
 }
 
 /* -- The first-week example line ---------------------------------------------------------------------------------------------- */
@@ -157,5 +220,6 @@ export function originBadge(opts: { example: boolean; origin: string | null | un
 export function exampleLine(standIn: boolean, firstRunAt: string | null, now = new Date()): string | null {
   if (!standIn || !firstRunAt) return null;
   const t = Date.parse(firstRunAt);
-  return Number.isFinite(t) && now.getTime() - t < 7 * 86_400_000 ? EXAMPLE_LINE : null;
+  const age = now.getTime() - t;
+  return Number.isFinite(t) && age < 7 * 86_400_000 && age > -86_400_000 ? EXAMPLE_LINE : null;
 }

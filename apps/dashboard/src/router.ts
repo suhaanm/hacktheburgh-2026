@@ -28,7 +28,8 @@ export const DEFAULT_SCREEN: Screen = "home";
 function read(): Route {
   const raw = window.location.hash.replace(/^#/, "") || `/${DEFAULT_SCREEN}`;
   const [p, q = ""] = raw.split("?");
-  const path = p.startsWith("/") ? p : `/${p}`;
+  const lower = (p.startsWith("/") ? p : `/${p}`).toLowerCase();
+  const path = lower.length > 1 ? lower.replace(/\/+$/, "") : lower;
   const query = new URLSearchParams(q);
   const to = redirectFor(path, query, getViewRole());
   if (to) {

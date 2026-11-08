@@ -1,13 +1,14 @@
 // First run: three screens, one click each (docs/knack-ux/07-first-run.md). No sidebar, no text field, no Next button.
 // The role pack's safe defaults are written to the memory file when the one consent is answered; everything else is editable in Your data.
-import { Suspense, lazy, useEffect, useReducer, useRef, useState, type ComponentType } from "react";
+import { Suspense, lazy, useEffect, useMemo, useReducer, useRef, useState, type ComponentType } from "react";
 import { ApiError, api } from "../../api";
 import { navigate } from "../../router";
 import { useLoad } from "../../hooks";
 import { Details } from "../../components/ui";
 import { Glyph } from "../../components/Lockup";
 import type { OnboardingAnswers, OnboardingQuestions } from "../../types";
-import { CAPTURE_CHOICE_KEY, FIRST_RUN_KEY, START, STEPS, captureRecord, defaultAnswers, readyLines, reduce, roleCards, type CaptureChoice } from "./model";
+import { wakeBridge, type WakeStatus } from "../Settings/bridge";
+import { CAPTURE_CHOICE_KEY, FIRST_RUN_KEY, START, STEPS, captureRecord, defaultAnswers, heyKnackRow, readyLines, reduce, roleCards, type CaptureChoice } from "./model";
 import "./firstrun.css";
 
 /**
@@ -29,6 +30,16 @@ export default function FirstRun() {
   const [picked, setPicked] = useState<string | null>(null);
   const [written, setWritten] = useState<{ q: OnboardingQuestions; a: OnboardingAnswers } | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
+  const wakeApi = useMemo(() => wakeBridge(), []);
+  const [wake, setWake] = useState<WakeStatus | null>(null);
+  useEffect(() => { if (s.step === "ready") wakeApi?.state().then(setWake, () => setWake(null)); }, [s.step, wakeApi]);
+  const hey = heyKnackRow(wake);
+  const toggleWake = (on: boolean) => {
+    if (!wakeApi) return;
+    const before = wake;
+    setWake((w) => (w ? { ...w, switchOn: on } : w));
+    wakeApi.set(on).then(setWake, () => setWake(before));
+  };
   const n = STEPS.indexOf(s.step) + 1;
 
   useEffect(() => { document.title = "Welcome · Knack"; }, []);
@@ -110,6 +121,16 @@ export default function FirstRun() {
           <section className="firstrun__step" aria-labelledby="fr-h">
             <h1 id="fr-h" className="firstrun__q" ref={heading} tabIndex={-1}>What Knack will remember</h1>
             <ul className="firstrun__lines">{readyLines(written.q, written.a).map((l) => <li key={l}>{l}</li>)}</ul>
+            {hey && (
+              <div className="firstrun__hey" data-testid="hey-knack">
+                <label className="toggle">
+                  <input type="checkbox" role="switch" aria-label="Listen for Hey Knack" checked={hey.on} onChange={(e) => toggleWake(e.target.checked)} />
+                  <span className="toggle__track" aria-hidden="true" />
+                  <span className="toggle__text">{hey.title}</span>
+                </label>
+                <p className="firstrun__note">{hey.line}</p>
+              </div>
+            )}
             <p className="firstrun__note">Edit any line later in Your data.</p>
             <div><button type="button" className="btn btn--primary" onClick={finish}>Show my week</button></div>
           </section>

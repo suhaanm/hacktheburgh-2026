@@ -49,8 +49,8 @@ export function ApprovalHero({ item: it, onDone }: { item: QueueItem; onDone: ()
 
   return (
     <section className="home__hero home__hero--approval" aria-labelledby="home-hero" data-testid="home-approval">
-      <h1 id="home-hero" className="home__hero-text hero-insight">{title}</h1>
-      {lead && lead.split(/(?<=[.!?])\s+/).map((sentence, i) => <p key={i} className="home__why">{sentence}</p>)}
+      <h1 id="home-hero" className="home__hero-text hero-insight" dir="auto">{title}</h1>
+      {lead && <p className="home__why home__why--lead" dir="auto">{lead}</p>}
       {cost && <p className="home__cost" data-risk={it.risk_class}>{cost}</p>}
       {stepUp && <p className="home__why home__why--small">{stepUpNotice(it.risk_class)}</p>}
       {err && <p className="field__error" role="alert">{err}</p>}

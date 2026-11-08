@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import onboardingFx from "../../fixtures/onboarding.json";
 import packsFx from "../../fixtures/packs.json";
 import type { OnboardingQuestions, Pack } from "../../types";
-import { ASK_AGAIN_AFTER_DAYS, cardLine, CLICKS_TO_HOME, START, STEPS, captureRecord, defaultAnswers, mayAskAgain, readyLines, reduce, roleCards, shouldStartFirstRun, type FirstRunAction, type FirstRunState } from "./model";
+import { ASK_AGAIN_AFTER_DAYS, cardLine, heyKnackRow, CLICKS_TO_HOME, START, STEPS, captureRecord, defaultAnswers, mayAskAgain, readyLines, reduce, roleCards, shouldStartFirstRun, type FirstRunAction, type FirstRunState } from "./model";
 
 const fx = <T,>(x: unknown): T => ((x as { data?: T }).data ?? x) as T;
 const questions = fx<Record<string, OnboardingQuestions>>(onboardingFx)["benefits-processor"];
@@ -87,6 +87,21 @@ describe("the line under a role", () => {
   it("cuts a pack summary to a short noun phrase of at most four words", () => {
     expect(cardLine("Runs entitlement checks for households and writes the case note.")).toBe("Runs entitlement checks");
     for (const p of packs) { const l = cardLine(p.summary); expect(l.split(" ").length, p.id).toBeLessThanOrEqual(4); expect(l, p.id).not.toMatch(/[,;:]$/); }
+  });
+});
+
+describe("the Hey Knack row", () => {
+  it("is absent in a browser tab, where nothing reports the listener", () => {
+    expect(heyKnackRow(null)).toBeNull();
+  });
+  it("says what listening is and is not, and reflects the switch the shell reports", () => {
+    const on = heyKnackRow({ switchOn: true, listening: true, line: "" })!;
+    expect(on).toEqual({ title: "Say Hey Knack to talk to it", line: "It listens on this Mac for those words only, and keeps nothing.", on: true });
+    expect(heyKnackRow({ switchOn: false, listening: false, line: "" })!.on).toBe(false);
+  });
+  it("adds the shell's own line when it is on but cannot listen (a refused permission), so the reason is printed", () => {
+    const r = heyKnackRow({ switchOn: true, listening: false, line: "Hey Knack needs the microphone. Turn it on in System Settings." })!;
+    expect(r.line).toContain("Hey Knack needs the microphone.");
   });
 });
 

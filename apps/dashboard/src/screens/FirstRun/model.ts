@@ -93,6 +93,14 @@ export function roleCards(packs: Pack[]): { id: string; name: string; line: stri
   return packs.slice(0, 5).map((p) => ({ id: p.id, name: p.name, line: cardLine(p.summary) }));
 }
 
+/** The "Hey Knack" row on the last screen: only in the desktop app (where the shell reports the listener's state), never in a browser tab. Words are fixed. */
+export interface HeyKnackRow { title: string; line: string; on: boolean }
+export function heyKnackRow(status: { switchOn: boolean; listening: boolean; line: string } | null): HeyKnackRow | null {
+  if (!status) return null;
+  const note = "It listens on this Mac for those words only, and keeps nothing.";
+  return { title: "Say Hey Knack to talk to it", line: status.switchOn && !status.listening && status.line ? `${note} ${status.line}` : note, on: status.switchOn };
+}
+
 /** What to remember about the consent, as one string for localStorage. */
 export function captureRecord(choice: CaptureChoice, now = new Date()): string {
   return choice === "not-now" ? `not-now:${now.toISOString()}` : choice;

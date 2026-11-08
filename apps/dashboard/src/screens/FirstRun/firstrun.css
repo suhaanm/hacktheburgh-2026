@@ -29,6 +29,7 @@
 .firstrun__choices .btn { flex: 1 1 0; min-width: 120px; }
 .firstrun__lines { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-2); font-size: var(--text-md); }
 .firstrun__lines li::before { content: "·"; margin-right: 0.6em; color: var(--muted); }
+.firstrun__hey { display: grid; gap: var(--space-1); padding-top: var(--space-3); border-top: var(--hair) solid var(--line); }
 .firstrun__back { justify-self: start; color: var(--muted); }
 @media (max-width: 880px) {
   .firstrun { padding: var(--space-8) var(--space-4); }

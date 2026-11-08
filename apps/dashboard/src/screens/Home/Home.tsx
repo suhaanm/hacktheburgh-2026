@@ -25,7 +25,7 @@ function Row({ href, icon, children, hint }: { href: string; icon: "needs-you" |
     <li className="home__row">
       <a className="home__row-link" href={href}>
         <Icon name={icon} />
-        <span className="home__row-text">{children}</span>
+        <span className="home__row-text" dir="auto">{children}</span>
         <Icon name="chevron" className="home__row-chev" />
       </a>
       {hint && <Hint label={hint.label}>{hint.text}</Hint>}
@@ -79,7 +79,7 @@ export default function Home() {
   const decided = useCallback(() => { queue.reload(); void refreshNeedsBadge(); }, [queue]);
 
   const data = w.data;
-  const pointers = useMemo(() => (data ? data.pointers.filter((p) => !gone.has(p.id)) : []), [data, gone]);
+  const pointers = useMemo(() => (data ? (data.pointers ?? []).filter((p) => p && !gone.has(p.id) && typeof p.headline === "string" && p.headline.trim() !== "") : []), [data, gone]);
   const pending = (queue.data ?? []).filter((x) => x.status === "pending");
   const blocking = blockingItem(pending);
 
@@ -100,7 +100,7 @@ export default function Home() {
   const [first, second] = pointers;
   const action = first ? heroAction(first) : null;
   const toTry = tryLine(data.try) ?? exampleLine(data.stand_in, firstRunAt());
-  const needs = needsLine(remainingAfter(pending.length || app.pendingQueue, !!blocking));
+  const needs = needsLine(remainingAfter(Math.max(app.pendingQueue, pending.length), !!blocking));
   const repeats = rep.data && rep.data.state === "ok" ? rep.data.total : null;
   const rLine = repeatsRow(repeats);
 
@@ -122,7 +122,7 @@ export default function Home() {
 
       {blocking ? <ApprovalHero item={blocking} onDone={decided} /> : quiet ? <QuietState q={quiet} onRetry={retry} /> : first && (
         <section className="home__hero" aria-labelledby="home-hero">
-          <h1 id="home-hero" className="home__hero-text hero-insight">{heroSentence(first.headline)}</h1>
+          <h1 id="home-hero" className="home__hero-text hero-insight" dir="auto">{heroSentence(first.headline)}</h1>
           {toTry && <p className="home__why">{toTry}</p>}
           <div className="home__actions">
             {action && <a className="btn btn--primary" href={action.href}>{action.label}</a>}

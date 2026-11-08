@@ -8,7 +8,7 @@ export interface KeyLike { key: string; metaKey: boolean; ctrlKey: boolean; altK
 export type ShellAction = { type: "go"; path: string } | { type: "settings" } | { type: "about" } | { type: "stop" };
 
 export function shellKeyAction(e: KeyLike, view: ViewRole): ShellAction | null {
-  if (!(e.metaKey || e.ctrlKey) || e.altKey) return null;
+  if (!(e.metaKey || e.ctrlKey) || e.altKey || typeof e.key !== "string") return null;
   const k = e.key.toLowerCase();
   if (e.shiftKey) return k === "k" ? { type: "stop" } : null;
   if (k === ",") return { type: "settings" };

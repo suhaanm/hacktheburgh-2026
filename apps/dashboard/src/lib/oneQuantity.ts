@@ -4,7 +4,7 @@
 
 const MONTHS = "January|February|March|April|May|June|July|August|September|October|November|December";
 const WORDS = "one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve";
-const NUM = String.raw`\d+(?:\.\d+)?`;
+const NUM = String.raw`(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?`; // 1,203 and 3.4 are each one number
 
 /** Patterns that are not quantities, or that are several numbers read as one. Applied in order; each match is replaced by a neutral token. */
 const NEUTRAL: RegExp[] = [
