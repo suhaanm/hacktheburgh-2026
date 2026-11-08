@@ -1,0 +1,46 @@
+# Preset: SQLite (Data set), through Google's MCP Toolbox prebuilt SQLite source. Verified 7 Nov 2026. Starts OFF.
+id: sqlite
+version: 0.1.0
+kind: mcp
+description: Read tables in one SQLite database file, through Google's MCP Toolbox.
+permissions: [read]
+egress: local_only
+default_enabled: false
+connection:
+  group: data
+  app: SQLite
+  reads: Tables and rows in the one database file you pick.
+  standin:
+    label: Example dataset
+    script: packages/connections/standins/sqlite_server.py
+    args: ["--db", "{sandbox}/example.db", "--synthetic", "{synthetic}"]
+  real:
+    verified: true
+    publisher: Google (googleapis)
+    publisher_kind: vendor
+    license: Apache-2.0
+    registry: npm
+    package: "@toolbox-sdk/server"
+    version: "1.16.0"
+    transport: stdio
+    command: npx
+    args: ["-y", "@toolbox-sdk/server@1.16.0", "--prebuilt", "sqlite", "--stdio"]
+    params:
+      - { name: database, label: Database file, kind: path, env: SQLITE_DATABASE }
+    hosts: []
+    read_only: "The server has no read-only switch and execute_sql can write. Our code reads each statement; only one read-only statement runs without a click."
+    sources:
+      - https://registry.modelcontextprotocol.io/v0/servers/io.github.googleapis%2Fmcp-toolbox/versions/latest
+      - https://registry.npmjs.org/@toolbox-sdk/server/1.16.0
+      - https://raw.githubusercontent.com/googleapis/mcp-toolbox/main/LICENSE
+      - https://raw.githubusercontent.com/googleapis/mcp-toolbox/main/docs/en/integrations/sqlite/prebuilt-configs/sqlite.md
+    verified_on: "2026-11-07"
+  tools:
+    unlisted: refuse
+    classes:
+      read: [list_tables]
+      write: [execute_sql]
+    classifiers: { execute_sql: sql }
+  limitations:
+    - Needs Node on this Mac; the package carries a prebuilt binary for your chip.
+    - Launched with install scripts switched off.

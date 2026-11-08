@@ -1,0 +1,48 @@
+# Preset: BigQuery (Data set), through Google's MCP Toolbox prebuilt BigQuery source. Verified 7 Nov 2026. Starts OFF.
+id: bigquery
+version: 0.1.0
+kind: mcp
+description: Read BigQuery datasets and tables, through Google's MCP Toolbox, with its read-only switch on.
+permissions: [read]
+egress: app_only
+default_enabled: false
+connection:
+  group: data
+  app: BigQuery
+  reads: Datasets, tables and query results in one Google Cloud project.
+  standin:
+    label: Example dataset
+    script: packages/connections/standins/sqlite_server.py
+    args: ["--db", "{sandbox}/example.db", "--name", "bigquery"]
+  real:
+    verified: true
+    publisher: Google (googleapis)
+    publisher_kind: vendor
+    license: Apache-2.0
+    registry: npm
+    package: "@toolbox-sdk/server"
+    version: "1.16.0"
+    transport: stdio
+    command: npx
+    args: ["-y", "@toolbox-sdk/server@1.16.0", "--prebuilt", "bigquery", "--stdio"]
+    params:
+      - { name: project, label: Google Cloud project, kind: text, env: BIGQUERY_PROJECT }
+    env_fixed: { BIGQUERY_READONLY: "true" }
+    hosts: [bigquery.googleapis.com]
+    read_only: "BIGQUERY_READONLY=true. Our code also reads each statement and needs a click for anything that is not one read-only statement."
+    sources:
+      - https://registry.modelcontextprotocol.io/v0/servers/io.github.googleapis%2Fmcp-toolbox/versions/latest
+      - https://registry.npmjs.org/@toolbox-sdk/server/1.16.0
+      - https://raw.githubusercontent.com/googleapis/mcp-toolbox/main/LICENSE
+      - https://raw.githubusercontent.com/googleapis/mcp-toolbox/main/docs/BIGQUERY_README.md
+    verified_on: "2026-11-07"
+  tools:
+    unlisted: refuse
+    classes:
+      read: [forecast, get_dataset_info, get_table_info, list_dataset_ids, list_table_ids, analyze_contribution, search_catalog]
+      write: [execute_sql]
+    classifiers: { execute_sql: sql }
+  limitations:
+    - It signs in with your own Google application-default login on this Mac, not a token you paste. Set that up with gcloud first.
+    - The documentation does not list the hosts; bigquery.googleapis.com is the API host and sign-in uses other Google hosts.
+    - Queries can cost money in your project; the read-only switch does not limit that.

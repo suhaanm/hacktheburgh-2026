@@ -191,6 +191,13 @@
       },
       "description": "Marketplace plugin references (skills as procedures, MCP servers as tools). Accepted, never called (ROL-5, D6)."
     },
+    "connections": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,40}$" },
+      "uniqueItems": true,
+      "maxItems": 8,
+      "description": "The curated connection presets this role is offered at first run (CONNECTIONS): ids of packages/connections/presets/*.yaml or of a source plugin that carries a connection block. Every one starts OFF and read-only; nothing connects without the worker's click."
+    },
     "oracle_note": {
       "type": "string",
       "maxLength": 200,

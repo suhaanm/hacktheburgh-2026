@@ -1,0 +1,48 @@
+# Preset: Notion (Data set), Notion's own local MCP server. Verified 7 Nov 2026. Starts OFF.
+# The repository says it is no longer actively maintained and may be sunset; the chip says so. Notion's hosted server needs a browser sign-in and has no package, so it is listed as unverified.
+id: notion
+version: 0.1.0
+kind: mcp
+description: Read Notion pages and databases you share with an integration, through Notion's own local MCP server.
+permissions: [read]
+egress: app_only
+default_enabled: false
+connection:
+  group: data
+  app: Notion
+  reads: Pages and databases you shared with your Notion integration.
+  caution: Vendor says unmaintained
+  standin:
+    label: Example Notion
+    script: packages/connections/standins/fixture_server.py
+    args: ["--fixture", "notion"]
+  real:
+    verified: true
+    publisher: Notion (makenotion)
+    publisher_kind: vendor
+    license: MIT
+    registry: npm
+    package: "@notionhq/notion-mcp-server"
+    version: "2.6.1"
+    transport: stdio
+    command: npx
+    args: ["-y", "@notionhq/notion-mcp-server@2.6.1"]
+    credentials:
+      - { env: NOTION_TOKEN, label: Notion integration token }
+    hosts: [api.notion.com]
+    read_only: "No read-only switch in the server. Give the integration read access only, and share only the pages you want read. Our table needs a click for any write."
+    sources:
+      - https://registry.npmjs.org/@notionhq/notion-mcp-server/2.6.1
+      - https://github.com/makenotion/notion-mcp-server
+      - https://raw.githubusercontent.com/makenotion/notion-mcp-server/main/LICENSE
+    verified_on: "2026-11-07"
+  tools:
+    unlisted: verbs
+    classes:
+      read: [get-user, get-users, get-self, post-search, get-block-children, retrieve-a-block, retrieve-a-page, retrieve-a-page-property, retrieve-a-comment, query-data-source, retrieve-a-data-source, list-data-source-templates, retrieve-a-database, retrieve-page-markdown]
+      write: [patch-block-children, update-a-block, patch-page, post-page, update-a-data-source, create-a-data-source, move-page, update-page-markdown]
+      send: [create-a-comment]
+      destructive: [delete-a-block]
+  limitations:
+    - The repository says it is no longer actively maintained and may be sunset.
+    - The host is from the OpenAPI spec the server uses; the README does not list it.

@@ -1,0 +1,46 @@
+# Preset: Filesystem (Dev set). Verified 7 Nov 2026 from the sources below. Starts OFF; read-only.
+id: filesystem
+version: 0.1.0
+kind: mcp
+description: Read the files in one folder you choose, through the MCP project's reference Filesystem server.
+permissions: [read]
+egress: local_only
+default_enabled: false
+connection:
+  group: dev
+  app: Files
+  reads: Files and folder names inside the one folder you pick.
+  standin:
+    label: Example folder
+    script: packages/connections/standins/filesystem_server.py
+    args: ["--root", "{sandbox}/files"]
+  real:
+    verified: true
+    publisher: Model Context Protocol (MCP project)
+    publisher_kind: mcp_project
+    license: Apache-2.0 AND MIT
+    license_note: Root LICENSE of the servers repository - Apache-2.0 for new code, MIT for existing code.
+    registry: npm
+    package: "@modelcontextprotocol/server-filesystem"
+    version: "2.2.0"
+    transport: stdio
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-filesystem@2.2.0", "--read-only", "{folder}"]
+    params:
+      - { name: folder, label: Folder, kind: path }
+    hosts: []
+    read_only: "--read-only registers only read tools. Our table also blocks every write."
+    sources:
+      - https://registry.npmjs.org/@modelcontextprotocol/server-filesystem/2.2.0
+      - https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem
+      - https://raw.githubusercontent.com/modelcontextprotocol/servers/main/LICENSE
+    verified_on: "2026-11-07"
+  tools:
+    unlisted: refuse
+    classes:
+      read: [read_file, read_text_file, read_media_file, read_multiple_files, list_directory, list_directory_with_sizes, directory_tree, search_files, get_file_info, list_allowed_directories]
+      write: [create_directory, append_file, edit_file, copy_file, move_file]
+      destructive: [write_file]
+  limitations:
+    - Needs Node 24 or newer on this Mac.
+    - It is not in the official MCP registry; the install method is from the repository README.

@@ -1,0 +1,44 @@
+# Preset: local Git (Dev set). Verified 7 Nov 2026. Starts OFF; read-only because OUR table blocks every write (the server has no read-only switch).
+id: local_git
+version: 0.1.0
+kind: mcp
+description: Read the history and changes of one local Git repository, through the MCP project's Git server.
+permissions: [read]
+egress: local_only
+default_enabled: false
+connection:
+  group: dev
+  app: Git
+  reads: Commits, diffs and branches of one repository on this Mac.
+  standin:
+    label: Example repository
+    script: packages/connections/standins/fixture_server.py
+    args: ["--fixture", "git"]
+  real:
+    verified: true
+    publisher: Anthropic, PBC. (MCP project)
+    publisher_kind: mcp_project
+    license: MIT
+    registry: pypi
+    package: mcp-server-git
+    version: "2026.11.4"
+    transport: stdio
+    command: uvx
+    args: ["mcp-server-git@2026.11.4", "--repository", "{repository}"]
+    params:
+      - { name: repository, label: Repository folder, kind: path }
+    hosts: []
+    read_only: "The server has no read-only switch. Our table lets only the read tools through without a click."
+    sources:
+      - https://pypi.org/pypi/mcp-server-git/2026.11.4/json
+      - https://github.com/modelcontextprotocol/servers/tree/main/src/git
+      - https://raw.githubusercontent.com/modelcontextprotocol/servers/main/src/git/LICENSE
+    verified_on: "2026-11-07"
+  tools:
+    unlisted: refuse
+    classes:
+      read: [git_status, git_diff_unstaged, git_diff_staged, git_diff, git_log, git_show, git_branch, git_remote]
+      write: [git_add, git_commit, git_create_branch, git_merge]
+      destructive: [git_checkout, git_reset]
+  limitations:
+    - It is not in the official MCP registry; the install method is from the repository README.

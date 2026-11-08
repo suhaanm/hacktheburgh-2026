@@ -1,0 +1,50 @@
+# Preset: Postgres (Data set), through Google's MCP Toolbox prebuilt Postgres source. Verified 7 Nov 2026. Starts OFF.
+id: postgres
+version: 0.1.0
+kind: mcp
+description: Read tables and statistics in one Postgres database, through Google's MCP Toolbox.
+permissions: [read]
+egress: app_only
+default_enabled: false
+connection:
+  group: data
+  app: Postgres
+  reads: Tables, rows and statistics in the one database you name.
+  standin:
+    label: Example dataset
+    script: packages/connections/standins/sqlite_server.py
+    args: ["--db", "{sandbox}/example.db", "--name", "postgres"]
+  real:
+    verified: true
+    publisher: Google (googleapis)
+    publisher_kind: vendor
+    license: Apache-2.0
+    registry: npm
+    package: "@toolbox-sdk/server"
+    version: "1.16.0"
+    transport: stdio
+    command: npx
+    args: ["-y", "@toolbox-sdk/server@1.16.0", "--prebuilt", "postgres", "--stdio"]
+    credentials:
+      - { env: POSTGRES_PASSWORD, label: Database password }
+    params:
+      - { name: host, label: Database host, kind: text, env: POSTGRES_HOST }
+      - { name: database, label: Database name, kind: text, env: POSTGRES_DATABASE }
+      - { name: user, label: Database user, kind: text, env: POSTGRES_USER }
+    hosts: ["{host}"]
+    read_only: "The server has no read-only switch. Use a read-only database role. Our code reads each statement; only one read-only statement runs without a click."
+    sources:
+      - https://registry.modelcontextprotocol.io/v0/servers/io.github.googleapis%2Fmcp-toolbox/versions/latest
+      - https://registry.npmjs.org/@toolbox-sdk/server/1.16.0
+      - https://raw.githubusercontent.com/googleapis/mcp-toolbox/main/LICENSE
+      - https://raw.githubusercontent.com/googleapis/mcp-toolbox/main/docs/en/integrations/postgres/prebuilt-configs/postgresql.md
+    verified_on: "2026-11-07"
+  tools:
+    unlisted: refuse
+    classes:
+      read: [list_tables, list_views, list_schemas, list_indexes, list_sequences, list_triggers, list_roles, list_stored_procedure, list_tablespaces, list_available_extensions, list_installed_extensions, list_pg_settings, list_autovacuum_configurations, list_memory_configurations, list_active_queries, long_running_transactions, list_locks, replication_stats, list_replication_slots, list_publication_tables, list_top_bloated_tables, list_invalid_indexes, list_query_stats, list_table_stats, list_database_stats, get_column_cardinality, database_overview, get_query_plan]
+      write: [execute_sql]
+    classifiers: { execute_sql: sql }
+  limitations:
+    - Use a database role that can only read.
+    - Launched with install scripts switched off.

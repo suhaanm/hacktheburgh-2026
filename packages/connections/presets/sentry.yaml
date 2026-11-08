@@ -1,0 +1,49 @@
+# Preset: Sentry (Dev set), Sentry's own MCP server. Verified 7 Nov 2026. Starts OFF.
+id: sentry
+version: 0.1.0
+kind: mcp
+description: Read Sentry errors, traces and releases, through Sentry's own MCP server.
+permissions: [read]
+egress: app_only
+default_enabled: false
+connection:
+  group: dev
+  app: Sentry
+  reads: Errors, traces and releases in your Sentry projects.
+  caution: Source-available licence
+  standin:
+    label: Example Sentry
+    script: packages/connections/standins/fixture_server.py
+    args: ["--fixture", "sentry"]
+  real:
+    verified: true
+    publisher: Sentry (getsentry)
+    publisher_kind: vendor
+    license: FSL-1.1-ALv2
+    license_note: Source-available, not OSI-approved. Converts to Apache-2.0 two years after each release. We run the published package unmodified and copy none of its code.
+    registry: npm
+    package: "@sentry/mcp-server"
+    version: "0.49.0"
+    transport: stdio
+    command: npx
+    args: ["-y", "@sentry/mcp-server@0.49.0"]
+    credentials:
+      - { env: SENTRY_AUTH_TOKEN, label: Sentry auth token }
+    hosts: [sentry.io]
+    read_only: "The server has no read-only switch. Use a token with read scopes only. Our table needs a click for any write."
+    sources:
+      - https://registry.modelcontextprotocol.io/v0/servers/io.github.getsentry%2Fsentry-mcp/versions/latest
+      - https://registry.npmjs.org/@sentry/mcp-server/0.49.0
+      - https://raw.githubusercontent.com/getsentry/toolkit/main/LICENSE.md
+    verified_on: "2026-11-07"
+  tools:
+    unlisted: verbs
+    classes:
+      read: [find_organizations, find_projects, find_teams, find_releases, find_dsns, find_alert_rules, find_dashboards, find_dropped_events, find_metric_monitors, find_monitors, find_uptime_monitors, get_issue_details, get_issue_activity, get_issue_breadcrumbs, get_issue_tag_values, get_issue_user_reports, get_event_stacktrace, get_event_attachment, get_trace_details, get_span_details, get_profile, get_profile_details, get_release_details, get_replay_details, get_alert_rule, get_alert_options, get_dashboard_details, get_monitor_details, get_metric_monitor_details, get_uptime_monitor_details, get_doc, get_sentry_resource, get_sentry_mcp_info, search_issues, search_issue_events, search_events, search_errors, search_logs, search_traces, search_metrics, search_profiles, search_replays, search_docs, search_attributes, search_agent_conversations, whoami]
+      write: [add_issue_note, add_team_to_project, create_alert_rule, create_dsn, create_metric_monitor, create_monitor, create_project, create_team, create_uptime_monitor, link_issue, unlink_issue, remove_team_from_project, onboarding_status_update, submit_feedback_to_sentry_team, analyze_issue_with_seer, update_alert_rule, update_dsn, update_issue, update_metric_monitor, update_project, update_uptime_monitor]
+      destructive: [delete_alert_rule, delete_metric_monitor, delete_monitor_environment, delete_uptime_monitor]
+      execute: [execute_sentry_tool]
+  limitations:
+    - Do not give it an LLM key (EMBEDDED_AGENT_PROVIDER); the server would send your queries to that provider.
+    - Published on 7 Nov 2026 and changing fast; the pin is the version we verified.
+    - Tool names come from the repository's source tree, not a published list.

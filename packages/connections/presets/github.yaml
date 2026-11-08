@@ -1,0 +1,46 @@
+# Preset: GitHub (Dev set). Verified 7 Nov 2026. Starts OFF; the server is started with its read-only switch AND our table decides every call.
+id: github
+version: 0.1.0
+kind: mcp
+description: Read issues, pull requests and code on GitHub, through GitHub's own MCP server.
+permissions: [read]
+egress: app_only
+default_enabled: false
+connection:
+  group: dev
+  app: GitHub
+  reads: Issues, pull requests, commits and code you can already see on GitHub.
+  standin:
+    label: Example GitHub
+    script: packages/connections/standins/github_server.py
+    args: []
+  real:
+    verified: true
+    publisher: GitHub
+    publisher_kind: vendor
+    license: MIT
+    registry: oci
+    package: ghcr.io/github/github-mcp-server
+    version: "2.1.0"
+    transport: stdio
+    command: docker
+    args: ["run", "-i", "--rm", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN", "-e", "GITHUB_READ_ONLY", "ghcr.io/github/github-mcp-server:2.1.0"]
+    credentials:
+      - { env: GITHUB_PERSONAL_ACCESS_TOKEN, label: Personal access token }
+    env_fixed: { GITHUB_READ_ONLY: "1" }
+    hosts: [api.github.com, github.com]
+    read_only: "GITHUB_READ_ONLY=1 skips every write tool. Our table also needs a click for any write."
+    sources:
+      - https://registry.modelcontextprotocol.io/v0/servers/io.github.github%2Fgithub-mcp-server/versions/latest
+      - https://github.com/github/github-mcp-server/releases/tag/v2.1.0
+      - https://raw.githubusercontent.com/github/github-mcp-server/main/LICENSE
+    verified_on: "2026-11-07"
+  tools:
+    unlisted: verbs
+    classes:
+      read: [get_me, get_team_members, get_teams, actions_get, actions_list, get_job_logs, get_code_scanning_alert, list_code_scanning_alerts, get_dependabot_alert, list_dependabot_alerts, get_discussion, get_discussion_comments, list_discussion_categories, list_discussions, get_gist, list_gists, get_repository_tree, get_label, list_label, issue_read, list_issue_types, list_issues, search_issues, get_notification_details, list_notifications, search_orgs, projects_get, projects_list, list_pull_requests, pull_request_read, search_pull_requests, get_commit, get_file_contents, get_latest_release, get_release_by_tag, get_tag, list_branches, list_commits, list_releases, list_tags, search_code, search_commits, search_repositories, search_users, get_secret_scanning_alert, list_secret_scanning_alerts, get_global_security_advisory, list_global_security_advisories, list_repository_security_advisories, list_starred_repositories, github_support_docs_search]
+      write: [actions_run_trigger, assign_copilot_to_issue, request_copilot_review, create_pull_request_with_copilot, discussion_comment_write, create_gist, update_gist, create_repository_ruleset, custom_properties_write, add_issue_comment, issue_write, sub_issue_write, update_issue_comment, label_write, dismiss_notification, manage_notification_subscription, manage_repository_notification_subscription, mark_all_notifications_read, projects_write, add_comment_to_pending_review, add_reply_to_pull_request_comment, create_pull_request, pull_request_review_write, update_pull_request, update_pull_request_branch, create_branch, create_or_update_file, push_files, create_repository, fork_repository, star_repository, unstar_repository]
+      destructive: [delete_file, delete_repository, merge_pull_request]
+  limitations:
+    - Docker must be installed; the image tag 2.1.0 is from the registry entry, the ghcr page was not read.
+    - The hosts are GitHub's default API hosts; the README does not list them.

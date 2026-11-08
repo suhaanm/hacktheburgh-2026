@@ -25,10 +25,12 @@ GOOD = {"id": "ics", "version": "0.1.0", "kind": "source", "description": "ICS c
 
 def test_bundled_manifests_validate_and_graph_is_off():
     results = validate_paths()
-    assert {r.id for r in results} == BUNDLED and all(r.ok for r in results), [(r.id, r.problems) for r in results if not r.ok]
+    presets = {p.stem for p in loader.presets_dir().glob("*.yaml")}      # CONNECTIONS: the curated kind mcp presets are found by the same loader
+    assert presets and {r.id for r in results} == BUNDLED | presets and all(r.ok for r in results), [(r.id, r.problems) for r in results if not r.ok]
     enabled = {r.id: r.enabled for r in results}
     assert enabled["graph_outlook"] is False and enabled["graph_teams"] is False
     assert all(enabled[i] for i in ("ics", "jsoncal", "shell_times", "git"))
+    assert not any(enabled[i] for i in presets), "no connection preset is on by default"
 
 
 def test_validate_cli_exit_codes(capsys, tmp_path):
