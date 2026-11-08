@@ -21,11 +21,15 @@ export function nUnit(meta: AnalyticMeta): string {
 
 const sentenceCase = (t: string): string => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
 
-/** What a worker's screen calls an origin: "Example data" for numbers that were not measured from real people (the explanation is in "About this data"). */
+/**
+ * What a worker's screen calls an origin. "Example data" is a built-in sample drawn because the service did not answer (ExampleBadge). When the engine
+ * answered from synthetic traces the numbers are live but not from real people, and the badge says exactly that: "Synthetic data". The explanation
+ * ("Synthetic learners with planted learning curves, not people") is printed in "About this data".
+ */
 export function workerOriginLabel(origin: string): string {
   if (origin === "real") return "Real data";
-  if (origin === "mixed") return "Some example data";
-  if (origin === "synthetic") return "Example data";
+  if (origin === "mixed") return "Some synthetic data";
+  if (origin === "synthetic") return "Synthetic data";
   return "Not run";
 }
 
@@ -82,14 +86,14 @@ export function SourceNote({ why, also, alsoInline = false }: { why: Fallback | 
  * `variant="about"` is the worker view (D45): the origin badge stays visible and everything else (n, split, interval level, the note) sits in one
  * "About this data" disclosure. The default prints it all, which admin screens, the Evidence page and reviewers keep.
  */
-export function ChartFoot({ meta, extra, brief = false, variant = "full" }: { meta: AnalyticMeta | null; extra?: ReactNode; brief?: boolean; variant?: "full" | "about" }) {
+export function ChartFoot({ meta, extra, brief = false, variant = "full", badge = true }: { meta: AnalyticMeta | null; extra?: ReactNode; brief?: boolean; variant?: "full" | "about"; badge?: boolean }) {
   if (variant === "about") {
     const rows: [string, ReactNode][] = meta
       ? [["n", nUnit(meta)], ...(meta.split ? ([["split", meta.split]] as [string, ReactNode][]) : []), ["intervals", `${Math.round(meta.interval_level * 100)}%`], ["origin", meta.origin], ...(extra ? ([["also", extra]] as [string, ReactNode][]) : []), ...(meta.note && !brief ? ([["note", meta.note]] as [string, ReactNode][]) : [])]
       : [["n", "not reported by the service"]];
     return (
       <div className="chart__foot chart__foot--about">
-        <OriginBadge meta={meta} always />
+        {badge && <OriginBadge meta={meta} always />}
         <AboutData rows={rows} />
       </div>
     );
@@ -115,7 +119,7 @@ export function ChartFoot({ meta, extra, brief = false, variant = "full" }: { me
       <span>
         intervals: <b>{Math.round(meta.interval_level * 100)}%</b>
       </span>
-      <OriginBadge meta={meta} always />
+      {badge && <OriginBadge meta={meta} always />}
       {extra}
       {meta.note && !brief && <span className="chart__note">{meta.note}</span>}
     </div>
@@ -266,4 +270,9 @@ export function CheckChip({ check }: { check: "verified" | "uncertain" | "failed
 /** A run or child state as a pill: a dot for running, plain words for the rest. */
 export function StatePill({ state, tone }: { state: string; tone: "go" | "good" | "bad" | "muted" }) {
   return <span className="pill pill--state" data-tone={tone}><span className="pill__dot" aria-hidden="true" />{state}</span>;
+}
+
+/** A run or node state as a dot and a word, not a pill: a list of runs is rows, and one pill per screen is the origin badge. Shape-free tone, the word always travels with it. */
+export function StateText({ state, tone }: { state: string; tone: "go" | "good" | "bad" | "muted" }) {
+  return <span className="statetext" data-tone={tone}><span className="statetext__dot" aria-hidden="true" />{state}</span>;
 }

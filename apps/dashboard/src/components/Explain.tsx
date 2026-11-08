@@ -56,8 +56,8 @@ export function Explain({ person }: { person?: string }) {
   return (
     <section className="explain" id="explain" aria-labelledby="ex-h">
       <div className="section__head">
-        <h2 id="ex-h" className="section__title">Where did my time go?</h2>
-        <p className="section__sub">Reads the numbers behind this case. Code checks each number in the words against the data.</p>
+        <h2 id="ex-h" className="section__title">Where did my time go?<Hint label="How this is written">Reads the numbers behind this case. Code checks each number in the words against the data.</Hint></h2>
+        <p className="u-sr-only">Reads the numbers behind this case. Code checks each number in the words against the data.</p>
       </div>
       <SourceNote why={res?.why ?? (phase === "idle" ? packet.why : null)} also={example ? "These are example answers. They do not change with what you ask." : undefined} alsoInline />
 
@@ -65,8 +65,7 @@ export function Explain({ person }: { person?: string }) {
 
       {phase === "idle" && (
         <div className="explain__start">
-          <p className="explain__lede">Press the button to have this case explained. It reads numbers only, and nothing else on this screen waits for it.</p>
-          <div className="row"><button type="button" className="btn btn--primary" onClick={() => void ask(undefined, "where_time_went")}>Explain this case</button></div>
+          <div className="row"><button type="button" className="btn btn--primary" onClick={() => void ask(undefined, "where_time_went")}>Explain this case</button><Hint label="About this explanation">It reads numbers only, and nothing else on this screen waits for it.</Hint></div>
         </div>
       )}
 
@@ -111,12 +110,12 @@ function Answer({ r, facts, example }: { r: ExplainResult; facts: PacketFact[]; 
     <div className="explain__answer stack" data-testid="explain-answer" data-source={r.source}>
       <div className="stack" style={{ gap: "var(--space-3)" }}>
         <p className="t-label">{isAnswer(r) ? "The answer" : "What the numbers show"}</p>
-        {body.slice(0, 3).map((s, i) => (
+        {body.slice(0, 2).map((s, i) => (
           <p key={i} className="explain__text">{s.text}<Uses uses={s.uses} facts={facts} /></p>
         ))}
-        {body.length > 3 && (
-          <Details summary={`${body.length - 3} more ${body.length - 3 === 1 ? "sentence" : "sentences"}`}>
-            <div className="stack" style={{ gap: "var(--space-3)" }}>{body.slice(3).map((s, i) => <p key={i} className="explain__text">{s.text}<Uses uses={s.uses} facts={facts} /></p>)}</div>
+        {body.length > 2 && (
+          <Details summary={`${body.length - 2} more ${body.length - 2 === 1 ? "sentence" : "sentences"}`}>
+            <div className="stack" style={{ gap: "var(--space-3)" }}>{body.slice(2).map((s, i) => <p key={i} className="explain__text">{s.text}<Uses uses={s.uses} facts={facts} /></p>)}</div>
           </Details>
         )}
         {asked && <p className="note">{asked}</p>}
@@ -185,7 +184,7 @@ function Ask({ question, onChange, onSubmit, busy }: { question: string; onChang
         <span className="field__hint">Your words are turned into one of a few fixed questions by code. A model never sees them.</span>
       </div>
       <div className="row" style={{ gap: "var(--space-2)" }} role="group" aria-label="Example questions">
-        {CHIPS.map((c) => <button key={c.id} type="button" className="chip" disabled={busy} onClick={() => onSubmit(c.text, c.id)}>{c.text}</button>)}
+        {CHIPS.map((c) => <button key={c.id} type="button" className="chip" aria-label={c.text} disabled={busy} onClick={() => onSubmit(c.text, c.id)}>{c.label}</button>)}
       </div>
     </form>
   );

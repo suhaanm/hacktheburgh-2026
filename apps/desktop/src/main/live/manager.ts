@@ -17,6 +17,9 @@ import { LIVE_SYSTEM_INSTRUCTION, TRANSCRIBE_ONLY_INSTRUCTION, WAKE_SYSTEM_INSTR
 import { liveFlagOn, liveModelId, transcribeModelId, type Env } from './flags'
 import { frameConsent, voiceConsent, type LiveSettingsStore } from './settings'
 import { createToolHost } from './tool-host'
+import { buildToolDeclarations } from './tools'
+import { FALLBACK_PACKET, packetUpdate } from '../wake/context-packet'
+import type { FunctionDeclaration } from './wire'
 import { realTimers, type Timers } from './clock'
 import type { SocketFactory } from './connection'
 import type { LiveLedgerPort } from './ledger'
@@ -83,6 +86,9 @@ export interface ManagerDeps {
   ring: RingPort
   // Wake sessions only: what `do_it_for_me` asks. Absent: the tool answers "not available" and the model shows instead.
   doIt?: (req: DoItRequest) => Promise<DoItAnswer>
+  // The code-built context packet for a conversation (enums, ids and counts only; wake/context-packet.ts). It goes into the system instruction at
+  // start and, changed lines only, as an update every ten seconds. Absent or throwing: the session starts with the fixed fallback text.
+  context?: (o: { tools: FunctionDeclaration[]; trigger: 'key' | 'wake' }) => string
   usage?: UsageLog
   breaker?: CircuitBreaker
   prices?: LivePrices
@@ -129,6 +135,8 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
   let session: LiveSession | null = null
   let sessionMode: SessionMode | null = null
   let sessionTrigger: 'key' | 'wake' | null = null
+  let lastPacket: string | null = null
+  let ctxTicks = 0
   let toolHostDispose: (() => void) | null = null
   let offAnswer: (() => void) | null = null
   let usedVoice = false
@@ -199,7 +207,7 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
     return null
   }
 
-  function configFor(mode: SessionMode, wake = false): SessionConfig {
+  function configFor(mode: SessionMode, wake = false, context = ''): SessionConfig {
     const s = d.settings.get()
     const live = liveModelId(env) as string
     const tm = transcribeModelId(env)
@@ -209,9 +217,9 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
     }
     if (wake) {
       // Hands-free: server-side turn detection, the microphone stays open, a quiet half minute ends it (the key's 60 s is for a held key).
-      return { ...base, turnMode: 'vad', mode, wake: true, model: live, voiceName: s.liveVoiceName, systemInstruction: WAKE_SYSTEM_INSTRUCTION, idleMs: Math.min(s.liveIdleMs, 30_000), graceMs: s.liveGraceMs, maxMs: s.liveMaxMs, sessionUsd: s.liveSessionUsd, framesEnabled: frameConsent(s), frameIntervalMs: s.liveFrameIntervalMs, transcriptWaitMs: 3000 }
+      return { ...base, turnMode: 'vad', mode, wake: true, model: live, voiceName: s.liveVoiceName, systemInstruction: context ? `${WAKE_SYSTEM_INSTRUCTION}\n\n${context}` : WAKE_SYSTEM_INSTRUCTION, idleMs: Math.min(s.liveIdleMs, 30_000), graceMs: s.liveGraceMs, maxMs: s.liveMaxMs, sessionUsd: s.liveSessionUsd, framesEnabled: frameConsent(s), frameIntervalMs: s.liveFrameIntervalMs, transcriptWaitMs: 3000 }
     }
-    return { ...base, mode, model: live, voiceName: s.liveVoiceName, systemInstruction: LIVE_SYSTEM_INSTRUCTION, idleMs: s.liveIdleMs, graceMs: s.liveGraceMs, maxMs: s.liveMaxMs, sessionUsd: s.liveSessionUsd, framesEnabled: frameConsent(s), frameIntervalMs: s.liveFrameIntervalMs, transcriptWaitMs: 3000 }
+    return { ...base, mode, model: live, voiceName: s.liveVoiceName, systemInstruction: context ? `${LIVE_SYSTEM_INSTRUCTION}\n\n${context}` : LIVE_SYSTEM_INSTRUCTION, idleMs: s.liveIdleMs, graceMs: s.liveGraceMs, maxMs: s.liveMaxMs, sessionUsd: s.liveSessionUsd, framesEnabled: frameConsent(s), frameIntervalMs: s.liveFrameIntervalMs, transcriptWaitMs: 3000 }
   }
 
   function open(mode: SessionMode, onSummary?: (s: SessionSummary) => void, wake = false): boolean {
@@ -225,8 +233,19 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
     const meter = new SessionMeter(d.prices ?? pricesFromEnv(env))
     const host = createToolHost({ cue: d.cue, ground: d.ground ?? null, ring: d.ring, appKind: d.appKind, ...(wake && d.doIt ? { wake: { doIt: d.doIt } } : {}) })
     const gates = new GateMonitor(reader, d.gateTimers, now)
+    // The context packet (trusted: code wrote every token). A builder that throws or is missing gives the fixed fallback, never an unstarted session.
+    let context = ''
+    if (mode === 'converse') {
+      const trigger = wake ? 'wake' : 'key'
+      try {
+        context = d.context ? d.context({ tools: buildToolDeclarations(host.candidates(), { wake, doIt: typeof host.doItForMe === 'function' }), trigger }) : ''
+      } catch {
+        context = FALLBACK_PACKET
+      }
+      lastPacket = context || null
+    }
     const s = new LiveSession({
-      config: configFor(mode, wake),
+      config: configFor(mode, wake, context),
       tokens: d.tokens,
       socketFactory: d.socketFactory,
       url: d.url,
@@ -292,12 +311,32 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
     // The HUD timer: one status push a second, only while a conversation is open.
     if (tickHandle === null) {
       tickHandle = timers.setInterval(() => {
-        if (session && !session.isEnded) emit()
+        if (session && !session.isEnded) {
+          emit()
+          if (sessionMode === 'converse' && d.context && ++ctxTicks % 10 === 0) pushContext()
+        }
       }, 1000)
     }
     emit()
     void s.start()
     return true
+  }
+
+  // Changed lines of the packet, as one short update into the open conversation. Never throws; a failed build says nothing.
+  function pushContext(): void {
+    const s = session
+    if (!s || s.isEnded || !d.context || lastPacket === null || lastPacket === FALLBACK_PACKET) return
+    try {
+      const next = d.context({ tools: [], trigger: sessionTrigger ?? 'key' })
+      // The tool lines are not part of an update, so a packet built with no tools differs only in lines that can really have changed.
+      const update = packetUpdate(lastPacket, next)
+      if (update) {
+        s.injectText(update)
+        lastPacket = next
+      }
+    } catch {
+      /* no update this time */
+    }
   }
 
   // ---- the talk key

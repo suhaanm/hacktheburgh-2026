@@ -10,20 +10,24 @@
 //
 // Usage (from apps/dashboard):  node scripts/check-copy.mjs [base=http://127.0.0.1:5173] [options]
 //   --routes=growth,firm        only these route ids (default: every route in the budgets)
-//   --view=worker|admin|all     which view to measure (default all; admin needs the view-as switch, found in the account menu or the old sidebar)
+//   --view=worker|admin|all     which view to measure (default all; the Admin view is remembered the way the app does, see scripts/lib/knack-page.mjs)
 //   --viewports=1440x900,1152x735   default from the budgets
 //   --narrow                    also read 390x844 (words and paragraphs only)
 //   --theme=light|dark          default light
 //   --example                   block the engine and the agent (deterministic example data)
+//   --live-via=http://127.0.0.1:5173   relay the page's engine and agent GETs through a running dashboard (real engine data, read-only)
 //   --out=qa/knack/copy-report.json   write the measurements
 //   --report-only               print and write, never exit 1 (for the baseline)
+//   --dump                      print every counted text node above the fold (what the words are)
 //   --list                      print the routes and their budgets, then stop
 import { chromium } from "playwright";
 import fs from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { openAs, relayLive } from "./lib/knack-page.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
+const banned = JSON.parse(fs.readFileSync(join(here, "..", "..", "..", "docs", "knack-ux", "banned-phrases.json"), "utf8"));
 const budgets = JSON.parse(fs.readFileSync(join(here, "..", "qa", "knack", "budgets.json"), "utf8"));
 const args = process.argv.slice(2);
 const flag = (name) => args.find((a) => a === `--${name}` || a.startsWith(`--${name}=`));
@@ -36,6 +40,7 @@ const viewports = opt("viewports", "") ? opt("viewports", "").split(",").map((v)
 const out = opt("out", "");
 const reportOnly = Boolean(flag("report-only"));
 const example = Boolean(flag("example"));
+const liveVia = opt("live-via", "");
 
 /** The budget for one route and one metric: the route's own number, else the default of its audience. */
 export function budgetFor(route, metric, audience, state = {}) {
@@ -44,13 +49,41 @@ export function budgetFor(route, metric, audience, state = {}) {
   return r[metric] ?? budgets.defaults[audience]?.[metric];
 }
 
+
+// ---- The rendered side of the copy lint (docs/knack-ux/banned-phrases.json; the source side is src/copy-lint.test.ts, with the same rules) ----------------
+const escapeRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+// A phrase that ends in a colon is a lead-in: it counts at the start of a text or sentence only ("the case note: open it" is ordinary words).
+const phraseRe = (ph) => (ph.endsWith(":") ? new RegExp(`(?:^|[.!?]\\s+)${escapeRe(ph)}`, "i") : new RegExp(`${/^\w/.test(ph) ? "\\b" : ""}${escapeRe(ph)}${/\w$/.test(ph) ? "\\b" : ""}`, "i"));
+const PHRASES = banned.phrases.map((ph) => [ph, phraseRe(ph)]);
+/** Internal identifiers that carry the old name (storage keys, events, environment names, file and directory names) are not copy. */
+const stripIds = (t) => t.replace(/\S*[-_./\\:~]understudy\S*|\S*understudy[-_./\\:~]\S*|\bUNDERSTUDY_\w*/gi, " ");
+export function lintText(text) {
+  const out = [];
+  for (const [ph, re] of PHRASES) { const m = re.exec(text); if (m) out.push(`phrase "${m[0].replace(/^[.!?]\s+/, "")}"`); }
+  for (const w of banned.visible_words) { const m = new RegExp(`\\b${escapeRe(w)}\\b`, "i").exec(text); if (m) out.push(`word "${m[0]}"`); }
+  const bare = stripIds(text);
+  const old = new RegExp(`\\b${escapeRe(banned.visible_old_name.word)}\\b`, "i").exec(bare);
+  if (old) out.push(`old name "${old[0]}"`);
+  if (/\bAlongside\b/.exec(bare)) out.push('name "Alongside"');
+  return out;
+}
+/** What a person reads (the text of the page) and what a screen reader reads (names and descriptions), as short chunks to lint. */
+const readableInPage = () => {
+  const out = [document.title];
+  for (const line of document.body.innerText.split("\n")) { const t = line.trim(); if (t) out.push(t); }
+  for (const el of document.querySelectorAll("[aria-label],[alt],[placeholder],[aria-description]")) {
+    for (const a of ["aria-label", "alt", "placeholder", "aria-description"]) { const v = el.getAttribute(a); if (v) out.push(v); }
+  }
+  return out;
+};
+
 if (flag("list")) {
   for (const [id, r] of Object.entries(budgets.routes)) console.log(id.padEnd(16), r.path.padEnd(18), r.audience.padEnd(8), `above ${budgetFor(id, "wordsAbove", r.audience)}  total ${budgetFor(id, "wordsTotal", r.audience)}  pills ${budgetFor(id, "pills", r.audience)}  controls ${budgetFor(id, "controls", r.audience)}`);
   process.exit(0);
 }
 
 /** Runs inside the page: everything is read from the rendered DOM. Mirrors measure-clutter.mjs, plus the element rules. */
-const measureInPage = () => {
+const measureInPage = (dump) => {
   const FOLD = window.innerHeight;
   const hiddenAncestor = (el) => {
     for (let e = el; e && e !== document.body; e = e.parentElement) {
@@ -58,6 +91,8 @@ const measureInPage = () => {
       const cs = getComputedStyle(e);
       if (cs.display === "none" || cs.visibility === "hidden") return true;
       if (e.classList.contains("u-sr-only")) return true;
+      // The shell's one-line "cannot reach its engine" banner is the state of the app, not content of the screen.
+      if (e.getAttribute && e.getAttribute("data-testid") === "engine-banner") return true;
       // The body of a closed disclosure is not on the screen, whatever geometry the browser still reports for it. Its summary is.
       if (e.tagName === "DETAILS" && !e.open) { const sm = el.closest("summary"); if (!(sm && sm.parentElement === e)) return true; }
     }
@@ -69,7 +104,9 @@ const measureInPage = () => {
     const r = el.getBoundingClientRect();
     return r.width > 2 && r.height > 2;
   };
-  const wc = (s) => s.split(/\s+/).filter(Boolean).length;
+  // A word has a letter or a digit in it: a separator such as a chevron, a slash or a lone full stop is not a word.
+  const wc = (s) => s.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
+  const sink = [];
   const words = (root, foldOnly) => {
     let n = 0;
     const tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -85,6 +122,7 @@ const measureInPage = () => {
       if (r.width <= 1 || r.height <= 1) continue;
       if (foldOnly && (r.top >= FOLD || r.bottom <= 0)) continue;
       n += wc(s);
+      if (dump && foldOnly && root.id === "main") sink.push(`${Math.round(r.top)}  ${el.tagName.toLowerCase()}  ${s.slice(0, 70)}`);
     }
     return n;
   };
@@ -113,11 +151,11 @@ const measureInPage = () => {
   const h1IsHero = Boolean(h1 && h1.matches(".hero-insight, [data-hero]"));
   const buttonsLong = sel(main, ".btn, button, a.btn", false)
     .filter((b) => !b.closest(".hint, .segmented, .tabs, .details, .listrow"))
-    .map((b) => ({ t: b.textContent.trim(), n: wc(b.textContent), primary: b.classList.contains("btn--primary") }))
+    .map((b) => ({ t: b.textContent.trim(), n: words(b, false), primary: b.classList.contains("btn--primary") }))
     .filter((b) => b.n > (b.primary ? 4 : 3))
     .map((b) => b.t.slice(0, 40));
-  const rowTitlesLong = sel(main, ".listrow__title", false).filter((e) => wc(e.textContent) > 12).map((e) => e.textContent.trim().slice(0, 50));
-  const ledesLong = sel(main, ".t-lede, .screenhead__limit, .page__lede", false).filter((e) => wc(e.textContent) > 10).map((e) => e.textContent.trim().slice(0, 50));
+  const rowTitlesLong = sel(main, ".listrow__title", false).filter((e) => words(e, false) > 12).map((e) => e.textContent.trim().slice(0, 50));
+  const ledesLong = sel(main, ".t-lede, .screenhead__limit, .page__lede", false).filter((e) => words(e, false) > 10).map((e) => e.textContent.trim().slice(0, 50));
   const eyebrows = h1 ? sel(main, ".page__head .t-label, .eyebrow", false).map((e) => e.textContent.trim().slice(0, 30)) : [];
   const upper = [];
   for (const el of main.querySelectorAll("*")) {
@@ -139,39 +177,27 @@ const measureInPage = () => {
     pills: pills.length, pillTexts: pills.slice(0, 6).map((e) => e.textContent.trim().slice(0, 28)),
     controls: controls.length,
     buttonsLong, rowTitlesLong, ledesLong, eyebrows, uppercase: upper.slice(0, 5), uppercaseCount: upper.length,
-    empty, busy,
+    empty, busy, dump: sink,
+    controlDump: dump ? controls.map((e) => `${e.tagName.toLowerCase()}${e.getAttribute("role") ? `[${e.getAttribute("role")}]` : ""} ${(e.getAttribute("aria-label") || e.textContent || "").trim().slice(0, 50)}`) : [],
+    pillDump: dump ? pills.map((e) => e.textContent.trim().slice(0, 40)) : [],
     gate: /part of the Admin view|Admin view only|not in this view/i.test(main.innerText),
   };
 };
 
 async function settle(page) {
-  let m = await page.evaluate(measureInPage);
+  let m = await page.evaluate(measureInPage, false);
   let prev = -1;
   for (let i = 0; i < 16 && !m.noMain && (m.wordsTotal !== prev || m.busy); i++) {
     prev = m.wordsTotal;
     await page.waitForTimeout(500);
-    m = await page.evaluate(measureInPage);
+    m = await page.evaluate(measureInPage, false);
   }
+  if (flag("dump")) m = await page.evaluate(measureInPage, true);
   return m;
 }
 
-/** The view-as switch moved from the sidebar into the account menu; try both. The role is held in memory only, so navigate by hash afterwards. */
-async function becomeAdmin(page) {
-  const old = page.locator(".viewas .segmented button", { hasText: "Admin" });
-  if (await old.count()) { await old.first().click(); await page.waitForTimeout(300); return true; }
-  const acct = page.locator("[data-account], .acct, button[aria-label*='ccount' i], .side button[aria-haspopup='menu']").first();
-  if (!(await acct.count())) return false;
-  await acct.click();
-  await page.waitForTimeout(250);
-  const item = page.getByRole("menuitemradio", { name: /admin/i }).or(page.getByRole("menuitem", { name: /admin/i })).or(page.getByRole("radio", { name: /admin/i })).or(page.getByRole("option", { name: /admin/i })).or(page.getByRole("button", { name: /view as admin|^admin$/i }));
-  if (!(await item.count())) return false;
-  await item.first().click();
-  await page.waitForTimeout(300);
-  await page.keyboard.press("Escape").catch(() => undefined);
-  return true;
-}
-
 const results = [];
+const lintDone = new Set();
 const fails = [];
 const notes = [];
 
@@ -190,11 +216,14 @@ function judge(id, spec, vp, m, narrow) {
       check("controls above the fold", m.controls, budgetFor(id, "controls", aud));
     }
   }
-  if (!narrow) {
+  const exempt = Boolean(budgets.exempt[id]);
+  if (!narrow && !exempt) {
     if (m.h1Words > (m.h1IsHero ? budgets.elements.heroWords : budgets.elements.screenTitleWords)) problems.push(`title is ${m.h1Words} words (limit ${m.h1IsHero ? budgets.elements.heroWords : budgets.elements.screenTitleWords})`);
     if (m.buttonsLong.length) problems.push(`buttons over ${budgets.elements.buttonWords} words: ${m.buttonsLong.join(" | ")}`);
     if (m.rowTitlesLong.length) problems.push(`row titles over ${budgets.elements.rowTitleWords} words: ${m.rowTitlesLong.length}`);
     if (m.ledesLong.length) problems.push(`ledes over ${budgets.elements.ledeWords} words: ${m.ledesLong.join(" | ")}`);
+  }
+  if (!narrow) {
     if (m.eyebrows.length) problems.push(`eyebrow above the title: ${m.eyebrows.join(" | ")}`);
     if (m.uppercaseCount) problems.push(`mono capitals outside axes: ${m.uppercase.join(" | ")}`);
   }
@@ -213,6 +242,7 @@ try {
       if (example && /^https?:\/\/[^/]+\/(engine|agent)(\/|$)/.test(req.url())) return r.abort();
       return r.continue();
     });
+    if (liveVia) await relayLive(ctx, liveVia);
     const page = await ctx.newPage();
     page.on("pageerror", (e) => notes.push(`pageerror at ${vp.join("x")}: ${e.message}`));
     for (const view of ["worker", "admin"]) {
@@ -220,13 +250,9 @@ try {
       const ids = Object.entries({ ...budgets.routes, ...Object.fromEntries(Object.entries(budgets.exempt).map(([k, v]) => [k, v])) })
         .filter(([id, r]) => (view === "admin" ? r.audience === "admin" : r.audience !== "admin") && (!only || only.has(id)));
       if (ids.length === 0) continue;
-      await page.goto("about:blank");
-      await page.goto(`${base}/#/home`, { waitUntil: "load" }).catch(() => undefined);
-      await page.waitForTimeout(900);
-      if (view === "admin") {
-        const ok = await becomeAdmin(page);
-        if (!ok) { notes.push(`admin view: could not find the view-as switch at ${vp.join("x")}, Admin routes skipped`); continue; }
-      }
+      // A fresh profile is sent to first run when the engine answers; openAs marks it done and remembers the view the way the app itself does.
+      const ok = await openAs(page, base, view);
+      if (!ok) { notes.push(`${view} view: could not reach it at ${vp.join("x")} (first run, or the account menu changed): its routes were skipped`); continue; }
       for (const [id, spec] of ids) {
         await page.evaluate((h) => { location.hash = h; }, `#${spec.path}`);
         await page.waitForTimeout(id === "graph" ? 2000 : 700);
@@ -238,6 +264,15 @@ try {
         if (m.gate && view === "admin") { fails.push(`${id} @${vp.join("x")}: the Admin gate is showing, so the view-as switch did not take`); continue; }
         const aud = spec.audience === "admin" ? "admin" : spec.audience;
         const { tag, problems } = judge(id, { ...spec, audience: aud }, vp, m, narrow);
+        // The rendered copy lint, once per screen and window (the text does not change with the width). Findings print their text; they fail the screen.
+        if (!lintDone.has(`${view}:${id}`)) {
+          lintDone.add(`${view}:${id}`);
+          const seen = new Set();
+          for (const chunk of await page.evaluate(readableInPage)) {
+            const hits = lintText(chunk);
+            if (hits.length && !seen.has(chunk)) { seen.add(chunk); problems.push(`copy lint, ${hits.join(" and ")}: ${chunk.slice(0, 90)}`); }
+          }
+        }
         // The sidebar rule: rows and hint words, once per view and window (not at 390, where it is the bottom bar).
         if (!narrow && spec.sidebar !== false && m.hasSide) {
           const sb = budgets.sidebar;
@@ -247,7 +282,8 @@ try {
           const sw = view === "admin" ? sb.words.admin : sb.words.worker;
           if (m.sideWords > sw) problems.push(`sidebar words ${m.sideWords} > ${sw}`);
         }
-        results.push({ view, route: id, viewport: vp.join("x"), theme, example, ...m, problems });
+        if (flag("dump")) console.log(m.dump.map((d) => `      ${d}`).join("\n") + "\n   controls: " + m.controlDump.join(" | ") + "\n   pills: " + m.pillDump.join(" | "));
+        results.push({ view, route: id, viewport: vp.join("x"), theme, example, ...m, dump: undefined, controlDump: undefined, pillDump: undefined, problems });
         const brief = `above ${String(m.wordsAbove).padStart(3)}/${budgetFor(id, "wordsAbove", aud, { empty: m.empty }) ?? "-"}  total ${String(m.wordsTotal).padStart(4)}/${budgetFor(id, "wordsTotal", aud) ?? "-"}  long ${m.longParas}  pills ${m.pills}  ctl ${String(m.controls).padStart(2)}  side ${m.sideRows}r ${m.sideWords}w ${m.sideHintWords}h`;
         console.log(`${problems.length ? "FAIL" : "PASS"}  ${tag.padEnd(24)} ${brief}${problems.length ? "\n      " + problems.join("\n      ") : ""}`);
         for (const p of problems) fails.push(`${tag}: ${p}`);

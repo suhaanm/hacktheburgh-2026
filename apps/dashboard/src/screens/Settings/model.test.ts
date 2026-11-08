@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import attentionFx from "../../fixtures/attention-settings.json";
 import type { AttentionSettings } from "../../types";
-import { desktopBridge, liveModelsBridge } from "./bridge";
-import { HELP_LOCKS, LIVE_LINES, PRESETS, SECTIONS, STOPS_LINE, liveModels, lockOf, lockPatch, presetOf, presetPatch, sectionOf, themeOf } from "./model";
+import { desktopBridge, liveModelsBridge, wakeBridge } from "./bridge";
+import { HELP_LOCKS, LIVE_LINES, PRESETS, SECTIONS, STOPS_LINE, WAKE_NOTE, liveModels, lockOf, lockPatch, presetOf, presetPatch, sectionOf, themeOf, wakeLine } from "./model";
 
 const attn = (attentionFx as unknown as { data: AttentionSettings }).data;
 const live = { mock: false, key_present: true };
@@ -13,6 +13,7 @@ describe("the sections", () => {
     expect([...SECTIONS]).toEqual(["live-models", "interruptions", "coaching", "move-aside", "open-at-login", "appearance", "models", "views", "about"]);
     expect(sectionOf("views")).toBe("views");
     expect(sectionOf("connections")).toBe("connections");   // a slot another track fills
+    expect(sectionOf("hey-knack")).toBe("hey-knack");
     expect(sectionOf("nonsense")).toBeNull();
     expect(sectionOf(null)).toBeNull();
   });
@@ -104,10 +105,20 @@ describe("Coaching and the desktop bridge", () => {
     expect(desktopBridge({ alongside: { getSettings: async () => ({}) } })).toBeNull();
   });
   it("the live-models bridge is the shell's models.get and models.setUseLiveModels, and nothing else", () => {
-    const m = { get: async () => ({}), setUseLiveModels: async () => undefined };
+    const m = { get: async () => ({ useLiveModels: true, keyPresent: true, live: true, running: false }), setUseLiveModels: async () => ({ ok: true } as const) };
     expect(liveModelsBridge({})).toBeNull();
     expect(liveModelsBridge({ knackShell: { models: m } })).toBe(m);
     expect(liveModelsBridge({ knackShell: { models: { get: m.get } } })).toBeNull();
+  });
+  it("Hey Knack's bridge is state and set, and the row prints the note whole", () => {
+    const w = { state: async () => ({ switchOn: true, listening: true, line: "" }), set: async () => ({ switchOn: false, listening: false, line: "" }), context: async () => true };
+    expect(wakeBridge({})).toBeNull();
+    expect(wakeBridge({ knackShell: { wake: w } })).toBe(w);
+    expect(wakeBridge({ knackShell: { wake: { state: w.state } } })).toBeNull();
+    expect(WAKE_NOTE).toBe("Stays on this Mac. Nothing is stored.");
+    expect(wakeLine(null)).toBeNull();
+    expect(wakeLine({ switchOn: true, listening: true, line: "Listening" })).toBe(WAKE_NOTE);
+    expect(wakeLine({ switchOn: true, listening: false, line: "Not listening while Knack works" })).toBe(`${WAKE_NOTE} Not listening while Knack works`);
   });
   it("the theme falls back to auto", () => {
     expect(themeOf("dark")).toBe("dark");

@@ -1,9 +1,11 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { ApiError, api } from "../api";
 import { useLoad } from "../hooks";
-import { CheckChip, EmptyState, ErrorState, ExampleBadge, Loading, OriginBadge, PageHead, SourceNote, StatePill } from "../components/common";
+import { CheckChip, EmptyState, ErrorState, Loading, PageHead, SourceNote, StatePill } from "../components/common";
+import { OriginBadge } from "../components/needsyou/Origin";
 import { Details } from "../components/ui";
 import { Facts } from "../components/Facts";
+import "../components/kc.css";
 import { useToast } from "../components/Toasts";
 import { KIND_DOES, budgetBars, childResults, countStates, falseClaim, fmtClock, isActive, kindLabel, leaseLeft, resultWithoutSteps, runActive, stateTone, stepsOf, stopReason, verifiedTally } from "../lib/agents";
 import { fmtDateTime } from "../lib/format";
@@ -28,32 +30,30 @@ export default function Agents() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anyActive]);
 
-  if (runs.status === "error" && !runs.data) return <div className="page"><ErrorState error={runs.error} retry={runs.reload} what="background agents" /></div>;
-  if (!runs.data) return <div className="page"><Loading label="Loading background agents" /></div>;
+  if (runs.status === "error" && !runs.data) return <div className="page page--read kc-page"><ErrorState error={runs.error} retry={runs.reload} what="background agents" /></div>;
+  if (!runs.data) return <div className="page page--read kc-page"><Loading label="Loading background agents" /></div>;
   const list = runs.data;
   const n = countStates(list);
   const elapsed = (Date.now() - loadedAt.current) / 1000;
 
   return (
-    <div className="page">
+    <div className="page page--read kc-page">
       <PageHead
-        eyebrow="Agents"
         title={n.active > 0 ? `${n.active} background ${n.active === 1 ? "run is" : "runs are"} working` : "No background run is working"}
-        lede="A planner splits a job into small helpers. Stop any run, or one helper, at once."
-        aside={<><OriginBadge meta={runs.meta} /><ExampleBadge why={runs.why} /></>}
+        lede="A planner splits a job into helpers."
+        aside={<OriginBadge sources={[runs]} />}
       />
       <SourceNote why={runs.why} also={runs.why ? "These are example runs. Stop, Revoke and Run in background here only change this screen: nothing is started or stopped for real." : undefined} />
 
       {list.length === 0 ? (
-        <EmptyState title="No background runs yet" body="Start one below. It works in an isolated copy and never applies a change without your approval." />
+        <EmptyState title="No background runs yet" body="A run works in an isolated copy and never applies a change without your approval." />
       ) : (
         <section className="stack" aria-label="Runs" style={{ gap: "var(--space-5)" }}>
-          {(allRuns ? list : list.slice(0, 7)).map((r) => <Run key={r.run_id} run={r} elapsed={elapsed} onChanged={runs.reload} />)}
-          {list.length > 7 && !allRuns && <div><button type="button" className="btn btn--quiet btn--sm" onClick={() => setAllRuns(true)}>Show all {list.length} runs</button></div>}
+          {(allRuns ? list : list.slice(0, 3)).map((r) => <Run key={r.run_id} run={r} elapsed={elapsed} onChanged={runs.reload} />)}
+          {list.length > 3 && !allRuns && <div><button type="button" className="btn btn--secondary btn--sm" onClick={() => setAllRuns(true)}>Show all {list.length}</button></div>}
         </section>
       )}
 
-      <hr className="rule" />
       <Spawn onStarted={runs.reload} example={!!runs.why} />
     </div>
   );
@@ -112,15 +112,16 @@ function Run({ run: r, elapsed, onChanged }: { run: AgentRun; elapsed: number; o
       <div className="run__head">
         <div className="stack" style={{ gap: "var(--space-1)" }}>
           <h2 className="run__title" id={`run-${r.run_id}`}>{kindLabel(r.kind)}</h2>
-          <span className="t-data u-muted">{r.run_id} · started {fmtDateTime(r.started)}</span>
+          <span className="t-data u-muted">{r.mode === "nightly" ? "Nightly" : "Foreground"} · {r.run_id} · started {fmtDateTime(r.started)}</span>
         </div>
         <div className="row">
-          <span className="pill">{r.mode === "nightly" ? "Nightly" : "Foreground"}</span>
-          <StatePill state={r.state} tone={stateTone(r.state)} />
+          <span className="run__state" data-tone={stateTone(r.state)}>{r.state}</span>
           {active && <button type="button" className="btn btn--danger btn--sm" disabled={!!busy} onClick={() => act("stop", () => api.agentsStop(r.run_id), "Stop sent.")}>{busy === "stop" ? "Stopping" : "Stop"}</button>}
         </div>
       </div>
 
+      {err && <p className="field__error" role="alert">{err}</p>}
+      <Details summary="Helpers and result" onToggle={setOpen} wide>
       <ul className="tree" aria-label="Planner and helpers">
         <li className="tree__node tree__node--parent">
           <div className="tree__row">
@@ -135,8 +136,6 @@ function Run({ run: r, elapsed, onChanged }: { run: AgentRun; elapsed: number; o
         </li>
       </ul>
 
-      {err && <p className="field__error" role="alert">{err}</p>}
-      <Details summary="Artifacts and result" onToggle={setOpen}>
         {open && <Detail id={r.run_id} />}
       </Details>
     </article>
@@ -242,11 +241,8 @@ function Spawn({ onStarted, example }: { onStarted: () => void; example: boolean
     finally { setBusy(false); }
   };
   return (
-    <section className="section" aria-labelledby="spawn-h">
-      <div className="section__head">
-        <h2 className="section__title" id="spawn-h">Run in background</h2>
-        <p className="section__sub">Pick a job. It runs in an isolated workspace on sample data.</p>
-      </div>
+    <Details summary="Start a background run" wide>
+      <p className="note">Pick a job. It runs in an isolated workspace on sample data.</p>
       <div className="spawn">
         <div className="field">
           <label className="field__label" htmlFor="spawn-kind">Job</label>
@@ -266,6 +262,6 @@ function Spawn({ onStarted, example }: { onStarted: () => void; example: boolean
         {err && <p className="field__error" role="alert">{err}</p>}
         <div className="row"><button type="button" className="btn btn--primary" disabled={busy || !current} onClick={go}>{busy ? "Starting" : "Run in background"}</button>{example && <span className="note">Example mode: this adds a pretend run to the list above.</span>}</div>
       </div>
-    </section>
+    </Details>
   );
 }

@@ -53,6 +53,8 @@ export function reduce(s: FirstRunState, a: FirstRunAction): FirstRunState {
 
 /** Clicks from the first screen to Home: the role, the one consent, "Show my week". */
 export const CLICKS_TO_HOME = 3;
+/** With the connections slot filled, choosing a role opens its chips and needs one more click (Continue). */
+export const CLICKS_WITH_CONNECTIONS = CLICKS_TO_HOME + 1;
 
 /** The pack's safe defaults: its pre-selected tools, risky actions set to "never without me", the pack's tone, a gradual pace, the pack's hours. Capture only when the worker said yes. */
 export function defaultAnswers(data: OnboardingQuestions, capture: boolean): OnboardingAnswers {
@@ -112,6 +114,8 @@ export interface FirstRunGate {
   path: string;
   /** The raw hash, to tell "nothing named" from an explicit /home. */
   hash: string;
+  /** The route's query string. Anything in it (a settings deep link, a story) is a deep link and is never hijacked. */
+  query?: string;
 }
 
 /**
@@ -121,6 +125,7 @@ export interface FirstRunGate {
 export function shouldStartFirstRun(g: FirstRunGate): boolean {
   if (!g.extReady || g.engineUp !== true) return false;
   if (g.done || g.role || g.person) return false;
+  if (g.query) return false;
   const named = g.hash.replace(/^#\/?/, "");
   return (named === "" || g.path === "/home") && g.path !== "/first-run" && g.path !== "/setup";
 }

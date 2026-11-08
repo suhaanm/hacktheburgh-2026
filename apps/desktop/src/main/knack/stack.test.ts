@@ -119,8 +119,12 @@ describe('starting the stack the way `make demo` does', () => {
     const s = await r.stack.start()
     expect(s).toEqual({ phase: 'ready', started: ['engine', 'sites', 'agent'], dashboard: 'dist', mock: true })
     expect(r.states.map((x) => (x.phase === 'starting' ? x.step : x.phase))).toEqual(['checking', 'preparing', 'engine', 'agent', 'ready'])
-    expect(r.runs.map((x) => x.spec.name)).toEqual(['seed', 'synth'])
-    expect(r.runs[0]!.spec.args).toEqual(['run', '--package', 'understudy-agent', 'python', '-m', 'understudy_engine.demo', 'seed']) // no --reset: a second launch changes nothing
+    expect(r.runs.map((x) => x.spec.name)).toEqual(['synth', 'seed']) // the shared synthetic data first (make synth), then the demo story (make demo)
+    expect(r.runs[1]!.spec.args).toEqual(['run', '--package', 'understudy-agent', 'python', '-m', 'understudy_engine.demo', 'seed']) // no --reset: a second launch changes nothing
+    // The shared synthetic data goes into the repository's own data directory: the synth step has neither the mode's data directory nor its home.
+    expect(r.runs[0]!.spec.args).toEqual(['run', '--package', 'understudy-engine', 'understudy', 'synth', '--all'])
+    expect(r.runs[0]!.spec.env.UNDERSTUDY_DATA_DIR).toBeUndefined()
+    expect(r.runs[0]!.spec.env.UNDERSTUDY_HOME).toBeUndefined()
     expect(r.spawned.map((x) => x.spec.name)).toEqual(['engine', 'sites', 'agent'])
     const engine = r.spawned[0]!.spec
     expect(engine.command).toBe('/opt/homebrew/bin/uv')
@@ -133,10 +137,17 @@ describe('starting the stack the way `make demo` does', () => {
   })
 
   it('skips the synthetic data step when it is already there, and the sites when they already answer', async () => {
-    const r = rig({ files: new Set([`${REPO}/apps/dashboard/dist/index.html`, `${REPO}/data/demo-data/synthetic`, `${REPO}/services/agent/understudy_agent/sandbox_sites/__main__.py`]), up: new Set([PORTS.sites]) })
+    const r = rig({ files: new Set([`${REPO}/apps/dashboard/dist/index.html`, `${REPO}/data/synthetic`, `${REPO}/services/agent/understudy_agent/sandbox_sites/__main__.py`]), up: new Set([PORTS.sites]) })
     await r.stack.start()
     expect(r.runs.map((x) => x.spec.name)).toEqual(['seed'])
     expect(r.spawned.map((x) => x.spec.name)).toEqual(['engine', 'agent'])
+  })
+
+  it('does not start the sandbox sites when the configuration says so (they bind fixed ports a check or a second checkout may not take)', async () => {
+    const r = rig({}, { startSites: false })
+    const s = await r.stack.start()
+    expect(r.spawned.map((x) => x.spec.name)).toEqual(['engine', 'agent'])
+    expect(s).toMatchObject({ phase: 'ready', started: ['engine', 'agent'] })
   })
 
   it('starts only the service that is missing, never a second copy of one that answers', async () => {
@@ -150,7 +161,7 @@ describe('starting the stack the way `make demo` does', () => {
     const r = rig({}, { mode: 'live' })
     const s = await r.stack.start()
     expect(s).toMatchObject({ phase: 'ready', mock: false })
-    expect(r.runs.map((x) => [x.spec.name, x.spec.args.at(-1)])).toEqual([['seed', '--reset']]) // no synthetic step: `make live` has none
+    expect(r.runs.map((x) => [x.spec.name, x.spec.args.at(-1)])).toEqual([['synth', '--all'], ['seed', '--reset']]) // the shared synthetic data first when it is missing, then the one reset-seed behind its marker
     expect(r.w.files.has(`${REPO}/data/live-data/.understudy-demo-data`)).toBe(true) // the marker that lets the seed reset the isolated data
     expect(r.w.files.has(`${REPO}/data/live-home/.seeded`)).toBe(true)
     const env = r.spawned[0]!.spec.env
@@ -161,7 +172,7 @@ describe('starting the stack the way `make demo` does', () => {
   })
 
   it('does not seed live data a second time', async () => {
-    const r = rig({ files: new Set([`${REPO}/apps/dashboard/dist/index.html`, `${REPO}/data/live-home/.seeded`]) }, { mode: 'live' })
+    const r = rig({ files: new Set([`${REPO}/apps/dashboard/dist/index.html`, `${REPO}/data/synthetic`, `${REPO}/data/live-home/.seeded`]) }, { mode: 'live' })
     await r.stack.start()
     expect(r.runs).toHaveLength(0)
   })

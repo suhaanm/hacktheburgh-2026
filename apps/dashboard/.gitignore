@@ -1,5 +1,10 @@
-node_modules/
+node_modules
 dist/
 .env.local
 .env.*.local
-node_modules
+# Knack QA screenshots: only a few key ones are committed (docs/KNACK_UX.md rule 9); the rest stay local.
+qa/knack/*
+!qa/knack/home-quiet-live-light-win.png
+!qa/knack/home-quiet-live-dark-m390.png
+!qa/knack/first-run-2-light-win.png
+!qa/knack/menu-account-light-win.png

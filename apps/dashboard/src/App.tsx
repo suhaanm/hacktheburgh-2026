@@ -9,7 +9,7 @@ import { extensionsFrom } from "./lib/ext";
 import { ScreenFrame } from "./components/home/ScreenFrame";
 import { Overlays } from "./components/home/Overlays";
 import { BARE_SCREENS, labelOf } from "./components/home/navModel";
-import { openSettings } from "./components/home/overlayStore";
+import { closeAbout, closeSettings, openSettings } from "./components/home/overlayStore";
 import { useViewRole } from "./components/home/viewAs";
 import { CompactBars, Sidebar } from "./components/shell/Sidebar";
 import { EngineBanner } from "./components/shell/StatusLine";
@@ -75,8 +75,10 @@ function Shell() {
   // The origin badge describes the screen you are on, so count sources afresh for each screen.
   useEffect(() => { resetSources(); }, [current]);
   useEffect(() => { window.scrollTo(0, 0); document.title = current === "unknown" ? "Knack" : `${labelOf(current)} · Knack`; }, [current]);
-  useEffect(() => { if (current === "unknown") navigate(`/${DEFAULT_SCREEN}`); }, [current]);
+  useEffect(() => { if (current === "unknown") navigate(view === "admin" ? "/firm" : `/${DEFAULT_SCREEN}`); }, [current, view]);
 
+  // A sheet belongs to the screen it was opened on: following a link closes it (the Settings deep link below opens it again after the move).
+  useEffect(() => { closeSettings(); closeAbout(); }, [route.path]);
   // An admin lands on Firm, not Home, when the address names nothing.
   useEffect(() => { if (view === "admin" && !window.location.hash.replace(/^#\/?/, "")) navigate("/firm"); }, [view]);
   // A link to #/home?settings=<section> (the old Notices address, the status line) opens the Settings sheet at that section, then tidies the address.
@@ -90,7 +92,7 @@ function Shell() {
   }, [settings, route.path, route.query]);
   // First run: only when the engine answered, it does not know the worker, nothing was chosen before, and the address names Home or nothing.
   useEffect(() => {
-    if (shouldStartFirstRun({ engineUp: s.engineUp, extReady: s.extReady, role: s.role, person: s.person, done: firstRunDone(), path: route.path, hash: window.location.hash })) navigate("/first-run");
+    if (shouldStartFirstRun({ engineUp: s.engineUp, extReady: s.extReady, role: s.role, person: s.person, done: firstRunDone(), path: route.path, hash: window.location.hash, query: route.query.toString() })) navigate("/first-run");
   }, [s.engineUp, s.extReady, s.role, s.person, route.path]);
 
   const Screen = current === "unknown" ? screens[DEFAULT_SCREEN] : screens[current];

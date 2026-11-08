@@ -193,8 +193,14 @@ export function placePanel(size: { w: number; h: number }, target: Rect | null, 
     if (overlapArea(near, { x: pt.x - 6, y: pt.y - 6, w: 12, h: 12 }) === 0 && clearOf(near)) return done(near, 'near', null)
     return done(make(clamp(pt.x + 18, safe.x, right(safe) - size.w), clamp(pt.y - 22 - size.h, safe.y, bottom(safe) - size.h)), 'near', null)
   }
-  // Nothing to be near: bottom right of the work area, above the Dock.
-  return done(make(right(safe) - size.w, bottom(safe) - size.h), 'corner', null)
+  // Nothing to be near: bottom right of the work area, above the Dock. When another window of ours is there (the Knack corner column), stack above it, else take another corner.
+  const home = make(right(safe) - size.w, bottom(safe) - size.h)
+  if (ok(home)) return done(home, 'corner', null)
+  const blocking = avoid.filter((a) => overlapArea(home, a) > 0)
+  const above = make(home.x, Math.min(...blocking.map((a) => a.y)) - gap - size.h)
+  if (blocking.length > 0 && ok(above)) return done(above, 'corner', null)
+  const others = [make(safe.x, bottom(safe) - size.h), make(right(safe) - size.w, safe.y), make(safe.x, safe.y)]
+  return done(others.find(ok) ?? home, 'corner', null)
 }
 
 // The panel window is its content plus room for the shadow. The content, not the window, is what keeps its distance from the target.

@@ -86,7 +86,9 @@ export function resolveStackConfig(i: ConfigInput): StackConfig {
   // The built dashboard: bundled in the packaged app (resources/dashboard), else the repository's apps/dashboard/dist.
   const bundled = i.resourcesPath ? path.join(i.resourcesPath, 'dashboard') : null
   const inRepo = repoRoot ? path.join(repoRoot, 'apps', 'dashboard', 'dist') : null
-  const distDir = [bundled, inRepo].find((d): d is string => d !== null && i.exists(path.join(d, 'index.html'))) ?? inRepo
+  // KNACK_DIST: a dashboard build somewhere else (the hidden end-to-end run builds into a private folder).
+  const override = (i.env.KNACK_DIST ?? '').trim()
+  const distDir = (override && i.exists(path.join(override, 'index.html')) ? override : null) ?? [bundled, inRepo].find((d): d is string => d !== null && i.exists(path.join(d, 'index.html'))) ?? inRepo
   return {
     repoRoot,
     ports,
@@ -95,6 +97,7 @@ export function resolveStackConfig(i: ConfigInput): StackConfig {
     preferDevServer: !i.isPackaged && (i.env.KNACK_DASHBOARD ?? '') !== 'dist',
     dirs: { demo: { home: 'data/demo-home', data: 'data/demo-data' }, live: { home: 'data/live-home', data: 'data/live-data' } },
     mode: 'demo',
+    startSites: (i.env.KNACK_SITES ?? '') !== '0',
     timeouts: { engineMs: 90_000, agentMs: 90_000, dashboardMs: 45_000, seedMs: 120_000, pollMs: 400, stopMs: 4000 },
   }
 }

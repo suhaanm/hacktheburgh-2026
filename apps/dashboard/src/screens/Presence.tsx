@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { ApiError, api } from "../api";
 import { useLoad } from "../hooks";
-import { ChartFoot, ErrorState, Loading, OriginBadge, PageHead, Range } from "../components/common";
+import { ChartFoot, ErrorState, Loading, OriginBadge, PageHead, Range, workerOriginLabel } from "../components/common";
 import { useToast } from "../components/Toasts";
 import { Hint } from "../components/Hint";
 import { Heatmap, HeatLegend, cellReadout, type Cursor } from "../components/Heatmap";
@@ -26,12 +26,7 @@ export default function Presence() {
 
   return (
     <div className="page page--wide">
-      <PageHead
-        eyebrow="Presence"
-        title={title}
-        lede="Each cell is a quarter hour. Darker means you are more likely to be there."
-        aside={<OriginBadge meta={p.meta} />}
-      />
+      <PageHead hero title={title} aside={<OriginBadge meta={p.meta} label={p.meta ? workerOriginLabel(p.meta.origin) : undefined} />} />
 
       <section className="hero" aria-labelledby="heat-h">
         <h2 id="heat-h" className="u-sr-only">Weekly presence map</h2>
@@ -39,14 +34,13 @@ export default function Presence() {
           <Heatmap data={data} cursor={cursor} onCursor={setCursor} day={day} onDay={setDay} />
           <p className="note" aria-live="polite" style={{ minHeight: "3em" }}>{cellReadout(data, cursor)}</p>
           <HeatLegend />
-          <ChartFoot variant="about" meta={p.meta} />
+          <ChartFoot variant="about" meta={p.meta} badge={false} />
         </div>
       </section>
 
       <section className="section" aria-labelledby="day-h">
         <div className="section__head">
-          <h2 id="day-h" className="section__title">{dowName(day)}, with its interval</h2>
-          <p className="section__sub">Line: estimate. Band: 95% interval.</p>
+          <h2 id="day-h" className="section__title">{`${dowName(day)}, with its interval`}<Hint label="How to read this chart">Line: estimate. Band: 95% interval.</Hint></h2>
         </div>
         <DayBand data={data} day={day} />
       </section>
@@ -100,7 +94,7 @@ function ForecastSection({ data, meta }: { data: PresenceData; meta: ReturnType<
             <b>{res.go ? "Go." : "Wait."}</b> A {d}-minute run has a {Math.round(res.survival * 100)}% chance of finishing before you are back. The threshold is {Math.round(thr * 100)}%.
           </p>
         </div>
-        <ChartFoot variant="about" meta={meta} extra={<span>band: 95% interval</span>} />
+        <ChartFoot variant="about" meta={meta} badge={false} extra={<span>band: 95% interval</span>} />
       </div>
     </section>
   );

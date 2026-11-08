@@ -77,6 +77,7 @@ def test_boot_check_mock_is_a_noop():
 
 def test_boot_check_lists_usable_ids_and_stops(monkeypatch):
     monkeypatch.setenv("UNDERSTUDY_MOCK", "0")
+    monkeypatch.setenv("UNDERSTUDY_PROVIDER", "openai")        # D49: Gemini is the default; this test is about the OpenAI boot check, an explicit opt-in
     monkeypatch.setenv("OPENAI_MODEL_FAST", "does-not-exist")
     client = NS(models=NS(list=lambda: NS(data=[NS(id="gpt-a"), NS(id="test-planner"), NS(id="test-computer"), NS(id="whisper-x")])))
     lines: list[str] = []
@@ -89,6 +90,7 @@ def test_boot_check_lists_usable_ids_and_stops(monkeypatch):
 
 def test_boot_check_ok(monkeypatch):
     monkeypatch.setenv("UNDERSTUDY_MOCK", "0")
+    monkeypatch.setenv("UNDERSTUDY_PROVIDER", "openai")        # D49: Gemini is the default; this test is about the OpenAI boot check, an explicit opt-in
     client = NS(models=NS(list=lambda: NS(data=[NS(id="test-planner"), NS(id="test-fast"), NS(id="test-computer")])))
     rep = boot_check(client=client, out=lambda s: None)
     assert rep.ok and not rep.missing
