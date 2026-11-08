@@ -38,7 +38,7 @@ export function CommitsSection({ open }: { open: boolean }) {
   const d = h.data;
   const habits = sortHabits(d.habits);
   const flagged = habits.filter((x) => x.flagged);
-  const shownHabits = allHabits ? habits : habits.slice(0, 5);
+  const shownHabits = allHabits ? habits : habits.slice(0, 4);
   const meta = ownMeta(h.meta, { n: d.n_commits, unit: "commit" });
 
   return (
@@ -49,7 +49,7 @@ export function CommitsSection({ open }: { open: boolean }) {
         <div className="stack">
           <div className="chart stack" style={{ gap: "var(--space-4)" }}>
             <HabitDeltas habits={shownHabits} />
-            {habits.length > 5 && <div><button type="button" className="btn btn--quiet btn--sm" aria-expanded={allHabits} onClick={() => setAllHabits((v) => !v)}>{allHabits ? "Show fewer" : `Show all ${habits.length}`}</button></div>}
+            {habits.length > 4 && <div><button type="button" className="btn btn--quiet btn--sm" aria-expanded={allHabits} onClick={() => setAllHabits((v) => !v)}>{allHabits ? "Show fewer" : `Show all ${habits.length}`}</button></div>}
           </div>
           <Details summary="Key" wide>
             <p className="note">Each row is a share of your commits, against an experienced worker&apos;s. Flagged means past its floor and clear of zero.</p>
