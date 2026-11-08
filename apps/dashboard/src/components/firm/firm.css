@@ -102,8 +102,9 @@
 .firm-band--none { margin: 0; font-size: var(--text-sm); color: var(--muted); padding: var(--space-3) 0; border-top: var(--hair) dashed var(--line-strong); border-bottom: var(--hair) dashed var(--line-strong); }
 .firm-band__slope { color: var(--muted); }
 .firm-table { min-width: 560px; }
-.firm-person { font-weight: 600; white-space: nowrap; }
-.firm-person__btn { display: inline-flex; align-items: center; gap: var(--space-2); padding: 2px 0; background: none; border: 0; color: var(--fg); font: inherit; font-weight: 600; cursor: pointer; }
+.firm-person { font-weight: 600; max-width: 30ch; overflow-wrap: anywhere; }
+.firm-person__btn { display: inline-flex; align-items: center; gap: var(--space-2); padding: 2px 0; background: none; border: 0; color: var(--fg); font: inherit; font-weight: 600; text-align: left; cursor: pointer; max-width: 100%; }
+.firm-person__name { min-width: 0; overflow-wrap: anywhere; }
 .firm-person__btn:focus-visible { outline: var(--ring-w) solid var(--focus); outline-offset: var(--ring-offset); border-radius: var(--radius-1); }
 .firm-person__chev { width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform var(--dur-fast) var(--ease-out); }
 .firm-person__chev[data-open="true"] { transform: rotate(45deg); }
@@ -191,3 +192,63 @@
 .onb__sentence { margin: 0; font-size: var(--text-sm); }
 .onb__meta { margin: 0; font-size: var(--text-xs); color: var(--muted); }
 .onb__legend { margin: 0; color: var(--muted); font-size: var(--text-xs); }
+
+/* -- Insight first: one headline sentence, one simple chart, the numbers behind one closed disclosure ------------ */
+.insight-first { display: grid; gap: var(--space-4); min-width: 0; }
+.insight-head, .insight-head.hero-insight { margin: 0; max-width: var(--measure); font: 600 var(--text-lg)/1.35 var(--font-display); letter-spacing: var(--tracking-display); color: var(--fg); text-wrap: balance; overflow-wrap: anywhere; }
+@media (max-width: 760px) { .insight-head.hero-insight { font-size: var(--text-md); } }
+.insight-fresh { margin: 0; }
+.insight-chart { margin: 0; display: grid; gap: var(--space-2); max-width: 680px; min-width: 0; }
+.insight-chart figcaption { margin: 0; }
+.numbers th[scope="row"] { font-weight: 600; max-width: 28ch; overflow-wrap: anywhere; }
+.numbers th, .numbers td { padding-right: var(--space-4); }
+.risk__facts { max-width: 34rem; font-size: var(--text-sm); }
+.brief-top { display: grid; gap: var(--space-2); max-width: var(--measure); }
+.brief-top li { overflow-wrap: anywhere; }
+.brief-top__head { font-weight: 600; }
+
+/* The confidence word: the word is the signal; the dot is full, half or empty so it reads without colour. */
+.conf { display: inline-flex; align-items: center; gap: var(--space-2); font: 500 var(--text-xs)/1.2 var(--font-mono); color: var(--muted); }
+.conf[data-level="likely"] { color: var(--fg); }
+.conf__dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid currentColor; flex: none; }
+.conf[data-level="likely"] .conf__dot { background: currentColor; }
+.conf[data-level="possible"] .conf__dot { background: linear-gradient(90deg, currentColor 50%, transparent 50%); }
+
+/* -- Forecasts: up to three cards, text beside its chart ------------------------------------------------------ */
+.fc-panel { gap: var(--space-5); }
+.fc-list { display: grid; border-top: var(--hair) solid var(--line); }
+.fc { display: grid; gap: var(--space-2); padding: var(--space-4) 0; border-bottom: var(--hair) solid var(--line); min-width: 0; max-width: 720px; }
+.fc__head { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.fc__n { font: var(--text-xs)/1.2 var(--font-mono); color: var(--muted); overflow-wrap: anywhere; }
+.fc__toggle { margin-left: auto; display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; background: none; border: 0; border-radius: var(--radius-2); color: var(--muted); cursor: pointer; }
+.fc__toggle:hover { background: var(--sunk); color: var(--fg); }
+.fc__toggle:focus-visible { outline: var(--ring-w) solid var(--focus); outline-offset: var(--ring-offset); }
+.fc__chev { width: 7px; height: 7px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform var(--dur-fast) var(--ease-out); }
+.fc__chev[data-open="true"] { transform: rotate(45deg); }
+.fc__line { margin: 0; max-width: 60ch; line-height: 1.45; overflow-wrap: anywhere; }
+.fc__do { color: var(--muted); }
+.fc__evidence { display: grid; gap: var(--space-3); padding-top: var(--space-2); }
+.fc__meta { margin: 0; font-size: var(--text-xs); color: var(--muted); overflow-wrap: anywhere; }
+.fc__chart { min-width: 0; }
+.fc-limit { margin: 0; }
+@media (prefers-reduced-motion: reduce) { .fc__chev { transition: none; } }
+
+/* -- The trend mix: one stacked bar. Each class has its own fill pattern, glyph and word, so colour is never the only carrier. -- */
+.mix { margin: 0; display: grid; gap: var(--space-3); max-width: 680px; min-width: 0; }
+.mix__bar { display: flex; gap: 2px; height: 18px; border-radius: var(--radius-2); overflow: hidden; background: var(--sunk); }
+.mix__seg { min-width: 6px; }
+.mix__seg[data-trend="improving"], .mix__sw[data-trend="improving"] { background: var(--good); }
+.mix__seg[data-trend="needs_attention"], .mix__sw[data-trend="needs_attention"] { background: repeating-linear-gradient(135deg, var(--warn) 0 3px, var(--warn-soft) 3px 6px); }
+.mix__seg[data-trend="cannot_tell_yet"], .mix__sw[data-trend="cannot_tell_yet"] { background: radial-gradient(var(--muted) 1.3px, transparent 1.7px) 0 0 / 6px 6px, var(--line); }
+.mix__seg[data-trend="not_enough_data"], .mix__sw[data-trend="not_enough_data"] { background: var(--panel); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.mix__legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); font-size: var(--text-sm); }
+.mix__item { display: inline-flex; align-items: center; gap: var(--space-2); }
+.mix__item[data-zero="true"] { color: var(--muted); }
+.mix__sw { width: 16px; height: 10px; border-radius: 2px; flex: none; }
+
+/* -- The brief: the A4 page is in the page but only the printer sees it ----------------------------------------- */
+.brief-print-only { display: none; }
+@media print {
+  .brief-screen, .firm[data-tab="brief"] .screenhead, .firm[data-tab="brief"] .crumbs { display: none !important; }
+  .brief-print-only { display: grid !important; }
+}

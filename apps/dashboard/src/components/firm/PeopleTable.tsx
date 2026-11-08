@@ -1,7 +1,10 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
 import { Range } from "../common";
 import { Hint } from "../Hint";
-import { Details } from "../ui";
+import { Details, FactRows } from "../ui";
+import { Headline, SeeNumbers } from "./InsightFirst";
+import { MixBar } from "./MixBar";
+import { peopleHeadline } from "./insights";
 import {
   DEFAULT_SORT, SORT_KEYS, personName, TENURE_LABEL, TREND_GLYPH, TREND_HINT, TREND_LABEL, filterUsers, fmtNum, fmtShare, groupShown, pct, sortUsers, trendCounts, unitWord,
   type SortKey,
@@ -9,6 +12,7 @@ import {
 import type { AnalyticMeta } from "../../types";
 import type { FirmRole, Trend, UserRow, WireFirm } from "./wire";
 import { TRENDS } from "./wire";
+import { shortName } from "./insights";
 
 const SORT_LABEL: Record<SortKey, string> = { name: "Name", tenure: "Time in role" };
 const STATUS_WORD: Record<string, string> = { onboarding: "just started", stale: "not seen lately", no_data: "no data yet" };
@@ -22,25 +26,35 @@ function TrendMark({ t }: { t: Trend }) {
   );
 }
 
+/** One person's detail, opened in place: label : value rows for the figures that are not in the table, then the per-skill lines. */
 function Skills({ u }: { u: UserRow }) {
-  if (u.skills.length === 0) return <p className="firm-skills__none">No per-skill figures yet.</p>;
+  const t = u.time_to_independence;
+  const rows: [string, string][] = [
+    ["Steps until independent", t.reached && t.value !== null ? `${Math.round(t.value)} ${unitWord(t.unit)}` : "not yet"],
+    ["Needed help", u.assisted_share ? pct(u.assisted_share.value) : "n/a"],
+    ["Routines running", String(u.automations_running)],
+  ];
   return (
-    <ul className="firm-skills">
-      {u.skills.map((k) => (
-        <li key={k.skill}>
-          <span className="firm-skills__label">{k.label}</span>
-          <span className="firm-skills__nums">
-            {k.independence_share === null ? "not enough data" : `${pct(k.independence_share)} finished without help`} of {k.n} steps
-            {k.lost_s ? `; ${fmtNum(k.lost_s, "s")} ${k.lost_s.value >= 0 ? "longer" : "shorter"} than the expert's median` : ""}
-          </span>
-        </li>
-      ))}
-    </ul>
+    <div className="stack" style={{ gap: "var(--space-2)" }}>
+      <FactRows rows={rows} />
+      {u.skills.length === 0 ? <p className="firm-skills__none">No per-skill figures yet.</p> : (
+        <ul className="firm-skills">
+          {u.skills.map((k) => (
+            <li key={k.skill}>
+              <span className="firm-skills__label">{k.label}</span>
+              <span className="firm-skills__nums">
+                {k.independence_share === null ? "not enough data" : `${pct(k.independence_share)} without help`} of {k.n} steps
+                {k.lost_s ? `; ${fmtNum(k.lost_s, "s")} ${k.lost_s.value >= 0 ? "longer" : "shorter"} than the expert's median` : ""}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
 function Row({ u, open, onToggle, cols }: { u: UserRow; open: boolean; onToggle: () => void; cols: number }) {
-  const t = u.time_to_independence;
   const ind = u.independence;
   return (
     <Fragment>
@@ -48,12 +62,10 @@ function Row({ u, open, onToggle, cols }: { u: UserRow; open: boolean; onToggle:
         <th scope="row" className="firm-person">
           <button type="button" className="firm-person__btn" aria-expanded={open} aria-controls={`skills-${u.label}`} data-person={u.label} onClick={onToggle}>
             <span className="firm-person__chev" aria-hidden="true" data-open={open} />
-            <span>{personName(u)}</span>
+            <span className="firm-person__name">{personName(u)}</span>
           </button>
-          <span className="firm-person__tenure">{TENURE_LABEL[u.tenure_band]}</span>
-          {u.status && u.status !== "ok" && <span className="firm-person__status">{STATUS_WORD[u.status] ?? u.status}</span>}
+          <span className="firm-person__tenure">{TENURE_LABEL[u.tenure_band]}{u.status && u.status !== "ok" ? `, ${STATUS_WORD[u.status] ?? u.status}` : ""}</span>
         </th>
-        <td className="col-wide">{TENURE_LABEL[u.tenure_band]}</td>
         <td><TrendMark t={u.trend} /></td>
         <td className="num firm-ind">
           {ind ? (<>
@@ -62,9 +74,6 @@ function Row({ u, open, onToggle, cols }: { u: UserRow; open: boolean; onToggle:
             <span className="firm-ind__ci">{ind.ci ? `${pct(ind.ci[0])} to ${pct(ind.ci[1])}` : "no interval yet"}</span>
           </>) : "not enough data"}
         </td>
-        <td className="num col-opt">{t.reached && t.value !== null ? `${Math.round(t.value)} ${unitWord(t.unit)}` : "not yet"}</td>
-        <td className="num col-opt">{u.assisted_share ? pct(u.assisted_share.value) : "n/a"}</td>
-        <td className="num col-opt">{u.automations_running}</td>
       </tr>
       {open && (
         <tr className="firm-expand" id={`skills-${u.label}`}><td colSpan={cols}><Skills u={u} /></td></tr>
@@ -73,38 +82,39 @@ function Row({ u, open, onToggle, cols }: { u: UserRow; open: boolean; onToggle:
   );
 }
 
-/** The aggregate band above a role: one group figure per line, with its interval printed. Hidden when the group is under the minimum. */
+/** The group figures above a role: the two that matter as label : value rows, the rest behind one closed More. Hidden when the group is under the minimum. */
 function Band({ r, min }: { r: FirmRole; min: number }) {
   const a = r.aggregate;
   if (!groupShown(r, min)) {
     return <p className="firm-band firm-band--none">Fewer than {min} people with data in this group, so no group figure is shown. People are still listed below.</p>;
   }
   const t = a.time_to_independence;
+  const main: [string, ReactNode][] = [["Finished without help", fmtShare(a.independence)]];
+  if (r.trend) {
+    main.push(["Role trend", <><TrendMark t={r.trend.cls} />{r.trend.slope_per_4w ? <span className="firm-band__slope"> {fmtNum({ value: r.trend.slope_per_4w.value * 100, ci: r.trend.slope_per_4w.ci ? [r.trend.slope_per_4w.ci[0] * 100, r.trend.slope_per_4w.ci[1] * 100] : null }, "points a month")}</span> : null}</>]);
+  }
+  const more: [string, ReactNode][] = [
+    ["Needed help", fmtShare(a.assisted_share)],
+    ["Steps until independent", t.median !== null ? fmtNum({ value: t.median, ci: t.ci }, unitWord(t.unit)) : "not reached yet"],
+  ];
+  if (t.reached_share) more.push(["Reached it so far", fmtShare(t.reached_share)]);
   return (
-    <dl className="firm-band">
-      <div><dt>Finished without help</dt><dd>{fmtShare(a.independence)}</dd></div>
-      <div><dt>Needed help</dt><dd>{fmtShare(a.assisted_share)}</dd></div>
-      <div><dt>Steps until independent</dt><dd>{t.median !== null ? fmtNum({ value: t.median, ci: t.ci }, unitWord(t.unit)) : "not reached yet"}</dd></div>
-      {t.reached_share && <div><dt>Reached it so far</dt><dd>{fmtShare(t.reached_share)}</dd></div>}
-      {r.trend && (
-        <div>
-          <dt>Role trend</dt>
-          <dd><TrendMark t={r.trend.cls} />{r.trend.slope_per_4w ? <span className="firm-band__slope"> {fmtNum({ value: r.trend.slope_per_4w.value * 100, ci: r.trend.slope_per_4w.ci ? [r.trend.slope_per_4w.ci[0] * 100, r.trend.slope_per_4w.ci[1] * 100] : null }, "points / 4 weeks")}</span> : null}</dd>
-        </div>
-      )}
-    </dl>
+    <div className="stack" style={{ gap: "var(--space-2)" }}>
+      <FactRows rows={main} />
+      <Details summary="More"><FactRows rows={more} /></Details>
+    </div>
   );
 }
 
-function RoleSection({ r, firm, sort, filter, first }: { r: FirmRole; firm: WireFirm; sort: SortKey; filter: Trend | null; first: boolean }) {
+function RoleSection({ r, firm, sort, filter }: { r: FirmRole; firm: WireFirm; sort: SortKey; filter: Trend | null }) {
   const [all, setAll] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const min = firm.privacy.min_group;
   const rows = useMemo(() => sortUsers(filterUsers(r.users, filter), sort), [r.users, filter, sort]);
   const shown = all ? rows : rows.slice(0, 2);
-  const cols = 7;
+  const cols = 3;
   return (
-    <Details summary={`${r.name}, ${r.users.length} ${r.users.length === 1 ? "person" : "people"}`} defaultOpen={first} wide className="firm-role-details">
+    <Details summary={`${shortName(r.name)}, ${r.users.length} ${r.users.length === 1 ? "person" : "people"}`} wide className="firm-role-details">
       <section className="firm-role" aria-labelledby={`people-${r.role}`}>
         <h3 id={`people-${r.role}`} className="u-sr-only">{r.name}</h3>
         <Band r={r} min={min} />
@@ -117,12 +127,8 @@ function RoleSection({ r, firm, sort, filter, first }: { r: FirmRole; firm: Wire
               <thead>
                 <tr>
                   <th scope="col">Person</th>
-                  <th scope="col" className="col-wide">Time in role</th>
                   <th scope="col">Help needed over time</th>
                   <th scope="col" className="num">Finished without help</th>
-                  <th scope="col" className="num col-opt">Steps until independent</th>
-                  <th scope="col" className="num col-opt">Needed help</th>
-                  <th scope="col" className="num col-opt">Routines running</th>
                 </tr>
               </thead>
               <tbody>
@@ -169,7 +175,23 @@ export function PeopleTable({ firm }: { firm: WireFirm; meta?: AnalyticMeta | nu
         </div>
         <p className="note">Group figures need at least {firm.privacy.min_group} people. Smaller groups are merged, so a figure never describes two or three individuals. {firm.privacy.note ?? ""}</p>
       </Details>
-      {firm.roles.map((r, i) => <RoleSection key={r.role} r={r} firm={firm} sort={sort} filter={filter} first={i === 0} />)}
+      {firm.roles.map((r) => <RoleSection key={r.role} r={r} firm={firm} sort={sort} filter={filter} />)}
+    </div>
+  );
+}
+
+/**
+ * The People screen, insight first: one sentence on who needs less help and who could use a conversation, one bar of how the trend classes split, and
+ * the people, grouped by role, behind "See the numbers". The bar and the sentence count people; the list never ranks them.
+ */
+export function PeopleBody({ firm, meta }: { firm: WireFirm; meta?: AnalyticMeta | null }) {
+  const all = useMemo(() => firm.roles.flatMap((r) => r.users), [firm]);
+  const c = useMemo(() => trendCounts(all), [all]);
+  return (
+    <div className="insight-first">
+      <Headline>{peopleHeadline(firm)}</Headline>
+      {all.length > 0 && <MixBar title="How the help people need is changing" total={all.length} parts={TRENDS.map((t) => ({ id: t, label: TREND_LABEL[t], count: c[t] }))} />}
+      {all.length > 0 && <SeeNumbers><PeopleTable firm={firm} meta={meta} /></SeeNumbers>}
     </div>
   );
 }
