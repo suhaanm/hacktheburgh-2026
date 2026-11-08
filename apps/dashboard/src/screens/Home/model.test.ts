@@ -117,7 +117,9 @@ describe("dates, badge and the example line", () => {
   });
   it("draws one origin badge in sentence case", () => {
     expect(originBadge({ example: true, origin: "synthetic", badge: "synthetic firm" })).toBe("Example data");
-    expect(originBadge({ example: false, origin: "synthetic", badge: "synthetic firm" })).toBe("Synthetic firm");
+    expect(originBadge({ example: false, origin: "synthetic", badge: "made-up firm" })).toBeNull();
+    expect(originBadge({ example: false, origin: "mixed", badge: null })).toBeNull();
+    expect(originBadge({ example: false, origin: "real", badge: null })).toBeNull();
     expect(originBadge({ example: false, origin: "real", badge: null })).toBeNull();
     expect(originBadge({ example: false, origin: null, badge: null })).toBeNull();
   });

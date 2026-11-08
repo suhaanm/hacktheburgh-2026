@@ -1,11 +1,5 @@
-import type { AnalyticMeta } from "../../types";
-
-/** The small tag at the foot of the printed brief: "live" for measured data, else the engine's own word for the firm (or just "firm"). Generated data carries no origin tag (D57). */
-export function FirmBadge({ meta, label }: { meta?: (AnalyticMeta & { badge?: string }) | null; label?: string }) {
-  const origin = meta?.origin ?? "mixed";
-  const text = label ?? meta?.badge ?? (origin === "real" ? "live" : "firm");
-  return <span className="pill pill--origin" data-origin={origin}>{text}</span>;
-}
+// Owner decision D57 and its clarification (8 Nov 2026): no chip, pill or label on the Firm screens says the firm or its names were generated. There was a
+// FirmBadge and a note at the top of every view; both are gone. Where the numbers come from is one plain sentence inside the closed "About this data".
 
 /** "22 people", "1 approval": the unit agrees with the number. */
 export function nWord(n: number, unit: string): string {

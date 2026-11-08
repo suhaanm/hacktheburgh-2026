@@ -92,7 +92,9 @@ SOURCE_NAMES = {
     ("admin", "hitlist"): "Firm routines",
 }
 SOURCE_SET = frozenset(SOURCE_NAMES.values()) | {"Understudy"}
-BADGE_PHRASE = {"live": "", "synthetic": "generated data", "made-up firm": "made-up firm data", "simulated": "generated data"}
+# Owner decision D57 and its clarification (8 Nov 2026): no tag, label or phrase on a screen says that the data was generated. The source line reads
+# "Source: <source>." for every badge; where the numbers come from is said once, inside the closed "About this data", and on Evidence.
+BADGE_PHRASE = {"live": "", "synthetic": "", "made-up firm": "", "firm": "", "simulated": ""}
 
 # Suppression reasons and selection reasons (closed). The fixed sentence for each is in ``REASON_TEXT``.
 SUPPRESSED = ("not_enough_data", "no_expert_reference", "stale", "interval_spans_zero", "below_effect_floor", "not_persistent",

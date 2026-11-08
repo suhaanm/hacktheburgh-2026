@@ -121,12 +121,12 @@ describe("the date line", () => {
 
 describe("the origin badge", () => {
   it("example data wins over the data's own origin", () => { expect(originBadge({ example: true, origin: "real", badge: null })).toBe("Example data"); });
-  it("a mixed origin says some example data; a real one says nothing; an unknown one with no badge text says nothing", () => {
-    expect(originBadge({ example: false, origin: "mixed", badge: null })).toBe("Some example data");
+  it("no origin draws a chip but example data (D57: none for generated or mixed data); a real one says nothing; an unknown one says nothing", () => {
+    expect(originBadge({ example: false, origin: "mixed", badge: null })).toBeNull();
     expect(originBadge({ example: false, origin: "real", badge: "real" })).toBeNull();
     expect(originBadge({ example: false, origin: "odd", badge: "   " })).toBeNull();
   });
-  it("the badge text is sentence case whatever case the engine used", () => { expect(originBadge({ example: false, origin: "synthetic", badge: "SYNTHETIC FIRM" })).toBe("Synthetic firm"); });
+  it("the engine's badge text is never drawn, whatever its case", () => { expect(originBadge({ example: false, origin: "synthetic", badge: "SYNTHETIC FIRM" })).toBeNull(); });
 });
 
 describe("the example line and stale or skewed clocks", () => {
