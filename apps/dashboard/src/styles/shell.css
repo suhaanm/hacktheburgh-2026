@@ -148,19 +148,6 @@
   .toasts { top: 60px; }
 }
 
-/* A window between 800 and 880 px keeps the sidebar as an icon rail. */
-@media (min-width: 881px) and (max-width: 1000px) {
-  .app { grid-template-columns: 56px minmax(0, 1fr); }
-  .side { padding-inline: var(--space-2); }
-  .side .navitem__label, .side .navgroup, .side .account__name, .side .status-line__text, .side .stop-button span, .side .lockup__word { display: none; }
-  .side .navitem { justify-content: center; padding: 0; }
-  .side .navitem__count { position: absolute; margin: 0; transform: translate(10px, -8px); }
-  .side .navitem { position: relative; }
-  .side__foot { flex-direction: column; align-items: stretch; }
-  .side .stop-button { justify-content: center; padding: 0; }
-  .side .status-line { justify-content: center; padding-inline: 0; }
-}
-
 /* The traffic lights sit over the left of a bar that has no sidebar under it (first run, the narrow top bar): keep that corner clear and draggable. */
 :root[data-knack-shell="mac-inset"] .app[data-bare] .banner-wrap { padding-left: 88px; }
 @media (max-width: 880px) {
