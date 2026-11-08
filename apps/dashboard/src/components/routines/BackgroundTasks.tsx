@@ -105,7 +105,7 @@ export function TaskSection({ v, limit = 4 }: { v: TasksView; limit?: number }) 
       {shown.length > 0 && <ul className="bt-list">{shown.map((t) => <TaskRow key={t.id} task={t} open={openId === t.id} onToggle={() => toggle(t)} onStop={v.stop} onOpenResult={v.openResult} />)}</ul>}
       {main.length > shown.length && <p className="kc-sub">{main.length - shown.length} more running or just finished.</p>}
       {today.length > 0 && (
-        <Details summary={`Done today (${today.length})`} className="bt-today">
+        <Details summary={`Done today (${today.length})`} className="bt-today" wide>
           <ul className="bt-list">{today.slice(0, 20).map((t) => <TaskRow key={t.id} task={t} open={openId === t.id} onToggle={() => toggle(t)} onStop={v.stop} onOpenResult={v.openResult} />)}</ul>
         </Details>
       )}
