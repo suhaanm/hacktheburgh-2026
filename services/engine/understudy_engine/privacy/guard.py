@@ -32,7 +32,7 @@ from .netscan import (
 )
 
 ENGINE_PKG = Path(__file__).resolve().parents[1]
-GUARDED_DIRS = ("calendar", "gitanalysis", "proactive", "localmodel", "plugins", "awareness", "cue", "evidence", "mlv2", "personas_v2", "attention", "hitlist", "insights")
+GUARDED_DIRS = ("calendar", "gitanalysis", "proactive", "localmodel", "plugins", "awareness", "cue", "evidence", "mlv2", "personas_v2", "attention", "hitlist", "insights", "connections")
 GUARDED_FILES = ("routes_calendar.py", "routes_git.py", "routes_localmodel.py", "routes_proactive.py", "routes_plugins.py",
                  "routes_awareness.py", "routes_cue.py", "routes_evidence.py", "routes_mlv2.py", "routes_personas_v2.py")
 #: layers that are pure computation: no model, no network, no process, no URL, and no reviewed exception (``ALLOW`` does not apply)
@@ -57,12 +57,16 @@ ALLOW: dict[str, Allow] = {
                                   loopback_helpers=frozenset({"agent_url"})),
     "gitanalysis/source.py": Allow("runs read-only `git log` on a local repository; the argument list comes from git_argv(), which puts git first",
                                    dynamic_process=True),
-    "gitanalysis/synth.py": Allow("builds synthetic local repositories for tests and demos with git; the argument lists are built by its own helpers",
+    "gitanalysis/synth.py": Allow("builds generated local repositories for tests and demos with git; the argument lists are built by its own helpers",
                                   dynamic_process=True),
     "proactive/paths.py": Allow("home_dir() defaults to ~/.understudy (UNDERSTUDY_HOME), the same per-install state directory as the store", home_path=True),
     "cue/paths.py": Allow("home_dir() defaults to ~/.understudy (UNDERSTUDY_HOME), the same per-install state directory as the store", home_path=True),
     "plugins/manifest.py": Allow("loads a plugin's entry class from the bundled plugin directory by the module name in its manifest",
                                  dynamic_import=True),
+    "connections/secrets.py": Allow("stores a connection's token in the macOS Keychain through /usr/bin/security (the token goes in on stdin through `security -i`, "
+                                    "never as an argument); no other process is started", processes=frozenset({"security"})),
+    "connections/routes.py": Allow("asks the local agent service on this machine to start, probe or stop a connection the worker clicked", frozenset({"httpx"}),
+                                   loopback_helpers=frozenset({"agent_url"})),
 }
 
 AGENT_PKG = ENGINE_PKG.parents[1] / "agent" / "understudy_agent"

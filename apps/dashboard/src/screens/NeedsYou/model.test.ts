@@ -97,6 +97,8 @@ describe("words", () => {
     expect(plainWords("The routine dropped one rung to A1.")).toBe("The routine dropped one step to watching.");
     expect(plainWords("Let Understudy enter households.")).toBe("Let Knack enter households.");
     expect(plainWords("Moved from A2 to A3")).toBe("Moved from asking first to running on its own");
+    expect(plainWords("Hey Knack is off in demo mode")).toBe("Hey Knack is off in example data");
+    expect(plainWords("Demo household")).toBe("Example household");
   });
   it("keeps whole sentences within the word limit and moves the rest to the evidence", () => {
     const { lead, rest } = leadAndRest("One two three. Four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twenty-one twenty-two. Last one here.", 12);
@@ -163,5 +165,27 @@ describe("words", () => {
     expect(visible(rows, false)).toHaveLength(7);
     expect(visible(rows, true)).toHaveLength(10);
     expect(visible(rows.slice(0, 7), false)).toHaveLength(7);
+  });
+});
+
+describe("tasks that wait for the worker", () => {
+  const NOW = Date.parse("2026-11-08T09:30:00Z");
+  const consent = { task_id: "tk_1", title: "Tidy", state: "waiting_consent" as const, started: "2026-11-08T09:00:00Z", needs_consent: { scope_text: "x" } };
+  it("a consent card and a question are items; a running task with nothing to ask is not", () => {
+    const items = buildItems({ tasks: [consent, { task_id: "tk_2", title: "Ask", state: "running" as const, started: "2026-11-08T09:10:00Z", question: { text: "Which?", options: [] } }, { task_id: "tk_3", title: "Busy", state: "running" as const, started: "2026-11-08T09:10:00Z" }], now: NOW });
+    expect(items.map((i) => i.key).sort()).toEqual(["t:tk_1", "t:tk_2"]);
+    expect(items).toHaveLength(2);
+    expect(items.every((i) => i.kind === "task" && i.cls === 1)).toBe(true);
+  });
+  it("a finished task with an old question is not asked about again, and a duplicate id is one item", () => {
+    expect(buildItems({ tasks: [{ task_id: "tk_9", title: "x", state: "done" as const, started: "2026-11-08T09:10:00Z", question: { text: "Which?", options: [] } }], now: NOW })).toHaveLength(0);
+    expect(buildItems({ tasks: [consent, consent], now: NOW })).toHaveLength(1);
+  });
+  it("a card nobody answered for more than a day, and a run record a dead process left paused, are ghosts: not items", () => {
+    const old = { ...consent, task_id: "tk_old", started: "2026-11-06T09:00:00Z" };
+    expect(buildItems({ tasks: [old], now: NOW })).toHaveLength(0);
+    const ghostRun = { run_id: "r_ghost", kind: "data.profile", mode: "foreground", state: "paused", started: "2026-11-05T09:00:00Z", parent: { id: "p", role: "planner", state: "paused", budget: {}, spent: {} }, children: [] };
+    const freshRun = { ...ghostRun, run_id: "r_fresh", started: "2026-11-08T09:25:00Z" };
+    expect(buildItems({ runs: [ghostRun, freshRun] as never, now: NOW }).map((i) => i.key)).toEqual(["a:r_fresh"]);
   });
 });

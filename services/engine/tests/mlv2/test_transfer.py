@@ -57,7 +57,7 @@ def test_loader_tolerates_an_empty_or_missing_results_dir(tmp_path):
     from understudy_engine.hazard.features import build_bins
     train = build_bins(splits.load_pool("D0", limit_replicates=0))
     out = transfer.evaluate_transfer(train, sim)
-    assert out["status"] == "no_finished_participants" and out["n_participants_finished"] == 0 and out["badge"].startswith("simulated participants")
+    assert out["status"] == "no_finished_participants" and out["n_participants_finished"] == 0 and out["badge"].startswith("language-model participants")
 
 
 def test_evaluate_transfer_labels_n_and_models(tmp_path):

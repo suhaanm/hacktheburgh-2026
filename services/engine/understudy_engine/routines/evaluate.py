@@ -104,7 +104,7 @@ def evaluate_finder(root: Path | None = None, *, min_support: int = 3, wage_gbp_
     }
     limits = [
         {"id": "routines-synthetic", "severity": "high",
-         "text": f"Routine precision and recall are scored on {len(rows)} synthetic personas whose routines were planted by a generator "
+         "text": f"Routine precision and recall are scored on {len(rows)} generated personas whose routines were planted by a generator "
                  "that varies steps and timing but not the way real people drift. They show the method recovers planted structure, not that real routines look like this."},
         {"id": "routines-finder-noise", "severity": "medium",
          "text": f"The finder alone (minimum support 3) returns many small clusters of one-off work: precision {overall['finder_precision']:.0%} over "
@@ -213,7 +213,7 @@ def evaluate_ski_rental(cfg: SimConfig | None = None, *, b: float = 16.0, sweep:
     be_ = next(r for r in cheap if r["rule"] == "break-even")["regret"]
     limits = [
         {"id": "ski-simulated", "severity": "high",
-         "text": "Ski-rental regret is measured on simulated routines (lognormal run rates, 45% retiring after an exponential life, the forecast sees 10 workdays), "
+         "text": "Ski-rental regret is measured on generated routines (lognormal run rates, 45% retiring after an exponential life, the forecast sees 10 workdays), "
                  "not on real build decisions. It shows the rule's behaviour against break-even under a stated mechanism."},
         {"id": "ski-not-uniformly-best", "severity": "medium",
          "text": "The rule is not the best everywhere. Lowest regret by build cost: " + "; ".join(wins) + ". "
@@ -228,10 +228,10 @@ def evaluate_ski_rental(cfg: SimConfig | None = None, *, b: float = 16.0, sweep:
         "name": "ski_rental", "rows": rows, "hindsight_regret": 1.0, "hindsight": 1, "sweep": sweep_rows, "b_manual_runs": b,
         "robustness_bounds": {f"{l:g}": round(__import__("understudy_engine.routines.skirental", fromlist=["robustness"]).robustness(l), 2) for l in lambdas},
         "origin": "synthetic", "n": cfg.n_routines, "n_unit": "routines", "interval_level": 0.95,
-        "split": f"simulated workdays; the forecast sees {cfg.history_workdays} workdays of history, the cost is over the {cfg.horizon_workdays - cfg.history_workdays} after",
+        "split": f"generated workdays; the forecast sees {cfg.history_workdays} workdays of history, the cost is over the {cfg.horizon_workdays - cfg.history_workdays} after",
         "meta": {"origin": "synthetic", "n": cfg.n_routines, "n_unit": "routines", "interval_level": 0.95,
-                 "split": f"simulated workdays; buy cost b = {b:g} manual runs; forecast sees {cfg.history_workdays} workdays, cost over the next {cfg.horizon_workdays - cfg.history_workdays}",
-                 "note": "Regret = cost divided by the hindsight-best cost (1.0 is perfect). Simulated mechanism; not real build decisions."},
+                 "split": f"generated workdays; buy cost b = {b:g} manual runs; forecast sees {cfg.history_workdays} workdays, cost over the next {cfg.horizon_workdays - cfg.history_workdays}",
+                 "note": "Regret = cost divided by the hindsight-best cost (1.0 is perfect). Generated mechanism; not real build decisions."},
         "metrics": {"b": b}, "limitations": limits,
     }
 

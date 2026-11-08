@@ -7,9 +7,8 @@ import { runActive } from "../../lib/agents";
 import { withMode, type Mode } from "../../lib/attention";
 import { useLoad } from "../../hooks";
 import { setState, useAppState } from "../../store";
-import type { AttentionPatch, AttentionSettings, Health } from "../../types";
+import type { AttentionPatch, AttentionSettings, Health, SkillsAnswer } from "../../types";
 import { useTheme } from "../../components/shell/theme";
-import { usePinnedViews } from "../../components/shell/pinned";
 import { STORY_LABEL, WORKER_STORIES, parseStory } from "../Home/data";
 import { setExampleWeek, useExampleWeek } from "../Home/story";
 import { desktopBridge, liveModelsBridge, wakeBridge, type DesktopSettings, type LiveModelsState, type WakeStatus } from "./bridge";
@@ -20,6 +19,8 @@ type HealthExt = Health & { key_present?: boolean };
 /** The Connections panel is another track's: it is shown only when its file exists, and never blocks Settings. */
 const CONNECTIONS = import.meta.glob("../../components/connections/ConnectionsPanel.tsx");
 const ConnectionsPanel = Object.values(CONNECTIONS)[0] ? lazy(Object.values(CONNECTIONS)[0] as () => Promise<{ default: ComponentType }>) : null;
+/** The call list, read only when Advanced is opened. */
+const AdvancedCalls = lazy(() => import("../../components/settings/AdvancedCalls"));
 
 /** Ask the engine again, every 2 s, until it says it is live (or mock) as asked, or 60 s pass. The restart takes about 20 s. */
 async function waitForMode(wantLive: boolean): Promise<boolean> {
@@ -44,6 +45,9 @@ export default function Settings({ section }: { section?: string }) {
   const runs = useLoad(() => api.agentsRuns(me), [me]);
   const attn = useLoad(() => api.attentionSettings(me), [me]);
   const today = useLoad(() => api.attentionDigest(me, "now"), [me]);
+  const skillsLoad = useLoad(() => api.skills(), []);
+  const [skills, setSkills] = useState<SkillsAnswer | null>(null);
+  useEffect(() => { setSkills(skillsLoad.source === "live" && skillsLoad.data ? skillsLoad.data : null); }, [skillsLoad.data, skillsLoad.source]);
   const bridge = useMemo(() => desktopBridge(), []);
   const liveBridge = useMemo(() => liveModelsBridge(), []);
   const [liveState, setLiveState] = useState<LiveModelsState | null>(null);
@@ -56,7 +60,6 @@ export default function Settings({ section }: { section?: string }) {
   const [attentionError, setAttentionError] = useState<string | null>(null);
   const [theme, setTheme] = useTheme();
   const view = useViewRole();
-  const [pinned, setPinned] = usePinnedViews();
   const seq = useRef(0);
   const story = useExampleWeek();
 
@@ -107,6 +110,15 @@ export default function Settings({ section }: { section?: string }) {
     void apply(patch, (x) => ({ ...x, budget_per_day: patch.budget_per_day, modes: p === "balanced" ? {} : { ...x.modes, ...patch.modes }, types: x.types.map((t) => (t.fixed ? t : { ...t, mode: patch.modes[t.type] ?? t.mode })) }));
   };
   const onMode = (type: string, mode: Mode) => void apply({ modes: { [type]: mode } }, (x) => withMode(x, type, mode));
+  const onGroup = (types: string[], mode: Mode) => {
+    if (types.length === 0) return;
+    void apply({ modes: Object.fromEntries(types.map((t) => [t, mode])) }, (x) => types.reduce((acc, t) => withMode(acc, t, mode), x));
+  };
+  const onSkills = (patch: { use_claude_skills?: boolean; off?: string[]; max_minutes?: number; max_budget_usd?: number }) => {
+    const before = skills;
+    setSkills((s) => (s ? { ...s, ...(patch.use_claude_skills !== undefined ? { use_claude_skills: patch.use_claude_skills } : {}), ...(patch.off ? { off: patch.off } : {}), ...(patch.max_minutes !== undefined ? { max_minutes: patch.max_minutes } : {}), ...(patch.max_budget_usd !== undefined ? { max_budget_usd: patch.max_budget_usd } : {}) } : s));
+    api.skillsSet(patch).then((r) => { if (r.data && Array.isArray(r.data.skills)) setSkills(r.data); }, () => setSkills(before));
+  };
   const onWake = (on: boolean) => {
     if (!wakeApi) return;
     const before = wake;
@@ -128,14 +140,15 @@ export default function Settings({ section }: { section?: string }) {
 
   return (
     <SettingsView section={section} live={liveView} onLive={(on) => void onLive(on)}
-      attention={attention} attentionExample={!!attn.why} attentionError={attentionError} onPreset={onPreset} onMode={onMode} onResetLearned={onResetLearned} onLevelGlance={onLevelGlance} wake={wakeApi ? wake : null} onWake={onWake}
+      attention={attention} attentionExample={!!attn.why} attentionError={attentionError} onPreset={onPreset} onMode={onMode} onGroup={onGroup} onResetLearned={onResetLearned} onLevelGlance={onLevelGlance} wake={wakeApi ? wake : null} onWake={onWake}
       today={today.data && attention ? <TodayStrip digest={today.data} budgetPerDay={attention.budget_per_day} /> : null}
       desktop={bridge ? desktop : null} onDesktop={onDesktop}
       theme={theme} onTheme={setTheme}
       view={view} onView={setViewRole}
       stories={stories} onStory={onStory}
-      pinned={pinned} onPinned={setPinned}
       version={h?.version ?? null}
+      skills={skills} onSkills={onSkills}
+      advanced={<Suspense fallback={null}><AdvancedCalls /></Suspense>}
       connections={ConnectionsPanel ? <Suspense fallback={null}><ConnectionsPanel /></Suspense> : null} />
   );
 }

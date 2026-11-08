@@ -5,7 +5,7 @@ import { AdminSees } from "../../components/yourdata/AdminSees";
 import { Measured } from "../../components/yourdata/Measured";
 import { OriginBadge, SectionSource } from "../../components/needsyou/Origin";
 import { Remembers } from "../../components/yourdata/Remembers";
-import { Sent } from "../../components/yourdata/Sent";
+import { SentLink } from "../../components/yourdata/SentLink";
 import { Switches } from "../../components/yourdata/Switches";
 import { YdSection } from "../../components/yourdata/YdSection";
 import { useToast } from "../../components/Toasts";
@@ -19,7 +19,7 @@ import { loadSharing } from "../Home/data";
 import { desktopBridge, type DesktopSettings } from "../Settings/bridge";
 import { awarenessBridge, type AwarenessChoice, type AwarenessState } from "./awareness";
 import { deleteEverything } from "./data";
-import { YD_SECTIONS, YD_TITLE, deleteAllText, deleteResultText, factLine, memoryItems, ydSectionOf, type YdSection as Id } from "./model";
+import { YD_SECTIONS, YD_TITLE, dataHeadline, deleteAllText, deleteResultText, factLine, memoryItems, ydSectionOf, type YdSection as Id } from "./model";
 import "../../components/kc.css";
 import "../../components/yourdata/yourdata.css";
 
@@ -35,7 +35,6 @@ export default function YourData() {
   const mem = useLoad(() => api.memory(), []);
   const rules = useLoad(() => api.proposals(), []);
   const ledger = useLoad(() => api.privacyLedger(), []);
-  const summary = useLoad(() => api.privacySummary(), []);
   const sharing = useLoad(() => loadSharing(me), [me]);
   const steps = useLoad(() => loadLedger("going", false), []);
   const [open, setOpen] = useState<Set<Id>>(() => new Set<Id>([want ?? "remembers"]));
@@ -66,7 +65,7 @@ export default function YourData() {
   const entries = ledger.data ?? [];
   const counts = steps.data?.counts ?? { assist: 0, delegated: 0, automation: 0 };
   const stepTotal = counts.assist + counts.delegated + counts.automation;
-  const reloadAll = () => { mem.reload(); rules.reload(); ledger.reload(); summary.reload(); steps.reload(); };
+  const reloadAll = () => { mem.reload(); rules.reload(); ledger.reload(); steps.reload(); };
   const toggle = (id: Id) => setOpen((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
   const onCapture = async (on: boolean) => {
@@ -109,7 +108,7 @@ export default function YourData() {
   const body: Record<Id, ReactNode> = {
     remembers: <><SectionSource why={mem.why} /><Remembers memory={m} proposals={rules.data ?? []} onChanged={() => { mem.reload(); rules.reload(); }} /></>,
     measured: <><SectionSource why={steps.why} /><Measured capture={capture} view={steps.data} example={exampleSteps} onExport={async () => { const x = await exportLedger("going", exampleSteps); downloadText(x.filename.replace("understudy", "knack"), x.text); }} onDelete={async () => { const n = await deleteLedger("going", exampleSteps); steps.reload(); return n; }} /></>,
-    sent: <><SectionSource why={ledger.why ?? summary.why} /><Sent entries={entries} summary={summary.data} onChanged={() => { ledger.reload(); summary.reload(); }} /></>,
+    sent: <SentLink />,
     "admin-sees": sharing.data ? <><SectionSource why={sharing.why} /><AdminSees sharing={sharing.data} /></> : <div className="yd-body"><Loading label="Loading what your admin can see" /></div>,
     switches: <Switches capture={capture} onCapture={(on) => void onCapture(on)} busy={busy} glance={awareness ? glance : null} onGlance={onGlance} desktop={desktop ? dset : null} onDesktop={onDesktop} error={err} />,
   };
@@ -120,6 +119,7 @@ export default function YourData() {
         <h1 className="kc-title">Your data</h1>
         <OriginBadge sources={sources} />
       </div>
+      <p className="kc-headline" data-testid="headline">{dataHeadline({ lines: items.length, capture })}</p>
 
       <div className="yd">
         {YD_SECTIONS.map((id) => (

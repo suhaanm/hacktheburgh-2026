@@ -12,7 +12,7 @@ from understudy_engine.memory import load_pack
 from understudy_engine.routines.sources import PersonSource
 
 DATA = Path(__file__).resolve().parents[4] / "data"
-pytestmark = pytest.mark.skipif(not (DATA / "synthetic" / "nine-to-five" / "truth.json").exists(), reason="synthetic personas not generated")
+pytestmark = pytest.mark.skipif(not (DATA / "synthetic" / "nine-to-five" / "truth.json").exists(), reason="generated personas not generated")
 
 
 @pytest.fixture(scope="module")

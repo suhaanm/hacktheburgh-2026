@@ -347,7 +347,7 @@ def leak_canary(fast: bool) -> dict[str, Any]:
 
 LIMITATIONS = [
     {"id": "cal-synthetic-only", "severity": "high",
-     "text": ("Every calendar number is on synthetic calendars with planted structure (4 personas, 8 experts, 16 novices, 3 weeks). Nothing about the "
+     "text": ("Every calendar number is on generated calendars with planted structure (4 personas, 8 experts, 16 novices, 3 weeks). Nothing about the "
               "calendar layer is validated on real people, and one read-only aggregate check of the owner's own calendar says nothing about anyone else.")},
     {"id": "cal-experts-synthetic", "severity": "high",
      "text": ("The expert reference is generated from the role template that also defines the targets, so agreement with it is by construction. "
@@ -359,7 +359,7 @@ LIMITATIONS = [
      "text": ("A problem planted below the expert tolerance (one fragmented day, one back-to-back run) is not suggested, by design. Recall against the planted "
               "intent is therefore below 1; the thresholds come from the template, not from the truth labels.")},
     {"id": "cal-interval-scope", "severity": "medium",
-     "text": ("Gap intervals cover uncertainty in the expert reference (8 synthetic experts) only, not a learner's week-to-week variation; a week is flagged only if it "
+     "text": ("Gap intervals cover uncertainty in the expert reference (8 generated experts) only, not a learner's week-to-week variation; a week is flagged only if it "
               "also lies outside the range of expert weeks. Three weeks per person is thin.")},
     {"id": "cal-graph-unverified", "severity": "medium",
      "text": ("The Microsoft Graph adapters were tested against recorded fake responses written from the public documentation; they have never been run against a live "
@@ -378,8 +378,8 @@ def evaluate_calendar(fast: bool = False, *, store: CalendarStore | None = None,
     n_people = len(st.people())
     out: dict[str, Any] = {
         "meta": _meta("synthetic", n_people, "people", "none: planted truth, no fitted model; intervals are a cluster bootstrap by person",
-                      "Calendars with planted structure, labelled synthetic; nothing here is validated on real people."),
-        "statement": ("These results are on synthetic calendars with planted structure. They show that the pipeline recovers what was planted and where it "
+                      "Calendars with planted structure, labelled as planted; nothing here is validated on real people."),
+        "statement": ("These results are on generated calendars with planted structure. They show that the pipeline recovers what was planted and where it "
                       "does not; they do not show that real people's weeks look like this, and nothing is validated on real people."),
         "cohort": {"personas": len(st.people("persona")), "experts": len(st.people("expert")), "novices": len(st.people("novice")),
                    "weeks_each": len((truth or {}).get("meta", {}).get("weeks", [])), "problem_types": list(PROBLEMS)},

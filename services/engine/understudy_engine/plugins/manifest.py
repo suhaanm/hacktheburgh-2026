@@ -33,14 +33,15 @@ class PluginManifest:
     enable_flag: str | None = None
     limitations: tuple[str, ...] = ()
     path: str | None = field(default=None, compare=False)
+    connection: dict[str, Any] | None = field(default=None, compare=False)   # kind mcp / tool / a source preset (CONNECTIONS)
 
     @classmethod
     def from_dict(cls, d: dict[str, Any], path: str | None = None) -> "PluginManifest":
         return cls(id=d["id"], version=d["version"], kind=d["kind"], description=d["description"],
-                   permissions=tuple(d["permissions"]), egress=d["egress"], entry=d["entry"], schema=d.get("schema"),
+                   permissions=tuple(d["permissions"]), egress=d["egress"], entry=d.get("entry", ""), schema=d.get("schema"),
                    default_enabled=d.get("default_enabled", True), network=d.get("network", False),
                    requires_token=d.get("requires_token", False), enable_flag=d.get("enable_flag"),
-                   limitations=tuple(d.get("limitations", ())), path=path)
+                   limitations=tuple(d.get("limitations", ())), path=path, connection=d.get("connection"))
 
 
 @lru_cache(maxsize=1)
@@ -68,6 +69,15 @@ def resolve_entry(entry: str) -> type:
     return cls
 
 
+def resolve_tool_entry(entry: str) -> Any:
+    """``module.path:function`` to the callable of a ``kind: tool`` plugin (same plain-message errors as ``resolve_entry``)."""
+    mod, _, name = entry.partition(":")
+    fn = getattr(importlib.import_module(mod), name)
+    if not callable(fn):
+        raise TypeError(f"{entry} is not callable")
+    return fn
+
+
 def check_manifest(data: Any, *, check_entry: bool = True) -> list[str]:
     """All problems with a manifest dict: schema first, then entry, id and item-schema consistency."""
     problems = schema_errors(data)
@@ -75,7 +85,14 @@ def check_manifest(data: Any, *, check_entry: bool = True) -> list[str]:
         return problems or ["(manifest): not a mapping"]
     if data["kind"] == "source" and get_schema(data.get("schema", "")) is None:
         problems.append(f"schema: {data.get('schema')!r} is not a registered item schema")
-    if check_entry:
+    if data["kind"] == "mcp" and "entry" in data:
+        problems.append("entry: a kind mcp manifest has no entry; nothing of ours is imported for it")
+    if check_entry and data["kind"] == "tool":
+        try:
+            resolve_tool_entry(data["entry"])
+        except Exception as exc:                # noqa: BLE001 - any import failure is a validation failure
+            problems.append(f"entry: cannot load {data['entry']} ({type(exc).__name__}: {exc})")
+    elif check_entry and data["kind"] != "mcp":
         try:
             cls = resolve_entry(data["entry"])
         except Exception as exc:                # noqa: BLE001 - any import failure is a validation failure
@@ -85,6 +102,10 @@ def check_manifest(data: Any, *, check_entry: bool = True) -> list[str]:
                 problems.append(f"entry: class plugin_id {cls.plugin_id!r} does not match manifest id {data['id']!r}")
             if data["kind"] == "source" and cls.schema_id != data.get("schema"):
                 problems.append(f"entry: class schema_id {cls.schema_id!r} does not match manifest schema {data.get('schema')!r}")
+    if "connection" in data:
+        from ..connections.manifest import connection_problems       # lazy: the connections layer imports this module
+
+        problems.extend(connection_problems(data))
     return problems
 
 

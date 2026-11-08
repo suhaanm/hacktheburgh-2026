@@ -315,12 +315,6 @@ button {
 .pop .reason + .phrase {
   margin-top: 4px;
 }
-.tag {
-  padding: 0 5px;
-  border: 1px solid var(--line-strong);
-  border-radius: 3px;
-  font: 500 10px/14px var(--font-mono);
-}
 .actions {
   display: flex;
   gap: 6px;

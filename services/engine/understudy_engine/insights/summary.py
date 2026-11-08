@@ -123,7 +123,7 @@ def _trend_class(rows: list[dict[str, Any]], seed: int) -> str:
 
 def firm_names(snap: FirmSnapshot) -> dict[str, str]:
     """``label -> invented name`` for the synthetic firm (``names.assign_names``); empty for a real ledger, which gets no invented name."""
-    if snap.badge != "synthetic firm":
+    if snap.badge != "made-up firm":
         return {}
     return assign_names((pr.label or pr.id) for pr in snap.people)
 
@@ -215,7 +215,7 @@ class AdminView:
     def __init__(self, snap: FirmSnapshot, p: Params = DEFAULT) -> None:
         self.snap, self.p, self.now = snap, p, snap.now
         self._cache: dict[Any, Any] = {}
-        names = firm_names(snap)
+        names = firm_names(snap) or {(pr.label or pr.id): pr.name for pr in snap.people if pr.name}      # a built firm carries its own display names
         self.sums: dict[str, PersonSummary] = {pr.id: summarise(pr, snap, p, names) for pr in snap.people}
 
     # ----- groups

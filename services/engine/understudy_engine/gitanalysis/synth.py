@@ -529,7 +529,7 @@ def make_repo(spec: RepoSpec, dest: str | os.PathLike) -> Path:
         "start": spec.start, "tz_min": spec.tz_min, "planted": list(spec.planted), "strength": spec.strength, "jitter": spec.jitter,
         "rates": {h: round(v, 4) for h, v in sim.rates.items()}, "baseline": BASELINE, "planted_full": PLANTED,
         "canary": bool(tok), "canaries": canary_list(tok) if tok else [], "realised": realised,
-        "note": "scripted synthetic developer; nobody is real; file contents are filler",
+        "note": "scripted developer; nobody is real; file contents are filler",
         "commits": truth_commits,
     }
     (dest / "truth.json").write_text(json.dumps(truth, indent=1), encoding="utf-8")

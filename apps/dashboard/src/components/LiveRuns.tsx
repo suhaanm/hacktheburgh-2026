@@ -20,7 +20,7 @@ export function LiveRuns({ live, meta }: { live: unknown; meta: AnalyticMeta | n
           <OriginBadge meta={meta} always />
           <span className="pill">{v.label}</span>
           {v.households != null && <span className="pill">{v.households} households per condition</span>}
-          <span className="pill">sandbox calculators</span>
+          <span className="pill">generated households, sandbox calculators</span>
         </div>
         {v.note && <p className="ev-note">{v.note}</p>}
       </div>

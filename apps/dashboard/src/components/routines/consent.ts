@@ -14,7 +14,8 @@ export const IRREVERSIBLE_SCRIPT = "This is a recorded script. It repeats exactl
 
 /** The three steps of how far a routine is trusted, in the worker's words (never A0 to A3). */
 export type Cap = "watching" | "asks" | "own";
-export const CAP_LABEL: Record<Cap, string> = { watching: "Watching", asks: "Asks first", own: "Runs on its own" };
+/** The three steps are settings (how far a routine may go), not states: none of the words says that something is executing right now. */
+export const CAP_LABEL: Record<Cap, string> = { watching: "Watch first", asks: "Asks first", own: "Away runs" };
 export const CAP_MODE: Record<Cap, "shadow" | "approval" | "unattended"> = { watching: "shadow", asks: "approval", own: "unattended" };
 
 /** The step the worker chose: the consent mode, in words. Away runs ask before anything outward too, so they read as the top step. */
@@ -29,17 +30,24 @@ const RUNG_STEP: Record<Rung, number> = { A0: 0, A1: 1, A2: 2, A3: 3 };
 const CAP_STEP: Record<Cap, number> = { watching: 1, asks: 2, own: 3 };
 
 /** Whether a step up is offered: only when the record earned it (or the worker already chose it). A step down is always offered. */
-export function stepState(r: Pick<Routine, "rung" | "status" | "shadow">, step: Cap): { enabled: boolean; need: string | null } {
+export function stepState(r: Pick<Routine, "rung" | "status"> & { shadow?: Routine["shadow"] | null }, step: Cap): { enabled: boolean; need: string | null } {
   const here = capOf(r.status);
   const chosen = here ? CAP_STEP[here] : 0;
   if (CAP_STEP[step] <= Math.max(chosen, 1)) return { enabled: true, need: null };
-  if (RUNG_STEP[r.rung] >= CAP_STEP[step]) return { enabled: true, need: null };
+  if ((RUNG_STEP[r.rung] ?? 0) >= CAP_STEP[step]) return { enabled: true, need: null };
   return { enabled: false, need: needFor(r, step) };
 }
 
+/** The record of practice runs, made safe to read: whole numbers, never negative, matches never above runs. A routine with no record has none yet. */
+export function recordOf(r: { shadow?: { runs?: unknown; matches?: unknown; [k: string]: unknown } | null }): { runs: number; matches: number } {
+  const n = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.floor(v)) : 0);
+  const runs = n(r.shadow?.runs);
+  return { runs, matches: Math.min(runs, n(r.shadow?.matches)) };
+}
+
 /** "Needs 8 more matching practice runs." Printed, not in a Hint. */
-export function needFor(r: Pick<Routine, "shadow">, step: Cap): string {
-  const { runs, matches } = r.shadow;
+export function needFor(r: { shadow?: { runs?: unknown; matches?: unknown; [k: string]: unknown } | null }, step: Cap): string {
+  const { runs, matches } = recordOf(r);
   const bound = step === "asks" ? 0.8 : 0.95;
   const minRuns = step === "asks" ? 20 : 75;
   const clean = cleanRunsNeeded(matches, runs, bound);
@@ -50,15 +58,15 @@ export function needFor(r: Pick<Routine, "shadow">, step: Cap): string {
 }
 
 /** The state of a routine in one sentence of its own words. */
-export function stateLine(r: Pick<Routine, "rung" | "status" | "shadow">): string {
-  const { runs, matches } = r.shadow;
-  if (r.status === "unattended") return r.rung === "A3" ? "Runs, then tells you." : "Runs while you are away. Asks before it submits or sends.";
-  if (r.rung === "A2" || r.rung === "A3") return "Asks before it submits or sends.";
-  return runs > 0 ? `Watching: ${matches} of ${runs} practice runs match.` : "Watching: no practice runs yet.";
+export function stateLine(r: Pick<Routine, "status"> & { rung?: Routine["rung"]; shadow?: { runs?: unknown; matches?: unknown; [k: string]: unknown } | null }): string {
+  const { runs, matches } = recordOf(r);
+  if (r.status === "unattended") return r.rung === "A3" ? "Set to run while you are away, then tell you." : "Set to run while you are away. Asks before it submits or sends.";
+  if (r.status === "approval" || r.rung === "A2" || r.rung === "A3") return "Asks before it submits or sends.";
+  return runs > 0 ? `Watched: ${matches} of ${runs} practice runs match.` : "Set to watch first. No practice runs yet.";
 }
 
 /** The label at the right edge of a row: how far the worker trusts it. */
 export function trustWord(r: Pick<Routine, "status">): string {
   const c = capOf(r.status);
-  return c === "own" ? "Runs while away" : c ? CAP_LABEL[c] : "";
+  return c ? CAP_LABEL[c] : "";
 }

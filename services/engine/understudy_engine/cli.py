@@ -38,7 +38,7 @@ def _synth(args: argparse.Namespace) -> int:
     if want_learners:
         r = learners.generate(root)
         print(f"learners: {r['events']} events, {r['traces']} cases -> {r['dir']}")
-    print(f"done in {time.time() - t0:.1f}s (synthetic, seeded, deterministic)")
+    print(f"done in {time.time() - t0:.1f}s (seeded, deterministic)")
     return 0
 
 
@@ -76,7 +76,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="understudy", description="Understudy engine tools")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    p = sub.add_parser("synth", help="generate synthetic personas and apprentices")
+    p = sub.add_parser("synth", help="generate example personas and apprentices")
     p.add_argument("--all", action="store_true", help="all four personas plus the apprentices")
     p.add_argument("--persona", action="append", help="persona slug (repeatable)")
     p.add_argument("--apprentices", action="store_true", help="benefits-task apprentice traces")

@@ -5,15 +5,19 @@ import { HitList } from "../../components/repeats/HitList";
 import { heldText } from "../../components/repeats/model";
 import type { HitRow, HitState } from "../../components/repeats/types";
 import { OriginBadge, OriginDetails } from "../../components/needsyou/Origin";
+import { BackgroundTasks } from "../../components/routines/BackgroundTasks";
 import { RunningRow } from "../../components/routines/RunningRow";
 import type { Decide } from "../../components/routines/types";
 import { useToast } from "../../components/Toasts";
 import { Details } from "../../components/ui";
 import { useLoad, useTimeout } from "../../hooks";
+import { useTasks } from "../../lib/useTasks";
 import { navigate, useRoute } from "../../router";
+import { clip } from "../../lib/safeText";
 import { refreshNeedsBadge } from "../NeedsYou/count";
+import { plainWords } from "../NeedsYou/model";
 import { exampleKind, hideRow, loadRepeats, resetCounts, runNow, unhideRow } from "./data";
-import { TABS, runningRoutines, tabOf, turnedDown, type Tab } from "./model";
+import { TABS, routinesHeadline, runningRoutines, tabOf, turnedDown, type Tab } from "./model";
 import { Peek } from "./Peek";
 import { trackRoutineRun } from "../../lib/wakeContext";
 import "../../components/kc.css";
@@ -33,7 +37,7 @@ const EMPTY_TITLE: Record<Exclude<HitState, "ok">, string> = {
 };
 
 /**
- * Routines: Running (what runs for you and how far it is trusted) and Could automate (what you do by hand again and again, biggest time first).
+ * Routines: Your routines (the ones you set up and how far each is trusted) and Could automate (what you do by hand again and again, biggest time first).
  * The decision to start one is made in Needs you; this is where you manage what already runs and find what could. At most seven rows, then "Show all".
  */
 export default function Routines() {
@@ -45,7 +49,9 @@ export default function Routines() {
   const rep = useLoad(() => loadRepeats(win, kind), [win, kind]);
   const toast = useToast();
   const [openId, setOpenId] = useState<string | null>(null);
-  const [showAll, setShowAll] = useState(false);
+  const [limit, setLimit] = useState(7);
+  // The tasks list and the routines refresh together, by themselves (every 2 s while a task runs, 15 s otherwise, on focus, on the run's own stream).
+  const tasks = useTasks({ alsoReload: rt.reload });
 
   const setTab = (t: Tab) => navigate(`/routines${t === "could-automate" ? "?tab=could-automate" : ""}`);
   const running = runningRoutines(rt.data);
@@ -77,8 +83,12 @@ export default function Routines() {
     return `Started${started.run_id ? ` (${started.run_id})` : ""}. Stop it any time with Stop.`;
   };
 
-  const shown = showAll ? running : running.slice(0, 7);
-  const sources = [rt, rep];
+  const shown = running.slice(0, limit);
+  const sources = [rt, rep, ...tasks.sources];
+  const headline = routinesHeadline({
+    tasksRunning: tasks.grouped.active.filter((x) => x.state === "running").length, routinesRunning: running.length,
+    couldMinutes: rep.data?.state === "ok" ? rep.data.rows.reduce((a, row) => a + (Number.isFinite(row.minutes_per_week?.point) ? Math.max(0, row.minutes_per_week.point) : 0), 0) : 0,
+  });
 
   return (
     <div className="page page--read kc-page">
@@ -86,6 +96,7 @@ export default function Routines() {
         <h1 className="kc-title">Routines</h1>
         <OriginBadge sources={sources} />
       </div>
+      {headline && <p className="kc-headline" data-testid="headline">{headline}</p>}
       <OriginDetails sources={sources} />
 
       <div className="rt-bar">
@@ -100,13 +111,14 @@ export default function Routines() {
 
       {tab === "running" ? (
         <div role="tabpanel" id="panel-running" aria-labelledby="tab-running" style={{ display: "grid", gap: "var(--space-4)" }}>
+          <BackgroundTasks view={tasks} />
           {running.length === 0 ? (
             <div className="kc-empty">
-              <h2>Nothing runs yet.</h2>
+              <h2>No routines yet.</h2>
               <p>Choose Watch first on a proposal in Needs you.</p>
             </div>
           ) : (
-            <ul className="kc-list" aria-label="Running routines">
+            <ul className="kc-list" aria-label="Your routines">
               {shown.map((r) => (
                 <li key={r.id}>
                   <RunningRow routine={r} open={openId === r.id} canRun onToggle={() => setOpenId(openId === r.id ? null : r.id)} onDecide={decide} onRun={onRun} />
@@ -114,7 +126,7 @@ export default function Routines() {
               ))}
             </ul>
           )}
-          {running.length > shown.length && <div><button type="button" className="btn btn--secondary btn--sm" onClick={() => setShowAll(true)}>Show all {running.length}</button></div>}
+          {running.length > shown.length && <div><button type="button" className="btn btn--secondary btn--sm" onClick={() => setLimit((n) => (n < 50 ? 50 : n + 50))}>{limit < 50 && running.length <= 50 ? `Show all ${running.length}` : limit < 50 ? "Show 50" : "Show 50 more"}</button></div>}
           <TurnedDown rows={turnedDown(rt.data)} onDecide={decide} />
         </div>
       ) : (
@@ -126,19 +138,20 @@ export default function Routines() {
   );
 }
 
-/** What the worker said no to, one click from a yes. Behind one disclosure so Running stays short. */
+/** What the worker said no to, one click from a yes. Behind one disclosure so Your routines stays short. */
 function TurnedDown({ rows, onDecide }: { rows: ReturnType<typeof turnedDown>; onDecide: Decide }) {
   const [err, setErr] = useState<string | null>(null);
   if (rows.length === 0) return null;
   return (
     <Details summary={`Turned down (${rows.length})`}>
       <div>
-        {rows.map((x) => (
+        {rows.slice(0, 30).map((x) => (
           <div key={x.id} className="rt-more-row">
-            <span>{x.title} <span className="u-muted">({x.status === "never" ? "Never" : "Not now"})</span></span>
-            <button type="button" className="btn btn--secondary btn--sm" onClick={() => { setErr(null); onDecide(x, { mode: "shadow" }, "Watching first.").catch((e: unknown) => setErr(e instanceof ApiError ? e.message : "That did not save. Try again.")); }}>Watch first</button>
+            <span>{plainWords(clip(x.title, 120)) || "A routine"} <span className="u-muted">({x.status === "never" ? "Never" : "Not now"})</span></span>
+            <button type="button" className="btn btn--secondary btn--sm" onClick={() => { setErr(null); onDecide(x, { mode: "shadow" }, "Set to watch first.").catch((e: unknown) => setErr(e instanceof ApiError ? e.message : "That did not save. Try again.")); }}>Watch first</button>
           </div>
         ))}
+        {rows.length > 30 && <p className="kc-sub">{rows.length - 30} more turned down.</p>}
         {err && <p className="kc-error" role="alert">{err}</p>}
       </div>
     </Details>

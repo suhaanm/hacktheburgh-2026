@@ -106,7 +106,7 @@ hr { border: 0; border-top: var(--hair) solid var(--line); margin: 0; }
 /* Tier: how the step is run, cheapest first. */
 .pill--tier b { padding-right: 6px; border-right: var(--hair) solid var(--line-strong); }
 
-/* Origin badge: sentence case in the body face at 12 px and 600 ("Example data", "Synthetic firm"); dashed means not real.
+/* Origin badge: sentence case in the body face at 12 px and 600 ("Example data", "Not run"); dashed means not real.
    One per screen; its explanation is its Hint. */
 .pill--origin { height: 24px; padding: 0 10px; text-transform: none; letter-spacing: 0; font: 600 var(--text-xs)/1 var(--font-body); color: var(--muted); }
 .pill--origin[data-origin="synthetic"], .pill--origin[data-origin="example"], .pill--origin[data-origin="mixed"], .pill--origin[data-origin="not_run"] { border-style: dashed; border-color: var(--control-line); }

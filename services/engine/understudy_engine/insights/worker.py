@@ -43,7 +43,7 @@ class WorkerCtx:
     routines: Sequence[dict[str, Any]] = ()          # this person's routine records (finder value, shadow statistics)
     pointers: Sequence[dict[str, Any]] = ()          # calendar and git layers' flagged suggestions
     hitlist: Sequence[dict[str, Any]] = ()           # the repeat list's top rows (already normalised)
-    badge: str = "synthetic firm"
+    badge: str = "made-up firm"
 
 
 @dataclass

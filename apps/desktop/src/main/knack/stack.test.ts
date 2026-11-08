@@ -15,10 +15,14 @@ interface World {
   synthCode: number
   /** Ports that come up this many fake ms after their service is spawned; absent: the child exits at once (code 1). */
   comesUp: Record<string, number | null>
+  /** Ports where some other program already listens. */
+  busy: Set<number>
+  /** The folders Knack writes to cannot be written (a read-only home). */
+  readOnly: boolean
 }
 
 function rig(over: Partial<World> = {}, cfgOver: Partial<StackConfig> = {}) {
-  const w: World = { up: new Set(), files: new Set([`${REPO}/apps/dashboard/dist/index.html`, `${REPO}/apps/dashboard/package.json`, `${REPO}/services/agent/understudy_agent/sandbox_sites/__main__.py`]), agentDataId: null, agentMock: null, uv: '/opt/homebrew/bin/uv', npm: '/opt/homebrew/bin/npm', seedCode: 0, synthCode: 0, comesUp: { engine: 300, agent: 300, sites: 100, dashboard: 300 }, ...over }
+  const w: World = { up: new Set(), files: new Set([`${REPO}/apps/dashboard/dist/index.html`, `${REPO}/apps/dashboard/package.json`, `${REPO}/services/agent/understudy_agent/sandbox_sites/__main__.py`]), agentDataId: null, agentMock: null, uv: '/opt/homebrew/bin/uv', npm: '/opt/homebrew/bin/npm', seedCode: 0, synthCode: 0, comesUp: { engine: 300, agent: 300, sites: 100, dashboard: 300 }, busy: new Set(), readOnly: false, ...over }
   let clock = 0
   const events: { at: number; fn: () => void }[] = []
   const flush = () => {
@@ -75,8 +79,12 @@ function rig(over: Partial<World> = {}, cfgOver: Partial<StackConfig> = {}) {
       runs.push({ spec, timeoutMs })
       return { code: spec.name === 'seed' ? w.seedCode : w.synthCode }
     },
+    portBusy: async (port) => w.busy.has(port),
     exists: (p) => w.files.has(p),
-    mkdirp: (p) => void w.files.add(p),
+    mkdirp: (p) => {
+      if (w.readOnly) throw new Error(`EROFS: read-only file system, mkdir '${p}'`)
+      w.files.add(p)
+    },
     touch: (p) => void w.files.add(p),
     findExecutable: (name) => (name === 'uv' ? w.uv : name === 'npm' ? w.npm : null),
     env: () => ({ HOME: '/Users/x', PATH: '/usr/bin:/bin', SECRET_THING: 'kept-out-of-nothing' }),
@@ -292,5 +300,82 @@ describe('the child PATH', () => {
   it('adds the usual tool directories once, keeping what was there first', () => {
     expect(augmentedPath('/usr/bin:/bin', '/Users/x').split(':')).toEqual(['/usr/bin', '/bin', '/opt/homebrew/bin', '/usr/local/bin', '/Users/x/.local/bin', '/Users/x/.cargo/bin', '/usr/sbin', '/sbin'])
     expect(augmentedPath(undefined, '/Users/x').startsWith('/opt/homebrew/bin')).toBe(true)
+  })
+})
+
+
+const settle = async (): Promise<void> => {
+  for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0))
+}
+
+describe('a service this app started stops by itself', () => {
+  it('is started again, a little later each time, and the stack stays ready', async () => {
+    const r = rig()
+    await r.stack.start()
+    expect(r.spawned.map((x) => x.spec.name)).toEqual(['engine', 'sites', 'agent'])
+    r.w.up.delete(PORTS.engine) // the engine crashed
+    r.spawned[0]!.exit(139)
+    await settle()
+    expect(r.spawned.filter((x) => x.spec.name === 'engine')).toHaveLength(2)
+    expect(r.spawned.at(-1)!.spec.args).toEqual(['run', '--package', 'understudy-agent', 'understudy', 'serve'])
+    expect(r.stack.state().phase).toBe('ready')
+    expect(r.stack.started()).toContain('engine')
+  })
+  it('after three stops in ten minutes it gives up and says so in one plain line', async () => {
+    const r = rig()
+    await r.stack.start()
+    for (let i = 0; i < 4; i++) {
+      r.w.up.delete(PORTS.engine)
+      const engines = r.spawned.filter((x) => x.spec.name === 'engine')
+      engines.at(-1)!.exit(1)
+      await settle()
+    }
+    const s = r.stack.state()
+    expect(s.phase).toBe('failed')
+    if (s.phase === 'failed') {
+      expect(s.code).toBe('engine_failed')
+      expect(s.hint).toContain('would not start again')
+      expect(s.hint).not.toMatch(/Error|EACCES|\/Users/)
+    }
+    expect(r.spawned.filter((x) => x.spec.name === 'engine')).toHaveLength(4) // the first and three more
+  })
+  it('a service stopped on purpose (quit, the models switch) is never started again', async () => {
+    const r = rig()
+    await r.stack.start()
+    await r.stack.stop()
+    await settle()
+    expect(r.spawned.filter((x) => x.spec.name === 'engine')).toHaveLength(1)
+    expect(r.stack.started()).toEqual([])
+  })
+  it('a service that was already running (not started by this app) is never supervised or started', async () => {
+    const r = rig({ up: new Set([PORTS.engine, PORTS.agent]), agentDataId: `id:${REPO}/data` })
+    await r.stack.start()
+    r.w.up.delete(PORTS.engine)
+    await settle()
+    expect(r.spawned).toHaveLength(0)
+  })
+})
+
+describe('a port that something else holds', () => {
+  it('is said at once and plainly, before anything is started', async () => {
+    const r = rig({ busy: new Set([PORTS.engine]) })
+    const s = await r.stack.start()
+    expect(s).toMatchObject({ phase: 'failed', code: 'port_busy', message: FAIL_MESSAGES.port_busy })
+    expect(r.spawned).toHaveLength(0)
+    if (s.phase === 'failed') expect(s.hint).toContain('ENGINE_PORT')
+  })
+  it('a port held by our own running service is attached to, not an error', async () => {
+    const r = rig({ up: new Set([PORTS.engine, PORTS.agent]), busy: new Set([PORTS.engine, PORTS.agent]), agentDataId: `id:${REPO}/data` })
+    expect((await r.stack.start()).phase).toBe('ready')
+  })
+})
+
+describe('a home that cannot be written', () => {
+  it('says that Knack cannot write to its data folder, in words, without the system message or any path', async () => {
+    const r = rig({ readOnly: true })
+    const s = await r.stack.start()
+    expect(s).toMatchObject({ phase: 'failed', code: 'prepare_failed', hint: 'Knack cannot write to its data folder.' })
+    expect(JSON.stringify(s)).not.toMatch(/EROFS|read-only file system|\/work\/knack/)
+    expect(r.spawned).toHaveLength(0)
   })
 })

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CARD_INSET, cardBounds, isRealMouseClick } from './card-ipc'
+import { CARD_INSET, STACK_GAP, cardBounds, isRealMouseClick } from './card-ipc'
 
 describe('where the card goes', () => {
   it('bottom-right of the work area, 16 px in, on whichever display it is given', () => {
@@ -13,6 +13,25 @@ describe('where the card goes', () => {
     expect(b.height).toBe(268)
     expect(b.x).toBeGreaterThanOrEqual(0)
     expect(b.y).toBeGreaterThanOrEqual(0)
+  })
+})
+
+describe('stacking above the Knack corner column', () => {
+  const wa = { x: 0, y: 25, width: 1440, height: 875 }
+  const column = { x: 1100, y: 840, width: 324, height: 44 } // the pill, bottom-right
+  it('with the column showing, the card sits 8 px above it instead of over it', () => {
+    const b = cardBounds(wa, { w: 348, h: 150 }, undefined, column)
+    expect(b.y + b.height).toBe(column.y - STACK_GAP)
+    expect(b.y + b.height).toBeLessThan(column.y)
+    expect(b.x).toBe(1440 - 348 - CARD_INSET)
+  })
+  it('without it the card keeps its place in the corner', () => {
+    expect(cardBounds(wa, { w: 348, h: 150 }, undefined, null)).toEqual(cardBounds(wa, { w: 348, h: 150 }))
+  })
+  it('a column higher than the corner does not push the card below the corner, and nothing goes above the work area', () => {
+    const low = cardBounds(wa, { w: 348, h: 150 }, undefined, { ...column, y: 950 })
+    expect(low.y + low.height).toBe(25 + 875 - CARD_INSET) // the column is below the card's home: the home stays
+    expect(cardBounds(wa, { w: 348, h: 150 }, undefined, { ...column, y: 100 }).y).toBe(wa.y)
   })
 })
 

@@ -13,7 +13,7 @@ POLARITY_LABEL = {"positive": "Going well", "attention": "Worth a look", "tradeo
 GLYPHS = ("clock", "trend_up", "trend_down", "check", "refresh", "repeat", "calendar", "branch", "start", "scale", "pause", "alert", "people",
           "gauge", "bolt", "layers")
 ORIGINS = ("real", "synthetic", "mixed")
-BADGES = ("live", "synthetic", "synthetic firm", "simulated")
+BADGES = ("live", "synthetic", "made-up firm", "simulated")
 CLASSES = ("effect", "state")
 LEVELS = ("expert", "junior")
 TREND_CLASSES = ("improving", "cannot_tell_yet", "needs_attention", "not_enough_data")
@@ -92,7 +92,7 @@ SOURCE_NAMES = {
     ("admin", "hitlist"): "Firm routines",
 }
 SOURCE_SET = frozenset(SOURCE_NAMES.values()) | {"Understudy"}
-BADGE_PHRASE = {"live": "", "synthetic": "synthetic data", "synthetic firm": "synthetic firm data", "simulated": "simulated data"}
+BADGE_PHRASE = {"live": "", "synthetic": "generated data", "made-up firm": "made-up firm data", "simulated": "generated data"}
 
 # Suppression reasons and selection reasons (closed). The fixed sentence for each is in ``REASON_TEXT``.
 SUPPRESSED = ("not_enough_data", "no_expert_reference", "stale", "interval_spans_zero", "below_effect_floor", "not_persistent",

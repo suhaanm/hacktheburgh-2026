@@ -257,7 +257,7 @@ def evaluate_hazard(
             "Intervals resample episodes, not people; with few people the person-level spread (per_person) is the honest uncertainty.",
             "Alarm threshold is chosen on training people only under the false-alarm budget; it can overshoot on the held-out person "
             "(see false_alarms_within_budget). The budget is a design choice, not a measured tolerance of real workers.",
-            "Synthetic origin: results show the pipeline recovers planted structure, not that real people behave this way."
+            "Generated people: results show the pipeline recovers planted structure, not that real people behave this way."
             if origin != "real" else "Real data: person count is small; treat as indicative.",
         ],
     }
@@ -295,7 +295,7 @@ def evaluate_hazard_data(root=None, *, n_boot: int = 300, seed: int = 0, budget_
 
     try:
         eps, planted, info = load_persona_episodes(root)
-        source = "engine-data synthetic personas (4 people, 21 days)"
+        source = "engine-data generated personas (4 people, 21 days)"
     except FileNotFoundError:
         eps, _ = simulate_people(4, 60, seed=seed)
         planted, info, source = None, {}, "fallback: hazard.sim (engine-data files not found)"
@@ -322,7 +322,7 @@ def evaluate_apprentice_hazard(root=None, *, n_boot: int = 300, seed: int = 0,
         return None
     sec = evaluate_hazard(a_eps, budget_per_h=budget_per_h, n_boot=n_boot, seed=seed, include_series=include_series,
                           planted=a_planted, series_person="p_nov01", fast=fast)
-    sec["data_source"] = "engine-data synthetic apprentices (24 people, 2 scripted cases each)"
+    sec["data_source"] = "engine-data scripted apprentices (24 people, 2 scripted cases each)"
     sec["data_info"] = a_info
     sec["caveats"] = sec["caveats"] + [
         "Apprentice traces follow a fixed task script, so when progress happens is partly predictable from the cog "

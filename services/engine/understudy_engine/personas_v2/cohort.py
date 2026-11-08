@@ -33,7 +33,7 @@ from .people import Person, draw_people
 from .roles import BENEFITS, RoleSpec, get_role
 
 START = datetime(2026, 11, 2, 0, 0, tzinfo=timezone.utc)      # a Monday
-LABEL = "synthetic, realism-calibrated"
+LABEL = "generated, realism-calibrated"
 NO_NOISE = {"drop_p": 0.0, "drop_burst_p": 0.0, "jitter_sd_s": 0.0, "double_p": 0.0, "zone_err_p": 0.0, "label_missing_p": 0.0,
             "coarse_ts_p": 0.0, "task_end_missing_p": 0.0, "os_skew_s": 0.0}
 
@@ -219,7 +219,7 @@ def generate_cohort(family: str, role: str, n_people: int = 40, cases_per_person
         "schema": 1, "kind": "cohort_v2", "origin": "synthetic", "realism": {
             "label": LABEL, "family": family, "params_sha256": params_sha256(), "hyper": {k: round(v, 5) for k, v in h.items()},
             "cited_status_counts": status_counts(),
-            "note": "Synthetic. Marginals sit inside published ranges where a constant was found; this is not real data.",
+            "note": "Generated. Marginals sit inside published ranges where a constant was found; this is not real data.",
         },
         "task": "benefits-household-entry" if rs.id == BENEFITS else rs.units[0].id, "role": rs.id, "seed": seed, "family": family,
         "description": f"{n_people} people x {cases_per_person} cases from the {family} generator ({LABEL}). price_s = seconds added minus seconds saved by the deficit's own segments (exact by construction).",

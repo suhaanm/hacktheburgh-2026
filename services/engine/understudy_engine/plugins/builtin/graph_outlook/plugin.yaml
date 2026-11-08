@@ -14,3 +14,29 @@ limitations:
   - Never exercised on a real account in tests; unit-tested against recorded fake responses only.
   - Response shapes follow the public Graph documentation and are unverified against a live tenant.
   - GET only; the next-page link must stay on graph.microsoft.com.
+connection:
+  group: benefits
+  app: Outlook calendar
+  reads: Meeting times and counts only. No titles, no people.
+  short: Meeting times and counts
+  standin:
+    label: Example calendar
+    source: jsoncal
+  real:
+    verified: true
+    publisher: Microsoft (Graph API), read by our own adapter
+    publisher_kind: vendor
+    license: This repository
+    license_note: Our adapter code, reading the public Graph calendarView API with GET only.
+    registry: plugin
+    package: graph_outlook
+    version: "0.1.0"
+    transport: plugin
+    hosts: [graph.microsoft.com]
+    read_only: "GET only, and only counts, durations and enums are kept."
+    sources:
+      - https://learn.microsoft.com/en-us/graph/api/user-list-calendarview
+      - https://learn.microsoft.com/en-us/graph/overview
+    verified_on: "2026-11-07"
+  tools:
+    classes: {}

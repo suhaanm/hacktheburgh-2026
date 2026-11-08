@@ -5,7 +5,7 @@
   "n_unit": "days",
   "split": "3 weeks of one night-owl persona; posterior per 15-minute bin, smoothed over neighbours",
   "interval_level": 0.95,
-  "note": "Synthetic persona 'night owl'. The schedule change on day 15 is not modelled here.",
+  "note": "Generated persona 'night owl'. The schedule change on day 15 is not modelled here.",
   "generated_at": "2026-11-07T14:40:00Z"
  },
  "data": {

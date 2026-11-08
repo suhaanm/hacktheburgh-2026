@@ -288,8 +288,34 @@ def cue_reason(id: str = Query(...)):
     return {"id": id, "text": text}
 
 
+def _role_scope(pid: str, rows: list[dict[str, Any]], asked: str | None) -> tuple[str | None, dict[str, Any]]:
+    """Which role's work Growth shows, and the roles the person has work under. Work done under one role is never mixed into another's score: the default is
+    the current role (the profile's after a recorded role change, else the newest assist row's), and ``?role=`` reads an earlier one."""
+    seen: dict[str, dict[str, Any]] = {}
+    for r in rows:
+        if r.get("stream") == "assist" and r.get("role"):
+            e = seen.setdefault(str(r["role"]), {"role": str(r["role"]), "n": 0, "last": ""})
+            e["n"] += 1
+            e["last"] = max(e["last"], str(r.get("t_hour") or ""))
+    newest = max(seen.values(), key=lambda e: e["last"])["role"] if seen else None
+    current = newest
+    try:
+        from .. import routes_handoff as rh
+        from ..memory import load_profile
+
+        prof = load_profile(rh._mem()) or {}
+        if prof.get("person") == pid and prof.get("history") and prof.get("role"):
+            current = str(prof["role"])
+    except Exception:
+        pass
+    shown = asked or current
+    return shown, {"role": shown, "current": current, "viewing_earlier": bool(shown and current and shown != current),
+                   "roles": sorted(seen.values(), key=lambda e: e["last"], reverse=True)}
+
+
 @router.get("/growth")
-def get_growth(request: Request, person: str | None = Query(None), skill: str | None = Query(None), now: float | None = Query(None)):
+def get_growth(request: Request, person: str | None = Query(None), skill: str | None = Query(None), now: float | None = Query(None),
+               role: str | None = Query(None)):
     if (r := _off()) is not None:
         return r
     from . import score
@@ -301,5 +327,11 @@ def get_growth(request: Request, person: str | None = Query(None), skill: str | 
     from .freshness import MAX_GROWTH_ROWS
 
     rows = live.ledger.rows(pid)[-MAX_GROWTH_ROWS:]
+    shown, scope = _role_scope(pid, rows, role or None)
+    if shown:
+        rows = [r for r in rows if r.get("role") == shown]
     g = score.growth(rows, person=pid, skill=None if skill in (None, "", "overall") else skill, now=now)
-    return {"meta": _meta(g["_origin"], g["_n"], g["_note"], g["_split"]), "data": {k: v for k, v in g.items() if not k.startswith("_")}}
+    data = {k: v for k, v in g.items() if not k.startswith("_")}
+    data["role"] = data.get("role") or shown
+    data["role_scope"] = scope
+    return {"meta": _meta(g["_origin"], g["_n"], g["_note"], g["_split"]), "data": data}

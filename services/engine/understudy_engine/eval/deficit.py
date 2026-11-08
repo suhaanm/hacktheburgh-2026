@@ -187,7 +187,7 @@ def compute_from(co, truth: dict[str, Any], *, fast: bool = False, seed: int = S
               "cog family, X = max(1 s, 95th percentile of what the same procedure attributes when two experts are compared). "
               + (f"In this data the placebo attributes at most {max(placebo_max.values()):.1f} s to any family, so X is the 1 s floor for every deficit. "
                  if floor_only else "")
-              + "Synthetic apprentices with a known price per trace; this shows the method recovers what we planted."),
+              + "Scripted apprentices with a known price per trace; this shows the method recovers what we planted."),
     )
     dr = {
         "meta": dr_meta, "rows": rows, "overall": overall,

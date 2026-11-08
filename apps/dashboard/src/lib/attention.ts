@@ -136,8 +136,8 @@ const hourText = (h: number): string => `${String(h).padStart(2, "0")}:00`;
 /** What the layer learned from how you reacted, one plain sentence each. It can only make a kind of notice quieter. */
 export function learnedLines(learned: Record<string, AttentionLearned> | undefined): { type: string; text: string }[] {
   return Object.entries(learned ?? {}).map(([type, l]) => {
-    const n = typeof l?.n === "number" ? l.n : null;
-    const hours = Array.isArray(l?.drop_hours) ? (l.drop_hours as number[]).filter((h) => typeof h === "number").sort((a, b) => a - b) : [];
+    const n = typeof l?.n === "number" && Number.isFinite(l.n) && l.n >= 0 ? Math.floor(l.n) : null;
+    const hours = Array.isArray(l?.drop_hours) ? (l.drop_hours as number[]).filter((h) => typeof h === "number" && Number.isInteger(h) && h >= 0 && h <= 23).sort((a, b) => a - b) : [];
     const never = Array.isArray(l?.never_subjects) ? l.never_subjects.length : typeof l?.never_subjects === "number" ? l.never_subjects : 0;
     const bits = [
       n != null ? `from ${n} ${n === 1 ? "reaction" : "reactions"}` : null,

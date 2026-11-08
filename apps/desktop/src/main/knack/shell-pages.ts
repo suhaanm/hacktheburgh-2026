@@ -7,16 +7,19 @@ import type { ShellUiState } from '../../shared/knack'
 
 /** What the page says while starting: the brand name and an ellipsis (two words). */
 export const startingText = (appName: string): string => `Starting ${appName}…`
+/** After thirty seconds the page says it is still going (the first start can take a minute): the same one line, in other words. */
+export const slowStartingText = (appName: string): string => `Still starting ${appName}…`
+export const SLOW_START_MS = 30_000
 
 /** The page's state from the lifecycle's. 'idle' reads as starting: the window is open before the first look. */
-export function uiStateOf(s: StackState, appName: string, notice?: string | null): ShellUiState {
+export function uiStateOf(s: StackState, appName: string, notice?: string | null, slow = false): ShellUiState {
   switch (s.phase) {
     case 'ready':
       return { kind: 'ready' }
     case 'failed':
       return { kind: 'error', message: s.message, ...(s.hint ? { hint: s.hint } : {}) }
     default:
-      return { kind: 'starting', text: startingText(appName), ...(notice ? { notice } : {}) }
+      return { kind: 'starting', text: slow ? slowStartingText(appName) : startingText(appName), ...(notice ? { notice } : {}) }
   }
 }
 

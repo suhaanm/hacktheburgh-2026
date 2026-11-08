@@ -23,7 +23,7 @@ def cand(kind="time_loss_habit", subject="s1", *, audience="worker", value=30.0,
          polarity=None, guards=(), action="open_growth", **kw):
     spec = V.KINDS[kind]
     return InsightCandidate(id=insight_id(audience, "scope", kind, subject), kind=kind, audience=audience, subject=subject, group=kw.pop("group", "g"),
-                            polarity=polarity or spec.polarity, value=value, unit="seconds", lo=lo, hi=hi, p=p, n=n, origin="synthetic", badge="synthetic firm",
+                            polarity=polarity or spec.polarity, value=value, unit="seconds", lo=lo, hi=hi, p=p, n=n, origin="synthetic", badge="made-up firm",
                             recency_t=NOW - DAY if recency is None else recency, action_id=action, impact_raw=impact, family=family, floor=floor, sign=sign,
                             guards=guards, **kw)
 
@@ -239,7 +239,7 @@ def test_feedback_can_only_quiet_things():
 
 def test_milestone_is_resolved_with_the_family_adjusted_bound():
     c = InsightCandidate(id="i_m", kind="independence_milestone", audience="worker", subject="s", group="g", polarity="positive", value=0.95, unit="share", n=20, origin="synthetic",
-                         badge="synthetic firm", recency_t=NOW - DAY, family="f", extras={"k": 19, "n": 20, "kp": 10, "np": 20}, slots={"skill": "s", "k": 19, "n": 20})
+                         badge="made-up firm", recency_t=NOW - DAY, family="f", extras={"k": 19, "n": 20, "kp": 10, "np": 20}, slots={"skill": "s", "k": 19, "n": 20})
     sel = pick([c])
     assert ids(sel) == ["i_m"] and sel.selected[0].cand.slots["level"] == 0.65
     nomore = replace(c, extras={"k": 19, "n": 20, "kp": 19, "np": 20})                      # the same level as before: not a new crossing

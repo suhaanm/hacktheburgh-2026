@@ -76,7 +76,7 @@ def drop_rows(snap: FirmSnapshot, frac: float, seed: int) -> FirmSnapshot:
     return replace(snap, people=tuple(replace(p, rows=tuple(r for r in p.rows if rng.random() >= frac)) for p in snap.people))
 
 
-def worker_pass(p: PersonRecord, now: float, hist: History | None, params: Params, badge: str = "synthetic firm", ctx: WorkerCtx | None = None):
+def worker_pass(p: PersonRecord, now: float, hist: History | None, params: Params, badge: str = "made-up firm", ctx: WorkerCtx | None = None):
     out = worker_run(p, now, params, ctx or WorkerCtx(badge=badge))
     sel = select(out.candidates, audience="worker", scope=p.id, now=now, history=hist or History(), params=params)
     return out, sel
@@ -678,7 +678,7 @@ def edge_cases(fast: bool = True) -> list[dict[str, Any]]:
     o, s = worker_pass(person(rows_spaced(14, step=1.2, lost=40.0, rng_seed=7)), now, None, params)
     from . import texts as T
 
-    case("origin_badges_on_every_insight", "any selected pointer", "badge and origin set; the text names the source and says synthetic firm data", all(x.cand.badge and x.cand.origin and "synthetic firm data" in T.render(x.cand, role=ROLE)["text"] for x in s.selected) and bool(s.selected), "test_worker::test_origin_and_badge_are_on_every_candidate")
+    case("origin_badges_on_every_insight", "any selected pointer", "badge and origin set; the text names the source and says made-up firm data", all(x.cand.badge and x.cand.origin and "made-up firm data" in T.render(x.cand, role=ROLE)["text"] for x in s.selected) and bool(s.selected), "test_worker::test_origin_and_badge_are_on_every_candidate")
     # 17 accessibility
     case("accessibility_not_colour_alone", "every polarity", "a word, a glyph name and an a11y label carry the meaning", len(set(V.POLARITY_LABEL.values())) == 4 and all(T.a11y_label(p, "x.").startswith(V.POLARITY_LABEL[p] + ":") for p in V.POLARITIES) and all(sp.glyph in V.GLYPHS for sp in V.KINDS.values()), "test_texts::test_a11y_label_carries_the_polarity_in_words")
     # 18 no ranking
@@ -698,17 +698,17 @@ def claims(res: dict[str, Any]) -> list[str]:
     nw, na = res["null_worker"], res["null_admin"]
     w = nw["person_weeks"]
     out.append(f"On null data the worker false-insight rate was {w['rate']} per worker-week ({w['k']} of {w['n']} person-weeks, {w['clusters']} people; 95% interval {w['ci']}; target at most 0.05; "
-               f"{'met' if w['rate'] is not None and w['rate'] <= 0.05 else 'not met'}). Without family control it would have been {nw['without_family_control']['rate']}. Synthetic.")
+               f"{'met' if w['rate'] is not None and w['rate'] <= 0.05 else 'not met'}). Without family control it would have been {nw['without_family_control']['rate']}. Made-up firm data.")
     a = na["admin_weeks"]
     out.append(f"On null data the admin false-insight rate was {a['rate']} per admin-week ({a['k']} of {a['n']}, {a['clusters']} firms; 95% interval {a['ci']}; target at most 0.10; "
-               f"{'met' if a['rate'] is not None and a['rate'] <= 0.10 else 'not met'}). Synthetic.")
+               f"{'met' if a['rate'] is not None and a['rate'] <= 0.10 else 'not met'}). Made-up firm data.")
     for name, r in res["recall_worker"]["worlds"].items():
-        out.append(f"Planted {name.replace('_', ' ')}: selected in {r['selected']['k']} of {r['selected']['n']} worlds (rate {r['selected']['rate']}, interval {r['selected']['ci']}); passed the gate in {r['passed_gate']['rate']}. Synthetic.")
+        out.append(f"Planted {name.replace('_', ' ')}: selected in {r['selected']['k']} of {r['selected']['n']} worlds (rate {r['selected']['rate']}, interval {r['selected']['ci']}); passed the gate in {r['passed_gate']['rate']}. Made-up firm data.")
     ns = res["nothing_stands_out"]
     out.append(f"Of {ns['empty_lists']} empty worker lists on the planted firm, {ns['genuinely_null']} had no planted effect and {ns['missed_a_planted_effect']} had at least one that was missed "
-               f"(planted effects: {ns['planted_effects']['n']}, passed the gate {ns['planted_effects']['passed_gate']['rate']}, selected in the top 3 {ns['planted_effects']['selected_in_top_3']['rate']}). Synthetic.")
+               f"(planted effects: {ns['planted_effects']['n']}, passed the gate {ns['planted_effects']['passed_gate']['rate']}, selected in the top 3 {ns['planted_effects']['selected_in_top_3']['rate']}). Made-up firm data.")
     st = res["stability"]
-    out.append(f"With 5% of rows dropped, the worker top-3 sets had mean Jaccard {st['worker_top3_jaccard_nonempty']['mean']} among people with a non-empty set and the admin top-7 {st['admin_top7_jaccard']['mean']} (target 0.8). Synthetic.")
+    out.append(f"With 5% of rows dropped, the worker top-3 sets had mean Jaccard {st['worker_top3_jaccard_nonempty']['mean']} among people with a non-empty set and the admin top-7 {st['admin_top7_jaccard']['mean']} (target 0.8). Made-up firm data.")
     d = res["determinism"]
     out.append(f"Determinism: run twice identical {d['run_twice_identical']}; shuffled rows and people identical {d['shuffled_rows_and_people_identical']}.")
     out.append(f"k-anonymity violations across {res['k_anonymity']['firms_checked']} firms: {res['k_anonymity']['violations']} (target 0).")
@@ -721,7 +721,7 @@ LIMITATIONS = [
     "No human has used the layer: whether workers find the pointers useful, or admins decide better, is not shown (the live check with four teammates is not run).",
     "The generators were written by the author of the selection, so planted effects are easier to recover than real ones. This is a test of the code paths and the statistics.",
     "The false-insight rates are for null worlds with independent weeks; real people have autocorrelation, seasonality and shared events, which will raise them.",
-    "The thresholds are a priori values checked on synthetic data; they are not tuned for any real firm.",
+    "The thresholds are a priori values checked on generated data; they are not tuned for any real firm.",
     "Per-user visibility for an employer needs a lawful basis and a notice to workers in a real deployment; nothing here supplies one.",
 ]
 
@@ -735,7 +735,7 @@ def evaluate_insights(fast: bool = False, heldout: bool = False, **_kw: Any) -> 
         s_null_w, s_null_a, s_planted, s_stab, n_world = seeds[:2], seeds[:3], seeds[:3], seeds[:1], 24
     else:
         s_null_w, s_null_a, s_planted, s_stab, n_world = seeds, seeds, seeds, seeds[:5], 100
-    res: dict[str, Any] = {"meta": {"origin": "synthetic", "badge": "synthetic firm", "seeds": "heldout" if heldout else "dev", "seed_list": list(seeds if not fast else s_planted), "fast": fast,
+    res: dict[str, Any] = {"meta": {"origin": "synthetic", "badge": "made-up firm", "seeds": "heldout" if heldout else "dev", "seed_list": list(seeds if not fast else s_planted), "fast": fast,
                                     "people_per_firm": 60, "plan": "evals/insights/PLAN.md"}}
     res["null_worker"] = null_worker(s_null_w, fast)
     res["null_admin"] = null_admin(s_null_a, fast)
