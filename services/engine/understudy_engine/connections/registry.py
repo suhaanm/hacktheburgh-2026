@@ -12,6 +12,7 @@ import yaml
 
 from ..plugins.loader import discover, manifest_paths
 from ..plugins.manifest import check_manifest
+from ..yamlcache import load_yaml_file
 from .manifest import Preset
 from .paths import packs_dir
 
@@ -37,7 +38,7 @@ def role_lists() -> dict[str, list[str]]:
         return out
     for d in sorted(p for p in base.iterdir() if (p / "pack.yaml").is_file()):
         try:
-            data = yaml.safe_load((d / "pack.yaml").read_text(encoding="utf-8")) or {}
+            data = load_yaml_file(d / "pack.yaml") or {}
         except (OSError, yaml.YAMLError):
             continue
         ids = data.get("connections")
@@ -60,7 +61,7 @@ def problems() -> list[str]:
     out: list[str] = []
     for p in manifest_paths():
         try:
-            data: Any = yaml.safe_load(p.read_text(encoding="utf-8"))
+            data: Any = load_yaml_file(p)
         except (OSError, yaml.YAMLError):
             out.append(f"{p.name}: cannot read")
             continue

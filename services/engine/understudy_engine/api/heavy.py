@@ -33,11 +33,12 @@ from typing import Callable
 
 from .. import http_guard
 
-#: GET routes that cost 100 ms of CPU or more on the live data (tests/perf/measure.py), plus the ones that fan out on a page.
+#: GET routes that cost 100 ms of CPU or more, cold or warm, on the live data (tests/perf/measure.py; the ones listed were 0.1 to 11 s before the cache fixes and
+#: are still 0.1 to 10 s on a cold start). Cheap routes (profile, connections, packs, memory, queue, kill, identity, attention/next, hitlist/firm) stay out: queued
+#: behind a cold 10 s computation they would wait for nothing.
 HEAVY_PREFIXES: tuple[str, ...] = (
     "/coach/state", "/briefing", "/routines", "/hitlist", "/growth", "/presence", "/graph/", "/insights/", "/genome/", "/hazard/", "/calendar/",
-    "/git/", "/attention/digest", "/attention/why", "/evidence/", "/connections", "/profile", "/memory/proposals", "/eval/report", "/packs",
-    "/replay", "/offhours/report",
+    "/git/", "/attention/digest", "/attention/why", "/evidence/", "/eval/report", "/replay", "/offhours/report",
 )
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 CACHE_HEADER = b"x-understudy-cache"
@@ -248,7 +249,9 @@ class HeavyGetMiddleware:
                 st.flights.pop(key, None)
             if t.cancelled() or t.exception() is not None:
                 return
-            self._store(key, t.result(), gen)
+            # Stored under the key as it is NOW: some reads write the worker's memory or routine files (GET /routines merges what it found into the registry), which
+            # moves the files' signature during the computation, and the next request will compute its key from the files as they are after it.
+            self._store(self._key(scope_copy), t.result(), gen)
 
         task.add_done_callback(done)
         return fl

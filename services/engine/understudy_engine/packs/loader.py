@@ -15,6 +15,7 @@ import yaml
 
 from ..cogs.mapper import Mapping, compile_mapping, load_mapping
 from ..store.paths import repo_root
+from ..yamlcache import load_yaml_file
 
 
 class PackError(Exception):
@@ -36,8 +37,9 @@ def pack_dirs(root: Path | None = None) -> list[Path]:
 
 
 def _read(path: Path) -> Any:
-    text = path.read_text(encoding="utf-8")
-    return json.loads(text) if path.suffix == ".json" else yaml.safe_load(text)
+    if path.suffix == ".json":
+        return json.loads(path.read_text(encoding="utf-8"))
+    return load_yaml_file(path)                  # parsed once per version of the file (yamlcache.py)
 
 
 @dataclass

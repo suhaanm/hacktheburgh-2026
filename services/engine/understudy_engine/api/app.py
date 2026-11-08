@@ -114,6 +114,17 @@ def tune_gc(*, freeze: bool = True) -> None:
         gc.freeze()
 
 
+SWITCH_INTERVAL_S = 0.001
+
+
+def tune_switch_interval(seconds: float = SWITCH_INTERVAL_S) -> float:
+    """Let the event loop's thread have the GIL back within a millisecond when threadpool handlers are busy (the default is 5 ms: with two CPU-bound handlers each
+    GIL hand-off to the loop waited that long, and a request needs dozens of hand-offs, so /health took a third of a second under load instead of a few ms).
+    Only for a serving process (the lifespan below), never at import. Returns the interval that was set."""
+    sys.setswitchinterval(seconds)
+    return sys.getswitchinterval()
+
+
 def _freeze_loop(interval_s: float = 60.0) -> None:
     """Freeze again now and then: role histories and cohorts are loaded lazily, after the warm-up, and become long-lived too."""
     import gc
@@ -125,6 +136,19 @@ def _freeze_loop(interval_s: float = 60.0) -> None:
             gc.freeze()
         except Exception:  # pragma: no cover
             return
+
+
+def warm_person() -> bool:
+    """Read the worker's own events, cut them into episodes and find their routines once, so the first screen after a start does not pay a second or two for it
+    (the same work the first GET /routines does; later requests reuse it until the person's files change). False when nobody is set up. May raise: callers catch."""
+    from .. import routes_handoff as rh
+
+    _pid, pd = rh._resolve(None)
+    if pd is None:
+        return False
+    rh._src().episodes(pd)
+    rh._sync_routines(pd, rh._mem())
+    return True
 
 
 def warm_up(app: FastAPI) -> threading.Thread:
@@ -161,6 +185,11 @@ def warm_up(app: FastAPI) -> threading.Thread:
         except Exception as exc:
             log.warning("analytics warm-up failed: %s", exc)
             app.state.warm["analytics"] = False
+        try:
+            app.state.warm["person"] = warm_person()
+        except Exception as exc:  # pragma: no cover
+            log.warning("person warm-up failed: %s", exc)
+            app.state.warm["person"] = False
         app.state.warm["seconds"] = round(__import__("time").time() - t0, 2)
         try:
             tune_gc()
@@ -183,6 +212,7 @@ def create_app(root: Path | str | None = None, warm: bool | None = None) -> Fast
         if not http_guard.test_relaxed():
             http_guard.rotate_token()          # the per-boot token for release routes: every server start writes a fresh one (mode 0600)
         if warm:
+            tune_switch_interval()
             warm_up(app)
             warm_extensions(app)
         try:

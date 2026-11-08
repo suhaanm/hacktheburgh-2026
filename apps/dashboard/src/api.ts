@@ -147,7 +147,7 @@ export function forgetBackoff(): void { downUntil.clear(); forgetReads(); }
  * Each caller gets its own copy of the body.
  */
 export const GET_MEMORY_MS = 3000;
-export const HEAVY_GET = /^\/(coach\/state|briefing|routines|hitlist|growth|presence|graph\/|insights\/|genome\/|hazard\/|calendar\/|git\/|attention\/(digest|why)|evidence\/|connections|profile|memory\/proposals|eval\/report|packs|replay|offhours\/report)/;
+export const HEAVY_GET = /^\/(coach\/state|briefing|routines|hitlist|growth|presence|graph\/|insights\/|genome\/|hazard\/|calendar\/|git\/|attention\/(digest|why)|evidence\/|eval\/report|replay|offhours\/report)/;
 const inFlight = new Map<string, Promise<Reached>>();
 const remembered = new Map<string, { at: number; r: Reached }>();
 let readEpoch = 0;

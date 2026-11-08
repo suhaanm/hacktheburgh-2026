@@ -125,8 +125,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--home")
     ap.add_argument("--keep", help="reuse/keep this temp dir (so repeat runs skip the copy)")
     ap.add_argument("--top", type=int, default=18)
+    ap.add_argument("--ttl", default="0", help="UNDERSTUDY_HEAVY_TTL for the run: 0 (default) measures the handlers themselves, 10 measures them behind the result cache")
     a = ap.parse_args(argv)
 
+    os.environ["UNDERSTUDY_HEAVY_TTL"] = a.ttl
     ctx = prepare(a.data, a.home, tmp=a.keep)
     only = [s for s in a.only.split(",") if s]
     eps = [e for e in ENDPOINTS if not only or any(s in e[0] for s in only)]

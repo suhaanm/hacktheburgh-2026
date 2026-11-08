@@ -13,6 +13,7 @@ from typing import Any
 
 import yaml
 
+from ..yamlcache import load_yaml_file
 from .paths import packs_dir
 
 QUESTION_IDS = ("tools", "risky", "tone", "pace", "hours")
@@ -68,7 +69,7 @@ class PackView:
 
 def _yaml(path: Path) -> Any:
     try:
-        return yaml.safe_load(path.read_text(encoding="utf-8"))
+        return load_yaml_file(path)              # parsed once per version of the file (yamlcache.py); the caller gets its own copy
     except (OSError, yaml.YAMLError):
         return None
 
