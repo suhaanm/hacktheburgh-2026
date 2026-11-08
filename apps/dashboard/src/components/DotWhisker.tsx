@@ -11,6 +11,18 @@ export interface DwRow {
   sub?: string;
 }
 
+/** A label broken at the space nearest the middle when it is longer than `max` characters (at most two lines; a very long one keeps its tail on line two). */
+export function wrapLabel(label: string, max: number): string[] {
+  if (label.length <= max) return [label];
+  const mid = Math.floor(label.length / 2);
+  let cut = -1;
+  for (let d = 0; d < label.length; d++) {
+    if (label[mid - d] === " ") { cut = mid - d; break; }
+    if (label[mid + d] === " ") { cut = mid + d; break; }
+  }
+  return cut > 0 ? [label.slice(0, cut), label.slice(cut + 1)] : [label];
+}
+
 /** Estimates with their 95% intervals on one shared, labelled scale. Optional reference line (a known truth or zero). */
 export function DotWhisker({ rows, unit, reference, refLabel, domain, digits = 0, aria }: {
   rows: DwRow[]; unit: string; reference?: number; refLabel?: string; domain?: [number, number]; digits?: number; aria: string;
@@ -46,7 +58,15 @@ export function DotWhisker({ rows, unit, reference, refLabel, domain, digits = 0
               const cy = (compact ? i * rowH + 30 : i * rowH + rowH / 2);
               return (
                 <g key={r.label}>
-                  {!compact && <text className="wf-label" x={-12} y={cy + 4} textAnchor="end">{r.label}</text>}
+                  {!compact && (() => {
+                    // A label wider than the label column used to be cut at the left edge ("ads the result again..."): it wraps at a space into two lines instead.
+                    const lines = wrapLabel(r.label, 34);
+                    return (
+                      <text className="wf-label" x={-12} y={lines.length > 1 ? cy - 2 : cy + 4} textAnchor="end">
+                        {lines.map((ln, li) => <tspan key={li} x={-12} dy={li === 0 ? 0 : 13}>{ln}</tspan>)}
+                      </text>
+                    );
+                  })()}
                   {compact && <text className="wf-label" x={0} y={i * rowH + 12}>{r.label}</text>}
                   <line className={`dw-line${r.emphasis === "real" ? " dw-line--real" : ""}`} x1={x(r.ci[0])} x2={x(r.ci[1])} y1={cy} y2={cy} />
                   <line className={`dw-line${r.emphasis === "real" ? " dw-line--real" : ""}`} x1={x(r.ci[0])} x2={x(r.ci[0])} y1={cy - 4} y2={cy + 4} />
