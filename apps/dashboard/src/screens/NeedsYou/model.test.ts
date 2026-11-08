@@ -4,7 +4,7 @@ import routinesFx from "../../fixtures/routines.json";
 import briefingFx from "../../fixtures/briefing.json";
 import agentsFx from "../../fixtures/agents-runs.json";
 import type { AgentRun, BriefingCard, QueueItem, Routine } from "../../types";
-import { approvalClass, approvalLabels, awayLine, buildItems, consequence, isPausedRun, leadAndRest, neverLine, plainWords, saveHint, saveLine, seenLine, touchesLead, visible, visibleItems } from "./model";
+import { firstLoadDone, fieldName, approvalClass, approvalLabels, awayLine, buildItems, consequence, isPausedRun, leadAndRest, neverLine, plainWords, saveHint, saveLine, seenLine, touchesLead, visible, visibleItems } from "./model";
 
 const queue = (queueFx as unknown as { data: QueueItem[] }).data;
 const routines = (routinesFx as unknown as { data: Routine[] }).data;
@@ -187,5 +187,27 @@ describe("tasks that wait for the worker", () => {
     const ghostRun = { run_id: "r_ghost", kind: "data.profile", mode: "foreground", state: "paused", started: "2026-11-05T09:00:00Z", parent: { id: "p", role: "planner", state: "paused", budget: {}, spent: {} }, children: [] };
     const freshRun = { ...ghostRun, run_id: "r_fresh", started: "2026-11-08T09:25:00Z" };
     expect(buildItems({ runs: [ghostRun, freshRun] as never, now: NOW }).map((i) => i.key)).toEqual(["a:r_fresh"]);
+  });
+});
+
+describe("field names in the evidence read as words", () => {
+  it("turns a key into a sentence-case label and never throws", () => {
+    expect(fieldName("case_ref")).toBe("Case ref");
+    expect(fieldName("calculators_agree")).toBe("Calculators agree");
+    expect(fieldName("note-fields")).toBe("Note fields");
+    expect(fieldName("")).toBe("");
+    expect(fieldName(undefined as unknown as string)).toBe("");
+  });
+});
+
+describe("the list is drawn only after every source has answered once", () => {
+  it("waits while any source is still on its first load", () => {
+    expect(firstLoadDone([{ data: [], status: "ready" }, { data: null, status: "loading" }])).toBe(false);
+  });
+  it("is done when every source has data, or has failed", () => {
+    expect(firstLoadDone([{ data: [], status: "ready" }, { data: null, status: "error" }])).toBe(true);
+  });
+  it("stays done during a reload (the old data is kept)", () => {
+    expect(firstLoadDone([{ data: [1], status: "loading" }])).toBe(true);
   });
 });
