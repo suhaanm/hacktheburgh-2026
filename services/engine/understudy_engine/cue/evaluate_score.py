@@ -196,8 +196,8 @@ def validate_all(*, fast: bool = False, seed0: int = DEV_SEED0) -> dict[str, Any
     v = validate_score(seed0=seed0, n_rep=n, n_boot_trend=120 if fast else 200)
     g = gaming_sweep(seed0=seed0, n_rep=10 if fast else 40)
     return {
-        "meta": analytic_meta("synthetic", n * len(KINDS), "simulated learners", f"replicate seeds {seed0}..{seed0 + n - 1} per kind",
-                              note="Simulated learners with planted curves and known truth; nobody here is a person."),
+        "meta": analytic_meta("synthetic", n * len(KINDS), "generated learners", f"replicate seeds {seed0}..{seed0 + n - 1} per kind",
+                              note="Generated learners with planted curves and known truth; nobody here is a person."),
         "design": {"kinds": list(KINDS), "skills": len(SKILLS), "occurrences_per_skill": N_PER_SKILL, "early_checkpoint": CHECK, "window": S.WINDOW,
                    "guess": SL.GUESS, "variants": list(VARIANTS), "seconds": round(time.time() - t0, 1)},
         "variants": v, "gaming": g,

@@ -165,7 +165,7 @@ def reconcile(results: dict[str, ResultFields], tolerance: float = TOLERANCE_GBP
 def compose_note(h: Household, results: dict[str, ResultFields], recon: Reconciliation, flags: list[str],
                  cliff_done: dict[str, bool]) -> str:
     names = {"a": "GovCalc", "b": "Quick Estimator", "c": "EntitledTo"}
-    parts = [f"Entitlement check for {h.case_ref} ({h.label}, synthetic)."]
+    parts = [f"Entitlement check for {h.case_ref} ({h.label}, generated)."]
     for s in SITE_IDS:
         r = results[s]
         parts.append(f"{names[s]}: {r.amount_text} {r.status_text} {r.ref}.")

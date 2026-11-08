@@ -21,9 +21,9 @@ PLAN = "evals/mlv2/PLAN.md"
 
 LIMITATIONS = [
     {"id": "mlv2-synthetic", "severity": "high",
-     "text": "Every number in this section comes from synthetic people or simulated participants (language model), not people. A gain on synthetic data can be the model learning the generator; held-out replicates share the generator and cannot rule that out."},
+     "text": "Every number in this section comes from generated people or language-model participants, not people. A gain on generated data can be the model learning the generator; held-out replicates share the generator and cannot rule that out."},
     {"id": "mlv2-heldout-same-generator", "severity": "high",
-     "text": "The held-out persona and apprentice replicates are fresh seeds of the same generators: they catch overfitting to one noise draw, not learning the generator. Only the cross-family matrix (three differently built generators, still written by us) and the simulated-participant traces go beyond it."},
+     "text": "The held-out persona and apprentice replicates are fresh seeds of the same generators: they catch overfitting to one noise draw, not learning the generator. Only the cross-family matrix (three differently built generators, still written by us) and the language-model participant traces go beyond it."},
     {"id": "mlv2-awareness-planted", "severity": "medium",
      "text": "The awareness features come from a generator that plants a cursor-to-stuck link by assumption; an ablation lift shows the pipeline can use a planted signal, not that real cursors predict being stuck."},
     {"id": "mlv2-alarm-guarantee", "severity": "medium",
@@ -33,7 +33,7 @@ LIMITATIONS = [
     {"id": "mlv2-labelling", "severity": "medium",
      "text": "The deficit rows that stay mis-priced (copy error, repeated reads) are mis-priced by the rule that names alignment columns after the alignment, not by the substitution costs; a better labelling rule written from our own planted structure would be fitting the generator, so none was added."},
     {"id": "mlv2-sim-sparse", "severity": "medium",
-     "text": "The simulated-participant traces have few progress events and short cases, so the transfer numbers rest on little and the label is nearly constant; the test is reported whatever it shows."},
+     "text": "The language-model participant traces have few progress events and short cases, so the transfer numbers rest on little and the label is nearly constant; the test is reported whatever it shows."},
 ]
 
 
@@ -236,7 +236,7 @@ def scorecard(held: dict | None, dev_d0: dict, *, fast: bool, frozen: dict | Non
         "budget_per_hour": budget, "within_budget": bool(model["false_alarms_per_hour"]["value"] is not None and model["false_alarms_per_hour"]["value"] <= budget),
         "detection_rate": model["detection_rate"], "tte": tte,
         "caveats": [
-            "Synthetic people from our own generator; held-out replicates share the generator, so this cannot show the model avoided learning it.",
+            "Generated people from our own generator; held-out replicates share the generator, so this cannot show the model avoided learning it.",
             "If accepted is false, v1 stays the default and the v2 numbers are those of a candidate that did not pass its pre-registered test.",
             "The calibration bins carry Wilson intervals that treat bins as independent; the person-level uncertainty is wider.",
             "False alarms an hour are measured against a budget of 1.0 chosen by us, not a measured tolerance of real workers.",
@@ -294,7 +294,7 @@ def evaluate_mlv2(*, fast: bool = True, seed: int = 0, root: Any = None) -> dict
         "Stated gaps: the time-to-event head and families E and Q were not run under generator mismatch (compute and time); a gap is not a negative result.",
         "Dev numbers are for debugging and for choosing each family's primary candidate; the pre-registered decision uses the held-out run only.",
         "A variant that fails its acceptance rule is a null result and v1 stays the default.",
-        "Synthetic origin: results show the pipeline recovers planted structure, not that real people behave this way.",
+        "Generated people: results show the pipeline recovers planted structure, not that real people behave this way.",
     ]
     out["limitations"] = LIMITATIONS
     return out

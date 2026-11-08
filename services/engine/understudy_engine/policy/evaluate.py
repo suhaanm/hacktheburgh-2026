@@ -106,7 +106,7 @@ def evaluate_ope(n: int = 6000, seed: int = 0, n_boot: int = 500, replications: 
         note="Value of the rule-baseline policy estimated from logs of a different policy. The true value is known because "
              "the simulator is ours.")
     out["caveats"] = [
-        "Synthetic simulator: the reward structure is invented by us. It shows the estimators recover a known truth, "
+        "Simulator we wrote: the reward structure is invented by us. It shows the estimators recover a known truth, "
         "not that the real reward looks like this.",
         "Implicit labels (followed, dismissed, repeated, undone) are noisy proxies for 'did it help'; the reward model "
         "weights them by assumption.",
@@ -168,7 +168,7 @@ def evaluate_gate(episodes: list[Episode], *, params: GateParams = GateParams(),
             "A 'false nudge' is a nudge outside any stuck event (stuck = no progress for about two minutes), so "
             "it measures annoyance, not harm. Nudges per stuck event shows the repeated-nudge burden the gate removes.",
             "The gate trades latency for fewer interruptions; the detection and latency numbers show that trade.",
-            "Held-out hazard predictions come from synthetic personas unless the data origin says otherwise.",
+            "Held-out hazard predictions come from generated personas unless the data origin says otherwise.",
             "The sweep over p_signal is read off the same held-out predictions, so it is descriptive of the trade-off, not a tuned operating point.",
         ],
     }

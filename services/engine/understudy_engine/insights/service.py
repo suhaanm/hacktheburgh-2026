@@ -51,7 +51,7 @@ BECAUSE = {
 }
 LIMITS = ["A pointer is a prompt to look, not a verdict.", "It is a pattern in your own recent work and says nothing about your ability.", "It is chosen by fixed rules, and worded from a fixed list of sentences."]
 ADMIN_LIMITS = ["These figures are for coaching and onboarding, not for evaluating individuals.", "Comparisons are within the same tasks and need at least 5 people per group.",
-                "The data is synthetic until a real deployment says otherwise.", "Insights are chosen by fixed rules, and worded from a fixed list of sentences."]
+                "The data is generated until a real deployment says otherwise.", "Insights are chosen by fixed rules, and worded from a fixed list of sentences."]
 
 
 @dataclass
@@ -361,7 +361,7 @@ class InsightsService:
             "notice": "Your admin sees a summary of numbers about your work, shown below exactly as they see it. It is for coaching and onboarding, not for evaluating individuals. "
                       "You can delete your assist ledger at any time; the summary then shows no data.",
             "visible_since": iso_date(first) if first else None, "visible_to": "People with the Admin role in your firm.", "preview": s.to_row(),
-            "legal_note": "A real deployment needs a lawful basis and a clear notice to workers before any of this is shared. This build only demonstrates it on a synthetic firm.",
+            "legal_note": "A real deployment needs a lawful basis and a clear notice to workers before any of this is shared. This build only demonstrates it on a made-up firm.",
             "statement": V.STATEMENT, "badge": snap.badge,
         }
 

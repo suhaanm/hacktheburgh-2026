@@ -110,7 +110,7 @@ class SimulatedActuator:
 
     async def execute(self, action: Action) -> None:
         if len(self.actions) >= self.max_actions:
-            raise ActuatorRefused("simulated action budget used up")
+            raise ActuatorRefused("stand-in action budget used up")
         self.actions.append(action)
         if action.kind in ("click", "double_click", "move"):
             self.cursor = (action.args["x"], action.args["y"])

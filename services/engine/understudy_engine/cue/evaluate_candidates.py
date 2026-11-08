@@ -209,7 +209,7 @@ def evaluate_candidates(*, fast: bool = False, root: Path | str | None = None, s
             out[f"{role}_B_sampled"] = evaluate_family(v, XD.sample_paths(v, n_people=15 if fast else 30, cases=3, seed=202 + seed), n_boot=n_boot, seed=seed)
     n_people = sum(r["n_people"] for r in out.values() if isinstance(r, dict) and "n_people" in r)
     out["meta"] = analytic_meta("synthetic", n_people, "personas", "leave-one-person-out over experts; cluster bootstrap over people (95%)",
-                                note="Expert paths are synthetic: 8 scripted apprentice experts (two orderings) and experts sampled from the pack's own order rules.")
+                                note="Expert paths are generated: 8 scripted apprentice experts (two orderings) and experts sampled from the pack's own order rules.")
     out["limitations"] = [
         "Family A has two orderings and 8 people, so top-1 accuracy at boundaries is bounded by how often the held-out person used the rarer ordering; the interval is wide.",
         "Family B is written from the pack's order rules, so the rules cannot lose on it. It shows spread, not that the rules are right.",

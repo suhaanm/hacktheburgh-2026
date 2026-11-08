@@ -198,4 +198,4 @@ def sentence_capture_off() -> str:
 def note_meta(origin: str) -> str:
     return ("Counts come from this device's own record of your work. Minutes are estimates with a 95% interval. "
             "Nothing runs unless you press Automate."
-            + (" Built from synthetic data." if origin != "real" else ""))
+            + (" Built from generated data." if origin != "real" else ""))

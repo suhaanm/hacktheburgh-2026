@@ -28,7 +28,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--fast", action="store_true", help="fewer bootstrap resamples (CI and dev); the default is the full run")
     ap.add_argument("--seed", type=int, default=0, help="base seed handed to the owners' evaluators (default 0)")
     ap.add_argument("--data", default=None, help="data root (default: UNDERSTUDY_DATA_DIR or <repo>/data)")
-    ap.add_argument("--no-generate", action="store_true", help="do not regenerate missing synthetic data; the sections become pending")
+    ap.add_argument("--no-generate", action="store_true", help="do not regenerate missing data; the sections become pending")
     ap.add_argument("--no-md", action="store_true", help="skip report.md")
     ap.add_argument("--fixture", default=None, help="also write a trimmed copy for the dashboard fixture to PATH (for example apps/dashboard/src/fixtures/eval-report.json)")
     ap.add_argument("--no-facts", action="store_true", help="skip report.facts.json (the headline counts docs quote by key)")

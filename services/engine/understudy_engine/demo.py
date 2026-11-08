@@ -233,7 +233,7 @@ def seed(*, reset: bool = False, now: datetime | None = None, out: Callable[[str
         prepare_data_dir(dd, lambda m: None)
     for slug in ("learners", "nine-to-five"):
         if not (dd / "synthetic" / slug / "events.jsonl").exists():
-            raise DemoError(f"synthetic data is missing ({slug}). Run `uv run understudy synth --all` first.")
+            raise DemoError(f"generated data is missing ({slug}). Run `uv run understudy synth --all` first.")
     home.mkdir(parents=True, exist_ok=True)
     out(f"state home: {home}")
     if reset:

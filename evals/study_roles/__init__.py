@@ -4,7 +4,7 @@ touches the live ``study`` section. See PLAN.md (pre-registration) and REPORT.md
 """
 from __future__ import annotations
 
-LABEL = "simulated participants (language model), not people"
+LABEL = "language-model participants, not people"
 ROLES = ("programmer", "data-analyst")
 
 

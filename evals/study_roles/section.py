@@ -8,7 +8,7 @@ from pathlib import Path
 from . import LABEL, ROLES
 
 RESULTS = Path(__file__).resolve().parent / "results"
-NOT_RUN_REASON = ("The simulated role studies have not been run. They need the lead's GO and a budget, and a feasibility pilot that shows a usable participant option. "
+NOT_RUN_REASON = ("The language-model role studies have not been run. They need the lead's GO and a budget, and a feasibility pilot that shows a usable participant option. "
                   "They never stand in for the live study with people.")
 
 

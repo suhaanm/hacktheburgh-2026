@@ -831,7 +831,7 @@ LIMITATIONS = [
      "text": "The static guard is name-based. It does not follow a module name held in a variable and cannot see code added at run time; "
              "it catches honest mistakes such as importing an SDK 'just for wording'."},
     {"id": "prv_synthetic", "severity": "medium",
-     "text": "All fixtures are synthetic and the real provider is never called here (a fake client checks only the request shape). "
+     "text": "All fixtures are generated and the real provider is never called here (a fake client checks only the request shape). "
              "Nothing is validated on real calendars, repositories or accounts."},
     {"id": "prv_ledger_trust", "severity": "low",
      "text": "The ledger is a plain local file the worker can clear (the clear is itself counted). It records what the guard sent; it cannot "
@@ -1017,7 +1017,7 @@ def evaluate_privacy(*, seeds: Iterable[int] = tuple(range(8)), record: bool = T
     }
     data = {
         "meta": {"origin": "synthetic", "n": total["planted"], "n_unit": "tokens", "split": None, "interval_level": 0.95,
-                 "note": ("Synthetic fixtures with planted canaries, a capturing fake model port, an isolated data directory. "
+                 "note": ("Generated fixtures with planted canaries, a capturing fake model port, an isolated data directory. "
                           f"{len(seeds)} seeds per flow. Reference flows test the guard; integration flows test a layer's real code."),
                  "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")},
         "headline": {**total, "leak_bound_note": "per-run bound is the headline; per-flow and token-level bounds are beside it (see limitation prv_leak_bound_unit)",

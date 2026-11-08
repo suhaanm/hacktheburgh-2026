@@ -380,7 +380,7 @@ def summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 LIMITATIONS = [
-    "Synthetic households on local sandbox sites; one model family (the ids in meta.models); one planner prompt; "
+    "Generated households on local sandbox sites; one model family (the ids in meta.models); one planner prompt; "
     "n = 20 households per condition, intervals are Wilson 95%.",
     "Identical prompts are cached, so repeated page situations are one live sample each (about 370 distinct live prompts "
     "behind 80 runs), not 80 independent samples; sampling variance of the model is therefore under-represented.",
@@ -389,7 +389,7 @@ LIMITATIONS = [
     "The v2 glitch re-run stopped at the cost budget after 10 households; later rows were contaminated by blocked model "
     "calls and are dropped (meta.dropped_after_budget_stop). v2 used a cap of 40 actions per navigator, v1 the "
     "production cap of 20.",
-    "Tier 3 is NOT demonstrated on the benefits task: against a simulated actuator the computer-use model declined at "
+    "Tier 3 is NOT demonstrated on the benefits task: against a stand-in actuator the computer-use model declined at "
     "step 1 and took no action, because tier-3 goals carry no household values by design (n = 3).",
     "The injected condition has no task success by design (the detector pauses the run); it measures detection and "
     "attack success only. The injection text is the red-team page set written by the same team.",
@@ -446,7 +446,7 @@ def write_out(path: Path, model: LiveModel, rows: list[dict[str, Any]], t3: list
                                     "code_check_ok": r["code_check_ok"], "label_false_claim": int(r["false_claim"]),
                                     "features": r["features"]} for r in rows],
         "tier3_simulated": {"runs": t3, "pointer_actions": t3_ptr, "landed_on_interactive": t3_hits,
-                            "note": "Real screenshots of the headless sandbox, a simulated actuator: nothing is clicked or "
+                            "note": "Real screenshots of the headless sandbox, a stand-in actuator: nothing is clicked or "
                                     "typed. A claim of Done can never be true here, so every Done is a false claim by construction."},
         "runs": rows,
     }
@@ -549,8 +549,8 @@ def main() -> None:  # pragma: no cover - manual, needs a key
     ap.add_argument("--variant", choices=["v1", "v2"], default="v1",
                     help="v2: the quarantined reader tells the planner the page kind (form, result, error) every step")
     ap.add_argument("--max-actions", type=int, default=20, help="model-driven actions per navigator (production: 20)")
-    ap.add_argument("--t3-steps", type=int, default=6, help="tier 3 steps per simulated run")
-    ap.add_argument("--tier3", type=int, default=0, help="run N tier-3 simulated runs instead of the tier-2 grid")
+    ap.add_argument("--t3-steps", type=int, default=6, help="tier 3 steps per stand-in run")
+    ap.add_argument("--tier3", type=int, default=0, help="run N tier-3 stand-in runs instead of the tier-2 grid")
     ap.add_argument("--fresh", action="store_true", help="ignore an existing output file")
     ap.add_argument("--cache-only", action="store_true", help="replay from data/eval/live_cache.json; never calls the model")
     ap.add_argument("--out", default=None, help="write results here instead of data/eval/agent_live_runs.json")

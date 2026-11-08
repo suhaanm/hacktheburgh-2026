@@ -169,7 +169,7 @@ def evaluate_study_power(fast: bool = False, seed: int = 20261107, reps: int | N
             "A balanced design cancels a fixed block-2 shift and generic carry-over in expectation, which is why false positives stay near the "
             "nominal rate when the true effect is 0; it adds variance, which costs power.",
             "The plan's t interval is not exact for discrete bounded scores, and it has zero width when all differences are identical; coverage "
-            "and the false-positive rate are reported as simulated, with Monte Carlo intervals.",
+            "and the false-positive rate are reported from simulation, with Monte Carlo intervals.",
             "Real participants are four teammates who know the project; demand effects and facilitator bias are not in this model.",
         ],
     }

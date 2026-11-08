@@ -331,7 +331,7 @@ def _live_inner(packets: list[tuple[str, str, EvidencePacket]], seed: int) -> di
             "prompt_tokens": ({"min": min(prompt_tokens), "max": max(prompt_tokens), "mean": round(sum(prompt_tokens) / len(prompt_tokens))} if prompt_tokens else None),
             "mode": "reword: the model rewrites a code-written draft that carries {field.path} placeholders; code fills them in, then the same check runs",
             "latency_s": {"p50": round(lat[len(lat) // 2], 2), "p95": round(lat[int(0.95 * (len(lat) - 1))], 2)} if lat else None,
-            "note": f"Small n ({n}): a pass rate on the check for the real local model on synthetic packets, not a statement about other models or real data."}
+            "note": f"Small n ({n}): a pass rate on the check for the real local model on generated packets, not a statement about other models or real data."}
 
 
 def recorded_live() -> dict[str, Any] | None:
@@ -381,7 +381,7 @@ def limitations(result: dict[str, Any]) -> list[dict[str, str]]:
          "text": "The adversarial rejection rate is against the 29 attacks we wrote. The unknown-habit rule is a set of cue patterns (a cause or a share of "
                  "time attributed to a phrase that names nothing in the vocabulary), not a language model: a novel phrasing with no cue can pass."},
         {"id": "packet_from_synthetic_and_fixtures", "severity": "medium",
-         "text": "Packets come from synthetic apprentices (and the real stuck-hazard evaluation in the full run); the coach, routine, counterfactual and "
+         "text": "Packets come from scripted apprentices (and the real stuck-hazard evaluation in the full run); the coach, routine, counterfactual and "
                  "time-to-progress blocks are scripted fixtures that exercise wording and the check, not measurements."},
         {"id": "model_layer_is_optional_polish", "severity": "high",
          "text": "The deterministic template is the shipped wording: it passes its own check on every packet and every intent, with no model. A model's words are "
@@ -390,7 +390,7 @@ def limitations(result: dict[str, Any]) -> list[dict[str, str]]:
                  "[62.7%, 90.5%]; cloud gpt-5.4-mini composing from the packet 0 of 13 [0%, 22.8%]; cloud gemini-3.5-flash-lite 7 of 9 [45.3%, 93.7%] (see live.recorded). "
                  "The model layer improves readability only when it passes the check, so the default text says 'words from the template'."},
         {"id": "live_small_n", "severity": "low",
-         "text": "The live block, when it is run, is a small-n pass rate for one local model on synthetic packets; it says nothing about other models."},
+         "text": "The live block, when it is run, is a small-n pass rate for one local model on generated packets; it says nothing about other models."},
     ]
 
 
@@ -414,12 +414,12 @@ def evaluate_evidence(fast: bool = False, *, seed: int = 0, with_live: bool = Tr
         if rec is not None:
             result["live"]["recorded"] = rec
     result["limitations"] = limitations(result)
-    result["statement"] = ("No real people are involved. Packets come from synthetic apprentices; no model was called in the default run, and no "
+    result["statement"] = ("No real people are involved. Packets come from scripted apprentices; no model was called in the default run, and no "
                            "number here comes from a live service.")
     result["meta"] = {
         "origin": "synthetic", "n": len(packets), "n_unit": "episodes", "split": "none; hermetic fakes with fixed seeds",
         "interval_level": 0.95,
-        "note": ("Packets from synthetic apprentices through the real builders. Faithful and adversarial replies come from stand-in models written for this "
+        "note": ("Packets from scripted apprentices through the real builders. Faithful and adversarial replies come from stand-in models written for this "
                  "evaluation; the live block is not_run unless explicitly enabled. " + ("Fast run." if fast else "")),
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
     }
