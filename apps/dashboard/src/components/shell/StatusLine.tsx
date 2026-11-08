@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api, forgetBackoff } from "../../api";
 import { dataMode, resetSources, useAppState } from "../../store";
 import { openSettings } from "../home/overlayStore";
+import { Icon } from "./icons";
 import { statusFor, type Status } from "./statusModel";
 
 /** The current status, with a timer so a silent engine is reported after 30 seconds instead of "Starting" for ever. */
@@ -22,8 +23,8 @@ export function useStatus(): Status {
 export function StatusLine() {
   const st = useStatus();
   return (
-    <button type="button" className="status-line" data-kind={st.kind} onClick={() => openSettings("live-models")} aria-label={`${st.text}. Open the live models setting.`}>
-      <span className="status-line__dot" data-dot={st.dot} data-tone={st.tone} aria-hidden="true" />
+    <button type="button" className="status-line" data-kind={st.kind} data-mode={st.kind === "live" ? "live" : st.kind === "down" ? "down" : undefined} onClick={() => openSettings("live-models")} aria-label={`${st.text}. Open the live models setting.`}>
+      <span className="status-line__dot" aria-hidden="true" />
       <span className="status-line__text">{st.text}</span>
     </button>
   );
@@ -35,9 +36,12 @@ export function EngineBanner() {
   if (st.kind !== "down") return null;
   const retry = () => { forgetBackoff(); resetSources(); window.dispatchEvent(new Event("understudy:retry")); void api.health(); };
   return (
-    <div className="inline-banner" role="status" data-testid="engine-banner">
-      <p>Knack cannot reach its engine.</p>
-      <button type="button" className="btn btn--secondary btn--sm" onClick={retry}>Try again</button>
+    <div className="banner-wrap">
+      <div className="inline-banner" role="status" data-tone="warn" data-testid="engine-banner">
+        <Icon name="alert" />
+        <span className="inline-banner__text">Knack cannot reach its engine.</span>
+        <button type="button" className="btn btn--secondary btn--sm" onClick={retry}>Try again</button>
+      </div>
     </div>
   );
 }

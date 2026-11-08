@@ -5,6 +5,7 @@ import { CommandPalette, type PaletteLoaders } from "./CommandPalette";
 import { navigate } from "../../router";
 import { openSettings, toggleAbout, togglePalette } from "./overlayStore";
 import { shellKeyAction } from "../shell/keys";
+import { AboutPanel } from "../shell/AboutPanel";
 import { SettingsSheet } from "../shell/SettingsSheet";
 import { getViewRole } from "./viewAs";
 import { GuidedTour } from "./GuidedTour";
@@ -67,6 +68,7 @@ export function Overlays({ loaders }: { loaders?: PaletteLoaders }) {
       <CommandPalette loaders={real} />
       <GuidedTour />
       <SettingsSheet />
+      <AboutPanel />
     </>
   );
 }
