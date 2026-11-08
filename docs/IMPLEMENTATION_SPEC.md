@@ -196,7 +196,7 @@ Writes use the learner store's rules (atomic, stale-revision rejected, the worke
   "bundle": "data/routines/calc-entry-3x/steps.json" }
 ```
 
-**Bundles are a JSON step DSL, not generated Python.** Steps: `goto`, `click(selector|role+name)`, `fill(selector, param)`, `select`, `wait_for`, `assert_text(param|literal)`, `extract(name, selector)`, `checkpoint`. Each step has a `precondition` and `postcondition`. A small interpreter runs them in a separate Playwright context. Model-generated code is never executed.
+**Bundles are a JSON step DSL, not generated Python.** Steps: `goto`, `click(selector|role+name)`, `fill(selector, param)`, `select`, `wait_for`, `assert_text(param|literal)`, `extract(name, selector)`, `checkpoint`. Each step has a `precondition` and `postcondition`. A small interpreter runs them in a separate Playwright context. Model-generated code is never executed. **Amendment (owner decision D63, 8 Nov 2026):** this sentence is about compiled routine bundles and stays true for them. The separate open-ended task path may start a Claude CLI background agent that writes and runs code on the worker's machine; it does so only after a per-task real-click consent card, with an environment allow-list, a time cap, Stop and the kill file, metadata-only ledger rows, and never unattended without a routine's own consent record (`docs/TASKS.md`).
 
 ## 7. Module specs
 
