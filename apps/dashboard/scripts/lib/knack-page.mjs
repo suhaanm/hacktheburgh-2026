@@ -61,7 +61,9 @@ export async function relayLive(ctx, liveBase) {
     if (!["GET", "HEAD"].includes(req.method())) return route.abort();
     const u = new URL(req.url());
     let res = null;
-    try { res = await fetch(`${base}${u.pathname}${u.search}`); } catch { res = null; }
+    // The one request header the app sets on a read is the view claim (the Admin screens send it); forward it as the browser would, nothing else.
+    const role = req.headers()["x-understudy-role"];
+    try { res = await fetch(`${base}${u.pathname}${u.search}`, role ? { headers: { "x-understudy-role": role } } : undefined); } catch { res = null; }
     if (!res) return route.abort();
     return route.fulfill({ status: res.status, headers: { "content-type": res.headers.get("content-type") ?? "application/json" }, body: Buffer.from(await res.arrayBuffer()) });
   });

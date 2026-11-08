@@ -18,6 +18,7 @@ from an origin other than localhost; every refusal is written to the audit log w
 """
 from __future__ import annotations
 
+import dataclasses
 import json
 import os
 import threading
@@ -31,9 +32,10 @@ from . import http_guard
 from fastapi.responses import JSONResponse
 
 from .memory import (
-    ExpertPolicy, MemoryStore, OnboardingError, RuleEngine, RuleError, StaleRevision, WriteRefused, load_pack,
-    load_profile, onboard, questions_payload,
+    ExpertPolicy, MemoryStore, NotOnboarded, OnboardingError, RuleEngine, RuleError, StaleRevision, UnknownRole, WriteRefused, change_profile,
+    load_pack, load_profile, onboard, profile_name, profile_view, questions_payload,
 )
+from .memory.onboarding import _KEEP as _NAME_KEEP
 from .memory import doc as D
 from .memory.hours import DEFAULT_QUIET, normalise_window, parse_quiet_line, quiet_line
 from .memory.paths import data_dir, is_mock
@@ -118,15 +120,34 @@ def _pack(role: str):
         return load_pack("benefits-processor")
 
 
+def _as_current(pd: PersonData | None) -> PersonData | None:
+    """A real worker who changed role in setup but has not yet done any work under the new role: the role is the profile's and there are no current-role
+    events, so routines, the hit list and the graph start clean for the new pack instead of reading the old role's work with the wrong pack. The earlier
+    events stay on ``earlier_events``. Only after a recorded role change (``history``), so a first setup is read exactly as before."""
+    if pd is None or pd.origin != "real":
+        return pd
+    prof = load_profile(_mem()) or {}
+    role = prof.get("role")
+    if not role or not prof.get("history") or prof.get("person") != pd.person or role == pd.role:
+        return pd
+    return dataclasses.replace(pd, role=role, events=[], earlier_events=[*pd.earlier_events, *pd.events])
+
+
+def hidden_routine_roles() -> set[str]:
+    """Roles the worker has left (``history``) and is not in now: their routines are not listed under the new role."""
+    prof = load_profile(_mem()) or {}
+    return {str(h.get("role")) for h in (prof.get("history") or []) if h.get("role")} - {str(prof.get("role") or "")}
+
+
 def _resolve(person: str | None) -> tuple[str | None, PersonData | None]:
     src = _src()
     if person:
-        return person, src.load(person)
+        return person, _as_current(src.load(person))
     prof = load_profile(_mem())
     if prof and prof.get("person") and src.load(prof["person"]):
-        return prof["person"], src.load(prof["person"])
+        return prof["person"], _as_current(src.load(prof["person"]))
     p = src.default_person()
-    return p, (src.load(p) if p else None)
+    return p, _as_current(src.load(p) if p else None)
 
 
 def _meta(origin: str, n: int, n_unit: str, split: str | None = None, note: str | None = None) -> dict[str, Any]:
@@ -175,28 +196,94 @@ def onboarding_questions(role: str = Query("benefits-processor")):
         return _error(404, "unknown_role", f"No role pack {role!r}.")
 
 
+def _onboarding_error(e: OnboardingError) -> JSONResponse:
+    extra = {"roles": e.valid} if isinstance(e, UnknownRole) else {}
+    return _error(409 if isinstance(e, NotOnboarded) else 422, e.code, str(e), **extra)
+
+
+def _name_arg(body: dict[str, Any]) -> Any:
+    """``name`` absent: keep it. ``null`` or ``""``: clear it. Anything else is validated by ``clean_name``."""
+    return body["name"] if "name" in body else _NAME_KEEP
+
+
 @router.post("/onboarding")
 def post_onboarding(request: Request, body: dict[str, Any] = Body(...)):
+    """First run, or "Set up again". Safe to repeat: the same body twice changes nothing the second time. For a worker who already exists use
+    ``POST /profile``, which also keeps the capture choice and usual hours across a role change."""
     if (r := _guard(request)):
         return r
     role = body.get("role")
     if not role:
         return _error(422, "role_required", "Pick a role first.")
     try:
-        return onboard(_mem(), str(role), body.get("answers") or {}, body.get("person"))
+        out = onboard(_mem(), str(role), body.get("answers") or {}, body.get("person"), name=_name_arg(body))
     except OnboardingError as e:
-        return _error(422, "bad_onboarding", str(e))
+        return _onboarding_error(e)
     except WriteRefused as e:
         return _error(403, "write_refused", str(e))
+    if out.get("role_changed"):
+        _audit("profile_changed", f"role {out.get('previous_role')} to {out['role']} (onboarding)", outcome="ok")
+    return out
+
+
+@router.get("/profile")
+def get_profile():
+    """Who the worker is on this device: ``{person, role, name?, since, history: [{role, since, until}], roles: [{id, name, summary, depth}]}``.
+    404 ``not_onboarded`` before the first setup. ``roles`` is the closed list a role change may use."""
+    out = profile_view(_mem())
+    if out is None:
+        return _error(404, "not_onboarded", "No profile yet: finish onboarding first (POST /onboarding).")
+    return out
+
+
+def _post_profile(request: Request, body: dict[str, Any]):
+    """Change the worker's role and/or name: ``{role?, name?, answers?}``. At least one of role, name, answers. Worker only (the same guard as every memory
+    write). The same body twice is a no-op. A new role switches the pack (skills, rules and routines start clean for it; the person id, name, quiet hours,
+    capture choice and usual hours stay); the earlier role stays in ``history`` and its work stays readable under it (``GET /growth?role=``). The audit line
+    names the roles and never the name."""
+    if (r := _guard(request)):
+        return r
+    mem = _mem()
+    name_before = profile_name(mem.read()) or ""
+    try:
+        out = change_profile(mem, role=(str(body["role"]) if body.get("role") else None), name=_name_arg(body), answers=body.get("answers") or {},
+                             person=body.get("person"))
+    except OnboardingError as e:
+        return _onboarding_error(e)
+    except WriteRefused as e:
+        return _error(403, "write_refused", str(e))
+    flags = []
+    if out.get("role_changed"):
+        flags.append(f"role {out.get('previous_role')} to {out['role']}")
+    name_after = out.get("name") or ""
+    if name_after != name_before:
+        flags.append("name set" if name_after else "name cleared")
+    if flags:
+        _audit("profile_changed", "; ".join(flags), outcome="ok")
+    return out
+
+
+@router.post("/profile")
+def post_profile(request: Request, body: dict[str, Any] = Body(...)):
+    return _post_profile(request, body)
+
+
+@router.patch("/profile")
+def patch_profile(request: Request, body: dict[str, Any] = Body(...)):
+    return _post_profile(request, body)
 
 
 @router.get("/identity")
 def get_identity():
-    """The person id the engine owns (created by POST /onboarding). The desktop app and the extension adopt it."""
-    prof = load_profile(_mem())
+    """The person id the engine owns (created by POST /onboarding). The desktop app and the extension adopt it. ``name`` is there only when the worker gave one."""
+    mem = _mem()
+    prof = load_profile(mem)
     if not prof or not prof.get("person"):
         return _error(404, "not_onboarded", "No identity yet: finish onboarding first (POST /onboarding).")
-    return {"person": prof["person"], "role": prof.get("role") or _mem().read().role}
+    out = {"person": prof["person"], "role": prof.get("role") or mem.read().role}
+    if (nm := profile_name(mem.read())):
+        out["name"] = nm
+    return out
 
 
 # ------------------------------------------------------------------------------------------------ memory
@@ -373,7 +460,9 @@ def _task_yaml(role: str) -> dict[str, Any]:
 def _detected(pd: PersonData, mem: MemoryStore) -> list[dict[str, Any]]:
     """Detection for one person, cached per data version. Skill gates are refreshed separately at read time."""
     src = _src()
-    key = ("detect", pd.person, src._signature(pd.person))
+    if not pd.events:
+        return []                                   # nothing done yet under this role: nothing to find
+    key = ("detect", pd.person, src._signature(pd.person), pd.role, len(pd.events))
     with _lock:
         hit = _cache.get(key)
     if hit is not None:
@@ -448,7 +537,8 @@ def get_routines(person: str | None = Query(None), case: int | None = Query(None
     if pd is None:
         return _unknown_person(pid)
     st = _sync_routines(pd, mem, case)
-    rows = [r for r in st.list() if _owner(st, r["id"]) == pd.person]
+    left = hidden_routine_roles()
+    rows = [r for r in st.list() if _owner(st, r["id"]) == pd.person and r.get("role") not in left]
     eps = len(_src().episodes(pd))
     note = ("Found in generated persona traces; value uses a wage of 15 pounds an hour as an illustration and a build cost per routine from the role pack."
             if pd.origin == "synthetic" else "Found in your own traces; value uses a wage of 15 pounds an hour as an illustration.")

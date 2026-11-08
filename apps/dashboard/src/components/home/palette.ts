@@ -1,12 +1,16 @@
 // Command palette logic, pure: the items, the fuzzy match, the rows (capped at seven), and the keyboard index maths.
 // No React, no network, no router here, so it is tested without a browser. The view (Palette.tsx) only draws what this returns.
 import type { AdminInsight, WirePointer } from "../firm/wire";
-import { FIRM_TABS, entriesFor, type NavGroup } from "./navModel";
+import { GROWTH_SECTIONS, GROWTH_SECTION_ALSO, GROWTH_SECTION_LABEL, entriesFor, growthPath, type NavGroup } from "./navModel";
 import type { ViewRole } from "./viewAs";
 
-export type ItemKind = "screen" | "firm_tab" | "pointer" | "insight" | "action";
-export type ActionId = "tour" | "view_admin" | "view_worker";
-export type PaletteTarget = { type: "route"; path: string } | { type: "action"; action: ActionId };
+export type ItemKind = "screen" | "section" | "firm_tab" | "pointer" | "insight" | "action";
+export type ActionId = "tour" | "view_admin" | "view_worker" | "stop" | "monday" | "about" | "settings" | "ask" | "pause" | "accessibility";
+export type PaletteTarget = { type: "route"; path: string } | { type: "action"; action: ActionId; phrase?: string };
+
+/** The desktop-only commands that exist right now (the page offers a command only when the desktop app can do it: no dead rows). */
+export interface PaletteCaps { ask: boolean; pause: boolean; accessibility: boolean }
+export const NO_CAPS: PaletteCaps = { ask: false, pause: false, accessibility: false };
 
 export interface PaletteItem {
   id: string;
@@ -20,12 +24,14 @@ export interface PaletteItem {
   target: PaletteTarget;
 }
 
-export const KIND_LABEL: Record<ItemKind, string> = { screen: "Screen", firm_tab: "Firm view", pointer: "Pointer", insight: "Insight", action: "Action" };
-export const GROUP_LABEL: Record<NavGroup, string> = { primary: "Go to", admin: "Admin", understand: "Understand your work", behind: "Behind the scenes", reviewers: "For reviewers", hidden: "" };
+export const KIND_LABEL: Record<ItemKind, string> = { screen: "Screen", section: "Growth section", firm_tab: "Firm view", pointer: "Pointer", insight: "Insight", action: "Action" };
+export const GROUP_LABEL: Record<NavGroup, string> = { primary: "Go to", admin: "Admin", more: "More", hidden: "" };
+export const GROUP_GROWTH = "Growth";
 export const GROUP_POINTERS = "This week";
 export const GROUP_INSIGHTS = "Firm insights";
 export const GROUP_FIRM = "Firm";
-export const GROUP_ACTIONS = "Actions";
+export const GROUP_ACTIONS = "Do";
+export const GROUP_ASK = "Ask";
 
 /** The most rows any default list shows. "Show all" reveals the rest. */
 export const DEFAULT_CAP = 7;
@@ -44,33 +50,48 @@ export interface ExtraItems { pointers?: WirePointer[]; insights?: AdminInsight[
  * Everything the palette can go to, in the order it is listed: screens, the Firm views, the insights, then the actions.
  * Role-aware: the Worker view never gets an admin screen, a Firm view, an admin insight or the brief.
  */
-export function buildItems(view: ViewRole, extra: ExtraItems = {}): PaletteItem[] {
+export function buildItems(view: ViewRole, extra: ExtraItems = {}, caps: PaletteCaps = NO_CAPS): PaletteItem[] {
   const items: PaletteItem[] = [];
   for (const e of entriesFor(view)) {
     items.push({ id: `screen:${e.id}`, kind: "screen", label: e.label, hint: e.hint, also: e.also ?? "", group: GROUP_LABEL[e.group], target: { type: "route", path: `/${e.id}` } });
   }
   if (view === "admin") {
-    // "Overview" is the Firm screen itself and "Firm brief" has its own action, so neither is listed twice.
-    for (const t of FIRM_TABS) {
-      if (t.id === "overview" || t.id === "brief") continue;
-      items.push({ id: `tab:${t.id}`, kind: "firm_tab", label: `Firm: ${t.label}`, hint: t.hint, also: "admin", group: GROUP_FIRM, target: { type: "route", path: t.path } });
-    }
     for (const i of extra.insights ?? []) {
       items.push({ id: `insight:${i.id}`, kind: "insight", label: i.headline, hint: i.polarity_label ?? "Firm insight", also: `${i.kind ?? ""} ${i.role === "all" ? "" : i.role}`.trim(), group: GROUP_INSIGHTS, target: { type: "route", path: insightPath(i.id) } });
     }
   } else {
+    // The sections of Growth are rows of their own: a worker who remembers "Genome" or "Week" types the old word and lands on the section.
+    for (const s of GROWTH_SECTIONS) {
+      if (s === "progress") continue;
+      items.push({ id: `growth:${s}`, kind: "section", label: GROWTH_SECTION_LABEL[s], hint: "A section of Growth", also: GROWTH_SECTION_ALSO[s], group: GROUP_GROWTH, target: { type: "route", path: growthPath(s) } });
+    }
     for (const p of extra.pointers ?? []) {
       items.push({ id: `pointer:${p.id}`, kind: "pointer", label: p.headline, hint: p.polarity_label ?? p.action?.label ?? "Pointer", also: p.kind, group: GROUP_POINTERS, target: { type: "route", path: pointerPath(p) } });
     }
   }
-  items.push({ id: "action:tour", kind: "action", label: "Take the tour", hint: "A short walk through the main screens", also: "help guide walkthrough", group: GROUP_ACTIONS, target: { type: "action", action: "tour" } });
+  const act = (id: string, label: string, hint: string, also: string, action: ActionId, group = GROUP_ACTIONS): PaletteItem => ({ id: `action:${id}`, kind: "action", label, hint, also, group, target: { type: "action", action } });
+  items.push(act("settings", "Settings", "Live models, interruptions, coaching, appearance", "preferences options live models notices", "settings", "Go to"));
+  items.push(act("stop", "Stop everything", "Stops every agent and routine now", "kill halt emergency", "stop"));
+  if (caps.pause) items.push(act("pause", "Pause for 1 hour", "Nothing starts for an hour", "snooze quiet break", "pause"));
+  if (view === "worker") items.push(act("monday", "Copy my Monday note", "Your week as a short note you can paste", "share summary pointers", "monday"));
+  items.push(act("about", "Explain this screen", "What it is and where the numbers come from", "about help what is this", "about"));
+  items.push({ id: "action:delete", kind: "action", label: "Delete my data", hint: "Opens Your data, where each part has a Forget", also: "forget erase remove privacy memory", group: GROUP_ACTIONS, target: { type: "route", path: "/your-data" } });
+  items.push(act("tour", "Take the tour", "A short walk through the main screens", "help guide walkthrough", "tour"));
+  if (caps.accessibility) items.push(act("accessibility", "Open System Settings for Accessibility", "Where you allow Knack to point at the screen", "permission macos screen recording", "accessibility"));
+  if (caps.ask) items.push(act("ask", "Ask Knack", "Tap to type, hold Option-Space to talk", "chat voice question", "ask", GROUP_ASK));
   if (view === "worker") {
     items.push({ id: "action:view_admin", kind: "action", label: "Switch to the Admin view", hint: "Shows the Firm screen. A view switch, not a permission", also: "role admin firm", group: GROUP_ACTIONS, target: { type: "action", action: "view_admin" } });
   } else {
-    items.push({ id: "action:brief", kind: "action", label: "Print the firm brief", hint: "A one-page summary for the firm", also: "export pdf one-pager", group: GROUP_ACTIONS, target: { type: "route", path: "/firm/brief" } });
+    items.push({ id: "action:brief", kind: "action", label: "Print the firm brief", hint: "A one-page summary for the firm", also: "export pdf one-pager", group: GROUP_ACTIONS, target: { type: "route", path: "/brief" } });
     items.push({ id: "action:view_worker", kind: "action", label: "Switch to Worker view", hint: "Leaves the Firm screens", also: "role worker", group: GROUP_ACTIONS, target: { type: "action", action: "view_worker" } });
   }
   return items;
+}
+
+/** The last row when what was typed matches nothing and the desktop app can take a question: it opens the Ask bar with the phrase filled in. */
+export function askItem(phrase: string): PaletteItem {
+  const p = phrase.trim();
+  return { id: "ask:phrase", kind: "action", label: `Ask Knack: ${p}`, hint: "Opens the Ask bar with this question", also: "", group: GROUP_ASK, target: { type: "action", action: "ask", phrase: p } };
 }
 
 /* -- Fuzzy matching ----------------------------------------------------------------------------------------------------------- */

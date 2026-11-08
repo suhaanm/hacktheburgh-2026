@@ -38,7 +38,7 @@ export const DEPTH = spec.budget;
 // ---- helpers the paths use -------------------------------------------------------------------------------------------------------
 /** A sidebar destination by its label: the new sidebar (nav items) or, until it lands, the old nav links. */
 export const nav = (page, label) =>
-  page.locator(".side nav a, .side nav button, nav a, nav button, .nav a").filter({ hasText: new RegExp(`^\\s*${label}\\b`) }).first();
+  page.locator(".side nav a, .side nav button, nav a, nav button, .nav a").filter({ hasText: new RegExp(`^\\s*${label}(?![A-Za-z])`) }).first();
 
 /** Setup for an Admin job: first run marked done and the Admin view remembered, as the app does it. Not a counted click (see budgetOf). */
 export const becomeAdmin = (page) => openAs(page, base, "admin");
@@ -48,12 +48,12 @@ export const becomeAdmin = (page) => openAs(page, base, "admin");
 // Track B: replace each `null` with { steps: [...] } following jobs.json `target_path`.
 export const PATHS = {
   J1: { steps: [], then: (page) => page.locator("#main h1, #main .hero-insight").first() },
-  J2: null, // Home hero is the pending item: "Approve and submit" (1); with several, sidebar "Needs you" then the button (2). The click is counted, not executed.
-  J3: null, // sidebar "Needs you", then Watch first | Not now | Never (2). Away variant: "More ways to say yes", switch, confirm (3).
+  J2: { steps: [{ d: 'the Home hero\'s own button: "Approve and submit" (counted, not executed)', loc: (p) => p.getByTestId("home-approval").getByRole("button", { name: /^(Approve|Resume)/ }), skip: true }] },
+  J3: { steps: [{ d: 'sidebar "Needs you"', loc: (p) => nav(p, "Needs you") }, { d: '"Watch first" on a routine proposal (counted, not executed)', loc: (p) => p.locator("article.kc-row[data-kind='proposal']").getByRole("button", { name: "Watch first" }).first(), skip: true }] },
   J4: { steps: [{ d: 'sidebar "Growth"', loc: (p) => nav(p, "Growth") }] },
-  J5: null, // sidebar "Your data", Forget, "Forget it" (3). The last click is counted, not executed.
-  J6: null, // the sidebar Stop button (1). Option-Shift-Command-K is 0 and is a keyboard path the corner and menu bar prove.
-  J7: null, // Needs you or Routines, "Run now" (2). Option-Space is 0 and belongs to the desktop shell.
+  J5: { steps: [{ d: 'sidebar "Your data"', loc: (p) => nav(p, "Your data") }, { d: '"Forget" beside a line (counted, not executed)', hover: (p) => p.locator("#main .yd-line").first(), loc: (p) => p.locator("#main").getByRole("button", { name: /^Forget/ }).first(), skip: true }, { d: '"Forget it" (counted, not executed, not located)', blind: true, skip: true }] },
+  J6: { steps: [{ d: "the sidebar Stop button (counted, not executed)", loc: (p) => p.getByRole("button", { name: "Stop everything now" }), skip: true }] },
+  J7: { steps: [{ d: 'sidebar "Routines"', loc: (p) => nav(p, "Routines") }, { d: '"Run now" (counted, not executed)', loc: (p) => p.locator("article.rt-row").getByRole("button", { name: /^Run now/ }).first(), skip: true }] },
   A1: { setup: becomeAdmin, steps: [{ d: 'sidebar "Firm"', loc: (p) => nav(p, "Firm") }] },
   A2: { setup: becomeAdmin, steps: [{ d: 'sidebar "Roles"', loc: (p) => nav(p, "Roles") }] },
   A3: { setup: becomeAdmin, steps: [{ d: 'sidebar "Onboarding"', loc: (p) => nav(p, "Onboarding") }] },
@@ -92,7 +92,9 @@ try {
       const log = [`open the app -> ${await page.evaluate(() => location.hash)}`];
       let broke = null;
       for (const s of path.steps) {
+        if (s.blind) { clicks++; log.push(`${clicks}. ${s.d}`); continue; } // a control that only exists after the click before it: counted, not located
         const loc = s.loc(page);
+        if (s.hover) await s.hover(page).hover().catch(() => undefined); // a row's actions show on hover or focus; a hover is not a click
         try { await loc.waitFor({ state: "visible", timeout: 4000 }); } catch { broke = `not found: ${s.d}`; break; }
         clicks++;
         if (s.skip) { log.push(`${clicks}. ${s.d}  [counted, NOT executed]`); continue; }
@@ -109,6 +111,39 @@ try {
     } finally {
       await ctx.close();
     }
+  }
+  // First run: three clicks from launch to Home (the role, the one consent, "Show my week"); with the connection chips there is one more, "Continue".
+  if (!only || only.has("first-run")) {
+    const ctx = await browser.newContext({ viewport: { width: VW, height: VH } });
+    await ctx.route("**/*", (r) => {
+      const req = r.request();
+      if (!["GET", "HEAD"].includes(req.method())) return r.abort();
+      if (example && /^https?:\/\/[^/]+\/(engine|agent)(\/|$)/.test(req.url())) return r.abort();
+      return r.continue();
+    });
+    const page = await ctx.newPage();
+    try {
+      await page.goto(`${base}/#/first-run`, { waitUntil: "load" });
+      await page.locator(".rolecard").first().waitFor({ timeout: 10000 });
+      let clicks = 0;
+      const press = async (loc) => { await loc.click({ timeout: 5000 }); clicks++; await page.waitForTimeout(500); };
+      await press(page.locator(".rolecard__btn").first());
+      const cont = page.getByRole("button", { name: "Continue" });
+      const chips = await cont.isVisible().catch(() => false);
+      if (chips) await press(cont);
+      await press(page.getByRole("button", { name: "Not now" }));
+      await page.getByRole("button", { name: "Show my week" }).waitFor({ timeout: 10000 });
+      await press(page.getByRole("button", { name: "Show my week" }));
+      const at = await page.evaluate(() => location.hash.replace(/^#/, "").split("?")[0]);
+      const budget = spec.first_run.target_clicks + (chips ? 1 : 0);
+      const ok = clicks <= budget && at === "/home";
+      if (!ok) failed++;
+      ran++;
+      console.log(`${ok ? "PASS" : "FAIL"}  first run: launch to Home: ${clicks} clicks (budget ${budget}${chips ? ", three plus Continue for the connection chips" : ""}), at ${at}`);
+    } catch (e) {
+      failed++; ran++;
+      console.log(`FAIL  first run: launch to Home: ${e instanceof Error ? e.message.split("\n")[0] : e}`);
+    } finally { await ctx.close(); }
   }
 } finally {
   await browser.close();

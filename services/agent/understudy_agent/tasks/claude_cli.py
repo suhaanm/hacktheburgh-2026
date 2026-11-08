@@ -42,6 +42,7 @@ DEFAULT_MAX_OUT_BYTES = 20 * 1024 * 1024
 LINE_MAX = 1 << 20
 TERM_GRACE_S = 3.0
 QUIET_AFTER_S = 30.0
+BUDGET_GRACE_S = 0.5            # a reported cost at the limit must persist this long without a result before Knack ends the child itself
 
 
 # ----------------------------------------------------------------------------------------------------- locating and env
@@ -73,12 +74,16 @@ def child_env(parent: dict[str, str] | None = None) -> dict[str, str]:
     return out
 
 
-def protected_deny_rules(data: Path, repo: Path | None = None) -> list[str]:
-    """Deny rules (Claude Code permission syntax; `//` marks an absolute path) for the files that hold Knack's safety state."""
+def protected_deny_rules(data: Path, repo: Path | None = None, state_dirs: list[Path] | None = None) -> list[str]:
+    """Deny rules (Claude Code permission syntax; `//` marks an absolute path) for the files that hold Knack's safety state. `state_dirs`
+    are the folders that hold the worker's memory and other private state (`~/.understudy`, or `UNDERSTUDY_HOME`): neither read nor changed."""
     def a(p: Path) -> str:
         return "//" + str(p).lstrip("/")
 
     rules: list[str] = []
+    for d in state_dirs or []:
+        rules.append(f"Edit({a(d)}/**)")
+        rules.append(f"Read({a(d)}/**)")
     for name in ("KILL", "denylist.json", "audit.jsonl", "owner_tokens.json", "rung_cleared.json", ".token", ".queue_key",
                  "task_settings.json"):
         rules.append(f"Edit({a(data / name)})")
@@ -108,11 +113,13 @@ def build_prompt(text: str, cwd: str, skill_names: list[str] | None = None) -> s
 
 def build_argv(binary: str, prompt: str, *, scope: str, session_id: str, add_dirs: list[str] | None = None,
                deny_rules: list[str] | None = None, max_turns: int | None = None, skills_enabled: bool = True,
-               skills_off: list[str] | None = None) -> list[str]:
+               skills_off: list[str] | None = None, max_budget_usd: float | None = None) -> list[str]:
     argv = [binary, "-p", prompt, "--output-format", "stream-json", "--verbose", "--permission-prompts", "none",
             "--session-id", session_id]
     if max_turns:
         argv += ["--max-turns", str(int(max_turns))]
+    if max_budget_usd:                          # the spend brake: the CLI stops itself at this amount (Knack also watches the cost it reports)
+        argv += ["--max-budget-usd", f"{float(max_budget_usd):.2f}"]
     if not skills_enabled:                      # Settings: "Use my Claude Code skills" is off, so the child loads none
         argv += ["--disable-slash-commands"]
     elif skills_off:                            # individual skills the worker switched off (best effort: a permission rule on the Skill tool)
@@ -188,6 +195,7 @@ class StreamState:
     session_id: str | None = None
     written: list[str] = field(default_factory=list)
     turns: int = 0
+    refused: int = 0                   # tool calls the permission settings refused (the deny rules for Knack's protected files)
     cost_usd: float | None = None      # `total_cost_usd` from the result event, as the CLI reports it (a number, kept in the ledger row)
 
 
@@ -201,6 +209,9 @@ def parse_line(raw: bytes, st: StreamState) -> list[str]:
         return []
     t = obj.get("type")
     out: list[str] = []
+    c = obj.get("total_cost_usd")                # the running cost, wherever the CLI reports it (always on the result event)
+    if isinstance(c, (int, float)) and not isinstance(c, bool) and 0 <= c < 1e6:
+        st.cost_usd = max(float(c), st.cost_usd or 0.0)
     if t == "system" and obj.get("subtype") == "init":
         sid = obj.get("session_id")
         st.session_id = str(sid)[:64] if isinstance(sid, str) else st.session_id
@@ -218,13 +229,25 @@ def parse_line(raw: bytes, st: StreamState) -> list[str]:
                         if len(st.written) < 50:
                             st.written.append(inp["file_path"])
             st.turns += 1
+    elif t == "user":
+        # A tool call the permission settings refused (seen in the second real run: "File is in a directory that is denied by your
+        # permission settings."). One plain line, no file name and no text from the result.
+        msg = obj.get("message")
+        content = msg.get("content") if isinstance(msg, dict) else None
+        if isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "tool_result" and block.get("is_error"):
+                    body = block.get("content")
+                    text = body if isinstance(body, str) else " ".join(x.get("text", "") for x in body if isinstance(x, dict)) \
+                        if isinstance(body, list) else ""
+                    if "denied by your permission" in text:
+                        st.refused += 1
+                        out.append("A step was refused by the protected-files rules")
     elif t == "result":
         r = obj.get("result")
         st.result_text = r if isinstance(r, str) else ""
         st.is_error = bool(obj.get("is_error"))
         st.subtype = str(obj.get("subtype") or "")[:40]
-        c = obj.get("total_cost_usd")
-        st.cost_usd = float(c) if isinstance(c, (int, float)) and not isinstance(c, bool) and 0 <= c < 1e6 else None
     return out
 
 
@@ -235,10 +258,13 @@ _LIMIT = re.compile(r"(usage limit|rate limit|quota|overloaded|credit balance|to
 R_AUTH = "Claude isn't signed in on this Mac. Open Terminal, run `claude`, sign in, then try again."
 R_LIMIT = "Your Claude account has reached a usage limit. Try again later."
 R_NOT_FOUND = "Knack couldn't start Claude on this Mac. Check that the `claude` command is installed."
+R_BUDGET = "Reached the spend limit you set."
 
 
 def classify_failure(stderr_tail: str, result_text: str | None, subtype: str, exit_code: int | None) -> str:
     blob = (stderr_tail or "") + "\n" + (result_text or "")
+    if "budget" in (subtype or "").lower():      # the CLI's own stop at --max-budget-usd (its result subtype names the budget)
+        return R_BUDGET
     if _AUTH.search(blob):
         return R_AUTH
     if _LIMIT.search(blob):
@@ -262,7 +288,7 @@ class ChildOutcome:
     duration_s: float
     exit_code: int | None
     written: list[str]
-    why: str = ""                 # short code: ok | stop | kill | wall | idle | flood | crash | spawn | auth | limit | no_result
+    why: str = ""                 # short code: ok | stop | kill | wall | idle | flood | budget | crash | spawn | auth | limit | no_result
     cost_usd: float | None = None
 
 
@@ -274,7 +300,9 @@ class ClaudeRun:
                  idle_seconds: float = DEFAULT_IDLE_SECONDS, max_out_bytes: int = DEFAULT_MAX_OUT_BYTES,
                  on_step: Callable[[str], None] | None = None, on_quiet: Callable[[float], None] | None = None,
                  on_start: Callable[[int], None] | None = None, is_killed: Callable[[], bool] | None = None,
-                 popen: Callable[..., Any] = subprocess.Popen, grace_s: float = TERM_GRACE_S, tick_s: float = 0.1) -> None:
+                 popen: Callable[..., Any] = subprocess.Popen, grace_s: float = TERM_GRACE_S, tick_s: float = 0.1,
+                 max_budget_usd: float | None = None) -> None:
+        self.max_budget_usd = max_budget_usd
         self.argv, self.cwd, self.env = argv, cwd, env
         self.max_seconds, self.idle_seconds, self.max_out_bytes = max_seconds, idle_seconds, max_out_bytes
         self.on_step, self.on_quiet, self.on_start = on_step, on_quiet, on_start
@@ -302,6 +330,12 @@ class ClaudeRun:
             os.killpg(self.pgid, sig)
         except (ProcessLookupError, PermissionError):
             pass
+
+    def _over_budget(self) -> bool:
+        """The cost the CLI has reported has reached the limit the worker set, and the run has not already delivered its result (a
+        finished run is judged by its result, not killed on its way out)."""
+        c = self.st.cost_usd
+        return bool(self.max_budget_usd and c is not None and c >= self.max_budget_usd and self.st.result_text is None)
 
     def _terminate(self) -> None:
         """SIGTERM the process group; SIGKILL it after the grace period if the leader is still alive; then sweep the group."""
@@ -365,13 +399,20 @@ class ClaudeRun:
             r.start()
         forced: tuple[str, str | None, str] | None = None
         quiet_said = 0.0
+        over_since: float | None = None               # when the reported cost first reached the limit (it must stay there for a moment)
         try:
             while self.proc.poll() is None:
+                if self._over_budget():
+                    over_since = over_since if over_since is not None else time.monotonic()
+                else:
+                    over_since = None
                 if self._stop.is_set():
                     forced = ("stopped", "Stopped by you.", "stop") if self._stop_reason != "kill" else \
                         ("stopped", "Stopped by the kill switch.", "kill")
                 elif self.is_killed():
                     forced = ("stopped", "Stopped by the kill switch.", "kill")
+                elif over_since is not None and time.monotonic() - over_since >= BUDGET_GRACE_S:
+                    forced = ("failed", R_BUDGET, "budget")
                 elif time.monotonic() - t0 > self.max_seconds:
                     forced = ("failed", f"It ran past the {int(self.max_seconds // 60)} minute limit and was stopped.", "wall")
                 elif self._flood:
@@ -416,6 +457,8 @@ class ClaudeRun:
             why = "auth"
         elif reason == R_LIMIT:
             why = "limit"
+        elif reason == R_BUDGET:
+            why = "budget"
         elif st.result_text is None and code == 0:
             reason, why = "The Claude agent finished without giving a result.", "no_result"
         return outcome("failed", reason, why, code)

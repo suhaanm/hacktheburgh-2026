@@ -44,7 +44,7 @@ def tool(name, **inp):
 
 def result(text, *, is_error=False, subtype="success"):
     emit({"type": "result", "subtype": subtype, "is_error": is_error, "result": text, "num_turns": 3, "duration_ms": 5,
-          "total_cost_usd": 0.0123})
+          "total_cost_usd": 2.01 if subtype == "error_max_budget_usd" else 0.0123})
 
 
 def grandchild():
@@ -79,6 +79,33 @@ elif mode == "limit":
     init()
     result("You have hit your usage limit", is_error=True, subtype="error_during_execution")
     sys.exit(1)
+elif mode == "denied":
+    # what the real CLI returned in the second approved run when a deny rule refused a write
+    init()
+    tool("Write", file_path="/data/rung_cleared.json", content="x")
+    emit({"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t2", "is_error": True,
+          "content": "<tool_use_error>File is in a directory that is denied by your permission settings.</tool_use_error>"}]}})
+    tool("Write", file_path="/work/harmless.txt", content="x")
+    result("One write worked, one was refused.")
+elif mode == "spend":
+    # the cost climbs past the limit while the child keeps going: Knack must stop it itself
+    init()
+    grandchild()
+    for c in (0.5, 1.5, 2.5):
+        emit({"type": "assistant", "total_cost_usd": c, "message": {"content": [{"type": "text", "text": "working"}]}})
+        time.sleep(0.2)
+    time.sleep(600)
+elif mode == "cliself":
+    # the CLI stops itself at --max-budget-usd and says so in its result
+    init()
+    result("Stopped: budget reached.", is_error=True, subtype="error_max_budget_usd")
+    sys.exit(1)
+elif mode == "overok":
+    # a run that finishes with a result while its reported cost is above the limit: judged by its result, not killed on the way out
+    init()
+    emit({"type": "assistant", "total_cost_usd": 2.4, "message": {"content": [{"type": "text", "text": "done"}]}})
+    emit({"type": "result", "subtype": "success", "is_error": False, "result": "Finished the job.", "total_cost_usd": 2.4})
+    time.sleep(0.3)
 elif mode == "errresult":
     init()
     result("Reached the turn limit.", is_error=True, subtype="error_max_turns")

@@ -12,8 +12,12 @@ describe("the shell keys", () => {
     expect(go(4)).toEqual({ type: "go", path: "/growth" });
     expect(go(5)).toEqual({ type: "go", path: "/your-data" });
   });
-  it("keeps Cmd-1 to Cmd-5 on the worker destinations in the Admin view too, and ignores 0, 6 to 9", () => {
-    expect(shellKeyAction(key("4"), "admin")).toEqual({ type: "go", path: "/growth" });
+  it("goes to the eight Admin rows with Cmd-1 to Cmd-8 in the Admin view, and ignores 0 and 9", () => {
+    const ids = ["firm", "brief", "forecasts", "roles", "people", "onboarding", "automation", "risk"];
+    ids.forEach((id, i) => expect(shellKeyAction(key(String(i + 1)), "admin"), id).toEqual({ type: "go", path: `/${id}` }));
+    for (const k of ["0", "9"]) expect(shellKeyAction(key(k), "admin"), k).toBeNull();
+  });
+  it("ignores 0 and 6 to 9 for a worker, who has five rows", () => {
     for (const k of ["0", "6", "7", "8", "9"]) expect(shellKeyAction(key(k), "worker"), k).toBeNull();
   });
   it("opens Settings with Cmd-comma and About this screen with Cmd-slash", () => {

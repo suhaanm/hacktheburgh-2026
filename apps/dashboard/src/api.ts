@@ -8,6 +8,7 @@ import type {
 import { classify, type Fallback } from "./lib/fallback";
 import { isWrite, requestBody, requestHeaders, MISSING_HEADER, notReadyReason, type Actor } from "./lib/http";
 import { FLAG_FOR } from "./lib/ext";
+import type { Profile, ProfileChange, ProfileResult } from "./lib/profile";
 import { normaliseModelsStatus } from "./lib/models";
 import genomeFx from "./fixtures/genome.json";
 import transitionsFx from "./fixtures/transitions.json";
@@ -260,6 +261,8 @@ const demo = {
   workDeleted: new Set<string>(),
   killed: false,
   killedAt: null as string | null,
+  /** The profile when no engine answers: only what the worker typed on this device. */
+  profile: { role: null as string | null, name: null as string | null },
   briefing: clone(fx<Analytic<Briefing>>(briefingFx).data),
   runs: clone(fx<Analytic<AgentRun[]>>(agentsFx).data),
   ledger: clone(fx<Analytic<LedgerEntry[]>>(ledgerFx).data),
@@ -632,13 +635,32 @@ export const api = {
     }),
 
   /** Who the engine says the worker is, once onboarding has run. 404 before that. */
-  identity: async (): Promise<{ person: string; role: string } | null> => {
+  identity: async (): Promise<{ person: string; role: string; name?: string | null } | null> => {
     const r = await send(ENGINE_URL, "/identity", "GET");
     if (!r.reached || r.status >= 400) return null;
     noteSource("live");
-    const b = unwrap<{ person: string; role: string }>(r.body).data;
+    const b = unwrap<{ person: string; role: string; name?: string | null }>(r.body).data;
     return b?.person ? b : null;
   },
+
+  /** The profile (GET /profile): the worker's role and name, and the closed list of roles for the picker. Null before first setup, or when this engine has no such route
+   *  (the Account menu then offers the packs and keeps the name on this device). */
+  profile: async (): Promise<Profile | null> => {
+    const r = await send(ENGINE_URL, "/profile", "GET");
+    if (!r.reached || r.status >= 400) return null;
+    noteSource("live");
+    const b = unwrap<Profile>(r.body).data;
+    return b?.person && Array.isArray(b.roles) ? b : null;
+  },
+
+  /** Changes the role and/or the name (POST /profile, idempotent). The engine keeps the person and the capture choice and starts the new role's skills clean.
+   *  A refusal (an unknown role, a name that breaks the rule) is thrown as an ApiError with the engine's plain message. With no engine it answers from this device. */
+  setProfile: (body: ProfileChange) => write<ProfileResult>("/profile", "POST", body, () => {
+    const before = demo.profile.role;
+    if (body.role) demo.profile.role = body.role;
+    if (body.name !== undefined) demo.profile.name = body.name ? body.name : null;
+    return { person: "p_you", role: demo.profile.role ?? "", name: demo.profile.name, role_changed: !!body.role && body.role !== before, previous_role: before };
+  }),
 
   /** `auth` is additive and only sent with an approval: { method, sub_hash? }. Never an email, a name or a token.
    *  An approved item that came from a live agent run is then SUBMITTED: the approval is the worker's one click, and the agent's finalize route

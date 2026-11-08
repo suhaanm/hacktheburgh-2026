@@ -29,3 +29,7 @@ __all__ += ["capture_enabled"]
 from .onboarding import new_person_id  # noqa: E402
 
 __all__ += ["new_person_id"]
+
+from .onboarding import NotOnboarded, UnknownRole, change_profile, clean_name, profile_name, profile_view  # noqa: E402
+
+__all__ += ["NotOnboarded", "UnknownRole", "change_profile", "clean_name", "profile_name", "profile_view"]

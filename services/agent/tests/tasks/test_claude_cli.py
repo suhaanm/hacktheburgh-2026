@@ -85,6 +85,9 @@ def test_protected_files_have_deny_rules(tmp_path):
         assert f"Edit(//{str(tmp_path / 'data' / name).lstrip('/')})" in joined
     assert "Read(//" + str(tmp_path / "data" / ".token").lstrip("/") + ")" in joined
     assert ".env" in joined
+    mem = cc.protected_deny_rules(tmp_path / "data", None, [tmp_path / "home" / ".understudy"])        # the worker's memory: not read, not changed
+    d = "//" + str(tmp_path / "home" / ".understudy").lstrip("/")
+    assert f"Edit({d}/**)" in mem and f"Read({d}/**)" in mem
 
 
 def test_progress_lines_name_tools_and_basenames_only(fake_claude, tmp_path):
@@ -244,3 +247,17 @@ def test_parse_line_ignores_garbage_and_never_raises():
     for raw in (b"", b"not json\n", b"[1,2]\n", b'{"type":"assistant","message":5}\n', b'{"type":"result","result":5}\n'):
         assert cc.parse_line(raw, st) == [] or True
     assert st.result_text == ""
+
+
+def test_a_refused_tool_call_becomes_one_plain_line_with_no_name_in_it(fake_claude, tmp_path):
+    r, steps, _ = run_fake(fake_claude, tmp_path, "denied")
+    out = r.run()
+    assert out.state == "done"
+    assert steps == ["Started", "Writing rung_cleared.json", "A step was refused by the protected-files rules", "Writing harmless.txt"]
+    assert r.st.refused == 1
+    st = cc.StreamState()
+    refused = (b'{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"x","is_error":true,'
+               b'"content":[{"type":"text","text":"File is in a directory that is denied by your permission settings."}]}]}}\n')
+    assert cc.parse_line(refused, st) == ["A step was refused by the protected-files rules"] and st.refused == 1
+    ordinary = b'{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"x","is_error":true,"content":"No such file"}]}}\n'
+    assert cc.parse_line(ordinary, st) == [] and st.refused == 1                           # other errors say nothing and are never shown

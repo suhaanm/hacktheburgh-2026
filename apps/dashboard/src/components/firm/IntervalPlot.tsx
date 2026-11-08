@@ -22,17 +22,22 @@ export interface PlotProps {
   /** A labelled vertical line: zero, a design target. */
   reference?: { value: number; label: string };
   rowHeight?: number;
+  /** Axis labels, when they should be shorter than the value labels (plain numbers on the axis, the unit in the row's value). */
+  tickFormat?: (v: number) => string;
+  /** Keep the label column on the left however narrow the chart is, so a row prints its value only (the interval is drawn and is in the table). */
+  side?: boolean;
 }
 
 /**
  * Dot-and-whisker rows on one axis shared by every panel that uses the same `domain`. A dot is the estimate and a line through it is its
  * interval. A row with no interval shows its dot and says "no interval yet". The whole chart is also described in its <title>.
  */
-export function IntervalPlot({ title, rows, domain, ticks, format, reference, rowHeight = 44 }: PlotProps) {
+export function IntervalPlot({ title, rows, domain, ticks, format, reference, rowHeight = 44, tickFormat, side = false }: PlotProps) {
   const [box, width] = useWidth<HTMLDivElement>();
   const uid = useId().replace(/:/g, "");
   const W = Math.max(240, width);
-  const compact = W < 520;
+  const compact = !side && W < 520;
+  const tf = tickFormat ?? format;
   const left = compact ? 10 : 132, right = 14, top = 6;
   const rh = compact ? rowHeight + 20 : rowHeight;
   const x = useMemo(() => scaleLinear().domain(domain).range([left, Math.max(left + 40, W - right)]).clamp(true), [domain, left, W]);
@@ -48,7 +53,7 @@ export function IntervalPlot({ title, rows, domain, ticks, format, reference, ro
           {ticks.map((t) => (
             <g key={t}>
               <line className="svg-grid" x1={x(t)} x2={x(t)} y1={top} y2={axisY} />
-              <text className="svg-text" x={x(t)} y={axisY + 15} textAnchor="middle">{format(t)}</text>
+              <text className="svg-text" x={x(t)} y={axisY + 15} textAnchor="middle">{tf(t)}</text>
             </g>
           ))}
           <line className="svg-axis" x1={left} x2={W - right} y1={axisY} y2={axisY} />

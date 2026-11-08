@@ -61,7 +61,7 @@ describe("the ten jobs fit their click budgets over the nav graph", () => {
     expect(spec.first_run.target_clicks).toBe(3);
   });
   it("keeps every primary screen in the sidebar (the paths above rely on it)", () => {
-    expect(sidebarFor("worker").primary.map((e) => e.id)).toEqual(["home", "needs-you", "routines", "growth", "your-data"]);
-    expect(sidebarFor("admin").admin.map((e) => e.id)).toEqual(["firm", "roles", "onboarding"]);
+    expect(sidebarFor("worker").main.map((e) => e.id)).toEqual(["home", "needs-you", "routines", "growth", "your-data"]);
+    expect(sidebarFor("admin").main.map((e) => e.id)).toEqual(["firm", "brief", "forecasts", "roles", "people", "onboarding", "automation", "risk"]);
   });
 });

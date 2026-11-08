@@ -28,6 +28,8 @@ const hintText = async (scope, name) => {
   await page.keyboard.press("Escape");
   return t;
 };
+// The question box of Explain is one closed row, "Ask about this case": open it when it is shut.
+const openAsk = async (scope) => { const d = scope.locator("details", { has: scope.locator("summary", { hasText: "Ask about this case" }) }).first(); if (!(await d.evaluate((e) => e.open))) await d.locator("summary").first().click(); };
 const openAll = (scope) => scope.locator("details").evaluateAll((els) => els.forEach((e) => { e.open = true; }));
 const go = async (hash, wait = 700) => {
   // Same-hash navigations do not remount, so hop through another route first.
@@ -35,36 +37,40 @@ const go = async (hash, wait = 700) => {
   await page.goto(`${base}/#${hash}`); await page.waitForTimeout(wait);
 };
 
-// 1. Onboarding, two roles, timed
+// 1. First run (the old Onboarding): two roles, timed. Set up again reruns the same three screens in a browser tab: role, what Knack may do, then Show my week.
+const memoryText = async () => {
+  await go("/your-data?section=remembers", 1000);
+  await page.locator("#yd-remembers-body details summary", { hasText: /^More/ }).click();
+  await page.getByRole("button", { name: "Edit as text" }).click();
+  return page.locator("#memtext").inputValue();
+};
 for (const [role, pack] of [["UK benefits processor", "benefits-processor"], ["Data analyst", "data-analyst"]]) {
   await go("/setup");
   const t0 = Date.now();
-  await page.locator(".role-card", { hasText: role }).click();
-  await page.getByRole("button", { name: "Next" }).click();
-  for (let i = 0; i < 5; i++) await page.getByRole("button", { name: "Next" }).click();
-  const write = page.getByRole("button", { name: "Write my memory file" });
-  check(`onboarding ${pack}: capture is never pre-selected (cannot write before choosing)`, await write.isDisabled());
-  await page.locator(".role-card", { hasText: pack === "benefits-processor" ? "Yes, record times" : "Not now" }).click();
-  await write.click();
-  await page.getByText("Your memory file is written").waitFor();
+  await page.locator(".rolecard__btn", { hasText: role }).click();
+  const cards = page.locator(".consent");
+  check(`first run ${pack}: capture is never pre-selected (nothing is answered until a real click)`, (await page.getByRole("heading", { name: "What may Knack do?" }).count()) === 1 && (await cards.locator("button[aria-pressed=true]").count()) === 0);
+  await cards.first().getByRole("button", { name: pack === "benefits-processor" ? "Yes, learn my times" : "Not now" }).click();
+  await page.getByRole("button", { name: "Show my week" }).waitFor();
   const secs = (Date.now() - t0) / 1000;
-  const text = await page.locator(".pv").innerText();
-  check(`onboarding ${pack}: file written in under 60 s`, secs < 60, `${secs.toFixed(1)} s`);
-  check(`onboarding ${pack}: file names the role`, text.includes(`role: ${pack}`));
-  check(`onboarding ${pack}: capture line only when the worker said yes`, text.includes("Capture: times only") === (pack === "benefits-processor"));
+  await page.getByRole("button", { name: "Show my week" }).click();
+  const text = await memoryText();
+  check(`first run ${pack}: file written in under 60 s`, secs < 60, `${secs.toFixed(1)} s`);
+  check(`first run ${pack}: file names the role`, text.includes(`role: ${pack}`));
+  check(`first run ${pack}: capture line only when the worker said yes`, text.includes("Capture: times only") === (pack === "benefits-processor"));
   if (pack === "benefits-processor") await page.screenshot({ path: join(qa, "onboarding-done-1440.png") });
   globalThis[pack] = text;
 }
-check("onboarding: two roles give different files", globalThis["benefits-processor"] !== globalThis["data-analyst"]);
+check("first run: two roles give different files", globalThis["benefits-processor"] !== globalThis["data-analyst"]);
 
-// 2. Onboarding mid-flow screenshot (risky question)
+// 2. First run mid-flow screenshot (the consent screen), and Not sure yet writes nothing
 await go("/setup");
-await page.locator(".role-card", { hasText: "Data analyst" }).click();
-await page.getByRole("button", { name: "Next" }).click();
-await page.locator(".role-card", { hasText: "SQL console" }).click();
-await page.getByRole("button", { name: "Next" }).click();
+await page.locator(".rolecard__btn", { hasText: "Data analyst" }).click();
 await page.waitForTimeout(300);
 await page.screenshot({ path: join(qa, "onboarding-question-1440.png") });
+await go("/setup");
+await page.locator(".rolecard__btn", { hasText: "Not sure yet" }).click();
+check("first run: Not sure yet picks nothing and still reaches the consent screen", (await page.getByRole("heading", { name: "What may Knack do?" }).count()) === 1);
 
 // 3. Graph: open a node, panel shows why
 await go("/graph", 2600);
@@ -191,7 +197,8 @@ const pres = await page.locator("#presence").innerText();
 check("evidence: presence baselines show interruption and idle time, never a 0.000 Brier", /Fixed overnight window/.test(pres) && !/0\.000/.test(pres));
 check("evidence: ski rental and off-policy show the engine's labels", /Ski rental with predictions/.test(ev) && /Doubly robust/.test(ev));
 check("evidence: pooling appears", /Partial pooling/.test(ev));
-check("evidence: the map lists every section with origin, n and status, and names language-model participants as not people", (await page.locator(".ev-map__table tbody tr").count()) >= 20 && /Every part of the report/.test(ev) && /generators we wrote/.test(ev) && !/synthetic|simulated/i.test(ev) && (/Language-model participants are language models playing workers\. They are not people/.test(ev) || (await page.locator(".ev-map__table", { hasText: /language-model participants/i }).count()) === 0));
+const mapText = await page.locator(".ev-map").innerText();
+check("evidence: the map lists every section with its Measured on words, n and status, and names language-model participants as not people", (await page.locator(".ev-map__table tbody tr").count()) >= 20 && /Every part of the report/.test(ev) && /Measured on/.test(mapText) && /generators we wrote/.test(mapText) && !/synthetic|simulated/i.test(mapText) && (/Language-model participants are language models playing workers\. They are not people/.test(mapText) || (await page.locator(".ev-map__table", { hasText: /language-model participants/i }).count()) === 0));
 check("evidence: the privacy block states planted strings, leaks and which layers have a real-code check", /planted test strings/.test(ev) && (await page.locator("[data-testid=ev-layers] tbody tr").count()) >= 5 && /evidence from planted strings, not a proof/i.test(ev));
 check("evidence: limitations carry their source", /From: engine-eval · null placebo/.test(ev));
 {
@@ -204,7 +211,7 @@ check("evidence: limitations carry their source", /From: engine-eval · null pla
   check("evidence: real-model block prints each count with its condition (clean 18 of 20, a 503 error 0 of 20 with 20 false claims)", /Clean pages: 18 of 20 passed/.test(clean) && /A 503 error mid-run: 0 of 20 passed, and 20 false claims/.test(glitch) && /Layout change: 20 of 20 passed/.test(lv));
   check("evidence: an injected-instruction row counts the pause, not a pass", /paused on 20 of 20 runs/.test(injected) && /not a pass/.test(injected));
   check("evidence: the fix is labelled in-sample and shows the result it replaces", /in-sample/i.test(await liveBlock.locator("[data-testid=live-fix]").innerText()) && /Before the fix, the same condition: 0 of 20 passed, 20 false claims/.test(lv));
-  check("evidence: the real-model block keeps its origin badge and says evidence, not proof", (await liveBlock.locator(".pill--origin").count()) >= 1 && /evidence from a small run, not proof/.test(lv));
+  check("evidence: the real-model block says what it was run on (a real model, generated households, sandbox calculators; no origin tag for generated data) and says evidence, not proof", /real model/i.test(lv) && /generated households/.test(lv) && !/synthetic|simulated/i.test(lv) && (await liveBlock.locator(".pill--origin[data-origin=synthetic]").count()) === 0 && /evidence from a small run, not proof/.test(lv));
 }
 await page.screenshot({ path: join(qa, "evidence-1440.png") });
 // A report full of stubs: reasons, not empty charts.
@@ -402,6 +409,7 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   const usesNote = await hintText(ex, /Where (this number comes|these numbers come) from/);
   check("explain: each sentence has a hint with the packet facts its numbers come from", /gap · case s/.test(usesNote) && /9 min 45 s/.test(usesNote) && /not supplied by the model/.test(usesNote));
   check("explain: five example questions are offered", (await ex.locator("[aria-label='Example questions'] button").count()) === 5);
+  await openAsk(ex);
   await ex.getByRole("button", { name: "How sure are you?" }).click();
   await page.waitForTimeout(500);
   check("explain: a chip asks, and the reply is labelled as an answer", /The answer/.test(await ex.innerText()));
@@ -441,6 +449,7 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   check("explain: a live answer is not badged as an example", (await live.locator("[data-testid=explain-answer]").count()) === 1 && !/example data/i.test(await live.innerText()));
   delayMs = 0;
   scenario = result({ attempts: [{ route: "local", ok: false, reason: "provenance", codes: ["number_not_in_packet"] }], fallback_reason: "provenance" });
+  await openAsk(live);
   await live.getByRole("button", { name: "Why was I slow?" }).click();
   await page.waitForTimeout(600);
   check("explain: a rejected model answer says the template was used and why", /fixed template because a number or name in the model's words did not match the data/.test(await live.innerText()));
@@ -551,10 +560,14 @@ check("routines: example data draws no background tasks (a sample is never a tas
 }
 
 // 9. Kill switch
-await go("/genome");
+await go("/growth");
+// One red square, once: exactly one Stop button is visible, it holds the word and nothing else, and its only square is the design system's ::before.
+const stopFace = await page.evaluate(() => [...document.querySelectorAll(".stop-button")].filter((b) => b.offsetParent !== null).map((b) => ({ kids: b.children.length, svg: b.querySelectorAll("svg").length, text: b.textContent.trim(), before: getComputedStyle(b, "::before").content, after: getComputedStyle(b, "::after").content })));
+check("kill switch: one visible Stop button with one red square (the word, no icon of its own)", stopFace.length === 1 && stopFace[0].kids === 1 && stopFace[0].svg === 0 && stopFace[0].text === "Stop" && stopFace[0].before === '""' && stopFace[0].after === "none", JSON.stringify(stopFace));
 await page.getByRole("button", { name: "Stop everything now" }).click();
 await page.waitForTimeout(600);
 check("kill switch: says everything is stopped", await page.getByText("Everything is stopped.").isVisible());
+check("kill switch: stopped, the button says Resume in words and the banner carries one alert icon, not a stop square", (await page.locator(".stopped-banner svg").count()) === 1 && (await page.locator(".stop-button:visible").first().innerText()).trim() === "Resume");
 await page.screenshot({ path: join(qa, "killed-1440.png") });
 await page.getByRole("button", { name: "Resume" }).first().click();
 await page.waitForTimeout(500);

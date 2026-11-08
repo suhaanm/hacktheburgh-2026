@@ -103,7 +103,7 @@ def test_consent_route_runs_the_task_and_reports(app_client):
     assert r.status_code == 200 and r.json()["state"] == "running" and set(r.json()) == ROW_KEYS
     assert wait_for(lambda: app_client.get(f"/tasks/{tid}").json()["state"] == "done", 15)
     d = app_client.get(f"/tasks/{tid}").json()
-    assert d["result"] == "Wrote summary.md with three rows." and d["open"]["kind"] == "file" and d["steps"][0] == "Started"
+    assert d["result"] == "Wrote summary.md with three rows. (cost US$0.01)" and d["cost_usd"] == 0.0123 and d["open"]["kind"] == "file" and d["steps"][0] == "Started"
     r = app_client.post(f"/tasks/{tid}/consent", json={"choice": "allow"}, headers=worker(actor="worker_approval"))
     assert r.status_code == 409 and r.json()["error"]["code"] == "not_waiting"
 
@@ -243,7 +243,8 @@ def test_skills_listing_and_settings_over_http(app_client):
     kn.mkdir(parents=True)
     (kn / "SKILL.md").write_text("---\nname: house-style\ndescription: Our house writing style\n---\nbody\n")
     r = app_client.get("/skills?refresh=1").json()
-    assert r["use_claude_skills"] is True and r["off"] == [] and r["max_minutes"] == 30 and set(r) == {"use_claude_skills", "off", "max_minutes", "skills"}
+    assert r["use_claude_skills"] is True and r["off"] == [] and r["max_minutes"] == 30 and r["max_budget_usd"] == 2.0 and set(r) == {
+        "use_claude_skills", "off", "max_minutes", "max_budget_usd", "skills"}
     assert app_client.post("/skills/settings", json={"max_minutes": 45}, headers=worker()).json()["max_minutes"] == 45
     assert app_client.get("/skills").json()["max_minutes"] == 45
     assert app_client.post("/skills/settings", json={"max_minutes": 0}, headers=worker()).status_code == 422
