@@ -67,7 +67,7 @@ function totalOf(rows: HitRow[]): HitlistWire["total"] {
 
 export const EXAMPLE_META: AnalyticMeta = {
   origin: "synthetic", n: 306, n_unit: "episodes", split: null, interval_level: 0.95, generated_at: iso(T),
-  note: "Counts come from this device's own record of your work. Minutes are estimates with a 95% interval. Nothing runs unless you press Automate. Built from synthetic data.",
+  note: "Counts come from this device's own record of your work. Minutes are estimates with a 95% interval. Nothing runs unless you press Automate. Built from generated data.",
 };
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];

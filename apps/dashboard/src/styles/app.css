@@ -423,7 +423,7 @@ span.cb-meeting--5to9 { background: color-mix(in srgb, var(--fg) 58%, var(--bg))
 .tree { grid-template-columns: minmax(0, 1fr); }
 .tree__children { grid-template-columns: minmax(0, 1fr); }
 
-/* -- Example data: the screen is showing a built-in sample, not the engine's data. Dashed and hatched like "synthetic", dotted ink to tell them apart. */
+/* -- Example data: the screen is showing a built-in sample, not the engine's data. Dashed and hatched. */
 .pill--origin[data-origin="example"] { border-style: dashed; border-color: var(--muted); color: var(--fg); background: repeating-linear-gradient(45deg, transparent 0 4px, var(--line) 4px 5px); }
 
 /* -- Git habits ------------------------------------------------------------------------------------------------- */
@@ -449,8 +449,7 @@ span.cb-meeting--5to9 { background: color-mix(in srgb, var(--fg) 58%, var(--bg))
 .pill--status[data-status="ok"] { border-color: var(--good); }
 .pill--status[data-status="failed"] { border-color: var(--bad); color: var(--fg); }
 .pill--status[data-status="pending"], .pill--status[data-status="not_run"] { border-style: dashed; color: var(--muted); }
-.pill--origin[data-origin="simulated"] { border-style: dotted; border-width: 1.5px; border-color: var(--novice); background: repeating-linear-gradient(135deg, transparent 0 4px, var(--line) 4px 5px); }
-.pill--origin[data-origin="mixed"] { border-style: dashed; border-color: var(--warn); }
+.ev-map__on { color: var(--muted); }
 .ev-other { border-top: var(--hair) solid var(--line); padding: var(--space-3) 0; }
 .ev-other > summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); }
 .ev-other[open] > summary { margin-bottom: var(--space-4); }

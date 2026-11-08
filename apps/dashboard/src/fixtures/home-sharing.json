@@ -1,7 +1,7 @@
 {
  "data": {
   "audience": "admin",
-  "badge": "synthetic firm",
+  "badge": "made-up firm",
   "items": [
    {
     "id": "counts",
@@ -34,7 +34,7 @@
     "label": "Your role, unit, tenure band and a pseudonym label"
    }
   ],
-  "legal_note": "A real deployment needs a lawful basis and a clear notice to workers before any of this is shared. This build only demonstrates it on a synthetic firm.",
+  "legal_note": "A real deployment needs a lawful basis and a clear notice to workers before any of this is shared. This build only demonstrates it on a made-up firm.",
   "level": "summary_numbers",
   "never": [
    "Raw events, clicks or keystrokes",
@@ -149,7 +149,7 @@
  "meta": {
   "as_of": "2026-11-09T09:00:00Z",
   "audience": "worker",
-  "badge": "synthetic firm",
+  "badge": "made-up firm",
   "generated_at": "2026-11-09T09:00:00Z",
   "interval_level": null,
   "n": 1,

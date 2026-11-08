@@ -190,7 +190,7 @@ const pres = await page.locator("#presence").innerText();
 check("evidence: presence baselines show interruption and idle time, never a 0.000 Brier", /Fixed overnight window/.test(pres) && !/0\.000/.test(pres));
 check("evidence: ski rental and off-policy show the engine's labels", /Ski rental with predictions/.test(ev) && /Doubly robust/.test(ev));
 check("evidence: pooling appears", /Partial pooling/.test(ev));
-check("evidence: the map lists every section with origin, n and status, and names simulated participants as not people", (await page.locator(".ev-map__table tbody tr").count()) >= 20 && /Every part of the report/.test(ev) && /SYNTHETIC/i.test(ev) && (/Simulated participants are language models playing workers\. They are not people/.test(ev) || (await page.locator(".ev-map__table", { hasText: /simulated participants/i }).count()) === 0));
+check("evidence: the map lists every section with origin, n and status, and names language-model participants as not people", (await page.locator(".ev-map__table tbody tr").count()) >= 20 && /Every part of the report/.test(ev) && /generators we wrote/.test(ev) && !/synthetic|simulated/i.test(ev) && (/Language-model participants are language models playing workers\. They are not people/.test(ev) || (await page.locator(".ev-map__table", { hasText: /language-model participants/i }).count()) === 0));
 check("evidence: the privacy block states planted strings, leaks and which layers have a real-code check", /planted test strings/.test(ev) && (await page.locator("[data-testid=ev-layers] tbody tr").count()) >= 5 && /evidence from planted strings, not a proof/i.test(ev));
 check("evidence: limitations carry their source", /From: engine-eval · null placebo/.test(ev));
 {
@@ -380,7 +380,7 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   const exText = await ex.innerText();
   check("explain: example data is badged and says the answers do not change with the question", /example data/i.test(exText) && /do not change with what you ask/i.test(exText));
   check("explain: the answer comes first, then where the words came from and the check", (await ex.locator("[data-testid=explain-answer]").count()) === 1 && /Written from a fixed template/.test(exText) && /Checked against the data/.test(exText) && /not that the data is right/.test(exText));
-  check("explain: the limits and the footer are always shown with the badge", (await ex.locator("[data-testid=explain-limits] li").count()) >= 3 && /Based on n = 24 people; synthetic data\./.test(await ex.locator("[data-testid=explain-footer]").innerText()) && /SYNTHETIC/i.test(await ex.locator("[data-testid=explain-footer]").innerText()));
+  check("explain: the limits and the footer are always shown, with no origin tag", (await ex.locator("[data-testid=explain-limits] li").count()) >= 3 && /Based on n = 24 people; generated data\./.test(await ex.locator("[data-testid=explain-footer]").innerText()) && !/synthetic|simulated/i.test(await ex.locator("[data-testid=explain-footer]").innerText()));
   const usesNote = await hintText(ex, /Where (this number comes|these numbers come) from/);
   check("explain: each sentence has a hint with the packet facts its numbers come from", /gap · case s/.test(usesNote) && /9 min 45 s/.test(usesNote) && /not supplied by the model/.test(usesNote));
   check("explain: five example questions are offered", (await ex.locator("[aria-label='Example questions'] button").count()) === 5);
@@ -397,9 +397,9 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   // A real-engine scenario, mocked: a slow answer shows calm progress; a rejected model answer falls back to the template and says so.
   const json = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" }, body: JSON.stringify(body) });
   const meta = { origin: "synthetic", n: 24, n_unit: "people", split: "descriptive_nearest_expert", interval_level: 0.95, note: null, generated_at: "" };
-  const result = (over = {}) => ({ intent: "where_time_went", source: "template", model: null, footer: "Based on n = 24 people; synthetic data.", badge: { origin: "synthetic", n: 24, n_unit: "people", split: "descriptive_nearest_expert" },
+  const result = (over = {}) => ({ intent: "where_time_went", source: "template", model: null, footer: "Based on n = 24 people; generated data.", badge: { origin: "synthetic", n: 24, n_unit: "people", split: "descriptive_nearest_expert" },
     check: { ok: true, checked: { sentences: 1, numbers: 2, intervals: 0 } }, attempts: [], fallback_reason: null, question: { asked_s: null, matches_case: null },
-    sections: [{ kind: "explanation", sentences: [{ text: "On this case you took 9 minutes 45 seconds.", uses: ["gap.case_s"] }] }, { kind: "coaching", actions: [] }, { kind: "limits", sentences: [{ id: "synthetic_data", text: "Synthetic data with planted patterns." }, { id: "association_only", text: "An association, not proof of cause." }, { id: "small_n", text: "A small sample." }] }], ...over });
+    sections: [{ kind: "explanation", sentences: [{ text: "On this case you took 9 minutes 45 seconds.", uses: ["gap.case_s"] }] }, { kind: "coaching", actions: [] }, { kind: "limits", sentences: [{ id: "synthetic_data", text: "Generated data with planted patterns." }, { id: "association_only", text: "An association, not proof of cause." }, { id: "small_n", text: "A small sample." }] }], ...over });
   let delayMs = 0, explainBody = null, scenario = result();
   await page.route(ENGINE, async (route) => {
     const req = route.request(), u = new URL(req.url());

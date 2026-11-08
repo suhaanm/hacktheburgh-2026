@@ -81,7 +81,7 @@ describe("the worker's answer", () => {
     expect(w.week).toEqual({ from: "2026-11-09", to: "2026-11-15" });
     for (const p of w.pointers) {
       expect(p.polarity_label).toBeTruthy();
-      expect(p.badge).toBe("synthetic firm");
+      expect(p.badge).toBe("made-up firm");
       expect(p.n).toBeNull();
       expect(p.headline.length).toBeGreaterThan(10);
       expect(p.action?.to).toBeTruthy();

@@ -24,8 +24,8 @@
     "asap",
     "urgent"
   ],
-  "visible_words": ["demo"],
-  "visible_words_note": "Whole word, any case, in visible text and aria text. The owner removed the word demo from every visible string (docs/KNACK_UX.md); apps/dashboard/scripts/check-words.mjs already checks it and stays in the build.",
+  "visible_words": ["demo", "synthetic", "synthetically", "simulated"],
+  "visible_words_note": "Whole word, any case, in visible text and aria text. The owner removed the word demo from every visible string (docs/KNACK_UX.md), and on 8 Nov 2026 (D57) the words synthetic and simulated too: a screen says concretely where numbers come from (generators we wrote, planted example learners, language-model participants, example people made for this build) and carries no synthetic tag. Data enums and identifiers (origin: synthetic) are not copy and stay. apps/dashboard/scripts/check-words.mjs checks the same words on the rendered page and stays in the build.",
   "visible_old_name": { "word": "Understudy", "scope": "text nodes, aria-label, alt, placeholder, document.title, window and notification titles, tray labels", "allow": ["understudy-theme", "understudy:retry", "UNDERSTUDY_", "understudy_engine", "understudy.json", "files and directories named understudy"] },
   "jargon_in_default_view": ["rung", "A0", "A1", "A2", "A3", "ledger", "shadow run", "genome", "occurrence"],
   "jargon_note": "Allowed inside Details, in Evidence and on Admin screens where the term is the established name; never in a worker's default view.",

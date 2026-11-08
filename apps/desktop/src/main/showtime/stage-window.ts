@@ -167,7 +167,7 @@ export async function openStageWindow(opts: { log: (msg: string) => void; indexH
       // If the synthetic press did not register, click the element itself (still the real stage handler).
       const after = await js<number>('__stage.events().length').catch(() => before)
       if (after === before) {
-        opts.log(`stage.click: ${target} did not react to the synthetic input, using element.click()`)
+        opts.log(`stage.click: ${target} did not react to the scripted press, using element.click()`)
         await js(`(function(id){ var e = document.querySelector('[data-ground-id="' + id + '"]'); if (e) e.click(); })(${quote(target)})`).catch(() => undefined)
       }
       return true

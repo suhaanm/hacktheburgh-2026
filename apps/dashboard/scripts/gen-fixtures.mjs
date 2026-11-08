@@ -71,7 +71,7 @@ for (let m = 0; m <= 360; m += 10) {
   forecast.push({ d_min: m, survival: r(s, 4), lo: r(Math.max(0, s - 1.96 * se), 4), hi: r(Math.min(1, s + 1.96 * se), 4) });
 }
 out("presence.json", {
-  meta: { origin: "synthetic", n: 21, n_unit: "days", split: "3 weeks of one night-owl persona; posterior per 15-minute bin, smoothed over neighbours", interval_level: 0.95, note: "Synthetic persona 'night owl'. The schedule change on day 15 is not modelled here.", generated_at: GEN },
+  meta: { origin: "synthetic", n: 21, n_unit: "days", split: "3 weeks of one night-owl persona; posterior per 15-minute bin, smoothed over neighbours", interval_level: 0.95, note: "Generated persona 'night owl'. The schedule change on day 15 is not modelled here.", generated_at: GEN },
   data: { bins, idle_capacity_h: { mean: r(idleSum, 1), lo: r(idleSum - 1.96 * idleSd, 1), hi: r(idleSum + 1.96 * idleSd, 1) }, quiet_hours: quiet, forecast, decision_threshold: 0.4 },
 });
 
@@ -83,7 +83,7 @@ const calibration = [
   [0.04, 0.05, 412], [0.12, 0.1, 318], [0.22, 0.2, 244], [0.31, 0.34, 176], [0.42, 0.4, 131], [0.52, 0.55, 94], [0.63, 0.6, 71], [0.74, 0.79, 48], [0.84, 0.81, 33], [0.93, 0.9, 19],
 ].map(([p_mean, freq, n]) => ({ p_mean, freq, n }));
 const hazard = {
-  meta: { origin: "synthetic", n: 1546, n_unit: "episodes", split: "leave-one-person-out", interval_level: 0.95, note: "1546 scored 30-second bins from synthetic apprentices with injected deficits. Not yet validated on real traces.", generated_at: GEN },
+  meta: { origin: "synthetic", n: 1546, n_unit: "episodes", split: "leave-one-person-out", interval_level: 0.95, note: "1546 scored 30-second bins from scripted apprentices with injected deficits. Not yet validated on real traces.", generated_at: GEN },
   data: { series, model: { log_loss: 0.412, brier: 0.131, ece: 0.031, ci_log_loss: [0.371, 0.458] }, baselines: { base_rate: { log_loss: 0.628, brier: 0.215, ece: 0.012 }, time_since_progress: { log_loss: 0.514, brier: 0.168, ece: 0.047 } }, calibration, false_alarms_per_hour: 1.8, split: "leave-one-person-out" },
 };
 out("hazard.json", hazard);
@@ -101,7 +101,7 @@ const report = {
   generated_at: GEN,
   mock: true,
   sections: {
-    deficit_recovery: { meta: M("synthetic", 24, "personas", "6 injected deficit types, 16 synthetic novices against 8 experts", "Which deficit was injected, and what it costs, recovered from the traces alone."), rows: [
+    deficit_recovery: { meta: M("synthetic", 24, "personas", "6 injected deficit types, 16 generated novices against 8 experts", "Which deficit was injected, and what it costs, recovered from the traces alone."), rows: [
       { deficit: "skip_check", label: "Skips the cliff check", injected_price_s: 96, recovered_price_s: 91, ci: [66, 118], precision: 0.92, recall: 0.88 },
       { deficit: "search_loop", label: "Searches in loops", injected_price_s: 97, recovered_price_s: 96.9, ci: [71, 122], precision: 0.95, recall: 0.94 },
       { deficit: "idle_before_enter", label: "Pauses before entering", injected_price_s: 38.6, recovered_price_s: 38.6, ci: [18, 59], precision: 0.9, recall: 0.86 },
@@ -121,7 +121,7 @@ const report = {
       { name: "snips", label: "Self-normalised IPS", value: 0.405, ci: [0.366, 0.444] },
       { name: "dr", label: "Doubly robust", value: 0.415, ci: [0.389, 0.441] } ] },
     routing: { meta: M("synthetic", 600, "households", "calibration 300 / held-out 300", "Auto-approve the safest cases and send the rest to an expert."), alpha: 0.05, chosen_coverage: 0.7, held_out_error: 0.034, held_out_ci: [0.016, 0.058], bound_held: true, curve: riskCov, expert_minutes_per_case: 2.4 },
-    ski_rental: { meta: M("synthetic", 400, "days", "simulated workdays, 50 routines"), hindsight_regret: 1.0, rows: [
+    ski_rental: { meta: M("synthetic", 400, "days", "generated workdays, 50 routines"), hindsight_regret: 1.0, rows: [
       { rule: "buy-now", label: "Build now", regret: 1.9, ci: [1.7, 2.2] },
       { rule: "break-even", label: "Build at break-even", regret: 1.5, ci: [1.4, 1.7] },
       { rule: "predictions", label: "Ski rental with predictions", lambda: 0.5, regret: 1.2, ci: [1.1, 1.3] } ] },
@@ -147,13 +147,13 @@ const report = {
       { n_episodes: 10, no_pooling: 14.0, partial_pooling: 12.9, complete_pooling: 22.3, ci: { no_pooling: [10, 18], partial_pooling: [9, 17], complete_pooling: [17, 28] } } ] },
     study: stub("not_run", "The live study with the four teammates has not run yet, so there are no human results here.", M("real", 0, "people", null, "n = 4 when it runs. Treat every number as a case study.")),
     limitations: [
-      { id: "L1", text: "Most results come from synthetic apprentices and synthetic personas. Synthetic results carry a badge. They show the method recovers what we planted, not that real workers behave this way.", severity: "high", source: "all synthetic sections" },
+      { id: "L1", text: "Most results come from scripted apprentices and generated personas. They show the method recovers what we planted, not that real workers behave this way.", severity: "high", source: "all generated sections" },
       { id: "L2", text: "The live study has n = 4 teammates, and it has not run yet. Intervals will be wide and the sample is not representative of benefits processors.", severity: "high", source: "study" },
       { id: "L3", text: "The shuffled-label control is not tight: about +46 s with an interval from -36 to +117 s, against a real gap of 230 s. Read the gap with that in mind.", severity: "medium", source: "null_placebo" },
       { id: "L4", text: "The expert reference is one scripted person per task. A different expert would draw a different ribbon.", severity: "medium", source: "genome" },
       { id: "L5", text: "Off-policy results come from a simulator we wrote. They test the estimators, not the policy on real people.", severity: "medium", source: "ope" },
       { id: "L6", text: "Presence is learned from 3 weeks of one persona per map. The map is worse than its baseline for the shift worker, and a new job or holiday breaks it until it relearns.", severity: "medium", source: "presence" },
-      { id: "L7", text: "The agent runs on local sandbox sites and synthetic households. Real calculators change layout and may block automation.", severity: "medium", source: "agent_claims" },
+      { id: "L7", text: "The agent runs on local sandbox sites and generated households. Real calculators change layout and may block automation.", severity: "medium", source: "agent_claims" },
       { id: "L8", text: "The red-team suite uses a scripted planner on our own pages, plus a very small run with a real model. It is not a security proof.", severity: "low", source: "redteam" },
       { id: "L9", text: "Autonomy rung A3 needs a Wilson lower bound of 0.95 (about 75 clean runs). The demo does not reach it, and says so.", severity: "low", source: "routines" } ],
   },

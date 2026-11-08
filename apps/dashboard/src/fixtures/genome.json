@@ -5,7 +5,7 @@
   "n_unit": "episodes",
   "split": "cluster bootstrap by person, B = 2000",
   "interval_level": 0.95,
-  "note": "Synthetic apprentices with injected deficits: 1 expert reference, 4 novices, 9 episodes each. The waterfall is the mean over all novice cases; the ribbon is one novice case.",
+  "note": "Scripted apprentices with injected deficits: 1 expert reference, 4 novices, 9 episodes each. The waterfall is the mean over all novice cases; the ribbon is one novice case.",
   "generated_at": "2026-11-07T14:40:00Z"
  },
  "data": {
@@ -281,7 +281,7 @@
     "p_error": 0.4,
     "mean_error_gbp": 38,
     "n": 20,
-    "source": "sandbox oracle, synthetic households"
+    "source": "sandbox oracle, generated households"
    }
   ]
  }
