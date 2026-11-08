@@ -4,6 +4,13 @@
 import type { ChipDriver } from './coach-chip'
 import type { CoachStateInfo } from './engine/coach-state'
 
+/**
+ * How often the main process asks GET /coach/state. It used to be every 2 s; the engine computes that route in a few hundred milliseconds of CPU at best (and
+ * seconds on a loaded machine), the dashboard window asks it too, and a request that timed out still kept computing on the engine, so the polls piled up.
+ * The chip's fade and "a task is in progress" change slowly; a lesson step or the end of an episode asks at once (see understudy.ts), so 30 s loses nothing.
+ */
+export const COACH_STATE_POLL_MS = 30_000
+
 export interface CoachPollerDeps {
   engine: { coachState(): Promise<CoachStateInfo | null> }
   chip: Pick<ChipDriver, 'setEngineHint' | 'refresh'>
@@ -50,7 +57,7 @@ export function createCoachPoller(deps: CoachPollerDeps): CoachPoller {
     }
   }
 
-  const handle = setT(() => void tick(), deps.intervalMs ?? 2000)
+  const handle = setT(() => void tick(), deps.intervalMs ?? COACH_STATE_POLL_MS)
   if (deps.immediate !== false) void tick()
   return {
     tick,

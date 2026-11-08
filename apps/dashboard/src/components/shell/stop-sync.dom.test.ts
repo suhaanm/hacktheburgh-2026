@@ -9,7 +9,7 @@ import { setState } from "../../store";
 
 const api = vi.hoisted(() => ({ killState: vi.fn(), kill: vi.fn(), clearKill: vi.fn() }));
 vi.mock("../../api", () => ({ ApiError: class ApiError extends Error {}, api }));
-import { KILL_POLL_MS, StopButton, StopProvider, StoppedBanner } from "./StopControl";
+import { KILL_POLL_MS, KILL_POLL_UNFOCUSED_MS, StopButton, StopProvider, StoppedBanner } from "./StopControl";
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -20,6 +20,7 @@ const reply = () => Promise.resolve({ data: { killed: outside.killed, at: outsid
 
 beforeEach(() => {
   vi.useFakeTimers();
+  vi.spyOn(document, "hasFocus").mockReturnValue(true);        // the window being looked at: the 3 s pace (jsdom reports no focus)
   outside = { killed: false, at: null };
   setState({ killed: false, killedAt: null, killError: null });
   api.killState.mockReset().mockImplementation(reply);
@@ -78,6 +79,22 @@ describe("the window follows Stop everything and Resume that happen outside it",
     api.killState.mockReset().mockRejectedValue(new Error("down"));
     await wait(KILL_POLL_MS * 2);
     expect(button()).toBe("Resume");
+  });
+
+  it("asks every 5 s, not every 3 s, while the window is visible but not the one in use, and never twice at once", async () => {
+    await mount();
+    vi.mocked(document.hasFocus).mockReturnValue(false);
+    await wait(KILL_POLL_MS);                                  // the timer already armed fires on the old pace once, then re-arms at 5 s
+    const base = api.killState.mock.calls.length;
+    await wait(KILL_POLL_UNFOCUSED_MS - 100);
+    expect(api.killState.mock.calls.length).toBe(base);
+    await wait(200);
+    expect(api.killState.mock.calls.length).toBe(base + 1);
+    let release: () => void = () => undefined;
+    api.killState.mockReset().mockImplementation(() => new Promise((resolve) => { release = () => resolve({ data: { killed: false, at: null }, meta: null, source: "live" }); }));
+    await wait(KILL_POLL_UNFOCUSED_MS * 3);                    // the first of these is still unanswered: no second request while it waits
+    expect(api.killState.mock.calls.length).toBe(1);
+    release();
   });
 
   it("stops asking when the window is gone", async () => {

@@ -12,6 +12,9 @@ import { getViewRole } from "../home/viewAs";
 
 /** How often the window asks whether everything is stopped while it is in view (a Stop or Resume from the corner pill, the menu bar or a hotkey shows within this and a request). */
 export const KILL_POLL_MS = 3000;
+/** The same, while the window is visible but not the one being used. */
+export const KILL_POLL_UNFOCUSED_MS = 5000;
+export const killPollDelay = (): number => (typeof document !== "undefined" && typeof document.hasFocus === "function" && !document.hasFocus() ? KILL_POLL_UNFOCUSED_MS : KILL_POLL_MS);
 
 interface StopApi { stop: () => Promise<void>; resume: () => Promise<void>; busy: boolean }
 const Ctx = createContext<StopApi>({ stop: async () => undefined, resume: async () => undefined, busy: false });
@@ -51,16 +54,21 @@ export function StopProvider({ children }: { children: ReactNode }) {
   // looked at again, and every few seconds while it is in view, so the Stop button and the banner never disagree with the corner card (within three seconds).
   useEffect(() => {
     let live = true;
+    let pending = false;                                   // one read at a time: a slow engine is not asked again while it is still answering
     const read = () => {
-      if (document.visibilityState === "hidden") return;
-      api.killState().then((r) => { if (live) setState({ killed: !!r.data?.killed, killedAt: r.data?.at ?? null }); }).catch(() => undefined);
+      if (document.visibilityState === "hidden" || pending) return;
+      pending = true;
+      api.killState().then((r) => { if (live) setState({ killed: !!r.data?.killed, killedAt: r.data?.at ?? null }); }).catch(() => undefined).finally(() => { pending = false; });
     };
     read();
-    const timer = window.setInterval(read, KILL_POLL_MS);
+    // The next look is 3 s away while the window has the focus and 5 s away while it does not (it is only visible behind something else then).
+    let timer = 0;
+    const next = () => { timer = window.setTimeout(() => { read(); next(); }, killPollDelay()); };
+    next();
     window.addEventListener("focus", read);
     window.addEventListener("understudy:retry", read);
     document.addEventListener("visibilitychange", read);
-    return () => { live = false; window.clearInterval(timer); window.removeEventListener("focus", read); window.removeEventListener("understudy:retry", read); document.removeEventListener("visibilitychange", read); };
+    return () => { live = false; window.clearTimeout(timer); window.removeEventListener("focus", read); window.removeEventListener("understudy:retry", read); document.removeEventListener("visibilitychange", read); };
   }, []);
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
