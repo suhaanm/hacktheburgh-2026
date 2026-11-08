@@ -8,6 +8,7 @@ export function learnerLabel(id: string): string {
 
 /** A share (0 to 1) as a whole percent. Under half a percent shows one decimal so small shares do not read as zero. */
 export function fmtShare(x: number): string {
+  if (!Number.isFinite(x)) return "n/a";
   const p = x * 100;
   return Math.abs(p) > 0 && Math.abs(p) < 0.5 ? `${p.toFixed(1)}%` : `${Math.round(p)}%`;
 }
@@ -15,6 +16,7 @@ export function fmtShare(x: number): string {
 const MINUS = "−";
 /** A difference of shares in percentage points, with a real minus sign: "+19 pp", "−60 pp". */
 export function fmtPoints(delta: number, digits = 0): string {
+  if (!Number.isFinite(delta)) return "n/a";
   const p = delta * 100;
   const v = Math.abs(p).toFixed(digits);
   if (Number(v) === 0) return `0 pp`;
@@ -22,6 +24,7 @@ export function fmtPoints(delta: number, digits = 0): string {
 }
 
 export function fmtPointsInterval(ci: Interval): string {
+  if (!Array.isArray(ci) || !Number.isFinite(ci[0]) || !Number.isFinite(ci[1])) return "no interval";
   const f = (x: number) => { const p = Math.round(x * 100); return `${p < 0 ? MINUS : ""}${Math.abs(p)}`; };
   return `[${f(ci[0])}, ${f(ci[1])}] pp`;
 }

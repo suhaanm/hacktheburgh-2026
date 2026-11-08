@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://understudy.local/schema/task_row.schema.json",
+  "title": "A task row (agent service: GET /tasks, POST /tasks/{id}/consent|answer|stop, the SSE events) and a task detail (GET /tasks/{id})",
+  "description": "What the API shows about a task the worker typed or said. It never carries the request, a child's output or a prompt: `title` is the worker's own first words (60 characters at most, cut and redacted by code), `latest` and `steps` are short plain lines (a tool name and a file's base name), `result` is one line cut by code from the agent's last message (untrusted text, shown as text). `TaskDetail` is a row plus `steps` and `answer`. Written by Track T; docs/TASKS.md; services/agent/tests/tasks/test_schema.py keeps this file and the service in step.",
+  "$ref": "#/$defs/TaskRow",
+  "$defs": {
+    "Button": {
+      "type": "object", "additionalProperties": false, "required": ["id", "label"],
+      "properties": {"id": {"const": "everything"}, "label": {"const": "Allow everything for this task"}}
+    },
+    "Card": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "scope_text", "can", "cannot", "folder", "command_hash", "cost_note", "max_minutes", "max_budget_usd", "buttons"],
+      "properties": {
+        "kind": {"enum": ["claude_agent", "browser"]},
+        "scope_text": {"type": "string", "minLength": 1, "maxLength": 300},
+        "can": {"type": "array", "maxItems": 8, "items": {"type": "string", "maxLength": 200}},
+        "cannot": {"type": "array", "maxItems": 8, "items": {"type": "string", "maxLength": 200}},
+        "folder": {"type": ["string", "null"], "maxLength": 300},
+        "command_hash": {"type": ["string", "null"], "pattern": "^[0-9a-f]{12}$"},
+        "cost_note": {"type": ["string", "null"], "maxLength": 120},
+        "max_minutes": {"type": "integer", "minimum": 1, "maximum": 120},
+        "max_budget_usd": {"type": ["number", "null"], "minimum": 0.5, "maximum": 20},
+        "buttons": {
+          "type": "object", "additionalProperties": false, "required": ["allow", "decline", "more"],
+          "properties": {
+            "allow": {"const": "Allow for this task"},
+            "decline": {"const": "Not now"},
+            "more": {"type": "array", "maxItems": 1, "items": {"$ref": "#/$defs/Button"}}
+          }
+        }
+      }
+    },
+    "Question": {
+      "type": "object", "additionalProperties": false, "required": ["text", "options"],
+      "properties": {
+        "text": {"type": "string", "minLength": 1, "maxLength": 200},
+        "options": {
+          "type": "array", "minItems": 2, "maxItems": 6,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["id", "label"],
+            "properties": {"id": {"enum": ["answer", "browser", "claude_agent", "desktop"]}, "label": {"type": "string", "maxLength": 60}}
+          }
+        }
+      }
+    },
+    "RowBase": {
+      "type": "object",
+      "required": ["task_id", "title", "route", "source", "state", "attended", "latest", "steps_done", "result", "reason", "cost_usd", "started", "finished",
+                   "open", "needs_consent", "question"],
+      "properties": {
+        "task_id": {"type": "string", "pattern": "^tk_[0-9a-f]{8}$"},
+        "title": {"type": "string", "minLength": 1, "maxLength": 60},
+        "route": {"enum": ["answer", "browser", "desktop", "claude_agent", "unclear"]},
+        "source": {"enum": ["typed", "voice"]},
+        "state": {"enum": ["planning", "waiting_consent", "running", "done", "stopped", "failed"]},
+        "attended": {"type": "boolean"},
+        "latest": {"type": ["string", "null"], "maxLength": 90},
+        "steps_done": {"type": "integer", "minimum": 0},
+        "result": {"type": ["string", "null"], "maxLength": 140},
+        "reason": {"type": ["string", "null"], "maxLength": 160},
+        "cost_usd": {"type": ["number", "null"], "minimum": 0, "description": "What the Claude CLI itself reported the task cost, in US dollars; null for every other route."},
+        "started": {"type": "string", "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$"},
+        "finished": {"type": ["string", "null"], "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$"},
+        "open": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "object", "additionalProperties": false, "required": ["kind", "path"],
+             "properties": {"kind": {"enum": ["folder", "file"]}, "path": {"type": "string", "minLength": 1, "maxLength": 1024}}}
+          ]
+        },
+        "needs_consent": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/Card"}]},
+        "question": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/Question"}]}
+      },
+      "allOf": [
+        {"if": {"properties": {"state": {"enum": ["done", "stopped", "failed"]}}},
+         "then": {"properties": {"finished": {"type": "string"}, "needs_consent": {"type": "null"}, "question": {"type": "null"}}}},
+        {"if": {"properties": {"state": {"enum": ["planning", "running", "waiting_consent"]}}},
+         "then": {"properties": {"finished": {"type": "null"}}}},
+        {"if": {"properties": {"state": {"enum": ["planning", "running"]}}},
+         "then": {"properties": {"needs_consent": {"type": "null"}, "question": {"type": "null"}}}},
+        {"if": {"properties": {"state": {"const": "waiting_consent"}}},
+         "then": {"oneOf": [
+           {"properties": {"needs_consent": {"type": "object"}, "question": {"type": "null"}}},
+           {"properties": {"needs_consent": {"type": "null"}, "question": {"type": "object"}}}]}}
+      ]
+    },
+    "TaskRow": {"allOf": [{"$ref": "#/$defs/RowBase"}], "unevaluatedProperties": false},
+    "TaskDetail": {
+      "allOf": [{"$ref": "#/$defs/RowBase"}],
+      "required": ["steps", "answer"],
+      "properties": {
+        "steps": {"type": "array", "maxItems": 200, "items": {"type": "string", "maxLength": 90}},
+        "answer": {"type": ["string", "null"], "maxLength": 1500}
+      },
+      "unevaluatedProperties": false
+    }
+  }
+}

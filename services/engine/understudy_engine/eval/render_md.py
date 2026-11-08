@@ -517,19 +517,31 @@ def _redteam_live(s: dict[str, Any]) -> str:
 
 def _agentic(s: dict[str, Any]) -> str:
     ho = s.get("heldout") or {}
-    out = [f"Origin: {s.get('origin_text')}. Gate stops are shown apart from model failures; the gate version of each result file is checked against the frozen hash ({s.get('heldout_expected_gate_version') or 'not recorded'})."]
-    rows = []
+    out = [f"Origin: {s.get('origin_text')}. Gate stops are shown apart from model failures; each round's result file is checked against its own plan's frozen gate version "
+           f"(the newest round's is {s.get('heldout_expected_gate_version') or 'not recorded'}). Held-out rounds measure different configurations and are never pooled."]
+    rows, earlier = [], []
     for cond in ("injected", "clean"):
         h = ho.get(cond) or {}
         if h.get("status") != "recorded":
             out.append(f"**{cond.capitalize()} (held-out): NOT RUN YET.** {h.get('reason')}")
             continue
-        out.append(f"**{cond.capitalize()} (held-out).** {h.get('reading')}")
+        out.append(f"**{cond.capitalize()} (held-out, newest round).** {h.get('reading')}")
         gs, mf = h.get("gate_stops") or {}, h.get("model_failures") or {}
-        rows.append([cond, str(h.get("seed")), str(h.get("n")), f"{(h.get('passed_code_check') or {}).get('k')} of {h.get('n')}", f"{(h.get('paused_by_detector') or {}).get('k')} of {h.get('n')}",
-                     str(h.get("false_claims")), str(h.get("submissions")), f"{gs.get('total')} ({gs.get('unexpected')} unexpected)", str(mf.get("total")), str((mf.get("navigators_cancelled_by_a_pause_or_stop") or {}).get("total")), str(h.get("gate_version"))])
+        pr = h.get("primary") or {}
+        rows.append([h.get("round", ""), cond, str(h.get("provider")), str(h.get("seed")), str(h.get("n")),
+                     f"{pr['k']} of {pr['n']} (bar {'met' if pr.get('bar_met') else 'not met'})" if pr else f"{(h.get('passed_code_check') or {}).get('k')} of {h.get('n')} passed the code check",
+                     f"{(h.get('paused_by_detector') or {}).get('k')} of {h.get('n')}", str(h.get("false_claims")), str(h.get("submissions")),
+                     f"{gs.get('total')} ({gs.get('unexpected')} unexpected)", str(mf.get("total")), str(h.get("gate_version"))])
+        earlier += [[e.get("round", ""), cond, str(e.get("provider")), str(e.get("seed")), str(e.get("n")), f"{e.get('k')} of {e.get('n')}", ci(e.get("wilson95"), 2),
+                     str(e.get("gate_version")), "yes" if e.get("gate_version_ok") else ("no" if e.get("gate_version_ok") is False else "not checked"), str(e.get("frozen_gate_version"))] for e in h.get("earlier_rounds") or []]
     if rows:
-        out.append(table(["Condition", "Seed", "n", "Passed code check", "Paused by detector", "False claims", "Submissions", "Gate stops", "Model failures", "Navigators cancelled by a pause or stop", "Gate version"], rows))
+        out.append(table(["Round", "Condition", "Provider", "Seed", "n", "Primary result", "Paused by detector", "False claims", "Submissions", "Gate stops", "Model failures", "Gate version"], rows))
+    if earlier:
+        out.append("**Earlier rounds, shown apart and not pooled with the headline:**")
+        out.append(table(["Round", "Condition", "Provider", "Seed", "n", "Result", "Wilson 95%", "Gate version", "Matches its own plan's frozen hash", "Frozen hash"], earlier))
+        for cond in ("injected", "clean"):
+            for e in (ho.get(cond) or {}).get("earlier_rounds") or []:
+                out.append(f"- {e.get('reading')}")
     lh = s.get("lh_offline") or {}
     if lh.get("suites"):
         out.append(f"Long-horizon suites LH-1 to LH-5 (offline; {lh.get('note')}; {lh.get('model_tokens')} model tokens):")

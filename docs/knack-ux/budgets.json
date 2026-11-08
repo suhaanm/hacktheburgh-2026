@@ -20,7 +20,7 @@
     "graph": { "audience": "details", "controls": 8, "baseline_wordsAbove": 162 },
     "week": { "audience": "details", "baseline_wordsAbove": 118 },
     "git": { "audience": "details", "baseline_wordsAbove": 176 },
-    "forecasts": { "audience": "details", "baseline_wordsAbove": 205, "baseline_route": "predictions" },
+    "forecasts": { "audience": "admin", "baseline_wordsAbove": 205, "baseline_route": "predictions", "note": "an Admin main-nav page since 8 Nov (owner request 4.12): measured against the admin budget" },
     "agents": { "audience": "details", "baseline_wordsAbove": 95 },
     "models": { "audience": "details", "baseline_wordsAbove": 184 },
     "today": { "audience": "details", "baseline_wordsAbove": 80, "note": "the live coach screen under More; Home carries a one-line live strip" },
@@ -57,7 +57,7 @@
   },
   "quantities": { "perSentenceOnWorkerScreens": 1, "note": "a range with its interval counts as one; dates and ids are not quantities" },
   "never_hidden": [
-    "origin badge (Example data, Synthetic firm)",
+    "origin badge (Example data, Made-up firm)",
     "consent text and the equal weight of Not now and Never",
     "It will never ... line on a routine",
     "the consequence of an irreversible or outward step",

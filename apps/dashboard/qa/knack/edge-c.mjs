@@ -80,7 +80,7 @@ const identity = (p) => (p === "/identity" ? { person: "p_demo01", role: "benefi
   check("empty: Needs you says nothing needs you", /Nothing needs you\./.test(t) && (await page.locator("article[data-kind]").count()) === 0);
   await page.goto(`${base}/#/routines`); await page.waitForTimeout(1500);
   const r = await page.locator("main").innerText();
-  check("empty: Routines says nothing runs yet and draws no background tasks", /Nothing runs yet\./.test(r) && (await page.locator("[data-testid=background-tasks]").count()) === 0);
+  check("empty: Routines says there are no routines yet and draws no background tasks", /No routines yet\./.test(r) && (await page.locator("[data-testid=background-tasks]").count()) === 0);
   await ctx.close();
 }
 

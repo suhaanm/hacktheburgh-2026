@@ -3,6 +3,7 @@ import { ApiError, api } from "../api";
 import { useViewRole } from "../components/home/viewAs";
 import { useLoad } from "../hooks";
 import { useLive, useRegisteredStreams } from "../lib/live";
+import { anyActiveRun } from "../lib/tasks";
 import { CheckChip, EmptyState, ErrorState, Loading, PageHead, SourceNote, StatePill } from "../components/common";
 import { OriginBadge } from "../components/needsyou/Origin";
 import { Hint } from "../components/Hint";
@@ -32,7 +33,7 @@ function BackgroundRuns() {
   const [allRuns, setAllRuns] = useState(false);
 
   useEffect(() => { loadedAt.current = Date.now(); }, [runs.data]);
-  const anyActive = !!runs.data?.some(runActive);
+  const anyActive = anyActiveRun(runs.data);        // a record a dead process left 'running' does not make this page ask every 2 s
   // Refresh by itself (every 2 s while anything runs, every 15 s otherwise, on focus) and tick the lease clocks every second while one runs.
   useLive(runs.reload, anyActive, useRegisteredStreams());
   useEffect(() => {

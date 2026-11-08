@@ -114,9 +114,9 @@ export default function Settings({ section }: { section?: string }) {
     if (types.length === 0) return;
     void apply({ modes: Object.fromEntries(types.map((t) => [t, mode])) }, (x) => types.reduce((acc, t) => withMode(acc, t, mode), x));
   };
-  const onSkills = (patch: { use_claude_skills?: boolean; off?: string[]; max_minutes?: number }) => {
+  const onSkills = (patch: { use_claude_skills?: boolean; off?: string[]; max_minutes?: number; max_budget_usd?: number }) => {
     const before = skills;
-    setSkills((s) => (s ? { ...s, ...(patch.use_claude_skills !== undefined ? { use_claude_skills: patch.use_claude_skills } : {}), ...(patch.off ? { off: patch.off } : {}), ...(patch.max_minutes !== undefined ? { max_minutes: patch.max_minutes } : {}) } : s));
+    setSkills((s) => (s ? { ...s, ...(patch.use_claude_skills !== undefined ? { use_claude_skills: patch.use_claude_skills } : {}), ...(patch.off ? { off: patch.off } : {}), ...(patch.max_minutes !== undefined ? { max_minutes: patch.max_minutes } : {}), ...(patch.max_budget_usd !== undefined ? { max_budget_usd: patch.max_budget_usd } : {}) } : s));
     api.skillsSet(patch).then((r) => { if (r.data && Array.isArray(r.data.skills)) setSkills(r.data); }, () => setSkills(before));
   };
   const onWake = (on: boolean) => {

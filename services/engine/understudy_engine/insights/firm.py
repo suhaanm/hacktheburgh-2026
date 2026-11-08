@@ -73,6 +73,42 @@ PLAN: tuple[tuple[str, str, int, int, str], ...] = (
 JOIN_WEEKS = (0, 0, 1, 1, 2, 2, 3, 3, 5, 7, 8, 9, 0)
 
 
+@dataclass(frozen=True)
+class FirmPlan:
+    """Who is in a firm and what is planted for them. ``groups`` is ``(role, unit, experts, juniors, scenario)`` per team and role; ``specials`` maps ``(role, unit, junior index)`` to one
+    of ``no_data | stale | new_joiner | holiday | role_change``; ``automation_units`` are the units whose even-numbered juniors have an approved routine. The ``truth`` fields only
+    describe what the plan plants, for the evaluation."""
+    name: str
+    groups: tuple[tuple[str, str, int, int, str], ...]
+    specials: dict[tuple[str, str, int], str]
+    automation_units: tuple[str, ...]
+    join_weeks: tuple[int, ...] = JOIN_WEEKS
+    improving_units: tuple[str, ...] = ()
+    plateau_units: tuple[str, ...] = ()
+    no_expert_reference: tuple[str, ...] = ()
+    small_team: tuple[str, ...] = ()
+
+
+#: The firm the insights evaluation was pre-registered on (about 60 people). Never edited: the evaluation and its frozen results depend on it.
+LEGACY = FirmPlan(
+    "legacy60", PLAN,
+    {("data-analyst", "unit_d", 12): "no_data", ("data-analyst", "unit_d", 11): "stale", ("benefits-processor", "unit_c", 3): "new_joiner",
+     ("benefits-processor", "unit_a", 2): "holiday", ("programmer", "prog_web", 6): "role_change"},
+    ("unit_a", "unit_c"), JOIN_WEEKS, ("benefits-processor/unit_a", "benefits-processor/unit_c"), ("benefits-processor/unit_b",), ("programmer",), ("prog_infra",))
+
+#: The firm the Admin screens show on a built data directory: 32 people in three teams that mix roles, as teams do. Sized so that every aggregate band can be drawn under the group-size rule of 5
+#: with nothing relaxed: each role has at least 5 experienced and at least 5 junior people (benefits 5 + 7, data analysts 5 + 5, programmers 5 + 5). Of the 7 benefits juniors one joined last week
+#: and one was away for three weeks (so 6 have enough data to compare). The three teams: claims intake (benefits 6, programmers 5), case review (benefits 6, data analysts 5) and data and tools
+#: (data analysts 5, programmers 5). Every role has two teams of at least 5 people, so the per-team bands draw too.
+DEMO32 = FirmPlan(
+    "demo32",
+    (("benefits-processor", "claims_intake", 3, 3, "improve"), ("benefits-processor", "case_review", 2, 4, "improve"),
+     ("data-analyst", "case_review", 3, 2, "simpson"), ("data-analyst", "data_tools", 2, 3, "simpson"),
+     ("programmer", "claims_intake", 3, 2, "improve"), ("programmer", "data_tools", 2, 3, "improve")),
+    {("benefits-processor", "claims_intake", 2): "holiday", ("benefits-processor", "case_review", 3): "new_joiner"},
+    ("claims_intake", "case_review"), JOIN_WEEKS, ("benefits-processor/claims_intake", "benefits-processor/case_review"), (), (), ())
+
+
 @dataclass
 class Firm:
     snapshot: FirmSnapshot
@@ -253,8 +289,19 @@ def _offloaded(person: str, role: str, now: float, rng: np.random.Generator, str
     return out
 
 
-def build_firm(seed: int = 0, *, scenario: str = "planted", weeks: int = 12, now: float = NOW0) -> Firm:
-    """The synthetic firm. ``scenario``: ``planted`` (the demo) or ``null`` (the same people, nothing planted). Pure and deterministic."""
+#: Chosen from seeds 0 to 39 by looking at what the Admin screens show (no tuning on any held-out result; nothing here is an evaluation; every seed gave every role a comparison): all three roles
+#: show an improving trend (the data analysts' is the case where a pooled share would say the opposite), four people individually improving and one needing attention while most are honestly
+#: "cannot tell yet", an experts-versus-juniors gap in every role concentrated in a few habits, juniors short of the independence line by the target, routines handled, and an old approval.
+DEMO_SEED = 28
+
+
+def demo_firm(now: float, seed: int = DEMO_SEED) -> Firm:
+    """The 32-person firm of ``DEMO32`` with twelve weeks of history ending at ``now`` (rounded down to the hour). Pure and deterministic for a given ``now`` and ``seed``."""
+    return build_firm(seed, plan=DEMO32, now=float(int(now) // 3600 * 3600))
+
+
+def build_firm(seed: int = 0, *, scenario: str = "planted", weeks: int = 12, now: float = NOW0, plan: FirmPlan = LEGACY) -> Firm:
+    """The synthetic firm. ``scenario``: ``planted`` (the demo) or ``null`` (the same people, nothing planted). ``plan``: who is in it (the evaluation's 60 by default). Pure and deterministic."""
     null = scenario == "null"
     people: list[PersonRecord] = []
     routines: list[dict[str, Any]] = []
@@ -262,7 +309,7 @@ def build_firm(seed: int = 0, *, scenario: str = "planted", weeks: int = 12, now
     counters: dict[str, int] = {}
     latents: dict[str, tuple[str, str, list[tuple[float, str, float, float]]]] = {}
     specials: dict[str, list[str]] = {"no_data": [], "stale": [], "new_joiner": [], "holiday": [], "role_change": []}
-    for role, unit, n_exp, n_jun, scen in PLAN:
+    for role, unit, n_exp, n_jun, scen in plan.groups:
         code = V.role_code(role).lower()
         for k in range(n_exp + n_jun):
             level = "expert" if k < n_exp else "junior"
@@ -280,7 +327,7 @@ def build_firm(seed: int = 0, *, scenario: str = "planted", weeks: int = 12, now
             tenure = int(rng.integers(60, 300)) if level == "expert" else 0
             role_since = None
             if level == "junior":
-                jw = JOIN_WEEKS[j % len(JOIN_WEEKS)] if scen in ("improve", "plateau") else 0
+                jw = plan.join_weeks[j % len(plan.join_weeks)] if scen in ("improve", "plateau") else 0
                 if null:
                     jw = 0
                 first_week = int(jw)
@@ -288,16 +335,17 @@ def build_firm(seed: int = 0, *, scenario: str = "planted", weeks: int = 12, now
             rows: list[dict[str, Any]] = []
             special = None
             if not null and level == "junior":
-                if role == "data-analyst" and j == 12:
+                sp = plan.specials.get((role, unit, j))
+                if sp == "no_data":
                     special = "no_data"
-                elif role == "data-analyst" and j == 11:
+                elif sp == "stale":
                     special, last_week = "stale", weeks - 6
-                elif role == "benefits-processor" and unit == "unit_c" and j == 3:
+                elif sp == "new_joiner":
                     special, first_week, rate = "new_joiner", weeks - 1, 3.0
                     tenure = 1
-                elif role == "benefits-processor" and unit == "unit_a" and j == 2:
+                elif sp == "holiday":
                     special, skip = "holiday", frozenset({weeks - 5, weeks - 4, weeks - 3})
-                elif role == "programmer" and unit == "prog_web" and j == 6:
+                elif sp == "role_change":
                     special = "role_change"
             if special:
                 specials[special].append(pid)
@@ -314,7 +362,7 @@ def build_firm(seed: int = 0, *, scenario: str = "planted", weeks: int = 12, now
                 rows, m_end, latent = _gen_rows(**kw, first_week=first_week, skip_weeks=skip, last_week=last_week, rate=rate, plateau_cap=cap, lr_mult=lr_mult)
             latents[pid] = (role, level, latent)
             # offloaded work: an approved routine with shadow matches (benefits units A and C), delegated work for a few people
-            if not null and role == "benefits-processor" and unit in ("unit_a", "unit_c") and level == "junior" and special is None and j % 2 == 0:
+            if not null and role == "benefits-processor" and unit in plan.automation_units and level == "junior" and special is None and j % 2 == 0:
                 rows += _offloaded(pid, role, now, rng, "automation", int(rng.integers(8, 15)), ROUTINE[role], 5000)
                 runs = int(rng.integers(24, 41))
                 routines.append({"person": pid, "id": ROUTINE[role], "status": "approval" if j % 4 == 0 else "unattended", "support": 12, "hours_lo": 2.0, "hours_hi": 4.5,
@@ -332,10 +380,10 @@ def build_firm(seed: int = 0, *, scenario: str = "planted", weeks: int = 12, now
                                      "m_end": {s: round(v, 3) for s, v in m_end.items()}, "effects": [] if (null or level == "expert") else truth_effects(latent, now)}
     gap_truth, bottleneck_truth = ({}, {}) if null else planted_from_latents(latents, now)
     truth["planted"] = {
-        "improving_units": [] if null else ["benefits-processor/unit_a", "benefits-processor/unit_c"],
-        "plateau_units": [] if null else ["benefits-processor/unit_b"],
+        "improving_units": [] if null else list(plan.improving_units),
+        "plateau_units": [] if null else list(plan.plateau_units),
         "role_gap": gap_truth,
-        "no_expert_reference": [] if null else ["programmer"], "small_team": [] if null else ["prog_infra"],
+        "no_expert_reference": [] if null else list(plan.no_expert_reference), "small_team": [] if null else list(plan.small_team),
         "bottleneck": bottleneck_truth, "simpson": [] if null else ["data-analyst"],
         "specials": specials, "automation": {} if null else {"routine": ROUTINE["benefits-processor"], "approved": [r["person"] for r in routines if r["status"] != "proposed"]},
         "risk": {} if null else {"oldest_approval_h": 72.0, "injection_pauses": 2, "kill_events": 1, "false_claims": 0},

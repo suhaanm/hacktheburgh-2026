@@ -106,7 +106,7 @@ export default function Evidence() {
     <div className="page page--wide">
       <PageHead
         title="What we can and cannot show"
-        lede={<>{`Generated ${new Date(rep.generated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}${rep.mock ? ", mock mode" : ""}. `}{anySynthetic ? "Most numbers come from synthetic apprentices and personas, and each says so. " : ""}{studyRan ? `The live study has n = ${study!.meta!.n}. ` : "The live study has not run yet. "}<a href="#limits" onClick={go("limits")}>{limits.length} limits are listed at the end.</a></>}
+        lede={<>{`Generated ${new Date(rep.generated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}${rep.mock ? ", mock mode" : ""}. `}{anySynthetic ? "Most numbers come from generated apprentices and people, and each says so. " : ""}{studyRan ? `The live study has n = ${study!.meta!.n}. ` : "The live study has not run yet. "}<a href="#limits" onClick={go("limits")}>{limits.length} limits are listed at the end.</a></>}
       />
       <EvidenceMap rows={rows} onGo={go} />
       <JumpBar onGo={go} />

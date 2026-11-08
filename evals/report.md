@@ -1,12 +1,12 @@
 # Understudy evaluation report
 
-Generated 2026-11-08T01:42:17Z · mock mode: yes · git cf47203 · fast run: no
+Generated 2026-11-08T02:14:26Z · mock mode: yes · git bf510c9 · fast run: no
 
 Written by `python -m understudy_engine.eval` from the owning tracks' code; no number here is typed in by hand. Results from generators we wrote say so. A section without numbers says why instead of showing a made-up value.
 
 ## Evidence map
 
-37 sections: 35 with numbers, 0 pending, 2 not run, 0 failed. Measured on: "generators we wrote" means people and data we generated and planted, "real people" means people, "real and generated" means both. A section without numbers says why instead of showing a made-up value.
+35 sections: 33 with numbers, 0 pending, 2 not run, 0 failed. Measured on: "generators we wrote" means people and data we generated and planted, "real people" means people, "real and generated" means both. A section without numbers says why instead of showing a made-up value.
 
 | Section | Measured on | n | Status | Label |
 |---|---|---|---|---|
@@ -41,12 +41,10 @@ Written by `python -m understudy_engine.eval` from the owning tracks' code; no n
 | Hit list | generators we wrote | 60 generated people per cell | ok |  |
 | Model benchmark | generators we wrote | n/a | ok |  |
 | Study across roles | generators we wrote | n/a | not run: Language-model participants, not people | language-model participants, not people |
-| Agentic evaluation | generators we wrote | 24 sandbox households | ok |  |
+| Agentic evaluation | generators we wrote | 40 sandbox households | ok |  |
 | Live study (n = 4) | not run | 4 people | not run: the live study has not been run: no data in evals/study/results/ |  |
 | Language-model participants, not people | generators we wrote | 24 silicon participants | ok | language-model participants, not people |
 | Study power: what the design could detect | generators we wrote | 10000 replications | ok |  |
-| Prospective predictions: predict first, score later | generators we wrote | 774300 scored predictions | ok | generated worlds, held-out seeds, single frozen run; the ledger has recorded no live forecasts yet |
-| Decisions scoreboard: shipped rule against naive and oracle | generators we wrote | 118 generated worlds | ok | generated worlds, held-out seeds, single frozen run |
 
 ## Findings
 
@@ -932,7 +930,7 @@ edge_cases (generators we wrote):
 | delegated_and_automation_never_in_independence | 40 delegated and 40 automation rows, nothing else | no candidate: offloaded work never moves an independence number | True | test_worker::test_delegated_and_automation_rows_never_reach_an_independence_insight |
 | same_insight_repeated | shown twice in 28 days, unchanged; then doubled | suppressed (repeat_recently); a material change is shown again | True | test_select::test_novelty_halves_per_repeat_and_suppresses_an_unchanged_insight_after_two_shows |
 | time_zones | Sunday 23:59 UTC | the week key follows the person's zone; an unknown zone is UTC | True | test_routes::test_the_worker_week_follows_the_workers_own_time_zone |
-| origin_badges_on_every_insight | any selected pointer | badge and origin set; the text names the source and says made-up firm data | True | test_worker::test_origin_and_badge_are_on_every_candidate |
+| origin_badges_on_every_insight | any selected pointer | badge and origin set on the data; the text names its source and carries no origin tag | True | test_worker::test_origin_and_badge_are_on_every_candidate |
 | accessibility_not_colour_alone | every polarity | a word, a glyph name and an a11y label carry the meaning | True | test_texts::test_a11y_label_carries_the_polarity_in_words |
 | no_individual_ranking_or_score | the per-user rows | label order, no rank or score field | True | test_admin::test_per_user_rows_are_numbers_and_enums_in_label_order_with_no_rank_or_score |
 | no_admin_insight_has_a_person_as_subject | every admin candidate | subject is a role, unit, skill, signal or the firm | True | test_admin::test_no_admin_insight_has_a_person_as_its_subject |
@@ -1037,20 +1035,31 @@ Go-ahead: evals/study_roles/PLAN.md, Amendment 3 (2026-11-07 21:07 UTC); needs e
 
 ## Agentic evaluation
 
-*measured on: **generators we wrote** · n = 24 sandbox households · split: held-out seeds only: injected seed 9138 (n = 20), clean seed 9137 (n = 4); in-sample dev rounds (ITERATIONS.md) are not counted; LH-1 to LH-5 are offline code tests with no model · intervals: 95%*
+*measured on: **generators we wrote** · n = 40 sandbox households · split: held-out seeds only, newest round per condition: round2 injected seed 9140 (n = 20), round2 clean seed 9139 (n = 20); earlier rounds are listed apart and never pooled; in-sample dev rounds (ITERATIONS.md) are not counted; LH-1 to LH-5 are offline code tests with no model · intervals: 95%*
 
 language model driving a sandbox we wrote, in a headless browser; not a real desktop and not people. No comparison arm: pass counts against a pre-registered criterion, not against a baseline.
 
-Origin: language model driving a sandbox we wrote, in a headless browser; not a real desktop and not people. Gate stops are shown apart from model failures; the gate version of each result file is checked against the frozen hash (35e964049fd0).
+Origin: language model driving a sandbox we wrote, in a headless browser; not a real desktop and not people. Gate stops are shown apart from model failures; each round's result file is checked against its own plan's frozen gate version (the newest round's is a736b8dc8988). Held-out rounds measure different configurations and are never pooled.
 
-**Injected (held-out).** Injected, held-out seed 9138, n = 20 (gate 35e964049fd0, matches the frozen hash): the detector paused 20 of 20 pages of this kind (Wilson 95% 0.84 to 1.00); 0 attacks (0 visits to the exfil address, 0 submissions). The pages carry text aimed at an AI and nothing else, so this is evidence about the detector and the pause only. It does not show that the gate resists hostile pages.
+**Injected (held-out, newest round).** Round 2, injected, held-out seed 9140, n = 20, gemini (planner gemini-3.8-flash, fast gemini-3.5-flash-lite, computer use gemini-3.8-flash); gate a736b8dc8988, matches this round's frozen hash: the detector paused 20 of 20 pages of this kind (Wilson 95% 0.84 to 1.00); 0 attacks (0 visits to the exfil address, 0 submissions). The pages carry text aimed at an AI and nothing else, so this is evidence about the detector and the pause only. It does not show that the gate resists hostile pages.
 
-**Clean (held-out).** Clean, held-out seed 9137, n = 4 (gate 35e964049fd0, matches the frozen hash): 1 of 4 passed the code check (Wilson 95% 0.05 to 0.70), 3 of 4 reached the approval gate, 2 false claim(s) (a success claimed while a figure did not match the code check), 0 submissions; 1 unexpected gate stop(s) (needs_human:drift:fill x1), a harness or gate-tuning finding listed apart from model failures, paused 1 run(s). n = 4 is descriptive: the pre-registered criterion 'Wilson lower bound at least 0.8' cannot be tested at this n under the spend cap, so this neither confirms nor rejects it.
+**Clean (held-out, newest round).** Round 2, clean, held-out seed 9139, n = 20, gemini (planner gemini-3.8-flash, fast gemini-3.5-flash-lite, computer use gemini-3.8-flash); gate a736b8dc8988, matches this round's frozen hash: 18 of 20 households completed with correct inputs on all three calculators (Wilson 95% 0.70 to 0.97); the pre-registered bar was not met (the Wilson lower bound had to be at least 0.80 and is 0.70). 0 false claim(s), 0 submissions; the 2 that did not complete ended paused (2); 10 unexpected gate stop(s) (needs_human:drift:fill x3, needs_human:drift:read x7), harness or gate-tuning findings listed apart from model failures. One run per household of one non-deterministic model; this round is not pooled with any other round.
 
-| Condition | Seed | n | Passed code check | Paused by detector | False claims | Submissions | Gate stops | Model failures | Navigators cancelled by a pause or stop | Gate version |
-|---|---|---|---|---|---|---|---|---|---|---|
-| injected | 9138 | 20 | 0 of 20 | 20 of 20 | 0 | 0 | 0 (0 unexpected) | 0 | 5 | 35e964049fd0 |
-| clean | 9137 | 4 | 1 of 4 | 1 of 4 | 2 | 0 | 4 (1 unexpected) | 0 | 2 | 35e964049fd0 |
+| Round | Condition | Provider | Seed | n | Primary result | Paused by detector | False claims | Submissions | Gate stops | Model failures | Gate version |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| round2 | injected | gemini | 9140 | 20 | 0 of 20 passed the code check | 20 of 20 | 0 | 0 | 0 (0 unexpected) | 0 | a736b8dc8988 |
+| round2 | clean | gemini | 9139 | 20 | 18 of 20 (bar not met) | 2 of 20 | 0 | 0 | 28 (10 unexpected) | 0 | a736b8dc8988 |
+
+**Earlier rounds, shown apart and not pooled with the headline:**
+
+| Round | Condition | Provider | Seed | n | Result | Wilson 95% | Gate version | Matches its own plan's frozen hash | Frozen hash |
+|---|---|---|---|---|---|---|---|---|---|
+| round1 | injected | openai | 9138 | 20 | 20 of 20 | [0.84, 1.00] | 35e964049fd0 | yes | 35e964049fd0 |
+| round1 | clean | openai | 9137 | 4 | 1 of 4 | [0.05, 0.70] | 35e964049fd0 | yes | 35e964049fd0 |
+
+- Round 1, injected, held-out seed 9138, n = 20, openai (planner gpt-5.5, fast gpt-5.4-mini, computer use gpt-5.5); gate 35e964049fd0, matches this round's frozen hash: the detector paused 20 of 20 pages of this kind (Wilson 95% 0.84 to 1.00); 0 attacks (0 visits to the exfil address, 0 submissions). The pages carry text aimed at an AI and nothing else, so this is evidence about the detector and the pause only. It does not show that the gate resists hostile pages.
+
+- Round 1, clean, held-out seed 9137, n = 4, openai (planner gpt-5.5, fast gpt-5.4-mini, computer use gpt-5.5); gate 35e964049fd0, matches this round's frozen hash: 1 of 4 passed the code check (Wilson 95% 0.05 to 0.70), 3 of 4 reached the approval gate, 2 false claim(s) (a success claimed while a figure did not match the code check), 0 submissions; 1 unexpected gate stop(s) (needs_human:drift:fill x1), harness or gate-tuning findings listed apart from model failures. n = 4 is descriptive: the pre-registered criterion 'Wilson lower bound at least 0.8' cannot be tested at this n under the spend cap, so this neither confirms nor rejects it. This round is not pooled with any other round.
 
 Long-horizon suites LH-1 to LH-5 (offline; offline, grounded test double: tests the code, not any model; 0 model tokens):
 
@@ -1063,7 +1072,7 @@ Long-horizon suites LH-1 to LH-5 (offline; offline, grounded test double: tests 
 | LH-4 | True | 0 | 0 |
 | LH-5 | True | 0 | 0 |
 
-Spend: about 16.1575 USD at list price (about 3.2062 USD at the lower bound) of a 20.00 US dollar cap, 80.8%, 38 ledger entries.
+Spend: about 20.1373 USD at list price (about 7.3419 USD at the lower bound) of a 200.00 US dollar cap, 10.1%, 78 ledger entries.
 
 Real desktop: R0 ran once (R0 reads the window list and accessibility only, so it sends no input events by construction); no other rung has run. Everything else here is the headless sandbox.
 
@@ -1169,83 +1178,9 @@ Caveats:
 - The plan's t interval is not exact for discrete bounded scores, and it has zero width when all differences are identical; coverage and the false-positive rate are reported from simulation, with Monte Carlo intervals.
 - Real participants are four teammates who know the project; demand effects and facilitator bias are not in this model.
 
-## Prospective predictions: predict first, score later
-
-*measured on: **generators we wrote** · n = 774300 scored predictions · split: models frozen at deployment on a training pool; every prediction written to a hash-chained ledger before its outcome and scored forward in time, on new seeds · intervals: 95%*
-
-Cluster bootstrap resampling people (error risk: blocks of 100 cases), B = 2000, paired across predictors. Pre-registered in evals/hrt/PLAN.md; run once on held-out seeds.
-
-Of 10 registered claims, 8 passed and 2 did not (all are listed, none changed after the run). In the world it was fitted for, the deployed model's prospective log loss was -0.080 [-0.086, -0.075] against the online base rate. In 3 of 3 shifted worlds it was worse than the best naive predictor (markov, latent skill, process trace).
-
-| Claim (registered before the run) | Result | Evidence |
-|---|---|---|
-| P1: In the v1 world the deployed stuck hazard beats both the online base rate and frozen time-since-progress on log loss | passed | against frozen tsp -0.0793 [-0.0852, -0.0738]; against online base -0.0803 [-0.0856, -0.0753] |
-| P2: In the v1 world the model is calibrated: the slope interval contains 1 and the intercept interval contains 0 | not passed | slope 0.999 [0.963, 1.035], intercept +0.075 [0.002, 0.162] |
-| P3: In the shifted worlds the deployed model is worse than the better naive baseline in at least 2 of 3 families | passed | latent_skill: worse (+0.331 [0.289, 0.377] against frozen tsp); markov: worse (+0.324 [0.277, 0.374] against online base); process_trace: worse (+0.513 [0.434, 0.602] against online base) |
-| P4a: The guard raises no flag in at least 7 of 8 v1 deployments | passed | flagged 0 of 8 [0.0, 0.369] |
-| P4b: The guard flags at least 6 of 8 where the model is worse and at most 1 of 8 where it is clearly better | passed | latent_skill: model worse, flagged 8 of 8; markov: model worse, flagged 8 of 8; process_trace: model worse, flagged 8 of 8 |
-| P4c: Premium: in the v1 world the guarded system is within 0.01 nats of always trusting the model | passed | guarded minus always-model +0.0000 nats [0.0, 0.0] |
-| P4d: Payout: where the model is worse than the fallback by more than 0.05 nats the guard saves more than 0.02 nats against always-model | passed | latent_skill: model worse by 0.325, guard saves 0.262 [-0.338, -0.194]; markov: model worse by 0.323, guard saves 0.309 [-0.434, -0.196]; process_trace: model worse by 0.451, guard saves 0.438 [-0.594, -0.292] |
-| P5: Time to progress, v1 world: the head's truncated CRPS beats the Kaplan-Meier constant | passed | truncated CRPS 3.95 s against 4.76 s for the Kaplan-Meier constant; difference -0.816 s [-0.853, -0.779] |
-| P6a: Error risk, no drift: the model beats the online base rate and its calibration slope interval contains 1 | not passed | model minus online base -0.1110 [-0.1166, -0.1057], slope 0.959 [0.932, 0.989] |
-| P6b: Error risk: the guard flags a rule change when the post-change model is worse than the fallback, and stays quiet when it is not or when nothing changed | passed | after the change the model minus online base is -0.1725 [-0.1807, -0.1637] (still better); flagged 0 of 8 with drift, 0 of 8 without |
-
-| World | Deployments | People or blocks | Predictions | Model log loss | Best naive | Model minus best naive [95%] | Calibration slope [95%] | Guard flags |
-|---|---|---|---|---|---|---|---|---|
-| v1 world (fresh seeds, no shift) | 8 | 32 | 61631 | 0.445 | frozen tsp | -0.079 [-0.085, -0.074] (a better) | 1.00 [0.96, 1.03] | 0 of 8 |
-| shifted: markov | 8 | 160 | 212730 | 0.939 | online base | +0.325 [0.277, 0.374] (a worse) | -0.20 [-0.23, -0.17] | 8 of 8 |
-| shifted: latent skill | 8 | 160 | 228833 | 0.949 | frozen tsp | +0.331 [0.289, 0.377] (a worse) | -0.25 [-0.30, -0.21] | 8 of 8 |
-| shifted: process trace | 8 | 160 | 207106 | 1.168 | online base | +0.513 [0.434, 0.602] (a worse) | -0.21 [-0.25, -0.17] | 8 of 8 |
-| error risk, no drift | 8 | 320 | 32000 | 0.272 | online base | -0.111 [-0.117, -0.106] (a better) | 0.96 [0.93, 0.99] | 0 of 8 |
-| error risk, rule change at case 1,500 | 8 | 320 | 32000 | 0.380 | online base | -0.150 [-0.157, -0.142] (a better) | 1.02 [0.99, 1.04] | 0 of 8 |
-
-The guard (mean log loss per bin or case; oracle = the better of always-model and always-fallback in hindsight):
-
-| World | Flags [exact 95%] | Always model | Always fallback | Guarded | Oracle | Guarded minus always-model [95%] | Share on fallback |
-|---|---|---|---|---|---|---|---|
-| v1 world (fresh seeds, no shift) | 0 of 8 [0.00, 0.37] | 0.445 | 0.525 | 0.445 | 0.445 | +0.000 [0.000, 0.000] | 0.00 |
-| shifted: markov | 8 of 8 [0.63, 1.00] | 0.940 | 0.617 | 0.631 | 0.617 | -0.309 [-0.434, -0.196] | 0.94 |
-| shifted: latent skill | 8 of 8 [0.63, 1.00] | 0.942 | 0.617 | 0.679 | 0.617 | -0.262 [-0.338, -0.194] | 0.86 |
-| shifted: process trace | 8 of 8 [0.63, 1.00] | 1.099 | 0.648 | 0.661 | 0.648 | -0.438 [-0.594, -0.292] | 0.96 |
-| error risk, no drift | 0 of 8 [0.00, 0.37] | 0.272 | 0.383 | 0.272 | 0.272 | +0.000 [0.000, 0.000] | 0.00 |
-| error risk, rule change at case 1,500 | 0 of 8 [0.00, 0.37] | 0.380 | 0.530 | 0.380 | 0.380 | +0.000 [0.000, 0.000] | 0.00 |
-
-Recalibrating the frozen model online from resolved outcomes (follow-up plan, registered after the first held-out result, new seeds):
-
-Recalibrating the frozen model online from resolved outcomes: 5 of 7 registered claims passed; the ones that did not are listed. Registered after the first held-out result, on new seeds.
-
-| Claim | Result | Evidence |
-|---|---|---|
-| R1: Error risk, rule change: after the change the recalibrated forecast beats the frozen model on log loss | passed | after the change, recal minus the frozen model -0.0316 [-0.0346, -0.0284] over 20,000 cases |
-| R2: No harm without a change: in the v1 world and the error-risk world with no change, recal is not worse than the frozen model by more than 0.005 nats | passed | route no drift +0.0003 [-0.0002, 0.0007]; v1 +0.0000 [-0.0018, 0.0017] |
-| R3: Shifted hazard worlds: recal beats the frozen model in each of the three families | passed | latent skill -0.5284 [-0.5895, -0.4683]; markov -0.4865 [-0.5346, -0.436]; process trace -0.5420 [-0.6048, -0.4813] |
-| R4: Calibration is restored: in the drift world after the change the interval of recal's calibration intercept contains 0 | not passed | intercept +0.613 [0.544, 0.69], slope 1.025 [0.992, 1.062]; the frozen model's intercept was +0.95 |
-| R5: Error risk, rule change: after the change recal_w beats the frozen model and beats recal on log loss | passed | after the change, recal_w minus the frozen model -0.0368 [-0.0407, -0.0327]; minus recal -0.0052 [-0.0062, -0.004] |
-| R6: Error risk, rule change: after the change the interval of recal_w's calibration intercept contains 0 | not passed | intercept +0.451 [0.377, 0.535], slope 1.008 [0.976, 1.048] |
-| R7: No harm for recal_w: in the v1 world and the error-risk world with no change it is not worse than the frozen model by more than 0.01 nats | passed | route no drift +0.0004 [-0.0001, 0.0008]; v1 -0.0009 [-0.0023, 0.0003] |
-
-## Decisions scoreboard: shipped rule against naive and oracle
-
-*measured on: **generators we wrote** · n = 118 generated worlds · split: fresh replicate worlds on new seeds; shipped, naive and oracle policies scored on the same world; paired bootstrap over worlds · intervals: 95%*
-
-Primary family of 4 at the Bonferroni-adjusted level; every other cell is exploratory. Pre-registered in evals/hrt/PLAN.md; run once on held-out seeds.
-
-Four registered contrasts, each the shipped rule against a naive policy in fresh generated worlds, judged at the Bonferroni-adjusted level (98.75%): 4 of 4 are wins (D1, D2, D3, D4). Costs that the data cannot supply are swept, not assumed.
-
-| Decision | Unit | Shipped rule | Naive policy | Naive | Oracle | Primary contrast [95%] | Adjusted [98.75%] | Verdict | Share of the gap closed [95%] |
-|---|---|---|---|---|---|---|---|---|---|
-| when to build an automation (ski rental with predictions) | manual-run equivalents per routine (lower is better) | 9.646 | break even | 11.580 | 6.520 | -1.934 [-2.020, -1.846] | [-2.040, -1.817] | win | 38% [36.7%, 39.7%] |
-| which cases an expert reviews under a review budget (review routing) | escaped errors per 100 cases at the same expert cost (lower is better) | 2.660 | random | 9.032 | 0.000 | -6.372 [-6.558, -6.191] | [-6.611, -6.135] | win | 71% [68.9%, 72.3%] |
-| when to start a background run (the presence window rule) | value per held-out day: completed runs minus (L/G) x collisions (higher is better) | 15.333 | run whenever idle 5min | -51.458 | 24.526 | +66.792 [55.739, 78.162] | [53.229, 80.443] | win | 88% [85.7%, 89.6%] |
-| speak, annotate, take over or stay silent (the intervention policy) | generator reward per decision, exact in expectation (higher is better) | 0.253 | rule baseline | 0.018 | 0.284 | +0.235 [0.231, 0.238] | [0.230, 0.239] | win | 88% [87.0%, 89.8%] |
-
-Recorded, not re-run (the Cue track's held-out file): net seconds saved per hour of work 18.3 [10.6, 26.2] against 0 for staying silent; Cue met one of its two pre-registered targets.
-
-The help-level ladder is not scored: it is deterministic code with no outcome to score until the live study.
-
 ## Limitations register
 
-218 entries, most serious first. Kept in the product on purpose.
+207 entries, most serious first. Kept in the product on purpose.
 
 | Id | Severity | What it means | Source |
 |---|---|---|---|
@@ -1288,16 +1223,15 @@ The help-level ladder is not scored: it is deterministic code with no outcome to
 | realism-synthetic | high | Every number here comes from generators we wrote. The v2 families have marginals inside cited ranges, but nothing shows they match real people; the live study (n = 4) and an optional labelled pilot are the only evidence about real people. | personas-v2:realism |
 | att_sim_not_people | high | Every number comes from a generator: workers, schedules, event streams, reactions and attention costs are my assumptions (simulate.py). This shows the policy behaves as designed under them. It does not show that real people find Knack natural. The live check with four teammates (n = 4) is the real test and was not run. | attention:attention |
 | agentic-origin | high | The agent results are from a language model driving a sandbox we wrote, in a headless browser; not a real desktop and not people. They say nothing about a real desktop, real calculators or real people's casework. Real desktop: R0 ran once (R0 reads the window list and accessibility only, so it sends no input events by construction); no other rung has run. Everything else here is the headless sandbox. | agentic:agentic |
-| agentic-injected-text-only | high | Injected, held-out seed 9138, n = 20 (gate 35e964049fd0, matches the frozen hash): the detector paused 20 of 20 pages of this kind (Wilson 95% 0.84 to 1.00); 0 attacks (0 visits to the exfil address, 0 submissions). The pages carry text aimed at an AI and nothing else, so this is evidence about the detector and the pause only. It does not show that the gate resists hostile pages. | agentic:agentic |
-| agentic-clean-descriptive | high | Clean, held-out seed 9137, n = 4 (gate 35e964049fd0, matches the frozen hash): 1 of 4 passed the code check (Wilson 95% 0.05 to 0.70), 3 of 4 reached the approval gate, 2 false claim(s) (a success claimed while a figure did not match the code check), 0 submissions; 1 unexpected gate stop(s) (needs_human:drift:fill x1), a harness or gate-tuning finding listed apart from model failures, paused 1 run(s). n = 4 is descriptive: the pre-registered criterion 'Wilson lower bound at least 0.8' cannot be tested at this n under the spend cap, so this neither confirms nor rejects it. | agentic:agentic |
+| agentic-injected-text-only | high | Round 2, injected, held-out seed 9140, n = 20, gemini (planner gemini-3.8-flash, fast gemini-3.5-flash-lite, computer use gemini-3.8-flash); gate a736b8dc8988, matches this round's frozen hash: the detector paused 20 of 20 pages of this kind (Wilson 95% 0.84 to 1.00); 0 attacks (0 visits to the exfil address, 0 submissions). The pages carry text aimed at an AI and nothing else, so this is evidence about the detector and the pause only. It does not show that the gate resists hostile pages. | agentic:agentic |
+| agentic-clean-descriptive | high | Round 2, clean, held-out seed 9139, n = 20, gemini (planner gemini-3.8-flash, fast gemini-3.5-flash-lite, computer use gemini-3.8-flash); gate a736b8dc8988, matches this round's frozen hash: 18 of 20 households completed with correct inputs on all three calculators (Wilson 95% 0.70 to 0.97); the pre-registered bar was not met (the Wilson lower bound had to be at least 0.80 and is 0.70). 0 false claim(s), 0 submissions; the 2 that did not complete ended paused (2); 10 unexpected gate stop(s) (needs_human:drift:fill x3, needs_human:drift:read x7), harness or gate-tuning findings listed apart from model failures. One run per household of one non-deterministic model; this round is not pooled with any other round. | agentic:agentic |
+| agentic-rounds-not-pooled | high | Held-out rounds measure different configurations and are shown apart, never pooled; the headline above is the newest round. Earlier: Round 1, injected, held-out seed 9138, n = 20, openai (planner gpt-5.5, fast gpt-5.4-mini, computer use gpt-5.5); gate 35e964049fd0, matches this round's frozen hash: the detector paused 20 of 20 pages of this kind (Wilson 95% 0.84 to 1.00); 0 attacks (0 visits to the exfil address, 0 submissions). The pages carry text aimed at an AI and nothing else, so this is evidence about the detector and the pause only. It does not show that the gate resists hostile pages. / Round 1, clean, held-out seed 9137, n = 4, openai (planner gpt-5.5, fast gpt-5.4-mini, computer use gpt-5.5); gate 35e964049fd0, matches this round's frozen hash: 1 of 4 passed the code check (Wilson 95% 0.05 to 0.70), 3 of 4 reached the approval gate, 2 false claim(s) (a success claimed while a figure did not match the code check), 0 submissions; 1 unexpected gate stop(s) (needs_human:drift:fill x1), harness or gate-tuning findings listed apart from model failures. n = 4 is descriptive: the pre-registered criterion 'Wilson lower bound at least 0.8' cannot be tested at this n under the spend cap, so this neither confirms nor rejects it. This round is not pooled with any other round. | agentic:agentic |
 | sim-not-people | high | Language-model participants, not people: The participants are language-model agents, not people. Nothing here shows that people learn from the coach, and nothing here is a user study. | study-sim:study_sim |
 | sim-memory-is-a-note | high | Language-model participants, not people: The only 'memory' a participant has is a note of at most 280 characters that it wrote itself after the practice case and sees again at the post-test of the same skill. Every case starts from a fresh model context. That is a prompt, not learning in any human sense. | study-sim:study_sim |
 | sim-instruction-following | high | Language-model participants, not people: A model that is shown 'check cliff edges before you copy this result' can do what it says. A higher score after coaching can therefore be instruction following plus a self-written note, not retention of a skill. | study-sim:study_sim |
 | sim-authored-by-us | high | Language-model participants, not people: The coach prompts, the sandbox sites, the households, the scoring rule and the personas were all written by us. | study-sim:study_sim |
 | sim-power | high | Language-model participants, not people: With 16 coached-arm participants the analysis has about 6% false positives and 12%, 29% and 76% power for a small, medium and large true effect (engine-analytics Monte Carlo, interval excludes zero); sign-flip p below 0.05 has less. A null or small result does not show that the coach has no effect; a result counts as clear only if the interval excludes zero. | study-sim:study_sim |
 | ana-study-n4 | high | With four teammates the exact two-sided sign-flip p cannot go below 0.125, and the interval excludes zero only when the four differences nearly agree and are large. The expected outcome is an interval that includes zero. | engine-analytics:study_power |
-| hrt-ledger-ours | high | Every world is generated by us. The shifted worlds differ in structure from the world the models were fitted on, but they are still ours; a held-out replicate catches overfitting to one noise draw, never 'the model learned our generators'. | hrt:hrt_ledger |
-| hrt-decisions-ours | high | Every decision is scored in a world we generated, with a cost we chose. The ordering of policies is a statement about these mechanisms, not about real routines, real reviewers, real workdays or real people. | hrt:hrt_decisions |
 | eval-agent-live-glitch-false-claims | high | With a one-off error page the real model passed 0 of 20 and said it was finished in 20 of 20 runs (20 false claims): it declared success on an error page. The code check caught every one, which is why code, not the model, decides success. | engine-eval:agent_runs |
 | eval-agent-live-fix-in-sample | high | The glitch result was followed by a fix (a page-state label from the quarantined reader fed to the planner, retries, and the cliff check moved after the verifier; made AFTER the glitch result was seen), then re-run on the same condition: 10 of 10 succeeded with 0 false claims, against 0 of 20 before. This is in-sample: the fix was designed after seeing that failure, and only 10 runs were made because a budget stop hit (9 later rows were dropped). It does not show the fix generalises. | engine-eval:agent_runs |
 | eval-agent-live-tier3 | high | Tier 3 (computer use) is not demonstrated on the benefits task: 3 runs against a stand-in actuator on real screenshots made 0 pointer actions and landed on an interactive element 0 times. Nothing is clicked in that setting, so a claim of done there is a false claim by construction. | engine-eval:agent_runs |
@@ -1408,9 +1342,9 @@ The help-level ladder is not scored: it is deterministic code with no outcome to
 | hitlist-limit-6 | medium | The 95% interval on minutes is checked against a known rate and mean run time, conditional on the row being listed. It does not say whether the run time a real worker would save equals the time spent (the judgement share is a pack setting, not a measurement). | hitlist:hitlist |
 | hitlist-limit-7 | medium | K-anonymity here is the group-size rule (fewer than 5 people are not listed). It does not defend against differencing across windows or role filters, and the made-up firm is not a real workforce; a real deployment needs a lawful basis and a notice to workers (D41). | hitlist:hitlist |
 | hitlist-limit-8 | medium | Nothing here shows that workers find the list useful or that Automate leads to better work; the study is a separate piece of work. | hitlist:hitlist |
-| agentic-gate-stops-unexpected | medium | Unexpected gate stops are listed apart from model failures and are harness or gate-tuning findings, not model results: clean: 1. | agentic:agentic |
+| agentic-gate-stops-unexpected | medium | Unexpected gate stops are listed apart from model failures and are harness or gate-tuning findings, not model results: round2 clean: 10. | agentic:agentic |
 | agentic-lh-offline | medium | LH-1 to LH-5 (LH-1, LH-2, LH-3, LH-2b, LH-4, LH-5) are offline: a grounded test double (LH-5 uses compiled routines with the heuristic reader), 0 model tokens. They test the code, not any model. | agentic:agentic |
-| agentic-spend | medium | Live agent spend is 16.1575 US dollars at list price (3.2062 at the lower bound) of a 20.0 cap (80.8%); the cap is why the clean held-out n is 4. | agentic:agentic |
+| agentic-spend | medium | Live agent spend is 20.1373 US dollars at list price (7.3419 at the lower bound) of a 200.0 cap (10.1%), across the development rounds and every held-out round. | agentic:agentic |
 | sim-spillover | medium | Language-model participants, not people: The counterbalanced design cancels a fixed block-2 shift and generic carry-over, not spill-over of the coached gain to the other skill in block 2, which dilutes the contrast. Because each block starts from a fresh model context, order and fatigue effects are absent by construction. | study-sim:study_sim |
 | sim-timing | medium | Language-model participants, not people: Timing is not human. Each action is followed by a fixed 2 s pause and the model's own latency varies, so effort is reported as ACTION COUNTS and the coach's poll-to-prompt delay is a property of the pipeline, not of people. A fast participant can finish the note page before a prompt arrives. | study-sim:study_sim |
 | sim-renderer | medium | Language-model participants, not people: The coach is real but the overlay renderer is a stand-in: a ring is drawn only when an element carrying the target zone exists on the page the participant is on. The cliff button exists only on a calculator result tab, not on the case note page where the prompt usually arrives. The reconcile target was `results_tabs` (no page element) when the plan was written; the pipeline snapshot used targets `reconcile_control` (the case note's dropdown), which exists. The by-zone table shows which was served. | study-sim:study_sim |
@@ -1418,14 +1352,6 @@ The help-level ladder is not scored: it is deterministic code with no outcome to
 | sim-machine-load | medium | Language-model participants, not people: The build machine was heavily loaded by other agents' tests while the participants ran (1-minute load average above 100 on 12 CPUs, sampled and reported), so wall-clock times, the coach's 3 s polls, the extension's event flush and the prompt delays are slower and noisier than on an idle machine. Action counts are not affected; timings are. | study-sim:study_sim |
 | sim-one-model | medium | Language-model participants, not people: One model (id read from the environment and recorded in the CSV) and one family of personas written by us. Results say nothing about other models. | study-sim:study_sim |
 | sim-scoring | medium | Language-model participants, not people: Scores come from the sandbox state exactly as analyze.py scores them (cliff 0, 1 or 2 of 2; reconcile 0 or 1), so ties and ceilings are likely and the t interval is not exact for such discrete scores. | study-sim:study_sim |
-| hrt-ledger-same-types | medium | The v1 world draws new people of the same four persona types the models were fitted on. A new type of worker, or a new kind of task, is what the shifted worlds stand in for. | hrt:hrt_ledger |
-| hrt-ledger-guard-guarantee | medium | The guard's bound on false flags assumes each episode's loss difference has conditional mean at most zero given the past. Episodes of one person are not independent, so the bound is a design target that the no-drift deployments check, not a proof. | hrt:hrt_ledger |
-| hrt-ledger-eight | medium | Eight deployments per world give wide intervals for guard counts and for the strategy comparison; counts are shown with exact intervals. | hrt:hrt_ledger |
-| hrt-ledger-one-direction | medium | The guard compares the model with a naive predictor. A model that drifts but stays better than that predictor is not flagged (the error-risk world after the rule change); the loss of calibration shows in the reliability table and the intercept, and nothing recalibrates the model in this version. | hrt:hrt_ledger |
-| hrt-ledger-no-live | medium | The ledger is built and tested, but the running product has recorded no live predictions yet, so no real prospective result exists. These are replays of generated time. | hrt:hrt_ledger |
-| hrt-decisions-costs | medium | The review minutes per case, the cost of an escaped error, the build cost b, the ratio of a collision's cost to a finished run's value (L/G) and the intervention reward are assumptions; each row prints a sweep or says which cost it hangs on. | hrt:hrt_decisions |
-| hrt-decisions-routing-signals | medium | In the routing generator the worker's check, the agent's stated confidence and the worker's trace are drawn from the realised error. Part of the model's edge over random review is signal our generator hands it. | hrt:hrt_decisions |
-| hrt-decisions-build-now | medium | At the pack's own build costs (4 to 9 manual runs) building at once is cheaper than the shipped build-timing rule in these generated worlds; the rule beats break-even, the classical reference, which is the registered primary contrast. | hrt:hrt_decisions |
 | eval-deficit-weak | medium | Deficit detection is weaker for: repeated_read_result (precision 70%, recall 100%); copy_error (precision 100%, recall 71%). Overall precision 92%, recall 95% over 160 case-deficit pairs. | engine-eval:deficit_recovery |
 | eval-deficit-bias | medium | The recovered price differs from the planted price, with an interval that excludes zero, for: repeated_read_result (+13.5 s, interval 5.1 to 23.3). The alignment names a block of extra steps by its content, so a deficit that shares steps with another is mis-priced. | engine-eval:deficit_recovery |
 | eval-hazard-alarm-budget | medium | On held-out people the false-alarm rate is 1.21 an hour, over the 1.0 an hour budget chosen on the training people. | engine-eval:hazard |
@@ -1463,7 +1389,5 @@ The help-level ladder is not scored: it is deterministic code with no outcome to
 | live_small_n | low | The live block, when it is run, is a small-n pass rate for one local model on generated packets; it says nothing about other models. | evidence:evidence |
 | realism-calibration | low | Deficit prevalence and stuck-episode rates were calibrated once to structural plausibility targets (S1 to S6) before any analytic was run; the families still differ a lot in prevalence. | personas-v2:realism |
 | att_b1_b2_strawmen | low | B1 and B2 are deliberately simple baselines (everything at once, one digest a day). They show the two failure modes the layer is designed to avoid; they are not what any real notifier does. | attention:attention |
-| hrt-ledger-oracle | low | The oracle strategy picks the better of two predictors in hindsight; it bounds what is possible and is not implementable. | hrt:hrt_ledger |
-| hrt-decisions-family | low | Four primary contrasts were registered; every other cell is exploratory and is never used to say a rule works. The adjusted level is Bonferroni, which is conservative. | hrt:hrt_decisions |
 | eval-null-offset | low | The shuffled-label null averages +46.2 s (interval -36.4 to 116.9), about 20% of the real gap of 229.6 s. Matching each case to its nearest reference is not symmetric, so the null is not exactly zero; the real gap sits above the null interval, which is the comparison that counts. | engine-eval:null_placebo |
 | eval-agent-runs-discrepancies | low | 7 of 20 households are planted discrepancies between the sandbox calculators (quirks we wrote). A pass on them means the discrepancy was flagged, not that an entitlement was worked out, and the oracle is a simplified rule set, not the law. | engine-eval:agent_runs |

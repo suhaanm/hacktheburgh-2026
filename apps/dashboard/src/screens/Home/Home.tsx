@@ -2,7 +2,9 @@
 // A blocking approval or a safety pause takes the hero slot. Everything the old Your week showed beyond this moved: the Monday note to the
 // palette, "What your admin can see" to Your data, the example-week selector to Settings, the data mode to the sidebar's status line.
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { api, forgetBackoff, refreshQueueBadge } from "../../api";
+import { api, forgetBackoff } from "../../api";
+import { reportInsight } from "../../lib/wakeContext";
+import { refreshNeedsBadge } from "../NeedsYou/count";
 import { useRoute } from "../../router";
 import { useAppState } from "../../store";
 import { useLoad } from "../../hooks";
@@ -23,7 +25,7 @@ function Row({ href, icon, children, hint }: { href: string; icon: "needs-you" |
     <li className="home__row">
       <a className="home__row-link" href={href}>
         <Icon name={icon} />
-        <span className="home__row-text">{children}</span>
+        <span className="home__row-text" dir="auto">{children}</span>
         <Icon name="chevron" className="home__row-chev" />
       </a>
       {hint && <Hint label={hint.label}>{hint.text}</Hint>}
@@ -49,7 +51,7 @@ function Reading() {
 function QuietState({ q, onRetry }: { q: Quiet; onRetry: () => void }) {
   return (
     <section className="home__hero home__quiet" aria-labelledby="home-hero">
-      <h1 id="home-hero" className="home__hero-text">{q.title}</h1>
+      <h1 id="home-hero" className="home__hero-text hero-insight">{q.title}</h1>
       <p className="home__why">{q.body}</p>
       {q.action === "try-again" && <div className="home__actions"><button type="button" className="btn btn--secondary" onClick={onRetry}>Try again</button></div>}
       {q.action === "choose-role" && <div className="home__actions"><a className="btn btn--primary" href="#/first-run">Choose a role</a></div>}
@@ -74,12 +76,16 @@ export default function Home() {
 
   const onGone = useCallback((id: string) => setGone((g) => new Set([...g, id])), []);
   const retry = useCallback(() => { forgetBackoff(); window.dispatchEvent(new Event("understudy:retry")); w.reload(); }, [w]);
-  const decided = useCallback(() => { queue.reload(); void refreshQueueBadge(); }, [queue]);
+  const decided = useCallback(() => { queue.reload(); void refreshNeedsBadge(); }, [queue]);
 
   const data = w.data;
-  const pointers = useMemo(() => (data ? data.pointers.filter((p) => !gone.has(p.id)) : []), [data, gone]);
+  const pointers = useMemo(() => (data ? (data.pointers ?? []).filter((p) => p && !gone.has(p.id) && typeof p.headline === "string" && p.headline.trim() !== "") : []), [data, gone]);
   const pending = (queue.data ?? []).filter((x) => x.status === "pending");
   const blocking = blockingItem(pending);
+
+  // Tell the voice conversation which insight is the hero (an id and the template it was built from, nothing else). An approval, a quiet week or a loading screen has none.
+  const heroPointer = !blocking && pointers.length > 0 ? pointers[0] : null;
+  useEffect(() => { reportInsight(heroPointer?.id ?? null, heroPointer?.kind ?? null); }, [heroPointer?.id, heroPointer?.kind]);
 
   if (w.status === "error" && !data) return <div className="page page--read home"><QuietState q={COULD_NOT_LOAD} onRetry={w.reload} /></div>;
   if (!data) return <Reading />;
@@ -89,12 +95,12 @@ export default function Home() {
   const quiet = pointers.length === 0 ? quietFor(status, { setUp: !!app.role || !!person }) : null;
   const badge = originBadge({ example, origin: w.meta?.origin, badge: (w.meta as { badge?: string } | null)?.badge });
   const date = weekOf(data.week);
-  const standInNote = data.stand_in ? ((w.meta as { note?: string } | null)?.note ?? "An example week from the synthetic firm stands in for this profile.") : null;
+  const standInNote = data.stand_in ? ((w.meta as { note?: string } | null)?.note ?? "An example week stands in for this profile.") : null;
 
   const [first, second] = pointers;
   const action = first ? heroAction(first) : null;
   const toTry = tryLine(data.try) ?? exampleLine(data.stand_in, firstRunAt());
-  const needs = needsLine(remainingAfter(pending.length || app.pendingQueue, !!blocking));
+  const needs = needsLine(remainingAfter(Math.max(app.pendingQueue, pending.length), !!blocking));
   const repeats = rep.data && rep.data.state === "ok" ? rep.data.total : null;
   const rLine = repeatsRow(repeats);
 
@@ -116,7 +122,7 @@ export default function Home() {
 
       {blocking ? <ApprovalHero item={blocking} onDone={decided} /> : quiet ? <QuietState q={quiet} onRetry={retry} /> : first && (
         <section className="home__hero" aria-labelledby="home-hero">
-          <h1 id="home-hero" className="home__hero-text">{heroSentence(first.headline)}</h1>
+          <h1 id="home-hero" className="home__hero-text hero-insight" dir="auto">{heroSentence(first.headline)}</h1>
           {toTry && <p className="home__why">{toTry}</p>}
           <div className="home__actions">
             {action && <a className="btn btn--primary" href={action.href}>{action.label}</a>}

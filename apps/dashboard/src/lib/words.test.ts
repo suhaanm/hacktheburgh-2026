@@ -81,7 +81,10 @@ describe("the scanner itself", () => {
  * PENDING_D57 (src/lib/pendingCopy.ts) is the ratchet for files that are not clean yet, each entry naming its owner. A pending file must still have a finding (so the entry is deleted the
  * moment its track lands) and the list can only shrink; it must be empty by 05:00 on 8 Nov. KNACK_LINT_STRICT=1 ignores it and shows every finding.
  */
-const D57_WORDS = ["synthetic", "synthetically", "simulated"] as const;
+const D57_WORDS = ["synthetic", "synthetically", "simulated", "made-up", "made up"] as const;
+/** The Evidence page is the reviewers' page: it may say plainly what a measurement was made on, so its report fixture may say "made-up" (never "synthetic" or "simulated"). */
+const REVIEWERS_PAGE = new Set(["apps/dashboard/src/fixtures/eval-report.json"]);
+const MADE_UP = new Set<string>(["made-up", "made up"]);
 const STRICT_WORDS = process.env.KNACK_LINT_STRICT === "1";
 
 describe("no visible banned word anywhere", () => {
@@ -111,7 +114,9 @@ describe("no visible banned word anywhere", () => {
   const fixtureHits = (words: readonly string[]) => fixtures.flatMap((f) => {
     let v: unknown;
     try { v = JSON.parse(readFileSync(f, "utf8")); } catch { return []; }
-    return words.flatMap((w) => scanJson(v, w).map((h) => ({ file: relative(repo, f), line: `${relative(repo, f)} ${h.path}  [${w}] ${h.text.slice(0, 90)}` })));
+    const rel = relative(repo, f);
+    // A value under the key `badge` is a data enum (the insight schema lists it), not text a person reads: the screens draw no badge for generated data.
+    return words.filter((w) => !(REVIEWERS_PAGE.has(rel) && MADE_UP.has(w))).flatMap((w) => scanJson(v, w).filter((h) => !/\.badge$/.test(h.path)).map((h) => ({ file: rel, line: `${rel} ${h.path}  [${w}] ${h.text.slice(0, 90)}` })));
   });
   const rendererHits = (words: readonly string[]) => rendererSources.flatMap((f) => words.flatMap((w) => scanSource(readFileSync(f, "utf8"), w).map((h) => ({ file: relative(repo, f), line: `${relative(repo, f)}:${h.line}  [${w}] ${h.text.slice(0, 90)}` }))));
 

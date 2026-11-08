@@ -311,7 +311,8 @@ def _limits(pk: EvidencePacket) -> list[dict[str, str]]:
 
 def _footer(pk: EvidencePacket) -> str:
     m = pk.meta
-    return f"Based on n = {m.n} {V.N_UNIT_PHRASE[m.n_unit]}; {V.ORIGIN_PHRASE[m.origin]}."
+    phrase = V.ORIGIN_PHRASE[m.origin]
+    return f"Based on n = {m.n} {V.N_UNIT_PHRASE[m.n_unit]}{'; ' + phrase if phrase else ''}."
 
 
 def explain(packet: EvidencePacket, question: str | None = None, *, intent: str | None = None, backends: Backends | None = None,

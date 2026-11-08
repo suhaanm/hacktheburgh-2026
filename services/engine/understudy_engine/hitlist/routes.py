@@ -28,6 +28,7 @@ from fastapi import APIRouter, Body, Query, Request
 from fastapi.responses import JSONResponse
 
 from .. import http_guard
+from ..insights.routes import admin_gate
 from . import service as S
 from .firm import firm_hitlist
 from .service import FLAG, WINDOWS, enabled
@@ -150,14 +151,21 @@ def post_reset(request: Request, body: dict[str, Any] | None = Body(None)):
 
 
 @router.get("/hitlist/firm")
-def get_firm(window: int | None = Query(None), role: str | None = Query(None)):
+def get_firm(request: Request, window: int | None = Query(None), role: str | None = Query(None)):
+    # The firm's repeated work is Admin data: the same gate as /insights/admin/* (role header, per-boot token, a person and not an agent). It was open to any caller; the Worker view
+    # must never be able to read it, so the engine refuses rather than relying on the page not to ask.
+    if (refused := admin_gate(request)) is not None:
+        return refused
     w = _window(window)
     if isinstance(w, JSONResponse):
         return w
     data, source = firm_hitlist(w, role)
     meta = {"origin": "synthetic", "n": data["people"], "n_unit": "people", "split": None, "interval_level": 0.95,
-            "note": ("A made-up firm of about 60 people in three roles, not real people. Totals add up what each role repeats; "
+            "note": ("Totals add up what each role repeats; "
                      "a group of fewer than 5 people is not listed, and no person is named or ranked. For coaching and onboarding, "
                      "not for evaluating individuals."),
             "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"), "firm_source": source}
+    if source == "roster":          # the people are the firm's own roster: say how many and what is withheld, in the firm's terms
+        meta["note"] = (f"The whole firm, {data['people']} people. Totals add up what each role repeats; a group of fewer than 5 people "
+                        "is not listed, and no person is named or ranked. For coaching and onboarding, not for evaluating individuals.")
     return {"meta": meta, "data": data}

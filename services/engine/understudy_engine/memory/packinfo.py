@@ -80,7 +80,10 @@ def list_pack_ids() -> list[str]:
 
 
 def load_pack(role: str) -> PackView:
-    """Load a pack by id. Unknown ids raise ``KeyError``."""
+    """Load a pack by id. Unknown ids raise ``KeyError``. The id must be exactly one of ``list_pack_ids()``: a path (``../x``) or another case of a real id
+    (a case-insensitive disk would find the folder) is not a role."""
+    if not isinstance(role, str) or role not in list_pack_ids():
+        raise KeyError(role)
     p = packs_dir() / role / "pack.yaml"
     if p.exists():
         view = _from_dir(p.parent)

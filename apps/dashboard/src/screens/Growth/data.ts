@@ -120,13 +120,13 @@ export async function exportLedger(story: Story, example: boolean): Promise<{ fi
   if (!example) {
     const person = await whoAmI();
     const r = await call(`/cue/ledger/export${qs({ person })}`);
-    if (!r.reached) throw new ApiError(0, "offline", "The engine is not running, so the ledger could not be exported. Start it and try again.");
+    if (!r.reached) throw new ApiError(0, "offline", "The engine is not running, so your record could not be exported. Start it and try again.");
     if (r.status >= 400) throw errorOf(r);
     return { filename, text: JSON.stringify(r.body, null, 2) };
   }
   const b = await bundleOf(story);
   const rows = cleared.has(story) ? [] : b.ledger.data.rows;
-  return { filename, text: JSON.stringify({ origin: "example data (synthetic)", rows }, null, 2) };
+  return { filename, text: JSON.stringify({ origin: "example data", rows }, null, 2) };
 }
 
 /** Delete the worker's ledger. Worker-only on the engine. In example mode it clears the example, so the empty state can be seen. */
