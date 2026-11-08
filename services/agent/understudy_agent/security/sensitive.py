@@ -51,6 +51,14 @@ def is_sensitive_field(*, name: str | None = None, id: str | None = None, label:
     return any(p.search(text) for p in sensitive_patterns())
 
 
+def script_policy() -> dict[str, Any]:
+    """The same policy as data a page script can apply (patterns as regex source, autocomplete tokens, input types). The form audit runs
+    inside the page's DOM and must not read the value of a field this policy names, so it carries the policy in with it."""
+    pol = _policy()
+    return {"patterns": [p.pattern for p in sensitive_patterns()], "ac": [t.lower() for t in pol.get("autocomplete_tokens", [])],
+            "types": [t.lower() for t in pol.get("input_types", [])]}
+
+
 def is_sensitive_attrs(attrs: dict[str, Any] | None) -> bool:
     """Convenience for dicts from the extension: keys name, id, label, placeholder, autocomplete, aria_label, type, role."""
     if not attrs:
