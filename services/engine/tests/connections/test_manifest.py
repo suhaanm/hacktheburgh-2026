@@ -5,7 +5,6 @@ from __future__ import annotations
 import copy
 from dataclasses import replace
 
-import pytest
 import yaml
 from understudy_engine.connections import registry
 from understudy_engine.connections.manifest import LAUNCHERS, Preset, command_hash, connection_problems, consent, standin_script_sha

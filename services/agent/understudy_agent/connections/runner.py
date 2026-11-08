@@ -114,7 +114,7 @@ def build_launch(preset: Preset, mode: str, params: dict[str, str], secrets: dic
         raise RunnerError("no_real_mode", "This connection has only an example.")
     if real["transport"] == "plugin":
         return Launch("source")
-    for k, v in params.items():
+    for v in params.values():
         if not isinstance(v, str) or v.startswith("-") or "\x00" in v:
             raise RunnerError("bad_param", "A value you entered cannot be used.")
     env: dict[str, str] = dict(real.get("env_fixed", {}))
