@@ -75,7 +75,8 @@ export function buildItems(view: ViewRole, extra: ExtraItems = {}, caps: Palette
   if (caps.pause) items.push(act("pause", "Pause for 1 hour", "Nothing starts for an hour", "snooze quiet break", "pause"));
   if (view === "worker") items.push(act("monday", "Copy my Monday note", "Your week as a short note you can paste", "share summary pointers", "monday"));
   items.push(act("about", "Explain this screen", "What it is and where the numbers come from", "about help what is this", "about"));
-  items.push({ id: "action:delete", kind: "action", label: "Delete my data", hint: "Opens Your data, where each part has a Forget", also: "forget erase remove privacy memory", group: GROUP_ACTIONS, target: { type: "route", path: "/your-data" } });
+  // Your data is a worker screen: an admin has no row that deletes anything from it.
+  if (view === "worker") items.push({ id: "action:delete", kind: "action", label: "Delete my data", hint: "Opens Your data, where each part has a Forget", also: "forget erase remove privacy memory", group: GROUP_ACTIONS, target: { type: "route", path: "/your-data" } });
   items.push(act("tour", "Take the tour", "A short walk through the main screens", "help guide walkthrough", "tour"));
   if (caps.accessibility) items.push(act("accessibility", "Open System Settings for Accessibility", "Where you allow Knack to point at the screen", "permission macos screen recording", "accessibility"));
   if (caps.ask) items.push(act("ask", "Ask Knack", "Tap to type, hold Option-Space to talk", "chat voice question", "ask", GROUP_ASK));
@@ -290,3 +291,5 @@ export function resultsText(total: number): string {
 
 /** The line shown when nothing matches: what happened and what to try. */
 export const NO_RESULTS_HELP = "Try a screen name such as Growth, or a word such as stuck, calendar or privacy.";
+/** The same hint with a screen the view can actually open: an admin has no Growth. */
+export const noResultsHelp = (view: ViewRole): string => (view === "admin" ? "Try a screen name such as Roles, or a word such as forecast, risk or onboarding." : NO_RESULTS_HELP);
