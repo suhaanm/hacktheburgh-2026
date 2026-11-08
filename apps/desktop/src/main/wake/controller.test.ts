@@ -9,7 +9,7 @@ import { WakeSettingsStore } from './settings'
 
 const CALM = { flagOn: true, isMac: true, mock: false, locked: false, asleep: false, paused: false, killed: false, hardQuiet: { dnd: false, screenSharing: false, onCall: false, inMeeting: false }, agentActing: false, away: false }
 
-function rig(over: { mic?: { status: string }; tasks?: TaskClient; readOut?: (t: string) => boolean; firstRun?: { on: boolean }; rung?: RungReading; live?: { consented?: boolean; frames?: boolean }; startOk?: boolean; blocker?: string | null; inputs?: Partial<typeof CALM> } = {}) {
+function rig(over: { screen?: string; mic?: { status: string }; tasks?: TaskClient; readOut?: (t: string) => boolean; firstRun?: { on: boolean }; rung?: RungReading; live?: { consented?: boolean; frames?: boolean }; startOk?: boolean; blocker?: string | null; inputs?: Partial<typeof CALM> } = {}) {
   const settings = new WakeSettingsStore(null)
   const liveSettings = new LiveSettingsStore(null)
   if (over.live?.consented) liveSettings.patch({ liveEnabled: true, liveConsentVersion: LIVE_CONSENT_VERSION, liveFrames: over.live.frames === true }, { trusted: true })
@@ -40,6 +40,7 @@ function rig(over: { mic?: { status: string }; tasks?: TaskClient; readOut?: (t:
     liveSettings,
     openSettings: (w) => void opened.push(w),
     micStatus: () => over.mic?.status ?? 'granted',
+    ...(over.screen !== undefined ? { screenStatus: () => over.screen as string } : {}),
     tasks: over.tasks,
     readOut: (t) => (readOuts.push(t), over.readOut?.(t) ?? false),
     sleep: async (ms) => void (t += ms),
@@ -562,8 +563,8 @@ describe('every capability that cannot work answers with a card and a button', (
     await r.flush()
     expect(r.cardsSeen[0]).toMatchObject({ title: 'To find it, Knack must see your screen.' })
     expect(r.cardsSeen[0].body).toContain('works without this')
-    expect(r.cardsSeen[0].buttons.map((b) => b.label)).toEqual(['System Settings', 'Close'])
-    expect(r.opened).toEqual(['screen'])
+    expect(r.cardsSeen[0].buttons.map((b) => b.label)).toEqual(['Allow screen help', 'Close'])
+    expect(r.opened).toEqual(['screen_ask']) // asks macOS first (that lists Knack under Screen Recording), then opens the pane
     r.ctl.explainRefusal('screen_recording')
     await r.flush()
     expect(r.cardsSeen).toHaveLength(1) // not again so soon
@@ -703,7 +704,7 @@ describe('a blocked listener and a click that cannot run say so on a card', () =
       await r.flush()
       await r.flush()
       expect(r.cardsSeen.at(-1)).toMatchObject({ title })
-      expect(r.opened).toEqual(pane ? [pane] : [])
+      expect(r.opened).toEqual(pane ? [pane === 'screen' ? 'screen_ask' : pane] : [])
       expect(r.said).toContain('did_not_work')
     }
   })
@@ -1025,6 +1026,113 @@ describe('start_task: the request goes to the task service and a card asks first
     await r2.ctl.startTask('when does the office open')
     for (let i = 0; i < 40; i++) await r2.flush()
     expect(r2.cardsSeen.at(-1)).toMatchObject({ title: 'Your answer', body: 'The office opens at nine.' })
+  })
+})
+
+describe('a screen task that could not run says which app and what to do', () => {
+  const REFUSED = "Knack won't work in Terminal: it can run commands on your Mac. Click a different window."
+  const refusedRows = [row('running', { route: 'desktop' }), row('done', { route: 'desktop', result: REFUSED })]
+
+  it('by voice: the model is told which app in the tool answer (read from the task row), and a card says it and what to do', async () => {
+    const t = fakeTasks({ created: { route: 'desktop', needs_consent: null }, rows: refusedRows })
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    r.answers.push(null)
+    const a = await r.ctl.startTask('help me fill in this form')
+    expect(a).toEqual({ ok: true, started: false, waiting_consent: false, route: 'desktop', desktop_click_possible: false, refused_app: 'Terminal' })
+    await r.flush()
+    expect(r.cardsSeen.at(-1)).toMatchObject({ title: 'Knack cannot work in Terminal.', body: 'Bring the app you want help in to the front and ask again.' })
+    expect(r.cardsSeen.at(-1)?.buttons.map((b) => b.label)).toEqual(['Close'])
+    expect(r.readOuts).toEqual([]) // the model heard it in the tool answer already: not told twice
+    expect(r.said).not.toContain('done') // never a bare "Done."
+  })
+
+  it('a refusal that arrives after the tool answer is read out in the open conversation and shown', async () => {
+    const t = fakeTasks({ created: { route: 'desktop', needs_consent: null }, rows: [...Array(6).fill(row('running', { route: 'desktop' })), row('done', { route: 'desktop', result: "Knack won't work in Google Chrome: it holds your signed-in sessions. Click a different window." })] })
+    const r = rig({ tasks: t.client, readOut: () => true })
+    r.ctl.start()
+    r.answers.push(null)
+    const a = await r.ctl.startTask('help me with this page')
+    expect(a).toMatchObject({ ok: true, route: 'desktop' })
+    expect(a).not.toHaveProperty('refused_app')
+    for (let i = 0; i < 40; i += 1) await r.flush()
+    expect(r.cardsSeen.at(-1)).toMatchObject({ title: 'Knack cannot work in Google Chrome.' })
+    expect(r.readOuts.at(-1)).toContain('Knack cannot work in Google Chrome. Bring the app you want help in to the front and ask again.')
+  })
+
+  it('typed: the same card after the I-will-show-you card, from the task row', async () => {
+    const t = fakeTasks({ created: { route: 'desktop', needs_consent: null, summary: 'Open Finder, then drag the file.' }, rows: refusedRows })
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    r.answers.push(null, null)
+    expect(await r.ctl.submitTyped('help me with this')).toEqual({ ok: true })
+    for (let i = 0; i < 40; i += 1) await r.flush()
+    expect(r.cardsSeen.map((c) => c.title)).toEqual(['I will show you instead.', 'Knack cannot work in Terminal.'])
+  })
+
+  it('any other reason a screen task did not run is the service\u2019s own plain sentence on a card; a real run is reported as before', async () => {
+    const missing = fakeTasks({ created: { route: 'desktop', needs_consent: null }, rows: [row('done', { route: 'desktop', result: 'Knack needs Screen Recording. Open System Settings, Privacy and Security, Screen Recording, and switch Knack on.' })] })
+    const r = rig({ tasks: missing.client })
+    r.ctl.start()
+    r.answers.push(null)
+    await r.ctl.startTask('help me')
+    for (let i = 0; i < 10; i += 1) await r.flush()
+    expect(r.cardsSeen.at(-1)).toMatchObject({ title: 'Knack could not work on the screen.' })
+    expect(r.cardsSeen.at(-1)?.body).toContain('Knack needs Screen Recording.')
+    const ran = fakeTasks({ created: { route: 'desktop', needs_consent: null }, rows: [row('done', { route: 'desktop', result: 'Reported, not checked: finished.' })] })
+    const q = rig({ tasks: ran.client })
+    q.ctl.start()
+    await q.ctl.startTask('rename the file')
+    for (let i = 0; i < 10; i += 1) await q.flush()
+    expect(q.said).toContain('done')
+    expect(q.cardsSeen).toHaveLength(0)
+  })
+
+  it('only the app\u2019s name is taken from the result, cleaned; the words on the card are ours', async () => {
+    const { refusedAppOf, screenTaskDidNotRun } = await import('./texts')
+    expect(refusedAppOf("Knack won't work in Terminal: it can run commands on your Mac. Click a different window.")).toBe('Terminal')
+    expect(refusedAppOf('Knack won\u2019t work in Claude: it is on your denylist.')).toBe('Claude')
+    expect(refusedAppOf("Knack won't work in <b>Hi</b>`$(rm)`: x.")).toBe('bHibrm')
+    expect(refusedAppOf('Knack needs Accessibility.')).toBeNull()
+    expect(refusedAppOf(null)).toBeNull()
+    expect(screenTaskDidNotRun('Reported, not checked: finished.')).toBe(false)
+    expect(screenTaskDidNotRun('Knack needs Accessibility.')).toBe(true)
+    expect(screenTaskDidNotRun(null)).toBe(false)
+  })
+})
+
+describe('screen help after the yes', () => {
+  it('a yes to talking and looking while macOS has not allowed Screen Recording shows the one step still missing, with the ask-first button', async () => {
+    const r = rig({ screen: 'not-determined' })
+    r.ctl.start()
+    r.answers.push(mouse('yes'), mouse('screen'))
+    expect(await r.ctl.askConsent({ explicit: true })).toBe('granted')
+    await r.flush()
+    expect(r.cardsSeen.map((c) => c.title)).toEqual(['Talk with Knack?', 'One more step for screen help.'])
+    expect(r.cardsSeen[1].buttons.map((b) => b.label)).toEqual(['Allow screen help', 'Close'])
+    expect(r.opened).toEqual(['screen_ask']) // only on the worker's real click on the button: macOS is asked, then the pane opens
+  })
+  it('Voice only, or Screen Recording already allowed, shows Talking is on instead', async () => {
+    const voice = rig({ screen: 'denied' })
+    voice.ctl.start()
+    voice.answers.push(mouse('voice_only'), null)
+    await voice.ctl.askConsent({ explicit: true })
+    await voice.flush()
+    expect(voice.cardsSeen.map((c) => c.title)).toEqual(['Talk with Knack?', 'Talking is on.'])
+    const ok = rig({ screen: 'granted' })
+    ok.ctl.start()
+    ok.answers.push(mouse('yes'), null)
+    await ok.ctl.askConsent({ explicit: true })
+    await ok.flush()
+    expect(ok.cardsSeen.map((c) => c.title)).toEqual(['Talk with Knack?', 'Talking is on.'])
+  })
+  it('a Screen Recording card button is a real click only: a key leaves macOS unasked', async () => {
+    const r = rig()
+    r.ctl.start()
+    r.answers.push({ buttonId: 'screen', via: 'other' })
+    r.ctl.explainRefusal('screen_recording')
+    await r.flush()
+    expect(r.opened).toEqual([])
   })
 })
 

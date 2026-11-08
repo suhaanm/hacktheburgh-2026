@@ -85,7 +85,7 @@ export type DoItAnswer = { ok: true; started: true } | { ok: false; reason: stri
  *  (except `result`, cleaned text of at most 300 characters, only for a question that was answered inline). */
 export type TaskRoute = 'answer' | 'browser' | 'desktop' | 'claude_agent' | 'unclear'
 export type TaskAnswer =
-  | { ok: true; started: false; waiting_consent: boolean; route: TaskRoute; asked?: boolean; result?: string | null; desktop_click_possible?: boolean }
+  | { ok: true; started: false; waiting_consent: boolean; route: TaskRoute; asked?: boolean; result?: string | null; desktop_click_possible?: boolean; /** The screen task could not run in the window in front: its name, cleaned (letters, digits and a few marks, at most 30). */ refused_app?: string }
   | { ok: false; reason: 'too_many_tasks' | 'kill_switch' | 'unavailable' | 'refused' | 'no_session' }
 
 export interface ToolHost {

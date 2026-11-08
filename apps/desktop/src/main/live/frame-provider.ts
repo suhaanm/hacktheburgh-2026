@@ -30,13 +30,19 @@ export function encodeLiveFrame(img: ImageLike, maxEdge = LIVE_FRAME_MAX_EDGE): 
 }
 
 export function createFrameProvider(source: FrameSource, maxEdge = LIVE_FRAME_MAX_EDGE): FrameProvider {
+  let failure: 'permission' | 'other' | null = null
   return {
     async grab() {
       try {
-        return encodeLiveFrame(await source.grab(), maxEdge)
-      } catch {
-        return null // no permission, no display, a failed encode: that frame is skipped
+        const f = encodeLiveFrame(await source.grab(), maxEdge)
+        failure = null
+        return f
+      } catch (err) {
+        // No permission, no display, a failed encode: that frame is skipped, and the reason is kept as a closed word so the session can say it (never silently).
+        failure = err instanceof CaptureError && err.code === 'permission' ? 'permission' : 'other'
+        return null
       }
     },
+    lastFailure: () => failure,
   }
 }

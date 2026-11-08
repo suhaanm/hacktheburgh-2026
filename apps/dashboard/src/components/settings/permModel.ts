@@ -11,7 +11,7 @@ export const PERM_FOR: Record<Perm, string> = {
   microphone: "Lets Knack hear you.",
   speech: "Lets Knack hear the words Hey Knack.",
   accessibility: "Lets Knack click for you, when you allow it.",
-  screen: "Lets Knack look at your screen and point at things anywhere on it.",
+  screen: "Lets Knack look at your screen and point at things anywhere on it. Switch it on, then reopen Knack.",
 };
 
 export interface PermRow {

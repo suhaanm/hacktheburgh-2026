@@ -16,6 +16,7 @@ import type { SessionMeter } from './meter'
 import { MicError, type AudioBridge, type ToolHost } from './ports'
 import { parseToolCall, schedulingFor, buildToolDeclarations, type CandidateList } from './tools'
 import { LiveClock, type Timers } from './clock'
+import { createFramesTracker } from './frames-state'
 import { buildSetup, msg, pcmSeconds, type FunctionCall, type FunctionResponse, type LiveServerEvent, type TurnMode } from './wire'
 import { TokenError, type TokenMinter } from './token'
 
@@ -72,6 +73,8 @@ export interface SessionConfig {
 
 export interface FrameProvider {
   grab(): Promise<LiveFrame | null>
+  /** Why the last grab returned null: macOS Screen Recording is not allowed ('permission'), or anything else ('other'). Absent: not known. */
+  lastFailure?(): 'permission' | 'other' | null
 }
 
 export interface SessionDeps {
@@ -147,6 +150,7 @@ export class LiveSession {
   private awaitingFirstAudio = false
   private lastFrameAt = 0
   private frameBusy = false
+  private readonly framesState = createFramesTracker()
   private transcriptText = ''
   private transcriptFinal = false
   private readonly ttfa: number[] = []
@@ -156,7 +160,7 @@ export class LiveSession {
   private offIdle: (() => void) | null = null
   private readonly phaseListeners = new Set<Listener<SessionPhase>>()
   private readonly endListeners = new Set<Listener<SessionSummary>>()
-  private readonly noticeListeners = new Set<Listener<{ kind: 'blocked' | 'mic' | 'ledger' | 'connect'; reason: string }>>()
+  private readonly noticeListeners = new Set<Listener<{ kind: 'blocked' | 'mic' | 'ledger' | 'connect' | 'frames'; reason: string }>>()
   private readonly answerLabels = new Map<string, string>()
   private result: SessionSummary | null = null
 
@@ -179,11 +183,11 @@ export class LiveSession {
     else this.endListeners.add(cb)
     return () => this.endListeners.delete(cb)
   }
-  onNotice(cb: Listener<{ kind: 'blocked' | 'mic' | 'ledger' | 'connect'; reason: string }>): () => void {
+  onNotice(cb: Listener<{ kind: 'blocked' | 'mic' | 'ledger' | 'connect' | 'frames'; reason: string }>): () => void {
     this.noticeListeners.add(cb)
     return () => this.noticeListeners.delete(cb)
   }
-  private notice(kind: 'blocked' | 'mic' | 'ledger' | 'connect', reason: string): void {
+  private notice(kind: 'blocked' | 'mic' | 'ledger' | 'connect' | 'frames', reason: string): void {
     for (const l of this.noticeListeners) l({ kind, reason })
   }
   private setPhase(p: SessionPhase): void {
@@ -448,9 +452,12 @@ export class LiveSession {
   private lastBlocked = ''
   private onBlocked(kind: 'audio' | 'frames', reason: string): void {
     // One notice per change of reason, not one per 32 ms chunk.
-    if (`${kind}:${reason}` !== this.lastBlocked) {
+    if (kind === 'frames') {
+      // Frames wanted and not sent: said once per conversation on a card (a closed code), and once to the model, so it never pretends to see the screen. The voice goes on.
+      if (!['unattended', 'killed', 'ledger_unavailable'].includes(reason)) this.framesLost(reason)
+    } else if (`${kind}:${reason}` !== this.lastBlocked) {
       this.lastBlocked = `${kind}:${reason}`
-      this.notice(kind === 'audio' ? 'blocked' : 'ledger', reason)
+      this.notice('blocked', reason)
     }
     // An unattended gate is never recoverable; a killed one neither. The rest (a private app in front) pauses what leaves and the session waits.
     if (reason === 'unattended') this.end('unattended')
@@ -482,6 +489,13 @@ export class LiveSession {
     }
   }
 
+  /** A frame could not go out for this closed reason: the card once per conversation, the model told (at most a few times), never anything from the screen. */
+  private framesLost(reason: string): void {
+    const r = this.framesState.lost(reason)
+    if (r.notice) this.notice('frames', r.notice)
+    if (r.tell) this.injectText(r.tell)
+  }
+
   private async tickFrames(): Promise<void> {
     const provider = this.d.frames
     if (!provider || this.frameBusy || this.ended || !this.egress || !this.c.framesEnabled || this.c.mode !== 'converse') return
@@ -495,8 +509,18 @@ export class LiveSession {
         return
       }
       const frame = await provider.grab()
-      if (!frame) return
-      await this.egress.frames([frame])
+      if (!frame) {
+        // Nothing came back: no Screen Recording permission (said at once), or an empty capture twice in a row. Never a silent skip.
+        const why = this.framesState.miss(provider.lastFailure?.() === 'permission')
+        if (why) this.framesLost(why)
+        return
+      }
+      this.framesState.clearMisses()
+      const sent = await this.egress.frames([frame])
+      if (sent === 'sent') {
+        const back = this.framesState.back()
+        if (back) this.injectText(back)
+      }
     } catch {
       /* a failed capture or send costs one frame, never the conversation */
     } finally {
@@ -687,6 +711,9 @@ export function taskReply(r: import('./ports').TaskAnswer): Record<string, unkno
   const base = { ok: true, started: false, waiting_consent: r.waiting_consent, route: r.route }
   if (r.asked) return { ...base, asked: true, message: "A question card is on the worker's screen. Tell them to pick an option on the card. Do not say anything has started." }
   if (r.waiting_consent) return { ...base, message: "A card is on the worker's screen. Tell them to tap Allow on the card. Do not say it has started." }
+  if (r.route === 'desktop' && r.refused_app) {
+    return { ...base, refused_app: r.refused_app, message: 'Nothing was clicked, because Knack does not work in the app named in refused_app. Tell the worker in one short sentence that Knack cannot work in that app, and to bring the app they want help in to the front and ask again. A card says the same. Do not say anything has started.' }
+  }
   if (r.route === 'desktop') {
     return { ...base, message: `Nothing was clicked. Say exactly: "I will show you instead." Then use point_at to show the worker.${r.desktop_click_possible ? ' If they ask you to click one specific thing, you may use do_it_for_me.' : ''}` }
   }

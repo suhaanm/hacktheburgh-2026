@@ -12,7 +12,7 @@ import { dormancy, type Dormancy, type WakeInputs } from './guards'
 import type { HelperStatus } from './helper'
 import type { RungReading } from './rung'
 import { consentOutcome, consentStep, type CardChoice, type WakeSettingsStore } from './settings'
-import { BLOCKED_LINE, CARDS, EVERYTHING_CARD, FIRST_WAKE_OPENING, FIRST_WAKE_OPENING_SETUP, STARTED_CARD, TYPED_LINES, doneCard, failedCard, showInsteadCard, typedFailureLine, taskConsentCard, taskQuestionCard, taskResultCard, clickFailureCard, LISTENING_LINE, REFUSAL_LINE, dormantLine, infoCardWith, type InfoCard } from './texts'
+import { BLOCKED_LINE, CARDS, refusedAppCard, refusedAppOf, screenTaskDidNotRun, screenTaskStoppedCard, EVERYTHING_CARD, FIRST_WAKE_OPENING, FIRST_WAKE_OPENING_SETUP, STARTED_CARD, TYPED_LINES, doneCard, failedCard, showInsteadCard, typedFailureLine, taskConsentCard, taskQuestionCard, taskResultCard, clickFailureCard, LISTENING_LINE, REFUSAL_LINE, dormantLine, infoCardWith, type InfoCard } from './texts'
 
 export interface CardSpec {
   id: string
@@ -92,9 +92,11 @@ export interface WakeControllerDeps {
   desktop: DesktopRunPort
   chime?: () => void
   /** The button on an information card: Knack's Settings, or the macOS microphone pane. */
-  openSettings?: (where: 'knack' | 'microphone' | 'screen' | 'speech' | 'accessibility' | 'dictation' | 'sound') => void
+  openSettings?: (where: 'knack' | 'microphone' | 'screen' | 'screen_ask' | 'speech' | 'accessibility' | 'dictation' | 'sound') => void
   /** The macOS microphone status (read only, never asks). 'not-determined' makes the microphone card say Allow instead of System Settings. Absent: always System Settings. */
   micStatus?: () => string
+  /** The macOS Screen Recording status (read only, never asks): after a yes to looking at the screen, a card offers Allow screen help while it is not granted. Absent: no card. */
+  screenStatus?: () => string
   /** How long a listener blocked for a permission waits before it tries again by itself (so a grant made in System Settings is picked up). Default 30 s. */
   retryBlockedMs?: number
   say?: (line: 'show_instead' | 'done' | 'did_not_work' | 'stopped' | 'started') => void
@@ -427,6 +429,12 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
     return consentStep(d.settings.get(), d.liveSettings.get(), now()).step === 'go'
   }
 
+  /** After a yes: "Talking is on", or, when the worker also said yes to looking at the screen and macOS has not allowed Screen Recording yet, the one step still missing (Allow screen help). */
+  function readyCard(): string {
+    const needsScreen = d.liveSettings.get().liveFrames && d.screenStatus !== undefined && d.screenStatus() !== 'granted'
+    return needsScreen ? 'screen_help' : 'ready'
+  }
+
   /** Models, the key or the flag make a conversation impossible whatever the worker answers: a yes card for it would promise something that cannot happen. */
   const CANNOT_TALK: ReadonlySet<string> = new Set(['flag_off', 'no_key', 'no_model', 'model_unusable', 'mock_mode', 'models_unreachable'])
 
@@ -445,7 +453,7 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
     consentAsking = true
     try {
       const ok = await consent(90_000)
-      if (ok) explain('ready')
+      if (ok) explain(readyCard())
       return ok ? 'granted' : 'declined'
     } catch {
       return 'declined'
@@ -489,11 +497,21 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
   }
 
   /** What is said for an answered question: the full answer when the service gave it (cut to what is worth saying aloud), else the one-line result. */
+  const toldModel = new Set<string>() // screen tasks whose refusal the model heard in the tool answer already
   const speakable = (row: TaskRow): string | null => (row.answer ?? row.result)?.slice(0, 300) ?? null
 
   function finished(row: TaskRow): void {
     const typed = typedIds.has(row.task_id)
     if (row.state === 'stopped') return // the worker stopped it (or declined): nothing to say
+    // A screen task that did not run (the front window is a browser, a terminal, Claude or Knack itself; a permission is missing): the worker is told which app and what to do, on a card,
+    // and by voice when a conversation is open. Never a bare "Done.".
+    if (row.state === 'done' && row.route === 'desktop' && screenTaskDidNotRun(row.result)) {
+      const app = refusedAppOf(row.result)
+      const card = app ? refusedAppCard(app) : screenTaskStoppedCard(row.result ?? '')
+      void d.cards.ask({ id: `screen-${row.task_id}`, ...card, expireMs: 30_000 })
+      if (!typed && !toldModel.has(row.task_id)) d.readOut?.(`${card.title} ${card.body}`)
+      return
+    }
     if (row.state === 'failed') {
       if (typed) void d.cards.ask({ id: `failed-${row.task_id}`, ...failedCard(row.reason), expireMs: 20_000 })
       else d.say?.('did_not_work')
@@ -567,6 +585,7 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
     if (row?.state === 'failed') return { ok: false, line: row.reason ?? TYPED_LINES.refused }
     if (c.route === 'desktop') {
       void d.cards.ask({ id: `desktop-${c.task_id}`, ...showInsteadCard(c.summary), expireMs: 30_000 })
+      watch(c.task_id) // and what the row says when it finishes: which app Knack will not work in, or what is missing
       return { ok: true }
     }
     if (c.route === 'unclear') return { ok: false, line: TYPED_LINES.unclear }
@@ -592,7 +611,21 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
       void confirm(c.task_id, c.needs_consent)
       return { ok: true, started: false, waiting_consent: true, route: c.route }
     }
-    if (c.route === 'desktop') return { ok: true, started: false, waiting_consent: false, route: 'desktop', desktop_click_possible: d.rung().cleared }
+    if (c.route === 'desktop') {
+      // The task row says whether the screen task could run in the window in front (it is not a browser, a terminal, Claude or Knack itself): read it for a moment, so the model can say which app.
+      let refused: string | undefined
+      for (let i = 0; i < 4; i++) {
+        const row = await d.tasks.get(c.task_id).catch(() => null)
+        if (row && (row.state === 'done' || row.state === 'failed' || row.state === 'stopped')) {
+          if (row.state === 'done' && screenTaskDidNotRun(row.result)) refused = refusedAppOf(row.result) ?? undefined
+          break
+        }
+        await sleep(500)
+      }
+      if (refused) toldModel.add(c.task_id)
+      watch(c.task_id) // the card for what the row says when it finishes (which app, and what to do)
+      return { ok: true, started: false, waiting_consent: false, route: 'desktop', desktop_click_possible: d.rung().cleared, ...(refused ? { refused_app: refused } : {}) }
+    }
     if (c.route === 'answer') {
       // A question answered inline: wait a few seconds for the one result line, which the model then says.
       for (let i = 0; i < 20; i++) {
@@ -685,7 +718,7 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
       lastExplained.set(reason, t)
       // The talk key before the worker has agreed to talk: the same two cards as the first wake, then a line saying it is on.
       if (reason === 'not_enabled' || reason === 'no_consent') {
-        void consent().then((ok) => ok && explain('ready'), () => undefined)
+        void consent().then((ok) => ok && explain(readyCard()), () => undefined)
         return
       }
       if (reason === 'mic_permission') lastProblem = reason // the key press explained it already

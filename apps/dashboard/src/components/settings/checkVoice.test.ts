@@ -8,6 +8,7 @@ const report = (over: Partial<VoiceCheck> = {}): VoiceCheck => ({ ok: true, heyK
 describe("Check voice", () => {
   it("one button per row: Allow asks macOS, Open System Settings opens the pane, none when there is nothing to do", () => {
     expect(actionLabel({ do: "ask", what: "microphone" })).toBe("Allow");
+    expect(actionLabel({ do: "ask", what: "screen" })).toBe("Allow screen help");
     expect(actionLabel({ do: "open", what: "speech" })).toBe("Open System Settings");
     expect(actionLabel({ do: "open", what: "sound" })).toBe("Open System Settings");
     expect(actionLabel({ do: "settings" })).toBe("Open Settings");

@@ -127,12 +127,15 @@ export async function buildVoiceCheck(i: VoiceCheckInputs): Promise<KnackVoiceCh
       ? ready('accessibility', 'Accessibility', 'Knack can click for you when you allow it.', { optional: true })
       : fix('accessibility', 'Accessibility', 'Only needed for clicks. Choose Allow to turn it on.', ask('accessibility'), { optional: true }),
   )
+  // Screen help: Allow asks macOS first (that is what lists Knack under Privacy and Security, Screen Recording) and then opens that pane; macOS applies it after Knack is reopened.
   stages.push(
     i.perms.screen === 'granted'
-      ? ready('screen', 'Screen recording', 'Knack can look at your screen and point at it.', { optional: true })
-      : i.perms.screen === 'denied' || i.perms.screen === 'restricted'
-        ? fix('screen', 'Screen recording', 'Only needed to look anywhere on screen. Switch Knack on in System Settings, Screen Recording.', open('screen'), { optional: true })
-        : fix('screen', 'Screen recording', 'Only needed to look anywhere on screen. Choose Allow to turn it on.', ask('screen'), { optional: true }),
+      ? ready('screen', 'Screen help', 'Knack can look at your screen and point at it.', { optional: true })
+      : i.perms.screen === 'restricted'
+        ? fix('screen', 'Screen help', 'This Mac does not let Knack record the screen, so Knack cannot look at it.', null, { optional: true })
+        : i.perms.screen === 'denied'
+          ? fix('screen', 'Screen help', 'Screen Recording is off for Knack. Switch Knack on in System Settings, then reopen Knack.', open('screen'), { optional: true })
+          : fix('screen', 'Screen help', 'Not allowed yet. Choose Allow screen help, switch Knack on, then reopen Knack.', ask('screen'), { optional: true }),
   )
 
   const required = stages.filter((x) => !x.optional)

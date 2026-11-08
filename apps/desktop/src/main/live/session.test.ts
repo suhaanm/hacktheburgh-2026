@@ -517,6 +517,108 @@ describe('frames', () => {
   })
 })
 
+describe('frames that cannot be sent are never a silent skip', () => {
+  const noticesOf = (sess: LiveSession): Array<{ kind: string; reason: string }> => {
+    const seen: Array<{ kind: string; reason: string }> = []
+    sess.onNotice((n) => void seen.push(n))
+    return seen
+  }
+  const LOST = 'You cannot see the screen right now: '
+  const texts = (): string[] => h.server.received.text.filter((t) => t.startsWith('You can'))
+
+  it('the first frame goes out when the conversation opens, before any interval has passed', async () => {
+    const s = h.mk({ framesEnabled: true })
+    await s.start()
+    await waitFor(() => h.server.received.video === 1) // no clock advance at all
+    expect(h.ledger.announced.length).toBe(1)
+    void s
+  })
+
+  it('no Screen Recording permission: said once on a closed code, and the model is told once, however long the conversation runs', async () => {
+    let grabs = 0
+    const s = h.mk({ framesEnabled: true }, { frames: { grab: async () => (grabs++, null), lastFailure: () => 'permission' } })
+    const seen = noticesOf(s)
+    await s.start()
+    await waitFor(() => seen.length > 0)
+    expect(seen).toEqual([{ kind: 'frames', reason: 'screen_recording_missing' }])
+    await waitFor(() => texts().length === 1)
+    expect(texts()[0]).toBe(`${LOST}Knack does not have permission to record the screen. Say so and give spoken guidance only.`)
+    for (let i = 0; i < 4; i += 1) {
+      h.clock.advance(5000)
+      await new Promise((r) => setTimeout(r, 15))
+    }
+    expect(grabs).toBeGreaterThanOrEqual(3) // it kept trying
+    expect(seen).toHaveLength(1)
+    expect(texts()).toHaveLength(1)
+    expect(h.server.received.video).toBe(0)
+    expect(s.isEnded).toBe(false) // the voice carries on
+  })
+
+  it('a capture that comes back empty is said only the second time in a row (one empty frame is not a problem)', async () => {
+    let grabs = 0
+    const s = h.mk({ framesEnabled: true }, { frames: { grab: async () => (grabs++, null), lastFailure: () => 'other' } })
+    const seen = noticesOf(s)
+    await s.start()
+    await waitFor(() => grabs === 1)
+    await new Promise((r) => setTimeout(r, 15))
+    expect(seen).toEqual([])
+    h.clock.advance(5000)
+    await waitFor(() => seen.length === 1)
+    expect(seen[0]).toEqual({ kind: 'frames', reason: 'capture_failed' })
+    expect(texts()[0]).toContain('the screen could not be captured')
+  })
+
+  it('a gate that is closed says its plain reason once (a card per conversation), and the model is told when it loses the screen and when it gets it back', async () => {
+    h.verdict.frames = openVerdict({ open: false, reason: 'denylisted_app' })
+    const s = h.mk({ framesEnabled: true })
+    const seen = noticesOf(s)
+    await s.start()
+    await waitFor(() => texts().length === 1)
+    expect(seen).toEqual([{ kind: 'frames', reason: 'denylisted_app' }])
+    expect(texts()[0]).toBe(`${LOST}a private app is in front. Say so and give spoken guidance only.`)
+    // still closed, same reason: nothing more is said
+    h.clock.advance(5000)
+    await new Promise((r) => setTimeout(r, 15))
+    expect(texts()).toHaveLength(1)
+    // a different reason: the model is told (the card is not shown again)
+    h.verdict.frames = openVerdict({ open: false, reason: 'secure_input' })
+    h.clock.advance(5000)
+    await waitFor(() => texts().length === 2)
+    expect(texts()[1]).toContain('a password field is open')
+    expect(seen).toHaveLength(1)
+    // the gate opens: a frame goes out and the model hears it can see again
+    h.verdict.frames = openVerdict()
+    h.clock.advance(5000)
+    await waitFor(() => h.server.received.video === 1)
+    await waitFor(() => texts().length === 3)
+    expect(texts()[2]).toBe('You can see the screen again.')
+    expect(seen).toHaveLength(1)
+  })
+
+  it('the model hears at most three "cannot see" lines in one conversation, and every reason maps to a plain line', async () => {
+    h.verdict.frames = openVerdict({ open: false, reason: 'denylisted_app' })
+    const s = h.mk({ framesEnabled: true })
+    await s.start()
+    await waitFor(() => texts().length === 1)
+    for (const reason of ['secure_input', 'locked', 'screen_share', 'stale'] as const) {
+      h.verdict.frames = openVerdict({ open: false, reason })
+      h.clock.advance(5000)
+      await new Promise((r) => setTimeout(r, 15))
+    }
+    expect(texts().filter((t) => t.startsWith(LOST))).toHaveLength(3)
+  })
+
+  it('a kill, an agent acting or no ledger ends the conversation as before and is not a "cannot see" line', async () => {
+    h.verdict.frames = openVerdict({ open: false, reason: 'unattended' })
+    const s = h.mk({ framesEnabled: true })
+    const seen = noticesOf(s)
+    await s.start()
+    await waitFor(() => s.isEnded)
+    expect(seen.filter((n) => n.kind === 'frames')).toEqual([])
+    expect(texts()).toEqual([])
+  })
+})
+
 describe('audio ledger rows', () => {
   it('writes one row per worker turn BEFORE any audio of it is sent, and completes it with seconds and bytes', async () => {
     const order: string[] = []

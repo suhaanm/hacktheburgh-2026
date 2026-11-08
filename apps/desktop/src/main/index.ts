@@ -511,6 +511,8 @@ void app.whenReady().then(async () => {
         openMicrophoneSettings: () => (micFixAction(systemPreferences.getMediaAccessStatus('microphone')) === 'ask' ? void permissions.requestMicrophone() : permissions.openSettings('microphone')),
         micStatus: () => (process.platform === 'darwin' ? systemPreferences.getMediaAccessStatus('microphone') : 'granted'),
         openScreenSettings: () => permissions.openSettings('screen'),
+        requestScreen: () => permissions.requestScreen(),
+        screenStatus: () => (process.platform === 'darwin' ? systemPreferences.getMediaAccessStatus('screen') : 'granted'),
         openPane: (pane) => (pane === 'dictation' ? void shell.openExternal('x-apple.systempreferences:com.apple.Keyboard-Settings.extension').catch(() => undefined) : pane === 'sound' ? void shell.openExternal('x-apple.systempreferences:com.apple.Sound-Settings.extension').catch(() => undefined) : permissions.openSettings(pane)),
         context: contextHub,
         log: ctx.log,

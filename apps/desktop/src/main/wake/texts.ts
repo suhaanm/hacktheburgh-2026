@@ -60,7 +60,7 @@ export const CARDS: Readonly<Record<'both' | 'voice' | 'screen' | 'click', CardT
 // Plain reasons, one action at most. `settings` opens Knack's Settings; `microphone` asks macOS (when it has not been asked) or opens its microphone pane (when it said no); `sound` opens
 // the macOS Sound pane. No card uses developer wording (a test pins this).
 export const HEARD_TITLE = 'Hey Knack heard you.'
-export type InfoAction = 'settings' | 'microphone' | 'screen' | 'speech' | 'accessibility' | 'dictation' | 'sound'
+export type InfoAction = 'settings' | 'microphone' | 'screen' | 'screen_ask' | 'speech' | 'accessibility' | 'dictation' | 'sound'
 export interface InfoCard {
   title: string
   body: string
@@ -70,6 +70,9 @@ export interface InfoCard {
 }
 const CLOSE = { id: 'close', label: 'Close' } as const
 const SETTINGS_BTN = [{ id: 'settings', label: 'Open Settings' }, CLOSE] as const
+// Screen Recording is asked the way the microphone is: the button asks macOS first (that is what lists Knack under Privacy and Security, Screen Recording), then opens that pane.
+// macOS applies the new permission only to a Knack that is opened again, so the card says so.
+const ALLOW_SCREEN = [{ id: 'screen', label: 'Allow screen help' }, CLOSE] as const
 const card = (title: string, body: string, buttons: InfoCard['buttons'] = [CLOSE], action: InfoAction | null = null): InfoCard => ({ title, body, buttons, action })
 export const INFO_CARDS: Readonly<Record<string, InfoCard>> = {
   // The switch is off (the worker's own choice): the Settings wording is true. When the switch is on and the service just could not be reached, `models_unreachable` says so.
@@ -82,7 +85,7 @@ export const INFO_CARDS: Readonly<Record<string, InfoCard>> = {
   breaker_open: card('The voice service is not answering.', 'Try again soon.'),
   day_cap: card('Today’s talking limit is reached.', 'You can raise it in Settings.', SETTINGS_BTN, 'settings'),
   // Pointing inside Knack, or inside a browser tab with the extension, never needs this: only "find it anywhere on my screen" does.
-  screen_recording: card('To find it, Knack must see your screen.', 'Pointing in Knack or in a browser with the extension works without this. Finding things anywhere on screen needs Screen Recording.', [{ id: 'screen', label: 'System Settings' }, CLOSE], 'screen'),
+  screen_recording: card('To find it, Knack must see your screen.', 'Pointing in Knack or in a browser with the extension works without this. Finding things anywhere on screen needs Screen Recording.', ALLOW_SCREEN, 'screen_ask'),
   // The listener itself is blocked (shown once per cause): the worker is told what to turn on, and the button opens the right pane. The listener tries again by itself once it is on.
   blocked_mic_denied: card('Hey Knack needs the microphone.', 'Switch Knack on in System Settings, Microphone. Hey Knack starts by itself.', [{ id: 'microphone', label: 'System Settings' }, CLOSE], 'microphone'),
   blocked_speech_denied: card('Hey Knack needs speech recognition.', 'Switch Knack on in System Settings, Speech Recognition. Hey Knack starts by itself. Option-Space works meanwhile.', [{ id: 'speech', label: 'System Settings' }, CLOSE], 'speech'),
@@ -90,7 +93,7 @@ export const INFO_CARDS: Readonly<Record<string, InfoCard>> = {
   // A click that was allowed but could not run: Knack says so and shows instead.
   click_not_ready: card('I could not click for you.', 'Click for you is not ready on this Mac yet. I will show you instead.'),
   click_accessibility: card('Click for you needs Accessibility.', 'Turn Knack on in System Settings, Accessibility. For now I will show you instead.', [{ id: 'accessibility', label: 'System Settings' }, CLOSE], 'accessibility'),
-  click_screen_recording: card('Click for you needs Screen Recording.', 'Turn Knack on in System Settings, Screen Recording. For now I will show you instead.', [{ id: 'screen', label: 'System Settings' }, CLOSE], 'screen'),
+  click_screen_recording: card('Click for you needs Screen Recording.', 'Choose Allow screen help, switch Knack on, then reopen Knack. For now I will show you instead.', ALLOW_SCREEN, 'screen_ask'),
   task_unavailable: card(HEARD_TITLE, 'The task service is not answering. Try again soon.'),
   too_many_tasks: card(HEARD_TITLE, 'Too many tasks are running. Stop one or wait.'),
   ready: card('Talking is on.', 'Hold Option-Space and talk, or say Hey Knack.'),
@@ -109,6 +112,17 @@ export const INFO_CARDS: Readonly<Record<string, InfoCard>> = {
   voice_refused: card('The voice service said no.', 'It did not accept the key or the voice model. Run Check voice in Settings.', SETTINGS_BTN, 'settings'),
   voice_network: card('Knack could not reach the voice service.', 'Check your internet connection, then try again.'),
   connection_lost: card('The voice connection dropped.', 'Try again in a moment.'),
+  // The conversation goes on by voice, but it was meant to see the screen and cannot: one card per conversation, the cause in the body, never silence and never a pretence of seeing.
+  screen_missing: card('Knack cannot see your screen yet.', 'Choose Allow screen help, switch Knack on, then reopen Knack. Talking still works.', ALLOW_SCREEN, 'screen_ask'),
+  screen_failed: card('Knack could not capture your screen.', 'Talking still works. Knack will say what it cannot see.'),
+  screen_secure_input: card('Knack cannot see your screen right now.', 'A password field is open. Talking still works.'),
+  screen_private_app: card('Knack cannot see your screen right now.', 'A private app is in front. Talking still works.'),
+  screen_locked: card('Knack cannot see your screen right now.', 'The screen is locked. Talking still works.'),
+  screen_shared: card('Knack cannot see your screen right now.', 'The screen is being shared, so Knack does not look. Talking still works.'),
+  screen_stale: card('Knack cannot see your screen right now.', 'It could not check what is in front. Talking still works.'),
+  screen_paused: card('Knack cannot see your screen right now.', 'Knack is paused. Choose Resume in the menu bar.'),
+  // After the yes to talking and looking, when macOS has not allowed Screen Recording yet.
+  screen_help: card('One more step for screen help.', 'Choose Allow screen help, switch Knack on, then reopen Knack. Talking works meanwhile.', ALLOW_SCREEN, 'screen_ask'),
 }
 /** The card for a refusal code, or null when the conversation is simply already open ('busy') or the code is unknown. */
 export const infoCardFor = (reason: string | null): InfoCard | null => (reason && reason !== 'busy' ? (INFO_CARDS[reason] ?? null) : null)
@@ -252,6 +266,25 @@ export const STARTED_CARD: CardText = { title: 'Started.', body: 'I will tell yo
 export const doneCard = (result: string | null): CardText => ({ title: 'Done.', body: result ? fitWords(result, 22) : 'You can see it in Knack.', buttons: [{ id: 'close', label: 'Close' }] })
 export const failedCard = (reason: string | null): CardText => ({ title: 'That did not work.', body: reason ? fitWords(reason, 22) : 'It stopped. Nothing else was changed.', buttons: [{ id: 'close', label: 'Close' }] })
 export const showInsteadCard = (summary: string): CardText => ({ title: 'I will show you instead.', body: summary ? fitWords(summary, 22) : 'Knack does not click for you yet.', buttons: [{ id: 'close', label: 'Close' }] })
+
+// ------------------------------------------------------------------------------------------------ a screen task that did not run
+/** The service's result line for a screen task that did not click ("Reported, not checked: ..." is a real run's prefix). */
+const RAN_PREFIX = 'Reported, not checked: '
+const REFUSED_RE = /^Knack won['\u2019]t work in ([^:]{1,40}): /
+/** The app named in a "Knack won't work in <App>: ..." result, cleaned to letters, digits and a few marks (it is a window's name: data, never words of ours), or null when the result is something else. */
+export function refusedAppOf(result: string | null | undefined): string | null {
+  const m = REFUSED_RE.exec(result ?? '')
+  if (!m) return null
+  const app = m[1].replace(/[^\p{L}\p{N} .&+_-]/gu, '').trim().slice(0, 30)
+  return app || 'that app'
+}
+/** True when a done screen task did not work on the screen: its result is the service's explanation of what is missing, not a report of a run. */
+export const screenTaskDidNotRun = (result: string | null | undefined): boolean => typeof result === 'string' && result.trim() !== '' && !result.startsWith(RAN_PREFIX)
+
+/** Why a screen task did not run: which app Knack will not work in, and what to do. Built from fixed words and the cleaned app name; the service's sentence is only read for the name. */
+export const refusedAppCard = (app: string): CardText => ({ title: `Knack cannot work in ${app}.`, body: 'Bring the app you want help in to the front and ask again.', buttons: [{ id: 'close', label: 'Close' }] })
+/** Any other reason a screen task did not run: the service's own plain sentence (data from the task), cut to the budget. */
+export const screenTaskStoppedCard = (result: string): CardText => ({ title: 'Knack could not work on the screen.', body: fitWords(result, 22), buttons: [{ id: 'close', label: 'Close' }] })
 
 /** The first conversation while set-up is still open: the window has no sidebar yet, so the example points at the button that is there. */
 export const FIRST_WELCOME_SETUP = 'Hi, I am Knack. Try saying: show me where the Show my week button is.'

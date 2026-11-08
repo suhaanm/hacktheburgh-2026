@@ -25,7 +25,11 @@ function usePermRows(): { rows: PermRow[]; error: string | null; reload: () => v
   }, [reload]);
   const ask = useCallback(async (k: Perm) => {
     setError(null);
-    try { await perms()?.request?.(k as never); } catch { setError("Could not ask. Nothing was changed."); }
+    try {
+      await perms()?.request?.(k as never);
+      // Screen help: macOS is asked first (that is what lists Knack under Privacy and Security, Screen Recording), then the pane opens so the worker can switch it on.
+      if (k === "screen") await perms()?.openSettings?.("screen" as never);
+    } catch { setError("Could not ask. Nothing was changed."); }
     reload();
   }, [reload]);
   const open = useCallback((k: Perm) => {

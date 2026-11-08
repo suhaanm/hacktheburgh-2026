@@ -17,6 +17,7 @@ import { LIVE_SYSTEM_INSTRUCTION, TASK_GUIDANCE, TRANSCRIBE_ONLY_INSTRUCTION, WA
 import { liveFlagOn, liveModelId, transcribeModelId, type Env } from './flags'
 import { frameConsent, voiceConsent, type LiveSettingsStore } from './settings'
 import { createToolHost } from './tool-host'
+import { FRAMES_PROBLEM, isFramesReason } from './frames-state'
 import { buildToolDeclarations } from './tools'
 import { FALLBACK_PACKET, packetUpdate } from '../wake/context-packet'
 import type { FunctionDeclaration } from './wire'
@@ -62,10 +63,21 @@ export type VoiceProblem =
   | 'voice_refused'
   | 'voice_network'
   | 'connection_lost'
+  // The conversation goes on by voice alone, but it was meant to see the screen and cannot (one card per conversation; the model is told once).
+  | 'screen_missing'
+  | 'screen_failed'
+  | 'screen_secure_input'
+  | 'screen_private_app'
+  | 'screen_locked'
+  | 'screen_shared'
+  | 'screen_stale'
+  | 'screen_paused'
 
 /** The problem a session notice means, or null when the notice needs no card (a kill, a pause or an agent starting are the worker's own doing; a frame notice never stops the voice). */
-export function problemFromNotice(n: { kind: 'blocked' | 'mic' | 'ledger' | 'connect'; reason: string }): VoiceProblem | null {
+export function problemFromNotice(n: { kind: 'blocked' | 'mic' | 'ledger' | 'connect' | 'frames'; reason: string }): VoiceProblem | null {
   switch (n.kind) {
+    case 'frames':
+      return isFramesReason(n.reason) ? (FRAMES_PROBLEM[n.reason] as VoiceProblem) : null
     case 'mic':
       return n.reason === 'permission' ? 'mic_permission' : 'mic_device'
     case 'blocked':

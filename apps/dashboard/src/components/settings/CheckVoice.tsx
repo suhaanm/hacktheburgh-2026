@@ -11,7 +11,7 @@ type Perms = { request?: (k: never) => Promise<unknown>; openSettings?: (k: neve
 /** The label of the one button on a row, or null when the row needs none. */
 export function actionLabel(a: VoiceAction | null): string | null {
   if (!a) return null;
-  if (a.do === "ask") return "Allow";
+  if (a.do === "ask") return a.what === "screen" ? "Allow screen help" : "Allow";
   if (a.do === "open") return "Open System Settings";
   if (a.do === "settings") return "Open Settings";
   if (a.do === "consent") return "Show the card";
@@ -53,7 +53,8 @@ export function CheckVoice({ compact = false }: { compact?: boolean }) {
     setError(null);
     try {
       const perms = getBridge().permissions as Perms | undefined;
-      if (a.do === "ask") await perms?.request?.(a.what as never);
+      // Screen help: macOS is asked first (that lists Knack under Screen Recording), then the pane opens so the worker can switch it on; it applies after Knack is reopened.
+      if (a.do === "ask") { await perms?.request?.(a.what as never); if (a.what === "screen") await perms?.openSettings?.("screen" as never); }
       else if (a.do === "open") await perms?.openSettings?.(a.what as never);
       else if (a.do === "settings") navigate("/settings");
       else if (a.do === "consent") await api?.askConsent();
