@@ -112,6 +112,16 @@ TEMPLATE_STYLE: dict[str, tuple[str, str]] = {
     "weekly-report": ("weekly caseload report", "copy"),
     "weekly-metric-refresh": ("weekly metrics sheet", "run"),
     "rerun-failed-ci": ("failed CI job", "run"),
+    # the role-depth templates (RD, 7 Nov 2026)
+    "open-pr-from-branch": ("pull request", "open"), "ci-status-sweep": ("CI", "read"), "review-queue-triage": ("review requests", "check"),
+    "post-release-watch": ("logs", "read"), "rollback-after-alert": ("release alert", "check"), "profile-and-note-hot-path": ("slow endpoint", "run"),
+    "bisect-regression-range": ("good and a bad commit", "run"), "reply-to-review-comments": ("review comments", "enter"),
+    "migration-dry-run": ("migration", "run"), "add-failure-log-line": ("log line", "enter"), "dependency-bump-pr": ("dependency", "enter"),
+    "docs-lookup-and-apply": ("same API", "search"),
+    "reload-and-reprofile": ("dataset", "read"), "parameterised-weekly-query": ("saved query", "run"), "reconcile-and-note-gap": ("control", "check"),
+    "join-check-and-count": ("two tables", "check"), "segment-breakdown-chart": ("segment", "run"), "magnitude-and-units-check": ("scale and units", "check"),
+    "interval-for-a-rate": ("interval", "run"), "notebook-restart-and-run": ("notebook", "run"), "draft-metric-definition": ("metric definition", "enter"),
+    "send-peer-check": ("second check", "check"), "schedule-refresh-with-alert": ("refresh", "run"), "send-weekly-extract": ("weekly extract", "copy"),
 }
 _ARTICLES = frozenset({"the", "a", "an", "all", "each", "every", "your", "this", "that"})
 

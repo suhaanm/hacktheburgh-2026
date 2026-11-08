@@ -1,6 +1,18 @@
-# One sample routine (ROL-3). Semantics: pack.schema.json#/$defs/routine_templates.
+# Routine templates the finder matches (ROL-3, RD). Semantics: pack.schema.json#/$defs/routine_templates.
+# The first template (rerun-failed-ci) is frozen: the synthetic personas plant it. The role-depth track (RD, 7 Nov 2026) appended eleven
+# more, written from the job, NOT measured on real engineers: nothing in the synthetic data contains them yet, so the finder cannot have
+# found them and every figure below (minutes, build cost, risk) is an illustration. Extra keys on a template, all optional:
+#   irreversibility  what the routine's own worst action does if it runs to the end: none | reversible | outward | irreversible
+#   judgement_share  the share of its steps that are judgement cogs, worked out the way the hit list does (checked by the validator)
+#   steps            the routine in plain words, in order
+#   tools            connection preset ids (strings only; the CONNECTIONS track resolves them). Nothing here connects to anything.
+# A routine is held back from the hit list when its first step is irreversible or outward, when `automatable` is false, or when its
+# judgement share is over 0.4 (hitlist/build.py). `never` is what an automation stops before, not what the routine is made of.
 version: 1
-defaults: { min_support: 3, judgement_cogs: [SEARCH, REFORMULATE, COMPARE, DECIDE, REVIEW_DIFF], wage_gbp_per_h: 15 }
+defaults:
+  min_support: 3
+  judgement_cogs: [SEARCH, REFORMULATE, COMPARE, DECIDE, REVIEW_DIFF, REVIEW_PEER, ANSWER_REVIEW, WRITE_MIGRATION, ROLL_BACK]
+  wage_gbp_per_h: 15
 templates:
   - id: rerun-failed-ci
     title: Re-run a failed CI job and read the result
@@ -14,3 +26,210 @@ templates:
     value_defaults: { manual_minutes_per_run: 3, build_cost_runs: 4, maintenance_risk_gbp: 3, error_cost_gbp: 4 }
     proposal:
       what: Re-run the failed CI job and bring back the last lines of the log. It never merges or deploys.
+
+  - id: open-pr-from-branch
+    title: Open a pull request from the branch
+    cogs: [REVIEW_DIFF, WRITE_COMMIT_MSG, OPEN_PR]
+    match_distance: 0.25
+    automatable: true
+    learning_relevant: true        # skill gate: mastery of OPEN_PR must reach L4 first
+    skill_cogs: [OPEN_PR]
+    irreversibility: outward       # a pull request is visible to the team
+    judgement_share: 0.33
+    steps: ["Open the diff against the base branch", "Draft the title and description from the commit messages", "Open the pull request as a draft"]
+    tools: [github]
+    touches: ["git host", "pull request form"]
+    never: ["merge pull request", "request review"]
+    params: [branch, base_branch]
+    value_defaults: { manual_minutes_per_run: 4, build_cost_runs: 5, maintenance_risk_gbp: 4, error_cost_gbp: 6 }
+    proposal:
+      what: Draft the pull request from the branch's commits and open it as a draft. It never requests a review or merges.
+
+  - id: ci-status-sweep
+    title: Check CI on my open pull requests
+    cogs: [NAVIGATE, READ_CI, NAVIGATE, READ_CI, NAVIGATE, READ_CI]
+    match_distance: 0.25
+    automatable: true
+    learning_relevant: false
+    irreversibility: none          # read only
+    judgement_share: 0.0
+    steps: ["Open each of my pull requests in turn", "Read the checks list", "Write down which are red and which are still running"]
+    tools: [github]
+    touches: ["git host", "CI dashboard"]
+    never: ["merge pull request", "comment"]
+    value_defaults: { manual_minutes_per_run: 5, build_cost_runs: 3, maintenance_risk_gbp: 2, error_cost_gbp: 2 }
+    proposal:
+      what: Open each of your pull requests and bring back which checks are red. It reads only; it never comments, re-runs or merges.
+
+  - id: review-queue-triage
+    title: Sort the review requests waiting for me
+    cogs: [NAVIGATE, REVIEW_PEER, DECIDE, NAVIGATE, REVIEW_PEER, DECIDE]
+    match_distance: 0.30
+    automatable: false             # a judgement on every pass: a decoy the finder should find and not propose
+    learning_relevant: false
+    irreversibility: outward
+    judgement_share: 0.67
+    steps: ["Open the next review request", "Skim the description and the size of the change", "Decide: review now, later, or hand it on"]
+    tools: [github, slack]
+    touches: ["git host", "team chat"]
+    never: ["submit review", "merge pull request"]
+    value_defaults: { manual_minutes_per_run: 8, build_cost_runs: 10, maintenance_risk_gbp: 12, error_cost_gbp: 20 }
+    proposal:
+      what: Work through the review requests, deciding on each. Every pass needs your judgement, so it stays manual.
+
+  - id: post-release-watch
+    title: Watch the logs for ten minutes after a release
+    cogs: [WATCH_PROD, NAVIGATE, WATCH_PROD, NAVIGATE, WATCH_PROD]
+    match_distance: 0.25
+    automatable: true
+    learning_relevant: true        # skill gate: mastery of WATCH_PROD must reach L4 first
+    skill_cogs: [WATCH_PROD]
+    irreversibility: none          # it watches and tells you; it never acts on what it sees
+    judgement_share: 0.0
+    steps: ["Open the error-rate and latency views", "Look at them every two minutes for ten minutes", "Tell the worker if either moves past the release baseline"]
+    tools: [sentry, slack]
+    touches: ["log viewer", "metrics dashboard"]
+    never: ["roll back", "deploy"]
+    params: [service_name, release_id]
+    value_defaults: { manual_minutes_per_run: 10, build_cost_runs: 4, maintenance_risk_gbp: 5, error_cost_gbp: 15 }
+    proposal:
+      what: Keep the error rate and latency in view for ten minutes after a release and tell you if either moves. It never rolls back or deploys.
+
+  - id: rollback-after-alert
+    title: Roll back after a bad release alert
+    cogs: [WATCH_PROD, DECIDE, ROLL_BACK]
+    match_distance: 0.30
+    automatable: false             # irreversible and a decision: reported, never proposed
+    learning_relevant: true
+    skill_cogs: [ROLL_BACK]
+    irreversibility: irreversible
+    judgement_share: 0.67
+    steps: ["Read the alert and the release notes", "Decide whether the release is the cause", "Roll back one release"]
+    tools: [github, slack]
+    touches: ["release console", "log viewer"]
+    never: ["roll back", "deploy", "release"]
+    value_defaults: { manual_minutes_per_run: 12, build_cost_runs: 12, maintenance_risk_gbp: 40, error_cost_gbp: 200 }
+    proposal:
+      what: Read the alert and decide whether to roll back. It stays manual because a rollback cannot be undone and needs your decision.
+
+  - id: profile-and-note-hot-path
+    title: Profile the slow endpoint and note the top frames
+    cogs: [PROFILE_HOTPATH, COPY, PASTE]
+    match_distance: 0.25
+    automatable: true
+    learning_relevant: true        # skill gate: mastery of PROFILE_HOTPATH must reach L4 first
+    skill_cogs: [PROFILE_HOTPATH]
+    irreversibility: none
+    judgement_share: 0.0
+    steps: ["Open the flame graph for the endpoint", "Copy the three widest frames", "Paste them into the ticket"]
+    tools: [github, linear]
+    touches: ["profiler", "issue tracker"]
+    never: ["merge pull request", "publish"]
+    params: [endpoint, ticket_id]
+    value_defaults: { manual_minutes_per_run: 6, build_cost_runs: 5, maintenance_risk_gbp: 3, error_cost_gbp: 4 }
+    proposal:
+      what: Open the profile for the endpoint, copy the three widest frames and paste them into the ticket. It changes no code.
+
+  - id: bisect-regression-range
+    title: Bisect the range between a good and a bad commit
+    cogs: [REPRODUCE_LOCALLY, BISECT_CHANGE, REPRODUCE_LOCALLY, BISECT_CHANGE, REPRODUCE_LOCALLY]
+    match_distance: 0.25
+    automatable: true
+    learning_relevant: true        # skill gate: mastery of BISECT_CHANGE must reach L4 first
+    skill_cogs: [BISECT_CHANGE]
+    irreversibility: none          # a throwaway checkout; the working tree is restored at the end
+    judgement_share: 0.0
+    steps: ["Mark the last good and the first bad commit", "Run the failing command at the midpoint", "Halve the range until one commit is left"]
+    tools: [github]
+    touches: ["git history", "terminal"]
+    never: ["force push", "delete branch"]
+    params: [good_ref, bad_ref, test_command]
+    value_defaults: { manual_minutes_per_run: 25, build_cost_runs: 4, maintenance_risk_gbp: 4, error_cost_gbp: 10 }
+    proposal:
+      what: Halve the range between the good and bad commit with your failing command and name the commit that broke it. It leaves your working tree as it found it.
+
+  - id: reply-to-review-comments
+    title: Reply to the review comments on my pull request
+    cogs: [READ_CI, ANSWER_REVIEW, ANSWER_REVIEW, NAVIGATE]
+    match_distance: 0.30
+    automatable: false             # outward and a judgement on every comment
+    learning_relevant: true
+    skill_cogs: [ANSWER_REVIEW]
+    irreversibility: outward
+    judgement_share: 0.5
+    steps: ["Read the CI result", "Read each comment", "Reply with the commit that fixes it or the reason it stays"]
+    tools: [github]
+    touches: ["git host", "pull request"]
+    never: ["comment", "resolve conversation", "merge pull request"]
+    value_defaults: { manual_minutes_per_run: 15, build_cost_runs: 10, maintenance_risk_gbp: 15, error_cost_gbp: 25 }
+    proposal:
+      what: Read the review comments and draft replies. Every reply needs your judgement and is visible to others, so it stays manual.
+
+  - id: migration-dry-run
+    title: Draft the migration and dry-run it on a copy
+    cogs: [WRITE_MIGRATION, RUN_TESTS, READ_TRACE]
+    match_distance: 0.20
+    automatable: true
+    learning_relevant: true        # skill gate: mastery of WRITE_MIGRATION must reach L4 first
+    skill_cogs: [WRITE_MIGRATION]
+    irreversibility: reversible    # it runs on a copy of the schema, never on the real database
+    judgement_share: 0.33
+    steps: ["Draft the up and the down step", "Run both on a copy of the schema", "Read the result and the row counts"]
+    tools: [postgres, github]
+    touches: ["database console", "scratch copy of the schema"]
+    never: ["drop", "delete from", "deploy"]
+    params: [migration_name]
+    value_defaults: { manual_minutes_per_run: 20, build_cost_runs: 6, maintenance_risk_gbp: 20, error_cost_gbp: 60 }
+    proposal:
+      what: Run the migration and its undo step on a scratch copy and bring back the result. It never touches the real database.
+
+  - id: add-failure-log-line
+    title: Add a log line at the failing branch
+    cogs: [READ_TRACE, ADD_LOGGING, RUN_TESTS]
+    match_distance: 0.20
+    automatable: true
+    learning_relevant: true        # skill gate: mastery of ADD_LOGGING must reach L4 first
+    skill_cogs: [ADD_LOGGING]
+    irreversibility: reversible
+    judgement_share: 0.0
+    steps: ["Read the failing trace", "Add a log line with the ids at the failing branch", "Run the tests to check nothing else changed"]
+    tools: [github]
+    touches: ["code editor", "test runner"]
+    never: ["merge pull request", "deploy"]
+    value_defaults: { manual_minutes_per_run: 6, build_cost_runs: 5, maintenance_risk_gbp: 4, error_cost_gbp: 6 }
+    proposal:
+      what: Add a log line with the ids at the failing branch and run the tests. It never commits or pushes.
+
+  - id: dependency-bump-pr
+    title: Bump a dependency and open a pull request
+    cogs: [NAVIGATE, EDIT_CODE, RUN_TESTS, READ_CI, OPEN_PR]
+    match_distance: 0.20
+    automatable: true
+    learning_relevant: false
+    irreversibility: outward
+    judgement_share: 0.0
+    steps: ["Update the version in the manifest", "Run the tests", "Wait for CI and read it", "Open the pull request as a draft"]
+    tools: [github]
+    touches: ["git host", "test runner"]
+    never: ["merge pull request", "release"]
+    params: [package_name, target_version]
+    value_defaults: { manual_minutes_per_run: 12, build_cost_runs: 6, maintenance_risk_gbp: 8, error_cost_gbp: 12 }
+    proposal:
+      what: Bump the dependency, run the tests, read CI and open a draft pull request. It never merges or releases.
+
+  - id: docs-lookup-and-apply
+    title: Look up the same API again and apply the example
+    cogs: [SEARCH_DOCS, COPY, EDIT_CODE, RUN_TESTS]
+    match_distance: 0.20
+    automatable: true
+    learning_relevant: false
+    irreversibility: reversible
+    judgement_share: 0.0
+    steps: ["Open the library docs at the call you keep looking up", "Copy the example", "Paste it where the call is needed and run the tests"]
+    tools: [github]
+    touches: ["library docs", "code editor"]
+    never: ["merge pull request"]
+    params: [library, symbol]
+    value_defaults: { manual_minutes_per_run: 3, build_cost_runs: 6, maintenance_risk_gbp: 3, error_cost_gbp: 5 }
+    proposal:
+      what: Open the docs at the call you keep looking up, copy the example and put it in place with the tests run. It never commits.

@@ -1,10 +1,14 @@
-# Thin role pack: programmer (ROL-3). Onboarding, cogs, risk classes, tone, one sample routine,
-# persona parameters. No oracle, no tasks, stub expert policy.
+# Role pack: programmer (ROL-3, deepened by the role-depth track RD on 7 Nov 2026). Validated against packages/schema/pack.schema.json.
+# depth is "standard": full content for the whole job (22 cogs, 20 expert checks in 8 task families, 18 curriculum skills, 13 routine
+# templates, five deeper onboarding questions, connection suggestions) and a role sandbox with a scoring oracle that lives in the agent
+# (services/agent/understudy_agent/sandbox_roles/programmer), not in the pack. It is NOT "deep" (no pack-level tasks, sites or oracle) and
+# it is NOT validated with people: the content is written from the job, and the only measured parts are the sandbox study's three skills.
+# The first ten cogs, six skills, eight checks and one routine are frozen (the role studies depend on them): new things get new ids.
 id: programmer
 version: 1
 name: Programmer
 summary: Reads code and logs, makes small changes, and gets them reviewed and merged without breaking the build.
-depth: thin
+depth: standard
 locale: en-GB
 
 onboarding:
@@ -19,6 +23,11 @@ onboarding:
         - { value: issue_tracker, label: "Issue tracker", site: tracker }
         - { value: docs_site, label: "Library docs and search", site: docs }
         - { value: chat, label: "Team chat" }
+        - { value: observability, label: "Logs and error tracking", site: observability }
+        - { value: release_console, label: "Release or hosting console", site: release_console }
+        - { value: db_console, label: "Database console", site: db_console }
+        - { value: profiler, label: "Profiler or flame graph viewer", site: profiler }
+        - { value: dev_env, label: "Hosted dev environment", site: dev_env }
     - id: risky
       prompt: Which actions need your click, always?
       why: These are hard to undo or visible to others. The agent stops and asks at each.
@@ -29,6 +38,10 @@ onboarding:
         - { value: merge_main, label: "Merge to the main branch", default: true, risk_class: irreversible, patterns: ["merge pull request", "merge", "squash and merge"] }
         - { value: deploy_publish, label: "Deploy or publish a package", default: true, risk_class: irreversible, patterns: ["deploy", "publish", "release"] }
         - { value: post_comment, label: "Comment on or open a pull request", risk_class: outward, patterns: ["comment", "create pull request", "open pull request"] }
+        - { value: rollback_prod, label: "Roll back a release", default: true, risk_class: irreversible, patterns: ["roll back", "rollback", "revert release"] }
+        - { value: run_migration, label: "Run a migration on a real database", default: true, risk_class: irreversible, patterns: ["run migration", "apply migration", "migrate"] }
+        - { value: flip_flag, label: "Change production config or a feature flag", risk_class: irreversible, patterns: ["feature flag", "production config", "kill switch"] }
+        - { value: submit_review, label: "Submit a review on someone's pull request", risk_class: outward, patterns: ["submit review", "request changes", "approve pull request"] }
     - id: tone
       prompt: How should help read?
       why: Programmers usually want the next command, not a paragraph.
@@ -50,20 +63,85 @@ onboarding:
       why: Starts the presence map. It learns from your own days, including late nights.
       kind: hours
       default_hours: { start: "10:00", end: "19:00", days: [mon, tue, wed, thu, fri] }
+  # RD: five deeper questions, asked after the five fixed ones. Each answer sets named parameters (`sets`): pace and tone are the same
+  # words the fixed questions use, cue_daily_budget and cue_quiet_required_s are Cue's own knobs (cue/params.py), and `traits` are
+  # plain labels the engine can read later. Nothing here is a threshold for judging a person.
+  followups:
+    - id: team_size
+      prompt: How many people work on the same code as you?
+      why: Sets how much of your work is seen by others, and whether chat is a work surface.
+      kind: single
+      options:
+        - { value: solo, label: "Just me", sets: { traits: { team_scale: solo } } }
+        - { value: small, label: "2 to 6", default: true, sets: { traits: { team_scale: small } } }
+        - { value: medium, label: "7 to 20", sets: { traits: { team_scale: medium } } }
+        - { value: large, label: "More than 20", sets: { traits: { team_scale: large } } }
+    - id: review_habit
+      prompt: How often do you review other people's pull requests?
+      why: Reviewing is its own skill, and heavy reviewers need fewer prompts while they read.
+      kind: single
+      options:
+        - { value: rarely, label: "Rarely", sets: { traits: { review_load: light } } }
+        - { value: weekly, label: "A few a week", default: true, sets: { traits: { review_load: normal } } }
+        - { value: daily, label: "Every day", sets: { traits: { review_load: heavy } } }
+    - id: on_call
+      prompt: Are you ever on call for production?
+      why: On-call work is urgent, so help stays out of the way and nothing runs unattended against production.
+      kind: single
+      options:
+        - { value: never, label: "No", default: true, sets: { traits: { on_call: none } } }
+        - { value: rota, label: "On a rota", sets: { traits: { on_call: rota }, cue_daily_budget: 8 }, risk_class: irreversible, patterns: ["roll back", "rollback", "restart service"] }
+        - { value: always, label: "Most of the time", sets: { traits: { on_call: always }, cue_daily_budget: 6 }, risk_class: irreversible, patterns: ["roll back", "rollback", "restart service"] }
+    - id: release_cadence
+      prompt: How often do you ship to production?
+      why: Frequent releases make the after-release watch a daily habit, so it is worth teaching early.
+      kind: single
+      options:
+        - { value: rarely, label: "A few times a month", sets: { traits: { release_cadence: slow } } }
+        - { value: weekly, label: "About weekly", default: true, sets: { traits: { release_cadence: weekly } } }
+        - { value: daily, label: "Daily or more", sets: { traits: { release_cadence: continuous } } }
+    - id: interruption
+      prompt: How do you feel about a short prompt while you work?
+      why: Sets how many prompts a day and how long Knack waits for a quiet moment. You can change it any time.
+      kind: single
+      options:
+        - { value: rarely, label: "Only when I am stuck for a while", sets: { cue_daily_budget: 6, cue_quiet_required_s: 4.0, traits: { interruptibility: low } } }
+        - { value: sometimes, label: "Now and then", default: true, sets: { cue_daily_budget: 12, cue_quiet_required_s: 2.0, traits: { interruptibility: normal } } }
+        - { value: often, label: "I like being nudged", sets: { cue_daily_budget: 16, cue_quiet_required_s: 1.5, traits: { interruptibility: high } } }
 
 cogs:
-  extra: [READ_CODE, EDIT_CODE, RUN_TESTS, READ_TRACE, REVIEW_DIFF, COMMIT, SEARCH_DOCS, PROBE_EDGE, INSPECT_INPUT, WRITE_TEST]
+  extra: [READ_CODE, EDIT_CODE, RUN_TESTS, READ_TRACE, REVIEW_DIFF, COMMIT, SEARCH_DOCS, PROBE_EDGE, INSPECT_INPUT, WRITE_TEST,
+    REPRODUCE_LOCALLY, BISECT_CHANGE, WRITE_COMMIT_MSG, OPEN_PR, READ_CI, ANSWER_REVIEW, REVIEW_PEER, WATCH_PROD, ROLL_BACK, ADD_LOGGING,
+    PROFILE_HOTPATH, WRITE_MIGRATION]
   mapping: mapping.yaml
 
 expert_policy:
   steps: expert_steps.yaml
-  coverage: stub
+  coverage: full
 
 risk_classes:
-  irreversible: ["force push", "force-push", "rewrite history", "delete branch", "delete tag", "merge pull request", "squash and merge", "deploy", "publish", "release", "drop"]
-  outward: ["comment", "create pull request", "open pull request", "post", "request review", "send"]
+  irreversible: ["force push", "force-push", "rewrite history", "delete branch", "delete tag", "merge pull request", "squash and merge", "deploy", "publish", "release", "drop",
+                 "roll back", "rollback", "run migration", "apply migration"]
+  outward: ["comment", "create pull request", "open pull request", "post", "request review", "send", "submit review", "request changes"]
   sensitive_fields: sensitive_fields.json
 
+habits: habits.yaml
+# RD: which connection presets to suggest for an answer. Keys are `question:value`. Strings only: the CONNECTIONS track resolves the ids,
+# and nothing here connects to anything. A suggestion is a line in the onboarding result, never a connection made for the person.
+suggest_connections:
+  "tools:git_host": [github]
+  "tools:ci_dashboard": [github]
+  "tools:issue_tracker": [linear]
+  "tools:chat": [slack]
+  "tools:observability": [sentry]
+  "tools:db_console": [postgres]
+  "tools:release_console": [github]
+  "team_size:medium": [slack]
+  "team_size:large": [slack]
+  "review_habit:daily": [github]
+  "on_call:rota": [sentry, slack]
+  "on_call:always": [sentry, slack]
+  "release_cadence:daily": [sentry]
 routines: routines.yaml
 tone_defaults: { length: short, voice: terse, pace: quick }
 curriculum: curriculum.yaml

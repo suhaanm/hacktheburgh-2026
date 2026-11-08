@@ -1,12 +1,14 @@
 {
-  "description": "Programmer additions to the global sensitive-fields list. The effective list is the union of this file and packages/schema/sensitive_fields.json. Patterns are case-insensitive regexes over field name, id, label, placeholder, autocomplete and aria-label.",
+  "description": "Programmer additions to the global sensitive-fields list. The effective list is the union of this file and packages/schema/sensitive_fields.json. Patterns are case-insensitive regexes over field name, id, label, placeholder, autocomplete and aria-label. Role-depth additions (7 Nov 2026): database and secret fields. Commit message, pull request and review comment boxes are deliberately NOT listed: the capture never reads their text, and listing them would drop the events that make WRITE_COMMIT_MSG, OPEN_PR and ANSWER_REVIEW visible.",
   "extends": "../../schema/sensitive_fields.json",
   "patterns": [
     "personal[- ]?access[- ]?token|\\bpat\\b|deploy[- ]?key|ssh[- ]?key|gpg|signing[- ]?key",
     "env(ironment)?[- ]?(var|variable)s?[- ]?(value|secret)|\\.env",
     "client[- ]?secret|webhook[- ]?secret|bearer|authorization",
     "recovery[- ]?code|backup[- ]?code",
-    "\\bemail\\b"
+    "\\bemail\\b",
+    "database[- ]?url|connection[- ]?string|\\bdsn\\b|\\bjdbc\\b",
+    "secret[- ]?(name|value)|\\bvault\\b|api[- ]?key|access[- ]?token"
   ],
   "autocomplete_tokens": ["email"],
   "input_types": ["password", "email"]

@@ -122,11 +122,22 @@ def checklist_layers(checks: list[dict[str, Any]]) -> list[list[dict[str, Any]]]
     return [layers[k] for k in sorted(layers)]
 
 
+def _main_checks(pack: PackView) -> list[dict[str, Any]]:
+    """The checks of the pack's one task. A check with a ``family`` (RD, 7 Nov 2026) belongs to another task family: optional, listed on a line of its own,
+    never part of the checklist or of "Never skipped"."""
+    return [c for c in pack.expert_checks if "family" not in c]
+
+
+def _families(pack: PackView) -> list[str]:
+    return list(dict.fromkeys(str(c["family"]) for c in pack.expert_checks if "family" in c))
+
+
 def _checklist_text(pack: PackView) -> str | None:
-    if not pack.expert_checks:
+    main = _main_checks(pack)
+    if not main:
         return None
     parts = []
-    for layer in checklist_layers(pack.expert_checks):
+    for layer in checklist_layers(main):
         ids = [c["id"] for c in layer]
         parts.append(" or ".join(ids) if len(ids) > 1 else ids[0])
     return "Checklist: " + ", then ".join(parts) + "."
@@ -212,9 +223,12 @@ def _seed(doc: D.MemoryDoc, pack: PackView, profile: dict[str, Any], today: str,
     checklist = _checklist_text(pack)
     if checklist:
         doc.add("Procedure", checklist, note=f"from the {pack.name} pack")
-    crit = [c["id"] for c in pack.expert_checks if c.get("critical")]
+    crit = [c["id"] for c in _main_checks(pack) if c.get("critical")]
     if crit:
         doc.add("Procedure", "Never skipped: " + ", ".join(crit) + ".", note=f"from the {pack.name} pack")
+    families = _families(pack)
+    if families:
+        doc.add("Procedure", "Also, when the task needs them: " + ", ".join(families) + ".", note=f"from the {pack.name} pack")
 
     for sk in pack.skills:
         sid = str(sk["id"])

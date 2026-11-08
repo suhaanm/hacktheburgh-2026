@@ -1,6 +1,18 @@
-# One sample routine (ROL-3). Semantics: pack.schema.json#/$defs/routine_templates.
+# Routine templates the finder matches (ROL-3, RD). Semantics: pack.schema.json#/$defs/routine_templates.
+# The first template (weekly-metric-refresh) is frozen: the synthetic personas plant it. The role-depth track (RD, 7 Nov 2026) appended
+# twelve more, written from the job, NOT measured on real analysts: nothing in the synthetic data contains them yet, so the finder cannot
+# have found them and every figure below (minutes, build cost, risk) is an illustration. Extra keys on a template, all optional:
+#   irreversibility  what the routine's own worst action does if it runs to the end: none | reversible | outward | irreversible
+#   judgement_share  the share of its steps that are judgement cogs, worked out the way the hit list does (checked by the validator)
+#   steps            the routine in plain words, in order
+#   tools            connection preset ids (strings only; the CONNECTIONS track resolves them). Nothing here connects to anything.
+# A routine is held back from the hit list when its first step is irreversible or outward, when `automatable` is false, or when its
+# judgement share is over 0.4 (hitlist/build.py). `never` is what an automation stops before, not what the routine is made of.
 version: 1
-defaults: { min_support: 3, judgement_cogs: [SEARCH, REFORMULATE, COMPARE, DECIDE, CHECK], wage_gbp_per_h: 15 }
+defaults:
+  min_support: 3
+  judgement_cogs: [SEARCH, REFORMULATE, COMPARE, DECIDE, CHECK, CHECK_MAGNITUDE, WRITE_FINDING, PEER_CHECK, SET_GRAIN]
+  wage_gbp_per_h: 15
 templates:
   - id: weekly-metric-refresh
     title: Refresh the weekly metrics sheet
@@ -14,3 +26,214 @@ templates:
     value_defaults: { manual_minutes_per_run: 12, build_cost_runs: 5, maintenance_risk_gbp: 6, error_cost_gbp: 10 }
     proposal:
       what: Run the saved weekly query, paste the rows into the metrics sheet and refresh the chart. It never publishes.
+
+  - id: reload-and-reprofile
+    title: Reload the dataset and re-run the profile
+    cogs: [LOAD_DATA, PROFILE_DATA, INSPECT_RESULT]
+    match_distance: 0.25
+    automatable: true
+    learning_relevant: true        # skill gate: mastery of PROFILE_DATA must reach L4 first
+    skill_cogs: [PROFILE_DATA]
+    irreversibility: none          # read only
+    judgement_share: 0.0
+    steps: ["Open the dataset", "Run the profile: row counts, nulls, duplicates, ranges", "Read three raw rows"]
+    tools: [postgres]
+    touches: ["warehouse console", "data browser"]
+    never: ["overwrite", "drop"]
+    params: [dataset_name]
+    value_defaults: { manual_minutes_per_run: 5, build_cost_runs: 4, maintenance_risk_gbp: 3, error_cost_gbp: 6 }
+    proposal:
+      what: Reload the dataset, run the profile and bring back the counts and three raw rows. It reads only and writes nothing.
+
+  - id: parameterised-weekly-query
+    title: Run the saved query for a new week
+    cogs: [WRITE_QUERY, RUN_QUERY, INSPECT_RESULT]
+    match_distance: 0.25
+    automatable: true
+    learning_relevant: false
+    irreversibility: none
+    judgement_share: 0.0
+    steps: ["Open the saved query", "Change the week in the filter", "Run it and read the first rows"]
+    tools: [postgres]
+    touches: ["warehouse console"]
+    never: ["drop", "delete from", "overwrite"]
+    params: [week_start]
+    value_defaults: { manual_minutes_per_run: 4, build_cost_runs: 4, maintenance_risk_gbp: 3, error_cost_gbp: 5 }
+    proposal:
+      what: Open the saved query, set the week and run it, then bring back the first rows. It never saves over the query.
+
+  - id: reconcile-and-note-gap
+    title: Compare the total with the control and note the gap
+    cogs: [RUN_QUERY, RECONCILE_CONTROL, WRITE_FINDING]
+    match_distance: 0.25
+    automatable: true
+    learning_relevant: true        # skill gate: mastery of RECONCILE_CONTROL must reach L4 first
+    skill_cogs: [RECONCILE_CONTROL]
+    irreversibility: reversible    # it drafts a note; the note is the worker's to keep or delete
+    judgement_share: 0.33
+    steps: ["Run the saved total", "Compare it with the control figure", "Draft one line that says the gap and what it is made of"]
+    tools: [postgres, sheets]
+    touches: ["warehouse console", "control sheet"]
+    never: ["publish", "email"]
+    params: [metric_name, control_ref]
+    value_defaults: { manual_minutes_per_run: 8, build_cost_runs: 6, maintenance_risk_gbp: 6, error_cost_gbp: 15 }
+    proposal:
+      what: Run the total, compare it with the control figure and draft a one-line note of the gap. You decide what the gap means; it never sends the note.
+
+  - id: join-check-and-count
+    title: Join the two tables and check the row counts
+    cogs: [JOIN_TABLES, PROFILE_DATA, INSPECT_RESULT]
+    match_distance: 0.20
+    automatable: true
+    learning_relevant: true        # skill gate: mastery of JOIN_TABLES must reach L4 first
+    skill_cogs: [JOIN_TABLES]
+    irreversibility: none
+    judgement_share: 0.0
+    steps: ["Count the rows on each side", "Run the join", "Count the rows after and read three that joined"]
+    tools: [postgres]
+    touches: ["warehouse console"]
+    never: ["create or replace", "overwrite"]
+    params: [left_table, right_table, join_key]
+    value_defaults: { manual_minutes_per_run: 6, build_cost_runs: 5, maintenance_risk_gbp: 4, error_cost_gbp: 12 }
+    proposal:
+      what: Count the rows on each side, run the join and count again. If the count grew it tells you and stops. It never writes the result to a table.
+
+  - id: segment-breakdown-chart
+    title: Break the metric down by segment and chart it
+    cogs: [SET_GRAIN, GROUP_AGG, PLOT]
+    match_distance: 0.25
+    automatable: true
+    learning_relevant: true        # skill gate: mastery of GROUP_AGG must reach L4 first
+    skill_cogs: [GROUP_AGG]
+    irreversibility: none
+    judgement_share: 0.33
+    steps: ["Set the grain the question asks for", "Group by the segment", "Chart the groups next to the total"]
+    tools: [sheets]
+    touches: ["BI tool", "metrics sheet"]
+    never: ["publish", "share dashboard"]
+    params: [segment, metric_name]
+    value_defaults: { manual_minutes_per_run: 7, build_cost_runs: 5, maintenance_risk_gbp: 4, error_cost_gbp: 8 }
+    proposal:
+      what: Set the grain, group by the segment and chart the groups beside the total. It never publishes the chart.
+
+  - id: magnitude-and-units-check
+    title: Check scale and units on the refreshed figures
+    cogs: [RUN_QUERY, CHECK_MAGNITUDE, COMPARE]
+    match_distance: 0.30
+    automatable: false             # a judgement on every figure: a decoy the finder should find and not propose
+    learning_relevant: true
+    skill_cogs: [CHECK_MAGNITUDE]
+    irreversibility: none
+    judgement_share: 0.67
+    steps: ["Run the refresh", "Read each figure against one you already know", "Compare units with last period's"]
+    tools: [sheets]
+    touches: ["warehouse console", "metrics sheet"]
+    never: ["publish", "email"]
+    value_defaults: { manual_minutes_per_run: 6, build_cost_runs: 9, maintenance_risk_gbp: 10, error_cost_gbp: 30 }
+    proposal:
+      what: Run the refresh and line each figure up with last period's. Judging the scale and units needs you, so it stays manual.
+
+  - id: interval-for-a-rate
+    title: Add an interval to a rate before charting it
+    cogs: [RUN_QUERY, QUANTIFY_UNCERTAINTY, PLOT]
+    match_distance: 0.25
+    automatable: true
+    learning_relevant: true        # skill gate: mastery of QUANTIFY_UNCERTAINTY must reach L4 first
+    skill_cogs: [QUANTIFY_UNCERTAINTY]
+    irreversibility: none
+    judgement_share: 0.0
+    steps: ["Run the count and the total", "Work out the rate and its interval with the chosen method", "Chart the rate with the interval"]
+    tools: [sheets]
+    touches: ["warehouse console", "metrics sheet"]
+    never: ["publish"]
+    params: [metric_name]
+    value_defaults: { manual_minutes_per_run: 8, build_cost_runs: 6, maintenance_risk_gbp: 5, error_cost_gbp: 10 }
+    proposal:
+      what: Run the counts, work out the rate and its interval with the method you chose, and chart it. It never changes the method.
+
+  - id: notebook-restart-and-run
+    title: Restart the notebook and run it top to bottom
+    cogs: [MAKE_REPRODUCIBLE, INSPECT_RESULT, COMPARE]
+    match_distance: 0.25
+    automatable: true
+    learning_relevant: true        # skill gate: mastery of MAKE_REPRODUCIBLE must reach L4 first
+    skill_cogs: [MAKE_REPRODUCIBLE]
+    irreversibility: reversible    # it clears outputs; the code is untouched
+    judgement_share: 0.33
+    steps: ["Restart the kernel", "Run every cell in order", "Compare the final figure with the one before the restart"]
+    tools: [github]
+    touches: ["notebook"]
+    never: ["publish", "overwrite"]
+    params: [notebook_name]
+    value_defaults: { manual_minutes_per_run: 5, build_cost_runs: 4, maintenance_risk_gbp: 3, error_cost_gbp: 8 }
+    proposal:
+      what: Restart the notebook, run it in order and tell you whether the final figure changed. It never saves over the notebook.
+
+  - id: draft-metric-definition
+    title: Draft the metric definition from the saved query
+    cogs: [TRACE_SOURCE, DOCUMENT_METRIC, COPY]
+    match_distance: 0.25
+    automatable: true
+    learning_relevant: true        # skill gate: mastery of DOCUMENT_METRIC must reach L4 first
+    skill_cogs: [DOCUMENT_METRIC]
+    irreversibility: reversible    # a draft page the worker reviews and can delete
+    judgement_share: 0.0
+    steps: ["Read the source of each field in the query", "Open the metric's documentation page", "Paste a draft with the source and the filters"]
+    tools: [notion]
+    touches: ["data catalog", "documentation page"]
+    never: ["publish", "overwrite"]
+    params: [metric_name]
+    value_defaults: { manual_minutes_per_run: 10, build_cost_runs: 6, maintenance_risk_gbp: 4, error_cost_gbp: 8 }
+    proposal:
+      what: Read where each field comes from and paste a draft definition beside the metric. You edit and approve it; it never publishes.
+
+  - id: send-peer-check
+    title: Send the finding for a second check
+    cogs: [WRITE_FINDING, PEER_CHECK, EXPORT_RESULT]
+    match_distance: 0.30
+    automatable: false             # outward and a judgement: the person decides who sees it
+    learning_relevant: false
+    irreversibility: outward
+    judgement_share: 0.67
+    steps: ["Read the finding and its caveat once more", "Ask a colleague to check it", "Attach the extract they need"]
+    tools: [slack, sheets]
+    touches: ["finding document", "team chat"]
+    never: ["email", "export", "share dashboard"]
+    value_defaults: { manual_minutes_per_run: 6, build_cost_runs: 8, maintenance_risk_gbp: 12, error_cost_gbp: 25 }
+    proposal:
+      what: Draft the request for a second check. Who sees the finding is your decision and cannot be undone, so it stays manual.
+
+  - id: schedule-refresh-with-alert
+    title: Schedule the refresh and alert on failure
+    cogs: [MAKE_REPRODUCIBLE, PARAMETERISE_REPORT, SCHEDULE_REFRESH]
+    match_distance: 0.25
+    automatable: false             # a standing rule: scheduling something to run unattended is always the worker's decision
+    learning_relevant: true
+    skill_cogs: [SCHEDULE_REFRESH]
+    irreversibility: outward
+    judgement_share: 0.0
+    steps: ["Check it runs clean from scratch", "Turn the week into a parameter", "Set the schedule and the failure alert"]
+    tools: [github, slack]
+    touches: ["BI tool", "scheduler"]
+    never: ["schedule", "run on production", "publish"]
+    params: [report_name, cron]
+    value_defaults: { manual_minutes_per_run: 15, build_cost_runs: 5, maintenance_risk_gbp: 20, error_cost_gbp: 30 }
+    proposal:
+      what: Prepare the schedule and the failure alert for your review. Turning a recurring job on is always your decision, so it stays manual.
+
+  - id: send-weekly-extract
+    title: Export the weekly extract for a stakeholder
+    cogs: [RUN_QUERY, EXPORT_RESULT]
+    match_distance: 0.25
+    automatable: true
+    learning_relevant: false
+    irreversibility: outward
+    judgement_share: 0.0
+    steps: ["Run the saved extract query", "Export it to the agreed shared sheet"]
+    tools: [sheets]
+    touches: ["warehouse console", "shared sheet"]
+    never: ["email", "publish", "share dashboard"]
+    params: [extract_name, week_start]
+    value_defaults: { manual_minutes_per_run: 5, build_cost_runs: 4, maintenance_risk_gbp: 8, error_cost_gbp: 15 }
+    proposal:
+      what: Run the saved extract and put it in the agreed sheet for your approval. It never emails it or shares it wider.

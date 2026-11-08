@@ -197,6 +197,7 @@ def validate_pack(pack_dir: Path) -> list[str]:
     persona = need(pack["persona"], "persona", "persona")
     priors = need(pack["priors"], "priors", "priors")
     sensitive = need(pack["risk_classes"]["sensitive_fields"], "sensitive_fields", "sensitive fields", "json")
+    habits = need(pack["habits"], "habits", "habits") if "habits" in pack else None
 
     if "tasks" in pack:
         tasks_dir = pack_dir / pack["tasks"]
@@ -325,8 +326,19 @@ def validate_pack(pack_dir: Path) -> list[str]:
                     errs.append(f"{name}: expert check {c['id']}: unknown 'after' {a}")
             if "skill" in c and curriculum and c["skill"] not in skill_ids:
                 errs.append(f"{name}: expert check {c['id']}: unknown skill {c['skill']}")
-            if c.get("critical") and not c["required"]:
-                errs.append(f"{name}: expert check {c['id']} is critical but not required")
+            if c.get("critical") and not c["required"] and not any(c["id"] in o["after"] for o in steps["checks"]):
+                # a critical check that is not required is a CRITICAL GATE: the coach insists on it when a later check is started without it.
+                # With no later check to start, nothing could ever make it matter.
+                errs.append(f"{name}: expert check {c['id']} is critical but not required, and no check lists it in 'after' (a critical gate needs a check it gates)")
+            tgt = (c.get("coach") or {}).get("target")
+            if tgt and mapping:
+                # the ring the coach or Cue draws for this check: its zone must be one the mapping turns into the check's first cog
+                first_zones = {z for r in mapping["rules"] if r["cog"] == c["cogs"][0] for z in _as_list(r["match"].get("zone", []))}
+                if tgt["zone"] not in zones:
+                    errs.append(f"{name}: expert check {c['id']}: coach.target zone {tgt['zone']!r} is not in the pack's zone vocabulary")
+                elif tgt["zone"] not in first_zones:
+                    errs.append(f"{name}: expert check {c['id']}: coach.target zone {tgt['zone']!r} is not a zone the mapping turns into {c['cogs'][0]}")
+        errs += _check_families(name, steps["checks"])
         if _has_cycle(graph):
             errs.append(f"{name}: expert steps 'after' relations contain a cycle")
         for r in steps.get("allowed_reorderings", []):
@@ -354,6 +366,7 @@ def validate_pack(pack_dir: Path) -> list[str]:
             if len(set(t["cogs"])) < 2:
                 errs.append(f"{name}: routine template {t['id']}: a template of one repeated cog is not matchable")
         check_cogs(routines.get("defaults", {}).get("judgement_cogs", []), "routines.defaults.judgement_cogs")
+        errs += _check_template_extras(name, routines)
 
     # --- persona
     if persona and not errs:
@@ -374,6 +387,15 @@ def validate_pack(pack_dir: Path) -> list[str]:
 
     if priors and not errs:
         check_cogs(list(priors.get("cog_dwell_s", {})), "priors.cog_dwell_s")
+
+    # --- deeper onboarding, connection suggestions, habits (role-depth content; every key is optional)
+    if not errs:
+        errs += _check_followups(name, pack)
+        errs += _check_suggest_connections(name, pack)
+        if habits:
+            errs += _check_habits(name, habits, skill_ids, all_cogs)
+    if not errs and pack["depth"] == "standard":
+        errs += _check_standard(name, pack, mapping, steps, routines, curriculum, habits)
 
     # --- tasks (deep packs)
     if pack["depth"] == "deep" and "tasks" in pack and not errs:
@@ -401,9 +423,156 @@ def validate_pack(pack_dir: Path) -> list[str]:
         for a in gen["archetypes"]:
             if "plants" in a and a["plants"] not in cliff_ids:
                 errs.append(f"{name}: household_generator archetype {a['id']} plants unknown cliff {a['plants']}")
+    # --- depth and coverage must agree. The schema already makes a thin pack's coverage stub; a standard pack (like a deep one) needs full
+    cov = (pack.get("expert_policy") or {}).get("coverage")
+    if pack["depth"] in ("standard", "deep") and cov != "full":
+        errs.append(f"{name}: depth {pack['depth']} needs expert_policy.coverage full")
     # --- the oracle label must say what it is
     if "oracle" in pack and "not law" not in pack.get("oracle_note", "").lower():
         errs.append(f"{name}: pack.yaml has an oracle but oracle_note does not say it is simplified and not law")
+    return errs
+
+
+# ---------------------------------------------------------------- role-depth checks (optional pack content)
+
+# What a `depth: standard` pack must carry (the schema describes the level; this is the measurable floor). Not a quality bar: the content is
+# hand-written from the job and a validator cannot tell good from thin, only absent from present.
+STANDARD_MINIMUM = {"cogs": 15, "checks": 15, "skills": 10, "templates": 8, "followups": 4, "habits": 8}
+
+
+def _check_families(name: str, checks: list[dict]) -> list[str]:
+    """A check with a `family` is an addition to the policy of the pack's one task. It must not be able to touch what the policy already
+    scores: optional (so end-of-task skill tracing, which scores required checks, ignores it), starting with a cog no family-less check uses
+    (so it is never started, partly matched or violated by a task that has no such cog), and never waited for by a family-less check."""
+    errs: list[str] = []
+    base = [c for c in checks if "family" not in c]
+    base_cogs = {g for c in base for g in c["cogs"]}
+    family_ids = {c["id"] for c in checks if "family" in c}
+    for c in checks:
+        if "family" not in c:
+            late = [a for a in c["after"] if a in family_ids]
+            if late:
+                errs.append(f"{name}: expert check {c['id']} has no family but waits for family check(s) {late}")
+            continue
+        if c["required"]:
+            errs.append(f"{name}: expert check {c['id']} has a family so it must be optional (required: false)")
+        if c["cogs"][0] in base_cogs:
+            errs.append(f"{name}: expert check {c['id']} has a family so its first cog {c['cogs'][0]} must not be used by any check without one")
+    return errs
+
+
+def _check_template_extras(name: str, routines: dict) -> list[str]:
+    """irreversibility, judgement_share, steps and tools are optional; when given they must agree with the rest of the template."""
+    errs: list[str] = []
+    default_j = set((routines.get("defaults") or {}).get("judgement_cogs", []))
+    for t in routines["templates"]:
+        if "judgement_share" in t:
+            j = default_j | set(t.get("judgement_cogs", []))
+            want = round(sum(1 for c in t["cogs"] if c in j) / len(t["cogs"]), 2)
+            if abs(want - t["judgement_share"]) > 0.011:
+                errs.append(f"{name}: routine template {t['id']}: judgement_share {t['judgement_share']} but its cogs give {want} (the hit list's own formula)")
+        if t.get("irreversibility") == "irreversible" and t["automatable"]:
+            errs.append(f"{name}: routine template {t['id']}: an irreversible routine must not be automatable")
+    return errs
+
+
+def _question_options(pack: dict) -> dict[str, dict[str, dict]]:
+    """question id -> option value -> option, for the five fixed questions and the follow-ups."""
+    out: dict[str, dict[str, dict]] = {}
+    for q in pack["onboarding"]["questions"]:
+        out[q["id"]] = {o["value"]: o for o in q.get("options", [])}
+    for f in pack["onboarding"].get("followups", []):
+        out[f["id"]] = {o["value"]: o for o in f["options"]}
+    return out
+
+
+def _check_followups(name: str, pack: dict) -> list[str]:
+    errs: list[str] = []
+    fus = pack["onboarding"].get("followups", [])
+    if not fus:
+        return errs
+    ids = [f["id"] for f in fus]
+    if len(ids) != len(set(ids)):
+        errs.append(f"{name}: onboarding followups have duplicate ids")
+    fixed = {q["id"]: {o["value"] for o in q.get("options", [])} for q in pack["onboarding"]["questions"]}
+    for f in fus:
+        if f["id"] in QUESTION_IDS:
+            errs.append(f"{name}: followup id {f['id']!r} is one of the five fixed question ids")
+        values = [o["value"] for o in f["options"]]
+        if len(values) != len(set(values)):
+            errs.append(f"{name}: followup {f['id']} has duplicate option values")
+        defaults = sum(1 for o in f["options"] if o.get("default"))
+        if f["kind"] == "single" and defaults != 1:
+            errs.append(f"{name}: single followup {f['id']} must have exactly one default option")
+        for o in f["options"]:
+            sets = o.get("sets") or {}
+            for key in ("pace", "tone"):
+                if key in sets and sets[key] not in fixed[key]:
+                    errs.append(f"{name}: followup {f['id']} option {o['value']}: sets {key}={sets[key]!r}, which the pack's {key} question does not offer")
+            for p in o.get("patterns", []):
+                try:
+                    re.compile(p, re.I)
+                except re.error as e:
+                    errs.append(f"{name}: followup {f['id']} option {o['value']}: pattern {p!r} is not a regex: {e}")
+    return errs
+
+
+def _check_suggest_connections(name: str, pack: dict) -> list[str]:
+    errs: list[str] = []
+    options = _question_options(pack)
+    for key in pack.get("suggest_connections", {}):
+        q, _, v = key.partition(":")
+        if q not in options:
+            errs.append(f"{name}: suggest_connections key {key!r}: no question {q!r}")
+        elif v not in options[q]:
+            errs.append(f"{name}: suggest_connections key {key!r}: question {q} has no option {v!r}")
+    return errs
+
+
+def _check_habits(name: str, habits: dict, skill_ids: set[str], all_cogs: set[str]) -> list[str]:
+    errs: list[str] = []
+    if habits["role"] != name:
+        errs.append(f"{name}: habits.yaml role {habits['role']!r} must equal the pack id")
+    ids = [h["id"] for h in habits["habits"]]
+    if len(ids) != len(set(ids)):
+        errs.append(f"{name}: habits.yaml has duplicate habit ids")
+    for h in habits["habits"]:
+        if skill_ids and h["skill"] not in skill_ids:
+            errs.append(f"{name}: habit {h['id']}: unknown skill {h['skill']}")
+        for c in h["cogs"]:
+            if c not in all_cogs:
+                errs.append(f"{name}: habit {h['id']}: unknown cog {c}")
+    return errs
+
+
+def _check_standard(name: str, pack: dict, mapping: dict | None, steps: dict | None, routines: dict | None,
+                    curriculum: dict | None, habits: dict | None) -> list[str]:
+    """The measurable floor of `depth: standard` (STANDARD_MINIMUM), plus: every extra cog is taught, checked or routinised somewhere."""
+    errs: list[str] = []
+    m = STANDARD_MINIMUM
+    extra = pack["cogs"]["extra"]
+    n_checks = len(steps["checks"]) if steps else 0
+    n_skills = len(curriculum["skills"]) if curriculum else 0
+    n_templates = len(routines["templates"]) if routines else 0
+    n_followups = len(pack["onboarding"].get("followups", []))
+    n_habits = len(habits["habits"]) if habits else 0
+    for label, have, floor in (("cogs", len(extra), m["cogs"]), ("expert checks", n_checks, m["checks"]), ("curriculum skills", n_skills, m["skills"]),
+                               ("routine templates", n_templates, m["templates"]), ("onboarding followups", n_followups, m["followups"]),
+                               ("habits", n_habits, m["habits"])):
+        if have < floor:
+            errs.append(f"{name}: depth standard needs at least {floor} {label}, has {have}")
+    if "suggest_connections" not in pack:
+        errs.append(f"{name}: depth standard needs suggest_connections")
+    used: set[str] = set()
+    for c in (steps["checks"] if steps else []):
+        used.update(c["cogs"])
+    for s in (curriculum["skills"] if curriculum else []):
+        used.update(s["cogs"])
+    for t in (routines["templates"] if routines else []):
+        used.update(t["cogs"])
+    for c in extra:
+        if c not in used:
+            errs.append(f"{name}: extra cog {c} is not used by any expert check, curriculum skill or routine template")
     return errs
 
 
