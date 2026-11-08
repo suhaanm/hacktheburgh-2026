@@ -29,7 +29,7 @@ export const INTERNALS_RULES = [
   { id: "run-id", re: /\br_[a-z0-9]{3,}(?:_[a-z0-9]+)*\b|\brun\s+(?:id\s*)?[#:]?\s*[0-9a-f]{6,}\b/gi, why: "a run id" },
   { id: "ledger", re: /\bledger\b/gi, why: "the ledger (only inside Settings, Advanced)" },
   { id: "hash", re: /\b[0-9a-f]{12,64}\b|\bsha-?(?:1|256)\b|\bhash(?:es)?\b/gi, why: "a hash" },
-  { id: "evidence", re: /\bevidence\b/gi, why: "an evidence table or page", exempt: { "needs-you": "an approval's own screenshots and extracted values are the worker's own work", home: "the approval card on Home shows the same own evidence" } },
+  { id: "evidence", re: /\bevidence\b/gi, why: "an evidence table or page", exempt: { "needs-you": "an approval's own screenshots and extracted values are the worker's own work", home: "the approval card on Home shows the same own evidence", today: "the Today screen links the approval's own evidence" } },
   { id: "limitations", re: /\blimitations?\b/gi, why: "a limitations register" },
   { id: "diagnostics", re: /\b(?:latency|egress\s+guard|diagnostics?|routing|call\s+log|model\s+log)\b/gi, why: "system diagnostics" },
 ];

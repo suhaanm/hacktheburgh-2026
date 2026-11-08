@@ -1,4 +1,4 @@
-// The Ask bar's small shared surface: its channels, its geometry, the cleaning of what is typed, and the one fixed sentence it says when typing cannot be answered.
+// The Ask bar's small shared surface: its channels, its geometry and the cleaning of what is typed. What happens to a line is decided by the shell (a voice conversation, or a task: wake/controller.ts submitTyped).
 // Pure, so the window (ask-bar.ts), the preload and the page can all use it and the tests can reach it without Electron.
 
 export const ASK_IPC = {
@@ -68,9 +68,4 @@ export function keyLabel(accelerator: string): string {
     .split('+')
     .map((k) => ({ Alt: 'Option', Option: 'Option', CommandOrControl: 'Command', CmdOrCtrl: 'Command', Command: 'Command', Cmd: 'Command', Control: 'Control', Ctrl: 'Control', Shift: 'Shift' })[k] ?? k)
     .join('-')
-}
-
-/** The one sentence the bar says when a typed line cannot be answered (typed chat has no model behind it in this build): plain, and it says what to do. */
-export function askUnavailableLine(talkKey: string): string {
-  return `Typing is not on yet. Hold ${keyLabel(talkKey)} and speak.`
 }

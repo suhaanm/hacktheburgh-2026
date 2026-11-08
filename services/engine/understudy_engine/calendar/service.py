@@ -52,7 +52,7 @@ def _round(f: dict[str, Any]) -> dict[str, Any]:
     return {k: (round(v, 2) if isinstance(v, float) else v) for k, v in f.items()}
 
 
-def week_report(store: CalendarStore, person: str, week: str | None = None, *, n_boot: int = 300) -> dict[str, Any]:
+def week_report(store: CalendarStore, person: str, week: str | None = None, *, n_boot: int = 300, as_person: str | None = None, as_role: str | None = None) -> dict[str, Any]:
     pc, monday = resolve(store, person, week)
     wa = pc.week(monday)
     ref = reference_for(store, pc.role)
@@ -68,7 +68,7 @@ def week_report(store: CalendarStore, person: str, week: str | None = None, *, n
                    "reference": ("mean over the expert cohort; the ribbon is the nearest expert week" if ref.source == "cohort"
                                  else "the role template's own week (no expert cohort for this role)")})
     return {
-        "person": person, "role": pc.role, "group": pc.group, "week": week_label(monday), "weeks_available": [week_label(m) for m in pc.weeks],
+        "person": as_person or person, "role": as_role or pc.role, "group": pc.group, "week": week_label(monday), "weeks_available": [week_label(m) for m in pc.weeks],
         "timezone": pc.work.tz_name,
         "days": week_blocks_json(wa),
         "features": _round(wa.features),
@@ -91,7 +91,7 @@ def week_meta(report: dict[str, Any], origin: str = "synthetic") -> dict[str, An
 
 
 def suggestions_report(store: CalendarStore, person: str, week: str | None = None, *, reword: bool = False, port: Any = None,
-                       max_n: int | None = None) -> dict[str, Any]:
+                       max_n: int | None = None, as_person: str | None = None, as_role: str | None = None) -> dict[str, Any]:
     pc, monday = resolve(store, person, week)
     tpl = load_template(pc.role)
     ref = reference_for(store, pc.role)
@@ -99,11 +99,11 @@ def suggestions_report(store: CalendarStore, person: str, week: str | None = Non
     weeks = [pc.week(m) for m in pc.weeks if m <= monday]
     feats = weeks[-1].features
     history = [w.features for w in weeks]
-    out = sug.suggest(feats, ref.features(exclude), tpl.targets, history=history, person=person, week=week_label(monday), max_n=max_n,
+    out = sug.suggest(feats, ref.features(exclude), tpl.targets, history=history, person=as_person or person, week=week_label(monday), max_n=max_n,
                       days_expected=len(tpl.work.days))
     if reword:
         out = [sug.reword(s, pc.role, ref.features(exclude), feats, port=port) for s in out]
-    return {"person": person, "week": week_label(monday), "suggestions": out, "n_weeks": len(weeks), "role": pc.role,
+    return {"person": as_person or person, "week": week_label(monday), "suggestions": out, "n_weeks": len(weeks), "role": as_role or pc.role,
             "reference": ref.source, "reworded": reword}
 
 

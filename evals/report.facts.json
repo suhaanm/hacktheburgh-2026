@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-11-08T02:22:41Z",
+  "generated_at": "2026-11-08T02:58:04Z",
   "mock": true,
-  "git_rev": "48723dd",
+  "git_rev": "9780781",
   "fast": false,
   "partial": false,
   "note": "Read from evals/report.json by `make eval`. A fast run uses fewer resamples and seeds, so counts that depend on them differ from a full run; quote a full run.",
@@ -58,9 +58,9 @@
     "invalid_provenance_names": []
   },
   "limitations": {
-    "total": 219,
+    "total": 220,
     "high": 70,
-    "medium": 119,
+    "medium": 120,
     "low": 30
   },
   "findings": {
@@ -147,7 +147,7 @@
       "agent/runtime": 122,
       "agent/safety": 363,
       "agent/tasks": 132,
-      "apps/dashboard/src": 1299,
+      "apps/dashboard/src": 1366,
       "apps/desktop/src": 2393,
       "engine/analytics": 132,
       "engine/api": 113,
@@ -179,12 +179,12 @@
       "extension/tests": 192,
       "packages/packs/tests": 88
     },
-    "total": 8126
+    "total": 8193
   },
   "flat": {
-    "generated_at": "2026-11-08T02:22:41Z",
+    "generated_at": "2026-11-08T02:58:04Z",
     "mock": true,
-    "git_rev": "48723dd",
+    "git_rev": "9780781",
     "fast": false,
     "partial": false,
     "sections.total": 37,
@@ -193,9 +193,9 @@
     "sections.not_run": 2,
     "sections.failed": 0,
     "sections.invalid_provenance": 0,
-    "limitations.total": 219,
+    "limitations.total": 220,
     "limitations.high": 70,
-    "limitations.medium": 119,
+    "limitations.medium": 120,
     "limitations.low": 30,
     "findings.total": 7,
     "redteam.attacks": 42,
@@ -245,7 +245,7 @@
     "tests.by_dir.agent/runtime": 122,
     "tests.by_dir.agent/safety": 363,
     "tests.by_dir.agent/tasks": 132,
-    "tests.by_dir.apps/dashboard/src": 1299,
+    "tests.by_dir.apps/dashboard/src": 1366,
     "tests.by_dir.apps/desktop/src": 2393,
     "tests.by_dir.engine/analytics": 132,
     "tests.by_dir.engine/api": 113,
@@ -276,6 +276,6 @@
     "tests.by_dir.evals/tests": 87,
     "tests.by_dir.extension/tests": 192,
     "tests.by_dir.packages/packs/tests": 88,
-    "tests.total": 8126
+    "tests.total": 8193
   }
 }

@@ -3,7 +3,7 @@ import { ApiError, api } from "../../api";
 import { authForApproval, needsStepUp, stepUpNotice, useAuth } from "../../auth";
 import { Details } from "../ui";
 import { useToast } from "../Toasts";
-import { approvalLabels, consequence, leadAndRest, plainWords } from "../../screens/NeedsYou/model";
+import { approvalLabels, consequence, fieldName, leadAndRest, plainWords } from "../../screens/NeedsYou/model";
 import { refreshNeedsBadge } from "../../screens/NeedsYou/count";
 import { finalizeOf, isSafetyPause } from "../../screens/Home/approval";
 
@@ -63,18 +63,17 @@ export function ApprovalHero({ item: it, onDone }: { item: QueueItem; onDone: ()
         <Details summary="Evidence">
           <div className="home__evidence">
             {rest && <p className="note">{rest}</p>}
-            <p className="note">Run {it.run_id}{it.routine_id ? ` · ${it.routine_id}` : ""}</p>
             {keys.length > 0 && (
               <div className="kv" role="table" aria-label="What the run found against what was expected">
                 <span className="t-label">Field</span><span className="t-label">Found</span><span className="t-label">Expected</span>
                 {keys.map((k) => {
                   const got = String(it.evidence.extracted?.[k] ?? "");
                   const exp = it.evidence.expected?.[k];
-                  return (<span key={k} style={{ display: "contents" }}><span className="kv__k">{k}</span><span className={exp != null && String(exp) !== got ? "kv__bad" : ""}>{got || "none"}</span><span>{exp != null ? String(exp) : "not set"}</span></span>);
+                  return (<span key={k} style={{ display: "contents" }}><span className="kv__k">{fieldName(k)}</span><span className={exp != null && String(exp) !== got ? "kv__bad" : ""}>{got || "none"}</span><span>{exp != null ? String(exp) : "not set"}</span></span>);
                 })}
               </div>
             )}
-            {diff.length > 0 && <p className="note"><b>Difference:</b> {diff.map((d) => `${d.field}: expected ${d.expected}, got ${d.got}`).join("; ")}</p>}
+            {diff.length > 0 && <p className="note"><b>Difference:</b> {diff.map((d) => `${fieldName(d.field)}: expected ${d.expected}, got ${d.got}`).join("; ")}</p>}
           </div>
         </Details>
       </div>

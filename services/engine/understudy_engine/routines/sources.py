@@ -100,6 +100,16 @@ class PersonSource:
                 files = sorted(d.glob("*.jsonl"))
                 if files:
                     idx[d.name] = {"origin": "real", "slug": d.name, "files": files, "truth": None}
+        # ``history/<person>/<day>-<role code>.jsonl``: a worker's earlier work under other roles (seedroles.events), merged beside whatever else the person has. Its events keep their own
+        # ``origin`` (never in the ``real`` partition, never in the shared ``synthetic`` dataset), and the person's origin stays what the rest of their data says.
+        hist = self.root / "history"
+        if hist.exists():
+            for d in sorted(p for p in hist.iterdir() if p.is_dir()):
+                files = sorted(d.glob("*.jsonl"))
+                if not files:
+                    continue
+                cur = idx.get(d.name)
+                idx[d.name] = {**cur, "files": [*cur["files"], *files]} if cur else {"origin": "synthetic", "slug": d.name, "files": files, "truth": None}
         return idx
 
     def _paths(self, person: str) -> list[Path]:
