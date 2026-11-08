@@ -521,6 +521,10 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   await page.unroute(ENGINE);
 }
 
+// 8h0. The built-in sample is never a task: with the services refused, Routines draws no background tasks and Needs you no run that reads 'paused'
+await go("/routines", 1500);
+check("routines: example data draws no background tasks (a sample is never a task)", (await page.locator("[data-testid=background-tasks]").count()) === 0 && /Your routines/.test(await page.locator("main").innerText()) && !/\bRunning\b/.test(await page.locator("[role=tablist]").innerText()));
+
 // 8h. Live: a task that finishes in the background shows as finished with no reload, an open row stays open, and the announcement is one quiet sentence
 {
   const AGENT = /^https?:\/\/[^/]+\/agent(\/|$)/;
@@ -529,7 +533,8 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   const row = () => ({ task_id: "tk_live1", title: "Tidy the invoices folder", state, started: new Date(Date.now() - 60000).toISOString(), latest: state === "running" ? "Reading invoices.pdf" : null, result: state === "done" ? "Moved 12 files into Paid and Unpaid." : null, finished: state === "done" ? new Date().toISOString() : null });
   await page.route(AGENT, async (route) => {
     const path = new URL(route.request().url()).pathname.replace(/^\/agent/, "");
-    if (path === "/tasks") return reply(route, [row()]);
+    // A ghost (a record a dead process left 'planning', three days old) and an old finished one come with the real task: neither may be drawn or counted.
+    if (path === "/tasks") return reply(route, [row(), { task_id: "tk_ghost", title: "Ghost job from three days ago", state: "planning", started: new Date(Date.now() - 3 * 86400000).toISOString() }, { task_id: "tk_old", title: "Finished two days ago", state: "done", result: "Old.", started: new Date(Date.now() - 2 * 86400000).toISOString(), finished: new Date(Date.now() - 2 * 86400000 + 60000).toISOString() }]);
     if (path === "/tasks/events") return route.abort();                      // polling covers it: the check is that the page updates by itself
     if (path === "/tasks/tk_live1") return reply(route, { ...row(), steps: ["Listed the folder", "Read invoices.pdf"] });
     return reply(route, { error: { code: "not_found", message: "not mocked" } }, 404);
@@ -539,6 +544,8 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   await page.waitForFunction(() => /Reading invoices\.pdf/.test(document.body.innerText), null, { timeout: 15000 }).catch(() => undefined);
   const bt = page.locator("[data-testid=background-tasks]");
   check("routines: a running task is one line with the current step, and no id", /Tidy the invoices folder/.test(await bt.innerText()) && /Reading invoices\.pdf/.test(await bt.innerText()) && !/tk_live1/.test(await bt.innerText()));
+  const everything = await page.locator("main").innerText();
+  check("routines: a ghost and an old record are not listed, and do not count as running", !/Ghost job/.test(everything) && !/Finished two days ago/.test(everything) && /1 task is working in the background\./.test(everything));
   await bt.locator("button.bt-open").first().click();
   await page.waitForTimeout(500);
   check("routines: a click on the line shows the steps as a plain list", (await bt.locator(".bt-steps li").count()) >= 2);

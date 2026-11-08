@@ -4,6 +4,7 @@ import { useLoad } from "../../hooks";
 import { ErrorState, Loading, OriginBadge } from "../../components/common";
 import { buildPreview } from "../../lib/memoryPreview";
 import { normDays } from "../../lib/days";
+import { depthWords } from "./model";
 import type { OnboardingAnswers, OnboardingQuestion, OnboardingQuestions, OnboardingResult, Pack } from "../../types";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -164,7 +165,7 @@ function RoleCard({ pack, checked, onChoose }: { pack: Pack; checked: boolean; o
       <input type="radio" name="role" value={pack.id} checked={checked} onChange={onChoose} />
       <span className="role-card__name">{pack.name}</span>
       <span className="role-card__desc">{pack.summary}</span>
-      <span className="t-label">{pack.depth === "deep" ? "Fully built and validated" : "Starter pack"}</span>
+      <span className="t-label">{depthWords(pack.depth)}</span>
     </label>
   );
 }

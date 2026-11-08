@@ -70,7 +70,7 @@ export function ProposalRow({ routine: p, onDecide }: { routine: Routine; onDeci
         <p className="kc-row__meta" data-testid="never">{never}</p>
       ) : null}
       <div className="kc-row__actions" role="group" aria-label="Your choice">
-        <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => void go("shadow", "Watching first.")}>Watch first</button>
+        <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => void go("shadow", "Set to watch first.")}>Watch first</button>
         <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => void go("not_now", "Okay, not now.")}>Not now</button>
         <button type="button" className="kc-link" aria-expanded={more} aria-controls={`more-${p.id}`} onClick={() => setMore((v) => !v)}>Details<Glyph name="chevron" /></button>
       </div>

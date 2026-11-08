@@ -37,7 +37,7 @@ const EMPTY_TITLE: Record<Exclude<HitState, "ok">, string> = {
 };
 
 /**
- * Routines: Running (what runs for you and how far it is trusted) and Could automate (what you do by hand again and again, biggest time first).
+ * Routines: Your routines (the ones you set up and how far each is trusted) and Could automate (what you do by hand again and again, biggest time first).
  * The decision to start one is made in Needs you; this is where you manage what already runs and find what could. At most seven rows, then "Show all".
  */
 export default function Routines() {
@@ -114,11 +114,11 @@ export default function Routines() {
           <BackgroundTasks view={tasks} />
           {running.length === 0 ? (
             <div className="kc-empty">
-              <h2>Nothing runs yet.</h2>
+              <h2>No routines yet.</h2>
               <p>Choose Watch first on a proposal in Needs you.</p>
             </div>
           ) : (
-            <ul className="kc-list" aria-label="Running routines">
+            <ul className="kc-list" aria-label="Your routines">
               {shown.map((r) => (
                 <li key={r.id}>
                   <RunningRow routine={r} open={openId === r.id} canRun onToggle={() => setOpenId(openId === r.id ? null : r.id)} onDecide={decide} onRun={onRun} />
@@ -138,7 +138,7 @@ export default function Routines() {
   );
 }
 
-/** What the worker said no to, one click from a yes. Behind one disclosure so Running stays short. */
+/** What the worker said no to, one click from a yes. Behind one disclosure so Your routines stays short. */
 function TurnedDown({ rows, onDecide }: { rows: ReturnType<typeof turnedDown>; onDecide: Decide }) {
   const [err, setErr] = useState<string | null>(null);
   if (rows.length === 0) return null;
@@ -148,7 +148,7 @@ function TurnedDown({ rows, onDecide }: { rows: ReturnType<typeof turnedDown>; o
         {rows.slice(0, 30).map((x) => (
           <div key={x.id} className="rt-more-row">
             <span>{plainWords(clip(x.title, 120)) || "A routine"} <span className="u-muted">({x.status === "never" ? "Never" : "Not now"})</span></span>
-            <button type="button" className="btn btn--secondary btn--sm" onClick={() => { setErr(null); onDecide(x, { mode: "shadow" }, "Watching first.").catch((e: unknown) => setErr(e instanceof ApiError ? e.message : "That did not save. Try again.")); }}>Watch first</button>
+            <button type="button" className="btn btn--secondary btn--sm" onClick={() => { setErr(null); onDecide(x, { mode: "shadow" }, "Set to watch first.").catch((e: unknown) => setErr(e instanceof ApiError ? e.message : "That did not save. Try again.")); }}>Watch first</button>
           </div>
         ))}
         {rows.length > 30 && <p className="kc-sub">{rows.length - 30} more turned down.</p>}

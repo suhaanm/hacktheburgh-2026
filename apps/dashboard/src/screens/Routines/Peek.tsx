@@ -31,7 +31,7 @@ export function Peek({ row, windowDays, source, close, onDone }: { row: HitRow; 
     setBusy(true); setErr(null); setGate(null);
     try {
       await watchFirst(row.id, routine, source, override);
-      toast({ tone: "success", text: "Watching first.", detail: "It practises on your next cases. Nothing runs, is saved or is sent." });
+      toast({ tone: "success", text: "Set to watch first.", detail: "It practises on your next cases. Nothing runs, is saved or is sent." });
       onDone();
       close();
     } catch (e) {
@@ -48,7 +48,7 @@ export function Peek({ row, windowDays, source, close, onDone }: { row: HitRow; 
         ["It stops before", STOPS_TEXT[row.stops_before] ?? null],
       ]} />
       <p className="kc-sub" data-testid="peek-consent">{already
-        ? `${row.status === "learning" ? "It is watching you on this one now." : "This one is running with your approval."} Its record and choices are under Running.`
+        ? `${row.status === "learning" ? "It is set to watch first on this one." : "This one is set to run with your approval."} Its record and choices are under Your routines.`
         : "Watch first: it practises on your next cases and compares with what you do. Nothing runs, is saved or is sent."}</p>
       {gate && <SkillGate gate={{ mode: "shadow", done: "", message: gate }} busy={busy} onOverride={() => void go(true)} onDismiss={() => setGate(null)} />}
       {err && <p className="kc-error" role="alert">{err}</p>}

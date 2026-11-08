@@ -20,8 +20,8 @@ const BLOCKS = [
   ["your-data: what it measures", "/your-data?section=measured", async () => {}, "#yd-measured"],
   ["your-data: what it looked at or sent", "/your-data?section=sent", async () => {}, "#yd-sent"],
   ["settings: Advanced (every call)", "/home?settings=advanced", async (p) => { await p.waitForTimeout(600); }, "[data-testid=advanced-calls]"],
-  ["routines: background tasks", "/routines", async () => {}, "[data-testid=background-tasks]"],
-  ["routines: a task opened", "/routines", async (p) => { await p.locator("button.bt-open").first().click(); }, "[data-testid=background-tasks]"],
+  ["routines: background tasks", "/routines", async (p) => { await mockTasks(p); await p.reload(); await p.waitForTimeout(1800); }, "[data-testid=background-tasks]"],
+  ["routines: a task opened", "/routines", async (p) => { await mockTasks(p); await p.reload(); await p.waitForTimeout(1800); await p.locator("button.bt-open").first().click(); }, "[data-testid=background-tasks]"],
   ["your-data: what your admin can see", "/your-data?section=admin-sees", async () => {}, "#yd-admin-sees"],
   ["your-data: capture and screen glances", "/your-data?section=switches", async () => {}, "#yd-switches"],
   ["settings: the sheet", "/home?settings=live-models", async () => {}, "[data-testid=settings]"],
@@ -33,6 +33,23 @@ const BLOCKS = [
 
 /** Open the first `n` disclosures whose summary matches, whatever state they are in (a sheet that stays open between addresses keeps its disclosures as they were). */
 async function openDetails(p, scope, re, n) { await p.locator(`${scope} details`).evaluateAll((els, [src, flags, k]) => { let left = k; for (const d of els) { const t = d.querySelector(":scope > summary")?.textContent?.trim() ?? ""; if (left > 0 && new RegExp(src, flags).test(t)) { d.open = true; left--; } } }, [re.source, re.flags, n]); }
+
+/** A tasks service that answers (the built-in sample is never a task, so the background tasks list needs a live answer to draw anything). */
+export async function mockTasks(page) {
+  const now = Date.now();
+  const rows = [
+    { task_id: "tk_a", title: "Tidy the invoices folder", state: "running", started: new Date(now - 90_000).toISOString(), latest: "Reading invoices.pdf" },
+    { task_id: "tk_c", title: "Summarise last week's notes", state: "done", started: new Date(now - 300_000).toISOString(), finished: new Date(now - 120_000).toISOString(), result: "Wrote a one page summary of 14 notes." },
+  ];
+  await page.route(/^https?:\/\/[^/]+\/agent(\/|$)/, (route) => {
+    const path = new URL(route.request().url()).pathname.replace(/^\/agent/, "");
+    const reply = (body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+    if (path === "/tasks") return reply(rows);
+    if (path === "/tasks/events") return route.abort();
+    if (path.startsWith("/tasks/")) return reply({ ...rows[0], steps: ["Listed the folder", "Read 12 files"] });
+    return reply({ error: { code: "not_found", message: "x" } }, 404);
+  });
+}
 
 async function showAll(p) { const all = p.getByRole("button", { name: /^Show all/ }); if (await all.count()) await all.first().click(); }
 
@@ -68,6 +85,7 @@ for (const [name, route, open, sel, as = "worker"] of BLOCKS) {
   await page.waitForTimeout(1200);
   try { await open(page); await page.waitForTimeout(350); } catch (e) { rows.push({ name, error: String(e).split("\n")[0].slice(0, 80) }); continue; }
   const m = await page.evaluate(measure, sel);
+  await page.unroute(/^https?:\/\/[^/]+\/agent(\/|$)/).catch(() => undefined);
   rows.push({ name, ...(m ?? { error: "block not found" }) });
 }
 await browser.close();

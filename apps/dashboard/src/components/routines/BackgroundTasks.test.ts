@@ -8,7 +8,7 @@ import type { TasksView } from "../../lib/useTasks";
 import { TaskSection } from "./BackgroundTasks";
 
 const NOW = Date.parse("2026-11-08T10:00:00Z");
-const t = (id: string, state: TaskState, note = "", title = `Task ${id}`, steps: Task["steps"] = []): Task => ({ id, title, state, note, steps, started: "2026-11-08T09:00:00Z", finished: null, isTask: false, open: null, answer: null });
+const t = (id: string, state: TaskState, note = "", title = `Task ${id}`, steps: Task["steps"] = []): Task => ({ id, title, state, note, steps, started: new Date(NOW - 5 * 60_000).toISOString(), finished: null, isTask: false, open: null, answer: null });
 function view(tasks: Task[], over: Partial<TasksView> = {}, finished: [string, number][] = []): TasksView {
   return { tasks, grouped: groupTasks(tasks, new Map(finished), NOW), ready: true, failed: false, active: tasks.some((x) => x.state === "running"), announce: "", sources: [], reload: () => undefined, want: () => undefined, fromTasks: false, stop: async () => undefined, openResult: async () => undefined, ...over };
 }
