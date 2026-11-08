@@ -13,7 +13,7 @@ import { liveModelsBridge, wakeBridge, type LiveModelsState, type WakeStatus } f
 import type { OnboardingQuestions } from "../../types";
 import {
   CAPTURE_CARD, CAPTURE_CHOICE_KEY, CHOICES, FIRST_RUN_KEY, GLANCE_CHOICE_KEY, GLANCE_TITLE, NO_ROLE, PERM_COPY, PROGRESS_KEY, RING_SENTENCE, SEEN_KEY, START, STEPS, VOICE_CARD, VOICE_CHOICE_KEY,
-  captureRecord, defaultAnswers, heyKnackRow, kindsFor, nextUnanswered, parseProgress, permsToShow, progressRecord, reduce, roleCards, type Choice, type ConsentKind,
+  captureRecord, defaultAnswers, heyKnackRow, kindsFor, nextUnanswered, parseProgress, permsToShow, progressRecord, reduce, roleCards, shouldRearm, type Choice, type ConsentKind,
 } from "./model";
 import "./firstrun.css";
 
@@ -217,15 +217,28 @@ function CheckStep({ answers, heading, onBack, onFinish, writing, slow, wakeApi 
     if (hasPerms) bridge.permissions!.state().then((r) => { setPerms(permStates(r)); setRestart(r?.needsRestart === true); }, () => { setPerms(null); setRestart(false); });
     wakeApi?.state().then((w) => setWake(w as WakeState), () => setWake(null));
   }, [bridge, hasPerms, wakeApi]);
+  const wakeRef = useRef<WakeState | null>(null);
+  wakeRef.current = wake;
   useEffect(() => {
     read();
     liveApi?.get().then(setLive, () => setLive(null));
     // A permission can change while this screen is open (the worker goes to System Settings and comes back, or revokes it later): read again when the window is looked at.
-    const again = () => { if (document.visibilityState !== "hidden") read(); };
+    // A listener that was refused stays off until it is armed again, so a return to the window arms it once and reads its state again a moment later.
+    let late = 0;
+    const again = () => {
+      if (document.visibilityState === "hidden") return;
+      read();
+      const arm = (wakeApi as WakeApi | null)?.arm;
+      if (shouldRearm(wakeRef.current) && typeof arm === "function") {
+        try { void Promise.resolve(arm.call(wakeApi)).catch(() => undefined); } catch { /* the listener is not there: nothing to arm */ }
+        window.clearTimeout(late);
+        late = window.setTimeout(read, 1600);
+      }
+    };
     window.addEventListener("focus", again);
     document.addEventListener("visibilitychange", again);
-    return () => { window.removeEventListener("focus", again); document.removeEventListener("visibilitychange", again); };
-  }, [read, liveApi]);
+    return () => { window.clearTimeout(late); window.removeEventListener("focus", again); document.removeEventListener("visibilitychange", again); };
+  }, [read, liveApi, wakeApi]);
 
   const show = permsToShow(answers, { ring: hasRing && hasPerms });
   const ask = async (kind: PermKind) => { setError(null); try { await bridge.permissions!.request(kind); } catch { setError("Could not ask. Nothing was changed."); } read(); };

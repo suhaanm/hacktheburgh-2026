@@ -44,8 +44,20 @@ export function StopProvider({ children }: { children: ReactNode }) {
     } finally { setBusy(false); }
   }, [toast]);
 
+  // Stop everything can come from outside this page (the corner pill, the menu bar, the Dock menu, the hotkey) and so can Resume: read the state when the page opens, when the window is
+  // looked at again, and every few seconds while it is in view, so the Stop button and the banner never disagree with the corner card.
   useEffect(() => {
-    api.killState().then((r) => setState({ killed: !!r.data?.killed, killedAt: r.data?.at ?? null })).catch(() => undefined);
+    let live = true;
+    const read = () => {
+      if (document.visibilityState === "hidden") return;
+      api.killState().then((r) => { if (live) setState({ killed: !!r.data?.killed, killedAt: r.data?.at ?? null }); }).catch(() => undefined);
+    };
+    read();
+    const timer = window.setInterval(read, 4000);
+    window.addEventListener("focus", read);
+    window.addEventListener("understudy:retry", read);
+    document.addEventListener("visibilitychange", read);
+    return () => { live = false; window.clearInterval(timer); window.removeEventListener("focus", read); window.removeEventListener("understudy:retry", read); document.removeEventListener("visibilitychange", read); };
   }, []);
   useEffect(() => {
     const on = (e: KeyboardEvent) => {

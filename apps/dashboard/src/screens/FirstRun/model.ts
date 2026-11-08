@@ -177,6 +177,12 @@ export function heyKnackRow(status: { switchOn: boolean; listening: boolean; lin
   return { title: "Hey Knack", line: status.switchOn && !status.listening && status.line ? `${note} ${status.line}` : note, on: status.switchOn };
 }
 
+/**
+ * The worker went to System Settings to turn a refused permission on and came back: the listener stays blocked until it is armed again (it never retries a refusal by itself), so
+ * the check screen arms it once on return and reads the state again a moment later. Only for the two permissions that System Settings can fix.
+ */
+export const shouldRearm = (wake: { fix?: string | null } | null): boolean => wake?.fix === "microphone" || wake?.fix === "speech";
+
 export const RING_SENTENCE = "Knack points; it never clicks unless you allow it.";
 
 /* -- Progress that survives a closed window ------------------------------------------------------------------------------------------ */
