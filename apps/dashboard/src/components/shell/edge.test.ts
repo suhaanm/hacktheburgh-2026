@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { cardLine, captureRecord, mayAskAgain, readyLines, roleCards, shouldStartFirstRun } from "../../screens/FirstRun/model";
 import { SCREENS } from "../../router";
-import { hashOf, redirectFor } from "../../routeRedirects";
+import { hashOf, normalisePath, redirectFor } from "../../routeRedirects";
 import { NAV_ENTRIES, canView, clicksFromHome, firmTabOf, labelOf, moreFor, sidebarFor } from "../home/navModel";
 import { buildItems, rowsFor, searchItems, tokensOf } from "../home/palette";
 import { shellKeyAction, type KeyLike } from "./keys";
@@ -13,6 +13,13 @@ const q = (s = "") => new URLSearchParams(s);
 const key = (k: unknown, over: Partial<KeyLike> = {}): KeyLike => ({ key: k as string, metaKey: true, ctrlKey: false, altKey: false, shiftKey: false, ...over });
 
 describe("the address", () => {
+  it("the address is read in lower case, with one leading slash and no trailing slash", () => {
+    expect(normalisePath("Needs-You/")).toBe("/needs-you");
+    expect(normalisePath("/FIRM/People//")).toBe("/firm/people");
+    expect(normalisePath("")).toBe("/");
+    expect(normalisePath("///")).toBe("/");
+    expect(redirectFor(normalisePath("/Queue"), q())?.path).toBe("/needs-you");
+  });
   it("an old route with a trailing slash still redirects", () => { expect(redirectFor("/queue/", q())?.path).toBe("/needs-you"); expect(redirectFor("/privacy//", q())?.path).toBe("/your-data"); });
   it("a route with an empty or malformed query is kept as written, never thrown on", () => {
     expect(hashOf(redirectFor("/queue", q("item=%E0%A4%A"))!)).toContain("item=");

@@ -59,7 +59,7 @@
 .avatar .icon { width: 14px; height: 14px; color: var(--muted); }
 
 .popover {
-  position: absolute; z-index: var(--z-overlay); min-width: 220px; max-width: 280px; padding: var(--space-2); background: var(--panel);
+  position: absolute; z-index: var(--z-overlay); min-width: 272px; max-width: 320px; padding: var(--space-2); background: var(--panel);
   border: var(--hair) solid var(--line); border-radius: var(--radius-3); box-shadow: var(--elev-2);
 }
 .account[data-placement="up"] .popover { left: 0; bottom: calc(100% + 8px); }
@@ -71,7 +71,9 @@
 .popover__note { margin: var(--space-1) 0 0; padding: 0 var(--space-3); font: 400 var(--text-xs)/1.4 var(--font-body); color: var(--muted); }
 .popover__note--error { color: var(--bad); }
 .popover__rule { margin: var(--space-2) 0; }
-.popover__radios { display: grid; }
+.popover__row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 40px; padding: 0 var(--space-3); }
+.popover__label { font: 600 var(--text-sm)/1 var(--font-body); color: var(--fg); }
+.popover__row .segmented button { min-height: 26px; padding-inline: var(--space-2); font-size: var(--text-xs); }
 .popover__item {
   display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); width: 100%; min-height: 32px; padding: 0 var(--space-3);
   border: 0; border-radius: var(--radius-2); background: none; color: var(--fg); font: 400 var(--text-sm)/1.2 var(--font-body); text-align: left; text-decoration: none; cursor: pointer;
@@ -80,7 +82,7 @@
 .popover__item[aria-checked="true"], .popover__item[aria-current="page"] { font-weight: 600; }
 .popover__item[aria-checked="true"]::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 .popover__lead { display: inline-flex; align-items: center; gap: var(--space-2); }
-.popover kbd { font: 500 0.6875rem/1.5 var(--font-mono); color: var(--muted); padding: 0 4px; border: var(--hair) solid var(--line-strong); border-radius: var(--radius-1); }
+.popover kbd { font: 400 0.6875rem/1.5 var(--font-mono); color: var(--muted); padding: 0 4px; border: var(--hair) solid var(--line-strong); border-radius: var(--radius-1); }
 .more__search { display: none; }
 
 /* -- The Settings drawer ------------------------------------------------------------------------ */

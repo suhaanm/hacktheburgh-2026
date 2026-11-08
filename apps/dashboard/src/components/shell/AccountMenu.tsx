@@ -59,18 +59,22 @@ export function AccountMenu({ placement = "up" }: { placement?: "up" | "down" })
       {open && (
         <div ref={pop} className="popover account__menu" role="menu" aria-label="Account">
           <p className="popover__meta">{user ? user.name : "Local profile"}{role ? ` · ${role}` : ""}</p>
-          <p className="popover__group" id="acct-view">View as</p>
-          <div role="group" aria-labelledby="acct-view" className="popover__radios">
-            {(["worker", "admin"] as ViewRole[]).map((r) => (
-              <button key={r} type="button" role="menuitemradio" aria-checked={view === r} className="popover__item" onClick={() => pickView(r)}>{VIEW_LABEL[r]}</button>
-            ))}
+          <div className="popover__row">
+            <span className="popover__label" id="acct-view">View as</span>
+            <div role="group" aria-labelledby="acct-view" className="segmented">
+              {(["worker", "admin"] as ViewRole[]).map((r) => (
+                <button key={r} type="button" role="menuitemradio" aria-checked={view === r} aria-pressed={view === r} onClick={() => pickView(r)}>{VIEW_LABEL[r]}</button>
+              ))}
+            </div>
           </div>
           <p className="popover__note">Changes what screens show. It is not a permission.</p>
-          <p className="popover__group" id="acct-look">Appearance</p>
-          <div role="group" aria-labelledby="acct-look" className="popover__radios">
-            {THEMES.map((t) => (
-              <button key={t} type="button" role="menuitemradio" aria-checked={theme === t} className="popover__item" onClick={() => setTheme(t)}>{THEME_LABEL[t]}</button>
-            ))}
+          <div className="popover__row">
+            <span className="popover__label" id="acct-look">Appearance</span>
+            <div role="group" aria-labelledby="acct-look" className="segmented">
+              {THEMES.map((t) => (
+                <button key={t} type="button" role="menuitemradio" aria-checked={theme === t} aria-pressed={theme === t} onClick={() => setTheme(t)}>{THEME_LABEL[t]}</button>
+              ))}
+            </div>
           </div>
           <hr className="popover__rule" />
           <button type="button" role="menuitem" className="popover__item popover__item--row" onClick={run(() => openSettings())}>Settings<kbd>{chord(",", isApple())}</kbd></button>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getViewRole } from "./components/home/viewAs";
-import { hashOf, redirectFor } from "./routeRedirects";
+import { hashOf, normalisePath, redirectFor } from "./routeRedirects";
 
 export interface Route {
   path: string;
@@ -28,8 +28,7 @@ export const DEFAULT_SCREEN: Screen = "home";
 function read(): Route {
   const raw = window.location.hash.replace(/^#/, "") || `/${DEFAULT_SCREEN}`;
   const [p, q = ""] = raw.split("?");
-  const lower = (p.startsWith("/") ? p : `/${p}`).toLowerCase();
-  const path = lower.length > 1 ? lower.replace(/\/+$/, "") : lower;
+  const path = normalisePath(p);
   const query = new URLSearchParams(q);
   const to = redirectFor(path, query, getViewRole());
   if (to) {

@@ -33,6 +33,12 @@ const split = (to: string): { path: string; query: URLSearchParams } => {
   return { path: p, query: new URLSearchParams(q) };
 };
 
+/** The address as the router reads it: a leading slash, lower case (the first segment names a screen), no trailing slash. `#/Needs-You/` is `#/needs-you`. */
+export function normalisePath(p: string): string {
+  const withSlash = (p.startsWith("/") ? p : `/${p}`).toLowerCase();
+  return withSlash.length > 1 ? withSlash.replace(/\/+$/, "") || "/" : withSlash;
+}
+
 /** The old set-up screen is Settings, "Set up again", at /setup (the admin Onboarding screen now owns /onboarding). */
 export const SETUP_PATH = "/setup";
 
