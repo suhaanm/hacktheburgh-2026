@@ -78,6 +78,11 @@ Tests: `src/screens/models-edge.dom.test.ts`.
 
 | State | What is shown | Test |
 |---|---|---|
+| A live engine that does not know the worker yet | nothing is requested for "the default person" (that would be somebody's week or case); each section says "Nothing has been recorded for you yet." | `Whose data a section may ask for: a live engine that does not know the worker ...` |
+| A live engine that knows the worker | the requests carry the worker's own id and no other | `... knows the worker is asked for that worker and no one else` |
+| The engine has not yet answered who the worker is | the sections wait ("Reading ...") and ask for nothing | `... before the engine has answered, nothing is asked` |
+| The engine is down (example data) | the built-in example person's week and case, under the one "Example data" pill; never a live person's | `... example data (the engine is down) shows the built-in example person's week` |
+| An unknown worker or a failing service | a calm empty state, or "could not read ... just now" with Try again; the engine's own message (it can list other people) is never printed | `A section whose data cannot be read: ...` |
 | A section is named in the address | it scrolls into view and opens; the others stay closed | `Growth: opens the section the address names` |
 | One origin pill | one for the whole page, "Example data" when any section is showing example data | `Growth: holds exactly one origin pill` |
 | One section fails to load | that section says so and offers "Try again"; the others still draw | each section draws its own error state (`StepsSection`, `TimeSection`, `CommitsSection`) |
