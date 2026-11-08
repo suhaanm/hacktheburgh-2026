@@ -10,7 +10,8 @@ import { useAppState } from "../../store";
  */
 export function useOwnPerson(example?: string): { ready: boolean; blocked: boolean; person: string | undefined } {
   const app = useAppState();
-  const live = app.engineUp === true && app.mock === false;
+  // Only an engine that says it is in mock mode (or none at all) may stand in with the built-in example person; an engine that does not say is treated as live.
+  const live = app.engineUp === true && app.mock !== true;
   return { ready: app.extReady, blocked: app.extReady && live && !app.person, person: app.person ?? (live ? undefined : example) };
 }
 
