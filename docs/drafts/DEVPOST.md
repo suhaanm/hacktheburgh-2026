@@ -1,7 +1,7 @@
 <!--
 DEVPOST draft, rewritten 7 Nov 2026, about 18:45 GMT, by the NARRATIVE track; brought up to date 8 Nov 2026, about 03:00 GMT, by the FEATURE-DOCS track (product name Knack, new numbers, the Gemini held-out round, the task path, connections, roles, the admin firm). Every number below was read again from the file that holds it; the report numbers must be re-pulled once more after the lead's final `make eval`.
 - Strip every "(source: ...)" tag before pasting into Devpost. They are for the owner to check each number; C-numbers are rows in docs/drafts/CLAIMS.md.
-- Numbers: evals/report.json and report.md regenerated 2026-11-08T02:22:41Z, git 48723dd, mock mode (the lead's next `make eval` replaces them). RE-PULL before submitting.
+- Numbers: evals/report.json and report.md regenerated 2026-11-08T02:58:04Z, git 9780781, mock mode (the lead's next `make eval` replaces them). RE-PULL before submitting.
 - This replaces the earlier draft's "40 of 40 pass (mock)", which the privacy and honesty review (evals/review/privacy_honesty.md, M7) flagged: the report says the clean mock path "says little" and the real-model rows were left out.
 - Devpost has no word limit, but judges read fast: sections are short and ordered problem, demo, how, evidence, limits.
 - [LEAD: ...] you confirm or supply. [OWNER: ...] only the owner can supply.
@@ -45,7 +45,7 @@ Synthetic unless stated; every row has n and a 95% interval.
 
 ## Limitations we state up front
 
-From the limitations register (219 entries in the report of 8 Nov 02:22 GMT: 70 high, 119 medium, 30 low; source: C17). The high-severity ones that matter most:
+From the limitations register (220 entries in the report of 8 Nov 02:58 GMT: 70 high, 120 medium, 30 low; source: C17). The high-severity ones that matter most:
 1. **Almost every number is from synthetic data we generated.** Each result says what it was measured on, in plain words (the Evidence page's "Measured on" column and the closed "About this data" line), and the app carries no tag (D57). They show our methods recover what we planted, not that real workers behave this way.
 2. **Nobody has used it in a study.** The live study (four teammates, none a benefits processor) has not been run; with n = 4 the smallest exact p is 0.125. The simulated study uses language-model participants, not people, and its pre-registered run hit a floor.
 3. **There is no real benefits-processor data.** The only real signal is our own machine timestamps.

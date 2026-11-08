@@ -85,7 +85,7 @@ The demo shot list and spoken lines are [docs/KNACK_DEMO.md](docs/KNACK_DEMO.md)
 
 ## What we measured
 
-The first table and the agent table come from `evals/report.md` (the computer-use rows cite their own files), regenerated 8 Nov 02:22 GMT in mock mode (git 48723dd; 37 sections in the evidence map: 35 with numbers, 2 not run). It includes the ML v2, attention, insights, Cue, realism and HRT sections. The report moves each time `make eval` is re-run, so re-read a number from the file before quoting it. Intervals are 95% unless stated. Origin is data we generated unless stated.
+The first table and the agent table come from `evals/report.md` (the computer-use rows cite their own files), regenerated 8 Nov 02:58 GMT in mock mode (git 9780781; 37 sections in the evidence map: 35 with numbers, 2 not run). It includes the ML v2, attention, insights, Cue, realism and HRT sections. The report moves each time `make eval` is re-run, so re-read a number from the file before quoting it. Intervals are 95% unless stated. Origin is data we generated unless stated.
 
 ### On our first synthetic generator
 
@@ -165,7 +165,7 @@ From [docs/FIX_LEDGER.md](docs/FIX_LEDGER.md), honestly:
 - **No real-desktop agent run.** Next rungs need the owner: move the window, a second R0, the R1 preflight in the owner's terminal. R2 is no-go until R1 is reported.
 - **Agent reliability** is short of the bar we set: Gemini held-out clean 18 of 20 against a registered lower bound of 0.80 (D65); the OpenAI round was 1 of 4. Several long-horizon items are open.
 - **Desktop:** the full rehearsal on a visible desktop with the owner has not been run (`docs/FIRST_LAUNCH.md`); Live voice and Hey Knack are on by default (D48, D52) but have not been run with a real microphone; the screen-change watcher is not built (needs Screen Recording).
-- **Evaluation:** `evals/report.md` was regenerated 8 Nov 02:22 GMT and now includes ML v2, attention, insights, Cue, realism and HRT. Test counts in the ledger are older; a final `make test` is still owed (the report's static count is 8,126 test functions, with parametrised cases not expanded).
+- **Evaluation:** `evals/report.md` was regenerated 8 Nov 02:58 GMT and now includes ML v2, attention, insights, Cue, realism and HRT. Test counts in the ledger are older; a final `make test` is still owed (the report's static count is 8,193 test functions, with parametrised cases not expanded).
 - **Product decision pending:** keep v1's stuck model, or make the simple "time since progress" rule the default signal (put to the owner at the freeze review).
 - **Owner-only:** Auth0 domain and client ID, pinning the extension id, the real read-only Outlook aggregate check (needs approval at run time), the licence, Devpost facts, rehearsal and submission.
 
