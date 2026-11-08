@@ -48,7 +48,19 @@ export interface WakeBridge {
   context(c: WakeContext): Promise<boolean>;
 }
 
-type Win = { alongside?: Partial<DesktopBridge>; knackSettings?: Partial<DesktopBridge>; knackShell?: { models?: Partial<LiveModelsBridge>; wake?: Partial<WakeBridge> } };
+/** Check voice (the shell's `voice.check`): one report of every stage a conversation needs, each Ready or the one thing to do. The words are written by the desktop app; the page prints them. */
+export type VoiceAction = { do: "ask"; what: "microphone" | "speech" | "screen" | "accessibility" } | { do: "open"; what: "microphone" | "speech" | "screen" | "accessibility" | "sound" } | { do: "settings" } | { do: "ask_again" };
+export interface VoiceStage { id: string; title: string; state: "ready" | "fix"; line: string; action: VoiceAction | null; needs: "both" | "hey"; optional?: boolean }
+export interface VoiceCheck { ok: boolean; heyKnack: boolean; stages: VoiceStage[]; at: number }
+export interface VoiceBridge { check(): Promise<VoiceCheck>; askAgain(): Promise<boolean> }
+
+type Win = { alongside?: Partial<DesktopBridge>; knackSettings?: Partial<DesktopBridge>; knackShell?: { models?: Partial<LiveModelsBridge>; wake?: Partial<WakeBridge>; voice?: Partial<VoiceBridge> } };
+
+/** The Check voice calls, or null (a browser tab, or a build without them). */
+export function voiceBridge(w: Win | undefined = typeof window === "undefined" ? undefined : (window as unknown as Win)): VoiceBridge | null {
+  const v = w?.knackShell?.voice;
+  return v && typeof v.check === "function" ? ({ check: v.check, askAgain: typeof v.askAgain === "function" ? v.askAgain : async () => false } as VoiceBridge) : null;
+}
 
 /** Hey Knack's calls, or null (a browser tab, or a build without the listener). */
 export function wakeBridge(w: Win | undefined = typeof window === "undefined" ? undefined : (window as unknown as Win)): WakeBridge | null {

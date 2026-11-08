@@ -17,7 +17,7 @@ import { MicError, type AudioBridge, type ToolHost } from './ports'
 import { parseToolCall, schedulingFor, buildToolDeclarations, type CandidateList } from './tools'
 import { LiveClock, type Timers } from './clock'
 import { buildSetup, msg, pcmSeconds, type FunctionCall, type FunctionResponse, type LiveServerEvent, type TurnMode } from './wire'
-import type { TokenMinter } from './token'
+import { TokenError, type TokenMinter } from './token'
 
 export type EndReason =
   | 'release_grace'
@@ -156,7 +156,7 @@ export class LiveSession {
   private offIdle: (() => void) | null = null
   private readonly phaseListeners = new Set<Listener<SessionPhase>>()
   private readonly endListeners = new Set<Listener<SessionSummary>>()
-  private readonly noticeListeners = new Set<Listener<{ kind: 'blocked' | 'mic' | 'ledger'; reason: string }>>()
+  private readonly noticeListeners = new Set<Listener<{ kind: 'blocked' | 'mic' | 'ledger' | 'connect'; reason: string }>>()
   private readonly answerLabels = new Map<string, string>()
   private result: SessionSummary | null = null
 
@@ -179,11 +179,11 @@ export class LiveSession {
     else this.endListeners.add(cb)
     return () => this.endListeners.delete(cb)
   }
-  onNotice(cb: Listener<{ kind: 'blocked' | 'mic' | 'ledger'; reason: string }>): () => void {
+  onNotice(cb: Listener<{ kind: 'blocked' | 'mic' | 'ledger' | 'connect'; reason: string }>): () => void {
     this.noticeListeners.add(cb)
     return () => this.noticeListeners.delete(cb)
   }
-  private notice(kind: 'blocked' | 'mic' | 'ledger', reason: string): void {
+  private notice(kind: 'blocked' | 'mic' | 'ledger' | 'connect', reason: string): void {
     for (const l of this.noticeListeners) l({ kind, reason })
   }
   private setPhase(p: SessionPhase): void {
@@ -245,6 +245,7 @@ export class LiveSession {
         onEvent: (e) => this.onServerEvent(e),
         onClosed: (info) => {
           if (this.ended) return
+          if (!info.expected) this.notice('connect', 'connection_lost')
           this.end(info.expected ? 'stop' : 'connection_lost')
         },
         socketFactory: this.d.socketFactory,
@@ -252,7 +253,10 @@ export class LiveSession {
         log: this.d.log,
       })
       await this.conn.connect()
-    } catch {
+    } catch (err) {
+      // Never silent: the worker is told which of three things went wrong (no key, the service said no, the service could not be reached).
+      // (A conversation that already ended for another reason, for example the microphone, closed the connection itself: that is not a second problem.)
+      if (!this.ended) this.notice('connect', connectProblem(err))
       this.end('error')
       return
     }
@@ -637,6 +641,17 @@ export class LiveSession {
         return { ok: true }
     }
   }
+}
+
+export type ConnectProblem = 'voice_no_key' | 'voice_refused' | 'voice_network'
+
+/** Why a conversation could not be connected, in three closed words. No message, URL, header or body is kept: only which kind of failure it was. */
+export function connectProblem(err: unknown): ConnectProblem {
+  if (err instanceof TokenError) return err.code === 'no_key' ? 'voice_no_key' : err.code === 'refused' ? 'voice_refused' : 'voice_network'
+  const m = err instanceof Error ? err.message : ''
+  // The service closed the socket before setup with a policy, bad-argument or application code: it did not accept the key or the model.
+  if (/closed before setup \((1007|1008|4\d\d\d)\b/.test(m)) return 'voice_refused'
+  return 'voice_network'
 }
 
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {

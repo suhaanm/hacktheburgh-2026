@@ -57,6 +57,8 @@ import { adoptOwner, createWindows } from './windows'
 import { APP_NAME } from '../shared/brand'
 import { createAgentPills } from './knack/agent-pills'
 import { createAskBar } from './knack/ask-bar'
+import { micFixAction } from './knack/permission-bridge'
+import { createVoiceCheckPort } from './knack/voice-check-port'
 import { createTryRingPort } from './knack/try-ring'
 import { registerAppScheme } from './knack/app-protocol-electron'
 import { glyphSvg } from './knack/brand-glyph'
@@ -154,7 +156,7 @@ void app.whenReady().then(async () => {
   // The awareness module is created below (it needs the coach poller); the legacy gate, the consent card and the tray read it through this box.
   const awarenessBox: { a: Awareness | null } = { a: null }
   // Hey Knack (the on-device listener) is created after Live and the attention layer; the tray and Live's `do_it_for_me` read it through this box.
-  const wakeBox: { ctl: WakeController | null; settings: { get(): { voiceAnswer: string; screenAnswer: string } } | null; running: (() => { n: number; t: number } | null) | null } = { ctl: null, settings: null, running: null }
+  const wakeBox: { ctl: WakeController | null; settings: { get(): { voiceAnswer: string; screenAnswer: string }; patch(p: unknown, o: { trusted: boolean }): unknown } | null; running: (() => { n: number; t: number } | null) | null } = { ctl: null, settings: null, running: null }
   // The last coach decision's step id and capture zone (ids only), for the voice conversation's context packet.
   const coachBox: { last: { step: string | null; zone: string | null; t: number } | null } = { last: null }
 
@@ -328,6 +330,15 @@ void app.whenReady().then(async () => {
     // The first run's bridge: what it shows and asks of macOS, and the sample ring (the overlay covers the primary display).
     permissions,
     speech: { helper: () => wakeBox.ctl?.status().helper ?? null, request: () => wakeBox.ctl?.arm() },
+    // Check voice: every stage a conversation needs, read only. The macOS asks on its stages are the worker's click, through the permissions door above.
+    voice: createVoiceCheckPort({
+      env: process.env,
+      live: () => liveBox.reg,
+      wake: () => (wakeBox.ctl && wakeBox.settings ? { status: () => wakeBox.ctl!.status(), settings: wakeBox.settings as never, helperPresent: () => wake?.helperPath() != null, setListen: (on) => wakeBox.ctl?.setListen(on) } : null),
+      permissions,
+      killed: isKilled,
+      paused: () => (settings.get().pausedUntil ?? 0) > Date.now(),
+    }),
     ring: createTryRingPort(services.overlay, () => screen.getPrimaryDisplay().bounds),
   })
   const attentionWiring = wireAttention({
@@ -428,6 +439,7 @@ void app.whenReady().then(async () => {
   })
 
   // Live voice (flags UNDERSTUDY_X_LIVE and UNDERSTUDY_FLAG_VOICE): the websocket lives in main; the dock only owns the microphone and speaker.
+  const voiceTools = !headless && experimentOn('wake') // the task and click tools of a voice conversation live in the Hey Knack controller
   const noCuePort: LiveCuePort = { candidates: () => [], showStep: () => ({ ok: false, chip: null }), askChoice: () => false, onAnswer: () => () => undefined }
   const live = liveFlagOn() && featureOn('voice')
     ? registerLive({
@@ -438,11 +450,12 @@ void app.whenReady().then(async () => {
         owns: (id) => windows.owns(id),
         overlay: services.overlay,
         cue: cue?.livePort ?? noCuePort,
-        doIt: (req) => (wakeBox.ctl ? wakeBox.ctl.doIt(req) : Promise.resolve({ ok: false, reason: 'not_available' })),
+        // `do_it_for_me` and `start_task` are declared to the model only where something answers them: with no Hey Knack controller (a headless run, or the flag off) they are absent, never declared and dead.
+        doIt: voiceTools ? (req) => (wakeBox.ctl ? wakeBox.ctl.doIt(req) : Promise.resolve({ ok: false, reason: 'not_available' })) : undefined,
         context: (o) => contextHub.build(o),
         opening: () => wakeBox.ctl?.openingText() ?? null,
         // "Hey Knack, do X": the request goes to the task service (loopback) and a card asks the worker first; nothing starts by itself.
-        startTask: (text) => (wakeBox.ctl ? wakeBox.ctl.startTask(text) : Promise.resolve({ ok: false, reason: 'unavailable' })),
+        startTask: voiceTools ? (text) => (wakeBox.ctl ? wakeBox.ctl.startTask(text) : Promise.resolve({ ok: false, reason: 'unavailable' })) : undefined,
         domGround: chainGround(knackGround, extGround),
         screenStatus: () => (process.platform === 'darwin' && !flag('UNDERSTUDY_MOCK') && !flag('ALONGSIDE_MOCK') ? systemPreferences.getMediaAccessStatus('screen') : 'granted'),
         onScreenMissing: () => wakeBox.ctl?.explainRefusal('screen_recording'),
@@ -492,9 +505,11 @@ void app.whenReady().then(async () => {
         killed: isKilled,
         owns: (id) => windows.owns(id) || knack?.mainWindow.owns(id) === true,
         openSettings: () => knack?.openSettings(),
-        openMicrophoneSettings: () => permissions.openSettings('microphone'),
+        // Knack is not in macOS's Microphone list until macOS has been asked, so on the worker's click the card asks first (the macOS question appears) and opens the list only when the answer was no.
+        openMicrophoneSettings: () => (micFixAction(systemPreferences.getMediaAccessStatus('microphone')) === 'ask' ? void permissions.requestMicrophone() : permissions.openSettings('microphone')),
+        micStatus: () => (process.platform === 'darwin' ? systemPreferences.getMediaAccessStatus('microphone') : 'granted'),
         openScreenSettings: () => permissions.openSettings('screen'),
-        openPane: (pane) => (pane === 'dictation' ? void shell.openExternal('x-apple.systempreferences:com.apple.Keyboard-Settings.extension').catch(() => undefined) : permissions.openSettings(pane)),
+        openPane: (pane) => (pane === 'dictation' ? void shell.openExternal('x-apple.systempreferences:com.apple.Keyboard-Settings.extension').catch(() => undefined) : pane === 'sound' ? void shell.openExternal('x-apple.systempreferences:com.apple.Sound-Settings.extension').catch(() => undefined) : permissions.openSettings(pane)),
         context: contextHub,
         log: ctx.log,
       })
@@ -534,10 +549,8 @@ void app.whenReady().then(async () => {
     startDebugServer({ ctx, services, dispatch, session, capture: { overlayPng: windows.overlayPng, overlayText: windows.overlayText, dockPng: windows.dockPng, hudPng: understudy.hud.png, hudPreview: understudy.hud.preview, hudVisible: () => understudy.hud.window()?.isVisible() ?? null }, knack: knack ? { dispatch: (e) => knack?.dispatch(e as never), info: () => knack?.info() } : undefined, understudy: { kill: understudy.kill, hud: understudy.hudModel, dom: { status: () => ({ port: understudy.extServer()?.port() ?? null, pending: understudy.domGrounder.pending(), extensionSeenMs: understudy.extServer()?.lastSeenAt() ? Date.now() - (understudy.extServer()?.lastSeenAt() ?? 0) : null, ring: understudy.ring.current(), chip: understudy.chip.current(), capture: core.capture.mode(), coach: understudy.coachBrain.status() }) } }, tray: shellTray ?? undefined })
   }
 
-  // Understudy: the microphone is only needed for voice or the wake word, both off unless their flags are set.
-  if (!headless && !hiddenRun && !flag('ALONGSIDE_MOCK') && !flag('UNDERSTUDY_MOCK') && (featureOn('voice') || featureOn('wake')) && process.platform === 'darwin' && systemPreferences.getMediaAccessStatus('microphone') === 'not-determined') {
-    void systemPreferences.askForMediaAccess('microphone')
-  }
+  // The microphone question is never asked at launch (it used to be, over the first-run window and before the worker clicked anything). macOS is asked on the worker's own click: the Allow
+  // button on the first-run permissions row, the Allow button on the microphone card, and the Allow button in Check voice; and by the Hey Knack listener when it starts after set-up.
 })
 
 // With a menu-bar item the app keeps running when the dock is hidden; without one there is no way back in, so quit.

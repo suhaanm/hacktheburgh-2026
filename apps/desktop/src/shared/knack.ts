@@ -14,6 +14,8 @@ export const KNACK_IPC = {
   permRequest: 'knack:perm:request', // invoke(kind): ask macOS where it lets an app ask; answers KnackPermRequestResult
   permOpen: 'knack:perm:open', // invoke(kind): open the System Settings pane; answers boolean
   tryRing: 'knack:try-ring', // invoke(spot?): show the on-screen ring for four seconds; answers KnackTryRingResult
+  voiceCheck: 'knack:voice:check', // invoke: KnackVoiceCheck (read only: never asks macOS, never opens the microphone)
+  voiceAskAgain: 'knack:voice:ask-again', // invoke: forget an earlier Never or Not now on the Talk with Knack card, so the card shows again (the yes is still the worker's click)
   reveal: 'knack:reveal', // invoke(path): show a path the agent service recorded for a task in Finder; answers boolean
 } as const
 
@@ -28,6 +30,31 @@ export interface KnackPermissionsState {
   accessibility: KnackPermState
   /** Screen Recording is allowed but capture still returns nothing: Knack must be reopened before it works. */
   needsRestart: boolean
+}
+// ---- Check voice: one report of every stage a conversation needs, each Ready or the one thing to do. The words are written in main; the page prints them and draws the one button.
+export type KnackVoiceAction =
+  | { do: 'ask'; what: KnackPermKind } // the worker's click makes macOS ask (permissions.request)
+  | { do: 'open'; what: KnackPermKind | 'sound' } // opens the System Settings pane
+  | { do: 'settings' } // Knack's own Settings
+  | { do: 'ask_again' } // forget an earlier Never or Not now, so the card shows again
+export interface KnackVoiceStage {
+  id: string
+  title: string
+  state: 'ready' | 'fix'
+  line: string
+  action: KnackVoiceAction | null
+  /** 'hey': only Hey Knack needs it (holding Option-Space does not). */
+  needs: 'both' | 'hey'
+  /** Not needed to talk (clicks, looking anywhere on screen). */
+  optional?: boolean
+}
+export interface KnackVoiceCheck {
+  /** Holding Option-Space (or the Ask bar's microphone) can start a conversation. */
+  ok: boolean
+  /** Saying Hey Knack can too. */
+  heyKnack: boolean
+  stages: KnackVoiceStage[]
+  at: number
 }
 export type KnackPermRequestResult = { ok: true; state: KnackPermissionsState } | { ok: false; reason: 'bad_request' | 'not_ready' }
 export type KnackTryRingResult = { ok: true } | { ok: false; reason: 'bad_request' | 'not_ready' | 'window_hidden' | 'other_display' }
@@ -131,4 +158,9 @@ export interface KnackShellApi {
   reveal(path: string): Promise<boolean>
   /** Draws the on-screen ring and the ghost cursor around `spot` (or a fixed spot) in the Knack window for four seconds. It never clicks and needs no permission. */
   tryRing(spot?: KnackRingSpot): Promise<KnackTryRingResult>
+  /** Check voice: reads every stage a conversation needs (read only) and says Ready or the one thing to do. `askAgain` forgets an earlier Never or Not now so the consent card shows again. */
+  voice?: {
+    check(): Promise<KnackVoiceCheck>
+    askAgain(): Promise<boolean>
+  }
 }

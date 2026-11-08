@@ -354,3 +354,93 @@ describe('the question card answer reaches the model', () => {
     expect(h.server.received.text[0]).toBe('The worker chose: Run calculator A')
   })
 })
+
+describe('a conversation that opens and cannot hear or answer leaves a closed problem code (never silence)', () => {
+  const calm = { frontmost: { read: async () => 'com.apple.dt.xcode' as string | null }, console: { read: async () => ({ secureInput: 'off' as const, locked: false }) } }
+  const sources = (over: Partial<{ frontmost: { read: () => Promise<string | null> }; console: { read: () => Promise<{ secureInput: 'on' | 'off' | 'unknown'; locked: boolean | null }> } }> = {}) => ({ ...calm, ...over, killed: () => false, unattended: () => false, settings: () => h.settings.get(), deny: () => ({ strict: true, workerList: [] as string[] }) })
+  const settle = async (m: LiveManager, code: string | null): Promise<void> => {
+    h.bus.emit('talk', { source: 'hotkey', phase: 'press' })
+    await waitFor(() => m.status().lastEnd !== null || m.status().problem !== null, 3000)
+    await new Promise((r) => setTimeout(r, 20))
+    expect(m.status().problem).toBe(code)
+  }
+  it('secure input on: the gate closes at the start and the code says secure_input', async () => {
+    const m = h.make({ gateSources: sources({ console: { read: async () => ({ secureInput: 'on', locked: false }) } }) })
+    m.start()
+    await settle(m, 'secure_input')
+    expect(m.status().lastEnd?.reason).toBe('blocked')
+    expect(h.audio.micStarts).toBe(0)
+  })
+  it('a private app in front (a mail or chat app, or one on the worker’s own list): denylisted_app', async () => {
+    const m = h.make({ gateSources: sources({ frontmost: { read: async () => 'com.tinyspeck.slackmacgap' } }) })
+    m.start()
+    await settle(m, 'denylisted_app')
+  })
+  it('a locked screen: locked', async () => {
+    const m = h.make({ gateSources: sources({ console: { read: async () => ({ secureInput: 'off', locked: true }) } }) })
+    m.start()
+    await settle(m, 'locked')
+  })
+  it('a probe that keeps failing: gate_stale', async () => {
+    const m = h.make({ gateSources: sources({ frontmost: { read: async () => { throw new Error('probe') } } }) })
+    m.start()
+    await settle(m, 'gate_stale')
+  })
+  it('the ledger not answering: ledger_unavailable', async () => {
+    h.ledger.refuse('ledger_unavailable')
+    h.mgr.start()
+    await settle(h.mgr, 'ledger_unavailable')
+  })
+  it('the renderer cannot open the microphone: mic_device; macOS says no: mic_permission', async () => {
+    h.audio.failMic = 'device'
+    h.mgr.start()
+    await settle(h.mgr, 'mic_device')
+    h.audio.failMic = 'permission'
+    h.mgr.stopAll()
+    await settle(h.mgr, 'mic_permission')
+    expect(h.mgr.status().refused).toBe('mic_permission')
+  })
+  it('the token minter says no key, refused or network: each its own code', async () => {
+    const { TokenError } = await import('./token')
+    for (const [err, code] of [[new TokenError('no_key', 'x'), 'voice_no_key'], [new TokenError('refused', 'x'), 'voice_refused'], [new TokenError('network', 'x'), 'voice_network'], [new TokenError('bad_response', 'x'), 'voice_network']] as const) {
+      const m = h.make({ tokens: { mint: async () => { throw err } } })
+      m.start()
+      await settle(m, code)
+      m.dispose()
+    }
+  })
+  it('the next conversation clears it, and a refusal at the start leaves no problem', async () => {
+    h.audio.failMic = 'device'
+    h.mgr.start()
+    await settle(h.mgr, 'mic_device')
+    h.audio.failMic = null
+    h.state.killed = true
+    h.bus.emit('talk', { source: 'hotkey', phase: 'press' })
+    await new Promise((r) => setTimeout(r, 30))
+    expect(h.mgr.status()).toMatchObject({ refused: 'killed', problem: null })
+  })
+  it('the notice mapping: a kill, a pause and an agent need no card, and a frame notice never counts', async () => {
+    const { problemFromNotice } = await import('./manager')
+    expect(problemFromNotice({ kind: 'blocked', reason: 'killed' })).toBeNull()
+    expect(problemFromNotice({ kind: 'blocked', reason: 'paused' })).toBeNull()
+    expect(problemFromNotice({ kind: 'blocked', reason: 'unattended' })).toBeNull()
+    expect(problemFromNotice({ kind: 'ledger', reason: 'secure_input' })).toBeNull()
+    expect(problemFromNotice({ kind: 'connect', reason: 'something else' })).toBeNull()
+    expect(problemFromNotice({ kind: 'connect', reason: 'connection_lost' })).toBe('connection_lost')
+  })
+})
+
+describe('connectProblem names the failure in three closed words', () => {
+  it('maps token errors and socket closes', async () => {
+    const { connectProblem } = await import('./session')
+    const { TokenError } = await import('./token')
+    expect(connectProblem(new TokenError('no_key', 'x'))).toBe('voice_no_key')
+    expect(connectProblem(new TokenError('refused', 'x'))).toBe('voice_refused')
+    expect(connectProblem(new TokenError('network', 'x'))).toBe('voice_network')
+    expect(connectProblem(new Error('Live connection closed before setup (1008: policy)'))).toBe('voice_refused')
+    expect(connectProblem(new Error('Live connection closed before setup (1007)'))).toBe('voice_refused')
+    expect(connectProblem(new Error('Live connection closed before setup (1011)'))).toBe('voice_network')
+    expect(connectProblem(new Error('Live setup timed out'))).toBe('voice_network')
+    expect(connectProblem('not an error')).toBe('voice_network')
+  })
+})
