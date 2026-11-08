@@ -781,15 +781,16 @@ class QuartzBackend:
         return self._png_of(img)
 
     def secure_input(self) -> bool:  # pragma: no cover - real desktop
-        """True while macOS secure input is on (a password field has the keyboard). Read through the C call `IsSecureEventInputEnabled`
-        with no prompt. If it cannot be read the answer is True: unknown counts as on, so a frame is not sent."""
+        """True while macOS secure input is on (a password field has the keyboard): the login session's own dictionary carries the pid of the
+        process that turned it on (`kCGSSessionSecureInputPID`). A status read, no prompt, no capture. If the dictionary cannot be read the
+        answer is True: unknown counts as on, so a frame is not sent. NOT yet confirmed on the real Mac against a focused password field."""
         try:
-            import ctypes
+            import Quartz
 
-            lib = ctypes.CDLL("/System/Library/Frameworks/Carbon.framework/Carbon")
-            fn = lib.IsSecureEventInputEnabled
-            fn.restype = ctypes.c_ubyte
-            return bool(fn())
+            d = Quartz.CGSessionCopyCurrentDictionary()
+            if d is None:
+                return True
+            return bool(d.get("kCGSSessionSecureInputPID"))
         except Exception:  # noqa: BLE001
             return True
 

@@ -316,6 +316,10 @@ def _check_ready(env: DesktopEnv, *, armed: bool, offline: bool, deny: Denylist,
         out.append(RUNG_TEXT["absent"] if why == "absent" else RUNG_TEXT["invalid"])
     if not armed:
         out.append(NOT_ARMED)
+    if out:                                      # without the record or the switch no click can happen, whatever the Mac says: it is not read
+        if offline:
+            out.append(NO_MODEL)
+        return out, None
     missing = env.helper_missing()
     if missing:
         out.append(HELPER_MISSING)
@@ -342,11 +346,11 @@ def _check_ready(env: DesktopEnv, *, armed: bool, offline: bool, deny: Denylist,
 def build_card(target: WindowRef, *, max_minutes: int = DEFAULT_MAX_MINUTES) -> dict[str, Any]:
     """The consent card for a desktop task. It fits the closed card schema (packages/schema/task_row.schema.json): the target goes in
     `folder` ("Where:"), the countdown and the kill keys in the scope sentence."""
-    app = one_line(target.app, 40, redact=False)
-    title = one_line(target.title, 40)
+    app = one_line(target.app, 30, redact=False)
+    title = one_line(target.title, 30)
     where = f"{app}, {title}" if title else f"{app} window"
-    scope = (f"Knack will work in one window on your screen: {where}. It can look at that window, click and type in it. "
-             f"It starts {int(COUNTDOWN_S)} seconds after you press Allow. Stop it any time with {KILL_HOTKEY} or Stop.")
+    scope = (f"Knack will work in one window: {where}. It can see it, click and type in it. After you press Allow it counts down "
+             f"{int(COUNTDOWN_S)} seconds: bring that window forward and keep your hands off. Stop any time with {KILL_HOTKEY} or Stop.")
     return {
         "kind": "desktop", "scope_text": scope,
         "can": ["Look at that window (pictures of it go to Knack's model, none are saved)", "Click and type in that window",
@@ -602,5 +606,5 @@ class DesktopTaskRunner:
         if res.outcome == "stalled":
             return {"state": "failed", "reason": "The window stopped changing, so it stopped."}
         if res.outcome == "gave_up":
-            return {"state": "failed", "reason": "Knack couldn't do that and stopped."}
+            return {"state": "failed", "reason": "Knack couldn't do that and stopped.", "why": res.why or "other"}
         return {"state": "failed", "reason": "It ran out of steps before it finished."}

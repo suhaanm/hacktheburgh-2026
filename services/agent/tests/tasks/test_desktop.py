@@ -322,8 +322,26 @@ def test_several_problems_each_get_a_line(make_manager):
     m = desk(make_manager, mac, Spy(), armed=False)
     _, t = result_of(m)
     assert t.result.startswith(dk.RUNG_TEXT["absent"].text)
-    for label in (dk.NOT_ARMED.label, dk.NO_ACCESSIBILITY.label, dk.NO_SCREEN.label):
-        assert f"Also needed: {label}" in t.steps
+    assert f"Also needed: {dk.NOT_ARMED.label}" in t.steps
+
+
+def test_both_permissions_missing_are_both_named(make_manager, ready):
+    mac = FakeMac(ax=False, sr=False)
+    _, t = result_of(desk(make_manager, mac, Spy()))
+    assert t.result.startswith(dk.NO_ACCESSIBILITY.text) and f"Also needed: {dk.NO_SCREEN.label}" in t.steps
+
+
+def test_the_mac_is_not_read_while_the_record_or_the_switch_is_missing(make_manager):
+    class Untouchable(FakeMac):
+        def helper_missing(self): raise AssertionError("the Mac must not be read")
+        def windows(self): raise AssertionError("the Mac must not be read")
+
+    for armed in (True, False):
+        _, t = result_of(desk(make_manager, Untouchable(), Spy(), armed=armed))
+        assert t.result.startswith(dk.RUNG_TEXT["absent"].text)
+    clear_rung()
+    _, t = result_of(desk(make_manager, Untouchable(), Spy(), armed=False))
+    assert t.result.startswith(dk.NOT_ARMED.text)
 
 
 def test_every_problem_sentence_fits_the_result_line_with_the_steps_note():
