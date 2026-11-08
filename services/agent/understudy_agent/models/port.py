@@ -14,7 +14,8 @@ from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol
 
 ActionKind = Literal[
-    "click", "double_click", "type", "key", "scroll", "move", "drag", "wait", "screenshot"
+    "click", "double_click", "type", "key", "scroll", "move", "drag", "wait", "screenshot",
+    "goto", "back",     # the browsing profile only (security/actions.py BROWSER_KINDS): a page address, and one step back in history
 ]
 
 
@@ -28,6 +29,15 @@ class Action:
 class Done:
     summary: str
     claimed_success: bool  # a CLAIM only; completion.py decides truth
+
+
+@dataclass(frozen=True)
+class Unsupported(Done):
+    """The model asked for an action this provider does not map (`name` is a closed token: lower-case letters, digits and underscores).
+    It IS a failed Done to any caller that only knows `Done`, but the tier-3 loop reads it as "that action does not exist here": it says so
+    to the model and asks again (a few times), instead of ending the whole run as if the model had given up."""
+
+    name: str = ""
 
 
 @dataclass(frozen=True)
