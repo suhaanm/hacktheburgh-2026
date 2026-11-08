@@ -1,0 +1,150 @@
+{
+  "what": "The cue sheet of one verified rehearsal: apps/desktop/scripts/demo-worker.mjs --private --headless --scene both --gap 20 --pace normal (a throwaway engine, no Knack app, so no ring was drawn). at_s is seconds since the start. A headed run at --pace slow takes longer; use the printed times of the real take, not these.",
+  "rows": [
+    {
+      "at_s": 2.3,
+      "kind": "setup",
+      "msg": "throwaway engine on 127.0.0.1:<free port> (own home and data directory; no desktop app, so no ring is drawn)"
+    },
+    {
+      "at_s": 2.3,
+      "kind": "setup",
+      "msg": "person p_learn01, scene both, pace normal (x1), headless"
+    },
+    {
+      "at_s": 2.5,
+      "kind": "setup",
+      "msg": "sandbox lock held (<repo>/data/locks)"
+    },
+    {
+      "at_s": 2.5,
+      "kind": "setup",
+      "msg": "sandbox sites reset (notes, submissions and counters cleared)"
+    },
+    {
+      "at_s": 2.6,
+      "kind": "ok",
+      "msg": "coach set to the first help level on the cliff skill (study mode, cleared at the end): status 200"
+    },
+    {
+      "at_s": 3.8,
+      "kind": "setup",
+      "msg": "Chromium with the capture extension is up (capture on for p_learn01; events go to 127.0.0.1:<free port>)"
+    },
+    {
+      "at_s": 5.3,
+      "kind": "scene",
+      "msg": "COACH: a teammate works a case and skips the cliff check"
+    },
+    {
+      "at_s": 26.1,
+      "kind": "worker",
+      "msg": "CASE-1005: household entered on calculator A, result on screen"
+    },
+    {
+      "at_s": 29.5,
+      "kind": "worker",
+      "msg": "MISS: switches to the case note without opening \"Check cliff edges\""
+    },
+    {
+      "at_s": 30.8,
+      "kind": "worker",
+      "msg": "back on the result page, the cliff check still unopened"
+    },
+    {
+      "at_s": 32.8,
+      "kind": "engine",
+      "msg": "coach decides annotate, level L1, trigger expert_policy, zone cliff_button"
+    },
+    {
+      "at_s": 33.8,
+      "kind": "ok",
+      "msg": "the coach decided to ring the skipped step: 4 s after the miss"
+    },
+    {
+      "at_s": 33.8,
+      "kind": "ring",
+      "msg": "the ring should now be on \"Check cliff edges\" (drawn by the Knack app, not by this script)"
+    },
+    {
+      "at_s": 42.4,
+      "kind": "worker",
+      "msg": "presses \"Check cliff edges\"; the panel lists the nearby edges"
+    },
+    {
+      "at_s": 65.7,
+      "kind": "worker",
+      "msg": "CASE-1005: case note filled in"
+    },
+    {
+      "at_s": 66.9,
+      "kind": "worker",
+      "msg": "CASE-1005: case note saved as a DRAFT (the worker never presses Submit)"
+    },
+    {
+      "at_s": 69.5,
+      "kind": "wait",
+      "msg": "20 s of quiet, so the engine's cooldown after the coach prompt has passed"
+    },
+    {
+      "at_s": 89.5,
+      "kind": "setup",
+      "msg": "study mode cleared before the stuck scene, so the coach is at the worker's own level"
+    },
+    {
+      "at_s": 89.5,
+      "kind": "scene",
+      "msg": "STUCK: a teammate does the right things, then hesitates over the case note"
+    },
+    {
+      "at_s": 113.9,
+      "kind": "worker",
+      "msg": "CASE-1006: household entered on calculator A, result on screen"
+    },
+    {
+      "at_s": 117.4,
+      "kind": "worker",
+      "msg": "presses \"Check cliff edges\"; the panel lists the nearby edges"
+    },
+    {
+      "at_s": 136.6,
+      "kind": "worker",
+      "msg": "CASE-1006: case note filled in"
+    },
+    {
+      "at_s": 136.6,
+      "kind": "worker",
+      "msg": "STALL: the note is filled in and the worker hovers over it for up to 75 s without saving (Cue's gate wants two quiet stuck readings)"
+    },
+    {
+      "at_s": 182.7,
+      "kind": "engine",
+      "msg": "cue decides cue (step verify_note)"
+    },
+    {
+      "at_s": 184.1,
+      "kind": "ok",
+      "msg": "Cue decided to speak during the stall: cue on verify_note, 46 s into the stall"
+    },
+    {
+      "at_s": 184.1,
+      "kind": "cue",
+      "msg": "Cue should now be on screen (drawn by the Knack app, not by this script); the worker takes the step it names"
+    },
+    {
+      "at_s": 184.2,
+      "kind": "engine",
+      "msg": "cue decides cue (step verify_note)"
+    },
+    {
+      "at_s": 191.2,
+      "kind": "worker",
+      "msg": "CASE-1006: case note saved as a DRAFT (the worker never presses Submit)"
+    },
+    {
+      "at_s": 193.8,
+      "kind": "done",
+      "msg": "the script ran to the end"
+    }
+  ]
+}

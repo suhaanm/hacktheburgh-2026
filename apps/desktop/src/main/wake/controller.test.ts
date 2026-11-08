@@ -8,7 +8,7 @@ import { WakeSettingsStore } from './settings'
 
 const CALM = { flagOn: true, isMac: true, mock: false, locked: false, asleep: false, paused: false, killed: false, hardQuiet: { dnd: false, screenSharing: false, onCall: false, inMeeting: false }, agentActing: false, away: false }
 
-function rig(over: { rung?: RungReading; live?: { consented?: boolean; frames?: boolean }; startOk?: boolean; inputs?: Partial<typeof CALM> } = {}) {
+function rig(over: { rung?: RungReading; live?: { consented?: boolean; frames?: boolean }; startOk?: boolean; blocker?: string | null; inputs?: Partial<typeof CALM> } = {}) {
   const settings = new WakeSettingsStore(null)
   const liveSettings = new LiveSettingsStore(null)
   if (over.live?.consented) liveSettings.patch({ liveEnabled: true, liveConsentVersion: LIVE_CONSENT_VERSION, liveFrames: over.live.frames === true }, { trusted: true })
@@ -31,10 +31,13 @@ function rig(over: { rung?: RungReading; live?: { consented?: boolean; frames?: 
   let t = 1_000_000
   const timers: Array<{ fn: () => void; ms: number; live: boolean }> = []
   const inputs = { ...CALM, ...over.inputs }
+  const opened: string[] = []
   const deps: WakeControllerDeps = {
     settings,
     liveSettings,
+    openSettings: (w) => void opened.push(w),
     live: {
+      blocker: () => over.blocker ?? null,
       startFromWake: () => {
         started.push(t)
         if (over.startOk === false) {
@@ -97,9 +100,14 @@ function rig(over: { rung?: RungReading; live?: { consented?: boolean; frames?: 
     restartDelayMs: 1500,
   }
   ctl = createWakeController(deps)
-  const endLive = (): void => {
+  const setHelper = (st: HelperStatus): void => {
+    helper = st
+    ctl.refresh()
+  }
+  const endLive = (why: string | null = null): void => {
     phase = 'idle'
     trigger = null
+    refused = why
     liveSubs.forEach((f) => f())
   }
   const fire = (): void => {
@@ -113,7 +121,7 @@ function rig(over: { rung?: RungReading; live?: { consented?: boolean; frames?: 
   const flush = async (): Promise<void> => {
     for (let i = 0; i < 6; i++) await Promise.resolve()
   }
-  return { ctl, settings, liveSettings, helperLog, started, cardsSeen, closed, answers, runs, finishRun: (r: { ok: boolean }) => finishRun(r), stops, said, chimes, endLive, fire, flush, inputs, advance: (ms: number) => void (t += ms) }
+  return { ctl, setHelper, opened, settings, liveSettings, helperLog, started, cardsSeen, closed, answers, runs, finishRun: (r: { ok: boolean }) => finishRun(r), stops, said, chimes, endLive, fire, flush, inputs, advance: (ms: number) => void (t += ms) }
 }
 const mouse = (id: string): CardAnswer => ({ buttonId: id, via: 'mouse' })
 
@@ -330,5 +338,146 @@ describe('do_it_for_me', () => {
     await r.flush()
     expect(r.ctl.status().click).toBe('killed')
     expect(await r.ctl.doIt({ description: 'x', box: BOX })).toEqual({ ok: false, reason: 'killed' })
+  })
+})
+
+describe('the words always get an answer', () => {
+  const needsLive = { title: 'Hey Knack heard you.', body: 'Live voice needs live models. Turn them on in Settings.' }
+  it('with no live models the listener still hears the words, shows a card in plain words, asks no consent and opens nothing', async () => {
+    for (const blocker of ['mock_mode', 'no_key', 'no_model', 'model_unusable']) {
+      const r = rig({ blocker })
+      r.ctl.start()
+      expect(r.ctl.status().listening).toBe(true)
+      r.answers.push(null)
+      await r.ctl.onHeard()
+      await r.flush()
+      expect(r.cardsSeen).toHaveLength(1)
+      expect(r.cardsSeen[0]).toMatchObject(needsLive)
+      expect(r.cardsSeen[0].buttons.map((b) => b.label)).toEqual(['Open Settings', 'Close'])
+      expect(r.started).toHaveLength(0)
+      expect(r.settings.get().voiceAnswer).toBe('unset') // no consent was asked for something that could not happen
+      expect(r.ctl.status().line).toBe('Live voice needs live models.')
+      r.fire()
+      expect(r.helperLog.at(-1)).toBe('start') // and it keeps listening afterwards
+    }
+  })
+  it('the Settings button opens Settings only on a real mouse click; Close and a timeout open nothing', async () => {
+    const r = rig({ blocker: 'mock_mode' })
+    r.ctl.start()
+    r.answers.push({ buttonId: 'settings', via: 'mouse' })
+    await r.ctl.onHeard()
+    await r.flush()
+    expect(r.opened).toEqual(['knack'])
+    const q = rig({ blocker: 'mock_mode' })
+    q.ctl.start()
+    q.answers.push({ buttonId: 'settings', via: 'other' })
+    await q.ctl.onHeard()
+    await q.flush()
+    expect(q.opened).toEqual([])
+    const c = rig({ blocker: 'mock_mode' })
+    c.ctl.start()
+    c.answers.push({ buttonId: 'close', via: 'mouse' })
+    await c.ctl.onHeard()
+    await c.flush()
+    expect(c.opened).toEqual([])
+  })
+  it('other reasons have their own plain card: the service not answering, the limit, the microphone, a pause', async () => {
+    const cases: Array<[string, string, string[]]> = [
+      ['breaker_open', 'The voice service is not answering. Try again soon.', ['Close']],
+      ['day_cap', 'Today\u2019s talking limit is reached. You can raise it in Settings.', ['Open Settings', 'Close']],
+      ['mic_permission', 'Live voice needs the microphone. Turn it on in System Settings.', ['System Settings', 'Close']],
+      ['agent_acting', 'Knack is working. Try again when it finishes.', ['Close']],
+    ]
+    for (const [blocker, body, buttons] of cases) {
+      const r = rig({ blocker })
+      r.ctl.start()
+      r.answers.push(null)
+      await r.ctl.onHeard()
+      await r.flush()
+      expect(r.cardsSeen[0]).toMatchObject({ title: 'Hey Knack heard you.', body })
+      expect(r.cardsSeen[0].buttons.map((b) => b.label)).toEqual(buttons)
+    }
+    const mic = rig({ blocker: 'mic_permission' })
+    mic.ctl.start()
+    mic.answers.push({ buttonId: 'microphone', via: 'mouse' })
+    await mic.ctl.onHeard()
+    await mic.flush()
+    expect(mic.opened).toEqual(['microphone'])
+  })
+  it('a start that is refused after the cards still answers with a card', async () => {
+    const r = rig({ live: { consented: true, frames: true }, startOk: false })
+    r.ctl.start()
+    r.answers.push(null)
+    await r.ctl.onHeard()
+    await r.flush()
+    expect(r.cardsSeen.at(-1)).toMatchObject({ title: 'Hey Knack heard you.', body: 'Live voice needs the microphone. Turn it on in System Settings.' })
+  })
+  it('the microphone going away mid-conversation ends it with one plain card and a line, and the listener returns', async () => {
+    const r = rig({ live: { consented: true, frames: true } })
+    r.ctl.start()
+    await r.ctl.onHeard()
+    r.answers.push(null)
+    r.endLive('mic_permission')
+    await r.flush()
+    expect(r.cardsSeen.at(-1)).toMatchObject({ title: 'Hey Knack heard you.', body: 'Live voice needs the microphone. Turn it on in System Settings.' })
+    expect(r.ctl.status().session).toBe(false)
+    r.fire()
+    expect(r.helperLog.at(-1)).toBe('start')
+  })
+  it('no word the worker can read mentions a demo, a mock or example mode', async () => {
+    const t = await import('./texts')
+    const { DORMANT_LINE } = await import('./guards')
+    const strings: string[] = [t.LISTENING_LINE, t.SWITCH_LABEL, t.SWITCH_NOTE, ...Object.values(t.SPOKEN_LINES), ...Object.values(t.REFUSAL_LINE), ...Object.values(t.BLOCKED_LINE), ...Object.values(DORMANT_LINE)]
+    for (const c of [...Object.values(t.CARDS), ...Object.values(t.INFO_CARDS)] as Array<{ title: string; body: string; buttons: ReadonlyArray<{ label: string }> }>) strings.push(c.title, c.body, ...c.buttons.map((b) => b.label))
+    for (const s of strings) expect(s).not.toMatch(/demo|mock|example mode|example data/i)
+  })
+})
+
+describe('edge cases of the wake path', () => {
+  it('a Dictation language that is not installed: the helper ends with on_device_unavailable and the menu says so in one line, with no server fallback to offer', () => {
+    const r = rig()
+    r.ctl.start()
+    r.setHelper({ state: 'blocked', code: 'on_device_unavailable' })
+    expect(r.ctl.status()).toMatchObject({ listening: false, line: 'This Mac cannot recognise speech on the device, so Hey Knack stays off.' })
+  })
+  it('a helper that keeps crashing ends blocked with one plain line, and switching the listener off and on tries again', () => {
+    const r = rig()
+    r.ctl.start()
+    r.setHelper({ state: 'blocked', code: 'crash_loop' })
+    expect(r.ctl.status().line).toBe('Hey Knack stopped working. Switch it off and on to try again.')
+    r.ctl.setListen(false)
+    r.ctl.setListen(true)
+    expect(r.helperLog).toContain('unblock')
+  })
+  it('the microphone revoked in System Settings while listening: the helper is blocked with mic_denied and the line names the fix', () => {
+    const r = rig()
+    r.ctl.start()
+    r.setHelper({ state: 'blocked', code: 'mic_denied' })
+    expect(r.ctl.status().line).toBe('Hey Knack needs the microphone. Turn it on in System Settings.')
+  })
+  it('the lid closed and reopened: asleep and locked stop the listener at once; it comes back only when both are over', () => {
+    const r = rig()
+    r.ctl.start()
+    r.inputs.asleep = true
+    r.inputs.locked = true
+    r.ctl.refresh()
+    expect(r.helperLog.at(-1)).toBe('stop')
+    expect(r.ctl.status().dormant).toBe('locked')
+    r.inputs.locked = false
+    r.ctl.refresh()
+    expect(r.helperLog.at(-1)).toBe('stop') // still asleep
+    r.inputs.asleep = false
+    r.ctl.refresh()
+    expect(r.helperLog.at(-1)).toBe('start')
+  })
+  it('the words heard in the instant a call, a screen share or an agent run begins are ignored', async () => {
+    for (const patch of [{ hardQuiet: { dnd: false, screenSharing: true, onCall: false, inMeeting: false } }, { hardQuiet: { dnd: false, screenSharing: false, onCall: true, inMeeting: false } }, { agentActing: true }]) {
+      const r = rig({ live: { consented: true, frames: true } })
+      r.ctl.start()
+      Object.assign(r.inputs, patch)
+      await r.ctl.onHeard()
+      expect(r.started).toHaveLength(0)
+      expect(r.cardsSeen).toHaveLength(0) // not even a card: nothing was heard as far as the worker can tell
+    }
   })
 })

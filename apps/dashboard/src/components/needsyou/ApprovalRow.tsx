@@ -37,8 +37,9 @@ export function ApprovalRow({ item: it, primary, cls, onDone }: { item: QueueIte
         if (!gate.allowed) { setErr(gate.message); return; }
         proof = gate.auth;
       }
-      await api.setQueue(it.id, a, proof);
-      toast({ tone: "success", text: a === "approve" ? `${L.yes}: done.` : `${L.no}: done.`, detail: title });
+      const res = await api.setQueue(it.id, a, proof);
+      if (a === "approve" && res.finalize === "failed") toast({ tone: "error", text: "Approved, but the submit did not finish. Nothing was sent.", detail: title });
+      else toast({ tone: "success", text: a === "approve" ? `${L.yes}: done.` : `${L.no}: done.`, detail: title });
       onDone();
     } catch (e) { setErr(e instanceof ApiError ? e.message : "That did not go through. Nothing was changed. Try again."); }
     finally { setBusy(null); setSigning(false); }

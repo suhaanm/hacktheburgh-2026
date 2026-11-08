@@ -52269,7 +52269,7 @@
         {
           "id": "att_sim_not_people",
           "severity": "high",
-          "text": "Every number is simulated: workers, schedules, event streams, reactions and attention costs are my assumptions (simulate.py). This shows the policy behaves as designed under them. It does not show that real people find Understudy natural. The live check with four teammates (n = 4) is the real test and was not run."
+          "text": "Every number is simulated: workers, schedules, event streams, reactions and attention costs are my assumptions (simulate.py). This shows the policy behaves as designed under them. It does not show that real people find Knack natural. The live check with four teammates (n = 4) is the real test and was not run."
         },
         {
           "id": "att_costs_assumed",
@@ -53618,7 +53618,7 @@
           {
             "id": "att_sim_not_people",
             "severity": "high",
-            "text": "Every number is simulated: workers, schedules, event streams, reactions and attention costs are my assumptions (simulate.py). This shows the policy behaves as designed under them. It does not show that real people find Understudy natural. The live check with four teammates (n = 4) is the real test and was not run."
+            "text": "Every number is simulated: workers, schedules, event streams, reactions and attention costs are my assumptions (simulate.py). This shows the policy behaves as designed under them. It does not show that real people find Knack natural. The live check with four teammates (n = 4) is the real test and was not run."
           },
           {
             "id": "att_costs_assumed",
@@ -61702,7 +61702,7 @@
         {
           "id": "sim-instruction-following",
           "severity": "high",
-          "text": "Simulated participants (language model), not people: A model that is shown 'check cliff edges before you copy this result' can simply do what it says. A higher score after coaching can therefore be instruction following plus a self-written note, not retention of a skill."
+          "text": "Simulated participants (language model), not people: A model that is shown 'check cliff edges before you copy this result' can do what it says. A higher score after coaching can therefore be instruction following plus a self-written note, not retention of a skill."
         },
         {
           "id": "sim-authored-by-us",
@@ -67513,7 +67513,7 @@
       },
       {
         "id": "att_sim_not_people",
-        "text": "Every number is simulated: workers, schedules, event streams, reactions and attention costs are my assumptions (simulate.py). This shows the policy behaves as designed under them. It does not show that real people find Understudy natural. The live check with four teammates (n = 4) is the real test and was not run.",
+        "text": "Every number is simulated: workers, schedules, event streams, reactions and attention costs are my assumptions (simulate.py). This shows the policy behaves as designed under them. It does not show that real people find Knack natural. The live check with four teammates (n = 4) is the real test and was not run.",
         "severity": "high",
         "source": "attention:attention"
       },
@@ -67549,7 +67549,7 @@
       },
       {
         "id": "sim-instruction-following",
-        "text": "Simulated participants (language model), not people: A model that is shown 'check cliff edges before you copy this result' can simply do what it says. A higher score after coaching can therefore be instruction following plus a self-written note, not retention of a skill.",
+        "text": "Simulated participants (language model), not people: A model that is shown 'check cliff edges before you copy this result' can do what it says. A higher score after coaching can therefore be instruction following plus a self-written note, not retention of a skill.",
         "severity": "high",
         "source": "study-sim:study_sim"
       },
