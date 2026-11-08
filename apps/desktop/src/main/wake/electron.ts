@@ -50,6 +50,9 @@ export interface RegisterWakeOptions {
   killed: () => boolean
   /** Windows that may call the IPC (our own). */
   owns: (webContentsId: number) => boolean
+  /** The buttons on the cards: Knack's Settings, and the macOS microphone pane. */
+  openSettings?: () => void
+  openMicrophoneSettings?: () => void
   /** The context hub: the shell may report the top Home insight and the running routine (ids and counts) through `wake:context`. */
   context?: ContextHub | null
   env?: Record<string, string | undefined>
@@ -73,7 +76,6 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
   const env = o.env ?? process.env
   const log = o.log ?? (() => undefined)
   const settings = new WakeSettingsStore(o.userDataDir)
-  const mock = env.UNDERSTUDY_MOCK === '1' || env.ALONGSIDE_MOCK === '1'
   const cards = createCardWindow({ log })
   const lock = o.lock ?? createVoiceLock()
 
@@ -89,7 +91,16 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
   const onLock = (): void => void ((locked = true), refresh())
   const onUnlock = (): void => void ((locked = false), refresh())
   const onSuspend = (): void => void ((asleep = true), refresh())
-  const onResume = (): void => void ((asleep = false), refresh())
+  // After the lid opens or the Mac wakes, the audio devices take a moment to come back (a Bluetooth headset longest): the listener restarts after a pause.
+  let resumeTimer: ReturnType<typeof setTimeout> | null = null
+  const onResume = (): void => {
+    if (resumeTimer) clearTimeout(resumeTimer)
+    resumeTimer = setTimeout(() => {
+      resumeTimer = null
+      asleep = false
+      refresh()
+    }, 2500)
+  }
   powerMonitor.on('lock-screen', onLock)
   powerMonitor.on('unlock-screen', onUnlock)
   powerMonitor.on('suspend', onSuspend)
@@ -110,7 +121,9 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
     return {
       flagOn: experimentOn('wake', env),
       isMac: process.platform === 'darwin',
-      mock,
+      // The listener has no network and no model, so it runs whenever the worker's switch is on, including with example data. (When a conversation cannot
+      // open, the controller answers the words with a card.)
+      mock: false,
       locked: locked || consoleLocked || sig?.locked === true,
       asleep,
       paused: (s.pausedUntil ?? 0) > t,
@@ -136,7 +149,7 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
   const controller = createWakeController({
     settings,
     liveSettings: o.live.settings,
-    live: { startFromWake: () => manager.startFromWake(), status: () => manager.status(), subscribe: (cb) => manager.subscribe(() => cb()) },
+    live: { blocker: () => manager.blocker(), startFromWake: () => manager.startFromWake(), status: () => manager.status(), subscribe: (cb) => manager.subscribe(() => cb()) },
     helper: { start: () => supervisor.start(), stop: () => supervisor.stop(), status: () => supervisor.status(), unblock: () => supervisor.unblock() },
     inputs,
     cards,
@@ -147,6 +160,7 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
       if (settings.get().wakeChime) void o.live.clips.play(makeChimeWav(), 'audio/wav').catch(() => undefined)
     },
     say: (line) => void o.live.speaker.say(`wake.${line}`),
+    openSettings: (where) => (where === 'microphone' ? o.openMicrophoneSettings?.() : o.openSettings?.()),
     log,
   })
   controllerRef = controller
@@ -190,6 +204,7 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
     helperPath: () => resolveHelperPath(),
     dispose() {
       clearInterval(probeTimer)
+      if (resumeTimer) clearTimeout(resumeTimer)
       powerMonitor.off('lock-screen', onLock)
       powerMonitor.off('unlock-screen', onUnlock)
       powerMonitor.off('suspend', onSuspend)

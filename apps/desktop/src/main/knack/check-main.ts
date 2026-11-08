@@ -9,6 +9,8 @@ import os from 'node:os'
 import path from 'node:path'
 import { app, BrowserWindow, nativeTheme, screen } from 'electron'
 import { registerAppScheme } from './app-protocol-electron'
+import { createAskBar } from './ask-bar'
+import { askUnavailableLine } from './ask-ipc'
 import { createKnackShell, type KnackShell } from './knack-shell'
 import { createStack } from './stack'
 import { realStackDeps } from './stack-real'
@@ -97,7 +99,13 @@ async function run(): Promise<void> {
   const effects: { effect: Effect; event: ShellEvent }[] = []
   let pending = 3
   let suppressed: string | null = null
+  const asked: string[] = []
+  const ringed: string[] = []
+  // A power save blocker that records what is held (the real one would keep this Mac awake while the check runs).
+  const held = new Map<number, string>()
+  const blocker = { start: (t: string): number => (held.set(held.size + 1000, t), held.size + 999), stop: (id: number): void => void held.delete(id), isStarted: (id: number): boolean => held.has(id) }
   const shell: KnackShell = createKnackShell({
+    blocker: blocker as never,
     settings,
     userDataDir: userData,
     config,
@@ -222,6 +230,16 @@ async function run(): Promise<void> {
     hud: model,
     probe: async () => ({ suppressed, presenting: false }),
     pendingQueue: async () => pending,
+    // Stand-ins for what the first run asks macOS: nothing here prompts, and what is asked is recorded.
+    permissions: {
+      status: async () => ({ microphone: 'not-determined', screen: 'granted', accessibility: false, probe: 'ok', needsRestart: false, hint: '/Applications/Terminal.app secret hint' }),
+      requestMicrophone: async () => (asked.push('microphone'), true),
+      requestScreen: async () => (asked.push('screen'), { microphone: 'not-determined', screen: 'granted', accessibility: false, probe: 'ok', needsRestart: false, hint: '' }),
+      requestAccessibility: () => (asked.push('accessibility'), false),
+      openSettings: (pane) => void asked.push(`open:${pane}`),
+    },
+    speech: { helper: () => ({ state: 'stopped', code: null }), request: () => void asked.push('speech') },
+    ring: { show: (box, o) => void ringed.push(`show ${box.join(',')} ghost=${o?.ghost === true}`), clear: () => void ringed.push('clear'), displayBounds: () => screen.getPrimaryDisplay().bounds },
   })
   void pending
   const settle = async (ms = 700): Promise<void> => void (await sleep(ms))
@@ -243,6 +261,7 @@ async function run(): Promise<void> {
   shell.dispatch({ type: 'window_state', window: 'open', focused: true })
   shell.dispatch({ type: 'run_started', realScreen: true })
   check('a run that uses the real screen, with the window focused: the machine asks to minimise it after 400 ms, and the pill says Starting', effects.some((e) => e.effect.type === 'minimizeMainAfter' && (e.effect as { ms: number }).ms === 400) && model.state().activity?.label === 'Starting' && model.state().activity?.phase === 'working', model.state().activity)
+  check('the Mac is kept awake for the run (the display too, it uses the real screen)', [...held.values()].join() === 'prevent-display-sleep', [...held.values()])
   shell.dispatch({ type: 'run_progress', label: 'Filling in calculator B', n: 3, m: 8 })
   await settle(900)
   check('the pill shows the words and n of m', model.state().activity?.label === 'Filling in calculator B' && model.state().activity?.step === 3 && model.state().activity?.of === 8, model.state().activity)
@@ -273,6 +292,7 @@ async function run(): Promise<void> {
   shell.dispatch({ type: 'run_done', needsNothing: true })
   await settle(400)
   check('a finished run turns the pill into a check, and the window does not pop back', model.state().activity?.phase === 'done' && !types().some((t) => ['openMain', 'restoreMain', 'focusMain'].includes(t)), model.state().activity)
+  check('and nothing is held once the run is over', held.size === 0, [...held.values()])
   await hudShot('done')
   await sleep(3200)
   check('the check fades and the corner window goes by itself', model.state().activity === null, model.state().activity)
@@ -302,6 +322,87 @@ async function run(): Promise<void> {
   await killSwitch.clear()
   await settle(300)
   check('Resume leaves the stopped state', shell.info().machine.activity === 'idle' && model.state().kill.killed === false, shell.info().machine)
+
+  // ---- 5b. the first run's bridge: what it sees of macOS (closed words only), what it may ask, who may ask, and the sample ring
+  const perm = (await wc.executeJavaScript(`(async () => {
+    const p = window.knackShell.permissions
+    return {
+      state: await p.state(),
+      badKind: await p.request('camera'),
+      screen: await p.request('screen'),
+      speech: await p.request('speech'),
+      mic: await p.request('microphone'),
+      open: await p.openSettings('accessibility'),
+      badOpen: await p.openSettings('../etc'),
+      ring: await window.knackShell.tryRing(),
+      badRing: await window.knackShell.tryRing({ x: 'a' }),
+    }
+  })()`)) as { state: Record<string, unknown>; badKind: { ok: boolean; reason?: string }; screen: { ok: boolean }; speech: { ok: boolean }; mic: { ok: boolean }; open: boolean; badOpen: boolean; ring: { ok: boolean; reason?: string }; badRing: { ok: boolean; reason?: string } }
+  check('the first run reads macOS as closed words only: four kinds and one restart flag, nothing else', JSON.stringify(Object.keys(perm.state).sort()) === JSON.stringify(['accessibility', 'microphone', 'needsRestart', 'screen', 'speech']) && perm.state.microphone === 'not_asked' && perm.state.screen === 'granted' && !JSON.stringify(perm.state).includes('Terminal'), perm.state)
+  check('it can ask for the four kinds by name, and a name it does not know asks nothing', perm.badKind.ok === false && perm.badKind.reason === 'bad_request' && perm.screen.ok && perm.speech.ok && perm.mic.ok && asked.filter((a) => !a.startsWith('open:')).join() === 'screen,speech,microphone', [...asked])
+  check('it can open the System Settings pane for a kind, and not for anything else', perm.open === true && perm.badOpen === false && asked.at(-1) === 'open:accessibility', [...asked])
+  check('the sample ring needs the window in view: while it is hidden it says so and draws nothing, and a bad spot is refused', perm.ring.ok === false && perm.ring.reason === 'window_hidden' && ringed.length === 0 && perm.badRing.ok === false, { ring: perm.ring, badRing: perm.badRing, ringed })
+  // Only the Knack window's own page may ask: another window of the app, with the same preload, is refused.
+  const stranger = new BrowserWindow({ show: false, webPreferences: { preload: path.join(__dirname, '../preload/knack.js'), sandbox: true, contextIsolation: true } })
+  await stranger.loadURL('about:blank')
+  const refused = (await stranger.webContents.executeJavaScript(`Promise.all([window.knackShell.permissions.state(), window.knackShell.tryRing(), window.knackSettings.getSettings()].map((p) => p.then(() => 'answered', () => 'refused')))`)) as string[]
+  stranger.destroy()
+  check('another window of the app is refused by the permission, ring and settings calls', refused.join() === 'refused,refused,refused', refused)
+  asked.length = 0
+
+  // ---- 5c. the Ask bar: a small centred input that sends a line and says one plain sentence when it cannot be answered
+  let askClosed = 0
+  const submitted: string[] = []
+  const ask = createAskBar({
+    hidden: true,
+    disabled: false,
+    capturable: false,
+    onClosed: () => void (askClosed += 1),
+    submit: (text) => {
+      submitted.push(text)
+      return text.startsWith('inject') ? { ok: true } : { ok: false, line: askUnavailableLine('Alt+Space') }
+    },
+  })
+  ask.open('hello there')
+  const askWin = await waitFor(() => (ask.window()?.webContents.isLoading() === false ? ask.window() : null), 10000)
+  await settle(500)
+  const askPage = askWin ? ((await askWin.webContents.executeJavaScript(`({ value: document.getElementById('input').value, placeholder: document.getElementById('input').placeholder, replyHidden: document.getElementById('reply').hidden, knackAsk: typeof window.knackAsk, title: document.title })`)) as { value: string; placeholder: string; replyHidden: boolean; knackAsk: string; title: string }) : null
+  check('the Ask bar opens with the phrase it was given, an empty answer line and its own four calls', askPage?.value === 'hello there' && askPage.placeholder === 'Ask Knack' && askPage.replyHidden && askPage.knackAsk === 'object' && ask.isOpen(), askPage)
+  const askBounds = askWin?.getBounds()
+  check('the Ask bar is centred across the work area, 560 wide with room for its shadow, in the upper third', askBounds !== undefined && Math.abs(askBounds.x + askBounds.width / 2 - (wa.x + wa.width / 2)) <= 1 && askBounds.width === 576 && askBounds.y + 8 < wa.y + wa.height / 3, { askBounds, wa })
+  const askShot = async (name: string): Promise<void> => {
+    for (const theme of ['light', 'dark'] as const) {
+      nativeTheme.themeSource = theme
+      await sleep(350)
+      const png = await ask.png()
+      if (png) fs.writeFileSync(path.join(out, `ask-${name}-${theme}.png`), png)
+    }
+    nativeTheme.themeSource = 'system'
+  }
+  await askShot('open')
+  const sent = (await askWin?.webContents.executeJavaScript(`(async () => { const r = await window.knackAsk.submit('where is the calculator'); return r })()`)) as { ok: boolean; line?: string } | undefined
+  await settle(400)
+  check('a line that cannot be answered stays open with one plain sentence (nothing is lost, nothing pretends to work)', sent?.ok === false && sent.line === 'Typing is not on yet. Hold Option-Space and speak.' && ask.isOpen() && submitted.at(-1) === 'where is the calculator', { sent, submitted })
+  await askWin?.webContents.executeJavaScript(`document.getElementById('input').value = 'where is the calculator'; document.getElementById('card').requestSubmit()`)
+  await settle(600)
+  const askReply = (await askWin?.webContents.executeJavaScript(`({ hidden: document.getElementById('reply').hidden, text: document.getElementById('reply').textContent })`)) as { hidden: boolean; text: string } | undefined
+  check('the page shows that sentence under the input, and the window grows to fit it', askReply?.hidden === false && askReply.text === 'Typing is not on yet. Hold Option-Space and speak.' && (ask.window()?.getBounds().height ?? 0) > 80, { askReply, height: ask.window()?.getBounds().height })
+  await askShot('reply')
+  const accepted = (await askWin?.webContents.executeJavaScript(`window.knackAsk.submit('  inject   this\\nline ')`)) as { ok: boolean } | undefined
+  check('a line that is taken closes the bar, cleaned to one line', accepted?.ok === true && !ask.isOpen() && submitted.at(-1) === 'inject this line' && askClosed === 1, { accepted, submitted, askClosed })
+  ask.open()
+  await settle(300)
+  await askWin?.webContents.executeJavaScript(`window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`)
+  await settle(300)
+  check('Escape closes it, and it opens again empty', !ask.isOpen() && askClosed === 2, { askClosed })
+  ask.open()
+  await settle(300)
+  const strangerAsk = new BrowserWindow({ show: false, webPreferences: { preload: path.join(__dirname, '../preload/ask.js'), sandbox: true, contextIsolation: true } })
+  await strangerAsk.loadURL('about:blank')
+  const foreign = (await strangerAsk.webContents.executeJavaScript(`window.knackAsk.submit('from a stranger').then(() => 'answered', () => 'refused')`)) as string
+  strangerAsk.destroy()
+  check("only the bar's own page can send a line: another window is refused and nothing is submitted", foreign === 'refused' && !submitted.includes('from a stranger'), { foreign, submitted })
+  ask.dispose()
 
   // ---- 6. close, activate, the setting
   shell.dispatch({ type: 'window_close' })

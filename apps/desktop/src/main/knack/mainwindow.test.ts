@@ -23,6 +23,7 @@ function fakeWindow(over: { visible?: boolean; minimised?: boolean; focused?: bo
     isFullScreen: () => w.fullScreen,
     isDestroyed: () => w.destroyed,
     getBounds: () => w.bounds,
+    getContentBounds: () => w.bounds,
     destroy: () => (calls.push('destroy'), (w.destroyed = true)),
     loadURL: (u) => void calls.push(`load ${u}`),
     send: (c) => void calls.push(`send ${c}`),

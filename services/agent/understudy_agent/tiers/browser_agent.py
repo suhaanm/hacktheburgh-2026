@@ -47,7 +47,10 @@ TIER2_SCHEMA: dict[str, Any] = {
         "reason": {"type": "string", "maxLength": 200},
         "confidence": {"type": ["number", "null"]},   # with `finish`: how sure you are the results page is showing (0 to 1)
     },
-    "required": ["tool", "reason"],
+    # Every key is required, with null where a tool does not use it. OpenAI's strict mode makes this so for every schema (`to_strict_schema`);
+    # a provider that does not (Gemini) otherwise leaves `param` out of a fill, and the step is rejected as "parameter None" (found live,
+    # 7 Nov: a Gemini planner filled a field once, then omitted `param`, and the case-note step failed on three rejections).
+    "required": ["tool", "ref", "param", "unit", "reason", "confidence"],
 }
 
 PAGE_STATE_SCHEMA: dict[str, Any] = {

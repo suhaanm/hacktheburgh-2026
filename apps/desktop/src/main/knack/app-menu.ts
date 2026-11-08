@@ -7,6 +7,8 @@ import type { MenuItemConstructorOptions } from 'electron'
 
 export interface MenuHandlers {
   openSettings(): void
+  /** "Set up again…": the Knack window's first run (the one set-up the app has). */
+  openSetup(): void
   showWindow(): void
   stopEverything(): void
 }
@@ -23,6 +25,7 @@ export interface AppMenuInput {
 export function buildAppMenuTemplate(i: AppMenuInput): MenuItemConstructorOptions[] {
   const mac = i.platform === 'darwin'
   const settings: MenuItemConstructorOptions = { label: 'Settings…', accelerator: 'CommandOrControl+,', click: () => i.handlers.openSettings() }
+  const setup: MenuItemConstructorOptions = { label: 'Set up again…', click: () => i.handlers.openSetup() }
   // Command-Shift-K works while Knack is frontmost (a menu accelerator is app-local); the global Option-Shift-Command-K stays in hotkey.ts and is shown on the menu bar
   // item. A global Command-Shift-K would take a common shortcut from other apps.
   const stop: MenuItemConstructorOptions = { label: 'Stop Everything', accelerator: 'Shift+CommandOrControl+K', click: () => i.handlers.stopEverything() }
@@ -32,6 +35,7 @@ export function buildAppMenuTemplate(i: AppMenuInput): MenuItemConstructorOption
       { label: `About ${i.appName}`, role: 'about' },
       { type: 'separator' },
       settings,
+      setup,
       { type: 'separator' },
       { role: 'services' },
       { type: 'separator' },
@@ -44,7 +48,7 @@ export function buildAppMenuTemplate(i: AppMenuInput): MenuItemConstructorOption
   }
   const file: MenuItemConstructorOptions = {
     label: 'File',
-    submenu: [stop, { type: 'separator' }, { label: 'Close Window', role: 'close', accelerator: 'CommandOrControl+W' }, ...(mac ? [] : [{ type: 'separator' as const }, settings, { label: `Quit ${i.appName}`, role: 'quit' as const }])],
+    submenu: [stop, { type: 'separator' }, { label: 'Close Window', role: 'close', accelerator: 'CommandOrControl+W' }, ...(mac ? [] : [{ type: 'separator' as const }, settings, setup, { label: `Quit ${i.appName}`, role: 'quit' as const }])],
   }
   const edit: MenuItemConstructorOptions = {
     label: 'Edit',

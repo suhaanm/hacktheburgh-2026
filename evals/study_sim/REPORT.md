@@ -85,7 +85,7 @@ Estimated spend US$4.75 of the US$8 cap (of which US$0.75 was spent by the abort
 
 - (high) The participants are language-model agents, not people. Nothing here shows that people learn from the coach, and nothing here is a user study.
 - (high) The only 'memory' a participant has is a note of at most 280 characters that it wrote itself after the practice case and sees again at the post-test of the same skill. Every case starts from a fresh model context. That is a prompt, not learning in any human sense.
-- (high) A model that is shown 'check cliff edges before you copy this result' can simply do what it says. A higher score after coaching can therefore be instruction following plus a self-written note, not retention of a skill.
+- (high) A model that is shown 'check cliff edges before you copy this result' can do what it says. A higher score after coaching can therefore be instruction following plus a self-written note, not retention of a skill.
 - (high) The coach prompts, the sandbox sites, the households, the scoring rule and the personas were all written by us.
 - (high) With 16 coached-arm participants the analysis has about 6% false positives and 12%, 29% and 76% power for a small, medium and large true effect (engine-analytics Monte Carlo, interval excludes zero); sign-flip p below 0.05 has less. A null or small result does not show that the coach has no effect; a result counts as clear only if the interval excludes zero.
 - (medium) The counterbalanced design cancels a fixed block-2 shift and generic carry-over, not spill-over of the coached gain to the other skill in block 2, which dilutes the contrast. Because each block starts from a fresh model context, order and fatigue effects are absent by construction.

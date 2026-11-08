@@ -83,6 +83,8 @@ class StepDecision:
     layer: str | None = None
     queue_id: str | None = None
     action: ValidatedAction | None = None
+    check_error: str | None = None     # layer 7 only: why the goal check did not run (one of drift.CHECK_ERROR_CLASSES); None otherwise
+    check_attempts: int = 0            # layer 7 only: how many times the check was called for this step
 
     @property
     def allowed(self) -> bool:
@@ -98,7 +100,7 @@ class SafetyPipeline:
     def __init__(self, port: ModelPort, config: SecurityConfig | None = None, *, audit: AuditLog | None = None,
                  queue: ApprovalQueue | None = None, routine: RoutineContext | None = None,
                  denylist: Denylist | None = None, goal: str = "", clock: Callable[[], float] = time.monotonic,
-                 reader_memo: int = 0) -> None:
+                 reader_memo: int = 0, sleep: Callable[[float], None] = time.sleep) -> None:
         self.port = port
         self.config = config or SecurityConfig()
         self.audit = audit or AuditLog()
@@ -108,7 +110,7 @@ class SafetyPipeline:
         self.goal = goal
         self.detector = InjectionDetector(enabled=self.config.detector)
         self.reader = QuarantinedReader(port, config=self.config, detector=self.detector, memo_size=reader_memo)
-        self.drift = DriftChecker(port, enabled=self.config.drift)
+        self.drift = DriftChecker(port, enabled=self.config.drift, clock=clock, sleep=sleep)   # clock and sleep are injectable: a test never waits
         self.stuck = StuckLoopDetector()
         self.settings = SettingsGuard(enabled=self.config.settings)
         self.dataflow = DataFlowGuard(self.routine.recorded_hosts, enabled=self.config.dataflow)
@@ -310,12 +312,23 @@ class SafetyPipeline:
                                              va, target, "normal", "injection_pause")
             on_recorded_site = kind == "goto" and self.dataflow.is_recorded(args.get("url"))
             if kind not in _BENIGN_FOR_DRIFT and not approved and not on_recorded_site:
+                # Only the CHECK is retried when it fails to run (drift.py): the action in hand is authorised once, below, or not at all.
                 v = self.drift.check(self.goal, describe_step(kind, args, label=target.label or args.get("label"),
-                                                              host=host_key(target.url or args.get("url"))), self._recent)
+                                                              host=host_key(target.url or args.get("url")), role=target.role,
+                                                              on_task_site=self.dataflow.is_recorded(target.url)), self._recent,
+                                     should_stop=is_killed)
+                if v.error_class:                  # at least one try failed to run: say so, with the class (a token) and the count, never text
+                    self._log("drift_check", "recovered" if v.source == "model" else "failed", None,
+                              attempts=v.attempts, error_class=v.error_class)
                 if not v.on_goal:
-                    self._log("drift_pause", "paused", f"drift:{v.source}")
-                    return self._raise_for_human("drift", f"off_goal_{v.source}", v.reason or "step does not serve the goal",
-                                                 va, target, "normal", "injection_pause")
+                    unavailable = v.source == "unavailable"
+                    self._log("drift_pause", "paused", f"drift:{v.source}",
+                              **({"check_error": v.error_class, "attempts": v.attempts} if unavailable else {}))
+                    dec = self._raise_for_human("drift", f"off_goal_{v.source}", v.reason or "step does not serve the goal",
+                                                va, target, "normal", "injection_pause")
+                    if unavailable:
+                        dec.check_error, dec.check_attempts = v.error_class, v.attempts
+                    return dec
 
         # --- allowed
         if cfg.actions:

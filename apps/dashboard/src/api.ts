@@ -629,16 +629,27 @@ export const api = {
     return b?.person ? b : null;
   },
 
-  /** `auth` is additive and only sent with an approval: { method, sub_hash? }. Never an email, a name or a token. */
-  setQueue: (id: string, action: "approve" | "reject", auth?: ApprovalAuth) =>
-    write<QueueItem>(`/queue/${encodeURIComponent(id)}/${action}`, "POST", action === "approve" && auth ? { auth } : undefined, () => {
+  /** `auth` is additive and only sent with an approval: { method, sub_hash? }. Never an email, a name or a token.
+   *  An approved item that came from a live agent run is then SUBMITTED: the approval is the worker's one click, and the agent's finalize route
+   *  presses the real submit button on the sandbox site. `finalize` says what happened: "submitted", "none" (no live note waits: a seeded item, a cached
+   *  run, or the agent is not running) or "failed" (approved, but the submit did not finish: the caller must say so, never call it done). */
+  setQueue: async (id: string, action: "approve" | "reject", auth?: ApprovalAuth): Promise<{ data: QueueItem; source: "live" | "demo"; finalize: "submitted" | "none" | "failed" }> => {
+    const out = await write<QueueItem>(`/queue/${encodeURIComponent(id)}/${action}`, "POST", action === "approve" && auth ? { auth } : undefined, () => {
       const q = demo.queue.find((x) => x.id === id);
       if (!q) throw new ApiError(404, "no_such_item", `There is no queue item ${id}.`);
       q.status = action === "approve" ? "approved" : "rejected";
       q.decided_at = new Date().toISOString();
       q.decided_by = "human";
       return clone(q);
-    }, action === "approve" ? "worker_approval" : "worker"),
+    }, action === "approve" ? "worker_approval" : "worker");
+    if (action !== "approve" || out.source !== "live" || !out.data.run_id) return { ...out, finalize: "none" };
+    const f = await send(AGENT_URL, `/run/${encodeURIComponent(out.data.run_id)}/finalize`, "POST", undefined, false, "worker_approval");
+    if (!f.reached) return { ...out, finalize: "none" };            // the agent service is not running: there is no live note to submit
+    if (f.status === 404 || f.status === 409) return { ...out, finalize: "none" }; // no run, no note waiting, or a cached run
+    if (f.status >= 400) return { ...out, finalize: "failed" };
+    const b = f.body as { submitted?: boolean } | null;
+    return { ...out, finalize: b && b.submitted === false ? "failed" : "submitted" };
+  },
 
   putQuietHours: async (q: QuietHours): Promise<QuietHours> => {
     const r = await write<QuietHours>("/presence/quiet_hours", "PUT", { ...q, days: dayKeys(q.days) }, () => {

@@ -67,8 +67,8 @@ def test_drift_check_fails_closed_when_the_model_is_unavailable():
         def check(self, prompt, schema):
             raise ProviderError("down")
 
-    v = DriftChecker(Down("reader_basic")).check("g", ProposedStep("click", "x"))
-    assert not v.on_goal and v.source == "unavailable"
+    v = DriftChecker(Down("reader_basic"), sleep=lambda s: None).check("g", ProposedStep("click", "x"))   # retries are bounded; the test never waits
+    assert not v.on_goal and v.source == "unavailable" and v.error_class == "other" and v.attempts == 3
 
 
 def test_disabled_drift_check_allows():

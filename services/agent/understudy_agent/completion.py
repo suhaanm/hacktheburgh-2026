@@ -84,10 +84,20 @@ def _norm(s: str) -> str:
     return " ".join((s or "").replace(",", "").split()).lower()
 
 
+# What the form audit (tiers/form_audit.py) may say about the inputs a calculator was given. "n/a" is a result that was not produced by
+# computer use (a compiled bundle or the tier-2 planner type values from code) or whose audit is not recorded (a checkpoint restore).
+INPUTS_OK = ("clean", "n/a")
+
+
 def check_completion(final_text: str, results: Mapping[str, ResultFields], note_id: str | None,
-                     expected_sites: tuple[str, ...] = ("a", "b", "c")) -> CompletionResult:
+                     expected_sites: tuple[str, ...] = ("a", "b", "c"),
+                     input_audits: Mapping[str, str] | None = None) -> CompletionResult:
     """The final observation (the saved case note page) must contain every calculator's amount, status
-    and reference, and the note id. Anything missing is named, so a human can see why."""
+    and reference, and the note id. Anything missing is named, so a human can see why.
+
+    `input_audits` (site -> the form audit's verdict, from the navigator): a calculator whose inputs were not CONFIRMED to match the
+    household's facts is missing, however well-formed its figure looks. Before this, the product only compared the case note with what
+    the navigators read, so a wrong but well-formed figure passed; only the evaluation's oracle caught it (REQ-10 diagnosis, cause 1)."""
     text = _norm(final_text)
     missing: list[str] = []
     checked: list[str] = []
@@ -96,6 +106,9 @@ def check_completion(final_text: str, results: Mapping[str, ResultFields], note_
         if r is None:
             missing.append(f"calculator {s}: no result")
             continue
+        audit = (input_audits or {}).get(s, "n/a")
+        if audit not in INPUTS_OK:
+            missing.append(f"calculator {s}: inputs not verified ({audit})")
         # Amount is compared by its digits so '£955.00 per month' and '955.00' both count.
         digits = _norm(r.amount_text)
         figure = re.search(r"\d[\d.]*", digits)
