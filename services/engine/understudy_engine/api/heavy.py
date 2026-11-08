@@ -248,7 +248,9 @@ class HeavyGetMiddleware:
                 st.flights.pop(key, None)
             if t.cancelled() or t.exception() is not None:
                 return
-            self._store(key, t.result(), gen)
+            # Stored under the key as it is NOW: some reads write the worker's memory or routine files (GET /routines merges what it found into the registry), which
+            # moves the files' signature during the computation, and the next request will compute its key from the files as they are after it.
+            self._store(self._key(scope_copy), t.result(), gen)
 
         task.add_done_callback(done)
         return fl

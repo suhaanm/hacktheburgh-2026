@@ -48,7 +48,10 @@ def t_hour(t: float) -> str:
     return datetime.fromtimestamp(t, tz=timezone.utc).strftime("%Y-%m-%dT%H")
 
 
+@lru_cache(maxsize=32768)
 def hour_to_epoch(h: str) -> float:
+    """An hour bucket's epoch. Pure, and there are few distinct strings (one per hour), but the growth score asks it about every ledger row hundreds of
+    thousands of times per request (strptime is slow): remembered per string."""
     return datetime.strptime(h, "%Y-%m-%dT%H").replace(tzinfo=timezone.utc).timestamp()
 
 

@@ -20,3 +20,16 @@ def test_tune_gc_raises_the_thresholds_and_freezes_what_is_loaded():
     finally:
         gc.unfreeze()
         gc.set_threshold(*before)
+
+
+def test_a_serving_engine_hands_the_gil_back_to_the_event_loop_within_a_millisecond():
+    import sys
+
+    from understudy_engine.api.app import tune_switch_interval
+
+    before = sys.getswitchinterval()
+    try:
+        assert tune_switch_interval() <= 0.0011
+        assert sys.getswitchinterval() <= 0.0011
+    finally:
+        sys.setswitchinterval(before)

@@ -64,7 +64,9 @@ def derived_spec(role: str):
 
     base = get_role(role)
     pack = load_pack(role)
-    mapping = yaml.safe_load((_pack_dir(role) / "mapping.yaml").read_text(encoding="utf-8")) or {}
+    from ..yamlcache import load_yaml_file
+
+    mapping = load_yaml_file(_pack_dir(role) / "mapping.yaml") or {}
     prior = dict((pack.priors or {}).get("cog_dwell_s") or {})
     emit, dwell, labels, act = dict(base.emit), dict(base.dwell), dict(base.labels), dict(base.act_class)
     cogs = list(base.cogs)

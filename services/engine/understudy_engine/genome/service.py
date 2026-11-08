@@ -176,10 +176,30 @@ def _caller() -> str | None:
         return None
 
 
+_SHARED: dict[str, "GenomeService"] = {}
+_SHARED_LOCK = threading.Lock()
+
+
+def shared_service(root: Path | str | None = None) -> "GenomeService":
+    """One GenomeService per data root for the code that used to build a new one per call (the evidence packet did: each request parsed and segmented the whole
+    cohort, 115k events, again). Its bundles are keyed by the files' stamp, so a changed file is read again and nothing else is. Bounded to four roots."""
+    from ..store.paths import data_dir
+
+    key = str(Path(root) if root is not None else data_dir())
+    with _SHARED_LOCK:
+        svc = _SHARED.get(key)
+        if svc is None:
+            if len(_SHARED) >= 4:
+                _SHARED.pop(next(iter(_SHARED)))
+            svc = _SHARED[key] = GenomeService(EventStore(Path(key)))
+        return svc
+
+
 class GenomeService:
     def __init__(self, store: EventStore | None = None):
         self.store = store or EventStore()
         self._bundles: dict[str, Bundle] = {}
+        self._no_cohort: dict[str, tuple] = {}        # partition -> the file stamp for which loading found no usable cohort
         self._lock = threading.RLock()
 
     # ---------------------------------------------------------------- cohort
@@ -284,9 +304,15 @@ class GenomeService:
                 stamp = self._stamp(part)
                 b = self._bundles.get(part)
                 if b is None or b.key != stamp:
-                    b = self._load(part)
-                    if b is not None:
-                        self._bundles[part] = b
+                    if self._no_cohort.get(part) == stamp:
+                        b = None                       # this version of the files already gave no cohort: do not parse them all again (a request used to, every time)
+                    else:
+                        b = self._load(part)
+                        if b is not None:
+                            self._bundles[part] = b
+                            self._no_cohort.pop(part, None)
+                        else:
+                            self._no_cohort[part] = stamp
                 if b is not None:
                     return b
         raise GenomeError(

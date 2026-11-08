@@ -75,3 +75,27 @@ def test_the_routes_use_the_shared_source(tmp_path, monkeypatch):
 
     monkeypatch.setenv("UNDERSTUDY_DATA_DIR", str(tmp_path))
     assert rh._src() is rh._src() and rh._src() is shared_source(tmp_path)
+
+
+def test_only_the_file_that_changed_is_read_again(tmp_path, monkeypatch):
+    """The capture appends to today's file all day; the history files beside it must not be parsed again each time."""
+    from understudy_engine.store import EventStore
+
+    _write_day(tmp_path, "2026-11-06", 40)
+    _write_day(tmp_path, "2026-11-07", 5, start=40)
+    reads: dict[str, int] = {}
+    real = EventStore.read_file
+
+    def counting(self, path, *a, **k):
+        reads[path.name] = reads.get(path.name, 0) + 1
+        return real(self, path, *a, **k)
+
+    monkeypatch.setattr(EventStore, "read_file", counting)
+    src = PersonSource(tmp_path)
+    assert len(src.load(PERSON).events) == 45
+    _write_day(tmp_path, "2026-11-07", 3, start=45)
+    pd = src.load(PERSON)
+    assert len(pd.events) == 48
+    assert reads == {"2026-11-06.jsonl": 1, "2026-11-07.jsonl": 2}
+    cold = PersonSource(tmp_path).load(PERSON)
+    assert [e.id for e in pd.events] == [e.id for e in cold.events]          # the same events, in the same order, as a cold read

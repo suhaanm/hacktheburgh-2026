@@ -47,6 +47,7 @@ from .routines.detect import DetectConfig, detect_routines
 from .routines.gate import MemorySkillSource
 from .routines.graph import build_work_graph
 from .routines.sources import PersonData, PersonSource, shared_source
+from .yamlcache import load_yaml_file
 from .routines.store import ConsentError, RoutineStore
 
 router = APIRouter(tags=["handoff"])
@@ -481,7 +482,7 @@ def _task_yaml(role: str) -> dict[str, Any]:
 
     p = packs_dir() / role / "tasks" / "task.yaml"
     try:
-        return yaml.safe_load(p.read_text()) or {}
+        return load_yaml_file(p) or {}
     except (OSError, yaml.YAMLError):
         return {}
 
@@ -776,6 +777,15 @@ def _fit_presence(pd: PersonData, mem: MemoryStore) -> dict[str, Any]:
     return out
 
 
+def _idle_capacity(fit: dict[str, Any], model: PresenceModel) -> dict[str, float]:
+    """The idle-capacity interval (a 200-draw day bootstrap with fixed seeds: the same every time) once per fit, not once per request. ``fit`` is the cached
+    per-data-version dict, so a change of the person's files or of their hours makes a new fit and a new interval."""
+    got = fit.get("_idle_capacity")
+    if got is None:
+        got = fit["_idle_capacity"] = model.idle_capacity_interval()
+    return got
+
+
 def _now_for(pd: PersonData, now: str | None) -> float:
     if now:
         return datetime.fromisoformat(now.replace("Z", "+00:00")).timestamp()
@@ -828,7 +838,7 @@ def get_presence(person: str | None = Query(None), now: str | None = Query(None)
     fc = fit["returns"].forecast(sit["tow_min"], sit["idle_min"], DEFAULT_GRID_MIN)
     data = {
         "bins": model.heatmap(),
-        "idle_capacity_h": model.idle_capacity_interval(),
+        "idle_capacity_h": dict(_idle_capacity(fit, model)),
         "idle_capacity_in_quiet_hours_h": model.idle_capacity_h(mask=window_mask(quiet)),
         "active_h_per_week": round(model.active_hours_per_week(), 1),
         "quiet_hours": quiet,

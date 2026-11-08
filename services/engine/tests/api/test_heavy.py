@@ -210,6 +210,22 @@ async def test_a_change_of_the_workers_memory_files_changes_the_key():
     assert tag(await c.get("/routines")) == "miss"
 
 
+async def test_a_read_that_writes_the_memory_files_is_still_cached():
+    """GET /routines merges what it found into routines_state.json, which moves the files' signature during the computation: the answer is stored under the key
+    the NEXT request will compute, so the second call is a hit and not a recomputation for ever."""
+    sig = {"v": 0}
+    c, calls, _, mw = build(ttl=10.0, signature=lambda: (sig["v"],))
+    app_inner = mw.app
+
+    async def writes_a_file(scope, receive, send):                  # the handler's side effect: the signature moves while it computes
+        sig["v"] += 1
+        await app_inner(scope, receive, send)
+
+    mw.app = writes_a_file
+    first, second, third = await c.get("/routines"), await c.get("/routines"), await c.get("/routines")
+    assert (tag(first), tag(second), tag(third)) == ("miss", "hit", "hit") and calls["routines"] == 1
+
+
 async def test_cheap_routes_bypass_the_layer():
     c, calls, _, mw = build(ttl=10.0)
     r1, r2 = await c.get("/health"), await c.get("/health")
@@ -274,6 +290,30 @@ async def test_the_cache_is_bounded():
         await c.get(f"/briefing?n={i}")
     assert len(mw._cache) == 3                                    # noqa: SLF001
     assert tag(await c.get("/briefing?n=5")) == "hit" and tag(await c.get("/briefing?n=0")) == "miss"
+
+
+def test_warm_person_does_nothing_when_nobody_is_set_up_and_primes_the_caches_when_someone_is():
+    import json
+    from datetime import datetime, timedelta, timezone
+
+    from understudy_engine import routes_handoff as rh
+    from understudy_engine.api.app import warm_person
+    from understudy_engine.memory import onboard
+    from understudy_engine.memory.paths import data_dir
+
+    assert warm_person() is False                                   # an empty data dir and no profile: nothing to prime, nothing raised
+    onboard(rh._mem(), "benefits-processor", {}, "p_warm01")
+    d = data_dir() / "real" / "p_warm01"
+    d.mkdir(parents=True)
+    t0 = datetime(2026, 11, 7, 9, 0, 0, tzinfo=timezone.utc)
+    with (d / "2026-11-07.jsonl").open("w") as fh:
+        for i in range(8):
+            fh.write(json.dumps({"schema": 1, "id": f"ev{i:08d}", "t": (t0 + timedelta(seconds=5 * i)).strftime("%Y-%m-%dT%H:%M:%S.000Z"), "origin": "real", "actor": "human",
+                                 "person": "p_warm01", "role": "benefits-processor", "source": "browser", "type": "click"}) + "\n")
+    assert warm_person() is True
+    src = rh._src()
+    first = src.load("p_warm01")
+    assert first is not None and src.load("p_warm01") is first       # primed: the next request reuses it
 
 
 async def test_the_real_app_has_the_layer_and_keeps_health_out_of_it(monkeypatch, tmp_path):

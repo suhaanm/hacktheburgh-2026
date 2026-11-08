@@ -148,6 +148,22 @@ class PersonSource:
         real = [p for p, o in ps.items() if o == "real"]
         return real[0] if real else next(iter(ps), None)
 
+    def _person_events_of(self, es: Any, f: Path, person: str) -> list[Event]:
+        """One file's events for one person, parsed once per version of that file (size, mtime). While the capture appends to today's file only today's file is
+        read again; the history files (tens of MB, never written to) are not. Called with ``self._lock`` held."""
+        st = f.stat()
+        key = ("file", str(f), person)
+        sig = (st.st_size, st.st_mtime_ns)
+        hit = self._cache.get(key)
+        if hit is not None and hit[0] == sig:
+            return hit[1]
+        evs = [e for e in es.read_file(f) if e.person == person]
+        if len([k for k in self._cache if k[0] == "file"]) >= 256:
+            for k in [k for k in self._cache if k[0] == "file"][:64]:
+                del self._cache[k]
+        self._cache[key] = (sig, evs)
+        return evs
+
     def load(self, person: str) -> PersonData | None:
         info = self._index().get(person)
         if info is None:
@@ -162,7 +178,7 @@ class PersonSource:
             es = EventStore(self.root)
             events: list[Event] = []
             for f in info["files"]:
-                events.extend(e for e in es.read_file(f) if e.person == person)
+                events.extend(self._person_events_of(es, f, person))
             events.sort(key=lambda e: (e.t, e.id))
             truth = json.loads(info["truth"].read_text()) if info["truth"] else None
             role = events[0].role if events else (truth or {}).get("role", "benefits-processor")

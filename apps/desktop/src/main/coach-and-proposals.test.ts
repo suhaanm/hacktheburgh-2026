@@ -3,7 +3,7 @@ import type { HudProposal } from '../shared/hud'
 import type { ChipFade, HelpLevel } from '../shared/protocol'
 import { chipFromEngine, createChipDriver, fadeForLevel, levelFromEngine } from './coach-chip'
 import { createCoachBrain, outcomeFor } from './coach-brain'
-import { createCoachPoller } from './coach-poller'
+import { COACH_STATE_POLL_MS, createCoachPoller } from './coach-poller'
 import { createEngineClient, type EngineClient } from './engine/client'
 import { parseCoachState } from './engine/coach-state'
 import { closeFakeServers, fakeServer } from './engine/fake-engine.test-util'
@@ -116,6 +116,17 @@ describe('coach state poller against a fake engine over HTTP', () => {
     expect(hints.at(-1)).toEqual({ fade: 'full', level: 2 })
     expect(tasks.at(-1)).toEqual({ id: 't_1', name: 'Case', step: 1, stepsTotal: 4 })
     expect(poller.lastState()?.level).toBe(2)
+  })
+
+  it('asks about every 30 seconds by default, not every 2 (the engine computes this route and a slow answer used to pile up copies of it)', () => {
+    const asked: number[] = []
+    const poller = createCoachPoller({
+      engine: { coachState: async () => null }, chip: { setEngineHint: () => undefined, refresh: () => 'full' as ChipFade }, immediate: false,
+      setTimer: (_fn, ms) => void asked.push(ms), clearTimer: () => undefined,
+    })
+    expect(COACH_STATE_POLL_MS).toBeGreaterThanOrEqual(30_000)
+    expect(asked).toEqual([COACH_STATE_POLL_MS])
+    poller.dispose()
   })
 
   it('an engine that is down clears the hint and never throws', async () => {

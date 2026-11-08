@@ -110,10 +110,9 @@ def build_for(person: str, case: str | None = None, *, root=None, model_version:
 
     ``model_version`` is "v1" (the default; ``accepted`` is None) or "v2" (E1, ``accepted`` read from the held-out verdict file, False when it is
     absent or not "accepted"; no counterfactual, because Q1 was rejected). Raises ValueError when the person is not in the cohort or the case is not theirs."""
-    from understudy_engine.genome.service import TASK, GenomeService
-    from understudy_engine.store import EventStore
+    from understudy_engine.genome.service import TASK, shared_service
 
-    bundle = GenomeService(EventStore(root)).bundle(TASK, "synthetic")
+    bundle = shared_service(root).bundle(TASK, "synthetic")      # one service per data root: its cohort is built once per version of the files
     cohort = bundle.cohort
     if person not in {e.person for e in cohort.episodes}:
         raise ValueError(f"person {person!r} is not in the generated cohort")

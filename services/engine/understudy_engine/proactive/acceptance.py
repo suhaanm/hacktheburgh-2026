@@ -29,7 +29,9 @@ def role_prior(role: str | None, packs_dir: Path | None = None) -> tuple[float, 
         from .paths import packs_dir as default_packs
 
         p = (packs_dir or default_packs()) / role / "priors.yaml"
-        a = (yaml.safe_load(p.read_text(encoding="utf-8")) or {}).get("accept") or {}
+        from ..yamlcache import load_yaml_file
+
+        a = (load_yaml_file(p) or {}).get("accept") or {}
         return float(a.get("alpha", DEFAULT_PRIOR[0])), float(a.get("beta", DEFAULT_PRIOR[1]))
     except Exception:
         return DEFAULT_PRIOR

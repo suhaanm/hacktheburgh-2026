@@ -93,7 +93,9 @@ def _derive_cog_ids() -> tuple[str, ...]:
 
         for f in sorted(_packs_dir().glob("*/pack.yaml")):
             try:
-                doc = yaml.safe_load(f.read_text(encoding="utf-8")) or {}
+                from ..yamlcache import load_yaml_file
+
+                doc = load_yaml_file(f) or {}
             except (OSError, ValueError, yaml.YAMLError):
                 continue
             for cid in ((doc.get("cogs") or {}).get("extra") or []):
