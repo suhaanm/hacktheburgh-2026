@@ -11,7 +11,7 @@
 /* -- Hero ------------------------------------------------------------------ */
 .sc-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-3) var(--space-5); }
 .sc-head__text { display: grid; gap: var(--space-1); min-width: 0; max-width: 46rem; }
-.sc-head__badges { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.sc-head__meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 .sc-hero__grid { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 1fr); gap: var(--space-6) var(--space-8); align-items: start; }
 .sc-fig { min-width: 0; }
 .sc-read { display: grid; gap: var(--space-4); min-width: 0; align-content: start; }
@@ -74,3 +74,8 @@
   .sc { gap: var(--space-7); }
   .sc-claim { font-size: var(--text-md); }
 }
+
+/* The claim is one sentence: two lines in the wide column, not three. */
+.sc-claim { max-width: 90ch; }
+@media (max-width: 1500px) { .sc-hero__grid { grid-template-columns: minmax(0, 1fr); } .sc-readout { min-height: 0; } }
+.sc-claim { font-size: var(--text-md); }

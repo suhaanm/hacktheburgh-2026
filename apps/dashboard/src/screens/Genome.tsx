@@ -183,6 +183,7 @@ function Controls({ data, meta }: { data: GenomeData; meta: ReturnType<typeof us
             : <>A control is off zero: expert against expert {signed(placebo.gap_s)} s, shuffled labels {signed(nul.gap_s)} s. Do not trust the ribbon until this is explained.</>}
         </p>
       </div>
+      <Details summary="The three bars" wide>
       <div className="chart chart--wide">
         <DotWhisker
           unit="seconds of gap"
@@ -198,6 +199,7 @@ function Controls({ data, meta }: { data: GenomeData; meta: ReturnType<typeof us
         />
         <ChartFoot variant="about" meta={meta} badge={false} />
       </div>
+      </Details>
     </section>
   );
 }

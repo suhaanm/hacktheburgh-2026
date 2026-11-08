@@ -40,8 +40,7 @@ export default function Presence() {
 
       <section className="section" aria-labelledby="day-h">
         <div className="section__head">
-          <h2 id="day-h" className="section__title">{dowName(day)}, with its interval</h2>
-          <p className="section__sub">Line: estimate. Band: 95% interval.</p>
+          <h2 id="day-h" className="section__title">{`${dowName(day)}, with its interval`}<Hint label="How to read this chart">Line: estimate. Band: 95% interval.</Hint></h2>
         </div>
         <DayBand data={data} day={day} />
       </section>

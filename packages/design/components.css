@@ -709,3 +709,14 @@ button.status-line:hover { color: var(--fg); }
 /* Tags that were set in capitals (Evidence severity, in-sample, suggestion figures) are sentence case: mono capitals stay on chart axes and the work ribbon. */
 .page .sev, .page .pill--insample { text-transform: none; letter-spacing: 0; font-family: var(--font-body); font-size: var(--text-xs); }
 .page .sug__nums dt { text-transform: none; letter-spacing: 0; font-family: var(--font-body); font-weight: 600; }
+
+/* Graph: one tab stop for the whole graph; the node the arrow keys are on shows the same ring a pointer hover does. */
+.gnode[data-active] .node-ring { stroke: var(--focus); stroke-width: 3; }
+.gcanvas__stage svg[role="listbox"]:focus-visible { outline-offset: 2px; }
+
+/* State text: a dot and a word, for lists of runs. */
+.statetext { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-sm); color: var(--fg); white-space: nowrap; }
+.statetext__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex: none; }
+.statetext[data-tone="go"] .statetext__dot { background: var(--accent); }
+.statetext[data-tone="good"] .statetext__dot { background: var(--good); }
+.statetext[data-tone="bad"] .statetext__dot { background: var(--bad); }
