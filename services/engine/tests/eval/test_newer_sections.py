@@ -81,7 +81,7 @@ def test_the_local_model_is_never_started_by_the_harness(landed):
 
 def test_landed_markdown_shows_the_headline_numbers(landed):
     md = render(landed)
-    assert "Planted habit (synthetic developers)" in md and "Precision [95%]" in md
+    assert "Planted habit (generated developers)" in md and "Precision [95%]" in md
     assert "Planted problems found, eight types" in md
     assert "Cards worth surfacing" in md and "What surfaces cards" in md
     assert "Local model accuracy [95%]" in md and "Held-out n" in md
@@ -275,15 +275,15 @@ def test_evidence_map_is_the_first_table_in_the_markdown_and_badges_every_origin
     sec = md[first:md.index("\n## ", first + 5)]
     assert "4 sections: 2 with numbers, 1 pending, 1 not run, 0 failed" in sec
     rows = {x.split("|")[1].strip(): [c.strip() for c in x.split("|")[2:-1]] for x in sec.splitlines() if x.startswith("| ") and not x.startswith("| Section")}
-    assert rows["Cue analysis"][:2] == ["[mixed]", "31 people"] and rows["Live study (n = 4)"][0] == "[unknown]" and rows["Live study (n = 4)"][1] == "4 people"
+    assert rows["Cue analysis"][:2] == ["real and generated", "31 people"] and rows["Live study (n = 4)"][0] == "not run" and rows["Live study (n = 4)"][1] == "4 people"
     assert rows["Models v2"][:2] == ["n/a", "n/a"] and rows["Models v2"][2].startswith("pending: mlv2 not landed")       # a pending section shows no origin badge
-    assert rows["Simulated participants (language model), not people"][0] == "[synthetic]"
+    assert rows["Language-model participants, not people"][0] == "generators we wrote"
 
 
 def test_the_evidence_map_row_for_the_simulated_study_keeps_its_label(mapped):
     row = next(e for e in mapped["evidence_map"] if e["section"] == "study_sim")
-    assert row["status"] == "ok" and row["label"] == "simulated participants (language model), not people" and row["origin"] == "synthetic"
-    assert "simulated participants (language model), not people" in render(mapped)[render(mapped).index("## Evidence map"):]
+    assert row["status"] == "ok" and row["label"] == "language-model participants, not people" and row["origin"] == "synthetic"
+    assert "language-model participants, not people" in render(mapped)[render(mapped).index("## Evidence map"):]
 
 
 def test_evidence_map_is_deterministic_and_in_every_full_report(landed):

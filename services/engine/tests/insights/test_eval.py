@@ -103,7 +103,7 @@ def test_evaluate_insights_returns_the_agreed_structure_with_generated_claims(re
                            "claims", "limitations"}
     assert result["meta"]["origin"] == "synthetic" and result["meta"]["seeds"] == "dev" and result["meta"]["fast"] is True
     assert len(result["claims"]) >= 10 and all(isinstance(c, str) and c for c in result["claims"]) and len(result["limitations"]) >= 4
-    assert any("Synthetic" in c or "synthetic" in c for c in result["claims"])
+    assert any("Made-up firm data" in c for c in result["claims"])
     ns = result["nothing_stands_out"]
     assert ns["empty_lists"] == ns["genuinely_null"] + ns["missed_a_planted_effect"] and ns["by_size"]
     assert result["determinism"]["run_twice_identical"] and result["determinism"]["shuffled_rows_and_people_identical"] and result["determinism"]["regenerated_firm_identical"]

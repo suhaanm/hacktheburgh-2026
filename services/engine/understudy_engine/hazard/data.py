@@ -34,7 +34,7 @@ def load_persona_episodes(root: Path | str | None = None, dirs: tuple[str, ...] 
         ev_path = base / "synthetic" / d / "events.jsonl"
         tr_path = base / "synthetic" / d / "truth.json"
         if not ev_path.exists() or not tr_path.exists():
-            raise FileNotFoundError(f"synthetic persona data missing: {ev_path}")
+            raise FileNotFoundError(f"generated persona data missing: {ev_path}")
         persona_eps = segment_episodes(store.read_file(ev_path))
         eps.extend(persona_eps)
         truth = json.loads(tr_path.read_text())
@@ -55,7 +55,7 @@ def load_apprentice_episodes(root: Path | str | None = None) -> tuple[list[Episo
     base = Path(root) if root else data_dir()
     ev_path, tr_path = base / "synthetic" / "apprentices" / "events.jsonl", base / "synthetic" / "apprentices" / "truth.json"
     if not ev_path.exists() or not tr_path.exists():
-        raise FileNotFoundError(f"synthetic apprentice data missing: {ev_path}")
+        raise FileNotFoundError(f"scripted apprentice data missing: {ev_path}")
     eps = segment_episodes(EventStore(base).read_file(ev_path))
     truth = json.loads(tr_path.read_text())
     task_person = {e.task_id: e.person for e in eps}

@@ -123,7 +123,7 @@ def _trend_class(rows: list[dict[str, Any]], seed: int) -> str:
 
 def firm_names(snap: FirmSnapshot) -> dict[str, str]:
     """``label -> invented name`` for the synthetic firm (``names.assign_names``); empty for a real ledger, which gets no invented name."""
-    if snap.badge != "synthetic firm":
+    if snap.badge != "made-up firm":
         return {}
     return assign_names((pr.label or pr.id) for pr in snap.people)
 

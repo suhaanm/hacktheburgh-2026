@@ -59,7 +59,7 @@ export function StandIn({ dark, scroll = 0 }: { dark: boolean; scroll?: number }
       <div className="si-page">
         <div className="si-top">
           <strong data-content>Benefit check</strong>
-          <span data-content>Practice case 4417 (synthetic) · Calculator A</span>
+          <span data-content>Practice case 4417 (sandbox) · Calculator A</span>
         </div>
         <div className="si-main" style={scroll > 0 && typeof window !== 'undefined' && window.innerWidth <= 900 ? { transform: `translateY(-${scroll}px)` } : undefined}>
           <section className="si-card si-rec" data-cue-target="read_case" aria-label="Household record">

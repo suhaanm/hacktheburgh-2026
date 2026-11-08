@@ -1,4 +1,4 @@
-// Gives the synthetic firm's people made-up, realistic full names in the dashboard's example data. Run it after copying the samples:
+// Gives the made-up firm's people made-up, realistic full names in the dashboard's example data. Run it after copying the samples:
 //
 //   node scripts/name-fixtures.mjs            adds `name` where a person row has none (never overwrites a name the engine sent)
 //   node scripts/name-fixtures.mjs --force    replaces every `name`

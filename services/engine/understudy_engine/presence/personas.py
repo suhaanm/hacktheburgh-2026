@@ -85,7 +85,7 @@ def evaluate_persona(name: str, root: Path | None = None, *, d_min: float = 30.0
     spells = spells_from_events(events, tz=tz)
     prior = PriorHours()  # the role-pack hours; the personas deliberately differ from it
     rep = evaluate_presence(days, spells, prior, origin="synthetic", d_min=d_min, cap=cap, person=truth.get("person"),
-                            note="synthetic persona; schedule changes on day 15", fast=fast)
+                            note="generated persona; schedule changes on day 15", fast=fast)
     change = int(truth.get("change_day", 15))
     pre_days = [d for i, d in enumerate(days) if i + 1 < change]
     post_days = [d for i, d in enumerate(days) if i + 1 >= change]
@@ -105,11 +105,11 @@ def evaluate_presence_all(root: Path | None = None, *, d_min: float = 30.0, cap:
     out: dict[str, Any] = {
         "name": "presence", "origin": "synthetic", "n": len(per), "n_unit": "personas", "interval_level": 0.95,
         "split": "forward and interleaved held-out days within each persona; truth only used to score recovery",
-        "note": "Four synthetic personas, 21 days each, one schedule change on day 15. Not real people.",
+        "note": "Four generated personas, 21 days each, one schedule change on day 15. Not real people.",
         "personas": per,
         "meta": {"origin": "synthetic", "n": len(per), "n_unit": "personas", "interval_level": 0.95,
                  "split": "forward and interleaved held-out days within each persona; truth only used to score recovery",
-                 "note": "Four synthetic personas, 21 days each, one schedule change on day 15. Not real people."},
+                 "note": "Four generated personas, 21 days each, one schedule change on day 15. Not real people."},
     }
     if per:
         rows = list(per.values())
@@ -187,7 +187,7 @@ def report_section(result: dict[str, Any]) -> dict[str, Any]:
         "calibration": pooled, "interruption_cap": cap,  # aliases the dashboard fixture uses
         "meta": {"origin": "synthetic", "n": result.get("n", 0), "n_unit": "personas",
                  "split": "forward held-out days within each persona", "interval_level": 0.95,
-                 "note": "Synthetic personas, 21 days each. Pooled means of per-persona results; per-persona detail and intervals in the full dict."},
+                 "note": "Generated personas, 21 days each. Pooled means of per-persona results; per-persona detail and intervals in the full dict."},
     }
 
 
@@ -196,7 +196,7 @@ def limitations(result: dict[str, Any]) -> list[dict[str, str]]:
     per = result.get("personas", {})
     out: list[dict[str, str]] = [{
         "id": "presence-synthetic",
-        "text": f"Presence results come from {len(per)} synthetic personas of 21 days each, not from real people. "
+        "text": f"Presence results come from {len(per)} generated personas of 21 days each, not from real people. "
                 "The schedule change on day 15 is planted; the real change in a person's week will not look like it.",
         "severity": "high",
     }]

@@ -34,7 +34,7 @@ from .spec import AGENT_PLAN_SCHEMA, TOOL_NAMES, plan_schema, roles
 for _name in policy.SIGNAL_NAMES:        # typed signals a script may report; sent as plain numbers (no bucketing: they are step counters)
     register_feature(_name, "raw")
 
-ToolId = Literal["read_file", "list_dir", "git_log", "run_python", "write_workspace", "emit_result", "none"]
+ToolId = Literal["read_file", "list_dir", "git_log", "run_python", "write_workspace", "emit_result", "mcp_call", "none"]   # mcp_call: CONNECTIONS
 CheckId = Literal["verified", "uncertain", "failed"]
 LastId = Literal["start", "ok", "failed", "rejected", "blocked"]
 

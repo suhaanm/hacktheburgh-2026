@@ -9,10 +9,10 @@ export const DEMO_PERSON = "p_ninetofive";
 
 export async function loadNeedsCount(): Promise<number> {
   const person = getState().person ?? DEMO_PERSON;
-  const [q, r, b, a] = await Promise.allSettled([api.queue("all"), api.routines(), api.briefing(person), api.agentsRuns(person)]);
+  const [q, r, b, a, t] = await Promise.allSettled([api.queue("all"), api.routines(), api.briefing(person), api.agentsRuns(person), api.tasks()]);
   const ok = <T,>(x: PromiseSettledResult<T>): T | null => (x.status === "fulfilled" ? x.value : null);
   const bd = ok(b);
-  return needsCount(buildItems({ queue: ok(q)?.data, routines: ok(r)?.data, cards: bd?.data.cards, cardsAt: bd?.data.generated_at, runs: ok(a)?.data }));
+  return needsCount(buildItems({ queue: ok(q)?.data, routines: ok(r)?.data, cards: bd?.data.cards, cardsAt: bd?.data.generated_at, runs: ok(a)?.data, tasks: ok(t)?.source === "live" ? ok(t)?.data : null }));
 }
 
 /** Publish the count for the badge. Falls quiet on any failure: the badge is optional. */

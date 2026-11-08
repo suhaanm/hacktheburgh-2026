@@ -31,7 +31,7 @@ start() { # name port cmd...
 
 echo "Understudy dev (UNDERSTUDY_MOCK=${UNDERSTUDY_MOCK:-0})"
 if [[ ! -d data/synthetic ]]; then
-  echo "  [synth] generating synthetic data (about 10 s)"
+  echo "  [synth] generating example data (about 10 s)"
   uv run --package understudy-engine understudy synth --all > data/logs/synth.log 2>&1 || echo "  [warn] synth failed, see data/logs/synth.log"
 fi
 

@@ -190,7 +190,7 @@ def evaluate_bandit(*, fast: bool = False, n_workers: int | None = None, reps: t
         out["status"] = "too_few_decisions"
         out["ready_to_enable"] = False
         out["reason"] = "fewer than 50 logged decision opportunities"
-        out["meta"] = analytic_meta("synthetic", nw, "personas", "dev", note="Simulated sessions.")
+        out["meta"] = analytic_meta("synthetic", nw, "personas", "dev", note="Generated sessions.")
         return out
     # cross-fit by worker parity: the target's table never sees the rows it is scored on
     fold = (logs["w"] % 2).astype(int)
@@ -229,8 +229,8 @@ def evaluate_bandit(*, fast: bool = False, n_workers: int | None = None, reps: t
     out["ready_to_enable"] = bool(trustworthy)
     out["reason"] = ("the greedy table's doubly robust interval clears the rule's value and the effective sample size is large enough" if trustworthy else
                      f"the doubly robust difference to the rule is {dr_diff:+.3f} with an interval that does not clear the rule's value, or the effective sample size ({g['diagnostics']['ess']:.0f}) is too small: do not turn learning on")
-    out["limitations"] = ["Logged on simulated sessions only; the reward is a stated proxy (resumed within 30 s minus interruption cost minus label penalty).",
-                          "The re-simulated value is per decision opportunity under the target's own trajectory, so it is an approximate truth for the estimators, not an exact one.",
+    out["limitations"] = ["Logged on generated sessions only; the reward is a stated proxy (resumed within 30 s minus interruption cost minus label penalty).",
+                          "The replayed value is per decision opportunity under the target's own trajectory, so it is an approximate truth for the estimators, not an exact one.",
                           "A dismissal can mean 'I already knew': the label penalty is a noisy proxy."]
-    out["meta"] = analytic_meta("synthetic", nw, "personas", "dev; cross-fitted by worker; cluster bootstrap over workers", note="Simulated sessions; learning stays off by default.")
+    out["meta"] = analytic_meta("synthetic", nw, "personas", "dev; cross-fitted by worker; cluster bootstrap over workers", note="Generated sessions; learning stays off by default.")
     return out

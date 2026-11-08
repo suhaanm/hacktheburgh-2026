@@ -391,5 +391,5 @@ def build_firm(seed: int = 0, *, scenario: str = "planted", weeks: int = 12, now
     approvals = () if null else ({"age_h": 72.0}, {"age_h": 5.0}, {"age_h": 30.0})
     events = () if null else ({"kind": "injection_pause", "age_days": 3.0}, {"kind": "injection_pause", "age_days": 12.0}, {"kind": "kill", "age_days": 9.0})
     snap = FirmSnapshot(now=now, people=tuple(people), routines=tuple(routines), approvals=tuple(approvals), risk_events=tuple(events),
-                        feed_t={"ledger": now, "risk_feed": now}, origin="synthetic", badge="synthetic firm", source="firm", truth=truth)
+                        feed_t={"ledger": now, "risk_feed": now}, origin="synthetic", badge="made-up firm", source="firm", truth=truth)
     return Firm(snap, truth)

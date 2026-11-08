@@ -80,7 +80,7 @@ await page.waitForTimeout(900);
 check("graph: forgetting a memory node removes it", (await page.locator(".gnode[aria-label^='Memory: Short summaries']").count()) === 0);
 // Your data: what Knack remembers is the first section and is open by default; every edit and delete here is a line in the file.
 const showAll = async (scope = page) => { const all = scope.getByRole("button", { name: /^Show all \d+$/ }); if (await all.count()) await all.first().click(); };
-const remembered = async () => { await showAll(page.locator("[data-testid=remembers]")); return page.locator("[data-testid=remembers]").innerText(); };
+const remembered = async () => { await openAll(page.locator("[data-testid=remembers]")); return page.locator("[data-testid=remembers]").innerText(); };   // the lines past the first three sit behind More
 await go("/your-data");
 check("your data: the forgotten line is gone from the file", !(await remembered()).includes("Summaries: short"));
 const yd = await page.locator("main").innerText();
@@ -106,7 +106,7 @@ await page.locator(".yd-line--edit input").fill("Working hours: Tue to Sat, 10:0
 await page.getByRole("button", { name: "Save line" }).click();
 await page.waitForTimeout(700);
 check("your data: line edit saved", (await remembered()).includes("Tue to Sat, 10:00"));
-await page.locator("[data-testid=remembers] summary", { hasText: /^More/ }).first().click();
+await openAll(page.locator("[data-testid=remembers]"));
 await page.getByRole("button", { name: "Edit as text" }).click();
 const ta = page.locator("#memtext");
 const cur = await ta.inputValue();
@@ -146,6 +146,7 @@ check("routines: with no agent service Run now says nothing started", /nothing s
 await go("/routines");
 const cliffs = page.locator("article.rt-row", { hasText: "Re-check benefit cliffs" });
 await cliffs.locator(".rt-row__open").click();
+await cliffs.getByRole("button", { name: "Run while I'm away" }).click();   // one click reveals the irreversible choices; nothing is saved yet
 await cliffs.getByText("Allow “submit” without asking me").click();
 const away = cliffs.getByRole("button", { name: "Allow while I'm away" });
 check("routines: irreversible away opt-in blocked without typed confirmation", await away.isDisabled());
@@ -190,7 +191,7 @@ const pres = await page.locator("#presence").innerText();
 check("evidence: presence baselines show interruption and idle time, never a 0.000 Brier", /Fixed overnight window/.test(pres) && !/0\.000/.test(pres));
 check("evidence: ski rental and off-policy show the engine's labels", /Ski rental with predictions/.test(ev) && /Doubly robust/.test(ev));
 check("evidence: pooling appears", /Partial pooling/.test(ev));
-check("evidence: the map lists every section with origin, n and status, and names simulated participants as not people", (await page.locator(".ev-map__table tbody tr").count()) >= 20 && /Every part of the report/.test(ev) && /SYNTHETIC/i.test(ev) && (/Simulated participants are language models playing workers\. They are not people/.test(ev) || (await page.locator(".ev-map__table", { hasText: /simulated participants/i }).count()) === 0));
+check("evidence: the map lists every section with origin, n and status, and names language-model participants as not people", (await page.locator(".ev-map__table tbody tr").count()) >= 20 && /Every part of the report/.test(ev) && /generators we wrote/.test(ev) && !/synthetic|simulated/i.test(ev) && (/Language-model participants are language models playing workers\. They are not people/.test(ev) || (await page.locator(".ev-map__table", { hasText: /language-model participants/i }).count()) === 0));
 check("evidence: the privacy block states planted strings, leaks and which layers have a real-code check", /planted test strings/.test(ev) && (await page.locator("[data-testid=ev-layers] tbody tr").count()) >= 5 && /evidence from planted strings, not a proof/i.test(ev));
 check("evidence: limitations carry their source", /From: engine-eval · null placebo/.test(ev));
 {
@@ -300,6 +301,10 @@ await page.waitForTimeout(500);
 check("needs you: with nothing prepared left, none is shown", (await page.locator("article[data-kind=prepared]").count()) === 0);
 
 await go("/agents", 900);
+check("agents: a worker who arrives by the address does not see the runs (the gate sentence, or Routines)", (/Switch to Admin to see this\./.test(await page.locator("main").innerText()) || /\/routines/.test(page.url())) && (await page.locator("article.run").count()) === 0);
+await go("/home?settings=views", 1200);
+await page.locator("[data-testid=settings]").getByRole("button", { name: "Admin", exact: true }).click();
+await go("/agents", 900);
 await showAll();        // three runs show by default
 const runsBefore = await page.locator("article.run").count();
 await page.locator("summary", { hasText: "Start a background run" }).click();
@@ -321,20 +326,31 @@ await openAll(live);
 check("agents: revoking a lease ends that helper and says so", /revoked, no tools in scope/.test(await live.innerText()));
 await page.locator("article.run", { hasText: "Data profile" }).locator("summary", { hasText: "Helpers and result" }).click();
 await page.waitForTimeout(500);
+await openAll(page.locator("article.run", { hasText: "Data profile" }));   // each helper's checks sit behind the one closed "More"
+await page.waitForTimeout(200);
 const detail = await page.locator("article.run", { hasText: "Data profile" }).innerText();
 check("agents: result steps carry a check with a glyph and a word", /verified/.test(detail) && /uncertain/.test(detail) && (await page.locator(".pill--check .pill__glyph-char").count()) >= 3);
 
+await go("/home?settings=views", 1200);
+await page.locator("[data-testid=settings]").getByRole("button", { name: "Worker", exact: true }).click();
+
+// 8c. Your data says one sentence about what leaves; the call list is one closed link away, under Settings, Advanced
 await go("/your-data?section=sent", 900);
-await showAll(page.locator("[data-testid=sent]"));
-check("your data: the model-call list shows each call with its fields and the payload as sent", (await page.locator("[data-testid=sent] .ledger__row").count()) >= 6 && /Payload, exactly as sent/.test(await page.locator("main").innerText()) && (await page.locator("[data-testid=sent] pre.payload").first().innerText()).includes("card_kind"));
-await page.locator("[data-testid=sent] summary", { hasText: "How this is checked" }).click();
-const priv = await page.locator("main").innerText();
-check("your data: it never claims that nothing leaves the laptop, prints the limit, and the canary reads as evidence not proof", !/nothing (ever )?leaves/i.test(priv) && /cannot show what other software on this computer does/i.test(priv) && /evidence from a test, not a proof/i.test(priv) && /Calls for steps you asked for are listed too/i.test(priv));
-await page.locator("[data-testid=sent]").getByRole("button", { name: "Forget", exact: true }).click();
-check("your data: forgetting asks once, inline, and says what it does not do", /does not recall anything already sent/.test(await page.locator("[data-testid=sent]").innerText()));
+check("your data: what it looked at or sent is one sentence and one link", /Nothing leaves this Mac without your say\./.test(await page.locator("[data-testid=sent]").innerText()) && (await page.locator("[data-testid=sent] .ledger__row").count()) === 0);
+await page.getByRole("button", { name: /Every call Knack makes/ }).click();
+await page.waitForTimeout(900);
+check("settings: Advanced is the last section, opened by that link, and holds the call list", (await page.locator("[data-testid=settings] details > summary", { hasText: "Advanced" }).count()) === 1 && (await page.locator("[data-testid=advanced-calls]").count()) === 1);
+await showAll(page.locator("[data-testid=advanced-calls]"));
+await openAll(page.locator("[data-testid=advanced-calls]"));   // each call's payload and the canary sit behind closed disclosures
+check("your data: the model-call list shows each call with its fields and the payload as sent", (await page.locator("[data-testid=advanced-calls] .ledger__row").count()) >= 6 && /Payload, exactly as sent/.test(await page.locator("[data-testid=advanced-calls]").innerText()) && (await page.locator("[data-testid=advanced-calls] pre.payload").first().innerText()).includes("card_kind"));
+const priv = await page.locator("[data-testid=advanced-calls]").innerText();
+check("settings: the call list never claims that nothing leaves the laptop, prints the limit, and the canary reads as evidence not proof", !/nothing (ever )?leaves/i.test(priv) && /cannot show what other software on this computer does/i.test(priv) && /evidence from a test, not a proof/i.test(priv) && /Every call from Knack is listed/i.test(priv));
+await page.locator("[data-testid=advanced-calls]").getByRole("button", { name: "Forget", exact: true }).click();
+check("settings: forgetting the calls asks once, inline, and says what it does not do", /does not recall anything already sent/.test(await page.locator("[data-testid=advanced-calls]").innerText()));
 await page.getByRole("button", { name: "Forget it" }).click();
 await page.waitForTimeout(600);
-check("your data: forgetting empties the list and says so", (await page.locator(".ledger__row").count()) === 0 && (await page.getByText("Nothing has been sent to a model.").count()) >= 1);
+check("settings: forgetting the calls empties the list and says so", (await page.locator(".ledger__row").count()) === 0 && (await page.getByText("Nothing has been sent to a model.").count()) >= 1);
+await page.keyboard.press("Escape");   // close the Settings sheet before the next screen
 
 // 8d2. Your data: Delete everything is on the screen, and its confirm names exactly what it clears
 await go("/your-data");
@@ -361,14 +377,16 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   const nav = `${await page.locator("nav#nav").textContent()} ${await page.getByRole("menu", { name: "More" }).textContent()}`;
   await page.keyboard.press("Escape");
   check("layers off: nothing is hidden from the menu", /Calendar/.test(nav) && /Your data/.test(nav) && /Background runs/.test(nav) && /Needs you/.test(nav) && /Git habits/.test(nav) && /Models and cost/.test(nav));
+  // The call list lives under Settings, Advanced; Your data links to it. With the privacy layer off the list is the sample, and says so in one plain line.
   await page.goto(`${base}/#/your-data?section=sent`); await page.waitForTimeout(700);
-  const off = await page.locator("main").innerText();
-  // One plain line is on the page; the engine's sentence with the flag name sits in a closed "Details" disclosure under it (D45). Open it, then assert the text.
-  check("layers off: one plain line says example data and that the feature is switched off", /Showing example data: this feature is switched off in the engine\./.test(off) && /example data/i.test(off));
-  await page.locator("main .sourcenote summary", { hasText: "Details" }).first().click();
-  const offDetail = await page.locator("main [data-testid=source-detail]").first().innerText();
-  check("layers off: its Details says how to switch the layer on, and the engine is asked for nothing", /switched off/.test(offDetail) && /UNDERSTUDY_X_PRIVACY=1/.test(offDetail) && privacyAsked === 0, `asked ${privacyAsked} times`);
-  check("layers off: the Sent section prints its own reason, not another source's", /UNDERSTUDY_X_PRIVACY=1/.test(await page.locator("#yd-sent [data-testid=source-detail]").first().textContent()) && !/could not answer yet/.test(await page.locator("#yd-sent").innerText()));
+  await page.getByRole("button", { name: /Every call Knack makes/ }).click();
+  await page.waitForTimeout(900);
+  const off = await page.locator("[data-testid=advanced-calls]").innerText();
+  check("layers off: one plain line in the call list says that this feature is off in the engine", /This feature is off in the engine\./.test(off));
+  const offDetail = await page.locator("[data-testid=advanced-calls] [data-testid=source-detail]").first().textContent();
+  check("layers off: its hint says how to switch the layer on, and the engine is asked for nothing", /switched off/.test(offDetail ?? "") && /UNDERSTUDY_X_PRIVACY=1/.test(offDetail ?? "") && privacyAsked === 0, `asked ${privacyAsked} times`);
+  check("layers off: the call list prints its own reason, not another source's", /UNDERSTUDY_X_PRIVACY=1/.test(offDetail ?? "") && !/could not answer yet/.test(off));
+  await page.keyboard.press("Escape");
   await page.unroute(ENGINE);
 }
 
@@ -380,7 +398,7 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   const exText = await ex.innerText();
   check("explain: example data is badged and says the answers do not change with the question", /example data/i.test(exText) && /do not change with what you ask/i.test(exText));
   check("explain: the answer comes first, then where the words came from and the check", (await ex.locator("[data-testid=explain-answer]").count()) === 1 && /Written from a fixed template/.test(exText) && /Checked against the data/.test(exText) && /not that the data is right/.test(exText));
-  check("explain: the limits and the footer are always shown with the badge", (await ex.locator("[data-testid=explain-limits] li").count()) >= 3 && /Based on n = 24 people; synthetic data\./.test(await ex.locator("[data-testid=explain-footer]").innerText()) && /SYNTHETIC/i.test(await ex.locator("[data-testid=explain-footer]").innerText()));
+  check("explain: the limits and the footer are always shown, with no origin tag", (await ex.locator("[data-testid=explain-limits] li").count()) >= 3 && /Based on n = 24 people; generated data\./.test(await ex.locator("[data-testid=explain-footer]").innerText()) && !/synthetic|simulated/i.test(await ex.locator("[data-testid=explain-footer]").innerText()));
   const usesNote = await hintText(ex, /Where (this number comes|these numbers come) from/);
   check("explain: each sentence has a hint with the packet facts its numbers come from", /gap · case s/.test(usesNote) && /9 min 45 s/.test(usesNote) && /not supplied by the model/.test(usesNote));
   check("explain: five example questions are offered", (await ex.locator("[aria-label='Example questions'] button").count()) === 5);
@@ -397,9 +415,9 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   // A real-engine scenario, mocked: a slow answer shows calm progress; a rejected model answer falls back to the template and says so.
   const json = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" }, body: JSON.stringify(body) });
   const meta = { origin: "synthetic", n: 24, n_unit: "people", split: "descriptive_nearest_expert", interval_level: 0.95, note: null, generated_at: "" };
-  const result = (over = {}) => ({ intent: "where_time_went", source: "template", model: null, footer: "Based on n = 24 people; synthetic data.", badge: { origin: "synthetic", n: 24, n_unit: "people", split: "descriptive_nearest_expert" },
+  const result = (over = {}) => ({ intent: "where_time_went", source: "template", model: null, footer: "Based on n = 24 people; generated data.", badge: { origin: "synthetic", n: 24, n_unit: "people", split: "descriptive_nearest_expert" },
     check: { ok: true, checked: { sentences: 1, numbers: 2, intervals: 0 } }, attempts: [], fallback_reason: null, question: { asked_s: null, matches_case: null },
-    sections: [{ kind: "explanation", sentences: [{ text: "On this case you took 9 minutes 45 seconds.", uses: ["gap.case_s"] }] }, { kind: "coaching", actions: [] }, { kind: "limits", sentences: [{ id: "synthetic_data", text: "Synthetic data with planted patterns." }, { id: "association_only", text: "An association, not proof of cause." }, { id: "small_n", text: "A small sample." }] }], ...over });
+    sections: [{ kind: "explanation", sentences: [{ text: "On this case you took 9 minutes 45 seconds.", uses: ["gap.case_s"] }] }, { kind: "coaching", actions: [] }, { kind: "limits", sentences: [{ id: "synthetic_data", text: "Generated data with planted patterns." }, { id: "association_only", text: "An association, not proof of cause." }, { id: "small_n", text: "A small sample." }] }], ...over });
   let delayMs = 0, explainBody = null, scenario = result();
   await page.route(ENGINE, async (route) => {
     const req = route.request(), u = new URL(req.url());
@@ -442,10 +460,14 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   const stText = await st.innerText();
   check("settings: Interruptions has three words and prints that stops and blocking approvals always show", /Rarely/.test(stText) && /Balanced/.test(stText) && /Often/.test(stText) && /Stops and blocking approvals always show\./.test(stText));
   check("settings: Use live models comes first", stText.indexOf("Use live models") >= 0 && stText.indexOf("Use live models") < stText.indexOf("Interruptions"));
-  await st.locator("summary", { hasText: "Per kind" }).click();
+  await st.locator("summary", { hasText: /^More$/ }).first().click();
   const nt = await st.innerText();
-  check("settings: the kinds are grouped in plain words behind Per kind", /Needs you/.test(nt) && /Helps in the moment/.test(nt) && /Can wait/.test(nt) && /Information/.test(nt));
-  check("settings: a safety kind is printed as always shown, not offered as a choice", /Always shown:/.test(await page.locator("[data-testid=fixed-needs]").innerText()) && (await page.locator("[data-testid=notice-kill_engaged]").count()) === 0);
+  check("settings: the kinds are grouped in plain words, one control per group, behind More", /Needs you/.test(nt) && /Helps in the moment/.test(nt) && /Can wait/.test(nt) && /Information/.test(nt) && (await page.locator("[data-testid^=group-]").count()) === 4);
+  await page.locator("[data-testid=group-wait]").getByRole("button", { name: "Digest only" }).click();
+  await page.waitForTimeout(400);
+  await st.locator("summary", { hasText: "Each kind" }).click();
+  check("settings: a group control sets every kind in the group at once", (await page.locator("[data-testid=notice-routine_proposal] button[aria-pressed=true]").innerText()) === "Digest only" && (await page.locator("[data-testid=notice-briefing_ready] button[aria-pressed=true]").innerText()) === "Digest only");
+  check("settings: a safety kind is printed as always shown, not offered as a choice", /Always shown:/.test(await page.locator("[data-testid=always-needs]").innerText()) && (await page.locator("[data-testid=notice-kill_engaged]").count()) === 0);
   const rp = page.locator("[data-testid=notice-routine_proposal]");
   await rp.getByRole("button", { name: "Quiet" }).click();
   await page.waitForTimeout(400);
@@ -479,7 +501,8 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
     return json(route, { error: { code: "not_found", message: "not mocked" } }, 404);
   });
   await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(1500); await page.goto(`${base}/#/home?settings=interruptions`); await page.waitForTimeout(1500);
-  await page.locator("[data-testid=settings] summary", { hasText: "Per kind" }).click();
+  await page.locator("[data-testid=settings] summary", { hasText: /^More$/ }).first().click();
+  await page.locator("[data-testid=settings] summary", { hasText: "Each kind" }).click();
   check("settings: with a real engine the interruption settings are not badged as an example", !/Example settings/i.test(await page.locator("[data-testid=settings]").innerText()));
   const row = page.locator("[data-testid=notice-routine_proposal]");
   await row.getByRole("button", { name: "Digest only" }).click();
@@ -487,6 +510,37 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   check("settings: a refused change goes back and shows the engine's own words", (await row.locator("button[aria-pressed=true]").innerText()) === "Normal" && /That setting is not one the engine knows\. \(unknown_key\)/.test(await page.locator("[data-testid=settings]").innerText()));
   check("settings: the change was sent as JSON from the worker", posted?.actor === "worker" && /application\/json/.test(posted?.type ?? "") && posted.body.modes?.routine_proposal === "digest", JSON.stringify(posted));
   await page.unroute(ENGINE);
+}
+
+// 8h. Live: a task that finishes in the background shows as finished with no reload, an open row stays open, and the announcement is one quiet sentence
+{
+  const AGENT = /^https?:\/\/[^/]+\/agent(\/|$)/;
+  const reply = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+  let state = "running";
+  const row = () => ({ task_id: "tk_live1", title: "Tidy the invoices folder", state, started: new Date(Date.now() - 60000).toISOString(), latest: state === "running" ? "Reading invoices.pdf" : null, result: state === "done" ? "Moved 12 files into Paid and Unpaid." : null, finished: state === "done" ? new Date().toISOString() : null });
+  await page.route(AGENT, async (route) => {
+    const path = new URL(route.request().url()).pathname.replace(/^\/agent/, "");
+    if (path === "/tasks") return reply(route, [row()]);
+    if (path === "/tasks/events") return route.abort();                      // polling covers it: the check is that the page updates by itself
+    if (path === "/tasks/tk_live1") return reply(route, { ...row(), steps: ["Listed the folder", "Read invoices.pdf"] });
+    return reply(route, { error: { code: "not_found", message: "not mocked" } }, 404);
+  });
+  await go("/routines", 1500);
+  // The app skips a service for a few seconds after a refused connection (the blocks before made some), then asks again by itself: wait for the first live answer.
+  await page.waitForFunction(() => /Reading invoices\.pdf/.test(document.body.innerText), null, { timeout: 15000 }).catch(() => undefined);
+  const bt = page.locator("[data-testid=background-tasks]");
+  check("routines: a running task is one line with the current step, and no id", /Tidy the invoices folder/.test(await bt.innerText()) && /Reading invoices\.pdf/.test(await bt.innerText()) && !/tk_live1/.test(await bt.innerText()));
+  await bt.locator("button.bt-open").first().click();
+  await page.waitForTimeout(500);
+  check("routines: a click on the line shows the steps as a plain list", (await bt.locator(".bt-steps li").count()) >= 2);
+  const scrollBefore = await page.evaluate(() => window.scrollY);
+  state = "done";
+  await page.waitForTimeout(3500);                                           // the page polls every 2 s while a task runs
+  const after = await bt.innerText();
+  check("routines: the task finished and the page says so without leaving it", /Moved 12 files into Paid and Unpaid\./.test(after));
+  check("routines: the open row stayed open and the scroll did not move", (await bt.locator("button.bt-open[aria-expanded=true]").count()) === 1 && (await page.evaluate(() => window.scrollY)) === scrollBefore);
+  check("routines: the finish is one quiet sentence for a screen reader, not a toast", /Tidy the invoices folder finished\./.test(await page.locator("[data-testid=tasks-live]").first().innerText()) && (await page.locator("[role=alert]").count()) === 0);
+  await page.unroute(AGENT);
 }
 
 // 9. Kill switch

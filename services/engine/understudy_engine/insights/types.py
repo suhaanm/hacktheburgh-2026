@@ -52,7 +52,7 @@ class FirmSnapshot:
     risk_events: tuple[dict[str, Any], ...] = ()    # {kind: injection_pause | false_claim | kill, age_days}
     feed_t: dict[str, float] = field(default_factory=dict)
     origin: str = "synthetic"
-    badge: str = "synthetic firm"
+    badge: str = "made-up firm"
     source: str = "firm"
     truth: dict[str, Any] | None = None             # planted situations: for the evaluation only; no product code reads it
 
@@ -74,7 +74,7 @@ class InsightCandidate:
     n_unit: str = "occurrences"
     split: dict[str, Any] = field(default_factory=dict)
     origin: str = "synthetic"
-    badge: str = "synthetic firm"
+    badge: str = "made-up firm"
     evidence_ref: str = ""
     recency_t: float | None = None
     action_id: str | None = None

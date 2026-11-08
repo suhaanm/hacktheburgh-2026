@@ -4,6 +4,8 @@
 
 **Capability:** Insights and admin · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
+**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. Home also gains a task box ('What should Knack do?', type or speak) and a short list of background tasks (owner request 4.18, landing). A worker's Home shows only their own insight and approval, never firm-wide data.
+
 This page covers Home: one sentence, one action, Top insights engine: a few pointers, chosen by code.
 
 ## Home: one sentence, one action
@@ -26,7 +28,7 @@ Home, the first item in the sidebar and the page Knack opens on.
 
 ### Demo moment
 
-Open Knack: the date, one sentence with its origin badge ('Synthetic data' for an engine answer from synthetic people, 'Example data' for a fixture), the button 'See where the time goes' and, if anything waits, one row '1 thing needs you'.
+Open Knack: the date, one sentence with its provenance badge (the wording is being changed by decision D57: no 'synthetic' on screen; a fixture still reads 'Example data'), the button 'See where the time goes' and, if anything waits, one row '1 thing needs you'.
 
 ### Evidence and its label
 
@@ -36,7 +38,7 @@ Open Knack: the date, one sentence with its origin badge ('Synthetic data' for a
 
 ### Honest limit
 
-The 47 words are the prototype's headline content; real screens land a little above it. Only three of the engine's pointer shapes match the hero template, so another pointer kind would show its raw headline (gap G4 in docs/KNACK_DEMO.md); the seeded kind is fine. The example sentence comes from the synthetic firm and carries its origin badge (Example data or Synthetic data). These are measurements of the interface, not of people.
+The 47 words are the prototype's headline content; real screens land a little above it. Only three of the engine's pointer shapes match the hero template, so another pointer kind would show its raw headline (gap G4 in docs/KNACK_DEMO.md); the seeded kind is fine. The example sentence comes from the synthetic firm and carries its provenance badge (Example data, or the wording the D57 track settles on). These are measurements of the interface, not of people.
 
 ### Hackathon target
 

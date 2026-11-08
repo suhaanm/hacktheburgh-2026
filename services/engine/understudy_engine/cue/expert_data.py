@@ -105,5 +105,5 @@ def expert_paths_for(vocab: StepVocab, root: Path | str | None = None) -> tuple[
     if vocab.role == "benefits-processor":
         a = apprentice_expert_paths(root)
         if a:
-            return a, "synthetic apprentices (8 experts)"
-    return sample_paths(vocab, n_people=30, cases=3, seed=17), "sampled from the pack's order rules (30 synthetic experts)"
+            return a, "scripted apprentices (8 experts)"
+    return sample_paths(vocab, n_people=30, cases=3, seed=17), "sampled from the pack's order rules (30 generated experts)"

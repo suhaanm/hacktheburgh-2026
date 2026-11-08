@@ -1,0 +1,11 @@
+{
+  "server": "example-sharepoint",
+  "tools": [
+    {"name": "search-sharepoint-sites", "description": "Find sites.", "response": [{"id": "site-ex-1", "name": "Claims team (example)"}, {"id": "site-ex-2", "name": "Guidance library (example)"}]},
+    {"name": "list-sharepoint-site-lists", "description": "Lists on a site.", "response": [{"id": "list-ex-1", "name": "Case checks (example)"}, {"id": "list-ex-2", "name": "Rota (example)"}]},
+    {"name": "list-sharepoint-site-list-items", "description": "Rows of a list.", "response": [{"id": "1", "title": "EX-101 check", "state": "done"}, {"id": "2", "title": "EX-104 check", "state": "open"}]},
+    {"name": "list-sharepoint-site-drives", "description": "Document libraries on a site.", "response": [{"id": "drive-ex-1", "name": "Guidance documents (example)"}]},
+    {"name": "create-sharepoint-list-item", "description": "Add a row to a list.", "write": true},
+    {"name": "delete-sharepoint-list-item", "description": "Delete a row from a list.", "write": true}
+  ]
+}

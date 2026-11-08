@@ -61,7 +61,7 @@ def test_a_copied_simulated_csv_with_no_manifest_is_not_run(tmp_path):
 def test_a_copied_simulated_csv_even_with_a_manifest_saying_human_is_invalid(tmp_path):
     study_dir(tmp_path, GOOD_DONE, manifest=True, ids={"P1": "p_sim01", "P2": "p_sim02", "P3": "p_sim03", "P4": "p_sim04"}, extra_columns=SIM_EXTRA)
     rep, s = study_section(tmp_path)
-    assert s["status"] == "invalid_provenance" and "look simulated" in s["reason"] and "p_sim01" in s["reason"] and "arm" in s["reason"] and "persona" in s["reason"]
+    assert s["status"] == "invalid_provenance" and "look generated" in s["reason"] and "p_sim01" in s["reason"] and "arm" in s["reason"] and "persona" in s["reason"]
     assert s["rows"] == [] and s["meta"]["origin"] == "unknown" and schema_errors(rep) == []
     assert "eval-study-invalid_provenance" in {e["id"] for e in rep["sections"]["limitations"]}
 
@@ -192,7 +192,7 @@ def test_study_roles_real_with_a_manifest_is_accepted_and_with_simulated_ids_is_
     put_dir_section_rows = [{"participant": "p_sim01", "v": 1}]
     (d / "summary.json").write_text(json.dumps({"meta": {"origin": "real", "n": 1, "n_unit": "people"}, "rows": put_dir_section_rows}))
     s = build_report(sections=["study_roles"], now=NOW, regenerate=False, log=lambda m: None)["sections"]["study_roles"]
-    assert s["status"] == "invalid_provenance" and "looks simulated" in s["reason"]
+    assert s["status"] == "invalid_provenance" and "looks generated" in s["reason"]
 
 
 def test_a_synthetic_study_roles_needs_no_manifest(tmp_path):
@@ -235,7 +235,7 @@ def test_markdown_says_invalid_provenance_and_shows_no_numbers(tmp_path):
     rep, _ = study_section(tmp_path)
     md = render(rep)
     sec = md[md.index("## Live study"):md.index("## Limitations register")]
-    assert "INVALID PROVENANCE" in sec and "look simulated" in sec and "score_difference" not in sec
+    assert "INVALID PROVENANCE" in sec and "look generated" in sec and "score_difference" not in sec
     first = md[md.index("## Evidence map"):md.index("## Live study")]
     assert "n/a" in first and "invalid provenance" in first.lower()
 

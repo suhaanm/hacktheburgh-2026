@@ -33,7 +33,7 @@ GROUND_TTL_S = 20.0
 PROACTIVITY = ("quiet", "balanced", "eager")
 SEEN_EPISODES = 64
 NOTE = ("Cue is rules and counts, not a model: the next step comes from what experts did (a path prior) checked against the pack's "
-        "order rules; the gate is code with hard caps. Numbers are synthetic until the live study says otherwise.")
+        "order rules; the gate is code with hard caps. Numbers come from generated people until the live study says otherwise.")
 
 
 class AttentionPort(Protocol):

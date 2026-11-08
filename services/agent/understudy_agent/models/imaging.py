@@ -87,7 +87,7 @@ def make_test_png(w: int = 1280, h: int = 720, label: str = "Calculate") -> byte
     bx0, by0, bx1, by1 = int(w * 0.42), int(h * 0.42), int(w * 0.58), int(h * 0.50)
     d.rectangle([bx0, by0, bx1, by1], fill=(30, 100, 220))
     d.text((bx0 + 20, by0 + 20), label, fill=(255, 255, 255))
-    d.text((int(w * 0.03), int(h * 0.05)), "Benefits calculator (synthetic)", fill=(0, 0, 0))
+    d.text((int(w * 0.03), int(h * 0.05)), "Benefits calculator", fill=(0, 0, 0))
     buf = io.BytesIO()
     im.save(buf, "PNG")
     return buf.getvalue()

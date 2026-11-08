@@ -1,28 +1,32 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://understudy.local/schema/plugin.schema.json",
-  "title": "Understudy plugin manifest v1 (PLG-1)",
-  "description": "plugin.yaml for a source, skill or tool plugin. The pattern (id, version, kind, permissions, entry) follows the MIT Clicky Hermes plugin manifest and is re-implemented here. A source plugin is read-only and local-only: permissions is exactly [read], egress is local_only, and a plugin that needs the network or a token (the Graph sources) must be off by default and name the environment flag that turns it on. The loader checks, beyond this schema, that the entry imports, is a Source subclass whose plugin_id equals id, and that schema names a registered item schema (understudy_engine.plugins.schemas).",
+  "title": "Understudy plugin manifest v1 (PLG-1, extended by CONNECTIONS)",
+  "description": "plugin.yaml for a source, skill, tool or mcp plugin. The pattern (id, version, kind, permissions, entry) follows the MIT Clicky Hermes plugin manifest and is re-implemented here. A source plugin is read-only and local-only: permissions is exactly [read], egress is local_only, and a plugin that needs the network or a token (the Graph sources) must be off by default and name the environment flag that turns it on. The loader checks, beyond this schema, that the entry imports, is a Source subclass whose plugin_id equals id, and that schema names a registered item schema (understudy_engine.plugins.schemas). CONNECTIONS adds kind mcp (a preset for an MCP server the worker connects with one click: stdio or streamable HTTP, read-only by default, classes decided by our own per-tool table) and gives kind tool its meaning (an in-process typed tool; entry is module:callable). Both carry a `connection` block validated by connection.schema.json and by understudy_engine.connections.manifest. A kind mcp manifest has no entry, because nothing of ours is imported: the server is a separate process started only after the worker's click and consent.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "version", "kind", "description", "permissions", "egress", "entry"],
+  "required": ["id", "version", "kind", "description", "permissions", "egress"],
   "properties": {
     "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,40}$", "description": "Matches Source.plugin_id." },
     "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
-    "kind": { "enum": ["source", "skill", "tool"] },
+    "kind": { "enum": ["source", "skill", "tool", "mcp"] },
     "description": { "type": "string", "minLength": 8, "maxLength": 300 },
-    "permissions": { "type": "array", "items": { "const": "read" }, "minItems": 1, "maxItems": 1, "description": "Read only. A plugin never writes to the source it reads." },
-    "egress": { "const": "local_only", "description": "Raw items never leave the machine; only digests pass the egress guard (PRV-1)." },
+    "permissions": { "type": "array", "items": { "const": "read" }, "minItems": 1, "maxItems": 1, "description": "Read only. A plugin never writes to the source it reads; a write a connected tool offers is decided per call, by a person, in the approval queue." },
+    "egress": { "enum": ["local_only", "app_only"], "description": "local_only: raw items never leave the machine; only digests pass the egress guard (PRV-1). app_only (kind mcp or tool only): the connected server's process talks to the hosts named in connection.real.hosts and to nothing else; that traffic is outside our frame egress guard." },
     "schema": { "type": "string", "pattern": "^[a-z_]+\\.v[0-9]+$", "description": "Item schema id, for example calendar_event.v1. Required for kind source." },
-    "entry": { "type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_.]*:[A-Za-z_][A-Za-z0-9_]*$", "description": "module.path:ClassName." },
+    "entry": { "type": "string", "pattern": "^[a-zA-Z_][a-zA-Z0-9_.]*:[A-Za-z_][A-Za-z0-9_]*$", "description": "module.path:ClassName for a source (a Source subclass), module.path:function for a tool. Absent for kind mcp." },
     "default_enabled": { "type": "boolean", "default": true },
     "network": { "type": "boolean", "default": false, "description": "True when the plugin may call a remote API. Then default_enabled must be false and enable_flag is required." },
     "requires_token": { "type": "boolean", "default": false },
     "enable_flag": { "type": "string", "pattern": "^UNDERSTUDY_[A-Z0-9_]+$", "description": "Environment variable that must be 1 for the plugin to load." },
-    "limitations": { "type": "array", "items": { "type": "string", "maxLength": 200 }, "maxItems": 6 }
+    "limitations": { "type": "array", "items": { "type": "string", "maxLength": 200 }, "maxItems": 6 },
+    "connection": { "type": "object", "description": "Kind mcp, kind tool, or a source preset: validated by connection.schema.json." }
   },
   "allOf": [
-    { "if": { "properties": { "kind": { "const": "source" } }, "required": ["kind"] }, "then": { "required": ["schema"] } },
+    { "if": { "properties": { "kind": { "const": "source" } }, "required": ["kind"] }, "then": { "required": ["schema", "entry"] } },
+    { "if": { "properties": { "kind": { "const": "tool" } }, "required": ["kind"] }, "then": { "required": ["entry", "connection"] } },
+    { "if": { "properties": { "kind": { "const": "mcp" } }, "required": ["kind"] }, "then": { "required": ["connection"], "properties": { "default_enabled": { "const": false } } } },
+    { "if": { "properties": { "kind": { "enum": ["source", "skill"] } }, "required": ["kind"] }, "then": { "properties": { "egress": { "const": "local_only" } } } },
     { "if": { "anyOf": [ { "properties": { "network": { "const": true } }, "required": ["network"] }, { "properties": { "requires_token": { "const": true } }, "required": ["requires_token"] } ] },
       "then": { "required": ["enable_flag", "default_enabled"], "properties": { "default_enabled": { "const": false } } } }
   ]

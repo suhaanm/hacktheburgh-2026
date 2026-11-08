@@ -248,7 +248,7 @@ def seed_growth(dd: Path, now: datetime, out: Callable[[str], None]) -> dict[str
     n = ledger.extend(rows)
     (dd / GROWTH_MARKER).write_text(now.isoformat() + "\n")
     counts = {s: sum(1 for r in rows if r["stream"] == s) for s in ("assist", "delegated", "automation")}
-    out(f"growth: {counts['assist']} assist occurrences for {DEMO_PERSON} from one SIMULATED improving learner (labelled synthetic_learner), "
+    out(f"growth: {counts['assist']} assist occurrences for {DEMO_PERSON} from one generated improving learner (labelled synthetic_learner), "
         f"{counts['delegated'] + counts['automation']} offloaded rows (listed, never scored); {n} rows in {GROWTH_DIR}/ledger.jsonl")
     return {"growth": True, "growth_rows": n, "growth_counts": counts}
 
@@ -304,7 +304,7 @@ def seed(*, reset: bool = False, now: datetime | None = None, out: Callable[[str
         prepare_data_dir(dd, lambda m: None)
     for slug in ("learners", "nine-to-five"):
         if not (dd / "synthetic" / slug / "events.jsonl").exists():
-            raise DemoError(f"synthetic data is missing ({slug}). Run `uv run understudy synth --all` first.")
+            raise DemoError(f"generated data is missing ({slug}). Run `uv run understudy synth --all` first.")
     home.mkdir(parents=True, exist_ok=True)
     out(f"state home: {home}")
     if reset:

@@ -1,0 +1,11 @@
+{
+  "server": "example-sheets-and-drive",
+  "tools": [
+    {"name": "list_spreadsheets", "description": "Spreadsheets you can open.", "response": [{"id": "sheet-ex-1", "name": "Monthly totals (example)"}, {"id": "sheet-ex-2", "name": "Rota (example)"}]},
+    {"name": "read_sheet_values", "description": "Values from a range.", "response": [["month", "kind", "cases"], ["2026-09", "new_claim", 62], ["2026-10", "new_claim", 71], ["2026-10", "review", 28]]},
+    {"name": "get_spreadsheet_info", "description": "Sheets and size of a spreadsheet.", "response": {"id": "sheet-ex-1", "tabs": ["Totals", "Notes"], "rows": 41}},
+    {"name": "search_drive_files", "description": "Find files in Drive.", "response": [{"id": "file-ex-1", "name": "Housing guidance (example).pdf"}, {"id": "file-ex-2", "name": "Team notes (example).doc"}]},
+    {"name": "modify_sheet_values", "description": "Write values to a range.", "write": true},
+    {"name": "set_drive_file_permissions", "description": "Change who can open a file.", "write": true}
+  ]
+}

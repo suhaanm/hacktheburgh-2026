@@ -187,7 +187,7 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
             extensions["agents"], extension_status["agents"] = True, "enabled"
         except Exception as exc:  # noqa: BLE001 - ImportError or anything the extension does at import time
             extension_status["agents"] = f"not loaded: {type(exc).__name__}: {str(exc)[:120]}"
-    for key, mod, attr in (("models", ".models.routes", "router"), ("live", ".live", "router")):
+    for key, mod, attr in (("models", ".models.routes", "router"), ("live", ".live", "router"), ("connections", ".connections.routes", "router")):
         extensions[key] = False
         try:                                    # the model status/ground/glance routes and the live-voice router, when present
             import importlib

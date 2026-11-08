@@ -89,20 +89,20 @@ describe('the chip', () => {
     expect(l1[0].label).toBe('3Next: Run calculator A')
     expect(l1.map((x) => x.label)).not.toContain('Show me')
   })
-  it('an open chip toggles closed; the reason and phrase are exactly what the engine sent, simulated experts are tagged', () => {
+  it('an open chip toggles closed; the reason and phrase are exactly what the engine sent, and no tag is drawn for generated experts (D57)', () => {
     const act = vi.fn<(a: CueCardAction) => void>()
     buttons(ChipView({ view: { ...chip, open: true }, onAction: act }))[0].onClick()
     expect(act).toHaveBeenCalledWith({ type: 'why', open: false })
     const text = flat(expand(ChipView({ view: chip, onAction: () => undefined })))
     expect(text).toContain('Copy the household from the record; retyping invites mistakes.')
     expect(text).toContain('Most experts do this next.')
-    expect(text).toContain('Simulated')
+    expect(text).not.toMatch(/simulated|synthetic/i)
   })
   it('with no reason and no phrase the popover shows nothing but the actions, and recorded experts carry no tag', () => {
     const bare = flat(expand(ChipView({ view: { ...chip, why: null }, onAction: () => undefined })))
     expect(bare).not.toContain('Most experts')
     const recorded = flat(expand(ChipView({ view: { ...chip, why: { reason: null, phrase: 'most experts do this next', simulated: false } }, onAction: () => undefined })))
-    expect(recorded).not.toContain('Simulated')
+    expect(recorded).not.toMatch(/simulated|synthetic/i)
   })
   it('the collapsed answer of a question is plain: no buttons to press yet', () => {
     expect(buttons(ChipView({ view: { ...chip, pending: true, why: null }, onAction: () => undefined }))).toEqual([])

@@ -111,5 +111,5 @@ def ablate(tab: BinTable, groups: dict[str, np.ndarray], *, inner_folds: int | N
         "n_people": cl.C, "n_bins": int(tab.n), "level": level, "n_boot": n_boot, "inner": runs["without"].inner,
         "without": {m: pt["without"][m] for m in pt["without"]}, "without_events": ep["without"],
         "rows": rows, "controls_ok": controls_ok,
-        "note": "Extra columns from a synthetic generator show that the pipeline uses the planted signal, not that real signals predict stuck.",
+        "note": "Extra columns from a generator show that the pipeline uses the planted signal, not that real signals predict stuck.",
     }

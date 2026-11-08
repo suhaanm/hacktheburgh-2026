@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { APP_NAME, BRAND_ASSET_PATHS } from '../../shared/brand'
 import { createAppHandler } from './app-protocol'
 import { FAIL_MESSAGES } from './stack'
-import { shellPages, startingText, uiStateOf } from './shell-pages'
+import { SLOW_START_MS, shellPages, startingText, uiStateOf } from './shell-pages'
 
 const glyph = fs.readFileSync(path.resolve(__dirname, '../../../../..', BRAND_ASSET_PATHS.glyph), 'utf8')
 
@@ -40,5 +40,17 @@ describe('the Starting page', () => {
       expect(res.status, f).toBe(200)
       expect(res.headers.get('content-security-policy')).toContain("script-src 'self'")
     }
+  })
+})
+
+describe('a slow start', () => {
+  it('after thirty seconds the page says it is still starting, in the same one line, and keeps the example data notice', () => {
+    expect(uiStateOf({ phase: 'starting', step: 'engine' }, 'Knack', 'Running with example data')).toEqual({ kind: 'starting', text: 'Starting Knack…', notice: 'Running with example data' })
+    expect(uiStateOf({ phase: 'starting', step: 'engine' }, 'Knack', 'Running with example data', true)).toEqual({ kind: 'starting', text: 'Still starting Knack…', notice: 'Running with example data' })
+    expect(SLOW_START_MS).toBe(30_000)
+  })
+  it('a ready or failed stack is never "slow"', () => {
+    expect(uiStateOf({ phase: 'ready', started: [], dashboard: 'dist', mock: null }, 'Knack', null, true)).toEqual({ kind: 'ready' })
+    expect(uiStateOf({ phase: 'failed', code: 'port_busy', message: 'Another program is using a port Knack needs.' }, 'Knack', null, true)).toMatchObject({ kind: 'error' })
   })
 })

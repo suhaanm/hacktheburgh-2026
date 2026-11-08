@@ -58,7 +58,7 @@ class SynthResult:
     seed: int
     events: list[dict[str, Any]]
     spells: list[Spell]
-    note: str = ("Synthetic awareness events. The link between stuck spells and cursor behaviour is assumed by the generator, so any "
+    note: str = ("Generated awareness events. The link between stuck spells and cursor behaviour is assumed by the generator, so any "
                  "lift measured on them is not evidence about real people.")
 
 
@@ -130,7 +130,7 @@ def make(persona: str, *, root: Path | str | None = None, seed: int | None = Non
     base = (Path(root) if root else data_dir()) / "synthetic" / persona
     ev_path, tr_path = base / "events.jsonl", base / "truth.json"
     if not ev_path.exists() or not tr_path.exists():
-        raise FileNotFoundError(f"synthetic persona data missing: {ev_path}")
+        raise FileNotFoundError(f"generated persona data missing: {ev_path}")
     truth = json.loads(tr_path.read_text(encoding="utf-8"))
     use_seed = int(truth.get("seed", 0) if seed is None else seed)
     rnd = random.Random(f"awareness:{persona}:{use_seed}")

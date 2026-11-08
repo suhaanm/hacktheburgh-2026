@@ -177,7 +177,7 @@ def _evaluate_cases(cases: Cases, make, *, alpha: float, delta: float, budget: f
 
 
 _SYNTH_CAVEATS = [
-    "Synthetic cases drawn from a mechanism we wrote; no real agent errors were used. The bound is a statement about this generator.",
+    "Generated cases drawn from a mechanism we wrote; no real agent errors were used. The bound is a statement about this generator.",
     "The guarantee covers the error rate of the auto-approved set under exchangeable cases; distribution shift (a new benefit rule, "
     "a new calculator site) breaks it silently.",
     "Expert review time per case is an assumption, not a measurement.",
@@ -197,12 +197,12 @@ def evaluate_routing_synthetic(cases: Cases | None = None, *, alpha: float = 0.0
     return _evaluate_cases(
         cases, simulate_cases, alpha=alpha, delta=delta, budget=budget, seed=seed, n_resplits=n_resplits,
         resplit_n=resplit_n, review_min=review_min, n_grid=n_grid,
-        note="Auto-approve the safest cases, send the rest to an expert. Synthetic cases with a known error mechanism.",
+        note="Auto-approve the safest cases, send the rest to an expert. Generated cases with a known error mechanism.",
         caveats=_SYNTH_CAVEATS)
 
 
 _SANDBOX_NOTE = (
-    "Auto-approve the safest households, send the rest to an expert. Cases are synthetic sandbox households scored by the "
+    "Auto-approve the safest households, send the rest to an expert. Cases are sandbox households scored by the "
     "three sandbox calculators' own rules; the reference is a simplified internal rule set, not law.")
 _SANDBOX_CAVEATS = [
     "CIRCULARITY: the calculators' quirks (site b ignores capital tariff income; site c applies a two-child limit and treats exactly "
@@ -263,8 +263,8 @@ def evaluate_routing(cases: Cases | None = None, *, alpha: float = 0.05, delta: 
         except ImportError:
             out = dict(secondary)
             out["meta"] = dict(out["meta"], note="Fallback: the sandbox package was not importable, so this is the pure "
-                                                 "synthetic generator. " + (out["meta"].get("note") or ""))
-            out["headline_source"] = "synthetic generator (sandbox unavailable)"
+                                                 "generator. " + (out["meta"].get("note") or ""))
+            out["headline_source"] = "generator (sandbox unavailable)"
             return out
     out = _evaluate_cases(
         cases, lambda n, sd: sandbox_cases(n, sandbox_seed + 1 + sd, stand_in), alpha=alpha, delta=delta, budget=budget,
@@ -277,5 +277,5 @@ def evaluate_routing(cases: Cases | None = None, *, alpha: float = 0.05, delta: 
                                 for si in ("majority_else_mean", "mean_of_three", "median_of_three")]
         except ImportError:
             pass
-    out["secondary"] = {"source": "pure synthetic generator (routing/cases.py), 4,000 cases", **secondary}
+    out["secondary"] = {"source": "pure generator (routing/cases.py), 4,000 cases", **secondary}
     return out

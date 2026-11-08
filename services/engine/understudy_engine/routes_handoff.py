@@ -540,7 +540,7 @@ def get_routines(person: str | None = Query(None), case: int | None = Query(None
     left = hidden_routine_roles()
     rows = [r for r in st.list() if _owner(st, r["id"]) == pd.person and r.get("role") not in left]
     eps = len(_src().episodes(pd))
-    note = ("Found in synthetic persona traces; value uses a wage of 15 pounds an hour as an illustration and a build cost per routine from the role pack."
+    note = ("Found in generated persona traces; value uses a wage of 15 pounds an hour as an illustration and a build cost per routine from the role pack."
             if pd.origin == "synthetic" else "Found in your own traces; value uses a wage of 15 pounds an hour as an illustration.")
     return {"meta": _meta(pd.origin, eps, "episodes", "unsupervised; truth is only used for the precision score", note), "data": rows}
 
@@ -809,7 +809,7 @@ def get_presence(person: str | None = Query(None), now: str | None = Query(None)
     }
     note = ("Presence is an estimate from input times only. Idle capacity is an upper bound: it counts a locked but awake machine, and assumes "
             "the machine sleeps an hour after its last event when no sleep event was seen. "
-            + ("Synthetic persona." if pd.origin == "synthetic" else ""))
+            + ("Generated persona." if pd.origin == "synthetic" else ""))
     return {"meta": _meta(pd.origin, len(fit["days"]), "days", "weekly map from all observed days; intervals from smoothed per-bin posteriors", note.strip()), "data": data}
 
 
@@ -948,7 +948,7 @@ def get_offhours_demo(person: str = Query(DEMO_PERSON), d_min: float = Query(45.
     return {"person": pd.person, "d_min": d_min, "gain": DEFAULT_GAIN, "loss": round(loss, 3), "threshold": round(threshold(DEFAULT_GAIN, loss), 4),
             "cap": cap, "rows": rows,
             "note": "Each row is the real decision function at a stated time. The screen state is set by the scene (screen_source: override); "
-                    "the synthetic persona's machine would otherwise be asleep overnight. Start only when the chance the window lasts "
+                    "the generated persona's machine would otherwise be asleep overnight. Start only when the chance the window lasts "
                     f"{int(d_min)} minutes beats L/(G+L) = {threshold(DEFAULT_GAIN, loss):.0%}."}
 
 

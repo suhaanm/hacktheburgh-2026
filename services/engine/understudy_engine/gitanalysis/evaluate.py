@@ -33,7 +33,7 @@ from .stats import rate, rnd
 EVAL_REPLICATES = tuple(range(100, 110))
 FAST_REPLICATES = (100, 101, 102)
 DOSE_STRENGTHS = (0.25, 0.5, 0.75)
-NO_PEOPLE = ("No real people are involved. Every developer in the habit, placebo, digest and canary results is a scripted synthetic "
+NO_PEOPLE = ("No real people are involved. Every developer in the habit, placebo, digest and canary results is a scripted "
              "persona (4 learners and 8 experts per replicate) and every commit message is generated text. The one real history "
              "used is this project's own repository, read-only, reported as aggregates only.")
 
@@ -276,7 +276,7 @@ def limitations(result: dict) -> list[dict]:
         {"id": "git-genome-modelled", "severity": "medium", "text": gen.get("reading", "The alignment on commit sessions was not run.")},
         {"id": "git-no-outcome", "severity": "medium", "text": ("Suggestions are advice chosen by code from commit-level shares. Nobody has been shown that following one improves "
                                                                "anything; there is no study of the git layer, and a share is not a cause.")},
-        {"id": "git-reference-synthetic", "severity": "medium", "text": "A real repository is compared with synthetic experts, so its origin is reported as mixed; the comparison is with a scripted baseline, not with real experts."},
+        {"id": "git-reference-synthetic", "severity": "medium", "text": "A real repository is compared with generated experts, so its origin is reported as mixed; the comparison is with a scripted baseline, not with real experts."},
         {"id": "git-real-history-tiny", "severity": "low", "text": "The one real history (this project's) is short and agent-assisted; its aggregates illustrate the pipeline and are not a finding."},
         {"id": "git-canary-scope", "severity": "low", "text": "The leak result is a count of exact planted strings in captured request bodies on these flows. It does not catch a paraphrase, a translation or a hash of a token."},
     ]
@@ -318,7 +318,7 @@ def evaluate_git(fast: bool = False) -> dict:
     n_personas = len(reps) * 12
     result["meta"] = {
         "origin": "synthetic", "n": n_personas, "n_unit": "personas",
-        "split": ("fresh synthetic seeds (replicates 100 and up); thresholds were chosen on replicates 0 to 3; learners compared with the 8 experts of "
+        "split": ("fresh generated seeds (replicates 100 and up); thresholds were chosen on replicates 0 to 3; learners compared with the 8 experts of "
                   "their own replicate; bootstrap by day and by person"),
         "interval_level": 0.95,
         "note": ("Scripted developers with planted habits; no real people. " + ("Fast run: " if fast else "") +

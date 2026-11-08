@@ -97,10 +97,10 @@ def test_workweek_rows_are_schema_valid_and_private(family):
 def test_truth_files_carry_the_synthetic_badge_and_no_free_text():
     c = coh("latent_skill", "benefits-processor")
     assert c.truth["origin"] == "synthetic"
-    assert c.truth["realism"]["label"] == "synthetic, realism-calibrated"
+    assert c.truth["realism"]["label"] == "generated, realism-calibrated"
     assert all(r["origin"] == "synthetic" for r in c.rows)
     w = ww("markov", "data-analyst")
-    assert w.truth["realism"]["label"] == "synthetic, realism-calibrated"
+    assert w.truth["realism"]["label"] == "generated, realism-calibrated"
 
 
 # ------------------------------------------------------------------------------------------ structure

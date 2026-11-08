@@ -1,0 +1,14 @@
+{
+  "server": "example-git",
+  "tools": [
+    {"name": "git_status", "description": "Working tree status.", "response": "On branch fix-rounding\nChanges not staged for commit:\n  modified: calc/summary.py"},
+    {"name": "git_log", "description": "Recent commits.", "response": [
+      {"sha": "a1b2c3d", "author": "Robin Example", "date": "2026-11-05", "message": "Clear stale drafts"},
+      {"sha": "e4f5a6b", "author": "Avery Example", "date": "2026-11-04", "message": "Add partner-income test"},
+      {"sha": "9c8d7e6", "author": "Sam Placeholder", "date": "2026-11-02", "message": "Round half even in the summary"}]},
+    {"name": "git_diff_unstaged", "description": "Unstaged changes.", "response": "--- a/calc/summary.py\n+++ b/calc/summary.py\n@@ -1,2 +1,2 @@\n-    return round(sum(items), 2)\n+    return round(sum(items) + 0.0, 2)"},
+    {"name": "git_branch", "description": "Branches.", "response": "* fix-rounding\n  main\n  housing-warning"},
+    {"name": "git_commit", "description": "Record a commit.", "write": true},
+    {"name": "git_checkout", "description": "Switch branch or revision.", "write": true}
+  ]
+}

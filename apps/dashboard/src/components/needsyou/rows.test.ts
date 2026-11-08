@@ -5,13 +5,14 @@ import { describe, expect, it } from "vitest";
 import queueFx from "../../fixtures/queue.json";
 import routinesFx from "../../fixtures/routines.json";
 import briefingFx from "../../fixtures/briefing.json";
-import type { BriefingCard, QueueItem, Routine } from "../../types";
-import { AwayChoice } from "../routines/AwayChoice";
-import { AWAY_TEXT, WATCH_TEXT } from "../routines/consent";
+import type { BriefingCard, QueueItem, Routine, TaskRow } from "../../types";
+import { AwayButton, AwayConfirm, useAway } from "../routines/AwayChoice";
+import { APPROVAL_TEXT, AWAY_TEXT, WATCH_TEXT } from "../routines/consent";
 import { RunningRow } from "../routines/RunningRow";
 import { ApprovalRow } from "./ApprovalRow";
 import { PreparedRow } from "./PreparedRow";
 import { ProposalDetails, ProposalRow } from "./ProposalRow";
+import { TaskNeedRow } from "./TaskNeedRow";
 
 const queue = (queueFx as unknown as { data: QueueItem[] }).data;
 const routines = (routinesFx as unknown as { data: Routine[] }).data;
@@ -68,14 +69,16 @@ describe("a routine proposal", () => {
     expect(html).toMatch(/aria-expanded="false"[^>]*>Details</);
     expect(html).not.toMatch(/data-testid="proposal-details"/);
   });
-  it("opened, Details prints what it touches, Never, and what every way of saying yes does, with the away consent next to its own button", () => {
-    const open = text(renderToStaticMarkup(createElement(ProposalDetails, { routine: proposal, touches: "a, b and c", busy: false, onApproval: noop, onNever: noop, onDecide: async () => undefined })));
-    expect(open).toContain("Touches a, b and c.");
-    expect(open).toContain("Never: do not suggest this again.");
+  it("opened, Details is one fact line, one short paragraph with every consent, and one row of actions", () => {
+    const html2 = renderToStaticMarkup(createElement(ProposalDetails, { routine: proposal, touches: "a, b and c", busy: false, onApproval: noop, onNever: noop, onDecide: async () => undefined }));
+    const open = text(html2);
+    expect(open).toContain("Touches a, b and c");
     expect(open).toContain(WATCH_TEXT);
-    expect(open).toContain("Run with my approval");
-    expect(open).toContain(AWAY_TEXT);
-    expect(open).toContain("Allow while I'm away");
+    expect(open).toContain(APPROVAL_TEXT);
+    expect(open).toContain(AWAY_TEXT.slice(1));                     // the consent for running while away, whole, above its own button
+    for (const label of ["Run with my approval", "Run while I'm away", "Never"]) expect(html2).toMatch(new RegExp(`btn btn--secondary btn--sm"[^>]*>${label.replace("'", "&#x27;")}<`));
+    expect((html2.match(/kc-row__actions/g) ?? []).length).toBe(1);   // one row of actions
+    expect((html2.match(/<p /g) ?? []).length).toBe(1);               // one paragraph
   });
 });
 
@@ -90,13 +93,31 @@ describe("a prepared action", () => {
 });
 
 describe("Run while I'm away", () => {
-  it("prints its consent whole next to its one button, and the irreversible opt-in as separate switches that start off", () => {
-    const r = routines.find((x) => (x.irreversible_classes ?? []).length > 0)!;
-    const html = renderToStaticMarkup(createElement(AwayChoice, { routine: { ...r, status: "approval" }, onDecide: async () => undefined }));
-    expect(text(html)).toContain(AWAY_TEXT);
-    expect(text(html)).toContain("Allow while I'm away");
+  const irreversible = routines.find((x) => (x.irreversible_classes ?? []).length > 0)!;
+  const plain = { ...routines[0], irreversible_classes: [] as string[], status: "approval" as const };
+  const Button = (r: Routine) => function T() { const a = useAway(r, async () => undefined); return createElement(AwayButton, { away: a }); };
+  const Confirm = (r: Routine) => function T() { const a = useAway(r, async () => undefined, undefined, true); return createElement(AwayConfirm, { away: a }); };
+  it("is one button; a routine with steps that cannot be undone says it will ask (aria-expanded), one with none does not", () => {
+    expect(renderToStaticMarkup(createElement(Button({ ...irreversible, status: "approval" })))).toMatch(/aria-expanded="false"[^>]*>Run while I&#x27;m away</);
+    expect(renderToStaticMarkup(createElement(Button(plain)))).not.toMatch(/aria-expanded/);
+  });
+  it("asks once, in place: each step that cannot be undone is its own switch and starts off", () => {
+    const html = renderToStaticMarkup(createElement(Confirm({ ...irreversible, status: "approval" })));
     expect(html).toMatch(/role="switch"/);
     expect(html).not.toMatch(/role="switch"[^>]*checked/);
+    expect(text(html)).toContain("Allow while I'm away");
+    expect(text(html)).toContain("each wait for your click unless you allow them");
+    expect(html).toMatch(/Allow while I&#x27;m away<\/button>/);
+    expect(html).not.toMatch(/disabled=""[^>]*>Allow while I&#x27;m away/);   // with nothing allowed, away runs may start: every step that cannot be undone still waits
+    const allowed = renderToStaticMarkup(createElement(Confirm({ ...irreversible, status: "approval", consent: { ...irreversible.consent, irreversible_unattended: ["submit"] } })));
+    expect(allowed).toMatch(/disabled=""[^>]*>Allow while I&#x27;m away/);     // with a step allowed, the second opt-in (typed id or acknowledgement) is needed first
+  });
+  it("when it is on it offers a way back and lists what was allowed", () => {
+    const on = { ...irreversible, status: "unattended" as const, consent: { ...irreversible.consent, irreversible_unattended: ["submit"] } };
+    const T = function T() { const a = useAway(on, async () => undefined, async () => undefined); return createElement("div", null, createElement(AwayButton, { away: a }), createElement(AwayConfirm, { away: a })); };
+    const t = text(renderToStaticMarkup(createElement(T)));
+    expect(t).toContain("Turn off away runs");
+    expect(t).toContain("Allowed without asking: submit.");
   });
 });
 
@@ -112,15 +133,56 @@ describe("a running routine", () => {
   it("without the agent route there is no Run now", () => {
     expect(text(renderToStaticMarkup(createElement(RunningRow, { routine: running, open: false, onToggle: noop, onDecide: async () => undefined, canRun: false })))).not.toContain("Run now");
   });
-  it("open, it offers Stop for good but no Pause (the engine has none), and Run now stays on the row", () => {
+  it("open, it is fact lines, one short paragraph and one row of actions: the steps, Run while I'm away and Stop for good, no Pause (the engine has none)", () => {
     expect(text(open)).toContain("Run now");
     expect(text(open)).toContain("Stop for good");
+    expect(text(open)).toContain("Run while I'm away");
     expect(text(open)).not.toMatch(/\bPause\b/);
-    expect(text(open)).toContain("Autonomy");
+    expect(open).toMatch(/class="kc-kv"/);
+    expect((open.match(/kc-row__actions/g) ?? []).length).toBe(1);
+    expect(open).toMatch(/<summary>More<\/summary>/);                        // the record sits behind one closed More
     // Outside the closed "Record" disclosure (for reviewers) there is no rung code and no "rung".
     expect(text(open.replace(/<details[\s\S]*?<\/details>/g, ""))).not.toMatch(/\bA[0-3]\b|\brung\b/i);
   });
   it("the three steps are in the worker's words", () => {
     for (const w of ["Watching", "Asks first", "Runs on its own"]) expect(text(open)).toContain(w);
+  });
+});
+
+describe("a task that waits for the worker", () => {
+  const consent: TaskRow = {
+    task_id: "tk_8f3a1c2e", title: "Tidy the invoices folder", state: "waiting_consent", started: "2026-11-08T09:00:00Z",
+    needs_consent: { kind: "folder", scope_text: "Knack wants to move files inside your Invoices folder.", can: ["read file names", "move files into Paid and Unpaid"], cannot: ["delete anything", "open other folders"], folder: "Invoices", max_minutes: 10, cost_note: "Uses live models.", buttons: { allow: "Allow", decline: "Decline", more: [{ id: "everything", label: "Allow everything this task needs" }] } },
+  };
+  const html = renderToStaticMarkup(createElement(TaskNeedRow, { row: consent, onDone: noop }));
+  it("prints what the task may do and may not do, whole, before any button", () => {
+    const t = text(html);
+    expect(t).toContain("Knack wants to move files inside your Invoices folder.");
+    expect(t).toContain("It can: read file names, move files into Paid and Unpaid.");
+    expect(t).toContain("It cannot: delete anything, open other folders.");
+    expect(t).toContain("Stops after 10 minutes.");
+    expect(t.indexOf("It cannot")).toBeLessThan(t.indexOf("Decline"));
+  });
+  it("offers Allow and Decline at one weight, none primary, and keeps the wider choice behind More", () => {
+    expect(html).toMatch(/btn btn--secondary[^>]*>Allow</);
+    expect(html).toMatch(/btn btn--secondary[^>]*>Decline</);
+    expect(html).not.toMatch(/btn--primary/);
+    expect(html).toMatch(/<summary>More<\/summary>/);
+    expect(html.indexOf("Allow everything this task needs")).toBeGreaterThan(html.indexOf("<summary>More</summary>"));
+  });
+  it("has no keyboard shortcut that could allow anything", () => {
+    expect(html).not.toMatch(/accesskey|aria-keyshortcuts/i);
+  });
+  it("shows a question with its options as buttons, at most four", () => {
+    const q: TaskRow = { task_id: "tk_2", title: "Rename the photos", state: "running", started: "2026-11-08T09:00:00Z", question: { text: "Which folder holds the photos?", options: [1, 2, 3, 4, 5, 6].map((n) => ({ id: `o${n}`, label: `Folder ${n}` })) } };
+    const h = renderToStaticMarkup(createElement(TaskNeedRow, { row: q, onDone: noop }));
+    expect(text(h)).toContain("Which folder holds the photos?");
+    expect((h.match(/class="btn btn--secondary"/g) ?? []).length).toBe(4);
+  });
+  it("copes with a card that has no lists, no limits and a very long scope", () => {
+    const h = renderToStaticMarkup(createElement(TaskNeedRow, { row: { task_id: "tk_3", title: "T".repeat(200), state: "waiting_consent", needs_consent: { scope_text: "S".repeat(900) } }, onDone: noop }));
+    expect(h).not.toMatch(/data-testid="can"|data-testid="cannot"/);
+    expect(text(h).length).toBeLessThan(900);
+    expect(text(renderToStaticMarkup(createElement(TaskNeedRow, { row: { task_id: "tk_4", title: "A small task", state: "waiting_consent" } as TaskRow, onDone: noop })))).toContain("A small task");
   });
 });

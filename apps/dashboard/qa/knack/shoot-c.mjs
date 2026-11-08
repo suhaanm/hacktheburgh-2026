@@ -16,13 +16,21 @@ const SHOTS = [
   ["routines-could", "/routines?tab=could-automate"],
   ["your-data", "/your-data"],
   ["your-data-sent", "/your-data?section=sent"],
+  ["settings-advanced", "/home?settings=advanced"],
   ["your-data-delete", "/your-data?section=switches", async (p) => { await p.getByRole("button", { name: "Delete everything" }).click(); }],
-  ["agents", "/agents"],
-  ["agents-open", "/agents", async (p) => { await p.locator("summary", { hasText: "Helpers and result" }).first().click(); }],
+  ["routines-task-open", "/routines", async (p) => { await p.locator("button.bt-open").first().click(); }],
+  ["agents-gate", "/agents"],
+  ["agents", "/agents", async (p) => { await asAdmin(p); }],
+  ["agents-open", "/agents", async (p) => { await asAdmin(p); await p.locator("summary", { hasText: "Helpers and result" }).first().click(); }],
   ["models", "/models"],
   ["settings", "/home?settings=live-models"],
   ["settings-interruptions", "/home?settings=interruptions"],
 ];
+/** The admin's pages: the view is a remembered choice on this device; set it, reload, and the page opens as the admin sees it. */
+async function asAdmin(p) {
+  await p.evaluate(() => { try { localStorage.setItem("understudy-view-as", "admin"); } catch { /* blocked */ } });
+  await p.reload(); await p.waitForTimeout(900);
+}
 const SIZES = [["1440", 1440, 900], ["1152", 1152, 735], ["390", 390, 844]].filter(([sz]) => !process.env.SIZES || process.env.SIZES.split(",").includes(sz));
 const browser = await chromium.launch();
 for (const theme of (process.env.THEMES ?? "light,dark").split(",")) {
@@ -38,6 +46,7 @@ for (const theme of (process.env.THEMES ?? "light,dark").split(",")) {
       await page.waitForTimeout(900);
       try { if (act) { await act(page); await page.waitForTimeout(300); } } catch (e) { console.log(`  (${name}: step skipped: ${String(e).slice(0, 80)})`); }
       await page.screenshot({ path: `${out}/${name}-${theme}-${sz}.png` });
+      if (name.startsWith("agents") && name !== "agents-gate") { await page.evaluate(() => { try { localStorage.removeItem("understudy-view-as"); } catch { /* blocked */ } }); await page.reload(); }
     }
     if (errors.length) console.log(`page errors at ${sz} ${theme}: ${errors.slice(0, 3).join(" | ")}`);
     await ctx.close();
