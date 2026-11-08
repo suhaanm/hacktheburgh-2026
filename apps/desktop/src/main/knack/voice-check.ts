@@ -101,6 +101,8 @@ export async function buildVoiceCheck(i: VoiceCheckInputs): Promise<KnackVoiceCh
       if (h.state === 'blocked' && h.code === 'speech_denied') return fix('speech', 'Speech recognition', 'Switch Knack on in System Settings, Speech Recognition.', open('speech'), { needs: 'hey' })
       if (h.state === 'blocked' && h.code === 'speech_restricted') return fix('speech', 'Speech recognition', 'This Mac does not let Knack use speech recognition.', null, { needs: 'hey' })
       if (h.state === 'blocked' && (h.code === 'on_device_unavailable' || h.code === 'locale_unsupported')) return fix('speech', 'Speech recognition', 'This Mac has no on-device speech for your language. Turn on Dictation in System Settings, Keyboard.', null, { needs: 'hey' })
+      // macOS asks for speech recognition when the listener starts, so with Hey Knack switched off an Allow button would do nothing: say what to turn on instead.
+      if (!w.switchOn) return fix('speech', 'Speech recognition', 'Not asked yet. Turn on Listen for Hey Knack and macOS will ask.', null, { needs: 'hey' })
       return fix('speech', 'Speech recognition', 'Not asked yet. Choose Allow, then say yes when macOS asks.', ask('speech'), { needs: 'hey' })
     })()
     stages.push(speech)

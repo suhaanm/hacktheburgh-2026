@@ -90,6 +90,8 @@ describe('Check voice', () => {
     expect(stage(denied, 'speech')).toMatchObject({ action: { do: 'open', what: 'speech' } })
     expect(stage(denied, 'hey').line).toContain('Hold Option-Space to talk meanwhile')
     expect(denied.ok).toBe(true)
+    const switchedOff = await run({ wake: { switchOn: false, dormant: 'switched_off', helper: { state: 'stopped', code: null }, helperPresent: true } })
+    expect(stage(switchedOff, 'speech')).toMatchObject({ state: 'fix', action: null, line: 'Not asked yet. Turn on Listen for Hey Knack and macOS will ask.' })
     const noHelper = await run({ wake: { switchOn: true, dormant: null, helper: { state: 'stopped', code: null }, helperPresent: false } })
     expect(stage(noHelper, 'hey').line).toBe('Hey Knack is not installed. Hold Option-Space to talk instead.')
     const off = await run({ wake: { switchOn: false, dormant: 'switched_off', helper: { state: 'stopped', code: null }, helperPresent: true } })

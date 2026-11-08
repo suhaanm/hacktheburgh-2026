@@ -439,6 +439,7 @@ void app.whenReady().then(async () => {
   })
 
   // Live voice (flags UNDERSTUDY_X_LIVE and UNDERSTUDY_FLAG_VOICE): the websocket lives in main; the dock only owns the microphone and speaker.
+  const voiceTools = !headless && experimentOn('wake') // the task and click tools of a voice conversation live in the Hey Knack controller
   const noCuePort: LiveCuePort = { candidates: () => [], showStep: () => ({ ok: false, chip: null }), askChoice: () => false, onAnswer: () => () => undefined }
   const live = liveFlagOn() && featureOn('voice')
     ? registerLive({
@@ -449,11 +450,12 @@ void app.whenReady().then(async () => {
         owns: (id) => windows.owns(id),
         overlay: services.overlay,
         cue: cue?.livePort ?? noCuePort,
-        doIt: (req) => (wakeBox.ctl ? wakeBox.ctl.doIt(req) : Promise.resolve({ ok: false, reason: 'not_available' })),
+        // `do_it_for_me` and `start_task` are declared to the model only where something answers them: with no Hey Knack controller (a headless run, or the flag off) they are absent, never declared and dead.
+        doIt: voiceTools ? (req) => (wakeBox.ctl ? wakeBox.ctl.doIt(req) : Promise.resolve({ ok: false, reason: 'not_available' })) : undefined,
         context: (o) => contextHub.build(o),
         opening: () => wakeBox.ctl?.openingText() ?? null,
         // "Hey Knack, do X": the request goes to the task service (loopback) and a card asks the worker first; nothing starts by itself.
-        startTask: (text) => (wakeBox.ctl ? wakeBox.ctl.startTask(text) : Promise.resolve({ ok: false, reason: 'unavailable' })),
+        startTask: voiceTools ? (text) => (wakeBox.ctl ? wakeBox.ctl.startTask(text) : Promise.resolve({ ok: false, reason: 'unavailable' })) : undefined,
         domGround: chainGround(knackGround, extGround),
         screenStatus: () => (process.platform === 'darwin' && !flag('UNDERSTUDY_MOCK') && !flag('ALONGSIDE_MOCK') ? systemPreferences.getMediaAccessStatus('screen') : 'granted'),
         onScreenMissing: () => wakeBox.ctl?.explainRefusal('screen_recording'),
