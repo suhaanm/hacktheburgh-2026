@@ -1,6 +1,7 @@
 // Pure words for Home (docs/knack-ux/01-home.md): the hero sentence, the one line under it, the quiet rows and the quiet-state titles.
 // Numbers come from the data; the words are fixed templates. A hero is at most 16 words with one quantity; a row is at most 12 words.
 import type { WirePointer, WireWorker } from "../../components/firm/wire";
+import { shortTaskName } from "../../lib/coach";
 
 export const HERO_MAX_WORDS = 16;
 export const ROW_MAX_WORDS = 12;
@@ -206,15 +207,18 @@ export const COULD_NOT_LOAD: Quiet = { kind: "error", title: "Could not read you
 export interface CoachTaskLike { name?: unknown; step?: unknown; steps_total?: unknown }
 
 /**
- * "Coaching you on Entitlement check." while a coach step is active, else null (the row is not drawn). The task name is cut at its first comma or colon
- * ("Entitlement check, household H-9" is the task; the household is not part of the sentence), at most five words. A step that is not a positive whole
- * number, or one past the last, is not active. Never throws: the coach state is whatever the service sent.
+ * "Coaching: Entitlement check." while a coach step is really active, else null (the row is not drawn). The task name is cut at its first comma or colon
+ * ("Entitlement check, household H-9" is the task; the household is not part of the sentence), at most nine words: a lesson name such as "Read the failing
+ * trace before changing code" reads as it is, which "Coaching you on ..." could not carry. A step that is not a positive whole number, or one past the last,
+ * is not active; `active === false` (the engine says no task is open) is not active either, whatever step it names. Never throws: the coach state is whatever
+ * the service sent.
  */
-export function coachLine(task: CoachTaskLike | null | undefined): string | null {
+export function coachLine(task: CoachTaskLike | null | undefined, active?: boolean | null): string | null {
+  if (active === false) return null;
   if (!task || typeof task.name !== "string") return null;
   const step = Number(task.step), total = Number(task.steps_total);
   if (!Number.isInteger(step) || step < 1 || (Number.isInteger(total) && total >= 1 && step > total)) return null;
-  const name = task.name.split(/[,:;(]/)[0].replace(/\s+/g, " ").trim().split(" ").slice(0, 5).join(" ");
+  const name = shortTaskName(task.name);
   if (!/[\p{L}\p{N}]/u.test(name)) return null;
-  return `Coaching you on ${name}.`;
+  return `Coaching: ${name}${name.endsWith("…") ? "" : "."}`;
 }

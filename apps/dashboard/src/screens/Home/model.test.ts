@@ -14,9 +14,20 @@ const all = [...pointers(workerFx), ...pointers(goodFx)];
 
 describe("the coaching row", () => {
   it("names the task, cut at its first comma, while a step is active", () => {
-    expect(coachLine({ name: "Entitlement check, household H-9", step: 5, steps_total: 9 })).toBe("Coaching you on Entitlement check.");
-    expect(coachLine({ name: "Month-end reconciliation: step list", step: 1, steps_total: 3 })).toBe("Coaching you on Month-end reconciliation.");
-    expect(coachLine({ name: "One two three four five six seven", step: 2, steps_total: 4 })).toBe("Coaching you on One two three four five.");
+    expect(coachLine({ name: "Entitlement check, household H-9", step: 5, steps_total: 9 })).toBe("Coaching: Entitlement check.");
+    expect(coachLine({ name: "Month-end reconciliation: step list", step: 1, steps_total: 3 })).toBe("Coaching: Month-end reconciliation.");
+    expect(coachLine({ name: "One two three four five six seven", step: 2, steps_total: 4 })).toBe("Coaching: One two three four five six seven.");
+  });
+  it("reads a lesson name as it is, and cuts a very long one with an ellipsis", () => {
+    expect(coachLine({ name: "Read the failing trace before changing code", step: 3, steps_total: 3 })).toBe("Coaching: Read the failing trace before changing code.");
+    expect(coachLine({ name: "Open a pull request a reviewer can read in one sitting", step: 1, steps_total: 3 })).toBe("Coaching: Open a pull request a reviewer can read in…");
+  });
+  it("is absent when the engine says no task is open, whatever step it names; present when it says so or says nothing", () => {
+    const t = { name: "Read the failing trace before changing code", step: 3, steps_total: 3 };
+    expect(coachLine(t, false)).toBeNull();
+    expect(coachLine(t, true)).toBe("Coaching: Read the failing trace before changing code.");
+    expect(coachLine(t, undefined)).toBe("Coaching: Read the failing trace before changing code.");
+    expect(coachLine(t, null)).toBe("Coaching: Read the failing trace before changing code.");
   });
   it("is one line of at most twelve words", () => {
     const l = coachLine({ name: "Entitlement check, household H-9", step: 5, steps_total: 9 })!;
@@ -28,8 +39,8 @@ describe("the coaching row", () => {
     }
   });
   it("copes with unicode and right-to-left task names and an unknown total", () => {
-    expect(coachLine({ name: "فحص الاستحقاق", step: 2 })).toBe("Coaching you on فحص الاستحقاق.");
-    expect(coachLine({ name: "Résumé du dossier", step: 3, steps_total: "?" })).toBe("Coaching you on Résumé du dossier.");
+    expect(coachLine({ name: "فحص الاستحقاق", step: 2 })).toBe("Coaching: فحص الاستحقاق.");
+    expect(coachLine({ name: "Résumé du dossier", step: 3, steps_total: "?" })).toBe("Coaching: Résumé du dossier.");
   });
 });
 

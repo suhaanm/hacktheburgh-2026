@@ -137,8 +137,10 @@ Cross-cutting rules, each tested where it is drawn: no "undefined", "NaN" or "nu
 
 | State | What is shown | Test |
 |---|---|---|
-| A coach step is active, engine answering | one quiet row first among the rows: "Coaching you on <task>." (name cut at its first comma, five words at most), opens the coaching page | `the coaching row` [model.test.ts] |
-| No active step, the step past the last, a name that is not text, a step that is not a whole number | no row | `is absent when no step is active` |
+| A coach step is active, engine answering | one quiet row first among the rows: "Coaching: <task>." (name cut at its first comma, nine words at most, an ellipsis when cut: a lesson name such as "Read the failing trace before changing code" reads as it is), opens the coaching page | `the coaching row` [model.test.ts] |
+| No active step, the step past the last, a name that is not text, a step that is not a whole number, or the engine says no task is open (`active: false`, whatever step it names) | no row | `is absent when no step is active`, `is absent when the engine says no task is open` |
+| Coaching page (Today), no task open | label "Next lesson", the lesson as the title, no step count and no marks, "No task is open, so I am staying quiet." and one line on what happens when a task starts | `Today.dom.test.ts` |
+| Coaching page, any hostile answer (a null or missing message, reason_codes, mastery or task, a step count of 0, past the end or absurd, a step id where a number was promised, an unknown action, a decision that flips from a nudge to silence) | a calm page, never the "This screen hit a problem" page; nothing prints NaN, null or undefined; at most 40 step marks | `Today.dom.test.ts`, `lib/coach.test.ts` |
 | No engine (example data) | no row: an example is not a step anyone is coaching | `Home.tsx` |
 | Right-to-left or accented task name | kept | `copes with unicode and right-to-left task names` |
 

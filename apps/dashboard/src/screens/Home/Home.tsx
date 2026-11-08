@@ -129,7 +129,7 @@ export default function Home() {
   // At most two quiet rows, in order of claim: the coaching row while a step is active, the pointer an approval displaced, what needs you, the next pointer, then the best of Repeats and Growth.
   const candidates: ReactNode[] = [];
   // Only a live answer counts: with no engine the coach state is an example, and an example is not a step anyone is coaching.
-  const coaching = coach.source === "live" ? coachLine(coach.data?.task) : null;
+  const coaching = coach.source === "live" ? coachLine(coach.data?.task, coach.data?.active) : null;
   if (coaching) candidates.push(<Row key="coach" href="#/today" icon="coach">{coaching}</Row>);
   if (blocking && first) candidates.push(<Row key="first" href={action?.href ?? "#/growth"} icon="growth">{rowSentence(first.headline)}</Row>);
   if (needs) candidates.push(<Row key="needs" href="#/needs-you" icon="needs-you">{needs}</Row>);
