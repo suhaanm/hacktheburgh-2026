@@ -162,6 +162,8 @@
   .page, .page--read, .page--wide { padding: var(--space-5) var(--space-4) calc(56px + var(--space-8)); width: calc(100% - 2 * var(--space-4)); max-width: none; }
   .banner-wrap, .crumb-wrap { padding-inline: var(--space-4); }
   .growth-host__switch { padding-inline: var(--space-4); }
+  /* A phone has no keyboard to press them on: the shortcut hints in the menus are left out. */
+  .popover kbd { display: none; }
   .stopped-banner { position: static; }
   /* The stopped banner's sentence needs the whole width to stay within two lines: its Resume button drops to its own row. */
   .stopped-banner .inline-banner { flex-wrap: wrap; }

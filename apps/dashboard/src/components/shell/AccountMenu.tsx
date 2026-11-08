@@ -4,7 +4,7 @@
 // "Admin"); the choice is remembered on this device. A name is kept on this Mac only.
 import { useEffect, useState } from "react";
 import { api } from "../../api";
-import { adoptEngineName, initialOf, NAME_PLACEHOLDER, roleLabel, useDisplayName, type ProfileRole } from "../../lib/profile";
+import { ADD_NAME, adoptEngineName, initialOf, roleLabel, useDisplayName, type ProfileRole } from "../../lib/profile";
 import { navigate, screenOf, useRoute } from "../../router";
 import { useAppState } from "../../store";
 import { useAuth } from "../../auth";
@@ -87,7 +87,7 @@ export function AccountMenu({ placement = "up" }: { placement?: "up" | "down" })
               <div className="account__who" data-testid="account-who">
                 {name
                   ? <b className="account__who-name" dir="auto">{name}</b>
-                  : <button type="button" role="menuitem" className="account__who-add" onClick={() => setEditing(true)}>{NAME_PLACEHOLDER}</button>}
+                  : <button type="button" role="menuitem" className="account__who-add" onClick={() => setEditing(true)}>{ADD_NAME}</button>}
                 {roleText && <span className="account__who-role">{roleText}</span>}
               </div>
               <button type="button" role="menuitem" className="popover__item popover__item--row" onClick={() => setEditing(true)}>Change profile</button>
