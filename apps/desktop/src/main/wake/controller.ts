@@ -11,7 +11,7 @@ import { dormancy, type Dormancy, type WakeInputs } from './guards'
 import type { HelperStatus } from './helper'
 import type { RungReading } from './rung'
 import { consentOutcome, consentStep, type CardChoice, type WakeSettingsStore } from './settings'
-import { BLOCKED_LINE, CARDS, LISTENING_LINE, REFUSAL_LINE, dormantLine } from './texts'
+import { BLOCKED_LINE, CARDS, LISTENING_LINE, REFUSAL_LINE, dormantLine, infoCardFor, type InfoCard } from './texts'
 
 export interface CardSpec {
   id: string
@@ -38,6 +38,8 @@ export interface HelperPort {
 }
 
 export interface LivePort {
+  /** What would stop a conversation opening now, leaving consent out (the cards ask for that). Null: nothing. */
+  blocker(): string | null
   startFromWake(): boolean
   status(): { phase: string; trigger: 'key' | 'wake' | null; refused: string | null }
   subscribe(cb: () => void): () => void
@@ -79,6 +81,8 @@ export interface WakeControllerDeps {
   rung: () => RungReading
   desktop: DesktopRunPort
   chime?: () => void
+  /** The button on an information card: Knack's Settings, or the macOS microphone pane. */
+  openSettings?: (where: 'knack' | 'microphone') => void
   say?: (line: 'show_instead' | 'done' | 'did_not_work' | 'stopped') => void
   now?: () => number
   setTimer?: (fn: () => void, ms: number) => unknown
@@ -260,12 +264,22 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
     dispatch({ t: 'wake' })
     d.helper.stop() // the microphone is released before the conversation opens its own
     try {
+      // The words were heard, so the worker always gets an answer: when a conversation cannot open at all (no live models, the service not answering, the
+      // microphone not allowed) a card says why in plain words, before any consent is asked for something that could not happen anyway.
+      const blocker = d.live.blocker()
+      if (blocker !== null && blocker !== 'busy') {
+        lastRefusal = REFUSAL_LINE[blocker] ?? null
+        explain(blocker)
+        return end(`blocked_${blocker}`)
+      }
       if (!(await consent())) return end('declined')
       if (!d.lock.acquire('asked', 120_000, undefined, 'wake')) return end('lock_held')
       d.chime?.()
       if (!d.live.startFromWake()) {
-        lastRefusal = REFUSAL_LINE[d.live.status().refused ?? ''] ?? 'Knack could not start talking.'
+        const why = d.live.status().refused ?? ''
+        lastRefusal = REFUSAL_LINE[why] ?? 'Knack could not start talking.'
         d.lock.release('asked', 'wake')
+        explain(why)
         return end('refused')
       }
       wakeSession = true
@@ -275,6 +289,17 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
     } finally {
       publish()
     }
+  }
+
+  /** An information card for a refusal (never silence). Fire and forget: the listener comes back after its pause either way. */
+  function explain(reason: string): void {
+    const card: InfoCard | null = infoCardFor(reason)
+    if (!card) return
+    const id = `info-${++cardSeq}`
+    void d.cards.ask({ id, title: card.title, body: card.body, buttons: card.buttons, expireMs: 20_000 }).then((a) => {
+      // A button counts only as a real mouse click (the card window never answers otherwise).
+      if (a && a.via === 'mouse' && a.buttonId === card.buttons[0].id && card.action) d.openSettings?.(card.action === 'microphone' ? 'microphone' : 'knack')
+    })
   }
 
   function end(why: string): void {
@@ -328,6 +353,12 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
           // The wake conversation ended (goodbye, quiet, cap, Stop, kill).
           wakeSession = false
           d.lock.release('asked', 'wake')
+          // A conversation that ended because the microphone went away (revoked mid-conversation) says so on a card, once.
+          const why = d.live.status().refused
+          if (why === 'mic_permission') {
+            lastRefusal = REFUSAL_LINE[why] ?? null
+            explain(why)
+          }
           dispatch({ t: 'session_ended' })
           cooldownUntil = now() + restartDelay
           schedule(restartDelay)
