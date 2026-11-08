@@ -9,12 +9,12 @@
   "id": "data-analyst",
   "name": "Data analyst",
   "summary": "Pulls data, cleans it, checks it and writes up the finding.",
-  "depth": "thin"
+  "depth": "standard"
  },
  {
   "id": "programmer",
   "name": "Programmer",
   "summary": "Reads code, changes it, runs tests and ships the change.",
-  "depth": "thin"
+  "depth": "standard"
  }
 ]

@@ -1,14 +1,16 @@
 // Home: one sentence about the week, one action, at most two quiet rows (docs/knack-ux/01-home.md). No chart, no statistic, no paragraph.
 // A blocking approval or a safety pause takes the hero slot. Everything the old Your week showed beyond this moved: the Monday note to the
 // palette, "What your admin can see" to Your data, the example-week selector to Settings, the data mode to the sidebar's status line.
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { api, forgetBackoff } from "../../api";
 import { reportInsight } from "../../lib/wakeContext";
 import { refreshNeedsBadge } from "../NeedsYou/count";
 import { useRoute } from "../../router";
 import { useAppState } from "../../store";
 import { useLoad } from "../../hooks";
+import { pick } from "../../screenRegistry";
 import { ApprovalHero } from "../../components/home/ApprovalHero";
+import { TaskBox } from "../../components/home/TaskBox";
 import { WhyThis } from "../../components/home/PointerCard";
 import { Hint } from "../../components/Hint";
 import { Icon } from "../../components/shell/icons";
@@ -16,11 +18,11 @@ import { FIRST_RUN_KEY } from "../FirstRun/model";
 import { loadRepeats } from "../Repeats/data";
 import { loadWorker, parseStory } from "./data";
 import { blockingItem, remainingAfter } from "./approval";
-import { COULD_NOT_LOAD, GROWTH_ROW, exampleLine, heroAction, heroSentence, needsLine, originBadge, quietFor, repeatsHint, repeatsRow, rowSentence, tryLine, weekOf, type Quiet } from "./model";
+import { COULD_NOT_LOAD, GROWTH_ROW, coachLine, exampleLine, heroAction, heroSentence, needsLine, originBadge, quietFor, repeatsHint, repeatsRow, rowSentence, tryLine, weekOf, type Quiet } from "./model";
 import { useExampleWeek } from "./story";
 import "../../components/home/home.css";
 
-function Row({ href, icon, children, hint }: { href: string; icon: "needs-you" | "routines" | "growth"; children: string; hint?: { label: string; text: string } | null }) {
+function Row({ href, icon, children, hint }: { href: string; icon: "needs-you" | "routines" | "growth" | "coach"; children: string; hint?: { label: string; text: string } | null }) {
   return (
     <li className="home__row">
       <a className="home__row-link" href={href}>
@@ -59,6 +61,17 @@ function QuietState({ q, onRetry }: { q: Quiet; onRetry: () => void }) {
   );
 }
 
+// The background tasks list is Track C's (components/routines/BackgroundTasks): one line per task, nothing when there are none. Found by glob so Home builds whether or
+// not that folder has landed in the branch being built; a missing one draws nothing.
+const BACKGROUND = import.meta.glob("../../components/routines/BackgroundTasks.tsx");
+type BackgroundModule = { default?: ComponentType<{ limit?: number }>; BackgroundTasks?: ComponentType<{ limit?: number }> };
+const loadBackground = pick(BACKGROUND, ["../../components/routines/BackgroundTasks.tsx"]) as (() => Promise<BackgroundModule>) | null;
+// The list is a named export of that module; a default export is accepted too. Either way `lazy` gets the { default } shape it needs.
+const BackgroundTasks = lazy(async () => {
+  const m = loadBackground ? await loadBackground() : null;
+  return { default: (m?.default ?? m?.BackgroundTasks ?? (() => null)) as ComponentType<{ limit?: number }> };
+});
+
 const firstRunAt = (): string | null => { try { return window.localStorage.getItem(FIRST_RUN_KEY); } catch { return null; } };
 
 export default function Home() {
@@ -71,6 +84,17 @@ export default function Home() {
   const w = useLoad(() => loadWorker(person, story), [person, story]);
   const rep = useLoad(() => loadRepeats(7), []);
   const queue = useLoad(() => api.queue("pending"), []);
+  // The live coach: while a step is active, one quiet row opens the coaching page. Asked again every 15 seconds and when the window comes back; a failure
+  // (no engine, no active task) is simply no row.
+  const coach = useLoad(() => api.coach(person ?? undefined), [person]);
+  const reloadCoach = useRef(coach.reload);
+  reloadCoach.current = coach.reload;
+  useEffect(() => {
+    const again = () => reloadCoach.current();
+    const t = window.setInterval(again, 15_000);
+    window.addEventListener("focus", again);
+    return () => { window.clearInterval(t); window.removeEventListener("focus", again); };
+  }, []);
   useEffect(() => { document.title = "Home · Knack"; }, []);
   useEffect(() => setGone(new Set()), [story, person]);
 
@@ -104,8 +128,11 @@ export default function Home() {
   const repeats = rep.data && rep.data.state === "ok" ? rep.data.total : null;
   const rLine = repeatsRow(repeats);
 
-  // At most two quiet rows, in order of claim: the pointer an approval displaced, what needs you, the next pointer, then the best of Repeats and Growth.
+  // At most two quiet rows, in order of claim: the coaching row while a step is active, the pointer an approval displaced, what needs you, the next pointer, then the best of Repeats and Growth.
   const candidates: ReactNode[] = [];
+  // Only a live answer counts: with no engine the coach state is an example, and an example is not a step anyone is coaching.
+  const coaching = coach.source === "live" ? coachLine(coach.data?.task) : null;
+  if (coaching) candidates.push(<Row key="coach" href="#/today" icon="coach">{coaching}</Row>);
   if (blocking && first) candidates.push(<Row key="first" href={action?.href ?? "#/growth"} icon="growth">{rowSentence(first.headline)}</Row>);
   if (needs) candidates.push(<Row key="needs" href="#/needs-you" icon="needs-you">{needs}</Row>);
   if (second) candidates.push(<Row key="second" href={heroAction(second)?.href ?? "#/growth"} icon="growth">{rowSentence(second.headline)}</Row>);
@@ -115,6 +142,8 @@ export default function Home() {
 
   return (
     <div className="page page--read home" aria-busy={w.status === "loading"}>
+      {/* Above everything, when there are any: what is running for the worker, three lines at most. */}
+      <Suspense fallback={null}><BackgroundTasks limit={3} /></Suspense>
       <div className="home__meta">
         <span>{date ?? "This week"}</span>
         {badge && <span className="pill pill--origin" data-origin={example ? "example" : w.meta?.origin ?? "synthetic"}>{badge}</span>}
@@ -130,6 +159,8 @@ export default function Home() {
           </div>
         </section>
       )}
+
+      <TaskBox role={app.role} />
 
       {rows.length > 0 && <ul className="home__rows">{rows}</ul>}
     </div>
