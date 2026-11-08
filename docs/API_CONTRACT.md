@@ -188,7 +188,7 @@ The dashboard calls it as `/agent/<path>` (the dev proxy strips `/agent` and add
 | `POST /tasks/{id}/answer` `{option_id}` | `worker`, `worker_approval`, `voice` | ROW (the chosen route still gets its own card) |
 | `POST /tasks/{id}/stop` | `worker`, `worker_approval`, `voice`; no token (stop route) | ROW |
 | `POST /tasks/{id}/open` | `worker`, `worker_approval` | `{opened: true}`: `open -R` on the task's own recorded path; executes nothing |
-| `GET /skills[?refresh=1]` | any | `{use_claude_skills, off, skills: [{name, description, source: "claude"\|"plugin"\|"knack", enabled}]}` |
-| `POST /skills/settings` `{use_claude_skills?, off?, max_minutes?}` | `worker`, `worker_approval` | the listing + `max_minutes` |
+| `GET /skills[?refresh=1]` | any | `{use_claude_skills, off, max_minutes, skills: [{name, description, source: "claude"\|"plugin"\|"knack", enabled}]}` |
+| `POST /skills/settings` `{use_claude_skills?, off?, max_minutes?}` | `worker`, `worker_approval` | the same listing as `GET /skills` |
 
 Errors `{error:{code,message}}`: `bad_body` 422, `kill_switch_set` 423, `too_many_tasks` 429 (3 running, 20 waiting), `no_such_task` 404, `nothing_to_open` 404, `not_waiting` 409, `write_refused` 403 (a non-worker actor), `token_required` / `token_invalid` 403. Events: a card or a question arrives as `task_progress` with `state: "waiting_consent"`. Python: `understudy_agent.tasks.submit_task(text, source="voice")`.

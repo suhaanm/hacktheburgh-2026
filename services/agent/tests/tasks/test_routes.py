@@ -243,7 +243,12 @@ def test_skills_listing_and_settings_over_http(app_client):
     kn.mkdir(parents=True)
     (kn / "SKILL.md").write_text("---\nname: house-style\ndescription: Our house writing style\n---\nbody\n")
     r = app_client.get("/skills?refresh=1").json()
-    assert r["use_claude_skills"] is True and r["off"] == []
+    assert r["use_claude_skills"] is True and r["off"] == [] and r["max_minutes"] == 30 and set(r) == {"use_claude_skills", "off", "max_minutes", "skills"}
+    assert app_client.post("/skills/settings", json={"max_minutes": 45}, headers=worker()).json()["max_minutes"] == 45
+    assert app_client.get("/skills").json()["max_minutes"] == 45
+    assert app_client.post("/skills/settings", json={"max_minutes": 0}, headers=worker()).status_code == 422
+    assert app_client.post("/skills/settings", json={"max_minutes": True}, headers=worker()).status_code == 422
+    assert app_client.post("/skills/settings", json={"max_minutes": 121}, headers=worker()).status_code == 422
     assert {(s["name"], s["source"], s["enabled"]) for s in r["skills"]} == {("pdf-tools", "claude", True), ("house-style", "knack", True)}
     assert all(set(s) == {"name", "description", "source", "enabled"} for s in r["skills"])
     r = app_client.post("/skills/settings", json={"use_claude_skills": False, "off": ["house-style"]}, headers=worker()).json()

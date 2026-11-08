@@ -219,6 +219,4 @@ async def skill_settings(request: Request) -> Any:
                                   or not 1 <= body["max_minutes"] <= 120):
         return _err(422, "bad_body", "max_minutes must be 1 to 120.")
     save_settings(body)
-    out = _book(request).listing()
-    out["max_minutes"] = load_settings()["max_minutes"]
-    return out
+    return _book(request).listing()

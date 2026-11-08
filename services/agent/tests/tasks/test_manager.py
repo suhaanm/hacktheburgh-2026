@@ -528,3 +528,34 @@ def test_every_row_time_has_milliseconds_and_orders_newest_first(make_manager):
     import re
 
     assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z", rows[0]["started"])
+
+
+@pytest.mark.parametrize("exc,reason", [
+    ("ConfigError", "Knack's model connection isn't set up on this Mac, so nothing was sent."),
+    ("ModelRefusal", "The model declined to answer that."),
+    ("ProviderError", "The model could not be reached or gave no usable answer. Try again in a moment."),
+    ("SchemaViolation", "The model could not be reached or gave no usable answer. Try again in a moment.")])
+def test_model_failures_have_their_own_plain_reasons(make_manager, port, exc, reason):
+    from understudy_agent.models import errors
+
+    def boom(messages, schema=None):
+        raise getattr(errors, exc)("details with a /Users/secret path and sk-abcdefghijklmnop")
+
+    port.plan = boom
+    m = make_manager()
+    t = done(m, m.create("What is the capital of Scotland?", "typed")["task_id"])
+    assert t.state == "failed" and t.reason == reason and "secret" not in json.dumps(m.detail(t.task_id))
+
+
+def test_a_kill_while_the_model_is_thinking_drops_the_answer(make_manager, port):
+    def slow(messages, schema=None):
+        set_kill("test")
+        return {"text": "An answer that must not be shown."}
+
+    port.plan = slow
+    m = make_manager()
+    try:
+        t = done(m, m.create("What is the capital of Scotland?", "typed")["task_id"])
+        assert t.state == "stopped" and t.reason == "Stopped by the kill switch." and t.answer is None and t.result is None
+    finally:
+        clear_kill()

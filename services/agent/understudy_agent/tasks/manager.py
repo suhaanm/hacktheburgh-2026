@@ -29,6 +29,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from ..audit import AuditLog
+from ..models.errors import ConfigError, ModelRefusal, ProviderError
 from ..security.killflag import is_killed
 from ..security.paths import data_dir, repo_root
 from . import claude_cli as cc
@@ -562,6 +563,12 @@ class TaskManager:
             target(t)
         except TaskError as e:
             self._finish(t, "failed", reason=e.message)
+        except ConfigError:
+            self._finish(t, "failed", reason="Knack's model connection isn't set up on this Mac, so nothing was sent.")
+        except ModelRefusal:
+            self._finish(t, "failed", reason="The model declined to answer that.")
+        except ProviderError:
+            self._finish(t, "failed", reason="The model could not be reached or gave no usable answer. Try again in a moment.")
         except Exception as exc:  # noqa: BLE001 - a task never takes the service down; the reason is plain and short
             self._audit("system", "task", t, "failed", "internal_error", error=type(exc).__name__.lower()[:30])
             self._finish(t, "failed", reason="Something went wrong inside Knack, and the task stopped.")
@@ -607,6 +614,9 @@ class TaskManager:
         out = port.plan([{"role": "system", "content": system}, {"role": "user", "content": user}], ANSWER_SCHEMA)
         text = one_line(out.get("text") if isinstance(out, dict) else "", 1500, redact=False) or "I don't have an answer for that."
         if t.stop_requested:
+            return
+        if is_killed():                                       # the kill file went up while the model was thinking: drop the answer
+            self._finish(t, "stopped", reason="Stopped by the kill switch.")
             return
         t.answer = text
         self.store.save_result_text(t.task_id, text)

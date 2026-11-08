@@ -231,7 +231,7 @@ class SkillBook:
 
     def listing(self, *, fresh: bool = False) -> dict[str, Any]:
         st = load_settings()
-        return {"use_claude_skills": st["use_claude_skills"], "off": st["off"],
+        return {"use_claude_skills": st["use_claude_skills"], "off": st["off"], "max_minutes": st["max_minutes"],
                 "skills": [s.public(self.enabled(s, st)) for s in self.items(fresh=fresh)]}
 
     def select(self, task_text: str, k: int = 2, settings: dict[str, Any] | None = None) -> list[SkillInfo]:
