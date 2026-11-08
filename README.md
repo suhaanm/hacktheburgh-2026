@@ -72,7 +72,7 @@ Status words: **verified** means the lead saw it work end to end; **built** mean
 | Proactive layers | Briefing, calendar, git habits, local model, background agents, attention router, insights for workers and admins | built, synthetic |
 | Cue and Growth | Stuck rescue and the independence score | built; held-out runs on simulated workers and learners only (Cue met one of two primary targets) |
 | Models | Gemini by default (D49: the OpenAI key was revoked on 7 Nov), OpenAI as an explicit opt-in, a local model for private digests, ElevenLabs fixed lines, an independent verifier, live voice in the desktop app | built; Gemini checked at boot and on a pointing bake-off (small n) |
-| Computer use on the sandbox calculators | A model clicks and types through the same safety layers | **mostly reliable, bar not met**: Gemini, held-out clean 18 of 20 completed with correct inputs (Wilson 95% 0.70 to 0.97; pre-registered bar of 0.80 on the lower bound not met), 0 false claims, nothing submitted; the earlier OpenAI configuration was 1 of 4 (different configuration, not pooled) |
+| Computer use on the sandbox calculators | A model clicks and types through the same safety layers | **the pre-registered bar was not met**: Gemini, held-out clean 18 of 20 completed with correct inputs (Wilson 95% 0.70 to 0.97; pre-registered bar of 0.80 on the lower bound not met), 0 false claims, nothing submitted; the earlier OpenAI configuration was 1 of 4 (different configuration, not pooled) |
 | Computer use on a real desktop | Click and type through the same safety layers | not run: only the read-only rung R0 ran once |
 | Hey Knack | An on-device wake phrase, then voice guidance with the annotation ring; 'do it for me' stays behind a real click | built and tested offline; not run with a microphone yet |
 | Open-ended tasks and Claude background agents | The worker types or says any task (Home task box, or Hey Knack); code routes it; a job that needs an agent asks for one consent card and can start the owner's own Claude command as a monitored background agent | built; tested with a fake command and two small real runs (D64); no real task has been run |
@@ -81,7 +81,7 @@ Status words: **verified** means the lead saw it work end to end; **built** mean
 | Prediction evidence (HRT) | A hash-chained prospective ledger, a drift guard, a decisions scoreboard, online recalibration, conformal ranges and decision value, all on generated worlds | built; held-out results in `docs/HRT_BRIEF.md` (the failures are printed with the wins) |
 | Role packs | One deep (benefits processor) and two at standard depth (programmer: 22 step types, 18 skills, 4 gates, 13 routine templates; analyst: 21, 16, 6, 13) | built; written from the job, no study, no real traces |
 
-The three-minute walkthrough script is [docs/drafts/DEMO_SCRIPT.md](docs/drafts/DEMO_SCRIPT.md). Architecture and contracts: [docs/IMPLEMENTATION_SPEC.md](docs/IMPLEMENTATION_SPEC.md), [docs/API_CONTRACT.md](docs/API_CONTRACT.md).
+The demo shot list and spoken lines are [docs/KNACK_DEMO.md](docs/KNACK_DEMO.md), which replaces the older [docs/drafts/DEMO_SCRIPT.md](docs/drafts/DEMO_SCRIPT.md); the features, one page each with a spoken script, are in [docs/PITCH_FEATURES.md](docs/PITCH_FEATURES.md). Architecture and contracts: [docs/IMPLEMENTATION_SPEC.md](docs/IMPLEMENTATION_SPEC.md), [docs/API_CONTRACT.md](docs/API_CONTRACT.md).
 
 ## What we measured
 
