@@ -16,11 +16,14 @@ from understudy_engine.store.paths import evals_dir
 
 from .worlds import HELDOUT_ENV
 
-PARTS = ("ledger", "decisions", "recal")
+PARTS = ("ledger", "decisions")                     # what `run.py dev|freeze` mean by "all"
+FOLLOW_UPS = ("recal", "conformal")                 # each has its own plan (PLAN_<PART>.md), its own freeze and its own CLI (run_<part>.py)
+ALL_PARTS = PARTS + FOLLOW_UPS
 PART_FILES = {
     "ledger": ("__init__", "ledger", "scoring", "guard", "worlds", "prospective", "run"),
     "decisions": ("__init__", "scoreboard", "worlds", "run"),
     "recal": ("__init__", "ledger", "scoring", "worlds", "prospective", "recal", "run_recal"),     # the follow-up of PLAN_RECAL.md: its own plan, its own freeze
+    "conformal": ("__init__", "ledger", "scoring", "guard", "worlds", "prospective", "conformal", "run_conformal"),     # PLAN_CONFORMAL.md
 }
 
 
@@ -138,8 +141,8 @@ class Refused(RuntimeError):
 
 def check_can_run_heldout(part: str, *, amended: bool = False) -> dict[str, str]:
     """Raise ``Refused`` unless the token is set, the part is frozen, nothing changed since the freeze, and the part has not run. Returns the hashes."""
-    if part not in PARTS:
-        raise Refused(f"unknown part {part!r}; choose from {PARTS}")
+    if part not in ALL_PARTS:
+        raise Refused(f"unknown part {part!r}; choose from {ALL_PARTS}")
     if not token_ok():
         raise Refused(f"set {HELDOUT_ENV}=1 (single frozen run, evals/hrt/PLAN.md section 7)")
     fz = read_frozen()
