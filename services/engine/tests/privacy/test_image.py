@@ -318,7 +318,7 @@ def test_mock_mode_refuses_a_port_that_is_not_offline(monkeypatch):
             raise AssertionError("must not be called")
 
     a = img()
-    with pytest.raises(egress.EgressBlocked, match="mock"):
+    with pytest.raises(egress.EgressBlocked, match="Models are off"):
         egress.send_image("glance.screen_state", a, GOOD, gate=OPEN, port=Remote())
     assert a.released and ledger.read_all() == []
 

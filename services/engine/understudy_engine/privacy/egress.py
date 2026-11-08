@@ -154,7 +154,7 @@ def _resolve_port(port: Any, mock_mode: bool, purpose: str) -> tuple[Any, bool]:
         offline = bool(getattr(port, "offline", False)) or getattr(port, "name", "") in OFFLINE_PORT_NAMES
         if mock_mode and not offline:
             raise EgressBlocked(
-                "UNDERSTUDY_MOCK is on, so only the mock or a test port is accepted; nothing was sent.", purpose=purpose, rules=["mock_mode"])
+                "Models are off, so only an offline port is accepted; nothing was sent.", purpose=purpose, rules=["mock_mode"])
         return port, mock_mode or offline
     if mock_mode:
         try:
@@ -173,7 +173,7 @@ def _resolve_port(port: Any, mock_mode: bool, purpose: str) -> tuple[Any, bool]:
         return get_model_port(), False
     except Exception as exc:  # no key, no model ids: fail closed with a plain message
         raise EgressUnavailable(
-            f"No model is configured ({type(exc).__name__}), so nothing was sent. Set UNDERSTUDY_MOCK=1 to run offline.",
+            f"No model is configured ({type(exc).__name__}), so nothing was sent.",
             purpose=purpose) from None
 
 

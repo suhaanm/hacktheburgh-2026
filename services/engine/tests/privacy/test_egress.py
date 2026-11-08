@@ -240,7 +240,7 @@ def test_mock_mode_refuses_a_port_that_is_not_offline(monkeypatch):
         def plan(self, *a, **k):
             raise AssertionError("must not be called")
 
-    with pytest.raises(EgressBlocked, match="mock"):
+    with pytest.raises(EgressBlocked, match="Models are off"):
         egress.send(CAL, cal(), port=Remote())
     assert ledger.read_all() == []
 
