@@ -108,4 +108,24 @@ All of `PLAN.md` section 9 applies. In addition:
 
 ## Amendment log
 
-(none yet)
+**A1, Sun 8 Nov 2026 about 02:15 GMT, after one dev run (DEV seeds k = 35, 36 and 52, never reported as evidence; its output is kept as `evals/hrt/results/dev_conformal_first.json`),
+before the freeze and before any run on the held-out seeds.** The dev run showed four things about the plan as registered. Nothing below changes a pass rule except where it says so.
+
+1. **T1's horizon was badly chosen.** With a five-minute horizon only 1.8% of the calibration origins (589 of 31,941) and 1.8% of the v1 dev origins (267 of 14,542) have all
+   ten steps observable, because the v1 episodes are short; the v2 worlds keep 17% to 37%. A v1 result on 267 origins and eight people says almost nothing. The calibration
+   pool alone (not any coverage number) gives the share of origins with at least k observable steps in v1: 100% for k = 2, 41% for k = 4, 15% for k = 6. **T1 is changed to
+   a two-minute horizon, four steps (supersedes the T1 row of section 2):** the range is over steps 1 to 4 plus 5 for "not within two minutes", the head's CDF is cut at step 4,
+   q_lo and q_hi are the first of steps 1 to 4 whose CDF reaches alpha/2 and 1 - alpha/2 (5 if none), the Kaplan-Meier baseline is cut the same way, and an origin counts when
+   all four steps are observable. The choice rule, fixed here before any coverage number of the new design exists: **the longest horizon in whole minutes observable for at
+   least 25% of the calibration origins** (one minute 100%, two minutes 41%, three minutes 15%). Everything else about T1 is as registered.
+2. **The plan contradicted itself about over-coverage.** Section 5 says K1 and K5 pass when the coverage interval "contains 0.90"; the last paragraph of section 8 said an
+   interval above 0.90 "does not count against K1". Dev showed it matters: after recalibrating, the finish-time range covered 99.6% in one world (K5c), because the range was
+   about 750 times wide from end to end. **The table governs and the sentence in section 8 is withdrawn**: K1 and K5 pass only when the interval contains 0.90, so a range that
+   over-covers fails the rule, and the brief prints for every coverage figure whether it is under (upper end below 0.90), consistent, or over (lower end above 0.90).
+3. **Coverage can be restored by making the answer useless, and the plan only asked about coverage.** On dev, the recalibrated arm's finish-time range was 43 to 750 times
+   wide from end to end and its stuck sets held both labels in 74% to 97% of origins. Width is already "reported, not a claim"; this amendment makes it **part of every table
+   the brief and the page print beside the coverage figure** (set sizes for T0, mean length for T1, the end-to-end factor for T2), and adds one reported arm, **recentred
+   (T2 only)**: shift the model's log prediction by the median log residual on the calibration pool, then take the conformal quantile of the absolute residual about the shifted
+   prediction (the same data, one more parameter, no claim attached). It is there to say whether the width is a bias that one number removes or a spread that nothing removes.
+4. **For reading only, what dev said about the claims**, so that nobody thinks they were chosen to pass: K1a to c held, K2a to c held, K3 held (the finish-time model's Q was
+   only 0.006 smaller than the constant baseline's), K4 held (6 of 6 low-coverage deployments flagged), K5a held, **K5b and K5c did not**. K5b and K5c stay as registered.

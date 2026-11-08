@@ -19,8 +19,8 @@ from . import worlds as wd
 ALPHA = 0.10
 NOMINAL = 1.0 - ALPHA
 LOW_COVERAGE = 0.85                  # nominal less five points: the line K4 draws under a deployment's T0 coverage
-K_STEPS = 10
-BEYOND = K_STEPS + 1                 # "not within five minutes"
+T1_STEPS = 4                         # amendment A1: a two-minute horizon (the longest whole-minute horizon observable for at least 25% of the calibration origins)
+BEYOND = T1_STEPS + 1                # "not within two minutes"
 STEP_S = 30.0
 HORIZON_S = 60.0
 RIDGE = 1.0
@@ -157,7 +157,7 @@ class Models:
     tte: Any                     # prospective.DeployedTTE (the head and the Kaplan-Meier constant)
     fin: FinishModel
     fin_const: float             # median log seconds remaining over TRAIN: the constant baseline of T2
-    km_cdf: np.ndarray           # the Kaplan-Meier constant CDF over the ten steps: the constant baseline of T1
+    km_cdf: np.ndarray           # the Kaplan-Meier constant CDF over steps 1 to 4: the constant baseline of T1
 
     @property
     def base_rate(self) -> float:
@@ -175,7 +175,7 @@ def fit_models(train_eps: list) -> Models:
     tab = build_bins(train_eps)
     X, rem = finish_columns(train_eps, tab)
     logr = np.log(rem)
-    return Models(dep, tte, FinishModel(RIDGE).fit(X, logr), float(np.median(logr)), 1.0 - tte.km.survival_row()[1:])
+    return Models(dep, tte, FinishModel(RIDGE).fit(X, logr), float(np.median(logr)), 1.0 - tte.km.survival_row()[1:T1_STEPS + 1])
 
 
 @dataclass
@@ -204,10 +204,10 @@ def origins_for(models: Models, eps: list, deployment: int) -> Origins:
     rows = np.arange(tab.n)
     p = models.dep.models["full"].predict(tab, rows)
     tte = build_tte(eps, tab)
-    cdf = 1.0 - models.tte.model.survival(tab, rows)[:, 1:]
+    cdf = 1.0 - models.tte.model.survival(tab, rows)[:, 1:T1_STEPS + 1]                    # the head's CDF over steps 1 to 4
     step_event = np.where(tte.event == 1, np.ceil(tte.time_s / STEP_S - 1e-9).astype(int), 0)
-    full = tte.steps_obs >= K_STEPS
-    step_y = np.where(full, np.where((step_event >= 1) & (step_event <= K_STEPS), step_event, BEYOND), 0)
+    full = tte.steps_obs >= T1_STEPS
+    step_y = np.where(full, np.where((step_event >= 1) & (step_event <= T1_STEPS), step_event, BEYOND), 0)
     X, rem = finish_columns(eps, tab)
     return Origins(deployment=np.full(tab.n, deployment), person=np.array([f"{deployment}|{x}" for x in tab.person], dtype=object), y=np.asarray(tab.y).astype(int), p_model=np.asarray(p, dtype=float),
                    cdf=np.asarray(cdf, dtype=float), step_y=step_y.astype(int), full=np.asarray(full, dtype=bool), log_r=np.log(rem), yhat=models.fin.predict(X))
@@ -229,9 +229,11 @@ def calibrate(o: Origins, models: Models) -> dict[str, Any]:
     lo, hi = step_quantile(o.cdf[f], ALPHA / 2), step_quantile(o.cdf[f], 1 - ALPHA / 2)
     klo, khi = _km_bounds(models)
     pb = np.full(o.n, models.base_rate)
+    shift = float(np.median(o.log_r - o.yhat))
     return {"t0": conformal_quantile(lac_scores(o.p_model, o.y)), "t0_base": conformal_quantile(lac_scores(pb, o.y)),
             "t1": conformal_quantile(cqr_scores(lo, hi, o.step_y[f])), "t1_km": conformal_quantile(cqr_scores(np.full(lo.size, klo), np.full(lo.size, khi), o.step_y[f])),
             "t2": conformal_quantile(np.abs(o.log_r - o.yhat)), "t2_const": conformal_quantile(np.abs(o.log_r - models.fin_const)),
+            "t2_shift": shift, "t2_recentred": conformal_quantile(np.abs(o.log_r - o.yhat - shift)),          # amendment A1: the reported "recentred" arm of T2
             "n": {"origins": o.n, "t1_origins": int(f.sum()), "people": len(np.unique(o.person))}}
 
 
@@ -280,8 +282,10 @@ def evaluate(o: Origins, c: dict[str, Any], models: Models, *, B: int, seed: int
     resid = np.abs(o.log_r - o.yhat)
     cov2 = resid <= c["t2"]
     covc = np.abs(o.log_r - models.fin_const) <= c["t2_const"]
+    cov_rc = np.abs(o.log_r - o.yhat - c["t2_shift"]) <= c["t2_recentred"]
     out["t2"] = {"coverage": mwi(cov2), "q_model": c["t2"], "factor_model": float(np.exp(2 * c["t2"])), "q_baseline": c["t2_const"], "factor_baseline": float(np.exp(2 * c["t2_const"])),
-                 "baseline": {"coverage": mwi(covc)}, "median_abs_residual": float(np.median(resid))}
+                 "baseline": {"coverage": mwi(covc)}, "median_abs_residual": float(np.median(resid)),
+                 "recentred": {"coverage": mwi(cov_rc), "q": c["t2_recentred"], "factor": float(np.exp(2 * c["t2_recentred"])), "shift": c["t2_shift"]}}
     out["by_deployment"] = _by_deployment(o, {"t0": cov0, "t1_full": cov1_full, "t2": cov2})
     return out
 

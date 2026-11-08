@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+
 from understudy_engine.hrt import conformal as cf
 from understudy_engine.hrt import recal as rc
 from understudy_engine.hrt import worlds as wd
@@ -54,21 +55,22 @@ def test_set_coverage_and_sizes_count_the_true_label_and_the_set_size():
 
 
 # ---------------------------------------------------------------------------------------------------- step ranges (T1)
-def test_step_quantiles_are_the_first_step_whose_cdf_reaches_the_level_else_eleven():
-    cdf = np.array([[0.02, 0.10, 0.50, 0.96, 0.99, 1, 1, 1, 1, 1], [0.0] * 10, [0.30, 0.55, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9]])
-    assert cf.step_quantile(cdf, 0.05).tolist() == [2, 11, 1]
-    assert cf.step_quantile(cdf, 0.95).tolist() == [4, 11, 11]
+def test_step_quantiles_are_the_first_step_whose_cdf_reaches_the_level_else_beyond():
+    assert cf.T1_STEPS == 4 and cf.BEYOND == 5                             # amendment A1: a two-minute horizon, step 5 means "not within two minutes"
+    cdf = np.array([[0.02, 0.10, 0.50, 0.96], [0.0] * 4, [0.30, 0.55, 0.9, 0.9]])
+    assert cf.step_quantile(cdf, 0.05).tolist() == [2, 5, 1]
+    assert cf.step_quantile(cdf, 0.95).tolist() == [4, 5, 5]
 
 
 def test_the_range_widens_by_the_calibrated_quantile_and_a_negative_one_narrows_it():
-    lo, hi, y = np.array([2, 3, 5]), np.array([6, 6, 8]), np.array([1, 4, 11])
-    assert cf.cqr_scores(lo, hi, y).tolist() == [1, -1, 3]                # inside by 1 step on the nearer side: negative; outside by 1 and by 3 steps
-    cov = cf.cqr_covered(lo, hi, y, 1)
-    assert cov.tolist() == [True, True, False]                            # [1, 7], [2, 7], [4, 9]
-    assert cf.cqr_covered(lo, hi, y, -1).tolist() == [False, True, False]  # [3, 5], [4, 5]: only the middle truth is inside
-    assert cf.cqr_lengths(lo, hi, 1).tolist() == [7, 6, 6]                # clipped to the support 1..11: [1,7], [2,7], [4,9]
-    assert cf.cqr_lengths(np.array([1]), np.array([11]), 5).tolist() == [11]       # cannot be longer than the support
-    assert cf.cqr_lengths(np.array([5]), np.array([5]), -3).tolist() == [0]        # an emptied range has length 0
+    lo, hi, y = np.array([2, 3, 4]), np.array([3, 3, 4]), np.array([1, 3, 5])
+    assert cf.cqr_scores(lo, hi, y).tolist() == [1, 0, 1]                  # outside by one step; on the edge; outside by one step
+    assert cf.cqr_covered(lo, hi, y, 1).tolist() == [True, True, True]     # [1, 4], [2, 4], [3, 5]
+    assert cf.cqr_covered(lo, hi, y, 0).tolist() == [False, True, False]   # [2, 3], [3, 3], [4, 4]
+    assert cf.cqr_covered(lo, hi, y, -1).tolist() == [False, False, False]  # every range emptied
+    assert cf.cqr_lengths(lo, hi, 1).tolist() == [4, 3, 3]                 # [1, 4], [2, 4], [3, 5]
+    assert cf.cqr_lengths(np.array([1]), np.array([5]), 3).tolist() == [5]  # cannot be longer than the support 1..5
+    assert cf.cqr_lengths(lo, hi, -1).tolist() == [0, 0, 0]                # an emptied range has length 0
 
 
 # ---------------------------------------------------------------------------------------------- the finish-time model (T2)
@@ -139,8 +141,8 @@ def tiny():
 def test_origins_line_up_with_the_bins_and_censoring_is_flagged(tiny):
     _, cal, _ = tiny
     assert cal.p_model.shape == cal.y.shape == cal.log_r.shape == cal.person.shape
-    assert cal.cdf.shape == (cal.y.size, 10)
-    assert np.all(cal.step_y[cal.full] >= 1) and np.all(cal.step_y[cal.full] <= 11) and np.all(cal.step_y[~cal.full] == 0)
+    assert cal.cdf.shape == (cal.y.size, cf.T1_STEPS)
+    assert np.all(cal.step_y[cal.full] >= 1) and np.all(cal.step_y[cal.full] <= cf.BEYOND) and np.all(cal.step_y[~cal.full] == 0)
     assert 0.0 < cal.full.mean() <= 1.0
     assert np.all((cal.cdf >= 0) & (cal.cdf <= 1 + 1e-9)) and np.all(np.diff(cal.cdf, axis=1) >= -1e-9)
 
@@ -153,6 +155,18 @@ def test_calibrating_on_a_pool_covers_that_pool_at_least_at_the_nominal_level(ti
         assert ev[t]["coverage"]["est"] >= 0.895, (t, ev[t]["coverage"])  # same pool: coverage is at least the level, up to one score of discreteness
     assert set(ev["t0"]["sizes"]) >= {"single", "both", "empty"}
     assert ev["t2"]["factor_model"] == pytest.approx(np.exp(2 * c["t2"]))
+
+
+def test_recentring_removes_a_pure_bias_from_the_finish_range_and_changes_nothing_else(tiny):
+    models, cal, _ = tiny
+    biased = cf.Origins(**{**cal.__dict__, "yhat": cal.yhat + 2.0})
+    c0, c1 = cf.calibrate(cal, models), cf.calibrate(biased, models)
+    assert c1["t2"] > c0["t2"] + 1.0                                       # the plain quantile has to absorb the bias, so the range is far wider
+    assert c1["t2_recentred"] == pytest.approx(c0["t2_recentred"], abs=1e-9)
+    assert c1["t2_shift"] == pytest.approx(c0["t2_shift"] - 2.0)
+    assert c1["t0"] == c0["t0"] and c1["t1"] == c0["t1"]                   # T0 and T1 do not look at the finish model
+    ev = cf.evaluate(biased, c1, models, B=40, seed=0)
+    assert ev["t2"]["recentred"]["coverage"]["est"] >= 0.895 and ev["t2"]["recentred"]["factor"] == pytest.approx(np.exp(2 * c1["t2_recentred"]))
 
 
 def test_a_run_on_a_small_world_is_deterministic_and_has_the_claim_inputs(tiny):
