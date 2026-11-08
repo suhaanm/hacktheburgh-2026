@@ -1,12 +1,9 @@
 import type { AnalyticMeta } from "../../types";
 
-/** Said once, at the top of every Firm view, in the synthetic badge area: the firm is generated and so are the names. */
-export const SYNTHETIC_NOTE = "Names are made up. This firm is synthetic.";
-
-/** "synthetic firm" on every card of the Firm screen: the whole firm is generated, never measured from real people. */
+/** The small tag at the foot of the printed brief: "live" for measured data, else the engine's own word for the firm (or just "firm"). Generated data carries no origin tag (D57). */
 export function FirmBadge({ meta, label }: { meta?: (AnalyticMeta & { badge?: string }) | null; label?: string }) {
-  const origin = meta?.origin ?? "synthetic";
-  const text = label ?? meta?.badge ?? (origin === "real" ? "live" : "synthetic firm");
+  const origin = meta?.origin ?? "mixed";
+  const text = label ?? meta?.badge ?? (origin === "real" ? "live" : "firm");
   return <span className="pill pill--origin" data-origin={origin}>{text}</span>;
 }
 

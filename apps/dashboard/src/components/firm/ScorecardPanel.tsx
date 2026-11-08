@@ -166,7 +166,7 @@ function Ready({ card, load, audience }: { card: Scorecard; load: LoadState<Eval
         <details className="details-lite">
           <summary>What this does not show</summary>
           <SoftList items={[
-            `n = ${card.meta.n ?? "not reported"} ${card.meta.nUnit}. ${card.meta.origin === "real" ? "Measured from real people." : "Synthetic personas from our own generator, not people."}${card.meta.split ? ` Split: ${card.meta.split}.` : ""}`,
+            `n = ${card.meta.n ?? "not reported"} ${card.meta.nUnit}. ${card.meta.origin === "real" ? "Measured from real people." : "Generated people from our own generator, not real people."}${card.meta.split ? ` Split: ${card.meta.split}.` : ""}`,
             "Not validated on real people. The live study with teammates has not been run.",
             "The label is no progress in the next 60 seconds. That is not the same as confusion: fast thinking and slow typing both look stuck.",
             ...card.limits,
@@ -226,7 +226,7 @@ function Alarms({ card, meta, level }: { card: Scorecard; meta: AnalyticMeta | n
         <details className="details-lite" open={open} onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}>
           <summary>By person ({card.perPerson.length} {card.meta.nUnit})</summary>
           <table className="table sc-table">
-            <caption className="u-sr-only">False alarms per hour and share of stuck spells flagged, for each synthetic persona. Not a ranking.</caption>
+            <caption className="u-sr-only">False alarms per hour and share of stuck spells flagged, for each generated person. Not a ranking.</caption>
             <thead><tr><th>Persona</th><th className="num">False alarms an hour</th><th className="num">Spells flagged</th><th className="num">Bands scored</th></tr></thead>
             <tbody>
               {card.perPerson.slice(0, 7).map((p) => (

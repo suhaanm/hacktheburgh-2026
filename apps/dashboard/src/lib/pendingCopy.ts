@@ -11,14 +11,5 @@ export const PENDING_D57: Record<string, string> = {
   "apps/dashboard/src/components/home/noticesData.ts": "Track B: the example-data notice still carries a parenthetical tag",
   "apps/dashboard/src/screens/Home/Home.tsx": "Track B: the example-week line still names the old kind of firm",
   // Track C (Needs you, Routines, Your data, Settings, Agents)
-  // Track D (Growth, Genome, Firm, Roles, Onboarding, Today, Models, Presence, Graph, Week, Git, Forecasts, Evidence head)
-  "apps/dashboard/src/components/firm/Badges.tsx": "Track D: the firm badge",
-  "apps/dashboard/src/components/firm/ScorecardPanel.tsx": "Track D: two scorecard sentences",
-  "apps/dashboard/src/components/firm/brief.ts": "Track D: the brief's first sentence",
-  "apps/dashboard/src/components/firm/model.ts": "Track D: the firm label",
-  "apps/dashboard/src/components/firm/scorecard.ts": "Track D: the leave-one-person-out sentence",
-  "apps/dashboard/src/components/growth/model.ts": "Track D: the origin sentences and the experimental-score caveats",
-  "apps/dashboard/src/screens/Evidence.tsx": "Track D: the head's lede",
-  "apps/dashboard/src/screens/Growth/data.ts": "Track D: the example-data suffix",
 };
-export const PENDING_D57_MAX = 13;
+export const PENDING_D57_MAX = 2;
