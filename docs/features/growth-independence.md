@@ -18,7 +18,7 @@ An assist ledger holds one row per assist episode with enums and numbers only: n
 
 ## Where to see it
 
-Growth in the sidebar: a one-sentence title, one chart with its band, skills as rows, and closed disclosures (The fade, Your ledger, What Knack did for you). Export and delete are in Your data.
+Growth in the sidebar, the worker's one page for personal insight: 'My progress' (a one-sentence title, one chart with its band, skills as rows, and closed disclosures: About this data, The fade, Your record, What Knack did for you), then the sections 'Where my time goes', 'My steps against an experienced worker's', 'How my routines connect' and, for programmers, 'My commits', one under the other with no extra navigation. Export and delete are in Your data.
 
 ## Demo moment
 

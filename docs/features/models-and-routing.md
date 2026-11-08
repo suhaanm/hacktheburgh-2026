@@ -4,7 +4,7 @@
 
 **Capability:** Models and modes · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. 'Models and cost' is an Admin 'More' row; a worker gets one trust line ('Nothing leaves this Mac without your say. Every call Knack makes is listed under Settings, Advanced.') and the call list one click inside Settings, Advanced.
+**Navigation note (on main since 02:05 UTC).** The lead's views rule (`docs/knack-ux/views.md`) is implemented: a worker has five sidebar rows (Home, Needs you, Routines, Growth, Your data); Growth is one page with the sections My progress, Where my time goes, My steps, How my routines connect and My commits; the Admin view has Firm, Brief, Forecasts, Roles, People, Onboarding, Automation and Risk, then More: Models and cost, Evidence, Background runs. Old addresses redirect (`apps/dashboard/src/routeRedirects.ts`). The final list is `apps/dashboard/src/components/home/navModel.ts`. 'Models and cost' is an Admin 'More' row; a worker gets one trust line ('Nothing leaves this Mac without your say. Every call Knack makes is listed under Settings, Advanced.') and the call list one click inside Settings, Advanced.
 
 This page covers Model routing: Gemini by default, checked at boot, Local model digests (a 7B model on this Mac), Spoken lines (ElevenLabs, fixed vocabulary), Mock mode: the whole product offline.
 
@@ -14,7 +14,7 @@ This page covers Model routing: Gemini by default, checked at boot, Local model 
 
 ### What it does
 
-Every model role runs on Gemini by default: a planner, fast checks, pointing and glances, a verifier, computer use and live voice. OpenAI is an explicit opt-in. The More, Models and cost screen shows which model, how fast and what it costs.
+Every model role runs on Gemini by default: a planner, fast checks, pointing and glances, a verifier, computer use and live voice. OpenAI is an explicit opt-in. The Admin view's More, Models and cost screen shows which model, how fast and what it costs.
 
 ### How it works
 
@@ -24,11 +24,11 @@ One model port with providers behind it. Roles map to environment variables (acc
 
 ### Where to see it
 
-More, then Models and cost; Settings, 'Use live models' is the master switch (it restarts the engine, about 20 seconds); the sidebar status line says Live models or Running with example data.
+Admin view, More, Models and cost; Settings, 'Use live models' is the master switch (it restarts the engine, about 20 seconds); the sidebar status line says Live models or Running with example data.
 
 ### Demo moment
 
-Show the status line 'Live models', then Models and cost: the route for each role, latency and cost. Flip Use live models off and the line becomes 'Running with example data'.
+Show the status line 'Live models', then (in the Admin view) Models and cost: the route for each role, latency and cost. Flip Use live models off and the line becomes 'Running with example data'.
 
 ### Evidence and its label
 
@@ -63,7 +63,7 @@ A 7B model (Qwen2.5, 4-bit) runs on the loopback through llama.cpp with constrai
 
 ### Where to see it
 
-Behind Git habits and Calendar; More, then Models and cost shows local-model status.
+Behind 'My commits' and the calendar week in Growth; the Admin view, More, Models and cost shows local-model status.
 
 ### Demo moment
 

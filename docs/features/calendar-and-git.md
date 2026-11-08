@@ -4,7 +4,7 @@
 
 **Capability:** See the work · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. 'Git habits' becomes a section of Growth for programmers ('my commits'); the Calendar ('Week') is no longer a worker destination and its new place is not verified.
+**Navigation note (on main since 02:05 UTC).** The lead's views rule (`docs/knack-ux/views.md`) is implemented: a worker has five sidebar rows (Home, Needs you, Routines, Growth, Your data); Growth is one page with the sections My progress, Where my time goes, My steps, How my routines connect and My commits; the Admin view has Firm, Brief, Forecasts, Roles, People, Onboarding, Automation and Risk, then More: Models and cost, Evidence, Background runs. Old addresses redirect (`apps/dashboard/src/routeRedirects.ts`). The final list is `apps/dashboard/src/components/home/navModel.ts`. 'Git habits' is the Growth section 'My commits' (programmers, or anyone who follows a link), and the Calendar week is part of 'Where my time goes'. Neither is a separate destination.
 
 This page covers Calendar layer (week ribbon, Outlook and Teams adapters), Git habits for programmers.
 
@@ -24,11 +24,11 @@ Calendars become counts, durations and enums; no titles, attendees or bodies are
 
 ### Where to see it
 
-More, then Calendar (address #/week).
+Growth, section 'Where my time goes' (address #/growth?section=time; the old #/week redirects there).
 
 ### Demo moment
 
-Open Calendar: the week ribbon, the worker's week against the expert's, and one suggestion with its interval. Say the adapters never write and have not been run on a real account.
+Open Growth, 'Where my time goes': the week ribbon, the worker's week against one experienced worker's, and one suggestion with its interval. Say the adapters never write and have not been run on a real account.
 
 ### Evidence and its label
 
@@ -61,11 +61,11 @@ Reads the git history on the device. Features are counts and times; commit messa
 
 ### Where to see it
 
-More, then Git habits (address #/git). Programmer role only.
+Growth, section 'My commits' (address #/growth?section=commits; the old #/git redirects there). It opens for programmers, and for anyone who follows a link to it.
 
 ### Demo moment
 
-Open Git habits on the programmer example: habits against experts with intervals, and the generic suggestion for each. Say the repository is synthetic.
+Open Growth, 'My commits', on the programmer example: habits against experts with intervals, and the generic suggestion for each. Say the repository is synthetic.
 
 ### Evidence and its label
 

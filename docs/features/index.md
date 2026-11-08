@@ -1,6 +1,6 @@
 # Knack feature index
 
-As of Sun 08 Nov 2026, 02:03 UTC, checked against main at 0c85435.
+As of Sun 08 Nov 2026, 02:12 UTC, checked against main at 81e8453.
 
 35 pages and 68 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
 
@@ -142,7 +142,7 @@ As of Sun 08 Nov 2026, 02:03 UTC, checked against main at 0c85435.
 
 | Feature | Page | Status | Targets |
 |---|---|---|---|
-| Role packs: benefits processor deep, analyst and programmer thin | [role-packs](role-packs.md) | **built** | G-Research, Wordsmith |
+| Role packs: the format, and the deep benefits processor pack | [role-packs](role-packs.md) | **built** | G-Research, Wordsmith |
 | Programmer pack at standard depth | [role-packs](role-packs.md) | **built** (ROLE-DEPTH (Track F), merged to main at 01:15 UTC (08b9908); docs/roles/programmer.md and packages/packs/programmer are on main; no study and no real traces; not seen end to end by the lead; additive only (D55, D56 item 6)) | G-Research, Wordsmith |
 | Data analyst pack at standard depth | [role-packs](role-packs.md) | **built** (ROLE-DEPTH (Track F), merged to main at 01:15 UTC (08b9908); docs/roles/data-analyst.md and packages/packs/data-analyst are on main; no study and no real traces; not seen end to end by the lead; additive only (D55, D56 item 6)) | G-Research, Wordsmith |
 

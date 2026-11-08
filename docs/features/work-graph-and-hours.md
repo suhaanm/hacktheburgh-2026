@@ -4,7 +4,7 @@
 
 **Capability:** See the work · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. 'Your hours' and 'How work connects' become sections of Growth ('my working hours', 'my routines map'). The graph is being moved to the new design system (owner request 4.13: an icon per node style and no visible text except on hover or click).
+**Navigation note (on main since 02:05 UTC).** The lead's views rule (`docs/knack-ux/views.md`) is implemented: a worker has five sidebar rows (Home, Needs you, Routines, Growth, Your data); Growth is one page with the sections My progress, Where my time goes, My steps, How my routines connect and My commits; the Admin view has Firm, Brief, Forecasts, Roles, People, Onboarding, Automation and Risk, then More: Models and cost, Evidence, Background runs. Old addresses redirect (`apps/dashboard/src/routeRedirects.ts`). The final list is `apps/dashboard/src/components/home/navModel.ts`. 'Your hours' and 'How work connects' are Growth sections ('Where my time goes' and 'How my routines connect'). The graph follows the design system (owner request 4.13): an icon per node kind, no text on the canvas, a name on hover, keyboard focus or a click.
 
 This page covers Your hours: presence map and away forecast, How work connects: the work graph.
 
@@ -24,11 +24,11 @@ A weekly map of when you are at your machine, with intervals, and an estimate of
 
 ### Where to see it
 
-More, then Your hours (address #/presence). Your data also lists the hours Knack holds.
+Growth, section 'Where my time goes' (address #/growth?section=time; the old #/presence redirects there): the worker's own weekly map. Your data also lists the hours Knack holds.
 
 ### Demo moment
 
-Open Your hours: the week as a heat map with intervals and the free hours it reveals. Say how the rule decides when a run may start, then show the numbers against the two baselines.
+Open Growth, then 'Where my time goes': the week as a heat map with intervals and the free hours it reveals. Say how the rule decides when a run may start, then show the numbers against the two baselines.
 
 ### Evidence and its label
 
@@ -55,13 +55,13 @@ A graph of routines, skills and remembered facts. Nodes link when related, merge
 
 ### How it works
 
-Size is weekly minutes or mastery, colour is the node type, opacity is strength in two bands that keep the icon readable, a dashed ring is lapsed, and fading uses the same decay as the help-level engine. Every node carries an icon (routine, skill, memory, automation) and no text is drawn on the canvas: a name opens in a small note card on hover, keyboard focus or a click, and a click keeps it until Escape or another click. The details panel leads with what the node is and why it exists, with the numbers behind a closed disclosure; the key is pictures only, behind 'What are these?'. The Genome transition graph follows the same rules with ten step icons. Layout is tested for empty, one-node, self-loop, repeated and thousand-node graphs. Deleting a memory node edits the memory file, so the graph is a view of what Knack holds, not a second store. One of the product's three signature visuals.
+Size is weekly minutes or mastery, colour is the node type, opacity is strength in two bands that keep the icon readable, a dashed ring is lapsed, and fading uses the same decay as the help-level engine. Every node carries an icon (routine, skill, memory, automation) and no text is drawn on the canvas: a name opens in a small note card on hover, keyboard focus or a click, and a click keeps it until Escape or another click. The details panel leads with what the node is and why it exists, with the numbers behind a closed disclosure; the key is pictures only, behind 'What are these?'. The Genome transition graph component follows the same rules with ten step icons, but no screen on main draws it. Layout is tested for empty, one-node, self-loop, repeated and thousand-node graphs. Deleting a memory node edits the memory file, so the graph is a view of what Knack holds, not a second store. One of the product's three signature visuals.
 
 **What is different.** Fading is literal: nodes decay with the same rule the help levels use, and deleting a node edits the file the worker owns, so the graph is a view and not a second store.
 
 ### Where to see it
 
-More, then How work connects (address #/graph). Settings, Views, Pinned views puts it in the sidebar.
+Growth, section 'How my routines connect' (address #/growth?section=map; the old #/graph redirects there).
 
 ### Demo moment
 

@@ -1,6 +1,6 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 02:03 UTC, checked against main at 0c85435. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 02:12 UTC, checked against main at 81e8453. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
 This is the master document. It lists 68 entries (64 features and 4 write-ups of results that did not hold up) on 35 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
@@ -21,7 +21,7 @@ This is the master document. It lists 68 entries (64 features and 4 write-ups of
 11. **A calm product: window, attention, context**: One attention layer: a router, a digest, quiet states; Context engineering: typed, bounded, fresh; One app, one window, one corner pill; First run: role, consent and a first look; Command palette and keyboard; Design system with budgets as tests; The Knack mark and brand.
 12. **Privacy and safety**: Egress guard, ledger and canary tests; Your data: see and delete; Memory file the worker owns.
 13. **Evidence and honesty**: Evidence page, make eval and the limitations register; Plain-English explainer with a number check; Generator-mismatch test (the realism matrix); ML v2, held-out: mostly negative; The simulated study sat at the floor; Other results that went the wrong way; Prospective prediction ledger and forward scoring; Drift guard: noticing when the model stops beating the baseline; Decisions scoreboard: realised cost against a naive policy and an oracle; Online recalibration: rescuing the model instead of discarding it.
-14. **Roles**: Role packs: benefits processor deep, analyst and programmer thin; Programmer pack at standard depth; Data analyst pack at standard depth.
+14. **Roles**: Role packs: the format, and the deep benefits processor pack; Programmer pack at standard depth; Data analyst pack at standard depth.
 
 Then: what exists elsewhere, numbers you may quote, things we do not claim, what is landing, sources read.
 
@@ -139,11 +139,11 @@ Events become steps through the role pack's mapping. A sequence alignment (Needl
 
 #### Where to see it
 
-More, then Where time goes (address #/genome). The Home hero's action, See where the time goes, opens it on that step. Settings, Views, Pinned views puts it in the sidebar.
+Growth, section 'My steps against an experienced worker's' (address #/growth?section=steps; the old #/genome, #/week, #/presence, #/graph and #/git addresses redirect into Growth). It shows the worker's own case beside one unnamed experienced worker's, the steps that lost the most time, a closed 'Explain this case' and a closed 'Key and more'. The Home hero's action, See where the time goes, leads to it. The habit waterfall and the transition graph exist as components but no screen on main draws them.
 
 #### Demo moment
 
-Open Where time goes. Point at the chart footer (n, split, interval level and 'data from example people made for this build': since D57 there is no 'synthetic' tag), the ribbon (expert above, novice below, gaps hatched), and the waterfall that splits the seconds by habit. Say: the interval on the real gap does not include zero, and say aloud that the data are synthetic.
+Open Growth and the section 'My steps against an experienced worker's'. Point at the ribbon (the worker's own case above, one experienced worker's below, gaps hatched, seconds lost per step) and the short list of steps that lost the most time; open 'Explain this case'. Since D57 there is no 'synthetic' tag, so say aloud that the data are synthetic. The three-interval evidence that the gap is real is in the Admin view (More, Evidence), not on this page.
 
 #### Evidence and its label
 
@@ -177,11 +177,11 @@ The placebo aligns each expert to the nearest other expert. The null shuffles th
 
 #### Where to see it
 
-Where time goes (the controls under the ribbon) and Evidence (More, For reviewers).
+Evidence (Admin view, More, Evidence). The worker's Growth page shows one case, not the controls; the old screen that drew them under the ribbon is gone from the dashboard.
 
 #### Demo moment
 
-On Where time goes, read the three numbers aloud: 229.6 seconds a case for the real gap, 7.1 for expert against expert, 46.2 for the shuffled null. The first interval excludes zero; the other two include it.
+In the Admin view, More, Evidence, read the three numbers aloud: 229.6 seconds a case for the real gap, 7.1 for expert against expert, 46.2 for the shuffled null. The first interval excludes zero; the other two include it.
 
 #### Evidence and its label
 
@@ -213,7 +213,7 @@ On 200 synthetic households scored by the sandbox oracle, skipping reconcile mea
 
 #### Where to see it
 
-Where time goes (the answers view beside the seconds) and Evidence.
+Not drawn by a screen on main: the answers view that sat beside the seconds on the old Where time goes screen is gone from the dashboard. The result is in evals/cases/skip_consequences.json and in the report that the Evidence page (Admin view, More) renders.
 
 #### Demo moment
 
@@ -251,11 +251,11 @@ Bins of 30 seconds. Features: the last three step types, dwell, repeated actions
 
 #### Where to see it
 
-More, then Forecasts (address #/forecasts; for admins, Firm, Forecasts). The coach and Cue use the same signal.
+Admin view, sidebar Forecasts (address #/forecasts; headline first, 'what to expect, and what to do about it'). It is not shown to a worker. The coach and Cue use the same signal.
 
 #### Demo moment
 
-Open Forecasts. Show the reliability diagram, then the two baselines (base rate, time since progress), then false alarms an hour against the budget of 1.0. Say the model's edge over the plain rule is small on harder data, and the page says so.
+In the Admin view open Forecasts. Show the reliability diagram, then the two baselines (base rate, time since progress), then false alarms an hour against the budget of 1.0. Say the model's edge over the plain rule is small on harder data, and the page says so.
 
 #### Evidence and its label
 
@@ -292,11 +292,11 @@ A weekly map of when you are at your machine, with intervals, and an estimate of
 
 #### Where to see it
 
-More, then Your hours (address #/presence). Your data also lists the hours Knack holds.
+Growth, section 'Where my time goes' (address #/growth?section=time; the old #/presence redirects there): the worker's own weekly map. Your data also lists the hours Knack holds.
 
 #### Demo moment
 
-Open Your hours: the week as a heat map with intervals and the free hours it reveals. Say how the rule decides when a run may start, then show the numbers against the two baselines.
+Open Growth, then 'Where my time goes': the week as a heat map with intervals and the free hours it reveals. Say how the rule decides when a run may start, then show the numbers against the two baselines.
 
 #### Evidence and its label
 
@@ -323,13 +323,13 @@ A graph of routines, skills and remembered facts. Nodes link when related, merge
 
 #### How it works
 
-Size is weekly minutes or mastery, colour is the node type, opacity is strength in two bands that keep the icon readable, a dashed ring is lapsed, and fading uses the same decay as the help-level engine. Every node carries an icon (routine, skill, memory, automation) and no text is drawn on the canvas: a name opens in a small note card on hover, keyboard focus or a click, and a click keeps it until Escape or another click. The details panel leads with what the node is and why it exists, with the numbers behind a closed disclosure; the key is pictures only, behind 'What are these?'. The Genome transition graph follows the same rules with ten step icons. Layout is tested for empty, one-node, self-loop, repeated and thousand-node graphs. Deleting a memory node edits the memory file, so the graph is a view of what Knack holds, not a second store. One of the product's three signature visuals.
+Size is weekly minutes or mastery, colour is the node type, opacity is strength in two bands that keep the icon readable, a dashed ring is lapsed, and fading uses the same decay as the help-level engine. Every node carries an icon (routine, skill, memory, automation) and no text is drawn on the canvas: a name opens in a small note card on hover, keyboard focus or a click, and a click keeps it until Escape or another click. The details panel leads with what the node is and why it exists, with the numbers behind a closed disclosure; the key is pictures only, behind 'What are these?'. The Genome transition graph component follows the same rules with ten step icons, but no screen on main draws it. Layout is tested for empty, one-node, self-loop, repeated and thousand-node graphs. Deleting a memory node edits the memory file, so the graph is a view of what Knack holds, not a second store. One of the product's three signature visuals.
 
 **What is different.** Fading is literal: nodes decay with the same rule the help levels use, and deleting a node edits the file the worker owns, so the graph is a view and not a second store.
 
 #### Where to see it
 
-More, then How work connects (address #/graph). Settings, Views, Pinned views puts it in the sidebar.
+Growth, section 'How my routines connect' (address #/growth?section=map; the old #/graph redirects there).
 
 #### Demo moment
 
@@ -365,11 +365,11 @@ Calendars become counts, durations and enums; no titles, attendees or bodies are
 
 #### Where to see it
 
-More, then Calendar (address #/week).
+Growth, section 'Where my time goes' (address #/growth?section=time; the old #/week redirects there).
 
 #### Demo moment
 
-Open Calendar: the week ribbon, the worker's week against the expert's, and one suggestion with its interval. Say the adapters never write and have not been run on a real account.
+Open Growth, 'Where my time goes': the week ribbon, the worker's week against one experienced worker's, and one suggestion with its interval. Say the adapters never write and have not been run on a real account.
 
 #### Evidence and its label
 
@@ -402,11 +402,11 @@ Reads the git history on the device. Features are counts and times; commit messa
 
 #### Where to see it
 
-More, then Git habits (address #/git). Programmer role only.
+Growth, section 'My commits' (address #/growth?section=commits; the old #/git redirects there). It opens for programmers, and for anyone who follows a link to it.
 
 #### Demo moment
 
-Open Git habits on the programmer example: habits against experts with intervals, and the generic suggestion for each. Say the repository is synthetic.
+Open Growth, 'My commits', on the programmer example: habits against experts with intervals, and the generic suggestion for each. Say the repository is synthetic.
 
 #### Evidence and its label
 
@@ -444,7 +444,7 @@ Plain code, no model. The actions are silent, nudge, annotate and takeover. The 
 
 #### Where to see it
 
-More, then Live coach (address #/today) shows the current task and the help level. The ring and card appear on the real screen.
+The ring and card appear on the real screen. The old Live coach screen (#/today) is no longer a destination and redirects to Home; where the current task and the help level show now is not verified.
 
 #### Demo moment
 
@@ -482,11 +482,11 @@ The engine's level module is the authority (L1 full help, L2 small help, L3 a do
 
 #### Where to see it
 
-Live coach shows the level; Growth has a closed 'The fade' disclosure; Settings has Coaching (on or off, level lock).
+Growth, My progress, has a closed 'The fade' disclosure; Settings has Coaching (on or off, level lock). The old Live coach screen that showed the level is no longer a destination.
 
 #### Demo moment
 
-Open Live coach and point at the level; open Growth, then The fade, and show prompts getting lighter as the curve rises. Say that code, not a model, moved the level.
+Open Growth, then The fade, and show prompts getting lighter as the curve rises. Say that code, not a model, moved the level.
 
 #### Evidence and its label
 
@@ -597,7 +597,7 @@ Candidates come from the expert transition graph: the top three next steps with 
 
 #### Where to see it
 
-On the real screen when stuck (ring and card); More, then Live coach; Growth shows the effect over time.
+On the real screen when stuck (ring and card); Growth shows the effect over time.
 
 #### Demo moment
 
@@ -641,7 +641,7 @@ An orchestrator turns a case into a task graph. Navigators run in parallel, each
 
 #### Where to see it
 
-Routines, then Run now (the window minimises and the corner pill shows what is happening); the result arrives in Needs you. More, then Background runs shows runs.
+Routines, then Run now (the window minimises and the corner pill shows what is happening); the result arrives in Needs you. The worker's background tasks are listed on Routines; the admin's Background runs (Admin view, More) shows runs.
 
 #### Demo moment
 
@@ -717,7 +717,7 @@ A closed question with yes, no or unsure; unsure is never accepted; code require
 
 #### Where to see it
 
-Behind the scenes: More, then Models and cost lists the route; agent runs show a verified chip per step where wired.
+Behind the scenes: the Admin view, More, Models and cost lists the route; agent runs show a verified chip per step where wired.
 
 #### Demo moment
 
@@ -906,7 +906,7 @@ A parent plans and hands typed specs to children, each following a written role 
 
 #### Where to see it
 
-More, then Background runs. Results arrive in Needs you.
+A worker sees their background tasks on Routines; the admin's Background runs (Admin view, More) shows the runs. Results arrive in Needs you.
 
 #### Demo moment
 
@@ -1326,7 +1326,7 @@ Needs you: a prepared action is a row. After a press the screen says what was ma
 
 #### Demo moment
 
-Press a prepared card in Needs you; the line says what it made and that nothing runs until you approve. Then open Background runs to show a read-only run that was started.
+Press a prepared card in Needs you; the line says what it made and that nothing runs until you approve. Then open Routines to show a read-only run that was started.
 
 #### Evidence and its label
 
@@ -1474,7 +1474,7 @@ Not run with a microphone, a Live session or a real click. The 'do it for me' pa
 
 #### What it does
 
-Every model role runs on Gemini by default: a planner, fast checks, pointing and glances, a verifier, computer use and live voice. OpenAI is an explicit opt-in. The More, Models and cost screen shows which model, how fast and what it costs.
+Every model role runs on Gemini by default: a planner, fast checks, pointing and glances, a verifier, computer use and live voice. OpenAI is an explicit opt-in. The Admin view's More, Models and cost screen shows which model, how fast and what it costs.
 
 #### How it works
 
@@ -1484,11 +1484,11 @@ One model port with providers behind it. Roles map to environment variables (acc
 
 #### Where to see it
 
-More, then Models and cost; Settings, 'Use live models' is the master switch (it restarts the engine, about 20 seconds); the sidebar status line says Live models or Running with example data.
+Admin view, More, Models and cost; Settings, 'Use live models' is the master switch (it restarts the engine, about 20 seconds); the sidebar status line says Live models or Running with example data.
 
 #### Demo moment
 
-Show the status line 'Live models', then Models and cost: the route for each role, latency and cost. Flip Use live models off and the line becomes 'Running with example data'.
+Show the status line 'Live models', then (in the Admin view) Models and cost: the route for each role, latency and cost. Flip Use live models off and the line becomes 'Running with example data'.
 
 #### Evidence and its label
 
@@ -1523,7 +1523,7 @@ A 7B model (Qwen2.5, 4-bit) runs on the loopback through llama.cpp with constrai
 
 #### Where to see it
 
-Behind Git habits and Calendar; More, then Models and cost shows local-model status.
+Behind 'My commits' and the calendar week in Growth; the Admin view, More, Models and cost shows local-model status.
 
 #### Demo moment
 
@@ -1714,11 +1714,11 @@ Roles are Worker and Admin; the admin switch lives in the account menu and is re
 
 #### Where to see it
 
-Account menu, View as Admin; sidebar Firm, Roles, Onboarding; More, Firm rows (People, Automation, Risk and coverage, Forecasts, Firm brief).
+Account menu, View as Admin; the Admin sidebar rows Firm, Brief, Forecasts, Roles, People, Onboarding, Automation and Risk; then More: Models and cost, Evidence, Background runs.
 
 #### Demo moment
 
-Only once the people exist on the engine you are showing (owner request 4.4 stays landing until the seed has run on the live data; on a device with only its own history the screens hold no people). Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); note that since D57 the Firm head draws no origin tag for generated data, so say aloud that the names are made up and the firm is made for this build and the firm is made for this build.
+Only once the people exist on the engine you are showing (owner request 4.4 stays landing until the seed has run on the live data; on a device with only its own history the screens hold no people). Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); note that since D57 the Firm head draws no origin tag for generated data, so say aloud that the names are made up and the firm is made for this build.
 
 #### Evidence and its label
 
@@ -1752,11 +1752,11 @@ The Monday note is a few plain sentences built from the same deterministic insig
 
 #### Where to see it
 
-Command palette, Print the firm brief (and Copy my Monday note once it lands); More, Forecasts.
+Admin sidebar, Brief (a print view) and Forecasts; the command palette has Print the firm brief (and Copy my Monday note once it lands).
 
 #### Demo moment
 
-Press Command-K, choose Print the firm brief; then open More, Forecasts to show the scorecard.
+Press Command-K, choose Print the firm brief; then open Forecasts in the Admin sidebar to show the scorecard.
 
 #### Evidence and its label
 
@@ -1792,7 +1792,7 @@ An assist ledger holds one row per assist episode with enums and numbers only: n
 
 #### Where to see it
 
-Growth in the sidebar: a one-sentence title, one chart with its band, skills as rows, and closed disclosures (The fade, Your ledger, What Knack did for you). Export and delete are in Your data.
+Growth in the sidebar, the worker's one page for personal insight: 'My progress' (a one-sentence title, one chart with its band, skills as rows, and closed disclosures: About this data, The fade, Your record, What Knack did for you), then the sections 'Where my time goes', 'My steps against an experienced worker's', 'How my routines connect' and, for programmers, 'My commits', one under the other with no extra navigation. Export and delete are in Your data.
 
 #### Demo moment
 
@@ -1873,7 +1873,7 @@ An audit listed every model-facing call site and its prompt sections. A shared l
 
 #### Where to see it
 
-Not visible on a screen. It is behind every agent run and shows up as cost and latency in Models and cost.
+Not visible on a screen. It is behind every agent run and shows up as cost and latency in Models and cost (Admin view, More).
 
 #### Demo moment
 
@@ -2215,7 +2215,7 @@ One command rebuilds a report from the code that owns each number; the Evidence 
 
 #### Where to see it
 
-More, For reviewers, Evidence (address #/evidence; exempt from the word budgets).
+Admin view, More, Evidence (address #/evidence; not shown to a worker; exempt from the word budgets).
 
 #### Demo moment
 
@@ -2257,7 +2257,7 @@ Beside figures on the detail screens (Explain) and in Evidence.
 
 #### Demo moment
 
-Press Explain on Where time goes: a short paragraph with numbers; show that it is the template wording, and that a model's rewording would be used only if it passed the check.
+Press 'Explain this case' in Growth, under 'My steps': a short paragraph with numbers; show that it is the template wording, and that a model's rewording would be used only if it passed the check.
 
 #### Evidence and its label
 
@@ -2593,7 +2593,7 @@ The arm was designed after the first held-out result was seen, and the plan says
 
 *One deep role pack and two thin ones.*
 
-### Role packs: benefits processor deep, analyst and programmer thin
+### Role packs: the format, and the deep benefits processor pack
 
 **Status:** built · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
 
@@ -2648,7 +2648,7 @@ Each skill has a hint at L1 (a question), L2 (a few words) and L3 (a nudge); L4 
 
 #### Where to see it
 
-First run (the Programmer role card), Routines (the repeat list), Git habits and the coach in the sandbox; the pack's own page is docs/roles/programmer.md.
+First run (the Programmer role card), Routines (the repeat list), Growth 'My commits' and the coach in the sandbox; the pack's own page is docs/roles/programmer.md.
 
 #### Demo moment
 

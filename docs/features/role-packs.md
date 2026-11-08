@@ -4,9 +4,9 @@
 
 **Capability:** Roles · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-This page covers Role packs: benefits processor deep, analyst and programmer thin, Programmer pack at standard depth, Data analyst pack at standard depth.
+This page covers Role packs: the format, and the deep benefits processor pack, Programmer pack at standard depth, Data analyst pack at standard depth.
 
-## Role packs: benefits processor deep, analyst and programmer thin
+## Role packs: the format, and the deep benefits processor pack
 
 **Status:** built · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
 
@@ -61,7 +61,7 @@ Each skill has a hint at L1 (a question), L2 (a few words) and L3 (a nudge); L4 
 
 ### Where to see it
 
-First run (the Programmer role card), Routines (the repeat list), Git habits and the coach in the sandbox; the pack's own page is docs/roles/programmer.md.
+First run (the Programmer role card), Routines (the repeat list), Growth 'My commits' and the coach in the sandbox; the pack's own page is docs/roles/programmer.md.
 
 ### Demo moment
 

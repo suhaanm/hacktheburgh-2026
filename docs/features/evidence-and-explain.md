@@ -4,7 +4,7 @@
 
 **Capability:** Evidence and honesty · **Status:** verified · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. The Evidence page is not shown to a worker under the rule; it sits in the Admin view (More, For reviewers), which is where reviewers and judges are shown it.
+**Navigation note (on main since 02:05 UTC).** The lead's views rule (`docs/knack-ux/views.md`) is implemented: a worker has five sidebar rows (Home, Needs you, Routines, Growth, Your data); Growth is one page with the sections My progress, Where my time goes, My steps, How my routines connect and My commits; the Admin view has Firm, Brief, Forecasts, Roles, People, Onboarding, Automation and Risk, then More: Models and cost, Evidence, Background runs. Old addresses redirect (`apps/dashboard/src/routeRedirects.ts`). The final list is `apps/dashboard/src/components/home/navModel.ts`. The Evidence page is not shown to a worker; it is in the Admin view (More), which is where reviewers and judges are shown it.
 
 This page covers Evidence page, make eval and the limitations register, Plain-English explainer with a number check.
 
@@ -24,7 +24,7 @@ One command rebuilds a report from the code that owns each number; the Evidence 
 
 ### Where to see it
 
-More, For reviewers, Evidence (address #/evidence; exempt from the word budgets).
+Admin view, More, Evidence (address #/evidence; not shown to a worker; exempt from the word budgets).
 
 ### Demo moment
 
@@ -66,7 +66,7 @@ Beside figures on the detail screens (Explain) and in Evidence.
 
 ### Demo moment
 
-Press Explain on Where time goes: a short paragraph with numbers; show that it is the template wording, and that a model's rewording would be used only if it passed the check.
+Press 'Explain this case' in Growth, under 'My steps': a short paragraph with numbers; show that it is the template wording, and that a model's rewording would be used only if it passed the check.
 
 ### Evidence and its label
 

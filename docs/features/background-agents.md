@@ -4,7 +4,7 @@
 
 **Capability:** Agents that do the work safely · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. For a worker, background tasks and their results sit in Routines and are meant to update live without a refresh, and to show as small pills at the top right while they work (owner requests 4.15 and 4.21, landing); 'Background runs' is an Admin 'More' row.
+**Navigation note (on main since 02:05 UTC).** The lead's views rule (`docs/knack-ux/views.md`) is implemented: a worker has five sidebar rows (Home, Needs you, Routines, Growth, Your data); Growth is one page with the sections My progress, Where my time goes, My steps, How my routines connect and My commits; the Admin view has Firm, Brief, Forecasts, Roles, People, Onboarding, Automation and Risk, then More: Models and cost, Evidence, Background runs. Old addresses redirect (`apps/dashboard/src/routeRedirects.ts`). The final list is `apps/dashboard/src/components/home/navModel.ts`. For a worker, background tasks and their results sit in Routines and update without a refresh (built), and a pills window at the top right of the screen shows them while they work (built, on main); 'Background runs' is an Admin More row.
 
 This page covers Background agents: parent and child, Overnight runs and the morning report, Live background task list: a finish shows up without a refresh.
 
@@ -24,7 +24,7 @@ A parent plans and hands typed specs to children, each following a written role 
 
 ### Where to see it
 
-More, then Background runs. Results arrive in Needs you.
+A worker sees their background tasks on Routines; the admin's Background runs (Admin view, More) shows the runs. Results arrive in Needs you.
 
 ### Demo moment
 

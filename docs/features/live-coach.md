@@ -4,7 +4,7 @@
 
 **Capability:** Coach on the screen · **Status:** verified · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. 'Today' (Live coach) is retired as a worker destination; the coach itself is unchanged.
+**Navigation note (on main since 02:05 UTC).** The lead's views rule (`docs/knack-ux/views.md`) is implemented: a worker has five sidebar rows (Home, Needs you, Routines, Growth, Your data); Growth is one page with the sections My progress, Where my time goes, My steps, How my routines connect and My commits; the Admin view has Firm, Brief, Forecasts, Roles, People, Onboarding, Automation and Risk, then More: Models and cost, Evidence, Background runs. Old addresses redirect (`apps/dashboard/src/routeRedirects.ts`). The final list is `apps/dashboard/src/components/home/navModel.ts`. 'Today' (Live coach) is no longer a worker destination and redirects to Home; the coach itself is unchanged.
 
 This page covers Live coach: one decision at a time, with a dignity gate, Fading help: levels L1 to L4 decided by code.
 
@@ -24,7 +24,7 @@ Plain code, no model. The actions are silent, nudge, annotate and takeover. The 
 
 ### Where to see it
 
-More, then Live coach (address #/today) shows the current task and the help level. The ring and card appear on the real screen.
+The ring and card appear on the real screen. The old Live coach screen (#/today) is no longer a destination and redirects to Home; where the current task and the help level show now is not verified.
 
 ### Demo moment
 
@@ -62,11 +62,11 @@ The engine's level module is the authority (L1 full help, L2 small help, L3 a do
 
 ### Where to see it
 
-Live coach shows the level; Growth has a closed 'The fade' disclosure; Settings has Coaching (on or off, level lock).
+Growth, My progress, has a closed 'The fade' disclosure; Settings has Coaching (on or off, level lock). The old Live coach screen that showed the level is no longer a destination.
 
 ### Demo moment
 
-Open Live coach and point at the level; open Growth, then The fade, and show prompts getting lighter as the curve rises. Say that code, not a model, moved the level.
+Open Growth, then The fade, and show prompts getting lighter as the curve rises. Say that code, not a model, moved the level.
 
 ### Evidence and its label
 
