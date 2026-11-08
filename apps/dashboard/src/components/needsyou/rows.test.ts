@@ -6,8 +6,8 @@ import queueFx from "../../fixtures/queue.json";
 import routinesFx from "../../fixtures/routines.json";
 import briefingFx from "../../fixtures/briefing.json";
 import type { BriefingCard, QueueItem, Routine } from "../../types";
-import { AwayChoice } from "../routines/AwayChoice";
-import { AWAY_TEXT, WATCH_TEXT } from "../routines/consent";
+import { AwayButton, AwayConfirm, useAway } from "../routines/AwayChoice";
+import { APPROVAL_TEXT, AWAY_TEXT, WATCH_TEXT } from "../routines/consent";
 import { RunningRow } from "../routines/RunningRow";
 import { ApprovalRow } from "./ApprovalRow";
 import { PreparedRow } from "./PreparedRow";
@@ -68,14 +68,16 @@ describe("a routine proposal", () => {
     expect(html).toMatch(/aria-expanded="false"[^>]*>Details</);
     expect(html).not.toMatch(/data-testid="proposal-details"/);
   });
-  it("opened, Details prints what it touches, Never, and what every way of saying yes does, with the away consent next to its own button", () => {
-    const open = text(renderToStaticMarkup(createElement(ProposalDetails, { routine: proposal, touches: "a, b and c", busy: false, onApproval: noop, onNever: noop, onDecide: async () => undefined })));
-    expect(open).toContain("Touches a, b and c.");
-    expect(open).toContain("Never: do not suggest this again.");
+  it("opened, Details is one fact line, one short paragraph with every consent, and one row of actions", () => {
+    const html2 = renderToStaticMarkup(createElement(ProposalDetails, { routine: proposal, touches: "a, b and c", busy: false, onApproval: noop, onNever: noop, onDecide: async () => undefined }));
+    const open = text(html2);
+    expect(open).toContain("Touches a, b and c");
     expect(open).toContain(WATCH_TEXT);
-    expect(open).toContain("Run with my approval");
-    expect(open).toContain(AWAY_TEXT);
-    expect(open).toContain("Allow while I'm away");
+    expect(open).toContain(APPROVAL_TEXT);
+    expect(open).toContain(AWAY_TEXT.slice(1));                     // the consent for running while away, whole, above its own button
+    for (const label of ["Run with my approval", "Run while I'm away", "Never"]) expect(html2).toMatch(new RegExp(`btn btn--secondary btn--sm"[^>]*>${label.replace("'", "&#x27;")}<`));
+    expect((html2.match(/kc-row__actions/g) ?? []).length).toBe(1);   // one row of actions
+    expect((html2.match(/<p /g) ?? []).length).toBe(1);               // one paragraph
   });
 });
 
@@ -90,13 +92,31 @@ describe("a prepared action", () => {
 });
 
 describe("Run while I'm away", () => {
-  it("prints its consent whole next to its one button, and the irreversible opt-in as separate switches that start off", () => {
-    const r = routines.find((x) => (x.irreversible_classes ?? []).length > 0)!;
-    const html = renderToStaticMarkup(createElement(AwayChoice, { routine: { ...r, status: "approval" }, onDecide: async () => undefined }));
-    expect(text(html)).toContain(AWAY_TEXT);
-    expect(text(html)).toContain("Allow while I'm away");
+  const irreversible = routines.find((x) => (x.irreversible_classes ?? []).length > 0)!;
+  const plain = { ...routines[0], irreversible_classes: [] as string[], status: "approval" as const };
+  const Button = (r: Routine) => function T() { const a = useAway(r, async () => undefined); return createElement(AwayButton, { away: a }); };
+  const Confirm = (r: Routine) => function T() { const a = useAway(r, async () => undefined, undefined, true); return createElement(AwayConfirm, { away: a }); };
+  it("is one button; a routine with steps that cannot be undone says it will ask (aria-expanded), one with none does not", () => {
+    expect(renderToStaticMarkup(createElement(Button({ ...irreversible, status: "approval" })))).toMatch(/aria-expanded="false"[^>]*>Run while I&#x27;m away</);
+    expect(renderToStaticMarkup(createElement(Button(plain)))).not.toMatch(/aria-expanded/);
+  });
+  it("asks once, in place: each step that cannot be undone is its own switch and starts off", () => {
+    const html = renderToStaticMarkup(createElement(Confirm({ ...irreversible, status: "approval" })));
     expect(html).toMatch(/role="switch"/);
     expect(html).not.toMatch(/role="switch"[^>]*checked/);
+    expect(text(html)).toContain("Allow while I'm away");
+    expect(text(html)).toContain("each wait for your click unless you allow them");
+    expect(html).toMatch(/Allow while I&#x27;m away<\/button>/);
+    expect(html).not.toMatch(/disabled=""[^>]*>Allow while I&#x27;m away/);   // with nothing allowed, away runs may start: every step that cannot be undone still waits
+    const allowed = renderToStaticMarkup(createElement(Confirm({ ...irreversible, status: "approval", consent: { ...irreversible.consent, irreversible_unattended: ["submit"] } })));
+    expect(allowed).toMatch(/disabled=""[^>]*>Allow while I&#x27;m away/);     // with a step allowed, the second opt-in (typed id or acknowledgement) is needed first
+  });
+  it("when it is on it offers a way back and lists what was allowed", () => {
+    const on = { ...irreversible, status: "unattended" as const, consent: { ...irreversible.consent, irreversible_unattended: ["submit"] } };
+    const T = function T() { const a = useAway(on, async () => undefined, async () => undefined); return createElement("div", null, createElement(AwayButton, { away: a }), createElement(AwayConfirm, { away: a })); };
+    const t = text(renderToStaticMarkup(createElement(T)));
+    expect(t).toContain("Turn off away runs");
+    expect(t).toContain("Allowed without asking: submit.");
   });
 });
 
@@ -112,11 +132,14 @@ describe("a running routine", () => {
   it("without the agent route there is no Run now", () => {
     expect(text(renderToStaticMarkup(createElement(RunningRow, { routine: running, open: false, onToggle: noop, onDecide: async () => undefined, canRun: false })))).not.toContain("Run now");
   });
-  it("open, it offers Stop for good but no Pause (the engine has none), and Run now stays on the row", () => {
+  it("open, it is fact lines, one short paragraph and one row of actions: the steps, Run while I'm away and Stop for good, no Pause (the engine has none)", () => {
     expect(text(open)).toContain("Run now");
     expect(text(open)).toContain("Stop for good");
+    expect(text(open)).toContain("Run while I'm away");
     expect(text(open)).not.toMatch(/\bPause\b/);
-    expect(text(open)).toContain("Autonomy");
+    expect(open).toMatch(/class="kc-kv"/);
+    expect((open.match(/kc-row__actions/g) ?? []).length).toBe(1);
+    expect(open).toMatch(/<summary>More<\/summary>/);                        // the record sits behind one closed More
     // Outside the closed "Record" disclosure (for reviewers) there is no rung code and no "rung".
     expect(text(open.replace(/<details[\s\S]*?<\/details>/g, ""))).not.toMatch(/\bA[0-3]\b|\brung\b/i);
   });

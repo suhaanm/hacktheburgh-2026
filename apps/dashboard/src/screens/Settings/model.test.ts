@@ -119,6 +119,7 @@ describe("Coaching and the desktop bridge", () => {
     expect(wakeLine(null)).toBeNull();
     expect(wakeLine({ switchOn: true, listening: true, line: "Listening" })).toBe(WAKE_NOTE);
     expect(wakeLine({ switchOn: true, listening: false, line: "Not listening while Knack works" })).toBe(`${WAKE_NOTE} Not listening while Knack works`);
+    expect(wakeLine({ switchOn: true, listening: false, line: "Hey Knack is off in demo mode" })).toBe(`${WAKE_NOTE} Hey Knack is off in example data`);   // never the word demo
   });
   it("the theme falls back to auto", () => {
     expect(themeOf("dark")).toBe("dark");

@@ -1,6 +1,7 @@
 // Settings: what each row says and when a control is allowed. Pure: no network, no React. Code decides, never a model.
 import type { AttentionSettings } from "../../types";
 import { clampBudget } from "../../lib/attention";
+import { plainWords } from "../NeedsYou/model";
 
 /** The section ids: the contract with the shell (docs/KNACK_UX.md section 3, in this order). */
 export const SECTIONS = ["live-models", "interruptions", "coaching", "move-aside", "open-at-login", "appearance", "models", "views", "about"] as const;
@@ -13,7 +14,7 @@ export const sectionOf = (s: string | null | undefined): SectionId | null => ((S
 export const WAKE_NOTE = "Stays on this Mac. Nothing is stored.";
 export function wakeLine(w: { switchOn: boolean; listening: boolean; line: string } | null): string | null {
   if (!w) return null;
-  return w.switchOn && !w.listening && w.line ? `${WAKE_NOTE} ${w.line}` : WAKE_NOTE;
+  return w.switchOn && !w.listening && w.line ? `${WAKE_NOTE} ${plainWords(w.line)}` : WAKE_NOTE;
 }
 
 /* -- Use live models ------------------------------------------------------------------------------------------------------------------- */

@@ -1,10 +1,8 @@
 // The one origin badge a Track C screen shows (docs/KNACK_UX.md section 5: one badge per screen, sentence case; the sentence behind it is in a Hint,
 // the badge itself is the printed fact, and an engine error is printed as a line because an error is never only in a Hint).
-import type { Fallback } from "../../lib/fallback";
+import type { Fallback, FallbackKind } from "../../lib/fallback";
 import type { AnalyticMeta } from "../../types";
-import { EXAMPLE_LINE } from "../../lib/fallback";
-import { Note, SourceNote } from "../common";
-import { Details } from "../ui";
+import { Hint } from "../Hint";
 
 export interface Source { meta?: AnalyticMeta | null; why?: Fallback | null }
 export interface OriginInfo { text: string; data: "example" | "synthetic" | "mixed"; why: Fallback | null }
@@ -32,24 +30,33 @@ export function OriginBadge({ sources }: { sources: Source[] }) {
   return <span className="kc-badges"><span className="pill pill--origin" data-origin={o.data}>{o.text}</span></span>;
 }
 
+/** One short sentence for why a screen shows example data. The engine's own sentence (the flag that switches the layer on, or the error) is in the Hint beside it. */
+export const SHORT_WHY: Record<FallbackKind, string> = {
+  offline: "The engine is not answering.",
+  extension_off: "This feature is off in the engine.",
+  missing: "The engine does not have this yet.",
+  error: "The engine could not answer.",
+};
+
+/** One kind of reason: the short sentence, and in a Hint the engine's own words (all the different ones of that kind). An error keeps the warning look so it is read. */
+function Why({ ws }: { ws: Fallback[] }) {
+  const kind = ws[0].kind;
+  return (
+    <p className={`kc-origin${kind === "error" ? " note note--warn" : " note"}`} data-kind={kind} role={kind === "error" ? "status" : undefined}>
+      {SHORT_WHY[kind]}
+      <Hint label="Why this is example data">{ws.map((w, i) => <span key={w.message} data-testid="source-detail">{i > 0 ? " " : ""}{w.message}</span>)}</Hint>
+    </p>
+  );
+}
+
 /**
- * Why a screen shows example data: the shared one plain line, and under it the engine's own sentence (the flag that switches the layer on, or the
- * error) in a closed "Details". The instruction is one tap away and printed once opened; it is never only in a Hint (D45). An engine error keeps the
- * warning look so it is read. Nothing when the data is the engine's own.
+ * Why a screen shows example data: one short sentence per kind of reason, and the engine's own sentence in the Hint beside it (it holds the flag that
+ * switches a layer on). Nothing when the data is the engine's own.
  */
 export function OriginDetails({ sources }: { sources: Source[] }) {
   const byKind = new Map<string, Fallback[]>();
   for (const w of distinctWhys(sources)) byKind.set(w.kind, [...(byKind.get(w.kind) ?? []), w]);
-  return (
-    <>
-      {[...byKind.values()].map((ws) => (
-        <div key={ws[0].kind} className="sourcenote" data-kind={ws[0].kind}>
-          <Note tone={ws[0].kind === "error" ? "warn" : "plain"}>{EXAMPLE_LINE[ws[0].kind]}</Note>
-          <Details summary="Details">{ws.map((w) => <p key={w.message} className="note" data-testid="source-detail">{w.message}</p>)}</Details>
-        </div>
-      ))}
-    </>
-  );
+  return <>{[...byKind.values()].map((ws) => <Why key={ws[0].kind} ws={ws} />)}</>;
 }
 
 /** Each different reason once (at most three), in the order the sources are given: two sources that fell back for the same reason say it once. */
@@ -62,6 +69,5 @@ export function distinctWhys(sources: Source[]): Fallback[] {
 
 /** One section's own reason, printed inside that section: a screen made of several sources must not blame them all on the first one that failed. */
 export function SectionSource({ why }: { why: Fallback | null | undefined }) {
-  return why ? <div className="yd-body" style={{ paddingBottom: 0 }}><SourceNote why={why} /></div> : null;
+  return why ? <div className="yd-body" style={{ paddingBottom: 0 }}><Why ws={[why]} /></div> : null;
 }
-

@@ -3,30 +3,30 @@ import { ApiError } from "../../api";
 import { neverLine, plainWords, saveHint, saveLine, seenLine } from "../../screens/NeedsYou/model";
 import type { Routine } from "../../types";
 import { Hint } from "../Hint";
-import { APPROVAL_TEXT, WATCH_TEXT } from "../routines/consent";
-import { AwayChoice } from "../routines/AwayChoice";
+import { APPROVAL_TEXT, AWAY_TEXT, WATCH_TEXT } from "../routines/consent";
+import { AwayButton, AwayConfirm, useAway } from "../routines/AwayChoice";
 import { SkillGate, type Gate } from "../routines/SkillGate";
 import type { Decide } from "../routines/types";
 import { Glyph } from "./Glyph";
+import { KV } from "./KV";
 
 /**
- * Everything else about a routine proposal, behind its Details: what it touches, Never (as light as the buttons on the row), and what every way of saying
- * yes does, printed whole: Watch first, Run with my approval, and Run while I'm away with its own consent next to its own button.
+ * Everything else about a routine proposal, behind its Details, as one fact line (what it touches), ONE short paragraph that says what each way of saying
+ * yes does (the consent, printed whole), and ONE row of actions: Run with my approval, Run while I'm away and Never. A routine with steps that cannot be
+ * undone asks once more, in place, under the row.
  */
 export function ProposalDetails({ routine: p, touches, busy, onApproval, onNever, onDecide }: { routine: Routine; touches: string; busy: boolean; onApproval: () => void; onNever: () => void; onDecide: Decide }) {
+  const away = useAway(p, onDecide);
   return (
     <div className="kc-panel" id={`more-${p.id}`} data-testid="proposal-details">
-      <p data-testid="touches">Touches {touches}.</p>
-      <div style={{ display: "grid", gap: "var(--space-2)" }}>
-        <p className="kc-sub" data-testid="never-caption">Never: do not suggest this again.</p>
-        <div className="row"><button type="button" className="btn btn--secondary btn--sm" disabled={busy} onClick={onNever}>Never</button></div>
+      <KV rows={[["Touches", touches]]} label="About this routine" />
+      <p className="kc-sub" data-testid="watch-consent">{WATCH_TEXT} {APPROVAL_TEXT} Run while I'm away: {AWAY_TEXT.charAt(0).toLowerCase()}{AWAY_TEXT.slice(1)}</p>
+      <div className="kc-row__actions">
+        <button type="button" className="btn btn--secondary btn--sm" disabled={busy} onClick={onApproval}>Run with my approval</button>
+        <AwayButton away={away} />
+        <button type="button" className="btn btn--secondary btn--sm" disabled={busy} onClick={onNever}>Never</button>
       </div>
-      <p className="kc-sub" data-testid="watch-consent">{WATCH_TEXT}</p>
-      <div style={{ display: "grid", gap: "var(--space-2)" }}>
-        <p className="kc-sub">{APPROVAL_TEXT}</p>
-        <div className="row"><button type="button" className="btn btn--secondary btn--sm" disabled={busy} onClick={onApproval}>Run with my approval</button></div>
-      </div>
-      <AwayChoice routine={p} onDecide={onDecide} />
+      <AwayConfirm away={away} />
     </div>
   );
 }

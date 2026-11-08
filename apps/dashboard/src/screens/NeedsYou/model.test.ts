@@ -97,6 +97,8 @@ describe("words", () => {
     expect(plainWords("The routine dropped one rung to A1.")).toBe("The routine dropped one step to watching.");
     expect(plainWords("Let Understudy enter households.")).toBe("Let Knack enter households.");
     expect(plainWords("Moved from A2 to A3")).toBe("Moved from asking first to running on its own");
+    expect(plainWords("Hey Knack is off in demo mode")).toBe("Hey Knack is off in example data");
+    expect(plainWords("Demo household")).toBe("Example household");
   });
   it("keeps whole sentences within the word limit and moves the rest to the evidence", () => {
     const { lead, rest } = leadAndRest("One two three. Four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twenty-one twenty-two. Last one here.", 12);

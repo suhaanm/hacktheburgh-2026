@@ -87,6 +87,7 @@ export function plainWords(text: string): string {
     .replace(/\bshadow (run|copy|runs|copies)\b/gi, (m, w: string) => keep(m, `practice ${w.toLowerCase()}`))
     .replace(/\bshadow\b/gi, (m) => keep(m, "practice"))
     .replace(/\bUnderstudy\b/g, "Knack")
+    .replace(/\bdemo mode\b/gi, (x) => keep(x, "example data")).replace(/\bdemo\b/gi, (x) => keep(x, "example"))
     .replace(/\brung A0\b/gi, "observing").replace(/\brung A1\b/gi, "watching").replace(/\brung A2\b/gi, "asking first").replace(/\brung A3\b/gi, "running on its own")
     .replace(/\bA0\b/g, "observing").replace(/\bA1\b/g, "watching").replace(/\bA2\b/g, "asking first").replace(/\bA3\b/g, "running on its own")
     .replace(/\brungs\b/gi, (m) => keep(m, "steps")).replace(/\brung\b/gi, (m) => keep(m, "step"));
