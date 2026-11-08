@@ -136,10 +136,44 @@ class Bundle:
     truth: dict | None
     key: tuple
     results: dict
+    #: the task id the answers carry, and what they show: "cohort" (the apprentices' study: cohort figures beside one case) or "person" (a worker's own cases against the nearest
+    #: experienced worker's, nothing about anyone else: the worker's own page)
+    task: str = TASK
+    scope: str = "cohort"
+
+
+def role_for_task(task: str) -> str | None:
+    """The role whose own cohort a task name asks for: a role pack id other than the benefits one (``programmer``, ``data-analyst``), or that pack's task id (``fix-a-failing-build``).
+    None for the benefits task and everything else, which are read exactly as before."""
+    if task in TASK_ALIASES or task.startswith("t_"):
+        return None
+    try:
+        from ..memory import list_pack_ids, load_pack
+
+        for rid in list_pack_ids():
+            if rid == "benefits-processor":
+                continue
+            if task == rid or task == (load_pack(rid).persona or {}).get("task"):
+                return rid
+    except Exception:
+        return None
+    return None
 
 
 def _truth_levels(truth: dict) -> dict[str, str]:
     return {p["person"]: p["level"] for p in truth["people"]}
+
+
+def _caller() -> str | None:
+    """The person set up on this device (the profile's), or None when nobody is. Every worker-scope answer is about them."""
+    try:
+        from .. import routes_handoff as rh
+        from ..memory.onboarding import load_profile
+
+        pid = (load_profile(rh._mem()) or {}).get("person")
+        return str(pid) if pid else None
+    except Exception:
+        return None
 
 
 class GenomeService:
@@ -177,7 +211,70 @@ class GenomeService:
             return None
         return Bundle(co, partition, truth, self._stamp(partition), {})
 
+    # ---------------------------------------------------------------- a role's own cohort (the worker's page)
+    def _role_files(self, role: str) -> tuple[Path, Path]:
+        d = self.store.root / "roles" / role / "cohort"
+        return d / "roster.json", d / "events.jsonl"
+
+    def _role_bundle(self, task: str, role: str) -> Bundle:
+        """The cohort written for ``role`` (``<data>/roles/<role>/cohort/``: a roster of who is experienced and who is learning, and their cases of the role's main task, the worker's own among
+        them). Answers carry the worker's own cases and the nearest experienced worker's way of doing the task, never anyone else's identity (scope ``person``)."""
+        roster, ev = self._role_files(role)
+        if not (roster.exists() and ev.exists()):
+            raise GenomeError("no_cohort", f"There is no history for the {role} role yet: nothing to compare with an experienced worker's way of doing the task.")
+        stamp = tuple((str(p), p.stat().st_mtime_ns, p.stat().st_size) for p in (roster, ev))
+        with self._lock:
+            b = self._bundles.get(f"role:{role}")
+            if b is not None and b.key == stamp:
+                return b
+            from ..routines.sources import pack_mapping
+
+            levels = json.loads(roster.read_text())
+            events = [e for e in self.store.read_file(ev) if e.person in levels]
+            co = Cohort(segment_episodes(events, pack_mapping(role)), levels)
+            if len({e.person for e in co.experts}) < 2 or len({e.person for e in co.novices}) < 1:
+                raise GenomeError("no_cohort", f"The {role} history has too few cases to compare.")
+            b = Bundle(co, "synthetic", None, stamp, {}, task=task if role_for_task(task) else role, scope="person")
+            self._bundles[f"role:{role}"] = b
+            return b
+
+    # ---------------------------------------------------------------- the benefits worker's own page
+    def _worker_bundle(self, who: str) -> Bundle:
+        """The worker's own cases of the benefits task against the experienced workers' way of doing it, for the person set up on this device: their learner trajectory (the learners
+        data holds it under the worker's id) beside the experienced workers of the apprentices' study. Scope ``person``: the answers carry the worker's cases and the nearest experienced
+        worker, never another person's id and never the study's cohort figures."""
+        tp = self.store.root.joinpath(*APPRENTICE_TRUTH)
+        if not tp.exists():
+            raise GenomeError("unknown_person", "There are no cases of this task for you yet. They appear as your work is captured.")
+        stamp = self._stamp("synthetic")
+        with self._lock:
+            b = self._bundles.get(f"worker:{who}")
+            if b is not None and b.key == stamp:
+                return b
+            levels = {p: "expert" for p, lv in _truth_levels(json.loads(tp.read_text())).items() if lv == "expert"}
+            levels[who] = "novice"
+            events = [e for e in self.store.read("synthetic") if e.person in levels]
+            if not any(e.person == who for e in events):
+                raise GenomeError("unknown_person", "There are no cases of this task for you yet. They appear as your work is captured.")
+            co = Cohort(segment_episodes(events), levels)
+            if len({e.person for e in co.experts}) < 2 or not co.novices:
+                raise GenomeError("unknown_person", "There are too few cases of this task to compare yet.")
+            b = Bundle(co, "synthetic", None, stamp, {}, task=TASK, scope="person")
+            self._bundles[f"worker:{who}"] = b
+            return b
+
+    def _scoped(self, task: str, partition: str | None, person: str | None) -> Bundle:
+        """The bundle a request reads. For the benefits task, when someone is set up on this device and the request is theirs (no person, or their id), the worker's own page; otherwise
+        exactly as before (the apprentices' study, for the evaluation and for a stack nobody has set up)."""
+        who = _caller()
+        if who and role_for_task(task) is None and (task in TASK_ALIASES or task.startswith("t_")) and (person is None or person == who):
+            return self._worker_bundle(who)
+        return self.bundle(task, partition)
+
     def bundle(self, task: str, partition: str | None = None) -> Bundle:
+        role = role_for_task(task)
+        if role is not None:
+            return self._role_bundle(task, role)
         # one task exists (the benefits household entry); an episode id such as t_nov03a also resolves to its cohort
         if task not in TASK_ALIASES and not task.startswith("t_"):
             raise GenomeError("unknown_task", f"Unknown task {task!r}. Known: {TASK}.")
@@ -216,17 +313,83 @@ class GenomeService:
 
     def default_person_episode(self, task: str = TASK, partition: str | None = None) -> tuple[str, str]:
         """The median-gap novice and their first case: what the ribbon and the replay show when nobody is named."""
-        b = self.bundle(task, partition)
+        b = self._scoped(task, partition, None)
+        if b.scope == "person":
+            who = self._own(b, None)
+            return who, sorted((e for e in b.cohort.episodes if e.person == who), key=lambda e: e.t0)[0].task_id
         real = self._cached(b, "real:nearest_expert", lambda: b.cohort.real_gap("nearest_expert"))
         pp = real["per_person"]
         person = sorted(pp, key=lambda p: pp[p])[len(pp) // 2]
         ep = sorted((e for e in b.cohort.episodes if e.person == person), key=lambda e: e.t0)[0]
         return person, ep.task_id
 
+    def _own(self, b: Bundle, person: str | None) -> str:
+        """The learner a person-scope answer is about: the one asked for, else the role cohort's only worker of this device (the learner of the cohort)."""
+        from ..seedroles import PERSON
+
+        learners = sorted({e.person for e in b.cohort.novices})
+        caller = _caller()
+        if person is not None and person not in (PERSON, caller):     # the other learners of the cohort are not reachable by id: this page is the worker's own
+            raise GenomeError("unknown_person", "There are no cases of this task for that person.")
+        for who in (person, caller, PERSON):
+            if who in learners:
+                return who
+        return learners[0]
+
+    def _genome_person(self, b: Bundle, person: str | None, reference: str, episode: str | None) -> tuple[dict, AnalyticMeta]:
+        """A worker's own cases of the role's main task against the nearest experienced worker's: their latest case aligned step by step, the seconds they lose by kind, and the gap of
+        each case in order (the learning curve). Nothing here names or counts another person: the experienced worker is "the nearest", never an id."""
+        co = b.cohort
+        person = self._own(b, person)
+        eps = sorted([e for e in co.episodes if e.person == person], key=lambda e: e.t0)
+        if not eps:
+            raise GenomeError("unknown_person", f"No cases of this task for {person!r}.")
+        if co.levels.get(person) != "novice":
+            raise GenomeError("not_a_novice", f"{person} has no learning cases in this role's history.", 422)
+        if episode:
+            eps_pick = [e for e in eps if e.task_id == episode]
+            if not eps_pick:
+                raise GenomeError("unknown_person", f"No case {episode!r} for {person!r}.")
+            ep = eps_pick[0]
+        else:
+            ep = eps[-1]
+        def against(e):
+            if reference == "consensus":
+                return co.consensus(), 0.0
+            ref_ep, _ = co.nearest(e)
+            return ref_ep.cogs, ref_ep.t0
+
+        ref_cogs, ref_t0 = against(ep)
+        al = align(ref_cogs, ep.cogs, co.cost)
+        labels = label_columns(al)
+        rows = al.as_rows()
+        for r, lab in zip(rows, labels):
+            r["label"] = lab
+        comp = components(al)
+        curve = []
+        for i, e in enumerate(eps, start=1):
+            rc, _t0 = against(e)
+            curve.append({"case": i, "episode": e.task_id, "gap_s": round(align(rc, e.cogs, co.cost).gap_s, 3)})
+        data = {
+            "task": b.task, "person": person, "episode": ep.task_id, "reference": reference, "scope": "person",
+            "expert": {"segments": [{"cog": c.id, "t0": round(c.t0 - ref_t0, 3), "t1": round(c.t1 - ref_t0, 3)} for c in ref_cogs]},
+            "novice": {"segments": [{"cog": c.id, "t0": round(c.t0 - ep.t0, 3), "t1": round(c.t1 - ep.t0, 3)} for c in ep.cogs]},
+            "alignment": rows, "person_gap_s": round(al.gap_s, 3),
+            "person_waterfall": [{"label": k, "seconds": round(v, 3)} for k, v in sorted(comp.items(), key=lambda kv: -abs(kv[1]))],
+            "cases": curve,
+        }
+        meta = AnalyticMeta(origin=b.origin, n=len(eps), n_unit="cases", split="descriptive; each case is set beside the nearest experienced worker's case of the same task",
+                            note="Your own cases of this task, each set beside the nearest experienced worker's. The seconds are what the steps took, split by kind.")
+        return data, meta
+
     def genome(self, task: str, person: str | None = None, reference: str = "nearest_expert", partition: str | None = None, episode: str | None = None) -> tuple[dict, AnalyticMeta]:
         if reference not in ("nearest_expert", "consensus"):
             raise GenomeError("bad_reference", "reference must be nearest_expert or consensus", 422)
-        b = self.bundle(task, partition)
+        b = self._scoped(task, partition, person)
+        if b.scope == "person":
+            if task.startswith("t_") and task not in TASK_ALIASES and task in b.cohort.by_task and not episode:
+                episode = task                      # the caller named one of their own cases
+            return self._genome_person(b, person, reference, episode)
         co = b.cohort
         real = self._cached(b, f"real:{reference}", lambda: co.real_gap(reference))
         wf = self._cached(b, f"wf:{reference}", lambda: co.waterfall(reference))
@@ -297,12 +460,17 @@ class GenomeService:
         return data, self.meta(b, note)
 
     def transitions(self, task: str, person: str | None = None, partition: str | None = None) -> tuple[dict, AnalyticMeta]:
-        b = self.bundle(task, partition)
+        b = self._scoped(task, partition, person)
         co = b.cohort
+        if b.scope == "person":
+            person = self._own(b, person)                    # the worker's own steps against the experienced workers' way, never the other learners'
         novices = co.novices if person is None else [e for e in co.novices if e.person == person]
         if not novices:
             raise GenomeError("unknown_person", f"No novice episodes for {person!r}.")
         g = transition_graph(co.experts, novices)
+        if b.scope == "person":
+            return g, AnalyticMeta(origin=b.origin, n=len(novices), n_unit="cases", split="descriptive; mean transitions per case, the experienced workers' way beside your own",
+                                   note="Edges are mean transitions per case. missing_for_novice: the experienced workers take the edge, you take it less than 85% as often.")
         if b.truth is not None:
             planted = planted_missing_edges(b.truth)
             for e in g["edges"]:

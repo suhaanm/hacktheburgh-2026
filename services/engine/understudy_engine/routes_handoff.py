@@ -120,15 +120,37 @@ def _pack(role: str):
         return load_pack("benefits-processor")
 
 
+_current_memo: dict[tuple[str, str], tuple[PersonData, PersonData]] = {}
+
+
 def _as_current(pd: PersonData | None) -> PersonData | None:
     """A real worker who changed role in setup but has not yet done any work under the new role: the role is the profile's and there are no current-role
     events, so routines, the hit list and the graph start clean for the new pack instead of reading the old role's work with the wrong pack. The earlier
     events stay on ``earlier_events``. Only after a recorded role change (``history``), so a first setup is read exactly as before."""
-    if pd is None or pd.origin != "real":
+    if pd is None:
         return pd
     prof = load_profile(_mem()) or {}
     role = prof.get("role")
-    if not role or not prof.get("history") or prof.get("person") != pd.person or role == pd.role:
+    if not role or prof.get("person") != pd.person:
+        return pd
+    # History is kept per role and is never mixed: when the worker's events carry more than one role (earlier work under another role, seeded history, live capture beside it), the current
+    # events are ALL the events of the profile's role, in any order the worker has switched, and every other role's events stay on ``earlier_events`` (readable, never in a count).
+    hit = _current_memo.get((pd.person, role))
+    if hit is not None and hit[0] is pd:                     # PersonSource hands out the same object until the person's files change, so the split is made once per data version
+        return hit[1]
+    allev = [*pd.earlier_events, *pd.events]
+    roles = {e.role for e in allev}
+    if len(roles) > 1 and role in roles:
+        allev.sort(key=lambda e: (e.t, e.id))
+        cur = [e for e in allev if e.role == role]
+        # the person's own truth file (a generated learner's trajectory) describes one role's days; it does not describe another role's
+        truth = pd.truth if role == (pd.truth or {}).get("role", pd.role) else None
+        out = dataclasses.replace(pd, role=role, events=cur, earlier_events=[e for e in allev if e.role != role], truth=truth)
+        if len(_current_memo) > 8:
+            _current_memo.clear()
+        _current_memo[(pd.person, role)] = (pd, out)
+        return out
+    if pd.origin != "real" or not prof.get("history") or role == pd.role:
         return pd
     return dataclasses.replace(pd, role=role, events=[], earlier_events=[*pd.earlier_events, *pd.events])
 
@@ -144,7 +166,9 @@ def _resolve(person: str | None) -> tuple[str | None, PersonData | None]:
     if person:
         return person, _as_current(src.load(person))
     prof = load_profile(_mem())
-    if prof and prof.get("person") and src.load(prof["person"]):
+    if prof and prof.get("person"):
+        # The caller is someone: every route that defaults its person answers for THEM, even before any of their work is captured (then pd is None and the route says so calmly).
+        # It never falls back to another person's data or id (the engine's default persona is for a stack nobody has set up).
         return prof["person"], _as_current(src.load(prof["person"]))
     p = src.default_person()
     return p, _as_current(src.load(p) if p else None)
@@ -155,8 +179,8 @@ def _meta(origin: str, n: int, n_unit: str, split: str | None = None, note: str 
 
 
 def _unknown_person(person: str | None) -> JSONResponse:
-    known = sorted(_src().persons())
-    return _error(404, "unknown_person", f"No events for {person!r}. Known people: {', '.join(known) or 'none (is data/synthetic generated?)'}.")
+    # Calm and without any other person's id: a worker's page never learns who else the engine knows.
+    return _error(404, "unknown_person", "Nothing has been captured for this person yet, so there is nothing to show. It fills in as work is captured.")
 
 
 def _demo(mem: MemoryStore) -> dict[str, Any]:
@@ -172,10 +196,16 @@ def _case_for(person: str | None, case: int | None, mem: MemoryStore) -> int | N
     return d.get("case") if d.get("person") and d.get("person") == person else None
 
 
-def _learner(person: str | None, case: int | None):
-    """A learner-trajectory person (data/synthetic/learners): skill state from a SkillTracker built case by case."""
+LEARNER_ROLE = "benefits-processor"      # the learner trajectories (data/synthetic/learners) are thirty benefits cases each
+
+
+def _learner(person: str | None, case: int | None, role: str | None = None):
+    """A learner-trajectory person (data/synthetic/learners): skill state from a SkillTracker built case by case. Only for the role those trajectories are about: the same worker id
+    under another role (programmer, data analyst) has no learner trajectory, and the benefits skill state is never read as theirs."""
     from .routines.learners import learner_people, tracker_at
 
+    if role is not None and role != LEARNER_ROLE:
+        return None
     if person and person in learner_people():
         return tracker_at(person, case)
     return None
@@ -390,8 +420,8 @@ def coach_state(person: str | None = Query(None), step: int | None = Query(None,
     mem = _mem()
     doc = mem.read()
     pid, pd = _resolve(person)
-    learner = _learner(pid, _case_for(pid, case, mem))
-    if person and person.startswith("p_learn") and learner is None:
+    learner = _learner(pid, _case_for(pid, case, mem), pd.role if pd else None)
+    if person and person.startswith("p_learn") and learner is None and (pd is None or pd.role == LEARNER_ROLE):
         return _unknown_person(person)
     pack = _pack(doc.role if doc.role != "unknown" and learner is None else (pd.role if pd else "benefits-processor"))
     task_doc = _task_yaml(pack.id)
@@ -490,7 +520,7 @@ def _detections_for(pd: PersonData, mem: MemoryStore) -> list[dict[str, Any]]:
     d = _demo(mem)
     if d.get("person") == pd.person and d.get("routine_source"):
         other = _src().load(d["routine_source"])
-        if other is not None:
+        if other is not None and other.role == pd.role:           # the demo person's routines come from another persona of the SAME role; under another role the worker's own events are read
             ids = set(d.get("routine_ids") or [])
             return [{**r, "person": pd.person} for r in _detected(other, mem) if not ids or r["id"] in ids]
     return _detected(pd, mem)
@@ -501,7 +531,7 @@ def _sync_routines(pd: PersonData, mem: MemoryStore, case: int | None = None) ->
     gates against current skill state: a learner's tracker at ``case``, or the Skill state lines of the memory file."""
     st = RoutineStore(mem)
     st.merge(_detections_for(pd, mem))
-    learner = _learner(pd.person, _case_for(pd.person, case, mem))
+    learner = _learner(pd.person, _case_for(pd.person, case, mem), pd.role)
     if learner is not None:
         st.refresh_gate(learner.tracker, learner.t_ref, pd.person)
     else:
@@ -700,7 +730,7 @@ def get_work_graph(person: str | None = Query(None), case: int | None = Query(No
         return _unknown_person(pid)
     st = _sync_routines(pd, mem, case)
     doc = mem.read()
-    learner = _learner(pd.person, _case_for(pd.person, case, mem))
+    learner = _learner(pd.person, _case_for(pd.person, case, mem), pd.role)
     now = learner.t_ref if learner is not None else (pd.t_last if pd.origin == "synthetic" else time.time())
     g = build_work_graph(st, doc, _pack(pd.role), now, skill_snapshot=learner.snapshot if learner is not None else None, person=pd.person)
     return {"meta": _meta(pd.origin, len(g["nodes"]), "episodes", None,
@@ -721,7 +751,7 @@ def _prior_for(pd: PersonData, mem: MemoryStore) -> PriorHours:
 def _fit_presence(pd: PersonData, mem: MemoryStore) -> dict[str, Any]:
     src = _src()
     prior = _prior_for(pd, mem)
-    key = ("presence", pd.person, src._signature(pd.person), (prior.start_min, prior.end_min, prior.days, prior.p_in, prior.p_out))
+    key = ("presence", pd.person, src._signature(pd.person), (prior.start_min, prior.end_min, prior.days, prior.p_in, prior.p_out), pd.role, len(pd.events))
     with _lock:
         hit = _cache.get(key)
     if hit is not None:

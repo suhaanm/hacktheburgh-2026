@@ -99,13 +99,17 @@ def _person(person: str | None) -> str | None:
         return person
     try:
         from . import routes_handoff as rh
+        from .memory.onboarding import load_profile
 
+        prof = load_profile(rh._mem()) or {}
+        if prof.get("person"):
+            return str(prof["person"])                 # the caller's own identity: a briefing is never for someone else, whatever else the store holds
         pid, _ = rh._resolve(None)
         if pid:
             return pid
     except Exception:
         pass
-    known = BriefingStore().persons()
+    known = BriefingStore().persons()                  # nobody is set up on this stack (the evaluation's personas): any known briefing
     return known[0] if known else None
 
 

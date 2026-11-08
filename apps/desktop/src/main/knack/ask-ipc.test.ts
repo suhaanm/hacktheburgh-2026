@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ASK_CARD, ASK_MAX_HEIGHT, ASK_MAX_TEXT, ASK_PAD, askBarBounds, askUnavailableLine, askWindowHeight, cleanAsk, keyLabel } from './ask-ipc'
+import { ASK_CARD, ASK_MAX_HEIGHT, ASK_MAX_TEXT, ASK_PAD, askBarBounds, askWindowHeight, cleanAsk, keyLabel } from './ask-ipc'
 
 const wa = { x: 0, y: 25, width: 1440, height: 875 }
 
@@ -36,13 +36,9 @@ describe('what is typed', () => {
   })
 })
 
-describe('the sentence when typing cannot be answered', () => {
-  it('says what to do, with the talk key as people say it', () => {
+describe('the talk key as people say it', () => {
+  it('names Alt as Option and CommandOrControl as Command', () => {
     expect(keyLabel('Alt+Space')).toBe('Option-Space')
     expect(keyLabel('CommandOrControl+Shift+T')).toBe('Command-Shift-T')
-    expect(askUnavailableLine('Alt+Space')).toBe('Typing is not on yet. Hold Option-Space and speak.')
-  })
-  it('never says demo or mock', () => {
-    expect(askUnavailableLine('Alt+Space')).not.toMatch(/demo|mock/i)
   })
 })

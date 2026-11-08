@@ -54,7 +54,12 @@ def person_role(person: str) -> str | None:
     try:
         from .. import routes_handoff as rh
 
-        pd = rh._src().load(person)
+        from ..memory.onboarding import load_profile
+
+        prof = load_profile(rh._mem()) or {}
+        if prof.get("person") == person and prof.get("role"):
+            return str(prof["role"])           # the role the worker chose in their profile wins over the role of the newest captured events
+        _pid, pd = rh._resolve(person)
         return pd.role if pd else None
     except Exception:
         return None

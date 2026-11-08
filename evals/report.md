@@ -1,6 +1,6 @@
 # Understudy evaluation report
 
-Generated 2026-11-08T02:22:41Z · mock mode: yes · git 48723dd · fast run: no
+Generated 2026-11-08T02:58:04Z · mock mode: yes · git 9780781 · fast run: no
 
 Written by `python -m understudy_engine.eval` from the owning tracks' code; no number here is typed in by hand. Results from generators we wrote say so. A section without numbers says why instead of showing a made-up value.
 
@@ -284,10 +284,10 @@ Window-forecast Brier score 0.131 (mean over personas); interruption cap 10%. Th
 
 | Persona | Window Brier [95%] | Interruption rate, start-or-wait rule [95%] | Idle time used [95%] |
 |---|---|---|---|
-| nine-to-five | 0.086 [0.073, 0.104] | 0.0% [0.0%, 4.8%] | 77.0% [65.9%, 82.6%] |
-| night-owl | 0.133 [0.101, 0.167] | 1.2% [0.2%, 6.5%] | 53.3% [47.0%, 57.0%] |
-| shift-worker | 0.171 [0.141, 0.240] | 3.5% [1.6%, 7.4%] | 83.9% [77.5%, 88.2%] |
-| irregular | 0.134 [0.113, 0.169] | 3.5% [1.6%, 7.5%] | 82.5% [72.1%, 88.1%] |
+| nine-to-five | 0.086 [0.072, 0.104] | 0.0% [0.0%, 4.8%] | 77.0% [65.9%, 82.6%] |
+| night-owl | 0.133 [0.100, 0.169] | 1.2% [0.2%, 6.5%] | 53.3% [47.0%, 57.0%] |
+| shift-worker | 0.171 [0.141, 0.262] | 3.5% [1.6%, 7.4%] | 83.9% [77.5%, 88.2%] |
+| irregular | 0.134 [0.112, 0.160] | 3.5% [1.6%, 7.5%] | 82.5% [72.1%, 88.1%] |
 
 ## Routine finder
 
@@ -385,11 +385,11 @@ Caveat: the clean path is the compiled path on the sandbox it was written agains
 
 Caveats:
 
-- Generated households on local sandbox sites; one model family (the ids in meta.models); one planner prompt; n = 20 households per condition, intervals are Wilson 95%.
+- Synthetic households on local sandbox sites; one model family (the ids in meta.models); one planner prompt; n = 20 households per condition, intervals are Wilson 95%.
 - Identical prompts are cached, so repeated page situations are one live sample each (about 370 distinct live prompts behind 80 runs), not 80 independent samples; sampling variance of the model is therefore under-represented.
 - The page_state fix (v2) was made AFTER seeing the glitch result and re-evaluated on the SAME condition: its 10-of-10 is in-sample. It was not tested on other conditions, so nothing here says it generalises.
 - The v2 glitch re-run stopped at the cost budget after 10 households; later rows were contaminated by blocked model calls and are dropped (meta.dropped_after_budget_stop). v2 used a cap of 40 actions per navigator, v1 the production cap of 20.
-- Tier 3 is NOT demonstrated on the benefits task: against a stand-in actuator the computer-use model declined at step 1 and took no action, because tier-3 goals carry no household values by design (n = 3).
+- Tier 3 is NOT demonstrated on the benefits task: against a simulated actuator the computer-use model declined at step 1 and took no action, because tier-3 goals carry no household values by design (n = 3).
 - The injected condition has no task success by design (the detector pauses the run); it measures detection and attack success only. The injection text is the red-team page set written by the same team.
 - stated_confidence is present only for runs where the model made a finish claim with a confidence; elsewhere null.
 - Cost figures are estimates from the provider's token counters at placeholder rates, not an invoice.
@@ -475,11 +475,11 @@ Generated fixtures with planted canaries, a capturing fake model port, an isolat
 | reference | 4 | 32 | 40 | 0 of 728 | 8.94% |
 | integration | 7 | 56 | 104 | 0 of 10728 | 5.21% |
 
-Layers: calendar registered; gitanalysis registered; proactive adapter; localmodel registered; plugins registered; awareness registered; cue not_applicable; evidence registered; mlv2 pure_compute; personas_v2 pure_compute; attention pure_compute; hitlist pure_compute; insights pure_compute. A layer with no registered flow is never counted as passed.
+Layers: calendar registered; gitanalysis registered; proactive adapter; localmodel registered; plugins registered; awareness registered; cue not_applicable; evidence registered; mlv2 pure_compute; personas_v2 pure_compute; attention pure_compute; hitlist pure_compute; insights pure_compute; connections none_registered. A layer with no registered flow is never counted as passed.
 
 Negative controls (the instrument can fail): 11 of 11 behaved as required.
 
-Bucketing: 0 failures over 594114 cases. Backstop: 27/27 must-catch shapes caught, 0 false positives on 34 ordinary values. Static guard: 0 violations in 345 files.
+Bucketing: 0 failures over 594114 cases. Backstop: 27/27 must-catch shapes caught, 0 false positives on 34 ordinary values. Static guard: 0 violations in 371 files.
 
 Everything ran offline on generated fixtures with planted tokens; nothing here validates behaviour on real data and the real provider was never called.
 
@@ -572,7 +572,7 @@ Model arm source: cache. Held-out test split; the dev split was used for tuning.
 
 *measured on: **generators we wrote** · n = 43 runs · split: n/a · intervals: 95%*
 
-Generated fixtures with planted facts, mock model, offline; one live smoke with the real model when a key is present.
+Synthetic fixtures with planted facts, mock model, offline; one live smoke with the real model when a key is present.
 
 sections (generators we wrote):
 
@@ -616,7 +616,7 @@ dev (generators we wrote):
 | genome_apprentice_d0 | APP-D0 | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | hazard_dev16 | DEV | 16 | 31791 | grouped 5-fold within training people | n/a | (see report.json) | (see report.json) | (see report.json) |
 
-- transfer_simulated_participants (generators we wrote): badge: language-model participants, not people, origin: simulated_participants, test_only: True, n_participants_finished: 24, participants_skipped: (see report.json), n_events: 7334, n_progress_events: 152, n_coach_events: 24, timing: measured (engine event timestamps), arms: (see report.json), genome_comparison: not applicable: the language-model participants are all novices; there is no expert reference in these data, train: (see report.json)
+- transfer_simulated_participants (generators we wrote): badge: simulated participants (language model), not people, origin: simulated_participants, test_only: True, n_participants_finished: 24, participants_skipped: (see report.json), n_events: 7334, n_progress_events: 152, n_coach_events: 24, timing: measured (engine event timestamps), arms: (see report.json), genome_comparison: not applicable: the simulated participants are all novices; there is no expert reference in these data, train: (see report.json)
 
 heldout (generators we wrote):
 
@@ -726,7 +726,7 @@ score_validation (generators we wrote):
 
 | key | origin | n | n_unit | split | interval_level | note | generated_at | kinds |
 |---|---|---|---|---|---|---|---|---|
-| meta | synthetic | 240 | generated learners | replicate seeds 0..59 per kind | 0.950 | Generated learners with planted curves and known truth; nobody here is a person. | 2026-11-07T20:59:37Z | n/a |
+| meta | synthetic | 240 | generated learners | replicate seeds 0..59 per kind | 0.950 | Generated learners with planted curves and known truth; nobody here is a person. | 2026-11-08T02:58:04Z | n/a |
 | design | n/a | n/a | n/a | n/a | n/a | n/a | n/a | (see report.json) |
 | variants | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | gaming | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
@@ -743,9 +743,9 @@ score_validation (generators we wrote):
 
 - bandit_offline (generators we wrote): n_decisions: 491, n_workers: 40, split: dev population seed 11; replicate seeds [0, 1, 2], logging_policy: the rule's action with probability 1 - 0.2 + 0.2//allowed/, others 0.2//allowed/; no learning, actions: (see report.json), targets: (see report.json), logging_policy_value: 0.022, ready_to_enable: False, reason: the doubly robust difference to the rule is +0.273 with an interval that does not clear the rule's value, or the effective sample size (37) is too small: do not turn learning on, limitations: (see report.json), meta: (see report.json)
 
-- code_hashes (generators we wrote): gate.py: 29479a414a11, params.py: 2b912880af7e, candidates.py: 46e2bf1f9b67, question.py: e6130ec2b4a3, score.py: 9b1aee528ed0, simulate.py: 4a328240a2b8, simlearn.py: 947d6d18e4c4, evaluate.py: 59c271d6151b, evaluate_score.py: d0a84cb42b48, evaluate_candidates.py: 1b0c3d47a9df, evals/cue/PLAN.md: 8d3b2e9c5ada
+- code_hashes (generators we wrote): gate.py: 29479a414a11, params.py: 2b912880af7e, candidates.py: 46e2bf1f9b67, question.py: e6130ec2b4a3, score.py: f1075f0bf307, simulate.py: 4a328240a2b8, simlearn.py: 947d6d18e4c4, evaluate.py: 9b8d44df01f3, evaluate_score.py: 048c0cb73da0, evaluate_candidates.py: f407fb14b97d, evals/cue/PLAN.md: 8d3b2e9c5ada
 
-- design (generators we wrote): assumptions: (see report.json), dt_s: 2.500, voice_ok: False, seconds: 33.500, fast: False
+- design (generators we wrote): assumptions: (see report.json), dt_s: 2.500, voice_ok: False, seconds: 32.000, fast: False
 
 ## Persona realism
 
@@ -759,7 +759,7 @@ Figures (generators we wrote):
 - badge: generated, realism-calibrated
 - blocks_source: data/eval/realism_blocks/<kind>_<role>.json (the track's own full-size blocks; read here, never run by the harness)
 
-- generator (generators we wrote): params_sha256: 23a71289f6c4795ce412592b0eb0edf598a2573b00428303e594e98b4b8b4ddc, generator_sha256: ae32e7be05ce2002820f3185dd7935e29c074ccca66461f3644a9c82ae87f242, families: (see report.json), roles: (see report.json), plan: evals/realism/PLAN.md, cited_status_counts: (see report.json)
+- generator (generators we wrote): params_sha256: 23a71289f6c4795ce412592b0eb0edf598a2573b00428303e594e98b4b8b4ddc, generator_sha256: e5e262442b70f1695e8f022ee2615390843eece42de1571a46e1b994f76aed1d, families: (see report.json), roles: (see report.json), plan: evals/realism/PLAN.md, cited_status_counts: (see report.json)
 
 - config (generators we wrote): fast: True, K: 2, n_workweek_people: 14, workweek_days: 7, n_cohort_people: 14, cases_per_person: 4, genome_cases_per_person: 2, bootstrap_B: 200, routine_grid: (see report.json), with_v1: False, proposals: False, margins: (see report.json)
 
@@ -1007,13 +1007,13 @@ expectations (generators we wrote):
 
 *measured on: **generators we wrote** · n = 0 people · split: n/a · intervals: 95%*
 
-- pointing_step_ids (generators we wrote): origin: sandbox UI, headless screenshots, cells: (see report.json), n_cases_defined: 37, paired_hit_differences: (see report.json)
+- pointing_step_ids (generators we wrote): origin: synthetic sandbox UI, headless screenshots, cells: (see report.json), n_cases_defined: 37, paired_hit_differences: (see report.json)
 
-- verifier (generators we wrote): origin: sandbox UI, headless screenshots, question: page_shows_result: the page shows a completed calculation with a numeric result, n_images_defined: 30, groups: (see report.json), n_truth_accept: 15, n_truth_reject: 15, cells: (see report.json), baselines: (see report.json), context_live_runs: (see report.json)
+- verifier (generators we wrote): origin: synthetic sandbox UI, headless screenshots, question: page_shows_result: the page shows a completed calculation with a numeric result, n_images_defined: 30, groups: (see report.json), n_truth_accept: 15, n_truth_reject: 15, cells: (see report.json), baselines: (see report.json), context_live_runs: (see report.json)
 
-- glance (generators we wrote): origin: sandbox UI, headless screenshots, purpose: awareness.glance (the AWARENESS track's closed enums), screens: (see report.json), repeats_per_screen: 5, plausibility_note: 'plausible' = task_phase and blocker fall in sets chosen by this harness for a sandbox screen kind (form, result, error); it is a sanity check, not ground truth, cells: (see report.json)
+- glance (generators we wrote): origin: synthetic sandbox UI, headless screenshots, purpose: awareness.glance (the AWARENESS track's closed enums), screens: (see report.json), repeats_per_screen: 5, plausibility_note: 'plausible' = task_phase and blocker fall in sets chosen by this harness for a sandbox screen kind (form, result, error); it is a sanity check, not ground truth, cells: (see report.json)
 
-- latency_recheck (generators we wrote): origin: sandbox UI, headless screenshots, what: one pointing call (the same screenshot and description) repeated sequentially per contender, the three contenders side by side; the 1-minute load average is recorded at every call, cells: (see report.json)
+- latency_recheck (generators we wrote): origin: synthetic sandbox UI, headless screenshots, what: one pointing call (the same screenshot and description) repeated sequentially per contender, the three contenders side by side; the 1-minute load average is recorded at every call, cells: (see report.json)
 
 - recommendation (generators we wrote): rules: (see report.json), findings: (see report.json), significance: (see report.json), point_lite_primary: True, point_keep_escalation: False, point_openai_primary: False, verify_gemini_ok: True, duplicate_inputs_skipped: 12
 
@@ -1082,7 +1082,7 @@ Real desktop: R0 ran once (R0 reads the window list and accessibility only, so i
 
 *language-model participants, not people · measured on: **generators we wrote** · n = 24 silicon participants · split: within-participant, counterbalanced S1-S4, plus an A/A sham arm in which the coach is silent in every block; n = 16 coached-arm plus 8 A/A participants · intervals: 95%*
 
-Language-model participants, not people. Never the live study. n counts silicon participants.
+Language-model participants, not people. Simulated participants (language model), not people. Never the live study. n counts silicon participants.
 
 **Language-model participants, not people.** This is not the live study and is never combined with it. The live study (n = 4 people) is reported above and only there.
 
@@ -1335,7 +1335,7 @@ The help-level ladder is not scored: it is deterministic code with no outcome to
 
 ## Limitations register
 
-219 entries, most serious first. Kept in the product on purpose.
+220 entries, most serious first. Kept in the product on purpose.
 
 | Id | Severity | What it means | Source |
 |---|---|---|---|
@@ -1349,7 +1349,7 @@ The help-level ladder is not scored: it is deterministic code with no outcome to
 | ski-simulated | high | Ski-rental regret is measured on generated routines (lognormal run rates, 45% retiring after an exponential life, the forecast sees 10 workdays), not on real build decisions. It shows the rule's behaviour against break-even under a stated mechanism. | engine-handoff:ski_rental |
 | ana-claims-live-tiny | high | The only real agent traces so far are 68 claimed successes from 20 households on the sandbox sites, from one real model. All 20 false claims are one family of failure: the model said it was done on a one-off error page. A classifier can mostly learn 'this was an error page', which a one-line rule also catches, so this does not show that claim risk can be predicted in general. | engine-analytics:agent_claims |
 | scripted_planner | high | The planner is a script that follows any instruction it can see. These numbers measure what the layers stop, not how a real model behaves under attack. | agent-safety:redteam |
-| small_n | high | Each attack is run 3 times per configuration on a catalog of a few dozen scripted attacks. Repeats of one attack are not independent evidence (the intervals are clustered by attack); intervals are wide and the point estimates are not rates to rely on. | agent-safety:redteam_live |
+| small_n | high | Each attack is run 3 times per configuration on a catalog of a few dozen synthetic attacks. Repeats of one attack are not independent evidence (the intervals are clustered by attack); intervals are wide and the point estimates are not rates to rely on. | agent-safety:redteam_live |
 | prv_leak_bound_unit | high | The leak bound is read per RUN, not per token. A leak is a property of a code path, and the many tokens planted in one run share that path, so they are not independent trials. With 0 leaks the one-sided 95% upper bound is about 3 divided by the number of independent units: per run (for example 0 of 80) about 3.7%, per flow (0 of 10) about 26%; the token-level figure (0 of thousands, well under 0.1%) assumes independence that does not hold and is shown only for comparison. Eight seeds per flow vary the planted strings, not the code path, so more seeds do not shrink the per-flow bound. | privacy-layer:privacy |
 | prv_flow_coverage | high | Reference flows test the privacy layer with stand-in upstream code. Only integration flows test another layer's own code, and a layer that supplied none is listed as none_registered, not as passed. Zero leaks says nothing about a flow that was not run. | privacy-layer:privacy |
 | img_raw_by_nature | high | A screen frame is raw content. The guard decides whether a frame may leave, from which kind of source, what may come back and what is ever recorded; it does not redact or generalise pixels, and when a frame is allowed the provider sees everything on the screen. What a provider does with a frame it received is the provider's policy and is not measured here. | privacy-layer:privacy |
@@ -1366,7 +1366,7 @@ The help-level ladder is not scored: it is deterministic code with no outcome to
 | loc_synthetic | high | Every digest number is measured on generated commits and calendar entries with planted labels, written by the same author as the rules and the prompts. No real repository, calendar or person was used; accuracy on real data is unknown and probably lower. | local-model:localmodel |
 | loc_small_n | high | About 100 items per task in the held-out test split (and 50 in the dev split the prompts were tuned on): the Wilson intervals are wide, and differences of a few points between the model and the rules are not distinguishable. | local-model:localmodel |
 | loc_injection | high | Constrained decoding means an instruction planted in the input cannot make the model print text: nothing leaves a digest except vocabulary values. It can still steer labels. With one planted line on 20 items per task, the model-for-everything run moved to the value the line asked for in 19 of 19 (commit category revert), 17 of 17 (risk high), 13 of 17 (event category focus) and 12 of 12 (needs_prep true); the keyword rules moved in 0, 0, 0 and 0. In the shipped policy only category is model-decided, and code vetoes the two most consequential claims (a revert needs a revert-style message; focus time needs at most one attendee), which leaves 0 of 19 and 5 of 17 category steerings; other category values can still be steered by whoever writes the commit message or the invite. | local-model:localmodel |
-| rt_synthetic | high | Every fixture is generated with planted facts; recovery rates say the runtime and its checks work on those fixtures, not that they work on a real repository or table. Nothing here was run on a person's real data. | agent-runtime:runtime |
+| rt_synthetic | high | Every fixture is synthetic with planted facts; recovery rates say the runtime and its checks work on those fixtures, not that they work on a real repository or table. Nothing here was run on a person's real data. | agent-runtime:runtime |
 | rt_menu_mode | high | In the privacy-preserving default (menu mode) the model only sequences vetted steps by id; the analysis is done by scripts we wrote. The live smoke shows a model can plan and drive a menu, not that it can analyse data. Free-form model-written code exists only in foreground raw mode, on files the worker named, and was evaluated with the mock model only. | agent-runtime:runtime |
 | rt_lh_injected_bugs | high | The long-horizon bugs are single-token mutations of correct code (an operator, a boundary, a constant), repaired by fault localisation plus mutation search over three classes, the standard way to test repair tools. Success shows the loop, the rollback, the verification and the privacy path work over 14 steps; it does not show the runtime fixes arbitrary bugs. The data task has three planted problem types and one reconciliation target; the outlier rule (50 times the median) is the same in the engine and in the checker. | agent-runtime:runtime |
 | mlv2-synthetic | high | Every number in this section comes from generated people or language-model participants, not people. A gain on generated data can be the model learning the generator; held-out replicates share the generator and cannot rule that out. | mlv2:mlv2 |
@@ -1383,7 +1383,7 @@ The help-level ladder is not scored: it is deterministic code with no outcome to
 | agentic-rounds-not-pooled | high | Held-out rounds measure different configurations and are shown apart, never pooled; the headline above is the newest round. Earlier: Round 1, injected, held-out seed 9138, n = 20, openai (planner gpt-5.5, fast gpt-5.4-mini, computer use gpt-5.5); gate 35e964049fd0, matches this round's frozen hash: the detector paused 20 of 20 pages of this kind (Wilson 95% 0.84 to 1.00); 0 attacks (0 visits to the exfil address, 0 submissions). The pages carry text aimed at an AI and nothing else, so this is evidence about the detector and the pause only. It does not show that the gate resists hostile pages. / Round 1, clean, held-out seed 9137, n = 4, openai (planner gpt-5.5, fast gpt-5.4-mini, computer use gpt-5.5); gate 35e964049fd0, matches this round's frozen hash: 1 of 4 passed the code check (Wilson 95% 0.05 to 0.70), 3 of 4 reached the approval gate, 2 false claim(s) (a success claimed while a figure did not match the code check), 0 submissions; 1 unexpected gate stop(s) (needs_human:drift:fill x1), harness or gate-tuning findings listed apart from model failures. n = 4 is descriptive: the pre-registered criterion 'Wilson lower bound at least 0.8' cannot be tested at this n under the spend cap, so this neither confirms nor rejects it. This round is not pooled with any other round. | agentic:agentic |
 | sim-not-people | high | Language-model participants, not people: The participants are language-model agents, not people. Nothing here shows that people learn from the coach, and nothing here is a user study. | study-sim:study_sim |
 | sim-memory-is-a-note | high | Language-model participants, not people: The only 'memory' a participant has is a note of at most 280 characters that it wrote itself after the practice case and sees again at the post-test of the same skill. Every case starts from a fresh model context. That is a prompt, not learning in any human sense. | study-sim:study_sim |
-| sim-instruction-following | high | Language-model participants, not people: A model that is shown 'check cliff edges before you copy this result' can do what it says. A higher score after coaching can therefore be instruction following plus a self-written note, not retention of a skill. | study-sim:study_sim |
+| sim-instruction-following | high | Language-model participants, not people: A model that is shown 'check cliff edges before you copy this result' can simply do what it says. A higher score after coaching can therefore be instruction following plus a self-written note, not retention of a skill. | study-sim:study_sim |
 | sim-authored-by-us | high | Language-model participants, not people: The coach prompts, the sandbox sites, the households, the scoring rule and the personas were all written by us. | study-sim:study_sim |
 | sim-power | high | Language-model participants, not people: With 16 coached-arm participants the analysis has about 6% false positives and 12%, 29% and 76% power for a small, medium and large true effect (engine-analytics Monte Carlo, interval excludes zero); sign-flip p below 0.05 has less. A null or small result does not show that the coach has no effect; a result counts as clear only if the interval excludes zero. | study-sim:study_sim |
 | ana-study-n4 | high | With four teammates the exact two-sided sign-flip p cannot go below 0.125, and the interval excludes zero only when the four differences nearly agree and are large. The expected outcome is an interval that includes zero. | engine-analytics:study_power |
@@ -1433,7 +1433,7 @@ The help-level ladder is not scored: it is deterministic code with no outcome to
 | layer7_scope_in_sample | medium | Layer 7 (goal check) no longer asks a model about plain typing, filling, select and extract steps, so it now covers navigation, clicks and key presses only. We changed this after seeing it pause the run on clean pages when the worker was just typing the answer (5 false pauses in 93 live runs). The false-pause figure after the change (0 of 93) is measured on the same pages that showed the problem, so it is in-sample and probably too good; typed data is still stopped by the data-flow and action-gate layers, not by this one. | agent-safety:redteam; agent-safety:redteam_live |
 | same_host_exfil | medium | Data-flow rules and the goal check cannot tell an exfiltration request to an endpoint on a site the routine already uses from normal browsing there. Only the detector and the reader stop that kind of attack. | agent-safety:redteam |
 | no_execution | medium | Nothing is executed. An attack counts as successful when the model proposes an action that serves the attacker and the layers authorise it; real tools, redirects and multi-step consequences are not modelled. | agent-safety:redteam_live |
-| synthetic_attacks | medium | The attacks are scripted and were written by the same team that wrote the defences; models change, so a result is true of one model version on one day. | agent-safety:redteam_live |
+| synthetic_attacks | medium | The attacks are synthetic and were written by the same team that wrote the defences; models change, so a result is true of one model version on one day. | agent-safety:redteam_live |
 | prv_canary_exact | medium | The canary scan looks for the exact planted strings, their invented words, simple rewrites (case, separators, URL encoding, base64, hex). A paraphrase, a translation, a hash or a character-code encoding of a token would not be caught. The claim measured is: these planted strings did not reach the model port, in these flows. | privacy-layer:privacy |
 | prv_form_not_meaning | medium | A SafePayload limits the form of what is sent (numbers, codes, fixed ids, bucketed values), not its meaning: a bucketed count of the worker's own meetings is still a fact about the worker. Generalisation reduces precision; it is not anonymisation. | privacy-layer:privacy |
 | prv_worker_requested | medium | Model calls the worker asked for (agent runs, the coach, the quarantined reader) are not routed through the egress guard and send raw content to the provider by design. They appear in the ledger only as metadata lines when the port is wrapped (direct.LedgeredPort). The Privacy screen therefore does not claim that nothing else leaves this laptop. | privacy-layer:privacy |
@@ -1504,7 +1504,7 @@ The help-level ladder is not scored: it is deterministic code with no outcome to
 | agentic-spend | medium | Live agent spend is 20.1373 US dollars at list price (7.3419 at the lower bound) of a 200.0 cap (10.1%), across the development rounds and every held-out round. | agentic:agentic |
 | sim-spillover | medium | Language-model participants, not people: The counterbalanced design cancels a fixed block-2 shift and generic carry-over, not spill-over of the coached gain to the other skill in block 2, which dilutes the contrast. Because each block starts from a fresh model context, order and fatigue effects are absent by construction. | study-sim:study_sim |
 | sim-timing | medium | Language-model participants, not people: Timing is not human. Each action is followed by a fixed 2 s pause and the model's own latency varies, so effort is reported as ACTION COUNTS and the coach's poll-to-prompt delay is a property of the pipeline, not of people. A fast participant can finish the note page before a prompt arrives. | study-sim:study_sim |
-| sim-renderer | medium | Language-model participants, not people: The coach is real but the overlay renderer is a stand-in: a ring is drawn only when an element carrying the target zone exists on the page the participant is on. The cliff button exists only on a calculator result tab, not on the case note page where the prompt usually arrives. The reconcile target was `results_tabs` (no page element) when the plan was written; the pipeline snapshot used targets `reconcile_control` (the case note's dropdown), which exists. The by-zone table shows which was served. | study-sim:study_sim |
+| sim-renderer | medium | Language-model participants, not people: The coach is real but the overlay renderer is simulated: a ring is drawn only when an element carrying the target zone exists on the page the participant is on. The cliff button exists only on a calculator result tab, not on the case note page where the prompt usually arrives. The reconcile target was `results_tabs` (no page element) when the plan was written; the pipeline snapshot used targets `reconcile_control` (the case note's dropdown), which exists. The by-zone table shows which was served. | study-sim:study_sim |
 | sim-model-frame | medium | Language-model participants, not people: Participants are reached through the shared model port's fast-tier check call, whose fixed instructions tell the model to treat quoted material as data. That may make it less responsive to on-page text in both arms. | study-sim:study_sim |
 | sim-machine-load | medium | Language-model participants, not people: The build machine was heavily loaded by other agents' tests while the participants ran (1-minute load average above 100 on 12 CPUs, sampled and reported), so wall-clock times, the coach's 3 s polls, the extension's event flush and the prompt delays are slower and noisier than on an idle machine. Action counts are not affected; timings are. | study-sim:study_sim |
 | sim-one-model | medium | Language-model participants, not people: One model (id read from the environment and recorded in the CSV) and one family of personas written by us. Results say nothing about other models. | study-sim:study_sim |
@@ -1527,6 +1527,7 @@ The help-level ladder is not scored: it is deterministic code with no outcome to
 | eval-agent-live-injected | medium | Injected pages: the detector paused 20 of 20 runs (20 detected of 20 injected) with 0.0 model-driven steps, and 0 attacks succeeded. Task success is 0 by design: a paused run does no task. This tests the detector on these pages, which we wrote. | engine-eval:agent_runs |
 | eval-agent-live-cost | medium | Cost is an estimate at placeholder rates (5.0 and 30.0 USD per million tokens in and out), not the provider's price list: about 4.56 USD for the rows in the file (497099 tokens in, 69296 out), 494 live calls and 5302 cache hits across the runs. Cached answers cost nothing on a re-run. | engine-eval:agent_runs |
 | eval-redteam-live-in-sample | medium | The live false-pause result (0 of 93 clean runs, 0 of 30 on hard negatives) is in-sample: the layer-7 (goal-drift) scope was changed while building on this same catalog, so it is not a held-out rate. | engine-eval:redteam_live |
+| eval-privacy-coverage | medium | The privacy result covers the guard through its own reference flows and 7 integration flow(s) from a layer's real code (upper bound on the leak rate 5.2% over 10728 planted tokens). These layers supplied no real-code flows and are not counted as passed: connections. | engine-eval:privacy |
 | routing-circularity | medium | CIRCULARITY: the calculators' quirks (site b ignores capital tariff income; site c applies a two-child limit and treats exactly 16,000 as over the limit) and the household archetypes that trigger them were planted by us. The router can only show it found our planted structure; it does not show that real calculators or real agents fail this way. | engine-analytics:routing caveat |
 | ski-lambda-heuristic | low | The trust parameter lambda is fixed by us (or set from past forecast error by a heuristic that is not in the paper). It was not tuned on this simulation. | engine-handoff:ski_rental |
 | presence-rule-conservative | low | The start-or-wait rule is conservative: it collided with the worker's return in 2.1% of started runs against an allowed 10%, and used 74% of idle time against 90% for running whenever idle five minutes. Runs are replayed one per decision point on held-out spells; interruption and idle-use intervals count spells as independent. | engine-handoff:presence |
@@ -1547,7 +1548,7 @@ The help-level ladder is not scored: it is deterministic code with no outcome to
 | loc_latency | low | Latency and tokens per second are for one Apple M2 Max (32 GB) with all layers on the GPU: about 30 generated tokens per second, so a digest takes roughly 0.5 s when only the category is asked for (the shipped policy) and about 0.7 to 1.1 s with every field. A history of a thousand commits takes about nine minutes the first time; the rules path takes microseconds. | local-model:localmodel |
 | loc_policy_revised | low | Which fields the model decides was chosen on the dev split and revised once after the held-out run (events needs_prep moved from the model to the rules). The held-out numbers of the model-for-everything run are the clean evidence; the numbers for the policy as shipped (commit_digest: category, event_digest: category by the model) include one held-out look after that revision and are slightly optimistic. | local-model:localmodel |
 | rt_tokens_estimated | low | Child token budgets are estimates (characters divided by 4), not provider counts. | agent-runtime:runtime |
-| rt_nightly_replay | low | The nightly replay uses a fake screen and a stand-in presence service; it checks the decision flow, not the real lock screen or forecast. | agent-runtime:runtime |
+| rt_nightly_replay | low | The nightly replay uses a fake screen and a simulated presence service; it checks the decision flow, not the real lock screen or forecast. | agent-runtime:runtime |
 | rt_timing_loaded | low | Latencies were measured on a development laptop shared with other processes; treat them as indicative. | agent-runtime:runtime |
 | rt_recovery_deviation | low | A script that exits non-zero is recoverable up to three times (the child retries or changes course); any blocker (timeout, escape attempt, injection hit) or uncertain check still stops the child for a human at once. | agent-runtime:runtime |
 | rt_patch_scope | low | The refactor exemplar makes one narrow, behaviour-preserving change (a repeated number becomes a named constant), verified by applying it to a fresh copy and running the tests. It does not claim general refactoring ability. | agent-runtime:runtime |

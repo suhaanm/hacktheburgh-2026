@@ -197,3 +197,28 @@ export function taskQuestionCard(q: { text: string; options: Array<{ id: string;
 export function taskResultCard(result: string): CardText {
   return { title: 'Your answer', body: fitWords(result, 22), buttons: [{ id: 'close', label: 'Close' }] }
 }
+
+// ------------------------------------------------------------------------------------------------ typed tasks (the Ask bar) and the first welcome
+/** The one plain sentence under the Ask bar's input when a typed task cannot be taken. The text stays in the box. */
+export const TYPED_LINES: Readonly<Record<string, string>> = {
+  too_many_tasks: 'Too many tasks are running. Stop one or wait.',
+  kill_switch: 'Everything is stopped. Resume from the menu bar.',
+  unavailable: 'The task service is not answering. Try again soon.',
+  refused: 'Knack could not take that request.',
+  unclear: 'Knack could not tell what to do with that. Say it another way.',
+  no_service: 'Tasks are not available right now.',
+}
+export const typedFailureLine = (reason: string): string => TYPED_LINES[reason === 'no_token' || reason === 'not_offered' ? 'unavailable' : reason] ?? TYPED_LINES.unavailable
+
+/** A typed task has no spoken line (unless voice is on): the same words appear on small cards. */
+export const STARTED_CARD: CardText = { title: 'Started.', body: 'I will tell you when it is done.', buttons: [{ id: 'close', label: 'Close' }] }
+export const doneCard = (result: string | null): CardText => ({ title: 'Done.', body: result ? fitWords(result, 22) : 'You can see it in Knack.', buttons: [{ id: 'close', label: 'Close' }] })
+export const failedCard = (reason: string | null): CardText => ({ title: 'That did not work.', body: reason ? fitWords(reason, 22) : 'It stopped. Nothing else was changed.', buttons: [{ id: 'close', label: 'Close' }] })
+export const showInsteadCard = (summary: string): CardText => ({ title: 'I will show you instead.', body: summary ? fitWords(summary, 22) : 'Knack does not click for you yet.', buttons: [{ id: 'close', label: 'Close' }] })
+
+/** The first conversation while set-up is still open: the window has no sidebar yet, so the example points at the button that is there. */
+export const FIRST_WELCOME_SETUP = 'Hi, I am Knack. Try saying: show me where the Show my week button is.'
+export const FIRST_WAKE_OPENING_SETUP =
+  `This is the worker's first conversation with you, and Knack's set-up is still open. Say exactly: "${FIRST_WELCOME_SETUP}" and then wait. ` +
+  'If they say it, call point_at with the description "Show my week" and then say: "That is the Show my week button." Then tell them they can ask for help or say goodbye. ' +
+  'Keep every sentence short and plain.'

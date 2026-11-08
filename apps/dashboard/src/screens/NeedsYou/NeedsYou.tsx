@@ -11,14 +11,14 @@ import { PreparedRow } from "../../components/needsyou/PreparedRow";
 import { ProposalRow } from "../../components/needsyou/ProposalRow";
 import { RowList } from "../../components/needsyou/RowList";
 import type { Decide } from "../../components/routines/types";
-import { useLoad } from "../../hooks";
+import { idle, useLoad } from "../../hooks";
 import { anyActiveRow, anyActiveRun } from "../../lib/tasks";
 import { useLive, useRegisteredStreams } from "../../lib/live";
 import { useAppState, setState } from "../../store";
 import "../../components/kc.css";
 import "../../components/needsyou/needsyou.css";
 import { DEMO_PERSON } from "./count";
-import { PAGE_ROWS, awayLine, buildItems, madeLine, needsCount, needsHeadline, visibleItems, type NeedsItem } from "./model";
+import { PAGE_ROWS, awayLine, buildItems, firstLoadDone, madeLine, needsCount, needsHeadline, visibleItems, type NeedsItem } from "./model";
 
 /**
  * Needs you: ONE list for everything that waits on the worker (approvals, practice runs that differed, routine proposals, prepared actions, paused runs).
@@ -26,12 +26,13 @@ import { PAGE_ROWS, awayLine, buildItems, madeLine, needsCount, needsHeadline, v
  */
 export default function NeedsYou() {
   const toast = useToast();
-  const me = useAppState().person;
+  const { person: me, extReady } = useAppState();
   const person = me ?? DEMO_PERSON;
   const q = useLoad(() => api.queue("all"), []);
   const rt = useLoad(() => api.routines(), []);
-  const br = useLoad(() => api.briefing(person), [person]);
-  const ag = useLoad(() => api.agentsRuns(me ?? undefined), [me]);
+  // The worker's own briefing and runs wait until the shell has read who the worker is (extReady): asking first would read the sample person's, and show it for a moment.
+  const br = useLoad(() => (extReady ? api.briefing(person) : (idle() as ReturnType<typeof api.briefing>)), [person, extReady]);
+  const ag = useLoad(() => (extReady ? api.agentsRuns(me ?? undefined) : (idle() as ReturnType<typeof api.agentsRuns>)), [me, extReady]);
   const tk = useLoad(() => api.tasks(), []);
   const rep = useLoad(() => api.offhoursReport(), []);
   const audit = useLoad(() => api.audit(20), []);
@@ -43,7 +44,8 @@ export default function NeedsYou() {
     () => buildItems({ queue: q.data, routines: rt.data, cards: (br.data?.cards ?? []).filter((c) => !gone[c.id]), cardsAt: br.data?.generated_at, runs: ag.data, tasks: tk.source === "live" ? tk.data : null }),
     [q.data, rt.data, br.data, ag.data, tk.data, tk.source, gone],
   );
-  const ready = !!q.data;
+  // Every source has answered once (or failed): until then the list is partial, and "Nothing needs you" would be a wrong thing to say.
+  const ready = !!q.data && firstLoadDone([q, rt, br, ag, tk]);
   const n = needsCount(items);
   // The badge in the sidebar counts the same list.
   useEffect(() => { if (ready) setState({ pendingQueue: n }); }, [ready, n]);
@@ -53,7 +55,7 @@ export default function NeedsYou() {
   useLive(reload, (ag.source === "live" && anyActiveRun(ag.data)) || (tk.source === "live" && anyActiveRow(tk.data)), useRegisteredStreams(), tk.source === "live" ? [`${AGENT_URL}/tasks/events`] : []);
 
   if (q.status === "error" && !q.data) return <div className="page page--read kc-page"><ErrorState error={q.error} retry={q.reload} what="what needs you" /></div>;
-  if (!q.data) return <div className="page page--read kc-page"><Loading label="Loading what needs you" /></div>;
+  if (!ready) return <div className="page page--read kc-page"><Loading label="Loading what needs you" /></div>;
 
   const decide: Decide = async (routine, body, done) => {
     await api.setConsent(routine.id, body);

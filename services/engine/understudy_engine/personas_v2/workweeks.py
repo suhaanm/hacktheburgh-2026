@@ -237,10 +237,10 @@ def _background(em: Emitter, rnd, t0: float, t1: float, rate_per_s: float) -> No
 
 
 # ------------------------------------------------------------------------------------------ the generator
-def generate_workweeks(family: str, role: str, n_people: int = 40, n_days: int = 14, seed: int = 0, *,
+def generate_workweeks(family: str, role: str, n_people: int = 40, n_days: int = 14, seed: int = 0, *, role_spec: RoleSpec | None = None,
                        hyper_overrides: dict[str, float] | None = None, noise: bool = True, start: datetime | None = None) -> V2Workweeks:
     fam = get_family(family)
-    rs = get_role(role)
+    rs = role_spec if role_spec is not None else get_role(role)         # a derived spec (seedroles.events) may carry more cogs and routines than the frozen one
     over = dict(hyper_overrides or {})
     if not noise:
         over = {**NO_NOISE, **over}

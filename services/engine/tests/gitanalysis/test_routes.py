@@ -64,7 +64,7 @@ def test_planted_habits_per_learner_through_the_api(client):
 
 def test_errors_are_plain(client):
     r = client.get("/git/habits", params={"person": "p_nobody"})
-    assert r.status_code == 404 and r.json()["error"]["code"] == "unknown_person" and "p_git_learner_1" in r.json()["error"]["message"]
+    assert r.status_code == 404 and r.json()["error"]["code"] == "unknown_person" and "p_git_learner_1" not in r.json()["error"]["message"]
     r = client.get("/git/habits", params={"person": "p_git_learner_1", "repo": "r_git_learner_2"})
     assert r.status_code == 404 and r.json()["error"]["code"] == "unknown_repo"
     assert client.get("/git/habits", params={"repo": "../../etc"}).status_code == 422          # ids only, never paths
