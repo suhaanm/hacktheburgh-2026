@@ -98,7 +98,9 @@ def build_prompt(text: str, cwd: str, skill_names: list[str] | None = None) -> s
     hint = f"\nSkills that may help (from the user's own setup): {', '.join(names)}." if names else ""
     return (
         "Task from a Knack user, working on their Mac. Work in the folder " + cwd + ". Do the task below. "
-        "Do not ask questions: if something is unclear, choose sensibly and say what you chose. "
+        "Do not ask questions: if something is unclear, choose sensibly and say what you chose. If the task mentions a file or folder "
+        "without a path (for example 'this CSV'), look in the Desktop, Documents and Downloads folders for the most recently changed "
+        "match and say which one you used. "
         "When you are done, finish with ONE short paragraph that says what you did and where the files are."
         + hint + "\n\nTask:\n" + text.strip()
     )

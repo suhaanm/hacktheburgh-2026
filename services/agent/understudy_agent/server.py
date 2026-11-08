@@ -169,9 +169,6 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
                        allow_headers=http_guard.CORS_ALLOW_HEADERS)
     app.state.runs, app.state.supervisor, app.state.queue, app.state.audit = runs, sup, queue, audit
     app.state.tasks = None            # the task manager (tasks/), made on first use so building the app stays cheap
-    from .tasks.routes import router as tasks_router
-
-    app.include_router(tasks_router)  # open-ended tasks and skills: POST /tasks, GET /tasks/events, GET /skills (docs/TASKS.md)
 
     voice = False
     try:
@@ -203,6 +200,14 @@ def create_app(*, base_urls: dict[str, str] | None = None, autostart_sandbox: bo
             extensions[key], extension_status[key] = True, "enabled"
         except Exception as exc:  # noqa: BLE001 - absent or broken: reported, never fatal
             extension_status[key] = f"not loaded: {type(exc).__name__}: {str(exc)[:120]}"
+    extensions["tasks"] = False
+    try:                                        # open-ended tasks and skills: POST /tasks, GET /tasks/events, GET /skills (docs/TASKS.md)
+        from .tasks.routes import router as tasks_router
+
+        app.include_router(tasks_router)
+        extensions["tasks"], extension_status["tasks"] = True, "enabled"
+    except Exception as exc:  # noqa: BLE001 - a failure here never breaks the calculator-site runs; /health says why
+        extension_status["tasks"] = f"not loaded: {type(exc).__name__}: {str(exc)[:120]}"
     app.state.extensions, app.state.extension_status = extensions, extension_status
     # S-02: the shared HTTP guard is the OUTERMOST layer, added last: Host on every request, exact Origin and JSON on writes,
     # an explicit actor with an Origin, and the per-boot token on the release routes. The stop routes (/kill, /human-input,
