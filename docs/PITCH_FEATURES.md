@@ -1275,7 +1275,7 @@ Press a prepared card in Needs you; the line says what it made and that nothing 
 
 ### Connections: curated MCP plugins with role presets
 
-**Status:** landing (owner decision D55; the engine side is committed on the CONNECTIONS branch (worktree-agent-a2c1788e3e4c0c876); the agent side and docs/CONNECTIONS.md have not been seen on any branch) · **Page:** `docs/features/connections.md` · **Targets:** Wordsmith
+**Status:** landing (owner decision D55; the engine side and the agent side are committed on the CONNECTIONS branch (worktree-agent-a2c1788e3e4c0c876, 00:14 UTC); docs/CONNECTIONS.md has not been seen on any branch) · **Page:** `docs/features/connections.md` · **Targets:** Wordsmith
 
 #### What it does
 
@@ -1283,7 +1283,7 @@ A worker can connect a few tools Knack may read from, from a short curated list 
 
 #### How it works
 
-Each preset is a validated manifest (kind mcp) with two modes. Example uses a stand-in server of ours (a local folder, a SQLite file holding the synthetic dataset, a fake GitHub and a fake Slack, plus fixtures); Real names a verified publisher, package, pinned version, hosts and the credential names. Nothing is on until the worker confirms; there is no default, and no auto-connect in mock mode, tests, demos or first run. The consent is pinned to a hash of what would run (launcher, arguments, pinned version, hosts, credential names, or the stand-in script); if the manifest changes, the connection says it needs reconfirming and nothing starts until the worker confirms again. Our own table classes every known tool as read, write, send, destructive or execute and decides every call; a vendor's read-only switch is used as well where the server has one, and any write needs a click. A routine may use a connection unattended only if the worker opted that routine in for that connection, reads only. A token is entered by the worker once, goes to the macOS Keychain (through standard input, never an argument) or a mode-600 file, and is never in the repository, a log, a prompt, the dashboard or the ledger. The ledger rows hold counts only (calls, reads, changes asked, refused, bytes returned, tools used). There is no route that adds a server. Knack uses the official MCP Python SDK (MIT) as the client and does not use hosted aggregators, because data would leave the device.
+Each preset is a validated manifest (kind mcp) with two modes. Example uses a stand-in server of ours (a local folder, a SQLite file holding the synthetic dataset, a fake GitHub and a fake Slack, plus fixtures); Real names a verified publisher, package, pinned version, hosts and the credential names. Nothing is on until the worker confirms; there is no default, and no auto-connect in mock mode, tests, demos or first run. The consent is pinned to a hash of what would run (launcher, arguments, pinned version, hosts, credential names, or the stand-in script); if the manifest changes, the connection says it needs reconfirming and nothing starts until the worker confirms again. Our own table classes every known tool as read, write, send, destructive or execute and decides every call; a vendor's read-only switch is used as well where the server has one, and any write needs a click. A routine may use a connection unattended only if the worker opted that routine in for that connection, reads only. A token is entered by the worker once, goes to the macOS Keychain (through standard input, never an argument) or a mode-600 file, and is never in the repository, a log, a prompt, the dashboard or the ledger. The ledger rows hold counts only (calls, reads, changes asked, refused, bytes returned, tools used). There is no route that adds a server. Knack uses the official MCP Python SDK (MIT) as the client and does not use hosted aggregators, because data would leave the device. On the agent side, a tool's class comes from our table and verb rules and a server's own hints never lower it: an unlisted tool is refused or treated by its verb, a name nothing recognises is treated as a write, SQL counts as a read only when code reads one read-only statement, everything but a read needs a person's real click, and destructive and execute tools can never be opted in. A server process starts only for a switched-on connection after the hash check, at the pinned version with no shell, install scripts off and a minimal environment (the path, the home folder, fixed variables, the worker's own values and the one token). The client answers none of a server's own requests (no sampling, no questions to the worker), caps a result at 64 KB and hands it back as untrusted text, bounds every connect, call and stop with a timeout, and restarts a crashed server at most three times in ten minutes. The ledger row is written before the call and never holds arguments or results.
 
 **What is different.** The list is curated and read-only by default, starts off, and avoids hosted aggregators so data does not leave the device.
 
@@ -1299,7 +1299,7 @@ In first run choose Programmer; the Dev preset appears with everything off. Conn
 
 | What | Label | Source |
 |---|---|---|
-| The engine side is covered by 53 test functions on the branch (18 manifest, 14 routes, 21 state); nothing about the agent side or the panel is verified | offline tests, on a branch, not on main | `services/engine/tests/connections/ (branch worktree-agent-a2c1788e3e4c0c876)` |
+| The engine side is covered by 53 test functions on the branch (18 manifest, 14 routes, 21 state); the agent side and the panel are not verified here | offline tests, on a branch, not on main | `services/engine/tests/connections/ (branch worktree-agent-a2c1788e3e4c0c876)` |
 
 #### Honest limit
 
@@ -2565,7 +2565,7 @@ Found while writing. Each row names both files; the third column says which one 
 
 | Item | Document | State at the time of writing |
 |---|---|---|
-| Connections: curated MCP plugins and role presets (CONNECTIONS, Track E) | `docs/CONNECTIONS.md` | built overnight per docs/FIRST_LAUNCH.md; the engine side is committed on branch worktree-agent-a2c1788e3e4c0c876 (00:03 UTC); not on main; the panel slots exist |
+| Connections: curated MCP plugins and role presets (CONNECTIONS, Track E) | `docs/CONNECTIONS.md` | built overnight per docs/FIRST_LAUNCH.md; engine and agent sides are committed on branch worktree-agent-a2c1788e3e4c0c876 (00:14 UTC); the document is not seen; not on main; the panel slots exist |
 | Deeper programmer and data-analyst roles (ROLE-DEPTH, Track F) | `docs/roles/programmer.md, docs/roles/data-analyst.md` | written, on branch worktree-agent-aef8c35334df68596; not on main |
 | Demo shot list and spoken lines (DEMO-DIRECTOR) | `docs/KNACK_DEMO.md` | not on main |
 | Demo shot list, spoken lines, the context audit and the headless checks (DEMO-DIRECTOR) | `docs/KNACK_DEMO.md, docs/knack-demo/context-audit.md` | written, on branch worktree-agent-ab26657c3d23ea392; not on main yet |
