@@ -285,6 +285,10 @@ async function run(): Promise<void> {
   check('the corner column sits bottom-right of the work area, 16 px in', b1 !== null && Math.abs(b1.x + b1.width - (wa.x + wa.width - 16)) <= 1 && Math.abs(b1.y + b1.height - (wa.y + wa.height - 16)) <= 1, { bounds: b1, workArea: wa })
   check('the pill-only column is small (the window is sized to its content)', b1 !== null && b1.height <= 60 && b1.width <= 340, b1)
   await hudShot('working')
+  // One Stop, one square (the owner saw "two stop icons"): the pill's Stop is a single button with a single drawn square and the word, no icon component and no text glyph on top.
+  const hudWin = hud.window()
+  const stopDom = hudWin ? ((await hudWin.webContents.executeJavaScript(`({ stopButtons: [...document.querySelectorAll('button')].filter((b) => /^\\s*stop\\s*$/i.test(b.textContent || '')).length, squares: document.querySelectorAll('.cbtn.stop .square').length, other: document.querySelectorAll('.cbtn.stop svg, .cbtn.stop .glyph, .cbtn.stop .al-icon, .pill.stop, .al-stop').length, text: (document.querySelector('.cbtn.stop')?.textContent || '').trim(), glyphsInText: /[\\u25A0\\u25FC\\u23F9\\u2B1B]/.test(document.body.textContent || '') })`)) as { stopButtons: number; squares: number; other: number; text: string; glyphsInText: boolean }) : null
+  check('the pill has exactly one Stop: one button, one drawn square, the word, and no second icon or text glyph', stopDom?.stopButtons === 1 && stopDom.squares === 1 && stopDom.other === 0 && stopDom.text === 'Stop' && !stopDom.glyphsInText, stopDom)
 
   shell.dispatch({ type: 'decision_needed', class: 'approval' })
   await settle(900)
@@ -335,6 +339,8 @@ async function run(): Promise<void> {
   shell.dispatch({ type: 'run_started', realScreen: false })
   check('a run that starts while stopped is ignored', model.state().activity === null)
   await hudShot('stopped')
+  const stoppedDom = hudWin ? ((await hudWin.webContents.executeJavaScript(`({ stopButtons: [...document.querySelectorAll('button')].filter((b) => /^\\s*stop\\s*$/i.test(b.textContent || '')).length, pills: document.querySelectorAll('.cpill').length, buttons: [...document.querySelectorAll('button')].map((b) => (b.textContent || '').trim()) })`)) as { stopButtons: number; pills: number; buttons: string[] }) : null
+  check('while everything is stopped there is no Stop to press: the Stopped card has Resume and the pill is gone', stoppedDom?.stopButtons === 0 && stoppedDom.pills === 0 && stoppedDom.buttons.some((b) => /resume/i.test(b)), stoppedDom)
   await killSwitch.clear()
   await settle(300)
   check('Resume leaves the stopped state', shell.info().machine.activity === 'idle' && model.state().kill.killed === false, shell.info().machine)

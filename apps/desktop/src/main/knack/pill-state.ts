@@ -120,7 +120,8 @@ export function stepPill(prev: PillState, s: PillSignals, now: number, timing: P
     // Never turn a showing pill off, or a quiet one on, because of one failed look. During a run, a long silence is an error.
     if (was.kind === 'working' || (was.kind === 'needs-you' && was.runStartedAt !== null)) {
       const lostSince = was.lostSince ?? now
-      if (now - lostSince >= timing.lostMs && was.kind === 'working') return { ...to(was, 'error', now, { runStartedAt: null, baseline: null }), text: 'Lost contact', lostSince: null }
+      // A clock set back (lostSince in the future) must not postpone the error for ever: it counts as long enough.
+      if ((lostSince > now || now - lostSince >= timing.lostMs) && was.kind === 'working') return { ...to(was, 'error', now, { runStartedAt: null, baseline: null }), text: 'Lost contact', lostSince: null }
       return { ...was, lostSince }
     }
     return expire(was, now, timing)
@@ -160,9 +161,12 @@ export function stepPill(prev: PillState, s: PillSignals, now: number, timing: P
   return expire({ ...was, prevRuns: nowRuns }, now, timing)
 }
 
+// A clock set back (a pill that began "in the future") must not keep a done check or an error on screen for ever: it counts as old enough.
+const aged = (since: number, now: number, ms: number): boolean => since > now || now - since >= ms
+
 function expire(p: PillState, now: number, timing: PillTiming): PillState {
-  if (p.kind === 'done' && now - p.since >= timing.doneMs) return { ...IDLE_PILL, prevRuns: p.prevRuns, since: now }
-  if (p.kind === 'error' && now - p.since >= timing.errorMs) return { ...IDLE_PILL, prevRuns: p.prevRuns, since: now }
+  if (p.kind === 'done' && aged(p.since, now, timing.doneMs)) return { ...IDLE_PILL, prevRuns: p.prevRuns, since: now }
+  if (p.kind === 'error' && aged(p.since, now, timing.errorMs)) return { ...IDLE_PILL, prevRuns: p.prevRuns, since: now }
   return p
 }
 

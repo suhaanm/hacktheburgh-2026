@@ -13,7 +13,7 @@ import path from 'node:path'
 
 export type StackMode = 'live' | 'demo'
 export type StackStep = 'checking' | 'preparing' | 'engine' | 'agent' | 'dashboard'
-export type FailCode = 'no_repo' | 'uv_missing' | 'prepare_failed' | 'engine_failed' | 'agent_failed' | 'dashboard_missing' | 'dashboard_failed'
+export type FailCode = 'no_repo' | 'uv_missing' | 'prepare_failed' | 'engine_failed' | 'agent_failed' | 'dashboard_missing' | 'dashboard_failed' | 'port_busy'
 
 export type StackState =
   | { phase: 'idle' }
@@ -31,7 +31,11 @@ export const FAIL_MESSAGES: Record<FailCode, string> = {
   agent_failed: 'The agent did not start.',
   dashboard_missing: 'The dashboard has not been built yet.',
   dashboard_failed: 'The dashboard did not start.',
+  port_busy: 'Another program is using a port Knack needs.',
 }
+
+/** A service this app started that stops by itself is started again, this many times in ten minutes, a little later each time; after that the worker is told. */
+export const RESTART = { max: 3, windowMs: 10 * 60_000, firstDelayMs: 2000 } as const
 
 export interface StackPorts {
   engine: number
@@ -88,6 +92,8 @@ export interface StackDeps {
   /** Creates an empty file (a marker) when it is not there. */
   touch(p: string): void
   findExecutable(name: string): string | null
+  /** Something already accepts connections on this port (a program that is not our service: its /health did not answer). Absent: never busy. */
+  portBusy?(port: number): Promise<boolean>
   env(): Record<string, string>
   dataDirId(dir: string): string | null
   sleep(ms: number): Promise<void>
@@ -168,12 +174,41 @@ export function createStack(deps: StackDeps): Stack {
 
   const logFile = (name: string): string => path.join(cfg.repoRoot as string, 'data', 'logs', `knack-${name}.log`)
 
+  const ENGINE_ARGS = ['run', '--package', 'understudy-agent', 'understudy', 'serve']
+  const AGENT_ARGS = ['run', '--package', 'understudy-agent', 'python', '-m', 'understudy_agent.server']
+  const crashes: Record<string, number[]> = {}
+  let stopping = false
+
+  /** A service this app started has stopped by itself while the stack is ready: start it again (a little later each time), and after RESTART.max in ten minutes say so. */
+  const revive = async (name: 'engine' | 'agent'): Promise<void> => {
+    const t = deps.now()
+    const recent = [...(crashes[name] ?? []).filter((x) => t - x < RESTART.windowMs), t]
+    crashes[name] = recent
+    const failCode: FailCode = name === 'engine' ? 'engine_failed' : 'agent_failed'
+    if (recent.length > RESTART.max) {
+      log('stack', `${name} keeps stopping: giving up`)
+      fail(failCode, `It stopped and would not start again. See ${path.relative(cfg.repoRoot as string, logFile(name))}.`)
+      return
+    }
+    await deps.sleep(RESTART.firstDelayMs * 2 ** (recent.length - 1))
+    if (stopping || state.phase !== 'ready' || children.has(name)) return
+    const uv = deps.findExecutable('uv')
+    if (!uv) return void fail('uv_missing')
+    log('stack', `${name} stopped by itself: starting it again (${recent.length} of ${RESTART.max})`)
+    const c = launch(name, uv, name === 'engine' ? ENGINE_ARGS : AGENT_ARGS, cfg.repoRoot as string)
+    const limit = name === 'engine' ? cfg.timeouts.engineMs : cfg.timeouts.agentMs
+    const port = name === 'engine' ? cfg.ports.engine : cfg.ports.agent
+    if (!(await waitUrl(url(port), c, limit)) && children.get(name) === c && !stopping) fail(failCode, `See ${path.relative(cfg.repoRoot as string, logFile(name))}.`) // still running but not answering
+  }
+
   const launch = (name: string, command: string, args: string[], cwd: string): ChildHandle => {
     const h = deps.spawn({ name, command, args, cwd, env: modeEnv() })
     children.set(name, h)
     void h.exited.then((code) => {
       log('stack', `${name} ended (${code === null ? 'signal' : code})`)
-      if (children.get(name) === h) children.delete(name)
+      const mine = children.get(name) === h // stop() clears the list first: a service stopped on purpose is not "by itself"
+      if (mine) children.delete(name)
+      if (mine && !stopping && state.phase === 'ready' && (name === 'engine' || name === 'agent')) void revive(name)
     })
     return h
   }
@@ -241,6 +276,7 @@ export function createStack(deps: StackDeps): Stack {
   }
 
   async function ensure(): Promise<StackState> {
+    stopping = false
     set({ phase: 'starting', step: 'checking' })
     const [engine, agent, dash] = await Promise.all([healthy(cfg.ports.engine), healthy(cfg.ports.agent), dashboardMode()])
     if (engine.ok && agent.ok && dash) {
@@ -260,12 +296,23 @@ export function createStack(deps: StackDeps): Stack {
       uv = deps.findExecutable('uv')
       if (!uv) return fail('uv_missing')
       set({ phase: 'starting', step: 'preparing' })
+      // The folders Knack keeps its data and logs in must be writable (a read-only home or a full disk): say so in plain words, never with the system's own message (it names a path).
+      try {
+        deps.mkdirp(path.join(root, 'data', 'logs'))
+        deps.mkdirp(path.join(root, cfg.dirs[mode].home))
+        deps.mkdirp(path.join(root, cfg.dirs[mode].data))
+      } catch {
+        return fail('prepare_failed', 'Knack cannot write to its data folder.')
+      }
       if (!(await prepare(uv, root))) return fail('prepare_failed', 'The reason is in data/logs.')
+      // Something that is not our service already answers on a port we are about to use: starting would only fail inside the service, so say it now.
+      const taken = async (port: number): Promise<boolean> => (deps.portBusy ? deps.portBusy(port).catch(() => false) : false)
+      if ((!engine.ok && (await taken(cfg.ports.engine))) || (!agent.ok && (await taken(cfg.ports.agent)))) return fail('port_busy', 'Quit that program, or start Knack with other ports (ENGINE_PORT and AGENT_PORT).')
     }
 
     if (!engine.ok) {
       set({ phase: 'starting', step: 'engine' })
-      const c = launch('engine', uv as string, ['run', '--package', 'understudy-agent', 'understudy', 'serve'], root)
+      const c = launch('engine', uv as string, ENGINE_ARGS, root)
       if (!(await waitUrl(url(cfg.ports.engine), c, cfg.timeouts.engineMs))) return fail('engine_failed', `See ${path.relative(root, logFile('engine'))}.`)
     }
 
@@ -275,7 +322,7 @@ export function createStack(deps: StackDeps): Stack {
       if (cfg.startSites !== false && deps.exists(path.join(root, 'services/agent/understudy_agent/sandbox_sites/__main__.py')) && !(await healthy(cfg.ports.sites)).ok) {
         launch('sites', uv as string, ['run', '--package', 'understudy-agent', 'python', '-m', 'understudy_agent.sandbox_sites'], root)
       }
-      const c = launch('agent', uv as string, ['run', '--package', 'understudy-agent', 'python', '-m', 'understudy_agent.server'], root)
+      const c = launch('agent', uv as string, AGENT_ARGS, root)
       if (!(await waitUrl(url(cfg.ports.agent), c, cfg.timeouts.agentMs))) return fail('agent_failed', `See ${path.relative(root, logFile('agent'))}.`)
     }
 
@@ -299,7 +346,8 @@ export function createStack(deps: StackDeps): Stack {
   const start = (): Promise<StackState> => {
     if (state.phase === 'ready') return Promise.resolve(state)
     running ??= ensure()
-      .catch((err: unknown) => fail('engine_failed', err instanceof Error ? err.message.slice(0, 120) : undefined))
+      // Whatever went wrong inside is in the log; the worker gets one plain line (the system's own message can name a path).
+      .catch(() => fail('engine_failed', 'The reason is in data/logs.'))
       .finally(() => {
         running = null
       })
@@ -330,6 +378,7 @@ export function createStack(deps: StackDeps): Stack {
       return start()
     },
     async stop() {
+      stopping = true // a service stopped on purpose is not started again
       const mine = [...children.entries()]
       children.clear()
       for (const [name, h] of mine) {

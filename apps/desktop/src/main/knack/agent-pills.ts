@@ -128,6 +128,16 @@ export function createAgentPills(o: AgentPillsOptions): AgentPills {
     },
   })
   const off = o.source.onAgentRuns((runs) => model.update(runs))
+  // A display unplugged, plugged in or changed while the pills are up: back to the top right of a display that is there.
+  const replace = (): void => {
+    displayId = null
+    if (alive() && (win as BrowserWindow).isVisible()) place()
+  }
+  if (!disabled) {
+    screen.on('display-added', replace)
+    screen.on('display-removed', replace)
+    screen.on('display-metrics-changed', replace)
+  }
 
   if (!disabled) {
     ipcMain.handle(PILLS_IPC.get, (e) => {
@@ -162,6 +172,11 @@ export function createAgentPills(o: AgentPillsOptions): AgentPills {
     dispose() {
       off()
       model.dispose()
+      if (!disabled) {
+        screen.off('display-added', replace)
+        screen.off('display-removed', replace)
+        screen.off('display-metrics-changed', replace)
+      }
       if (!disabled) {
         ipcMain.removeHandler(PILLS_IPC.get)
         ipcMain.removeAllListeners(PILLS_IPC.open)

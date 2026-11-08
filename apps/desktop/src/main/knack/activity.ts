@@ -22,6 +22,8 @@ export interface ActivityTracker {
   state(): PillState
   /** The worker has seen a finished or failed run. */
   acknowledge(): void
+  /** The Mac woke from sleep (see PillController.forgive). */
+  forgive(): void
   dispose(): void
 }
 
@@ -46,7 +48,8 @@ export const QUIET_CLEAR_MS = 3000
 
 /** True when the pill should be cleared: a run that came from the agent service is still "working" in the machine, and the service has said nothing is acting for three seconds. */
 export function pillOutlivedWork(i: { fromService: boolean; machineWorking: boolean; quietSince: number | null; now: number }): boolean {
-  return i.fromService && i.machineWorking && i.quietSince !== null && i.now - i.quietSince >= QUIET_CLEAR_MS
+  // A clock set back (quiet "since the future") counts as long enough, so the pill is never kept for ever by it.
+  return i.fromService && i.machineWorking && i.quietSince !== null && (i.quietSince > i.now || i.now - i.quietSince >= QUIET_CLEAR_MS)
 }
 
 /** Whether the latest look says nothing is acting: the service answered, its supervisor is not running, no run of this app is acting, and no listed run is really running. */
@@ -105,6 +108,9 @@ export function createActivityTracker(deps: ActivityDeps): ActivityTracker {
     state: () => ctrl.state(),
     acknowledge() {
       ctrl.acknowledge()
+    },
+    forgive() {
+      ctrl.forgive()
     },
     dispose: () => ctrl.dispose(),
   }

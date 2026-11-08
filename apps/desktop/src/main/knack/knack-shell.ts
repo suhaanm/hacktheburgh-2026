@@ -9,7 +9,7 @@
 // The decisions are in the pure modules (model-mode, stack, activity, shell-machine, quit-guard, window-state, app-menu); this file connects them to Electron and has no
 // rules of its own.
 import path from 'node:path'
-import { app, BrowserWindow, dialog, ipcMain, Menu, powerSaveBlocker, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, powerMonitor, powerSaveBlocker, screen, shell } from 'electron'
 import { APP_NAME, APP_ORIGIN } from '../../shared/brand'
 import type { HudActivity } from '../../shared/hud'
 import type { Settings } from '../../shared/settings'
@@ -27,7 +27,7 @@ import { canSwitchModels, keyPresent, modelStatus, planModels, type ModelDecisio
 import type { PillSignals } from './pill-state'
 import { createQuitGuard, type QuitGuard } from './quit-guard'
 import { INITIAL_SHELL, TIMING, reduce, type Effect, type ShellEvent, type ShellState } from './shell-machine'
-import { shellPages, uiStateOf } from './shell-pages'
+import { SLOW_START_MS, shellPages, uiStateOf } from './shell-pages'
 import { dashboardSettingsPatch, dashboardSettingsView } from './settings-bridge'
 import type { Stack, StackConfig, StackState } from './stack'
 import { createRealStack } from './stack-real'
@@ -199,7 +199,10 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
   })
 
   // ---- the starting page's two calls
-  const ui = (): ReturnType<typeof uiStateOf> => uiStateOf(stack.state(), APP_NAME, notice())
+  // After thirty seconds of starting the page says it is still going (the first start can take a minute).
+  let slowStart = false
+  let slowTimer: ReturnType<typeof setTimeout> | null = null
+  const ui = (): ReturnType<typeof uiStateOf> => uiStateOf(stack.state(), APP_NAME, notice(), slowStart)
   ipcMain.handle(KNACK_IPC.get, (event) => {
     if (!main.owns(event.sender.id)) throw new Error('shell IPC from an unknown sender')
     return ui()
@@ -320,6 +323,19 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
   }
 
   const offStack = stack.subscribe((s) => {
+    if (s.phase === 'starting') {
+      if (!slowTimer && !slowStart) {
+        slowTimer = setTimeout(() => {
+          slowTimer = null
+          slowStart = true
+          pushUi()
+        }, SLOW_START_MS)
+      }
+    } else {
+      if (slowTimer) clearTimeout(slowTimer)
+      slowTimer = null
+      slowStart = false
+    }
     if (s.phase === 'ready') {
       ensureTasks()
       // This app's own environment follows the stack it ended up with: the kill file and the token live in that data directory.
@@ -331,6 +347,11 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
         main.loadDashboard(`${dashboardBase(s)}/`)
       }
     } else {
+      // A service that stopped for good after the dashboard was up: back to the plain page with its one sentence and Try again (which starts the missing service and returns).
+      if (s.phase === 'failed' && dashboardLoaded) {
+        dashboardLoaded = false
+        main.loadStarting()
+      }
       pushUi()
     }
   })
@@ -478,6 +499,24 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
   const handlers = { openSettings, openSetup, showWindow: showMain, stopEverything: deps.stopEverything }
   Menu.setApplicationMenu(Menu.buildFromTemplate(buildAppMenuTemplate({ appName: APP_NAME, platform: process.platform, isPackaged: app.isPackaged, killAccelerator: deps.killAccelerator(), handlers })))
   app.setAboutPanelOptions({ applicationName: APP_NAME, applicationVersion: app.getVersion(), copyright: 'Built for Hack the Burgh XIII' })
+  // A display unplugged, plugged in or changed, and the Mac waking from sleep (which can change the displays too): a window left mostly off every display is brought back, and
+  // the silence of the service during the sleep is not counted as an outage.
+  let displayTimer: ReturnType<typeof setTimeout> | null = null
+  const onDisplays = (): void => {
+    if (displayTimer) clearTimeout(displayTimer)
+    displayTimer = setTimeout(() => {
+      displayTimer = null
+      if (main.ensureOnScreen()) log('knack', 'a display changed: the window was brought back onto the screen')
+    }, 300)
+  }
+  const onResume = (): void => {
+    tracker?.forgive()
+    onDisplays()
+  }
+  screen.on('display-added', onDisplays)
+  screen.on('display-removed', onDisplays)
+  screen.on('display-metrics-changed', onDisplays)
+  powerMonitor.on('resume', onResume)
   const offDock = registerDock(deps.settings, { dock: app.dock ?? undefined, hidden: deps.hidden, log: (...a) => log(...a) })
   // The Dock menu follows the machine: Needs you (n) when n is above 0, Pause for 1 hour (Resume now), Stop everything (Resume after stopping).
   const isPaused = (): boolean => {
@@ -723,6 +762,12 @@ dispatch,
       clearDoneTimers()
       keepAwake.dispose()
       tasksClient?.stop()
+      if (slowTimer) clearTimeout(slowTimer)
+      screen.off('display-added', onDisplays)
+      screen.off('display-removed', onDisplays)
+      screen.off('display-metrics-changed', onDisplays)
+      powerMonitor.off('resume', onResume)
+      if (displayTimer) clearTimeout(displayTimer)
       if (minimiseTimer) clearTimeout(minimiseTimer)
       app.off('activate', onActivate)
       app.off('second-instance', onActivate)
