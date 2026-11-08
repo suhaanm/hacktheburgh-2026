@@ -19,7 +19,9 @@ def _hermetic_env(monkeypatch: pytest.MonkeyPatch, tmp_path):
     monkeypatch.setenv("UNDERSTUDY_MOCK", "1")
     monkeypatch.setenv("UNDERSTUDY_AGENT_URL", "http://127.0.0.1:1")
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test-not-a-real-key")
-    for k in ("KNACK_STANDIN_POISON", "UNDERSTUDY_X_CONNECTIONS", "UNDERSTUDY_PRESETS_DIR"):
+    monkeypatch.setenv("UNDERSTUDY_RUNTIME_WS_ROOT", str(tmp_path / "ws"))
+    monkeypatch.setenv("ENGINE_URL", "http://127.0.0.1:9")
+    for k in ("KNACK_STANDIN_POISON", "UNDERSTUDY_X_CONNECTIONS", "UNDERSTUDY_PRESETS_DIR", "UNDERSTUDY_MOCK_SCENARIO", "UNDERSTUDY_LIVE"):
         monkeypatch.delenv(k, raising=False)
     try:
         import dotenv
@@ -83,3 +85,32 @@ def connect_example():
 
 def env_keys() -> set[str]:
     return set(os.environ)
+
+
+@pytest.fixture(autouse=True)
+def _fresh_default_service():
+    """The module-level service owns processes: every test starts with none and ends with none."""
+    import understudy_agent.connections.service as svc
+
+    svc._service = None
+    yield
+    if svc._service is not None:
+        svc._service.runner.stop_all()
+    svc._service = None
+
+
+@pytest.fixture(autouse=True)
+def _runtime_registry():
+    """Runs of the agent runtime started by a test are stopped and forgotten at the end of it; the shared sandbox lock is never taken."""
+    try:
+        from understudy_agent.runtime import run as rt_run
+
+        rt_run.reset_registry()
+    except Exception:
+        rt_run = None
+    yield
+    if rt_run is not None:
+        for r in rt_run.live_runs():
+            r.stop("test teardown")
+            r.wait(5)
+        rt_run.reset_registry()

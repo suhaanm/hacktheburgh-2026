@@ -15,10 +15,18 @@ import re
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
+from understudy_engine.connections.paths import FLAG, enabled
+
 from .service import default_service
 
 router = APIRouter(tags=["connections"])
 _ID = re.compile(r"^[a-z][a-z0-9_\-]{1,40}$")
+
+
+def _off() -> JSONResponse | None:
+    if enabled():
+        return None
+    return JSONResponse(status_code=404, content={"error": {"code": "extension_off", "message": f"Connections are off. Set {FLAG}=1 (or the master UNDERSTUDY_X=1)."}})
 
 
 def _bad() -> JSONResponse:
@@ -27,6 +35,8 @@ def _bad() -> JSONResponse:
 
 @router.post("/connections/{conn_id}/start")
 def start(conn_id: str):
+    if (r := _off()) is not None:
+        return r
     if not _ID.match(conn_id):
         return _bad()
     return default_service().start(conn_id)
@@ -34,6 +44,8 @@ def start(conn_id: str):
 
 @router.post("/connections/{conn_id}/stop")
 def stop(conn_id: str):
+    if (r := _off()) is not None:
+        return r
     if not _ID.match(conn_id):
         return _bad()
     return default_service().stop(conn_id)
@@ -41,6 +53,8 @@ def stop(conn_id: str):
 
 @router.get("/connections/{conn_id}/status")
 def status(conn_id: str):
+    if (r := _off()) is not None:
+        return r
     if not _ID.match(conn_id):
         return _bad()
     svc = default_service()
