@@ -81,6 +81,15 @@ def test_run5_gates(monkeypatch, tmp_path, capsys):
     monkeypatch.setenv("STUDY_SIM_PRICE_IN", "1")
     monkeypatch.setenv("STUDY_SIM_PRICE_OUT", "5")
     monkeypatch.setattr(m, "RESULTS5", tmp_path / "r5")
+    if not (m.FROZEN4 / "snapshot").is_dir():
+        # frozen_run4/ is untracked (ignored by the repo): it exists only on the machine that ran run 4. The fingerprint gate has its own test
+        # (skipped there); here a stand-in returns the declared fingerprints so the pilot gate BEHIND it is still tested on a fresh clone or a
+        # throwaway worktree.
+        from pathlib import Path
+
+        from evals.study_sim import infra
+
+        monkeypatch.setattr(infra, "fingerprint_dir", lambda path, *a, **k: m.RUN5_PIPELINE_FINGERPRINT if Path(path).name == "snapshot" else m.RUN5_EXT_FINGERPRINTS.get(Path(path).name))
     A.stage = "main"
     assert m.cmd_run5(A()) == 2 and "pilot has not passed" in capsys.readouterr().out      # no PILOT_DECISION.json
 

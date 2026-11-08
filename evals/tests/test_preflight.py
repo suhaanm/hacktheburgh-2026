@@ -552,6 +552,10 @@ def test_the_real_repos_dashboard_and_golden_run_pass_the_offline_checks():
     ctx = P.Ctx(repo=REPO, engine_port=free_port(), env={})
     res = {r.id: r for r in P.check_offline(ctx)}
     assert res["offline_dashboard"].status in (P.GREEN, P.AMBER), res["offline_dashboard"].detail
+    if not (REPO / "data" / "golden" / "benefits_golden.json").is_file():
+        # data/ is git-ignored: the cached golden run exists only on a checkout where it was recorded (make demo needs it; a fresh clone or a
+        # throwaway worktree does not have it, and preflight correctly reports it red there).
+        pytest.skip("no cached golden run on this checkout (data/golden/benefits_golden.json is git-ignored and has not been recorded here)")
     assert res["offline_golden"].status in (P.GREEN, P.AMBER)
 
 
