@@ -3,12 +3,12 @@
 // "quiet": an agent service that is down must not make every screen read "Some example data" when none of them draws any.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api, forgetBackoff } from "./api";
-import { dataMode, getState, resetSources } from "./store";
+import { dataMode, getState, resetSources, setState } from "./store";
 
 const down = () => vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("connection refused"); }));
 const answers = (status: number, body: unknown) => vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } })));
 
-beforeEach(() => { forgetBackoff(); resetSources(); });
+beforeEach(() => { forgetBackoff(); resetSources(); setState({ extReady: true, ext: {} }); });   // /health has answered: no read waits for it
 afterEach(() => { vi.unstubAllGlobals(); });
 
 describe("quiet reads", () => {
@@ -44,5 +44,40 @@ describe("quiet reads", () => {
     forgetBackoff();
     await api.queue("pending");
     expect(dataMode(getState())).toBe("mixed");
+  });
+});
+
+describe("calm unknown: the engine answered that nothing is recorded for this worker", () => {
+  const unknown = { error: { code: "unknown_person", message: "No such worker." } };
+  it("is not example data: a benefits processor's missing commit habits leave the sidebar on Live", async () => {
+    answers(404, unknown);
+    const r = await api.gitHabits("p_learn01");
+    expect(r.why?.status).toBe(404);          // the screen still hears the 404 (Growth turns it into its own calm line)
+    expect(getState().demo).toBe(0);
+    answers(422, unknown);
+    await api.calendarWeek("p_learn01");
+    await api.genome("t_entitlement_check", "p_learn01").catch(() => undefined);   // a plain read that is refused with 422 throws: the screen shows the error, nothing is counted
+    answers(404, unknown);
+    await api.genome("t_entitlement_check", "p_learn01");
+    await api.workGraph("p_learn01");
+    expect(getState().demo).toBe(0);
+  });
+  it("is still example data when no service answered, or the route is missing, or the engine failed", async () => {
+    down();
+    await api.gitHabits("p_learn01");
+    expect(getState().demo).toBe(1);
+    resetSources(); forgetBackoff();
+    answers(404, undefined);                  // a 404 with no error of its own: the route is not there
+    await api.gitHabits("p_learn01");
+    expect(getState().demo).toBe(1);
+    resetSources(); forgetBackoff();
+    answers(502, unknown);
+    await api.calendarWeek("p_learn01");
+    expect(getState().demo).toBe(1);
+  });
+  it("applies only to the reads that ask for it: any other read of an unknown worker is still example data", async () => {
+    answers(404, unknown);
+    await api.queue("pending");
+    expect(getState().demo).toBe(1);
   });
 });

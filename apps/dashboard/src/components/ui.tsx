@@ -29,8 +29,8 @@ export function splitRows(rows: [string, ReactNode][], maxWords = 8): { short: [
 export function FactRows({ rows, className = "about__list" }: { rows: [string, ReactNode][]; className?: string }) {
   return (
     <dl className={className}>
-      {rows.map(([k, v]) => (
-        <div key={k} style={{ display: "contents" }}>
+      {rows.map(([k, v], i) => (
+        <div key={`${i}:${k}`} style={{ display: "contents" }}>
           <dt>{k}</dt>
           <dd>{v}</dd>
         </div>

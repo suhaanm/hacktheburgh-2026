@@ -37,14 +37,14 @@ Device and permissions
 - [ ] **4.6** Set up device permissions so everything works. The lead cannot grant macOS permissions (only the owner can, by design); first run walks through each one with an Open System Settings button. B, A, V.
 
 Fixes
-- [ ] **4.7** The Stop button shows two stop icons: fix. B, A.
-- [ ] **4.8** The account menu shows the worker's name. B.
-- [ ] **4.9** The worker can change their profile (name and role: programmer, analyst, benefits processor, more), not stuck as benefits processor. B, R. *Account menu with name and role change in main; engine route by Track R pending merge.* Role switch seeds for programmer and analyst still being generated (Track R).
+- [x] **4.7** The Stop button shows two stop icons: fix. B, A. *One Stop everywhere (pill, sidebar); the old wizard's preview pill is gone; the Stopped card has Resume only.*
+- [x] **4.8** The account menu shows the worker's name. B. *Account menu shows name and role; Change profile; Set up again.*
+- [x] **4.9** The worker can change their profile (name and role: programmer, analyst, benefits processor, more), not stuck as benefits processor. B, R. *Account menu with name and role change in main; engine route by Track R pending merge.* Role switch seeds for programmer and analyst still being generated (Track R). *Verified on a copy of the live data: POST /profile per role, history kept per role, Home and Growth follow it.*
 - [ ] **4.10** Forecasts: a clear, understandable layout, insights on top, data behind, not a data spam. D.
 - [ ] **4.11** The same insight-first treatment for every screen. B, C, D.
-- [ ] **4.12** Admin: Firm brief and the other admin pages are on the main nav. B, D. *Admin nav with Brief and the rest in main; the admin pages' data is pending (Track R).*
+- [x] **4.12** Admin: Firm brief and the other admin pages are on the main nav. B, D. *Admin nav with Brief and the rest in main; the admin pages' data is pending (Track R).* *Admin nav in main; every admin page draws content live.*
 - [ ] **4.13** "How work connects" (the graph layer) uses the old design system: move it to the new one (`Understudy Design System` artifact): icons per node style, no visible text except on hover or click. G. *Merged to main, tests pass; not yet seen in the rebuilt app.*
-- [ ] **4.14** Bottom-right corner: a Knack pop-up and a "working on, 0 of 1" pill conflict, and the pill stays after the work finished: fix the state and the layout. A. *Root cause fixed on Track A's branch (ghost runs from stale records); merges at the next checkpoint.*
+- [x] **4.14** Bottom-right corner: a Knack pop-up and a "working on, 0 of 1" pill conflict, and the pill stays after the work finished: fix the state and the layout. A. *Root cause fixed on Track A's branch (ghost runs from stale records); merges at the next checkpoint.* *Root cause (ghost run records) fixed, corner column single, regression test in the hidden e2e.*
 - [ ] **4.15** Background tasks update live on the page, no refresh needed. C, A, agent service. *Built (SSE plus polling, ghost rules); not yet seen in the rebuilt app.*
 - [ ] **4.16** Task and progress UI as minimal as Claude Code's task list. C, A.
 - [ ] **4.17** Cluster related things on one page; fewer navigations; everything easy to find. B, C, D (`docs/knack-ux/views.md` navigation map).
