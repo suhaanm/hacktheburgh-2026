@@ -2,9 +2,9 @@
 
 > The worker types or says any task; Knack routes it by code, asks for one click that says in plain words what an agent can do, and can start the owner's own Claude command as a monitored background agent that writes and runs code.
 
-**Capability:** Agents that do the work safely · **Status:** landing · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
+**Capability:** Agents that do the work safely · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-**Status:** landing (owner decision D63 (01:05 UTC); code, 141 tests and docs/TASKS.md are on the Tasks branch (worktree-agent-a40520cb1ac55fcdc, Track T, commit 6c8b5b5 at 01:20 UTC); not on main; one real one-turn run of the owner's claude command was made once with the owner's approval to check the flags, and no real task has been run) · **Page:** `docs/features/open-ended-tasks.md` · **Targets:** Wordsmith
+**Status:** built (owner decision D63 (01:05 UTC); merged to main at 01:42 UTC (fded20e): the service, API, router, Claude command runner, skills and browser runner, the consent cards and task list in the dashboard, the pills window in the desktop shell and the Live tool start_task, with docs/TASKS.md; not seen end to end by the lead; one real one-turn run of the owner's claude command was made once with the owner's approval to check the flags, and no real task has been run; the task box (a place to type a task) is not on main, so a typed task has no screen yet (landing)) · **Page:** `docs/features/open-ended-tasks.md` · **Targets:** Wordsmith
 
 ## What it does
 
@@ -18,23 +18,23 @@ Routing is code: weighted rules over the worker's words score each route; a clea
 
 ## Where to see it
 
-Home (a task box and a short list of background tasks) and the voice tool in Hey Knack ('Hey Knack, do ...'); small pills at the top right while an agent works, with Knack's own attention (approvals, voice, Stop) staying in the bottom-right column. The task box is Track B's and the pills Track A's (docs/OWNER_REQUESTS.md 4.18 and 4.21); none of it is on main. The service and its API (Tasks API in docs/API_CONTRACT.md on the Tasks branch) are on the branch.
+Needs you (the consent card, with Allow and Not now and the wider choice behind More), Routines and Home (a short list of background tasks, live), small pills at the top right of the screen while an agent works (a second overlay column; Knack's own attention stays in the bottom-right column), and Hey Knack by voice ('Hey Knack, do ...'). The task box that would let a worker type a task is Track B's (docs/OWNER_REQUESTS.md 4.18) and is not on main: the dashboard has calls to list, stop, consent to, answer and open a task but none that creates one. The service API is in docs/API_CONTRACT.md (Tasks API).
 
 ## Demo moment
 
-Not available yet. When it lands and the lead has seen it: type 'analyse sales.csv and plot the monthly totals'; the consent card names what the agent can do; click Allow for this task; a pill shows progress; the result arrives as one sentence with Open file. Say that a typed 'click Save in Excel' is answered with steps, not a click. Do not film until then.
+Not rehearsed, and not by typing, because the task box is not on main. By voice (it needs the owner's first launch and a Gemini key) or through the service API a task can be created; the consent card appears in Needs you and names what the agent can do; one click on Allow for this task; a pill appears at the top right; the result arrives as one sentence with Open file. Say that a request such as 'click Save in Excel' is answered with steps, not a click. Do not film a typed task until the task box lands and the lead has seen it.
 
 ## Evidence and its label
 
 | What | Label | Source |
 |---|---|---|
-| 141 tests (the document's count at b420837; a static count of test functions at the branch head is 115, and the document does not say what accounts for the difference) cover the routing, the child process handling (fake commands that succeed, crash, report a sign-in error or a usage limit, hang, ignore the stop signal, flood output, stay quiet, or start grandchild processes), the manager and the routes; every one uses a fake claude and a fake model | offline tests with fakes; not a real task | `docs/TASKS.md (branch worktree-agent-a40520cb1ac55fcdc); services/agent/tests/tasks/ (branch worktree-agent-a40520cb1ac55fcdc)` |
-| One real run of the owner's claude command, once, with the owner's approval: the flags were accepted by version 2.1.319, the expected event types were seen, exit code 0 in 3.1 seconds, about US$0.063 reported by the command itself; the flags for allow-everything, disabling slash commands and the skill deny rule were not exercised, and the enforcement of the deny rules was not tested | one real one-turn run, owner present; not a task and not a result | `docs/TASKS.md (branch worktree-agent-a40520cb1ac55fcdc)` |
-| The browser route is tested on a real headless Chromium with a scripted model; no real computer-use model was called; a finished free-text web task reads 'Reported, not checked' because code has no ground truth to verify it | offline tests; not a real run | `docs/TASKS.md (branch worktree-agent-a40520cb1ac55fcdc)` |
+| 143 tests (the document's count; a static count of test functions on main is 115, and the document does not say what accounts for the difference) cover the routing, the child process handling (fake commands that succeed, crash, report a sign-in error or a usage limit, hang, ignore the stop signal, flood output, stay quiet, or start grandchild processes), the manager and the routes; every one uses a fake claude and a fake model | offline tests with fakes; not a real task | `docs/TASKS.md; services/agent/tests/tasks/` |
+| One real run of the owner's claude command, once, with the owner's approval: the flags were accepted by version 2.1.319, the expected event types were seen, exit code 0 in 3.1 seconds, about US$0.063 reported by the command itself; the flags for allow-everything, disabling slash commands and the skill deny rule were not exercised, and the enforcement of the deny rules was not tested | one real one-turn run, owner present; not a task and not a result | `docs/TASKS.md` |
+| The browser route is tested on a real headless Chromium with a scripted model; no real computer-use model was called; a finished free-text web task reads 'Reported, not checked' because code has no ground truth to verify it | offline tests; not a real run | `docs/TASKS.md` |
 
 ## Honest limit
 
-Full computer access is the owner's choice (D63). The deny rules for Knack's own protected files are defence in depth, not a sandbox: a shell command can reach anything the owner's account can, and their enforcement was not tested. Desktop clicks are not wired to typed tasks: the desktop route always answers 'show instead', and real clicks stay behind the supervised first-click test. The owner's own Claude hooks run inside the child, as they do in a terminal. Claude command usage is billed to the owner's own Claude account, outside the US$200 Gemini cap; the time cap and the cost the command reports are the only brakes besides Stop. A task running when the service restarts becomes 'failed' with a plain reason. Nothing here is verified on main.
+Full computer access is the owner's choice (D63). The deny rules for Knack's own protected files are defence in depth, not a sandbox: a shell command can reach anything the owner's account can, and their enforcement was not tested. Desktop clicks are not wired to typed tasks: the desktop route always answers 'show instead', and real clicks stay behind the supervised first-click test. The owner's own Claude hooks run inside the child, as they do in a terminal. Claude command usage is billed to the owner's own Claude account, outside the US$200 Gemini cap; the time cap and the cost the command reports are the only brakes besides Stop. A task running when the service restarts becomes 'failed' with a plain reason. The consent card, the pills and the voice tool have not been seen working with a real task.
 
 ## Hackathon target
 
@@ -42,7 +42,7 @@ Full computer access is the owner's choice (D63). The deny rules for Knack's own
 
 ## 30-second spoken script
 
-> You can type or say any task. Knack decides in code whether to answer, browse, show you on screen, or hand the job to a background agent, and for the last two it asks for one click that says in plain words what that agent can do. The background agent is your own Claude command, run as a monitored child with a time cap, and Stop ends the whole thing. It writes and runs code on your Mac because the owner chose that, so the consent card says so, and it never happens inside routines. This is landing and tested with a fake command; one real one-turn check was run with the owner present.
+> You can type or say any task. Knack decides in code whether to answer, browse, show you on screen, or hand the job to a background agent, and for the last two it asks for one click that says in plain words what that agent can do. The background agent is your own Claude command, run as a monitored child with a time cap, and Stop ends the whole thing. It writes and runs code on your Mac because the owner chose that, so the consent card says so, and it never happens inside routines. This is on the main build and tested with a fake command; one real one-turn check was run with the owner present, no real task has been run, and the box to type a task is not in yet.
 
 ## Slide bullets
 
@@ -50,7 +50,7 @@ Full computer access is the owner's choice (D63). The deny rules for Knack's own
 - One consent card per task, in plain words: what the agent can read, change and run.
 - Monitored child: allow-listed environment, time caps, Stop and the kill file end the process group.
 - Full computer access is the owner's choice (D63); deny rules are not a sandbox; never in routines.
-- 141 tests with a fake command and one real one-turn check; landing, not on main.
+- 143 tests with a fake command and one real one-turn check; the task box is not on main.
 
 ## Sources
 
@@ -58,8 +58,10 @@ Full computer access is the owner's choice (D63). The deny rules for Knack's own
 - `docs/OWNER_REQUESTS.md`
 - `docs/IMPLEMENTATION_SPEC.md (6.5, amended)`
 - `docs/knack-ux/views.md`
-- `docs/TASKS.md (branch worktree-agent-a40520cb1ac55fcdc)`
-- `services/agent/understudy_agent/tasks/ (branch worktree-agent-a40520cb1ac55fcdc)`
+- `docs/TASKS.md`
+- `services/agent/understudy_agent/tasks/`
+- `apps/desktop/src/main/knack/agent-pills.ts`
+- `apps/dashboard/src/lib/useTasks.ts`
 
 ## Related pages
 

@@ -1,8 +1,8 @@
 # Knack feature index
 
-As of Sun 08 Nov 2026, 01:45 UTC, checked against main at 87747c8.
+As of Sun 08 Nov 2026, 01:48 UTC, checked against main at 6708183.
 
-35 pages and 67 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
+35 pages and 68 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
 
 **Status words.** `verified`: the lead saw it work end to end (`docs/FEATURE_CATALOGUE.md`). `built`: built and tested by its track, on main, not yet seen end to end by the lead. `landing`: not on main yet (another agent's branch, or its document has not landed). `not run`: designed or built but never run. The status is taken from the sources at the time of writing (see the time stamp in `docs/PITCH_FEATURES.md`); nothing here was run by the author.
 
@@ -50,8 +50,9 @@ As of Sun 08 Nov 2026, 01:45 UTC, checked against main at 87747c8.
 | Real-click ladder (R0 to R4) and the arm switch | [computer-use](computer-use.md) | **built** (read-only rung R0 ran once; nothing else has run) | Wordsmith |
 | Background agents: parent and child | [background-agents](background-agents.md) | **built** | Wordsmith |
 | Overnight runs and the morning report | [background-agents](background-agents.md) | **built** | Wordsmith, HRT |
+| Live background task list: a finish shows up without a refresh | [background-agents](background-agents.md) | **built** (owner requests 4.15 and 4.16 (Track C); documented in docs/knack-ux/background-tasks.md; on main; the tasks service it prefers is on main since 01:42 UTC; not seen end to end by the lead) | Wordsmith |
 | Stop everything: the kill switch | [stop-everything](stop-everything.md) | **built** | Wordsmith |
-| Open-ended tasks, skills in context and Claude background agents | [open-ended-tasks](open-ended-tasks.md) | **landing** (owner decision D63 (01:05 UTC); code, 141 tests and docs/TASKS.md are on the Tasks branch (worktree-agent-a40520cb1ac55fcdc, Track T, commit 6c8b5b5 at 01:20 UTC); not on main; one real one-turn run of the owner's claude command was made once with the owner's approval to check the flags, and no real task has been run) | Wordsmith |
+| Open-ended tasks, skills in context and Claude background agents | [open-ended-tasks](open-ended-tasks.md) | **built** (owner decision D63 (01:05 UTC); merged to main at 01:42 UTC (fded20e): the service, API, router, Claude command runner, skills and browser runner, the consent cards and task list in the dashboard, the pills window in the desktop shell and the Live tool start_task, with docs/TASKS.md; not seen end to end by the lead; one real one-turn run of the owner's claude command was made once with the owner's approval to check the flags, and no real task has been run; the task box (a place to type a task) is not on main, so a typed task has no screen yet (landing)) | Wordsmith |
 
 ## Routines and automations
 
