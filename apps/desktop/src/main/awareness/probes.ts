@@ -1,5 +1,5 @@
 // Permission-free probes for the gates, each behind an injected `exec` so tests never run a process. Only READ-ONLY system queries:
-//   frontmost app   `lsappinfo info -only bundleid -app front`   (Launch Services, no permission, ~40 ms). Window titles are NOT available this
+//   frontmost app   `lsappinfo front` then `lsappinfo info -only bundleid <asn>` (Launch Services, no permission, ~40 ms; the one-step -app front form prints nothing on this macOS). Window titles are NOT available this
 //                   way and are never read: Accessibility or Screen Recording would be needed, and neither is requested.
 //   secure input    `ioreg -r -k IOConsoleUsers -d 1 -w 0`      (IORegistry, no permission, ~0.1 s). While any app has secure event input on (a
 //                   password field has focus), the console session entry carries the key kCGSSessionSecureInputPID. The same output says
@@ -31,9 +31,26 @@ export interface FrontmostSource {
   read(): Promise<string | null>
 }
 
+/** `lsappinfo front` prints the front app's serial number: `ASN:0x0-0x170170:`. Nothing else is accepted, because it becomes an argument of the next call. */
+const ASN_RE = /^ASN:0x[0-9a-f]+-0x[0-9a-f]+:?$/i
+
+/**
+ * The front app's bundle id. On this macOS `lsappinfo info -only bundleid -app front` prints NOTHING, so the old one-step probe read every app as unreadable, and
+ * unreadable counts as a private app in strict mode: no screen picture was ever sent. Two steps work: ask for the front app's serial number, then ask for its bundle id.
+ * The old form stays as a fallback for a macOS where it answers.
+ */
 export function createFrontmostSource(exec: Exec = realExec): FrontmostSource {
   return {
     async read() {
+      try {
+        const front = (await exec('lsappinfo', ['front'], { timeoutMs: 1500 })).stdout.trim().split('\n')[0]?.trim() ?? ''
+        if (ASN_RE.test(front)) {
+          const id = parseBundleId((await exec('lsappinfo', ['info', '-only', 'bundleid', front], { timeoutMs: 1500 })).stdout)
+          if (id) return id
+        }
+      } catch {
+        /* fall through to the one-step form */
+      }
       try {
         const r = await exec('lsappinfo', ['info', '-only', 'bundleid', '-app', 'front'], { timeoutMs: 1500 })
         return parseBundleId(r.stdout)

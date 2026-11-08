@@ -23,18 +23,36 @@ describe('frontmost app', () => {
     expect(parseBundleId('"CFBundleIdentifier"="' + 'a'.repeat(300) + '"')).toBeNull()
   })
 
-  it('asks Launch Services for the front app with fixed arguments, and returns null on failure', async () => {
+  it('asks Launch Services for the front app in two fixed steps (serial number, then bundle id): the one-step form prints nothing on this macOS', async () => {
     const calls: Array<[string, readonly string[]]> = []
-    const ok: Exec = async (f, a) => {
+    const twoStep: Exec = async (f, a) => {
       calls.push([f, a])
+      if (a[0] === 'front') return { stdout: 'ASN:0x0-0x170170:\n' }
+      if (a.includes('ASN:0x0-0x170170:')) return { stdout: '"CFBundleIdentifier"="com.anthropic.claudefordesktop"' }
+      return { stdout: '' } // the one-step form answers with nothing, as it does on this Mac
+    }
+    expect(await createFrontmostSource(twoStep).read()).toBe('com.anthropic.claudefordesktop')
+    expect(calls).toEqual([['lsappinfo', ['front']], ['lsappinfo', ['info', '-only', 'bundleid', 'ASN:0x0-0x170170:']]])
+  })
+
+  it('never passes anything but a serial number to the second call, and falls back to the one-step form where that answers', async () => {
+    const calls: Array<readonly string[]> = []
+    const oldMac: Exec = async (_f, a) => {
+      calls.push(a)
+      if (a[0] === 'front') return { stdout: 'not a serial number; rm -rf /' }
       return { stdout: '"CFBundleIdentifier"="com.apple.Safari"' }
     }
-    expect(await createFrontmostSource(ok).read()).toBe('com.apple.Safari')
-    expect(calls).toEqual([['lsappinfo', ['info', '-only', 'bundleid', '-app', 'front']]])
+    expect(await createFrontmostSource(oldMac).read()).toBe('com.apple.Safari')
+    expect(calls).toEqual([['front'], ['info', '-only', 'bundleid', '-app', 'front']])
+  })
+
+  it('returns null when Launch Services fails or answers nothing at all', async () => {
     const bad: Exec = async () => {
       throw new Error('boom')
     }
     expect(await createFrontmostSource(bad).read()).toBeNull()
+    const empty: Exec = async () => ({ stdout: '' })
+    expect(await createFrontmostSource(empty).read()).toBeNull()
   })
 })
 
