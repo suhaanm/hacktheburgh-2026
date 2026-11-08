@@ -391,6 +391,23 @@ def test_growth_route_reports_ready_data_with_the_synthetic_label(env, monkeypat
     assert g["data"]["trend"]["direction"] != "too_early"
 
 
+def test_an_older_demo_home_gets_only_the_missing_growth_ledger_without_a_reset(env):
+    """`make live` seeds once; a home seeded before the Growth step existed is topped up by running the seed again WITHOUT --reset."""
+    res, _ = _seed()
+    import shutil
+
+    shutil.rmtree(env.data / "assist")
+    (env.data / ".demo-growth").unlink()                                          # what an older seed left: no Growth ledger, no marker
+    (env.data / "queue" / "q_keep.json").write_text("{}")                          # something the seed must not touch on this run
+    before = ((env.home / "memory.md").read_bytes(), (env.home / "memory_state.json").read_bytes(), sorted(p.name for p in (env.data / "queue").iterdir()))
+    again, lines = _seed()
+    text = "\n".join(lines)
+    assert again["seeded"] is False and "already seeded" in text and "morning story: already seeded" in text
+    assert again["growth"] is True and "growth: 90 assist occurrences" in text
+    assert (env.data / "assist" / "ledger.jsonl").exists() and (env.data / ".demo-growth").exists()
+    assert ((env.home / "memory.md").read_bytes(), (env.home / "memory_state.json").read_bytes(), sorted(p.name for p in (env.data / "queue").iterdir())) == before
+
+
 def test_growth_is_written_only_into_the_demo_data_dir(env, monkeypatch):
     (env.shared / "queue").mkdir()
     before = _tree(env.shared, skip=("demo-data",))
