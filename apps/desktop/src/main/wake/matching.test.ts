@@ -77,6 +77,17 @@ describe('the accept list', () => {
   })
 })
 
+describe('the same words twice', () => {
+  it('"Hey Knack, hey Knack" is one wake: the second is inside the cooldown', () => {
+    let t = 0
+    const m = createWakeMatcher({ now: () => t })
+    expect(matchWake('hey knack hey knack', { settled: true }).verdict).toBe('accept')
+    expect(m.feed('hey knack hey knack', { settled: true }).accepted).toBe(true)
+    t += 500
+    expect(m.feed('hey knack', { settled: true })).toMatchObject({ accepted: false, reason: 'cooldown' })
+  })
+})
+
 describe('the cooldown', () => {
   it('accepts once, then refuses for the cooldown, then accepts again', () => {
     let t = 1000
