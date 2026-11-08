@@ -307,6 +307,7 @@ await page.locator("#spawn-kind").selectOption("data.chart");
 await page.getByRole("button", { name: "Nightly" }).click();
 await page.getByRole("button", { name: "Run in background" }).click();
 await page.waitForTimeout(700);
+await showAll();        // a fourth run folds behind "Show all"
 check("agents: spawning adds a run to the tree", (await page.locator("article.run").count()) === runsBefore + 1 && (await page.locator("article.run").first().innerText()).includes("Chart builder"));
 await page.locator("article.run").first().getByRole("button", { name: "Stop" }).click();
 await page.waitForTimeout(700);
@@ -367,7 +368,7 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   await page.locator("main .sourcenote summary", { hasText: "Details" }).first().click();
   const offDetail = await page.locator("main [data-testid=source-detail]").first().innerText();
   check("layers off: its Details says how to switch the layer on, and the engine is asked for nothing", /switched off/.test(offDetail) && /UNDERSTUDY_X_PRIVACY=1/.test(offDetail) && privacyAsked === 0, `asked ${privacyAsked} times`);
-  check("layers off: the Sent section prints its own reason, not another source's", /UNDERSTUDY_X_PRIVACY=1/.test(await page.locator("[data-testid=sent] [data-testid=source-detail]").first().innerText()) && !/could not answer yet/.test(await page.locator("[data-testid=sent]").innerText()));
+  check("layers off: the Sent section prints its own reason, not another source's", /UNDERSTUDY_X_PRIVACY=1/.test(await page.locator("#yd-sent [data-testid=source-detail]").first().textContent()) && !/could not answer yet/.test(await page.locator("#yd-sent").innerText()));
   await page.unroute(ENGINE);
 }
 
