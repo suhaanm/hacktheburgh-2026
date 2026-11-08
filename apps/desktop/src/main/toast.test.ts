@@ -5,7 +5,7 @@ import { createVoiceLock, type VoiceLock } from './attention/lock'
 import { CONFIRM_TIMEOUT_MS, ConfirmBroker } from './confirm'
 import { SettingsStore } from './settings'
 import { StateStore } from './state'
-import { NOTIFICATION_TITLE, TOAST_MARGIN, TOAST_WIDTH, registerToast } from './toast'
+import { CORNER_GAP, CORNER_MARGIN, NOTIFICATION_TITLE, TOAST_MARGIN, TOAST_WIDTH, registerToast, toastCornerBounds, type Rect, type ToastCorner } from './toast'
 
 // A minimal Electron: windows and notifications are recorded so the tests can look at what main asked for.
 vi.mock('electron', async () => {
@@ -69,7 +69,12 @@ vi.mock('electron', async () => {
     __fake: fake,
     BrowserWindow: FakeWindow,
     Notification: FakeNotification,
-    screen: { getPrimaryDisplay: () => ({ workArea: { x: 0, y: 25, width: 1440, height: 875 } }) },
+    screen: {
+      getPrimaryDisplay: () => ({ workArea: { x: 0, y: 25, width: 1440, height: 875 } }),
+      getCursorScreenPoint: () => ({ x: 10, y: 10 }),
+      getDisplayNearestPoint: () => ({ workArea: { x: 0, y: 25, width: 1440, height: 875 } }),
+      getDisplayMatching: () => ({ workArea: { x: 0, y: 25, width: 1440, height: 875 } }),
+    },
   }
 })
 
@@ -100,7 +105,7 @@ interface FakeNotification {
 const electron = (await import('electron')) as unknown as { __fake: { windows: FakeWindow[]; notifications: FakeNotification[]; throwOnCreate: boolean; notificationsSupported: boolean } }
 const fake = electron.__fake
 
-function setup(opts: { confirmStyle?: 'toast' | 'dock'; capturable?: boolean; disabled?: boolean; loadTimeoutMs?: number; attention?: { lock: VoiceLock }; lockWaitMs?: number } = {}) {
+function setup(opts: { confirmStyle?: 'toast' | 'dock'; capturable?: boolean; disabled?: boolean; loadTimeoutMs?: number; attention?: { lock: VoiceLock }; lockWaitMs?: number; corner?: ToastCorner } = {}) {
   const settings = new SettingsStore(null)
   settings.patch({ confirmStyle: opts.confirmStyle ?? 'toast' }, { trusted: true })
   const state = new StateStore(settings.get())
@@ -118,6 +123,7 @@ function setup(opts: { confirmStyle?: 'toast' | 'dock'; capturable?: boolean; di
     loadTimeoutMs: opts.loadTimeoutMs,
     attention: opts.attention,
     lockWaitMs: opts.lockWaitMs,
+    corner: opts.corner,
   })
   const confirm = new ConfirmBroker(state)
   const loaded = (i = 0) => fake.windows[i]!.webContents.emit('did-finish-load')
@@ -501,6 +507,75 @@ describe('registerToast: the one-voice lock (REQ-8)', () => {
     const { confirm } = setup()
     void confirm.ask('Q?', OPTIONS)
     expect(fake.windows).toHaveLength(1)
+  })
+})
+
+describe('toastCornerBounds: the prompt as a corner card in the Knack app', () => {
+  const wa: Rect = { x: 0, y: 25, width: 1440, height: 875 }
+  it('puts the card 16 px in from the right and 16 px above the bottom of the work area (the page keeps 12 px at the sides and 16 at the bottom)', () => {
+    const b = toastCornerBounds(wa, 200, null)
+    expect(b.width).toBe(TOAST_WIDTH)
+    expect(b.x + b.width - TOAST_MARGIN).toBe(wa.x + wa.width - CORNER_MARGIN) // the card's right edge
+    expect(b.y + b.height - (TOAST_MARGIN + 4)).toBe(wa.y + wa.height - CORNER_MARGIN) // the card's bottom edge
+  })
+  it('stacks above the corner pill column, with a gap, instead of over it', () => {
+    const column: Rect = { x: 1100, y: 800, width: 324, height: 38 }
+    const b = toastCornerBounds(wa, 200, column)
+    const cardBottom = b.y + b.height - (TOAST_MARGIN + 4)
+    expect(cardBottom).toBe(column.y + 3 - CORNER_GAP)
+    expect(cardBottom).toBeLessThan(column.y)
+  })
+  it('never starts above the top of the work area, however tall', () => {
+    expect(toastCornerBounds(wa, 5000, null).y).toBe(wa.y)
+  })
+})
+
+describe('registerToast with a corner: where the prompt goes', () => {
+  const wa: Rect = { x: 0, y: 25, width: 1440, height: 875 }
+  it('opens at the bottom-right instead of the top-right', () => {
+    const { confirm } = setup({ corner: { column: () => null } })
+    void confirm.ask('Open example.com for you?', OPTIONS)
+    const win = fake.windows[0]!
+    const expected = toastCornerBounds(wa, 140, null)
+    expect(win.options).toMatchObject({ x: expected.x, y: expected.y, width: TOAST_WIDTH, height: 140 })
+    expect(win.options.y as number).toBeGreaterThan(400)
+  })
+  it('moves above the corner column when it appears afterwards, and back down when it goes', async () => {
+    let column: Rect | null = null
+    const { confirm, loaded } = setup({ corner: { column: () => column } })
+    void confirm.ask('Q?', OPTIONS)
+    fake.windows[0]!.webContents.executeJavaScript.mockResolvedValue(200)
+    loaded()
+    await vi.advanceTimersByTimeAsync(700)
+    const win = fake.windows[0]!
+    const settled = win.setBounds.mock.calls.at(-1)![0] as Rect
+    expect(settled).toEqual(toastCornerBounds(wa, 200 + 2 * TOAST_MARGIN + 4, null))
+    column = { x: 1100, y: 800, width: 324, height: 38 }
+    await vi.advanceTimersByTimeAsync(500)
+    const raised = win.setBounds.mock.calls.at(-1)![0] as Rect
+    expect(raised.y + raised.height).toBeLessThan(settled.y + settled.height)
+    expect(raised).toEqual(toastCornerBounds(wa, settled.height, column))
+    column = null
+    await vi.advanceTimersByTimeAsync(500)
+    expect(win.setBounds.mock.calls.at(-1)![0]).toEqual(settled)
+  })
+  it('does not keep re-placing the card while nothing changed, and stops following when the prompt goes', async () => {
+    const { confirm, loaded } = setup({ corner: { column: () => null } })
+    void confirm.ask('Q?', OPTIONS)
+    loaded()
+    await vi.advanceTimersByTimeAsync(700)
+    const win = fake.windows[0]!
+    const calls = win.setBounds.mock.calls.length
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(win.setBounds.mock.calls.length).toBe(calls)
+    confirm.cancel()
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(win.setBounds.mock.calls.length).toBe(calls)
+  })
+  it('without a corner it stays a top-right toast (the older place)', () => {
+    const { confirm } = setup()
+    void confirm.ask('Q?', OPTIONS)
+    expect(fake.windows[0]!.options.y).toBe(25 + TOAST_MARGIN)
   })
 })
 

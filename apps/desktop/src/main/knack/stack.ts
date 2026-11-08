@@ -55,6 +55,8 @@ export interface StackConfig {
   dirs: { demo: { home: string; data: string }; live: { home: string; data: string } }
   /** The mode to start in until setMode says otherwise. */
   mode: StackMode
+  /** Start the sandbox calculator sites with the agent (default true). KNACK_SITES=0 turns it off: the sites bind fixed ports (7801 to 7803) that a check or a second checkout may not take. */
+  startSites?: boolean
   timeouts: { engineMs: number; agentMs: number; dashboardMs: number; seedMs: number; pollMs: number; stopMs: number }
 }
 
@@ -217,7 +219,15 @@ export function createStack(deps: StackDeps): Stack {
     deps.mkdirp(path.join(root, d.home))
     deps.mkdirp(path.join(root, d.data))
     const seedArgs = ['run', '--package', 'understudy-agent', 'python', '-m', 'understudy_engine.demo', 'seed']
-    const run = (name: string, args: string[]): Promise<{ code: number | null }> => deps.run({ name, command: uv, args, cwd: root, env: modeEnv() }, cfg.timeouts.seedMs).catch(() => ({ code: 1 as number | null }))
+    const run = (name: string, args: string[], env: Record<string, string> = modeEnv()): Promise<{ code: number | null }> => deps.run({ name, command: uv, args, cwd: root, env }, cfg.timeouts.seedMs).catch(() => ({ code: 1 as number | null }))
+    // Both modes' isolated data directories hold links to the repository's shared synthetic data (data/synthetic), which `make synth` makes: made here first when it is missing,
+    // into the repository's own data directory (so without the mode's UNDERSTUDY_DATA_DIR), exactly where the seed and dev.sh look for it.
+    if (!deps.exists(path.join(root, 'data', 'synthetic'))) {
+      const env = modeEnv()
+      delete env.UNDERSTUDY_DATA_DIR
+      delete env.UNDERSTUDY_HOME
+      if ((await run('synth', ['run', '--package', 'understudy-engine', 'understudy', 'synth', '--all'], env)).code !== 0) return false
+    }
     if (mode === 'live') {
       // The marker says the data directory is the isolated example content, so the seed may reset it; the second marker says it already did.
       deps.touch(path.join(root, d.data, '.understudy-demo-data'))
@@ -227,9 +237,7 @@ export function createStack(deps: StackDeps): Stack {
       }
       return true
     }
-    if ((await run('seed', seedArgs)).code !== 0) return false // the demo story, once. Without --reset a second run changes nothing.
-    if (!deps.exists(path.join(root, d.data, 'synthetic'))) return (await run('synth', ['run', '--package', 'understudy-engine', 'understudy', 'synth', '--all'])).code === 0
-    return true
+    return (await run('seed', seedArgs)).code === 0 // the demo story, once. Without --reset a second run changes nothing.
   }
 
   async function ensure(): Promise<StackState> {
@@ -264,7 +272,7 @@ export function createStack(deps: StackDeps): Stack {
     if (!agent.ok) {
       set({ phase: 'starting', step: 'agent' })
       // The sandbox calculator sites the agent works on in the demo (dev.sh starts them too); they are not waited for.
-      if (deps.exists(path.join(root, 'services/agent/understudy_agent/sandbox_sites/__main__.py')) && !(await healthy(cfg.ports.sites)).ok) {
+      if (cfg.startSites !== false && deps.exists(path.join(root, 'services/agent/understudy_agent/sandbox_sites/__main__.py')) && !(await healthy(cfg.ports.sites)).ok) {
         launch('sites', uv as string, ['run', '--package', 'understudy-agent', 'python', '-m', 'understudy_agent.sandbox_sites'], root)
       }
       const c = launch('agent', uv as string, ['run', '--package', 'understudy-agent', 'python', '-m', 'understudy_agent.server'], root)

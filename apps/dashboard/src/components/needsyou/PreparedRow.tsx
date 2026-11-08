@@ -70,7 +70,7 @@ export function PreparedRow({ card: c, onFired, onDismissed, onChanged }: { card
         })}>{busy === "fire" ? "Working" : "Approve and run"}</button>
         <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => void run("later", async () => { await api.briefingDismiss(c.id, "not_now"); toast({ tone: "plain", text: "Okay, not now." }); onDismissed("not_now"); })}>Not now</button>
         <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => void run("never", async () => { await api.briefingDismiss(c.id, "never"); toast({ tone: "plain", text: "Okay. This will not be suggested again." }); onDismissed("never"); })}>Never</button>
-        <button type="button" className="kc-link" data-toggle aria-expanded={open} aria-controls={`pv-${c.id}`} onClick={() => setOpen((v) => !v)}>What will happen<Glyph name="chevron" /></button>
+        <button type="button" className="kc-link" data-toggle aria-expanded={open} aria-controls={`pv-${c.id}`} onClick={() => setOpen((v) => !v)}>Details<Glyph name="chevron" /></button>
       </div>
       {open && (
         <div className="kc-panel" id={`pv-${c.id}`}>

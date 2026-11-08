@@ -122,5 +122,7 @@ describe("when first run opens by itself", () => {
     expect(shouldStartFirstRun({ ...base, engineUp: null })).toBe(false);
     expect(shouldStartFirstRun({ ...base, extReady: false })).toBe(false);
     expect(shouldStartFirstRun({ ...base, path: "/first-run", hash: "#/first-run" })).toBe(false);
+    // A link that carries a query (the old Notices address becomes #/home?settings=interruptions) is a deep link too.
+    expect(shouldStartFirstRun({ ...base, hash: "#/home", query: "settings=interruptions" })).toBe(false);
   });
 });

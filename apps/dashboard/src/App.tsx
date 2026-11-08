@@ -92,7 +92,7 @@ function Shell() {
   }, [settings, route.path, route.query]);
   // First run: only when the engine answered, it does not know the worker, nothing was chosen before, and the address names Home or nothing.
   useEffect(() => {
-    if (shouldStartFirstRun({ engineUp: s.engineUp, extReady: s.extReady, role: s.role, person: s.person, done: firstRunDone(), path: route.path, hash: window.location.hash })) navigate("/first-run");
+    if (shouldStartFirstRun({ engineUp: s.engineUp, extReady: s.extReady, role: s.role, person: s.person, done: firstRunDone(), path: route.path, hash: window.location.hash, query: route.query.toString() })) navigate("/first-run");
   }, [s.engineUp, s.extReady, s.role, s.person, route.path]);
 
   const Screen = current === "unknown" ? screens[DEFAULT_SCREEN] : screens[current];
