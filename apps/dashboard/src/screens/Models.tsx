@@ -3,7 +3,7 @@ import { useLoad } from "../hooks";
 import { EmptyState, ErrorState, Loading, Note, PageHead } from "../components/common";
 import { Hint } from "../components/Hint";
 import { Details, FactRows } from "../components/ui";
-import { directRoles, fmtMs, fmtUsd, healthReading, latencyText, providerName, roleLabel, scalarRows, totalCalls, totalCost, WHEN_LABEL } from "../lib/models";
+import { directRoles, usableSteps, fmtMs, fmtUsd, healthReading, latencyText, providerName, roleLabel, scalarRows, totalCalls, totalCost, WHEN_LABEL } from "../lib/models";
 import { fmtDateTime } from "../lib/format";
 import { useState } from "react";
 import type { ModelProvider, ModelRole, ModelsStatus } from "../types";
@@ -32,7 +32,7 @@ export default function Models() {
           <EmptyState title="No jobs routed yet" body="Each job and its models appear here once the agent service reports them." />
         ) : (
           <div className="chains" role="list" aria-label="Model routing by job, first choice first">
-            {s.roles.map((r) => <Chain key={r.role} r={r} />)}
+            {s.roles.map((r) => <Chain key={r.role} r={usableSteps(r, s.providers)} />)}
             {direct.map((d) => (
               <div key={d.role} className="chain" role="listitem">
                 <div className="chain__head"><span className="chain__role">{roleLabel(d.role)}</span><span className="t-data u-muted">one model, no fallback</span></div>

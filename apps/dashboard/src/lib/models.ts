@@ -151,6 +151,7 @@ export const ROLE_LABEL: Record<string, string> = {
   planner: "Plan and run agents",
   fast: "Quick structured checks",
   computer_use: "Click and type (computer use)",
+  live: "Talk with you (voice)",
 };
 export const roleLabel = (r: string): string => ROLE_LABEL[r] ?? r.replace(/_/g, " ");
 
@@ -160,13 +161,30 @@ export function providerName(p: string): string {
   return k === "openai" ? "OpenAI" : k === "gemini" ? "Gemini" : k === "local" ? "Local model" : p;
 }
 
-/** Roles the router does not handle (planning, quick checks, computer use) come straight from the provider's resolved ids. */
+/**
+ * Roles the router does not handle (planning, quick checks, computer use, voice) come straight from the resolved ids of the provider that is SET UP.
+ * Gemini first when it is configured (that is what the engine's /health reports for these roles), then OpenAI; a provider with no key is never named
+ * for a job it does not do. Nothing is shown when no provider is set up.
+ */
 export function directRoles(providers: ModelProvider[]): { role: string; provider: string; model: string }[] {
-  const oa = providers.find((p) => p.name === "openai");
+  const gm = providers.find((p) => p.name === "gemini" && p.configured && p.models);
+  if (gm?.models) {
+    const m = gm.models;
+    const rows: [string, string | undefined][] = [["planner", m.accurate], ["fast", m.fast], ["computer_use", m.accurate], ["live", m.live]];
+    return rows.filter((r): r is [string, string] => typeof r[1] === "string" && r[1] !== "").map(([role, model]) => ({ role, provider: "gemini", model }));
+  }
+  const oa = providers.find((p) => p.name === "openai" && p.configured && p.models);
   if (!oa?.models) return [];
   return (["planner", "fast", "computer_use"] as const)
     .filter((k) => typeof oa.models![k] === "string")
     .map((k) => ({ role: k, provider: "openai", model: oa.models![k] }));
+}
+
+/** The steps of a routed job that can actually run: a step whose provider is listed as not set up (no key) is left out, so the page never promises a fallback that is not there. */
+export function usableSteps(role: ModelRole, providers: ModelProvider[]): ModelRole {
+  const off = new Set(providers.filter((p) => !p.configured).map((p) => p.name));
+  const steps = role.steps.filter((st) => !off.has(st.provider));
+  return steps.length === 0 ? role : { ...role, steps };
 }
 
 /** Rows of an eval section as a table: only the scalar columns, in the order the first row gives them. Used for the bake-off and any section with no page of its own. */

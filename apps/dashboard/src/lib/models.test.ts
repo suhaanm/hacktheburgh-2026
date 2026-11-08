@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fx from "../fixtures/models-status.json";
-import { directRoles, fmtMs, fmtUsd, healthReading, latencyText, looksLikeKey, normaliseModelsStatus, roleLabel, scalarRows, stripSecrets, totalCalls, totalCost } from "./models";
+import { directRoles, usableSteps, fmtMs, fmtUsd, healthReading, latencyText, looksLikeKey, normaliseModelsStatus, roleLabel, scalarRows, stripSecrets, totalCalls, totalCost } from "./models";
 
 describe("model status", () => {
   const s = normaliseModelsStatus(fx);
@@ -42,9 +42,24 @@ describe("model status", () => {
     expect(healthReading({ health: "unknown", configured: true, breaker: null }).label).toBe("Not called yet");
     expect(healthReading({ health: "degraded", configured: true, breaker: null }).tone).toBe("warn");
   });
-  it("lists planner, fast and computer-use ids when OpenAI is set up", () => {
-    expect(directRoles(s.providers).map((r) => r.role)).toEqual(["planner", "fast", "computer_use"]);
+  it("lists planner, fast and computer-use ids from the provider that is set up", () => {
+    const oa = { name: "openai", configured: true, models: { planner: "gpt-x", fast: "gpt-y", computer_use: "gpt-x" }, breaker: null, health: "unknown" };
+    const gm = { name: "gemini", configured: true, models: { fast: "gem-fast", accurate: "gem-acc", live: "gem-live" }, breaker: null, health: "unknown" };
+    expect(directRoles([oa]).map((r) => [r.role, r.provider])).toEqual([["planner", "openai"], ["fast", "openai"], ["computer_use", "openai"]]);
+    expect(directRoles([{ ...oa, configured: false }])).toEqual([]);
     expect(directRoles([{ name: "openai", configured: false, models: null, breaker: null, health: "unknown" }])).toEqual([]);
+    // Gemini wins when it is configured, and OpenAI with no key is never named for a job (the 8 Nov bug: the page said OpenAI while the engine ran Gemini)
+    expect(directRoles([{ ...oa, configured: false }, gm])).toEqual([
+      { role: "planner", provider: "gemini", model: "gem-acc" }, { role: "fast", provider: "gemini", model: "gem-fast" },
+      { role: "computer_use", provider: "gemini", model: "gem-acc" }, { role: "live", provider: "gemini", model: "gem-live" },
+    ]);
+  });
+  it("leaves out router steps whose provider has no key", () => {
+    const role = { role: "point", steps: [{ provider: "gemini", tier: "", when: "primary", model: "a" }, { provider: "gemini", tier: "", when: "escalate", model: "b" }, { provider: "openai", tier: "", when: "fallback", model: "c" }] };
+    const provs = [{ name: "gemini", configured: true, models: null, breaker: null, health: "unknown" }, { name: "openai", configured: false, models: null, breaker: null, health: "unknown" }];
+    expect(usableSteps(role, provs).steps.map((x) => x.when)).toEqual(["primary", "escalate"]);
+    expect(usableSteps(role, []).steps).toHaveLength(3);                                   // an unknown provider list changes nothing
+    expect(usableSteps({ role: "r", steps: [{ provider: "openai", tier: "", when: "primary", model: null }] }, provs).steps).toHaveLength(1); // never an empty chain
   });
   it("names roles plainly", () => {
     expect(roleLabel("glance")).toMatch(/screen state/);
