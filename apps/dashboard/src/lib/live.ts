@@ -9,7 +9,7 @@
 // A refresh only calls the screen's own reload, which keeps the last good data on screen while it loads: an open row stays open and the scroll stays
 // where it was. Nothing here stores anything or sends anything but the GETs the screen already makes.
 import { useEffect, useRef, useSyncExternalStore } from "react";
-import { AGENT_URL } from "../api";
+import { AGENT_URL, forgetReads } from "../api";
 
 export const FAST_MS = 2000;
 export const SLOW_MS = 15000;
@@ -121,6 +121,7 @@ export class LiveController {
   private async refresh(): Promise<void> {
     if (this.busy || this.stopped) return;
     this.busy = true;
+    forgetReads();                                         // a live refresh wants what the services say now, not the last 3 s of answers api.ts remembers
     try { await this.reload(); } catch { /* a failed refresh leaves the screen as it was; the next poll tries again */ }
     finally { this.busy = false; }
   }

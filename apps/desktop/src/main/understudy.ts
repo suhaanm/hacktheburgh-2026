@@ -236,12 +236,14 @@ export function registerUnderstudy(deps: UnderstudyDeps): UnderstudyShell {
   const offLevel = deps.bus.on('level:changed', () => chip.refresh())
   const offOverlay = deps.bus.on('overlay:ready', () => chip.refresh(true)) // the overlay page (re)loaded: draw the chip again
   const offStep = deps.bus.on('lesson:step', (e) => {
+    void coachPoller.tick() // the poll is every 30 s; a lesson step asks at once (the engine answers repeats from its short cache)
     if (e.phase === 'done' || e.phase === 'aborted') {
       lastEpisodeEnd = Date.now()
       chip.refresh()
     }
   })
   const offEnd = deps.bus.on('session:ended', () => {
+    void coachPoller.tick()
     lastEpisodeEnd = Date.now()
     chip.refresh()
   })

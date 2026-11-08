@@ -136,9 +136,49 @@ type Reached = { reached: true; status: number; body: unknown; tokenMissing?: bo
 /** After a network failure, skip that service for a few seconds: faster screens, no console spam. */
 const downUntil = new Map<string, number>();
 const BACKOFF_MS = 6000;
-export function forgetBackoff(): void { downUntil.clear(); }
+export function forgetBackoff(): void { downUntil.clear(); forgetReads(); }
+
+/**
+ * Identical GETs are made once. A screen mounts and three components ask for the same route; a poll asks again a moment later; every one of them used to be a
+ * request the engine computed on its own (and one that timed out still kept computing there). So:
+ *  - IN FLIGHT: a GET for a URL that is already on its way waits for that answer;
+ *  - SHORT MEMORY: a 200 for one of the heavy routes (the engine's own list, api/heavy.py) is reused for 3 s;
+ *  - any write, a retry and a live refresh forget both, so what you just changed is read again at once. Errors and misses are never remembered.
+ * Each caller gets its own copy of the body.
+ */
+export const GET_MEMORY_MS = 3000;
+export const HEAVY_GET = /^\/(coach\/state|briefing|routines|hitlist|growth|presence|graph\/|insights\/|genome\/|hazard\/|calendar\/|git\/|attention\/(digest|why)|evidence\/|connections|profile|memory\/proposals|eval\/report|packs|replay|offhours\/report)/;
+const inFlight = new Map<string, Promise<Reached>>();
+const remembered = new Map<string, { at: number; r: Reached }>();
+let readEpoch = 0;
+/** Forget what is in flight and what is remembered (after a write, a retry or a live refresh); the next read goes to the service. */
+export function forgetReads(): void { inFlight.clear(); remembered.clear(); readEpoch++; }
+const copyReached = (r: Reached): Reached => (r.reached && r.body !== undefined && r.body !== null ? { ...r, body: clone(r.body) } : r);
 
 async function send(base: string, path: string, method: string, payload?: unknown, force = false, actor?: Actor, retried = false, timeoutMs = TIMEOUT_MS): Promise<Reached> {
+  if (method !== "GET") {
+    forgetReads();
+    try { return await sendNow(base, path, method, payload, force, actor, retried, timeoutMs); } finally { forgetReads(); }
+  }
+  if (force || retried) return sendNow(base, path, method, payload, force, actor, retried, timeoutMs);
+  const key = `${base}${path}`;
+  const mem = remembered.get(key);
+  if (mem && Date.now() - mem.at < GET_MEMORY_MS) return copyReached(mem.r);
+  const going = inFlight.get(key);
+  if (going) return copyReached(await going);
+  const epoch = readEpoch;
+  const p = sendNow(base, path, method, payload, force, actor, retried, timeoutMs);
+  inFlight.set(key, p);
+  try {
+    const r = await p;
+    if (epoch === readEpoch && r.reached && r.status === 200 && HEAVY_GET.test(path)) remembered.set(key, { at: Date.now(), r: copyReached(r) });
+    return copyReached(r);
+  } finally {
+    if (inFlight.get(key) === p) inFlight.delete(key);
+  }
+}
+
+async function sendNow(base: string, path: string, method: string, payload?: unknown, force = false, actor?: Actor, retried = false, timeoutMs = TIMEOUT_MS): Promise<Reached> {
   if (!force && (downUntil.get(base) ?? 0) > Date.now()) return { reached: false };
   const ctl = new AbortController();
   let timedOut = false;
