@@ -4,13 +4,13 @@
 
 **Capability:** Insights and admin · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. Admin main navigation under the rule: Firm, Brief, Forecasts, Roles, People, Onboarding, Automation, Risk; More: Models and cost, Evidence, Background runs. Owner request 4.4 asks for the Admin view to be filled with made-up people for several users with no tag anywhere saying so; that sits against the honesty rule that synthetic data is labelled (see D57 and 'Things we do not claim'), so say aloud in any video that the firm is made up.
+**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. Admin main navigation under the rule: Firm, Brief, Forecasts, Roles, People, Onboarding, Automation, Risk; More: Models and cost, Evidence, Background runs. Owner request 4.4 asks for the Admin view to be filled with made-up people for several users with no tag anywhere saying so; that sits against the honesty rule that synthetic data is labelled (see D57 and 'Things we do not claim'), so say aloud in any video that the firm is made up. Request 4.4 is in progress: Track R found the live engine reads this device's own history, which holds no people; treat the multi-person Admin screens as landing until the seed command has run on the live data.
 
 This page covers Admin views: Firm, Roles, Onboarding, Monday note, firm brief and prediction scorecard.
 
 ## Admin views: Firm, Roles, Onboarding
 
-**Status:** built (UI merged to main; the firm is synthetic) · **Page:** `docs/features/firm-admin.md` · **Targets:** G-Research, HRT
+**Status:** built (UI merged to main; the firm is synthetic; filling it with made-up people for several users on the live engine (owner request 4.4) is in progress: Track R found the cause, the live engine reads this device's own history, which holds no people, so that part is landing until the seed command has run on the live data) · **Page:** `docs/features/firm-admin.md` · **Targets:** G-Research, HRT
 
 ### What it does
 
@@ -28,7 +28,7 @@ Account menu, View as Admin; sidebar Firm, Roles, Onboarding; More, Firm rows (P
 
 ### Demo moment
 
-Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); show the provenance badge (its Admin wording is being changed by D57) and say the names are made up and the firm is made for this build.
+Only once the people exist on the engine you are showing (owner request 4.4 is landing; on a device with only its own history the screens hold no people). Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); show the provenance badge (its Admin wording is being changed by D57) and say the names are made up and the firm is made for this build.
 
 ### Evidence and its label
 
@@ -39,7 +39,7 @@ Switch to Admin: Firm lists three rows with n and interval; open Roles: experts 
 
 ### Honest limit
 
-Full per-user visibility for the admin was the owner's choice (D41); the lead recommended aggregates plus opt-in individuals. Per-user visibility is workplace monitoring: a real deployment needs a lawful basis (in the UK and EU, for example a documented legitimate-interest assessment), a clear notice to workers before any data is shared, and possibly consultation. This build supplies the worker's 'what your admin can see' page but not the lawful basis or the notice. It also changes the earlier promise that logs never leave the device: these summaries are the only thing that would, and only if a deployment chooses to.
+Full per-user visibility for the admin was the owner's choice (D41); the lead recommended aggregates plus opt-in individuals. Per-user visibility is workplace monitoring: a real deployment needs a lawful basis (in the UK and EU, for example a documented legitimate-interest assessment), a clear notice to workers before any data is shared, and possibly consultation. This build supplies the worker's 'what your admin can see' page but not the lawful basis or the notice. It also changes the earlier promise that logs never leave the device: these summaries are the only thing that would, and only if a deployment chooses to. The multi-person data is not on the live engine yet (owner request 4.4, in progress; the live engine reads this device's own history, which holds no people).
 
 ### Hackathon target
 

@@ -29,7 +29,7 @@ Rules for every beat: say 'synthetic' or 'simulated' where the data is; never sa
 
 ## Before anybody records
 
-From `docs/KNACK_DEMO.md` (on its branch, not yet on main), which holds the full shot list, spoken lines and fallbacks (scenes M1 to M16). The points that change what the camera sees:
+From `docs/KNACK_DEMO.md` (on main), which holds the full shot list, spoken lines and fallbacks (scenes M1 to M16). The points that change what the camera sees:
 
 - Launch Knack with `ALONGSIDE_OVERLAY_CAPTURABLE=1`. Without it the ring, the ghost cursor, the corner pill, the corner cards, the Cue panel and the Hey Knack cards are excluded from screen recordings (the app sets content protection on each of them), and the video shows a calm window and no coach.
 - The ring is not drawn while the Knack window is focused: keep the worker's window in front for the coach and Cue shots.
@@ -38,13 +38,13 @@ From `docs/KNACK_DEMO.md` (on its branch, not yet on main), which holds the full
 - The two Hey Knack consent cards and the approval in beat 10 can only be answered by a real mouse click. Do not approve the seeded CN-2041 on camera if it is wanted for the teaser.
 - At the time of writing a routine run in the agent's browser does not minimise the window by itself (press Command-M; gap G3 in `docs/KNACK_DEMO.md`). Approving a live agent item now submits the sandbox note (decision D61, which fixed gap G11); a seeded item such as CN-2041 only marks approved.
 - Navigation is being reorganised under the lead's views rule (`docs/knack-ux/views.md`): for a worker, Evidence, Forecasts, Models and cost and the other system screens are not shown, and 'Where time goes', 'Your hours' and 'How work connects' become sections of Growth. Film Evidence, Forecasts and the firm screens in the Admin view, and re-check every shot's path against the build you film.
-- The Admin view is meant to be filled with made-up people (owner request 4.4) and, under D57, the app will not say 'synthetic'. Say aloud that the firm and the people are made up.
+- The Admin view is meant to be filled with made-up people (owner request 4.4) and, under D57, the app will not say 'synthetic'. Say aloud that the firm and the people are made up. Request 4.4 is in progress (the live engine reads this device's own history, which holds no people), so shoot the multi-person Admin screens only after the seed command has run on the live data.
 - Recording is owner-initiated only (decision D54); the lead runs `scripts/record-demo.sh` when the owner says begin.
 
 ## Suggested cuts
 
 - Teaser beats: 1, 4, 6, 7, 10, 13, 14, 16, 18, 19, 20. Pick six to eight.
-- Demo beats: 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 20. The three-minute script in `docs/drafts/DEMO_SCRIPT.md` is older than the Knack interface; `docs/KNACK_DEMO.md` (landing, on its branch) replaces it.
+- Demo beats: 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 20. The three-minute script in `docs/drafts/DEMO_SCRIPT.md` is older than the Knack interface; `docs/KNACK_DEMO.md` (on main) replaces it.
 - Technical beats: 2, 3, 5, 8, 11, 12, 16, 17, 19.
 
 ## Optional beat if it lands

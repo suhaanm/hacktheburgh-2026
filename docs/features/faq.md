@@ -16,23 +16,23 @@ By the owner's decision (D52) listening for 'hey knack' is on by default, on the
 
 No frame is written to disk or logs. A frame is held in memory for one call, sent only if you chose Yes on the consent card, never from a denylisted app or over secure input, and never in an unattended run. Capture itself stores kinds of steps and times, not page text, URLs or field values (CLAUDE.md; docs/REQ5_PLAN.md; docs/SPIKES.md S3).
 
-**4. What can my employer see?**
+**4. What can my employer see, and can I delete what Knack holds?**
 
-In the demo the admin sees numbers and enums per person (counts, trends, intervals), never raw events, screenshots, text or memory contents, with no ranking and no single score, and groups under 5 are not compared. That was the owner's choice (D41); the lead recommended aggregates plus opt-in. A real deployment needs a lawful basis and notice to workers, which this build does not supply. You have a plain 'what your admin can see' page (docs/DECISIONS.md D41; docs/INSIGHTS_DESIGN.md).
-
-**5. Can I delete what Knack holds about me?**
-
-Yes. Your data lists what Knack remembers, measures and has sent; delete is three clicks at most, and 'Delete everything' asks for an exact confirmation. Deleting a ledger removes you from admin comparisons at once in our tests on synthetic firms (docs/KNACK_UX.md J5; evals/insights/results/heldout.json).
+In the demo the admin sees numbers and enums per person (counts, trends, intervals), never raw events, screenshots, text or memory contents, with no ranking and no single score, and groups under 5 are not compared. That was the owner's choice (D41); the lead recommended aggregates plus opt-in. A real deployment needs a lawful basis and notice to workers, which this build does not supply. You have a plain 'what your admin can see' page. You can delete what Knack holds: Your data lists what it remembers, measures and has sent, delete is three clicks at most, and 'Delete everything' asks for an exact confirmation; deleting a ledger removes you from admin comparisons at once in our tests on synthetic firms (docs/DECISIONS.md D41; docs/INSIGHTS_DESIGN.md; docs/KNACK_UX.md J5; evals/insights/results/heldout.json).
 
 ## Safety
 
-**6. Can the agent be tricked by a web page?**
+**5. Can the agent be tricked by a web page?**
 
 It is designed so a page cannot steer it: page text is data, a quarantined reader returns only checked fields, irreversible actions need your real click, and an injection detector pauses the run. A scripted red team of 42 attacks got through 0.0% [0.0, 8.4] with every layer on and 100.0% with all off. With a real model the intervals overlap (0 of 126 against 5 of 126), so that run shows what the layers cost, not that they prevent attacks. We wrote both the attacks and the defences (evals/report.md, red-team sections).
 
-**7. Can it click on my real desktop?**
+**6. Can it click on my real desktop?**
 
 Not yet in practice. One supervised click and one typed line passed on TextEdit; the agent's own actuator then failed its first supervised check by clicking another app's window; the guards were rebuilt and reviewed against fake desktops. The arm switch is on by default but inert: a real action needs the owner's one-time token, a countdown and the owner present, and the reviewer's advice is no-go beyond the first rung until it is reported (docs/SPIKES.md S2; docs/DECISIONS.md D50; docs/MVP_STATUS.md).
+
+**7. Does Knack run model-written code?**
+
+Yes, on the open-ended task path, with the worker's per-task consent, and never in routines. Routines are a JSON step language run by a small interpreter, and generated code is not executed there. A typed or spoken task that is code, data or file work can start the owner's own Claude command as a monitored background agent, which writes and runs code on the Mac. That happens only after a consent card that says in plain words what the agent can do, answered by a real click; the child gets an environment allow-list (no Knack keys) and a time cap, Stop and the kill file end it, ledger rows hold metadata only, and an unattended run never gets 'allow everything'. The deny rules for Knack's own files are defence in depth, not a sandbox, and this path is landing: tested with a fake command and one real one-turn check, not run on a real task (docs/IMPLEMENTATION_SPEC.md section 6.5 as amended; docs/DECISIONS.md D63; docs/TASKS.md on the Tasks branch).
 
 **8. How do I stop it?**
 

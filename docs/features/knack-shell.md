@@ -47,7 +47,7 @@ Not yet seen by the owner on a real desktop with real windows behind it; the cor
 
 ## First run: role, consent and a first look
 
-**Status:** built (the spec is three clicks; decision D58 (00:45 UTC) adds a permissions step and a Try it step, still landing) · **Page:** `docs/features/knack-shell.md` · **Targets:** G-Research
+**Status:** built (the spec is three clicks and the dashboard's first-run model on main still has three screens (role, capture, ready); decision D58 (00:45 UTC) adds a permissions step and a Try it step: their specification (docs/knack-ux/capabilities-and-permissions.md) and the Hey Knack side (first-run context and the first welcome line, apps/desktop/src/main/wake) are on main since 01:00 UTC, the screens are not, so those steps are landing) · **Page:** `docs/features/knack-shell.md` · **Targets:** G-Research
 
 ### What it does
 

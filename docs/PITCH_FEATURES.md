@@ -1,6 +1,6 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 01:17 UTC, checked against main at 049a7cb. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 01:29 UTC, checked against main at 97b633f. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
 This is the master document. It lists 66 entries (62 features and 4 write-ups of results that did not hold up) on 35 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
@@ -27,7 +27,7 @@ Then: what exists elsewhere, numbers you may quote, things we do not claim, what
 
 ## The product in one paragraph
 
-Knack watches how people do the same work and shows where a novice loses time and accuracy against an expert, in seconds and in wrong answers, with controls so a gap is not an artefact. It coaches on the real screen with help that is rare and fades as a skill is mastered, steps in with one question when someone is stuck, and lets an agent take repetitive work only when the worker agrees, one routine at a time, behind eight code-enforced layers and a Stop button that never waits for a model. A memory file the worker owns, readable and editable, adapts it to them. It runs as one calm app: a window, a menu-bar item and a small corner pill. It covers several jobs through role packs (one deep, a UK benefits processor; two thin, a data analyst and a programmer). Every number carries its n, split, interval and origin. Almost all of them are synthetic or simulated, the live study with four teammates has not been run, and the product says what did not hold up.
+Knack watches how people do the same work and shows where a novice loses time and accuracy against an expert, in seconds and in wrong answers, with controls so a gap is not an artefact. It coaches on the real screen with help that is rare and fades as a skill is mastered, steps in with one question when someone is stuck, and lets an agent take repetitive work only when the worker agrees, one routine at a time, behind eight code-enforced layers and a Stop button that never waits for a model. A memory file the worker owns, readable and editable, adapts it to them. It runs as one calm app: a window, a menu-bar item and a small corner pill. It covers several jobs through role packs (one deep, a UK benefits processor; a data analyst and a programmer, both at standard depth). Every number carries its n, split, interval and origin. Almost all of them are synthetic or simulated, the live study with four teammates has not been run, and the product says what did not hold up.
 
 ## The loop in one line
 
@@ -1007,35 +1007,37 @@ Measured on a laptop other processes were also using, with fake desktops for the
 
 ### Open-ended tasks, skills in context and Claude background agents
 
-**Status:** landing (owner decision D63 (01:05 UTC); a vertical slice tested with a fake claude is on the Tasks branch (worktree-agent-a40520cb1ac55fcdc, Track T); docs/TASKS.md has not been seen; nothing run with the real command; not on main) · **Page:** `docs/features/open-ended-tasks.md` · **Targets:** Wordsmith
+**Status:** landing (owner decision D63 (01:05 UTC); code, 119 tests and docs/TASKS.md are on the Tasks branch (worktree-agent-a40520cb1ac55fcdc, Track T, commit 6c8b5b5 at 01:20 UTC); not on main; one real one-turn run of the owner's claude command was made once with the owner's approval to check the flags, and no real task has been run) · **Page:** `docs/features/open-ended-tasks.md` · **Targets:** Wordsmith
 
 #### What it does
 
-The worker types or says any task (a task box on Home, and 'Hey Knack, do ...'). Knack routes it with code to one of four routes: answer inline, work in the agent's own browser window, show how on the real screen, or hand code, data and file work to a Claude background agent. Every route except 'answer' waits for the worker's click. Skills, including the owner's existing ones, load into context, and background agents show as small pills at the top right.
+The worker types or says any task; there is no preset list of jobs. Knack routes it with code to one of four routes: answer inline, work in the agent's own browser window, show how on the real screen, or hand code, data and file work to a Claude background agent. Every route except 'answer' waits for the worker's click. Skills, including the owner's existing ones, load into context, and background agents show as small pills at the top right.
 
 #### How it works
 
-Routing is code: weighted keyword and shape rules score each route; a clear winner is the route; when they cannot separate, an optional fast-model call may propose one value from the closed list, and code accepts it only if it is 'answer' or the rules already found some evidence for it, so a model can break a tie but never introduce a risky route; otherwise Knack asks one question, as a card with a button per route. The desktop route never clicks from this service: it answers 'show instead'. A Claude background agent is the owner's own claude command started as a monitored child in its own process group, in a working folder, with an allow-listed environment (home, path, language, terminal, user, temp folder: Knack's keys and every other variable are never passed), a 30-minute wall-clock cap, a 10-minute idle cap and an output cap. Stream events become short progress lines (a tool name and a file's base name, never contents, commands or prompts). Stop, the kill file and the time cap end the whole process group. The final message is returned as untrusted text. Two permission scopes: files and commands (edits and a fixed tool list, any prompt denied so the child cannot hang), or 'everything' (the skip-permissions flag), used only when the worker picks that second option on the consent card for that task. One consent card per task says in plain words what the agent can do (read and change files, run commands, uses the owner's own Claude account, not Knack's models). Ledger rows are metadata only. An unattended run never gets 'allow everything', and real desktop clicks stay behind the supervised first-click test.
+Routing is code: weighted rules over the worker's words score each route; a clear winner (a score of 2 or more and one ahead) is the route and no model is called. A plain question with no evidence for an action route is answered. When the rules tie and an action route has some evidence, one closed-list proposal may be asked of the fast model, and code accepts it only if it is 'answer' or the words already supported that route, so a model can break a tie but never introduce a risky route (tested); otherwise Knack asks one question as a card with a button per route. The desktop route never clicks from typed text: it answers 'show instead'. A Claude background agent is the owner's own claude command started as a monitored child in its own process group, in a working folder (a named folder, or a new one under ~/Knack/work made only after the click), with an environment allow-list of six variables (home, path, language, terminal, user, temp folder: Knack's keys and every other variable are not passed) and a refusal of any permission prompt so the child cannot hang. Stream events become short progress lines (a tool name and a file's base name, never contents, commands or prompts), with a 'Still working' note after 30 seconds of silence. Caps: a wall-clock cap (30 minutes by default, 1 to 120 by setting or on the card), an idle cap of 10 minutes and an output cap of 20 MB. Stop, the kill file and the caps end the whole process group (a polite stop, a hard kill after 3 seconds, then a last sweep), so a shell command the agent started does not outlive the task. A crash becomes one plain reason, never raw error text. The final message is untrusted text: the row shows its first sentence cut to 140 characters plus Open folder or Open file; the full text is kept locally with mode 0600 and a model sees it only through the existing quarantined reader. The consent card says in plain words: 'Knack will start a Claude agent on this Mac. It can read and change files and run commands. Your Claude account is used.' It names the working folder, a pinned hash of the exact command and the time cap; buttons are Allow for this task and Not now; behind 'More' is Allow everything for this task (the skip-permissions flag), sent only by that explicit choice, never by default, never from voice, never unattended. Before the start the command is rebuilt and compared with the pinned hash; any change refuses it. The consent route needs the worker's approval actor and the per-boot token, which a page, a model, the voice actor and the agent actor cannot supply. Ledger rows are metadata only (a start row with scope, skill count and prompt size; a stop row with reason, seconds and output size); if a row cannot be written nothing starts. A routine may start a task unattended only with its own consent record that allows it (rung A2 or A3, not revoked), and then only with the narrower scope. At most 3 tasks run at once and 20 wait for a click. Skills are read from the front matter of skill files in the owner's Claude folders and in ~/Knack/skills, chosen by a word-matching score in code; for non-agent routes the top two are added as untrusted guidance that can never grant a permission, change a gate or add a tool.
 
 **What is different.** Routing is code with a closed list of routes (a model may break a tie but never add a risky route), every non-answer route waits for one consent card that says in plain words what the agent can do, and the agent is a monitored child with caps and a kill path.
 
 #### Where to see it
 
-Home (the task box and a short list of background tasks) and the voice tool in Hey Knack; pills at the top right while an agent works, with Knack's own attention (approvals, voice, Stop) staying in the bottom-right column. Not verified on main.
+Home (a task box and a short list of background tasks) and the voice tool in Hey Knack ('Hey Knack, do ...'); small pills at the top right while an agent works, with Knack's own attention (approvals, voice, Stop) staying in the bottom-right column. The task box is Track B's and the pills Track A's (docs/OWNER_REQUESTS.md 4.18 and 4.21); none of it is on main. The service and its API (Tasks API in docs/API_CONTRACT.md on the Tasks branch) are on the branch.
 
 #### Demo moment
 
-Not available yet. When it lands and the lead has seen it: type 'summarise this CSV'; the consent card names what the agent can do; click once; a pill shows progress; the result arrives as text the worker reads. Do not film until then.
+Not available yet. When it lands and the lead has seen it: type 'analyse sales.csv and plot the monthly totals'; the consent card names what the agent can do; click Allow for this task; a pill shows progress; the result arrives as one sentence with Open file. Say that a typed 'click Save in Excel' is answered with steps, not a click. Do not film until then.
 
 #### Evidence and its label
 
 | What | Label | Source |
 |---|---|---|
-| The routing, the child process handling, the manager and the routes are covered by tests that use a fake claude command; nothing was run against the real command | offline tests with a fake command; not a real run | `services/agent/tests/tasks/ (branch worktree-agent-a40520cb1ac55fcdc)` |
+| 119 tests cover the routing, the child process handling (fake commands that succeed, crash, report a sign-in error or a usage limit, hang, ignore the stop signal, flood output, stay quiet, or start grandchild processes), the manager and the routes; every one uses a fake claude and a fake model | offline tests with fakes; not a real task | `docs/TASKS.md (branch worktree-agent-a40520cb1ac55fcdc); services/agent/tests/tasks/ (branch worktree-agent-a40520cb1ac55fcdc)` |
+| One real run of the owner's claude command, once, with the owner's approval: the flags were accepted by version 2.1.319, the expected event types were seen, exit code 0 in 3.1 seconds, about US$0.063 reported by the command itself; the flags for allow-everything, disabling slash commands and the skill deny rule were not exercised, and the enforcement of the deny rules was not tested | one real one-turn run, owner present; not a task and not a result | `docs/TASKS.md (branch worktree-agent-a40520cb1ac55fcdc)` |
+| The browser route is tested on a real headless Chromium with a scripted model; no real computer-use model was called; a finished free-text web task reads 'Reported, not checked' because code has no ground truth to verify it | offline tests; not a real run | `docs/TASKS.md (branch worktree-agent-a40520cb1ac55fcdc)` |
 
 #### Honest limit
 
-Full computer access is the owner's choice (D63) and the permission deny rules for Knack's own protected files are defence in depth, not a sandbox: a shell command can reach anything the owner's account can. This sits against the routines layer's rule that automations are a JSON step language and model-written code is never executed; the two are different layers and D63 governs the new one, but a judge will ask. Claude CLI usage is billed to the owner's own Claude account, outside the US$200 Gemini cap. Nothing here is verified on main.
+Full computer access is the owner's choice (D63). The deny rules for Knack's own protected files are defence in depth, not a sandbox: a shell command can reach anything the owner's account can, and their enforcement was not tested. Desktop clicks are not wired to typed tasks: the desktop route always answers 'show instead', and real clicks stay behind the supervised first-click test. The owner's own Claude hooks run inside the child, as they do in a terminal. Claude command usage is billed to the owner's own Claude account, outside the US$200 Gemini cap; the time cap and the cost the command reports are the only brakes besides Stop. A task running when the service restarts becomes 'failed' with a plain reason. Nothing here is verified on main.
 
 #### Hackathon target
 
@@ -1661,7 +1663,7 @@ Targets were fixed before the held-out run and several recall targets were misse
 
 ### Admin views: Firm, Roles, Onboarding
 
-**Status:** built (UI merged to main; the firm is synthetic) · **Page:** `docs/features/firm-admin.md` · **Targets:** G-Research, HRT
+**Status:** built (UI merged to main; the firm is synthetic; filling it with made-up people for several users on the live engine (owner request 4.4) is in progress: Track R found the cause, the live engine reads this device's own history, which holds no people, so that part is landing until the seed command has run on the live data) · **Page:** `docs/features/firm-admin.md` · **Targets:** G-Research, HRT
 
 #### What it does
 
@@ -1679,7 +1681,7 @@ Account menu, View as Admin; sidebar Firm, Roles, Onboarding; More, Firm rows (P
 
 #### Demo moment
 
-Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); show the provenance badge (its Admin wording is being changed by D57) and say the names are made up and the firm is made for this build.
+Only once the people exist on the engine you are showing (owner request 4.4 is landing; on a device with only its own history the screens hold no people). Switch to Admin: Firm lists three rows with n and interval; open Roles: experts and juniors on a shared 0 to 100% scale, one row per role (the seeded firm shows, for example, benefits-processor experts at 94% and juniors at 63%, n = 7 and 22, synthetic); open Onboarding ('Half reach the target by step 82'); show the provenance badge (its Admin wording is being changed by D57) and say the names are made up and the firm is made for this build.
 
 #### Evidence and its label
 
@@ -1690,7 +1692,7 @@ Switch to Admin: Firm lists three rows with n and interval; open Roles: experts 
 
 #### Honest limit
 
-Full per-user visibility for the admin was the owner's choice (D41); the lead recommended aggregates plus opt-in individuals. Per-user visibility is workplace monitoring: a real deployment needs a lawful basis (in the UK and EU, for example a documented legitimate-interest assessment), a clear notice to workers before any data is shared, and possibly consultation. This build supplies the worker's 'what your admin can see' page but not the lawful basis or the notice. It also changes the earlier promise that logs never leave the device: these summaries are the only thing that would, and only if a deployment chooses to.
+Full per-user visibility for the admin was the owner's choice (D41); the lead recommended aggregates plus opt-in individuals. Per-user visibility is workplace monitoring: a real deployment needs a lawful basis (in the UK and EU, for example a documented legitimate-interest assessment), a clear notice to workers before any data is shared, and possibly consultation. This build supplies the worker's 'what your admin can see' page but not the lawful basis or the notice. It also changes the earlier promise that logs never leave the device: these summaries are the only thing that would, and only if a deployment chooses to. The multi-person data is not on the live engine yet (owner request 4.4, in progress; the live engine reads this device's own history, which holds no people).
 
 #### Hackathon target
 
@@ -1764,7 +1766,7 @@ Open Growth. On the seeded example learner (90 steps of one simulated improving 
 | What | Label | Source |
 |---|---|---|
 | The composite overstates mastery for learners who do not improve and rises 10 points or more in about a third of them; independence and the trend are the evidence, and the trend has low power | synthetic, 240 simulated learners with planted curves | `evals/report.md (Limitations register, cue-score-composite, and Cue analysis)` |
-| The seeded demo learner is 90 occurrences of one simulated improving learner (labelled synthetic_learner); unaided steps rise from 1 of 5 at the baseline to 75% at the latest point, and the engine's own title still says it cannot tell yet | simulated learner, not people; a demo seed, not a result | `docs/KNACK_DEMO.md (M9; branch, landing)` |
+| The seeded demo learner is 90 occurrences of one simulated improving learner (labelled synthetic_learner); unaided steps rise from 1 of 5 at the baseline to 75% at the latest point, and the engine's own title still says it cannot tell yet | simulated learner, not people; a demo seed, not a result | `docs/KNACK_DEMO.md (M9)` |
 | A planted independence rise was selected as a pointer in 47 of 100 worlds (target 0.8: missed); false celebration when errors rise 14 of 100 (target 0) | synthetic, 100 planted worlds per effect | `evals/insights/results/heldout.json` |
 
 #### Honest limit
@@ -1897,7 +1899,7 @@ Not yet seen by the owner on a real desktop with real windows behind it; the cor
 
 ### First run: role, consent and a first look
 
-**Status:** built (the spec is three clicks; decision D58 (00:45 UTC) adds a permissions step and a Try it step, still landing) · **Page:** `docs/features/knack-shell.md` · **Targets:** G-Research
+**Status:** built (the spec is three clicks and the dashboard's first-run model on main still has three screens (role, capture, ready); decision D58 (00:45 UTC) adds a permissions step and a Try it step: their specification (docs/knack-ux/capabilities-and-permissions.md) and the Hey Knack side (first-run context and the first welcome line, apps/desktop/src/main/wake) are on main since 01:00 UTC, the screens are not, so those steps are landing) · **Page:** `docs/features/knack-shell.md` · **Targets:** G-Research
 
 #### What it does
 
@@ -2394,7 +2396,7 @@ These are all simulated or sandbox results; none is about real workers.
 
 ### Prospective prediction ledger and forward scoring
 
-**Status:** landing (decision D59; plan registered at 00:35 UTC before any held-out run; code, held-out results and docs/HRT_BRIEF.md are on branch worktree-agent-a02c9cf8855c9f4ff, not on main; the running product does not write to the ledger yet) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
+**Status:** landing (decision D59; plan registered at 00:35 UTC before any held-out run; code, held-out results and docs/HRT_BRIEF.md are on branch worktree-agent-a02c9cf8855c9f4ff (latest commit 7517c33, 01:19 UTC), not on main; an engine route for live ledger entries exists behind UNDERSTUDY_X_HRT but nothing in the running product writes a forecast to it yet) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
 
 #### What it does
 
@@ -2402,13 +2404,13 @@ Every prediction is written to an append-only record before its outcome exists, 
 
 #### How it works
 
-The ledger is a hash chain: each entry carries the hash of the one before, and a verify step recomputes it. A prediction records when it was made, the probability, the name and version of the model and of every baseline that predicted the same thing at that moment, and a horizon. An outcome can be added once, and only after the horizon. A baseline that learns online may use only outcomes already resolved by then. Scoring reads only resolved predictions, reports how many are pending, and refuses to score below 200 resolved predictions or when a stream has a gap. Nothing in the record holds page text, URLs, names or field values. Scores are log loss, Brier, expected calibration error, the reliability table and the calibration slope and intercept; intervals are 95% cluster bootstraps over people, paired across models. The deployed stuck model is fitted once on a deployment history and frozen. The held-out run happened once, through a command that refuses without a freeze, with a changed code hash, or a second time.
+The ledger is a hash chain: each entry carries the hash of the one before, and a verify step recomputes it. A prediction records when it was made, the probability, the name and version of the model and of every baseline that predicted the same thing at that moment, and a horizon. An outcome can be added once, and only after the horizon. A baseline that learns online may use only outcomes already resolved by then. Scoring reads only resolved predictions, reports how many are pending, and refuses to score below 200 resolved predictions or when a stream has a gap. Nothing in the record holds page text, URLs, names or field values. Scores are log loss, Brier, expected calibration error, the reliability table and the calibration slope and intercept; intervals are 95% cluster bootstraps over people, paired across models. The deployed stuck model is fitted once on a deployment history and frozen. The held-out run happened once, through a command that refuses without a freeze, with a changed code hash, a second time, or without UNDERSTUDY_HRT_HELDOUT=1.
 
 **What is different.** Predictions are written to a hash-chained record before their outcomes exist and scored only from it, forward in time, instead of by leave-one-person-out on a pooled table.
 
 #### Where to see it
 
-Not on a screen on main. Code is under understudy_engine/hrt on the HRT branch (the dashboard pages 'Prospective predictions' and 'Decisions scoreboard' are named in the brief); the plan is evals/hrt/PLAN.md and the judge-facing brief is docs/HRT_BRIEF.md.
+Not on main. On the HRT branch: Admin view, More, Evidence, two blocks, 'Does it hold out of time?' and 'Does the rule beat the naive one?' (each says it is pending until evals/report.json carries the hrt_ledger and hrt_decisions sections); code under understudy_engine/hrt; the plan is evals/hrt/PLAN.md; the judge-facing brief is docs/HRT_BRIEF.md (generated by make hrt-brief); the claim rows are docs/drafts/CLAIMS_HRT.md (C90 to C99); a 30-second cut with shots is docs/drafts/HRT_30S.md.
 
 #### Demo moment
 
@@ -2427,7 +2429,7 @@ Read the registered claims as run: the model beats both plain baselines in the w
 
 #### Honest limit
 
-Everything is generated by us; a held-out replicate catches overfitting to one noise draw, never 'the model learned our generators'. The first world draws new people of the same four persona types the model was fitted on. The ledger is built and tested, but the running product does not call it, so no live prediction has been recorded and a real prospective result does not exist. Nothing here is about real people, agents or reviewers, and the live study (n = 4) has not been run. In the error-risk world after a rule change the model stays better than the plain predictor while its calibration intercept moves, nothing recalibrates it, and the guard rightly stays silent: a named gap.
+Everything is generated by us; a held-out replicate catches overfitting to one noise draw, never 'the model learned our generators'. The first world draws new people of the same four persona types the model was fitted on. The ledger is built and tested, and an engine route exists behind UNDERSTUDY_X_HRT (part of UNDERSTUDY_X), but nothing in the running product writes a forecast to it, so no live prediction has been recorded and a real prospective result does not exist. Nothing here is about real people, agents or reviewers, and the live study (n = 4) has not been run. In the error-risk world after a rule change the model stays better than the plain predictor while its calibration intercept moves, nothing recalibrates it, and the guard rightly stays silent: a named gap.
 
 #### Hackathon target
 
@@ -2449,7 +2451,7 @@ For each episode (each case, for error-risk routing) the bounded difference betw
 
 #### Where to see it
 
-Not on a screen on main; the brief names a page 'Prospective predictions'.
+Not on main. On the HRT branch the Evidence page (Admin view, More, Evidence) carries it in the block 'Does it hold out of time?', in the 'worlds, one row each' table under the Guard flags column.
 
 #### Demo moment
 
@@ -2466,7 +2468,7 @@ One sentence each: in the first world the guard never flagged (0 of 8), so it co
 
 #### Honest limit
 
-The false-flag bound needs each episode's loss difference to have conditional mean at most zero given the past; episodes of one person are not independent, so it is a design target checked on eight deployments, not a proof. Eight deployments per world give wide intervals. After a flag there is no return rule. The guard catches 'the model is no better than a plain predictor', not 'the model is still better but miscalibrated'.
+The false-flag bound needs each episode's loss difference to have conditional mean at most zero given the past; episodes of one person are not independent, so it is a design target checked on eight deployments, not a proof. Eight deployments per world give wide intervals. After a flag there is no return rule. The guard catches 'the model is no better than a plain predictor', not 'the model is still better but miscalibrated'. A follow-up that recalibrates the model online from resolved outcomes is pre-registered (evals/hrt/PLAN_RECAL.md, written about 01:25 UTC, after the held-out result was seen, which the plan says; four claims R1 to R4 fixed in advance) and has not been run, so it is not a result.
 
 #### Hackathon target
 
@@ -2488,7 +2490,7 @@ One row per rule: when to build an automation (ski rental with a learned trust p
 
 #### Where to see it
 
-Not on a screen on main; the result is a report section and docs/HRT_BRIEF.md (section 4).
+Not on main. On the HRT branch the Evidence page has the block 'Does the rule beat the naive one?' (four figures, tables behind disclosures); the result is also a report section and docs/HRT_BRIEF.md (section 4).
 
 #### Demo moment
 
@@ -2520,11 +2522,11 @@ The simulators, the costs, the loss ratio and the oracles are ours; four of four
 
 #### What it does
 
-A role pack turns raw events into steps, says what an expert does, which actions need a click, what tone to use, which routines to look for and what to teach in what order. The benefits processor pack is deep; the data analyst and programmer packs are thin starting points.
+A role pack turns raw events into steps, says what an expert does, which actions need a click, what tone to use, which routines to look for and what to teach in what order. The benefits processor pack is deep; the data analyst and programmer packs started as thin starting points and were raised to standard depth (the next two entries).
 
 #### How it works
 
-A pack is a validated folder (id, onboarding questions for tools, risky actions, tone, pace and hours; extra step types and their mapping from events; expert steps with allowed reorderings; risk classes with label patterns; routine templates; a curriculum; persona parameters; priors for pooling). The benefits pack also has an oracle, task configuration and sandbox sites. The thin packs fill every key but the oracle, tasks and the full expert policy, and differ visibly in questions, steps, risk classes and tone: the programmer's risky actions are force-push, deleting a branch, merging to main and publishing; the benefits processor's are submitting a case, issuing a payment and sending a letter. A loader checks packs against a JSON Schema and the pack format reserves a slot for plugin references.
+A pack is a validated folder (id, onboarding questions for tools, risky actions, tone, pace and hours; extra step types and their mapping from events; expert steps with allowed reorderings; risk classes with label patterns; routine templates; a curriculum; persona parameters; priors for pooling). The benefits pack also has an oracle, task configuration and sandbox sites. The data analyst and programmer packs fill every key but the oracle, tasks and the full expert policy of the benefits pack, and differ visibly in questions, steps, risk classes and tone: the programmer's risky actions are force-push, deleting a branch, merging to main and publishing; the benefits processor's are submitting a case, issuing a payment and sending a letter. A loader checks packs against a JSON Schema and the pack format reserves a slot for plugin references.
 
 **What is different.** A role is a validated folder of data (steps, expert policy, risk classes, tone, routines, curriculum), so adding a job is adding data, and the thin packs differ visibly in their risky actions.
 
@@ -2546,7 +2548,7 @@ At first run, choose each of the three cards; show how the four lines on the 'wh
 
 #### Honest limit
 
-The thin packs are starting points and have not been validated on real work. Genome recovery was not evaluated for them because the named-deficit labels belong to the benefits pack. Even the deep pack has no real benefits-processor data behind it. The two thin packs are being raised to standard depth (next two entries, landing).
+The data analyst and programmer packs are written from the job and have not been validated on real work. Genome recovery was not evaluated for them because the named-deficit labels belong to the benefits pack. Even the deep pack has no real benefits-processor data behind it. Both were raised to standard depth, which is on main since 01:15 UTC (next two entries).
 
 #### Hackathon target
 
@@ -2555,7 +2557,7 @@ The thin packs are starting points and have not been validated on real work. Gen
 
 ### Programmer pack at standard depth
 
-**Status:** landing (ROLE-DEPTH (Track F); docs/roles/programmer.md is on branch worktree-agent-aef8c35334df68596, not on main; additive only (D55, D56 item 6)) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
+**Status:** built (ROLE-DEPTH (Track F), merged to main at 01:15 UTC (08b9908); docs/roles/programmer.md and packages/packs/programmer are on main; no study and no real traces; not seen end to end by the lead; additive only (D55, D56 item 6)) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
 
 #### What it does
 
@@ -2569,7 +2571,7 @@ Each skill has a hint at L1 (a question), L2 (a few words) and L3 (a nudge); L4 
 
 #### Where to see it
 
-Not on main yet. First run (the Programmer role card), Routines (the repeat list), Git habits and the coach in the sandbox; the pack's own page is docs/roles/programmer.md.
+First run (the Programmer role card), Routines (the repeat list), Git habits and the coach in the sandbox; the pack's own page is docs/roles/programmer.md.
 
 #### Demo moment
 
@@ -2579,7 +2581,7 @@ The edge you did not try (sandbox task 'Wrong number of pages'): the fix passes 
 
 | What | Label | Source |
 |---|---|---|
-| Only three skills have been run, in a sandbox with simulated participants; the twelve new step types, their hints, the new templates and follow-up mappings have no synthetic traces and no study, so screens show 'not enough data' for them, never a number | simulated participants (language model), not people; the rest not run | `docs/roles/programmer.md (branch worktree-agent-aef8c35334df68596)` |
+| Only three skills have been run, in a sandbox with simulated participants; the twelve new step types, their hints, the new templates and follow-up mappings have no synthetic traces and no study, so screens show 'not enough data' for them, never a number | simulated participants (language model), not people; the rest not run | `docs/roles/programmer.md` |
 
 #### Honest limit
 
@@ -2592,7 +2594,7 @@ Written from the job, not validated with people. The selectors for real tools (G
 
 ### Data analyst pack at standard depth
 
-**Status:** landing (ROLE-DEPTH (Track F); docs/roles/data-analyst.md is on branch worktree-agent-aef8c35334df68596, not on main; additive only (D55, D56 item 6)) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
+**Status:** built (ROLE-DEPTH (Track F), merged to main at 01:15 UTC (08b9908); docs/roles/data-analyst.md and packages/packs/data-analyst are on main; no study and no real traces; not seen end to end by the lead; additive only (D55, D56 item 6)) · **Page:** `docs/features/role-packs.md` · **Targets:** G-Research, Wordsmith
 
 #### What it does
 
@@ -2606,7 +2608,7 @@ Hints state the assumption and the check ('Is the key unique on both sides, and 
 
 #### Where to see it
 
-Not on main yet. First run (the Data analyst role card), Routines (the repeat list) and the coach in the sandbox; the pack's own page is docs/roles/data-analyst.md.
+First run (the Data analyst role card), Routines (the repeat list) and the coach in the sandbox; the pack's own page is docs/roles/data-analyst.md.
 
 #### Demo moment
 
@@ -2616,7 +2618,7 @@ The total that does not match (sandbox task 'Net sales against the ledger'): the
 
 | What | Label | Source |
 |---|---|---|
-| Only three skills have been run, in a sandbox with simulated participants; the eleven new step types, their hints, the new templates and follow-up mappings have no synthetic traces and no study, so screens show 'not enough data' for them | simulated participants (language model), not people; the rest not run | `docs/roles/data-analyst.md (branch worktree-agent-aef8c35334df68596)` |
+| Only three skills have been run, in a sandbox with simulated participants; the eleven new step types, their hints, the new templates and follow-up mappings have no synthetic traces and no study, so screens show 'not enough data' for them | simulated participants (language model), not people; the rest not run | `docs/roles/data-analyst.md` |
 
 #### Honest limit
 
@@ -2690,7 +2692,7 @@ Only with the n, the split, the interval and the origin printed beside them. Num
 - That the synthetic firm, the admin comparisons or any calendar or commit result describe real people or real workplaces.
 - That an admin view is lawful out of the box. A real deployment needs a lawful basis and notice to workers.
 - That Hey Knack, voice guidance or 'do it for me' have been run with a microphone or a real click. They are built and tested offline.
-- That Connections or the deeper roles work; they are landing and not verified.
+- That Connections work (landing, not verified), or that the deeper programmer and data analyst packs work for real people: they are on main, written from the job, with no study and no real traces.
 - That Cue makes people resume faster at the median; the simulated target was not met.
 - That the oracle is the law. It agrees with PolicyEngine UK within 1 pound on only 8 of 20 households.
 
@@ -2707,9 +2709,10 @@ Found while writing. Each row names both files; the third column says which one 
 | Simulated-study power at n = 16 | evals/report.md (Study power): false positives 4.9%; power 10.2%, 27.3%, 74.8% for small, medium, large | evals/study_sim/REPORT.md and the register entry sim-power: about 6% false positives and 12%, 29%, 76% | the Study power table |
 | Always-listening microphone | docs/DECISIONS.md D52 and docs/knack-ux/09-wake-voice.md (branch): 'hey knack' listening is on by default, on-device | docs/FLAGS.md and docs/FEATURE_CATALOGUE.md: hold to talk only, no always-listening microphone | D52 (later); the other two are stale |
 | Connection preset ids | docs/CONNECTIONS.md and packages/connections/presets/ on the CONNECTIONS branch: 13 presets, Linear listed as unverified and not shipped (hosted only), Jira shipped | docs/roles/programmer.md and docs/roles/data-analyst.md suggest the ids linear and sheets; docs/DECISIONS.md D55 names Linear | docs/CONNECTIONS.md |
-| Reader memo and meter manifest | docs/KNACK_DEMO.md section 6 (on its branch): both are built now; the documents lag the code | docs/CONTEXT_ENGINEERING.md: the reader memo is not built | docs/KNACK_DEMO.md (later); not verified in code by the author |
+| Reader memo and meter manifest | docs/KNACK_DEMO.md section 6: both are built now; the documents lag the code | docs/CONTEXT_ENGINEERING.md: the reader memo is not built | docs/KNACK_DEMO.md (later); not verified in code by the author |
 | Provenance wording on screen | docs/DECISIONS.md D57 (owner, 00:30 UTC): no 'synthetic' or 'simulated' word, badge or chip anywhere in the app; concrete wording instead | CLAUDE.md (Honesty: synthetic results carry a badge), docs/UI_DIRECTION.md and docs/KNACK_UX.md (an origin badge such as 'Synthetic firm' stays) | D57 for the app; this document, the README and the Devpost keep the labels, and a video should say it aloud |
-| Agent power and model-written code | docs/DECISIONS.md D63 (owner): Claude CLI background agents with full computer access for code and data work, behind one consent card per task | docs/IMPLEMENTATION_SPEC.md (6.5): automations are a JSON step language and model-written code is never executed; docs/MVP_STATUS.md and CLAUDE.md: everything on sandbox sites and synthetic data | D63 for the new tasks layer; the older lines describe the routines layer |
+| Agent power and model-written code | docs/DECISIONS.md D63 (owner): Claude CLI background agents with full computer access for code and data work, behind one consent card per task | docs/IMPLEMENTATION_SPEC.md (6.5) before the lead's amendment: 'Model-generated code is never executed'; CLAUDE.md (the owner's file, not edited): everything on sandbox sites and synthetic data | the lead amended docs/IMPLEMENTATION_SPEC.md (6.5, commit 2cc49ec, on main): the sentence is about compiled routine bundles and stays true for them; the task-agent path writes and runs code only after a per-task real-click consent card, with an environment allow-list, a time cap, Stop and the kill file, metadata-only ledger rows and no unattended 'allow everything'. Judge answer: yes, on the open-ended task path, with the worker's per-task consent, and never in routines |
+| Admin view with made-up people | docs/OWNER_REQUESTS.md (4.4): fill the Admin view with made-up data for several users, with no tag anywhere saying so; the lead (8 Nov, about 01:30 UTC): in progress, Track R found the live engine reads this device's own history, which holds no people | CLAUDE.md (Honesty: synthetic results carry a badge) and docs/DECISIONS.md D57 (no word or badge in the app, concrete provenance wording instead) | landing until the seed command has run on the live data; any video that shows the firm says aloud that the people are made up |
 | Whether a routine run minimises the window | docs/KNACK_DEMO.md (M7, gap G3): a run in the agent's browser shows the pill and does not move the window | docs/knack-ux/03-routines.md and docs/FIRST_LAUNCH.md (step 6): Run now minimises the window | docs/KNACK_DEMO.md, the later and tested reading |
 | Gemini numbers in the report | evals/modelbench/REPORT.md (18:10 UTC) and evals/report.json (modelbench section): the bake-off figures exist | docs/drafts/DEMO_SCRIPT.md and docs/KNACK_DEMO.md section 8: 'any Gemini speed or accuracy number (not in the report)' | quoted here with the label 'synthetic sandbox screenshots'; the shot-list rule is more cautious and the lead may keep it |
 | Rung definitions | evals/agentic/REAL_CLICKS.md: R2 a model proposes one step in TextEdit; R3 and R4 are attended sandbox rungs; unattended real-desktop runs are not on the ladder | docs/FLAGS.md and docs/DECISIONS.md D48: the reviewer's no-go for 'model-driven (R2) and unattended (R3, R4)' runs; docs/REQ7_PLAN.md: R2 a click and a typed field on a sandbox page, R3 a full household, R4 a long-horizon run | evals/agentic/REAL_CLICKS.md |
@@ -2725,15 +2728,14 @@ Found while writing. Each row names both files; the third column says which one 
 | Item | Document | State at the time of writing |
 |---|---|---|
 | Connections: curated MCP plugins and role presets (CONNECTIONS, Track E) | `docs/CONNECTIONS.md` | written, on branch worktree-agent-a2c1788e3e4c0c876 (00:38 UTC); engine, agent and dashboard sides built there; not on main; nothing real connected |
-| Deeper programmer and data-analyst roles (ROLE-DEPTH, Track F) | `docs/roles/programmer.md, docs/roles/data-analyst.md` | written, on branch worktree-agent-aef8c35334df68596; not on main |
-| Demo shot list and spoken lines (DEMO-DIRECTOR) | `docs/KNACK_DEMO.md` | not on main |
-| Demo shot list, spoken lines, the context audit and the headless checks (DEMO-DIRECTOR) | `docs/KNACK_DEMO.md, docs/knack-demo/context-audit.md` | written, on branch worktree-agent-ab26657c3d23ea392; not on main yet |
-| Prospective ledger, drift guard and decisions scoreboard; docs/HRT_BRIEF.md (HRT, D59) | `evals/hrt/PLAN.md, docs/HRT_BRIEF.md, evals/hrt/results/heldout_*.json` | plan, code, held-out results and the brief are on branch worktree-agent-a02c9cf8855c9f4ff; 8 of 10 registered claims passed; not on main; the running product does not write the ledger yet |
-| Open-ended tasks, skills and Claude background agents (Track T, D63) | `docs/TASKS.md` | a vertical slice tested with a fake claude is on branch worktree-agent-a40520cb1ac55fcdc; the document has not been seen; not on main |
+| Prospective ledger, drift guard, decisions scoreboard and the two Evidence blocks (HRT, D59) | `evals/hrt/PLAN.md, evals/hrt/PLAN_RECAL.md, docs/HRT_BRIEF.md, docs/drafts/CLAIMS_HRT.md, docs/drafts/HRT_30S.md, evals/hrt/results/heldout_*.json` | on branch worktree-agent-a02c9cf8855c9f4ff (latest commit 7517c33, 01:19 UTC); 8 of 10 registered claims passed; the recalibration follow-up is pre-registered and not run; not on main; the running product does not write the ledger yet |
+| Open-ended tasks, skills and Claude background agents (Track T, D63) | `docs/TASKS.md` | code, 119 tests (fake command, fake model) and the document are on branch worktree-agent-a40520cb1ac55fcdc (commit 6c8b5b5, 01:20 UTC); not on main; one real one-turn run of the owner's claude command with the owner's approval, no real task |
+| First-run permissions and Try it screens, task box and top-right pills in the dashboard (SHELL-WEB and the desktop tracks, D58, owner requests 4.18 and 4.21) | `docs/knack-ux/capabilities-and-permissions.md, apps/dashboard/src/screens/FirstRun/model.ts` | the specification is on main since 01:00 UTC; the first-run model on main still has three screens (role, capture, ready), so the permissions step, the Try it screen, the task box and the pills are not on main |
+| Admin view with made-up people for several users (owner request 4.4, Track R) | `docs/OWNER_REQUESTS.md (4.4)` | in progress; the live engine reads this device's own history, which holds no people; landing until the seed command has run on the live data |
 | Computer use on Gemini, development results (AGENTIC-3) | `evals/agentic/ITERATIONS_8.md` | on branch worktree-agent-acf889b730112335b; merges after its full suite is green (docs/FIRST_LAUNCH.md) |
 
 When one of these lands, update its page in `docs/features/` and the status in `docs/features/index.md`.
 
 ## Sources read
 
-`docs/FEATURE_CATALOGUE.md`, `README.md`, `docs/KNACK_UX.md`, `docs/knack-ux/*`, `docs/FLAGS.md`, `docs/DECISIONS.md` (D41 to D55), `docs/MVP_STATUS.md`, `docs/FIX_LEDGER.md`, `evals/report.md`, `evals/report.json`, `evals/report.facts.json`, `evals/realism/INTERPRETATION.md`, `evals/mlv2/PLAN.md` and `evals/mlv2/results/`, `evals/attention/report_held_out.json`, `evals/insights/results/heldout.json`, `evals/cue/held_out.json`, `evals/agentic/ITERATIONS.md`, `evals/study_sim/REPORT.md`, `evals/modelbench/REPORT.md`, `evals/cases/skip_consequences.json`, `docs/reference-notes/*.md`, `docs/REFERENCES.md`, `docs/KNACK_DEMO.md` and `docs/knack-ux/09-wake-voice.md` (from their branches), the CONNECTIONS branch's engine code and presets, `docs/INSIGHTS_DESIGN.md`, `docs/ATTENTION_DESIGN.md`, `docs/CONTEXT_ENGINEERING.md`, `docs/REQ5_PLAN.md`, `docs/REQ7_PLAN.md`, `docs/IMPLEMENTATION_SPEC.md`, `docs/SPIKES.md`, `docs/FIRST_LAUNCH.md`, `docs/drafts/*.md`, and a few code headers under `apps/desktop/src/main/wake/` and `apps/dashboard/src/components/home/navModel.ts`.
+`docs/FEATURE_CATALOGUE.md`, `README.md`, `docs/KNACK_UX.md`, `docs/knack-ux/*`, `docs/FLAGS.md`, `docs/DECISIONS.md` (D41 to D55), `docs/MVP_STATUS.md`, `docs/FIX_LEDGER.md`, `evals/report.md`, `evals/report.json`, `evals/report.facts.json`, `evals/realism/INTERPRETATION.md`, `evals/mlv2/PLAN.md` and `evals/mlv2/results/`, `evals/attention/report_held_out.json`, `evals/insights/results/heldout.json`, `evals/cue/held_out.json`, `evals/agentic/ITERATIONS.md`, `evals/study_sim/REPORT.md`, `evals/modelbench/REPORT.md`, `evals/cases/skip_consequences.json`, `docs/reference-notes/*.md`, `docs/REFERENCES.md`, `docs/KNACK_DEMO.md` and `docs/knack-ux/09-wake-voice.md`, the CONNECTIONS branch's engine code and presets, `docs/INSIGHTS_DESIGN.md`, `docs/ATTENTION_DESIGN.md`, `docs/CONTEXT_ENGINEERING.md`, `docs/REQ5_PLAN.md`, `docs/REQ7_PLAN.md`, `docs/IMPLEMENTATION_SPEC.md`, `docs/SPIKES.md`, `docs/FIRST_LAUNCH.md`, `docs/drafts/*.md`, and a few code headers under `apps/desktop/src/main/wake/` and `apps/dashboard/src/components/home/navModel.ts`.
