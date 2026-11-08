@@ -1,6 +1,6 @@
 # Knack: the features, for the pitch and the launch video
 
-Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sat 07 Nov 2026, 23:57 UTC. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
+Written for Hack the Burgh XIII (targets: HRT, G-Research, Wordsmith) and for the launch, demo and submission video. As of Sun 08 Nov 2026, 00:05 UTC. Product name: Knack (internal identifiers and some file names keep the old name, Understudy). Every claim comes from a source document in this repository, with the label that document gives it; the source path is next to every number. Nothing here was run by the author. Where a source is missing the entry says 'not verified'.
 
 This is the master document. It lists 61 entries (57 features and 4 write-ups of results that did not hold up) on 33 pages, grouped by capability. One page per feature (with a 30-second spoken script and slide bullets) is in `docs/features/`; the index with status is `docs/features/index.md`; the 20 video claims are in `docs/features/video-beats.md`; the 25 hardest judge questions are in `docs/features/faq.md`.
 
@@ -1274,39 +1274,39 @@ Press a prepared card in Needs you; the line says what it made and that nothing 
 
 ### Connections: curated MCP plugins with role presets
 
-**Status:** landing (owner decision D55; CONNECTIONS (Track E) is building it on its own branch; docs/CONNECTIONS.md has not landed) · **Page:** `docs/features/connections.md` · **Targets:** Wordsmith
+**Status:** landing (owner decision D55; the engine side is committed on the CONNECTIONS branch (worktree-agent-a2c1788e3e4c0c876); the agent side and docs/CONNECTIONS.md have not been seen on any branch) · **Page:** `docs/features/connections.md` · **Targets:** Wordsmith
 
 #### What it does
 
-A worker can connect a few tools Knack may read from. Presets come with the role: a Dev set, a Data set and a Benefits set. Everything starts off and read-only; the list is curated, with no arbitrary servers.
+A worker can connect a few tools Knack may read from, from a short curated list that depends on their role. Every connection starts off and read-only, one click turns it on, and one click forgets the token and stops it.
 
 #### How it works
 
-Knack uses the official MCP Python SDK (MIT) as the client and the repository's own plugin framework for sources; hosted aggregators are not used because the data would leave the device. Presets named by the owner: Dev (GitHub, Git, Linear or Jira, Slack, Sentry, Filesystem), Data (SQLite and Postgres, BigQuery, Google Sheets and Drive, Jupyter, Notion, Slack), Benefits (Outlook, Teams, SharePoint). Presets are offered inside the role card of first run, which adds one click (first run becomes four). The demo uses local stand-ins only: a local folder, a SQLite database with the synthetic dataset, and a fake GitHub and Slack we write. No real account is used.
+Each preset is a validated manifest (kind mcp) with two modes. Example uses a stand-in server of ours (a local folder, a SQLite file holding the synthetic dataset, a fake GitHub and a fake Slack, plus fixtures); Real names a verified publisher, package, pinned version, hosts and the credential names. Nothing is on until the worker confirms; there is no default, and no auto-connect in mock mode, tests, demos or first run. The consent is pinned to a hash of what would run (launcher, arguments, pinned version, hosts, credential names, or the stand-in script); if the manifest changes, the connection says it needs reconfirming and nothing starts until the worker confirms again. Our own table classes every known tool as read, write, send, destructive or execute and decides every call; a vendor's read-only switch is used as well where the server has one, and any write needs a click. A routine may use a connection unattended only if the worker opted that routine in for that connection, reads only. A token is entered by the worker once, goes to the macOS Keychain (through standard input, never an argument) or a mode-600 file, and is never in the repository, a log, a prompt, the dashboard or the ledger. The ledger rows hold counts only (calls, reads, changes asked, refused, bytes returned, tools used). There is no route that adds a server. Knack uses the official MCP Python SDK (MIT) as the client and does not use hosted aggregators, because data would leave the device.
 
 **What is different.** The list is curated and read-only by default, starts off, and avoids hosted aggregators so data does not leave the device.
 
 #### Where to see it
 
-Settings has a Connections panel; first run shows the presets under the role card (both are slots on main; the panel itself is landing).
+Settings has a Connections panel and first run has a presets slot under the role card (both are slots on main; the panel is landing). Presets by role, from the pack files on the branch: Programmer (GitHub, local Git, Jira, Slack, Sentry, filesystem); Data analyst (SQLite, Postgres, BigQuery, Google Workspace, Jupyter, Notion, Slack); Benefits processor (Outlook, Teams, SharePoint). Linear, named in D55, is not among the 13 preset files seen.
 
 #### Demo moment
 
-In first run choose Programmer; the Dev preset appears, everything off. Switch on the local stand-ins; show the read-only badge and that nothing was sent.
+In first run choose Programmer; the Dev preset appears with everything off. Connect the Example GitHub: it reads the stand-in only, the screen says read-only, and the record of what was read shows counts and no content. Revoke it.
 
 #### Evidence and its label
 
 | What | Label | Source |
 |---|---|---|
-| The plugin framework for sources is covered by 41 test functions (static count); the connections panel itself has no evidence yet | offline tests; not verified for the new panel | `evals/report.facts.json (tests.by_dir, engine/plugins)` |
+| The engine side is covered by 53 test functions on the branch (18 manifest, 14 routes, 21 state); nothing about the agent side or the panel is verified | offline tests, on a branch, not on main | `services/engine/tests/connections/ (branch worktree-agent-a2c1788e3e4c0c876)` |
 
 #### Honest limit
 
-Not on main. This entry is written from owner decision D55; check docs/CONNECTIONS.md when it lands. Real Outlook, Teams or SharePoint access has not been run and needs the owner's approval at run time (D26). Custom servers are out of scope by decision.
+Not on main, so not verified. Written from owner decision D55, the preset files and the engine code on the branch; check docs/CONNECTIONS.md when it lands. Real mode has not been exercised and no real account is used in the build or the demo; real Outlook, Teams or SharePoint access needs the owner's approval at run time (D26). Some real presets need Docker or npx. Custom servers are out of scope by decision.
 
 #### Hackathon target
 
-- **Wordsmith (most complicated end-to-end browser-use workflow)**: a workflow that crosses apps and servers, kept read-only and local by default
+- **Wordsmith (most complicated end-to-end browser-use workflow)**: a workflow that crosses apps and servers, kept read-only, consented and local by default
 
 ## 7. Voice and Hey Knack
 
@@ -2522,7 +2522,7 @@ Found while writing. Each row names both files; the third column says which one 
 
 | Item | Document | State at the time of writing |
 |---|---|---|
-| Connections: curated MCP plugins and role presets (CONNECTIONS, Track E) | `docs/CONNECTIONS.md` | built overnight per docs/FIRST_LAUNCH.md; not on main; the panel slots exist |
+| Connections: curated MCP plugins and role presets (CONNECTIONS, Track E) | `docs/CONNECTIONS.md` | built overnight per docs/FIRST_LAUNCH.md; the engine side is committed on branch worktree-agent-a2c1788e3e4c0c876 (00:03 UTC); not on main; the panel slots exist |
 | Deeper programmer and data-analyst roles (ROLE-DEPTH, Track F) | `docs/roles/*.md` | built overnight per docs/FIRST_LAUNCH.md; not on main |
 | Demo shot list and spoken lines (DEMO-DIRECTOR) | `docs/KNACK_DEMO.md` | not on main |
 | Computer use on Gemini, development results (AGENTIC-3) | `evals/agentic/ITERATIONS_8.md` | on branch worktree-agent-acf889b730112335b; merges after its full suite is green (docs/FIRST_LAUNCH.md) |
