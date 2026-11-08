@@ -1,5 +1,6 @@
 // Pure adapters and copy for the Growth screen ("Curtain"). No React, no fetch: everything the page says
 // is built here from the wire data, so the numbers in the sentences are always the data's numbers.
+import { workerText } from "../../lib/voice";
 import type { Direction, Interval, LedgerRow, OriginDetail, WireCurvePoint, WireGrowth, WireMedian, WireRecent, WireRetention, WireSkill } from "./wire";
 
 /** Spec constants the screen quotes. The engine decides the real thresholds; these only word the empty state. */
@@ -87,7 +88,7 @@ export function normalizeGrowth(raw: Partial<WireGrowth>): WireGrowth {
     },
     trend: {
       slope_per_10: raw.trend?.slope_per_10 ?? null, ci: raw.trend?.ci ?? null, direction: directionOf(raw.trend?.direction), blocks: raw.trend?.blocks ?? [],
-      needed_more: raw.trend?.needed_more ?? null, power_note: raw.trend?.power_note ?? null,
+      needed_more: raw.trend?.needed_more ?? null, power_note: raw.trend?.power_note ? workerText(raw.trend.power_note) : null,
     },
     curve: raw.curve ?? [],
     occurrences: occ,
@@ -378,7 +379,7 @@ export function compositeOf(w: WireGrowth): CompositeView | null {
     : "All four parts are in.";
   return {
     experimental: true,
-    caveat: s.composite_caveat || "Experimental. Read the trend and the independence interval instead.",
+    caveat: (s.composite_caveat ? workerText(s.composite_caveat) : "") || "Experimental. Read the trend and the independence interval instead.",
     value: s.composite, ci: s.composite_ci, partial: s.composite_partial, availableWeight: s.available_weight, parts, note,
   };
 }

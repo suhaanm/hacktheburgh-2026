@@ -1,3 +1,5 @@
+import type { Fallback } from "./fallback";
+
 // The worker's screens compare the worker with ONE experienced worker, unnamed, never with "the experts" as a group
 // (docs/knack-ux/views.md). The engine's own sentences and labels still say "the experts"; this turns them into the worker's words at render time.
 // Pure and idempotent: text that already says "an experienced worker" passes through unchanged.
@@ -18,8 +20,11 @@ const UNITS = "people|persons|learners|workers|users|experts|novices|personas|pa
 const COUNT = new RegExp(`\\b(?:n\\s*=\\s*)?\\d[\\d,]*\\s+(${UNITS})\\b`, "gi");
 
 /** A group's size is not for a worker's screen ("n = 24 people" says nothing they can use, and counts other people): the group stays, the number goes. */
+const OF_GROUP = new RegExp(`\\b(\\d[\\d,]*)\\s+of\\s+(\\d[\\d,]*)\\s+(?:${UNITS})\\b`, "gi");
+
 export function noCounts(text: string): string {
-  return text.replace(COUNT, (_m, unit: string) => (/^experts$/i.test(unit) ? "an experienced worker" : /^people$/i.test(unit) ? "a group of people" : `a group of ${unit.toLowerCase()}`));
+  // "2 of 10 learners" is how often a test picked a change up in a run of generated cases, not a count of anybody: it reads "2 in 10 cases"
+  return text.replace(OF_GROUP, (_m, a: string, b: string) => `${a} in ${b} cases`).replace(COUNT, (_m, unit: string) => (/^experts$/i.test(unit) ? "an experienced worker" : /^people$/i.test(unit) ? "a group of people" : `a group of ${unit.toLowerCase()}`));
 }
 
 /** What the engine's words become on a worker's screen: no group of experts, no count of other people. */
@@ -33,3 +38,13 @@ export const isCohortFact = (path: string): boolean => /(^|[._])cohort|^meta\.n$
 export const restsOnCohort = (uses: string[] | undefined): boolean => (uses ?? []).some(isCohortFact);
 /** A limit that speaks of the group's average or the cohort has nothing to qualify on a worker's screen. */
 export const aboutCohort = (text: string): boolean => /\bcohort\b|\baverage over (?:all|the)\b/i.test(text);
+
+/**
+ * Why a screen shows example data, in words a worker may read. The engine's own message can name other people ("no calendar for 'p_x'. Try one of: ...")
+ * or count them; when it does, the sentence is replaced by a plain one and the reason (kind, status, code) is kept.
+ */
+export function safeWhy(why: Fallback | null | undefined): Fallback | null {
+  if (!why) return null;
+  const leaks = /\bp_[a-z0-9_]*\d|\bp_(?:irregular|nightowl|ninetofive|shiftwkr)\b|Try one of|\b\d[\d,]*\s+(?:people|learners|users|workers|experts)\b/i.test(why.message);
+  return leaks ? { ...why, message: "Nothing has been recorded for you yet, so Knack shows example data." } : why;
+}
