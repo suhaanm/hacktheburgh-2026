@@ -5,28 +5,12 @@ import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { fakeApp } from "./lib/fake-app.mjs";
 
 const base = process.argv[2] ?? "http://127.0.0.1:5191";
 const out = process.argv[3] ?? join(dirname(fileURLToPath(import.meta.url)), "..", "qa", "knack");
 mkdirSync(out, { recursive: true });
 const SIZES = [["1440", 1440, 900], ["win", 1152, 735], ["m390", 390, 844]];
-
-const fakeApp = (perm) => {
-  const flag = () => { document.documentElement.dataset.knackShell = "mac-inset"; };
-  if (document.documentElement) flag(); else document.addEventListener("DOMContentLoaded", flag);
-  const wake = { switchOn: true, listening: true, line: "" };
-  const perms = { ...perm };
-  window.__rings = 0;
-  window.knackShell = {
-    platform: "darwin",
-    wake: { state: async () => ({ ...wake }), set: async (on) => { wake.switchOn = on; wake.listening = on; return { ...wake }; }, context: async () => true },
-    models: { get: async () => ({ useLiveModels: true, keyPresent: false, live: false, running: false }), setUseLiveModels: async () => ({ ok: true }) },
-    permissions: { state: async () => ({ ...perms }), request: async (k) => { perms[k] = "granted"; return "granted"; }, openSettings: () => undefined },
-    tryRing: async () => { window.__rings++; return { ok: true }; },
-  };
-  const aw = { available: true, consentText: "Knack may send a picture of your screen to a model when you seem stuck. Each picture is held in memory for one call and never stored. Only its size, a hash and the result are kept.", consentShort: "", agreed: false, enabled: false, trigger: false, periodic: false, strict: true, intervalSec: 30, dailyUsd: 0, callsToday: 0, lastSkip: null };
-  window.alongside = { awareness: { state: async () => ({ ...aw }), setConsent: async (c) => { aw.trigger = !!c.trigger; aw.agreed = !!c.trigger; return { ...aw }; } } };
-};
 
 const browser = await chromium.launch();
 for (const mode of ["browser", "app"]) for (const theme of ["light", "dark"]) for (const [tag, width, height] of SIZES) {
@@ -39,7 +23,33 @@ for (const mode of ["browser", "app"]) for (const theme of ["light", "dark"]) fo
   await page.goto(`${base}/#/first-run`); await page.waitForTimeout(900);
   await shot("1-role");
   await page.locator(".rolecard__btn").first().click(); await page.waitForTimeout(300);
+  // a role with connection chips opens them with a Continue button (D55)
+  const cont = page.getByRole("button", { name: "Continue" });
+  if (await cont.isVisible().catch(() => false)) { await shot("1b-chips"); await cont.click(); await page.waitForTimeout(300); }
   await shot("2-may");
+  // The consent screen against the first-run budget (words and controls above the fold, counted the way check-copy counts them).
+  if (tag !== "m390") {
+    const m = await page.evaluate((fold) => {
+      const wc = (s) => s.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
+      const main = document.querySelector("#main") ?? document.body;
+      let words = 0;
+      const tw = document.createTreeWalker(main, NodeFilter.SHOW_TEXT);
+      while (tw.nextNode()) {
+        const t = tw.currentNode, el = t.parentElement;
+        if (!el || !t.textContent.trim()) continue;
+        const r = document.createRange(); r.selectNodeContents(t);
+        const b = r.getBoundingClientRect();
+        if (b.width <= 1 || b.height <= 1 || b.top >= fold || b.bottom <= 0) continue;
+        words += wc(t.textContent);
+      }
+      const controls = [...main.querySelectorAll("button, a[href], input, select, textarea, summary, [role='button']")].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 2 && r.height > 2 && r.top < fold && r.bottom > 0; }).length;
+      return { words, controls };
+    }, height);
+    const budget = JSON.parse((await import("node:fs")).readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "qa", "knack", "budgets.json"), "utf8")).routes["first-run"];
+    const ok = m.words <= budget.wordsAbove && m.controls <= budget.controls;
+    console.log(`${ok ? "PASS" : "FAIL"}  consent screen (${mode}, ${theme}, ${tag}): ${m.words}/${budget.wordsAbove} words, ${m.controls}/${budget.controls} controls`);
+    if (!ok) process.exitCode = 1;
+  }
   // answer every card with a real click: Yes for capture, then (in the app) Yes for glances and voice
   await page.locator("[data-kind=capture]").getByRole("button", { name: /^Yes/ }).click();
   if (mode === "app") {

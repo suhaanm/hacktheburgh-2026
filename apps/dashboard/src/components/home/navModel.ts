@@ -54,6 +54,7 @@ export const NAV_ENTRIES: NavEntry[] = [
   { id: "evidence", label: "Evidence", hint: "For reviewers", group: "more", admin: true, also: "calibration limitations report eval" },
   { id: "agents", label: "Background runs", hint: "Helpers that work while someone does something else", group: "more", admin: true, also: "agents runs background" },
   // Not listed
+  { id: "today", label: "Coaching", hint: "The current task and the help level", group: "hidden", also: "live coach today task help level" },
   { id: "first-run", label: "Welcome", hint: "Set Knack up", group: "hidden", also: "first run welcome" },
   { id: "setup", label: "Set up again", hint: "Choose a role again", group: "hidden", also: "onboarding role set up" },
 ];
@@ -64,6 +65,8 @@ export const ADMIN_ONLY: Screen[] = NAV_ENTRIES.filter((e) => e.admin).map((e) =
 export const MORE_SCREENS: Screen[] = NAV_ENTRIES.filter((e) => e.group === "more").map((e) => e.id);
 /** Screens without a sidebar: the first run, and the set-up flow. */
 export const BARE_SCREENS: Screen[] = ["first-run"];
+/** Unlisted screens that sit under Home: no row in any menu, one way in (a quiet row on Home while a coach step is active), and a way back. */
+export const UNDER_HOME: Screen[] = ["today"];
 
 export const canView = (id: Screen | "unknown", view: ViewRole): boolean => id === "unknown" || view === "admin" || !ADMIN_ONLY.includes(id);
 

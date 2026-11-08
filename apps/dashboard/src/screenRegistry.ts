@@ -43,6 +43,8 @@ export const screens: Record<Screen, ReturnType<typeof lazy>> = {
   models: lazy(() => import("./screens/Models")),
   evidence: lazy(() => import("./screens/Evidence")),
   agents: lazy(() => import("./screens/Agents")),
+  // The live coach: unlisted. Home opens it from one quiet row while a coach step is active.
+  today: lazy(() => import("./screens/Today")),
   "first-run": lazy(() => import("./screens/FirstRun")),
   // "Set up again" (Settings) reruns first run, the same three screens, from the top.
   setup: lazy(() => import("./screens/FirstRun")),

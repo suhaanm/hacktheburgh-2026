@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { SCREENS } from "../../router";
 import { OLD_ROUTES, SETUP_PATH, hashOf, redirectFor } from "../../routeRedirects";
 import {
-  ADMIN_GATE, ADMIN_ONLY, BAR_MAX, DEFAULT_SCREEN, FIRM_TABS, GROWTH_SECTIONS, MORE_MAX, MORE_SCREENS, NAV_ENTRIES,
+  ADMIN_GATE, ADMIN_ONLY, BAR_MAX, UNDER_HOME, DEFAULT_SCREEN, FIRM_TABS, GROWTH_SECTIONS, MORE_MAX, MORE_SCREENS, NAV_ENTRIES,
   canView, clicksFromHome, compactFor, entriesFor, firmTabOf, growthPath, growthSectionOf, labelOf, landingFor, moreFor, sidebarFor,
 } from "./navModel";
 import { ADMIN_MARKER, VIEW_STORAGE_KEY, getViewRole, resetViewRole, setViewRole, VIEW_LABEL } from "./viewAs";
@@ -123,6 +123,21 @@ describe("the Admin view", () => {
   });
 });
 
+describe("the live coach page", () => {
+  it("is a screen with no row in the sidebar, the More sheet or the palette, and a way back to Home", () => {
+    expect((SCREENS as readonly string[]).includes("today")).toBe(true);
+    for (const view of ["worker", "admin"] as const) {
+      expect(entriesFor(view).map((e) => e.id), view).not.toContain("today");
+      expect(sidebarFor(view).main.map((e) => e.id), view).not.toContain("today");
+      expect(moreFor(view).map((r) => r.id), view).not.toContain("today");
+    }
+    expect(NAV_ENTRIES.find((e) => e.id === "today")?.group).toBe("hidden");
+    expect(canView("today", "worker")).toBe(true);
+    expect(UNDER_HOME).toEqual(["today"]);
+    expect(labelOf("today")).toBe("Coaching");
+  });
+});
+
 describe("Growth sections", () => {
   it("has five, in the order the views rule gives, each with an address and a safe default", () => {
     expect([...GROWTH_SECTIONS]).toEqual(["progress", "time", "steps", "map", "commits"]);
@@ -142,7 +157,7 @@ describe("old routes", () => {
       expect((SCREENS as readonly string[]).includes(landing), `${view}: ${old} lands on ${landing}`).toBe(true);
     }
     // Every old screen that is no longer a screen redirects (it does not just fall through to Home).
-    for (const gone of ["queue", "briefing", "repeats", "privacy", "memory", "notices", "predictions", "today", "week", "presence", "genome", "graph", "git"]) expect(redirectFor(`/${gone}`, q()), gone).not.toBeNull();
+    for (const gone of ["queue", "briefing", "repeats", "privacy", "memory", "notices", "predictions", "week", "presence", "genome", "graph", "git"]) expect(redirectFor(`/${gone}`, q()), gone).not.toBeNull();
   });
   it("lands the common deep links where the owner's scripts expect", () => {
     expect(redirectFor("/queue", q())?.path).toBe("/needs-you");
@@ -153,8 +168,10 @@ describe("old routes", () => {
     expect(hashOf(redirectFor("/notices", q())!)).toBe("/home?settings=interruptions");
     expect(redirectFor("/predictions", q())?.path).toBe("/forecasts");
   });
-  it("folds Today into Home and the work views into the sections of Growth", () => {
-    expect(hashOf(redirectFor("/today", q())!)).toBe("/home");
+  it("folds the work views into the sections of Growth, and leaves the live coach where it is", () => {
+    // Today is the one old screen that stays a screen: unlisted, no redirect, opened from Home while a coach step is active.
+    expect(redirectFor("/today", q(), "worker")).toBeNull();
+    expect(redirectFor("/today", q(), "admin")).toBeNull();
     expect(hashOf(redirectFor("/week", q())!)).toBe("/growth?section=time");
     expect(hashOf(redirectFor("/presence", q())!)).toBe("/growth?section=time");
     expect(hashOf(redirectFor("/genome", q())!)).toBe("/growth?section=steps");
