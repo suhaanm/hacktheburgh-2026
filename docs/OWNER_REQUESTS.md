@@ -63,3 +63,10 @@ Process
 ## Rules every track follows
 
 Think from the worker's side. Fewer things on screen. The safety layers stay: no consent card is pre-answered, nothing is auto-approved, unattended and irreversible actions stay opt-in per routine, a real click is the only approval. No "demo" or made-up tags in visible text. Fix errors properly; never switch a feature off or loosen a test.
+
+## Message 5 (about 05:00 to 05:30)
+
+- [x] **5.1** Pages load slowly: find the cause and fix it. P1 (profile and cache), lead. *Causes found and fixed: GC thrash on a large heap, per-request re-parsing of events and role packs, abandoned heavy requests piling up, 610k date parses in the growth score. Measured live 8 Nov 05:38: briefing 0.09 s, growth 0.21 s, hitlist 0.001 s warm, routines 0.04 s; /health 35 ms with 12 heavy reads in flight. Window-level polling cut (coach/state 30 s, one Stop poll).*
+- [x] **5.2** Remove every example-data pill, tag, banner and sentence from the frontend, and anything that implies one (D57 truth rule kept on the Evidence page). X1, X2. *Dashboard live sweep: 30 screens, 0 on example data, 0 page errors; words guard covers dashboard source, fixtures and the desktop renderer; check-words 0 hits across 44 views.*
+- [x] **5.3** Remove the printed "Default: X" from every Settings row. X1. *Gone; the values stay, a test pins that no Default text prints.*
+- [ ] **5.4** The owner relaunches Knack.app (05:38 build) and presses Resume (a stop file is set). Owner only.
