@@ -39,4 +39,22 @@ describe("HRT evidence blocks", () => {
     for (const k of ["id", "decision", "shipped_rule", "naive_policy", "naive_value", "oracle_value", "primary_contrast", "ci95", "ci_adjusted_98_75", "verdict"]) expect(r).toHaveProperty(k);
     expect(Array.isArray(d.scoreboard)).toBe(true);
   });
+
+  it("read the conformal and decision-value blocks, with width beside coverage, when the report has them", () => {
+    const l = secs.hrt_ledger, d = secs.hrt_decisions;
+    if (!l || l.status || !l.conformal) return;
+    const c = l.conformal as Record<string, unknown>;
+    for (const k of ["claims", "standard", "recalibrated", "guard_link", "statement"]) expect(c).toHaveProperty(k);
+    const row = (c.standard as Record<string, Record<string, unknown>>[])[0];
+    for (const k of ["world", "people", "stuck_set", "finish"]) expect(row).toHaveProperty(k);
+    for (const k of ["coverage", "ci", "status", "single_label_share", "both_label_share"]) expect(row.stuck_set).toHaveProperty(k);
+    for (const k of ["coverage", "ci", "status", "factor", "recentred_coverage", "recentred_factor"]) expect(row.finish).toHaveProperty(k);
+    expect(row.next_progress).toHaveProperty("mean_length_steps");
+    if (!d || d.status || !d.value_vs_accuracy) return;
+    const v = d.value_vs_accuracy as Record<string, unknown>;
+    for (const k of ["claims", "worlds", "statement", "design"]) expect(v).toHaveProperty(k);
+    const w = (v.worlds as Record<string, unknown>[])[0];
+    for (const k of ["world", "best_naive", "forecasts", "model_minus_best_naive", "model_minus_best_naive_ci", "verdict", "log_loss_model_minus_best_naive", "guard"]) expect(w).toHaveProperty(k);
+    expect((w.forecasts as Record<string, unknown>[])[0]).toHaveProperty("net_minutes_per_hour");
+  });
 });
