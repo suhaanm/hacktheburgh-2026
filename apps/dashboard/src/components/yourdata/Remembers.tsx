@@ -22,8 +22,8 @@ export function Remembers({ memory: m, proposals, onChanged }: { memory: Memory;
   const [whole, setWhole] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const shown = all ? items : items.slice(0, SHOWN);
-  const waiting = proposals.filter((p) => p.status === "proposed");
+  const shown = all ? items.slice(0, 200) : items.slice(0, SHOWN);
+  const waiting = (Array.isArray(proposals) ? proposals : []).filter((p) => p && p.status === "proposed");
   const fail = (e: unknown, fallback: string) => setErr(e instanceof ApiError ? e.message : fallback);
 
   const saveLine = async () => {
@@ -83,6 +83,7 @@ export function Remembers({ memory: m, proposals, onChanged }: { memory: Memory;
         </ul>
       )}
       {items.length > SHOWN && <div><button type="button" className="btn btn--secondary btn--sm" aria-expanded={all} onClick={() => setAll((v) => !v)}>{all ? "Show fewer" : `Show all ${items.length}`}</button></div>}
+      {all && items.length > 200 && <p className="kc-sub">The first 200 of {items.length} lines are shown. Edit as text has them all.</p>}
       {err && <p className="kc-error" role="alert">{err}</p>}
 
       <Details summary={waiting.length > 0 ? `More (${waiting.length} ${waiting.length === 1 ? "rule" : "rules"} waiting)` : "More"} defaultOpen={whole !== null}>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ApiError } from "../../api";
+import { clip } from "../../lib/safeText";
 import { plainWords } from "../../screens/NeedsYou/model";
 import type { Routine } from "../../types";
 import { Ladder } from "../Ladder";
@@ -27,13 +28,13 @@ export function RunningRow({ routine: r, open, onToggle, onDecide, onRun, canRun
   const [gate, setGate] = useState<Gate | null>(null);
   const [stopping, setStopping] = useState(false);
   const [ran, setRan] = useState<string | null>(null);
-  const away = useAway(r, onDecide, () => onDecide(r, { mode: "approval" }, `${r.title}: asks first.`));
+  const title = plainWords(clip(r.title, 160)) || "A routine";
+  const away = useAway(r, onDecide, () => onDecide(r, { mode: "approval" }, `${title}: asks first.`));
   const here = capOf(r.status);
-  const title = plainWords(r.title ?? "");
 
   const choose = async (step: Cap, override = false) => {
     setBusy(step); setErr(null); setGate(null);
-    const done = `${r.title}: ${CAP_LABEL[step].toLowerCase()}.`;
+    const done = `${title}: ${CAP_LABEL[step].toLowerCase()}.`;
     try { await onDecide(r, { mode: CAP_MODE[step], ...(override ? { skill_override: true } : {}) }, done); }
     catch (e) {
       if (e instanceof ApiError && e.code === "skill_gate") setGate({ mode: CAP_MODE[step], done, message: e.message });
@@ -42,7 +43,7 @@ export function RunningRow({ routine: r, open, onToggle, onDecide, onRun, canRun
   };
   const stop = async () => {
     setBusy("stop"); setErr(null);
-    try { await onDecide(r, { mode: "not_now" }, `${r.title} is stopped.`); setStopping(false); }
+    try { await onDecide(r, { mode: "not_now" }, `${title} is stopped.`); setStopping(false); }
     catch (e) { setErr(e instanceof ApiError ? e.message : "That did not save. Nothing was changed. Try again."); }
     finally { setBusy(null); }
   };

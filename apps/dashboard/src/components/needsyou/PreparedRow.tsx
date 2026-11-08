@@ -3,6 +3,7 @@ import { ApiError, api } from "../../api";
 import { checkedNote, cleanPrepared, expiresIn, firedText, preparedDirty, rankingParts } from "../../lib/briefing";
 import { consequence, leadAndRest, plainWords } from "../../screens/NeedsYou/model";
 import type { BriefingCard, Prepared } from "../../types";
+import { clip } from "../../lib/safeText";
 import { useToast } from "../Toasts";
 import { Details } from "../ui";
 import { Glyph } from "./Glyph";
@@ -57,7 +58,7 @@ export function PreparedRow({ card: c, onFired, onDismissed, onChanged }: { card
     <article className="kc-row" data-kind="prepared" data-cls="2" data-risk={c.risk_class} aria-labelledby={`ny-${c.id}`} aria-describedby={`fd-${c.id}`}>
       <h3 className="kc-row__title" id={`ny-${c.id}`}>
         <Glyph name="decision" />
-        <span>{plainWords(c.title)}</span>
+        <span>{plainWords(clip(c.title, 160)) || "A prepared action"}</span>
       </h3>
       <p className="kc-row__body" id={`fd-${c.id}`}>{lead}</p>
       {cons && <p className="kc-row__cons" data-testid="consequence">{cons} It stops here for your own click first.</p>}
@@ -67,7 +68,7 @@ export function PreparedRow({ card: c, onFired, onDismissed, onChanged }: { card
           if (dirty) await save(); // what runs is what you see
           const r = await api.briefingFire(c.id);
           toast({ tone: "success", text: "Done.", detail: firedText(r) });
-          onFired(r, c.title);
+          onFired(r, plainWords(clip(c.title, 160)) || "A prepared action");
         })}>{busy === "fire" ? "Working" : "Approve and run"}</button>
         <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => void run("later", async () => { await api.briefingDismiss(c.id, "not_now"); toast({ tone: "plain", text: "Okay, not now." }); onDismissed("not_now"); })}>Not now</button>
         <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => void run("never", async () => { await api.briefingDismiss(c.id, "never"); toast({ tone: "plain", text: "Okay. This will not be suggested again." }); onDismissed("never"); })}>Never</button>

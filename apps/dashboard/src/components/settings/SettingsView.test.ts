@@ -1,17 +1,19 @@
 // Renders the pure view to static markup (node environment, no browser) and asserts what must be printed.
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import attentionFx from "../../fixtures/attention-settings.json";
 import type { AttentionSettings } from "../../types";
-import { liveModels } from "../../screens/Settings/model";
+import { DEFAULTS, liveModels } from "../../screens/Settings/model";
 import { SettingsView, type SettingsViewProps } from "./SettingsView";
 
 const attn = (attentionFx as unknown as { data: AttentionSettings }).data;
 const noop = () => undefined;
 const props = (over: Partial<SettingsViewProps> = {}): SettingsViewProps => ({
   live: liveModels({ health: { mock: true, key_present: true }, canSwitch: true, running: false, changing: false }), onLive: noop,
-  attention: attn, attentionExample: false, attentionError: null, onPreset: noop, onMode: noop, onResetLearned: noop, onLevelGlance: noop, wake: null, onWake: noop,
+  attention: attn, attentionExample: false, attentionError: null, onPreset: noop, onMode: noop, onGroup: noop, onResetLearned: noop, onLevelGlance: noop, wake: null, onWake: noop,
   desktop: null, onDesktop: noop, theme: "auto", onTheme: noop, view: "worker", onView: noop, pinned: false, onPinned: noop, version: "0.1.0", ...over,
 });
 const html = (over?: Partial<SettingsViewProps>) => renderToStaticMarkup(createElement(SettingsView, props(over)));
@@ -45,12 +47,39 @@ describe("Settings", () => {
     const h = html();
     expect(h).not.toMatch(/aria-label="Use live models"[^>]*disabled/);
   });
-  it("offers three words for interruptions and eighteen kinds behind Per kind", () => {
+  it("offers three words for interruptions, one control per group, and each kind behind its own closed disclosure", () => {
     const h = html();
     for (const w of ["Rarely", "Balanced", "Often"]) expect(text(h)).toContain(w);
-    expect(text(h)).toContain("Per kind");
+    expect(text(h)).toContain("Each kind");
+    expect((h.match(/data-testid="group-/g) ?? []).length).toBe(4);
     expect((h.match(/data-testid="notice-/g) ?? []).length).toBe(attn.types.filter((t) => !t.fixed).length);
     expect(text(h)).toMatch(/Always shown:/);
+    // closed by default: nothing in the per-kind list is open
+    expect(h).not.toMatch(/<details[^>]*open/);
+  });
+  it("a group's control shows the mode when every kind in it is at the same one, and none when they differ", () => {
+    const quiet = { ...attn, types: attn.types.map((t) => (t.class === "wait" ? { ...t, mode: "quiet" } : t)) } as AttentionSettings;
+    const h = html({ attention: quiet });
+    const wait = h.slice(h.indexOf('data-testid="group-wait"'), h.indexOf('data-testid="group-info"'));
+    expect(wait).toMatch(/aria-pressed="true"[^>]*>Quiet</);
+    const mixed = { ...attn, types: attn.types.map((t, i) => (t.class === "wait" && i % 2 ? { ...t, mode: "loud" } : t)) } as AttentionSettings;
+    const m = html({ attention: mixed });
+    const waitMixed = m.slice(m.indexOf('data-testid="group-wait"'), m.indexOf('data-testid="group-info"'));
+    expect(waitMixed).not.toMatch(/aria-pressed="true"/);
+  });
+  it("every setting that has a default prints it, and the doc lists the same ones", () => {
+    const h = html({ desktop: { cueEnabled: true, minimiseWhileWorking: true, launchAtLogin: true }, wake: { switchOn: true, listening: true, line: "" } });
+    const doc = readFileSync(resolve(__dirname, "../../../../../docs/knack-ux/defaults.md"), "utf8");
+    for (const [id, d] of Object.entries(DEFAULTS)) {
+      if (id === "help-level") { expect(text(h)).toContain(`Default: ${d.shown}.`); continue; }
+      expect(h).toContain(`data-testid="default-${id}"`);
+      expect(text(h)).toContain(`Default: ${d.shown}.`);
+    }
+    for (const w of ["Use live models", "Interruptions", "Coaching", "Help level", "Hey Knack", "Move aside while Knack works", "Open at login"]) expect(doc).toContain(w);
+    expect(DEFAULTS.interruptions.value).toBe("rarely");
+  });
+  it("the defaults never switch on a consent, an approval or an unattended run", () => {
+    expect(Object.keys(DEFAULTS).join(" ")).not.toMatch(/consent|approv|unattended|away|irreversible|frame|glance/i);
   });
   it("a desktop-only row says so in a browser tab instead of vanishing", () => {
     const t = text(html());

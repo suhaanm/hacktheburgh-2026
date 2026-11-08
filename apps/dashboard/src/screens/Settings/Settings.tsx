@@ -107,6 +107,10 @@ export default function Settings({ section }: { section?: string }) {
     void apply(patch, (x) => ({ ...x, budget_per_day: patch.budget_per_day, modes: p === "balanced" ? {} : { ...x.modes, ...patch.modes }, types: x.types.map((t) => (t.fixed ? t : { ...t, mode: patch.modes[t.type] ?? t.mode })) }));
   };
   const onMode = (type: string, mode: Mode) => void apply({ modes: { [type]: mode } }, (x) => withMode(x, type, mode));
+  const onGroup = (types: string[], mode: Mode) => {
+    if (types.length === 0) return;
+    void apply({ modes: Object.fromEntries(types.map((t) => [t, mode])) }, (x) => types.reduce((acc, t) => withMode(acc, t, mode), x));
+  };
   const onWake = (on: boolean) => {
     if (!wakeApi) return;
     const before = wake;
@@ -128,7 +132,7 @@ export default function Settings({ section }: { section?: string }) {
 
   return (
     <SettingsView section={section} live={liveView} onLive={(on) => void onLive(on)}
-      attention={attention} attentionExample={!!attn.why} attentionError={attentionError} onPreset={onPreset} onMode={onMode} onResetLearned={onResetLearned} onLevelGlance={onLevelGlance} wake={wakeApi ? wake : null} onWake={onWake}
+      attention={attention} attentionExample={!!attn.why} attentionError={attentionError} onPreset={onPreset} onMode={onMode} onGroup={onGroup} onResetLearned={onResetLearned} onLevelGlance={onLevelGlance} wake={wakeApi ? wake : null} onWake={onWake}
       today={today.data && attention ? <TodayStrip digest={today.data} budgetPerDay={attention.budget_per_day} /> : null}
       desktop={bridge ? desktop : null} onDesktop={onDesktop}
       theme={theme} onTheme={setTheme}

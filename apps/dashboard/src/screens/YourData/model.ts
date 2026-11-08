@@ -19,9 +19,17 @@ export const ydSectionOf = (s: string | null | undefined): YdSection | null => (
 export interface MemItem { id: string; section: string; text: string; note: string | null }
 const cleanNote = (n: string | null): string | null => { const c = (n ?? "").replace(/^id:\S+\s*\|?\s*/, "").trim(); return c || null; };
 
-export function memoryItems(m: Pick<Memory, "sections">): MemItem[] {
-  const names = [...SECTION_ORDER.filter((n) => n in m.sections), ...Object.keys(m.sections).filter((n) => !(SECTION_ORDER as readonly string[]).includes(n))];
-  return names.flatMap((section) => m.sections[section].map((l) => ({ id: l.id, section, text: l.text, note: cleanNote(l.note) })));
+export function memoryItems(m: Pick<Memory, "sections"> | null | undefined): MemItem[] {
+  const sections = m?.sections && typeof m.sections === "object" ? m.sections : {};
+  const names = [...SECTION_ORDER.filter((n) => n in sections), ...Object.keys(sections).filter((n) => !(SECTION_ORDER as readonly string[]).includes(n))];
+  const seen = new Set<string>();
+  return names.flatMap((section) => (Array.isArray(sections[section]) ? sections[section] : []).flatMap((l, i): MemItem[] => {
+    if (!l || typeof l !== "object" || typeof l.text !== "string") return [];
+    const id = typeof l.id === "string" && l.id ? l.id : `${section}#${i}`;
+    if (seen.has(id)) return [];          // the same line sent twice is one line: forgetting it must not be ambiguous
+    seen.add(id);
+    return [{ id, section, text: l.text, note: cleanNote(typeof l.note === "string" ? l.note : null) }];
+  }));
 }
 
 /** The memory file with every line removed and every heading kept, so the role and the shape of the file stay. */

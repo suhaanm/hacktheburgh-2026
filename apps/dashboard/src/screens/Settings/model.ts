@@ -31,8 +31,8 @@ export interface LiveInput {
 export interface LiveView { checked: boolean; disabled: boolean; line: string }
 
 export const LIVE_LINES = {
-  on: "Knack can call Gemini for steps you allow. Each call is listed in Your data.",
-  off: "Everything runs on example data.",
+  on: "On, because a key is set. Each call is listed in Your data.",
+  off: "Off. Everything runs on example data.",
   noKey: "No Gemini key found. Add it to .env and reopen Knack.",
   restart: "Switching restarts the engine. About 20 seconds.",
   running: "A job is running. Stop it first.",
@@ -52,6 +52,23 @@ export function liveModels(i: LiveInput): LiveView {
   return { checked, disabled: false, line: `${base}` };
 }
 
+/**
+ * What each setting starts as, and why (owner request REQ-9, 8 Nov 2026: every default as automated as the safety layers allow). The row prints the short
+ * `shown` text after its line ("Default: on."). The reasons and the safety note for each are in docs/knack-ux/defaults.md, and a test keeps the two in step.
+ * Never a default here: auto-granting a consent card, auto-approving, unattended runs, irreversible actions. Those stay off until the worker says otherwise.
+ */
+export const DEFAULTS = {
+  "live-models": { shown: "on when a key is set", value: "on" },
+  interruptions: { shown: "Rarely", value: "rarely" },
+  coaching: { shown: "on", value: "on" },
+  "help-level": { shown: "Automatic", value: "auto" },
+  "hey-knack": { shown: "on", value: "on" },
+  "move-aside": { shown: "on", value: "on" },
+  "open-at-login": { shown: "on", value: "on" },
+} as const;
+export type DefaultId = keyof typeof DEFAULTS;
+export const defaultNote = (id: DefaultId): string => `Default: ${DEFAULTS[id].shown}.`;
+
 /* -- Interruptions: three words over the eighteen kinds -------------------------------------------------------------------------------- */
 export type Preset = "rarely" | "balanced" | "often";
 export const PRESETS: { id: Preset; label: string; mode: "quiet" | "normal" | "loud"; budget: number }[] = [
@@ -62,6 +79,14 @@ export const PRESETS: { id: Preset; label: string; mode: "quiet" | "normal" | "l
 export const STOPS_LINE = "Stops and blocking approvals always show.";
 
 const free = (s: Pick<AttentionSettings, "types">) => s.types.filter((t) => !t.fixed);
+
+/** The mode one group of kinds is at when every kind that can change is at the same one; otherwise null (they differ, so no button is pressed). */
+export function groupModeOf(rows: { mode: string; fixed?: boolean }[]): "loud" | "normal" | "quiet" | "digest" | null {
+  const free = rows.filter((r) => !r.fixed);
+  if (free.length === 0) return null;
+  const m = free[0].mode;
+  return free.every((r) => r.mode === m) && (m === "loud" || m === "normal" || m === "quiet" || m === "digest") ? m : null;
+}
 
 /** Which word fits: when every kind that can change is at the same mode, the word for it; otherwise none (the kinds differ). */
 export function presetOf(s: Pick<AttentionSettings, "types">): Preset | null {

@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { MODES, MODE_LABEL, groupTypes, learnedLines, modeLine, type Mode } from "../../lib/attention";
+import { MODES, MODE_LABEL, groupTypes, isMode, learnedLines, modeLine, type Mode } from "../../lib/attention";
 import type { AttentionSettings } from "../../types";
-import { HELP_LOCKS, PRESETS, STOPS_LINE, THEMES, APP_ONLY, lockOf, lockPatch, presetOf, sectionOf, wakeLine, type HelpLock, type LiveView, type Preset, type Theme } from "../../screens/Settings/model";
+import { HELP_LOCKS, PRESETS, STOPS_LINE, THEMES, APP_ONLY, defaultNote, groupModeOf, lockOf, lockPatch, presetOf, sectionOf, wakeLine, type DefaultId, type HelpLock, type LiveView, type Preset, type Theme } from "../../screens/Settings/model";
 import type { DesktopSettings, WakeStatus } from "../../screens/Settings/bridge";
 import { Hint } from "../Hint";
 import { ConfirmRow, Details } from "../ui";
@@ -18,6 +18,8 @@ export interface SettingsViewProps {
   attentionError: string | null;
   onPreset: (p: Preset) => void;
   onMode: (type: string, mode: Mode) => void;
+  /** Set every kind in one group that can change to one mode, in one request. */
+  onGroup: (types: string[], mode: Mode) => void;
   /** Put every kind back to the loudness the worker set (what Knack learned can only ever make a kind quieter). */
   onResetLearned: () => void;
   /** The two-second help level glance (an attention setting, so it works without the app). */
@@ -44,12 +46,12 @@ export interface SettingsViewProps {
   connections?: ReactNode;
 }
 
-function Row({ id, title, line, control, error }: { id: string; title: string; line?: ReactNode; control: ReactNode; error?: string | null }) {
+function Row({ id, title, line, control, error, def }: { id: string; title: string; line?: ReactNode; control: ReactNode; error?: string | null; def?: DefaultId }) {
   return (
     <section className="st-row" id={`set-${id}`} aria-labelledby={`set-${id}-h`}>
       <div className="st-text">
         <h3 className="st-name" id={`set-${id}-h`}>{title}</h3>
-        {line && <p className="st-line" data-testid={`line-${id}`}>{line}</p>}
+        {(line || def) && <p className="st-line" data-testid={`line-${id}`}>{line}{line && def ? " " : ""}{def && <span className="st-default" data-testid={`default-${id}`}>{defaultNote(def)}</span>}</p>}
         {error && <p className="kc-error" role="alert">{error}</p>}
       </div>
       <div className="st-control">{control}</div>
@@ -87,88 +89,107 @@ export function SettingsView(p: SettingsViewProps) {
   }, [target]);
 
   const d = p.desktop;
-  const preset = p.attention ? presetOf(p.attention) : null;
+  // An answer with no list of kinds is an answer with none: the words show with nothing pressed, and the groups are empty.
+  const attn = p.attention ? { ...p.attention, types: Array.isArray(p.attention.types) ? p.attention.types : [] } : null;
+  const preset = attn ? presetOf(attn) : null;
   const lock = lockOf(d);
-  const groups = p.attention ? groupTypes(p.attention.types) : [];
-  const learned = p.attention ? learnedLines(p.attention.learned) : [];
+  const groups = attn ? groupTypes(attn.types) : [];
+  const learned = attn ? learnedLines(attn.learned) : [];
 
   return (
     <div className="st" data-testid="settings">
-      <Row id="live-models" title="Use live models" line={p.live.line}
+      <Row id="live-models" title="Use live models" line={p.live.line} def="live-models"
         control={<Switch label="Use live models" checked={p.live.checked} disabled={p.live.disabled} onChange={p.onLive} />} />
 
-      <Row id="interruptions" title="Interruptions"
-        line={<>{STOPS_LINE}{p.attentionExample && <> Example settings: a change here only changes this screen.</>}{p.attention && !preset ? " Some kinds are set one by one." : ""}</>}
+      <Row id="interruptions" title="Interruptions" def="interruptions"
+        line={<>{STOPS_LINE}{p.attentionExample && <> Example settings: a change here only changes this screen.</>}{attn && !preset ? " Some kinds are set one by one." : ""}</>}
         error={p.attentionError}
-        control={p.attention ? <Segmented<Preset> label="Interruptions" value={preset} options={PRESETS.map((x) => ({ id: x.id, label: x.label }))} onChange={p.onPreset} /> : <span className="u-muted">Loading</span>} />
-      {p.attention && (
+        control={attn ? <Segmented<Preset> label="Interruptions" value={preset} options={PRESETS.map((x) => ({ id: x.id, label: x.label }))} onChange={p.onPreset} /> : <span className="u-muted">Loading</span>} />
+      {attn && (
         <div className="st-sub">
-          <Details summary="Per kind" wide>
+          <Details summary="More" wide>
             <div className="st-kinds">
               {p.today}
-              {groups.map((g) => {
-                const fixed = g.rows.filter((r) => r.fixed);
-                const rows = g.rows.filter((r) => !r.fixed);
-                return (
-                  <div key={g.id} className="st-group" data-testid={`group-${g.id}`}>
-                    <p className="kc-label">{g.title}</p>
-                    {fixed.length > 0 && <p className="st-kind-note" data-testid={`fixed-${g.id}`}>Always shown: {fixed.map((r) => r.label.toLowerCase()).join(", ")}.</p>}
-                    {rows.map((r) => (
-                      <div key={r.type} className="st-kind" data-testid={`notice-${r.type}`}>
-                        <span className="st-kind__name">{r.label}<Hint label={`What ${r.label} does at this setting`}>{modeLine(r.cls, r.mode)}</Hint></span>
-                        <div className="segmented" role="group" aria-label={`How loud: ${r.label}`}>
-                          {MODES.map((m) => <button key={m} type="button" aria-pressed={r.mode === m} onClick={() => { if (r.mode !== m) p.onMode(r.type, m); }}>{MODE_LABEL[m]}</button>)}
-                        </div>
+              <div className="st-group" data-testid="groups">
+                {groups.map((g) => {
+                  const free = g.rows.filter((r) => !r.fixed);
+                  const fixed = g.rows.filter((r) => r.fixed);
+                  return (
+                    <div key={g.id} className="st-kind" data-testid={`group-${g.id}`}>
+                      <span className="st-kind__name">{g.title}<Hint label={`About ${g.title}`}>{g.blurb}{fixed.length > 0 ? ` Always shown: ${fixed.map((r) => r.label.toLowerCase()).join(", ")}.` : ""}</Hint></span>
+                      {free.length > 0
+                        ? <Segmented<Mode> label={`How loud: ${g.title}`} value={groupModeOf(g.rows)} options={MODES.map((m) => ({ id: m, label: MODE_LABEL[m] }))} onChange={(m) => p.onGroup(free.map((r) => r.type), m)} />
+                        : <span className="u-muted" data-testid={`fixed-${g.id}`}>Always shown</span>}
+                    </div>
+                  );
+                })}
+              </div>
+              <Details summary="Each kind" wide>
+                <div className="st-kinds">
+                  {groups.map((g) => {
+                    const fixed = g.rows.filter((r) => r.fixed);
+                    const rows = g.rows.filter((r) => !r.fixed);
+                    return (
+                      <div key={g.id} className="st-group" data-testid={`kinds-${g.id}`}>
+                        <p className="kc-label">{g.title}</p>
+                        {fixed.length > 0 && <p className="st-kind-note" data-testid={`always-${g.id}`}>Always shown: {fixed.map((r) => r.label.toLowerCase()).join(", ")}.</p>}
+                        {rows.map((r) => (
+                          <div key={r.type} className="st-kind" data-testid={`notice-${r.type}`}>
+                            <span className="st-kind__name">{r.label}<Hint label={`What ${r.label} does at this setting`}>{modeLine(r.cls, r.mode)}</Hint></span>
+                            <Segmented<Mode> label={`How loud: ${r.label}`} value={isMode(r.mode) ? r.mode : null} options={MODES.map((m) => ({ id: m, label: MODE_LABEL[m] }))} onChange={(m) => p.onMode(r.type, m)} />
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                );
-              })}
-              {learned.length > 0 && (
-                <div className="st-group" data-testid="learned">
-                  <p className="kc-label">What Knack learned</p>
-                  <ul className="yd-plain">{learned.map((l) => <li key={l.type}>{l.text}</li>)}</ul>
-                  <p className="st-kind-note">It can make a kind quieter, never louder.</p>
-                  {confirmReset ? (
-                    <ul className="kc-list"><ConfirmRow question="Reset what Knack learned?" consequence="Every kind goes back to the loudness you set. Nothing else changes." confirmLabel="Reset it" onConfirm={() => { setConfirmReset(false); p.onResetLearned(); }} onCancel={() => setConfirmReset(false)} /></ul>
-                  ) : (
-                    <div><button type="button" className="btn btn--secondary btn--sm" onClick={() => setConfirmReset(true)}>Reset what Knack learned</button></div>
+                    );
+                  })}
+                  {learned.length > 0 && (
+                    <div className="st-group" data-testid="learned">
+                      <p className="kc-label">What Knack learned</p>
+                      <ul className="yd-plain">{learned.map((l) => <li key={l.type}>{l.text}</li>)}</ul>
+                      {confirmReset ? (
+                        <ul className="kc-list"><ConfirmRow question="Reset what Knack learned?" consequence="Every kind goes back to the loudness you set. Nothing else changes." confirmLabel="Reset it" onConfirm={() => { setConfirmReset(false); p.onResetLearned(); }} onCancel={() => setConfirmReset(false)} /></ul>
+                      ) : (
+                        <div><button type="button" className="btn btn--secondary btn--sm" onClick={() => setConfirmReset(true)}>Reset what Knack learned</button></div>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
+              </Details>
             </div>
           </Details>
         </div>
       )}
 
-      <Row id="coaching" title="Coaching"
+      <Row id="coaching" title="Coaching" def="coaching"
         line={d ? (d.cueEnabled ? "Knack can offer hints while you work." : "No hints while you work.") : APP_ONLY}
         control={d ? <Switch label="Coaching" checked={!!d.cueEnabled} onChange={(on) => p.onDesktop({ cueEnabled: on })} /> : null} />
-      {p.attention && (
+      {(d || attn) && (
         <div className="st-sub">
-          <div className="st-kind"><span className="st-kind__name">Show the help level for two seconds when it changes<span className="st-kind__line">Only when nothing else is on screen and you have been still for a moment.</span></span>
-            <Switch label="Show the help level for two seconds when it changes" checked={p.attention.level_glance} onChange={p.onLevelGlance} />
-          </div>
-        </div>
-      )}
-      {d && (
-        <div className="st-sub">
-          <div className="st-kind"><span className="st-kind__name" id="set-lock-h">Help level</span>
-            <div className="segmented" role="group" aria-labelledby="set-lock-h">
-              {HELP_LOCKS.map((o) => <button key={String(o.id)} type="button" aria-pressed={lock === o.id} onClick={() => { if (lock !== o.id) p.onDesktop(lockPatch(o.id as HelpLock)); }}>{o.label}</button>)}
+          {d && (
+            <div className="st-kind"><span className="st-kind__name" id="set-lock-h">Help level<span className="st-kind__line">{defaultNote("help-level")}</span></span>
+              <div className="segmented" role="group" aria-labelledby="set-lock-h">
+                {HELP_LOCKS.map((o) => <button key={String(o.id)} type="button" aria-pressed={lock === o.id} onClick={() => { if (lock !== o.id) p.onDesktop(lockPatch(o.id as HelpLock)); }}>{o.label}</button>)}
+              </div>
             </div>
-          </div>
+          )}
+          {attn && (
+            <Details summary="More">
+              <div className="st-kind"><span className="st-kind__name">Show the help level for two seconds when it changes<span className="st-kind__line">Only when nothing else is on screen and you have been still for a moment.</span></span>
+                <Switch label="Show the help level for two seconds when it changes" checked={!!attn.level_glance} onChange={p.onLevelGlance} />
+              </div>
+            </Details>
+          )}
         </div>
       )}
 
-      <Row id="hey-knack" title="Listen for Hey Knack" line={p.wake ? wakeLine(p.wake) : APP_ONLY}
+      <Row id="hey-knack" title="Listen for Hey Knack" def="hey-knack" line={p.wake ? wakeLine(p.wake) : APP_ONLY}
         control={p.wake ? <Switch label="Listen for Hey Knack" checked={p.wake.switchOn} onChange={p.onWake} /> : null} />
 
-      <Row id="move-aside" title="Move aside while Knack works"
+      <Row id="move-aside" title="Move aside while Knack works" def="move-aside"
         line={d ? (d.minimiseWhileWorking === false ? "The window stays where it is while an agent works." : "The window minimises while an agent works. The pill shows what it is doing.") : APP_ONLY}
         control={d ? <Switch label="Move aside while Knack works" checked={d.minimiseWhileWorking !== false} onChange={(on) => p.onDesktop({ minimiseWhileWorking: on })} /> : null} />
 
-      <Row id="open-at-login" title="Open at login"
+      <Row id="open-at-login" title="Open at login" def="open-at-login"
         line={d ? (d.launchAtLogin ? "Knack opens when you log in. Routines only run while Knack is open." : "Off. Routines only run while Knack is open.") : APP_ONLY}
         control={d ? <Switch label="Open at login" checked={!!d.launchAtLogin} onChange={(on) => p.onDesktop({ launchAtLogin: on })} /> : null} />
 
@@ -178,19 +199,21 @@ export function SettingsView(p: SettingsViewProps) {
 
       <Row id="views" title="Views"
         control={<Segmented<"worker" | "admin"> label="View as" value={p.view} options={[{ id: "worker", label: "Worker" }, { id: "admin", label: "Admin" }]} onChange={p.onView} />} />
-      {p.stories && p.stories.length > 0 && (
-        <div className="st-sub">
-          <label className="st-kind"><span className="st-kind__name">Example week</span>
-            <select className="select" value={p.stories.find((s) => s.selected)?.id ?? ""} onChange={(e) => p.onStory?.(e.target.value)}>
-              {p.stories.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-            </select>
-          </label>
-        </div>
-      )}
       <div className="st-sub">
-        <label className="st-kind"><span className="st-kind__name">Pinned views<span className="st-kind__line">Show Genome, Graph and Presence in the sidebar.</span></span>
-          <Switch label="Pinned views" checked={p.pinned} onChange={p.onPinned} />
-        </label>
+        <Details summary="More">
+          <div className="st-kinds">
+            {p.stories && p.stories.length > 0 && (
+              <label className="st-kind"><span className="st-kind__name">Example week</span>
+                <select className="select" value={p.stories.find((s) => s.selected)?.id ?? ""} onChange={(e) => p.onStory?.(e.target.value)}>
+                  {p.stories.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                </select>
+              </label>
+            )}
+            <label className="st-kind"><span className="st-kind__name">Pinned views<span className="st-kind__line">Show Genome, Graph and Presence in the sidebar.</span></span>
+              <Switch label="Pinned views" checked={p.pinned} onChange={p.onPinned} />
+            </label>
+          </div>
+        </Details>
       </div>
 
       {p.connections && <section className="st-row st-row--block" id="set-connections" aria-labelledby="set-connections-h"><div className="st-text"><h3 className="st-name" id="set-connections-h">Connections</h3>{p.connections}</div></section>}

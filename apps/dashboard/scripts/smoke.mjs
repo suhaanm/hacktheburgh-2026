@@ -146,6 +146,7 @@ check("routines: with no agent service Run now says nothing started", /nothing s
 await go("/routines");
 const cliffs = page.locator("article.rt-row", { hasText: "Re-check benefit cliffs" });
 await cliffs.locator(".rt-row__open").click();
+await cliffs.getByRole("button", { name: "Run while I'm away" }).click();   // one click reveals the irreversible choices; nothing is saved yet
 await cliffs.getByText("Allow “submit” without asking me").click();
 const away = cliffs.getByRole("button", { name: "Allow while I'm away" });
 check("routines: irreversible away opt-in blocked without typed confirmation", await away.isDisabled());
@@ -321,15 +322,17 @@ await openAll(live);
 check("agents: revoking a lease ends that helper and says so", /revoked, no tools in scope/.test(await live.innerText()));
 await page.locator("article.run", { hasText: "Data profile" }).locator("summary", { hasText: "Helpers and result" }).click();
 await page.waitForTimeout(500);
+await openAll(page.locator("article.run", { hasText: "Data profile" }));   // each helper's checks sit behind the one closed "More"
+await page.waitForTimeout(200);
 const detail = await page.locator("article.run", { hasText: "Data profile" }).innerText();
 check("agents: result steps carry a check with a glyph and a word", /verified/.test(detail) && /uncertain/.test(detail) && (await page.locator(".pill--check .pill__glyph-char").count()) >= 3);
 
 await go("/your-data?section=sent", 900);
 await showAll(page.locator("[data-testid=sent]"));
+await openAll(page.locator("[data-testid=sent]"));   // each call's payload and the canary sit behind closed disclosures
 check("your data: the model-call list shows each call with its fields and the payload as sent", (await page.locator("[data-testid=sent] .ledger__row").count()) >= 6 && /Payload, exactly as sent/.test(await page.locator("main").innerText()) && (await page.locator("[data-testid=sent] pre.payload").first().innerText()).includes("card_kind"));
-await page.locator("[data-testid=sent] summary", { hasText: "How this is checked" }).click();
 const priv = await page.locator("main").innerText();
-check("your data: it never claims that nothing leaves the laptop, prints the limit, and the canary reads as evidence not proof", !/nothing (ever )?leaves/i.test(priv) && /cannot show what other software on this computer does/i.test(priv) && /evidence from a test, not a proof/i.test(priv) && /Calls for steps you asked for are listed too/i.test(priv));
+check("your data: it never claims that nothing leaves the laptop, prints the limit, and the canary reads as evidence not proof", !/nothing (ever )?leaves/i.test(priv) && /cannot show what other software on this computer does/i.test(priv) && /evidence from a test, not a proof/i.test(priv) && /Every call from Knack is listed/i.test(priv));
 await page.locator("[data-testid=sent]").getByRole("button", { name: "Forget", exact: true }).click();
 check("your data: forgetting asks once, inline, and says what it does not do", /does not recall anything already sent/.test(await page.locator("[data-testid=sent]").innerText()));
 await page.getByRole("button", { name: "Forget it" }).click();

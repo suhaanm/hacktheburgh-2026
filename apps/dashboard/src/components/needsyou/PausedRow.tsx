@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ApiError, api } from "../../api";
 import { kindLabel } from "../../lib/agents";
 import { fmtTime } from "../../lib/format";
+import { clip, validTime } from "../../lib/safeText";
 import type { AgentRun } from "../../types";
 import { useToast } from "../Toasts";
 import { Glyph } from "./Glyph";
@@ -21,8 +22,8 @@ export function PausedRow({ run, onDone }: { run: AgentRun; onDone: () => void }
     <article className="kc-row" data-kind="paused" data-cls="1" aria-labelledby={`ny-${run.run_id}`}>
       <h3 className="kc-row__title" id={`ny-${run.run_id}`}>
         <Glyph name="paused" />
-        <span>Paused: {kindLabel(run.kind)}</span>
-        <time className="kc-row__when" dateTime={run.started}>{fmtTime(run.started)}</time>
+        <span>Paused: {clip(kindLabel(run.kind), 80)}</span>
+        {validTime(run.started) !== null && <time className="kc-row__when" dateTime={run.started}>{fmtTime(run.started)}</time>}
       </h3>
       <p className="kc-row__body">This run stopped to wait for you. Nothing was changed.</p>
       {err && <p className="kc-error" role="alert">{err}</p>}

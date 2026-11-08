@@ -11,7 +11,9 @@ import { useToast } from "../../components/Toasts";
 import { Details } from "../../components/ui";
 import { useLoad, useTimeout } from "../../hooks";
 import { navigate, useRoute } from "../../router";
+import { clip } from "../../lib/safeText";
 import { refreshNeedsBadge } from "../NeedsYou/count";
+import { plainWords } from "../NeedsYou/model";
 import { exampleKind, hideRow, loadRepeats, resetCounts, runNow, unhideRow } from "./data";
 import { TABS, runningRoutines, tabOf, turnedDown, type Tab } from "./model";
 import { Peek } from "./Peek";
@@ -45,7 +47,7 @@ export default function Routines() {
   const rep = useLoad(() => loadRepeats(win, kind), [win, kind]);
   const toast = useToast();
   const [openId, setOpenId] = useState<string | null>(null);
-  const [showAll, setShowAll] = useState(false);
+  const [limit, setLimit] = useState(7);
 
   const setTab = (t: Tab) => navigate(`/routines${t === "could-automate" ? "?tab=could-automate" : ""}`);
   const running = runningRoutines(rt.data);
@@ -77,7 +79,7 @@ export default function Routines() {
     return `Started${started.run_id ? ` (${started.run_id})` : ""}. Stop it any time with Stop.`;
   };
 
-  const shown = showAll ? running : running.slice(0, 7);
+  const shown = running.slice(0, limit);
   const sources = [rt, rep];
 
   return (
@@ -114,7 +116,7 @@ export default function Routines() {
               ))}
             </ul>
           )}
-          {running.length > shown.length && <div><button type="button" className="btn btn--secondary btn--sm" onClick={() => setShowAll(true)}>Show all {running.length}</button></div>}
+          {running.length > shown.length && <div><button type="button" className="btn btn--secondary btn--sm" onClick={() => setLimit((n) => (n < 50 ? 50 : n + 50))}>{limit < 50 && running.length <= 50 ? `Show all ${running.length}` : limit < 50 ? "Show 50" : "Show 50 more"}</button></div>}
           <TurnedDown rows={turnedDown(rt.data)} onDecide={decide} />
         </div>
       ) : (
@@ -133,12 +135,13 @@ function TurnedDown({ rows, onDecide }: { rows: ReturnType<typeof turnedDown>; o
   return (
     <Details summary={`Turned down (${rows.length})`}>
       <div>
-        {rows.map((x) => (
+        {rows.slice(0, 30).map((x) => (
           <div key={x.id} className="rt-more-row">
-            <span>{x.title} <span className="u-muted">({x.status === "never" ? "Never" : "Not now"})</span></span>
+            <span>{plainWords(clip(x.title, 120)) || "A routine"} <span className="u-muted">({x.status === "never" ? "Never" : "Not now"})</span></span>
             <button type="button" className="btn btn--secondary btn--sm" onClick={() => { setErr(null); onDecide(x, { mode: "shadow" }, "Watching first.").catch((e: unknown) => setErr(e instanceof ApiError ? e.message : "That did not save. Try again.")); }}>Watch first</button>
           </div>
         ))}
+        {rows.length > 30 && <p className="kc-sub">{rows.length - 30} more turned down.</p>}
         {err && <p className="kc-error" role="alert">{err}</p>}
       </div>
     </Details>

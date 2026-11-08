@@ -15,7 +15,7 @@ import { useAppState, setState } from "../../store";
 import "../../components/kc.css";
 import "../../components/needsyou/needsyou.css";
 import { DEMO_PERSON } from "./count";
-import { awayLine, buildItems, madeLine, needsCount, visibleItems, type NeedsItem } from "./model";
+import { PAGE_ROWS, awayLine, buildItems, madeLine, needsCount, visibleItems, type NeedsItem } from "./model";
 
 /**
  * Needs you: ONE list for everything that waits on the worker (approvals, practice runs that differed, routine proposals, prepared actions, paused runs).
@@ -31,7 +31,7 @@ export default function NeedsYou() {
   const ag = useLoad(() => api.agentsRuns(me ?? undefined), [me]);
   const rep = useLoad(() => api.offhoursReport(), []);
   const audit = useLoad(() => api.audit(20), []);
-  const [showAll, setShowAll] = useState(false);
+  const [cap, setCap] = useState(0);   // 0: the default fold; otherwise how many rows are drawn
   const [made, setMade] = useState<{ title: string; text: string } | null>(null);
   const [gone, setGone] = useState<Record<string, true>>({});
 
@@ -57,7 +57,7 @@ export default function NeedsYou() {
 
   // The one primary button goes to the first real approval. A pause for safety and a practice run that differed are choices of equal weight.
   const primaryKey = items.find((i) => i.kind === "approval" && i.queue.kind !== "injection_pause" && i.queue.kind !== "shadow_mismatch")?.key;
-  const shown = visibleItems(items, showAll);
+  const shown = visibleItems(items, cap > 0, cap);
   const node = (it: NeedsItem) => {
     switch (it.kind) {
       case "approval": return <ApprovalRow item={it.queue} cls={it.cls} primary={it.key === primaryKey} onDone={reload} />;
@@ -90,7 +90,11 @@ export default function NeedsYou() {
       ) : (
         <>
           <RowList label="Waiting for you" rows={shown.map((it) => ({ key: it.key, node: node(it) }))} />
-          {items.length > shown.length && <div><button type="button" className="btn btn--secondary btn--sm" onClick={() => setShowAll(true)}>Show all {items.length}</button></div>}
+          {items.length > shown.length && (
+            <div><button type="button" className="btn btn--secondary btn--sm" onClick={() => setCap(cap === 0 && items.length <= PAGE_ROWS ? items.length : shown.length + PAGE_ROWS)}>
+              {cap === 0 && items.length <= PAGE_ROWS ? `Show all ${items.length}` : `Show ${Math.min(PAGE_ROWS, items.length - shown.length)} more`}
+            </button></div>
+          )}
         </>
       )}
 

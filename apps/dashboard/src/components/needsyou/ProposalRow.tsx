@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ApiError } from "../../api";
-import { neverLine, plainWords, saveHint, saveLine, seenLine } from "../../screens/NeedsYou/model";
+import { neverLine, proposalFacts } from "../../screens/NeedsYou/model";
 import type { Routine } from "../../types";
 import { Hint } from "../Hint";
 import { APPROVAL_TEXT, AWAY_TEXT, WATCH_TEXT } from "../routines/consent";
@@ -41,9 +41,10 @@ export function ProposalRow({ routine: p, onDecide }: { routine: Routine; onDeci
   const [err, setErr] = useState<string | null>(null);
   const [gate, setGate] = useState<Gate | null>(null);
   const [more, setMore] = useState(false);
-  const touchList = (p.proposal.touches.length ? p.proposal.touches : p.touches).map((t) => plainWords(t));
-  const neverItems = (p.proposal.never.length ? p.proposal.never : p.never).map((n) => plainWords(n).replace(/\.$/, ""));
-  const never = plainWords(neverLine(p.proposal.never.length ? p.proposal.never : p.never));
+  const f = proposalFacts(p);
+  const touchList = f.touches;
+  const neverItems = f.never;
+  const never = neverLine(f.never);
 
   const go = async (mode: string, done: string, override = false) => {
     setBusy(mode); setErr(null); setGate(null);
@@ -58,17 +59,17 @@ export function ProposalRow({ routine: p, onDecide }: { routine: Routine; onDeci
     <article className="kc-row" data-kind="proposal" data-cls="2" aria-labelledby={`ny-${p.id}`}>
       <h3 className="kc-row__title" id={`ny-${p.id}`}>
         <Glyph name="routine" />
-        <span>{plainWords(p.title)}</span>
+        <span>{f.title}</span>
       </h3>
-      <p className="kc-row__body">{seenLine(p.proposal.how_often)} {saveLine(p)}<Hint label="About the hours saved">{saveHint(p)}</Hint></p>
+      {(f.seen || f.save) && <p className="kc-row__body">{f.seen}{f.seen && f.save ? " " : ""}{f.save}{f.save && <Hint label="About the hours saved">{f.hint}</Hint>}</p>}
       {neverItems.length > 1 ? (
         <div className="kc-row__meta" data-testid="never">
           <p style={{ margin: 0 }}>It will never</p>
-          <ul className="ny-never">{neverItems.map((n) => <li key={n}>{n.charAt(0).toLowerCase() + n.slice(1)}</li>)}</ul>
+          <ul className="ny-never">{neverItems.map((n, i) => <li key={`${i}-${n}`}>{n.charAt(0).toLowerCase() + n.slice(1)}</li>)}</ul>
         </div>
-      ) : (
+      ) : never ? (
         <p className="kc-row__meta" data-testid="never">{never}</p>
-      )}
+      ) : null}
       <div className="kc-row__actions" role="group" aria-label="Your choice">
         <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => void go("shadow", "Watching first.")}>Watch first</button>
         <button type="button" className="btn btn--secondary" disabled={!!busy} onClick={() => void go("not_now", "Okay, not now.")}>Not now</button>

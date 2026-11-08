@@ -24,10 +24,10 @@ describe("Use live models", () => {
   it("is on when the engine is live, with the line that says each call is listed", () => {
     const v = liveModels({ ...base, health: live });
     expect(v).toEqual({ checked: true, disabled: false, line: LIVE_LINES.on });
-    expect(v.line).toBe("Knack can call Gemini for steps you allow. Each call is listed in Your data.");
+    expect(v.line).toBe("On, because a key is set. Each call is listed in Your data.");
   });
   it("is off on example data and says so", () => {
-    expect(liveModels(base)).toEqual({ checked: false, disabled: false, line: "Everything runs on example data." });
+    expect(liveModels(base)).toEqual({ checked: false, disabled: false, line: "Off. Everything runs on example data." });
   });
   it("is disabled with a printed line when there is no Gemini key", () => {
     const v = liveModels({ ...base, health: { mock: true, key_present: false } });
