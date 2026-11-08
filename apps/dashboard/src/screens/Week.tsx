@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import { idle, useLoad } from "../hooks";
 import { useAppState } from "../store";
+import { readRememberedFree, writeRememberedFree } from "../lib/remember";
 import { ChartFoot, EmptyState, ErrorState, ExampleBadge, Loading, OriginBadge, PageHead, SourceNote, workerOriginLabel } from "../components/common";
 import { WeekLegend, WeekRibbon } from "../components/WeekRibbon";
 import { AlignLegend, CalAlignment } from "../components/CalAlignment";
@@ -26,7 +27,8 @@ export default function Week() {
   useEffect(() => {
     if (person || !people.data) return;
     const known = new Set(people.data.map((p) => p.person));
-    setPerson(me && known.has(me) ? me : known.has(DEMO_PERSON) ? DEMO_PERSON : people.data[0]?.person ?? DEMO_PERSON);
+    const last = readRememberedFree("week-person");
+    setPerson(me && known.has(me) ? me : last && known.has(last) ? last : known.has(DEMO_PERSON) ? DEMO_PERSON : people.data[0]?.person ?? DEMO_PERSON);
   }, [people.data, person, me]);
 
   const w = useLoad(() => (person ? api.calendarWeek(person, week) : idle<CalendarWeek>()), [person, week]);
@@ -51,8 +53,8 @@ export default function Week() {
         aside={w.why ? <ExampleBadge why={w.why} /> : <OriginBadge meta={w.meta} label={w.meta ? workerOriginLabel(w.meta.origin) : undefined} />}
       />
 
-      <Pickers people={people.data} person={person} entry={entry} week={week ?? d.week} locked={example}
-        onPerson={(p) => { setPerson(p); setWeek(undefined); }} onWeek={setWeek} />
+      <Pickers people={people.data} person={person} entry={entry} week={week ?? d.week} example={example}
+        onPerson={(p) => { setPerson(p); setWeek(undefined); writeRememberedFree("week-person", p); }} onWeek={setWeek} />
 
       <section className="hero" aria-labelledby="wk-h">
         <h2 id="wk-h" className="u-sr-only">Week ribbon</h2>
@@ -84,8 +86,8 @@ export default function Week() {
   );
 }
 
-function Pickers({ people, person, entry, week, locked, onPerson, onWeek }: {
-  people: CalPerson[]; person: string; entry: CalPerson | undefined; week: string | undefined; locked: boolean; onPerson: (p: string) => void; onWeek: (w: string) => void;
+function Pickers({ people, person, entry, week, example, onPerson, onWeek }: {
+  people: CalPerson[]; person: string; entry: CalPerson | undefined; week: string | undefined; example: boolean; onPerson: (p: string) => void; onWeek: (w: string) => void;
 }) {
   const weeks = entry?.weeks ?? [];
   const groups = peopleByGroup(people);
@@ -93,7 +95,7 @@ function Pickers({ people, person, entry, week, locked, onPerson, onWeek }: {
     <div className="row" style={{ alignItems: "flex-end" }}>
       <div className="field" style={{ minWidth: 220 }}>
         <label className="field__label" htmlFor="wk-person">Whose week</label>
-        <select id="wk-person" className="select" value={person} disabled={locked} onChange={(e) => onPerson(e.target.value)}>
+        <select id="wk-person" className="select" value={person} onChange={(e) => onPerson(e.target.value)}>
           {groups.map((g) => (
             <optgroup key={g.group} label={g.label}>
               {g.people.map((p) => <option key={p.person} value={p.person}>{personName(p) || p.person}</option>)}
@@ -103,12 +105,12 @@ function Pickers({ people, person, entry, week, locked, onPerson, onWeek }: {
       </div>
       <div className="field" style={{ minWidth: 180 }}>
         <label className="field__label" htmlFor="wk-week">Week</label>
-        <select id="wk-week" className="select" value={week ?? ""} disabled={locked || weeks.length === 0} onChange={(e) => onWeek(e.target.value)}>
+        <select id="wk-week" className="select" value={week ?? ""} disabled={weeks.length === 0} onChange={(e) => onWeek(e.target.value)}>
           {!weeks.includes(week ?? "") && week && <option value={week}>{weekLabel(week)}</option>}
           {weeks.map((x) => <option key={x} value={x}>{weekLabel(x)}</option>)}
         </select>
       </div>
-      {locked && <p className="note" style={{ alignSelf: "center" }}>Choosing someone else needs the live engine.</p>}
+      {example && <p className="note" style={{ alignSelf: "center" }}>Example data shows the same week for everyone.</p>}
     </div>
   );
 }
@@ -137,15 +139,19 @@ function Distance({ d, meta }: { d: CalendarWeek; meta: ReturnType<typeof useLoa
 }
 
 function WeekTable({ days }: { days: CalendarWeek["days"] }) {
+  const [all, setAll] = useState(false);
   const fmt = (v: string | number) => { const m = toMinutes(v); return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; };
+  const rows = days.flatMap((day) => spans(day.blocks).map((sp, i) => ({ key: `${day.dow}-${i}`, day: DAY_NAMES[day.dow] ?? String(day.dow), sp })));
+  const shown = all ? rows : rows.slice(0, 7);
   return (
     <Details summary="See your week as a table" wide>
       <div className="table-wrap"><table className="table">
         <thead><tr><th>Day</th><th>Block</th><th>From</th><th>To</th><th>People</th></tr></thead>
-        <tbody>{days.flatMap((day) => spans(day.blocks).map((s, i) => (
-          <tr key={`${day.dow}-${i}`}><td>{DAY_NAMES[day.dow] ?? day.dow}</td><td>{KIND_LABEL[s.kind]}</td><td className="num">{fmt(s.from)}</td><td className="num">{fmt(s.to)}</td><td>{s.attendees ? BUCKET[s.attendees] : ""}</td></tr>
-        )))}</tbody>
+        <tbody>{shown.map(({ key, day, sp }) => (
+          <tr key={key}><td>{day}</td><td>{KIND_LABEL[sp.kind]}</td><td className="num">{fmt(sp.from)}</td><td className="num">{fmt(sp.to)}</td><td>{sp.attendees ? BUCKET[sp.attendees] : ""}</td></tr>
+        ))}</tbody>
       </table></div>
+      {rows.length > 7 && <button type="button" className="btn btn--quiet btn--sm" aria-expanded={all} onClick={() => setAll(!all)}>{all ? "Show fewer" : `Show all ${rows.length}`}</button>}
     </Details>
   );
 }
@@ -197,39 +203,44 @@ function GapTable({ rows, meta, note }: { rows: GapRow[]; meta: ReturnType<typeo
 }
 
 function Suggestions({ state }: { state: ReturnType<typeof useLoad<CalSuggestion[]>> }) {
+  const [all, setAll] = useState(false);
   if (state.status === "error" && !state.data) return <ErrorState error={state.error} retry={state.reload} what="suggestions" />;
   if (!state.data) return <Loading label="Loading suggestions" />;
   const list = state.data.slice(0, 5);
+  const shown = all ? list : list.slice(0, 3);
   return (
     <section className="section" aria-labelledby="sug-h">
-      <div className="section__head">
-        <h2 className="section__title" id="sug-h">Ideas for a calmer week</h2>
-      </div>
+      <h2 className="u-sr-only" id="sug-h">Ideas for a calmer week</h2>
       {list.length === 0 ? <EmptyState title="Nothing to suggest" body="Your week is close to the expert's, so there is nothing worth changing right now." /> : (
-        <div className="sug-grid">
-          {list.map((s) => {
-            const [first, rest] = splitSentence(s.text);
-            return (
-              <article key={s.id} className="card card__pad sug" aria-label={s.title ?? s.text}>
-                {s.title && <h3 className="sug__title">{s.title}</h3>}
-                <p className="sug__text">{first}</p>
-                <Details summary="How this was worked out">
-                  <div className="stack" style={{ gap: "var(--space-2)" }}>
-                    {rest && <p className="note">{rest}</p>}
-                    <dl className="sug__nums">
-                      {Object.keys(s.numbers).map((k) => (
-                        <div key={k}><dt>{featureLabel(k)}</dt><dd><b className="tabular">{val(k, s.numbers[k])}</b><span className="u-muted"> you</span> · <span className="tabular">{s.expert_ref[`${k}_reference`] != null ? val(k, s.expert_ref[`${k}_reference`]) : s.expert_ref[k] != null ? val(k, s.expert_ref[k]) : "not given"}</span><span className="u-muted"> expert</span></dd></div>
-                      ))}
-                    </dl>
-                    <p className="note">{s.can_draft ? "A draft can be prepared." : "No draft is available for this one."}{s.evidence_weeks ? ` Seen over ${s.evidence_weeks} weeks.` : ""}</p>
-                  </div>
-                </Details>
-                {s.risk !== "low" && <p className="note">Risk: {s.risk}.</p>}
-                <p className="note">Nothing is sent, booked or changed.</p>
-              </article>
-            );
-          })}
-        </div>
+        <>
+          <ul className="plain-list sug-list" aria-label="Ideas, none acted on">
+            {shown.map((sg) => {
+              const [first, rest] = splitSentence(sg.text);
+              return (
+                <li key={sg.id} className="sug sug-item">
+                  {sg.title && <b className="sug__title">{sg.title}</b>}
+                  <span className="sug__text">{first}</span>
+                  <span className="u-sr-only"> Nothing is sent, booked or changed.</span>
+                  {(rest || Object.keys(sg.numbers).length > 0) && (
+                    <Details summary="Worked out">
+                      <div className="stack" style={{ gap: "var(--space-2)" }}>
+                        {rest && <p className="note">{rest}</p>}
+                        <dl className="sug__nums">
+                          {Object.keys(sg.numbers).map((k) => (
+                            <div key={k}><dt>{featureLabel(k)}</dt><dd><b className="tabular">{val(k, sg.numbers[k])}</b><span className="u-muted"> you</span> · <span className="tabular">{sg.expert_ref[`${k}_reference`] != null ? val(k, sg.expert_ref[`${k}_reference`]) : sg.expert_ref[k] != null ? val(k, sg.expert_ref[k]) : "not given"}</span><span className="u-muted"> expert</span></dd></div>
+                          ))}
+                        </dl>
+                        <p className="note">{sg.can_draft ? "A draft can be prepared." : "No draft is available."}{sg.evidence_weeks ? ` Seen over ${sg.evidence_weeks} weeks.` : ""}{sg.risk !== "low" ? ` Risk: ${sg.risk}.` : ""}</p>
+                      </div>
+                    </Details>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          <p className="note">Nothing is sent, booked or changed.</p>
+          {list.length > 3 && <button type="button" className="btn btn--quiet btn--sm" aria-expanded={all} onClick={() => setAll(!all)}>{all ? "Show fewer" : `Show all ${list.length}`}</button>}
+        </>
       )}
       <ChartFoot variant="about" brief badge={false} meta={state.meta} />
     </section>

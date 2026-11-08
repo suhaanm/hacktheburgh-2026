@@ -4,8 +4,9 @@ import { idle, useLoad } from "../hooks";
 import { ChartFoot, EmptyState, ErrorState, ExampleBadge, LegendItem, Loading, OriginBadge, PageHead, SourceNote, workerOriginLabel } from "../components/common";
 import { HabitDeltas } from "../components/HabitDeltas";
 import { Hint } from "../components/Hint";
-import { Details } from "../components/ui";
+import { Details, fitItems } from "../components/ui";
 import { splitSentence } from "../lib/week";
+import { readRememberedFree, writeRememberedFree } from "../lib/remember";
 import { DIGEST_LABEL, fmtPoints, fmtPointsInterval, fmtShare, gitHeadline, learnerLabel, readHabit, sortHabits, splitCounts } from "../lib/git";
 import type { GitHabit, GitHabits } from "../types";
 
@@ -15,7 +16,9 @@ export default function Git() {
   const [person, setPerson] = useState<string | null>(null);
   useEffect(() => {
     if (person || !people.data) return;
-    setPerson(people.data.default_person ?? people.data.learners[0]?.person ?? null);
+    const last = readRememberedFree("git-learner");
+    const known = new Set(people.data.learners.map((l) => l.person));
+    setPerson(people.data.default_person ?? (last && known.has(last) ? last : null) ?? people.data.learners[0]?.person ?? null);
   }, [people.data, person]);
   const repo = learners.find((l) => l.person === person)?.repo;
   const [allHabits, setAllHabits] = useState(false);
@@ -42,7 +45,7 @@ export default function Git() {
       <div className="row">
         <div className="field" style={{ minWidth: 220 }}>
           <label className="field__label" htmlFor="git-person">Learner</label>
-          <select id="git-person" className="select" value={person} onChange={(e) => setPerson(e.target.value)}>
+          <select id="git-person" className="select" value={person} onChange={(e) => { setPerson(e.target.value); writeRememberedFree("git-learner", e.target.value); }}>
             {learners.map((l) => <option key={l.person} value={l.person}>{learnerLabel(l.person)}</option>)}
           </select>
         </div>
@@ -79,10 +82,12 @@ export default function Git() {
       <section className="section" aria-labelledby="gh-how">
         <h2 className="section__title" id="gh-how">How this was counted</h2>
         <p className="note"><b className="tabular">{d.n_commits.toLocaleString("en-GB")}</b> commits were counted.</p>
-        <Details summary="Method and the habits as a table" wide>
+        <Details summary="Method" wide>
           <div className="stack">
             <p className="note">{DIGEST_LABEL[d.digest_source] ?? d.digest_source}. {d.digest_source === "rules" ? "No model was involved." : "It ran on this laptop and saw digests, not commit text."}{d.digest_warming ? " The model is still warming up, so rules answered for now." : ""}</p>
-            <HabitTable habits={habits} />
+            <Details summary="The habits as a table" wide>
+              <HabitTable habits={habits} />
+            </Details>
           </div>
         </Details>
       </section>
@@ -92,26 +97,28 @@ export default function Git() {
 
 function Suggestions({ d, flagged }: { d: GitHabits; flagged: GitHabit[] }) {
   const list = d.suggestions ?? flagged.map((f) => f.suggestion).filter((s): s is NonNullable<typeof s> => !!s);
+  const k = fitItems(list.map((s) => s.text), 44).shown.length;
+  const row = (s: (typeof list)[number]) => {
+    const [fact, advice] = splitSentence(s.text);
+    const { text, counts } = splitCounts(fact);
+    return (
+      <li key={s.id} className="sug-row" aria-label={s.text}>
+        <span className="sug__text">{text}{counts && <> <Hint label="The counts behind this">{counts}</Hint></>}</span>
+        {advice && <span className="u-muted"> {advice}</span>}
+      </li>
+    );
+  };
   return (
     <Details summary={`Habits worth a look (${list.length})`} wide>
       {list.length === 0 ? (
         <EmptyState title="Nothing to suggest" body="No habit is far enough from the experts to be worth a change right now." />
       ) : (
-        <div className="sug-grid">
-          {list.map((s) => {
-            const [fact, advice] = splitSentence(s.text);
-            const { text, counts } = splitCounts(fact);
-            return (
-              <article key={s.id} className="card card__pad sug" aria-label={s.text}>
-                <p className="sug__text">{text}{counts && <> <Hint label="The counts behind this">{counts}</Hint></>}</p>
-                {advice && <p className="note">{advice}</p>}
-                {s.can_draft && <p className="note">A draft can be prepared.</p>}
-              </article>
-            );
-          })}
+        <div className="stack">
+          <ul className="plain-list sug-rows" aria-label="Habits, none acted on">{list.slice(0, k).map(row)}</ul>
+          {list.length > k && <Details summary={`More (${list.length - k})`}><ul className="plain-list sug-rows">{list.slice(k).map(row)}</ul></Details>}
+          <p className="note">{list.some((s) => s.can_draft) ? "Drafts can be prepared. " : ""}Nothing is committed or pushed.</p>
         </div>
       )}
-      {list.length > 0 && <p className="note">Nothing is committed or pushed.</p>}
     </Details>
   );
 }

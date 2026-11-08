@@ -14,21 +14,72 @@ export function Details({ summary, children, defaultOpen = false, onToggle, clas
   );
 }
 
-/** The one footnote under a worker chart: n, split, interval level, method, in a short key list. Admin and Evidence screens print their own footer instead. */
+/** Words in a piece of copy (a token with a letter or a digit is a word). */
+export const wordCount = (t: string): number => t.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
+
+/** The rows of a label and value list that read at a glance, and the rows whose value is a sentence or more (those go behind one closed "More"). */
+export function splitRows(rows: [string, ReactNode][], maxWords = 8): { short: [string, ReactNode][]; long: [string, ReactNode][] } {
+  const short: [string, ReactNode][] = [];
+  const long: [string, ReactNode][] = [];
+  for (const r of rows) (typeof r[1] === "string" && wordCount(r[1]) > maxWords ? long : short).push(r);
+  return { short, long };
+}
+
+/** Label and value rows. A row is `label : value`; the label never restates the title above it. */
+export function FactRows({ rows, className = "about__list" }: { rows: [string, ReactNode][]; className?: string }) {
+  return (
+    <dl className={className}>
+      {rows.map(([k, v]) => (
+        <div key={k} style={{ display: "contents" }}>
+          <dt>{k}</dt>
+          <dd>{v}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** Split `items` into the ones that fit in `maxWords` words (at least one) and the rest. For a list of notes that is read in an opened block. */
+export function fitItems<T extends string>(items: T[], maxWords = 48): { shown: T[]; rest: T[] } {
+  const shown: T[] = [];
+  let used = 0;
+  for (const it of items) {
+    const w = wordCount(it);
+    if (shown.length > 0 && used + w > maxWords) break;
+    shown.push(it);
+    used += w;
+  }
+  return { shown, rest: items.slice(shown.length) };
+}
+
+/**
+ * A list of short notes (limits, caveats) that reads in an opened block: the first ones that fit, then the rest behind one closed "More". Nothing is dropped;
+ * the order is the order given. An empty list draws nothing.
+ */
+export function NoteList({ items, maxWords = 48, more = "More" }: { items: string[]; maxWords?: number; more?: string }) {
+  if (items.length === 0) return null;
+  const { shown, rest } = fitItems(items, maxWords);
+  return (
+    <>
+      <ul className="plain-list">{shown.map((t) => <li key={t} className="note">{t}</li>)}</ul>
+      {rest.length > 0 && <Details summary={`${more} (${rest.length})`}><ul className="plain-list">{rest.map((t) => <li key={t} className="note">{t}</li>)}</ul></Details>}
+    </>
+  );
+}
+
+/**
+ * The one footnote under a worker chart: n, split, interval level, method, as label and value rows. A value that is a sentence goes behind one closed
+ * "More" so the opened block stays a short list. Admin and Evidence screens print their own footer instead.
+ */
 export function AboutData({ rows, summary = "About this data" }: { rows: [string, ReactNode][]; summary?: string }) {
   if (rows.length === 0) return null;
+  const { short, long } = splitRows(rows);
   return (
     <details className="details about">
       <summary>{summary}</summary>
       <div className="details__body">
-        <dl className="about__list">
-          {rows.map(([k, v]) => (
-            <div key={k} style={{ display: "contents" }}>
-              <dt>{k}</dt>
-              <dd>{v}</dd>
-            </div>
-          ))}
-        </dl>
+        {short.length > 0 && <FactRows rows={short} />}
+        {long.length > 0 && <Details summary="More"><FactRows rows={long} /></Details>}
       </div>
     </details>
   );

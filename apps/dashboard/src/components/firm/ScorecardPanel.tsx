@@ -4,7 +4,7 @@ import { useLoad, type LoadState } from "../../hooks";
 import type { AnalyticMeta, EvalReport } from "../../types";
 import { ChartFoot, EmptyState, ErrorState, ExampleBadge, Loading, Note, OriginBadge, SourceNote, workerOriginLabel } from "../common";
 import { Hint } from "../Hint";
-import { Details } from "../ui";
+import { Details, fitItems } from "../ui";
 import exampleV2 from "../../fixtures/predictions-mlv2.json";
 import { Reliability } from "./Reliability";
 import { ScoreChart, TteChart, type ScoreRowSpec } from "./ScoreRows";
@@ -165,26 +165,37 @@ function Ready({ card, load, audience }: { card: Scorecard; load: LoadState<Eval
         </details>
         <details className="details-lite">
           <summary>What this does not show</summary>
-          <ul className="plain-list sc-list">
-            <li>n = {card.meta.n ?? "not reported"} {card.meta.nUnit}. {card.meta.origin === "real" ? "Measured from real people." : "Synthetic personas from our own generator, not people."}{card.meta.split ? ` Split: ${card.meta.split}.` : ""}</li>
-            <li>Not validated on real people. The live study with teammates has not been run.</li>
-            <li>The label is no progress in the next 60 seconds. That is not the same as confusion: fast thinking and slow typing both look stuck.</li>
-            {card.limits.map((t) => <li key={t}>{t}</li>)}
-            {card.caveats.map((t) => <li key={t}>{t}</li>)}
-          </ul>
+          <SoftList items={[
+            `n = ${card.meta.n ?? "not reported"} ${card.meta.nUnit}. ${card.meta.origin === "real" ? "Measured from real people." : "Synthetic personas from our own generator, not people."}${card.meta.split ? ` Split: ${card.meta.split}.` : ""}`,
+            "Not validated on real people. The live study with teammates has not been run.",
+            "The label is no progress in the next 60 seconds. That is not the same as confusion: fast thinking and slow typing both look stuck.",
+            ...card.limits,
+            ...card.caveats,
+          ]} />
         </details>
         <details className="details-lite">
           <summary>How this was scored</summary>
-          <ul className="plain-list sc-list">
-            {card.basis && <li>{card.basis}</li>}
-            {card.binsLabel && <li>Bands: {card.binsLabel}.</li>}
-            <li>The interval on each dot is a Wilson interval from that band's own count. Bands are treated as independent, so these intervals are narrower than the spread between people.</li>
-            {card.intervalNote && <li>{card.intervalNote}</li>}
-            {card.v2Status && <li>Models v2: {card.v2Status.status === "pending" ? "no result yet" : card.v2Status.status.replace("_", " ")}{card.v2Status.reason ? ` (${card.v2Status.reason})` : ""}.</li>}
-          </ul>
+          <SoftList items={[
+            ...(card.basis ? [card.basis] : []),
+            ...(card.binsLabel ? [`Bands: ${card.binsLabel}.`] : []),
+            "The interval on each dot is a Wilson interval from that band's own count. Bands are treated as independent, so these intervals are narrower than the spread between people.",
+            ...(card.intervalNote ? [card.intervalNote] : []),
+            ...(card.v2Status ? [`Models v2: ${card.v2Status.status === "pending" ? "no result yet" : card.v2Status.status.replace("_", " ")}${card.v2Status.reason ? ` (${card.v2Status.reason})` : ""}.`] : []),
+          ]} />
         </details>
       </section>
     </div>
+  );
+}
+
+/** A short list: the lines that fit in about fifty words, then the rest behind one closed "More". */
+function SoftList({ items }: { items: string[] }) {
+  const { shown, rest } = fitItems(items, 50);
+  return (
+    <>
+      <ul className="plain-list sc-list">{shown.map((t) => <li key={t}>{t}</li>)}</ul>
+      {rest.length > 0 && <Details summary={`More (${rest.length})`}><ul className="plain-list sc-list">{rest.map((t) => <li key={t}>{t}</li>)}</ul></Details>}
+    </>
   );
 }
 
@@ -293,11 +304,13 @@ function TteSection({ card }: { card: Scorecard }) {
           <figure className="chart">
             <div className="sc-titlerow"><h3 className="chart__title">Predicted and observed minutes</h3></div>
             <TteChart pairs={t.pairs} />
-            <ul className="legend" aria-label="How to read the bars">
-              <li className="legend__item"><svg width="14" height="12" aria-hidden="true"><rect className="sc-tte sc-tte--pred" x="1" y="1" width="12" height="10" /></svg>Outline: predicted</li>
-              <li className="legend__item"><svg width="14" height="12" aria-hidden="true"><rect className="sc-tte sc-tte--obs" x="1" y="1" width="12" height="10" /></svg>Solid: observed (Kaplan-Meier)</li>
-              <li className="legend__item">Groups run from the shortest predicted wait to the longest</li>
-            </ul>
+            <Details summary="Key">
+              <ul className="legend" aria-label="How to read the bars">
+                <li className="legend__item"><svg width="14" height="12" aria-hidden="true"><rect className="sc-tte sc-tte--pred" x="1" y="1" width="12" height="10" /></svg>Outline: predicted</li>
+                <li className="legend__item"><svg width="14" height="12" aria-hidden="true"><rect className="sc-tte sc-tte--obs" x="1" y="1" width="12" height="10" /></svg>Solid: observed (Kaplan-Meier)</li>
+                <li className="legend__item">Groups run from the shortest predicted wait to the longest</li>
+              </ul>
+            </Details>
           </figure>
         )}
       </div>

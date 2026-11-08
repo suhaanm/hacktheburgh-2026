@@ -28,6 +28,8 @@ const hintText = async (scope, name) => {
   await page.keyboard.press("Escape");
   return t;
 };
+// The question box of Explain is one closed row, "Ask about this case": open it when it is shut.
+const openAsk = async (scope) => { const d = scope.locator("details", { has: scope.locator("summary", { hasText: "Ask about this case" }) }).first(); if (!(await d.evaluate((e) => e.open))) await d.locator("summary").first().click(); };
 const openAll = (scope) => scope.locator("details").evaluateAll((els) => els.forEach((e) => { e.open = true; }));
 const go = async (hash, wait = 700) => {
   // Same-hash navigations do not remount, so hop through another route first.
@@ -384,6 +386,7 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   const usesNote = await hintText(ex, /Where (this number comes|these numbers come) from/);
   check("explain: each sentence has a hint with the packet facts its numbers come from", /gap · case s/.test(usesNote) && /9 min 45 s/.test(usesNote) && /not supplied by the model/.test(usesNote));
   check("explain: five example questions are offered", (await ex.locator("[aria-label='Example questions'] button").count()) === 5);
+  await openAsk(ex);
   await ex.getByRole("button", { name: "How sure are you?" }).click();
   await page.waitForTimeout(500);
   check("explain: a chip asks, and the reply is labelled as an answer", /The answer/.test(await ex.innerText()));
@@ -423,6 +426,7 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   check("explain: a live answer is not badged as an example", (await live.locator("[data-testid=explain-answer]").count()) === 1 && !/example data/i.test(await live.innerText()));
   delayMs = 0;
   scenario = result({ attempts: [{ route: "local", ok: false, reason: "provenance", codes: ["number_not_in_packet"] }], fallback_reason: "provenance" });
+  await openAsk(live);
   await live.getByRole("button", { name: "Why was I slow?" }).click();
   await page.waitForTimeout(600);
   check("explain: a rejected model answer says the template was used and why", /fixed template because a number or name in the model's words did not match the data/.test(await live.innerText()));

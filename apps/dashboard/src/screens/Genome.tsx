@@ -12,6 +12,7 @@ import { DotWhisker } from "../components/DotWhisker";
 import { TransitionGraph } from "../components/TransitionGraph";
 import { describeColumn, layoutRibbon } from "../lib/ribbon";
 import { cogLabel, fmtDuration, fmtInterval, signed } from "../lib/format";
+import { useRemembered } from "../lib/remember";
 import type { Genome as GenomeData } from "../types";
 
 type View = "ribbon" | "graph";
@@ -19,8 +20,9 @@ type View = "ribbon" | "graph";
 export default function Genome() {
   const route = useRoute();
   const person = route.query.get("person") ?? undefined;
-  const [view, setView] = useState<View>("ribbon");
-  const [reference, setReference] = useState<"nearest_expert" | "consensus">("nearest_expert");
+  // The view and the comparison open the way the worker left them (docs/knack-ux/defaults.md).
+  const [view, setView] = useRemembered<View>("genome-view", ["ribbon", "graph"], "ribbon");
+  const [reference, setReference] = useRemembered<"nearest_expert" | "consensus">("genome-reference", ["nearest_expert", "consensus"], "nearest_expert");
   const g = useLoad(() => api.genome("t_entitlement_check", person, reference), [person, reference]);
   const t = useLoad(() => api.transitions("t_entitlement_check"), []);
 
@@ -130,37 +132,41 @@ function RibbonView({ data, meta, reference, setReference }: { data: GenomeData;
           <ul className="legend" aria-label="How to read the ribbon">
             <LegendItem swatch={<span className="sw sw--expert" />}>Expert step</LegendItem>
             <LegendItem swatch={<span className="sw sw--novice" />}>Novice step</LegendItem>
-            <LegendItem swatch={<span className="sw sw--hatch sw--muted" />}>Hatched: a step only one of them did (a skipped step counts as time saved)</LegendItem>
+            <LegendItem swatch={<span className="sw sw--hatch sw--muted" />}>Hatched: only one of them did it</LegendItem>
             <LegendItem swatch={<span className="sw sw--bad" />}>Red: seconds lost in that column</LegendItem>
-            <LegendItem swatch={<span className="sw sw--muted" />}>Column width: the longer of the two durations</LegendItem>
           </ul>
-          <div className="stack">
-            <p className="note">Nearest expert is the closest single trace; consensus blends all experts.</p>
-            <div className="segmented" role="group" aria-label="Reference">
+          <div className="row" role="group" aria-label="Reference">
+            <span className="field__label">Compare with<Hint label="About the comparison">Nearest expert is the closest single trace; consensus blends all experts.</Hint></span>
+            <span className="segmented">
               <button type="button" aria-pressed={reference === "nearest_expert"} onClick={() => setReference("nearest_expert")}>Nearest expert</button>
               <button type="button" aria-pressed={reference === "consensus"} onClick={() => setReference("consensus")}>Consensus</button>
-            </div>
+            </span>
           </div>
-          <p className="note">Skipping a step shows as time saved here. It often costs more later, and the waterfall counts that rework separately when it happened.</p>
-          {consequences.length > 0 && <ul className="plain-list">{consequences.map((c) => <li key={c.step} className="note"><b>{cogLabel(c.step)}:</b> {sentence(c)}</li>)}</ul>}
-      <Details summary="As a table" wide>
-        <div className="table-wrap">
-          <table className="table">
-            <thead><tr><th>Step</th><th>Expert</th><th>Novice</th><th className="num">Lost</th></tr></thead>
-            <tbody>
-              {cols.map((c, i) => (
-                <tr key={i}>
-                  <td className="num">{i + 1}</td>
-                  <td>{c.expert ? `${cogLabel(c.expert.cog)}, ${Math.round(c.expert.seconds)} s` : "no step"}</td>
-                  <td>{c.novice ? `${cogLabel(c.novice.cog)}, ${Math.round(c.novice.seconds)} s` : "skipped"}</td>
-                  <td className="num">{c.saved > 0 ? `saved ${Math.round(c.saved)} s` : `${Math.round(c.lost)} s`}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Details>
-          <ChartFoot variant="about" meta={meta} badge={false} />
+          <p className="note">A skipped step shows as time saved here. It often costs more later.</p>
+          <Details summary="More" wide>
+            <div className="stack">
+              <p className="note">Column width is the longer of the two durations. The waterfall counts rework separately, where it happened.</p>
+              {consequences.length > 0 && <ul className="plain-list">{consequences.map((c) => <li key={c.step} className="note"><b>{cogLabel(c.step)}:</b> {sentence(c)}</li>)}</ul>}
+              <Details summary="As a table" wide>
+                <div className="table-wrap">
+                  <table className="table">
+                    <thead><tr><th>Step</th><th>Expert</th><th>Novice</th><th className="num">Lost</th></tr></thead>
+                    <tbody>
+                      {cols.map((c, i) => (
+                        <tr key={i}>
+                          <td className="num">{i + 1}</td>
+                          <td>{c.expert ? `${cogLabel(c.expert.cog)}, ${Math.round(c.expert.seconds)} s` : "no step"}</td>
+                          <td>{c.novice ? `${cogLabel(c.novice.cog)}, ${Math.round(c.novice.seconds)} s` : "skipped"}</td>
+                          <td className="num">{c.saved > 0 ? `saved ${Math.round(c.saved)} s` : `${Math.round(c.lost)} s`}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Details>
+              <ChartFoot variant="about" meta={meta} badge={false} />
+            </div>
+          </Details>
         </div>
       </Details>
     </div>

@@ -126,7 +126,7 @@ export default function Growth() {
         {view.status === "ready" && (
           <Details summary="The fade" wide>
             <GrowthChart view={view} part="fade" />
-            <GrowthKey view={view} part="fade" />
+            <Details summary="Key"><GrowthKey view={view} part="fade" /></Details>
           </Details>
         )}
         {hasLedger && (

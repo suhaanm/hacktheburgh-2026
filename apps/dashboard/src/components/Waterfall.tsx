@@ -16,7 +16,7 @@ export function Waterfall({ steps, totalCi }: { steps: WaterfallStep[]; totalCi:
   const axisH = 26;
   const H = top + rows.length * rowH + axisH;
   const x = scaleLinear().domain([Math.floor(min / 50) * 50, Math.ceil(max / 50) * 50]).range([0, Math.max(120, width - labelW - valW - 8)]).nice();
-  const ticks = x.ticks(compact ? 4 : 7);
+  const ticks = x.ticks(compact ? 3 : 5);
 
   return (
     <div ref={ref} className="wf">

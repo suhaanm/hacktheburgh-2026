@@ -1,25 +1,26 @@
 import { useState } from "react";
-import { plural, type OffloadItem } from "./model";
+import { FactRows } from "../ui";
+import { type OffloadItem } from "./model";
 
 /**
- * Work done for the person, inside the closed disclosure "What Knack did for you". Counted and listed apart from the score, and said to be outside it:
- * overnight work never moves the curve (a printed rule, never only in a Hint).
+ * Work done for the person, inside the closed disclosure "What Knack did for you": two label and value rows, the list, and the one rule that matters
+ * (overnight work never moves the curve: printed, never only in a Hint). Two rows of the list, then "Show all".
  */
 export function Offloaded({ delegated, automation, minutes, items }: { delegated: number; automation: number; minutes: { delegated: number; automation: number }; items: OffloadItem[] }) {
   const none = delegated + automation === 0;
   const [all, setAll] = useState(false);
-  const shown = all ? items : items.slice(0, 5);
+  const shown = all ? items : items.slice(0, 2);
+  const row = (n: number, one: string, many: string, min: number): string => `${n} ${n === 1 ? one : many}${min > 0 ? `, about ${Math.round(min)} min` : ""}`;
   return (
     <div className="gr-off">
-      <p className="note">Runs you asked for and overnight automations. They never change your independence score.</p>
       {none ? (
-        <p className="note">Nothing has run for you yet.</p>
+        <p className="note">Nothing has run for you yet. Work done for you never changes your independence score.</p>
       ) : (
         <>
-          <p className="gr-off__counts num">
-            <span><b>{delegated}</b> {delegated === 1 ? "run you asked for" : "runs you asked for"}{minutes.delegated > 0 && <span className="gr-off__min"> · about {Math.round(minutes.delegated)} min</span>}</span>
-            <span><b>{automation}</b> {automation === 1 ? "overnight automation" : "overnight automations"}{minutes.automation > 0 && <span className="gr-off__min"> · about {Math.round(minutes.automation)} min</span>}</span>
-          </p>
+          <FactRows rows={[
+            ["You asked for", row(delegated, "run", "runs", minutes.delegated)],
+            ["Overnight", row(automation, "automation", "automations", minutes.automation)],
+          ]} />
           {items.length > 0 && (
             <ol className="gr-off__list">
               {shown.map((i) => (
@@ -31,8 +32,8 @@ export function Offloaded({ delegated, automation, minutes, items }: { delegated
               ))}
             </ol>
           )}
-          {items.length > 5 && <button type="button" className="btn btn--quiet btn--sm" aria-expanded={all} onClick={() => setAll(!all)}>{all ? "Show fewer" : `Show all ${items.length}`}</button>}
-          {items.length > 0 && items.length < delegated + automation && <p className="note">Showing the latest {plural(items.length, "run")}.</p>}
+          <p className="note">None of it changes your independence score.</p>
+          {items.length > 2 && <button type="button" className="btn btn--quiet btn--sm" aria-expanded={all} onClick={() => setAll(!all)}>{all ? "Show fewer" : `Show all ${items.length}`}</button>}
         </>
       )}
     </div>

@@ -127,7 +127,8 @@ function Column({ c, uid, yE, yN, laneH, yBase, lostH, maxLost, narrow, active, 
       {c.novice ? (
         <>
           <rect className="rb-novice" x={c.novice.x} y={yN} width={Math.max(2, c.novice.w)} height={laneH} rx={2} />
-          {lines(c.novice.cog, c.novice.w, "rb-text--on-novice", yN, c.novice.x)}
+          {/* The step is named once per column: on the novice lane only when it differs from the expert's (the column's accessible name says both). */}
+          {!(c.expert && c.expert.cog === c.novice.cog) && lines(c.novice.cog, c.novice.w, "rb-text--on-novice", yN, c.novice.x)}
         </>
       ) : (
         <>
