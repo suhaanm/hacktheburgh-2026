@@ -9,8 +9,9 @@ import { Reliability, RiskCoverage, type RcPoint, type RelPoint } from "../compo
 import { EvidenceMap, OtherSections, PrivacyEvidence, useHashOpen } from "../components/EvidenceMap";
 import { LiveRuns } from "../components/LiveRuns";
 import { HrtEvidence } from "../components/HrtEvidence";
+import { AgenticRounds } from "../components/AgenticRounds";
 import { Details } from "../components/ui";
-import { mapRows, otherSections } from "../lib/evidence";
+import { mapRows, otherSections, plainScope } from "../lib/evidence";
 import { fmtInterval, fmtPct, fmtPctInterval, signed } from "../lib/format";
 import type { AnalyticMeta, EvalReport, Interval, Limitation } from "../types";
 
@@ -122,6 +123,7 @@ export default function Evidence() {
         <PresenceBlock rep={rep} />
         <Claims rep={rep} />
         <AgentRuns rep={rep} />
+        <AgenticRounds rep={rep} />
         <PrivacyEvidence s={sec(rep, "privacy")} row={rows.find((x) => x.section === "privacy") ?? null} />
         <Study rep={rep} />
         <OtherSections rows={others} sections={rep.sections as unknown as Record<string, unknown>} />
@@ -506,7 +508,7 @@ function AgentRuns({ rep }: { rep: EvalReport }) {
         return (
           <Block id="runs" kicker="Does the agent finish the work, and survive a changed page?" claim={<>
             {clean ? `Clean path: ${clean.pass} of ${clean.n}. ` : ""}{robust ? `With failures injected: ${robust.pass} of ${robust.n}${isNum(t2) ? `, using tier 2 on ${t2} households` : ""}. ` : ""}
-            {disc ? `${disc.n} of ${disc.of} planted discrepancies flagged. ` : ""}{isNum(s.false_claims) ? `${typeof s.false_claims_scope === "string" && s.false_claims_scope ? `${s.false_claims_scope.charAt(0).toUpperCase()}${s.false_claims_scope.slice(1).replace(/\.$/, "")}: ` : "Scripted runs: "}${s.false_claims} false claims.` : ""}</>}>
+            {disc ? `${disc.n} of ${disc.of} planted discrepancies flagged. ` : ""}{isNum(s.false_claims) ? `${typeof s.false_claims_scope === "string" && s.false_claims_scope ? `${plainScope(s.false_claims_scope).charAt(0).toUpperCase()}${plainScope(s.false_claims_scope).slice(1).replace(/\.$/, "")}: ` : "Scripted runs: "}${s.false_claims} false claims.` : ""}</>}>
             <div className="stats">
               {clean && <RunStat title="Clean path" r={clean} />}
               {robust && <RunStat title="With injected failures" r={robust} />}
