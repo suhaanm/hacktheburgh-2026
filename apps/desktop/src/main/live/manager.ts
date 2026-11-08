@@ -89,6 +89,8 @@ export interface ManagerDeps {
   // The code-built context packet for a conversation (enums, ids and counts only; wake/context-packet.ts). It goes into the system instruction at
   // start and, changed lines only, as an update every ten seconds. Absent or throwing: the session starts with the fixed fallback text.
   context?: (o: { tools: FunctionDeclaration[]; trigger: 'key' | 'wake' }) => string
+  // The code-written first turn of a wake conversation (the very first one has a welcome). Absent or null: none; the model waits for the worker.
+  opening?: () => string | null
   usage?: UsageLog
   breaker?: CircuitBreaker
   prices?: LivePrices
@@ -117,7 +119,11 @@ export interface LiveManager {
   /** The worker answered the question card: tell the running conversation which step they meant. */
   noteAnswer(id: string): void
   hasSession(): boolean
+  /** A line the worker typed into the Ask bar, into the conversation that is open (false when there is none, or it cannot be sent). It never opens a conversation. */
+  injectTyped(text: string): boolean
   voiceAllowed(): boolean
+  /** What would stop a conversation from opening right now, leaving the worker's consent out (the first-wake cards ask for that): null when nothing would. */
+  blocker(): Refusal | null
   /** The words "Hey Knack" were heard: open a hands-free conversation through the same gates as the key. False (with `status().refused` set) when it may not start. */
   startFromWake(): boolean
 }
@@ -187,11 +193,13 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
   }
 
   // ---- may a conversation start now? (all code, first failing reason)
-  function startRefusal(): Refusal | null {
+  function startRefusal(o: { ignoreConsent?: boolean } = {}): Refusal | null {
     const s = d.settings.get()
     if (!liveFlagOn(env)) return 'flag_off'
-    if (!s.liveEnabled) return 'not_enabled'
-    if (!voiceConsent(s)) return 'no_consent'
+    if (!o.ignoreConsent) {
+      if (!s.liveEnabled) return 'not_enabled'
+      if (!voiceConsent(s)) return 'no_consent'
+    }
     if (s.livePausedUntilMs > now()) return 'paused'
     if (d.killed()) return 'killed'
     if (d.agentActing()) return 'agent_acting'
@@ -245,7 +253,7 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
       lastPacket = context || null
     }
     const s = new LiveSession({
-      config: configFor(mode, wake, context),
+      config: { ...configFor(mode, wake, context), ...(wake && d.opening ? { openingText: ((): string | undefined => { try { return d.opening?.() ?? undefined } catch { return undefined } })() } : {}) },
       tokens: d.tokens,
       socketFactory: d.socketFactory,
       url: d.url,
@@ -414,7 +422,9 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
     stopAll,
     workerUsedVoice: () => usedVoice,
     hasSession: () => session !== null && !session.isEnded,
+    injectTyped: (text) => (session !== null && !session.isEnded ? session.injectText(text) : false),
     voiceAllowed: () => startRefusal() === null,
+    blocker: () => startRefusal({ ignoreConsent: true }),
     startFromWake() {
       if (!liveFlagOn(env) || (session && !session.isEnded) || waiter) return false
       usedVoice = true

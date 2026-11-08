@@ -44,6 +44,8 @@ export interface SessionConfig {
   // A session that began with the words "Hey Knack": hands-free (the microphone stays open, the server hears the turns), with the wake tools
   // `clear` and `do_it_for_me`. Ends on a spoken goodbye, a quiet minute, the cap, Stop or the kill switch.
   wake?: boolean
+  // A code-written first turn, sent once the channel exists (trusted text; the first conversation's welcome).
+  openingText?: string
   model: string
   // Set in transcribe mode when a dedicated transcription model is configured: the answer is text, not audio.
   textOnlyModel?: boolean
@@ -118,6 +120,7 @@ const NOISE_FLOOR = 0.015
 const MAX_PENDING_AUDIO = 100 // about 3 s of 32 ms chunks while the socket is still opening
 const MAX_TRANSCRIPT_CHARS = 600
 const TOOL_TIMEOUT_MS = 12_000
+const MAX_QUEUED_REPLIES = 8
 
 export class LiveSession {
   phase: SessionPhase = 'connecting'
@@ -128,6 +131,8 @@ export class LiveSession {
   private conn: LiveConnection | null = null
   private egress: LiveEgress | null = null
   private pending: string[] = []
+  // Tool replies finished before the outgoing channel existed; sent in order when it does.
+  private queuedReplies: FunctionResponse[] = []
   private held = false
   private ended = false
   private micOpen = false
@@ -273,6 +278,11 @@ export class LiveSession {
     })
     this.lastActivityAt = this.now()
     this.setPhase(this.held ? 'listening' : 'waiting')
+    // Tool replies that were ready before the channel was go first, in the order they finished.
+    const replies = this.queuedReplies
+    this.queuedReplies = []
+    for (const fr of replies) this.egress.control(msg.toolResponse([fr]))
+    if (this.c.openingText && this.c.mode === 'converse') this.egress.control(msg.text(this.c.openingText))
     // What was said while the socket opened goes first, through the same gates as everything else.
     const buffered = this.pending
     this.pending = []
@@ -380,6 +390,7 @@ export class LiveSession {
     // A turn announced at the key press that never got as far as a connection: its row is completed as not sent.
     if (!this.egress && this.firstTurn?.ref) void this.d.ledger.audioResult(this.firstTurn.ref, { ok: false, seconds: 0, bytes: 0 }).catch(() => undefined)
     this.pending = []
+    this.queuedReplies = []
     try {
       if (this.micOpen) this.d.audio.stopMic()
     } catch {
@@ -569,7 +580,10 @@ export class LiveSession {
     this.inflight -= 1
     if (this.ended) return
     const fr: FunctionResponse = { id: call.id, name: call.name, response, scheduling: schedulingFor(call.name, response) }
-    this.egress?.control(msg.toolResponse([fr]))
+    // The outgoing channel is built only after the microphone is open. A tool call that arrives (and finishes) before that must not lose its reply:
+    // it waits here, in order, and goes out the moment the channel exists. Bounded, and dropped with the session.
+    if (this.egress) this.egress.control(msg.toolResponse([fr]))
+    else if (this.queuedReplies.length < MAX_QUEUED_REPLIES) this.queuedReplies.push(fr)
     this.recompute()
   }
 

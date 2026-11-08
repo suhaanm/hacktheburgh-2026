@@ -28,7 +28,7 @@ export interface IpcDeps {
   awareness?: { state(): AwarenessCardState; consent(raw: unknown): AwarenessCardState }
 }
 
-const PermissionPaneSchema = z.enum(['screen', 'microphone', 'accessibility'])
+const PermissionPaneSchema = z.enum(['screen', 'microphone', 'accessibility', 'speech'])
 
 const RendererStatePatchSchema = z.object({
   phase: z.enum(['asleep', 'listening_for_name', 'connecting', 'live', 'thinking', 'speaking', 'error']).optional(),

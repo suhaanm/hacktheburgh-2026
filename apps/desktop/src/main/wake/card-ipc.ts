@@ -43,3 +43,20 @@ declare global {
 export function isRealMouseClick(e: { isTrusted: boolean; detail: number; pointerType?: string; button?: number }): boolean {
   return e.isTrusted === true && e.detail >= 1 && e.pointerType === 'mouse' && (e.button === undefined || e.button === 0)
 }
+
+export const CARD_INSET = 16
+export const MISTAP_GUARD_MS = 600
+
+export interface RectLike {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/** Bottom-right of the work area of the display that holds the pointer, inset 16 px, clamped so a card taller than the area stays on it. Pure. */
+export function cardBounds(workArea: RectLike, size: { w: number; h: number }, inset = CARD_INSET): RectLike {
+  const width = Math.min(size.w, workArea.width - 2 * inset)
+  const height = Math.min(size.h, workArea.height - 2 * inset)
+  return { x: workArea.x + workArea.width - width - inset, y: workArea.y + workArea.height - height - inset, width, height }
+}

@@ -9,7 +9,7 @@
 // The decisions are in the pure modules (model-mode, stack, activity, shell-machine, quit-guard, window-state, app-menu); this file connects them to Electron and has no
 // rules of its own.
 import path from 'node:path'
-import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, powerSaveBlocker } from 'electron'
 import { APP_NAME, APP_ORIGIN } from '../../shared/brand'
 import type { HudActivity } from '../../shared/hud'
 import type { Settings } from '../../shared/settings'
@@ -32,6 +32,11 @@ import { dashboardSettingsPatch, dashboardSettingsView } from './settings-bridge
 import type { Stack, StackConfig, StackState } from './stack'
 import { createRealStack } from './stack-real'
 import { createWindowStateStore } from './window-state'
+import { createKeepAwake, type BlockerPort } from './keep-awake'
+import { permKindOf, paneOf, permissionsView } from './permission-bridge'
+import { createTryRing } from './try-ring'
+import type { PermissionPane, PermissionStatus } from '../../shared/permissions'
+import type { HelperStatus } from '../wake/helper'
 
 export type MenubarState = 'working' | 'workingOff' | 'stopped' | 'idle' | 'count' | 'marker'
 
@@ -65,6 +70,8 @@ export interface KnackEarlyDeps {
   onChange?: () => void
   /** Shows a native sheet; default is dialog.showMessageBox. Injectable for the check. */
   showSheet?: (o: { message: string; detail?: string; buttons: readonly [string, string] }) => Promise<'stop_and_quit' | 'keep_working'>
+  /** The power save blocker held only while a run works (default: Electron's powerSaveBlocker). Injectable for the check. */
+  blocker?: BlockerPort
 }
 
 export interface KnackLateDeps {
@@ -77,6 +84,20 @@ export interface KnackLateDeps {
   pendingQueue: () => Promise<number | null>
   /** The pill's End button on a voice conversation: end the conversation itself (the pill alone is only the status). */
   onVoiceEnd?: () => void
+  /** The Ask bar window: the machine opens it on an Option-Space tap or the menu bar's Ask Knack row. */
+  askBar?: { open(prefill?: string): void }
+  /** The macOS permissions (src/main/permissions.ts): what the first run shows and asks for through the bridge. */
+  permissions?: {
+    status(): Promise<PermissionStatus>
+    requestMicrophone(): Promise<boolean>
+    requestScreen(): Promise<PermissionStatus>
+    requestAccessibility(): boolean
+    openSettings(pane: PermissionPane): void
+  }
+  /** Hey Knack's listener, for the speech recognition row: its status says whether speech was allowed; `request` switches the listener on, which makes macOS ask. */
+  speech?: { helper(): HelperStatus | null; request(): void }
+  /** The on-screen ring and the ghost cursor (the overlay), and the bounds of the display the overlay covers. */
+  ring?: { show(box: [number, number, number, number], opts?: { ghost?: boolean }): void; clear(): void; displayBounds(): { x: number; y: number; width: number; height: number } }
 }
 
 export interface AgentSample {
@@ -100,6 +121,8 @@ export interface KnackShell {
   openMain(): void
   /** Settings… (the app menu, the menu bar item): open Knack on its Settings (#/settings; the dashboard's own Command-comma opens the same). */
   openSettings(): void
+  /** Set up again…: open Knack on its first run (the dashboard route SETUP_HASH). */
+  openSetup(): void
   /** Feeds the machine directly (the dev hook, the hidden check). Returns the machine's state after the event. */
   dispatch(event: ShellEvent): ShellState
   quitGuard(): QuitGuard
@@ -133,6 +156,9 @@ export function runsOf(raw: unknown): NonNullable<PillSignals['runs']>[number][]
   }
   return out
 }
+
+/** Set up again: the dashboard's own set-up screen (docs/KNACK_UX.md section 8: Settings, "Set up again"), in the Knack window. */
+export const SETUP_HASH = '#/setup'
 
 /** The fixed words of the card that a blocked run raises. (No model text on a surface.) */
 export const APPROVAL_CARD = { title: 'A run is waiting for you', body: 'It needs your approval to go on.', source: 'your run' } as const
@@ -203,6 +229,48 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
     if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
     deps.settings.patch(dashboardSettingsPatch(patch) as Partial<Settings>) // the store validates each value
     return dashboardSettingsView(deps.settings.get())
+  })
+
+  // What the first run needs of macOS, over the same own-page-only door: closed enums out, one named kind in. Nothing is requested unless the page asks for that kind.
+  const permView = async (): Promise<ReturnType<typeof permissionsView> | null> => (late?.permissions ? permissionsView(await late.permissions.status(), late.speech?.helper() ?? null) : null)
+  ipcMain.handle(KNACK_IPC.permState, async (event) => {
+    if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
+    const v = await permView()
+    if (!v) throw new Error('not ready')
+    return v
+  })
+  ipcMain.handle(KNACK_IPC.permRequest, async (event, raw: unknown) => {
+    if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
+    const kind = permKindOf(raw)
+    if (!kind) return { ok: false, reason: 'bad_request' as const }
+    const p = late?.permissions
+    if (!p) return { ok: false, reason: 'not_ready' as const }
+    if (kind === 'microphone') await p.requestMicrophone()
+    else if (kind === 'screen') await p.requestScreen()
+    else if (kind === 'accessibility') p.requestAccessibility()
+    else late?.speech?.request()
+    const state = await permView()
+    return state ? { ok: true as const, state } : { ok: false, reason: 'not_ready' as const }
+  })
+  ipcMain.handle(KNACK_IPC.permOpen, (event, raw: unknown) => {
+    if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
+    const kind = permKindOf(raw)
+    if (!kind || !late?.permissions) return false
+    late.permissions.openSettings(paneOf(kind))
+    return true
+  })
+  // The sample ring: the worker sees what the on-screen guide looks like, with no permission and no click. Four seconds, then it goes.
+  const tryRing = createTryRing({
+    ring: () => late?.ring,
+    window: () => {
+      const s = main.state()
+      const w = main.window()
+      return { visible: s.visible, minimised: s.minimised, content: w ? w.getContentBounds() : null }
+    },
+  })
+  ipcMain.handle(KNACK_IPC.tryRing, (event, raw: unknown) => {
+    if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
+    return tryRing.run(raw)
   })
 
   const dashboardBase = (s: StackState): string => (s.phase === 'ready' && s.dashboard === 'dev-server' && config.devUrl ? config.devUrl : APP_ORIGIN)
@@ -320,6 +388,9 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
       case 'focusMain':
         main.show()
         return
+      case 'openAskBar':
+        late?.askBar?.open()
+        return
       case 'holdCards':
         hud?.setHold({ ask: true })
         return
@@ -331,10 +402,18 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
     }
   }
 
+  // The Mac stays awake while a run works, and only then.
+  const keepAwake = createKeepAwake(deps.blocker ?? { start: (t) => powerSaveBlocker.start(t), stop: (id) => powerSaveBlocker.stop(id), isStarted: (id) => powerSaveBlocker.isStarted(id) }, (...a) => log(...a))
+  let realScreenRun = false
+  const syncAwake = (): void => keepAwake.update({ working: machine.activity === 'working', realScreen: realScreenRun, enabled: deps.settings.get().keepAwakeWhileWorking })
+
   const dispatch = (ev: ShellEvent): ShellState => {
     const r = reduce(machine, ev)
     machine = r.state
+    if (ev.type === 'run_started') realScreenRun = realScreenRun || ev.realScreen
+    if (machine.activity !== 'working') realScreenRun = false
     for (const e of r.effects) perform(e, ev)
+    syncAwake()
     deps.onChange?.()
     refreshDockMenu()
     return machine
@@ -346,7 +425,12 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
     dispatch({ type: 'menu_open_knack' })
     if (dashboardLoaded) main.loadDashboard(`${dashboardBase(stack.state())}/#/settings`)
   }
-  const handlers = { openSettings, showWindow: showMain, stopEverything: deps.stopEverything }
+  // The one set-up the app has: the dashboard's first run, in the Knack window. (The old side panel's own eight steps never run in the app.)
+  const openSetup = (): void => {
+    dispatch({ type: 'menu_open_knack' })
+    if (dashboardLoaded) main.loadDashboard(`${dashboardBase(stack.state())}/${SETUP_HASH}`)
+  }
+  const handlers = { openSettings, openSetup, showWindow: showMain, stopEverything: deps.stopEverything }
   Menu.setApplicationMenu(Menu.buildFromTemplate(buildAppMenuTemplate({ appName: APP_NAME, platform: process.platform, isPackaged: app.isPackaged, killAccelerator: deps.killAccelerator(), handlers })))
   app.setAboutPanelOptions({ applicationName: APP_NAME, applicationVersion: app.getVersion(), copyright: 'Built for Hack the Burgh XIII' })
   const offDock = registerDock(deps.settings, { dock: app.dock ?? undefined, hidden: deps.hidden, log: (...a) => log(...a) })
@@ -392,6 +476,7 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
   const offSettings = deps.settings.onChange((_s, patch) => {
     if ('pausedUntil' in patch) refreshDockMenu()
     if ('moveAsideWhileWorking' in patch) dispatch({ type: 'settings', moveAside: deps.settings.get().moveAsideWhileWorking })
+    if ('keepAwakeWhileWorking' in patch) syncAwake()
     // The models switch: a change restarts the whole app (the model port is built once, at start).
     if ('useLiveModels' in patch) {
       log('knack', 'the live models switch changed: restarting')
@@ -426,6 +511,7 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
     event.preventDefault()
     if (stopping) return
     stopping = true
+    keepAwake.dispose() // nothing is held on the way out
     void stack.stop().finally(() => {
       stackStopped = true
       app.exit(0)
@@ -536,7 +622,8 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
     },
     openMain: () => void dispatch({ type: 'menu_open_knack' }),
     openSettings,
-    dispatch,
+    openSetup,
+dispatch,
     quitGuard: () => guard,
     trayStatus: () => ({
       working: machine.activity === 'working' ? (late?.hud.state().activity?.label ?? 'Starting').toLowerCase() : machine.activity === 'voice' ? 'listening' : null,
@@ -558,6 +645,7 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
       offLate?.()
       for (const i of intervals) clearInterval(i)
       clearDoneTimers()
+      keepAwake.dispose()
       if (minimiseTimer) clearTimeout(minimiseTimer)
       app.off('activate', onActivate)
       app.off('second-instance', onActivate)
@@ -570,6 +658,11 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
       ipcMain.removeHandler(KNACK_IPC.modelsSet)
       ipcMain.removeHandler(KNACK_IPC.settingsGet)
       ipcMain.removeHandler(KNACK_IPC.settingsPatch)
+      ipcMain.removeHandler(KNACK_IPC.permState)
+      ipcMain.removeHandler(KNACK_IPC.permRequest)
+      ipcMain.removeHandler(KNACK_IPC.permOpen)
+      ipcMain.removeHandler(KNACK_IPC.tryRing)
+      tryRing.stop()
       ipcMain.removeAllListeners(KNACK_IPC.retry)
       await stack.stop()
       main.dispose()

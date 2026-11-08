@@ -170,7 +170,9 @@ _ELEMS_JS = r"""
               x: r.x + r.width / 2, y: r.y + r.height / 2, value: el.value || '',
               dialog: !!el.closest('[role=dialog],[aria-modal=true]')});
   }
-  return {url: location.href, text: document.body.innerText || '', els, vh: window.innerHeight, vw: window.innerWidth};
+  const a = document.activeElement;
+  return {url: location.href, text: document.body.innerText || '', els, vh: window.innerHeight, vw: window.innerWidth,
+          active: (a && a !== document.body && a !== document.documentElement) ? label(a).trim() : ''};
 }
 """
 
@@ -193,7 +195,7 @@ class DomOracleComputerModel:
 
     name = "dom-oracle"
 
-    def __init__(self, *, literal_every: int = 0, inner: Any = None) -> None:
+    def __init__(self, *, literal_every: int = 0, inner: Any = None, faults: dict[str, Any] | None = None) -> None:
         from ..models.mock_provider import MockProvider
 
         self.inner = inner or HeuristicModelPort(MockProvider("benefits_clean"))   # plan, read, check for the pipeline
@@ -201,6 +203,15 @@ class DomOracleComputerModel:
         self.literal_every = literal_every      # >0: every Nth type action is a LITERAL (to prove refusals recover)
         self.calls = 0
         self.goals: list[str] = []
+        # Mistakes a real model was seen to make (docs/reference-notes/cu-failure-diagnosis.md), each made ONCE unless it is an `_always`
+        # fault, so the loop's read-back and pre-submit audit (tiers/form_audit.py) have something to catch. All default off.
+        #   skip: handles it walks past (a drop-down whose default looked right)      no_focus: handles it types with nothing focused
+        #   wrong_field / wrong_field_always: {handle: other_handle} it types into the OTHER handle's control
+        # It recovers the way a competent model would: a code-written NOTE from the system names the handles to do again.
+        f = faults or {}
+        self.faults: dict[str, Any] = {"skip": set(f.get("skip", ())), "no_focus": set(f.get("no_focus", ())),
+                                       "wrong_field": dict(f.get("wrong_field", {})),
+                                       "wrong_field_always": dict(f.get("wrong_field_always", {}))}
 
     def attach(self, session: str, actuator: Any) -> None:
         import asyncio
@@ -239,13 +250,24 @@ class DomOracleComputerModel:
         path = urlparse(info["url"]).path
         if path != st["path"]:
             st["done"], st["pending"], st["enter"], st["path"] = set(), None, False, path
+        note_at = goal.find("NOTE (checked by the system")
+        if note_at >= 0:                                # the system says which handles are not in the form: do those again
+            for told in set(re.findall(r"\b(?:household|note)\.[a-z0-9_]+", goal[note_at:])):
+                st["done"].discard(told)
+                st["pending"], st["enter"] = None, False
         refused = "was refused" in goal or bool(history and history[-1].get("kind") == "type" and history[-1].get("ok") is False)
         if refused and st.get("last"):             # stateless requests carry the refusal as a note in the prompt, not in a history
             handle, is_select = st["last"]              # the type was refused: a competent model retries with the handle
             st["enter"] = is_select
             return Action("type", {"text": "{" + handle + "}"})
         if st["pending"]:
-            handle, is_select = st["pending"]
+            handle, is_select, want = st["pending"]
+            if want and info.get("active", want) != want:
+                # Focus is not on the control the last click went to: that click never took effect (a step discarded as stale while the run was
+                # paused, or the page moved). A grounded model looks before it types, so click the control again.
+                for e in els:
+                    if e["label"] == want and e["tag"] in ("input", "select", "textarea"):
+                        return Action("click", {"x": int(e["x"]), "y": int(e["y"])})
             st["pending"] = None
             st["last"] = (handle, is_select)
             st["enter"] = is_select
@@ -254,6 +276,15 @@ class DomOracleComputerModel:
                 return Action("type", {"text": "12345"})        # a literal value: must be refused
             return Action("type", {"text": "{" + handle + "}"})
         if st["enter"]:
+            # The task state in the prompt lists what code recorded as entered on this page. If the handle just typed is not in it, that type
+            # never ran (a step discarded as stale while the run was paused): type it again before committing. A model that reads its task
+            # state does the same; the double used to carry on and leave the drop-down on its default.
+            m_en = re.search(r"entered on this page: ([^\n]*)", goal)
+            if m_en and st.get("last"):
+                raw = m_en.group(1).strip()
+                entered = set() if raw in ("", "nothing") else {x.strip() for x in raw.split(",")}
+                if st["last"][0] not in entered:
+                    return Action("type", {"text": "{" + st["last"][0] + "}"})
             st["enter"] = False
             return Action("key", {"keys": ["Tab"]})   # Enter would submit the form; Tab commits the choice
         cliff_goal = "Check cliff edges" in goal
@@ -292,7 +323,21 @@ class DomOracleComputerModel:
                     if away is not None:
                         return away
                     st["done"].add(handle)
-                    st["pending"] = (handle, e["tag"] == "select")
+                    if handle in self.faults["skip"]:
+                        self.faults["skip"].discard(handle)      # walks past it: the drop-down keeps its default
+                        continue
+                    st["pending"] = (handle, e["tag"] == "select", e["label"])
+                    if handle in self.faults["no_focus"]:
+                        self.faults["no_focus"].discard(handle)
+                        st["pending"], st["last"], st["enter"] = None, (handle, e["tag"] == "select"), e["tag"] == "select"
+                        return Action("type", {"text": "{" + handle + "}"})      # types without clicking the field first
+                    other = self.faults["wrong_field_always"].get(handle) or self.faults["wrong_field"].pop(handle, None)
+                    if other:
+                        for e2 in els:                           # clicks the control of ANOTHER handle, then types this handle's text
+                            c2, _u = param_for(e2["label"], "combobox" if e2["tag"] == "select" else "textbox")
+                            if _HANDLE_OF.get(c2 or "") == other:
+                                st["pending"] = (handle, e["tag"] == "select", e2["label"])      # it believes this is the control it clicked
+                                return Action("click", {"x": int(e2["x"]), "y": int(e2["y"])})
                     return Action("click", {"x": int(e["x"]), "y": int(e["y"])})
         fwd = [e for e in els if e["tag"] == "button" and any(w in e["label"].lower() for w in _FORWARD if w != "cliff")]
         if fwd:

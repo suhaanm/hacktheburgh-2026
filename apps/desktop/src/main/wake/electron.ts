@@ -32,7 +32,8 @@ import { WakeSettingsStore } from './settings'
 export const WAKE_IPC = {
   state: 'wake:state', // invoke -> WakeStatus
   set: 'wake:set', // invoke { listen: boolean } -> WakeStatus
-  context: 'wake:context', // invoke { insight?, routine? } -> boolean (accepted)
+  context: 'wake:context', // invoke { insight?, routine?, firstRun? } -> boolean (accepted)
+  arm: 'wake:arm', // invoke -> WakeStatus (the set-up step that turns Hey Knack on)
   status: 'wake:status', // event (main -> windows that listen)
 } as const
 
@@ -50,6 +51,12 @@ export interface RegisterWakeOptions {
   killed: () => boolean
   /** Windows that may call the IPC (our own). */
   owns: (webContentsId: number) => boolean
+  /** The buttons on the cards: Knack's Settings, and the macOS microphone pane. */
+  openSettings?: () => void
+  openMicrophoneSettings?: () => void
+  openScreenSettings?: () => void
+  /** The other panes the cards open: speech recognition, accessibility, dictation. */
+  openPane?: (pane: 'speech' | 'accessibility' | 'dictation') => void
   /** The context hub: the shell may report the top Home insight and the running routine (ids and counts) through `wake:context`. */
   context?: ContextHub | null
   env?: Record<string, string | undefined>
@@ -73,7 +80,6 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
   const env = o.env ?? process.env
   const log = o.log ?? (() => undefined)
   const settings = new WakeSettingsStore(o.userDataDir)
-  const mock = env.UNDERSTUDY_MOCK === '1' || env.ALONGSIDE_MOCK === '1'
   const cards = createCardWindow({ log })
   const lock = o.lock ?? createVoiceLock()
 
@@ -89,7 +95,16 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
   const onLock = (): void => void ((locked = true), refresh())
   const onUnlock = (): void => void ((locked = false), refresh())
   const onSuspend = (): void => void ((asleep = true), refresh())
-  const onResume = (): void => void ((asleep = false), refresh())
+  // After the lid opens or the Mac wakes, the audio devices take a moment to come back (a Bluetooth headset longest): the listener restarts after a pause.
+  let resumeTimer: ReturnType<typeof setTimeout> | null = null
+  const onResume = (): void => {
+    if (resumeTimer) clearTimeout(resumeTimer)
+    resumeTimer = setTimeout(() => {
+      resumeTimer = null
+      asleep = false
+      refresh()
+    }, 2500)
+  }
   powerMonitor.on('lock-screen', onLock)
   powerMonitor.on('unlock-screen', onUnlock)
   powerMonitor.on('suspend', onSuspend)
@@ -110,7 +125,9 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
     return {
       flagOn: experimentOn('wake', env),
       isMac: process.platform === 'darwin',
-      mock,
+      // The listener has no network and no model, so it runs whenever the worker's switch is on, including with example data. (When a conversation cannot
+      // open, the controller answers the words with a card.)
+      mock: false,
       locked: locked || consoleLocked || sig?.locked === true,
       asleep,
       paused: (s.pausedUntil ?? 0) > t,
@@ -136,9 +153,10 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
   const controller = createWakeController({
     settings,
     liveSettings: o.live.settings,
-    live: { startFromWake: () => manager.startFromWake(), status: () => manager.status(), subscribe: (cb) => manager.subscribe(() => cb()) },
+    live: { blocker: () => manager.blocker(), startFromWake: () => manager.startFromWake(), status: () => manager.status(), subscribe: (cb) => manager.subscribe(() => cb()) },
     helper: { start: () => supervisor.start(), stop: () => supervisor.stop(), status: () => supervisor.status(), unblock: () => supervisor.unblock() },
     inputs,
+    firstRun: () => o.context?.firstRun() === true,
     cards,
     lock,
     rung: () => readRung(dataDirPath(env)),
@@ -147,6 +165,7 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
       if (settings.get().wakeChime) void o.live.clips.play(makeChimeWav(), 'audio/wav').catch(() => undefined)
     },
     say: (line) => void o.live.speaker.say(`wake.${line}`),
+    openSettings: (where) => (where === 'microphone' ? o.openMicrophoneSettings?.() : where === 'screen' ? o.openScreenSettings?.() : where === 'knack' ? o.openSettings?.() : o.openPane?.(where)),
     log,
   })
   controllerRef = controller
@@ -168,8 +187,9 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
   ipcMain.handle(WAKE_IPC.context, (e, raw: unknown) => {
     if (!o.owns(e.sender.id)) throw new Error('wake IPC from an unknown sender')
     if (!o.context || typeof raw !== 'object' || raw === null) return false
-    const c = raw as { insight?: unknown; routine?: unknown }
+    const c = raw as { insight?: unknown; routine?: unknown; firstRun?: unknown }
     let took = false
+    if (typeof c.firstRun === 'boolean') (o.context.setFirstRun(c.firstRun), controller.refresh(), (took = true))
     if ('insight' in c) {
       const v = c.insight as { id?: unknown; template?: unknown } | null
       if (v === null) (o.context.setInsight(null), (took = true))
@@ -183,6 +203,12 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
     return took
   })
 
+  ipcMain.handle(WAKE_IPC.arm, (e) => {
+    if (!o.owns(e.sender.id)) throw new Error('wake IPC from an unknown sender')
+    controller.arm()
+    return controller.status()
+  })
+
   controller.start()
   return {
     controller,
@@ -190,6 +216,7 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
     helperPath: () => resolveHelperPath(),
     dispose() {
       clearInterval(probeTimer)
+      if (resumeTimer) clearTimeout(resumeTimer)
       powerMonitor.off('lock-screen', onLock)
       powerMonitor.off('unlock-screen', onUnlock)
       powerMonitor.off('suspend', onSuspend)
@@ -197,6 +224,7 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
       ipcMain.removeHandler(WAKE_IPC.state)
       ipcMain.removeHandler(WAKE_IPC.set)
       ipcMain.removeHandler(WAKE_IPC.context)
+      ipcMain.removeHandler(WAKE_IPC.arm)
       controller.dispose()
       supervisor.stop()
       cards.dispose()

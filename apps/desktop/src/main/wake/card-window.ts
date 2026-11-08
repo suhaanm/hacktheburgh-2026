@@ -6,10 +6,7 @@
 import path from 'node:path'
 import { BrowserWindow, ipcMain, screen } from 'electron'
 import type { CardAnswer, CardPort, CardSpec } from './controller'
-import { WAKE_CARD_IPC, type WakeCardAnswer, type WakeCardView } from './card-ipc'
-
-export const CARD_INSET = 16
-export const MISTAP_GUARD_MS = 600
+import { MISTAP_GUARD_MS, WAKE_CARD_IPC, cardBounds, type WakeCardAnswer, type WakeCardView } from './card-ipc'
 
 export interface CardWindowOptions {
   disabled?: boolean
@@ -40,8 +37,14 @@ export function createCardWindow(o: CardWindowOptions = {}): CardWindow {
 
   const place = (): void => {
     if (!alive()) return
-    const wa = screen.getPrimaryDisplay().workArea
-    ;(win as BrowserWindow).setBounds({ x: wa.x + wa.width - size.w - CARD_INSET, y: wa.y + wa.height - size.h - CARD_INSET, width: size.w, height: size.h })
+    // The display that holds the pointer (where the worker is looking), not always the primary one.
+    let wa = screen.getPrimaryDisplay().workArea
+    try {
+      wa = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea
+    } catch {
+      /* no pointer position: the primary display */
+    }
+    ;(win as BrowserWindow).setBounds(cardBounds(wa, size))
   }
 
   const settle = (answer: CardAnswer | null): void => {

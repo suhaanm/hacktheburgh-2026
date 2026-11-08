@@ -1,7 +1,7 @@
 import { applyDesktopDefaultFlags } from './default-flags'
 import path from 'node:path'
 import dotenv from 'dotenv'
-import { app, nativeImage, powerMonitor, shell, systemPreferences, webContents } from 'electron'
+import { app, BrowserWindow, nativeImage, powerMonitor, screen, shell, systemPreferences, webContents } from 'electron'
 import { IPC } from '../shared/ipc'
 import type { EventArgs, EventChannel } from '../shared/ipc'
 import { Bus } from './bus'
@@ -23,6 +23,8 @@ import { liveFlagOn } from './live/flags'
 import { registerLive } from './live/electron'
 import { registerWake } from './wake/electron'
 import { createContextHub, screenIdFromUrl } from './wake/context-source'
+import { chainGround, COLLECT_KNACK_ELEMENTS_JS, createDomPointPort, createKnackWindowGround, parseKnackElements } from './live/point-ground'
+import { parseCalibration } from './dom-ground/rect-map'
 import { readRung } from './wake/rung'
 import { dataDirPath } from './kill-file'
 import { LIVE_CONSENT_VERSION } from './live/settings'
@@ -53,6 +55,9 @@ import { createDispatcher } from './tools/dispatcher'
 import { registerToast } from './toast'
 import { adoptOwner, createWindows } from './windows'
 import { APP_NAME } from '../shared/brand'
+import { createAskBar } from './knack/ask-bar'
+import { createTryRingPort } from './knack/try-ring'
+import { askUnavailableLine } from './knack/ask-ipc'
 import { registerAppScheme } from './knack/app-protocol-electron'
 import { glyphSvg } from './knack/brand-glyph'
 import { knackHidden, knackShellEnabled, prepareKnackEnv } from './knack/env'
@@ -72,6 +77,12 @@ const knackConfig = knackWanted ? prepareKnackEnv({ env: process.env, appPath: a
 applyDesktopDefaultFlags() // D48: voice and the REQ-5 layers are on unless a variable says '0'
 
 const flag = (name: string) => process.env[name] === '1'
+// System Settings panes the Hey Knack cards open (macOS deep links).
+const PANE_URLS = {
+  speech: 'x-apple.systempreferences:com.apple.preference.security?Privacy_SpeechRecognition',
+  accessibility: 'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility',
+  dictation: 'x-apple.systempreferences:com.apple.Keyboard-Settings.extension',
+} as const
 
 // KNACK: one app, a dashboard window plus a menu-bar item plus a corner pill, which starts the engine and the agent itself (src/main/knack). On by default; off
 // for headless runs and with KNACK_SHELL=0. The scheme must be declared before ready; a second launch hands over to the first instead of starting another.
@@ -100,7 +111,9 @@ void app.whenReady().then(async () => {
   }
 
   const bus = new Bus()
-  const settings = new SettingsStore(userDataDir, { forced: forcedSettings() }) // voice-adjacent settings pinned off by feature flags
+  // Voice-adjacent settings pinned off by feature flags. In the Knack app the old side panel's own eight-step set-up never runs: Knack has one onboarding, the first run in its own
+  // window, so the old flow's flag is pinned done (a pinned key wins over the saved file and over every patch, so nothing can bring that flow back).
+  const settings = new SettingsStore(userDataDir, { forced: { ...forcedSettings(), ...(knackWanted ? { onboardingDone: true } : {}) } })
   // KNACK: the window comes up first, with a calm "Starting Knack…", while the models are chosen (live when a key is present and the boot check passes, example
   // data otherwise) and the services start. Everything built below (the model port included) then sees the environment that choice made.
   const lateBox: { windows: ReturnType<typeof createWindows> | null; kill: (() => void) | null } = { windows: null, kill: null }
@@ -263,12 +276,27 @@ void app.whenReady().then(async () => {
   const cueOn = experimentOn('cue')
   if (cueOn) cueSignals.start()
 
-  const unregisterHotkeys = hiddenRun ? () => undefined : registerHotkeys(bus, settings, { look: awareness ? () => void awareness.hotkey() : undefined, state, stop: (r) => session.stop(r), togglePanel: () => shellTray?.togglePanel(), kill: () => void understudy.kill.trigger('hotkey'), raisePanel: () => windows.showDock(), askTap: knack ? () => { windows.showDock(); windows.sendDock(IPC.shellCommand, { type: 'view', view: 'chat' }) } : undefined })
+  // KNACK: the Ask bar (an Option-Space tap, the menu bar's Ask row). A typed line goes into a voice conversation that is already open; typed chat has no model behind it
+  // in this build, so otherwise the bar says one plain sentence and stays. The old chat panel is not drawn in the app: a talk press no longer raises it either.
+  const askBar = knack
+    ? createAskBar({
+        hidden: hiddenRun,
+        disabled: headless || flag('ALONGSIDE_NO_OVERLAY'),
+        log: ctx.log,
+        onClosed: () => void knack?.dispatch({ type: 'ask_closed' }),
+        submit: (text) => (liveBox.reg?.manager.injectTyped(text) ? { ok: true } : { ok: false, line: askUnavailableLine(settings.get().talkHotkey) }),
+      })
+    : null
+  const toggleAsk = (): void => {
+    if (askBar?.isOpen()) askBar.close()
+    else void knack?.dispatch({ type: 'ask_tap' })
+  }
+  const unregisterHotkeys = hiddenRun ? () => undefined : registerHotkeys(bus, settings, { look: awareness ? () => void awareness.hotkey() : undefined, state, stop: (r) => session.stop(r), togglePanel: () => shellTray?.togglePanel(), kill: () => void understudy.kill.trigger('hotkey'), raisePanel: knack ? undefined : () => windows.showDock(), askTap: knack ? toggleAsk : undefined })
   // NOTIFY: permission prompts also appear as a toast at the top of the screen (settings.confirmStyle; no window when headless / no overlay).
   // KNACK: in the app the prompt is a corner card (bottom-right, above the corner pill column while that shows), not a top-right toast.
   const toast = registerToast({ ctx, adoptOwner, disabled: headless || flag('ALONGSIDE_NO_OVERLAY'), corner: knack ? { column: () => { const w = understudy.hud.window(); return w && w.isVisible() ? w.getBounds() : null } } : undefined })
   const unregisterLoginItem = registerLoginItem(settings, { log: (...args) => ctx.log('login-item', ...args) })
-  if (!headless && !hiddenRun) shellTray = registerTray({ bus, state, settings, windows, stop: (r) => session.stop(r), showtimeRunning: () => showtime.active(), kill: { trigger: () => void understudy.kill.trigger('tray'), clear: () => void understudy.kill.clear(), isKilled: () => understudy.kill.isKilled() }, awareness: awareness ? trayAwareness(awareness) : undefined, openQueue: understudy.openQueue, captureMode: () => core.capture.mode(), openApp: knack ? () => knack?.openMain() : undefined, models: knack ? () => knack?.modelStatus() ?? { live: null, text: '' } : undefined, knack: knack ? () => knack?.trayStatus() ?? { working: null, needsYou: 0, stopped: false } : undefined, openSettings: knack ? () => knack?.openSettings() : undefined, openNeedsYou: knack ? () => void knack?.dispatch({ type: 'review_clicked' }) : undefined, coachLine: () => { const c = understudy.chip.current(); return c ? `Help level ${c.level}: ${HELP_LEVEL_LABELS[c.level]}` : null }, openDashboard: understudy.openDashboard, wake: { view: () => (wakeBox.ctl ? { on: wakeBox.ctl.status().switchOn, line: wakeBox.ctl.status().line } : null), setListen: (on) => wakeBox.ctl?.setListen(on) }, voiceMenu: () => featureOn('voice'), cueMenu: () => experimentOn('cue'), queueCount: () => understudy.hudModel.state().queuePending, agentActing: () => understudy.hudModel.state().agentActing, log: (...args) => ctx.log('tray', ...args) })
+  if (!headless && !hiddenRun) shellTray = registerTray({ bus, state, settings, windows, stop: (r) => session.stop(r), showtimeRunning: () => showtime.active(), kill: { trigger: () => void understudy.kill.trigger('tray'), clear: () => void understudy.kill.clear(), isKilled: () => understudy.kill.isKilled() }, awareness: awareness ? trayAwareness(awareness) : undefined, openQueue: understudy.openQueue, captureMode: () => core.capture.mode(), openApp: knack ? () => knack?.openMain() : undefined, models: knack ? () => knack?.modelStatus() ?? { live: null, text: '' } : undefined, knack: knack ? () => knack?.trayStatus() ?? { working: null, needsYou: 0, stopped: false } : undefined, openSettings: knack ? () => knack?.openSettings() : undefined, openSetup: knack ? () => knack?.openSetup() : undefined, ask: knack ? toggleAsk : undefined, openNeedsYou: knack ? () => void knack?.dispatch({ type: 'review_clicked' }) : undefined, coachLine: () => { const c = understudy.chip.current(); return c ? `Help level ${c.level}: ${HELP_LEVEL_LABELS[c.level]}` : null }, openDashboard: understudy.openDashboard, wake: { view: () => (wakeBox.ctl ? { on: wakeBox.ctl.status().switchOn, line: wakeBox.ctl.status().line } : null), setListen: (on) => wakeBox.ctl?.setListen(on) }, voiceMenu: () => featureOn('voice'), cueMenu: () => experimentOn('cue'), queueCount: () => understudy.hudModel.state().queuePending, agentActing: () => understudy.hudModel.state().agentActing, log: (...args) => ctx.log('tray', ...args) })
   // The attention layer (the one-voice router). One call; null with its flag off.
   const screenShare = createScreenShareProbe()
   // KNACK: the corner pill and the minimise and restore rules. The pill is never over a secure input or a denylisted app (the same probes Cue reads) and not
@@ -290,6 +318,11 @@ void app.whenReady().then(async () => {
     hud: understudy.hudModel,
     pendingQueue: () => core.engine.pendingQueue(),
     onVoiceEnd: () => liveBox.reg?.manager.stopAll('stop'),
+    askBar: askBar ?? undefined,
+    // The first run's bridge: what it shows and asks of macOS, and the sample ring (the overlay covers the primary display).
+    permissions,
+    speech: { helper: () => wakeBox.ctl?.status().helper ?? null, request: () => wakeBox.ctl?.arm() },
+    ring: createTryRingPort(services.overlay, () => screen.getPrimaryDisplay().bounds),
   })
   const attentionWiring = wireAttention({
     endpoints: core.endpoints,
@@ -353,6 +386,39 @@ void app.whenReady().then(async () => {
     },
   })
 
+  // Pointing without Screen Recording: the Knack window first (its own page, read through its web contents), then a browser tab with the extension (DOM
+  // grounding); only "find it anywhere on my screen" needs the permission, and without it a card says why (see live/point-ground.ts).
+  const primaryDisplay = () => {
+    const d = screen.getPrimaryDisplay()
+    return { bounds: d.bounds, scaleFactor: d.scaleFactor }
+  }
+  const knackContents = () => {
+    const win = knack?.mainWindow.window()
+    if (!win || win.isDestroyed() || !win.isVisible() || win.isMinimized()) return null
+    const wc = webContents.fromId(win.webContentsId())
+    return wc && !wc.isDestroyed() ? wc : null
+  }
+  const knackGround = knack
+    ? createKnackWindowGround({
+        elements: async () => {
+          const wc = knackContents()
+          return wc ? parseKnackElements(await wc.executeJavaScript(COLLECT_KNACK_ELEMENTS_JS, true)) : null
+        },
+        content: () => {
+          const wc = knackContents()
+          const b = wc ? BrowserWindow.fromWebContents(wc)?.getContentBounds() : null
+          return wc && b ? { x: b.x, y: b.y, zoom: wc.getZoomFactor() } : null
+        },
+        display: primaryDisplay,
+      })
+    : null
+  const extGround = createDomPointPort({
+    grounder: understudy.domGrounder,
+    display: primaryDisplay,
+    calibration: parseCalibration(process.env.UNDERSTUDY_RING_OFFSET),
+    extensionPresent: () => (understudy.extServer()?.lastSeenAt() ?? 0) > Date.now() - 10_000,
+  })
+
   // Live voice (flags UNDERSTUDY_X_LIVE and UNDERSTUDY_FLAG_VOICE): the websocket lives in main; the dock only owns the microphone and speaker.
   const noCuePort: LiveCuePort = { candidates: () => [], showStep: () => ({ ok: false, chip: null }), askChoice: () => false, onAnswer: () => () => undefined }
   const live = liveFlagOn() && featureOn('voice')
@@ -366,6 +432,10 @@ void app.whenReady().then(async () => {
         cue: cue?.livePort ?? noCuePort,
         doIt: (req) => (wakeBox.ctl ? wakeBox.ctl.doIt(req) : Promise.resolve({ ok: false, reason: 'not_available' })),
         context: (o) => contextHub.build(o),
+        opening: () => wakeBox.ctl?.openingText() ?? null,
+        domGround: chainGround(knackGround, extGround),
+        screenStatus: () => (process.platform === 'darwin' && !flag('UNDERSTUDY_MOCK') && !flag('ALONGSIDE_MOCK') ? systemPreferences.getMediaAccessStatus('screen') : 'granted'),
+        onScreenMissing: () => wakeBox.ctl?.explainRefusal('screen_recording'),
         killed: isKilled,
         agentActing: () => understudy.hudModel.state().agentActing,
         cueVoiceOn: () => settings.get().cueVoice === true,
@@ -375,6 +445,14 @@ void app.whenReady().then(async () => {
     : null
   liveBox.reg = live
   live?.manager.start()
+  // The talk key never fails silently: when it cannot start a conversation (no consent yet, no key, the microphone not allowed ...) a card says why.
+  const offTalkExplain = live
+    ? bus.on('talk', (e) => {
+        if (e.phase !== 'press') return
+        const st = live.manager.status()
+        if (st.phase === 'idle' && st.refused) wakeBox.ctl?.explainRefusal(st.refused)
+      })
+    : null
   // The corner pill says what a voice conversation is doing (Listening, Thinking, Speaking) for both the talk key and Hey Knack, and leaves with it.
   let pillVoice: 'Listening' | 'Thinking' | 'Speaking' | null = null
   const offVoicePill = live && knack
@@ -402,6 +480,10 @@ void app.whenReady().then(async () => {
         agentActing: () => understudy.hudModel.state().agentActing,
         killed: isKilled,
         owns: (id) => windows.owns(id) || knack?.mainWindow.owns(id) === true,
+        openSettings: () => knack?.openSettings(),
+        openMicrophoneSettings: () => permissions.openSettings('microphone'),
+        openScreenSettings: () => permissions.openSettings('screen'),
+        openPane: (pane) => void shell.openExternal(PANE_URLS[pane]).catch(() => undefined),
         context: contextHub,
         log: ctx.log,
       })
@@ -412,6 +494,7 @@ void app.whenReady().then(async () => {
   const offWakeKill = wake ? understudy.kill.subscribe((k) => wake.controller.setKilled(k.killed)) : null
 
   app.on('will-quit', () => {
+    askBar?.dispose()
     void showtime.dispose()
     shellTray?.dispose()
     toast.dispose()
@@ -422,6 +505,7 @@ void app.whenReady().then(async () => {
     cueSignals.stop()
     offWakeKill?.()
     offVoicePill?.()
+    offTalkExplain?.()
     wake?.dispose()
     live?.dispose()
     attentionWiring?.dispose()
