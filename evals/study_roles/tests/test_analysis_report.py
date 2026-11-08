@@ -5,6 +5,7 @@ import json
 
 import pytest
 
+from evals.study_roles import LABEL
 from evals.study_roles import analysis as AN
 from evals.study_roles import analysis_rows as AR
 from evals.study_roles import report
@@ -118,7 +119,7 @@ def test_csv_round_trip_and_report(tmp_path, specs, role):
     back = AR.load_rows(out / "participants.csv")
     assert len(back) == len(rows) and back[0]["post_checks_done"] == rows[0]["post_checks_done"] and back[0]["pre_points"] == rows[0]["pre_points"]
     s = report.write_all(role, out)
-    assert s["status"] == "ok" and s["headline"]["n"] == 12 and "simulated participants" in s["label"]
+    assert s["status"] == "ok" and s["headline"]["n"] == 12 and s["label"] == LABEL == "language-model participants, not people"   # the D57 wording: never "simulated" in a string a person reads
     md = (out / "REPORT.md").read_text()
     assert "not people" in md and "Primary outcome" in md and "Limits" in md
     assert json.loads((out / "summary.json").read_text())["role"] == role

@@ -24,6 +24,7 @@ from .adapters import SECTION_NAMES, SECTIONS, Ctx, NotLanded, Skipped
 from .data import ensure_synthetic, evals_out_dir
 from .limitations import assemble as assemble_limitations
 from .meta import stub
+from .wording import reword_tree
 
 
 def _now() -> str:
@@ -135,7 +136,7 @@ def build_report(*, fast: bool = False, sections: list[str] | None = None, root:
     report["findings"] = clean(found)
     report["evidence_map"] = evidence_map(out)
     report["sections"] = out
-    return report
+    return reword_tree(report)          # the app's wording (D57), whatever the sections' own sources and frozen result files say
 
 
 def _finish_sections(out: dict[str, Any], generated_at: str, stamp: list[str] | None = None) -> list[dict[str, Any]]:
@@ -197,7 +198,7 @@ def merge_report(base: dict[str, Any], *, only: list[str], root: Path | str | No
     report["findings"] = clean(found)
     report["evidence_map"] = evidence_map(out)
     report["sections"] = out
-    return report
+    return reword_tree(report)
 
 
 def evidence_map(sections: dict[str, Any]) -> list[dict[str, Any]]:
@@ -229,7 +230,7 @@ def deterministic_view(report: dict[str, Any]) -> dict[str, Any]:
 
 
 def dumps(report: dict[str, Any]) -> str:
-    return json.dumps(report, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
+    return json.dumps(reword_tree(report), indent=2, ensure_ascii=False, allow_nan=False) + "\n"
 
 
 def write_atomic(path: Path, text: str) -> None:

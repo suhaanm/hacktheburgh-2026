@@ -5,8 +5,8 @@ import { DIRECTION_WORD, pct, type SkillRowView } from "./model";
 import type { Direction } from "./wire";
 
 const LEVEL_NAME = ["", "full", "small", "dot", "gone"];
-/** Two words beside the arrow (the full phrase is the row's accessible name). "not clear" is never "no change": the interval includes zero. */
-const ROW_WORD: Record<Direction, string> = { less_help: "less help", steady: "not clear", more_help: "more help", too_early: "too early" };
+/** Two words beside the arrow (the full phrase is the row's accessible name). "cannot tell" is never "no change": the interval includes zero. */
+const ROW_WORD: Record<Direction, string> = { less_help: "less help", steady: "cannot tell", more_help: "more help", too_early: "too early" };
 const TREND_ICON: Record<Direction, IconName> = { less_help: "up", steady: "flat", more_help: "down", too_early: "flat" };
 /** How many skills show before "Show all N": two keeps the first screen inside 60 words at 1440 by 900 (KNACK_UX section 5). The spec ceiling is five. */
 export const SKILLS_SHOWN = 2;

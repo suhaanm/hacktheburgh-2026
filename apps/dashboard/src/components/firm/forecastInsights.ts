@@ -4,7 +4,7 @@
 // Data that is missing, too small, NaN or null never makes a sentence: that insight is left out, or hedged in words ("Too early to say").
 import type { FirmWire } from "../repeats/types";
 import { hitNumbers, hoursChart, niceTop, onboardingChart, onboardingNumbers, wilson, type ChartRow } from "./charts";
-import { capFirst, confidence, confidenceApart, MIN_N, monthAhead, plural, readableOnboarding, roleWords, shortName, type Confidence } from "./insights";
+import { capFirst, confidence, confidenceApart, groupName, MIN_N, monthAhead, plural, readableOnboarding, roleWords, shortName, type Confidence } from "./insights";
 import { compareShown, fmtShare, trendCounts, TREND_LABEL, unitWord } from "./model";
 import type { Est, Trend, WireFirm, WireOnboarding, WireRoles } from "./wire";
 import { TRENDS } from "./wire";
@@ -99,16 +99,16 @@ function gapInsight(i: ForecastInput, min: number): ForecastInsight | null {
   const habit = [...r.habits].filter((h) => h.verdict === "gap" && h.explains_s).sort((a, b) => (b.explains_s?.value ?? 0) - (a.explains_s?.value ?? 0))[0]?.label ?? null;
   const pts = Math.abs(r0(g.value * 100));
   const dir = g.value < 0 ? "fewer" : "more";
-  const name = shortName(r.name);
+  const name = groupName(r.name);
   const sure = conf !== "too_early";
   const expect = sure
-    ? `Expect juniors in ${name} to finish ${pts} points ${dir} of their steps without help.`
-    : `Juniors in ${name} may finish ${dir} of their steps without help, but it is not clear yet.`;
-  const todo = sure ? (habit ? `Practise “${shortName(habit, 32)}” first.` : "Look at the steps where juniors ask for help most.") : "Wait for more people before acting on it.";
+    ? `Expect junior ${name} to finish ${pts} points ${dir} of their steps without help than experts.`
+    : `Junior ${name} may finish ${dir} of their steps without help than experts, but it is not clear yet.`;
+  const todo = sure ? (habit ? `Practise “${shortName(habit, 50)}” first.` : "Look at the steps where juniors ask for help most.") : "Wait for more people before acting on it.";
   return {
     id: "gap", short: "Juniors and experts", expect, todo, confidence: conf,
     n: `n = ${plural(r.n_expert, "expert")} and ${plural(r.n_junior, "junior")}`,
-    detail: g.ci ? `Gap ${g.value < 0 ? "-" : "+"}${pts} points${habit ? `, mostly on “${shortName(habit, 40)}”` : ""}. Interval ${r0(g.ci[0] * 100)} to ${r0(g.ci[1] * 100)}.` : null,
+    detail: g.ci ? `Gap ${g.value < 0 ? "-" : "+"}${pts} points${habit ? `, mostly on “${shortName(habit, 50)}”` : ""}. Interval ${r0(g.ci[0] * 100)} to ${r0(g.ci[1] * 100)}.` : null,
     chart: {
       kind: "interval", title: `Share of steps finished without help, ${name}`, unit: "share", domain: [0, 1], ticks: [0, 0.25, 0.5, 0.75, 1],
       rows: [
@@ -136,16 +136,15 @@ function repeatedInsight(i: ForecastInput, min: number): ForecastInsight | null 
   const people = h.total.people;
   const conf = confidence({ n: people, value: total.point, ci: fin(total.lo) && fin(total.hi) ? [total.lo, total.hi] : null, zero: null, min });
   const hours = total.point >= 100 ? r0(total.point).toLocaleString("en-GB") : f1(total.point);
-  const label = shortName(top.label, 28);
   const sure = conf !== "too_early";
   const expect = sure
     ? `Expect about ${hours} hours a week to free up with routines.`
     : `Repeated work may add up to about ${hours} hours a week.`;
-  const todo = sure ? `Offer routines for “${shortName(top.label, 24)}” first.` : "Wait for more people before planning around it.";
+  const todo = sure ? `Offer routines for “${shortName(top.label, 50)}” first.` : "Wait for more people before planning around it.";
   return {
     id: "repeated", short: "Repeated work", expect, todo, confidence: conf,
     n: `n = ${plural(people, "person", "people")}`,
-    detail: fin(total.lo) && fin(total.hi) ? `Mostly “${label}”, done by ${top.people.toLocaleString("en-GB")} people. Interval ${f1(total.lo)} to ${f1(total.hi)} hours.` : `Mostly “${label}”, done by ${top.people.toLocaleString("en-GB")} people.`,
+    detail: fin(total.lo) && fin(total.hi) ? `The biggest piece is done by ${top.people.toLocaleString("en-GB")} people. Interval ${f1(total.lo)} to ${f1(total.hi)} hours.` : `The biggest piece is done by ${top.people.toLocaleString("en-GB")} people.`,
     chart: { kind: "interval", title: "Hours a week of repeated work, the three biggest actions", unit: "hours", rows: ch.rows, domain: ch.domain, ticks: ch.ticks },
     numbers: nums,
   };

@@ -158,7 +158,8 @@ def test_a_local_server_says_it_stays_on_this_mac_and_the_example_says_no_accoun
     assert ex["example"] is True and "No account is used" in ex["summary"] and ex["hosts"] == []
 
 
-def test_the_chip_carries_the_honest_flags_on_notion_and_sentry():
+def test_the_chip_carries_the_honest_flags_on_notion_and_sentry_and_no_other_tag():
+    assert sorted(p.id for p in registry.all_presets().values() if p.caution) == ["notion", "sentry"]
     assert registry.get("notion").caution == "Vendor says unmaintained"
     assert registry.get("sentry").caution == "Source-available licence"
     assert "Source-available licence" in consent(registry.get("sentry"), "real")["summary"]

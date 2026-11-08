@@ -6,7 +6,7 @@ import { Headline, SeeNumbers } from "./InsightFirst";
 import { MixBar } from "./MixBar";
 import { peopleHeadline } from "./insights";
 import {
-  DEFAULT_SORT, SORT_KEYS, personName, TENURE_LABEL, TREND_GLYPH, TREND_HINT, TREND_LABEL, filterUsers, fmtNum, fmtShare, groupShown, pct, sortUsers, trendCounts, unitWord,
+  DEFAULT_SORT, SORT_KEYS, personName, TENURE_LABEL, TREND_GLYPH, TREND_HINT, TREND_LABEL, filterUsers, fmtNum, fmtShare, groupShown, pct, sortUsers, spansZero, trendCounts, unitWord,
   type SortKey,
 } from "./model";
 import type { AnalyticMeta } from "../../types";
@@ -44,7 +44,7 @@ function Skills({ u }: { u: UserRow }) {
               <span className="firm-skills__label">{k.label}</span>
               <span className="firm-skills__nums">
                 {k.independence_share === null ? "not enough data" : `${pct(k.independence_share)} without help`} of {k.n} steps
-                {k.lost_s ? `; ${fmtNum(k.lost_s, "s")} ${k.lost_s.value >= 0 ? "longer" : "shorter"} than the expert's median` : ""}
+                {lostWords(k.lost_s)}
               </span>
             </li>
           ))}
@@ -52,6 +52,14 @@ function Skills({ u }: { u: UserRow }) {
       )}
     </div>
   );
+}
+
+/** How a person's time on a skill compares with the expert's median. No sign beside "shorter"; no direction at all when the interval spans zero. */
+function lostWords(e: { value: number; ci: [number, number] | null } | null | undefined): string {
+  if (!e) return "";
+  if (spansZero(e.ci)) return `; ${fmtNum(e, "s")} against the expert's median, no clear difference`;
+  const ci: [number, number] | null = e.ci ? (e.value < 0 ? [Math.abs(e.ci[1]), Math.abs(e.ci[0])] : e.ci) : null;
+  return `; ${fmtNum({ value: Math.abs(e.value), ci }, "s")} ${e.value >= 0 ? "longer" : "shorter"} than the expert's median`;
 }
 
 function Row({ u, open, onToggle, cols }: { u: UserRow; open: boolean; onToggle: () => void; cols: number }) {
@@ -89,7 +97,7 @@ function Band({ r, min }: { r: FirmRole; min: number }) {
     return <p className="firm-band firm-band--none">Fewer than {min} people with data in this group, so no group figure is shown. People are still listed below.</p>;
   }
   const t = a.time_to_independence;
-  const main: [string, ReactNode][] = [["Finished without help", fmtShare(a.independence)]];
+  const main: [string, ReactNode][] = [["Everyone here, finished without help", fmtShare(a.independence)]];
   if (r.trend) {
     main.push(["Role trend", <><TrendMark t={r.trend.cls} />{r.trend.slope_per_4w ? <span className="firm-band__slope"> {fmtNum({ value: r.trend.slope_per_4w.value * 100, ci: r.trend.slope_per_4w.ci ? [r.trend.slope_per_4w.ci[0] * 100, r.trend.slope_per_4w.ci[1] * 100] : null }, "points a month")}</span> : null}</>]);
   }
@@ -147,6 +155,12 @@ function RoleSection({ r, firm, sort, filter }: { r: FirmRole; firm: WireFirm; s
  * Everyone in the firm, grouped by role. There is no single score and no league table: the only orders are by name and by time in role, and the
  * only filter is a class of trend. For coaching and onboarding, not for evaluating individuals.
  */
+/** The engine's privacy note without its jargon ("enums") and without repeating the five-people rule the line above already states. */
+function cleanNote(note: string | null | undefined): string {
+  const kept = (note ?? "").split(/(?<=[.!?])\s+/).filter((x) => x.trim() && !/\b(?:k\s*=\s*\d|at least \d+ people|minimum group|groups? (?:of )?(?:fewer|under|smaller))/i.test(x)).map((x) => x.replace(/numbers and enums/gi, "numbers and fixed labels").replace(/\benums?\b/gi, "fixed labels"));
+  return kept.length ? ` ${kept.join(" ")}` : "";
+}
+
 export function PeopleTable({ firm }: { firm: WireFirm; meta?: AnalyticMeta | null }) {
   const [sort, setSort] = useState<SortKey>(DEFAULT_SORT);
   const [filter, setFilter] = useState<Trend | null>(null);
@@ -173,7 +187,7 @@ export function PeopleTable({ firm }: { firm: WireFirm; meta?: AnalyticMeta | nu
             {filter ? TREND_HINT[filter] : "Each person has a class for how the help they need is changing. A class is a conversation starter for coaching, never a grade, and the list is never ranked."}
           </Hint>
         </div>
-        <p className="note">Group figures need at least {firm.privacy.min_group} people. Smaller groups are merged, so a figure never describes two or three individuals. {firm.privacy.note ?? ""}</p>
+        <p className="note">Group figures need at least {firm.privacy.min_group} people. Smaller groups are merged, so a figure never describes two or three individuals.{cleanNote(firm.privacy.note)}</p>
       </Details>
       {firm.roles.map((r) => <RoleSection key={r.role} r={r} firm={firm} sort={sort} filter={filter} />)}
     </div>

@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from evals.study_sim import analysis, report
+from evals.study_sim import LABEL, analysis, report
 from evals.study_sim.design import SEED
 
 from .conftest import made_up_rows, write_rows_csv
@@ -93,7 +93,7 @@ def test_section_shape_and_labels(specs, tmp_path):
     for k in ("status", "label", "n", "n_aa", "headline", "per_skill", "aa", "effort", "nudges", "pipeline_checks", "cost", "limitations", "meta"):
         assert k in sec
     assert sec["status"] == "complete" and sec["n"] == 16 and sec["n_aa"] == 8
-    assert sec["label"] == "simulated participants (language model), not people"
+    assert sec["label"] == LABEL == "language-model participants, not people"      # the D57 wording: no "simulated" in a string a person reads
     for k in ("mean_difference", "ci95", "per_participant_difference", "sign_flip_p_two_sided", "smallest_possible_p"):
         assert k in sec["headline"]
     assert set(sec["nudges"]) >= {"shown", "followed", "dismissed"} and set(sec["effort"]) >= {"actions_coached", "actions_uncoached"}
@@ -121,7 +121,7 @@ def test_not_run_stub_and_section_function(tmp_path, monkeypatch):
     from evals.study_sim import section
     monkeypatch.setattr(section, "RESULTS", tmp_path)
     s = section.study_sim_section()
-    assert s["status"] == "not_run" and s["label"] == "simulated participants (language model), not people" and s["limitations"]
+    assert s["status"] == "not_run" and s["label"] == LABEL == "language-model participants, not people" and s["limitations"]
     assert report.build_section(tmp_path)["status"] == "not_run"
 
 

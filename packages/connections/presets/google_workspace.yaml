@@ -12,7 +12,6 @@ connection:
   app: Sheets and Drive
   reads: Spreadsheets and Drive files you can already open.
   short: Sheets and Drive files
-  caution: Community server
   standin:
     label: Example sheets
     script: packages/connections/standins/fixture_server.py
