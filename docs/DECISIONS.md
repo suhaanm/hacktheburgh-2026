@@ -179,3 +179,5 @@ The owner kept finding that voice, annotations and computer use "do not work" af
 ## D73. Voice cost caps raised so a screen-help conversation is not cut off (8 Nov 2026, lead)
 
 With screen help working, a live conversation sends a picture about every five seconds and reached the per-conversation cap in 160 seconds (32 pictures, 19 turns, US$0.151 against 0.15, ended "cost_session"). The defaults are now US$2 per conversation and US$20 per day (raised again on the owner's word: first US$0.60 and US$8) (settings.liveSessionUsd and liveDailyUsd). The caps stay: they are the brake on spend (the Gemini total cap of US$200 is unchanged), they can be lowered from Settings and an untrusted source still cannot raise them. Prices in the meter are an assumed default until the real price is set in .env.
+
+D73 update (8 Nov 2026, on the owner's word "raise the cap to about $20"): the defaults are now US$2 per conversation and US$20 per day (settings.liveSessionUsd and liveDailyUsd; the settings maximums are 20 and 100). The overall Gemini cap of US$200 is unchanged; a conversation is at most five minutes, so US$2 is headroom, not a target.
