@@ -22,6 +22,7 @@ it wants to do (shown as the model's, redacted and cut), and for a safety check 
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable
@@ -81,12 +82,23 @@ def _clean(text: Any, limit: int) -> str:
     return one_line(text, limit)
 
 
+_LEAD_VERB = re.compile(r"^(?:double[- ]click|click|tap|press|select|choose)\s+(?:on\s+)?(?:the\s+)?", re.I)
+
+
+def _what(label: Any, limit: int = 50) -> str:
+    """The model's few words for what it wants to click, as a short label: its own leading verb is dropped (the card already says Click) and so
+    is a closing full stop. Redacted and cut by code."""
+    s = _clean(label, 120)
+    s = _LEAD_VERB.sub("", s).strip().strip("“”\"'").rstrip(".!").strip()
+    return _clean(s, limit)
+
+
 def step_words(action: Action, host: str, label: str = "") -> str:
     """The step as the worker reads it: `Click “Search” on www.youtube.com`, `Type “python tutorial” on www.youtube.com`, `Press Enter on ...`."""
     verb = _VERB.get(action.kind, "Do one step")
     place = host or "this page"
     if action.kind in ("click", "double_click"):
-        what = _clean(label, 50)
+        what = _what(label)
         return f"{verb} “{what}” on {place}" if what else f"{verb} on {place}"
     if action.kind == "type":
         text = _clean(action.args.get("text"), 40)
@@ -99,13 +111,15 @@ def step_words(action: Action, host: str, label: str = "") -> str:
     return f"{verb} on {place}"
 
 
-def card_words(kind: str, action: Action, host: str, label: str = "", topic: str = "other") -> tuple[str, str]:
-    """(title, summary) for the card in Needs you. Both are written here from closed parts."""
+def card_words(kind: str, action: Action, host: str, label: str = "", topic: str = "other", *, unreadable: bool = False) -> tuple[str, str]:
+    """(title, summary) for the card in Needs you. Both are written here from closed parts. `unreadable` is a model check on a control that
+    trusted code also could not read: one card says both."""
     step = step_words(action, host, label)
     if kind == "model_check":
         topic_words = TOPIC_WORDS.get(topic, TOPIC_WORDS["other"])
+        also = ", and Knack can't tell what this control does" if unreadable else ""
         return (f"The page asks to confirm: {topic_words}",
-                f"Knack wants to do this: {step}. The page asked for a confirmation first. Allow once, or choose Not now.")
+                f"Knack wants to do this: {step}. The page asked for a confirmation first{also}. Allow once, or choose Not now.")
     return (step, "Knack can't tell what this control does, so it is asking before it acts. Allow once, or choose Not now.")
 
 

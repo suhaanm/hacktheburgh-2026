@@ -1490,12 +1490,15 @@ class ComputerUse:
             return False
         from ..security.labels import NORMAL_CLASSES
 
-        g = self.guard.peek_gate(act, label=tr.label if tr else None, role=tr.role if tr else None,
-                                 url=(tr.url if tr else None) or getattr(self.actuator, "url", None),
-                                 field_attrs=tr.field_attrs if tr else None, structure=tr.structure if tr else ())
+        g = self._peek(act, tr)
         if g.verdict == "allow":
             return True
         return g.verdict == "needs_human" and (g.top is None or g.top in NORMAL_CLASSES)
+
+    def _peek(self, act: Action, tr: TargetRead | None) -> Any:
+        return self.guard.peek_gate(act, label=tr.label if tr else None, role=tr.role if tr else None,
+                                    url=(tr.url if tr else None) or getattr(self.actuator, "url", None),
+                                    field_attrs=tr.field_attrs if tr else None, structure=tr.structure if tr else ())
 
     async def _wait_for_worker(self, ask: StopAsk) -> None:
         """Block until the worker decides on this one question; the time spent does not count against the run's budgets. Returns only for an
@@ -1535,22 +1538,39 @@ class ComputerUse:
             return False, shot2
         return True, shot2
 
-    async def _wait_on_control(self, act: Action, dec: Any, tr: TargetRead | None, shot: bytes) -> tuple[bytes, Any] | None:
+    async def _wait_on_control(self, act: Action, dec: Any, tr: TargetRead | None, shot: bytes,
+                               stop: SafetyStop | None = None) -> tuple[bytes, Any] | None:
         """Case 1: the gate could not read the control. The pipeline has already raised a queue item for this one action; it is re-worded in
         plain words (kind `browser_step`: Allow once, Not now) and the run waits. Returns the fresh capture and observation to authorise the SAME
-        action with the approved item, or None when the page changed while waiting."""
+        action with the approved item, or None when the page changed while waiting.
+
+        `stop` is the model's own safety check on this same action, when it has one: ONE card then asks about both (the page asked for a
+        confirmation, and the control cannot be read), so a consent banner costs one click and not two. The click is the worker's for that one
+        action only; the provider's check is acknowledged for it after the click, and the action still goes through every gate."""
         host, label = self._host(), self._intent()
-        title, summary = card_words("control", act, host, label)
+        title, summary = card_words("model_check" if stop is not None else "control", act, host, label,
+                                    stop.topic if stop is not None else "other", unreadable=stop is not None)
         self.guard.queue.relabel_pending(dec.queue_id, kind="browser_step", title=title, summary=summary, risk_class="normal",
-                                         evidence_extra={"stop": "control", "action": act.kind, "host": host})
+                                         evidence_extra={"stop": "model_check+control" if stop is not None else "control", "action": act.kind,
+                                                         "host": host, **({"topic": stop.topic} if stop is not None else {})})
         url0 = getattr(self.actuator, "url", None)
-        await self._wait_for_worker(StopAsk("control", dec.queue_id, act.kind, host, label))
+        await self._wait_for_worker(StopAsk("control", dec.queue_id, act.kind, host, label, stop.topic if stop is not None else "other"))
         same, shot2 = await self._same_page_after_wait(act, tr, shot, url0)
         if not same:
             self.guard.note("browser_stop_wait", "page_changed", "control", tier=3)
             return None
         self.guard.note("browser_step_allowed", "approved_by_worker", "control", tier=3)
+        if stop is not None:
+            self._acknowledge(stop)
         return shot2, self.guard.observe_screen()
+
+    def _acknowledge(self, stop: SafetyStop) -> None:
+        """The worker said yes to this ONE provider check (a real click on its card): the provider hands out the actions that came with it,
+        and the audit records that the worker, not code, answered it."""
+        ack = getattr(self.model, "acknowledge_safety", None)
+        if callable(ack):
+            ack(stop, session=self.navigator)
+        self.guard.note("provider_safety_acknowledged", "approved_by_worker", stop.topic, tier=3)
 
     async def _wait_on_model_check(self, stop: SafetyStop, shot: bytes, n: int) -> Any:
         """Case 2: the model's own safety check, raised on one action. Returns `_NOT_WAITABLE` (the run ends as it always did), None (the page
@@ -1561,6 +1581,10 @@ class ComputerUse:
         tr = await self._read_target(act)
         if not self._waitable(act, tr, topic=stop.topic):
             return _NOT_WAITABLE
+        if self._peek(act, tr).verdict == "needs_human":
+            # The gate will also ask, because trusted code cannot read this control. One question covers both: nothing is asked here, the
+            # action goes on to the gate, and the card the gate raises carries the model's check too (`_wait_on_control(stop=...)`).
+            return act, None, True
         host, label = self._host(), self._intent()
         title, summary = card_words("model_check", act, host, label, stop.topic)
         sig = question_signature(act)
@@ -1579,11 +1603,19 @@ class ComputerUse:
         if not same:
             self.guard.note("browser_stop_wait", "page_changed", "model_check", tier=3)
             return None
-        ack = getattr(self.model, "acknowledge_safety", None)
-        if callable(ack):
-            ack(stop, session=self.navigator)
-        self.guard.note("provider_safety_acknowledged", "approved_by_worker", stop.topic, tier=3)
-        return act, shot2
+        self._acknowledge(stop)
+        return act, shot2, False
+
+    def _end_on_model_check(self, stop: SafetyStop, n: int) -> None:
+        """The check is queued for a human and never acknowledged by code: the run ends, as it always did (`ProviderSafetyStop`)."""
+        item = self.guard.enqueue(
+            kind="injection_pause", title=f"Model provider raised a safety check ({self.navigator})",
+            summary="A pending safety check from the model provider was not acknowledged. A human decides.",
+            risk_class="normal",
+            evidence={"screenshots": [], "extracted": {"checks": [c.get("code") for c in stop.checks]},
+                      "expected": {}, "diff": [], "tier_log": []})
+        self._event(n, "safety_stop", False, "provider safety check")
+        raise ProviderSafetyStop(stop.checks, item["id"])
 
     def _event(self, n: int, action: str, ok: bool, detail: str = "") -> None:
         ev = StepEvent(navigator=self.navigator, step=n, tier=3, action=action, ok=ok, detail=detail)
@@ -1783,6 +1815,7 @@ class ComputerUse:
                 res.steps += 1
                 self.last_steps = res.steps
                 n += 1
+                owed: SafetyStop | None = None          # a model check the gate's own card will answer for the same action (see _wait_on_control)
                 if isinstance(out, SafetyStop):
                     # A browsing task may WAIT for the worker's click on this one checked action and carry on (see `_wait_on_model_check`).
                     # Everything else, and every check that is not a plain one, ends the run exactly as before: the check is queued for a
@@ -1796,19 +1829,17 @@ class ComputerUse:
                         last_fp = None
                         continue
                     if carried is not _NOT_WAITABLE:
-                        out, shot = carried                           # the checked action, now the worker's: through every gate below
-                        pobs = self.guard.observe_screen()            # the old observation is stale after a wait, and authorises one action only
-                        fp = screen_fingerprint(shot)
-                        last_fp = fp if fp is not None else last_fp
+                        stop_in_hand = out
+                        out, shot2, merged = carried                  # the checked action, now the worker's: through every gate below
+                        if merged:
+                            owed = stop_in_hand                       # nothing asked yet: the gate's card will carry this check too
+                        else:
+                            shot = shot2
+                            pobs = self.guard.observe_screen()        # the old observation is stale after a wait, and authorises one action only
+                            fp = screen_fingerprint(shot)
+                            last_fp = fp if fp is not None else last_fp
                     else:
-                        item = self.guard.enqueue(
-                            kind="injection_pause", title=f"Model provider raised a safety check ({self.navigator})",
-                            summary="A pending safety check from the model provider was not acknowledged. A human decides.",
-                            risk_class="normal",
-                            evidence={"screenshots": [], "extracted": {"checks": [c.get("code") for c in out.checks]},
-                                      "expected": {}, "diff": [], "tier_log": []})
-                        self._event(n, "safety_stop", False, "provider safety check")
-                        raise ProviderSafetyStop(out.checks, item["id"])
+                        self._end_on_model_check(out, n)
                 if isinstance(out, Unsupported):
                     # The provider could not map what the model asked for. That is not the model giving up: say what exists and ask again.
                     unsupported_streak += 1
@@ -1942,17 +1973,22 @@ class ComputerUse:
                     # Case 1: trusted code could not read the control, and that is the gate's only objection. The run WAITS for the worker's
                     # click; on Allow once the SAME action is authorised again with the approved item (bound to this action, used once), so
                     # every other layer still judges it. The pipeline's own needs_human is replaced by the worker's approval for THIS action.
-                    waited = await self._wait_on_control(out, dec, tr, shot)
+                    waited = await self._wait_on_control(out, dec, tr, shot, stop=owed)
                     if waited is None:
                         res.history.append({"kind": out.kind, "ok": False, "why": "page_changed_while_waiting"})
                         feedback = WAIT_CHANGED_NOTE
                         last_fp = None
                         continue
+                    owed = None                                       # the same click answered the model's check too
                     shot, pobs = waited
                     fp = screen_fingerprint(shot)
                     last_fp = fp if fp is not None else last_fp
                     tr = await self._read_target(out)
                     dec = authorise(pobs, tr, dec.queue_id)
+                if owed is not None:
+                    # The model's check was meant to be answered by the gate's card, and that card was not asked (the gate decided
+                    # something else): the check was never answered, so the action does not run. Fail closed, as before.
+                    self._end_on_model_check(owed, n)
                 self.guard.require(dec, (tr.label if tr else None) or out.kind, navigator=self.navigator)
                 if self.stuck.push((out.kind, tuple(sorted((k, str(v)) for k, v in out.args.items())), fp)):
                     self._event(n, out.kind, False, "stuck loop")

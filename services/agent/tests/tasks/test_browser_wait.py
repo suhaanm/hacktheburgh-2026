@@ -355,6 +355,25 @@ def test_a_model_safety_check_waits_then_allow_once_acknowledges_that_step_and_d
     assert [o for o, _ in waits(tmp_path)] == ["waiting", "approved"]
 
 
+def test_a_model_check_on_a_control_that_cannot_be_read_is_one_card_not_two(tmp_path):
+    """A consent banner is often both: the model asks for confirmation and trusted code cannot read the control. One card, one click, for that
+    one action: the pipeline's own item is worded for both and its approval answers both."""
+    port = Checked([consent_stop()])
+    out, seen, worker, lines = run(port, tmp_path, body=CUSTOM, verdicts=["approve", "approve"])
+    assert out["state"] == "done", out
+    assert len(worker.seen) == 1 and len(clicked(seen, "a")) == 1 and len(port.acked) == 1
+    [card] = worker.seen
+    assert card["title"] == "The page asks to confirm: a cookie or consent choice"
+    assert "can't tell what this control does" in card["summary"] and "Allow once" in card["summary"]
+    assert [o for o, _ in waits(tmp_path)] == ["waiting", "approved"]
+
+
+def test_a_merged_check_that_is_declined_does_nothing_and_acknowledges_nothing(tmp_path):
+    port = Checked([consent_stop()])
+    out, seen, worker, lines = run(port, tmp_path, body=CUSTOM, verdicts=["reject"])
+    assert out["state"] == "stopped" and out["why"] == "declined" and clicked(seen, "a") == [] and port.acked == []
+
+
 def test_a_model_safety_check_does_nothing_until_the_worker_says_yes(tmp_path):
     port = Checked([consent_stop()])
     seen: list = []
@@ -488,6 +507,9 @@ def test_the_card_words_are_closed_and_carry_no_page_text():
     a = Action("click", {"x": 1, "y": 1, "button": "left"})
     assert card_words("control", a, "www.youtube.com", "Search")[0] == "Click “Search” on www.youtube.com"
     assert card_words("control", a, "www.youtube.com")[0] == "Click on www.youtube.com"
+    assert card_words("control", a, "www.youtube.com", "Click the YouTube search box.")[0] == "Click “YouTube search box” on www.youtube.com"
+    assert card_words("control", a, "www.youtube.com", "Reject cookies to proceed to YouTube.")[0] == (
+        "Click “Reject cookies to proceed to YouTube” on www.youtube.com")
     t = Action("type", {"text": "python tutorial"})
     assert card_words("control", t, "www.youtube.com")[0] == "Type “python tutorial” on www.youtube.com"
     assert card_words("control", Action("key", {"keys": ["enter"]}), "www.youtube.com")[0] == "Press Enter on www.youtube.com"
