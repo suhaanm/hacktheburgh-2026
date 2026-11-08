@@ -291,7 +291,7 @@ async function run(): Promise<void> {
   check('Show my week goes to Home and first run does not come back', hash1.startsWith('#/home'), hash1)
   await png(wc, 'home-after-firstrun')
   notes.homeText = (await visibleText(wc)).replace(/\n+/g, ' | ').slice(0, 800)
-  check('Home after first run mentions no demo, mock, synthetic, made-up or Alongside word', !BANNED.test(await visibleText(wc)), (await visibleText(wc)).match(BANNED)?.[0])
+  check('Home after first run has none of the words the owner banned (BANNED)', !BANNED.test(await visibleText(wc)), (await visibleText(wc)).match(BANNED)?.[0])
   check('no content security policy violation and no console error through first run', consoleErrors.length === 0, consoleErrors.slice(0, 5))
   // the stopped / Resume banner in the window
   engineKilled = true
