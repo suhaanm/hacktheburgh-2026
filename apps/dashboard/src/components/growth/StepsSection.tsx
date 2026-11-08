@@ -7,7 +7,7 @@ import { Explain } from "../Explain";
 import { Details, FactRows } from "../ui";
 import { GrowthSection, SectionError, useReportSource } from "./GrowthSection";
 import { useAppState } from "../../store";
-import { notKnown, unknownAsError, useOwnPerson } from "./own";
+import { isCalm, notKnown, unknownAsError, useOwnPerson } from "./own";
 import { describeColumn, layoutRibbon } from "../../lib/ribbon";
 import { cogLabel, fmtDuration } from "../../lib/format";
 import { stepsHeadline, topLosses } from "../../lib/steps";
@@ -32,7 +32,7 @@ export function StepsSection({ open }: { open: boolean }) {
   const cols = useMemo(() => (g.data ? layoutRibbon(g.data, 1000).columns : []), [g.data]);
 
   if (g.status === "error" && !g.data) {
-    return <GrowthSection id="steps" title="My steps" headline="Your steps could not be read just now."><SectionError error={g.error} retry={g.reload} what="your steps" empty="Nothing has been recorded for you yet." /></GrowthSection>;
+    return <GrowthSection id="steps" title="My steps" headline={isCalm(g.error) ? "Your steps appear here once Knack has seen you do this task." : "Your steps could not be read just now."}><SectionError error={g.error} retry={g.reload} what="your steps" empty="Nothing has been recorded for you yet." /></GrowthSection>;
   }
   if (!g.data) return <GrowthSection id="steps" title="My steps" headline="Reading your steps." busy><Loading label="Loading your steps" /></GrowthSection>;
   const data = g.data;

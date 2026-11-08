@@ -153,7 +153,7 @@ function Progress() {
   );
 }
 
-/** The roles that get "My commits". The section also opens for anyone who follows a link to it. */
+/** The roles that get "My commits". For every other role the section is not drawn at all, whatever the address says. */
 const COMMIT_ROLES = new Set(["programmer"]);
 
 /**
@@ -165,7 +165,7 @@ export default function Growth() {
   const route = useRoute();
   const section = growthSectionOf(route.query.get("section"));
   const role = useAppState().role;
-  const commits = (role != null && COMMIT_ROLES.has(role)) || section === "commits";
+  const commits = role != null && COMMIT_ROLES.has(role);
 
   useEffect(() => {
     if (section === "progress") return;

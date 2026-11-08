@@ -48,7 +48,8 @@ Two kinds of test:
 | Interval spans zero | not flagged; the headline says no habit stands out | `commits: an interval that spans zero is not flagged` |
 | Very long or unicode habit label | the label wraps over two lines in the chart; the table shows it whole | `commits: a very long and a unicode habit label stay words` |
 | The plural "experts" and "the 8 experts" | never drawn: "an experienced worker" | `commits: the plural 'experts' ...`, `oneExpert` |
-| A role that is not a programmer | the section is not on the page unless the address names it | `Growth: My commits is for programmers` |
+| A role that is not a programmer (benefits, analyst, none) | the section is not on the page, even when the address names it | `Growth: My commits is for programmers` |
+| A programmer with no repository yet (the calm 404) | "Commits appear once a repository is connected." and no error phrase | `commits: no repository for the worker reads as none registered` |
 
 ## How my routines connect
 
