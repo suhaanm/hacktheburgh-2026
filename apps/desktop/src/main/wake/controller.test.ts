@@ -9,7 +9,7 @@ import { WakeSettingsStore } from './settings'
 
 const CALM = { flagOn: true, isMac: true, mock: false, locked: false, asleep: false, paused: false, killed: false, hardQuiet: { dnd: false, screenSharing: false, onCall: false, inMeeting: false }, agentActing: false, away: false }
 
-function rig(over: { tasks?: TaskClient; readOut?: (t: string) => boolean; firstRun?: { on: boolean }; rung?: RungReading; live?: { consented?: boolean; frames?: boolean }; startOk?: boolean; blocker?: string | null; inputs?: Partial<typeof CALM> } = {}) {
+function rig(over: { mic?: { status: string }; tasks?: TaskClient; readOut?: (t: string) => boolean; firstRun?: { on: boolean }; rung?: RungReading; live?: { consented?: boolean; frames?: boolean }; startOk?: boolean; blocker?: string | null; inputs?: Partial<typeof CALM> } = {}) {
   const settings = new WakeSettingsStore(null)
   const liveSettings = new LiveSettingsStore(null)
   if (over.live?.consented) liveSettings.patch({ liveEnabled: true, liveConsentVersion: LIVE_CONSENT_VERSION, liveFrames: over.live.frames === true }, { trusted: true })
@@ -20,6 +20,7 @@ function rig(over: { tasks?: TaskClient; readOut?: (t: string) => boolean; first
   let phase = 'idle'
   let trigger: 'key' | 'wake' | null = null
   let refused: string | null = null
+  let problem: string | null = null
   const started: number[] = []
   const cardsSeen: CardSpec[] = []
   const closed: string[] = []
@@ -38,6 +39,7 @@ function rig(over: { tasks?: TaskClient; readOut?: (t: string) => boolean; first
     settings,
     liveSettings,
     openSettings: (w) => void opened.push(w),
+    micStatus: () => over.mic?.status ?? 'granted',
     tasks: over.tasks,
     readOut: (t) => (readOuts.push(t), over.readOut?.(t) ?? false),
     sleep: async (ms) => void (t += ms),
@@ -57,7 +59,7 @@ function rig(over: { tasks?: TaskClient; readOut?: (t: string) => boolean; first
         liveSubs.forEach((f) => f())
         return true
       },
-      status: () => ({ phase, trigger, refused }),
+      status: () => ({ phase, trigger, refused, problem }),
       subscribe: (cb) => {
         liveSubs.add(cb)
         return () => liveSubs.delete(cb)
@@ -112,10 +114,11 @@ function rig(over: { tasks?: TaskClient; readOut?: (t: string) => boolean; first
     helper = st
     ctl.refresh()
   }
-  const endLive = (why: string | null = null): void => {
+  const endLive = (why: string | null = null, why2: string | null = null): void => {
     phase = 'idle'
     trigger = null
     refused = why
+    problem = why2
     liveSubs.forEach((f) => f())
   }
   const fire = (): void => {
@@ -129,7 +132,7 @@ function rig(over: { tasks?: TaskClient; readOut?: (t: string) => boolean; first
   const flush = async (): Promise<void> => {
     for (let i = 0; i < 6; i++) await Promise.resolve()
   }
-  return { ctl, readOuts, setHelper, opened, settings, liveSettings, helperLog, started, cardsSeen, closed, answers, runs, finishRun: (r: { ok: boolean; reason?: string }) => finishRun(r), stops, said, chimes, endLive, fire, flush, inputs, advance: (ms: number) => void (t += ms) }
+  return { ctl, readOuts, setHelper, over, opened, settings, liveSettings, helperLog, started, cardsSeen, closed, answers, runs, finishRun: (r: { ok: boolean; reason?: string }) => finishRun(r), stops, said, chimes, endLive, fire, flush, inputs, advance: (ms: number) => void (t += ms) }
 }
 const mouse = (id: string): CardAnswer => ({ buttonId: id, via: 'mouse' })
 
@@ -350,7 +353,13 @@ describe('do_it_for_me', () => {
 })
 
 describe('the words always get an answer', () => {
-  const needsLive = { title: 'Hey Knack heard you.', body: 'Live voice needs live models. Turn them on in Settings.' }
+  // Each cause has its own title and one thing to do (no generic "needs live models" for a missing key or model).
+  const needsLive: Record<string, { title: string; body: string }> = {
+    mock_mode: { title: 'Voice needs live models.', body: 'Turn on Use live models in Settings, then try again.' },
+    no_key: { title: 'Voice needs a Gemini key.', body: 'Add the key to the .env file and reopen Knack.' },
+    no_model: { title: 'Voice has no model set.', body: 'Add the voice model name to the .env file and reopen Knack.' },
+    model_unusable: { title: 'The voice model was not accepted.', body: 'The key cannot use the voice model that is set. Run Check voice in Settings.' },
+  }
   it('with no live models the listener still hears the words, shows a card in plain words, asks no consent and opens nothing', async () => {
     for (const blocker of ['mock_mode', 'no_key', 'no_model', 'model_unusable']) {
       const r = rig({ blocker })
@@ -360,11 +369,11 @@ describe('the words always get an answer', () => {
       await r.ctl.onHeard()
       await r.flush()
       expect(r.cardsSeen).toHaveLength(1)
-      expect(r.cardsSeen[0]).toMatchObject(needsLive)
-      expect(r.cardsSeen[0].buttons.map((b) => b.label)).toEqual(['Open Settings', 'Close'])
+      expect(r.cardsSeen[0]).toMatchObject(needsLive[blocker])
+      expect(r.cardsSeen[0].buttons.map((b) => b.label)).toEqual(blocker === 'no_key' || blocker === 'no_model' ? ['Close'] : ['Open Settings', 'Close'])
       expect(r.started).toHaveLength(0)
       expect(r.settings.get().voiceAnswer).toBe('unset') // no consent was asked for something that could not happen
-      expect(r.ctl.status().line).toBe('Live voice needs live models.')
+      expect(r.ctl.status().line).toBe({ mock_mode: 'Voice needs live models.', no_key: 'Voice needs a Gemini key.', no_model: 'Voice has no model set.', model_unusable: 'The voice model was not accepted.' }[blocker])
       r.fire()
       expect(r.helperLog.at(-1)).toBe('start') // and it keeps listening afterwards
     }
@@ -390,19 +399,21 @@ describe('the words always get an answer', () => {
     expect(c.opened).toEqual([])
   })
   it('other reasons have their own plain card: the service not answering, the limit, the microphone, a pause', async () => {
-    const cases: Array<[string, string, string[]]> = [
-      ['breaker_open', 'The voice service is not answering. Try again soon.', ['Close']],
-      ['day_cap', 'Today\u2019s talking limit is reached. You can raise it in Settings.', ['Open Settings', 'Close']],
-      ['mic_permission', 'Live voice needs the microphone. Turn it on in System Settings.', ['System Settings', 'Close']],
-      ['agent_acting', 'Knack is working. Try again when it finishes.', ['Close']],
+    const cases: Array<[string, string, string, string[]]> = [
+      ['breaker_open', 'The voice service is not answering.', 'Try again soon.', ['Close']],
+      ['day_cap', 'Today\u2019s talking limit is reached.', 'You can raise it in Settings.', ['Open Settings', 'Close']],
+      ['mic_permission', 'Knack needs the microphone.', 'Switch Knack on in System Settings, Microphone, then try again.', ['System Settings', 'Close']],
+      ['agent_acting', 'Knack is working.', 'Try again when it finishes.', ['Close']],
+      ['paused', 'Knack is paused.', 'Choose Resume in the menu bar, then try again.', ['Close']],
+      ['killed', 'Everything is stopped.', 'Choose Resume in the menu bar, then try again.', ['Close']],
     ]
-    for (const [blocker, body, buttons] of cases) {
+    for (const [blocker, title, body, buttons] of cases) {
       const r = rig({ blocker })
       r.ctl.start()
       r.answers.push(null)
       await r.ctl.onHeard()
       await r.flush()
-      expect(r.cardsSeen[0]).toMatchObject({ title: 'Hey Knack heard you.', body })
+      expect(r.cardsSeen[0]).toMatchObject({ title, body })
       expect(r.cardsSeen[0].buttons.map((b) => b.label)).toEqual(buttons)
     }
     const mic = rig({ blocker: 'mic_permission' })
@@ -418,7 +429,7 @@ describe('the words always get an answer', () => {
     r.answers.push(null)
     await r.ctl.onHeard()
     await r.flush()
-    expect(r.cardsSeen.at(-1)).toMatchObject({ title: 'Hey Knack heard you.', body: 'Live voice needs the microphone. Turn it on in System Settings.' })
+    expect(r.cardsSeen.at(-1)).toMatchObject({ title: 'Knack needs the microphone.', body: 'Switch Knack on in System Settings, Microphone, then try again.' })
   })
   it('the microphone going away mid-conversation ends it with one plain card and a line, and the listener returns', async () => {
     const r = rig({ live: { consented: true, frames: true } })
@@ -427,7 +438,7 @@ describe('the words always get an answer', () => {
     r.answers.push(null)
     r.endLive('mic_permission')
     await r.flush()
-    expect(r.cardsSeen.at(-1)).toMatchObject({ title: 'Hey Knack heard you.', body: 'Live voice needs the microphone. Turn it on in System Settings.' })
+    expect(r.cardsSeen.at(-1)).toMatchObject({ title: 'Knack needs the microphone.', body: 'Switch Knack on in System Settings, Microphone, then try again.' })
     expect(r.ctl.status().session).toBe(false)
     r.fire()
     expect(r.helperLog.at(-1)).toBe('start')
@@ -447,7 +458,7 @@ describe('edge cases of the wake path', () => {
     const r = rig()
     r.ctl.start()
     r.setHelper({ state: 'blocked', code: 'on_device_unavailable' })
-    expect(r.ctl.status()).toMatchObject({ listening: false, fix: 'dictation', line: 'This Mac cannot recognise speech on the device, so Hey Knack stays off.' })
+    expect(r.ctl.status()).toMatchObject({ listening: false, fix: 'dictation', line: 'This Mac cannot recognise speech on the device, so Hey Knack stays off. Hold Option-Space to talk instead.' })
   })
   it('a helper that keeps crashing ends blocked with one plain line, and switching the listener off and on tries again', () => {
     const r = rig()
@@ -530,7 +541,7 @@ describe('every capability that cannot work answers with a card and a button', (
       r.ctl.explainRefusal(reason)
       await r.flush()
       expect(r.cardsSeen).toHaveLength(1)
-      expect(r.cardsSeen[0].title).toBe('Hey Knack heard you.')
+      expect(r.cardsSeen[0].title).toBe({ no_key: 'Voice needs a Gemini key.', breaker_open: 'The voice service is not answering.', mic_permission: 'Knack needs the microphone.', paused: 'Knack is paused.', day_cap: 'Today\u2019s talking limit is reached.' }[reason])
     }
   })
   it('a refusal the worker should not hear about (already talking) shows nothing', async () => {
@@ -799,7 +810,7 @@ describe('start_task: the request goes to the task service and a card asks first
     expect(r2.said).toContain('did_not_work')
   })
   it('the service refusing or not answering gives a closed answer and a plain card, and Stop everything refuses before calling it', async () => {
-    for (const [created, reason, body] of [['fail:too_many_tasks', 'too_many_tasks', 'Too many tasks are running. Stop one or wait.'], ['fail:kill_switch', 'kill_switch', 'Everything is stopped. Resume from the menu bar.'], ['fail:unavailable', 'unavailable', 'The task service is not answering. Try again soon.']] as const) {
+    for (const [created, reason, body] of [['fail:too_many_tasks', 'too_many_tasks', 'Too many tasks are running. Stop one or wait.'], ['fail:kill_switch', 'kill_switch', 'Choose Resume in the menu bar, then try again.'], ['fail:unavailable', 'unavailable', 'The task service is not answering. Try again soon.']] as const) {
       const t = fakeTasks({ created })
       const r = rig({ tasks: t.client })
       r.ctl.start()
@@ -1034,5 +1045,119 @@ describe('the first conversation’s welcome', () => {
     expect(t).toContain('Try saying: show me where the Show my week button is.')
     expect(t).toContain('"Show my week"')
     expect(t).not.toContain('Needs you')
+  })
+})
+
+
+describe('a conversation that opened but could not hear or answer says why, on a card, once', () => {
+  const CASES: Array<[string, string, string]> = [
+    ['secure_input', 'Knack cannot listen right now.', 'A password field or a secure app is open. Close it, then try again.'],
+    ['denylisted_app', 'Knack skips private apps.', 'A private app is in front, so Knack did not listen. Switch to another app and try again.'],
+    ['locked', 'The screen is locked.', 'Unlock it, then try again.'],
+    ['gate_stale', 'Knack could not check the screen.', 'It checks that nothing private is in front before it listens. Try again in a moment.'],
+    ['ledger_unavailable', 'Knack could not start talking.', 'The privacy record is not answering, so nothing was sent. Reopen Knack and try again.'],
+    ['mic_device', 'Knack could not open the microphone.', 'Check that a microphone is connected and chosen in System Settings, Sound, Input.'],
+    ['voice_no_key', 'Voice needs a Gemini key.', 'Add the key to the .env file and reopen Knack.'],
+    ['voice_refused', 'The voice service said no.', 'It did not accept the key or the voice model. Run Check voice in Settings.'],
+    ['voice_network', 'Knack could not reach the voice service.', 'Check your internet connection, then try again.'],
+    ['connection_lost', 'The voice connection dropped.', 'Try again in a moment.'],
+  ]
+  it.each(CASES)('%s: a card whose title names the cause and whose body says the one thing to do', async (code, title, body) => {
+    const r = rig({ live: { consented: true, frames: true } })
+    r.ctl.start()
+    r.answers.push(null)
+    r.endLive(null, code) // a talk-key conversation ended with that problem (no wake session is involved)
+    await r.flush()
+    expect(r.cardsSeen).toHaveLength(1)
+    expect(r.cardsSeen[0]).toMatchObject({ title, body })
+    // The same problem is not shown twice for the same conversation, and the next conversation can show it again.
+    r.endLive(null, code)
+    await r.flush()
+    expect(r.cardsSeen).toHaveLength(1)
+    r.endLive(null, null)
+    r.answers.push(null)
+    r.endLive(null, code)
+    await r.flush()
+    expect(r.cardsSeen).toHaveLength(2)
+  })
+  it('a hands-free conversation that cannot hear says so too, and the listener comes back', async () => {
+    const r = rig({ live: { consented: true, frames: true } })
+    r.ctl.start()
+    await r.ctl.onHeard()
+    r.answers.push(null)
+    r.endLive(null, 'secure_input')
+    await r.flush()
+    expect(r.cardsSeen.at(-1)).toMatchObject({ title: 'Knack cannot listen right now.' })
+    expect(r.ctl.status().session).toBe(false)
+    r.fire()
+    expect(r.helperLog.at(-1)).toBe('start')
+  })
+  it('the status line names the real cause of a microphone refusal', async () => {
+    const r = rig({ blocker: 'mic_permission' })
+    r.ctl.start()
+    r.answers.push(null)
+    await r.ctl.onHeard()
+    expect(r.ctl.status().line).toBe('Knack needs the microphone. Turn it on in System Settings.')
+  })
+  it('a microphone macOS has not been asked about: the card says Allow, never an empty System Settings list', async () => {
+    for (const blocker of ['mic_permission']) {
+      const r = rig({ blocker, mic: { status: 'not-determined' } })
+      r.ctl.start()
+      r.answers.push({ buttonId: 'microphone', via: 'mouse' })
+      await r.ctl.onHeard()
+      await r.flush()
+      expect(r.cardsSeen[0]).toMatchObject({ title: 'Knack needs the microphone.', body: 'Choose Allow, then say yes when macOS asks.' })
+      expect(r.cardsSeen[0].buttons.map((b) => b.label)).toEqual(['Allow', 'Close'])
+      expect(r.opened).toEqual(['microphone']) // main decides: ask (not determined) or open (denied), by micFixAction
+    }
+    const denied = rig({ blocker: 'mic_permission', mic: { status: 'denied' } })
+    denied.ctl.start()
+    denied.answers.push(null)
+    await denied.ctl.onHeard()
+    expect(denied.cardsSeen[0].buttons.map((b) => b.label)).toEqual(['System Settings', 'Close'])
+  })
+  it('the key press answers with the Allow card too when the microphone was never asked', async () => {
+    const r = rig({ mic: { status: 'not-determined' } })
+    r.ctl.start()
+    r.answers.push(null)
+    r.ctl.explainRefusal('mic_permission')
+    await r.flush()
+    expect(r.cardsSeen[0].buttons.map((b) => b.label)).toEqual(['Allow', 'Close'])
+    // and the conversation that ends with the same cause does not show a second card
+    r.endLive('mic_permission', 'mic_permission')
+    await r.flush()
+    expect(r.cardsSeen).toHaveLength(1)
+  })
+})
+
+describe('a listener blocked for a permission is armed again by itself once it is fixed', () => {
+  it('the microphone switched on in System Settings: the next check unblocks and starts it, no toggle needed', () => {
+    const mic = { status: 'denied' }
+    const r = rig({ mic })
+    r.ctl.start()
+    r.setHelper({ state: 'blocked', code: 'mic_denied' })
+    expect(r.helperLog).not.toContain('unblock')
+    mic.status = 'granted'
+    r.ctl.refresh()
+    expect(r.helperLog).toContain('unblock')
+  })
+  it('speech recognition has no status to read, so a blocked listener tries again after thirty seconds, and not sooner', () => {
+    const r = rig()
+    r.ctl.start()
+    r.setHelper({ state: 'blocked', code: 'speech_denied' })
+    r.advance(10_000)
+    r.ctl.refresh()
+    expect(r.helperLog).not.toContain('unblock')
+    r.advance(25_000)
+    r.ctl.refresh()
+    expect(r.helperLog).toContain('unblock')
+  })
+  it('a cause that is not a permission (a crash loop, no helper) is not retried by itself', () => {
+    const r = rig()
+    r.ctl.start()
+    r.setHelper({ state: 'blocked', code: 'crash_loop' })
+    r.advance(120_000)
+    r.ctl.refresh()
+    expect(r.helperLog).not.toContain('unblock')
   })
 })

@@ -57,6 +57,7 @@ import { adoptOwner, createWindows } from './windows'
 import { APP_NAME } from '../shared/brand'
 import { createAgentPills } from './knack/agent-pills'
 import { createAskBar } from './knack/ask-bar'
+import { micFixAction } from './knack/permission-bridge'
 import { createTryRingPort } from './knack/try-ring'
 import { registerAppScheme } from './knack/app-protocol-electron'
 import { glyphSvg } from './knack/brand-glyph'
@@ -492,9 +493,11 @@ void app.whenReady().then(async () => {
         killed: isKilled,
         owns: (id) => windows.owns(id) || knack?.mainWindow.owns(id) === true,
         openSettings: () => knack?.openSettings(),
-        openMicrophoneSettings: () => permissions.openSettings('microphone'),
+        // Knack is not in macOS's Microphone list until macOS has been asked, so on the worker's click the card asks first (the macOS question appears) and opens the list only when the answer was no.
+        openMicrophoneSettings: () => (micFixAction(systemPreferences.getMediaAccessStatus('microphone')) === 'ask' ? void permissions.requestMicrophone() : permissions.openSettings('microphone')),
+        micStatus: () => (process.platform === 'darwin' ? systemPreferences.getMediaAccessStatus('microphone') : 'granted'),
         openScreenSettings: () => permissions.openSettings('screen'),
-        openPane: (pane) => (pane === 'dictation' ? void shell.openExternal('x-apple.systempreferences:com.apple.Keyboard-Settings.extension').catch(() => undefined) : permissions.openSettings(pane)),
+        openPane: (pane) => (pane === 'dictation' ? void shell.openExternal('x-apple.systempreferences:com.apple.Keyboard-Settings.extension').catch(() => undefined) : pane === 'sound' ? void shell.openExternal('x-apple.systempreferences:com.apple.Sound-Settings.extension').catch(() => undefined) : permissions.openSettings(pane)),
         context: contextHub,
         log: ctx.log,
       })
@@ -534,10 +537,8 @@ void app.whenReady().then(async () => {
     startDebugServer({ ctx, services, dispatch, session, capture: { overlayPng: windows.overlayPng, overlayText: windows.overlayText, dockPng: windows.dockPng, hudPng: understudy.hud.png, hudPreview: understudy.hud.preview, hudVisible: () => understudy.hud.window()?.isVisible() ?? null }, knack: knack ? { dispatch: (e) => knack?.dispatch(e as never), info: () => knack?.info() } : undefined, understudy: { kill: understudy.kill, hud: understudy.hudModel, dom: { status: () => ({ port: understudy.extServer()?.port() ?? null, pending: understudy.domGrounder.pending(), extensionSeenMs: understudy.extServer()?.lastSeenAt() ? Date.now() - (understudy.extServer()?.lastSeenAt() ?? 0) : null, ring: understudy.ring.current(), chip: understudy.chip.current(), capture: core.capture.mode(), coach: understudy.coachBrain.status() }) } }, tray: shellTray ?? undefined })
   }
 
-  // Understudy: the microphone is only needed for voice or the wake word, both off unless their flags are set.
-  if (!headless && !hiddenRun && !flag('ALONGSIDE_MOCK') && !flag('UNDERSTUDY_MOCK') && (featureOn('voice') || featureOn('wake')) && process.platform === 'darwin' && systemPreferences.getMediaAccessStatus('microphone') === 'not-determined') {
-    void systemPreferences.askForMediaAccess('microphone')
-  }
+  // The microphone question is never asked at launch (it used to be, over the first-run window and before the worker clicked anything). macOS is asked on the worker's own click: the Allow
+  // button on the first-run permissions row, the Allow button on the microphone card, and the Allow button in Check voice; and by the Hey Knack listener when it starts after set-up.
 })
 
 // With a menu-bar item the app keeps running when the dock is hidden; without one there is no way back in, so quit.

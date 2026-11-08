@@ -34,3 +34,9 @@ export function speechStateOf(helper: HelperStatus | null): KnackPermState {
 export function permissionsView(p: PermissionStatus, helper: HelperStatus | null): KnackPermissionsState {
   return { microphone: stateOf(p.microphone), speech: speechStateOf(helper), screen: stateOf(p.screen), accessibility: stateOf(p.accessibility), needsRestart: p.needsRestart === true }
 }
+
+/**
+ * What the button on a microphone card does for macOS's own status: ask (the macOS question appears) when it has not been asked, because Knack is not in System Settings' Microphone list until
+ * then; open the list when the answer was no or the Mac forbids it. Pure, so the choice is tested. It only names the action for a worker's click and never asks by itself.
+ */
+export const micFixAction = (status: string): 'ask' | 'open' => (status === 'not-determined' ? 'ask' : 'open')

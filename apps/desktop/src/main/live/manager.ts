@@ -48,6 +48,34 @@ export type Refusal =
   | 'mic_permission'
   | 'busy'
 
+// Why a conversation that DID open could not hear or answer: a closed list, each with its own plain card (wake/texts.ts INFO_CARDS). Null when nothing went wrong.
+export type VoiceProblem =
+  | 'mic_permission'
+  | 'mic_device'
+  | 'secure_input'
+  | 'denylisted_app'
+  | 'locked'
+  | 'gate_stale'
+  | 'ledger_unavailable'
+  | 'voice_no_key'
+  | 'voice_refused'
+  | 'voice_network'
+  | 'connection_lost'
+
+/** The problem a session notice means, or null when the notice needs no card (a kill, a pause or an agent starting are the worker's own doing; a frame notice never stops the voice). */
+export function problemFromNotice(n: { kind: 'blocked' | 'mic' | 'ledger' | 'connect'; reason: string }): VoiceProblem | null {
+  switch (n.kind) {
+    case 'mic':
+      return n.reason === 'permission' ? 'mic_permission' : 'mic_device'
+    case 'blocked':
+      return n.reason === 'secure_input' ? 'secure_input' : n.reason === 'denylisted_app' ? 'denylisted_app' : n.reason === 'locked' ? 'locked' : n.reason === 'stale' ? 'gate_stale' : null
+    case 'ledger':
+      return n.reason === 'ledger_unavailable' ? 'ledger_unavailable' : null
+    case 'connect':
+      return n.reason === 'voice_no_key' || n.reason === 'voice_refused' || n.reason === 'voice_network' || n.reason === 'connection_lost' ? n.reason : null
+  }
+}
+
 export type ManagerPhase = 'off' | 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking' | 'waiting'
 
 export interface LiveStatus {
@@ -65,6 +93,8 @@ export interface LiveStatus {
   breakerOpen: boolean
   usedVoice: boolean
   refused: Refusal | null
+  // Why the last conversation could not hear or answer (a closed code), or null. Cleared when the next one opens.
+  problem: VoiceProblem | null
   lastEnd: { reason: EndReason; at: number; usd: number; mode: SessionMode } | null
   // The most recent conversation's numbers (never content): ttfa per answered turn, tool names and outcomes, tokens by modality.
   lastSummary: Omit<SessionSummary, 'transcript'> | null
@@ -151,6 +181,7 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
   let offAnswer: (() => void) | null = null
   let usedVoice = false
   let refused: Refusal | null = null
+  let problem: VoiceProblem | null = null
   let lastEnd: LiveStatus['lastEnd'] = null
   let lastSummary: LiveStatus['lastSummary'] = null
   let modelState: ModelCheck | null = null
@@ -181,6 +212,7 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
       breakerOpen: breaker.isOpen(),
       usedVoice,
       refused,
+      problem,
       lastEnd,
       lastSummary,
     }
@@ -235,6 +267,7 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
   }
 
   function open(mode: SessionMode, onSummary?: (s: SessionSummary) => void, wake = false): boolean {
+    problem = null
     refused = startRefusal()
     if (refused) {
       log('live', `not started: ${refused}`)
@@ -281,6 +314,9 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
     s.onPhase(() => emit())
     s.onNotice((n) => {
       if (n.kind === 'mic' && n.reason === 'permission') refused = 'mic_permission'
+      // Never silent: whatever kept the conversation from hearing or answering is kept as a closed code, and the wake controller puts a plain card on screen for it.
+      const p = problemFromNotice(n)
+      if (p) problem = p
       emit()
     })
     s.onEnded((summary) => {

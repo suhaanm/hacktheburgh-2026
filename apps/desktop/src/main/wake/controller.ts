@@ -12,7 +12,7 @@ import { dormancy, type Dormancy, type WakeInputs } from './guards'
 import type { HelperStatus } from './helper'
 import type { RungReading } from './rung'
 import { consentOutcome, consentStep, type CardChoice, type WakeSettingsStore } from './settings'
-import { BLOCKED_LINE, CARDS, EVERYTHING_CARD, FIRST_WAKE_OPENING, FIRST_WAKE_OPENING_SETUP, STARTED_CARD, TYPED_LINES, doneCard, failedCard, showInsteadCard, typedFailureLine, taskConsentCard, taskQuestionCard, taskResultCard, clickFailureCard, LISTENING_LINE, REFUSAL_LINE, dormantLine, infoCardFor, type InfoCard } from './texts'
+import { BLOCKED_LINE, CARDS, EVERYTHING_CARD, FIRST_WAKE_OPENING, FIRST_WAKE_OPENING_SETUP, STARTED_CARD, TYPED_LINES, doneCard, failedCard, showInsteadCard, typedFailureLine, taskConsentCard, taskQuestionCard, taskResultCard, clickFailureCard, LISTENING_LINE, REFUSAL_LINE, dormantLine, infoCardWith, type InfoCard } from './texts'
 
 export interface CardSpec {
   id: string
@@ -42,7 +42,7 @@ export interface LivePort {
   /** What would stop a conversation opening now, leaving consent out (the cards ask for that). Null: nothing. */
   blocker(): string | null
   startFromWake(): boolean
-  status(): { phase: string; trigger: 'key' | 'wake' | null; refused: string | null }
+  status(): { phase: string; trigger: 'key' | 'wake' | null; refused: string | null; /** Why the last conversation could not hear or answer (a closed code), or null. */ problem?: string | null }
   subscribe(cb: () => void): () => void
 }
 
@@ -89,7 +89,11 @@ export interface WakeControllerDeps {
   desktop: DesktopRunPort
   chime?: () => void
   /** The button on an information card: Knack's Settings, or the macOS microphone pane. */
-  openSettings?: (where: 'knack' | 'microphone' | 'screen' | 'speech' | 'accessibility' | 'dictation') => void
+  openSettings?: (where: 'knack' | 'microphone' | 'screen' | 'speech' | 'accessibility' | 'dictation' | 'sound') => void
+  /** The macOS microphone status (read only, never asks). 'not-determined' makes the microphone card say Allow instead of System Settings. Absent: always System Settings. */
+  micStatus?: () => string
+  /** How long a listener blocked for a permission waits before it tries again by itself (so a grant made in System Settings is picked up). Default 30 s. */
+  retryBlockedMs?: number
   say?: (line: 'show_instead' | 'done' | 'did_not_work' | 'stopped' | 'started') => void
   /** The task service (loopback). Absent: `start_task` answers that it is unavailable. */
   tasks?: TaskClient
@@ -139,6 +143,9 @@ export interface WakeController {
   doIt(req: DoItRequest): Promise<DoItAnswer>
 }
 
+/** Blocked causes the worker fixes in System Settings: the listener is armed again by itself after the fix. */
+const RETRYABLE: ReadonlySet<string> = new Set(['mic_denied', 'mic_restricted', 'speech_denied', 'speech_restricted'])
+
 export function createWakeController(d: WakeControllerDeps): WakeController {
   const now = d.now ?? Date.now
   const setT = d.setTimer ?? ((fn, ms) => setTimeout(fn, ms))
@@ -171,6 +178,8 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
   const typedIds = new Set<string>()
   let taskCardId: string | null = null // the task consent or question card on screen, closed by Stop everything
   let blockedShown: string | null = null // the helper's blocked cause already explained on a card (cleared when the listener works again)
+  let blockedAt: number | null = null // when the helper was first seen blocked for a permission (it tries again after a while)
+  let lastProblem: string | null = null // the conversation problem already explained on a card (cleared when the next conversation opens)
   const listeners = new Set<(s: WakeStatus) => void>()
 
   const liveOpen = (): boolean => {
@@ -273,6 +282,17 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
   function evaluate(): void {
     if (!started) return
     const dorm = dormancy(input())
+    // A listener blocked for a permission never retries by itself, so the worker who then switched it on in System Settings would have to toggle Hey Knack off and on. Instead: when the
+    // microphone is now allowed, or after a while for the others (speech recognition has no read-only status), it is armed again. Nothing here asks macOS: a refused permission does not prompt.
+    const hb = d.helper.status()
+    if (hb.state === 'blocked' && hb.code && RETRYABLE.has(hb.code) && dorm !== 'switched_off') {
+      blockedAt ??= now()
+      const micNowOn = (hb.code === 'mic_denied' || hb.code === 'mic_restricted') && d.micStatus?.() === 'granted'
+      if (micNowOn || now() - blockedAt >= (d.retryBlockedMs ?? 30_000)) {
+        blockedAt = null
+        d.helper.unblock()
+      }
+    } else blockedAt = null
     const h = d.helper.status()
     const holdOff = now() < cooldownUntil
     if (dorm === null && !holdOff) {
@@ -286,7 +306,7 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
     const hs = d.helper.status()
     if (hs.state === 'blocked' && hs.code && dorm !== 'switched_off') {
       const cause = `blocked_${hs.code}`
-      if (blockedShown !== cause && infoCardFor(cause)) {
+      if (blockedShown !== cause && infoCardWith(cause)) {
         blockedShown = cause
         explain(cause)
       }
@@ -315,6 +335,7 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
       const blocker = d.live.blocker()
       if (blocker !== null && blocker !== 'busy') {
         lastRefusal = REFUSAL_LINE[blocker] ?? null
+        if (blocker === 'mic_permission') lastProblem = blocker // explained here: the status change that follows does not show the same card again
         explain(blocker)
         return end(`blocked_${blocker}`)
       }
@@ -325,6 +346,7 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
         const why = d.live.status().refused ?? ''
         lastRefusal = REFUSAL_LINE[why] ?? 'Knack could not start talking.'
         d.lock.release('asked', 'wake')
+        if (why === 'mic_permission') lastProblem = why
         explain(why)
         return end('refused')
       }
@@ -340,13 +362,27 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
 
   /** An information card for a refusal (never silence). Fire and forget: the listener comes back after its pause either way. */
   function explain(reason: string): void {
-    const card: InfoCard | null = infoCardFor(reason)
+    const card: InfoCard | null = infoCardWith(reason, { micStatus: d.micStatus?.() })
     if (!card) return
     const id = `info-${++cardSeq}`
     void d.cards.ask({ id, title: card.title, body: card.body, buttons: card.buttons, expireMs: 20_000 }).then((a) => {
       // A button counts only as a real mouse click (the card window never answers otherwise).
       if (a && a.via === 'mouse' && a.buttonId === card.buttons[0].id && card.action) d.openSettings?.(card.action === 'settings' ? 'knack' : card.action)
     })
+  }
+
+  /** A conversation (the talk key's or Hey Knack's) that could not hear or answer says why, once, on a card: the microphone not allowed, a private app in front, the voice service not answering. Never silence. */
+  function explainProblem(): void {
+    const st = d.live.status()
+    const p = st.problem ?? (st.refused === 'mic_permission' ? 'mic_permission' : null)
+    if (!p) {
+      lastProblem = null
+      return
+    }
+    if (p === lastProblem) return
+    lastProblem = p
+    lastRefusal = REFUSAL_LINE[p] ?? lastRefusal
+    explain(p)
   }
 
   function end(why: string): void {
@@ -541,16 +577,12 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
           // The wake conversation ended (goodbye, quiet, cap, Stop, kill).
           wakeSession = false
           d.lock.release('asked', 'wake')
-          // A conversation that ended because the microphone went away (revoked mid-conversation) says so on a card, once.
-          const why = d.live.status().refused
-          if (why === 'mic_permission') {
-            lastRefusal = REFUSAL_LINE[why] ?? null
-            explain(why)
-          }
+          if (d.live.status().refused === 'mic_permission') lastRefusal = REFUSAL_LINE.mic_permission
           dispatch({ t: 'session_ended' })
           cooldownUntil = now() + restartDelay
           schedule(restartDelay)
         } else if (open && wakeSession) d.lock.extend('asked', 120_000, 'wake')
+        explainProblem()
         evaluate()
       })
       pollHandle = setI(() => evaluate(), d.pollMs ?? 3000)
@@ -606,6 +638,7 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
         void consent().then((ok) => ok && explain('ready'), () => undefined)
         return
       }
+      if (reason === 'mic_permission') lastProblem = reason // the key press explained it already
       explain(reason)
     },
     onHeard,
