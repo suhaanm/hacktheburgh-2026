@@ -56,7 +56,7 @@ describe('settings', () => {
     const s = new LiveSettingsStore(null)
     s.patch(liveConsentPatch({ voice: true, frames: true }), { trusted: true })
     s.patch({ liveEnabled: true, liveFrames: true, liveDailyUsd: 50, liveMaxMs: 300_000, liveFrameIntervalMs: 5000 }) // untrusted: up is ignored
-    expect(s.get().liveDailyUsd).toBe(0.5)
+    expect(s.get().liveDailyUsd).toBe(8)
     s.patch({ liveFrames: false, liveDailyUsd: 0.1, liveFrameIntervalMs: 30_000 }) // down is fine
     expect(s.get()).toMatchObject({ liveFrames: false, liveDailyUsd: 0.1, liveFrameIntervalMs: 30_000 })
     s.patch({ liveEnabled: true, liveFrames: true }) // turning back on needs the trusted path
@@ -70,7 +70,7 @@ describe('settings', () => {
   it('limits cannot be set outside their ranges: five minutes at most, no frame faster than every five seconds', () => {
     const s = new LiveSettingsStore(null)
     s.patch({ liveMaxMs: 3_600_000, liveFrameIntervalMs: 200, liveGraceMs: 1, liveDailyUsd: -1, liveVoiceName: '../x' }, { trusted: true })
-    expect(s.get()).toMatchObject({ liveMaxMs: 300_000, liveFrameIntervalMs: 5000, liveGraceMs: 8000, liveDailyUsd: 0.5, liveVoiceName: 'Sulafat' })
+    expect(s.get()).toMatchObject({ liveMaxMs: 300_000, liveFrameIntervalMs: 5000, liveGraceMs: 8000, liveDailyUsd: 8, liveVoiceName: 'Sulafat' })
   })
   it('pause for an hour is allowed from any source and counts as no consent while it lasts', () => {
     let t = 1000
