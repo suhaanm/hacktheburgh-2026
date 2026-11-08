@@ -25,6 +25,8 @@ from understudy_agent.tasks.store import TaskStore, valid_id
     ("go to https://www.gov.uk and find the benefit rates", "browser"),
     ("search the web for the cheapest train to Glasgow", "browser"),
     ("compare prices for flights to Rome online", "browser"),
+    ("find the cheapest flight to Paris", "browser"),
+    ("check the weather forecast for Edinburgh tomorrow", "browser"),
     ("click the Save button in Excel", "desktop"),
     ("open the Finder app and move the window", "desktop"),
     ("double-click the icon on my screen", "desktop"),

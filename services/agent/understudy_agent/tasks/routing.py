@@ -54,6 +54,7 @@ _RULES: dict[str, list[tuple[str, float]]] = {
         (r"\b(search the web|search online|on the web|on the internet|go to|open the website|visit)\b", 2.5),
         (r"\b(website|web page|webpage|web site|browser|link|url|online)\b", 1.0),
         (r"\b(flights?|trains?|hotels?|tickets?|weather|forecast|cheapest|compare prices?|in stock|opening hours|reviews?|news)\b", 1.0),
+        (r"\b(find|look for|get|check|compare)\b.*\b(flights?|trains?|hotels?|tickets?|prices?|weather|forecast|reviews?|news|opening hours)\b", 1.5),
         (r"\b(book|order|buy|purchase|pay|checkout|subscribe)\b", 0.5),
     ],
     "desktop": [
