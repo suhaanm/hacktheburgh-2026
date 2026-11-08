@@ -35,6 +35,7 @@ const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? 
 export const ANCHORS: Record<string, string> = {
   hazard: "hazard", routing: "routing", null_placebo: "controls", ope: "ope", redteam: "redteam", ski_rental: "ski",
   deficit_recovery: "deficits", presence: "presence", agent_claims: "agent", agent_runs: "runs", study: "study", privacy: "privacy",
+  hrt_ledger: "hrt-ledger", hrt_decisions: "hrt-decisions",
 };
 /** Sections drawn inside another block rather than on their own. They are in the map, and the map points at the block that shows them. */
 export const INSIDE: Record<string, string> = { pooling: "deficits", routines: "deficits", redteam_live: "redteam" };
@@ -49,6 +50,7 @@ const TITLES: Record<string, string> = {
   calendar: "Calendar layer", localmodel: "Local model digests", runtime: "Agent runtime", mlv2: "Models v2", evidence: "Evidence quality", cue: "Cue analysis",
   realism: "Data realism", modelbench: "Model bake-off", study_roles: "Role studies (programmer, data analyst)", agentic: "Agentic reliability", study: "Live study",
   study_sim: "Study with language-model participants", study_power: "Study power",
+  hrt_ledger: "Forecasts scored forward in time", hrt_decisions: "Decisions against naive and oracle policies",
 };
 const humanise = (k: string): string => { const t = k.replace(/_/g, " "); return t.charAt(0).toUpperCase() + t.slice(1); };
 export const sectionTitle = (k: string): string => TITLES[k] ?? humanise(k);

@@ -191,6 +191,12 @@ export function PeopleBody({ firm, meta }: { firm: WireFirm; meta?: AnalyticMeta
     <div className="insight-first">
       <Headline>{peopleHeadline(firm)}</Headline>
       {all.length > 0 && <MixBar title="How the help people need is changing" total={all.length} parts={TRENDS.map((t) => ({ id: t, label: TREND_LABEL[t], count: c[t] }))} />}
+      {firm.roles.filter((r) => r.users.length > 0).length > 0 && (
+        <p className="note" data-testid="people-groups">
+          Groups: {firm.roles.filter((r) => r.users.length > 0).slice(0, 4).map((r) => `${shortName(r.name)} ${r.users.length.toLocaleString("en-GB")}`).join(", ")}
+          {firm.roles.filter((r) => r.users.length > 0).length > 4 ? `, and ${firm.roles.filter((r) => r.users.length > 0).length - 4} more` : ""}.
+        </p>
+      )}
       {all.length > 0 && <SeeNumbers><PeopleTable firm={firm} meta={meta} /></SeeNumbers>}
     </div>
   );

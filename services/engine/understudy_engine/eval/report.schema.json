@@ -643,6 +643,34 @@
       "$ref": "#/$defs/hitlist"
      }
     },
+    "hrt_ledger": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/hrt_ledger"
+     }
+    },
+    "hrt_decisions": {
+     "if": {
+      "type": "object",
+      "required": [
+       "status"
+      ]
+     },
+     "then": {
+      "$ref": "#/$defs/stub"
+     },
+     "else": {
+      "$ref": "#/$defs/hrt_decisions"
+     }
+    },
     "limitations": {
      "type": "array",
      "items": {
@@ -2558,6 +2586,12 @@
    "$ref": "#/$defs/meta_only"
   },
   "hitlist": {
+   "$ref": "#/$defs/meta_only"
+  },
+  "hrt_ledger": {
+   "$ref": "#/$defs/meta_only"
+  },
+  "hrt_decisions": {
    "$ref": "#/$defs/meta_only"
   },
   "agentic_round_line": {
