@@ -398,12 +398,16 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
     void tick()
   }
 
+  /** What is said for an answered question: the full answer when the service gave it (cut to what is worth saying aloud), else the one-line result. */
+  const speakable = (row: TaskRow): string | null => (row.answer ?? row.result)?.slice(0, 300) ?? null
+
   function finished(row: TaskRow): void {
     if (row.state === 'stopped') return // the worker stopped it (or declined): nothing to say
     if (row.state === 'failed') return d.say?.('did_not_work')
-    if (row.route === 'answer' && row.result) {
-      const spoken = d.readOut?.(row.result) === true
-      if (!spoken) void d.cards.ask({ id: `result-${row.task_id}`, ...taskResultCard(row.result), expireMs: 30_000 })
+    if (row.route === 'answer' && (row.answer || row.result)) {
+      const said = speakable(row) ?? row.result ?? ''
+      const spoken = d.readOut?.(said) === true
+      if (!spoken) void d.cards.ask({ id: `result-${row.task_id}`, ...taskResultCard(said), expireMs: 30_000 })
       return
     }
     d.say?.('done')
@@ -467,7 +471,7 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
       // A question answered inline: wait a few seconds for the one result line, which the model then says.
       for (let i = 0; i < 20; i++) {
         const row = await d.tasks.get(c.task_id).catch(() => null)
-        if (row && (row.state === 'done' || row.state === 'failed' || row.state === 'stopped')) return { ok: true, started: false, waiting_consent: false, route: 'answer', result: row.state === 'done' ? row.result : null }
+        if (row && (row.state === 'done' || row.state === 'failed' || row.state === 'stopped')) return { ok: true, started: false, waiting_consent: false, route: 'answer', result: row.state === 'done' ? speakable(row) : null }
         await sleep(1000)
       }
       watch(c.task_id) // still working: it is read out or shown when it finishes

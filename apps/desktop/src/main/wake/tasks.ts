@@ -38,10 +38,12 @@ export interface TaskRow {
   route: TaskRoute
   state: TaskState
   result: string | null
+  /** The full text of an inline answer (route answer, from GET /tasks/{id} only; at most 1500 characters). */
+  answer: string | null
   needs_consent: ConsentCard | null
   question: QuestionCard | null
 }
-export interface Created extends Omit<TaskRow, 'state' | 'result'> {
+export interface Created extends Omit<TaskRow, 'state' | 'result' | 'answer'> {
   summary: string
 }
 
@@ -92,7 +94,7 @@ export function parseRow(raw: unknown): TaskRow | null {
   const route = (TASK_ROUTES as readonly unknown[]).includes(raw.route) ? (raw.route as TaskRoute) : null
   const state = (TASK_STATES as readonly unknown[]).includes(raw.state) ? (raw.state as TaskState) : null
   if (typeof raw.task_id !== 'string' || !ID_RE.test(raw.task_id) || !route || !state) return null
-  return { task_id: raw.task_id, route, state, result: typeof raw.result === 'string' ? line(raw.result, 140) || null : null, needs_consent: parseConsent(raw.needs_consent), question: parseQuestion(raw.question) }
+  return { task_id: raw.task_id, route, state, result: typeof raw.result === 'string' ? line(raw.result, 140) || null : null, answer: typeof raw.answer === 'string' ? line(raw.answer, 1500) || null : null, needs_consent: parseConsent(raw.needs_consent), question: parseQuestion(raw.question) }
 }
 
 // ------------------------------------------------------------------------------------------------ the HTTP client

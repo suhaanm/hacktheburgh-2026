@@ -82,7 +82,7 @@ export interface DoItRequest {
 export type DoItAnswer = { ok: true; started: true } | { ok: false; reason: string }
 
 /** The closed answer `start_task` gets back: the route the service chose and whether a card is waiting for the worker. Never a summary, never row text
- *  (except `result`, one cleaned line of at most 140 characters, only for a question that was answered inline). */
+ *  (except `result`, cleaned text of at most 300 characters, only for a question that was answered inline). */
 export type TaskRoute = 'answer' | 'browser' | 'desktop' | 'claude_agent' | 'unclear'
 export type TaskAnswer =
   | { ok: true; started: false; waiting_consent: boolean; route: TaskRoute; asked?: boolean; result?: string | null; desktop_click_possible?: boolean }

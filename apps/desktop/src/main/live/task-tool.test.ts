@@ -11,6 +11,15 @@ import { createFakeAudio, fakeCue, manualClock, startFakeLiveServer, waitFor, ty
 
 vi.setConfig({ testTimeout: 60_000 })
 const wf = (cond: () => boolean): Promise<void> => waitFor(cond, 15_000)
+// Waits for the conversation's setup message; when it never comes, the error says what the manager and the server saw.
+async function opened(m: LiveManager): Promise<void> {
+  try {
+    // The microphone opens alongside the connection, so the phase is what says the session is ready: a tool call that reaches the client before setupComplete is dropped by design.
+    await waitFor(() => server.received.setup !== null && ['listening', 'thinking', 'speaking', 'waiting'].includes(m.status().phase), 15_000)
+  } catch {
+    throw new Error(`no setup message: ${JSON.stringify({ status: m.status(), connections: server.received.connections })}`)
+  }
+}
 const ENV_ON = { UNDERSTUDY_X_LIVE: '1', UNDERSTUDY_FLAG_VOICE: '1', GEMINI_MODEL_LIVE: 'test-live-model', GEMINI_API_KEY: 'k-test' }
 
 type Listener = (p: { phase: 'press' | 'release' }) => void
@@ -27,6 +36,7 @@ function fakeBus() {
 }
 
 let server: FakeLiveServer
+let audio: ReturnType<typeof createFakeAudio>
 let bus: ReturnType<typeof fakeBus>
 let asked: string[]
 let answer: TaskAnswer
@@ -40,6 +50,7 @@ beforeEach(async () => {
   const settings = new LiveSettingsStore(null)
   settings.patch(liveConsentPatch({ voice: true, frames: false, dailyUsd: 0.5 }), { trusted: true })
   bus = fakeBus()
+  audio = createFakeAudio()
   asked = []
   byText = new Map()
   answer = { ok: true, started: false, waiting_consent: true, route: 'claude_agent' }
@@ -52,7 +63,7 @@ beforeEach(async () => {
       gateSources: { frontmost: { read: async () => 'com.apple.dt.xcode' }, console: { read: async () => ({ secureInput: 'off', locked: false }) }, killed: () => false, unattended: () => false, settings: () => settings.get(), deny: () => ({ strict: true, workerList: [] }) },
       gateTimers: clock,
       ledger: createMemoryLiveLedger(),
-      audio: createFakeAudio(),
+      audio,
       cue: fakeCue(),
       ring: { show: () => undefined, clear: () => undefined },
       usage: createUsageLog(null),
@@ -89,7 +100,7 @@ describe('where start_task exists', () => {
     const w = make()
     w.start()
     w.startFromWake()
-    await wf(() => server.received.setup !== null)
+    await opened(w)
     expect(declared()).toContain('start_task')
     expect(setup().systemInstruction.parts[0].text).toContain(TASK_GUIDANCE)
     expect(setup().tools[0].functionDeclarations.find((t: { name: string }) => t.name === 'start_task').parameters.properties.text.maxLength).toBe(300)
@@ -98,7 +109,7 @@ describe('where start_task exists', () => {
     const m = make()
     m.start()
     bus.emit('talk', { phase: 'press' })
-    await wf(() => server.received.setup !== null)
+    await opened(m)
     expect(declared()).toContain('start_task')
     expect(declared()).not.toContain('do_it_for_me')
     expect(declared()).not.toContain('clear')
@@ -107,7 +118,7 @@ describe('where start_task exists', () => {
     const m = make({ startTask: undefined })
     m.start()
     m.startFromWake()
-    await wf(() => server.received.setup !== null)
+    await opened(m)
     expect(declared()).not.toContain('start_task')
     expect(setup().systemInstruction.parts[0].text).not.toContain(TASK_GUIDANCE)
     call({ text: 'summarise my notes' })
@@ -119,7 +130,7 @@ describe('where start_task exists', () => {
     const m = make({ context: (o) => ((seenTools = o.tools.map((t) => t.name)), 'KNACK CONTEXT test') })
     m.start()
     m.startFromWake()
-    await wf(() => server.received.setup !== null)
+    await opened(m)
     expect(seenTools).toContain('start_task')
   })
 })
@@ -129,7 +140,7 @@ describe('what the port sees and what the model hears', () => {
     const m = make()
     m.start()
     m.startFromWake()
-    await wf(() => server.received.setup !== null)
+    await opened(m)
     call({ text: 'summarise‮  my   notes\nfolder' })
     await wf(() => server.received.toolResponses.length === 1)
     expect(asked).toEqual(['summarise my notes folder'])
@@ -143,7 +154,7 @@ describe('what the port sees and what the model hears', () => {
     const m = make()
     m.start()
     m.startFromWake()
-    await wf(() => server.received.setup !== null)
+    await opened(m)
     call({ text: 'a'.repeat(301) }, 'a')
     call({ text: 'run `rm -rf /`' }, 'b')
     call({ text: '' }, 'c')
@@ -157,7 +168,7 @@ describe('what the port sees and what the model hears', () => {
     const m = make()
     m.start()
     m.startFromWake()
-    await wf(() => server.received.setup !== null)
+    await opened(m)
     byText.set('when does the office open', { ok: true, started: false, waiting_consent: false, route: 'answer', result: 'The office opens at nine.' })
     byText.set('do the thing with the site', { ok: true, started: false, waiting_consent: false, route: 'unclear', asked: true })
     byText.set('rename a file on my desktop', { ok: true, started: false, waiting_consent: false, route: 'desktop', desktop_click_possible: false })
@@ -177,7 +188,7 @@ describe('what the port sees and what the model hears', () => {
     const m = make()
     m.start()
     m.startFromWake()
-    await wf(() => server.received.setup !== null)
+    await opened(m)
     byText.set('summarise my notes', { ok: false, reason: 'kill_switch' })
     byText.set('summarise my notes again', { ok: false, reason: 'too_many_tasks' })
     call({ text: 'summarise my notes' }, 'a')
@@ -195,7 +206,7 @@ describe('what the port sees and what the model hears', () => {
     })
     m.start()
     m.startFromWake()
-    await wf(() => server.received.setup !== null)
+    await opened(m)
     call({ text: 'summarise my notes' })
     await wf(() => server.received.toolResponses.length === 1)
     expect(reply(0)).toMatchObject({ ok: false, error: 'unavailable' })

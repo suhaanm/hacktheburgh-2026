@@ -660,7 +660,7 @@ const CONSENT = {
   max_minutes: 30,
   buttons: { allow: 'Allow for this task', decline: 'Not now', more: [{ id: 'everything', label: 'Allow everything for this task' }] },
 }
-const row = (state: TaskRow['state'], over: Partial<TaskRow> = {}): TaskRow => ({ task_id: 'tk_ab12cd34', route: 'claude_agent', state, result: null, needs_consent: null, question: null, ...over })
+const row = (state: TaskRow['state'], over: Partial<TaskRow> = {}): TaskRow => ({ task_id: 'tk_ab12cd34', route: 'claude_agent', state, result: null, answer: null, needs_consent: null, question: null, ...over })
 
 function fakeTasks(o: { created?: Record<string, unknown> | 'fail:too_many_tasks' | 'fail:kill_switch' | 'fail:unavailable'; rows?: TaskRow[]; consent?: 'ok' | 'too_many_tasks' | 'no_token'; answerRow?: TaskRow | null } = {}) {
   const calls: string[] = []
@@ -851,6 +851,16 @@ describe('start_task: the request goes to the task service and a card asks first
     const r = rig({ tasks: t.client })
     r.ctl.start()
     expect(await r.ctl.startTask('when does the office open')).toEqual({ ok: true, started: false, waiting_consent: false, route: 'answer', result: 'The office opens at nine.' })
+  })
+  it('the full answer is what is said when the service gives one, cut to 300 characters', async () => {
+    const long = 'The office opens at nine and closes at five. '.repeat(20)
+    const t = fakeTasks({ created: { route: 'answer', needs_consent: null }, rows: [row('done', { route: 'answer', result: 'The office opens.', answer: long })] })
+    const r = rig({ tasks: t.client })
+    r.ctl.start()
+    const a = await r.ctl.startTask('when does the office open')
+    expect(a).toMatchObject({ route: 'answer' })
+    expect((a as { result: string }).result.length).toBe(300)
+    expect((a as { result: string }).result.startsWith('The office opens at nine')).toBe(true)
   })
   it('an answer that is not ready in time is read out later in the open conversation, or shown on a card', async () => {
     const slow = fakeTasks({ created: { route: 'answer', needs_consent: null }, rows: [...Array(21).fill(row('running', { route: 'answer' })), row('done', { route: 'answer', result: 'The office opens at nine.' })] })

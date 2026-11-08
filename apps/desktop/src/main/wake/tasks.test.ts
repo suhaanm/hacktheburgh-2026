@@ -72,6 +72,8 @@ describe('what the service answers is parsed strictly', () => {
     const r = parseRow({ task_id: 'tk_1', route: 'answer', state: 'done', result: 'x'.repeat(400), needs_consent: null, question: null })
     expect(r?.result?.length).toBeLessThanOrEqual(140)
     expect(parseRow({ task_id: 'tk_1', route: 'answer', state: 'weird' })).toBeNull()
+    expect(parseRow({ task_id: 'tk_1', route: 'answer', state: 'done', result: 'Short.', answer: 'y'.repeat(3000) })?.answer?.length).toBeLessThanOrEqual(1500)
+    expect(parseRow({ task_id: 'tk_1', route: 'answer', state: 'done', result: 'Short.' })?.answer).toBeNull()
   })
 })
 
@@ -138,7 +140,7 @@ describe('the task client', () => {
 })
 
 describe('the count of running tasks', () => {
-  const row = (state: TaskRow['state']): TaskRow => ({ task_id: 'tk_1', route: 'answer', state, result: null, needs_consent: null, question: null })
+  const row = (state: TaskRow['state']): TaskRow => ({ task_id: 'tk_1', route: 'answer', state, result: null, answer: null, needs_consent: null, question: null })
   it('counts planning and running tasks and nothing else', async () => {
     let t = 1000
     const rc = createRunningCount({ list: async () => [row('running'), row('planning'), row('done'), row('waiting_consent'), row('failed')], now: () => t, setInterval: () => 0, clearInterval: () => undefined })
