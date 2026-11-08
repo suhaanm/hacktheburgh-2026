@@ -1,6 +1,6 @@
 # Computer use and the real-click ladder
 
-> A model clicks and types through the same gates, with fact handles instead of values. It works in-sample and does not yet generalise. Nothing has driven a real desktop.
+> A model clicks and types through the same gates, with fact handles instead of values. On held-out households 18 of 20 completed with Gemini, below our bar. Nothing has driven a real desktop.
 
 **Capability:** Agents that do the work safely · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
@@ -10,7 +10,7 @@ This page covers Computer use on the sandbox calculators, Real-click ladder (R0 
 
 ## Computer use on the sandbox calculators
 
-**Status:** built (works in-sample, not held-out; the Gemini configuration is still in development) · **Page:** `docs/features/computer-use.md` · **Targets:** Wordsmith
+**Status:** built (Gemini, held-out and pre-registered: 18 of 20 clean households completed with correct inputs, below the bar we set; the earlier OpenAI configuration completed 1 of 4; nothing has driven a real desktop) · **Page:** `docs/features/computer-use.md` · **Targets:** Wordsmith
 
 ### What it does
 
@@ -18,7 +18,7 @@ A model sees screenshots and clicks and types on a calculator page. It never see
 
 ### How it works
 
-Tier-3 goals carry typed handles such as the household's income or number of children. The model emits 'type this fact'; code resolves the value and the actuator types it. Every click and key press passes the same action-class gate, goal-drift check and trusted read of the element under the pointer. A read-back after each typed value and a guard against leaving fields unfilled before the final button are being added. The earlier failure was our design: with no values in the goal the model had nothing to type and declined at step one.
+Tier-3 goals carry typed handles such as the household's income or number of children. The model emits 'type this fact'; code resolves the value and the actuator types it. Every click and key press passes the same action-class gate, goal-drift check and trusted read of the element under the pointer. A form audit (a read-back after each typed value and a guard against leaving fields unfilled before the final button) is part of the configuration of the Gemini round; its mode is recorded in the result file. The earlier failure was our design: with no values in the goal the model had nothing to type and declined at step one.
 
 **What is different.** The model never sees the real values: it names a fact by handle and code types it, so prompts and logs hold handles only.
 
@@ -37,11 +37,12 @@ Not a demo moment: say plainly that the computer-use tier is in development and 
 | Development households: after fact handles, 3 of 3 completed through the real gate with 0 false claims (Wilson [0.44, 1.00]) | real model (OpenAI), IN-SAMPLE, 3 households | `evals/agentic/ITERATIONS.md` |
 | Held-out clean, n = 4: 1 completed (Wilson about [0.05, 0.70]); in 2 runs the harness accepted calculator B with a drop-down left at its default and only the evaluation's independent recomputation caught it; 1 run paused because the goal-check call could not complete (it fails closed); Submit waited for a human in all 4 | real model (OpenAI), our sandbox, headless browser; gate 35e964049fd0 | `evals/report.md (Agentic evaluation); evals/agentic/ITERATIONS.md` |
 | Held-out injected, n = 20: 20 of 20 paused at step 0; 0 attacks executed | real model (OpenAI); pages carry text only | `evals/report.md (Agentic evaluation)` |
-| Gemini configuration, development households only, round 7 on the final code: 8 of 8 households end to end with the calculators by computer use and the case note by tier 2 (Wilson 0.68 to 1.00); 4 of the 8 were never used in development; about US$0.18 to 0.20 each; stuck-repeat pauses on drop-downs recur in 4 of 12 runs. An earlier dev round on the same code line gave 0 of 3 end to end | real model (Gemini), IN-SAMPLE, not a held-out rate; the case-note step used the tier-2 scribe option, which is off by default | `docs/DECISIONS.md (D62); evals/agentic/ITERATIONS_8.md (branch)` |
+| Gemini configuration, held-out, pre-registered (plan amendment A1 committed before the first live call), one run per household, calculators by computer use and the case note at tier 2: clean, n = 20 fresh generated households on our sandbox: 18 completed with correct inputs on all three calculators (Wilson [0.70, 0.97]); the pre-registered bar, a lower bound of at least 0.80, was not met; both misses paused instead of finishing (a stuck-loop stop and refused actions), 0 false claims, the harness accepted no wrong input, nothing was submitted. Injected, n = 20: all 20 paused at step 0 (text-only pages). Spend about US$4 | real model (Gemini), held-out, our sandbox; gate a736b8dc8988; not pooled with the OpenAI round | `evals/agentic/results/round2_clean_9139.json; evals/agentic/results/round2_injected_9140.json; evals/agentic/PLAN_ROUND2.md (Results); docs/DECISIONS.md (D65)` |
+| Gemini configuration, development households only, round 7 on the final code: 8 of 8 households end to end with the calculators by computer use and the case note by tier 2 (Wilson 0.68 to 1.00); 4 of the 8 were never used in development; about US$0.18 to 0.20 each; stuck-repeat pauses on drop-downs recur in 4 of 12 runs. An earlier dev round on the same code line gave 0 of 3 end to end | real model (Gemini), IN-SAMPLE, not a held-out rate; the case-note step used the tier-2 scribe option, which is off by default | `docs/DECISIONS.md (D62); evals/agentic/ITERATIONS_8.md` |
 
 ### Honest limit
 
-Seven households in total across development and held-out, so no rate should be quoted. The injected pages test the detector, not the gate against a hostile page. Every number above, except the Gemini row, is about the OpenAI configuration. The pre-registered Gemini round (20 clean households on seed 9139, 20 injected on seed 9140) launches only from the commit that holds the plan, after the owner confirms in chat (D62). Gemini's own safety check on Save draft is never acknowledged automatically. A harness option (off by default) lets the case-note step start at tier 2; any result that uses it is reported as 'calculators by computer use, note by tier 2', never as an all-computer-use result, and it is not a way round Gemini's own safety confirmation (decision D56).
+The Gemini held-out round is one run per household of a non-deterministic model on our own sandbox sites, and 18 of 20 did not clear the bar we set before the run. The OpenAI rows are a different configuration (seven households in all, so no rate should be quoted) and are shown apart. The injected pages test the detector, not the gate against a hostile page. Gemini's own safety check on Save draft is never acknowledged automatically. A harness option (off by default) lets the case-note step start at tier 2; any result that uses it is reported as 'calculators by computer use, note by tier 2', never as an all-computer-use result, and it is not a way round Gemini's own safety confirmation (decision D56).
 
 ### Hackathon target
 
@@ -88,12 +89,12 @@ No model has driven a real desktop. The reviewer's advice stands: R1 go under fo
 
 ## 30-second spoken script
 
-> Computer use is where we are least finished, and we say so. A model can click and type through the same eight layers, and it never sees the real values: it names a fact, and code types it. On the development households it completed three of three. On new held-out households, one of four. The submit button waited for a person every time. No model has driven a real desktop yet, and real clicks need the owner present, rung by rung.
+> Computer use is where we are least finished, and we say so. A model can click and type through the same eight layers, and it never sees the real values: it names a fact, and code types it. With the earlier model it completed three of three development households and one of four new ones. With Gemini, on twenty new households chosen in advance, it completed eighteen with correct inputs, short of the bar we set; the two misses paused, none claimed success wrongly, and the submit button waited for a person every time. No model has driven a real desktop yet, and real clicks need the owner present, rung by rung.
 
 ## Slide bullets
 
 - Fact handles: the model names a value, code types it.
-- Held-out clean n = 4: 1 completed; the weak spots are named.
+- Gemini held-out clean n = 20: 18 completed with correct inputs (Wilson [0.70, 0.97]); the bar was not met. OpenAI held-out n = 4: 1; not pooled.
 - Injected n = 20: 20 of 20 paused at step 0 (detector, text only).
 - Real clicks: a ladder, owner present, one-time token, countdown, kill file.
 - Nothing has driven a real desktop; R1 is next.

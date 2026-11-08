@@ -70,7 +70,7 @@ We do not claim either. No person has used Knack in a study. Growth measures hel
 
 **16. What failed?**
 
-The stuck model and the genome degrade on harder data; ML v2's ensemble and counterfactual were rejected as harmful on held-out data; transfer to simulated-participant traces failed; the simulated study sat at the floor; computer use completed 1 of 4 held-out households; Cue did not meet its faster-to-resume target; the attention router missed one of twelve criteria; the insights engine found 47 of 100 planted independence rises (target 0.8). Each is on the Evidence page (evals/report.md Findings; docs/features/what-did-not-hold-up.md).
+The stuck model and the genome degrade on harder data; ML v2's ensemble and counterfactual were rejected as harmful on held-out data; transfer to simulated-participant traces failed; the simulated study sat at the floor; computer use completed 1 of 4 held-out households with OpenAI and 18 of 20 with Gemini, below its bar; Cue did not meet its faster-to-resume target; the attention router missed one of twelve criteria; the insights engine found 47 of 100 planted independence rises (target 0.8). Each is on the Evidence page (evals/report.md Findings; docs/features/what-did-not-hold-up.md).
 
 **17. How do you know the agent actually finished?**
 
@@ -78,13 +78,13 @@ Code checks a fresh page for each calculator's result fields and the case-note i
 
 **18. How reliable is computer use?**
 
-Not reliable yet. After fact handles, 3 of 3 development households completed (in-sample). On new held-out households 1 of 4 completed: in 2 runs calculator B got wrong inputs that only an independent recomputation caught, and 1 run paused because the goal-check call could not complete; injected pages paused 20 of 20 at step 0, but those carry text only. Seven households in all, so no rate should be quoted. The Gemini configuration has development results only: 8 of 8 development households end to end with the case note by tier 2, four of them new, in-sample and not a held-out rate (docs/DECISIONS.md D62; docs/FLAGS.md).
+Not reliable enough to claim. With Gemini, held-out and pre-registered, 18 of 20 fresh households completed with correct inputs on all three calculators (Wilson [0.70, 0.97]); our bar was a lower bound of at least 0.80, so it was not met. Both misses paused instead of finishing, none claimed success wrongly, nothing was submitted, and all 20 injected pages paused at step 0 (text-only pages, so this tests the detector). It is one run per household of a non-deterministic model on our own sandbox sites, with the case note written at tier 2. The earlier OpenAI configuration completed 1 of 4 held-out households and 3 of 3 in-sample; the two configurations are shown apart and not pooled (docs/DECISIONS.md D65; evals/agentic/PLAN_ROUND2.md; evals/agentic/results/round2_clean_9139.json).
 
 ## Choices
 
 **19. Why Gemini?**
 
-The OpenAI key was revoked on 7 Nov (cause unknown) and the owner moved every role to Gemini (D49). We then measured the routes on our sandbox screens: the fast Gemini model found the right element 95% [90, 98] of the time in a median 0.93 s against 75% for the OpenAI fast model, and all models tied on the verifier set. Computer use on Gemini is still in development, and the earlier OpenAI numbers are not evidence about it (evals/modelbench/REPORT.md; docs/FLAGS.md).
+The OpenAI key was revoked on 7 Nov (cause unknown) and the owner moved every role to Gemini (D49). We then measured the routes on our sandbox screens: the fast Gemini model found the right element 95% [90, 98] of the time in a median 0.93 s against 75% for the OpenAI fast model, and all models tied on the verifier set. Computer use on Gemini completed 18 of 20 held-out households, below our bar (question 18), and the earlier OpenAI numbers are not evidence about it (evals/modelbench/REPORT.md; docs/FLAGS.md).
 
 **20. Why a local model at all?**
 
@@ -92,7 +92,7 @@ So private text, such as commits and calendar entries, becomes short labels on t
 
 **21. Isn't this just Clicky or Sentient OS?**
 
-No, and we read both without running them. Per our notes, the Clicky app points at things and never clicks, and its Windows fork's plugin runs single actions at screen coordinates for an outside agent; Sentient OS runs a real multi-step loop on real apps, with the loop in an external agent command line and success judged by the model's own final claim, and its repository holds no completion measurement. Knack's difference is the layer around the action: an expert comparison priced in seconds and in answers, help that fades by code, 'done' decided by code, eight layers, and a held-out result (1 of 4) we publish. We used a little of Clicky's MIT code with notices and Sentient OS only as ideas, through a clean-room note (docs/reference-notes/computer-use-comparison.md; docs/reference-notes/clicky-reuse.md; THIRD_PARTY_NOTICES.md).
+No, and we read both without running them. Per our notes, the Clicky app points at things and never clicks, and its Windows fork's plugin runs single actions at screen coordinates for an outside agent; Sentient OS runs a real multi-step loop on real apps, with the loop in an external agent command line and success judged by the model's own final claim, and its repository holds no completion measurement. Knack's difference is the layer around the action: an expert comparison priced in seconds and in answers, help that fades by code, 'done' decided by code, eight layers, and held-out results (1 of 4, then 18 of 20 against a bar of 0.80 on the lower bound) that we publish. We used a little of Clicky's MIT code with notices and Sentient OS only as ideas, through a clean-room note (docs/reference-notes/computer-use-comparison.md; docs/reference-notes/clicky-reuse.md; THIRD_PARTY_NOTICES.md).
 
 **22. Can the independence score be gamed?**
 

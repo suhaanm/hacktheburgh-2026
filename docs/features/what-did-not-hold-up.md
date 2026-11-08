@@ -165,7 +165,7 @@ These are all simulated or sandbox results; none is about real workers.
 
 ## 30-second spoken script
 
-> Here is what did not hold up. On harder synthetic data the stuck model's edge over a plain rule falls to a few thousandths. The genome's precision drops from ninety-two to about sixty percent. Most of our machine-learning improvements were rejected on held-out data. Our simulated study sat at the floor and says nothing about the coach. And computer use completed one of four held-out households. We publish these on the Evidence page, next to the numbers that went well.
+> Here is what did not hold up. On harder synthetic data the stuck model's edge over a plain rule falls to a few thousandths. The genome's precision drops from ninety-two to about sixty percent. Most of our machine-learning improvements were rejected on held-out data. Our simulated study sat at the floor and says nothing about the coach. And computer use completed one of four held-out households with the first model, and 18 of 20 with Gemini, short of the bar we set in advance. We publish these on the Evidence page, next to the numbers that went well.
 
 ## Slide bullets
 
@@ -173,7 +173,7 @@ These are all simulated or sandbox results; none is about real workers.
 - Genome: precision 92% falls to 48 to 71%.
 - ML v2 held-out: ensemble and counterfactual rejected as harmful.
 - Simulated study at the floor: 30 of 32 post-tests scored 0; says nothing about the coach.
-- Computer use held-out: 1 of 4; Cue and attention targets partly missed.
+- Computer use held-out: 1 of 4 (OpenAI), 18 of 20 below its bar (Gemini); Cue and attention targets partly missed.
 
 ## Sources
 

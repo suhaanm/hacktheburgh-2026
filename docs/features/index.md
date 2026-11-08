@@ -1,6 +1,6 @@
 # Knack feature index
 
-As of Sun 08 Nov 2026, 02:16 UTC, checked against main at 31b56ad.
+As of Sun 08 Nov 2026, 02:25 UTC, checked against main at 6b94707.
 
 35 pages and 68 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
 
@@ -46,7 +46,7 @@ As of Sun 08 Nov 2026, 02:16 UTC, checked against main at 31b56ad.
 | Independent verifier (a second model family) | [benefits-agent](benefits-agent.md) | **built** (routed by default to Gemini flash-lite; its evaluation set is small and easy) | Wordsmith |
 | Eight security layers, approval queue and audit log | [security-layers](security-layers.md) | **verified** | Wordsmith |
 | Optional sign-in step-up for irreversible approvals (Auth0) | [security-layers](security-layers.md) | **built** (built; not configured: it needs the owner's Auth0 domain and client ID, and is never on the demo's critical path) | Wordsmith |
-| Computer use on the sandbox calculators | [computer-use](computer-use.md) | **built** (works in-sample, not held-out; the Gemini configuration is still in development) | Wordsmith |
+| Computer use on the sandbox calculators | [computer-use](computer-use.md) | **built** (Gemini, held-out and pre-registered: 18 of 20 clean households completed with correct inputs, below the bar we set; the earlier OpenAI configuration completed 1 of 4; nothing has driven a real desktop) | Wordsmith |
 | Real-click ladder (R0 to R4) and the arm switch | [computer-use](computer-use.md) | **built** (read-only rung R0 ran once; nothing else has run) | Wordsmith |
 | Background agents: parent and child | [background-agents](background-agents.md) | **built** | Wordsmith |
 | Overnight runs and the morning report | [background-agents](background-agents.md) | **built** | Wordsmith, HRT |
