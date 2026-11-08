@@ -117,6 +117,8 @@ export interface LiveManager {
   /** The worker answered the question card: tell the running conversation which step they meant. */
   noteAnswer(id: string): void
   hasSession(): boolean
+  /** A line the worker typed into the Ask bar, into the conversation that is open (false when there is none, or it cannot be sent). It never opens a conversation. */
+  injectTyped(text: string): boolean
   voiceAllowed(): boolean
   /** The words "Hey Knack" were heard: open a hands-free conversation through the same gates as the key. False (with `status().refused` set) when it may not start. */
   startFromWake(): boolean
@@ -414,6 +416,7 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
     stopAll,
     workerUsedVoice: () => usedVoice,
     hasSession: () => session !== null && !session.isEnded,
+    injectTyped: (text) => (session !== null && !session.isEnded ? session.injectText(text) : false),
     voiceAllowed: () => startRefusal() === null,
     startFromWake() {
       if (!liveFlagOn(env) || (session && !session.isEnded) || waiter) return false

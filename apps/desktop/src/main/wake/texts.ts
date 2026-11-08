@@ -55,7 +55,7 @@ export const REFUSAL_LINE: Readonly<Record<string, string>> = {
   no_model: 'No voice model is set up.',
   model_unusable: 'The voice model cannot be used.',
   no_key: 'No voice key is set up.',
-  mock_mode: 'Voice is off in demo mode.',
+  mock_mode: 'Voice needs live models.',
   mic_permission: 'Knack needs the microphone. Turn it on in System Settings.',
   busy: 'Knack is already talking.',
 }

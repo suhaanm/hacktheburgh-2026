@@ -53,7 +53,7 @@ export function dormancy(i: WakeInputs): Dormancy | null {
 export const DORMANT_LINE: Readonly<Record<Dormancy, string>> = {
   flag_off: 'Hey Knack is off in this build',
   not_mac: 'Hey Knack works on a Mac',
-  mock_mode: 'Hey Knack is off in demo mode',
+  mock_mode: 'Hey Knack needs live models',
   switched_off: 'Hey Knack is off',
   locked: 'Not listening while the screen is locked',
   asleep: 'Not listening while the Mac sleeps',
