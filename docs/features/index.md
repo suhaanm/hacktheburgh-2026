@@ -1,0 +1,144 @@
+# Knack feature index
+
+33 pages and 62 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
+
+**Status words.** `verified`: the lead saw it work end to end (`docs/FEATURE_CATALOGUE.md`). `built`: built and tested by its track, on main, not yet seen end to end by the lead. `landing`: not on main yet (another agent's branch, or its document has not landed). `not run`: designed or built but never run. The status is taken from the sources at the time of writing (see the time stamp in `docs/PITCH_FEATURES.md`); nothing here was run by the author.
+
+**Evidence labels.** `synthetic`: data we generated. `simulated`: language-model participants, not people. `real model, small n`: a language model on our sandbox sites. `offline tests`: the code behaves as specified; no model, no people. `owner-present`: a supervised check with the owner at the machine. `not run`: no data. Nothing in this folder is evidence about real workers; the live study (n = 4) has not been run.
+
+## See the work
+
+| Feature | Page | Status | Targets |
+|---|---|---|---|
+| Text-free capture (Chrome extension and event store) | [capture](capture.md) | **built** | G-Research, Wordsmith |
+| Work genome: aligned traces priced in seconds | [work-genome](work-genome.md) | **verified** (verified on its own generator; degrades on harder synthetic data) | G-Research |
+| Controls: placebo and shuffled-label null | [work-genome](work-genome.md) | **verified** | G-Research |
+| What skipping costs in answers | [work-genome](work-genome.md) | **built** | G-Research, HRT |
+| Stuck prediction and the Forecasts scorecard | [stuck-model](stuck-model.md) | **verified** (verified on its own generator; does not transfer to harder synthetic data) | HRT |
+| Your hours: presence map and away forecast | [work-graph-and-hours](work-graph-and-hours.md) | **built** | HRT, G-Research |
+| How work connects: the work graph | [work-graph-and-hours](work-graph-and-hours.md) | **built** | G-Research |
+| Calendar layer (week ribbon, Outlook and Teams adapters) | [calendar-and-git](calendar-and-git.md) | **built** | G-Research |
+| Git habits for programmers | [calendar-and-git](calendar-and-git.md) | **built** | G-Research, HRT |
+
+## Coach on the screen
+
+| Feature | Page | Status | Targets |
+|---|---|---|---|
+| Live coach: one decision at a time, with a dignity gate | [live-coach](live-coach.md) | **verified** | HRT |
+| Fading help: levels L1 to L4 decided by code | [live-coach](live-coach.md) | **verified** | HRT |
+| On-screen annotations: ring, one label, ghost cursor | [screen-annotations](screen-annotations.md) | **built** (the lead viewed screenshots; not yet confirmed end to end on a real Chrome tab) | G-Research |
+| On-device awareness and triggered glances | [awareness-glances](awareness-glances.md) | **built** (layer is on by default; no frame is sent until the worker records consent; macOS Screen Recording is the owner's to grant) | G-Research |
+
+## Step in when stuck
+
+| Feature | Page | Status | Targets |
+|---|---|---|---|
+| Cue: stuck rescue | [cue](cue.md) | **built** (engine and desktop code built and tested; evaluated on simulated workers only; not run on a real desktop) | HRT, G-Research |
+
+## Agents that do the work safely
+
+| Feature | Page | Status | Targets |
+|---|---|---|---|
+| Benefits agent on three sandbox calculators | [benefits-agent](benefits-agent.md) | **verified** (verified in mock mode: ends with an item in the approval queue and 0 false claims) | Wordsmith |
+| Code decides 'done' | [benefits-agent](benefits-agent.md) | **verified** | Wordsmith |
+| Independent verifier (a second model family) | [benefits-agent](benefits-agent.md) | **built** (routed by default to Gemini flash-lite; its evaluation set is small and easy) | Wordsmith |
+| Eight security layers, approval queue and audit log | [security-layers](security-layers.md) | **verified** | Wordsmith |
+| Optional sign-in step-up for irreversible approvals (Auth0) | [security-layers](security-layers.md) | **built** (built; not configured: it needs the owner's Auth0 domain and client ID, and is never on the demo's critical path) | Wordsmith |
+| Computer use on the sandbox calculators | [computer-use](computer-use.md) | **built** (works in-sample, not held-out; the Gemini configuration is still in development) | Wordsmith |
+| Real-click ladder (R0 to R4) and the arm switch | [computer-use](computer-use.md) | **built** (read-only rung R0 ran once; nothing else has run) | Wordsmith |
+| Background agents: parent and child | [background-agents](background-agents.md) | **built** | Wordsmith |
+| Overnight runs and the morning report | [background-agents](background-agents.md) | **built** | Wordsmith, HRT |
+| Stop everything: the kill switch | [stop-everything](stop-everything.md) | **built** | Wordsmith |
+
+## Routines and automations
+
+| Feature | Page | Status | Targets |
+|---|---|---|---|
+| Routine finder and proposals | [routines](routines.md) | **built** (the routine card and queue were seen working in the dashboard; the finder is mixed on harder synthetic data) | Wordsmith, HRT |
+| Watch first and the trust ladder | [routines](routines.md) | **verified** | Wordsmith, HRT |
+| Could automate: the repeat list | [routines](routines.md) | **built** | Wordsmith, G-Research |
+| Needs you: one list for decisions | [needs-you](needs-you.md) | **built** (merged to main; seen in a harness and in hidden end-to-end runs; owner has not used it) | Wordsmith |
+| When to build an automation: ski rental with predictions | [hrt-decisions](hrt-decisions.md) | **built** | HRT |
+| Review routing under a risk bound | [hrt-decisions](hrt-decisions.md) | **built** | HRT |
+| Proactive briefing: judge, verify, prepare, press to fire | [proactive-briefing](proactive-briefing.md) | **built** (engine built and tested; development-set evaluation only; cards now arrive as rows in Needs you) | HRT, Wordsmith |
+
+## Connections and MCP plugins
+
+| Feature | Page | Status | Targets |
+|---|---|---|---|
+| Connections: curated MCP plugins with role presets | [connections](connections.md) | **landing** (owner decision D55; the engine side and the agent side are committed on the CONNECTIONS branch (worktree-agent-a2c1788e3e4c0c876, 00:14 UTC); docs/CONNECTIONS.md has not been seen on any branch) | Wordsmith |
+
+## Voice and Hey Knack
+
+| Feature | Page | Status | Targets |
+|---|---|---|---|
+| Hey Knack: an on-device wake phrase | [hey-knack](hey-knack.md) | **built** (code and tests are built and merged; not run with a real microphone yet; the listener helper ships inside Knack.app and the first launch needs the owner's Microphone and Speech Recognition grants and an installed on-device dictation language) | G-Research |
+| Voice guidance and 'do it for me' behind a click | [hey-knack](hey-knack.md) | **built** (the click path fails closed until the first supervised real-click test has passed) | Wordsmith, G-Research |
+
+## Models and modes
+
+| Feature | Page | Status | Targets |
+|---|---|---|---|
+| Model routing: Gemini by default, checked at boot | [models-and-routing](models-and-routing.md) | **built** (live boot check and small planner and fast calls pass; computer use on Gemini needs its own iterations) | Wordsmith, HRT |
+| Local model digests (a 7B model on this Mac) | [models-and-routing](models-and-routing.md) | **built** | HRT, G-Research |
+| Spoken lines (ElevenLabs, fixed vocabulary) | [models-and-routing](models-and-routing.md) | **built** | Wordsmith |
+| Mock mode: the whole product offline | [models-and-routing](models-and-routing.md) | **verified** | Wordsmith |
+
+## Insights and admin
+
+| Feature | Page | Status | Targets |
+|---|---|---|---|
+| Home: one sentence, one action | [home-insights](home-insights.md) | **built** (merged to main; measured on a prototype; owner has not used it) | G-Research |
+| Top insights engine: a few pointers, chosen by code | [home-insights](home-insights.md) | **built** | G-Research, HRT |
+| Admin views: Firm, Roles, Onboarding | [firm-admin](firm-admin.md) | **built** (UI merged to main; the firm is synthetic) | G-Research, HRT |
+| Monday note, firm brief and prediction scorecard | [firm-admin](firm-admin.md) | **built** | HRT |
+
+## Growth and independence
+
+| Feature | Page | Status | Targets |
+|---|---|---|---|
+| Growth and the independence score | [growth-independence](growth-independence.md) | **built** (built; evaluated on simulated learners; no person has used it) | HRT, G-Research |
+
+## A calm product: window, attention, context
+
+| Feature | Page | Status | Targets |
+|---|---|---|---|
+| One attention layer: a router, a digest, quiet states | [attention-router](attention-router.md) | **built** (engine built; desktop wiring built; held-out simulated evaluation met 11 of 12 criteria) | HRT |
+| Context engineering: typed, bounded, fresh | [context-engineering](context-engineering.md) | **built** | Wordsmith |
+| One app, one window, one corner pill | [knack-shell](knack-shell.md) | **built** (merged to main; hidden end-to-end run passes; first visible launch with the owner pending) | Wordsmith |
+| First run in three clicks | [knack-shell](knack-shell.md) | **built** | G-Research |
+| Command palette and keyboard | [knack-shell](knack-shell.md) | **built** (shortcuts and the palette are on main; some of the spec's palette verbs are not) | Wordsmith |
+| Design system with budgets as tests | [design-system](design-system.md) | **built** (tokens, components and check scripts merged to main; screens still being brought to budget by their tracks) | G-Research |
+| The Knack mark and brand | [design-system](design-system.md) | **built** | G-Research |
+
+## Privacy and safety
+
+| Feature | Page | Status | Targets |
+|---|---|---|---|
+| Egress guard, ledger and canary tests | [privacy-ledger](privacy-ledger.md) | **built** (built, with a known gap: older desktop paths are gated off by default but not re-reviewed independently) | G-Research, Wordsmith |
+| Your data: see and delete | [your-data](your-data.md) | **built** (merged to main; owner has not used it) | G-Research |
+| Memory file the worker owns | [your-data](your-data.md) | **built** | G-Research |
+
+## Evidence and honesty
+
+| Feature | Page | Status | Targets |
+|---|---|---|---|
+| Evidence page, make eval and the limitations register | [evidence-and-explain](evidence-and-explain.md) | **verified** | G-Research, HRT |
+| Plain-English explainer with a number check | [evidence-and-explain](evidence-and-explain.md) | **built** | G-Research |
+| Generator-mismatch test (the realism matrix) | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | G-Research, HRT |
+| ML v2, held-out: mostly negative | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | HRT |
+| The simulated study sat at the floor | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | HRT, G-Research |
+| Other results that went the wrong way | [what-did-not-hold-up](what-did-not-hold-up.md) | **verified** | G-Research |
+
+## Roles
+
+| Feature | Page | Status | Targets |
+|---|---|---|---|
+| Role packs: benefits processor deep, analyst and programmer thin | [role-packs](role-packs.md) | **built** | G-Research, Wordsmith |
+| Programmer pack at standard depth | [role-packs](role-packs.md) | **landing** (ROLE-DEPTH (Track F); docs/roles/programmer.md is on branch worktree-agent-aef8c35334df68596, not on main; additive only (D55, D56 item 6)) | G-Research, Wordsmith |
+| Data analyst pack at standard depth | [role-packs](role-packs.md) | **landing** (ROLE-DEPTH (Track F); docs/roles/data-analyst.md is on branch worktree-agent-aef8c35334df68596, not on main; additive only (D55, D56 item 6)) | G-Research, Wordsmith |
+
+## Also in this folder
+
+- [video-beats.md](video-beats.md): 20 one-line claims with the proof shot, tagged teaser, demo or technical.
+- [faq.md](faq.md): the 25 hardest judge questions with short, truthful answers.
