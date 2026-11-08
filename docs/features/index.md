@@ -1,6 +1,6 @@
 # Knack feature index
 
-As of Sun 08 Nov 2026, 01:33 UTC, checked against main at 97b633f.
+As of Sun 08 Nov 2026, 01:38 UTC, checked against main at 97b633f.
 
 35 pages and 66 entries (features, plus four write-ups of results that did not hold up), for the pitch (Hack the Burgh XIII), the launch video, the demo and the submission video. The master document is `docs/PITCH_FEATURES.md`; the 20 video claims are in `video-beats.md`; the 25 hardest judge questions are in `faq.md`.
 
@@ -51,7 +51,7 @@ As of Sun 08 Nov 2026, 01:33 UTC, checked against main at 97b633f.
 | Background agents: parent and child | [background-agents](background-agents.md) | **built** | Wordsmith |
 | Overnight runs and the morning report | [background-agents](background-agents.md) | **built** | Wordsmith, HRT |
 | Stop everything: the kill switch | [stop-everything](stop-everything.md) | **built** | Wordsmith |
-| Open-ended tasks, skills in context and Claude background agents | [open-ended-tasks](open-ended-tasks.md) | **landing** (owner decision D63 (01:05 UTC); code, 119 tests and docs/TASKS.md are on the Tasks branch (worktree-agent-a40520cb1ac55fcdc, Track T, commit 6c8b5b5 at 01:20 UTC); not on main; one real one-turn run of the owner's claude command was made once with the owner's approval to check the flags, and no real task has been run) | Wordsmith |
+| Open-ended tasks, skills in context and Claude background agents | [open-ended-tasks](open-ended-tasks.md) | **landing** (owner decision D63 (01:05 UTC); code, 141 tests and docs/TASKS.md are on the Tasks branch (worktree-agent-a40520cb1ac55fcdc, Track T, commit 6c8b5b5 at 01:20 UTC); not on main; one real one-turn run of the owner's claude command was made once with the owner's approval to check the flags, and no real task has been run) | Wordsmith |
 
 ## Routines and automations
 
