@@ -8,7 +8,14 @@ import { BrowserWindow, ipcMain, screen } from 'electron'
 import type { CardAnswer, CardPort, CardSpec } from './controller'
 import { MISTAP_GUARD_MS, WAKE_CARD_IPC, cardBounds, type WakeCardAnswer, type WakeCardView } from './card-ipc'
 
+const FOLLOW_MS = 500
+
 export interface CardWindowOptions {
+  /**
+   * The bounds of the topmost other window in this corner (the Knack corner pill column, a permission card), or null. The card stacks above it instead of over it: the corner has one
+   * place for each thing, bottom up, never overlapping. Absent: the card sits in the corner as before.
+   */
+  above?: () => { x: number; y: number; width: number; height: number } | null
   disabled?: boolean
   capturable?: boolean
   now?: () => number
@@ -31,6 +38,7 @@ export function createCardWindow(o: CardWindowOptions = {}): CardWindow {
   let loaded = false
   let pending: { spec: CardSpec; resolve: (a: CardAnswer | null) => void; shownAt: number; timer: ReturnType<typeof setTimeout> } | null = null
   let size = { w: 348, h: 150 }
+  let follow: ReturnType<typeof setInterval> | null = null
 
   const alive = (): boolean => win !== null && !win.isDestroyed() && !win.webContents.isDestroyed()
   const fromCard = (e: { sender: { id: number } }): boolean => alive() && e.sender.id === (win as BrowserWindow).webContents.id
@@ -44,7 +52,7 @@ export function createCardWindow(o: CardWindowOptions = {}): CardWindow {
     } catch {
       /* no pointer position: the primary display */
     }
-    ;(win as BrowserWindow).setBounds(cardBounds(wa, size))
+    ;(win as BrowserWindow).setBounds(cardBounds(wa, size, undefined, o.above?.() ?? null))
   }
 
   const settle = (answer: CardAnswer | null): void => {
@@ -52,6 +60,8 @@ export function createCardWindow(o: CardWindowOptions = {}): CardWindow {
     if (!p) return
     pending = null
     clearTimeout(p.timer)
+    if (follow) clearInterval(follow)
+    follow = null
     if (alive()) {
       ;(win as BrowserWindow).webContents.send(WAKE_CARD_IPC.hide)
       ;(win as BrowserWindow).hide()
@@ -138,6 +148,8 @@ export function createCardWindow(o: CardWindowOptions = {}): CardWindow {
       return new Promise<CardAnswer | null>((resolve) => {
         pending = { spec, resolve, shownAt: now(), timer: setTimeout(() => settle(null), Math.max(1000, spec.expireMs)) }
         send(spec)
+        // The corner column below may appear, grow or go while the card waits: keep clear of it.
+        if (o.above && !follow) follow = setInterval(place, FOLLOW_MS)
       })
     },
     close(id) {

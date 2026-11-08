@@ -12,7 +12,7 @@ import { BrowserWindow, nativeTheme, screen, shell } from 'electron'
 import { APP_ORIGIN, WINDOW_TITLES } from '../../shared/brand'
 import type { ShellUiState } from '../../shared/knack'
 import { KNACK_IPC } from '../../shared/knack'
-import { displayForBounds, minSizeFor, restoreBounds, type DisplayLike, type Rect } from './window-bounds'
+import { WINDOW_SPEC, clampToWorkArea, displayForBounds, minSizeFor, restoreBounds, visibleFraction, type DisplayLike, type Rect } from './window-bounds'
 import type { WindowStateStore } from './window-state'
 
 export const STARTING_URL = `${APP_ORIGIN}/__shell/starting.html`
@@ -42,6 +42,7 @@ export interface WindowPort {
   isFullScreen(): boolean
   isDestroyed(): boolean
   getBounds(): Rect
+  setBounds(r: Rect): void
   /** The page's own area on the screen (the window without its title bar). */
   getContentBounds(): Rect
   destroy(): void
@@ -69,6 +70,11 @@ export interface MainWindow {
   minimise(): void
   /** Close to the Dock: hide, keep the page alive. */
   hide(): void
+  /**
+   * After a display was removed, added or changed (and when a saved place is stale): if less than 60 percent of the window is on any one display, move it inside the nearest
+   * one, keeping its size as far as that display allows. A window that is hidden, minimised or full screen is left alone. Returns whether it moved.
+   */
+  ensureOnScreen(): boolean
   state(): WindowSnapshot
   loadStarting(): void
   loadDashboard(url: string): void
@@ -124,6 +130,16 @@ export function createMainWindowController(win: WindowPort, deps: MainWindowDeps
     },
     minimise() {
       if (alive() && !win.isFullScreen()) win.minimize()
+    },
+    ensureOnScreen() {
+      if (!alive() || win.isMinimized() || win.isFullScreen() || !win.isVisible()) return false
+      const displays = deps.displays()
+      if (displays.length === 0) return false
+      const b = win.getBounds()
+      if (displays.some((d) => visibleFraction(b, d.workArea) >= WINDOW_SPEC.restoreMinVisibleFraction)) return false
+      const d = displayForBounds(displays, b) ?? displays[0]!
+      win.setBounds(clampToWorkArea(b, d.workArea))
+      return true
     },
     hide() {
       if (alive()) win.hide()
@@ -229,6 +245,7 @@ export function createMainWindow(deps: ElectronMainWindowDeps): MainWindow {
     isFullScreen: () => win.isFullScreen(),
     isDestroyed: () => win.isDestroyed(),
     getBounds: () => win.getBounds(),
+    setBounds: (r) => win.setBounds(r),
     getContentBounds: () => win.getContentBounds(),
     destroy: () => win.destroy(),
     loadURL: (url) => void win.loadURL(url),

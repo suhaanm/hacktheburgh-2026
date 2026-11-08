@@ -3,6 +3,7 @@
 //   acting  = the supervisor is `running`, or any listed run is `running`
 // Any failure (the service is down, a timeout, a bad body) never turns the pill on and never turns an already-showing pill off: the
 // last known answer stays. Quick polling (2 s) while the person is at the machine or something is acting, 10 s when it is quiet.
+import { RUN_MAX_AGE_MS } from '../knack/pill-state'
 import { isLoopbackUrl } from './endpoints'
 
 export interface AgentActivityDeps {
@@ -29,8 +30,17 @@ export interface AgentActivity {
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 
+/**
+ * A run record the service lists as "running" that began longer ago than any run can last (a whole run is capped at 15 minutes) is a ghost: a record a dead process left on disk
+ * with its last state. It is not work, so it must not read as an agent acting (which would keep the Stop all pill up, hold back Cue and keep Hey Knack asleep for ever).
+ */
+const isGhost = (r: Record<string, unknown>, now: number): boolean => {
+  const started = typeof r.started === 'string' ? Date.parse(r.started) : Number.NaN
+  return Number.isFinite(started) && now - started > RUN_MAX_AGE_MS
+}
+
 /** Pure: what the two answers say. `null` means "could not tell" (keep the last answer). */
-export function actingFrom(health: unknown, runs: unknown): boolean | null {
+export function actingFrom(health: unknown, runs: unknown, now: number = Date.now()): boolean | null {
   let known = false
   let acting = false
   if (isObj(health) && isObj(health.supervisor) && typeof health.supervisor.state === 'string') {
@@ -40,7 +50,7 @@ export function actingFrom(health: unknown, runs: unknown): boolean | null {
   const list = Array.isArray(runs) ? runs : isObj(runs) && Array.isArray(runs.data) ? runs.data : null
   if (list) {
     known = true
-    if (list.some((r) => isObj(r) && r.state === 'running')) acting = true
+    if (list.some((r) => isObj(r) && r.state === 'running' && !isGhost(r, now))) acting = true
   }
   return known ? acting : null
 }
@@ -76,7 +86,7 @@ export function createAgentActivity(deps: AgentActivityDeps): AgentActivity {
   const poll = async (): Promise<void> => {
     const [health, runs] = await Promise.all([get('/health'), get('/agents/runs')])
     deps.onSample?.({ health, runs })
-    const answer = actingFrom(health, runs)
+    const answer = actingFrom(health, runs, now())
     if (answer !== null && answer !== last) {
       last = answer
       deps.onChange(answer)

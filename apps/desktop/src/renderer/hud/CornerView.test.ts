@@ -52,6 +52,25 @@ describe('the corner pill', () => {
     b[0]!.click()
     expect(onAction).toHaveBeenCalledWith({ type: 'kill' })
   })
+  // The owner saw "two stop icons". The pill's Stop is one button with one drawn square and the word: no icon component, no text glyph, no second Stop anywhere in the column.
+  it('draws exactly one square on its one Stop button, with no icon component and no glyph in the text', () => {
+    for (const state of [base({ activity: act() }), base({ activity: act({ step: null, of: null }) }), base({ activity: act(), approval })]) {
+      const el = CornerView({ state, onAction: vi.fn() })
+      const stops = buttons(el).filter((x) => /^stop$/i.test(x.label))
+      expect(stops).toHaveLength(1)
+      const names = classes(el)
+      expect(names.filter((c) => c.split(' ').includes('square'))).toHaveLength(1)
+      expect(names.some((c) => /\bal-stop\b|\bglyph\b|\bpill\b/.test(c) && !/\bcpill\b/.test(c))).toBe(false) // none of the older Stop's markup
+      expect(texts(el)).not.toMatch(/[\u25A0\u25FC\u23F9\u2B1B]/) // no square drawn as a character
+    }
+  })
+  it('has no Stop at all while everything is stopped (the Stopped card has Resume) or while voice, an error or a done check shows', () => {
+    const stopped = CornerView({ state: base({ kill: { killed: true, engine: true, agent: true } }), onAction: vi.fn() })
+    expect(buttons(stopped).filter((x) => /^stop$/i.test(x.label))).toHaveLength(0)
+    for (const phase of ['voice', 'error', 'done'] as const) {
+      expect(buttons(CornerView({ state: base({ activity: act({ phase }) }), onAction: vi.fn() })).filter((x) => /^stop$/i.test(x.label))).toHaveLength(0)
+    }
+  })
   it('leaves out n of m when it is not known, and never says more than five words', () => {
     expect(texts(CornerView({ state: base({ activity: act({ step: null, of: null }) }), onAction: vi.fn() }))).not.toContain(' of ')
     expect(limitWords('one two three four five six seven')).toBe('one two three four five')
