@@ -6,7 +6,7 @@ import { Ribbon } from "../Ribbon";
 import { Explain } from "../Explain";
 import { Details, FactRows } from "../ui";
 import { GrowthSection, SectionError, useReportSource } from "./GrowthSection";
-import { notKnown, useOwnPerson } from "./own";
+import { notKnown, unknownAsError, useOwnPerson } from "./own";
 import { describeColumn, layoutRibbon } from "../../lib/ribbon";
 import { cogLabel, fmtDuration } from "../../lib/format";
 import { stepsHeadline, topLosses } from "../../lib/steps";
@@ -24,7 +24,7 @@ const TASK = "t_entitlement_check";
 export function StepsSection({ open }: { open: boolean }) {
   const own = useOwnPerson();
   const me = own.person;
-  const g = useLoad(() => (own.ready ? (own.blocked ? notKnown<Loaded<GenomeData>>() : api.genome(TASK, me, "nearest_expert")) : idle<GenomeData>()), [own.ready, own.blocked, me]);
+  const g = unknownAsError(useLoad(() => (own.ready ? (own.blocked ? notKnown<Loaded<GenomeData>>() : api.genome(TASK, me, "nearest_expert")) : idle<GenomeData>()), [own.ready, own.blocked, me]));
   useReportSource("steps", g.why ?? null);
   const cols = useMemo(() => (g.data ? layoutRibbon(g.data, 1000).columns : []), [g.data]);
 

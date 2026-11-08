@@ -2,6 +2,7 @@
 // Usage: node scripts/smoke.mjs [http://127.0.0.1:5173]   Screenshots go to qa/.
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const base = process.argv[2] ?? "http://127.0.0.1:5173";
@@ -477,6 +478,7 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
     u.pathname = u.pathname.replace(/^\/engine/, "");
     if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" } });
     if (u.pathname === "/health") return json(route, { ok: true, version: "x", mock: false, extensions: { evidence: true } });
+    if (u.pathname.startsWith("/genome/")) return route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: readFileSync(new URL("../src/fixtures/genome.json", import.meta.url), "utf8") });   // the worker has a case
     if (u.pathname === "/identity") return json(route, { person: "p_t", role: "benefits-processor" });   // the worker is known: Growth asks a live engine only for its own worker's data
     if (u.pathname === "/evidence/packet") return json(route, { meta, data: { person: "p_t", case: "t_t", facts: [{ path: "gap.case_s", value: 585, unit: "s" }], limitations: [] } });
     if (u.pathname === "/evidence/explain") { explainBody = { body: JSON.parse(req.postData() ?? "{}"), actor: req.headers()["x-understudy-actor"], type: req.headers()["content-type"] }; if (delayMs) await new Promise((r) => setTimeout(r, delayMs)); return json(route, { meta, data: scenario }); }

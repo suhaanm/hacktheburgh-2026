@@ -6,7 +6,7 @@ import { HabitDeltas } from "../HabitDeltas";
 import { Hint } from "../Hint";
 import { Details, fitItems } from "../ui";
 import { GrowthSection, SectionError, useReportSource } from "./GrowthSection";
-import { notKnown, useOwnPerson } from "./own";
+import { notKnown, unknownAsError, useOwnPerson } from "./own";
 import { splitSentence } from "../../lib/week";
 import { DIGEST_LABEL, fmtPoints, fmtPointsInterval, fmtShare, readHabit, sortHabits, splitCounts } from "../../lib/git";
 import { oneExpert, safeWhy } from "../../lib/voice";
@@ -29,7 +29,7 @@ export function commitsHeadline(habits: GitHabit[]): string {
 export function CommitsSection({ open }: { open: boolean }) {
   const own = useOwnPerson();
   const me = own.person;
-  const h = useLoad(() => (own.ready ? (own.blocked ? notKnown<Loaded<GitHabits>>() : api.gitHabits(me, undefined)) : idle<GitHabits>()), [own.ready, own.blocked, me]);
+  const h = unknownAsError(useLoad(() => (own.ready ? (own.blocked ? notKnown<Loaded<GitHabits>>() : api.gitHabits(me, undefined)) : idle<GitHabits>()), [own.ready, own.blocked, me]));
   const [allHabits, setAllHabits] = useState(false);
   useReportSource("commits", h.why ?? null);
 

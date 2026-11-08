@@ -89,7 +89,7 @@ function Band({ r, min }: { r: FirmRole; min: number }) {
     return <p className="firm-band firm-band--none">Fewer than {min} people with data in this group, so no group figure is shown. People are still listed below.</p>;
   }
   const t = a.time_to_independence;
-  const main: [string, ReactNode][] = [["Finished without help", fmtShare(a.independence)]];
+  const main: [string, ReactNode][] = [["Everyone here, finished without help", fmtShare(a.independence)]];
   if (r.trend) {
     main.push(["Role trend", <><TrendMark t={r.trend.cls} />{r.trend.slope_per_4w ? <span className="firm-band__slope"> {fmtNum({ value: r.trend.slope_per_4w.value * 100, ci: r.trend.slope_per_4w.ci ? [r.trend.slope_per_4w.ci[0] * 100, r.trend.slope_per_4w.ci[1] * 100] : null }, "points a month")}</span> : null}</>]);
   }
@@ -147,6 +147,12 @@ function RoleSection({ r, firm, sort, filter }: { r: FirmRole; firm: WireFirm; s
  * Everyone in the firm, grouped by role. There is no single score and no league table: the only orders are by name and by time in role, and the
  * only filter is a class of trend. For coaching and onboarding, not for evaluating individuals.
  */
+/** The engine's privacy note without its jargon ("enums") and without repeating the five-people rule the line above already states. */
+function cleanNote(note: string | null | undefined): string {
+  const kept = (note ?? "").split(/(?<=[.!?])\s+/).filter((x) => x.trim() && !/\b(?:k\s*=\s*\d|at least \d+ people|minimum group|groups? (?:of )?(?:fewer|under|smaller))/i.test(x)).map((x) => x.replace(/numbers and enums/gi, "numbers and fixed labels").replace(/\benums?\b/gi, "fixed labels"));
+  return kept.length ? ` ${kept.join(" ")}` : "";
+}
+
 export function PeopleTable({ firm }: { firm: WireFirm; meta?: AnalyticMeta | null }) {
   const [sort, setSort] = useState<SortKey>(DEFAULT_SORT);
   const [filter, setFilter] = useState<Trend | null>(null);
@@ -173,7 +179,7 @@ export function PeopleTable({ firm }: { firm: WireFirm; meta?: AnalyticMeta | nu
             {filter ? TREND_HINT[filter] : "Each person has a class for how the help they need is changing. A class is a conversation starter for coaching, never a grade, and the list is never ranked."}
           </Hint>
         </div>
-        <p className="note">Group figures need at least {firm.privacy.min_group} people. Smaller groups are merged, so a figure never describes two or three individuals. {firm.privacy.note ?? ""}</p>
+        <p className="note">Group figures need at least {firm.privacy.min_group} people. Smaller groups are merged, so a figure never describes two or three individuals.{cleanNote(firm.privacy.note)}</p>
       </Details>
       {firm.roles.map((r) => <RoleSection key={r.role} r={r} firm={firm} sort={sort} filter={filter} />)}
     </div>

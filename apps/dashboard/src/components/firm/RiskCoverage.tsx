@@ -20,7 +20,7 @@ export function RiskCoverage({ o }: { o: WireOverview; meta?: AnalyticMeta | nul
   if (r) {
     rows.push(["Approvals open now", String(r.open_approvals)]);
     if (r.approval_backlog_age_h && fin(r.approval_backlog_age_h.max)) rows.push(["Oldest still waiting", `${Math.round(r.approval_backlog_age_h.max)} hours`]);
-    rows.push(["Runs paused by an injected page", `${r.injection_pauses_30d} in 30 days`]);
+    rows.push(["Runs paused after a page tried to instruct them", `${r.injection_pauses_30d} in 30 days`]);
     rows.push(["Times everything was stopped", `${r.kill_events_30d} in 30 days`]);
   }
   rows.push(["People with enough data", `${c.enough_data} of ${c.users}`]);

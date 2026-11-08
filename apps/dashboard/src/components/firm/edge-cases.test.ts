@@ -152,7 +152,7 @@ describe("very long and unicode names", () => {
     const r = normaliseRoles({ roles: [{ role: "p", name: long, n_expert: 6, n_junior: 9, enough: true, measures: [{ key: "independence", expert: { value: 0.9 }, junior: { value: 0.6 }, gap: { value: -0.3, ci: [-0.4, -0.2] }, verdict: "gap" }] }] });
     const t = show(createElement(RolesBody, { roles: r, min: 5 }));
     expect(t).toContain("…");
-    expect(gapChart(r).rows[0].label.length).toBeLessThanOrEqual(22);
+    expect(gapChart(r).rows[0].label.length).toBeLessThanOrEqual(48); // the plot wraps a long name over two lines
   });
   it("unicode and emoji names are never split into broken characters", () => {
     const f = normaliseFirm({ roles: [{ role: "p", name: "数据分析师 🧑‍💻", users: [{ id: "u1", label: "A-1", name: "Zoë Ångström", trend: "improving" }, { id: "u2", label: "A-2", name: "李小龙", trend: "needs_attention" }] }] });
