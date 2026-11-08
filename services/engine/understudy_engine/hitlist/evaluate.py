@@ -470,13 +470,13 @@ def m_edge_cases() -> dict[str, Any]:
 
 # ------------------------------------------------------------------------------------------------ the whole evaluation
 LIMITATIONS = [
-    "Synthetic people only: nobody in this evaluation is a person. The generators were written by the author of the rules, so planted routines are cleaner than real habits (exact step lists, a small chance of one slip).",
+    "Generated people only: nobody in this evaluation is a person. The generators were written by the author of the rules, so planted routines are cleaner than real habits (exact step lists, a small chance of one slip).",
     "Dev seeds 0 to 9 only. There is no held-out claim: nothing here was run on seeds kept apart from the code, and the numbers are what the rules do on worlds their author could inspect.",
     "Recall is for routines that are present, repeated inside one 7 day window and made of steps the finder can separate; it says nothing about habits spread over many windows or tangled with other work.",
     "The false-row rate is for noise made of random step lists. Real work has habits that are not routines worth automating, so a real null rate could be higher.",
     "The held-back audit uses noise-free worlds so the answer is exact; with noise, a held-back count also includes chance clusters. The reason 'too varied' and the ranking order are covered by unit tests, not here.",
     "The 95% interval on minutes is checked against a known rate and mean run time, conditional on the row being listed. It does not say whether the run time a real worker would save equals the time spent (the judgement share is a pack setting, not a measurement).",
-    "K-anonymity here is the group-size rule (fewer than 5 people are not listed). It does not defend against differencing across windows or role filters, and the synthetic firm is not a real workforce; a real deployment needs a lawful basis and a notice to workers (D41).",
+    "K-anonymity here is the group-size rule (fewer than 5 people are not listed). It does not defend against differencing across windows or role filters, and the made-up firm is not a real workforce; a real deployment needs a lawful basis and a notice to workers (D41).",
     "Nothing here shows that workers find the list useful or that Automate leads to better work; the study is a separate piece of work.",
 ]
 
@@ -493,7 +493,7 @@ def _claims(r: dict[str, Any]) -> list[str]:
         f"With 5% of steps lost the top row stayed the same in {_pct(sta['step_loss_5pct']['same_top_row'])}; with 5% of episodes lost, {_pct(sta['episode_loss_5pct']['same_top_row'])}.",
         f"The 95% interval on minutes a week held the true value in {_pct(cov['weekly_rate_6'])} (6 runs a week) and {_pct(cov['weekly_rate_12'])} (12 a week), among rows that were listed.",
         f"The same input gave byte-identical answers in {_pct(det['same_input_twice'])}, and in a random order in {_pct(det['episodes_in_a_random_order'])}.",
-        f"Across {kan['firms']} synthetic firms ({kan['groups']} groups, {kan['groups_under_5']} under 5 people) {kan['rows_listed_with_under_5_people']} rows with fewer than 5 people were listed "
+        f"Across {kan['firms']} made-up firms ({kan['groups']} groups, {kan['groups_under_5']} under 5 people) {kan['rows_listed_with_under_5_people']} rows with fewer than 5 people were listed "
         f"and {kan['firms_with_a_person_id_in_the_answer']} answers held a person id.",
         f"Edge cases passed: {edg['passed']['k']} of {edg['passed']['n']}.",
     ]
@@ -544,7 +544,7 @@ def _expectations(r: dict[str, Any]) -> list[dict[str, Any]]:
 def _statement(r: dict[str, Any]) -> str:
     ex = r["expectations"]
     missed = [x for x in ex if not x["met"]]
-    base = ("Synthetic worlds written by the author of the rules, dev seeds only, no held-out claim. "
+    base = ("Generated worlds written by the author of the rules, dev seeds only, no held-out claim. "
             f"{len(ex) - len(missed)} of {len(ex)} expectations written before the run were met.")
     if missed:
         base += " Missed: " + "; ".join(f"{x['measure']} ({x['observed']}, expected {x['expected']})" for x in missed) + "."
@@ -570,8 +570,8 @@ def evaluate_hitlist(fast: bool = True, **_kw: Any) -> dict[str, Any]:
     res["expectations_met"] = rate(sum(1 for x in res["expectations"] if x["met"]), len(res["expectations"]))
     res["statement"] = _statement(res)
     res["limitations"] = LIMITATIONS
-    res["meta"] = analytic_meta("synthetic", len(people), "synthetic people per cell",
-                                f"dev seeds {list(seeds)} x {PER_SEED} people; no held-out seeds", note="Synthetic worlds; dev seeds only; no held-out claim (see limitations).")
+    res["meta"] = analytic_meta("synthetic", len(people), "generated people per cell",
+                                f"dev seeds {list(seeds)} x {PER_SEED} people; no held-out seeds", note="Generated worlds; dev seeds only; no held-out claim (see limitations).")
     return res
 
 

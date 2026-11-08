@@ -1,0 +1,121 @@
+# Habit definitions for the programmer pack, one or two per new skill (RD, 7 Nov 2026). Schema: pack.schema.json#/$defs/habits.
+#
+# What this file is: names. A habit is a way of working that costs time or quality, written so the Insights engine and the genome can
+# call it by name ("you often start editing before the failure is reproduced") instead of by cog ids. It follows how the benefits pack
+# names its deficits (persona.yaml apprentice.deficits: id, label, kind, cogs, skill), minus the planted price.
+#
+# What this file is NOT: planted truth. No synthetic generator emits these habits (the persona generators keep emitting the original
+# cogs, and their parameters are frozen), so nothing here has a measured price, a measured prevalence or a validated detector. Until real
+# traces exist the Insights engine shows "not enough data" for them. `visible` says how a habit could ever be seen:
+#   order   from the order of cogs in a task (an omitted or swapped step)
+#   time    from how long a cog lasted
+#   digest  from the local commit digest (category, size bucket, message quality), never from a message or a path
+#   none    not at L0: the capture sees that the step happened, not what was in it. Defined so the skill has a name; not detectable.
+# `seen_as` is the genome waterfall bar the habit would show up as ("none" when time saved by skipping hides it).
+version: 1
+role: programmer
+habits:
+  - id: edit_before_reproducing
+    label: Starts editing before the failure is reproduced
+    skill: reproduce-before-fixing
+    cogs: [REPRODUCE_LOCALLY]
+    kind: omit
+    signature: An EDIT_CODE with no REPRODUCE_LOCALLY since the failing trace was read.
+    visible: order
+    seen_as: Skipped steps
+  - id: guess_instead_of_bisecting
+    label: Guesses at the cause instead of halving the history
+    skill: bisect-before-guessing
+    cogs: [BISECT_CHANGE, EDIT_CODE, RUN_TESTS]
+    kind: swap
+    signature: Several EDIT_CODE and RUN_TESTS rounds with no BISECT_CHANGE while a regression is open.
+    visible: order
+    seen_as: Rework
+  - id: no_log_at_the_failure
+    label: Fixes the failure without leaving a log line for next time
+    skill: log-for-the-next-incident
+    cogs: [ADD_LOGGING]
+    kind: omit
+    signature: A fix is committed in a task that has no ADD_LOGGING.
+    visible: order
+    seen_as: Skipped steps
+  - id: vague_commit_message
+    label: Writes a commit message that does not say why
+    skill: message-for-the-next-reader
+    cogs: [WRITE_COMMIT_MSG]
+    kind: swap
+    signature: A commit digest whose message quality is vague, or a WRITE_COMMIT_MSG of a few seconds.
+    visible: digest
+    seen_as: none
+  - id: pr_without_a_message
+    label: Opens the pull request without writing the message first
+    skill: open-a-reviewable-pr
+    cogs: [WRITE_COMMIT_MSG, OPEN_PR]
+    kind: omit
+    signature: An OPEN_PR with no WRITE_COMMIT_MSG between the review of the diff and the pull request.
+    visible: order
+    seen_as: Skipped steps
+  - id: giant_pull_request
+    label: Opens one very large pull request instead of several small ones
+    skill: open-a-reviewable-pr
+    cogs: [OPEN_PR]
+    kind: swap
+    signature: A commit digest in the large or huge size bucket on the branch that was opened for review.
+    visible: digest
+    seen_as: none
+  - id: ping_before_reading_ci
+    label: Asks for a review before reading the CI result
+    skill: read-ci-before-asking
+    cogs: [READ_CI]
+    kind: omit
+    signature: An ANSWER_REVIEW, or a chat message, with no READ_CI since the pull request was opened.
+    visible: order
+    seen_as: Skipped steps
+  - id: reply_without_evidence
+    label: Replies to review comments without changing anything or saying why
+    skill: answer-review-with-evidence
+    cogs: [ANSWER_REVIEW, EDIT_CODE]
+    kind: swap
+    signature: Two ANSWER_REVIEW segments with no EDIT_CODE or COMMIT between them.
+    visible: order
+    seen_as: Other extra steps
+  - id: rubber_stamp_review
+    label: Submits a review within seconds of opening it
+    skill: review-like-an-owner
+    cogs: [REVIEW_PEER, REVIEW_DIFF]
+    kind: slow
+    signature: A REVIEW_PEER that starts seconds after arriving on the pull request, with no REVIEW_DIFF of any length before it.
+    visible: time
+    seen_as: none
+  - id: walk_away_from_release
+    label: Leaves after a release without watching it
+    skill: watch-the-release
+    cogs: [WATCH_PROD]
+    kind: omit
+    signature: A release with no WATCH_PROD in the following ten minutes.
+    visible: order
+    seen_as: Skipped steps
+  - id: roll_back_blind
+    label: Rolls back without looking at what is going wrong
+    skill: roll-back-safely
+    cogs: [ROLL_BACK, WATCH_PROD]
+    kind: swap
+    signature: A ROLL_BACK with no WATCH_PROD before it in the same task.
+    visible: order
+    seen_as: Skipped steps
+  - id: optimise_by_hunch
+    label: Optimises code without profiling it first
+    skill: profile-before-optimising
+    cogs: [PROFILE_HOTPATH, EDIT_CODE]
+    kind: omit
+    signature: Rounds of EDIT_CODE and RUN_TESTS on a slowness task with no PROFILE_HOTPATH.
+    visible: order
+    seen_as: Skipped steps
+  - id: migration_without_undo
+    label: Writes a migration step that cannot be undone
+    skill: migrate-in-small-safe-steps
+    cogs: [WRITE_MIGRATION]
+    kind: swap
+    signature: The migration has no undo step. The capture sees the WRITE_MIGRATION segment, not what is in it.
+    visible: none
+    seen_as: none

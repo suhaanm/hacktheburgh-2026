@@ -16,6 +16,7 @@ const base: PacketInputs = {
   task: fresh({ id: 't_benefits', step: 2, of: 9 }),
   coach: fresh({ step: 'calc_a', zone: 'main_form' }),
   cue: fresh('ask'),
+  tasks: fresh(2),
   consent: { voice: 'yes', screen: 'not_now', frames: false },
   click: 'pending',
   tools,
@@ -34,6 +35,7 @@ describe('the context packet', () => {
     expect(p.text).toContain('task=t_benefits 2/9')
     expect(p.text).toContain('coach=step=calc_a zone=main_form')
     expect(p.text).toContain('cue=ask')
+    expect(p.text).toContain('tasks_running=2')
     expect(p.text).toContain('consent_voice=yes consent_screen=not_now frames=off')
     expect(p.text).toContain('click=first_supervised_test_pending')
     for (const t of ['point_at(', 'clear()', 'do_it_for_me(', 'end_session()', 'show_step(']) expect(p.text).toContain(`- ${t}`)
@@ -61,6 +63,16 @@ describe('the context packet', () => {
   })
   it('refuses a reading stamped in the future', () => {
     expect(buildPacket({ ...base, approvals: { value: 3, t: NOW + 60_000 } }).manifest.stale).toContain('approvals')
+  })
+})
+
+describe('running tasks', () => {
+  it('reports only the number of running tasks, and drops a count that is old or not a whole number', () => {
+    expect(buildPacket({ ...base, tasks: fresh(0) }).text).toContain('tasks_running=0')
+    expect(buildPacket({ ...base, tasks: fresh(2, MAX_AGE_MS.tasks + 1) }).text).not.toContain('tasks_running')
+    expect(buildPacket({ ...base, tasks: fresh(2.5) }).text).not.toContain('tasks_running')
+    expect(buildPacket({ ...base, tasks: fresh(-1) }).text).not.toContain('tasks_running')
+    expect(buildPacket({ ...base, tasks: undefined }).manifest.missing).toContain('tasks')
   })
 })
 

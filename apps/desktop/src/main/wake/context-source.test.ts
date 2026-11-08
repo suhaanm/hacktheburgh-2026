@@ -11,6 +11,7 @@ const deps = (over: Partial<ContextSourceDeps> = {}): ContextSourceDeps => ({
   task: () => ({ id: 't_benefits', step: 2, stepsTotal: 9 }),
   coach: () => ({ step: 'calc_a', zone: 'main_form', t: t - 2000 }),
   cue: () => 'offer',
+  tasksRunning: () => ({ n: 2, t }),
   consent: () => ({ voice: 'yes', screen: 'yes', frames: true }),
   rung: () => ({ cleared: false, why: 'absent' }),
   ...over,
@@ -24,6 +25,7 @@ describe('the context hub', () => {
     expect(text).toContain('task=t_benefits 2/9')
     expect(text).toContain('coach=step=calc_a zone=main_form')
     expect(text).toContain('cue=offer')
+    expect(text).toContain('tasks_running=2')
     expect(text).toContain('consent_voice=yes consent_screen=yes frames=on')
     expect(text).toContain('click=first_supervised_test_pending')
     expect(hub.last()?.missing.sort()).toEqual(['insight', 'routine', 'screen'])

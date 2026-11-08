@@ -282,7 +282,7 @@ function analyse(rows, seed, skill, allSkillRows) {
     origin_detail: rows[0]?.origin_detail,
     readiness: { occurrences: n, needed: NEEDED, ready, trend_needed: 30 },
     baseline,
-    score: { composite_experimental: composite, composite_experimental_ci: composite_ci, composite_partial: partial, available_weight: r3(avail), weights: W, used_weights: partial ? used : null, weights_note: "Stated assumptions, not fitted.", composite_caveat: "Experimental. On simulated learners whose skill did not change, this score still rose in a sizeable share of cases, so it is shown with its parts and is not a finding." },
+    score: { composite_experimental: composite, composite_experimental_ci: composite_ci, composite_partial: partial, available_weight: r3(avail), weights: W, used_weights: partial ? used : null, weights_note: "Stated assumptions, not fitted.", composite_caveat: "Experimental. On generated learners whose skill did not change, this score still rose in a sizeable share of cases, so it is shown with its parts and is not a finding." },
     components: { independence, mastery: n ? { value: mastery, by_skill: bySkillMastery } : null, gap_closure: gap, retention },
     trend, curve,
     occurrences: { total: n, unaided: mine.filter(unaided).length, assisted: mine.filter((r) => r.outcome === "assisted").length, errors: mine.filter((r) => r.outcome === "error").length, abandoned: mine.filter((r) => r.outcome === "abandoned").length },
@@ -359,7 +359,7 @@ const T0 = Date.parse("2026-09-26T00:00:00Z");
 
 const improves = bundle("improves", {
   person: "p_example_improves", seed: 20261107, t0: T0, origin_detail: "synthetic_learner",
-  note: "a synthetic learner with a planted learning curve, 6 weeks.",
+  note: "a generated learner with a planted learning curve, 6 weeks.",
   perSkill: [
     { n: 34, start: 0.9, floor: 0.06, ramp: 22, from: 0, to: 41 },
     { n: 38, start: 0.9, floor: 0.08, ramp: 26, from: 3, to: 41 },
@@ -373,7 +373,7 @@ const improves = bundle("improves", {
 
 const plateau = bundle("plateau", {
   person: "p_example_plateau", seed: 77031, t0: T0, origin_detail: "simulated_participants", needMore: 60,
-  note: "a simulated participant (language model) whose help need levels off, 6 weeks.",
+  note: "a language-model participant whose help need levels off, 6 weeks.",
   perSkill: [
     { n: 30, start: 0.84, floor: 0.34, tau: 7, from: 0, to: 41 },
     { n: 32, start: 0.82, floor: 0.58, tau: 8, from: 2, to: 41 },
@@ -387,7 +387,7 @@ const plateau = bundle("plateau", {
 
 const sparse = bundle("sparse", {
   person: "p_example_new", seed: 4141, t0: T0, origin_detail: "synthetic_learner",
-  note: "a synthetic learner on day 3 of using the system.",
+  note: "a generated learner on day 3 of using the system.",
   perSkill: [
     { n: 3, start: 0.8, floor: 0.8, tau: 5, from: 40, to: 42, script: ["assisted", "assisted", "clean"] },
     { n: 2, start: 0.8, floor: 0.8, tau: 5, from: 41, to: 43, script: ["assisted", "assisted"] },
@@ -400,7 +400,7 @@ const sparse = bundle("sparse", {
 
 const getting = bundle("getting-going", {
   person: "p_example_going", seed: 9091, t0: T0, origin_detail: "synthetic_learner",
-  note: "a synthetic learner with 20 occurrences: enough for a curve, not yet for a trend.",
+  note: "a generated learner with 20 occurrences: enough for a curve, not yet for a trend.",
   perSkill: [
     { n: 9, start: 0.85, floor: 0.3, ramp: 14, from: 28, to: 42 },
     { n: 7, start: 0.85, floor: 0.35, ramp: 12, from: 30, to: 42 },

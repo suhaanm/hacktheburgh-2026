@@ -5,7 +5,7 @@
   "n_unit": "episodes",
   "split": "leave-one-person-out",
   "interval_level": 0.95,
-  "note": "1546 scored 30-second bins from synthetic apprentices with injected deficits. Not yet validated on real traces.",
+  "note": "1546 scored 30-second bins from scripted apprentices with injected deficits. Not yet validated on real traces.",
   "generated_at": "2026-11-07T14:40:00Z"
  },
  "data": {

@@ -828,7 +828,7 @@ def generate(root: Path | str | None = None, *, canary: bool = False, people: li
     if not canary:
         (out_dir / "truth.json").write_text(json.dumps({
             "meta": meta, "kind": "calendar_truth",
-            "description": ("Planted calendar structure for 4 personas, 8 experts and 16 novices (synthetic). The labels come from the generator's "
+            "description": ("Planted calendar structure for 4 personas, 8 experts and 16 novices. The labels come from the generator's "
                             "construction, not from the feature code. Expert calendars are generated from packages/packs/benefits-processor/routine_expert.yaml."),
             "problems": PROBLEM_DOC, "expert_template": f"{ROLE}@1", "people": truth}, indent=1), encoding="utf-8")
     else:

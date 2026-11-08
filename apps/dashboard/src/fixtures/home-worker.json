@@ -1,6 +1,6 @@
 {
  "data": {
-  "badge": "synthetic firm",
+  "badge": "made-up firm",
   "cap": 3,
   "message": null,
   "monday_note": "Understudy has 2 pointers for your week. On the cliff check, you usually take about 35 seconds longer than the expert's median. On reconciling before the note, you usually take about 15 seconds longer than the expert's median.",
@@ -15,7 +15,7 @@
      "label": "Open Growth",
      "to": "growth"
     },
-    "badge": "synthetic firm",
+    "badge": "made-up firm",
     "detail": "Open Growth to see where the time goes.",
     "details_available": true,
     "glyph": "clock",
@@ -29,7 +29,7 @@
     "polarity": "attention",
     "polarity_label": "Worth a look",
     "source": "Your assist ledger",
-    "text": "On the cliff check, you usually take about 35 seconds longer than the expert's median. Open Growth to see where the time goes. Source: Your assist ledger, synthetic firm data.",
+    "text": "On the cliff check, you usually take about 35 seconds longer than the expert's median. Open Growth to see where the time goes. Source: Your assist ledger, made-up firm data.",
     "title": "A habit that costs time"
    },
    {
@@ -39,7 +39,7 @@
      "label": "Open Growth",
      "to": "growth"
     },
-    "badge": "synthetic firm",
+    "badge": "made-up firm",
     "detail": "Open Growth to see where the time goes.",
     "details_available": true,
     "glyph": "clock",
@@ -53,7 +53,7 @@
     "polarity": "attention",
     "polarity_label": "Worth a look",
     "source": "Your assist ledger",
-    "text": "On reconciling before the note, you usually take about 15 seconds longer than the expert's median. Open Growth to see where the time goes. Source: Your assist ledger, synthetic firm data.",
+    "text": "On reconciling before the note, you usually take about 15 seconds longer than the expert's median. Open Growth to see where the time goes. Source: Your assist ledger, made-up firm data.",
     "title": "A habit that costs time"
    }
   ],
@@ -70,7 +70,7 @@
  "meta": {
   "as_of": "2026-11-09T09:00:00Z",
   "audience": "worker",
-  "badge": "synthetic firm",
+  "badge": "made-up firm",
   "generated_at": "2026-11-09T09:00:00Z",
   "interval_level": null,
   "n": 2,

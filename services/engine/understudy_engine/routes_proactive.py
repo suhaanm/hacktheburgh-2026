@@ -123,7 +123,7 @@ def _meta(origin: str, b: B.Briefing) -> dict[str, Any]:
     return {"origin": origin, "n": n, "n_unit": "decisions", "split": None, "interval_level": 0.95,
             "note": ("Cards are chosen by fixed rules from routines, skills, calendar and git summaries, and re-checked against the current state. "
                      "No model decides what is shown, and nothing runs until you press go."
-                     + (" Built from synthetic data." if origin != "real" else "")),
+                     + (" Built from generated data." if origin != "real" else "")),
             "generated_at": iso(datetime.now(timezone.utc))}
 
 

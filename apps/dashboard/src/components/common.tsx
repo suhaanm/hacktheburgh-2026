@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { AnalyticMeta, Rung } from "../types";
 import { ApiError } from "../api";
 import { EXAMPLE_LINE, FALLBACK_LABEL, type Fallback } from "../lib/fallback";
-import { originWords } from "../lib/evidence";
+import { originLine, originShort, originWords } from "../lib/evidence";
 import { AboutData, Details } from "./ui";
 import { Hint } from "./Hint";
 
@@ -23,33 +23,34 @@ const sentenceCase = (t: string): string => (t ? t.charAt(0).toUpperCase() + t.s
 
 /**
  * What a worker's screen calls an origin. "Example data" is a built-in sample drawn because the service did not answer (ExampleBadge). When the engine
- * answered from synthetic traces the numbers are live but not from real people, and the badge says exactly that: "Synthetic data". The explanation
- * ("Synthetic learners with planted learning curves, not people") is printed in "About this data".
+ * answered from generated example people the numbers are live but not from real workers, and since owner decision D57 (8 Nov 2026) the screen carries NO
+ * tag for that: the label is empty and <OriginBadge> draws nothing. The plain sentence (`originLine`) is printed inside the closed "About this data".
  */
 export function workerOriginLabel(origin: string): string {
   if (origin === "real") return "Real data";
-  if (origin === "mixed") return "Some synthetic data";
-  if (origin === "synthetic") return "Synthetic data";
+  if (origin === "mixed" || origin === "synthetic") return "";
   return "Not run";
 }
 
 /**
- * Origin badge: sentence case, dashed means "not real". Shown whenever origin is not "real". One per screen: a screen that also has an
- * ExampleBadge shows only one of them. `label` replaces the default wording ("Synthetic firm" on Admin screens, "Example data" for a worker).
+ * Origin badge: sentence case. Drawn for real data (only with `always`) and for a study that has not run. The engine's "synthetic" and "mixed" origins
+ * draw nothing at all, whatever `label` a screen passes (D57); the screen says where numbers come from in "About this data" (see `originLine`). One per
+ * screen: a screen that also has an ExampleBadge shows only one of them.
  */
 export function OriginBadge({ meta, always = false, label }: { meta: AnalyticMeta | null; always?: boolean; label?: string }) {
   if (!meta) return null;
   if (meta.origin === "real" && !always) return null;
   const words = originWords(meta.origin);
+  if (!words.text) return null;
   return (
     <span className="pill pill--origin" data-origin={words.data}>
-      {label ?? sentenceCase(words.text)}
+      {label || sentenceCase(words.text)}
       <span className="u-sr-only">{words.sr}</span>
     </span>
   );
 }
 
-/** "Example data": this screen is showing a built-in sample, not what the engine holds. Dashed like the synthetic badge; the reason is printed by <SourceNote>. */
+/** "Example data": this screen is showing a built-in sample, not what the engine holds. Dashed like every origin badge; the reason is printed by <SourceNote>. */
 export function ExampleBadge({ why }: { why: Fallback | null | undefined }) {
   if (!why) return null;
   return (
@@ -89,7 +90,7 @@ export function SourceNote({ why, also, alsoInline = false }: { why: Fallback | 
 export function ChartFoot({ meta, extra, brief = false, variant = "full", badge = true }: { meta: AnalyticMeta | null; extra?: ReactNode; brief?: boolean; variant?: "full" | "about"; badge?: boolean }) {
   if (variant === "about") {
     const rows: [string, ReactNode][] = meta
-      ? [["n", nUnit(meta)], ...(meta.split ? ([["split", meta.split]] as [string, ReactNode][]) : []), ["intervals", `${Math.round(meta.interval_level * 100)}%`], ["origin", meta.origin], ...(extra ? ([["also", extra]] as [string, ReactNode][]) : []), ...(meta.note && !brief ? ([["note", meta.note]] as [string, ReactNode][]) : [])]
+      ? [["n", nUnit(meta)], ...(meta.split ? ([["split", meta.split]] as [string, ReactNode][]) : []), ["intervals", `${Math.round(meta.interval_level * 100)}%`], ["where from", originLine(meta.origin)], ...(extra ? ([["also", extra]] as [string, ReactNode][]) : []), ...(meta.note && !brief ? ([["note", meta.note]] as [string, ReactNode][]) : [])]
       : [["n", "not reported by the service"]];
     return (
       <div className="chart__foot chart__foot--about">
@@ -120,6 +121,7 @@ export function ChartFoot({ meta, extra, brief = false, variant = "full", badge 
         intervals: <b>{Math.round(meta.interval_level * 100)}%</b>
       </span>
       {badge && <OriginBadge meta={meta} always />}
+      {originShort(meta.origin) && <span>data from <b>{originShort(meta.origin)}</b></span>}
       {extra}
       {meta.note && !brief && <span className="chart__note">{meta.note}</span>}
     </div>

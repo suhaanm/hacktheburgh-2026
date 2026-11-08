@@ -1,6 +1,6 @@
 {
  "data": {
-  "badge": "synthetic firm",
+  "badge": "made-up firm",
   "cap": 3,
   "message": null,
   "monday_note": "Understudy has 3 pointers for your week. On the cliff check, you now take about 15 seconds less than you did a month ago. On reconciling before the note, you finished 17 of your last 20 cases without help. On entering the household once, you finished 18 of your last 20 cases without help.",
@@ -15,7 +15,7 @@
      "label": "See how it changed",
      "to": "growth"
     },
-    "badge": "synthetic firm",
+    "badge": "made-up firm",
     "detail": "",
     "details_available": true,
     "glyph": "trend_up",
@@ -29,7 +29,7 @@
     "polarity": "positive",
     "polarity_label": "Going well",
     "source": "Your assist ledger",
-    "text": "On the cliff check, you now take about 15 seconds less than you did a month ago. Source: Your assist ledger, synthetic firm data.",
+    "text": "On the cliff check, you now take about 15 seconds less than you did a month ago. Source: Your assist ledger, made-up firm data.",
     "title": "A habit that got faster"
    },
    {
@@ -39,7 +39,7 @@
      "label": "Open Growth",
      "to": "growth"
     },
-    "badge": "synthetic firm",
+    "badge": "made-up firm",
     "detail": "",
     "details_available": true,
     "glyph": "check",
@@ -54,7 +54,7 @@
     "polarity": "positive",
     "polarity_label": "Going well",
     "source": "Your assist ledger",
-    "text": "On reconciling before the note, you finished 17 of your last 20 cases without help. Source: Your assist ledger, synthetic firm data.",
+    "text": "On reconciling before the note, you finished 17 of your last 20 cases without help. Source: Your assist ledger, made-up firm data.",
     "title": "Needing less help"
    },
    {
@@ -64,7 +64,7 @@
      "label": "Open Repeats",
      "to": "repeats"
     },
-    "badge": "synthetic firm",
+    "badge": "made-up firm",
     "detail": "",
     "details_available": true,
     "glyph": "check",
@@ -79,7 +79,7 @@
     "polarity": "positive",
     "polarity_label": "Going well",
     "source": "Your assist ledger",
-    "text": "On entering the household once, you finished 18 of your last 20 cases without help. Source: Your assist ledger, synthetic firm data.",
+    "text": "On entering the household once, you finished 18 of your last 20 cases without help. Source: Your assist ledger, made-up firm data.",
     "title": "Needing less help"
    }
   ],
@@ -96,7 +96,7 @@
  "meta": {
   "as_of": "2026-11-09T09:00:00Z",
   "audience": "worker",
-  "badge": "synthetic firm",
+  "badge": "made-up firm",
   "generated_at": "2026-11-09T09:00:00Z",
   "interval_level": null,
   "n": 3,

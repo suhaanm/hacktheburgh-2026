@@ -14,6 +14,8 @@ const port = Number(opt('port', process.env.ALONGSIDE_DEBUG_PORT || 7777))
 const realScreen = argv.includes('--real-screen')
 // --hidden: the app was started with KNACK_HIDDEN=1 (scripts/knack-e2e.mjs), so its windows exist but are never shown: whether the corner window is on screen is not asked.
 const hiddenRun = argv.includes('--hidden')
+// --ghosts: the services list records a dead process left behind (a run "planning" with one child and none done, and one "running", three days old): the pill must stay away.
+const ghostCheck = argv.includes('--ghosts')
 const base = `http://127.0.0.1:${port}`
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const get = async (p) => (await fetch(`${base}${p}`)).json()
@@ -37,6 +39,14 @@ try {
   // The old side panel's own eight-step set-up never runs in the app: on a fresh profile it is already done, and no patch can bring it back.
   const pinned = await post('/settings', { patch: { onboardingDone: false } })
   check('a fresh profile never starts the old panel set-up, and nothing can switch it back on (Knack has one onboarding, the first run)', pinned.body?.onboardingDone === true, pinned.body?.onboardingDone)
+
+  if (ghostCheck) {
+    // The stale pill the owner saw ("working on ... 0 of 1" after the work finished): records a dead process left behind are not work.
+    await sleep(4500) // the app polls the service every 2 to 10 seconds
+    const idle = await get('/hud')
+    const st = await get('/state')
+    check('records a dead process left behind (planning with one child and none done, and "running") never start the pill or read as an agent acting', idle.activity === null && idle.agentActing === false && st.knack.machine.activity === 'idle', { activity: idle.activity, agentActing: idle.agentActing, machine: st.knack.machine.activity })
+  }
 
   let r = await post('/hud/activity', { phase: 'working', label: 'Filling in calculator B', step: 3, of: 8, realScreen })
   check('a run starts: the pill shows the words and n of m', r.body?.hud?.activity?.phase === 'working' && r.body.hud.activity.label === 'Filling in calculator B' && r.body.hud.activity.step === 3, r.body?.hud?.activity)

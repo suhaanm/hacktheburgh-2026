@@ -1,7 +1,7 @@
 {
  "data": {
   "as_of": "2026-11-09",
-  "badge": "synthetic firm",
+  "badge": "made-up firm",
   "coverage": {
    "by_status": {
     "no_data": 1,
@@ -41,7 +41,7 @@
    "q": 0.1
   },
   "firm": {
-   "label": "synthetic firm",
+   "label": "made-up firm",
    "roles": 3,
    "users": 60
   },
@@ -133,7 +133,7 @@
      "label": "Open the queue",
      "to": "queue"
     },
-    "badge": "synthetic firm",
+    "badge": "made-up firm",
     "drill": "i_1adf226dca1a",
     "effect": {
      "ci": null,
@@ -155,7 +155,7 @@
     "source": "Firm risk feeds",
     "split": {},
     "statement": "For coaching and onboarding, not for evaluating individuals.",
-    "text": "An approval has waited 72 hours. 3 approvals are open. Source: Firm risk feeds, synthetic firm data. For coaching and onboarding, not for evaluating individuals."
+    "text": "An approval has waited 72 hours. 3 approvals are open. Source: Firm risk feeds, made-up firm data. For coaching and onboarding, not for evaluating individuals."
    },
    {
     "a11y_label": "Going well: Approved routines handled about 10 hours of work in four weeks.",
@@ -164,7 +164,7 @@
      "label": "Open Routines",
      "to": "routines"
     },
-    "badge": "synthetic firm",
+    "badge": "made-up firm",
     "drill": "i_afa43090701c",
     "effect": {
      "ci": null,
@@ -192,7 +192,7 @@
      "shadow_runs": 195
     },
     "statement": "For coaching and onboarding, not for evaluating individuals.",
-    "text": "Approved routines handled about 10 hours of work in four weeks. That is 6 routines and 61 runs; shadow mode matched 191 of 195. Source: Firm routines, synthetic firm data. For coaching and onboarding, not for evaluating individuals."
+    "text": "Approved routines handled about 10 hours of work in four weeks. That is 6 routines and 61 runs; shadow mode matched 191 of 195. Source: Firm routines, made-up firm data. For coaching and onboarding, not for evaluating individuals."
    },
    {
     "a11y_label": "Worth a look: Runs paused after a page tried to instruct them: 1.",
@@ -201,7 +201,7 @@
      "label": "Open the queue",
      "to": "queue"
     },
-    "badge": "synthetic firm",
+    "badge": "made-up firm",
     "drill": "i_4edfcbf0c8bc",
     "effect": {
      "ci": null,
@@ -223,7 +223,7 @@
     "source": "Firm risk feeds",
     "split": {},
     "statement": "For coaching and onboarding, not for evaluating individuals.",
-    "text": "Runs paused after a page tried to instruct them: 1. That was in the last 7 days. Nothing was changed. Source: Firm risk feeds, synthetic firm data. For coaching and onboarding, not for evaluating individuals."
+    "text": "Runs paused after a page tried to instruct them: 1. That was in the last 7 days. Nothing was changed. Source: Firm risk feeds, made-up firm data. For coaching and onboarding, not for evaluating individuals."
    },
    {
     "a11y_label": "Worth a look: Benefits processor: juniors take about 20 seconds longer per case than experts.",
@@ -233,7 +233,7 @@
      "query": "roles",
      "to": "firm"
     },
-    "badge": "synthetic firm",
+    "badge": "made-up firm",
     "drill": "i_0aa24caf8d91",
     "effect": {
      "ci": [
@@ -266,7 +266,7 @@
      ]
     },
     "statement": "For coaching and onboarding, not for evaluating individuals.",
-    "text": "Benefits processor: juniors take about 20 seconds longer per case than experts. That is within the same tasks. The cliff check and reconciling before the note explain most of it. Source: Firm assist ledgers, synthetic firm data. For coaching and onboarding, not for evaluating individuals."
+    "text": "Benefits processor: juniors take about 20 seconds longer per case than experts. That is within the same tasks. The cliff check and reconciling before the note explain most of it. Source: Firm assist ledgers, made-up firm data. For coaching and onboarding, not for evaluating individuals."
    },
    {
     "a11y_label": "Worth a look: Data analyst: juniors take about 20 seconds longer per case than experts.",
@@ -276,7 +276,7 @@
      "query": "roles",
      "to": "firm"
     },
-    "badge": "synthetic firm",
+    "badge": "made-up firm",
     "drill": "i_eaf2d8ab87bc",
     "effect": {
      "ci": [
@@ -309,7 +309,7 @@
      ]
     },
     "statement": "For coaching and onboarding, not for evaluating individuals.",
-    "text": "Data analyst: juniors take about 20 seconds longer per case than experts. That is within the same tasks. Reconciling with the control figure and comparing with last period explain most of it. Source: Firm assist ledgers, synthetic firm data. For coaching and onboarding, not for evaluating individuals."
+    "text": "Data analyst: juniors take about 20 seconds longer per case than experts. That is within the same tasks. Reconciling with the control figure and comparing with last period explain most of it. Source: Firm assist ledgers, made-up firm data. For coaching and onboarding, not for evaluating individuals."
    },
    {
     "a11y_label": "Going well: Benefits processor: juniors need less help than six weeks ago.",
@@ -318,7 +318,7 @@
      "label": "Open the firm view",
      "to": "firm"
     },
-    "badge": "synthetic firm",
+    "badge": "made-up firm",
     "drill": "i_5c0e723ef8f7",
     "effect": {
      "ci": [
@@ -347,7 +347,7 @@
      "windows": "3 weeks, 6 weeks apart"
     },
     "statement": "For coaching and onboarding, not for evaluating individuals.",
-    "text": "Benefits processor: juniors need less help than six weeks ago. Independence is up about 14 points, compared within each person on the same tasks. Source: Firm assist ledgers, synthetic firm data. For coaching and onboarding, not for evaluating individuals."
+    "text": "Benefits processor: juniors need less help than six weeks ago. Independence is up about 14 points, compared within each person on the same tasks. Source: Firm assist ledgers, made-up firm data. For coaching and onboarding, not for evaluating individuals."
    },
    {
     "a11y_label": "Worth a look: Benefits processor: new juniors are behind the onboarding target.",
@@ -357,7 +357,7 @@
      "query": "onboarding",
      "to": "firm"
     },
-    "badge": "synthetic firm",
+    "badge": "made-up firm",
     "drill": "i_b5ba4655820a",
     "effect": {
      "ci": [
@@ -387,7 +387,7 @@
      "target_share": 0.6
     },
     "statement": "For coaching and onboarding, not for evaluating individuals.",
-    "text": "Benefits processor: new juniors are behind the onboarding target. 33 in 100 reached independence within 60 occurrences; the design target is 60 in 100. Source: Firm assist ledgers, synthetic firm data. For coaching and onboarding, not for evaluating individuals."
+    "text": "Benefits processor: new juniors are behind the onboarding target. 33 in 100 reached independence within 60 occurrences; the design target is 60 in 100. Source: Firm assist ledgers, made-up firm data. For coaching and onboarding, not for evaluating individuals."
    }
   ],
   "week": "2026-W46"
@@ -395,7 +395,7 @@
  "meta": {
   "as_of": "2026-11-09T09:00:00Z",
   "audience": "admin",
-  "badge": "synthetic firm",
+  "badge": "made-up firm",
   "generated_at": "2026-11-09T09:00:00Z",
   "interval_level": 0.95,
   "n": 60,

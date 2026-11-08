@@ -15,13 +15,13 @@ import pytest
 from understudy_engine.eval import adapters, build_report, schema_errors
 from understudy_engine.eval.render_md import render
 
-PHRASE = "simulated participants (language model), not people"
+PHRASE = "language-model participants, not people"
 NOW = "2026-11-07T15:00:00Z"
 
 SIM_SRC = '''
 def study_sim_section():
     return {
-        "label": "Simulated participants (LLM)",
+        "label": "Language-model participants (LLM)",
         "n": 8, "n_aa": 4,
         "headline": {"mean_difference": 0.25, "ci95": [-0.1, 0.6]},
         "per_skill": [{"skill": "cliff", "coached": 0.9, "uncoached": 0.5}, {"skill": "reconcile", "coached": 0.8, "uncoached": 0.6}],
@@ -68,7 +68,7 @@ def fake_power(monkeypatch, record):
         return {"rows": fake_rows(), "min_p_by_n": {"4": 0.125, "16": 3.0517578125e-05}, "needed_difference_n4": {"reading": "Only a very large effect, seen in every participant, can show."},
                 "note": "Design properties under our assumptions.", "caveats": ["Every number depends on invented assumptions."],
                 "limitations": [{"id": "power-assumed-sd", "text": "The noise level is assumed.", "severity": "medium"}],
-                "meta": {"origin": "synthetic", "n": 2000, "n_unit": "replications", "split": "simulated studies", "interval_level": 0.95, "note": None, "generated_at": "x"}}
+                "meta": {"origin": "synthetic", "n": 2000, "n_unit": "replications", "split": "generated studies", "interval_level": 0.95, "note": None, "generated_at": "x"}}
 
     mod.evaluate_study_power = evaluate_study_power
     monkeypatch.setitem(sys.modules, "understudy_engine.study_power", mod)
@@ -116,7 +116,7 @@ def sim_report(evals):
 
 def test_study_sim_is_labelled_forced_synthetic_and_validates(sim_report):
     s = sim_report["sections"]["study_sim"]
-    assert "status" not in s and s["label"] == PHRASE and s["owner_label"] == "Simulated participants (LLM)"
+    assert "status" not in s and s["label"] == PHRASE and s["owner_label"] == "Language-model participants (LLM)"
     assert s["meta"]["origin"] == "synthetic"                      # the owner said "real"; it is never allowed to be
     assert PHRASE in s["meta"]["note"].lower() and "owner note" in s["meta"]["note"]
     assert s["n"] == 8 and s["n_aa"] == 4
@@ -144,7 +144,7 @@ def test_no_study_sim_register_entries_when_the_section_has_no_numbers(evals):
 
 def test_every_study_sim_paragraph_and_table_in_the_markdown_says_what_it_is(sim_report):
     md = render(sim_report)
-    sec = md[md.index("## Simulated participants (language model), not people"):md.index("## Limitations register")]
+    sec = md[md.index("## Language-model participants, not people"):md.index("## Limitations register")]
     assert PHRASE in sec.split("\n\n")[0].lower() or PHRASE in sec.lower()
     blocks = [b for b in sec.split("\n\n") if b.strip()]
     for b in blocks:
@@ -162,7 +162,7 @@ def test_every_study_sim_paragraph_and_table_in_the_markdown_says_what_it_is(sim
 
 def test_study_sim_pending_text_in_markdown_still_says_it_is_not_people(evals):
     md = render(build(["study_sim"]))
-    sec = md[md.index("## Simulated participants (language model), not people"):md.index("## Limitations register")]
+    sec = md[md.index("## Language-model participants, not people"):md.index("## Limitations register")]
     assert PHRASE in sec.lower() and "PENDING" in sec
 
 
@@ -250,7 +250,7 @@ def test_study_power_markdown_is_a_design_table_not_a_result(evals, monkeypatch)
     fake_power(monkeypatch, [])
     md = render(build(["study_power"]))
     sec = md[md.index("## Study power"):md.index("## Limitations register")]
-    assert "A property of the design, not a result about people" in sec and "origin: **synthetic**" in sec
+    assert "A property of the design, not a result about people" in sec and "measured on: **generators we wrote**" in sec
     assert "smallest attainable two-sided sign-flip p is 0.125, so p < 0.05 is impossible" in sec
     assert "| none | 0.0 | 1.7% | 4.9% |" in sec and "| small | 10.2 | 2.4% | 10.2% |" in sec and "| medium | 20.6 | 4.4% | 27.3% |" in sec and "| large | 38.8 | 11.6% | 74.8% |" in sec
     assert "Spill-over of the coached gain onto the other skill is not protected by the design" in sec
@@ -309,7 +309,7 @@ def test_every_limitation_text_inside_the_study_sim_section_itself_also_says_wha
 
 def test_an_owner_stub_without_a_reason_gets_one_and_validates(evals):
     put_sim(evals, "def study_sim_section():\n    return {'status': 'not_run', 'label': 'x', 'meta': {'origin': 'synthetic', 'n': 0, 'n_unit': 'silicon participants', "
-                   "'split': None, 'interval_level': 0.95, 'note': 'Simulated participants (language model), not people. Not run.', 'generated_at': None}, 'limitations': [{'id': 'a', 'text': 'b', 'severity': 'high'}]}\n")
+                   "'split': None, 'interval_level': 0.95, 'note': 'Language-model participants, not people. Not run.', 'generated_at': None}, 'limitations': [{'id': 'a', 'text': 'b', 'severity': 'high'}]}\n")
     rep = build(["study_sim"])
     s = rep["sections"]["study_sim"]
     assert s["status"] == "not_run" and "Not run" in s["reason"] and schema_errors(rep) == []

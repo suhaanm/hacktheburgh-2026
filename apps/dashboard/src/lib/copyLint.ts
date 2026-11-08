@@ -34,6 +34,15 @@ export function stripIdentifiers(text: string): string {
   return text.replace(/\S*[-_./\\:~]understudy\S*|\S*understudy[-_./\\:~]\S*|\bUNDERSTUDY_\w*/gi, " ");
 }
 
+/**
+ * A string that is exactly one of the banned visible words ("synthetic", "demo") is a data enum or a key (`origin: "synthetic"`), not text a person reads
+ * (owner decision D57: enums and identifiers stay). Fixtures and view models carry many of them; the lint skips them and checks every sentence.
+ */
+export function isBareEnum(text: string, cfg: BannedConfig): boolean {
+  const t = text.trim().toLowerCase();
+  return cfg.visible_words.some((w) => w.toLowerCase() === t);
+}
+
 /** Everything in `text` that must not be visible. `cfg` is docs/knack-ux/banned-phrases.json. */
 export function findBanned(text: string, cfg: BannedConfig): Finding[] {
   const out: Finding[] = [];

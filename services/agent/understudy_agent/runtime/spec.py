@@ -14,7 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from . import policy
 
-TOOL_NAMES: tuple[str, ...] = ("read_file", "list_dir", "git_log", "run_python", "write_workspace", "emit_result")
+TOOL_NAMES: tuple[str, ...] = ("read_file", "list_dir", "git_log", "run_python", "write_workspace", "emit_result", "mcp_call")   # mcp_call: CONNECTIONS
 FILE_TOOLS = frozenset({"read_file", "list_dir", "git_log", "run_python", "write_workspace"})  # need a workspace
 GIT_TOOLS = frozenset({"git_log"})                                                              # need a worktree
 WorkspaceKind = Literal["tmp", "worktree", "none"]

@@ -24,16 +24,16 @@ describe("Use live models", () => {
   it("is on when the engine is live, with the line that says each call is listed", () => {
     const v = liveModels({ ...base, health: live });
     expect(v).toEqual({ checked: true, disabled: false, line: LIVE_LINES.on });
-    expect(v.line).toBe("Knack can call Gemini for steps you allow. Each call is listed in Your data.");
+    expect(v.line).toBe("On, because a key is set. Every call is listed under Advanced.");
   });
   it("is off on example data and says so", () => {
-    expect(liveModels(base)).toEqual({ checked: false, disabled: false, line: "Everything runs on example data." });
+    expect(liveModels(base)).toEqual({ checked: false, disabled: false, line: "Off. Everything runs on example data." });
   });
   it("is disabled with a printed line when there is no Gemini key", () => {
     const v = liveModels({ ...base, health: { mock: true, key_present: false } });
     expect(v.disabled).toBe(true);
     expect(v.checked).toBe(false);
-    expect(v.line).toBe("No Gemini key found. Add it to .env and reopen Knack.");
+    expect(v.line).toBe("No key found. Add it to .env and reopen Knack.");
   });
   it("is disabled while a job is running, and says what to do", () => {
     const v = liveModels({ ...base, health: live, running: true });
@@ -119,6 +119,7 @@ describe("Coaching and the desktop bridge", () => {
     expect(wakeLine(null)).toBeNull();
     expect(wakeLine({ switchOn: true, listening: true, line: "Listening" })).toBe(WAKE_NOTE);
     expect(wakeLine({ switchOn: true, listening: false, line: "Not listening while Knack works" })).toBe(`${WAKE_NOTE} Not listening while Knack works`);
+    expect(wakeLine({ switchOn: true, listening: false, line: "Hey Knack is off in demo mode" })).toBe(`${WAKE_NOTE} Hey Knack is off in example data`);   // never the word demo
   });
   it("the theme falls back to auto", () => {
     expect(themeOf("dark")).toBe("dark");

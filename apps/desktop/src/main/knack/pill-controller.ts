@@ -14,6 +14,8 @@ export type PillListener = (state: PillState, prev: PillState) => void
 export interface PillController {
   /** A new sample of the world. Returns the state after it. */
   ingest(signals: PillSignals): PillState
+  /** The Mac woke from sleep: the silence of the service during the sleep is not an outage, so the count towards "Lost contact" starts again. */
+  forgive(): void
   /** The worker opened Knack: a finished or failed run has been seen. */
   acknowledge(): PillState
   state(): PillState
@@ -40,7 +42,8 @@ export function createPillController(deps: PillControllerDeps = {}): PillControl
     timer = null
     const wait = state.kind === 'done' ? timing.doneMs : state.kind === 'error' ? timing.errorMs : 0
     if (wait > 0 && !disposed) {
-      const left = Math.max(0, state.since + wait - now())
+      // Never longer than the wait itself: a clock set back would otherwise leave a done check or an error up for the whole difference.
+      const left = Math.min(wait, Math.max(0, state.since + wait - now()))
       timer = setT(() => {
         timer = null
         apply(stepPill(state, { ...last, supervisor: last.supervisor === 'running' ? 'idle' : last.supervisor, runs: [] }, now(), timing))
@@ -62,6 +65,9 @@ export function createPillController(deps: PillControllerDeps = {}): PillControl
     ingest(signals) {
       last = signals
       return apply(stepPill(state, signals, now(), timing))
+    },
+    forgive() {
+      if (state.lostSince !== null) state = { ...state, lostSince: null }
     },
     acknowledge() {
       return apply(acknowledge(state, now()))

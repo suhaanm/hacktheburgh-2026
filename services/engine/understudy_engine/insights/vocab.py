@@ -13,7 +13,7 @@ POLARITY_LABEL = {"positive": "Going well", "attention": "Worth a look", "tradeo
 GLYPHS = ("clock", "trend_up", "trend_down", "check", "refresh", "repeat", "calendar", "branch", "start", "scale", "pause", "alert", "people",
           "gauge", "bolt", "layers")
 ORIGINS = ("real", "synthetic", "mixed")
-BADGES = ("live", "synthetic", "synthetic firm", "simulated")
+BADGES = ("live", "synthetic", "made-up firm", "simulated")
 CLASSES = ("effect", "state")
 LEVELS = ("expert", "junior")
 TREND_CLASSES = ("improving", "cannot_tell_yet", "needs_attention", "not_enough_data")
@@ -92,7 +92,7 @@ SOURCE_NAMES = {
     ("admin", "hitlist"): "Firm routines",
 }
 SOURCE_SET = frozenset(SOURCE_NAMES.values()) | {"Understudy"}
-BADGE_PHRASE = {"live": "", "synthetic": "synthetic data", "synthetic firm": "synthetic firm data", "simulated": "simulated data"}
+BADGE_PHRASE = {"live": "", "synthetic": "generated data", "made-up firm": "made-up firm data", "simulated": "generated data"}
 
 # Suppression reasons and selection reasons (closed). The fixed sentence for each is in ``REASON_TEXT``.
 SUPPRESSED = ("not_enough_data", "no_expert_reference", "stale", "interval_spans_zero", "below_effect_floor", "not_persistent",
@@ -157,6 +157,15 @@ SKILL_PHRASE = {
     "profile-before-querying": "profiling before querying", "inspect-before-trusting": "inspecting the rows", "compare-to-last-period": "comparing with last period",
     "reconcile-to-control": "reconciling with the control figure",
     "read-the-trace-first": "reading the error trace first", "smallest-change": "the smallest change", "confirm-the-fix": "confirming the fix", "inspect-the-inputs": "inspecting the inputs",
+    # the role-depth skills (RD, 7 Nov 2026): the same noun phrases as the `name` of each skill in the pack's curriculum
+    "reproduce-before-fixing": "reproducing before fixing", "bisect-before-guessing": "bisecting before guessing", "log-for-the-next-incident": "logging for the next incident",
+    "message-for-the-next-reader": "the commit message", "open-a-reviewable-pr": "the pull request description", "read-ci-before-asking": "reading CI first",
+    "answer-review-with-evidence": "answering review comments", "review-like-an-owner": "reviewing like an owner", "watch-the-release": "watching the release",
+    "roll-back-safely": "rolling back safely", "profile-before-optimising": "profiling before optimising", "migrate-in-small-safe-steps": "the migration",
+    "trace-the-source": "tracing the source", "join-without-multiplying": "joining safely", "aggregate-at-the-right-grain": "choosing the grain",
+    "sanity-check-magnitudes": "the magnitude check", "state-the-uncertainty": "the uncertainty", "write-the-finding-with-its-caveat": "the finding and its caveat",
+    "get-a-second-pair-of-eyes": "the peer check", "make-it-reproducible": "making it reproducible", "parameterise-before-copying": "the report parameters",
+    "schedule-a-refresh-you-trust": "scheduling the refresh", "document-the-metric": "the metric definition",
 }
 
 

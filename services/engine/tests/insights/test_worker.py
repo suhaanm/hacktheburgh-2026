@@ -13,7 +13,7 @@ P = "p_w1"
 
 def run(rows, **kw):
     pr = person(P, rows, **kw)
-    out = W.worker_run(pr, NOW, DEFAULT, WorkerCtx(badge="synthetic firm"))
+    out = W.worker_run(pr, NOW, DEFAULT, WorkerCtx(badge="made-up firm"))
     sel = SEL.select(out.candidates, audience="worker", scope=P, now=NOW)
     return out, sel
 
@@ -191,15 +191,15 @@ def test_faster_but_more_errors_is_shown_as_a_trade_off_never_as_a_celebration()
 def test_automation_opportunity_needs_support_value_and_fresh_evidence():
     routine = {"person": P, "id": "rt_a", "status": "proposed", "support": 6, "hours_lo": 1.2, "hours_hi": 3.0, "horizon_weeks": 4, "t": NOW - 2 * DAY}
     pr = person(P, habit_rows(P, lost=0.0))
-    out = W.worker_run(pr, NOW, DEFAULT, WorkerCtx(routines=[routine], badge="synthetic firm"))
+    out = W.worker_run(pr, NOW, DEFAULT, WorkerCtx(routines=[routine], badge="made-up firm"))
     sel = SEL.select(out.candidates, audience="worker", scope=P, now=NOW)
     assert "automation_opportunity" in kinds(sel)
     weak = dict(routine, hours_lo=0.1)
-    out = W.worker_run(pr, NOW, DEFAULT, WorkerCtx(routines=[weak], badge="synthetic firm"))
+    out = W.worker_run(pr, NOW, DEFAULT, WorkerCtx(routines=[weak], badge="made-up firm"))
     sel = SEL.select(out.candidates, audience="worker", scope=P, now=NOW)
     assert "automation_opportunity" not in kinds(sel) and reasons(sel)[("automation_opportunity", "rt_a")] == "below_effect_floor"
     old = dict(routine, t=NOW - 60 * DAY)
-    out = W.worker_run(pr, NOW, DEFAULT, WorkerCtx(routines=[old], badge="synthetic firm"))
+    out = W.worker_run(pr, NOW, DEFAULT, WorkerCtx(routines=[old], badge="made-up firm"))
     sel = SEL.select(out.candidates, audience="worker", scope=P, now=NOW)
     assert reasons(sel)[("automation_opportunity", "rt_a")] == "stale"
 
@@ -207,11 +207,11 @@ def test_automation_opportunity_needs_support_value_and_fresh_evidence():
 def test_a_hit_list_row_is_a_pointer_only_when_fresh():
     hit = {"id": "calc-entry-3x", "count": 5, "window_days": 7, "hours_lo": 0.9, "hours_hi": 2.0, "horizon_weeks": 4, "origin": "synthetic", "t": NOW - DAY, "what": "the step run calculator A"}
     pr = person(P, habit_rows(P, lost=0.0))
-    out = W.worker_run(pr, NOW, DEFAULT, WorkerCtx(hitlist=[hit], badge="synthetic firm"))
+    out = W.worker_run(pr, NOW, DEFAULT, WorkerCtx(hitlist=[hit], badge="made-up firm"))
     sel = SEL.select(out.candidates, audience="worker", scope=P, now=NOW)
     c = next(s.cand for s in sel.selected if s.cand.kind == "automation_opportunity")
     assert c.action_id == "open_repeats"
-    out = W.worker_run(pr, NOW, DEFAULT, WorkerCtx(hitlist=[dict(hit, t=NOW - 30 * DAY)], badge="synthetic firm"))
+    out = W.worker_run(pr, NOW, DEFAULT, WorkerCtx(hitlist=[dict(hit, t=NOW - 30 * DAY)], badge="made-up firm"))
     sel = SEL.select(out.candidates, audience="worker", scope=P, now=NOW)
     assert "automation_opportunity" not in kinds(sel)
 
@@ -219,13 +219,13 @@ def test_a_hit_list_row_is_a_pointer_only_when_fresh():
 def test_calendar_and_git_pointers_come_only_from_the_layers_flagged_suggestions():
     pr = person(P, habit_rows(P, lost=0.0))
     q = {"source": "git", "id": "GIT_SMALLER_COMMITS", "delta": 0.30, "ci": [0.10, 0.50], "floor": 0.15, "n": 20, "t": NOW - 3 * DAY, "n_unit": "commits"}
-    out = W.worker_run(pr, NOW, DEFAULT, WorkerCtx(pointers=[q], badge="synthetic firm"))
+    out = W.worker_run(pr, NOW, DEFAULT, WorkerCtx(pointers=[q], badge="made-up firm"))
     sel = SEL.select(out.candidates, audience="worker", scope=P, now=NOW)
     assert "git_pointer" in kinds(sel)
-    out = W.worker_run(pr, NOW, DEFAULT, WorkerCtx(badge="synthetic firm"))
+    out = W.worker_run(pr, NOW, DEFAULT, WorkerCtx(badge="made-up firm"))
     assert not any(c.kind in ("git_pointer", "calendar_pointer") for c in out.candidates)         # the layers are off: nothing
     bad = dict(q, ci=[-0.1, 0.7])
-    out = W.worker_run(pr, NOW, DEFAULT, WorkerCtx(pointers=[bad], badge="synthetic firm"))
+    out = W.worker_run(pr, NOW, DEFAULT, WorkerCtx(pointers=[bad], badge="made-up firm"))
     sel = SEL.select(out.candidates, audience="worker", scope=P, now=NOW)
     assert "git_pointer" not in kinds(sel)
 
@@ -233,7 +233,7 @@ def test_calendar_and_git_pointers_come_only_from_the_layers_flagged_suggestions
 def test_origin_and_badge_are_on_every_candidate():
     out, sel = run(habit_rows(P, lost=30.0))
     for c in out.candidates:
-        assert c.badge == "synthetic firm" and c.origin in ("real", "synthetic", "mixed")
+        assert c.badge == "made-up firm" and c.origin in ("real", "synthetic", "mixed")
 
 
 def test_stable_independence_is_not_a_milestone_so_an_expert_is_not_congratulated():

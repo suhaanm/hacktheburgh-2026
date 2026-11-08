@@ -85,4 +85,4 @@ def test_fixed_sentences_are_plain_and_name_the_window():
     assert V.human_date("2026-01-31") == "31 January" and V.human_date("soon") == "soon"
     for s in (V.sentence_new_user(), V.sentence_all_handled(), V.sentence_capture_off(), V.note_meta("real"), V.note_meta("synthetic")):
         assert s and "  " not in s and not any(ord(c) > 127 for c in s)
-    assert "synthetic" in V.note_meta("synthetic") and "synthetic" not in V.note_meta("real")
+    assert "generated data" in V.note_meta("synthetic") and "generated data" not in V.note_meta("real")

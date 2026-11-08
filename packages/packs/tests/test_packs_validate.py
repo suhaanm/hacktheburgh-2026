@@ -80,11 +80,13 @@ def test_depth_flags_and_thin_pack_omissions():
     assert deep["depth"] == "deep" and deep["oracle"] == "understudy_agent.sandbox_sites.oracle:score"
     assert "not law" in deep["oracle_note"].lower()
     assert deep["expert_policy"]["coverage"] == "full" and (BEN / "tasks").is_dir()
-    for thin in ("data-analyst", "programmer"):
-        d = yaml.safe_load((PACKS / thin / "pack.yaml").read_text())
-        assert d["depth"] == "thin"
+    # RD (7 Nov 2026): the two role packs were "thin" (onboarding and one routine) and are now "standard": full content, an expert policy of
+    # coverage full, still no pack-level oracle or tasks (their sandbox oracles live in the agent) and not validated with people.
+    for role in ("data-analyst", "programmer"):
+        d = yaml.safe_load((PACKS / role / "pack.yaml").read_text())
+        assert d["depth"] == "standard"
         assert "oracle" not in d and "tasks" not in d
-        assert d["expert_policy"]["coverage"] == "stub"
+        assert d["expert_policy"]["coverage"] == "full"
 
 
 def test_benefits_pack_has_the_spec_cogs_and_five_questions():
@@ -321,8 +323,11 @@ def test_oracle_must_be_labelled_not_law(tmp_path):
 
 def test_thin_pack_cannot_claim_full_policy(tmp_path):
     dst = clone_pack(tmp_path, "data-analyst")
-    edit_yaml(dst / "pack.yaml", lambda d: d["expert_policy"].update(coverage="full"))
-    assert V.validate_pack(dst)
+    edit_yaml(dst / "pack.yaml", lambda d: d.update(depth="thin"))      # the policy file says full: a thin pack may not have it
+    assert any("coverage" in e and "stub" in e for e in V.validate_pack(dst))      # the schema: a thin pack's coverage is stub
+    dst2 = clone_pack(tmp_path / "b", "programmer")
+    edit_yaml(dst2 / "pack.yaml", lambda d: d["expert_policy"].update(coverage="stub"))   # and a standard pack may not have a stub
+    assert V.validate_pack(dst2)
 
 
 def test_question_order_enforced(tmp_path):

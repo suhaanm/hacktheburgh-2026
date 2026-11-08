@@ -76,7 +76,7 @@ def test_acceptance_estimate_improves_with_labels(report):
     assert rows[0]["labels"] == 0 and rows[-1]["labels"] >= 20
     assert rows[-1]["mean_abs_error"] < rows[0]["mean_abs_error"]
     assert rows[-1]["rank_agreement_tau"] > 0
-    assert "simulated" in report["acceptance"]["note"].lower()
+    assert "generated worker" in report["acceptance"]["note"].lower()
 
 
 def test_truth_is_defined_before_scoring_and_printed(report):

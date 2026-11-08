@@ -21,6 +21,7 @@ EXTENSIONS = {
     "hitlist": "hitlist.routes",
     "insights": "insights.routes",
     "hrt": "hrt.routes",
+    "connections": "connections.routes",
 }
 _TRUE = ("1", "true", "yes", "on")
 
@@ -53,6 +54,7 @@ DEFAULT_ON = (
     "UNDERSTUDY_FLAG_VOICE",      # the voice feature in the desktop build
     "UNDERSTUDY_VOICE",           # ElevenLabs spoken lines (fixed vocabulary; Cue still speaks only on request, D36)
     "UNDERSTUDY_EVIDENCE_CLOUD",  # cloud wording attempt for "explain this": always behind the number check, template fallback
+    "UNDERSTUDY_X_CONNECTIONS",   # the connections layer (D48): every connection stays OFF until the worker clicks it; nothing starts at boot
 )
 
 

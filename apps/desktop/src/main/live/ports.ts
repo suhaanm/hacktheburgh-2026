@@ -81,6 +81,13 @@ export interface DoItRequest {
 }
 export type DoItAnswer = { ok: true; started: true } | { ok: false; reason: string }
 
+/** The closed answer `start_task` gets back: the route the service chose and whether a card is waiting for the worker. Never a summary, never row text
+ *  (except `result`, cleaned text of at most 300 characters, only for a question that was answered inline). */
+export type TaskRoute = 'answer' | 'browser' | 'desktop' | 'claude_agent' | 'unclear'
+export type TaskAnswer =
+  | { ok: true; started: false; waiting_consent: boolean; route: TaskRoute; asked?: boolean; result?: string | null; desktop_click_possible?: boolean }
+  | { ok: false; reason: 'too_many_tasks' | 'kill_switch' | 'unavailable' | 'refused' | 'no_session' }
+
 export interface ToolHost {
   candidates(): CandidateList
   point(description: string): Promise<{ found: boolean }>
@@ -90,4 +97,6 @@ export interface ToolHost {
   clear?(): void
   /** Wake sessions only: ring the named thing, then ask code whether it may be clicked. Resolves with the closed answer; never clicks itself. */
   doItForMe?(description: string): Promise<DoItAnswer>
+  /** Talk-key and wake sessions: hand the worker's request (the model's wording, cleaned and capped) to the task service. Never starts anything itself. */
+  startTask?(text: string): Promise<TaskAnswer>
 }

@@ -4,6 +4,7 @@ import { spawn as nodeSpawn, type ChildProcess } from 'node:child_process'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import http from 'node:http'
+import net from 'node:net'
 import path from 'node:path'
 import { augmentedPath, createStack, type ChildHandle, type SpawnSpec, type Stack, type StackConfig, type StackDeps } from './stack'
 
@@ -98,11 +99,26 @@ export function findExecutable(name: string, env: NodeJS.ProcessEnv = process.en
   return null
 }
 
+/** Something accepts connections on this port of this machine (a quick connect, then gone). */
+export function loopbackPortBusy(port: number, timeoutMs = 400): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = net.connect({ host: '127.0.0.1', port })
+    const done = (busy: boolean): void => {
+      socket.destroy()
+      resolve(busy)
+    }
+    socket.setTimeout(timeoutMs, () => done(false))
+    socket.once('connect', () => done(true))
+    socket.once('error', () => done(false))
+  })
+}
+
 export function realStackDeps(config: StackConfig, log?: (...args: unknown[]) => void): StackDeps {
   const logPath = (name: string): string => path.join(config.repoRoot ?? process.cwd(), 'data', 'logs', `knack-${name}.log`)
   return {
     config,
     get: loopbackGet,
+    portBusy: (port) => loopbackPortBusy(port),
     spawn(spec: SpawnSpec) {
       const fd = openLog(logPath(spec.name))
       const child = nodeSpawn(spec.command, spec.args, { cwd: spec.cwd, env: spec.env, detached: true, stdio: ['ignore', fd, fd] })

@@ -127,7 +127,8 @@ class ChildAgent:
             routine=RoutineContext(routine_id=routine_id, mode="model_driven", unattended=unattended, rung="A0",
                                    run_id=self.child_run_id))
         self.schema = child_step_schema(spec.id, spec.tools)         # raw mode only
-        self.tctx = ToolCtx(ws, spec, output_schema, remaining=lambda: max(0.0, spec.budget.seconds - self.clock()))
+        self.tctx = ToolCtx(ws, spec, output_schema, remaining=lambda: max(0.0, spec.budget.seconds - self.clock()),
+                            unattended=unattended, routine_id=routine_id)    # CONNECTIONS: mcp_call allows a read only when the worker is away
         self.t_start: float | None = None
         self.t_end: float | None = None
         self.steps: list[StepRecord] = []

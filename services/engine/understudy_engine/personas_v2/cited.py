@@ -70,7 +70,7 @@ CITED: dict[str, dict] = {
         "range": (0.1, 1.0), "typical": "less than 1",
         "source": "Newell & Rosenbloom (1981) in Anderson (ed.) Cognitive Skills and Their Acquisition; Heathcote, Brown & Mewhort (2000) Psychonomic Bulletin & Review 7(2), who argue individual curves are exponential and the power law is an averaging artefact; R. B. Anderson (2001) simulation of the artefact",
         "status": "secondary",
-        "note": "A source says the exponent in real data is typically below 1.0; no tighter verified range was found, so 0.1 to 1.0 is used. Half the simulated people learn exponentially, so the average looks like a power law.",
+        "note": "A source says the exponent in real data is typically below 1.0; no tighter verified range was found, so 0.1 to 1.0 is used. Half the generated people learn exponentially, so the average looks like a power law.",
     },
     "pause_lognormal_mixture": {
         "what": "pauses in keystroke logs are leptokurtic, well described by a mixture of lognormals",

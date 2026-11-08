@@ -1,0 +1,14 @@
+{
+  "server": "example-jira",
+  "tools": [
+    {"name": "jira_search", "description": "Search issues with JQL.", "response": [
+      {"key": "EX-41", "summary": "Rounding differs by one penny", "status": "In review", "assignee": "Robin Example"},
+      {"key": "EX-44", "summary": "Add a housing-cost warning", "status": "To do", "assignee": "Sam Placeholder"},
+      {"key": "EX-47", "summary": "Document the partner-income rule", "status": "To do", "assignee": "Avery Example"}]},
+    {"name": "jira_get_issue", "description": "One issue.", "response": {"key": "EX-41", "summary": "Rounding differs by one penny", "status": "In review", "description": "The summary rounds half up; the worked example rounds half even."}},
+    {"name": "jira_get_agile_boards", "description": "Boards.", "response": [{"id": 1, "name": "Claims calculator"}]},
+    {"name": "jira_get_sprint_issues", "description": "Issues in a sprint.", "response": [{"key": "EX-41", "status": "In review"}, {"key": "EX-44", "status": "To do"}]},
+    {"name": "jira_add_comment", "description": "Comment on an issue.", "write": true},
+    {"name": "jira_transition_issue", "description": "Move an issue to another status.", "write": true}
+  ]
+}

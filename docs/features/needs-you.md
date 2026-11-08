@@ -22,7 +22,7 @@ Needs you in the sidebar (second item); a blocking approval also appears as a co
 
 ## Demo moment
 
-Open Needs you with one approval and one routine proposal: 'Submit case note CN-2041. Cannot be undone.' Open its Evidence. Press Approve and submit (sandbox only; until the finalize call is wired the item is marked approved and the sandbox note stays Draft, gap G11), then the proposal's Watch first.
+Open Needs you with one approval and one routine proposal: 'Submit case note CN-2041. Cannot be undone.' Open its Evidence. Press Approve and submit (sandbox only; a live agent item submits the sandbox note, a seeded item such as CN-2041 only marks approved, decision D61), then the proposal's Watch first.
 
 ## Evidence and its label
 
@@ -32,7 +32,7 @@ Open Needs you with one approval and one routine proposal: 'Submit case note CN-
 
 ## Honest limit
 
-Measured as a prototype and checked in hidden runs, not by a person. Approvals in the demo are sandbox only. The default row count was cut to three after the first draft. Two gaps found by the demo run (docs/KNACK_DEMO.md, G11 and G6): approving marks the queue item approved but nothing in the dashboard or the desktop calls the route that presses the real submit button, so the sandbox note stays Draft until it is called; and the corner approval card names no item, so Review opens Needs you with the newest item on top.
+Measured as a prototype and checked in hidden runs, not by a person. Approvals in the demo are sandbox only. The default row count was cut to three after the first draft. One gap from the demo run remains (docs/KNACK_DEMO.md, G6): the corner approval card names no item, so Review opens Needs you with the newest item on top. The other, that approving did not press the real submit button (G11), was fixed by decision D61.
 
 ## Hackathon target
 

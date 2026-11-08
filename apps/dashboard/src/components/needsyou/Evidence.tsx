@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { ENGINE_URL } from "../../api";
 import { useAppState } from "../../store";
+import { arr, clip as cut } from "../../lib/safeText";
 import { plainWords } from "../../screens/NeedsYou/model";
 import { TierPill } from "../common";
+import { Details } from "../ui";
 import type { QueueItem } from "../../types";
+import { KV } from "./KV";
 
 /** Screenshots come from the engine (GET /runs/{run_id}/{file}). When it is not serving them, a labelled placeholder stays. */
 function Shot({ runId, path }: { runId: string; path: string }) {
@@ -14,33 +17,50 @@ function Shot({ runId, path }: { runId: string; path: string }) {
   return <img className="shot shot--img" src={`${ENGINE_URL}/runs/${encodeURIComponent(runId)}/${encodeURIComponent(file)}`} alt={`Screenshot ${file} from run ${runId}`} loading="lazy" onError={() => setFailed(true)} />;
 }
 
-/** What the run found against what was expected, the steps and the screenshots: opened on demand, printed in full once opened. */
-export function Evidence({ item: it, rest }: { item: QueueItem; rest?: string }) {
-  const diff = (it.evidence.diff ?? []) as { field: string; expected: string; got: string }[];
-  const keys = Array.from(new Set([...Object.keys(it.evidence.extracted ?? {}), ...Object.keys(it.evidence.expected ?? {})]));
+/** A short text from the engine as it is shown: the old name and codes mapped, and cut at a sane length so one runaway value cannot take the screen. */
+const clip = (v: unknown, max = 240): string => plainWords(cut(v, max));
+/** How many field rows and method pills one item shows: a hundred fields is a list nobody reads, so the rest are counted. */
+const FIELDS = 30;
+
+/**
+ * What the worker needs to decide, opened on demand: when it started, which run, what the run found against what was expected (one row each, the
+ * difference marked), the screenshots, and under one closed "More" the method that ran each step. At most one short paragraph: what the summary
+ * did not already say. Every field may be missing: a missing field leaves out its row.
+ */
+export function Evidence({ item: it, rest, since }: { item: QueueItem; rest?: string; since?: string }) {
+  const ev = it.evidence ?? { screenshots: [], extracted: {}, expected: {}, diff: [], tier_log: [] };
+  const shots = arr<unknown>(ev.screenshots).filter((x) => typeof x === "string" && x);
+  const tiers = arr<{ step: number; tier: number }>(ev.tier_log).filter((t) => t && typeof t === "object");
+  const diff = arr<{ field: string; expected: string; got: string }>(ev.diff).filter((d) => d && typeof d === "object");
+  const allKeys = Array.from(new Set([...Object.keys(ev.extracted ?? {}), ...Object.keys(ev.expected ?? {})]));
+  const keys = allKeys.slice(0, FIELDS);
   return (
     <div className="kc-panel" data-testid="evidence">
       {rest && <p>{rest}</p>}
-      <p className="kc-sub">Run {it.run_id}{it.routine_id ? ` · ${it.routine_id}` : ""}</p>
-      {it.evidence.screenshots.length > 0 && (
+      <KV rows={[["Since", since], ["Run", it.run_id ? clip(it.run_id, 60) : null], ["Routine", it.routine_id ? clip(it.routine_id, 60) : null]]} label="About this item" />
+      {shots.length > 0 && (
         <div className="shots" aria-label="Screenshots">
-          {it.evidence.screenshots.map((s, i) => <Shot key={`${s}-${i}`} runId={it.run_id} path={s} />)}
+          {shots.map((s, i) => <Shot key={`${s}-${i}`} runId={it.run_id} path={String(s)} />)}
         </div>
       )}
-      {keys.length > 0 && (
+      {keys.length > 0 ? (
         <div className="kv" role="table" aria-label="What the run found against what was expected">
           <span className="t-label">Field</span><span className="t-label">Found</span><span className="t-label">Expected</span>
           {keys.map((k) => {
-            const got = String(it.evidence.extracted?.[k] ?? "");
-            const exp = it.evidence.expected?.[k];
+            const got = String(ev.extracted?.[k] ?? "");
+            const exp = ev.expected?.[k];
             const bad = exp != null && String(exp) !== got;
-            return (<span key={k} style={{ display: "contents" }}><span className="kv__k">{k}</span><span className={bad ? "kv__bad" : ""}>{got || "none"}</span><span>{exp != null ? String(exp) : "not set"}</span></span>);
+            return (<span key={k} style={{ display: "contents" }}><span className="kv__k">{clip(k, 60)}</span><span className={bad ? "kv__bad" : ""}>{got ? clip(got) : "none"}</span><span>{exp != null ? clip(exp) : "not set"}</span></span>);
           })}
         </div>
+      ) : diff.length > 0 && (
+        <KV rows={diff.slice(0, FIELDS).map((d): [string, string] => [clip(d.field, 60), `expected ${clip(d.expected, 80)}, got ${clip(d.got, 80)}`])} label="Differences" />
       )}
-      {diff.length > 0 && <p><b>Difference:</b> {plainWords(diff.map((d) => `${d.field}: expected ${d.expected}, got ${d.got}`).join("; "))}</p>}
-      {it.evidence.tier_log.length > 0 && (
-        <div className="row" aria-label="Which method ran each step">{it.evidence.tier_log.map((t, i) => <TierPill key={`${t.step}-${i}`} tier={t.tier} step={t.step} />)}</div>
+      {allKeys.length > keys.length && <p className="kc-sub" data-testid="fields-more">{allKeys.length - keys.length} more fields are in the run.</p>}
+      {tiers.length > 0 && (
+        <Details summary="More">
+          <div className="row" aria-label="Which method ran each step">{tiers.slice(0, FIELDS).map((t, i) => <TierPill key={`${t.step}-${i}`} tier={t.tier} step={t.step} />)}</div>
+        </Details>
       )}
     </div>
   );

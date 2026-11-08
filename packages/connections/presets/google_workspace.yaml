@@ -1,0 +1,51 @@
+# Preset: Google Sheets and Drive (Data set), through the community workspace-mcp server. Verified 7 Nov 2026. Starts OFF.
+# Google's own hosted Drive and Sheets servers are Developer Preview with no package, so they are listed as unverified in docs/CONNECTIONS.md.
+id: google_workspace
+version: 0.1.0
+kind: mcp
+description: Read Google Sheets and Drive files you can already open, through the community Workspace MCP server.
+permissions: [read]
+egress: app_only
+default_enabled: false
+connection:
+  group: data
+  app: Sheets and Drive
+  reads: Spreadsheets and Drive files you can already open.
+  short: Sheets and Drive files
+  caution: Community server
+  standin:
+    label: Example sheets
+    script: packages/connections/standins/fixture_server.py
+    args: ["--fixture", "google_workspace"]
+  real:
+    verified: true
+    publisher: Taylor Wilsdon (community author)
+    publisher_kind: community
+    license: MIT
+    registry: pypi
+    package: workspace-mcp
+    version: "2.3.0"
+    transport: stdio
+    command: uvx
+    args: ["workspace-mcp@2.3.0", "--tools", "drive", "sheets", "--read-only"]
+    credentials:
+      - { env: GOOGLE_OAUTH_CLIENT_SECRET, label: Google OAuth client secret }
+    params:
+      - { name: client_id, label: Google OAuth client id, kind: text, env: GOOGLE_OAUTH_CLIENT_ID }
+    hosts: [www.googleapis.com, sheets.googleapis.com, accounts.google.com]
+    read_only: "--read-only. Our table also needs a click for any write, and sharing changes are never allowed without one."
+    sources:
+      - https://registry.modelcontextprotocol.io/v0/servers/io.github.taylorwilsdon%2Fworkspace-mcp/versions/latest
+      - https://pypi.org/pypi/workspace-mcp/2.3.0/json
+      - https://github.com/taylorwilsdon/google_workspace_mcp
+      - https://raw.githubusercontent.com/taylorwilsdon/google_workspace_mcp/main/LICENSE
+    verified_on: "2026-11-07"
+  tools:
+    unlisted: refuse
+    classes:
+      read: [search_drive_files, get_drive_file_content, get_drive_file_download_url, get_drive_shareable_link, list_drive_items, get_drive_file_permissions, check_drive_file_public_access, read_sheet_values, list_spreadsheets, get_spreadsheet_info, list_sheet_tables, list_spreadsheet_comments]
+      write: [create_drive_file, create_drive_folder, import_to_google_doc, import_to_google_slides, import_to_google_sheets, copy_drive_file, update_drive_file, create_spreadsheet, modify_sheet_values, format_sheet_range, create_sheet, manage_sheet_tab, append_table_rows, resize_sheet_dimensions, move_sheet_rows, manage_spreadsheet_comment, manage_conditional_formatting, manage_named_range]
+      execute: [manage_drive_access, set_drive_file_permissions]
+  limitations:
+    - You create the Google OAuth client yourself, and the first use opens a browser to sign in.
+    - The documentation does not list the hosts; these are Google's API and sign-in hosts.

@@ -18,8 +18,8 @@ Calibration = Literal["calibrated", "overconfident", "underconfident", "untested
 NUnit = Literal["people", "cases", "episodes", "households", "personas"]
 Split = Literal["descriptive_nearest_expert", "leave_one_person_out", "none"]
 ORIGIN_PHRASE = {
-    "synthetic": "synthetic data",
-    "simulated_participants": "simulated participants",
+    "synthetic": "generated data",
+    "simulated_participants": "language-model participants",
     "live": "live data",
 }
 N_UNIT_PHRASE = {"people": "people", "cases": "cases", "episodes": "episodes", "households": "households", "personas": "personas"}
@@ -115,6 +115,14 @@ COG_NAME = {
     "REVERT": "undoing and redoing", "IDLE": "idle time", "READ": "reading", "SEARCH": "searching", "REFORMULATE": "rewording a search",
     "NAVIGATE": "navigating", "ENTER": "entering data", "COPY": "copying", "PASTE": "pasting", "COMPARE": "comparing",
     "CHECK": "checking", "DECIDE": "deciding", "ASK": "asking",
+    # role-depth cogs (RD)
+    "REPRODUCE_LOCALLY": "reproducing it locally", "BISECT_CHANGE": "bisecting the history", "WRITE_COMMIT_MSG": "writing the commit message",
+    "OPEN_PR": "opening the pull request", "READ_CI": "reading CI", "ANSWER_REVIEW": "answering review comments", "REVIEW_PEER": "reviewing a pull request",
+    "WATCH_PROD": "watching a release", "ROLL_BACK": "rolling back", "ADD_LOGGING": "adding logging", "PROFILE_HOTPATH": "profiling a hot path",
+    "WRITE_MIGRATION": "writing a migration", "TRACE_SOURCE": "tracing a source", "JOIN_TABLES": "joining tables", "SET_GRAIN": "setting the grain",
+    "CHECK_MAGNITUDE": "checking scale and units", "QUANTIFY_UNCERTAINTY": "stating the uncertainty", "WRITE_FINDING": "writing the finding",
+    "PEER_CHECK": "asking for a second check", "MAKE_REPRODUCIBLE": "making it reproducible", "PARAMETERISE_REPORT": "parameterising a report",
+    "SCHEDULE_REFRESH": "scheduling a refresh", "DOCUMENT_METRIC": "documenting the metric",
 }
 
 # ------------------------------------------------------------------------------------------------ consequences
@@ -150,14 +158,35 @@ REASON_NAME = {
 ACTION_PHRASE = {"silent": "stayed silent", "nudge": "showed a nudge", "annotate": "pointed at the screen", "takeover_offer": "offered to take over"}
 
 # routine templates in the packs (a drift test checks this list against packages/packs/*/routines.yaml)
-RoutineKind = Literal["calc-entry-3x", "case-note-copy", "cliff-recheck", "queue-sweep", "weekly-report", "weekly-metric-refresh",
-                      "rerun-failed-ci"]
+# the seven templates of 7 Nov 2026 first, then the 24 the role-depth track (RD) appended to the programmer and data-analyst packs
+_RD_ROUTINE_KINDS: tuple[str, ...] = (
+    "open-pr-from-branch", "ci-status-sweep", "review-queue-triage", "post-release-watch", "rollback-after-alert", "profile-and-note-hot-path",
+    "bisect-regression-range", "reply-to-review-comments", "migration-dry-run", "add-failure-log-line", "dependency-bump-pr", "docs-lookup-and-apply",
+    "reload-and-reprofile", "parameterised-weekly-query", "reconcile-and-note-gap", "join-check-and-count", "segment-breakdown-chart",
+    "magnitude-and-units-check", "interval-for-a-rate", "notebook-restart-and-run", "draft-metric-definition", "send-peer-check",
+    "schedule-refresh-with-alert", "send-weekly-extract",
+)
 ROUTINE_KINDS: tuple[str, ...] = ("calc-entry-3x", "case-note-copy", "cliff-recheck", "queue-sweep", "weekly-report",
-                                  "weekly-metric-refresh", "rerun-failed-ci")
+                                  "weekly-metric-refresh", "rerun-failed-ci") + _RD_ROUTINE_KINDS
+#: a ``Literal`` built from ROUTINE_KINDS (a Literal must be closed when the packet class is defined); the drift test keeps it equal to the packs
+RoutineKind = Literal[ROUTINE_KINDS]  # type: ignore[valid-type]
 ROUTINE_NAME = {
     "calc-entry-3x": "entering the household into each calculator", "case-note-copy": "copying results into the case note",
     "cliff-recheck": "re-checking cliff edges", "queue-sweep": "sweeping the case queue", "weekly-report": "the weekly report",
     "weekly-metric-refresh": "refreshing the weekly metrics", "rerun-failed-ci": "re-running a failed test run",
+    # role-depth templates (RD)
+    "open-pr-from-branch": "opening a pull request from a branch", "ci-status-sweep": "checking CI on your pull requests",
+    "review-queue-triage": "sorting the review requests", "post-release-watch": "watching the logs after a release",
+    "rollback-after-alert": "rolling back after an alert", "profile-and-note-hot-path": "profiling a slow endpoint",
+    "bisect-regression-range": "bisecting a regression", "reply-to-review-comments": "replying to review comments",
+    "migration-dry-run": "dry-running a migration", "add-failure-log-line": "adding a log line at a failure",
+    "dependency-bump-pr": "bumping a dependency", "docs-lookup-and-apply": "looking up the same API again",
+    "reload-and-reprofile": "reloading and re-profiling a dataset", "parameterised-weekly-query": "running the saved weekly query",
+    "reconcile-and-note-gap": "noting the gap to the control figure", "join-check-and-count": "joining tables and counting rows",
+    "segment-breakdown-chart": "breaking a metric down by segment", "magnitude-and-units-check": "checking scale and units",
+    "interval-for-a-rate": "adding an interval to a rate", "notebook-restart-and-run": "restarting and running a notebook",
+    "draft-metric-definition": "drafting a metric definition", "send-peer-check": "sending a finding for a second check",
+    "schedule-refresh-with-alert": "scheduling a refresh with an alert", "send-weekly-extract": "exporting the weekly extract",
 }
 STATUS_PHRASE = {"proposed": "proposed", "declined": "declined for now", "never": "turned off", "shadow": "in shadow mode",
                  "approval": "running with your approval", "unattended": "running while you are away"}
@@ -185,8 +214,8 @@ LimitId = Literal[
     "stale_data",
 ]
 LIMITATIONS: dict[str, str] = {
-    "synthetic_data": "These figures come from synthetic data with planted patterns, so they show that the method recovers known structure, not that real people behave this way.",
-    "simulated_participants": "These figures come from simulated participants, not real people.",
+    "synthetic_data": "These figures come from generated data with planted patterns, so they show that the method recovers known structure, not that real people behave this way.",
+    "simulated_participants": "These figures come from language-model participants, not real people.",
     "small_n": "The sample is small, so the intervals are wide.",
     "single_case": "A single case has no interval of its own; the intervals shown are for the cohort average.",
     "association_only": "Everything here is an association in recorded traces, not proof of cause.",
@@ -198,19 +227,19 @@ LIMITATIONS: dict[str, str] = {
     "counterfactual_model": "Counterfactual seconds are a model's estimate of what would change, not a measured result.",
     "consequence_rules": "Error rates come from a simplified internal rule set for the calculators, not from the law.",
     "saved_time_by_skips": "Skipped steps show as saved time in the alignment; the consequences row says what skipping can cost.",
-    "synthetic_people_only": "Every person in this analysis is synthetic; no real worker is in the data.",
-    "generator_planted_structure": "The synthetic data was generated with planted patterns, so the method can only show that it recovers what was planted.",
-    "n_four_personas": "The stuck model was checked on only four synthetic personas, so its scores carry wide uncertainty.",
+    "synthetic_people_only": "Every person in this analysis is generated; no real worker is in the data.",
+    "generator_planted_structure": "The data was generated with planted patterns, so the method can only show that it recovers what was planted.",
+    "n_four_personas": "The stuck model was checked on only four generated personas, so its scores carry wide uncertainty.",
     "shared_steps_mispriced": "Time on steps that both you and the expert do can be priced unevenly between habits, so treat the split between habits as approximate.",
     "additive_counterfactual": "A counterfactual adds up the effect of one habit on its own and assumes everything else stays the same.",
     "interactions_not_modelled": "The analysis does not model how habits interact with each other.",
-    "calibrated_on_synthetic": "The probabilities were calibrated on synthetic data, so they may be off on real work.",
+    "calibrated_on_synthetic": "The probabilities were calibrated on generated data, so they may be off on real work.",
     "alarm_budget_is_design_choice": "The number of false alarms allowed per hour is a design choice, not a measured limit of what workers will tolerate.",
     "llm_participants_not_people": "The participants in this check were language-model agents, not people.",
     "timing_reconstructed": "Some timings were reconstructed from the recorded events rather than measured directly.",
     "heldout_same_generator": "The held-out check used fresh draws from the same generator, so it cannot show that the model avoided learning the generator.",
     "generator_mismatch_tested": "The model was also tested on data from a differently built generator, and those results are labelled separately.",
-    "small_n_simulated_participants": "Only a few simulated participants finished, so the intervals are wide.",
+    "small_n_simulated_participants": "Only a few language-model participants finished, so the intervals are wide.",
     "interval_too_narrow": "The interval for this estimate was too narrow in testing and should be read as optimistic.",
     "stale_data": "Some of the readings above are older than they should be, so they may not describe the present.",
 }

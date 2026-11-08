@@ -13,7 +13,7 @@ import { dayKey } from '../awareness/usage'
 import { LiveSession, type EndReason, type FrameProvider, type SessionConfig, type SessionMode, type SessionSummary } from './session'
 import { CircuitBreaker, SessionMeter, createUsageLog, pricesFromEnv, type LivePrices, type UsageLog } from './meter'
 import { GateMonitor, createGateReader, type GateReader, type GateSources, type Timers as GateTimers } from './gates'
-import { LIVE_SYSTEM_INSTRUCTION, TRANSCRIBE_ONLY_INSTRUCTION, WAKE_SYSTEM_INSTRUCTION } from './prompt'
+import { LIVE_SYSTEM_INSTRUCTION, TASK_GUIDANCE, TRANSCRIBE_ONLY_INSTRUCTION, WAKE_SYSTEM_INSTRUCTION } from './prompt'
 import { liveFlagOn, liveModelId, transcribeModelId, type Env } from './flags'
 import { frameConsent, voiceConsent, type LiveSettingsStore } from './settings'
 import { createToolHost } from './tool-host'
@@ -23,7 +23,7 @@ import type { FunctionDeclaration } from './wire'
 import { realTimers, type Timers } from './clock'
 import type { SocketFactory } from './connection'
 import type { LiveLedgerPort } from './ledger'
-import type { AudioBridge, DoItAnswer, DoItRequest, GroundPort, LiveCuePort, RingPort } from './ports'
+import type { AudioBridge, DoItAnswer, DoItRequest, GroundPort, LiveCuePort, RingPort, TaskAnswer } from './ports'
 import type { ModelCheck, TokenMinter } from './token'
 import type { TurnMode } from './wire'
 
@@ -86,6 +86,8 @@ export interface ManagerDeps {
   ring: RingPort
   // Wake sessions only: what `do_it_for_me` asks. Absent: the tool answers "not available" and the model shows instead.
   doIt?: (req: DoItRequest) => Promise<DoItAnswer>
+  // `start_task` (talk-key and wake sessions): the worker's request goes to the task service. Absent: the tool is not declared.
+  startTask?: (text: string) => Promise<TaskAnswer>
   // The code-built context packet for a conversation (enums, ids and counts only; wake/context-packet.ts). It goes into the system instruction at
   // start and, changed lines only, as an update every ten seconds. Absent or throwing: the session starts with the fixed fallback text.
   context?: (o: { tools: FunctionDeclaration[]; trigger: 'key' | 'wake' }) => string
@@ -122,6 +124,8 @@ export interface LiveManager {
   /** A line the worker typed into the Ask bar, into the conversation that is open (false when there is none, or it cannot be sent). It never opens a conversation. */
   injectTyped(text: string): boolean
   voiceAllowed(): boolean
+  /** A code-written line into the open conversation (a fixed sentence to say, a result to read). False when no conversation is open. */
+  injectLine(text: string): boolean
   /** What would stop a conversation from opening right now, leaving the worker's consent out (the first-wake cards ask for that): null when nothing would. */
   blocker(): Refusal | null
   /** The words "Hey Knack" were heard: open a hands-free conversation through the same gates as the key. False (with `status().refused` set) when it may not start. */
@@ -239,21 +243,21 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
       return false
     }
     const meter = new SessionMeter(d.prices ?? pricesFromEnv(env))
-    const host = createToolHost({ cue: d.cue, ground: d.ground ?? null, ring: d.ring, appKind: d.appKind, ...(wake && d.doIt ? { wake: { doIt: d.doIt } } : {}) })
+    const host = createToolHost({ cue: d.cue, ground: d.ground ?? null, ring: d.ring, appKind: d.appKind, ...(wake && d.doIt ? { wake: { doIt: d.doIt } } : {}), ...(mode === 'converse' && d.startTask ? { startTask: d.startTask } : {}) })
     const gates = new GateMonitor(reader, d.gateTimers, now)
     // The context packet (trusted: code wrote every token). A builder that throws or is missing gives the fixed fallback, never an unstarted session.
     let context = ''
     if (mode === 'converse') {
       const trigger = wake ? 'wake' : 'key'
       try {
-        context = d.context ? d.context({ tools: buildToolDeclarations(host.candidates(), { wake, doIt: typeof host.doItForMe === 'function' }), trigger }) : ''
+        context = d.context ? d.context({ tools: buildToolDeclarations(host.candidates(), { wake, doIt: typeof host.doItForMe === 'function', tasks: typeof host.startTask === 'function' }), trigger }) : ''
       } catch {
         context = FALLBACK_PACKET
       }
       lastPacket = context || null
     }
     const s = new LiveSession({
-      config: { ...configFor(mode, wake, context), ...(wake && d.opening ? { openingText: ((): string | undefined => { try { return d.opening?.() ?? undefined } catch { return undefined } })() } : {}) },
+      config: { ...configFor(mode, wake, context + (mode === 'converse' && host.startTask ? `\n\n${TASK_GUIDANCE}` : '')), ...(wake && d.opening ? { openingText: ((): string | undefined => { try { return d.opening?.() ?? undefined } catch { return undefined } })() } : {}) },
       tokens: d.tokens,
       socketFactory: d.socketFactory,
       url: d.url,
@@ -424,6 +428,7 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
     hasSession: () => session !== null && !session.isEnded,
     injectTyped: (text) => (session !== null && !session.isEnded ? session.injectText(text) : false),
     voiceAllowed: () => startRefusal() === null,
+    injectLine: (text) => (session && !session.isEnded ? session.injectText(text) : false),
     blocker: () => startRefusal({ ignoreConsent: true }),
     startFromWake() {
       if (!liveFlagOn(env) || (session && !session.isEnded) || waiter) return false

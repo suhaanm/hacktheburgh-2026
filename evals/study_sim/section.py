@@ -24,4 +24,4 @@ def study_sim_section() -> dict:
     return {"status": "not_run", "label": LABEL, "n": 0, "n_aa": 0, "headline": None, "per_skill": None, "aa": None, "effort": None, "nudges": None,
             "pipeline_checks": None, "cost": {"usd_est": 0.0, "calls": 0, "tokens": {"in": 0, "out": 0}}, "limitations": LIMITATIONS,
             "meta": {"origin": "simulated_llm", "n": 0, "n_unit": "silicon participants", "label": LABEL, "interval_level": 0.95,
-                     "note": "The simulated study has not been run. It never stands in for the live study with people."}}
+                     "note": "The language-model study has not been run. It never stands in for the live study with people."}}

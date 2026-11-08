@@ -602,7 +602,7 @@ def acceptance_simulation(seed: int = 9, workers: int = 200, ks: tuple[int, ...]
                      "rank_agreement_tau": None if k == 0 else round(float(np.mean(taus)), 3),
                      "tau_interval": None if k == 0 else [round(float(np.percentile(taus, 2.5)), 3), round(float(np.percentile(taus, 97.5)), 3)]})
     return {"true_rates": ACCEPT_TRUE, "workers": workers, "rows": rows,
-            "note": "Simulated worker with fixed accept rates; the estimate starts at the role prior (0.4) and moves with each label. "
+            "note": "Generated worker with fixed accept rates; the estimate starts at the role prior (0.4) and moves with each label. "
                     "Real acceptance behaviour has not been measured on any person."}
 
 
@@ -610,7 +610,7 @@ def acceptance_simulation(seed: int = 9, workers: int = 200, ks: tuple[int, ...]
 def proactive_limitations() -> list[dict[str, str]]:
     return [
         {"id": "pro-synthetic", "severity": "high",
-         "text": "Every figure for the proactive layer comes from synthetic personas, learners and git learners with planted structure we wrote. "
+         "text": "Every figure for the proactive layer comes from generated personas, learners and git learners with planted structure we wrote. "
                  "It shows that the judge, verify and prepare steps recover what was planted, not that real workers would find these cards useful."},
         {"id": "pro-truth-ours", "severity": "high",
          "text": "The definition of 'worth surfacing' is ours and was fixed before the runs (see the output). For the personas, the planted skill is mapped to "
@@ -619,7 +619,7 @@ def proactive_limitations() -> list[dict[str, str]]:
         {"id": "pro-iterated-on-eval", "severity": "high",
          "text": "The truth definitions and one part of the practice scoring were revised after looking at the first replays (listed under design.truth_revisions "
                  "and design.code_revision, with the first-run figures). There is no held-out data: the reported precision and recall are development-set "
-                 "figures on the same synthetic personas and learners, and are optimistic for that reason."},
+                 "figures on the same generated personas and learners, and are optimistic for that reason."},
         {"id": "pro-weights-handset", "severity": "medium",
          "text": "The ranking weights, the minimum score of 0.30, the cap of three and the per-kind limits are hand-set constants, not fitted to any data. "
                  "A different choice would move precision and recall; no sensitivity sweep is claimed."},
@@ -634,7 +634,7 @@ def proactive_limitations() -> list[dict[str, str]]:
                  "generator family, and a week can carry several planted problems of which the judge may show one. Finished-run cards are covered by scripted "
                  "checks only, and so are stale calendar and git cards."},
         {"id": "pro-acceptance-simulated", "severity": "high",
-         "text": "Acceptance learning is shown on a simulated worker with fixed rates. It has not been validated on people, and a real person's accepts and "
+         "text": "Acceptance learning is shown on a generated worker with fixed rates. It has not been validated on people, and a real person's accepts and "
                  "declines may depend on time of day, mood and the card's wording, none of which are modelled."},
         {"id": "pro-rules-not-model", "severity": "low",
          "text": "No model decides what is surfaced; a model may reword the reason line through the egress guard. Wording quality is not evaluated here."},
@@ -675,7 +675,7 @@ def evaluate_proactive(fast: bool = False, *, root: Path | str | None = None) ->
             cpts = calendar_points(data, latest_only=fast, fast_people=("p_ninetofive", "p_nightowl", "p_shiftwkr", "p_irregular", "p_exp01", "p_exp02") if fast else None)
             all_pts = pts + gpts + cpts
             if not all_pts:
-                return {"meta": analytic_meta("synthetic", 0, "decisions", None, "No synthetic data was found, so nothing was replayed."),
+                return {"meta": analytic_meta("synthetic", 0, "decisions", None, "No generated data was found, so nothing was replayed."),
                         "status": "not_run", "limitations": proactive_limitations()}
             with _Spy() as spy:
                 replays = [_replay(p, work) for p in all_pts]
@@ -754,7 +754,7 @@ def evaluate_proactive(fast: bool = False, *, root: Path | str | None = None) ->
                     for r in replays if r.point.source == "learner"]
             worth["sensitivity_learner_practice_truth_hand_mapping"] = _pr(_pool(hand, ("practice",))) if hand else None
         meta = analytic_meta("synthetic", len(replays), "decisions", "replay at fixed decision points; rules, nothing trained",
-                             "Synthetic personas, learners and git learners with planted truth. Intervals: Wilson on pooled counts (too narrow, points are "
+                             "Generated personas, learners and git learners with planted truth. Intervals: Wilson on pooled counts (too narrow, points are "
                              "correlated) and a bootstrap over people (the honest one).")
     return {
         "meta": meta,
@@ -783,7 +783,7 @@ def evaluate_proactive(fast: bool = False, *, root: Path | str | None = None) ->
                                              "visibly getting wrong, and halves the value of a skill with no counted attempts",
                                      "why": "the first full replay surfaced skills the learner had no evidence of struggling with", "after_seeing": "first full replay"},
                    "replay": "Each point cuts the data at that time, runs the real finder, skill tracker or git analysis, then the real judge, verify and prepare; "
-                             "no press is ever simulated inside the replay."},
+                             "no press is ever invented inside the replay."},
         "structure": structure, "stale": stale, "worth": worth, "acceptance": acceptance_simulation(workers=100 if fast else 200),
         "coverage": {"automate": "evaluated (personas)", "practice": "evaluated (personas and learners)", "git_habit": "evaluated (git learners)",
                      "focus_block": "evaluated (calendar track's planted problems); stale checks scripted",

@@ -16,7 +16,7 @@ def test_fast_mode_section_shape_and_it_never_touches_held_out_or_sim(monkeypatc
     real_app = AP.load_pool
     monkeypatch.setattr(splits, "load_pool", lambda pool, **kw: (seen.append(pool), real_load(pool, **kw))[1])
     monkeypatch.setattr(AP, "load_pool", lambda pool, **kw: (seen.append(pool), real_app(pool, **kw))[1])
-    monkeypatch.setattr(transfer, "load_sim", lambda *a, **k: pytest.fail("fast mode must not read simulated-participant traces"))
+    monkeypatch.setattr(transfer, "load_sim", lambda *a, **k: pytest.fail("fast mode must not read language-model participant traces"))
     sec = EV.evaluate_mlv2(fast=True)
     assert set(seen) <= {"D0", "APP-D0"}
     assert sec["mode"] == "fast" and sec["meta"]["origin"] == "synthetic" and sec["meta"]["n_unit"] == "people"

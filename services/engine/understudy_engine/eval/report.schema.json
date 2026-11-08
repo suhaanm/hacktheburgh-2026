@@ -2315,7 +2315,7 @@
      ]
     },
     "label": {
-     "const": "simulated participants (language model), not people"
+     "const": "language-model participants, not people"
     },
     "limitations": {
      "type": "array",

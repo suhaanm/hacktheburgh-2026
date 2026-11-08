@@ -368,7 +368,7 @@
   "limitations": [
    {
     "id": "synthetic_data",
-    "text": "These figures come from synthetic data with planted patterns, so they show that the method recovers known structure, not that real people behave this way."
+    "text": "These figures come from generated data with planted patterns, so they show that the method recovers known structure, not that real people behave this way."
    },
    {
     "id": "association_only",
