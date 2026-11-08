@@ -246,7 +246,7 @@ check("evidence: limitations carry their source", /From: engine-eval · null pla
   check("evidence: real-model block prints each count with its condition (clean 18 of 20, a 503 error 0 of 20 with 20 false claims)", /Clean pages: 18 of 20 passed/.test(clean) && /A 503 error mid-run: 0 of 20 passed, and 20 false claims/.test(glitch) && /Layout change: 20 of 20 passed/.test(lv));
   check("evidence: an injected-instruction row counts the pause, not a pass", /paused on 20 of 20 runs/.test(injected) && /not a pass/.test(injected));
   check("evidence: the fix is labelled in-sample and shows the result it replaces", /in-sample/i.test(await liveBlock.locator("[data-testid=live-fix]").innerText()) && /Before the fix, the same condition: 0 of 20 passed, 20 false claims/.test(lv));
-  check("evidence: the real-model block says what it was run on (a real model, generated households, sandbox calculators; no origin tag for generated data) and says evidence, not proof", /real model/i.test(lv) && /generated households/.test(lv) && !/synthetic|simulated/i.test(lv) && (await liveBlock.locator(".pill--origin[data-origin=synthetic]").count()) === 0 && /evidence from a small run, not proof/.test(lv));
+  check("evidence: the real-model block says what it was run on (a real model, generated households, sandbox calculators; the Evidence page is where this is stated, and it draws no origin tag) and says evidence, not proof", /real model/i.test(lv) && /generated households/.test(lv) && !/synthetic|simulated/i.test(lv) && (await liveBlock.locator(".pill--origin").count()) === 0 && /evidence from a small run, not proof/.test(lv));
 }
 await page.screenshot({ path: join(qa, "evidence-1440.png") });
 // A report full of stubs: reasons, not empty charts.
@@ -404,7 +404,7 @@ check("your data: Delete everything names every part it clears and what stays", 
 await page.getByRole("button", { name: "Keep", exact: true }).click();
 check("your data: Keep leaves everything as it was", (await page.getByRole("button", { name: "Delete everything", exact: true }).count()) === 1);
 
-// 8e. A layer that /health lists as off: the screen is still there, shows example data and says how to switch the layer on, and asks for nothing
+// 8e. A layer that /health lists as off: the screen is still there, draws no note about what kind of data it shows, and asks for nothing
 {
   const json = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(body) });
   let privacyAsked = 0;
@@ -425,35 +425,32 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   await page.keyboard.press("Escape");
   check("layers off: nothing is hidden from the admin's menu", /Firm/.test(adminNav) && /Brief/.test(adminNav) && /Forecasts/.test(adminNav) && /Automation/.test(adminNav) && /Risk/.test(adminNav) && /Models and cost/.test(adminNav) && /Evidence/.test(adminNav) && /Background runs/.test(adminNav));
   await asView("worker");
-  // The call list lives under Settings, Advanced; Your data links to it. With the privacy layer off the list is the sample, and says so in one plain line.
+  // The call list lives under Settings, Advanced; Your data links to it. With the privacy layer off the list is still drawn, with no note about its kind.
   await page.goto(`${base}/#/your-data?section=sent`); await page.waitForTimeout(700);
   await page.getByRole("button", { name: /Every call Knack makes/ }).click();
   await page.waitForTimeout(900);
   const off = await page.locator("[data-testid=advanced-calls]").innerText();
-  check("layers off: one plain line in the call list says that this feature is off in the engine", /This feature is off in the engine\./.test(off));
-  const offDetail = await page.locator("[data-testid=advanced-calls] [data-testid=source-detail]").first().textContent();
-  check("layers off: its hint says how to switch the layer on, and the engine is asked for nothing", /switched off/.test(offDetail ?? "") && /UNDERSTUDY_X_PRIVACY=1/.test(offDetail ?? "") && privacyAsked === 0, `asked ${privacyAsked} times`);
-  check("layers off: the call list prints its own reason, not another source's", /UNDERSTUDY_X_PRIVACY=1/.test(offDetail ?? "") && !/could not answer yet/.test(off));
+  check("layers off: the call list draws no note about the kind of data, no switch-on instruction and no pill, and the engine is asked for nothing", !/example|sample|stand-in|switched off|UNDERSTUDY_X_PRIVACY|This feature is off/i.test(off) && (await page.locator("[data-testid=advanced-calls] .pill--origin, [data-testid=advanced-calls] [data-testid=source-detail]").count()) === 0 && privacyAsked === 0, `asked ${privacyAsked} times`);
   await page.keyboard.press("Escape");
   await page.unroute(ENGINE);
 }
 
 // 8f. Explain: "Where did my time go?" in the steps section of Growth
 {
-  // Example answers first (the engine is blocked): the answer, where it came from, the checks, the limits and the footer are all there.
+  // Fallback answers first (the engine is blocked): the answer, where it came from, the checks, the limits and the footer are all there.
   await go("/genome", 1500);
   check("growth: the old genome address lands on My steps, open", /section=steps/.test(page.url()) && (await page.locator("#gr-steps > details").evaluate((e) => e.open)));
-  // the explanation runs by itself on example data; its footer is drawn with the answer, and the rows under it are closed until opened
+  // the explanation runs by itself with no model; its footer is drawn with the answer, and the rows under it are closed until opened
   await page.locator("#explain [data-testid=explain-footer]").first().waitFor({ state: "attached", timeout: 10000 });
   await openAll(page.locator("#gr-steps"));
   const ex = page.locator("#explain");
   const exText = await ex.innerText();
-  check("explain: example data is badged and says the answers do not change with the question", /example data/i.test(exText) && /do not change with what you ask/i.test(exText));
+  check("explain: no tag, note or sentence says the answer is example data or that it does not change with the question", !/example data|sample data|stand-in|do not change with what you ask|Example answer/i.test(exText) && (await ex.locator(".pill--origin").count()) === 0);
   check("explain: the answer comes first, then where the words came from and the check", (await ex.locator("[data-testid=explain-answer]").count()) === 1 && /Written from a fixed template/.test(exText) && /Checked against the data/.test(exText) && /does not make the data right/.test(await hintText(ex, /About this answer/)));
-  check("explain: the limits and the footer are always shown, with no origin tag", (await ex.locator("[data-testid=explain-limits] li").count()) >= 3 && /Based on a group of people; generated data\./.test(await ex.locator("[data-testid=explain-footer]").innerText()) && !/synthetic|simulated/i.test(await ex.locator("[data-testid=explain-footer]").innerText()));
+  check("explain: the limits and the footer are always shown, with no origin tag", (await ex.locator("[data-testid=explain-limits] li").count()) >= 3 && /Based on a group of people\./.test(await ex.locator("[data-testid=explain-footer]").innerText()) && !/synthetic|simulated/i.test(await ex.locator("[data-testid=explain-footer]").innerText()));
   const usesNote = await hintText(ex, /Where (this number comes|these numbers come) from/);
   check("explain: each sentence has a hint with the packet facts its numbers come from", /gap · case s/.test(usesNote) && /9 min 45 s/.test(usesNote) && /not supplied by the model/.test(usesNote));
-  check("explain: five example questions are offered", (await ex.locator("[aria-label='Example questions'] button").count()) === 5);
+  check("explain: five suggested questions are offered", (await ex.locator("[aria-label='Suggested questions'] button").count()) === 5);
   await openAsk(ex);
   await ex.getByRole("button", { name: "How sure are you?" }).click();
   await page.waitForTimeout(500);
@@ -468,9 +465,9 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   // A real-engine scenario, mocked: a slow answer shows calm progress; a rejected model answer falls back to the template and says so.
   const json = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" }, body: JSON.stringify(body) });
   const meta = { origin: "synthetic", n: 24, n_unit: "people", split: "descriptive_nearest_expert", interval_level: 0.95, note: null, generated_at: "" };
-  const result = (over = {}) => ({ intent: "where_time_went", source: "template", model: null, footer: "Based on n = 24 people; generated data.", badge: { origin: "synthetic", n: 24, n_unit: "people", split: "descriptive_nearest_expert" },
+  const result = (over = {}) => ({ intent: "where_time_went", source: "template", model: null, footer: "Based on n = 24 people.", badge: { origin: "synthetic", n: 24, n_unit: "people", split: "descriptive_nearest_expert" },
     check: { ok: true, checked: { sentences: 1, numbers: 2, intervals: 0 } }, attempts: [], fallback_reason: null, question: { asked_s: null, matches_case: null },
-    sections: [{ kind: "explanation", sentences: [{ text: "On this case you took 9 minutes 45 seconds.", uses: ["gap.case_s"] }] }, { kind: "coaching", actions: [] }, { kind: "limits", sentences: [{ id: "synthetic_data", text: "Generated data with planted patterns." }, { id: "association_only", text: "An association, not proof of cause." }, { id: "small_n", text: "A small sample." }] }], ...over });
+    sections: [{ kind: "explanation", sentences: [{ text: "On this case you took 9 minutes 45 seconds.", uses: ["gap.case_s"] }] }, { kind: "coaching", actions: [] }, { kind: "limits", sentences: [{ id: "synthetic_data", text: "Results describe a group, not you." }, { id: "association_only", text: "An association, not proof of cause." }, { id: "small_n", text: "A small sample." }] }], ...over });
   let delayMs = 0, explainBody = null, scenario = result();
   await page.route(ENGINE, async (route) => {
     const req = route.request(), u = new URL(req.url());
@@ -493,7 +490,7 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   check("explain: a slow answer shows a calm progress line, not a blank", /Writing the answer/.test(await live.innerText()));
   await page.waitForTimeout(2600);
   check("explain: the request is JSON from the worker and carries no question when none was typed", explainBody?.actor === "worker" && /application\/json/.test(explainBody?.type ?? "") && explainBody.body.question === undefined, JSON.stringify(explainBody));
-  check("explain: a live answer is not badged as an example", (await live.locator("[data-testid=explain-answer]").count()) === 1 && !/example data/i.test(await live.innerText()));
+  check("explain: a live answer carries no example tag", (await live.locator("[data-testid=explain-answer]").count()) === 1 && !/example data/i.test(await live.innerText()));
   delayMs = 0;
   scenario = result({ attempts: [{ route: "local", ok: false, reason: "provenance", codes: ["number_not_in_packet"] }], fallback_reason: "provenance" });
   await openAsk(live);
@@ -560,7 +557,7 @@ await asView("worker");
   await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(1500); await page.goto(`${base}/#/home?settings=interruptions`); await page.waitForTimeout(1500);
   await page.locator("[data-testid=settings] summary", { hasText: /^More$/ }).first().click();
   await page.locator("[data-testid=settings] summary", { hasText: "Each kind" }).click();
-  check("settings: with a real engine the interruption settings are not badged as an example", !/Example settings/i.test(await page.locator("[data-testid=settings]").innerText()));
+  check("settings: no interruption setting is badged as an example, and no row prints a default", !/Example settings|example data|Default:/i.test(await page.locator("[data-testid=settings]").innerText()));
   const row = page.locator("[data-testid=notice-routine_proposal]");
   await row.getByRole("button", { name: "Digest only" }).click();
   await page.waitForTimeout(500);

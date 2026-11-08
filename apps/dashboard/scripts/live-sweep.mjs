@@ -1,6 +1,6 @@
 // Live sweep: every screen against the RUNNING engine and agent (nothing blocked), light theme, 1440 by 900.
 // Reports per screen: page errors, console errors, failed service calls (status 400 or more, path only), and whether the screen fell back
-// to example data (the "Showing example data" line or the Example data banner). Never prints response bodies.
+// to example data (the shell's "Knack cannot reach its engine" line). Never prints response bodies.
 // Usage: node scripts/live-sweep.mjs [base=http://127.0.0.1:5173]   Exit 1 if any screen throws.
 import { chromium } from "playwright";
 
@@ -28,7 +28,7 @@ async function visit(route) {
   await page.evaluate((h) => { location.hash = h; }, `#/${route}`);
   await page.waitForTimeout(2200);
   const text = await page.evaluate(() => document.body.innerText);
-  const example = /Showing example data|Example data|Some example data/.test(text);
+  const example = /Knack cannot reach its engine|Cannot reach the engine/.test(text);
   rows.push({ route, example, errors: [...new Set(errors)], consoleErrors: [...new Set(consoleErrors)], failed: [...new Set(failed)] });
 }
 
