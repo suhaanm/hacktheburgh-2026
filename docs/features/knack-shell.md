@@ -55,7 +55,7 @@ First launch asks two questions and shows one summary: a role card, one capture 
 
 ### How it works
 
-Click 1 picks a role (three cards from the packs); the pack's tools, risky actions set to 'never without me', short tone, gradual pace and hours are written to the memory file. Click 2 is the one consent: 'It records when you are active, never what you read: no page text, no URLs, no field values. The record stays on this laptop.' Yes, Not now and Never have equal weight; Not now asks again once after a week; Never never asks again. Click 3 shows four plain lines from the file just written and opens Home. Screen glances, the microphone, Accessibility, Screen Recording and Open at login are each asked once, in context, when first needed. The role card will also offer connection presets (landing), which adds one click.
+Click 1 picks a role (three cards from the packs); the pack's tools, risky actions set to 'never without me', short tone, gradual pace and hours are written to the memory file. Click 2 is the one consent: 'It records when you are active, never what you read: no page text, no URLs, no field values. The record stays on this laptop.' Yes, Not now and Never have equal weight; Not now asks again once after a week; Never never asks again. Click 3 shows four plain lines from the file just written and opens Home. Screen glances, the microphone, Accessibility, Screen Recording and Open at login are each asked once, in context, when first needed. The role card will also offer 'Connect your tools' chips for the chosen role (landing), all off. Permissions are asked one at a time and in context: on the step 'Turn on Hey Knack' the worker clicks Turn on (or Not now), and only then does the listener start, so no prompt appears at launch out of context; macOS asks for the microphone and then speech recognition. Screen Recording is asked only when the worker turns on screen glances or says Yes to the screen card and then asks Knack to find something outside Knack or a browser tab with the extension; Accessibility only for 'click for me', after the first supervised test. Input Monitoring, Automation and Full Disk Access are never asked. A last Try it step says 'Say Hey Knack', then 'show me where the Needs you list is', with a Skip button.
 
 **What is different.** Two questions and one summary, with a consent whose three buttons weigh the same.
 
@@ -134,6 +134,7 @@ The tap-to-type Ask bar is a lower-priority item in the build plan and may not b
 - `docs/KNACK_UX.md`
 - `docs/knack-ux/08-window-states.md`
 - `docs/knack-ux/07-first-run.md`
+- `docs/knack-ux/capabilities-and-permissions.md`
 - `docs/knack-ux/shell-transitions.json`
 - `apps/desktop/KNACK_BUILD.md`
 - `docs/DECISIONS.md (D51)`
