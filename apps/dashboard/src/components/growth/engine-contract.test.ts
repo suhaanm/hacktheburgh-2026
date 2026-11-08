@@ -1,6 +1,7 @@
 // Contract test: the screen's adapters against what the engine's own score.growth() produced on its own simulated learners
 // (a snapshot, regenerated when the engine's shape changes: fixtures/growth-engine-snapshot.json). Simulated, not people.
 // If CUE-ENGINE renames or drops a key the screen reads, one of these fails before the screen shows a blank.
+import { workerText } from "../../lib/voice";
 import { describe, expect, it } from "vitest";
 import snap from "../../fixtures/growth-engine-snapshot.json";
 // The engine's own generated examples (packages/schema/examples, made by `python -m understudy_engine.cue.make_examples`). Read, never edited.
@@ -60,7 +61,7 @@ describe("engine contract: growth responses", () => {
     expect(raw.trend.direction).toBe("steady");
     const v = buildView(normalizeGrowth(raw));
     expect(v.title).toBe("Cannot tell yet whether you need less help");
-    expect(v.trend.sentence).toContain(raw.trend.power_note!);
+    expect(v.trend.sentence).toContain(workerText(raw.trend.power_note!)); // printed as sent, with a group of learners written as cases (views.md)
     expect(v.trend.sentence.match(/Cannot tell yet/g)).toHaveLength(1);
     expect(v.trend.sentence).toContain("includes zero");
     expect(v.trend.sentence.toLowerCase()).not.toMatch(/no clear change|has not changed/);
@@ -68,7 +69,7 @@ describe("engine contract: growth responses", () => {
   it("too few occurrences for a trend: the engine's own count, and how many more", () => {
     const raw = S["new:overall"].data;
     const v = buildView(normalizeGrowth(raw));
-    expect(v.trend.sentence).toBe(`Too early for a trend. ${raw.trend.power_note}`);
+    expect(v.trend.sentence).toBe(`Too early for a trend. ${workerText(raw.trend.power_note!)}`);
     expect(v.trend.stillNeeded).toBe(raw.trend.needed_more);
     expect(raw.readiness.trend_needed).toBe(30);
   });
@@ -136,7 +137,7 @@ describe("engine contract: the engine's own example payloads", () => {
     expect(v.trend.direction).toBe(G.data.trend.direction);
     if (G.data.trend.direction === "steady") {
       expect(v.title).toBe("Cannot tell yet whether you need less help");
-      expect(v.trend.sentence).toContain(G.data.trend.power_note!);
+      expect(v.trend.sentence).toContain(workerText(G.data.trend.power_note!));
     }
     expect(v.lede).toBe(`In your first ${G.data.baseline!.n} steps you finished ${G.data.baseline!.k} without a cue. In the latest ${G.data.components.independence!.n}, ${G.data.components.independence!.k}.`);
   });

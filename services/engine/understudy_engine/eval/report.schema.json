@@ -2490,7 +2490,66 @@
    "$ref": "#/$defs/meta_only"
   },
   "agentic": {
-   "$ref": "#/$defs/meta_only"
+   "allOf": [
+    {
+     "$ref": "#/$defs/meta_only"
+    }
+   ],
+   "properties": {
+    "heldout": {
+     "type": "object",
+     "properties": {
+      "clean": {
+       "$ref": "#/$defs/agentic_part"
+      },
+      "injected": {
+       "$ref": "#/$defs/agentic_part"
+      }
+     }
+    },
+    "rounds": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "id",
+       "plan",
+       "frozen_gate_version",
+       "conditions",
+       "config"
+      ],
+      "properties": {
+       "id": {
+        "type": "string"
+       },
+       "plan": {
+        "type": "string"
+       },
+       "frozen_gate_version": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "conditions": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        }
+       },
+       "config": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "gate_version_ok": {
+        "type": "boolean"
+       }
+      }
+     }
+    }
+   }
   },
   "attention": {
    "$ref": "#/$defs/meta_only"
@@ -2500,6 +2559,208 @@
   },
   "hitlist": {
    "$ref": "#/$defs/meta_only"
+  },
+  "agentic_round_line": {
+   "type": "object",
+   "required": [
+    "round",
+    "label",
+    "config",
+    "gate_version",
+    "frozen_gate_version",
+    "gate_version_ok",
+    "n",
+    "k",
+    "wilson95",
+    "reading"
+   ],
+   "properties": {
+    "round": {
+     "type": "string"
+    },
+    "label": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "condition": {
+     "type": "string"
+    },
+    "seed": {
+     "type": [
+      "integer",
+      "null"
+     ]
+    },
+    "provider": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "config": {
+     "type": "string"
+    },
+    "gate_version": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "frozen_gate_version": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "gate_version_ok": {
+     "type": [
+      "boolean",
+      "null"
+     ]
+    },
+    "plan": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "n": {
+     "type": "integer"
+    },
+    "k": {
+     "type": "integer"
+    },
+    "wilson95": {
+     "type": "array",
+     "items": {
+      "type": [
+       "number",
+       "null"
+      ]
+     },
+     "minItems": 2,
+     "maxItems": 2
+    },
+    "bar_met": {
+     "type": [
+      "boolean",
+      "null"
+     ]
+    },
+    "source": {
+     "type": [
+      "string",
+      "null"
+     ]
+    },
+    "reading": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "additionalProperties": true
+  },
+  "agentic_part": {
+   "type": "object",
+   "required": [
+    "status"
+   ],
+   "properties": {
+    "status": {
+     "enum": [
+      "recorded",
+      "not_run"
+     ]
+    }
+   },
+   "if": {
+    "properties": {
+     "status": {
+      "const": "recorded"
+     }
+    }
+   },
+   "then": {
+    "required": [
+     "round",
+     "config",
+     "gate_version",
+     "frozen_gate_version",
+     "gate_version_ok",
+     "n",
+     "reading",
+     "earlier_rounds"
+    ],
+    "properties": {
+     "round": {
+      "type": "string"
+     },
+     "provider": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "config": {
+      "type": "string"
+     },
+     "gate_version": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "frozen_gate_version": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "gate_version_ok": {
+      "type": [
+       "boolean",
+       "null"
+      ]
+     },
+     "n": {
+      "type": "integer"
+     },
+     "reading": {
+      "type": "string",
+      "minLength": 1
+     },
+     "primary": {
+      "type": "object",
+      "required": [
+       "k",
+       "n",
+       "wilson95",
+       "bar_lower_bound",
+       "bar_met"
+      ]
+     },
+     "earlier_rounds": {
+      "type": "array",
+      "items": {
+       "$ref": "#/$defs/agentic_round_line"
+      }
+     }
+    }
+   },
+   "else": {
+    "required": [
+     "reason"
+    ],
+    "properties": {
+     "reason": {
+      "type": "string",
+      "minLength": 1
+     }
+    }
+   },
+   "additionalProperties": true
   }
  }
 }

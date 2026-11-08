@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { aboutPeople, ownMeta } from "./ownMeta";
-import { aboutCohort, isCohortFact, noCounts, oneExpert, restsOnCohort, workerText } from "./voice";
+import { aboutCohort, isCohortFact, noCounts, oneExpert, restsOnCohort, safeWhy, workerText } from "./voice";
 import { caseSecondsLost, stepsHeadline, topLosses } from "./steps";
 import { describeColumn, type RibbonColumn } from "./ribbon";
 import { commitsHeadline } from "../components/growth/CommitsSection";
@@ -64,6 +64,18 @@ describe("workerText: no count of people, no group of experts, no cohort fact", 
     expect(noCounts("Across the 24 people in this data")).toBe("Across the a group of people in this data");
     expect(noCounts("12 of 40 households")).toBe("12 of 40 households");
     expect(noCounts("8 experts")).toBe("an experienced worker");
+  });
+  it("a count inside a sentence goes too: 2 of 10 learners", () => {
+    expect(noCounts("picked up by this test in about 2 of 10 learners at 90 occurrences")).toBe("picked up by this test in about 2 in 10 cases at 90 occurrences");
+    expect(noCounts("rose 10 points or more in 33% of learners")).toBe("rose 10 points or more in 33% of learners");
+  });
+  it("safeWhy replaces a reason that names other people and keeps one that does not", () => {
+    const why = (message: string) => ({ kind: "error" as const, message, status: 404, code: "unknown_person" });
+    expect(safeWhy(why("no calendar for 'p_learn01'. Try one of: p_ninetofive, p_nightowl"))!.message).toMatch(/Nothing has been recorded for you yet/);
+    expect(safeWhy(why("there are 24 people in this data"))!.message).toMatch(/Nothing has been recorded/);
+    expect(safeWhy(why("The engine is not running, so Knack shows example data."))!.message).toBe("The engine is not running, so Knack shows example data.");
+    expect(safeWhy(why("x"))!.status).toBe(404);
+    expect(safeWhy(null)).toBeNull();
   });
   it("names the nearest expert as one experienced worker", () => {
     expect(workerText("for the nearest expert, which is longer")).toBe("for an experienced worker, which is longer");
