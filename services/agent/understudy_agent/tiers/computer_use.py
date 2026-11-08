@@ -458,7 +458,7 @@ FOCUS_POLL_S = 0.025
 FOCUS_WAIT_S = 0.5
 REAL_KEYS = frozenset({"enter", "return", "tab", "esc", "escape", "backspace", "left", "right", "up", "down", "home", "end"})
 MIN_SHOT_H = 16           # a capture shorter than this is not a screen; the vertical bound is only enforced above it
-OVERLAY_OWNERS = tuple(x.strip() for x in os.environ.get("UNDERSTUDY_OVERLAY_OWNERS", "Understudy,Electron").split(",") if x.strip())
+OVERLAY_OWNERS = tuple(x.strip() for x in os.environ.get("UNDERSTUDY_OVERLAY_OWNERS", "Knack,Understudy,Electron").split(",") if x.strip())
 
 
 class MacBackend(Protocol):
