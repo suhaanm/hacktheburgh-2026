@@ -85,6 +85,21 @@ def test_a_path_param_must_be_a_full_path_without_dots():
     assert state.status(p)["state"] == "connected"
 
 
+def test_a_calendar_source_can_only_be_connected_as_an_example_here():
+    with pytest.raises(state.ConnectError) as e:
+        state.connect(registry.get("graph_outlook"), mode="real", confirm=True)
+    assert e.value.code == "no_real_mode"
+    assert service_view("graph_outlook")["modes"]["real"] is None
+    state.connect(registry.get("graph_outlook"), mode="example", confirm=True)
+    assert state.status(registry.get("graph_outlook"))["state"] == "connected"
+
+
+def service_view(pid):
+    from understudy_engine.connections import service
+
+    return service.view(registry.get(pid))
+
+
 def test_a_real_mode_that_does_not_exist_is_refused():
     with pytest.raises(state.ConnectError) as e:
         state.connect(replace(registry.get("github"), real=None), mode="real", confirm=True)

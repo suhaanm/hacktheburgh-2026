@@ -138,9 +138,10 @@ describe("ConnectionChips (the first-run role card)", () => {
 
 describe("ConnectionsPanel (Settings)", () => {
   it("lists every tool by set, all off, each with one Connect button, and prints where the traffic goes", async () => {
-    const { client } = fakeClient();
+    const { client, calls } = fakeClient();
     await act(async () => { root.render(createElement(ConnectionsPanel, { client })); });
     await flush();
+    expect(calls.map((c) => c.op), "mounting the panel only reads").toEqual(["list"]);
     expect([...host.querySelectorAll(".cx-group > summary")].map((h) => h.textContent)).toEqual(["Dev tools (6)", "Data tools (6)", "Benefits tools (3)"]);
     expect([...host.querySelectorAll(".cx-group")].every((d) => !(d as HTMLDetailsElement).open), "nothing is on, so every set starts closed").toBe(true);
     expect(host.querySelectorAll(".cx-row")).toHaveLength(15);

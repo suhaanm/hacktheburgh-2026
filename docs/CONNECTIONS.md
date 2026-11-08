@@ -41,6 +41,8 @@ All start OFF. "Example moment" is a line for the pitch or the launch video, pla
 
 Where they appear: **first run**, inside the role card, "Connect your tools" chips for the chosen role (every chip off; a click shows the consent lines; only **Connect** connects; the chips connect the Example version only, no account). **Settings, Connections**: the full list in three sets, with Connect, Revoke, a Real choice that asks for the folder or address and the token, and counts of what each has read.
 
+Outlook and Teams are Example only in the app: they are the calendar layer's read-only Graph sources, and a real sign-in to a Microsoft account is set up by the owner for a specific approved run (D26), never from a button here.
+
 Chip flags, printed on the chip itself: Notion "Vendor says unmaintained"; Sentry "Source-available licence"; Slack, Jira, Jupyter, Sheets and Drive, SharePoint "Community server".
 
 ## 4. The security model, in plain words
@@ -147,3 +149,7 @@ Agent, through the real SDK client against our stand-ins and a hostile server th
 Dashboard: the model, the client with and without the engine, the chips and the panel in a real DOM (every chip off, nothing connects without the click, the token is gone from the page, Revoke asks first), and the word budgets.
 
 Not done: nothing real was connected, so no real server was started. The real launches (npx, uvx, docker with the pinned versions) are verified from their sources and unit-tested as command lines only.
+
+## 10. How an agent role uses a connection
+
+`mcp_call(connection, name, arguments?)` is the seventh runtime tool. A role uses it when its `RoleDef.allowed_tools` lists `mcp_call`. In the default menu mode the model never writes a call: the role's `Menu.calls` maps an id to `{connection, name, arguments}` (and the id is also a key of `Menu.files`), the model replies with the id, and code supplies the rest. `services/agent/tests/connections/test_runtime.py` registers one such role (`connector`) and runs it as a real child: a read finishes, a poisoned result pauses the child, a write waits in the queue, an unconnected id is refused, an unattended run reads only. No product role ships with `mcp_call` yet: a role that does is a decision for whoever owns that role, because every call it lists is something the worker's connection may be asked to do. In raw mode (a foreground run on something the worker named) the planner must be told which connection and tool to use; it has no catalogue of what the servers offer, on purpose, since a server's own words about its tools are untrusted.

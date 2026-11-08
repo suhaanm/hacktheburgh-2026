@@ -14,6 +14,8 @@ def _hermetic_env(tmp_path, monkeypatch):
     monkeypatch.setenv("UNDERSTUDY_HOME", str(tmp_path / "home"))
     monkeypatch.setenv("UNDERSTUDY_SECRET_BACKEND", "file")
     monkeypatch.setenv("UNDERSTUDY_AGENT_URL", "http://127.0.0.1:1")      # nothing listens there: the routes see an agent that is not running
+    monkeypatch.setenv("AGENT_PORT", "1")                                 # the engine's health probe of the agent goes nowhere either, never to 7710
+    monkeypatch.setenv("ENGINE_PORT", "1")
     monkeypatch.delenv("UNDERSTUDY_REPO_ROOT", raising=False)
     monkeypatch.delenv("UNDERSTUDY_MOCK", raising=False)
     for flag in ("UNDERSTUDY_X", "UNDERSTUDY_X_CONNECTIONS", "UNDERSTUDY_PRESETS_DIR"):

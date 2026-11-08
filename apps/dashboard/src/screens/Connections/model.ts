@@ -80,10 +80,20 @@ export function usageLine(c: Connection): string {
 }
 
 /** The sentence under a row: what it can read when it is off, what happened when it is on, and why it needs the worker when it does. */
+/** Why a connection did not start, in six words at most. The code comes from the agent's start-up check; nothing a server said ever reaches here. */
+const START_PROBLEM: Record<string, string> = {
+  launcher_missing: "It needs Node, uv or Docker.",
+  timeout: "It did not start in time.",
+  server_error: "The server refused to start.",
+  missing_param: "A value it needs is missing.",
+  bad_param: "A value it needs is missing.",
+  keeps_stopping: "It keeps stopping. Connect it again.",
+};
+
 export function metaLine(c: Connection): string {
   if (c.state === "needs_reconfirm") return "It changed since you agreed.";
   if (c.state === "needs_setup") return "Its token is missing.";
-  if (c.state === "error") return "It did not start. Nothing was read.";
+  if (c.state === "error") return START_PROBLEM[c.reason ?? ""] ?? "It did not start.";
   if (c.state === "connected") return usageLine(c);
   return c.short || c.reads;
 }

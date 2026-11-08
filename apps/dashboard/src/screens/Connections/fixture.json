@@ -63,31 +63,7 @@
      "needs_token": false,
      "caution": ""
     },
-    "real": {
-     "mode": "real",
-     "summary": "Knack's own read-only Outlook calendar reader (graph_outlook 0.1.0) reads it through Microsoft Graph. It talks to graph.microsoft.com with your own sign-in on this Mac. Reads meeting times and counts only. No titles, no people. Any change needs your click. Revoke any time.",
-     "lines": [
-      "Knack's own read-only Outlook calendar reader (graph_outlook 0.1.0) reads it through Microsoft Graph.",
-      "It talks to graph.microsoft.com with your own sign-in on this Mac.",
-      "Reads meeting times and counts only. No titles, no people. Any change needs your click.",
-      "Revoke any time."
-     ],
-     "example": false,
-     "publisher": "Microsoft (Graph API), read by our own adapter",
-     "publisher_kind": "vendor",
-     "package": "graph_outlook",
-     "version": "0.1.0",
-     "registry": "plugin",
-     "license": "This repository",
-     "hosts": [
-      "graph.microsoft.com"
-     ],
-     "needs_token": false,
-     "caution": "",
-     "params": [],
-     "credentials": [],
-     "verified": true
-    }
+    "real": null
    },
    "tools": {
     "read": 0,
@@ -141,31 +117,7 @@
      "needs_token": false,
      "caution": ""
     },
-    "real": {
-     "mode": "real",
-     "summary": "Knack's own read-only Teams meetings reader (graph_teams 0.1.0) reads it through Microsoft Graph. It talks to graph.microsoft.com with your own sign-in on this Mac. Reads meeting times, length and attendance counts only. Any change needs your click. Revoke any time.",
-     "lines": [
-      "Knack's own read-only Teams meetings reader (graph_teams 0.1.0) reads it through Microsoft Graph.",
-      "It talks to graph.microsoft.com with your own sign-in on this Mac.",
-      "Reads meeting times, length and attendance counts only. Any change needs your click.",
-      "Revoke any time."
-     ],
-     "example": false,
-     "publisher": "Microsoft (Graph API), read by our own adapter",
-     "publisher_kind": "vendor",
-     "package": "graph_teams",
-     "version": "0.1.0",
-     "registry": "plugin",
-     "license": "This repository",
-     "hosts": [
-      "graph.microsoft.com"
-     ],
-     "needs_token": false,
-     "caution": "",
-     "params": [],
-     "credentials": [],
-     "verified": true
-    }
+    "real": null
    },
    "tools": {
     "read": 0,

@@ -82,6 +82,9 @@ describe("state words", () => {
     expect(wordCount(usageLine(used))).toBeLessThanOrEqual(BUDGET.rowMetaWords);
     expect(metaLine(get("github"))).toBe("Issues, pull requests, code");
     expect(metaLine(on("github", { state: "needs_reconfirm" }))).toBe("It changed since you agreed.");
+    expect(metaLine(on("github", { state: "error", reason: "launcher_missing" }))).toBe("It needs Node, uv or Docker.");
+    expect(metaLine(on("github", { state: "error", reason: "something_new" }))).toBe("It did not start.");
+    for (const r of ["launcher_missing", "timeout", "server_error", "missing_param", "bad_param", "keeps_stopping", "x"]) expect(wordCount(metaLine(on("github", { state: "error", reason: r })))).toBeLessThanOrEqual(BUDGET.rowMetaWords);
   });
 
   it("puts what is on first and keeps the pack's order otherwise", () => {

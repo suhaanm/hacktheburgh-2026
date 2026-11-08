@@ -22,7 +22,7 @@ def view(preset: Preset, *, detail: bool = False) -> dict[str, Any]:
     st = state.status(preset, rec)
     params = (rec or {}).get("params") or {}
     modes: dict[str, Any] = {"example": consent(preset, "example"), "real": None}
-    if preset.has_real:
+    if preset.has_real and preset.kind != "source":                     # a calendar source has no sign-in here: its real reading is set up by the owner (D26)
         real = consent(preset, "real", params)
         real["params"], real["credentials"] = _param_specs(preset), _credential_specs(preset)
         real["verified"] = True

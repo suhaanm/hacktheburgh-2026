@@ -144,8 +144,8 @@ def connect(preset: Preset, *, mode: str, confirm: bool, params: dict[str, Any] 
         raise ConnectError("consent_required", "Connecting needs your click on the consent line.")
     if mode not in MODES:
         raise ConnectError("bad_mode", "Choose Example or Real.")
-    if mode == "real" and not preset.has_real:
-        raise ConnectError("no_real_mode", "This connection has only an example.")
+    if mode == "real" and (not preset.has_real or preset.kind == "source"):
+        raise ConnectError("no_real_mode", "This connection has only an example here. A real sign-in is set up by the owner.")
     clean = _clean_params(preset, params) if mode == "real" else {}
     toks = _clean_secrets(preset, mode, secrets)
     chash = command_hash(preset, mode)
