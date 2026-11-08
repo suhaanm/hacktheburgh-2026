@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-11-08T02:14:26Z",
+  "generated_at": "2026-11-08T02:22:41Z",
   "mock": true,
-  "git_rev": "bf510c9",
+  "git_rev": "48723dd",
   "fast": false,
   "partial": false,
   "note": "Read from evals/report.json by `make eval`. A fast run uses fewer resamples and seeds, so counts that depend on them differ from a full run; quote a full run.",
   "sections": {
-    "total": 35,
-    "ok": 33,
+    "total": 37,
+    "ok": 35,
     "pending": 0,
     "not_run": 2,
     "failed": 0,
@@ -45,7 +45,9 @@
       "modelbench",
       "agentic",
       "study_sim",
-      "study_power"
+      "study_power",
+      "hrt_ledger",
+      "hrt_decisions"
     ],
     "pending_names": [],
     "not_run_names": [
@@ -56,10 +58,10 @@
     "invalid_provenance_names": []
   },
   "limitations": {
-    "total": 207,
-    "high": 68,
-    "medium": 111,
-    "low": 28
+    "total": 219,
+    "high": 70,
+    "medium": 119,
+    "low": 30
   },
   "findings": {
     "total": 7,
@@ -145,7 +147,7 @@
       "agent/runtime": 122,
       "agent/safety": 363,
       "agent/tasks": 132,
-      "apps/dashboard/src": 1296,
+      "apps/dashboard/src": 1299,
       "apps/desktop/src": 2393,
       "engine/analytics": 132,
       "engine/api": 113,
@@ -162,6 +164,7 @@
       "engine/gitanalysis": 103,
       "engine/handoff": 164,
       "engine/hitlist": 104,
+      "engine/hrt": 127,
       "engine/insights": 173,
       "engine/localmodel": 67,
       "engine/mlv2": 58,
@@ -176,24 +179,24 @@
       "extension/tests": 192,
       "packages/packs/tests": 88
     },
-    "total": 7996
+    "total": 8126
   },
   "flat": {
-    "generated_at": "2026-11-08T02:14:26Z",
+    "generated_at": "2026-11-08T02:22:41Z",
     "mock": true,
-    "git_rev": "bf510c9",
+    "git_rev": "48723dd",
     "fast": false,
     "partial": false,
-    "sections.total": 35,
-    "sections.ok": 33,
+    "sections.total": 37,
+    "sections.ok": 35,
     "sections.pending": 0,
     "sections.not_run": 2,
     "sections.failed": 0,
     "sections.invalid_provenance": 0,
-    "limitations.total": 207,
-    "limitations.high": 68,
-    "limitations.medium": 111,
-    "limitations.low": 28,
+    "limitations.total": 219,
+    "limitations.high": 70,
+    "limitations.medium": 119,
+    "limitations.low": 30,
     "findings.total": 7,
     "redteam.attacks": 42,
     "redteam.clean_cases": 31,
@@ -242,7 +245,7 @@
     "tests.by_dir.agent/runtime": 122,
     "tests.by_dir.agent/safety": 363,
     "tests.by_dir.agent/tasks": 132,
-    "tests.by_dir.apps/dashboard/src": 1296,
+    "tests.by_dir.apps/dashboard/src": 1299,
     "tests.by_dir.apps/desktop/src": 2393,
     "tests.by_dir.engine/analytics": 132,
     "tests.by_dir.engine/api": 113,
@@ -259,6 +262,7 @@
     "tests.by_dir.engine/gitanalysis": 103,
     "tests.by_dir.engine/handoff": 164,
     "tests.by_dir.engine/hitlist": 104,
+    "tests.by_dir.engine/hrt": 127,
     "tests.by_dir.engine/insights": 173,
     "tests.by_dir.engine/localmodel": 67,
     "tests.by_dir.engine/mlv2": 58,
@@ -272,6 +276,6 @@
     "tests.by_dir.evals/tests": 87,
     "tests.by_dir.extension/tests": 192,
     "tests.by_dir.packages/packs/tests": 88,
-    "tests.total": 7996
+    "tests.total": 8126
   }
 }

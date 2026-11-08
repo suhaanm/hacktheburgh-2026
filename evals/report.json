@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-11-08T02:14:26Z",
+  "generated_at": "2026-11-08T02:22:41Z",
   "mock": true,
-  "git_rev": "bf510c9",
+  "git_rev": "48723dd",
   "run": {
     "fast": false,
     "seed": 0,
@@ -18,7 +18,7 @@
       "presence": 4.42,
       "routines": 3.9,
       "forecast": 0.43,
-      "agent_claims": 0.58,
+      "agent_claims": 0.71,
       "agent_runs": 0.2,
       "pooling": 2.22,
       "redteam": 7.38,
@@ -41,7 +41,9 @@
       "agentic": 0.01,
       "study": 0.0,
       "study_sim": 0.0,
-      "study_power": 2.05
+      "study_power": 2.05,
+      "hrt_ledger": 0.01,
+      "hrt_decisions": 0.0
     },
     "note": "timing only; excluded from the determinism check",
     "merged": [
@@ -111,6 +113,16 @@
           "agent_claims"
         ],
         "seconds": 0.6
+      },
+      {
+        "at": "2026-11-08T02:22:41Z",
+        "base_generated_at": "2026-11-08T02:14:26Z",
+        "sections": [
+          "hrt_ledger",
+          "hrt_decisions",
+          "agent_claims"
+        ],
+        "seconds": 0.8
       }
     ]
   },
@@ -1255,6 +1267,26 @@
       "n": 10000,
       "n_unit": "replications",
       "label": null,
+      "reason": null
+    },
+    {
+      "section": "hrt_ledger",
+      "title": "Prospective predictions: predict first, score later",
+      "status": "ok",
+      "origin": "synthetic",
+      "n": 774300,
+      "n_unit": "scored predictions",
+      "label": "generated worlds, held-out seeds, single frozen run; the ledger has recorded no live forecasts yet",
+      "reason": null
+    },
+    {
+      "section": "hrt_decisions",
+      "title": "Decisions scoreboard: shipped rule against naive and oracle",
+      "status": "ok",
+      "origin": "synthetic",
+      "n": 118,
+      "n_unit": "generated worlds",
+      "label": "generated worlds, held-out seeds, single frozen run",
       "reason": null
     }
   ],
@@ -8135,7 +8167,7 @@
         "split": "grouped 5-fold (by household)",
         "interval_level": 0.95,
         "note": "How well a claimed success that code has not yet checked can be trusted. Generated runs.",
-        "generated_at": "2026-11-08T02:14:26Z"
+        "generated_at": "2026-11-08T02:22:41Z"
       },
       "reliability": [
         {
@@ -8264,7 +8296,7 @@
           "split": "leave-one-household-out; real model on sandbox sites",
           "interval_level": 0.95,
           "note": "real model, tiny n, one family of failures. Sandbox households, real planner; false claims are one family (error pages).",
-          "generated_at": "2026-11-08T02:14:26Z"
+          "generated_at": "2026-11-08T02:22:41Z"
         },
         "source": {
           "file": "data/eval/agent_live_runs.json",
@@ -67661,6 +67693,3860 @@
         }
       }
     },
+    "hrt_ledger": {
+      "meta": {
+        "origin": "synthetic",
+        "n": 774300,
+        "n_unit": "scored predictions",
+        "split": "models frozen at deployment on a training pool; every prediction written to a hash-chained ledger before its outcome and scored forward in time, on new seeds",
+        "interval_level": 0.95,
+        "note": "Cluster bootstrap resampling people (error risk: blocks of 100 cases), B = 2000, paired across predictors. Pre-registered in evals/hrt/PLAN.md; run once on held-out seeds.",
+        "generated_at": "2026-11-08T02:22:41Z"
+      },
+      "statement": "Of 10 registered claims, 8 passed and 2 did not (all are listed, none changed after the run). In the world it was fitted for, the deployed model's prospective log loss was -0.080 [-0.086, -0.075] against the online base rate. In 3 of 3 shifted worlds it was worse than the best naive predictor (markov, latent skill, process trace).",
+      "label": "generated worlds, held-out seeds, single frozen run; the ledger has recorded no live forecasts yet",
+      "rows": [
+        {
+          "id": "P1",
+          "claim": "In the v1 world the deployed stuck hazard beats both the online base rate and frozen time-since-progress on log loss",
+          "result": "passed",
+          "evidence": "against frozen tsp -0.0793 [-0.0852, -0.0738]; against online base -0.0803 [-0.0856, -0.0753]"
+        },
+        {
+          "id": "P2",
+          "claim": "In the v1 world the model is calibrated: the slope interval contains 1 and the intercept interval contains 0",
+          "result": "not passed",
+          "evidence": "slope 0.999 [0.963, 1.035], intercept +0.075 [0.002, 0.162]"
+        },
+        {
+          "id": "P3",
+          "claim": "In the shifted worlds the deployed model is worse than the better naive baseline in at least 2 of 3 families",
+          "result": "passed",
+          "evidence": "latent_skill: worse (+0.331 [0.289, 0.377] against frozen tsp); markov: worse (+0.324 [0.277, 0.374] against online base); process_trace: worse (+0.513 [0.434, 0.602] against online base)"
+        },
+        {
+          "id": "P4a",
+          "claim": "The guard raises no flag in at least 7 of 8 v1 deployments",
+          "result": "passed",
+          "evidence": "flagged 0 of 8 [0.0, 0.369]"
+        },
+        {
+          "id": "P4b",
+          "claim": "The guard flags at least 6 of 8 where the model is worse and at most 1 of 8 where it is clearly better",
+          "result": "passed",
+          "evidence": "latent_skill: model worse, flagged 8 of 8; markov: model worse, flagged 8 of 8; process_trace: model worse, flagged 8 of 8"
+        },
+        {
+          "id": "P4c",
+          "claim": "Premium: in the v1 world the guarded system is within 0.01 nats of always trusting the model",
+          "result": "passed",
+          "evidence": "guarded minus always-model +0.0000 nats [0.0, 0.0]"
+        },
+        {
+          "id": "P4d",
+          "claim": "Payout: where the model is worse than the fallback by more than 0.05 nats the guard saves more than 0.02 nats against always-model",
+          "result": "passed",
+          "evidence": "latent_skill: model worse by 0.325, guard saves 0.262 [-0.338, -0.194]; markov: model worse by 0.323, guard saves 0.309 [-0.434, -0.196]; process_trace: model worse by 0.451, guard saves 0.438 [-0.594, -0.292]"
+        },
+        {
+          "id": "P5",
+          "claim": "Time to progress, v1 world: the head's truncated CRPS beats the Kaplan-Meier constant",
+          "result": "passed",
+          "evidence": "truncated CRPS 3.95 s against 4.76 s for the Kaplan-Meier constant; difference -0.816 s [-0.853, -0.779]"
+        },
+        {
+          "id": "P6a",
+          "claim": "Error risk, no drift: the model beats the online base rate and its calibration slope interval contains 1",
+          "result": "not passed",
+          "evidence": "model minus online base -0.1110 [-0.1166, -0.1057], slope 0.959 [0.932, 0.989]"
+        },
+        {
+          "id": "P6b",
+          "claim": "Error risk: the guard flags a rule change when the post-change model is worse than the fallback, and stays quiet when it is not or when nothing changed",
+          "result": "passed",
+          "evidence": "after the change the model minus online base is -0.1725 [-0.1807, -0.1637] (still better); flagged 0 of 8 with drift, 0 of 8 without"
+        }
+      ],
+      "worlds": [
+        {
+          "world": "v1 world (fresh seeds, no shift)",
+          "deployments": 8,
+          "people_or_blocks": 32,
+          "predictions": 61631,
+          "model_log_loss": 0.4449,
+          "model_log_loss_ci": [
+            0.4341,
+            0.4552
+          ],
+          "best_naive": "frozen_tsp",
+          "best_naive_log_loss": 0.5242,
+          "model_minus_best_naive": -0.0793,
+          "model_minus_best_naive_ci": [
+            -0.0852,
+            -0.0738
+          ],
+          "verdict": "a better",
+          "calibration_slope": 0.999,
+          "calibration_slope_ci": [
+            0.963,
+            1.035
+          ],
+          "calibration_intercept": 0.075,
+          "calibration_intercept_ci": [
+            0.002,
+            0.162
+          ],
+          "ece": 0.0222,
+          "guard_flags": "0 of 8"
+        },
+        {
+          "world": "shifted: markov",
+          "deployments": 8,
+          "people_or_blocks": 160,
+          "predictions": 212730,
+          "model_log_loss": 0.9394,
+          "model_log_loss_ci": [
+            0.8791,
+            1.0006
+          ],
+          "best_naive": "online_base",
+          "best_naive_log_loss": 0.615,
+          "model_minus_best_naive": 0.3245,
+          "model_minus_best_naive_ci": [
+            0.2772,
+            0.3741
+          ],
+          "verdict": "a worse",
+          "calibration_slope": -0.199,
+          "calibration_slope_ci": [
+            -0.227,
+            -0.169
+          ],
+          "calibration_intercept": -1.017,
+          "calibration_intercept_ci": [
+            -1.144,
+            -0.893
+          ],
+          "ece": 0.2062,
+          "guard_flags": "8 of 8"
+        },
+        {
+          "world": "shifted: latent skill",
+          "deployments": 8,
+          "people_or_blocks": 160,
+          "predictions": 228833,
+          "model_log_loss": 0.9494,
+          "model_log_loss_ci": [
+            0.8853,
+            1.0161
+          ],
+          "best_naive": "frozen_tsp",
+          "best_naive_log_loss": 0.6181,
+          "model_minus_best_naive": 0.3313,
+          "model_minus_best_naive_ci": [
+            0.2891,
+            0.3771
+          ],
+          "verdict": "a worse",
+          "calibration_slope": -0.254,
+          "calibration_slope_ci": [
+            -0.297,
+            -0.214
+          ],
+          "calibration_intercept": -1.25,
+          "calibration_intercept_ci": [
+            -1.389,
+            -1.113
+          ],
+          "ece": 0.2008,
+          "guard_flags": "8 of 8"
+        },
+        {
+          "world": "shifted: process trace",
+          "deployments": 8,
+          "people_or_blocks": 160,
+          "predictions": 207106,
+          "model_log_loss": 1.1679,
+          "model_log_loss_ci": [
+            1.0806,
+            1.2644
+          ],
+          "best_naive": "online_base",
+          "best_naive_log_loss": 0.655,
+          "model_minus_best_naive": 0.513,
+          "model_minus_best_naive_ci": [
+            0.4339,
+            0.6023
+          ],
+          "verdict": "a worse",
+          "calibration_slope": -0.211,
+          "calibration_slope_ci": [
+            -0.248,
+            -0.168
+          ],
+          "calibration_intercept": -0.896,
+          "calibration_intercept_ci": [
+            -1.002,
+            -0.792
+          ],
+          "ece": 0.2762,
+          "guard_flags": "8 of 8"
+        },
+        {
+          "world": "error risk, no drift",
+          "deployments": 8,
+          "people_or_blocks": 320,
+          "predictions": 32000,
+          "model_log_loss": 0.2723,
+          "model_log_loss_ci": [
+            0.266,
+            0.2785
+          ],
+          "best_naive": "online_base",
+          "best_naive_log_loss": 0.3833,
+          "model_minus_best_naive": -0.111,
+          "model_minus_best_naive_ci": [
+            -0.1166,
+            -0.1057
+          ],
+          "verdict": "a better",
+          "calibration_slope": 0.959,
+          "calibration_slope_ci": [
+            0.932,
+            0.989
+          ],
+          "calibration_intercept": -0.111,
+          "calibration_intercept_ci": [
+            -0.174,
+            -0.047
+          ],
+          "ece": 0.0115,
+          "guard_flags": "0 of 8"
+        },
+        {
+          "world": "error risk, rule change at case 1,500",
+          "deployments": 8,
+          "people_or_blocks": 320,
+          "predictions": 32000,
+          "model_log_loss": 0.3799,
+          "model_log_loss_ci": [
+            0.3674,
+            0.3929
+          ],
+          "best_naive": "online_base",
+          "best_naive_log_loss": 0.5297,
+          "model_minus_best_naive": -0.1498,
+          "model_minus_best_naive_ci": [
+            -0.1572,
+            -0.1424
+          ],
+          "verdict": "a better",
+          "calibration_slope": 1.02,
+          "calibration_slope_ci": [
+            0.989,
+            1.044
+          ],
+          "calibration_intercept": 0.666,
+          "calibration_intercept_ci": [
+            0.592,
+            0.74
+          ],
+          "ece": 0.0667,
+          "guard_flags": "0 of 8"
+        }
+      ],
+      "guard": [
+        {
+          "world": "v1 world (fresh seeds, no shift)",
+          "flags": 0,
+          "of": 8,
+          "flag_rate_ci": [
+            0.0,
+            0.369
+          ],
+          "always_model": 0.4449,
+          "always_fallback": 0.5254,
+          "guarded": 0.4449,
+          "oracle": 0.4449,
+          "regret_always_model": 0.0,
+          "regret_guarded": 0.0,
+          "guarded_minus_always_model": 0.0,
+          "guarded_minus_always_model_ci": [
+            0.0,
+            0.0
+          ],
+          "share_on_fallback": 0.0
+        },
+        {
+          "world": "shifted: markov",
+          "flags": 8,
+          "of": 8,
+          "flag_rate_ci": [
+            0.631,
+            1.0
+          ],
+          "always_model": 0.9401,
+          "always_fallback": 0.6174,
+          "guarded": 0.6306,
+          "oracle": 0.6174,
+          "regret_always_model": 0.3227,
+          "regret_guarded": 0.0132,
+          "guarded_minus_always_model": -0.3095,
+          "guarded_minus_always_model_ci": [
+            -0.4339,
+            -0.1957
+          ],
+          "share_on_fallback": 0.938
+        },
+        {
+          "world": "shifted: latent skill",
+          "flags": 8,
+          "of": 8,
+          "flag_rate_ci": [
+            0.631,
+            1.0
+          ],
+          "always_model": 0.9416,
+          "always_fallback": 0.617,
+          "guarded": 0.6791,
+          "oracle": 0.617,
+          "regret_always_model": 0.3246,
+          "regret_guarded": 0.0622,
+          "guarded_minus_always_model": -0.2624,
+          "guarded_minus_always_model_ci": [
+            -0.3377,
+            -0.1941
+          ],
+          "share_on_fallback": 0.858
+        },
+        {
+          "world": "shifted: process trace",
+          "flags": 8,
+          "of": 8,
+          "flag_rate_ci": [
+            0.631,
+            1.0
+          ],
+          "always_model": 1.0985,
+          "always_fallback": 0.648,
+          "guarded": 0.661,
+          "oracle": 0.648,
+          "regret_always_model": 0.4505,
+          "regret_guarded": 0.013,
+          "guarded_minus_always_model": -0.4375,
+          "guarded_minus_always_model_ci": [
+            -0.5941,
+            -0.2925
+          ],
+          "share_on_fallback": 0.96
+        },
+        {
+          "world": "error risk, no drift",
+          "flags": 0,
+          "of": 8,
+          "flag_rate_ci": [
+            0.0,
+            0.369
+          ],
+          "always_model": 0.2723,
+          "always_fallback": 0.3833,
+          "guarded": 0.2723,
+          "oracle": 0.2723,
+          "regret_always_model": 0.0,
+          "regret_guarded": 0.0,
+          "guarded_minus_always_model": 0.0,
+          "guarded_minus_always_model_ci": [
+            0.0,
+            0.0
+          ],
+          "share_on_fallback": 0.0
+        },
+        {
+          "world": "error risk, rule change at case 1,500",
+          "flags": 0,
+          "of": 8,
+          "flag_rate_ci": [
+            0.0,
+            0.369
+          ],
+          "always_model": 0.3799,
+          "always_fallback": 0.5297,
+          "guarded": 0.3799,
+          "oracle": 0.3799,
+          "regret_always_model": 0.0,
+          "regret_guarded": 0.0,
+          "guarded_minus_always_model": 0.0,
+          "guarded_minus_always_model_ci": [
+            0.0,
+            0.0
+          ],
+          "share_on_fallback": 0.0
+        }
+      ],
+      "guard_sensitivity": [
+        {
+          "world": "v1 world (fresh seeds, no shift)",
+          "lambda": 0.4,
+          "threshold": 10.0,
+          "flags": 0,
+          "of": 8,
+          "guarded_minus_always_model": 0.0,
+          "registered": false
+        },
+        {
+          "world": "v1 world (fresh seeds, no shift)",
+          "lambda": 0.4,
+          "threshold": 20.0,
+          "flags": 0,
+          "of": 8,
+          "guarded_minus_always_model": 0.0,
+          "registered": false
+        },
+        {
+          "world": "v1 world (fresh seeds, no shift)",
+          "lambda": 0.4,
+          "threshold": 50.0,
+          "flags": 0,
+          "of": 8,
+          "guarded_minus_always_model": 0.0,
+          "registered": false
+        },
+        {
+          "world": "v1 world (fresh seeds, no shift)",
+          "lambda": 0.8,
+          "threshold": 10.0,
+          "flags": 0,
+          "of": 8,
+          "guarded_minus_always_model": 0.0,
+          "registered": false
+        },
+        {
+          "world": "v1 world (fresh seeds, no shift)",
+          "lambda": 0.8,
+          "threshold": 20.0,
+          "flags": 0,
+          "of": 8,
+          "guarded_minus_always_model": 0.0,
+          "registered": true
+        },
+        {
+          "world": "v1 world (fresh seeds, no shift)",
+          "lambda": 0.8,
+          "threshold": 50.0,
+          "flags": 0,
+          "of": 8,
+          "guarded_minus_always_model": 0.0,
+          "registered": false
+        },
+        {
+          "world": "shifted: markov",
+          "lambda": 0.4,
+          "threshold": 10.0,
+          "flags": 8,
+          "of": 8,
+          "guarded_minus_always_model": -0.3035,
+          "registered": false
+        },
+        {
+          "world": "shifted: markov",
+          "lambda": 0.4,
+          "threshold": 20.0,
+          "flags": 8,
+          "of": 8,
+          "guarded_minus_always_model": -0.2976,
+          "registered": false
+        },
+        {
+          "world": "shifted: markov",
+          "lambda": 0.4,
+          "threshold": 50.0,
+          "flags": 8,
+          "of": 8,
+          "guarded_minus_always_model": -0.2884,
+          "registered": false
+        },
+        {
+          "world": "shifted: markov",
+          "lambda": 0.8,
+          "threshold": 10.0,
+          "flags": 8,
+          "of": 8,
+          "guarded_minus_always_model": -0.3121,
+          "registered": false
+        },
+        {
+          "world": "shifted: markov",
+          "lambda": 0.8,
+          "threshold": 20.0,
+          "flags": 8,
+          "of": 8,
+          "guarded_minus_always_model": -0.3095,
+          "registered": true
+        },
+        {
+          "world": "shifted: markov",
+          "lambda": 0.8,
+          "threshold": 50.0,
+          "flags": 8,
+          "of": 8,
+          "guarded_minus_always_model": -0.3045,
+          "registered": false
+        },
+        {
+          "world": "shifted: latent skill",
+          "lambda": 0.4,
+          "threshold": 10.0,
+          "flags": 8,
+          "of": 8,
+          "guarded_minus_always_model": -0.2554,
+          "registered": false
+        },
+        {
+          "world": "shifted: latent skill",
+          "lambda": 0.4,
+          "threshold": 20.0,
+          "flags": 8,
+          "of": 8,
+          "guarded_minus_always_model": -0.2428,
+          "registered": false
+        },
+        {
+          "world": "shifted: latent skill",
+          "lambda": 0.4,
+          "threshold": 50.0,
+          "flags": 8,
+          "of": 8,
+          "guarded_minus_always_model": -0.2153,
+          "registered": false
+        },
+        {
+          "world": "shifted: latent skill",
+          "lambda": 0.8,
+          "threshold": 10.0,
+          "flags": 8,
+          "of": 8,
+          "guarded_minus_always_model": -0.2723,
+          "registered": false
+        },
+        {
+          "world": "shifted: latent skill",
+          "lambda": 0.8,
+          "threshold": 20.0,
+          "flags": 8,
+          "of": 8,
+          "guarded_minus_always_model": -0.2624,
+          "registered": true
+        },
+        {
+          "world": "shifted: latent skill",
+          "lambda": 0.8,
+          "threshold": 50.0,
+          "flags": 8,
+          "of": 8,
+          "guarded_minus_always_model": -0.2539,
+          "registered": false
+        },
+        {
+          "world": "shifted: process trace",
+          "lambda": 0.4,
+          "threshold": 10.0,
+          "flags": 8,
+          "of": 8,
+          "guarded_minus_always_model": -0.4309,
+          "registered": false
+        },
+        {
+          "world": "shifted: process trace",
+          "lambda": 0.4,
+          "threshold": 20.0,
+          "flags": 8,
+          "of": 8,
+          "guarded_minus_always_model": -0.426,
+          "registered": false
+        },
+        {
+          "world": "shifted: process trace",
+          "lambda": 0.4,
+          "threshold": 50.0,
+          "flags": 8,
+          "of": 8,
+          "guarded_minus_always_model": -0.4192,
+          "registered": false
+        },
+        {
+          "world": "shifted: process trace",
+          "lambda": 0.8,
+          "threshold": 10.0,
+          "flags": 8,
+          "of": 8,
+          "guarded_minus_always_model": -0.4411,
+          "registered": false
+        },
+        {
+          "world": "shifted: process trace",
+          "lambda": 0.8,
+          "threshold": 20.0,
+          "flags": 8,
+          "of": 8,
+          "guarded_minus_always_model": -0.4375,
+          "registered": true
+        },
+        {
+          "world": "shifted: process trace",
+          "lambda": 0.8,
+          "threshold": 50.0,
+          "flags": 8,
+          "of": 8,
+          "guarded_minus_always_model": -0.433,
+          "registered": false
+        },
+        {
+          "world": "error risk, no drift",
+          "lambda": 0.4,
+          "threshold": 10.0,
+          "flags": 0,
+          "of": 8,
+          "guarded_minus_always_model": 0.0,
+          "registered": false
+        },
+        {
+          "world": "error risk, no drift",
+          "lambda": 0.4,
+          "threshold": 20.0,
+          "flags": 0,
+          "of": 8,
+          "guarded_minus_always_model": 0.0,
+          "registered": false
+        },
+        {
+          "world": "error risk, no drift",
+          "lambda": 0.4,
+          "threshold": 50.0,
+          "flags": 0,
+          "of": 8,
+          "guarded_minus_always_model": 0.0,
+          "registered": false
+        },
+        {
+          "world": "error risk, no drift",
+          "lambda": 0.8,
+          "threshold": 10.0,
+          "flags": 0,
+          "of": 8,
+          "guarded_minus_always_model": 0.0,
+          "registered": false
+        },
+        {
+          "world": "error risk, no drift",
+          "lambda": 0.8,
+          "threshold": 20.0,
+          "flags": 0,
+          "of": 8,
+          "guarded_minus_always_model": 0.0,
+          "registered": true
+        },
+        {
+          "world": "error risk, no drift",
+          "lambda": 0.8,
+          "threshold": 50.0,
+          "flags": 0,
+          "of": 8,
+          "guarded_minus_always_model": 0.0,
+          "registered": false
+        },
+        {
+          "world": "error risk, rule change at case 1,500",
+          "lambda": 0.4,
+          "threshold": 10.0,
+          "flags": 0,
+          "of": 8,
+          "guarded_minus_always_model": 0.0,
+          "registered": false
+        },
+        {
+          "world": "error risk, rule change at case 1,500",
+          "lambda": 0.4,
+          "threshold": 20.0,
+          "flags": 0,
+          "of": 8,
+          "guarded_minus_always_model": 0.0,
+          "registered": false
+        },
+        {
+          "world": "error risk, rule change at case 1,500",
+          "lambda": 0.4,
+          "threshold": 50.0,
+          "flags": 0,
+          "of": 8,
+          "guarded_minus_always_model": 0.0,
+          "registered": false
+        },
+        {
+          "world": "error risk, rule change at case 1,500",
+          "lambda": 0.8,
+          "threshold": 10.0,
+          "flags": 0,
+          "of": 8,
+          "guarded_minus_always_model": 0.0,
+          "registered": false
+        },
+        {
+          "world": "error risk, rule change at case 1,500",
+          "lambda": 0.8,
+          "threshold": 20.0,
+          "flags": 0,
+          "of": 8,
+          "guarded_minus_always_model": 0.0,
+          "registered": true
+        },
+        {
+          "world": "error risk, rule change at case 1,500",
+          "lambda": 0.8,
+          "threshold": 50.0,
+          "flags": 0,
+          "of": 8,
+          "guarded_minus_always_model": 0.0,
+          "registered": false
+        }
+      ],
+      "recalibration": {
+        "claims": [
+          {
+            "id": "R1",
+            "claim": "Error risk, rule change: after the change the recalibrated forecast beats the frozen model on log loss",
+            "result": "passed",
+            "evidence": "after the change, recal minus the frozen model -0.0316 [-0.0346, -0.0284] over 20,000 cases"
+          },
+          {
+            "id": "R2",
+            "claim": "No harm without a change: in the v1 world and the error-risk world with no change, recal is not worse than the frozen model by more than 0.005 nats",
+            "result": "passed",
+            "evidence": "route no drift +0.0003 [-0.0002, 0.0007]; v1 +0.0000 [-0.0018, 0.0017]"
+          },
+          {
+            "id": "R3",
+            "claim": "Shifted hazard worlds: recal beats the frozen model in each of the three families",
+            "result": "passed",
+            "evidence": "latent skill -0.5284 [-0.5895, -0.4683]; markov -0.4865 [-0.5346, -0.436]; process trace -0.5420 [-0.6048, -0.4813]"
+          },
+          {
+            "id": "R4",
+            "claim": "Calibration is restored: in the drift world after the change the interval of recal's calibration intercept contains 0",
+            "result": "not passed",
+            "evidence": "intercept +0.613 [0.544, 0.69], slope 1.025 [0.992, 1.062]; the frozen model's intercept was +0.95"
+          },
+          {
+            "id": "R5",
+            "claim": "Error risk, rule change: after the change recal_w beats the frozen model and beats recal on log loss",
+            "result": "passed",
+            "evidence": "after the change, recal_w minus the frozen model -0.0368 [-0.0407, -0.0327]; minus recal -0.0052 [-0.0062, -0.004]"
+          },
+          {
+            "id": "R6",
+            "claim": "Error risk, rule change: after the change the interval of recal_w's calibration intercept contains 0",
+            "result": "not passed",
+            "evidence": "intercept +0.451 [0.377, 0.535], slope 1.008 [0.976, 1.048]"
+          },
+          {
+            "id": "R7",
+            "claim": "No harm for recal_w: in the v1 world and the error-risk world with no change it is not worse than the frozen model by more than 0.01 nats",
+            "result": "passed",
+            "evidence": "route no drift +0.0004 [-0.0001, 0.0008]; v1 -0.0009 [-0.0023, 0.0003]"
+          }
+        ],
+        "worlds": [
+          {
+            "world": "v1 world (fresh seeds, no shift)",
+            "model_log_loss": 0.4386,
+            "recal_log_loss": 0.4386,
+            "recal_w_log_loss": 0.4376,
+            "online_base_log_loss": 0.5234,
+            "recal_minus_model": 0.0,
+            "recal_minus_model_ci": [
+              -0.0018,
+              0.0017
+            ],
+            "recal_w_minus_model": -0.0009,
+            "recal_w_minus_model_ci": [
+              -0.0023,
+              0.0003
+            ],
+            "best_naive": "frozen_tsp",
+            "recal_minus_best_naive": -0.0834,
+            "recal_minus_best_naive_ci": [
+              -0.0906,
+              -0.0765
+            ],
+            "recal_verdict_vs_best_naive": "a better",
+            "recal_intercept": -0.108,
+            "model_intercept": 0.113,
+            "recal_slope": 1.014,
+            "model_slope": 1.04
+          },
+          {
+            "world": "shifted: markov",
+            "model_log_loss": 1.0841,
+            "recal_log_loss": 0.5976,
+            "recal_w_log_loss": 0.6029,
+            "online_base_log_loss": 0.625,
+            "recal_minus_model": -0.4865,
+            "recal_minus_model_ci": [
+              -0.5346,
+              -0.436
+            ],
+            "recal_w_minus_model": -0.4813,
+            "recal_w_minus_model_ci": [
+              -0.5292,
+              -0.431
+            ],
+            "best_naive": "online_base",
+            "recal_minus_best_naive": -0.0274,
+            "recal_minus_best_naive_ci": [
+              -0.0325,
+              -0.0224
+            ],
+            "recal_verdict_vs_best_naive": "a better",
+            "recal_intercept": -0.008,
+            "model_intercept": -1.359,
+            "recal_slope": 1.002,
+            "model_slope": -0.372
+          },
+          {
+            "world": "shifted: latent skill",
+            "model_log_loss": 1.1909,
+            "recal_log_loss": 0.6625,
+            "recal_w_log_loss": 0.6658,
+            "online_base_log_loss": 0.6731,
+            "recal_minus_model": -0.5284,
+            "recal_minus_model_ci": [
+              -0.5895,
+              -0.4683
+            ],
+            "recal_w_minus_model": -0.5251,
+            "recal_w_minus_model_ci": [
+              -0.5861,
+              -0.465
+            ],
+            "best_naive": "online_base",
+            "recal_minus_best_naive": -0.0106,
+            "recal_minus_best_naive_ci": [
+              -0.0151,
+              -0.0062
+            ],
+            "recal_verdict_vs_best_naive": "a better",
+            "recal_intercept": -0.057,
+            "model_intercept": -0.771,
+            "recal_slope": 0.92,
+            "model_slope": -0.23
+          },
+          {
+            "world": "shifted: process trace",
+            "model_log_loss": 1.1941,
+            "recal_log_loss": 0.6521,
+            "recal_w_log_loss": 0.6556,
+            "online_base_log_loss": 0.6579,
+            "recal_minus_model": -0.542,
+            "recal_minus_model_ci": [
+              -0.6048,
+              -0.4813
+            ],
+            "recal_w_minus_model": -0.5385,
+            "recal_w_minus_model_ci": [
+              -0.6006,
+              -0.477
+            ],
+            "best_naive": "online_base",
+            "recal_minus_best_naive": -0.0059,
+            "recal_minus_best_naive_ci": [
+              -0.0094,
+              -0.0026
+            ],
+            "recal_verdict_vs_best_naive": "a better",
+            "recal_intercept": -0.005,
+            "model_intercept": -0.866,
+            "recal_slope": 0.962,
+            "model_slope": -0.215
+          },
+          {
+            "world": "error risk, no drift",
+            "model_log_loss": 0.2707,
+            "recal_log_loss": 0.2709,
+            "recal_w_log_loss": 0.271,
+            "online_base_log_loss": 0.384,
+            "recal_minus_model": 0.0003,
+            "recal_minus_model_ci": [
+              -0.0002,
+              0.0007
+            ],
+            "recal_w_minus_model": 0.0004,
+            "recal_w_minus_model_ci": [
+              -0.0001,
+              0.0008
+            ],
+            "best_naive": "online_base",
+            "recal_minus_best_naive": -0.1131,
+            "recal_minus_best_naive_ci": [
+              -0.1188,
+              -0.1077
+            ],
+            "recal_verdict_vs_best_naive": "a better",
+            "recal_intercept": -0.068,
+            "model_intercept": -0.125,
+            "recal_slope": 0.97,
+            "model_slope": 0.957
+          },
+          {
+            "world": "error risk, rule change at case 1,500",
+            "model_log_loss": 0.3935,
+            "recal_log_loss": 0.3738,
+            "recal_w_log_loss": 0.3706,
+            "online_base_log_loss": 0.5324,
+            "recal_minus_model": -0.0196,
+            "recal_minus_model_ci": [
+              -0.0222,
+              -0.0169
+            ],
+            "recal_w_minus_model": -0.0229,
+            "recal_w_minus_model_ci": [
+              -0.0262,
+              -0.0195
+            ],
+            "best_naive": "online_base",
+            "recal_minus_best_naive": -0.1585,
+            "recal_minus_best_naive_ci": [
+              -0.1659,
+              -0.1512
+            ],
+            "recal_verdict_vs_best_naive": "a better",
+            "recal_intercept": 0.441,
+            "model_intercept": 0.615,
+            "recal_slope": 1.028,
+            "model_slope": 0.972
+          }
+        ],
+        "statement": "Recalibrating the frozen model online from resolved outcomes: 5 of 7 registered claims passed; the ones that did not are listed. Registered after the first held-out result, on new seeds.",
+        "design": {
+          "bootstrap_B": 2000,
+          "calibration_draws": 500,
+          "deployments": [
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ],
+          "refit_every": 200,
+          "ridge": 20.0
+        },
+        "split_label": "held-out (single frozen run)"
+      },
+      "conformal": {
+        "claims": [
+          {
+            "id": "K1a",
+            "claim": "v1 world: the standard arm's coverage of stuck set is consistent with the nominal 90%",
+            "result": "passed",
+            "evidence": "coverage 0.900 [0.895, 0.906] against a nominal 0.90"
+          },
+          {
+            "id": "K1b",
+            "claim": "v1 world: the standard arm's coverage of time to next progress is consistent with the nominal 90%",
+            "result": "not passed",
+            "evidence": "coverage 0.943 [0.939, 0.947] against a nominal 0.90"
+          },
+          {
+            "id": "K1c",
+            "claim": "v1 world: the standard arm's coverage of time to finish is consistent with the nominal 90%",
+            "result": "passed",
+            "evidence": "coverage 0.895 [0.882, 0.907] against a nominal 0.90"
+          },
+          {
+            "id": "K2a",
+            "claim": "shifted worlds: the standard arm under-covers stuck set in at least 2 of 3",
+            "result": "passed",
+            "evidence": "3 of 3 worlds; latent skill 0.704 [0.681, 0.727]; markov 0.737 [0.71, 0.762]; process trace 0.708 [0.685, 0.729]"
+          },
+          {
+            "id": "K2b",
+            "claim": "shifted worlds: the standard arm under-covers time to next progress in at least 2 of 3",
+            "result": "passed",
+            "evidence": "3 of 3 worlds; latent skill 0.715 [0.685, 0.743]; markov 0.744 [0.713, 0.775]; process trace 0.712 [0.682, 0.738]"
+          },
+          {
+            "id": "K2c",
+            "claim": "shifted worlds: the standard arm under-covers time to finish in at least 2 of 3",
+            "result": "passed",
+            "evidence": "3 of 3 worlds; latent skill 0.382 [0.341, 0.42]; markov 0.373 [0.337, 0.409]; process trace 0.524 [0.497, 0.553]"
+          },
+          {
+            "id": "K3",
+            "claim": "v1 world: the models' ranges are shorter than the baselines' at the same nominal level (T1 against Kaplan-Meier, T2 against the constant)",
+            "result": "passed",
+            "evidence": "two-minute range length, model minus Kaplan-Meier -0.677 steps [-0.7, -0.654]; finish-time half-width 0.636 against 0.642 (log seconds)"
+          },
+          {
+            "id": "K4",
+            "claim": "every shifted deployment whose stuck-set coverage is below 0.85 is one the guard flagged, and the guard flags at most 1 of 8 v1 deployments",
+            "result": "passed",
+            "evidence": "23 shifted deployments fell below 0.85 coverage and 0 of them were not flagged; the guard flagged 0 of 8 v1 deployments"
+          },
+          {
+            "id": "K5a",
+            "claim": "shifted worlds: recalibrating the quantile on one deployment of the new world restores stuck set coverage in at least 2 of 3",
+            "result": "passed",
+            "evidence": "2 of 3 worlds; latent skill 0.921 [0.907, 0.934]; markov 0.898 [0.881, 0.913]; process trace 0.887 [0.869, 0.902]"
+          },
+          {
+            "id": "K5b",
+            "claim": "shifted worlds: recalibrating the quantile on one deployment of the new world restores time to next progress coverage in at least 2 of 3",
+            "result": "not passed",
+            "evidence": "1 of 3 worlds; latent skill 0.946 [0.934, 0.957]; markov 0.944 [0.932, 0.954]; process trace 0.913 [0.893, 0.929]"
+          },
+          {
+            "id": "K5c",
+            "claim": "shifted worlds: recalibrating the quantile on one deployment of the new world restores time to finish coverage in at least 2 of 3",
+            "result": "not passed",
+            "evidence": "0 of 3 worlds; latent skill 0.732 [0.673, 0.782]; markov 0.815 [0.761, 0.862]; process trace 0.833 [0.81, 0.855]"
+          }
+        ],
+        "standard": [
+          {
+            "world": "v1 world (fresh seeds, no shift)",
+            "people": 32,
+            "origins": 62846,
+            "stuck_set": {
+              "coverage": 0.9,
+              "ci": [
+                0.895,
+                0.906
+              ],
+              "status": "consistent",
+              "single_label_share": 0.738,
+              "both_label_share": 0.262,
+              "baseline_single_label_share": 0.0
+            },
+            "finish": {
+              "coverage": 0.895,
+              "ci": [
+                0.882,
+                0.907
+              ],
+              "status": "consistent",
+              "factor": 3.57,
+              "baseline_factor": 3.61,
+              "baseline_coverage": 0.897,
+              "recentred_coverage": 0.897,
+              "recentred_ci": [
+                0.881,
+                0.911
+              ],
+              "recentred_factor": 3.58
+            },
+            "next_progress": {
+              "coverage": 0.943,
+              "ci": [
+                0.939,
+                0.947
+              ],
+              "status": "over",
+              "mean_length_steps": 3.32,
+              "baseline_length_steps": 4.0,
+              "baseline_coverage": 0.939,
+              "origins": 25953,
+              "share_excluded": 0.587
+            }
+          },
+          {
+            "world": "shifted: markov",
+            "people": 160,
+            "origins": 247277,
+            "stuck_set": {
+              "coverage": 0.737,
+              "ci": [
+                0.71,
+                0.762
+              ],
+              "status": "under",
+              "single_label_share": 0.762,
+              "both_label_share": 0.238,
+              "baseline_single_label_share": 0.0
+            },
+            "finish": {
+              "coverage": 0.373,
+              "ci": [
+                0.337,
+                0.409
+              ],
+              "status": "under",
+              "factor": 3.57,
+              "baseline_factor": 3.61,
+              "baseline_coverage": 0.421,
+              "recentred_coverage": 0.354,
+              "recentred_ci": [
+                0.32,
+                0.388
+              ],
+              "recentred_factor": 3.58
+            },
+            "next_progress": {
+              "coverage": 0.744,
+              "ci": [
+                0.713,
+                0.775
+              ],
+              "status": "under",
+              "mean_length_steps": 3.07,
+              "baseline_length_steps": 4.0,
+              "baseline_coverage": 0.796,
+              "origins": 197066,
+              "share_excluded": 0.203
+            }
+          },
+          {
+            "world": "shifted: latent skill",
+            "people": 160,
+            "origins": 222275,
+            "stuck_set": {
+              "coverage": 0.704,
+              "ci": [
+                0.681,
+                0.727
+              ],
+              "status": "under",
+              "single_label_share": 0.79,
+              "both_label_share": 0.21,
+              "baseline_single_label_share": 0.0
+            },
+            "finish": {
+              "coverage": 0.382,
+              "ci": [
+                0.341,
+                0.42
+              ],
+              "status": "under",
+              "factor": 3.57,
+              "baseline_factor": 3.61,
+              "baseline_coverage": 0.422,
+              "recentred_coverage": 0.364,
+              "recentred_ci": [
+                0.325,
+                0.401
+              ],
+              "recentred_factor": 3.58
+            },
+            "next_progress": {
+              "coverage": 0.715,
+              "ci": [
+                0.685,
+                0.743
+              ],
+              "status": "under",
+              "mean_length_steps": 3.0,
+              "baseline_length_steps": 4.0,
+              "baseline_coverage": 0.773,
+              "origins": 176283,
+              "share_excluded": 0.207
+            }
+          },
+          {
+            "world": "shifted: process trace",
+            "people": 160,
+            "origins": 223346,
+            "stuck_set": {
+              "coverage": 0.708,
+              "ci": [
+                0.685,
+                0.729
+              ],
+              "status": "under",
+              "single_label_share": 0.867,
+              "both_label_share": 0.133,
+              "baseline_single_label_share": 0.0
+            },
+            "finish": {
+              "coverage": 0.524,
+              "ci": [
+                0.497,
+                0.553
+              ],
+              "status": "under",
+              "factor": 3.57,
+              "baseline_factor": 3.61,
+              "baseline_coverage": 0.561,
+              "recentred_coverage": 0.502,
+              "recentred_ci": [
+                0.475,
+                0.531
+              ],
+              "recentred_factor": 3.58
+            },
+            "next_progress": {
+              "coverage": 0.712,
+              "ci": [
+                0.682,
+                0.738
+              ],
+              "status": "under",
+              "mean_length_steps": 2.8,
+              "baseline_length_steps": 4.0,
+              "baseline_coverage": 0.779,
+              "origins": 159983,
+              "share_excluded": 0.284
+            }
+          }
+        ],
+        "recalibrated": [
+          {
+            "world": "shifted: markov",
+            "people": 160,
+            "origins": 247277,
+            "stuck_set": {
+              "coverage": 0.898,
+              "ci": [
+                0.881,
+                0.913
+              ],
+              "status": "consistent",
+              "single_label_share": 0.202,
+              "both_label_share": 0.798,
+              "baseline_single_label_share": 0.0
+            },
+            "finish": {
+              "coverage": 0.815,
+              "ci": [
+                0.761,
+                0.862
+              ],
+              "status": "under",
+              "factor": 42.68,
+              "baseline_factor": 36.07,
+              "baseline_coverage": 0.827,
+              "recentred_coverage": 0.827,
+              "recentred_ci": [
+                0.777,
+                0.871
+              ],
+              "recentred_factor": 11.87
+            },
+            "next_progress": {
+              "coverage": 0.944,
+              "ci": [
+                0.932,
+                0.954
+              ],
+              "status": "over",
+              "mean_length_steps": 4.92,
+              "baseline_length_steps": 5.0,
+              "baseline_coverage": 1.0,
+              "origins": 197066,
+              "share_excluded": 0.203
+            }
+          },
+          {
+            "world": "shifted: latent skill",
+            "people": 160,
+            "origins": 222275,
+            "stuck_set": {
+              "coverage": 0.921,
+              "ci": [
+                0.907,
+                0.934
+              ],
+              "status": "over",
+              "single_label_share": 0.128,
+              "both_label_share": 0.872,
+              "baseline_single_label_share": 0.0
+            },
+            "finish": {
+              "coverage": 0.732,
+              "ci": [
+                0.673,
+                0.782
+              ],
+              "status": "under",
+              "factor": 24.55,
+              "baseline_factor": 23.21,
+              "baseline_coverage": 0.758,
+              "recentred_coverage": 0.751,
+              "recentred_ci": [
+                0.694,
+                0.798
+              ],
+              "recentred_factor": 9.49
+            },
+            "next_progress": {
+              "coverage": 0.946,
+              "ci": [
+                0.934,
+                0.957
+              ],
+              "status": "over",
+              "mean_length_steps": 4.92,
+              "baseline_length_steps": 5.0,
+              "baseline_coverage": 1.0,
+              "origins": 176283,
+              "share_excluded": 0.207
+            }
+          },
+          {
+            "world": "shifted: process trace",
+            "people": 160,
+            "origins": 223346,
+            "stuck_set": {
+              "coverage": 0.887,
+              "ci": [
+                0.869,
+                0.902
+              ],
+              "status": "consistent",
+              "single_label_share": 0.218,
+              "both_label_share": 0.782,
+              "baseline_single_label_share": 0.0
+            },
+            "finish": {
+              "coverage": 0.833,
+              "ci": [
+                0.81,
+                0.855
+              ],
+              "status": "under",
+              "factor": 18.1,
+              "baseline_factor": 16.24,
+              "baseline_coverage": 0.839,
+              "recentred_coverage": 0.836,
+              "recentred_ci": [
+                0.815,
+                0.858
+              ],
+              "recentred_factor": 8.37
+            },
+            "next_progress": {
+              "coverage": 0.913,
+              "ci": [
+                0.893,
+                0.929
+              ],
+              "status": "consistent",
+              "mean_length_steps": 4.88,
+              "baseline_length_steps": 5.0,
+              "baseline_coverage": 1.0,
+              "origins": 159983,
+              "share_excluded": 0.284
+            }
+          }
+        ],
+        "guard_link": [
+          {
+            "world": "v1 world (fresh seeds, no shift)",
+            "deployments": 8,
+            "below_line": 0,
+            "below_line_and_flagged": 0,
+            "flags": 0,
+            "of": 8,
+            "line": 0.85
+          },
+          {
+            "world": "shifted: markov",
+            "deployments": 8,
+            "below_line": 7,
+            "below_line_and_flagged": 7,
+            "flags": 8,
+            "of": 8,
+            "line": 0.85
+          },
+          {
+            "world": "shifted: latent skill",
+            "deployments": 8,
+            "below_line": 8,
+            "below_line_and_flagged": 8,
+            "flags": 8,
+            "of": 8,
+            "line": 0.85
+          },
+          {
+            "world": "shifted: process trace",
+            "deployments": 8,
+            "below_line": 8,
+            "below_line_and_flagged": 8,
+            "flags": 8,
+            "of": 8,
+            "line": 0.85
+          }
+        ],
+        "statement": "Ranges and sets were calibrated once, at deployment, to cover 90%. For new people in the world they were calibrated for, the stuck set covered 90.0%, and for the worlds that changed 70.4% to 73.7%; the guard flagged 23 of the 23 shifted deployments whose stuck-set coverage fell below 85%. 8 of 11 registered claims passed (K1b, K5b, K5c did not).",
+        "design": {
+          "alpha": 0.1,
+          "bootstrap_B": 2000,
+          "calibration": {
+            "origins": 31941,
+            "people": 16,
+            "t1_origins": 13175
+          },
+          "calibration_k": [
+            31,
+            32,
+            33,
+            34
+          ],
+          "deployments": [
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48
+          ],
+          "low_coverage_line": 0.85,
+          "nominal": 0.9,
+          "recalibration_k": 51,
+          "ridge": 1.0
+        },
+        "split_label": "held-out (single frozen run)"
+      },
+      "reliability_v1": [
+        {
+          "p_mean": 0.057756430041609436,
+          "freq": 0.051105242566510174,
+          "n": 20448,
+          "freq_lo": 0.0481703501311468,
+          "freq_hi": 0.054208766342868295,
+          "lo": 0.0,
+          "hi": 0.1
+        },
+        {
+          "p_mean": 0.14939678186328148,
+          "freq": 0.15413863702837086,
+          "n": 17095,
+          "freq_lo": 0.14880362773792402,
+          "freq_hi": 0.15962905008540904,
+          "lo": 0.1,
+          "hi": 0.2
+        },
+        {
+          "p_mean": 0.25829400413410275,
+          "freq": 0.31716464558069757,
+          "n": 7999,
+          "freq_lo": 0.3070561121853648,
+          "freq_hi": 0.3274487052534362,
+          "lo": 0.2,
+          "hi": 0.3
+        },
+        {
+          "p_mean": 0.3517428468739431,
+          "freq": 0.38607905720599067,
+          "n": 8146,
+          "freq_lo": 0.37556279141295185,
+          "freq_hi": 0.39670271713982824,
+          "lo": 0.3,
+          "hi": 0.4
+        },
+        {
+          "p_mean": 0.43671744073167973,
+          "freq": 0.48412903225806453,
+          "n": 3875,
+          "freq_lo": 0.46841765923194806,
+          "freq_hi": 0.4998718413042776,
+          "lo": 0.4,
+          "hi": 0.5
+        },
+        {
+          "p_mean": 0.5485799948778497,
+          "freq": 0.5330208777162335,
+          "n": 2347,
+          "freq_lo": 0.5127991054940941,
+          "freq_hi": 0.5531347325443741,
+          "lo": 0.5,
+          "hi": 0.6
+        },
+        {
+          "p_mean": 0.6434872328691938,
+          "freq": 0.5576776165011459,
+          "n": 1309,
+          "freq_lo": 0.530642317713354,
+          "freq_hi": 0.584375378433781,
+          "lo": 0.6,
+          "hi": 0.7
+        },
+        {
+          "p_mean": 0.7356625775544143,
+          "freq": 0.5910543130990416,
+          "n": 313,
+          "freq_lo": 0.5358046602438357,
+          "freq_hi": 0.6440960390275222,
+          "lo": 0.7,
+          "hi": 0.8
+        },
+        {
+          "p_mean": 0.8440305220955449,
+          "freq": 0.6575342465753424,
+          "n": 73,
+          "freq_lo": 0.5432662599276812,
+          "freq_hi": 0.7560513266068143,
+          "lo": 0.8,
+          "hi": 0.9
+        },
+        {
+          "p_mean": 0.9412857002381466,
+          "freq": 0.5,
+          "n": 26,
+          "freq_lo": 0.3206059352575905,
+          "freq_hi": 0.6793940647424095,
+          "lo": 0.9,
+          "hi": 1.0
+        }
+      ],
+      "reliability_v1_online_base": [
+        {
+          "p_mean": 0.18486737859038957,
+          "freq": 0.36764705882352944,
+          "n": 68,
+          "lo": 0.1,
+          "hi": 0.2
+        },
+        {
+          "p_mean": 0.24678917953020804,
+          "freq": 0.21015335416818082,
+          "n": 55036,
+          "lo": 0.2,
+          "hi": 0.3
+        },
+        {
+          "p_mean": 0.3193464401984678,
+          "freq": 0.2871150605178489,
+          "n": 6527,
+          "lo": 0.3,
+          "hi": 0.4
+        }
+      ],
+      "design": {
+        "bootstrap_B": 2000,
+        "calibration_draws": 500,
+        "deployments": {
+          "route": [
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18
+          ],
+          "v1": [
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18
+          ],
+          "v2": [
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18
+          ]
+        },
+        "guard": {
+          "B": 4.6,
+          "fallback": "online_base",
+          "lambda": 0.8,
+          "threshold": 20.0
+        },
+        "route": {
+          "drift_at": 1500,
+          "review_lag": 50,
+          "stream": 4000
+        },
+        "train": {
+          "base_rate": 0.20836499493414387,
+          "n_bins": 31584,
+          "pool": "v1 personas, 4 types x replicates [1, 2, 3, 4]"
+        },
+        "v2": {
+          "days": 14,
+          "people": 20
+        }
+      },
+      "split_label": "held-out (single frozen run)",
+      "code_fingerprint": "a4e821ff9c6cae071ccaa2b2193f16b05def15c0ca8367517c70add4efb1fbe2",
+      "limitations": [
+        {
+          "id": "hrt-ledger-ours",
+          "severity": "high",
+          "text": "Every world is generated by us. The shifted worlds differ in structure from the world the models were fitted on, but they are still ours; a held-out replicate catches overfitting to one noise draw, never 'the model learned our generators'."
+        },
+        {
+          "id": "hrt-ledger-same-types",
+          "severity": "medium",
+          "text": "The v1 world draws new people of the same four persona types the models were fitted on. A new type of worker, or a new kind of task, is what the shifted worlds stand in for."
+        },
+        {
+          "id": "hrt-ledger-guard-guarantee",
+          "severity": "medium",
+          "text": "The guard's bound on false flags assumes each episode's loss difference has conditional mean at most zero given the past. Episodes of one person are not independent, so the bound is a design target that the no-drift deployments check, not a proof."
+        },
+        {
+          "id": "hrt-ledger-eight",
+          "severity": "medium",
+          "text": "Eight deployments per world give wide intervals for guard counts and for the strategy comparison; counts are shown with exact intervals."
+        },
+        {
+          "id": "hrt-ledger-one-direction",
+          "severity": "medium",
+          "text": "The guard compares the model with a naive predictor. A model that drifts but stays better than that predictor is not flagged (the error-risk world after the rule change); the loss of calibration shows in the reliability table and the intercept, and nothing recalibrates the model in this version."
+        },
+        {
+          "id": "hrt-ledger-no-live",
+          "severity": "medium",
+          "text": "The ledger is built and tested, but the running product has recorded no live predictions yet, so no real prospective result exists. These are replays of generated time."
+        },
+        {
+          "id": "hrt-ledger-oracle",
+          "severity": "low",
+          "text": "The oracle strategy picks the better of two predictors in hindsight; it bounds what is possible and is not implementable."
+        }
+      ]
+    },
+    "hrt_decisions": {
+      "meta": {
+        "origin": "synthetic",
+        "n": 118,
+        "n_unit": "generated worlds",
+        "split": "fresh replicate worlds on new seeds; shipped, naive and oracle policies scored on the same world; paired bootstrap over worlds",
+        "interval_level": 0.95,
+        "note": "Primary family of 4 at the Bonferroni-adjusted level; every other cell is exploratory. Pre-registered in evals/hrt/PLAN.md; run once on held-out seeds.",
+        "generated_at": "2026-11-08T02:22:41Z"
+      },
+      "statement": "Four registered contrasts, each the shipped rule against a naive policy in fresh generated worlds, judged at the Bonferroni-adjusted level (98.75%): 4 of 4 are wins (D1, D2, D3, D4). Costs that the data cannot supply are swept, not assumed.",
+      "label": "generated worlds, held-out seeds, single frozen run",
+      "rows": [
+        {
+          "id": "D1",
+          "decision": "when to build an automation (ski rental with predictions)",
+          "unit": "manual-run equivalents per routine (lower is better)",
+          "better": "lower",
+          "shipped_rule": 9.646,
+          "naive_policy": "break even",
+          "naive_value": 11.58,
+          "oracle_value": 6.52,
+          "primary_contrast": -1.934,
+          "ci95": [
+            -2.02,
+            -1.846
+          ],
+          "ci_adjusted_98_75": [
+            -2.04,
+            -1.817
+          ],
+          "verdict": "win",
+          "share_of_naive_to_oracle_gap_closed": 0.382,
+          "share_ci": [
+            0.367,
+            0.397
+          ],
+          "replicates": 40
+        },
+        {
+          "id": "D2",
+          "decision": "which cases an expert reviews under a review budget (review routing)",
+          "unit": "escaped errors per 100 cases at the same expert cost (lower is better)",
+          "better": "lower",
+          "shipped_rule": 2.66,
+          "naive_policy": "random",
+          "naive_value": 9.032,
+          "oracle_value": 0.0,
+          "primary_contrast": -6.372,
+          "ci95": [
+            -6.558,
+            -6.191
+          ],
+          "ci_adjusted_98_75": [
+            -6.611,
+            -6.135
+          ],
+          "verdict": "win",
+          "share_of_naive_to_oracle_gap_closed": 0.706,
+          "share_ci": [
+            0.689,
+            0.723
+          ],
+          "replicates": 40
+        },
+        {
+          "id": "D3",
+          "decision": "when to start a background run (the presence window rule)",
+          "unit": "value per held-out day: completed runs minus (L/G) x collisions (higher is better)",
+          "better": "higher",
+          "shipped_rule": 15.333,
+          "naive_policy": "run whenever idle 5min",
+          "naive_value": -51.458,
+          "oracle_value": 24.526,
+          "primary_contrast": 66.792,
+          "ci95": [
+            55.739,
+            78.162
+          ],
+          "ci_adjusted_98_75": [
+            53.229,
+            80.443
+          ],
+          "verdict": "win",
+          "share_of_naive_to_oracle_gap_closed": 0.879,
+          "share_ci": [
+            0.857,
+            0.896
+          ],
+          "replicates": 32
+        },
+        {
+          "id": "D4",
+          "decision": "speak, annotate, take over or stay silent (the intervention policy)",
+          "unit": "generator reward per decision, exact in expectation (higher is better)",
+          "better": "higher",
+          "shipped_rule": 0.253,
+          "naive_policy": "rule baseline",
+          "naive_value": 0.018,
+          "oracle_value": 0.284,
+          "primary_contrast": 0.235,
+          "ci95": [
+            0.231,
+            0.238
+          ],
+          "ci_adjusted_98_75": [
+            0.23,
+            0.239
+          ],
+          "verdict": "win",
+          "share_of_naive_to_oracle_gap_closed": 0.885,
+          "share_ci": [
+            0.87,
+            0.898
+          ],
+          "replicates": 30
+        }
+      ],
+      "primary_family": {
+        "adjusted_level": 0.9875,
+        "contrasts": [
+          {
+            "ci95": [
+              -2.0199049999999996,
+              -1.8457462500000001
+            ],
+            "ci_adjusted": [
+              -2.040256875,
+              -1.8174965624999997
+            ],
+            "est": -1.9343999999999997,
+            "label": "shipped rule minus break even at b = 8",
+            "row": "D1",
+            "verdict": "win"
+          },
+          {
+            "ci95": [
+              -6.558341666666666,
+              -6.191299999999999
+            ],
+            "ci_adjusted": [
+              -6.610674999999999,
+              -6.134664583333333
+            ],
+            "est": -6.372333333333333,
+            "label": "model minus random at a 30% review budget",
+            "row": "D2",
+            "verdict": "win"
+          },
+          {
+            "ci95": [
+              55.73932291666667,
+              78.16158854166666
+            ],
+            "ci_adjusted": [
+              53.22900390625,
+              80.44300130208333
+            ],
+            "est": 66.79166666666666,
+            "label": "shipped rule minus run whenever idle 5min at L/G = 9",
+            "row": "D3",
+            "verdict": "win"
+          },
+          {
+            "ci95": [
+              0.2310449891645646,
+              0.23841772787150106
+            ],
+            "ci_adjusted": [
+              0.22987488015435553,
+              0.239225917446122
+            ],
+            "est": 0.23486701040321736,
+            "label": "bandit snapshot minus rule baseline",
+            "row": "D4",
+            "verdict": "win"
+          }
+        ],
+        "method": "Bonferroni: each primary contrast is also shown at 98.75%; a win needs the adjusted interval to exclude 0",
+        "size": 4
+      },
+      "scoreboard": [
+        {
+          "cells": {
+            "16": {
+              "contrasts": {
+                "shipped_minus_break_even": {
+                  "ci95": [
+                    -3.2858525,
+                    -2.9844987499999998
+                  ],
+                  "est": -3.1343,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "shipped rule minus break even at b = 16",
+                  "primary": false,
+                  "verdict": "win"
+                },
+                "shipped_minus_build_now": {
+                  "ci95": [
+                    2.537200000000001,
+                    2.7653050000000006
+                  ],
+                  "est": 2.6502500000000007,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "shipped rule minus build now at b = 16",
+                  "primary": false,
+                  "verdict": "loss"
+                },
+                "shipped_minus_never_build": {
+                  "ci95": [
+                    -22.629281250000002,
+                    -21.4111275
+                  ],
+                  "est": -22.02325,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "shipped rule minus never build at b = 16",
+                  "primary": false,
+                  "verdict": "win"
+                }
+              },
+              "gap_closed_vs_break_even": {
+                "ci": [
+                  0.3306783392327115,
+                  0.35766853213203803
+                ],
+                "share": 0.3442394288852279
+              },
+              "policies": {
+                "break_even": {
+                  "ci": [
+                    20.69164875,
+                    21.03081
+                  ],
+                  "est": 20.86055
+                },
+                "build_now": {
+                  "ci": [
+                    15.0256,
+                    15.123999999999995
+                  ],
+                  "est": 15.075999999999999
+                },
+                "fixed_lambda_0.2": {
+                  "ci": [
+                    15.592646250000001,
+                    15.756955
+                  ],
+                  "est": 15.677100000000001
+                },
+                "fixed_lambda_0.5": {
+                  "ci": [
+                    17.171793750000003,
+                    17.4164
+                  ],
+                  "est": 17.295650000000002
+                },
+                "never_build": {
+                  "ci": [
+                    39.119662500000004,
+                    40.34912125
+                  ],
+                  "est": 39.7495
+                },
+                "oracle_hindsight": {
+                  "ci": [
+                    11.680100000000001,
+                    11.82776
+                  ],
+                  "est": 11.75555
+                },
+                "shipped_learned_lambda": {
+                  "ci": [
+                    17.61993625,
+                    17.829055000000004
+                  ],
+                  "est": 17.72625
+                }
+              }
+            },
+            "32": {
+              "contrasts": {
+                "shipped_minus_break_even": {
+                  "ci95": [
+                    -4.69850875,
+                    -4.182238750000001
+                  ],
+                  "est": -4.43715,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "shipped rule minus break even at b = 32",
+                  "primary": false,
+                  "verdict": "win"
+                },
+                "shipped_minus_build_now": {
+                  "ci95": [
+                    -1.1781537499999999,
+                    -0.7396887499999997
+                  ],
+                  "est": -0.9531499999999996,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "shipped rule minus build now at b = 32",
+                  "primary": false,
+                  "verdict": "win"
+                },
+                "shipped_minus_never_build": {
+                  "ci95": [
+                    -11.0913225,
+                    -9.98835
+                  ],
+                  "est": -10.550650000000001,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "shipped rule minus never build at b = 32",
+                  "primary": false,
+                  "verdict": "win"
+                }
+              },
+              "gap_closed_vs_break_even": {
+                "ci": [
+                  0.3102795402660729,
+                  0.3403017636264975
+                ],
+                "share": 0.3254891892387537
+              },
+              "policies": {
+                "break_even": {
+                  "ci": [
+                    33.300599999999996,
+                    33.970423749999995
+                  ],
+                  "est": 33.636
+                },
+                "build_now": {
+                  "ci": [
+                    30.0512,
+                    30.24799999999999
+                  ],
+                  "est": 30.151999999999997
+                },
+                "fixed_lambda_0.2": {
+                  "ci": [
+                    26.534093749999997,
+                    26.926664999999996
+                  ],
+                  "est": 26.733150000000002
+                },
+                "fixed_lambda_0.5": {
+                  "ci": [
+                    28.505582500000006,
+                    28.993617500000003
+                  ],
+                  "est": 28.754
+                },
+                "never_build": {
+                  "ci": [
+                    39.119662500000004,
+                    40.34912125
+                  ],
+                  "est": 39.7495
+                },
+                "oracle_hindsight": {
+                  "ci": [
+                    19.848291250000003,
+                    20.1587075
+                  ],
+                  "est": 20.00375
+                },
+                "shipped_learned_lambda": {
+                  "ci": [
+                    29.003498750000002,
+                    29.384615
+                  ],
+                  "est": 29.198850000000004
+                }
+              }
+            },
+            "4": {
+              "contrasts": {
+                "shipped_minus_break_even": {
+                  "ci95": [
+                    -1.0799512500000001,
+                    -0.9597987500000003
+                  ],
+                  "est": -1.02025,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "shipped rule minus break even at b = 4",
+                  "primary": false,
+                  "verdict": "win"
+                },
+                "shipped_minus_build_now": {
+                  "ci95": [
+                    1.1112962499999999,
+                    1.21970375
+                  ],
+                  "est": 1.1653499999999999,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "shipped rule minus build now at b = 4",
+                  "primary": false,
+                  "verdict": "loss"
+                },
+                "shipped_minus_never_build": {
+                  "ci95": [
+                    -35.44424375,
+                    -34.1597975
+                  ],
+                  "est": -34.81515,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "shipped rule minus never build at b = 4",
+                  "primary": false,
+                  "verdict": "win"
+                }
+              },
+              "gap_closed_vs_break_even": {
+                "ci": [
+                  0.39268766931441756,
+                  0.4393640830362778
+                ],
+                "share": 0.416233196662791
+              },
+              "policies": {
+                "break_even": {
+                  "ci": [
+                    5.92745,
+                    5.980802499999999
+                  ],
+                  "est": 5.9546
+                },
+                "build_now": {
+                  "ci": [
+                    3.7564,
+                    3.780999999999999
+                  ],
+                  "est": 3.7689999999999997
+                },
+                "fixed_lambda_0.2": {
+                  "ci": [
+                    3.7564,
+                    3.780999999999999
+                  ],
+                  "est": 3.7689999999999997
+                },
+                "fixed_lambda_0.5": {
+                  "ci": [
+                    4.49239875,
+                    4.533051250000001
+                  ],
+                  "est": 4.51285
+                },
+                "never_build": {
+                  "ci": [
+                    39.119662500000004,
+                    40.34912125
+                  ],
+                  "est": 39.7495
+                },
+                "oracle_hindsight": {
+                  "ci": [
+                    3.489,
+                    3.5170500000000002
+                  ],
+                  "est": 3.50345
+                },
+                "shipped_learned_lambda": {
+                  "ci": [
+                    4.8819975,
+                    4.9863
+                  ],
+                  "est": 4.93435
+                }
+              }
+            },
+            "8": {
+              "contrasts": {
+                "shipped_minus_break_even": {
+                  "adjusted_level": 0.9875,
+                  "ci95": [
+                    -2.0199049999999996,
+                    -1.8457462500000001
+                  ],
+                  "ci_adjusted": [
+                    -2.040256875,
+                    -1.8174965624999997
+                  ],
+                  "est": -1.9343999999999997,
+                  "family_size": 4,
+                  "good_direction": "lower",
+                  "label": "shipped rule minus break even at b = 8",
+                  "primary": true,
+                  "verdict": "win"
+                },
+                "shipped_minus_build_now": {
+                  "ci95": [
+                    2.0411000000000006,
+                    2.17710125
+                  ],
+                  "est": 2.1078500000000004,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "shipped rule minus build now at b = 8",
+                  "primary": false,
+                  "verdict": "loss"
+                },
+                "shipped_minus_never_build": {
+                  "ci95": [
+                    -30.72743625,
+                    -29.45905125
+                  ],
+                  "est": -30.10365,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "shipped rule minus never build at b = 8",
+                  "primary": false,
+                  "verdict": "win"
+                }
+              },
+              "gap_closed_vs_break_even": {
+                "ci": [
+                  0.36693845097669836,
+                  0.3969944116277995
+                ],
+                "share": 0.3822698258996501
+              },
+              "policies": {
+                "break_even": {
+                  "ci": [
+                    11.506692499999998,
+                    11.651305
+                  ],
+                  "est": 11.580250000000001
+                },
+                "build_now": {
+                  "ci": [
+                    7.5128,
+                    7.561999999999998
+                  ],
+                  "est": 7.537999999999999
+                },
+                "fixed_lambda_0.2": {
+                  "ci": [
+                    8.0446,
+                    8.12175625
+                  ],
+                  "est": 8.08345
+                },
+                "fixed_lambda_0.5": {
+                  "ci": [
+                    9.176695,
+                    9.26625125
+                  ],
+                  "est": 9.222800000000001
+                },
+                "never_build": {
+                  "ci": [
+                    39.119662500000004,
+                    40.34912125
+                  ],
+                  "est": 39.7495
+                },
+                "oracle_hindsight": {
+                  "ci": [
+                    6.486698749999999,
+                    6.552202499999999
+                  ],
+                  "est": 6.51995
+                },
+                "shipped_learned_lambda": {
+                  "ci": [
+                    9.585443749999998,
+                    9.706302500000003
+                  ],
+                  "est": 9.64585
+                }
+              }
+            }
+          },
+          "decision": "when to build an automation (ski rental with predictions)",
+          "direction": "lower",
+          "id": "D1",
+          "naive": [
+            "break_even",
+            "build_now",
+            "never_build"
+          ],
+          "note": "Past forecast errors for the learned lambda come from routines in the same generated world, taken as finished; in use a routine's outcome arrives after its whole horizon.",
+          "oracle": "hindsight: min(runs, b)",
+          "primary": {
+            "adjusted_level": 0.9875,
+            "ci95": [
+              -2.0199049999999996,
+              -1.8457462500000001
+            ],
+            "ci_adjusted": [
+              -2.040256875,
+              -1.8174965624999997
+            ],
+            "est": -1.9343999999999997,
+            "family_size": 4,
+            "good_direction": "lower",
+            "label": "shipped rule minus break even at b = 8",
+            "primary": true,
+            "verdict": "win"
+          },
+          "primary_cell": "b = 8, shipped rule minus break-even",
+          "replicate_unit": "generated worlds of 500 routines",
+          "replicates": 40,
+          "shipped": "ski rental with trust lambda learned online (routines.skirental.choose_lambda)",
+          "unit": "manual-run equivalents per routine (lower is better)"
+        },
+        {
+          "cells": {
+            "0.1": {
+              "contrasts": {
+                "model_minus_agent_confidence_only": {
+                  "ci95": [
+                    -1.48,
+                    -1.1800000000000002
+                  ],
+                  "est": -1.3266666666666667,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "model minus agent confidence only at a 10% review budget",
+                  "primary": false,
+                  "verdict": "win"
+                },
+                "model_minus_disagreement_only": {
+                  "ci95": [
+                    -1.4933333333333336,
+                    -1.1500000000000001
+                  ],
+                  "est": -1.3233333333333335,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "model minus disagreement only at a 10% review budget",
+                  "primary": false,
+                  "verdict": "win"
+                },
+                "model_minus_random": {
+                  "ci95": [
+                    -4.867,
+                    -4.551
+                  ],
+                  "est": -4.709666666666667,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "model minus random at a 10% review budget",
+                  "primary": false,
+                  "verdict": "win"
+                }
+              },
+              "gap_closed_vs_random": {
+                "ci": [
+                  0.5215794041947246,
+                  0.5599858189092873
+                ],
+                "share": 0.540740173753301
+              },
+              "policies": {
+                "agent_confidence_only": {
+                  "ci": [
+                    7.883333333333333,
+                    8.58
+                  ],
+                  "est": 8.23
+                },
+                "disagreement_only": {
+                  "ci": [
+                    7.85,
+                    8.586750000000002
+                  ],
+                  "est": 8.226666666666668
+                },
+                "error_rate_per_100": {
+                  "ci": [
+                    12.483333333333334,
+                    13.306666666666667
+                  ],
+                  "est": 12.90333333333333
+                },
+                "hindsight_oracle": {
+                  "ci": [
+                    2.4833333333333334,
+                    3.306666666666666
+                  ],
+                  "est": 2.9033333333333333
+                },
+                "model": {
+                  "ci": [
+                    6.56325,
+                    7.223333333333334
+                  ],
+                  "est": 6.903333333333333
+                },
+                "prior_only_reference": {
+                  "ci": [
+                    9.370000000000001,
+                    10.17
+                  ],
+                  "est": 9.783333333333335
+                },
+                "random": {
+                  "ci": [
+                    11.235000000000001,
+                    11.976
+                  ],
+                  "est": 11.613
+                }
+              }
+            },
+            "0.2": {
+              "contrasts": {
+                "model_minus_agent_confidence_only": {
+                  "ci95": [
+                    -1.6,
+                    -1.2733333333333334
+                  ],
+                  "est": -1.4300000000000002,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "model minus agent confidence only at a 20% review budget",
+                  "primary": false,
+                  "verdict": "win"
+                },
+                "model_minus_disagreement_only": {
+                  "ci95": [
+                    -1.5900000000000003,
+                    -1.129916666666666
+                  ],
+                  "est": -1.36,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "model minus disagreement only at a 20% review budget",
+                  "primary": false,
+                  "verdict": "win"
+                },
+                "model_minus_random": {
+                  "ci95": [
+                    -6.421333333333334,
+                    -6.012616666666667
+                  ],
+                  "est": -6.209333333333334,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "model minus random at a 20% review budget",
+                  "primary": false,
+                  "verdict": "win"
+                }
+              },
+              "gap_closed_vs_random": {
+                "ci": [
+                  0.5861031393988175,
+                  0.6172661428916747
+                ],
+                "share": 0.6015241539653837
+              },
+              "policies": {
+                "agent_confidence_only": {
+                  "ci": [
+                    5.283333333333333,
+                    5.796666666666667
+                  ],
+                  "est": 5.543333333333334
+                },
+                "disagreement_only": {
+                  "ci": [
+                    5.1899999999999995,
+                    5.76
+                  ],
+                  "est": 5.473333333333334
+                },
+                "error_rate_per_100": {
+                  "ci": [
+                    12.483333333333334,
+                    13.306666666666667
+                  ],
+                  "est": 12.90333333333333
+                },
+                "hindsight_oracle": {
+                  "ci": [
+                    0.0,
+                    0.0
+                  ],
+                  "est": 0.0
+                },
+                "model": {
+                  "ci": [
+                    3.866583333333333,
+                    4.3533333333333335
+                  ],
+                  "est": 4.113333333333332
+                },
+                "prior_only_reference": {
+                  "ci": [
+                    7.526500000000002,
+                    8.2
+                  ],
+                  "est": 7.873333333333332
+                },
+                "random": {
+                  "ci": [
+                    9.986666666666668,
+                    10.645333333333335
+                  ],
+                  "est": 10.322666666666667
+                }
+              }
+            },
+            "0.3": {
+              "contrasts": {
+                "model_minus_agent_confidence_only": {
+                  "ci95": [
+                    -1.4466666666666665,
+                    -1.2033333333333331
+                  ],
+                  "est": -1.3199999999999998,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "model minus agent confidence only at a 30% review budget",
+                  "primary": false,
+                  "verdict": "win"
+                },
+                "model_minus_disagreement_only": {
+                  "ci95": [
+                    -2.413333333333333,
+                    -1.9466666666666665
+                  ],
+                  "est": -2.1799999999999997,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "model minus disagreement only at a 30% review budget",
+                  "primary": false,
+                  "verdict": "win"
+                },
+                "model_minus_random": {
+                  "adjusted_level": 0.9875,
+                  "ci95": [
+                    -6.558341666666666,
+                    -6.191299999999999
+                  ],
+                  "ci_adjusted": [
+                    -6.610674999999999,
+                    -6.134664583333333
+                  ],
+                  "est": -6.372333333333333,
+                  "family_size": 4,
+                  "good_direction": "lower",
+                  "label": "model minus random at a 30% review budget",
+                  "primary": true,
+                  "verdict": "win"
+                }
+              },
+              "gap_closed_vs_random": {
+                "ci": [
+                  0.6889335646637863,
+                  0.7227088069770041
+                ],
+                "share": 0.7055024541462155
+              },
+              "policies": {
+                "agent_confidence_only": {
+                  "ci": [
+                    3.7733333333333334,
+                    4.18
+                  ],
+                  "est": 3.9799999999999995
+                },
+                "disagreement_only": {
+                  "ci": [
+                    4.566666666666666,
+                    5.1200833333333335
+                  ],
+                  "est": 4.840000000000001
+                },
+                "error_rate_per_100": {
+                  "ci": [
+                    12.483333333333334,
+                    13.306666666666667
+                  ],
+                  "est": 12.90333333333333
+                },
+                "hindsight_oracle": {
+                  "ci": [
+                    0.0,
+                    0.0
+                  ],
+                  "est": 0.0
+                },
+                "model": {
+                  "ci": [
+                    2.4466666666666668,
+                    2.8666666666666663
+                  ],
+                  "est": 2.66
+                },
+                "prior_only_reference": {
+                  "ci": [
+                    6.106666666666667,
+                    6.670083333333333
+                  ],
+                  "est": 6.4
+                },
+                "random": {
+                  "ci": [
+                    8.738333333333333,
+                    9.314666666666666
+                  ],
+                  "est": 9.032333333333332
+                }
+              }
+            },
+            "0.5": {
+              "contrasts": {
+                "model_minus_agent_confidence_only": {
+                  "ci95": [
+                    -0.9199999999999999,
+                    -0.6233333333333333
+                  ],
+                  "est": -0.7666666666666665,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "model minus agent confidence only at a 50% review budget",
+                  "primary": false,
+                  "verdict": "win"
+                },
+                "model_minus_disagreement_only": {
+                  "ci95": [
+                    -2.5266666666666664,
+                    -2.2066666666666666
+                  ],
+                  "est": -2.3633333333333333,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "model minus disagreement only at a 50% review budget",
+                  "primary": false,
+                  "verdict": "win"
+                },
+                "model_minus_random": {
+                  "ci95": [
+                    -5.508374999999999,
+                    -5.1883333333333335
+                  ],
+                  "est": -5.348333333333334,
+                  "exploratory_cells_in_row": 11,
+                  "good_direction": "lower",
+                  "label": "model minus random at a 50% review budget",
+                  "primary": false,
+                  "verdict": "win"
+                }
+              },
+              "gap_closed_vs_random": {
+                "ci": [
+                  0.8125791709333636,
+                  0.8451918395666124
+                ],
+                "share": 0.8289847584603464
+              },
+              "policies": {
+                "agent_confidence_only": {
+                  "ci": [
+                    1.7133333333333334,
+                    2.033333333333333
+                  ],
+                  "est": 1.8699999999999999
+                },
+                "disagreement_only": {
+                  "ci": [
+                    3.2600000000000002,
+                    3.6700000000000004
+                  ],
+                  "est": 3.4666666666666672
+                },
+                "error_rate_per_100": {
+                  "ci": [
+                    12.483333333333334,
+                    13.306666666666667
+                  ],
+                  "est": 12.90333333333333
+                },
+                "hindsight_oracle": {
+                  "ci": [
+                    0.0,
+                    0.0
+                  ],
+                  "est": 0.0
+                },
+                "model": {
+                  "ci": [
+                    0.9800000000000001,
+                    1.2266666666666668
+                  ],
+                  "est": 1.1033333333333333
+                },
+                "prior_only_reference": {
+                  "ci": [
+                    3.8233333333333333,
+                    4.273333333333333
+                  ],
+                  "est": 4.056666666666667
+                },
+                "random": {
+                  "ci": [
+                    6.241666666666667,
+                    6.653333333333333
+                  ],
+                  "est": 6.451666666666665
+                }
+              }
+            }
+          },
+          "cost_ratio": {
+            "budget": 0.3,
+            "mean_error_rate": 0.1290333333333333,
+            "mean_escaped_rate_model": 0.026600000000000002,
+            "note": "An escaped error's cost is an assumption; between these two numbers the budgeted routing is the cheapest of the three plans.",
+            "review_minutes_per_case_assumed": 10.0,
+            "routing_beats_reviewing_everything_when_an_escaped_error_costs_less_than_minutes": 263.1578947368421,
+            "routing_beats_reviewing_nothing_when_an_escaped_error_costs_more_than_minutes": 29.287341360234308
+          },
+          "decision": "which cases an expert reviews under a review budget (review routing)",
+          "direction": "lower",
+          "id": "D2",
+          "naive": [
+            "random",
+            "agent_confidence_only",
+            "disagreement_only"
+          ],
+          "note": "The routing model is scored on the non-circular generator (routing/cases.py), not on the sandbox households, whose error is a near-deterministic function of calculator disagreement. In that generator the worker's check (disagreement), the agent's stated confidence and the worker's trace are drawn from the realised error, as they partly would be in use, so part of the model's edge is signal that our generator hands it.",
+          "oracle": "review exactly the wrong cases, up to the budget (hindsight)",
+          "primary": {
+            "adjusted_level": 0.9875,
+            "ci95": [
+              -6.558341666666666,
+              -6.191299999999999
+            ],
+            "ci_adjusted": [
+              -6.610674999999999,
+              -6.134664583333333
+            ],
+            "est": -6.372333333333333,
+            "family_size": 4,
+            "good_direction": "lower",
+            "label": "model minus random at a 30% review budget",
+            "primary": true,
+            "verdict": "win"
+          },
+          "primary_cell": "30% budget, model minus random review",
+          "reference": "prior_only_reference: rank by the generator's true error probability given the household's own features. It is a reference, not a ceiling: the model also sees the worker's check and the agent's stated confidence, which the generator draws from the realised error.",
+          "replicate_unit": "generated worlds of 3000 cases (train / calibration / held-out 50/25/25)",
+          "replicates": 40,
+          "shipped": "the routing model's calibrated risk, top share reviewed",
+          "unit": "escaped errors per 100 cases at the same expert cost (lower is better)"
+        },
+        {
+          "axes": {
+            "interruption_rate": {
+              "fixed_overnight": {
+                "ci": [
+                  0.026142187500000007,
+                  0.057538437500000005
+                ],
+                "est": 0.0410375
+              },
+              "run_whenever_idle_5min": {
+                "ci": [
+                  0.22262164062500003,
+                  0.29520718749999997
+                ],
+                "est": 0.259353125
+              },
+              "shipped_rule": {
+                "ci": [
+                  0.023159062500000004,
+                  0.033190703125
+                ],
+                "est": 0.028087499999999998
+              }
+            },
+            "share_idle_used": {
+              "fixed_overnight": {
+                "ci": [
+                  0.41019203125000003,
+                  0.4387315625
+                ],
+                "est": 0.424928125
+              },
+              "run_whenever_idle_5min": {
+                "ci": [
+                  0.87798421875,
+                  0.9050103125
+                ],
+                "est": 0.89165
+              },
+              "shipped_rule": {
+                "ci": [
+                  0.6965203125,
+                  0.7910205468750001
+                ],
+                "est": 0.7444781250000001
+              }
+            }
+          },
+          "cells": {
+            "1": {
+              "contrasts": {
+                "shipped_minus_fixed_overnight": {
+                  "ci95": [
+                    7.406119791666667,
+                    11.187630208333333
+                  ],
+                  "est": 9.208333333333332,
+                  "exploratory_cells_in_row": 7,
+                  "good_direction": "higher",
+                  "label": "shipped rule minus fixed overnight at L/G = 1",
+                  "primary": false,
+                  "verdict": "win"
+                },
+                "shipped_minus_run_whenever_idle_5min": {
+                  "ci95": [
+                    3.3800781250000003,
+                    4.697916666666666
+                  ],
+                  "est": 4.041666666666667,
+                  "exploratory_cells_in_row": 7,
+                  "good_direction": "higher",
+                  "label": "shipped rule minus run whenever idle 5min at L/G = 1",
+                  "primary": false,
+                  "verdict": "win"
+                }
+              },
+              "gap_closed_vs_run_whenever_idle_5min": {
+                "ci": [
+                  0.4350387495074215,
+                  0.5201480722667163
+                ],
+                "share": 0.47871684145589144
+              },
+              "policies": {
+                "fixed_overnight": {
+                  "ci": [
+                    10.307161458333333,
+                    11.510416666666668
+                  ],
+                  "est": 10.916666666666668
+                },
+                "oracle_knows_spell_length": {
+                  "ci": [
+                    22.572916666666664,
+                    26.5625
+                  ],
+                  "est": 24.526041666666664
+                },
+                "run_whenever_idle_5min": {
+                  "ci": [
+                    13.33828125,
+                    19.010546875
+                  ],
+                  "est": 16.083333333333332
+                },
+                "shipped_rule": {
+                  "ci": [
+                    17.875,
+                    22.520833333333336
+                  ],
+                  "est": 20.125
+                }
+              }
+            },
+            "27": {
+              "contrasts": {
+                "shipped_minus_fixed_overnight": {
+                  "ci95": [
+                    1.8433593750000015,
+                    12.995442708333336
+                  ],
+                  "est": 7.177083333333334,
+                  "exploratory_cells_in_row": 7,
+                  "good_direction": "higher",
+                  "label": "shipped rule minus fixed overnight at L/G = 27",
+                  "primary": false,
+                  "verdict": "win"
+                },
+                "shipped_minus_run_whenever_idle_5min": {
+                  "ci95": [
+                    173.48684895833335,
+                    243.47408854166667
+                  ],
+                  "est": 207.97916666666669,
+                  "exploratory_cells_in_row": 7,
+                  "good_direction": "higher",
+                  "label": "shipped rule minus run whenever idle 5min at L/G = 27",
+                  "primary": false,
+                  "verdict": "win"
+                }
+              },
+              "gap_closed_vs_run_whenever_idle_5min": {
+                "ci": [
+                  0.8894651941549169,
+                  0.9291633609007127
+                ],
+                "share": 0.9123769049740673
+              },
+              "policies": {
+                "fixed_overnight": {
+                  "ci": [
+                    -8.260807291666664,
+                    2.3337239583333345
+                  ],
+                  "est": -2.625
+                },
+                "oracle_knows_spell_length": {
+                  "ci": [
+                    22.572916666666664,
+                    26.5625
+                  ],
+                  "est": 24.526041666666664
+                },
+                "run_whenever_idle_5min": {
+                  "ci": [
+                    -239.16210937499991,
+                    -167.78893229166664
+                  ],
+                  "est": -203.42708333333331
+                },
+                "shipped_rule": {
+                  "ci": [
+                    1.5833333333333333,
+                    7.453255208333334
+                  ],
+                  "est": 4.552083333333333
+                }
+              }
+            },
+            "3": {
+              "contrasts": {
+                "shipped_minus_fixed_overnight": {
+                  "ci95": [
+                    7.401041666666668,
+                    10.838802083333336
+                  ],
+                  "est": 9.052083333333332,
+                  "exploratory_cells_in_row": 7,
+                  "good_direction": "higher",
+                  "label": "shipped rule minus fixed overnight at L/G = 3",
+                  "primary": false,
+                  "verdict": "win"
+                },
+                "shipped_minus_run_whenever_idle_5min": {
+                  "ci95": [
+                    16.479036458333336,
+                    22.932552083333334
+                  ],
+                  "est": 19.729166666666664,
+                  "exploratory_cells_in_row": 7,
+                  "good_direction": "higher",
+                  "label": "shipped rule minus run whenever idle 5min at L/G = 3",
+                  "primary": false,
+                  "verdict": "win"
+                }
+              },
+              "gap_closed_vs_run_whenever_idle_5min": {
+                "ci": [
+                  0.7560716463478631,
+                  0.7989553288340587
+                ],
+                "share": 0.7789430392761669
+              },
+              "policies": {
+                "fixed_overnight": {
+                  "ci": [
+                    9.036328124999999,
+                    10.640755208333333
+                  ],
+                  "est": 9.875
+                },
+                "oracle_knows_spell_length": {
+                  "ci": [
+                    22.572916666666664,
+                    26.5625
+                  ],
+                  "est": 24.526041666666664
+                },
+                "run_whenever_idle_5min": {
+                  "ci": [
+                    -5.823046874999999,
+                    4.323177083333334
+                  ],
+                  "est": -0.8020833333333335
+                },
+                "shipped_rule": {
+                  "ci": [
+                    16.775911458333336,
+                    21.239583333333332
+                  ],
+                  "est": 18.927083333333336
+                }
+              }
+            },
+            "9": {
+              "contrasts": {
+                "shipped_minus_fixed_overnight": {
+                  "ci95": [
+                    6.7445312500000005,
+                    10.552083333333332
+                  ],
+                  "est": 8.583333333333332,
+                  "exploratory_cells_in_row": 7,
+                  "good_direction": "higher",
+                  "label": "shipped rule minus fixed overnight at L/G = 9",
+                  "primary": false,
+                  "verdict": "win"
+                },
+                "shipped_minus_run_whenever_idle_5min": {
+                  "adjusted_level": 0.9875,
+                  "ci95": [
+                    55.73932291666667,
+                    78.16158854166666
+                  ],
+                  "ci_adjusted": [
+                    53.22900390625,
+                    80.44300130208333
+                  ],
+                  "est": 66.79166666666666,
+                  "family_size": 4,
+                  "good_direction": "higher",
+                  "label": "shipped rule minus run whenever idle 5min at L/G = 9",
+                  "primary": true,
+                  "verdict": "win"
+                }
+              },
+              "gap_closed_vs_run_whenever_idle_5min": {
+                "ci": [
+                  0.8568668033568645,
+                  0.8957237236902629
+                ],
+                "share": 0.879018438549592
+              },
+              "policies": {
+                "fixed_overnight": {
+                  "ci": [
+                    4.786458333333333,
+                    8.401171875
+                  ],
+                  "est": 6.75
+                },
+                "oracle_knows_spell_length": {
+                  "ci": [
+                    22.572916666666664,
+                    26.5625
+                  ],
+                  "est": 24.526041666666664
+                },
+                "run_whenever_idle_5min": {
+                  "ci": [
+                    -64.20325520833333,
+                    -38.682291666666664
+                  ],
+                  "est": -51.45833333333333
+                },
+                "shipped_rule": {
+                  "ci": [
+                    13.348697916666666,
+                    17.427083333333332
+                  ],
+                  "est": 15.333333333333332
+                }
+              }
+            }
+          },
+          "decision": "when to start a background run (the presence window rule)",
+          "direction": "higher",
+          "id": "D3",
+          "naive": [
+            "run_whenever_idle_5min",
+            "fixed_overnight"
+          ],
+          "note": "L/G, the cost of a collision against the value of a finished run, is an assumption; every other ratio is in the cells. The shipped rule is fixed at the 10% cap; only the valuation changes.",
+          "oracle": "start a run exactly when the idle spell will last long enough (knows each spell's length)",
+          "primary": {
+            "adjusted_level": 0.9875,
+            "ci95": [
+              55.73932291666667,
+              78.16158854166666
+            ],
+            "ci_adjusted": [
+              53.22900390625,
+              80.44300130208333
+            ],
+            "est": 66.79166666666666,
+            "family_size": 4,
+            "good_direction": "higher",
+            "label": "shipped rule minus run whenever idle 5min at L/G = 9",
+            "primary": true,
+            "verdict": "win"
+          },
+          "primary_cell": "L/G = 9, shipped rule minus run-whenever-idle",
+          "replicate_unit": "persona streams (8 draws x 4 personas), 21 days, forward split",
+          "replicates": 32,
+          "shipped": "start only if the forecast chance the idle spell lasts long enough exceeds L/(G+L), L/G = 9 implied by the 10% interruption cap",
+          "unit": "value per held-out day: completed runs minus (L/G) x collisions (higher is better)"
+        },
+        {
+          "cells": {
+            "all": {
+              "contrasts": {
+                "shipped_minus_always_nudge": {
+                  "ci95": [
+                    0.13475202215731416,
+                    0.14212476086425072
+                  ],
+                  "est": 0.13857404339596696,
+                  "exploratory_cells_in_row": 2,
+                  "good_direction": "higher",
+                  "label": "bandit snapshot minus always nudge",
+                  "primary": false,
+                  "verdict": "win"
+                },
+                "shipped_minus_never_speak": {
+                  "ci95": [
+                    0.24923889914420802,
+                    0.2566116378511445
+                  ],
+                  "est": 0.25306092038286077,
+                  "exploratory_cells_in_row": 2,
+                  "good_direction": "higher",
+                  "label": "bandit snapshot minus never speak",
+                  "primary": false,
+                  "verdict": "win"
+                },
+                "shipped_minus_rule_baseline": {
+                  "adjusted_level": 0.9875,
+                  "ci95": [
+                    0.2310449891645646,
+                    0.23841772787150106
+                  ],
+                  "ci_adjusted": [
+                    0.22987488015435553,
+                    0.239225917446122
+                  ],
+                  "est": 0.23486701040321736,
+                  "family_size": 4,
+                  "good_direction": "higher",
+                  "label": "bandit snapshot minus rule baseline",
+                  "primary": true,
+                  "verdict": "win"
+                }
+              },
+              "gap_closed_vs_rule_baseline": {
+                "ci": [
+                  0.8702325191953477,
+                  0.8980019895548043
+                ],
+                "share": 0.8846281881209433
+              },
+              "policies": {
+                "always_nudge": {
+                  "ci": [
+                    0.11448687698689379,
+                    0.11448687698689379
+                  ],
+                  "est": 0.11448687698689379
+                },
+                "never_speak": {
+                  "ci": [
+                    0.0,
+                    0.0
+                  ],
+                  "est": 0.0
+                },
+                "oracle_optimum": {
+                  "ci": [
+                    0.28369190513408593,
+                    0.28369190513408593
+                  ],
+                  "est": 0.28369190513408593
+                },
+                "rule_baseline": {
+                  "ci": [
+                    0.01819390997964343,
+                    0.01819390997964343
+                  ],
+                  "est": 0.01819390997964343
+                },
+                "shipped_bandit_snapshot": {
+                  "ci": [
+                    0.24923889914420802,
+                    0.2566116378511445
+                  ],
+                  "est": 0.25306092038286077
+                }
+              }
+            }
+          },
+          "decision": "speak, annotate, take over or stay silent (the intervention policy)",
+          "direction": "higher",
+          "id": "D4",
+          "naive": [
+            "rule_baseline",
+            "always_nudge",
+            "never_speak"
+          ],
+          "note": "The reward weights, the gain from a nudge and the interruption costs are ours. The true value of every policy is computed exactly from the generator, so the spread across replicates is the bandit learning from a different log each time.",
+          "oracle": "the exact optimum of the generator reward",
+          "primary": {
+            "adjusted_level": 0.9875,
+            "ci95": [
+              0.2310449891645646,
+              0.23841772787150106
+            ],
+            "ci_adjusted": [
+              0.22987488015435553,
+              0.239225917446122
+            ],
+            "est": 0.23486701040321736,
+            "family_size": 4,
+            "good_direction": "higher",
+            "label": "bandit snapshot minus rule baseline",
+            "primary": true,
+            "verdict": "win"
+          },
+          "primary_cell": "bandit snapshot minus the rule baseline",
+          "replicate_unit": "generator runs of 3,000 logged decisions; the bandit snapshot is taken at the halfway point",
+          "replicates": 30,
+          "shipped": "the contextual bandit's greedy snapshot (policy.bandit)",
+          "unit": "generator reward per decision, exact in expectation (higher is better)"
+        }
+      ],
+      "recorded": [
+        {
+          "acceptance": {
+            "false_nudges_target": "met",
+            "faster_to_resume_target": "not_met"
+          },
+          "decision": "Cue: speak at a stuck moment",
+          "direction": "higher",
+          "false_nudges_per_hour": {
+            "ci": [
+              0.6401,
+              0.8318
+            ],
+            "n": 350,
+            "n_workers": 40,
+            "value": 0.7269
+          },
+          "id": "D5",
+          "n": {
+            "hours": 481.5,
+            "workers": 40
+          },
+          "naive": {
+            "never speak": 0.0
+          },
+          "note": "Origin: generated workers. Cue met one of its two pre-registered targets; the net seconds saved is a secondary number, not a target. Not part of the multiple-comparison family.",
+          "oracle": null,
+          "recorded": true,
+          "shipped": {
+            "ci": [
+              10.6264,
+              26.2053
+            ],
+            "est": 18.3308
+          },
+          "source": "evals/cue/held_out.json (the Cue track's frozen held-out command; read here, not re-run)",
+          "status": "ok",
+          "unit": "net seconds saved per hour of work (stall seconds saved minus seconds lost to interruptions; higher is better)"
+        }
+      ],
+      "not_scored": [
+        {
+          "decision": "the help-level ladder (L1 to L4)",
+          "id": "D6",
+          "reason": "The ladder is deterministic code cross-checked against a written spec (COA-3). It has no outcome to score until the live study; a generated outcome would score our own reward model.",
+          "status": "not_scored"
+        }
+      ],
+      "value_vs_accuracy": {
+        "claims": [
+          {
+            "id": "V1",
+            "claim": "v1 world: the model's decisions are worth more than either naive predictor's",
+            "result": "passed",
+            "evidence": "model minus online base rate +0.265 [0.253, 0.277] minutes per origin; minus frozen time since progress +0.261 [0.239, 0.281]"
+          },
+          {
+            "id": "V2",
+            "claim": "shifted worlds: the model that is worse on log loss is also worse in decision value, in at least 2 of 3",
+            "result": "passed",
+            "evidence": "3 of 3 worlds clearly worse in decision value; latent skill -0.393 [-0.497, -0.285] against online base; markov -0.437 [-0.512, -0.367] against online base; process trace -0.318 [-0.4, -0.24] against online base"
+          },
+          {
+            "id": "V3a",
+            "claim": "v1 world: the guard costs at most 0.01 minutes per origin in decision value",
+            "result": "passed",
+            "evidence": "guarded minus always-model +0.0000 [0.0, 0.0] minutes per origin; flagged 0 of 8"
+          },
+          {
+            "id": "V3b",
+            "claim": "shifted worlds: the guard earns decision value where the model fails, in at least 2 of 3",
+            "result": "passed",
+            "evidence": "3 of 3 worlds where the guard clearly paid; latent skill +0.307 [0.121, 0.492]; markov +0.434 [0.229, 0.644]; process trace +0.334 [0.101, 0.597]"
+          }
+        ],
+        "worlds": [
+          {
+            "world": "v1 world (fresh seeds, no shift)",
+            "people": 32,
+            "origins": 62178,
+            "best_naive": "frozen_tsp",
+            "forecasts": [
+              {
+                "name": "model",
+                "log_loss": 0.446,
+                "net_minutes_per_hour": 31.32,
+                "net_minutes_per_hour_ci": [
+                  28.79,
+                  33.74
+                ],
+                "interruptions_per_hour": 42.4,
+                "net_minutes_per_interruption": 0.738
+              },
+              {
+                "name": "online_base",
+                "log_loss": 0.532,
+                "net_minutes_per_hour": -0.44,
+                "net_minutes_per_hour_ci": [
+                  -2.42,
+                  1.41
+                ],
+                "interruptions_per_hour": 56.4,
+                "net_minutes_per_interruption": -0.008
+              },
+              {
+                "name": "frozen_tsp",
+                "log_loss": 0.531,
+                "net_minutes_per_hour": 0.04,
+                "net_minutes_per_hour_ci": [
+                  -0.04,
+                  0.14
+                ],
+                "interruptions_per_hour": 0.2,
+                "net_minutes_per_interruption": 0.237
+              },
+              {
+                "name": "frozen_base",
+                "log_loss": 0.533,
+                "net_minutes_per_hour": 0.0,
+                "net_minutes_per_hour_ci": [
+                  0.0,
+                  0.0
+                ],
+                "interruptions_per_hour": 0.0,
+                "net_minutes_per_interruption": null
+              }
+            ],
+            "reference": {
+              "guarded": {
+                "net_minutes_per_hour": 31.32,
+                "share_of_gap_closed": 0.388
+              },
+              "always": {
+                "net_minutes_per_hour": -12.49,
+                "share_of_gap_closed": -0.155
+              },
+              "never": {
+                "net_minutes_per_hour": 0.0,
+                "share_of_gap_closed": 0.0
+              },
+              "oracle": {
+                "net_minutes_per_hour": 80.63,
+                "share_of_gap_closed": 1.0
+              }
+            },
+            "model_minus_best_naive": 0.2607,
+            "model_minus_best_naive_ci": [
+              0.2392,
+              0.281
+            ],
+            "verdict": "model better",
+            "log_loss_model_minus_best_naive": -0.085,
+            "rank_agreement": 0.8,
+            "guard": {
+              "flags": 0,
+              "of": 8,
+              "guarded_minus_always_model": 0.0,
+              "ci": [
+                0.0,
+                0.0
+              ]
+            },
+            "sensitivity": [
+              {
+                "a_minutes": 0.25,
+                "threshold": 0.077,
+                "model_minus_best_naive": 0.0281,
+                "ci": [
+                  0.0247,
+                  0.0319
+                ],
+                "verdict": "model better"
+              },
+              {
+                "a_minutes": 0.5,
+                "threshold": 0.143,
+                "model_minus_best_naive": 0.1227,
+                "ci": [
+                  0.1152,
+                  0.1313
+                ],
+                "verdict": "model better"
+              },
+              {
+                "a_minutes": 1.0,
+                "threshold": 0.25,
+                "model_minus_best_naive": 0.2607,
+                "ci": [
+                  0.2392,
+                  0.281
+                ],
+                "verdict": "model better"
+              },
+              {
+                "a_minutes": 2.0,
+                "threshold": 0.4,
+                "model_minus_best_naive": 0.0833,
+                "ci": [
+                  0.0714,
+                  0.0943
+                ],
+                "verdict": "model better"
+              },
+              {
+                "a_minutes": 4.0,
+                "threshold": 0.571,
+                "model_minus_best_naive": 0.0005,
+                "ci": [
+                  -0.0065,
+                  0.007
+                ],
+                "verdict": "no clear difference"
+              }
+            ]
+          },
+          {
+            "world": "shifted: markov",
+            "people": 160,
+            "origins": 255809,
+            "best_naive": "online_base",
+            "forecasts": [
+              {
+                "name": "model",
+                "log_loss": 1.085,
+                "net_minutes_per_hour": 3.78,
+                "net_minutes_per_hour_ci": [
+                  0.93,
+                  6.57
+                ],
+                "interruptions_per_hour": 31.2,
+                "net_minutes_per_interruption": 0.121
+              },
+              {
+                "name": "online_base",
+                "log_loss": 0.609,
+                "net_minutes_per_hour": 56.19,
+                "net_minutes_per_hour_ci": [
+                  45.62,
+                  67.25
+                ],
+                "interruptions_per_hour": 83.0,
+                "net_minutes_per_interruption": 0.677
+              },
+              {
+                "name": "frozen_tsp",
+                "log_loss": 0.624,
+                "net_minutes_per_hour": 36.12,
+                "net_minutes_per_hour_ci": [
+                  29.85,
+                  42.62
+                ],
+                "interruptions_per_hour": 14.5,
+                "net_minutes_per_interruption": 2.492
+              },
+              {
+                "name": "frozen_base",
+                "log_loss": 0.695,
+                "net_minutes_per_hour": 0.0,
+                "net_minutes_per_hour_ci": [
+                  0.0,
+                  0.0
+                ],
+                "interruptions_per_hour": 0.0,
+                "net_minutes_per_interruption": null
+              }
+            ],
+            "reference": {
+              "guarded": {
+                "net_minutes_per_hour": 52.53,
+                "share_of_gap_closed": 0.083
+              },
+              "always": {
+                "net_minutes_per_hour": 46.03,
+                "share_of_gap_closed": 0.0
+              },
+              "never": {
+                "net_minutes_per_hour": 0.0,
+                "share_of_gap_closed": -0.586
+              },
+              "oracle": {
+                "net_minutes_per_hour": 124.52,
+                "share_of_gap_closed": 1.0
+              }
+            },
+            "model_minus_best_naive": -0.4367,
+            "model_minus_best_naive_ci": [
+              -0.5118,
+              -0.3669
+            ],
+            "verdict": "model worse",
+            "log_loss_model_minus_best_naive": 0.476,
+            "rank_agreement": 0.8,
+            "guard": {
+              "flags": 8,
+              "of": 8,
+              "guarded_minus_always_model": 0.4338,
+              "ci": [
+                0.229,
+                0.6437
+              ]
+            },
+            "sensitivity": [
+              {
+                "a_minutes": 0.25,
+                "threshold": 0.077,
+                "model_minus_best_naive": -0.4314,
+                "ci": [
+                  -0.4903,
+                  -0.3759
+                ],
+                "verdict": "model worse"
+              },
+              {
+                "a_minutes": 0.5,
+                "threshold": 0.143,
+                "model_minus_best_naive": -0.5044,
+                "ci": [
+                  -0.578,
+                  -0.4339
+                ],
+                "verdict": "model worse"
+              },
+              {
+                "a_minutes": 1.0,
+                "threshold": 0.25,
+                "model_minus_best_naive": -0.4367,
+                "ci": [
+                  -0.5118,
+                  -0.3669
+                ],
+                "verdict": "model worse"
+              },
+              {
+                "a_minutes": 2.0,
+                "threshold": 0.4,
+                "model_minus_best_naive": -0.2209,
+                "ci": [
+                  -0.2772,
+                  -0.1674
+                ],
+                "verdict": "model worse"
+              },
+              {
+                "a_minutes": 4.0,
+                "threshold": 0.571,
+                "model_minus_best_naive": -0.0718,
+                "ci": [
+                  -0.0815,
+                  -0.0623
+                ],
+                "verdict": "model worse"
+              }
+            ]
+          },
+          {
+            "world": "shifted: latent skill",
+            "people": 160,
+            "origins": 263872,
+            "best_naive": "online_base",
+            "forecasts": [
+              {
+                "name": "model",
+                "log_loss": 1.07,
+                "net_minutes_per_hour": 12.28,
+                "net_minutes_per_hour_ci": [
+                  8.08,
+                  16.22
+                ],
+                "interruptions_per_hour": 31.5,
+                "net_minutes_per_interruption": 0.389
+              },
+              {
+                "name": "online_base",
+                "log_loss": 0.63,
+                "net_minutes_per_hour": 59.48,
+                "net_minutes_per_hour_ci": [
+                  42.41,
+                  75.38
+                ],
+                "interruptions_per_hour": 105.6,
+                "net_minutes_per_interruption": 0.563
+              },
+              {
+                "name": "frozen_tsp",
+                "log_loss": 0.659,
+                "net_minutes_per_hour": 36.3,
+                "net_minutes_per_hour_ci": [
+                  29.41,
+                  43.0
+                ],
+                "interruptions_per_hour": 16.4,
+                "net_minutes_per_interruption": 2.209
+              },
+              {
+                "name": "frozen_base",
+                "log_loss": 0.722,
+                "net_minutes_per_hour": 0.0,
+                "net_minutes_per_hour_ci": [
+                  0.0,
+                  0.0
+                ],
+                "interruptions_per_hour": 0.0,
+                "net_minutes_per_interruption": null
+              }
+            ],
+            "reference": {
+              "guarded": {
+                "net_minutes_per_hour": 54.59,
+                "share_of_gap_closed": -0.015
+              },
+              "always": {
+                "net_minutes_per_hour": 55.75,
+                "share_of_gap_closed": 0.0
+              },
+              "never": {
+                "net_minutes_per_hour": 0.0,
+                "share_of_gap_closed": -0.733
+              },
+              "oracle": {
+                "net_minutes_per_hour": 131.81,
+                "share_of_gap_closed": 1.0
+              }
+            },
+            "model_minus_best_naive": -0.3933,
+            "model_minus_best_naive_ci": [
+              -0.4967,
+              -0.285
+            ],
+            "verdict": "model worse",
+            "log_loss_model_minus_best_naive": 0.44,
+            "rank_agreement": 0.8,
+            "guard": {
+              "flags": 8,
+              "of": 8,
+              "guarded_minus_always_model": 0.3066,
+              "ci": [
+                0.1212,
+                0.4923
+              ]
+            },
+            "sensitivity": [
+              {
+                "a_minutes": 0.25,
+                "threshold": 0.077,
+                "model_minus_best_naive": -0.4117,
+                "ci": [
+                  -0.4723,
+                  -0.3481
+                ],
+                "verdict": "model worse"
+              },
+              {
+                "a_minutes": 0.5,
+                "threshold": 0.143,
+                "model_minus_best_naive": -0.4859,
+                "ci": [
+                  -0.5662,
+                  -0.4035
+                ],
+                "verdict": "model worse"
+              },
+              {
+                "a_minutes": 1.0,
+                "threshold": 0.25,
+                "model_minus_best_naive": -0.3933,
+                "ci": [
+                  -0.4967,
+                  -0.285
+                ],
+                "verdict": "model worse"
+              },
+              {
+                "a_minutes": 2.0,
+                "threshold": 0.4,
+                "model_minus_best_naive": -0.206,
+                "ci": [
+                  -0.3185,
+                  -0.1026
+                ],
+                "verdict": "model worse"
+              },
+              {
+                "a_minutes": 4.0,
+                "threshold": 0.571,
+                "model_minus_best_naive": -0.0586,
+                "ci": [
+                  -0.0717,
+                  -0.0476
+                ],
+                "verdict": "model worse"
+              }
+            ]
+          },
+          {
+            "world": "shifted: process trace",
+            "people": 160,
+            "origins": 225136,
+            "best_naive": "online_base",
+            "forecasts": [
+              {
+                "name": "model",
+                "log_loss": 1.019,
+                "net_minutes_per_hour": 3.9,
+                "net_minutes_per_hour_ci": [
+                  2.22,
+                  5.69
+                ],
+                "interruptions_per_hour": 21.6,
+                "net_minutes_per_interruption": 0.18
+              },
+              {
+                "name": "online_base",
+                "log_loss": 0.599,
+                "net_minutes_per_hour": 42.05,
+                "net_minutes_per_hour_ci": [
+                  31.49,
+                  53.39
+                ],
+                "interruptions_per_hour": 75.9,
+                "net_minutes_per_interruption": 0.554
+              },
+              {
+                "name": "frozen_tsp",
+                "log_loss": 0.605,
+                "net_minutes_per_hour": 31.21,
+                "net_minutes_per_hour_ci": [
+                  26.36,
+                  36.41
+                ],
+                "interruptions_per_hour": 12.3,
+                "net_minutes_per_interruption": 2.53
+              },
+              {
+                "name": "frozen_base",
+                "log_loss": 0.666,
+                "net_minutes_per_hour": 0.0,
+                "net_minutes_per_hour_ci": [
+                  0.0,
+                  0.0
+                ],
+                "interruptions_per_hour": 0.0,
+                "net_minutes_per_interruption": null
+              }
+            ],
+            "reference": {
+              "guarded": {
+                "net_minutes_per_hour": 40.58,
+                "share_of_gap_closed": 0.061
+              },
+              "always": {
+                "net_minutes_per_hour": 35.62,
+                "share_of_gap_closed": 0.0
+              },
+              "never": {
+                "net_minutes_per_hour": 0.0,
+                "share_of_gap_closed": -0.439
+              },
+              "oracle": {
+                "net_minutes_per_hour": 116.72,
+                "share_of_gap_closed": 1.0
+              }
+            },
+            "model_minus_best_naive": -0.3179,
+            "model_minus_best_naive_ci": [
+              -0.4002,
+              -0.2403
+            ],
+            "verdict": "model worse",
+            "log_loss_model_minus_best_naive": 0.42,
+            "rank_agreement": 0.8,
+            "guard": {
+              "flags": 8,
+              "of": 8,
+              "guarded_minus_always_model": 0.3336,
+              "ci": [
+                0.1009,
+                0.5966
+              ]
+            },
+            "sensitivity": [
+              {
+                "a_minutes": 0.25,
+                "threshold": 0.077,
+                "model_minus_best_naive": -0.4154,
+                "ci": [
+                  -0.4675,
+                  -0.3656
+                ],
+                "verdict": "model worse"
+              },
+              {
+                "a_minutes": 0.5,
+                "threshold": 0.143,
+                "model_minus_best_naive": -0.4666,
+                "ci": [
+                  -0.5365,
+                  -0.3984
+                ],
+                "verdict": "model worse"
+              },
+              {
+                "a_minutes": 1.0,
+                "threshold": 0.25,
+                "model_minus_best_naive": -0.3179,
+                "ci": [
+                  -0.4002,
+                  -0.2403
+                ],
+                "verdict": "model worse"
+              },
+              {
+                "a_minutes": 2.0,
+                "threshold": 0.4,
+                "model_minus_best_naive": -0.1705,
+                "ci": [
+                  -0.2429,
+                  -0.1074
+                ],
+                "verdict": "model worse"
+              },
+              {
+                "a_minutes": 4.0,
+                "threshold": 0.571,
+                "model_minus_best_naive": -0.0298,
+                "ci": [
+                  -0.0438,
+                  -0.0154
+                ],
+                "verdict": "model worse"
+              }
+            ]
+          }
+        ],
+        "statement": "The same forecasts, turned into interrupt-or-stay-quiet decisions at the break-even point (0.25), with an interruption worth 3 minutes when the person really makes no progress and costing 1 minute when they would have. In 3 of 3 shifted worlds the model that was worse on log loss was also clearly worse in net minutes. 4 of 4 registered claims passed. The costs are our assumptions; the ordering is the claim, the minutes are not.",
+        "design": {
+          "a_grid": [
+            0.25,
+            0.5,
+            1.0,
+            2.0,
+            4.0
+          ],
+          "a_minutes": 1.0,
+          "bootstrap_B": 2000,
+          "deployments": [
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68
+          ],
+          "origins_per_hour": 120.0,
+          "s_minutes": 3.0,
+          "threshold": 0.25
+        },
+        "split_label": "held-out (single frozen run)"
+      },
+      "replicates": {
+        "nudge": 30,
+        "presence": 8,
+        "routing": 40,
+        "ski": 40
+      },
+      "split_label": "held-out (single frozen run)",
+      "code_fingerprint": "125de99f2a71545c1cafedfe19a09be4943530edbe52bc0713da999fe2b7e2ec",
+      "limitations": [
+        {
+          "id": "hrt-decisions-ours",
+          "severity": "high",
+          "text": "Every decision is scored in a world we generated, with a cost we chose. The ordering of policies is a statement about these mechanisms, not about real routines, real reviewers, real workdays or real people."
+        },
+        {
+          "id": "hrt-decisions-costs",
+          "severity": "medium",
+          "text": "The review minutes per case, the cost of an escaped error, the build cost b, the ratio of a collision's cost to a finished run's value (L/G) and the intervention reward are assumptions; each row prints a sweep or says which cost it hangs on."
+        },
+        {
+          "id": "hrt-decisions-routing-signals",
+          "severity": "medium",
+          "text": "In the routing generator the worker's check, the agent's stated confidence and the worker's trace are drawn from the realised error. Part of the model's edge over random review is signal our generator hands it."
+        },
+        {
+          "id": "hrt-decisions-build-now",
+          "severity": "medium",
+          "text": "At the pack's own build costs (4 to 9 manual runs) building at once is cheaper than the shipped build-timing rule in these generated worlds; the rule beats break-even, the classical reference, which is the registered primary contrast."
+        },
+        {
+          "id": "hrt-decisions-family",
+          "severity": "low",
+          "text": "Four primary contrasts were registered; every other cell is exploratory and is never used to say a rule works. The adjusted level is Bonferroni, which is conservative."
+        }
+      ]
+    },
     "limitations": [
       {
         "id": "eval-synthetic",
@@ -67949,6 +71835,18 @@
         "text": "With four teammates the exact two-sided sign-flip p cannot go below 0.125, and the interval excludes zero only when the four differences nearly agree and are large. The expected outcome is an interval that includes zero.",
         "severity": "high",
         "source": "engine-analytics:study_power"
+      },
+      {
+        "id": "hrt-ledger-ours",
+        "text": "Every world is generated by us. The shifted worlds differ in structure from the world the models were fitted on, but they are still ours; a held-out replicate catches overfitting to one noise draw, never 'the model learned our generators'.",
+        "severity": "high",
+        "source": "hrt:hrt_ledger"
+      },
+      {
+        "id": "hrt-decisions-ours",
+        "text": "Every decision is scored in a world we generated, with a cost we chose. The ordering of policies is a statement about these mechanisms, not about real routines, real reviewers, real workdays or real people.",
+        "severity": "high",
+        "source": "hrt:hrt_decisions"
       },
       {
         "id": "eval-agent-live-glitch-false-claims",
@@ -68671,6 +72569,54 @@
         "source": "study-sim:study_sim"
       },
       {
+        "id": "hrt-ledger-same-types",
+        "text": "The v1 world draws new people of the same four persona types the models were fitted on. A new type of worker, or a new kind of task, is what the shifted worlds stand in for.",
+        "severity": "medium",
+        "source": "hrt:hrt_ledger"
+      },
+      {
+        "id": "hrt-ledger-guard-guarantee",
+        "text": "The guard's bound on false flags assumes each episode's loss difference has conditional mean at most zero given the past. Episodes of one person are not independent, so the bound is a design target that the no-drift deployments check, not a proof.",
+        "severity": "medium",
+        "source": "hrt:hrt_ledger"
+      },
+      {
+        "id": "hrt-ledger-eight",
+        "text": "Eight deployments per world give wide intervals for guard counts and for the strategy comparison; counts are shown with exact intervals.",
+        "severity": "medium",
+        "source": "hrt:hrt_ledger"
+      },
+      {
+        "id": "hrt-ledger-one-direction",
+        "text": "The guard compares the model with a naive predictor. A model that drifts but stays better than that predictor is not flagged (the error-risk world after the rule change); the loss of calibration shows in the reliability table and the intercept, and nothing recalibrates the model in this version.",
+        "severity": "medium",
+        "source": "hrt:hrt_ledger"
+      },
+      {
+        "id": "hrt-ledger-no-live",
+        "text": "The ledger is built and tested, but the running product has recorded no live predictions yet, so no real prospective result exists. These are replays of generated time.",
+        "severity": "medium",
+        "source": "hrt:hrt_ledger"
+      },
+      {
+        "id": "hrt-decisions-costs",
+        "text": "The review minutes per case, the cost of an escaped error, the build cost b, the ratio of a collision's cost to a finished run's value (L/G) and the intervention reward are assumptions; each row prints a sweep or says which cost it hangs on.",
+        "severity": "medium",
+        "source": "hrt:hrt_decisions"
+      },
+      {
+        "id": "hrt-decisions-routing-signals",
+        "text": "In the routing generator the worker's check, the agent's stated confidence and the worker's trace are drawn from the realised error. Part of the model's edge over random review is signal our generator hands it.",
+        "severity": "medium",
+        "source": "hrt:hrt_decisions"
+      },
+      {
+        "id": "hrt-decisions-build-now",
+        "text": "At the pack's own build costs (4 to 9 manual runs) building at once is cheaper than the shipped build-timing rule in these generated worlds; the rule beats break-even, the classical reference, which is the registered primary contrast.",
+        "severity": "medium",
+        "source": "hrt:hrt_decisions"
+      },
+      {
         "id": "eval-deficit-weak",
         "text": "Deficit detection is weaker for: repeated_read_result (precision 70%, recall 100%); copy_error (precision 100%, recall 71%). Overall precision 92%, recall 95% over 160 case-deficit pairs.",
         "severity": "medium",
@@ -68891,6 +72837,18 @@
         "text": "B1 and B2 are deliberately simple baselines (everything at once, one digest a day). They show the two failure modes the layer is designed to avoid; they are not what any real notifier does.",
         "severity": "low",
         "source": "attention:attention"
+      },
+      {
+        "id": "hrt-ledger-oracle",
+        "text": "The oracle strategy picks the better of two predictors in hindsight; it bounds what is possible and is not implementable.",
+        "severity": "low",
+        "source": "hrt:hrt_ledger"
+      },
+      {
+        "id": "hrt-decisions-family",
+        "text": "Four primary contrasts were registered; every other cell is exploratory and is never used to say a rule works. The adjusted level is Bonferroni, which is conservative.",
+        "severity": "low",
+        "source": "hrt:hrt_decisions"
       },
       {
         "id": "eval-null-offset",
