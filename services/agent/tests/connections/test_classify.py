@@ -101,6 +101,22 @@ def test_anything_else_is_a_write_or_destructive(sql, expect):
     assert classify_sql(sql) == expect, sql
 
 
+@pytest.mark.parametrize("sql, expect", [
+    ("select /* ' */ 1; drop table t; /* ' */", "destructive"),            # a quote inside a comment is not a string: an earlier reading hid the DROP
+    ("select 1 /* ' */ ; delete from t -- '", "destructive"),
+    ("select \uff07; drop table t; \uff07", "write"),                         # a full-width quote is not a quote to the database, and must not become one for us
+    ("select 'a\\'' ; drop table t; select 'x'", "write"),                    # a backslash may be an escape in some engines: a person decides
+    ("select 1 /*! ; drop table t */", "write"),                             # MySQL runs the inside of /*! */
+    ("select 1 # ; drop table t", "destructive"),                            # # is an operator in Postgres: what follows is code
+    ("select 1 /* /* */ ; drop table t; */", "destructive"),                 # nested comments (Postgres): we end the comment early, never late
+    ("select 1 /* open", "write"), ("select 'open", "write"), ("select \"open", "write"), ("select `open", "write"),
+    ("select * from t where x = 'it''s' and y = \"a;b\"", "read"),
+    ("select 1 -- ; drop table t", "read"),                                   # a real line comment hides nothing that runs
+])
+def test_sql_comment_and_quote_tricks_cannot_hide_a_statement(sql, expect):
+    assert classify_sql(sql) == expect, sql
+
+
 def test_non_string_sql_and_huge_sql_fail_closed():
     for bad in (None, 5, ["select 1"], {"a": 1}, "select 1" + " " * 30_000):
         assert classify_sql(bad) == "write"

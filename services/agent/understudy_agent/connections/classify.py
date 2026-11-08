@@ -14,14 +14,12 @@ Classes: read, write, send, destructive, execute. Everything but read needs a pe
 from __future__ import annotations
 
 import re
-import unicodedata
 from dataclasses import dataclass
 from typing import Any, Mapping
 
 from understudy_engine.connections.manifest import Preset
 
 from ..security.labels import ActionClass, classify_label
-from ..security.sanitize import strip_invisible
 
 CLASS_ORDER = ("read", "write", "send", "destructive", "execute")
 _RANK = {c: i for i, c in enumerate(CLASS_ORDER)}
@@ -77,8 +75,6 @@ def verb_class(name: str) -> tuple[str, str]:
 
 
 # ------------------------------------------------------------------------------------------------------------ SQL
-_LITERAL = re.compile(r"'(?:[^']|'')*'|\"(?:[^\"]|\"\")*\"|`[^`]*`")
-_COMMENT = re.compile(r"--[^\n]*|/\*.*?\*/", re.S)
 _READ_FIRST = frozenset({"select", "with", "explain", "show", "describe", "desc", "values", "table"})
 _SQL_WRITE = frozenset({"insert", "update", "delete", "drop", "alter", "create", "truncate", "replace", "merge", "grant", "revoke", "attach", "detach",
                         "vacuum", "reindex", "analyze", "analyse", "copy", "call", "do", "set", "reset", "lock", "comment", "refresh", "cluster",
@@ -93,22 +89,57 @@ _PRAGMA_READ = frozenset({"table_info", "table_xinfo", "table_list", "index_list
 MAX_SQL = 20_000
 
 
+def _strip_sql(sql: str) -> str | None:
+    """The statement with every string, quoted name and comment replaced by a space, read in ONE left-to-right pass the way the engines read it (a quote
+    inside a comment is not a string, a comment marker inside a string is not a comment). None when it cannot be read with certainty: an unterminated
+    string or comment, or a MySQL executable comment."""
+    out: list[str] = []
+    i, n = 0, len(sql)
+    while i < n:
+        c = sql[i]
+        if c in "'\"`":
+            j = i + 1
+            while True:
+                k = sql.find(c, j)
+                if k == -1:
+                    return None
+                if c != "`" and k + 1 < n and sql[k + 1] == c:       # a doubled quote is a quote inside the string
+                    j = k + 2
+                    continue
+                break
+            out.append(" ")
+            i = k + 1
+        elif sql.startswith("--", i):                                  # (a # is NOT a comment here: in Postgres it is an operator and the rest of the line is code)
+            j = sql.find("\n", i)
+            out.append(" ")
+            i = n if j == -1 else j
+        elif sql.startswith("/*", i):
+            if sql.startswith("/*!", i):
+                return None                                       # MySQL runs the inside of /*! ... */ as code
+            j = sql.find("*/", i + 2)
+            if j == -1:
+                return None
+            out.append(" ")
+            i = j + 2
+        else:
+            out.append(c)
+            i += 1
+    return "".join(out)
+
+
 def classify_sql(sql: Any) -> str:
     """``read`` only for ONE statement made of read words and nothing else; ``destructive`` when it drops, deletes or truncates; otherwise ``write``.
-    Fail closed: anything odd (a second statement, dollar quoting, an E-string, non-ASCII outside a string, a side-effect function) is a write."""
+    Fail closed: anything odd (a second statement, dollar quoting, an E-string, a backslash, any non-ASCII character, an unterminated string or comment,
+    a side-effect function) is a write. This is a second line of defence, not a SQL parser: the presets also say to use a read-only database role."""
     if not isinstance(sql, str) or not sql.strip() or len(sql) > MAX_SQL or "\x00" in sql:
         return "write"
-    text, _ = strip_invisible(unicodedata.normalize("NFKC", sql))
-    low = text.lower()
-    if "$" in low or re.search(r"\be'", low):
+    # No normalisation: NFKC would turn a full-width quote into a real one that the database does not see. Anything outside ASCII is a click.
+    if not sql.isascii() or "$" in sql or "\\" in sql or re.search(r"\be'", sql.lower()):
         return "write"
-    bare = _LITERAL.sub(" ", _COMMENT.sub(" ", _LITERAL.sub(" ", text)))
-    # a quote or a comment opener left over means our reading of the literals does not match the engine's: do not guess
-    if "'" in bare or '"' in bare or "`" in bare or "/*" in bare:
+    bare = _strip_sql(sql)
+    if bare is None:
         return "write"
-    if any(ord(c) > 127 for c in bare):
-        return "write"
-    stmts = [s for s in bare.split(";") if s.strip()]
+    stmts = [x for x in bare.split(";") if x.strip()]
     toks = re.findall(r"[a-z_][a-z0-9_]*", bare.lower())
     if len(stmts) != 1:
         return "destructive" if any(t in _SQL_DESTRUCTIVE for t in toks) else "write"
