@@ -1,7 +1,7 @@
 import { applyDesktopDefaultFlags } from './default-flags'
 import path from 'node:path'
 import dotenv from 'dotenv'
-import { app, nativeImage, powerMonitor, screen, shell, systemPreferences, webContents } from 'electron'
+import { app, BrowserWindow, nativeImage, powerMonitor, screen, shell, systemPreferences, webContents } from 'electron'
 import { IPC } from '../shared/ipc'
 import type { EventArgs, EventChannel } from '../shared/ipc'
 import { Bus } from './bus'
@@ -313,7 +313,7 @@ void app.whenReady().then(async () => {
     askBar: askBar ?? undefined,
     // The first run's bridge: what it shows and asks of macOS, and the sample ring (the overlay covers the primary display).
     permissions,
-    speech: { helper: () => wakeBox.ctl?.status().helper ?? null, request: () => wakeBox.ctl?.setListen(true) },
+    speech: { helper: () => wakeBox.ctl?.status().helper ?? null, request: () => wakeBox.ctl?.arm() },
     ring: createTryRingPort(services.overlay, () => screen.getPrimaryDisplay().bounds),
   })
   const attentionWiring = wireAttention({
