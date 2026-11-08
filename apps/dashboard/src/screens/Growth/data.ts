@@ -120,7 +120,7 @@ export async function exportLedger(story: Story, example: boolean): Promise<{ fi
   if (!example) {
     const person = await whoAmI();
     const r = await call(`/cue/ledger/export${qs({ person })}`);
-    if (!r.reached) throw new ApiError(0, "offline", "The engine is not running, so the ledger could not be exported. Start it and try again.");
+    if (!r.reached) throw new ApiError(0, "offline", "The engine is not running, so your record could not be exported. Start it and try again.");
     if (r.status >= 400) throw errorOf(r);
     return { filename, text: JSON.stringify(r.body, null, 2) };
   }

@@ -51,7 +51,7 @@ describe("the one action", () => {
       expect(wordCount(a!.label), a!.label).toBeLessThanOrEqual(ACTION_MAX_WORDS);
       expect(a!.label).toMatch(/^See /);
     }
-    expect(heroAction({ kind: "time_loss_habit", action: { id: "open_growth", label: "Open Growth", to: "growth" } } as never)).toEqual({ label: "See where the time goes", href: "#/genome" });
+    expect(heroAction({ kind: "time_loss_habit", action: { id: "open_growth", label: "Open Growth", to: "growth" } } as never)).toEqual({ label: "See where the time goes", href: "#/growth?section=steps" });
     expect(heroAction({ kind: "habit_improved", action: { id: "open_growth", label: "See how it changed", to: "growth" } } as never)).toEqual({ label: "See how it changed", href: "#/growth" });
   });
   it("is absent when the engine has no action", () => {

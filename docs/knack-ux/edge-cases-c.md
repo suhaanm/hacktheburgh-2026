@@ -46,16 +46,29 @@ The rules behind every row:
 
 | ID | State | What is shown | Test |
 |---|---|---|---|
-| RT-01 | No routines | Nothing running, nothing turned down, no headline | no routines |
+| RT-01 | No routines | Nothing set up, nothing turned down, no headline | no routines |
 | RT-02 | Duplicate ids and holes | One routine per id | a duplicate id is one routine |
 | RT-03 | 400 routines; minutes a week missing, NaN or negative | Sorted by minutes; the odd ones count as none and sort last | hundreds of routines |
 | RT-04 | A routine whose steps are unknown (no record, no rung, no proposal) | No total, no NaN, no "undefined" | a routine whose steps are unknown |
 | RT-05 | A 500-character title; no title | Cut with an ellipsis; "A routine" | a very long routine title |
 | RT-06 | What it touches, lists missing | "" or "Touches A, B and C." | what a routine touches survives |
-| RT-07 | The headline with no tasks, negative or NaN minutes | Empty, or the most urgent fact; never a negative number | the headline names the most urgent fact |
+| RT-07 | The headline with no tasks, negative or NaN minutes | Empty, or 'N tasks are working in the background.' / 'You have N routines set up.'; never a negative number and never a word that says a routine is executing | the headline names the most urgent fact |
 | RT-08 | 500 runs; a run with nothing in it | 500 tasks, no error; a finished task | five hundred runs |
 
 The background tasks list has its own tests in `src/lib/tasks.test.ts` (state words, notes, steps, rows from the tasks service, the fade into Done today, finishing, one announcement), `src/components/routines/BackgroundTasks.test.ts` (one line each, icons by shape, nothing for no tasks, steps closed, Done today closed, a retry when it cannot be read) and `src/lib/live.test.ts` (fake clock and fake stream: fast and slow polling, focus, bursts, a broken stream, a stream at an address, no overlap, a hidden tab).
+
+## Ghosts and old records (the owner's 'why are there so many background tasks running?')
+
+The agent service lists persisted run records with their LAST state, so a process that died left some 'planning' or 'running' for ever. A ghost is seen, never drawn, never counted as running, never asked about (no detail read, no stream, no Needs you item). Nothing is deleted: the record stays, and the admin's Background runs still lists it. The clock is a parameter in every test.
+
+| ID | State | What is shown | Test |
+|---|---|---|---|
+| GH-01 | A run record still going after 15 minutes (the service's own cap) | Nothing: not listed, not 'running', no Needs you item; the page does not poll every 2 s for it | a run record still going after the 15 minutes |
+| GH-02 | A task row still going after its longest cap (120 minutes) plus a margin | Nothing | a task row from the tasks service |
+| GH-03 | A card waiting for the worker for more than a day | Nothing (a day is as long as a worker is asked) | a card that waits for the worker |
+| GH-04 | A finished task created more than 24 hours ago, or with no usable creation time | Not in 'Done today'; one created 23 hours ago is | a finished task created more than 24 hours ago |
+| GH-05 | The built-in sample (the services refused, or example runs from a fixture) | No task at all: the tasks list is drawn only from what a service answered | the built-in sample is never a task |
+| GH-06 | A start time ahead of the clock | Shown (a skewed clock is not a ghost) | a start time ahead of the clock |
 
 ## Your data
 
@@ -96,6 +109,6 @@ The background tasks list has its own tests in `src/lib/tasks.test.ts` (state wo
 | Loading, slow engine | "Loading what needs you", "Loading your routines", "Loading your data": one line, no spinner storm | loading |
 | The engine or the agent is down | The built-in sample, badged "Example data", with one short reason ("The engine is not answering.") and its engine message behind a hint | down |
 | Partial: the queue answers, routines do not | The live approvals and an "Example data" badge with the reason for the routines | partial |
-| Empty | "Nothing needs you." / "Nothing runs yet." | empty |
+| Empty | "Nothing needs you." / "No routines yet." | empty |
 | A task finishes while the page is open | The line changes to a check with its result, an open row stays open, the scroll does not move, one polite sentence is announced | the smoke block "Live" |
 | The event stream breaks | Polling carries on every 2 s (running) or 15 s (not), and the stream is tried again after 30 s | `live.test.ts` |

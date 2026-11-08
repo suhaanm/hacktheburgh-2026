@@ -17,7 +17,8 @@ instructions are added to the planner context, size-capped, wrapped as UNTRUSTED
 permission, change a gate or add a tool, because none of those is decided by prompt text.
 
 SETTINGS (`<data dir>/task_settings.json`): `use_claude_skills` (default true), `off` (skill names switched off), and
-`max_minutes` (default 30). Writing them is the worker's action.
+`max_minutes` (default 30) and `max_budget_usd` (the spend brake for a Claude agent task, default 2, 0.5 to 20). Writing them is the
+worker's action.
 """
 from __future__ import annotations
 
@@ -62,7 +63,15 @@ def settings_path() -> Path:
     return data_dir() / "task_settings.json"
 
 
-_DEFAULTS: dict[str, Any] = {"use_claude_skills": True, "off": [], "max_minutes": 30}
+BUDGET_MIN, BUDGET_MAX, BUDGET_DEFAULT = 0.5, 20.0, 2.0
+_DEFAULTS: dict[str, Any] = {"use_claude_skills": True, "off": [], "max_minutes": 30, "max_budget_usd": BUDGET_DEFAULT}
+
+
+def valid_budget(v: Any) -> float | None:
+    """A spend limit in US dollars the worker may set: a number from 0.5 to 20, kept to cents. Anything else is None."""
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        return None
+    return round(float(v), 2) if BUDGET_MIN <= float(v) <= BUDGET_MAX else None
 _settings_lock = threading.Lock()
 
 
@@ -80,6 +89,8 @@ def load_settings() -> dict[str, Any]:
         mm = d.get("max_minutes")
         if isinstance(mm, int) and not isinstance(mm, bool) and 1 <= mm <= 120:
             out["max_minutes"] = mm
+        if (b := valid_budget(d.get("max_budget_usd"))) is not None:
+            out["max_budget_usd"] = b
     return out
 
 
@@ -93,6 +104,8 @@ def save_settings(update: dict[str, Any]) -> dict[str, Any]:
         mm = update.get("max_minutes")
         if isinstance(mm, int) and not isinstance(mm, bool) and 1 <= mm <= 120:
             cur["max_minutes"] = mm
+        if (b := valid_budget(update.get("max_budget_usd"))) is not None:
+            cur["max_budget_usd"] = b
         p = settings_path()
         p.parent.mkdir(parents=True, exist_ok=True)
         tmp = p.with_name(p.name + ".tmp")
@@ -232,7 +245,7 @@ class SkillBook:
     def listing(self, *, fresh: bool = False) -> dict[str, Any]:
         st = load_settings()
         return {"use_claude_skills": st["use_claude_skills"], "off": st["off"], "max_minutes": st["max_minutes"],
-                "skills": [s.public(self.enabled(s, st)) for s in self.items(fresh=fresh)]}
+                "max_budget_usd": st["max_budget_usd"], "skills": [s.public(self.enabled(s, st)) for s in self.items(fresh=fresh)]}
 
     def select(self, task_text: str, k: int = 2, settings: dict[str, Any] | None = None) -> list[SkillInfo]:
         st = settings or load_settings()

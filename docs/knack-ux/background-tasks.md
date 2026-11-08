@@ -14,7 +14,11 @@ One line per task, on Routines (top of Running) and wherever Home draws `<Backgr
 | On a click | The steps as a plain list of checkmarks; for a task from the tasks service also **Stop** (running) and **Open folder** or **Open file** (done, when it made one). |
 | Never | An id, a budget, a lease, "step 0 of 1", a count the worker cannot act on. Those are the admin's Background runs (Admin only, More). |
 
-Order: running first, then ones waiting for the worker, then a task that finished in the last minute (so the finish is seen); everything else finished today is under a closed "Done today (n)". A task from an earlier day is not listed. At most four lines show on a screen that asks for four; the rest are counted.
+Order: running first, then ones waiting for the worker, then a task that finished in the last minute (so the finish is seen); everything else finished and created in the last 24 hours is under a closed "Done today (n)". At most four lines show on a screen that asks for four; the rest are counted.
+
+**What is never listed (owner, 8 Nov: "why are there so many background tasks running?").** The agent service lists persisted run records with their last state, so a process that died left some 'planning' or 'running' for ever. A *ghost* is a task that is not finished and started longer ago than anything can last: a run record after 15 minutes (the service's cap), a task row after its longest cap (120 minutes) plus a margin, a card waiting for the worker after a day, or anything with no usable start time. A ghost is dropped everywhere: not listed, not counted as running (so the page does not poll fast for it), no detail read, no stream, no Needs you item. Nothing is deleted. A finished task created more than a day ago is old history and is not listed. What the built-in sample says about runs is never a task: only a service that answered can name one. The clock is a parameter of every rule (`isGhost`, `isOld`, `pickTasks` in `src/lib/tasks.ts`), so each is tested with a fixed time.
+
+**Routines vs tasks.** The Routines tab is called 'Your routines' and counts routines only. A routine's words say how it is set ('Watch first', 'Asks first', 'Away runs'; 'Set to watch first. No practice runs yet.', 'Watched: 13 of 14 practice runs match.'), never that it is executing right now. Tasks are the only thing that 'works in the background'.
 
 ## Where the data comes from
 

@@ -68,15 +68,16 @@ describe("Settings", () => {
     expect(waitMixed).not.toMatch(/aria-pressed="true"/);
   });
   it("every setting that has a default prints it, and the doc lists the same ones", () => {
-    const h = html({ desktop: { cueEnabled: true, minimiseWhileWorking: true, launchAtLogin: true }, wake: { switchOn: true, listening: true, line: "" }, skills: { use_claude_skills: true, off: [], max_minutes: 30, skills: [] } });
+    const h = html({ desktop: { cueEnabled: true, minimiseWhileWorking: true, launchAtLogin: true }, wake: { switchOn: true, listening: true, line: "" }, skills: { use_claude_skills: true, off: [], max_minutes: 30, max_budget_usd: 2, skills: [] } });
     const doc = readFileSync(resolve(__dirname, "../../../../../docs/knack-ux/defaults.md"), "utf8");
     for (const [id, d] of Object.entries(DEFAULTS)) {
       if (id === "help-level") { expect(text(h)).toContain(`Default: ${d.shown}.`); continue; }
       expect(h).toContain(`data-testid="default-${id}"`);
       expect(text(h)).toContain(`Default: ${d.shown}.`);
     }
-    for (const w of ["Use live models", "Interruptions", "Coaching", "Help level", "Hey Knack", "Move aside while Knack works", "Open at login", "Use my skills", "Longest a task runs"]) expect(doc).toContain(w);
-    expect(DEFAULTS.interruptions.value).toBe("rarely");
+    for (const w of ["Use live models", "Interruptions", "Coaching", "Help level", "Hey Knack", "Move aside while Knack works", "Open at login", "Use my skills", "Longest a task runs", "Most a task may spend"]) expect(doc).toContain(w);
+    expect(DEFAULTS.interruptions.value).toBe("balanced");
+    expect(text(html())).toContain("Default: Balanced.");   // the engine's own, evaluated policy; the row must agree with what the engine answers
   });
   it("the defaults never switch on a consent, an approval or an unattended run", () => {
     expect(Object.keys(DEFAULTS).join(" ")).not.toMatch(/consent|approv|unattended|away|irreversible|frame|glance/i);
@@ -151,5 +152,13 @@ describe("Settings", () => {
     expect(h).toMatch(/<option value="45" selected="">45 minutes<\/option>/);
     expect(h).toMatch(/<option value="30">30 minutes<\/option>/);
     expect(text(h)).toContain("Default: 30 minutes.");
+  });
+  it("offers the most a task may spend once the service says it, in US dollars, with a value off the list still listed", () => {
+    expect(text(html({ skills: { use_claude_skills: true, off: [], skills: [] } }))).not.toContain("Most a task may spend");
+    const h = html({ skills: { use_claude_skills: true, off: [], max_budget_usd: 3, skills: [] } });
+    expect(text(h)).toContain("Most a task may spend");
+    expect(h).toMatch(/<option value="3" selected="">US\$3<\/option>/);
+    expect(h).toMatch(/<option value="0.5">US\$0.50<\/option>/);
+    expect(text(html({ skills: { use_claude_skills: true, off: [], max_budget_usd: 2, skills: [] } }))).toContain("Default: US$2.");
   });
 });

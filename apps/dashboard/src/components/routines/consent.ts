@@ -14,7 +14,8 @@ export const IRREVERSIBLE_SCRIPT = "This is a recorded script. It repeats exactl
 
 /** The three steps of how far a routine is trusted, in the worker's words (never A0 to A3). */
 export type Cap = "watching" | "asks" | "own";
-export const CAP_LABEL: Record<Cap, string> = { watching: "Watching", asks: "Asks first", own: "Runs on its own" };
+/** The three steps are settings (how far a routine may go), not states: none of the words says that something is executing right now. */
+export const CAP_LABEL: Record<Cap, string> = { watching: "Watch first", asks: "Asks first", own: "Away runs" };
 export const CAP_MODE: Record<Cap, "shadow" | "approval" | "unattended"> = { watching: "shadow", asks: "approval", own: "unattended" };
 
 /** The step the worker chose: the consent mode, in words. Away runs ask before anything outward too, so they read as the top step. */
@@ -59,13 +60,13 @@ export function needFor(r: { shadow?: { runs?: unknown; matches?: unknown; [k: s
 /** The state of a routine in one sentence of its own words. */
 export function stateLine(r: Pick<Routine, "status"> & { rung?: Routine["rung"]; shadow?: { runs?: unknown; matches?: unknown; [k: string]: unknown } | null }): string {
   const { runs, matches } = recordOf(r);
-  if (r.status === "unattended") return r.rung === "A3" ? "Runs, then tells you." : "Runs while you are away. Asks before it submits or sends.";
-  if (r.rung === "A2" || r.rung === "A3") return "Asks before it submits or sends.";
-  return runs > 0 ? `Watching: ${matches} of ${runs} practice runs match.` : "Watching: no practice runs yet.";
+  if (r.status === "unattended") return r.rung === "A3" ? "Set to run while you are away, then tell you." : "Set to run while you are away. Asks before it submits or sends.";
+  if (r.status === "approval" || r.rung === "A2" || r.rung === "A3") return "Asks before it submits or sends.";
+  return runs > 0 ? `Watched: ${matches} of ${runs} practice runs match.` : "Set to watch first. No practice runs yet.";
 }
 
 /** The label at the right edge of a row: how far the worker trusts it. */
 export function trustWord(r: Pick<Routine, "status">): string {
   const c = capOf(r.status);
-  return c === "own" ? "Runs while away" : c ? CAP_LABEL[c] : "";
+  return c ? CAP_LABEL[c] : "";
 }

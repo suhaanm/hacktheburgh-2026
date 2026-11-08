@@ -3,13 +3,16 @@ import { Details, Row, Rows } from "../ui";
 import { Range } from "../common";
 import { Hint } from "../Hint";
 import { IntervalPlot, SHARE_AXIS, type PlotRow } from "./IntervalPlot";
+import { Headline, SeeNumbers } from "./InsightFirst";
+import { gapChart } from "./charts";
+import { rolesHeadline } from "./insights";
 import { compareShown, fmtNum, fmtShare, pct, roleGapLine, verdictText } from "./model";
 import type { RoleCompare, RoleHabit, RoleMeasure } from "./wire";
 import type { AnalyticMeta } from "../../types";
 
 const REASON: Record<string, string> = {
-  no_expert_reference: "There is no expert in this role to compare with yet.",
-  group_too_small: "Fewer than 5 people in a group, so no comparison is shown.",
+  no_expert_reference: "No expert to compare with yet.",
+  group_too_small: "Fewer than 5 people in a group.",
 };
 
 const measureOf = (r: RoleCompare, key: string): RoleMeasure | undefined => r.measures.find((m) => m.key === key);
@@ -57,7 +60,7 @@ function Habits({ role, min }: { role: RoleCompare; min: number }) {
 
 /** The row's muted line, printed (D45: n and the interval stay on Admin screens): both estimates with their intervals and each group's n. */
 function roleLine(r: RoleCompare, ind: RoleMeasure): string {
-  return `Experts ${fmtShare(ind.expert)}, n = ${r.n_expert}. Juniors ${fmtShare(ind.junior)}, n = ${r.n_junior}.`;
+  return `Experts ${fmtShare(ind.expert)}, juniors ${fmtShare(ind.junior)}. n = ${r.n_expert} and ${r.n_junior}.`;
 }
 
 /** The gap in points, as the row's end: a number with its word, never a bare colour. "not clear" when the interval does not say. */
@@ -103,12 +106,35 @@ export function RoleMultiples({ roles, min }: { roles: RoleCompare[]; min: numbe
       {roles.flatMap((r) => {
         const ind = measureOf(r, "independence");
         if (!compareShown(r, min) || !ind) {
-          return [<Row key={r.role} title={r.name} meta={`Not compared yet. ${(r.reason && REASON[r.reason]) || `Needs at least ${min} experts and ${min} juniors with enough data. This role has ${r.n_expert} and ${r.n_junior}.`}`} />];
+          return [<Row key={r.role} title={r.name} meta={`Not compared. ${(r.reason && REASON[r.reason]) || `Needs ${min} experts and ${min} juniors; this role has ${r.n_expert} and ${r.n_junior}.`}`} />];
         }
         const on = open === r.role;
         const row = <Row key={r.role} title={r.name} meta={roleLine(r, ind)} end={gapEnd(ind)} onClick={() => setOpen(on ? null : r.role)} pressed={on} chevron={!on} />;
         return on ? [row, <RoleOpen key={`${r.role}-open`} r={r} min={min} />] : [row];
       })}
     </Rows>
+  );
+}
+
+/**
+ * The Roles screen, insight first: one sentence naming the widest readable gap, one chart of the gap by role against zero, and the rows (each opens its
+ * comparison, its habits and its people in place) behind "See the numbers".
+ */
+export function RolesBody({ roles, min, meta }: { roles: { roles: RoleCompare[]; same_scale: { min: number; max: number } }; min: number; meta?: AnalyticMeta | null }) {
+  const g = gapChart(roles, min);
+  return (
+    <div className="insight-first">
+      <Headline>{rolesHeadline(roles, min)}</Headline>
+      {g.any && (
+        <figure className="chart insight-chart">
+          <IntervalPlot
+            title="Gap in points of steps finished without help, juniors against experts" rows={g.rows} domain={g.domain} ticks={g.ticks}
+            format={(v) => String(Math.round(v))} reference={{ value: 0, label: "no gap" }} rowHeight={36}
+          />
+          <figcaption className="note">Points. Left of zero: juniors need more help. Hollow dot: not clear yet.</figcaption>
+        </figure>
+      )}
+      {roles.roles.length > 0 && <SeeNumbers><RoleMultiples roles={roles.roles} min={min} meta={meta} /></SeeNumbers>}
+    </div>
   );
 }

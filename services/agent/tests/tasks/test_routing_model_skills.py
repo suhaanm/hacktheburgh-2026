@@ -231,7 +231,7 @@ def test_settings_default_on_and_the_switches_apply(tmp_path):
     make_skill(h / ".claude" / "skills", "csv-wizard", "Clean and summarise csv data files")
     make_skill(h / "Knack" / "skills", "house-csv", "House rules for csv data summary")
     book = sk.SkillBook(h)
-    assert sk.load_settings() == {"use_claude_skills": True, "off": [], "max_minutes": 30}
+    assert sk.load_settings() == {"use_claude_skills": True, "off": [], "max_minutes": 30, "max_budget_usd": 2.0}
     assert {s.name for s in book.select("summarise the csv data", k=5)} == {"csv-wizard", "house-csv"}
     sk.save_settings({"off": ["house-csv"]})
     assert [s.name for s in book.select("summarise the csv data", k=5)] == ["csv-wizard"]

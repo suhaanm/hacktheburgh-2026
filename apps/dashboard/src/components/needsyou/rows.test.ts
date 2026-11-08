@@ -145,7 +145,7 @@ describe("a running routine", () => {
     expect(text(open.replace(/<details[\s\S]*?<\/details>/g, ""))).not.toMatch(/\bA[0-3]\b|\brung\b/i);
   });
   it("the three steps are in the worker's words", () => {
-    for (const w of ["Watching", "Asks first", "Runs on its own"]) expect(text(open)).toContain(w);
+    for (const w of ["Watch first", "Asks first", "Away runs"]) expect(text(open)).toContain(w);
   });
 });
 

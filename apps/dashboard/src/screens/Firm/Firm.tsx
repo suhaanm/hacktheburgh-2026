@@ -1,24 +1,28 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useRoute } from "../../router";
 import { useLoad, type LoadState } from "../../hooks";
 import { ErrorState, Loading, SourceNote } from "../../components/common";
 import { Details } from "../../components/ui";
-import { HitList } from "../../components/repeats/HitList";
+import { AutomationBody } from "../../components/firm/AutomationBody";
 import { FirmBrief } from "../../components/firm/FirmBrief";
+import { FirmHead, FIRM_LIMIT } from "../../components/firm/FirmHead";
+import { ForecastsView } from "../../components/firm/ForecastsView";
+import { FreshNote, Headline } from "../../components/firm/InsightFirst";
 import { InsightRows } from "../../components/firm/InsightRows";
-import { OnboardingCurves } from "../../components/firm/OnboardingCurves";
-import { PeopleTable } from "../../components/firm/PeopleTable";
+import { OnboardingBody } from "../../components/firm/OnboardingCurves";
+import { PeopleBody } from "../../components/firm/PeopleTable";
 import { RiskCoverage } from "../../components/firm/RiskCoverage";
-import { RoleMultiples } from "../../components/firm/RoleMultiples";
-import { ScorecardPanel } from "../../components/firm/ScorecardPanel";
-import { fmtNum } from "../../components/firm/model";
+import { RolesBody } from "../../components/firm/RoleMultiples";
+import { firmHeadline } from "../../components/firm/insights";
 import { firmTabOf, type FirmTab } from "../../components/home/navModel";
-import { ADMIN_MARKER } from "../../components/home/viewAs";
+import { useRemembered } from "../../lib/remember";
 import { loadFirm as loadFirmHits } from "../Repeats/data";
 import { loadFirm, loadOnboarding, loadOverview, loadRoles } from "./data";
 import "../../components/firm/firm.css";
 
-/** A title is a name, six words at most. The other five views are rows in More and in the palette; the tab strip is retired. */
+export { FIRM_LIMIT };
+
+/** A title is a name, six words at most. The other views are rows in the Admin nav and the palette; the tab strip is retired. */
 const TITLE: Record<FirmTab, string> = {
   overview: "Firm",
   roles: "Roles",
@@ -29,8 +33,6 @@ const TITLE: Record<FirmTab, string> = {
   forecasts: "Forecasts",
   brief: "Firm brief",
 };
-/** The one printed line under every Firm title: a use limit, so it is never behind a Hint. */
-export const FIRM_LIMIT = "For coaching and onboarding, not for evaluating individuals.";
 const MIN_GROUP = 5;
 
 /** Wraps a loaded panel: loading, error and the example note are designed, never blank. The one origin pill is in the screen head, not on each panel. */
@@ -45,24 +47,32 @@ function Panel<T>({ q, what, children }: { q: LoadState<T>; what: string; childr
   );
 }
 
+const asOfOf = (meta: unknown): string | null => {
+  const m = meta as { as_of?: string; generated_at?: string } | null;
+  return m?.as_of ?? m?.generated_at ?? null;
+};
+
 function Overview({ openId }: { openId: string | null }) {
   const q = useLoad(loadOverview, []);
+  const now = useMemo(() => new Date(), []);
   return (
     <Panel q={q} what="the overview">
       {(o) => (
-        <>
-          <p className="firm-summary">{o.firm.users} people, {o.firm.roles} roles. {o.coverage.enough_data} have enough data for a trend.</p>
-          {o.top.length > 0 ? <InsightRows items={o.top} openId={openId} /> : (
+        <div className="insight-first">
+          <Headline>{firmHeadline(o)}</Headline>
+          {!q.why && <FreshNote asOf={asOfOf(q.meta)} now={now} />}
+          {o.top.length > 0 ? <InsightRows items={o.top} openId={openId} /> : o.firm.users <= 0 ? (
+            <p className="note">Knack shows the firm once people have been followed for a few days.</p>
+          ) : (
             <div className="state"><h2 className="state__title">Nothing stands out this week</h2><p className="state__body">No insight passed every check. That is a normal result.</p></div>
           )}
-          <p className="firm-links"><a href="#/firm/brief">Print the firm brief</a></p>
+          {o.firm.users > 0 && <p className="firm-links"><a href="#/firm/brief">Print the firm brief</a></p>}
           {o.suppressed && o.suppressed.count > 0 && (
             <Details summary={`${o.suppressed.count} other candidates were left out`}>
-              <p>A short list is not a hidden one. They were left out because:</p>
               <ul>{Object.entries(o.suppressed.by_reason).map(([k, v]) => <li key={k}>{REASON[k] ?? k.replace(/_/g, " ")}: {v}</li>)}</ul>
             </Details>
           )}
-        </>
+        </div>
       )}
     </Panel>
   );
@@ -78,41 +88,25 @@ const REASON: Record<string, string> = {
 
 function Roles() {
   const q = useLoad(loadRoles, []);
-  return <Panel q={q} what="the role comparison">{(d) => <RoleMultiples roles={d.roles} min={MIN_GROUP} meta={q.meta} />}</Panel>;
+  return <Panel q={q} what="the role comparison">{(d) => <RolesBody roles={d} min={MIN_GROUP} meta={q.meta} />}</Panel>;
 }
 
 function People() {
   const q = useLoad(loadFirm, []);
-  return <Panel q={q} what="the people list">{(d) => <PeopleTable firm={d} meta={q.meta} />}</Panel>;
+  return <Panel q={q} what="the people list">{(d) => <PeopleBody firm={d} meta={q.meta} />}</Panel>;
 }
 
 function Onboarding() {
   const q = useLoad(loadOnboarding, []);
-  return <Panel q={q} what="the onboarding curves">{(d) => <OnboardingCurves data={d} meta={q.meta} />}</Panel>;
+  return <Panel q={q} what="the onboarding curves">{(d) => <OnboardingBody data={d} meta={q.meta} />}</Panel>;
 }
 
 function Automation() {
-  const [days, setDays] = useState<7 | 30>(7);
+  // The last window the admin chose is kept, so the screen opens on it.
+  const [win, setWin] = useRemembered<"7" | "30">("firm-automation-window", ["7", "30"], "7");
+  const days = win === "30" ? 30 : 7;
   const q = useLoad(() => loadFirmHits(days), [days]);
-  return (
-    <Panel q={q} what="the firm's repeated work">
-      {(d) => (
-        <>
-          <div className="firm-auto__bar">
-            <p className="firm-summary">
-              About <b>{fmtNum({ value: d.total.hours_per_week.point, ci: [d.total.hours_per_week.lo, d.total.hours_per_week.hi] }, "hours a week")}</b> of repeated work
-              across {d.total.people} people, in {d.total.actions} actions.
-            </p>
-            <span className="segmented" role="group" aria-label="Window">
-              {([7, 30] as const).map((n) => <button key={n} type="button" aria-pressed={days === n} onClick={() => setDays(n)}>{n} days</button>)}
-            </span>
-          </div>
-          <HitList audience="admin" rows={d.rows} windowDays={d.window_days} label="Repeated work across the firm" />
-          {d.suppressed > 0 && <p className="note">{d.suppressed} {d.suppressed === 1 ? "row is" : "rows are"} not shown because fewer than {d.min_group} people do it. The list counts people and never names them.</p>}
-        </>
-      )}
-    </Panel>
-  );
+  return <Panel q={q} what="the firm's repeated work">{(d) => <AutomationBody d={d} days={days} onDays={(n) => setWin(n === 30 ? "30" : "7")} />}</Panel>;
 }
 
 function Risk() {
@@ -120,7 +114,7 @@ function Risk() {
   return <Panel q={q} what="risk and coverage">{(o) => <RiskCoverage o={o} meta={q.meta} />}</Panel>;
 }
 
-/** The Firm screen (Admin view only). One idea per view, reached by the tab strip or the command palette. */
+/** The Firm screen (Admin view only). One idea per view, reached by the Admin nav rows or the command palette. */
 export default function Firm() {
   const route = useRoute();
   const tab = firmTabOf(route.path);
@@ -133,7 +127,7 @@ export default function Firm() {
       case "onboarding": return <Onboarding />;
       case "automation": return <Automation />;
       case "risk": return <Risk />;
-      case "forecasts": return <ScorecardPanel />;
+      case "forecasts": return <ForecastsView />;
       case "brief": return <FirmBrief />;
       default: return <Overview openId={openId} />;
     }
@@ -141,15 +135,7 @@ export default function Firm() {
 
   return (
     <div className="page page--wide firm" data-tab={tab}>
-      <header className="screenhead">
-        <div className="screenhead__row">
-          <h1 className="screenhead__title">{TITLE[tab]}</h1>
-          <div className="page__aside">
-            <span className="screenhead__marker">{ADMIN_MARKER}</span>
-          </div>
-        </div>
-        <p className="screenhead__limit">{FIRM_LIMIT}</p>
-      </header>
+      <FirmHead title={TITLE[tab]} />
       {body}
     </div>
   );

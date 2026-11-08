@@ -1,11 +1,11 @@
-// Routines: what runs for the worker (Running) and what could (Could automate). Pure: no network, no React.
+// Routines: the routines the worker has set up (Your routines) and what could be (Could automate). Pure: no network, no React.
 import { arr, num, uniqueBy } from "../../lib/safeText";
 import type { Routine } from "../../types";
 
 export type Tab = "running" | "could-automate";
-export const TABS: { id: Tab; label: string }[] = [{ id: "running", label: "Running" }, { id: "could-automate", label: "Could automate" }];
+export const TABS: { id: Tab; label: string }[] = [{ id: "running", label: "Your routines" }, { id: "could-automate", label: "Could automate" }];
 
-/** `?tab=` from the address: anything but "could-automate" is Running. */
+/** `?tab=` from the address: anything but "could-automate" is Your routines. */
 export const tabOf = (q: string | null | undefined): Tab => (q === "could-automate" ? "could-automate" : "running");
 
 const idOf = (r: Routine, i: number): string => (typeof r?.id === "string" && r.id ? r.id : `#${i}`);
@@ -36,8 +36,8 @@ export function touchesSentence(r: Pick<Routine, "touches" | "proposal">): strin
 /** The headline of Routines: what is going on for the worker right now, most urgent first. Empty when nothing is (the empty state says it). */
 export function routinesHeadline(i: { tasksRunning: number; routinesRunning: number; couldMinutes: number }): string {
   const { tasksRunning: t, routinesRunning: n, couldMinutes: m } = i;
-  if (t > 0) return `${t === 1 ? "1 task is" : `${t} tasks are`} working in the background${n > 0 ? `, and ${n === 1 ? "1 routine runs" : `${n} routines run`} for you` : ""}.`;
-  if (n > 0) return `${n === 1 ? "1 routine runs" : `${n} routines run`} for you.`;
+  if (t > 0) return `${t === 1 ? "1 task is" : `${t} tasks are`} working in the background.`;
+  if (n > 0) return `You have ${n === 1 ? "1 routine" : `${n} routines`} set up.`;
   if (Number.isFinite(m) && m >= 30) return `About ${m >= 90 ? `${Math.round(m / 6) / 10} hours` : `${Math.round(m)} minutes`} a week could be handed over.`;
   return "";
 }

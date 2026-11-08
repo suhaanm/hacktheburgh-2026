@@ -15,15 +15,16 @@ Where a default lives in another track's file, the exact one-line change is give
 | Setting | Old default | New default | Why | Safety note |
 |---|---|---|---|---|
 | Use live models | On when a key was found (`useLiveModels: true`); the line did not say so | **On when a key is set**; the row says "On, because a key is set" and prints "Default: on when a key is set." With no key it is off, disabled, and says why | A live model is what makes Watch first, the briefing and Coaching worth having. No key means nothing can be live | Every call goes through the egress guard and the ledger (Your data > What it looked at or sent). Frames still need the worker's consent card and never leave in an unattended run. The switch is disabled while a job runs. No code change needed: already `useLiveModels: z.boolean().default(true)` |
-| Interruptions | Balanced (every kind Normal, 10 interrupting notices a day) | **Rarely** (every kind that can change at Quiet, 4 a day): Knack handles what it can and tells you once at a pause | The setting that does the most on its own is the one that interrupts least. Things that need you are counted, held and shown at the next pause instead of popping up | **Stops and blocking approvals are never hidden**: the safety class ignores every mode and the row prints "Stops and blocking approvals always show." A held item that needs you still appears in Needs you and on the badge. The worker can set any group or any single kind louder (More) |
-| Coaching | Off (`cueEnabled: false`) | **On** | The coach is the product's second layer. A hint costs nothing and fades as the worker improves | Hints are cards the worker can ignore; the screen is never read for them without the glance consent card; "Quiet for an hour" and the menu bar pause still work |
+| Interruptions | Balanced (every kind Normal, 10 interrupting notices a day) | **Balanced** (unchanged): the engine's own default | This is the policy that was evaluated on held-out data (evals/attention, 11 of 12 criteria). Changing the engine default would change the product away from what was measured. "As automated as possible" is about the system doing more on its own, not about fewer interruptions: the worker can pick Rarely or Often in one click | **Stops and blocking approvals are never hidden**: the safety class ignores every mode and the row prints "Stops and blocking approvals always show." A held item that needs you still appears in Needs you and on the badge. Any group, or any single kind, can be set louder or quieter (More) |
+| Coaching | Off (`cueEnabled: false`) | **On** (already true on main) | The coach is the product's second layer. A hint costs nothing and fades as the worker improves | Hints are cards the worker can ignore; the screen is never read for them without the glance consent card; "Quiet for an hour" and the menu bar pause still work |
 | Help level | Automatic | **Automatic** (unchanged, not locked) | The level rises and falls with how the worker is doing. A lock is only for someone who wants one | The level is chosen by code from the shadow record, never by a model |
 | Show the help level for two seconds | On (engine `level_glance` true) | **On** (unchanged) | It is how a worker learns the level changed | Only when nothing else is on screen and the worker is still |
-| Hey Knack | Off in the desktop settings (`wakeEnabled: false`), although D52 says always on | **On**, with the note "Stays on this Mac. Nothing is stored." | Owner decision D52: listening is on by default | On-device recognition only; it fails closed to off with one plain line if on-device recognition is missing; no transcript and no audio are stored; macOS still asks for Microphone and Speech Recognition; voice alone never approves anything. The row shows `wake.state()` as the shell reports it, including why it is quiet |
+| Hey Knack | On (its switch lives in the wake store; the old desktop flag `wakeEnabled` is a legacy flag and is not used) | **On** (unchanged), with the note "Stays on this Mac. Nothing is stored." | Owner decision D52: listening is on by default | On-device recognition only; it fails closed to off with one plain line if on-device recognition is missing; no transcript and no audio are stored; macOS still asks for Microphone and Speech Recognition; voice alone never approves anything. The row shows `wake.state()` as the shell reports it, including why it is quiet |
 | Move aside while Knack works | On | **On** (unchanged) | The window gets out of the way while an agent works; the pill shows what it is doing | The window comes back when something needs the worker, and the pill and the Dock icon always bring it back |
-| Open at login | Off (`launchAtLogin: false`) | **On** | Routines only run while Knack is open, so a worker who wants routines wants it open | Applies to the packaged macOS app only. Opening Knack starts no run. Every routine still waits for the worker's approval and irreversible steps still need their own opt-in |
+| Open at login | Off (`launchAtLogin: false`) | **On** (already true on main) | Routines only run while Knack is open, so a worker who wants routines wants it open | Applies to the packaged macOS app only. Opening Knack starts no run. Every routine still waits for the worker's approval and irreversible steps still need their own opt-in |
 | Use my skills | On, nothing turned off (the tasks service's own default) | **On** (unchanged); the row appears once the tasks service answers, with each skill's name and description behind More and its own switch | The skill files already on this Mac are the worker's own; using them costs nothing and makes a task better | Names and descriptions only: a skill's contents are never shown or sent from this screen. A skill can be turned off one by one. A skill never grants a permission: the consent card and the per-run permit decide that |
 | Longest a task runs | 30 minutes (the tasks service's own default; shown once the service says it) | **30 minutes** (unchanged), choices 5 to 120 | A task that has not finished in half an hour is usually stuck; the worker can raise it for one that needs longer | A hard cap the service enforces: a task is stopped by code at that time, whatever the model says |
+| Most a task may spend | US$2 (the tasks service's own default; shown once the service says it) | **US$2** (unchanged), choices US$0.50 to US$20 | A task that costs more than a coffee is a task the worker should have chosen to allow | A hard cap the service enforces: a task is stopped by code when it reaches it (it finishes as failed, with its partial work still openable) |
 | Appearance | Auto | **Auto** (unchanged) | Follows the system | None |
 | View as | Worker | **Worker** (unchanged) | The worker's own view is the default; Admin is a preview | Admin sees numbers only (Your data > What your admin can see) |
 
@@ -47,16 +48,15 @@ Where a default lives in another track's file, the exact one-line change is give
 | An approval | Waits for a real click on the card | **Unchanged** | No keystroke and no voice approves | A real click only. After it, the lead's `finalize` call submits the sandbox note and the row says plainly if it did not finish |
 | A paused run | Waits | **Unchanged** | A pause is a safety stop | Shown and counted whatever the Interruptions setting is |
 
-## What the lead needs to change (one line each)
+## Settled by the lead (8 Nov, after the checkpoint)
 
-1. `services/engine/understudy_engine/attention/state.py` line 29: `budget_per_day: int = 10` to `4`, and line 84: `return self.modes.get(type_id, "normal")` to `"quiet"` (the safety row on line 83 still returns the fixed row, so stops and blocking approvals are unchanged). Engine tests that assert the Balanced default (`tests/attention/test_service.py`, `test_routes.py`) change with it. Until then the row shows whatever the engine answers and prints "Default: Rarely."
-2. `apps/desktop/src/shared/settings.ts` line 49: `cueEnabled: z.boolean().default(false)` to `.default(true)` (the env gate `UNDERSTUDY_X_CUE=1` still has to be set).
-3. `apps/desktop/src/shared/settings.ts` line 41: `wakeEnabled: z.boolean().default(false)` to `.default(true)`, or have the shell report `switchOn: true` when the worker has never chosen (D52).
-4. `apps/desktop/src/shared/settings.ts` line 62: `launchAtLogin: z.boolean().default(false)` to `.default(true)`.
+- **Interruptions stay Balanced.** The engine's default is the evaluated policy (evals/attention), so no engine change is made and the Settings row says 'Default: Balanced.' (`DEFAULTS` in `apps/dashboard/src/screens/Settings/model.ts`, kept in step with this page by `SettingsView.test.ts`).
+- **No other engine or desktop change is needed.** Coaching (`cueEnabled`) and Open at login (`launchAtLogin`) are already true on main. Hey Knack's switch lives in the wake store and is on by default; the old `wakeEnabled` in `apps/desktop/src/shared/settings.ts` is a legacy flag and is left alone.
 
 Nothing here makes a model decide anything, and nothing here changes a gate: the eight security layers, the consent cards, the per-run permit and the supervised R1 spike are as they were.
 
 ## Hey Knack
+## Hey Knack (WAKE-VOICE)
 
 | Setting | Default | Why | Change it |
 |---|---|---|---|
@@ -105,3 +105,63 @@ The app around the dashboard: the window, the Dock icon, the menu bar item, the 
 | Quit | with nothing running, quits at once; with a run, one sheet ("Knack is working. Stop it and quit?" Stop and quit, Keep working) | never a surprise stop | not a setting |
 | Window size and place | 80 percent by 84 percent of the work area (960 to 1440 by 600 to 1000), remembered per display; a window left off every display after one is unplugged is brought back | a window you cannot find is a bug | drag it |
 | Hey Knack, the two consent cards, Click for you | see the Hey Knack section: never answered for you | the safety rules | |
+## Insight screens, admin
+
+The Admin screens (Firm, Roles, People, Onboarding, Automation, Risk, Forecasts, Brief) open insight first: one headline sentence built by code, at most one simple chart or short list, and the numbers behind one closed "See the numbers". They only read. Nothing on them sends, books, approves or changes anything, so no default here is a consent.
+
+| Setting | Default | Why | Change it |
+|---|---|---|---|
+| Where an admin lands | Firm (the overview), when the address names nothing | the shell's rule for the Admin view | the Admin sidebar |
+| Forecasts: which card shows its evidence | the first card (the surest one) is open, with its interval and its one chart; the other two are closed | one chart above the fold keeps the screen within its word budget, and the surest insight is the one to read first | the chevron on a card opens or closes its evidence; the choice is not remembered, because the cards change with the data |
+| Forecasts: which insights, and in what order | up to three, chosen by code: onboarding speed, the junior and expert gap, repeated work, the trend mix; the surest first (Likely, then Possible, then Too early to say), ties in that order | the model proposes, code decides: every sentence is a fixed template filled from the answers the other Admin screens read | not a setting |
+| The confidence word | Likely: n of at least 10 and an interval that clears zero and is not wide. Possible: n of 5 to 9, or a wide interval. Too early to say: n under 5, no interval, or an interval that includes no change | one word for how far the data supports a sentence; an interval across zero is never read as a direction | printed once in "How reliable are these forecasts?" |
+| Automation: the window | 7 days; the last window the admin chose is remembered on this device (key `understudy-last-firm-automation-window`) | a week is the rhythm of repeated work | the 7 days and 30 days buttons |
+| People: order and filter | by name, A to Z, everyone shown; never a score, never a rank | for coaching and onboarding, not for evaluating individuals | "Sort and filter" inside "See the numbers" (name or time in role; one trend class) |
+| People: the role groups | closed; the first two people of a group show when it opens, "Show all N" shows the rest | an opened group stays a few scannable rows | the group's summary line |
+| The smallest group a figure may describe | 5 people | the privacy threshold; a smaller group is merged or left out and the page says so | not a setting (the engine merges small groups too) |
+| Old or future numbers | numbers more than 14 days old, or dated after today, say so in one line under the headline; example data never shows that line, it carries its own note | an old number must not pass for a fresh one; an example's date is not a claim | not a setting |
+| The month in a forecast | the month 28 days ahead of the clock; no month when the clock cannot be read | "expect 3 new starters to need coaching through December" needs a date to mean anything | not a setting |
+| Firm brief | headline first on screen; the A4 page is in the page but only the printer sees it, so "Print the brief" is one click and prints the same page whatever is open | a printable page must not depend on what is expanded | the browser's print dialog saves it as a PDF |
+| Firm: which insight is open | none; the palette opens one with `?insight=` | an opened insight adds a table and a chart above the fold | the row opens in place |
+| Origin, use limit, n and the interval | always printed: the origin pill and the use limit in the head, n on every card and row, the interval in the chart's line, the headline's line or the table | never behind a hint | not a setting |
+
+
+## Shell, Home and first run (SHELL-WEB)
+
+The owner asked (8 Nov, 00:15) for every toggle and state to be as automated as possible inside the safety layers. These are the defaults the shell, Home and first run choose, and the lines they never cross.
+
+## Never automated (a real click is the only way in)
+
+- A consent: capture, screen glances, voice, a connection. First run shows each as a card with Yes, Not now and Never of one size and one weight; none is pre-selected, none is answered by a timer, a key or a default. Unanswered means asked once, later, in context.
+- An approval, a "Resume the run", a "Run while I'm away", anything irreversible or outward. No keystroke approves (`keys.test.ts`).
+- A macOS permission: the page shows the state and offers Allow or Open System Settings; macOS shows its own prompt; the worker answers there.
+
+## Automated, with the reason
+
+| Default | Where | Reason |
+|---|---|---|
+| First run opens by itself on the first launch of the Knack app on this Mac, whatever identity the engine already has | `shouldStartFirstRun` (`inApp`) | A seeded example worker must not skip the role choice (owner, 00:45). A browser tab keeps the old rule. A deep link is never hijacked; a session that showed it once does not show it again (Back is not a trap). |
+| The role pack's safe defaults are written when the consent screen is done: its tools, risky actions "never without me", short tone, gradual pace, its hours | `defaultAnswers` | Five questions the worker would answer the same way become zero clicks; all of it is editable in Your data. |
+| "Not sure yet" and every Skip pick nothing; nothing is written | `NO_ROLE`, `skip` | Skipping must never cost the worker a choice they did not make. |
+| The last consent answer advances to the next screen | `advance` | One click fewer; the cards still need real answers. |
+| An unfinished first run resumes where it stopped | `parseProgress` | A closed window must not send the worker back to the start. Strict read: anything unexpected starts again from the top. |
+| First run tells the shell it is open (`firstRun: true`) so the Hey Knack listener does not prompt at launch; it is told when first run ends | `wakeContext` | The first microphone prompt belongs to the moment the worker said Yes. |
+| Admin view is remembered on this device; an admin lands on Firm | `viewAs.ts`, `App.tsx` | The owner's walk-through should not repeat the switch. It is a view, not a permission. |
+| The sidebar badge, the Home row and the corner count read one number | `refreshNeedsBadge` | Three numbers that disagree look like a bug. |
+| Home chooses its hero by fixed rules: a blocking approval or a safety pause first, then the best pointer | `blockingItem` | Something the worker must decide outranks something they could learn. |
+
+## Click and word budgets for first run (reasons for the change)
+
+The spec said three clicks and at most 50 words and 4 controls per first-run screen. The owner then asked for the role choice, three consents and a check that the voice and the pointer work. The budgets that follow are the smallest that keep every consent printed whole:
+
+| Where | Clicks to Home with nothing skipped | Note |
+|---|---|---|
+| Browser tab | 3 | role, capture, Show my week |
+| Knack app | 5 | role, capture, screen glances, voice, Show my week |
+| With connection chips | one more | Continue, owner choice (D55) |
+
+The consent screen carries one card per consent (title, the consent sentence printed whole, three buttons): about 30 words and 4 controls a card, so about 110 words and 10 controls with three cards. The budget for that one screen is therefore 120 words and 12 controls; the role screen (24 words, 6 controls with Skip) and the check screen stay within 50 and 8. `budgets.json` is the lead's file: the numbers above are the proposal.
+
+## Not changed
+
+Pinned views stay off by default (the sidebar's six rows are a measured budget); turning them on is one switch in Settings. The word "synthetic" is untouched until the owner's scope is confirmed.

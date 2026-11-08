@@ -1,19 +1,18 @@
 import { useEffect } from "react";
-import { PageHead } from "../../components/common";
-import { ScorecardView, useScorecard } from "../../components/firm/ScorecardPanel";
+import { FirmHead } from "../../components/firm/FirmHead";
+import { ForecastsView } from "../../components/firm/ForecastsView";
+import "../../components/firm/firm.css";
 
 /**
- * Predictions: how well we forecast the moments when someone gets stuck. One hero (the reliability diagram), then the comparison with
- * two simple baselines, false alarms against the budget, and, when the report has it, time to progress. A detail screen, so intervals
- * and n stay in view. Everything is read from evals/report.json through GET /eval/report.
+ * Forecasts (Admin): what to expect and what to do about it, up to three plain insights each with one chart, then the numbers behind a disclosure.
+ * The same view is the Forecasts row of the Firm screen. A worker never reaches it: the shell shows the Admin gate for this address.
  */
 export default function Predictions() {
-  const { load, read } = useScorecard();
   useEffect(() => { document.title = "Forecasts · Knack"; }, []);
   return (
-    <div className="page page--wide">
-      <PageHead title="Forecasts" lede="Not validated on real people yet." />
-      <ScorecardView load={load} read={read} audience="worker" />
+    <div className="page page--wide firm" data-tab="forecasts">
+      <FirmHead title="Forecasts" />
+      <ForecastsView />
     </div>
   );
 }

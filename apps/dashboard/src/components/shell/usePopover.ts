@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const ITEMS = '[role="menuitem"],[role="menuitemradio"],[role="menuitemcheckbox"]';
+/** The items the keyboard can reach: a row that is not drawn (Search on a wide window) is skipped. */
+const reachable = (root: ParentNode | null | undefined): HTMLElement[] => Array.from(root?.querySelectorAll<HTMLElement>(ITEMS) ?? []).filter((el) => el.offsetParent !== null);
 
 export function usePopover() {
   const [open, setOpen] = useState(false);
@@ -15,7 +17,7 @@ export function usePopover() {
 
   useEffect(() => {
     if (!open) return;
-    if (byKey.current) pop.current?.querySelector<HTMLElement>(ITEMS)?.focus();
+    if (byKey.current) reachable(pop.current)[0]?.focus();
     const down = (e: MouseEvent) => {
       const t = e.target as Node;
       if (pop.current?.contains(t) || btn.current?.contains(t)) return;
@@ -24,7 +26,7 @@ export function usePopover() {
     const key = (e: KeyboardEvent) => {
       if (e.key === "Escape") { e.stopPropagation(); close(); return; }
       if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Home" && e.key !== "End") return;
-      const items = Array.from(pop.current?.querySelectorAll<HTMLElement>(ITEMS) ?? []);
+      const items = reachable(pop.current);
       if (!items.length) return;
       e.preventDefault();
       const at = items.indexOf(document.activeElement as HTMLElement);
