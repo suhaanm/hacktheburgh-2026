@@ -43,7 +43,7 @@ export function taskState(run: AgentRun): TaskState {
 export const taskTitle = (run: AgentRun): string => clip(kindLabel(run?.kind).replace(/\s*\(long task\)\s*$/i, ""), 60) || "Background task";
 
 const plainRole = (r: unknown): string => clip(typeof r === "string" ? r.replace(/[_.]/g, " ") : "", 40);
-const childState = (s: unknown): StepState => (typeof s === "string" ? (RUNNING.has(s) ? "running" : WAITING.has(s) ? "pending" : DONE.has(s) ? "done" : FAILED.has(s) || STOPPED.has(s) ? "failed" : "pending") : "pending");
+const childState = (s: unknown): StepState => (typeof s === "string" ? (s === "running" || s === "starting" ? "running" : DONE.has(s) ? "done" : FAILED.has(s) || STOPPED.has(s) ? "failed" : "pending") : "pending");   // queued and waiting are not started yet
 
 /** The steps as a plain list: what the run's result lists once it has one, else the helpers it is using. */
 export function taskSteps(run: AgentRun, result?: unknown): TaskStep[] {

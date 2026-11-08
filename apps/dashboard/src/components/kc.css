@@ -75,9 +75,10 @@ a.kc-link { text-decoration: none; }
 .run__state[data-tone="good"] { color: var(--good); }
 .run__state[data-tone="bad"] { color: var(--bad); }
 
-/* Label and value on one line (KV): the way an expanded block lists facts, so they can be scanned. */
-.kc-kv { display: grid; gap: var(--space-1); margin: 0; font-size: var(--text-sm); }
-.kc-kv__pair { display: grid; grid-template-columns: minmax(84px, max-content) minmax(0, 1fr); gap: var(--space-3); align-items: baseline; }
-.kc-kv dt { color: var(--muted); }
+/* Label and value on one line (KV): the way an expanded block lists facts, so they can be scanned. One two-column grid for the whole list, so every label
+   column lines up (each pair is display: contents, not a grid of its own). */
+.kc-kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-4); align-items: baseline; margin: 0; font-size: var(--text-sm); line-height: 1.45; }
+.kc-kv__pair { display: contents; }
+.kc-kv dt { color: var(--muted); white-space: nowrap; }
 .kc-kv dd { margin: 0; overflow-wrap: anywhere; }
-@media (max-width: 560px) { .kc-kv__pair { grid-template-columns: 1fr; gap: 0; } }
+@media (max-width: 560px) { .kc-kv { grid-template-columns: 1fr; gap: 0; } .kc-kv dt { white-space: normal; margin-top: var(--space-2); } .kc-kv dt:first-of-type { margin-top: 0; } }

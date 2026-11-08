@@ -55,7 +55,7 @@ describe("a task's line", () => {
   });
   it("lists the helpers as the steps while the result is not in, and the result's own steps once it is", () => {
     const r = run({ state: "running" }, [["commit reader", "done"], ["habit counter", "running"], ["report writer", "queued"]]);
-    expect(taskOf(r).steps).toEqual([{ label: "commit reader", state: "done" }, { label: "habit counter", state: "running" }, { label: "report writer", state: "running" }]);
+    expect(taskOf(r).steps).toEqual([{ label: "commit reader", state: "done" }, { label: "habit counter", state: "running" }, { label: "report writer", state: "pending" }]);
     const withResult = taskOf(r, { steps: [{ step: "open_file", check: "verified" }, { step: "copy_text", check: "failed" }] });
     expect(withResult.steps).toEqual([{ label: "open file", state: "done" }, { label: "copy text", state: "failed" }]);
   });

@@ -51,7 +51,7 @@ export function factLine(id: YdSection, f: { lines: number; capture: boolean | n
   switch (id) {
     case "remembers": return `${f.lines} ${f.lines === 1 ? "line" : "lines"}${f.rules ? `, ${f.rules} ${f.rules === 1 ? "rule" : "rules"} waiting` : ""}`;
     case "measured": return f.capture === null ? "" : f.capture ? "Times only" : "Capture off";
-    case "sent": return sentLine(f.entries);
+    case "sent": return "";             // the list is under Settings, Advanced; a worker's row holds one sentence and one link, and no count to read
     case "admin-sees": return f.shared === null ? "" : `${f.shared} summaries`;
     case "switches": return f.capture === null ? "" : f.capture ? "Capture on" : "Capture off";
   }

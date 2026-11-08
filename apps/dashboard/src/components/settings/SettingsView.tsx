@@ -109,11 +109,12 @@ export function SettingsView(p: SettingsViewProps) {
         control={<Switch label="Use live models" checked={p.live.checked} disabled={p.live.disabled} onChange={p.onLive} />} />
 
       <Row id="interruptions" title="Interruptions" def="interruptions"
-        line={<>{STOPS_LINE}{p.attentionExample && <> Example settings: a change here only changes this screen.</>}{attn && !preset ? " Some kinds are set one by one." : ""}</>}
+        line={STOPS_LINE}
         error={p.attentionError}
         control={attn ? <Segmented<Preset> label="Interruptions" value={preset} options={PRESETS.map((x) => ({ id: x.id, label: x.label }))} onChange={p.onPreset} /> : <span className="u-muted">Loading</span>} />
       {attn && (
         <div className="st-sub">
+          {(p.attentionExample || !preset) && <p className="kc-sub" data-testid="line-interruptions-more">{p.attentionExample ? "Example settings: a change here only changes this screen." : ""}{p.attentionExample && !preset ? " " : ""}{!preset ? "Some kinds are set one by one." : ""}</p>}
           <Details summary="More" wide>
             <div className="st-kinds">
               {p.today}

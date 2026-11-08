@@ -3,7 +3,7 @@
 .bt-list { list-style: none; margin: 0; padding: 0; display: grid; }
 .bt-task { position: relative; border-bottom: var(--hair) solid var(--line); min-width: 0; }
 .bt-task:first-child { border-top: var(--hair) solid var(--line); }
-.bt-line { position: relative; display: grid; grid-template-columns: 16px minmax(0, auto) minmax(0, 1fr); align-items: center; gap: var(--space-3); min-height: var(--row-h, 44px); padding: var(--space-2) var(--space-2); color: var(--fg); font: 400 var(--text-md)/1.3 var(--font-body); border-radius: var(--radius-2); }
+.bt-line { position: relative; display: grid; grid-template-columns: 16px minmax(0, auto) minmax(0, 1fr); align-items: center; gap: var(--space-3); min-height: var(--row-h, 44px); padding: var(--space-3) var(--space-1); color: var(--fg); font: 400 var(--text-md)/1.3 var(--font-body); border-radius: var(--radius-2); }
 .bt-line:hover { background: var(--sunk); }
 .bt-open { position: absolute; inset: 0; width: 100%; border: 0; background: none; cursor: pointer; border-radius: var(--radius-2); }
 .bt-open:focus-visible { outline: var(--ring-w) solid var(--focus); outline-offset: var(--ring-offset); }
@@ -14,7 +14,7 @@
 .bt-icon--failed { color: var(--bad); }
 .bt-icon--waiting { color: var(--fg); }
 .bt-spin { width: 14px; height: 14px; border-radius: 50%; border: 1.6px solid var(--line); border-top-color: var(--fg); animation: bt-turn 900ms linear infinite; box-sizing: border-box; }
-.bt-panel { display: grid; gap: var(--space-2); padding: var(--space-1) var(--space-2) var(--space-3) calc(16px + var(--space-3) + var(--space-2)); }
+.bt-panel { display: grid; gap: var(--space-2); padding: var(--space-1) var(--space-1) var(--space-3) calc(16px + var(--space-3) + var(--space-1)); }
 .bt-answer { margin: 0; max-width: 62ch; font-size: var(--text-sm); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .bt-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); font-size: var(--text-sm); }
 .bt-steps li { display: flex; gap: var(--space-2); align-items: baseline; min-width: 0; overflow-wrap: anywhere; }
