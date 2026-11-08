@@ -277,7 +277,7 @@ def test_rows_and_ledger_and_audit_hold_no_prompt_and_no_output(make_manager):
     start = next(x for x in rows if x["method"] == "claude_agent_start")
     assert "scope=files_and_commands" in start["note"] and start["bytes"] > 0 and start["model"] == "claude-cli"
     stop = next(x for x in rows if x["method"] == "claude_agent_stop")
-    assert "stop=ok" in stop["note"] and stop["bytes"] > 0
+    assert "stop=ok" in stop["note"] and stop["bytes"] > 0 and "cost=0.0123" in stop["note"]      # the CLI's own reported cost, a number
     # the audit log: tokens, counts, enums
     text = Path(AuditLog().path).read_text()
     assert secret_word not in text and "SECRET" not in text and tid in text
@@ -434,11 +434,13 @@ def test_browser_tasks_wait_for_a_click_then_run_through_the_runner(make_manager
     assert t.state == "done" and t.result == "Found three trains." and t.steps == ["Opened the page"] and seen["text"]
 
 
-def test_browser_without_a_runner_fails_plainly(make_manager):
-    m = make_manager()
+def test_browser_while_offline_fails_plainly_and_opens_nothing(make_manager):
+    m = make_manager(offline=True)
     r = m.create("go to https://example.com and read the news online", "typed")
+    assert r["route"] == "browser"
     m.consent(r["task_id"], "allow")
-    assert done(m, r["task_id"]).state == "failed"
+    t = done(m, r["task_id"])
+    assert t.state == "failed" and t.reason == "Browsing needs Knack's model connection, which isn't available right now."
 
 
 # ------------------------------------------------------------------------------------------------------- events

@@ -93,6 +93,7 @@ def test_progress_lines_name_tools_and_basenames_only(fake_claude, tmp_path):
     assert out.state == "done" and out.why == "ok" and out.exit_code == 0
     assert steps == ["Started", "Reading data.csv", "Running a command", "Writing summary.md"]
     blob = " ".join(steps)
+    assert "SECRET HOOK TEXT" not in blob and "rate_limit" not in blob and "hook" not in blob.lower()      # the owner's hook output is never shown
     assert "SECRET FILE CONTENTS" not in blob and "curl" not in blob and "/Users/someone" not in blob and "passwd" not in blob
     assert out.result_text.startswith("Wrote summary.md with three rows.")
     assert [Path(w).name for w in out.written] == ["summary.md"]

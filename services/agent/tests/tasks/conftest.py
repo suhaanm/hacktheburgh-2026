@@ -20,6 +20,10 @@ def _hermetic(tmp_path, monkeypatch):
     data.mkdir()
     home = tmp_path / "home"
     home.mkdir()
+    # HOME is a temporary folder below, so Playwright must be told where the real browsers are
+    pw = Path(os.path.expanduser("~")) / "Library" / "Caches" / "ms-playwright"
+    if pw.is_dir() and not os.environ.get("PLAYWRIGHT_BROWSERS_PATH"):
+        monkeypatch.setenv("PLAYWRIGHT_BROWSERS_PATH", str(pw))
     monkeypatch.setenv("UNDERSTUDY_DATA_DIR", str(data))
     monkeypatch.setenv("HOME", str(home))
     monkeypatch.setenv("UNDERSTUDY_HOME", str(tmp_path / "uhome"))
@@ -28,6 +32,7 @@ def _hermetic(tmp_path, monkeypatch):
     monkeypatch.delenv("UNDERSTUDY_GUARD_STRICT", raising=False)
     monkeypatch.setenv("ENGINE_URL", "http://127.0.0.1:9")
     monkeypatch.delenv("KNACK_CLAUDE_BIN", raising=False)
+    monkeypatch.setenv("KNACK_TASK_HEADLESS", "1")        # a test never opens a visible browser window
     # Knack's own keys exist in the PARENT environment: the tests prove the child never gets them
     monkeypatch.setenv("GEMINI_API_KEY", "gemini-test-not-real")
     monkeypatch.setenv("ELEVENLABS_API_KEY", "eleven-test-not-real")

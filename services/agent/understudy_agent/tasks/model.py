@@ -69,11 +69,11 @@ def make_title(text: str) -> str:
 
 def first_sentence(text: Any, limit: int = RESULT_MAX) -> str:
     """The result line from a child's final message: the first sentence (or the first line), cut by code to `limit`."""
-    s = _CTRL.sub(" ", str(text or "")).strip()
-    for line in s.splitlines():
-        line = line.strip().lstrip("#*->• ").strip()
-        if line:
-            s = line
+    s = ""
+    for line in str(text or "").splitlines():
+        clean = _CTRL.sub(" ", line).strip().lstrip("#*->• ").strip()
+        if clean:
+            s = clean
             break
     m = re.match(r"(.{12,}?[.!?])(?:\s|$)", s)
     if m:
@@ -110,6 +110,7 @@ class Task:
     folder: str | None = None
     scope: str = "none"
     skills: list[str] = field(default_factory=list)
+    skills_cfg: dict[str, Any] | None = None   # the skill switches pinned when the card was shown: {"use": bool, "off": [names]}
     hashes: dict[str, str] = field(default_factory=dict)   # scope -> command hash pinned on the card
     session_id: str | None = None
     pid: int | None = None

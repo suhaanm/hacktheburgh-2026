@@ -105,11 +105,16 @@ def build_prompt(text: str, cwd: str, skill_names: list[str] | None = None) -> s
 
 
 def build_argv(binary: str, prompt: str, *, scope: str, session_id: str, add_dirs: list[str] | None = None,
-               deny_rules: list[str] | None = None, max_turns: int | None = None) -> list[str]:
+               deny_rules: list[str] | None = None, max_turns: int | None = None, skills_enabled: bool = True,
+               skills_off: list[str] | None = None) -> list[str]:
     argv = [binary, "-p", prompt, "--output-format", "stream-json", "--verbose", "--permission-prompts", "none",
             "--session-id", session_id]
     if max_turns:
         argv += ["--max-turns", str(int(max_turns))]
+    if not skills_enabled:                      # Settings: "Use my Claude Code skills" is off, so the child loads none
+        argv += ["--disable-slash-commands"]
+    elif skills_off:                            # individual skills the worker switched off (best effort: a permission rule on the Skill tool)
+        argv += ["--disallowedTools", ",".join(f"Skill({re.sub(r'[^A-Za-z0-9 ._:-]', '', n)[:60]})" for n in skills_off[:50])]
     if deny_rules:
         argv += ["--settings", json.dumps({"permissions": {"deny": list(deny_rules)}}, separators=(",", ":"))]
     if scope == "everything":
@@ -181,6 +186,7 @@ class StreamState:
     session_id: str | None = None
     written: list[str] = field(default_factory=list)
     turns: int = 0
+    cost_usd: float | None = None      # `total_cost_usd` from the result event, as the CLI reports it (a number, kept in the ledger row)
 
 
 def parse_line(raw: bytes, st: StreamState) -> list[str]:
@@ -215,6 +221,8 @@ def parse_line(raw: bytes, st: StreamState) -> list[str]:
         st.result_text = r if isinstance(r, str) else ""
         st.is_error = bool(obj.get("is_error"))
         st.subtype = str(obj.get("subtype") or "")[:40]
+        c = obj.get("total_cost_usd")
+        st.cost_usd = float(c) if isinstance(c, (int, float)) and not isinstance(c, bool) and 0 <= c < 1e6 else None
     return out
 
 
@@ -253,6 +261,7 @@ class ChildOutcome:
     exit_code: int | None
     written: list[str]
     why: str = ""                 # short code: ok | stop | kill | wall | idle | flood | crash | spawn | auth | limit | no_result
+    cost_usd: float | None = None
 
 
 class ClaudeRun:
@@ -336,7 +345,8 @@ class ClaudeRun:
 
         def outcome(state: str, reason: str | None, why: str, code: int | None = None) -> ChildOutcome:
             text = self.st.result_text or ""
-            return ChildOutcome(state, reason, text, self.out_bytes, round(time.monotonic() - t0, 2), code, list(self.st.written), why)
+            return ChildOutcome(state, reason, text, self.out_bytes, round(time.monotonic() - t0, 2), code, list(self.st.written), why,
+                                self.st.cost_usd)
 
         try:
             Path(self.cwd).mkdir(parents=True, exist_ok=True)

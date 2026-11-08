@@ -30,7 +30,11 @@ def emit(obj):
 
 
 def init():
+    # the event set the real 2.1.319 emitted in the one approved smoke: hooks first, then init, a rate-limit notice, the answer
+    emit({"type": "system", "subtype": "hook_started", "hook_name": "SessionStart"})
+    emit({"type": "system", "subtype": "hook_response", "hook_name": "SessionStart", "output": "owner hook output: SECRET HOOK TEXT"})
     emit({"type": "system", "subtype": "init", "session_id": "00000000-0000-4000-8000-000000000001", "tools": ["Read", "Bash"]})
+    emit({"type": "rate_limit_event", "rate_limit_info": {"status": "allowed"}})
 
 
 def tool(name, **inp):
@@ -39,7 +43,8 @@ def tool(name, **inp):
 
 
 def result(text, *, is_error=False, subtype="success"):
-    emit({"type": "result", "subtype": subtype, "is_error": is_error, "result": text, "num_turns": 3, "duration_ms": 5})
+    emit({"type": "result", "subtype": subtype, "is_error": is_error, "result": text, "num_turns": 3, "duration_ms": 5,
+          "total_cost_usd": 0.0123})
 
 
 def grandchild():

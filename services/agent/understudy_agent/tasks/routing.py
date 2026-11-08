@@ -64,7 +64,8 @@ _RULES: dict[str, list[tuple[str, float]]] = {
         (r"\b(window|tab|button|dialog|popup|pop-up|cursor|mouse|keyboard shortcut|menu)\b", 1.0),
     ],
     "answer": [
-        (r"^\s*(what|why|how|when|who|whom|whose|where|which|is|are|was|were|do|does|did|can|could|should|would|will|am)\b", 1.5),
+        (r"^\s*(what|why|how|when|who|whom|whose|where|which|is|are|was|were)\b", 1.5),
+        (r"^\s*(do|does|did|can|could|should|would|will|am)\s+(i|you|we|they|he|she|it|there|this|that)\b", 1.5),
         (r"\?\s*$", 1.5),
         (r"\b(explain|define|tell me|remind me|what's|whats|how do i|how does|how to|difference between|meaning of|translate|convert \d|what time|what day|what date)\b", 2.0),
         (r"\b(opinion|advice|ideas?|suggest|recommend|brainstorm|pros and cons)\b", 1.0),
@@ -98,6 +99,9 @@ def decide_by_rules(text: str) -> tuple[str | None, dict[str, float]]:
     (r1, s1), (_, s2) = ranked[0], ranked[1]
     if s1 >= 2.0 and s1 - s2 >= 1.0:
         return r1, s
+    # A plain question with no evidence at all for an action route is answered: the safe route. Anything else is not guessed.
+    if s["answer"] >= 1.5 and all(s[r] < 1.0 for r in RISKY):
+        return "answer", s
     return None, s
 
 
@@ -136,10 +140,6 @@ def choose_route(text: str, *, port_factory: Callable[[], Any] | None = None, of
             proposed = None
         if proposed in ROUTE_IDS and (proposed == "answer" or scores.get(proposed, 0.0) >= 1.0):
             return RouteDecision(proposed, scores, "model")
-    # Nothing but a bare question mark or a short plain question: answering is the safe default when no action route has
-    # any evidence at all. Everything else asks.
-    if scores["answer"] >= 1.5 and all(scores[r] < 1.0 for r in RISKY):
-        return RouteDecision("answer", scores, "rules")
     return RouteDecision("unclear", scores, "ask", options=[dict(o) for o in QUESTION_OPTIONS])
 
 

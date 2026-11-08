@@ -270,6 +270,50 @@ class TaskManager:
                 "needs_consent": task.consent if task.state == "waiting_consent" else None,
                 "question": task.question if task.state == "waiting_consent" else None}
 
+    def start_for_routine(self, routine_id: str, text: str, *, consent_root: Path | None = None) -> dict[str, Any]:
+        """An UNATTENDED Claude task for a routine whose OWN consent record allows an unattended run (mode unattended, rung A2 or A3,
+        not revoked): no card, because the worker already gave this routine that consent. It always runs with the narrower
+        `files_and_commands` scope: "Allow everything" is never available unattended. Called by code that schedules routines, not
+        over HTTP. The kill file, the time cap and the ledger rows apply as for any task."""
+        import re
+
+        from ..handoff_io import consent_allows, read_consent
+
+        if not re.fullmatch(r"[a-z0-9][a-z0-9\-]{0,60}", routine_id or ""):
+            raise TaskError(422, "bad_body", "That is not a routine id.")
+        ok, why = consent_allows(read_consent(routine_id, consent_root), "unattended")
+        if not ok:
+            raise TaskError(409, "not_allowed", f"Not started: {why}.")
+        text = (text or "").strip()
+        if not text or len(text) > TEXT_MAX:
+            raise TaskError(422, "bad_body", f"The request must be 1 to {TEXT_MAX} characters.")
+        if is_killed():
+            raise TaskError(423, "kill_switch_set", "The kill switch is set; clear it first.")
+        if self.running_count() >= self.max_running:
+            raise TaskError(429, "too_many_tasks", f"At most {self.max_running} tasks can run at a time.")
+        task = Task(task_id=new_task_id(), text=text, source="typed", route="claude_agent", title=make_title(text), attended=False)
+        if looks_like_secret(text) or not self._binary():
+            with self._lock:
+                self._tasks[task.task_id] = task
+            self._fail_now(task, "Not started: the request holds a key or a password." if looks_like_secret(text) else cc.R_NOT_FOUND)
+            return task.row()
+        task.folder, _ = self._claude_folder(task)
+        st = sk.load_settings()
+        task.skills = [s.name for s in self.book.select(text, settings=st)]
+        task.skills_cfg = {"use": bool(st["use_claude_skills"]), "off": list(st["off"])}
+        task.session_id = str(uuid.uuid4())
+        task.max_minutes = min(30, int(st["max_minutes"]))
+        task.scope = "files_and_commands"
+        with self._lock:
+            self._tasks[task.task_id] = task
+        try:
+            self.audit.append("system", "consent", routine=routine_id, run_id=task.task_id, outcome="routine_unattended",
+                              note_code="claude_agent", meta={"max_minutes": task.max_minutes})
+        except Exception:  # noqa: BLE001 - best effort; the ledger rows written before the child starts are the fail-closed ones
+            pass
+        self._start_thread(task, self._run_claude, start_state="running")
+        return task.row()
+
     def _begin(self, task: Task) -> str:
         r = task.route
         if r == "unclear":
@@ -313,8 +357,10 @@ class TaskManager:
         if not binary:
             raise TaskError(409, "claude_missing", cc.R_NOT_FOUND)
         prompt = cc.build_prompt(task.text, task.folder or "", task.skills)
+        cfg = task.skills_cfg or {"use": True, "off": []}
         return cc.build_argv(binary, prompt, scope=scope, session_id=task.session_id or "",
-                             deny_rules=cc.protected_deny_rules(data_dir(), repo_root()))
+                             deny_rules=cc.protected_deny_rules(data_dir(), repo_root()),
+                             skills_enabled=bool(cfg.get("use", True)), skills_off=list(cfg.get("off") or []))
 
     def _propose_claude(self, task: Task) -> str:
         if looks_like_secret(task.text):
@@ -323,9 +369,11 @@ class TaskManager:
             return self._fail_now(task, cc.R_NOT_FOUND)
         folder, own = self._claude_folder(task)
         task.folder = folder
-        task.skills = [s.name for s in self.book.select(task.text)]
+        st = sk.load_settings()
+        task.skills = [s.name for s in self.book.select(task.text, settings=st)]
+        task.skills_cfg = {"use": bool(st["use_claude_skills"]), "off": list(st["off"])}
         task.session_id = str(uuid.uuid4())
-        task.max_minutes = int(sk.load_settings()["max_minutes"])
+        task.max_minutes = int(st["max_minutes"])
         try:
             task.hashes = {s: cc.command_hash(self._claude_argv(task, s), folder) for s in ("files_and_commands", "everything")}
         except TaskError as e:
@@ -609,7 +657,8 @@ class TaskManager:
         t.out_bytes = outcome.out_bytes
         try:
             self._ledger("claude_agent_stop", "claude-cli", outcome.out_bytes,
-                         f"task={t.task_id} scope={scope} stop={outcome.why} {int(outcome.duration_s)}s")
+                         f"task={t.task_id} scope={scope} stop={outcome.why} {int(outcome.duration_s)}s"
+                         + (f" cost={outcome.cost_usd:.4f}" if outcome.cost_usd is not None else ""))
         except TaskError:
             pass
         self._audit("agent", "task", t, outcome.state, outcome.why, duration_s=int(outcome.duration_s), out_bytes=outcome.out_bytes,
@@ -652,17 +701,24 @@ class TaskManager:
 
     # ----------------------------------------------------------------------------------------------- browser
     def _run_browser(self, t: Task) -> None:
-        if self._browser_runner is None:
-            self._finish(t, "failed", reason="The browser agent isn't available right now.")
-            return
+        runner = self._browser_runner
+        if runner is None:
+            if self._offline():
+                self._finish(t, "failed", reason="Browsing needs Knack's model connection, which isn't available right now.")
+                return
+            from .browser_runner import BrowserTaskRunner
+
+            runner = BrowserTaskRunner(self._port, audit=self.audit)
         self._audit("agent", "task", t, "started", "browser", max_minutes=t.max_minutes)
-        res = self._browser_runner(t, progress=lambda line: self.progress(t, line), should_stop=lambda: t.stop_requested or is_killed())
+        res = runner(t, progress=lambda line: self.progress(t, line), should_stop=lambda: t.stop_requested or is_killed())
         if t.state in FINISHED:
             return
         if t.stop_requested:
             self._finish(t, "stopped", reason="Stopped by you.")
             return
         state = str(res.get("state", "failed"))
+        err = getattr(runner, "last_error", None)
+        self._audit("agent", "task", t, state if state in FINISHED else "failed", "browser", **({"error": str(err).lower()[:30]} if err else {}))
         if state == "done":
             self._finish(t, "done", result=str(res.get("result") or "Finished in the browser."))
         else:
