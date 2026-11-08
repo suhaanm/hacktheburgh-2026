@@ -41,8 +41,8 @@
     "home": {
       "path": "/home",
       "audience": "worker",
-      "wordsAbove": 50,
-      "controls": 5
+      "wordsAbove": 70,
+      "controls": 6
     },
     "needs-you": {
       "path": "/needs-you",
@@ -79,30 +79,29 @@
       "audience": "admin"
     },
     "genome": {
-      "path": "/genome",
+      "path": "/growth?section=steps",
       "audience": "details"
     },
     "presence": {
-      "path": "/presence",
+      "path": "/growth?section=time",
       "audience": "details"
     },
     "graph": {
-      "path": "/graph",
+      "path": "/growth?section=map",
       "audience": "details",
       "controls": 8
     },
     "week": {
-      "path": "/week",
+      "path": "/growth?section=time",
       "audience": "details"
     },
     "git": {
-      "path": "/git",
+      "path": "/growth?section=commits",
       "audience": "details"
     },
     "forecasts": {
       "path": "/forecasts",
-      "audience": "details",
-      "view": "admin"
+      "audience": "admin"
     },
     "agents": {
       "path": "/agents",
@@ -118,31 +117,27 @@
       "audience": "details"
     },
     "firm-people": {
-      "path": "/firm/people",
+      "path": "/people",
       "audience": "admin",
       "controls": 10
     },
     "firm-automation": {
-      "path": "/firm/automation",
+      "path": "/automation",
       "audience": "admin"
     },
     "firm-risk": {
-      "path": "/firm/risk",
-      "audience": "admin"
-    },
-    "firm-forecasts": {
-      "path": "/firm/forecasts",
+      "path": "/risk",
       "audience": "admin"
     },
     "firm-brief": {
-      "path": "/firm/brief",
+      "path": "/brief",
       "audience": "admin"
     },
     "first-run": {
       "path": "/first-run",
       "audience": "worker",
-      "wordsAbove": 50,
-      "controls": 4,
+      "wordsAbove": 90,
+      "controls": 10,
       "sidebar": false
     }
   },
@@ -155,14 +150,14 @@
     }
   },
   "sidebar": {
-    "workerRows": 6,
+    "workerRows": 5,
     "adminRows": 9,
     "hintWords": 0,
     "words": {
       "worker": 20,
       "admin": 24
     },
-    "note": "labels, brand, name, Stop and one status line; the rows are the five (or eight) destinations plus More"
+    "note": "labels, brand, name, Stop and one status line; a worker has the five destinations and no More; an admin has eight and More"
   },
   "elements": {
     "screenTitleWords": 6,

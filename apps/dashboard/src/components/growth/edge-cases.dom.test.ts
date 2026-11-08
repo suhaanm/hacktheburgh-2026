@@ -16,9 +16,11 @@ import explainFx from "../../fixtures/evidence-explain.json";
 
 const api = vi.hoisted(() => ({ genome: vi.fn(), calendarWeek: vi.fn(), calendarSuggestions: vi.fn(), presence: vi.fn(), gitHabits: vi.fn(), evidencePacket: vi.fn(), evidenceExplain: vi.fn() }));
 vi.mock("../../api", () => ({
-  ApiError: class ApiError extends Error { status = 0; code = ""; },
+  ApiError: class ApiError extends Error { status: number; code: string; constructor(status: number, code: string, message: string) { super(message); this.status = status; this.code = code; } },
   api,
 }));
+import { ApiError } from "../../api";
+import { setState } from "../../store";
 import { StepsSection } from "./StepsSection";
 import { TimeSection } from "./TimeSection";
 import { CommitsSection } from "./CommitsSection";
@@ -34,6 +36,8 @@ const OTHERS = /\bp_(?:[a-z]+_)*[a-z]*\d[a-z0-9_]*\b|\b\d[\d,]*\s+(?:people|lear
 let host: HTMLDivElement;
 let root: Root;
 beforeEach(() => {
+  // the engine has answered /health (example data: it is down), so the sections may ask for data
+  setState({ extReady: true, engineUp: false, mock: null, person: null });
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue({ width: 900, height: 600, top: 0, left: 0, right: 900, bottom: 600, x: 0, y: 0, toJSON: () => ({}) });
   const g = env(genomeFx), w = env(weekFx), s = env(sugFx), p = env(presenceFx), h = env(gitFx);
@@ -118,7 +122,7 @@ describe("My steps: edge cases", () => {
     const t0 = Date.now();
     clean(await steps());
     expect(Date.now() - t0).toBeLessThan(15000);
-  });
+  }, 30_000); // the test's own bound is 15 s; vitest's default 5 s timeout fired first on a loaded machine
   it("steps: a generator with no steps for the expert still names what only the worker did", async () => {
     const g = env(genomeFx);
     g.data.expert = { segments: [] };
@@ -199,6 +203,71 @@ describe("Where my time goes: edge cases", () => {
   it("time: never names another person or counts the experts, in the text or the footer", async () => {
     const t = await time();
     expect(t).not.toMatch(/p_exp|p_ninetofive|8 synthetic experts|\d+ experts/);
+  });
+});
+
+describe("A section whose data cannot be read", () => {
+  // The engine's own message can list other people ("Try one of: p_a, p_b"). It is never printed: an unknown worker is a calm empty state.
+  const reject = (status: number, message: string) => Promise.reject(Object.assign(new ApiError(status, "x", message), { status, message, code: status === 404 ? "unknown_person" : "boom" }));
+  const LEAK = "no data for 'p_learn01'. Try one of: p_ninetofive, p_nightowl, p_shiftwkr, p_irregular";
+  it("steps: an unknown worker reads as nothing recorded yet, with no person id", async () => {
+    api.genome.mockImplementation(() => reject(404, LEAK));
+    const t = await steps();
+    expect(t).toMatch(/Nothing has been recorded for you yet/);
+    expect(around(t, OTHERS)).toBeNull();
+    expect(t).not.toMatch(/Try one of/);
+  });
+  it("time: an unknown worker on both reads says nothing recorded and offers no retry", async () => {
+    api.calendarWeek.mockImplementation(() => reject(404, LEAK));
+    api.presence.mockImplementation(() => reject(404, LEAK));
+    const t = await time();
+    expect(t).toMatch(/Nothing has been recorded for you yet/);
+    expect(t).not.toMatch(/Try again/);
+    expect(around(t, OTHERS)).toBeNull();
+  });
+  it("time: a failing service says it could not be read and offers Try again, without its own message", async () => {
+    api.calendarWeek.mockImplementation(() => reject(500, "stack trace: p_exp06 at line 3"));
+    api.presence.mockImplementation(() => reject(500, "stack trace: p_exp06 at line 3"));
+    const t = await time();
+    expect(t).toMatch(/could not read your week and hours just now/);
+    expect(t).toMatch(/Try again/);
+    expect(t).not.toMatch(/stack trace|p_exp06/);
+  });
+  it("commits: no repository for the worker reads as none registered", async () => {
+    api.gitHabits.mockImplementation(() => reject(404, LEAK));
+    const t = await commits();
+    expect(t).toMatch(/No repository is registered for you yet/);
+    expect(around(t, OTHERS)).toBeNull();
+  });
+});
+
+describe("Whose data a section may ask for", () => {
+  it("a live engine that does not know the worker is asked for nothing: no default person's week, case or commits", async () => {
+    setState({ engineUp: true, mock: false, person: null });
+    const t = await show(createElement("div", null, createElement(StepsSection, { open: true }), createElement(TimeSection, { open: true }), createElement(CommitsSection, { open: true })));
+    expect(api.genome).not.toHaveBeenCalled();
+    expect(api.calendarWeek).not.toHaveBeenCalled();
+    expect(api.calendarSuggestions).not.toHaveBeenCalled();
+    expect(api.gitHabits).not.toHaveBeenCalled();
+    expect(t).toMatch(/Nothing has been recorded for you yet/);
+    expect(around(t, OTHERS)).toBeNull();
+  });
+  it("a live engine that knows the worker is asked for that worker and no one else", async () => {
+    setState({ engineUp: true, mock: false, person: "p_me01" });
+    await show(createElement("div", null, createElement(StepsSection, { open: true }), createElement(TimeSection, { open: true }), createElement(CommitsSection, { open: true })));
+    expect(api.genome.mock.calls[0][1]).toBe("p_me01");
+    expect(api.calendarWeek.mock.calls[0][0]).toBe("p_me01");
+    expect(api.gitHabits.mock.calls[0][0]).toBe("p_me01");
+  });
+  it("before the engine has answered, nothing is asked", async () => {
+    setState({ extReady: false });
+    await show(createElement(TimeSection, { open: true }));
+    expect(api.calendarWeek).not.toHaveBeenCalled();
+  });
+  it("example data (the engine is down) shows the built-in example person's week, never a live person's", async () => {
+    setState({ engineUp: false, mock: null, person: null });
+    await show(createElement(TimeSection, { open: true }));
+    expect(api.calendarWeek.mock.calls[0][0]).toBe("p_ninetofive");
   });
 });
 

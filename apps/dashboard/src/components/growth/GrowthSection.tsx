@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { ApiError } from "../../api";
+import { safeWhy } from "../../lib/voice";
 import { Details } from "../ui";
 import type { Fallback } from "../../lib/fallback";
 
@@ -48,5 +50,19 @@ export function useReportSource(id: string, why: Why): void {
 /** The first section that shows example data, or null. */
 export function useExampleSource(): Why {
   const whys = useContext(WhysCtx);
-  return Object.values(whys).find((w) => w != null) ?? null;
+  return safeWhy(Object.values(whys).find((w) => w != null) ?? null);
+}
+
+/**
+ * A section whose data could not be read. The engine's own message is never printed here: it can name other people ("Try one of: ...") or
+ * the service's insides. An unknown worker or nothing recorded yet is a calm empty state; anything else says the read failed and offers to retry.
+ */
+export function SectionError({ error, retry, what, empty }: { error: Error; retry: () => void; what: string; empty: string }) {
+  const none = error instanceof ApiError && (error.status === 404 || error.status === 422);
+  return (
+    <div className="state state--error" role={none ? "status" : "alert"}>
+      <p className="state__body">{none ? empty : `Knack could not read ${what} just now.`}</p>
+      {!none && <button type="button" className="btn btn--secondary btn--sm" onClick={retry}>Try again</button>}
+    </div>
+  );
 }

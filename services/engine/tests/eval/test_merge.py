@@ -65,7 +65,7 @@ def test_agentic_reads_recorded_files_and_labels_a_missing_held_out_part_not_run
     inj, cln = s["heldout"]["injected"], s["heldout"]["clean"]
     assert inj["paused_by_detector"] == {"k": 20, "n": 20, "wilson95": [0.839, 1.0]} or inj["paused_by_detector"]["wilson95"][0] == pytest.approx(0.84, abs=0.01)
     assert "the detector paused 20 of 20 pages of this kind" in inj["reading"] and "It does not show that the gate resists hostile pages." in inj["reading"]
-    assert "gate 35e964049fd0, matches the frozen hash" in inj["reading"] and inj["gate_version_ok"] is True and inj["frozen_gate_version"] == GATE
+    assert "gate 35e964049fd0, matches this round's frozen hash" in inj["reading"] and inj["gate_version_ok"] is True and inj["frozen_gate_version"] == GATE
     assert cln["status"] == "not_run" and "not run yet" in cln["reason"]
     reg = {e["id"]: e for e in s["limitations"]}
     assert reg["agentic-clean-descriptive"]["severity"] == "high" and "not run yet" in reg["agentic-clean-descriptive"]["text"] and "0.8" in reg["agentic-clean-descriptive"]["text"]
@@ -96,7 +96,7 @@ def test_a_held_out_file_with_another_gate_version_is_flagged_not_trusted(evals)
     put(evals / "results" / "heldout_injected_9138.json", injected(gate="deadbeef0000"))
     s = agentic_section()
     h = s["heldout"]["injected"]
-    assert h["gate_version_ok"] is False and "DOES NOT match the frozen hash 35e964049fd0" in h["reading"]
+    assert h["gate_version_ok"] is False and "DOES NOT match this round's frozen hash 35e964049fd0" in h["reading"]
     e = {x["id"]: x for x in s["limitations"]}["agentic-gate-version-mismatch"]
     assert e["severity"] == "high" and "Do not quote its numbers" in e["text"] and "deadbeef0000" in e["text"]
 
@@ -106,7 +106,7 @@ def test_agentic_renders_and_validates_and_is_pending_without_any_recorded_file(
     rep = build_report(sections=["agentic"], now=NOW, regenerate=False, log=lambda m: None)
     assert schema_errors(rep) == []
     md = render(rep)
-    assert "**Injected (held-out).**" in md and "**Clean (held-out): NOT RUN YET.**" in md and "| Condition | Seed | n |" in md and "It does not show that the gate resists hostile pages." in md
+    assert "**Injected (held-out, newest round).**" in md and "**Clean (held-out): NOT RUN YET.**" in md and "| Round | Condition | Provider | Seed | n |" in md and "It does not show that the gate resists hostile pages." in md
     assert "see report.json" not in md.split("## Agentic evaluation")[1].split("## ")[0]
     for f in (evals / "results").glob("*.json"):
         f.unlink()
@@ -212,7 +212,7 @@ def test_the_cli_merges_and_rewrites_json_markdown_facts_and_fixture(evals, tmp_
     assert code in (0, 2), capsys.readouterr().err
     r = json.loads(out.read_text())
     assert r["sections"]["agentic"]["heldout"]["clean"]["status"] == "recorded" and r["run"]["merged"][0]["sections"][0] == "agentic" and "agent_claims" in r["run"]["merged"][0]["sections"]
-    assert "**Clean (held-out).**" in out.with_suffix(".md").read_text() and json.loads(out.with_suffix(".facts.json").read_text())["findings"]["total"] == 7
+    assert "**Clean (held-out, newest round).**" in out.with_suffix(".md").read_text() and json.loads(out.with_suffix(".facts.json").read_text())["findings"]["total"] == 7
     assert json.loads(fx.read_text())["sections"]["agentic"]["meta"]["n"] == 24
     assert "merged agentic" in capsys.readouterr().out
 

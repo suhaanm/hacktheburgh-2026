@@ -58,10 +58,31 @@ The graph belongs to its own track (embedded, no title, no badge). It has its ow
 
 The growth model's states (empty, early, ready, plateau, sparse, deleted record) are pinned in `src/components/growth/model.test.ts` and `engine-contract.test.ts`. The Limits no longer print the composite's weights, the engine's caveat about other learners, or the unrun-study sentence: the worker's limit is "This is an example, not your work. The method has not been tested on real people yet." (`model.test.ts: origin and limits`).
 
+## Models and cost (an Admin More row)
+
+Tests: `src/screens/models-edge.dom.test.ts`.
+
+| State | What is shown | Test |
+|---|---|---|
+| Nothing reported (no roles, providers, prices, calls) | the title "No model layer yet", "No jobs routed yet", "No provider reported", "No prices were reported" | `models: nothing reported says there is no model layer yet` |
+| No call metered | "No model call has been metered yet" and the spend reads "none yet"; no cost is invented | `models: no call metered yet says so ...` |
+| 10 000 meter rows | two rows, then "Show all 10000" | `models: 10 000 meter rows show two, then Show all` |
+| Missing cost, NaN cost, null or NaN times | "none yet" and "no calls yet", never `$NaN` (found by this test and fixed in `lib/models.ts`) | `models: a missing cost and a NaN time read as words` |
+| A 200-character model id, a unicode job name | shown whole as text | `models: a very long model id and a unicode job name stay text` |
+| Open circuit breaker, failed start-up check | "Paused after failures", "Start-up check: failed, missing GEMINI_API_KEY" | `models: an open circuit breaker and a failed start-up check ...` |
+| Config error | printed, and the page still draws | `models: a config error is printed ...` |
+| Bake-off never ran | "The bake-off has not produced results. No model is called faster or better until it has." | `models: a bake-off that never ran ...` |
+| Keys and money | "Costs are estimates from assumed prices, not a bill." and "no key, token or password is shown here"; nothing key-shaped in the text | `models: costs are always called estimates, and no key is shown` |
+
 ## The page
 
 | State | What is shown | Test |
 |---|---|---|
+| A live engine that does not know the worker yet | nothing is requested for "the default person" (that would be somebody's week or case); each section says "Nothing has been recorded for you yet." | `Whose data a section may ask for: a live engine that does not know the worker ...` |
+| A live engine that knows the worker | the requests carry the worker's own id and no other | `... knows the worker is asked for that worker and no one else` |
+| The engine has not yet answered who the worker is | the sections wait ("Reading ...") and ask for nothing | `... before the engine has answered, nothing is asked` |
+| The engine is down (example data) | the built-in example person's week and case, under the one "Example data" pill; never a live person's | `... example data (the engine is down) shows the built-in example person's week` |
+| An unknown worker or a failing service | a calm empty state, or "could not read ... just now" with Try again; the engine's own message (it can list other people) is never printed | `A section whose data cannot be read: ...` |
 | A section is named in the address | it scrolls into view and opens; the others stay closed | `Growth: opens the section the address names` |
 | One origin pill | one for the whole page, "Example data" when any section is showing example data | `Growth: holds exactly one origin pill` |
 | One section fails to load | that section says so and offers "Try again"; the others still draw | each section draws its own error state (`StepsSection`, `TimeSection`, `CommitsSection`) |

@@ -20,6 +20,7 @@ EXTENSIONS = {
     "attention": "attention.routes",
     "hitlist": "hitlist.routes",
     "insights": "insights.routes",
+    "hrt": "hrt.routes",
     "connections": "connections.routes",
 }
 _TRUE = ("1", "true", "yes", "on")

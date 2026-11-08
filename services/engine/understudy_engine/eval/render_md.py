@@ -42,6 +42,8 @@ TITLES = {
     "agentic": "Agentic evaluation",
     "study_sim": "Language-model participants, not people",
     "study_power": "Study power: what the design could detect",
+    "hrt_ledger": "Prospective predictions: predict first, score later",
+    "hrt_decisions": "Decisions scoreboard: shipped rule against naive and oracle",
 }
 
 
@@ -515,19 +517,31 @@ def _redteam_live(s: dict[str, Any]) -> str:
 
 def _agentic(s: dict[str, Any]) -> str:
     ho = s.get("heldout") or {}
-    out = [f"Origin: {s.get('origin_text')}. Gate stops are shown apart from model failures; the gate version of each result file is checked against the frozen hash ({s.get('heldout_expected_gate_version') or 'not recorded'})."]
-    rows = []
+    out = [f"Origin: {s.get('origin_text')}. Gate stops are shown apart from model failures; each round's result file is checked against its own plan's frozen gate version "
+           f"(the newest round's is {s.get('heldout_expected_gate_version') or 'not recorded'}). Held-out rounds measure different configurations and are never pooled."]
+    rows, earlier = [], []
     for cond in ("injected", "clean"):
         h = ho.get(cond) or {}
         if h.get("status") != "recorded":
             out.append(f"**{cond.capitalize()} (held-out): NOT RUN YET.** {h.get('reason')}")
             continue
-        out.append(f"**{cond.capitalize()} (held-out).** {h.get('reading')}")
+        out.append(f"**{cond.capitalize()} (held-out, newest round).** {h.get('reading')}")
         gs, mf = h.get("gate_stops") or {}, h.get("model_failures") or {}
-        rows.append([cond, str(h.get("seed")), str(h.get("n")), f"{(h.get('passed_code_check') or {}).get('k')} of {h.get('n')}", f"{(h.get('paused_by_detector') or {}).get('k')} of {h.get('n')}",
-                     str(h.get("false_claims")), str(h.get("submissions")), f"{gs.get('total')} ({gs.get('unexpected')} unexpected)", str(mf.get("total")), str((mf.get("navigators_cancelled_by_a_pause_or_stop") or {}).get("total")), str(h.get("gate_version"))])
+        pr = h.get("primary") or {}
+        rows.append([h.get("round", ""), cond, str(h.get("provider")), str(h.get("seed")), str(h.get("n")),
+                     f"{pr['k']} of {pr['n']} (bar {'met' if pr.get('bar_met') else 'not met'})" if pr else f"{(h.get('passed_code_check') or {}).get('k')} of {h.get('n')} passed the code check",
+                     f"{(h.get('paused_by_detector') or {}).get('k')} of {h.get('n')}", str(h.get("false_claims")), str(h.get("submissions")),
+                     f"{gs.get('total')} ({gs.get('unexpected')} unexpected)", str(mf.get("total")), str(h.get("gate_version"))])
+        earlier += [[e.get("round", ""), cond, str(e.get("provider")), str(e.get("seed")), str(e.get("n")), f"{e.get('k')} of {e.get('n')}", ci(e.get("wilson95"), 2),
+                     str(e.get("gate_version")), "yes" if e.get("gate_version_ok") else ("no" if e.get("gate_version_ok") is False else "not checked"), str(e.get("frozen_gate_version"))] for e in h.get("earlier_rounds") or []]
     if rows:
-        out.append(table(["Condition", "Seed", "n", "Passed code check", "Paused by detector", "False claims", "Submissions", "Gate stops", "Model failures", "Navigators cancelled by a pause or stop", "Gate version"], rows))
+        out.append(table(["Round", "Condition", "Provider", "Seed", "n", "Primary result", "Paused by detector", "False claims", "Submissions", "Gate stops", "Model failures", "Gate version"], rows))
+    if earlier:
+        out.append("**Earlier rounds, shown apart and not pooled with the headline:**")
+        out.append(table(["Round", "Condition", "Provider", "Seed", "n", "Result", "Wilson 95%", "Gate version", "Matches its own plan's frozen hash", "Frozen hash"], earlier))
+        for cond in ("injected", "clean"):
+            for e in (ho.get(cond) or {}).get("earlier_rounds") or []:
+                out.append(f"- {e.get('reading')}")
     lh = s.get("lh_offline") or {}
     if lh.get("suites"):
         out.append(f"Long-horizon suites LH-1 to LH-5 (offline; {lh.get('note')}; {lh.get('model_tokens')} model tokens):")
@@ -551,7 +565,64 @@ def _pilots(s: dict[str, Any]) -> str:
             + f"\n\nGo-ahead: {(s.get('go_ahead') or {}).get('where')}; needs {(s.get('go_ahead') or {}).get('needs')}.")
 
 
-RENDER = {"deficit_recovery": _deficit, "null_placebo": _null, "hazard": _hazard, "ope": _ope, "routing": _routing, "ski_rental": _ski,
+def _hrt_ledger(s: dict[str, Any]) -> str:
+    out = [s.get("statement") or ""]
+    out.append(table(["Claim (registered before the run)", "Result", "Evidence"], [[f"{c['id']}: {c['claim']}", c["result"], c["evidence"].replace("|", "/")] for c in s["rows"]]))
+    out.append(table(["World", "Deployments", "People or blocks", "Predictions", "Model log loss", "Best naive", "Model minus best naive [95%]", "Calibration slope [95%]", "Guard flags"],
+                     [[w["world"], str(w["deployments"]), str(w["people_or_blocks"]), str(w["predictions"]), f(w["model_log_loss"], 3), w["best_naive"].replace("_", " "),
+                       f"{f(w['model_minus_best_naive'], 3, True)} {ci(w['model_minus_best_naive_ci'], 3)} ({w['verdict']})", f"{f(w['calibration_slope'], 2)} {ci(w['calibration_slope_ci'], 2)}", w["guard_flags"]] for w in s["worlds"]]))
+    out.append("The guard (mean log loss per bin or case; oracle = the better of always-model and always-fallback in hindsight):\n\n"
+               + table(["World", "Flags [exact 95%]", "Always model", "Always fallback", "Guarded", "Oracle", "Guarded minus always-model [95%]", "Share on fallback"],
+                       [[g["world"], f"{g['flags']} of {g['of']} {ci(g['flag_rate_ci'], 2)}", f(g["always_model"], 3), f(g["always_fallback"], 3), f(g["guarded"], 3), f(g["oracle"], 3),
+                         f"{f(g['guarded_minus_always_model'], 3, True)} {ci(g['guarded_minus_always_model_ci'], 3)}", f(g["share_on_fallback"], 2)] for g in s["guard"]]))
+    rc = s.get("recalibration")
+    if rc:
+        out.append("Recalibrating the frozen model online from resolved outcomes (follow-up plan, registered after the first held-out result, new seeds):\n\n" + rc.get("statement", "") + "\n\n"
+                   + table(["Claim", "Result", "Evidence"], [[f"{c['id']}: {c['claim']}", c["result"], c["evidence"].replace("|", "/")] for c in rc["claims"]]))
+    cf = s.get("conformal")
+    if cf:
+        out.append("Ranges and sets calibrated once at deployment to cover 90% (follow-up plan, new seeds); width is printed beside every coverage figure:\n\n" + cf.get("statement", "") + "\n\n"
+                   + table(["World", "People", "Stuck set: coverage [95%]", "single-label share", "Two-minute range: coverage [95%]", "mean length (steps)", "Finish range: coverage [95%]", "end-to-end factor"],
+                           [[w["world"], str(w["people"]), f"{pc(w['stuck_set']['coverage'], 1)} {ci(w['stuck_set']['ci'], pct=True)} ({w['stuck_set']['status']})", pc(w["stuck_set"]["single_label_share"], 0),
+                             (f"{pc(w['next_progress']['coverage'], 1)} {ci(w['next_progress']['ci'], pct=True)} ({w['next_progress']['status']})" if w.get("next_progress") else "n/a"),
+                             (f(w["next_progress"]["mean_length_steps"], 2) if w.get("next_progress") else "n/a"),
+                             f"{pc(w['finish']['coverage'], 1)} {ci(w['finish']['ci'], pct=True)} ({w['finish']['status']})", f(w["finish"]["factor"], 1)] for w in cf["standard"]]))
+        if cf.get("recalibrated"):
+            out.append("The same, after recalibrating the quantile on one deployment of the new world (the model stays frozen):\n\n"
+                       + table(["World", "Stuck set: coverage [95%]", "single-label share", "Two-minute range: coverage [95%]", "mean length (steps)", "Finish range: coverage [95%]", "end-to-end factor", "Finish recentred: coverage", "recentred factor"],
+                               [[w["world"], f"{pc(w['stuck_set']['coverage'], 1)} {ci(w['stuck_set']['ci'], pct=True)} ({w['stuck_set']['status']})", pc(w["stuck_set"]["single_label_share"], 0),
+                                 (f"{pc(w['next_progress']['coverage'], 1)} {ci(w['next_progress']['ci'], pct=True)} ({w['next_progress']['status']})" if w.get("next_progress") else "n/a"),
+                                 (f(w["next_progress"]["mean_length_steps"], 2) if w.get("next_progress") else "n/a"), f"{pc(w['finish']['coverage'], 1)} {ci(w['finish']['ci'], pct=True)} ({w['finish']['status']})", f(w["finish"]["factor"], 1),
+                                 pc(w["finish"]["recentred_coverage"], 1), f(w["finish"]["recentred_factor"], 1)] for w in cf["recalibrated"]]))
+        out.append("The guard beside the stuck-set coverage:\n\n" + table(["World", "Deployments", "Below 0.85 coverage", "of those, flagged", "Guard flags"],
+                                                                        [[g["world"], str(g["deployments"]), str(g["below_line"]), str(g["below_line_and_flagged"]), f"{g['flags']} of {g['of']}"] for g in cf["guard_link"]]))
+        out.append(table(["Claim (registered before the run)", "Result", "Evidence"], [[f"{c['id']}: {c['claim']}", c["result"], c["evidence"].replace("|", "/")] for c in cf["claims"]]))
+    return "\n\n".join(x for x in out if x)
+
+
+def _hrt_decisions(s: dict[str, Any]) -> str:
+    out = [s.get("statement") or ""]
+    out.append(table(["Decision", "Unit", "Shipped rule", "Naive policy", "Naive", "Oracle", "Primary contrast [95%]", "Adjusted [98.75%]", "Verdict", "Share of the gap closed [95%]"],
+                     [[r["decision"], r["unit"], f(r["shipped_rule"], 3), r["naive_policy"], f(r["naive_value"], 3), f(r["oracle_value"], 3), f"{f(r['primary_contrast'], 3, True)} {ci(r['ci95'], 3)}",
+                       ci(r["ci_adjusted_98_75"], 3), r["verdict"], (f"{pc(r['share_of_naive_to_oracle_gap_closed'], 0)} {ci(r.get('share_ci'), pct=True)}" if r.get("share_of_naive_to_oracle_gap_closed") is not None else "n/a")] for r in s["rows"]]))
+    cue = (s.get("recorded") or [None])[0]
+    if cue and cue.get("status") == "ok":
+        out.append(f"Recorded, not re-run (the Cue track's held-out file): net seconds saved per hour of work {f(cue['shipped']['est'], 1)} {ci(cue['shipped'].get('ci'), 1)} against 0 for staying silent; Cue met one of its two pre-registered targets.")
+    vv = s.get("value_vs_accuracy")
+    if vv:
+        out.append("Did the better forecast buy a better decision? The same forecasts as interrupt-or-stay-quiet decisions at the break-even point (follow-up plan, new seeds):\n\n" + vv.get("statement", "") + "\n\n"
+                   + table(["World", "Forecast", "Log loss", "Net minutes per hour [95%]", "Interruptions per hour", "Net minutes per interruption"],
+                           [[w["world"], k["name"].replace("_", " "), f(k["log_loss"], 3), f"{f(k['net_minutes_per_hour'], 2, True)} {ci(k['net_minutes_per_hour_ci'], 2)}", f(k["interruptions_per_hour"], 1),
+                             (f(k["net_minutes_per_interruption"], 3, True) if k["net_minutes_per_interruption"] is not None else "n/a")] for w in vv["worlds"] for k in w["forecasts"]])
+                   + "\n\n" + table(["World", "Best naive", "Model minus best naive: log loss", "Model minus best naive: minutes per origin [95%]", "Reading", "Guard: guarded minus always-model [95%]"],
+                                    [[w["world"], w["best_naive"].replace("_", " "), f(w["log_loss_model_minus_best_naive"], 3, True), f"{f(w['model_minus_best_naive'], 4, True)} {ci(w['model_minus_best_naive_ci'], 4)}", w["verdict"],
+                                      f"{f(w['guard']['guarded_minus_always_model'], 4, True)} {ci(w['guard']['ci'], 4)} (flags {w['guard']['flags']} of {w['guard']['of']})"] for w in vv["worlds"]])
+                   + "\n\n" + table(["Claim (registered before the run)", "Result", "Evidence"], [[f"{c['id']}: {c['claim']}", c["result"], c["evidence"].replace("|", "/")] for c in vv["claims"]]))
+    out.append("The help-level ladder is not scored: it is deterministic code with no outcome to score until the live study.")
+    return "\n\n".join(x for x in out if x)
+
+
+RENDER = {"hrt_ledger": _hrt_ledger, "hrt_decisions": _hrt_decisions, "deficit_recovery": _deficit, "null_placebo": _null, "hazard": _hazard, "ope": _ope, "routing": _routing, "ski_rental": _ski,
           "presence": _presence, "routines": _routines, "policy_gate": _gate, "skills": _skills, "forecast": _forecast, "pooling": _pooling, "agent_claims": _claims, "agent_runs": _agent_runs, "study_sim": _study_sim, "agentic": _agentic, "study_power": _study_power, "redteam_live": _redteam_live, "privacy": _privacy, "git": _git, "calendar": _calendar, "proactive": _proactive, "localmodel": _localmodel, "redteam": _redteam, "study": _study}
 
 

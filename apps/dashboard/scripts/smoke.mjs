@@ -44,38 +44,60 @@ const go = async (hash, wait = 700) => {
 };
 
 // 1. First run (the old Onboarding): two roles, timed. Set up again reruns the same three screens in a browser tab: role, what Knack may do, then Show my week.
-const memoryText = async () => {
-  await go("/your-data?section=remembers", 1000);
-  await page.locator("#yd-remembers-body details summary", { hasText: /^More/ }).click();
-  await page.getByRole("button", { name: "Edit as text" }).click();
-  return page.locator("#memtext").inputValue();
+// A role card opens its connection chips with a Continue button (owner choice D55, components/connections/ConnectionChips): one more click, then the consent screen.
+// "Not sure yet" has no chips and goes straight on.
+const pickRole = async (label) => {
+  await page.locator(".rolecard__btn", { hasText: label }).click();
+  await page.waitForTimeout(250);
+  const cont = page.getByRole("button", { name: "Continue" });
+  if (await cont.isVisible().catch(() => false)) await cont.click();
 };
+
+// With no engine the write cannot reach a memory file, so this section reads what the page SENDS: the request to /engine/onboarding is answered here (and recorded),
+// and the file the engine writes from it is the engine's own test (services/engine/tests). What is checked is the contract: the role, the capture answer as a boolean
+// the worker's click decided, sent as the worker, once per first run.
+// (The services are answered with a 503 here rather than refused: a refused connection makes the page skip that service for six seconds, and the write would never be sent.)
+const onboarded = [];
+const SERVICES_HERE = ANY_SERVICE;
+await page.route(SERVICES_HERE, async (route) => {
+  const req = route.request();
+  if (!(req.method() === "POST" && /^https?:\/\/[^/]+\/engine\/onboarding$/.test(req.url()))) {
+    return route.fulfill({ status: 503, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ error: { code: "unavailable", message: "Not running." } }) });
+  }
+  const body = JSON.parse(req.postData() ?? "{}");
+  onboarded.push({ body, actor: req.headers()["x-understudy-actor"], type: req.headers()["content-type"] });
+  return route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ data: { person: "p_you", role: body.role, revision: 1, memory_markdown: "", risk_classes: { irreversible: [] }, tone: { length: "short", voice: "plain" }, pace: "gradual" } }) });
+});
 for (const [role, pack] of [["UK benefits processor", "benefits-processor"], ["Data analyst", "data-analyst"]]) {
   await go("/setup");
   const t0 = Date.now();
-  await page.locator(".rolecard__btn", { hasText: role }).click();
+  const before = onboarded.length;
+  await pickRole(role);
   const cards = page.locator(".consent");
   check(`first run ${pack}: capture is never pre-selected (nothing is answered until a real click)`, (await page.getByRole("heading", { name: "What may Knack do?" }).count()) === 1 && (await cards.locator("button[aria-pressed=true]").count()) === 0);
-  await cards.first().getByRole("button", { name: pack === "benefits-processor" ? "Yes, learn my times" : "Not now" }).click();
+  check(`first run ${pack}: nothing is written before the worker answers`, onboarded.length === before);
+  await cards.first().getByRole("button", { name: pack === "benefits-processor" ? "Yes" : "Not now" }).click();
   await page.getByRole("button", { name: "Show my week" }).waitFor();
+  if (pack === "benefits-processor") check("first run (a browser tab): Permissions and Show me say \"Available in the Knack app.\" and have no button", ((await page.locator("[data-testid=needs-app]").innerText()).match(/Available in the Knack app\./g) ?? []).length === 2 && (await page.getByRole("button", { name: /^(Allow|Show me|Open System Settings)/ }).count()) === 0);
   const secs = (Date.now() - t0) / 1000;
+  const sent = onboarded[onboarded.length - 1];
+  check(`first run ${pack}: written once, in under 60 s`, onboarded.length === before + 1 && secs < 60, `${secs.toFixed(1)} s, ${onboarded.length - before} write(s)`);
+  check(`first run ${pack}: the role is sent, as the worker, as JSON`, sent?.body.role === pack && sent?.actor === "worker" && /application\/json/.test(sent?.type ?? ""), JSON.stringify(sent?.body.role));
+  check(`first run ${pack}: capture is on only when the worker said yes (a boolean, never a default)`, sent?.body.answers?.capture === (pack === "benefits-processor"), JSON.stringify(sent?.body.answers?.capture));
   await page.getByRole("button", { name: "Show my week" }).click();
-  const text = await memoryText();
-  check(`first run ${pack}: file written in under 60 s`, secs < 60, `${secs.toFixed(1)} s`);
-  check(`first run ${pack}: file names the role`, text.includes(`role: ${pack}`));
-  check(`first run ${pack}: capture line only when the worker said yes`, text.includes("Capture: times only") === (pack === "benefits-processor"));
+  await page.waitForTimeout(400);
   if (pack === "benefits-processor") await page.screenshot({ path: join(qa, "onboarding-done-1440.png") });
-  globalThis[pack] = text;
 }
-check("first run: two roles give different files", globalThis["benefits-processor"] !== globalThis["data-analyst"]);
+check("first run: two roles send different files", onboarded.length === 2 && onboarded[0].body.role !== onboarded[1].body.role);
+await page.unroute(SERVICES_HERE);
 
 // 2. First run mid-flow screenshot (the consent screen), and Not sure yet writes nothing
 await go("/setup");
-await page.locator(".rolecard__btn", { hasText: "Data analyst" }).click();
+await pickRole("Data analyst");
 await page.waitForTimeout(300);
 await page.screenshot({ path: join(qa, "onboarding-question-1440.png") });
 await go("/setup");
-await page.locator(".rolecard__btn", { hasText: "Not sure yet" }).click();
+await pickRole("Not sure yet");
 check("first run: Not sure yet picks nothing and still reaches the consent screen", (await page.getByRole("heading", { name: "What may Knack do?" }).count()) === 1);
 
 // 3. Graph: open a node, panel shows why
@@ -247,8 +269,47 @@ check("study: assisted speed is reported separately", /Assisted speed, reported 
 await page.unroute("**/eval/report");
 await asView("worker");
 
-// 8c. Today (the live coach screen) is retired as a destination: #/today redirects to Home, which carries the one-line live strip. The checks that
-// drove that screen (coach message, level chip, feedback, silent and study modes) matched chrome nobody can reach any more, so they are gone with it.
+await asView("worker");
+// 8c. Today and the live coach brain (mocked engine so the checks are exact)
+{
+  let scenario = "nudge";
+  const nextCalls = [];
+  const feedback = [];
+  const meta = { origin: "synthetic", n: 1, n_unit: "episodes", split: null, interval_level: 0.95, note: null, generated_at: "" };
+  const baseDecision = { person: "p_t", action: "nudge", message: "Check the benefit cliff before you copy across.", why: "You skipped it on the last two cases.", target: { zone: "calc", label_hint: "Check cliff", role_hint: "button", site: "GovCalc" }, missed: ["CHECK_CLIFF"], confidence: 0.8, level: "L2", chip: "small", decision_id: "d1", task_id: "t1", step: 5, trigger: "skipped_check", reason_codes: ["rule_baseline"], gate: { consecutive: 2, reason: "two stuck signals" }, p_stuck: 0.62, p_source: "hazard model", candidate: null, mastery: { CHECK_CLIFF: 0.4 } };
+  const scenarios = {
+    nudge: baseDecision,
+    silent: { ...baseDecision, action: "silent", message: "", why: "", decision_id: null, chip: "gone", reason_codes: ["gate_not_open"], candidate: { action: "nudge", message: "Compare all three results first.", why: "That is the order the expert uses.", target: null, trigger: "order", step: 5 } },
+    study: { ...baseDecision, reason_codes: ["study_mode"], candidate: { action: "nudge", message: "SHOULD NOT SHOW", why: "x", target: null } },
+  };
+  const json = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" }, body: JSON.stringify(body) });
+  await page.route(ENGINE, async (route) => {
+    const req = route.request(), u = new URL(req.url());
+    u.pathname = u.pathname.replace(/^\/engine/, "");
+    if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" } });
+    if (u.pathname === "/coach/state") return json(route, { person: "p_t", task: { id: "t1", name: "Entitlement check, household H-9", step: 5, steps_total: 9 }, level: "L2", chip: "small", message: "state message", why: "state why", mastery: { READ: 0.9 }, case: 3 });
+    if (u.pathname === "/coach/next") { nextCalls.push(u.search); return json(route, { meta, data: scenarios[scenario] }); }
+    if (u.pathname === "/coach/feedback") { feedback.push({ body: JSON.parse(req.postData() ?? "{}"), actor: req.headers()["x-understudy-actor"] }); return json(route, { ok: true }); }
+    return json(route, { error: { code: "not_found", message: "not mocked" } }, 404);
+  });
+  const hop = async () => { await page.goto(`${base}/#/genome`); await page.reload(); await page.waitForTimeout(200); await page.goto(`${base}/#/today`); };
+  // nudge: message, why, follow, feedback body and actor header, steady polling
+  await hop(); await page.waitForTimeout(7200);
+  check("today: the coach's message is shown with the level chip and a why link", (await page.getByText("Check the benefit cliff before you copy across.").count()) > 0 && (await page.getByText("L2").count()) > 0 && (await page.getByText("Why this").count()) > 0);
+  check("today: the first look is passive (dry=1), then it polls without it at a steady pace", /dry=1/.test(nextCalls[0] ?? "") && nextCalls.slice(1).every((q) => !/dry=1/.test(q)) && nextCalls.length >= 3 && nextCalls.length <= 5, `${nextCalls.length} calls: ${nextCalls.map((q) => (/dry/.test(q) ? "dry" : "live")).join(",")}`);
+  check("today: the target hint is shown", await page.getByText("Check cliff").first().isVisible());
+  await page.getByRole("button", { name: "I did that" }).click();
+  await page.waitForTimeout(400);
+  check("today: following sends feedback {decision_id, outcome} as the worker", feedback.length === 1 && feedback[0].body.decision_id === "d1" && feedback[0].body.outcome === "followed" && feedback[0].actor === "worker", JSON.stringify(feedback[0] ?? {}));
+  // silent with a candidate: nothing in the chip, a quiet "What I would say"
+  scenario = "silent"; await hop(); await page.waitForTimeout(600);
+  check("today: silent shows the candidate as a quiet 'What I would say'", (await page.getByText("What I would say", { exact: false }).count()) > 0 && (await page.getByText("Compare all three results first.").count()) > 0 && (await page.getByRole("button", { name: "I did that" }).count()) === 0);
+  // study mode: nothing, not even a hint
+  scenario = "study"; await hop(); await page.waitForTimeout(600);
+  const todayText = await page.locator("main").innerText();
+  check("today: in study mode the coach shows nothing, not even a hint", !/SHOULD NOT SHOW|benefit cliff|What I would say|Stop coaching|Preview how help fades/i.test(todayText));
+  await page.unroute(ENGINE);
+}
 
 // 8d. Extension screens (REQ-2), demo fixtures
 await go("/week", 1200);
@@ -259,6 +320,7 @@ check("week: the ideas say that nothing is sent, booked or changed", /Nothing is
 check("week: the baseline is one experienced worker, never a person or a count of experts", /An experienced worker's week/.test(weekText) && !/p_exp|\d+ experts/.test(weekText));
 check("week: no titles or names anywhere on the screen", !/(standup|\b1:1\b|review with|@[a-z]+\.)/i.test(weekText));
 
+await asView("worker");
 await go("/needs-you", 900);
 await showAll();
 const cardRows = page.locator("article[data-kind=prepared]");
@@ -315,9 +377,7 @@ await page.waitForTimeout(200);
 const detail = await page.locator("article.run", { hasText: "Data profile" }).innerText();
 check("agents: result steps carry a check with a glyph and a word", /verified/.test(detail) && /uncertain/.test(detail) && (await page.locator(".pill--check .pill__glyph-char").count()) >= 3);
 
-await go("/home?settings=views", 1200);
-await page.locator("[data-testid=settings]").getByRole("button", { name: "Worker", exact: true }).click();
-
+await asView("worker");
 // 8c. Your data says one sentence about what leaves; the call list is one closed link away, under Settings, Advanced
 await go("/your-data?section=sent", 900);
 check("your data: what it looked at or sent is one sentence and one link", /Nothing leaves this Mac without your say\./.test(await page.locator("[data-testid=sent]").innerText()) && (await page.locator("[data-testid=sent] .ledger__row").count()) === 0);
@@ -356,11 +416,15 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
     return json(route, { error: { code: "not_found", message: "not mocked" } }, 404);
   });
   await page.goto(`${base}/#/today`); await page.reload(); await page.waitForTimeout(600);
-  // Knack: five destinations in the sidebar and the rest in the More sheet (the old fold lists became the sheet; Briefing and Privacy became Needs you and Your data).
+  // Knack: a worker has five rows and no More; an admin has eight and a More of three (Briefing and Privacy became Needs you and Your data; Calendar and Git habits became sections of Growth).
+  const workerNav = await page.locator("nav#nav").textContent();
+  check("layers off: nothing is hidden from the worker's menu", /Home/.test(workerNav) && /Needs you/.test(workerNav) && /Routines/.test(workerNav) && /Growth/.test(workerNav) && /Your data/.test(workerNav) && (await page.locator("nav#nav").getByRole("button", { name: "More" }).count()) === 0);
+  await asView("admin");
   await page.locator("nav#nav").getByRole("button", { name: "More" }).click();
-  const nav = `${await page.locator("nav#nav").textContent()} ${await page.getByRole("menu", { name: "More" }).textContent()}`;
+  const adminNav = `${await page.locator("nav#nav").textContent()} ${await page.getByRole("menu", { name: "More" }).textContent()}`;
   await page.keyboard.press("Escape");
-  check("layers off: nothing is hidden from the menu", /Calendar/.test(nav) && /Your data/.test(nav) && /Background runs/.test(nav) && /Needs you/.test(nav) && /Git habits/.test(nav) && /Models and cost/.test(nav));
+  check("layers off: nothing is hidden from the admin's menu", /Firm/.test(adminNav) && /Brief/.test(adminNav) && /Forecasts/.test(adminNav) && /Automation/.test(adminNav) && /Risk/.test(adminNav) && /Models and cost/.test(adminNav) && /Evidence/.test(adminNav) && /Background runs/.test(adminNav));
+  await asView("worker");
   // The call list lives under Settings, Advanced; Your data links to it. With the privacy layer off the list is the sample, and says so in one plain line.
   await page.goto(`${base}/#/your-data?section=sent`); await page.waitForTimeout(700);
   await page.getByRole("button", { name: /Every call Knack makes/ }).click();
@@ -374,7 +438,7 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   await page.unroute(ENGINE);
 }
 
-// 8f. Explain: "Where did my time go?" on the Genome screen
+// 8f. Explain: "Where did my time go?" in the steps section of Growth
 {
   // Example answers first (the engine is blocked): the answer, where it came from, the checks, the limits and the footer are all there.
   await go("/genome", 1500);
@@ -413,6 +477,7 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
     u.pathname = u.pathname.replace(/^\/engine/, "");
     if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" } });
     if (u.pathname === "/health") return json(route, { ok: true, version: "x", mock: false, extensions: { evidence: true } });
+    if (u.pathname === "/identity") return json(route, { person: "p_t", role: "benefits-processor" });   // the worker is known: Growth asks a live engine only for its own worker's data
     if (u.pathname === "/evidence/packet") return json(route, { meta, data: { person: "p_t", case: "t_t", facts: [{ path: "gap.case_s", value: 585, unit: "s" }], limitations: [] } });
     if (u.pathname === "/evidence/explain") { explainBody = { body: JSON.parse(req.postData() ?? "{}"), actor: req.headers()["x-understudy-actor"], type: req.headers()["content-type"] }; if (delayMs) await new Promise((r) => setTimeout(r, delayMs)); return json(route, { meta, data: scenario }); }
     return json(route, { error: { code: "not_found", message: "not mocked" } }, 404);
@@ -441,6 +506,7 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   await page.unroute(ENGINE);
 }
 
+await asView("worker");
 // 8g. Settings, Interruptions: three words, the kinds behind "Per kind", locked safety kinds, learned quieting and a refused change
 {
   // The block before mocked a live engine with nobody set up, which sends the app to the first run: start this one from a clean page.
@@ -502,6 +568,117 @@ check("your data: Keep leaves everything as it was", (await page.getByRole("butt
   await page.unroute(ENGINE);
 }
 
+// 8h. Growth bridges the older work screens as sections: in the worker view none of them draws another person's figures (docs/knack-ux/views.md), and a
+// section that would is not drawn at all ("This section is being rebuilt").
+for (const sec of ["time", "steps", "map", "commits"]) {
+  await go(`/growth?section=${sec}`, 6500);
+  const grown = await page.locator("#main").innerText();
+  check(`growth ${sec}: the worker view draws no average over others, count of people or other person's id`, !/average over all|\b\d+ (?:experts|learners|colleagues|people)\b|\bp_[a-z]*\d+/i.test(grown), grown.replace(/\s+/g, " ").slice(0, 90));
+}
+
+// 8i. The Home task box (Track T's task API, mocked): Enter sends, examples only fill, a consent is a real click on one of its own buttons, nothing starts without
+// the service, and what the service answers is shown in its own words.
+{
+  const seen = [];
+  const json = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(body) });
+  let reply = { status: 201, body: { task_id: "tk_a", route: "answer", summary: "I will answer that at once.", needs_consent: null, question: null } };
+  const TASKS = /^https?:\/\/[^/]+\/agent\/tasks(\/.*)?$/;
+  await page.route(TASKS, async (route) => {
+    const req = route.request(), u = new URL(req.url());
+    const path = u.pathname.replace(/^\/agent/, "");
+    if (req.method() === "GET") {
+      if (path === "/tasks/events") return route.fulfill({ status: 404, body: "" });
+      if (/^\/tasks\/[^/]+$/.test(path)) return json(route, { task_id: "tk_a", state: "done", answer: "Two plus two is four.", result: "Done." });
+      return json(route, []);
+    }
+    seen.push({ path, body: req.postData() ? JSON.parse(req.postData()) : null, actor: req.headers()["x-understudy-actor"], type: req.headers()["content-type"] });
+    if (reply.status === 0) return route.abort();
+    return json(route, reply.body, reply.status);
+  });
+  const consentCard = (kind, more) => ({ task_id: "tk_c", route: kind, summary: "I need your OK first.", question: null, needs_consent: { kind, scope_text: "Knack will run a Claude agent in your Downloads folder.", can: ["Read files in Downloads"], cannot: ["Delete anything"], folder: "/Users/me/Downloads", command_hash: null, cost_note: "Uses your Claude plan.", max_minutes: 30, buttons: { allow: "Allow for this task", decline: "Not now", more } } });
+  await go("/home", 1500);
+  const box = page.locator("[data-testid=task-box]");
+  const field = box.locator("input[type=text]");
+  check("task box: it is the one text field on Home, with its question printed", (await box.getByRole("heading", { name: "What should Knack do?" }).count()) === 1 && (await field.count()) === 1);
+  check("task box: no Send button until there is something to send", (await box.getByRole("button", { name: "Send" }).count()) === 0);
+  await field.focus();
+  await page.keyboard.press("Enter");
+  check("task box: Enter on an empty box sends nothing", seen.length === 0);
+  const chip = box.locator(".taskbox__chip").first();
+  check("task box: examples appear when the box is focused and empty", (await chip.count()) === 1);
+  const chipText = await chip.innerText();
+  await chip.click();
+  check("task box: an example fills the box and never sends it", (await field.inputValue()) === chipText && seen.length === 0);
+  await field.fill("Summarise today's commits");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(500);
+  check("task box: Enter sends the typed task as the worker, as JSON", seen.length === 1 && seen[0].path === "/tasks" && seen[0].body.text === "Summarise today's commits" && seen[0].body.source === "typed" && seen[0].actor === "worker" && /application\/json/.test(seen[0].type), JSON.stringify(seen[0]));
+  check("task box: the service's own line is shown at once, and the box is empty and still has focus", (await box.locator("[data-testid=task-summary]").innerText()) === "I will answer that at once." && (await field.inputValue()) === "" && (await field.evaluate((e) => e === document.activeElement)));
+  await page.waitForTimeout(2200);
+  check("task box: an inline answer appears under the box once the task is done, as plain text", /Two plus two is four\./.test(await box.locator("[data-testid=task-answer]").innerText().catch(() => "")));
+  await box.getByRole("button", { name: "Dismiss" }).click();
+
+  // a consent card: both buttons of one weight, nothing pre-selected, More behind a small link, and no key answers it
+  reply = { status: 201, body: consentCard("claude_agent", [{ id: "everything", label: "Allow everything for this task" }]) };
+  await field.fill("Tidy my downloads");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(500);
+  const card = box.locator("[data-testid=task-consent]");
+  const cardText = await card.innerText();
+  check("task box: a consent card prints its scope, what it can and cannot do, where, the cost and the time cap", /Claude agent in your Downloads folder/.test(cardText) && /Read files in Downloads/.test(cardText) && /Delete anything/.test(cardText) && /\/Users\/me\/Downloads/.test(cardText) && /Uses your Claude plan/.test(cardText) && /30 minutes/.test(cardText));
+  check("task box: Allow and Not now are two buttons of one size, none pre-selected, and Allow everything is not shown until More", (await card.getByRole("button", { name: "Allow for this task" }).count()) === 1 && (await card.getByRole("button", { name: "Not now" }).count()) === 1 && (await card.locator("button[aria-pressed=true]").count()) === 0 && (await card.getByRole("button", { name: "Allow everything for this task" }).count()) === 0 && (await card.getByRole("button", { name: "Allow for this task" }).getAttribute("class")) === (await card.getByRole("button", { name: "Not now" }).getAttribute("class")));
+  check("task box: focus did not jump to the card, so the Enter that sent the task cannot also answer it", await field.evaluate((e) => e === document.activeElement));
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(300);
+  check("task box: a key never answers a consent", seen.filter((s) => /consent/.test(s.path)).length === 0);
+  await card.getByRole("button", { name: "More" }).click();
+  check("task box: More reveals the wider choice", (await card.getByRole("button", { name: "Allow everything for this task" }).count()) === 1);
+  await card.getByRole("button", { name: "Not now" }).click();
+  await page.waitForTimeout(400);
+  const declined = seen.filter((s) => /consent/.test(s.path));
+  check("task box: Not now is sent as the approval actor with the closed choice, and says nothing was changed", declined.length === 1 && declined[0].path === "/tasks/tk_c/consent" && declined[0].body.choice === "decline" && declined[0].actor === "worker_approval" && /Not started\. Nothing was changed\./.test(await box.innerText()), JSON.stringify(declined));
+  check("task box: a decided card goes away", (await box.locator("[data-testid=task-consent]").count()) === 0);
+
+  // a browser task has no "Allow everything"
+  reply = { status: 201, body: consentCard("browser", []) };
+  await field.fill("Look something up");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(500);
+  check("task box: a card with no wider choice has no More", (await box.locator("[data-testid=task-consent]").getByRole("button", { name: "More" }).count()) === 0);
+  await box.locator("[data-testid=task-consent]").getByRole("button", { name: "Allow for this task" }).click();
+  await page.waitForTimeout(400);
+  check("task box: Allow is sent as the approval actor", seen.filter((s) => /consent/.test(s.path)).pop()?.body.choice === "allow" && seen.filter((s) => /consent/.test(s.path)).pop()?.actor === "worker_approval");
+
+  // a question card
+  reply = { status: 201, body: { task_id: "tk_q", route: "desktop", summary: "I need to know one thing.", needs_consent: null, question: { text: "Which folder?", options: [{ id: "dl", label: "Downloads" }, { id: "dk", label: "Desktop" }] } } };
+  await field.fill("Find my invoice");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(500);
+  await box.locator("[data-testid=task-question]").getByRole("button", { name: "Desktop" }).click();
+  await page.waitForTimeout(400);
+  const answered = seen.filter((s) => /answer/.test(s.path));
+  check("task box: a question's option is sent as the worker", answered.length === 1 && answered[0].path === "/tasks/tk_q/answer" && answered[0].body.option_id === "dk" && answered[0].actor === "worker", JSON.stringify(answered));
+
+  // the limit of three, and no service
+  reply = { status: 429, body: { error: { code: "too_many_tasks", message: "Too many tasks." } } };
+  await field.fill("One more thing");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(500);
+  check("task box: at three running it says so, and keeps what was typed", /Three tasks are already running/.test(await box.innerText()) && (await field.inputValue()) === "One more thing");
+  reply = { status: 502, body: { error: { code: "bad_gateway" } } };
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(500);
+  check("task box: with no task service it says nothing was started, and keeps what was typed", /nothing was started/.test(await box.innerText()) && (await field.inputValue()) === "One more thing");
+  const tooLong = "a".repeat(501);
+  await field.fill(tooLong);
+  await page.waitForTimeout(150);
+  const sentBefore = seen.length;
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(300);
+  check("task box: a task over 500 characters is refused with a sentence, never cut and never sent", /under 500 characters/.test(await box.innerText()) && seen.length === sentBefore);
+  await page.unroute(TASKS);
+}
+
 // 8h0. The built-in sample is never a task: with the services refused, Routines draws no background tasks and Needs you no run that reads 'paused'
 await go("/routines", 1500);
 check("routines: example data draws no background tasks (a sample is never a task)", (await page.locator("[data-testid=background-tasks]").count()) === 0 && /Your routines/.test(await page.locator("main").innerText()) && !/\bRunning\b/.test(await page.locator("[role=tablist]").innerText()));
@@ -538,6 +715,62 @@ check("routines: example data draws no background tasks (a sample is never a tas
   check("routines: the open row stayed open and the scroll did not move", (await bt.locator("button.bt-open[aria-expanded=true]").count()) === 1 && (await page.evaluate(() => window.scrollY)) === scrollBefore);
   check("routines: the finish is one quiet sentence for a screen reader, not a toast", /Tidy the invoices folder finished\./.test(await page.locator("[data-testid=tasks-live]").first().innerText()) && (await page.locator("[role=alert]").count()) === 0);
   await page.unroute(AGENT);
+}
+
+// 8j. The account menu: who the worker is, Change profile (name and role through /profile), Set up again. The engine is answered here and every write recorded.
+{
+  const wrote = [];
+  const j = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(body) });
+  const ROLES = [{ id: "benefits-processor", name: "UK benefits processor", summary: "", depth: "deep" }, { id: "data-analyst", name: "Data analyst", summary: "", depth: "standard" }, { id: "programmer", name: "Programmer", summary: "", depth: "standard" }];
+  let refuse = null;
+  await page.route(ANY_SERVICE, async (route) => {
+    const req = route.request(), path = new URL(req.url()).pathname.replace(/^\/(engine|agent)/, "");
+    if (!/\/engine\//.test(req.url())) return j(route, { error: { code: "unavailable" } }, 503);
+    if (req.method() === "POST" && path === "/profile") {
+      const body = JSON.parse(req.postData() ?? "{}");
+      wrote.push({ body, actor: req.headers()["x-understudy-actor"], type: req.headers()["content-type"] });
+      if (refuse) return j(route, refuse, 422);
+      return j(route, { person: "p_you", role: body.role ?? "benefits-processor", name: body.name ?? null, role_changed: !!body.role, previous_role: body.role ? "benefits-processor" : null });
+    }
+    if (path === "/identity") return j(route, { person: "p_you", role: "benefits-processor" });
+    if (path === "/profile") return j(route, { person: "p_you", role: "benefits-processor", since: "2026-11-01", history: [], roles: ROLES });
+    if (path === "/health") return j(route, { ok: true, version: "x", mock: true, extensions: {} });
+    return j(route, { error: { code: "unavailable" } }, 503);
+  });
+  await page.evaluate(() => { try { localStorage.removeItem("understudy-display-name"); } catch { /* */ } });
+  await page.waitForTimeout(6500);   // the page skips a service for six seconds after a refused connection (the blocks before made some)
+  await go("/home", 1500);
+  const acct = page.locator("[data-account]:visible").first();
+  await acct.click();
+  await page.waitForTimeout(700);   // the roles are asked for when the menu opens
+  const who = page.locator("[data-testid=account-who]");
+  check("account menu: with no name it says Your name, and the role is the engine's", /Your name/.test(await who.innerText()) && /UK benefits processor/.test(await who.innerText()));
+  check("account menu: it lists Change profile, Set up again, View as, Settings (Appearance lives in Settings)", (await page.getByRole("menuitem", { name: "Change profile" }).count()) === 1 && (await page.getByRole("menuitem", { name: "Set up again" }).count()) === 1 && /View as/.test(await page.locator(".account__menu").innerText()) && (await page.locator(".account__menu").getByText("Appearance").count()) === 0);
+  await page.getByRole("menuitem", { name: "Change profile" }).click();
+  const nameBox = page.locator(".profile input[type=text]");
+  await nameBox.fill("R2D2");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.waitForTimeout(300);
+  check("account menu: a name with a digit is refused with the rule and nothing is sent", /Letters, spaces, hyphens and apostrophes/.test(await page.locator(".profile").innerText()) && wrote.length === 0);
+  await nameBox.fill("Amara Okafor");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.waitForTimeout(600);
+  check("account menu: a good name is sent alone, as the worker, as JSON, and the button shows it", wrote.length === 1 && JSON.stringify(wrote[0].body) === JSON.stringify({ name: "Amara Okafor" }) && wrote[0].actor === "worker" && /application\/json/.test(wrote[0].type) && /Amara Okafor/.test(await acct.innerText()) && /Saved\./.test(await page.locator(".profile").innerText()), JSON.stringify(wrote[0]));
+  await page.getByRole("button", { name: "Close" }).click();   // back to the menu, which stays open
+  await page.getByRole("menuitem", { name: "Change profile" }).click();
+  await page.locator(".profile").getByLabel("Programmer").check();
+  check("account menu: choosing another role says the history stays and Home, Growth and coaching follow", /Your history stays/.test(await page.locator(".profile").innerText()) && (await page.getByRole("button", { name: "Switch role" }).count()) === 1);
+  refuse = { error: { code: "unknown_role", message: "There is no role 'x'." } };
+  await page.getByRole("button", { name: "Switch role" }).click();
+  await page.waitForTimeout(500);
+  check("account menu: the engine's refusal is shown inline and the role does not change", /There is no role 'x'\./.test(await page.locator(".profile").innerText()) && wrote.length === 2);
+  refuse = null;
+  await page.getByRole("button", { name: "Switch role" }).click();
+  await page.waitForTimeout(600);
+  check("account menu: Switch role sends only the role", wrote.length === 3 && JSON.stringify(wrote[2].body) === JSON.stringify({ role: "programmer" }) && /Saved\./.test(await page.locator(".profile").innerText()), JSON.stringify(wrote[2]));
+  await page.keyboard.press("Escape");
+  await page.unroute(ANY_SERVICE);
+  await page.evaluate(() => { try { localStorage.removeItem("understudy-display-name"); } catch { /* */ } });
 }
 
 // 9. Kill switch

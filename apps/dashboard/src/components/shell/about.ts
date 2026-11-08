@@ -77,6 +77,11 @@ export const ABOUT: Record<Screen, About> = {
     what: "Which model answers, how fast, and what it costs.",
     from: "Calls made for steps people allowed, listed in Your data. Costs are counted against the spending cap.",
   },
+  today: {
+    what: "The step you are on, how much help Knack gives, and why it said what it said.",
+    from: "The live coach reading your task step by step. Help fades as you need less.",
+    limit: "It reads steps, not people, and says nothing in study mode.",
+  },
   evidence: {
     what: "How every number in Knack was checked, for reviewers.",
     from: "Held-out tests, calibration, limits and the privacy checks, printed whole.",

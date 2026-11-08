@@ -26,9 +26,11 @@ const PATHS: Record<string, React.ReactNode> = {
   settings: <path d="M3 5h6M11.5 5H13M3 11h1.5M7 11h6M9 3.5v3M6 9.5v3" />,
   person: <><circle cx="8" cy="6" r="2.5" /><path d="M3 13.5c.8-2.4 2.6-3.5 5-3.5s4.2 1.1 5 3.5" /></>,
   close: <path d="M4 4l8 8M12 4l-8 8" />,
+  coach: <path d="M8 2.5v3M8 10.5v3M2.5 8h3M10.5 8h3" />,
+  mic: <><rect x="6" y="2" width="4" height="7" rx="2" /><path d="M3.5 8a4.5 4.5 0 0 0 9 0M8 12.5V14" /></>,
 };
 
-export type IconName = NavIcon | "search" | "chevron" | "check" | "alert" | "info" | "settings" | "person" | "close";
+export type IconName = NavIcon | "search" | "chevron" | "check" | "alert" | "info" | "settings" | "person" | "close" | "coach" | "mic";
 
 export function Icon({ name, className }: { name: IconName; className?: string }) {
   return (

@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api";
-import { useLoad } from "../../hooks";
-import { useAppState } from "../../store";
-import { ChartFoot, EmptyState, ErrorState, LegendItem, Loading, SourceNote } from "../common";
+import { idle, useLoad } from "../../hooks";
+import { ChartFoot, EmptyState, LegendItem, Loading, SourceNote } from "../common";
 import { Ribbon } from "../Ribbon";
 import { Explain } from "../Explain";
 import { Details, FactRows } from "../ui";
-import { GrowthSection, useReportSource } from "./GrowthSection";
+import { GrowthSection, SectionError, useReportSource } from "./GrowthSection";
+import { notKnown, useOwnPerson } from "./own";
 import { describeColumn, layoutRibbon } from "../../lib/ribbon";
 import { cogLabel, fmtDuration } from "../../lib/format";
 import { stepsHeadline, topLosses } from "../../lib/steps";
 import { ownMeta } from "../../lib/ownMeta";
+import { safeWhy } from "../../lib/voice";
 import type { Genome as GenomeData } from "../../types";
+import type { Loaded } from "../../api";
 
 const TASK = "t_entitlement_check";
 
@@ -20,13 +22,14 @@ const TASK = "t_entitlement_check";
  * No average over other people, no count of them and no other person's id is drawn (docs/knack-ux/views.md).
  */
 export function StepsSection({ open }: { open: boolean }) {
-  const me = useAppState().person ?? undefined;
-  const g = useLoad(() => api.genome(TASK, me, "nearest_expert"), [me]);
+  const own = useOwnPerson();
+  const me = own.person;
+  const g = useLoad(() => (own.ready ? (own.blocked ? notKnown<Loaded<GenomeData>>() : api.genome(TASK, me, "nearest_expert")) : idle<GenomeData>()), [own.ready, own.blocked, me]);
   useReportSource("steps", g.why ?? null);
   const cols = useMemo(() => (g.data ? layoutRibbon(g.data, 1000).columns : []), [g.data]);
 
   if (g.status === "error" && !g.data) {
-    return <GrowthSection id="steps" title="My steps" headline="Your steps could not be read just now."><ErrorState error={g.error} retry={g.reload} what="your steps" /></GrowthSection>;
+    return <GrowthSection id="steps" title="My steps" headline="Your steps could not be read just now."><SectionError error={g.error} retry={g.reload} what="your steps" empty="Nothing has been recorded for you yet." /></GrowthSection>;
   }
   if (!g.data) return <GrowthSection id="steps" title="My steps" headline="Reading your steps." busy><Loading label="Loading your steps" /></GrowthSection>;
   const data = g.data;
@@ -46,7 +49,7 @@ export function StepsSection({ open }: { open: boolean }) {
           <Details summary="Key and more" wide><KeyAndMore data={data} cols={cols} meta={ownMeta(g.meta, { n: 1, unit: "case" })} /></Details>
         </div>
       )}
-      {g.why && <SourceNote why={g.why} />}
+      {g.why && <SourceNote why={safeWhy(g.why)} />}
     </GrowthSection>
   );
 }
