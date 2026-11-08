@@ -200,6 +200,8 @@ interface ReadOpts {
   soft?: boolean;
   /** The layer whose flag /health reports: when it is known to be off, do not ask. */
   layer?: ExtensionName;
+  /** Its fallback draws nothing (an empty list, no answer), so it says nothing about where THE SCREEN's numbers came from: it is not counted in the live and example sources the sidebar's status reads. */
+  quiet?: boolean;
 }
 const ENGINE_WHO = { service: "The engine" };
 const AGENT_WHO = { service: "The agent service" };
@@ -216,8 +218,9 @@ function knownOff(layer: ExtensionName | undefined, who: { service: string }): F
 
 async function read<T>(path: string, fallback: () => { data: T; meta?: AnalyticMeta | null }, base = ENGINE_URL, opts: ReadOpts = {}): Promise<Loaded<T>> {
   const who = opts.who ?? (base === AGENT_URL ? AGENT_WHO : ENGINE_WHO);
+  const note = (kind: "live" | "demo"): void => { if (!opts.quiet) noteSource(kind); };
   const demoWith = (why: Fallback): Loaded<T> => {
-    noteSource("demo");
+    note("demo");
     const f = fallback();
     return { data: clone(f.data), meta: f.meta ? clone(f.meta) : null, source: "demo", why };
   };
@@ -234,7 +237,7 @@ async function read<T>(path: string, fallback: () => { data: T; meta?: AnalyticM
     if (opts.soft) return demoWith(classify(fail, { ...who, flag }));
     throw toApiError(r.status, r.body);
   }
-  noteSource("live");
+  note("live");
   const u = unwrap<T>(r.reached ? r.body : null);
   return { ...u, source: "live", why: null };
 }
@@ -435,14 +438,14 @@ export const api = {
     read<AgentRun[]>(`/agents/runs${qs({ person })}`, () => ({ data: demo.runs, meta: metaOf(agentsFx) }), AGENT_URL, { layer: "agents", soft: true }),
 
   /** The worker's tasks, newest first (Track T). Not live yet (a 404, or the service down): an empty list and `source: "demo"`, and the screen uses the run list. */
-  tasks: () => read<TaskRow[]>("/tasks", () => ({ data: [] }), AGENT_URL, { soft: true }),
-  taskDetail: (id: string) => read<TaskDetail | null>(`/tasks/${encodeURIComponent(id)}`, () => ({ data: null }), AGENT_URL, { soft: true }),
+  tasks: () => read<TaskRow[]>("/tasks", () => ({ data: [] }), AGENT_URL, { soft: true, quiet: true }),
+  taskDetail: (id: string) => read<TaskDetail | null>(`/tasks/${encodeURIComponent(id)}`, () => ({ data: null }), AGENT_URL, { soft: true, quiet: true }),
   taskStop: (id: string) => write<unknown>(`/tasks/${encodeURIComponent(id)}/stop`, "POST", {}, () => ({}), "worker", AGENT_URL),
   /** The worker's own click on a consent card: `allow`, `decline`, or `everything` (behind "More"). The proxy adds the token. */
   taskConsent: (id: string, choice: "allow" | "everything" | "decline") => write<unknown>(`/tasks/${encodeURIComponent(id)}/consent`, "POST", { choice }, () => ({}), "worker_approval", AGENT_URL),
   taskAnswer: (id: string, option_id: string) => write<unknown>(`/tasks/${encodeURIComponent(id)}/answer`, "POST", { option_id }, () => ({}), "worker", AGENT_URL),
   taskOpen: (id: string) => write<unknown>(`/tasks/${encodeURIComponent(id)}/open`, "POST", {}, () => ({}), "worker", AGENT_URL),
-  skills: () => read<SkillsAnswer | null>("/skills", () => ({ data: null }), AGENT_URL, { soft: true }),
+  skills: () => read<SkillsAnswer | null>("/skills", () => ({ data: null }), AGENT_URL, { soft: true, quiet: true }),
   skillsSet: (patch: { use_claude_skills?: boolean; off?: string[]; max_minutes?: number; max_budget_usd?: number }) => write<SkillsAnswer | null>("/skills/settings", "POST", patch, () => null, "worker", AGENT_URL),
 
   agentsRunDetail: (id: string) =>

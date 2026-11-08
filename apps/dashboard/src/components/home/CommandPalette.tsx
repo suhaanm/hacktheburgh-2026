@@ -8,7 +8,7 @@ import { useStop } from "../shell/StopControl";
 import { useToast } from "../Toasts";
 import { copyText, mondayNote } from "./monday";
 import {
-  KIND_LABEL, NO_RESULTS_HELP, askItem, buildItems, groupRows, isNavKey, moveIndex, resultsText, rowsFor, segments, type ExtraItems, type PaletteItem, type Row,
+  KIND_LABEL, askItem, buildItems, groupRows, isNavKey, moveIndex, noResultsHelp, resultsText, rowsFor, segments, type ExtraItems, type PaletteItem, type Row,
 } from "./palette";
 import { setViewRole, useViewRole, type ViewRole } from "./viewAs";
 import "./palette.css";
@@ -207,7 +207,7 @@ function PaletteDialog({ loaders }: { loaders?: PaletteLoaders }) {
         ) : (
           <div className="palette__empty">
             <p className="palette__none">Nothing matches &ldquo;{query.trim()}&rdquo;.</p>
-            <p className="palette__try">{NO_RESULTS_HELP}</p>
+            <p className="palette__try">{noResultsHelp(view)}</p>
           </div>
         )}
         <p className="palette__keys" aria-hidden="true">
