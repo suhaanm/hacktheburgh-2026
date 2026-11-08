@@ -154,6 +154,7 @@ Pick one and read it: 'Cue did not make people resume faster at the median.'
 | Attention router: criterion 7 not met (+0.33 can-wait toasts a day [+0.08, +0.58]); 11 of 12 met | synthetic, 200 simulated workers | `evals/attention/report_held_out.json` |
 | Insights: planted independence rise selected in 47 of 100 worlds (target 0.8); false celebration when errors rise 14 of 100 (target 0) | synthetic, 100 worlds per effect | `evals/insights/results/heldout.json` |
 | Computer use, held-out clean n = 4: 1 completed; injected n = 20: 20 of 20 paused at step 0 (detector, text only) | real model (OpenAI), our sandbox | `evals/report.md (Agentic evaluation)` |
+| Computer use with Gemini, held-out and pre-registered, clean n = 20: 18 completed with correct inputs (Wilson [0.70, 0.97]), and the bar we set before the run, a lower bound of at least 0.80, was not met; the 2 misses paused, 0 false claims | real model (Gemini), our sandbox | `evals/agentic/results/round2_clean_9139.json; docs/DECISIONS.md (D65)` |
 
 ### Honest limit
 
@@ -165,7 +166,7 @@ These are all simulated or sandbox results; none is about real workers.
 
 ## 30-second spoken script
 
-> Here is what did not hold up. On harder synthetic data the stuck model's edge over a plain rule falls to a few thousandths. The genome's precision drops from ninety-two to about sixty percent. Most of our machine-learning improvements were rejected on held-out data. Our simulated study sat at the floor and says nothing about the coach. And computer use completed one of four held-out households. We publish these on the Evidence page, next to the numbers that went well.
+> Here is what did not hold up. On harder synthetic data the stuck model's edge over a plain rule falls to a few thousandths. The genome's precision drops from ninety-two to about sixty percent. Most of our machine-learning improvements were rejected on held-out data. Our simulated study sat at the floor and says nothing about the coach. And computer use completed one of four held-out households with the first model, and 18 of 20 with Gemini, short of the bar we set in advance. We publish these on the Evidence page, next to the numbers that went well.
 
 ## Slide bullets
 
@@ -173,7 +174,7 @@ These are all simulated or sandbox results; none is about real workers.
 - Genome: precision 92% falls to 48 to 71%.
 - ML v2 held-out: ensemble and counterfactual rejected as harmful.
 - Simulated study at the floor: 30 of 32 post-tests scored 0; says nothing about the coach.
-- Computer use held-out: 1 of 4; Cue and attention targets partly missed.
+- Computer use held-out: 1 of 4 (OpenAI), 18 of 20 below its bar (Gemini); Cue and attention targets partly missed.
 
 ## Sources
 

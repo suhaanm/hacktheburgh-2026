@@ -7,6 +7,8 @@ DEMO SCRIPT draft, rewritten 7 Nov 2026, about 19:50 GMT, by the NARRATIVE track
 - [LEAD: ...] you confirm or supply. [OWNER: ...] only the owner can supply.
 -->
 
+> **Superseded.** `docs/KNACK_DEMO.md` replaces this script: it was written for Knack's new interface (scenes M1 to M16, with spoken lines, fallbacks and a rehearsal tool). This draft predates the Knack shell, the new navigation (a worker has Home, Needs you, Routines, Growth and Your data; Where time goes and the rest are Growth sections; Evidence and Forecasts are Admin pages) and the Gemini, Hey Knack, task and HRT work, so its labels, routes and numbers are out of date. Keep it only for the beats' reasoning. Updated 8 Nov 2026, about 03:00 GMT.
+
 # Demo script: three minutes
 
 One presenter, one laptop, wifi off, mock mode (`make demo`, the owner's command). Two windows side by side: the dashboard (`http://127.0.0.1:5173`) and Chrome with the capture extension on the sandbox calculators. The desktop coach overlay, if it is running, sits on top of Chrome.

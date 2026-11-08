@@ -4,9 +4,9 @@
 
 **Capability:** Agents that do the work safely · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
-**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. For a worker, background tasks and their results sit in Routines and are meant to update live without a refresh, and to show as small pills at the top right while they work (owner requests 4.15 and 4.21, landing); 'Background runs' is an Admin 'More' row.
+**Navigation note (on main since 02:05 UTC).** The lead's views rule (`docs/knack-ux/views.md`) is implemented: a worker has five sidebar rows (Home, Needs you, Routines, Growth, Your data); Growth is one page with the sections My progress, Where my time goes, My steps, How my routines connect and My commits; the Admin view has Firm, Brief, Forecasts, Roles, People, Onboarding, Automation and Risk, then More: Models and cost, Evidence, Background runs. Old addresses redirect (`apps/dashboard/src/routeRedirects.ts`). The final list is `apps/dashboard/src/components/home/navModel.ts`. For a worker, background tasks and their results sit in Routines and update without a refresh (built), and a pills window at the top right of the screen shows them while they work (built, on main); 'Background runs' is an Admin More row.
 
-This page covers Background agents: parent and child, Overnight runs and the morning report.
+This page covers Background agents: parent and child, Overnight runs and the morning report, Live background task list: a finish shows up without a refresh.
 
 ## Background agents: parent and child
 
@@ -24,7 +24,7 @@ A parent plans and hands typed specs to children, each following a written role 
 
 ### Where to see it
 
-More, then Background runs. Results arrive in Needs you.
+A worker sees their background tasks on Routines; the admin's Background runs (Admin view, More) shows the runs. Results arrive in Needs you.
 
 ### Demo moment
 
@@ -84,6 +84,44 @@ No real unattended run has been made: every run so far is in the sandbox or in m
 
 - **Wordsmith (most complicated end-to-end browser-use workflow)**: unattended multi-step work with a per-routine consent record
 - **HRT (best use of data for predictions and decisions)**: a start-or-wait decision under uncertainty about the worker's return
+
+## Live background task list: a finish shows up without a refresh
+
+**Status:** built (owner requests 4.15 and 4.16 (Track C); documented in docs/knack-ux/background-tasks.md; on main; the tasks service it prefers is on main since 01:42 UTC; not seen end to end by the lead) · **Page:** `docs/features/background-agents.md` · **Targets:** Wordsmith
+
+### What it does
+
+A task that finishes in the background shows as finished on the page with no refresh, and each task is one short line, as minimal as Claude Code's own task list. Running tasks come first, then ones waiting for the worker, then one that finished in the last minute so the finish is seen; the rest of today's finished tasks sit under a closed 'Done today'.
+
+### How it works
+
+One line per task: an icon whose shape carries the state (a spinner while it runs, a check when done, a dash when stopped, a cross when it did not finish, a dot when it waits for the worker), the job in plain words (at most 60 characters) and one note (the current step, the one result line, 'Needs your OK.' or 'Has a question.'). A click opens a plain list of steps and, for a task from the tasks service, Stop and Open folder or Open file. Ids, budgets, leases and counts the worker cannot act on are never shown here; they belong to the admin's Background runs. The data comes from one place: the tasks service when it answers, and the agent service's run list until then.
+
+The page stays live three ways: the services' event streams (each event asks for one refresh of the screen's own data, at most one every 0.4 seconds, and a broken stream is dropped and retried after 30 seconds), polling (every 2 seconds while anything is running, every 15 otherwise, waiting for the previous poll, and not at all in a hidden tab) and a refresh when the window regains focus. A refresh keeps the last good data on screen, so an open row stays open and the scroll does not move. A finish is a quiet check and one polite sentence for a screen reader, never a toast. A task that needs the worker also appears in Needs you as a consent card with Allow and Not now of equal weight.
+
+**What is different.** A background task that finishes shows as finished with no refresh, because three plain signals (event stream, a two-second poll, window focus) each ask the screen to reload its own data and keep the last good rows on screen; the line carries only what the worker can act on.
+
+### Where to see it
+
+Routines (top of Running), Home (a short list of up to three), Needs you (a task that waits), and the admin's Background runs.
+
+### Demo moment
+
+Start a task or a routine run and stay on Routines: the line shows its current step, then turns into a check with one result line, with no refresh. Open Done today to show the rest.
+
+### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| The live loop is covered by tests with a fake clock and a fake stream, the line and its ordering by unit tests, the Needs you task cases by model tests, and a smoke block 'Live' in which a mocked tasks service flips a task from running to done while the page is open | offline tests; not run with a real task | `docs/knack-ux/background-tasks.md (section 'Tests')` |
+
+### Honest limit
+
+Seen only with a mocked tasks service and the agent service's own runs: no real task has run through it. The word 'live' means a page that refreshes itself every two seconds or on an event, not a push to the screen. Hidden tabs are not polled, so a finish is shown when the tab is seen again.
+
+### Hackathon target
+
+- **Wordsmith (most complicated end-to-end browser-use workflow)**: a long-running workflow the worker can leave and come back to, with the outcome visible at a glance
 
 ## 30-second spoken script
 
