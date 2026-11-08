@@ -282,7 +282,7 @@ function analyse(rows, seed, skill, allSkillRows) {
     origin_detail: rows[0]?.origin_detail,
     readiness: { occurrences: n, needed: NEEDED, ready, trend_needed: 30 },
     baseline,
-    score: { composite_experimental: composite, composite_experimental_ci: composite_ci, composite_partial: partial, available_weight: r3(avail), weights: W, used_weights: partial ? used : null, weights_note: "Stated assumptions, not fitted.", composite_caveat: "Experimental. On generated learners whose skill did not change, this score still rose in a sizeable share of cases, so it is shown with its parts and is not a finding." },
+    score: { composite_experimental: composite, composite_experimental_ci: composite_ci, composite_partial: partial, available_weight: r3(avail), weights: W, used_weights: partial ? used : null, weights_note: "Stated assumptions, not fitted.", composite_caveat: "Experimental. In testing, when skill did not change, this score still rose in a sizeable share of cases, so it is shown with its parts and is not a finding." },
     components: { independence, mastery: n ? { value: mastery, by_skill: bySkillMastery } : null, gap_closure: gap, retention },
     trend, curve,
     occurrences: { total: n, unaided: mine.filter(unaided).length, assisted: mine.filter((r) => r.outcome === "assisted").length, errors: mine.filter((r) => r.outcome === "error").length, abandoned: mine.filter((r) => r.outcome === "abandoned").length },
