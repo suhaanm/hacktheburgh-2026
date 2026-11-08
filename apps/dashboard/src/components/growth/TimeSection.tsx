@@ -1,15 +1,17 @@
 import { useMemo } from "react";
 import { api } from "../../api";
-import { useLoad } from "../../hooks";
-import { useAppState } from "../../store";
+import { idle, useLoad } from "../../hooks";
 import { EmptyState, Loading, SourceNote, ChartFoot } from "../common";
 import { WeekLegend, WeekRibbon } from "../WeekRibbon";
 import { Details } from "../ui";
 import { GrowthSection, SectionError, useReportSource } from "./GrowthSection";
+import { notKnown, useOwnPerson } from "./own";
 import { Distance, GapTable, Suggestions, WeekTable } from "./WeekParts";
 import { ForecastSection, HoursMap, IdleStat, QuietEditor } from "./HoursParts";
 import { busiestWrap, meanRow, slotLabel, toGrid } from "../../lib/heatmap";
 import { weekHeadline, weekLabel, weekWindow } from "../../lib/week";
+import type { CalSuggestion, CalendarWeek, Presence as PresenceData } from "../../types";
+import type { Loaded } from "../../api";
 import { ownMeta } from "../../lib/ownMeta";
 import { safeWhy } from "../../lib/voice";
 
@@ -21,10 +23,11 @@ const EXAMPLE_PERSON = "p_ninetofive";
  * A headline sentence first (the week against the experienced worker, or the hours when there is no calendar), the picture and the numbers behind it.
  */
 export function TimeSection({ open }: { open: boolean }) {
-  const me = useAppState().person ?? EXAMPLE_PERSON;
-  const w = useLoad(() => api.calendarWeek(me, undefined), [me]);
-  const sg = useLoad(() => api.calendarSuggestions(me, undefined), [me]);
-  const p = useLoad(() => api.presence(), []);
+  const own = useOwnPerson(EXAMPLE_PERSON);
+  const w = useLoad(() => (own.ready ? (own.blocked ? notKnown<Loaded<CalendarWeek>>() : api.calendarWeek(own.person!, undefined)) : idle<CalendarWeek>()), [own.ready, own.blocked, own.person]);
+  const sg = useLoad(() => (own.ready ? (own.blocked ? notKnown<Loaded<CalSuggestion[]>>() : api.calendarSuggestions(own.person!, undefined)) : idle<CalSuggestion[]>()), [own.ready, own.blocked, own.person]);
+  // the working hours are this device's own, whoever the engine thinks the worker is
+  const p = useLoad(() => (own.ready ? api.presence() : idle<PresenceData>()), [own.ready]);
   useReportSource("time", w.why ?? p.why ?? null);
 
   const stretch = useMemo(() => (p.data ? busiestWrap(meanRow(toGrid(p.data.bins)), 0.5) : null), [p.data]);
