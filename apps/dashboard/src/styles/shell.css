@@ -13,7 +13,7 @@
 .topbar, .bottombar { display: none; }
 
 .side {
-  position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; min-height: 0;
+  position: sticky; top: 0; z-index: var(--z-panel); height: 100vh; display: flex; flex-direction: column; min-height: 0;   /* above the page, so the More sheet (fixed, inside this layer) is never drawn under a page control */
   padding: 0 var(--space-3) var(--space-3); border-right: var(--hair) solid var(--line); background: var(--bg);
 }
 /* In the Mac desktop window (html[data-knack-shell="mac-inset"], set by the app) the traffic lights sit at x 16, y 16, so the sidebar keeps its top 56 px

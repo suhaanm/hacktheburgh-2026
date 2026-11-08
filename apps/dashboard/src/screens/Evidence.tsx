@@ -333,7 +333,7 @@ function Ski({ rep }: { rep: EvalReport }) {
 function Deficits({ rep }: { rep: EvalReport }) {
   const rt = sec(rep, "routines");
   return (
-    <Guard id="deficits" kicker="Does the genome find the deficit we planted?" what="Deficit recovery" s={sec(rep, "deficit_recovery")}>
+    <Guard id="deficits" kicker="Does My steps find the deficit we planted?" what="Deficit recovery" s={sec(rep, "deficit_recovery")}>
       {(s) => {
         const rows = arr<{ deficit: string; label?: string; injected_price_s: number; recovered_price_s: number; ci: Interval; precision?: number; recall?: number; precision_ci?: Interval; recall_ci?: Interval }>(s.rows);
         const overall = s.overall as { precision: number; recall: number } | undefined;
@@ -341,7 +341,7 @@ function Deficits({ rep }: { rep: EvalReport }) {
         const weakest = [...rows].filter((r) => isNum(r.recall)).sort((a, b) => (a.recall as number) - (b.recall as number))[0];
         const lessPrecise = [...rows].filter((r) => isNum(r.precision)).sort((a, b) => (a.precision as number) - (b.precision as number))[0];
         return (
-          <Block id="deficits" kicker="Does the genome find the deficit we planted?" claim={<>{overall ? <>Precision {fmtPct(overall.precision)}, recall {fmtPct(overall.recall)} on injected deficits.</> : "Injected deficits and the price recovered for each."}{weakest && weakest.recall != null && weakest.recall < 0.8 ? <> Weakest: {(weakest.label ?? weakest.deficit).toLowerCase()}, recall {fmtPct(weakest.recall)}.</> : null}{lessPrecise && lessPrecise.precision != null && lessPrecise.precision < 0.8 ? <> Least precise: {(lessPrecise.label ?? lessPrecise.deficit).toLowerCase()}, {fmtPct(lessPrecise.precision)}.</> : null}</>}>
+          <Block id="deficits" kicker="Does My steps find the deficit we planted?" claim={<>{overall ? <>Precision {fmtPct(overall.precision)}, recall {fmtPct(overall.recall)} on injected deficits.</> : "Injected deficits and the price recovered for each."}{weakest && weakest.recall != null && weakest.recall < 0.8 ? <> Weakest: {(weakest.label ?? weakest.deficit).toLowerCase()}, recall {fmtPct(weakest.recall)}.</> : null}{lessPrecise && lessPrecise.precision != null && lessPrecise.precision < 0.8 ? <> Least precise: {(lessPrecise.label ?? lessPrecise.deficit).toLowerCase()}, {fmtPct(lessPrecise.precision)}.</> : null}</>}>
             <div className="chart chart--wide">
               <DotWhisker rows={rows.map((x) => ({ label: `${x.label ?? x.deficit} (injected ${signed(x.injected_price_s)} s)`, value: x.recovered_price_s, ci: x.ci }))} unit="seconds recovered" reference={0} refLabel="0" domain={[Math.min(0, ...rows.map((x) => x.ci[0])) - 5, Math.max(...rows.map((x) => x.ci[1])) + 10]} aria="Recovered cost of each injected deficit with its interval." />
               <ChartFoot meta={s.meta ?? null} />

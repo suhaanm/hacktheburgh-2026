@@ -42,3 +42,5 @@ Commands run on this tree (private stack, no model calls, no desktop input):
 - `check-copy.mjs --view=admin --narrow`: 29 of 30 reads pass; the one FAIL (Models at 1440, 130 words against 120) was A17, fixed.
 - `check-clicks.mjs`: A1, A2, A3 PASS; J7 FAIL is a worker job (no routine to Run now on the empty stack), not an admin route.
 - Dashboard `tsc --noEmit` clean; `vitest run` 106 files, 1481 tests pass.
+
+Lead, 8 Nov ~04:05: A20 fixed (a section measured on no people prints 'not applicable', evidence.ts), A27 fixed (the kicker names My steps), A26 fixed (the sidebar layer sits above the page: shell.css z-index var(--z-panel), so the More sheet is never drawn under a page control).

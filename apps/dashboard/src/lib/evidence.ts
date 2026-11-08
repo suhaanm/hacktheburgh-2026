@@ -170,6 +170,7 @@ export const STATUS_LABEL: Record<MapStatus, string> = { ok: "Has results", not_
 /** "11,336 tokens", "4 people", "n not given". */
 export function nText(r: Pick<MapRow, "n" | "nUnit">): string {
   if (r.n == null) return "none yet";
+  if (r.n === 0 && (!r.nUnit || r.nUnit === "people")) return "not applicable";   // a section measured on no people (a model benchmark) says so, not "0 people"
   const unit = r.nUnit && r.nUnit !== "people" ? ` ${r.nUnit}` : r.n === 1 ? " person" : " people";
   return `${r.n.toLocaleString("en-GB")}${unit}`;
 }
