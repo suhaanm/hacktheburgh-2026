@@ -10,7 +10,7 @@ const only = process.argv[4];
 fs.mkdirSync(out, { recursive: true });
 const SHOTS = [
   ["needs-you", "/needs-you"],
-  ["needs-you-more", "/needs-you", async (p) => { await p.getByRole("button", { name: "More ways to say yes" }).first().click(); await p.getByRole("button", { name: "Evidence" }).first().click(); }],
+  ["needs-you-more", "/needs-you", async (p) => { await p.locator("article[data-kind=proposal]").first().getByRole("button", { name: "Details" }).click(); await p.getByRole("button", { name: "Evidence" }).first().click(); }],
   ["routines", "/routines"],
   ["routines-open", "/routines", async (p) => { await p.locator(".rt-row__open").first().click(); }],
   ["routines-could", "/routines?tab=could-automate"],
