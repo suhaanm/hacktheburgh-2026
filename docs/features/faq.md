@@ -58,11 +58,11 @@ Don't, as evidence about people. They show that our methods recover what we plan
 
 **13. What is real, and what is synthetic?**
 
-Real: all the code, run locally; three sandbox calculators and a case-note page served locally; real-model agent and red-team runs at small n; one supervised click and one typed line on TextEdit with the owner present; one real-browser capture check. Synthetic or simulated: people, histories, households, calendars, commits, the firm, and the study participants (language models). The oracle is a simplified rule set, not law (README.md, What is real and what is synthetic).
+Real: all the code, run locally; three sandbox calculators and a case-note page served locally; real-model agent and red-team runs at small n; one supervised click and one typed line on TextEdit with the owner present; one real-browser capture check; two small real runs of the owner's Claude command with the owner's approval. Synthetic or simulated: people, histories, households, calendars, commits, the firm, and the study participants (language models). The oracle is a simplified rule set, not law (README.md, What is real and what is synthetic).
 
 **14. Does the stuck model work?**
 
-On its own generator it beats two plain baselines (log loss 0.436 against 0.509, n = 4). On harder generators its edge over a time-since-progress rule falls to a few thousandths, a v1-trained model is worse than that rule, and under mismatch the plain rule beats it in all three roles. A small gain from a boosted version was accepted. Our claim is that a simple rule does about as well; the product decision is with the owner (README.md; evals/report.md Findings).
+On its own generator it beats two plain baselines (log loss 0.436 against 0.509, n = 4). On harder generators its edge over a time-since-progress rule falls to a few thousandths, a v1-trained model is worse than that rule, and under mismatch the plain rule beats it in all three roles. A small gain from a boosted version was accepted. Our claim is that a simple rule does about as well; the product decision is with the owner. A later forward-in-time check on a branch (not on main) agrees: on new seeds it beats the plain baselines where it was fitted (log loss 0.445 [0.434, 0.455] against 0.525 and 0.524), is worse than the best plain predictor in three shifted worlds by +0.324 to +0.513 nats, and an online recalibration, registered afterwards on new seeds, leaves it no worse than the best plain predictor in those worlds (small margins, reported and not a registered claim) without restoring calibration after a rule change (README.md; evals/report.md Findings; docs/HRT_BRIEF.md on the HRT branch).
 
 **15. Does coaching help? Do novices become experts?**
 
