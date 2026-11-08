@@ -4,7 +4,7 @@
 No number in the brief is typed by hand. A placeholder is ``{{src:path/to/value|fmt}}``:
 
   src   one of  r (evals/report.json, from its ``sections``)  rt (evals/report.json, top level)  hl (evals/hrt/results/heldout_ledger.json)
-        hd (evals/hrt/results/heldout_decisions.json)  hr (evals/hrt/results/heldout_recal.json)  hc (evals/hrt/results/heldout_conformal.json)
+        hd (evals/hrt/results/heldout_decisions.json)  hr (evals/hrt/results/heldout_recal.json)  hc (evals/hrt/results/heldout_conformal.json)  hv (evals/hrt/results/heldout_value.json)
         mh (evals/mlv2/results/heldout_hazard.json)  mm (evals/mlv2/results/heldout_mismatch.json)  cue (evals/cue/held_out.json)
         hm (computed here, not read: the Holm family over the reported intervals; ``hm:m``, ``hm:survivors``, ``hm:table``, ``hm:note``)
   path  keys and list indexes separated by "/"; ``id=P1`` picks the list item whose ``id`` is P1; ``1:3`` is not supported (name the index)
@@ -12,6 +12,7 @@ No number in the brief is typed by hand. A placeholder is ``{{src:path/to/value|
         "loses" carries the inequality that makes it true, and the render fails if a report ever contradicts it
   fmt   f1..f4 (decimals)  s3 (signed, 3 decimals)  p0 p1 p2 (a share as a percentage)  i (integer with separators)  ci2 ci3 ci4 (an interval)
         pci1 pci0 (an interval of shares as percentages)  word (underscores to spaces)  yn (yes or no)  held (passed or did not pass)  raw (as is)
+        cstat (a coverage interval against the nominal 90%: under, consistent or over)  pass3 (passed, did not pass, or not testable for true, false, null)
 
 Usage:  python3 scripts/hrt_brief.py            write docs/HRT_BRIEF.md
         python3 scripts/hrt_brief.py --check    exit 1 if the committed brief differs from a fresh render (a report changed: re-run without --check)
@@ -35,6 +36,7 @@ SOURCES = {
     "hd": (ROOT / "evals" / "hrt" / "results" / "heldout_decisions.json", None),
     "hr": (ROOT / "evals" / "hrt" / "results" / "heldout_recal.json", None),
     "hc": (ROOT / "evals" / "hrt" / "results" / "heldout_conformal.json", None),
+    "hv": (ROOT / "evals" / "hrt" / "results" / "heldout_value.json", None),
     "mh": (ROOT / "evals" / "mlv2" / "results" / "heldout_hazard.json", None),
     "mm": (ROOT / "evals" / "mlv2" / "results" / "heldout_mismatch.json", None),
     "cue": (ROOT / "evals" / "cue" / "held_out.json", None),
@@ -71,6 +73,11 @@ HOLM_ROWS = (
     ("D3", "background start rule minus run whenever idle (value per day)", "hd", "rows/2/primary/est", "rows/2/primary/ci95"),
     ("D4", "coaching action policy minus rule baseline (reward per decision)", "hd", "rows/3/primary/est", "rows/3/primary/ci95"),
     ("K3", "v1 world: time-to-progress range length, model minus Kaplan-Meier baseline (steps)", "hc", "claims/id=K3/evidence/t1_length_difference", "claims/id=K3/evidence/t1_ci"),
+    ("V1a", "v1 world: interrupt decisions from the model minus from the online base rate (net minutes per origin)", "hv", "claims/id=V1/evidence/vs_online_base/est", "claims/id=V1/evidence/vs_online_base/ci"),
+    ("V1b", "v1 world: interrupt decisions from the model minus from frozen time since progress (net minutes per origin)", "hv", "claims/id=V1/evidence/vs_frozen_tsp/est", "claims/id=V1/evidence/vs_frozen_tsp/ci"),
+    ("V2-markov", "markov world: interrupt decisions from the model minus from the best naive predictor (net minutes per origin)", "hv", "claims/id=V2/evidence/markov/est", "claims/id=V2/evidence/markov/ci"),
+    ("V2-latent", "latent-skill world: the same", "hv", "claims/id=V2/evidence/latent_skill/est", "claims/id=V2/evidence/latent_skill/ci"),
+    ("V2-process", "process-trace world: the same", "hv", "claims/id=V2/evidence/process_trace/est", "claims/id=V2/evidence/process_trace/ci"),
 )
 
 
@@ -123,7 +130,17 @@ def holm_family() -> dict[str, Any]:
         lines.append(f"| {r['id']} | {r['label']} | {_fmt_est(r['est'])} [{_fmt_est(r['ci'][0])}, {_fmt_est(r['ci'][1])}] | {_fmt_p(r['p'])} | {_fmt_p(r['p_holm'])} | {'yes' if r['survives'] else '**no**'} |")
     note = ("Raw p is a normal approximation to the reported 95% interval (standard error = width / 3.92), so it is for reading the order of magnitude, not a registered computation: "
             "the registered claims are pass rules on intervals. Holm's step-down is valid under any dependence between the contrasts, which these have (they share worlds and resamples).")
-    return {"m": len(rows), "rows": rows, "survivors": sum(r["survives"] for r in rows), "table": "\n".join(lines), "note": note}
+    parts = (("P", "hl", "claims/#len"), ("R", "hr", "claims/#len"), ("D", "hd", "rows/#len"), ("K", "hc", "claims/#len"), ("V", "hv", "claims/#len"))
+    counts: dict[str, int] = {}
+    for key, src, path in parts:
+        try:
+            counts[key] = int(resolve(src, path))
+        except Unresolved:
+            continue
+    split = " + ".join(f"{n} {k}" for k, n in counts.items())
+    return {"m": len(rows), "rows": rows, "survivors": sum(r["survives"] for r in rows), "fails": len(rows) - sum(r["survives"] for r in rows), "table": "\n".join(lines), "note": note,
+            "claims_total": sum(counts.values()), "claims_split": split,
+            "min_p_holm": min((r["p_holm"] for r in rows), default=1.0), "max_p_holm": max((r["p_holm"] for r in rows), default=1.0)}
 
 
 def load(src: str) -> Any:
@@ -172,8 +189,12 @@ def resolve(src: str, path: str) -> Any:
 
 
 def fmt(v: Any, spec: str | None) -> str:
+    if spec == "pass3":
+        return "passed" if v is True else "did not pass" if v is False else "not testable"
     if v is None:
         raise Unresolved("value is null")
+    if spec == "cstat":
+        return "under" if float(v[1]) < 0.90 else "over" if float(v[0]) > 0.90 else "consistent"
     if spec in (None, "raw"):
         return str(v)
     if spec == "word":
