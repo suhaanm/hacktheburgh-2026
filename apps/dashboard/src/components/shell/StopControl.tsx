@@ -10,6 +10,9 @@ import { Icon } from "./icons";
 import { shellKeyAction } from "./keys";
 import { getViewRole } from "../home/viewAs";
 
+/** How often the window asks whether everything is stopped while it is in view (a Stop or Resume from the corner pill, the menu bar or a hotkey shows within this and a request). */
+export const KILL_POLL_MS = 3000;
+
 interface StopApi { stop: () => Promise<void>; resume: () => Promise<void>; busy: boolean }
 const Ctx = createContext<StopApi>({ stop: async () => undefined, resume: async () => undefined, busy: false });
 export const useStop = (): StopApi => useContext(Ctx);
@@ -45,7 +48,7 @@ export function StopProvider({ children }: { children: ReactNode }) {
   }, [toast]);
 
   // Stop everything can come from outside this page (the corner pill, the menu bar, the Dock menu, the hotkey) and so can Resume: read the state when the page opens, when the window is
-  // looked at again, and every few seconds while it is in view, so the Stop button and the banner never disagree with the corner card.
+  // looked at again, and every few seconds while it is in view, so the Stop button and the banner never disagree with the corner card (within three seconds).
   useEffect(() => {
     let live = true;
     const read = () => {
@@ -53,7 +56,7 @@ export function StopProvider({ children }: { children: ReactNode }) {
       api.killState().then((r) => { if (live) setState({ killed: !!r.data?.killed, killedAt: r.data?.at ?? null }); }).catch(() => undefined);
     };
     read();
-    const timer = window.setInterval(read, 4000);
+    const timer = window.setInterval(read, KILL_POLL_MS);
     window.addEventListener("focus", read);
     window.addEventListener("understudy:retry", read);
     document.addEventListener("visibilitychange", read);

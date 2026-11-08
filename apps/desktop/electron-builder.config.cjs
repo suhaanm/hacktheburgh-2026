@@ -9,7 +9,7 @@ module.exports = {
   copyright: 'Built for Hack the Burgh XIII',
   directories: { output: 'dist-app', buildResources: 'build' },
   // The built app (electron-vite output) and nothing else: no sources, no checks, no maps. The external packages (dotenv, zod, @google/genai) are added from node_modules.
-  files: ['out/main/**', 'out/preload/**', 'out/renderer/**', 'package.json', '!out/knack-check/**', '!out/knack-qa/**', '!out/knack-e2e/**','!**/*.map'],
+  files: ['out/main/**', 'out/preload/**', 'out/renderer/**', 'package.json', '!out/knack-*/**', '!**/*.map'],
   asar: true,
   extraResources: [
     // The built dashboard, served by the app from app://knack (src/main/knack/app-protocol.ts); no web server, no remote content.
@@ -22,18 +22,10 @@ module.exports = {
     // The on-device "Hey Knack" listener (native/knack-wake, built by scripts/build-wake-helper.sh): wake/helper.ts looks in resources/knack-wake. Compile only; it fails closed.
     { from: 'resources/knack-wake', to: 'knack-wake' },
   ],
-  // After the bundle is assembled and before the dmg is made: seal it again with an ad-hoc signature (no identity, no Apple account: `-`). The stock Electron signature names the app
-  // "Electron" and binds no Info.plist or resources (codesign --verify fails); sealed again it is app.knack.desktop with its Info.plist bound, so macOS reads the microphone and speech
-  // recognition strings and ties its permissions to Knack. Never fatal: without it the app still opens, as before.
-  afterPack: async (context) => {
-    if (context.electronPlatformName !== 'darwin') return
-    const app = path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`)
-    try {
-      require('node:child_process').execFileSync('codesign', ['--force', '--deep', '--sign', '-', app], { stdio: 'inherit' })
-    } catch (err) {
-      console.warn(`ad-hoc seal skipped: ${err instanceof Error ? err.message : String(err)}`)
-    }
-  },
+  // After the bundle is assembled and before the dmg is made (scripts/after-pack.cjs): strip Electron's generic camera, Bluetooth and system-audio usage strings (Knack asks for none of
+  // them) and seal the bundle again with an ad-hoc signature (no identity, no Apple account) so it is app.knack.desktop with its Info.plist bound, not "Electron" with a seal that fails to
+  // verify. The strings Knack needs (microphone, speech recognition, Apple Events) stay. Never fatal: without it the app still opens, as before.
+  afterPack: require('./scripts/after-pack.cjs'),
   electronDist: path.join(__dirname, 'node_modules/electron/dist'),
   electronVersion: require('./node_modules/electron/package.json').version,
   mac: {
