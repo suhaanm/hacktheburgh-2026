@@ -145,7 +145,7 @@ class InsightsService:
                                            label=pid, origin=o, rows=rows, role_since_t=since))
         except Exception:
             pass
-        return FirmSnapshot(now=now, people=tuple(people), origin=origin, badge="live" if origin == "real" else "synthetic", source="local", feed_t={"ledger": now, "risk_feed": now})
+        return FirmSnapshot(now=now, people=tuple(people), origin=origin, badge="live", source="local", feed_t={"ledger": now, "risk_feed": now})
 
     def _person(self, snap: FirmSnapshot, person: str) -> PersonRecord:
         for p in snap.people:
