@@ -111,7 +111,7 @@ function stepOf(x: unknown): ModelStep {
 
 /** Total estimated spend across the meter. `null` when no call has a price, so the page says "none yet" rather than $0. */
 export function totalCost(meter: MeterRow[]): number | null {
-  const priced = meter.filter((m) => m.cost_usd_est != null);
+  const priced = meter.filter((m) => typeof m.cost_usd_est === "number" && Number.isFinite(m.cost_usd_est));
   return priced.length ? priced.reduce((a, m) => a + (m.cost_usd_est ?? 0), 0) : null;
 }
 
@@ -120,14 +120,14 @@ export function totalCalls(meter: MeterRow[]): { n: number; ok: number; failed: 
 }
 
 export function fmtUsd(v: number | null): string {
-  if (v == null) return "none yet";
+  if (v == null || !Number.isFinite(v)) return "none yet";
   if (v === 0) return "$0.00";
   if (v < 0.01) return "$" + v.toFixed(4);
   return v < 1 ? "$" + v.toFixed(3) : "$" + v.toFixed(2);
 }
 
 export function fmtMs(v: number | null): string {
-  if (v == null) return "no calls yet";
+  if (v == null || !Number.isFinite(v)) return "no calls yet";
   return v >= 1000 ? `${(v / 1000).toFixed(1)} s` : `${Math.round(v)} ms`;
 }
 
