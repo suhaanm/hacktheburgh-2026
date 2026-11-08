@@ -1,6 +1,6 @@
 import { useId } from "react";
 import { useWidth } from "../hooks";
-import { connectorPath, describeColumn, layoutRibbon, type RibbonColumn } from "../lib/ribbon";
+import { connectorPath, describeColumn, layoutRibbon, type RibbonColumn, type Voice } from "../lib/ribbon";
 import { fmtDuration } from "../lib/format";
 import type { Genome } from "../types";
 
@@ -8,6 +8,8 @@ interface Props {
   genome: Genome;
   active: number | null;
   onActive: (i: number | null) => void;
+  /** "you": the lanes are the experienced worker and you, and no person id is drawn (the worker view). */
+  voice?: Voice;
 }
 
 const charW = 5.9;
@@ -25,7 +27,8 @@ function blockLines(cog: string, w: number): string[] | null {
 }
 
 /** The work ribbon: expert above novice, matched steps joined, gaps hatched, seconds lost in red beneath. */
-export function Ribbon({ genome, active, onActive }: Props) {
+export function Ribbon({ genome, active, onActive, voice = "group" }: Props) {
+  const you = voice === "you";
   const [ref, width] = useWidth<HTMLDivElement>();
   const uid = useId().replace(/:/g, "");
   const narrow = width > 0 && width < 640;
@@ -47,7 +50,7 @@ export function Ribbon({ genome, active, onActive }: Props) {
   return (
     <div ref={ref} className="ribbon">
       {layout && (
-        <svg width={width} height={H} viewBox={`0 0 ${width} ${H}`} role="group" aria-label={`Work ribbon. Expert ${fmtDuration(layout.expertTotal)}, novice ${fmtDuration(layout.noviceTotal)}, ${Math.round(layout.totalLost)} seconds lost in total.`}>
+        <svg width={width} height={H} viewBox={`0 0 ${width} ${H}`} role="group" aria-label={`Work ribbon. ${you ? "Experienced worker" : "Expert"} ${fmtDuration(layout.expertTotal)}, ${you ? "you" : "novice"} ${fmtDuration(layout.noviceTotal)}, ${Math.round(layout.totalLost)} seconds lost in total.`}>
           <defs>
             {(["expert", "novice"] as const).map((k) => (
               <pattern key={k} id={`hatch-${k}-${uid}`} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -59,17 +62,17 @@ export function Ribbon({ genome, active, onActive }: Props) {
           {/* Lane labels */}
           {narrow ? (
             <>
-              <text className="svg-text svg-text--strong" x={0} y={12}>Expert <tspan className="svg-text">{genome.expert_person} · {fmtDuration(layout.expertTotal)}</tspan></text>
-              <text className="svg-text svg-text--strong" x={0} y={yN + laneH + 14}>Novice <tspan className="svg-text">{genome.person} · {fmtDuration(layout.noviceTotal)}</tspan></text>
+              <text className="svg-text svg-text--strong" x={0} y={12}>{you ? "Experienced worker" : "Expert"} <tspan className="svg-text">{you ? "" : `${genome.expert_person} · `}{fmtDuration(layout.expertTotal)}</tspan></text>
+              <text className="svg-text svg-text--strong" x={0} y={yN + laneH + 14}>{you ? "You" : "Novice"} <tspan className="svg-text">{you ? "" : `${genome.person} · `}{fmtDuration(layout.noviceTotal)}</tspan></text>
             </>
           ) : (
             <>
-              <text className="svg-text svg-text--strong" x={0} y={yE + 14}>EXPERT</text>
-              <text className="svg-text" x={0} y={yE + 28}>{genome.expert_person}</text>
+              <text className="svg-text svg-text--strong" x={0} y={yE + 14}>{you ? "EXPERIENCED" : "EXPERT"}</text>
+              <text className="svg-text" x={0} y={yE + 28}>{you ? "worker" : genome.expert_person}</text>
               <text className="svg-text" x={0} y={yE + 42}>{fmtDuration(layout.expertTotal)}</text>
-              <text className="svg-text svg-text--strong" x={0} y={yN + 14}>NOVICE</text>
-              <text className="svg-text" x={0} y={yN + 28}>{genome.person}</text>
-              <text className="svg-text" x={0} y={yN + 42}>{fmtDuration(layout.noviceTotal)}</text>
+              <text className="svg-text svg-text--strong" x={0} y={yN + 14}>{you ? "YOU" : "NOVICE"}</text>
+              <text className="svg-text" x={0} y={yN + 28}>{you ? fmtDuration(layout.noviceTotal) : genome.person}</text>
+              {!you && <text className="svg-text" x={0} y={yN + 42}>{fmtDuration(layout.noviceTotal)}</text>}
             </>
           )}
 
@@ -84,7 +87,7 @@ export function Ribbon({ genome, active, onActive }: Props) {
             <line className="svg-axis" x1={0} x2={layout.width} y1={yBase} y2={yBase} />
             {layout.columns.map((c) => (
               <rect key={`hit${c.index}`} className="rb-col-hit mark-hit" x={c.x - 1} y={0} width={c.w + 2} height={yBase} tabIndex={0}
-                role="img" aria-label={describeColumn(c, c.index, layout.columns.length)}
+                role="img" aria-label={describeColumn(c, c.index, layout.columns.length, voice)}
                 onMouseEnter={() => onActive(c.index)} onMouseLeave={() => onActive(null)} onFocus={() => onActive(c.index)} onBlur={() => onActive(null)} />
             ))}
           </g>
