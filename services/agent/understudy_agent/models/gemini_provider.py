@@ -23,6 +23,7 @@ import os
 import re
 import sys
 import threading
+from dataclasses import replace as dc_replace
 from typing import Any
 
 from ..security.sanitize import is_wrapped, sanitize_untrusted, wrap_untrusted
@@ -162,6 +163,26 @@ def _flag(args: dict[str, Any], key: str, default: bool) -> bool:
     return v if isinstance(v, bool) else default
 
 
+_SAFETY_TOPICS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("payment", re.compile(r"\b(pay|payment|purchase|buy|order|checkout|card|billing|subscribe|subscription|price|credit)\b", re.I)),
+    ("sign_in", re.compile(r"\b(sign[ -]?in|log[ -]?in|password|credential|account|identity|verify)\b", re.I)),
+    ("download", re.compile(r"\b(download|install|upload|file)\b", re.I)),
+    ("submit", re.compile(r"\b(submit|send|post|delete|remove|irreversible|final|permanent)\b", re.I)),
+    ("cookies", re.compile(r"\b(cookie|cookies|consent|privacy|gdpr|tracking|banner)\b", re.I)),
+    ("terms", re.compile(r"\b(terms|agreement|agree|policy|accept|conditions)\b", re.I)),
+)
+
+
+def safety_topic(explanation: Any) -> str:
+    """A CLOSED word for what the provider's safety check was about, from its own explanation. The sentence is a model's account of a page,
+    so it never travels: only one of payment, sign_in, download, submit, cookies, terms or other comes out, and the riskier words win."""
+    text = str(explanation or "")[:600]
+    for topic, rx in _SAFETY_TOPICS:
+        if rx.search(text):
+            return topic
+    return "other"
+
+
 def _parse_computer_reply(reply: GeminiReply, w: int, h: int, pending: list[Action] | None = None, *,
                           enter: bool = True, clear_default: bool = True, web: bool = False) -> Action | Done | SafetyStop:
     """`pending` receives the actions that FOLLOW the one returned: `type_text_at(x, y, text)` is a click and then typing, but the port
@@ -185,7 +206,15 @@ def _parse_computer_reply(reply: GeminiReply, w: int, h: int, pending: list[Acti
     if sd:
         decision = str(sd.get("decision", sd.get("type", ""))) if isinstance(sd, dict) else str(sd)
         if decision and decision.lower() not in ("allowed", "regular", "ok", "none"):
-            return SafetyStop(checks=[{"id": call["id"] or None, "code": decision[:60], "message": "the model asked for confirmation"}])
+            # The check is never answered here. What the model was going to do is mapped (so a browsing task that WAITS for the worker's
+            # click can run that one action afterwards, through every gate) and handed back inside the stop, with the follow-up actions held
+            # in the stop and NOT queued: nothing runs, and nothing is queued, unless the worker says yes (`acknowledge_safety`).
+            held: list[Action] = []
+            clean_call = {**call, "arguments": {k: v for k, v in dict(call["arguments"]).items() if k != "safety_decision"}}
+            mapped = _parse_computer_reply(dc_replace(reply, calls=(clean_call,)), w, h, held, enter=enter, clear_default=clear_default, web=web)
+            explanation = sd.get("explanation") if isinstance(sd, dict) else None
+            return SafetyStop(checks=[{"id": call["id"] or None, "code": decision[:60], "message": "the model asked for confirmation"}],
+                              action=mapped if isinstance(mapped, Action) else None, follow=tuple(held), topic=safety_topic(explanation))
     args.pop("intent", None)
     if web:
         # The model's own navigation actions (verified live 8 Nov 2026: a task with no address is answered with `navigate`). They become the
@@ -312,14 +341,31 @@ class GeminiProvider:
         self._tls = threading.local()
         self._pending: dict[str, list[Action]] = {}      # per session: the actions that follow a click-and-type (see _parse_computer_reply)
         self._profiles: dict[str, str] = {}              # per session: "web" for a typed browsing task (see begin_task)
+        self._intents: dict[str, str] = {}               # per session: the model's own short words for the step it just proposed (see last_intent)
         self.stats: dict[str, Any] = {"calls": 0, "input_tokens": 0, "output_tokens": 0, "by_role": {}}
         coverage.register(self)
+
+    def last_intent(self, session: str | None = None) -> str:
+        """What the model said, in a few words, it wanted to do with the step it proposed last (its `intent` argument), cut to 80 characters.
+        MODEL words: a browsing task shows them to the worker only as a short label next to the page's host, never as an instruction."""
+        with self._lock:
+            return self._intents.get(session or "-", "")
+
+    def acknowledge_safety(self, stop: SafetyStop, session: str | None = None) -> None:
+        """The WORKER said yes to ONE safety check (a real click, decided in tasks/browser_runner.py): the actions that came with the
+        checked one are handed out on the next steps, each through the gates on its own. Nothing else is ever acknowledged. These calls are
+        stateless (`store` false: no earlier turn is held open on the provider's side), so there is no function response to carry
+        `safety_acknowledgement`; the worker's click is recorded in Knack's audit log instead."""
+        if stop.follow:
+            with self._lock:
+                self._pending[session or "-"] = list(stop.follow)
 
     def begin_task(self, session: str | None = None, profile: str | None = None) -> None:
         """A new computer-use task on this session: anything queued from an earlier one is dropped, never carried over. `profile="web"` is a
         typed browsing task (its own system text, navigation actions mapped, Enter honoured); no profile is the benefits-form wording."""
         with self._lock:
             self._pending.pop(session or "-", None)
+            self._intents.pop(session or "-", None)
             if profile == "web":
                 self._profiles[session or "-"] = "web"
             else:
@@ -448,6 +494,9 @@ class GeminiProvider:
                                      thinking=_thinking_for("accurate"), max_output_tokens=1024,
                                      tools=[{"type": "computer_use", "environment": "browser"}])
         self._note("computer", "accurate", reply)
+        raw_intent = dict(reply.calls[0]["arguments"]).get("intent") if reply.calls else None
+        with self._lock:
+            self._intents[key] = short_text(raw_intent, 80) if isinstance(raw_intent, str) else ""
         follow: list[Action] = []
         out = _parse_computer_reply(reply, orig_w, orig_h, follow, enter=not fit, clear_default=not fit, web=web)
         if follow:

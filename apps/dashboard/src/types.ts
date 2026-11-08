@@ -185,7 +185,7 @@ export interface QueueItem {
   created_at: string;
   routine_id: string | null;
   run_id: string;
-  kind: "irreversible_step" | "outward_step" | "batch_result" | "injection_pause" | "shadow_mismatch";
+  kind: "irreversible_step" | "outward_step" | "batch_result" | "injection_pause" | "shadow_mismatch" | "browser_step";
   title: string;
   summary: string;
   risk_class: "irreversible" | "outward" | "normal";

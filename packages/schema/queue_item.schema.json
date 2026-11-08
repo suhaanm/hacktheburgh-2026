@@ -11,7 +11,7 @@
     "created_at": { "type": "string", "format": "date-time" },
     "routine_id": { "type": ["string", "null"], "pattern": "^[a-z][a-z0-9-]{2,40}$" },
     "run_id": { "type": "string", "pattern": "^r_[A-Za-z0-9_-]{1,32}$" },
-    "kind": { "enum": ["irreversible_step", "outward_step", "batch_result", "injection_pause", "shadow_mismatch"] },
+    "kind": { "enum": ["irreversible_step", "outward_step", "batch_result", "injection_pause", "shadow_mismatch", "browser_step"] },
     "title": { "type": "string", "minLength": 1, "maxLength": 120 },
     "summary": { "type": "string", "minLength": 1, "maxLength": 240 },
     "risk_class": { "enum": ["irreversible", "outward", "normal"] },

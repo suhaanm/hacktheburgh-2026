@@ -29,6 +29,8 @@ from ..supervisor import kill_flag_path
 from .base import Emit, StepBudgetExceeded, StepEvent, StuckDetector, StuckLoop, TierError
 from .form_audit import FormAudit, FormAuditStop, key_names, token
 from .safety import Guard
+from .wait_for_worker import (WAIT_CHANGED_PIXELS, WAIT_KINDS, WAIT_TOPICS, StopAsk, WorkerDeclined, card_words,  # noqa: F401 - re-exported
+                              question_signature)
 
 
 
@@ -72,6 +74,9 @@ TEXT_BOX_NOTE = ("\nNOTE (system, not page text): you just clicked a text box an
                  "Do not click it again. If you need to enter text, use the type action now (or type_text_at with press_enter true to search).")
 TEXT_BOX_TYPES = ("text", "search", "email", "url", "tel", "number", "textarea")     # read by trusted code from the control under the click
 FAILED_CODES = ("login", "captcha", "blocked", "payment", "missing", "other")
+WAIT_CHANGED_NOTE = ("\nNOTE (system, not page text): the page changed while Knack waited for the person, so your last action was not performed. "
+                     "Look at the screenshot again and choose the next action.")
+_NOT_WAITABLE = object()        # `_wait_on_model_check`: this check is not one the run may wait on, so it ends the run as it always did
 
 
 def same_page(a: str, b: str) -> bool:
@@ -1354,12 +1359,19 @@ class ComputerUse:
                  form_audit: FormAudit | None = None, dropdown_note: bool | None = None, entered_note: bool | None = None,
                  final_hint: Callable[[], Awaitable[bool]] | None = None, final_note: bool | None = None,
                  model_retries: int = MODEL_RETRIES, model_backoff_s: tuple[float, ...] = MODEL_BACKOFF_S,
-                 sleep: Callable[[float], Awaitable[None]] = asyncio.sleep, profile: str | None = None) -> None:
+                 sleep: Callable[[float], Awaitable[None]] = asyncio.sleep, profile: str | None = None,
+                 stop_waiter: Callable[["StopAsk"], Awaitable[str]] | None = None) -> None:
         # `profile="web"` is a typed browsing task (tasks/browser_runner.py): it has no ground truth for code to check, so a model that says DONE
         # is not sent back to look for a "final screen" (only an answer with no DONE or FAILED at all is asked to carry on, in words that fit
         # a free task), the provider is told to use its browsing wording, and a rejected action is explained to the model. Every other
         # profile (none) is exactly the loop that was validated on the forms and the desktop.
         self.profile = profile
+        # `stop_waiter(ask) -> "approved" | "declined" | "timeout" | "stopped"` makes a browsing task WAIT (page open) for the worker's real click at
+        # the two stops that used to end it: a control trusted code could not read, and the model's own safety check. Without it, or in any other
+        # profile, or unattended, both end the run as they always did (fail closed). The waiter is code in tasks/browser_runner.py: it only watches
+        # the approval queue, where only the worker's own click (the release route: actor and per-boot token) can say yes.
+        self.stop_waiter = stop_waiter
+        self._waited = 0.0              # seconds spent waiting for the worker: not counted against the run's time budget
         self.model_retries, self.model_backoff_s, self._sleep = max(0, int(model_retries)), tuple(model_backoff_s) or (0.0,), sleep
         self.model_retry_classes: list[str] = []      # kept on the instance too, so a run that ends in an exception still reports them
         if stateless is None:                  # UNDERSTUDY_CU_STATELESS=0 opts back into the chained provider thread (comparison only)
@@ -1445,6 +1457,165 @@ class ComputerUse:
             raise
         except Exception:  # noqa: BLE001 - an unreadable target is unresolved, which the gate sends to a human
             return None
+
+    # ------------------------------------------------------------------ waiting for the worker's click (browsing tasks only)
+    # Two stops used to END a typed browser task: a control that trusted code could not read, and the model's own safety check. With a
+    # `stop_waiter` the run keeps its page open, asks the worker (an approval-queue card with Allow once and Not now), and on a real click does
+    # that ONE action through the same gates as any other action. Every gate stays: this only adds "wait for the click, then do that one thing".
+    def _can_wait(self) -> bool:
+        return self.stop_waiter is not None and self.profile == "web" and not self.guard.unattended
+
+    def _host(self) -> str:
+        from ..security.dataflow import host_key
+
+        return host_key(getattr(self.actuator, "url", None)) or "this page"
+
+    def _intent(self) -> str:
+        """The model's own few words for the step it just proposed (a provider that keeps them says so); '' when it gave none."""
+        fn = getattr(self.model, "last_intent", None)
+        try:
+            return str(fn(self.navigator) or "") if callable(fn) else ""
+        except Exception:  # noqa: BLE001
+            return ""
+
+    def _waitable(self, act: Action, tr: TargetRead | None, *, topic: str | None = None) -> bool:
+        """May the run WAIT for the worker's click on this one action? Only when the gate's OWN classification (computed here with no side
+        effect) says it is a normal step (read, navigate, fill): either the gate would let it through, or its only objection is that trusted code
+        could not read the control. An action in any outward or irreversible class (submit, pay, send, post, delete, install, permission,
+        credential, system) is never offered this way, and a model check about money, an account, a download or an irreversible step is not
+        either: those end the run exactly as they did before."""
+        if not self._can_wait() or act.kind not in WAIT_KINDS:
+            return False
+        if topic is not None and topic not in WAIT_TOPICS:
+            return False
+        from ..security.labels import NORMAL_CLASSES
+
+        g = self._peek(act, tr)
+        if g.verdict == "allow":
+            return True
+        return g.verdict == "needs_human" and (g.top is None or g.top in NORMAL_CLASSES)
+
+    def _peek(self, act: Action, tr: TargetRead | None) -> Any:
+        return self.guard.peek_gate(act, label=tr.label if tr else None, role=tr.role if tr else None,
+                                    url=(tr.url if tr else None) or getattr(self.actuator, "url", None),
+                                    field_attrs=tr.field_attrs if tr else None, structure=tr.structure if tr else ())
+
+    async def _wait_for_worker(self, ask: StopAsk) -> None:
+        """Block until the worker decides on this one question; the time spent does not count against the run's budgets. Returns only for an
+        approval. A "Not now" or a timeout raises `WorkerDeclined`; Stop and the kill file end the run as a cancel."""
+        t = time.monotonic()
+        self.guard.note("browser_stop_wait", "waiting", ask.kind, tier=3)
+        outcome = "stopped"
+        try:
+            assert self.stop_waiter is not None
+            outcome = str(await self.stop_waiter(ask))
+        finally:
+            waited = max(0.0, time.monotonic() - t)
+            self._waited += waited
+            self.guard.credit_wait(waited)
+        self.guard.note("browser_stop_wait", outcome if outcome in ("approved", "declined", "timeout", "stopped") else "declined", ask.kind, tier=3)
+        if outcome == "approved":
+            return
+        if outcome in ("declined", "timeout"):
+            raise WorkerDeclined(outcome)
+        raise asyncio.CancelledError()
+
+    async def _same_page_after_wait(self, act: Action, tr: TargetRead | None, shot: bytes, url0: str | None) -> tuple[bool, bytes]:
+        """After a wait, is it still the page and the control the worker said yes about? A fresh capture must be the same size and (within a
+        wide margin) the same picture, the address the same, and trusted code must read the same control under the point. If not, the action is
+        NOT done: the model looks again, and may ask again."""
+        shot2 = await self.actuator.screenshot()
+        if png_size(shot2) != png_size(shot):
+            return False, shot2
+        now_url = getattr(self.actuator, "url", None)
+        if url0 and now_url and not same_page(url0, str(now_url)):
+            return False, shot2
+        a, b = screen_fingerprint(shot), screen_fingerprint(shot2)
+        if a is not None and b is not None and screen_changed(a, b, WAIT_CHANGED_PIXELS):
+            return False, shot2
+        tr2 = await self._read_target(act)
+        if (tr is None) != (tr2 is None) or (tr is not None and tr2 is not None and tr.key != tr2.key):
+            return False, shot2
+        return True, shot2
+
+    async def _wait_on_control(self, act: Action, dec: Any, tr: TargetRead | None, shot: bytes,
+                               stop: SafetyStop | None = None) -> tuple[bytes, Any] | None:
+        """Case 1: the gate could not read the control. The pipeline has already raised a queue item for this one action; it is re-worded in
+        plain words (kind `browser_step`: Allow once, Not now) and the run waits. Returns the fresh capture and observation to authorise the SAME
+        action with the approved item, or None when the page changed while waiting.
+
+        `stop` is the model's own safety check on this same action, when it has one: ONE card then asks about both (the page asked for a
+        confirmation, and the control cannot be read), so a consent banner costs one click and not two. The click is the worker's for that one
+        action only; the provider's check is acknowledged for it after the click, and the action still goes through every gate."""
+        host, label = self._host(), self._intent()
+        title, summary = card_words("model_check" if stop is not None else "control", act, host, label,
+                                    stop.topic if stop is not None else "other", unreadable=stop is not None)
+        self.guard.queue.relabel_pending(dec.queue_id, kind="browser_step", title=title, summary=summary, risk_class="normal",
+                                         evidence_extra={"stop": "model_check+control" if stop is not None else "control", "action": act.kind,
+                                                         "host": host, **({"topic": stop.topic} if stop is not None else {})})
+        url0 = getattr(self.actuator, "url", None)
+        await self._wait_for_worker(StopAsk("control", dec.queue_id, act.kind, host, label, stop.topic if stop is not None else "other"))
+        same, shot2 = await self._same_page_after_wait(act, tr, shot, url0)
+        if not same:
+            self.guard.note("browser_stop_wait", "page_changed", "control", tier=3)
+            return None
+        self.guard.note("browser_step_allowed", "approved_by_worker", "control", tier=3)
+        if stop is not None:
+            self._acknowledge(stop)
+        return shot2, self.guard.observe_screen()
+
+    def _acknowledge(self, stop: SafetyStop) -> None:
+        """The worker said yes to this ONE provider check (a real click on its card): the provider hands out the actions that came with it,
+        and the audit records that the worker, not code, answered it."""
+        ack = getattr(self.model, "acknowledge_safety", None)
+        if callable(ack):
+            ack(stop, session=self.navigator)
+        self.guard.note("provider_safety_acknowledged", "approved_by_worker", stop.topic, tier=3)
+
+    async def _wait_on_model_check(self, stop: SafetyStop, shot: bytes, n: int) -> Any:
+        """Case 2: the model's own safety check, raised on one action. Returns `_NOT_WAITABLE` (the run ends as it always did), None (the page
+        changed while waiting: look again) or the action to carry on with and a fresh capture. The provider's check is acknowledged for
+        that one step only (`acknowledge_safety`), after the worker's click; the action then goes through every gate like any other."""
+        act = stop.action
+        assert act is not None
+        tr = await self._read_target(act)
+        if not self._waitable(act, tr, topic=stop.topic):
+            return _NOT_WAITABLE
+        if self._peek(act, tr).verdict == "needs_human":
+            # The gate will also ask, because trusted code cannot read this control. One question covers both: nothing is asked here, the
+            # action goes on to the gate, and the card the gate raises carries the model's check too (`_wait_on_control(stop=...)`).
+            return act, None, True
+        host, label = self._host(), self._intent()
+        title, summary = card_words("model_check", act, host, label, stop.topic)
+        sig = question_signature(act)
+        item = self.guard.enqueue(
+            kind="browser_step", title=title, summary=summary, risk_class="normal",
+            evidence={"screenshots": [], "extracted": {"stop": "model_check", "topic": stop.topic, "action": act.kind, "host": host,
+                                                       "checks": [c.get("code") for c in stop.checks]}, "expected": {}, "diff": [], "tier_log": []},
+            signature=sig, dedupe_key=f"{self.guard.run_id}:{sig}:model_check")
+        self._event(n, "safety_stop", False, "provider safety check; waiting for the worker")
+        url0 = getattr(self.actuator, "url", None)
+        await self._wait_for_worker(StopAsk("model_check", item["id"], act.kind, host, label, stop.topic))
+        chk = self.guard.queue.try_consume_approval(item["id"], sig, run_id=self.guard.run_id)
+        if not chk.ok:                                       # an approval that does not verify, is too old or was already used is no approval
+            raise WorkerDeclined("declined")
+        same, shot2 = await self._same_page_after_wait(act, tr, shot, url0)
+        if not same:
+            self.guard.note("browser_stop_wait", "page_changed", "model_check", tier=3)
+            return None
+        self._acknowledge(stop)
+        return act, shot2, False
+
+    def _end_on_model_check(self, stop: SafetyStop, n: int) -> None:
+        """The check is queued for a human and never acknowledged by code: the run ends, as it always did (`ProviderSafetyStop`)."""
+        item = self.guard.enqueue(
+            kind="injection_pause", title=f"Model provider raised a safety check ({self.navigator})",
+            summary="A pending safety check from the model provider was not acknowledged. A human decides.",
+            risk_class="normal",
+            evidence={"screenshots": [], "extracted": {"checks": [c.get("code") for c in stop.checks]},
+                      "expected": {}, "diff": [], "tier_log": []})
+        self._event(n, "safety_stop", False, "provider safety check")
+        raise ProviderSafetyStop(stop.checks, item["id"])
 
     def _event(self, n: int, action: str, ok: bool, detail: str = "") -> None:
         ev = StepEvent(navigator=self.navigator, step=n, tier=3, action=action, ok=ok, detail=detail)
@@ -1573,7 +1744,7 @@ class ComputerUse:
                     raise asyncio.CancelledError()
                 if self.pause is not None:
                     await self.pause.wait_if_paused()          # step-level pause: the run keeps its place and its page
-                if time.monotonic() - t0 > self.deadline_s:
+                if time.monotonic() - t0 - self._waited > self.deadline_s:          # time spent waiting for the worker's click is not the run's
                     res.outcome = "stopped"
                     raise StepBudgetExceeded("tier 3 time budget used up")
                 shot = await self.actuator.screenshot()
@@ -1644,15 +1815,31 @@ class ComputerUse:
                 res.steps += 1
                 self.last_steps = res.steps
                 n += 1
+                owed: SafetyStop | None = None          # a model check the gate's own card will answer for the same action (see _wait_on_control)
                 if isinstance(out, SafetyStop):
-                    item = self.guard.enqueue(
-                        kind="injection_pause", title=f"Model provider raised a safety check ({self.navigator})",
-                        summary="A pending safety check from the model provider was not acknowledged. A human decides.",
-                        risk_class="normal",
-                        evidence={"screenshots": [], "extracted": {"checks": [c.get("code") for c in out.checks]},
-                                  "expected": {}, "diff": [], "tier_log": []})
-                    self._event(n, "safety_stop", False, "provider safety check")
-                    raise ProviderSafetyStop(out.checks, item["id"])
+                    # A browsing task may WAIT for the worker's click on this one checked action and carry on (see `_wait_on_model_check`).
+                    # Everything else, and every check that is not a plain one, ends the run exactly as before: the check is queued for a
+                    # human and never acknowledged by code.
+                    carried: Any = _NOT_WAITABLE
+                    if out.action is not None and self._can_wait():
+                        carried = await self._wait_on_model_check(out, shot, n)
+                    if carried is None:                               # the page changed while the worker decided: look again, ask again if need be
+                        res.history.append({"kind": out.action.kind if out.action else "?", "ok": False, "why": "page_changed_while_waiting"})
+                        feedback = WAIT_CHANGED_NOTE
+                        last_fp = None
+                        continue
+                    if carried is not _NOT_WAITABLE:
+                        stop_in_hand = out
+                        out, shot2, merged = carried                  # the checked action, now the worker's: through every gate below
+                        if merged:
+                            owed = stop_in_hand                       # nothing asked yet: the gate's card will carry this check too
+                        else:
+                            shot = shot2
+                            pobs = self.guard.observe_screen()        # the old observation is stale after a wait, and authorises one action only
+                            fp = screen_fingerprint(shot)
+                            last_fp = fp if fp is not None else last_fp
+                    else:
+                        self._end_on_model_check(out, n)
                 if isinstance(out, Unsupported):
                     # The provider could not map what the model asked for. That is not the model giving up: say what exists and ask again.
                     unsupported_streak += 1
@@ -1767,11 +1954,12 @@ class ComputerUse:
                             raise FormAuditStop("this page was still not right after the allowed number of checks", retryable=True)
                         feedback = audit.block_note(fwd, where="forward")
                         continue
-                dec = self.guard.authorise(out, pobs, label=tr.label if tr else None, role=tr.role if tr else None,
-                                           url=(tr.url if tr else None) or getattr(self.actuator, "url", None),
-                                           field_attrs=tr.field_attrs if tr else None, screen=self.size,
-                                           app=getattr(self.actuator, "target_app", None),
-                                           structure=tr.structure if tr else ())
+                authorise = lambda p, t, approved=None: self.guard.authorise(  # noqa: E731
+                    out, p, label=t.label if t else None, role=t.role if t else None,
+                    url=(t.url if t else None) or getattr(self.actuator, "url", None), field_attrs=t.field_attrs if t else None,
+                    screen=self.size, app=getattr(self.actuator, "target_app", None), structure=t.structure if t else (),
+                    approved_queue_id=approved)
+                dec = authorise(pobs, tr)
                 if dec.verdict == "block" and dec.layer == "actions":
                     res.history.append({"kind": getattr(out, "kind", "?"), "ok": False})
                     self._event(n, getattr(out, "kind", "?"), False, f"rejected: {dec.codes[:1]}")
@@ -1780,6 +1968,27 @@ class ComputerUse:
                     continue
                 if dec.verdict != "allow":
                     self._event(n, out.kind, False, f"{dec.verdict} {dec.layer or ''}".strip())
+                if (dec.verdict == "needs_human" and dec.layer == "gates" and dec.queue_id and isinstance(out, Action)
+                        and self._waitable(out, tr)):
+                    # Case 1: trusted code could not read the control, and that is the gate's only objection. The run WAITS for the worker's
+                    # click; on Allow once the SAME action is authorised again with the approved item (bound to this action, used once), so
+                    # every other layer still judges it. The pipeline's own needs_human is replaced by the worker's approval for THIS action.
+                    waited = await self._wait_on_control(out, dec, tr, shot, stop=owed)
+                    if waited is None:
+                        res.history.append({"kind": out.kind, "ok": False, "why": "page_changed_while_waiting"})
+                        feedback = WAIT_CHANGED_NOTE
+                        last_fp = None
+                        continue
+                    owed = None                                       # the same click answered the model's check too
+                    shot, pobs = waited
+                    fp = screen_fingerprint(shot)
+                    last_fp = fp if fp is not None else last_fp
+                    tr = await self._read_target(out)
+                    dec = authorise(pobs, tr, dec.queue_id)
+                if owed is not None:
+                    # The model's check was meant to be answered by the gate's card, and that card was not asked (the gate decided
+                    # something else): the check was never answered, so the action does not run. Fail closed, as before.
+                    self._end_on_model_check(owed, n)
                 self.guard.require(dec, (tr.label if tr else None) or out.kind, navigator=self.navigator)
                 if self.stuck.push((out.kind, tuple(sorted((k, str(v)) for k, v in out.args.items())), fp)):
                     self._event(n, out.kind, False, "stuck loop")

@@ -395,10 +395,11 @@ export function createSources(d: SourceDeps): ProducerSources {
       const r = asRecord(raw)
       const id = r && str(r.id)
       if (!r || !id) continue
-      const kind = ['irreversible_step', 'outward_step', 'batch_result', 'injection_pause', 'shadow_mismatch'].includes(String(r.kind)) ? (r.kind as QueueItemView['kind']) : 'batch_result'
+      const kind = ['irreversible_step', 'outward_step', 'batch_result', 'injection_pause', 'shadow_mismatch', 'browser_step'].includes(String(r.kind)) ? (r.kind as QueueItemView['kind']) : 'batch_result'
       const risk = r.risk_class === 'irreversible' || r.risk_class === 'outward' ? r.risk_class : 'normal'
       const runId = str(r.run_id)
-      out.push({ id, kind, risk, runId, blocksRun: runId !== null && liveRuns.has(runId) })
+      // A browser task that asks "Allow once?" is WAITING on this card with its page open: it blocks that task.
+      out.push({ id, kind, risk, runId, blocksRun: kind === 'browser_step' || (runId !== null && liveRuns.has(runId)) })
     }
     return out
   }

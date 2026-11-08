@@ -66,6 +66,7 @@ def task(text="go to http://shop.test/ and read the page online", minutes=2):
 
 def runner(port, host_factory, tmp_path, **kw):
     audit = AuditLog(tmp_path / "audit.jsonl")
+    kw.setdefault("wait_for_worker", False)       # these tests are about the run ENDING at a stop; the waiting is in test_browser_wait.py
     return BrowserTaskRunner(lambda: port, host_factory=host_factory, headless=True, audit=audit,
                              queue=ApprovalQueue(tmp_path / "queue", audit=audit), denylist=kw.pop("denylist", Denylist()), **kw)
 

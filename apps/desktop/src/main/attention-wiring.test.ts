@@ -509,6 +509,13 @@ describe('producer sources (read-only loopback fetchers)', () => {
     expect(f.calls.every((c) => c.method === 'GET' && c.actor === 'desktop')).toBe(true)
   })
 
+  it('a browser task waiting for its one click is a known kind and always blocks that task', async () => {
+    const { sources } = make({
+      [`${ENDPOINTS.engine}/queue?status=pending`]: { json: { data: [{ id: 'q_5', kind: 'browser_step', risk_class: 'normal', run_id: 'tk_0a0b0c0d', title: 'Click on example.org' }] } },
+    })
+    expect(await sources.approvals!()).toEqual([{ id: 'q_5', kind: 'browser_step', risk: 'normal', runId: 'tk_0a0b0c0d', blocksRun: true }])
+  })
+
   it('answers null on any failure: an error status, a bad body, a refused connection, a timeout, or a host that is not this machine', async () => {
     expect(await make({ [`${ENDPOINTS.engine}/queue`]: { ok: false } }).sources.approvals!()).toBeNull()
     expect(await make({ [`${ENDPOINTS.engine}/queue`]: { text: true } }).sources.approvals!()).toBeNull()

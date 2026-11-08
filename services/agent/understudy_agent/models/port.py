@@ -42,9 +42,17 @@ class Unsupported(Done):
 
 @dataclass(frozen=True)
 class SafetyStop:
-    """A pending safety check from the provider. Always goes to the human queue; never auto-acked."""
+    """A pending safety check from the provider. Always goes to the human queue; never auto-acked.
+
+    A provider that can say what the model WAS going to do fills `action` (the one action the check was raised on, mapped and not yet
+    run), `follow` (the actions that came with it, for example the typing after a click) and `topic` (a closed word for what the check
+    was about, never the provider's own sentence). A browsing task may then WAIT for the worker's click on that one action and carry on
+    (tasks/browser_runner.py); without an `action` the check ends the run as it always did."""
 
     checks: list[dict[str, Any]]
+    action: "Action | None" = None
+    follow: tuple["Action", ...] = ()
+    topic: str = "other"
 
 
 class ModelPort(Protocol):

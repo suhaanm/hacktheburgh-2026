@@ -21,6 +21,7 @@ enum, start and stop, durations, byte counts); never the request, never a child'
 """
 from __future__ import annotations
 
+import inspect
 import os
 import subprocess
 import threading
@@ -189,6 +190,7 @@ class TaskManager:
         for t in self.store.all():
             if t.state in ACTIVE:
                 self._reap_orphan(t)
+                self._withdraw_cards(t)
                 t.state, t.reason, t.finished = "failed", "Knack restarted while this was running.", now_iso()
                 t.latest, t.pid = None, None
                 self._save(t)
@@ -203,6 +205,19 @@ class TaskManager:
             return time.time() - datetime.fromisoformat(t.started.replace("Z", "+00:00")).timestamp()
         except ValueError:
             return 0.0
+
+    def _withdraw_cards(self, t: Task) -> None:
+        """A browser task that was waiting for the worker's click when Knack stopped has no run to carry on: the question it left in Needs you
+        is closed (withdrawn by the system, never answered), so the worker is not asked about a run that is gone."""
+        try:
+            from ..queue import ApprovalQueue
+
+            q = ApprovalQueue(audit=self.audit)
+            for it in q.list("pending"):
+                if it.get("run_id") == t.task_id and it.get("kind") == "browser_step":
+                    q.withdraw(it["id"], "restart")
+        except Exception:  # noqa: BLE001 - recovery never fails on a queue problem; an old card expires on its own
+            pass
 
     @staticmethod
     def _reap_orphan(t: Task) -> None:
@@ -873,7 +888,14 @@ class TaskManager:
 
             runner = BrowserTaskRunner(self._port, audit=self.audit)
         self._audit("agent", "task", t, "started", "browser", max_minutes=t.max_minutes)
-        res = runner(t, progress=lambda line: self.progress(t, line), should_stop=lambda: t.stop_requested or is_killed())
+        extra: dict[str, Any] = {}
+        try:        # a runner that can WAIT for the worker's click shows that on the task's line (a live status, not a step)
+            params = inspect.signature(runner).parameters
+            if "status" in params or any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values()):
+                extra["status"] = lambda line: self._status(t, line)
+        except (TypeError, ValueError):
+            pass
+        res = runner(t, progress=lambda line: self.progress(t, line), should_stop=lambda: t.stop_requested or is_killed(), **extra)
         if t.state in FINISHED:
             return
         if t.stop_requested:

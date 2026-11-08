@@ -106,6 +106,10 @@ class Guard:
     def set_goal(self, goal: str) -> None:
         self.pipe.goal = goal
 
+    def credit_wait(self, seconds: float) -> None:
+        """Time spent waiting for the worker's click is not time the run used (the budget clock is paused for it)."""
+        self.pipe.credit_wait(seconds)
+
     def new_page(self) -> None:
         """A fresh page: the reader's memo of earlier pages is dropped (it never carries from one page to another)."""
         self.pipe.reader.clear_memo()
@@ -149,6 +153,18 @@ class Guard:
         target = TargetInfo(label=label, role=role, url=url, app=app, field_attrs=field_attrs, structure=tuple(structure))
         return self.pipe.authorise(action, observation=pobs, target=target, screen=screen,
                                    approved_queue_id=approved_queue_id)
+
+    def peek_gate(self, action: Any, *, label: str | None = None, role: str | None = None, url: str | None = None,
+                  field_attrs: dict[str, Any] | None = None, structure: tuple[str, ...] = ()) -> Any:
+        """What the action-class gate (layer 4) would say about this action, as the pipeline computes it, with NO side effect: no queue item,
+        no audit line, no budget used. A browsing task that may wait for the worker's click asks this first, to be sure that a step it is about
+        to ask about is a normal one (read, navigate, fill) and not an outward or irreversible one."""
+        from ..security.gates import gate
+
+        kind = action.get("kind") if isinstance(action, dict) else getattr(action, "kind", None)
+        args = (action.get("args") if isinstance(action, dict) else getattr(action, "args", None)) or {}
+        target = TargetInfo(label=label, role=role, url=url, field_attrs=field_attrs, structure=tuple(structure))
+        return gate(str(kind), dict(args), self.pipe._ctx(), target, enabled=self.config.gates)
 
     def check_typed_value(self, value: str, *, url: str | None, signature: str) -> None:
         """Layer 5 on the value a fact handle ACTUALLY resolved to, at the moment it is about to be typed (S-15). The

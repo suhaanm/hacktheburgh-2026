@@ -15,7 +15,7 @@ import { toSubject } from './types'
 
 export interface QueueItemView {
   id: string
-  kind: 'irreversible_step' | 'outward_step' | 'batch_result' | 'injection_pause' | 'shadow_mismatch'
+  kind: 'irreversible_step' | 'outward_step' | 'batch_result' | 'injection_pause' | 'shadow_mismatch' | 'browser_step'
   risk: 'irreversible' | 'outward' | 'normal'
   /** A running job is waiting for this decision. */
   blocksRun: boolean
