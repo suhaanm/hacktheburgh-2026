@@ -558,6 +558,47 @@ def test_the_gemini_provider_keeps_the_checked_action_but_queues_nothing_until_a
     assert isinstance(out2, Action)
 
 
+def test_the_task_row_says_it_is_waiting_for_the_worker_while_the_run_waits(make_manager):
+    """The row stays `running` (no new state) and its line says what it is waiting for; the next step line replaces it."""
+    from .conftest import wait_for
+
+    release = threading.Event()
+
+    def fake_runner(t, *, progress, should_stop, status=None):
+        progress("Opening the browser")
+        status("Waiting for you in Needs you")
+        release.wait(10)
+        status("Carrying on")
+        progress("Clicking")
+        return {"state": "done", "result": "Reported, not checked: read it"}
+
+    m = make_manager(browser_runner=fake_runner)
+    tid = m.create("go to https://example.org and read it", "typed")["task_id"]
+    assert m.get(tid).route == "browser"
+    m.consent(tid, "allow")
+    assert wait_for(lambda: m.get(tid).row()["latest"] == "Waiting for you in Needs you", 5)
+    row = m.get(tid).row()
+    assert row["state"] == "running" and row["finished"] is None and row["steps_done"] == 1       # the status line is not a step
+    release.set()
+    assert wait_for(lambda: m.get(tid).state == "done", 5)
+
+
+def test_a_card_left_by_a_run_that_was_waiting_when_knack_restarted_is_withdrawn(make_manager):
+    """The run is gone, so the question it left in Needs you is closed (expired by the system), not left to be answered for nothing."""
+    from understudy_agent.queue import ApprovalQueue as Q
+    from understudy_agent.tasks.model import Task as T
+
+    m = make_manager()
+    t = T(task_id="tk_0a0b0c0e", text="go to https://example.org and read it", route="browser", state="running", title="Go to example.org")
+    m.store.save(t)
+    q = Q()
+    mine = q.enqueue(kind="browser_step", title="Click on example.org", summary="s", run_id="tk_0a0b0c0e", signature="x")
+    other = q.enqueue(kind="browser_step", title="Click on example.net", summary="s", run_id="tk_ffffffff", signature="y")
+    m2 = make_manager()
+    assert m2.get("tk_0a0b0c0e").state == "failed"
+    assert q.get(mine["id"])["status"] == "expired" and q.get(other["id"])["status"] == "pending"
+
+
 def test_queue_waiter_alone_cannot_approve_it_times_out(tmp_path):
     q = ApprovalQueue(tmp_path / "q", audit=AuditLog(tmp_path / "a.jsonl"))
     item = q.enqueue(kind="browser_step", title="t", summary="s", run_id="r", signature="x")
