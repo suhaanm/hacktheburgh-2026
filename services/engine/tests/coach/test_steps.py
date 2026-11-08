@@ -104,7 +104,7 @@ def test_target_comes_from_the_packs_own_mapping(pack, policy):
 
 def test_thin_pack_policy_also_loads():
     p = StepPolicy.from_pack(load_pack("data-analyst"))
-    assert p.coverage == "stub" and any(s.critical for s in p.steps.values())
+    assert p.coverage == "full" and any(s.critical for s in p.steps.values())     # RD (7 Nov 2026): the analyst policy now covers the job (coverage full)
 
 
 def test_reconcile_target_is_the_case_note_select_with_the_tab_strip_as_fallback(policy):

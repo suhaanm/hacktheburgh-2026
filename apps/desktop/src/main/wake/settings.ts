@@ -16,6 +16,8 @@ export type ConsentAnswer = z.infer<typeof Answer>
 export const WakeSettingsSchema = z.object({
   wakeListen: z.boolean().default(true),
   wakeChime: z.boolean().default(true),
+  // The first conversation has started once: the welcome line is not said again.
+  welcomed: z.boolean().default(false),
   voiceAnswer: Answer.default('unset'),
   voiceAskAfterMs: z.number().min(0).default(0),
   screenAnswer: Answer.default('unset'),

@@ -8,4 +8,8 @@ presence:
   hours: { start: "10:00", end: "19:00", days: [mon, tue, wed, thu, fri] }
   active_in_hours: 0.65
   active_out_of_hours: 0.12
-cog_dwell_s: { READ_TRACE: 40, READ_CODE: 50, EDIT_CODE: 90, RUN_TESTS: 12, COMMIT: 15 }
+# Seconds a person typically spends in each cog: the first five are the pack's original priors. The last twelve (RD, 7 Nov 2026) are the
+# expert medians of the new expert checks, rounded, written from the job and NOT measured: no synthetic or real trace contains these cogs yet.
+cog_dwell_s: { READ_TRACE: 40, READ_CODE: 50, EDIT_CODE: 90, RUN_TESTS: 12, COMMIT: 15,
+  REPRODUCE_LOCALLY: 60, BISECT_CHANGE: 150, WRITE_COMMIT_MSG: 45, OPEN_PR: 70, READ_CI: 45, ANSWER_REVIEW: 120, REVIEW_PEER: 300,
+  WATCH_PROD: 300, ROLL_BACK: 120, ADD_LOGGING: 60, PROFILE_HOTPATH: 180, WRITE_MIGRATION: 300 }

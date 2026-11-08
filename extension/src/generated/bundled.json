@@ -58,14 +58,16 @@
       ]
     },
     {
-      "description": "Data-analyst additions to the global sensitive-fields list. The effective list is the union of this file and packages/schema/sensitive_fields.json. Patterns are case-insensitive regexes over field name, id, label, placeholder, autocomplete and aria-label.",
+      "description": "Data-analyst additions to the global sensitive-fields list. The effective list is the union of this file and packages/schema/sensitive_fields.json. Patterns are case-insensitive regexes over field name, id, label, placeholder, autocomplete and aria-label. Role-depth additions (7 Nov 2026): row-level identifiers and personal columns that show up in profile and lineage panels. Finding editors, metric descriptions and review boxes are deliberately NOT listed: the capture never reads their text, and listing them would drop the events that make WRITE_FINDING, DOCUMENT_METRIC and PEER_CHECK visible.",
       "extends": "../../schema/sensitive_fields.json",
       "patterns": [
         "connection[- ]?string|dsn|jdbc",
         "warehouse[- ]?(user|password|key)|service[- ]?account|credentials?",
         "access[- ]?key|secret[- ]?key|bearer",
         "(customer|user|patient|employee)[- ]?(name|email|phone|address|id)",
-        "\\bemail\\b|\\bphone\\b|\\bmobile\\b|\\bpostcode\\b|\\bpost[- ]?code\\b"
+        "\\bemail\\b|\\bphone\\b|\\bmobile\\b|\\bpostcode\\b|\\bpost[- ]?code\\b",
+        "\\bsalary\\b|\\bdate[- ]?of[- ]?birth\\b|\\bdob\\b|national[- ]?insurance|\\bssn\\b",
+        "row[- ]?level|sample[- ]?rows?|\\bpii\\b"
       ],
       "autocomplete_tokens": [
         "email",
@@ -80,14 +82,16 @@
       ]
     },
     {
-      "description": "Programmer additions to the global sensitive-fields list. The effective list is the union of this file and packages/schema/sensitive_fields.json. Patterns are case-insensitive regexes over field name, id, label, placeholder, autocomplete and aria-label.",
+      "description": "Programmer additions to the global sensitive-fields list. The effective list is the union of this file and packages/schema/sensitive_fields.json. Patterns are case-insensitive regexes over field name, id, label, placeholder, autocomplete and aria-label. Role-depth additions (7 Nov 2026): database and secret fields. Commit message, pull request and review comment boxes are deliberately NOT listed: the capture never reads their text, and listing them would drop the events that make WRITE_COMMIT_MSG, OPEN_PR and ANSWER_REVIEW visible.",
       "extends": "../../schema/sensitive_fields.json",
       "patterns": [
         "personal[- ]?access[- ]?token|\\bpat\\b|deploy[- ]?key|ssh[- ]?key|gpg|signing[- ]?key",
         "env(ironment)?[- ]?(var|variable)s?[- ]?(value|secret)|\\.env",
         "client[- ]?secret|webhook[- ]?secret|bearer|authorization",
         "recovery[- ]?code|backup[- ]?code",
-        "\\bemail\\b"
+        "\\bemail\\b",
+        "database[- ]?url|connection[- ]?string|\\bdsn\\b|\\bjdbc\\b",
+        "secret[- ]?(name|value)|\\bvault\\b|api[- ]?key|access[- ]?token"
       ],
       "autocomplete_tokens": [
         "email"
@@ -105,6 +109,7 @@
       "case_note",
       "chart_panel",
       "check_box",
+      "ci_checks",
       "ci_log",
       "clean_panel",
       "cliff_button",
@@ -112,6 +117,7 @@
       "code_editor",
       "code_view",
       "commit_box",
+      "commit_message",
       "compare_view",
       "control_panel",
       "data_browser",
@@ -121,22 +127,43 @@
       "docs_page",
       "edge_probe",
       "export_panel",
+      "finding_editor",
       "form_field",
+      "grain_picker",
       "help",
+      "history_view",
       "household_form",
       "input_data",
+      "join_panel",
+      "lineage_view",
+      "logging_panel",
+      "magnitude_panel",
+      "metric_docs",
+      "migration_editor",
+      "params_panel",
       "pivot_panel",
+      "pr_form",
+      "prod_logs",
       "profile_panel",
+      "profiler_view",
       "query_edit",
       "query_result",
       "reconcile_control",
+      "repro_console",
+      "repro_panel",
       "results_tabs",
+      "review_composer",
+      "review_request",
+      "review_thread",
+      "rollback_control",
       "run_control",
+      "schedule_panel",
       "search_box",
       "sql_editor",
       "test_editor",
       "test_report",
-      "test_runner"
+      "test_runner",
+      "uncertainty_panel"
     ],
     "sites": [
       {
@@ -353,6 +380,10 @@
         "tab_default": "compare_view",
         "elements": [
           {
+            "zone": "magnitude_panel",
+            "selector": "[data-testid*=\"column-stats\"], [data-testid*=\"summary-stats\"], .column-profile"
+          },
+          {
             "zone": "sql_editor",
             "selector": ".monaco-editor, [role=\"textbox\"][aria-label], .cm-editor"
           },
@@ -377,6 +408,18 @@
         "nav_default": "data_browser",
         "tab_default": "compare_view",
         "elements": [
+          {
+            "zone": "repro_panel",
+            "selector": "[data-command*=\"restart-and-run-all\"], [aria-label*=\"Restart and run all\"], [aria-label*=\"Restart session and run all\"]"
+          },
+          {
+            "zone": "params_panel",
+            "selector": ".celltag_parameters, [data-testid*=\"parameter\"], [aria-label*=\"Parameters\"]"
+          },
+          {
+            "zone": "schedule_panel",
+            "selector": "[data-testid*=\"schedule\"], [aria-label*=\"Schedule\"]"
+          },
           {
             "zone": "sql_editor",
             "selector": ".cm-editor, .monaco-editor, .CodeMirror"
@@ -405,6 +448,14 @@
         "tab_default": "compare_view",
         "elements": [
           {
+            "zone": "finding_editor",
+            "selector": ".kix-appview-editor, .kix-page-content-wrapper"
+          },
+          {
+            "zone": "review_request",
+            "selector": "[aria-label*=\"Share\"], [aria-label*=\"Comment\"], [data-tooltip*=\"Share\"]"
+          },
+          {
             "zone": "chart_panel",
             "selector": "[aria-label*=\"Chart\"], .chart-container"
           }
@@ -422,12 +473,72 @@
         "tab_default": "compare_view",
         "elements": [
           {
+            "zone": "join_panel",
+            "selector": "[data-testid*=\"relationship\"], [aria-label*=\"Relationship\"], .join-editor, .relationship-editor"
+          },
+          {
+            "zone": "grain_picker",
+            "selector": "[data-testid*=\"group-by\"], [aria-label*=\"Group by\"], [aria-label*=\"Granularity\"], .dimension-picker"
+          },
+          {
+            "zone": "uncertainty_panel",
+            "selector": "[aria-label*=\"Confidence\"], [data-testid*=\"confidence\"], [aria-label*=\"Forecast\"]"
+          },
+          {
+            "zone": "schedule_panel",
+            "selector": "[data-testid*=\"schedule\"], [aria-label*=\"Schedule\"], .schedule-dialog"
+          },
+          {
             "zone": "chart_panel",
             "selector": "svg, canvas, [data-testid*=\"chart\"]"
           },
           {
             "zone": "export_panel",
             "selector": "button[aria-label*=\"Export\"], button[aria-label*=\"Download\"]"
+          }
+        ]
+      },
+      {
+        "pack": "data-analyst",
+        "id": "catalog",
+        "hosts": [
+          "cloud.getdbt.com",
+          "*.getdbt.com",
+          "app.atlan.com",
+          "*.atlan.com",
+          "*.datahubproject.io"
+        ],
+        "nav_default": "doc",
+        "tab_default": "compare_view",
+        "elements": [
+          {
+            "zone": "lineage_view",
+            "selector": "[data-testid*=\"lineage\"], .lineage-graph, #lineage"
+          },
+          {
+            "zone": "metric_docs",
+            "selector": "[data-testid*=\"description\"], .doc-description, #description"
+          }
+        ]
+      },
+      {
+        "pack": "data-analyst",
+        "id": "writeup",
+        "hosts": [
+          "notion.so",
+          "www.notion.so",
+          "hackmd.io"
+        ],
+        "nav_default": "doc",
+        "tab_default": "compare_view",
+        "elements": [
+          {
+            "zone": "review_request",
+            "selector": "[aria-label*=\"Share\"], [aria-label*=\"Comment\"]"
+          },
+          {
+            "zone": "finding_editor",
+            "selector": ".notion-page-content, .CodeMirror, [contenteditable=\"true\"]"
           }
         ]
       },
@@ -553,7 +664,37 @@
         ],
         "nav_default": "code_view",
         "tab_default": "compare_view",
+        "nav": [
+          {
+            "zone": "ci_checks",
+            "when": ".merge-status-list, [data-testid*=\"checks\"], .mr-state-widget"
+          }
+        ],
         "elements": [
+          {
+            "zone": "commit_message",
+            "selector": "#commit-summary-input, #commit-description-textarea, textarea[name=\"commit[message]\"], input[name=\"commit[message]\"], #commit_message"
+          },
+          {
+            "zone": "review_composer",
+            "selector": "#pull_requests_submit_review, #review-changes-modal, [data-testid*=\"submit-review\"], .review-bar"
+          },
+          {
+            "zone": "review_thread",
+            "selector": ".review-thread-component, .js-inline-comments-container, .timeline-comment-group, .discussion-body"
+          },
+          {
+            "zone": "pr_form",
+            "selector": "#new_pull_request, [data-testid*=\"create-pull-request\"], #new_merge_request"
+          },
+          {
+            "zone": "ci_checks",
+            "selector": ".merge-status-list, .branch-action-item, [data-testid*=\"checks\"], .mr-state-widget, .ci-widget"
+          },
+          {
+            "zone": "history_view",
+            "selector": ".commits-listing, .blame-container, [data-testid=\"commits-list\"], .commit-list, .blame-commit"
+          },
           {
             "zone": "commit_box",
             "selector": "#commit-changes-modal, form[action*=\"commit\"], [data-testid=\"commit-button\"]"
@@ -590,6 +731,10 @@
           {
             "zone": "ci_log",
             "selector": "pre, .log, [data-testid*=\"log\"]"
+          },
+          {
+            "zone": "ci_checks",
+            "selector": "[data-testid*=\"workflow\"], [data-testid*=\"pipeline\"], .workflow-list, .pipelines"
           }
         ]
       },
@@ -624,6 +769,120 @@
           {
             "zone": "docs_page",
             "selector": "main, article, #content, .answercell"
+          }
+        ]
+      },
+      {
+        "pack": "programmer",
+        "id": "observability",
+        "hosts": [
+          "*.grafana.net",
+          "app.datadoghq.com",
+          "app.datadoghq.eu",
+          "sentry.io",
+          "*.sentry.io"
+        ],
+        "nav_default": "doc",
+        "tab_default": "compare_view",
+        "nav": [
+          {
+            "zone": "prod_logs",
+            "when": "[data-testid*=\"log\"], [class*=\"LogsTable\"], .logs-viewer, .discover-table"
+          }
+        ],
+        "elements": [
+          {
+            "zone": "prod_logs",
+            "selector": "[data-testid*=\"log\"], [class*=\"LogsTable\"], .logs-viewer, [aria-label*=\"Logs\"], .discover-table"
+          }
+        ]
+      },
+      {
+        "pack": "programmer",
+        "id": "release_console",
+        "hosts": [
+          "vercel.com",
+          "app.netlify.com",
+          "dashboard.render.com",
+          "dashboard.heroku.com"
+        ],
+        "nav_default": "doc",
+        "tab_default": "compare_view",
+        "elements": [
+          {
+            "zone": "rollback_control",
+            "selector": "button[aria-label*=\"Rollback\"], button[aria-label*=\"rollback\"], [data-testid*=\"rollback\"]"
+          },
+          {
+            "zone": "prod_logs",
+            "selector": "[data-testid*=\"log\"], .deploy-log, pre"
+          }
+        ]
+      },
+      {
+        "pack": "programmer",
+        "id": "profiler",
+        "hosts": [
+          "speedscope.app",
+          "www.speedscope.app"
+        ],
+        "nav_default": "doc",
+        "tab_default": "compare_view",
+        "nav": [
+          {
+            "zone": "profiler_view",
+            "when": "canvas, .flamegraph, #flamegraph"
+          }
+        ],
+        "elements": [
+          {
+            "zone": "profiler_view",
+            "selector": "canvas, svg, .flamegraph, #flamegraph"
+          }
+        ]
+      },
+      {
+        "pack": "programmer",
+        "id": "db_console",
+        "hosts": [
+          "supabase.com",
+          "app.supabase.com",
+          "console.neon.tech",
+          "app.planetscale.com"
+        ],
+        "nav_default": "doc",
+        "tab_default": "compare_view",
+        "elements": [
+          {
+            "zone": "migration_editor",
+            "selector": ".monaco-editor, .cm-editor, textarea.sql"
+          }
+        ]
+      },
+      {
+        "pack": "programmer",
+        "id": "dev_env",
+        "hosts": [
+          "github.dev",
+          "*.github.dev",
+          "*.app.github.dev",
+          "gitpod.io",
+          "*.gitpod.io"
+        ],
+        "nav_default": "code_view",
+        "tab_default": "compare_view",
+        "elements": [
+          {
+            "zone": "repro_console",
+            "selector": ".xterm, .terminal-wrapper"
+          },
+          {
+            "zone": "commit_message",
+            "selector": ".scm-editor .monaco-editor"
+          },
+          {
+            "zone": "code_editor",
+            "selector": ".monaco-editor"
           }
         ]
       },

@@ -50,7 +50,7 @@ Fixes
 - [ ] **4.17** Cluster related things on one page; fewer navigations; everything easy to find. B, C, D (`docs/knack-ux/views.md` navigation map).
 
 Open-ended work
-- [ ] **4.18** Tasks are not a preset list: the worker types or speaks any task. T, V.
+- [ ] **4.18** Tasks are not a preset list: the worker types or speaks any task. T (API contract v1 sent), B (task box), V (voice tool). Owner answers: D63.
 - [ ] **4.19** Skill files and plugins load into context automatically, like Claude Code. T, E.
 - [ ] **4.20** Computer use and background agents that can create code. T.
 - [ ] **4.21** Background agents show at the top right of the screen as small pills with animated icons while they work. A, T.
