@@ -76,6 +76,28 @@ Nothing here makes a model decide anything, and nothing here changes a gate: the
 | When live voice cannot start (example data, no key, the service not answering, the microphone not allowed) | Knack still hears the words and shows a card in plain words, with a button to Settings where it helps | never silence | |
 | Where it keeps things | `wake.json` in the app's data folder: the switch, the chime, your two answers. Nothing else | | delete the file |
 
+## Insight screens, worker (Growth)
+
+Growth is the one worker page for personal insight: My progress, then Where my time goes, My steps against an experienced worker's, How my routines connect and, for programmers, My commits, one under the other with no extra navigation. Each section is a quiet title, ONE headline sentence built by code from the worker's own data, and the numbers behind one closed disclosure. A worker sees only their own work and ONE unnamed experienced worker's way of doing the task (`docs/knack-ux/views.md`). Nothing here consents, approves or sends anything.
+
+| Setting | Default | Why | Change it |
+|---|---|---|---|
+| Which section is open | none; the address opens one (`#/growth?section=time`, `steps`, `map`, `commits`) and scrolls to it. The old routes (week, presence, genome, graph, git) redirect there | a page of five closed disclosures is a page of five sentences; one click opens the numbers | the section's "See the numbers" |
+| My commits | shown for the programmer role, and for anyone who follows a link to it; hidden for other roles | commit habits mean nothing to a benefits processor | the role in Settings, "Set up again" |
+| Whose data each section reads | the worker's own (the engine's id for them once set up); before that, the built-in example, with the one origin pill saying so | a worker's screen never lists other people, so there is no person picker | not a setting |
+| The baseline | one experienced worker, never named, never an average of colleagues, never a count of them. The "Compare with" choice (nearest expert or consensus) is gone from the worker view | the owner's rule (4.1): no cohort, no other learners | not a setting |
+| The origin pill | one for the whole page: the engine's origin for My progress, or "Example data" when any section is showing example data; each section's footer says where its numbers came from | one pill per screen (budget); the sentence per section is never behind a hint | not a setting |
+| Steps: ribbon and the "Where the time went" rows | the ribbon (the worker and the experienced worker, labelled "You" and "Experienced worker", no ids); the rows list up to four steps that lost the most seconds | the group waterfall is a cohort figure; the worker's own case is what they can act on | the scrubber, "Explain this case" and "Key and more" (closed) |
+| Steps: Explain | closed; it auto-runs only on example or mock data, where it costs nothing; with a live engine it is a remembered switch that is off until the worker turns it on (key `understudy-last-explain-auto`) | a live model call is not free and is the worker's choice | "Explain when this opens" inside Explain |
+| Time: the week and the hours | your week against an experienced worker's, then the working-hours map; ideas for a calmer week, free hours, whether a background run's window will last, and quiet hours sit in closed rows inside | the headline says the one thing (meeting load against the experienced worker, or the hours you are usually at the machine) | the closed rows |
+| Time: the week | the latest week; no week picker | a picker needs the list of people and weeks | not a setting |
+| Quiet hours | unchanged from what the worker set; saving one is the worker's own click | a setting the worker owns | "Quiet hours" row inside Time, More |
+| Map | closed; the graph draws names only on hover, focus or click | the owner's request 4.13 | "See the map" |
+| My progress: the example learner | the first story (improves) when the screen shows example data | any example has to be one of them | "Example learner" inside "About this data" |
+| Counts of people | never drawn: the engine's n of a group is replaced by what the screen draws (one case, one week, N commits), and a note that describes how a group was made is dropped | views.md | not a setting |
+| Last choices remembered on this device | the opened state is not remembered (the address is the memory); the Explain switch is; the example learner is not | an open section from yesterday is not a preference | |
+
+
 ## Desktop
 
 The app around the dashboard: the window, the Dock icon, the menu bar item, the corner column, the background pills, the Ask bar, the services it starts. Everything here is as automatic as the safety rules allow. Nothing in it answers a consent card, approves anything, or turns on anything unattended or irreversible: those stay a real click, per card or per routine.

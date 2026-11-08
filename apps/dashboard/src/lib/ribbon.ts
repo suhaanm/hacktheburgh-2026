@@ -32,7 +32,8 @@ export interface RibbonLayout {
   noviceTotal: number;
 }
 
-const dwell = (s: CogSegment | undefined) => (s ? Math.max(0, s.t1 - s.t0) : 0);
+/** Seconds in a segment. A segment with a missing or non-numeric time counts as zero, so one bad number never spreads NaN through the ribbon. */
+const dwell = (s: CogSegment | undefined) => { const d = s ? s.t1 - s.t0 : 0; return Number.isFinite(d) ? Math.max(0, d) : 0; };
 
 /**
  * Column width is proportional to the longer of the two durations in that column, with a floor so

@@ -6,6 +6,8 @@ import { Note, OriginBadge, SourceNote } from "./common";
 import { Hint } from "./Hint";
 import { Details, fitItems } from "./ui";
 import { CHIPS, MAX_QUESTION, actionsOf, askedTimeNote, bodySentences, checkReading, cleanQuestion, fallbackReading, fmtFact, isAnswer, limitsOf, pathWords, sourceReading, usesWithFacts } from "../lib/explain";
+import { aboutCohort, isCohortFact, restsOnCohort, workerText } from "../lib/voice";
+import { ownMeta } from "../lib/ownMeta";
 import { readRemembered, writeRemembered } from "../lib/remember";
 import type { Fallback } from "../lib/fallback";
 import type { ExplainResult, PacketFact } from "../types";
@@ -57,7 +59,7 @@ export function Explain({ person }: { person?: string }) {
   const liveModel = app.mock === false && !packet.why;
 
   const submit = (text: string, hint: string) => { setQuestion(text); void ask(cleanQuestion(text), hint); };
-  const facts = packet.data?.facts ?? [];
+  const facts = (packet.data?.facts ?? []).filter((f) => !isCohortFact(f.path));
   const example = !!(res?.why ?? packet.why);
 
   return (
@@ -116,7 +118,7 @@ function Progress({ elapsed }: { elapsed: number }) {
 
 /** The words, the coaching, and under them where the words came from. */
 function Answer({ r, facts, example }: { r: ExplainResult; facts: PacketFact[]; example: boolean }) {
-  const body = bodySentences(r);
+  const body = bodySentences(r).filter((x) => !restsOnCohort(x.uses));
   const src = sourceReading(r);
   const chk = checkReading(r.check);
   const fb = fallbackReading(r);
@@ -126,7 +128,7 @@ function Answer({ r, facts, example }: { r: ExplainResult; facts: PacketFact[]; 
       <div className="stack" style={{ gap: "var(--space-3)" }}>
         <p className="t-label">{isAnswer(r) ? "The answer" : "What the numbers show"}</p>
         {body.slice(0, 1).map((s, i) => (
-          <p key={i} className="explain__text">{s.text}<Uses uses={s.uses} facts={facts} /></p>
+          <p key={i} className="explain__text">{workerText(s.text)}<Uses uses={s.uses} facts={facts} /></p>
         ))}
         {asked && <p className="note">{asked}</p>}
       </div>
@@ -192,11 +194,11 @@ function Ask({ question, onChange, onSubmit, busy }: { question: string; onChang
  * is one closed "More" holding closed rows: the other sentences, what is worth practising, the limits, the numbers, and why this is example data.
  */
 function Backing({ r, facts, why }: { r: ExplainResult; facts: PacketFact[]; why: Fallback | null }) {
-  const limits = limitsOf(r);
-  const body = bodySentences(r).slice(1);
-  const actions = actionsOf(r);
-  const meta = { origin: r.badge.origin as "real" | "synthetic" | "mixed", n: r.badge.n, n_unit: r.badge.n_unit, split: r.badge.split, interval_level: 0.95, note: null, generated_at: "" };
-  const row = (x: { text: string; uses: string[] }, i: number) => <li key={i} className="explain__text">{x.text}<Uses uses={x.uses} facts={facts} /></li>;
+  const limits = limitsOf(r).filter((l) => !aboutCohort(l.text));
+  const body = bodySentences(r).filter((x) => !restsOnCohort(x.uses)).slice(1);
+  const actions = actionsOf(r).filter((a) => !restsOnCohort(a.uses));
+  const meta = ownMeta({ origin: r.badge.origin as "real" | "synthetic" | "mixed", n: r.badge.n, n_unit: r.badge.n_unit, split: r.badge.split, interval_level: 0.95, note: null, generated_at: "" }, { n: 1, unit: "case" })!;
+  const row = (x: { text: string; uses: string[] }, i: number) => <li key={i} className="explain__text">{workerText(x.text)}<Uses uses={x.uses} facts={facts} /></li>;
   const kSent = fitItems(body.map((x) => x.text), 52).shown.length;
   const kLim = fitItems(limits.map((l) => l.text), 48).shown.length;
   const hasMore = body.length > 0 || actions.length > 0 || limits.length > 0 || facts.length > 0 || (why && why.kind !== "error");
@@ -205,7 +207,7 @@ function Backing({ r, facts, why }: { r: ExplainResult; facts: PacketFact[]; why
       {limits.length === 0 && <div data-testid="explain-limits"><p className="note">The engine listed no limits for this answer. That is itself a problem: every answer must list its limits.</p></div>}
       <p className="explain__footer" data-testid="explain-footer">
         <OriginBadge meta={meta} always />
-        <span>{r.footer}</span>
+        <span>{workerText(r.footer)}</span>
       </p>
       {hasMore && (
         <Details summary="More" wide>
@@ -220,7 +222,7 @@ function Backing({ r, facts, why }: { r: ExplainResult; facts: PacketFact[]; why
             {actions.length > 0 && (
               <Details summary={`Worth practising (${actions.length})`}>
                 <ul className="plain-list explain__actions">
-                  {actions.map((a) => <li key={a.id} className="explain__text">{a.text}<Uses uses={a.uses} facts={facts} /></li>)}
+                  {actions.map((a) => <li key={a.id} className="explain__text">{workerText(a.text)}<Uses uses={a.uses} facts={facts} /></li>)}
                 </ul>
                 <p className="note">{actions.every((a) => a.chosen_by === "code") ? "Picked by code from a fixed list." : "Picked from a fixed list; code checked each one."}</p>
               </Details>
@@ -228,8 +230,8 @@ function Backing({ r, facts, why }: { r: ExplainResult; facts: PacketFact[]; why
             {limits.length > 0 && (
               <div data-testid="explain-limits">
                 <Details summary={`What this does not show (${limits.length})`}>
-                  <ul className="plain-list explain__limits">{limits.slice(0, kLim).map((l) => <li key={l.id} className="ev-note">{l.text}</li>)}</ul>
-                  {limits.length > kLim && <Details summary={`More (${limits.length - kLim})`}><ul className="plain-list explain__limits">{limits.slice(kLim).map((l) => <li key={l.id} className="ev-note">{l.text}</li>)}</ul></Details>}
+                  <ul className="plain-list explain__limits">{limits.slice(0, kLim).map((l) => <li key={l.id} className="ev-note">{workerText(l.text)}</li>)}</ul>
+                  {limits.length > kLim && <Details summary={`More (${limits.length - kLim})`}><ul className="plain-list explain__limits">{limits.slice(kLim).map((l) => <li key={l.id} className="ev-note">{workerText(l.text)}</li>)}</ul></Details>}
                 </Details>
               </div>
             )}

@@ -463,8 +463,10 @@ describe("early state marks", () => {
 });
 
 describe("origin and limits", () => {
-  it("never calls simulated or synthetic data people", () => {
-    expect(originSentence("simulated_participants", "synthetic")).toBe("Simulated participants (language model), not people.");
+  // D57: the two banned words are gone; the sentences still say what the data is and that it is not people
+  it("never calls generated data people", () => {
+    expect(originSentence("simulated_participants", "synthetic")).toBe("Language-model participants, not people.");
+    for (const d of ["simulated_participants", "synthetic_learner", undefined] as const) expect(originSentence(d, "synthetic")).not.toMatch(/synthetic|simulated/i);
     expect(originSentence("synthetic_learner", "synthetic")).toContain("not people");
     expect(originSentence(undefined, "synthetic")).toContain("not people");
     expect(originSentence("live_worker", "real")).toContain("One person is not a study");

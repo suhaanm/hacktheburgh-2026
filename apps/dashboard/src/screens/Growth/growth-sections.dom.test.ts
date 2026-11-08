@@ -19,7 +19,7 @@ beforeEach(() => {
   vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue({ width: 900, height: 600, top: 0, left: 0, right: 900, bottom: 600, x: 0, y: 0, toJSON: () => ({}) });
   Element.prototype.scrollIntoView = () => undefined;
   window.location.hash = "#/growth";
-  setState({ role: null, person: null });
+  setState({ role: null, person: null, mock: true, extReady: true });
   host = document.createElement("div");
   document.body.appendChild(host);
   root = createRoot(host);
@@ -29,10 +29,18 @@ afterEach(() => { act(() => root.unmount()); host.remove(); vi.unstubAllGlobals(
 async function mount() {
   await act(async () => { root.render(createElement(Growth)); });
   // the sections load their own data one after the other; give each a turn
-  for (let i = 0; i < 12; i++) await act(async () => { await new Promise((r) => setTimeout(r, 25)); });
+  for (let i = 0; i < 24; i++) await act(async () => { await new Promise((r) => setTimeout(r, 25)); });
 }
 /** The text around the first match of a rule, or null: a failing test then shows the offending words. */
-const hit = (text: string, re: RegExp): string | null => { const m = re.exec(text); return m ? text.slice(Math.max(0, m.index - 70), m.index + m[0].length + 70) : null; };
+const hit = (text: string, re: RegExp): string | null => {
+  const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : `${re.flags}g`);
+  for (const m of text.matchAll(g)) {
+    // the size of a meeting on the worker's own calendar ("Meeting, 5 to 9 people") is their own data, not a count of colleagues
+    if (/people/i.test(m[0]) && /meeting|call|workshop|session/i.test(text.slice(Math.max(0, m.index! - 40), m.index!))) continue;
+    return text.slice(Math.max(0, m.index! - 70), m.index! + m[0].length + 70);
+  }
+  return null;
+};
 const all = (): string => { host.querySelectorAll("details").forEach((d) => { d.open = true; }); return (host.textContent ?? "").replace(/\s+/g, " "); };
 
 /** The firm rules of the view audit (scripts/lib/view-rules.mjs), as the worker-facing words a screen must never hold. */
@@ -82,7 +90,11 @@ describe("Growth, the one worker page", () => {
   it("draws nothing a worker must not see, closed disclosures included", async () => {
     await mount();
     const text = all();
-    for (const [name, re] of [...FIRM, ...INTERNALS]) expect(hit(text, re), name).toBeNull();
+    // the explanation of the worker's case is part of the page text, so the rules below read it too
+    expect(text).toMatch(/Explain this case/);
+    expect(host.querySelector("#explain")).not.toBeNull();
+    expect(host.querySelector("[data-testid=explain-footer]"), "the explanation ran on the example data").not.toBeNull();
+    for (const [name, re] of [...FIRM, ...INTERNALS]) { const h = hit(text, re); expect(h === null, `${name}: ${h}`).toBe(true); }
   });
 
   it("My commits is for programmers: absent for a benefits processor, present for a programmer", async () => {
@@ -96,7 +108,7 @@ describe("Growth, the one worker page", () => {
     expect(sec).not.toBeNull();
     expect(sec!.querySelector("h2")!.textContent).toMatch(/commit habit/);
     const text = all();
-    for (const [name, re] of [...FIRM, ...INTERNALS]) expect(hit(text, re), `commits: ${name}`).toBeNull();
+    for (const [name, re] of [...FIRM, ...INTERNALS]) { const h = hit(text, re); expect(h === null, `commits ${name}: ${h}`).toBe(true); }
     expect(text).not.toMatch(/\bexperts\b/i);
   });
 
