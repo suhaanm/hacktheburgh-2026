@@ -22,7 +22,7 @@ Needs you in the sidebar (second item); a blocking approval also appears as a co
 
 ## Demo moment
 
-Open Needs you with one approval and one routine proposal: 'Submit case note CN-2041. Cannot be undone.' Approve and submit (sandbox only), then the proposal's Watch first.
+Open Needs you with one approval and one routine proposal: 'Submit case note CN-2041. Cannot be undone.' Open its Evidence. Press Approve and submit (sandbox only; until the finalize call is wired the item is marked approved and the sandbox note stays Draft, gap G11), then the proposal's Watch first.
 
 ## Evidence and its label
 
