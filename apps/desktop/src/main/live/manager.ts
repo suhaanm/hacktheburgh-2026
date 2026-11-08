@@ -118,6 +118,8 @@ export interface LiveManager {
   noteAnswer(id: string): void
   hasSession(): boolean
   voiceAllowed(): boolean
+  /** What would stop a conversation from opening right now, leaving the worker's consent out (the first-wake cards ask for that): null when nothing would. */
+  blocker(): Refusal | null
   /** The words "Hey Knack" were heard: open a hands-free conversation through the same gates as the key. False (with `status().refused` set) when it may not start. */
   startFromWake(): boolean
 }
@@ -187,11 +189,13 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
   }
 
   // ---- may a conversation start now? (all code, first failing reason)
-  function startRefusal(): Refusal | null {
+  function startRefusal(o: { ignoreConsent?: boolean } = {}): Refusal | null {
     const s = d.settings.get()
     if (!liveFlagOn(env)) return 'flag_off'
-    if (!s.liveEnabled) return 'not_enabled'
-    if (!voiceConsent(s)) return 'no_consent'
+    if (!o.ignoreConsent) {
+      if (!s.liveEnabled) return 'not_enabled'
+      if (!voiceConsent(s)) return 'no_consent'
+    }
     if (s.livePausedUntilMs > now()) return 'paused'
     if (d.killed()) return 'killed'
     if (d.agentActing()) return 'agent_acting'
@@ -415,6 +419,7 @@ export function createLiveManager(d: ManagerDeps): LiveManager {
     workerUsedVoice: () => usedVoice,
     hasSession: () => session !== null && !session.isEnded,
     voiceAllowed: () => startRefusal() === null,
+    blocker: () => startRefusal({ ignoreConsent: true }),
     startFromWake() {
       if (!liveFlagOn(env) || (session && !session.isEnded) || waiter) return false
       usedVoice = true
