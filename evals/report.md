@@ -930,7 +930,7 @@ edge_cases (generators we wrote):
 | delegated_and_automation_never_in_independence | 40 delegated and 40 automation rows, nothing else | no candidate: offloaded work never moves an independence number | True | test_worker::test_delegated_and_automation_rows_never_reach_an_independence_insight |
 | same_insight_repeated | shown twice in 28 days, unchanged; then doubled | suppressed (repeat_recently); a material change is shown again | True | test_select::test_novelty_halves_per_repeat_and_suppresses_an_unchanged_insight_after_two_shows |
 | time_zones | Sunday 23:59 UTC | the week key follows the person's zone; an unknown zone is UTC | True | test_routes::test_the_worker_week_follows_the_workers_own_time_zone |
-| origin_badges_on_every_insight | any selected pointer | badge and origin set; the text names the source and says made-up firm data | True | test_worker::test_origin_and_badge_are_on_every_candidate |
+| origin_badges_on_every_insight | any selected pointer | badge and origin set on the data; the text names its source and carries no origin tag | True | test_worker::test_origin_and_badge_are_on_every_candidate |
 | accessibility_not_colour_alone | every polarity | a word, a glyph name and an a11y label carry the meaning | True | test_texts::test_a11y_label_carries_the_polarity_in_words |
 | no_individual_ranking_or_score | the per-user rows | label order, no rank or score field | True | test_admin::test_per_user_rows_are_numbers_and_enums_in_label_order_with_no_rank_or_score |
 | no_admin_insight_has_a_person_as_subject | every admin candidate | subject is a role, unit, skill, signal or the firm | True | test_admin::test_no_admin_insight_has_a_person_as_its_subject |

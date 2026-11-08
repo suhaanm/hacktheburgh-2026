@@ -84,7 +84,7 @@ export async function loadFirm(windowDays: 7 | 30): Promise<Loaded<FirmWire>> {
   const r = await call(`/hitlist/firm?window=${windowDays}`, "GET", undefined, { [ROLE_HEADER]: "admin" });
   if (isMissing(r)) {
     noteSource("demo");
-    return { data: exampleFirm(windowDays), meta: { ...EXAMPLE_META, n: 60, n_unit: "people", note: "A made-up firm of about 60 people in three roles, not real people." }, source: "demo", why: whyFor(r) };
+    return { data: exampleFirm(windowDays), meta: { ...EXAMPLE_META, n: 60, n_unit: "people", note: "Example numbers for about 60 people in three roles." }, source: "demo", why: whyFor(r) };
   }
   if (r.reached && r.status >= 400) throw errorOf(r);
   noteSource("live");

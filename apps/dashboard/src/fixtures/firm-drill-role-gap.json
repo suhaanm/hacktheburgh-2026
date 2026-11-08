@@ -44,7 +44,7 @@
   "notes": [
    "Each person counts once. Gaps are compared within each skill, then combined with the experts' skill mix as fixed weights.",
    "The interval for the combined gap is a person-level bootstrap.",
-   "Data: made-up firm. For coaching and onboarding, not for evaluating individuals."
+   "For coaching and onboarding, not for evaluating individuals."
   ],
   "reason_code": "selected_top_score",
   "reason_text": "Selected: it passed every check and scored among the highest.",

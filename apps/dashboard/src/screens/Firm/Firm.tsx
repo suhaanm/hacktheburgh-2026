@@ -4,7 +4,6 @@ import { useLoad, type LoadState } from "../../hooks";
 import { ErrorState, Loading, SourceNote } from "../../components/common";
 import { Details } from "../../components/ui";
 import { HitList } from "../../components/repeats/HitList";
-import { SYNTHETIC_NOTE } from "../../components/firm/Badges";
 import { FirmBrief } from "../../components/firm/FirmBrief";
 import { InsightRows } from "../../components/firm/InsightRows";
 import { OnboardingCurves } from "../../components/firm/OnboardingCurves";
@@ -147,7 +146,6 @@ export default function Firm() {
           <h1 className="screenhead__title">{TITLE[tab]}</h1>
           <div className="page__aside">
             <span className="screenhead__marker">{ADMIN_MARKER}</span>
-            <span className="pill pill--origin firm-synthetic" data-origin="synthetic">{SYNTHETIC_NOTE}</span>
           </div>
         </div>
         <p className="screenhead__limit">{FIRM_LIMIT}</p>

@@ -4,7 +4,8 @@ import { ErrorState, Loading } from "../common";
 import { loadOnboarding, loadOverview, loadRoles } from "../../screens/Firm/data";
 import { BRIEF_LIMITS, buildBrief, longDate } from "./brief";
 import { OnboardingCurves } from "./OnboardingCurves";
-import { FirmBadge } from "./Badges";
+import { AboutData } from "../ui";
+import { originLine } from "../../lib/evidence";
 
 /**
  * The firm brief: one A4 page, printable (the screen's own menu and controls are left out of the print). It reads the same three answers as the
@@ -68,7 +69,10 @@ export function FirmBrief() {
           <h3 className="brief-sec__title">What this cannot show</h3>
           <ul className="brief-limits">{BRIEF_LIMITS.map((l) => <li key={l}>{l}</li>)}</ul>
         </section>
-        <footer className="brief-page__foot"><FirmBadge meta={o.meta} /> Built from the same data as the Firm screens.</footer>
+        <footer className="brief-page__foot">
+          Built from the same data as the Firm screens.
+          <AboutData rows={[["where from", originLine(o.meta?.origin ?? "synthetic")]]} />
+        </footer>
       </article>
     </div>
   );

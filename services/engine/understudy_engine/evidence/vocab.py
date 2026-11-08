@@ -18,8 +18,8 @@ Calibration = Literal["calibrated", "overconfident", "underconfident", "untested
 NUnit = Literal["people", "cases", "episodes", "households", "personas"]
 Split = Literal["descriptive_nearest_expert", "leave_one_person_out", "none"]
 ORIGIN_PHRASE = {
-    "synthetic": "generated data",
-    "simulated_participants": "language-model participants",
+    "synthetic": "",
+    "simulated_participants": "",
     "live": "live data",
 }
 N_UNIT_PHRASE = {"people": "people", "cases": "cases", "episodes": "episodes", "households": "households", "personas": "personas"}

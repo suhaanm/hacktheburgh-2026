@@ -126,7 +126,7 @@ export async function exportLedger(story: Story, example: boolean): Promise<{ fi
   }
   const b = await bundleOf(story);
   const rows = cleared.has(story) ? [] : b.ledger.data.rows;
-  return { filename, text: JSON.stringify({ origin: "example data (synthetic)", rows }, null, 2) };
+  return { filename, text: JSON.stringify({ origin: "example data", rows }, null, 2) };
 }
 
 /** Delete the worker's ledger. Worker-only on the engine. In example mode it clears the example, so the empty state can be seen. */

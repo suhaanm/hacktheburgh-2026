@@ -156,7 +156,7 @@ def get_firm(window: int | None = Query(None), role: str | None = Query(None)):
         return w
     data, source = firm_hitlist(w, role)
     meta = {"origin": "synthetic", "n": data["people"], "n_unit": "people", "split": None, "interval_level": 0.95,
-            "note": ("A made-up firm of about 60 people in three roles, not real people. Totals add up what each role repeats; "
+            "note": ("Totals add up what each role repeats; "
                      "a group of fewer than 5 people is not listed, and no person is named or ranked. For coaching and onboarding, "
                      "not for evaluating individuals."),
             "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"), "firm_source": source}

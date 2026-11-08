@@ -89,7 +89,7 @@ export default function Home() {
   const quiet = pointers.length === 0 ? quietFor(status, { setUp: !!app.role || !!person }) : null;
   const badge = originBadge({ example, origin: w.meta?.origin, badge: (w.meta as { badge?: string } | null)?.badge });
   const date = weekOf(data.week);
-  const standInNote = data.stand_in ? ((w.meta as { note?: string } | null)?.note ?? "An example week from the synthetic firm stands in for this profile.") : null;
+  const standInNote = data.stand_in ? ((w.meta as { note?: string } | null)?.note ?? "An example week stands in for this profile.") : null;
 
   const [first, second] = pointers;
   const action = first ? heroAction(first) : null;

@@ -131,7 +131,7 @@ export function normaliseOverview(body: unknown): WireOverview {
   const sup = isObj(o.suppressed) ? o.suppressed : null;
   const counts = (v: unknown): Record<string, number> => { const out: Record<string, number> = {}; if (isObj(v)) for (const [k, x] of Object.entries(v)) if (isNum(x)) out[k] = x; return out; };
   return {
-    firm: { users: num(f.users), roles: num(f.roles), label: str(f.label) ?? "synthetic firm" },
+    firm: { users: num(f.users), roles: num(f.roles), label: "Firm" },
     top: arr(o.top).map(insight).filter((i): i is AdminInsight => !!i).slice(0, 7),
     coverage: {
       users: num(c.users), enough_data: num(c.enough_data), min_occurrences: num(c.min_occurrences, 20), by_status: counts(c.by_status),
