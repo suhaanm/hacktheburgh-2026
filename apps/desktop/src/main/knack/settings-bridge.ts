@@ -10,6 +10,7 @@ export function dashboardSettingsView(s: Settings): DashboardSettingsView {
     useLiveModels: s.useLiveModels,
     minimiseWhileWorking: s.moveAsideWhileWorking,
     moveAsideWhileWorking: s.moveAsideWhileWorking,
+    keepAwakeWhileWorking: s.keepAwakeWhileWorking,
     showInDock: s.showInDock,
     launchAtLogin: s.launchAtLogin,
     cueEnabled: s.cueEnabled,
@@ -18,7 +19,7 @@ export function dashboardSettingsView(s: Settings): DashboardSettingsView {
   }
 }
 
-const WRITABLE = ['moveAsideWhileWorking', 'showInDock', 'launchAtLogin', 'cueEnabled', 'helpLevelMode', 'lockedLevel'] as const
+const WRITABLE = ['moveAsideWhileWorking', 'keepAwakeWhileWorking', 'showInDock', 'launchAtLogin', 'cueEnabled', 'helpLevelMode', 'lockedLevel'] as const
 
 /** The part of a patch from the page that may reach the settings store: only the listed keys, with the dashboard's name for "move aside" turned into the app's. */
 export function dashboardSettingsPatch(raw: unknown): Record<string, unknown> {

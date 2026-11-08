@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { DORMANT_LINE, dormancy, type Dormancy, type WakeInputs } from './guards'
 
 const ok: WakeInputs = {
-  flagOn: true, isMac: true, mock: false, switchedOn: true, locked: false, asleep: false, paused: false, killed: false,
+  flagOn: true, isMac: true, mock: false, switchedOn: true, firstRunHold: false, locked: false, asleep: false, paused: false, killed: false,
   hardQuiet: { dnd: false, screenSharing: false, onCall: false, inMeeting: false }, liveSessionActive: false, agentActing: false, away: false,
 }
 const with_ = (p: Partial<WakeInputs>): WakeInputs => ({ ...ok, ...p })
@@ -16,6 +16,7 @@ describe('dormancy: when the listener must not run', () => {
     ['not a Mac', { isMac: false }, 'not_mac'],
     ['demo mode', { mock: true }, 'mock_mode'],
     ['the worker switched it off', { switchedOn: false }, 'switched_off'],
+    ['set-up has not reached the permissions step', { firstRunHold: true }, 'first_run'],
     ['the screen is locked', { locked: true }, 'locked'],
     ['the Mac is asleep', { asleep: true }, 'asleep'],
     ['Knack is paused', { paused: true }, 'paused'],
