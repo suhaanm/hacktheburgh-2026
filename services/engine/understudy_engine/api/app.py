@@ -99,6 +99,34 @@ def warm_extensions(app: FastAPI) -> list[str]:
     return started
 
 
+def tune_gc(*, freeze: bool = True) -> None:
+    """Keep Python's cycle collector from re-scanning the engine's large, long-lived caches on every allocation burst.
+
+    The warmed cohorts, the seeded role histories and the firm roster make a heap of a few GB of long-lived objects. With the default thresholds a busy
+    moment (a page that fires six data requests) triggered full collections that each walk that whole heap: the process sat at 100% CPU inside the
+    collector and even /health timed out, which the app reports as "Knack cannot reach its engine". Freezing what is already loaded moves it out of the
+    collector's reach, and larger thresholds make the collections that remain rare. Nothing is disabled: new garbage cycles are still collected."""
+    import gc
+
+    gc.set_threshold(200_000, 50, 50)
+    if freeze:
+        gc.collect()
+        gc.freeze()
+
+
+def _freeze_loop(interval_s: float = 60.0) -> None:
+    """Freeze again now and then: role histories and cohorts are loaded lazily, after the warm-up, and become long-lived too."""
+    import gc
+    import time
+
+    while True:
+        time.sleep(interval_s)
+        try:
+            gc.freeze()
+        except Exception:  # pragma: no cover
+            return
+
+
 def warm_up(app: FastAPI) -> threading.Thread:
     """Fill the expensive caches in the background so the first dashboard request is fast: the genome (null, placebo,
     decomposition) and, if the analytics router has one, its own warm-up. Never raises, never blocks startup."""
@@ -106,6 +134,10 @@ def warm_up(app: FastAPI) -> threading.Thread:
     def run() -> None:
         from ..genome import TASK, GenomeError
 
+        try:
+            tune_gc(freeze=False)        # the warm-up itself builds the big heap: do not let the collector re-walk it while it grows
+        except Exception as exc:  # pragma: no cover
+            log.warning("gc tuning failed: %s", exc)
         t0 = __import__("time").time()
         try:
             app.state.genome.genome(TASK)
@@ -130,6 +162,11 @@ def warm_up(app: FastAPI) -> threading.Thread:
             log.warning("analytics warm-up failed: %s", exc)
             app.state.warm["analytics"] = False
         app.state.warm["seconds"] = round(__import__("time").time() - t0, 2)
+        try:
+            tune_gc()
+            threading.Thread(target=_freeze_loop, name="engine-gc-freeze", daemon=True).start()
+        except Exception as exc:  # pragma: no cover
+            log.warning("gc tuning failed: %s", exc)
 
     th = threading.Thread(target=run, name="engine-warm-up", daemon=True)
     th.start()
