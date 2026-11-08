@@ -6,6 +6,7 @@ import {
   KNACK_IPC,
   type DashboardSettingsView,
   type KnackModelsSetResult,
+  type KnackConsentAsk,
   type KnackModelsState,
   type KnackPermRequestResult,
   type KnackPermissionsState,
@@ -47,6 +48,7 @@ const api: KnackShellApi = {
   voice: {
     check: () => ipcRenderer.invoke(KNACK_IPC.voiceCheck) as Promise<KnackVoiceCheck>,
     askAgain: () => ipcRenderer.invoke(KNACK_IPC.voiceAskAgain) as Promise<boolean>,
+    askConsent: () => ipcRenderer.invoke(KNACK_IPC.voiceAskConsent) as Promise<KnackConsentAsk>,
   },
   tryRing: (spot) => ipcRenderer.invoke(KNACK_IPC.tryRing, spot) as Promise<KnackTryRingResult>,
   reveal: (path) => ipcRenderer.invoke(KNACK_IPC.reveal, path) as Promise<boolean>,

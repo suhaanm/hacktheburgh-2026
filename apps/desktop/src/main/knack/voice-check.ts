@@ -24,7 +24,7 @@ export interface VoiceCheckInputs {
   modelId: string | null
   killed: boolean
   paused: boolean
-  consent: { liveEnabled: boolean; consentCurrent: boolean; voiceAnswer: string }
+  consent: { liveEnabled: boolean; consentCurrent: boolean; voiceAnswer: string; /** Looking at the screen while talking was agreed to (the card's second line). */ frames?: boolean; screenAnswer?: string }
   perms: { microphone: MediaStatus; screen: MediaStatus; accessibility: boolean }
   /** Hey Knack: null when the build has no listener. */
   wake: { switchOn: boolean; dormant: Dormancy | null; helper: { state: 'stopped' | 'starting' | 'listening' | 'backoff' | 'blocked'; code: string | null }; helperPresent: boolean } | null
@@ -78,10 +78,11 @@ export async function buildVoiceCheck(i: VoiceCheckInputs): Promise<KnackVoiceCh
   else if (i.paused) stages.push(fix('stopped', 'Pause', 'Knack is paused. Choose Resume in the menu bar.', null))
   else stages.push(ready('stopped', 'Stop everything', 'Nothing is stopped or paused.'))
 
-  // 4. the worker's yes (only their real click on the card gives it)
-  if (i.consent.consentCurrent && i.consent.liveEnabled) stages.push(ready('consent', 'Talking', 'You said yes to talking with Knack.'))
-  else if (i.consent.voiceAnswer === 'never') stages.push(fix('consent', 'Talking', 'You chose Never on the Talk with Knack card. Choose Ask me again, then say yes on the card.', { do: 'ask_again' }))
-  else stages.push(fix('consent', 'Talking', 'Say yes on the Talk with Knack card. It appears in the corner the first time you say Hey Knack or hold Option-Space.', null))
+  // 4. the worker's yes (only their real click on the card gives it; the button here only shows the card)
+  if (i.consent.consentCurrent && i.consent.liveEnabled) {
+    stages.push(ready('consent', 'Your yes', i.consent.frames ? 'You said yes to talking with Knack and to it looking at your screen while you talk.' : 'You said yes to talking with Knack. It does not look at your screen while you talk.'))
+  } else if (i.consent.voiceAnswer === 'never') stages.push(fix('consent', 'Your yes', 'You chose Never on the Talk with Knack card. Show the card to answer again.', { do: 'consent' }))
+  else stages.push(fix('consent', 'Your yes', 'Knack needs your yes to talk. The card has two lines, your voice and your screen. Show the card, then click Yes.', { do: 'consent' }))
 
   // 5. microphone: a status read, then Allow (asks macOS) or the Settings list
   stages.push(permStage('microphone', 'Microphone', i.perms.microphone, 'Knack can use the microphone.', 'Knack has not asked for the microphone yet. Choose Allow.', 'Switch Knack on in System Settings, Microphone.', 'This Mac does not let Knack use the microphone.'))

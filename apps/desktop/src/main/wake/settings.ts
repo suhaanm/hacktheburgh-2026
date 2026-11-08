@@ -3,8 +3,10 @@
 //
 // "Listen for Hey Knack" is ON by default (owner decision, 7 Nov, D52): no opt-in step for the on-device listener. That listener stores nothing and
 // sends nothing. What DOES need the worker's yes is what happens AFTER the words: their voice going to a cloud voice model (the Live consent that
-// already exists) and a picture of their screen going with it (the frame consent). Those are asked once, in a corner card, with Yes, Not now
-// and Never of equal weight, and remembered here.
+// already exists) and a picture of their screen going with it (the frame consent). Those are asked once, in ONE corner card with two clear lines
+// (Yes, allow both / Voice only / Not now / Never, of equal weight), and remembered here. Each line is still its own answer in this file, and the
+// click on the card is the only thing that ever writes a yes: no card is pre-answered. When only one of the two is due (the other was answered
+// earlier), only that one's card is shown, as before.
 import fs from 'node:fs'
 import path from 'node:path'
 import { z } from 'zod'
@@ -18,6 +20,8 @@ export const WakeSettingsSchema = z.object({
   wakeChime: z.boolean().default(true),
   // The first conversation has started once: the welcome line is not said again.
   welcomed: z.boolean().default(false),
+  // The yes card has been offered once right after first run (so it is never silently missing, and never shown twice by that path).
+  consentOffered: z.boolean().default(false),
   voiceAnswer: Answer.default('unset'),
   voiceAskAfterMs: z.number().min(0).default(0),
   screenAnswer: Answer.default('unset'),
@@ -104,35 +108,54 @@ export class WakeSettingsStore {
 }
 
 // ------------------------------------------------------------------------------------------------ the first-wake consent steps
-export type ConsentStep = { step: 'go' } | { step: 'ask'; card: 'voice' | 'screen' } | { step: 'refused'; reason: 'voice_never' | 'voice_not_now' }
+export type ConsentCardId = 'voice' | 'screen' | 'both'
+export type ConsentStep = { step: 'go' } | { step: 'ask'; card: ConsentCardId } | { step: 'refused'; reason: 'voice_never' | 'voice_not_now' }
 
-/** What happens on a wake, given what is remembered: ask the voice question, ask the screen question, go, or refuse quietly. */
+/** The screen question is due: not answered, or put off and the week has passed; never when it was refused or frames are already on. */
+const screenDue = (w: WakeSettings, live: Pick<LiveSettings, 'liveFrames'>, now: number): boolean => !live.liveFrames && (w.screenAnswer === 'unset' || (w.screenAnswer === 'not_now' && now >= w.screenAskAfterMs))
+
+/**
+ * What happens on a wake, given what is remembered: ask, go, or refuse quietly. When the voice question and the screen question are both due they are ONE card
+ * ('both': two clear lines, each its own answer); when only one is due, that one alone.
+ */
 export function consentStep(w: WakeSettings, live: Pick<LiveSettings, 'liveEnabled' | 'liveConsentVersion' | 'liveFrames'>, now: number): ConsentStep {
   const voiceOk = live.liveEnabled && live.liveConsentVersion === LIVE_CONSENT_VERSION
   if (!voiceOk) {
     if (w.voiceAnswer === 'never') return { step: 'refused', reason: 'voice_never' }
     if (w.voiceAnswer === 'not_now' && now < w.voiceAskAfterMs) return { step: 'refused', reason: 'voice_not_now' }
-    return { step: 'ask', card: 'voice' }
+    return { step: 'ask', card: screenDue(w, live, now) ? 'both' : 'voice' }
   }
   if (live.liveFrames || w.screenAnswer === 'never') return { step: 'go' }
-  if (w.screenAnswer === 'unset' || (w.screenAnswer === 'not_now' && now >= w.screenAskAfterMs)) return { step: 'ask', card: 'screen' }
+  if (screenDue(w, live, now)) return { step: 'ask', card: 'screen' }
   return { step: 'go' }
 }
 
-export type CardChoice = 'yes' | 'not_now' | 'never'
+/** voice_only is a button of the combined card only: yes to the voice line, not now to the screen line. */
+export type CardChoice = 'yes' | 'not_now' | 'never' | 'voice_only'
 export interface ConsentOutcome {
   wake: WakeSettingsPatch
   live: LiveSettingsPatch
 }
 
-/** The patches for one card answer. `liveFrames` is the current frame switch (kept when the voice answer is yes). */
-export function consentOutcome(card: 'voice' | 'screen', choice: CardChoice, liveFrames: boolean, now: Date): ConsentOutcome {
-  if (card === 'voice') {
-    if (choice === 'yes') return { wake: { voiceAnswer: 'yes' }, live: liveConsentPatch({ voice: true, frames: liveFrames }, now) }
-    if (choice === 'never') return { wake: { voiceAnswer: 'never', wakeListen: false }, live: {} }
+/**
+ * The patches for one card answer. `liveFrames` is the current frame switch (kept when a single voice card is answered yes). The combined card's Yes is the worker's yes to
+ * both lines; Voice only says yes to the first and puts the second off for a week; Not now puts the voice question off a day (the screen question is untouched);
+ * Never is never for both and turns the listener off.
+ */
+export function consentOutcome(card: ConsentCardId, choice: CardChoice, liveFrames: boolean, now: Date): ConsentOutcome {
+  if (card === 'both') {
+    if (choice === 'yes') return { wake: { voiceAnswer: 'yes', screenAnswer: 'yes' }, live: liveConsentPatch({ voice: true, frames: true }, now) }
+    if (choice === 'voice_only') return { wake: { voiceAnswer: 'yes', screenAnswer: 'not_now', screenAskAfterMs: now.getTime() + NOT_NOW_SCREEN_MS }, live: liveConsentPatch({ voice: true, frames: false }, now) }
+    if (choice === 'never') return { wake: { voiceAnswer: 'never', wakeListen: false, screenAnswer: 'never' }, live: { liveFrames: false } }
     return { wake: { voiceAnswer: 'not_now', voiceAskAfterMs: now.getTime() + NOT_NOW_VOICE_MS }, live: {} }
   }
-  if (choice === 'yes') return { wake: { screenAnswer: 'yes' }, live: { liveFrames: true } }
-  if (choice === 'never') return { wake: { screenAnswer: 'never' }, live: { liveFrames: false } }
+  const one: 'yes' | 'not_now' | 'never' = choice === 'voice_only' ? 'not_now' : choice
+  if (card === 'voice') {
+    if (one === 'yes') return { wake: { voiceAnswer: 'yes' }, live: liveConsentPatch({ voice: true, frames: liveFrames }, now) }
+    if (one === 'never') return { wake: { voiceAnswer: 'never', wakeListen: false }, live: {} }
+    return { wake: { voiceAnswer: 'not_now', voiceAskAfterMs: now.getTime() + NOT_NOW_VOICE_MS }, live: {} }
+  }
+  if (one === 'yes') return { wake: { screenAnswer: 'yes' }, live: { liveFrames: true } }
+  if (one === 'never') return { wake: { screenAnswer: 'never' }, live: { liveFrames: false } }
   return { wake: { screenAnswer: 'not_now', screenAskAfterMs: now.getTime() + NOT_NOW_SCREEN_MS }, live: {} }
 }

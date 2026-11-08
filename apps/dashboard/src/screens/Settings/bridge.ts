@@ -51,17 +51,19 @@ export interface WakeBridge {
 }
 
 /** Check voice (the shell's `voice.check`): one report of every stage a conversation needs, each Ready or the one thing to do. The words are written by the desktop app; the page prints them. */
-export type VoiceAction = { do: "ask"; what: "microphone" | "speech" | "screen" | "accessibility" } | { do: "open"; what: "microphone" | "speech" | "screen" | "accessibility" | "sound" } | { do: "settings" } | { do: "ask_again" };
+export type VoiceAction = { do: "ask"; what: "microphone" | "speech" | "screen" | "accessibility" } | { do: "open"; what: "microphone" | "speech" | "screen" | "accessibility" | "sound" } | { do: "settings" } | { do: "ask_again" } | { do: "consent" };
 export interface VoiceStage { id: string; title: string; state: "ready" | "fix"; line: string; action: VoiceAction | null; needs: "both" | "hey"; optional?: boolean }
 export interface VoiceCheck { ok: boolean; heyKnack: boolean; stages: VoiceStage[]; at: number }
-export interface VoiceBridge { check(): Promise<VoiceCheck>; askAgain(): Promise<boolean> }
+/** `askConsent` shows the Talk with Knack card; the worker's real click on that card is the answer (this call only shows it). */
+export type ConsentAsk = "granted" | "declined" | "already" | "busy" | "blocked";
+export interface VoiceBridge { check(): Promise<VoiceCheck>; askAgain(): Promise<boolean>; askConsent(): Promise<ConsentAsk> }
 
 type Win = { alongside?: Partial<DesktopBridge>; knackSettings?: Partial<DesktopBridge>; knackShell?: { models?: Partial<LiveModelsBridge>; wake?: Partial<WakeBridge>; voice?: Partial<VoiceBridge> } };
 
 /** The Check voice calls, or null (a browser tab, or a build without them). */
 export function voiceBridge(w: Win | undefined = typeof window === "undefined" ? undefined : (window as unknown as Win)): VoiceBridge | null {
   const v = w?.knackShell?.voice;
-  return v && typeof v.check === "function" ? ({ check: v.check, askAgain: typeof v.askAgain === "function" ? v.askAgain : async () => false } as VoiceBridge) : null;
+  return v && typeof v.check === "function" ? ({ check: v.check, askAgain: typeof v.askAgain === "function" ? v.askAgain : async () => false, askConsent: typeof v.askConsent === "function" ? v.askConsent : async () => "blocked" } as VoiceBridge) : null;
 }
 
 /** Hey Knack's calls, or null (a browser tab, or a build without the listener). */

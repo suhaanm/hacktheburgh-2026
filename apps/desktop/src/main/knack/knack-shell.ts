@@ -13,7 +13,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, powerMonitor, 
 import { APP_NAME, APP_ORIGIN } from '../../shared/brand'
 import type { HudActivity } from '../../shared/hud'
 import type { Settings } from '../../shared/settings'
-import { KNACK_IPC, type KnackVoiceCheck } from '../../shared/knack'
+import { KNACK_IPC, type KnackConsentAsk, type KnackVoiceCheck } from '../../shared/knack'
 import type { HudModel } from '../hud-model'
 import { readServiceToken } from '../kill-file'
 import { applyModeEnv, applyStackEnv } from './stack-config'
@@ -111,7 +111,7 @@ export interface KnackLateDeps {
   /** Hey Knack's listener, for the speech recognition row: its status says whether speech was allowed; `request` switches the listener on, which makes macOS ask. */
   speech?: { helper(): HelperStatus | null; request(): void }
   /** Check voice: every stage a conversation needs, read only (src/main/knack/voice-check.ts), and the forgetting of an earlier Never or Not now so the consent card shows again. */
-  voice?: { check(): Promise<KnackVoiceCheck>; askAgain(): boolean }
+  voice?: { check(): Promise<KnackVoiceCheck>; askAgain(): boolean; askConsent(): Promise<KnackConsentAsk> }
   /** The on-screen ring and the ghost cursor (the overlay), and the bounds of the display the overlay covers. */
   ring?: { show(box: [number, number, number, number], opts?: { ghost?: boolean }): void; clear(): void; displayBounds(): { x: number; y: number; width: number; height: number } }
 }
@@ -296,6 +296,11 @@ export function createKnackShell(deps: KnackEarlyDeps): KnackShell {
     if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
     if (!late?.voice) throw new Error('not ready')
     return late.voice.check()
+  })
+  // The "Your yes" button of Check voice: the card appears; only a real click on the card answers it (the page's click here shows it, nothing more).
+  ipcMain.handle(KNACK_IPC.voiceAskConsent, async (event) => {
+    if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
+    return (await late?.voice?.askConsent()) ?? 'blocked'
   })
   ipcMain.handle(KNACK_IPC.voiceAskAgain, (event) => {
     if (!fromOurPage(event)) throw new Error('shell IPC from an unknown sender')
@@ -833,6 +838,7 @@ dispatch,
       ipcMain.removeHandler(KNACK_IPC.tryRing)
       ipcMain.removeHandler(KNACK_IPC.voiceCheck)
       ipcMain.removeHandler(KNACK_IPC.voiceAskAgain)
+      ipcMain.removeHandler(KNACK_IPC.voiceAskConsent)
       ipcMain.removeHandler(KNACK_IPC.reveal)
       tryRing.stop()
       ipcMain.removeAllListeners(KNACK_IPC.retry)

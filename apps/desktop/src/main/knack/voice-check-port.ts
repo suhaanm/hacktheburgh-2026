@@ -2,7 +2,7 @@
 // model and token readings, and the worker's saved answers. Nothing here asks macOS for a permission, opens the microphone, plays a sound or sends audio or a picture. Every reading is
 // injectable, so the tests run it with fakes.
 import { execFile } from 'node:child_process'
-import type { KnackVoiceCheck } from '../../shared/knack'
+import type { KnackConsentAsk, KnackVoiceCheck } from '../../shared/knack'
 import type { PermissionStatus } from '../../shared/permissions'
 import { createConsoleProbe, type ConsoleProbe } from '../awareness/probes'
 import { liveFlagOn, liveModelId, type Env } from '../live/flags'
@@ -39,7 +39,7 @@ export interface VoiceCheckPortDeps {
   env: Env
   platform?: NodeJS.Platform
   live: () => { settings: { get(): LiveSettings } } | null
-  wake: () => { status(): WakeStatus; settings: { get(): WakeSettings; patch(p: unknown, o: { trusted: boolean }): unknown }; helperPresent(): boolean; setListen(on: boolean): void } | null
+  wake: () => { status(): WakeStatus; settings: { get(): WakeSettings; patch(p: unknown, o: { trusted: boolean }): unknown }; helperPresent(): boolean; setListen(on: boolean): void; askConsent?(): Promise<KnackConsentAsk> } | null
   permissions: { status(): Promise<PermissionStatus> }
   killed: () => boolean
   paused: () => boolean
@@ -53,7 +53,7 @@ export interface VoiceCheckPortDeps {
 
 const asMedia = (s: string): MediaStatus => (s === 'granted' || s === 'denied' || s === 'not-determined' || s === 'restricted' ? s : 'unknown')
 
-export function createVoiceCheckPort(d: VoiceCheckPortDeps): { check(): Promise<KnackVoiceCheck>; askAgain(): boolean } {
+export function createVoiceCheckPort(d: VoiceCheckPortDeps): { check(): Promise<KnackVoiceCheck>; askAgain(): boolean; askConsent(): Promise<KnackConsentAsk> } {
   const env = d.env
   const probe = d.consoleProbe ?? createConsoleProbe()
   const volume = d.volume ?? realVolume
@@ -78,7 +78,7 @@ export function createVoiceCheckPort(d: VoiceCheckPortDeps): { check(): Promise<
         modelId: model,
         killed: d.killed(),
         paused: d.paused(),
-        consent: { liveEnabled: live?.liveEnabled === true, consentCurrent: live?.liveConsentVersion === LIVE_CONSENT_VERSION, voiceAnswer: wake?.settings.get().voiceAnswer ?? 'unset' },
+        consent: { liveEnabled: live?.liveEnabled === true, consentCurrent: live?.liveConsentVersion === LIVE_CONSENT_VERSION, voiceAnswer: wake?.settings.get().voiceAnswer ?? 'unset', frames: live?.liveFrames === true, screenAnswer: wake?.settings.get().screenAnswer ?? 'unset' },
         perms: { microphone: perms ? asMedia(perms.microphone) : 'unknown', screen: perms ? asMedia(perms.screen) : 'unknown', accessibility: perms?.accessibility === true },
         wake: wake && st ? { switchOn: st.switchOn, dormant: st.dormant, helper: { state: st.helper.state, code: st.helper.code }, helperPresent: wake.helperPresent() } : null,
         secureInput: cons.secureInput,
@@ -94,6 +94,11 @@ export function createVoiceCheckPort(d: VoiceCheckPortDeps): { check(): Promise<
         },
       }
       return buildVoiceCheck(inputs)
+    },
+    // The "Your yes" button: the card is shown (explicitly asked for, so an earlier Not now or Never is forgotten first); the answer is a real click on the card, never this call.
+    async askConsent() {
+      const wake = d.wake()
+      return wake?.askConsent ? wake.askConsent() : 'blocked'
     },
     // Forget an earlier Never or Not now on the Talk with Knack card (and the screen card), so each card shows again the next time it is due. The yes itself is still only the worker's click.
     askAgain() {

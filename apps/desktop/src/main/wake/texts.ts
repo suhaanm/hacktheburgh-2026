@@ -21,7 +21,21 @@ const THREE = [
   { id: 'never', label: 'Never' },
 ] as const
 
-export const CARDS: Readonly<Record<'voice' | 'screen' | 'click', CardText>> = {
+// `both` is the card the first wake, the talk key and the end of first run show when the voice question and the screen question are both due: one window, two clear lines (each its
+// own answer in the settings), and four buttons of one weight. It is answered only by a real mouse click, like every card. Its body is two lines of one idea each, so its word budget is
+// 30 (the other cards keep 22): the voice line is never longer than the screen line, and neither is cut, because a consent has to say all of it. `voice` and `screen` alone are shown
+// when only one of the two is due (the other was answered earlier).
+export const CARDS: Readonly<Record<'both' | 'voice' | 'screen' | 'click', CardText>> = {
+  both: {
+    title: 'Talk with Knack?',
+    body: 'Voice: your voice goes to a cloud voice model while we talk.\nScreen: a small picture goes with it about every 5 seconds. Never from private apps. Nothing is saved.',
+    buttons: [
+      { id: 'yes', label: 'Yes, allow both' },
+      { id: 'voice_only', label: 'Voice only' },
+      { id: 'not_now', label: 'Not now' },
+      { id: 'never', label: 'Never' },
+    ],
+  },
   voice: {
     title: 'Talk with Knack?',
     body: 'Your voice goes to a cloud voice model while we talk. Nothing is saved on this Mac.',

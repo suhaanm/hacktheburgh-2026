@@ -52,6 +52,8 @@ h2 {
 p {
   margin: 0 0 14px;
   color: var(--muted);
+  /* A body of two lines (the yes card: voice, then screen) keeps its line break. */
+  white-space: pre-line;
 }
 .buttons {
   display: flex;
@@ -59,6 +61,11 @@ p {
 }
 .buttons.stack {
   flex-direction: column;
+}
+/* Four equal buttons (the yes card) sit two by two, so the card stays short. */
+.buttons.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
 }
 button {
   flex: 1 1 0;

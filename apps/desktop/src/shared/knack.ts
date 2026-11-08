@@ -15,6 +15,7 @@ export const KNACK_IPC = {
   permOpen: 'knack:perm:open', // invoke(kind): open the System Settings pane; answers boolean
   tryRing: 'knack:try-ring', // invoke(spot?): show the on-screen ring for four seconds; answers KnackTryRingResult
   voiceCheck: 'knack:voice:check', // invoke: KnackVoiceCheck (read only: never asks macOS, never opens the microphone)
+  voiceAskConsent: 'knack:voice:consent', // invoke: show the yes card now ("Your yes" row of Check voice); answers a closed word; the yes itself is only ever a real click on the card
   voiceAskAgain: 'knack:voice:ask-again', // invoke: forget an earlier Never or Not now on the Talk with Knack card, so the card shows again (the yes is still the worker's click)
   reveal: 'knack:reveal', // invoke(path): show a path the agent service recorded for a task in Finder; answers boolean
 } as const
@@ -32,11 +33,13 @@ export interface KnackPermissionsState {
   needsRestart: boolean
 }
 // ---- Check voice: one report of every stage a conversation needs, each Ready or the one thing to do. The words are written in main; the page prints them and draws the one button.
+export type KnackConsentAsk = 'granted' | 'declined' | 'already' | 'busy' | 'blocked'
 export type KnackVoiceAction =
   | { do: 'ask'; what: KnackPermKind } // the worker's click makes macOS ask (permissions.request)
   | { do: 'open'; what: KnackPermKind | 'sound' } // opens the System Settings pane
   | { do: 'settings' } // Knack's own Settings
   | { do: 'ask_again' } // forget an earlier Never or Not now, so the card shows again
+  | { do: 'consent' } // show the yes card now (the worker's own click on a button; the answer on the card is a second, real click)
 export interface KnackVoiceStage {
   id: string
   title: string
@@ -164,5 +167,7 @@ export interface KnackShellApi {
   voice?: {
     check(): Promise<KnackVoiceCheck>
     askAgain(): Promise<boolean>
+    /** Shows the Talk with Knack card now. Resolves granted, declined, already, busy or blocked. */
+    askConsent(): Promise<KnackConsentAsk>
   }
 }

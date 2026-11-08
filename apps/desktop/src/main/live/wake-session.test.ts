@@ -124,7 +124,7 @@ describe('startFromWake', () => {
     const refused = h.make({ settings: noConsent })
     refused.start()
     expect(refused.startFromWake()).toBe(false)
-    expect(refused.status().refused).toBe('not_enabled')
+    expect(refused.status().refused).toBe('no_consent') // switched on by default, but nobody has said yes
   })
   it('starts with the fixed fallback when the packet cannot be built', async () => {
     const m = h.make({

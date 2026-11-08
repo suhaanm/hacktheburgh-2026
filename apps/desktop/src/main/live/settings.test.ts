@@ -29,8 +29,8 @@ describe('flags', () => {
 })
 
 describe('settings', () => {
-  it('everything is off by default, with the specified limits', () => {
-    expect(DEFAULT_LIVE_SETTINGS).toMatchObject({ liveEnabled: false, liveFrames: false, liveGraceMs: 8000, liveIdleMs: 60_000, liveMaxMs: 300_000, liveFrameIntervalMs: 5000 })
+  it('voice is switched on by default but nothing is agreed to: no consent record, frames off, with the specified limits', () => {
+    expect(DEFAULT_LIVE_SETTINGS).toMatchObject({ liveEnabled: true, liveConsentVersion: 0, liveFrames: false, liveGraceMs: 8000, liveIdleMs: 60_000, liveMaxMs: 300_000, liveFrameIntervalMs: 5000 })
     expect(voiceConsent(DEFAULT_LIVE_SETTINGS)).toBe(false)
     expect(frameConsent(DEFAULT_LIVE_SETTINGS)).toBe(false)
   })
@@ -62,7 +62,9 @@ describe('settings', () => {
     s.patch({ liveEnabled: true, liveFrames: true }) // turning back on needs the trusted path
     expect(s.get()).toMatchObject({ liveEnabled: true, liveFrames: false })
     const off = new LiveSettingsStore(null)
-    off.patch({ liveEnabled: true })
+    off.patch({ liveEnabled: false }) // down is fine
+    expect(off.get().liveEnabled).toBe(false)
+    off.patch({ liveEnabled: true }) // and up needs the trusted path
     expect(off.get().liveEnabled).toBe(false)
   })
   it('limits cannot be set outside their ranges: five minutes at most, no frame faster than every five seconds', () => {
@@ -88,7 +90,7 @@ describe('settings', () => {
     expect(Object.keys(saved).sort()).toEqual(Object.keys(DEFAULT_LIVE_SETTINGS).sort())
     expect(new LiveSettingsStore(dir).get().liveDailyUsd).toBe(0.2)
     fs.writeFileSync(file, '{"liveEnabled":"yes","liveDailyUsd":1,"junk":1}')
-    expect(coerceLiveSettings(JSON.parse(fs.readFileSync(file, 'utf8')))).toMatchObject({ liveEnabled: false, liveDailyUsd: 1 })
+    expect(coerceLiveSettings(JSON.parse(fs.readFileSync(file, 'utf8')))).toMatchObject({ liveEnabled: true, liveDailyUsd: 1 }) // a bad value falls back to the default (on); the consent record is separate
     fs.writeFileSync(file, 'not json')
     expect(new LiveSettingsStore(dir).get()).toEqual(DEFAULT_LIVE_SETTINGS)
   })

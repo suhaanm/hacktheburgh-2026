@@ -209,7 +209,14 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
     if (!o.context || typeof raw !== 'object' || raw === null) return false
     const c = raw as { insight?: unknown; routine?: unknown; firstRun?: unknown }
     let took = false
-    if (typeof c.firstRun === 'boolean') (o.context.setFirstRun(c.firstRun), controller.refresh(), (took = true))
+    if (typeof c.firstRun === 'boolean') {
+      const wasFirstRun = o.context.firstRun() === true
+      o.context.setFirstRun(c.firstRun)
+      controller.refresh()
+      took = true
+      // First run just ended: the yes card is shown once, so it is never silently missing (the worker still has to click it).
+      if (wasFirstRun && c.firstRun === false) controller.offerAfterFirstRun()
+    }
     if ('insight' in c) {
       const v = c.insight as { id?: unknown; template?: unknown } | null
       if (v === null) (o.context.setInsight(null), (took = true))

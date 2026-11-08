@@ -57,6 +57,9 @@ export interface DesktopRunPort {
   stop(): void
 }
 
+/** What a request to show the yes card came to: granted (a yes), declined (Not now, Never, a closed card or no click), already (nothing to ask), busy (a card is showing), blocked (voice cannot work yet). */
+export type ConsentAsk = 'granted' | 'declined' | 'already' | 'busy' | 'blocked'
+
 export interface WakeStatus {
   /** The worker's switch. */
   switchOn: boolean
@@ -133,6 +136,13 @@ export interface WakeController {
   arm(): void
   /** The opening turn for the very first conversation (trusted, fixed words), or null once the worker has been welcomed. */
   openingText(): string | null
+  /**
+   * Shows the yes card now (Check voice's "Your yes" button). `explicit` is the worker's own request: an earlier Not now or Never is forgotten first, and the card shows whatever the
+   * state of the models. Never answers anything itself: a yes is only ever a real mouse click on the card. Resolves what happened.
+   */
+  askConsent(opts?: { explicit?: boolean }): Promise<ConsentAsk>
+  /** First run just ended: show the yes card once (never twice by this path, never while voice cannot work at all), so it is never silently missing. */
+  offerAfterFirstRun(): void
   /** The helper said `heard`. Exposed for the supervisor and for tests. */
   onHeard(): Promise<void>
   /** The Ask bar's Return with no conversation open: the worker's own line becomes a task (source typed). ok: the bar closes; otherwise one plain sentence and the text stays. */
@@ -163,6 +173,7 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
   let cooldownUntil = 0 // the listener stays off until this time (after a conversation)
   let waking = false // between the words and the conversation opening
   let wakeSession = false
+  let consentAsking = false // the yes card is being asked for (the end of first run, Check voice): one at a time
   let lastRefusal: string | null = null
   let pollHandle: unknown = null
   let offLive: (() => void) | null = null
@@ -396,22 +407,61 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
     publish()
   }
 
-  /** The first-wake cards, one at a time. True when the conversation may open. */
-  async function consent(): Promise<boolean> {
+  /**
+   * The consent cards. One card when the voice question and the screen question are both due, one alone when only one is. True when the conversation may open. Only a real mouse
+   * click on a button is an answer; a key, a timer or a closed card is no answer, so nothing is remembered and nothing opens.
+   */
+  async function consent(expireMs = 30_000): Promise<boolean> {
     for (let i = 0; i < 2; i++) {
       const step = consentStep(d.settings.get(), d.liveSettings.get(), now())
       if (step.step === 'go') return true
       if (step.step === 'refused') return false
       const text = CARDS[step.card]
-      const a = await d.cards.ask({ id: `consent-${step.card}`, title: text.title, body: text.body, buttons: text.buttons, expireMs: 30_000 })
-      // Only a real mouse click on a button is an answer. A key, a timer or a closed card is no answer: nothing is remembered, nothing opens.
-      if (!a || a.via !== 'mouse' || !['yes', 'not_now', 'never'].includes(a.buttonId)) return false
+      const a = await d.cards.ask({ id: `consent-${step.card}`, title: text.title, body: text.body, buttons: text.buttons, expireMs })
+      if (!a || a.via !== 'mouse' || !text.buttons.some((b) => b.id === a.buttonId)) return false
       const out = consentOutcome(step.card, a.buttonId as CardChoice, d.liveSettings.get().liveFrames, new Date(now()))
       d.settings.patch(out.wake, { trusted: true })
       d.liveSettings.patch(out.live, { trusted: true })
-      if (a.buttonId !== 'yes' && step.card === 'voice') return false
+      if (a.buttonId !== 'yes' && a.buttonId !== 'voice_only' && step.card !== 'screen') return false
     }
     return consentStep(d.settings.get(), d.liveSettings.get(), now()).step === 'go'
+  }
+
+  /** Models, the key or the flag make a conversation impossible whatever the worker answers: a yes card for it would promise something that cannot happen. */
+  const CANNOT_TALK: ReadonlySet<string> = new Set(['flag_off', 'no_key', 'no_model', 'model_unusable', 'mock_mode', 'models_unreachable'])
+
+  async function askConsent(opts: { explicit?: boolean } = {}): Promise<ConsentAsk> {
+    if (consentAsking || waking || currentCard !== null) return 'busy'
+    const blocker = d.live.blocker()
+    if (!opts.explicit && blocker !== null && CANNOT_TALK.has(blocker)) return 'blocked'
+    if (opts.explicit) {
+      // The worker asked to see it: an earlier Not now or Never is forgotten (only the card's own click can turn anything on).
+      const w = d.settings.get()
+      if (w.voiceAnswer === 'never' || w.voiceAnswer === 'not_now') d.settings.patch({ voiceAnswer: 'unset', voiceAskAfterMs: 0 }, { trusted: true })
+      if (w.screenAnswer === 'never' || w.screenAnswer === 'not_now') d.settings.patch({ screenAnswer: 'unset', screenAskAfterMs: 0 }, { trusted: true })
+      if (w.voiceAnswer === 'never') d.settings.patch({ wakeListen: true }, { trusted: true })
+    }
+    if (consentStep(d.settings.get(), d.liveSettings.get(), now()).step === 'go') return 'already'
+    consentAsking = true
+    try {
+      const ok = await consent(90_000)
+      if (ok) explain('ready')
+      return ok ? 'granted' : 'declined'
+    } catch {
+      return 'declined'
+    } finally {
+      consentAsking = false
+      publish()
+    }
+  }
+
+  function offerAfterFirstRun(): void {
+    if (!started || d.settings.get().consentOffered) return
+    if (consentStep(d.settings.get(), d.liveSettings.get(), now()).step === 'go') return void d.settings.patch({ consentOffered: true }, { trusted: true })
+    const blocker = d.live.blocker()
+    if (blocker !== null && CANNOT_TALK.has(blocker)) return // asked again at the next chance; Check voice shows the row meanwhile
+    d.settings.patch({ consentOffered: true }, { trusted: true })
+    void askConsent()
   }
 
   // ---- the model's do_it_for_me
@@ -642,6 +692,8 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
       explain(reason)
     },
     onHeard,
+    askConsent,
+    offerAfterFirstRun,
     doIt,
   }
 }

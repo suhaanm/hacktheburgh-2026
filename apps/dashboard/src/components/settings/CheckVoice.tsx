@@ -14,6 +14,7 @@ export function actionLabel(a: VoiceAction | null): string | null {
   if (a.do === "ask") return "Allow";
   if (a.do === "open") return "Open System Settings";
   if (a.do === "settings") return "Open Settings";
+  if (a.do === "consent") return "Show the card";
   return "Ask me again";
 }
 
@@ -55,6 +56,7 @@ export function CheckVoice({ compact = false }: { compact?: boolean }) {
       if (a.do === "ask") await perms?.request?.(a.what as never);
       else if (a.do === "open") await perms?.openSettings?.(a.what as never);
       else if (a.do === "settings") navigate("/settings");
+      else if (a.do === "consent") await api?.askConsent();
       else await api?.askAgain();
     } catch { setError("Could not do that. Nothing was changed."); }
     if (a.do !== "open") void run();

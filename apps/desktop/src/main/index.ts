@@ -336,7 +336,7 @@ void app.whenReady().then(async () => {
     voice: createVoiceCheckPort({
       env: process.env,
       live: () => liveBox.reg,
-      wake: () => (wakeBox.ctl && wakeBox.settings ? { status: () => wakeBox.ctl!.status(), settings: wakeBox.settings as never, helperPresent: () => wake?.helperPath() != null, setListen: (on) => wakeBox.ctl?.setListen(on) } : null),
+      wake: () => (wakeBox.ctl && wakeBox.settings ? { status: () => wakeBox.ctl!.status(), settings: wakeBox.settings as never, helperPresent: () => wake?.helperPath() != null, setListen: (on) => wakeBox.ctl?.setListen(on), askConsent: () => wakeBox.ctl!.askConsent({ explicit: true }) } : null),
       permissions,
       killed: isKilled,
       paused: () => (settings.get().pausedUntil ?? 0) > Date.now(),

@@ -5,15 +5,16 @@ import { ApiError, api } from "../../api";
 import { navigate, useRoute } from "../../router";
 import { useLoad } from "../../hooks";
 import { Glyph } from "../../components/Lockup";
-import { getBridge, permissionsAvailable, permStates, type PermKind, type PermState } from "../../components/shell/bridge";
+import { getBridge, permissionsAvailable, type PermKind } from "../../components/shell/bridge";
 import { reportWake } from "../../lib/wakeContext";
 import { CheckVoice } from "../../components/settings/CheckVoice";
+import { PermissionSteps } from "../../components/settings/Permissions";
 import { awarenessBridge } from "../YourData/awareness";
 import { liveModelsBridge, wakeBridge, type LiveModelsState, type WakeStatus } from "../Settings/bridge";
 import type { OnboardingQuestions } from "../../types";
 import {
-  BROWSER_ROWS, CAPTURE_CARD, CAPTURE_CHOICE_KEY, CHOICES, FIRST_RUN_KEY, GLANCE_CARD, GLANCE_CHOICE_KEY, NEEDS_APP, NO_ROLE, PERM_COPY, PROGRESS_KEY, RING_SENTENCE, SEEN_KEY, START, STEPS, VOICE_CARD, VOICE_CHOICE_KEY,
-  captureRecord, defaultAnswers, heyKnackRow, kindsFor, nextUnanswered, parseProgress, permsToShow, progressRecord, reduce, roleCards, shouldRearm, type Choice, type ConsentKind,
+  BROWSER_ROWS, CAPTURE_CARD, CAPTURE_CHOICE_KEY, CHOICES, FIRST_RUN_KEY, GLANCE_CARD, GLANCE_CHOICE_KEY, NEEDS_APP, NO_ROLE, PROGRESS_KEY, RING_SENTENCE, SEEN_KEY, START, STEPS, VOICE_CARD, VOICE_CHOICE_KEY,
+  captureRecord, defaultAnswers, heyKnackRow, kindsFor, nextUnanswered, parseProgress, progressRecord, reduce, roleCards, shouldRearm, type Choice, type ConsentKind,
 } from "./model";
 import "./firstrun.css";
 
@@ -192,17 +193,14 @@ function ConsentCardView({ kind, title, text, answer, error, onAnswer, disabled 
   );
 }
 
-const STATE_WORD: Record<PermState, string> = { granted: "Allowed", "not-asked": "Not asked yet", off: "Turned off in System Settings" };
-
 /** The last screen: the permissions as they are, Hey Knack's listening state, and "Show me". It never blocks: each permission says what will not work without it. */
-function CheckStep({ answers, heading, onBack, onFinish, writing, slow, wakeApi }: {
+function CheckStep({ heading, onBack, onFinish, writing, slow, wakeApi }: {
   answers: Partial<Record<ConsentKind, Choice>>; heading: React.RefObject<HTMLHeadingElement>; onBack: () => void; onFinish: () => void; writing: boolean; slow: boolean; wakeApi: ReturnType<typeof wakeBridge>;
 }) {
   const sample = useRef<HTMLDivElement>(null);
   const bridge = getBridge();
   const hasPerms = permissionsAvailable(bridge);
   const hasRing = typeof bridge.tryRing === "function";
-  const [perms, setPerms] = useState<Record<PermKind, PermState> | null>(null);
   const [wake, setWake] = useState<WakeState | null>(null);
   const [restart, setRestart] = useState(false);
   const [live, setLive] = useState<LiveModelsState | null>(null);
@@ -211,7 +209,7 @@ function CheckStep({ answers, heading, onBack, onFinish, writing, slow, wakeApi 
   const liveApi = useMemo(() => liveModelsBridge(), []);
 
   const read = useCallback(() => {
-    if (hasPerms) bridge.permissions!.state().then((r) => { setPerms(permStates(r)); setRestart(r?.needsRestart === true); }, () => { setPerms(null); setRestart(false); });
+    if (hasPerms) bridge.permissions!.state().then((r) => { setRestart(r?.needsRestart === true); }, () => { setRestart(false); });
     wakeApi?.state().then((w) => setWake(w as WakeState), () => setWake(null));
   }, [bridge, hasPerms, wakeApi]);
   const wakeRef = useRef<WakeState | null>(null);
@@ -237,8 +235,6 @@ function CheckStep({ answers, heading, onBack, onFinish, writing, slow, wakeApi 
     return () => { window.clearTimeout(late); window.removeEventListener("focus", again); document.removeEventListener("visibilitychange", again); };
   }, [read, liveApi, wakeApi]);
 
-  const show = permsToShow(answers, { ring: hasRing && hasPerms });
-  const ask = async (kind: PermKind) => { setError(null); try { await bridge.permissions!.request(kind); } catch { setError("Could not ask. Nothing was changed."); } read(); };
   const openSettings = (kind: PermKind) => { try { void bridge.permissions!.openSettings(kind); } catch { setError("Could not open System Settings."); } };
   const showMe = async () => {
     setRing("working"); setError(null);
@@ -264,19 +260,11 @@ function CheckStep({ answers, heading, onBack, onFinish, writing, slow, wakeApi 
         </ul>
       )}
 
-      {desktop && show.length > 0 && (
-        <ul className="perms" aria-label="Permissions">
-          {show.map((k) => {
-            const st = perms?.[k] ?? "not-asked";
-            return (
-              <li key={k} className="perm" data-state={st}>
-                <span className="perm__text"><b>{PERM_COPY[k].title}</b><span className="perm__state">{STATE_WORD[st]}</span>{st !== "granted" && <span className="perm__without">{PERM_COPY[k].without}</span>}</span>
-                {st === "not-asked" && <button type="button" className="btn btn--secondary btn--sm" onClick={() => void ask(k)}>Allow</button>}
-                {st === "off" && <button type="button" className="btn btn--secondary btn--sm" onClick={() => openSettings(k)}>Open System Settings</button>}
-              </li>
-            );
-          })}
-        </ul>
+      {desktop && hasPerms && (
+        <>
+          <p className="firstrun__note">Knack asks macOS here, on your click. macOS asks you; Knack cannot turn any of these on for you, and nothing stops working if you wait.</p>
+          <PermissionSteps />
+        </>
       )}
 
       {hey && (

@@ -77,10 +77,15 @@ describe('Check voice', () => {
 
   it('the worker’s yes: not given, or Never (with the way back)', async () => {
     const none = await run({ consent: { liveEnabled: false, consentCurrent: false, voiceAnswer: 'unset' } })
-    expect(stage(none, 'consent')).toMatchObject({ state: 'fix', action: null })
-    expect(stage(none, 'consent').line).toContain('Say yes on the Talk with Knack card')
+    // "Your yes": a button that shows the card (the click on the card itself is the answer, never this button)
+    expect(stage(none, 'consent')).toMatchObject({ title: 'Your yes', state: 'fix', action: { do: 'consent' } })
+    expect(stage(none, 'consent').line).toContain('Show the card, then click Yes')
     const never = await run({ consent: { liveEnabled: false, consentCurrent: false, voiceAnswer: 'never' } })
-    expect(stage(never, 'consent').action).toEqual({ do: 'ask_again' })
+    expect(stage(never, 'consent').action).toEqual({ do: 'consent' })
+    expect(stage(never, 'consent').line).toContain('Show the card to answer again')
+    // Said yes to talking: ready, and it says plainly whether the screen is part of it
+    expect(stage(await run({ consent: { liveEnabled: true, consentCurrent: true, voiceAnswer: 'yes', frames: true } }), 'consent')).toMatchObject({ state: 'ready', action: null, line: 'You said yes to talking with Knack and to it looking at your screen while you talk.' })
+    expect(stage(await run({ consent: { liveEnabled: true, consentCurrent: true, voiceAnswer: 'yes', frames: false } }), 'consent').line).toBe('You said yes to talking with Knack. It does not look at your screen while you talk.')
   })
 
   it('the microphone: never asked gives Allow (macOS asks on the click), denied gives the Settings pane, restricted gives no button', async () => {

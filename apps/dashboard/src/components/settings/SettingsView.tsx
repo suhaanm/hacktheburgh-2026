@@ -28,6 +28,8 @@ export interface SettingsViewProps {
   onWake: (on: boolean) => void;
   /** The Check voice button and its report, under the Hey Knack row (the app only). */
   voice?: ReactNode;
+  /** The four macOS permissions, each On or Off with one button (the app only). */
+  permissions?: ReactNode;
   /** Today's counts and the held items that need the worker, with their Why? (inside Per kind). Null while it loads or when the layer is off. */
   today?: ReactNode;
   /** The desktop app's own settings, or null in a browser tab. */
@@ -194,6 +196,12 @@ export function SettingsView(p: SettingsViewProps) {
       <Row id="hey-knack" title="Listen for Hey Knack" line={p.wake ? wakeLine(p.wake) : APP_ONLY}
         control={p.wake ? <Switch label="Listen for Hey Knack" checked={p.wake.switchOn} onChange={p.onWake} /> : null} />
       {p.voice && <div className="st-sub" data-testid="check-voice">{p.voice}</div>}
+      {p.permissions && (
+        <>
+          <Row id="permissions" title="Permissions" line="Each is On or Off in macOS. Knack can ask and open the right pane. You turn it on." control={null} />
+          <div className="st-sub" data-testid="permissions-sub">{p.permissions}</div>
+        </>
+      )}
 
       <Row id="move-aside" title="Move aside while Knack works"
         line={d ? (d.minimiseWhileWorking === false ? "The window stays where it is while an agent works." : "The window minimises while an agent works. The pill shows what it is doing.") : APP_ONLY}

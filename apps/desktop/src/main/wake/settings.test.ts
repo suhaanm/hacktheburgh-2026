@@ -10,7 +10,7 @@ const NOW = Date.UTC(2026, 10, 8, 9, 0, 0)
 
 describe('wake settings', () => {
   it('listening is ON by default (D52) and the chime too; nothing is decided yet', () => {
-    expect(DEFAULT_WAKE_SETTINGS).toEqual({ wakeListen: true, wakeChime: true, welcomed: false, voiceAnswer: 'unset', voiceAskAfterMs: 0, screenAnswer: 'unset', screenAskAfterMs: 0 })
+    expect(DEFAULT_WAKE_SETTINGS).toEqual({ wakeListen: true, wakeChime: true, welcomed: false, consentOffered: false, voiceAnswer: 'unset', voiceAskAfterMs: 0, screenAnswer: 'unset', screenAskAfterMs: 0 })
     expect(new WakeSettingsStore(null).get().wakeListen).toBe(true)
   })
   it('keeps what is valid and drops what is not, key by key', () => {
@@ -51,21 +51,25 @@ describe('wake settings', () => {
 
 describe('the first-wake consent steps', () => {
   const unset = DEFAULT_WAKE_SETTINGS
-  it('asks the voice question first, then the screen question, then goes', () => {
-    expect(consentStep(unset, DEFAULT_LIVE_SETTINGS, NOW)).toEqual({ step: 'ask', card: 'voice' })
+  it('asks the voice and screen questions on ONE card when both are due; one alone when only one is; then goes', () => {
+    expect(consentStep(unset, DEFAULT_LIVE_SETTINGS, NOW)).toEqual({ step: 'ask', card: 'both' })
+    expect(consentStep({ ...unset, screenAnswer: 'never' }, DEFAULT_LIVE_SETTINGS, NOW)).toEqual({ step: 'ask', card: 'voice' })
+    expect(consentStep({ ...unset, screenAnswer: 'not_now', screenAskAfterMs: NOW + 1 }, DEFAULT_LIVE_SETTINGS, NOW)).toEqual({ step: 'ask', card: 'voice' })
+    expect(consentStep(unset, { ...DEFAULT_LIVE_SETTINGS, liveFrames: true }, NOW)).toEqual({ step: 'ask', card: 'voice' }) // frames already agreed: only the voice line
     expect(consentStep(unset, consented, NOW)).toEqual({ step: 'ask', card: 'screen' })
     expect(consentStep({ ...unset, screenAnswer: 'yes' }, { ...consented, liveFrames: true }, NOW)).toEqual({ step: 'go' })
   })
   it('remembers the answers: never is never asked again, not now waits (a day for voice, a week for the screen)', () => {
     expect(consentStep({ ...unset, voiceAnswer: 'never' }, DEFAULT_LIVE_SETTINGS, NOW)).toEqual({ step: 'refused', reason: 'voice_never' })
     expect(consentStep({ ...unset, voiceAnswer: 'not_now', voiceAskAfterMs: NOW + 1 }, DEFAULT_LIVE_SETTINGS, NOW)).toEqual({ step: 'refused', reason: 'voice_not_now' })
-    expect(consentStep({ ...unset, voiceAnswer: 'not_now', voiceAskAfterMs: NOW }, DEFAULT_LIVE_SETTINGS, NOW)).toEqual({ step: 'ask', card: 'voice' })
+    expect(consentStep({ ...unset, voiceAnswer: 'not_now', voiceAskAfterMs: NOW }, DEFAULT_LIVE_SETTINGS, NOW)).toEqual({ step: 'ask', card: 'both' })
     expect(consentStep({ ...unset, screenAnswer: 'never' }, consented, NOW)).toEqual({ step: 'go' })
     expect(consentStep({ ...unset, screenAnswer: 'not_now', screenAskAfterMs: NOW + 5 }, consented, NOW)).toEqual({ step: 'go' })
     expect(consentStep({ ...unset, screenAnswer: 'not_now', screenAskAfterMs: NOW }, consented, NOW)).toEqual({ step: 'ask', card: 'screen' })
   })
   it('a Live consent from an older text does not count', () => {
-    expect(consentStep(unset, { liveEnabled: true, liveConsentVersion: 0, liveFrames: false }, NOW)).toEqual({ step: 'ask', card: 'voice' })
+    expect(consentStep(unset, { liveEnabled: true, liveConsentVersion: 0, liveFrames: false }, NOW)).toEqual({ step: 'ask', card: 'both' })
+    expect(consentStep(unset, { liveEnabled: true, liveConsentVersion: 0, liveFrames: false }, NOW)).not.toEqual({ step: 'go' }) // switched on is not agreed to
   })
   it('turns each answer into the right patches', () => {
     const now = new Date(NOW)
@@ -75,5 +79,16 @@ describe('the first-wake consent steps', () => {
     expect(consentOutcome('screen', 'yes', false, now)).toEqual({ wake: { screenAnswer: 'yes' }, live: { liveFrames: true } })
     expect(consentOutcome('screen', 'never', true, now)).toEqual({ wake: { screenAnswer: 'never' }, live: { liveFrames: false } })
     expect(consentOutcome('screen', 'not_now', false, now)).toEqual({ wake: { screenAnswer: 'not_now', screenAskAfterMs: NOW + NOT_NOW_SCREEN_MS }, live: {} })
+  })
+  it('the combined card: Yes allows both, Voice only allows the first line, Not now and Never answer neither as a yes', () => {
+    const now = new Date(NOW)
+    expect(consentOutcome('both', 'yes', false, now)).toMatchObject({ wake: { voiceAnswer: 'yes', screenAnswer: 'yes' }, live: { liveEnabled: true, liveFrames: true, liveConsentVersion: LIVE_CONSENT_VERSION } })
+    expect(consentOutcome('both', 'voice_only', true, now)).toMatchObject({ wake: { voiceAnswer: 'yes', screenAnswer: 'not_now', screenAskAfterMs: NOW + NOT_NOW_SCREEN_MS }, live: { liveEnabled: true, liveFrames: false, liveConsentVersion: LIVE_CONSENT_VERSION } })
+    expect(consentOutcome('both', 'not_now', false, now)).toEqual({ wake: { voiceAnswer: 'not_now', voiceAskAfterMs: NOW + NOT_NOW_VOICE_MS }, live: {} })
+    expect(consentOutcome('both', 'never', true, now)).toEqual({ wake: { voiceAnswer: 'never', wakeListen: false, screenAnswer: 'never' }, live: { liveFrames: false } })
+  })
+  it('a yes is never in the defaults: a fresh store has no answer, no consent record and no frames', () => {
+    expect(DEFAULT_WAKE_SETTINGS).toMatchObject({ voiceAnswer: 'unset', screenAnswer: 'unset' })
+    expect(DEFAULT_LIVE_SETTINGS).toMatchObject({ liveConsentVersion: 0, liveFrames: false })
   })
 })

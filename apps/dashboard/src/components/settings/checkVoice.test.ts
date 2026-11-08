@@ -12,6 +12,7 @@ describe("Check voice", () => {
     expect(actionLabel({ do: "open", what: "sound" })).toBe("Open System Settings");
     expect(actionLabel({ do: "settings" })).toBe("Open Settings");
     expect(actionLabel({ do: "ask_again" })).toBe("Ask me again");
+    expect(actionLabel({ do: "consent" })).toBe("Show the card");
     expect(actionLabel(null)).toBeNull();
   });
   it("the headline says what works now", () => {

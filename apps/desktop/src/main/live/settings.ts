@@ -3,8 +3,10 @@
 // the TRUSTED_ONLY keys for untrusted sources. Until then nothing outside this store can switch voice or frames on: the debug server,
 // model tools and /inject all patch the main settings store, which does not know these keys.
 //
-// Everything is OFF by default. A voice session needs: the flags (flags.ts), liveEnabled, and a consent record for the CURRENT consent
-// text. Seeing the screen during a session needs liveFrames on top of that, with its own consent line.
+// A voice session needs: the flags (flags.ts), liveEnabled, and a consent record for the CURRENT consent text (liveConsentVersion, written only by the worker's own
+// click on the Talk with Knack card). liveEnabled is the feature switch and is ON by default (owner request, 8 Nov 2026: voice on wherever the rules allow); it is NOT the
+// consent: with the version at 0 nothing opens. Seeing the screen during a session needs liveFrames on top of that, with its own consent line, and liveFrames stays OFF
+// until the worker's click on the card says yes to it (a frame leaves the Mac only with that click).
 import fs from 'node:fs'
 import path from 'node:path'
 import { z } from 'zod'
@@ -26,8 +28,8 @@ export const LIVE_CONSENT_SHORT = `Hold the talk key to speak with ${APP_NAME}. 
 const VOICE_RE = /^[A-Za-z][A-Za-z0-9_-]{1,30}$/
 
 export const LiveSettingsSchema = z.object({
-  // Voice conversation on or off. Off until the worker agrees to LIVE_CONSENT_TEXT.
-  liveEnabled: z.boolean().default(false),
+  // Voice conversation on or off. On by default; a conversation still needs the worker's consent record for LIVE_CONSENT_TEXT (liveConsentVersion).
+  liveEnabled: z.boolean().default(true),
   // See the screen during a conversation (low-rate frames). Off by default, separate from voice.
   liveFrames: z.boolean().default(false),
   // Dollar caps (estimates): per conversation and per local day. A conversation that would pass either is ended.
