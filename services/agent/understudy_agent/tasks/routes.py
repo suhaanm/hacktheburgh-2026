@@ -30,7 +30,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from .manager import TaskError, TaskManager
 from .model import SOURCES, Task
-from .skills import SkillBook, load_settings, save_settings
+from .skills import SkillBook, load_settings, save_settings, valid_budget
 from .store import valid_id
 
 router = APIRouter(tags=["tasks"])
@@ -215,6 +215,8 @@ async def skill_settings(request: Request) -> Any:
         return _err(422, "bad_body", "use_claude_skills must be true or false.")
     if "off" in body and not (isinstance(body["off"], list) and all(isinstance(x, str) for x in body["off"])):
         return _err(422, "bad_body", "off must be a list of skill names.")
+    if "max_budget_usd" in body and valid_budget(body["max_budget_usd"]) is None:
+        return _err(422, "bad_body", "max_budget_usd must be a number of dollars from 0.5 to 20.")
     if "max_minutes" in body and (not isinstance(body["max_minutes"], int) or isinstance(body["max_minutes"], bool)
                                   or not 1 <= body["max_minutes"] <= 120):
         return _err(422, "bad_body", "max_minutes must be 1 to 120.")

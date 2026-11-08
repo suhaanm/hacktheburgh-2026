@@ -35,7 +35,7 @@ from ..security.paths import data_dir, repo_root
 from . import claude_cli as cc
 from . import skills as sk
 from .model import (ACTIVE, FINISHED, SCOPES, TEXT_MAX, Task, first_sentence, looks_like_secret, make_title, new_task_id, now_iso,
-                    one_line)
+                    one_line, with_cost)
 from .routing import QUESTION_OPTIONS, QUESTION_TEXT, choose_route, decide_by_rules, extract_place, make_slug
 from .store import TaskStore, valid_id
 
@@ -309,6 +309,7 @@ class TaskManager:
         task.skills_cfg = {"use": bool(st["use_claude_skills"]), "off": list(st["off"])}
         task.session_id = str(uuid.uuid4())
         task.max_minutes = min(30, int(st["max_minutes"]))
+        task.max_budget_usd = min(2.0, float(st["max_budget_usd"]))      # unattended: never more than the default brake
         task.scope = "files_and_commands"
         with self._lock:
             self._tasks[task.task_id] = task
@@ -366,7 +367,8 @@ class TaskManager:
         cfg = task.skills_cfg or {"use": True, "off": []}
         return cc.build_argv(binary, prompt, scope=scope, session_id=task.session_id or "",
                              deny_rules=cc.protected_deny_rules(data_dir(), repo_root()),
-                             skills_enabled=bool(cfg.get("use", True)), skills_off=list(cfg.get("off") or []))
+                             skills_enabled=bool(cfg.get("use", True)), skills_off=list(cfg.get("off") or []),
+                             max_budget_usd=task.max_budget_usd)
 
     def _propose_claude(self, task: Task) -> str:
         if looks_like_secret(task.text):
@@ -380,6 +382,7 @@ class TaskManager:
         task.skills_cfg = {"use": bool(st["use_claude_skills"]), "off": list(st["off"])}
         task.session_id = str(uuid.uuid4())
         task.max_minutes = int(st["max_minutes"])
+        task.max_budget_usd = float(st["max_budget_usd"])
         try:
             task.hashes = {s: cc.command_hash(self._claude_argv(task, s), folder) for s in ("files_and_commands", "everything")}
         except TaskError as e:
@@ -391,9 +394,9 @@ class TaskManager:
         task.consent = {
             "kind": "claude_agent", "scope_text": CLAUDE_SCOPE_TEXT, "can": can,
             "cannot": ["Use Knack's own keys or models", f"Keep going past {task.max_minutes} minutes or after you press Stop",
-                       "Start anything else on its own"],
+                       f"Spend more than US${task.max_budget_usd:.2f} of your Claude account on this task", "Start anything else on its own"],
             "folder": _display(folder), "command_hash": task.hashes["files_and_commands"][:12], "cost_note": CLAUDE_COST,
-            "max_minutes": task.max_minutes,
+            "max_minutes": task.max_minutes, "max_budget_usd": task.max_budget_usd,
             "buttons": {"allow": "Allow for this task", "decline": "Not now",
                         "more": [{"id": "everything", "label": "Allow everything for this task"}]},
         }
@@ -412,7 +415,7 @@ class TaskManager:
             "can": ["Open pages and read them", "Click and type in its own browser window"],
             "cannot": ["Use your own browser or your saved logins", "Buy, send or submit anything without asking you first",
                        "Keep going after you press Stop"],
-            "folder": None, "command_hash": None, "cost_note": "Uses Knack's models.", "max_minutes": 15,
+            "folder": None, "command_hash": None, "cost_note": "Uses Knack's models.", "max_minutes": 15, "max_budget_usd": None,
             "buttons": {"allow": "Allow for this task", "decline": "Not now", "more": []},
         }
         task.max_minutes, task.scope, task.question = 15, "none", None
@@ -670,13 +673,14 @@ class TaskManager:
 
         run = cc.ClaudeRun(argv, folder, cc.child_env(), max_seconds=t.max_minutes * 60, idle_seconds=self._idle_seconds,
                            max_out_bytes=self._max_out, on_step=lambda line: self.progress(t, line), on_quiet=on_quiet,
-                           on_start=on_start, is_killed=is_killed, popen=self._popen, grace_s=self._grace_s, tick_s=self._tick_s)
+                           on_start=on_start, is_killed=is_killed, popen=self._popen, grace_s=self._grace_s, tick_s=self._tick_s,
+                           max_budget_usd=t.max_budget_usd)
         with self._lock:
             self._runs[t.task_id] = run
             if t.stop_requested:
                 return
         outcome = run.run()
-        t.out_bytes = outcome.out_bytes
+        t.out_bytes, t.cost_usd = outcome.out_bytes, outcome.cost_usd         # what the CLI itself reported, a number or nothing
         try:
             self._ledger("claude_agent_stop", "claude-cli", outcome.out_bytes,
                          f"task={t.task_id} scope={scope} stop={outcome.why} {int(outcome.duration_s)}s"
@@ -685,7 +689,8 @@ class TaskManager:
             pass
         self._audit("agent", "task", t, outcome.state, outcome.why, duration_s=int(outcome.duration_s), out_bytes=outcome.out_bytes,
                     exit_code=-1 if outcome.exit_code is None else outcome.exit_code)
-        if t.state in FINISHED:                               # stop() already showed it as stopped
+        if t.state in FINISHED:                               # stop() already showed it as stopped; keep the cost the CLI reported
+            self._save(t)
             return
         target = self._open_target(t, outcome.written)
         if outcome.state == "done":
@@ -698,9 +703,9 @@ class TaskManager:
                     except OSError:
                         pass
             t.open = target
-            self._finish(t, "done", result=first_sentence(full) or "Finished. The files are in the folder.")
+            self._finish(t, "done", result=with_cost(first_sentence(full) or "Finished. The files are in the folder.", outcome.cost_usd))
         else:
-            t.open = target if outcome.why in ("wall", "stop", "kill", "idle", "flood") else None
+            t.open = target if outcome.why in ("wall", "stop", "kill", "idle", "flood", "budget") else None   # partial work can be opened
             self._finish(t, "stopped" if outcome.state == "stopped" else "failed", reason=outcome.reason)
 
     def _open_target(self, t: Task, written: list[str]) -> dict[str, str] | None:

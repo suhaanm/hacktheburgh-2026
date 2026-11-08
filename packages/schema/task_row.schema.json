@@ -11,7 +11,7 @@
     },
     "Card": {
       "type": "object", "additionalProperties": false,
-      "required": ["kind", "scope_text", "can", "cannot", "folder", "command_hash", "cost_note", "max_minutes", "buttons"],
+      "required": ["kind", "scope_text", "can", "cannot", "folder", "command_hash", "cost_note", "max_minutes", "max_budget_usd", "buttons"],
       "properties": {
         "kind": {"enum": ["claude_agent", "browser"]},
         "scope_text": {"type": "string", "minLength": 1, "maxLength": 300},
@@ -21,6 +21,7 @@
         "command_hash": {"type": ["string", "null"], "pattern": "^[0-9a-f]{12}$"},
         "cost_note": {"type": ["string", "null"], "maxLength": 120},
         "max_minutes": {"type": "integer", "minimum": 1, "maximum": 120},
+        "max_budget_usd": {"type": ["number", "null"], "minimum": 0.5, "maximum": 20},
         "buttons": {
           "type": "object", "additionalProperties": false, "required": ["allow", "decline", "more"],
           "properties": {
@@ -46,7 +47,7 @@
     },
     "RowBase": {
       "type": "object",
-      "required": ["task_id", "title", "route", "source", "state", "attended", "latest", "steps_done", "result", "reason", "started", "finished",
+      "required": ["task_id", "title", "route", "source", "state", "attended", "latest", "steps_done", "result", "reason", "cost_usd", "started", "finished",
                    "open", "needs_consent", "question"],
       "properties": {
         "task_id": {"type": "string", "pattern": "^tk_[0-9a-f]{8}$"},
@@ -59,6 +60,7 @@
         "steps_done": {"type": "integer", "minimum": 0},
         "result": {"type": ["string", "null"], "maxLength": 140},
         "reason": {"type": ["string", "null"], "maxLength": 160},
+        "cost_usd": {"type": ["number", "null"], "minimum": 0, "description": "What the Claude CLI itself reported the task cost, in US dollars; null for every other route."},
         "started": {"type": "string", "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$"},
         "finished": {"type": ["string", "null"], "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$"},
         "open": {
