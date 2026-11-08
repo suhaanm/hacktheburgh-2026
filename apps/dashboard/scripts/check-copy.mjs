@@ -62,10 +62,12 @@ const phraseRe = (ph) => (ph.endsWith(":") ? new RegExp(`(?:^|[.!?]\\s+)${escape
 const PHRASES = banned.phrases.map((ph) => [ph, phraseRe(ph)]);
 /** Internal identifiers that carry the old name (storage keys, events, environment names, file and directory names) are not copy. */
 const stripIds = (t) => t.replace(/\S*[-_./\\:~]understudy\S*|\S*understudy[-_./\\:~]\S*|\bUNDERSTUDY_\w*/gi, " ");
-export function lintText(text) {
+/** The Evidence page (admin More) is the reviewers' page: its Measured on column, limitations and findings say how each result was obtained, so the example family of words is allowed there and only there. */
+const EXAMPLE_FAMILY = /^(made[- ]up|example data|example week|sample data|stand[- ]in|not real workers|for this build|fixture)$/i;
+export function lintText(text, { evidence = false } = {}) {
   const out = [];
   for (const [ph, re] of PHRASES) { const m = re.exec(text); if (m) out.push(`phrase "${m[0].replace(/^[.!?]\s+/, "")}"`); }
-  for (const w of banned.visible_words) { const m = new RegExp(`\\b${escapeRe(w)}\\b`, "i").exec(text); if (m) out.push(`word "${m[0]}"`); }
+  for (const w of banned.visible_words) { if (evidence && EXAMPLE_FAMILY.test(w)) continue; const m = new RegExp(`\\b${escapeRe(w)}\\b`, "i").exec(text); if (m) out.push(`word "${m[0]}"`); }
   const bare = stripIds(text);
   const old = new RegExp(`\\b${escapeRe(banned.visible_old_name.word)}\\b`, "i").exec(bare);
   if (old) out.push(`old name "${old[0]}"`);
@@ -304,7 +306,7 @@ try {
           lintDone.add(`${view}:${id}`);
           const seen = new Set();
           for (const chunk of await page.evaluate(readableInPage)) {
-            const hits = lintText(chunk);
+            const hits = lintText(chunk, { evidence: id === "evidence" });
             if (hits.length && !seen.has(chunk)) { seen.add(chunk); problems.push(`copy lint, ${hits.join(" and ")}: ${chunk.slice(0, 90)}`); }
           }
         }
