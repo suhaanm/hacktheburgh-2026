@@ -202,6 +202,12 @@ interface ReadOpts {
   layer?: ExtensionName;
   /** Its fallback draws nothing (an empty list, no answer), so it says nothing about where THE SCREEN's numbers came from: it is not counted in the live and example sources the sidebar's status reads. */
   quiet?: boolean;
+  /**
+   * The engine ANSWERED 404 or 422 with an error of its own ("no such worker": nothing is recorded for this person, which is a normal state for a role with no such data,
+   * a commit habit for a benefits processor). That is an answer, not a missing service, and the caller turns it into its own calm "nothing recorded yet" (Growth does,
+   * components/growth/own.ts): it is not counted as example data in the sidebar's status. The fallback is still returned, as before.
+   */
+  calmUnknown?: boolean;
 }
 const ENGINE_WHO = { service: "The engine" };
 const AGENT_WHO = { service: "The agent service" };
@@ -219,8 +225,8 @@ function knownOff(layer: ExtensionName | undefined, who: { service: string }): F
 async function read<T>(path: string, fallback: () => { data: T; meta?: AnalyticMeta | null }, base = ENGINE_URL, opts: ReadOpts = {}): Promise<Loaded<T>> {
   const who = opts.who ?? (base === AGENT_URL ? AGENT_WHO : ENGINE_WHO);
   const note = (kind: "live" | "demo"): void => { if (!opts.quiet) noteSource(kind); };
-  const demoWith = (why: Fallback): Loaded<T> => {
-    note("demo");
+  const demoWith = (why: Fallback, count = true): Loaded<T> => {
+    if (count) note("demo");
     const f = fallback();
     return { data: clone(f.data), meta: f.meta ? clone(f.meta) : null, source: "demo", why };
   };
@@ -232,9 +238,10 @@ async function read<T>(path: string, fallback: () => { data: T; meta?: AnalyticM
   const r = await send(base, path, "GET");
   const fail = { reached: r.reached, status: r.reached ? r.status : undefined, body: r.reached ? r.body : undefined };
   const flag = opts.layer ? FLAG_FOR[opts.layer] : opts.who?.flag;
-  if (isMissing(r)) return demoWith(classify(fail, { ...who, flag }));
+  const answeredNoSuchWorker = opts.calmUnknown === true && r.reached && (r.status === 404 || r.status === 422) && !!(r.body as { error?: unknown } | null)?.error;
+  if (isMissing(r)) return demoWith(classify(fail, { ...who, flag }), !answeredNoSuchWorker);
   if (r.reached && r.status >= 400) {
-    if (opts.soft) return demoWith(classify(fail, { ...who, flag }));
+    if (opts.soft) return demoWith(classify(fail, { ...who, flag }), !answeredNoSuchWorker);
     throw toApiError(r.status, r.body);
   }
   note("live");
@@ -304,7 +311,7 @@ export const api = {
     read<Genome>(`/genome/${encodeURIComponent(task)}?${new URLSearchParams({ ...(person ? { person } : {}), reference })}`, () => ({
       data: dataOf<Genome>(genomeFx),
       meta: metaOf(genomeFx),
-    })),
+    }), ENGINE_URL, { calmUnknown: true }),
 
   transitions: (task = "t_entitlement_check") =>
     read<Transitions>(`/graph/transitions?task=${encodeURIComponent(task)}`, () => ({ data: dataOf<Transitions>(transitionsFx), meta: metaOf(transitionsFx) })),
@@ -320,7 +327,7 @@ export const api = {
       const nodes = d.nodes.filter((n) => !demo.workDeleted.has(n.id));
       const ids = new Set(nodes.map((n) => n.id));
       return { data: { nodes, links: d.links.filter((l) => ids.has(l.a) && ids.has(l.b)) }, meta: metaOf(workgraphFx) };
-    }),
+    }, ENGINE_URL, { calmUnknown: true }),
 
   presence: async (person?: string): Promise<Loaded<Presence>> => {
     const r = await api.presenceRaw(person);
@@ -390,14 +397,14 @@ export const api = {
 
   /* -- Extensions (REQ-2): each is flag-gated; without the engine the fixtures answer ----------------------------- */
   calendarWeek: (person?: string, week?: string) =>
-    read<CalendarWeek>(`/calendar/week${qs({ person, week })}`, () => ({ data: dataOf<CalendarWeek>(weekFx), meta: metaOf(weekFx) }), ENGINE_URL, { layer: "calendar", soft: true }),
+    read<CalendarWeek>(`/calendar/week${qs({ person, week })}`, () => ({ data: dataOf<CalendarWeek>(weekFx), meta: metaOf(weekFx) }), ENGINE_URL, { layer: "calendar", soft: true, calmUnknown: true }),
 
   /** Who has a calendar (additive route): drives the person and week pickers. */
   calendarPeople: () =>
     read<CalPerson[]>("/calendar/people", () => ({ data: dataOf<CalPerson[]>(calPeopleFx), meta: metaOf(calPeopleFx) }), ENGINE_URL, { layer: "calendar", soft: true }),
 
   calendarSuggestions: (person?: string, week?: string) =>
-    read<CalSuggestion[]>(`/calendar/suggestions${qs({ person, week })}`, () => ({ data: dataOf<CalSuggestion[]>(suggestionsFx), meta: metaOf(suggestionsFx) }), ENGINE_URL, { layer: "calendar", soft: true }),
+    read<CalSuggestion[]>(`/calendar/suggestions${qs({ person, week })}`, () => ({ data: dataOf<CalSuggestion[]>(suggestionsFx), meta: metaOf(suggestionsFx) }), ENGINE_URL, { layer: "calendar", soft: true, calmUnknown: true }),
 
   briefing: (person?: string) =>
     read<Briefing>(`/briefing${qs({ person })}`, () => ({ data: demo.briefing, meta: metaOf(briefingFx) }), ENGINE_URL, { layer: "proactive", soft: true }),
@@ -513,7 +520,7 @@ export const api = {
   gitPeople: () => read<GitPeople>("/git/people", () => ({ data: fx<Analytic<GitPeople>>(gitPeopleFx).data ?? fx<GitPeople>(gitPeopleFx), meta: null }), ENGINE_URL, { layer: "git", soft: true }),
 
   gitHabits: (person?: string, repo?: string) =>
-    read<GitHabits>(`/git/habits${qs({ person, repo })}`, () => ({ data: dataOf<GitHabits>(gitHabitsFx), meta: metaOf(gitHabitsFx) }), ENGINE_URL, { layer: "git", soft: true }),
+    read<GitHabits>(`/git/habits${qs({ person, repo })}`, () => ({ data: dataOf<GitHabits>(gitHabitsFx), meta: metaOf(gitHabitsFx) }), ENGINE_URL, { layer: "git", soft: true, calmUnknown: true }),
 
   /** Notices: how loudly each kind of notice speaks, the day's budget and what was learned. Metadata only. */
   attentionSettings: (person?: string) =>
