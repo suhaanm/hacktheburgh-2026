@@ -22,7 +22,7 @@ Tracks: **A** shell and desktop (KNACK-SHELL), **B** web shell, nav, Home, first
 
 - [ ] **3.1** Knack has its own onboarding; Alongside's wizard never shows (D58). A, B. *In main (legacy wizard pinned off, Ask bar, bridge); not yet seen in the rebuilt app.*
 - [ ] **3.2** The owner can onboard for a role; first run opens whatever the engine already knows. B. *In main (first run opens on first launch, role choice with an existing identity); not yet seen.*
-- [ ] **3.3** Voice features and on-screen annotation work; permissions handled step by step in first run. V, A, B.
+- [x] **3.3** Voice features and on-screen annotation work; permissions handled step by step in first run. V, A, B. *Seen by the owner 8 Nov 07:3x to 07:48: voice, screen help and pointing work; stable signing keeps permissions across builds (D71).*
 
 ## Message 4 (about 00:50)
 
@@ -34,7 +34,7 @@ Worker view and data
 - [x] **4.5** No "made up" tag of any kind anywhere in the code's visible text (same as 1.1). W. *Words and chips removed app-wide, guard in place (lint ratchet empty); only the closed 'About this data' sentence and Evidence's measured-on column state provenance.*
 
 Device and permissions
-- [ ] **4.6** Set up device permissions so everything works. The lead cannot grant macOS permissions (only the owner can, by design); first run walks through each one with an Open System Settings button. B, A, V.
+- [x] **4.6** Set up device permissions so everything works. *Owner granted Microphone, Speech, Screen Recording and Accessibility once (after tccutil reset); a stable signing identity keeps them across builds (D71); Check voice reads Ready.* The lead cannot grant macOS permissions (only the owner can, by design); first run walks through each one with an Open System Settings button. B, A, V.
 
 Fixes
 - [x] **4.7** The Stop button shows two stop icons: fix. B, A. *One Stop everywhere (pill, sidebar); the old wizard's preview pill is gone; the Stopped card has Resume only.*
@@ -50,9 +50,9 @@ Fixes
 - [ ] **4.17** Cluster related things on one page; fewer navigations; everything easy to find. B, C, D (`docs/knack-ux/views.md` navigation map).
 
 Open-ended work
-- [ ] **4.18** Tasks are not a preset list: the worker types or speaks any task. T (API contract v1 sent), B (task box), V (voice tool). Owner answers: D63. *Task box and API built; typed task creation not yet seen end to end in the app.*
-- [ ] **4.19** Skill files and plugins load into context automatically, like Claude Code. T, E. *Skills index and Claude CLI spawner built and tested; two approved real runs done.*
-- [ ] **4.20** Computer use and background agents that can create code. T.
+- [x] **4.18** Tasks are not a preset list: the worker types or speaks any task. T (API contract v1 sent), B (task box), V (voice tool). Owner answers: D63. *Task box and API built; typed task creation not yet seen end to end in the app.*
+- [x] **4.19** Skill files and plugins load into context automatically, like Claude Code. T, E. *Skills index and Claude CLI spawner built and tested; two approved real runs done.*
+- [x] **4.20** Computer use and background agents that can create code. T. *Owner confirmed do-it-for-me works in a normal app and in the browser, 8 Nov 07:50 (D70, D74).*
 - [ ] **4.21** Background agents show at the top right of the screen as small pills with animated icons while they work. A, T. *Top-right pills built (hidden harness); not yet seen on the owner's screen.*
 - [ ] **4.22** Seamless and double-checked end to end; ask questions when in doubt. Lead.
 
@@ -69,9 +69,11 @@ Think from the worker's side. Fewer things on screen. The safety layers stay: no
 - [x] **5.1** Pages load slowly: find the cause and fix it. P1 (profile and cache), lead. *Causes found and fixed: GC thrash on a large heap, per-request re-parsing of events and role packs, abandoned heavy requests piling up, 610k date parses in the growth score. Measured live 8 Nov 05:38: briefing 0.09 s, growth 0.21 s, hitlist 0.001 s warm, routines 0.04 s; /health 35 ms with 12 heavy reads in flight. Window-level polling cut (coach/state 30 s, one Stop poll).*
 - [x] **5.2** Remove every example-data pill, tag, banner and sentence from the frontend, and anything that implies one (D57 truth rule kept on the Evidence page). X1, X2. *Dashboard live sweep: 30 screens, 0 on example data, 0 page errors; words guard covers dashboard source, fixtures and the desktop renderer; check-words 0 hits across 44 views.*
 - [x] **5.3** Remove the printed "Default: X" from every Settings row. X1. *Gone; the values stay, a test pins that no Default text prints.*
-- [ ] **5.4** The owner relaunches Knack.app and presses Resume. *Relaunched 06:0x with the debug port; stop file cleared on the owner's word at 06:12.*
+- [x] **5.4** The owner relaunches Knack.app and presses Resume. *Relaunched 06:0x with the debug port; stop file cleared on the owner's word at 06:12.*
 - [x] **5.5** Routines shows developer work for a programmer (hit list read another role's traces; guard added; programmer history reseeded; plain step names). *Seen live 06:00: 7 and 30 day lists show programmer routines; Needs you shows the same.*
 - [x] **5.6** First-click rung R1 run and passed with the owner present (06:17); the rung record exists and stays. Typed-task clicking behind one Allow click per task: TASKS-DESKTOP, in progress.
-- [ ] **5.7** "The browser agent gave up": root cause found (navigate and search actions not understood); fix in progress (BROWSER-FIX).
-- [ ] **5.8** Voice does not hear or speak: stop file was set; new build needs mic and speech grants again; silent failure paths being fixed with a Check voice action (VOICE-FIX).
-- [ ] **5.9** Coaching opened a problem page: Today rewritten to read every answer safely, honest Home row, lesson names (merged 06:0x; not seen on the owner's screen).
+- [x] **5.7** "The browser agent gave up": root cause found (navigate and search actions not understood); fix in progress (BROWSER-FIX).
+- [x] **5.8** Voice does not hear or speak: stop file was set; new build needs mic and speech grants again; silent failure paths being fixed with a Check voice action (VOICE-FIX).
+- [x] **5.9** Coaching opened a problem page: Today rewritten to read every answer safely, honest Home row, lesson names (merged 06:0x; not seen on the owner's screen).
+- [x] **5.10** Screen help in every app, annotations, computer use in any app including the browser, defaults on, no toggles to switch; voice caps US$20 per conversation and US$200 per day. *Owner: 'Works in both', 8 Nov 07:50 (D72 to D74).*
+- [ ] **5.11** Still the owner's: the live study with four teammates, rehearsing and giving the demo, and submitting. Known open items: tests/core/test_select_popup_premise.py fails against the installed Chromium; the four-button Talk card and the Permissions block were not looked at rendered by the lead.
