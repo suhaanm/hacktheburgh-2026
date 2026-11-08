@@ -120,6 +120,9 @@ def _pack(role: str):
         return load_pack("benefits-processor")
 
 
+_current_memo: dict[tuple[str, str], tuple[PersonData, PersonData]] = {}
+
+
 def _as_current(pd: PersonData | None) -> PersonData | None:
     """A real worker who changed role in setup but has not yet done any work under the new role: the role is the profile's and there are no current-role
     events, so routines, the hit list and the graph start clean for the new pack instead of reading the old role's work with the wrong pack. The earlier
@@ -132,6 +135,9 @@ def _as_current(pd: PersonData | None) -> PersonData | None:
         return pd
     # History is kept per role and is never mixed: when the worker's events carry more than one role (earlier work under another role, seeded history, live capture beside it), the current
     # events are ALL the events of the profile's role, in any order the worker has switched, and every other role's events stay on ``earlier_events`` (readable, never in a count).
+    hit = _current_memo.get((pd.person, role))
+    if hit is not None and hit[0] is pd:                     # PersonSource hands out the same object until the person's files change, so the split is made once per data version
+        return hit[1]
     allev = [*pd.earlier_events, *pd.events]
     roles = {e.role for e in allev}
     if len(roles) > 1 and role in roles:
@@ -139,7 +145,11 @@ def _as_current(pd: PersonData | None) -> PersonData | None:
         cur = [e for e in allev if e.role == role]
         # the person's own truth file (a generated learner's trajectory) describes one role's days; it does not describe another role's
         truth = pd.truth if role == (pd.truth or {}).get("role", pd.role) else None
-        return dataclasses.replace(pd, role=role, events=cur, earlier_events=[e for e in allev if e.role != role], truth=truth)
+        out = dataclasses.replace(pd, role=role, events=cur, earlier_events=[e for e in allev if e.role != role], truth=truth)
+        if len(_current_memo) > 8:
+            _current_memo.clear()
+        _current_memo[(pd.person, role)] = (pd, out)
+        return out
     if pd.origin != "real" or not prof.get("history") or role == pd.role:
         return pd
     return dataclasses.replace(pd, role=role, events=[], earlier_events=[*pd.earlier_events, *pd.events])
