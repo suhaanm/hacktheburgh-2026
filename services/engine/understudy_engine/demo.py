@@ -413,7 +413,7 @@ def _seed_home(store: MemoryStore, home: Path, reset: bool, now: datetime | None
     for ln in (sec.lines() if sec else []):
         p = D.parse_skill_line(ln.text)
         if p and set(skills.get(p["skill"], {}).get("cogs", [])) & cogs:
-            store.update_line(ln.id, actor="worker", text=f"{p['skill']}: L4, streak 3, last seen {t.date().isoformat()}", note="demo seed")
+            store.update_line(ln.id, actor="worker", text=f"{p['skill']}: L4, streak 3, last seen {t.date().isoformat()}", note="set up for you")
             levelled.append(p["skill"])
     out(f"skill state: L4 on {', '.join(levelled) or 'nothing'} (the routine's cogs: {', '.join(sorted(cogs))})")
 

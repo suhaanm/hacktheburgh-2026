@@ -16,7 +16,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 
-from .calendar import flag_enabled, service, suggest
+from .calendar import flag_enabled, service, standin, suggest
 from .calendar.store import CalendarStore, default_store
 
 router = APIRouter(tags=["calendar"])
@@ -39,6 +39,16 @@ def _store() -> CalendarStore:
 def get_week(person: str = Query("", description="person id; default is the demo persona"), week: str = Query("", description="2026-W44 or a date")):
     if not flag_enabled():
         return _off()
+    who, role = standin.caller()
+    if standin.is_own(person, who):                 # the worker's own page: their week, under their id and role, with nobody else's id in it
+        st = _store()
+        src = standin.source_person(st, role)
+        try:
+            rep = service.week_report(st, src, week or None, as_person=who, as_role=role)
+        except service.CalendarError as exc:
+            return _error(exc.status, exc.code if exc.status != 404 else "unknown_person", "There is no calendar week to show for you yet." if exc.status == 404 else exc.message)
+        rep = standin.scrub(rep, set(st.people()), who, src)
+        return {"meta": {**service.week_meta(rep), "note": standin.NOTE}, "data": rep}
     try:
         rep = service.week_report(_store(), person or DEFAULT_PERSON, week or None)
     except service.CalendarError as exc:
@@ -59,11 +69,23 @@ def get_suggestions(person: str = Query(""), week: str = Query(""), reword: int 
     if not flag_enabled():
         return _off()
     do_reword = bool(reword) and _reword_allowed()
+    who, role = standin.caller()
+    own = standin.is_own(person, who)
     try:
-        rep = service.suggestions_report(_store(), person or DEFAULT_PERSON, week or None, reword=do_reword, max_n=limit or None)
+        if own:
+            st = _store()
+            src = standin.source_person(st, role)
+            rep = service.suggestions_report(st, src, week or None, reword=do_reword, max_n=limit or None, as_person=who, as_role=role)
+            rep = standin.scrub(rep, set(st.people()), who, src)
+        else:
+            rep = service.suggestions_report(_store(), person or DEFAULT_PERSON, week or None, reword=do_reword, max_n=limit or None)
     except service.CalendarError as exc:
+        if own and exc.status == 404:
+            return _error(404, "unknown_person", "There is no calendar week to show for you yet.")
         return _error(exc.status, exc.code, exc.message)
     meta = service.suggestions_meta(rep)
+    if own:
+        meta["note"] = standin.SUGGESTIONS_NOTE
     if reword and not do_reword:
         meta["note"] += " Rewording was asked for but the privacy layer is off, so the templated text is shown."
     return {"meta": meta, "data": rep["suggestions"]}
@@ -75,6 +97,13 @@ def get_people():
         return _off()
     st = _store()
     from .calendar.model import week_label
+
+    who, role = standin.caller()
+    if who:                                         # someone is set up: the worker's page lists the worker and nobody else (the picker has one entry)
+        src = standin.source_person(st, role)
+        pc = st.get(src)
+        return {"meta": {"origin": "synthetic", "n": 1, "n_unit": "people", "split": None, "interval_level": 0.95, "note": standin.NOTE, "generated_at": None},
+                "data": [{"person": who, "group": None, "role": role, "label": None, "weeks": [week_label(m) for m in (pc.weeks if pc else [])]}]}
     rows = []
     for p in st.people():
         info = st.info(p) or {}

@@ -6,13 +6,13 @@
 // click anything itself (the click machine only emits effects, and the card's Allow counts only as a real mouse click).
 import type { VoiceLock } from '../attention/lock'
 import type { DoItAnswer, DoItRequest, TaskAnswer } from '../live/ports'
-import type { ConsentCard, ConsentChoice, QuestionCard, TaskClient, TaskRow } from './tasks'
+import { parseTypedTask, type ConsentCard, type ConsentChoice, type QuestionCard, type TaskClient, type TaskRow } from './tasks'
 import { INITIAL, reduce, type ClickEffect, type ClickEvent, type ClickState, type ToolAnswer } from './click-machine'
 import { dormancy, type Dormancy, type WakeInputs } from './guards'
 import type { HelperStatus } from './helper'
 import type { RungReading } from './rung'
 import { consentOutcome, consentStep, type CardChoice, type WakeSettingsStore } from './settings'
-import { BLOCKED_LINE, CARDS, EVERYTHING_CARD, FIRST_WAKE_OPENING, taskConsentCard, taskQuestionCard, taskResultCard, clickFailureCard, LISTENING_LINE, REFUSAL_LINE, dormantLine, infoCardFor, type InfoCard } from './texts'
+import { BLOCKED_LINE, CARDS, EVERYTHING_CARD, FIRST_WAKE_OPENING, FIRST_WAKE_OPENING_SETUP, STARTED_CARD, TYPED_LINES, doneCard, failedCard, showInsteadCard, typedFailureLine, taskConsentCard, taskQuestionCard, taskResultCard, clickFailureCard, LISTENING_LINE, REFUSAL_LINE, dormantLine, infoCardFor, type InfoCard } from './texts'
 
 export interface CardSpec {
   id: string
@@ -131,6 +131,8 @@ export interface WakeController {
   openingText(): string | null
   /** The helper said `heard`. Exposed for the supervisor and for tests. */
   onHeard(): Promise<void>
+  /** The Ask bar's Return with no conversation open: the worker's own line becomes a task (source typed). ok: the bar closes; otherwise one plain sentence and the text stays. */
+  submitTyped(text: string): Promise<{ ok: boolean; line?: string }>
   /** The Live tool `start_task`: hands the worker's request to the task service, shows the consent card, never starts anything itself. */
   startTask(text: string): Promise<TaskAnswer>
   /** The wake session's `do_it_for_me` (the Live tool host calls it). */
@@ -165,6 +167,8 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
   const lastExplained = new Map<string, number>()
   const sleep = d.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
   const watching = new Set<string>()
+  // Tasks the worker typed: they get no spoken line, their words appear on cards instead.
+  const typedIds = new Set<string>()
   let taskCardId: string | null = null // the task consent or question card on screen, closed by Stop everything
   let blockedShown: string | null = null // the helper's blocked cause already explained on a card (cleared when the listener works again)
   const listeners = new Set<(s: WakeStatus) => void>()
@@ -402,15 +406,21 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
   const speakable = (row: TaskRow): string | null => (row.answer ?? row.result)?.slice(0, 300) ?? null
 
   function finished(row: TaskRow): void {
+    const typed = typedIds.has(row.task_id)
     if (row.state === 'stopped') return // the worker stopped it (or declined): nothing to say
-    if (row.state === 'failed') return d.say?.('did_not_work')
+    if (row.state === 'failed') {
+      if (typed) void d.cards.ask({ id: `failed-${row.task_id}`, ...failedCard(row.reason), expireMs: 20_000 })
+      else d.say?.('did_not_work')
+      return
+    }
     if (row.route === 'answer' && (row.answer || row.result)) {
       const said = speakable(row) ?? row.result ?? ''
-      const spoken = d.readOut?.(said) === true
+      const spoken = !typed && d.readOut?.(said) === true
       if (!spoken) void d.cards.ask({ id: `result-${row.task_id}`, ...taskResultCard(said), expireMs: 30_000 })
       return
     }
-    d.say?.('done')
+    if (typed) void d.cards.ask({ id: `done-${row.task_id}`, ...doneCard(row.result), expireMs: 20_000 })
+    else d.say?.('done')
   }
 
   /** The consent card for a task, answered only by a real mouse click. Not now and a timeout leave the task waiting (it is still in Needs you). */
@@ -431,7 +441,8 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
     const r = await d.tasks.consent(id, choice)
     if (!r.ok) return explain(failureCard(r.reason))
     if (choice === 'decline') return
-    d.say?.('started')
+    if (typedIds.has(id)) void d.cards.ask({ id: `started-${id}`, ...STARTED_CARD, expireMs: 8000 })
+    else d.say?.('started')
     watch(id)
   }
 
@@ -446,6 +457,35 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
     if (!r.ok) return explain(failureCard(r.reason))
     if (r.row?.needs_consent) return void confirm(id, r.row.needs_consent)
     if (r.row && (r.row.state === 'running' || r.row.state === 'planning')) watch(id)
+  }
+
+  async function submitTyped(raw: string): Promise<{ ok: boolean; line?: string }> {
+    if (!d.tasks) return { ok: false, line: TYPED_LINES.no_service }
+    const text = parseTypedTask(raw)
+    if (text === null) return { ok: false }
+    if (machine.k === 'killed') return { ok: false, line: TYPED_LINES.kill_switch }
+    const r = await d.tasks.create(text, 'typed')
+    if (!r.ok) return { ok: false, line: typedFailureLine(r.reason) }
+    const c = r.created
+    typedIds.add(c.task_id)
+    if (c.question) {
+      void askQuestion(c.task_id, c.question)
+      return { ok: true }
+    }
+    if (c.needs_consent) {
+      void confirm(c.task_id, c.needs_consent)
+      return { ok: true }
+    }
+    // No card: a request the service would not take at all comes back failed at once, with its own plain reason: that stays under the input with the text.
+    const row = await d.tasks.get(c.task_id).catch(() => null)
+    if (row?.state === 'failed') return { ok: false, line: row.reason ?? TYPED_LINES.refused }
+    if (c.route === 'desktop') {
+      void d.cards.ask({ id: `desktop-${c.task_id}`, ...showInsteadCard(c.summary), expireMs: 30_000 })
+      return { ok: true }
+    }
+    if (c.route === 'unclear') return { ok: false, line: TYPED_LINES.unclear }
+    watch(c.task_id) // an answer or a finished job appears on a card
+    return { ok: true }
   }
 
   async function startTask(text: string): Promise<TaskAnswer> {
@@ -548,12 +588,14 @@ export function createWakeController(d: WakeControllerDeps): WakeController {
     },
     refresh: evaluate,
     startTask,
+    submitTyped,
     arm() {
       armed = true
       d.helper.unblock()
       evaluate()
     },
-    openingText: () => (d.settings.get().welcomed ? null : FIRST_WAKE_OPENING),
+    // The very first conversation gets the welcome: the set-up variant while set-up is still open (it has no sidebar), the ordinary one after it.
+    openingText: () => (d.settings.get().welcomed ? null : d.firstRun?.() === true ? FIRST_WAKE_OPENING_SETUP : FIRST_WAKE_OPENING),
     explainRefusal(reason) {
       const t = now()
       const last = lastExplained.get(reason) ?? -Infinity

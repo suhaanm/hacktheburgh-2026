@@ -343,6 +343,34 @@ def test_the_rows_of_the_firm_are_ledger_shaped_and_labelled_with_the_enum(dd):
     assert "skill" in keys
 
 
+# ------------------------------------------------------------------------------------------------ the week's pointers follow the role and the work
+def test_a_week_pinned_with_no_data_is_recomputed_when_work_arrives_and_a_role_has_its_own_pin():
+
+    from understudy_engine.insights.types import FirmSnapshot, PersonRecord
+
+    firm = F.demo_firm(NOW).snapshot
+    donor = next(p for p in firm.people if p.role == "benefits-processor" and p.level == "junior" and len(p.rows) > 100)
+    state = {"rows": ()}
+
+    def snap(_source):
+        rec = PersonRecord(id="p_w", role="benefits-processor", level="junior", unit="local", tenure_weeks=8, label="p_w", origin="synthetic", rows=state["rows"])
+        return FirmSnapshot(now=NOW, people=(rec,), origin="synthetic", badge="live", source="local", feed_t={"ledger": NOW, "risk_feed": NOW})
+
+    svc = InsightsService(InsightsStore(), snapshot_provider=snap, clock=lambda: NOW)
+    first = svc.worker("p_w", "local")
+    assert first["status"] == "no_data" and first["pointers"] == []
+    state["rows"] = tuple(replace_person(r, "p_w") for r in donor.rows)                       # the week was pinned empty; work arrives
+    second = svc.worker("p_w", "local")
+    assert second["status"] != "no_data" and second["pointers"]
+    assert svc._pin_key(snap("local").people[0], snap("local")) == "p_w|benefits-processor"      # one pin per role for the worker's own ledger
+    fm = firm
+    assert svc._pin_key(fm.people[0], fm) == fm.people[0].id                                    # the firm's people keep one pin each
+
+
+def replace_person(row, pid):
+    return {**row, "person": pid}
+
+
 # ------------------------------------------------------------------------------------------------ a role change reaches the local snapshot
 def test_the_local_role_follows_the_profile_after_a_role_change(monkeypatch):
     prof = {"person": "p1", "role": "programmer", "role_since": "2026-11-05T10:00:00Z", "history": [{"role": "benefits-processor", "since": "2026-10-01T00:00:00Z", "until": "2026-11-05T10:00:00Z"}]}

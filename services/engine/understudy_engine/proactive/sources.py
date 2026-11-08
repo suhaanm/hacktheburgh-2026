@@ -123,9 +123,43 @@ def skill_rows_from_levels(levels: dict[str, dict[str, Any]], pack: Any, now_ts:
     return items
 
 
+def skill_rows_from_ledger(person: str, role: str, pack: Any, now_ts: float) -> list[dict[str, Any]]:
+    """One row per curriculum skill from the worker's assist ledger under ``role`` (work done under another role is never read): the level of the last occurrence, the mastery
+    the Cue score estimates for the skill, days since the last occurrence, errors among the last ten and the number of occurrences. Empty when the worker has no assist work under the
+    role, or the Cue layer is not importable (the caller then falls back to the memory file)."""
+    try:
+        from ..cue import score as cscore
+        from ..cue.ledger import Ledger
+    except Exception:
+        return []
+    try:
+        rows = [r for r in Ledger().rows(person, "assist") if r.get("role") == role]
+    except Exception:
+        return []
+    if not rows:
+        return []
+    g = cscore.growth(rows, person=person, now=now_ts, n_boot=0)
+    by = {s["skill"]: s for s in g.get("by_skill", [])}
+    items = []
+    for sk in pack.skills:
+        sid = str(sk["id"])
+        srows = [r for r in rows if r.get("skill") == sid]
+        if not srows:
+            items.append({**_skill_row(sk, 1, _LEVEL_MASTERY[1], None, None), "recent_errors": 0, "attempts": 0})
+            continue
+        e = by.get(sid) or {}
+        level = int(srows[-1].get("level_after") or e.get("level") or 1)
+        mastery = e.get("mastery")
+        idle = max(0.0, (now_ts - cscore.row_time(srows[-1])) / 86400.0)
+        items.append({**_skill_row(sk, level, float(mastery) if mastery is not None else _LEVEL_MASTERY.get(level, 0.2), idle, None),
+                      "recent_errors": sum(1 for r in srows[-10:] if r.get("outcome") == "error"), "attempts": len(srows)})
+    return items
+
+
 def read_skills(ctx: Ctx) -> Reading:
     """One row per curriculum skill: level, mastery, days since practice, days until the level would drop. A learner
-    trajectory person comes from the SkillTracker (with decay); anyone else from the memory file's Skill state."""
+    trajectory person comes from the SkillTracker (with decay); in a role the tracker does not know, from the worker's own assist ledger;
+    anyone else from the memory file's Skill state."""
     try:
         from .. import routes_handoff as rh
         from ..memory import MemoryStore
@@ -136,6 +170,11 @@ def read_skills(ctx: Ctx) -> Reading:
     pd = rh._src().load(ctx.person)
     role = ctx.role or (pd.role if pd else None) or "benefits-processor"
     pack = rh._pack(role)
+    if role != "benefits-processor":
+        # a role the skill tracker (benefits learners) knows nothing about: the worker's own assist ledger under THIS role is the evidence, when there is any
+        led = skill_rows_from_ledger(ctx.person, role, pack, ctx.now_ts)
+        if led:
+            return Reading(led, True, "from the assist ledger")
     learner = rh._learner(ctx.person, rh._case_for(ctx.person, None, mem))
     if learner is not None:
         return Reading(skill_rows_from_tracker(learner, pack, ctx.now_ts), True, "from the skill tracker")

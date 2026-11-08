@@ -11,7 +11,6 @@ import { app, BrowserWindow, nativeTheme, screen } from 'electron'
 import { registerAppScheme } from './app-protocol-electron'
 import { createAgentPills } from './agent-pills'
 import { createAskBar } from './ask-bar'
-import { askUnavailableLine } from './ask-ipc'
 import { createKnackShell, type KnackShell } from './knack-shell'
 import { createStack } from './stack'
 import { realStackDeps } from './stack-real'
@@ -20,6 +19,9 @@ import { registerHud } from '../hud'
 import { SettingsStore } from '../settings'
 import { STARTING_URL } from './mainwindow'
 import { resolveStackConfig } from './stack-config'
+
+// What the Ask bar shows under the input when a typed task cannot be taken (wake/texts.ts TYPED_LINES.unavailable): the text stays in the box.
+const REFUSED_LINE = 'The task service is not answering. Try again soon.'
 import type { Effect, ShellEvent } from './shell-machine'
 
 if (process.platform === 'darwin') {
@@ -382,7 +384,7 @@ async function run(): Promise<void> {
     onClosed: () => void (askClosed += 1),
     submit: (text) => {
       submitted.push(text)
-      return text.startsWith('inject') ? { ok: true } : { ok: false, line: askUnavailableLine('Alt+Space') }
+      return text.startsWith('inject') ? { ok: true } : { ok: false, line: REFUSED_LINE }
     },
   })
   ask.open('hello there')
@@ -404,11 +406,11 @@ async function run(): Promise<void> {
   await askShot('open')
   const sent = (await askWin?.webContents.executeJavaScript(`(async () => { const r = await window.knackAsk.submit('where is the calculator'); return r })()`)) as { ok: boolean; line?: string } | undefined
   await settle(400)
-  check('a line that cannot be answered stays open with one plain sentence (nothing is lost, nothing pretends to work)', sent?.ok === false && sent.line === 'Typing is not on yet. Hold Option-Space and speak.' && ask.isOpen() && submitted.at(-1) === 'where is the calculator', { sent, submitted })
+  check('a line that cannot be answered stays open with one plain sentence (nothing is lost, nothing pretends to work)', sent?.ok === false && sent.line === REFUSED_LINE && ask.isOpen() && submitted.at(-1) === 'where is the calculator', { sent, submitted })
   await askWin?.webContents.executeJavaScript(`document.getElementById('input').value = 'where is the calculator'; document.getElementById('card').requestSubmit()`)
   await settle(600)
   const askReply = (await askWin?.webContents.executeJavaScript(`({ hidden: document.getElementById('reply').hidden, text: document.getElementById('reply').textContent })`)) as { hidden: boolean; text: string } | undefined
-  check('the page shows that sentence under the input, and the window grows to fit it', askReply?.hidden === false && askReply.text === 'Typing is not on yet. Hold Option-Space and speak.' && (ask.window()?.getBounds().height ?? 0) > 80, { askReply, height: ask.window()?.getBounds().height })
+  check('the page shows that sentence under the input, and the window grows to fit it', askReply?.hidden === false && askReply.text === REFUSED_LINE && (ask.window()?.getBounds().height ?? 0) > 80, { askReply, height: ask.window()?.getBounds().height })
   await askShot('reply')
   const accepted = (await askWin?.webContents.executeJavaScript(`window.knackAsk.submit('  inject   this\\nline ')`)) as { ok: boolean } | undefined
   check('a line that is taken closes the bar, cleaned to one line', accepted?.ok === true && !ask.isOpen() && submitted.at(-1) === 'inject this line' && askClosed === 1, { accepted, submitted, askClosed })

@@ -717,6 +717,62 @@ check("routines: example data draws no background tasks (a sample is never a tas
   await page.unroute(AGENT);
 }
 
+// 8j. The account menu: who the worker is, Change profile (name and role through /profile), Set up again. The engine is answered here and every write recorded.
+{
+  const wrote = [];
+  const j = (route, body, status = 200) => route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(body) });
+  const ROLES = [{ id: "benefits-processor", name: "UK benefits processor", summary: "", depth: "deep" }, { id: "data-analyst", name: "Data analyst", summary: "", depth: "standard" }, { id: "programmer", name: "Programmer", summary: "", depth: "standard" }];
+  let refuse = null;
+  await page.route(ANY_SERVICE, async (route) => {
+    const req = route.request(), path = new URL(req.url()).pathname.replace(/^\/(engine|agent)/, "");
+    if (!/\/engine\//.test(req.url())) return j(route, { error: { code: "unavailable" } }, 503);
+    if (req.method() === "POST" && path === "/profile") {
+      const body = JSON.parse(req.postData() ?? "{}");
+      wrote.push({ body, actor: req.headers()["x-understudy-actor"], type: req.headers()["content-type"] });
+      if (refuse) return j(route, refuse, 422);
+      return j(route, { person: "p_you", role: body.role ?? "benefits-processor", name: body.name ?? null, role_changed: !!body.role, previous_role: body.role ? "benefits-processor" : null });
+    }
+    if (path === "/identity") return j(route, { person: "p_you", role: "benefits-processor" });
+    if (path === "/profile") return j(route, { person: "p_you", role: "benefits-processor", since: "2026-11-01", history: [], roles: ROLES });
+    if (path === "/health") return j(route, { ok: true, version: "x", mock: true, extensions: {} });
+    return j(route, { error: { code: "unavailable" } }, 503);
+  });
+  await page.evaluate(() => { try { localStorage.removeItem("understudy-display-name"); } catch { /* */ } });
+  await page.waitForTimeout(6500);   // the page skips a service for six seconds after a refused connection (the blocks before made some)
+  await go("/home", 1500);
+  const acct = page.locator("[data-account]:visible").first();
+  await acct.click();
+  await page.waitForTimeout(700);   // the roles are asked for when the menu opens
+  const who = page.locator("[data-testid=account-who]");
+  check("account menu: with no name it says Your name, and the role is the engine's", /Your name/.test(await who.innerText()) && /UK benefits processor/.test(await who.innerText()));
+  check("account menu: it lists Change profile, Set up again, View as, Settings (Appearance lives in Settings)", (await page.getByRole("menuitem", { name: "Change profile" }).count()) === 1 && (await page.getByRole("menuitem", { name: "Set up again" }).count()) === 1 && /View as/.test(await page.locator(".account__menu").innerText()) && (await page.locator(".account__menu").getByText("Appearance").count()) === 0);
+  await page.getByRole("menuitem", { name: "Change profile" }).click();
+  const nameBox = page.locator(".profile input[type=text]");
+  await nameBox.fill("R2D2");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.waitForTimeout(300);
+  check("account menu: a name with a digit is refused with the rule and nothing is sent", /Letters, spaces, hyphens and apostrophes/.test(await page.locator(".profile").innerText()) && wrote.length === 0);
+  await nameBox.fill("Amara Okafor");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.waitForTimeout(600);
+  check("account menu: a good name is sent alone, as the worker, as JSON, and the button shows it", wrote.length === 1 && JSON.stringify(wrote[0].body) === JSON.stringify({ name: "Amara Okafor" }) && wrote[0].actor === "worker" && /application\/json/.test(wrote[0].type) && /Amara Okafor/.test(await acct.innerText()) && /Saved\./.test(await page.locator(".profile").innerText()), JSON.stringify(wrote[0]));
+  await page.getByRole("button", { name: "Close" }).click();   // back to the menu, which stays open
+  await page.getByRole("menuitem", { name: "Change profile" }).click();
+  await page.locator(".profile").getByLabel("Programmer").check();
+  check("account menu: choosing another role says the history stays and Home, Growth and coaching follow", /Your history stays/.test(await page.locator(".profile").innerText()) && (await page.getByRole("button", { name: "Switch role" }).count()) === 1);
+  refuse = { error: { code: "unknown_role", message: "There is no role 'x'." } };
+  await page.getByRole("button", { name: "Switch role" }).click();
+  await page.waitForTimeout(500);
+  check("account menu: the engine's refusal is shown inline and the role does not change", /There is no role 'x'\./.test(await page.locator(".profile").innerText()) && wrote.length === 2);
+  refuse = null;
+  await page.getByRole("button", { name: "Switch role" }).click();
+  await page.waitForTimeout(600);
+  check("account menu: Switch role sends only the role", wrote.length === 3 && JSON.stringify(wrote[2].body) === JSON.stringify({ role: "programmer" }) && /Saved\./.test(await page.locator(".profile").innerText()), JSON.stringify(wrote[2]));
+  await page.keyboard.press("Escape");
+  await page.unroute(ANY_SERVICE);
+  await page.evaluate(() => { try { localStorage.removeItem("understudy-display-name"); } catch { /* */ } });
+}
+
 // 9. Kill switch
 await go("/growth");
 // One red square, once: exactly one Stop button is visible, it holds the word and nothing else, and its only square is the design system's ::before.
