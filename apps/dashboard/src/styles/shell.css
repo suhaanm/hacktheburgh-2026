@@ -40,7 +40,9 @@
 .stop-button { flex: none; transition: background-color var(--dur-fast) var(--ease-out); }
 .stop-button:hover { background: var(--bad-soft); }
 .stop-button[aria-pressed="true"] { background: var(--bad); border-color: var(--bad); color: var(--on-bad); }
-.stop-button[aria-pressed="true"]::before { background: var(--on-bad); }
+/* Stopped, the button reads Resume and its mark is a play triangle, not the square of "stop" (a square on a Resume button reads as "still stopped"). The square is the design
+   system's ::before; here it is reshaped with borders, so the shell still draws no mark of its own. */
+.stop-button[aria-pressed="true"]::before { width: 0; height: 0; background: none; border-style: solid; border-width: 5px 0 5px 8px; border-color: transparent transparent transparent var(--on-bad); }
 
 /* -- Banners inside the window: Track D's .inline-banner, placed in the page's left-aligned column ---------------------------------------- */
 .banner-wrap { padding: var(--space-4) var(--space-8) 0; max-width: calc(var(--content-read, 720px) + 2 * var(--space-8)); }

@@ -129,6 +129,11 @@ describe("the role cards", () => {
   it("with no packs there is still Not sure yet, so the worker is never stuck", () => { expect(roleCards([]).map((c) => c.id)).toEqual([NO_ROLE]); });
   it("cuts a pack summary to a short noun phrase of at most four words, never ending in a comma", () => {
     expect(cardLine("Runs entitlement checks for households and writes the case note.")).toBe("Runs entitlement checks");
+    // never ends on a word that needs the next one
+    expect(cardLine("Pulls numbers from a database, checks them and writes it up.")).toBe("Pulls numbers");
+    expect(cardLine("Reads code in the repository and ships changes.")).toBe("Reads code");
+    expect(cardLine("Cleans up the")).toBe("Cleans up");
+    expect(cardLine("Of")).toBe("Of");
     for (const p of packs) { const l = cardLine(p.summary); expect(l.split(" ").length, p.id).toBeLessThanOrEqual(4); expect(l, p.id).not.toMatch(/[,;:]$/); }
   });
 });
