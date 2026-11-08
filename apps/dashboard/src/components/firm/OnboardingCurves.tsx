@@ -1,3 +1,4 @@
+import { shortName } from "./insights";
 import { Details } from "../ui";
 import { Hint } from "../Hint";
 import { Headline, NumbersTable, SeeNumbers, ShortParagraph } from "./InsightFirst";
@@ -91,7 +92,11 @@ export function OnboardingBody({ data, meta }: { data: WireOnboarding; meta?: An
       {ch.any && (
         <figure className="chart insight-chart">
           <IntervalPlot title="Median step at which people reach the target, by role" rows={ch.rows} domain={ch.domain} ticks={ch.ticks} format={(v) => String(Math.round(v))} rowHeight={36} />
-          <figcaption className="note">Steps done in the role, to the {data.target.label} ({pct(data.target.value)} of steps without help). A line to aim at.</figcaption>
+          <figcaption className="note">Steps done in the role before {pct(data.target.value)} of steps are done without help. {pct(data.target.value)} is a goal the firm sets, not a measured standard.</figcaption>
+          {(() => {
+            const left = data.roles.filter((r) => !ch.rows.some((x) => x.id === r.role));
+            return left.length > 0 ? <p className="note" data-testid="onboarding-left-out">Not drawn: {left.map((r) => shortName(r.name)).join(", ")}, with fewer than {MIN_PEOPLE} people far enough in. The table has what there is.</p> : null;
+          })()}
         </figure>
       )}
       {data.roles.length > 0 && (

@@ -19,9 +19,9 @@ export function GrowthSection({ id, title, headline, children, open = false, sum
   busy?: boolean;
 }) {
   return (
-    <section id={`gr-${id}`} className="gr-sec" aria-labelledby={`gr-${id}-h`} aria-busy={busy || undefined} style={{ scrollMarginTop: "var(--space-5)" }}>
+    <section id={`gr-${id}`} className="gr-sec" aria-label={title} aria-busy={busy || undefined} style={{ scrollMarginTop: "var(--space-5)" }}>
       <p className="gr-sec__title" aria-hidden="true">{title}</p>
-      <h2 id={`gr-${id}-h`} className="gr-sec__headline"><span className="u-sr-only">{title}. </span>{headline}</h2>
+      <h2 id={`gr-${id}-h`} className="gr-sec__headline">{headline}</h2>
       {children != null && <Details key={open ? "open" : "closed"} summary={summary} wide defaultOpen={open}>{children}</Details>}
     </section>
   );

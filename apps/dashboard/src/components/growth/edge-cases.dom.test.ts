@@ -259,6 +259,20 @@ describe("Whose data a section may ask for", () => {
     expect(api.calendarWeek.mock.calls[0][0]).toBe("p_me01");
     expect(api.gitHabits.mock.calls[0][0]).toBe("p_me01");
   });
+  it("a live engine that answers 'no such worker' reads as nothing recorded, never as the example under an example tag", async () => {
+    setState({ engineUp: true, mock: false, person: "p_me01" });
+    const why = { kind: "error" as const, status: 404, code: "unknown_person", message: "no data for 'p_me01'. Try one of: p_ninetofive" };
+    const g = env(genomeFx), w = env(weekFx), h = env(gitFx), s = env(sugFx);
+    api.genome.mockResolvedValue({ data: g.data, meta: g.meta, source: "demo", why });
+    api.calendarWeek.mockResolvedValue({ data: w.data, meta: w.meta, source: "demo", why });
+    api.calendarSuggestions.mockResolvedValue({ data: s.data, meta: s.meta, source: "demo", why });
+    api.gitHabits.mockResolvedValue({ data: h.data, meta: h.meta, source: "demo", why });
+    const t = await show(createElement("div", null, createElement(StepsSection, { open: true }), createElement(TimeSection, { open: true }), createElement(CommitsSection, { open: true })));
+    expect(t).toMatch(/Nothing has been recorded for you yet/);
+    expect(t).not.toMatch(/Example data|example data|Showing example/);
+    expect(t).not.toMatch(/Revert|Week 44/); // none of the example case's or week's content
+    expect(around(t, OTHERS)).toBeNull();
+  });
   it("before the engine has answered, nothing is asked", async () => {
     setState({ extReady: false });
     await show(createElement(TimeSection, { open: true }));
