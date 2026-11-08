@@ -4,6 +4,8 @@
 
 **Capability:** See the work · **Status:** built · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
 
+**Navigation note (landing).** The lead's views rule (`docs/knack-ux/views.md`, from owner requests 4.1, 4.2, 4.11, 4.12 and 4.17 at about 00:50 UTC) is reorganising where screens live. Where this page says 'More, <screen>', check `apps/dashboard/src/components/home/navModel.ts` on main for the final place. 'Git habits' becomes a section of Growth for programmers ('my commits'); the Calendar ('Week') is no longer a worker destination and its new place is not verified.
+
 This page covers Calendar layer (week ribbon, Outlook and Teams adapters), Git habits for programmers.
 
 ## Calendar layer (week ribbon, Outlook and Teams adapters)

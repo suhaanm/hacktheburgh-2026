@@ -31,12 +31,22 @@ SHORT_LABELS: dict[str, dict[str, str]] = {
         "write_failing_test": "Write a failing test", "edit_and_commit": "Make the smallest change",
         "rerun_and_confirm": "Re-run the tests", "probe_edges": "Try the edges in the console",
         "review_diff": "Review the diff", "commit_fix": "Commit the fix",
+        # role-depth checks (RD, 7 Nov 2026): hand-written, at most 32 characters
+        "reproduce_locally": "Reproduce it locally", "bisect_change": "Bisect to the bad change", "add_logging": "Add a log line",
+        "write_commit_msg": "Write the commit message", "open_pr": "Open the pull request", "read_ci": "Read the CI result",
+        "answer_review": "Answer the review comments", "review_peer_pr": "Review the pull request", "watch_prod": "Watch the release",
+        "roll_back_safely": "Roll back one step", "profile_hot_path": "Profile the hot path", "write_migration": "Write the migration",
     },
     "data-analyst": {
         "profile_inputs": "Profile the inputs", "clean_data": "Fix what the profile showed",
         "run_and_inspect": "Run it, inspect the rows", "reconcile_to_control": "Reconcile with the control",
         "segment_breakdown": "Cut the data by segment", "sanity_check": "Sanity-check the number",
         "report_answer": "Report the answer",
+        # role-depth checks (RD, 7 Nov 2026): hand-written, at most 32 characters
+        "trace_source": "Trace it to the source", "join_safely": "Join without multiplying rows", "set_grain": "Set the grain of the answer",
+        "check_magnitude": "Check the scale and units", "quantify_uncertainty": "Say how sure the number is",
+        "write_finding": "Write the finding and caveat", "peer_check": "Get a second check", "make_reproducible": "Restart and run it all",
+        "parameterise_report": "Make the changing bits inputs", "schedule_refresh": "Schedule the refresh", "document_metric": "Write down the metric",
     },
 }
 
@@ -63,6 +73,30 @@ REASONS: dict[str, str] = {
     "why.control": "A total that disagrees with the control figure is wrong somewhere.",
     "why.segment": "An overall number can hide a difference between segments.",
     "why.report": "Say what the number is and how sure you are.",
+    # role-depth reasons (RD, 7 Nov 2026), 12 words or fewer
+    "why.reproduce": "A failure you can repeat on your machine is half fixed.",
+    "why.bisect": "Halving the history finds the bad change faster than guessing.",
+    "why.add_logging": "A log line with the ids saves the next incident.",
+    "why.commit_msg": "Say what changed and why; you will not remember later.",
+    "why.open_pr": "A clear description lets a reviewer start in one sitting.",
+    "why.read_ci": "Read the first red job before you ask anyone to look.",
+    "why.answer_review": "Every comment deserves a change or a reason.",
+    "why.review_peer": "A review that names one blocking reason gets acted on.",
+    "why.watch_prod": "The first ten minutes after a release show whether it works.",
+    "why.roll_back": "Know what the release wrote before you roll it back.",
+    "why.profile_hot": "The widest bar is rarely where you think it is.",
+    "why.migration": "Small steps that can be undone keep the data safe.",
+    "why.trace": "A column's meaning lives at its source, not in its name.",
+    "why.join": "A join on a repeated key quietly multiplies rows.",
+    "why.grain": "Counting the wrong unit gives a right-looking wrong number.",
+    "why.magnitude": "A number off by a factor of ten looks fine until checked.",
+    "why.interval": "A number without an interval claims more than it knows.",
+    "why.finding": "A finding with its caveat can be trusted and challenged.",
+    "why.peer": "A second pair of eyes catches what you stopped seeing.",
+    "why.repro": "A result that cannot be rerun cannot be trusted.",
+    "why.params": "Inputs you can change beat values you retype every week.",
+    "why.schedule": "A refresh nobody watches needs an alert when it fails.",
+    "why.metric_doc": "A metric without a definition becomes three different numbers.",
     "why.generic": "This is the step experts take next.",
 }
 
@@ -76,11 +110,17 @@ STEP_REASON: dict[str, dict[str, str]] = {
         "read_trace_first": "why.trace_first", "inspect_inputs": "why.inspect_inputs", "write_failing_test": "why.failing_test",
         "edit_and_commit": "why.small_change", "rerun_and_confirm": "why.rerun", "probe_edges": "why.edges",
         "review_diff": "why.review_diff", "commit_fix": "why.commit",
+        "reproduce_locally": "why.reproduce", "bisect_change": "why.bisect", "add_logging": "why.add_logging", "write_commit_msg": "why.commit_msg",
+        "open_pr": "why.open_pr", "read_ci": "why.read_ci", "answer_review": "why.answer_review", "review_peer_pr": "why.review_peer",
+        "watch_prod": "why.watch_prod", "roll_back_safely": "why.roll_back", "profile_hot_path": "why.profile_hot", "write_migration": "why.migration",
     },
     "data-analyst": {
         "profile_inputs": "why.profile", "clean_data": "why.clean", "run_and_inspect": "why.inspect",
         "reconcile_to_control": "why.control", "segment_breakdown": "why.segment", "sanity_check": "why.sanity",
         "report_answer": "why.report",
+        "trace_source": "why.trace", "join_safely": "why.join", "set_grain": "why.grain", "check_magnitude": "why.magnitude",
+        "quantify_uncertainty": "why.interval", "write_finding": "why.finding", "peer_check": "why.peer", "make_reproducible": "why.repro",
+        "parameterise_report": "why.params", "schedule_refresh": "why.schedule", "document_metric": "why.metric_doc",
     },
 }
 

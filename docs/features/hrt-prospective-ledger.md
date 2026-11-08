@@ -1,0 +1,150 @@
+# Prospective ledger, drift guard and decisions scoreboard
+
+> Write the prediction down before the outcome exists, score only from that record, notice when the model stops beating a plain baseline, and score every decision rule against a naive policy and an oracle. Held-out results exist; 8 of 10 registered claims passed and 2 did not.
+
+**Capability:** Evidence and honesty · **Status:** landing · **Master document:** `docs/PITCH_FEATURES.md` · **Index:** `docs/features/index.md`
+
+This page covers Prospective prediction ledger and forward scoring, Drift guard: noticing when the model stops beating the baseline, Decisions scoreboard: realised cost against a naive policy and an oracle.
+
+## Prospective prediction ledger and forward scoring
+
+**Status:** landing (decision D59; plan registered at 00:35 UTC before any held-out run; code, held-out results and docs/HRT_BRIEF.md are on branch worktree-agent-a02c9cf8855c9f4ff, not on main; the running product does not write to the ledger yet) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
+
+### What it does
+
+Every prediction is written to an append-only record before its outcome exists, and the model is scored only from that record, forward in time, against the simplest competent predictor.
+
+### How it works
+
+The ledger is a hash chain: each entry carries the hash of the one before, and a verify step recomputes it. A prediction records when it was made, the probability, the name and version of the model and of every baseline that predicted the same thing at that moment, and a horizon. An outcome can be added once, and only after the horizon. A baseline that learns online may use only outcomes already resolved by then. Scoring reads only resolved predictions, reports how many are pending, and refuses to score below 200 resolved predictions or when a stream has a gap. Nothing in the record holds page text, URLs, names or field values. Scores are log loss, Brier, expected calibration error, the reliability table and the calibration slope and intercept; intervals are 95% cluster bootstraps over people, paired across models. The deployed stuck model is fitted once on a deployment history and frozen. The held-out run happened once, through a command that refuses without a freeze, with a changed code hash, or a second time.
+
+**What is different.** Predictions are written to a hash-chained record before their outcomes exist and scored only from it, forward in time, instead of by leave-one-person-out on a pooled table.
+
+### Where to see it
+
+Not on a screen on main. Code is under understudy_engine/hrt on the HRT branch (the dashboard pages 'Prospective predictions' and 'Decisions scoreboard' are named in the brief); the plan is evals/hrt/PLAN.md and the judge-facing brief is docs/HRT_BRIEF.md.
+
+### Demo moment
+
+Read the registered claims as run: the model beats both plain baselines in the world it was fitted for (P1, passed); it is not perfectly calibrated there (P2, did not pass: the intercept interval excludes zero); and in three shifted worlds it is worse than the best plain predictor (P3, passed as a registered expectation of failure).
+
+### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| P1 passed: in the first world (8 deployments, 61,631 scored bins, 32 persona-streams of four types) the frozen model's log loss is 0.445 [0.434, 0.455] against 0.525 for the online base rate and 0.524 for frozen time since progress; paired differences -0.080 [-0.086, -0.075] and -0.079 [-0.085, -0.074] | synthetic, held-out single frozen run, new seeds | `evals/hrt/results/heldout_ledger.json (branch)` |
+| P2 did not pass: calibration slope 0.999 [0.963, 1.035] contains 1, but the intercept +0.075 [0.002, 0.162] excludes 0, so the model under-predicts the stuck rate slightly | synthetic, held-out | `evals/hrt/results/heldout_ledger.json (branch)` |
+| P3 passed: in three shifted worlds the model is worse than the best plain predictor by +0.324 [0.277, 0.374] (markov), +0.331 [0.289, 0.377] (latent skill) and +0.513 [0.434, 0.602] (process trace) nats per bin | synthetic, held-out, 160 people per world | `evals/hrt/results/heldout_ledger.json (branch)` |
+| P5 passed: time to the next progress event, truncated CRPS 3.95 s [3.85, 4.03] against 4.76 s [4.66, 4.86] for a Kaplan-Meier constant; difference -0.816 s [-0.853, -0.779]; 98% of origins are censored by the episode's end, so the score is truncated to the observed steps and nothing is imputed | synthetic, held-out, one world | `evals/hrt/results/heldout_ledger.json (branch)` |
+| P6a did not pass: error-risk model, no rule change: log loss better than the online base rate by 0.111 [0.106, 0.117] but calibration slope 0.959 [0.932, 0.989], slightly over-confident | synthetic, held-out | `evals/hrt/results/heldout_ledger.json (branch)` |
+| Overall, 8 of 10 registered claims passed and 2 did not; a claim that did not pass stays in the table | synthetic, held-out single frozen run | `docs/HRT_BRIEF.md (section 2b; branch)` |
+
+### Honest limit
+
+Everything is generated by us; a held-out replicate catches overfitting to one noise draw, never 'the model learned our generators'. The first world draws new people of the same four persona types the model was fitted on. The ledger is built and tested, but the running product does not call it, so no live prediction has been recorded and a real prospective result does not exist. Nothing here is about real people, agents or reviewers, and the live study (n = 4) has not been run. In the error-risk world after a rule change the model stays better than the plain predictor while its calibration intercept moves, nothing recalibrates it, and the guard rightly stays silent: a named gap.
+
+### Hackathon target
+
+- **HRT (best use of data for predictions and decisions)**: predictions scored the way they are used (written first, scored later), against plain baselines, with failures printed
+
+## Drift guard: noticing when the model stops beating the baseline
+
+**Status:** landing (as above: on the HRT branch, results landed, not on main) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
+
+### What it does
+
+A guard compares the model's recent errors with the plainest competent predictor and falls back to that predictor when the evidence says the model has gone wrong.
+
+### How it works
+
+For each episode (each case, for error-risk routing) the bounded difference between the model's and the fallback's log loss feeds a betting-style e-process with a fixed bet size of 0.8. A flag is raised the first time the capital reaches 20, which, if the model is no worse than the fallback, happens with probability at most 5% (Ville's inequality; the plan states the condition under which that holds). After a flag the system uses the fallback for the rest of the stream. The decision is scored as a premium (what it costs when nothing is wrong) and a payout (what it saves when the model is wrong) against always trusting the model, always using the fallback and an oracle that knew in hindsight.
+
+**What is different.** The system notices, with a statistical bound on false alarms, when its own model stops beating a plain baseline, and falls back, and that decision is scored for what it costs and saves.
+
+### Where to see it
+
+Not on a screen on main; the brief names a page 'Prospective predictions'.
+
+### Demo moment
+
+One sentence each: in the first world the guard never flagged (0 of 8), so it cost nothing; in each shifted world it flagged in 8 of 8 deployments and falling back saved 0.26 to 0.44 nats against always trusting the model.
+
+### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| P4a passed: flagged in 0 of 8 first-world deployments [0.00, 0.37]; P4c passed: premium +0.000 nats (it never flagged, so it never switched) | synthetic, held-out, 8 deployments | `evals/hrt/results/heldout_ledger.json (branch)` |
+| P4b passed: flagged in 8 of 8 deployments in each of the three shifted worlds, where the model was worse than the fallback | synthetic, held-out, 8 deployments per world | `evals/hrt/results/heldout_ledger.json (branch)` |
+| P4d passed: payout against always trusting the model -0.309 [-0.434, -0.196] (markov), -0.262 [-0.338, -0.194] (latent skill), -0.438 [-0.594, -0.292] (process trace) nats; deployment-level intervals, n = 8 per world | synthetic, held-out | `evals/hrt/results/heldout_ledger.json (branch)` |
+| P6b passed: for error risk, 0 of 8 flags with a rule change and 0 of 8 without, because after the change the model was still better than the online base rate (-0.172 [-0.181, -0.164]) | synthetic, held-out | `evals/hrt/results/heldout_ledger.json (branch)` |
+
+### Honest limit
+
+The false-flag bound needs each episode's loss difference to have conditional mean at most zero given the past; episodes of one person are not independent, so it is a design target checked on eight deployments, not a proof. Eight deployments per world give wide intervals. After a flag there is no return rule. The guard catches 'the model is no better than a plain predictor', not 'the model is still better but miscalibrated'.
+
+### Hackathon target
+
+- **HRT (best use of data for predictions and decisions)**: a decision rule that notices its own model failing, scored on premium and payout
+
+## Decisions scoreboard: realised cost against a naive policy and an oracle
+
+**Status:** landing (as above: on the HRT branch, results landed, not on main) · **Page:** `docs/features/hrt-prospective-ledger.md` · **Targets:** HRT
+
+### What it does
+
+For each decision rule Knack ships, the realised cost against a naive policy and an oracle policy, with paired intervals and a stated correction for the number of comparisons.
+
+### How it works
+
+One row per rule: when to build an automation (ski rental with a learned trust parameter, against break-even, build at once and never build), which cases an expert reviews under a 30% review budget (the routing model against random, confidence only and disagreement only), when to start a background run (the presence rule against running whenever idle for five minutes and a fixed overnight window) and whether to speak, annotate, take over or stay silent (the bandit snapshot against the rule baseline, always nudge and never speak). The oracles use the generator or the future, so they bound what is possible and are not implementable. Cue's recorded held-out run is read, not re-run, and the help-level ladder is not scored because it has no outcome until the live study. Four primary contrasts are judged at the Bonferroni-adjusted 98.75% level; every other cell is exploratory and never used to say a rule works; each row sweeps the cost the data cannot supply.
+
+**What is different.** Every shipped decision rule is scored against a naive policy and an oracle with a stated correction for the number of comparisons; the primary contrasts are chosen before any data.
+
+### Where to see it
+
+Not on a screen on main; the result is a report section and docs/HRT_BRIEF.md (section 4).
+
+### Demo moment
+
+One row, three numbers: naive, shipped, oracle. For when to review: 9.03 escaped errors per 100 cases for random review, 2.66 for the shipped router. Then the row where we lose, printed beside the wins: building at once beats our build-timing rule at the pack's own build costs.
+
+### Evidence and its label
+
+| What | Label | Source |
+|---|---|---|
+| All four registered contrasts are wins at the adjusted level: D1 build timing minus break-even -1.93 manual runs per routine [-2.02, -1.85] (adjusted [-2.04, -1.82]); D2 review router minus random review -6.37 escaped errors per 100 cases [-6.56, -6.19]; D3 background-run rule minus 'run whenever idle' +66.79 value per held-out day [55.74, 78.16]; D4 bandit snapshot minus rule baseline +0.235 reward per decision [0.231, 0.238] | synthetic, held-out single frozen run: 40, 40, 8 x 4 and 30 replicate worlds | `evals/hrt/results/heldout_decisions.json (branch)` |
+| Where the shipped rule does not win: 'build at once' costs 3.77, 7.54 and 15.08 against the rule's 4.93, 9.65 and 17.73 at build costs of 4, 8 and 16 runs, and the rule is ahead only at 32 (29.20 against 30.15); the router's edge over random review is partly signal the generator hands it; the background-run rule's margin over 'run whenever idle' depends on the assumed cost of a collision | synthetic, held-out | `docs/HRT_BRIEF.md (section 4; branch)` |
+| Where a model loses to the dumbest baseline: in each shifted world its log loss is 0.939, 0.949 and 1.168 against 0.615, 0.623 and 0.655 for the online base rate; the real-model agent-claim predictor (68 claims) has Brier 0.0038 against 0.0003 for a one-bit 'a confidence was stated' indicator | synthetic and real model on our sandbox, small n | `docs/HRT_BRIEF.md (section 5; branch)` |
+
+### Honest limit
+
+The simulators, the costs, the loss ratio and the oracles are ours; four of four wins is what one expects when the same people write the simulator and the rule, which is why the cells where a rule loses are printed next to the wins. The gap analysis in the brief lists what is not built: refusing off-policy estimates when overlap is poor, recalibrating after a rule change, wiring the running product to write the ledger, and publishing the time-to-progress forecast with intervals.
+
+### Hackathon target
+
+- **HRT (best use of data for predictions and decisions)**: decision regret and realised cost, with baselines, an oracle, a multiplicity correction and the losses shown
+
+## 30-second spoken script
+
+> A judge for predictions and decisions asks whether you wrote the prediction down before you knew the answer. This track keeps a hash-chained record of every prediction and scores only from it, forward in time, against the simplest competent predictor. Of ten registered claims, eight passed and two did not. In three shifted worlds our model was worse than a one-line baseline, and a guard that watches the record noticed in every deployment and fell back. Every decision rule is scored against a naive policy and an oracle, and we print the place where building at once beats our own rule.
+
+## Slide bullets
+
+- Predictions are written to a hash-chained ledger before the outcome exists; scored forward in time.
+- 8 of 10 registered claims passed; the two that did not are printed.
+- Shifted worlds: model worse than the best plain predictor by +0.32 to +0.51 nats; the guard flagged 8 of 8 and saved 0.26 to 0.44.
+- Four of four decision contrasts won; build-at-once beats our build-timing rule at the pack's costs.
+- On a branch, not main; the running product does not write the ledger yet.
+
+## Sources
+
+- `docs/DECISIONS.md (D59)`
+- `docs/HRT_BRIEF.md (branch worktree-agent-a02c9cf8855c9f4ff)`
+- `evals/hrt/PLAN.md (branch worktree-agent-a02c9cf8855c9f4ff)`
+- `evals/hrt/results/heldout_ledger.json (branch worktree-agent-a02c9cf8855c9f4ff)`
+- `evals/hrt/results/heldout_decisions.json (branch worktree-agent-a02c9cf8855c9f4ff)`
+- `services/engine/understudy_engine/hrt/ (branch worktree-agent-a02c9cf8855c9f4ff)`
+
+## Related pages
+
+`stuck-model.md`, `hrt-decisions.md`, `what-did-not-hold-up.md`

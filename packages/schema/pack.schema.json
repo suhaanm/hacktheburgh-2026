@@ -41,9 +41,10 @@
     "depth": {
       "enum": [
         "deep",
+        "standard",
         "thin"
       ],
-      "description": "Returned by GET /packs. Deep packs must also carry tasks, oracle and a full expert_policy."
+      "description": "Returned by GET /packs. deep: the pack carries tasks, oracle and a full expert_policy of its own, and is validated (the benefits pack). standard: full content for the whole job (expert policy coverage full, deeper onboarding, habits, many routine templates) and a role sandbox whose oracle lives in the agent, not in the pack; NOT validated with people. thin: onboarding, risk classes, tone and a sample routine only. The validator enforces the minimum content of standard (STANDARD_MINIMUM in packages/packs/validate.py)."
     },
     "locale": {
       "type": "string",
@@ -64,6 +65,14 @@
             "$ref": "#/$defs/question"
           },
           "description": "Exactly the five fixed ids tools, risky, tone, pace, hours (see GET /onboarding/questions). Prompts, options and defaults differ per pack."
+        },
+        "followups": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/followup"
+          },
+          "description": "Deeper questions asked after the five fixed ones (standard and deep packs). Each answer sets named parameters (`sets`) and may add risk patterns. Optional."
         }
       }
     },
@@ -78,7 +87,7 @@
         "extra": {
           "type": "array",
           "minItems": 1,
-          "maxItems": 12,
+          "maxItems": 24,
           "uniqueItems": true,
           "items": {
             "$ref": "#/$defs/cogId"
@@ -182,6 +191,25 @@
     },
     "priors": {
       "$ref": "#/$defs/relPath"
+    },
+    "suggest_connections": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]*:[a-z0-9][a-z0-9_-]*$"
+      },
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 1,
+        "uniqueItems": true,
+        "items": {
+          "$ref": "#/$defs/connectionPresetId"
+        }
+      },
+      "description": "Maps an answer (`question:value`, for any fixed or follow-up question) to connection preset ids to suggest. Strings only: the connections layer resolves the ids and nothing here connects to anything."
+    },
+    "habits": {
+      "$ref": "#/$defs/relPath",
+      "description": "habits.yaml: names for the ways of working each curriculum skill is about (definitions, not planted truth)."
     },
     "plugin_refs": {
       "type": "array",
@@ -453,6 +481,234 @@
           }
         }
       ]
+    },
+    "connectionPresetId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{1,40}$",
+      "description": "A connection preset id, for example github, slack, postgres, sheets."
+    },
+    "answerSets": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "pace": {
+          "enum": [
+            "gentle",
+            "steady",
+            "quick"
+          ],
+          "description": "Same words as the fixed pace question; the validator checks the pack offers it."
+        },
+        "tone": {
+          "enum": [
+            "short",
+            "medium",
+            "detailed"
+          ],
+          "description": "Same words as the fixed tone question; the validator checks the pack offers it."
+        },
+        "cue_daily_budget": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "description": "Cue's daily prompt budget (cue/params.py daily_budget)."
+        },
+        "cue_quiet_required_s": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 10,
+          "description": "Seconds of quiet Cue waits for before a prompt (cue/params.py quiet_required_s)."
+        },
+        "traits": {
+          "type": "object",
+          "maxProperties": 6,
+          "propertyNames": {
+            "$ref": "#/$defs/slug"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/slug"
+          },
+          "description": "Plain labels about the person's work (team_scale: small). Read by later layers; never a score of the person."
+        }
+      }
+    },
+    "followupOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "label"
+      ],
+      "properties": {
+        "value": {
+          "$ref": "#/$defs/slug"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "default": {
+          "type": "boolean"
+        },
+        "sets": {
+          "$ref": "#/$defs/answerSets"
+        },
+        "risk_class": {
+          "enum": [
+            "irreversible",
+            "outward"
+          ],
+          "description": "The class this answer adds to the person's memory file (with `patterns`)."
+        },
+        "patterns": {
+          "$ref": "#/$defs/patternList"
+        }
+      },
+      "dependentRequired": {
+        "risk_class": [
+          "patterns"
+        ],
+        "patterns": [
+          "risk_class"
+        ]
+      }
+    },
+    "followup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "prompt",
+        "kind",
+        "options"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/slug",
+          "description": "Not one of the five fixed ids (tools, risky, tone, pace, hours)."
+        },
+        "prompt": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 140
+        },
+        "why": {
+          "type": "string",
+          "maxLength": 140
+        },
+        "kind": {
+          "enum": [
+            "single",
+            "multi"
+          ]
+        },
+        "options": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/followupOption"
+          }
+        }
+      }
+    },
+    "habits": {
+      "title": "Habit definitions (habits.yaml)",
+      "description": "Names for the ways of working that each curriculum skill is about, so the Insights engine and the genome can call them by name. Definitions only: no price, no prevalence, no planted truth. `visible` says how a habit could be seen at L0: order (from the order of cogs), time (from dwell), digest (from a local digest of counts and enums) or none (not at L0). `seen_as` is the genome waterfall bar it would show up as.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "role",
+        "habits"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "role": {
+          "$ref": "#/$defs/slug"
+        },
+        "habits": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label",
+              "skill",
+              "cogs",
+              "kind",
+              "signature",
+              "visible",
+              "seen_as"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/slug"
+              },
+              "label": {
+                "type": "string",
+                "minLength": 8,
+                "maxLength": 100
+              },
+              "skill": {
+                "$ref": "#/$defs/slug",
+                "description": "Curriculum skill that fixes it."
+              },
+              "cogs": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "#/$defs/cogId"
+                }
+              },
+              "kind": {
+                "enum": [
+                  "omit",
+                  "insert",
+                  "slow",
+                  "swap"
+                ],
+                "description": "The same words as persona deficits."
+              },
+              "signature": {
+                "type": "string",
+                "minLength": 10,
+                "maxLength": 200,
+                "description": "How it shows in a trace, in plain words."
+              },
+              "visible": {
+                "enum": [
+                  "order",
+                  "time",
+                  "digest",
+                  "none"
+                ]
+              },
+              "seen_as": {
+                "enum": [
+                  "Slower on shared steps",
+                  "Long pauses",
+                  "Search loops",
+                  "Repeated reads",
+                  "Missed check, redone",
+                  "Wrong figure, copied again",
+                  "Rework",
+                  "Skipped steps",
+                  "Other extra steps",
+                  "none"
+                ]
+              }
+            }
+          }
+        }
+      }
     },
     "pluginRef": {
       "type": "object",
@@ -792,8 +1048,43 @@
                   "hint": {
                     "type": "string",
                     "maxLength": 160
+                  },
+                  "target": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "zone",
+                      "label_hint"
+                    ],
+                    "properties": {
+                      "zone": {
+                        "$ref": "#/$defs/zoneId"
+                      },
+                      "label_hint": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80,
+                        "description": "The control's own words, as written on it."
+                      },
+                      "role_hint": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+                      },
+                      "fallback_zones": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "items": {
+                          "$ref": "#/$defs/zoneId"
+                        }
+                      }
+                    },
+                    "description": "Where the control for this check is, when the first cog's zone and the step label are not enough (coach.messages.target_for and cue.target read it). The validator checks the zone is one the mapping turns into the check's first cog."
                   }
                 }
+              },
+              "family": {
+                "$ref": "#/$defs/slug",
+                "description": "Task family this check belongs to (an index for readers; the engine does not switch on it). A check with a family is optional and must start with a cog no family-less check uses (the validator enforces both)."
               }
             }
           }
@@ -980,6 +1271,40 @@
                     "maxLength": 240
                   }
                 }
+              },
+              "irreversibility": {
+                "enum": [
+                  "none",
+                  "reversible",
+                  "outward",
+                  "irreversible"
+                ],
+                "description": "What the routine's own worst action does if it runs to the end. `never` is what an automation stops before."
+              },
+              "judgement_share": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "description": "The share of steps that are judgement cogs, worked out as the hit list does (validated against the template's cogs and judgement cogs)."
+              },
+              "steps": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 8,
+                "items": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 100
+                },
+                "description": "The routine in plain words, in order."
+              },
+              "tools": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "#/$defs/connectionPresetId"
+                },
+                "description": "Connection preset ids the routine would use (strings only; resolved elsewhere)."
               }
             }
           }
@@ -1089,6 +1414,12 @@
                     "maxLength": 80
                   }
                 }
+              },
+              "name": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 60,
+                "description": "A short noun phrase for sentences (reading the error first). Optional."
               }
             }
           }

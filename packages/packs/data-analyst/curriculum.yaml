@@ -1,3 +1,7 @@
+# Skills in teaching order. Level L1 is full help, L4 is gone (deterministic ladder), so a skill carries hints for L1 to L3 only.
+# Prompts are a hypothesis or a question, never the answer. They state the assumption and the check, as the pack's tone defaults say.
+# Skills 1 to 5 are frozen (the role studies use their ids and prompts). Skills 6 to 16 were appended by the role-depth track (RD,
+# 7 Nov 2026) for the rest of the job; each has a short `name` (a noun phrase for sentences) and is taught from a new cog.
 version: 1
 ladder: { L1: full, L2: small, L3: dot, L4: gone }
 skills:
@@ -51,3 +55,124 @@ skills:
       L1: Does the overall number hide a difference between segments, or count the wrong unit?
       L2: Cut by segment?
       L3: Group first.
+  - id: trace-the-source
+    label: Trace a field to its source before you use it
+    name: tracing the source
+    order: 6
+    cogs: [TRACE_SOURCE]
+    prerequisites: [profile-before-querying]
+    expert_signal: Reads the lineage or the source definition of a field before the first join on it.
+    prompts:
+      L1: Where does this column come from, and what does its source say it means?
+      L2: Source checked?
+      L3: Trace it.
+  - id: join-without-multiplying
+    label: Join so that rows do not multiply
+    name: joining safely
+    order: 7
+    cogs: [JOIN_TABLES]
+    prerequisites: [trace-the-source]
+    expert_signal: Counts the rows on each side before the join and after it.
+    prompts:
+      L1: Is the key unique on both sides, and how many rows should the join return?
+      L2: Rows before and after?
+      L3: Count the rows.
+  - id: aggregate-at-the-right-grain
+    label: Aggregate at the grain the question asks for
+    name: choosing the grain
+    order: 8
+    cogs: [SET_GRAIN]
+    prerequisites: [segment-before-concluding]
+    expert_signal: Names what one row is before grouping, and groups to the unit the question counts.
+    prompts:
+      L1: What is one row here, an order, a customer or a day, and is that the unit the question counts?
+      L2: What is one row?
+      L3: Name the grain.
+  - id: sanity-check-magnitudes
+    label: Check scale and units before you believe a number
+    name: the magnitude check
+    order: 9
+    cogs: [CHECK_MAGNITUDE]
+    prerequisites: [aggregate-at-the-right-grain]
+    expert_signal: Compares a result with a figure they already know, in the same units, before using it.
+    prompts:
+      L1: Is this the right order of magnitude, and are the units the ones you think?
+      L2: Order of magnitude? Units?
+      L3: Check the scale.
+  - id: state-the-uncertainty
+    label: Say how sure the number is
+    name: the uncertainty
+    order: 10
+    cogs: [QUANTIFY_UNCERTAINTY]
+    prerequisites: [sanity-check-magnitudes]
+    expert_signal: Puts an interval or a range next to a figure, and checks that a difference survives it.
+    prompts:
+      L1: How much could this number move with another sample, and does the difference you report survive that?
+      L2: How sure is it?
+      L3: Add the interval.
+  - id: write-the-finding-with-its-caveat
+    label: Write the finding with its one caveat
+    name: the finding and its caveat
+    order: 11
+    cogs: [WRITE_FINDING]
+    prerequisites: [state-the-uncertainty]
+    expert_signal: The finding is one sentence and the caveat sits next to it, not in a footnote.
+    prompts:
+      L1: What is the finding in one sentence, and what is the one thing that could make it wrong?
+      L2: What is the caveat?
+      L3: State the caveat.
+  - id: get-a-second-pair-of-eyes
+    label: Get a second pair of eyes before it goes out
+    name: the peer check
+    order: 12
+    cogs: [PEER_CHECK]
+    prerequisites: [write-the-finding-with-its-caveat]
+    expert_signal: Asks a colleague to check the figure and the caveat before sharing it.
+    prompts:
+      L1: Who else can check this number before it reaches people who rely on it?
+      L2: Who has checked it?
+      L3: Ask for a check.
+  - id: make-it-reproducible
+    label: Check it runs clean from scratch
+    name: making it reproducible
+    order: 13
+    cogs: [MAKE_REPRODUCIBLE]
+    prerequisites: [inspect-before-trusting]
+    expert_signal: Restarts and runs everything in order, and gets the same number.
+    prompts:
+      L1: If you restarted from nothing and ran it top to bottom, would you get the same number?
+      L2: Runs clean from scratch?
+      L3: Restart and run all.
+  - id: parameterise-before-copying
+    label: Turn the values that change into inputs
+    name: the report parameters
+    order: 14
+    cogs: [PARAMETERISE_REPORT]
+    prerequisites: [make-it-reproducible]
+    expert_signal: The week, the filter and the segment are inputs, not text edited each run.
+    prompts:
+      L1: Which values change every time you rerun this, and could they be inputs?
+      L2: What changes each run?
+      L3: Make it a parameter.
+  - id: schedule-a-refresh-you-trust
+    label: Schedule a refresh you would trust while away
+    name: scheduling the refresh
+    order: 15
+    cogs: [SCHEDULE_REFRESH]
+    prerequisites: [parameterise-before-copying]
+    expert_signal: Sets a schedule and a failure alert in the same step, and reads the first scheduled run.
+    prompts:
+      L1: Would you trust this to run while you are away, and what tells you if it fails?
+      L2: What tells you it failed?
+      L3: Add a failure alert.
+  - id: document-the-metric
+    label: Write down what the metric means
+    name: the metric definition
+    order: 16
+    cogs: [DOCUMENT_METRIC]
+    prerequisites: [reconcile-to-control]
+    expert_signal: Writes the definition, the source, the owner and the known caveats beside the metric.
+    prompts:
+      L1: Could a new colleague compute this metric from what is written down, with its definition, source, owner and caveats?
+      L2: Definition written down?
+      L3: Write the definition.

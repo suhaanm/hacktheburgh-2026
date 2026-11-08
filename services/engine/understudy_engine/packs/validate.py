@@ -22,6 +22,7 @@ SUBFILES = {
     ("curriculum",): "curriculum",
     ("persona",): "persona",
     ("priors",): "priors",
+    ("habits",): "habits",          # RD: optional; the loop below skips a pack that does not name one
 }
 
 

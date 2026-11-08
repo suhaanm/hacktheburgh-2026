@@ -1,9 +1,15 @@
 # Event -> cog mapping for the data-analyst pack. Format and semantics: the engine's
-# cogs/default_mapping.yaml. Zones are enums derived by the extension from capture_sites (best-effort
-# samples for a thin pack: selectors for real tools are starting points, not guarantees).
+# cogs/default_mapping.yaml. Zones are enums derived by the extension from capture_sites. Selectors for real tools are
+# best-effort starting points, not tested against live sites; the sandbox site (roles_sandbox) is the tested one.
+# The first ten cogs and their zones (data_browser .. pivot_panel) are frozen: the role studies depend on them.
+# The role-depth track (RD, 7 Nov 2026) appended eleven cogs and their zones for the rest of the job (trace a source, join, set the grain,
+# check magnitudes, state uncertainty, write the finding, peer check, reproduce, parameterise, schedule, document the metric). They have no
+# sandbox page, so they are inert in the studies; every capture rule is an element selector (L0: no page text, no URL, no field value).
 version: 1
 params: { follow_s: 8, gap_idle_s: 30, reformulate_within_s: 90, max_cog_s: 300 }
-extra_cogs: [LOAD_DATA, PROFILE_DATA, WRITE_QUERY, RUN_QUERY, INSPECT_RESULT, PLOT, EXPORT_RESULT, CLEAN_DATA, RECONCILE_CONTROL, GROUP_AGG]
+extra_cogs: [LOAD_DATA, PROFILE_DATA, WRITE_QUERY, RUN_QUERY, INSPECT_RESULT, PLOT, EXPORT_RESULT, CLEAN_DATA, RECONCILE_CONTROL, GROUP_AGG,
+  TRACE_SOURCE, JOIN_TABLES, SET_GRAIN, CHECK_MAGNITUDE, QUANTIFY_UNCERTAINTY, WRITE_FINDING, PEER_CHECK, MAKE_REPRODUCIBLE,
+  PARAMETERISE_REPORT, SCHEDULE_REFRESH, DOCUMENT_METRIC]
 
 zones:
   - data_browser
@@ -16,6 +22,17 @@ zones:
   - clean_panel
   - control_panel
   - pivot_panel
+  - lineage_view
+  - join_panel
+  - grain_picker
+  - magnitude_panel
+  - uncertainty_panel
+  - finding_editor
+  - review_request
+  - repro_panel
+  - params_panel
+  - schedule_panel
+  - metric_docs
   - doc
   - form_field
   - search_box
@@ -46,6 +63,19 @@ rules:
   - { match: { type: nav, zone: clean_panel }, cog: CLEAN_DATA }
   - { match: { type: nav, zone: decision_btn }, cog: DECIDE }
   - { match: { type: [click, focus], zone: decision_btn }, cog: DECIDE }   # typing the answer in the answer panel already starts the report
+  # ---- data-analyst cogs added by the role-depth track (RD): the rest of the job. New zones only, so no rule above is shadowed.
+  - { match: { type: [scroll, click, focus], zone: lineage_view }, cog: TRACE_SOURCE }
+  - { match: { type: nav, zone: lineage_view }, cog: TRACE_SOURCE, starts: true }   # a lineage page is read on arrival
+  - { match: { type: [click, focus], zone: join_panel }, cog: JOIN_TABLES }
+  - { match: { type: [click, focus], zone: grain_picker }, cog: SET_GRAIN }
+  - { match: { type: [click, focus, scroll], zone: magnitude_panel }, cog: CHECK_MAGNITUDE }
+  - { match: { type: [click, focus], zone: uncertainty_panel }, cog: QUANTIFY_UNCERTAINTY }
+  - { match: { type: [click, focus, paste], zone: finding_editor }, cog: WRITE_FINDING }
+  - { match: { type: click, zone: review_request }, cog: PEER_CHECK }
+  - { match: { type: click, zone: repro_panel }, cog: MAKE_REPRODUCIBLE }
+  - { match: { type: [click, focus], zone: params_panel }, cog: PARAMETERISE_REPORT }
+  - { match: { type: click, zone: schedule_panel }, cog: SCHEDULE_REFRESH }
+  - { match: { type: [click, focus, scroll], zone: metric_docs }, cog: DOCUMENT_METRIC }
   # ---- base cogs
   - { match: { type: idle }, cog: IDLE, backdate_meta: idle_s }
   - { match: { type: undo }, cog: REVERT }
@@ -72,6 +102,7 @@ capture_sites:
     nav_default: data_browser
     tab_default: compare_view
     elements:
+      - { zone: magnitude_panel, selector: '[data-testid*="column-stats"], [data-testid*="summary-stats"], .column-profile' }
       - { zone: sql_editor, selector: '.monaco-editor, [role="textbox"][aria-label], .cm-editor' }
       - { zone: run_control, selector: 'button[data-testid*="run"], button[aria-label*="Run"]' }
       - { zone: query_result, selector: '[role="grid"], [role="table"], .results' }
@@ -80,6 +111,10 @@ capture_sites:
     nav_default: data_browser
     tab_default: compare_view
     elements:
+      # RD: notebook controls for a clean rerun, a parameter cell and a schedule, deepest first (the closest ancestor that matches wins)
+      - { zone: repro_panel, selector: '[data-command*="restart-and-run-all"], [aria-label*="Restart and run all"], [aria-label*="Restart session and run all"]' }
+      - { zone: params_panel, selector: '.celltag_parameters, [data-testid*="parameter"], [aria-label*="Parameters"]' }
+      - { zone: schedule_panel, selector: '[data-testid*="schedule"], [aria-label*="Schedule"]' }
       - { zone: sql_editor, selector: ".cm-editor, .monaco-editor, .CodeMirror" }
       - { zone: run_control, selector: 'button[aria-label*="Run"], .run-button' }
       - { zone: query_result, selector: ".output_area, .jp-OutputArea, [role=\"table\"]" }
@@ -89,14 +124,34 @@ capture_sites:
     nav_default: doc
     tab_default: compare_view
     elements:
+      - { zone: finding_editor, selector: '.kix-appview-editor, .kix-page-content-wrapper' }
+      - { zone: review_request, selector: '[aria-label*="Share"], [aria-label*="Comment"], [data-tooltip*="Share"]' }
       - { zone: chart_panel, selector: '[aria-label*="Chart"], .chart-container' }
   - id: bi
     hosts: ["*.looker.com", "app.powerbi.com", "*.tableau.com"]
     nav_default: doc
     tab_default: compare_view
     elements:
+      - { zone: join_panel, selector: '[data-testid*="relationship"], [aria-label*="Relationship"], .join-editor, .relationship-editor' }
+      - { zone: grain_picker, selector: '[data-testid*="group-by"], [aria-label*="Group by"], [aria-label*="Granularity"], .dimension-picker' }
+      - { zone: uncertainty_panel, selector: '[aria-label*="Confidence"], [data-testid*="confidence"], [aria-label*="Forecast"]' }
+      - { zone: schedule_panel, selector: '[data-testid*="schedule"], [aria-label*="Schedule"], .schedule-dialog' }
       - { zone: chart_panel, selector: 'svg, canvas, [data-testid*="chart"]' }
       - { zone: export_panel, selector: 'button[aria-label*="Export"], button[aria-label*="Download"]' }
+  - id: catalog
+    hosts: ["cloud.getdbt.com", "*.getdbt.com", "app.atlan.com", "*.atlan.com", "*.datahubproject.io"]
+    nav_default: doc
+    tab_default: compare_view
+    elements:
+      - { zone: lineage_view, selector: '[data-testid*="lineage"], .lineage-graph, #lineage' }
+      - { zone: metric_docs, selector: '[data-testid*="description"], .doc-description, #description' }
+  - id: writeup
+    hosts: ["notion.so", "www.notion.so", "hackmd.io"]
+    nav_default: doc
+    tab_default: compare_view
+    elements:
+      - { zone: review_request, selector: '[aria-label*="Share"], [aria-label*="Comment"]' }
+      - { zone: finding_editor, selector: '.notion-page-content, .CodeMirror, [contenteditable="true"]' }
   - id: roles_sandbox
     hosts: ["127.0.0.1:7951", "127.0.0.1:7952", "127.0.0.1:7953", "127.0.0.1:7954", "127.0.0.1:7955", "127.0.0.1:7956", "127.0.0.1:7957", "127.0.0.1:7958", "localhost:7951", "localhost:7952", "localhost:7953", "localhost:7954", "localhost:7955", "localhost:7956", "localhost:7957", "localhost:7958"]
     nav_default: data_browser
@@ -145,3 +200,25 @@ examples:
       - { dt: 8,  type: click, role: button, meta: { zone: pivot_panel } }
       - { dt: 8,  type: click, role: button, meta: { zone: chart_panel } }
     expect: [PROFILE_DATA, PROFILE_DATA, CLEAN_DATA, RECONCILE_CONTROL, GROUP_AGG, GROUP_AGG, PLOT]
+  - name: trace the source, join, pick the grain, check the scale
+    events:
+      - { dt: 0,  type: nav,    meta: { zone: lineage_view, spa: true } }
+      - { dt: 12, type: scroll, role: region, meta: { zone: lineage_view, depth_bin: 1 } }
+      - { dt: 30, type: click,  role: button, meta: { zone: join_panel } }
+      - { dt: 20, type: click,  role: combobox, meta: { zone: grain_picker } }
+      - { dt: 15, type: click,  role: button, meta: { zone: magnitude_panel } }
+    expect: [TRACE_SOURCE, TRACE_SOURCE, JOIN_TABLES, SET_GRAIN, CHECK_MAGNITUDE]
+  - name: state the uncertainty, write the finding, ask for a second check
+    events:
+      - { dt: 0,  type: click, role: button,  meta: { zone: uncertainty_panel } }
+      - { dt: 30, type: focus, role: textbox, meta: { zone: finding_editor } }
+      - { dt: 6,  type: paste, role: textbox, meta: { zone: finding_editor } }
+      - { dt: 40, type: click, role: button,  meta: { zone: review_request } }
+    expect: [QUANTIFY_UNCERTAINTY, WRITE_FINDING, WRITE_FINDING, PEER_CHECK]
+  - name: make it rerunnable, parameterise it, schedule it, document the metric
+    events:
+      - { dt: 0,  type: click,  role: button, meta: { zone: repro_panel } }
+      - { dt: 40, type: focus,  role: textbox, meta: { zone: params_panel } }
+      - { dt: 30, type: click,  role: button, meta: { zone: schedule_panel } }
+      - { dt: 60, type: scroll, role: region, meta: { zone: metric_docs, depth_bin: 1 } }
+    expect: [MAKE_REPRODUCIBLE, PARAMETERISE_REPORT, SCHEDULE_REFRESH, DOCUMENT_METRIC]

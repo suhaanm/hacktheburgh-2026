@@ -16,7 +16,7 @@ Knack is woken by the words 'hey knack'. Listening is on by default (the owner's
 
 ### How it works
 
-A native helper uses macOS on-device speech recognition. If on-device recognition is not available it turns itself off with one plain line and never falls back to server recognition. The phrase is matched by a closed accept list: a greeting (hey, hay, heya) at the start of an utterance, then the name 'knack' (close spellings only at the end of an utterance or before a request word; 'knock' only before a request word). 'Hey Jack', 'a knack for it' and 'hey knock it off' are rejected. The listener is dormant, with the microphone released, when the switch is off, the screen is locked or the Mac asleep, Stop everything is engaged, Do Not Disturb, a call, a meeting or a screen share is on, a Live conversation or an agent run is under way, or the worker is away. macOS still asks for Microphone and Speech Recognition, which only the owner can grant.
+A native helper uses macOS on-device speech recognition. If on-device recognition is not available it turns itself off with one plain line and never falls back to server recognition. The phrase is matched by a closed accept list: a greeting (hey, hay, heya) at the start of an utterance, then the name 'knack' (close spellings only at the end of an utterance or before a request word; 'knock' only before a request word). 'Hey Jack', 'a knack for it' and 'hey knock it off' are rejected. The listener is dormant, with the microphone released, when the switch is off, the screen is locked or the Mac asleep, Stop everything is engaged, Do Not Disturb, a call, a meeting or a screen share is on, a Live conversation or an agent run is under way, or the worker is away. macOS still asks for Microphone and Speech Recognition, which only the owner can grant. A missing permission or key is never silence: the worker gets a card or a status line in plain words with a button that opens the fix (docs/knack-ux/capabilities-and-permissions.md).
 
 **What is different.** Recognition happens in a native helper that prints only a closed 'heard' event, so no text crosses into the app, and it fails closed instead of using server recognition.
 
@@ -102,6 +102,7 @@ Not run with a microphone, a Live session or a real click. The 'do it for me' pa
 - `apps/desktop/src/main/wake/click-machine.ts`
 - `apps/desktop/src/main/wake/corpus.test.ts`
 - `docs/knack-ux/09-wake-voice.md`
+- `docs/knack-ux/capabilities-and-permissions.md`
 - `docs/DECISIONS.md (D56, item 4 and 5)`
 
 ## Related pages

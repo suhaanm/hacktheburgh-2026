@@ -63,11 +63,17 @@ export interface KnackWakeStatus {
   switchOn: boolean
   listening: boolean
   line: string
+  /** The macOS pane that fixes a blocked listener (show a button beside the line), or null. */
+  fix: 'microphone' | 'speech' | 'dictation' | null
+  /** The worker has had their first conversation: the Try it step can finish. */
+  welcomed: boolean
 }
 /** What the shell may report for the voice conversation's context packet: ids and counts only (validated again in main). */
 export interface KnackWakeContext {
   insight?: { id: string; template: string } | null
   routine?: { id: string; step: number; of: number } | null
+  /** Set-up is showing: the packet says first_run=yes and the listener waits for arm(). Send false when set-up is over. */
+  firstRun?: boolean
 }
 
 /** What the dashboard's Settings screen reads of the desktop settings. `minimiseWhileWorking` is the dashboard's name for the same switch as `moveAsideWhileWorking`. */
@@ -99,6 +105,8 @@ export interface KnackShellApi {
     state(): Promise<KnackWakeStatus>
     set(listen: boolean): Promise<KnackWakeStatus>
     context(c: KnackWakeContext): Promise<boolean>
+    /** The set-up step that turns Hey Knack on: the listener starts, and macOS asks for the microphone, then Speech Recognition. */
+    arm(): Promise<KnackWakeStatus>
   }
   models: {
     get(): Promise<KnackModelsState>

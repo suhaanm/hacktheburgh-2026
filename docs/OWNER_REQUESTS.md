@@ -16,12 +16,12 @@ Tracks: **A** shell and desktop (KNACK-SHELL), **B** web shell, nav, Home, first
 
 ## Message 2 (about 00:35)
 
-- [ ] **2.1** Strengthen the HRT position (D59; `docs/HRT_BRIEF.md`). H.
+- [ ] **2.1** Strengthen the HRT position (D59; `docs/HRT_BRIEF.md`). H. *Pre-registered runs done on Track H's branch; Evidence block pending.*
 
 ## Message 3 (about 00:45)
 
-- [ ] **3.1** Knack has its own onboarding; Alongside's wizard never shows (D58). A, B.
-- [ ] **3.2** The owner can onboard for a role; first run opens whatever the engine already knows. B.
+- [ ] **3.1** Knack has its own onboarding; Alongside's wizard never shows (D58). A, B. *In main (legacy wizard pinned off, Ask bar, bridge); not yet seen in the rebuilt app.*
+- [ ] **3.2** The owner can onboard for a role; first run opens whatever the engine already knows. B. *In main (first run opens on first launch, role choice with an existing identity); not yet seen.*
 - [ ] **3.3** Voice features and on-screen annotation work; permissions handled step by step in first run. V, A, B.
 
 ## Message 4 (about 00:50)
@@ -39,18 +39,18 @@ Device and permissions
 Fixes
 - [ ] **4.7** The Stop button shows two stop icons: fix. B, A.
 - [ ] **4.8** The account menu shows the worker's name. B.
-- [ ] **4.9** The worker can change their profile (name and role: programmer, analyst, benefits processor, more), not stuck as benefits processor. B, R.
+- [ ] **4.9** The worker can change their profile (name and role: programmer, analyst, benefits processor, more), not stuck as benefits processor. B, R. *Account menu with name and role change in main; engine route by Track R pending merge.*
 - [ ] **4.10** Forecasts: a clear, understandable layout, insights on top, data behind, not a data spam. D.
 - [ ] **4.11** The same insight-first treatment for every screen. B, C, D.
-- [ ] **4.12** Admin: Firm brief and the other admin pages are on the main nav. B, D.
-- [ ] **4.13** "How work connects" (the graph layer) uses the old design system: move it to the new one (`Understudy Design System` artifact): icons per node style, no visible text except on hover or click. G.
-- [ ] **4.14** Bottom-right corner: a Knack pop-up and a "working on, 0 of 1" pill conflict, and the pill stays after the work finished: fix the state and the layout. A.
+- [ ] **4.12** Admin: Firm brief and the other admin pages are on the main nav. B, D. *Admin nav with Brief and the rest in main; the admin pages' data is pending (Track R).*
+- [ ] **4.13** "How work connects" (the graph layer) uses the old design system: move it to the new one (`Understudy Design System` artifact): icons per node style, no visible text except on hover or click. G. *Merged to main, tests pass; not yet seen in the rebuilt app.*
+- [ ] **4.14** Bottom-right corner: a Knack pop-up and a "working on, 0 of 1" pill conflict, and the pill stays after the work finished: fix the state and the layout. A. *Root cause fixed on Track A's branch (ghost runs from stale records); merges at the next checkpoint.*
 - [ ] **4.15** Background tasks update live on the page, no refresh needed. C, A, agent service.
 - [ ] **4.16** Task and progress UI as minimal as Claude Code's task list. C, A.
 - [ ] **4.17** Cluster related things on one page; fewer navigations; everything easy to find. B, C, D (`docs/knack-ux/views.md` navigation map).
 
 Open-ended work
-- [ ] **4.18** Tasks are not a preset list: the worker types or speaks any task. T, V.
+- [ ] **4.18** Tasks are not a preset list: the worker types or speaks any task. T (API contract v1 sent), B (task box), V (voice tool). Owner answers: D63.
 - [ ] **4.19** Skill files and plugins load into context automatically, like Claude Code. T, E.
 - [ ] **4.20** Computer use and background agents that can create code. T.
 - [ ] **4.21** Background agents show at the top right of the screen as small pills with animated icons while they work. A, T.

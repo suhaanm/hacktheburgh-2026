@@ -32,7 +32,8 @@ import { WakeSettingsStore } from './settings'
 export const WAKE_IPC = {
   state: 'wake:state', // invoke -> WakeStatus
   set: 'wake:set', // invoke { listen: boolean } -> WakeStatus
-  context: 'wake:context', // invoke { insight?, routine? } -> boolean (accepted)
+  context: 'wake:context', // invoke { insight?, routine?, firstRun? } -> boolean (accepted)
+  arm: 'wake:arm', // invoke -> WakeStatus (the set-up step that turns Hey Knack on)
   status: 'wake:status', // event (main -> windows that listen)
 } as const
 
@@ -55,6 +56,9 @@ export interface RegisterWakeOptions {
   openMicrophoneSettings?: () => void
   /** The bounds of the topmost other window in the bottom-right corner (the Knack corner column), so the wake cards stack above it. */
   cornerAbove?: () => { x: number; y: number; width: number; height: number } | null
+  openScreenSettings?: () => void
+  /** The other panes the cards open: speech recognition, accessibility, dictation. */
+  openPane?: (pane: 'speech' | 'accessibility' | 'dictation') => void
   /** The context hub: the shell may report the top Home insight and the running routine (ids and counts) through `wake:context`. */
   context?: ContextHub | null
   env?: Record<string, string | undefined>
@@ -154,6 +158,7 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
     live: { blocker: () => manager.blocker(), startFromWake: () => manager.startFromWake(), status: () => manager.status(), subscribe: (cb) => manager.subscribe(() => cb()) },
     helper: { start: () => supervisor.start(), stop: () => supervisor.stop(), status: () => supervisor.status(), unblock: () => supervisor.unblock() },
     inputs,
+    firstRun: () => o.context?.firstRun() === true,
     cards,
     lock,
     rung: () => readRung(dataDirPath(env)),
@@ -162,7 +167,7 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
       if (settings.get().wakeChime) void o.live.clips.play(makeChimeWav(), 'audio/wav').catch(() => undefined)
     },
     say: (line) => void o.live.speaker.say(`wake.${line}`),
-    openSettings: (where) => (where === 'microphone' ? o.openMicrophoneSettings?.() : o.openSettings?.()),
+    openSettings: (where) => (where === 'microphone' ? o.openMicrophoneSettings?.() : where === 'screen' ? o.openScreenSettings?.() : where === 'knack' ? o.openSettings?.() : o.openPane?.(where)),
     log,
   })
   controllerRef = controller
@@ -184,8 +189,9 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
   ipcMain.handle(WAKE_IPC.context, (e, raw: unknown) => {
     if (!o.owns(e.sender.id)) throw new Error('wake IPC from an unknown sender')
     if (!o.context || typeof raw !== 'object' || raw === null) return false
-    const c = raw as { insight?: unknown; routine?: unknown }
+    const c = raw as { insight?: unknown; routine?: unknown; firstRun?: unknown }
     let took = false
+    if (typeof c.firstRun === 'boolean') (o.context.setFirstRun(c.firstRun), controller.refresh(), (took = true))
     if ('insight' in c) {
       const v = c.insight as { id?: unknown; template?: unknown } | null
       if (v === null) (o.context.setInsight(null), (took = true))
@@ -197,6 +203,12 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
       else if (v && isId(v.id) && isCount(v.step) && isCount(v.of)) (o.context.setRoutine({ id: v.id, step: v.step, of: v.of }), (took = true))
     }
     return took
+  })
+
+  ipcMain.handle(WAKE_IPC.arm, (e) => {
+    if (!o.owns(e.sender.id)) throw new Error('wake IPC from an unknown sender')
+    controller.arm()
+    return controller.status()
   })
 
   controller.start()
@@ -214,6 +226,7 @@ export function registerWake(o: RegisterWakeOptions): WakeRegistration {
       ipcMain.removeHandler(WAKE_IPC.state)
       ipcMain.removeHandler(WAKE_IPC.set)
       ipcMain.removeHandler(WAKE_IPC.context)
+      ipcMain.removeHandler(WAKE_IPC.arm)
       controller.dispose()
       supervisor.stop()
       cards.dispose()
