@@ -153,7 +153,7 @@ function ProviderNotes({ providers, boot }: { providers: ModelProvider[]; boot: 
             <ul className="plain-list">
               {p.breaker && <li className="note">Circuit breaker: <b>{p.breaker.state}</b>{p.breaker.recent_failures ? `, ${p.breaker.recent_failures} recent ${p.breaker.recent_failures === 1 ? "failure" : "failures"}` : ""}{p.breaker.opened_count ? `, opened ${p.breaker.opened_count} ${p.breaker.opened_count === 1 ? "time" : "times"}` : ""}. It pauses a provider after repeated failures.</li>}
               {p.models && <li className="note">Resolved ids: {Object.entries(p.models).map(([k, v]) => <span key={k}><code>{k}</code> <code>{v}</code>{" "}</span>)}</li>}
-              {b && <li className="note">Start-up check: {b.ok === false ? `failed${b.missing?.length ? `, missing ${b.missing.join(", ")}` : ""}` : b.mock ? "skipped in mock mode" : "passed"}{b.t ? ` (${fmtDateTime(b.t)})` : ""}.</li>}
+              {b && <li className="note">Start-up check: {b.ok === false ? `failed${b.missing?.length ? `, missing ${b.missing.join(", ")}` : ""}` : b.mock ? "skipped, no key set" : "passed"}{b.t ? ` (${fmtDateTime(b.t)})` : ""}.</li>}
             </ul>
           </div>
         );
@@ -165,7 +165,7 @@ function ProviderNotes({ providers, boot }: { providers: ModelProvider[]; boot: 
 function Meter({ s }: { s: ModelsStatus }) {
   const [all, setAll] = useState(false);
   const rows = all ? s.meter : s.meter.slice(0, 2);
-  if (s.meter.length === 0) return <EmptyState title="No model call has been metered yet" body={s.mock ? "Mock mode makes no real call, so there is nothing to meter." : "When a job calls a model, one row appears here with its counts, times and estimated cost."} />;
+  if (s.meter.length === 0) return <EmptyState title="No model call has been metered yet" body={s.mock ? "No key is set, so no call is made and there is nothing to meter." : "When a job calls a model, one row appears here with its counts, times and estimated cost."} />;
   return (
     <div className="stack">
       <div className="table-wrap"><table className="table">
