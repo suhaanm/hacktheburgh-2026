@@ -15,22 +15,22 @@ describe("how far a routine is trusted, in words", () => {
     expect(capOf("unattended")).toBe("own");
     expect(capOf("proposed")).toBeNull();
     expect(CAP_MODE).toEqual({ watching: "shadow", asks: "approval", own: "unattended" });
-    expect(Object.values(CAP_LABEL)).toEqual(["Watching", "Asks first", "Runs on its own"]);
+    expect(Object.values(CAP_LABEL)).toEqual(["Watch first", "Asks first", "Away runs"]);
   });
   it("never uses the rung codes or the word rung in the worker's words", () => {
     const words = [...Object.values(CAP_LABEL), trustWord(r({ status: "shadow" })), stateLine(r({ rung: "A1", status: "shadow" })), stateLine(r({ rung: "A2", status: "approval" })), AWAY_TEXT];
     for (const w of words) expect(w).not.toMatch(/\bA[0-3]\b|\brung\b|ledger|shadow run|genome/i);
   });
   it("says where the record stands in one sentence", () => {
-    expect(stateLine(r({ rung: "A1", status: "shadow", shadow: { runs: 14, matches: 13, wilson_lower: 0.7 } }))).toBe("Watching: 13 of 14 practice runs match.");
-    expect(stateLine(r({ rung: "A1", status: "shadow", shadow: { runs: 0, matches: 0, wilson_lower: 0 } }))).toBe("Watching: no practice runs yet.");
+    expect(stateLine(r({ rung: "A1", status: "shadow", shadow: { runs: 14, matches: 13, wilson_lower: 0.7 } }))).toBe("Watched: 13 of 14 practice runs match.");
+    expect(stateLine(r({ rung: "A1", status: "shadow", shadow: { runs: 0, matches: 0, wilson_lower: 0 } }))).toBe("Set to watch first. No practice runs yet.");
     expect(stateLine(r({ rung: "A2", status: "approval" }))).toBe("Asks before it submits or sends.");
     expect(stateLine(r({ rung: "A2", status: "unattended" }))).toContain("while you are away");
   });
-  it("trust word: Watching, Asks first, Runs while away", () => {
-    expect(trustWord({ status: "shadow" })).toBe("Watching");
+  it("trust word: Watch first, Asks first, Away runs", () => {
+    expect(trustWord({ status: "shadow" })).toBe("Watch first");
     expect(trustWord({ status: "approval" })).toBe("Asks first");
-    expect(trustWord({ status: "unattended" })).toBe("Runs while away");
+    expect(trustWord({ status: "unattended" })).toBe("Away runs");
   });
 });
 

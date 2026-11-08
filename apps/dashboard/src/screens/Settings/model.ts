@@ -59,7 +59,7 @@ export function liveModels(i: LiveInput): LiveView {
  */
 export const DEFAULTS = {
   "live-models": { shown: "on when a key is set", value: "on" },
-  interruptions: { shown: "Rarely", value: "rarely" },
+  interruptions: { shown: "Balanced", value: "balanced" },
   coaching: { shown: "on", value: "on" },
   "help-level": { shown: "Automatic", value: "auto" },
   "hey-knack": { shown: "on", value: "on" },
@@ -67,6 +67,7 @@ export const DEFAULTS = {
   "open-at-login": { shown: "on", value: "on" },
   skills: { shown: "on", value: "on" },
   "max-minutes": { shown: "30 minutes", value: 30 },
+  "max-budget": { shown: "US$2", value: 2 },
 } as const;
 export type DefaultId = keyof typeof DEFAULTS;
 export const defaultNote = (id: DefaultId): string => `Default: ${DEFAULTS[id].shown}.`;
@@ -118,6 +119,9 @@ export const HELP_LOCKS: { id: HelpLock; label: string }[] = [{ id: "auto", labe
 export const lockOf = (s: { helpLevelMode?: string; lockedLevel?: number } | null | undefined): HelpLock => (s?.helpLevelMode === "locked" && [1, 2, 3, 4].includes(s.lockedLevel ?? 0) ? (s.lockedLevel as HelpLock) : "auto");
 export const lockPatch = (l: HelpLock): { helpLevelMode: "auto" | "locked"; lockedLevel?: number } => (l === "auto" ? { helpLevelMode: "auto" } : { helpLevelMode: "locked", lockedLevel: l });
 
+/** What a role pack's depth means to the worker (the same words as Track B's profile helper): a standard pack is not a starter. */
+export const depthWords = (depth: string | null | undefined): string => (depth === "deep" ? "Fully built and validated" : depth === "standard" ? "Full pack" : "Starter");
+
 /** A desktop-only row in a browser tab: printed, not hidden. */
 export const APP_ONLY = "Available in the Knack app.";
 
@@ -158,3 +162,12 @@ export function maxMinutesChoices(current: unknown): number[] {
   const n = typeof current === "number" && Number.isInteger(current) && current >= 1 && current <= 120 ? current : null;
   return n === null || (MAX_MINUTES_CHOICES as readonly number[]).includes(n) ? [...MAX_MINUTES_CHOICES] : [...MAX_MINUTES_CHOICES, n].sort((x, y) => x - y);
 }
+
+/** The most a task may spend, in US dollars: the choices the row offers (the service accepts 0.5 to 20). The current value is always one of them. */
+export const MAX_BUDGET_CHOICES = [0.5, 1, 2, 5, 10, 20] as const;
+export function maxBudgetChoices(current: unknown): number[] {
+  const n = typeof current === "number" && Number.isFinite(current) && current >= 0.5 && current <= 20 ? current : null;
+  return n === null || (MAX_BUDGET_CHOICES as readonly number[]).includes(n) ? [...MAX_BUDGET_CHOICES] : [...MAX_BUDGET_CHOICES, n].sort((x, y) => x - y);
+}
+/** "US$0.50", "US$2": whole dollars without cents, anything else with two decimals. */
+export const usd = (n: number): string => `US$${Number.isInteger(n) ? n : n.toFixed(2)}`;

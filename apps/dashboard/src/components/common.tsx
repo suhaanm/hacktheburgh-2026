@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { AnalyticMeta, Rung } from "../types";
 import { ApiError } from "../api";
 import { EXAMPLE_LINE, FALLBACK_LABEL, type Fallback } from "../lib/fallback";
-import { originLine, originShort, originWords } from "../lib/evidence";
+import { isGenerated, originLine, originWords } from "../lib/evidence";
 import { AboutData, Details } from "./ui";
 import { Hint } from "./Hint";
 
@@ -121,7 +121,7 @@ export function ChartFoot({ meta, extra, brief = false, variant = "full", badge 
         intervals: <b>{Math.round(meta.interval_level * 100)}%</b>
       </span>
       {badge && <OriginBadge meta={meta} always />}
-      {originShort(meta.origin) && <span>data from <b>{originShort(meta.origin)}</b></span>}
+      {isGenerated(meta.origin) && <AboutData rows={[["where from", originLine(meta.origin)]]} />}
       {extra}
       {meta.note && !brief && <span className="chart__note">{meta.note}</span>}
     </div>

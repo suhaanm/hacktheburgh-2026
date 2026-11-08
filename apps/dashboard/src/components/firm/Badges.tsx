@@ -1,14 +1,5 @@
-import type { AnalyticMeta } from "../../types";
-
-/** Said once, at the top of every Firm view, in the synthetic badge area: the firm is generated and so are the names. */
-export const SYNTHETIC_NOTE = "Names are made up. This firm is synthetic.";
-
-/** "synthetic firm" on every card of the Firm screen: the whole firm is generated, never measured from real people. */
-export function FirmBadge({ meta, label }: { meta?: (AnalyticMeta & { badge?: string }) | null; label?: string }) {
-  const origin = meta?.origin ?? "synthetic";
-  const text = label ?? meta?.badge ?? (origin === "real" ? "live" : "synthetic firm");
-  return <span className="pill pill--origin" data-origin={origin}>{text}</span>;
-}
+// Owner decision D57 and its clarification (8 Nov 2026): no chip, pill or label on the Firm screens says the firm or its names were generated. There was a
+// FirmBadge and a note at the top of every view; both are gone. Where the numbers come from is one plain sentence inside the closed "About this data".
 
 /** "22 people", "1 approval": the unit agrees with the number. */
 export function nWord(n: number, unit: string): string {

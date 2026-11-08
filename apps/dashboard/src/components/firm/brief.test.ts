@@ -13,7 +13,7 @@ describe("buildBrief", () => {
   const b = buildBrief(o, r, w, "2026-11-09");
   it("carries the coaching statement and names the made-up firm", () => {
     expect(b.statement).toBe(BRIEF_STATEMENT);
-    expect(b.label).toBe("made-up firm");
+    expect(b.label).toBe("Firm");
   });
   it("shows at most seven insights, each with its n", () => {
     expect(b.insights.length).toBeLessThanOrEqual(7);
@@ -33,7 +33,7 @@ describe("buildBrief", () => {
   });
   it("lists the limits, and none of them ranks anyone", () => {
     expect(b.limits).toBe(BRIEF_LIMITS);
-    expect(b.limits.join(" ")).toMatch(/synthetic/);
+    expect(b.limits.join(" ")).toMatch(/real deployment/);
     expect(JSON.stringify(b)).not.toMatch(/best performer|top performer|league|ranking of/i);
   });
   it("does not compare a role whose groups are under the minimum", () => {

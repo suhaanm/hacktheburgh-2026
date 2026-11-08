@@ -34,7 +34,7 @@
     "label": "Your role, unit, tenure band and a pseudonym label"
    }
   ],
-  "legal_note": "A real deployment needs a lawful basis and a clear notice to workers before any of this is shared. This build only demonstrates it on a made-up firm.",
+  "legal_note": "A real deployment needs a lawful basis and a clear notice to workers before any of this is shared.",
   "level": "summary_numbers",
   "never": [
    "Raw events, clicks or keystrokes",

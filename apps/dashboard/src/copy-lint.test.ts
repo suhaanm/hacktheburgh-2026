@@ -100,6 +100,8 @@ const PENDING_OLD: Record<string, string> = {
 };
 /** The old pending files, plus the files still to be cleaned for owner decision D57 (the words synthetic and simulated), each naming its track: src/lib/pendingCopy.ts. */
 const PENDING: Record<string, string> = { ...PENDING_OLD, ...PENDING_D57 };
+/** The Evidence page is the reviewers' page: its report fixture may say "made-up" (what a measurement was made on), never "synthetic" or "simulated". */
+const REVIEWERS_PAGE = new Set(["apps/dashboard/src/fixtures/eval-report.json"]);
 const STRICT = process.env.KNACK_LINT_STRICT === "1";
 const PENDING_MAX = 6;
 
@@ -129,7 +131,7 @@ describe("no banned copy in the dashboard", () => {
     const by = new Map<string, string[]>();
     for (const f of files) {
       const rel = relative(repo, f);
-      for (const h of read(f)) for (const x of findBanned(h.text, cfg)) by.set(rel, [...(by.get(rel) ?? []), `${rel}${h.at}  [${x.kind}: ${x.match}]  ${h.text.slice(0, 80)}`]);
+      for (const h of read(f)) for (const x of findBanned(h.text, cfg).filter((y) => !(REVIEWERS_PAGE.has(rel) && /^made[- ]up$/i.test(y.match)))) by.set(rel, [...(by.get(rel) ?? []), `${rel}${h.at}  [${x.kind}: ${x.match}]  ${h.text.slice(0, 80)}`]);
     }
     return by;
   };
@@ -144,7 +146,8 @@ describe("no banned copy in the dashboard", () => {
     const by = hitsFor(fixtures, (f) => {
       let v: unknown;
       try { v = JSON.parse(readFileSync(f, "utf8")); } catch { return []; }
-      return stringsIn(v).filter((s) => !looksLikePath(s.text) && !isBareEnum(s.text, cfg)).map((s) => ({ text: s.text, at: ` ${s.path}` }));
+      // A value under the key `badge` is a data enum (the insight schema lists it), not text a person reads. The Evidence page's report fixture is the reviewers' page.
+      return stringsIn(v).filter((s) => !looksLikePath(s.text) && !isBareEnum(s.text, cfg) && !/\.badge$/.test(s.path)).map((s) => ({ text: s.text, at: ` ${s.path}` }));
     });
     const { unexpected, stale } = judge(by, isFixture);
     expect({ unexpected, stale }).toEqual({ unexpected: [], stale: [] });

@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { MODES, MODE_LABEL, groupTypes, isMode, learnedLines, modeLine, type Mode } from "../../lib/attention";
 import type { AttentionSettings, SkillsAnswer } from "../../types";
-import { HELP_LOCKS, PRESETS, STOPS_LINE, THEMES, APP_ONLY, defaultNote, groupModeOf, lockOf, lockPatch, presetOf, sectionOf, settingsHeadline, skillRows, maxMinutesChoices, wakeLine, withSkill, type DefaultId, type HelpLock, type LiveView, type Preset, type Theme } from "../../screens/Settings/model";
+import { HELP_LOCKS, PRESETS, STOPS_LINE, THEMES, APP_ONLY, defaultNote, groupModeOf, lockOf, lockPatch, presetOf, sectionOf, settingsHeadline, skillRows, maxBudgetChoices, maxMinutesChoices, usd, wakeLine, withSkill, type DefaultId, type HelpLock, type LiveView, type Preset, type Theme } from "../../screens/Settings/model";
 import type { DesktopSettings, WakeStatus } from "../../screens/Settings/bridge";
 import { Hint } from "../Hint";
 import { ConfirmRow, Details } from "../ui";
@@ -46,7 +46,7 @@ export interface SettingsViewProps {
   advanced?: ReactNode;
   /** The skill files on this Mac and which are off, from the tasks service. Null or absent (it did not answer): no row. */
   skills?: SkillsAnswer | null;
-  onSkills?: (patch: { use_claude_skills?: boolean; off?: string[]; max_minutes?: number }) => void;
+  onSkills?: (patch: { use_claude_skills?: boolean; off?: string[]; max_minutes?: number; max_budget_usd?: number }) => void;
 }
 
 function Row({ id, title, line, control, error, def }: { id: string; title: string; line?: ReactNode; control: ReactNode; error?: string | null; def?: DefaultId }) {
@@ -211,6 +211,14 @@ export function SettingsView(p: SettingsViewProps) {
               control={
                 <select className="select" aria-label="Longest a task runs" value={p.skills.max_minutes} onChange={(e) => p.onSkills?.({ max_minutes: Number(e.target.value) })}>
                   {maxMinutesChoices(p.skills.max_minutes).map((n) => <option key={n} value={n}>{n} minutes</option>)}
+                </select>
+              } />
+          )}
+          {typeof p.skills.max_budget_usd === "number" && (
+            <Row id="max-budget" title="Most a task may spend" def="max-budget" line="A task stops by itself when it reaches this."
+              control={
+                <select className="select" aria-label="Most a task may spend" value={p.skills.max_budget_usd} onChange={(e) => p.onSkills?.({ max_budget_usd: Number(e.target.value) })}>
+                  {maxBudgetChoices(p.skills.max_budget_usd).map((n) => <option key={n} value={n}>{usd(n)}</option>)}
                 </select>
               } />
           )}

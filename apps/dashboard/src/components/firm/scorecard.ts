@@ -384,7 +384,7 @@ export function readScorecard(report: unknown, example?: unknown): ScorecardRead
   const base: Block = v1 && !useV2 ? v1.base : scBaseRate;
   const tsp: Block = v1 && !useV2 ? v1.tsp : scTsp;
   const bins = useV2 && scBins.length ? scBins : v1 && v1.bins.length ? v1.bins : scBins;
-  const binsLabel = useV2 && scBins.length ? str(sc?.calibration_source) : v1 && v1.bins.length ? "leave-one-person-out on the four synthetic personas" : str(sc?.calibration_source);
+  const binsLabel = useV2 && scBins.length ? str(sc?.calibration_source) : v1 && v1.bins.length ? "leave-one-person-out on the four generated people" : str(sc?.calibration_source);
   const meta = useV2 && scMeta ? scMeta : v1 ? v1.meta : (scMeta as CardMeta);
   const budget = useV2 ? scBudget ?? (v1 ? v1.budget : null) : v1 ? v1.budget ?? scBudget : scBudget;
 

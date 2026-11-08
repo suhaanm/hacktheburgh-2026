@@ -205,13 +205,13 @@ export const COULD_NOT_LOAD: Quiet = { kind: "error", title: "Could not read you
 
 /* -- The origin badge ---------------------------------------------------------------------------------------------------------- */
 
-/** One origin badge, sentence case: "Example data" when the engine could not answer, else the data's own origin ("Synthetic firm"). Null for real data. */
-export function originBadge(opts: { example: boolean; origin: string | null | undefined; badge: string | null | undefined }): string | null {
-  if (opts.example) return "Example data";
-  if (!opts.origin || opts.origin === "real") return null;
-  if (opts.origin === "mixed") return "Some example data";
-  const b = (opts.badge ?? opts.origin).trim();
-  return b ? upper(b.toLowerCase()) : null;
+/**
+ * The one origin badge Home may draw: "Example data" when the engine could not answer and a built-in sample stands in. Null for everything else: real data,
+ * and data the engine generated (owner decision D57 and its clarification, 8 Nov 2026: no chip, pill or label says that data was generated, in any wording;
+ * the one plain sentence is `originLine`, inside the closed "About this data").
+ */
+export function originBadge(opts: { example: boolean; origin?: string | null; badge?: string | null }): string | null {
+  return opts.example ? "Example data" : null;
 }
 
 /* -- The first-week example line ---------------------------------------------------------------------------------------------- */

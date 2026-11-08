@@ -12,7 +12,7 @@ import { listVisibleSources } from './brand-scan'
 
 const desktop = path.resolve(__dirname, '..')
 const repo = path.resolve(desktop, '../..')
-const WORDS = ['synthetic', 'synthetically', 'simulated'] as const
+const WORDS = ['synthetic', 'synthetically', 'simulated', 'made-up', 'made up'] as const
 const PENDING: Record<string, string> = {}
 
 const files = ['src/main', 'src/shared', 'src/preload', 'src/renderer']

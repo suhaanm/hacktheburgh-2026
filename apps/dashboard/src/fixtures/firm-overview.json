@@ -41,7 +41,7 @@
    "q": 0.1
   },
   "firm": {
-   "label": "made-up firm",
+   "label": "Firm",
    "roles": 3,
    "users": 60
   },
@@ -155,7 +155,7 @@
     "source": "Firm risk feeds",
     "split": {},
     "statement": "For coaching and onboarding, not for evaluating individuals.",
-    "text": "An approval has waited 72 hours. 3 approvals are open. Source: Firm risk feeds, made-up firm data. For coaching and onboarding, not for evaluating individuals."
+    "text": "An approval has waited 72 hours. 3 approvals are open. Source: Firm risk feeds. For coaching and onboarding, not for evaluating individuals."
    },
    {
     "a11y_label": "Going well: Approved routines handled about 10 hours of work in four weeks.",
@@ -192,7 +192,7 @@
      "shadow_runs": 195
     },
     "statement": "For coaching and onboarding, not for evaluating individuals.",
-    "text": "Approved routines handled about 10 hours of work in four weeks. That is 6 routines and 61 runs; shadow mode matched 191 of 195. Source: Firm routines, made-up firm data. For coaching and onboarding, not for evaluating individuals."
+    "text": "Approved routines handled about 10 hours of work in four weeks. That is 6 routines and 61 runs; shadow mode matched 191 of 195. Source: Firm routines. For coaching and onboarding, not for evaluating individuals."
    },
    {
     "a11y_label": "Worth a look: Runs paused after a page tried to instruct them: 1.",
@@ -223,7 +223,7 @@
     "source": "Firm risk feeds",
     "split": {},
     "statement": "For coaching and onboarding, not for evaluating individuals.",
-    "text": "Runs paused after a page tried to instruct them: 1. That was in the last 7 days. Nothing was changed. Source: Firm risk feeds, made-up firm data. For coaching and onboarding, not for evaluating individuals."
+    "text": "Runs paused after a page tried to instruct them: 1. That was in the last 7 days. Nothing was changed. Source: Firm risk feeds. For coaching and onboarding, not for evaluating individuals."
    },
    {
     "a11y_label": "Worth a look: Benefits processor: juniors take about 20 seconds longer per case than experts.",
@@ -266,7 +266,7 @@
      ]
     },
     "statement": "For coaching and onboarding, not for evaluating individuals.",
-    "text": "Benefits processor: juniors take about 20 seconds longer per case than experts. That is within the same tasks. The cliff check and reconciling before the note explain most of it. Source: Firm assist ledgers, made-up firm data. For coaching and onboarding, not for evaluating individuals."
+    "text": "Benefits processor: juniors take about 20 seconds longer per case than experts. That is within the same tasks. The cliff check and reconciling before the note explain most of it. Source: Firm assist ledgers. For coaching and onboarding, not for evaluating individuals."
    },
    {
     "a11y_label": "Worth a look: Data analyst: juniors take about 20 seconds longer per case than experts.",
@@ -309,7 +309,7 @@
      ]
     },
     "statement": "For coaching and onboarding, not for evaluating individuals.",
-    "text": "Data analyst: juniors take about 20 seconds longer per case than experts. That is within the same tasks. Reconciling with the control figure and comparing with last period explain most of it. Source: Firm assist ledgers, made-up firm data. For coaching and onboarding, not for evaluating individuals."
+    "text": "Data analyst: juniors take about 20 seconds longer per case than experts. That is within the same tasks. Reconciling with the control figure and comparing with last period explain most of it. Source: Firm assist ledgers. For coaching and onboarding, not for evaluating individuals."
    },
    {
     "a11y_label": "Going well: Benefits processor: juniors need less help than six weeks ago.",
@@ -347,7 +347,7 @@
      "windows": "3 weeks, 6 weeks apart"
     },
     "statement": "For coaching and onboarding, not for evaluating individuals.",
-    "text": "Benefits processor: juniors need less help than six weeks ago. Independence is up about 14 points, compared within each person on the same tasks. Source: Firm assist ledgers, made-up firm data. For coaching and onboarding, not for evaluating individuals."
+    "text": "Benefits processor: juniors need less help than six weeks ago. Independence is up about 14 points, compared within each person on the same tasks. Source: Firm assist ledgers. For coaching and onboarding, not for evaluating individuals."
    },
    {
     "a11y_label": "Worth a look: Benefits processor: new juniors are behind the onboarding target.",
@@ -387,7 +387,7 @@
      "target_share": 0.6
     },
     "statement": "For coaching and onboarding, not for evaluating individuals.",
-    "text": "Benefits processor: new juniors are behind the onboarding target. 33 in 100 reached independence within 60 occurrences; the design target is 60 in 100. Source: Firm assist ledgers, made-up firm data. For coaching and onboarding, not for evaluating individuals."
+    "text": "Benefits processor: new juniors are behind the onboarding target. 33 in 100 reached independence within 60 occurrences; the design target is 60 in 100. Source: Firm assist ledgers. For coaching and onboarding, not for evaluating individuals."
    }
   ],
   "week": "2026-W46"

@@ -1,16 +1,19 @@
-// Owner decision D57 (8 Nov 2026): no "synthetic" or "simulated" tag, badge, chip or label anywhere in the app. The engine's origin "synthetic" draws no
-// badge; "example data" (a fixture drawn because a service did not answer) and "real" keep their honest words; the one plain line about where numbers come
-// from sits in the closed "About this data" disclosure and in the footer of an admin chart. Static markup, no DOM needed.
+// Owner decision D57 and its clarification (8 Nov 2026): no tag, chip, pill, badge or label of ANY wording says that data was generated or made up. The engine's
+// origin "synthetic" (or "mixed") draws nothing; "example data" (a fixture drawn because a service did not answer) and "real" keep their honest words. The one
+// plain sentence about where numbers come from sits inside the closed "About this data" disclosure (originLine), and on the Evidence page (reviewers). Static
+// markup, no DOM needed.
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { AnalyticMeta } from "../types";
-import { originLine, originShort, originWords } from "../lib/evidence";
+import { isGenerated, originLine, originWords } from "../lib/evidence";
 import { ChartFoot, ExampleBadge, OriginBadge, workerOriginLabel } from "./common";
 
 const meta = (origin: string): AnalyticMeta => ({ origin, n: 12, n_unit: "people", split: "held-out people", interval_level: 0.95, note: null, generated_at: "" }) as unknown as AnalyticMeta;
 const html = (el: ReturnType<typeof createElement>) => renderToStaticMarkup(el);
-const BANNED = /synthetic|simulated/i;
+const BANNED = /synthetic|simulated|made[- ]up/i;
+/** The markup with every closed <details> removed: what is on the page before anyone opens anything. */
+const visible = (markup: string) => markup.replace(/<details[\s\S]*?<\/details>/g, "");
 
 describe("the origin badge", () => {
   it("draws nothing for the engine's synthetic origin, whatever label a screen passes", () => {
@@ -42,16 +45,15 @@ describe("the origin badge", () => {
 });
 
 describe("where the numbers come from, in plain words", () => {
-  it("says it concretely, without the two words", () => {
+  it("says it concretely, without the banned words", () => {
     for (const origin of ["real", "synthetic", "mixed", "unknown"]) {
       expect(originLine(origin)).not.toMatch(BANNED);
-      expect(originShort(origin) ?? "").not.toMatch(BANNED);
       expect(originWords(origin).text).not.toMatch(BANNED);
       expect(originWords(origin).sr).not.toMatch(BANNED);
     }
     expect(originLine("synthetic")).toMatch(/example people made for this build/);
     expect(originLine("synthetic")).toMatch(/not from real workers/);
-    expect(originShort("real")).toBeNull();
+    expect(isGenerated("synthetic") && isGenerated("mixed") && !isGenerated("real") && !isGenerated("unknown")).toBe(true);
   });
 
   it("is printed inside the closed About this data disclosure on a worker screen, with no tag beside it", () => {
@@ -60,19 +62,22 @@ describe("where the numbers come from, in plain words", () => {
     expect(out).toContain("example people made for this build");
     expect(out).not.toContain("pill--origin");
     expect(out).not.toMatch(BANNED);
+    expect(visible(out)).not.toContain("example people");
   });
 
-  it("is printed as a plain phrase in the footer of an admin chart, with no tag beside it", () => {
+  it("is inside a closed About this data in the footer of an admin chart too, and nowhere else on the footer", () => {
     const out = html(createElement(ChartFoot, { meta: meta("synthetic") }));
-    expect(out).toContain("data from");
+    expect(out).toContain("About this data");
     expect(out).toContain("example people made for this build");
     expect(out).not.toContain("pill--origin");
     expect(out).not.toMatch(BANNED);
+    expect(visible(out)).not.toMatch(/example people|generated|made for this build/);
+    expect(visible(out)).toContain("n = ");
   });
 
   it("adds nothing about origin to the footer of real data beyond the badge a worker asked for", () => {
     const out = html(createElement(ChartFoot, { meta: meta("real") }));
-    expect(out).not.toContain("data from");
+    expect(out).not.toContain("About this data");
     expect(out).toContain("pill--origin");
   });
 });
