@@ -8,7 +8,8 @@ timed out. This middleware makes that impossible:
 * SINGLE-FLIGHT: identical requests that arrive while one is computing wait for that one result. The computation runs as its own task, so a
   client that gives up (or all of them) neither cancels it nor starts a second copy; its result still fills the cache.
 * TTL CACHE: a computed 200 answer is served again for ``ttl`` seconds (default 10). Bounded (entries and bytes). Only 200 answers; errors never.
-* INVALIDATION: any request that is not a GET, HEAD or OPTIONS clears the whole cache (when it arrives and when it finishes), and a computation
+* INVALIDATION: any request that is not a GET, HEAD or OPTIONS clears the whole cache (when it arrives and when it finishes; the three passive capture
+  streams, POST /events, /awareness/events and /attention/events, are the one exception: they would clear it every second), and a computation
   that started before a write never stores its answer. A change of the worker's memory or routine files (role switch, consent, forget) changes
   the key. A client that sends ``Cache-Control: no-cache`` (or ``?refresh=1``) gets a fresh computation, whose answer replaces the cached one.
 * CONCURRENCY: at most ``limit`` (default 2) heavy handlers compute at once; the others wait their turn (never 429). Cheap routes bypass all of
@@ -41,6 +42,9 @@ HEAVY_PREFIXES: tuple[str, ...] = (
     "/git/", "/attention/digest", "/attention/why", "/evidence/", "/eval/report", "/replay", "/offhours/report",
 )
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+#: The passive capture streams. They post about once a second while the worker works; if each cleared the cache, no heavy read would ever be served from it while the
+#: capture runs, which is exactly when the pages are open. What they add shows within the cache's age (10 s). Every other write clears everything.
+INGEST_ROUTES: frozenset[tuple[str, str]] = frozenset({("POST", "/events"), ("POST", "/awareness/events"), ("POST", "/attention/events")})
 CACHE_HEADER = b"x-understudy-cache"
 MAX_ENTRY_BYTES = 8 * 1024 * 1024
 MAX_TOTAL_BYTES = 64 * 1024 * 1024
@@ -116,9 +120,10 @@ class _LoopState:
 
 class HeavyGetMiddleware:
     def __init__(self, app, *, ttl: float = 10.0, limit: int = 2, max_entries: int = 256, prefixes: tuple[str, ...] = HEAVY_PREFIXES,
-                 clock: Callable[[], float] = time.monotonic, signature: Callable[[], tuple] = _version_signature) -> None:
+                 clock: Callable[[], float] = time.monotonic, signature: Callable[[], tuple] = _version_signature,
+                 ingest: frozenset[tuple[str, str]] = INGEST_ROUTES) -> None:
         self.app = app
-        self.ttl, self.limit, self.max_entries, self.prefixes = ttl, limit, max_entries, prefixes
+        self.ttl, self.limit, self.max_entries, self.prefixes, self.ingest = ttl, limit, max_entries, prefixes, ingest
         self.clock, self.signature = clock, signature
         self._cache: "OrderedDict[tuple, _Entry]" = OrderedDict()
         self._bytes = 0
@@ -191,6 +196,8 @@ class HeavyGetMiddleware:
             return await self.app(scope, receive, send)
         method = scope["method"]
         if method not in SAFE_METHODS:
+            if (method, scope["path"]) in self.ingest:
+                return await self.app(scope, receive, send)      # passive capture (about one post a second while the worker works): the cache would never hold; it is at most ttl old
             self.invalidate()                            # the write arrives: nothing computed before it may be served after it
             try:
                 return await self.app(scope, receive, send)

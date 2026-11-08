@@ -84,6 +84,10 @@ def build(*, ttl: float = 10.0, limit: int = 2, clock=None, sleep: float = 0.05,
     def forget():
         return {"forgot": True}
 
+    @app.post("/events")
+    def events():
+        return {"stored": 1}
+
     mw = {}
 
     def factory(inner, **kw):
@@ -148,6 +152,16 @@ async def test_any_write_invalidates_everything():
     r = await c.get("/routines")
     assert tag(r) == "miss" and r.json()["call"] == 2
     assert (await c.get("/briefing?n=1")).json()["call"] == 2
+
+
+async def test_the_passive_capture_posts_do_not_clear_the_cache_but_every_other_write_does():
+    c, calls, _, _ = build(ttl=10.0)
+    await c.get("/routines")
+    for _ in range(3):
+        assert (await c.post("/events")).status_code == 200            # about one a second while the worker works
+    assert tag(await c.get("/routines")) == "hit" and calls["routines"] == 1
+    await c.post("/memory/forget")
+    assert tag(await c.get("/routines")) == "miss"
 
 
 async def test_a_computation_that_started_before_a_write_is_not_stored():
