@@ -1,5 +1,6 @@
 import { ApiError } from "../../api";
 import { useAppState } from "../../store";
+import type { LoadState } from "../../hooks";
 
 /**
  * Whose data a worker's section may ask for. A worker's screen draws their own work and nobody else's (docs/knack-ux/views.md), so a request never goes out
@@ -17,3 +18,16 @@ export function useOwnPerson(example?: string): { ready: boolean; blocked: boole
 
 /** What a section's loader returns when the worker is not known: the same "nothing recorded" answer an unknown id gets. */
 export const notKnown = <T,>(): Promise<T> => Promise.reject(new ApiError(404, "unknown_person", "No worker is known yet."));
+
+/**
+ * A live engine that answers "no such worker" (404 or 422) for the worker's own id has nothing recorded for them yet. The loader falls back to the built-in
+ * example in that case; a worker's screen must not show it (it would be somebody else's week or case under an example tag), so it reads as an error the
+ * section turns into "Nothing has been recorded for you yet". An engine that cannot be reached (status 0) still shows the example, under the example pill.
+ */
+export function unknownAsError<T>(s: LoadState<T>): LoadState<T> {
+  const st = s.why?.status;
+  if (st === 404 || st === 422) {
+    return { ...s, data: null, meta: null, why: null, status: "error", error: new ApiError(st, s.why?.code ?? "unknown_person", "No data for this worker yet.") } as LoadState<T>;
+  }
+  return s;
+}
