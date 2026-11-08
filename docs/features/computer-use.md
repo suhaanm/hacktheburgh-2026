@@ -28,7 +28,7 @@ Behind Routines, Run now, when a routine needs tier 3. Evidence has the agentic 
 
 ### Demo moment
 
-Not a demo moment: say plainly that the computer-use tier is in development and that Submit waited for a human in every run.
+Not a demo moment: say plainly that the Gemini held-out round completed 18 of 20 against a bar of 0.80 on the lower bound, which it did not meet, and that Submit waited for a human in every run.
 
 ### Evidence and its label
 

@@ -83,7 +83,7 @@ As of Sun 08 Nov 2026, 02:25 UTC, checked against main at 6b94707.
 
 | Feature | Page | Status | Targets |
 |---|---|---|---|
-| Model routing: Gemini by default, checked at boot | [models-and-routing](models-and-routing.md) | **built** (live boot check and small planner and fast calls pass; computer use on Gemini needs its own iterations) | Wordsmith, HRT |
+| Model routing: Gemini by default, checked at boot | [models-and-routing](models-and-routing.md) | **built** (live boot check and small planner and fast calls pass; computer use on Gemini was run once on held-out households: 18 of 20, below its bar) | Wordsmith, HRT |
 | Local model digests (a 7B model on this Mac) | [models-and-routing](models-and-routing.md) | **built** | HRT, G-Research |
 | Spoken lines (ElevenLabs, fixed vocabulary) | [models-and-routing](models-and-routing.md) | **built** | Wordsmith |
 | Mock mode: the whole product offline | [models-and-routing](models-and-routing.md) | **verified** | Wordsmith |

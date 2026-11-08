@@ -832,7 +832,7 @@ Behind Routines, Run now, when a routine needs tier 3. Evidence has the agentic 
 
 #### Demo moment
 
-Not a demo moment: say plainly that the computer-use tier is in development and that Submit waited for a human in every run.
+Not a demo moment: say plainly that the Gemini held-out round completed 18 of 20 against a bar of 0.80 on the lower bound, which it did not meet, and that Submit waited for a human in every run.
 
 #### Evidence and its label
 
@@ -1471,7 +1471,7 @@ Not run with a microphone, a Live session or a real click. The 'do it for me' pa
 
 ### Model routing: Gemini by default, checked at boot
 
-**Status:** built (live boot check and small planner and fast calls pass; computer use on Gemini needs its own iterations) · **Page:** `docs/features/models-and-routing.md` · **Targets:** Wordsmith, HRT
+**Status:** built (live boot check and small planner and fast calls pass; computer use on Gemini was run once on held-out households: 18 of 20, below its bar) · **Page:** `docs/features/models-and-routing.md` · **Targets:** Wordsmith, HRT
 
 #### What it does
 
@@ -1501,7 +1501,7 @@ Show the status line 'Live models', then (in the Admin view) Models and cost: th
 
 #### Honest limit
 
-The bake-off is on screenshots of our own sandbox pages with 147 pointing cases; it is not a claim about real apps. Computer use on Gemini has development results only (see the computer-use page). Every earlier number measured with OpenAI models is evidence about that configuration, not about Gemini.
+The bake-off is on screenshots of our own sandbox pages with 147 pointing cases; it is not a claim about real apps. Computer use on Gemini has one held-out round, 18 of 20 below its bar, plus in-sample development results (see the computer-use page). Every earlier number measured with OpenAI models is evidence about that configuration, not about Gemini.
 
 #### Hackathon target
 
