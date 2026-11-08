@@ -9,6 +9,15 @@ import os
 from typing import Any
 
 
+def search_page() -> str:
+    """The page a typed task starts on when the worker named no address, and where the model's `search` action goes. DuckDuckGo's home page
+    loads in the agent's own browser with no consent wall (checked live, 8 Nov 2026: Google's home page opens a "Before you continue" wall
+    in front of the search box). `KNACK_SEARCH_PAGE` (an http or https address) replaces it. It carries no query: the worker's words never
+    ride in an address."""
+    v = os.environ.get("KNACK_SEARCH_PAGE", "").strip()
+    return v if v.startswith(("https://", "http://")) else "https://duckduckgo.com/"
+
+
 def _viewport_from_env() -> dict[str, int]:
     """The page size the computer-use model sees (frame size sets the image tokens per step). UNDERSTUDY_T3_VIEWPORT=WxH to change it."""
     import os

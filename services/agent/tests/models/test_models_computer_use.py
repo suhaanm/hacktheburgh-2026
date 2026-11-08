@@ -229,3 +229,67 @@ def test_with_the_fit_on_no_enter_follows_the_typing_and_an_absent_clear_flag_me
         out = [p.computer_step("g", PNG, [], session="n1") for _ in range(4)]
         assert kinds(out) == [click, ("key", {"keys": sel}), ("key", {"keys": ["backspace"]}), ("type", {"text": "{a.b}"})]
         assert p._pending.get("n1") in (None, [])                              # an explicit request to clear is honoured, an Enter is still not queued
+
+
+# ----------------------------------------------------------------------------- the browsing profile (a typed task in the agent's own browser)
+# Owner report, 8 Nov 2026: every typed browser task ended "The browser agent gave up." The computer-use model answers a task with no
+# address by calling `navigate`, and the provider mapped no navigation action at all, so the reply became a failed Done. These tests pin the
+# fix: the web profile maps the navigation actions, an action nobody maps is `Unsupported` (a note and another try, not the end of the run),
+# and the browsing prompt carries none of the benefits-form wording (it says "never press Enter", which stops a search box from working).
+def web(*replies, **ids):
+    p, c = prov(*replies, **ids)
+    p.begin_task("task", profile="web")
+    return p, c
+
+
+@pytest.mark.parametrize("name,args,kind,expect", [
+    ("navigate", {"url": "https://www.youtube.com", "intent": "Open YouTube"}, "goto", {"url": "https://www.youtube.com"}),
+    ("navigate", {"url": "www.youtube.com/results"}, "goto", {"url": "https://www.youtube.com/results"}),      # no scheme: https
+    ("navigate", {"url": "javascript:alert(1)"}, "goto", {"url": "javascript:alert(1)"}),                       # never repaired: layer 3 refuses it
+    ("navigate", {"url": "file:///etc/passwd"}, "goto", {"url": "file:///etc/passwd"}),
+    ("search", {}, "goto", {"url": "https://duckduckgo.com/"}),
+    ("go_back", {}, "back", {}),
+    ("open_web_browser", {}, "screenshot", {}),                       # the browser is already open: look at it
+])
+def test_the_web_profile_maps_the_navigation_actions(name, args, kind, expect):
+    p, _ = web(call(name, **args))
+    a = p.computer_step("g", PNG, [], session="task")
+    assert isinstance(a, Action) and a.kind == kind and a.args == expect
+
+
+def test_an_action_nobody_maps_is_unsupported_which_is_still_a_failed_done_to_old_callers():
+    from understudy_agent.models.port import Unsupported
+
+    p, _ = web(call("go_forward"), call("Tele Port!!", x=1))
+    r = p.computer_step("g", PNG, [], session="task")
+    assert isinstance(r, Unsupported) and isinstance(r, Done) and not r.claimed_success and r.name == "go_forward"
+    r = p.computer_step("g", PNG, [], session="task")
+    assert isinstance(r, Unsupported) and r.name == "tele_port"           # a closed token, never the model's own text
+
+
+def test_without_the_web_profile_navigation_is_not_mapped_so_the_form_and_desktop_paths_are_as_before():
+    from understudy_agent.models.port import Unsupported
+
+    p, _ = prov(call("navigate", url="https://example.org"))
+    assert isinstance(p.computer_step("g", PNG, []), Unsupported)
+
+
+def test_begin_task_without_a_profile_puts_a_session_back_on_the_form_profile():
+    from understudy_agent.models.port import Unsupported
+
+    p, _ = web(call("navigate", url="https://example.org"))
+    p.begin_task("task")
+    assert isinstance(p.computer_step("g", PNG, [], session="task"), Unsupported)
+
+
+def test_the_web_prompt_has_no_benefits_form_wording_and_lets_a_search_box_take_its_enter(monkeypatch):
+    from understudy_agent.models.gemini_provider import GEMINI_FORM_FIT, _CU_SYSTEM_FIT, _CU_SYSTEM_WEB
+
+    monkeypatch.setenv("UNDERSTUDY_GEMINI_FIT", "1")                       # the form fit is ON, as in the live stack
+    p, c = web(call("type_text_at", x=500, y=500, text="python course", clear_before_typing=False))
+    out = [p.computer_step("GOAL-TEXT", PNG, [], session="task") for _ in range(3)]
+    user, system = c.calls[0]["parts"][0].value, c.calls[0]["system"]
+    assert GEMINI_FORM_FIT not in user and system == _CU_SYSTEM_WEB != _CU_SYSTEM_FIT and user.startswith("Goal: GOAL-TEXT\n")
+    assert "Never press Enter" not in user and "{household" not in user + system
+    assert "navigate" in system and "FAILED: login" in system and "FAILED: blocked" in system     # the closed words the runner reads
+    assert kinds(out) == [("click", {"x": 640, "y": 400, "button": "left"}), ("type", {"text": "python course"}), ("key", {"keys": ["enter"]})]
