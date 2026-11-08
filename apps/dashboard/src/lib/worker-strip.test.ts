@@ -4,6 +4,7 @@ import { aboutCohort, isCohortFact, noCounts, oneExpert, restsOnCohort, safeWhy,
 import { caseSecondsLost, stepsHeadline, topLosses } from "./steps";
 import { describeColumn, type RibbonColumn } from "./ribbon";
 import { commitsHeadline } from "../components/growth/CommitsSection";
+import { taskFor } from "../components/growth/StepsSection";
 import type { AnalyticMeta, GitHabit } from "../types";
 
 // The worker's screens draw the worker's own data and ONE experienced worker's way of doing the task (docs/knack-ux/views.md).
@@ -135,6 +136,15 @@ describe("describeColumn in the worker's voice", () => {
   });
   it("the group's wording is unchanged for the places that still use it", () => {
     expect(describeColumn(col({ novice: null, saved: 38, lost: 0 }), 7, 12)).toMatch(/novice skipped it/);
+  });
+});
+
+describe("the ribbon's task follows the worker's role", () => {
+  it("a programmer and an analyst get their own reference trace, everyone else the benefits check", () => {
+    expect(taskFor("programmer")).toBe("programmer");
+    expect(taskFor("data-analyst")).toBe("data-analyst");
+    expect(taskFor("benefits-processor")).toBe("t_entitlement_check");
+    expect(taskFor(null)).toBe("t_entitlement_check");
   });
 });
 
