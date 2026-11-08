@@ -81,7 +81,9 @@ def mini():
 def test_replay_writes_recal_beside_the_model_and_baselines_and_the_chain_verifies(mini):
     dep, led = mini
     arr = led.resolved("stuck_hazard")
-    assert set(arr["names"]) == {pr.MODEL, pr.ONLINE, pr.TSP, pr.BASE, rc.RECAL} and arr["primary"] == rc.RECAL
+    assert set(arr["names"]) == {pr.MODEL, pr.ONLINE, pr.TSP, pr.BASE, rc.RECAL, rc.RECAL_W} and arr["primary"] == rc.RECAL
+    early_w = arr["made_at"] < np.sort(arr["resolved_at"])[rc.REFIT_EVERY - 1]
+    assert np.allclose(arr["forecasts"][rc.RECAL_W][early_w], arr["forecasts"][rc.RECAL][early_w], atol=1e-6)         # until 2,000 have resolved the two arms agree
     assert led.verify() and led.pending("stuck_hazard") == 0
     order = np.argsort(arr["resolved_at"], kind="stable")
     first = order[: rc.REFIT_EVERY - 1]
@@ -118,19 +120,37 @@ def test_the_claims_are_judged_by_the_registered_rules():
     def pv(est, lo, hi):
         return {"est": est, "ci": [lo, hi]}
 
-    def world(vs_model):
-        return {"paired_log_loss_vs": {pr.MODEL: vs_model}}
+    def world(vs_model, w_vs_model=None):
+        return {"paired_log_loss_vs": {pr.MODEL: vs_model}, "w": {"paired_log_loss_vs": {pr.MODEL: w_vs_model or vs_model}}}
 
-    drift = {"second_half": {"n": 100, "recal_vs_model": pv(-0.05, -0.07, -0.03), "recal_calibration": {"intercept": 0.01, "intercept_ci": [-0.1, 0.1], "slope": 1.0, "slope_ci": [0.9, 1.1], "intercept_contains_0": True},
-                             "model_calibration": {"intercept": 1.0}}}
+    cal_ok = {"intercept": 0.01, "intercept_ci": [-0.1, 0.1], "slope": 1.0, "slope_ci": [0.9, 1.1], "intercept_contains_0": True}
+    drift = {"second_half": {"n": 100, "recal_vs_model": pv(-0.05, -0.07, -0.03), "recal_calibration": cal_ok, "model_calibration": {"intercept": 1.0},
+                             "recal_w_vs_model": pv(-0.1, -0.12, -0.08), "recal_w_vs_recal": pv(-0.05, -0.07, -0.03), "recal_w_calibration": cal_ok}}
     good = {"v1": world(pv(-0.001, -0.003, 0.002)), "route_no_drift": world(pv(0.0, -0.002, 0.004)), "route_drift": drift,
             "markov": world(pv(-0.2, -0.3, -0.1)), "latent_skill": world(pv(-0.2, -0.3, -0.1)), "process_trace": world(pv(-0.2, -0.3, -0.1))}
     got = {c["id"]: c["pass"] for c in rc.judge_recal(good)}
-    assert got == {"R1": True, "R2": True, "R3": True, "R4": True}
-    bad = {**good, "v1": world(pv(0.01, 0.006, 0.014)), "markov": world(pv(-0.2, -0.3, 0.01))}
-    bad["route_drift"] = {"second_half": {**drift["second_half"], "recal_vs_model": pv(0.0, -0.02, 0.02), "recal_calibration": {**drift["second_half"]["recal_calibration"], "intercept_contains_0": False}}}
+    assert got == {"R1": True, "R2": True, "R3": True, "R4": True, "R5": True, "R6": True, "R7": True}
+    bad = {**good, "v1": world(pv(0.01, 0.006, 0.014), pv(0.02, 0.012, 0.03)), "markov": world(pv(-0.2, -0.3, 0.01))}
+    bad["route_drift"] = {"second_half": {**drift["second_half"], "recal_vs_model": pv(0.0, -0.02, 0.02), "recal_calibration": {**cal_ok, "intercept_contains_0": False},
+                                          "recal_w_vs_recal": pv(0.01, -0.01, 0.03), "recal_w_calibration": {**cal_ok, "intercept_contains_0": False}}}
     got = {c["id"]: c["pass"] for c in rc.judge_recal(bad)}
-    assert got == {"R1": False, "R2": False, "R3": False, "R4": False}
+    assert got == {"R1": False, "R2": False, "R3": False, "R4": False, "R5": False, "R6": False, "R7": False}
+    # R7's margin is 0.01, R2's is 0.005: an upper end of 0.008 fails R2 and passes R7
+    mid = {**good, "v1": world(pv(0.005, 0.0, 0.008))}
+    got = {c["id"]: c["pass"] for c in rc.judge_recal(mid)}
+    assert got["R2"] is False and got["R7"] is True
+
+
+def test_the_windowed_arm_forgets_a_regime_and_the_growing_arm_does_not():
+    p, y1 = _stream(3000, 0.0, seed=7)
+    p2, y2 = _stream(3000, 1.5, seed=8)                                 # the world changes after 3,000 outcomes
+    grow, win = rc.OnlineRecal(), rc.OnlineRecal(window=rc.WINDOW)
+    for pi, yi in zip(np.concatenate([p, p2]), np.concatenate([y1, y2])):
+        grow.observe(pi, yi)
+        win.observe(pi, yi)
+    assert rc.WINDOW == 2000
+    assert abs(win.a - 1.5) < abs(grow.a - 1.5) and win.a > grow.a + 0.2
+    assert len(win.s) <= 2 * rc.WINDOW                                  # memory stays bounded
 
 
 def test_the_new_seeds_are_disjoint_from_every_earlier_evaluation_and_from_plan_md():
