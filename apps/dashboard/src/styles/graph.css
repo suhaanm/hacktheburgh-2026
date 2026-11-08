@@ -1,0 +1,110 @@
+/* -- The graph layer (owner request 4.13) ---------------------------------------------------------------------------------------------------------
+   Follows the design system's "work graph" (artifact "Understudy Design System"): colour is the kind, size is minutes or mastery, opacity is strength,
+   a dashed ring is lapsed, a hairline is a link, a dashed envelope is a combined routine. Every node carries an icon, and no text is drawn on a canvas:
+   a name opens in a card on hover, focus or a click. Tokens only: no hard-coded colour. */
+
+/* The kind sets two properties; the canvas, the chips and the key read them. --k fills, --on is the ink on it. */
+.gnode[data-kind="routine"], .gkind[data-kind="routine"] { --k: var(--accent); --on: var(--on-accent); }
+.gnode[data-kind="skill"], .gkind[data-kind="skill"] { --k: var(--novice); --on: var(--on-novice); }
+.gnode[data-kind="memory"], .gkind[data-kind="memory"] { --k: var(--expert); --on: var(--on-expert); }
+.gnode[data-kind="automation"], .gkind[data-kind="automation"] { --k: var(--good); --on: var(--on-good); }
+.gkind[data-tone="expert"] { --k: var(--expert); --on: var(--on-expert); }
+.gkind[data-tone="novice"] { --k: var(--novice); --on: var(--on-novice); }
+
+/* The chip a kind wears outside the canvas: in the card, the panel and the key. */
+.gkind { display: inline-grid; place-items: center; flex: none; box-sizing: border-box; border-radius: 50%; background: var(--k, transparent); color: var(--on, var(--muted)); }
+.gkind[data-tone="muted"] { border: 1.5px dashed var(--control-line); color: var(--muted); }
+
+/* The stage and the canvas */
+.gcanvas__stage { position: relative; border: var(--hair) solid var(--line); border-radius: var(--radius-3); background: var(--panel); overflow: hidden; min-height: 280px; }
+.gcanvas__stage > svg { display: block; max-width: 100%; height: auto; }
+.gcanvas { box-sizing: border-box; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.gcanvas:focus-visible { outline: var(--ring-w) solid var(--focus); outline-offset: -3px; border-radius: var(--radius-3); }
+.gcanvas__bg { fill: transparent; }
+
+/* Nodes: a disc of the kind's colour (its opacity is strength) with the kind's glyph on it. A lapsed node gets a dashed ring and a pale disc. */
+.gnode { cursor: pointer; }
+.gnode__hit { fill: transparent; }
+.gnode__back { fill: var(--panel); }
+.gnode__disc { fill: var(--k); transition: opacity var(--dur-fade) var(--ease-fade); }
+.gnode__ink { color: var(--on); pointer-events: none; }
+.gnode[data-lapsed] .gnode__ink { color: var(--fg); }
+.gnode__lapsed { fill: none; stroke: var(--k); stroke-width: 1.25; stroke-dasharray: 3 2.5; opacity: 0.8; pointer-events: none; }
+
+/* Links are hairlines; the ones touching the node in focus come forward. A combined pair sits in one dashed envelope. */
+.glink { fill: none; stroke: var(--muted); stroke-width: 1; transition: opacity var(--dur-fade) var(--ease-fade); }
+.glink--on { stroke: var(--accent); stroke-width: 1.5; opacity: 0.9; pointer-events: none; }
+.ghull { fill: var(--panel); stroke: var(--accent); stroke-width: 1.25; stroke-dasharray: 4 3; transition: opacity var(--dur-fade) var(--ease-fade); }
+
+/* Rings: hover is quiet, the keyboard's position is the focus ring, the opened node is ringed in the accent. */
+.gring { fill: none; pointer-events: none; }
+.gring--hover { stroke: var(--control-line); stroke-width: 1.5; }
+.gring--focus { stroke: var(--focus); stroke-width: var(--ring-w); }
+.gring--sel { stroke: var(--accent); stroke-width: 2; }
+
+/* The card a name opens in: the design system's note card (as the Hint), placed beside the node. */
+.gtip, .gkey__card { color: var(--fg); background: var(--panel); border: var(--hair) solid var(--line-strong); border-radius: var(--radius-2); box-shadow: var(--elev-2); font: 400 var(--text-sm)/1.4 var(--font-body); text-align: left; text-transform: none; letter-spacing: 0; }
+.gtip { position: absolute; z-index: calc(var(--z-panel) - 1); display: flex; align-items: center; gap: var(--space-2); width: max-content; max-width: min(var(--measure-short), calc(100% - 12px)); padding: var(--space-2) var(--space-3) var(--space-2) var(--space-2); pointer-events: none; animation: u-fade-in var(--dur-pop) var(--ease-out) both; }
+.gtip[data-pinned] { border-color: var(--accent); }
+.gtip__text { display: grid; gap: 1px; min-width: 0; }
+.gtip__name { font-weight: 600; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.gtip__meta { color: var(--muted); font-size: var(--text-xs); }
+
+/* The key: pictures only, each a button that opens its name in the same card. */
+.gkey { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); margin: var(--space-3) 0 0; padding: 0; list-style: none; }
+.gkey__li { position: relative; display: inline-flex; }
+.gkey__li[data-first-of-group="true"]:not(:first-child) { margin-inline-start: var(--space-3); padding-inline-start: var(--space-3); border-inline-start: var(--hair) solid var(--line); }
+.gkey__item { appearance: none; display: inline-grid; place-items: center; min-width: 36px; height: 36px; padding: 0 var(--space-1); background: none; border: 0; border-radius: var(--radius-2); color: var(--muted); cursor: help; transition: background-color var(--dur-fast) var(--ease-out); }
+.gkey__item:hover, .gkey__item[data-open] { background: var(--sunk); }
+@media (pointer: coarse) { .gkey__item { min-width: 44px; height: 44px; } }
+.gkey__card { position: absolute; z-index: var(--z-hint); top: calc(100% + 4px); left: 0; display: grid; gap: 1px; width: max-content; max-width: min(var(--measure-short), 78vw); padding: var(--space-2) var(--space-3); visibility: hidden; pointer-events: none; }
+.gkey__li:nth-last-child(-n+3) .gkey__card { left: auto; right: 0; }
+.gkey__li:hover .gkey__card, .gkey__item:focus-visible + .gkey__card, .gkey__item[data-open] + .gkey__card { visibility: visible; animation: u-fade-in var(--dur-pop) var(--ease-out) both; }
+.gkey__card b { font-weight: 600; }
+.gkey__card span { color: var(--muted); font-size: var(--text-xs); }
+.gk-fill { fill: var(--muted); }
+.gk-dash { fill: none; stroke: var(--muted); stroke-width: 1.25; stroke-dasharray: 3 2.5; }
+.gk-hair { fill: none; stroke: var(--muted); stroke-width: 1; }
+.gk-env { fill: none; stroke: var(--accent); stroke-width: 1.25; stroke-dasharray: 4 3; }
+
+/* The details panel */
+.gpanel { position: absolute; z-index: var(--z-panel); top: var(--space-3); right: var(--space-3); bottom: var(--space-3); width: min(340px, calc(100% - 24px)); display: flex; animation: u-slide-in var(--dur-arrive) var(--ease-out) both; }
+.gpanel .sidepanel { width: 100%; box-shadow: var(--elev-2); min-height: 0; }
+.gpanel__who { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.gpanel__what { color: var(--fg); }
+.gpanel__nums { display: grid; gap: var(--space-2); margin: 0; }
+.gpanel__nums dt { font: 400 var(--text-xs)/1.2 var(--font-mono); color: var(--muted); }
+.gpanel__nums dd { margin: 2px 0 0; color: var(--fg); overflow-wrap: anywhere; }
+
+/* The transition graph (Genome): the same steps for the expert and the novice, side by side. */
+.tgraph { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
+.tgraph__col { display: grid; gap: var(--space-2); min-width: 0; }
+.tgraph__stage { position: relative; }
+.tgraph__stage > svg { display: block; max-width: 100%; }
+.tg-edge { fill: none; stroke: var(--muted); opacity: 0.7; }
+.tg-edge--expert { stroke: var(--expert); opacity: 0.85; }
+.tg-edge--novice { stroke: var(--novice); opacity: 0.85; }
+.tg-edge--missing { stroke: var(--bad); stroke-dasharray: 5 3; opacity: 1; }
+.tg-edge--extra { stroke: var(--novice); stroke-dasharray: 2 3; opacity: 0.8; }
+.tg-edge--hit { fill: none; stroke: transparent; stroke-width: 12; pointer-events: stroke; }
+.tg-edge--on { stroke-width: 3; opacity: 1; }
+.tgnode { cursor: pointer; }
+.tgnode__disc { fill: var(--k); }
+.tgnode[data-tone="expert"] { --k: var(--expert); --on: var(--on-expert); }
+.tgnode[data-tone="novice"] { --k: var(--novice); --on: var(--on-novice); }
+.tgnode[data-tone="muted"] { --k: transparent; --on: var(--muted); }
+.tgnode[data-tone="muted"] .tgnode__disc { fill: var(--panel); stroke: var(--control-line); stroke-width: 1.25; stroke-dasharray: 3 3; }
+.tgnode__ink { color: var(--on); pointer-events: none; }
+
+@media (max-width: 880px) {
+  .gpanel { position: static; width: 100%; margin: 0; animation: none; }
+  .gcanvas__stage { overflow: visible; border: 0; background: none; height: auto !important; min-height: 0; }
+  .gcanvas__stage > svg { border: var(--hair) solid var(--line); border-radius: var(--radius-3); background: var(--panel); }
+  .gpanel { margin-top: var(--space-3); }
+  .tgraph { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gnode__disc, .glink, .ghull, .gkey__item { transition-duration: 0.01ms; }
+  .gtip, .gkey__card, .gpanel { animation-duration: 0.01ms; }
+}
