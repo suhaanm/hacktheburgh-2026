@@ -19,6 +19,7 @@ from typing import Literal
 from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 
+from .calendar import standin
 from .gitanalysis import service
 from .gitanalysis.source import GitSourceError
 
@@ -48,6 +49,12 @@ def get_habits(
 ):
     if not enabled():
         return _off()
+    who, role = standin.caller()
+    if standin.is_own(person, who) and not repo:
+        # The worker's own page: their own commits, or nothing. Never another learner's repository, and never the shared default learner when nobody is named.
+        if role != "programmer" or who not in service.worker_repos():
+            return _error(404, "unknown_person", "There are no commits to show for you yet.")
+        person = who
     try:
         return service.habits(person, repo, author=author, backend=digest, reword=reword or None, with_placebo=placebo)
     except service.GitServiceError as exc:
@@ -60,6 +67,11 @@ def get_habits(
 def get_people():
     if not enabled():
         return _off()
+    who, role = standin.caller()
+    if who:                                         # someone is set up: the worker's page lists the worker's own repository, if they have one, and nobody else
+        own = role == "programmer" and who in service.worker_repos()
+        return {"learners": [{"person": who, "repo": service.repo_id_for(who)}] if own else [], "experts": [], "registered": sorted(service.registered_repos()),
+                "default_person": who}
     return service.people()
 
 

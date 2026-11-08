@@ -265,6 +265,8 @@ export function buildKnackMenuEntries(model: TrayModel, now: number = Date.now()
     { id: 'knack', label: `Open ${APP_NAME}`, enabled: true },
     { id: 'ask', label: `Ask ${APP_NAME}…`, enabled: true, ...(model.talkAccelerator ? { accelerator: model.talkAccelerator } : {}) },
     // Hey Knack (src/main/wake): its one switch, only while the listener exists (the wake word is a feature of its own, so this is a row beyond the eight, like the glance state).
+    // The listener's own one line, only when it is not simply listening (blocked, starting, not listening during a call): "a permission that is missing is never silence" (docs/knack-ux/09-wake-voice.md).
+    model.wake && model.wake.on && model.wake.line && !model.wake.line.startsWith('Listening for Hey Knack') ? { id: 'wake_status', label: model.wake.line, enabled: false } : null,
     model.wake ? { id: 'wake_listen', label: 'Listen for Hey Knack', enabled: true, checked: model.wake.on } : null,
     paused ? { id: 'unpause', label: 'Resume now', enabled: true, ...(model.panelAccelerator ? { accelerator: model.panelAccelerator } : {}) } : { id: 'pause', label: 'Pause for 1 hour', enabled: true, ...(model.panelAccelerator ? { accelerator: model.panelAccelerator } : {}) },
     k.stopped || model.killed

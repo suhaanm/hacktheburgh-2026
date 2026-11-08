@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CARD_INSET, STACK_GAP, cardBounds, isRealMouseClick } from './card-ipc'
+import { CARD_INSET, STACK_GAP, cardBounds, cardWorkArea, isRealMouseClick } from './card-ipc'
 
 describe('where the card goes', () => {
   it('bottom-right of the work area, 16 px in, on whichever display it is given', () => {
@@ -42,5 +42,23 @@ describe('a real mouse click', () => {
     expect(isRealMouseClick({ isTrusted: true, detail: 0, pointerType: '', button: 0 })).toBe(false) // Enter or Space on a focused button
     expect(isRealMouseClick({ isTrusted: true, detail: 1, pointerType: 'touch', button: 0 })).toBe(false)
     expect(isRealMouseClick({ isTrusted: true, detail: 1, pointerType: 'mouse', button: 2 })).toBe(false)
+  })
+})
+
+describe('which display a stacked card goes to', () => {
+  const first = { x: 0, y: 33, width: 1728, height: 999 }
+  const second = { x: 1728, y: -155, width: 1920, height: 1055 }
+  const displays = [{ workArea: first }, { workArea: second }]
+  it('the display that holds the column, even when the pointer is on another one', () => {
+    const column = { x: 3365, y: 840, width: 267, height: 44 }
+    expect(cardWorkArea(displays, column, first)).toEqual(second)
+    // the card then stacks above the column and never floats in the middle of the first display
+    const b = cardBounds(cardWorkArea(displays, column, first), { w: 348, h: 150 }, undefined, column)
+    expect(b.x).toBeGreaterThanOrEqual(second.x)
+    expect(b.y + b.height + STACK_GAP).toBeLessThanOrEqual(column.y)
+  })
+  it('with no column, or one that is on no display, the pointer display', () => {
+    expect(cardWorkArea(displays, null, second)).toEqual(second)
+    expect(cardWorkArea(displays, { x: 99999, y: 0, width: 10, height: 10 }, first)).toEqual(first)
   })
 })

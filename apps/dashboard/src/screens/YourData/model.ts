@@ -17,7 +17,13 @@ export const ydSectionOf = (s: string | null | undefined): YdSection | null => (
 
 /** The memory file's lines in reading order. Notes in the engine's file look like "id:l_ab12 | why": the id is plumbing, only the why is shown. */
 export interface MemItem { id: string; section: string; text: string; note: string | null }
-const cleanNote = (n: string | null): string | null => { const c = (n ?? "").replace(/^id:\S+\s*\|?\s*/, "").trim(); return c || null; };
+/** A note as the worker reads it: the id plumbing is dropped, a code such as `corr:summary_length=detailed` is dropped (the line already says it), and the seed's own label becomes "set up for you". */
+export const cleanNote = (n: string | null): string | null => {
+  const c = (n ?? "").replace(/^id:\S+\s*\|?\s*/, "").trim();
+  if (!c || /^corr:\S+$/i.test(c) || /^onboarding\b/i.test(c)) return null;   // where a line came from is only worth a word when it is not the set-up itself
+  if (/\bdemo\b/i.test(c)) return "set up for you";
+  return c;
+};
 
 export function memoryItems(m: Pick<Memory, "sections"> | null | undefined): MemItem[] {
   const sections = m?.sections && typeof m.sections === "object" ? m.sections : {};

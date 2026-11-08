@@ -18,6 +18,13 @@ export type TaskState = (typeof TASK_STATES)[number]
 export type ConsentChoice = 'allow' | 'everything' | 'decline'
 
 export { parseTaskText, TASK_TEXT_MAX } from '../live/tools'
+
+/** What the worker typed in the Ask bar, as one clean line for a task: hidden characters out, spaces collapsed, 1 to 500 characters. Their own words, so code and markup are allowed. */
+export const TYPED_TASK_MAX = 500
+export function parseTypedTask(v: unknown): string | null {
+  const s = cleanLine(v)
+  return s.length >= 1 && [...s].length <= TYPED_TASK_MAX ? s : null
+}
 const ID_RE = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/
 
 export interface ConsentCard {
@@ -38,12 +45,14 @@ export interface TaskRow {
   route: TaskRoute
   state: TaskState
   result: string | null
+  /** Why a task failed or stopped: one plain sentence the service wrote (at most 160 characters). */
+  reason: string | null
   /** The full text of an inline answer (route answer, from GET /tasks/{id} only; at most 1500 characters). */
   answer: string | null
   needs_consent: ConsentCard | null
   question: QuestionCard | null
 }
-export interface Created extends Omit<TaskRow, 'state' | 'result' | 'answer'> {
+export interface Created extends Omit<TaskRow, 'state' | 'result' | 'answer' | 'reason'> {
   summary: string
 }
 
@@ -94,7 +103,7 @@ export function parseRow(raw: unknown): TaskRow | null {
   const route = (TASK_ROUTES as readonly unknown[]).includes(raw.route) ? (raw.route as TaskRoute) : null
   const state = (TASK_STATES as readonly unknown[]).includes(raw.state) ? (raw.state as TaskState) : null
   if (typeof raw.task_id !== 'string' || !ID_RE.test(raw.task_id) || !route || !state) return null
-  return { task_id: raw.task_id, route, state, result: typeof raw.result === 'string' ? line(raw.result, 140) || null : null, answer: typeof raw.answer === 'string' ? line(raw.answer, 1500) || null : null, needs_consent: parseConsent(raw.needs_consent), question: parseQuestion(raw.question) }
+  return { task_id: raw.task_id, route, state, result: typeof raw.result === 'string' ? line(raw.result, 140) || null : null, answer: typeof raw.answer === 'string' ? line(raw.answer, 1500) || null : null, reason: typeof raw.reason === 'string' ? line(raw.reason, 160) || null : null, needs_consent: parseConsent(raw.needs_consent), question: parseQuestion(raw.question) }
 }
 
 // ------------------------------------------------------------------------------------------------ the HTTP client
@@ -102,7 +111,8 @@ export type TaskFailure = 'too_many_tasks' | 'kill_switch' | 'no_token' | 'not_o
 export type Result<T> = ({ ok: true } & T) | { ok: false; reason: TaskFailure }
 
 export interface TaskClient {
-  create(text: string): Promise<Result<{ created: Created }>>
+  /** `source` voice (the model's wording, actor voice) or typed (the worker's own line from the Ask bar, actor worker). */
+  create(text: string, source?: 'voice' | 'typed'): Promise<Result<{ created: Created }>>
   consent(taskId: string, choice: ConsentChoice): Promise<Result<{ row: TaskRow | null }>>
   answer(taskId: string, optionId: string): Promise<Result<{ row: TaskRow | null }>>
   get(taskId: string): Promise<TaskRow | null>
@@ -149,8 +159,8 @@ export function createTaskClient(d: TaskClientDeps): TaskClient {
   }
   const safeId = (id: string): boolean => ID_RE.test(id)
   return {
-    async create(text) {
-      const r = await call('POST', '/tasks', { actor: 'voice', body: { text, source: 'voice' } })
+    async create(text, source = 'voice') {
+      const r = await call('POST', '/tasks', { actor: source === 'typed' ? 'worker' : 'voice', body: { text, source } })
       if (!r || r.status !== 201) return { ok: false, reason: failure(r) }
       const created = parseCreated(r.json)
       return created ? { ok: true, created } : { ok: false, reason: 'unavailable' }

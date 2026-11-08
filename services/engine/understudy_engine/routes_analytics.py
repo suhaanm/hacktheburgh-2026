@@ -65,8 +65,7 @@ def get_hazard(person: str, limit: int | None = Query(None, ge=1, le=100000, des
     is_apprentice = person.startswith(("p_exp", "p_nov"))
     src = _hazard_eval(secondary=is_apprentice)
     if src is None or person not in src.get("series_by_person", {}):
-        known = sorted((src or {}).get("series_by_person", {}))
-        return _error(404, "unknown_person", f"No hazard series for {person!r}. Known people: {', '.join(known) or 'none (is data/synthetic generated?)'}.")
+        return _error(404, "unknown_person", f"No hazard series for {person!r}.")
     series = src["series_by_person"][person]
     if limit:
         series = series[:limit]

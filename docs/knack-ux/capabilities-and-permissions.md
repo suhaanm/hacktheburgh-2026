@@ -20,30 +20,39 @@ macOS permissions are granted by the owner only, in System Settings, Privacy and
 
 "Never silence" has one honest exception: a spoken fixed line is quiet when ElevenLabs is not set up. The same words are on a card or the pill, so nothing is lost.
 
-## First run: the order of permissions
+## First run: the real flow (three screens)
+
+The code is `apps/dashboard/src/screens/FirstRun` (model.ts is the pure part). Every screen has a Skip; nothing is ever consented to by the screen itself, a consent is a real click on a card.
+
+| Screen | What it shows | What it does for Hey Knack |
+|---|---|---|
+| 1 Role: "What work do you do?" | a card per role and "Not sure yet" | nothing; a click advances |
+| 2 What Knack may do | one card each for working times (capture), screen glances and voice, every card with Yes, Not now and Never of equal weight; glances and voice exist only in the desktop app | the voice card is "Listen for Hey Knack": "Listens on this Mac for those words only and keeps nothing. Talking sends your voice to a model." Yes calls `wake.set(true)` and then `wake.arm()`; Not now and Never call `wake.set(false)`. The glance card's Yes records the awareness consent for screen glances |
+| 3 Check that it works | the macOS permissions as they are (microphone, speech recognition, screen recording, only those a Yes needs, plus screen recording when "Show me" can draw), Hey Knack's state, "Show me" and "Show my week" | each permission says what will not work without it and offers Allow or Open System Settings (Track A's `permissions`); the Hey Knack row reads `wake.state()`: "Listening. Say Hey Knack.", "On, but not listening yet." plus the plain line, or "Off. Turn it on in Settings."; with `fix` set it offers System Settings; "Show me" draws the annotation ring on a sample row in this window (`tryRing`, ids `point-try`), and never clicks |
+
+While first run is open the screen reports `wake.context({ firstRun: true })` and clears it when it ends, so the listener stays off until the voice card's Yes calls `arm()`, and the context packet says `first_run=yes`. A browser tab shows the same screens without the desktop rows ("Available in the Knack app.").
+
+### The order of permissions
 
 The order is fixed by who asks, and the worker is told one thing at a time.
 
-1. **Microphone.** On the set-up step "Turn on Hey Knack" the worker clicks "Turn on". The shell calls `window.knackShell.wake.arm()`, which starts the listener, which asks macOS for the microphone. Until `arm()` the listener stays off while set-up is showing (the shell reports `wake.context({ firstRun: true })` when set-up starts), so no prompt appears at launch out of context. Words on the step: title "Turn on Hey Knack", body "Knack listens on this Mac only. macOS will ask for the microphone, then speech recognition.", buttons "Turn on" and "Not now".
-2. **Speech Recognition.** Asked by the same listener straight after the microphone is granted, with no click in between. Nothing for the shell to do; if either is refused the listener ends with a closed code, a card appears once, and `wake.state()` returns `fix: 'microphone'` or `'speech'` for a button beside the line in Settings.
-3. **Screen Recording.** Only when the worker turns on screen glances or answers Yes to "Knack may look at your screen while we talk" and then asks Knack to find something that is not in Knack or in a browser tab with the extension. Words: "To find things anywhere on your screen, Knack needs Screen Recording. Pointing in Knack or in your browser does not." Button "Open System Settings".
-4. **Accessibility.** Only for click for me, and only after the first supervised test has passed. Words: "To click for you, Knack needs Accessibility. It will always ask first, with Allow once." Pointing never needs it.
+1. **Microphone.** When the worker clicks Yes on the voice card, the screen calls `wake.arm()`, which starts the listener, which asks macOS for the microphone. Until then the listener stays off while first run is open, so no prompt appears at launch.
+2. **Speech Recognition.** Asked by the same listener straight after the microphone is granted, with no click in between. If either is refused the listener ends with a closed code, a card appears once, and `wake.state().fix` is `'microphone'` or `'speech'` (screen 3 shows the System Settings button next to the Hey Knack line). A missing Dictation language is `fix: 'dictation'`.
+3. **Screen Recording.** Only when a Yes needs it (screen glances) or when "Show me" can draw the ring; and later, only when the worker asks Knack to find something that is not in Knack or in a browser tab with the extension. Words on the card: "To find it, Knack must see your screen. Pointing in Knack or in a browser with the extension works without this. Finding things anywhere on screen needs Screen Recording."
+4. **Accessibility.** Only for click for me, and only after the first supervised test has passed. Pointing never needs it.
 
 Not asked by Knack at first run, ever: Input Monitoring, Automation, Full Disk Access.
 
-## First run: the Try it step
+### The first conversation (what Knack says the first time the worker says Hey Knack)
 
-The last step of first run, after the permissions. The shell reports `wake.context({ firstRun: true })` from the start of set-up to its end, so the model knows to be brief and kind (the context packet says `first_run=yes`; the screen id is `first_run` while the worker is on those screens).
+The first time a conversation starts, whether during set-up or after it, the model is given a code-written opening turn so the first words are ours:
 
-Sequence:
+- **After first run** (the ordinary case): "Hi, I am Knack. Try saying: show me where the Needs you list is." If the worker says it, the model calls `point_at` with "Needs you" and says "That is the Needs you list." Knack finds the sidebar row by its name in the Knack window (no picture, no permission), draws the ring and moves the ghost cursor to it.
+- **During set-up** (the Check screen is open and has no sidebar): "Hi, I am Knack. Try saying: show me where the Show my week button is." If the worker says it, `point_at` with "Show my week", then "That is the Show my week button."
 
-1. Screen: title "Say Hey Knack" (3 words); one line under it, "Then say: show me where the Needs you list is." (10 words); a quiet "Listening" status when `wake.state().listening`; one button, "Skip". If the listener is blocked the step shows the status line and its System Settings button instead (`wake.state().line` and `.fix`).
-2. The worker says "Hey Knack". The chime plays; the pill says Listening. The first time ever, the two cards appear (Talk with Knack?, then the screen card), each needing a real click; Not now on the screen card is fine here, because pointing in the Knack window needs no picture.
-3. Knack's first words, once, fixed: "Hi, I am Knack. Try saying: show me where the Needs you list is." (the code sends this as the model's opening turn, so the words are ours even though the voice is the model's; the model is told to say exactly this and then wait).
-4. The worker says "show me where the Needs you list is". The model calls `point_at` with the description "Needs you". Knack finds the sidebar row by its name in the Knack window (no picture, no permission), draws the ring and moves the ghost cursor to it, and the model says: "That is the Needs you list." Then it says they can ask for help or say goodbye.
-5. The step is done when `wake.state().welcomed` turns true (the first conversation started), or when the worker clicks Continue. The Continue button is always there.
+Either way it is said once: `welcomed` turns true when the first conversation starts, and a conversation that could not start does not use it up. So a worker who skips the Check screen still gets the welcome the first time they say Hey Knack after first run. The first time ever, the two cards also appear (Talk with Knack?, then the screen card), each needing a real click; Not now on the screen card is fine, because pointing in the Knack window needs no picture. The model is told to be extra brief while the packet says `first_run=yes`.
 
-For Track A: the ring overlay is hidden while the Knack window is focused (docs/knack-ux/08-window-states.md). During first run the voice ring (annotation id `point-voice`, with `point-voice-ghost`) must still draw on the Knack window, or the Try it step shows nothing. `tryRing` can call the same pointing path; the voice conversation does it through `point_at` with no help from the shell.
+Voice consent is two layers and the first-run voice card only does the first: the card turns the on-device listener on; sending the worker's voice to a cloud model, and a picture of the screen with it, are asked on the first wake by the two cards above (the Live consent, D30). The overlay is not hidden while the Knack window is focused, so the voice ring (annotation ids `point-voice`, `point-voice-ghost`) draws on it; "Show me" uses its own ids and never takes over a voice ring.
 
 ## Packaged Knack.app
 
@@ -71,3 +80,7 @@ What the model is told is a closed answer written in code: `started` is always f
 The consent card is the worker's: only a real mouse click counts, and the click is what posts consent to the service (`POST /tasks/{id}/consent`, actor `worker_approval`, with the per-boot token the main process reads from the data folder). A key, a spoken word, a timeout or closing the card posts nothing; the task stays waiting in Needs you. Not now declines it. More shows a second card for "Allow everything for this task" when the service offers it. Stop everything closes the card.
 
 The desktop route never clicks: the model says "I will show you instead" and points. If the first supervised test has passed (the rung record), the model is also told it may offer one single click through `do_it_for_me`, which has its own card. The context packet carries the number of running tasks (a count, nothing else).
+
+### Typing a task: the Ask bar
+
+Option-Space tapped (or Ask Knack... in the menu bar) opens the Ask bar. Return with a voice conversation open sends the line into it, as before. With none open the line becomes a task through the same client (source typed, actor worker, `POST /tasks`): the same consent card (a real mouse click only, equal buttons, More for Allow everything for this task), the same clarifying-question card, and the same refusals, now as one plain sentence under the input with the text kept in the box: too many tasks, everything stopped, the task service not answering, the request refused (a request that looks like it holds a key or a password comes back with the service's own sentence). A typed task has no spoken line: Started. appears on a small card after Allow, Done. (or That did not work.) on a card when it finishes, an answered question on a card titled Your answer, and the desktop route as I will show you instead with the service's own steps. Nothing is read out unless a voice conversation is open and the task was spoken.

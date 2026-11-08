@@ -5,7 +5,7 @@ import { depthLabel } from "../../lib/profile";
 import type { OnboardingQuestions, Pack } from "../../types";
 import {
   ASK_AGAIN_AFTER_DAYS, BROWSER_ROWS, CAPTURE_CARD, CHOICES, GLANCE_CARD, NEEDS_APP, NO_ROLE, VOICE_CARD, START, STEPS, captureRecord, cardLine, clicksToHome, defaultAnswers, heyKnackRow, kindsFor, mayAskAgain, nextUnanswered, parseProgress, permsToShow,
-  progressRecord, readyLines, reduce, roleCards, shouldStartFirstRun, type FirstRunAction, type FirstRunState,
+  progressRecord, readyLines, reduce, roleCards, shouldRearm, shouldStartFirstRun, type FirstRunAction, type FirstRunState,
 } from "./model";
 
 const fx = <T,>(x: unknown): T => ((x as { data?: T }).data ?? x) as T;
@@ -236,5 +236,16 @@ describe("when first run opens by itself", () => {
       expect(shouldStartFirstRun({ ...base, inApp, path: "/setup", hash: "#/setup" })).toBe(false);
       expect(shouldStartFirstRun({ ...base, inApp, seen: true })).toBe(false);
     }
+  });
+});
+
+describe("coming back from System Settings", () => {
+  it("a listener refused for the microphone or speech recognition is armed again on return; nothing else is", () => {
+    expect(shouldRearm({ fix: "microphone" })).toBe(true);
+    expect(shouldRearm({ fix: "speech" })).toBe(true);
+    expect(shouldRearm({ fix: "dictation" })).toBe(false);
+    expect(shouldRearm({ fix: null })).toBe(false);
+    expect(shouldRearm({})).toBe(false);
+    expect(shouldRearm(null)).toBe(false);
   });
 });

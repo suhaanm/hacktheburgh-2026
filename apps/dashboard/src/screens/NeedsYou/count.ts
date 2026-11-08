@@ -7,8 +7,17 @@ import { buildItems, needsCount } from "./model";
 
 export const DEMO_PERSON = "p_ninetofive";
 
+/** Whose briefing and runs to count: the person the shell has already read, else the one the engine names now, and only when it names nobody the sample person.
+ *  (The shell asks for the identity and for this count in the same tick, so the first count used to read the SAMPLE person's briefing: the badge said 7 while Needs you listed 2.) */
+async function whoseCount(): Promise<string> {
+  const known = getState().person;
+  if (known) return known;
+  const who = await api.identity().catch(() => null);
+  return who?.person ?? DEMO_PERSON;
+}
+
 export async function loadNeedsCount(): Promise<number> {
-  const person = getState().person ?? DEMO_PERSON;
+  const person = await whoseCount();
   const [q, r, b, a, t] = await Promise.allSettled([api.queue("all"), api.routines(), api.briefing(person), api.agentsRuns(person), api.tasks()]);
   const ok = <T,>(x: PromiseSettledResult<T>): T | null => (x.status === "fulfilled" ? x.value : null);
   const bd = ok(b);

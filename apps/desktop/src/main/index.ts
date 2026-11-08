@@ -58,7 +58,6 @@ import { APP_NAME } from '../shared/brand'
 import { createAgentPills } from './knack/agent-pills'
 import { createAskBar } from './knack/ask-bar'
 import { createTryRingPort } from './knack/try-ring'
-import { askUnavailableLine } from './knack/ask-ipc'
 import { registerAppScheme } from './knack/app-protocol-electron'
 import { glyphSvg } from './knack/brand-glyph'
 import { knackHidden, knackShellEnabled, prepareKnackEnv } from './knack/env'
@@ -279,7 +278,8 @@ void app.whenReady().then(async () => {
         disabled: headless || flag('ALONGSIDE_NO_OVERLAY'),
         log: ctx.log,
         onClosed: () => void knack?.dispatch({ type: 'ask_closed' }),
-        submit: (text) => (liveBox.reg?.manager.injectTyped(text) ? { ok: true } : { ok: false, line: askUnavailableLine(settings.get().talkHotkey) }),
+        // Return: into a voice conversation when one is open; otherwise the line becomes a task (a card asks first; the text stays in the box when it cannot be taken).
+        submit: async (text) => (liveBox.reg?.manager.injectTyped(text) ? { ok: true } : wakeBox.ctl ? await wakeBox.ctl.submitTyped(text) : { ok: false, line: 'Tasks are not available right now.' }),
       })
     : null
   // KNACK: the background agent pills, top right of the screen: one small pill per task or run working in the background (the bottom-right column stays for Knack's own
