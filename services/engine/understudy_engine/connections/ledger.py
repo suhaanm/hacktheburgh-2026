@@ -58,9 +58,10 @@ def rows(connection: str | None = None) -> list[dict[str, Any]]:
     return [r for r in ledger.read_all() if r.get("kind") == "mcp" and (not connection or r.get("connection") == connection)]
 
 
-def reads_summary(connection: str | None = None) -> dict[str, Any]:
-    """Counts only: calls, reads, changes asked for, refused, bytes returned, the last call's time, and the tools used (names and counts)."""
-    rs = rows(connection)
+def reads_summary(connection: str | None = None, *, _all: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    """Counts only: calls, reads, changes asked for, refused, bytes returned, the last call's time, and the tools used (names and counts).
+    ``_all`` is every mcp row already read (a list of fifteen presets reads the ledger once, not fifteen times)."""
+    rs = [r for r in (_all if _all is not None else rows()) if not connection or r.get("connection") == connection]
     by_class: dict[str, int] = {}
     by_outcome: dict[str, int] = {}
     by_tool: dict[str, int] = {}

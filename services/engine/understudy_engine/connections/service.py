@@ -17,7 +17,7 @@ def _credential_specs(preset: Preset) -> list[dict[str, str]]:
     return [{"env": c["env"], "label": c["label"]} for c in (preset.real or {}).get("credentials", [])]
 
 
-def view(preset: Preset, *, detail: bool = False) -> dict[str, Any]:
+def view(preset: Preset, *, detail: bool = False, _rows: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     rec = state.record(preset.id)
     st = state.status(preset, rec)
     params = (rec or {}).get("params") or {}
@@ -27,7 +27,7 @@ def view(preset: Preset, *, detail: bool = False) -> dict[str, Any]:
         real["params"], real["credentials"] = _param_specs(preset), _credential_specs(preset)
         real["verified"] = True
         modes["real"] = real
-    reads = ledger.reads_summary(preset.id)
+    reads = ledger.reads_summary(preset.id, _all=_rows)
     out: dict[str, Any] = {
         "id": preset.id, "app": preset.app, "group": preset.group, "kind": preset.kind, "reads": preset.reads, "short": preset.short or preset.reads,
         "caution": preset.caution,
@@ -50,4 +50,5 @@ def listing(role: str | None = None, group: str | None = None) -> list[dict[str,
     presets = registry.for_role(role) if role else list(registry.all_presets().values())
     if group:
         presets = [p for p in presets if p.group == group]
-    return [view(p) for p in presets]
+    rows = ledger.rows()                                           # read the ledger once for the whole list
+    return [view(p, _rows=rows) for p in presets]

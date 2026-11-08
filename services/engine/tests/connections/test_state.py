@@ -255,3 +255,15 @@ def test_reads_summary_is_counts_only_and_says_where_the_traffic_goes():
     assert s["by_tool"] == {"channels_list": 1, "conversations_add_message": 1}
     assert "own hosts" in s["note"] and "outside the frame egress guard" in s["note"]
     assert cl.reads_summary()["calls"] == 3
+
+
+def test_listing_every_connection_reads_the_ledger_once_not_once_per_connection(monkeypatch):
+    from understudy_engine.connections import service
+
+    cl.record_call(server="slack", tool="channels_list", klass="read", bytes_args=2, outcome="ok", bytes_result=9)
+    calls = []
+    real = ledger.read_all
+    monkeypatch.setattr(ledger, "read_all", lambda: calls.append(1) or real())
+    rows = service.listing()
+    assert len(calls) == 1 and len(rows) == 15
+    assert next(r for r in rows if r["id"] == "slack")["usage"]["calls"] == 1
